@@ -1,3 +1,4 @@
+import { endAudienceDisplay } from 'pptx-viewer-shared';
 import type { ViewerMode } from 'pptx-viewer-shared';
 import { onDestroy, onMount } from 'svelte';
 
@@ -62,7 +63,13 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getSource: options.getSource,
 		getSlideIndex: () => viewer.current,
 		onAudienceSlide: (index) => viewer.goTo(index),
-		onAudienceExit: () => (viewer.isFullscreen = false),
+		// The presenter ended the session: close this tab, and when the browser
+		// refuses, leave the end-of-slide-show screen up instead of the editor.
+		onAudienceExit: () => {
+			if (endAudienceDisplay(window)) {
+				presentationCluster.presentation.showEndOfShow();
+			}
+		},
 	});
 	onMount(() => {
 		presenterSession.connect();

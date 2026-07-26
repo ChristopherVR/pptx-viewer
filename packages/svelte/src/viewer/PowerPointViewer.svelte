@@ -14,7 +14,9 @@
 		buildUserFontFaceStyles,
 		createBlankSlide,
 		DEFAULT_VIEWER_OPTIONS,
+		endAudienceDisplay,
 		makeSlideId,
+		mayLeaveSlideShow,
 		readBackstageRecentFile,
 		readStoredViewerPrefs,
 		resolveThemeCatalogEntry,
@@ -193,7 +195,13 @@
 		getSource: () => source,
 		getSlideIndex: () => viewer.current,
 		onAudienceSlide: (index) => viewer.goTo(index),
-		onAudienceExit: () => (viewer.isFullscreen = false),
+		// The presenter ended the session: close this tab, and when the browser
+		// refuses, leave the end-of-slide-show screen up instead of the editor.
+		onAudienceExit: () => {
+			if (endAudienceDisplay(window)) {
+				presentation.showEndOfShow();
+			}
+		},
 	});
 	onMount(() => {
 		presenterSession.connect();
@@ -537,7 +545,10 @@
 		// Past the last slide the controller raises the black end screen; a further
 		// forward input (or a click on it) ends the show, like PowerPoint.
 		exit: () => {
-			viewer.isFullscreen = false;
+			// Never in an audience display: it has no editor to fall back to.
+			if (mayLeaveSlideShow()) {
+				viewer.isFullscreen = false;
+			}
 		},
 		getFrameRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 	});

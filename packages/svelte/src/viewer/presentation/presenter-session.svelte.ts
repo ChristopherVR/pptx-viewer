@@ -51,8 +51,9 @@ export class PresenterSession {
 				} else if (message.type === 'presenter-slide-change') {
 					this.options.onAudienceSlide(message.slideIndex);
 				} else if (message.type === 'presenter-exit') {
+					// The host decides what an ended session looks like (close the tab,
+					// else show the end screen). It must never land in the editor.
 					this.options.onAudienceExit();
-					window.close();
 				}
 			} else if (
 				message.type === 'audience-ready' &&

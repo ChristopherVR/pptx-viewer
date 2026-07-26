@@ -166,6 +166,17 @@ export class PresentationController {
 		this.#deps.navigate(next);
 	}
 
+	/**
+	 * Raise the black end-of-slide-show screen without ending anything.
+	 *
+	 * Used by an audience display when the presenter ends the session and the
+	 * browser refuses to close the tab: the room sees the end screen, never the
+	 * editor.
+	 */
+	showEndOfShow(): void {
+		this.#endOfShow = true;
+	}
+
 	/** Backward input while the end screen is up just dismisses it. */
 	retreat(): boolean {
 		if (!this.#endOfShow) {

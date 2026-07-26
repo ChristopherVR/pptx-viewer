@@ -1,5 +1,9 @@
 import type { PresentationPointerTool } from 'pptx-viewer-shared';
-import { createPresentationKeyBuffer, mapPresentationKey } from 'pptx-viewer-shared';
+import {
+	createPresentationKeyBuffer,
+	mapPresentationKey,
+	mayLeaveSlideShow,
+} from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { PresentationController } from '../presentation/presentation-controller.svelte';
@@ -100,12 +104,25 @@ function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolea
 export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHandlers {
 	return {
 		onFullscreenToggle(): void {
+			// An audience display mirrors the presenter's screen: Esc / `-` must not
+			// drop it out of the show and expose the editing chrome to the room.
+			if (deps.viewer.isFullscreen && !mayLeaveSlideShow()) {
+				return;
+			}
 			const root = deps.getRootEl();
 			if (root) {
 				void toggleFullscreen(root);
 			}
 		},
 		onFullscreenChange(): void {
+			// The audience tab has no transient activation to enter real fullscreen,
+			// so it presents as a full-viewport show instead; leaving the browser's
+			// fullscreen must not end that show.
+			if (!mayLeaveSlideShow()) {
+				deps.viewer.isFullscreen = true;
+				deps.getRootEl()?.focus();
+				return;
+			}
 			deps.viewer.isFullscreen = isFullscreenActive();
 			if (deps.viewer.isFullscreen) {
 				deps.getRootEl()?.focus();
