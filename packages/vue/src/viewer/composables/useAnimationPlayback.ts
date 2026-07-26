@@ -24,7 +24,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { PresentationAnimationController } from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
-import { onScopeDispose, shallowRef, toValue, watch } from 'vue';
+import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter, Ref } from 'vue';
 
 import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
@@ -61,6 +61,14 @@ export interface UseAnimationPlaybackResult {
 	hoverTriggerShapeIds: Ref<ReadonlySet<string>>;
 	/** True when the main timeline has no more click-groups to reveal. */
 	isComplete: Ref<boolean>;
+	/**
+	 * True while the active slide shows its builds as already complete because
+	 * the presenter stepped BACKWARD onto it. The next back press replays the
+	 * slide instead of leaving it (PowerPoint's behaviour).
+	 */
+	seededCompleted: Ref<boolean>;
+	/** Seed the NEXT slide change as fully built (a backward step). */
+	markNextEntryCompleted: () => void;
 	/**
 	 * Reveal the next click-group. Returns `true` if a group was revealed, `false`
 	 * when playback is complete or animations are disabled (so the caller can fall
@@ -116,8 +124,20 @@ export function useAnimationPlayback(
 		isComplete.value = !controller || !controller.hasMoreSteps();
 	}
 
-	function resetForSlide(): void {
+	/**
+	 * Whether the active slide is showing its builds as already complete because
+	 * the presenter stepped BACKWARD onto it. The next back press replays them.
+	 */
+	const seededCompleted = ref(false);
+	/**
+	 * Set by the host just before a BACKWARD slide change so the reseed that the
+	 * slide watcher fires seeds the incoming slide as fully built.
+	 */
+	let pendingCompletedEntry = false;
+
+	function resetForSlide(options2?: { completed?: boolean }): void {
 		clearTimers();
+		seededCompleted.value = false;
 		const slide = toValue(options.slide);
 		if (!slide || !animationsEnabled()) {
 			controller = null;
@@ -138,6 +158,17 @@ export function useAnimationPlayback(
 		hoverTriggerShapeIds.value = controller.hoverTriggerShapeIds;
 		presentationElementStates.value = controller.computeStates();
 		syncComplete();
+
+		// Stepping backward onto a slide shows it with every build already
+		// complete, the way PowerPoint does: nothing plays, nothing is scheduled,
+		// and a further back press replays the slide from the start.
+		if (options2?.completed) {
+			seededCompleted.value = controller.hasMoreSteps();
+			controller.completeAll();
+			presentationElementStates.value = controller.computeStates();
+			syncComplete();
+			return;
+		}
 
 		// Auto-play the first group when the slide opens with a withPrevious /
 		// afterPrevious / afterDelay build (mirrors React's entrance auto-play).
@@ -207,7 +238,11 @@ export function useAnimationPlayback(
 	// Rebuild whenever the active slide (or the animation switch) changes.
 	watch(
 		() => [toValue(options.slide), toValue(options.showWithAnimation)] as const,
-		() => resetForSlide(),
+		() => {
+			const completed = pendingCompletedEntry;
+			pendingCompletedEntry = false;
+			resetForSlide({ completed });
+		},
 		{ immediate: true },
 	);
 
@@ -219,6 +254,11 @@ export function useAnimationPlayback(
 		interactiveTriggerShapeIds,
 		hoverTriggerShapeIds,
 		isComplete,
+		seededCompleted,
+		/** Seed the NEXT slide change as fully built (a backward step). */
+		markNextEntryCompleted: (): void => {
+			pendingCompletedEntry = true;
+		},
 		advance,
 		reset: resetForSlide,
 		handleInteractiveShapeClick,

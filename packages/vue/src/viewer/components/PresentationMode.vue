@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
 import {
+	acceptsPresentationInput,
 	ANIMATION_KEYFRAMES_CSS,
 	createPresentationKeyBuffer,
 	endAudienceDisplay,
@@ -275,6 +276,15 @@ function prev(): void {
 		showEndScreen.value = false;
 		return;
 	}
+	// A slide entered backward shows its builds already complete. The next back
+	// press replays them from the start rather than leaving the slide, so a
+	// presenter who overshot can watch the build again (PowerPoint).
+	if (playback.seededCompleted.value) {
+		playback.reset();
+		return;
+	}
+	// PowerPoint shows a slide you step BACK onto with its builds already played.
+	playback.markNextEntryCompleted();
 	goTo(currentIndex.value - 1);
 }
 
@@ -286,6 +296,11 @@ function prev(): void {
  * next button and the end-screen are unaffected and keep calling `next()`.
  */
 function advanceFromClick(): void {
+	// An audience display never drives itself: a tap or swipe of its own would
+	// move it off the presenter's slide, and the next snapshot would drag it back.
+	if (!acceptsPresentationInput()) {
+		return;
+	}
 	if (
 		!showEndScreen.value &&
 		playback.isComplete.value &&
@@ -463,6 +478,12 @@ function setBlackout(value: 'black' | 'white'): void {
 }
 
 function handleKeyDown(event: KeyboardEvent): void {
+	// An audience display mirrors the presenter's screen. If its own keyboard
+	// navigated, a stray key moved it off the presenter's slide and the next
+	// snapshot yanked it back, which reads as the display refusing to advance.
+	if (!acceptsPresentationInput()) {
+		return;
+	}
 	// Live captions are PowerPoint's "C", which the shared slide-show map leaves
 	// unassigned, so it stays handled here.
 	if ((event.key === 'c' || event.key === 'C') && !event.ctrlKey && !event.metaKey) {
