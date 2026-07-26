@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-07-26
 
+_Releases: pptx-react-viewer@2.5.1, pptx-vue-viewer@2.5.1, pptx-angular-viewer@2.5.1, pptx-vanilla-viewer@1.6.1, pptx-svelte-viewer@2.5.1_
+
+### Bug Fixes
+
+- **angular:** Draw collaboration presence in slide space (by @ChristopherVR) ([297aa8f](https://github.com/ChristopherVR/pptx-viewer/commit/297aa8ff6e563d1d60d1d83a6f3ec82c7f9245f2))
+
+### Testing
+
+- **e2e:** Cover remote presence geometry in every binding (by @ChristopherVR) ([adb9b3c](https://github.com/ChristopherVR/pptx-viewer/commit/adb9b3c180d3f7fce1bd175dfc0b29d385937a51))
+
+## 2026-07-26
+
 _Releases: pptx-viewer-core@2.0.4, pptx-react-viewer@2.5.0, pptx-vue-viewer@2.5.0, pptx-angular-viewer@2.5.0, pptx-vanilla-viewer@1.6.0, pptx-svelte-viewer@2.5.0_
 
 ### Features
