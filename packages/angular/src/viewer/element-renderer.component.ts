@@ -124,6 +124,12 @@ interface Paragraph {
 	spaceBeforePx?: number;
 	/** `margin-bottom` in px from `a:spcAft` (space after), when overridden. */
 	spaceAfterPx?: number;
+	/**
+	 * `font-size` in px set on the paragraph so its CSS line boxes are built
+	 * from its own runs rather than the text body default. Mirrors the shared
+	 * `RenderParagraph.strutFontSizePx`; see `resolveParagraphStrutFontSize`.
+	 */
+	strutFontSizePx?: number;
 }
 
 /**
@@ -362,6 +368,7 @@ interface Paragraph {
 									[style.line-height]="para.lineHeight ?? null"
 									[style.margin-top.px]="para.spaceBeforePx ?? null"
 									[style.margin-bottom.px]="para.spaceAfterPx ?? null"
+									[style.font-size.px]="para.strutFontSizePx ?? null"
 								>
 									@if (para.bulletPicture?.src) {
 										<img
@@ -788,6 +795,13 @@ export class ElementRendererComponent {
 				});
 				continue;
 			}
+			// Track the tallest non-bullet run so the paragraph's line box is
+			// built from its own text rather than the body default (a paragraph
+			// of small runs inside a larger-defaulting body otherwise lays out
+			// on too-tall lines and overflows the shape).
+			if (!seg.bulletInfo && typeof seg.style?.fontSize === 'number' && seg.style.fontSize > 0) {
+				current.strutFontSizePx = Math.max(current.strutFontSizePx ?? 0, seg.style.fontSize);
+			}
 			const rawText = seg.isLineBreak ? '\n' : seg.text;
 			// Resolve OOXML field runs (slide number, date/time, header/footer,
 			// slide title, docproperty) to their display text, mirroring React's
@@ -803,6 +817,17 @@ export class ElementRendererComponent {
 					href,
 					tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
 				});
+			}
+		}
+		// A paragraph that already matches the body default needs no re-basing.
+		const bodyFontSize = el.textStyle?.fontSize;
+		for (const p of out) {
+			if (
+				p.strutFontSizePx !== undefined &&
+				typeof bodyFontSize === 'number' &&
+				Math.abs(p.strutFontSizePx - bodyFontSize) < 0.01
+			) {
+				p.strutFontSizePx = undefined;
 			}
 		}
 		return out.filter(

@@ -12,6 +12,11 @@ import {
 import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
+import {
+	buildMorphScopedCss,
+	buildMorphTransitionPlan,
+	morphOptionToMode,
+} from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import {
@@ -102,6 +107,7 @@ function ensureTransitionKeyframes(): void {
 		<div
 			class="pptx-ng-transition-layer"
 			data-pptx-transition-layer="outgoing"
+			[attr.data-pptx-morph-outgoing]="morphPlan() ? 'true' : null"
 			[ngStyle]="layerStyle()"
 		>
 			<div [ngStyle]="slideBoxStyle()">
@@ -136,6 +142,11 @@ export class PresentationTransitionOverlayComponent {
 	 * which reads as the slide snapping small the instant a transition starts.
 	 */
 	readonly zoom = input<number>(1);
+	/**
+	 * The arriving slide. Required only for Morph, which has to match shapes
+	 * across both slides; every other transition ignores it.
+	 */
+	readonly incomingSlide = input<PptxSlide | undefined>(undefined);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -167,10 +178,46 @@ export class PresentationTransitionOverlayComponent {
 			this.armCompletion(ms);
 		});
 
+		// Morph keyframes + per-element rules. They must reach the LIVE stage,
+		// which is a sibling component, so they are injected at document level.
+		// Element ids embed their slide path, so unscoped rules cannot leak onto
+		// another slide's elements.
+		effect(() => {
+			const plan = this.morphPlan();
+			this.applyMorphStyle(
+				plan
+					? [
+							buildMorphScopedCss(plan, '', 'incoming'),
+							buildMorphScopedCss(plan, 'data-pptx-morph-outgoing', 'outgoing'),
+						].join('\n')
+					: null,
+			);
+		});
+
 		this.destroyRef.onDestroy(() => {
 			this.clearTimer();
 			this.stopSound();
+			this.applyMorphStyle(null);
 		});
+	}
+
+	/** Owned `<style>` element carrying the active morph rules, if any. */
+	private morphStyle: HTMLStyleElement | null = null;
+
+	private applyMorphStyle(css: string | null): void {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		if (css === null) {
+			this.morphStyle?.remove();
+			this.morphStyle = null;
+			return;
+		}
+		if (!this.morphStyle) {
+			this.morphStyle = document.createElement('style');
+			document.head.appendChild(this.morphStyle);
+		}
+		this.morphStyle.textContent = css;
 	}
 
 	// ------------------------------------------------------------------
@@ -198,9 +245,32 @@ export class PresentationTransitionOverlayComponent {
 		);
 	});
 
+	/**
+	 * Active Morph plan, or `undefined` for every other transition.
+	 *
+	 * Morph travels individual shapes between the two slides rather than wiping
+	 * the surface, so it changes what this overlay paints: only the shapes with
+	 * no counterpart on the arriving slide. The ones that persist are animated
+	 * in place on the live stage by document-level rules (see `morphStyleEffect`).
+	 */
+	protected readonly morphPlan = computed(() =>
+		this.transition().type === 'morph'
+			? buildMorphTransitionPlan(
+					this.outgoingSlide(),
+					this.incomingSlide(),
+					this.resolvedDurationMs(),
+					morphOptionToMode(this.transition().morphOption),
+				)
+			: undefined,
+	);
+
 	/** The slide rendered in the animated layer (outgoing + its template). */
 	protected readonly layerSlide = computed<PptxSlide>(() => {
 		const slide = this.outgoingSlide();
+		const plan = this.morphPlan();
+		if (plan) {
+			return { ...slide, elements: [...plan.outgoingElements] };
+		}
 		const template = this.templateElements();
 		if (template.length === 0) {
 			return slide;
@@ -211,10 +281,13 @@ export class PresentationTransitionOverlayComponent {
 	/** Layer container style: animation + stacking relative to the stage. */
 	protected readonly layerStyle = computed<StyleMap>(() => {
 		const anims = this.animations();
+		const plan = this.morphPlan();
 		const style: StyleMap = {
-			'z-index': anims.outgoingOnTop ? '40' : '20',
+			'z-index': plan ? '40' : anims.outgoingOnTop ? '40' : '20',
 		};
-		if (anims.outgoing !== 'none') {
+		// A layer-wide animation would drag every shape as one block and cancel
+		// the morph, so during a morph the layer itself stays still.
+		if (!plan && anims.outgoing !== 'none') {
 			style['animation'] = anims.outgoing;
 		}
 		return style;

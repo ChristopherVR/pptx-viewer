@@ -278,6 +278,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				@if (activeTransition(); as t) {
 					<pptx-presentation-transition-overlay
 						[outgoingSlide]="t.outgoing"
+						[incomingSlide]="currentSlide()"
 						[canvasSize]="canvasSize()"
 						[transition]="t.transition"
 						[mediaDataUrls]="mediaDataUrls()"
