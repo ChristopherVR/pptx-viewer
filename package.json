@@ -78,7 +78,7 @@
 		"vue-tsc": "^3.3.8"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.61.1",
+		"@playwright/test": "^1.62.0",
 		"@types/three": "^0.185.1",
 		"@typescript/typescript6": "^6.0.2",
 		"@vitest/coverage-v8": "^4.1.10",
