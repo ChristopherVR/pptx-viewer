@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import {
+	buildMorphScopedCss,
+	buildMorphTransitionPlan,
+	morphOptionToMode,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
@@ -60,17 +65,69 @@ const animations = computed(() => resolveSlideTransition(props.transition));
 /** Effective duration (ms); `0` for instant (none/cut). */
 const durationMs = computed(() => resolveTransitionDurationMs(props.transition));
 
+// ---------------------------------------------------------------------------
+// Morph
+// ---------------------------------------------------------------------------
+
+/**
+ * Morph is not a whole-slide wipe: individual shapes travel from where they sat
+ * on the outgoing slide to where they sit on the incoming one. So when the
+ * transition is `morph` the two stacked layers are re-purposed - the incoming
+ * layer plays per-element keyframes (scoped by `data-pptx-morph-incoming`), and
+ * the outgoing layer only fades out the shapes that have no counterpart.
+ */
+const morphPlan = computed(() =>
+	props.transition?.type === 'morph'
+		? buildMorphTransitionPlan(
+				props.outgoingSlide,
+				props.incomingSlide,
+				durationMs.value,
+				morphOptionToMode(props.transition.morphOption),
+			)
+		: undefined,
+);
+
+/** Outgoing shapes with no incoming counterpart, rendered as a fade-out slide. */
+const morphOutgoingSlide = computed<PptxSlide | undefined>(() => {
+	const plan = morphPlan.value;
+	if (!plan || !props.outgoingSlide) {
+		return undefined;
+	}
+	return { ...props.outgoingSlide, elements: plan.outgoingElements };
+});
+
+const morphCss = computed(() => {
+	const plan = morphPlan.value;
+	if (!plan) {
+		return '';
+	}
+	return [
+		buildMorphScopedCss(plan, 'data-pptx-morph-incoming', 'incoming'),
+		buildMorphScopedCss(plan, 'data-pptx-morph-outgoing', 'outgoing'),
+	].join('\n');
+});
+
 const outgoingZIndex = computed(() => (animations.value.outgoingOnTop ? 2 : 1));
 const incomingZIndex = computed(() => (animations.value.outgoingOnTop ? 1 : 2));
 
 const outgoingLayerStyle = computed<CSSProperties>(() => ({
-	zIndex: outgoingZIndex.value,
-	animation: animations.value.outgoing !== 'none' ? animations.value.outgoing : undefined,
+	zIndex: morphPlan.value ? 2 : outgoingZIndex.value,
+	// Morph animates each shape individually; a layer-wide animation on top of
+	// that would drag the whole slide and cancel the effect.
+	animation: morphPlan.value
+		? undefined
+		: animations.value.outgoing !== 'none'
+			? animations.value.outgoing
+			: undefined,
 }));
 
 const incomingLayerStyle = computed<CSSProperties>(() => ({
-	zIndex: incomingZIndex.value,
-	animation: animations.value.incoming !== 'none' ? animations.value.incoming : undefined,
+	zIndex: morphPlan.value ? 1 : incomingZIndex.value,
+	animation: morphPlan.value
+		? undefined
+		: animations.value.incoming !== 'none'
+			? animations.value.incoming
+			: undefined,
 }));
 
 // ---------------------------------------------------------------------------
@@ -103,18 +160,23 @@ onBeforeUnmount(clearTimer);
 	<div class="pptx-vue-transition-overlay" data-pptx-transition-overlay>
 		<!-- Inject the transition @keyframes once for this overlay. -->
 		<component :is="'style'">{{ SLIDE_TRANSITION_KEYFRAMES_CSS }}</component>
+		<component :is="'style'" v-if="morphPlan">{{ morphCss }}</component>
 
-		<!-- Outgoing (old) slide snapshot. -->
+		<!-- Outgoing (old) slide snapshot. During a morph this carries only the
+		     shapes with no incoming counterpart, so the ones that persist stay
+		     visible on the incoming layer while they travel. -->
 		<div
 			class="pptx-vue-transition-layer"
 			data-pptx-transition-layer="outgoing"
+			:data-pptx-morph-outgoing="morphPlan ? 'true' : undefined"
 			:style="outgoingLayerStyle"
 		>
 			<SlideStage
-				:slide="outgoingSlide"
+				:slide="morphPlan ? morphOutgoingSlide : outgoingSlide"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
+				:preserve-element-ids="Boolean(morphPlan)"
 			/>
 		</div>
 
@@ -122,6 +184,7 @@ onBeforeUnmount(clearTimer);
 		<div
 			class="pptx-vue-transition-layer"
 			data-pptx-transition-layer="incoming"
+			:data-pptx-morph-incoming="morphPlan ? 'true' : undefined"
 			:style="incomingLayerStyle"
 		>
 			<SlideStage
@@ -129,6 +192,7 @@ onBeforeUnmount(clearTimer);
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
+				:preserve-element-ids="Boolean(morphPlan)"
 			/>
 		</div>
 	</div>

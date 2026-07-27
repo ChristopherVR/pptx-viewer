@@ -59,6 +59,9 @@ function paraStyle(para: RenderParagraph): CSSProperties {
 		marginLeft: para.marginLeftPx !== undefined ? `${para.marginLeftPx}px` : 0,
 		textIndent: para.textIndentPx !== undefined ? `${para.textIndentPx}px` : undefined,
 		lineHeight: para.lineHeight,
+		// Re-base the line box on this paragraph's own runs; every run span
+		// carries an explicit font-size, so this only moves the CSS strut.
+		fontSize: para.strutFontSizePx !== undefined ? `${para.strutFontSizePx}px` : undefined,
 	};
 }
 </script>

@@ -56,6 +56,14 @@ const props = withDefaults(
 		 * previews and transition snapshots so their media stays quiet.
 		 */
 		presenting?: boolean;
+		/**
+		 * Keep the `data-element-id` markers on an otherwise-static stage.
+		 *
+		 * Only the Morph transition layers set this: their per-element CSS is
+		 * keyed on those markers. It does not create a duplicate marked copy,
+		 * because the host hides its own stage while the overlay is mounted.
+		 */
+		preserveElementIds?: boolean;
 	}>(),
 	{ scale: 1 },
 );
@@ -82,6 +90,11 @@ watchPostEffect(() => {
 	}
 	if (props.interactive || props.presenting) {
 		applyRenderedElementAccessibility(stage, elements);
+	} else if (props.preserveElementIds) {
+		// Morph drives per-element CSS keyed on `data-element-id`, so the two
+		// transition layers must keep their markers. Safe because the host hides
+		// its own stage while the overlay is mounted, so there is still exactly
+		// one marked copy of each element on the page.
 	} else {
 		// Static surface (thumbnail, sorter, preview, export stage): remove the
 		// `data-element-id` markers so only the real canvas / presentation stage
