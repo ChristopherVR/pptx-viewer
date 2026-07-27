@@ -1,0 +1,95 @@
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { describe, expect, it } from 'vitest';
+
+import { buildMorphTransitionPlan, morphOptionToMode } from './morph-plan';
+
+function shape(id: string, name: string, x: number, y: number): PptxElement {
+	return {
+		id,
+		name,
+		type: 'shape',
+		x,
+		y,
+		width: 100,
+		height: 50,
+	} as PptxElement;
+}
+
+function slide(id: string, elements: PptxElement[]): PptxSlide {
+	return { id, slideNumber: 1, elements } as unknown as PptxSlide;
+}
+
+describe('morphOptionToMode', () => {
+	it('maps the OOXML option token onto the engine mode', () => {
+		expect(morphOptionToMode('byObject')).toBe('object');
+		expect(morphOptionToMode('byWord')).toBe('word');
+		expect(morphOptionToMode('byChar')).toBe('character');
+	});
+
+	it('defaults to object granularity, matching PowerPoint', () => {
+		expect(morphOptionToMode(undefined)).toBe('object');
+		expect(morphOptionToMode('nonsense')).toBe('object');
+	});
+});
+
+describe('buildMorphTransitionPlan', () => {
+	it('returns undefined when either slide is missing', () => {
+		expect(buildMorphTransitionPlan(undefined, slide('b', []), 500)).toBeUndefined();
+		expect(buildMorphTransitionPlan(slide('a', []), undefined, 500)).toBeUndefined();
+	});
+
+	it('returns undefined when both slides are empty', () => {
+		expect(buildMorphTransitionPlan(slide('a', []), slide('b', []), 500)).toBeUndefined();
+	});
+
+	it('keys a matched pair on the INCOMING element so it glides into place', () => {
+		const from = slide('a', [shape('a-1', 'Title', 0, 0)]);
+		const to = slide('b', [shape('b-1', 'Title', 200, 100)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 750);
+
+		expect(plan).toBeDefined();
+		expect(plan?.incomingAnimations.has('b-1')).toBeTruthy();
+		expect(plan?.outgoingAnimations.size).toBe(0);
+		expect(plan?.outgoingElements).toHaveLength(0);
+		expect(plan?.durationMs).toBe(750);
+		// The keyframes must start at the outgoing offset (-200, -100) and land
+		// at the identity transform, i.e. the incoming element's own geometry.
+		expect(plan?.keyframesCss).toContain('translate(-200px, -100px)');
+		expect(plan?.keyframesCss).toContain('translate(0, 0)');
+	});
+
+	it('hands back outgoing-only elements for the binding to keep painting', () => {
+		const leaving = shape('a-2', 'Leaving', 10, 10);
+		const from = slide('a', [shape('a-1', 'Title', 0, 0), leaving]);
+		const to = slide('b', [shape('b-1', 'Title', 0, 0)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+
+		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-2']);
+		expect(plan?.outgoingAnimations.has('a-2')).toBeTruthy();
+		// An element that only leaves must never be attached to the incoming slide.
+		expect(plan?.incomingAnimations.has('a-2')).toBeFalsy();
+	});
+
+	it('routes incoming-only elements to the incoming bucket as a fade-in', () => {
+		const from = slide('a', [shape('a-1', 'Title', 0, 0)]);
+		const to = slide('b', [shape('b-1', 'Title', 0, 0), shape('b-2', 'Arriving', 20, 20)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+
+		expect(plan?.incomingAnimations.has('b-2')).toBeTruthy();
+		expect(plan?.outgoingElements).toHaveLength(0);
+	});
+
+	it('emits one keyframes block per animation it hands out', () => {
+		const from = slide('a', [shape('a-1', 'Title', 0, 0), shape('a-2', 'Leaving', 10, 10)]);
+		const to = slide('b', [shape('b-1', 'Title', 50, 50), shape('b-2', 'Arriving', 20, 20)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+		const handedOut = (plan?.incomingAnimations.size ?? 0) + (plan?.outgoingAnimations.size ?? 0);
+
+		expect(handedOut).toBeGreaterThan(0);
+		expect(plan?.keyframesCss.match(/@keyframes/gu) ?? []).toHaveLength(handedOut);
+	});
+});

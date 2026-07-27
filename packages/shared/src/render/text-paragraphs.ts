@@ -15,6 +15,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { PictureBulletMarker } from './bullet-list';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
+import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import { buildRunEffectStyle } from './text-run-effects';
@@ -56,6 +57,16 @@ export interface RenderParagraph {
 	spaceBeforePx?: number;
 	/** `margin-bottom` in px from this paragraph's `a:pPr > a:spcAft` (space after). */
 	spaceAfterPx?: number;
+	/**
+	 * `font-size` in px to set on the paragraph element so its CSS line boxes
+	 * are built from its OWN runs rather than the text body's default size.
+	 * Undefined when the paragraph already matches the body default.
+	 *
+	 * See `resolveParagraphStrutFontSize` for why this is needed: without it a
+	 * paragraph of small runs inside a larger-defaulting body is laid out on
+	 * too-tall lines and overflows its shape.
+	 */
+	strutFontSizePx?: number;
 }
 
 /** Per-paragraph spacing derived from a paragraph's own `a:pPr`. */
@@ -190,6 +201,10 @@ export function buildParagraphs(
 
 		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
 		const spacing = resolveParagraphSpacing(firstSeg?.paragraphProperties);
+		const strutFontSizePx = resolveParagraphStrutFontSize(
+			paraSegments,
+			hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
+		);
 		return {
 			runs,
 			bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
@@ -200,6 +215,7 @@ export function buildParagraphs(
 			lineHeight: spacing.lineHeight,
 			spaceBeforePx: spacing.spaceBeforePx,
 			spaceAfterPx: spacing.spaceAfterPx,
+			strutFontSizePx,
 		};
 	});
 

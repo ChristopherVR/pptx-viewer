@@ -327,6 +327,8 @@ export * from './text-run-effects';
 // rendering. React + Vue consume it; Angular uses its own DomSanitizer.
 export * from './mathml-sanitize';
 export * from './text-paragraphs';
+export * from './paragraph-strut';
+export * from './morph-plan';
 export * from './text-advanced';
 export * from './text-theme';
 export * from './kinsoku-styles';
