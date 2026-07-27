@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { buildMorphTransitionPlan, morphOptionToMode } from 'pptx-viewer-shared';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { acceptsPresentationInput } from './presentation-mode/audience-content-store';
 import type {
@@ -437,6 +438,52 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	}, [presentationTimersRef]);
 
 	// -----------------------------------------------------------------------
+	// Morph transition
+	// -----------------------------------------------------------------------
+
+	// PowerPoint's Morph is a FLIP animation: the ARRIVING slide's elements are
+	// what move, starting from wherever their counterpart sat on the leaving
+	// slide. So the per-element animations are merged into the live stage's
+	// animation states here, and only the elements with no counterpart are left
+	// for the overlay to fade out. See shared `buildMorphTransitionPlan`.
+	const morphPlan = useMemo(() => {
+		if (!transitionOverlay || transitionOverlay.transition.type !== 'morph') {
+			return undefined;
+		}
+		return buildMorphTransitionPlan(
+			slides[transitionOverlay.outgoingSlideIndex],
+			slides[transitionOverlay.incomingSlideIndex],
+			transitionOverlay.durationMs,
+			morphOptionToMode(transitionOverlay.transition.morphOption),
+		);
+	}, [transitionOverlay, slides]);
+
+	const morphedElementStates = useMemo(() => {
+		if (!morphPlan || morphPlan.incomingAnimations.size === 0) {
+			return presentationElementStates;
+		}
+		const merged = new Map(presentationElementStates);
+		for (const [elementId, animation] of morphPlan.incomingAnimations) {
+			const existing = merged.get(elementId);
+			// An entrance animation on the arriving slide wins: PowerPoint plays
+			// the build, not the morph, for a shape that is explicitly animated in.
+			if (existing?.cssAnimation) {
+				continue;
+			}
+			merged.set(elementId, { ...existing, visible: true, cssAnimation: animation });
+		}
+		return merged;
+	}, [morphPlan, presentationElementStates]);
+
+	const morphedKeyframesCss = useMemo(
+		() =>
+			morphPlan
+				? `${presentationKeyframesCss ?? ''}\n${morphPlan.keyframesCss}`
+				: presentationKeyframesCss,
+		[morphPlan, presentationKeyframesCss],
+	);
+
+	// -----------------------------------------------------------------------
 	// Return
 	// -----------------------------------------------------------------------
 
@@ -446,9 +493,10 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		presentationSlideVisible,
 		transitionOverlay,
 		handleTransitionOverlayComplete,
+		morphPlan,
 		presentationAnimations,
-		presentationElementStates,
-		presentationKeyframesCss,
+		presentationElementStates: morphedElementStates,
+		presentationKeyframesCss: morphedKeyframesCss,
 		clearPresentationTimers,
 		runPresentationEntranceAnimations,
 		endOfShowVisible,

@@ -4,6 +4,7 @@ import {
 	resolveCssTextAlign,
 	resolveParagraphAlign,
 	resolveParagraphRtl,
+	resolveParagraphStrutFontSize,
 } from 'pptx-viewer-shared';
 import React from 'react';
 
@@ -169,6 +170,16 @@ export function renderTextSegments(
 			isLast: paraIndex === paragraphs.length - 1,
 			spaceFirstLast,
 		});
+		// Re-base this paragraph's line box on its own runs. Without it the
+		// block strut stays at the body's default size and a paragraph of
+		// smaller runs is laid out on too-tall lines (see
+		// `resolveParagraphStrutFontSize`). Every run span carries an explicit
+		// font-size, so this only moves the strut.
+		const strutFontSize = resolveParagraphStrutFontSize(
+			paraSegments.map(({ segment }) => segment),
+			bodyStyle?.fontSize,
+		);
+
 		const hasParaSpacing =
 			spacing.marginTop !== undefined ||
 			spacing.marginBottom !== undefined ||
@@ -177,6 +188,9 @@ export function renderTextSegments(
 		const paraStyle: React.CSSProperties = {
 			...paraKinsokuStyle,
 		};
+		if (strutFontSize !== undefined) {
+			paraStyle.fontSize = strutFontSize;
+		}
 		if (spacing.marginTop !== undefined) {
 			paraStyle.marginTop = spacing.marginTop;
 		}
@@ -215,7 +229,8 @@ export function renderTextSegments(
 			paraRtl !== undefined ||
 			cssTextAlign !== undefined ||
 			hasParaKinsoku ||
-			hasParaSpacing;
+			hasParaSpacing ||
+			strutFontSize !== undefined;
 
 		const renderedSegments = paraSegments
 			.filter(({ segment }) => {

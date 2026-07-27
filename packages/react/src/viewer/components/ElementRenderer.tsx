@@ -167,11 +167,16 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isZoom = el.type === 'zoom' && Boolean(onZoomClick);
 		const isActionable = hasAction || hasHoverAction || hasHyperlinks || isZoom;
 
+		// Selection / hover affordance. Drawn as an `outline` inset by 1px so it
+		// lands exactly where the old 1px border did WITHOUT participating in
+		// layout: as a border it was consuming 2px of every unstroked element's
+		// content box (`box-sizing: border-box`), leaving shapes 2px small and
+		// 1px off-origin versus PowerPoint.
 		const selB = isSelected
-			? `border-${selClr} ring-2 ring-${selClr}/50`
+			? `outline-1 -outline-offset-1 outline-${selClr} ring-2 ring-${selClr}/50`
 			: showHoverBorder
-				? 'border-transparent hover:border-primary/40'
-				: 'border-transparent';
+				? 'outline-1 -outline-offset-1 outline-transparent hover:outline-primary/40'
+				: '';
 		const cur = effectiveIsInlineEditing
 			? 'cursor-text'
 			: effectiveCanInteract
@@ -211,7 +216,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				aria-selected={isSelected ? true : undefined}
 				tabIndex={isFocusable ? 0 : -1}
 				className={cn(
-					'absolute border',
+					'absolute',
 					'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
 					cur,
 					effectiveCanInteract || isActionable ? '' : 'pointer-events-none',
@@ -264,6 +269,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 							sourceSlideIndex={sourceSlideIndex}
 							zIndex={index}
 							parentGroupFill={getGroupChildParentFill(el)}
+							// A grouped child keeps its own `a:hlinkClick`; PowerPoint
+							// treats it as an individually clickable target even though
+							// the group is a single selectable object. Only wire it up
+							// where the group itself is not the action target, so a
+							// child link cannot shadow one set on the group.
+							onActionClick={el.actionClick ? undefined : onActionClick}
+							actionRequiresModifier={effectiveCanInteract}
 						/>
 					),
 					onEditChange: onInlineEditChange,

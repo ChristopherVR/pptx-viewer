@@ -39,6 +39,21 @@ export interface StaticElementRendererProps {
 	 * (`fillMode === 'group'`) inherits the group's resolved fill.
 	 */
 	parentGroupFill?: ShapeStyle;
+	/**
+	 * Invoked when a descendant carrying its own `actionClick` is clicked.
+	 *
+	 * A shape inside an `p:grpSp` keeps its own `a:hlinkClick`, and PowerPoint
+	 * honours it: the group is one object to drag, but its children are still
+	 * individually clickable targets. Without this the whole subtree stayed
+	 * `pointer-events-none` and every in-group navigation button was dead.
+	 */
+	onActionClick?: (elementId: string, action: NonNullable<PptxElement['actionClick']>) => void;
+	/**
+	 * When true (editing), a child action only fires on Ctrl/Cmd+click, so a
+	 * plain click still selects the enclosing group. Mirrors the top-level
+	 * element behaviour in `getElementInteractionProps`.
+	 */
+	actionRequiresModifier?: boolean;
 }
 
 const noop = (): void => {};
@@ -55,6 +70,8 @@ function StaticElementRendererImpl({
 	fieldContext,
 	tableStyleContext,
 	parentGroupFill,
+	onActionClick,
+	actionRequiresModifier = false,
 }: StaticElementRendererProps): React.ReactElement {
 	const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 	const hasFill =
@@ -84,11 +101,43 @@ function StaticElementRendererImpl({
 		element.type === 'shape' && hasFill ? '#ffffff' : DEFAULT_TEXT_COLOR,
 	);
 	const isImage = element.type === 'picture' || element.type === 'image';
+	const action = element.actionClick;
+	const isActionable = Boolean(action && onActionClick);
 
 	return (
 		<div
 			data-static-element-type={element.type}
-			className={`${positioned ? 'absolute' : 'relative'} overflow-hidden pointer-events-none`}
+			data-pptx-action={isActionable ? 'click' : undefined}
+			className={`${positioned ? 'absolute' : 'relative'} overflow-hidden ${
+				isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'
+			}`}
+			role={isActionable ? 'button' : undefined}
+			tabIndex={isActionable ? 0 : undefined}
+			title={isActionable ? action?.tooltip || action?.url || undefined : undefined}
+			onClick={
+				isActionable
+					? (event) => {
+							if (actionRequiresModifier && !event.ctrlKey && !event.metaKey) {
+								return;
+							}
+							event.stopPropagation();
+							event.preventDefault();
+							onActionClick?.(element.id, action!);
+						}
+					: undefined
+			}
+			onKeyDown={
+				isActionable
+					? (event) => {
+							if (event.key !== 'Enter' && event.key !== ' ') {
+								return;
+							}
+							event.preventDefault();
+							event.stopPropagation();
+							onActionClick?.(element.id, action!);
+						}
+					: undefined
+			}
 			style={{
 				left: positioned ? element.x : undefined,
 				top: positioned ? element.y : undefined,
@@ -116,6 +165,8 @@ function StaticElementRendererImpl({
 							fieldContext={fieldContext}
 							tableStyleContext={tableStyleContext}
 							parentGroupFill={getGroupChildParentFill(element)}
+							onActionClick={onActionClick}
+							actionRequiresModifier={actionRequiresModifier}
 						/>
 					))}
 				</div>

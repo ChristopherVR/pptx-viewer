@@ -291,8 +291,15 @@ export function getShapeVisualStyle(
 		// is present, `ShapeEffectOverlay` paints a separate blended tint layer so
 		// the colour is actually rendered (and text/children are not tinted).
 		mixBlendMode: hasFillOverlayColor ? undefined : mapDagBlendModeToCss(ss?.dagFillOverlayBlend),
-		borderWidth:
-			strokeWidth > 0 ? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth) : undefined,
+		// An unstroked element must occupy EXACTLY its authored box. The
+		// container class carries a 1px (transparent) border for the
+		// selection/hover affordance and `box-sizing: border-box`, which
+		// silently shrank every unstroked element's content by 2px and shifted
+		// it 1px down-right. On a 40x40 icon that is a visible 5% shrink, and
+		// two adjacent 40px buttons rendered with a 2px gap PowerPoint does not
+		// draw. The affordance is an `outline` instead (see `ElementRenderer`),
+		// which paints in the same place without taking part in layout.
+		borderWidth: strokeWidth > 0 ? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth) : 0,
 		borderColor: strokeWidth > 0 ? resolvedStrokeColor : undefined,
 		borderStyle: strokeWidth > 0 ? getCssBorderDashStyle(strokeDash, ss?.compoundLine) : undefined,
 		strokeLinejoin: lineJoinCss,

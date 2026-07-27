@@ -375,6 +375,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 										transition={presentation.transitionOverlay.transition}
 										durationMs={presentation.transitionOverlay.durationMs}
 										scale={stageScale}
+										morphPlan={presentation.morphPlan}
 										onComplete={presentation.handleTransitionOverlayComplete}
 									/>
 								)}

@@ -1,5 +1,9 @@
 import type { PptxAction, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
+import type {
+	MorphTransitionPlan,
+	PresentationPointerTool,
+	PresentationSnapshot,
+} from 'pptx-viewer-shared';
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -91,6 +95,14 @@ export interface UsePresentationModeResult {
 	transitionOverlay: PresentationTransitionOverlayState | null;
 	/** Tear down the transition overlay once its animation completes. */
 	handleTransitionOverlayComplete: () => void;
+	/**
+	 * Render plan for an active Morph transition, or `undefined` for every
+	 * other transition type. Its `incomingAnimations` are already merged into
+	 * `presentationElementStates` (and its keyframes into
+	 * `presentationKeyframesCss`); the overlay consumes `outgoingElements` to
+	 * fade out the shapes the arriving slide does not have.
+	 */
+	morphPlan: MorphTransitionPlan | undefined;
 	presentationAnimations: PresentationAnimationRuntime[];
 	presentationElementStates: Map<string, ElementAnimationState>;
 	presentationKeyframesCss: string;

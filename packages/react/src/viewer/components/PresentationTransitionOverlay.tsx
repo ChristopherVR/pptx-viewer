@@ -6,6 +6,7 @@ import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-co
  * with CSS exit animation. The *incoming* (new) slide is rendered by the
  * main SlideCanvas underneath (or on top, depending on `outgoingOnTop`).
  */
+import type { MorphTransitionPlan } from 'pptx-viewer-shared';
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 
 import type { CanvasSize } from '../types';
@@ -42,6 +43,17 @@ export interface PresentationTransitionOverlayProps {
 	 * flash right after the transition starts.
 	 */
 	scale?: number;
+	/**
+	 * Active Morph plan, when the incoming slide's transition is `morph`.
+	 *
+	 * Morph is not a whole-slide effect, so the overlay changes shape when this
+	 * is present: instead of animating the entire outgoing slide over the new
+	 * one, it paints ONLY the shapes that do not exist on the incoming slide
+	 * and fades them out. Everything that persists is animated in place on the
+	 * live stage (its `incomingAnimations` are already merged into the stage's
+	 * element states by `usePresentationMode`).
+	 */
+	morphPlan?: MorphTransitionPlan;
 	/** Called when the transition animation completes. */
 	onComplete: () => void;
 }
@@ -103,6 +115,7 @@ export function PresentationTransitionOverlay({
 	transition,
 	durationMs,
 	scale: stageScale,
+	morphPlan,
 	onComplete,
 }: PresentationTransitionOverlayProps): React.ReactElement | null {
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -166,6 +179,54 @@ export function PresentationTransitionOverlay({
 	}, [resolvedStageScale, containerSize, canvasSize]);
 
 	const outgoingZIndex = animations.outgoingOnTop ? 40 : 20;
+
+	// Morph: paint only the departing shapes, unanimated as a layer, each
+	// carrying its own fade-out. The persisting shapes are already gliding on
+	// the live stage below, so covering them with a copy of the whole outgoing
+	// slide would hide the effect entirely.
+	if (morphPlan) {
+		return (
+			<div
+				ref={containerRef}
+				data-pptx-transition-overlay
+				data-pptx-transition-morph='true'
+				className='pptx-react-transition-overlay absolute inset-0 pointer-events-none overflow-hidden'
+				style={{ zIndex: 40 }}
+			>
+				<style>{morphPlan.keyframesCss}</style>
+				<div className='absolute inset-0 flex items-center justify-center'>
+					<div
+						style={{
+							width: canvasSize.width,
+							height: canvasSize.height,
+							transform: `scale(${scale})`,
+							transformOrigin: 'center',
+							position: 'relative',
+						}}
+					>
+						{morphPlan.outgoingElements.map((element, index) => (
+							<div
+								key={element.id}
+								data-pptx-morph-outgoing={element.id}
+								style={{
+									position: 'absolute',
+									inset: 0,
+									animation: morphPlan.outgoingAnimations.get(element.id),
+								}}
+							>
+								<StaticElementRenderer
+									element={element}
+									activeSlide={outgoingSlide}
+									allSlides={[outgoingSlide]}
+									zIndex={index}
+								/>
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div
