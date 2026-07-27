@@ -15,7 +15,13 @@
 	 * injected once at document level (see `keyframes.ts`).
 	 */
 	import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-	import { resolveSlideTransition, resolveTransitionDurationMs } from 'pptx-viewer-shared';
+	import {
+		buildMorphScopedCss,
+		buildMorphTransitionPlan,
+		morphOptionToMode,
+		resolveSlideTransition,
+		resolveTransitionDurationMs,
+	} from 'pptx-viewer-shared';
 	import type { CanvasSize, CssStyleMap } from 'pptx-viewer-shared';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -52,11 +58,43 @@
 		return style;
 	}
 
+	/**
+	 * Morph moves individual shapes between the two slides rather than wiping the
+	 * whole surface, so when it is active the incoming layer plays per-element
+	 * keyframes (scoped by `data-pptx-morph-incoming`) and the outgoing layer is
+	 * reduced to just the shapes with no counterpart, fading out.
+	 */
+	const morphPlan = $derived(
+		transition?.type === 'morph'
+			? buildMorphTransitionPlan(
+					outgoingSlide,
+					incomingSlide,
+					durationMs,
+					morphOptionToMode(transition.morphOption),
+				)
+			: undefined,
+	);
+
+	const morphOutgoingSlide = $derived(
+		morphPlan && outgoingSlide ? { ...outgoingSlide, elements: morphPlan.outgoingElements } : undefined,
+	);
+
+	const morphCss = $derived(
+		morphPlan
+			? [
+					buildMorphScopedCss(morphPlan, 'data-pptx-morph-incoming', 'incoming'),
+					buildMorphScopedCss(morphPlan, 'data-pptx-morph-outgoing', 'outgoing'),
+				].join('\n')
+			: '',
+	);
+
+	// A layer-wide animation would drag every shape as one block and cancel the
+	// morph, so the layers stay unanimated while a plan is active.
 	const outgoingStyle = $derived(
-		styleToString(layerStyle(animations.outgoing, animations.outgoingOnTop ? 2 : 1)),
+		styleToString(layerStyle(morphPlan ? 'none' : animations.outgoing, morphPlan ? 2 : animations.outgoingOnTop ? 2 : 1)),
 	);
 	const incomingStyle = $derived(
-		styleToString(layerStyle(animations.incoming, animations.outgoingOnTop ? 1 : 2)),
+		styleToString(layerStyle(morphPlan ? 'none' : animations.incoming, morphPlan ? 1 : animations.outgoingOnTop ? 1 : 2)),
 	);
 
 	let timer: ReturnType<typeof setTimeout> | null = null;
@@ -82,16 +120,27 @@
 </script>
 
 <div class="pptx-svelte-transition-overlay" data-pptx-transition-overlay>
+	{#if morphPlan}
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated keyframes, no user input -->
+		{@html `<style>${morphCss}</style>`}
+	{/if}
 	<div
 		class="pptx-svelte-transition-layer"
 		data-pptx-transition-layer="outgoing"
+		data-pptx-morph-outgoing={morphPlan ? 'true' : undefined}
 		style={outgoingStyle}
 	>
-		<SlideStage slide={outgoingSlide} {canvasSize} {mediaDataUrls} {scale} />
+		<SlideStage
+			slide={morphPlan ? morphOutgoingSlide : outgoingSlide}
+			{canvasSize}
+			{mediaDataUrls}
+			{scale}
+		/>
 	</div>
 	<div
 		class="pptx-svelte-transition-layer"
 		data-pptx-transition-layer="incoming"
+		data-pptx-morph-incoming={morphPlan ? 'true' : undefined}
 		style={incomingStyle}
 	>
 		<SlideStage slide={incomingSlide} {canvasSize} {mediaDataUrls} {scale} />

@@ -55,6 +55,11 @@
 		if (para.textIndentPx !== undefined) {
 			css += `text-indent: ${para.textIndentPx}px;`;
 		}
+		if (para.strutFontSizePx !== undefined) {
+			// Re-base the line box on this paragraph's own runs; every run span
+			// carries an explicit font-size, so this only moves the CSS strut.
+			css += `font-size: ${para.strutFontSizePx}px;`;
+		}
 		return css;
 	}
 </script>
