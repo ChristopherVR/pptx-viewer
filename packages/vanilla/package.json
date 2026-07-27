@@ -57,7 +57,7 @@
 	"dependencies": {
 		"dompurify": "^3.4.12",
 		"fast-xml-parser": "^5.10.1",
-		"html2canvas-pro": "^2.2.4",
+		"html2canvas-pro": "^2.3.2",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"lucide": "^1.26.0",
