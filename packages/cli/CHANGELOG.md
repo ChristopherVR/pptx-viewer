@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.5.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.9) - 2026-07-27
+
+### Bug Fixes
+
+- **ci:** Resolve workspace: ranges in every published manifest (by @ChristopherVR) ([ea35290](https://github.com/ChristopherVR/pptx-viewer/commit/ea35290721ba679571f71708933ed718e65e3942))
+
 ## [1.5.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.8) - 2026-07-25
 
 ### Chores

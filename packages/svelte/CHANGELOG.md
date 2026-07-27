@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.5.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.2) - 2026-07-27
+
+### Bug Fixes
+
+- **ci:** Resolve workspace: ranges in every published manifest (by @ChristopherVR) ([ea35290](https://github.com/ChristopherVR/pptx-viewer/commit/ea35290721ba679571f71708933ed718e65e3942))
+
 ## [2.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.1) - 2026-07-26
 
 ## [2.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.0) - 2026-07-26

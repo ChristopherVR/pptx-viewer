@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-27
+
+_Releases: pptx-viewer-core@2.0.5, pptx-react-viewer@2.5.2, pptx-vue-viewer@2.5.2, pptx-angular-viewer@2.5.2, pptx-vanilla-viewer@1.6.2, pptx-svelte-viewer@2.5.2, pptx-viewer-mcp@2.0.2, @christophervr/pptx-viewer@1.5.9_
+
+### Bug Fixes
+
+- **ci:** Resolve workspace: ranges in every published manifest (by @ChristopherVR) ([ea35290](https://github.com/ChristopherVR/pptx-viewer/commit/ea35290721ba679571f71708933ed718e65e3942))
+
 ## 2026-07-26
 
 _Releases: pptx-react-viewer@2.5.1, pptx-vue-viewer@2.5.1, pptx-angular-viewer@2.5.1, pptx-vanilla-viewer@1.6.1, pptx-svelte-viewer@2.5.1_
