@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.6.0) - 2026-07-27
+
 ## [2.5.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.5.3) - 2026-07-27
 
 ### Dependencies
