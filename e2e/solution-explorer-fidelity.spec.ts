@@ -141,21 +141,25 @@ test.describe('issue #130 - solution-explorer deck fidelity', () => {
 		// `a:solidFill`; its colour comes from
 		// `<p:style><a:fontRef idx="minor"><a:schemeClr val="lt1"/></a:fontRef>`,
 		// which resolves through the theme to white. It rendered pure black.
+		// Matched on the run element itself, not on its `[data-element-id]` host:
+		// the host also contains the binding's link chrome (React appends the
+		// hyperlink target and a "Ctrl+Click to follow link" hint), so its
+		// `textContent` is never just the button label. The area floor skips the
+		// same run inside a slide-rail thumbnail.
 		const colours = await page.evaluate(() => {
 			const out: string[] = [];
-			for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+			for (const node of document.querySelectorAll<HTMLElement>('[data-element-id] *')) {
+				if (node.children.length > 0) {
+					continue;
+				}
 				if ((node.textContent ?? '').trim() !== 'Explore solution') {
 					continue;
 				}
 				const box = node.getBoundingClientRect();
-				if (box.width * box.height < 500) {
+				if (box.width * box.height < 200) {
 					continue;
 				}
-				for (const span of node.querySelectorAll<HTMLElement>('span')) {
-					if ((span.textContent ?? '').trim()) {
-						out.push(getComputedStyle(span).color);
-					}
-				}
+				out.push(getComputedStyle(node).color);
 			}
 			return out;
 		});
@@ -254,24 +258,41 @@ test.describe('issue #130 - solution-explorer deck fidelity', () => {
 		await loadDeck(page);
 		await gotoSlide(page, SLIDE.bullets);
 
-		// Slide 14's top-left has two 40x40 icons authored flush at x=0 and x=40.
-		// A 1px border with `box-sizing: border-box` shrank each to 38px and
-		// shifted it 1px, opening a 2px gap PowerPoint does not draw.
+		// Slide 14's top-left has two 40x40 icons authored flush: the home glyph
+		// at x=0 and the up-arrow at x=40. A 1px border with
+		// `box-sizing: border-box` shrank each to 38px and shifted it 1px,
+		// opening a 2px gap PowerPoint does not draw.
+		//
+		// Addressed by their core-assigned element ids rather than by "the
+		// leftmost pair of smallish boxes": the slide-rail thumbnails render the
+		// same slide, so a geometric guess picks up a thumbnail's copy in the
+		// bindings whose thumbnails keep the `data-element-id` marker (React's
+		// static renderer does not, which is the only reason a positional
+		// heuristic appeared to work there). Among the copies of one id, the
+		// largest is the live canvas render.
 		const gap = await page.evaluate(() => {
-			const nodes = [...document.querySelectorAll<HTMLElement>('[data-element-id]')];
-			const top = nodes
-				.map((node) => ({ node, box: node.getBoundingClientRect() }))
-				.filter((entry) => entry.box.width > 20 && entry.box.width < 80 && entry.box.height > 20)
-				.sort((a, b) => a.box.left - b.box.left);
-			if (top.length < 2) {
+			const largest = (elementId: string): DOMRect | null => {
+				let best: DOMRect | null = null;
+				for (const node of document.querySelectorAll<HTMLElement>(
+					`[data-element-id="${elementId}"]`,
+				)) {
+					const box = node.getBoundingClientRect();
+					if (!best || box.width * box.height > best.width * best.height) {
+						best = box;
+					}
+				}
+				return best;
+			};
+			const home = largest('ppt/slides/slide14.xml-pic-1');
+			const arrow = largest('ppt/slides/slide14.xml-pic-2');
+			if (!home || !arrow) {
 				return null;
 			}
-			// The two icon buttons are the leftmost pair on the same row.
-			const [first, second] = top;
-			if (Math.abs(first.box.top - second.box.top) > 4) {
+			// Same row, and the arrow starts where the home glyph ends.
+			if (Math.abs(home.top - arrow.top) > 1) {
 				return null;
 			}
-			return second.box.left - first.box.right;
+			return arrow.left - home.right;
 		});
 
 		expect(gap, 'found the two icon buttons').not.toBeNull();
