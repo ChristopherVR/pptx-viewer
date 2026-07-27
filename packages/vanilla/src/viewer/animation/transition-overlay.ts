@@ -1,5 +1,11 @@
-import type { PptxSlideTransition } from 'pptx-viewer-core';
-import { resolveSlideTransition, resolveTransitionDurationMs } from 'pptx-viewer-shared';
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import {
+	buildMorphScopedCss,
+	buildMorphTransitionPlan,
+	morphOptionToMode,
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+} from 'pptx-viewer-shared';
 
 import { ensurePresentationKeyframes } from './animation-dom';
 
@@ -13,6 +19,10 @@ export interface TransitionOverlayParams {
 	incoming: HTMLElement;
 	/** The incoming slide's transition definition. */
 	transition: PptxSlideTransition;
+	/** The outgoing slide model. Required to play a Morph transition. */
+	outgoingSlide?: PptxSlide;
+	/** The incoming slide model. Required to play a Morph transition. */
+	incomingSlide?: PptxSlide;
 	/** Called once the transition duration elapses (or the overlay is cancelled). */
 	onDone: () => void;
 }
@@ -43,20 +53,55 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 	overlay.style.pointerEvents = 'none';
 	overlay.style.zIndex = '30';
 
+	// Morph moves individual shapes between the two slides instead of wiping the
+	// whole surface. When a plan is available the layers stay unanimated (a
+	// layer-wide animation would drag every shape as one block), the incoming
+	// layer plays per-element keyframes, and the outgoing snapshot is stripped
+	// down to just the shapes with no counterpart so the travelling ones are not
+	// drawn twice.
+	const morphPlan =
+		transition.type === 'morph'
+			? buildMorphTransitionPlan(
+					params.outgoingSlide,
+					params.incomingSlide,
+					durationMs,
+					morphOptionToMode(transition.morphOption),
+				)
+			: undefined;
+
 	const outLayer = buildLayer(
 		doc,
 		outgoing,
-		resolved.outgoingOnTop ? 2 : 1,
-		resolved.outgoing,
+		morphPlan ? 2 : resolved.outgoingOnTop ? 2 : 1,
+		morphPlan ? 'none' : resolved.outgoing,
 		'outgoing',
 	);
 	const inLayer = buildLayer(
 		doc,
 		incoming,
-		resolved.outgoingOnTop ? 1 : 2,
-		resolved.incoming,
+		morphPlan ? 1 : resolved.outgoingOnTop ? 1 : 2,
+		morphPlan ? 'none' : resolved.incoming,
 		'incoming',
 	);
+
+	if (morphPlan) {
+		inLayer.dataset.pptxMorphIncoming = 'true';
+		outLayer.dataset.pptxMorphOutgoing = 'true';
+		const keep = new Set(morphPlan.outgoingElements.map((element) => element.id));
+		for (const node of outgoing.querySelectorAll<HTMLElement>('[data-element-id]')) {
+			const id = node.dataset.elementId;
+			if (id !== undefined && !keep.has(id)) {
+				node.remove();
+			}
+		}
+		const style = doc.createElement('style');
+		style.textContent = [
+			buildMorphScopedCss(morphPlan, 'data-pptx-morph-incoming', 'incoming'),
+			buildMorphScopedCss(morphPlan, 'data-pptx-morph-outgoing', 'outgoing'),
+		].join('\n');
+		overlay.appendChild(style);
+	}
+
 	overlay.append(outLayer, inLayer);
 	stageWrap.appendChild(overlay);
 

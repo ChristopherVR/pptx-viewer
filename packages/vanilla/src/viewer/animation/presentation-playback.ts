@@ -280,6 +280,9 @@ export function createPresentationPlayback(): PresentationPlayback {
 			const entering = !wasPresenting;
 			const slideChanged = params.slideIndex !== lastIndex;
 
+			// Captured before `lastSlide` advances: a morph needs BOTH slides to
+			// match shapes between them.
+			const outgoingSlide = lastSlide;
 			lastSlide = params.slide;
 
 			if (entering || slideChanged || !controller) {
@@ -313,6 +316,8 @@ export function createPresentationPlayback(): PresentationPlayback {
 					outgoing: previousStage,
 					incoming,
 					transition,
+					outgoingSlide,
+					incomingSlide: params.slide,
 					onDone: () => {
 						cancelTransition = null;
 					},

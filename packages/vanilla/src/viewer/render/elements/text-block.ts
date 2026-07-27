@@ -44,6 +44,11 @@ export function renderTextBlock(
 		if (para.spaceAfterPx !== undefined) {
 			paraStyle.marginBottom = `${para.spaceAfterPx}px`;
 		}
+		if (para.strutFontSizePx !== undefined) {
+			// Re-base the line box on this paragraph's own runs; every run span
+			// carries an explicit font-size, so this only moves the CSS strut.
+			paraStyle.fontSize = `${para.strutFontSizePx}px`;
+		}
 		const p = createEl(doc, 'p', 'pptxv-para', paraStyle);
 		if (para.textIndentPx !== undefined) {
 			p.style.textIndent = `${para.textIndentPx}px`;
