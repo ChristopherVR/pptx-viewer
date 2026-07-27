@@ -10,6 +10,27 @@ dated sections beneath it are generated from
 
 ## 2026-07-27
 
+_Releases: pptx-viewer-core@2.0.7, pptx-react-viewer@2.6.0, pptx-vue-viewer@2.6.0, pptx-angular-viewer@2.6.0, pptx-vanilla-viewer@1.7.0, pptx-svelte-viewer@2.6.0_
+
+### Features
+
+- **shared:** Morph transition render plan and paragraph strut basis (by @ChristopherVR) ([94cfddd](https://github.com/ChristopherVR/pptx-viewer/commit/94cfddd2afc9ab20f294f6aa08ddf95fff7f5213))
+
+### Bug Fixes
+
+- **core:** Parse morph, fontRef text colour, and unsized bullets correctly (by @ChristopherVR) ([7607996](https://github.com/ChristopherVR/pptx-viewer/commit/7607996123e493ed1f33a6891e444f3b02bb2ed9))
+- **react:** Grouped-shape links, paragraph line boxes, exact element boxes, morph (by @ChristopherVR) ([285f284](https://github.com/ChristopherVR/pptx-viewer/commit/285f28426fdf926d0cb22fadd687eb370b704be3))
+- **vue:** Play morph transitions and re-base paragraph line boxes (by @ChristopherVR) ([99df808](https://github.com/ChristopherVR/pptx-viewer/commit/99df808add09864870fa97db76ce224fa8a8831f))
+- **angular:** Play morph transitions and re-base paragraph line boxes (by @ChristopherVR) ([09aad03](https://github.com/ChristopherVR/pptx-viewer/commit/09aad031755cb91326d2a8c6d862046775dceb0f))
+- **svelte:** Play morph transitions and re-base paragraph line boxes (by @ChristopherVR) ([8c44caf](https://github.com/ChristopherVR/pptx-viewer/commit/8c44caf16f755af8ce0ced24bf3ee55d2f50261e))
+- **vanilla:** Play morph transitions and re-base paragraph line boxes (by @ChristopherVR) ([6f863d6](https://github.com/ChristopherVR/pptx-viewer/commit/6f863d69f9da582afbbcd308b174239056fea477))
+
+### Testing
+
+- **e2e:** Cover issue #130 fidelity against the reporter's own deck (by @ChristopherVR) ([1b0d395](https://github.com/ChristopherVR/pptx-viewer/commit/1b0d3955ce4bdb264686a8c51c7f8162a6e7b7da))
+
+## 2026-07-27
+
 _Releases: pptx-viewer-core@2.0.6, pptx-react-viewer@2.5.3, pptx-vue-viewer@2.5.3, pptx-angular-viewer@2.5.3, pptx-vanilla-viewer@1.6.3, pptx-svelte-viewer@2.5.3_
 
 ### Dependencies
