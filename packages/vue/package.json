@@ -75,7 +75,7 @@
 	"dependencies": {
 		"clsx": "^2.1.1",
 		"dompurify": "^3.4.12",
-		"html2canvas-pro": "^2.2.4",
+		"html2canvas-pro": "^2.3.2",
 		"jspdf": "^4.2.1",
 		"lucide-vue-next": "^1.0.0",
 		"pptx-viewer-mcp": "workspace:*",
