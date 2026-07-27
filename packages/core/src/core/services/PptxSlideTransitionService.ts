@@ -7,7 +7,7 @@
  *
  * @module PptxSlideTransitionService
  */
-import type { PptxSlideTransition, XmlObject } from '../types';
+import type { PptxMorphOption, PptxSlideTransition, XmlObject } from '../types';
 import { parseP14FromExtLst, buildP14ExtLst, P14_TRANSITION_TYPES } from './p14-transition-parser';
 import {
 	parseP15FromExtLst,
@@ -23,6 +23,7 @@ import {
 	parseTransitionAttributes,
 	parseTransitionDetails,
 	parseTransitionSound,
+	normalizeMorphOption,
 } from './slide-transition-xml';
 
 /**
@@ -89,6 +90,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 		let transitionType = details.type;
 		let { direction, orient, pattern } = details;
 		const { spokes, thruBlk, rawSoundAction, rawExtLst } = details;
+		let { morphOption } = details;
 
 		// Parse p14 (Office 2010+) transitions from extLst if no standard
 		// transition type was found or if there is an extLst to parse
@@ -112,9 +114,13 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				// PowerPoint 2013+/365 preset transitions (Fracture, Peel Off,
 				// Page Curl, etc.) live in a `p15:prstTrans` extension.
 				transitionType = p15Result.type;
-			} else if (this.parseMorphFromExtLst(rawExtLst)) {
-				// PowerPoint 2016+ `morph` lives in a p159 extension.
-				transitionType = 'morph';
+			} else {
+				const morphResult = this.parseMorphFromExtLst(rawExtLst);
+				if (morphResult) {
+					// PowerPoint 2016+ `morph` lives in a p159 extension.
+					transitionType = 'morph';
+					morphOption = morphResult.morphOption;
+				}
 			}
 		}
 
@@ -133,6 +139,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			spokes,
 			pattern,
 			thruBlk,
+			morphOption,
 			...sound,
 			rawSoundAction,
 			rawExtLst,
@@ -176,28 +183,28 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 	 * Detects the PowerPoint 2016+ `morph` transition stored as a p159 extension
 	 * inside the transition's extLst.
 	 */
-	private parseMorphFromExtLst(extLstNode: XmlObject): boolean {
+	private parseMorphFromExtLst(
+		extLstNode: XmlObject,
+	): { morphOption: PptxMorphOption | undefined } | undefined {
 		const extEntries = this.xmlLookupService.getChildrenArrayByLocalName(extLstNode, 'ext');
 		for (const ext of extEntries) {
 			if (!ext) {
 				continue;
 			}
-			const uri = String(ext['@_uri'] || '').trim();
-			const matchesUri = uri.toUpperCase() === MORPH_EXT_URI.toUpperCase();
-			for (const key of Object.keys(ext)) {
+			for (const [key, value] of Object.entries(ext)) {
 				if (key.startsWith('@_')) {
 					continue;
 				}
+				// Accept the morph element on its own: real packages vary the
+				// `@uri` casing/whitespace, and the element name is unambiguous.
 				if (this.getXmlLocalName(key) === 'morph') {
-					// Accept either matching uri or just the morph element (be lenient on URI casing/whitespace).
-					if (matchesUri || uri.length === 0) {
-						return true;
-					}
-					return true;
+					return {
+						morphOption: normalizeMorphOption((value as XmlObject | undefined)?.['@_option']),
+					};
 				}
 			}
 		}
-		return false;
+		return undefined;
 	}
 
 	public buildSlideTransitionXml(transition: PptxSlideTransition): XmlObject | undefined {
@@ -230,10 +237,14 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			// fabricate a minimal `p15:prstTrans` extension.
 			node['p:extLst'] = transition.rawExtLst ?? buildP15ExtLst(transitionType);
 		} else if (isMorphType) {
-			// PowerPoint 2016+ `morph` lives in the p159 extension list, not as a
-			// direct child of `p:transition`. Emitting `<p:morph/>` is silently
-			// dropped by PowerPoint.
-			node['p:extLst'] = this.buildMorphExtLst(transition.rawExtLst);
+			// PowerPoint 2016+ writes `morph` either as a p159 extension or, when
+			// the transition already sits inside an `mc:Choice Requires="p159"`
+			// envelope, as a direct `<p159:morph/>` child. `createPreservedTransitionNode`
+			// keeps that direct child verbatim (with its `option` attribute), so
+			// re-adding the extension form here would emit the transition twice.
+			if (!this.hasDirectMorphChild(node)) {
+				node['p:extLst'] = this.buildMorphExtLst(transition.rawExtLst, transition.morphOption);
+			}
 		} else {
 			node[`p:${transitionType}`] = buildStandardTransitionChild(transition);
 		}
@@ -256,15 +267,35 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 	}
 
 	/**
+	 * True when the (preserved) transition node already carries a `morph`
+	 * element as a direct child, in any namespace prefix.
+	 */
+	private hasDirectMorphChild(node: XmlObject): boolean {
+		for (const key of Object.keys(node)) {
+			if (!key.startsWith('@_') && this.getXmlLocalName(key) === 'morph') {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Build the extLst XML node for a morph (p159) transition, preserving any
 	 * non-morph extensions from rawExtLst.
 	 */
-	private buildMorphExtLst(rawExtLst: XmlObject | undefined): XmlObject {
+	private buildMorphExtLst(
+		rawExtLst: XmlObject | undefined,
+		morphOption?: PptxMorphOption,
+	): XmlObject {
+		const morphNode: XmlObject = {
+			'@_xmlns:p159': 'http://schemas.microsoft.com/office/powerpoint/2015/09/main',
+		};
+		if (morphOption) {
+			morphNode['@_option'] = morphOption;
+		}
 		const morphExt: XmlObject = {
 			'@_uri': MORPH_EXT_URI,
-			'p159:morph': {
-				'@_xmlns:p159': 'http://schemas.microsoft.com/office/powerpoint/2015/09/main',
-			},
+			'p159:morph': morphNode,
 		};
 
 		if (!rawExtLst) {

@@ -272,6 +272,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...defaultRunStyle,
 		} as TextStyle;
 
+		// The shape's `<p:style><a:fontRef>` reference is the shape-level run
+		// default. It sits BELOW anything the text body itself declares (handled
+		// by the merge above) but ABOVE the placeholder / presentation-wide
+		// `p:defaultTextStyle` levels applied next, which only fill undefined
+		// slots. Seeding it here is what stops a themed accent button
+		// (`<a:fontRef idx="minor"><a:schemeClr val="lt1"/></a:fontRef>`, runs
+		// with no `a:solidFill`) from inheriting `tx1` black and rendering
+		// black-on-orange instead of white.
+		if (mergedDefaultRunStyle.color === undefined && ctx.styleFontRefColor !== undefined) {
+			mergedDefaultRunStyle.color = ctx.styleFontRefColor;
+		}
+		if (mergedDefaultRunStyle.fontFamily === undefined && ctx.styleFontRefTypeface !== undefined) {
+			mergedDefaultRunStyle.fontFamily = ctx.styleFontRefTypeface;
+		}
+
 		// Apply placeholder level-specific defaults as fallback
 		if (ctx.effectiveLevelStyles) {
 			const normalizedLevel =

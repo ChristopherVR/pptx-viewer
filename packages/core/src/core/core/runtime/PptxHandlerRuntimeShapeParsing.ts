@@ -150,15 +150,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const fontRef = styleNode?.['a:fontRef'] as XmlObject | undefined;
 			const fontRefIdx = String(fontRef?.['@_idx'] || '').toLowerCase();
-			if (!textStyle.fontFamily && fontRefIdx.length > 0) {
-				const token = fontRefIdx.includes('minor') ? '+mn-lt' : '+mj-lt';
-				const resolved = this.resolveThemeTypeface(token);
-				if (resolved) {
-					textStyle.fontFamily = resolved;
-				}
+			const styleFontRefTypeface =
+				fontRefIdx.length > 0
+					? this.resolveThemeTypeface(fontRefIdx.includes('minor') ? '+mn-lt' : '+mj-lt')
+					: undefined;
+			const styleFontRefColor = fontRef ? this.parseColor(fontRef) : undefined;
+			if (!textStyle.fontFamily && styleFontRefTypeface) {
+				textStyle.fontFamily = styleFontRefTypeface;
 			}
 			if (!textStyle.color) {
-				textStyle.color = this.parseColor(fontRef);
+				textStyle.color = styleFontRefColor;
 			}
 
 			const bodyPr = ((txBody as XmlObject | undefined)?.['a:bodyPr'] ||
@@ -199,6 +200,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					phDefaults,
 					slidePath,
 					effectiveLevelStyles,
+					styleFontRefColor,
+					styleFontRefTypeface,
 				};
 
 				paras.forEach((p: XmlObject, pIdx: number) => {

@@ -1,4 +1,5 @@
 import type {
+	PptxMorphOption,
 	PptxSlideTransition,
 	PptxSplitOrientation,
 	PptxTransitionSpeed,
@@ -42,8 +43,19 @@ export interface ParsedTransitionDetails {
 	spokes?: number;
 	pattern?: string;
 	thruBlk?: boolean;
+	morphOption?: PptxMorphOption;
 	rawSoundAction?: XmlObject;
 	rawExtLst?: XmlObject;
+}
+
+const MORPH_OPTIONS = new Set<PptxMorphOption>(['byObject', 'byWord', 'byChar']);
+
+/** Coerce a `<p159:morph @option>` value to the typed union, or `undefined`. */
+export function normalizeMorphOption(value: unknown): PptxMorphOption | undefined {
+	const candidate = token(value);
+	return MORPH_OPTIONS.has(candidate as PptxMorphOption)
+		? (candidate as PptxMorphOption)
+		: undefined;
 }
 
 export function parseTransitionDetails(
@@ -62,6 +74,19 @@ export function parseTransitionDetails(
 		}
 		if (name === 'extLst') {
 			result.rawExtLst = value as XmlObject;
+			continue;
+		}
+		// PowerPoint 2016+ writes Morph two different ways. Inside an
+		// `mc:Choice Requires="p159"` branch the requirement is already
+		// declared by the envelope, so it emits `<p159:morph/>` as a DIRECT
+		// child of `p:transition`; only the un-wrapped form needs the
+		// `p:extLst` escape hatch that `parseMorphFromExtLst` handles. Without
+		// this branch the direct form fell through to the `cut` default and
+		// the slide played no transition at all - not even the `mc:Fallback`
+		// fade, because the Choice branch is what gets unwrapped.
+		if (name === 'morph') {
+			result.type = 'morph';
+			result.morphOption = normalizeMorphOption((value as XmlObject | undefined)?.['@_option']);
 			continue;
 		}
 		if (STANDARD_TRANSITION_TYPES.has(name)) {

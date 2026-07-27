@@ -133,6 +133,15 @@ export const TRANSITION_VALID_DIRECTIONS: Readonly<
  * // => { type: "fade", durationMs: 700, advanceOnClick: true, advanceAfterMs: 5000 }
  * ```
  */
+/**
+ * Morph granularity (`<p159:morph @option>`).
+ *
+ * - `byObject`  - match whole shapes (PowerPoint's default)
+ * - `byWord`    - additionally morph text word by word
+ * - `byChar`    - additionally morph text character by character
+ */
+export type PptxMorphOption = 'byObject' | 'byWord' | 'byChar';
+
 export interface PptxSlideTransition {
 	type: PptxTransitionType;
 	/** Schema-defined transition speed. Defaults to `fast` when omitted. */
@@ -149,6 +158,13 @@ export interface PptxSlideTransition {
 	thruBlk?: boolean;
 	/** Split orientation (horz/vert) parsed from `@_orient`. */
 	orient?: PptxSplitOrientation;
+	/**
+	 * Morph granularity from `<p159:morph @option>`: how finely PowerPoint
+	 * matches content between the two slides. Only meaningful when
+	 * {@link type} is `morph`; defaults to `byObject` when the attribute is
+	 * absent, matching PowerPoint's own default.
+	 */
+	morphOption?: PptxMorphOption;
 	/** Relationship ID of transition sound from `p:sndAc/p:stSnd/@r:embed` when present. */
 	soundRId?: string;
 	/** Embedded WAV display name from `p:stSnd/p:snd/@name`. */

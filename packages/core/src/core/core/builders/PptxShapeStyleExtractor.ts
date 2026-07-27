@@ -147,10 +147,15 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 
 		const lineNode = shapeProps['a:ln'] as XmlObject | undefined;
 		if (lineNode) {
-			const earlyReturn = applyLineProperties(lineNode, style, this.context);
-			if (earlyReturn) {
-				return style;
-			}
+			// `applyLineProperties` returns true for `<a:ln><a:noFill/></a:ln>`,
+			// meaning "outline fully resolved as none". That is a statement about
+			// the OUTLINE only. Returning from the whole extractor on it also
+			// threw away every shape-level effect below (shadow, glow, soft edge,
+			// reflection, blur, effectRef), the `<a:fontRef>` style reference, and
+			// the 3D scene/shape styles - for the very common case of a shape with
+			// no outline. Losing `fontRef` is what made themed accent buttons
+			// resolve their text colour to black.
+			applyLineProperties(lineNode, style, this.context);
 		} else if (styleNode?.['a:lnRef']) {
 			this.context.resolveThemeLineRef(styleNode['a:lnRef'] as XmlObject, style);
 		}

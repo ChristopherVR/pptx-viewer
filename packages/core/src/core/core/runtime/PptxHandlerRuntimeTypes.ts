@@ -79,6 +79,20 @@ export interface ShapeTextParsingContext {
 	readonly slidePath: string | undefined;
 	/** Per-level text style overrides from the placeholder defaults or presentation default text style. */
 	readonly effectiveLevelStyles: Record<number, PlaceholderTextLevelStyle> | undefined;
+	/**
+	 * Text colour resolved from the shape's `<p:style><a:fontRef>` style
+	 * reference, when it declares one.
+	 *
+	 * This is the shape-level default run colour and it outranks the
+	 * presentation-wide `p:defaultTextStyle`, so it has to reach the run
+	 * merge rather than only seeding the element's `textStyle`. A themed
+	 * button (`<a:fontRef idx="minor"><a:schemeClr val="lt1"/></a:fontRef>`)
+	 * whose runs carry no `a:solidFill` otherwise inherits `tx1` (black)
+	 * from `p:defaultTextStyle` and renders black-on-accent instead of white.
+	 */
+	readonly styleFontRefColor: string | undefined;
+	/** Latin typeface resolved from `<p:style><a:fontRef>`, same precedence as {@link styleFontRefColor}. */
+	readonly styleFontRefTypeface: string | undefined;
 }
 
 /**
