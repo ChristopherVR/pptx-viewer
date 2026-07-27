@@ -10,6 +10,26 @@ dated sections beneath it are generated from
 
 ## 2026-07-27
 
+_Releases: pptx-viewer-core@2.0.6, pptx-react-viewer@2.5.3, pptx-vue-viewer@2.5.3, pptx-angular-viewer@2.5.3, pptx-vanilla-viewer@1.6.3, pptx-svelte-viewer@2.5.3_
+
+### Dependencies
+
+- **deps:** Update @lucide/svelte requirement from ^1.26.0 to ^1.27.0 ([#121](https://github.com/ChristopherVR/pptx-viewer/issues/121)) (by @dependabot[bot]) ([eec772a](https://github.com/ChristopherVR/pptx-viewer/commit/eec772ad7a6e06d54306641c48ba93b2877725c3))
+- **deps:** Update emf-converter requirement from ^2.0.0 to ^2.0.2 ([#122](https://github.com/ChristopherVR/pptx-viewer/issues/122)) (by @dependabot[bot]) ([423034a](https://github.com/ChristopherVR/pptx-viewer/commit/423034ad1e6d48dbb75be17e1915c917c912517b))
+- **deps:** Update html2canvas-pro requirement from ^2.3.1 to ^2.3.2 ([#124](https://github.com/ChristopherVR/pptx-viewer/issues/124)) (by @dependabot[bot]) ([6ad6bce](https://github.com/ChristopherVR/pptx-viewer/commit/6ad6bceecf88670f33e2544dbeb1a98c8b1bf9f6))
+- **deps:** Update lucide-react requirement from ^1.26.0 to ^1.27.0 ([#126](https://github.com/ChristopherVR/pptx-viewer/issues/126)) (by @dependabot[bot]) ([d6506f2](https://github.com/ChristopherVR/pptx-viewer/commit/d6506f219082b0605eda712db9c6135f423754e1))
+- **deps:** Update @lucide/angular requirement from ^1.26.0 to ^1.27.0 ([#127](https://github.com/ChristopherVR/pptx-viewer/issues/127)) (by @dependabot[bot]) ([08dcd42](https://github.com/ChristopherVR/pptx-viewer/commit/08dcd42eb6f05d44f3374256253f2434d8460e35))
+
+### Chores
+
+- **deps-dev:** Update @angular/build requirement ([#119](https://github.com/ChristopherVR/pptx-viewer/issues/119)) (by @dependabot[bot]) ([f315793](https://github.com/ChristopherVR/pptx-viewer/commit/f31579338b5453cb3d2465373c9910bec6271407))
+- **deps-dev:** Update ng-packagr requirement from ^22.0.1 to ^22.0.2 ([#120](https://github.com/ChristopherVR/pptx-viewer/issues/120)) (by @dependabot[bot]) ([5947b3d](https://github.com/ChristopherVR/pptx-viewer/commit/5947b3d292fefa61ce8473fd0744656e16a503e2))
+- **deps-dev:** Update rollup requirement from ^4.62.2 to ^4.62.3 ([#125](https://github.com/ChristopherVR/pptx-viewer/issues/125)) (by @dependabot[bot]) ([61a7b66](https://github.com/ChristopherVR/pptx-viewer/commit/61a7b66fa5ff6fd3fd32c531d87d20875c77a28f))
+- **deps-dev:** Update lint-staged requirement from ^17.1.1 to ^17.2.0 ([#128](https://github.com/ChristopherVR/pptx-viewer/issues/128)) (by @dependabot[bot]) ([f04238a](https://github.com/ChristopherVR/pptx-viewer/commit/f04238ad6eb10a17f9ae29b4148d5fd2197b33d2))
+- **deps-dev:** Update @playwright/test requirement ([#123](https://github.com/ChristopherVR/pptx-viewer/issues/123)) (by @dependabot[bot]) ([1c5f19b](https://github.com/ChristopherVR/pptx-viewer/commit/1c5f19b77352ecd00cdb6603e3f2cb584397457e))
+
+## 2026-07-27
+
 _Releases: pptx-viewer-core@2.0.5, pptx-react-viewer@2.5.2, pptx-vue-viewer@2.5.2, pptx-angular-viewer@2.5.2, pptx-vanilla-viewer@1.6.2, pptx-svelte-viewer@2.5.2, pptx-viewer-mcp@2.0.2, @christophervr/pptx-viewer@1.5.9_
 
 ### Bug Fixes

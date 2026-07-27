@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.5.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.3) - 2026-07-27
+
+### Dependencies
+
+- **deps:** Update @lucide/svelte requirement from ^1.26.0 to ^1.27.0 ([#121](https://github.com/ChristopherVR/pptx-viewer/issues/121)) (by @dependabot[bot]) ([eec772a](https://github.com/ChristopherVR/pptx-viewer/commit/eec772ad7a6e06d54306641c48ba93b2877725c3))
+- **deps:** Update emf-converter requirement from ^2.0.0 to ^2.0.2 ([#122](https://github.com/ChristopherVR/pptx-viewer/issues/122)) (by @dependabot[bot]) ([423034a](https://github.com/ChristopherVR/pptx-viewer/commit/423034ad1e6d48dbb75be17e1915c917c912517b))
+- **deps:** Update html2canvas-pro requirement from ^2.3.1 to ^2.3.2 ([#124](https://github.com/ChristopherVR/pptx-viewer/issues/124)) (by @dependabot[bot]) ([6ad6bce](https://github.com/ChristopherVR/pptx-viewer/commit/6ad6bceecf88670f33e2544dbeb1a98c8b1bf9f6))
+
+### Chores
+
+- **deps-dev:** Update rollup requirement from ^4.62.2 to ^4.62.3 ([#125](https://github.com/ChristopherVR/pptx-viewer/issues/125)) (by @dependabot[bot]) ([61a7b66](https://github.com/ChristopherVR/pptx-viewer/commit/61a7b66fa5ff6fd3fd32c531d87d20875c77a28f))
+
 ## [2.5.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.2) - 2026-07-27
 
 ### Bug Fixes

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.0.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.0.6) - 2026-07-27
+
+### Dependencies
+
+- **deps:** Update emf-converter requirement from ^2.0.0 to ^2.0.2 ([#122](https://github.com/ChristopherVR/pptx-viewer/issues/122)) (by @dependabot[bot]) ([423034a](https://github.com/ChristopherVR/pptx-viewer/commit/423034ad1e6d48dbb75be17e1915c917c912517b))
+
 ## [2.0.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.0.5) - 2026-07-27
 
 ### Bug Fixes

@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.5.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.5.3) - 2026-07-27
+
+### Dependencies
+
+- **deps:** Update emf-converter requirement from ^2.0.0 to ^2.0.2 ([#122](https://github.com/ChristopherVR/pptx-viewer/issues/122)) (by @dependabot[bot]) ([423034a](https://github.com/ChristopherVR/pptx-viewer/commit/423034ad1e6d48dbb75be17e1915c917c912517b))
+- **deps:** Update html2canvas-pro requirement from ^2.3.1 to ^2.3.2 ([#124](https://github.com/ChristopherVR/pptx-viewer/issues/124)) (by @dependabot[bot]) ([6ad6bce](https://github.com/ChristopherVR/pptx-viewer/commit/6ad6bceecf88670f33e2544dbeb1a98c8b1bf9f6))
+- **deps:** Update @lucide/angular requirement from ^1.26.0 to ^1.27.0 ([#127](https://github.com/ChristopherVR/pptx-viewer/issues/127)) (by @dependabot[bot]) ([08dcd42](https://github.com/ChristopherVR/pptx-viewer/commit/08dcd42eb6f05d44f3374256253f2434d8460e35))
+
+### Chores
+
+- **deps-dev:** Update ng-packagr requirement from ^22.0.1 to ^22.0.2 ([#120](https://github.com/ChristopherVR/pptx-viewer/issues/120)) (by @dependabot[bot]) ([5947b3d](https://github.com/ChristopherVR/pptx-viewer/commit/5947b3d292fefa61ce8473fd0744656e16a503e2))
+
 ## [2.5.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.5.2) - 2026-07-27
 
 ### Bug Fixes

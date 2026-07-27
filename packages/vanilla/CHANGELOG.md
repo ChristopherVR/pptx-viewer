@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.6.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.6.3) - 2026-07-27
+
+### Dependencies
+
+- **deps:** Update emf-converter requirement from ^2.0.0 to ^2.0.2 ([#122](https://github.com/ChristopherVR/pptx-viewer/issues/122)) (by @dependabot[bot]) ([423034a](https://github.com/ChristopherVR/pptx-viewer/commit/423034ad1e6d48dbb75be17e1915c917c912517b))
+- **deps:** Update html2canvas-pro requirement from ^2.3.1 to ^2.3.2 ([#124](https://github.com/ChristopherVR/pptx-viewer/issues/124)) (by @dependabot[bot]) ([6ad6bce](https://github.com/ChristopherVR/pptx-viewer/commit/6ad6bceecf88670f33e2544dbeb1a98c8b1bf9f6))
+
 ## [1.6.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.6.2) - 2026-07-27
 
 ### Bug Fixes
