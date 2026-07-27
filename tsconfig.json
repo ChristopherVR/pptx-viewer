@@ -1,8 +1,13 @@
 {
 	"files": [],
+	// Each `path` names the tsconfig FILE, not just its directory. TypeScript
+	// accepts either, but Playwright's tsconfig loader (>= 1.62) resolves a
+	// reference by appending ".json" when the path has no extension, so a bare
+	// directory becomes "packages/core.json" and every `playwright test` run
+	// dies at config load with "Failed to resolve references path".
 	"references": [
-		{ "path": "packages/core" },
-		{ "path": "packages/tools" },
-		{ "path": "packages/react" }
+		{ "path": "packages/core/tsconfig.json" },
+		{ "path": "packages/tools/tsconfig.json" },
+		{ "path": "packages/react/tsconfig.json" }
 	]
 }
