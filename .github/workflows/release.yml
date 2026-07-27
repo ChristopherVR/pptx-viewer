@@ -525,7 +525,7 @@ jobs:
             case "$key" in
               # https://www.npmjs.com/package/pptx-viewer-core
               core)
-                npm pkg set version="$VERSION" --prefix packages/core
+                node scripts/publish-manifest.mjs packages/core/package.json --version "$VERSION"
 
                 EXISTING=$(npm view pptx-viewer-core@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
@@ -538,20 +538,11 @@ jobs:
               # https://www.npmjs.com/package/pptx-react-viewer
               # Published as "pptx-react-viewer" (renamed from local "pptx-viewer").
               # pptx-viewer-core / pptx-viewer-shared are bundled into dist, so the
-              # published manifest must drop those internal workspace devDeps.
+              # published manifest drops those internal workspace devDeps; any
+              # remaining workspace:* range resolves to a real published version.
               react)
-                node -e "
-                  const fs = require('fs');
-                  const data = JSON.parse(fs.readFileSync('packages/react/package.json', 'utf8'));
-                  data.name = 'pptx-react-viewer';
-                  data.version = '${VERSION}';
-                  if (data.devDependencies) {
-                    for (const [k, v] of Object.entries(data.devDependencies)) {
-                      if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
-                    }
-                  }
-                  fs.writeFileSync('packages/react/package.json', JSON.stringify(data, null, '\t') + '\n');
-                "
+                node scripts/publish-manifest.mjs packages/react/package.json \
+                  --name pptx-react-viewer --version "$VERSION"
                 EXISTING=$(npm view pptx-react-viewer@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "pptx-react-viewer@$VERSION already published, skipping"
@@ -562,17 +553,7 @@ jobs:
 
               # https://www.npmjs.com/package/pptx-vue-viewer
               vue)
-                node -e "
-                  const fs = require('fs');
-                  const data = JSON.parse(fs.readFileSync('packages/vue/package.json', 'utf8'));
-                  data.version = '${VERSION}';
-                  if (data.devDependencies) {
-                    for (const [k, v] of Object.entries(data.devDependencies)) {
-                      if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
-                    }
-                  }
-                  fs.writeFileSync('packages/vue/package.json', JSON.stringify(data, null, '\t') + '\n');
-                "
+                node scripts/publish-manifest.mjs packages/vue/package.json --version "$VERSION"
                 EXISTING=$(npm view pptx-vue-viewer@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "pptx-vue-viewer@$VERSION already published, skipping"
@@ -583,19 +564,10 @@ jobs:
 
               # https://www.npmjs.com/package/pptx-vanilla-viewer
               # pptx-viewer-core / pptx-viewer-shared are bundled into dist, so the
-              # published manifest must drop those internal workspace devDeps.
+              # published manifest drops those internal workspace devDeps; any
+              # remaining workspace:* range resolves to a real published version.
               vanilla)
-                node -e "
-                  const fs = require('fs');
-                  const data = JSON.parse(fs.readFileSync('packages/vanilla/package.json', 'utf8'));
-                  data.version = '${VERSION}';
-                  if (data.devDependencies) {
-                    for (const [k, v] of Object.entries(data.devDependencies)) {
-                      if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
-                    }
-                  }
-                  fs.writeFileSync('packages/vanilla/package.json', JSON.stringify(data, null, '\t') + '\n');
-                "
+                node scripts/publish-manifest.mjs packages/vanilla/package.json --version "$VERSION"
                 EXISTING=$(npm view pptx-vanilla-viewer@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "pptx-vanilla-viewer@$VERSION already published, skipping"
@@ -606,19 +578,10 @@ jobs:
 
               # https://www.npmjs.com/package/pptx-svelte-viewer
               # pptx-viewer-core / pptx-viewer-shared are bundled into dist, so the
-              # published manifest must drop those internal workspace devDeps.
+              # published manifest drops those internal workspace devDeps; any
+              # remaining workspace:* range resolves to a real published version.
               svelte)
-                node -e "
-                  const fs = require('fs');
-                  const data = JSON.parse(fs.readFileSync('packages/svelte/package.json', 'utf8'));
-                  data.version = '${VERSION}';
-                  if (data.devDependencies) {
-                    for (const [k, v] of Object.entries(data.devDependencies)) {
-                      if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
-                    }
-                  }
-                  fs.writeFileSync('packages/svelte/package.json', JSON.stringify(data, null, '\t') + '\n');
-                "
+                node scripts/publish-manifest.mjs packages/svelte/package.json --version "$VERSION"
                 EXISTING=$(npm view pptx-svelte-viewer@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "pptx-svelte-viewer@$VERSION already published, skipping"
@@ -632,10 +595,10 @@ jobs:
               # published core (angular versions independently of core).
               angular)
                 [ -f packages/angular/CHANGELOG.md ] && cp packages/angular/CHANGELOG.md packages/angular/dist/CHANGELOG.md
+                node scripts/publish-manifest.mjs packages/angular/dist/package.json --version "$VERSION"
                 node -e "
                   const fs = require('fs');
                   const data = JSON.parse(fs.readFileSync('packages/angular/dist/package.json', 'utf8'));
-                  data.version = '${VERSION}';
                   const core = '${CORE_VERSION}';
                   if (core) {
                     for (const f of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
@@ -654,7 +617,7 @@ jobs:
 
               # https://www.npmjs.com/package/pptx-viewer-mcp
               tools)
-                npm pkg set version="$VERSION" --prefix packages/tools
+                node scripts/publish-manifest.mjs packages/tools/package.json --version "$VERSION"
                 EXISTING=$(npm view pptx-viewer-mcp@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "pptx-viewer-mcp@$VERSION already published, skipping"
@@ -665,7 +628,7 @@ jobs:
 
               # https://www.npmjs.com/package/@christophervr/pptx-viewer
               cli)
-                npm pkg set version="$VERSION" --prefix packages/cli
+                node scripts/publish-manifest.mjs packages/cli/package.json --version "$VERSION"
                 EXISTING=$(npm view @christophervr/pptx-viewer@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "@christophervr/pptx-viewer@$VERSION already published, skipping"

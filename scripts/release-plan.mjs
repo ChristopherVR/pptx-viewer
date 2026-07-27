@@ -44,6 +44,19 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHARED_DIR = 'packages/shared';
 
 /**
+ * Paths OUTSIDE any package directory that still change what every published
+ * artifact contains, and therefore force a re-release of all of them.
+ *
+ * `scripts/publish-manifest.mjs` produces the package.json that each package
+ * actually ships: it resolves the `workspace:` protocol, which npm uploads
+ * verbatim and no consumer can install. Issue #129 shipped exactly that, and a
+ * fix confined to repo tooling touches no `packages/**` path, so without this
+ * list the corrected pipeline would sit on main while npm kept serving the
+ * broken manifests.
+ */
+const GLOBAL_TRIGGERS = ['scripts/publish-manifest.mjs'];
+
+/**
  * Publishable packages. `dir` is the source dir, `npm` the published name,
  * `packDir` where `bun pm pack` runs (angular ships from its ng-packagr dist),
  * and `triggers` the OTHER dirs whose change also forces a re-release (their
@@ -153,7 +166,7 @@ function commitPublishedFiles(hash, dirs) {
 	return out
 		.split('\n')
 		.map((f) => f.trim())
-		.filter((f) => f.length > 0 && isPublishedFile(f) && dirs.some((d) => dirTouched([f], d)));
+		.filter((f) => f.length > 0 && isPublishedFile(f) && dirs.some((d) => pathTouched([f], d)));
 }
 
 /**
@@ -299,6 +312,11 @@ function dirTouched(files, dir) {
 	return files.some((f) => f.startsWith(prefix));
 }
 
+/** Like {@link dirTouched}, but `target` may also be a single file path. */
+function pathTouched(files, target) {
+	return files.includes(target) || dirTouched(files, target);
+}
+
 function parseArgs(argv) {
 	const args = { write: false, npm: true };
 	for (const a of argv) {
@@ -337,11 +355,18 @@ function main() {
 		const files = changedFiles(base);
 		const own = dirTouched(files, meta.dir);
 		const viaTrigger = meta.triggers.some((dir) => dirTouched(files, dir));
-		const release = base ? own || viaTrigger : true;
+		const viaGlobal = GLOBAL_TRIGGERS.some((p) => pathTouched(files, p));
+		const release = base ? own || viaTrigger || viaGlobal : true;
 		const current = publishedVersion(meta, args.npm);
-		const bump = release ? bumpLevel(base, [meta.dir, ...meta.triggers]) : null;
+		const scope = [meta.dir, ...meta.triggers, ...GLOBAL_TRIGGERS];
+		const bump = release ? bumpLevel(base, scope) : null;
 		const version = release ? bumpVersion(current, bump) : current;
-		const includePaths = [meta.dir, ...meta.triggers].map((d) => `${d}/**`);
+		// Changelog scoping: package dirs match by subtree, global triggers are
+		// literal file paths.
+		const includePaths = [
+			...[meta.dir, ...meta.triggers].map((d) => `${d}/**`),
+			...GLOBAL_TRIGGERS,
+		];
 		packages[key] = {
 			npm: meta.npm,
 			dir: meta.dir,
