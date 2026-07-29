@@ -67,6 +67,16 @@ export interface RenderParagraph {
 	 * too-tall lines and overflows its shape.
 	 */
 	strutFontSizePx?: number;
+	/**
+	 * True when the paragraph has no runs and no bullet: an authored blank line
+	 * (`<a:p><a:endParaRPr/></a:p>`).
+	 *
+	 * PowerPoint gives such a paragraph a full line box, which is how decks
+	 * space a heading away from the bullet list under it. A binding must render
+	 * something with height for it (a `<br>`), or the gap disappears and the
+	 * block reads as one dense run of text (issue #131, slides 13-14).
+	 */
+	isEmpty?: boolean;
 }
 
 /** Per-paragraph spacing derived from a paragraph's own `a:pPr`. */
@@ -183,6 +193,8 @@ export function buildParagraphs(
 		);
 		const bullet = hasVisibleTextContent ? bulletResult : undefined;
 
+		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
+
 		const bulletStyle: RunStyle = {};
 		if (bullet) {
 			if (bullet.color) {
@@ -197,9 +209,25 @@ export function buildParagraphs(
 			} else if (typeof bullet.sizePercent === 'number' && typeof runFontSize === 'number') {
 				bulletStyle.fontSize = `${runFontSize * (bullet.sizePercent / 100)}px`;
 			}
+			// PowerPoint draws the marker at `marL + indent` and starts the text
+			// at `marL`, so the marker's box is exactly the hanging distance
+			// wide. Reserving it here is what makes the runs line up on the
+			// indent stop instead of butting straight against the glyph, and it
+			// removes the need for a spacer character after the marker: a
+			// non-breaking space inherits the marker's font, and Wingdings maps
+			// U+00A0 to a visible dot, which painted a second bullet
+			// (issue #131, slides 13-14).
+			const hangPx =
+				typeof indent.textIndentPx === 'number' && indent.textIndentPx < 0
+					? -indent.textIndentPx
+					: undefined;
+			bulletStyle.display = 'inline-block';
+			if (hangPx !== undefined) {
+				bulletStyle.minWidth = `${hangPx}px`;
+			} else {
+				bulletStyle.marginInlineEnd = '0.35em';
+			}
 		}
-
-		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
 		const spacing = resolveParagraphSpacing(firstSeg?.paragraphProperties);
 		const strutFontSizePx = resolveParagraphStrutFontSize(
 			paraSegments,
@@ -219,11 +247,22 @@ export function buildParagraphs(
 		};
 	});
 
-	return result.filter(
-		(p) =>
-			p.runs.length > 0 ||
-			p.bulletMarker !== undefined ||
-			p.bulletPicture !== undefined ||
-			result.length === 1,
-	);
+	const hasContent = (p: RenderParagraph): boolean =>
+		p.runs.length > 0 || p.bulletMarker !== undefined || p.bulletPicture !== undefined;
+
+	// An authored blank line between two paragraphs is real vertical spacing in
+	// PowerPoint and has to survive to the renderer. Blank paragraphs AFTER the
+	// last content are dropped: the load and edit-remap paths both leave a
+	// trailing separator behind, and honouring those would grow every text body
+	// (and shift anything vertically centred) for markup the deck never drew.
+	let lastContent = -1;
+	for (let i = 0; i < result.length; i++) {
+		if (hasContent(result[i])) {
+			lastContent = i;
+		}
+	}
+	if (lastContent < 0) {
+		return result.length === 1 ? result : [];
+	}
+	return result.slice(0, lastContent + 1).map((p) => (hasContent(p) ? p : { ...p, isEmpty: true }));
 }

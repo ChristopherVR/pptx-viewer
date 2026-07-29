@@ -63,6 +63,7 @@ describe('buildParagraphs', () => {
 			},
 		});
 	});
+
 	it('groups runs and splits on paragraph-break segments', () => {
 		const paras = buildParagraphs(
 			textEl([
@@ -133,6 +134,36 @@ describe('buildParagraphs', () => {
 	it('suppresses the bullet on an empty paragraph', () => {
 		const paras = buildParagraphs(textEl([{ text: '', style: {}, bulletInfo: { char: '•' } }]));
 		expect(paras.every((p) => p.bulletMarker === undefined)).toBeTruthy();
+	});
+
+	it('keeps an authored blank line between two paragraphs (issue #131)', () => {
+		// `Heading` / blank / `Body` is how the reporter's deck spaces a heading
+		// away from the bullet list beneath it. Dropping the blank paragraph
+		// collapsed the gap entirely.
+		const paras = buildParagraphs(
+			textEl([
+				{ text: 'Heading', style: {} },
+				{ text: '\n', style: {} },
+				{ text: '\n', style: {} },
+				{ text: 'Body', style: {} },
+			]),
+		);
+		expect(paras).toHaveLength(3);
+		expect(paras[1].isEmpty).toBeTruthy();
+		expect(paras[1].runs).toHaveLength(0);
+		expect(paras.map((p) => p.isEmpty ?? false)).toStrictEqual([false, true, false]);
+	});
+
+	it('drops blank paragraphs that trail the last content', () => {
+		const paras = buildParagraphs(
+			textEl([
+				{ text: 'Body', style: {} },
+				{ text: '\n', style: {} },
+				{ text: '\n', style: {} },
+			]),
+		);
+		expect(paras).toHaveLength(1);
+		expect(paras[0].runs.map((r) => r.text)).toStrictEqual(['Body']);
 	});
 
 	it('substitutes field-run text when a fieldContext is supplied', () => {
