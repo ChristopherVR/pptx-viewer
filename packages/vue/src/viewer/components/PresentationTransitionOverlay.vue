@@ -74,7 +74,9 @@ const durationMs = computed(() => resolveTransitionDurationMs(props.transition))
  * on the outgoing slide to where they sit on the incoming one. So when the
  * transition is `morph` the two stacked layers are re-purposed - the incoming
  * layer plays per-element keyframes (scoped by `data-pptx-morph-incoming`), and
- * the outgoing layer only fades out the shapes that have no counterpart.
+ * the outgoing layer paints a moving copy of the outgoing slide, each shape
+ * gliding onto its counterpart (dissolving into it when its appearance changed)
+ * or fading out in place when it has none.
  */
 const morphPlan = computed(() =>
 	props.transition?.type === 'morph'
@@ -87,7 +89,7 @@ const morphPlan = computed(() =>
 		: undefined,
 );
 
-/** Outgoing shapes with no incoming counterpart, rendered as a fade-out slide. */
+/** The outgoing slide's shapes, rendered as the morph's departing layer. */
 const morphOutgoingSlide = computed<PptxSlide | undefined>(() => {
 	const plan = morphPlan.value;
 	if (!plan || !props.outgoingSlide) {

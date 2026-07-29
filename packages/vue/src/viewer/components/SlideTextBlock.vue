@@ -88,7 +88,7 @@ function paraStyle(para: RenderParagraph): CSSProperties {
 				class="pptx-vue-bullet"
 				:style="para.bulletStyle"
 				:aria-label="para.bulletPicture?.accessibleLabel"
-				>{{ para.bulletMarker }}&nbsp;</span
+				>{{ para.bulletMarker }}</span
 			>
 			<!-- Staged text build (by paragraph / word / letter): render the split
 			     pieces so each one carries its own sub-animation. -->
@@ -116,6 +116,10 @@ function paraStyle(para: RenderParagraph): CSSProperties {
 				<br v-if="run.text === '\n'" />
 				<span v-else :style="run.style">{{ run.text }}</span>
 			</template>
+			<!-- An authored blank line has no runs, so without this the <p>
+			     collapses to zero height and the gap a deck puts between a
+			     heading and its bullet list disappears (issue #131). -->
+			<br v-if="para.isEmpty" />
 		</p>
 	</div>
 </template>
