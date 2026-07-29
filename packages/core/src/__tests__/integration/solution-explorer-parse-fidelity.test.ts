@@ -1,13 +1,13 @@
 /**
- * Core-level regression guards for issue #130, pinned against the reporter's
- * own deck (`e2e/fixtures/solution-explorer.pptx` - a media-slimmed copy whose
- * XML parts are byte-identical to the attachment).
+ * Core-level regression guards for issues #130 and #131, pinned against the
+ * reporter's own deck (`e2e/fixtures/solution-explorer.pptx` - a media-slimmed
+ * copy whose XML parts are byte-identical to the attachment).
  *
  * Ground truth for every expectation below is PowerPoint's own render of the
  * same file, exported via COM.
  *
- * The four defects covered here are all parse-side, so fixing them here fixes
- * every binding at once:
+ * The defects covered here are all parse-side, so fixing them here fixes every
+ * binding at once:
  *
  *  - Morph written as a direct `<p159:morph/>` child was dropped to `cut`.
  *  - Text colour fell through to `p:defaultTextStyle` black instead of the
@@ -16,6 +16,8 @@
  *    discarding `fontRef` (and every effect below it).
  *  - A bullet with no `buSz` was sized from the text body default rather than
  *    the paragraph's first run.
+ *  - A run inside a scaled `p:grpSp` had its font size multiplied by the group
+ *    scale; PowerPoint scales grouped geometry only (#131).
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -147,6 +149,63 @@ describe('issue #130 - solution-explorer parse fidelity', () => {
 		expect(Math.max(...bulletSizes)).toBeLessThan(20);
 		// All three derive from 8-10pt runs, so they must land close together.
 		expect(Math.max(...bulletSizes) / Math.min(...bulletSizes)).toBeLessThan(1.6);
+	});
+
+	it('keeps a grouped run at its authored point size (issue #131)', async () => {
+		const data = await loadDeck();
+		if (!data) {
+			return;
+		}
+
+		// Slide 3's centre block is a `p:grpSp` scaled to 0.79 (`a:ext` 2083047
+		// against `a:chExt` 2631514). PowerPoint applies that scale to the child
+		// GEOMETRY only - a resized group never restyles its text - so the
+		// heading stays 12pt (16px) and overflows its box exactly as it does in
+		// PowerPoint. Scaling the font too rendered it at ~9.5pt, which is what
+		// the reporter measured as "smaller on screen than PowerPoint, yet the
+		// viewer reports a bigger size".
+		const heading = findByName(data, 2, 'TextBox 5') as
+			| {
+					textStyle?: { fontSize?: number };
+					textSegments?: Array<{ style?: { fontSize?: number } }>;
+			  }
+			| undefined;
+
+		expect(heading).toBeDefined();
+		expect(heading?.textStyle?.fontSize).toBeCloseTo(16, 5);
+		for (const segment of heading?.textSegments ?? []) {
+			expect(segment.style?.fontSize).toBeCloseTo(16, 5);
+		}
+	});
+
+	it('parses the authored text-body insets on the slide 13/14 panels (issue #131)', async () => {
+		const data = await loadDeck();
+		if (!data) {
+			return;
+		}
+
+		// `<a:bodyPr lIns="180000" tIns="180000" rIns="180000" bIns="180000">`
+		// = 0.197" all round (180000 / 9525 px). The parse was already right;
+		// this pins it so a binding regression cannot be blamed on the model.
+		for (const [slideIndex, name] of [
+			[12, 'Rectangle 14'],
+			[13, 'Rectangle 7'],
+		] as const) {
+			const panel = findByName(data, slideIndex, name) as
+				| {
+						textStyle?: {
+							bodyInsetLeft?: number;
+							bodyInsetTop?: number;
+							bodyInsetRight?: number;
+							bodyInsetBottom?: number;
+						};
+				  }
+				| undefined;
+			expect(panel?.textStyle?.bodyInsetLeft).toBeCloseTo(180000 / 9525, 5);
+			expect(panel?.textStyle?.bodyInsetTop).toBeCloseTo(180000 / 9525, 5);
+			expect(panel?.textStyle?.bodyInsetRight).toBeCloseTo(180000 / 9525, 5);
+			expect(panel?.textStyle?.bodyInsetBottom).toBeCloseTo(180000 / 9525, 5);
+		}
 	});
 
 	it('keeps a grouped shape its own hyperlink, font and colour', async () => {

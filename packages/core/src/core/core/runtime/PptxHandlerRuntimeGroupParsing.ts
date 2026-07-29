@@ -1,4 +1,4 @@
-import { XmlObject, PptxElement, hasShapeProperties, hasTextProperties } from '../../types';
+import { XmlObject, PptxElement, hasShapeProperties } from '../../types';
 import type { GroupPptxElement } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSpTreeParsing';
 
@@ -149,18 +149,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (hasShapeProperties(el) && el.shapeStyle?.strokeWidth) {
 				el.shapeStyle.strokeWidth *= avgScale;
 			}
-			if (hasTextProperties(el)) {
-				if (el.textStyle?.fontSize) {
-					el.textStyle.fontSize *= Math.abs(scaleY);
-				}
-				if (el.textSegments) {
-					el.textSegments.forEach((seg) => {
-						if (seg.style.fontSize) {
-							seg.style.fontSize *= Math.abs(scaleY);
-						}
-					});
-				}
-			}
+			// Text is deliberately NOT scaled. Resizing a group in PowerPoint
+			// rewrites `a:ext` while leaving `a:chExt`, which scales the child
+			// GEOMETRY only: every run keeps the point size it was authored at,
+			// which is why text in a shrunken group overflows its box in
+			// PowerPoint too. Scaling `fontSize` here made grouped text render
+			// visibly smaller than PowerPoint draws it (issue #131 slide 3,
+			// where a 0.79 group scale turned 12pt into ~9.5pt).
 			return el;
 		};
 
