@@ -54,6 +54,13 @@ export function getDuotoneFilterDef(el: PptxElement): DuotoneFilterDef | undefin
 export type StyleMap = Record<string, string | number>;
 
 /**
+ * Default text-body insets, in px. Mirrors React's `DEFAULT_BODY_INSET_*_PX`
+ * (PowerPoint defaults: 0.1" left/right, 0.05" top/bottom → EMU / EMU_PER_PIXEL).
+ */
+const DEFAULT_BODY_INSET_LR_PX = 91440 / 9525;
+const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
+
+/**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
  * Mirrors the essentials of the React `getContainerStyle`.
  */
@@ -228,8 +235,19 @@ export function getTextBlockStyle(el: PptxElement): StyleMap {
 	};
 	if (!ts) {
 		style['color'] = DEFAULT_TEXT_COLOR;
+		style['padding'] = `${DEFAULT_BODY_INSET_TB_PX}px ${DEFAULT_BODY_INSET_LR_PX}px`;
 		return style;
 	}
+
+	// Text-body insets (`a:bodyPr/@lIns|tIns|rIns|bIns`). Angular painted text
+	// flush against the shape edge because it never applied them, so a panel
+	// authored with a 0.2" inset had its whole text block hard against the
+	// border (issue #131, slides 13-14). React/Vue/Svelte/Vanilla already do
+	// this; the defaults match PowerPoint's own.
+	style['padding-top'] = `${ts.bodyInsetTop ?? DEFAULT_BODY_INSET_TB_PX}px`;
+	style['padding-bottom'] = `${ts.bodyInsetBottom ?? DEFAULT_BODY_INSET_TB_PX}px`;
+	style['padding-left'] = `${ts.bodyInsetLeft ?? DEFAULT_BODY_INSET_LR_PX}px`;
+	style['padding-right'] = `${ts.bodyInsetRight ?? DEFAULT_BODY_INSET_LR_PX}px`;
 
 	style['color'] = ts.color ?? DEFAULT_TEXT_COLOR;
 	if (ts.fontFamily) {

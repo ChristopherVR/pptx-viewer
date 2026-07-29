@@ -249,9 +249,11 @@ export class PresentationTransitionOverlayComponent {
 	 * Active Morph plan, or `undefined` for every other transition.
 	 *
 	 * Morph travels individual shapes between the two slides rather than wiping
-	 * the surface, so it changes what this overlay paints: only the shapes with
-	 * no counterpart on the arriving slide. The ones that persist are animated
-	 * in place on the live stage by document-level rules (see `morphStyleEffect`).
+	 * the surface, so it changes what this overlay paints: a per-shape copy of
+	 * the outgoing slide, each one gliding onto its counterpart (dissolving into
+	 * it when its appearance changed) or fading out in place when it has none.
+	 * The incoming halves are animated on the live stage by document-level rules
+	 * (see `morphStyleEffect`).
 	 */
 	protected readonly morphPlan = computed(() =>
 		this.transition().type === 'morph'

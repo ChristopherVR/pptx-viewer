@@ -9,6 +9,7 @@ import {
 	buildTextBody3DSceneStyle,
 	buildTextBuildSpec,
 	textBuildSpanStyle,
+	resolveParagraphIndent,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
 	substituteFieldText,
@@ -46,7 +47,7 @@ import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
 import { showsTemplateAffordance } from './template-mode';
-import { bulletIndentPx, resolveAngularParagraphBullet } from './text-bullets';
+import { resolveAngularParagraphBullet } from './text-bullets';
 import { resolveParagraphSpacing } from './text-paragraph-spacing';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
@@ -114,6 +115,14 @@ interface Paragraph {
 	bulletStyle: StyleMap;
 	/** Left indent in px derived from the paragraph outline level. */
 	indentPx: number;
+	/** `text-indent` in px (first-line / hanging indent), when authored. */
+	textIndentPx?: number;
+	/**
+	 * True when the paragraph has no runs and no bullet: an authored blank line
+	 * (`<a:p><a:endParaRPr/></a:p>`), which PowerPoint gives a full line box.
+	 * The template renders a `<br>` for it so the gap survives (issue #131).
+	 */
+	isEmpty?: boolean;
 	/**
 	 * Per-paragraph `line-height` from this paragraph's own `a:lnSpc`: a unitless
 	 * multiplier (`a:spcPct`) or a `"<n>pt"` string (`a:spcPts`). Undefined when
@@ -365,6 +374,7 @@ interface Paragraph {
 								<p
 									class="pptx-ng-para"
 									[style.padding-left.px]="para.indentPx"
+									[style.text-indent.px]="para.textIndentPx ?? null"
 									[style.line-height]="para.lineHeight ?? null"
 									[style.margin-top.px]="para.spaceBeforePx ?? null"
 									[style.margin-bottom.px]="para.spaceAfterPx ?? null"
@@ -382,7 +392,7 @@ interface Paragraph {
 									} @else if (para.bulletMarker) {
 										<span class="pptx-ng-bullet" [ngStyle]="para.bulletStyle"
 											[attr.aria-label]="para.bulletPicture?.accessibleLabel ?? null"
-											>{{ para.bulletMarker }}&nbsp;</span
+											>{{ para.bulletMarker }}</span
 										>
 									}
 									@if (textBuildSpecs()[$index]; as spec) {
@@ -430,6 +440,12 @@ interface Paragraph {
 											<span [ngStyle]="run.style">{{ run.text }}</span>
 										}
 									}
+									}
+									@if (para.isEmpty) {
+										<!-- An authored blank line has no runs, so without this the
+										     <p> collapses to zero height and the gap a deck puts
+										     between a heading and its bullet list disappears. -->
+										<br />
 									}
 								</p>
 							}
@@ -753,10 +769,16 @@ export class ElementRendererComponent {
 				? [{ runs: [{ text: el.text, style: {} }], bulletStyle: {}, indentPx: 0 }]
 				: [];
 		}
+		const paragraphIndents = el.paragraphIndents;
 		const out: Paragraph[] = [{ runs: [], bulletStyle: {}, indentPx: 0 }];
 		let paraStarted = false;
 		for (const seg of segments) {
-			if (seg.isParagraphBreak) {
+			// A bare `"\n"` segment is the slide-LOAD path's paragraph separator;
+			// `isParagraphBreak` is only set by the edit remap. Matching on the
+			// former alone meant a freshly loaded deck arrived here as a single
+			// paragraph, so only its first line got a bullet and every authored
+			// blank line vanished (issue #131). Mirrors shared `buildParagraphs`.
+			if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
 				out.push({ runs: [], bulletStyle: {}, indentPx: 0 });
 				paraStarted = false;
 				continue;
@@ -765,7 +787,12 @@ export class ElementRendererComponent {
 			// The first segment of each paragraph carries its bullet + outline level.
 			if (!paraStarted) {
 				paraStarted = true;
-				current.indentPx = bulletIndentPx(seg.paragraphLevel);
+				const indent = resolveParagraphIndent(
+					paragraphIndents?.[out.length - 1],
+					seg.paragraphLevel,
+				);
+				current.indentPx = indent.marginLeftPx ?? 0;
+				current.textIndentPx = indent.textIndentPx;
 				// Per-paragraph line-height / space-before / space-after from this
 				// paragraph's own `a:pPr` (#69), mirroring shared `buildParagraphs`.
 				const spacing = resolveParagraphSpacing(seg.paragraphProperties);
@@ -784,6 +811,26 @@ export class ElementRendererComponent {
 					current.bulletMarker = bullet.marker;
 					current.bulletPicture = bullet.picture;
 					Object.assign(current.bulletStyle, bullet.style);
+					// PowerPoint draws the marker at `marL + indent` and starts
+					// the text at `marL`, so the marker's box is exactly the
+					// hanging distance wide. Reserving it lines the runs up on
+					// the indent stop and removes the need for a spacer after
+					// the glyph. Mirrors shared `buildParagraphs`.
+					current.bulletStyle['display'] = 'inline-block';
+					if (indent.textIndentPx !== undefined && indent.textIndentPx < 0) {
+						current.bulletStyle['min-width'] = `${-indent.textIndentPx}px`;
+					} else {
+						current.bulletStyle['margin-inline-end'] = '0.35em';
+					}
+					// The slide-load path inserts a DEDICATED marker segment whose
+					// text is the precomputed glyph; the marker is rendered from
+					// `bulletMarker` above, so keeping the segment as a run painted
+					// the bullet twice. A run that merely carries `bulletInfo` but
+					// holds real content (the edit-remap path) is kept. Mirrors
+					// shared `buildParagraphs`.
+					if (seg.bulletInfo && bullet.marker && seg.text.trim() === bullet.marker.trim()) {
+						continue;
+					}
 				}
 			}
 			if (seg.equationXml) {
@@ -830,13 +877,27 @@ export class ElementRendererComponent {
 				p.strutFontSizePx = undefined;
 			}
 		}
-		return out.filter(
-			(p) =>
-				p.runs.length > 0 ||
-				p.bulletMarker !== undefined ||
-				p.bulletPicture !== undefined ||
-				out.length === 1,
-		);
+		// An authored blank line between two paragraphs is real vertical spacing
+		// and must survive; blank paragraphs AFTER the last content are dropped,
+		// since both the load and edit-remap paths leave a trailing separator
+		// behind. Mirrors shared `buildParagraphs`.
+		const hasContent = (p: Paragraph): boolean =>
+			p.runs.length > 0 || p.bulletMarker !== undefined || p.bulletPicture !== undefined;
+		let lastContent = -1;
+		for (let i = 0; i < out.length; i++) {
+			if (hasContent(out[i])) {
+				lastContent = i;
+			}
+		}
+		if (lastContent < 0) {
+			return out.length === 1 ? out : [];
+		}
+		return out.slice(0, lastContent + 1).map((p) => {
+			if (!hasContent(p)) {
+				p.isEmpty = true;
+			}
+			return p;
+		});
 	});
 
 	readonly hasText = computed(() =>
