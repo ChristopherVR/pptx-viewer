@@ -76,7 +76,7 @@
 				/>{:else if para.bulletMarker !== undefined}<span
 					class="pptx-svelte-bullet"
 					style={styleToString(para.bulletStyle)}
-					aria-label={para.bulletPicture?.accessibleLabel}>{para.bulletMarker}&nbsp;</span
+					aria-label={para.bulletPicture?.accessibleLabel}>{para.bulletMarker}</span
 				>{/if}{#if specs[pi]}{#if specs[pi]!.granularity === 'paragraph'}<span
 						data-anim-id={specs[pi]!.animId}
 						style={styleToString(textBuildSpanStyle(specs[pi]!))}
@@ -89,7 +89,10 @@
 						>{span.text}</span
 					>{/each}{/if}{:else}{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
 						style={styleToString(run.style)}>{run.text}</span
-					>{/if}{/each}{/if}
+					>{/if}{/each}{/if}{#if para.isEmpty}<!-- An authored blank line has no runs, so
+			     without this the <p> collapses to zero height and the gap a deck puts
+			     between a heading and its bullet list disappears (issue #131). --><br
+				/>{/if}
 		</p>
 	{/each}
 </div>

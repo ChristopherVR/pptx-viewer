@@ -61,8 +61,9 @@
 	/**
 	 * Morph moves individual shapes between the two slides rather than wiping the
 	 * whole surface, so when it is active the incoming layer plays per-element
-	 * keyframes (scoped by `data-pptx-morph-incoming`) and the outgoing layer is
-	 * reduced to just the shapes with no counterpart, fading out.
+	 * keyframes (scoped by `data-pptx-morph-incoming`) and the outgoing layer
+	 * animates each of its own shapes: gliding onto its counterpart (dissolving
+	 * into it when its appearance changed) or fading out in place without one.
 	 */
 	const morphPlan = $derived(
 		transition?.type === 'morph'
