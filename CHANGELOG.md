@@ -8,6 +8,27 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-29
+
+_Releases: pptx-viewer-core@2.0.8, pptx-react-viewer@2.6.1, pptx-vue-viewer@2.6.1, pptx-angular-viewer@2.6.1, pptx-vanilla-viewer@1.7.1, pptx-svelte-viewer@2.6.1_
+
+### Bug Fixes
+
+- **ci:** Reference tsconfig files by path so playwright 1.62 can load them (by @ChristopherVR) ([fae1581](https://github.com/ChristopherVR/pptx-viewer/commit/fae1581e71ba95aa15a66d6dc16fdfae70cc0d73))
+- **core:** Keep grouped text at its authored point size (by @ChristopherVR) ([56f676a](https://github.com/ChristopherVR/pptx-viewer/commit/56f676a850a510fa405361d58c849e4a7adb3bea))
+- **shared:** Keep authored blank lines and give the bullet its hanging box (by @ChristopherVR) ([0a8de56](https://github.com/ChristopherVR/pptx-viewer/commit/0a8de560f117fdaeb06374e61e49a2cf4e1372b7))
+- **shared:** Make morph animate a near-duplicate slide pair (by @ChristopherVR) ([e73ade7](https://github.com/ChristopherVR/pptx-viewer/commit/e73ade737892f3b46a79eb183370a86e3f8b59fe))
+- **react:** Restore the text-body inset, blank lines and the AutoSave toggle (by @ChristopherVR) ([d9c53c1](https://github.com/ChristopherVR/pptx-viewer/commit/d9c53c10781f84e6893253e70d57c829d492c010))
+- **angular:** Split paragraphs on load, apply text-body insets and blank lines (by @ChristopherVR) ([e73e1ac](https://github.com/ChristopherVR/pptx-viewer/commit/e73e1ac391d22700bb4615a6762190158b91b34f))
+- **vue:** Render authored blank lines and drop the bullet spacer (by @ChristopherVR) ([1e4d270](https://github.com/ChristopherVR/pptx-viewer/commit/1e4d2700d8a46568a0e61d2e9a27c38c5c6ffb4b))
+- **svelte:** Render authored blank lines and drop the bullet spacer (by @ChristopherVR) ([a964ad1](https://github.com/ChristopherVR/pptx-viewer/commit/a964ad1f4502962e551f0c10ea3c71120473686d))
+- **vanilla:** Render authored blank lines and drop the bullet spacer (by @ChristopherVR) ([b85c2c7](https://github.com/ChristopherVR/pptx-viewer/commit/b85c2c7e48b7dcc4388406d410dcdf9fe320e168))
+
+### Testing
+
+- **e2e:** Anchor issue #130 assertions so they hold in every binding (by @ChristopherVR) ([2193ad9](https://github.com/ChristopherVR/pptx-viewer/commit/2193ad95564bf61f44a3a3c26665e1449ec4ed78))
+- **e2e:** Cover issue #131 against the reporter's own deck (by @ChristopherVR) ([844faa3](https://github.com/ChristopherVR/pptx-viewer/commit/844faa3a9cade1967283e545e20745d27cb92b61))
+
 ## 2026-07-27
 
 _Releases: pptx-viewer-core@2.0.7, pptx-react-viewer@2.6.0, pptx-vue-viewer@2.6.0, pptx-angular-viewer@2.6.0, pptx-vanilla-viewer@1.7.0, pptx-svelte-viewer@2.6.0_
