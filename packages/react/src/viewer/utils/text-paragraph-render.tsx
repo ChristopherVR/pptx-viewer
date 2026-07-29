@@ -279,6 +279,13 @@ export function renderTextSegments(
 				),
 		);
 
+		// An authored blank line (`<a:p><a:endParaRPr/></a:p>`) has no runs, so
+		// its wrapper collapses to zero height and the gap the deck uses to
+		// separate a heading from its bullet list disappears. A `<br>` gives the
+		// paragraph a line box without adding anything to `textContent`
+		// (issue #131, slides 13-14).
+		const isBlankParagraph = renderedSegments.length === 0;
+
 		if (!needsWrapper) {
 			return (
 				<React.Fragment key={`${element.id}-para-${paraIndex}`}>
@@ -290,7 +297,7 @@ export function renderTextSegments(
 
 		return (
 			<div key={`${element.id}-para-${paraIndex}`} style={paraStyle}>
-				{wrappedContent}
+				{isBlankParagraph ? <br /> : wrappedContent}
 			</div>
 		);
 	});

@@ -358,6 +358,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const { optionsStore, options: viewerOptions } = useViewerOptions();
 		const settingsRef = useRef(settings);
 		settingsRef.current = settings;
+		// `handleSettingsChange` depends on `state`, which is a fresh object on
+		// every render, so it can never be a dependency of the options -> legacy
+		// effect: that effect would then run on EVERY render and push the store's
+		// (not yet updated) values back over a toggle the user just flipped. The
+		// title-bar AutoSave switch was unusable for exactly that reason - it
+		// flipped to off and was reset to on in the same commit (issue #131).
+		const handleSettingsChangeRef = useRef(handleSettingsChange);
+		handleSettingsChangeRef.current = handleSettingsChange;
 		const syncingFromOptionsRef = useRef(false);
 		useEffect(() => {
 			// Options -> scattered legacy state (dialog edits, persisted values).
@@ -366,13 +374,13 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			for (const key of Object.keys(mapped) as (keyof ViewerSettings)[]) {
 				if (mapped[key] !== settingsRef.current[key]) {
 					changed = true;
-					handleSettingsChange(key, mapped[key]);
+					handleSettingsChangeRef.current(key, mapped[key]);
 				}
 			}
 			if (changed) {
 				syncingFromOptionsRef.current = true;
 			}
-		}, [viewerOptions, handleSettingsChange]);
+		}, [viewerOptions]);
 		useEffect(() => {
 			// Legacy state -> options (ribbon View toggles, title-bar autosave).
 			const current = optionsStore.getOptions();

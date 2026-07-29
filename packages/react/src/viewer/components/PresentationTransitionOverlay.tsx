@@ -47,11 +47,12 @@ export interface PresentationTransitionOverlayProps {
 	 * Active Morph plan, when the incoming slide's transition is `morph`.
 	 *
 	 * Morph is not a whole-slide effect, so the overlay changes shape when this
-	 * is present: instead of animating the entire outgoing slide over the new
-	 * one, it paints ONLY the shapes that do not exist on the incoming slide
-	 * and fades them out. Everything that persists is animated in place on the
-	 * live stage (its `incomingAnimations` are already merged into the stage's
-	 * element states by `usePresentationMode`).
+	 * is present: instead of animating the entire outgoing slide as one block, it
+	 * paints each outgoing shape separately and glides it onto its counterpart -
+	 * dissolving into it when its appearance changed, fading out in place when it
+	 * has none. The incoming halves animate on the live stage underneath (their
+	 * `incomingAnimations` are already merged into the stage's element states by
+	 * `usePresentationMode`).
 	 */
 	morphPlan?: MorphTransitionPlan;
 	/** Called when the transition animation completes. */

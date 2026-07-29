@@ -140,6 +140,19 @@ export function getTextStyleForElement(
 	const bodyLeft = element.textStyle?.bodyInsetLeft ?? DEFAULT_BODY_INSET_LR_PX;
 	const bodyRight = element.textStyle?.bodyInsetRight ?? DEFAULT_BODY_INSET_LR_PX;
 
+	// Element-level indent/margin is a fallback for single-level text only.
+	// When core parsed per-paragraph indents, `renderTextSegments` applies each
+	// paragraph's own `marginLeft`/`textIndent`, and repeating the element-level
+	// pair here double-counts it. The visible symptom was a lost left inset: a
+	// body whose first indented paragraph hangs by -18px put `text-indent:-18px`
+	// on the text body, every paragraph inherited it, and each first line was
+	// pulled back out through the shape's `lIns` padding (issue #131, slide 13).
+	// `getTextLayoutStyle` already guards the same two properties this way.
+	const hasParagraphIndents = (element.paragraphIndents?.length ?? 0) > 0;
+	const bodyIndent = hasParagraphIndents ? 0 : element.textStyle?.paragraphIndent || 0;
+	const bodyMarginLeft = hasParagraphIndents ? 0 : element.textStyle?.paragraphMarginLeft || 0;
+	const bodyMarginRight = hasParagraphIndents ? 0 : element.textStyle?.paragraphMarginRight || 0;
+
 	// Vertical text direction
 	const writingMode = toCssWritingMode(element.textStyle?.textDirection);
 	const textOrientation = toCssTextOrientation(element.textStyle?.textDirection);
@@ -178,9 +191,9 @@ export function getTextStyleForElement(
 		lineHeight: resolveLineHeight(element.textStyle, hasItalicRuns),
 		paddingTop: bodyTop + (hasItalicRuns ? 1 : 0),
 		paddingBottom: bodyBottom + (hasItalicRuns ? 1 : 0),
-		paddingLeft: bodyLeft + (element.textStyle?.paragraphMarginLeft || 0),
-		paddingRight: bodyRight + (element.textStyle?.paragraphMarginRight || 0),
-		textIndent: element.textStyle?.paragraphIndent || 0,
+		paddingLeft: bodyLeft + bodyMarginLeft,
+		paddingRight: bodyRight + bodyMarginRight,
+		textIndent: bodyIndent,
 		overflow: 'visible',
 		writingMode,
 		textOrientation,
