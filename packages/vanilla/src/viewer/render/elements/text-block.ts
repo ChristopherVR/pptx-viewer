@@ -73,7 +73,11 @@ export function renderTextBlock(
 			if (para.bulletPicture) {
 				bullet.setAttribute('aria-label', para.bulletPicture.accessibleLabel);
 			}
-			bullet.textContent = `${para.bulletMarker} `;
+			// No trailing spacer: the marker's own box is the hanging distance
+			// wide (shared `buildParagraphs` sets `min-width`), and a space here
+			// would inherit the marker's font - Wingdings paints U+00A0 as a
+			// visible dot, i.e. a second bullet (issue #131).
+			bullet.textContent = para.bulletMarker;
 			p.appendChild(bullet);
 		}
 
@@ -123,6 +127,13 @@ export function renderTextBlock(
 			applyStyleMap(span, run.style);
 			span.textContent = run.text;
 			runHost.appendChild(span);
+		}
+
+		// An authored blank line has no runs, so without this the <p> collapses
+		// to zero height and the gap a deck puts between a heading and its
+		// bullet list disappears (issue #131).
+		if (para.isEmpty) {
+			runHost.appendChild(doc.createElement('br'));
 		}
 
 		block.appendChild(p);

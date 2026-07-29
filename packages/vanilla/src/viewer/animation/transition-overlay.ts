@@ -56,9 +56,9 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 	// Morph moves individual shapes between the two slides instead of wiping the
 	// whole surface. When a plan is available the layers stay unanimated (a
 	// layer-wide animation would drag every shape as one block), the incoming
-	// layer plays per-element keyframes, and the outgoing snapshot is stripped
-	// down to just the shapes with no counterpart so the travelling ones are not
-	// drawn twice.
+	// layer plays per-element keyframes, and every shape in the outgoing snapshot
+	// glides onto its counterpart - dissolving into it when its appearance
+	// changed, or fading out in place when it has none.
 	const morphPlan =
 		transition.type === 'morph'
 			? buildMorphTransitionPlan(
