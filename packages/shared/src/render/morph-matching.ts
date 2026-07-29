@@ -104,16 +104,23 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 		}
 	}
 
-	// Pass 2: match by element ID
+	// Pass 2: match by the shape's native OOXML id (`p:cNvPr/@id`), which
+	// PowerPoint preserves when a slide is duplicated and is what it pairs on.
+	//
+	// This deliberately does NOT compare `element.id`: that is the loader's
+	// synthetic identity and embeds the slide path
+	// (`ppt/slides/slide3.xml-shape-1`), so it can never be equal across two
+	// slides and the pass was dead code. `shapeId` is only unique WITHIN a
+	// slide, hence the `usedFrom`/`usedTo` guards below.
 	for (const fromEl of fromSlide.elements) {
-		if (usedFrom.has(fromEl.id)) {
+		if (usedFrom.has(fromEl.id) || !fromEl.shapeId) {
 			continue;
 		}
 		for (const toEl of toSlide.elements) {
 			if (usedTo.has(toEl.id)) {
 				continue;
 			}
-			if (fromEl.id === toEl.id) {
+			if (toEl.shapeId && fromEl.shapeId === toEl.shapeId && fromEl.type === toEl.type) {
 				pairs.push({ fromElement: fromEl, toElement: toEl });
 				usedFrom.add(fromEl.id);
 				usedTo.add(toEl.id);

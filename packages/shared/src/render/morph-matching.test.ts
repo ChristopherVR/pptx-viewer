@@ -3,7 +3,7 @@
  *
  * Covers the three-pass matching strategy:
  *   1. !!name matching (element name property and text content)
- *   2. Same-ID matching
+ *   2. Native shape-id matching (`p:cNvPr/@id`)
  *   3. Type + proximity matching
  *
  * Also covers edge cases, priority ordering, and unmatched element handling.
@@ -158,30 +158,63 @@ describe('!!name matching pairs elements correctly', () => {
 });
 
 // ==========================================================================
-// Same-id matching works
+// Native shape-id matching (p:cNvPr/@id)
 // ==========================================================================
 
-describe('same-id matching works', () => {
-	it('matches elements with identical IDs', () => {
-		const from = makeSlide([makeElement({ id: 'shared-id', type: 'shape', x: 0, y: 0 })]);
-		const to = makeSlide([makeElement({ id: 'shared-id', type: 'shape', x: 200, y: 200 })]);
-		const pairs = matchMorphElements(from, to);
-		expect(pairs).toHaveLength(1);
-		expect(pairs[0].fromElement.id).toBe('shared-id');
-		expect(pairs[0].toElement.id).toBe('shared-id');
-	});
-
-	it('matches multiple elements by ID', () => {
+describe('native shape-id matching', () => {
+	it('matches elements carrying the same native shape id', () => {
 		const from = makeSlide([
-			makeElement({ id: 'el-1', type: 'shape', x: 0, y: 0 }),
-			makeElement({ id: 'el-2', type: 'text', x: 100, y: 100 }),
+			makeElement({ id: 'slide2.xml-shape-0', shapeId: '7', type: 'shape', x: 0, y: 0 }),
 		]);
 		const to = makeSlide([
-			makeElement({ id: 'el-2', type: 'text', x: 300, y: 300 }),
-			makeElement({ id: 'el-1', type: 'shape', x: 400, y: 400 }),
+			makeElement({ id: 'slide3.xml-shape-0', shapeId: '7', type: 'shape', x: 200, y: 200 }),
+		]);
+		const pairs = matchMorphElements(from, to);
+		expect(pairs).toHaveLength(1);
+		expect(pairs[0].fromElement.id).toBe('slide2.xml-shape-0');
+		expect(pairs[0].toElement.id).toBe('slide3.xml-shape-0');
+	});
+
+	it('matches across the slide even when proximity never would', () => {
+		// Far apart (>300px) and in a different document order, so only the
+		// shape-id pass can pair these.
+		const from = makeSlide([
+			makeElement({ id: 'slide2.xml-shape-0', shapeId: '11', type: 'shape', x: 0, y: 0 }),
+			makeElement({ id: 'slide2.xml-shape-1', shapeId: '12', type: 'text', x: 100, y: 100 }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'slide3.xml-shape-0', shapeId: '12', type: 'text', x: 900, y: 900 }),
+			makeElement({ id: 'slide3.xml-shape-1', shapeId: '11', type: 'shape', x: 800, y: 800 }),
 		]);
 		const pairs = matchMorphElements(from, to);
 		expect(pairs).toHaveLength(2);
+		expect(pairs.find((p) => p.fromElement.shapeId === '11')?.toElement.id).toBe(
+			'slide3.xml-shape-1',
+		);
+		expect(pairs.find((p) => p.fromElement.shapeId === '12')?.toElement.id).toBe(
+			'slide3.xml-shape-0',
+		);
+	});
+
+	it('does not pair a shared shape id across different element types', () => {
+		// Duplicated decks reuse the id space per slide, so the same number can
+		// mean an image on one slide and a shape on the next.
+		const from = makeSlide([
+			makeElement({ id: 'slide2.xml-shape-0', shapeId: '9', type: 'shape', x: 0, y: 0 }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'slide3.xml-pic-0', shapeId: '9', type: 'image', x: 900, y: 900 }),
+		]);
+		expect(matchMorphElements(from, to)).toHaveLength(0);
+	});
+
+	it('ignores the loader-synthesised element id, which never repeats across slides', () => {
+		// `element.id` embeds the slide path, so equality here would be a bug
+		// masquerading as a match. Two shapes with no `shapeId` and no proximity
+		// must stay unmatched.
+		const from = makeSlide([makeElement({ id: 'same', type: 'shape', x: 0, y: 0 })]);
+		const to = makeSlide([makeElement({ id: 'same', type: 'shape', x: 900, y: 900 })]);
+		expect(matchMorphElements(from, to)).toHaveLength(0);
 	});
 });
 

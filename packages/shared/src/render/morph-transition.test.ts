@@ -1261,8 +1261,9 @@ describe('generateFullMorphTransition', () => {
 			makeElement({ id: 'only-to', type: 'image', x: 300, y: 300 }),
 		]);
 		const anims = generateFullMorphTransition(from, to, 800, 'object');
-		// Should have: 1 pair animation + 1 fade-out + 1 fade-in
-		expect(anims).toHaveLength(3);
+		// Should have: 1 pair animation + its outgoing ghost + 1 fade-out + 1 fade-in
+		expect(anims).toHaveLength(4);
+		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(1);
 	});
 
 	it('includes text morph animations in word mode', () => {
@@ -1340,8 +1341,10 @@ describe('generateFullMorphTransition', () => {
 		const from = makeSlide([makeElement({ id: 'a', type: 'shape', x: 0, y: 0 })]);
 		const to = makeSlide([makeElement({ id: 'a', type: 'shape', x: 100, y: 100 })]);
 		const anims = generateFullMorphTransition(from, to, 500);
-		// Object mode: 1 pair animation, no text animations
-		expect(anims).toHaveLength(1);
+		// Object mode: the pair's incoming animation + its outgoing ghost, and no
+		// text animations.
+		expect(anims).toHaveLength(2);
+		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(1);
 	});
 });
 

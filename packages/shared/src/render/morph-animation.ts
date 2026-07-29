@@ -103,6 +103,56 @@ export function buildStrokeInterpolationProps(
 }
 
 // ---------------------------------------------------------------------------
+// Appearance comparison (drives the matched-pair crossfade)
+// ---------------------------------------------------------------------------
+
+/**
+ * A compact description of everything about an element that is actually
+ * PAINTED, used to decide whether a matched morph pair has to crossfade.
+ *
+ * Two matched shapes that differ only in geometry can simply glide (the
+ * incoming element is already the right colour). Two that differ in fill,
+ * outline, picture or text look like a hard cut if we just swap them, because
+ * the outgoing appearance is never drawn: the incoming element is rendered at
+ * its final appearance from the very first frame.
+ */
+function appearanceSignature(element: PptxElement): string {
+	const parts: string[] = [element.type];
+	if (hasShapeProperties(element)) {
+		const style = element.shapeStyle;
+		parts.push(
+			(element as { shapeType?: string }).shapeType ?? '',
+			style?.fillMode ?? '',
+			style?.fillColor ?? '',
+			style?.fillGradient ?? '',
+			String(style?.fillOpacity ?? ''),
+			style?.strokeColor ?? '',
+			String(style?.strokeWidth ?? ''),
+		);
+	}
+	const image = element as { imagePath?: string; svgPath?: string };
+	parts.push(image.imagePath ?? '', image.svgPath ?? '');
+	if (hasTextProperties(element)) {
+		parts.push(element.text ?? '', element.textStyle?.color ?? '');
+	}
+	return parts.join('');
+}
+
+/**
+ * Whether a matched pair needs a crossfade rather than a plain glide.
+ *
+ * PowerPoint's Morph dissolves a shape's appearance into its counterpart's
+ * while it travels. Without this, a deck whose slides are near-duplicates (the
+ * usual Morph authoring pattern: duplicate the slide, then restyle one shape)
+ * appeared to have no transition at all, because every persisting shape was
+ * painted in its FINAL state on frame 1 and only the handful of genuinely new
+ * or departing shapes faded (issue #131).
+ */
+export function morphPairNeedsCrossfade(fromElement: PptxElement, toElement: PptxElement): boolean {
+	return appearanceSignature(fromElement) !== appearanceSignature(toElement);
+}
+
+// ---------------------------------------------------------------------------
 // Generate CSS keyframes for morph pairs
 // ---------------------------------------------------------------------------
 
@@ -137,10 +187,15 @@ export function generateMorphAnimations(
 		const fromOpacity = fromElement.opacity ?? 1;
 		const toOpacity = toElement.opacity ?? 1;
 
+		// A pair whose appearance changes fades IN over its outgoing ghost (see
+		// `generateMorphGhostAnimations`); one that only moves stays fully
+		// opaque so the glide reads as a single continuous object.
+		const crossfades = morphPairNeedsCrossfade(fromElement, toElement);
+
 		// Build from/to property blocks
 		const fromProps: string[] = [
 			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${dr}deg);`,
-			`\t\topacity: ${fromOpacity};`,
+			`\t\topacity: ${crossfades ? 0 : fromOpacity};`,
 		];
 		const toProps: string[] = [
 			'\t\ttransform: translate(0, 0) scale(1, 1) rotate(0deg);',
@@ -178,6 +233,72 @@ ${toProps.join('\n')}
 		});
 	}
 
+	return animations;
+}
+
+/**
+ * Generate the OUTGOING half of every matched pair.
+ *
+ * The returned animations target the outgoing element, which a binding paints
+ * in its transition overlay above the live stage. Each ghost travels the same
+ * path as its incoming counterpart - from its own geometry to the pair's final
+ * geometry - so the overlay stays a faithful, moving copy of the outgoing
+ * slide for the whole transition.
+ *
+ * A pair whose APPEARANCE changed fades to nothing on the way, dissolving into
+ * the counterpart rendered underneath. A pair that only moved keeps its opacity
+ * and simply lands on the incoming geometry, where the two are pixel-identical
+ * and the overlay can be torn down without a visible seam. Emitting the second
+ * kind matters because the overlay is a flat layer above the stage: a
+ * full-slide background that IS crossfading would otherwise hide every
+ * unchanged shape until it had faded, making them pop in mid-transition.
+ *
+ * `transform-origin` is pinned to the element's own centre in canvas
+ * coordinates because the overlay wrapper spans the whole slide: without it a
+ * `scale()` would pivot around the slide centre and drag the ghost across the
+ * canvas.
+ *
+ * @param pairs - Matched pairs.
+ * @param durationMs - Animation duration in milliseconds.
+ * @param startIndex - Index offset for unique keyframe naming.
+ * @returns Ghost animation descriptors keyed by the OUTGOING element id.
+ */
+export function generateMorphGhostAnimations(
+	pairs: MorphPair[],
+	durationMs: number,
+	startIndex: number,
+): MorphAnimationStyle[] {
+	const animations: MorphAnimationStyle[] = [];
+	for (let index = 0; index < pairs.length; index++) {
+		const { fromElement, toElement } = pairs[index];
+		const fadesOut = morphPairNeedsCrossfade(fromElement, toElement);
+		const safeName = `pptx-morph-ghost-${startIndex + index}-${fromElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
+		const dx = toElement.x - fromElement.x;
+		const dy = toElement.y - fromElement.y;
+		const sx = Math.max(toElement.width, 1) / Math.max(fromElement.width, 1);
+		const sy = Math.max(toElement.height, 1) / Math.max(fromElement.height, 1);
+		const dr = (toElement.rotation ?? 0) - (fromElement.rotation ?? 0);
+		const originX = fromElement.x + fromElement.width / 2;
+		const originY = fromElement.y + fromElement.height / 2;
+		const keyframes = `
+@keyframes ${safeName} {
+\tfrom {
+\t\ttransform-origin: ${originX}px ${originY}px;
+\t\ttransform: translate(0, 0) scale(1, 1) rotate(0deg);
+\t\topacity: ${fromElement.opacity ?? 1};
+\t}
+\tto {
+\t\ttransform-origin: ${originX}px ${originY}px;
+\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${dr}deg);
+\t\topacity: ${fadesOut ? 0 : (fromElement.opacity ?? 1)};
+\t}
+}`;
+		animations.push({
+			elementId: fromElement.id,
+			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
+			keyframes,
+		});
+	}
 	return animations;
 }
 
@@ -336,11 +457,15 @@ export function generateFullMorphTransition(
 		}
 	}
 
+	// Outgoing half of every restyled pair's crossfade.
+	const ghosts = generateMorphGhostAnimations(matchResult.pairs, durationMs, pairAnims.length);
+	allAnimations.push(...ghosts);
+
 	// Generate fade-out for unmatched from elements
 	const fadeOuts = generateUnmatchedFadeOutAnimations(
 		matchResult.unmatchedFrom,
 		durationMs,
-		pairAnims.length,
+		pairAnims.length + ghosts.length,
 	);
 	allAnimations.push(...fadeOuts);
 
@@ -348,7 +473,7 @@ export function generateFullMorphTransition(
 	const fadeIns = generateUnmatchedFadeInAnimations(
 		matchResult.unmatchedTo,
 		durationMs,
-		pairAnims.length + fadeOuts.length,
+		pairAnims.length + ghosts.length + fadeOuts.length,
 	);
 	allAnimations.push(...fadeIns);
 

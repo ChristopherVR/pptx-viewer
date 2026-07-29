@@ -17,6 +17,9 @@
  *   final geometry and the keyframes start it at the outgoing element's
  *   offset/scale/rotation, so it appears to glide into place. Hence
  *   {@link MorphTransitionPlan.incomingAnimations} is keyed by incoming id.
+ *   When the pair's APPEARANCE also changed (fill, outline, picture, text) the
+ *   incoming half fades in over a ghost of the outgoing half travelling the
+ *   same path, so the two dissolve into each other instead of cutting.
  * - An element only on the **outgoing** slide fades out in place. It is not in
  *   the incoming slide at all, so the binding has to keep painting it for the
  *   duration: {@link MorphTransitionPlan.outgoingElements} is exactly that set,
@@ -46,9 +49,11 @@ export interface MorphTransitionPlan {
 	/** Outgoing-slide element id -> CSS `animation` shorthand. */
 	outgoingAnimations: Map<string, string>;
 	/**
-	 * Outgoing-slide elements with no counterpart on the incoming slide. The
-	 * binding must render these itself (they exist nowhere else) for the
-	 * duration of the transition so they can fade out.
+	 * The outgoing slide's elements, in document order, for the binding to
+	 * render in its transition overlay for the duration of the morph. Each one
+	 * carries an entry in {@link MorphTransitionPlan.outgoingAnimations}: it
+	 * either fades out in place (no counterpart) or glides onto its counterpart,
+	 * dissolving into it when the appearance changed.
 	 */
 	outgoingElements: PptxElement[];
 	/** Animation duration in ms, echoed for convenience. */
@@ -92,12 +97,26 @@ export function buildMorphTransitionPlan(
 
 	const animations = generateFullMorphTransition(fromSlide, toSlide, durationMs, mode);
 
-	// Only the unmatched-FROM ids belong to the outgoing slide; every other
-	// animation targets an element the incoming slide already renders. Element
-	// ids embed their slide path, so the two id spaces do not overlap, but
-	// partitioning on this set (rather than on id shape) keeps that an
+	// The overlay paints the outgoing slide as a moving copy of itself, in the
+	// slide's own document order so its z-stacking is preserved:
+	//
+	//  - shapes with no counterpart fade out in place;
+	//  - a matched pair's outgoing half glides onto its counterpart, dissolving
+	//    into it when the appearance changed and simply landing on it when only
+	//    the geometry did.
+	//
+	// Painting the unchanged halves too is what keeps a full-slide background
+	// from hiding them: the overlay is one flat layer above the live stage, so
+	// anything left out of it is invisible behind a crossfading backdrop until
+	// that backdrop has faded. Before this, a near-duplicate slide pair (the
+	// usual Morph authoring pattern) cut straight to its final look on frame 1
+	// and looked like no transition at all (issue #131).
+	//
+	// Element ids embed their slide path, so the two id spaces do not overlap,
+	// but partitioning on this set (rather than on id shape) keeps that an
 	// implementation detail of core rather than an assumption here.
-	const outgoingIds = new Set(match.unmatchedFrom.map((element) => element.id));
+	const outgoingElements = [...fromSlide.elements];
+	const outgoingIds = new Set(outgoingElements.map((element) => element.id));
 
 	const incomingAnimations = new Map<string, string>();
 	const outgoingAnimations = new Map<string, string>();
@@ -116,7 +135,7 @@ export function buildMorphTransitionPlan(
 		keyframesCss: keyframes.join('\n'),
 		incomingAnimations,
 		outgoingAnimations,
-		outgoingElements: match.unmatchedFrom,
+		outgoingElements,
 		durationMs,
 	};
 }

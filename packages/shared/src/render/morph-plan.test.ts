@@ -50,8 +50,6 @@ describe('buildMorphTransitionPlan', () => {
 
 		expect(plan).toBeDefined();
 		expect(plan?.incomingAnimations.has('b-1')).toBeTruthy();
-		expect(plan?.outgoingAnimations.size).toBe(0);
-		expect(plan?.outgoingElements).toHaveLength(0);
 		expect(plan?.durationMs).toBe(750);
 		// The keyframes must start at the outgoing offset (-200, -100) and land
 		// at the identity transform, i.e. the incoming element's own geometry.
@@ -59,17 +57,34 @@ describe('buildMorphTransitionPlan', () => {
 		expect(plan?.keyframesCss).toContain('translate(0, 0)');
 	});
 
-	it('hands back outgoing-only elements for the binding to keep painting', () => {
-		const leaving = shape('a-2', 'Leaving', 10, 10);
-		const from = slide('a', [shape('a-1', 'Title', 0, 0), leaving]);
-		const to = slide('b', [shape('b-1', 'Title', 0, 0)]);
+	it('paints the whole outgoing slide in the overlay, in document order', () => {
+		// The overlay is one flat layer above the live stage, so it has to carry
+		// every outgoing element (not just the departing ones) or a crossfading
+		// backdrop hides the shapes left out of it. Order is the slide's own, so
+		// the copy keeps its z-stacking.
+		const from = slide('a', [shape('a-1', 'Title', 0, 0), shape('a-2', 'Leaving', 10, 10)]);
+		const to = slide('b', [shape('b-1', 'Title', 200, 100)]);
 
 		const plan = buildMorphTransitionPlan(from, to, 500);
 
-		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-2']);
-		expect(plan?.outgoingAnimations.has('a-2')).toBeTruthy();
-		// An element that only leaves must never be attached to the incoming slide.
-		expect(plan?.incomingAnimations.has('a-2')).toBeFalsy();
+		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-1', 'a-2']);
+		for (const element of plan?.outgoingElements ?? []) {
+			expect(plan?.outgoingAnimations.has(element.id)).toBeTruthy();
+			// An outgoing element must never be attached to the incoming slide.
+			expect(plan?.incomingAnimations.has(element.id)).toBeFalsy();
+		}
+	});
+
+	it('glides a matched outgoing half onto its counterpart', () => {
+		const from = slide('a', [shape('a-1', 'Title', 0, 0)]);
+		const to = slide('b', [shape('b-1', 'Title', 200, 100)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+
+		// The ghost travels the pair's path in the opposite direction to the
+		// incoming half: from its own geometry to the incoming one.
+		expect(plan?.outgoingAnimations.get('a-1')).toContain('pptx-morph-ghost-');
+		expect(plan?.keyframesCss).toContain('translate(200px, 100px)');
 	});
 
 	it('routes incoming-only elements to the incoming bucket as a fade-in', () => {
@@ -79,7 +94,7 @@ describe('buildMorphTransitionPlan', () => {
 		const plan = buildMorphTransitionPlan(from, to, 500);
 
 		expect(plan?.incomingAnimations.has('b-2')).toBeTruthy();
-		expect(plan?.outgoingElements).toHaveLength(0);
+		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-1']);
 	});
 
 	it('emits one keyframes block per animation it hands out', () => {
