@@ -376,7 +376,12 @@ jobs:
     if: needs.scope.outputs.run-e2e == 'true'
     runs-on: ubuntu-latest
     name: e2e-${{ matrix.key }}
-    timeout-minutes: 15
+    # Hang protection only; genuine hangs are caught much earlier by
+    # Playwright's own per-test timeout. The Angular leg (the slowest: it runs
+    # against built dist) legitimately reached 15:14 on 2026-07-30 with every
+    # test green and was cancelled at the finish line by a 15-minute ceiling,
+    # so keep several minutes of headroom over the slowest passing leg.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
