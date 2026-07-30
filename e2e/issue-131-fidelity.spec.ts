@@ -301,4 +301,146 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 			'persisting shapes glide on the incoming slide',
 		).toBeGreaterThan(0);
 	});
+
+	// ── Issue #131, follow-up report (2026-07-30 comment) ────────────────────
+	//
+	// The reporter's annotated slide-13 comparison called out three remaining
+	// defects, all reproduced and fixed against PowerPoint ground truth (COM
+	// `TextRange2` line bounds; single-spaced lines are exactly 1.2x the font
+	// size, and a blank paragraph takes its `a:endParaRPr` size):
+	//  - "Tiny/significant indent after first line": the bullet marker was an
+	//    inline glyph, so the first line's text started right after it instead
+	//    of on the `marL` indent stop where the wrapped lines sit.
+	//  - "Gap (much) bigger" after headings: blank paragraphs rendered on the
+	//    body-default strut instead of their authored `endParaRPr` size, and
+	//    the default line-height was the browser-ish 1.25 instead of
+	//    PowerPoint's 1.2, so the error accumulated down the panel.
+
+	/** Line-start x positions (client px) for the first two lines of the
+	 * paragraph containing `needle`, plus the panel host box. */
+	async function paragraphLineStarts(
+		page: Page,
+		needle: string,
+	): Promise<{ hostWidth: number; lineLefts: number[]; lineTops: number[] } | null> {
+		return page.evaluate((marker) => {
+			let host: HTMLElement | undefined;
+			let bestArea = 0;
+			for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+				if (!(node.textContent ?? '').includes(marker)) {
+					continue;
+				}
+				const box = node.getBoundingClientRect();
+				if (box.width * box.height > bestArea) {
+					bestArea = box.width * box.height;
+					host = node;
+				}
+			}
+			if (!host) {
+				return null;
+			}
+			const hostBox = host.getBoundingClientRect();
+			// Walk the paragraph's text character by character; a jump in the
+			// rect top starts a new visual line. Neutral across bindings: only
+			// text nodes and Ranges, no per-framework DOM structure.
+			const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+			const lineLefts: number[] = [];
+			const lineTops: number[] = [];
+			let started = false;
+			let prevTop: number | null = null;
+			for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+				const text = n.textContent ?? '';
+				if (!started && !text.includes(marker.slice(0, 12))) {
+					continue;
+				}
+				started = true;
+				const range = document.createRange();
+				for (let i = 0; i < text.length; i++) {
+					range.setStart(n, i);
+					range.setEnd(n, i + 1);
+					const rect = range.getBoundingClientRect();
+					if (rect.width === 0 && rect.height === 0) {
+						continue;
+					}
+					if (prevTop === null || rect.top - prevTop > 3) {
+						lineLefts.push(rect.left - hostBox.left);
+						lineTops.push(rect.top - hostBox.top);
+						prevTop = rect.top;
+					}
+				}
+				if (lineLefts.length >= 2) {
+					break;
+				}
+			}
+			return { hostWidth: hostBox.width, lineLefts, lineTops };
+		}, needle);
+	}
+
+	test('a hanging bullet tabs its first line to the indent stop (marL), aligned with wrapped lines', async ({
+		page,
+	}) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.insetPanel);
+
+		// "Naturam grata delectant..." wraps to 3 lines. PowerPoint starts the
+		// FIRST line's text at `marL` (the same x the wrapped lines start at);
+		// the marker fills the hang. Rendering the marker as a plain inline
+		// glyph put the first line's text ~7px left of its own wrapped lines
+		// ("tiny indent after first line" in the reporter's annotation) and
+		// gave the first line extra width, wrapping it one word later than
+		// PowerPoint.
+		const starts = await paragraphLineStarts(page, 'Naturam');
+		expect(starts, 'found the Naturam paragraph').not.toBeNull();
+		const scale = (starts?.hostWidth ?? 262) / 301.29;
+		const lefts = starts?.lineLefts ?? [];
+		expect(lefts.length, 'paragraph wraps to at least two lines').toBeGreaterThanOrEqual(2);
+		// First line = the marker at marL+indent; its TEXT box is the second
+		// caret stop... the first caret rect is the marker glyph itself, which
+		// PowerPoint also draws at the content-left edge. What must line up is
+		// line 2+ against the first line's TEXT. The marker occupies the full
+		// 18px hang, so first-line text x == marL == wrapped-line x. In client
+		// px both sit at (18.9 inset + 18 marL) * scale from the host edge.
+		const expectedTextX = (18.9 + 18) * scale;
+		expect(
+			Math.abs(lefts[1] - expectedTextX),
+			`wrapped line starts on the marL indent stop (got ${lefts[1]}, want ~${expectedTextX})`,
+		).toBeLessThan(3 * scale + 1.5);
+		// The annotated defect itself: first-line text no longer sits left of
+		// its own wrapped lines.
+		expect(
+			Math.abs(lefts[0] - lefts[1]),
+			`first-line text aligns with the wrapped lines (first ${lefts[0]}, wrapped ${lefts[1]})`,
+		).toBeLessThan(2.5);
+	});
+
+	test('heading rhythm matches PowerPoint down the slide-13 panel (1.2 line height + endParaRPr blank lines)', async ({
+		page,
+	}) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.insetPanel);
+
+		// PowerPoint (COM line bounds): "Intervalla" tops the panel at the
+		// 18.9px inset, "Luberet" 75.6px below it, "Efficiendi" 199.2px below
+		// it. Before the fix the drift reached ~+10px at "Efficiendi"
+		// ("gap much bigger" in the reporter's annotation).
+		const measure = async (needle: string): Promise<number> => {
+			const starts = await paragraphLineStarts(page, needle);
+			expect(starts, `found the "${needle}" paragraph`).not.toBeNull();
+			return (starts?.lineTops[0] ?? 0) / ((starts?.hostWidth ?? 262) / 301.29);
+		};
+
+		const intervalla = await measure('Intervalla');
+		const luberet = await measure('Luberet');
+		const efficiendi = await measure('Efficiendi');
+
+		// PP: paragraphs 1 -> 5 span 56.4pt = 75.2px; 1 -> 12 span 199.2pt... in
+		// px: Luberet top - Intervalla top = (246.86-190.46)pt * 4/3 = 75.2px,
+		// Efficiendi - Intervalla = (389.66-190.46)pt * 4/3 = 265.6px.
+		expect(Math.abs(luberet - intervalla - 75.2), 'Luberet offset matches PowerPoint').toBeLessThan(
+			6,
+		);
+		expect(
+			Math.abs(efficiendi - intervalla - 265.6),
+			'Efficiendi offset matches PowerPoint (the pre-fix drift was ~+10px)',
+		).toBeLessThan(6);
+	});
 });
