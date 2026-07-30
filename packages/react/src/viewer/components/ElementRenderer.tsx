@@ -268,6 +268,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 							mediaDataUrls={mediaDataUrls}
 							sourceSlideIndex={sourceSlideIndex}
 							zIndex={index}
+							// A morph pairs a `!!`-named shape across a grouping boundary
+							// (shared `morph-flatten`) and keys the animation by the
+							// CHILD's id, so the child needs both its own animation and a
+							// `data-element-id` to be addressable - the group node alone
+							// cannot express a child moving independently of its siblings.
+							animation={presentationElementStates?.get(child.id)?.cssAnimation}
+							exposeElementId
 							parentGroupFill={getGroupChildParentFill(el)}
 							// A grouped child keeps its own `a:hlinkClick`; PowerPoint
 							// treats it as an individually clickable target even though

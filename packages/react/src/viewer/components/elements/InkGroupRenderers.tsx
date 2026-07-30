@@ -194,6 +194,11 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 				return (
 					<div
 						key={c.id}
+						// A morph can pair a `!!`-named shape ACROSS a grouping boundary
+						// (see shared `morph-flatten`), and its animation is keyed by
+						// this child's own id, so the child has to be addressable in the
+						// DOM rather than hidden inside the group's node.
+						data-element-id={c.id}
 						className='absolute'
 						style={{
 							left: c.x,

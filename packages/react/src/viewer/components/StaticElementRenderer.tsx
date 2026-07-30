@@ -62,6 +62,17 @@ export interface StaticElementRendererProps {
 	 * pivots them around the slide centre instead.
 	 */
 	animation?: string;
+	/**
+	 * Stamp `data-element-id` on the rendered node.
+	 *
+	 * Off by default: the transition overlay paints copies of the OUTGOING
+	 * slide's elements, and exposing their ids there would put two nodes with
+	 * the same id in the document for the length of a transition. It is turned
+	 * on for group children rendered inside the live stage, which every other
+	 * binding already exposes, so a morph that pairs a `!!`-named shape across
+	 * a grouping boundary can be asserted on the same DOM contract everywhere.
+	 */
+	exposeElementId?: boolean;
 }
 
 const noop = (): void => {};
@@ -81,6 +92,7 @@ function StaticElementRendererImpl({
 	onActionClick,
 	actionRequiresModifier = false,
 	animation,
+	exposeElementId = false,
 }: StaticElementRendererProps): React.ReactElement {
 	const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 	const hasFill =
@@ -116,6 +128,7 @@ function StaticElementRendererImpl({
 	return (
 		<div
 			data-static-element-type={element.type}
+			data-element-id={exposeElementId ? element.id : undefined}
 			data-pptx-action={isActionable ? 'click' : undefined}
 			className={`${positioned ? 'absolute' : 'relative'} overflow-hidden ${
 				isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'
@@ -177,6 +190,7 @@ function StaticElementRendererImpl({
 							parentGroupFill={getGroupChildParentFill(element)}
 							onActionClick={onActionClick}
 							actionRequiresModifier={actionRequiresModifier}
+							exposeElementId={exposeElementId}
 						/>
 					))}
 				</div>
