@@ -412,6 +412,66 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 		).toBeLessThan(2.5);
 	});
 
+	test('a !!-named shape nested in a group morphs across the grouping boundary', async ({
+		page,
+	}) => {
+		// PowerPoint's `!!` convention pairs two shapes by name wherever they sit
+		// in the shape tree. This deck keeps its centre disc top-level as
+		// `!!Content` on the overview slide and nests the identical `!!Content`
+		// inside a `!!Circle` GROUP on every topic slide. Matching only ever
+		// looked at a slide's top-level elements, so the pair never matched and
+		// the whole centre faded out and back in - the reporter's "the circle in
+		// the middle is not 1:1". Groups holding a `!!` shape are now decomposed
+		// for morph, so the nested half animates as its own object.
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.morphFirst);
+
+		const slideShow = page.getByRole('button', { name: /^slide show$/iu });
+		if ((await slideShow.count()) > 0) {
+			await slideShow.last().click();
+		} else {
+			await page
+				.getByRole('button', { name: /present/iu })
+				.first()
+				.click();
+		}
+		await page.waitForTimeout(900);
+
+		// Advance to slide 4, the first topic slide - it wraps its centre in the
+		// `!!Circle` group while slide 3 keeps the same `!!Content` top-level.
+		// PageDown rather than a wedge click: a wedge is a curved pie slice whose
+		// bounding-box CENTRE lands on its neighbour, so clicking it navigates
+		// somewhere unpredictable.
+		await page.keyboard.press('PageDown');
+
+		// The nested `!!Content` on the ARRIVING slide must carry a morph
+		// animation of its own. Every binding stamps the child's core element id,
+		// so this is one assertion for all five.
+		await expect
+			.poll(
+				async () =>
+					page.evaluate(() => {
+						let animated = 0;
+						for (const node of document.querySelectorAll<HTMLElement>(
+							'[data-element-id="ppt/slides/slide4.xml-group-0-shape-0"]',
+						)) {
+							if (node.getBoundingClientRect().width < 100) {
+								continue;
+							}
+							if (getComputedStyle(node).animationName.includes('pptx-morph')) {
+								animated += 1;
+							}
+						}
+						return animated;
+					}),
+				{
+					message: 'the group-nested !!Content animates as its own morph object',
+					timeout: 8000,
+				},
+			)
+			.toBeGreaterThan(0);
+	});
+
 	test('heading rhythm matches PowerPoint down the slide-13 panel (1.2 line height + endParaRPr blank lines)', async ({
 		page,
 	}) => {
