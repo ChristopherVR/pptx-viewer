@@ -10,6 +10,22 @@ dated sections beneath it are generated from
 
 ## 2026-07-30
 
+_Releases: pptx-react-viewer@2.6.5_
+
+### Bug Fixes
+
+- **react:** Stop dialog focus trap re-arming on every viewer render (by @ChristopherVR) ([b9217b6](https://github.com/ChristopherVR/pptx-viewer/commit/b9217b6aceecdd469da07fb6a49f9a7702d5641c))
+
+### Testing
+
+- **e2e:** Share-dialog input focus spec across all five bindings (by @ChristopherVR) ([db537d2](https://github.com/ChristopherVR/pptx-viewer/commit/db537d28f73e0db70abcc8535356efaba024c353))
+
+### Build & CI
+
+- Raise e2e job timeout to 25 minutes (by @ChristopherVR) ([b87037a](https://github.com/ChristopherVR/pptx-viewer/commit/b87037ae4d9708f1cdd4b97e12d6ad6fcaf0f80e))
+
+## 2026-07-30
+
 _Releases: pptx-react-viewer@2.6.4, pptx-vue-viewer@2.6.4, pptx-angular-viewer@2.6.4, pptx-vanilla-viewer@1.7.4, pptx-svelte-viewer@2.6.4_
 
 ### Bug Fixes
