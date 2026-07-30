@@ -14,6 +14,13 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 
+/**
+ * Tolerance (px, slide coordinates) within which two boxes count as identical
+ * for the same-box pass. Sub-pixel only: this pass ignores element type, so it
+ * must never absorb a shape that merely sits close by.
+ */
+const SAME_BOX_TOLERANCE_PX = 0.5;
+
 // ---------------------------------------------------------------------------
 // Element name extraction
 // ---------------------------------------------------------------------------
@@ -269,6 +276,39 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 			pairs.push({ fromElement: fromEl, toElement: bestMatch });
 			usedFrom.add(fromEl.id);
 			usedTo.add(bestMatch.id);
+		}
+	}
+
+	// Pass 4: pair leftovers that occupy the EXACT same box, even across element
+	// types. A deck often restructures the same visual between slides - the
+	// issue #131 wheel keeps its centre as a bare shape on one slide and wraps
+	// the identical artwork in a group on the others - and PowerPoint carries
+	// that through as one continuing object. Left unmatched, the two halves
+	// fade out and in independently, so the middle of the transition showed the
+	// background straight through a disc that should stay solid.
+	//
+	// The box must agree on all four numbers (within a sub-pixel tolerance),
+	// which is a far stricter test than the proximity pass and cannot pull in a
+	// merely nearby shape.
+	for (const fromEl of fromSlide.elements) {
+		if (usedFrom.has(fromEl.id)) {
+			continue;
+		}
+		for (const toEl of toSlide.elements) {
+			if (usedTo.has(toEl.id)) {
+				continue;
+			}
+			if (
+				Math.abs(fromEl.x - toEl.x) <= SAME_BOX_TOLERANCE_PX &&
+				Math.abs(fromEl.y - toEl.y) <= SAME_BOX_TOLERANCE_PX &&
+				Math.abs(fromEl.width - toEl.width) <= SAME_BOX_TOLERANCE_PX &&
+				Math.abs(fromEl.height - toEl.height) <= SAME_BOX_TOLERANCE_PX
+			) {
+				pairs.push({ fromElement: fromEl, toElement: toEl });
+				usedFrom.add(fromEl.id);
+				usedTo.add(toEl.id);
+				break;
+			}
 		}
 	}
 

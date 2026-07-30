@@ -368,6 +368,33 @@ describe('creationId identity matching', () => {
 		expect(pairs.find((p) => p.fromElement.id === 'a-2')?.toElement.id).toBe('b-1');
 	});
 
+	it('pairs leftovers occupying the exact same box, even across element types', () => {
+		// The issue #131 wheel keeps its centre as a bare shape on the overview
+		// slide and wraps the identical artwork in a group on the topic slides,
+		// so the two never matched and the disc faded out while its replacement
+		// faded in - the background showed through mid-transition.
+		const from = makeSlide([
+			makeElement({ id: 'a-1', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'b-1', type: 'shape', x: 505, y: 225, width: 270, height: 270 }),
+		]);
+		const pairs = matchMorphElements(from, to);
+		expect(pairs).toHaveLength(1);
+		expect(pairs[0].toElement.id).toBe('b-1');
+	});
+
+	it('does not same-box pair shapes that merely sit close together', () => {
+		const from = makeSlide([
+			makeElement({ id: 'a-1', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
+		]);
+		const to = makeSlide([
+			// 4px off: near, but not the same box.
+			makeElement({ id: 'b-1', type: 'shape', x: 509, y: 225, width: 270, height: 270 }),
+		]);
+		expect(matchMorphElements(from, to)).toHaveLength(0);
+	});
+
 	it('still id-pairs when a side has no creationId', () => {
 		const from = makeSlide([
 			makeElement({

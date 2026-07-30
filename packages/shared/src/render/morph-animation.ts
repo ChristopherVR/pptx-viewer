@@ -223,15 +223,20 @@ export function generateMorphAnimations(
 			toElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
 
-		// A pair whose appearance changes fades IN over its outgoing ghost (see
-		// `generateMorphGhostAnimations`); one that only moves stays fully
-		// opaque so the glide reads as a single continuous object.
-		const crossfades = morphPairNeedsCrossfade(fromElement, toElement);
+		// A restyled pair dissolves via its outgoing GHOST, which is painted in
+		// the overlay directly above this element and fades 1 -> 0 (see
+		// `generateMorphGhostAnimations`). This half therefore has to stay at its
+		// final opacity for the whole flight: fading it IN as well left both
+		// layers part-transparent in the middle of the transition, so the
+		// background showed straight through what should be a solid object and
+		// both states were legible at once (issue #131: the wheel's centre disc
+		// went see-through mid-morph where PowerPoint keeps it solid and only
+		// dissolves the content on top of it).
 
 		// Build from/to property blocks
 		const fromProps: string[] = [
 			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${fromRot}deg)${flips};`,
-			`\t\topacity: ${crossfades ? 0 : fromOpacity};`,
+			`\t\topacity: ${fromOpacity};`,
 		];
 		const toProps: string[] = [
 			`\t\ttransform: translate(0, 0) scale(1, 1) rotate(${toRot}deg)${flips};`,

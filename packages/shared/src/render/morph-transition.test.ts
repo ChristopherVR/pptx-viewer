@@ -1109,6 +1109,34 @@ describe('generateMorphAnimations', () => {
 		expect(anims[0].keyframes).toContain('opacity: 1');
 	});
 
+	it('never fades a restyled pair IN: the ghost above it does the dissolve', () => {
+		// Fading both halves left the middle of the transition part-transparent,
+		// so the slide background showed through a solid object and both states
+		// were legible at once (issue #131: the wheel's centre disc went
+		// see-through). PowerPoint keeps the object solid and dissolves the old
+		// appearance on top of it, which is what the ghost animation does.
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({
+					id: 'a',
+					type: 'shape',
+					shapeStyle: { fillColor: '#ff0000' },
+				} as Partial<PptxElement> & { id: string; type: PptxElement['type'] }),
+				toElement: makeElement({
+					id: 'b',
+					type: 'shape',
+					shapeStyle: { fillColor: '#00ff00' },
+				} as Partial<PptxElement> & { id: string; type: PptxElement['type'] }),
+			},
+		];
+		expect(morphPairNeedsCrossfade(pairs[0].fromElement, pairs[0].toElement)).toBeTruthy();
+		const anims = generateMorphAnimations(pairs, 500);
+		expect(anims[0].keyframes).not.toContain('opacity: 0;');
+		// ...while the ghost still fades right out over the top of it.
+		const ghosts = generateMorphGhostAnimations(pairs, 500, 0);
+		expect(ghosts[0].keyframes).toContain('opacity: 0;');
+	});
+
 	it('should include background-color for fill color changes', () => {
 		const pairs: MorphPair[] = [
 			{
