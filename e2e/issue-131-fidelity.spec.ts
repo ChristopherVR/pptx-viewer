@@ -200,6 +200,55 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 			.toBe(before);
 	});
 
+	test('a slide jumped to from an on-slide hyperlink still morphs', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.morphFirst);
+
+		const slideShow = page.getByRole('button', { name: /^slide show$/iu });
+		if ((await slideShow.count()) > 0) {
+			await slideShow.last().click();
+		} else {
+			await page
+				.getByRole('button', { name: /present/iu })
+				.first()
+				.click();
+		}
+		await page.waitForTimeout(900);
+
+		// This deck is a menu: every wheel wedge is a hyperlink to its topic
+		// slide, so clicking one is the ONLY way most of it is ever navigated.
+		// React treated a jump as transition-less, so the deck's own navigation
+		// never morphed while PageDown did (issue #131). Addressed by the
+		// core-assigned element id, which every binding stamps identically.
+		const wedge = page
+			.locator('[data-element-id="ppt/slides/slide3.xml-shape-19"]')
+			.filter({ hasText: 'Training' })
+			.last();
+		await expect(wedge).toHaveCount(1);
+		const box = await wedge.boundingBox();
+		expect(box, 'the wedge hyperlink is on screen').not.toBeNull();
+		await page.mouse.click(
+			(box?.x ?? 0) + (box?.width ?? 0) / 2,
+			(box?.y ?? 0) + (box?.height ?? 0) / 2,
+		);
+
+		await expect
+			.poll(
+				async () =>
+					page.evaluate(() => {
+						let n = 0;
+						for (const node of document.querySelectorAll<HTMLElement>('*')) {
+							if (getComputedStyle(node).animationName.includes('pptx-morph')) {
+								n += 1;
+							}
+						}
+						return n;
+					}),
+				{ message: 'the jump plays the destination slide transition', timeout: 8000 },
+			)
+			.toBeGreaterThan(0);
+	});
+
 	test('a morph paints the outgoing slide and dissolves it into the incoming one', async ({
 		page,
 	}) => {
