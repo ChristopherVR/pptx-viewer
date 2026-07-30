@@ -288,8 +288,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		if (pIdx < paraCount - 1) {
+			const separatorStyle = { ...mergedDefaultRunStyle } as TextStyle;
+			// An EMPTY paragraph's line box takes its size from `a:endParaRPr sz`
+			// (PowerPoint sizes the blank line the way it would size a caret on
+			// it). The paragraph has no run to carry that size, so stamp it on
+			// the terminating separator segment; the renderers read it back when
+			// they build the blank line's strut (issue #131, slides 13-14: a
+			// 10pt blank line rendered at the 10.5pt body default, and the error
+			// accumulated down the panel).
+			if (segments.length === 0) {
+				const endParaSz = (p['a:endParaRPr'] as XmlObject | undefined)?.['@_sz'];
+				const endParaPoints = endParaSz !== undefined ? parseInt(String(endParaSz)) / 100 : NaN;
+				if (Number.isFinite(endParaPoints) && endParaPoints > 0) {
+					separatorStyle.fontSize = endParaPoints * (96 / 72);
+				}
+			}
 			parts.push('\n');
-			segments.push({ text: '\n', style: { ...mergedDefaultRunStyle } });
+			segments.push({ text: '\n', style: separatorStyle });
 		}
 
 		// Attach paragraph-level metadata to the first segment of this
