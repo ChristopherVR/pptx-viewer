@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-30
+
+_Releases: pptx-react-viewer@2.6.2, pptx-vue-viewer@2.6.2, pptx-angular-viewer@2.6.2, pptx-vanilla-viewer@1.7.2, pptx-svelte-viewer@2.6.2_
+
+### Bug Fixes
+
+- **shared:** Crossfade a morph pair whose GROUP children changed (by @ChristopherVR) ([7492f26](https://github.com/ChristopherVR/pptx-viewer/commit/7492f26a236659f2c15a99c36a92023f7da6cbbc))
+
 ## 2026-07-29
 
 _Releases: pptx-viewer-core@2.0.8, pptx-react-viewer@2.6.1, pptx-vue-viewer@2.6.1, pptx-angular-viewer@2.6.1, pptx-vanilla-viewer@1.7.1, pptx-svelte-viewer@2.6.1_
