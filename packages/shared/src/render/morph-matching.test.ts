@@ -11,7 +11,12 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { getElementMorphName, matchMorphElements, matchMorphElementsFull } from './morph-matching';
+import {
+	getElementCreationId,
+	getElementMorphName,
+	matchMorphElements,
+	matchMorphElementsFull,
+} from './morph-matching';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -239,6 +244,143 @@ describe('native shape-id matching', () => {
 		const from = makeSlide([makeElement({ id: 'same', type: 'shape', x: 0, y: 0 })]);
 		const to = makeSlide([makeElement({ id: 'same', type: 'shape', x: 900, y: 900 })]);
 		expect(matchMorphElements(from, to)).toHaveLength(0);
+	});
+});
+
+// ==========================================================================
+// creationId (a16:creationId) identity matching
+// ==========================================================================
+
+/** Raw-XML fragment carrying an `a16:creationId` under the given nv container. */
+function rawWithCreationId(guid: string, nvKey = 'p:nvSpPr'): Record<string, unknown> {
+	return {
+		[nvKey]: {
+			'p:cNvPr': {
+				'@_id': '7',
+				'@_name': 'Shape',
+				'a:extLst': {
+					'a:ext': {
+						'@_uri': '{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}',
+						'a16:creationId': { '@_id': guid },
+					},
+				},
+			},
+		},
+	};
+}
+
+describe('creationId identity matching', () => {
+	it('extracts the GUID from preserved raw XML (object and array ext forms)', () => {
+		const objectForm = makeElement({ id: 'a', type: 'shape', rawXml: rawWithCreationId('{G-1}') });
+		expect(getElementCreationId(objectForm)).toBe('{G-1}');
+
+		const arrayForm = makeElement({
+			id: 'b',
+			type: 'image',
+			rawXml: {
+				'p:nvPicPr': {
+					'p:cNvPr': {
+						'a:extLst': {
+							'a:ext': [{ '@_uri': '{other}' }, { 'a16:creationId': { '@_id': '{G-2}' } }],
+						},
+					},
+				},
+			},
+		});
+		expect(getElementCreationId(arrayForm)).toBe('{G-2}');
+
+		expect(getElementCreationId(makeElement({ id: 'c', type: 'shape' }))).toBeUndefined();
+	});
+
+	it('pairs equal GUIDs across the slide regardless of distance', () => {
+		const from = makeSlide([
+			makeElement({ id: 'a-1', type: 'shape', x: 0, y: 0, rawXml: rawWithCreationId('{SAME}') }),
+		]);
+		const to = makeSlide([
+			makeElement({
+				id: 'b-1',
+				type: 'shape',
+				x: 900,
+				y: 900,
+				rawXml: rawWithCreationId('{SAME}'),
+			}),
+		]);
+		const pairs = matchMorphElements(from, to);
+		expect(pairs).toHaveLength(1);
+		expect(pairs[0].toElement.id).toBe('b-1');
+	});
+
+	it('refuses a numeric shape-id pair when both GUIDs exist and differ (issue #131 phantom arrow)', () => {
+		// The wheel deck reuses the same p:cNvPr ids AND names for DIFFERENT
+		// wedges on different topic slides (shifted one spTree position), while
+		// every creationId differs. Id-pairing sent each wedge and label gliding
+		// one sector around the wheel. With the GUID gate the id pass skips
+		// them, and proximity pairs the same-position counterparts instead.
+		const from = makeSlide([
+			makeElement({
+				id: 'a-1',
+				shapeId: '58',
+				type: 'shape',
+				x: 516,
+				y: 499,
+				width: 249,
+				height: 198,
+				rawXml: rawWithCreationId('{FROM-58}'),
+			}),
+			makeElement({
+				id: 'a-2',
+				shapeId: '60',
+				type: 'shape',
+				x: 330,
+				y: 421,
+				width: 248,
+				height: 248,
+				rawXml: rawWithCreationId('{FROM-60}'),
+			}),
+		]);
+		const to = makeSlide([
+			// Same ids, same names, but they are the NEXT wedge around the wheel.
+			makeElement({
+				id: 'b-1',
+				shapeId: '58',
+				type: 'shape',
+				x: 330,
+				y: 421,
+				width: 248,
+				height: 248,
+				rawXml: rawWithCreationId('{TO-58}'),
+			}),
+			makeElement({
+				id: 'b-2',
+				shapeId: '60',
+				type: 'shape',
+				x: 516,
+				y: 499,
+				width: 249,
+				height: 198,
+				rawXml: rawWithCreationId('{TO-60}'),
+			}),
+		]);
+		const pairs = matchMorphElements(from, to);
+		expect(pairs).toHaveLength(2);
+		// Position-wise pairing (static), not id-wise (flying around the wheel).
+		expect(pairs.find((p) => p.fromElement.id === 'a-1')?.toElement.id).toBe('b-2');
+		expect(pairs.find((p) => p.fromElement.id === 'a-2')?.toElement.id).toBe('b-1');
+	});
+
+	it('still id-pairs when a side has no creationId', () => {
+		const from = makeSlide([
+			makeElement({
+				id: 'a-1',
+				shapeId: '7',
+				type: 'shape',
+				x: 0,
+				y: 0,
+				rawXml: rawWithCreationId('{ONLY-FROM}'),
+			}),
+		]);
+		const to = makeSlide([makeElement({ id: 'b-1', shapeId: '7', type: 'shape', x: 900, y: 900 })]);
+		expect(matchMorphElements(from, to)).toHaveLength(1);
 	});
 });
 
