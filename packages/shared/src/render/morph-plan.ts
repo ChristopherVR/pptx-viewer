@@ -37,6 +37,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { generateFullMorphTransition } from './morph-animation';
+import { flattenMorphElements } from './morph-flatten';
 import { matchMorphElementsFull } from './morph-matching';
 import type { MorphMode } from './morph-types';
 
@@ -115,7 +116,14 @@ export function buildMorphTransitionPlan(
 	// Element ids embed their slide path, so the two id spaces do not overlap,
 	// but partitioning on this set (rather than on id shape) keeps that an
 	// implementation detail of core rather than an assumption here.
-	const outgoingElements = [...fromSlide.elements];
+	//
+	// The list is FLATTENED the same way the matcher flattens it (see
+	// `morph-flatten`): a group holding a `!!`-named shape is decomposed into
+	// its children in absolute coordinates, and the animations are keyed by
+	// those children's ids. Painting the undecomposed group here instead would
+	// paint the children twice over - once inside the group, once as their own
+	// ghosts - and leave the group itself without an animation.
+	const outgoingElements = flattenMorphElements(fromSlide.elements);
 	const outgoingIds = new Set(outgoingElements.map((element) => element.id));
 
 	const incomingAnimations = new Map<string, string>();

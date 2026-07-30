@@ -11,6 +11,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { flattenMorphElements } from './morph-flatten';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 
@@ -143,13 +144,21 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	const usedFrom = new Set<string>();
 	const usedTo = new Set<string>();
 
+	// A group holding a `!!`-named shape is decomposed into its children (in
+	// absolute coordinates) so that shape can be paired across the grouping
+	// boundary, which is what the `!!` convention is for. Groups without such a
+	// descendant - the overwhelming majority - stay whole and animate as one
+	// unit exactly as before. See `morph-flatten`.
+	const fromElements = flattenMorphElements(fromSlide.elements);
+	const toElements = flattenMorphElements(toSlide.elements);
+
 	// Pass 1: match by !! naming convention
-	for (const fromEl of fromSlide.elements) {
+	for (const fromEl of fromElements) {
 		const fromName = getElementMorphName(fromEl);
 		if (!fromName) {
 			continue;
 		}
-		for (const toEl of toSlide.elements) {
+		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id)) {
 				continue;
 			}
@@ -174,7 +183,7 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 		}
 		return creationIds.get(el.id);
 	};
-	for (const fromEl of fromSlide.elements) {
+	for (const fromEl of fromElements) {
 		if (usedFrom.has(fromEl.id)) {
 			continue;
 		}
@@ -182,7 +191,7 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 		if (!fromGuid) {
 			continue;
 		}
-		for (const toEl of toSlide.elements) {
+		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id) || fromEl.type !== toEl.type) {
 				continue;
 			}
@@ -212,11 +221,11 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	// and label gliding one sector around the wheel - the reporter's "phantom
 	// arrow to another selected item". Such shapes must fall through to the
 	// proximity pass (which pairs the same-position counterparts) instead.
-	for (const fromEl of fromSlide.elements) {
+	for (const fromEl of fromElements) {
 		if (usedFrom.has(fromEl.id) || !fromEl.shapeId) {
 			continue;
 		}
-		for (const toEl of toSlide.elements) {
+		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id)) {
 				continue;
 			}
@@ -244,13 +253,13 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	// selection marker mid-glide. Same-shaped counterparts pass at ratio 1;
 	// anything more than 2x apart on either axis dissolves in place instead,
 	// which is what PowerPoint does with shapes it cannot confidently pair.
-	for (const fromEl of fromSlide.elements) {
+	for (const fromEl of fromElements) {
 		if (usedFrom.has(fromEl.id)) {
 			continue;
 		}
 		let bestMatch: PptxElement | null = null;
 		let bestDist = Infinity;
-		for (const toEl of toSlide.elements) {
+		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id)) {
 				continue;
 			}
@@ -290,11 +299,11 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	// The box must agree on all four numbers (within a sub-pixel tolerance),
 	// which is a far stricter test than the proximity pass and cannot pull in a
 	// merely nearby shape.
-	for (const fromEl of fromSlide.elements) {
+	for (const fromEl of fromElements) {
 		if (usedFrom.has(fromEl.id)) {
 			continue;
 		}
-		for (const toEl of toSlide.elements) {
+		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id)) {
 				continue;
 			}
@@ -313,8 +322,8 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	}
 
 	// Collect unmatched elements
-	const unmatchedFrom = fromSlide.elements.filter((el) => !usedFrom.has(el.id));
-	const unmatchedTo = toSlide.elements.filter((el) => !usedTo.has(el.id));
+	const unmatchedFrom = fromElements.filter((el) => !usedFrom.has(el.id));
+	const unmatchedTo = toElements.filter((el) => !usedTo.has(el.id));
 
 	return { pairs, unmatchedFrom, unmatchedTo };
 }

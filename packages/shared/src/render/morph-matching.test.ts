@@ -368,6 +368,41 @@ describe('creationId identity matching', () => {
 		expect(pairs.find((p) => p.fromElement.id === 'a-2')?.toElement.id).toBe('b-1');
 	});
 
+	it('matches a !!-named shape ACROSS a grouping boundary', () => {
+		// PowerPoint's `!!` convention pairs by name wherever the shape sits in
+		// the tree. The issue #131 deck keeps its centre disc top-level on the
+		// overview slide and nests the identical shape inside a `!!Circle` group
+		// on every topic slide, so before group decomposition the two never
+		// matched and the whole centre faded instead of staying continuous.
+		const from = makeSlide([
+			{
+				...makeElement({ id: 'circle', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
+				name: '!!Circle',
+				children: [
+					{
+						...makeElement({ id: 'nested', type: 'shape', x: 0, y: 0, width: 270, height: 270 }),
+						name: '!!Content',
+					},
+				],
+			} as PptxElement,
+		]);
+		const to = makeSlide([
+			{
+				...makeElement({ id: 'toplevel', type: 'shape', x: 505, y: 225, width: 270, height: 270 }),
+				name: '!!Content',
+			} as PptxElement,
+		]);
+		const result = matchMorphElementsFull(from, to);
+		expect(result.pairs).toHaveLength(1);
+		expect(result.pairs[0].fromElement.id).toBe('nested');
+		expect(result.pairs[0].toElement.id).toBe('toplevel');
+		// The nested half is reported in ABSOLUTE coordinates so the generated
+		// keyframes measure the same space as every other element's.
+		expect(result.pairs[0].fromElement).toMatchObject({ x: 505, y: 225 });
+		// The group itself is gone from the lists: its children stand in for it.
+		expect(result.unmatchedFrom.map((e) => e.id)).not.toContain('circle');
+	});
+
 	it('pairs leftovers occupying the exact same box, even across element types', () => {
 		// The issue #131 wheel keeps its centre as a bare shape on the overview
 		// slide and wraps the identical artwork in a group on the topic slides,
