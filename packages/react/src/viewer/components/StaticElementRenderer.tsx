@@ -54,6 +54,14 @@ export interface StaticElementRendererProps {
 	 * element behaviour in `getElementInteractionProps`.
 	 */
 	actionRequiresModifier?: boolean;
+	/**
+	 * CSS `animation` shorthand applied to the element's own positioned
+	 * container. Morph ghost keyframes are ELEMENT-LOCAL (they restate the
+	 * static transform and pivot on the element centre), so they must ride the
+	 * node that carries that transform - putting them on a slide-sized wrapper
+	 * pivots them around the slide centre instead.
+	 */
+	animation?: string;
 }
 
 const noop = (): void => {};
@@ -72,6 +80,7 @@ function StaticElementRendererImpl({
 	parentGroupFill,
 	onActionClick,
 	actionRequiresModifier = false,
+	animation,
 }: StaticElementRendererProps): React.ReactElement {
 	const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 	const hasFill =
@@ -147,6 +156,7 @@ function StaticElementRendererImpl({
 				transformOrigin: 'center',
 				zIndex,
 				...visualStyle,
+				animation,
 			}}
 		>
 			{/* Soft-edge <filter> defs + DAG fill-overlay tint layer. */}

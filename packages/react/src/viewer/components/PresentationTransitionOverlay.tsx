@@ -209,17 +209,19 @@ export function PresentationTransitionOverlay({
 							<div
 								key={element.id}
 								data-pptx-morph-outgoing={element.id}
-								style={{
-									position: 'absolute',
-									inset: 0,
-									animation: morphPlan.outgoingAnimations.get(element.id),
-								}}
+								style={{ position: 'absolute', inset: 0 }}
 							>
+								{/* The animation rides the element's own positioned container:
+								    ghost keyframes are element-local (they restate the static
+								    rotation/flips and pivot on the element centre), so a
+								    slide-sized wrapper would pivot them around the slide
+								    centre and double-apply the static transform. */}
 								<StaticElementRenderer
 									element={element}
 									activeSlide={outgoingSlide}
 									allSlides={[outgoingSlide]}
 									zIndex={index}
+									animation={morphPlan.outgoingAnimations.get(element.id)}
 								/>
 							</div>
 						))}
