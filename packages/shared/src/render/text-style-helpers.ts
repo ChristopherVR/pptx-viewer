@@ -18,13 +18,22 @@ export interface LineHeightSource {
 }
 
 /**
+ * PowerPoint's single-spacing line height as a unitless multiplier of the font
+ * size. Measured against PowerPoint itself (COM `TextRange2.BoundHeight` on
+ * the issue #131 deck): every single-spaced Arial paragraph lays out at
+ * exactly 1.2x its point size (10.5pt -> 12.6pt, 10pt -> 12pt, 8pt -> 9.6pt),
+ * and the browser default `normal` (~1.25 for Arial) accumulated a visible
+ * vertical drift over a full text panel.
+ */
+export const DEFAULT_LINE_HEIGHT = 1.2;
+
+/**
  * Resolve a CSS `line-height` value from a TextStyle's spacing fields.
  *
  * - If `lineSpacingExactPt` is set (exact point mode from `a:lnSpc > a:spcPts`),
  *   returns a fixed `"<n>pt"` string.
  * - Otherwise the proportional multiplier from `a:spcPct` (`lineSpacing`) is
- *   used, defaulting to `1.25` (or `1.35` when the block carries italics, which
- *   sit slightly taller).
+ *   used, defaulting to PowerPoint's single-spacing {@link DEFAULT_LINE_HEIGHT}.
  *
  * Returning a unitless multiplier (rather than relying on the browser's
  * font-dependent `normal`, which is ~1.2-1.5) lets the value scale with the
@@ -32,8 +41,10 @@ export interface LineHeightSource {
  *
  * @param textStyle     The text style carrying the spacing fields (may be
  *                      `undefined`).
- * @param hasItalicRuns Whether the block contains italic runs (loosens the
- *                      default multiplier).
+ * @param hasItalicRuns Whether the block contains italic runs. No longer
+ *                      changes the default: PowerPoint does not add leading
+ *                      for italics, and the old 1.35 bump pushed every italic
+ *                      block visibly below its authored position.
  */
 export function resolveLineHeight(
 	textStyle: LineHeightSource | undefined,
@@ -42,7 +53,8 @@ export function resolveLineHeight(
 	if (typeof textStyle?.lineSpacingExactPt === 'number' && textStyle.lineSpacingExactPt > 0) {
 		return `${textStyle.lineSpacingExactPt}pt`;
 	}
-	return textStyle?.lineSpacing || (hasItalicRuns ? 1.35 : 1.25);
+	void hasItalicRuns;
+	return textStyle?.lineSpacing || DEFAULT_LINE_HEIGHT;
 }
 
 // ── Vertical text mapping ──────────────────────────────────────────────────
@@ -180,7 +192,7 @@ export interface AutoFitResult {
  * caller spreads the result over its own CSS object.
  */
 export function computeAutoFitTextStyle(input: AutoFitInput): AutoFitResult {
-	const { textStyle: ts, text, width, height, bodyInsetVertical, hasItalicRuns } = input;
+	const { textStyle: ts, text, width, height, bodyInsetVertical } = input;
 	if (!ts?.autoFit) {
 		return {};
 	}
@@ -196,7 +208,7 @@ export function computeAutoFitTextStyle(input: AutoFitInput): AutoFitResult {
 		const textLength = text.length;
 		const lineHeight = ts.lineSpacingExactPt
 			? ts.lineSpacingExactPt / baseFontSize
-			: ts.lineSpacing || (hasItalicRuns ? 1.35 : 1.25);
+			: ts.lineSpacing || DEFAULT_LINE_HEIGHT;
 		const approxCharsPerLine = Math.max(1, Math.floor(width / (baseFontSize * 0.6)));
 		const estimatedLines = Math.max(1, Math.ceil(textLength / approxCharsPerLine));
 		const requiredHeight = estimatedLines * baseFontSize * lineHeight;
@@ -210,7 +222,7 @@ export function computeAutoFitTextStyle(input: AutoFitInput): AutoFitResult {
 	// normAutofit with lnSpcReduction: reduce line height.
 	if (ts.autoFitLineSpacingReduction !== undefined && ts.autoFitLineSpacingReduction > 0) {
 		const baseLineHeight =
-			typeof ts.lineSpacing === 'number' ? ts.lineSpacing : hasItalicRuns ? 1.35 : 1.25;
+			typeof ts.lineSpacing === 'number' ? ts.lineSpacing : DEFAULT_LINE_HEIGHT;
 		result.lineHeight = baseLineHeight * (1 - ts.autoFitLineSpacingReduction);
 	}
 

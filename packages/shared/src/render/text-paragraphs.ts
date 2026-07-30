@@ -141,16 +141,22 @@ export function buildParagraphs(
 	}
 
 	const paragraphIndents = element.paragraphIndents;
-	const grouped: Array<{ paraSegments: TextSegment[] }> = [{ paraSegments: [] }];
+	const grouped: Array<{ paraSegments: TextSegment[]; terminator?: TextSegment }> = [
+		{ paraSegments: [] },
+	];
 	for (const seg of segments) {
 		if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
+			// Keep the separator: for an EMPTY paragraph it is the only carrier
+			// of the authored `a:endParaRPr` style (core stamps its font size on
+			// it), which sizes the blank line's box below.
+			grouped[grouped.length - 1].terminator = seg;
 			grouped.push({ paraSegments: [] });
 			continue;
 		}
 		grouped[grouped.length - 1].paraSegments.push(seg);
 	}
 
-	const result: RenderParagraph[] = grouped.map(({ paraSegments }, paraIndex) => {
+	const result: RenderParagraph[] = grouped.map(({ paraSegments, terminator }, paraIndex) => {
 		const firstSeg = paraSegments[0];
 		const baseFontSize = firstSeg?.style?.fontSize ?? element.textStyle?.fontSize ?? 16;
 		const bulletResult = resolveParagraphBullet(firstSeg, baseFontSize);
@@ -222,15 +228,23 @@ export function buildParagraphs(
 					? -indent.textIndentPx
 					: undefined;
 			bulletStyle.display = 'inline-block';
+			// `text-indent` inherits, and an inline-block is a block container:
+			// without this reset the marker box applies the paragraph's negative
+			// first-line indent AGAIN internally and paints the glyph a full
+			// hang-width left of its own box (outside the text inset).
+			bulletStyle.textIndent = '0px';
 			if (hangPx !== undefined) {
 				bulletStyle.minWidth = `${hangPx}px`;
 			} else {
 				bulletStyle.marginInlineEnd = '0.35em';
 			}
 		}
-		const spacing = resolveParagraphSpacing(firstSeg?.paragraphProperties);
+		// An empty paragraph's own `a:pPr` / `a:endParaRPr` ride its terminator
+		// segment (there is no run to carry them), so read them from there.
+		const propsCarrier = firstSeg ?? (paraSegments.length === 0 ? terminator : undefined);
+		const spacing = resolveParagraphSpacing(propsCarrier?.paragraphProperties);
 		const strutFontSizePx = resolveParagraphStrutFontSize(
-			paraSegments,
+			paraSegments.length > 0 ? paraSegments : terminator ? [terminator] : [],
 			hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
 		);
 		return {

@@ -154,6 +154,30 @@ describe('buildParagraphs', () => {
 		expect(paras.map((p) => p.isEmpty ?? false)).toStrictEqual([false, true, false]);
 	});
 
+	it('sizes a blank line from its terminator (endParaRPr) style, not the body default', () => {
+		// Core stamps the `a:endParaRPr sz` on the separator that closes an
+		// EMPTY paragraph: PowerPoint sizes the blank line like a caret on it
+		// (issue #131 follow-up: a 10pt blank line rendered on the 10.5pt body
+		// strut, and the error accumulated down the panel).
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{ text: 'Heading', style: { fontSize: 14 } },
+					{ text: '\n', style: { fontSize: 14 } },
+					// terminator of the EMPTY paragraph, carrying the endParaRPr size
+					{ text: '\n', style: { fontSize: 13.333 } },
+					{ text: 'Body', style: { fontSize: 14 } },
+				],
+				{ textStyle: { fontSize: 14 } },
+			),
+		);
+		expect(paras).toHaveLength(3);
+		expect(paras[1].isEmpty).toBeTruthy();
+		expect(paras[1].strutFontSizePx).toBeCloseTo(13.333, 3);
+		// A blank line whose terminator matches the body default needs no strut.
+		expect(paras[0].strutFontSizePx).toBeUndefined();
+	});
+
 	it('drops blank paragraphs that trail the last content', () => {
 		const paras = buildParagraphs(
 			textEl([
