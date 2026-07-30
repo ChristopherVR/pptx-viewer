@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-07-30
 
+_Releases: pptx-viewer-core@2.0.9, pptx-react-viewer@2.6.6, pptx-vue-viewer@2.6.5, pptx-angular-viewer@2.6.5, pptx-vanilla-viewer@1.7.5, pptx-svelte-viewer@2.6.5_
+
+### Bug Fixes
+
+- **core:** Stamp the endParaRPr size on an empty paragraph's separator (by @ChristopherVR) ([2b18374](https://github.com/ChristopherVR/pptx-viewer/commit/2b1837473bdde04bc41f9593f444a096dd4196b8))
+- **shared:** PowerPoint-exact line height, blank-line strut, marker indent reset (by @ChristopherVR) ([7f7181b](https://github.com/ChristopherVR/pptx-viewer/commit/7f7181b2d4ec36f990b157964c2aa648d291b20f))
+- **react:** Tab a hanging bullet's first line to the indent stop (by @ChristopherVR) ([a6d899f](https://github.com/ChristopherVR/pptx-viewer/commit/a6d899fb8fca6879673b0cedc240ab7d398606a7))
+
+### Testing
+
+- **e2e:** Pin slide-13 hanging-indent tab and heading rhythm to PowerPoint (by @ChristopherVR) ([e976d32](https://github.com/ChristopherVR/pptx-viewer/commit/e976d321c3d6e1fbc80d26fddb04d0dda5ca7931))
+
+## 2026-07-30
+
 _Releases: pptx-react-viewer@2.6.5_
 
 ### Bug Fixes
