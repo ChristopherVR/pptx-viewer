@@ -10,6 +10,15 @@ dated sections beneath it are generated from
 
 ## 2026-07-30
 
+_Releases: pptx-react-viewer@2.6.4, pptx-vue-viewer@2.6.4, pptx-angular-viewer@2.6.4, pptx-vanilla-viewer@1.7.4, pptx-svelte-viewer@2.6.4_
+
+### Bug Fixes
+
+- **shared:** Restate the static transform in every morph keyframe (by @ChristopherVR) ([075a645](https://github.com/ChristopherVR/pptx-viewer/commit/075a6454fe4a5a17e79e2b2adb213ea2e21ccfb0))
+- **react:** Ride the morph ghost animation on the element's own container (by @ChristopherVR) ([33c0832](https://github.com/ChristopherVR/pptx-viewer/commit/33c083282fda01d83397db10cc6aff9b8b4fca6f))
+
+## 2026-07-30
+
 _Releases: pptx-react-viewer@2.6.3, pptx-vue-viewer@2.6.3, pptx-angular-viewer@2.6.3, pptx-vanilla-viewer@1.7.3, pptx-svelte-viewer@2.6.3_
 
 ### Bug Fixes
