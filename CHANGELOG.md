@@ -10,6 +10,23 @@ dated sections beneath it are generated from
 
 ## 2026-07-30
 
+_Releases: pptx-viewer-core@2.0.10, pptx-react-viewer@2.6.7, pptx-vue-viewer@2.6.6, pptx-angular-viewer@2.6.6, pptx-vanilla-viewer@1.7.6, pptx-svelte-viewer@2.6.6_
+
+### Bug Fixes
+
+- **core:** Stamp the endParaRPr size on an empty paragraph's separator (by @ChristopherVR) ([2b18374](https://github.com/ChristopherVR/pptx-viewer/commit/2b1837473bdde04bc41f9593f444a096dd4196b8))
+- **shared:** PowerPoint-exact line height, blank-line strut, marker indent reset (by @ChristopherVR) ([7f7181b](https://github.com/ChristopherVR/pptx-viewer/commit/7f7181b2d4ec36f990b157964c2aa648d291b20f))
+- **react:** Tab a hanging bullet's first line to the indent stop (by @ChristopherVR) ([a6d899f](https://github.com/ChristopherVR/pptx-viewer/commit/a6d899fb8fca6879673b0cedc240ab7d398606a7))
+- **shared:** Stop morph id-pairing shapes whose creationId GUIDs differ (by @ChristopherVR) ([b9afc84](https://github.com/ChristopherVR/pptx-viewer/commit/b9afc844f0cab88ed44b25236f21b4628f1309a6))
+- **angular:** Size a blank line from its endParaRPr, not the body default (by @ChristopherVR) ([ec94d3f](https://github.com/ChristopherVR/pptx-viewer/commit/ec94d3f127e9b67a8770a3a9e8e429f7e7e3a4e5))
+
+### Testing
+
+- **e2e:** Pin slide-13 hanging-indent tab and heading rhythm to PowerPoint (by @ChristopherVR) ([e976d32](https://github.com/ChristopherVR/pptx-viewer/commit/e976d321c3d6e1fbc80d26fddb04d0dda5ca7931))
+- **vue:** Expect PowerPoint's 1.2 default line-height (by @ChristopherVR) ([1023888](https://github.com/ChristopherVR/pptx-viewer/commit/10238888c51cfc7a9739df2cc56bae24c59249cb))
+
+## 2026-07-30
+
 _Releases: pptx-viewer-core@2.0.9, pptx-react-viewer@2.6.6, pptx-vue-viewer@2.6.5, pptx-angular-viewer@2.6.5, pptx-vanilla-viewer@1.7.5, pptx-svelte-viewer@2.6.5_
 
 ### Bug Fixes
