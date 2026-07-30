@@ -779,6 +779,30 @@ export class ElementRendererComponent {
 			// paragraph, so only its first line got a bullet and every authored
 			// blank line vanished (issue #131). Mirrors shared `buildParagraphs`.
 			if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
+				// An EMPTY paragraph (`paraStarted` still false) has no run to carry
+				// its authored size or spacing: both ride this TERMINATING separator,
+				// where core stamps the paragraph's `a:endParaRPr sz`. Read them off
+				// it, or the blank line lays out on the body default and the error
+				// accumulates down the panel (issue #131: Angular alone drifted
+				// ~7px by the last heading of slide 13). Mirrors shared
+				// `buildParagraphs`.
+				if (!paraStarted) {
+					const closing = out[out.length - 1];
+					const endParaSize = seg.style?.fontSize;
+					if (typeof endParaSize === 'number' && endParaSize > 0) {
+						closing.strutFontSizePx = endParaSize;
+					}
+					const endSpacing = resolveParagraphSpacing(seg.paragraphProperties);
+					if (endSpacing.lineHeight !== undefined) {
+						closing.lineHeight = endSpacing.lineHeight;
+					}
+					if (endSpacing.spaceBeforePx !== undefined) {
+						closing.spaceBeforePx = endSpacing.spaceBeforePx;
+					}
+					if (endSpacing.spaceAfterPx !== undefined) {
+						closing.spaceAfterPx = endSpacing.spaceAfterPx;
+					}
+				}
 				out.push({ runs: [], bulletStyle: {}, indentPx: 0 });
 				paraStarted = false;
 				continue;
