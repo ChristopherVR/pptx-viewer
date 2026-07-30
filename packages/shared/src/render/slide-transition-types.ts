@@ -128,5 +128,12 @@ export const INSTANT: SlideTransitionAnimations = {
  */
 export const DEFAULT_TRANSITION_DURATION_MS = 1000;
 
+/**
+ * Default Morph duration (ms). PowerPoint's Morph defaults to 2.00s and does
+ * not honour the legacy `spd` speed for it; an authored override arrives as
+ * `p14:dur` and lands in `durationMs`, which always wins over this.
+ */
+export const DEFAULT_MORPH_DURATION_MS = 2000;
+
 /** Easing applied to every transition animation. */
 export const EASE = 'ease-in-out';

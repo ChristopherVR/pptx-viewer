@@ -37,6 +37,7 @@ import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { getP14TransitionAnimations } from './p14-transition-css';
 import { getCinematicTransitionAnimations } from './slide-transition-cinematic';
 import {
+	DEFAULT_MORPH_DURATION_MS,
 	DEFAULT_TRANSITION_DURATION_MS,
 	EASE,
 	INSTANT,
@@ -381,7 +382,15 @@ export function resolveTransitionDurationMs(transition: PptxSlideTransition | un
 	if (!transition || transition.type === 'none' || transition.type === 'cut') {
 		return 0;
 	}
-	return typeof transition.durationMs === 'number' && transition.durationMs > 0
-		? transition.durationMs
-		: DEFAULT_TRANSITION_DURATION_MS;
+	if (typeof transition.durationMs === 'number' && transition.durationMs > 0) {
+		return transition.durationMs;
+	}
+	// PowerPoint's Morph defaults to 2.00s and IGNORES the legacy `spd`
+	// attribute for it (the real override lives in `p14:dur`, which core parses
+	// into `durationMs` when present). Playing morphs at the generic 1s default
+	// made every dissolve feel abrupt next to PowerPoint (issue #131).
+	if (transition.type === 'morph') {
+		return DEFAULT_MORPH_DURATION_MS;
+	}
+	return DEFAULT_TRANSITION_DURATION_MS;
 }

@@ -11,7 +11,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { MorphMatchResult, MorphPair } from './morph-types';
-import { PROXIMITY_THRESHOLD } from './morph-types';
+import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 
 // ---------------------------------------------------------------------------
 // Element name extraction
@@ -129,7 +129,18 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 		}
 	}
 
-	// Pass 3: match by same type + similar position (proximity)
+	// Pass 3: match by same type + similar position (proximity) + similar SIZE.
+	//
+	// The size gate matters as much as the distance one. A morph pair is
+	// animated by interpolating the whole box (translate + scale), so pairing
+	// two nearby elements of very different sizes stretches one into the other:
+	// in the issue #131 deck, a slide's small centre-text group sat 65px from
+	// the next slide's 270x270 group holding the ENTIRE highlighted wheel wedge,
+	// and pairing them made the wedge fly in squashed to half height while the
+	// old text stretched to double - a visibly "broken" wheel and a phantom
+	// selection marker mid-glide. Same-shaped counterparts pass at ratio 1;
+	// anything more than 2x apart on either axis dissolves in place instead,
+	// which is what PowerPoint does with shapes it cannot confidently pair.
 	for (const fromEl of fromSlide.elements) {
 		if (usedFrom.has(fromEl.id)) {
 			continue;
@@ -141,6 +152,13 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 				continue;
 			}
 			if (fromEl.type !== toEl.type) {
+				continue;
+			}
+			const widthRatio =
+				Math.max(fromEl.width, toEl.width, 1) / Math.max(Math.min(fromEl.width, toEl.width), 1);
+			const heightRatio =
+				Math.max(fromEl.height, toEl.height, 1) / Math.max(Math.min(fromEl.height, toEl.height), 1);
+			if (widthRatio > PROXIMITY_SIZE_RATIO_LIMIT || heightRatio > PROXIMITY_SIZE_RATIO_LIMIT) {
 				continue;
 			}
 			const dx = fromEl.x - toEl.x;

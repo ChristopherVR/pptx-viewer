@@ -208,6 +208,30 @@ describe('native shape-id matching', () => {
 		expect(matchMorphElements(from, to)).toHaveLength(0);
 	});
 
+	it('does not proximity-pair nearby elements of very different sizes (issue #131)', () => {
+		// A slide's small centre-text group sat 65px from the next slide's
+		// 270x270 group holding the whole highlighted wheel wedge. Pairing them
+		// stretched one into the other: the wedge flew in squashed while the old
+		// text ballooned. Such pairs must dissolve in place instead.
+		const from = makeSlide([
+			makeElement({ id: 'a-1', type: 'group', x: 533, y: 285, width: 219, height: 119 }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'b-1', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
+		]);
+		expect(matchMorphElements(from, to)).toHaveLength(0);
+	});
+
+	it('still proximity-pairs same-size counterparts at the same spot', () => {
+		const from = makeSlide([
+			makeElement({ id: 'a-1', type: 'shape', x: 505, y: 225, width: 77, height: 77 }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'b-1', type: 'shape', x: 505, y: 225, width: 77, height: 77 }),
+		]);
+		expect(matchMorphElements(from, to)).toHaveLength(1);
+	});
+
 	it('ignores the loader-synthesised element id, which never repeats across slides', () => {
 		// `element.id` embeds the slide path, so equality here would be a bug
 		// masquerading as a match. Two shapes with no `shapeId` and no proximity

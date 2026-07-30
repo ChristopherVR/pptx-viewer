@@ -81,3 +81,11 @@ export const MORPH_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
 /** Maximum pixel distance for proximity-based element matching. */
 export const PROXIMITY_THRESHOLD = 300;
+
+/**
+ * Maximum per-axis size ratio (larger/smaller) for a proximity match. Pairs
+ * further apart than this in width OR height dissolve in place instead of
+ * gliding, because interpolating the box would visibly stretch one shape into
+ * the other (issue #131: a centre-text group paired with a whole wheel wedge).
+ */
+export const PROXIMITY_SIZE_RATIO_LIMIT = 2;
