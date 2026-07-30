@@ -194,14 +194,31 @@ export function generateMorphAnimations(
 		const { fromElement, toElement } = pairs[index];
 		const safeName = `pptx-morph-${index}-${toElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
 
-		// Position and geometry interpolation
-		const dx = fromElement.x - toElement.x;
-		const dy = fromElement.y - toElement.y;
+		// Position and geometry interpolation. Deltas are CENTRE to centre:
+		// scale/rotate pivot on the element's own centre (`transform-origin:
+		// center`), so a top-left delta would land a resized pair off by half
+		// the size difference.
+		const dx = fromElement.x + fromElement.width / 2 - (toElement.x + toElement.width / 2);
+		const dy = fromElement.y + fromElement.height / 2 - (toElement.y + toElement.height / 2);
 		const sx = Math.max(fromElement.width, 1) / Math.max(toElement.width, 1);
 		const sy = Math.max(fromElement.height, 1) / Math.max(toElement.height, 1);
-		const dr = (fromElement.rotation ?? 0) - (toElement.rotation ?? 0);
 		const fromOpacity = fromElement.opacity ?? 1;
 		const toOpacity = toElement.opacity ?? 1;
+
+		// The animation's `transform` REPLACES the element's static transform
+		// (`rotate(θ) scaleX(±1) scaleY(±1)` from the container style), so every
+		// keyframe must restate the element's own rotation/flips or they vanish
+		// for the whole flight and snap back at the end. The issue #131 deck
+		// rotates its ring graphic per slide so the arrow points at the selected
+		// wedge; interpolating only the DELTA played the ring at `rotate(dr)->0`
+		// instead of `rotate(from)->rotate(to)`, sweeping giant arcs across the
+		// slide. Flips use the incoming element's, stated after the rotation to
+		// match the static order (right-to-left: flip first, then rotate).
+		const fromRot = fromElement.rotation ?? 0;
+		const toRot = toElement.rotation ?? 0;
+		const flips = `${toElement.flipHorizontal ? ' scaleX(-1)' : ''}${
+			toElement.flipVertical ? ' scaleY(-1)' : ''
+		}`;
 
 		// A pair whose appearance changes fades IN over its outgoing ghost (see
 		// `generateMorphGhostAnimations`); one that only moves stays fully
@@ -210,11 +227,11 @@ export function generateMorphAnimations(
 
 		// Build from/to property blocks
 		const fromProps: string[] = [
-			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${dr}deg);`,
+			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${fromRot}deg)${flips};`,
 			`\t\topacity: ${crossfades ? 0 : fromOpacity};`,
 		];
 		const toProps: string[] = [
-			'\t\ttransform: translate(0, 0) scale(1, 1) rotate(0deg);',
+			`\t\ttransform: translate(0, 0) scale(1, 1) rotate(${toRot}deg)${flips};`,
 			`\t\topacity: ${toOpacity};`,
 		];
 
@@ -269,10 +286,11 @@ ${toProps.join('\n')}
  * full-slide background that IS crossfading would otherwise hide every
  * unchanged shape until it had faded, making them pop in mid-transition.
  *
- * `transform-origin` is pinned to the element's own centre in canvas
- * coordinates because the overlay wrapper spans the whole slide: without it a
- * `scale()` would pivot around the slide centre and drag the ghost across the
- * canvas.
+ * Like every other morph animation, the frames are ELEMENT-LOCAL: they target
+ * the node that carries the element's static transform, restate that transform
+ * (see `generateMorphAnimations`), pivot on the element's own centre, and move
+ * by centre deltas. A binding must therefore attach these to the outgoing
+ * element's positioned container itself, never to a slide-sized wrapper.
  *
  * @param pairs - Matched pairs.
  * @param durationMs - Animation duration in milliseconds.
@@ -289,23 +307,25 @@ export function generateMorphGhostAnimations(
 		const { fromElement, toElement } = pairs[index];
 		const fadesOut = morphPairNeedsCrossfade(fromElement, toElement);
 		const safeName = `pptx-morph-ghost-${startIndex + index}-${fromElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
-		const dx = toElement.x - fromElement.x;
-		const dy = toElement.y - fromElement.y;
+		const dx = toElement.x + toElement.width / 2 - (fromElement.x + fromElement.width / 2);
+		const dy = toElement.y + toElement.height / 2 - (fromElement.y + fromElement.height / 2);
 		const sx = Math.max(toElement.width, 1) / Math.max(fromElement.width, 1);
 		const sy = Math.max(toElement.height, 1) / Math.max(fromElement.height, 1);
-		const dr = (toElement.rotation ?? 0) - (fromElement.rotation ?? 0);
-		const originX = fromElement.x + fromElement.width / 2;
-		const originY = fromElement.y + fromElement.height / 2;
+		const fromRot = fromElement.rotation ?? 0;
+		const toRot = toElement.rotation ?? 0;
+		const flips = `${fromElement.flipHorizontal ? ' scaleX(-1)' : ''}${
+			fromElement.flipVertical ? ' scaleY(-1)' : ''
+		}`;
 		const keyframes = `
 @keyframes ${safeName} {
 \tfrom {
-\t\ttransform-origin: ${originX}px ${originY}px;
-\t\ttransform: translate(0, 0) scale(1, 1) rotate(0deg);
+\t\ttransform-origin: center;
+\t\ttransform: translate(0, 0) scale(1, 1) rotate(${fromRot}deg)${flips};
 \t\topacity: ${fromElement.opacity ?? 1};
 \t}
 \tto {
-\t\ttransform-origin: ${originX}px ${originY}px;
-\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${dr}deg);
+\t\ttransform-origin: center;
+\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${toRot}deg)${flips};
 \t\topacity: ${fadesOut ? 0 : (fromElement.opacity ?? 1)};
 \t}
 }`;
@@ -316,6 +336,19 @@ export function generateMorphGhostAnimations(
 		});
 	}
 	return animations;
+}
+
+/**
+ * Restated static transform suffix (`rotate(N) scaleX(-1) scaleY(-1)`) for an
+ * element. Keyframe `transform`s REPLACE the container's static transform, so
+ * every frame must carry this or a rotated/flipped element loses its own
+ * orientation for the duration of the animation and snaps back at the end.
+ */
+function staticTransformSuffix(el: PptxElement): string {
+	const rot = el.rotation ?? 0;
+	return ` rotate(${rot}deg)${el.flipHorizontal ? ' scaleX(-1)' : ''}${
+		el.flipVertical ? ' scaleY(-1)' : ''
+	}`;
 }
 
 /**
@@ -337,11 +370,11 @@ export function generateUnmatchedFadeOutAnimations(
 @keyframes ${safeName} {
 \tfrom {
 \t\topacity: ${el.opacity ?? 1};
-\t\ttransform: scale(1);
+\t\ttransform: scale(1)${staticTransformSuffix(el)};
 \t}
 \tto {
 \t\topacity: 0;
-\t\ttransform: scale(0.95);
+\t\ttransform: scale(0.95)${staticTransformSuffix(el)};
 \t}
 }`;
 		return {
@@ -371,11 +404,11 @@ export function generateUnmatchedFadeInAnimations(
 @keyframes ${safeName} {
 \tfrom {
 \t\topacity: 0;
-\t\ttransform: scale(0.95);
+\t\ttransform: scale(0.95)${staticTransformSuffix(el)};
 \t}
 \tto {
 \t\topacity: ${el.opacity ?? 1};
-\t\ttransform: scale(1);
+\t\ttransform: scale(1)${staticTransformSuffix(el)};
 \t}
 }`;
 		return {
