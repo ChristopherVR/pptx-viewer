@@ -9,6 +9,7 @@ import {
 	generateFullMorphTransition,
 	buildColorInterpolationProps,
 	buildStrokeInterpolationProps,
+	morphPairNeedsCrossfade,
 } from './morph-animation';
 import { parseHexColor, lerpColor, rgbaToHex } from './morph-color';
 import { matchMorphElements, matchMorphElementsFull, getElementMorphName } from './morph-matching';
@@ -1345,6 +1346,58 @@ describe('generateFullMorphTransition', () => {
 		// text animations.
 		expect(anims).toHaveLength(2);
 		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(1);
+	});
+});
+
+// ==========================================================================
+// morphPairNeedsCrossfade
+// ==========================================================================
+
+describe('morphPairNeedsCrossfade', () => {
+	it('is false for a pair that only moves', () => {
+		const from = makeElement({ id: 'a', type: 'shape', x: 0, y: 0 });
+		const to = makeElement({ id: 'b', type: 'shape', x: 300, y: 200 });
+		expect(morphPairNeedsCrossfade(from, to)).toBeFalsy();
+	});
+
+	it('is true when the painted appearance changes', () => {
+		const from = makeElement({
+			id: 'a',
+			type: 'text',
+			text: 'Open Integration',
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+		const to = makeElement({
+			id: 'b',
+			type: 'text',
+			text: 'Tactical Edge',
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+		expect(morphPairNeedsCrossfade(from, to)).toBeTruthy();
+	});
+
+	it('looks inside a group, whose own properties paint nothing (issue #131)', () => {
+		// The reporter's deck keeps each slide's centre copy in a group. Comparing
+		// only the group itself made every pair look unchanged, so its ghost stayed
+		// opaque for the whole morph and the old text snapped to the new one in a
+		// single frame when the overlay was torn down.
+		const group = (id: string, childText: string): PptxElement =>
+			({
+				id,
+				type: 'group',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 50,
+				children: [
+					{ id: `${id}-c`, type: 'text', x: 0, y: 0, width: 80, height: 20, text: childText },
+				],
+			}) as unknown as PptxElement;
+
+		expect(
+			morphPairNeedsCrossfade(group('a', 'Open Integration'), group('b', 'Tactical Edge')),
+		).toBeTruthy();
+		expect(
+			morphPairNeedsCrossfade(group('a', 'Open Integration'), group('b', 'Open Integration')),
+		).toBeFalsy();
 	});
 });
 

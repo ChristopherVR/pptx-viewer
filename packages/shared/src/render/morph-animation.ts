@@ -106,6 +106,9 @@ export function buildStrokeInterpolationProps(
 // Appearance comparison (drives the matched-pair crossfade)
 // ---------------------------------------------------------------------------
 
+/** Depth cap for the recursive signature; real decks never nest this far. */
+const SIGNATURE_MAX_DEPTH = 8;
+
 /**
  * A compact description of everything about an element that is actually
  * PAINTED, used to decide whether a matched morph pair has to crossfade.
@@ -115,8 +118,15 @@ export function buildStrokeInterpolationProps(
  * outline, picture or text look like a hard cut if we just swap them, because
  * the outgoing appearance is never drawn: the incoming element is rendered at
  * its final appearance from the very first frame.
+ *
+ * A GROUP carries none of that on itself: everything it paints lives in its
+ * children, so the signature recurses. Without that the group holding a
+ * slide's centre content matched its counterpart, compared equal, and its
+ * ghost stayed fully opaque for the whole transition - then vanished with the
+ * overlay, snapping the old text to the new one in a single frame at the very
+ * END of the morph (issue #131).
  */
-function appearanceSignature(element: PptxElement): string {
+function appearanceSignature(element: PptxElement, depth = 0): string {
 	const parts: string[] = [element.type];
 	if (hasShapeProperties(element)) {
 		const style = element.shapeStyle;
@@ -134,6 +144,12 @@ function appearanceSignature(element: PptxElement): string {
 	parts.push(image.imagePath ?? '', image.svgPath ?? '');
 	if (hasTextProperties(element)) {
 		parts.push(element.text ?? '', element.textStyle?.color ?? '');
+	}
+	const children = (element as { children?: PptxElement[] }).children;
+	if (children && depth < SIGNATURE_MAX_DEPTH) {
+		for (const child of children) {
+			parts.push(appearanceSignature(child, depth + 1));
+		}
 	}
 	return parts.join('');
 }
