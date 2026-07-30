@@ -129,11 +129,29 @@ export const INSTANT: SlideTransitionAnimations = {
 export const DEFAULT_TRANSITION_DURATION_MS = 1000;
 
 /**
- * Default Morph duration (ms). PowerPoint's Morph defaults to 2.00s and does
- * not honour the legacy `spd` speed for it; an authored override arrives as
- * `p14:dur` and lands in `durationMs`, which always wins over this.
+ * Default Morph duration (ms) for a transition that declares NEITHER an
+ * explicit `p14:dur` (which lands in `durationMs` and always wins) NOR a legacy
+ * `spd` speed (see {@link TRANSITION_SPEED_DURATION_MS}). Applying Morph in the
+ * PowerPoint UI writes an explicit duration, so this only covers decks that
+ * declare nothing at all.
  */
 export const DEFAULT_MORPH_DURATION_MS = 2000;
+
+/**
+ * Duration (ms) for each legacy `p:transition/@spd` speed.
+ *
+ * Measured against PowerPoint itself: the issue #131 deck's morph slides carry
+ * `spd="slow"` and no `p14:dur`, and PowerPoint reports
+ * `SlideShowTransition.Duration = 1.0`. Re-authoring that attribute and
+ * re-reading it through COM gives fast=0.5s, med=0.75s, slow=1.0s - and the
+ * same values for Morph as for every other effect, contradicting the earlier
+ * assumption that Morph ignores `spd`.
+ */
+export const TRANSITION_SPEED_DURATION_MS: Readonly<Record<string, number>> = {
+	fast: 500,
+	med: 750,
+	slow: 1000,
+};
 
 /** Easing applied to every transition animation. */
 export const EASE = 'ease-in-out';

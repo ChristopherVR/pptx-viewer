@@ -45,6 +45,7 @@ import {
 	resolveDirection,
 	resolveDirection8,
 	resolveOrientation,
+	TRANSITION_SPEED_DURATION_MS,
 } from './slide-transition-types';
 import type {
 	ResolvedDirection,
@@ -385,10 +386,15 @@ export function resolveTransitionDurationMs(transition: PptxSlideTransition | un
 	if (typeof transition.durationMs === 'number' && transition.durationMs > 0) {
 		return transition.durationMs;
 	}
-	// PowerPoint's Morph defaults to 2.00s and IGNORES the legacy `spd`
-	// attribute for it (the real override lives in `p14:dur`, which core parses
-	// into `durationMs` when present). Playing morphs at the generic 1s default
-	// made every dissolve feel abrupt next to PowerPoint (issue #131).
+	// The legacy `spd` speed is the next authority, for EVERY effect including
+	// Morph. Verified against PowerPoint via COM (see
+	// `TRANSITION_SPEED_DURATION_MS`): the issue #131 deck's morphs declare
+	// `spd="slow"` and no `p14:dur`, and PowerPoint plays them at 1.0s - we were
+	// playing them at 2.0s, so every transition in that deck ran at half speed.
+	const speedMs = transition.speed ? TRANSITION_SPEED_DURATION_MS[transition.speed] : undefined;
+	if (typeof speedMs === 'number') {
+		return speedMs;
+	}
 	if (transition.type === 'morph') {
 		return DEFAULT_MORPH_DURATION_MS;
 	}

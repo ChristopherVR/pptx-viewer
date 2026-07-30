@@ -10,6 +10,7 @@ import {
 } from './slide-transition-css';
 import { SLIDE_TRANSITION_KEYFRAMES } from './slide-transition-keyframes';
 import {
+	DEFAULT_MORPH_DURATION_MS,
 	DEFAULT_TRANSITION_DURATION_MS,
 	INSTANT,
 	RANDOM_ELIGIBLE_TYPES,
@@ -388,6 +389,29 @@ describe('resolveTransitionDurationMs', () => {
 		expect(resolveTransitionDurationMs({ type: 'fade', durationMs: -5 })).toBe(
 			DEFAULT_TRANSITION_DURATION_MS,
 		);
+	});
+
+	it('honours the legacy spd speed, for morph as well as everything else', () => {
+		// PowerPoint-measured (COM `SlideShowTransition.Duration` after
+		// re-authoring `@spd`): fast 0.5s, med 0.75s, slow 1.0s - and identical
+		// for Morph, which we previously forced to 2s. The issue #131 deck's
+		// morph slides are `spd="slow"` with no `p14:dur`, so they must play at
+		// 1s, not the 2s that made every transition run at half PowerPoint speed.
+		expect(resolveTransitionDurationMs({ type: 'fade', speed: 'fast' })).toBe(500);
+		expect(resolveTransitionDurationMs({ type: 'fade', speed: 'med' })).toBe(750);
+		expect(resolveTransitionDurationMs({ type: 'fade', speed: 'slow' })).toBe(1000);
+		expect(resolveTransitionDurationMs({ type: 'morph', speed: 'slow' })).toBe(1000);
+		expect(resolveTransitionDurationMs({ type: 'morph', speed: 'fast' })).toBe(500);
+	});
+
+	it('lets an explicit duration win over the speed token', () => {
+		expect(resolveTransitionDurationMs({ type: 'morph', speed: 'slow', durationMs: 2500 })).toBe(
+			2500,
+		);
+	});
+
+	it('keeps the morph default when neither a duration nor a speed is authored', () => {
+		expect(resolveTransitionDurationMs({ type: 'morph' })).toBe(DEFAULT_MORPH_DURATION_MS);
 	});
 });
 
