@@ -276,8 +276,14 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				scheduleAutoAdvanceForSlide,
 				presentationTimersRef,
 				setTransitionOverlay,
-				// Direct jumps (action buttons, zoom tiles) are transition-less.
-				playTransition: false,
+				// A jump ENTERS the target slide, so PowerPoint plays that slide's
+				// transition exactly as it does for a forward advance - hyperlinks,
+				// action buttons, Home/End and "type a number + Enter" all animate.
+				// Suppressing it here is why a deck navigated by clicking its own
+				// on-slide links (this is how the issue #131 reporter drives their
+				// wheel menu) appeared to have no morph at all, while the same
+				// transition played fine on PageDown.
+				playTransition: true,
 			});
 		},
 		[
