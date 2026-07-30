@@ -53,6 +53,16 @@ export function renderSingleSegment(
 	paragraphRtl?: boolean,
 	/** When true, hyperlinks require Ctrl+Click (editing mode). */
 	requireCtrlClick?: boolean,
+	/**
+	 * Hanging-indent distance in px when this segment is a bullet marker inside
+	 * a hanging paragraph (`marL > 0, indent < 0`). PowerPoint draws the marker
+	 * at `marL + indent` and tabs the first line's TEXT out to `marL`, so the
+	 * marker's box must be exactly the hang wide: without it the text starts
+	 * straight after the glyph, the first line sits left of its own wrapped
+	 * lines, and the extra width makes long bullets wrap one word later than
+	 * PowerPoint (issue #131, slide 13).
+	 */
+	bulletHangPx?: number,
 ): React.ReactNode {
 	// ── Equation segments: render inline MathML ──
 	if (segment.equationXml) {
@@ -65,7 +75,15 @@ export function renderSingleSegment(
 	}
 
 	const segmentStyle = segment.style || {};
-	const textValue = substituteFieldText(segment.text || '', segment.fieldType, fieldContext);
+	// A marker filling its hang box must not also carry the core-inserted
+	// trailing space: the box (min-width) already provides the gap, and the
+	// space would push the first line's text past the indent stop whenever the
+	// glyph plus space outgrow the hang.
+	const rawText =
+		bulletInfo && typeof bulletHangPx === 'number'
+			? (segment.text || '').trimEnd()
+			: segment.text || '';
+	const textValue = substituteFieldText(rawText, segment.fieldType, fieldContext);
 	const lines = textValue.split('\n');
 	const textDecorationTokens: string[] = [];
 	if (segmentStyle.underline || segmentStyle.hyperlink) {
@@ -226,6 +244,19 @@ export function renderSingleSegment(
 		}
 		if (bulletInfo.color) {
 			spanStyle.color = normalizeHexColor(bulletInfo.color, resolvedSegmentColor);
+		}
+		// Reserve the full hanging distance for the marker so the first line's
+		// text starts on the indent stop (`marL`), aligned with its own wrapped
+		// lines - matching the shared `buildParagraphs` marker model the other
+		// four bindings render.
+		if (typeof bulletHangPx === 'number' && bulletHangPx > 0) {
+			spanStyle.display = 'inline-block';
+			spanStyle.minWidth = bulletHangPx;
+			// `text-indent` inherits, and an inline-block is a block container:
+			// without this reset the marker box applies the paragraph's negative
+			// first-line indent AGAIN internally and paints the glyph a full
+			// hang-width left of its own box (outside the text inset).
+			spanStyle.textIndent = 0;
 		}
 	}
 

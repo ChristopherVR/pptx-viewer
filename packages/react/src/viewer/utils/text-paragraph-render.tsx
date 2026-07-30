@@ -22,6 +22,17 @@ import { renderSingleSegment } from './text-segment-render';
 // React import paths keep working.
 export { resolveCssTextAlign, resolveParagraphAlign, resolveParagraphRtl };
 
+interface GroupedParagraph {
+	entries: Array<ParagraphEntry>;
+	/**
+	 * The `"\n"` separator that closed this paragraph. For an EMPTY paragraph it
+	 * is the only carrier of the authored `a:endParaRPr` style (core stamps the
+	 * end-run font size on it) and of the paragraph's own `a:pPr` spacing, which
+	 * size the blank line's box.
+	 */
+	terminator?: { text: string; style: TextStyle; paragraphProperties?: TextStyle };
+}
+
 function groupSegmentsIntoParagraphs(
 	segments: ReadonlyArray<{
 		text: string;
@@ -35,21 +46,21 @@ function groupSegmentsIntoParagraphs(
 		rubyFontSize?: number;
 		rubyStyle?: TextStyle;
 	}>,
-): Array<Array<ParagraphEntry>> {
-	const paragraphs: Array<Array<ParagraphEntry>> = [];
+): Array<GroupedParagraph> {
+	const paragraphs: Array<GroupedParagraph> = [];
 	let current: Array<ParagraphEntry> = [];
 
 	for (let i = 0; i < segments.length; i++) {
 		const seg = segments[i];
 		if (seg.text === '\n') {
-			paragraphs.push(current);
+			paragraphs.push({ entries: current, terminator: seg });
 			current = [];
 		} else {
 			current.push({ segment: seg, globalIndex: i });
 		}
 	}
 	if (current.length > 0 || paragraphs.length === 0) {
-		paragraphs.push(current);
+		paragraphs.push({ entries: current });
 	}
 
 	return paragraphs;
@@ -116,7 +127,7 @@ export function renderTextSegments(
 	// disabled; default to applying it so single-level text keeps its spacing.
 	const spaceFirstLast = bodyStyle?.spaceFirstLastParagraph !== false;
 
-	return paragraphs.map((paraSegments, paraIndex) => {
+	return paragraphs.map(({ entries: paraSegments, terminator }, paraIndex) => {
 		const paraIndent = paragraphIndents?.[paraIndex];
 		const rawMarginLeft =
 			typeof paraIndent?.marginLeft === 'number' && paraIndent.marginLeft !== 0
@@ -162,7 +173,9 @@ export function renderTextSegments(
 		// Per-paragraph line spacing (a:lnSpc) and space before/after
 		// (a:spcBef / a:spcAft), sourced from this paragraph's own geometry with
 		// a body-level fallback for inherited/single-level text.
-		const paraProps = effectiveSegments[firstSeg?.globalIndex ?? -1]?.paragraphProperties;
+		const paraProps =
+			effectiveSegments[firstSeg?.globalIndex ?? -1]?.paragraphProperties ??
+			(paraSegments.length === 0 ? terminator?.paragraphProperties : undefined);
 		const spacing = resolveParagraphSpacing({
 			paraProps,
 			bodyStyle,
@@ -174,9 +187,14 @@ export function renderTextSegments(
 		// block strut stays at the body's default size and a paragraph of
 		// smaller runs is laid out on too-tall lines (see
 		// `resolveParagraphStrutFontSize`). Every run span carries an explicit
-		// font-size, so this only moves the strut.
+		// font-size, so this only moves the strut. A BLANK paragraph has no
+		// runs; its authored `a:endParaRPr` size rides the terminator segment.
 		const strutFontSize = resolveParagraphStrutFontSize(
-			paraSegments.map(({ segment }) => segment),
+			paraSegments.length > 0
+				? paraSegments.map(({ segment }) => segment)
+				: terminator
+					? [terminator]
+					: [],
 			bodyStyle?.fontSize,
 		);
 
@@ -252,6 +270,15 @@ export function renderTextSegments(
 					fieldContext,
 					paraRtl,
 					requireCtrlClick,
+					// Marker box = the hanging distance, so the first line's text
+					// lands on the indent stop (see `bulletHangPx` in
+					// `renderSingleSegment`).
+					hasBullet &&
+						globalIndex === firstSeg.globalIndex &&
+						typeof paraTextIndent === 'number' &&
+						paraTextIndent < 0
+						? -paraTextIndent
+						: undefined,
 				),
 			);
 
