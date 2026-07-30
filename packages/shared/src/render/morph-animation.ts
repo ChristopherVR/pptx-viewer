@@ -214,8 +214,11 @@ export function generateMorphAnimations(
 		// instead of `rotate(from)->rotate(to)`, sweeping giant arcs across the
 		// slide. Flips use the incoming element's, stated after the rotation to
 		// match the static order (right-to-left: flip first, then rotate).
-		const fromRot = fromElement.rotation ?? 0;
+		// Animate FROM an equivalent start angle that reaches the element's own
+		// authored rotation over the shorter arc; the `to` frame must keep the
+		// authored value so the element lands exactly on its static transform.
 		const toRot = toElement.rotation ?? 0;
+		const fromRot = shortestRotationTarget(toRot, fromElement.rotation ?? 0);
 		const flips = `${toElement.flipHorizontal ? ' scaleX(-1)' : ''}${
 			toElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
@@ -311,8 +314,10 @@ export function generateMorphGhostAnimations(
 		const dy = toElement.y + toElement.height / 2 - (fromElement.y + fromElement.height / 2);
 		const sx = Math.max(toElement.width, 1) / Math.max(fromElement.width, 1);
 		const sy = Math.max(toElement.height, 1) / Math.max(fromElement.height, 1);
+		// The ghost starts on its own authored rotation, so the SHORTEST-arc
+		// adjustment goes on the target angle here (mirror of the incoming half).
 		const fromRot = fromElement.rotation ?? 0;
-		const toRot = toElement.rotation ?? 0;
+		const toRot = shortestRotationTarget(fromRot, toElement.rotation ?? 0);
 		const flips = `${fromElement.flipHorizontal ? ' scaleX(-1)' : ''}${
 			fromElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
@@ -336,6 +341,31 @@ export function generateMorphGhostAnimations(
 		});
 	}
 	return animations;
+}
+
+/**
+ * The target angle to animate TO so the element turns the short way round.
+ *
+ * CSS interpolates `rotate(a)` -> `rotate(b)` numerically, so a pair authored
+ * at 315deg and 0deg spins -315deg (almost a full turn anti-clockwise) when
+ * the shapes are only 45deg apart. PowerPoint always takes the shorter arc.
+ * Returns `fromDeg` plus the delta wrapped into (-180, 180], which is the same
+ * final orientation modulo 360 but the rotation a viewer expects: the issue
+ * #131 deck's wheel points its arrow at the selected wedge by rotating a ring
+ * in 45deg steps, so clicking the neighbouring wedge sent the arrow the long
+ * way around the dial.
+ *
+ * A half turn is ambiguous; +180 (clockwise) is chosen so the direction is at
+ * least deterministic.
+ */
+export function shortestRotationTarget(fromDeg: number, toDeg: number): number {
+	let delta = (toDeg - fromDeg) % 360;
+	if (delta > 180) {
+		delta -= 360;
+	} else if (delta <= -180) {
+		delta += 360;
+	}
+	return fromDeg + delta;
 }
 
 /**

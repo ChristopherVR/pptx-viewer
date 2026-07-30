@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest';
 
 import {
 	generateMorphAnimations,
+	generateMorphGhostAnimations,
+	shortestRotationTarget,
 	generateUnmatchedFadeOutAnimations,
 	generateUnmatchedFadeInAnimations,
 	generateTextMorphAnimations,
@@ -869,6 +871,63 @@ describe('generateMorphAnimations', () => {
 		];
 		const anims = generateMorphAnimations(pairs, 500);
 		expect(anims[0].keyframes).toContain('translate(-40px, -50px)');
+	});
+
+	it('turns the SHORT way round instead of unwinding a near-full circle', () => {
+		// The issue #131 wheel points its arrow at the selected wedge by rotating
+		// a ring in 45deg steps. Going from Trust & Sovereignty (315deg) to
+		// Secure Data Movement (0deg) is 45deg clockwise, but CSS interpolates
+		// `rotate(315deg)` -> `rotate(0deg)` numerically and spun the arrow
+		// 315deg anti-clockwise, all the way round the dial.
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({ id: 'a', type: 'image', rotation: 315 }),
+				toElement: makeElement({ id: 'b', type: 'image', rotation: 0 }),
+			},
+		];
+		const anims = generateMorphAnimations(pairs, 1000);
+		// -45deg is the same orientation as the authored 315deg, but travelling
+		// from it to 0deg is 45deg CLOCKWISE. The `to` frame keeps the authored
+		// angle so the element lands exactly on its own static transform.
+		expect(anims[0].keyframes).toContain('rotate(-45deg)');
+		expect(anims[0].keyframes).toContain('rotate(0deg)');
+		expect(anims[0].keyframes).not.toContain('rotate(315deg)');
+	});
+
+	it('keeps a short forward turn untouched', () => {
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({ id: 'a', type: 'image', rotation: 0 }),
+				toElement: makeElement({ id: 'b', type: 'image', rotation: 45 }),
+			},
+		];
+		const anims = generateMorphAnimations(pairs, 1000);
+		expect(anims[0].keyframes).toContain('rotate(0deg)');
+		expect(anims[0].keyframes).toContain('rotate(45deg)');
+	});
+
+	it('lands the ghost on the same short arc as its incoming half', () => {
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({ id: 'a', type: 'image', rotation: 315 }),
+				toElement: makeElement({ id: 'b', type: 'image', rotation: 0 }),
+			},
+		];
+		const ghosts = generateMorphGhostAnimations(pairs, 1000, 0);
+		// Ghost starts on its authored 315 and travels forward to 360 (= 0).
+		expect(ghosts[0].keyframes).toContain('rotate(315deg)');
+		expect(ghosts[0].keyframes).toContain('rotate(360deg)');
+	});
+
+	it('resolves the shortest arc for any pair of angles', () => {
+		expect(shortestRotationTarget(315, 0)).toBe(360);
+		expect(shortestRotationTarget(0, 315)).toBe(-45);
+		expect(shortestRotationTarget(0, 45)).toBe(45);
+		expect(shortestRotationTarget(350, 10)).toBe(370);
+		expect(shortestRotationTarget(10, 350)).toBe(-10);
+		// A half turn is ambiguous; resolve it clockwise so it is deterministic.
+		expect(shortestRotationTarget(0, 180)).toBe(180);
+		expect(shortestRotationTarget(180, 0)).toBe(360);
 	});
 
 	it('should include scale transform from size delta', () => {
