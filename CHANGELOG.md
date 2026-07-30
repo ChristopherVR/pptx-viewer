@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-07-30
 
+_Releases: pptx-react-viewer@2.6.3, pptx-vue-viewer@2.6.3, pptx-angular-viewer@2.6.3, pptx-vanilla-viewer@1.7.3, pptx-svelte-viewer@2.6.3_
+
+### Bug Fixes
+
+- **react:** Play the destination slide's transition on a hyperlink jump (by @ChristopherVR) ([1e5c995](https://github.com/ChristopherVR/pptx-viewer/commit/1e5c9950f0d8ba2d1bcdf90241b77cbf0ad78f39))
+- **shared:** Stop morph pairing nearby shapes of very different sizes; 2s default (by @ChristopherVR) ([3d49c67](https://github.com/ChristopherVR/pptx-viewer/commit/3d49c672089ae26008f24f8cce7160ef22709507))
+- **angular:** Default morph to PowerPoint's 2s in the duration policy (by @ChristopherVR) ([fcca9aa](https://github.com/ChristopherVR/pptx-viewer/commit/fcca9aa469f17fdc106ce72782f82c7816f6ee31))
+
+### Testing
+
+- **e2e:** Pin that an on-slide hyperlink jump still morphs (by @ChristopherVR) ([5607eeb](https://github.com/ChristopherVR/pptx-viewer/commit/5607eeb5b004b3787c900914257544c86a2dfbcf))
+
+## 2026-07-30
+
 _Releases: pptx-react-viewer@2.6.2, pptx-vue-viewer@2.6.2, pptx-angular-viewer@2.6.2, pptx-vanilla-viewer@1.7.2, pptx-svelte-viewer@2.6.2_
 
 ### Bug Fixes
