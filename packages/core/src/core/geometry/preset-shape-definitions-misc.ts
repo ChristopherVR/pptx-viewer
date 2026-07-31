@@ -31,6 +31,7 @@
  */
 
 import type {
+	PresetPath,
 	PresetPathCommand,
 	PresetShapeGeometryDefinition,
 } from './preset-shape-definitions-table';
@@ -45,6 +46,29 @@ function gd(name: string, formula: string): { name: string; formula: string; arg
 }
 
 const FULL_RECT = { l: 'l', t: 't', r: 'r', b: 'b' } as const;
+
+/**
+ * One detached triangular ray: the two base corners (straddling the ray axis)
+ * followed by the apex. Used by `sun`, whose rays are separate sub-paths rather
+ * than part of one connected outline.
+ */
+function ray(
+	baseX1: string,
+	baseY1: string,
+	baseX2: string,
+	baseY2: string,
+	apexX: string,
+	apexY: string,
+): PresetPath {
+	return {
+		commands: [
+			{ kind: 'moveTo', x: baseX1, y: baseY1 },
+			{ kind: 'lnTo', x: baseX2, y: baseY2 },
+			{ kind: 'lnTo', x: apexX, y: apexY },
+			{ kind: 'close' },
+		],
+	};
+}
 
 /**
  * Trigonometric lookup for a regular N-pointed star (N tips).
@@ -685,76 +709,102 @@ const lightningBolt: PresetShapeGeometryDefinition = {
 	],
 };
 
-// sun — 8 ray triangles + central circle. adj governs ray depth.
+// sun — a central ellipse plus EIGHT DETACHED triangular rays at 45deg steps.
+//
+// The previous port drew one connected star polygon over a disc, which is the
+// wrong topology (PowerPoint leaves a gap between the disc and every ray) and
+// mixed height guides into x coordinates, so it rendered as a spiky blob with a
+// stray wing. Measured against PowerPoint's own render it scored 46% IoU.
+//
+// Constants below were measured from PowerPoint renders of `<a:prstGeom
+// prst="sun">` at adj = 12500 / 20000 / 25000 / 30000 / 35000 / 40000, all in a
+// 200x100 box, and hold to within ~0.2% of the box at every one of them:
+//
+//   disc semi-axes  = wd2/hd2 * (100000 - 2a) / 100000
+//   ray base radius = wd2/hd2 * (95000 - 1.4a) / 100000   (along the ray axis)
+//   ray base half-width = 0.283 * disc radius             (across the axis)
+//   ray apex        = the box-inscribed ellipse (radius 1.0)
+//
+// The construction is anisotropic: everything is expressed as a fraction of
+// `wd2`/`hd2` rather than `ss`, which is what PowerPoint does - in a 2:1 box the
+// disc is an ellipse and the ray tips still reach all four edges.
 const sun: PresetShapeGeometryDefinition = {
 	name: 'sun',
 	avLst: { adj: 25000 },
 	gdLst: [
 		gd('a', 'pin 12500 adj 46875'),
-		gd('g0', '*/ ss a 50000'),
-		gd('g1', '+- wd2 0 g0'),
-		gd('g2', '+- hd2 0 g0'),
-		gd('g3', '*/ g0 30274 32768'),
-		gd('g4', '*/ g0 12540 32768'),
-		gd('g5', '+- wd2 0 g3'),
-		gd('g6', '+- wd2 0 g4'),
-		gd('g7', '+- hd2 0 g3'),
-		gd('g8', '+- hd2 0 g4'),
-		gd('g9', '+- wd2 g3 0'),
-		gd('g10', '+- wd2 g4 0'),
-		gd('g11', '+- hd2 g3 0'),
-		gd('g12', '+- hd2 g4 0'),
-		gd('g13', '*/ g0 23170 32768'),
-		gd('g14', '+- wd2 0 g13'),
-		gd('g15', '+- hd2 0 g13'),
-		gd('g16', '+- wd2 g13 0'),
-		gd('g17', '+- hd2 g13 0'),
-		gd('cx', 'val wd2'),
-		gd('cy', 'val hd2'),
+		// Radii as fractions (x100000) of the half-box, then in shape units.
+		gd('a2', '*/ a 2 1'),
+		gd('dr', '+- 100000 0 a2'),
+		gd('a14', '*/ a 7 5'),
+		gd('rb', '+- 95000 0 a14'),
+		gd('hw', '*/ dr 283 1000'),
+		gd('drx', '*/ wd2 dr 100000'),
+		gd('dry', '*/ hd2 dr 100000'),
+		gd('rbx', '*/ wd2 rb 100000'),
+		gd('rby', '*/ hd2 rb 100000'),
+		gd('hwx', '*/ wd2 hw 100000'),
+		gd('hwy', '*/ hd2 hw 100000'),
+		// Diagonal rays: the axis and its perpendicular both project by cos(45deg).
+		gd('rbm', '+- rb 0 hw'),
+		gd('rbp', '+- rb hw 0'),
+		gd('dm', '*/ rbm 70711 100000'),
+		gd('dp', '*/ rbp 70711 100000'),
+		gd('dmx', '*/ wd2 dm 100000'),
+		gd('dmy', '*/ hd2 dm 100000'),
+		gd('dpx', '*/ wd2 dp 100000'),
+		gd('dpy', '*/ hd2 dp 100000'),
+		gd('apx', '*/ wd2 70711 100000'),
+		gd('apy', '*/ hd2 70711 100000'),
+		// Named edges of each construction, so the paths below read positionally.
+		gd('discL', '+- hc 0 drx'),
+		gd('discR', '+- hc drx 0'),
+		gd('discT', '+- vc 0 dry'),
+		gd('discB', '+- vc dry 0'),
+		gd('bR', '+- hc rbx 0'),
+		gd('bL', '+- hc 0 rbx'),
+		gd('bB', '+- vc rby 0'),
+		gd('bT', '+- vc 0 rby'),
+		gd('wR', '+- hc hwx 0'),
+		gd('wL', '+- hc 0 hwx'),
+		gd('wB', '+- vc hwy 0'),
+		gd('wT', '+- vc 0 hwy'),
+		gd('mR', '+- hc dmx 0'),
+		gd('mL', '+- hc 0 dmx'),
+		gd('mB', '+- vc dmy 0'),
+		gd('mT', '+- vc 0 dmy'),
+		gd('pR', '+- hc dpx 0'),
+		gd('pL', '+- hc 0 dpx'),
+		gd('pB', '+- vc dpy 0'),
+		gd('pT', '+- vc 0 dpy'),
+		gd('aR', '+- hc apx 0'),
+		gd('aL', '+- hc 0 apx'),
+		gd('aB', '+- vc apy 0'),
+		gd('aT', '+- vc 0 apy'),
 	],
-	rect: { l: 'g14', t: 'g15', r: 'g16', b: 'g17' },
+	rect: { l: 'discL', t: 'discT', r: 'discR', b: 'discB' },
 	pathLst: [
+		// Central ellipse.
 		{
 			commands: [
-				// 8 outer rays (alternating long tip / shoulder pairs).
-				{ kind: 'moveTo', x: 'r', y: 'vc' },
-				{ kind: 'lnTo', x: 'g10', y: 'g12' },
-				{ kind: 'lnTo', x: 'g9', y: 'g11' },
-				{ kind: 'lnTo', x: 'g16', y: 'g17' },
-				{ kind: 'lnTo', x: 'g11', y: 'g11' },
-				{ kind: 'lnTo', x: 'g11', y: 'g9' },
-				{ kind: 'lnTo', x: 'hc', y: 'b' },
-				{ kind: 'lnTo', x: 'g7', y: 'g11' },
-				{ kind: 'lnTo', x: 'g8', y: 'g9' },
-				{ kind: 'lnTo', x: 'g14', y: 'g17' },
-				{ kind: 'lnTo', x: 'g8', y: 'hd2' },
-				{ kind: 'lnTo', x: 'g7', y: 'hd2' },
-				{ kind: 'lnTo', x: 'l', y: 'vc' },
-				{ kind: 'lnTo', x: 'g7', y: 'g8' },
-				{ kind: 'lnTo', x: 'g8', y: 'g7' },
-				{ kind: 'lnTo', x: 'g14', y: 'g15' },
-				{ kind: 'lnTo', x: 'hd2', y: 'g7' },
-				{ kind: 'lnTo', x: 'hd2', y: 'g8' },
-				{ kind: 'lnTo', x: 'hc', y: 't' },
-				{ kind: 'lnTo', x: 'g11', y: 'g7' },
-				{ kind: 'lnTo', x: 'g12', y: 'g8' },
-				{ kind: 'lnTo', x: 'g16', y: 'g15' },
-				{ kind: 'lnTo', x: 'g11', y: 'hd2' },
-				{ kind: 'lnTo', x: 'g12', y: 'hd2' },
+				{ kind: 'moveTo', x: 'discL', y: 'vc' },
+				{ kind: 'arcTo', wR: 'drx', hR: 'dry', stAng: 'cd2', swAng: 'cd4' },
+				{ kind: 'arcTo', wR: 'drx', hR: 'dry', stAng: '3cd4', swAng: 'cd4' },
+				{ kind: 'arcTo', wR: 'drx', hR: 'dry', stAng: '0', swAng: 'cd4' },
+				{ kind: 'arcTo', wR: 'drx', hR: 'dry', stAng: 'cd4', swAng: 'cd4' },
 				{ kind: 'close' },
 			],
 		},
-		// central disc
-		{
-			commands: [
-				{ kind: 'moveTo', x: 'g14', y: 'vc' },
-				{ kind: 'arcTo', wR: 'g0', hR: 'g0', stAng: 'cd2', swAng: 'cd4' },
-				{ kind: 'arcTo', wR: 'g0', hR: 'g0', stAng: '3cd4', swAng: 'cd4' },
-				{ kind: 'arcTo', wR: 'g0', hR: 'g0', stAng: '0', swAng: 'cd4' },
-				{ kind: 'arcTo', wR: 'g0', hR: 'g0', stAng: 'cd4', swAng: 'cd4' },
-				{ kind: 'close' },
-			],
-		},
+		// Right / left / bottom / top rays.
+		ray('bR', 'wT', 'bR', 'wB', 'r', 'vc'),
+		ray('bL', 'wT', 'bL', 'wB', 'l', 'vc'),
+		ray('wL', 'bB', 'wR', 'bB', 'hc', 'b'),
+		ray('wL', 'bT', 'wR', 'bT', 'hc', 't'),
+		// Diagonal rays: base corners straddle the axis, apex on the box ellipse.
+		ray('mR', 'pB', 'pR', 'mB', 'aR', 'aB'),
+		ray('mL', 'pB', 'pL', 'mB', 'aL', 'aB'),
+		ray('mR', 'pT', 'pR', 'mT', 'aR', 'aT'),
+		ray('mL', 'pT', 'pL', 'mT', 'aL', 'aT'),
 	],
 };
 

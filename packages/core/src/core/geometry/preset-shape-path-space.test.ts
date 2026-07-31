@@ -156,6 +156,61 @@ describe('flowChartTerminator', () => {
 	});
 });
 
+describe('sun', () => {
+	/** Sub-path count: `evaluatePresetShape` exposes each `<a:path>` separately. */
+	const subpaths = (w: number, h: number, adj?: number) =>
+		evaluatePresetShape('sun', w, h, adj === undefined ? undefined : { adj })?.paths ?? [];
+
+	it('is a disc plus eight DETACHED rays, not one connected star', () => {
+		// PowerPoint leaves a gap between the disc and every ray. The previous
+		// port drew a single connected star polygon over a disc, which scored 46%
+		// IoU against PowerPoint's own render of the same shape.
+		expect(subpaths(200, 100)).toHaveLength(9);
+	});
+
+	it('sizes the disc as (100000 - 2a) of the half-box', () => {
+		for (const [adj, expected] of [
+			[12500, 0.75],
+			[25000, 0.5],
+			[40000, 0.2],
+		]) {
+			// The ellipse is the first sub-path; its arc endpoints span the disc.
+			// `expected` is the radius in HALF-box units, so the diameter is the
+			// same fraction of the full box.
+			const box = bounds(subpaths(200, 100, adj)[0].d);
+			expect((box.maxX - box.minX) / 200, `adj=${adj}`).toBeCloseTo(expected, 2);
+			expect((box.maxY - box.minY) / 100, `adj=${adj}`).toBeCloseTo(expected, 2);
+		}
+	});
+
+	it('reaches every box edge with its ray tips', () => {
+		for (const [w, h] of [
+			[200, 100],
+			[150, 150],
+		]) {
+			const box = bounds(String(evaluatePresetShape('sun', w, h)?.svgPath));
+			expect(box.minX, `${w}x${h}`).toBeCloseTo(0, 1);
+			expect(box.maxX, `${w}x${h}`).toBeCloseTo(w, 1);
+			expect(box.minY, `${w}x${h}`).toBeCloseTo(0, 1);
+			expect(box.maxY, `${w}x${h}`).toBeCloseTo(h, 1);
+		}
+	});
+
+	it('clamps the adjustment to its legal range', () => {
+		// `pin 12500 adj 46875`: out-of-range values collapse onto the extremes.
+		expect(subpaths(200, 100, 0)[0].d).toBe(subpaths(200, 100, 12500)[0].d);
+		expect(subpaths(200, 100, 90000)[0].d).toBe(subpaths(200, 100, 46875)[0].d);
+	});
+
+	it('keeps the text rect on the disc', () => {
+		const rect = evaluatePresetShape('sun', 200, 100)?.textRect;
+		expect(rect!.l).toBeCloseTo(50, 0);
+		expect(rect!.r).toBeCloseTo(150, 0);
+		expect(rect!.t).toBeCloseTo(25, 0);
+		expect(rect!.b).toBeCloseTo(75, 0);
+	});
+});
+
 describe('preset table sanity', () => {
 	it('never emits coordinates in a foreign unit space', () => {
 		// A cheap catch-all: no preset should produce a coordinate an order of
