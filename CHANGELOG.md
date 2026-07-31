@@ -10,6 +10,19 @@ dated sections beneath it are generated from
 
 ## 2026-07-31
 
+_Releases: pptx-react-viewer@2.10.0, pptx-vue-viewer@2.10.0, pptx-angular-viewer@2.10.0, pptx-vanilla-viewer@1.11.0, pptx-svelte-viewer@2.10.0_
+
+### Features
+
+- **shared:** Own the equation, media, reading-view and table-grid logic (by @ChristopherVR) ([c33af39](https://github.com/ChristopherVR/pptx-viewer/commit/c33af39d2157fdb8610c104a8a3e54fa8ae7c672))
+- Wire reading view, the shared equation pipeline and a table data grid (by @ChristopherVR) ([b731b52](https://github.com/ChristopherVR/pptx-viewer/commit/b731b52f926737f0ccef95247f20db217cee1fb5))
+
+### Bug Fixes
+
+- **shared:** Resolve linked text-box chains inside groups (by @ChristopherVR) ([5e09586](https://github.com/ChristopherVR/pptx-viewer/commit/5e0958689a591f839ccfdf20bb3ae174af00030a))
+
+## 2026-07-31
+
 _Releases: pptx-viewer-core@2.1.0, pptx-react-viewer@2.9.0, pptx-vue-viewer@2.9.0, pptx-angular-viewer@2.9.0, pptx-vanilla-viewer@1.10.0, pptx-svelte-viewer@2.9.0_
 
 ### Features
