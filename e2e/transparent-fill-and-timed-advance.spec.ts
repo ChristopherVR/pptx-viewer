@@ -18,6 +18,11 @@
  *     every click and the ONLY thing that can move the show on is the timed
  *     auto-advance. Bindings that honoured the gate without arming the timer
  *     stranded the show on slide 1.
+ *
+ * Plus a third, found while confirming a Vue finding against Angular: a morph's
+ * DEPARTING layer must not paint a slide background, or it covers the incoming
+ * slide for the whole morph. See that test for why the existing pixel spec
+ * cannot catch it on this deck.
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -177,15 +182,7 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 
 	test('a slide that forbids click-advance still advances on its authored timing', async ({
 		page,
-	}, testInfo) => {
-		test.fixme(
-			!['react', 'angular', 'svelte'].includes(testInfo.project.name),
-			'Timed auto-advance (p:transition/@advTm) is wired up in React, Angular and Svelte. ' +
-				'Vue and Vanilla still gate click-advance on advanceOnClick without arming the ' +
-				'timer, so this deck strands their slide show on slide 1 with no response to any ' +
-				'input. Wire each of them to the shared resolveAutoAdvanceDelayMs() to lift this.',
-		);
-
+	}) => {
 		await startShowFromSlideOne(page);
 
 		// The whole bug: without the timer this stays on slide 1 for ever, and
@@ -196,14 +193,7 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 		).toBeGreaterThan(1);
 	});
 
-	test('clicking keeps the slide show moving', async ({ page }, testInfo) => {
-		test.fixme(
-			!['angular', 'svelte'].includes(testInfo.project.name),
-			'React reaches slide 2 on the timing but then advances on NO click anywhere on the ' +
-				'stage (only the keyboard moves it on); Vue and Vanilla never leave slide 1 at all. ' +
-				'Angular and Svelte are the bindings where a presenter can click through this deck.',
-		);
-
+	test('clicking keeps the slide show moving', async ({ page }) => {
 		await startShowFromSlideOne(page);
 		const before = await presentedSlideNumber(page);
 		expect(before, 'the show is past slide 1').toBeGreaterThan(1);
@@ -222,5 +212,103 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 			await presentedSlideNumber(page),
 			'clicking advances the show once past slide 1',
 		).toBeGreaterThan(before);
+	});
+
+	/**
+	 * A morph paints only the DEPARTING slide's paired shapes over the live
+	 * incoming stage. If that layer also paints a slide background it covers the
+	 * incoming slide for the whole morph, so the viewer watches a static slab and
+	 * then a hard cut. Measured on Angular before the fix: a 1920x1080
+	 * `rgb(23, 23, 23)` field at z-index 40, opaque on every frame.
+	 *
+	 * `present-transition-pixels.spec.ts` has a near-flat-fill guard aimed at this
+	 * class of bug, but it cannot catch it on THIS deck: the departing slide is
+	 * itself a full-bleed video, so the covered frame is richly coloured and never
+	 * reads as flat. It just shows the wrong slide. Hence the structural probe.
+	 *
+	 * Sampling runs inside the page on requestAnimationFrame, because the layer is
+	 * mounted only for the morph's duration and round-tripping a few `evaluate`
+	 * calls misses it entirely.
+	 */
+	test('a morph departing layer does not paint a slide background', async ({ page }) => {
+		await page.setViewportSize({ width: 1920, height: 1080 });
+		await page.goto('/');
+		await page.locator('#file-input').setInputFiles(fixturePath);
+		await page
+			.locator('[aria-label="Go to slide 14"]')
+			.first()
+			.waitFor({ timeout: LOAD_TIMEOUT_MS });
+		await page.waitForTimeout(1200);
+		// Slides 3-14 each carry a `p159:morph`; step 3 -> 4.
+		await page.locator('[aria-label="Go to slide 3"]').first().click();
+		await page.waitForTimeout(900);
+		await page
+			.getByRole('button', { name: /^present$|slide show/iu })
+			.first()
+			.click();
+		await page.waitForTimeout(2500);
+
+		// Arm the in-page sampler, then advance.
+		await page.evaluate(() => {
+			const state: { sawLayer: boolean; opaque: { cls: string; bg: string }[] } = {
+				sawLayer: false,
+				opaque: [],
+			};
+			(window as unknown as { __morphProbe: typeof state }).__morphProbe = state;
+			const deadline = performance.now() + 2500;
+			const sample = (): void => {
+				// Scope strictly to the DEPARTING layer. The overlay also holds an
+				// incoming layer, whose slide background is legitimate (it is the
+				// slide being revealed, and it sits below). React's morph is the
+				// exception: it takes a separate branch that emits no
+				// `data-pptx-transition-layer` at all, rendering per-shape ghosts and
+				// no slide surface, so its overlay root IS the departing layer.
+				const layer =
+					document.querySelector(
+						'[data-pptx-transition-layer="outgoing"], .pptxv-transition-layer',
+					) ?? document.querySelector('[data-pptx-transition-overlay], .pptxv-transition-overlay');
+				if (layer) {
+					state.sawLayer = true;
+					const stage = layer.getBoundingClientRect();
+					const walk = (node: Element): void => {
+						const style = getComputedStyle(node);
+						const box = node.getBoundingClientRect();
+						const colour = style.backgroundColor;
+						const alpha = /rgba\([^)]*,\s*([\d.]+)\s*\)/u.exec(colour);
+						const isOpaque = colour !== 'transparent' && (!alpha || Number(alpha[1]) > 0.5);
+						// Only a background covering essentially the whole stage can
+						// occlude the incoming slide; real shapes are far smaller.
+						if (isOpaque && box.width >= stage.width * 0.9 && box.height >= stage.height * 0.9) {
+							state.opaque.push({ cls: String(node.className ?? '').slice(0, 40), bg: colour });
+						}
+						for (const child of node.children) {
+							walk(child);
+						}
+					};
+					walk(layer);
+				}
+				if (performance.now() < deadline) {
+					requestAnimationFrame(sample);
+				}
+			};
+			requestAnimationFrame(sample);
+		});
+		await page.keyboard.press('ArrowRight');
+		await page.waitForTimeout(2600);
+
+		const probe = await page.evaluate(
+			() =>
+				(
+					window as unknown as {
+						__morphProbe: { sawLayer: boolean; opaque: { cls: string; bg: string }[] };
+					}
+				).__morphProbe,
+		);
+
+		expect(probe.sawLayer, 'the morph mounted a transition overlay').toBeTruthy();
+		expect(
+			probe.opaque.map((entry) => `${entry.cls}: ${entry.bg}`).slice(0, 3),
+			'the departing layer painted an opaque full-stage background over the incoming slide',
+		).toEqual([]);
 	});
 });
