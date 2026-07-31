@@ -183,6 +183,52 @@ test.describe('issue #132 - gradient fill / preset adjustment fidelity', () => {
 		expect(paint?.backgroundImage).toContain('148, 113, 74');
 	});
 
+	test('a gradient OUTLINE is stroked, not flattened to one averaged colour', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.cornerRadial);
+
+		// Slide 4's ellipse carries `<a:ln><a:gradFill>` running #F0FDFE -> #BFBFBF.
+		// A CSS border takes one colour, so every binding painted the parser's
+		// averaged #D8DEDF instead; the outline is now stroked as an SVG path over
+		// the element, following the ellipse rather than its bounding box.
+		const outline = await page.evaluate(() => {
+			let host: HTMLElement | undefined;
+			let best = 0;
+			for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+				if (!(node.dataset.elementId ?? '').endsWith('slide4.xml-shape-3')) {
+					continue;
+				}
+				const box = node.getBoundingClientRect();
+				if (box.width * box.height > best) {
+					best = box.width * box.height;
+					host = node;
+				}
+			}
+			if (!host) {
+				return null;
+			}
+			const path = host.querySelector('svg path[stroke^="url("]');
+			const gradient = host.querySelector('svg linearGradient, svg radialGradient');
+			return {
+				borderWidth: getComputedStyle(host).borderTopWidth,
+				strokedPath: path?.getAttribute('d') ?? null,
+				stopColors: [...(gradient?.querySelectorAll('stop') ?? [])].map((s) =>
+					s.getAttribute('stop-color'),
+				),
+			};
+		});
+
+		expect(outline, 'found the gradient-outlined ellipse').not.toBeNull();
+		expect(outline?.stopColors, 'both authored stops reach the paint server').toStrictEqual([
+			'#F0FDFE',
+			'#BFBFBF',
+		]);
+		// The outline follows the ellipse (arc commands), not a rectangle.
+		expect(outline?.strokedPath).toContain('A ');
+		// And the averaged solid border is gone, so it cannot show underneath.
+		expect(Number.parseFloat(String(outline?.borderWidth))).toBe(0);
+	});
+
 	test('an oversized tileRect offsets the gradient tile off the shape', async ({ page }) => {
 		await loadDeck(page);
 		await gotoSlide(page, SLIDE.cornerRadial);
