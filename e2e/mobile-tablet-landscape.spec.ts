@@ -59,7 +59,7 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 		});
 		expect(overflow.scrollW).toBeLessThanOrEqual(overflow.clientW + 1);
 
-		// Tablet keeps the desktop chrome (no mobile bottom bar) — it's tall
+		// Tablet keeps the desktop chrome (no mobile bottom bar) - it's tall
 		// enough for the ribbon + panels.
 		await expect(bottomBarNav(page)).not.toBeVisible();
 	});
@@ -85,7 +85,7 @@ test.describe('landscape phone (915×412, touch)', () => {
 		});
 		expect(overflow.scrollW).toBeLessThanOrEqual(overflow.clientW + 1);
 
-		// A short landscape phone must get the mobile chrome — both the bottom
+		// A short landscape phone must get the mobile chrome - both the bottom
 		// action bar and the compact top toolbar (not the desktop ribbon).
 		await expect(bottomBarNav(page)).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();

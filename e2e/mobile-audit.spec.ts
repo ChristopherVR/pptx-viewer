@@ -169,7 +169,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		expect(after).not.toBe(before);
 		// A single swipe must advance exactly one slide. Two independent swipe
 		// handlers are active in present mode (useSwipeNavigation on <main> and
-		// useTouchGestures.onSwipe on the canvas viewport) — if both fire we jump
+		// useTouchGestures.onSwipe on the canvas viewport) - if both fire we jump
 		// two slides.
 		expect(before).toBe('1 / 7');
 		expect(after).toBe('2 / 7');

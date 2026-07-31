@@ -67,7 +67,7 @@ test.describe('text rendering (font-size parity)', () => {
 		// 54pt-as-px title. The pt-inflation bug rendered this at 72px.
 		expect(await largestFontPx(page, 'Project')).toBeCloseTo(54, 0);
 		// Subtitle + caption confirm the whole text scale (not just the title) is
-		// in px — an inflated binding would scale all three up by 96/72.
+		// in px - an inflated binding would scale all three up by 96/72.
 		expect(await largestFontPx(page, 'Product Overview')).toBeCloseTo(20, 0);
 		expect(await largestFontPx(page, 'Q2 2026')).toBeCloseTo(16, 0);
 	});

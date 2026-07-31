@@ -6,7 +6,7 @@ import { test, expect, devices } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 // Emulate a real touch phone so the canvas takes its pointerType !== 'mouse'
-// branch (handleStagePointerDown) — the path where tapping away while inline
+// branch (handleStagePointerDown) - the path where tapping away while inline
 // editing used to discard the typed text.
 test.use({ ...devices['Pixel 7'] });
 
@@ -59,7 +59,7 @@ test.describe('mobile inline text editing (touch)', () => {
 
 		// Tap an empty region of the slide (bottom-centre, clear of both shapes).
 		// On touch this starts a tap-sized marquee whose pointerup resolves to
-		// clearSelection() — the path that used to drop the edit without saving.
+		// clearSelection() - the path that used to drop the edit without saving.
 		// Box-relative so it stays inside the fit-to-width slide.
 		const box = (await stage.boundingBox())!;
 		await stage.tap({ position: { x: box.width * 0.5, y: box.height * 0.85 } });

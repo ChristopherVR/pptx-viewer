@@ -1,5 +1,5 @@
 /**
- * Generates `format-painter.pptx` — a single-slide deck with two distinctly
+ * Generates `format-painter.pptx` - a single-slide deck with two distinctly
  * styled rectangle shapes used by the format-painter e2e spec.
  *
  *   SOURCE: red fill, navy stroke, bold white text.

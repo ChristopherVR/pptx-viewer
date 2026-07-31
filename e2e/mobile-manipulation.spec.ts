@@ -5,9 +5,9 @@
  * Exercises the three core editing interactions end-to-end on a Pixel 7 mobile
  * viewport:
  *
- *   1. Text input — double-tap a shape, type, commit, assert text persisted.
- *   2. Move       — drag a selected shape's body, assert it translated.
- *   3. Resize     — drag the SE corner handle, assert width/height grew.
+ *   1. Text input - double-tap a shape, type, commit, assert text persisted.
+ *   2. Move       - drag a selected shape's body, assert it translated.
+ *   3. Resize     - drag the SE corner handle, assert width/height grew.
  *
  * Touch-path notes (learned the hard way, recorded so the next person doesn't
  * re-derive them):
@@ -84,7 +84,7 @@ function geomOf(locator: Locator) {
 }
 
 test.describe('mobile manipulation (Pixel 7 touch)', () => {
-	test('text input (touch): double-tap, type, commit by tapping away — persists', async ({
+	test('text input (touch): double-tap, type, commit by tapping away - persists', async ({
 		page,
 	}) => {
 		const { target, stage } = await open(page);

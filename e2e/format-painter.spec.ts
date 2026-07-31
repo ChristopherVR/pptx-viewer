@@ -100,7 +100,7 @@ test.describe('format painter', () => {
 		await painter.click();
 		await expect(painter).toHaveAttribute('data-active', 'true');
 
-		// Click well outside both shapes — there's a wide empty band between
+		// Click well outside both shapes - there's a wide empty band between
 		// SOURCE (right edge ≈ 300px) and TARGET (left edge ≈ 500px) on the
 		// 960×540 canvas. Click in the gap, which the canvas captures as
 		// empty-stage mousedown.
