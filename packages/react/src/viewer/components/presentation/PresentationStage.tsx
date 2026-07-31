@@ -49,6 +49,13 @@ export interface PresentationStageProps {
 	sourceSlideIndex?: number;
 	fieldContext?: FieldSubstitutionContext;
 	tableStyleContext?: TableStyleContext;
+	/**
+	 * PowerPoint's "On Mouse Click" advance. A click anywhere on the show
+	 * surface - the slide and the letterbox bars alike - steps the show on.
+	 * Without it the stage is a dead surface that only the keyboard can drive,
+	 * which is exactly how a presenter experiences a broken show.
+	 */
+	onStageClick?: (event: React.MouseEvent) => void;
 	/** Overlays drawn inside the scaled slide box, given the live scale. */
 	children?: (scale: number) => React.ReactNode;
 	/**
@@ -77,6 +84,7 @@ export function PresentationStage({
 	sourceSlideIndex,
 	fieldContext,
 	tableStyleContext,
+	onStageClick,
 	children,
 	screenOverlay,
 }: PresentationStageProps) {
@@ -124,10 +132,12 @@ export function PresentationStage({
 	const scaledHeight = safeHeight * scale;
 
 	return (
+		// oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- the show surface is not a control; it carries PowerPoint's click-to-advance, whose keyboard equivalent (Space / arrows / PageDown) is bound globally by usePresentationKeyboard
 		<div
 			ref={containerRef}
 			data-pptx-presentation-stage
 			className='relative flex-1 min-h-0 overflow-hidden bg-black select-none'
+			onClick={onStageClick}
 		>
 			<div
 				className='absolute'

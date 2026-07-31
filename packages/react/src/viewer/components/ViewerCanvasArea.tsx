@@ -1,6 +1,6 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { shouldConfirmExternalHyperlink } from 'pptx-viewer-shared';
+import { isPresentationAdvanceClick, shouldConfirmExternalHyperlink } from 'pptx-viewer-shared';
 /**
  * ViewerCanvasArea: The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
@@ -250,6 +250,39 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		[mode, viewerOptions.advanced.slideShowShowMenuOnRightClick],
 	);
 
+	// ── Slide-show click-to-advance ────────────────────────────────────
+	// PowerPoint's "On Mouse Click". The dedicated presentation stage shipped
+	// without it, so a running show could only be driven from the keyboard:
+	// every click anywhere on the slide did nothing at all, which reads as a
+	// slide show that is simply broken.
+	//
+	// Live slide content keeps its own clicks (hyperlinks, action buttons, zoom
+	// tiles, media transport), a drawing tool owns the click while it is armed,
+	// and the advance itself is `movePresentationSlide(1, 'click')` so the
+	// current slide's `advanceOnClick` gate and pending animation builds are
+	// honoured exactly as they are for a tap or swipe.
+	const swipeHandledAtRef = useRef(0);
+	const handleStageClick = useCallback(
+		(e: React.MouseEvent) => {
+			if (mode !== 'present') {
+				return;
+			}
+			// A swipe fires its own advance on touchend and then still emits a
+			// synthetic click; without this a single swipe would skip two slides.
+			if (Date.now() - swipeHandledAtRef.current < 700) {
+				return;
+			}
+			if (annotations.presentationTool !== 'none') {
+				return;
+			}
+			if (!isPresentationAdvanceClick(e.target)) {
+				return;
+			}
+			presentation.movePresentationSlide(1, 'click');
+		},
+		[annotations.presentationTool, mode, presentation],
+	);
+
 	// ── Toolbar hover handling: keep toolbar visible while hovering ────
 	const toolbarHoveringRef = useRef(false);
 
@@ -272,6 +305,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		if (mode === 'present') {
 			// A swipe/tap on the slide is PowerPoint's "on mouse click" advance, so
 			// it is gated by the current slide's advanceOnClick transition flag.
+			swipeHandledAtRef.current = Date.now();
 			presentation.movePresentationSlide(1, 'click');
 		} else {
 			s.setActiveSlideIndex((i) => Math.min(slides.length - 1, i + 1));
@@ -279,6 +313,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	}, [mode, presentation, s, slides.length]);
 	const handleSwipePrev = useCallback(() => {
 		if (mode === 'present') {
+			swipeHandledAtRef.current = Date.now();
 			presentation.movePresentationSlide(-1);
 		} else {
 			s.setActiveSlideIndex((i) => Math.max(0, i - 1));
@@ -350,6 +385,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					sourceSlideIndex={activeSlideIndex}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
+					onStageClick={handleStageClick}
 					screenOverlay={
 						// Blackout/whiteout, audience ink, laser and captions. Rendered on
 						// the stage rather than beside the viewer, because the fullscreen

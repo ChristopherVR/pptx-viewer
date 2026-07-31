@@ -1,4 +1,5 @@
 import type { PptxAction, PptxSlide } from 'pptx-viewer-core';
+import { resolveAutoAdvanceDelayMs } from 'pptx-viewer-shared';
 import { useRef, useCallback } from 'react';
 
 import type { ViewerMode } from '../../types';
@@ -99,27 +100,18 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 
 	const scheduleAutoAdvanceForSlide = useCallback(
 		(slideIndex: number) => {
-			// When useTimings is explicitly false (manual advance mode), skip auto-advance
-			if (useTimings === false) {
+			// PowerPoint's "Advance slide: After <n>" (`p:transition/@advTm`),
+			// resolved by the shared helper every binding shares so a deck cannot
+			// advance in one framework and stall in another. `useTimings === false`
+			// is "Advance slides: Manually", which ignores authored timings.
+			const delayMs = resolveAutoAdvanceDelayMs(slides[slideIndex], { useTimings });
+			if (delayMs === undefined) {
 				return;
 			}
 
-			const slide = slides[slideIndex];
-			const advanceAfterMs = slide?.transition?.advanceAfterMs;
-			if (
-				typeof advanceAfterMs !== 'number' ||
-				!Number.isFinite(advanceAfterMs) ||
-				advanceAfterMs < 0
-			) {
-				return;
-			}
-
-			const timer = window.setTimeout(
-				() => {
-					movePresentationSlideRef.current(1);
-				},
-				Math.max(0, advanceAfterMs),
-			);
+			const timer = window.setTimeout(() => {
+				movePresentationSlideRef.current(1);
+			}, delayMs);
 			presentationTimersRef.current.push(timer);
 		},
 		[slides, presentationTimersRef, useTimings],
