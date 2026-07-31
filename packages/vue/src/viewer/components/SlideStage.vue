@@ -64,6 +64,17 @@ const props = withDefaults(
 		 * because the host hides its own stage while the overlay is mounted.
 		 */
 		preserveElementIds?: boolean;
+		/**
+		 * Render the elements with NO slide background at all.
+		 *
+		 * `getSlideBackgroundStyle` always resolves to an opaque paint (it falls
+		 * back to `DEFAULT_SLIDE_BACKGROUND` when the slide declares none), which is
+		 * right for a real surface and fatal for a stage stacked over another one.
+		 * The morph transition's departing-shape layer is exactly that: it sits on
+		 * top of the incoming slide, so its background would hide the whole morph
+		 * behind a flat slab for the entire transition.
+		 */
+		transparentBackground?: boolean;
 	}>(),
 	{ scale: 1 },
 );
@@ -120,7 +131,10 @@ const stageStyle = computed<CSSProperties>(() => ({
 	position: 'relative',
 	overflow: 'hidden',
 	// Resolved slide background: image -> gradient -> pattern -> solid colour.
-	...(getSlideBackgroundStyle(props.slide) as CSSProperties),
+	// A stacked overlay layer opts out entirely and stays see-through.
+	...(props.transparentBackground
+		? { background: 'none', backgroundColor: 'transparent' }
+		: (getSlideBackgroundStyle(props.slide) as CSSProperties)),
 }));
 </script>
 

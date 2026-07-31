@@ -166,7 +166,9 @@ onBeforeUnmount(clearTimer);
 
 		<!-- Outgoing (old) slide snapshot. During a morph this carries only the
 		     shapes with no incoming counterpart, so the ones that persist stay
-		     visible on the incoming layer while they travel. -->
+		     visible on the incoming layer while they travel - and it must stay
+		     BACKGROUND-FREE, or the departing layer's opaque slide fill covers the
+		     morph underneath it for the whole transition. -->
 		<div
 			class="pptx-vue-transition-layer"
 			data-pptx-transition-layer="outgoing"
@@ -179,6 +181,7 @@ onBeforeUnmount(clearTimer);
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
 				:preserve-element-ids="Boolean(morphPlan)"
+				:transparent-background="Boolean(morphPlan)"
 			/>
 		</div>
 
@@ -208,10 +211,22 @@ onBeforeUnmount(clearTimer);
 	pointer-events: none;
 }
 
+/*
+ * The layer must FILL the overlay, not shrink-wrap its child.
+ *
+ * `SlideStage` scales with `transform`, which never changes its laid-out box, so
+ * an auto-sized absolute layer measures the deck's NATIVE size (e.g. 1280x720)
+ * while the stage paints at `canvasSize * scale`. Combined with `overflow:
+ * hidden` that cropped every transition to the top-left native-size corner of
+ * the show whenever the display was bigger than the deck: on a 1920x1080 screen
+ * a 1280x720 deck lost the outer third of the animation and the morph read as a
+ * hard-edged slab rather than a transition. `inset: 0` pins the layer to the
+ * overlay (itself the frame's scaled footprint), so the clip lands exactly on
+ * the slide edge, as intended.
+ */
 .pptx-vue-transition-layer {
 	position: absolute;
-	top: 0;
-	left: 0;
+	inset: 0;
 	overflow: hidden;
 	will-change: transform, opacity, clip-path, filter;
 }
