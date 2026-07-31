@@ -246,4 +246,10 @@ export const translations = {
 	'pptx.export.savingFile': 'Guardando archivo...',
 	'pptx.print.handoutPerPageTitle': 'Folleto {{count}} por página',
 	'pptx.versionHistory.loading': 'Cargando...',
+	'pptx.print.range': 'Intervalo de diapositivas',
+	'pptx.print.pureBlackWhite': 'Blanco y negro puros',
+	'pptx.documentProperties.summary.title': 'Título',
+	'pptx.documentProperties.summary.subject': 'Asunto',
+	'pptx.documentProperties.summary.author': 'Autor',
+	'pptx.documentProperties.summary.keywords': 'Palabras clave',
 } as const;

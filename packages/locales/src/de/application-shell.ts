@@ -127,4 +127,11 @@ export const translations = {
 	'pptx.overflow.closeMenu': 'Menü schließen',
 	'pptx.toolbar.presentationToolbarAria': 'Präsentationssymbolleiste',
 	'pptx.viewer.slideEditorAria': 'Folieneditor',
+	'pptx.common.back': 'Zurück',
+	'pptx.common.clear': 'Leeren',
+	'pptx.common.delete': 'Löschen',
+	'pptx.common.done': 'Fertig',
+	'pptx.common.next': 'Weiter',
+	'pptx.common.previous': 'Vorheriges',
+	'pptx.common.reset': 'Zurücksetzen',
 } as const;

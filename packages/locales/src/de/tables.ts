@@ -75,4 +75,12 @@ export const translations = {
 	'pptx.tableDataEditor.removeRowLabel': '- Zeile',
 	'pptx.tableDataEditor.removeRowN': 'Zeile {{number}} entfernen',
 	'pptx.tableDataEditor.removeRowTitle': 'Letzte Zeile entfernen',
+	'pptx.table.alignment': 'Ausrichtung',
+	'pptx.table.borderColor': 'Rahmenfarbe',
+	'pptx.table.borderWidth': 'Rahmenbreite',
+	'pptx.table.gradientEnd': 'Verlaufsende',
+	'pptx.table.gradientStart': 'Verlaufsbeginn',
+	'pptx.table.styleId': 'Format-ID',
+	'pptx.table.totalRow': 'Ergebniszeile',
+	'pptx.table.verticalAlignment': 'Vertikale Ausrichtung',
 } as const;

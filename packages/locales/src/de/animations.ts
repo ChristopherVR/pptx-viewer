@@ -158,4 +158,16 @@ export const translations = {
 	'pptx.undoAction.sendToBack': 'Nach hinten senden',
 	'pptx.undoAction.slideProperties': 'Folieneigenschaften',
 	'pptx.undoAction.ungroup': 'Gruppierung aufheben',
+	'pptx.animations.advanced': 'Erweiterte Animation',
+	'pptx.animations.afterPrevious': 'Nach Vorheriger',
+	'pptx.animations.duration': 'Dauer',
+	'pptx.animations.effectOptions': 'Effektoptionen',
+	'pptx.animations.exitEffects': 'Ausgangseffekte',
+	'pptx.animations.onClick': 'Beim Klicken',
+	'pptx.animations.painter': 'Animation übertragen',
+	'pptx.animations.pathAnimation': 'Animationspfad',
+	'pptx.animations.start': 'Start',
+	'pptx.animations.withPrevious': 'Mit Vorheriger',
+	'pptx.animations.galleryAria':
+		'Animation hinzufügen: Eingangs-, Hervorhebungs- und Ausgangseffekte',
 } as const;

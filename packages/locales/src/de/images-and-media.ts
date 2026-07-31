@@ -152,4 +152,11 @@ export const translations = {
 	'pptx.media.videoPosterAlt': 'Videoposter',
 	'pptx.image.stretch': 'Strecken',
 	'pptx.image.tile': 'Kacheln',
+	'pptx.image.duotoneDark': 'Duotone dunkel',
+	'pptx.image.duotoneLight': 'Duotone hell',
+	'pptx.media.autoPlay': 'Automatisch wiedergeben',
+	'pptx.media.captions': 'Untertitel',
+	'pptx.media.playbackSpeed': 'Wiedergabegeschwindigkeit',
+	'pptx.media.trimEnd': 'Ende kürzen',
+	'pptx.media.trimStart': 'Anfang kürzen',
 } as const;

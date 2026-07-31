@@ -187,4 +187,6 @@ export const translations = {
 	'pptx.connectorArrows.endWidth': "Largeur d'extrémité",
 	'pptx.connectorArrows.startLength': 'Longueur de départ',
 	'pptx.connectorArrows.endLength': 'Longueur de fin',
+	'pptx.shape.shadowDistance': "Distance de l'ombre",
+	'pptx.shape.softEdges': 'Bords adoucis',
 } as const;

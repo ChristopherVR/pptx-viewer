@@ -192,4 +192,7 @@ export const translations = {
 	'pptx.ribbon.textDirectionRotate90': 'Girar 90°',
 	'pptx.ribbon.textDirectionStacked': 'apilados',
 	'pptx.ribbon.groupShapeStyles': 'Estilos de forma',
+	'pptx.ribbon.editing': 'Edición',
+	'pptx.ribbon.selectionPane': 'Panel de selección',
+	'pptx.ribbon.slides': 'Diapositivas',
 } as const;

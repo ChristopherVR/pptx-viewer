@@ -99,4 +99,5 @@ export const translations = {
 	'pptx.smartArt.boundsHintExact': 'Cette disposition utilise exactement {{max}} éléments.',
 	'pptx.smartArt.boundsHintMin': 'Fonctionne mieux avec au moins {{min}} éléments.',
 	'pptx.smartArt.boundsHintRange': 'Fonctionne mieux avec {{min}} à {{max}} éléments.',
+	'pptx.smartArt.fillColor': 'Couleur de remplissage',
 } as const;

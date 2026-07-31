@@ -248,4 +248,10 @@ export const translations = {
 	'pptx.export.savingFile': 'Datei wird gespeichert...',
 	'pptx.print.handoutPerPageTitle': '{{count}} Folien pro Handzettel',
 	'pptx.versionHistory.loading': 'Laden...',
+	'pptx.print.range': 'Folienbereich',
+	'pptx.print.pureBlackWhite': 'Reines Schwarzweiß',
+	'pptx.documentProperties.summary.title': 'Titel',
+	'pptx.documentProperties.summary.subject': 'Thema',
+	'pptx.documentProperties.summary.author': 'Autor',
+	'pptx.documentProperties.summary.keywords': 'Stichwörter',
 } as const;

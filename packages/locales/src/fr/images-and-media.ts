@@ -150,4 +150,11 @@ export const translations = {
 	'pptx.media.videoPosterAlt': 'Affiche vidéo',
 	'pptx.image.stretch': 'Extensible',
 	'pptx.image.tile': 'Tuile',
+	'pptx.image.duotoneDark': 'Duotone foncé',
+	'pptx.image.duotoneLight': 'Duotone clair',
+	'pptx.media.autoPlay': 'Lire automatiquement',
+	'pptx.media.captions': 'Sous-titres',
+	'pptx.media.playbackSpeed': 'Vitesse de lecture',
+	'pptx.media.trimEnd': 'Fin du rognage',
+	'pptx.media.trimStart': 'Début du rognage',
 } as const;

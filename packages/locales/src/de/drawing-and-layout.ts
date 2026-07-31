@@ -187,4 +187,6 @@ export const translations = {
 	'pptx.connectorArrows.endWidth': 'Endbreite',
 	'pptx.connectorArrows.startLength': 'Startlänge',
 	'pptx.connectorArrows.endLength': 'Endlänge',
+	'pptx.shape.shadowDistance': 'Schattenabstand',
+	'pptx.shape.softEdges': 'Weiche Kanten',
 } as const;

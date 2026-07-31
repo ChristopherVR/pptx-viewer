@@ -97,4 +97,8 @@ export const translations = {
 	'pptx.themeGallery.description': 'Choisissez un thème intégré pour la présentation.',
 	'pptx.themeGallery.selectedTheme': 'Thème sélectionné',
 	'pptx.themeGallery.title': 'Thèmes',
+	'pptx.theme.primary': 'Couleur principale',
+	'pptx.theme.background': 'Arrière-plan',
+	'pptx.theme.foreground': 'Premier plan',
+	'pptx.theme.border': 'Bordure',
 } as const;

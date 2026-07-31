@@ -166,4 +166,11 @@ export const translations = {
 	'pptx.sections.sectionButtonLabel': 'Section',
 	'pptx.zoom.slidePreviewAlt': 'Aperçu de la diapositive {{number}}',
 	'pptx.slideThumbnail.transitionTooltip': 'Transition : {{name}}',
+	'pptx.view.guides': 'Repères',
+	'pptx.view.macros': 'Macros',
+	'pptx.view.show': 'Afficher',
+	'pptx.view.slideSorter': 'Trieuse de diapositives',
+	'pptx.view.snapToGrid': 'Aligner sur la grille',
+	'pptx.view.snapToShape': 'Aligner sur la forme',
+	'pptx.view.window': 'Fenêtre',
 } as const;

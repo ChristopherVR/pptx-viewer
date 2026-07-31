@@ -74,4 +74,12 @@ export const translations = {
 	'pptx.tableDataEditor.removeRowLabel': '- Fila',
 	'pptx.tableDataEditor.removeRowN': 'Eliminar fila {{number}}',
 	'pptx.tableDataEditor.removeRowTitle': 'Eliminar la última fila',
+	'pptx.table.alignment': 'Alineación',
+	'pptx.table.borderColor': 'Color del borde',
+	'pptx.table.borderWidth': 'Ancho del borde',
+	'pptx.table.gradientEnd': 'Fin del degradado',
+	'pptx.table.gradientStart': 'Inicio del degradado',
+	'pptx.table.styleId': 'Id. de estilo',
+	'pptx.table.totalRow': 'Fila de totales',
+	'pptx.table.verticalAlignment': 'Alineación vertical',
 } as const;

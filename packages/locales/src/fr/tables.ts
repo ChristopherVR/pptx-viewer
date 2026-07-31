@@ -74,4 +74,12 @@ export const translations = {
 	'pptx.tableDataEditor.removeRowLabel': '- Rangée',
 	'pptx.tableDataEditor.removeRowN': 'Supprimer la ligne {{number}}',
 	'pptx.tableDataEditor.removeRowTitle': 'Supprimer la dernière ligne',
+	'pptx.table.alignment': 'Alignement',
+	'pptx.table.borderColor': 'Couleur de bordure',
+	'pptx.table.borderWidth': 'Épaisseur de bordure',
+	'pptx.table.gradientEnd': 'Fin du dégradé',
+	'pptx.table.gradientStart': 'Début du dégradé',
+	'pptx.table.styleId': 'ID de style',
+	'pptx.table.totalRow': 'Ligne de total',
+	'pptx.table.verticalAlignment': 'Alignement vertical',
 } as const;

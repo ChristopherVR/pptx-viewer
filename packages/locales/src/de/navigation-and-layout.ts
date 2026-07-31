@@ -166,4 +166,11 @@ export const translations = {
 	'pptx.sections.sectionButtonLabel': 'Abschnitt',
 	'pptx.zoom.slidePreviewAlt': 'Vorschau der Folie {{number}}',
 	'pptx.slideThumbnail.transitionTooltip': 'Übergang: {{name}}',
+	'pptx.view.guides': 'Führungslinien',
+	'pptx.view.macros': 'Makros',
+	'pptx.view.show': 'Anzeigen',
+	'pptx.view.slideSorter': 'Foliensortierung',
+	'pptx.view.snapToGrid': 'Am Raster ausrichten',
+	'pptx.view.snapToShape': 'An Form ausrichten',
+	'pptx.view.window': 'Fenster',
 } as const;

@@ -719,6 +719,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.slideShow.subtitlesTooltip': 'Toggle subtitles',
 	'pptx.slideShow.subtitles': 'Subtitles',
 
+	// Record tab (camera overlay placeholders)
+	'pptx.record.cameo': 'Cameo',
+	'pptx.record.clear': 'Clear',
+	'pptx.record.learnMore': 'Learn More',
+	'pptx.record.resetToCameo': 'Reset to Cameo',
+
 	// Slide context menu
 	'pptx.slideMenu.duplicate': 'Duplicate slide',
 	'pptx.slideMenu.show': 'Show slide',
@@ -2974,6 +2980,183 @@ export const translationsEn: Record<string, string> = {
 	'pptx.options.trust.allowExternalContentInfo':
 		'When off, only content embedded in the file is displayed.',
 	'pptx.options.trust.confirmHyperlinks': 'Confirm before opening external hyperlinks',
+
+	// Animations tab: Advanced Animation and Timing groups
+	'pptx.animations.advanced': 'Advanced Animation',
+	'pptx.animations.afterPrevious': 'After Previous',
+	'pptx.animations.duration': 'Duration',
+	'pptx.animations.effectOptions': 'Effect Options',
+	'pptx.animations.exitEffects': 'Exit Effects',
+	'pptx.animations.onClick': 'On Click',
+	'pptx.animations.painter': 'Animation Painter',
+	'pptx.animations.pathAnimation': 'Path Animation',
+	'pptx.animations.start': 'Start',
+	'pptx.animations.withPrevious': 'With Previous',
+
+	// Review tab
+	'pptx.review.accessibility': 'Accessibility',
+	'pptx.review.changes': 'Changes',
+	'pptx.review.hideInk': 'Hide Ink',
+	'pptx.review.markAllRead': 'Mark All as Read',
+	'pptx.review.proofing': 'Proofing',
+	'pptx.review.protect': 'Protect',
+	'pptx.review.readOnly': 'Always Open Read-Only',
+	'pptx.review.restrictPermission': 'Restrict Permission',
+	'pptx.review.showComments': 'Show Comments',
+	'pptx.review.thesaurus': 'Thesaurus',
+
+	// Slide Show tab
+	'pptx.slideShow.hideSlide': 'Hide Slide',
+	'pptx.slideShow.keepUpdated': 'Keep Slides Updated',
+	'pptx.slideShow.mediaControls': 'Show Media Controls',
+	'pptx.slideShow.options': 'Options',
+	'pptx.slideShow.playNarrations': 'Play Narrations',
+	'pptx.slideShow.present': 'Present',
+	'pptx.slideShow.rehearseCoach': 'Rehearse with Coach',
+	'pptx.slideShow.setUpGroup': 'Set Up',
+	'pptx.slideShow.start': 'Start Slide Show',
+	'pptx.slideShow.subtitleSettings': 'Subtitle Settings',
+
+	// Transition direction tokens (arrow picker button titles)
+	'pptx.transition.dir.l': 'Left',
+	'pptx.transition.dir.r': 'Right',
+	'pptx.transition.dir.u': 'Up',
+	'pptx.transition.dir.d': 'Down',
+	'pptx.transition.dir.lu': 'Left Up',
+	'pptx.transition.dir.ld': 'Left Down',
+	'pptx.transition.dir.ru': 'Right Up',
+	'pptx.transition.dir.rd': 'Right Down',
+	'pptx.transition.dir.in': 'In',
+	'pptx.transition.dir.out': 'Out',
+	'pptx.transition.dir.horz': 'Horizontal',
+	'pptx.transition.dir.vert': 'Vertical',
+
+	// View tab
+	'pptx.view.guides': 'Guides',
+	'pptx.view.macros': 'Macros',
+	'pptx.view.show': 'Show',
+	'pptx.view.slideSorter': 'Slide Sorter',
+	'pptx.view.snapToGrid': 'Snap to Grid',
+	'pptx.view.snapToShape': 'Snap to Shape',
+	'pptx.view.window': 'Window',
+
+	// Shared vocabulary
+	'pptx.common.back': 'Back',
+	'pptx.common.clear': 'Clear',
+	'pptx.common.delete': 'Delete',
+	'pptx.common.done': 'Done',
+	'pptx.common.next': 'Next',
+	'pptx.common.previous': 'Previous',
+	'pptx.common.reset': 'Reset',
+
+	// Ribbon group captions
+	'pptx.ribbon.editing': 'Editing',
+	'pptx.ribbon.selectionPane': 'Selection Pane',
+	'pptx.ribbon.slides': 'Slides',
+
+	// Chart inspector: axis, series, data point, trendline and error bar fields
+	'pptx.chart.axis': 'Axis',
+	'pptx.chart.axisColor': 'Axis Color',
+	'pptx.chart.axisFontColor': 'Axis Font Color',
+	'pptx.chart.axisFontSize': 'Axis Font Size',
+	'pptx.chart.axisMaximum': 'Maximum Bound',
+	'pptx.chart.axisMinimum': 'Minimum Bound',
+	'pptx.chart.customMinus': 'Negative Error Value',
+	'pptx.chart.customPlus': 'Positive Error Value',
+	'pptx.chart.dataLabelPosition': 'Data Label Position',
+	'pptx.chart.dataPointColor': 'Data Point Color',
+	'pptx.chart.dataPointIndex': 'Data Point Index',
+	'pptx.chart.dataPointMarker': 'Data Point Marker',
+	'pptx.chart.errorBarColor': 'Error Bar Color',
+	'pptx.chart.errorBarDirection': 'Error Bar Direction',
+	'pptx.chart.errorBarType': 'Error Bar Type',
+	'pptx.chart.forecastBackward': 'Forecast Backward',
+	'pptx.chart.forecastForward': 'Forecast Forward',
+	'pptx.chart.invertIfNegative': 'Invert if Negative',
+	'pptx.chart.marker': 'Marker Type',
+	'pptx.chart.markerOutline': 'Marker Outline',
+	'pptx.chart.noEndCap': 'No End Cap',
+	'pptx.chart.reverseOrder': 'Values in Reverse Order',
+	'pptx.chart.secondaryAxis': 'Secondary Axis',
+	'pptx.chart.seriesType': 'Series Chart Type',
+	'pptx.chart.showCategory': 'Show Category Name',
+	'pptx.chart.showLeaderLines': 'Show Leader Lines',
+	'pptx.chart.showPercentage': 'Show Percentage',
+	'pptx.chart.showSeriesName': 'Show Series Name',
+	'pptx.chart.showValue': 'Show Value',
+	'pptx.chart.tickLabelPosition': 'Tick Label Position',
+	'pptx.chart.trendlineColor': 'Trendline Color',
+	'pptx.chart.trendlineIntercept': 'Trendline Intercept',
+	'pptx.chart.trendlineOrder': 'Trendline Order',
+	'pptx.chart.trendlinePeriod': 'Trendline Period',
+
+	// Table inspector: structure and cell formatting
+	'pptx.table.alignment': 'Alignment',
+	'pptx.table.borderColor': 'Border Color',
+	'pptx.table.borderWidth': 'Border Width',
+	'pptx.table.gradientEnd': 'Gradient End',
+	'pptx.table.gradientStart': 'Gradient Start',
+	'pptx.table.styleId': 'Style ID',
+	'pptx.table.totalRow': 'Total Row',
+	'pptx.table.verticalAlignment': 'Vertical Alignment',
+
+	// Character formatting toggles shared by the table and text inspectors
+	'pptx.format.bold': 'Bold',
+	'pptx.format.italic': 'Italic',
+	'pptx.format.underline': 'Underline',
+
+	// Advanced text inspector
+	'pptx.textAdvanced.characterSpacing': 'Character Spacing',
+	'pptx.textAdvanced.direction': 'Text Direction',
+	'pptx.textAdvanced.direction.horizontal': 'Horizontal',
+	'pptx.textAdvanced.direction.vertical': 'Rotate all text 90°',
+	'pptx.textAdvanced.direction.vertical270': 'Rotate all text 270°',
+	'pptx.textAdvanced.direction.eaVert': 'East Asian vertical',
+	'pptx.textAdvanced.direction.wordArtVert': 'Stacked',
+	'pptx.textAdvanced.direction.wordArtVertRtl': 'Stacked, right to left',
+	'pptx.textAdvanced.direction.mongolianVert': 'Mongolian vertical',
+	'pptx.textAdvanced.lineSpacing': 'Line Spacing',
+	'pptx.textAdvanced.lineSpacingExact': 'Line Spacing (Exact)',
+	'pptx.textAdvanced.marginLeft': 'Left Margin',
+
+	// Text and shape effects
+	'pptx.textEffects.adjustment': 'Adjustment',
+	'pptx.textEffects.glowColor': 'Glow Color',
+	'pptx.textEffects.outline': 'Text Outline',
+	'pptx.textEffects.outlineWidth': 'Outline Width',
+	'pptx.textEffects.shadowColor': 'Shadow Color',
+	'pptx.textEffects.transform': 'Transform',
+	'pptx.textFormatting.columns': 'Columns',
+	'pptx.textFormatting.columnSpacing': 'Column Spacing',
+	'pptx.textFormatting.strikethrough': 'Strikethrough',
+	'pptx.shape.shadowDistance': 'Shadow Distance',
+	'pptx.shape.softEdges': 'Soft Edges',
+
+	// Picture and media inspectors
+	'pptx.image.duotoneDark': 'Duotone Dark',
+	'pptx.image.duotoneLight': 'Duotone Light',
+	'pptx.media.autoPlay': 'Play Automatically',
+	'pptx.media.captions': 'Captions',
+	'pptx.media.playbackSpeed': 'Playback Speed',
+	'pptx.media.trimEnd': 'Trim End',
+	'pptx.media.trimStart': 'Trim Start',
+	'pptx.smartArt.fillColor': 'Fill Color',
+
+	// Theme editor swatches
+	'pptx.theme.primary': 'Primary',
+	'pptx.theme.background': 'Background',
+	'pptx.theme.foreground': 'Foreground',
+	'pptx.theme.border': 'Border',
+
+	// Print dialog and document properties
+	'pptx.print.range': 'Slide Range',
+	'pptx.print.pureBlackWhite': 'Pure Black and White',
+	'pptx.documentProperties.summary.title': 'Title',
+	'pptx.documentProperties.summary.subject': 'Subject',
+	'pptx.documentProperties.summary.author': 'Author',
+	'pptx.documentProperties.summary.keywords': 'Keywords',
+
+	'pptx.animations.galleryAria': 'Add Animation: Entrance, Emphasis, and Exit effects',
 };
 
 /**
