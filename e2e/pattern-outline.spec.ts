@@ -37,8 +37,13 @@ async function loadDeck(page: Page): Promise<void> {
 	await page.setViewportSize({ width: 1600, height: 1000 });
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
-	await page.locator('[aria-label="Go to slide 1"]').first().waitFor({ timeout: 60_000 });
-	await page.waitForTimeout(1200);
+	// Wait for the LAST shape to exist rather than settling on a fixed delay: the
+	// slide rail renders before the canvas does, so "Go to slide 1" appearing is
+	// not evidence the shapes are on screen, and a loaded machine can miss them.
+	await page
+		.locator(`[data-element-id$="${SHAPE.solidRect}"]`)
+		.first()
+		.waitFor({ timeout: 60_000 });
 }
 
 /** Outline paint for one element id, measured on its largest rendered copy. */
