@@ -700,6 +700,27 @@ describe('getGradientTileRectCss', () => {
 			backgroundRepeat: 'no-repeat',
 		});
 	});
+
+	// issue #132: PowerPoint's stock "radial gradient from a corner" writes
+	// `<a:tileRect l="-100000" t="-100000"/>`, i.e. a tile TWICE the shape hung
+	// off its top-left. The position guard tested `1 - size > 0.001`, which is
+	// false for every oversized tile, so the offset was dropped and the focal
+	// point snapped back onto the shape's own corner.
+	it('offsets a tile larger than the shape (negative insets)', () => {
+		expect(getGradientTileRectCss({ l: -1, t: -1, r: 0, b: 0 })).toStrictEqual({
+			backgroundSize: '200% 200%',
+			backgroundPosition: '100% 100%',
+			backgroundRepeat: 'no-repeat',
+		});
+	});
+
+	it('offsets an oversized tile hung off the bottom-right', () => {
+		expect(getGradientTileRectCss({ l: 0, t: 0, r: -1, b: -1 })).toStrictEqual({
+			backgroundSize: '200% 200%',
+			backgroundPosition: '0% 0%',
+			backgroundRepeat: 'no-repeat',
+		});
+	});
 });
 
 describe('getComputedFillStyle tileRect', () => {
@@ -746,5 +767,51 @@ describe('getComputedFillStyle grpFill inheritance', () => {
 
 	it('emits nothing for a group child with no parent fill supplied', () => {
 		expect(getComputedFillStyle(shape({ fillMode: 'group' }))).toStrictEqual({});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Circle path gradients must emit PARSEABLE CSS (#132)
+// ---------------------------------------------------------------------------
+
+describe('buildGradientCss circle path gradients', () => {
+	const circleStyle = (fillToRect?: { l: number; t: number; r: number; b: number }): ShapeStyle =>
+		({
+			fillMode: 'gradient',
+			fillGradientType: 'radial',
+			fillGradientPathType: 'circle',
+			fillGradientFillToRect: fillToRect,
+			fillGradientStops: [
+				{ color: '#BFBFBF', position: 0 },
+				{ color: '#FFFFFF', position: 100 },
+			],
+		}) as ShapeStyle;
+
+	// CSS only accepts a LENGTH as a circle's radius. `radial-gradient(circle
+	// 100% at 0% 0%, …)` parses as invalid, so the browser discards the whole
+	// declaration and the shape renders with NO fill - which is how PowerPoint's
+	// stock corner-radial preset vanished entirely (issue #132).
+	it('never sizes a circle with a percentage radius', () => {
+		for (const rect of [
+			{ l: 0, t: 0, r: 1, b: 1 },
+			{ l: 0.5, t: 0.5, r: 0.5, b: 0.5 },
+			{ l: 0.25, t: 0, r: 0, b: 0.75 },
+		]) {
+			expect(buildGradientCss(circleStyle(rect))).not.toMatch(/circle\s+[\d.]+%/u);
+		}
+	});
+
+	it('sizes the explicit form as matching ellipse semi-axes', () => {
+		// fillToRect r=b=100000 collapses to the top-left corner: centre 0% 0%,
+		// radius max(0, 100, 0, 100) = 100.
+		expect(buildGradientCss(circleStyle({ l: 0, t: 0, r: 1, b: 1 }))).toBe(
+			'radial-gradient(ellipse 100% 100% at 0% 0%, #BFBFBF 0%, #FFFFFF 100%)',
+		);
+	});
+
+	it('keeps the keyword-sized form, which is valid for a circle', () => {
+		expect(buildGradientCss(circleStyle())).toBe(
+			'radial-gradient(circle at center center, #BFBFBF 0%, #FFFFFF 100%)',
+		);
 	});
 });

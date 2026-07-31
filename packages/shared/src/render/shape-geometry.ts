@@ -12,7 +12,7 @@
  * The resolution priority mirrors React exactly:
  *
  *   1. **Adjustment-aware** — when `shapeAdjustments` exist, consult
- *      {@link getAdjustmentAwareShapeClipPath} so `pie`, `arc`, `donut`,
+ *      {@link getAdjustmentAwareClipPath} so `pie`, `arc`, `donut`,
  *      `blockArc`, and wedge callouts respond to their adjustment values.
  *   2. **Spec-correct preset evaluator** — {@link getShapeClipPathFromPreset}
  *      produces a `path('…')` clip-path for any shape in the preset table.
@@ -20,10 +20,22 @@
  *      `cloud` / `cloudCallout`.
  *   4. **Static preset table** — {@link getShapeClipPath} as the final
  *      fallback (core's comprehensive `PRESET_SHAPE_CLIP_PATHS`).
+ *
+ * Step 1 deliberately calls the DYNAMIC-only entry point
+ * ({@link getAdjustmentAwareClipPath}) rather than core's
+ * `getAdjustmentAwareShapeClipPath` wrapper. That wrapper falls back to the
+ * static, adjustment-BLIND polygon table whenever a shape is outside its
+ * 14-shape dynamic set, and returning that at step 1 swallowed the whole rest
+ * of the cascade: every preset carrying an authored `a:avLst` adjustment
+ * (parallelogram, trapezoid, teardrop, notchedRightArrow, round2SameRect, the
+ * arrows…) was clipped with its DEFAULT adjustment instead of its own. A
+ * parallelogram authored at `adj="84929"` — a thin diagonal band — rendered as
+ * the 25000-default polygon covering ~80% of its box and occluded the text
+ * behind it (issue #132).
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import {
-	getAdjustmentAwareShapeClipPath,
+	getAdjustmentAwareClipPath,
 	getCloudPathForRendering,
 	getShapeClipPath,
 	getShapeClipPathFromPreset,
@@ -54,9 +66,12 @@ export function getResolvedShapeClipPathFor(
 		return getShapeClipPath(shapeType);
 	}
 
-	// 1. Adjustment-aware path — only when adjustments are actually supplied.
+	// 1. Adjustment-aware path — only when adjustments are actually supplied,
+	// and only for the shapes the dynamic builders genuinely model. Anything
+	// else must fall through to the evaluator below, which reads the shape's
+	// own adjustments, rather than to a fixed default-adjustment polygon.
 	if (adjustments && Object.keys(adjustments).length > 0) {
-		const adjusted = getAdjustmentAwareShapeClipPath(shapeType, width, height, adjustments);
+		const adjusted = getAdjustmentAwareClipPath(shapeType, width, height, adjustments);
 		if (adjusted !== undefined) {
 			return adjusted;
 		}

@@ -198,7 +198,17 @@ export function computeGradientCenter(
 	return { cx: 50, cy: 50 };
 }
 
-/** Builds a CSS radial-gradient for `path="circle"` gradients. */
+/**
+ * Builds a CSS radial-gradient for `path="circle"` gradients.
+ *
+ * The explicit-size form is written as `ellipse R% R%`, never `circle R%`: CSS
+ * only accepts a **length** as a circle's radius, so `radial-gradient(circle
+ * 100% at 0% 0%, …)` is invalid and the browser drops the entire declaration -
+ * the shape then renders with no fill at all. `ellipse R% R%` is also the more
+ * faithful reading: OOXML measures a path gradient in the shape's own unit
+ * square, so a "circle" is stretched to a non-square box exactly the way
+ * percentage semi-axes are (identical to a circle when the shape is square).
+ */
 export function buildCirclePathGradient(
 	stops: SanitizedStop[],
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
@@ -213,8 +223,8 @@ export function buildCirclePathGradient(
 		Math.round(cy) === 50 && !focalPoint && !fillToRect ? 'center' : `${Math.round(cy)}%`;
 
 	if (fillToRect) {
-		const radius = Math.max(cx, 100 - cx, cy, 100 - cy);
-		return `radial-gradient(circle ${Math.round(radius)}% at ${posX} ${posY}, ${stopStr})`;
+		const radius = Math.round(Math.max(cx, 100 - cx, cy, 100 - cy));
+		return `radial-gradient(ellipse ${radius}% ${radius}% at ${posX} ${posY}, ${stopStr})`;
 	}
 	return `radial-gradient(circle at ${posX} ${posY}, ${stopStr})`;
 }
@@ -343,6 +353,17 @@ export function getGradientTileFlipCss(
  * `(1 - l - r)` x `(1 - t - b)` of the shape, offset by `l`/`t`. Returns
  * `undefined` when the rect is missing, degenerate, or effectively full-bleed
  * (no meaningful inset), so callers fall through to the plain gradient.
+ *
+ * Insets may be NEGATIVE, which makes the tile LARGER than the shape: PowerPoint's
+ * stock "radial gradient from a corner" preset writes
+ * `<a:tileRect l="-100000" t="-100000"/>` so the gradient's focal corner sits a
+ * full shape-width outside the box. The percentage-position formula already
+ * covers that case (a CSS background position of `100%` pins an oversized
+ * image's right/bottom edge to the container's), so the guard tests the
+ * MAGNITUDE of `1 - size`: an early `> 0.001` comparison was false for every
+ * oversized tile and silently dropped the offset, dragging the focal point back
+ * to the shape's own corner and painting a hard blob where PowerPoint renders a
+ * soft wash.
  */
 export function getGradientTileRectCss(
 	tileRect: ShapeStyle['fillGradientTileRect'] | undefined,
@@ -359,8 +380,8 @@ export function getGradientTileRectCss(
 	if (Math.abs(sizeW - 1) < 0.001 && Math.abs(sizeH - 1) < 0.001) {
 		return undefined;
 	}
-	const posX = 1 - sizeW > 0.001 ? (l / (1 - sizeW)) * 100 : 0;
-	const posY = 1 - sizeH > 0.001 ? (t / (1 - sizeH)) * 100 : 0;
+	const posX = Math.abs(1 - sizeW) > 0.001 ? (l / (1 - sizeW)) * 100 : 0;
+	const posY = Math.abs(1 - sizeH) > 0.001 ? (t / (1 - sizeH)) * 100 : 0;
 	return {
 		backgroundSize: `${Math.round(sizeW * 100)}% ${Math.round(sizeH * 100)}%`,
 		backgroundPosition: `${Math.round(posX)}% ${Math.round(posY)}%`,

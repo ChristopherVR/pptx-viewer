@@ -22,6 +22,9 @@
  */
 export * from './shape-geometry';
 export * from './fill-style';
+// `a:gradFill` → SVG paint server, for the freeform (`a:custGeom`) shapes that
+// are painted as a real `<path>` and so cannot take a CSS gradient.
+export * from './svg-gradient-paint';
 // `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
 export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
