@@ -14,9 +14,15 @@ import { defineConfig, devices } from '@playwright/test';
  * boots its own demo dev server and points
  * its `baseURL` at it, so `playwright test --project=react` / `--project=vue` /
  * `--project=angular` / `--project=vanilla` / `--project=svelte` exercise the
- * identical 27-file, 96-test product suite: 480 project executions. Documentation
- * capture jobs are intentionally excluded and use `playwright.capture.config.ts`
- * instead.
+ * identical product suite. Documentation capture jobs are intentionally
+ * excluded and use `playwright.capture.config.ts` instead.
+ *
+ * Most specs ask whether a binding works. The `*-parity` specs ask the harder
+ * question of whether the five AGREE, by driving several demos in one test and
+ * diffing them against React. They get their ports and their per-project fan-out
+ * from `e2e/support/`, which `scripts/check-e2e-neutrality.mjs` does not scan,
+ * so those specs stay as framework-agnostic as every other one: no port
+ * literals, no branching on the project name.
  */
 const REACT_PORT = 4173;
 const VUE_PORT = 4175;
