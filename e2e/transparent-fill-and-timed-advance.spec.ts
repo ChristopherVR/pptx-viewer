@@ -179,9 +179,9 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 		page,
 	}, testInfo) => {
 		test.fixme(
-			testInfo.project.name !== 'react' && testInfo.project.name !== 'angular',
-			'Timed auto-advance (p:transition/@advTm) is only wired up in React and Angular. ' +
-				'Vue, Svelte and Vanilla gate click-advance on advanceOnClick without arming the ' +
+			!['react', 'angular', 'svelte'].includes(testInfo.project.name),
+			'Timed auto-advance (p:transition/@advTm) is wired up in React, Angular and Svelte. ' +
+				'Vue and Vanilla still gate click-advance on advanceOnClick without arming the ' +
 				'timer, so this deck strands their slide show on slide 1 with no response to any ' +
 				'input. Wire each of them to the shared resolveAutoAdvanceDelayMs() to lift this.',
 		);
@@ -198,10 +198,10 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 
 	test('clicking keeps the slide show moving', async ({ page }, testInfo) => {
 		test.fixme(
-			testInfo.project.name !== 'angular',
+			!['angular', 'svelte'].includes(testInfo.project.name),
 			'React reaches slide 2 on the timing but then advances on NO click anywhere on the ' +
-				'stage (only the keyboard moves it on); Vue, Svelte and Vanilla never leave slide 1 ' +
-				'at all. Angular is the only binding where a presenter can click through this deck.',
+				'stage (only the keyboard moves it on); Vue and Vanilla never leave slide 1 at all. ' +
+				'Angular and Svelte are the bindings where a presenter can click through this deck.',
 		);
 
 		await startShowFromSlideOne(page);

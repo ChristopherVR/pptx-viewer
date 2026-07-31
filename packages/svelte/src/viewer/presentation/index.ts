@@ -2,6 +2,8 @@ export { AnimationPlayback } from './animation-playback.svelte';
 export type { AnimationPlaybackDeps } from './animation-playback.svelte';
 export { applyAnimationStyles } from './apply-animation-styles';
 export { ensurePresentationKeyframes } from './keyframes';
+export { resolveSlideAutoAdvanceMs } from './presentation-auto-advance';
+export type { SlideAutoAdvanceInput } from './presentation-auto-advance';
 export { PresentationController } from './presentation-controller.svelte';
 export type { PresentationControllerDeps, TransitionState } from './presentation-controller.svelte';
 export { PresenterSession } from './presenter-session.svelte';

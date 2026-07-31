@@ -4,6 +4,7 @@ import { untrack } from 'svelte';
 
 import { applyAnimationStyles } from './apply-animation-styles';
 import { syncNativeAnimationKeyframes } from './keyframes';
+import { resolveSlideAutoAdvanceMs } from './presentation-auto-advance';
 import type { PresentationController } from './presentation-controller.svelte';
 import { attachPresentationTriggerListeners } from './presentation-triggers';
 
@@ -26,6 +27,8 @@ import { attachPresentationTriggerListeners } from './presentation-triggers';
  *     properties so the windowed / editing canvas never carries animation state.
  *     Structural reveals (chart / SmartArt build, `p:animClr` fill / stroke) are
  *     applied declaratively by the renderers via the element-states context.
+ *  3. Route interactive / hover trigger events on the live stage.
+ *  4. Arm the current slide's authored `p:transition/@advTm` auto-advance.
  */
 export interface PresentationEffectsDeps {
 	controller: PresentationController;
@@ -37,6 +40,12 @@ export interface PresentationEffectsDeps {
 	getActiveSlide(): PptxSlide | undefined;
 	/** The live presentation stage root (`.pptx-svelte-stage`), or null. */
 	getStageRoot(): HTMLElement | null;
+	/**
+	 * False when the show is set to advance manually
+	 * (`PptxPresentationProperties.advanceMode === 'manual'`). Defaults to true,
+	 * matching PowerPoint's "Using timings, if present".
+	 */
+	getUseTimings?(): boolean;
 }
 
 const EMPTY_STATES: Map<string, ElementAnimationState> = new Map();
@@ -106,5 +115,31 @@ export function usePresentationEffects(deps: PresentationEffectsDeps): void {
 			return;
 		}
 		return attachPresentationTriggerListeners(root, deps.controller);
+	});
+
+	// (4) PowerPoint's "Advance slide: After <n>" timing (`p:transition/@advTm`).
+	// Re-armed on every slide change; the effect's own cleanup cancels the
+	// previous slide's pending timer first, so a manual advance can never leave a
+	// stale timer running that skips the slide the presenter just moved to.
+	//
+	// Nothing is scheduled outside the show, on the end-of-show screen, or when
+	// the show advances manually. Reading `endOfShowVisible` here is what makes
+	// the end screen cancel the timer rather than tick past it.
+	$effect(() => {
+		const delayMs = resolveSlideAutoAdvanceMs({
+			presenting: deps.getPresenting(),
+			slide: deps.getActiveSlide(),
+			useTimings: deps.getUseTimings?.() ?? true,
+			endOfShow: deps.controller.endOfShowVisible,
+		});
+		if (delayMs === undefined) {
+			return;
+		}
+		const timer = setTimeout(() => {
+			// Same contract as a Next press: reveal the slide's remaining animation
+			// builds first, and only then step to the next slide.
+			deps.controller.advance();
+		}, delayMs);
+		return () => clearTimeout(timer);
 	});
 }

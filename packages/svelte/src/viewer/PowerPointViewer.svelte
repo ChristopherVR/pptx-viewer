@@ -583,6 +583,8 @@
 		getCurrentIndex: () => viewer.current,
 		getActiveSlide: () => activeSlide,
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
+		// `p:showPr/@useTimings`: "manual" turns every slide's authored advTm off.
+		getUseTimings: () => loader.presentationProperties.advanceMode !== 'manual',
 	});
 	let wasPresenting = false;
 	$effect(() => {
