@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { getAriaLabel, getAriaRole, getAriaRoleDescription } from './accessibility';
+import { isElementActionable } from './element-actionability';
 
 function flattenElements(elements: readonly PptxElement[]): PptxElement[] {
 	const flattened: PptxElement[] = [];
@@ -28,7 +29,9 @@ export function applyRenderedElementAccessibility(
 		if (!node) {
 			continue;
 		}
-		const role = getAriaRole(element);
+		// Actionable elements (click/hover action, text hyperlink, zoom tile) are
+		// announced as buttons, matching React's element renderer.
+		const role = getAriaRole(element, { actionable: isElementActionable(element) });
 		if (role) {
 			node.setAttribute('role', role);
 		} else {

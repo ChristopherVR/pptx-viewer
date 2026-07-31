@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateTicks, PX_PER_INCH, RULER_THICKNESS } from './ruler';
+import { generateTicks, PX_PER_INCH, RULER_THICKNESS, rulerDragToGuidePosition } from './ruler';
 
 describe('generateTicks', () => {
 	it('places a major numbered tick every inch at 1x scale', () => {
@@ -37,5 +37,25 @@ describe('generateTicks', () => {
 
 	it('exposes the ruler thickness constant', () => {
 		expect(RULER_THICKNESS).toBe(20);
+	});
+});
+
+describe('rulerDragToGuidePosition', () => {
+	it('ignores a drag that never left the ruler strip', () => {
+		expect(rulerDragToGuidePosition(RULER_THICKNESS, 1, 540)).toBeNull();
+		expect(rulerDragToGuidePosition(4, 1, 540)).toBeNull();
+	});
+
+	it('un-scales the offset once the pointer is over the slide', () => {
+		expect(rulerDragToGuidePosition(RULER_THICKNESS + 120, 1, 540)).toBe(120);
+		expect(rulerDragToGuidePosition(RULER_THICKNESS + 120, 0.5, 540)).toBe(240);
+	});
+
+	it('discards a drop past the far edge of the slide', () => {
+		expect(rulerDragToGuidePosition(RULER_THICKNESS + 600, 1, 540)).toBeNull();
+	});
+
+	it('treats a zero scale as 1x rather than dividing by zero', () => {
+		expect(rulerDragToGuidePosition(RULER_THICKNESS + 30, 0, 540)).toBe(30);
 	});
 });

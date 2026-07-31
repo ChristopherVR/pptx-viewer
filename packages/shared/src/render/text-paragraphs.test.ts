@@ -31,13 +31,78 @@ describe('segmentStyleToCss', () => {
 			},
 		});
 		expect(css).toMatchObject({
-			fontFamily: 'Arial',
+			// Substituted, not bare: the metric-compatible fallbacks are what keep a
+			// binding matching the React reference on a machine without the authored
+			// font. See the note in `text-run-style.ts`.
+			fontFamily: '"Arial", "Liberation Sans", "Helvetica", sans-serif',
 			fontSize: '18px',
 			color: '#123456',
 			fontWeight: 'bold',
 			fontStyle: 'italic',
 			textDecoration: 'underline line-through',
 		});
+	});
+});
+
+describe('buildParagraphs autofit + bullet typeface', () => {
+	it("scales every authored run size by the body's normAutofit font scale", () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Title', style: { fontSize: 53.33 } }], {
+				textStyle: { fontSize: 53.33, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.7 },
+			}),
+		);
+		expect(paras[0].runs[0].style.fontSize).toBe(`${53.33 * 0.7}px`);
+	});
+
+	it('leaves run sizes alone when the body does not shrink its text', () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Title', style: { fontSize: 40 } }], { textStyle: { fontSize: 40 } }),
+		);
+		expect(paras[0].runs[0].style.fontSize).toBe('40px');
+	});
+
+	it("paints a bullet with no buFont in the paragraph's own typeface", () => {
+		const paras = buildParagraphs(
+			textEl([
+				{ text: '• ', style: { fontFamily: 'Arial', fontSize: 18 }, bulletInfo: { char: '•' } },
+				{ text: 'Bulleted item', style: { fontFamily: 'Arial', fontSize: 18 } },
+			]),
+		);
+		expect(paras[0].bulletStyle.fontFamily).toBe(
+			'"Arial", "Liberation Sans", "Helvetica", sans-serif',
+		);
+	});
+
+	it("takes the marker's weight from its own segment, not the bold body", () => {
+		// A bold heading whose core-inserted marker segment is regular: the marker
+		// must not inherit the body's 700, or it paints (and measures) heavier
+		// than the same marker in React.
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{ text: '§ ', style: { fontSize: 14 }, bulletInfo: { char: '§' } },
+					{ text: 'Heading', style: { fontSize: 14, bold: true } },
+				],
+				{ textStyle: { fontSize: 14, bold: true } },
+			),
+		);
+		expect(paras[0].bulletStyle.fontWeight).toBe(400);
+		expect(paras[0].bulletStyle.fontStyle).toBe('normal');
+	});
+
+	it('shrinks the bullet marker with the body autofit scale', () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{ text: '• ', style: { fontSize: 20 }, bulletInfo: { char: '•' } },
+					{ text: 'Item', style: { fontSize: 20 } },
+				],
+				{
+					textStyle: { fontSize: 20, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.5 },
+				},
+			),
+		);
+		expect(paras[0].bulletStyle.fontSize).toBe('10px');
 	});
 });
 

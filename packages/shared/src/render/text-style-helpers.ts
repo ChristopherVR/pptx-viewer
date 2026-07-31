@@ -178,6 +178,22 @@ export interface AutoFitResult {
 }
 
 /**
+ * The `a:normAutofit/@fontScale` multiplier every RUN of a body must be painted
+ * at, or `1` when the body does not shrink its text.
+ *
+ * The body-level {@link computeAutoFitTextStyle} only scales the block's own
+ * `font-size`, which a run carrying its own `sz` (nearly every authored run)
+ * overrides, so a shrink-to-fit title painted 43% too large. Every binding's run
+ * builder multiplies by this, exactly as React's `renderSingleSegment` does.
+ *
+ * Out-of-range scales are ignored: `>= 1` is not a shrink, `<= 0` is not a size.
+ */
+export function resolveAutoFitFontScale(textStyle: TextStyle | undefined): number {
+	const scale = textStyle?.autoFitFontScale;
+	return typeof scale === 'number' && scale > 0 && scale < 1 ? scale : 1;
+}
+
+/**
  * Compute the auto-fit font-size / line-height overrides for a text block.
  *
  * Mirrors the React `getTextStyleForElement` auto-fit branch:

@@ -7,6 +7,7 @@ import {
 	boxCenter,
 	computeMarqueeHitIds,
 	computeRotation,
+	isAdditiveSelectionPress,
 	mergeAdditiveSelection,
 	rotateDelta,
 	snapAngle,
@@ -222,5 +223,24 @@ describe('mergeAdditiveSelection', () => {
 
 	it('handles an undefined base', () => {
 		expect(mergeAdditiveSelection(undefined, ['a', 'b'])).toStrictEqual(['a', 'b']);
+	});
+});
+
+describe('isAdditiveSelectionPress', () => {
+	it('treats a plain press as a replacement', () => {
+		expect(
+			isAdditiveSelectionPress({ shiftKey: false, ctrlKey: false, metaKey: false }),
+		).toBeFalsy();
+	});
+
+	/**
+	 * PowerPoint extends a selection with Shift OR Ctrl (Cmd on macOS). Vanilla
+	 * consulted `shiftKey` alone, so Ctrl+click on Windows quietly threw away a
+	 * multi-selection the user was part-way through building.
+	 */
+	it('treats Shift, Ctrl and Meta alike', () => {
+		expect(isAdditiveSelectionPress({ shiftKey: true })).toBeTruthy();
+		expect(isAdditiveSelectionPress({ shiftKey: false, ctrlKey: true })).toBeTruthy();
+		expect(isAdditiveSelectionPress({ shiftKey: false, metaKey: true })).toBeTruthy();
 	});
 });

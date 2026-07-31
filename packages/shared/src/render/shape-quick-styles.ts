@@ -3,12 +3,69 @@
  * gallery). Framework-free pure data, consumed by every binding's Quick Styles
  * gallery (React / Vue / Angular).
  */
-import type { ShapeStyle } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { hasShapeProperties } from 'pptx-viewer-core';
 
 /** A named preset shape style used in the Quick Styles gallery. */
 export interface ShapeQuickStyle {
 	name: string;
 	style: Partial<ShapeStyle>;
+}
+
+/** The CSS a gallery swatch needs to preview a preset without rendering a shape. */
+export interface QuickStyleSwatchCss {
+	background: string;
+	boxShadow?: string;
+	border?: string;
+}
+
+/**
+ * Derive the swatch CSS for a preset button.
+ *
+ * WHY here and not in each binding's template: the fallback order (gradient
+ * beats flat colour, absent stroke means no border, shadow offsets default to
+ * 2/2/4) is a presentation *rule*, and four hand-written copies of it is how
+ * galleries end up looking different per framework.
+ */
+export function quickStyleSwatchCss(quickStyle: ShapeQuickStyle): QuickStyleSwatchCss {
+	const { style } = quickStyle;
+	return {
+		background: style.fillGradient || style.fillColor || 'transparent',
+		boxShadow: style.shadowColor
+			? `${style.shadowOffsetX ?? 2}px ${style.shadowOffsetY ?? 2}px ${style.shadowBlur ?? 4}px ${style.shadowColor}`
+			: undefined,
+		border: style.strokeColor
+			? `${style.strokeWidth ?? 1}px solid ${style.strokeColor}`
+			: undefined,
+	};
+}
+
+/** Serialise {@link quickStyleSwatchCss} into an inline `style` attribute value. */
+export function quickStyleSwatchStyleAttr(quickStyle: ShapeQuickStyle): string {
+	const css = quickStyleSwatchCss(quickStyle);
+	const parts = [`background:${css.background}`];
+	if (css.boxShadow) {
+		parts.push(`box-shadow:${css.boxShadow}`);
+	}
+	if (css.border) {
+		parts.push(`border:${css.border}`);
+	}
+	return parts.join(';');
+}
+
+/**
+ * Build the element patch that applies a quick style.
+ *
+ * Merges over the element's existing `shapeStyle` rather than replacing it, so
+ * a preset that sets no shadow leaves an author's shadow alone (matching
+ * PowerPoint, where a quick style is an overlay and not a reset).
+ */
+export function shapeQuickStylePatch(
+	el: PptxElement,
+	style: Partial<ShapeStyle>,
+): Partial<PptxElement> {
+	const base = hasShapeProperties(el) ? (el.shapeStyle ?? {}) : {};
+	return { shapeStyle: { ...base, ...style } } as Partial<PptxElement>;
 }
 
 export const SHAPE_QUICK_STYLES: ShapeQuickStyle[] = [

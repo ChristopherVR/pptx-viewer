@@ -8,6 +8,7 @@
  */
 
 import type { TextSegment } from 'pptx-viewer-core';
+import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
 import { resolveUnderlineDecorationStyle } from './text-decoration';
 
@@ -59,12 +60,26 @@ function applyExtraRunProps(style: RunStyle, s: NonNullable<TextSegment['style']
 	}
 }
 
-/** Per-run inline style derived from a TextSegment's style. */
-export function segmentStyleToCss(seg: TextSegment): RunStyle {
+/**
+ * Per-run inline style derived from a TextSegment's style.
+ *
+ * `fontScale` is the body's `a:normAutofit/@fontScale` (see
+ * `resolveAutoFitFontScale`). It has to be applied HERE and not only on the
+ * text body, because a run that authors its own `sz` overrides the body's
+ * font-size, so scaling the body alone left every authored run at full size.
+ */
+export function segmentStyleToCss(seg: TextSegment, fontScale = 1): RunStyle {
 	const s = seg.style ?? {};
 	const style: RunStyle = {};
 	if (s.fontFamily) {
-		style.fontFamily = s.fontFamily;
+		// PANOSE substitution, exactly as React's `renderSingleSegment` does it.
+		// Emitting the bare authored name instead looks harmless and is not: the
+		// fallback chain is what supplies the metric-compatible stand-in (Carlito
+		// for Calibri, Liberation Sans for Arial), so without it a machine that
+		// lacks the authored font drops to the browser's default sans - different
+		// glyph widths, different line breaks, a visibly different slide from the
+		// React reference on the same deck.
+		style.fontFamily = getSubstituteFontFamily(s.fontFamily);
 	}
 	// Super/subscript (`a:rPr/@baseline`) shifts the run and shrinks the glyph.
 	const baselineShift =
@@ -77,7 +92,7 @@ export function segmentStyleToCss(seg: TextSegment): RunStyle {
 	// editor). Appending `pt` inflates every run by ~1.33×.
 	if (typeof s.fontSize === 'number') {
 		const scale = baselineShift ? BASELINE_FONT_SCALE : 1;
-		style.fontSize = `${s.fontSize * scale}px`;
+		style.fontSize = `${s.fontSize * fontScale * scale}px`;
 	}
 	if (baselineShift) {
 		style.verticalAlign = baselineShift;

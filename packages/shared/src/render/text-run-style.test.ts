@@ -14,6 +14,18 @@ describe('segmentStyleToCss run properties', () => {
 		expect(segmentStyleToCss(seg({ characterSpacing: 0 })).letterSpacing).toBeUndefined();
 	});
 
+	it('scales an authored run size by the body autofit font scale', () => {
+		// A run's own `sz` overrides the (scaled) body font-size, so the scale has
+		// to reach the run or a shrink-to-fit title paints at full size.
+		expect(segmentStyleToCss(seg({ fontSize: 53.33 }), 0.7).fontSize).toBe(`${53.33 * 0.7}px`);
+		// Composed with the super/subscript reduction, not replaced by it.
+		expect(segmentStyleToCss(seg({ fontSize: 20, baseline: 30000 }), 0.5).fontSize).toBe(
+			`${20 * 0.5 * 0.65}px`,
+		);
+		// Default scale of 1 leaves every existing caller unchanged.
+		expect(segmentStyleToCss(seg({ fontSize: 20 })).fontSize).toBe('20px');
+	});
+
 	it('maps kerning to font-kerning', () => {
 		expect(segmentStyleToCss(seg({ kerning: 0 })).fontKerning).toBe('none');
 		expect(segmentStyleToCss(seg({ kerning: 1200 })).fontKerning).toBe('normal');

@@ -41,6 +41,41 @@ export function getQuickAccessCommand(id: string): QuickAccessCommandDefinition 
 	return QUICK_ACCESS_COMMAND_CATALOG.find((entry) => entry.id === id);
 }
 
+/**
+ * Ids every title bar renders as a dedicated button rather than from the
+ * catalog. They carry state the generic strip has no way to know: undo/redo
+ * enablement, the "Undo: <action>" tooltip, and the host's `hiddenActions`
+ * gate.
+ */
+const DEDICATED_QUICK_ACCESS_IDS: ReadonlySet<string> = new Set(['save', 'undo', 'redo']);
+
+/**
+ * The configured Quick Access commands a title bar must render BEYOND its
+ * dedicated Save/Undo/Redo buttons, in configured order, unknown ids dropped.
+ *
+ * Every binding needs exactly this list and four of the five used to skip it
+ * entirely, so their strips showed three buttons while the options model (and
+ * Angular) said four. Deriving it here is what makes "the strip follows File >
+ * Options" one decision instead of five.
+ */
+export function extraQuickAccessCommands(
+	commandIds: readonly string[],
+): QuickAccessCommandDefinition[] {
+	const seen = new Set<string>();
+	const extras: QuickAccessCommandDefinition[] = [];
+	for (const id of commandIds) {
+		if (DEDICATED_QUICK_ACCESS_IDS.has(id) || seen.has(id)) {
+			continue;
+		}
+		const command = getQuickAccessCommand(id);
+		if (command) {
+			seen.add(id);
+			extras.push(command);
+		}
+	}
+	return extras;
+}
+
 /** Commands not yet on the toolbar, in catalog order. */
 export function availableQuickAccessCommands(
 	commandIds: readonly string[],

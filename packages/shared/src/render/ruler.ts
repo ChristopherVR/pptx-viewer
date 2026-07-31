@@ -76,3 +76,37 @@ export function generateTicks(slideLengthPx: number, scale: number, unit: RulerU
 
 	return ticks;
 }
+
+/**
+ * Resolve a drag that started on a ruler strip into a new guide position.
+ *
+ * Shared because every binding that supports "drag off the ruler to create a
+ * guide" needs the exact same three rules, and they are easy to get subtly
+ * wrong per binding: the pointer must have left the strip (otherwise a plain
+ * click on the ruler would drop a guide on the slide edge), the offset is
+ * measured from the strip's own leading edge so the strip thickness has to be
+ * subtracted before un-scaling, and a guide dropped outside the slide is
+ * discarded rather than clamped (PowerPoint drops it too).
+ *
+ * @param pointerOffsetPx Pointer distance, in screen px, from the leading edge
+ *                        of the ruler strip (top for the horizontal ruler,
+ *                        left for the vertical one).
+ * @param scale           Current editor scale (fitScale * userZoom).
+ * @param slideLengthPx   Slide dimension on the guide's axis, unscaled.
+ * @returns The slide-local position in unscaled px, or `null` when the drag
+ *          should not create a guide.
+ */
+export function rulerDragToGuidePosition(
+	pointerOffsetPx: number,
+	scale: number,
+	slideLengthPx: number,
+): number | null {
+	if (pointerOffsetPx <= RULER_THICKNESS) {
+		return null;
+	}
+	const position = (pointerOffsetPx - RULER_THICKNESS) / (scale || 1);
+	if (position < 0 || position > slideLengthPx) {
+		return null;
+	}
+	return position;
+}

@@ -359,3 +359,20 @@ export function mergeAdditiveSelection(
 ): string[] {
 	return Array.from(new Set([...(baseSelectionIds ?? []), ...hitIds]));
 }
+
+/**
+ * True when a press should EXTEND the selection rather than replace it.
+ *
+ * PowerPoint accepts Shift and Ctrl (Cmd on macOS) for this, and the bindings
+ * disagreed about which: Vanilla honoured Shift alone, so Ctrl+click on Windows
+ * silently destroyed a multi-selection the user was half-way through building.
+ * One predicate, so a modifier can never mean "extend" in one viewer and
+ * "start over" in another.
+ */
+export function isAdditiveSelectionPress(event: {
+	shiftKey: boolean;
+	ctrlKey?: boolean;
+	metaKey?: boolean;
+}): boolean {
+	return event.shiftKey || event.ctrlKey === true || event.metaKey === true;
+}

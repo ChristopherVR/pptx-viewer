@@ -23,6 +23,34 @@ describe('applyRenderedElementAccessibility', () => {
 		expect(stage.querySelector('[data-element-id="photo"]')?.getAttribute('role')).toBe('img');
 	});
 
+	it('announces an action-carrying shape as a button, like React does', () => {
+		const stage = document.createElement('div');
+		stage.innerHTML = '<div data-element-id="cta"></div><div data-element-id="link"></div>';
+		const elements = [
+			{
+				...base,
+				id: 'cta',
+				type: 'shape',
+				shapeType: 'roundRect',
+				actionClick: { url: 'https://example.com' },
+			},
+			{
+				...base,
+				id: 'link',
+				type: 'text',
+				text: 'Docs',
+				textSegments: [{ text: 'Docs', style: { hyperlink: 'https://example.com' } }],
+			},
+		] as PptxElement[];
+		applyRenderedElementAccessibility(stage, elements);
+		expect(stage.querySelector('[data-element-id="cta"]')?.getAttribute('role')).toBe('button');
+		expect(stage.querySelector('[data-element-id="link"]')?.getAttribute('role')).toBe('button');
+		// The name and role-description still come from the element type.
+		expect(
+			stage.querySelector('[data-element-id="cta"]')?.getAttribute('aria-roledescription'),
+		).toBe('shape: roundRect');
+	});
+
 	it('includes nested group children', () => {
 		const stage = document.createElement('div');
 		stage.innerHTML = '<div data-element-id="group"><div data-element-id="child"></div></div>';

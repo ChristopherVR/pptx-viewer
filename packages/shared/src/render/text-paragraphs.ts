@@ -11,7 +11,7 @@
  */
 
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 
 import type { PictureBulletMarker } from './bullet-list';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
@@ -21,6 +21,7 @@ import { substituteFieldText } from './text-field-substitution';
 import { buildRunEffectStyle } from './text-run-effects';
 import type { RunStyle } from './text-run-style';
 import { applyUnderlineVariant, segmentStyleToCss } from './text-run-style';
+import { resolveAutoFitFontScale } from './text-style-helpers';
 
 // Re-exported so existing `pptx-viewer-shared` / `./text-paragraphs` import
 // paths for the run-style types + builder keep working after the split.
@@ -140,6 +141,9 @@ export function buildParagraphs(
 		return element.text ? [{ runs: [{ text: element.text, style: {} }], bulletStyle: {} }] : [];
 	}
 
+	// `a:normAutofit/@fontScale`: applied to every authored run size below, since
+	// a run's own `sz` overrides the (already scaled) body font-size.
+	const fontScale = resolveAutoFitFontScale(element.textStyle);
 	const paragraphIndents = element.paragraphIndents;
 	const grouped: Array<{ paraSegments: TextSegment[]; terminator?: TextSegment }> = [
 		{ paraSegments: [] },
@@ -180,7 +184,7 @@ export function buildParagraphs(
 				? substituteFieldText(rawText, seg.fieldType, fieldContext)
 				: rawText;
 			if (text) {
-				const style = segmentStyleToCss(seg);
+				const style = segmentStyleToCss(seg, fontScale);
 				applyUnderlineVariant(style, seg);
 				// Per-run text effects (gradient/pattern fill, outer/inner shadow,
 				// 3D extrusion text-shadow, blur, HSL, alpha opacity, glow,
@@ -208,12 +212,30 @@ export function buildParagraphs(
 			}
 			if (bullet.fontFamily) {
 				bulletStyle.fontFamily = bullet.fontFamily;
+			} else if (firstSeg?.style?.fontFamily) {
+				// A bullet that declares no `a:buFont` is painted in the paragraph's
+				// own typeface, which is what React does (the marker rides the first
+				// segment's span). Leaving it to inherit the text BODY's declaration
+				// picked a different family whenever the first run overrode it, and a
+				// marker glyph's advance is what positions the whole first line.
+				bulletStyle.fontFamily = getSubstituteFontFamily(firstSeg.style.fontFamily);
 			}
+			// Weight / slant come from the marker's OWN segment, never from the text
+			// body: a bold heading whose marker segment core parsed as regular
+			// painted a bold glyph here and a regular one in React, and a heavier
+			// marker is also a wider one, so the first line started further in.
+			bulletStyle.fontWeight = firstSeg?.style?.bold ? 700 : 400;
+			bulletStyle.fontStyle = firstSeg?.style?.italic ? 'italic' : 'normal';
+			// The marker shrinks with the body's autofit scale exactly as its runs do
+			// (an explicit `a:buSzPts` is an absolute size and stays put, matching
+			// React's `renderSingleSegment`).
 			const runFontSize = firstSeg?.style?.fontSize;
 			if (typeof bullet.sizePts === 'number') {
 				bulletStyle.fontSize = `${bullet.sizePts}px`;
 			} else if (typeof bullet.sizePercent === 'number' && typeof runFontSize === 'number') {
-				bulletStyle.fontSize = `${runFontSize * (bullet.sizePercent / 100)}px`;
+				bulletStyle.fontSize = `${runFontSize * fontScale * (bullet.sizePercent / 100)}px`;
+			} else if (fontScale !== 1 && typeof runFontSize === 'number') {
+				bulletStyle.fontSize = `${runFontSize * fontScale}px`;
 			}
 			// PowerPoint draws the marker at `marL + indent` and starts the text
 			// at `marL`, so the marker's box is exactly the hanging distance

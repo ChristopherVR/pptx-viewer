@@ -53,6 +53,9 @@ export * from './chart-sparkline';
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.
 export * from './chart-editor-options';
+// Guarded add/remove/edit operations behind the chart inspector's data grid
+// (auto-naming, last-series/category protection, non-numeric cell rejection).
+export * from './chart-data-grid-ops';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
 // `paletteColor` duplicate (with deliberately different signatures) the ones in
@@ -316,9 +319,18 @@ export * from './notes';
 // (extrusion/bevel text-shadow stack + scene perspective). Each binding casts
 // the neutral record to its own style type; React keeps the JSX (SVG filters).
 export * from './text-style-helpers';
+// The ONE text-body (block) style builder all five bindings render text with:
+// colour, font declaration, decorations, insets, `wrap="none"` and autofit.
+// Replaced React's `getTextStyleForElement` plus four drifting copies of it.
+export * from './text-block-style';
 export * from './text-decoration';
 export * from './text-paragraph-style';
 export * from './text-field-substitution';
+// Assembly of that substitution context from deck header/footer settings,
+// custom document properties and the slide being painted, so every binding
+// resolves field runs from the same inputs (and a thumbnail can re-point the
+// deck context at its own slide).
+export * from './field-context';
 export * from './text-fill';
 export * from './text-effects';
 export * from './text-effects-3d';
@@ -423,6 +435,10 @@ export * from './morph-animation';
 export * from './slide-transition-types';
 export * from './slide-transition-keyframes';
 export * from './slide-transition-css';
+// Inspector-side option catalogues for the transition section: the type list,
+// the orientation-vs-direction rule, and the arrow-grid tables.
+export * from './slide-transition-options';
+export * from './slide-transition-edits';
 export * from './p14-transition-keyframes';
 export * from './p14-transition-css';
 // SmartArt SVG-fallback layout engine — pure node geometry/positioning for the
@@ -557,6 +573,19 @@ export * from './presentation-toolbar';
 // slide-number jump, blank screens, pointer tools) as one shared mapping so no
 // binding invents its own bindings.
 export * from './presentation-keymap';
+// Editor keyboard map: the editing shortcut set (clipboard, history, nudge,
+// group, select-all, slide paging, help) as one shared mapping, so the five
+// bindings cannot disagree about what Ctrl+D or an arrow key does.
+export * from './editor-keymap';
+// Focus repair for bindings whose canvas gesture preventDefault()s the click,
+// which would otherwise park focus on document.body and kill their keymap.
+export * from './editor-keyboard-focus';
+// Context-menu target resolution, including the right-click that lands inside
+// an inline text editor mounted as a sibling overlay of the element it edits.
+export * from './context-menu-target';
+// Canvas context-menu command set: ids, labels, order, separators and the rules
+// deciding what is offered, so the five bindings render one menu, not five.
+export * from './context-menu-commands';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';
@@ -588,6 +617,17 @@ export * from './accessibility-issues';
 // role-description mapping, and reduced-motion detection. Each binding's element
 // renderer applies these to its DOM nodes.
 export * from './accessibility';
+// Whether an element is a control (click/hover action, text hyperlink, zoom
+// tile). Drives the `role="button"` override above, so all five bindings agree.
+export * from './element-actionability';
+// Whether an element reaches the canvas at all: the Selection Pane's hide/show
+// rule (`p:cNvPr/@hidden`), applied by every binding's element renderer.
+export * from './element-visibility';
+// Action Settings panel: the click/hover action-type catalogue + slide-number
+// clamping shared by every binding's inspector.
+export * from './element-action-options';
+// Presentation `ppt/tags/*.xml` name/value metadata: flatten + immutable edits.
+export * from './tag-collections';
 export * from './element-accessibility-dom';
 export * from './modal-focus';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
@@ -647,6 +687,8 @@ export * from './image-artistic-presets';
 export * from './text-warp-presets';
 export * from './shape-quick-styles';
 export * from './text-3d-presets';
+export * from './text-3d-fields';
+export * from './theme-editor-presets';
 
 // Element clipboard: in-memory copy/cut payload builders + paste cloning
 // (fresh template-aware ids + cascade offset) and the marked, versioned JSON
@@ -672,6 +714,11 @@ export * from './color-swatches';
 // search) and the shared IndexedDB autosave recovery store behind it. Pure
 // logic + class tokens; each binding renders its own thin view from these.
 export * from './title-bar';
+// The same chrome measurements as plain values, for the two bindings whose
+// stylesheets cannot read a Tailwind class, plus the one zoom step all five
+// share. Both exist so a hand-ported binding has something to derive from.
+export * from './chrome-metrics';
+export * from './zoom-step';
 export * from './command-search';
 export * from './autosave-store';
 export * from './backstage';
