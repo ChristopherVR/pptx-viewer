@@ -69,6 +69,7 @@ export const translations = {
 	'pptx.tableDataEditor.addRowLabel': '+ Zeile',
 	'pptx.tableDataEditor.addRowTitle': 'Zeile unten hinzufügen',
 	'pptx.tableDataEditor.ariaLabel': 'Tabellendateneditor',
+	'pptx.tableDataEditor.cellAriaLabel': 'Zeile {{row}}, Spalte {{column}}',
 	'pptx.tableDataEditor.removeColumnLabel': '- Spalte',
 	'pptx.tableDataEditor.removeColumnN': 'Entfernen Sie die Spalte {{number}}',
 	'pptx.tableDataEditor.removeColumnTitle': 'Letzte Spalte entfernen',

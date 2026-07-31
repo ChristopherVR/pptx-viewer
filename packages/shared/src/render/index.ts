@@ -46,6 +46,9 @@ export * from './text-warp';
 export * from './omml-to-mathml';
 export * from './latex-to-omml';
 export * from './equation-templates';
+// LaTeX -> OMML -> sanitised MathML, the pipeline every binding's equation
+// editor drives its live preview and insert payload from.
+export * from './equation-compile';
 export * from './chart-helpers';
 export * from './chart-trendlines';
 export * from './chart-axis';
@@ -221,8 +224,11 @@ export * from './animation-timeline-engine';
 // DOM injection, and step application stay in each binding.
 export * from './presentation-animation-controller';
 // OOXML `p:cmd` media playback commands (play/pause/seek) surfaced on timeline
-// steps; the DOM `HTMLMediaElement` control stays in each binding.
+// steps: `-commands` recognises/parses them, `-playback` drives the resolved
+// `HTMLMediaElement`. Only the target lookup stays per binding (React resolves
+// through its element registry; the rest query the stage by `data-element-id`).
 export * from './animation-media-commands';
+export * from './animation-media-playback';
 export * from './animation-preview';
 // `visual-3d` is the public surface; it re-exports the symbols from its sibling
 // modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,
@@ -235,6 +241,11 @@ export * from './table-layout';
 // Immutable single-cell text edit (`setCellText`) for inline cell editing,
 // shared by every binding's table renderer.
 export * from './table-cell-edit';
+// Inspector table data grid: normalised render model (`buildTableDataGrid`) plus
+// element-level row/column operations, so all five bindings edit cell text from
+// the sidebar through one implementation.
+export * from './table-data-grid';
+export * from './table-data-grid-ops';
 // Cursor-anchored cell merge/split helpers (`computeMergeCellRight` /
 // `computeMergeCellDown` / `computeSplitCell`): merge the neighbour to the
 // right/below the cursor cell, or split the merged cell under it. Complements
@@ -576,6 +587,9 @@ export * from './presentation-toolbar';
 // slide-number jump, blank screens, pointer tools) as one shared mapping so no
 // binding invents its own bindings.
 export * from './presentation-keymap';
+// PowerPoint's Reading View: the deck at full window size with the editor
+// chrome reduced to a nav bar, deliberately NOT the fullscreen slide show.
+export * from './reading-view';
 // Editor keyboard map: the editing shortcut set (clipboard, history, nudge,
 // group, select-all, slide paging, help) as one shared mapping, so the five
 // bindings cannot disagree about what Ctrl+D or an arrow key does.

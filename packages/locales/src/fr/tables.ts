@@ -68,6 +68,7 @@ export const translations = {
 	'pptx.tableDataEditor.addRowLabel': '+ Rangée',
 	'pptx.tableDataEditor.addRowTitle': 'Ajouter la ligne ci-dessous en dernier',
 	'pptx.tableDataEditor.ariaLabel': 'Éditeur de données de tableau',
+	'pptx.tableDataEditor.cellAriaLabel': 'Ligne {{row}}, colonne {{column}}',
 	'pptx.tableDataEditor.removeColumnLabel': '-Col',
 	'pptx.tableDataEditor.removeColumnN': 'Supprimer la colonne {{number}}',
 	'pptx.tableDataEditor.removeColumnTitle': 'Supprimer la dernière colonne',

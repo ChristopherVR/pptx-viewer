@@ -9,8 +9,11 @@
  * profiles enabled, so `<math>` / `<mfrac>` / `<msqrt>` / `<svg>` survive while
  * scriptable content is stripped.
  *
- * (Angular renders equations through its own `DomSanitizer`, so it does not
- * consume this helper.)
+ * All five bindings consume this, Angular included: its equation renderer and
+ * editor reach the DOM through `DomSanitizer.bypassSecurityTrustHtml`, which
+ * turns Angular's own sanitiser OFF, so it needs this helper more than the
+ * others rather than less. (An earlier note here claimed the opposite and left
+ * Angular injecting unsanitised equation markup.)
  */
 import { sanitizeMarkupOrEmpty } from './dompurify-safe';
 

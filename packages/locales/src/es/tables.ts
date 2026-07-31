@@ -68,6 +68,7 @@ export const translations = {
 	'pptx.tableDataEditor.addRowLabel': '+ Fila',
 	'pptx.tableDataEditor.addRowTitle': 'Agregar fila debajo del último',
 	'pptx.tableDataEditor.ariaLabel': 'editor de datos de tabla',
+	'pptx.tableDataEditor.cellAriaLabel': 'Fila {{row}}, columna {{column}}',
 	'pptx.tableDataEditor.removeColumnLabel': '- Col',
 	'pptx.tableDataEditor.removeColumnN': 'Eliminar columna {{number}}',
 	'pptx.tableDataEditor.removeColumnTitle': 'Eliminar la última columna',

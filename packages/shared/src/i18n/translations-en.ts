@@ -2663,6 +2663,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.tableDataEditor.addRowLabel': '+ Row',
 	'pptx.tableDataEditor.addRowTitle': 'Add row below last',
 	'pptx.tableDataEditor.ariaLabel': 'Table data editor',
+	'pptx.tableDataEditor.cellAriaLabel': 'Row {{row}}, column {{column}}',
 	'pptx.tableDataEditor.removeColumnLabel': '- Col',
 	'pptx.tableDataEditor.removeColumnN': 'Remove column {{number}}',
 	'pptx.tableDataEditor.removeColumnTitle': 'Remove last column',
