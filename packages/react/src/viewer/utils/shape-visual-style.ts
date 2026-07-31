@@ -1,6 +1,11 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import { getSoftEdgeFilterId } from 'pptx-viewer-shared';
+import {
+	getGradientTileFlipCss,
+	getGradientTileRectCss,
+	getSoftEdgeFilterId,
+	sanitizeGradientStops,
+} from 'pptx-viewer-shared';
 /**
  * Shape visual style computation.
  *
@@ -39,6 +44,35 @@ import {
 	getCompoundLineBorderWidth,
 } from './style';
 import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
+
+/**
+ * Resolves the `background-size` / `background-position` / `background-repeat`
+ * a gradient fill needs on top of its gradient string.
+ *
+ * Mirrors the ordering in shared `getComputedFillStyle`: tile-flip wins for a
+ * structured linear gradient (its stops were already reflected by
+ * `buildCssGradientFromShapeStyle`, so the halved, repeating background
+ * completes the per-tile mirror), otherwise the `a:tileRect` box applies.
+ * Returns `undefined` when neither is in force, so callers keep their
+ * full-bleed default.
+ */
+function getGradientTilingCss(
+	style: ShapeStyle | undefined,
+): { backgroundSize?: string; backgroundPosition?: string; backgroundRepeat?: string } | undefined {
+	if (!style || style.fillMode !== 'gradient') {
+		return undefined;
+	}
+	const isStructuredLinear =
+		(style.fillGradientType || 'linear') === 'linear' &&
+		sanitizeGradientStops(style.fillGradientStops).length > 0;
+	if (isStructuredLinear) {
+		const flip = getGradientTileFlipCss(style.fillGradientFlip);
+		if (flip) {
+			return flip;
+		}
+	}
+	return getGradientTileRectCss(style.fillGradientTileRect);
+}
 
 /**
  * Computes the full CSS style object for rendering a PPTX shape element.
@@ -100,13 +134,28 @@ export function getShapeVisualStyle(
 	const fillOpacity = element.shapeStyle?.fillOpacity;
 	const strokeOpacity = element.shapeStyle?.strokeOpacity;
 	const strokeDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
+	// The gradient string depends on the element's own geometry: `a:lin/@scaled`
+	// stretches the authored angle across the box aspect ratio and
+	// `a:gradFill/@rotWithShape="0"` counter-rotates it. Omitting the context
+	// dropped both corrections in React only.
 	const fillGradient =
-		buildCssGradientFromShapeStyle(element.shapeStyle) || element.shapeStyle?.fillGradient;
+		buildCssGradientFromShapeStyle(element.shapeStyle, {
+			rotation: element.rotation,
+			width: element.width,
+			height: element.height,
+		}) || element.shapeStyle?.fillGradient;
 	const shadowCss = buildShadowCssFromShapeStyle(element.shapeStyle);
 	const innerShadowCss = buildInnerShadowCssFromShapeStyle(element.shapeStyle);
 	const resolvedFillColor = colorWithOpacity(fillColor, fillOpacity);
 	const resolvedStrokeColor = colorWithOpacity(strokeColor, strokeOpacity);
 	const ss = element.shapeStyle;
+	// Gradient tiling. `a:gradFill/@flip` (mirror the tile per repeat) and
+	// `a:gradFill/a:tileRect` (confine the tile to a sub-rectangle, or blow it
+	// out past the shape with negative insets) change the background BOX, not
+	// the gradient string, so they have to be applied alongside it. React
+	// hard-coded `100% 100%` / `no-repeat` and lost both; the other four
+	// bindings already honour them through shared `getComputedFillStyle`.
+	const gradientTiling = getGradientTilingCss(ss);
 	// A DAG fill-overlay tint layer is painted separately by `ShapeEffectOverlay`
 	// when a colour is parsed; in that case the whole-element blend proxy below is
 	// suppressed so the overlay layer owns the blend (mirrors shared
@@ -259,7 +308,7 @@ export function getShapeVisualStyle(
 			: patternFill
 				? 'repeat'
 				: hasFill && fillGradient
-					? 'no-repeat'
+					? (gradientTiling?.backgroundRepeat ?? 'no-repeat')
 					: undefined,
 		backgroundSize: imageFillUrl
 			? imageFillMode === 'tile'
@@ -268,7 +317,7 @@ export function getShapeVisualStyle(
 			: patternFill
 				? 'auto'
 				: hasFill && fillGradient
-					? '100% 100%'
+					? (gradientTiling?.backgroundSize ?? '100% 100%')
 					: undefined,
 		// The container always carries a 1px border (transparent unless the shape
 		// has a stroke or is hovered) and `box-sizing: border-box`, so the default
@@ -278,7 +327,11 @@ export function getShapeVisualStyle(
 		// edge - a fade-to-transparent overlay grew a hard opaque line down its
 		// side. Paint from the border box so the fill matches the shape outline.
 		backgroundOrigin: 'border-box',
-		backgroundPosition: imageFillUrl ? 'center' : undefined,
+		backgroundPosition: imageFillUrl
+			? 'center'
+			: hasFill && fillGradient
+				? gradientTiling?.backgroundPosition
+				: undefined,
 		boxShadow: combinedBoxShadow,
 		WebkitBoxReflect: reflectCss,
 		filter: filterParts.length > 0 ? filterParts.join(' ') : undefined,

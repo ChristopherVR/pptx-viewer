@@ -94,3 +94,85 @@ describe('getShapeVisualStyle soft-edge / fill-overlay effects', () => {
 		expect(style.mixBlendMode).toBe('screen');
 	});
 });
+
+/**
+ * issue #132 - gradient tiling parity.
+ *
+ * React built its own `background-*` set instead of routing through shared
+ * `getComputedFillStyle`, and hard-coded `100% 100%` / `no-repeat` for every
+ * gradient. `a:gradFill/a:tileRect` and `a:gradFill/@flip` were therefore
+ * dropped in React alone, while Vue / Angular / Svelte / Vanilla honoured both.
+ */
+describe('getShapeVisualStyle gradient tiling (a:tileRect, @flip)', () => {
+	const stops = [
+		{ color: '#ff0000', position: 0 },
+		{ color: '#0000ff', position: 100 },
+	];
+
+	it('keeps a full-bleed gradient at 100% 100% with no position', () => {
+		const style = getShapeVisualStyle(
+			makeShape({ fillMode: 'gradient', fillGradientAngle: 90, fillGradientStops: stops }),
+			true,
+			'#ff0000',
+			0,
+			'#000',
+		);
+		expect(style.backgroundImage).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
+		expect(style.backgroundSize).toBe('100% 100%');
+		expect(style.backgroundPosition).toBeUndefined();
+	});
+
+	it('confines the gradient to an inset tileRect', () => {
+		const style = getShapeVisualStyle(
+			makeShape({
+				fillMode: 'gradient',
+				fillGradientAngle: 90,
+				fillGradientStops: stops,
+				fillGradientTileRect: { l: 0.25, t: 0.25, r: 0.25, b: 0.25 },
+			}),
+			true,
+			'#ff0000',
+			0,
+			'#000',
+		);
+		expect(style.backgroundSize).toBe('50% 50%');
+		expect(style.backgroundPosition).toBe('50% 50%');
+		expect(style.backgroundRepeat).toBe('no-repeat');
+	});
+
+	it('offsets an oversized tileRect (PowerPoint corner-radial preset)', () => {
+		const style = getShapeVisualStyle(
+			makeShape({
+				fillMode: 'gradient',
+				fillGradientType: 'radial',
+				fillGradientPathType: 'circle',
+				fillGradientFillToRect: { l: 0, t: 0, r: 1, b: 1 },
+				fillGradientTileRect: { l: -1, t: -1, r: 0, b: 0 },
+				fillGradientStops: stops,
+			}),
+			true,
+			'#ff0000',
+			0,
+			'#000',
+		);
+		expect(style.backgroundSize).toBe('200% 200%');
+		expect(style.backgroundPosition).toBe('100% 100%');
+	});
+
+	it('halves and repeats the background for a tile-flip gradient', () => {
+		const style = getShapeVisualStyle(
+			makeShape({
+				fillMode: 'gradient',
+				fillGradientAngle: 0,
+				fillGradientFlip: 'x',
+				fillGradientStops: stops,
+			}),
+			true,
+			'#ff0000',
+			0,
+			'#000',
+		);
+		expect(style.backgroundSize).toBe('50% 100%');
+		expect(style.backgroundRepeat).toBe('repeat-x');
+	});
+});

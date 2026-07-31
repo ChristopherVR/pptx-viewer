@@ -109,7 +109,9 @@ describe('buildCirclePathGradient', () => {
 			r: 0.5,
 			b: 0.5,
 		});
-		expect(result).toContain('circle 50% at 50% 50%');
+		// `circle <percentage>` is invalid CSS (a circle radius must be a length),
+		// so the explicit-size form is written as matching ellipse semi-axes.
+		expect(result).toContain('ellipse 50% 50% at 50% 50%');
 	});
 
 	it('should use farthest-edge radius for off-center fillToRect', () => {
@@ -120,7 +122,7 @@ describe('buildCirclePathGradient', () => {
 			r: 1,
 			b: 1,
 		});
-		expect(result).toContain('circle 100% at 0% 0%');
+		expect(result).toContain('ellipse 100% 100% at 0% 0%');
 	});
 
 	it('should include multiple gradient stops', () => {
@@ -304,8 +306,10 @@ describe('buildCssGradientFromShapeStyle - path gradient integration', () => {
 			fillGradientStops: twoStops,
 		};
 		const result = buildCssGradientFromShapeStyle(style);
-		// fillToRect positions center at top-left
-		expect(result).toContain('circle');
+		// fillToRect positions center at top-left. The explicit size is written as
+		// matching ellipse semi-axes because `circle <percentage>` is invalid CSS
+		// and browsers discard the whole declaration (#132).
+		expect(result).toContain('ellipse 100% 100%');
 		expect(result).toContain('at 0% 0%');
 	});
 

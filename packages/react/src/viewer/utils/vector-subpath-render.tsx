@@ -14,7 +14,8 @@
  */
 import { customGeometryPathsToSvgSubpaths } from 'pptx-viewer-core';
 import type { CustomGeometryPath, PresetSubpathResult, ShapeStyle } from 'pptx-viewer-core';
-import { svgLineCap } from 'pptx-viewer-shared';
+import { svgGradientFillRef, svgLineCap } from 'pptx-viewer-shared';
+import type { SvgGradientDef } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -92,11 +93,51 @@ function strokeStrands(d: string, keyBase: string, ctx: StrokeStyleContext): Rea
 	));
 }
 
+/** Emit the `<defs>` paint server for a gradient fill, when there is one. */
+function gradientDefs(gradient: SvgGradientDef | undefined): React.ReactNode {
+	if (!gradient) {
+		return null;
+	}
+	const stops = gradient.stops.map((stop, idx) => (
+		<stop
+			key={idx}
+			offset={stop.offset}
+			stopColor={stop.color}
+			stopOpacity={typeof stop.opacity === 'number' ? stop.opacity : undefined}
+		/>
+	));
+	return (
+		<defs>
+			{gradient.kind === 'radial' ? (
+				<radialGradient id={gradient.id} cx={gradient.cx} cy={gradient.cy} r={gradient.r}>
+					{stops}
+				</radialGradient>
+			) : (
+				<linearGradient
+					id={gradient.id}
+					x1={gradient.x1}
+					y1={gradient.y1}
+					x2={gradient.x2}
+					y2={gradient.y2}
+				>
+					{stops}
+				</linearGradient>
+			)}
+		</defs>
+	);
+}
+
 /**
  * Render a custom-geometry element as an SVG. When structured sub-paths are
  * present each is painted individually (per-`@fill`/`@stroke`); otherwise the
  * aggregate `pathData` is painted with a single fill plus compound strokes,
  * preserving the legacy behaviour for geometry without structured sub-paths.
+ *
+ * A freeform carrying an `a:gradFill` paints through an SVG paint server
+ * (`gradient`), not the parser's representative solid colour - painting the
+ * solid flattened every fade and turned the gradient's transparent regions
+ * opaque (issue #132). Sub-paths whose `@fill` is `lighten`/`darken` keep the
+ * modulated solid, since that shift cannot be applied to a paint server.
  */
 export function renderCustomGeometryVector(
 	pathData: string,
@@ -115,6 +156,7 @@ export function renderCustomGeometryVector(
 	// The stroke is already routed through `strokePaint` (set to `inherit` by
 	// the caller when the stroke is animated), so no separate stroke flag.
 	animatesFill = false,
+	gradient?: SvgGradientDef,
 ): React.ReactNode {
 	const ctx = strokeContext(shapeStyle, strokePaint, strokeWidth, dashArray);
 	const subpaths =
@@ -133,16 +175,21 @@ export function renderCustomGeometryVector(
 		subpaths !== undefined &&
 		subpaths.some((sp) => (sp.fillMode && sp.fillMode !== 'norm') || sp.stroke === false);
 
+	const gradientPaint = gradient ? svgGradientFillRef(gradient) : undefined;
 	const nodes: React.ReactNode[] = [];
 	if (subpaths && needsPerSubpath) {
 		const paints = buildCustomSubpathPaints(subpaths, hasFill, fillColor, fillOpacity);
 		paints.forEach((paint, idx) => {
 			if (paint.fill !== 'none') {
+				// `norm` (and unset) sub-paths take the gradient verbatim; a
+				// lighten/darken sub-path keeps its modulated solid.
+				const mode = subpaths[idx]?.fillMode;
+				const useGradient = gradientPaint && (mode === undefined || mode === 'norm');
 				nodes.push(
 					<path
 						key={`f${idx}`}
 						d={paint.d}
-						fill={animatesFill ? 'inherit' : paint.fill}
+						fill={animatesFill ? 'inherit' : useGradient ? gradientPaint : paint.fill}
 						stroke='none'
 						vectorEffect='non-scaling-stroke'
 					/>,
@@ -158,7 +205,9 @@ export function renderCustomGeometryVector(
 				<path
 					key='fill'
 					d={pathData}
-					fill={animatesFill ? 'inherit' : colorWithOpacity(fillColor, fillOpacity)}
+					fill={
+						animatesFill ? 'inherit' : (gradientPaint ?? colorWithOpacity(fillColor, fillOpacity))
+					}
 					stroke='none'
 					vectorEffect='non-scaling-stroke'
 				/>,
@@ -175,6 +224,7 @@ export function renderCustomGeometryVector(
 			className='w-full h-full pointer-events-none'
 			preserveAspectRatio='none'
 		>
+			{animatesFill ? null : gradientDefs(gradient)}
 			{nodes}
 		</svg>
 	);

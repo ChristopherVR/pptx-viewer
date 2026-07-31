@@ -6,7 +6,7 @@ import {
 	buildCalloutLeaderLineSvgPath,
 	getCalloutViewBoxBounds,
 } from 'pptx-viewer-core';
-import { svgLineCap } from 'pptx-viewer-shared';
+import { buildSvgGradientDef, svgLineCap } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -125,6 +125,11 @@ export function renderVectorShape(
 			strokeWidth,
 			dashArray,
 			Boolean(animatesFill),
+			// A freeform's `a:gradFill` needs a real SVG paint server: the
+			// container's `background-image` is suppressed for custom geometry, so
+			// without this the shape fell back to the parser's representative solid
+			// and lost every fade (issue #132).
+			buildSvgGradientDef(element.shapeStyle, element.id),
 		);
 	}
 

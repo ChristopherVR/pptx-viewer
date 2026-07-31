@@ -460,12 +460,13 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 		expect(circleResult).not.toBe(rectResult);
 		expect(circleResult).not.toBe(shapeResult);
 
-		// Circle should use "circle" keyword
-		expect(circleResult).toContain('circle');
-		// Rect should use percentage sizing (not circle)
-		expect(rectResult).not.toContain('circle');
-		// Shape produces bounding-box radii (not circle)
-		expect(shapeResult).not.toContain('circle');
+		// Circle sizes both semi-axes equally (`circle <percentage>` is invalid
+		// CSS, so the equal-axes ellipse form carries the same geometry, #132).
+		expect(circleResult).toContain('ellipse 50% 50%');
+		// Rect derives independent semi-axes from the fillToRect aspect.
+		expect(rectResult).not.toContain('ellipse 50% 50%');
+		// Shape produces bounding-box radii.
+		expect(shapeResult).not.toContain('ellipse 50% 50%');
 	});
 });
 
