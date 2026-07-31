@@ -6,6 +6,7 @@ import {
 	getComputed3dStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	suppressesCssBorder,
 	getContainerStyle as sharedGetContainerStyle,
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
@@ -74,7 +75,10 @@ export function getShapeFillStrokeStyle(
 			}
 		}
 
-		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
+		// A gradient outline is stroked as an SVG path by `ShapeEffectOverlay` (a
+		// CSS border takes one colour only), so drop the border rather than
+		// drawing the averaged solid underneath it.
+		const strokeWidth = suppressesCssBorder(el) ? 0 : Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
 			if (animatesStroke) {
 				// Keep the width / dash; leave the colour to the animated keyframes.
