@@ -17,6 +17,7 @@ import {
 	TRIGGER_VALUES,
 } from 'pptx-viewer-shared';
 
+import { playAnimationPreview } from '../../animation';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import {
@@ -27,12 +28,8 @@ import {
 	DIRECTIONS,
 	REPEAT_MODES,
 } from './animation-panel-fields';
-import {
-	elementDisplayLabel,
-	playAnimationPreview,
-	renderOrderRow,
-	renderTimelineBar,
-} from './animation-panel-parts';
+import { elementDisplayLabel, renderOrderRow, renderTimelineBar } from './animation-panel-parts';
+import { createMotionPathRow } from './motion-path-row';
 import type { InspectorHandlers } from './types';
 
 /** Docked panel state, derived from the deck-level inspector state. */
@@ -50,7 +47,7 @@ export interface AnimationPanel {
 
 type PanelHandlers = Pick<
 	InspectorHandlers,
-	'setAnimationEffect' | 'setAnimationTiming' | 'reorderAnimation'
+	'setAnimationEffect' | 'applyMotionPath' | 'setAnimationTiming' | 'reorderAnimation'
 >;
 
 /**
@@ -112,6 +109,10 @@ export function createAnimationPanel(
 	const entrance = presetSelect('entrance', 'pptx.animation.entrance', ENTRANCE_PRESET_VALUES);
 	const emphasis = presetSelect('emphasis', 'pptx.animation.emphasis', EMPHASIS_PRESET_VALUES);
 	const exit = presetSelect('exit', 'pptx.animation.exit', EXIT_PRESET_VALUES);
+
+	// Motion path: geometry, not a preset, so it gets its own row.
+	const motionPath = createMotionPathRow(doc, t, (presetId) => handlers.applyMotionPath(presetId));
+	el.appendChild(motionPath.el);
 
 	// -- Effect options + timing (visible only with an active animation) ------
 	const options = createEl(doc, 'div', 'pptxv-anim-options');
@@ -217,10 +218,15 @@ export function createAnimationPanel(
 				return;
 			}
 			const animation = selectedAnimation();
-			const hasEffect = Boolean(animation?.entrance || animation?.emphasis || animation?.exit);
+			// A motion path is an effect in its own right: it must keep the timing
+			// controls and the Preview button reachable even with no preset set.
+			const hasEffect = Boolean(
+				animation?.entrance || animation?.emphasis || animation?.exit || animation?.motionPath,
+			);
 			entrance.value = animation?.entrance ?? 'none';
 			emphasis.value = animation?.emphasis ?? 'none';
 			exit.value = animation?.exit ?? 'none';
+			motionPath.update({ motionPath: animation?.motionPath, editable: state.editable });
 			previewBtn.hidden = !hasEffect;
 			options.hidden = !hasEffect;
 			const directional =

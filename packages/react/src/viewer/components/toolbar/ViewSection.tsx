@@ -4,6 +4,7 @@ import {
 	LuBookOpen,
 	LuCode,
 	LuGrid3X3,
+	LuIndentIncrease,
 	LuLayoutGrid,
 	LuList,
 	LuMaximize2,
@@ -47,6 +48,8 @@ export interface ViewSectionProps {
 	onToggleSlideSorter?: () => void;
 	/** Enter PowerPoint's Reading View (full window, not the fullscreen show). */
 	onOpenReadingView?: () => void;
+	/** Enter PowerPoint's Outline view: the deck as editable indented text. */
+	onOpenOutlineView?: () => void;
 	onZoomToFit?: () => void;
 }
 
@@ -65,6 +68,12 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 					icon={<LuLayoutGrid />}
 					onClick={p.onToggleSlideSorter}
 					title={t('pptx.view.slideSorterTooltip')}
+				/>
+				<RibbonCommand
+					label={t('pptx.view.outlineView')}
+					icon={<LuIndentIncrease />}
+					onClick={p.onOpenOutlineView}
+					title={t('pptx.view.outlineViewTooltip')}
 				/>
 				<RibbonCommand
 					label={t('pptx.view.readingView')}

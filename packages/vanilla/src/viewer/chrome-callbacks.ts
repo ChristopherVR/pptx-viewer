@@ -44,6 +44,8 @@ export interface ChromeCallbackDeps {
 	openSlideSorter(): void;
 	/** Open Reading View (windowed deck at full window size). */
 	openReadingView(): void;
+	/** Open Outline view (the deck as editable indented text). */
+	openOutlineView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	openCustomShows(): void;
@@ -112,6 +114,7 @@ export function buildChromeCallbacks(
 			openSelectionPane: () => deps.openSelectionPane(),
 			openSlideSorter: () => deps.openSlideSorter(),
 			openReadingView: () => deps.openReadingView(),
+			openOutlineView: () => deps.openOutlineView(),
 			openComments: () => deps.openComments(),
 			openHyperlink: () => deps.openHyperlink(),
 			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
@@ -202,6 +205,7 @@ export function buildChromeCallbacks(
 		deleteComment: (id) => deps.getEditActions().comments.deleteComment(id),
 		toggleCommentResolved: (id) => deps.getEditActions().comments.toggleCommentResolved(id),
 		setAnimationEffect: (group, preset) => deps.getEditActions().setAnimationEffect(group, preset),
+		applyMotionPath: (presetId) => deps.getEditActions().applyMotionPath(presetId),
 		setAnimationTiming: (elementId, patch) =>
 			deps.getEditActions().setAnimationTiming(elementId, patch),
 		reorderAnimation: (elementId, direction) =>

@@ -39,6 +39,7 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 
+import { applyMotionPathPreset, clearMotionPath } from '../internal/shared';
 import {
 	DIRECTION_OPTIONS,
 	EMPHASIS_PRESETS,
@@ -70,12 +71,20 @@ import {
 import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
 import { previewAngularAnimation } from './animation-preview-player';
 import { AnimationTimelineComponent } from './animation-timeline.component';
+import { MotionPathRowComponent } from './motion-path-row.component';
 
 @Component({
 	selector: 'pptx-animation-author-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe, LucideX, LucideArrowUp, LucideArrowDown, AnimationTimelineComponent],
+	imports: [
+		TranslatePipe,
+		LucideX,
+		LucideArrowUp,
+		LucideArrowDown,
+		AnimationTimelineComponent,
+		MotionPathRowComponent,
+	],
 	template: `
 		<aside class="pptx-ng-anim" [attr.aria-label]="'pptx.animations.propertiesLabel' | translate">
 			<!-- ── Header ───────────────────────────────────────────────────── -->
@@ -159,6 +168,15 @@ import { AnimationTimelineComponent } from './animation-timeline.component';
 						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 					}
 				</select>
+			</section>
+
+			<!-- ── Motion path: geometry, not a preset, so it gets its own row ─ -->
+			<section class="pptx-ng-anim__section">
+				<pptx-motion-path-row
+					[motionPath]="current()?.motionPath"
+					[canEdit]="canEdit()"
+					(presetChange)="onMotionPathChange($event)"
+				/>
 			</section>
 
 			<!-- ── Effect options: only shown when an animation is set ─────── -->
@@ -722,6 +740,26 @@ export class AnimationAuthorPanelComponent {
 			return;
 		}
 		this.emit(setAnimationEmphasis(this.animations(), this.element().id, value));
+	}
+
+	// ── Motion path ───────────────────────────────────────────────────────────
+
+	/**
+	 * Apply or clear the element's motion path.
+	 *
+	 * The path lives on the SAME animation entry as the preset buckets, so this
+	 * deliberately does not go through the preset setters: applying a path must
+	 * leave an existing entrance alone, and clearing one must drop the entry only
+	 * when nothing else is left on it. Both rules live in the shared helpers.
+	 */
+	protected onMotionPathChange(presetId: string): void {
+		const animations = this.animations();
+		const elementId = this.element().id;
+		this.emit(
+			presetId === 'none'
+				? clearMotionPath(animations, elementId)
+				: applyMotionPathPreset(animations, elementId, presetId),
+		);
 	}
 
 	// ── Trigger handlers ─────────────────────────────────────────────────────

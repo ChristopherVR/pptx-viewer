@@ -1,3 +1,11 @@
+/**
+ * chart-advanced-section.ts: the axis-scale and per-series formatting block of
+ * the vanilla chart inspector.
+ *
+ * The control primitives come from `chart-exhaustive-controls`, which the
+ * sibling exhaustive section also uses; this file used to carry byte-identical
+ * private copies of all seven of them.
+ */
 import type {
 	PptxChartAxisFormatting,
 	PptxChartData,
@@ -5,8 +13,19 @@ import type {
 	PptxChartMarkerSymbol,
 	PptxChartTrendlineType,
 } from 'pptx-viewer-core';
+import { DISPLAY_UNITS_OPTIONS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import {
+	checkbox,
+	color,
+	number,
+	optionSelect,
+	select,
+	set,
+	setOptions,
+	value as optionalNumber,
+} from './chart-exhaustive-controls';
 
 export interface ChartAdvancedSection {
 	el: HTMLElement;
@@ -24,6 +43,10 @@ export function createChartAdvancedSection(
 	const min = number(doc, t('pptx.chart.axisMinimum'));
 	const max = number(doc, t('pptx.chart.axisMaximum'));
 	const majorUnit = number(doc, t('pptx.chart.majorUnit'));
+	// Sits with the scale controls, as it does in React's `ChartAxisOptions`:
+	// `c:dispUnits` divides the plotted values and appends the unit label, so it
+	// belongs next to min/max/major rather than with the cosmetic axis styling.
+	const displayUnits = optionSelect(doc, t('pptx.chart.displayUnits'), DISPLAY_UNITS_OPTIONS, t);
 	const logScale = checkbox(doc, t('pptx.chart.logScale'));
 	const reverse = checkbox(doc, t('pptx.chart.reverseOrder'));
 	const gridlines = checkbox(doc, t('pptx.chart.majorGridlines'));
@@ -68,6 +91,7 @@ export function createChartAdvancedSection(
 		min.label,
 		max.label,
 		majorUnit.label,
+		displayUnits.label,
 		logScale.label,
 		reverse.label,
 		gridlines.label,
@@ -99,6 +123,10 @@ export function createChartAdvancedSection(
 			min: optionalNumber(min.control),
 			max: optionalNumber(max.control),
 			majorUnit: optionalNumber(majorUnit.control),
+			// '' is the "None" entry: clear `c:dispUnits` rather than writing an
+			// empty token the schema does not accept.
+			displayUnits: (displayUnits.control.value ||
+				undefined) as PptxChartAxisFormatting['displayUnits'],
 			logScale: logScale.control.checked,
 			orientation: reverse.control.checked ? 'maxMin' : 'minMax',
 			majorGridlines: gridlines.control.checked,
@@ -156,6 +184,7 @@ export function createChartAdvancedSection(
 		min.control,
 		max.control,
 		majorUnit.control,
+		displayUnits.control,
 		logScale.control,
 		reverse.control,
 		gridlines.control,
@@ -193,9 +222,10 @@ export function createChartAdvancedSection(
 			data.series.map((item, index) => [String(index), item.name]),
 		);
 		const axis = data.axes?.[axisIndex()];
-		setNumber(min.control, axis?.min);
-		setNumber(max.control, axis?.max);
-		setNumber(majorUnit.control, axis?.majorUnit);
+		set(min.control, axis?.min);
+		set(max.control, axis?.max);
+		set(majorUnit.control, axis?.majorUnit);
+		displayUnits.control.value = axis?.displayUnits ?? '';
 		logScale.control.checked = axis?.logScale ?? false;
 		reverse.control.checked = axis?.orientation === 'maxMin';
 		gridlines.control.checked = axis?.majorGridlines ?? false;
@@ -204,68 +234,15 @@ export function createChartAdvancedSection(
 		equation.control.checked = item?.trendlines?.[0]?.displayEq ?? false;
 		rSquared.control.checked = item?.trendlines?.[0]?.displayRSq ?? false;
 		errorType.control.value = item?.errBars?.[0]?.valType ?? '';
-		setNumber(errorAmount.control, item?.errBars?.[0]?.val);
+		set(errorAmount.control, item?.errBars?.[0]?.val);
 		marker.control.value = item?.marker?.symbol ?? 'none';
-		setNumber(markerSize.control, item?.marker?.size);
+		set(markerSize.control, item?.marker?.size);
 		seriesColor.control.value = item?.color ?? '#4472c4';
 		const point = item?.dataPoints?.find(
 			({ idx }) => idx === Math.max(0, (pointIndex.control.valueAsNumber || 1) - 1),
 		);
 		pointColor.control.value = point?.spPr?.fillColor ?? item?.color ?? '#4472c4';
-		setNumber(pointExplosion.control, point?.explosion);
+		set(pointExplosion.control, point?.explosion);
 	};
 	return { el, update: sync };
-}
-
-function field<T extends HTMLElement>(doc: Document, text: string, control: T) {
-	const label = doc.createElement('label');
-	label.textContent = text;
-	label.appendChild(control);
-	return { label, control };
-}
-function number(doc: Document, text: string) {
-	const control = doc.createElement('input');
-	control.type = 'number';
-	return field(doc, text, control);
-}
-function color(doc: Document, text: string) {
-	const control = doc.createElement('input');
-	control.type = 'color';
-	return field(doc, text, control);
-}
-function checkbox(doc: Document, text: string) {
-	const control = doc.createElement('input');
-	control.type = 'checkbox';
-	return field(doc, text, control);
-}
-function select(doc: Document, text: string, values: readonly string[]) {
-	const control = doc.createElement('select');
-	setOptions(
-		doc,
-		control,
-		values.map((value) => [value, value]),
-	);
-	return field(doc, text, control);
-}
-function setOptions(
-	doc: Document,
-	control: HTMLSelectElement,
-	values: Array<[string, string]>,
-): void {
-	const selected = control.value;
-	control.replaceChildren(
-		...values.map(([value, text]) => {
-			const option = doc.createElement('option');
-			option.value = value;
-			option.textContent = text;
-			return option;
-		}),
-	);
-	control.value = selected;
-}
-function optionalNumber(control: HTMLInputElement): number | undefined {
-	return control.value === '' ? undefined : control.valueAsNumber;
-}
-function setNumber(control: HTMLInputElement, value: number | undefined): void {
-	control.value = value === undefined ? '' : String(value);
 }

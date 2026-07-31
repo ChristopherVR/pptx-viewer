@@ -6,8 +6,12 @@ import type {
 	PptxElementAnimation,
 	PptxAnimationPreset,
 } from 'pptx-viewer-core';
-import { createBackstagePresentation, DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import {
+	applyMotionPathPreset,
+	createBackstagePresentation,
+	DEFAULT_INSERT_CHART_TYPE,
+} from 'pptx-viewer-shared';
+import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
 /**
  * ViewerToolbarSection: Renders the top toolbar, signature badge,
  * and hidden file-input elements.
@@ -102,6 +106,7 @@ export interface ViewerToolbarSectionProps {
 		setIsShortcutHelpOpen: React.Dispatch<React.SetStateAction<boolean>>;
 		setShowSlideSorter: React.Dispatch<React.SetStateAction<boolean>>;
 		setShowReadingView: React.Dispatch<React.SetStateAction<boolean>>;
+		setShowOutlineView: React.Dispatch<React.SetStateAction<boolean>>;
 		presentationProperties: { showSubtitles?: boolean };
 		hasDigitalSignatures: boolean;
 		digitalSignatureCount: number;
@@ -197,11 +202,18 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 	} = props;
 
 	const handleAddAnimation = useCallback(
-		(preset: string, group: 'entrance' | 'emphasis' | 'exit') => {
+		(preset: string, group: AnimationApplyGroup) => {
 			if (!selectedElement || !activeSlide) {
 				return;
 			}
 			const current = activeSlide.animations ?? [];
+			if (group === 'motionPath') {
+				// `preset` is a motion-path catalogue id here, not a preset name.
+				propertyHandlers.handleUpdateSlide({
+					animations: applyMotionPathPreset(current, selectedElement.id, preset),
+				});
+				return;
+			}
 			const existing = current.find((a) => a.elementId === selectedElement.id);
 			const presetValue = preset as PptxAnimationPreset;
 			if (existing) {
@@ -551,6 +563,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onRunAccessibilityCheck={dialogs.handleRunAccessibilityCheck}
 				onToggleSlideSorter={() => s.setShowSlideSorter((p) => !p)}
 				onOpenReadingView={() => s.setShowReadingView(true)}
+				onOpenOutlineView={() => s.setShowOutlineView(true)}
 				onUpdateTextStyle={ops.updateSelectedTextStyle}
 				onTransformTextCase={ops.updateSelectedTextCase}
 				isOverflowMenuOpen={s.isOverflowMenuOpen}

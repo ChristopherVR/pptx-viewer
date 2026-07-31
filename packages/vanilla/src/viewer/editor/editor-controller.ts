@@ -30,6 +30,7 @@ import { createFindReplaceActions } from './editor-find-replace-actions';
 import { createEditorKeydownHandler } from './editor-keyboard';
 import { createEditorOps } from './editor-operations';
 import { createStageInteractions } from './editor-stage-interactions';
+import { createMotionPathController } from './motion-path-controller';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
 
@@ -168,10 +169,23 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
 	});
 
+	// The on-canvas motion-path layer; it lives inside the stage transform, so it
+	// owns its own re-mount lifecycle (see `motion-path-controller.ts`).
+	const motionPath = createMotionPathController({
+		doc,
+		store,
+		getTranslator: deps.getTranslator,
+		getScale: deps.getScale,
+		getStageWrap: () => attachedWrap,
+		getSelectedElement: (state) => ops.selectedElement(state),
+		onChangePath: (path) => editActions.setMotionPathData(path),
+	});
+
 	const syncOverlay = (): void => {
 		// The format toolbar + inspector track selection even before the overlay
 		// layer is mounted, so refresh them regardless of the overlay guard.
 		syncEditingChrome();
+		motionPath.sync();
 		if (!overlay) {
 			return;
 		}
@@ -247,6 +261,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		attachedRoot = null;
 		overlay?.destroy();
 		overlay = null;
+		motionPath.detach();
 	};
 
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
@@ -298,6 +313,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 					interactions.beginHandleGesture('rotate', event);
 				},
 			});
+			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
 			attachedWrap.addEventListener('pointerdown', onStagePointerDown);

@@ -1,6 +1,5 @@
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { buildPreviewAnimation } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -108,52 +107,4 @@ export function renderOrderRow(
 		makeMove('down', '↓', !editable || index === total - 1),
 	);
 	return row;
-}
-
-/**
- * Play a one-shot canvas preview of the element's active effect by injecting
- * the shared `buildPreviewAnimation` keyframes and applying the shorthand to
- * the stage node for the element (React's `useAnimationPreview` DOM player).
- */
-export function playAnimationPreview(
-	doc: Document,
-	animation: PptxElementAnimation | undefined,
-): void {
-	if (!animation) {
-		return;
-	}
-	const preset = animation.entrance ?? animation.emphasis ?? animation.exit;
-	if (!preset) {
-		return;
-	}
-	const descriptor = buildPreviewAnimation(preset, {
-		direction: animation.direction,
-		durationMs: animation.durationMs,
-		timingCurve: animation.timingCurve,
-	});
-	if (!descriptor) {
-		return;
-	}
-	const target = doc.querySelector<HTMLElement>(
-		`[data-element-id="${CSS.escape(animation.elementId)}"]`,
-	);
-	if (!target) {
-		return;
-	}
-	const styleId = `pptxv-anim-preview-${descriptor.keyframeName}`;
-	if (!doc.getElementById(styleId)) {
-		const style = doc.createElement('style');
-		style.id = styleId;
-		style.textContent = descriptor.keyframesCss;
-		(doc.head ?? doc.documentElement).appendChild(style);
-	}
-	target.style.animation = 'none';
-	// Force a reflow so re-applying the same animation restarts it.
-	void target.offsetWidth;
-	target.style.animation = descriptor.cssAnimation;
-	const clear = (): void => {
-		target.style.animation = '';
-	};
-	target.addEventListener('animationend', clear, { once: true });
-	setTimeout(clear, descriptor.durationMs + 250);
 }

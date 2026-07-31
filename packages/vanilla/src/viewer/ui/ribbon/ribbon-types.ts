@@ -39,6 +39,8 @@ export interface RibbonNavHandlers {
 	openSlideSorter(): void;
 	/** Open PowerPoint's Reading View (windowed deck, not the slide show). */
 	openReadingView(): void;
+	/** Open PowerPoint's Outline view (the deck as editable indented text). */
+	openOutlineView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	toggleTemplateEditing?(): void;

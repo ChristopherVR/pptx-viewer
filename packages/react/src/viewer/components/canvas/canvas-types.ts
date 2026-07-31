@@ -3,6 +3,7 @@ import type {
 	PptxAction,
 	PptxComment,
 	PptxElement,
+	PptxElementAnimation,
 	PptxSlide,
 	InkPptxElement,
 	ShapePptxElement,
@@ -160,6 +161,14 @@ export interface SlideCanvasProps {
 	onMoveGuide?: (guideId: string, position: number) => void;
 	onDeleteGuide?: (guideId: string) => void;
 	onCreateGuideFromRuler?: (axis: 'h' | 'v', positionPx: number) => void;
+
+	/* ── Motion-path authoring ───────────────────────────────────────── */
+	/**
+	 * Commits the slide's animation list after an on-canvas motion-path edit
+	 * (dragging the path's end handle). Absent means the path is drawn but
+	 * read-only.
+	 */
+	onUpdateSlideAnimations?: (animations: PptxElementAnimation[]) => void;
 
 	/* ── Connector creation props ────────────────────────────────────── */
 	/** When true, shows connection sites on shapes and enables connector drawing. */

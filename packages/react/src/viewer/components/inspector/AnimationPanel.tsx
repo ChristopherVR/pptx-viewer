@@ -17,6 +17,7 @@ import {
 	SEQUENCE_OPTIONS,
 } from './animation-panel-constants';
 import { AnimationTimelineSection } from './AnimationTimelineSection';
+import { MotionPathRow } from './MotionPathRow';
 import { useAnimationHandlers } from './useAnimationHandlers';
 
 // ==========================================================================
@@ -84,6 +85,7 @@ export function AnimationPanel({
 		handleRepeatModeChange,
 		handleDirectionChange,
 		handleSequenceChange,
+		handleMotionPathChange,
 		handlePreviewClick,
 	} = handlers;
 
@@ -159,6 +161,13 @@ export function AnimationPanel({
 					))}
 				</select>
 			</label>
+
+			{/* Motion path: geometry, not a preset, so it gets its own row */}
+			<MotionPathRow
+				motionPath={selectedElementAnimation?.motionPath}
+				canEdit={canEdit}
+				onChange={handleMotionPathChange}
+			/>
 
 			{/* Effect options: only show when an animation is set */}
 			{hasAnimation && (

@@ -1,5 +1,6 @@
 import type { PptxAnimationPreset } from 'pptx-viewer-core';
 import type { AnimationGroup } from 'pptx-viewer-shared';
+import { DEFAULT_MOTION_PATH_PRESET_ID } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -8,6 +9,8 @@ import { makeButton } from '../../controls';
 
 export interface AdvancedAnimationHandlers {
 	addAnimation(group: AnimationGroup, preset: PptxAnimationPreset): void;
+	/** Apply a catalogue motion path by preset id (one-click Path Animation). */
+	applyMotionPath(presetId: string): void;
 	removeAnimation(): void;
 	openAnimationPanel(): void;
 }
@@ -48,7 +51,9 @@ export function createAdvancedAnimationGroup(
 		label: t('pptx.animations.pathAnimation'),
 		icon: 'move-right',
 		textLabel: t('pptx.animations.pathAnimation'),
-		onClick: () => handlers.addAnimation('entrance', 'flyIn'),
+		// One-click default path (Lines: Right). It used to apply a Fly In
+		// entrance, which is not a path at all.
+		onClick: () => handlers.applyMotionPath(DEFAULT_MOTION_PATH_PRESET_ID),
 	});
 	const effectOptions = makeButton(doc, {
 		label: t('pptx.animations.effectOptions'),

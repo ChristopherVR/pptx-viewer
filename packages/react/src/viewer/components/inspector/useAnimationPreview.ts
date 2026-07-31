@@ -1,7 +1,11 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 import { useCallback } from 'react';
 
-import { startPreviewAnimation, stopPreviewAnimation } from '../../utils/animation-preview';
+import {
+	startMotionPathPreview,
+	startPreviewAnimation,
+	stopPreviewAnimation,
+} from '../../utils/animation-preview';
 
 // ---------------------------------------------------------------------------
 // Sub-hook arguments
@@ -31,6 +35,16 @@ export function useAnimationPreview({
 	selectedElementAnimation,
 }: UseAnimationPreviewArgs): AnimationPreviewHandlers {
 	const handleAnimationHover = useCallback((anim: PptxElementAnimation) => {
+		// A motion path wins over a preset: it is the effect being authored on the
+		// canvas at that moment, and a fade would hide the travel entirely.
+		if (anim.motionPath) {
+			startMotionPathPreview(anim.elementId, anim.motionPath, {
+				durationMs: anim.durationMs,
+				delayMs: anim.delayMs,
+				timingCurve: anim.timingCurve,
+			});
+			return;
+		}
 		const preset = anim.entrance ?? anim.emphasis ?? anim.exit;
 		if (!preset || preset === 'none') {
 			return;
@@ -46,6 +60,14 @@ export function useAnimationPreview({
 
 	const handlePreviewClick = useCallback(() => {
 		if (!selectedElementAnimation) {
+			return;
+		}
+		if (selectedElementAnimation.motionPath) {
+			startMotionPathPreview(selectedElementId, selectedElementAnimation.motionPath, {
+				durationMs: selectedElementAnimation.durationMs,
+				delayMs: selectedElementAnimation.delayMs,
+				timingCurve: selectedElementAnimation.timingCurve,
+			});
 			return;
 		}
 		const preset =

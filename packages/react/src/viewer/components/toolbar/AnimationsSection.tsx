@@ -1,4 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { DEFAULT_MOTION_PATH_PRESET_ID } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup } from 'pptx-viewer-shared';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,6 +16,7 @@ import {
 } from 'react-icons/lu';
 
 import { AnimationPresetGallery } from './AnimationPresetGallery';
+import { MotionPathGallery } from './MotionPathGallery';
 import { RibbonCommand, RibbonCommandStack, RibbonGroup } from './PowerPointRibbonControls';
 
 export interface AnimationsSectionProps {
@@ -22,7 +25,7 @@ export interface AnimationsSectionProps {
 	isInspectorPaneOpen: boolean;
 	onToggleInspector: () => void;
 	onOpenAnimationPanel?: () => void;
-	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	onAddAnimation?: (preset: string, group: AnimationApplyGroup) => void;
 	onRemoveAnimation?: () => void;
 }
 
@@ -55,6 +58,12 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 			>
 				<AnimationPresetGallery disabled={disabled} onAddAnimation={p.onAddAnimation} />
 			</RibbonGroup>
+			<RibbonGroup label={t('pptx.animation.motionPath')} className='max-w-[420px] overflow-hidden'>
+				<MotionPathGallery
+					disabled={disabled}
+					onApplyMotionPath={(presetId) => p.onAddAnimation?.(presetId, 'motionPath')}
+				/>
+			</RibbonGroup>
 			<RibbonGroup label={t('pptx.animations.advanced', { defaultValue: 'Advanced Animation' })}>
 				<RibbonCommand
 					label={t('pptx.animations.exitEffects', { defaultValue: 'Exit Effects' })}
@@ -65,7 +74,9 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 				<RibbonCommand
 					label={t('pptx.animations.pathAnimation', { defaultValue: 'Path Animation' })}
 					icon={<LuMoveRight />}
-					onClick={() => p.onAddAnimation?.('flyIn', 'entrance')}
+					// One-click default path (Lines: Right). It used to apply a Fly In
+					// entrance, which is not a path at all.
+					onClick={() => p.onAddAnimation?.(DEFAULT_MOTION_PATH_PRESET_ID, 'motionPath')}
 					disabled={disabled}
 				/>
 				<RibbonCommandStack>

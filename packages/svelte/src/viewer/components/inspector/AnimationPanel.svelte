@@ -23,6 +23,8 @@
 	} from 'pptx-viewer-core';
 	import {
 		animationFor,
+		applyMotionPathPreset,
+		clearMotionPath,
 		hasAnimation,
 		setAnimationEmphasis,
 		setAnimationEntrance,
@@ -45,6 +47,7 @@
 	import { startAnimationPreview } from './animation-preview-control';
 	import AnimationTimelineSection from './AnimationTimelineSection.svelte';
 	import AnimationTimingFields from './AnimationTimingFields.svelte';
+	import MotionPathRow from './MotionPathRow.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
@@ -82,6 +85,22 @@
 			startAnimationPreview(anim);
 		}
 	}
+
+	/**
+	 * Motion path is geometry, not a preset, so it never routes through
+	 * `onEffect`. `custom` is the read-only marker for a hand-dragged path:
+	 * re-selecting it must not snap the path back to a catalogue entry.
+	 */
+	function onMotionPath(presetId: string): void {
+		if (!el || presetId === 'custom') {
+			return;
+		}
+		commit(
+			presetId === 'none'
+				? clearMotionPath(anims, el.id)
+				: applyMotionPathPreset(anims, el.id, presetId),
+		);
+	}
 </script>
 
 {#if el && slide}
@@ -118,6 +137,9 @@
 				{#each PANEL_EXIT_PRESETS as preset (preset)}<option value={preset}>{t(`pptx.animation.preset.${preset}`)}</option>{/each}
 			</select>
 		</label>
+
+		<!-- Motion path: geometry, not a preset, so it gets its own row. -->
+		<MotionPathRow motionPath={anim?.motionPath} {canEdit} onchange={onMotionPath} />
 
 		{#if hasAnim}
 			{#if showDirection}

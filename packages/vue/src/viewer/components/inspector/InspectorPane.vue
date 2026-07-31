@@ -142,6 +142,7 @@ function relay(patch: Partial<PptxElement>): void {
 			</h3>
 			<AnimationPanel
 				:element="element"
+				:can-edit="props.canEdit"
 				:slide-elements="props.slideElements"
 				:slide-animations="props.slideAnimations"
 				@update="relay"

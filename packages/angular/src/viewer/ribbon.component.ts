@@ -158,6 +158,7 @@ import type { RibbonTab } from './ribbon-types';
 					(link)="link.emit()"
 					(openSorter)="openSorter.emit()"
 					(openReadingView)="openReadingView.emit()"
+					(openOutlineView)="openOutlineView.emit()"
 					(openMasterView)="openMasterView.emit()"
 					(toggleNotes)="toggleNotes.emit()"
 					(toggleInspector)="toggleInspector.emit()"
@@ -273,6 +274,7 @@ export class RibbonComponent {
 	readonly openSorter = output<void>();
 	/** View tab > Reading View: the deck full-window, not the slide show. */
 	readonly openReadingView = output<void>();
+	readonly openOutlineView = output<void>();
 	readonly openMasterView = output<void>();
 	readonly toggleNotes = output<void>();
 	readonly toggleFormatPainter = output<void>();

@@ -1,3 +1,6 @@
+import { motionPathFor, setMotionPath } from 'pptx-viewer-shared';
+import { useCallback } from 'react';
+
 import { getShapeAdjustmentHandleDescriptor } from '../utils';
 import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
@@ -7,6 +10,7 @@ import { CommentMarkersOverlay } from './canvas/CommentMarkersOverlay';
 import { ConnectorOverlay } from './canvas/ConnectorOverlay';
 import { DrawingOverlaySvg } from './canvas/DrawingOverlaySvg';
 import { GridOverlay } from './canvas/GridOverlay';
+import { MotionPathOverlay } from './canvas/MotionPathOverlay';
 import { Ruler } from './canvas/Ruler';
 import { RULER_THICKNESS } from './canvas/ruler-utils';
 import { useCanvasEventHandlers } from './canvas/useCanvasEventHandlers';
@@ -79,6 +83,7 @@ export function SlideCanvas({
 	onCreateGuideFromRuler,
 	connectorCreationMode = false,
 	onCreateConnector,
+	onUpdateSlideAnimations,
 	allSlides,
 	onZoomClick,
 	sourceSlideIndex,
@@ -150,6 +155,24 @@ export function SlideCanvas({
 		onMoveGuide,
 	});
 
+	/* ── Motion path overlay ───────────────────────────────────────── */
+	// The path lives on the SLIDE's animation entry for the selected element, so
+	// the overlay only needs the id to find it and a commit callback to edit it.
+	const selectedMotionPath = selectedElement
+		? motionPathFor(activeSlide?.animations ?? [], selectedElement.id)
+		: undefined;
+	const handleMotionPathChange = useCallback(
+		(path: string) => {
+			if (!selectedElement || !onUpdateSlideAnimations) {
+				return;
+			}
+			onUpdateSlideAnimations(
+				setMotionPath(activeSlide?.animations ?? [], selectedElement.id, path),
+			);
+		},
+		[activeSlide?.animations, onUpdateSlideAnimations, selectedElement],
+	);
+
 	/* ── Connector creation ────────────────────────────────────────── */
 	const {
 		connectorDragState,
@@ -218,6 +241,10 @@ export function SlideCanvas({
 						height: canvasSize.height,
 						transform: `scale(${zoom.editorScale})`,
 						transformOrigin: 'top left',
+						// Motion-path keyframes translate by a fraction of the SLIDE, so
+						// the stage publishes its own size for those calc() offsets.
+						['--pptx-slide-w' as string]: `${canvasSize.width}px`,
+						['--pptx-slide-h' as string]: `${canvasSize.height}px`,
 						marginTop: rulerOffset,
 						marginLeft: rulerOffset,
 						// In edit/master mode the stage must own all touch gestures so
@@ -374,6 +401,17 @@ export function SlideCanvas({
 							onConnectorDragMove={handleConnectorDragMove}
 							onConnectionSiteDrop={handleConnectionSiteDrop}
 							onConnectorDragEnd={handleConnectorDragEnd}
+						/>
+					)}
+
+					{isEditableCanvas && selectedElement && selectedMotionPath && (
+						<MotionPathOverlay
+							element={selectedElement}
+							path={selectedMotionPath}
+							canvasSize={canvasSize}
+							scale={zoom.editorScale}
+							canEdit={canEdit}
+							onChangePath={handleMotionPathChange}
 						/>
 					)}
 

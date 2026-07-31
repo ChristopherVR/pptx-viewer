@@ -101,6 +101,15 @@ describe('renderSlideStage', () => {
 		expect(stage.style.backgroundColor).toBeTruthy();
 	});
 
+	it('publishes its slide size for the shared motion-path keyframes', () => {
+		// The keyframes translate by `calc(var(--pptx-slide-w) * fraction)`; a CSS
+		// `translate(%)` would resolve against the ELEMENT box and barely move a
+		// small shape. Every stage (editing and presentation) has to declare it.
+		const stage = renderStage();
+		expect(stage.style.getPropertyValue('--pptx-slide-w')).toBe('1280px');
+		expect(stage.style.getPropertyValue('--pptx-slide-h')).toBe('720px');
+	});
+
 	it('renders text elements with positioned runs', () => {
 		const stage = renderStage();
 		const text = stage.querySelector<HTMLElement>('[data-element-id="el-text"]');

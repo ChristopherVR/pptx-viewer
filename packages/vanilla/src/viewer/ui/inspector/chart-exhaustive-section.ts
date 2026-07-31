@@ -8,17 +8,8 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { Translator } from '../../i18n';
-import {
-	checkbox,
-	color,
-	input,
-	number,
-	numbers,
-	select,
-	set,
-	setOptions,
-	value,
-} from './chart-exhaustive-controls';
+import { numbers, set, setOptions, value } from './chart-exhaustive-controls';
+import { createChartExhaustiveFields } from './chart-exhaustive-fields';
 
 export interface ChartExhaustiveSection {
 	el: HTMLElement;
@@ -32,74 +23,9 @@ export function createChartExhaustiveSection(
 ): ChartExhaustiveSection {
 	const el = doc.createElement('div');
 	el.className = 'pptxv-chart-exhaustive';
-	const series = select(doc, t('pptx.chart.series'), []);
-	const comboType = select(doc, t('pptx.chart.seriesType'), [
-		'bar',
-		'line',
-		'area',
-		'scatter',
-		'bubble',
-		'radar',
-	]);
-	const secondaryAxis = checkbox(doc, t('pptx.chart.secondaryAxis'));
-	const labelPosition = select(doc, t('pptx.chart.dataLabelPosition'), [
-		'bestFit',
-		'b',
-		'ctr',
-		'inBase',
-		'inEnd',
-		'l',
-		'outEnd',
-		'r',
-		't',
-	]);
-	const showValue = checkbox(doc, t('pptx.chart.showValue'));
-	const showCategory = checkbox(doc, t('pptx.chart.showCategory'));
-	const showSeries = checkbox(doc, t('pptx.chart.showSeriesName'));
-	const showPercent = checkbox(doc, t('pptx.chart.showPercentage'));
-	const leaderLines = checkbox(doc, t('pptx.chart.showLeaderLines'));
-	const trendOrder = number(doc, t('pptx.chart.trendlineOrder'));
-	const trendPeriod = number(doc, t('pptx.chart.trendlinePeriod'));
-	const trendForward = number(doc, t('pptx.chart.forecastForward'));
-	const trendBackward = number(doc, t('pptx.chart.forecastBackward'));
-	const trendIntercept = number(doc, t('pptx.chart.trendlineIntercept'));
-	const trendColor = color(doc, t('pptx.chart.trendlineColor'));
-	const errorDirection = select(doc, t('pptx.chart.errorBarDirection'), ['x', 'y']);
-	const errorBarType = select(doc, t('pptx.chart.errorBarType'), ['both', 'minus', 'plus']);
-	const errorColor = color(doc, t('pptx.chart.errorBarColor'));
-	const noEndCap = checkbox(doc, t('pptx.chart.noEndCap'));
-	const customPlus = input(doc, t('pptx.chart.customPlus'));
-	const customMinus = input(doc, t('pptx.chart.customMinus'));
-	const markerFill = color(doc, t('pptx.chart.markerFill'));
-	const markerLine = color(doc, t('pptx.chart.markerOutline'));
-	const pointMarker = select(doc, t('pptx.chart.dataPointMarker'), [
-		'none',
-		'circle',
-		'diamond',
-		'square',
-		'star',
-		'triangle',
-		'x',
-		'plus',
-	]);
-	const pointMarkerSize = number(doc, t('pptx.chart.markerSize'));
-	const pointInvert = checkbox(doc, t('pptx.chart.invertIfNegative'));
-	const axis = select(doc, t('pptx.chart.axis'), []);
-	const axisTitle = input(doc, t('pptx.chart.axisTitle'));
-	const minorUnit = number(doc, t('pptx.chart.minorUnit'));
-	const minorGridlines = checkbox(doc, t('pptx.chart.minorGridlines'));
-	const numberFormat = input(doc, t('pptx.chart.numberFormat'));
-	const tickPosition = select(doc, t('pptx.chart.tickLabelPosition'), [
-		'nextTo',
-		'high',
-		'low',
-		'none',
-	]);
-	const axisColor = color(doc, t('pptx.chart.axisColor'));
-	const axisFontColor = color(doc, t('pptx.chart.axisFontColor'));
-	const axisFontSize = number(doc, t('pptx.chart.axisFontSize'));
-	const fields = [
+	const {
 		series,
+		axis,
 		comboType,
 		secondaryAxis,
 		labelPosition,
@@ -125,7 +51,6 @@ export function createChartExhaustiveSection(
 		pointMarker,
 		pointMarkerSize,
 		pointInvert,
-		axis,
 		axisTitle,
 		minorUnit,
 		minorGridlines,
@@ -134,8 +59,15 @@ export function createChartExhaustiveSection(
 		axisColor,
 		axisFontColor,
 		axisFontSize,
-	];
-	el.append(...fields.map(({ label }) => label));
+		seriesFields,
+		axisFields,
+	} = createChartExhaustiveFields(doc, t);
+	el.append(
+		series.label,
+		...seriesFields.map(({ label }) => label),
+		axis.label,
+		...axisFields.map(({ label }) => label),
+	);
 	let current: PptxChartData | undefined;
 	const seriesIndex = () => Math.max(0, series.control.selectedIndex);
 	const axisIndex = () => Math.max(0, axis.control.selectedIndex);
@@ -233,10 +165,10 @@ export function createChartExhaustiveSection(
 		};
 		onChange({ ...current, axes });
 	};
-	for (const field of fields.slice(1, 26)) {
+	for (const field of seriesFields) {
 		field.control.addEventListener('change', commitSeries);
 	}
-	for (const field of fields.slice(27)) {
+	for (const field of axisFields) {
 		field.control.addEventListener('change', commitAxis);
 	}
 	series.control.addEventListener('change', () => current && sync(current));

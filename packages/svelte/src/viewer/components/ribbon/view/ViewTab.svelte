@@ -31,6 +31,7 @@
 		onentermasterview,
 		onselectionpane,
 		onslidesorter,
+		onoutlineview,
 		onreadingview,
 		onnormal,
 		editor,
@@ -48,6 +49,8 @@
 		onentermasterview?: () => void;
 		onselectionpane: () => void;
 		onslidesorter: () => void;
+		/** Opens Outline View: the deck as one editable indented text document. */
+		onoutlineview?: () => void;
 		/** Opens Reading View: the deck at full window size, no Fullscreen API. */
 		onreadingview?: () => void;
 		/** Returns the viewer to the normal editing view (React's "Normal"). */
@@ -77,6 +80,9 @@
 		</RibbonCommand>
 		<RibbonCommand label={t('pptx.slideSorter.title')} title={t('pptx.statusBar.slideSorter')} onclick={onslidesorter}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="6" height="5" /><rect x="11.5" y="3.5" width="6" height="5" /><rect x="2.5" y="11.5" width="6" height="5" /><rect x="11.5" y="11.5" width="6" height="5" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.view.outlineView')} title={t('pptx.view.outlineViewTooltip')} onclick={onoutlineview}>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M8.5 5h9M8.5 10h9M8.5 15h9M2.5 7l2.5 3-2.5 3" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand label={t('pptx.view.readingView')} title={t('pptx.view.readingView')} onclick={onreadingview}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 4.5h6a2 2 0 0 1 1.5.7 2 2 0 0 1 1.5-.7h6v11h-6a2 2 0 0 0-1.5.7 2 2 0 0 0-1.5-.7h-6zM10 5.2v10" /></svg>{/snippet}

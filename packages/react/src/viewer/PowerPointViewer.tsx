@@ -982,6 +982,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					isAccessibilityPanelOpen={state.isAccessibilityPanelOpen}
 					showSlideSorter={state.showSlideSorter}
 					showReadingView={state.showReadingView}
+					showOutlineView={state.showOutlineView}
 					templateElements={state.templateElements}
 					accessibilityIssues={state.accessibilityIssues}
 					slides={slides}
@@ -1006,6 +1007,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						state.setShowReadingView(false);
 						state.setActiveSlideIndex(slideIndex);
 					}}
+					onCloseOutlineView={() => state.setShowOutlineView(false)}
+					setSlides={state.setSlides}
+					setActiveSlideIndex={state.setActiveSlideIndex}
+					bumpHistory={() => state.setPointerCommitNonce((n) => n + 1)}
 					reducedMotion={reducedMotion}
 					onToggleReducedMotion={toggleReducedMotion}
 				/>

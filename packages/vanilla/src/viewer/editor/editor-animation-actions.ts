@@ -10,6 +10,8 @@ import type {
 import type { AnimationGroup } from 'pptx-viewer-shared';
 import {
 	applyAnimationPreset,
+	applyMotionPathPreset,
+	clearMotionPath,
 	removeElementAnimation,
 	reorderAnimationDown,
 	reorderAnimationUp,
@@ -21,6 +23,7 @@ import {
 	setDuration,
 	setRepeatCount,
 	setRepeatMode,
+	setMotionPath,
 	setSequence,
 	setTimingCurve,
 	setTrigger,
@@ -67,6 +70,16 @@ export interface AnimationActions {
 	 * `setAnimationEntrance`/`setAnimationExit`/`setAnimationEmphasis`).
 	 */
 	setAnimationEffect(group: AnimationGroup, preset: PptxAnimationPreset | 'none'): void;
+	/**
+	 * Apply a catalogue motion path to the selected element by preset id.
+	 *
+	 * `'none'` clears the path; `'custom'` (the inspector's read-only marker for
+	 * a hand-dragged path) is deliberately a no-op, so re-picking the marker can
+	 * never snap the dragged geometry back to a catalogue entry.
+	 */
+	applyMotionPath(presetId: string): void;
+	/** Replace the selected element's raw path (canvas end-handle drag commit). */
+	setMotionPathData(path: string): void;
 	setAnimationTiming(elementId: string, patch: AnimationTimingPatch): void;
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 	moveAnimation(elementId: string, index: number): void;
@@ -138,6 +151,39 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 						? setAnimationExit
 						: setAnimationEmphasis;
 			const animations = setter(slide.animations ?? [], elementId, preset);
+			ops.pushHistory();
+			store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
+			ops.commitChange();
+		},
+
+		applyMotionPath(presetId) {
+			if (presetId === 'custom') {
+				return;
+			}
+			const state = store.get();
+			const elementId = state.selectedElementId;
+			const slide = state.slides[state.currentSlide];
+			if (!state.editable || !elementId || !slide) {
+				return;
+			}
+			const current = slide.animations ?? [];
+			const animations =
+				presetId === 'none'
+					? clearMotionPath(current, elementId)
+					: applyMotionPathPreset(current, elementId, presetId);
+			ops.pushHistory();
+			store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
+			ops.commitChange();
+		},
+
+		setMotionPathData(path) {
+			const state = store.get();
+			const elementId = state.selectedElementId;
+			const slide = state.slides[state.currentSlide];
+			if (!state.editable || !elementId || !slide) {
+				return;
+			}
+			const animations = setMotionPath(slide.animations ?? [], elementId, path);
 			ops.pushHistory();
 			store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
 			ops.commitChange();

@@ -89,4 +89,21 @@ describe('slideStage', () => {
 		expect(download?.closest('[aria-hidden="true"]')).toBeNull();
 		expect(open?.closest('[aria-hidden="true"]')).toBeNull();
 	});
+
+	/**
+	 * Motion-path keyframes translate by `calc(var(--pptx-slide-w) * fraction)`,
+	 * so a stage that does not publish its own size makes every path travel the
+	 * 1280x720 fallback distance instead of the real one. This one component IS
+	 * both the editing stage and the slide-show stage in this binding, so both
+	 * are covered by asserting it here.
+	 */
+	it('publishes its slide size for motion-path keyframes, at any scale', () => {
+		for (const interactive of [true, false]) {
+			const stage = mountStage(interactive).querySelector<HTMLElement>('.pptx-svelte-stage');
+			expect(stage?.style.getPropertyValue('--pptx-slide-w')).toBe('960px');
+			expect(stage?.style.getPropertyValue('--pptx-slide-h')).toBe('540px');
+			cleanup?.();
+			cleanup = undefined;
+		}
+	});
 });

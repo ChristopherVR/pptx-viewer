@@ -23,6 +23,8 @@ export class ViewerParityUiState {
 	slideSorterOpen = $state(false);
 	/** View tab > Reading View: the deck at full window size, not a slide show. */
 	readingViewOpen = $state(false);
+	/** View tab > Outline View: the deck as one editable indented text document. */
+	outlineViewOpen = $state(false);
 	showGuides = $state(false);
 	snapToShape = $state(true);
 	guides = $state<{ axis: 'h' | 'v'; position: number }[]>([]);

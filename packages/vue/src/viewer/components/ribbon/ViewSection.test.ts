@@ -33,6 +33,21 @@ function mountViewSection(overrides: Record<string, unknown> = {}) {
 }
 
 describe('view section', () => {
+	/**
+	 * Outline view shipped in no binding at all. The control has to be live and
+	 * named exactly as React names it: `e2e/ribbon-control-inventory.spec.ts`
+	 * diffs every binding's View tab against React's by accessible name.
+	 */
+	it('offers a live Outline View command', async () => {
+		const onOpenOutlineView = vi.fn();
+		const wrapper = mountViewSection({ onOpenOutlineView });
+
+		const button = wrapper.get('[title="pptx.view.outlineViewTooltip"]');
+		expect(button.attributes('disabled')).toBeUndefined();
+		await button.trigger('click');
+		expect(onOpenOutlineView).toHaveBeenCalledOnce();
+	});
+
 	it('shows and runs zoom to fit when wired by the ribbon host', async () => {
 		const onZoomToFit = vi.fn();
 		const wrapper = mountViewSection({ onZoomToFit });

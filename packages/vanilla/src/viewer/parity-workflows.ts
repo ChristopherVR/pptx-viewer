@@ -18,6 +18,7 @@ import type { EditorController } from './editor';
 import type { PrintOptions } from './export/export-print';
 import type { Translator } from './i18n';
 import { loadPresentation, revokeBlobUrls } from './load/load-presentation';
+import { createOutlineWorkflow } from './outline-workflow';
 import type { Store, ViewerState } from './state';
 import { openCommentsPanel } from './ui/comments-panel';
 import { openComparePanel } from './ui/compare-panel';
@@ -73,6 +74,10 @@ export interface ParityWorkflows {
 	openReadingView(): void;
 	/** Tear the Reading View down (viewer teardown; it owns a document listener). */
 	closeReadingView(): void;
+	/** Open Outline view (the deck as editable indented text). */
+	openOutlineView(): void;
+	/** Tear Outline view down (viewer teardown; it owns a store subscription). */
+	closeOutlineView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	openCustomShows(): void;
@@ -83,6 +88,7 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 	// Held so the viewer can tear the overlay (and its document key listener)
 	// down on destroy, and so a second open never leaves an orphan behind.
 	let readingView: ReadingViewHandle | null = null;
+	const outline = createOutlineWorkflow(host);
 	return {
 		openSettings(tab = 'general') {
 			const themeState = host.getThemeState();
@@ -163,6 +169,12 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 		closeReadingView() {
 			readingView?.close();
 			readingView = null;
+		},
+		openOutlineView() {
+			outline.open();
+		},
+		closeOutlineView() {
+			outline.close();
 		},
 		openComments() {
 			const current = state();

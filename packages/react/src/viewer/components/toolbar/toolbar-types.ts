@@ -7,7 +7,7 @@ import type {
 	PptxCustomShow,
 	ShapeStyle,
 } from 'pptx-viewer-core';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
 
 import type {
 	DrawingTool,
@@ -47,8 +47,12 @@ export interface ToolbarProps {
 	onToggleInspector: () => void;
 	/** Opens the inspector pane and switches to the properties tab (for animation panel). */
 	onOpenAnimationPanel: () => void;
-	/** Adds an animation preset to the selected element. */
-	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	/**
+	 * Adds an animation to the selected element. For the three preset buckets
+	 * `preset` is a `PptxAnimationPreset`; for `motionPath` it is a motion-path
+	 * catalogue id.
+	 */
+	onAddAnimation?: (preset: string, group: AnimationApplyGroup) => void;
 	/** Removes all animations from the selected element. */
 	onRemoveAnimation?: () => void;
 	onToggleCompactToolbar: () => void;
@@ -132,6 +136,8 @@ export interface ToolbarProps {
 	onToggleSlideSorter: () => void;
 	/** Enter PowerPoint's Reading View (full window, not the fullscreen show). */
 	onOpenReadingView: () => void;
+	/** Enter PowerPoint's Outline view: the deck as editable indented text. */
+	onOpenOutlineView: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	onTransformTextCase: (mode: ChangeCaseMode) => void;

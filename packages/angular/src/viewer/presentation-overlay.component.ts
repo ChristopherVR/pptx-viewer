@@ -704,6 +704,13 @@ export class PresentationOverlayComponent implements OnInit {
 			width: `${size.width * z}px`,
 			height: `${size.height * z}px`,
 			transform: 'translate(-50%, -50%)',
+			// Motion-path keyframes translate by a fraction of the SLIDE (see
+			// `slideOffset` in the shared timeline helpers), so the presentation
+			// stage publishes the slide size the same way the editing stage does.
+			// Without it every parsed path falls back to the 1280x720 default and a
+			// deck authored at another size under-travels.
+			'--pptx-slide-w': `${size.width}px`,
+			'--pptx-slide-h': `${size.height}px`,
 		};
 	});
 

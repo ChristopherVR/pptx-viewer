@@ -50,6 +50,14 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
+			[title]="'pptx.view.outlineViewTooltip' | translate"
+			(click)="openOutlineView.emit()"
+		>
+			{{ 'pptx.view.outlineView' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
 			[title]="'pptx.view.readingView' | translate"
 			(click)="openReadingView.emit()"
 		>
@@ -202,6 +210,8 @@ export class RibbonViewSectionComponent {
 	readonly openSorter = output<void>();
 	/** Enter Reading View: the deck full-window, NOT the fullscreen slide show. */
 	readonly openReadingView = output<void>();
+	/** Enter Outline view: the deck as editable indented text. */
+	readonly openOutlineView = output<void>();
 	readonly openMasterView = output<void>();
 	readonly toggleGrid = output<void>();
 	readonly toggleRulers = output<void>();

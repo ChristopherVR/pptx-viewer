@@ -1,8 +1,10 @@
 import { mount } from '@vue/test-utils';
 import {
+	DEFAULT_MOTION_PATH_PRESET_ID,
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
+	MOTION_PATH_PRESETS,
 } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -104,9 +106,53 @@ describe('animationsSection', () => {
 		expect(onAddAnimation).toHaveBeenCalledWith('fadeOut', 'exit');
 	});
 
+	/**
+	 * A motion path is geometry, not one of the three preset buckets, so it gets
+	 * its own captioned group holding the whole shared catalogue.
+	 */
+	it('offers the motion-path gallery in its own captioned group', () => {
+		const wrapper = mountAnimations();
+		const gallery = wrapper.get(
+			`[aria-label="${translationsEn['pptx.animations.motionPathGalleryAria']}"]`,
+		);
+
+		expect(gallery.findAll('button')).toHaveLength(MOTION_PATH_PRESETS.length);
+		expect(wrapper.text()).toContain(translationsEn['pptx.animation.motionPath']);
+	});
+
+	it('applies a clicked motion path under the motionPath bucket', async () => {
+		const onAddAnimation = vi.fn();
+		const wrapper = mountAnimations({ onAddAnimation });
+		const gallery = wrapper.get(
+			`[aria-label="${translationsEn['pptx.animations.motionPathGalleryAria']}"]`,
+		);
+
+		await gallery.findAll('button')[0].trigger('click');
+		expect(onAddAnimation).toHaveBeenCalledWith(MOTION_PATH_PRESETS[0].id, 'motionPath');
+	});
+
+	/** It used to apply a Fly In entrance, which is not a path at all. */
+	it('makes "Path Animation" apply the default motion path, not an entrance', async () => {
+		const onAddAnimation = vi.fn();
+		const wrapper = mountAnimations({ onAddAnimation });
+
+		const pathAnimation = wrapper.findAll('button').find((b) => b.text() === 'Path Animation');
+		await pathAnimation?.trigger('click');
+
+		expect(onAddAnimation).toHaveBeenCalledWith(DEFAULT_MOTION_PATH_PRESET_ID, 'motionPath');
+		expect(onAddAnimation).not.toHaveBeenCalledWith('flyIn', 'entrance');
+	});
+
 	it('disables the authoring commands when nothing is selected', () => {
 		const wrapper = mountAnimations({ selectedElement: null });
 		const appear = wrapper.findAll('button').find((b) => b.text() === 'Appear');
 		expect(appear?.attributes('disabled')).toBeDefined();
+
+		const gallery = wrapper.get(
+			`[aria-label="${translationsEn['pptx.animations.motionPathGalleryAria']}"]`,
+		);
+		expect(
+			gallery.findAll('button').every((b) => b.attributes('disabled') !== undefined),
+		).toBeTruthy();
 	});
 });

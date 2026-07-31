@@ -155,6 +155,9 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onOpenReadingView: () => {
 			input.showReadingView.value = true;
 		},
+		onOpenOutlineView: () => {
+			input.showOutlineView.value = true;
+		},
 		onUpdateTextStyle: input.ribbonUpdateTextStyle,
 		onTransformTextCase: input.ribbonUpdateTextCase,
 		onSetOverflowMenuOpen: (o: boolean) => {

@@ -175,12 +175,14 @@
 		onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
 		onslidesorter={() => (parityUi.slideSorterOpen = true)}
 		onreadingview={() => (parityUi.readingViewOpen = true)}
+		onoutlineview={() => (parityUi.outlineViewOpen = true)}
 		onnormal={() => {
 			if (viewer.isFullscreen) {
 				vm.onFullscreenToggle();
 			}
 			parityUi.slideSorterOpen = false;
 			parityUi.readingViewOpen = false;
+			parityUi.outlineViewOpen = false;
 		}}
 		preferences={parityUi.preferences}
 		onpreferenceschange={(next) => {

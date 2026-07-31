@@ -222,6 +222,9 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 				)}
 
 				<ViewerCanvasArea
+					onUpdateSlideAnimations={(animations) =>
+						propertyHandlers.handleUpdateSlide({ animations })
+					}
 					mode={mode}
 					canEdit={canEdit}
 					slides={slides}

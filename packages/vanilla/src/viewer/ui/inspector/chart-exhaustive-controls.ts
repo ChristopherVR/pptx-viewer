@@ -27,12 +27,36 @@ export function checkbox(doc: Document, text: string) {
 	return result;
 }
 
-export function select(doc: Document, text: string, values: string[]) {
+export function select(doc: Document, text: string, values: readonly string[]) {
 	const control = doc.createElement('select');
 	setOptions(
 		doc,
 		control,
 		values.map((item) => [item, item]),
+	);
+	return field(doc, text, control);
+}
+
+/**
+ * A select whose options come from a shared `chart-editor-options` catalogue.
+ *
+ * Preferred over {@link select} for anything the other bindings also offer: the
+ * value list and its translated labels then live in `pptx-viewer-shared` and
+ * cannot drift, where a local `['thousands', 'millions', ...]` literal both
+ * ships raw schema tokens to the user and silently diverges the moment React
+ * gains an entry.
+ */
+export function optionSelect(
+	doc: Document,
+	text: string,
+	options: ReadonlyArray<{ value: string; labelKey: string }>,
+	translate: (key: string) => string,
+) {
+	const control = doc.createElement('select');
+	setOptions(
+		doc,
+		control,
+		options.map((option) => [option.value, translate(option.labelKey)]),
 	);
 	return field(doc, text, control);
 }

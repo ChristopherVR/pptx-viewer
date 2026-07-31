@@ -24,6 +24,7 @@
 	import AnimationsAdvancedGroup from './AnimationsAdvancedGroup.svelte';
 	import AnimationTimeline from './AnimationTimeline.svelte';
 	import { previewElementAnimation } from './animation-preview-player';
+	import MotionPathGallery from './MotionPathGallery.svelte';
 
 	const { editor, chromeUi }: { editor: EditorState; chromeUi?: ChromeUiState } = $props();
 	const t = useTranslator();
@@ -71,6 +72,13 @@
 				</div>
 			{/each}
 		</div>
+	</RibbonGroup>
+
+	<RibbonGroup label={t('pptx.animation.motionPath')}>
+		<MotionPathGallery
+			{disabled}
+			onapply={(presetId) => editor.animationOps.applyMotionPath(presetId)}
+		/>
 	</RibbonGroup>
 
 	<AnimationsAdvancedGroup {editor} {chromeUi} {disabled} />

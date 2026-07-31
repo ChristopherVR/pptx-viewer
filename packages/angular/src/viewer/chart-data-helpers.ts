@@ -27,6 +27,7 @@ import {
 	setChartAxisTitleStyle,
 	setChartDataPointExplosion,
 	setChartDataPointFill,
+	setChartDataPointMarker,
 	setChartSeriesChartType,
 	setChartSeriesMarker,
 } from 'pptx-viewer-core';
@@ -133,6 +134,21 @@ export function setDataPointFill(
 ): ChartPptxElement {
 	return withClonedChart(element, (el) =>
 		setChartDataPointFill(el, seriesIndex, pointIndex, color),
+	);
+}
+
+/**
+ * Set or clear a per-data-point marker override (`c:dPt/c:marker`), which
+ * replaces the series marker for that one point.
+ */
+export function setDataPointMarker(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	marker: { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string } | null,
+): ChartPptxElement {
+	return withClonedChart(element, (el) =>
+		setChartDataPointMarker(el, seriesIndex, pointIndex, marker),
 	);
 }
 

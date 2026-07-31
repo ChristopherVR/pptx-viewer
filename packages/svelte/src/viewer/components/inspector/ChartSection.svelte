@@ -12,18 +12,25 @@
 	 * makes a single cell editable without retyping the rest.
 	 */
 	import type {
+		ChartPptxElement,
 		PptxChartAxisFormatting,
 		PptxChartData,
 		PptxChartErrBars,
+		PptxChartMarkerSymbol,
 		PptxChartSeries,
+		PptxChartTrendline,
 		PptxChartType,
 	} from 'pptx-viewer-core';
+	import { setChartDataPointMarker } from 'pptx-viewer-core';
 
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import ChartAdvancedSection from './ChartAdvancedSection.svelte';
+	import ChartAxisFormatSection from './ChartAxisFormatSection.svelte';
 	import ChartDataGrid from './ChartDataGrid.svelte';
 	import ChartErrorBarSection from './ChartErrorBarSection.svelte';
 	import ChartLabelsAxesSection from './ChartLabelsAxesSection.svelte';
+	import ChartPointMarkerSection from './ChartPointMarkerSection.svelte';
+	import ChartTrendlineSection from './ChartTrendlineSection.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
 	const chart = $derived(
@@ -57,6 +64,32 @@
 	function setErrorBars(index: number, errBars: PptxChartErrBars | null): void {
 		seriesPatch(index, { errBars: errBars ? [errBars] : undefined });
 	}
+	/**
+	 * Set or clear one series' trendline. Clearing writes an EMPTY array, not
+	 * `undefined`: the save serializer treats `undefined` as "not modelled, leave
+	 * the XML alone", so a removed trendline would come straight back on reload.
+	 */
+	function setTrendline(index: number, trendline: PptxChartTrendline | null): void {
+		seriesPatch(index, { trendlines: trendline ? [trendline] : [] });
+	}
+	/**
+	 * Set or clear a per-point marker override through core's headless op, which
+	 * mutates in place: run it over a deep clone so the editor sees a fresh
+	 * reference (Svelte's `$state` proxies compare by identity) and undo stays a
+	 * single, self-contained step.
+	 */
+	function setPointMarker(
+		seriesIndex: number,
+		pointIndex: number,
+		marker: { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string } | null,
+	): void {
+		if (!chart || !data) {
+			return;
+		}
+		const clone: ChartPptxElement = { ...chart, chartData: structuredClone($state.snapshot(data)) };
+		setChartDataPointMarker(clone, seriesIndex, pointIndex, marker);
+		replace(clone.chartData!);
+	}
 </script>
 
 {#if data}<div class="section">
@@ -69,9 +102,12 @@
 		onreplace={replace}
 		onrenameseries={(index, name) => seriesPatch(index, { name })}
 	/>
-	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { color: event.currentTarget.value })} /><select aria-label="Trendline" value={series.trendlines?.[0]?.trendlineType ?? ''} onchange={(event) => seriesPatch(index, { trendlines: (event.currentTarget.value ? [{ trendlineType: event.currentTarget.value }] : []) as PptxChartSeries['trendlines'] })}><option value="">No trendline</option>{#each ['linear','exponential','logarithmic','polynomial','power','movingAvg'] as type}<option value={type}>{type}</option>{/each}</select></fieldset>{/each}
+	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { color: event.currentTarget.value })} /></fieldset>{/each}
+	<ChartTrendlineSection {data} {canEdit} onsettrendline={setTrendline} />
+	{#if chart}<ChartPointMarkerSection element={chart} {canEdit} onsetpointmarker={setPointMarker} />{/if}
 	<h5>Axes</h5>{#each data.axes ?? [] as axis, index}<fieldset><input aria-label="Axis title" value={axis.titleText ?? ''} oninput={(event) => axisPatch(index, { titleText: event.currentTarget.value })} /><input type="number" aria-label="Axis minimum" placeholder="Min" value={axis.min ?? ''} onchange={(event) => axisPatch(index, { min: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /><input type="number" aria-label="Axis maximum" placeholder="Max" value={axis.max ?? ''} onchange={(event) => axisPatch(index, { max: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /></fieldset>{/each}
 	<ChartErrorBarSection {data} {canEdit} onseterrorbars={setErrorBars} />
+	<ChartAxisFormatSection {data} {canEdit} onpatch={patch} />
 	<ChartLabelsAxesSection {data} onpatch={patch} />
 	<ChartAdvancedSection {data} onpatch={patch} />
 </div>{/if}

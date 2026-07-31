@@ -1588,6 +1588,11 @@ export class SlideCanvasComponent implements SlideContext {
 			position: 'relative',
 			overflow: 'hidden',
 			'box-shadow': '0 10px 40px rgba(0, 0, 0, 0.35)',
+			// Motion-path keyframes translate by a fraction of the SLIDE, not of the
+			// animated element's own box, so the stage publishes its size for those
+			// `calc(var(--pptx-slide-w) * f)` offsets to resolve against.
+			'--pptx-slide-w': `${size.width}px`,
+			'--pptx-slide-h': `${size.height}px`,
 			// Resolved slide background: image → gradient → pattern → solid colour.
 			// A stacked overlay layer (the morph departing slide) opts out entirely
 			// and stays see-through, so it cannot occlude the stage beneath it.

@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { ENTRANCE_PRESETS, EXIT_PRESETS, ooxmlToPresetName } from 'pptx-viewer-core';
+import { motionPathPresetById } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import AnimationPanel from './AnimationPanel.vue';
@@ -126,5 +127,68 @@ describe('animationPanel', () => {
 		expect(patch.animations).toHaveLength(1);
 		// The first entry was removed; the remaining one is the exit animation.
 		expect(patch.animations?.[0]).toMatchObject({ elementId: 'sp1', exit: 'exit.10' });
+	});
+});
+
+/**
+ * The motion-path row commits to the SLIDE's animation list, not the element
+ * patch, because that is the list the canvas overlay and the ribbon gallery
+ * both read and write.
+ */
+describe('animationPanel motion path', () => {
+	function mountPanel(slideAnimations: PptxElementAnimation[] = []) {
+		return mount(AnimationPanel, { props: { element: makeElement(), slideAnimations } });
+	}
+
+	function lastSlideAnimations(
+		wrapper: ReturnType<typeof mount>,
+	): PptxElementAnimation[] | undefined {
+		return wrapper.emitted('updateSlideAnimations')?.at(-1)?.[0] as
+			| PptxElementAnimation[]
+			| undefined;
+	}
+
+	it('reflects the path already applied to the selected element', () => {
+		const wrapper = mountPanel([
+			{ elementId: 'sp1', motionPath: motionPathPresetById('lineDown')?.path },
+		]);
+		expect(
+			(wrapper.get('.pptx-vue-motion-path-row select').element as HTMLSelectElement).value,
+		).toBe('lineDown');
+	});
+
+	it('applies a chosen preset to the slide animation list', async () => {
+		const wrapper = mountPanel();
+		await wrapper.get('.pptx-vue-motion-path-row select').setValue('lineRight');
+
+		expect(lastSlideAnimations(wrapper)).toStrictEqual([
+			expect.objectContaining({
+				elementId: 'sp1',
+				motionPath: motionPathPresetById('lineRight')?.path,
+				motionPathEditMode: 'relative',
+			}),
+		]);
+	});
+
+	it('clears the path, and with it an entry that carried nothing else', async () => {
+		const wrapper = mountPanel([
+			{ elementId: 'sp1', motionPath: motionPathPresetById('lineRight')?.path },
+		]);
+		await wrapper.get('.pptx-vue-motion-path-row select').setValue('none');
+
+		expect(lastSlideAnimations(wrapper)).toStrictEqual([]);
+	});
+
+	/** Clearing the path must not delete an entry that still has a preset. */
+	it('keeps a preset on the entry when only the path is cleared', async () => {
+		const wrapper = mountPanel([
+			{ elementId: 'sp1', entrance: 'fadeIn', motionPath: 'M 0 0 L 0.25 0' },
+		]);
+		await wrapper.get('.pptx-vue-motion-path-row select').setValue('none');
+
+		const next = lastSlideAnimations(wrapper);
+		expect(next).toHaveLength(1);
+		expect(next?.[0]).toMatchObject({ elementId: 'sp1', entrance: 'fadeIn' });
+		expect(next?.[0].motionPath).toBeUndefined();
 	});
 });

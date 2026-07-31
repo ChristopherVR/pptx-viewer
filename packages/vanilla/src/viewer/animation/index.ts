@@ -3,6 +3,7 @@ export {
 	ensurePresentationKeyframes,
 	injectSlideKeyframes,
 } from './animation-dom';
+export { buildAnimationPreview, playAnimationPreview } from './animation-preview';
 export { playTransitionOverlay } from './transition-overlay';
 export type { TransitionOverlayParams } from './transition-overlay';
 export { createPresentationPlayback } from './presentation-playback';

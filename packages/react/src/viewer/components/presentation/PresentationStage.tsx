@@ -155,13 +155,19 @@ export function PresentationStage({
 					aria-roledescription='slide'
 					aria-label={`Slide ${(sourceSlideIndex ?? 0) + 1}`}
 					className='absolute top-0 left-0 overflow-hidden'
-					style={{
-						width: safeWidth,
-						height: safeHeight,
-						transform: `scale(${scale})`,
-						transformOrigin: 'top left',
-						...getReactSlideBackgroundStyle(activeSlide),
-					}}
+					style={
+						{
+							width: safeWidth,
+							height: safeHeight,
+							transform: `scale(${scale})`,
+							transformOrigin: 'top left',
+							// Motion-path keyframes translate by a fraction of the SLIDE, so
+							// the stage publishes its own size for those calc() offsets.
+							'--pptx-slide-w': `${safeWidth}px`,
+							'--pptx-slide-h': `${safeHeight}px`,
+							...getReactSlideBackgroundStyle(activeSlide),
+						} as React.CSSProperties
+					}
 				>
 					{presentationKeyframesCss && <style>{presentationKeyframesCss}</style>}
 

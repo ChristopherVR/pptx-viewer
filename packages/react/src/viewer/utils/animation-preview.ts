@@ -12,7 +12,8 @@ import type {
 	PptxAnimationDirection,
 	PptxAnimationTimingCurve,
 } from 'pptx-viewer-core';
-import { buildPreviewAnimation } from 'pptx-viewer-shared';
+import { buildMotionPathPreview, buildPreviewAnimation } from 'pptx-viewer-shared';
+import type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
 
 export type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
 export { timingCurveToCss, buildPreviewAnimation, parseOoxmlBezierCurve } from 'pptx-viewer-shared';
@@ -55,7 +56,52 @@ export function startPreviewAnimation(
 	if (!descriptor) {
 		return;
 	}
+	playDescriptor(elementId, descriptor);
+}
 
+/**
+ * Start a motion-path preview: the element travels its authored path once.
+ *
+ * The slide size comes from the element's offset parent (the stage), because
+ * path coordinates are fractions of the SLIDE, not of the element box, and the
+ * stage is laid out in unscaled slide pixels.
+ */
+export function startMotionPathPreview(
+	elementId: string,
+	path: string,
+	options?: {
+		durationMs?: number;
+		delayMs?: number;
+		timingCurve?: PptxAnimationTimingCurve;
+	},
+): void {
+	stopPreviewAnimation();
+
+	const domEl = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement | null;
+	if (!domEl) {
+		return;
+	}
+	const stage = domEl.offsetParent as HTMLElement | null;
+	const descriptor = buildMotionPathPreview({
+		path,
+		slideWidth: stage?.offsetWidth || DEFAULT_PREVIEW_SLIDE_WIDTH,
+		slideHeight: stage?.offsetHeight || DEFAULT_PREVIEW_SLIDE_HEIGHT,
+		durationMs: options?.durationMs,
+		delayMs: options?.delayMs,
+		timingCurve: options?.timingCurve,
+	});
+	if (!descriptor) {
+		return;
+	}
+	playDescriptor(elementId, descriptor);
+}
+
+/** Fallback slide size when the stage cannot be measured (detached preview). */
+const DEFAULT_PREVIEW_SLIDE_WIDTH = 1280;
+const DEFAULT_PREVIEW_SLIDE_HEIGHT = 720;
+
+/** Inject a descriptor's keyframes, play it, and restore the element after. */
+function playDescriptor(elementId: string, descriptor: AnimationPreviewDescriptor): void {
 	// Find the DOM element
 	const domEl = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement | null;
 	if (!domEl) {

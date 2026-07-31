@@ -27,6 +27,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAnimationPreset, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import { DEFAULT_MOTION_PATH_PRESET_ID, applyMotionPathPreset } from '../internal/shared';
 import type { AnimationGroup } from '../internal/shared';
 import {
 	removeAnimation,
@@ -37,6 +38,7 @@ import {
 import { EditorStateService } from './editor-state.service';
 import type { AnimationPresetPick } from './ribbon-animation-gallery.component';
 import { RibbonAnimationGalleryComponent } from './ribbon-animation-gallery.component';
+import { RibbonMotionPathGalleryComponent } from './ribbon-motion-path-gallery.component';
 
 export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boolean {
 	return canEdit && hasSelection;
@@ -59,6 +61,7 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 		LucideTrash2,
 		LucidePanelRight,
 		RibbonAnimationGalleryComponent,
+		RibbonMotionPathGalleryComponent,
 	],
 	template: `
 		<!-- Preview: plays presentation from this slide; no element-only preview API yet -->
@@ -78,6 +81,28 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			(addAnimation)="onGalleryPick($event)"
 		/>
 		<span class="pptx-rb-sep"></span>
+		<!--
+			Motion Paths: its own captioned group (a path is geometry that coexists
+			with the preset buckets, not a fourth bucket of them), capped at React's
+			own 420px. Uncapped, five 150px family columns claim ~800px of a
+			single-row ribbon and squeeze the Advanced Animation pills beside them
+			until their labels overlap.
+		-->
+		<section
+			class="relative flex max-w-[420px] shrink items-start gap-1 overflow-hidden pb-3"
+			[attr.aria-label]="'pptx.animation.motionPath' | translate"
+		>
+			<pptx-ribbon-motion-path-gallery
+				[disabled]="!canAuthor()"
+				(applyMotionPath)="applyMotionPath($event)"
+			/>
+			<span
+				class="pointer-events-none absolute inset-x-1 bottom-0 truncate text-center text-[9px] leading-3 text-muted-foreground"
+			>
+				{{ 'pptx.animation.motionPath' | translate }}
+			</span>
+		</section>
+		<span class="pptx-rb-sep"></span>
 		<!-- Advanced Animation -->
 		<button
 			type="button"
@@ -88,11 +113,15 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			<svg lucideStar class="h-4 w-4 text-red-500"></svg>
 			{{ 'pptx.animations.exitEffects' | translate }}
 		</button>
+		<!--
+			One-click default path (Lines: Right). It used to apply a Fly In
+			entrance, which is not a path at all.
+		-->
 		<button
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
-			(click)="addAnimation('flyIn', 'entrance')"
+			(click)="applyMotionPath(defaultMotionPathPresetId)"
 		>
 			<svg lucideMoveRight class="h-4 w-4"></svg>
 			{{ 'pptx.animations.pathAnimation' | translate }}
@@ -188,9 +217,37 @@ export class RibbonAnimationsSectionComponent {
 		return canAuthorAnimation(this.canEdit(), this.hasSel());
 	}
 
+	/** The path the one-click "Path Animation" command applies. */
+	protected readonly defaultMotionPathPresetId = DEFAULT_MOTION_PATH_PRESET_ID;
+
 	/** Apply the preset a gallery button asked for. */
 	protected onGalleryPick(pick: AnimationPresetPick): void {
 		this.addAnimation(pick.preset, pick.group);
+	}
+
+	/**
+	 * Apply a catalogue motion path to the selected element.
+	 *
+	 * Separate from {@link addAnimation} because a path is written to the
+	 * `motionPath` field of the SAME animation entry the preset buckets use, not
+	 * to one of those buckets: applying a path must not wipe an entrance the
+	 * element already carries, and clearing that entrance later must not wipe
+	 * the path. The shared helper owns both rules.
+	 */
+	protected applyMotionPath(presetId: string): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		const el = this.selectedElement();
+		if (!el) {
+			return;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		if (!slide) {
+			return;
+		}
+		const updated = applyMotionPathPreset(slide.animations ?? [], el.id, presetId);
+		this.editor.updateSlide(this.slideIndex(), { animations: updated } as Partial<PptxSlide>);
 	}
 
 	/**

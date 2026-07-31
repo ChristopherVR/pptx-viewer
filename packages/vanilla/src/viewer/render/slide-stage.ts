@@ -91,6 +91,13 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		transformOrigin: 'top left',
 		position: 'relative',
 		overflow: 'hidden',
+		// Motion-path keyframes translate by a fraction of the SLIDE (a CSS
+		// `translate(%)` would resolve against the ELEMENT box instead and make a
+		// small shape barely move), so every stage publishes its own size for
+		// those `calc()` offsets. Set here rather than at the call sites so the
+		// editing stage and the presentation stage can never disagree.
+		'--pptx-slide-w': `${canvasSize.width}px`,
+		'--pptx-slide-h': `${canvasSize.height}px`,
 		...getSlideBackgroundStyle(slide),
 	});
 	if (interactive) {

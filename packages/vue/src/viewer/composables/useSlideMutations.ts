@@ -5,10 +5,11 @@ import type {
 	PptxSlide,
 	PptxSlideTransition,
 } from 'pptx-viewer-core';
+import { applyMotionPathPreset } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
 
 import { applyAnimationPreset, removeElementAnimation } from './element-animation';
-import type { AnimationGroup } from './element-animation';
 
 export interface UseSlideMutationsInput {
 	slides: Ref<PptxSlide[]>;
@@ -103,15 +104,24 @@ export function useSlideMutations(input: UseSlideMutationsInput) {
 		slides.value = nextSlides;
 	}
 
-	/** Apply an entrance/emphasis/exit preset to the selected element (Animations tab). */
-	function onAddAnimation(preset: string, group: AnimationGroup): void {
+	/**
+	 * Apply an animation to the selected element (Animations tab).
+	 *
+	 * The `motionPath` bucket is not a preset name but a catalogue id whose path
+	 * geometry is what gets stored on the entry, so it takes its own branch
+	 * rather than being cast into `PptxAnimationPreset`.
+	 */
+	function onAddAnimation(preset: string, group: AnimationApplyGroup): void {
 		const el = selectedElements.value[0];
 		const slide = activeSlide.value;
 		if (!el || !slide) {
 			return;
 		}
+		const current = slide.animations ?? [];
 		writeActiveSlideAnimations(
-			applyAnimationPreset(slide.animations ?? [], el.id, group, preset as PptxAnimationPreset),
+			group === 'motionPath'
+				? applyMotionPathPreset(current, el.id, preset)
+				: applyAnimationPreset(current, el.id, group, preset as PptxAnimationPreset),
 		);
 	}
 

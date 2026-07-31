@@ -11,6 +11,7 @@ import {
 	EXIT_PRESETS,
 	getAnimationPresetInfo,
 } from 'pptx-viewer-core';
+import { applyMotionPathPreset, clearMotionPath, motionPathFor } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -19,6 +20,7 @@ import { createElementAnimation, patchElementAnimation } from './animation-panel
 import { previewVueAnimation } from './animation-preview-player';
 import AnimationEditorControls from './AnimationEditorControls.vue';
 import AnimationTimeline from './AnimationTimeline.vue';
+import MotionPathRow from './MotionPathRow.vue';
 
 type AnimatableElement = PptxElement & { animations?: PptxElementAnimation[] };
 const props = withDefaults(
@@ -26,8 +28,9 @@ const props = withDefaults(
 		element: AnimatableElement;
 		slideElements?: readonly PptxElement[];
 		slideAnimations?: readonly PptxElementAnimation[];
+		canEdit?: boolean;
 	}>(),
-	{ slideElements: () => [], slideAnimations: () => [] },
+	{ slideElements: () => [], slideAnimations: () => [], canEdit: true },
 );
 const emit = defineEmits<{
 	update: [patch: Partial<AnimatableElement>];
@@ -84,6 +87,28 @@ function patchAnimation(index: number, patch: Partial<PptxElementAnimation>): vo
 function removeAnimation(index: number): void {
 	emit('update', { animations: currentAnimations.value.filter((_, current) => current !== index) });
 }
+
+// A motion path lives on the SLIDE's animation list (keyed by element id), the
+// same list the canvas overlay and the ribbon gallery write, so the row reads
+// and commits there rather than through the element-scoped `update` patch.
+const motionPath = computed(() => motionPathFor(props.slideAnimations, props.element.id));
+
+function changeMotionPath(pathPresetId: string): void {
+	if (!props.canEdit) {
+		return;
+	}
+	// `custom` is the read-only marker for a hand-dragged path; selecting it
+	// again is a no-op rather than a reset to some catalogue entry.
+	if (pathPresetId === 'custom') {
+		return;
+	}
+	emit(
+		'updateSlideAnimations',
+		pathPresetId === 'none'
+			? clearMotionPath(props.slideAnimations, props.element.id)
+			: applyMotionPathPreset(props.slideAnimations, props.element.id, pathPresetId),
+	);
+}
 </script>
 
 <template>
@@ -103,6 +128,9 @@ function removeAnimation(index: number): void {
 			/>
 		</div>
 		<p v-else class="text-muted-foreground">{{ t('pptx.animation.noAnimations') }}</p>
+
+		<!-- Motion path: geometry, not a preset, so it gets its own row -->
+		<MotionPathRow :motion-path="motionPath" :can-edit="canEdit" @change="changeMotionPath" />
 
 		<AnimationTimeline
 			:animations="timelineAnimations"

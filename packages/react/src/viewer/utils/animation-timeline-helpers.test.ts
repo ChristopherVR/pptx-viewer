@@ -201,12 +201,19 @@ describe('buildDynamicKeyframe', () => {
 		const result = buildDynamicKeyframe(anim, 10);
 		expect(result).toBeDefined();
 		expect(result!.css).toContain('rotate(');
+		// Offsets are slide-relative calc() lengths, not element-box percentages.
 		// First point (0,0) → next (100,0): angle = 0 degrees (moving right)
-		expect(result!.css).toContain('translate(0.00%, 0.00%) rotate(0.00deg)');
+		expect(result!.css).toContain(
+			'translate(calc(var(--pptx-slide-w, 1280px) * 0.0000), calc(var(--pptx-slide-h, 720px) * 0.0000)) rotate(0.00deg)',
+		);
 		// Second point (100,0) → next (100,100): angle = 90 degrees (moving down)
-		expect(result!.css).toContain('translate(100.00%, 0.00%) rotate(90.00deg)');
+		expect(result!.css).toContain(
+			'translate(calc(var(--pptx-slide-w, 1280px) * 1.0000), calc(var(--pptx-slide-h, 720px) * 0.0000)) rotate(90.00deg)',
+		);
 		// Last point (100,100) uses direction from previous: same as prev→current = 90 degrees
-		expect(result!.css).toContain('translate(100.00%, 100.00%) rotate(90.00deg)');
+		expect(result!.css).toContain(
+			'translate(calc(var(--pptx-slide-w, 1280px) * 1.0000), calc(var(--pptx-slide-h, 720px) * 1.0000)) rotate(90.00deg)',
+		);
 	});
 
 	it('does not add rotate() to motion path keyframes when motionPathRotateAuto is false', () => {

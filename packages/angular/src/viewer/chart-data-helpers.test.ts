@@ -21,6 +21,7 @@ import {
 	setCategoryLabel,
 	setDataPointExplosion,
 	setDataPointFill,
+	setDataPointMarker,
 	setGridlineStyle,
 	setSeriesChartType,
 	setSeriesColor,
@@ -391,6 +392,47 @@ describe('advanced chart formatting wrappers', () => {
 		);
 		const cleared = setDataPointFill(set, 0, 1, null);
 		expect(cleared.chartData?.series[0].dataPoints).toBeUndefined();
+	});
+
+	it('setDataPointMarker seeds and merges a per-point marker override', () => {
+		const el = makeChart(['S'], ['A', 'B', 'C']);
+
+		const seeded = setDataPointMarker(el, 0, 1, { symbol: 'circle' });
+		expect(seeded.chartData?.series[0].dataPoints?.find((p) => p.idx === 1)?.marker?.symbol).toBe(
+			'circle',
+		);
+		// The source element must not be touched (immutable contract).
+		expect(el.chartData?.series[0].dataPoints).toBeUndefined();
+
+		// A later size edit merges onto the existing override rather than replacing it.
+		const sized = setDataPointMarker(seeded, 0, 1, { size: 12 });
+		const marker = sized.chartData?.series[0].dataPoints?.find((p) => p.idx === 1)?.marker;
+		expect(marker?.symbol).toBe('circle');
+		expect(marker?.size).toBe(12);
+
+		const filled = setDataPointMarker(sized, 0, 1, { fillColor: '#ff0000' });
+		expect(
+			filled.chartData?.series[0].dataPoints?.find((p) => p.idx === 1)?.marker?.spPr?.fillColor,
+		).toBe('#ff0000');
+	});
+
+	it('setDataPointMarker drops the whole c:dPt when the override is cleared', () => {
+		const el = setDataPointMarker(makeChart(['S'], ['A', 'B']), 0, 1, { symbol: 'star' });
+
+		const cleared = setDataPointMarker(el, 0, 1, null);
+
+		expect(cleared.chartData?.series[0].dataPoints).toBeUndefined();
+	});
+
+	it('setDataPointMarker leaves a point fill in place when only the marker is cleared', () => {
+		const withFill = setDataPointFill(makeChart(['S'], ['A', 'B']), 0, 1, '#123456');
+		const withMarker = setDataPointMarker(withFill, 0, 1, { symbol: 'star' });
+
+		const cleared = setDataPointMarker(withMarker, 0, 1, null);
+
+		const point = cleared.chartData?.series[0].dataPoints?.find((p) => p.idx === 1);
+		expect(point?.marker).toBeUndefined();
+		expect(point?.spPr?.fillColor).toBe('#123456');
 	});
 
 	it('setDataPointExplosion sets a pie slice explosion', () => {

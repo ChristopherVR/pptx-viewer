@@ -4,11 +4,16 @@
 	 * "Timing" groups, split out of `AnimationsTab.svelte` so neither file
 	 * outgrows the 300-LOC budget.
 	 *
-	 * Exit Effects and Path Animation are shortcuts onto the same
-	 * `EditorState.animationOps.addAnimation` the gallery uses, so they add a
+	 * Exit Effects is a shortcut onto the same
+	 * `EditorState.animationOps.addAnimation` the gallery uses, so it adds a
 	 * real effect rather than opening a dialog nobody built; Effect Options and
 	 * Trigger open the inspector's Animation panel, which is where per-effect
 	 * timing and trigger editing already lives.
+	 *
+	 * Path Animation applies the DEFAULT motion path (Lines: Right) instead. It
+	 * used to add a Fly In entrance, which is not a path at all: the button
+	 * promised geometry and delivered a preset, so nothing was ever drawn on the
+	 * canvas to drag.
 	 *
 	 * Animation Painter, and the Start/Duration timing fields, are disabled
 	 * placeholders in React as well: copying an animation between elements and
@@ -16,6 +21,8 @@
 	 * built in any binding. They render disabled instead of vanishing, for the
 	 * reason spelled out in `RecordTab.svelte`.
 	 */
+	import { DEFAULT_MOTION_PATH_PRESET_ID } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { ChromeUiState } from '../../../state/chrome-ui.svelte';
@@ -50,7 +57,7 @@
 	<RibbonCommand
 		label={t('pptx.animations.pathAnimation')}
 		{disabled}
-		onclick={() => editor.animationOps.addAnimation('entrance', 'flyIn')}
+		onclick={() => editor.animationOps.applyMotionPath(DEFAULT_MOTION_PATH_PRESET_ID)}
 	>
 		{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 10h11M11 6.5 14.5 10 11 13.5" /></svg>{/snippet}
 	</RibbonCommand>

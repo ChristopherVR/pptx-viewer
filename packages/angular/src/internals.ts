@@ -112,6 +112,7 @@ export { RibbonFontControlsComponent } from './viewer/ribbon-font-controls.compo
 export { RibbonHomeSectionComponent } from './viewer/ribbon-home-section.component';
 export { RibbonHyperlinkButtonComponent } from './viewer/ribbon-hyperlink-button.component';
 export * from './viewer/ribbon-insert-file-picker';
+export * from './viewer/ribbon-motion-path-gallery.component';
 export { RibbonInsertFieldsComponent } from './viewer/ribbon-insert-fields.component';
 export { RibbonInsertSectionComponent } from './viewer/ribbon-insert-section.component';
 export { RibbonParagraphControlsComponent } from './viewer/ribbon-paragraph-controls.component';

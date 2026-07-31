@@ -10,6 +10,7 @@ import type {
 	PptxAnimationTrigger,
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { applyMotionPathPreset, clearMotionPath } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 
 import { getElementLabel } from '../../utils';
@@ -77,7 +78,9 @@ export function useAnimationHandlers({
 				const idx = anims.findIndex((a) => a.elementId === selectedElement.id);
 				const hasEffect = entrance || exit || emphasis;
 				if (idx >= 0) {
-					if (!hasEffect) {
+					// A motion path outlives the preset buckets: clearing the last
+					// preset must not delete the path drawn on the canvas with it.
+					if (!hasEffect && !anims[idx].motionPath) {
 						return anims.filter((a) => a.elementId !== selectedElement.id);
 					}
 					anims[idx] = {
@@ -139,6 +142,27 @@ export function useAnimationHandlers({
 			);
 		},
 		[setAnimationPreset, selectedElementAnimation],
+	);
+
+	// ── Motion path ──
+
+	const handleMotionPathChange = useCallback(
+		(presetId: string) => {
+			if (!canEdit) {
+				return;
+			}
+			// `custom` is the read-only marker for a hand-dragged path; selecting it
+			// again is a no-op rather than a reset to some catalogue entry.
+			if (presetId === 'custom') {
+				return;
+			}
+			updateAnimations((anims) =>
+				presetId === 'none'
+					? clearMotionPath(anims, selectedElement.id)
+					: applyMotionPathPreset(anims, selectedElement.id, presetId),
+			);
+		},
+		[canEdit, updateAnimations, selectedElement.id],
 	);
 
 	// ── Timing handlers ──
@@ -232,7 +256,8 @@ export function useAnimationHandlers({
 	const hasAnimation = Boolean(
 		selectedElementAnimation?.entrance ||
 		selectedElementAnimation?.exit ||
-		selectedElementAnimation?.emphasis,
+		selectedElementAnimation?.emphasis ||
+		selectedElementAnimation?.motionPath,
 	);
 
 	const showDirectionPicker =
@@ -280,6 +305,7 @@ export function useAnimationHandlers({
 		handleRepeatModeChange,
 		handleDirectionChange,
 		handleSequenceChange,
+		handleMotionPathChange,
 		getTimelineLabel,
 		...preview,
 		...dragDrop,

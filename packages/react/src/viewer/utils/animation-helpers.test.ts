@@ -112,15 +112,15 @@ describe('buildDynamicKeyframes', () => {
 		expect(buildDynamicKeyframes(anim, 0)).toBeUndefined();
 	});
 
-	it('should convert motion path coordinates to percentages', () => {
+	it('should convert motion path coordinates to slide-relative offsets', () => {
 		const anim = {
 			motionPath: 'M 0 0 L 0.5 0.3',
 		} as PptxNativeAnimation;
 		const result = buildDynamicKeyframes(anim, 0);
 		expect(result).toBeDefined();
-		// 0.5 * 100 = 50, 0.3 * 100 = 30
-		expect(result!.css).toContain('50.00%');
-		expect(result!.css).toContain('30.00%');
+		// Path fractions scale against the slide box, not the element box.
+		expect(result!.css).toContain('calc(var(--pptx-slide-w, 1280px) * 0.5000)');
+		expect(result!.css).toContain('calc(var(--pptx-slide-h, 720px) * 0.3000)');
 	});
 
 	it('should handle motion path with Z (close) command', () => {

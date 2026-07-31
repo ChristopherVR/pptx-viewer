@@ -80,6 +80,7 @@ export interface UseRibbonPropsStateInput {
 	showA11y: Ref<boolean>;
 	showSorter: Ref<boolean>;
 	showReadingView: Ref<boolean>;
+	showOutlineView: Ref<boolean>;
 	showCustomShows: Ref<boolean>;
 	showVersionHistory: Ref<boolean>;
 	showPasswordDialog: Ref<boolean>;

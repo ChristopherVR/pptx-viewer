@@ -18,7 +18,7 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { ChangeCaseMode, ToolbarActionId } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup, ChangeCaseMode, ToolbarActionId } from 'pptx-viewer-shared';
 
 /** Viewer interaction mode. Mirrors React `ViewerMode`. */
 export type ViewerMode = 'preview' | 'edit' | 'present' | 'master';
@@ -185,7 +185,8 @@ export interface RibbonProps {
 	onToggleSidebar: () => void;
 	onToggleInspector: () => void;
 	onOpenAnimationPanel: () => void;
-	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	/** `motionPath` carries a motion-path catalogue id in `preset`, not a preset name. */
+	onAddAnimation?: (preset: string, group: AnimationApplyGroup) => void;
 	onRemoveAnimation?: () => void;
 	onToggleCompactToolbar: () => void;
 	onSetToolbarSection: (section: ToolbarSection) => void;
@@ -257,6 +258,8 @@ export interface RibbonProps {
 	onToggleSlideSorter: () => void;
 	/** Open the windowed Reading View (NOT the fullscreen slide show). */
 	onOpenReadingView: () => void;
+	/** Enter PowerPoint's Outline view: the deck as editable indented text. */
+	onOpenOutlineView: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	onTransformTextCase: (mode: ChangeCaseMode) => void;

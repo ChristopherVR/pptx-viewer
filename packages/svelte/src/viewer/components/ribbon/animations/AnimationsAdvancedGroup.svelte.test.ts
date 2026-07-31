@@ -1,3 +1,4 @@
+import { DEFAULT_MOTION_PATH_PRESET_ID, motionPathPresetById } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -95,13 +96,20 @@ describe('animationsAdvancedGroup', () => {
 		});
 	});
 
-	it('adds a motion effect from Path Animation and removes it again', () => {
+	it('applies the default MOTION PATH from Path Animation, and removes it again', () => {
 		const editor = makeEditor();
 		const found = mountGroup(editor, false);
 
 		found.get('Path Animation')?.click();
 		flushSync();
-		expect(editor.slides[0]?.animations).toHaveLength(1);
+		// It used to add a Fly In entrance, which is not a path at all: nothing
+		// was ever drawn on the canvas for the user to drag.
+		expect(editor.slides[0]?.animations?.[0]).toMatchObject({
+			elementId: 'text-1',
+			motionPath: motionPathPresetById(DEFAULT_MOTION_PATH_PRESET_ID)?.path,
+			motionPathEditMode: 'relative',
+		});
+		expect(editor.slides[0]?.animations?.[0]?.entrance).toBeUndefined();
 
 		found.get('Remove')?.click();
 		flushSync();

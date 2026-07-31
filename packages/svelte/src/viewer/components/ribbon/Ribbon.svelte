@@ -176,6 +176,7 @@
 				onentermasterview={props.onentermasterview}
 				onselectionpane={props.onselectionpane}
 				onslidesorter={props.onslidesorter}
+				onoutlineview={props.onoutlineview}
 				onreadingview={props.onreadingview}
 			/>
 		{:else if activeTab === 'help'}

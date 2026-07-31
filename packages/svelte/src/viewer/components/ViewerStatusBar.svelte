@@ -54,6 +54,7 @@
 		}
 		parityUi.slideSorterOpen = false;
 		parityUi.readingViewOpen = false;
+		parityUi.outlineViewOpen = false;
 	}}
 	onslidesorter={() => (parityUi.slideSorterOpen = true)}
 	collaborationSlot={collab.active ? collabStatus : undefined}

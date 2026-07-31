@@ -1,4 +1,4 @@
-import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxAction, PptxElement, PptxElementAnimation, PptxSlide } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import {
 	buildFieldSubstitutionContext,
@@ -102,6 +102,8 @@ export interface ViewerCanvasAreaProps {
 	aiHighlightOverlay?: React.ReactNode;
 	/** True while AI activity should tween element colour changes on the canvas. */
 	aiCanvasActive?: boolean;
+	/** Commits the slide's animation list after an on-canvas motion-path drag. */
+	onUpdateSlideAnimations?: (animations: PptxElementAnimation[]) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -442,6 +444,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				/>
 			) : (
 				<SlideCanvas
+					onUpdateSlideAnimations={props.onUpdateSlideAnimations}
 					activeSlide={effectiveSlide}
 					templateElements={effectiveTemplateElements}
 					canvasSize={canvasSize}

@@ -1,5 +1,6 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
-import { buildPreviewAnimation } from 'pptx-viewer-shared';
+import type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
+import { buildMotionPathPreview, buildPreviewAnimation } from 'pptx-viewer-shared';
 
 /**
  * Cancellable DOM preview player for the docked AnimationPanel: the Svelte
@@ -23,26 +24,56 @@ function findTarget(elementId: string): HTMLElement | null {
 	return document.querySelector<HTMLElement>(`[data-element-id="${CSS.escape(elementId)}"]`);
 }
 
+/** Slide size assumed when the stage cannot be measured (detached preview). */
+const FALLBACK_SLIDE_WIDTH = 1280;
+const FALLBACK_SLIDE_HEIGHT = 720;
+
+/**
+ * Build the descriptor for one animation entry.
+ *
+ * A motion path WINS over the preset buckets: it is the effect being authored
+ * on the canvas at that moment, and a fade would hide the travel entirely. The
+ * slide size comes from the element's offset parent (the stage), because path
+ * coordinates are fractions of the SLIDE, not of the element box.
+ */
+function describe(
+	anim: PptxElementAnimation,
+	target: HTMLElement,
+): AnimationPreviewDescriptor | undefined {
+	if (anim.motionPath) {
+		const stage = target.offsetParent as HTMLElement | null;
+		return buildMotionPathPreview({
+			path: anim.motionPath,
+			slideWidth: stage?.offsetWidth || FALLBACK_SLIDE_WIDTH,
+			slideHeight: stage?.offsetHeight || FALLBACK_SLIDE_HEIGHT,
+			durationMs: anim.durationMs,
+			delayMs: anim.delayMs,
+			timingCurve: anim.timingCurve,
+		});
+	}
+	const preset = anim.entrance ?? anim.emphasis ?? anim.exit;
+	if (!preset || preset === 'none') {
+		return undefined;
+	}
+	return buildPreviewAnimation(preset, {
+		direction: anim.direction,
+		durationMs: anim.durationMs ?? 500,
+		timingCurve: anim.timingCurve,
+	});
+}
+
 /**
  * Play the animation entry's effect on its canvas element. Cancels any
  * running preview first; cleans itself up when the effect ends.
  */
 export function startAnimationPreview(anim: PptxElementAnimation): void {
 	stopAnimationPreview();
-	const preset = anim.entrance ?? anim.emphasis ?? anim.exit;
-	if (!preset || preset === 'none') {
-		return;
-	}
-	const descriptor = buildPreviewAnimation(preset, {
-		direction: anim.direction,
-		durationMs: anim.durationMs ?? 500,
-		timingCurve: anim.timingCurve,
-	});
-	if (!descriptor) {
-		return;
-	}
 	const target = findTarget(anim.elementId);
 	if (!target) {
+		return;
+	}
+	const descriptor = describe(anim, target);
+	if (!descriptor) {
 		return;
 	}
 	const styleEl = document.createElement('style');

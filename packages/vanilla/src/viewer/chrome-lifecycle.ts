@@ -367,6 +367,7 @@ export interface ChromeHost {
 	openSelectionPane(): void;
 	openSlideSorter(): void;
 	openReadingView(): void;
+	openOutlineView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	openCustomShows(): void;
@@ -440,6 +441,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openSelectionPane: () => host.openSelectionPane(),
 		openSlideSorter: () => host.openSlideSorter(),
 		openReadingView: () => host.openReadingView(),
+		openOutlineView: () => host.openOutlineView(),
 		openComments: () => host.openComments(),
 		openHyperlink: () => host.openHyperlink(),
 		openCustomShows: () => host.openCustomShows(),

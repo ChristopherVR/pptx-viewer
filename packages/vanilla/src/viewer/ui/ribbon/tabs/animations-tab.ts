@@ -7,6 +7,7 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 
+import { playAnimationPreview } from '../../../animation';
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -15,6 +16,7 @@ import { createAnimationPresetGallery } from './animation-preset-gallery';
 import { animationRow, optionSelect, timingField } from './animation-timeline-controls';
 import { createAdvancedAnimationGroup } from './animations-advanced';
 import { createTimingGroup } from './animations-timing';
+import { createMotionPathGallery } from './motion-path-gallery';
 
 export interface AnimationsTabState {
 	editable: boolean;
@@ -44,7 +46,12 @@ export function createAnimationsTab(
 	t: Translator,
 	handlers: Pick<
 		AnimationActions,
-		'addAnimation' | 'removeAnimation' | 'reorderAnimation' | 'setAnimationTiming' | 'moveAnimation'
+		| 'addAnimation'
+		| 'applyMotionPath'
+		| 'removeAnimation'
+		| 'reorderAnimation'
+		| 'setAnimationTiming'
+		| 'moveAnimation'
 	>,
 	onOpenAnimationPanel: () => void,
 ): AnimationsTab {
@@ -52,20 +59,16 @@ export function createAnimationsTab(
 
 	let selectedAnimation: PptxElementAnimation | undefined;
 
-	/** Flash the target element, the same throwaway preview React runs. */
+	/**
+	 * Preview the selected element's effect on the canvas.
+	 *
+	 * This used to be a hand-rolled `element.animate()` fade, which showed the
+	 * wrong thing for every effect and nothing at all for a motion path (the one
+	 * effect whose whole point is the travel). It now plays the SAME shared
+	 * descriptor the inspector's Preview button does, motion path included.
+	 */
 	const playPreview = (): void => {
-		if (!selectedAnimation) {
-			return;
-		}
-		doc
-			.querySelector<HTMLElement>(`[data-element-id="${CSS.escape(selectedAnimation.elementId)}"]`)
-			?.animate(
-				[
-					{ opacity: 0, transform: 'translateY(12px)' },
-					{ opacity: 1, transform: 'translateY(0)' },
-				],
-				{ duration: selectedAnimation.durationMs ?? 500, easing: 'ease' },
-			);
+		playAnimationPreview(doc, selectedAnimation);
 	};
 
 	const preview = makeButton(doc, {
@@ -92,8 +95,20 @@ export function createAnimationsTab(
 	galleryGroup.append(gallery.el, galleryLabel);
 	el.appendChild(galleryGroup);
 
+	// Motion paths get their own group: a path coexists with an entrance /
+	// emphasis / exit preset on the same entry rather than replacing one.
+	const motionGroup = createEl(doc, 'div', 'pptxv-rgroup');
+	const motionLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
+	motionLabel.textContent = t('pptx.animation.motionPath');
+	const motionGallery = createMotionPathGallery(doc, t, (presetId) =>
+		handlers.applyMotionPath(presetId),
+	);
+	motionGroup.append(motionGallery.el, motionLabel);
+	el.appendChild(motionGroup);
+
 	const advanced = createAdvancedAnimationGroup(doc, t, {
 		addAnimation: handlers.addAnimation,
+		applyMotionPath: handlers.applyMotionPath,
 		removeAnimation: handlers.removeAnimation,
 		openAnimationPanel: onOpenAnimationPanel,
 	});
@@ -200,6 +215,7 @@ export function createAnimationsTab(
 		update({ editable, hasSelection, selectedElementId, animations }) {
 			const disabled = !editable || !hasSelection;
 			gallery.setDisabled(disabled);
+			motionGallery.setDisabled(disabled);
 			preview.setDisabled(disabled);
 			advanced.setDisabled(disabled);
 			const ordered = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

@@ -58,6 +58,13 @@
 			transformOrigin: 'top left',
 			position: 'relative',
 			overflow: 'hidden',
+			// Motion-path keyframes translate by a fraction of the SLIDE, not of
+			// the element box, so the stage publishes its own size for those
+			// `calc()` offsets. Declared here rather than on each host because
+			// this one component IS both the editing stage and the slide-show
+			// stage in this binding (plus presenter / reading / thumbnail views).
+			'--pptx-slide-w': `${canvasSize.width}px`,
+			'--pptx-slide-h': `${canvasSize.height}px`,
 			// Resolved slide background: image -> gradient -> pattern -> solid.
 			// A stage stacked over another one opts out entirely and stays
 			// see-through, so it cannot hide what it is animating over.

@@ -37,6 +37,11 @@ export interface ViewTab {
  * reduced to a nav bar (see `ui/reading-view.ts`). It sits next to Normal and
  * Slide Sorter because PowerPoint groups the three presentation views together.
  *
+ * "Outline View" sits between Slide Sorter and Reading View, which is where
+ * PowerPoint puts it and the order `e2e/ribbon-control-inventory.spec.ts` diffs
+ * every binding against. It opens the deck as editable indented text (see
+ * `ui/outline-view.ts`).
+ *
  * "Guides" and "Snap to shape" are one control each, for the one thing each of
  * them names. They used to be crossed: Guides drove shape snapping and Snap to
  * shape was a permanently disabled placeholder, so the ribbon carried a label
@@ -65,6 +70,8 @@ export function createViewTab(
 	normal.btn.title = t('pptx.statusBar.normalView');
 	const sorter = command('pptx.slideSorter.title', handlers.openSlideSorter);
 	sorter.btn.title = t('pptx.view.slideSorterTooltip');
+	const outline = command('pptx.view.outlineView', handlers.openOutlineView);
+	outline.btn.title = t('pptx.view.outlineViewTooltip');
 	const reading = command('pptx.view.readingView', handlers.openReadingView);
 
 	const masterView = command('pptx.master.title', () => handlers.toggleMasterView?.());
@@ -100,6 +107,7 @@ export function createViewTab(
 	el.append(
 		normal.btn,
 		sorter.btn,
+		outline.btn,
 		reading.btn,
 		masterView.btn,
 		placeholder('pptx.master.handoutMasterTitle'),

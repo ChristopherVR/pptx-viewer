@@ -66,9 +66,27 @@ describe('viewTab', () => {
 	});
 
 	it('offers React’s presentation-view, master-view, zoom and window commands', () => {
-		const found = buttons(mountTab());
+		const target = mountTab();
+		const found = buttons(target);
 
-		for (const name of ['Normal', 'Slide Sorter', 'Reading View', 'Slide Master', 'Zoom to Fit']) {
+		// `e2e/ribbon-control-inventory.spec.ts` diffs every binding against React
+		// by accessible name, so the Presentation Views order is part of the
+		// contract, not a layout preference.
+		expect(
+			[...target.querySelectorAll('button')]
+				.slice(0, 4)
+				.map((button) => button.textContent?.trim()),
+		).toStrictEqual(['Normal', 'Slide Sorter', 'Outline View', 'Reading View']);
+		expect(found.get('Outline View')?.title).toBe('Outline view: edit the deck as indented text');
+
+		for (const name of [
+			'Normal',
+			'Slide Sorter',
+			'Outline View',
+			'Reading View',
+			'Slide Master',
+			'Zoom to Fit',
+		]) {
 			expect(found.get(name), `${name} is missing from the View tab`).toBeDefined();
 			expect(found.get(name)?.disabled, `${name} should be usable`).toBeFalsy();
 		}
@@ -78,20 +96,23 @@ describe('viewTab', () => {
 		}
 	});
 
-	it('routes Normal, Slide Sorter and Reading View to their view switches', () => {
+	it('routes every presentation view to its view switch', () => {
 		// Reading View shipped as a permanently disabled placeholder in all five
-		// bindings; this asserts the control is really wired, not just enabled.
+		// bindings; this asserts the controls are really wired, not just enabled.
 		const onnormal = vi.fn();
 		const onslidesorter = vi.fn();
+		const onoutlineview = vi.fn();
 		const onreadingview = vi.fn();
-		const target = mountTab({ onnormal, onslidesorter, onreadingview });
+		const target = mountTab({ onnormal, onslidesorter, onoutlineview, onreadingview });
 
 		buttons(target).get('Normal')?.click();
 		buttons(target).get('Slide Sorter')?.click();
+		buttons(target).get('Outline View')?.click();
 		buttons(target).get('Reading View')?.click();
 
 		expect(onnormal).toHaveBeenCalledOnce();
 		expect(onslidesorter).toHaveBeenCalledOnce();
+		expect(onoutlineview).toHaveBeenCalledOnce();
 		expect(onreadingview).toHaveBeenCalledOnce();
 	});
 

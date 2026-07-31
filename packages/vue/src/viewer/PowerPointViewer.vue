@@ -46,12 +46,14 @@ import {
 	listAutosaveSnapshots,
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
+	motionPathFor,
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	resolveTopLevelElementId,
 	saveAutosaveSnapshot,
 	setCellText,
+	setMotionPath,
 	strokeToInkElement,
 	writeStoredViewerPrefs,
 	zoomInScale,
@@ -114,8 +116,10 @@ import MobileSheet from './components/MobileSheet.vue';
 import MobileSlidesSheet from './components/MobileSlidesSheet.vue';
 import MobileToolbar from './components/MobileToolbar.vue';
 import ModalDialog from './components/ModalDialog.vue';
+import MotionPathOverlay from './components/MotionPathOverlay.vue';
 import NotesMasterCanvas from './components/NotesMasterCanvas.vue';
 import NotesPanel from './components/NotesPanel.vue';
+import OutlineViewOverlay from './components/OutlineViewOverlay.vue';
 import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
@@ -1023,6 +1027,23 @@ function writeSlideAnimations(animations: PptxSlide['animations']): void {
 	slides.value = replaceSlideAnimations(slides.value, index, animations ?? []);
 }
 
+// ── Motion path overlay ───────────────────────────────────────────────
+// The path lives on the SLIDE's animation entry for the selected element, so
+// the overlay only needs that element plus a commit callback to edit it.
+const selectedMotionPath = computed(() => {
+	const el = inspectorElement.value;
+	return el ? motionPathFor(activeSlide.value?.animations ?? [], el.id) : undefined;
+});
+
+/** Commit a path retargeted by dragging its end handle on the canvas. */
+function onMotionPathChange(path: string): void {
+	const el = inspectorElement.value;
+	if (!el) {
+		return;
+	}
+	writeSlideAnimations(setMotionPath(activeSlide.value?.animations ?? [], el.id, path));
+}
+
 // ── Slide operations (add / duplicate / delete / reorder) ─────────────
 const slideOps = useSlideOperations({
 	slides,
@@ -1211,6 +1232,19 @@ function onSorterSelect(index: number): void {
 }
 function onSorterReorder(from: number, to: number): void {
 	slideOps.moveSlide(from, to);
+}
+
+// ── Outline view (the deck as editable indented text) ─────────────────
+const showOutlineView = ref(false);
+/**
+ * Commit an outline edit. `pushHistory()` runs BEFORE the deck is replaced,
+ * which is this binding's contract for an undoable change: the snapshot has to
+ * be of the state being replaced, not of the replacement.
+ */
+function onOutlineCommit(next: PptxSlide[], activeIndex: number): void {
+	history.pushHistory();
+	slides.value = next;
+	goTo(activeIndex);
 }
 
 // ── Reading view (deck at window size, editor chrome down to a nav bar) ──
@@ -1851,6 +1885,7 @@ const ribbonProps = useRibbonProps({
 	showA11y,
 	showSorter,
 	showReadingView,
+	showOutlineView,
 	showCustomShows,
 	showVersionHistory,
 	showPasswordDialog,
@@ -2374,6 +2409,16 @@ function handleQuickAccessCommand(id: string): void {
 							v-if="props.ai && aiPanel.changeBatch.value"
 							:batch="aiPanel.changeBatch.value"
 							:active-slide-index="activeSlideIndex"
+						/>
+						<!-- Motion path (Animations tab): dashed route + draggable end point -->
+						<MotionPathOverlay
+							v-if="props.canEdit && !presenting && inspectorElement && selectedMotionPath"
+							:element="inspectorElement"
+							:path="selectedMotionPath"
+							:canvas-size="canvasSize"
+							:scale="effectiveZoom"
+							:can-edit="props.canEdit"
+							@change-path="onMotionPathChange"
 						/>
 						<SelectionOverlay
 							v-if="props.canEdit && !inlineEditingElementId && !presenting"
@@ -3029,6 +3074,21 @@ function handleQuickAccessCommand(id: string): void {
 			@delete="(i) => slideOps.deleteSlide(i)"
 			@toggle-hidden="toggleSlideHidden"
 			@close="showSorter = false"
+		/>
+
+		<!-- Outline view overlay (the deck as editable indented text) -->
+		<!--
+			The EDITABLE deck, not `mergedSlides`: the merged one has each slide's
+			inherited master/layout elements folded in, and committing that back
+			would bake the whole template layer into every slide's own elements.
+		-->
+		<OutlineViewOverlay
+			v-if="showOutlineView"
+			:slides="slides"
+			:canvas-size="canvasSize"
+			:can-edit="props.canEdit"
+			@commit="onOutlineCommit"
+			@close="showOutlineView = false"
 		/>
 
 		<!-- Reading view overlay (windowed; never the Fullscreen API) -->

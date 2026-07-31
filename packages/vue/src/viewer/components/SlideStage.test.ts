@@ -37,6 +37,26 @@ function mountStage(extra: Record<string, unknown> = {}) {
 	});
 }
 
+/**
+ * Motion-path keyframes translate by a fraction of the SLIDE, expressed as
+ * `calc(var(--pptx-slide-w) * f)`. A CSS `translate(%)` would have resolved
+ * against the element's own box instead, so a small shape barely moved. The
+ * stage is what publishes the slide size those calc() offsets read.
+ */
+describe('slideStage slide-size custom properties', () => {
+	it('publishes the slide size for motion-path keyframes', () => {
+		const style = mountStage({ interactive: true }).get('.pptx-vue-stage').attributes('style');
+		expect(style).toContain('--pptx-slide-w: 960px');
+		expect(style).toContain('--pptx-slide-h: 540px');
+	});
+
+	it('publishes it on the presentation stage too', () => {
+		const style = mountStage({ presenting: true }).get('.pptx-vue-stage').attributes('style');
+		expect(style).toContain('--pptx-slide-w: 960px');
+		expect(style).toContain('--pptx-slide-h: 540px');
+	});
+});
+
 describe('slideStage accessibility contract', () => {
 	// The e2e contract is ONE aria-roledescription="slide" region per surface.
 	// On the editable canvas that region is the SlideCanvas wrapper, so the

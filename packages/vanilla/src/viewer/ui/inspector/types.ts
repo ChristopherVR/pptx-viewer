@@ -71,6 +71,8 @@ export interface InspectorHandlers {
 
 	/** Set/clear one effect bucket on the selected element (docked Animation panel). */
 	setAnimationEffect(group: AnimationGroup, preset: PptxAnimationPreset | 'none'): void;
+	/** Apply/clear a catalogue motion path by preset id (`'none'` clears it). */
+	applyMotionPath(presetId: string): void;
 	/** Patch timing/effect options on one element's animation entry. */
 	setAnimationTiming(elementId: string, patch: AnimationTimingPatch): void;
 	/** Move an element's animation one step in the slide play order. */

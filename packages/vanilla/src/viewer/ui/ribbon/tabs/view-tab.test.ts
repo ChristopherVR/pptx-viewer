@@ -21,6 +21,7 @@ function makeHandlers(over: Partial<RibbonNavHandlers> = {}): RibbonNavHandlers 
 		openSelectionPane: vi.fn(),
 		openSlideSorter: vi.fn(),
 		openReadingView: vi.fn(),
+		openOutlineView: vi.fn(),
 		openComments: vi.fn(),
 		openHyperlink: vi.fn(),
 		toggleViewOption: vi.fn(),
@@ -48,6 +49,7 @@ describe('createViewTab', () => {
 		for (const label of [
 			t('pptx.view.normal'),
 			t('pptx.slideSorter.title'),
+			t('pptx.view.outlineView'),
 			t('pptx.view.readingView'),
 			t('pptx.master.title'),
 			t('pptx.master.handoutMasterTitle'),
@@ -157,6 +159,29 @@ describe('createViewTab', () => {
 		expect(reading.disabled).toBeFalsy();
 		reading.click();
 		expect(openReadingView).toHaveBeenCalledOnce();
+	});
+
+	/**
+	 * `e2e/ribbon-control-inventory.spec.ts` diffs every binding's ribbon against
+	 * React's by accessible name, so both the label and the position (between
+	 * Slide Sorter and Reading View) are load-bearing, not cosmetic.
+	 */
+	it('offers Outline View between Slide Sorter and Reading View', () => {
+		const t = createTranslator();
+		const openOutlineView = vi.fn();
+		const tab = createViewTab(document, t, makeHandlers({ openOutlineView }));
+		const outline = button(tab, t('pptx.view.outlineView'));
+		expect(outline.disabled).toBeFalsy();
+		expect(outline.title).toBe(t('pptx.view.outlineViewTooltip'));
+		const commands = [...tab.el.querySelectorAll('button')];
+		expect(commands.indexOf(outline)).toBe(
+			commands.indexOf(button(tab, t('pptx.slideSorter.title'))) + 1,
+		);
+		expect(commands.indexOf(button(tab, t('pptx.view.readingView')))).toBe(
+			commands.indexOf(outline) + 1,
+		);
+		outline.click();
+		expect(openOutlineView).toHaveBeenCalledOnce();
 	});
 
 	it('hides the zoom commands when the zoom action is hidden', () => {

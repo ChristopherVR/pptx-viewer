@@ -144,6 +144,12 @@ const stageStyle = computed<CSSProperties>(() => ({
 	transformOrigin: 'top left',
 	position: 'relative',
 	overflow: 'hidden',
+	// Motion-path keyframes translate by a fraction of the SLIDE, so the stage
+	// publishes its own size for those calc() offsets. Set on every stage (edit,
+	// presentation, thumbnails) because the path fractions are slide-relative
+	// regardless of the scale the stage happens to be drawn at.
+	'--pptx-slide-w': `${props.canvasSize.width}px`,
+	'--pptx-slide-h': `${props.canvasSize.height}px`,
 	// Resolved slide background: image -> gradient -> pattern -> solid colour.
 	// A stacked overlay layer opts out entirely and stays see-through.
 	...(props.transparentBackground

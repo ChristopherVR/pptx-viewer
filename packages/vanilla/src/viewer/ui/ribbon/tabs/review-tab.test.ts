@@ -22,6 +22,7 @@ function navHandlers(over: Partial<RibbonNavHandlers> = {}): RibbonNavHandlers {
 		openSelectionPane: vi.fn(),
 		openSlideSorter: vi.fn(),
 		openReadingView: vi.fn(),
+		openOutlineView: vi.fn(),
 		openComments: vi.fn(),
 		openHyperlink: vi.fn(),
 		toggleViewOption: vi.fn(),

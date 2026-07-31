@@ -1,7 +1,10 @@
 import {
+	DEFAULT_MOTION_PATH_PRESET_ID,
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
+	MOTION_PATH_PRESETS,
+	motionPathPresetLabelKey,
 } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -11,6 +14,7 @@ import { createAnimationsTab } from './animations-tab';
 function handlers() {
 	return {
 		addAnimation: vi.fn(),
+		applyMotionPath: vi.fn(),
 		removeAnimation: vi.fn(),
 		reorderAnimation: vi.fn(),
 		setAnimationTiming: vi.fn(),
@@ -108,7 +112,9 @@ describe('createAnimationsTab', () => {
 		(control(tab, t('pptx.animations.exitEffects')) as HTMLButtonElement).click();
 		(control(tab, t('pptx.animations.pathAnimation')) as HTMLButtonElement).click();
 		expect(actions.addAnimation).toHaveBeenNthCalledWith(1, 'exit', 'fadeOut');
-		expect(actions.addAnimation).toHaveBeenNthCalledWith(2, 'entrance', 'flyIn');
+		// Path Animation must apply a PATH; it used to apply a Fly In entrance.
+		expect(actions.applyMotionPath).toHaveBeenCalledWith(DEFAULT_MOTION_PATH_PRESET_ID);
+		expect(actions.addAnimation).toHaveBeenCalledOnce();
 	});
 
 	it('opens the animation panel from Effect Options, Animation Panel and Trigger', () => {
@@ -140,6 +146,44 @@ describe('createAnimationsTab', () => {
 		tab.update({ editable: true, hasSelection: false, animations: [] });
 		const first = tab.el.querySelector<HTMLButtonElement>('.pptxv-animation-gallery button');
 		expect(first?.disabled).toBeTruthy();
+		expect(
+			tab.el.querySelector<HTMLButtonElement>('.pptxv-motion-path-gallery button')?.disabled,
+		).toBeTruthy();
 		expect((control(tab, t('pptx.animations.remove')) as HTMLButtonElement).disabled).toBeTruthy();
+	});
+
+	it('gives Motion Paths its own captioned ribbon group beside the presets', () => {
+		const t = createTranslator();
+		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
+		const gallery = tab.el.querySelector('.pptxv-motion-path-gallery');
+		expect(gallery?.getAttribute('aria-label')).toBe(t('pptx.animations.motionPathGalleryAria'));
+		expect(gallery?.parentElement?.querySelector('.pptxv-rgroup-label')?.textContent).toBe(
+			t('pptx.animation.motionPath'),
+		);
+		// Every catalogue path is reachable, exactly once, as a real button.
+		const buttons = [
+			...tab.el.querySelectorAll<HTMLButtonElement>('.pptxv-motion-path-gallery button'),
+		];
+		expect(buttons).toHaveLength(MOTION_PATH_PRESETS.length);
+		const names = buttons.map((button) => button.getAttribute('aria-label'));
+		for (const preset of MOTION_PATH_PRESETS) {
+			expect(names.filter((name) => name === t(motionPathPresetLabelKey(preset.id)))).toHaveLength(
+				1,
+			);
+		}
+	});
+
+	it('applies the motion path its gallery button names', () => {
+		const t = createTranslator();
+		const actions = handlers();
+		const tab = createAnimationsTab(document, t, actions, vi.fn());
+		tab.update(selected);
+		const button = [
+			...tab.el.querySelectorAll<HTMLButtonElement>('.pptxv-motion-path-gallery button'),
+		].find(
+			(node) => node.getAttribute('aria-label') === t('pptx.animation.motionPath.preset.arcUp'),
+		);
+		button?.click();
+		expect(actions.applyMotionPath).toHaveBeenCalledWith('arcUp');
 	});
 });

@@ -106,6 +106,7 @@ export function createRibbonPropsFixture(overrides: Partial<RibbonProps> = {}): 
 		onRunAccessibilityCheck: noop,
 		onToggleSlideSorter: noop,
 		onOpenReadingView: noop,
+		onOpenOutlineView: noop,
 		onUpdateTextStyle: noop,
 		onTransformTextCase: noop,
 		onSetOverflowMenuOpen: noop,

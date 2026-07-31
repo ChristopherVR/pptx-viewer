@@ -33,6 +33,7 @@ import {
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	resolveThemeCatalogEntry,
+	setMotionPath,
 	shouldAutoFollowBroadcaster,
 	THEME_CATALOG,
 	viewerOptionsToPreferences,
@@ -88,7 +89,10 @@ import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
 import { MobilePresenterViewComponent } from './mobile-presenter-view.component';
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
+import { MotionPathOverlayComponent } from './motion-path-overlay.component';
 import { NotesPanelComponent } from './notes-panel.component';
+import { OutlineViewOverlayComponent } from './outline-view-overlay.component';
+import type { OutlineCommit } from './outline-view-overlay.component';
 import { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
@@ -166,6 +170,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		PresenterViewComponent,
 		MobilePresenterViewComponent,
 		SlideSorterOverlayComponent,
+		OutlineViewOverlayComponent,
 		ReadingViewOverlayComponent,
 		SlideDefaultInspectorComponent,
 		FindBarComponent,
@@ -180,6 +185,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		AccessibilityPanelComponent,
 		CollaborationCursorsComponent,
 		RemoteSelectionOverlayComponent,
+		MotionPathOverlayComponent,
 		FollowModeBarComponent,
 		PropertiesDialogComponent,
 		HyperlinkDialogComponent,
@@ -302,6 +308,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(link)="docProperties.showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
 					(openReadingView)="showReadingView.set(true)"
+					(openOutlineView)="showOutlineView.set(true)"
 					(toggleNotes)="mobileSheetSvc.toggleNotes()"
 					(toggleFormatPainter)="formatPainter.toggle()"
 					(exportPng)="xport.exportPng()"
@@ -453,6 +460,19 @@ import { ZoomTargetService } from './zoom-target.service';
 									[activeSlideIndex]="activeSlideIndex()"
 								/>
 							}
+							<!--
+								Motion path of the selected element: projected for the same
+								reason the collaboration overlays are, and authored in raw
+								slide coordinates. It draws nothing unless the deck is
+								editable and the selection actually carries a path.
+							-->
+							<pptx-motion-path-overlay
+								[element]="selectedElement()"
+								[animations]="activeSlide()?.animations ?? []"
+								[canvasSize]="loader.canvasSize()"
+								[canEdit]="canEdit()"
+								(pathChange)="onMotionPathChange($event)"
+							/>
 						</pptx-slide-canvas>
 						@if (collab.active() && collab.presence().length > 0) {
 							<div class="pptx-ng-collab-follow">
@@ -654,6 +674,21 @@ import { ZoomTargetService } from './zoom-target.service';
 					[activeIndex]="activeSlideIndex()"
 					(select)="goTo($event); showSorter.set(false)"
 					(closed)="showSorter.set(false)"
+				/>
+			}
+
+			@if (showOutlineView()) {
+				<!--
+					The EDITABLE deck, not the merged display deck: the merged one has
+					each slide's inherited master/layout elements folded in, and
+					committing that back would bake the template layer into the slides.
+				-->
+				<pptx-outline-view-overlay
+					[slides]="editor.slides()"
+					[canvasSize]="loader.canvasSize()"
+					[canEdit]="canEdit()"
+					(commit)="onOutlineCommit($event)"
+					(closed)="showOutlineView.set(false)"
 				/>
 			}
 
@@ -1236,6 +1271,7 @@ export class PowerPointViewerComponent {
 	 * pointer tools, no presenter console).
 	 */
 	protected readonly showReadingView = signal(false);
+	protected readonly showOutlineView = signal(false);
 	/** Full-canvas master editor visibility and active target. */
 	protected readonly showMasterView = signal(false);
 	protected readonly masterViewTab = signal<MasterViewTab>('slides');
@@ -1945,6 +1981,18 @@ export class PowerPointViewerComponent {
 		this.showReadingView.set(false);
 		this.goTo(slideIndex);
 	}
+
+	/**
+	 * Commit an outline edit as ONE undoable entry.
+	 *
+	 * `applyReplacement` rather than `setSlides`: the latter resets the undo
+	 * stack and the selection, which would make every keystroke in the outline
+	 * throw away the user's history.
+	 */
+	protected onOutlineCommit(commit: OutlineCommit): void {
+		this.editor.applyReplacement(commit.slides);
+		this.goTo(commit.activeSlideIndex);
+	}
 	goPrev(): void {
 		this.goTo(this.activeSlideIndex() - 1);
 	}
@@ -2103,6 +2151,24 @@ export class PowerPointViewerComponent {
 			return;
 		}
 		this.canvasEditing.onElementSelect(event);
+	}
+
+	/**
+	 * Commit a motion path dragged on the canvas.
+	 *
+	 * `setMotionPath` rather than a preset apply: the dragged geometry no longer
+	 * matches any catalogue entry, and it is written onto the SAME animation
+	 * entry the preset buckets use, so the element's entrance survives the edit.
+	 */
+	protected onMotionPathChange(path: string): void {
+		const element = this.selectedElement();
+		const slide = this.activeSlide();
+		if (!this.canEdit() || !element || !slide) {
+			return;
+		}
+		this.editor.updateSlide(this.activeSlideIndex(), {
+			animations: setMotionPath(slide.animations ?? [], element.id, path),
+		});
 	}
 
 	/** Context-menu "Ask AI about this": scope + open the assistant, empty composer. */

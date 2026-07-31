@@ -21,12 +21,15 @@ import {
 	Trash2,
 } from 'lucide-vue-next';
 import type { PptxElement } from 'pptx-viewer-core';
+import { DEFAULT_MOTION_PATH_PRESET_ID } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import AnimationPresetGallery from './AnimationPresetGallery.vue';
-import { ANIMATION_START_MODES, ic, pill, SEP } from './ribbon-constants';
+import MotionPathGallery from './MotionPathGallery.vue';
+import { ANIMATION_START_MODES, GROUP_LABEL, ic, pill, SEP } from './ribbon-constants';
 
 interface Props {
 	canEdit: boolean;
@@ -35,8 +38,12 @@ interface Props {
 	onToggleInspector: () => void;
 	/** Opens the inspector and switches to properties tab to show the animation panel. */
 	onOpenAnimationPanel?: () => void;
-	/** Adds an animation preset to the selected element. */
-	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	/**
+	 * Adds an animation to the selected element. `group` widens past the three
+	 * preset buckets with `motionPath`, where `preset` carries a motion-path
+	 * catalogue id instead of a preset name.
+	 */
+	onAddAnimation?: (preset: string, group: AnimationApplyGroup) => void;
 	/** Removes all animations from the selected element. */
 	onRemoveAnimation?: () => void;
 }
@@ -62,6 +69,11 @@ function handlePreview(): void {
 function openPanel(): void {
 	(props.onOpenAnimationPanel ?? props.onToggleInspector)();
 }
+
+/** Gallery click: a catalogue id travels as the motion-path bucket's payload. */
+function applyMotionPath(presetId: string): void {
+	props.onAddAnimation?.(presetId, 'motionPath');
+}
 </script>
 
 <template>
@@ -84,6 +96,14 @@ function openPanel(): void {
 
 	<div :class="SEP" />
 
+	<!-- Motion Paths: geometry, so its own captioned group beside the presets -->
+	<div class="flex flex-col items-center gap-0.5">
+		<MotionPathGallery :disabled="disabled" :on-apply-motion-path="applyMotionPath" />
+		<span :class="GROUP_LABEL">{{ t('pptx.animation.motionPath') }}</span>
+	</div>
+
+	<div :class="SEP" />
+
 	<!-- Advanced Animation -->
 	<button
 		type="button"
@@ -94,11 +114,15 @@ function openPanel(): void {
 		<Star :class="cn(ic, 'text-red-500')" />
 		{{ t('pptx.animations.exitEffects') }}
 	</button>
+	<!--
+		One-click default path (Lines: Right). It used to apply a Fly In entrance,
+		which is not a path at all.
+	-->
 	<button
 		type="button"
 		:disabled="disabled"
 		:class="pill"
-		@click="props.onAddAnimation?.('flyIn', 'entrance')"
+		@click="applyMotionPath(DEFAULT_MOTION_PATH_PRESET_ID)"
 	>
 		<MoveRight :class="ic" />
 		{{ t('pptx.animations.pathAnimation') }}

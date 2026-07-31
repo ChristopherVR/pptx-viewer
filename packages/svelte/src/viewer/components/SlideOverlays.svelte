@@ -9,6 +9,8 @@
 	 * member is gated by exactly one flag, which reads far better as its own
 	 * component than as eight sibling `{#if}` blocks buried in the body.
 	 */
+	import { motionPathFor } from 'pptx-viewer-shared';
+
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import RemoteSelectionOverlay from '../collab/components/RemoteSelectionOverlay.svelte';
 	import { PresentationTransitionOverlay } from '../presentation';
@@ -17,6 +19,7 @@
 	import AlignmentGuides from './AlignmentGuides.svelte';
 	import EditorLayer from './EditorLayer.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
+	import MotionPathOverlay from './MotionPathOverlay.svelte';
 	import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.svelte';
 	import type { SlideOverlaysProps } from './viewer-body-props';
 
@@ -41,6 +44,13 @@
 		aiHighlights = [],
 		aiChangeBatch = null,
 	}: SlideOverlaysProps = $props();
+
+	// The path lives on the SLIDE's animation entry for the selected element, so
+	// the overlay only needs the id to find it and a commit callback to edit it.
+	const selectedElement = $derived(editingActive ? editor.selectedElement : undefined);
+	const selectedMotionPath = $derived(
+		selectedElement ? motionPathFor(activeSlide?.animations ?? [], selectedElement.id) : undefined,
+	);
 </script>
 
 {#if aiHighlights.length > 0}
@@ -61,6 +71,16 @@
 {#if editingActive}
 	<EditorLayer {controller} {scale} {spellCheck} />
 	<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
+{/if}
+{#if selectedElement && selectedMotionPath}
+	<MotionPathOverlay
+		element={selectedElement}
+		path={selectedMotionPath}
+		{canvasSize}
+		{scale}
+		canEdit={editor.editable}
+		onchangepath={(next) => editor.animationOps.setMotionPath(next)}
+	/>
 {/if}
 {#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} />{/if}
 {#if collabPresences.length > 0}

@@ -48,6 +48,8 @@ interface Props {
 	onToggleEyedropper?: () => void;
 	onToggleSlideSorter?: () => void;
 	onOpenReadingView?: () => void;
+	/** Enter PowerPoint's Outline view: the deck as editable indented text. */
+	onOpenOutlineView?: () => void;
 	onZoomToFit?: () => void;
 }
 
@@ -70,6 +72,13 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 				@click="props.onToggleSlideSorter?.()"
 			>
 				{{ t('pptx.slideSorter.title') }}
+			</button>
+			<button
+				:class="pill"
+				:title="t('pptx.view.outlineViewTooltip')"
+				@click="props.onOpenOutlineView?.()"
+			>
+				{{ t('pptx.view.outlineView') }}
 			</button>
 			<button
 				:class="pill"

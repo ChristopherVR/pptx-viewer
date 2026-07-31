@@ -5,6 +5,8 @@ import type {
 	PptxSlide,
 	PptxSlideTransition,
 } from 'pptx-viewer-core';
+import { applyMotionPathPreset } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup } from 'pptx-viewer-shared';
 
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
@@ -27,7 +29,7 @@ export interface BuildToolbarAnimationHandlersInput {
 }
 
 export interface ToolbarAnimationHandlers {
-	handleAddAnimation: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	handleAddAnimation: (preset: string, group: AnimationApplyGroup) => void;
 	handleRemoveAnimation: () => void;
 	handleTransitionChange: (updates: Partial<PptxSlideTransition>) => void;
 	handleApplyTransitionToAll: () => void;
@@ -38,11 +40,19 @@ export function buildToolbarAnimationHandlers(
 ): ToolbarAnimationHandlers {
 	const { selectedElement, activeSlide, propertyHandlers, ops, history } = input;
 
-	const handleAddAnimation = (preset: string, group: 'entrance' | 'emphasis' | 'exit') => {
+	const handleAddAnimation = (preset: string, group: AnimationApplyGroup) => {
 		if (!selectedElement || !activeSlide) {
 			return;
 		}
 		const current = activeSlide.animations ?? [];
+		if (group === 'motionPath') {
+			// `preset` is a motion-path catalogue id here, not a preset name: the
+			// path geometry itself is what gets stored on the animation entry.
+			propertyHandlers.handleUpdateSlide({
+				animations: applyMotionPathPreset(current, selectedElement.id, preset),
+			});
+			return;
+		}
 		const existing = current.find((a) => a.elementId === selectedElement.id);
 		const presetValue = preset as PptxAnimationPreset;
 		if (existing) {

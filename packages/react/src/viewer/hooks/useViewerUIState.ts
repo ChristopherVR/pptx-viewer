@@ -39,6 +39,9 @@ export interface ViewerUIState {
 	setShowSlideSorter: React.Dispatch<React.SetStateAction<boolean>>;
 	showReadingView: boolean;
 	setShowReadingView: React.Dispatch<React.SetStateAction<boolean>>;
+	/** PowerPoint's Outline view: the deck as editable indented text. */
+	showOutlineView: boolean;
+	setShowOutlineView: React.Dispatch<React.SetStateAction<boolean>>;
 	isShortcutHelpOpen: boolean;
 	setIsShortcutHelpOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	isAccessibilityPanelOpen: boolean;
@@ -115,6 +118,7 @@ export function useViewerUIState(): ViewerUIState {
 	const [sidebarPanelMode, setSidebarPanelMode] = useState<string>('properties');
 	const [showSlideSorter, setShowSlideSorter] = useState(false);
 	const [showReadingView, setShowReadingView] = useState(false);
+	const [showOutlineView, setShowOutlineView] = useState(false);
 	const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
 	const [isAccessibilityPanelOpen, setIsAccessibilityPanelOpen] = useState(false);
 	const [accessibilityIssues, setAccessibilityIssues] = useState<AccessibilityIssue[]>([]);
@@ -168,6 +172,8 @@ export function useViewerUIState(): ViewerUIState {
 		setShowSlideSorter,
 		showReadingView,
 		setShowReadingView,
+		showOutlineView,
+		setShowOutlineView,
 		isShortcutHelpOpen,
 		setIsShortcutHelpOpen,
 		isAccessibilityPanelOpen,

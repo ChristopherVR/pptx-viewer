@@ -21,6 +21,7 @@ import { ChartAxisOptionsComponent } from './chart-axis-options.component';
 import { ChartAxisStyleOptionsComponent } from './chart-axis-style-options.component';
 import { ChartComboTypeOptionsComponent } from './chart-combo-type-options.component';
 import { ChartDataLabelOptionsComponent } from './chart-data-label-options.component';
+import { ChartDatapointMarkerOptionsComponent } from './chart-datapoint-marker-options.component';
 import { ChartDatapointOptionsComponent } from './chart-datapoint-options.component';
 import { ChartDisplayOptionsComponent } from './chart-display-options.component';
 import { ChartErrorBarOptionsComponent } from './chart-error-bar-options.component';
@@ -39,6 +40,7 @@ import { ChartTrendlineOptionsComponent } from './chart-trendline-options.compon
 		ChartMarkerOptionsComponent,
 		ChartComboTypeOptionsComponent,
 		ChartDatapointOptionsComponent,
+		ChartDatapointMarkerOptionsComponent,
 		ChartTrendlineOptionsComponent,
 		ChartErrorBarOptionsComponent,
 	],
@@ -75,6 +77,11 @@ import { ChartTrendlineOptionsComponent } from './chart-trendline-options.compon
 				(elementChange)="elementChange.emit($event)"
 			/>
 			<pptx-chart-datapoint-options
+				[element]="element()"
+				[canEdit]="canEdit()"
+				(elementChange)="elementChange.emit($event)"
+			/>
+			<pptx-chart-datapoint-marker-options
 				[element]="element()"
 				[canEdit]="canEdit()"
 				(elementChange)="elementChange.emit($event)"

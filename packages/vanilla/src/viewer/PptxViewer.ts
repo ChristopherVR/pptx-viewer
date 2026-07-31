@@ -721,6 +721,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.parityWorkflows.openReadingView();
 	}
 
+	/**
+	 * PowerPoint's Outline view: the deck as an editable indented text document.
+	 * Edits route through the normal whole-deck commit, so they undo like any
+	 * other structural change.
+	 */
+	openOutlineView(): void {
+		this.parityWorkflows.openOutlineView();
+	}
+
 	openComments(): void {
 		this.parityWorkflows.openComments();
 	}
@@ -1114,6 +1123,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.rulers?.destroy();
 		this.rulers = null;
 		this.parityWorkflows.closeReadingView();
+		this.parityWorkflows.closeOutlineView();
 		this.closeAudienceWindow();
 		this.presenterChannel?.close();
 		this.sessions.destroy();
