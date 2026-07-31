@@ -7,6 +7,7 @@
 
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { resolveTopLevelElementId } from '../internal/shared-src/render/element-hit-test';
 import { handleAnchor, handleCursor, RESIZE_HANDLES } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { isElementInteractive } from './template-mode';
@@ -107,18 +108,26 @@ export function computeCornerHandle(
 
 /**
  * Resolve the id of the interactive element under a pointer target, or null.
- * An element host carries `data-element-id`, but template (master/layout)
- * elements are only interactive while `editTemplateMode` is on; when off they
- * are reported as null so the canvas treats them as background (no
- * select/drag/context-menu/inline-edit).
+ *
+ * Resolution goes through the shared hit-test, which answers with the TOP-LEVEL
+ * element rather than the innermost `data-element-id` node. That distinction is
+ * the whole point here: a group renders its children's nodes inside its own, so
+ * the innermost node under a click is usually a grouped CHILD, whose id is not
+ * in `allElements`. This function used to look that child id up, find nothing,
+ * and report "no element", which CLEARED the selection: Ungroup was then only
+ * reachable by hitting a gap inside the group's box that missed every child.
+ * PowerPoint (and React, Vanilla and Svelte) select the group instead.
+ *
+ * Template (master/layout) elements are only interactive while
+ * `editTemplateMode` is on; when off they are reported as null so the canvas
+ * treats them as background (no select/drag/context-menu/inline-edit).
  */
 export function resolveInteractiveElementId(
 	target: EventTarget | null,
 	allElements: readonly PptxElement[],
 	editTemplateMode: boolean,
 ): string | null {
-	const host = (target as HTMLElement | null)?.closest('[data-element-id]') as HTMLElement | null;
-	const id = host?.getAttribute('data-element-id');
+	const id = resolveTopLevelElementId(target);
 	if (!id) {
 		return null;
 	}

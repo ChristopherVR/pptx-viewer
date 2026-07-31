@@ -632,6 +632,9 @@ export * from './element-action-options';
 // Presentation `ppt/tags/*.xml` name/value metadata: flatten + immutable edits.
 export * from './tag-collections';
 export * from './element-accessibility-dom';
+// Pointer-to-element hit-test: a click on a grouped child selects the GROUP
+// (PowerPoint's rule), with the innermost id kept available for drill-in.
+export * from './element-hit-test';
 export * from './modal-focus';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
@@ -725,6 +728,7 @@ export * from './zoom-step';
 export * from './command-search';
 export * from './autosave-store';
 export * from './backstage';
+export * from './backstage-cards';
 export * from './master-page-layout';
 export * from './virtualized-list';
 export * from './document-statistics';

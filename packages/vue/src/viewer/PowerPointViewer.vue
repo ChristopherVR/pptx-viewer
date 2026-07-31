@@ -49,6 +49,7 @@ import {
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	resolveTopLevelElementId,
 	saveAutosaveSnapshot,
 	setCellText,
 	strokeToInkElement,
@@ -768,8 +769,12 @@ function onCanvasPointerDown(event: PointerEvent): void {
 		return;
 	}
 	const target = event.target as HTMLElement | null;
-	const host = target?.closest('[data-element-id]') as HTMLElement | null;
-	const hitId = host?.dataset.elementId;
+	// Top-level, not innermost. A group renders its children's element nodes
+	// INSIDE its own, so `closest()` answers with a grouped CHILD, whose id
+	// matches no top-level element: the selection then pointed at nothing, the
+	// chrome never drew, and the context menu offered no Ungroup. PowerPoint
+	// selects the group on a single click, and so do React, Vanilla and Svelte.
+	const hitId = resolveTopLevelElementId(target);
 	// Template (master/layout) elements are interaction-locked unless the user
 	// turns on edit-template mode; a click on a locked one behaves like an
 	// empty-canvas click (no select / drag / inline-edit).
@@ -779,10 +784,8 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	// assistant (multi-pick, deduped) instead of a normal selection/drag. Resolve
 	// via elementFromPoint too so overlays do not swallow the hit.
 	if (aiPanel.pickMode.value) {
-		const pickHost = (document
-			.elementFromPoint(event.clientX, event.clientY)
-			?.closest('[data-element-id]') ?? host) as HTMLElement | null;
-		const pickId = pickHost?.dataset.elementId;
+		const pickId =
+			resolveTopLevelElementId(document.elementFromPoint(event.clientX, event.clientY)) ?? hitId;
 		if (pickId && isElementIdInteractive(pickId, editTemplateMode.value)) {
 			event.preventDefault();
 			aiPanel.addPick(activeSlideIndex.value, pickId);
@@ -804,9 +807,7 @@ function onCanvasPointerDown(event: PointerEvent): void {
 		// Resolve the element id: prefer the event target's ancestry, but fall
 		// back to elementFromPoint (covers cases where an overlay div intercepts).
 		const hitEl = document.elementFromPoint(event.clientX, event.clientY);
-		const hitHost = (hitEl?.closest('[data-element-id]') ??
-			target?.closest('[data-element-id]')) as HTMLElement | null;
-		const hitElementId = hitHost?.dataset.elementId;
+		const hitElementId = resolveTopLevelElementId(hitEl) ?? resolveTopLevelElementId(target);
 		const resolvedId =
 			hitElementId && isElementIdInteractive(hitElementId, editTemplateMode.value)
 				? hitElementId

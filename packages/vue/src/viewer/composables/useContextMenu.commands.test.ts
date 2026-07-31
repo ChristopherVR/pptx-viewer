@@ -30,6 +30,33 @@ const SHAPE = {
 	height: 10,
 } as unknown as PptxElement;
 
+const GROUP = {
+	id: 'group-1',
+	type: 'group',
+	x: 0,
+	y: 0,
+	width: 40,
+	height: 40,
+	children: [],
+} as unknown as PptxElement;
+
+/**
+ * `<div data-element-id="group-1"><div data-element-id="child-1"><span/></div></div>`,
+ * which is how every binding renders a `p:grpSp`: the child's element node is a
+ * DESCENDANT of the group's, so a click on it hits the child first.
+ */
+function mountGroup(): { group: HTMLElement; leaf: HTMLElement } {
+	const group = document.createElement('div');
+	group.dataset.elementId = GROUP.id;
+	const child = document.createElement('div');
+	child.dataset.elementId = 'child-1';
+	const leaf = document.createElement('span');
+	child.appendChild(leaf);
+	group.appendChild(child);
+	document.body.appendChild(group);
+	return { group, leaf };
+}
+
 function setup(overrides: Partial<UseContextMenuInput> = {}): UseContextMenuResult {
 	let menu: UseContextMenuResult | null = null;
 	mount(
@@ -139,6 +166,29 @@ describe('useContextMenu right-click target', () => {
 		expect(menu.contextMenu.value.open).toBeTruthy();
 		expect(menu.contextMenu.value.elementId).toBe(SHAPE.id);
 		editor.remove();
+	});
+
+	/**
+	 * The defect: a group renders its children's `data-element-id` nodes inside
+	 * its own, so the innermost-match hit-test answered with a CHILD id that no
+	 * top-level element carries. The menu then fell back to the empty-canvas one
+	 * and Ungroup was unreachable from anywhere the children actually cover.
+	 */
+	it('targets the GROUP when the right-click lands on a grouped child, so Ungroup is reachable', () => {
+		const menu = setup({
+			findActiveElement: (id) => (id === GROUP.id ? GROUP : undefined),
+			selectedElementIds: ref<string[]>([]),
+		});
+		menu.contextMenu.value = { open: false, x: 0, y: 0, elementId: null };
+		const { group, leaf } = mountGroup();
+
+		leaf.addEventListener('contextmenu', menu.onCanvasContextMenu);
+		leaf.dispatchEvent(new MouseEvent('contextmenu', { clientX: 5, clientY: 6 }));
+
+		expect(menu.contextMenu.value.open).toBeTruthy();
+		expect(menu.contextMenu.value.elementId).toBe(GROUP.id);
+		expect(commandIds(menu)).toContain('ungroup');
+		group.remove();
 	});
 
 	it('opens nothing for a right-click on bare canvas', () => {

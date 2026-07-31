@@ -1,5 +1,9 @@
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
-import { buildContextMenuEntries, resolveContextMenuElementId } from 'pptx-viewer-shared';
+import {
+	buildContextMenuEntries,
+	resolveContextMenuElementId,
+	resolveTopLevelElementId,
+} from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -175,18 +179,16 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		if (!canEdit()) {
 			return;
 		}
-		const host = (event.target as HTMLElement | null)?.closest(
-			'[data-element-id]',
-		) as HTMLElement | null;
+		// Top-level, not innermost: a group nests its children's element nodes
+		// inside its own, so a right-click on a grouped child must target the
+		// GROUP. Targeting the child id instead matched no top-level element, so
+		// the menu fell back to the empty-canvas one and never offered Ungroup.
+		const hitId = resolveTopLevelElementId(event.target);
 		// A single click on a text box mounts the inline editor, which renders as
 		// an overlay beside the elements rather than inside the one it edits. The
 		// hit-test above therefore comes back empty for a right-click on the very
 		// element the user just picked, so fall back to the element being edited.
-		const id = resolveContextMenuElementId(
-			host?.dataset.elementId,
-			event.target,
-			inlineEditingElementId.value,
-		);
+		const id = resolveContextMenuElementId(hitId, event.target, inlineEditingElementId.value);
 		// Locked template elements (edit-template mode off) are not actionable.
 		if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
 			return;
