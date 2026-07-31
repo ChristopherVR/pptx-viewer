@@ -125,6 +125,37 @@ describe('hexagon', () => {
 	});
 });
 
+describe('flowChartTerminator', () => {
+	it('closes into a pill that fills its box', () => {
+		// The four-arc approximation did not chain: each cap ended somewhere other
+		// than where the next segment began, and the outline ran half the shape
+		// height below its own box.
+		const box = bounds(String(evaluatePresetShape('flowChartTerminator', 200, 100)?.svgPath));
+		expect(box.minX).toBeCloseTo(0, 2);
+		expect(box.maxX).toBeCloseTo(200, 2);
+		expect(box.minY).toBeCloseTo(0, 2);
+		expect(box.maxY).toBeCloseTo(100, 2);
+	});
+
+	it('returns to its start point', () => {
+		const path = String(evaluatePresetShape('flowChartTerminator', 200, 100)?.svgPath);
+		const start = /^M ([\d.]+) ([\d.]+)/u.exec(path);
+		const end = /C [\d.]+ [\d.]+ [\d.]+ [\d.]+ ([\d.]+) ([\d.]+) Z$/u.exec(path);
+		expect(start).not.toBeNull();
+		expect(end).not.toBeNull();
+		expect(Number(end![1])).toBeCloseTo(Number(start![1]), 3);
+		expect(Number(end![2])).toBeCloseTo(Number(start![2]), 3);
+	});
+
+	it('keeps its text rect inside the caps', () => {
+		const rect = evaluatePresetShape('flowChartTerminator', 200, 100)?.textRect;
+		expect(rect!.l).toBeGreaterThan(0);
+		expect(rect!.r).toBeLessThan(200);
+		expect(rect!.t).toBeGreaterThan(0);
+		expect(rect!.b).toBeLessThan(100);
+	});
+});
+
 describe('preset table sanity', () => {
 	it('never emits coordinates in a foreign unit space', () => {
 		// A cheap catch-all: no preset should produce a coordinate an order of

@@ -243,37 +243,72 @@ const flowChartMultidocument: PresetShapeGeometryDefinition = {
 	],
 };
 
-// flowChartTerminator — pill shape: rounded rect with corner radius that
-// reaches the vertical centre. Uses an ss-based radius (≈1075/3600 · ss).
+// flowChartTerminator — pill shape (ECMA-376 §20.1.9.29).
+//
+// Transcribed straight from the spec's 21600-space cubic Beziers. The earlier
+// port approximated the caps with four `arcTo`s whose start angles and sweeps
+// did not chain: the pen ended each cap somewhere other than where the next
+// segment began, so the outline ran half the shape height BELOW its own box and
+// the pill rendered as a torn scribble. The evaluator scales a path that
+// declares `w`/`h` into the shape box, so the constants are used verbatim.
 const flowChartTerminator: PresetShapeGeometryDefinition = {
 	name: 'flowChartTerminator',
 	gdLst: [
-		gd('x1', '*/ w 1075 21600'),
-		gd('x2', '*/ w 20525 21600'),
-		gd('y1', '*/ h 17467 21600'),
-		gd('y2', '*/ h 4135 21600'),
+		gd('il', '*/ w 1018 21600'),
+		gd('ir', '*/ w 20582 21600'),
+		gd('it', '*/ h 3163 21600'),
+		gd('ib', '*/ h 18437 21600'),
 	],
-	rect: { l: 'x1', t: 't', r: 'x2', b: 'b' },
+	rect: { l: 'il', t: 'it', r: 'ir', b: 'ib' },
 	pathLst: [
 		{
+			w: 21600,
+			h: 21600,
 			commands: [
-				{ kind: 'moveTo', x: 'l', y: 'vc' },
-				{ kind: 'arcTo', wR: 'x1', hR: 'hd2', stAng: 'cd2', swAng: 'cd4' },
-				{ kind: 'lnTo', x: 'x2', y: 't' },
-				{ kind: 'arcTo', wR: 'x1', hR: 'hd2', stAng: '3cd4', swAng: 'cd4' },
-				{ kind: 'lnTo', x: 'x2', y: 'b' },
-				{ kind: 'arcTo', wR: 'x1', hR: 'hd2', stAng: '0', swAng: 'cd4' },
-				{ kind: 'lnTo', x: 'x1', y: 'b' },
-				{ kind: 'arcTo', wR: 'x1', hR: 'hd2', stAng: 'cd4', swAng: 'cd4' },
+				{ kind: 'moveTo', x: '3475', y: '0' },
+				{ kind: 'lnTo', x: '18125', y: '0' },
+				{
+					kind: 'cubicBezTo',
+					x1: '20044',
+					y1: '0',
+					x2: '21600',
+					y2: '4837',
+					x3: '21600',
+					y3: '10800',
+				},
+				{
+					kind: 'cubicBezTo',
+					x1: '21600',
+					y1: '16763',
+					x2: '20044',
+					y2: '21600',
+					x3: '18125',
+					y3: '21600',
+				},
+				{ kind: 'lnTo', x: '3475', y: '21600' },
+				{
+					kind: 'cubicBezTo',
+					x1: '1556',
+					y1: '21600',
+					x2: '0',
+					y2: '16763',
+					x3: '0',
+					y3: '10800',
+				},
+				{
+					kind: 'cubicBezTo',
+					x1: '0',
+					y1: '4837',
+					x2: '1556',
+					y2: '0',
+					x3: '3475',
+					y3: '0',
+				},
 				{ kind: 'close' },
 			],
 		},
 	],
-	// y1/y2 retained above for reference; rect uses x1/x2.
 };
-
-// Drop the unused y1/y2 references? No — leave gdLst entries intact to mirror
-// the canonical XML so consumers can introspect them.
 
 // flowChartPreparation — extended hexagon with horizontal sides.
 const flowChartPreparation: PresetShapeGeometryDefinition = {
