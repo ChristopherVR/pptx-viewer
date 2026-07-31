@@ -24,6 +24,39 @@ export function isClickAdvanceAllowed(slide: PptxSlide | undefined): boolean {
 	return slide?.transition?.advanceOnClick !== false;
 }
 
+/**
+ * PowerPoint's "After: <n>" timed advance (`p:transition/@advTm`, milliseconds).
+ *
+ * Returns the delay a slide show must wait before stepping to the next slide on
+ * its own, or `undefined` when the slide waits for input instead. Timings are
+ * honoured unless the show is explicitly set to manual advance
+ * (`PptxPresentationProperties.advanceMode === 'manual'`, surfaced here as
+ * `useTimings: false`); an unset flag keeps them, matching PowerPoint's default
+ * "Using timings, if present".
+ *
+ * This pairs with {@link isClickAdvanceAllowed}: a slide authored with
+ * `advClick="0" advTm="…"` is advanced ONLY by this timer, so a binding that
+ * honours the click gate without also running the timer leaves the show
+ * permanently stuck on that slide with no visible response to input.
+ */
+export function resolveAutoAdvanceDelayMs(
+	slide: PptxSlide | undefined,
+	options?: { useTimings?: boolean },
+): number | undefined {
+	if (options?.useTimings === false) {
+		return undefined;
+	}
+	const advanceAfterMs = slide?.transition?.advanceAfterMs;
+	if (
+		typeof advanceAfterMs !== 'number' ||
+		!Number.isFinite(advanceAfterMs) ||
+		advanceAfterMs < 0
+	) {
+		return undefined;
+	}
+	return advanceAfterMs;
+}
+
 export function applyRehearsalTimings(
 	slides: readonly PptxSlide[],
 	timings: Readonly<Record<number, number>>,
