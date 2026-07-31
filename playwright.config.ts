@@ -27,7 +27,15 @@ const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
 	testDir: './e2e',
-	testIgnore: ['**/fixtures/**', '**/global-setup.*', '**/capture-*.spec.ts'],
+	// `packaged-present.spec.ts` is the production-BUILD smoke guard and needs
+	// `vite preview` over each demo's built dist, not these dev servers; it runs
+	// from `playwright.packaged.config.ts` instead.
+	testIgnore: [
+		'**/fixtures/**',
+		'**/global-setup.*',
+		'**/capture-*.spec.ts',
+		'**/packaged-present.spec.ts',
+	],
 	globalSetup: './e2e/global-setup.ts',
 	timeout: 60_000,
 	expect: { timeout: 10_000 },

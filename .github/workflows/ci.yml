@@ -478,6 +478,92 @@ jobs:
             test-results/
           retention-days: 7
 
+  # ── Production-build smoke ─────────────────────────────────────────────────
+  # The `e2e` matrix above runs against demo DEV servers, which serve unbundled
+  # source. That can never catch a defect the BUNDLER introduces, and the
+  # deployed GitHub Pages demos are bundles. A slide show whose keyframes
+  # constant got tree-shaken out renders perfectly and animates nothing, which
+  # is exactly the shape of failure that can ship green.
+  #
+  # So build every demo the way `docs.yml` does (library dists first, demo dist
+  # second) and run `e2e/packaged-present.spec.ts` against `vite preview` over
+  # each built dist. One job for all five: the specs are short and the demo
+  # builds dominate the wall clock.
+  e2e-packaged:
+    needs: [scope, build]
+    if: needs.scope.outputs.run-e2e == 'true'
+    runs-on: ubuntu-latest
+    name: e2e-packaged
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      # Same dists the deploy consumes: the Angular demo resolves its binding
+      # AND core from `dist`, and every demo needs the locales dist.
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+          path: packages
+
+      - name: Install dependencies
+        run: bun install
+
+      # A binding whose library build failed above cannot produce a demo dist,
+      # and a missing dist would make `vite preview` 404 rather than fail loudly.
+      - name: Require every binding to have built
+        env:
+          REACT_BUILT: ${{ needs.build.outputs.react-built }}
+          VUE_BUILT: ${{ needs.build.outputs.vue-built }}
+          ANGULAR_BUILT: ${{ needs.build.outputs.angular-built }}
+          VANILLA_BUILT: ${{ needs.build.outputs.vanilla-built }}
+          SVELTE_BUILT: ${{ needs.build.outputs.svelte-built }}
+        run: |
+          for pair in "react:$REACT_BUILT" "vue:$VUE_BUILT" "angular:$ANGULAR_BUILT" \
+                      "vanilla:$VANILLA_BUILT" "svelte:$SVELTE_BUILT"; do
+            if [ "${pair#*:}" != "true" ]; then
+              echo "::error::The ${pair%%:*} binding failed to build, so its packaged demo cannot be smoke-tested."
+              exit 1
+            fi
+          done
+
+      - name: Build demo bundles
+        run: |
+          bun run --filter 'pptx-react-demo' build
+          bun run --filter 'pptx-vue-demo' build
+          bun run --filter 'pptx-angular-demo' build
+          bun run --filter 'pptx-vanilla-demo' build
+          bun run --filter 'pptx-svelte-demo' build
+
+      - name: Install Playwright browsers
+        run: bun run e2e:install
+
+      - name: Run packaged-build smoke
+        run: bun run e2e:packaged -- --workers=2 --reporter=list,html,github
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-packaged
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   # ── Merge gate ──────────────────────────────────────────────────────────────
   # The single check the `main` ruleset requires. Matrix legs change names as
   # bindings come and go, and a required check that no longer exists blocks
@@ -488,7 +574,7 @@ jobs:
   ci-success:
     name: ci-success
     if: always()
-    needs: [scope, build, lint, typecheck, test, e2e]
+    needs: [scope, build, lint, typecheck, test, e2e, e2e-packaged]
     runs-on: ubuntu-latest
     steps:
       # `skipped` is accepted because `scope` legitimately drops legs a PR

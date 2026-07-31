@@ -51,6 +51,7 @@
 		"e2e:contract": "node scripts/check-e2e-neutrality.mjs",
 		"test:e2e-contract": "node --test scripts/check-e2e-neutrality.test.mjs",
 		"e2e:install": "playwright install --with-deps chromium",
+		"e2e:packaged": "bun run e2e:contract && playwright test --config=playwright.packaged.config.ts",
 		"e2e:ui": "playwright test --ui",
 		"docs:screenshots": "playwright test --config=playwright.capture.config.ts e2e/capture-user-guide-assets.spec.ts e2e/capture-user-guide-gifs.spec.ts",
 		"prepare": "husky",
