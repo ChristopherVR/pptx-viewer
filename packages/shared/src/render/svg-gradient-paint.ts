@@ -72,8 +72,8 @@ export function svgGradientId(elementId: string, suffix = 'grad'): string {
 }
 
 /** Convert sanitized 0-100 gradient stops into SVG 0-1 offsets. */
-function toSvgStops(style: ShapeStyle): SvgGradientStopDef[] {
-	return sanitizeGradientStops(style.fillGradientStops).map((stop) => ({
+function toSvgStops(stops: ShapeStyle['fillGradientStops']): SvgGradientStopDef[] {
+	return sanitizeGradientStops(stops).map((stop) => ({
 		offset: round4(stop.position / 100),
 		color: stop.color,
 		...(typeof stop.opacity === 'number' ? { opacity: round4(stop.opacity) } : {}),
@@ -110,8 +110,41 @@ function linearEndpoints(angleDegrees: number): { x1: number; y1: number; x2: nu
 	};
 }
 
+/** The parts of a gradient a paint server needs, from either a fill or a line. */
+interface GradientSource {
+	stops: SvgGradientStopDef[];
+	type: ShapeStyle['fillGradientType'];
+	angle: number | undefined;
+	fillToRect?: ShapeStyle['fillGradientFillToRect'];
+	focalPoint?: ShapeStyle['fillGradientFocalPoint'];
+}
+
+/** Shared builder behind the fill and stroke entry points. */
+function buildFromSource(source: GradientSource, id: string): SvgGradientDef | undefined {
+	const { stops } = source;
+	if (stops.length === 0) {
+		return undefined;
+	}
+
+	if ((source.type || 'linear') === 'radial') {
+		// Path gradients run from the `fillToRect` outwards, so stop 0 sits at the
+		// centre exactly as an SVG radial gradient's offset 0 does.
+		const { cx, cy } = computeGradientCenter(source.fillToRect, source.focalPoint);
+		const fx = cx / 100;
+		const fy = cy / 100;
+		// Reach the farthest corner of the box, mirroring CSS's default
+		// `farthest-corner` sizing, so the last stop is not cropped mid-shape.
+		const r = Math.hypot(Math.max(fx, 1 - fx), Math.max(fy, 1 - fy));
+		return { kind: 'radial', id, cx: round4(fx), cy: round4(fy), r: round4(r), stops };
+	}
+
+	const angle =
+		typeof source.angle === 'number' && Number.isFinite(source.angle) ? source.angle : 90;
+	return { kind: 'linear', id, ...linearEndpoints(angle), stops };
+}
+
 /**
- * Build the SVG paint-server definition for a shape's gradient fill.
+ * Build the SVG paint-server definition for a shape's gradient FILL.
  *
  * Returns `undefined` unless the style is a gradient with usable structured
  * stops; callers keep their solid-colour path in that case (a prebuilt
@@ -130,32 +163,45 @@ export function buildSvgGradientDef(
 	if (!style || style.fillMode !== 'gradient') {
 		return undefined;
 	}
-	const stops = toSvgStops(style);
-	if (stops.length === 0) {
+	return buildFromSource(
+		{
+			stops: toSvgStops(style.fillGradientStops),
+			type: style.fillGradientType,
+			angle: style.fillGradientAngle,
+			fillToRect: style.fillGradientFillToRect,
+			focalPoint: style.fillGradientFocalPoint,
+		},
+		svgGradientId(elementId),
+	);
+}
+
+/**
+ * Build the SVG paint-server definition for a shape's gradient OUTLINE
+ * (`a:ln/a:gradFill`).
+ *
+ * A CSS `border` can only take one colour, so a gradient outline was painted
+ * with the parser's averaged `strokeColor`: a two-tone outline came out flat and
+ * a fade-to-transparent one came out fully opaque. Stroking an SVG path with
+ * this paint server renders it properly.
+ *
+ * The id is namespaced separately from the fill's, so a shape with BOTH a
+ * gradient fill and a gradient outline gets two distinct paint servers.
+ */
+export function buildSvgStrokeGradientDef(
+	style: ShapeStyle | undefined,
+	elementId: string,
+): SvgGradientDef | undefined {
+	if (!style || style.strokeFillMode !== 'gradient') {
 		return undefined;
 	}
-	const id = svgGradientId(elementId);
-
-	if ((style.fillGradientType || 'linear') === 'radial') {
-		// Path gradients run from the `fillToRect` outwards, so stop 0 sits at the
-		// centre exactly as an SVG radial gradient's offset 0 does.
-		const { cx, cy } = computeGradientCenter(
-			style.fillGradientFillToRect,
-			style.fillGradientFocalPoint,
-		);
-		const fx = cx / 100;
-		const fy = cy / 100;
-		// Reach the farthest corner of the box, mirroring CSS's default
-		// `farthest-corner` sizing, so the last stop is not cropped mid-shape.
-		const r = Math.hypot(Math.max(fx, 1 - fx), Math.max(fy, 1 - fy));
-		return { kind: 'radial', id, cx: round4(fx), cy: round4(fy), r: round4(r), stops };
-	}
-
-	const angle =
-		typeof style.fillGradientAngle === 'number' && Number.isFinite(style.fillGradientAngle)
-			? style.fillGradientAngle
-			: 90;
-	return { kind: 'linear', id, ...linearEndpoints(angle), stops };
+	return buildFromSource(
+		{
+			stops: toSvgStops(style.strokeGradientStops),
+			type: style.strokeGradientType,
+			angle: style.strokeGradientAngle,
+		},
+		svgGradientId(elementId, 'stroke'),
+	);
 }
 
 /** The `fill`/`stroke` attribute value that references a built definition. */

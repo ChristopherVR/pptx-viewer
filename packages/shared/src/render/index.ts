@@ -25,6 +25,9 @@ export * from './fill-style';
 // `a:gradFill` → SVG paint server, for the freeform (`a:custGeom`) shapes that
 // are painted as a real `<path>` and so cannot take a CSS gradient.
 export * from './svg-gradient-paint';
+// Gradient outlines (`a:ln/a:gradFill`): a CSS border takes one colour only, so
+// the outline is stroked as an SVG path over the element instead.
+export * from './stroke-outline';
 // `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
 export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
