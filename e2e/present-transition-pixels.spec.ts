@@ -237,9 +237,7 @@ test('the transition layers cover the whole slide stage', async ({ page }) => {
 		(window as unknown as { __pptxLayerProbe: typeof store }).__pptxLayerProbe = store;
 		const started = performance.now();
 		const sample = (): void => {
-			for (const node of document.querySelectorAll(
-				'[data-pptx-transition-layer], .pptxv-transition-layer',
-			)) {
+			for (const node of document.querySelectorAll('[data-pptx-transition-layer]')) {
 				const r = node.getBoundingClientRect();
 				store.layer.push([Math.round(r.width), Math.round(r.height)]);
 			}

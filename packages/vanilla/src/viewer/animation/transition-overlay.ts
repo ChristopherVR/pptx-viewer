@@ -46,6 +46,10 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 
 	const overlay = doc.createElement('div');
 	overlay.className = 'pptxv-transition-overlay';
+	// Neutral marker every other binding already emits, so a product e2e can
+	// find the overlay without naming this binding's class (the neutrality
+	// check in `scripts/check-e2e-neutrality.mjs` rejects a `.pptxv-` selector).
+	overlay.dataset.pptxTransitionOverlay = '';
 	overlay.dataset.pptxTransitionOverlay = '';
 	overlay.style.position = 'absolute';
 	overlay.style.inset = '0';

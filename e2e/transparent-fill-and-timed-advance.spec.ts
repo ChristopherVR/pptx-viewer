@@ -264,9 +264,8 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 				// `data-pptx-transition-layer` at all, rendering per-shape ghosts and
 				// no slide surface, so its overlay root IS the departing layer.
 				const layer =
-					document.querySelector(
-						'[data-pptx-transition-layer="outgoing"], .pptxv-transition-layer',
-					) ?? document.querySelector('[data-pptx-transition-overlay], .pptxv-transition-overlay');
+					document.querySelector('[data-pptx-transition-layer="outgoing"]') ??
+					document.querySelector('[data-pptx-transition-overlay]');
 				if (layer) {
 					state.sawLayer = true;
 					const stage = layer.getBoundingClientRect();
