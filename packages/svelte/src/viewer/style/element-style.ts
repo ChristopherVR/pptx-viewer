@@ -66,6 +66,12 @@ export function getShapeFillStrokeStyle(
 			if (fill.backgroundSize !== undefined) {
 				style.backgroundSize = fill.backgroundSize;
 			}
+			// Without the position a gradient `a:tileRect` (and an image fill's
+			// placement) stayed pinned at 0 0 while its `background-size` was
+			// applied, so an oversized tile painted the wrong region (issue #132).
+			if (fill.backgroundPosition !== undefined) {
+				style.backgroundPosition = fill.backgroundPosition;
+			}
 		}
 
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
