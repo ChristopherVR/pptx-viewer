@@ -2,6 +2,7 @@ import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
 	CollaborationConfig,
+	FieldSubstitutionContext,
 	MobileSheetKey,
 	ViewerMode,
 } from 'pptx-viewer-shared';
@@ -9,6 +10,8 @@ import type {
 import type { Translator } from '../../i18n/translator';
 import type { CollaborationController, CollaborationDialogsState } from '../collab';
 import type { ShareDefaultsInput } from '../collab/collaboration-dialogs.svelte';
+import type { StageContextMenu } from '../components/props';
+import type { DeckApi } from '../editor/deck-api';
 import type { EditingApi } from '../editor/editing-api';
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { FindReplaceState } from '../editor/editor-find-replace.svelte';
@@ -20,7 +23,9 @@ import type { PresentationController, PresenterSession } from '../presentation';
 import type { ViewerLoadDetail } from '../types';
 import type { AutosaveController } from './autosave.svelte';
 import type { ChromeUiState } from './chrome-ui.svelte';
+import type { AiCluster } from './create-viewer-state-ai.svelte';
 import type { PresentationLoader } from './presentation-loader.svelte';
+import type { ViewerOptionsState } from './viewer-options.svelte';
 import type { ViewerParityUiState } from './viewer-parity-ui.svelte';
 import type { ViewerState } from './viewer-state.svelte';
 
@@ -46,8 +51,16 @@ export interface CreateViewerStateOptions {
 	/** Already locale-bound translator; propagated to descendants via context. */
 	t: Translator;
 	getSmartArt3D: () => boolean;
-	/** Whether in-place editing is enabled (host `editable` prop, post-effect value). */
+	/**
+	 * The host `editable` prop. The factory mirrors it into its own
+	 * {@link ViewerStateBag.editable} flag, which the AI seam, `setMode()` and
+	 * Trust Center's Protected View can then flip without the host round-trip.
+	 */
 	getEditable: () => boolean;
+	/** Display file name, used by the AI seam as a friendly deck title. */
+	getFileName?: () => string | undefined;
+	/** Whether the host enabled the AI assistant (the `ai` prop). */
+	getAiEnabled?: () => boolean;
 
 	onload?: (detail: ViewerLoadDetail) => void;
 	onerror?: (message: string) => void;
@@ -65,6 +78,12 @@ export interface CreateViewerStateOptions {
 	onautosavetoggle?: (enabled: boolean) => void;
 	onstartcollaboration?: (config: CollaborationConfig) => void;
 	onstopcollaboration?: () => void;
+	/**
+	 * Host override for File > Open > "Browse this device". Without it
+	 * {@link ViewerStateBag.openFile} falls back to the built-in native picker
+	 * and loads the chosen deck in place, so the control is never inert.
+	 */
+	onopenfile?: () => void;
 
 	/** DOM-bound getters, supplied by the component that owns the markup. */
 	getStageHolderEl: () => HTMLDivElement | undefined;
@@ -96,11 +115,17 @@ export interface ViewerStateBag {
 	readonly presenterSession: PresenterSession;
 	readonly exportWiring: ExportWiring;
 	readonly exportUi: ExportUiState;
+	/** The full PowerPoint File > Options model (persisted), provided via context. */
+	readonly optionsState: ViewerOptionsState;
+	/** AI assistant bridge + on-canvas focus controller + panel open flag. */
+	readonly ai: AiCluster;
 	readonly t: Translator;
 	/** Imperative undo/redo/save/download API, matching `PowerPointViewerApi`'s editing subset. */
 	readonly editingApi: EditingApi;
 	/** Imperative PNG/PDF/GIF/video/print API, matching `PowerPointViewerApi`'s export subset. */
 	readonly exportingApi: ExportingApi;
+	/** Imperative navigation/zoom/mode/slide/element API (the rest of `PowerPointViewerApi`). */
+	readonly deck: DeckApi;
 
 	/** Effective scale (fit-to-viewport x user zoom), matching the main canvas. */
 	readonly scale: number;
@@ -117,13 +142,19 @@ export interface ViewerStateBag {
 	/** True while the autosave debounce/write cycle is armed. */
 	readonly autosaveActive: boolean;
 
+	/**
+	 * The live editable flag: seeded from the host `editable` prop, then
+	 * writable so an AI edit, `deck.setMode()` or Trust Center's Protected View
+	 * can flip it without waiting on the host.
+	 */
+	editable: boolean;
 	/** Read-only: mutate via {@link setAutosaveEnabled}, which also fires `onautosavetoggle`. */
 	readonly autosaveEnabled: boolean;
 	setAutosaveEnabled(enabled: boolean): void;
 	presenterMode: boolean;
 	/** `Date.now()` timestamp of the last `enterPresenterView()` call; the presenter view's elapsed-time display. */
 	readonly presenterStartedAt: number;
-	stageContextMenu: { x: number; y: number } | null;
+	stageContextMenu: StageContextMenu | null;
 	readonly activeMobileSheet: MobileSheetKey;
 	setActiveMobileSheet(next: MobileSheetKey): void;
 	readonly notesExpanded: boolean;
@@ -132,6 +163,16 @@ export interface ViewerStateBag {
 
 	enterPresenterView(): void;
 	closeSignatureWarning(): void;
+	/** File > Open > "Browse this device" (host override, else the native picker). */
+	openFile(): void;
+	/** Run a Quick Access Toolbar command by catalog id (unknown ids no-op). */
+	runQuickAccessCommand(id: string): void;
+	/**
+	 * Deck-level OOXML field-substitution context (date/time, header/footer,
+	 * document properties, plus the active slide's number and title), also
+	 * published to descendants via `provideFieldContext`.
+	 */
+	fieldContext(): FieldSubstitutionContext;
 	onNotesToggle(): void;
 	onNotesCommit(notes: string, segments?: TextSegment[]): void;
 	onFullscreenToggle(): void;

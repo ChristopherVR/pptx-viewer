@@ -7,10 +7,11 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, hasTextWarp, isElementHidden, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, isElementHidden, isTemplateElement } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
+	import { getSlideElementsGetter } from '../state/slide-elements';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
 	import {
 		getPresentationElementStatesGetter,
@@ -88,8 +89,17 @@
 	 */
 	const fieldContext = $derived(getFieldContext?.());
 
+	// Captured at init for the same reason as the field context above.
+	const getSlideElements = getSlideElementsGetter();
+	/**
+	 * The slice of an `a:linkedTxbx` chain's text this box renders, or
+	 * `undefined` when the element is not in a chain (the overwhelmingly common
+	 * case, resolved by a single field check inside the shared helper).
+	 */
+	const linkedSegments = $derived(getOverflowSegments(element, getSlideElements?.()));
+
 	/** Rendered paragraphs (runs + bullet/indent), built by shared logic. */
-	const paragraphs = $derived(buildParagraphs(element, fieldContext));
+	const paragraphs = $derived(buildParagraphs(element, fieldContext, linkedSegments));
 	const hasText = $derived(
 		paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 	);

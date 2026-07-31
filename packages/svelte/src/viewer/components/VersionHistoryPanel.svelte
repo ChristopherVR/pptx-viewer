@@ -45,12 +45,12 @@ import type { AutosaveRecord } from 'pptx-viewer-shared';
 <aside class="history" aria-label={t('pptx.versionHistory.title')}>
 	<header><span class="icon"><Clock size={16} aria-hidden="true" /></span><h2>{t('pptx.versionHistory.title')}</h2><button type="button" aria-label={t('pptx.common.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button></header>
 	<div class="content">
-		{#if loading}<p class="empty">{t('common.loading')}</p>
+		{#if loading}<p class="empty">{t('pptx.common.loading')}</p>
 		{:else if !version}<p class="empty">{t('pptx.versionHistory.noVersions')}</p>
 		{:else}<article>
 			<div><strong>{formatVersionTimestamp(version.timestamp)}</strong><small>{formatRelativeTime(version.timestamp)}</small></div>
 			<p>{formatBackstageSize(version.size)}</p>
-			<footer><button class="restore" type="button" disabled={busy} onclick={() => void restore()}><Download size={12} aria-hidden="true" /> {t('pptx.versionHistory.restore')}</button><button class="delete" type="button" disabled={busy} onclick={() => void remove()}><Trash2 size={12} aria-hidden="true" /> {t('common.delete')}</button></footer>
+			<footer><button class="restore" type="button" disabled={busy} onclick={() => void restore()}><Download size={12} aria-hidden="true" /> {t('pptx.versionHistory.restore')}</button><button class="delete" type="button" disabled={busy} onclick={() => void remove()}><Trash2 size={12} aria-hidden="true" /> {t('pptx.common.delete')}</button></footer>
 		</article>{/if}
 	</div>
 </aside>

@@ -14,13 +14,10 @@
  * @module presentation/animation-playback-helpers
  */
 
-import { parseMediaCommand, PresentationAnimationController } from 'pptx-viewer-shared';
-import type {
-	ElementAnimationState,
-	TimelineClickGroup,
-	TimelineStepCommand,
-} from 'pptx-viewer-shared';
+import { PresentationAnimationController } from 'pptx-viewer-shared';
+import type { ElementAnimationState, TimelineClickGroup } from 'pptx-viewer-shared';
 
+import { executeMediaCommand } from './animation-media-commands';
 import { playAnimationSound, stopAnimationSound } from './animation-sound';
 
 /** Updater over the element-state map (React `setState`-compatible signature). */
@@ -43,88 +40,6 @@ export interface PlaybackContext {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** Root element to scope media-command target lookups to (the slide frame). */
 	frameRoot?: () => HTMLElement | null;
-}
-
-// ---------------------------------------------------------------------------
-// Media commands (p:cmd) - DOM lookup by data-element-id (no registry in Svelte)
-// ---------------------------------------------------------------------------
-
-function findMediaElement(
-	targetId: string,
-	frameRoot?: () => HTMLElement | null,
-): HTMLMediaElement | undefined {
-	if (typeof HTMLMediaElement === 'undefined') {
-		return undefined;
-	}
-	const root: ParentNode | null =
-		frameRoot?.() ?? (typeof document !== 'undefined' ? document : null);
-	if (!root) {
-		return undefined;
-	}
-	for (const wrapper of root.querySelectorAll<HTMLElement>('[data-element-id]')) {
-		if (wrapper.dataset.elementId !== targetId) {
-			continue;
-		}
-		if (wrapper instanceof HTMLMediaElement) {
-			return wrapper;
-		}
-		const media = wrapper.querySelector('video, audio');
-		if (media instanceof HTMLMediaElement) {
-			return media;
-		}
-	}
-	return undefined;
-}
-
-/** Apply a parsed `p:cmd` media verb to the target's `<video>` / `<audio>`. */
-function executeMediaCommand(
-	command: TimelineStepCommand,
-	frameRoot?: () => HTMLElement | null,
-): void {
-	const el = findMediaElement(command.targetId, frameRoot);
-	if (!el) {
-		return;
-	}
-	const parsed = parseMediaCommand(command.command);
-	if (!parsed) {
-		return;
-	}
-	const safePlay = (): void => {
-		void el.play().catch(() => {
-			/* autoplay blocked or not ready: ignore */
-		});
-	};
-	const safeSeek = (seconds: number): void => {
-		try {
-			el.currentTime = seconds;
-		} catch {
-			/* not seekable yet: ignore */
-		}
-	};
-	switch (parsed.verb) {
-		case 'playFrom':
-			safeSeek(parsed.seekSeconds ?? 0);
-			safePlay();
-			return;
-		case 'play':
-			safePlay();
-			return;
-		case 'pause':
-			el.pause();
-			return;
-		case 'stop':
-			el.pause();
-			safeSeek(0);
-			return;
-		case 'togglePlay':
-			if (el.paused) {
-				safePlay();
-			} else {
-				el.pause();
-			}
-			break;
-		default:
-	}
 }
 
 // ---------------------------------------------------------------------------

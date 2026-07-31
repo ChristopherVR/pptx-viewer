@@ -11,18 +11,14 @@
 	 * edit mode (an `editor.equationOps.editingId` is set) seeds the textarea
 	 * from the existing OMML and applies the replacement in place.
 	 */
-	import {
-		convertLatexToOmml,
-		convertOmmlToLatex,
-		convertOmmlToMathMl,
-		EQUATION_TEMPLATES,
-		sanitizeMathMl,
-	} from 'pptx-viewer-shared';
-	import type { CanvasSize, OmmlNode } from 'pptx-viewer-shared';
+	import { convertOmmlToLatex } from 'pptx-viewer-shared';
+	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { buildEquationInsertElement } from '../../../editor';
+	import { compileLatexEquation } from './equation-latex-preview';
+	import EquationTemplateGallery from './EquationTemplateGallery.svelte';
 
 	const {
 		editor,
@@ -40,23 +36,6 @@
 	/** Sample placeholder shown in the empty LaTeX textarea. */
 	const LATEX_PLACEHOLDER = '\\frac{a}{b} + \\sqrt{c}';
 
-	/** Convert a LaTeX string to sanitized MathML; '' on failure/empty. */
-	function latexToMathMl(source: string): string {
-		if (!source.trim()) {
-			return '';
-		}
-		try {
-			const omml = convertLatexToOmml(source);
-			const raw = convertOmmlToMathMl(omml as OmmlNode);
-			return raw ? sanitizeMathMl(raw) : '';
-		} catch {
-			return '';
-		}
-	}
-
-	/** Pre-computed MathML for each template tile (computed once per mount). */
-	const TEMPLATE_MATHML = EQUATION_TEMPLATES.map((tmpl) => latexToMathMl(tmpl.latex));
-
 	let latex = $state('');
 	let wasOpen = false;
 	// eslint-disable-next-line prefer-const
@@ -65,19 +44,7 @@
 	const isEditing = $derived(Boolean(editor.equationOps.editingId));
 
 	/** Live LaTeX -> OMML -> MathML for the preview + the insert payload. */
-	const compiled = $derived.by((): { mathml: string; omml: Record<string, unknown> } => {
-		const trimmed = latex.trim();
-		if (!trimmed) {
-			return { mathml: '', omml: {} };
-		}
-		try {
-			const omml = convertLatexToOmml(trimmed);
-			const raw = convertOmmlToMathMl(omml as OmmlNode);
-			return { mathml: raw ? sanitizeMathMl(raw) : '', omml };
-		} catch {
-			return { mathml: '', omml: {} };
-		}
-	});
+	const compiled = $derived(compileLatexEquation(latex));
 
 	const hasContent = $derived(latex.trim().length > 0 && Object.keys(compiled.omml).length > 0);
 
@@ -160,24 +127,7 @@
 				<span class="hint">{t('pptx.equation.latexHint')}</span>
 			</label>
 
-			<div class="templates">
-				<span class="label">{t('pptx.equation.templates')}</span>
-				<div class="grid">
-					{#each EQUATION_TEMPLATES as tmpl, idx (tmpl.latex)}
-						<button
-							type="button"
-							class="template"
-							class:active={latex === tmpl.latex}
-							title={t(tmpl.i18nKey)}
-							onclick={() => (latex = tmpl.latex)}
-						>
-							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-							<span class="math tile">{@html TEMPLATE_MATHML[idx]}</span>
-							<span class="template-label">{t(tmpl.i18nKey)}</span>
-						</button>
-					{/each}
-				</div>
-			</div>
+			<EquationTemplateGallery activeLatex={latex} onselect={(next) => (latex = next)} />
 
 			<footer>
 				<button type="button" onclick={onclose}>{t('pptx.equation.cancel')}</button>
@@ -266,8 +216,7 @@
 		font-family: 'Cambria Math', 'STIX Two Math', serif;
 	}
 
-	.field,
-	.templates {
+	.field {
 		display: flex;
 		flex-direction: column;
 		gap: 5px;
@@ -297,53 +246,6 @@
 
 	.hint {
 		font-size: 10px;
-		color: var(--pptx-muted-foreground, #94a3b8);
-	}
-
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 6px;
-	}
-
-	.template {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 4px;
-		padding: 7px;
-		border: 1px solid var(--pptx-border, #3f3f52);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-	}
-
-	.template:hover {
-		background: var(--pptx-accent, #33334d);
-	}
-
-	.template.active {
-		border-color: var(--pptx-primary, #c43b32);
-		background: color-mix(in srgb, var(--pptx-primary, #c43b32) 14%, transparent);
-	}
-
-	.tile {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		height: 28px;
-		overflow: hidden;
-		font-size: 13px;
-	}
-
-	.template-label {
-		width: 100%;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		text-align: center;
-		font-size: 9px;
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 

@@ -1,5 +1,5 @@
 import type { TextSegment } from 'pptx-viewer-core';
-import type { MobileSheetKey } from 'pptx-viewer-shared';
+import type { FieldSubstitutionContext, MobileSheetKey } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
 import type { EditorState } from '../editor/editor-state.svelte';
@@ -18,6 +18,11 @@ export interface ExportNotesClusterDeps {
 	getRootEl(): HTMLDivElement | undefined;
 	/** Whether in-place editing is on (gates whether notes edits are history-tracked). */
 	getEditable(): boolean;
+	/**
+	 * Deck-level field-substitution context, so an exported slide resolves its
+	 * slide-number / date / footer runs exactly like the on-screen stage does.
+	 */
+	getFieldContext?(): FieldSubstitutionContext;
 	onnotesupdate?: (notes: string) => void;
 }
 
@@ -48,6 +53,7 @@ export function buildExportNotesCluster(deps: ExportNotesClusterDeps): ExportNot
 		getCurrent: () => viewer.current,
 		getTranslator: () => deps.t,
 		getSmartArt3D: deps.getSmartArt3D,
+		getFieldContext: () => deps.getFieldContext?.(),
 	});
 	const exportUi = new ExportUiState({
 		controller: exportWiring.controller,

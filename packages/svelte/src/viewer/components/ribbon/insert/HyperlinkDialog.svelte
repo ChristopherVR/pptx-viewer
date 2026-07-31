@@ -33,7 +33,7 @@
 		<h2>{t('pptx.hyperlink.editTitle')}</h2>
 		<label>{t('pptx.hyperlink.urlLabel')}<input type="url" bind:value={url} /></label>
 		<label>{t('pptx.hyperlink.tooltipLabel')}<input bind:value={tooltip} /></label>
-		<footer><button onclick={onclose}>{t('common.cancel')}</button><button class="primary" onclick={save}>{t('common.ok')}</button></footer>
+		<footer><button onclick={onclose}>{t('pptx.common.cancel')}</button><button class="primary" onclick={save}>{t('pptx.common.ok')}</button></footer>
 	</section>
 </div>
 

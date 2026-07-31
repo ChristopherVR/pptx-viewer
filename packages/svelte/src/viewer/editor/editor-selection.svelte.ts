@@ -8,6 +8,8 @@
  * {@link toggle} (additive), and mutations that invalidate ids call
  * {@link prune}.
  */
+import type { PptxElement } from 'pptx-viewer-core';
+
 export class EditorSelection {
 	#ids = $state.raw<readonly string[]>([]);
 
@@ -59,4 +61,29 @@ export class EditorSelection {
 			this.#ids = this.#ids.filter(exists);
 		}
 	}
+}
+
+/**
+ * Resolve selected ids to their elements, preserving selection order.
+ *
+ * The one- and zero-selection fast paths matter: this runs on every render of
+ * the inspector and the selection overlay, and building a lookup map for the
+ * overwhelmingly common single selection would allocate a `Map` over every
+ * element on the slide for one hit.
+ */
+export function resolveSelectedElements(
+	ids: readonly string[],
+	elements: readonly PptxElement[],
+): PptxElement[] {
+	if (ids.length === 0) {
+		return [];
+	}
+	if (ids.length === 1) {
+		const element = elements.find((candidate) => candidate.id === ids[0]);
+		return element ? [element] : [];
+	}
+	const elementsById = new Map(elements.map((element) => [element.id, element]));
+	return ids
+		.map((id) => elementsById.get(id))
+		.filter((element): element is PptxElement => element !== undefined);
 }

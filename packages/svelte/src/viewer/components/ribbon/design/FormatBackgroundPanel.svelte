@@ -51,7 +51,7 @@
 			{t('pptx.ribbon.theme.default')}
 		</button>
 		<button type="button" class="pptx-svelte-formatbg-close" onclick={onclose}>
-			{t('common.close')}
+			{t('pptx.common.close')}
 		</button>
 	</div>
 {/if}

@@ -17,34 +17,39 @@ import type {
 	TextSegment,
 } from 'pptx-viewer-core';
 import type { ElementClipboardPayload, TemplateElementMap } from 'pptx-viewer-shared';
-import {
-	EditorHistory,
-	isElementIdInteractive,
-	partitionTemplateElements,
-} from 'pptx-viewer-shared';
+import { isElementIdInteractive } from 'pptx-viewer-shared';
 
 import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
 import { EditorBackgroundController } from './editor-background-controller';
 import { EditorClipboardController } from './editor-clipboard-controller';
-import { createEditorSnapshot, saveEditorDocument } from './editor-document-state';
+import type { LoadDocumentArgs } from './editor-document-lifecycle';
+import {
+	applyRemoteEditorSlides,
+	loadEditorDocument,
+	resetEditorSession,
+	restoreEditorSnapshot,
+	saveEditorState,
+	updateEditorDocumentProperties,
+	updateEditorTagCollections,
+} from './editor-document-lifecycle';
+import { createEditorSnapshot } from './editor-document-state';
 import type { EditorSnapshot } from './editor-document-state';
 import { EditorElementController } from './editor-element-controller';
 import { EditorEquationController } from './editor-equation-controller.svelte';
 import { EditorFormatPainterController } from './editor-format-painter-controller.svelte';
+import { EditorHistoryState } from './editor-history-state.svelte';
 import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
 import type { ElementBoxPatch } from './editor-mutations';
 import { EditorPresentationMetadata } from './editor-presentation-metadata.svelte';
 import { EditorSectionController } from './editor-section-controller';
-import { EditorSelection } from './editor-selection.svelte';
+import { EditorSelection, resolveSelectedElements } from './editor-selection.svelte';
 import { EditorSlidesController } from './editor-slides-controller';
 import { EditorTemplateController } from './editor-template-controller';
 import { EditorTransitionController } from './editor-transition-controller';
 import type { ZOrderDirection } from './editor-zorder';
-
-const MAX_HISTORY_ENTRIES = 100;
 
 export interface EditorStateDeps {
 	getCurrent(): number;
@@ -59,7 +64,7 @@ export class EditorState {
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	sections = $state.raw<PptxSection[]>([]);
-	readonly presentationMetadata: EditorPresentationMetadata;
+	readonly presentationMetadata = new EditorPresentationMetadata(this);
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
@@ -77,46 +82,32 @@ export class EditorState {
 	interactionActive = $state(false);
 	clipboard = $state.raw<ElementClipboardPayload | null>(null);
 
-	#history = new EditorHistory<EditorSnapshot>({ maxDepth: MAX_HISTORY_ENTRIES });
-	#historyDepth = MAX_HISTORY_ENTRIES;
-	#canUndo = $state(false);
-	#canRedo = $state(false);
+	/** Undo/redo stack; the `canUndo` / `canRedo` getters below mirror it. */
+	readonly history = new EditorHistoryState();
 	readonly #deps: EditorStateDeps;
 
-	readonly clipboardOps: EditorClipboardController;
-	readonly elementOps: EditorElementController;
-	readonly templateOps: EditorTemplateController;
-	readonly slidesOps: EditorSlidesController;
-	readonly sectionOps: EditorSectionController;
-	readonly arrangeOps: EditorArrangeController;
-	readonly backgroundOps: EditorBackgroundController;
-	readonly transitionOps: EditorTransitionController;
-	readonly animationOps: EditorAnimationController;
-	readonly inkOps: EditorInkController;
-	readonly masterOps: EditorMasterController;
-	readonly formatPainter: EditorFormatPainterController;
-	readonly equationOps: EditorEquationController;
+	// Each sub-controller only stores this reference, so a field initializer is
+	// safe here even though `#deps` is not assigned until the constructor body.
+	readonly clipboardOps = new EditorClipboardController(this);
+	readonly elementOps = new EditorElementController(this);
+	readonly templateOps = new EditorTemplateController(this);
+	readonly slidesOps = new EditorSlidesController(this);
+	readonly sectionOps = new EditorSectionController(this);
+	readonly arrangeOps = new EditorArrangeController(this);
+	readonly backgroundOps = new EditorBackgroundController(this);
+	readonly transitionOps = new EditorTransitionController(this);
+	readonly animationOps = new EditorAnimationController(this);
+	readonly inkOps = new EditorInkController(this);
+	readonly masterOps = new EditorMasterController(this);
+	readonly formatPainter = new EditorFormatPainterController(this);
+	readonly equationOps = new EditorEquationController(this);
 
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
-		this.presentationMetadata = new EditorPresentationMetadata(this);
-		this.clipboardOps = new EditorClipboardController(this);
-		this.elementOps = new EditorElementController(this);
-		this.templateOps = new EditorTemplateController(this);
-		this.slidesOps = new EditorSlidesController(this);
-		this.sectionOps = new EditorSectionController(this);
-		this.arrangeOps = new EditorArrangeController(this);
-		this.backgroundOps = new EditorBackgroundController(this);
-		this.transitionOps = new EditorTransitionController(this);
-		this.animationOps = new EditorAnimationController(this);
-		this.inkOps = new EditorInkController(this);
-		this.masterOps = new EditorMasterController(this);
-		this.formatPainter = new EditorFormatPainterController(this);
-		this.equationOps = new EditorEquationController(this);
 	}
 
 	get canUndo(): boolean {
-		return this.#canUndo;
+		return this.history.canUndo;
 	}
 
 	get headerFooter(): PptxHeaderFooter {
@@ -132,7 +123,7 @@ export class EditorState {
 	}
 
 	get canRedo(): boolean {
-		return this.#canRedo;
+		return this.history.canRedo;
 	}
 
 	get selectedElementId(): string | null {
@@ -146,19 +137,7 @@ export class EditorState {
 	}
 
 	get selectedElements(): PptxElement[] {
-		const ids = this.selection.ids;
-		if (ids.length === 0) {
-			return [];
-		}
-		const elements = this.activeElements;
-		if (ids.length === 1) {
-			const element = elements.find((candidate) => candidate.id === ids[0]);
-			return element ? [element] : [];
-		}
-		const elementsById = new Map(elements.map((element) => [element.id, element]));
-		return ids
-			.map((id) => elementsById.get(id))
-			.filter((el): el is PptxElement => el !== undefined);
+		return resolveSelectedElements(this.selection.ids, this.activeElements);
 	}
 
 	get activeElements(): PptxElement[] {
@@ -183,78 +162,18 @@ export class EditorState {
 		return this.#deps.getHandler();
 	}
 
-	#syncHistoryFlags(): void {
-		this.#canUndo = this.#history.canUndo;
-		this.#canRedo = this.#history.canRedo;
+	/** Adopt a freshly loaded deck as the working document (see `loadEditorDocument`). */
+	setSlides(...args: LoadDocumentArgs): void {
+		loadEditorDocument(this, ...args);
 	}
 
-	setSlides(
-		slides: PptxSlide[],
-		slideMasters: PptxSlideMaster[] = [],
-		notesMaster?: PptxNotesMaster,
-		handoutMaster?: PptxHandoutMaster,
-		sections: PptxSection[] = [],
-		coreProperties?: PptxCoreProperties,
-		appProperties?: PptxAppProperties,
-		customProperties: PptxCustomProperty[] = [],
-		headerFooter: PptxHeaderFooter = {},
-		presentationProperties: PptxPresentationProperties = {},
-		customShows: PptxCustomShow[] = [],
-	): void {
-		const partition = partitionTemplateElements(slides);
-		this.slides = partition.slides;
-		this.templateElementsBySlideId = partition.templateElementsBySlideId;
-		this.slideMasters = structuredClone(slideMasters);
-		this.notesMaster = structuredClone(notesMaster);
-		this.handoutMaster = structuredClone(handoutMaster);
-		this.sections = structuredClone(sections);
-		this.coreProperties = structuredClone(coreProperties);
-		this.appProperties = structuredClone(appProperties);
-		this.customProperties = structuredClone(customProperties);
-		// Cleared here, then seeded by `adoptTagCollections` once the loader has
-		// parsed the tag parts; a freshly created deck legitimately has none.
-		this.tagCollections = [];
-		this.presentationMetadata.set(headerFooter, presentationProperties, customShows);
-		this.masterViewTarget = null;
-		this.selection.clear();
-		this.editTemplateMode = false;
-		this.dirty = false;
-		this.interactionActive = false;
-		this.#history.clear();
-		this.elementOps.resetNudge();
-		this.inkOps.setTool('select');
-		this.#syncHistoryFlags();
-	}
-
-	/**
-	 * Replace the working slides with a remote (collaboration) snapshot without
-	 * recording an undo step or touching the dirty flag: the granular reconcile
-	 * already merged the peer's change, and treating an incoming remote edit as
-	 * a local mutation would both pollute the undo stack and re-broadcast it.
-	 *
-	 * Selection is preserved when the selected element still exists so a remote
-	 * edit does not yank the local user's selection out from under them. Local
-	 * undo history is intentionally kept (see the collaboration module JSDoc):
-	 * shared defines no collaborative-undo semantics, so, matching React/Vue,
-	 * local undo may fight a concurrent remote edit.
-	 */
+	/** Adopt a remote (collaboration) snapshot; see `applyRemoteEditorSlides`. */
 	applyRemoteSlides(slides: PptxSlide[]): void {
-		const partition = partitionTemplateElements(slides);
-		this.slides = partition.slides;
-		this.templateElementsBySlideId = partition.templateElementsBySlideId;
-		this.selection.prune((id) => this.activeElements.some((element) => element.id === id));
+		applyRemoteEditorSlides(this, slides);
 	}
 
 	reset(): void {
-		this.selection.clear();
-		this.editTemplateMode = false;
-		this.masterViewTarget = null;
-		this.dirty = false;
-		this.interactionActive = false;
-		this.#history.clear();
-		this.elementOps.resetNudge();
-		this.inkOps.setTool('select');
-		this.#syncHistoryFlags();
+		resetEditorSession(this);
 	}
 
 	select(id: string | null): void {
@@ -273,29 +192,19 @@ export class EditorState {
 		this.selection.clear();
 	}
 
-	/**
-	 * Apply the File > Options "maximum number of undos" value. Recreates the
-	 * history stack when the depth changes (PowerPoint likewise applies the new
-	 * maximum going forward; existing entries are dropped).
-	 */
+	/** Apply the File > Options "maximum number of undos" value. */
 	setHistoryDepth(depth: number): void {
-		if (depth === this.#historyDepth) {
-			return;
-		}
-		this.#historyDepth = depth;
-		this.#history = new EditorHistory<EditorSnapshot>({ maxDepth: depth });
-		this.#syncHistoryFlags();
+		this.history.setDepth(depth);
 	}
 
 	pushHistory(): void {
-		this.#history.record(this.#snapshot(), '');
+		this.history.record(this.snapshot());
 		this.elementOps.resetNudge();
-		this.#syncHistoryFlags();
 	}
 
 	commitChange(): void {
 		this.dirty = true;
-		this.#syncHistoryFlags();
+		this.history.sync();
 		this.#deps.onChange?.();
 	}
 
@@ -327,33 +236,9 @@ export class EditorState {
 		this.commitChange();
 	}
 
-	#snapshot(): EditorSnapshot {
+	/** A deep clone of the whole editable document (one undo entry, or save input). */
+	snapshot(): EditorSnapshot {
 		return createEditorSnapshot(this);
-	}
-
-	#restore(snapshot: EditorSnapshot | undefined): void {
-		if (!snapshot) {
-			return;
-		}
-		const restored = createEditorSnapshot(snapshot);
-		this.slides = restored.slides;
-		this.templateElementsBySlideId = restored.templateElementsBySlideId;
-		this.slideMasters = restored.slideMasters;
-		this.notesMaster = restored.notesMaster;
-		this.handoutMaster = restored.handoutMaster;
-		this.sections = restored.sections;
-		this.coreProperties = restored.coreProperties;
-		this.appProperties = restored.appProperties;
-		this.customProperties = restored.customProperties;
-		this.tagCollections = restored.tagCollections;
-		this.presentationMetadata.set(
-			restored.headerFooter,
-			restored.presentationProperties,
-			restored.customShows,
-		);
-		this.interactionActive = false;
-		this.selection.prune((id) => this.activeElements.some((element) => element.id === id));
-		this.commitChange();
 	}
 
 	deleteSelected = (): void => this.elementOps.deleteSelected();
@@ -374,14 +259,7 @@ export class EditorState {
 		app: PptxAppProperties,
 		custom: PptxCustomProperty[],
 	): void {
-		if (!this.editable) {
-			return;
-		}
-		this.pushHistory();
-		this.coreProperties = { ...core };
-		this.appProperties = { ...app };
-		this.customProperties = custom.map((property) => ({ ...property }));
-		this.commitChange();
+		updateEditorDocumentProperties(this, core, app, custom);
 	}
 
 	/**
@@ -395,39 +273,18 @@ export class EditorState {
 
 	/** Replace the tag collections as one undoable edit (inspector Tags section). */
 	updateTagCollections(next: readonly PptxTagCollection[]): void {
-		if (!this.editable) {
-			return;
-		}
-		this.pushHistory();
-		this.tagCollections = next.map((collection) => ({
-			...collection,
-			tags: collection.tags.map((tag) => ({ ...tag })),
-		}));
-		this.commitChange();
+		updateEditorTagCollections(this, next);
 	}
 
 	undo(): void {
-		this.#restore(this.#history.undo(this.#snapshot())?.snapshot);
+		restoreEditorSnapshot(this, this.history.undo(this.snapshot()));
 	}
 
 	redo(): void {
-		this.#restore(this.#history.redo(this.#snapshot())?.snapshot);
+		restoreEditorSnapshot(this, this.history.redo(this.snapshot()));
 	}
 
-	async save(format: PptxSaveFormat = 'pptx'): Promise<Uint8Array> {
-		const handler = this.#deps.getHandler();
-		if (!handler) {
-			throw new Error('No presentation is loaded.');
-		}
-		const bytes = await saveEditorDocument(
-			handler,
-			{
-				...this.#snapshot(),
-				slides: this.renderedSlides,
-			},
-			format,
-		);
-		this.dirty = false;
-		return bytes;
+	save(format: PptxSaveFormat = 'pptx'): Promise<Uint8Array> {
+		return saveEditorState(this, format);
 	}
 }

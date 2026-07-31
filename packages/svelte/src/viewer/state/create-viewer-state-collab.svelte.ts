@@ -13,6 +13,12 @@ export interface CollabClusterDeps {
 	viewer: ViewerState;
 	editor: EditorState;
 	options: CreateViewerStateOptions;
+	/**
+	 * The live editable flag (not the raw host prop): autosave must disarm the
+	 * moment an AI edit or Protected View flips editing, not only when the host
+	 * re-renders with a new `editable`.
+	 */
+	getEditable(): boolean;
 }
 
 export interface CollabCluster {
@@ -21,6 +27,13 @@ export interface CollabCluster {
 	autosaveCtl: AutosaveController;
 	readonly autosaveEnabled: boolean;
 	setAutosaveEnabled(enabled: boolean): void;
+	/**
+	 * Set the flag WITHOUT firing `onautosavetoggle`. The File > Options wiring
+	 * needs this: it owns its own (mount-hydration-suppressed) notification, so
+	 * routing through {@link setAutosaveEnabled} would double-fire the host
+	 * callback on every dialog edit.
+	 */
+	setAutosaveFlag(enabled: boolean): void;
 	readonly autosaveActive: boolean;
 	versionHistoryOpen: boolean;
 	readonly signatureWarningOpen: boolean;
@@ -90,7 +103,7 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 		autosaveEnabled = options.getAutosave();
 	});
 	const autosaveActive = $derived(
-		options.getEditable() && autosaveEnabled && Boolean(options.getFilePath()) && !collab.readOnly,
+		deps.getEditable() && autosaveEnabled && Boolean(options.getFilePath()) && !collab.readOnly,
 	);
 	const autosaveCtl = new AutosaveController({
 		getEnabled: () => autosaveActive,
@@ -116,6 +129,9 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 		setAutosaveEnabled(enabled: boolean): void {
 			autosaveEnabled = enabled;
 			options.onautosavetoggle?.(enabled);
+		},
+		setAutosaveFlag(enabled: boolean): void {
+			autosaveEnabled = enabled;
 		},
 		get autosaveActive() {
 			return autosaveActive;

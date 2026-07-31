@@ -13,18 +13,18 @@
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import X from '@lucide/svelte/icons/x';
-	import { createChatHistoryStore } from 'pptx-viewer-shared/ai';
 	import type { PptxAiBridge, PptxAiConfig, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
 	import { onMount, untrack } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
-	import { deckIdFromBridge, deriveChatTitle, newChatId } from '../../ai/ai-history-persist';
+	import { useChatHistoryPersistence } from '../../ai/ai-chat-persistence.svelte';
 	import type { AiPanelController } from '../../ai/ai-panel-controller.svelte';
 	import { SvelteAiChat } from '../../ai/chat.svelte';
 	import AiComposer from './AiComposer.svelte';
+	import AiErrorBanner from './AiErrorBanner.svelte';
 	import AiFocusBar from './AiFocusBar.svelte';
 	import AiMessageList from './AiMessageList.svelte';
-	import AiProposalCard from './AiProposalCard.svelte';
+	import AiPendingChanges from './AiPendingChanges.svelte';
 
 	const {
 		bridge,
@@ -84,29 +84,15 @@
 	}
 
 	// Persist the running transcript to the shared history store (write half only;
-	// the export in File > Options > AI reads it back). Debounced, per-deck id.
-	const historyStore = untrack(() => createChatHistoryStore());
-	const deckId = untrack(() => deckIdFromBridge(bridge));
-	const chatId = untrack(() => newChatId());
-	const createdAt = Date.now();
-	let saveTimer: ReturnType<typeof setTimeout> | undefined;
-	$effect(() => {
-		const messages = chat.messages;
-		if (messages.length === 0) {
-			return;
-		}
-		clearTimeout(saveTimer);
-		saveTimer = setTimeout(() => {
-			void historyStore.saveChat({
-				id: chatId,
-				title: deriveChatTitle(messages) || t('pptx.ai.untitledChat'),
-				deckId,
-				messages,
-				createdAt,
-				updatedAt: Date.now(),
-			});
-		}, 800);
-		return () => clearTimeout(saveTimer);
+	// the export in File > Options > AI reads it back).
+	// oxlint-disable-next-line react-hooks/rules-of-hooks
+	useChatHistoryPersistence({
+		// The bridge is created once for the panel's lifetime (it reads live viewer
+		// state through getters), so capturing it here is intentional.
+		// svelte-ignore state_referenced_locally
+		bridge,
+		getMessages: () => chat.messages,
+		getUntitledLabel: () => t('pptx.ai.untitledChat'),
 	});
 
 	onMount(() => {
@@ -160,42 +146,16 @@
 			<AiMessageList messages={chat.messages} isStreaming={chat.isStreaming} />
 
 			{#if chat.error}
-				<div class="pptx-svelte-ai-error" role="alert">
-					<TriangleAlert size={14} aria-hidden="true" />
-					<div class="pptx-svelte-ai-error-body">
-						<div class="pptx-svelte-ai-error-title">{t('pptx.ai.errorPrefix')}</div>
-						<div class="pptx-svelte-ai-error-msg" title={chat.error.message}>{chat.error.message}</div>
-					</div>
-					<button type="button" class="pptx-svelte-ai-error-retry" onclick={() => chat.clearError()}>
-						{t('pptx.ai.retry')}
-					</button>
-				</div>
+				<AiErrorBanner message={chat.error.message} onretry={() => chat.clearError()} />
 			{/if}
 
 			{#if chat.proposals.length > 0}
-				<div class="pptx-svelte-ai-proposals">
-					<div class="pptx-svelte-ai-proposals-head">
-						<span class="pptx-svelte-ai-proposals-title">
-							{t('pptx.ai.pendingChanges', { count: chat.proposals.length })}
-						</span>
-						{#if chat.proposals.length > 1}
-							<button
-								type="button"
-								class="pptx-svelte-ai-accept-all"
-								onclick={acceptAllProposals}
-							>
-								{t('pptx.ai.acceptAll')}
-							</button>
-						{/if}
-					</div>
-					{#each chat.proposals as proposal (proposal.id)}
-						<AiProposalCard
-							{proposal}
-							onaccept={applyProposal}
-							onreject={(id) => chat.rejectProposal(id)}
-						/>
-					{/each}
-				</div>
+				<AiPendingChanges
+					proposals={chat.proposals}
+					onaccept={applyProposal}
+					onacceptall={acceptAllProposals}
+					onreject={(id) => chat.rejectProposal(id)}
+				/>
 			{/if}
 
 			<AiComposer
@@ -303,84 +263,6 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
-	}
-
-	.pptx-svelte-ai-error {
-		display: flex;
-		align-items: flex-start;
-		gap: 8px;
-		margin: 0 12px 8px;
-		padding: 6px 10px;
-		border: 1px solid color-mix(in srgb, var(--pptx-destructive, #ef4444) 40%, transparent);
-		border-radius: var(--pptx-radius, 6px);
-		background: color-mix(in srgb, var(--pptx-destructive, #ef4444) 6%, transparent);
-		color: var(--pptx-destructive, #fca5a5);
-		font-size: 12px;
-	}
-
-	.pptx-svelte-ai-error-body {
-		min-width: 0;
-		flex: 1;
-	}
-
-	.pptx-svelte-ai-error-title {
-		font-weight: 600;
-	}
-
-	.pptx-svelte-ai-error-msg {
-		font-size: 11px;
-		opacity: 0.8;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.pptx-svelte-ai-error-retry {
-		flex-shrink: 0;
-		border: none;
-		background: transparent;
-		color: inherit;
-		font: inherit;
-		font-size: 11px;
-		text-decoration: underline;
-		cursor: pointer;
-	}
-
-	.pptx-svelte-ai-proposals {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		max-height: 38%;
-		overflow-y: auto;
-		padding: 8px 12px;
-		border-top: 1px solid var(--pptx-border, #33334d);
-		background: var(--pptx-background, #11111b);
-	}
-
-	.pptx-svelte-ai-proposals-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.pptx-svelte-ai-proposals-title {
-		font-size: 10px;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--pptx-muted-foreground, #94a3b8);
-	}
-
-	.pptx-svelte-ai-accept-all {
-		padding: 2px 8px;
-		border: none;
-		border-radius: 3px;
-		background: var(--pptx-primary, #6366f1);
-		color: var(--pptx-primary-foreground, #fff);
-		font: inherit;
-		font-size: 11px;
-		font-weight: 500;
-		cursor: pointer;
 	}
 
 	:global(.pptx-svelte-ai-spin) {

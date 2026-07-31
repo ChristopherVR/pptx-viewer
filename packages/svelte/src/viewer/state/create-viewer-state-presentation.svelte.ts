@@ -1,6 +1,10 @@
+import { mayLeaveSlideShow } from 'pptx-viewer-shared';
+
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
 import { PresentationController, usePresentationEffects } from '../presentation';
+import type { PresenterSession } from '../presentation';
+import { providePresentationElementStates } from './presentation-element-states-context';
 import type { PresentationLoader } from './presentation-loader.svelte';
 import type { ViewerParityUiState } from './viewer-parity-ui.svelte';
 import type { ViewerState } from './viewer-state.svelte';
@@ -13,6 +17,8 @@ export interface PresentationClusterDeps {
 	loader: PresentationLoader;
 	parityUi: ViewerParityUiState;
 	controller: EditorController;
+	/** The audience-display link, driven by the B/W blackout and Ctrl+M ink keys. */
+	presenterSession: PresenterSession;
 	getEditingActive(): boolean;
 	getStageHolderEl(): HTMLDivElement | undefined;
 	getRootEl(): HTMLDivElement | undefined;
@@ -31,21 +37,35 @@ export interface PresentationCluster extends ViewportHandlers {
  * not just constructed objects.
  */
 export function usePresentationCluster(deps: PresentationClusterDeps): PresentationCluster {
-	const { editor, viewer, loader, parityUi, controller } = deps;
+	const { editor, viewer, loader, parityUi, controller, presenterSession } = deps;
 
 	const presentation = new PresentationController({
 		getSlides: () => editor.renderedSlides,
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 		getShowWithAnimation: () => loader.presentationProperties.showWithAnimation,
+		// Past the last slide the controller raises the black end screen; a further
+		// forward input (or a click on it) ends the show, like PowerPoint.
+		exit: () => {
+			// Never in an audience display: it has no editor to fall back to.
+			if (mayLeaveSlideShow()) {
+				viewer.isFullscreen = false;
+			}
+		},
 		getFrameRoot: () => deps.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
 	});
+	// Publish the per-element native-animation state map so the chart / SmartArt /
+	// connector / shape renderers can reveal staged builds and relinquish animated
+	// fill / stroke (mirrors Vue's `providePresentationElementStates`).
+	providePresentationElementStates(() => presentation.elementStates);
 	usePresentationEffects({
 		controller: presentation,
 		getPresenting: () => viewer.isFullscreen,
 		getCurrentIndex: () => viewer.current,
 		getActiveSlide: () => editor.renderedSlides[viewer.current],
 		getStageRoot: () => deps.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
+		// `p:showPr/@useTimings`: "manual" turns every slide's authored advTm off.
+		getUseTimings: () => loader.presentationProperties.advanceMode !== 'manual',
 	});
 
 	let wasPresenting = false;
@@ -70,17 +90,28 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		return () => window.clearInterval(timer);
 	});
 
-	const { onFullscreenToggle, onFullscreenChange, onKeydown } = createViewportHandlers({
+	// `onEndShow` re-enters the toggle these handlers themselves expose; the
+	// closure only runs on a key press, long after this assignment completes.
+	const handlers: ViewportHandlers = createViewportHandlers({
 		getRootEl: deps.getRootEl,
 		viewer,
 		controller,
 		getEditingActive: deps.getEditingActive,
 		presentation,
+		onEndShow: () => handlers.onFullscreenToggle(),
 		setPointerTool: (tool) => {
 			parityUi.annotations.tool = tool;
 		},
 		eraseAnnotations: () => parityUi.annotations.clear(),
+		toggleInkMarkup: () =>
+			presenterSession.updateSnapshot({
+				inkMarkupVisible: presenterSession.snapshot.inkMarkupVisible === false,
+			}),
+		toggleBlank: (value) =>
+			presenterSession.updateSnapshot({
+				blackout: presenterSession.snapshot.blackout === value ? 'none' : value,
+			}),
 	});
 
-	return { presentation, onFullscreenToggle, onFullscreenChange, onKeydown };
+	return { presentation, ...handlers };
 }

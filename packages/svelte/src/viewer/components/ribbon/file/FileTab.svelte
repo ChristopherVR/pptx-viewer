@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { Component } from 'svelte';
 	import BadgeCheck from '@lucide/svelte/icons/badge-check';
 	import Clock3 from '@lucide/svelte/icons/clock-3';
 	import Copy from '@lucide/svelte/icons/copy';
@@ -18,41 +19,42 @@
 	import Share2 from '@lucide/svelte/icons/share-2';
 	import Type from '@lucide/svelte/icons/type';
 	import Video from '@lucide/svelte/icons/video';
-	import { BACKSTAGE_NAV, BACKSTAGE_TEMPLATES, formatBackstageDate, formatBackstageSize, listBackstageRecentFiles } from 'pptx-viewer-shared';
-	import type { AccountAuthConfig, BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+	import { BACKSTAGE_NAV, BACKSTAGE_TEMPLATES, backstageCardsFor, formatBackstageDate, formatBackstageSize, listBackstageRecentFiles } from 'pptx-viewer-shared';
+	import type { AccountAuthConfig, BackstageCardId, BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+	import { useTranslator } from '../../../../i18n/context';
 	import type { ExportUiState } from '../../../export/export-ui.svelte';
 	import AccountPage from './AccountPage.svelte';
 	import BackstageAction from './BackstageAction.svelte';
 	import BackstageNavIcon from './BackstageNavIcon.svelte';
 
 	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, onpackage, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings, accountAuth }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; onpackage: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void; accountAuth?: AccountAuthConfig } = $props();
+	const t = useTranslator();
 	let page = $state<BackstagePage>('home');
 	// eslint-disable-next-line prefer-const
 	let query = $state('');
 	let recent = $state<BackstageRecentFile[]>([]);
-	onMount(() => { void listBackstageRecentFiles().then((items) => (recent = items)); });
+	onMount(() => { void listBackstageRecentFiles(t).then((items) => (recent = items)); });
 	const visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
-	const title = $derived(BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
+	const title = $derived(t(BACKSTAGE_NAV.find((item) => item.id === page)?.labelKey ?? 'pptx.backstage.nav.home'));
 	function run(action?: () => void): void { action?.(); if (action) {onclose();} }
+	const CARD_ICONS: Record<BackstageCardId, Component> = { protect: LockKeyhole, inspect: Info, embedFonts: Type, signatures: BadgeCheck, versionHistory: Clock3, saveAsPptx: FileText, saveAsPpsx: Presentation, saveAsPptm: FileCode2, package: Package, pdf: FileText, png: Image, video: Video, gif: Images, copyImage: Copy, print: Printer, share: Share2, sharePackage: Package };
+	const cardHandlers = $derived<Record<BackstageCardId, (() => void) | undefined>>({ protect: onprotect, inspect: onproperties, embedFonts: onfonts, signatures: onsignatures, versionHistory: onversionhistory, saveAsPptx: ondownload, saveAsPpsx: ondownloadppsx, saveAsPptm: ondownloadpptm, package: onpackage, pdf: () => void exportUi?.runPdf(), png: () => exportUi?.runPng(), video: () => void exportUi?.runVideo(), gif: () => void exportUi?.runGif(), copyImage: () => exportUi?.runCopyImage(), print: onprint, share: onshare, sharePackage: onpackage });
+	const cards = $derived(backstageCardsFor(page).filter((card) => card.id !== 'saveAsPptm' || hasMacros));
 	function select(id: BackstagePage): void { if (id === 'close') {onclose();} else if (id === 'save') {run(ondownload);} else if (id === 'options' && onsettings) {run(onsettings);} else {page = id;} }
 </script>
 
-<div class="bs" role="dialog" aria-modal="true" aria-label="File">
-	<aside><button class="back" type="button" aria-label="Back to presentation" onclick={onclose}><BackstageNavIcon page="back" /></button><nav>
-		{#each BACKSTAGE_NAV.filter((item) => !item.group) as item}<button type="button" class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{item.label}</button>{/each}<i></i>
-		{#each BACKSTAGE_NAV.filter((item) => item.group) as item}<button type="button" class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{item.label}</button>{/each}
+<div class="bs" role="dialog" aria-modal="true" aria-label={t('pptx.backstage.title')}>
+	<aside><button class="back" type="button" aria-label={t('pptx.backstage.back')} onclick={onclose}><BackstageNavIcon page="back" /></button><nav>
+		{#each BACKSTAGE_NAV.filter((item) => !item.group) as item}<button type="button" class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{t(item.labelKey)}</button>{/each}<i></i>
+		{#each BACKSTAGE_NAV.filter((item) => item.group) as item}<button type="button" class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{t(item.labelKey)}</button>{/each}
 	</nav></aside>
-	<main><h1>{page === 'home' ? 'Good evening' : title}</h1>
-		{#if page === 'home' || page === 'new'}<h2>New</h2><div class="templates">{#each BACKSTAGE_TEMPLATES as template}<button type="button" onclick={() => run(() => oncreatepresentation(template.id))}><b style:background={template.preview}></b><strong>{template.name}</strong><small>{template.description}</small></button>{/each}</div>{/if}
-		{#if page === 'home' || page === 'open'}<div class="search"><Search size={16} aria-hidden="true" /><input type="search" placeholder="Search recent presentations" bind:value={query} /></div>{#if page === 'open'}<button class="primary" type="button" onclick={() => run(onopenfile)}><FolderOpen size={16} aria-hidden="true" />Browse this device</button>{/if}<h2>Recent</h2><div class="recent"><header><span>Name</span><span>Date modified</span><span>Size</span></header>{#each visibleRecent as file}<button type="button" onclick={() => run(() => onopenrecent?.(file.key))}><span class="name"><b>P</b><span><strong>{file.name}</strong><small>{file.location}</small></span></span><span>{formatBackstageDate(file.timestamp)}</span><span>{formatBackstageSize(file.size)}</span></button>{:else}<p>No recent presentations yet.</p>{/each}</div>{/if}
-		{#if page === 'info'}<div class="actions"><BackstageAction icon={Info} title="Inspect Presentation" body="Review document properties and hidden content." onclick={() => run(onproperties)} /><BackstageAction icon={LockKeyhole} title="Protect Presentation" body="Control access and editing preferences." onclick={() => run(onprotect)} /><BackstageAction icon={Type} title="Embed Fonts" body="Keep typography consistent across devices." onclick={() => run(onfonts)} /><BackstageAction icon={BadgeCheck} title="Digital Signatures" body="View signatures attached to this presentation." onclick={() => run(onsignatures)} /><BackstageAction icon={Clock3} title="Version History" body="Restore or remove the latest recovery snapshot." onclick={() => run(onversionhistory)} /></div>{/if}
-		{#if page === 'saveAs'}<div class="actions"><BackstageAction icon={FileText} title="PowerPoint Presentation" body="Save an editable .pptx copy." onclick={() => run(ondownload)} /><BackstageAction icon={Presentation} title="PowerPoint Show" body="Save a .ppsx slide show." onclick={() => run(ondownloadppsx)} />{#if hasMacros}<BackstageAction icon={FileCode2} title="Macro-Enabled Presentation" body="Preserve VBA in a .pptm file." onclick={() => run(ondownloadpptm)} />{/if}<BackstageAction icon={Package} title="Package for Sharing" body="Bundle the deck and linked assets." onclick={() => run(onpackage)} /></div>{/if}
-		{#if page === 'export'}<div class="actions"><BackstageAction icon={FileText} title="Create PDF" body="Publish one page per slide." onclick={() => run(() => void exportUi?.runPdf())} /><BackstageAction icon={Image} title="Export current slide" body="Create a high-quality PNG image." onclick={() => run(() => exportUi?.runPng())} /><BackstageAction icon={Video} title="Create a Video" body="Export timings and animations." onclick={() => run(() => void exportUi?.runVideo())} /><BackstageAction icon={Images} title="Create an Animated GIF" body="Make a compact looping preview." onclick={() => run(() => void exportUi?.runGif())} /><BackstageAction icon={Copy} title="Copy as Image" body="Copy the current slide." onclick={() => run(() => exportUi?.runCopyImage())} /></div>{/if}
-		{#if page === 'print'}<div class="actions"><BackstageAction icon={Printer} title="Print Presentation" body="Choose layout and output settings." onclick={() => run(onprint)} /></div>{/if}
-		{#if page === 'share'}<div class="actions"><BackstageAction icon={Share2} title="Share with People" body="Invite collaborators to work together." onclick={() => run(onshare)} /><BackstageAction icon={Package} title="Package for Sharing" body="Download a self-contained package." onclick={() => run(onpackage)} /></div>{/if}
+	<main><h1>{page === 'home' ? t('pptx.backstage.greeting') : title}</h1>
+		{#if page === 'home' || page === 'new'}<h2>{t('pptx.backstage.newHeading')}</h2><div class="templates">{#each BACKSTAGE_TEMPLATES as template}<button type="button" onclick={() => run(() => oncreatepresentation(template.id))}><b style:background={template.preview}></b><strong>{t(template.nameKey)}</strong><small>{t(template.descriptionKey)}</small></button>{/each}</div>{/if}
+		{#if page === 'home' || page === 'open'}<div class="search"><Search size={16} aria-hidden="true" /><input type="search" placeholder={t('pptx.backstage.searchPlaceholder')} bind:value={query} /></div>{#if page === 'open'}<button class="primary" type="button" onclick={() => run(onopenfile)}><FolderOpen size={16} aria-hidden="true" />{t('pptx.backstage.browseDevice')}</button>{/if}<h2>{t('pptx.backstage.recentHeading')}</h2><div class="recent"><header><span>{t('pptx.backstage.columnName')}</span><span>{t('pptx.backstage.columnModified')}</span><span>{t('pptx.backstage.columnSize')}</span></header>{#each visibleRecent as file}<button type="button" onclick={() => run(() => onopenrecent?.(file.key))}><span class="name"><b>P</b><span><strong>{file.name}</strong><small>{file.location}</small></span></span><span>{formatBackstageDate(file.timestamp, Date.now(), t)}</span><span>{formatBackstageSize(file.size)}</span></button>{:else}<p>{t('pptx.backstage.noRecent')}</p>{/each}</div>{/if}
+		{#if cards.length}<div class="actions">{#each cards as card (card.id)}<BackstageAction icon={CARD_ICONS[card.id]} title={t(card.titleKey)} body={t(card.bodyKey)} onclick={() => run(cardHandlers[card.id])} />{/each}</div>{/if}
 		{#if page === 'account'}<AccountPage {accountAuth} />{/if}
-		{#if page === 'options'}<section class="card"><b class="avatar"><Settings size={24} aria-hidden="true" /></b><h2>PowerPoint Options</h2><p>Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.</p>{#if onsettings}<button class="primary" type="button" onclick={() => run(onsettings)}>Open Options</button>{/if}</section>{/if}
-		<footer>{fileName || 'Untitled Presentation.pptx'} · Saved to this browser</footer>
+		{#if page === 'options'}<section class="card"><b class="avatar"><Settings size={24} aria-hidden="true" /></b><h2>{t('pptx.backstage.optionsTitle')}</h2><p>{t('pptx.backstage.optionsBody')}</p>{#if onsettings}<button class="primary" type="button" onclick={() => run(onsettings)}>{t('pptx.backstage.openOptions')}</button>{/if}</section>{/if}
+		<footer>{fileName || t('pptx.backstage.untitled')} · {t('pptx.backstage.savedToBrowser')}</footer>
 	</main>
 </div>
 

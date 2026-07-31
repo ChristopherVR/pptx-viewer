@@ -89,7 +89,7 @@
 </script>
 
 {#if loading}
-	<div class="pptx-svelte-message" role="status">{t('common.loading')}</div>
+	<div class="pptx-svelte-message" role="status">{t('pptx.common.loading')}</div>
 {:else if isEncrypted}
 	<div class="pptx-svelte-message" role="alert">{t('pptx.encryptedFile.message')}</div>
 {:else if error}

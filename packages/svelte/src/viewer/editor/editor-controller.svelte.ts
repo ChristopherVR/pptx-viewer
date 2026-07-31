@@ -8,17 +8,16 @@ import {
 
 import { readTableCellTarget } from './context-menu-dispatch';
 import type { EditorControllerDeps } from './editor-controller-deps';
+import { selectionOverlayBox } from './editor-controller-geometry';
 import {
-	elementInteractionBox,
-	selectionOverlayBox,
-	siblingBoxes,
-} from './editor-controller-geometry';
-import { createGestureController } from './editor-gestures';
+	createEditorKeydown,
+	createInkGestures,
+	createSelectionGestures,
+	createTransformGestures,
+} from './editor-controller-wiring';
+import type { EditorControllerHost } from './editor-controller-wiring';
 import type { GestureController } from './editor-gestures';
-import { createInkGestureController } from './editor-ink-gesture';
 import type { InkGestureController } from './editor-ink-gesture';
-import { createEditorKeydownHandler } from './editor-keyboard';
-import { createSelectionGestureController } from './editor-selection-gestures';
 import type { EditorMarqueeRect } from './editor-selection-gestures';
 import type { EditorState } from './editor-state.svelte';
 import { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';
@@ -42,112 +41,25 @@ export class EditorController {
 		this.#editor = editor;
 		this.#deps = deps;
 
-		this.#gestures = createGestureController({
-			getScale: () => this.#deps.getScale(),
-			getElementBox: (id) => elementInteractionBox(this.#currentElements(), id),
-			getSiblings: () => siblingBoxes(this.#currentElements()),
-			getSnapToGrid: () => this.#deps.getSnapToGrid?.() ?? false,
-			getSnapToShape: () => this.#deps.getSnapToShape?.() ?? true,
-			getGuides: () => this.#deps.getGuides?.() ?? [],
-			getStageOrigin: () => {
-				const rect = this.#deps.getHolderEl()?.getBoundingClientRect();
-				return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
-			},
-			onStart: () => {
-				this.#editor.pushHistory();
-				this.#editor.interactionActive = true;
-			},
-			onPreview: (transform, lines) => {
-				this.#editor.patchGeometry(transform.id, transform);
+		// One host object, four sub-controllers: the wiring lives in
+		// `editor-controller-wiring.ts` so this class stays the pointer/keyboard
+		// event surface rather than a construction script.
+		const host: EditorControllerHost = {
+			editor,
+			deps,
+			currentElements: () => this.#currentElements(),
+			setSnapLines: (lines) => {
 				this.snapLines = lines;
 			},
-			onEnd: (transform, moved, id) => {
-				this.snapLines = [];
-				if (transform) {
-					this.#editor.patchGeometry(id, transform);
-				}
-				this.#editor.interactionActive = false;
-				if (moved) {
-					this.#editor.commitChange();
-				}
-			},
-		});
-
-		this.#ink = createInkGestureController({
-			getScale: () => this.#deps.getScale(),
-			getStageOrigin: () => {
-				const rect = this.#deps.getHolderEl()?.getBoundingClientRect();
-				return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
-			},
-			getTool: () => this.#editor.inkOps.tool,
-			onStrokeStart: () => {
-				this.#editor.interactionActive = true;
-			},
-			onStrokePreview: (points) => {
-				this.#editor.inkOps.previewStroke(points);
-			},
-			onStrokeEnd: (points) => {
-				this.#editor.interactionActive = false;
-				this.#editor.inkOps.commitStroke(points);
-			},
-			onErase: (point) => {
-				this.#editor.inkOps.eraseElementAt(point);
-			},
-		});
-
-		this.#keydown = createEditorKeydownHandler({
-			isActive: () =>
-				this.#editor.editable && !this.#deps.getPresenting() && this.editingId === null,
-			getSelectedId: () => this.#editor.selectedElementId,
-			deselect: () => this.#editor.select(null),
-			deleteSelected: () => this.#editor.deleteSelected(),
-			duplicateSelected: () => void this.#editor.duplicateSelected(),
-			nudgeSelected: (dx, dy) => this.#editor.nudgeSelected(dx, dy),
-			undo: () => this.#editor.undo(),
-			redo: () => this.#editor.redo(),
-			copySelected: () => this.#editor.clipboardOps.copySelected(),
-			cutSelected: () => this.#editor.clipboardOps.cutSelected(),
-			paste: () => void this.#editor.clipboardOps.pasteClipboard(),
-			selectAll: () => {
-				// Template-owned elements are only selectable while edit-template mode
-				// is on, so the same interactivity rule the pointer uses applies here.
-				const ids = this.#currentElements()
-					.filter((element) => this.#editor.isElementInteractive(element.id))
-					.map((element) => element.id);
-				if (ids.length > 0) {
-					this.#editor.selection.setAll(ids);
-				}
-			},
-			groupSelected: () => this.#editor.arrangeOps.groupSelected(),
-			ungroupSelected: () => this.#editor.arrangeOps.ungroupSelected(),
-			cancelFormatPainter: () => {
-				const active = this.#editor.formatPainter.active;
-				this.#editor.formatPainter.cancel();
-				return active;
-			},
-			toggleShortcuts: () => this.#deps.toggleShortcuts?.(),
-			closeShortcuts: () => this.#deps.closeShortcuts?.() ?? false,
-		});
-
-		this.#selectionGestures = createSelectionGestureController({
-			getScale: () => this.#deps.getScale(),
-			getStageRect: () => this.#deps.getHolderEl()?.getBoundingClientRect(),
-			getElements: () => this.#currentElements(),
-			getSelectedIds: () => this.#editor.selection.ids,
-			onStart: () => {
-				this.#editor.pushHistory();
-				this.#editor.interactionActive = true;
-			},
-			onPatch: (id, patch) => this.#editor.patchGeometry(id, patch),
-			onCommit: () => {
-				this.#editor.interactionActive = false;
-				this.#editor.commitChange();
-			},
-			onSelect: (ids) => this.#editor.selection.setAll(ids),
-			onMarquee: (rect) => {
+			setMarquee: (rect) => {
 				this.marquee = rect;
 			},
-		});
+			getEditingId: () => this.editingId,
+		};
+		this.#gestures = createTransformGestures(host);
+		this.#ink = createInkGestures(host);
+		this.#keydown = createEditorKeydown(host);
+		this.#selectionGestures = createSelectionGestures(host);
 	}
 
 	#currentElements(): PptxElement[] {

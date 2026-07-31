@@ -64,7 +64,7 @@
 			<label>{t('pptx.print.colorMode')}<select bind:value={colorMode}><option value="color">{t('pptx.print.color')}</option><option value="grayscale">{t('pptx.print.grayscale')}</option><option value="blackAndWhite">{t('pptx.print.pureBlackWhite')}</option></select></label>
 			<label class="check"><input type="checkbox" bind:checked={frameSlides} />{t('pptx.print.frameSlides')}</label>
 		</div>
-		<footer><button onclick={onclose}>{t('common.cancel')}</button><button class="primary" onclick={print}><Printer size={14} aria-hidden="true" /> {t('pptx.print.printButton')}</button></footer>
+		<footer><button onclick={onclose}>{t('pptx.common.cancel')}</button><button class="primary" onclick={print}><Printer size={14} aria-hidden="true" /> {t('pptx.print.printButton')}</button></footer>
 	</section>
 </div>
 

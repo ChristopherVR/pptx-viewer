@@ -43,7 +43,7 @@
 				<label><input type="checkbox" checked={draft.showSubtitles ?? false} onchange={(event) => option('showSubtitles', event.currentTarget.checked)} />{t('pptx.slideShow.showSubtitles')}</label>
 			</fieldset>
 		</div>
-		<footer><button type="button" onclick={onclose}>{t('common.cancel')}</button><button class="primary" type="button" onclick={save}>{t('common.ok')}</button></footer>
+		<footer><button type="button" onclick={onclose}>{t('pptx.common.cancel')}</button><button class="primary" type="button" onclick={save}>{t('pptx.common.ok')}</button></footer>
 	</section>
 </div>
 
