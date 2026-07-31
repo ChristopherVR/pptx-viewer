@@ -100,6 +100,14 @@ export function getShapeFillStrokeStyle(
 			if (fill.backgroundSize !== undefined) {
 				style.backgroundSize = fill.backgroundSize;
 			}
+			// Dropping the position left a gradient `a:tileRect` (and an image
+			// fill's placement) pinned at 0 0 even though the matching
+			// `background-size` was applied, so PowerPoint's corner-radial preset -
+			// a tile twice the shape, hung off its top-left - painted its focal
+			// blob on the shape's own corner (issue #132).
+			if (fill.backgroundPosition !== undefined) {
+				style.backgroundPosition = fill.backgroundPosition;
+			}
 		}
 
 		// Stroke.

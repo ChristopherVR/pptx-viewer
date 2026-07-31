@@ -139,3 +139,54 @@ describe('getTextBlockStyle', () => {
 		expect(style.paddingTop).toBe(`${45720 / 9525}px`);
 	});
 });
+
+/**
+ * issue #132 - the gradient tile offset must survive into the style map.
+ *
+ * `backgroundPosition` was the one key the shared `ComputedFillStyle` emitted
+ * that this binding never copied, so PowerPoint's stock corner-radial preset
+ * (`a:tileRect l="-100000" t="-100000"`: a tile twice the shape hung off its
+ * top-left) got its `background-size` but stayed pinned at `0 0`.
+ */
+describe('getShapeFillStrokeStyle gradient tiling (#132)', () => {
+	it('carries the background-position of an oversized tileRect', () => {
+		const style = getShapeFillStrokeStyle(
+			shape({
+				shapeStyle: {
+					fillMode: 'gradient',
+					fillGradientType: 'radial',
+					fillGradientPathType: 'circle',
+					fillGradientFillToRect: { l: 0, t: 0, r: 1, b: 1 },
+					fillGradientTileRect: { l: -1, t: -1, r: 0, b: 0 },
+					fillGradientStops: [
+						{ color: '#BFBFBF', position: 0 },
+						{ color: '#FFFFFF', position: 100 },
+					],
+				},
+			} as Partial<PptxElement>),
+		);
+		expect(style.backgroundImage).toContain('radial-gradient');
+		expect(style.backgroundSize).toBe('200% 200%');
+		expect(style.backgroundPosition).toBe('100% 100%');
+	});
+
+	it('emits a circle path gradient browsers can actually parse', () => {
+		const style = getShapeFillStrokeStyle(
+			shape({
+				shapeStyle: {
+					fillMode: 'gradient',
+					fillGradientType: 'radial',
+					fillGradientPathType: 'circle',
+					fillGradientFillToRect: { l: 0, t: 0, r: 1, b: 1 },
+					fillGradientStops: [
+						{ color: '#BFBFBF', position: 0 },
+						{ color: '#FFFFFF', position: 100 },
+					],
+				},
+			} as Partial<PptxElement>),
+		);
+		// `circle <percentage>` is invalid CSS: the browser discards the whole
+		// declaration and the shape renders unfilled.
+		expect(style.backgroundImage).not.toMatch(/circle\s+[\d.]+%/u);
+	});
+});
