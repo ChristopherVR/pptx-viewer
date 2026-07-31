@@ -103,6 +103,16 @@ export interface SlideStageProps {
 	 */
 	interactive?: boolean;
 	editTemplateMode?: boolean;
+	/**
+	 * Skip the resolved slide background and leave the stage see-through.
+	 *
+	 * `getSlideBackgroundStyle` always resolves to an OPAQUE fill (it falls back
+	 * to the default slide background), which is right for a stage that owns the
+	 * screen and wrong for one stacked over another. The morph transition's
+	 * departing-shape layer is exactly that: it sits above the incoming slide,
+	 * so its background would hide the whole morph behind a flat slab.
+	 */
+	transparentBackground?: boolean;
 	ontablecellcommit?: (
 		elementId: string,
 		rowIndex: number,

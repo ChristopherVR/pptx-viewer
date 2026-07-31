@@ -131,11 +131,16 @@
 		data-pptx-morph-outgoing={morphPlan ? 'true' : undefined}
 		style={outgoingStyle}
 	>
+		<!-- transparentBackground during a morph: this layer sits ABOVE the
+		     incoming slide and only carries the departing shapes, so painting the
+		     outgoing slide's own (always opaque) background here would cover the
+		     whole morph with a flat slab for its entire duration. -->
 		<SlideStage
 			slide={morphPlan ? morphOutgoingSlide : outgoingSlide}
 			{canvasSize}
 			{mediaDataUrls}
 			{scale}
+			transparentBackground={Boolean(morphPlan)}
 		/>
 	</div>
 	<div
@@ -156,10 +161,16 @@
 		pointer-events: none;
 	}
 
+	/* `inset: 0`, not `top/left: 0`: the stage inside scales with a CSS
+	   `transform`, which never changes its laid-out box, so an auto-sized layer
+	   measures the deck's NATIVE size (1280x720) while the stage paints the
+	   display size (1920x1080). With `overflow: hidden` that cropped every
+	   transition to a deck-sized top-left corner and the rest of the screen cut
+	   straight to the next slide. Pinning to the overlay (already the frame's
+	   scaled footprint) puts the clip on the slide edge, where it belongs. */
 	.pptx-svelte-transition-layer {
 		position: absolute;
-		top: 0;
-		left: 0;
+		inset: 0;
 		overflow: hidden;
 		will-change: transform, opacity, clip-path, filter;
 	}

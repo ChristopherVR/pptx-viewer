@@ -22,6 +22,7 @@
 		presenting = false,
 		interactive = false,
 		editTemplateMode = false,
+		transparentBackground = false,
 		ontablecellcommit,
 		onsmartartnodecommit,
 		onsmartartnodefill,
@@ -38,7 +39,11 @@
 			position: 'relative',
 			overflow: 'hidden',
 			// Resolved slide background: image -> gradient -> pattern -> solid.
-			...getSlideBackgroundStyle(slide),
+			// A stage stacked over another one opts out entirely and stays
+			// see-through, so it cannot hide what it is animating over.
+			...(transparentBackground
+				? { background: 'none', backgroundColor: 'transparent' }
+				: getSlideBackgroundStyle(slide)),
 		}),
 	);
 
