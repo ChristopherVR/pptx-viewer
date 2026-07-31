@@ -106,6 +106,7 @@ export type IconName =
 	| 'alert'
 	| 'close'
 	| 'crosshair'
+	| 'link'
 	| 'git-merge'
 	| 'pin'
 	| 'pin-off'
@@ -300,6 +301,10 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	],
 	close: ['M18 6L6 18', 'M6 6l12 12'],
 	crosshair: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 2v4', 'M12 18v4', 'M2 12h4', 'M18 12h4'],
+	link: [
+		'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71',
+		'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+	],
 	'git-merge': [
 		'M3 6a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',
 		'M15 18a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',

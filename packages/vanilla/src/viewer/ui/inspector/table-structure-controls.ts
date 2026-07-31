@@ -32,13 +32,13 @@ export function createTableStructureControls(
 			}
 		};
 	const controls = [
-		button(t('pptx.table.insertRowAbove'), structure('insertRowAbove')),
-		button(t('pptx.table.insertRowBelow'), structure('insertRowBelow')),
+		button(t('pptx.table.insertAbove'), structure('insertRowAbove')),
+		button(t('pptx.table.insertBelow'), structure('insertRowBelow')),
 		button(t('pptx.table.deleteRow'), structure('deleteRow')),
-		button(t('pptx.table.insertColumnLeft'), structure('insertColumnLeft')),
-		button(t('pptx.table.insertColumnRight'), structure('insertColumnRight')),
+		button(t('pptx.table.insertLeft'), structure('insertColumnLeft')),
+		button(t('pptx.table.insertRight'), structure('insertColumnRight')),
 		button(t('pptx.table.deleteColumn'), structure('deleteColumn')),
-		button(t('pptx.table.mergeCells'), (current) =>
+		button(t('pptx.table.mergeSelected'), (current) =>
 			handlers.mergeTableCells(current.selectedTableCells),
 		),
 		button(t('pptx.table.split'), (current) => {

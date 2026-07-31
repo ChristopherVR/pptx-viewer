@@ -10,8 +10,10 @@ import { createFillSection } from './fill-section';
 import { createImageSection } from './image-section';
 import { createMediaSection } from './media-section';
 import { createPositionSection } from './position-section';
+import { createQuickStylesGallery } from './quick-styles-gallery';
 import { createSmartArtSection } from './smartart-section';
 import { createTableSection } from './table-section';
+import { createText3DSection } from './text-3d-section';
 import { createTextSection } from './text-section';
 import type { Inspector, InspectorHandlers } from './types';
 
@@ -101,14 +103,28 @@ export function createInspector(
 
 	const position = createPositionSection(doc, t, section, handlers.setGeometry);
 	const fill = createFillSection(doc, t, section, handlers);
+	const quickStyles = createQuickStylesGallery(doc, t, section, handlers);
 	const text = createTextSection(doc, t, section, handlers);
+	const text3d = createText3DSection(doc, t, section, handlers);
 	const image = createImageSection(doc, t, section, handlers);
 	const table = createTableSection(doc, t, section, handlers);
 	const smartArt = createSmartArtSection(doc, t, section, handlers);
 	const action = createActionSection(doc, t, section, handlers);
 	const chart = createChartSection(doc, t, section, handlers);
 	const media = createMediaSection(doc, t, section, handlers);
-	const sections = [position, fill, text, image, table, smartArt, action, chart, media];
+	const sections = [
+		position,
+		fill,
+		quickStyles,
+		text,
+		text3d,
+		image,
+		table,
+		smartArt,
+		action,
+		chart,
+		media,
+	];
 
 	setActiveTab(activeTab);
 
@@ -121,6 +137,7 @@ export function createInspector(
 			}
 		},
 		updateDeck(state) {
+			action.setSlideCount(state.slideCount);
 			elementsTab.update(state);
 			commentsTab.update(state);
 			deckPanel.update(state);

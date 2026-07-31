@@ -1,4 +1,13 @@
-import type { PptxHandler, PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxData,
+	PptxHandler,
+	PptxPresentationProperties,
+	PptxSlide,
+	PptxTagCollection,
+	PptxThemeColorScheme,
+	PptxThemeFontScheme,
+} from 'pptx-viewer-core';
+import { applyThemeToData } from 'pptx-viewer-core';
 
 import type { Store, ViewerState } from '../state';
 import { updateSlide } from './editor-mutations';
@@ -16,6 +25,14 @@ export interface DeckActions {
 	updatePresentationSettings(patch: Partial<PptxPresentationProperties>): void;
 	/** Apply a packaged theme part by archive path (React's `handleApplyTheme`). */
 	applyThemeByPath(themePath: string, allMasters: boolean): void;
+	/** Re-theme the deck from the inspector's THEME EDITOR card. */
+	applyThemeEdit(payload: {
+		colorScheme: PptxThemeColorScheme;
+		fontScheme: PptxThemeFontScheme;
+		name: string;
+	}): void;
+	/** Replace the deck's `ppt/tags/*.xml` collections (inspector TAGS card). */
+	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (inspector THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
 	/** Resize the slide canvas (inspector SLIDE SIZE card). */
@@ -54,6 +71,45 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 				});
 				ops.commitChange();
 			})();
+		},
+
+		applyThemeEdit({ colorScheme, fontScheme, name }) {
+			const state = store.get();
+			if (!state.editable) {
+				return;
+			}
+			ops.pushHistory();
+			// Core's pure `applyThemeToData` re-resolves every slide's scheme-based
+			// colours against the new palette, which is what makes an edited theme
+			// visible on the canvas rather than only on the next save.
+			const result = applyThemeToData(
+				{
+					slides: state.slides,
+					theme: { colorScheme: state.colorScheme, fontScheme: state.fontScheme },
+					themeColorMap: state.colorScheme ? { ...state.colorScheme } : undefined,
+				} as unknown as PptxData,
+				colorScheme,
+				fontScheme,
+				name,
+			);
+			store.set({
+				slides: result.slides,
+				colorScheme: result.theme?.colorScheme ?? colorScheme,
+				fontScheme: result.theme?.fontScheme ?? fontScheme,
+				themeName: name,
+			});
+			ops.commitChange();
+		},
+
+		updateTagCollections(next) {
+			if (!store.get().editable) {
+				return;
+			}
+			// Tags live outside the slide tree, so there is nothing for the history
+			// snapshot to restore; commitChange still marks the deck dirty so the
+			// change reaches the next save.
+			store.set({ tagCollections: next });
+			ops.commitChange();
 		},
 
 		updateActiveSlide(patch) {

@@ -404,6 +404,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					headerFooter: state.headerFooter,
 					presentationProperties: state.presentationProperties,
 					customShows: state.customShows.length ? state.customShows : undefined,
+					tags: state.tagCollections.length > 0 ? state.tagCollections : undefined,
 					slideMasters: state.slideMasters,
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,

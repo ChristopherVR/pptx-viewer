@@ -3,19 +3,42 @@ import { isActionHidden } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
+import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
 import type { RibbonNavHandlers } from '../ribbon-types';
+
+/** The View > Show toggles, as the viewer state currently holds them. */
+export interface ViewToggleState {
+	showGrid: boolean;
+	showRulers: boolean;
+	showGuides: boolean;
+	snapToGrid: boolean;
+	snapToShape: boolean;
+}
 
 export interface ViewTab {
 	el: HTMLElement;
 	setTemplateEditing(active: boolean): void;
 	setEditable(editable: boolean): void;
+	/** Reflect the Show group's toggles (pressed styling) from viewer state. */
+	setViewOptions(options: ViewToggleState): void;
 }
 
 /**
- * The View ribbon tab: zoom in/out/fit, present, and notes-toggle. The status
- * bar keeps these actions available outside the tab while avoiding a duplicate
- * navigation row above the ribbon.
+ * The View ribbon tab: Presentation Views, Master Views, Show, Zoom and
+ * Window, matching React's `ViewSection` command for command.
+ *
+ * Zoom in / zoom out / slide show / notes are deliberately absent: they live
+ * in the status bar, which is always on screen, and duplicating them here made
+ * this tab the only one in any binding with its own navigation row.
+ *
+ * "Guides" and "Snap to shape" are one control each, for the one thing each of
+ * them names. They used to be crossed: Guides drove shape snapping and Snap to
+ * shape was a permanently disabled placeholder, so the ribbon carried a label
+ * describing a feature that lived on a differently-named control. Guide
+ * visibility and shape snapping are genuinely separate settings (you can want
+ * the guides drawn without every drag magnetising to a neighbour), and the
+ * viewer state carries both flags.
  */
 export function createViewTab(
 	doc: Document,
@@ -25,120 +48,68 @@ export function createViewTab(
 ): ViewTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
+	const command = (key: string, onClick: () => void): ButtonHandle =>
+		makeButton(doc, { label: t(key), text: t(key), onClick });
+	const placeholder = (key: string): HTMLButtonElement => {
+		const button = command(key, () => {});
+		button.setDisabled(true);
+		return button.btn;
+	};
+
+	const normal = command('pptx.view.normal', handlers.normalView);
+	normal.btn.title = t('pptx.statusBar.normalView');
+	const sorter = command('pptx.slideSorter.title', handlers.openSlideSorter);
+	sorter.btn.title = t('pptx.view.slideSorterTooltip');
+
+	const masterView = command('pptx.master.title', () => handlers.toggleMasterView?.());
+	masterView.btn.title = t('pptx.view.slideMasterTooltip');
+
+	const rulers = command('pptx.ruler.rulers', () => handlers.toggleViewOption('showRulers'));
+	const grid = command('pptx.grid.grid', () => handlers.toggleViewOption('showGrid'));
+	const guides = command('pptx.view.guides', () => handlers.toggleViewOption('showGuides'));
+	guides.btn.title = t('pptx.ribbon.toggleGuides');
+	const snapGrid = command('pptx.view.snapToGrid', () => handlers.toggleViewOption('snapToGrid'));
+	const snapShape = command('pptx.view.snapToShape', () =>
+		handlers.toggleViewOption('snapToShape'),
+	);
+	const selection = command('pptx.view.selection', handlers.openSelectionPane);
+	selection.btn.title = t('pptx.selectionPane.title');
+	const eyedropper = command('pptx.ribbon.eyedropper', handlers.activateEyedropper);
+	eyedropper.btn.title = t('pptx.view.eyedropperTooltip');
+	const horizontalGuide = command('pptx.view.hGuide', () => handlers.addGuide('h'));
+	horizontalGuide.btn.title = t('pptx.view.addHorizontalGuide');
+	const verticalGuide = command('pptx.view.vGuide', () => handlers.addGuide('v'));
+	verticalGuide.btn.title = t('pptx.view.addVerticalGuide');
+
 	const showZoom = !isActionHidden('zoom', hiddenActions);
-	const zoomOut = showZoom
-		? makeButton(doc, {
-				label: t('pptx.statusBar.zoomOut'),
-				icon: 'zoom-out',
-				onClick: handlers.zoomOut,
-			})
-		: null;
-	const zoomIn = showZoom
-		? makeButton(doc, {
-				label: t('pptx.statusBar.zoomIn'),
-				icon: 'zoom-in',
-				onClick: handlers.zoomIn,
-			})
-		: null;
-	const fit = showZoom
-		? makeButton(doc, {
-				label: t('pptx.view.zoomToFit'),
-				icon: 'fit',
-				onClick: handlers.zoomToFit,
-			})
-		: null;
-	const present = isActionHidden('fullscreen', hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.statusBar.slideShow'),
-				icon: 'play',
-				onClick: handlers.togglePresentation,
-			});
-	const notes = isActionHidden('notes', hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.statusBar.toggleNotes'),
-				icon: 'notes',
-				onClick: handlers.toggleNotes,
-			});
-	const accessibility = makeButton(doc, {
-		label: t('pptx.ribbon.accessibilityCheck'),
-		icon: 'sidebar',
-		onClick: handlers.openAccessibility,
-	});
-	const templates = makeButton(doc, {
-		label: t('pptx.ribbon.templatesOff'),
-		text: t('pptx.ribbon.templatesOff'),
-		onClick: () => handlers.toggleTemplateEditing?.(),
-	});
-	const masterView = makeButton(doc, {
-		label: t('pptx.master.title'),
-		text: t('pptx.master.title'),
-		onClick: () => handlers.toggleMasterView?.(),
-	});
-	const sorter = makeButton(doc, {
-		label: t('pptx.view.slideSorterTooltip'),
-		text: t('pptx.slideSorter.title'),
-		onClick: handlers.openSlideSorter,
-	});
-	const selection = makeButton(doc, {
-		label: t('pptx.selectionPane.title'),
-		text: t('pptx.selectionPane.title'),
-		onClick: handlers.openSelectionPane,
-	});
-	const grid = makeButton(doc, {
-		label: t('pptx.view.gridlines'),
-		text: t('pptx.view.gridlines'),
-		onClick: () => handlers.toggleViewOption('showGrid'),
-	});
-	const rulers = makeButton(doc, {
-		label: t('pptx.view.ruler'),
-		text: t('pptx.view.ruler'),
-		onClick: () => handlers.toggleViewOption('showRulers'),
-	});
-	const snapGrid = makeButton(doc, {
-		label: t('pptx.view.snapToGrid'),
-		text: t('pptx.view.snapToGrid'),
-		onClick: () => handlers.toggleViewOption('snapToGrid'),
-	});
-	const snapShape = makeButton(doc, {
-		label: t('pptx.view.snapToShape'),
-		text: t('pptx.view.snapToShape'),
-		onClick: () => handlers.toggleViewOption('snapToShape'),
-	});
-	const horizontalGuide = makeButton(doc, {
-		label: t('pptx.view.addHorizontalGuide'),
-		text: t('pptx.view.addHorizontalGuide'),
-		onClick: () => handlers.addGuide('h'),
-	});
-	const verticalGuide = makeButton(doc, {
-		label: t('pptx.view.addVerticalGuide'),
-		text: t('pptx.view.addVerticalGuide'),
-		onClick: () => handlers.addGuide('v'),
-	});
-	const eyedropper = makeButton(doc, {
-		label: t('pptx.ribbon.eyedropper'),
-		text: t('pptx.ribbon.eyedropper'),
-		onClick: handlers.activateEyedropper,
-	});
+	const zoomToFit = showZoom ? command('pptx.view.zoomToFit', handlers.zoomToFit) : null;
+	if (zoomToFit) {
+		zoomToFit.btn.title = t('pptx.view.zoomToFitTooltip');
+	}
+
+	const templates = command('pptx.ribbon.templatesOff', () => handlers.toggleTemplateEditing?.());
 	templates.btn.dataset.testid = 'template-edit-toggle';
+	templates.btn.title = t('pptx.view.templateEditingTooltip');
 
 	el.append(
-		...(zoomOut && zoomIn && fit ? [zoomOut.btn, zoomIn.btn, fit.btn] : []),
-		...(present ? [present.btn] : []),
-		...(notes ? [notes.btn] : []),
-		accessibility.btn,
-		templates.btn,
-		masterView.btn,
+		normal.btn,
 		sorter.btn,
-		selection.btn,
-		grid.btn,
+		placeholder('pptx.view.readingView'),
+		masterView.btn,
+		placeholder('pptx.master.handoutMasterTitle'),
+		placeholder('pptx.master.notesMasterTitle'),
 		rulers.btn,
+		grid.btn,
+		guides.btn,
 		snapGrid.btn,
+		selection.btn,
+		eyedropper.btn,
 		snapShape.btn,
 		horizontalGuide.btn,
 		verticalGuide.btn,
-		eyedropper.btn,
+		...(showZoom ? [placeholder('pptx.slideSorter.zoom'), zoomToFit?.btn ?? []].flat() : []),
+		templates.btn,
+		placeholder('pptx.view.macros'),
 	);
 
 	return {
@@ -148,10 +119,17 @@ export function createViewTab(
 			masterView.setDisabled(!editable);
 			eyedropper.setDisabled(!editable);
 		},
+		setViewOptions(options) {
+			rulers.setActive(options.showRulers);
+			grid.setActive(options.showGrid);
+			guides.setActive(options.showGuides);
+			snapGrid.setActive(options.snapToGrid);
+			snapShape.setActive(options.snapToShape);
+		},
 		setTemplateEditing(active) {
 			const label = t(active ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff');
 			templates.btn.textContent = label;
-			templates.btn.title = label;
+			templates.btn.title = t('pptx.view.templateEditingTooltip');
 			templates.btn.setAttribute('aria-label', label);
 			templates.setActive(active);
 		},

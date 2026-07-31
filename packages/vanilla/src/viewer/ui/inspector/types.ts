@@ -11,7 +11,9 @@ import type {
 	PptxSmartArtNodeStyle,
 	PptxTableCellStyle,
 	PptxTableData,
+	PptxTagCollection,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 	PptxThemeOption,
 	ElementAction,
 	SmartArtColorScheme,
@@ -44,6 +46,14 @@ export interface InspectorHandlers {
 	updatePresentationSettings(patch: Partial<PptxPresentationProperties>): void;
 	/** Apply a packaged theme part by archive path (THEME card). */
 	applyThemeByPath(themePath: string, allMasters: boolean): void;
+	/** Re-theme the deck from the THEME EDITOR card's staged colours/fonts/name. */
+	applyThemeEdit(payload: {
+		colorScheme: PptxThemeColorScheme;
+		fontScheme: PptxThemeFontScheme;
+		name: string;
+	}): void;
+	/** Replace the deck's `ppt/tags/*.xml` collections (TAGS card). */
+	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
 	/** Resize the slide canvas (SLIDE SIZE card). */
@@ -92,6 +102,8 @@ export interface InspectorHandlers {
 	replaceImage(): void;
 	resetImage(): void;
 	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
+	/** Set the selected element's accessibility description (Alt Text field). */
+	setAltText(text: string): void;
 	setChartData(data: PptxChartData): void;
 	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
@@ -175,6 +187,8 @@ export interface InspectorState {
 	imageColorWash?: { color: string; opacity: number };
 	actionClick?: ElementAction;
 	actionHover?: ElementAction;
+	/** The selected element's alt text (accessibility description), if any. */
+	altText: string;
 	chartData?: PptxChartData;
 	media?: MediaPptxElement;
 	mediaPreviewUrl?: string;
@@ -225,6 +239,12 @@ export interface InspectorDeckState {
 	activeSlide: PptxSlide | undefined;
 	/** Presentation theme colours used to preview override target slots. */
 	colorScheme: PptxThemeColorScheme | undefined;
+	/** Presentation theme fonts, seeding the THEME EDITOR card's font pair. */
+	fontScheme: PptxThemeFontScheme | undefined;
+	/** The loaded theme's name (THEME EDITOR card), when the package has one. */
+	themeName: string | undefined;
+	/** Tag collections parsed from `ppt/tags/*.xml` (TAGS card). */
+	tagCollections: readonly PptxTagCollection[];
 	/** Notes page size in px (NOTES & HANDOUT card), when the package has one. */
 	notesCanvasSize: { width: number; height: number } | undefined;
 	/** Notes master placeholder count, or undefined when no notes master. */

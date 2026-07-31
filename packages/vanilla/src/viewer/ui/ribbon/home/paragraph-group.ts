@@ -15,7 +15,22 @@ export interface ParagraphGroupHandlers {
 	decreaseIndent(): void;
 	setTextAlign(align: TextStyle['align']): void;
 	setLineSpacing(value: number): void;
+	setTextDirection(direction: NonNullable<TextStyle['textDirection']>): void;
+	setColumnCount(count: number): void;
 }
+
+/** PowerPoint's four text-flow directions, in React's Text Direction menu order. */
+const TEXT_DIRECTIONS: ReadonlyArray<{
+	value: NonNullable<TextStyle['textDirection']>;
+	label: string;
+}> = [
+	{ value: 'horizontal', label: 'Horizontal' },
+	{ value: 'vertical', label: 'Rotate 90°' },
+	{ value: 'vertical270', label: 'Rotate 270°' },
+	{ value: 'wordArtVert', label: 'Stacked' },
+];
+
+const COLUMN_COUNTS: readonly number[] = [1, 2, 3];
 
 export interface ParagraphGroupState {
 	canFormat: boolean;
@@ -88,6 +103,27 @@ export function createParagraphGroup(
 	});
 	lineSpacing.el.querySelector('.pptxv-dropdown-text')?.remove();
 
+	const textDirection = makeDropdown(doc, {
+		triggerLabel: t('pptx.paragraph.textDirection'),
+		triggerText: '',
+		icon: 'change-case',
+		items: TEXT_DIRECTIONS.map((d) => ({ label: d.label, value: d.value })),
+		onSelect: handlers.setTextDirection,
+	});
+	textDirection.el.querySelector('.pptxv-dropdown-text')?.remove();
+
+	const columns = makeDropdown(doc, {
+		triggerLabel: t('pptx.paragraph.columns'),
+		triggerText: '',
+		icon: 'columns',
+		items: COLUMN_COUNTS.map((count) => ({
+			label: `${count} ${count === 1 ? 'Column' : 'Columns'}`,
+			value: count,
+		})),
+		onSelect: handlers.setColumnCount,
+	});
+	columns.el.querySelector('.pptxv-dropdown-text')?.remove();
+
 	row.append(
 		bullets.btn,
 		numbered.btn,
@@ -95,9 +131,20 @@ export function createParagraphGroup(
 		indentInc.btn,
 		...alignButtons.map((b) => b.btn),
 		lineSpacing.el,
+		textDirection.el,
+		columns.el,
 	);
 
-	const gated = [bullets, numbered, indentDec, indentInc, ...alignButtons, lineSpacing];
+	const gated = [
+		bullets,
+		numbered,
+		indentDec,
+		indentInc,
+		...alignButtons,
+		lineSpacing,
+		textDirection,
+		columns,
+	];
 
 	return {
 		el,

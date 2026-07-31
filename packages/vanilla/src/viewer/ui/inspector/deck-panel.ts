@@ -5,6 +5,9 @@ import type { DeckCard } from './deck-card-helpers';
 import { makeDeckButton, makeRow, makeSection } from './deck-card-helpers';
 import { createDeckPresentationCard } from './deck-presentation-card';
 import { createThemeCard, createThemeOverrideCard } from './deck-theme-cards';
+import { createSlideTransitionCard } from './slide-transition-card';
+import { createTagsCard } from './tags-card';
+import { createThemeEditorCard } from './theme-editor-card';
 import type { InspectorDeckState, InspectorHandlers } from './types';
 
 export interface DeckPanel {
@@ -18,8 +21,10 @@ export type DeckPanelHandlers = Pick<
 	| 'openDocumentProperties'
 	| 'updatePresentationSettings'
 	| 'applyThemeByPath'
+	| 'applyThemeEdit'
 	| 'updateActiveSlide'
 	| 'updateCanvasSize'
+	| 'updateTagCollections'
 >;
 
 /** The editable SLIDE SIZE card (W/H numeric fields, React's `SlideSizeCard`). */
@@ -105,7 +110,8 @@ function createDocumentCard(
 /**
  * The no-selection Properties view, mirroring React's
  * `PresentationPropertiesPanel` section order: PRESENTATION, THEME, THEME
- * OVERRIDE, SLIDE SIZE, NOTES & HANDOUT, DOCUMENT.
+ * EDITOR, THEME OVERRIDE, SLIDE TRANSITION, SLIDE SIZE, NOTES & HANDOUT,
+ * DOCUMENT, TAGS.
  */
 export function createDeckPanel(
 	doc: Document,
@@ -117,10 +123,13 @@ export function createDeckPanel(
 	const cards: DeckCard[] = [
 		createDeckPresentationCard(doc, t, handlers),
 		createThemeCard(doc, t, handlers),
+		createThemeEditorCard(doc, t, handlers),
 		createThemeOverrideCard(doc, t, handlers),
+		createSlideTransitionCard(doc, t, handlers),
 		createSlideSizeCard(doc, t, handlers),
 		createNotesHandoutCard(doc, t),
 		createDocumentCard(doc, t, handlers),
+		createTagsCard(doc, t, handlers),
 	];
 	el.append(...cards.map((card) => card.el));
 

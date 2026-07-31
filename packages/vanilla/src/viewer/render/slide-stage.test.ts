@@ -109,8 +109,10 @@ describe('renderSlideStage', () => {
 		expect(text?.style.top).toBe('20px');
 		expect(text?.textContent).toContain('Hello world');
 		// The element-level textStyle (bold/size/colour) lands on the text block.
+		// Numeric weight, as React emits: the block style is now built by the
+		// shared `buildTextBlockStyle` that all five bindings render from.
 		const block = text?.querySelector<HTMLElement>('.pptxv-text');
-		expect(block?.style.fontWeight).toBe('bold');
+		expect(block?.style.fontWeight).toBe('700');
 		expect(block?.style.fontSize).toBe('24px');
 	});
 
@@ -197,5 +199,33 @@ describe('renderSlideStage', () => {
 		expect(
 			thumbnail.querySelector('[data-element-id="el-image"]')?.getAttribute('role'),
 		).toBeNull();
+	});
+
+	it('announces an action-carrying shape as a button, like React does', () => {
+		const slide = buildSlide();
+		slide.elements = [
+			{
+				type: 'shape',
+				id: 'el-action',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 40,
+				shapeType: 'roundRect',
+				actionClick: { url: 'https://example.com' },
+			},
+		] as PptxSlide['elements'];
+		const stage = renderSlideStage({
+			document,
+			slide,
+			canvasSize: { width: 1280, height: 720 },
+			mediaDataUrls: new Map<string, string>(),
+			registry: createDefaultRegistry(),
+			t: createTranslator(),
+			interactive: true,
+		});
+		expect(stage.querySelector('[data-element-id="el-action"]')?.getAttribute('role')).toBe(
+			'button',
+		);
 	});
 });

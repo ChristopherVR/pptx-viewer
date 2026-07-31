@@ -14,6 +14,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTagCollection,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
@@ -60,6 +61,10 @@ export interface LoadedPresentation {
 	colorScheme?: PptxThemeColorScheme;
 	/** Presentation theme fonts used by table-style font resolution. */
 	fontScheme?: PptxThemeFontScheme;
+	/** The theme part's name, seeding the inspector's THEME EDITOR card. */
+	themeName?: string;
+	/** Tag collections from `ppt/tags/*.xml` (inspector TAGS card). */
+	tagCollections: PptxTagCollection[];
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
 	slideMasters: PptxSlideMaster[];
@@ -103,6 +108,8 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			mediaDataUrls,
 			colorScheme: parsed.theme?.colorScheme,
 			fontScheme: parsed.theme?.fontScheme,
+			themeName: parsed.theme?.name,
+			tagCollections: parsed.tags ?? [],
 			tableStyleMap: parsed.tableStyleMap,
 			slideMasters: parsed.slideMasters ?? [],
 			themeOptions: parsed.themeOptions ?? [],

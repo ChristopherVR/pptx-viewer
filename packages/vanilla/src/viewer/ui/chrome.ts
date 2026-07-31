@@ -20,6 +20,8 @@ import { createPresentationTouchControls } from './presentation-touch-controls';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
+import type { ShortcutPanel } from './shortcut-panel';
+import { createShortcutPanel } from './shortcut-panel';
 import type { StatusBar } from './status-bar';
 import { createStatusBar } from './status-bar';
 import type { ThumbnailRail } from './thumbnails';
@@ -69,6 +71,8 @@ export interface ViewerChrome {
 	inspector: Inspector | null;
 	/** Cross-slide accessibility checker results, opened from the View ribbon. */
 	accessibility: AccessibilityPanel;
+	/** Keyboard-shortcut cheat sheet, toggled by "?". */
+	shortcuts: ShortcutPanel;
 	/** Dedicated Slide/Notes/Handout master workspace navigation. */
 	masterSidebar: MasterViewSidebar;
 	thumbnails: ThumbnailRail | null;
@@ -153,6 +157,8 @@ export function buildViewerChrome(
 	root.appendChild(body);
 	const accessibility = createAccessibilityPanel(doc, t, options.onSelectSlide);
 	root.appendChild(accessibility.el);
+	const shortcuts = createShortcutPanel(doc, t);
+	root.appendChild(shortcuts.el);
 	const masterSidebar = createMasterViewSidebar(doc, t);
 	body.appendChild(masterSidebar.el);
 
@@ -255,6 +261,7 @@ export function buildViewerChrome(
 		titleBar,
 		inspector,
 		accessibility,
+		shortcuts,
 		masterSidebar,
 		thumbnails,
 		viewport,

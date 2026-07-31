@@ -130,18 +130,22 @@ export function createSlidesGroup(
 	layoutHost.append(layout.btn, layoutMenu.el);
 
 	// -- Reset + Section pills -------------------------------------------------
+	// The accessible name is the visible pill text in every binding; the longer
+	// phrasing stays as the hover tooltip.
 	const reset = makeButton(doc, {
-		label: t('pptx.sections.resetSlideTitle'),
+		label: t('pptx.animations.reset'),
 		icon: 'undo',
 		textLabel: t('pptx.animations.reset'),
 		onClick: handlers.resetSlide,
 	});
+	reset.btn.title = t('pptx.sections.resetSlideTitle');
 	const section = makeButton(doc, {
-		label: t('pptx.sections.addSection'),
+		label: t('pptx.sections.sectionButtonLabel'),
 		icon: 'folder-plus',
 		textLabel: t('pptx.sections.sectionButtonLabel'),
 		onClick: handlers.addSection,
 	});
+	section.btn.title = t('pptx.sections.addSection');
 
 	row.append(newSlideSplit, layoutHost, reset.btn, section.btn);
 

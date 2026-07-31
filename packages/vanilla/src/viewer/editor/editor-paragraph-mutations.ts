@@ -51,3 +51,16 @@ export function setTextAlign(el: PptxElement, align: TextStyle['align']): Partia
 export function setLineSpacing(el: PptxElement, lineSpacing: number): Partial<PptxElement> {
 	return patchTextStyle(el, { lineSpacing });
 }
+
+/** Set the text flow direction (horizontal / rotated / stacked) element-wide. */
+export function setTextDirection(
+	el: PptxElement,
+	textDirection: TextStyle['textDirection'],
+): Partial<PptxElement> {
+	return patchTextStyle(el, { textDirection });
+}
+
+/** Set how many columns the element's text body flows into (>= 1). */
+export function setColumnCount(el: PptxElement, columnCount: number): Partial<PptxElement> {
+	return patchTextStyle(el, { columnCount: Math.max(1, Math.round(columnCount)) });
+}

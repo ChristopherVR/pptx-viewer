@@ -10,6 +10,7 @@ import type {
 	PresentationSnapshot,
 	ThemeCatalogEntry,
 	ViewerMode,
+	ViewerQuickAccessOptions,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 import {
@@ -33,6 +34,7 @@ import {
 	createInitialPresentationSnapshot,
 	createBlankSlide,
 	createBackstagePresentation,
+	DEFAULT_VIEWER_OPTIONS,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
 	readBackstageRecentFile,
@@ -44,7 +46,7 @@ import {
 } from 'pptx-viewer-shared';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
-import type { AiChatMount } from './ai';
+import type { AiChatMount, AiFocusController } from './ai';
 import { createAiFocusController, createVanillaAiBridge, mountAiChat } from './ai';
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
@@ -66,6 +68,8 @@ import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
 import { createRenderController } from './render-controller';
+import type { RulerController } from './ruler-controller';
+import { createRulerController } from './ruler-controller';
 import type { SessionControllers } from './session-controllers';
 import { createSessionControllers } from './session-controllers';
 import type { Store, ViewerState } from './state';
@@ -88,6 +92,8 @@ import type {
 } from './types';
 import { openDigitalSignaturesDialog } from './ui/digital-signatures-dialog';
 import { openDocumentPropertiesDialog } from './ui/document-properties-dialog';
+import type { ElementContextMenu } from './ui/element-context-menu';
+import { mountElementContextMenu } from './ui/element-context-menu';
 import { openFontEmbeddingDialog } from './ui/font-embedding-dialog';
 import { openPasswordProtectionDialog } from './ui/password-protection-dialog';
 import { openSignatureStrippedDialog } from './ui/signature-stripped-dialog';
@@ -139,6 +145,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private annotations!: PresentationAnnotationsHost;
 	private parityWorkflows!: ParityWorkflows;
 	private aiChat: AiChatMount | null = null;
+	/** Live AI focus controller while `ai` is configured; the canvas menu's AI entries route to it. */
+	private aiFocus: AiFocusController | null = null;
+	private contextMenu: ElementContextMenu | null = null;
+	/** View > Rulers strips (ticks, labels, drag-out guides) around the stage. */
+	private rulers: RulerController | null = null;
 	/** File > Options store + option-driven behavior (undo depth, ribbon, etc.). */
 	private optionsController!: ViewerOptionsController;
 
@@ -220,6 +231,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			},
 			onStageRendered: () => {
 				this.editor?.onStageRendered();
+				// The stage wrap's children are replaced on every stage render, so
+				// the ruler strips have to be re-attached here.
+				this.rulers?.sync();
 				this.annotations?.sync(this.presenterSnapshot);
 			},
 		});
@@ -250,6 +264,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			flushInlineTextInput: () => this.sessions.flushCollaborationLivePatch(),
 		});
 		this.editor.attachChrome();
+		this.rulers = createRulerController({
+			doc: this.doc,
+			store: this.store,
+			getStageWrap: () => this.lifecycle?.chrome.stageWrap ?? null,
+			getScale: () => this.renderer.effectiveScale(),
+			getUnit: () => options.rulerUnit ?? 'inches',
+			onCreateGuide: (axis, position) => this.editor?.getEditActions().addGuide(axis, position),
+		});
 		this.annotations = createPresentationAnnotationsHost({
 			doc: this.doc,
 			t: this.t,
@@ -318,6 +340,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		// each time they open, not whatever was active when this host was built.
 		Object.defineProperty(parityWorkflowHost, 't', { get: () => this.t });
 		this.parityWorkflows = createParityWorkflows(parityWorkflowHost);
+		this.setupContextMenu();
 		if (options.editable) {
 			this.store.set({ editable: true });
 			this.editor.setEditable(true);
@@ -379,6 +402,29 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	 * a prior mount first, so it can re-attach after a locale-driven chrome
 	 * remount. No-op (and never touches the `ai` SDK) when `ai` is absent.
 	 */
+	/**
+	 * Mount the canvas right-click menu against the current chrome. Re-callable:
+	 * the chrome (and with it `chrome.viewport`, which owns the `contextmenu`
+	 * listener) is rebuilt on every locale switch, so the menu must be re-bound
+	 * to the new viewport or right-clicking stops opening anything.
+	 */
+	private setupContextMenu(): void {
+		this.contextMenu?.destroy();
+		this.contextMenu = mountElementContextMenu({
+			doc: this.doc,
+			store: this.store,
+			getTranslator: () => this.t,
+			viewport: this.lifecycle.chrome.viewport,
+			getStageRoot: () =>
+				this.lifecycle.chrome.stageWrap.querySelector<HTMLElement>('.pptxv-stage'),
+			getEditActions: () => this.editor.getEditActions(),
+			selectElement: (id) => this.editor.selectElements([id]),
+			openComments: () => this.parityWorkflows.openComments(),
+			openHyperlink: () => this.parityWorkflows.openHyperlink(),
+			getAi: () => this.aiFocus,
+		});
+	}
+
 	private setupAiChat(): void {
 		const config = this.options.ai;
 		if (!config) {
@@ -389,6 +435,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			store: this.store,
 			requestOpen: () => this.aiChat?.open(),
 		});
+		// Published so the canvas context menu can offer "Ask AI" / "Fix with AI"
+		// as two of its own entries instead of opening a second, AI-only menu.
+		this.aiFocus = controller;
 		const bridge = createVanillaAiBridge({
 			store: this.store,
 			editor: this.editor,
@@ -909,6 +958,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		// Chrome labels are baked at build time; rebuild it under the new locale.
 		this.remountChrome();
 		this.editor.attachChrome();
+		this.setupContextMenu();
 		this.setupAiChat();
 		this.renderer.renderAll();
 		if (this.options.onLocaleChange) {
@@ -953,6 +1003,24 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		const enabled = !this.sessions.isAutosaveEnabled();
 		this.setAutosaveEnabled(enabled);
 		return enabled;
+	}
+
+	/**
+	 * Live Quick Access Toolbar options for the title-bar strip.
+	 *
+	 * The chrome is mounted BEFORE the options controller is constructed, so the
+	 * very first strip render falls back to the shared defaults; the controller's
+	 * `applyAll()` re-renders it from the persisted options moments later.
+	 */
+	getQuickAccessOptions(): ViewerQuickAccessOptions {
+		const controller = this.optionsController as ViewerOptionsController | undefined;
+		return controller?.getOptions().quickAccess ?? DEFAULT_VIEWER_OPTIONS.quickAccess;
+	}
+
+	/** ScreenTip-styled tooltip for a Quick Access button; see above for timing. */
+	quickAccessScreenTip(label: string): string | undefined {
+		const controller = this.optionsController as ViewerOptionsController | undefined;
+		return controller?.screenTip(label) ?? label;
 	}
 
 	canUndo = (): boolean => this.editor.canUndo();
@@ -1031,6 +1099,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.destroyed = true;
 		this.aiChat?.destroy();
 		this.aiChat = null;
+		this.aiFocus = null;
+		this.contextMenu?.destroy();
+		this.contextMenu = null;
+		this.rulers?.destroy();
+		this.rulers = null;
 		this.closeAudienceWindow();
 		this.presenterChannel?.close();
 		this.sessions.destroy();

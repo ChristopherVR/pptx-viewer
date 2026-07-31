@@ -56,6 +56,10 @@ export function createClipboardGroup(
 	return {
 		el,
 		update({ hasSelection, hasClipboard, editable, formatPainterActive }) {
+			// Cut and Copy act on the selection, so with nothing selected they are
+			// no-ops. They used to render live because the Arrange group carried a
+			// second, selection-aware trio; that duplicate is gone, so the gating
+			// has to live here, which is also where PowerPoint puts it.
 			paste.setDisabled(!editable || !hasClipboard);
 			cut.setDisabled(!editable || !hasSelection);
 			copy.setDisabled(!hasSelection);

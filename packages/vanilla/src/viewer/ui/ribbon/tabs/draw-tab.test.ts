@@ -14,30 +14,30 @@ function makeHandlers(over: Partial<RibbonDrawHandlers> = {}): RibbonDrawHandler
 }
 
 describe('createDrawTab', () => {
-	it('renders one button per tool (select, pen, highlighter, eraser)', () => {
+	it('renders one button per tool (select, pen, highlighter, eraser, freeform)', () => {
 		const t = createTranslator();
 		const tab = createDrawTab(document, t, makeHandlers());
 		const toolButtons = tab.el.querySelectorAll<HTMLButtonElement>(
 			'.pptxv-rgroup:first-child button',
 		);
-		expect(toolButtons).toHaveLength(4);
+		expect(toolButtons).toHaveLength(5);
 	});
 
-	it('dispatches setTool for each tool button in select/pen/highlighter/eraser order', () => {
+	it('dispatches setTool for each tool in select/pen/highlighter/eraser/freeform order', () => {
 		const setTool = vi.fn();
 		const t = createTranslator();
 		const tab = createDrawTab(document, t, makeHandlers({ setTool }));
 		const toolButtons = tab.el.querySelectorAll<HTMLButtonElement>(
 			'.pptxv-rgroup:first-child button',
 		);
-		toolButtons[0].click();
-		toolButtons[1].click();
-		toolButtons[2].click();
-		toolButtons[3].click();
+		for (const button of toolButtons) {
+			button.click();
+		}
 		expect(setTool).toHaveBeenNthCalledWith(1, 'select');
 		expect(setTool).toHaveBeenNthCalledWith(2, 'pen');
 		expect(setTool).toHaveBeenNthCalledWith(3, 'highlighter');
 		expect(setTool).toHaveBeenNthCalledWith(4, 'eraser');
+		expect(setTool).toHaveBeenNthCalledWith(5, 'freeform');
 	});
 
 	it('dispatches setColor from the custom colour input on the swatch picker', () => {
@@ -73,6 +73,7 @@ describe('createDrawTab', () => {
 			false,
 			false,
 			true,
+			false,
 			false,
 		]);
 		const widthTrigger = tab.el.querySelector('.pptxv-dropdown-text');

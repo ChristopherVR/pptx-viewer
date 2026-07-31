@@ -1,5 +1,4 @@
 import type {
-	PptxAnimationPreset,
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
@@ -7,29 +6,15 @@ import type {
 	PptxAnimationTrigger,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
-import type { AnimationGroup } from 'pptx-viewer-shared';
-import {
-	EMPHASIS_PRESET_VALUES,
-	ENTRANCE_PRESET_VALUES,
-	EXIT_PRESET_VALUES,
-} from 'pptx-viewer-shared';
 
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { createAnimationPresetGallery } from './animation-preset-gallery';
 import { animationRow, optionSelect, timingField } from './animation-timeline-controls';
-
-/** One preset-gallery category: label key, group bucket, and its preset catalogue. */
-const CATEGORIES: readonly {
-	group: AnimationGroup;
-	labelKey: string;
-	presets: readonly PptxAnimationPreset[];
-}[] = [
-	{ group: 'entrance', labelKey: 'pptx.animation.entrance', presets: ENTRANCE_PRESET_VALUES },
-	{ group: 'emphasis', labelKey: 'pptx.animation.emphasis', presets: EMPHASIS_PRESET_VALUES },
-	{ group: 'exit', labelKey: 'pptx.animation.exit', presets: EXIT_PRESET_VALUES },
-];
+import { createAdvancedAnimationGroup } from './animations-advanced';
+import { createTimingGroup } from './animations-timing';
 
 export interface AnimationsTabState {
 	editable: boolean;
@@ -45,16 +30,14 @@ export interface AnimationsTab {
 }
 
 /**
- * The Animations ribbon tab: Entrance/Emphasis/Exit preset galleries that add
- * one of the three effect buckets to the currently selected element, plus a
- * "Remove Animation" action. Both route through {@link AnimationActions},
- * which writes `PptxSlide.animations` (keyed by `elementId`), the exact field
- * the presentation-mode click-stepped playback already reads (see
- * `buildClickGroups` in `animation/presentation-playback.ts`).
+ * The Animations ribbon tab: Preview, a preset gallery that adds an effect to
+ * the selected element, the Advanced Animation shortcuts, the Timing
+ * placeholders, and this binding's own play-order timeline.
  *
- * A minimal "current slide's animations in play order" list is not
- * implemented this wave (stretch goal); every button here is a write-only
- * applier, same as the Design/Transitions tabs.
+ * Every applier routes through {@link AnimationActions}, which writes
+ * `PptxSlide.animations` (keyed by `elementId`), the exact field the
+ * presentation-mode click-stepped playback already reads (see
+ * `buildClickGroups` in `animation/presentation-playback.ts`).
  */
 export function createAnimationsTab(
 	doc: Document,
@@ -63,38 +46,59 @@ export function createAnimationsTab(
 		AnimationActions,
 		'addAnimation' | 'removeAnimation' | 'reorderAnimation' | 'setAnimationTiming' | 'moveAnimation'
 	>,
+	onOpenAnimationPanel: () => void,
 ): AnimationsTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
-	const buttons: Array<{ setDisabled(disabled: boolean): void }> = [];
+	let selectedAnimation: PptxElementAnimation | undefined;
 
-	for (const category of CATEGORIES) {
-		const section = createEl(doc, 'div', 'pptxv-rgroup');
-		const label = createEl(doc, 'span', 'pptxv-rgroup-label');
-		label.textContent = t(category.labelKey);
-		section.appendChild(label);
-
-		const gallery = createEl(doc, 'div', 'pptxv-animation-gallery');
-		for (const preset of category.presets) {
-			const btn = makeButton(doc, {
-				label: t(`pptx.animation.preset.${preset}`),
-				text: t(`pptx.animation.preset.${preset}`),
-				onClick: () => handlers.addAnimation(category.group, preset),
-			});
-			gallery.appendChild(btn.btn);
-			buttons.push(btn);
+	/** Flash the target element, the same throwaway preview React runs. */
+	const playPreview = (): void => {
+		if (!selectedAnimation) {
+			return;
 		}
-		section.appendChild(gallery);
-		el.appendChild(section);
-	}
+		doc
+			.querySelector<HTMLElement>(`[data-element-id="${CSS.escape(selectedAnimation.elementId)}"]`)
+			?.animate(
+				[
+					{ opacity: 0, transform: 'translateY(12px)' },
+					{ opacity: 1, transform: 'translateY(0)' },
+				],
+				{ duration: selectedAnimation.durationMs ?? 500, easing: 'ease' },
+			);
+	};
 
-	const removeBtn = makeButton(doc, {
-		label: t('pptx.animation.remove'),
-		text: t('pptx.animation.remove'),
-		onClick: () => handlers.removeAnimation(),
+	const preview = makeButton(doc, {
+		label: t('pptx.animations.preview'),
+		icon: 'play',
+		textLabel: t('pptx.animations.preview'),
+		onClick: playPreview,
 	});
-	el.appendChild(removeBtn.btn);
-	buttons.push(removeBtn);
+	preview.btn.title = t('pptx.animations.previewTooltip');
+	const previewGroup = createEl(doc, 'div', 'pptxv-rgroup');
+	const previewRow = createEl(doc, 'div', 'pptxv-rgroup-row');
+	previewRow.appendChild(preview.btn);
+	const previewLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
+	previewLabel.textContent = t('pptx.animations.preview');
+	previewGroup.append(previewRow, previewLabel);
+	el.appendChild(previewGroup);
+
+	const galleryGroup = createEl(doc, 'div', 'pptxv-rgroup');
+	const galleryLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
+	galleryLabel.textContent = t('pptx.animations.animation');
+	const gallery = createAnimationPresetGallery(doc, t, (group, preset) =>
+		handlers.addAnimation(group, preset),
+	);
+	galleryGroup.append(gallery.el, galleryLabel);
+	el.appendChild(galleryGroup);
+
+	const advanced = createAdvancedAnimationGroup(doc, t, {
+		addAnimation: handlers.addAnimation,
+		removeAnimation: handlers.removeAnimation,
+		openAnimationPanel: onOpenAnimationPanel,
+	});
+	el.appendChild(advanced.el);
+	el.appendChild(createTimingGroup(doc, t).el);
 
 	const timeline = createEl(doc, 'div', 'pptxv-animation-timeline');
 	const timelineLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -147,25 +151,6 @@ export function createAnimationsTab(
 	triggerShape.input.type = 'text';
 	triggerShape.input.min = '';
 	triggerShape.input.max = '';
-	const preview = makeButton(doc, {
-		label: t('pptx.animation.preview'),
-		text: t('pptx.animation.preview'),
-		onClick: () => {
-			if (!selectedAnimation) {
-				return;
-			}
-			const target = doc.querySelector<HTMLElement>(
-				`[data-element-id="${CSS.escape(selectedAnimation.elementId)}"]`,
-			);
-			target?.animate(
-				[
-					{ opacity: 0, transform: 'translateY(12px)' },
-					{ opacity: 1, transform: 'translateY(0)' },
-				],
-				{ duration: selectedAnimation.durationMs ?? 500, easing: 'ease' },
-			);
-		},
-	});
 	timing.append(
 		trigger,
 		duration.label,
@@ -176,12 +161,10 @@ export function createAnimationsTab(
 		repeatCount.label,
 		repeatMode.label,
 		triggerShape.label,
-		preview.btn,
 	);
 	timeline.append(timelineLabel, list, timing);
 	el.appendChild(timeline);
 
-	let selectedAnimation: PptxElementAnimation | undefined;
 	const commitTiming = (): void => {
 		if (!selectedAnimation) {
 			return;
@@ -216,9 +199,9 @@ export function createAnimationsTab(
 		el,
 		update({ editable, hasSelection, selectedElementId, animations }) {
 			const disabled = !editable || !hasSelection;
-			for (const b of buttons) {
-				b.setDisabled(disabled);
-			}
+			gallery.setDisabled(disabled);
+			preview.setDisabled(disabled);
+			advanced.setDisabled(disabled);
 			const ordered = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 			selectedAnimation = ordered.find(({ elementId }) => elementId === selectedElementId);
 			list.replaceChildren(

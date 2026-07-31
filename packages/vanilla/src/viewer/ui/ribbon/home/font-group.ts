@@ -64,7 +64,7 @@ export function createFontGroup(
 	fontFamily.el.classList.add('pptxv-font-family-dd');
 
 	const fontSize = makeDropdown(doc, {
-		triggerLabel: t('pptx.textPanel.size'),
+		triggerLabel: t('pptx.ribbon.fontSize'),
 		triggerText: '24',
 		items: COMMON_FONT_SIZES.map((s) => ({ label: String(s), value: s })),
 		onSelect: handlers.setFontSize,
@@ -164,9 +164,10 @@ export function createFontGroup(
 	);
 
 	const toggles = [bold, italic, underline, strike] as const;
+	// The family/size pickers stay usable without a selection (they park a value
+	// the next edit uses), which is how every other binding gates them; only the
+	// mutating controls need something formattable selected.
 	const gated = [
-		fontFamily,
-		fontSize,
 		shrink,
 		grow,
 		bold,
@@ -196,6 +197,8 @@ export function createFontGroup(
 			fontColor.setValue(text.color);
 			highlight.setValue(text.highlightColor);
 
+			fontFamily.setDisabled(!editable);
+			fontSize.setDisabled(!editable);
 			for (const c of gated) {
 				c.setDisabled(!editable || !canFormat);
 			}

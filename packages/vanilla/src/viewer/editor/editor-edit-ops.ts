@@ -1,9 +1,10 @@
 import type { PptxChartType, PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
-import { createGuide } from 'pptx-viewer-shared';
+import { createGuide, isElementIdInteractive } from 'pptx-viewer-shared';
 import type { Guide, ShapePresetType } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
+import { getActiveElements } from './editor-active-elements';
 import type { AnimationActions } from './editor-animation-actions';
 import { createAnimationActions } from './editor-animation-actions';
 import { createApplyToSelected } from './editor-apply-to-selected';
@@ -97,8 +98,17 @@ export interface EditActions
 	insertField(fieldType: string, value?: string): void;
 	duplicateSelected(): void;
 	deleteSelected(): void;
-	toggleViewOption(option: 'showGrid' | 'showRulers' | 'snapToGrid' | 'snapToShape'): void;
-	addGuide(axis: Guide['axis']): void;
+	/** Select every interactive element on the active slide (Home > Select > Select All). */
+	selectAll(): void;
+	toggleViewOption(
+		option: 'showGrid' | 'showRulers' | 'showGuides' | 'snapToGrid' | 'snapToShape',
+	): void;
+	/**
+	 * Add an alignment guide. Centred by default (View > H/V Guide); `position`
+	 * is supplied when the guide was dragged off a ruler strip, where the shared
+	 * `rulerDragToGuidePosition` already resolved the drop point.
+	 */
+	addGuide(axis: Guide['axis'], position?: number): void;
 	activateEyedropper(): void;
 	toggleSpellCheck(): void;
 	replaceSelectedImage(): Promise<void>;
@@ -256,6 +266,17 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 
 		duplicateSelected: () => void ops.duplicateSelected(),
 		deleteSelected: () => ops.deleteSelected(),
+		selectAll() {
+			const state = store.get();
+			// Template-owned elements are only selectable while edit-template mode
+			// is on, so the same interactivity rule the pointer uses applies here.
+			const ids = getActiveElements(state)
+				.filter((element) => isElementIdInteractive(element.id, state.editTemplateMode))
+				.map((element) => element.id);
+			if (ids.length > 0) {
+				ops.select(ids.at(-1) ?? null, ids);
+			}
+		},
 		toggleViewOption(option) {
 			const state = store.get();
 			store.set({ [option]: !state[option] });
@@ -263,10 +284,11 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 				root.classList.toggle(`pptxv-${option}`, !state[option]);
 			}
 		},
-		addGuide(axis) {
+		addGuide(axis, position) {
 			const state = store.get();
+			const guide = createGuide(`guide-${Date.now()}`, axis, state.canvasSize);
 			store.set({
-				guides: [...state.guides, createGuide(`guide-${Date.now()}`, axis, state.canvasSize)],
+				guides: [...state.guides, position === undefined ? guide : { ...guide, position }],
 			});
 		},
 		activateEyedropper: () => store.set({ eyedropperActive: true }),

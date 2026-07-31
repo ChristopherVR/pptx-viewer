@@ -9,7 +9,46 @@
 export const EDITOR_CSS = `
 .pptxv-marquee { position: absolute; z-index: 4; border: 1px solid var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 14%, transparent); pointer-events: none; }
 .pptxv.pptxv-showGrid .pptxv-stage { background-image: linear-gradient(#cbd5e155 1px, transparent 1px), linear-gradient(90deg, #cbd5e155 1px, transparent 1px); background-size: 10px 10px; }
-.pptxv.pptxv-showRulers .pptxv-stage-wrap { border-top: 18px solid #e5e7eb; border-left: 18px solid #e5e7eb; }
+/* ── View > Rulers ───────────────────────────────────────────────────────
+ * The strips are absolutely positioned OUTSIDE the stage wrap (negative
+ * offsets), so the slide keeps its exact canvasSize * scale box and the
+ * selection overlay (inset: 0 on the same wrap) stays aligned with it. That
+ * costs two rules while rulers are on: the wrap must stop clipping (it is
+ * overflow: hidden so slide content never bleeds) and must reserve a gutter
+ * for the strips to occupy. Scoped to the non-presenting root because rulers
+ * are an editing aid and the slide show restores the clip. */
+.pptxv.pptxv-showRulers:not(.pptxv-presenting) .pptxv-stage-wrap {
+	overflow: visible;
+	margin: 20px 0 0 20px;
+}
+.pptxv-ruler-corner {
+	position: absolute;
+	top: -20px;
+	left: -20px;
+	z-index: 7;
+	width: 20px;
+	height: 20px;
+	background: var(--pptx-muted, #f1f5f9);
+	border-right: 1px solid var(--pptx-border, #cbd5e1);
+	border-bottom: 1px solid var(--pptx-border, #cbd5e1);
+}
+.pptxv-ruler-corner[hidden] { display: none; }
+.pptxv-ruler {
+	position: absolute;
+	z-index: 7;
+	display: block;
+	user-select: none;
+	touch-action: none;
+}
+.pptxv-ruler-h { top: -20px; left: 0; }
+.pptxv-ruler-v { top: 0; left: -20px; }
+.pptxv-ruler-h.is-draggable { cursor: row-resize; }
+.pptxv-ruler-v.is-draggable { cursor: col-resize; }
+.pptxv-ruler-bg { fill: var(--pptx-muted, #f1f5f9); }
+.pptxv-ruler-edge { stroke: var(--pptx-border, #cbd5e1); stroke-width: 1; }
+.pptxv-ruler-tick { stroke: var(--pptx-muted-foreground, #94a3b8); }
+.pptxv-ruler-highlight { fill: var(--pptx-primary, #2563eb); opacity: 0.2; }
+.pptxv-ruler-label { fill: var(--pptx-muted-foreground, #94a3b8); font-family: system-ui, sans-serif; }
 .pptxv-alignment-guide { position: absolute; z-index: 6; pointer-events: none; background: #00a6ff; }
 .pptxv-alignment-guide.is-h { left: 0; right: 0; height: 1px; }
 .pptxv-alignment-guide.is-v { top: 0; bottom: 0; width: 1px; }
@@ -299,4 +338,67 @@ export const EDITOR_CSS = `
 .pptxv-accessibility-issue-slide { color: var(--pptx-muted-foreground); font-size: 10px; }
 .pptxv-accessibility-empty { margin: 12px 4px; color: var(--pptx-muted-foreground); font-size: 12px; text-align: center; }
 .pptxv.pptxv-presenting .pptxv-accessibility-panel { display: none; }
+
+/* ── Keyboard-shortcut cheat sheet ("?") ─────────────────────────────── */
+.pptxv-shortcuts-panel {
+	position: absolute;
+	top: 56px;
+	right: 12px;
+	z-index: 40;
+	width: min(384px, calc(100% - 24px));
+	overflow: hidden;
+	border: 1px solid var(--pptx-border);
+	border-radius: calc(var(--pptx-radius) + 2px);
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+	box-shadow: 0 18px 50px rgb(0 0 0 / 30%);
+}
+.pptxv-shortcuts-panel[hidden] { display: none; }
+.pptxv-shortcuts-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--pptx-border); }
+.pptxv-shortcuts-title { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.pptxv-shortcuts-close { border: 0; border-radius: var(--pptx-radius); background: transparent; color: var(--pptx-foreground); cursor: pointer; font: inherit; font-size: 11px; padding: 5px 8px; }
+.pptxv-shortcuts-close:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-shortcuts-list { max-height: 280px; overflow: auto; padding: 8px; }
+.pptxv-shortcuts-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 7px 9px; border-radius: var(--pptx-radius); font-size: 12px; }
+.pptxv-shortcuts-row:nth-child(odd) { background: var(--pptx-muted); }
+.pptxv-shortcuts-keys { color: var(--pptx-muted-foreground); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+.pptxv.pptxv-presenting .pptxv-shortcuts-panel { display: none; }
+
+/* ── Canvas right-click menu ──────────────────────────────────────────── */
+/* Positioned at the pointer in viewport coordinates, so it is fixed rather
+ * than absolute; it is mounted into the .pptxv root (not the body) so a host
+ * ViewerTheme's inline --pptx-* overrides reach it. Every colour still carries
+ * a literal fallback for the body-mounted case. */
+.pptxv-context-menu {
+	position: fixed;
+	z-index: 1150;
+	min-width: 184px;
+	max-height: min(70vh, 560px);
+	overflow-y: auto;
+	padding: 4px;
+	border: 1px solid var(--pptx-border, #e2e8f0);
+	border-radius: 8px;
+	background: var(--pptx-popover, var(--pptx-card, #ffffff));
+	color: var(--pptx-popover-foreground, var(--pptx-card-foreground, #0f172a));
+	box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+.pptxv-context-menu-item {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 6px 10px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 0.8125rem;
+	text-align: left;
+	cursor: pointer;
+}
+.pptxv-context-menu-item:hover:not(:disabled) { background: var(--pptx-accent, #eef2f7); color: var(--pptx-accent-foreground, inherit); }
+.pptxv-context-menu-item:disabled { opacity: .45; cursor: default; }
+.pptxv-context-menu-item.is-danger { color: #d64545; }
+.pptxv-context-menu-item.is-danger:hover:not(:disabled) { background: #d6454518; color: #d64545; }
+.pptxv-context-menu-separator { height: 1px; margin: 4px 6px; background: var(--pptx-border, #e2e8f0); }
 `;

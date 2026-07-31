@@ -100,6 +100,8 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				mediaDataUrls: loaded.mediaDataUrls,
 				colorScheme: loaded.colorScheme,
 				fontScheme: loaded.fontScheme,
+				themeName: loaded.themeName,
+				tagCollections: loaded.tagCollections,
 				tableStyleMap: loaded.tableStyleMap,
 				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,

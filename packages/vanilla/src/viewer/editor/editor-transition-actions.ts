@@ -17,8 +17,21 @@ import type { EditorOps } from './editor-operations';
  * transition; otherwise only the current slide is patched, preserving any
  * advanced fields (direction, sound, ...) it already carried.
  */
+/** How the deck advances past a slide, from the Transitions tab's Advance Slide group. */
+export interface TransitionAdvance {
+	/** Advance when the presenter clicks (PowerPoint's default). */
+	onClick: boolean;
+	/** Auto-advance after this many ms; omitted when the presenter drives it. */
+	afterMs?: number;
+}
+
 export interface TransitionActions {
-	applyTransition(type: PptxTransitionType, durationMs: number, applyToAll: boolean): void;
+	applyTransition(
+		type: PptxTransitionType,
+		durationMs: number,
+		applyToAll: boolean,
+		advance?: TransitionAdvance,
+	): void;
 }
 
 export interface TransitionActionsDeps {
@@ -30,7 +43,7 @@ export function createTransitionActions(deps: TransitionActionsDeps): Transition
 	const { store, ops } = deps;
 
 	return {
-		applyTransition(type, durationMs, applyToAll) {
+		applyTransition(type, durationMs, applyToAll, advance) {
 			const state = store.get();
 			const slide = state.slides[state.currentSlide];
 			if (!state.editable || !slide) {
@@ -39,14 +52,22 @@ export function createTransitionActions(deps: TransitionActionsDeps): Transition
 			const clampedDuration = Math.max(0, Math.round(durationMs));
 
 			ops.pushHistory();
+			const advanceFields: Partial<PptxSlideTransition> = advance
+				? { advanceOnClick: advance.onClick, advanceAfterMs: advance.afterMs }
+				: {};
 			if (applyToAll) {
-				const transition: PptxSlideTransition = { type, durationMs: clampedDuration };
+				const transition: PptxSlideTransition = {
+					type,
+					durationMs: clampedDuration,
+					...advanceFields,
+				};
 				store.set({ slides: updateAllSlides(state.slides, { transition }) });
 			} else {
 				const transition: PptxSlideTransition = {
 					...slide.transition,
 					type,
 					durationMs: clampedDuration,
+					...advanceFields,
 				};
 				store.set({ slides: updateSlide(state.slides, state.currentSlide, { transition }) });
 			}

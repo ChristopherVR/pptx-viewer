@@ -1,4 +1,4 @@
-import { defaultCssVars } from 'pptx-viewer-shared';
+import { defaultCssVars, STATUS_BAR_METRICS, TITLE_BAR_METRICS } from 'pptx-viewer-shared';
 
 import { ACCOUNT_CSS } from './account-css';
 import { AI_CSS } from './ai-css';
@@ -9,6 +9,7 @@ import { DOCUMENT_PROPERTIES_CSS } from './document-properties-css';
 import { EDITOR_CSS } from './editor-css';
 import { EQUATION_DIALOG_CSS } from './equation-dialog-css';
 import { FILE_INFO_CSS } from './file-info-css';
+import { INSPECTOR_FORMAT_CSS } from './inspector-format-css';
 import { INSPECTOR_PANELS_CSS } from './inspector-panels-css';
 import { MASTER_VIEW_CSS } from './master-view-css';
 import { MOBILE_SHEET_CSS } from './mobile-sheet-css';
@@ -27,6 +28,14 @@ import { SMARTART_DIALOG_CSS } from './smartart-dialog-css';
  * from the shared `defaultCssVars()`, and a host `ViewerTheme` overrides them
  * per instance via inline style (see `themeToCssVars`).
  */
+
+/**
+ * The title/status bar measurements React, Vue and Angular get from Tailwind
+ * utilities. This binding has no Tailwind, so it interpolates the same shared
+ * numbers straight into its stylesheet; that is what stops the hand-ported bar
+ * drifting off the other four (it had reached 34px tall with a `#d24726` logo).
+ */
+const TB = TITLE_BAR_METRICS;
 
 function defaultVarsBlock(): string {
 	const vars = Object.entries(defaultCssVars())
@@ -102,32 +111,32 @@ const CHROME_CSS = `
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	min-height: 34px;
-	padding: 4px 10px;
+	gap: ${TB.gap}px;
+	height: ${TB.height}px;
+	padding: 0 ${TB.paddingX}px;
 	border-bottom: 1px solid var(--pptx-border);
 	background: var(--pptx-card);
 	color: var(--pptx-card-foreground);
-	font-size: 11px;
+	font-size: ${TB.fontSize}px;
 	user-select: none;
 }
 .pptxv-titlebar-logo {
 	display: inline-grid;
-	width: 20px;
-	height: 20px;
+	width: ${TB.logoSize}px;
+	height: ${TB.logoSize}px;
 	place-items: center;
-	border-radius: 3px;
-	background: #d24726;
+	border-radius: ${TB.logoRadius}px;
+	background: ${TB.logoBackground};
 	color: #fff;
-	font-size: 13px;
+	font-size: ${TB.logoFontSize}px;
 	font-weight: 700;
 }
 .pptxv-titlebar-autosave, .pptxv-titlebar-file { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
 .pptxv-titlebar-autosave-label, .pptxv-titlebar-status { color: var(--pptx-muted-foreground); white-space: nowrap; }
 .pptxv-titlebar-switch {
 	position: relative;
-	width: 27px;
-	height: 14px;
+	width: ${TB.switchTrackWidth}px;
+	height: ${TB.switchTrackHeight}px;
 	padding: 0;
 	border: 0;
 	border-radius: 999px;
@@ -135,13 +144,15 @@ const CHROME_CSS = `
 	cursor: pointer;
 }
 .pptxv-titlebar-switch.is-on { background: var(--pptx-primary); }
-.pptxv-titlebar-switch-knob { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: transform 120ms ease; }
-.pptxv-titlebar-switch.is-on .pptxv-titlebar-switch-knob { transform: translateX(13px); }
+.pptxv-titlebar-switch-knob { position: absolute; top: ${TB.switchKnobOffsetOff}px; left: ${TB.switchKnobOffsetOff}px; width: ${TB.switchKnobSize}px; height: ${TB.switchKnobSize}px; border-radius: 50%; background: #fff; transition: transform 120ms ease; }
+/* The knob is parked at its "off" offset, so the travel is the difference
+   between the two offsets, not the "on" offset itself. */
+.pptxv-titlebar-switch.is-on .pptxv-titlebar-switch-knob { transform: translateX(${TB.switchKnobOffsetOn - TB.switchKnobOffsetOff}px); }
 .pptxv-titlebar-switch:focus-visible, .pptxv-titlebar-btn:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
 .pptxv-titlebar-btn { width: 24px; height: 24px; }
 .pptxv-titlebar-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-titlebar-sep { width: 1px; height: 16px; background: var(--pptx-border); }
-.pptxv-titlebar-filename { overflow: hidden; max-width: 180px; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pptxv-titlebar-sep { width: 1px; height: ${TB.separatorHeight}px; background: var(--pptx-border); }
+.pptxv-titlebar-filename { overflow: hidden; max-width: 180px; text-overflow: ellipsis; white-space: nowrap; font-size: ${TB.fileNameFontSize}px; font-weight: ${TB.fileNameFontWeight}; }
 .pptxv-titlebar-dot { color: var(--pptx-muted-foreground); }
 .pptxv-titlebar-status.is-error { color: #dc2626; }
 .pptxv-titlebar-status.is-saving { color: #ca8a04; }
@@ -284,6 +295,7 @@ const CHROME_CSS = `
    pinch-zoom. View-only mode keeps default touch behaviour so the deck scrolls. */
 .pptxv-editable .pptxv-stage-wrap { touch-action: none; }
 .pptxv-stage-wrap[data-draw-tool="pen"],
+.pptxv-stage-wrap[data-draw-tool="freeform"],
 .pptxv-stage-wrap[data-draw-tool="highlighter"] { cursor: crosshair; }
 .pptxv-stage-wrap[data-draw-tool="eraser"] { cursor: cell; }
 .pptxv-para { margin: 0; }
@@ -430,7 +442,9 @@ const CHROME_CSS = `
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	min-height: 20px;
+	/* Pinned from the shared metric rather than left to emerge from the padding
+	   + button box, which is how this row ended up 2px shorter than the others. */
+	min-height: ${STATUS_BAR_METRICS.height}px;
 	padding: 2px 8px;
 	border-top: 1px solid var(--pptx-border);
 	background: color-mix(in srgb, var(--pptx-secondary) 50%, transparent);
@@ -531,5 +545,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${OPTIONS_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${ACCOUNT_CSS}\n${AI_CSS}\n${AI_FOCUS_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${OPTIONS_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${INSPECTOR_FORMAT_CSS}\n${ACCOUNT_CSS}\n${AI_CSS}\n${AI_FOCUS_CSS}`;
 }

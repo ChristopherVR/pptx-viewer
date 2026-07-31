@@ -62,7 +62,7 @@ export function createChartAdvancedSection(
 	const seriesColor = color(doc, t('pptx.chart.seriesColor'));
 	const pointIndex = number(doc, t('pptx.chart.dataPointIndex'));
 	const pointColor = color(doc, t('pptx.chart.dataPointColor'));
-	const pointExplosion = number(doc, t('pptx.chart.explosion'));
+	const pointExplosion = number(doc, t('pptx.chart.pointExplosion'));
 	el.append(
 		axisSelect.label,
 		min.label,

@@ -9,18 +9,13 @@ import type { Computed3dStyle, CssStyleMap } from 'pptx-viewer-shared';
 import {
 	DEFAULT_STROKE_COLOR,
 	DEFAULT_TEXT_COLOR,
+	buildTextBlockStyle,
 	getComputed3dStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
 	getCssBorderDashStyle,
 	getResolvedShapeClipPath,
-	isVerticalTextDirection,
 	px,
-	resolveCssTextAlign,
-	resolveLineHeight,
-	toCssTextOrientation,
-	toCssVerticalDirection,
-	toCssWritingMode,
 } from 'pptx-viewer-shared';
 
 /**
@@ -33,13 +28,6 @@ import {
  * delegating every pure computation (fills, effects, clip paths, 3D, text
  * direction, line height) to the shared helpers.
  */
-
-/**
- * Default text-body insets, in px (PowerPoint defaults: 0.1" left/right,
- * 0.05" top/bottom, i.e. EMU / EMU_PER_PIXEL). Mirrors React and Vue.
- */
-const DEFAULT_BODY_INSET_LR_PX = 91440 / 9525;
-const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
 
 /**
  * Merge a shared {@link Computed3dStyle} into a style map, COMBINING
@@ -206,89 +194,24 @@ export function getShapeFillStrokeStyle(
 	return style;
 }
 
-/** Text block style (flex column, body insets, font, alignment, writing mode). */
+/**
+ * Text block style (flex column, body insets, font, alignment, writing mode).
+ *
+ * A thin adapter over the shared {@link buildTextBlockStyle}, which React
+ * renders from too. This used to be a hand-ported copy of React's builder, and
+ * the copy had silently lost `a:normAutofit` (a shrink-to-fit title painted 43%
+ * too large), `a:bodyPr/@wrap="none"` (a no-wrap line wrapped to three), the
+ * default font declaration, the italic padding nudge and the body
+ * margin/indent pair. `pxLengths` is required because these maps are written
+ * straight onto `element.style`, where a bare number is not a length.
+ */
 export function getTextBlockStyle(el: PptxElement): CssStyleMap {
 	if (!hasTextProperties(el)) {
 		return {};
 	}
-	const ts = el.textStyle;
-	const style: CssStyleMap = {
-		display: 'flex',
-		flexDirection: 'column',
-		width: '100%',
-		height: '100%',
-		overflow: 'visible',
-		whiteSpace: 'pre-wrap',
-		wordBreak: 'break-word',
-		paddingTop: px(ts?.bodyInsetTop ?? DEFAULT_BODY_INSET_TB_PX),
-		paddingBottom: px(ts?.bodyInsetBottom ?? DEFAULT_BODY_INSET_TB_PX),
-		paddingLeft: px(ts?.bodyInsetLeft ?? DEFAULT_BODY_INSET_LR_PX),
-		paddingRight: px(ts?.bodyInsetRight ?? DEFAULT_BODY_INSET_LR_PX),
-	};
-	if (!ts) {
-		style['color'] = DEFAULT_TEXT_COLOR;
-		return style;
-	}
-
-	style['color'] = ts.color ?? DEFAULT_TEXT_COLOR;
-	if (ts.fontFamily) {
-		style['fontFamily'] = ts.fontFamily;
-	}
-	// Font size renders in CSS px (the parsed value already is the px size).
-	if (typeof ts.fontSize === 'number') {
-		style['fontSize'] = px(ts.fontSize);
-	}
-	style['lineHeight'] = resolveLineHeight(ts, Boolean(ts.italic));
-	if (ts.bold) {
-		style['fontWeight'] = 'bold';
-	}
-	if (ts.italic) {
-		style['fontStyle'] = 'italic';
-	}
-
-	const decorations: string[] = [];
-	if (ts.underline) {
-		decorations.push('underline');
-	}
-	if (ts.strikethrough) {
-		decorations.push('line-through');
-	}
-	if (decorations.length > 0) {
-		style['textDecoration'] = decorations.join(' ');
-	}
-
-	const isRtl = ts.rtl === true;
-	style['textAlign'] = resolveCssTextAlign(ts.align, isRtl) ?? 'left';
-
-	if (isVerticalTextDirection(ts.textDirection)) {
-		const writingMode = toCssWritingMode(ts.textDirection);
-		const textOrientation = toCssTextOrientation(ts.textDirection);
-		const verticalDirection = toCssVerticalDirection(ts.textDirection);
-		if (writingMode) {
-			style['writingMode'] = writingMode;
-		}
-		if (textOrientation) {
-			style['textOrientation'] = textOrientation;
-		}
-		if (verticalDirection) {
-			style['direction'] = verticalDirection;
-		} else if (isRtl) {
-			style['direction'] = 'rtl';
-		}
-	} else if (isRtl) {
-		style['direction'] = 'rtl';
-	}
-
-	switch (ts.vAlign) {
-		case 'middle':
-			style['justifyContent'] = 'center';
-			break;
-		case 'bottom':
-			style['justifyContent'] = 'flex-end';
-			break;
-		default:
-			style['justifyContent'] = 'flex-start';
-	}
-
-	return style;
+	return buildTextBlockStyle(el, {
+		fallbackColor: DEFAULT_TEXT_COLOR,
+		bodyLayout: true,
+		pxLengths: true,
+	});
 }

@@ -16,8 +16,10 @@ import {
 } from './editor-format-mutations';
 import {
 	adjustIndent,
+	setColumnCount,
 	setLineSpacing,
 	setTextAlign,
+	setTextDirection,
 	toggleListType,
 } from './editor-paragraph-mutations';
 
@@ -48,6 +50,8 @@ export interface TextActions {
 	decreaseIndent(): void;
 	setTextAlign(align: TextStyle['align']): void;
 	setLineSpacing(value: number): void;
+	setTextDirection(direction: TextStyle['textDirection']): void;
+	setColumnCount(count: number): void;
 }
 
 export function createTextActions(applyToSelected: ApplyToSelected): TextActions {
@@ -71,5 +75,7 @@ export function createTextActions(applyToSelected: ApplyToSelected): TextActions
 		decreaseIndent: () => applyToSelected((el) => adjustIndent(el, -1)),
 		setTextAlign: (align) => applyToSelected((el) => setTextAlign(el, align)),
 		setLineSpacing: (value) => applyToSelected((el) => setLineSpacing(el, value)),
+		setTextDirection: (direction) => applyToSelected((el) => setTextDirection(el, direction)),
+		setColumnCount: (count) => applyToSelected((el) => setColumnCount(el, count)),
 	};
 }

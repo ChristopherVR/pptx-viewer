@@ -91,8 +91,8 @@ export function createShapeEffectsControls(
 		el.appendChild(wrapper);
 		return input;
 	};
-	const startArrow = arrow(t('pptx.connector.startArrow'), 'connectorStartArrow');
-	const endArrow = arrow(t('pptx.connector.endArrow'), 'connectorEndArrow');
+	const startArrow = arrow(t('pptx.connectorArrows.startArrow'), 'connectorStartArrow');
+	const endArrow = arrow(t('pptx.connectorArrows.endArrow'), 'connectorEndArrow');
 	const inputs = [
 		shapeType,
 		shadowColor,

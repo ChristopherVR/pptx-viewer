@@ -15,6 +15,8 @@ import {
 	getAriaRole,
 	getAriaRoleDescription,
 	getSlideBackgroundStyle,
+	isElementActionable,
+	isElementRendered,
 	isTemplateElementId,
 } from 'pptx-viewer-shared';
 
@@ -118,6 +120,15 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		onSmartArtNodeFillChange: options.onSmartArtNodeFillChange,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
+			// Hidden via the Selection Pane: build no node at all, exactly as
+			// PowerPoint draws nothing for it. This is the ONE choke point every
+			// surface goes through (canvas, group children, thumbnails, the master
+			// rail and the offscreen export raster), so the rule lands everywhere
+			// from here. Returning `null` is already the contract for "nothing to
+			// render", and both the stage loop and the group renderer skip it.
+			if (!isElementRendered(element)) {
+				return null;
+			}
 			const node = registry.resolve(element.type)(element, zIndex, context);
 			if (node && interactive && 'setAttribute' in node) {
 				const templateLocked = isTemplateElementId(element.id) && !options.templateEditing;
@@ -152,7 +163,9 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
  * screen-reader tree.
  */
 function applyElementAccessibility(node: HTMLElement | SVGElement, element: PptxElement): void {
-	const role = getAriaRole(element);
+	// Actionable elements (click/hover action, text hyperlink, zoom tile) are
+	// announced as buttons, matching React's element renderer.
+	const role = getAriaRole(element, { actionable: isElementActionable(element) });
 	if (role !== undefined) {
 		node.setAttribute('role', role);
 	}

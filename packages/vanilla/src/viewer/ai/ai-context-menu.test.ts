@@ -69,6 +69,30 @@ describe('mountAiContextMenu', () => {
 		menu.destroy();
 	});
 
+	it('steps aside while editing, where the full element context menu owns the right-click', () => {
+		const { viewport, stage, el } = buildDom();
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			slides: [slideWith('el-7')],
+		});
+		const controller = createAiFocusController({ store, requestOpen: () => undefined });
+		mountAiContextMenu({
+			doc: document,
+			t,
+			store,
+			controller,
+			viewport,
+			getStageRoot: () => stage,
+		});
+
+		el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+		// Two floating menus on one right-click would be the bug; the element menu
+		// already carries "Ask AI" / "Fix with AI" as two of its own entries.
+		expect(document.querySelector('.pptxv-ai-menu')).toBeNull();
+	});
+
 	it('does nothing when the right-click is not on a canvas element', () => {
 		const { viewport, stage } = buildDom();
 		const store = createStore(createInitialViewerState());

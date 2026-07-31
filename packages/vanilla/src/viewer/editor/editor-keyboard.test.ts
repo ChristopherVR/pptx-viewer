@@ -13,10 +13,15 @@ function makeDeps(overrides: Partial<EditorKeyboardDeps> = {}): EditorKeyboardDe
 		copySelected: vi.fn(),
 		cutSelected: vi.fn(),
 		paste: vi.fn(),
+		selectAll: vi.fn(),
+		groupSelected: vi.fn(),
+		ungroupSelected: vi.fn(),
 		nudgeSelected: vi.fn(),
 		undo: vi.fn(),
 		redo: vi.fn(),
 		cancelFormatPainter: () => false,
+		toggleShortcuts: vi.fn(),
+		closeShortcuts: () => false,
 		...overrides,
 	};
 }
@@ -112,5 +117,50 @@ describe('createEditorKeydownHandler existing shortcuts (regression)', () => {
 		createEditorKeydownHandler(deps)(keydown('Escape'));
 		expect(cancelFormatPainter).toHaveBeenCalledOnce();
 		expect(deps.deselect).not.toHaveBeenCalled();
+	});
+});
+
+describe('createEditorKeydownHandler: shortcuts ported from the other bindings', () => {
+	it('selects every element on Ctrl+A', () => {
+		const deps = makeDeps();
+		createEditorKeydownHandler(deps)(keydown('a', { ctrlKey: true }));
+		expect(deps.selectAll).toHaveBeenCalledOnce();
+	});
+
+	it('groups on Ctrl+G and ungroups on Ctrl+Shift+G', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(keydown('g', { ctrlKey: true }));
+		expect(deps.groupSelected).toHaveBeenCalledOnce();
+		handler(keydown('g', { ctrlKey: true, shiftKey: true }));
+		expect(deps.ungroupSelected).toHaveBeenCalledOnce();
+	});
+
+	it('opens the cheat sheet on "?" and closes it on Escape before deselecting', () => {
+		const deps = makeDeps({ closeShortcuts: vi.fn(() => true) });
+		const handler = createEditorKeydownHandler(deps);
+		handler(keydown('?', { shiftKey: true }));
+		expect(deps.toggleShortcuts).toHaveBeenCalledOnce();
+		handler(keydown('Escape'));
+		expect(deps.closeShortcuts).toHaveBeenCalledOnce();
+		expect(deps.deselect).not.toHaveBeenCalled();
+	});
+
+	it('nudges one slide pixel bare and ten with shift', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(keydown('ArrowRight'));
+		expect(deps.nudgeSelected).toHaveBeenCalledWith(1, 0);
+		handler(keydown('ArrowUp', { shiftKey: true }));
+		expect(deps.nudgeSelected).toHaveBeenCalledWith(0, -10);
+	});
+
+	it('leaves the arrows to the root navigation handler when nothing is selected', () => {
+		const deps = makeDeps({ getSelectedId: () => null });
+		const event = keydown('ArrowRight');
+		createEditorKeydownHandler(deps)(event);
+		expect(deps.nudgeSelected).not.toHaveBeenCalled();
+		// Not consumed: the slideshow navigation listener on the root still pages.
+		expect(event.defaultPrevented).toBeFalsy();
 	});
 });

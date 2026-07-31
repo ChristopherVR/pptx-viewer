@@ -80,6 +80,8 @@ export interface InspectorActions {
 	setImageCrop(edge: 'left' | 'top' | 'right' | 'bottom', value: number): void;
 	setImageEffects(patch: Partial<PptxImageEffects>): void;
 	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
+	/** Set the selection's accessibility description (inspector Alt Text field). */
+	setAltText(text: string): void;
 	setChartData(data: PptxChartData): void;
 	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
@@ -162,6 +164,9 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 			applyToSelected(() => ({
 				[trigger === 'click' ? 'actionClick' : 'actionHover']: elementActionToPptxAction(action),
 			})),
+		// `altText` is a base-element field, so this works for every element type
+		// the accessibility checker can complain about, not just pictures.
+		setAltText: (text) => applyToSelected(() => ({ altText: text })),
 		setChartData: (data) =>
 			applyToSelected((el) => (el.type === 'chart' ? { chartData: data } : {})),
 		setMediaProperties: (patch) => applyToSelected((el) => (el.type === 'media' ? patch : {})),

@@ -9,6 +9,8 @@ import type { ArrangeGroup } from './arrange-group';
 import { createArrangeGroup } from './arrange-group';
 import type { ClipboardGroup } from './clipboard-group';
 import { createClipboardGroup } from './clipboard-group';
+import type { DrawingGroup } from './drawing-group';
+import { createDrawingGroup } from './drawing-group';
 import type { EditingGroup } from './editing-group';
 import { createEditingGroup } from './editing-group';
 import type { FontGroup } from './font-group';
@@ -38,7 +40,10 @@ export interface HomeTab {
 	update(state: HomeTabSyncState): void;
 }
 
-/** Composes the Home tab's six groups: Clipboard, Slides, Font, Paragraph, Arrange, Editing. */
+/**
+ * Composes the Home tab's seven groups: Clipboard, Slides, Font, Paragraph,
+ * Editing, Drawing, Arrange (React's order).
+ */
 export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): HomeTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 	const { edit } = deps;
@@ -78,6 +83,23 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		decreaseIndent: edit.decreaseIndent,
 		setTextAlign: edit.setTextAlign,
 		setLineSpacing: edit.setLineSpacing,
+		setTextDirection: edit.setTextDirection,
+		setColumnCount: edit.setColumnCount,
+	});
+	const editing: EditingGroup = createEditingGroup(doc, t, {
+		toggleFindReplace: deps.onToggleFindReplace,
+		selectAll: edit.selectAll,
+	});
+	const drawing: DrawingGroup = createDrawingGroup(doc, t, {
+		insertShape: (shapeType) => edit.insert('shape', shapeType),
+		bringForward: edit.bringForward,
+		sendBackward: edit.sendBackward,
+		bringToFront: edit.bringToFront,
+		sendToBack: edit.sendToBack,
+		groupSelected: edit.groupSelected,
+		ungroupSelected: edit.ungroupSelected,
+		setShapeFill: edit.setShapeFill,
+		setShapeStroke: edit.setShapeStroke,
 	});
 	const arrange: ArrangeGroup = createArrangeGroup(doc, t, {
 		bringForward: edit.bringForward,
@@ -90,15 +112,13 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		flipVertical: edit.flipVertical,
 		groupSelected: edit.groupSelected,
 		ungroupSelected: edit.ungroupSelected,
+		setStrokeWidth: edit.setShapeStrokeWidth,
+		toggleFormatPainter: edit.toggleFormatPainter,
 		duplicate: edit.duplicateSelected,
 		delete: edit.deleteSelected,
 	});
-	const editing: EditingGroup = createEditingGroup(doc, t, {
-		toggleFindReplace: deps.onToggleFindReplace,
-	});
 
-	// React's Home tab order: Clipboard, Slides, Font, Paragraph, Editing, Arrange.
-	el.append(clipboard.el, slides.el, font.el, paragraph.el, editing.el, arrange.el);
+	el.append(clipboard.el, slides.el, font.el, paragraph.el, editing.el, drawing.el, arrange.el);
 
 	return {
 		el,
@@ -113,20 +133,19 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
-			clipboard.update({
-				hasSelection: selectedElement !== undefined,
-				hasClipboard,
-				editable,
-				formatPainterActive,
-			});
+			const hasSelection = selectedElement !== undefined;
+			clipboard.update({ hasSelection, hasClipboard, editable, formatPainterActive });
 			slides.update({ editable, slideCount, layouts });
 			font.update({ canFormat, editable, text });
 			paragraph.update({ canFormat, editable, text });
+			editing.update({ editable });
+			drawing.update({ editable, hasSelection });
 			arrange.update({
 				editable,
-				hasSelection: selectedElement !== undefined,
-				isGroup: selectedElement?.type === 'group',
+				hasSelection,
+				formatPainterActive,
 				selectedCount,
+				selectedElement,
 			});
 		},
 	};

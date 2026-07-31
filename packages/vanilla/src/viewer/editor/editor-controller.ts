@@ -12,7 +12,7 @@ import type {
 	PptxSlide,
 	TextSegment,
 } from 'pptx-viewer-core';
-import { downloadBlob } from 'pptx-viewer-shared';
+import { armEditorKeyboard, downloadBlob } from 'pptx-viewer-shared';
 
 import { buildSharingPackage } from '../export/package-sharing';
 import type { Translator } from '../i18n';
@@ -183,7 +183,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 					)
 				: [];
 		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
-		syncAlignmentGuides(doc, overlay.root, state.guides, deps.getScale());
+		// View > Guides hides the overlay, never the model: `state.guides` stays
+		// whole so snapping and saving still see every guide.
+		syncAlignmentGuides(doc, overlay.root, state.showGuides ? state.guides : [], deps.getScale());
 	};
 
 	const onKeyDown = createEditorKeydownHandler({
@@ -198,6 +200,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		copySelected: () => editActions.copy(),
 		cutSelected: () => editActions.cut(),
 		paste: () => editActions.paste(),
+		selectAll: () => editActions.selectAll(),
+		groupSelected: () => editActions.groupSelected(),
+		ungroupSelected: () => editActions.ungroupSelected(),
 		nudgeSelected: (dx, dy) => ops.nudgeSelected(dx, dy),
 		undo: () => ops.undo(),
 		redo: () => ops.redo(),
@@ -208,11 +213,33 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			store.set({ formatPainterSourceId: null });
 			return true;
 		},
+		toggleShortcuts: () => deps.getChrome().shortcuts.toggle(),
+		closeShortcuts: () => {
+			const panel = deps.getChrome().shortcuts;
+			if (!panel.isOpen()) {
+				return false;
+			}
+			panel.close();
+			return true;
+		},
 	});
+
+	/**
+	 * Stage pointerdown: keep the keymap armed, then run the gesture.
+	 *
+	 * The gesture handlers call `preventDefault()`, which suppresses the focus
+	 * move the click would otherwise make. Without this the keydown listener on
+	 * the viewer root never fires again after a canvas click: focus sits on
+	 * `document.body` and pressing Delete on a selected shape does nothing.
+	 */
+	const onStagePointerDown = (event: PointerEvent): void => {
+		armEditorKeyboard(attachedRoot);
+		drawMode.onStagePointerDown(event);
+	};
 
 	const detachChrome = (): void => {
 		interactions.closeInline(true);
-		attachedWrap?.removeEventListener('pointerdown', drawMode.onStagePointerDown);
+		attachedWrap?.removeEventListener('pointerdown', onStagePointerDown);
 		attachedWrap?.removeEventListener('pointermove', interactions.onStagePointerMove);
 		attachedWrap?.removeEventListener('dblclick', drawMode.onStageDblClick);
 		attachedRoot?.removeEventListener('keydown', onKeyDown);
@@ -273,7 +300,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			});
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
-			attachedWrap.addEventListener('pointerdown', drawMode.onStagePointerDown);
+			attachedWrap.addEventListener('pointerdown', onStagePointerDown);
 			attachedWrap.addEventListener('pointermove', interactions.onStagePointerMove);
 			attachedWrap.addEventListener('dblclick', drawMode.onStageDblClick);
 			attachedRoot.addEventListener('keydown', onKeyDown);

@@ -15,6 +15,7 @@ const TOOLS: ReadonlyArray<{ tool: DrawTool; icon: IconName; labelKey: string }>
 	{ tool: 'pen', icon: 'pen', labelKey: 'pptx.ribbon.tool.pen' },
 	{ tool: 'highlighter', icon: 'highlighter', labelKey: 'pptx.ribbon.tool.highlighter' },
 	{ tool: 'eraser', icon: 'eraser', labelKey: 'pptx.ribbon.tool.eraser' },
+	{ tool: 'freeform', icon: 'pen', labelKey: 'pptx.ribbon.tool.freeform' },
 ];
 
 export interface DrawTab {
@@ -57,14 +58,14 @@ export function createDrawTab(doc: Document, t: Translator, handlers: RibbonDraw
 	styleGroup.appendChild(styleRow);
 
 	const colorPicker = makeSwatchPicker(doc, t, {
-		label: t('pptx.ribbon.penColour'),
+		label: t('pptx.ribbon.colour'),
 		icon: 'pen',
 		swatches: OFFICE_STANDARD_SWATCHES,
 		fallback: '#000000',
 		onSelect: (hex) => handlers.setColor(hex),
 	});
 	const widthDropdown = makeDropdown<number>(doc, {
-		triggerLabel: t('pptx.ribbon.strokeWidth'),
+		triggerLabel: t('pptx.ribbon.width'),
 		triggerText: '',
 		icon: 'chevron-down',
 		items: STROKE_WIDTHS.map((w) => ({ label: `${w} px`, value: w })),

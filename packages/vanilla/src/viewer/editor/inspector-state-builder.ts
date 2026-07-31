@@ -128,6 +128,7 @@ export function buildInspectorState(
 		imageDuotone2:
 			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color2 ?? '#ffffff') : '#ffffff',
 		imageColorWash: el && isImageLikeElement(el) ? el.imageEffects?.colorWash : undefined,
+		altText: el && 'altText' in el && typeof el.altText === 'string' ? el.altText : '',
 		actionClick: el?.actionClick ? pptxActionToElementAction(el.actionClick, 'click') : undefined,
 		actionHover: el?.actionHover ? pptxActionToElementAction(el.actionHover, 'hover') : undefined,
 		chartData: el?.type === 'chart' ? el.chartData : undefined,

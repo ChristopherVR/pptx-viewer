@@ -1,6 +1,7 @@
 import type { InteractionBox, SelectionTransformBox } from 'pptx-viewer-shared';
 import {
 	computeMarqueeHitIds,
+	isAdditiveSelectionPress,
 	isElementIdInteractive,
 	mergeAdditiveSelection,
 	moveSelection,
@@ -281,7 +282,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 					pointerId: event.pointerId,
 					startX: point.x,
 					startY: point.y,
-					additive: event.shiftKey,
+					additive: isAdditiveSelectionPress(event),
 					el,
 				};
 				window.addEventListener('pointermove', updateMarquee);
@@ -289,7 +290,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				window.addEventListener('pointercancel', finishMarquee);
 				return;
 			}
-			if (event.shiftKey) {
+			if (isAdditiveSelectionPress(event)) {
 				const ids = state.selectedElementIds.includes(id)
 					? state.selectedElementIds.filter((selectedId) => selectedId !== id)
 					: [...state.selectedElementIds, id];

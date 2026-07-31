@@ -30,7 +30,7 @@ describe('createClipboardGroup', () => {
 		expect(h.toggleFormatPainter).toHaveBeenCalledOnce();
 	});
 
-	it('gates paste on hasClipboard, others on hasSelection/editable', () => {
+	it('gates paste on the clipboard and cut/copy on the selection', () => {
 		const t = createTranslator();
 		const group = createClipboardGroup(document, t, handlers());
 		const [paste, cut, copy, painter] = group.el.querySelectorAll<HTMLButtonElement>('button');
@@ -42,6 +42,8 @@ describe('createClipboardGroup', () => {
 			formatPainterActive: false,
 		});
 		expect(paste.disabled).toBeTruthy();
+		// Cut and Copy act on the selection, so with nothing selected they are
+		// no-ops and must not render live.
 		expect(cut.disabled).toBeTruthy();
 		expect(copy.disabled).toBeTruthy();
 		expect(painter.disabled).toBeTruthy();
@@ -57,7 +59,7 @@ describe('createClipboardGroup', () => {
 		expect(copy.disabled).toBeFalsy();
 		expect(painter.disabled).toBeFalsy();
 
-		// Copy stays enabled with a selection even when not editable (read-only copy is fine).
+		// Copy stays enabled even when not editable (read-only copy is fine).
 		group.update({
 			hasSelection: true,
 			hasClipboard: true,

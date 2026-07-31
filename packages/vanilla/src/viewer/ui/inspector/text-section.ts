@@ -60,8 +60,8 @@ export function createTextSection(
 	const characterSpacing = number(t('pptx.textAdvanced.characterSpacing'), 'characterSpacing');
 	const lineSpacing = number(t('pptx.textAdvanced.lineSpacing'), 'lineSpacing', 0);
 	const exactSpacing = number(t('pptx.textAdvanced.lineSpacingExact'), 'lineSpacingExactPt', 0);
-	const spacingBefore = number(t('pptx.textAdvanced.spacingBefore'), 'paragraphSpacingBefore', 0);
-	const spacingAfter = number(t('pptx.textAdvanced.spacingAfter'), 'paragraphSpacingAfter', 0);
+	const spacingBefore = number(t('pptx.textAdvanced.spaceBefore'), 'paragraphSpacingBefore', 0);
+	const spacingAfter = number(t('pptx.textAdvanced.spaceAfter'), 'paragraphSpacingAfter', 0);
 	const indent = number(t('pptx.textAdvanced.indent'), 'paragraphIndent');
 	const margin = number(t('pptx.textAdvanced.marginLeft'), 'paragraphMarginLeft');
 	const direction = makeSelectField(doc, {

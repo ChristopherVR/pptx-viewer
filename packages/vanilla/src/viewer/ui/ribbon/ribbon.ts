@@ -27,12 +27,15 @@ import { createDesignTab } from './tabs/design-tab';
 import type { DrawTab } from './tabs/draw-tab';
 import { createDrawTab } from './tabs/draw-tab';
 import { createFileTab } from './tabs/file-tab';
+import { createHelpTab } from './tabs/help-tab';
 import type { InsertTab } from './tabs/insert-tab';
 import { createInsertTab } from './tabs/insert-tab';
+import { createRecordTab } from './tabs/record-tab';
+import { createReviewTab } from './tabs/review-tab';
 import { createSlideShowTab } from './tabs/slide-show-tab';
 import type { TransitionsTab } from './tabs/transitions-tab';
 import { createTransitionsTab } from './tabs/transitions-tab';
-import { createHelpTab, createRecordTab, createReviewTab } from './tabs/utility-tabs';
+import type { ViewToggleState } from './tabs/view-tab';
 import { createViewTab } from './tabs/view-tab';
 
 export interface Ribbon {
@@ -48,6 +51,8 @@ export interface Ribbon {
 	/** Reflect the current Draw tab tool/colour/width (store-driven). */
 	setDrawState(state: RibbonDrawState): void;
 	setTemplateEditing(active: boolean): void;
+	/** Reflect the View tab's Show toggles (rulers/grid/guides/snapping). */
+	setViewOptions(options: ViewToggleState): void;
 	setHasMacros(hasMacros: boolean): void;
 	setSubtitlesVisible(visible: boolean): void;
 	/** Reflect the inspector panel's open state on the quick-access toggle. */
@@ -116,17 +121,31 @@ export function createRibbon(
 			});
 	const insertTab: InsertTab | null = hidden('insert')
 		? null
-		: createInsertTab(doc, t, handlers.insert, () => equationPanel.toggle());
+		: createInsertTab(
+				doc,
+				t,
+				handlers.insert,
+				() => equationPanel.toggle(),
+				() => handlers.nav.openHeaderFooter(),
+				() => handlers.nav.openHyperlink(),
+			);
 	const drawTab: DrawTab | null = hidden('draw') ? null : createDrawTab(doc, t, handlers.draw);
 	const designTab: DesignTab | null = hidden('design')
 		? null
-		: createDesignTab(doc, t, handlers.design, () => formatBackgroundPanel.toggle());
+		: createDesignTab(
+				doc,
+				t,
+				handlers.design,
+				() => formatBackgroundPanel.toggle(),
+				() => handlers.file.openDocumentProperties(),
+			);
+	const openInspector = (): void => handlers.nav.toggleInspector?.();
 	const transitionsTab: TransitionsTab | null = hidden('transitions')
 		? null
-		: createTransitionsTab(doc, t, handlers.edit);
+		: createTransitionsTab(doc, t, handlers.edit, openInspector);
 	const animationsTab: AnimationsTab | null = hidden('animations')
 		? null
-		: createAnimationsTab(doc, t, handlers.edit);
+		: createAnimationsTab(doc, t, handlers.edit, openInspector);
 	const slideShowTab = hidden('slideShow')
 		? null
 		: createSlideShowTab(doc, t, handlers.slideShow, hiddenActions);
@@ -241,6 +260,7 @@ export function createRibbon(
 		},
 		setDrawState: (state) => drawTab?.update(state),
 		setTemplateEditing: (active) => viewTab?.setTemplateEditing(active),
+		setViewOptions: (options) => viewTab?.setViewOptions(options),
 		setHasMacros: (hasMacros) => fileTab?.setHasMacros(hasMacros),
 		setSubtitlesVisible: (visible) => slideShowTab?.setSubtitlesVisible(visible),
 		setInspectorOpen: (open) => primary.setInspectorOpen(open),
@@ -250,6 +270,7 @@ export function createRibbon(
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;
 			latestExtra = extra;
+			insertTab?.setHasSelection(selectedElement !== undefined);
 			syncHome();
 			syncAnimations();
 		},

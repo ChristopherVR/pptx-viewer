@@ -3,6 +3,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import type { Translator } from '../i18n';
 import type { ElementRendererRegistry } from '../render';
 import { createEl, renderSlideStage } from '../render';
+import { buildRenderFieldContext } from '../render-field-context';
 import type { Store, ViewerState } from '../state';
 import { renderToCanvas } from './render-to-canvas';
 
@@ -76,6 +77,11 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			slide,
 			canvasSize: state.canvasSize,
 			mediaDataUrls: state.mediaDataUrls,
+			// The capture stage renders outside the live render controller, so it
+			// has to build its own field context: without it an exported PNG/PDF
+			// prints the authored "Slide #" placeholder while the screen shows
+			// "Slide 1".
+			fieldContext: buildRenderFieldContext(state, slide),
 			registry: deps.registry,
 			t: deps.getTranslator(),
 			scale: 1,

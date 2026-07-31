@@ -59,6 +59,14 @@ export function mountAiContextMenu(deps: AiContextMenuDeps): AiContextMenu {
 	};
 
 	const onContextMenu = (event: MouseEvent): void => {
+		const state = store.get();
+		// While editing, the full element context menu owns the canvas right-click
+		// and already carries "Ask AI" / "Fix with AI" as two of its entries. Both
+		// menus opening on one click would leave two floating menus on screen, so
+		// this one is the read-only-mode fallback and steps aside when editing.
+		if (state.editable && !state.presenting) {
+			return;
+		}
 		const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
 		if (!id) {
 			return;

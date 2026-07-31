@@ -110,6 +110,18 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.editTemplateMode !== previous.editTemplateMode) {
 			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
 		}
+		// The View tab's Show group is the only chrome that reflects these flags,
+		// and toggling one re-renders nothing else, so it needs its own
+		// comparison rather than riding on a stage or thumbnail refresh.
+		if (
+			state.showGrid !== previous.showGrid ||
+			state.showRulers !== previous.showRulers ||
+			state.showGuides !== previous.showGuides ||
+			state.snapToGrid !== previous.snapToGrid ||
+			state.snapToShape !== previous.snapToShape
+		) {
+			chrome.ribbon?.setViewOptions(state);
+		}
 		if (state.hasMacros !== previous.hasMacros) {
 			chrome.ribbon?.setHasMacros(state.hasMacros);
 		}

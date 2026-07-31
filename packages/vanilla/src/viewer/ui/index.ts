@@ -2,10 +2,24 @@ export type { ChromeOptions, ViewerChrome } from './chrome';
 export { buildViewerChrome } from './chrome';
 export type { AccessibilityPanel } from './accessibility-panel';
 export { createAccessibilityPanel } from './accessibility-panel';
+export type { ShortcutPanel } from './shortcut-panel';
+export { createShortcutPanel } from './shortcut-panel';
 export type { ButtonHandle, ColorControlHandle, NumberFieldHandle } from './controls';
 export { makeButton, makeColorControl, makeNumberField } from './controls';
 export type { DropdownHandle, DropdownItem, DropdownOptions } from './dropdown';
 export { makeDropdown } from './dropdown';
+export type { ElementContextMenu, ElementContextMenuDeps } from './element-context-menu';
+export { mountElementContextMenu } from './element-context-menu';
+export type {
+	ContextMenuAiHooks,
+	ContextMenuCommandDeps,
+	ContextMenuTableTarget,
+} from './element-context-menu-commands';
+export {
+	readTableCellTarget,
+	resolveTableTarget,
+	runContextMenuCommand,
+} from './element-context-menu-commands';
 export type { IconName } from './icons';
 export { createIcon } from './icons';
 export type { Inspector, InspectorHandlers, InspectorState } from './inspector';
@@ -31,3 +45,5 @@ export type { SwatchPickerHandle, SwatchPickerOptions } from './swatch-picker';
 export { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from './swatch-picker';
 export type { ThumbnailRail } from './thumbnails';
 export { createThumbnailRail } from './thumbnails';
+export type { RulerSelection, RulerStrips, RulerStripsState } from './ruler-strips';
+export { createRulerStrips } from './ruler-strips';

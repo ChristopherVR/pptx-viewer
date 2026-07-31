@@ -12,6 +12,8 @@ function makeHandlers() {
 		openDocumentProperties: vi.fn<DeckPanelHandlers['openDocumentProperties']>(),
 		updatePresentationSettings: vi.fn<DeckPanelHandlers['updatePresentationSettings']>(),
 		applyThemeByPath: vi.fn<DeckPanelHandlers['applyThemeByPath']>(),
+		applyThemeEdit: vi.fn<DeckPanelHandlers['applyThemeEdit']>(),
+		updateTagCollections: vi.fn<DeckPanelHandlers['updateTagCollections']>(),
 		updateActiveSlide: vi.fn<DeckPanelHandlers['updateActiveSlide']>(),
 		updateCanvasSize: vi.fn<DeckPanelHandlers['updateCanvasSize']>(),
 	} satisfies DeckPanelHandlers;
@@ -36,6 +38,9 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 		],
 		activeSlide: slide,
 		colorScheme: undefined,
+		fontScheme: undefined,
+		themeName: undefined,
+		tagCollections: [],
 		notesCanvasSize: { width: 720, height: 960 },
 		notesPlaceholderCount: 3,
 		handoutPlaceholderCount: undefined,
@@ -44,7 +49,7 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 }
 
 describe('deck panel (no-selection Properties tab)', () => {
-	it('renders the React section order: presentation, theme, override, size, notes, document', () => {
+	it('renders the React section order: presentation, theme, theme editor, override, transition, size, notes, document, tags', () => {
 		const t = createTranslator();
 		const panel = createDeckPanel(document, t, makeHandlers());
 		panel.update(makeDeckState());
@@ -55,10 +60,13 @@ describe('deck panel (no-selection Properties tab)', () => {
 		expect(titles).toStrictEqual([
 			t('pptx.slideInspector.presentation'),
 			t('pptx.documentProperties.themeHeading'),
+			t('pptx.themeEditor.title'),
 			t('pptx.themeOverride.heading'),
+			t('pptx.slideInspector.slideTransition'),
 			t('pptx.slideSize.title'),
 			t('pptx.documentProperties.notesHandoutHeading'),
 			t('pptx.documentProperties.documentHeading'),
+			t('pptx.tags.title'),
 		]);
 	});
 
@@ -89,7 +97,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState());
 
-		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[3];
+		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[5];
 		const inputs = sizeSection.querySelectorAll<HTMLInputElement>('input[type="number"]');
 		expect(inputs[0].value).toBe('960');
 		expect(inputs[1].value).toBe('540');
@@ -128,7 +136,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState());
 
-		const overrideSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[2];
+		const overrideSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[3];
 		const toggle = overrideSection.querySelector<HTMLInputElement>('input[type="checkbox"]');
 		expect(overrideSection.querySelectorAll('.pptxv-inspector-override-row')).toHaveLength(0);
 
@@ -157,7 +165,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, t, makeHandlers());
 		panel.update(makeDeckState());
 
-		const notesSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[4];
+		const notesSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[6];
 		const values = Array.from(
 			notesSection.querySelectorAll<HTMLElement>('.pptxv-inspector-row-value'),
 		).map((el) => el.textContent);

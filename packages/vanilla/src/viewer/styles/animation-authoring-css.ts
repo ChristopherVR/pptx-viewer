@@ -1,4 +1,34 @@
 export const ANIMATION_AUTHORING_CSS = `
+/* Animations > Animation: the full 27-preset catalogue in three captioned
+   columns. Capped and scrollable rather than tall: the ribbon is one row high
+   and the layout-parity spec fails the whole tab if a group grows it. */
+.pptxv-animation-gallery {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	max-height: 62px;
+	padding: 2px 4px;
+	overflow-y: auto;
+	border: 1px solid color-mix(in srgb, var(--pptx-border) 60%, transparent);
+	border-radius: var(--pptx-radius);
+	background: color-mix(in srgb, var(--pptx-muted) 30%, transparent);
+}
+.pptxv-animation-gallery-column { display: grid; gap: 1px; }
+.pptxv-animation-gallery-caption {
+	font-size: 9px;
+	line-height: 1.2;
+	font-weight: 600;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-animation-gallery-items { display: flex; flex-wrap: wrap; gap: 1px; max-width: 150px; }
+.pptxv-btn.pptxv-animation-preset {
+	width: auto;
+	height: auto;
+	padding: 1px 4px;
+	font-size: 9px;
+	line-height: 1.3;
+	white-space: nowrap;
+}
 .pptxv-animation-timeline {
 	display: grid;
 	gap: 6px;

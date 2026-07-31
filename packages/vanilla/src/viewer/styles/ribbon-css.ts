@@ -76,6 +76,21 @@ export const RIBBON_CSS = `
    to fit a swatch preview + label without overlapping its neighbours. */
 .pptxv-theme-gallery { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; }
 .pptxv-theme-gallery .pptxv-btn { width: auto; height: auto; gap: 6px; padding: 4px 10px 4px 4px; white-space: nowrap; }
+.pptxv-theme-gallery-host { position: relative; display: inline-flex; }
+/* The galleries are popovers hung off Browse Themes / Edit Theme, so they must
+   float above the ribbon rather than widen it. */
+.pptxv-theme-gallery-host > .pptxv-theme-gallery {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	z-index: 30;
+	max-width: 320px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-card);
+	box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+}
+.pptxv-theme-gallery[hidden] { display: none; }
 .pptxv-theme-swatch-preview { display: block; width: 20px; height: 20px; flex: none; border: 1px solid var(--pptx-border); border-radius: 4px; }
 .pptxv-record-dot { width: 12px; height: 12px; margin: 7px; border-radius: 50%; background: #ef4444; }
 .pptxv-shortcut-help { align-self: center; padding: 5px 8px; color: var(--pptx-muted-foreground); font-size: 11px; }
@@ -113,6 +128,11 @@ export const RIBBON_CSS = `
 	white-space: nowrap;
 }
 .pptxv-btn-label { font-size: 12px; }
+/* Home > Arrange: group / ungroup / outline width. The spinner reuses the
+   inspector's field styling but is narrower, since the ribbon row has no
+   caption beside it. */
+.pptxv-arrange-extras { display: inline-flex; align-items: center; gap: 2px; }
+.pptxv-arrange-extras .pptxv-arrange-stroke { width: 52px; text-align: center; }
 
 /* ── Home > Slides split button (New Slide + layout caret) ──────────────*/
 .pptxv-slides-split { position: relative; display: inline-flex; align-items: stretch; }
@@ -136,13 +156,19 @@ export const RIBBON_CSS = `
    primary-row menus, which the shared .pptxv-primary-menu rule right-aligns). */
 .pptxv-layout-menu { right: auto; left: 0; }
 
-/* ── Shape insert grid ───────────────────────────────────────────────── */
-.pptxv-shape-grid {
-	display: grid;
-	grid-template-columns: repeat(10, 28px);
-	gap: 2px;
-	max-width: 320px;
+/* ── Select + commit picker (Insert > Shape / Chart) ──────────────────── */
+.pptxv-select-button { display: inline-flex; align-items: center; gap: 0; }
+.pptxv-select-button-select {
+	max-width: 132px;
+	padding: 5px 4px 5px 6px;
+	border: 1px solid var(--pptx-border);
+	border-right: none;
+	border-radius: var(--pptx-radius) 0 0 var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: var(--pptx-foreground);
+	font-size: 11px;
 }
+.pptxv-select-button-commit { border-radius: 0 var(--pptx-radius) var(--pptx-radius) 0; }
 
 /* ── Dropdown popover (font/size/spacing/case/line-spacing) ─────────────*/
 .pptxv-dropdown { position: relative; display: inline-flex; }

@@ -62,7 +62,7 @@ export function createTextEffectsControls(
 	const glowRadius = number(t('pptx.textEffects.glow'), 'textGlowRadius');
 	const reflection = toggle(t('pptx.textEffects.reflection'), 'textReflection');
 	const strike = toggle(t('pptx.textFormatting.strikethrough'), 'strikethrough');
-	const highlight = color(t('pptx.textFormatting.highlight'), 'highlightColor');
+	const highlight = color(t('pptx.text.highlightColor'), 'highlightColor');
 	const warp = doc.createElement('select');
 	for (const preset of TEXT_WARP_PRESETS) {
 		const option = doc.createElement('option');

@@ -8,6 +8,7 @@ import type {
 	CollaborationTransport,
 	ConnectionStatus,
 	PowerPointViewerAPI,
+	RulerUnit,
 	ThemeCatalogEntry,
 	ToolbarActionId,
 	ViewerFontSource,
@@ -172,6 +173,12 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * override element renderers.
 	 */
 	registry?: ElementRendererRegistry;
+	/**
+	 * Unit system for the View > Rulers tick labels (default `'inches'`, as
+	 * PowerPoint does). Mirrors React's `rulerUnit` prop; the tick generator is
+	 * shared with every other binding, so `'centimetres'` labels identically.
+	 */
+	rulerUnit?: RulerUnit;
 	/**
 	 * Opt-in WebGL SmartArt renderer (default `false`): renders `smartArt`
 	 * elements as an extruded Three.js scene instead of the flat SVG layout.

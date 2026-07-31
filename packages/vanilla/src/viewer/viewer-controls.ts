@@ -1,10 +1,19 @@
+import { zoomInScale, zoomOutScale } from 'pptx-viewer-shared';
+
 import type { RenderController } from './render-controller';
 import { clampSlideIndex } from './state';
 import type { Store, ViewerState, ZoomLevel } from './state';
 
+/**
+ * Bounds on the ABSOLUTE stage scale the store holds, which is the user zoom
+ * multiplied by the fit-to-viewport scale. They are deliberately wider than the
+ * shared `clampZoomScale` bounds (which constrain the fit-relative user zoom,
+ * where fit === 100%): on a small viewport a legal 20% user zoom is a far
+ * smaller absolute scale, and clamping it with the user-zoom rule would pin the
+ * stage at the wrong size.
+ */
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 8;
-const ZOOM_STEP = 1.25;
 
 /**
  * Navigation + zoom controls for the vanilla viewer, factored out of
@@ -86,8 +95,12 @@ export function createViewerControls(
 		currentSlide: () => store.get().currentSlide,
 		zoom: () => renderer.effectiveScale(),
 		setZoom,
-		zoomIn: () => setZoom(renderer.effectiveScale() * ZOOM_STEP),
-		zoomOut: () => setZoom(renderer.effectiveScale() / ZOOM_STEP),
+		// The store holds an ABSOLUTE scale, but the shared step (like React's) is
+		// relative to fit, where fit === 100%. So step the fit-relative factor and
+		// multiply it back out; stepping the absolute scale would make one press
+		// worth a different amount of zoom in every viewport size.
+		zoomIn: () => setZoom(renderer.fitScale() * zoomInScale(renderer.zoomPercent() / 100)),
+		zoomOut: () => setZoom(renderer.fitScale() * zoomOutScale(renderer.zoomPercent() / 100)),
 		zoomToFit: () => setZoom('fit'),
 	};
 }

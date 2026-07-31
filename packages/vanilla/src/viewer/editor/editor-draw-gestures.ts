@@ -53,7 +53,7 @@ export interface DrawGestures {
 }
 
 interface ActiveStroke {
-	tool: 'pen' | 'highlighter';
+	tool: 'pen' | 'highlighter' | 'freeform';
 	pointerId: number;
 	points: InkPoint[];
 }

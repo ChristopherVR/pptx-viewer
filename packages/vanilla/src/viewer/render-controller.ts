@@ -50,6 +50,13 @@ export interface RenderController {
 	renderThumbnails(): void;
 	/** Resolve the requested zoom into a concrete scale factor. */
 	effectiveScale(): number;
+	/**
+	 * Scale at which the slide exactly fits the viewport, i.e. the scale that
+	 * {@link zoomPercent} reports as 100%. The zoom controls need it because the
+	 * stored zoom is an ABSOLUTE scale while the shared zoom step is expressed
+	 * relative to fit, exactly as React's is.
+	 */
+	fitScale(): number;
 	/** Display zoom relative to fit-to-viewport (fit === 100%), like React. */
 	zoomPercent(): number;
 	/**
@@ -140,6 +147,10 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 
 	const effectiveScale = (): number => {
 		return effectiveScaleFor(store.get().canvasSize);
+	};
+
+	const fitScale = (): number => {
+		return fitScaleFor(store.get().canvasSize);
 	};
 
 	const zoomPercent = (): number => {
@@ -339,10 +350,12 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 			chrome.mobileActionSheets?.setNotesExpanded(state.notesExpanded);
 			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
+			chrome.ribbon?.setViewOptions(state);
 		},
 		renderStage,
 		renderThumbnails,
 		effectiveScale,
+		fitScale,
 		zoomPercent,
 		presentationPlayback,
 	};

@@ -14,6 +14,7 @@ import type {
 	PptxSection,
 	PptxSlideMaster,
 	PptxSlide,
+	PptxTagCollection,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
@@ -41,7 +42,7 @@ export type ZoomLevel = number | 'fit';
  * routes stage pointer events to the ink-drawing gesture controller instead
  * (see `editor-draw-gestures.ts`).
  */
-export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser';
+export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
 
 /**
  * The vanilla viewer's reactive view state. Kept intentionally flat and small;
@@ -89,6 +90,10 @@ export interface ViewerState {
 	colorScheme?: PptxThemeColorScheme;
 	/** Presentation theme fonts used by table-style font resolution. */
 	fontScheme?: PptxThemeFontScheme;
+	/** The loaded theme's name (inspector THEME EDITOR card). */
+	themeName?: string;
+	/** Tag collections parsed from `ppt/tags/*.xml` (inspector TAGS card). */
+	tagCollections: PptxTagCollection[];
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
 	/** Zero-based index of the visible slide. */
@@ -161,6 +166,15 @@ export interface ViewerState {
 	showRulers: boolean;
 	snapToGrid: boolean;
 	snapToShape: boolean;
+	/**
+	 * Whether the drawing guides are painted on the stage (View > Guides).
+	 *
+	 * Visibility only: `guides` keeps the full list either way, so hiding them
+	 * neither drops a guide from the saved deck nor stops a drag snapping to
+	 * one. Guide visibility and shape snapping are separate settings and each
+	 * has its own View-tab control.
+	 */
+	showGuides: boolean;
 	guides: Guide[];
 	eyedropperActive: boolean;
 	spellCheckEnabled: boolean;
@@ -194,6 +208,8 @@ export function createInitialViewerState(): ViewerState {
 		mediaDataUrls: new Map(),
 		colorScheme: undefined,
 		fontScheme: undefined,
+		themeName: undefined,
+		tagCollections: [],
 		tableStyleMap: undefined,
 		currentSlide: 0,
 		zoom: 'fit',
@@ -225,6 +241,7 @@ export function createInitialViewerState(): ViewerState {
 		showRulers: false,
 		snapToGrid: false,
 		snapToShape: true,
+		showGuides: true,
 		guides: [],
 		eyedropperActive: false,
 		spellCheckEnabled: false,

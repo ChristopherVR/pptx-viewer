@@ -188,6 +188,8 @@ export function buildChromeCallbacks(
 		updatePresentationSettings: (patch) => deps.getEditActions().updatePresentationSettings(patch),
 		applyThemeByPath: (themePath, allMasters) =>
 			deps.getEditActions().applyThemeByPath(themePath, allMasters),
+		applyThemeEdit: (payload) => deps.getEditActions().applyThemeEdit(payload),
+		updateTagCollections: (next) => deps.getEditActions().updateTagCollections(next),
 		updateActiveSlide: (patch) => deps.getEditActions().updateActiveSlide(patch),
 		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
 		addComment: (text) => void deps.getEditActions().comments.addComment(text),
@@ -230,6 +232,7 @@ export function buildChromeCallbacks(
 		replaceImage: () => void deps.getEditActions().replaceSelectedImage(),
 		resetImage: () => deps.getEditActions().resetSelectedImage(),
 		setElementAction: (trigger, action) => deps.getEditActions().setElementAction(trigger, action),
+		setAltText: (text) => deps.getEditActions().setAltText(text),
 		setChartData: (data) => deps.getEditActions().setChartData(data),
 		setMediaProperties: (patch) => deps.getEditActions().setMediaProperties(patch),
 

@@ -96,6 +96,9 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			themeOptions: state.themeOptions,
 			activeSlide,
 			colorScheme: state.colorScheme,
+			fontScheme: state.fontScheme,
+			themeName: state.themeName,
+			tagCollections: state.tagCollections,
 			notesCanvasSize: state.notesCanvasSize,
 			notesPlaceholderCount: state.notesMaster
 				? (state.notesMaster.placeholders?.length ?? 0)

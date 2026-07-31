@@ -2,6 +2,7 @@ import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import type {
 	PresentationPointerTool,
 	PresentationSnapshot,
+	ViewerQuickAccessOptions,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 import { isPresentationAdvanceClick } from 'pptx-viewer-shared';
@@ -63,6 +64,30 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	togglePresentationInkMarkup?(): void;
 	/** Blank the screen black or white (B / W, or `.` / `,`). */
 	togglePresentationBlank?(value: 'black' | 'white'): void;
+	/** Live File > Options > Quick Access Toolbar group driving the strip. */
+	getQuickAccessOptions(): ViewerQuickAccessOptions;
+	/** ScreenTip-styled tooltip for a strip button (undefined suppresses it). */
+	quickAccessScreenTip(label: string): string | undefined;
+}
+
+/**
+ * Map a Quick Access catalog id onto the chrome's existing handlers.
+ *
+ * Save/Undo/Redo are handled by the title bar itself (they carry the
+ * `hiddenActions` gate and the enabled state), so only the remaining
+ * options-configured commands reach here.
+ */
+function buildQuickAccessRunner(deps: MountChromeDeps): (id: string) => void {
+	const handlers: Record<string, () => void> = {
+		presentFromStart: () => deps.startPresentationFromBeginning(),
+		print: () => void deps.print(),
+		exportPdf: () => void deps.exportPdf(),
+		newSlide: () => deps.getEditActions().addSlide(),
+		spellCheck: () => deps.getEditActions().toggleSpellCheck(),
+		zoomIn: () => deps.zoomIn(),
+		zoomOut: () => deps.zoomOut(),
+	};
+	return (id) => handlers[id]?.();
 }
 
 /**
@@ -89,6 +114,13 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			redo: () => deps.redo(),
 			commands: buildTitleBarCommands(deps),
 			hiddenActions: options.hiddenActions,
+			// Without this the strip fell back to a hardcoded Save/Undo/Redo trio
+			// and ignored File > Options entirely.
+			quickAccess: {
+				getState: () => deps.getQuickAccessOptions(),
+				run: buildQuickAccessRunner(deps),
+				screenTip: (label) => deps.quickAccessScreenTip(label),
+			},
 		},
 		accountAuth: options.accountAuth,
 		...buildChromeCallbacks(deps),
@@ -307,6 +339,10 @@ export interface ChromeHost {
 	zoomToFit(): void;
 	undo(): void;
 	redo(): void;
+	/** Live File > Options > Quick Access Toolbar group driving the strip. */
+	getQuickAccessOptions(): ViewerQuickAccessOptions;
+	/** ScreenTip-styled tooltip for a strip button (undefined suppresses it). */
+	quickAccessScreenTip(label: string): string | undefined;
 	toggleAutosave(): boolean;
 	downloadPptx(): Promise<void>;
 	downloadAs(format: PptxSaveFormat): Promise<void>;
@@ -452,5 +488,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		setDrawTool: (tool) => host.editor.setDrawTool(tool),
 		setDrawColor: (color) => host.editor.setDrawColor(color),
 		setDrawWidth: (width) => host.editor.setDrawWidth(width),
+		getQuickAccessOptions: () => host.getQuickAccessOptions(),
+		quickAccessScreenTip: (label) => host.quickAccessScreenTip(label),
 	};
 }
