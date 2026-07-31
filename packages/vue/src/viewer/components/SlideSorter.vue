@@ -16,6 +16,7 @@
  */
 import { X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
+import { HIDDEN_SLIDE_SLASH_GRADIENT, hiddenSlideCue } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -54,6 +55,14 @@ const stageWrapStyle = computed<CSSProperties>(() => ({
 	width: `${TILE_WIDTH}px`,
 	height: `${tileHeight.value}px`,
 }));
+
+/**
+ * The shared rail/sorter cue. The tile already dimmed and already showed the
+ * word, but dimming is a colour-only signal and nothing announced the state, so
+ * the tile now also carries the slash across its number and a description.
+ */
+const hiddenCue = hiddenSlideCue;
+const slashGradient = HIDDEN_SLIDE_SLASH_GRADIENT;
 
 /** Index of the tile currently being dragged, or `null` when idle. */
 const dragIndex = ref<number | null>(null);
@@ -193,11 +202,14 @@ onBeforeUnmount(() => {
 					'is-active': index === activeIndex,
 					'is-dragging': index === dragIndex,
 					'is-drop-target': index === dragOverIndex && index !== dragIndex,
+					'is-hidden': Boolean(slide.hidden),
 				}"
 				draggable="true"
 				:data-index="index"
+				:data-pptx-slide-hidden="hiddenCue(slide.hidden, 'sorter', index).marker"
 				:aria-label="t('pptx.notes.slideN', { n: index + 1 })"
 				:aria-current="index === activeIndex ? 'true' : undefined"
+				:aria-describedby="hiddenCue(slide.hidden, 'sorter', index).labelId"
 				@click="onSelect(index)"
 				@contextmenu="openContextMenu(index, $event)"
 				@dragstart="onDragStart(index, $event)"
@@ -213,10 +225,17 @@ onBeforeUnmount(() => {
 						:scale="tileScale"
 					/>
 				</div>
-				<span class="pptx-vue-sorter-index">{{ index + 1 }}</span>
-				<span v-if="slide.hidden" class="pptx-vue-sorter-hidden">{{
-					t('pptx.slideSorter.hidden')
-				}}</span>
+				<span
+					class="pptx-vue-sorter-index"
+					:style="slide.hidden ? { backgroundImage: slashGradient } : undefined"
+					>{{ index + 1 }}</span
+				>
+				<span
+					v-if="slide.hidden"
+					:id="hiddenCue(slide.hidden, 'sorter', index).labelId"
+					class="pptx-vue-sorter-hidden"
+					>{{ t('pptx.slideSorter.hidden') }}</span
+				>
 			</div>
 		</div>
 

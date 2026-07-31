@@ -2,6 +2,7 @@
 import { GripVertical } from 'lucide-vue-next';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	animationElementLabel,
@@ -16,6 +17,11 @@ const props = defineProps<{
 	selectedElementId: string;
 }>();
 const emit = defineEmits<{ reorder: [animations: PptxElementAnimation[]] }>();
+const { t } = useI18n();
+// `t` is an overloaded generic; narrow it to the plain shape shared wants.
+function presetLabel(animation: PptxElementAnimation): string {
+	return animationPresetLabel(animation, (key: string) => t(key));
+}
 const dragIndex = ref<number>();
 const dragOverIndex = ref<number>();
 const sorted = computed(() =>
@@ -97,7 +103,7 @@ function clearDrag(): void {
 					class="w-4 shrink-0 text-muted-foreground"
 					>{{ index + 1 }}.</span
 				><span class="min-w-0 flex-1 truncate">{{ label(animation) }}</span
-				><span class="text-muted-foreground">{{ animationPresetLabel(animation) }}</span>
+				><span class="text-muted-foreground">{{ presetLabel(animation) }}</span>
 			</div>
 		</div>
 	</section>

@@ -43,6 +43,9 @@ const GRID_SIZE = 8;
  * consume. One history entry is snapshotted at gesture start; live patches during
  * the gesture bypass history. Extracted verbatim from `PowerPointViewer.vue`.
  */
+/** The drag/transform/adjust surface, inferred so it cannot drift from the impl. */
+export type UseElementDragResult = ReturnType<typeof useElementDrag>;
+
 export function useElementDrag(input: UseElementDragInput) {
 	const {
 		findActiveElement,

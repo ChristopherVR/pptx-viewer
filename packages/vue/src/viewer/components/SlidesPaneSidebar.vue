@@ -13,7 +13,13 @@ import { EyeOff, MessageSquare, Plus } from 'lucide-vue-next';
  * and virtualizes decks at the same 50-slide threshold as React.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
+import {
+	computeVirtualRange,
+	HIDDEN_SLIDE_LABEL_KEY,
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	hiddenSlideCue,
+	SLIDE_VIRTUALIZATION_THRESHOLD,
+} from 'pptx-viewer-shared';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -46,6 +52,15 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+/**
+ * The shared rail cue for a hidden slide. Exposed to the template rather than
+ * inlined so the dim / slash / description all come off one source and cannot
+ * drift from the other four bindings.
+ */
+const hiddenCue = hiddenSlideCue;
+const hiddenLabelKey = HIDDEN_SLIDE_LABEL_KEY;
+const slashGradient = HIDDEN_SLIDE_SLASH_GRADIENT;
 
 const scale = computed(() => props.thumbWidth / Math.max(1, props.canvasSize.width));
 const previewHeight = computed(() =>
@@ -195,6 +210,8 @@ function onMenuSelect(id: string): void {
 						:data-slide-index="index"
 						:aria-label="t('pptx.slidesPanel.goToSlide', { n: index + 1 })"
 						:aria-current="index === activeIndex ? 'true' : undefined"
+						:aria-describedby="hiddenCue(slide.hidden, 'rail', index).labelId"
+						:data-pptx-slide-hidden="hiddenCue(slide.hidden, 'rail', index).marker"
 						@click="emit('select', index)"
 						@contextmenu="onContextMenu($event, index)"
 						@dragstart="onDragStart($event, index)"
@@ -210,6 +227,7 @@ function onMenuSelect(id: string): void {
 										index === activeIndex ? 'text-primary font-medium' : 'text-muted-foreground',
 									)
 								"
+								:style="slide.hidden ? { backgroundImage: slashGradient } : undefined"
 							>
 								{{ index + 1 }}
 							</span>
@@ -240,8 +258,13 @@ function onMenuSelect(id: string): void {
 								<MessageSquare class="w-2 h-2" />
 								{{ slide.comments?.length }}
 							</div>
-							<div v-if="slide.hidden" class="absolute bottom-0.5 right-0.5 z-10">
+							<div
+								v-if="slide.hidden"
+								:id="hiddenCue(slide.hidden, 'rail', index).labelId"
+								class="absolute bottom-0.5 right-0.5 z-10"
+							>
 								<EyeOff class="w-3 h-3 text-muted-foreground" />
+								<span class="sr-only">{{ t(hiddenLabelKey) }}</span>
 							</div>
 						</div>
 					</button>

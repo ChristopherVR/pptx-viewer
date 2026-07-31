@@ -1,23 +1,37 @@
 <script setup lang="ts">
+/**
+ * PresentationMode - a full-viewport slideshow overlay.
+ *
+ * Renders the active slide via {@link SlideStage}, scaled to fit the viewport
+ * while preserving aspect ratio, centered on a black background. Mounted into
+ * `document.body` via `<Teleport>` and pinned with `position: fixed; inset: 0`.
+ *
+ * The behaviour lives in four composables, because each is a self-contained
+ * machine that this file only has to connect:
+ *  - `usePresentationViewport`  fit-to-viewport scale + real fullscreen
+ *  - `usePresentationNavigation` where an advance lands (builds, then slides,
+ *                                then the end screen) + the transition overlay
+ *  - `usePresentationKeyboard`   the shared PowerPoint keymap
+ *  - `usePresentationAnimationStyles` per-element native-animation DOM writes
+ *
+ * Navigation mirrors the React `usePresentationMode` semantics: Right / Space /
+ * PageDown advance, Left / PageUp go back, Home / End jump to the show's first
+ * and last slide, Esc exits, and a click on the stage advances.
+ */
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
-import {
-	acceptsPresentationInput,
-	ANIMATION_KEYFRAMES_CSS,
-	createPresentationKeyBuffer,
-	endAudienceDisplay,
-	isClickAdvanceAllowed,
-	mapPresentationKey,
-	mayLeaveSlideShow,
-} from 'pptx-viewer-shared';
-import type { CSSProperties } from 'vue';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { ANIMATION_KEYFRAMES_CSS, endAudienceDisplay, mayLeaveSlideShow } from 'pptx-viewer-shared';
+import { computed, onMounted, ref } from 'vue';
 
 import { providePresentationElementStates } from '../composables/presentation-element-states';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
+import { usePresentationAnimationStyles } from '../composables/usePresentationAnimationStyles';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
+import { usePresentationKeyboard } from '../composables/usePresentationKeyboard';
+import { usePresentationNavigation } from '../composables/usePresentationNavigation';
 import { usePresentationShowOrder } from '../composables/usePresentationShowOrder';
+import { usePresentationViewport } from '../composables/usePresentationViewport';
 import { usePresenterSession } from '../composables/usePresenterSession';
 import { useSlideAutoAdvance } from '../composables/useSlideAutoAdvance';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
@@ -27,6 +41,7 @@ import type { CanvasSize } from '../types';
 import KeepAnnotationsDialog from './KeepAnnotationsDialog.vue';
 import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
+import PresentationAudienceOverlays from './PresentationAudienceOverlays.vue';
 import PresentationEndScreen from './PresentationEndScreen.vue';
 import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
 import PresentationToolbar from './PresentationToolbar.vue';
@@ -35,23 +50,6 @@ import PresentationTransitionOverlay from './PresentationTransitionOverlay.vue';
 import PresenterView from './PresenterView.vue';
 import SlideStage from './SlideStage.vue';
 
-/**
- * PresentationMode - a full-viewport slideshow overlay.
- *
- * Renders the active slide via {@link SlideStage}, scaled to fit the viewport
- * while preserving aspect ratio, centered on a black background. Mounted into
- * `document.body` via `<Teleport>` and pinned with `position: fixed; inset: 0`.
- *
- * Navigation mirrors the React `usePresentationMode` semantics:
- *  - ArrowRight / Space / PageDown → next slide
- *  - ArrowLeft / PageUp           → previous slide
- *  - Home / End                   → first / last slide
- *  - Esc                          → exit (emits `close`)
- *  - Click on the stage           → next slide
- *
- * Real fullscreen is requested via the Fullscreen API where available; absence
- * degrades gracefully to the fixed overlay.
- */
 const props = withDefaults(
 	defineProps<{
 		slides: PptxSlide[];
@@ -75,12 +73,6 @@ const props = withDefaults(
 	},
 );
 
-/** Slide-show option flags read by navigation / exit (File > Options gated). */
-const showOptions = computed(() => ({
-	endWithBlackSlide: props.endWithBlackSlide,
-	promptKeepInkAnnotations: props.promptKeepInkAnnotations,
-}));
-
 const emit = defineEmits<{
 	/**
 	 * Exit the show. When the presenter chose to keep ink annotations, the
@@ -91,53 +83,14 @@ const emit = defineEmits<{
 	(e: 'slide-change', index: number): void;
 }>();
 
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
+const overlayRef = ref<HTMLDivElement | null>(null);
+const frameRef = ref<HTMLDivElement | null>(null);
 
-function clampIndex(index: number): number {
-	const last = Math.max(0, props.slides.length - 1);
-	if (index < 0) {
-		return 0;
-	}
-	if (index > last) {
-		return last;
-	}
-	return index;
-}
-
-const currentIndex = ref(clampIndex(props.startIndex));
-
-const activeSlide = computed<PptxSlide | undefined>(() => props.slides[currentIndex.value]);
-
-// ---------------------------------------------------------------------------
-// Fit-to-viewport scaling
-// ---------------------------------------------------------------------------
-
-const viewportWidth = ref(typeof window === 'undefined' ? 0 : window.innerWidth);
-const viewportHeight = ref(typeof window === 'undefined' ? 0 : window.innerHeight);
-
-const scale = computed(() => {
-	const { width, height } = props.canvasSize;
-	if (width <= 0 || height <= 0 || viewportWidth.value <= 0 || viewportHeight.value <= 0) {
-		return 1;
-	}
-	return Math.min(viewportWidth.value / width, viewportHeight.value / height);
-});
-
-/**
- * The scaled stage uses `transform: scale()` with a `top left` origin, so its
- * laid-out box still occupies the unscaled dimensions. Wrap it in a box sized to
- * the *scaled* footprint so flexbox can center it correctly.
- */
-const frameStyle = computed<CSSProperties>(() => ({
-	width: `${props.canvasSize.width * scale.value}px`,
-	height: `${props.canvasSize.height * scale.value}px`,
-}));
-
-// ---------------------------------------------------------------------------
-// Navigation
-// ---------------------------------------------------------------------------
+// -- Navigation --------------------------------------------------------
+// Declaration order below is load-bearing: `usePresenterSession` and
+// `usePresentationAnnotations` both READ the current slide index during setup,
+// so `nav` has to exist first, while `playback` is built FROM `nav.activeSlide`
+// and is therefore handed back to `nav` as a getter.
 
 /**
  * Which slides this show visits and what a press resolves to (hidden slides
@@ -149,192 +102,101 @@ const showOrder = usePresentationShowOrder({
 	activeCustomShow: () => props.activeCustomShow,
 });
 
-/**
- * Jump straight to a deck index. Deliberately NOT filtered by the show order:
- * PowerPoint's typed "slide number + Enter" reaches a hidden slide on purpose,
- * and slide-zoom tiles link to whatever slide they name.
- */
-function goTo(index: number): void {
-	const target = clampIndex(index);
-	if (target === currentIndex.value) {
-		return;
-	}
-	currentIndex.value = target;
-}
-
-// Slide-Zoom / Section-Zoom tiles jump to their target slide when clicked. The
-// context is provided only here (during a running presentation), so the same
-// ZoomRenderer stays a static link in the editor/read-only tree.
-provideZoomNavigation({ navigateToZoomTarget: goTo });
+const nav = usePresentationNavigation({
+	slides: () => props.slides,
+	startIndex: () => props.startIndex,
+	playback: () => playback,
+	showOrder,
+	endWithBlackSlide: () => props.endWithBlackSlide,
+	requestClose: close,
+	onSlideChange: (index) => emit('slide-change', index),
+});
 
 // Animation playback: each "next" first reveals the slide's next native-timing
 // (`p:timing`) click-group; only when the slide's builds are exhausted do we
-// advance the slide. The controller (via `useAnimationPlayback`) also drives
-// staged chart / SmartArt builds and `p:animClr` colour animations.
-const frameRef = ref<HTMLDivElement | null>(null);
+// advance the slide. The controller also drives staged chart / SmartArt builds
+// and `p:animClr` colour animations.
 const playback = useAnimationPlayback({
-	slide: activeSlide,
+	slide: nav.activeSlide,
 	showWithAnimation: () => props.presentationProperties?.showWithAnimation,
 	frameRoot: () => frameRef.value,
 });
 // Publish the per-element state map so the chart / SmartArt / connector / shape
 // renderers can reveal staged builds and relinquish animated fill / stroke.
 providePresentationElementStates(playback.presentationElementStates);
-/** Per-slide native-animation `@keyframes` to inject (top-level for template). */
-const presentationKeyframesCss = playback.presentationKeyframesCss;
 
-/** Resolve the nearest element id above a pointer target, if any. */
-function closestElementId(target: EventTarget | null): string | undefined {
-	if (!(target instanceof Element)) {
-		return undefined;
-	}
-	return target.closest<HTMLElement>('[data-element-id]')?.dataset.elementId;
-}
+// Slide-Zoom / Section-Zoom tiles jump to their target slide when clicked. The
+// context is provided only here (during a running presentation), so the same
+// ZoomRenderer stays a static link in the editor/read-only tree.
+provideZoomNavigation({ navigateToZoomTarget: nav.goTo });
 
-/**
- * Apply each tracked element's native-animation state to its DOM wrapper:
- * visibility (entrance hide-until-revealed / exit), the CSS-animation shorthand
- * (entrance / emphasis / exit / colour keyframes), and a pointer cursor on
- * interactive / hover trigger shapes. Structural reveals (chart / SmartArt build,
- * fill / stroke inherit) are applied declaratively by the renderers themselves.
- */
-function applyAnimationStyles(): void {
-	const root = frameRef.value;
-	if (!root) {
-		return;
-	}
-	const states = playback.presentationElementStates.value;
-	const interactive = playback.interactiveTriggerShapeIds.value;
-	const hover = playback.hoverTriggerShapeIds.value;
-	root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
-		const id = el.dataset.elementId;
-		if (!id) {
-			return;
+const { onFrameClick, onFrameHover, onFrameHoverEnd } = usePresentationAnimationStyles({
+	frameRef,
+	playback,
+	activeSlide: () => nav.activeSlide.value,
+});
+
+// PowerPoint's "Advance slide: After <n>" (`p:transition/@advTm`). Re-armed on
+// every slide change and always cancelled first. Slide 1 of a deck authored
+// `advClick="0" advTm="..."` has no other way forward, so without this the show
+// never leaves it and looks completely unresponsive.
+useSlideAutoAdvance({
+	slide: nav.activeSlide,
+	useTimings: () => props.presentationProperties?.advanceMode !== 'manual',
+	suspended: nav.showEndScreen,
+	position: nav.currentIndex,
+	advance: nav.next,
+});
+
+// -- Presenter session (audience display link) -------------------------
+const presenterSession = usePresenterSession({
+	currentSlideIndex: nav.currentIndex,
+	content: () => props.content ?? null,
+	onAudienceSlide: (index) => {
+		if (index >= 0 && index < props.slides.length) {
+			nav.currentIndex.value = index;
+			emit('slide-change', index);
 		}
-		const state = states.get(id);
-		el.style.animation = state?.cssAnimation ?? '';
-		el.style.visibility = state?.visible === false ? 'hidden' : '';
-		el.style.cursor = interactive.has(id) || hover.has(id) ? 'pointer' : '';
-	});
-}
-
-/** Click on an interactive (`onShapeClick`) trigger shape: play its sequence. */
-function onFrameClick(event: MouseEvent): void {
-	const id = closestElementId(event.target);
-	if (id && playback.interactiveTriggerShapeIds.value.has(id)) {
-		if (playback.handleInteractiveShapeClick(id)) {
-			// Handled: don't let the click bubble to the tap-to-advance overlay.
-			event.stopPropagation();
+	},
+	// The presenter ended the session. Close this tab; when the browser refuses,
+	// leave the black end-of-slide-show screen up rather than the editor.
+	onAudienceExit: () => {
+		if (endAudienceDisplay(window)) {
+			nav.showEndScreen.value = true;
 		}
-	}
-}
+	},
+});
 
-/**
- * The hover-trigger shape the pointer is currently over, tracked so a hover
- * sequence fires once on entering a shape (not on every descendant transition
- * that `mouseover` bubbles up) and is reset on leaving it.
- */
-let currentHoverTriggerId: string | undefined;
+const { scale, frameStyle } = usePresentationViewport({
+	canvasSize: () => props.canvasSize,
+	overlayRef,
+	isAudience: presenterSession.isAudience,
+});
 
-/** Pointer moved over the frame: (re)play the hover sequence on shape entry. */
-function onFrameHover(event: MouseEvent): void {
-	const id = closestElementId(event.target);
-	const triggerId = id && playback.hoverTriggerShapeIds.value.has(id) ? id : undefined;
-	if (triggerId === currentHoverTriggerId) {
-		return;
+// -- Ink annotations + exit prompt -------------------------------------
+const annotations = usePresentationAnnotations({
+	isActive: () => true,
+	activeSlideIndex: nav.currentIndex,
+});
+/** Whether the keep-or-discard-annotations prompt is showing (set on exit). */
+const showKeepPrompt = ref(false);
+/** Total stroke count across all slides, for the prompt copy. */
+const annotationCount = computed(() => {
+	let total = 0;
+	for (const strokes of annotations.allSlideAnnotations.value.values()) {
+		total += strokes.length;
 	}
-	if (currentHoverTriggerId) {
-		playback.handleHoverEnd(currentHoverTriggerId);
-	}
-	currentHoverTriggerId = triggerId;
-	if (triggerId) {
-		playback.handleHoverStart(triggerId);
-	}
-}
-
-/** Pointer left the frame entirely: reset any active hover trigger. */
-function onFrameHoverEnd(event: MouseEvent): void {
-	// Only when leaving the frame subtree (not moving between its descendants).
-	const related = event.relatedTarget;
-	if (related instanceof Node && frameRef.value?.contains(related)) {
-		return;
-	}
-	if (currentHoverTriggerId) {
-		playback.handleHoverEnd(currentHoverTriggerId);
-		currentHoverTriggerId = undefined;
-	}
-}
-
-/** Black "End of slide show" screen shown past the last slide (option-gated). */
-const showEndScreen = ref(false);
-
-function next(): void {
-	if (showEndScreen.value) {
-		// A second advance on the end screen exits the show, like PowerPoint.
-		close();
-		return;
-	}
-	if (playback.advance()) {
-		return; // revealed an animation build step; stay on the slide
-	}
-	if (!showOrder.hasNext(currentIndex.value)) {
-		if (showOptions.value.endWithBlackSlide) {
-			showEndScreen.value = true;
-		} else {
-			// No black slide configured: PowerPoint ends the show outright rather
-			// than sitting on the last slide ignoring every further advance.
-			close();
-		}
-		return;
-	}
-	goTo(showOrder.next(currentIndex.value));
-}
-
-function prev(): void {
-	if (showEndScreen.value) {
-		showEndScreen.value = false;
-		return;
-	}
-	// A slide entered backward shows its builds already complete. The next back
-	// press replays them from the start rather than leaving the slide, so a
-	// presenter who overshot can watch the build again (PowerPoint).
-	if (playback.seededCompleted.value) {
-		playback.reset();
-		return;
-	}
-	// PowerPoint shows a slide you step BACK onto with its builds already played.
-	playback.markNextEntryCompleted();
-	goTo(showOrder.previous(currentIndex.value));
-}
-
-/**
- * Click/tap/swipe advance. Like `next()` it first steps the current slide's
- * remaining animation builds, but once they are exhausted it advances the slide
- * only when the slide's transition allows click-advance (advanceOnClick !==
- * false), matching PowerPoint's "on mouse click" gate. Keyboard, the toolbar
- * next button and the end-screen are unaffected and keep calling `next()`.
- */
-function advanceFromClick(): void {
-	// An audience display never drives itself: a tap or swipe of its own would
-	// move it off the presenter's slide, and the next snapshot would drag it back.
-	if (!acceptsPresentationInput()) {
-		return;
-	}
-	if (
-		!showEndScreen.value &&
-		playback.isComplete.value &&
-		!isClickAdvanceAllowed(activeSlide.value)
-	) {
-		return;
-	}
-	next();
-}
+	return total;
+});
+/** Number of slides that carry at least one stroke, for the prompt copy. */
+const annotatedSlideCount = computed(() => annotations.allSlideAnnotations.value.size);
 
 /**
  * Request exit. When ink annotations were drawn, prompt to keep or discard them
- * (KeepAnnotationsDialog) before leaving; otherwise exit immediately. The
- * prompt is skipped (annotations silently discarded) when File > Options >
- * Advanced > "Prompt to keep ink annotations when exiting" is off.
+ * before leaving; otherwise exit immediately. The prompt is skipped
+ * (annotations silently discarded) when File > Options > Advanced > "Prompt to
+ * keep ink annotations when exiting" is off. Hoisted (a function declaration)
+ * so `nav`, created above it, can take it as its close callback.
  */
 function close(): void {
 	// An audience display mirrors the presenter's screen: Escape, the toolbar and
@@ -342,7 +204,7 @@ function close(): void {
 	if (!mayLeaveSlideShow()) {
 		return;
 	}
-	if (annotations.hasAnyAnnotations.value && showOptions.value.promptKeepInkAnnotations) {
+	if (annotations.hasAnyAnnotations.value && props.promptKeepInkAnnotations) {
 		showKeepPrompt.value = true;
 		return;
 	}
@@ -362,34 +224,16 @@ function onDiscardAnnotations(): void {
 	emit('close');
 }
 
-// ---------------------------------------------------------------------------
-// Presentation chrome: ink annotations, toolbar, presenter view, captions
-// ---------------------------------------------------------------------------
-
+// -- Presentation chrome: toolbar, presenter view, captions ------------
 /** Timestamp (ms) the show started: drives the toolbar/presenter timers. */
 const presentationStartTime = ref<number | null>(null);
+onMounted(() => {
+	presentationStartTime.value = Date.now();
+});
 /** Whether the presenter view (notes + next-slide preview) is shown. */
 const presenterMode = ref(props.startInPresenterView);
 /** On a phone, the presenter view uses a single-column mobile layout. */
 const { isMobile, isTouchDevice } = useIsMobile();
-
-const presenterSession = usePresenterSession({
-	currentSlideIndex: currentIndex,
-	content: () => props.content ?? null,
-	onAudienceSlide: (index) => {
-		if (index >= 0 && index < props.slides.length) {
-			currentIndex.value = index;
-			emit('slide-change', index);
-		}
-	},
-	// The presenter ended the session. Close this tab; when the browser refuses,
-	// leave the black end-of-slide-show screen up rather than the editor.
-	onAudienceExit: () => {
-		if (endAudienceDisplay(window)) {
-			showEndScreen.value = true;
-		}
-	},
-});
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
 /** PowerPoint's Ctrl+M: hide ink markup without discarding the strokes. */
@@ -403,23 +247,14 @@ const inkMarkupVisible = ref(true);
  */
 const { toolbarVisible, setToolbarVisible } = useToolbarAutoHide();
 
-const annotations = usePresentationAnnotations({
-	isActive: () => true,
-	activeSlideIndex: currentIndex,
-});
-
-/** Whether the keep-or-discard-annotations prompt is showing (set on exit). */
-const showKeepPrompt = ref(false);
-/** Total stroke count across all slides, for the prompt copy. */
-const annotationCount = computed(() => {
-	let total = 0;
-	for (const strokes of annotations.allSlideAnnotations.value.values()) {
-		total += strokes.length;
+/** Toolbar `move(+-1)` -> next/prev. */
+function onToolbarMove(direction: 1 | -1): void {
+	if (direction > 0) {
+		nav.next();
+	} else {
+		nav.prev();
 	}
-	return total;
-});
-/** Number of slides that carry at least one stroke, for the prompt copy. */
-const annotatedSlideCount = computed(() => annotations.allSlideAnnotations.value.size);
+}
 
 /**
  * Tap-to-advance, but only when no drawing tool is armed and the presenter
@@ -430,175 +265,40 @@ function onOverlayClick(): void {
 	if (annotations.presentationTool.value !== 'none' || presenterMode.value) {
 		return;
 	}
-	advanceFromClick();
+	nav.advanceFromClick();
 }
 
-// PowerPoint's "Advance slide: After <n>" (`p:transition/@advTm`). Re-armed on
-// every slide change and always cancelled first. Slide 1 of a deck authored
-// `advClick="0" advTm="…"` has no other way forward, so without this the show
-// never leaves it and looks completely unresponsive.
-useSlideAutoAdvance({
-	slide: activeSlide,
-	useTimings: () => props.presentationProperties?.advanceMode !== 'manual',
-	suspended: showEndScreen,
-	position: currentIndex,
-	advance: next,
-});
-
-/** Toolbar `move(±1)` → next/prev. */
-function onToolbarMove(direction: 1 | -1): void {
-	if (direction > 0) {
-		next();
-	} else {
-		prev();
-	}
-}
-
-// Slide-transition overlay: when the active slide carries a transition, play it
-// over the frame (outgoing snapshot + animated incoming) until `done`.
-const transitionState = ref<{
-	outgoing: PptxSlide | undefined;
-	incoming: PptxSlide | undefined;
-	transition: NonNullable<PptxSlide['transition']>;
-} | null>(null);
-
-watch(currentIndex, (index, previousIndex) => {
-	emit('slide-change', index);
-	// The playback controller rebuilds itself on the active-slide change (it
-	// watches `activeSlide`), so no explicit reset is needed here.
-	const incoming = props.slides[index];
-	const transition = incoming?.transition;
-	if (transition && transition.type && transition.type !== 'none') {
-		transitionState.value = {
-			outgoing: props.slides[previousIndex],
-			incoming,
-			transition,
-		};
-	} else {
-		transitionState.value = null;
-	}
-});
-
-function onTransitionDone(): void {
-	transitionState.value = null;
-}
-
-watch(
-	[
-		playback.presentationElementStates,
-		playback.interactiveTriggerShapeIds,
-		playback.hoverTriggerShapeIds,
-		activeSlide,
-	],
-	() => {
-		void nextTick(applyAnimationStyles);
+usePresentationKeyboard({
+	slideCount: () => props.slides.length,
+	next: nav.next,
+	prev: nav.prev,
+	goTo: nav.goTo,
+	firstSlideIndex: () => showOrder.first(0),
+	lastSlideIndex: () => showOrder.last(props.slides.length - 1),
+	requestClose: close,
+	setPresentationTool: annotations.setPresentationTool,
+	clearAnnotations: annotations.clearAnnotations,
+	inkMarkupVisible,
+	subtitlesOn,
+	toolbarVisible,
+	setToolbarVisible,
+	setBlackout: (value) => {
+		const current = presenterSession.snapshot.value.blackout;
+		presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
 	},
-	{ immediate: true },
-);
+	showAllSlides: () => {
+		presenterMode.value = true;
+	},
+});
 
-// ---------------------------------------------------------------------------
-// Keyboard + resize listeners
-// ---------------------------------------------------------------------------
-
-/** Digit buffer backing PowerPoint's "type a slide number, then Enter" jump. */
-const keyBuffer = createPresentationKeyBuffer();
-
-function setBlackout(value: 'black' | 'white'): void {
-	const current = presenterSession.snapshot.value.blackout;
-	presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
-}
-
-function handleKeyDown(event: KeyboardEvent): void {
-	// An audience display mirrors the presenter's screen. If its own keyboard
-	// navigated, a stray key moved it off the presenter's slide and the next
-	// snapshot yanked it back, which reads as the display refusing to advance.
-	if (!acceptsPresentationInput()) {
-		return;
-	}
-	// Live captions are PowerPoint's "C", which the shared slide-show map leaves
-	// unassigned, so it stays handled here.
-	if ((event.key === 'c' || event.key === 'C') && !event.ctrlKey && !event.metaKey) {
-		event.preventDefault();
-		subtitlesOn.value = !subtitlesOn.value;
-		return;
-	}
-
-	const mapped = mapPresentationKey(event, keyBuffer);
-	if (mapped.action === 'none') {
-		return;
-	}
-	event.preventDefault();
-
-	switch (mapped.action) {
-		case 'end':
-			close();
-			return;
-		case 'next':
-			next();
-			return;
-		case 'previous':
-			prev();
-			return;
-		case 'first':
-			goTo(showOrder.first(0));
-			return;
-		case 'last':
-			goTo(showOrder.last(props.slides.length - 1));
-			return;
-		case 'goto': {
-			const index = mapped.slideNumber - 1;
-			if (index >= 0 && index < props.slides.length) {
-				goTo(index);
-			}
-			return;
-		}
-		case 'pointerTool':
-			// PowerPoint's Ctrl+A "arrow" is the plain pointer: no active tool.
-			annotations.setPresentationTool(mapped.tool === 'arrow' ? 'none' : mapped.tool);
-			return;
-		case 'eraseAnnotations':
-			annotations.clearAnnotations();
-			return;
-		case 'toggleInkMarkup':
-			inkMarkupVisible.value = !inkMarkupVisible.value;
-			return;
-		case 'toggleChrome':
-			setToolbarVisible(!toolbarVisible.value);
-			return;
-		case 'toggleBlackScreen':
-			setBlackout('black');
-			return;
-		case 'toggleWhiteScreen':
-			setBlackout('white');
-			return;
-		case 'showAllSlides':
-			presenterMode.value = true;
-			break;
-		// A pending slide number and the context-menu key are consumed above so
-		// the browser does not act on them; nothing further to do.
-		default:
-			break;
-	}
-}
-
-function handleResize(): void {
-	viewportWidth.value = window.innerWidth;
-	viewportHeight.value = window.innerHeight;
-}
-
-// ---------------------------------------------------------------------------
-// Touch / swipe navigation (mobile has no keyboard, so Esc/arrows are absent)
-// ---------------------------------------------------------------------------
+// -- Touch / swipe navigation (mobile has no Esc / arrow keys) ---------
 // A horizontal swipe steps between slides. The gesture math is delegated to the
 // shared `createTouchGestureRecognizer` (via `useTouchGestures`); a rightward
 // swipe (direction 1) goes to the previous slide, a leftward swipe (direction
 // -1) to the next, matching the React present-mode mapping. Pinch-zoom is a
 // no-op here (the stage is already fit-to-viewport), so `currentScale` is a
 // constant 1 and the pinch callback is omitted.
-
-const overlayRef = ref<HTMLDivElement | null>(null);
 const presentScale = ref(1);
-
 useTouchGestures({
 	targetRef: overlayRef,
 	currentScale: presentScale,
@@ -607,62 +307,14 @@ useTouchGestures({
 	callbacks: {
 		onSwipe: (direction) => {
 			if (direction === 1) {
-				prev();
+				nav.prev();
 			} else {
 				// A leftward swipe is PowerPoint's on-click advance, so it is gated by
 				// the current slide's advanceOnClick transition flag.
-				advanceFromClick();
+				nav.advanceFromClick();
 			}
 		},
 	},
-});
-
-function requestFullscreen(): void {
-	const el = overlayRef.value;
-	if (!el || typeof el.requestFullscreen !== 'function') {
-		return;
-	}
-	try {
-		void el.requestFullscreen().catch(() => {
-			/* ignore fullscreen errors */
-		});
-	} catch {
-		/* fullscreen not supported */
-	}
-}
-
-function exitFullscreen(): void {
-	if (typeof document === 'undefined') {
-		return;
-	}
-	try {
-		if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
-			void document.exitFullscreen().catch(() => {
-				/* ignore */
-			});
-		}
-	} catch {
-		/* fullscreen not supported */
-	}
-}
-
-onMounted(() => {
-	presentationStartTime.value = Date.now();
-	window.addEventListener('keydown', handleKeyDown);
-	window.addEventListener('resize', handleResize);
-	handleResize();
-	requestFullscreen();
-	if (presenterSession.isAudience) {
-		const requestOnInteraction = (): void => requestFullscreen();
-		document.addEventListener('pointerdown', requestOnInteraction, { once: true });
-		document.addEventListener('keydown', requestOnInteraction, { once: true });
-	}
-});
-
-onBeforeUnmount(() => {
-	window.removeEventListener('keydown', handleKeyDown);
-	window.removeEventListener('resize', handleResize);
-	exitFullscreen();
 });
 </script>
 
@@ -672,7 +324,7 @@ onBeforeUnmount(() => {
 			<!-- Inject the static preset @keyframes plus this slide's native-animation
 			     (`p:timing`) keyframes (staged builds + `p:animClr` colour stops). -->
 			<component :is="'style'"
-				>{{ ANIMATION_KEYFRAMES_CSS }}{{ presentationKeyframesCss }}</component
+				>{{ ANIMATION_KEYFRAMES_CSS }}{{ playback.presentationKeyframesCss.value }}</component
 			>
 			<div
 				ref="frameRef"
@@ -683,7 +335,7 @@ onBeforeUnmount(() => {
 				@mouseout="onFrameHoverEnd"
 			>
 				<SlideStage
-					:slide="activeSlide"
+					:slide="nav.activeSlide.value"
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
 					:scale="scale"
@@ -708,39 +360,18 @@ onBeforeUnmount(() => {
 				/>
 				<!-- Slide-transition animation (covers the frame until `done`). -->
 				<PresentationTransitionOverlay
-					v-if="transitionState"
-					:outgoing-slide="transitionState.outgoing"
-					:incoming-slide="transitionState.incoming"
+					v-if="nav.transitionState.value"
+					:outgoing-slide="nav.transitionState.value.outgoing"
+					:incoming-slide="nav.transitionState.value.incoming"
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
 					:scale="scale"
-					:transition="transitionState.transition"
-					@done="onTransitionDone"
+					:transition="nav.transitionState.value.transition"
+					@done="nav.onTransitionDone"
 				/>
 			</div>
-			<div
-				v-if="presenterSession.snapshot.value.blackout !== 'none'"
-				class="absolute inset-0 z-[75]"
-				:style="{ background: presenterSession.snapshot.value.blackout }"
-			/>
-			<div
-				v-if="presenterSession.snapshot.value.pointer?.tool === 'laser'"
-				class="pointer-events-none absolute z-[76] h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500"
-				:style="{
-					left: `${(presenterSession.snapshot.value.pointer?.x ?? 0.5) * 100}%`,
-					top: `${(presenterSession.snapshot.value.pointer?.y ?? 0.5) * 100}%`,
-					boxShadow: '0 0 20px 8px rgba(239,68,68,.55)',
-				}"
-			/>
-			<div
-				v-if="
-					presenterSession.snapshot.value.subtitlesVisible &&
-					presenterSession.snapshot.value.caption
-				"
-				class="pointer-events-none absolute inset-x-[10%] bottom-8 z-[77] rounded-lg bg-black/80 px-6 py-3 text-center text-xl text-white"
-			>
-				{{ presenterSession.snapshot.value.caption }}
-			</div>
+
+			<PresentationAudienceOverlays :snapshot="presenterSession.snapshot.value" />
 
 			<!-- Presenter view (notes + next-slide preview): covers the stage.
 			     On a phone, a single-column mobile layout replaces the desktop
@@ -748,7 +379,7 @@ onBeforeUnmount(() => {
 			<MobilePresenterView
 				v-if="presenterMode && isMobile"
 				:slides="slides"
-				:current-slide-index="currentIndex"
+				:current-slide-index="nav.currentIndex.value"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:presentation-start-time="presentationStartTime"
@@ -759,7 +390,7 @@ onBeforeUnmount(() => {
 			<PresenterView
 				v-else-if="presenterMode"
 				:slides="slides"
-				:current-slide-index="currentIndex"
+				:current-slide-index="nav.currentIndex.value"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:presentation-start-time="presentationStartTime"
@@ -769,7 +400,7 @@ onBeforeUnmount(() => {
 				@move="onToolbarMove"
 				@open-audience="presenterSession.openAudience"
 				@close-audience="presenterSession.closeAudience"
-				@navigate="goTo"
+				@navigate="nav.goTo"
 				@update-snapshot="presenterSession.updateSnapshot"
 				@exit="presenterMode = false"
 			/>
@@ -779,7 +410,7 @@ onBeforeUnmount(() => {
 			     goes nowhere (backward) or ends the show (forward), so a deck that
 			     kept painting the last slide looked stuck and then exited with no
 			     warning. -->
-			<PresentationEndScreen v-if="showEndScreen" @exit="close" />
+			<PresentationEndScreen v-if="nav.showEndScreen.value" @exit="close" />
 
 			<!-- Live caption bar. -->
 			<PresentationSubtitleBar :visible="subtitlesOn" @click.stop />
@@ -787,7 +418,7 @@ onBeforeUnmount(() => {
 			<!-- Mouse users get a slide counter; the auto-hiding PresentationToolbar
 			     already carries their nav + end controls. -->
 			<div v-if="!isTouchDevice" class="pptx-vue-presentation-counter" @click.stop>
-				{{ currentIndex + 1 }} / {{ slides.length }}
+				{{ nav.currentIndex.value + 1 }} / {{ slides.length }}
 			</div>
 
 			<!-- Persistent touch controls (close + prev/next + counter): the primary
@@ -801,7 +432,7 @@ onBeforeUnmount(() => {
 			     which is genuinely non-interactive (`pointer-events: none`) while
 			     hidden. -->
 			<PresentationTouchControls
-				:current-slide-index="currentIndex"
+				:current-slide-index="nav.currentIndex.value"
 				:total-slides="slides.length"
 				@move="onToolbarMove"
 				@end="close"
@@ -823,7 +454,7 @@ onBeforeUnmount(() => {
 					:pen-color="annotations.penColor.value"
 					:highlighter-color="annotations.highlighterColor.value"
 					:has-annotations="annotations.hasAnyAnnotations.value"
-					:current-slide-index="currentIndex"
+					:current-slide-index="nav.currentIndex.value"
 					:total-slides="slides.length"
 					:presentation-start-time="presentationStartTime"
 					:presenter-mode="presenterMode"

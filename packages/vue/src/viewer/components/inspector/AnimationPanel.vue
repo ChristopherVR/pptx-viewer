@@ -11,7 +11,12 @@ import {
 	EXIT_PRESETS,
 	getAnimationPresetInfo,
 } from 'pptx-viewer-core';
-import { applyMotionPathPreset, clearMotionPath, motionPathFor } from 'pptx-viewer-shared';
+import {
+	animationCatalogPresetLabelKey,
+	applyMotionPathPreset,
+	clearMotionPath,
+	motionPathFor,
+} from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -61,6 +66,15 @@ const triggerOptions: readonly PptxAnimationTrigger[] = [
 	'onShapeClick',
 ];
 const presetChoices = computed(() => presets[category.value]);
+
+/**
+ * The catalogue's own `label` is a hard-coded English constant in a core data
+ * table a locale cannot override, so this picker stayed English in every
+ * language. Name each preset through the dictionary instead.
+ */
+function catalogLabel(preset: AnimationPresetInfo): string {
+	return t(animationCatalogPresetLabelKey(preset.presetId));
+}
 const timelineAnimations = computed(() =>
 	props.slideAnimations.length ? props.slideAnimations : currentAnimations.value,
 );
@@ -155,7 +169,7 @@ function changeMotionPath(pathPresetId: string): void {
 				>{{ t('pptx.animation.effect') }}
 				<select v-model="presetId" aria-label="Animation preset">
 					<option v-for="preset in presetChoices" :key="preset.presetId" :value="preset.presetId">
-						{{ preset.label }}
+						{{ catalogLabel(preset) }}
 					</option>
 				</select>
 			</label>

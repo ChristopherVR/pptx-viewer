@@ -1,0 +1,125 @@
+/**
+ * usePresentationKeyboard: the running slide show's window-level key handling.
+ *
+ * The key-to-action mapping itself is shared (`mapPresentationKey`) so every
+ * binding honours the same PowerPoint keymap, including the digit buffer behind
+ * "type a slide number, then Enter". What is Vue-specific, and all that lives
+ * here, is the listener lifecycle and dispatching each mapped action.
+ */
+import {
+	acceptsPresentationInput,
+	createPresentationKeyBuffer,
+	mapPresentationKey,
+} from 'pptx-viewer-shared';
+import type { Ref } from 'vue';
+import { onBeforeUnmount, onMounted } from 'vue';
+
+import type { PresentationTool } from './usePresentationAnnotations';
+
+export interface UsePresentationKeyboardOptions {
+	slideCount: () => number;
+	next: () => void;
+	prev: () => void;
+	goTo: (index: number) => void;
+	/** Home / End resolve through the show order, not the raw deck bounds. */
+	firstSlideIndex: () => number;
+	lastSlideIndex: () => number;
+	/** Leave the show (may open the keep-annotations prompt first). */
+	requestClose: () => void;
+	setPresentationTool: (tool: PresentationTool) => void;
+	clearAnnotations: () => void;
+	/** Ctrl+M: hide ink markup without discarding the strokes. */
+	inkMarkupVisible: Ref<boolean>;
+	/** "C": live captions, which the shared keymap leaves unassigned. */
+	subtitlesOn: Ref<boolean>;
+	toolbarVisible: Ref<boolean>;
+	setToolbarVisible: (visible: boolean) => void;
+	/** B / W: blank the audience display to black or white. */
+	setBlackout: (value: 'black' | 'white') => void;
+	/** Ctrl+S "All Slides": open the presenter view's slide picker. */
+	showAllSlides: () => void;
+}
+
+export function usePresentationKeyboard(options: UsePresentationKeyboardOptions): void {
+	const keyBuffer = createPresentationKeyBuffer();
+
+	function handleKeyDown(event: KeyboardEvent): void {
+		// An audience display mirrors the presenter's screen. If its own keyboard
+		// navigated, a stray key moved it off the presenter's slide and the next
+		// snapshot yanked it back, which reads as the display refusing to advance.
+		if (!acceptsPresentationInput()) {
+			return;
+		}
+		// Live captions are PowerPoint's "C", which the shared slide-show map leaves
+		// unassigned, so it stays handled here.
+		if ((event.key === 'c' || event.key === 'C') && !event.ctrlKey && !event.metaKey) {
+			event.preventDefault();
+			options.subtitlesOn.value = !options.subtitlesOn.value;
+			return;
+		}
+
+		const mapped = mapPresentationKey(event, keyBuffer);
+		if (mapped.action === 'none') {
+			return;
+		}
+		event.preventDefault();
+
+		switch (mapped.action) {
+			case 'end':
+				options.requestClose();
+				return;
+			case 'next':
+				options.next();
+				return;
+			case 'previous':
+				options.prev();
+				return;
+			case 'first':
+				options.goTo(options.firstSlideIndex());
+				return;
+			case 'last':
+				options.goTo(options.lastSlideIndex());
+				return;
+			case 'goto': {
+				const index = mapped.slideNumber - 1;
+				if (index >= 0 && index < options.slideCount()) {
+					options.goTo(index);
+				}
+				return;
+			}
+			case 'pointerTool':
+				// PowerPoint's Ctrl+A "arrow" is the plain pointer: no active tool.
+				options.setPresentationTool(mapped.tool === 'arrow' ? 'none' : mapped.tool);
+				return;
+			case 'eraseAnnotations':
+				options.clearAnnotations();
+				return;
+			case 'toggleInkMarkup':
+				options.inkMarkupVisible.value = !options.inkMarkupVisible.value;
+				return;
+			case 'toggleChrome':
+				options.setToolbarVisible(!options.toolbarVisible.value);
+				return;
+			case 'toggleBlackScreen':
+				options.setBlackout('black');
+				return;
+			case 'toggleWhiteScreen':
+				options.setBlackout('white');
+				return;
+			case 'showAllSlides':
+				options.showAllSlides();
+				break;
+			// A pending slide number and the context-menu key are consumed above so
+			// the browser does not act on them; nothing further to do.
+			default:
+				break;
+		}
+	}
+
+	onMounted(() => {
+		window.addEventListener('keydown', handleKeyDown);
+	});
+	onBeforeUnmount(() => {
+		window.removeEventListener('keydown', handleKeyDown);
+	});
+}

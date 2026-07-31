@@ -7,169 +7,80 @@
  * dialogs, presentation mode, collaboration, export) like its React
  * counterpart.
  *
+ * This file is deliberately only WIRING: every piece of behaviour lives in a
+ * composable under `./composables`, and every group of markup in a component
+ * under `./components` (`ViewerSlideRail`, `ViewerSidePanels`,
+ * `Viewer*Dialogs`, `ViewerMobileSheets`, `ViewerPresentationLayer`). What is
+ * left here is the order the composables are created in and the props that
+ * connect them, which is the one thing that genuinely cannot be moved out.
+ *
+ * Composables that need something declared further down receive it as a getter
+ * or a closure; this forward-reference pattern is used throughout and is why
+ * the declaration order below reads bottom-up in places.
+ *
  * Conventions vs. React:
- *  - `forwardRef` handle  → `defineExpose` ({@link PowerPointViewerExpose}).
- *  - function-prop callbacks → emits ({@link PowerPointViewerEmits}).
- *  - `theme` context      → `provideViewerTheme` + `useThemeStyle`.
+ *  - `forwardRef` handle  -> `defineExpose` ({@link PowerPointViewerExpose}).
+ *  - function-prop callbacks -> emits ({@link PowerPointViewerEmits}).
+ *  - `theme` context      -> `provideViewerTheme` + `useThemeStyle`.
  */
+import { hasShapeProperties, PptxHandler } from 'pptx-viewer-core';
+import type { PptxElement, PptxTheme, ShapeStyle } from 'pptx-viewer-core';
 import {
-	applyThemeToData,
-	cloneElement,
-	createEditorId,
-	hasShapeProperties,
-	hasTextProperties,
-	PptxHandler,
-} from 'pptx-viewer-core';
-import type {
-	MasterViewTab,
-	PptxData,
-	PptxElement,
-	PptxHeaderFooter,
-	PptxSaveFormat,
-	PptxSlide,
-	PptxTheme,
-	PptxThemeColorScheme,
-	PptxThemeFontScheme,
-	PptxThemePreset,
-	ShapeStyle,
-} from 'pptx-viewer-core';
-import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared';
-import {
-	buildBroadcastViewerUrl,
 	buildFieldSubstitutionContext,
 	buildUserFontFaceStyles,
-	clampZoomScale,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
-	downloadBlob,
-	isTemplateElementId,
 	listAutosaveSnapshots,
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
-	motionPathFor,
 	openPptxFile,
-	readBackstageRecentFile,
-	readStoredViewerPrefs,
-	resolveTopLevelElementId,
-	saveAutosaveSnapshot,
-	setCellText,
-	setMotionPath,
-	strokeToInkElement,
-	writeStoredViewerPrefs,
-	zoomInScale,
-	zoomOutScale,
 } from 'pptx-viewer-shared';
-import {
-	computed,
-	nextTick,
-	onBeforeUnmount,
-	onMounted,
-	provide,
-	ref,
-	watch,
-	watchEffect,
-} from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { LocaleCatalogEntry } from '../i18n';
-import { LOCALE_CATALOG } from '../i18n';
-import {
-	provideViewerTheme,
-	resolveThemeCatalogEntry,
-	THEME_CATALOG,
-	useThemeStyle,
-} from '../theme';
-import AccessibilityPanel from './components/AccessibilityPanel.vue';
-import { AiChatPanelLazy } from './components/ai';
-import AiChangeOverlay from './components/ai/AiChangeOverlay.vue';
-import AiFocusHighlightOverlay from './components/ai/AiFocusHighlightOverlay.vue';
-import BroadcastDialog from './components/BroadcastDialog.vue';
-import CanvasGuides from './components/CanvasGuides.vue';
-import CollaborationCursors from './components/CollaborationCursors.vue';
+import { provideViewerTheme, useThemeStyle } from '../theme';
 import CollaborationStatusIndicator from './components/CollaborationStatusIndicator.vue';
-import CommentMarkersOverlay from './components/CommentMarkersOverlay.vue';
-import CommentsPanel from './components/CommentsPanel.vue';
-import ComparePanel from './components/ComparePanel.vue';
-import ContextMenu from './components/ContextMenu.vue';
-import CustomShowsPanel from './components/CustomShowsPanel.vue';
-import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
-import DrawingOverlay from './components/DrawingOverlay.vue';
-import type { ShapePreset } from './components/EditorToolbar.vue';
-import EquationEditorDialog from './components/EquationEditorDialog.vue';
 import ExportProgressModal from './components/ExportProgressModal.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
-import FollowModeBar from './components/FollowModeBar.vue';
-import FontEmbeddingPanel from './components/FontEmbeddingPanel.vue';
-import GridOverlay from './components/GridOverlay.vue';
-import HandoutMasterCanvas from './components/HandoutMasterCanvas.vue';
-import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
-import HyperlinkDialog from './components/HyperlinkDialog.vue';
-import InlineTextEditor from './components/InlineTextEditor.vue';
-import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
-import InspectorPane from './components/inspector/InspectorPane.vue';
-import SlideInspector from './components/inspector/SlideInspector.vue';
-import ThemeEditorPanel from './components/inspector/ThemeEditorPanel.vue';
-import MarqueeOverlay from './components/MarqueeOverlay.vue';
-import MasterViewSidebar from './components/MasterViewSidebar.vue';
-import MobileBottomBar from './components/MobileBottomBar.vue';
-import MobileSheet from './components/MobileSheet.vue';
-import MobileSlidesSheet from './components/MobileSlidesSheet.vue';
+import MasterViewOverlay from './components/MasterViewOverlay.vue';
 import MobileToolbar from './components/MobileToolbar.vue';
-import ModalDialog from './components/ModalDialog.vue';
-import MotionPathOverlay from './components/MotionPathOverlay.vue';
-import NotesMasterCanvas from './components/NotesMasterCanvas.vue';
 import NotesPanel from './components/NotesPanel.vue';
-import OutlineViewOverlay from './components/OutlineViewOverlay.vue';
-import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue';
-import PresentationMode from './components/PresentationMode.vue';
-import PrintDialog from './components/PrintDialog.vue';
-import ReadingViewOverlay from './components/ReadingViewOverlay.vue';
-import RehearseTimingsHud from './components/RehearseTimingsHud.vue';
-import RehearseTimingsSummary from './components/RehearseTimingsSummary.vue';
-import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import TitleBar from './components/ribbon/TitleBar.vue';
-import SectionList from './components/SectionList.vue';
-import SelectionOverlay from './components/SelectionOverlay.vue';
-import SelectionPane from './components/SelectionPane.vue';
-import SettingsDialog from './components/SettingsDialog.vue';
-import SetUpSlideShowDialog from './components/SetUpSlideShowDialog.vue';
-import ShareDialog from './components/ShareDialog.vue';
-import ShortcutPanel from './components/ShortcutPanel.vue';
-import SignaturesPanel from './components/SignaturesPanel.vue';
-import SignatureStatusBadge from './components/SignatureStatusBadge.vue';
-import SignatureStrippedDialog from './components/SignatureStrippedDialog.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
-import SlideSorter from './components/SlideSorter.vue';
-import SlidesPaneSidebar from './components/SlidesPaneSidebar.vue';
 import SlideStage from './components/SlideStage.vue';
-import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
-import ThemeGallery from './components/ThemeGallery.vue';
-import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
+import ViewerCanvasOverlays from './components/ViewerCanvasOverlays.vue';
+import ViewerDeckDialogs from './components/ViewerDeckDialogs.vue';
+import ViewerEditDialogs from './components/ViewerEditDialogs.vue';
+import ViewerFileDialogs from './components/ViewerFileDialogs.vue';
+import ViewerMobileSheets from './components/ViewerMobileSheets.vue';
+import ViewerPresentationLayer from './components/ViewerPresentationLayer.vue';
+import ViewerSidePanels from './components/ViewerSidePanels.vue';
+import ViewerSlideRail from './components/ViewerSlideRail.vue';
 import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
 import { useAiPanelController } from './composables/ai/useAiPanelController';
-import {
-	mergeElementAnimations,
-	replaceSlideAnimations,
-} from './composables/animation-persistence';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { FieldContextKey } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { TableThemeKey } from './composables/table-theme';
-import { buildSaveSlides, isElementIdInteractive } from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
-import { useAutosave } from './composables/useAutosave';
+import { useAutosaveWiring } from './composables/useAutosaveWiring';
+import { useCanvasPointer } from './composables/useCanvasPointer';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
+import { useCommandDispatch } from './composables/useCommandDispatch';
 import { useCommentsWiring } from './composables/useCommentsWiring';
+import { useContentSource } from './composables/useContentSource';
 import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
+import { useDeckViews } from './composables/useDeckViews';
 import { useDocumentPropertiesDialog } from './composables/useDocumentPropertiesDialog';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorKeyboard } from './composables/useEditorKeyboard';
 import { useEditorOperations } from './composables/useEditorOperations';
+import { useElementClipboard } from './composables/useElementClipboard';
 import { useElementDrag } from './composables/useElementDrag';
 import { useElementInsertion } from './composables/useElementInsertion';
 import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
@@ -178,37 +89,44 @@ import { useFindReplace } from './composables/useFindReplace';
 import { useFontEmbedding } from './composables/useFontEmbedding';
 import { useFormatPainter } from './composables/useFormatPainter';
 import { useHeaderFooterDialog } from './composables/useHeaderFooterDialog';
+import { useHyperlinkDialog } from './composables/useHyperlinkDialog';
 import { useInkDrawing } from './composables/useInkDrawing';
 import { useInlineEditing } from './composables/useInlineEditing';
 import { useInsertElementDialogs } from './composables/useInsertElementDialogs';
 import { useInspectorDeckActions } from './composables/useInspectorDeckActions';
+import { useInspectorWiring } from './composables/useInspectorWiring';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMarqueeSelection } from './composables/useMarqueeSelection';
-import { useMasterViewState } from './composables/useMasterViewState';
+import { useMasterViewWiring } from './composables/useMasterViewWiring';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { usePasswordProtection } from './composables/usePasswordProtection';
-import { usePresentationModeWiring } from './composables/usePresentationModeWiring';
+import { usePresentationControls } from './composables/usePresentationControls';
 import { usePrint } from './composables/usePrint';
-import { useRehearseTimings } from './composables/useRehearseTimings';
 import { useRibbonActions } from './composables/useRibbonActions';
-import { useRibbonProps } from './composables/useRibbonProps';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
+import { useSelectionModel } from './composables/useSelectionModel';
 import { useSelectionPaneWiring } from './composables/useSelectionPaneWiring';
 import { useSignatureWorkflow } from './composables/useSignatureWorkflow';
 import { useSlideMutations } from './composables/useSlideMutations';
+import { useSlideNavigation } from './composables/useSlideNavigation';
 import { useSlideOperations } from './composables/useSlideOperations';
 import { useSlideShowSettings } from './composables/useSlideShowSettings';
 import { useSmartArtNodeEditContext } from './composables/useSmartArtNodeEditContext';
+import { useSwipeNavigation } from './composables/useSwipeNavigation';
 import { useTableCellEditingContext } from './composables/useTableCellEditingContext';
 import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
+import { useViewerApi } from './composables/useViewerApi';
 import { useViewerOptionsStore } from './composables/useViewerOptionsStore';
+import { useViewerPreferences } from './composables/useViewerPreferences';
+import { useViewerRibbonProps } from './composables/useViewerRibbonProps';
 import { useViewerSettingsDialog } from './composables/useViewerSettingsDialog';
+import { useViewerZoom } from './composables/useViewerZoom';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
 import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
 
@@ -218,122 +136,36 @@ const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 });
 const emit = defineEmits<PowerPointViewerEmits>();
 
-const { t, availableLocales, locale } = useI18n();
+const { t } = useI18n();
 
-// ── Theme ─────────────────────────────────────────────────────────────
-// `themeKey` drives the File ▸ Options ▸ Appearance picker; an explicit
-// `theme` prop still wins over it (fully backward compatible with hosts that
-// only ever passed `theme`). The initial key falls back to a persisted
-// `localStorage` choice, then the catalog's `'default'` entry.
-const themeKey = ref(props.defaultThemeKey ?? readStoredViewerPrefs().themeKey ?? 'default');
-const effectiveTheme = computed(
-	() =>
-		props.theme ?? resolveThemeCatalogEntry(themeKey.value, props.availableThemes ?? THEME_CATALOG),
-);
-provideViewerTheme(effectiveTheme);
+// -- Theme + locale preferences (File > Options) -----------------------
+const prefs = useViewerPreferences(props);
+provideViewerTheme(prefs.effectiveTheme);
+const themeStyle = useThemeStyle(prefs.effectiveTheme);
 // SmartArt 3D opt-in: surface the prop to the element dispatcher via inject.
 provide(SmartArt3DKey, props.smartArt3D);
-// File ▸ Account sign-in hook point: surface the prop to AccountPage.vue via
+// File > Account sign-in hook point: surface the prop to AccountPage.vue via
 // inject, avoiding threading `accountAuth` through the large RibbonProps
 // contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).
 provide(AccountAuthKey, props.accountAuth);
-const themeStyle = useThemeStyle(effectiveTheme);
 
-/** File ▸ Options ▸ Appearance: apply a theme-catalog selection. */
-function selectTheme(key: string): void {
-	themeKey.value = key;
-	if (props.onThemeChange) {
-		props.onThemeChange(key);
-	} else {
-		writeStoredViewerPrefs({ themeKey: key });
-	}
-}
-
-// ── Locale ────────────────────────────────────────────────────────────
-// `localeCode` drives the File ▸ Options ▸ Language picker. The host's
-// `vue-i18n` instance is peer-supplied (this package never bundles one); a
-// persisted non-English choice is applied to it on mount unless the host owns
-// locale switching itself via `onLocaleChange`.
-const localeCode = ref(props.defaultLocale ?? readStoredViewerPrefs().localeCode ?? 'en');
-onMounted(() => {
-	if (localeCode.value !== 'en' && !props.onLocaleChange) {
-		locale.value = localeCode.value;
-	}
+// -- Load + parse content ----------------------------------------------
+const source = useContentSource({
+	content: () => props.content,
+	onOpenFile: () => props.onOpenFile,
 });
-/** Every locale the host's `vue-i18n` instance actually has messages for, mapped to display labels. */
-const resolvedAvailableLocales = computed<LocaleCatalogEntry[]>(
-	() =>
-		props.availableLocales ??
-		availableLocales.map(
-			(code) =>
-				LOCALE_CATALOG.find((entry) => entry.code === code) ?? {
-					code,
-					label: code,
-					nativeLabel: code,
-				},
-		),
-);
-
-/** File ▸ Options ▸ Language: apply a locale-catalog selection. */
-function selectLocale(code: string): void {
-	localeCode.value = code;
-	if (props.onLocaleChange) {
-		props.onLocaleChange(code);
-	} else {
-		locale.value = code;
-		writeStoredViewerPrefs({ localeCode: code });
-	}
-}
-
-// ── Load + parse content ──────────────────────────────────────────────
-// `internalContent` lets the built-in File ▸ Open picker swap the deck in place
-// without a host round-trip. It is cleared whenever the host supplies a fresh
-// `content` prop so external reloads always win.
-const internalContent = ref<Uint8Array | ArrayBuffer | null>(null);
-watch(
-	() => props.content,
-	() => {
-		internalContent.value = null;
-	},
-);
-const activeContent = computed(() => internalContent.value ?? props.content);
-
-// File ▸ Open: host override (`onOpenFile` prop) takes precedence; otherwise a
-// built-in native picker loads the chosen presentation in place.
-function handleOpenFile(): void {
-	if (props.onOpenFile) {
-		props.onOpenFile();
-		return;
-	}
-	void (async () => {
-		const picked = await openPptxFile();
-		if (picked) {
-			internalContent.value = new Uint8Array(picked.buffer);
-		}
-	})();
-}
-
-function handleOpenRecentFile(key: string): void {
-	void (async () => {
-		const bytes = await readBackstageRecentFile(key);
-		if (bytes) {
-			internalContent.value = bytes;
-		}
-	})();
-}
-
-function createPresentation(templateId: string): void {
-	slides.value = createBackstagePresentation(templateId);
-	templateElementsBySlideId.value = {};
-	activeSlideIndex.value = 0;
-	selectedElementIds.value = [];
-}
+const activeContent = source.activeContent;
 
 // Bumped each time the load pipeline finishes applying a parsed deck; the
 // collaboration layer watches it to re-adopt the shared doc's slides when a
 // slow local load lands mid-session (late-joiner bootstrap-deck clobber).
 const loadVersion = ref(0);
 
+const deck = useLoadContent(() => activeContent.value, {
+	onContentApplied: () => {
+		loadVersion.value += 1;
+	},
+});
 const {
 	slides,
 	templateElementsBySlideId,
@@ -346,34 +178,32 @@ const {
 	customProperties,
 	appProperties,
 	tagCollections,
-	embeddedFonts,
 	signatures,
 	tableStyleMap,
 	slideMasters,
-	layoutOptions,
 	sections,
 	customShows,
 	presentationProperties,
 	headerFooter,
 	notesMaster,
 	handoutMaster,
-	themeOptions,
-	notesCanvasSize,
 	theme: pptxTheme,
 	themeColorMap,
 	handler,
 	getContent,
-	saveAs,
-} = useLoadContent(() => activeContent.value, {
-	onContentApplied: () => {
-		loadVersion.value += 1;
-	},
-});
+} = deck;
+
+function createPresentation(templateId: string): void {
+	slides.value = createBackstagePresentation(templateId);
+	templateElementsBySlideId.value = {};
+	activeSlideIndex.value = 0;
+	selection.selectedElementIds.value = [];
+}
 
 // Expose the presentation colour scheme + parsed table-style map to table
 // cells (banded/header colour resolution by table-style GUID) via
 // provide/inject, avoiding theme prop-threading through the hot
-// SlideStage → ElementRenderer chain.
+// SlideStage -> ElementRenderer chain.
 provide(TableThemeKey, () => ({
 	colorScheme: pptxTheme.value?.colorScheme,
 	tableStyleMap: tableStyleMap.value,
@@ -388,11 +218,9 @@ provideZoomTargetLookup((targetSlideIndex) => toZoomTargetInfo(slides.value[targ
 // Expose the DECK-level OOXML field-substitution context (slide number,
 // date/time, header/footer, slide title, custom doc properties) to the text
 // renderers via provide/inject. Assembly lives in shared so every binding builds
-// the same shape; this component keeps only the reactive wiring. A getter
-// closure (run post-setup) safely references the later-declared `activeSlide`,
-// matching the TableThemeKey pattern above. Each `SlideStage` re-provides this
-// re-pointed at the slide IT paints, so thumbnails do not inherit the active
-// slide's number and title.
+// the same shape; this component keeps only the reactive wiring. Each
+// `SlideStage` re-provides this re-pointed at the slide IT paints, so thumbnails
+// do not inherit the active slide's number and title.
 provide(FieldContextKey, () =>
 	buildFieldSubstitutionContext({
 		headerFooter: headerFooter.value,
@@ -402,30 +230,27 @@ provide(FieldContextKey, () =>
 );
 
 // Inline table-cell editing + table cell selection/resize contexts for
-// `TableRenderer` / `TablePanel`. Dependencies that don't exist yet at this
-// point in setup (`ops`, `presenting`, `commitTableCell`) are passed as
-// wrapper closures, deferred until actually called (same forward-reference
-// pattern used throughout this component).
+// `TableRenderer` / `TablePanel`.
 const { tableSelection } = useTableCellEditingContext({
 	canEdit: () => props.canEdit,
-	canEditInline: () => props.canEdit && !presenting.value,
-	findActiveElement,
+	canEditInline: () => props.canEdit && !presentation.presenting.value,
+	findActiveElement: (id) => selection.findActiveElement(id),
 	updateElement: (id, patch) => ops.updateElement(id, patch),
 	commitTableCell: (elementId, rowIndex, colIndex, text) =>
-		commitTableCell(elementId, rowIndex, colIndex, text),
+		inlineEdit.commitTableCell(elementId, rowIndex, colIndex, text),
 });
 
 // Inline SmartArt node-text and per-node fill editing context. Mirrors the
 // table-cell context above (same forward-reference / wrapper-closure pattern).
 useSmartArtNodeEditContext({
 	canEdit: () => props.canEdit,
-	canEditInline: () => props.canEdit && !presenting.value,
-	findActiveElement,
+	canEditInline: () => props.canEdit && !presentation.presenting.value,
+	findActiveElement: (id) => selection.findActiveElement(id),
 	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
-useEmbeddedFonts(embeddedFonts);
+useEmbeddedFonts(deck.embeddedFonts);
 watchEffect((onCleanup) => {
 	const css = buildUserFontFaceStyles(props.fonts ?? []);
 	if (!css || typeof document === 'undefined') {
@@ -438,10 +263,10 @@ watchEffect((onCleanup) => {
 	onCleanup(() => style.remove());
 });
 
-// ── Navigation ────────────────────────────────────────────────────────
-const activeSlideIndex = ref(0);
-const slideCount = computed(() => slides.value.length);
-const activeSlide = computed(() => slides.value[activeSlideIndex.value]);
+// -- Navigation + zoom -------------------------------------------------
+const { activeSlideIndex, slideCount, activeSlide, goTo, goPrev, goNext } =
+	useSlideNavigation(slides);
+const { zoom, fitScale, effectiveZoom, zoomIn, zoomOut, zoomReset } = useViewerZoom();
 
 // Reset view state only when a NEW document is loaded, keyed off the `content`
 // input, not `slides`. Editing reassigns `slides.value` (so watching it here
@@ -449,105 +274,32 @@ const activeSlide = computed(() => slides.value[activeSlideIndex.value]);
 // changes only on a real load.
 watch(activeContent, () => {
 	activeSlideIndex.value = 0;
-	selectedElementIds.value = [];
+	selection.selectedElementIds.value = [];
 	history.clearHistory();
 });
 watch(activeSlideIndex, (index) => {
 	emit('active-slide-change', index);
-	selectedElementIds.value = [];
+	selection.selectedElementIds.value = [];
 });
 
-function goTo(index: number): void {
-	if (index < 0 || index >= slideCount.value) {
-		return;
-	}
-	activeSlideIndex.value = index;
-}
-const goPrev = () => goTo(activeSlideIndex.value - 1);
-const goNext = () => goTo(activeSlideIndex.value + 1);
+// On touch devices a horizontal swipe across the slide area changes slides
+// (view mode only, so it never hijacks an edit gesture).
+const swipe = useSwipeNavigation({ canEdit: () => props.canEdit, goPrev, goNext });
 
-// ── Touch swipe navigation (view mode only) ───────────────────────────
-// On touch devices a horizontal swipe across the slide area changes slides.
-// In edit mode the same gesture must drive element drag/resize, so swipe
-// navigation is disabled while `canEdit` so it never hijacks an edit gesture.
-const SWIPE_THRESHOLD = 50;
-const touchStart = ref<{ x: number; y: number } | null>(null);
-
-function onMainTouchStart(event: TouchEvent): void {
-	if (props.canEdit) {
-		touchStart.value = null;
-		return;
-	}
-	const touch = event.changedTouches[0];
-	touchStart.value = touch ? { x: touch.clientX, y: touch.clientY } : null;
-}
-
-function onMainTouchEnd(event: TouchEvent): void {
-	const start = touchStart.value;
-	touchStart.value = null;
-	if (!start) {
-		return;
-	}
-	const touch = event.changedTouches[0];
-	if (!touch) {
-		return;
-	}
-	const dx = touch.clientX - start.x;
-	const dy = touch.clientY - start.y;
-	// Require a predominantly-horizontal gesture past the threshold.
-	if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) {
-		return;
-	}
-	if (dx < 0) {
-		goNext();
-	} else {
-		goPrev();
-	}
-}
-
-// ── Zoom ──────────────────────────────────────────────────────────────
-const zoom = ref(1);
-// Step + bounds come from pptx-viewer-shared so one press is worth the same
-// amount of zoom in every binding.
-const zoomIn = () => {
-	zoom.value = zoomInScale(zoom.value);
-};
-const zoomOut = () => {
-	zoom.value = zoomOutScale(zoom.value);
-};
-const zoomReset = () => {
-	zoom.value = 1;
-};
-const zoomPercent = computed(() => Math.round(zoom.value * 100));
-
-// Fit-to-viewport scale (≤ 1) reported by SlideCanvas's ResizeObserver, so the
-// whole slide is visible by default instead of overflowing small/mobile
-// viewports. Folded into the effective scale as `fitScale × userZoom`, matching
-// the React and Angular viewers (where "100%" means "fit to viewport").
-const fitScale = ref(1);
-// Effective on-screen scale = fit-to-viewport × the user's zoom. All scaled
-// rendering and pointer→slide coordinate math must use `effectiveZoom`.
-const effectiveZoom = computed(() => fitScale.value * zoom.value);
-
-// ── Thumbnail previews ────────────────────────────────────────────────
-// px - matches the thumbnail rail content width (180px rail - 2x0.75rem
-// padding) and React's SLIDE_NAV_THUMBNAIL_WIDTH so thumbnails render at the
-// same size across bindings.
-const THUMB_WIDTH = 156;
-
-// ── Editing: selection, history, operations ───────────────────────────
+// -- Editing: selection, history, operations ---------------------------
 // Composed unconditionally (cheap); the toolbar/overlay/handlers only act when
 // `props.canEdit` is true. `slides` is the writable `ShallowRef` from
 // `useLoadContent`, and `getContent` serialises it, so edits flow to export.
-const selectedElementIds = ref<string[]>([]);
-/**
- * View ▸ Templates: when on, the master/layout shapes a slide inherits (already
- * present in `slide.elements` with `layout-`/`master-` ids) become selectable,
- * draggable and editable on the canvas instead of being interaction-locked.
- * Editing one mutates the shared template part, so all slides inheriting it
- * change together.
- */
-const editTemplateMode = ref(false);
+const selection = useSelectionModel({ slides, templateElementsBySlideId, activeSlide });
+const {
+	selectedElementIds,
+	editTemplateMode,
+	activeTemplateElements,
+	findActiveElement,
+	selectedElements,
+	mergedSlides,
+	clearSelection,
+} = selection;
 const history = useEditorHistory(slides, templateElementsBySlideId);
 const ops = useEditorOperations({
 	slides,
@@ -556,104 +308,38 @@ const ops = useEditorOperations({
 	selectedElementIds,
 	templateElementsBySlideId,
 });
-const hasSelection = computed(() => selectedElementIds.value.length > 0);
 
-// ── Emit events for zoom, selection, and slide count ──────────────────
 watch(zoom, (level) => {
 	emit('zoom-change', level);
 });
 watch(selectedElementIds, (ids) => {
 	emit('selection-change', ids);
-});
-watch(slideCount, (count) => {
-	emit('slide-count-change', count);
-});
-
-/** The active slide's separate template (master/layout) element layer. */
-const activeTemplateElements = computed<PptxElement[]>(
-	() => templateElementsBySlideId.value[activeSlide.value?.id ?? ''] ?? [],
-);
-
-/**
- * Resolve an element by id across both stores: template ids (`master-` /
- * `layout-` prefix) come from the active slide's template layer, everything else
- * from the slide content.
- */
-function findActiveElement(id: string): PptxElement | undefined {
-	if (isTemplateElementId(id)) {
-		return activeTemplateElements.value.find((el) => el.id === id);
-	}
-	return activeSlide.value?.elements.find((el) => el.id === id);
-}
-
-const selectedElements = computed<PptxElement[]>(() => {
-	const ids = new Set(selectedElementIds.value);
-	const slideHits = (activeSlide.value?.elements ?? []).filter((el) => ids.has(el.id));
-	const templateHits = activeTemplateElements.value.filter((el) => ids.has(el.id));
-	return [...templateHits, ...slideHits];
-});
-
-/**
- * Extent highlighted on the ruler strips: PowerPoint shades the selected
- * shape's span on both rulers. Single selection only, matching React/Svelte.
- */
-const rulerSelectedBounds = computed(() => {
-	const el = selectedElements.value.length === 1 ? selectedElements.value[0] : undefined;
-	return el ? { x: el.x, y: el.y, width: el.width, height: el.height } : null;
-});
-
-// Drop the table cell selection once its owning table is no longer selected, so
-// a stale highlight / inspector cell doesn't linger on the next selection.
-watch(selectedElementIds, (ids) => {
+	// Drop the table cell selection once its owning table is no longer selected,
+	// so a stale highlight / inspector cell doesn't linger on the next selection.
 	const sel = tableSelection.value;
 	if (sel && !ids.includes(sel.elementId)) {
 		tableSelection.value = null;
 	}
 });
+watch(slideCount, (count) => {
+	emit('slide-count-change', count);
+});
 
-// Slides re-merged with their template (master/layout) layer in front of (behind)
-// the slide content. The editable canvas renders the partitioned `slides` + the
-// template layer separately; every other VISUAL surface (thumbnail rail, sorter,
-// presentation, off-screen export stage) renders these merged slides so the
-// inherited master/layout decorations still appear, matching the saved file.
-const mergedSlides = computed<PptxSlide[]>(() =>
-	buildSaveSlides(slides.value, templateElementsBySlideId.value),
-);
-const mergedSlideById = computed(() => new Map(mergedSlides.value.map((s) => [s.id, s])));
-
-function selectElement(id: string, additive: boolean): void {
-	if (additive) {
-		selectedElementIds.value = selectedElementIds.value.includes(id)
-			? selectedElementIds.value.filter((x) => x !== id)
-			: [...selectedElementIds.value, id];
-	} else {
-		selectedElementIds.value = [id];
-	}
-}
-function clearSelection(): void {
-	selectedElementIds.value = [];
-}
-
-// Rubber-band selection. Vue was the only binding without one, so a Vue user
-// had no way to select several elements in a single gesture and every
-// multi-selection command (Group, Align, Distribute) was that much harder to
-// reach. Template-owned elements join the band only in edit-template mode, the
-// same rule the pointer uses for a direct click.
+// Rubber-band selection. Template-owned elements join the band only in
+// edit-template mode, the same rule the pointer uses for a direct click.
 const { marquee, beginMarquee, cancelMarquee } = useMarqueeSelection({
 	getSelectableElements: () =>
 		[...activeTemplateElements.value, ...(activeSlide.value?.elements ?? [])].filter((el) =>
-			isElementIdInteractive(el.id, editTemplateMode.value),
+			selection.isInteractive(el.id),
 		),
 	getCanvasSize: () => canvasSize.value,
 	selectedElementIds,
 });
 onBeforeUnmount(cancelMarquee);
 
-// ── AI panel controller (focus / picks / live-tool canvas presence) ────
+// -- AI panel controller (focus / picks / live-tool canvas presence) ----
 // Owns the assistant's focus scope + the on-canvas highlight sources. Created
-// unconditionally (cheap) but only consumed when the host opts into `ai`. Its
-// pick set + pinned focus feed the bridge's `getFocusedTargets`, and its
-// highlights drive the on-canvas ring overlay + the colour-tween attribute.
+// unconditionally (cheap) but only consumed when the host opts into `ai`.
 const aiPanelOpen = ref(false);
 const aiPanel = useAiPanelController({
 	activeSlideIndex,
@@ -664,7 +350,6 @@ const aiPanel = useAiPanelController({
 	},
 });
 
-// ── Format painter ────────────────────────────────────────────────────
 const {
 	formatPainterActive,
 	canActivateFormatPainter,
@@ -673,263 +358,51 @@ const {
 	applyFormatToTarget,
 } = useFormatPainter({ selectedElements, findActiveElement, ops });
 
-// ── Inline text editing ───────────────────────────────────────────────
-// Entered by tapping an already-selected element (SelectionOverlay emits
-// `requestEdit`). Commits on blur, on selecting another element, or on an
-// empty-canvas tap; the typed text is remapped back onto the rich segments.
-const {
-	inlineEditingElementId,
-	inlineEditingElement,
-	updateInlineText,
-	enterInlineEdit,
-	commitInlineEdit,
-	cancelInlineEdit,
-	commitTableCell,
-} = useInlineEditing({
+// Inline text editing. Entered by tapping an already-selected element
+// (SelectionOverlay emits `requestEdit`). Commits on blur, on selecting another
+// element, or on an empty-canvas tap.
+const inlineEdit = useInlineEditing({
 	canEdit: () => props.canEdit,
 	findActiveElement,
 	ops,
 	// Live preview: mirror each keystroke into the shared doc so peers see
-	// typing before the editor commits. `collab` is declared further down; the
-	// accessors are only invoked from user input, long after setup.
-	livePatcher: () => collab.livePatcher,
+	// typing before the editor commits. `collaboration` is declared further down;
+	// the accessor is only invoked from user input, long after setup.
+	livePatcher: () => collaboration.collab.livePatcher,
 	activeSlide: () => activeSlide.value,
 });
 
-// ── Insert SmartArt / equation ────────────────────────────────────────
-// Declared before the drag/selection wiring below so `requestElementEdit`
-// (the tap/double-click route into element editing) can consult it.
-const {
-	showInsertSmartArt,
-	showEquationEditor,
-	editingEquationOmml,
-	onInsertElement,
-	openEquationEditorForElement,
-	onApplyEquation,
-	closeEquationEditor,
-} = useInsertElementDialogs({ ops, selectedElementIds, findActiveElement });
+// Declared before the pointer wiring below so `requestElementEdit` (the
+// tap/double-click route into element editing) can consult it.
+const insertDialogs = useInsertElementDialogs({ ops, selectedElementIds, findActiveElement });
 
-/**
- * Route a tap / double-click that should open an element for editing: an
- * equation element opens the equation editor (inline text editing would only
- * see the "[Equation]" placeholder and destroy the OMML on commit), everything
- * else enters ordinary inline text editing.
- */
-function requestElementEdit(id: string): void {
-	const el = findActiveElement(id);
-	if (el && openEquationEditorForElement(el)) {
-		return;
-	}
-	enterInlineEdit(id);
-}
+// -- Canvas pointer routing --------------------------------------------
+const { requestElementEdit, onCanvasDoubleClick, onCanvasPointerDown, onEscape } = useCanvasPointer(
+	{
+		canEdit: () => props.canEdit,
+		editTemplateMode,
+		findActiveElement,
+		openEquationEditorForElement: insertDialogs.openEquationEditorForElement,
+		enterInlineEdit: inlineEdit.enterInlineEdit,
+		inlineEditingElementId: inlineEdit.inlineEditingElementId,
+		commitInlineEdit: inlineEdit.commitInlineEdit,
+		cancelInlineEdit: inlineEdit.cancelInlineEdit,
+		formatPainterActive,
+		cancelFormatPainter,
+		applyFormatToTarget,
+		selectedElementIds,
+		selectElement: selection.selectElement,
+		clearSelection,
+		activeSlideIndex,
+		aiPickMode: aiPanel.pickMode,
+		addAiPick: aiPanel.addPick,
+		startElementDrag: (id, event, wasSelected) => drag.startElementDrag(id, event, wasSelected),
+		beginMarquee,
+	},
+);
 
-/** Double-clicking a rendered equation always opens its edit dialog. */
-function onCanvasDoubleClick(event: MouseEvent): void {
-	const target = event.target instanceof Element ? event.target : null;
-	const id = target?.closest<HTMLElement>('[data-element-id]')?.dataset.elementId;
-	if (!id) {
-		return;
-	}
-	const element = findActiveElement(id);
-	if (
-		element &&
-		hasTextProperties(element) &&
-		(element.textSegments ?? []).some((segment) => segment.equationXml)
-	) {
-		requestElementEdit(id);
-	}
-}
-
-/** Escape: disarm the painter first, otherwise clear the selection. */
-function onEscape(): void {
-	if (inlineEditingElementId.value) {
-		cancelInlineEdit();
-		return;
-	}
-	if (formatPainterActive.value) {
-		cancelFormatPainter();
-		return;
-	}
-	clearSelection();
-}
-
-/** Click-to-select via event delegation (elements render `data-element-id`). */
-// ── Touch double-tap detection (mirrors React/Angular canvas-level detection) ──
-// On mobile, native `dblclick` is not reliably synthesised from two quick taps.
-// Track the last touch tap by element id and coordinates.
-const DOUBLE_TAP_MS = 400;
-const lastCanvasTap = ref<{ id: string; time: number; x: number; y: number } | null>(null);
-
-function onCanvasPointerDown(event: PointerEvent): void {
-	if (!props.canEdit) {
-		return;
-	}
-	// Primary button only. A right-click also fires pointerdown, and this handler
-	// replaces the selection with the element under it, so a right-click on one of
-	// several selected shapes collapsed the selection to that one BEFORE the
-	// contextmenu handler ran: the menu then saw a single element and offered no
-	// Group. React, Svelte and Vanilla all filter the button here; Vue did not.
-	// (Touch and pen both report button 0 on pointerdown, so they still pass.)
-	if (event.button !== 0) {
-		return;
-	}
-	const target = event.target as HTMLElement | null;
-	// Top-level, not innermost. A group renders its children's element nodes
-	// INSIDE its own, so `closest()` answers with a grouped CHILD, whose id
-	// matches no top-level element: the selection then pointed at nothing, the
-	// chrome never drew, and the context menu offered no Ungroup. PowerPoint
-	// selects the group on a single click, and so do React, Vanilla and Svelte.
-	const hitId = resolveTopLevelElementId(target);
-	// Template (master/layout) elements are interaction-locked unless the user
-	// turns on edit-template mode; a click on a locked one behaves like an
-	// empty-canvas click (no select / drag / inline-edit).
-	const id = hitId && isElementIdInteractive(hitId, editTemplateMode.value) ? hitId : undefined;
-
-	// AI pick mode: the next canvas element click(s) become picks for the
-	// assistant (multi-pick, deduped) instead of a normal selection/drag. Resolve
-	// via elementFromPoint too so overlays do not swallow the hit.
-	if (aiPanel.pickMode.value) {
-		const pickId =
-			resolveTopLevelElementId(document.elementFromPoint(event.clientX, event.clientY)) ?? hitId;
-		if (pickId && isElementIdInteractive(pickId, editTemplateMode.value)) {
-			event.preventDefault();
-			aiPanel.addPick(activeSlideIndex.value, pickId);
-		}
-		return;
-	}
-
-	// On touch, if a table cell is being edited and the tap did NOT land inside
-	// the cell input itself (the input stops its own pointerdown), the
-	// TableRenderer's document-level pointerdown listener handles blur/commit.
-	// (See TableRenderer.vue: docListener.)
-
-	// Touch double-tap detection: two quick taps on the same element (or close
-	// enough coordinates that the element didn't move) trigger inline/cell edit.
-	if (event.pointerType !== 'mouse') {
-		const now = event.timeStamp || Date.now();
-		const last = lastCanvasTap.value;
-
-		// Resolve the element id: prefer the event target's ancestry, but fall
-		// back to elementFromPoint (covers cases where an overlay div intercepts).
-		const hitEl = document.elementFromPoint(event.clientX, event.clientY);
-		const hitElementId = resolveTopLevelElementId(hitEl) ?? resolveTopLevelElementId(target);
-		const resolvedId =
-			hitElementId && isElementIdInteractive(hitElementId, editTemplateMode.value)
-				? hitElementId
-				: id;
-
-		// On the second tap, match against the first tap's element. Layout may
-		// shift between taps (selection causing fitScale change), so the second
-		// tap might not resolve to ANY element. Use proximity + the stored id.
-		const TAP_DISTANCE = 40; // px tolerance for matching taps after reflow
-		const isSameTarget =
-			last &&
-			now - last.time < DOUBLE_TAP_MS &&
-			(resolvedId === last.id ||
-				(Math.abs(event.clientX - last.x) < TAP_DISTANCE &&
-					Math.abs(event.clientY - last.y) < TAP_DISTANCE));
-
-		if (last && isSameTarget) {
-			lastCanvasTap.value = null;
-			const doubleTapId = resolvedId ?? last.id;
-			const el = findActiveElement(doubleTapId);
-			if (el?.type === 'table') {
-				// For table elements: find the cell under the tap coordinates.
-				// After selection reflow, elementFromPoint may not hit the <td>
-				// directly; search the table element's DOM for the closest cell.
-				const tableHost = document.querySelector(`[data-element-id="${doubleTapId}"]`);
-				const tds = tableHost?.querySelectorAll('td');
-				let closestTd: HTMLElement | null = null;
-				if (tds && tds.length > 0) {
-					let minDist = Infinity;
-					for (const td of tds) {
-						const r = td.getBoundingClientRect();
-						if (r.width === 0 || r.height === 0) {
-							continue;
-						}
-						const cx = r.left + r.width / 2;
-						const cy = r.top + r.height / 2;
-						const dist = Math.hypot(event.clientX - cx, event.clientY - cy);
-						if (dist < minDist) {
-							minDist = dist;
-							closestTd = td as HTMLElement;
-						}
-					}
-				}
-				if (closestTd) {
-					closestTd.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-					return;
-				}
-			}
-			// For text elements: enter inline text edit (equations route to the
-			// equation editor instead of destructive plain-text editing).
-			if (doubleTapId) {
-				requestElementEdit(doubleTapId);
-			}
-			return;
-		}
-		if (resolvedId) {
-			lastCanvasTap.value = { id: resolvedId, time: now, x: event.clientX, y: event.clientY };
-		} else if (last && now - last.time < DOUBLE_TAP_MS) {
-			// Keep the previous tap alive if no element resolved (second tap in
-			// reflowed area); the proximity check above will still match.
-		} else {
-			lastCanvasTap.value = null;
-		}
-	}
-
-	// While inline-editing, a tap elsewhere (another element or empty canvas)
-	// commits the pending edit first (the typed text must be kept).
-	if (inlineEditingElementId.value && id !== inlineEditingElementId.value) {
-		commitInlineEdit();
-	}
-	// Format painter intercepts the next click: apply to a target element, then
-	// disarm; an empty-canvas click just disarms.
-	if (formatPainterActive.value) {
-		if (id) {
-			applyFormatToTarget(id);
-		}
-		cancelFormatPainter();
-		return;
-	}
-	const additive = event.shiftKey || event.ctrlKey || event.metaKey;
-	if (id) {
-		const wasSelected =
-			!additive && selectedElementIds.value.length === 1 && selectedElementIds.value[0] === id;
-		if (!wasSelected) {
-			selectElement(id, additive);
-		}
-		// Drive move (drag) + inline-edit entry from the element itself. A tap
-		// without drag on an already-selected element enters inline edit.
-		if (!additive) {
-			startElementDrag(id, event, wasSelected);
-		}
-	} else {
-		// Empty canvas: start a rubber band. It resolves on pointerup, replacing
-		// (or extending, with a modifier) the selection with whatever it covered;
-		// a click-sized band therefore also clears, as the bare click used to.
-		clearSelection();
-		beginMarquee(event);
-	}
-}
-
-// ── Element drag / transform / adjust + snap & alignment guides ───────
-const {
-	snapToShape,
-	snapToGrid,
-	snapLines,
-	guides,
-	addGuide,
-	onMoveGuide,
-	onRemoveGuide,
-	startElementDrag,
-	onTransformStart,
-	onTransform,
-	onTransformEnd,
-	onAdjustStart,
-	onAdjust,
-	onAdjustEnd,
-} = useElementDrag({
+// -- Element drag / transform / adjust + snap & alignment guides -------
+const drag = useElementDrag({
 	findActiveElement,
 	pushHistory: history.pushHistory,
 	effectiveZoom,
@@ -942,22 +415,8 @@ const {
 	enterInlineEdit: requestElementEdit,
 });
 
-// ── Element insertion (Insert tab) ───────────────────────────────────
-const {
-	imageInputRef,
-	mediaInputRef,
-	addText,
-	addShape,
-	addTable,
-	addChart,
-	addField,
-	openImagePicker,
-	onImageFileSelected,
-	openMediaPicker,
-	onMediaFileSelected,
-	addActionButton,
-	insertSlideFromLayout,
-} = useElementInsertion({
+// -- Element insertion (Insert tab) ------------------------------------
+const insertion = useElementInsertion({
 	canvasSize,
 	ops,
 	selectedElementIds,
@@ -966,213 +425,59 @@ const {
 	pushHistory: history.pushHistory,
 	handler,
 });
+// The two hidden `<input type="file">` pickers bind by string ref, so their
+// refs must be top-level bindings in this SFC.
+const { imageInputRef, mediaInputRef } = insertion;
 const { deleteSelected, duplicateSelected, bringForward, sendBackward } = useMultiSelectOps({
 	selectedElementIds,
 	ops,
 	clearSelection,
 });
 
-// Inspector targets a single selected element; multi-select hides it.
-const inspectorElement = computed<PptxElement | undefined>(() =>
-	selectedElements.value.length === 1 ? selectedElements.value[0] : undefined,
-);
-// Animations are stored on the slide (`slide.animations`, keyed by `elementId`),
-// not on the element; surface this element's animations to the inspector by
-// augmenting the element object the panels receive.
-const inspectorElementForPanels = computed<PptxElement | undefined>(() => {
-	const el = inspectorElement.value;
-	if (!el) {
-		return undefined;
-	}
-	const animations = (activeSlide.value?.animations ?? []).filter((a) => a.elementId === el.id);
-	return { ...el, animations } as unknown as PptxElement;
-});
-function onInspectorUpdate(patch: Partial<PptxElement>): void {
-	const el = inspectorElement.value;
-	if (!el) {
-		return;
-	}
-	// An `animations` patch belongs on the slide, not the element.
-	if ('animations' in patch) {
-		const { animations, ...rest } = patch as Partial<PptxElement> & {
-			animations?: PptxSlide['animations'];
-		};
-		writeElementAnimations(el.id, animations ?? []);
-		if (Object.keys(rest).length > 0) {
-			ops.updateElement(el.id, rest);
-		}
-		return;
-	}
-	ops.updateElement(el.id, patch);
-}
-function writeElementAnimations(elementId: string, animations: PptxSlide['animations']): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = mergeElementAnimations(slide, elementId, animations ?? []);
-	slides.value = nextSlides;
-}
-
-function writeSlideAnimations(animations: PptxSlide['animations']): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	slides.value = replaceSlideAnimations(slides.value, index, animations ?? []);
-}
-
-// ── Motion path overlay ───────────────────────────────────────────────
-// The path lives on the SLIDE's animation entry for the selected element, so
-// the overlay only needs that element plus a commit callback to edit it.
-const selectedMotionPath = computed(() => {
-	const el = inspectorElement.value;
-	return el ? motionPathFor(activeSlide.value?.animations ?? [], el.id) : undefined;
+// -- Inspector (element panels + motion path) --------------------------
+const inspector = useInspectorWiring({
+	slides,
+	activeSlide,
+	activeSlideIndex,
+	selectedElements,
+	pushHistory: history.pushHistory,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
 
-/** Commit a path retargeted by dragging its end handle on the canvas. */
-function onMotionPathChange(path: string): void {
-	const el = inspectorElement.value;
-	if (!el) {
-		return;
-	}
-	writeSlideAnimations(setMotionPath(activeSlide.value?.animations ?? [], el.id, path));
-}
+// -- Slide operations (add / duplicate / delete / reorder) -------------
+const slideOps = useSlideOperations({ slides, activeSlideIndex, pushHistory: history.pushHistory });
 
-// ── Slide operations (add / duplicate / delete / reorder) ─────────────
-const slideOps = useSlideOperations({
+const clipboard = useElementClipboard({
+	findSlideElement: (id) => activeSlide.value?.elements.find((e) => e.id === id),
+	addElement: (element) => ops.addElement(element),
+	removeElement: (id) => ops.removeElement(id),
+	selectedElementIds,
+});
+
+// -- Presentation (slideshow) mode -------------------------------------
+const presentation = usePresentationControls({
 	slides,
 	activeSlideIndex,
+	customShows,
+	activeCustomShowId: () => customShowsWiring.activeCustomShowId.value,
 	pushHistory: history.pushHistory,
 });
-
-/**
- * The custom show a running slide show should follow, or null for the whole
- * deck. Passed to `PresentationMode` so playback honours the selected show's
- * membership and order, not just its dialog.
- */
-const activePresentationCustomShow = computed(
-	() => customShows.value.find((show) => show.id === activeCustomShowId.value) ?? null,
-);
-
-// ── Clipboard (in-memory element copy/cut/paste) ──────────────────────
-const clipboard = ref<PptxElement | null>(null);
-const hasClipboard = computed(() => clipboard.value !== null);
-function copyElement(id: string): void {
-	const el = activeSlide.value?.elements.find((e) => e.id === id);
-	if (el) {
-		clipboard.value = cloneElement(el);
-	}
-}
-function cutElement(id: string): void {
-	copyElement(id);
-	ops.removeElement(id);
-	selectedElementIds.value = selectedElementIds.value.filter((x) => x !== id);
-}
-function pasteElement(): void {
-	if (!clipboard.value) {
-		return;
-	}
-	const copy = cloneElement(clipboard.value);
-	copy.id = createEditorId('el');
-	copy.x = (copy.x ?? 0) + 16;
-	copy.y = (copy.y ?? 0) + 16;
-	ops.addElement(copy);
-	selectedElementIds.value = [copy.id];
-}
-
-// ── Presentation (slideshow) mode ─────────────────────────────────────
-const { presenting, startPresenting, onPresentClose, onPresentSlideChange } =
-	usePresentationModeWiring({
-		slides,
-		activeSlideIndex,
-		pushHistory: history.pushHistory,
-	});
-const startInPresenterView = ref(false);
-const rehearsal = useRehearseTimings({
-	onSave: (timings) => {
-		history.pushHistory();
-		slides.value = slides.value.map((slide, index) => {
-			const advanceAfterMs = timings[index];
-			return typeof advanceAfterMs !== 'number'
-				? slide
-				: {
-						...slide,
-						transition: {
-							...slide.transition,
-							type: slide.transition?.type ?? 'none',
-							advanceAfterMs,
-						},
-					};
-		});
-	},
-});
-function startPresenterView(): void {
-	startInPresenterView.value = true;
-	startPresenting();
-}
-function startRehearsal(): void {
-	startInPresenterView.value = false;
-	rehearsal.start();
-	startPresenting();
-}
-function closePresentation(payload?: Parameters<typeof onPresentClose>[0]): void {
-	if (rehearsal.rehearsing.value) {
-		rehearsal.recordCurrentSlideTime(activeSlideIndex.value);
-		rehearsal.finish();
-	}
-	onPresentClose(payload);
-	startInPresenterView.value = false;
-}
-function handlePresentSlideChange(index: number): void {
-	if (rehearsal.rehearsing.value) {
-		rehearsal.recordCurrentSlideTime(activeSlideIndex.value);
-	}
-	onPresentSlideChange(index);
-}
 
 // Direct on-canvas chart editing context (mirrors the SmartArt node-edit
 // context above): gates mark interactivity to the selected chart in edit
 // mode, carries the canvas <-> inspector part selection, and routes commits
 // through the SAME history-tracked editor op the inspector uses.
 useChartCanvasEditContext({
-	canEditInline: () => props.canEdit && !presenting.value,
+	canEditInline: () => props.canEdit && !presentation.presenting.value,
 	isElementSelected: (id) => selectedElementIds.value.includes(id),
 	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
 
-// ── Hyperlink dialog ──────────────────────────────────────────────────
-const hyperlinkOpen = ref(false);
-const hyperlinkTarget = ref<PptxElement | null>(null);
-function openHyperlinkDialog(id: string): void {
-	const el = activeSlide.value?.elements.find((e) => e.id === id);
-	if (el) {
-		hyperlinkTarget.value = el;
-		hyperlinkOpen.value = true;
-	}
-}
-function onHyperlinkSave(patch: Partial<PptxElement>): void {
-	if (hyperlinkTarget.value) {
-		ops.updateElement(hyperlinkTarget.value.id, patch);
-	}
-	hyperlinkOpen.value = false;
-}
-/**
- * Insert ▸ Link: the ribbon has no element id to hand over, only "whatever is
- * selected", so it resolves the target the same way the context menu does
- * rather than opening the dialog on a stale one.
- */
-function openHyperlinkForSelection(): void {
-	const id = selectedElementIds.value[0];
-	if (id !== undefined) {
-		openHyperlinkDialog(id);
-	}
-}
+const hyperlink = useHyperlinkDialog({
+	findSlideElement: (id) => activeSlide.value?.elements.find((e) => e.id === id),
+	selectedElementIds,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
+});
 
 /**
  * Patch the selection's `shapeStyle` from the ribbon (the Arrange group's
@@ -1191,41 +496,24 @@ function updateSelectedShapeStyle(updates: Partial<ShapeStyle>): void {
 	} as Partial<PptxElement>);
 }
 
-// ── Find & replace ────────────────────────────────────────────────────
+// -- Find & replace ----------------------------------------------------
 const findOpen = ref(false);
-const find = useFindReplace({
-	slides,
-	activeSlideIndex,
-	pushHistory: history.pushHistory,
-});
+const find = useFindReplace({ slides, activeSlideIndex, pushHistory: history.pushHistory });
 
-// ── Export (PNG / PDF) ────────────────────────────────────────────────
-const {
-	exportStageRef,
-	exportSlide,
-	rasterizeSlide,
-	exporter,
-	mediaExport,
-	exportProgressCtl,
-	isExporting,
-	onExportPng,
-	onExportPdf,
-	onExportGif,
-	onExportWebm,
-	downloadAs,
-	packageForSharing,
-	onCopySlideAsImage,
-} = useExportWiring({
+// -- Export (PNG / PDF) + print ----------------------------------------
+const exporter = useExportWiring({
 	mergedSlides,
 	slides,
 	slideCount,
 	canvasSize,
 	activeSlideIndex,
-	saveAs,
+	saveAs: deck.saveAs,
 	fileName: () => props.fileName,
 });
+const { exportStageRef, exportSlide, rasterizeSlide, exportProgressCtl, downloadAs, onExportPdf } =
+	exporter;
 
-// ── Print (vector slides; rasterised notes and handouts) ──────────────
+// Print renders vector slides; notes and handouts are rasterised.
 const printer = usePrint({
 	slides: mergedSlides,
 	activeSlideIndex,
@@ -1233,43 +521,19 @@ const printer = usePrint({
 	slideSize: canvasSize,
 });
 
-// ── Slide sorter (grid overview + drag reorder) ───────────────────────
-const showSorter = ref(false);
-function onSorterSelect(index: number): void {
-	goTo(index);
-	showSorter.value = false;
-}
-function onSorterReorder(from: number, to: number): void {
-	slideOps.moveSlide(from, to);
-}
+// -- Full-deck overlays (sorter / outline / reading view) --------------
+const deckViews = useDeckViews({
+	slides,
+	goTo,
+	moveSlide: slideOps.moveSlide,
+	pushHistory: history.pushHistory,
+});
 
-// ── Outline view (the deck as editable indented text) ─────────────────
-const showOutlineView = ref(false);
-/**
- * Commit an outline edit. `pushHistory()` runs BEFORE the deck is replaced,
- * which is this binding's contract for an undoable change: the snapshot has to
- * be of the state being replaced, not of the replacement.
- */
-function onOutlineCommit(next: PptxSlide[], activeIndex: number): void {
-	history.pushHistory();
-	slides.value = next;
-	goTo(activeIndex);
-}
-
-// ── Reading view (deck at window size, editor chrome down to a nav bar) ──
-const showReadingView = ref(false);
-function onReadingViewExit(index: number): void {
-	// Leaving a view returns the editor to the slide that was on screen, exactly
-	// as leaving PowerPoint's Reading View does.
-	showReadingView.value = false;
-	goTo(index);
-}
-
-// ── Accessibility checker ─────────────────────────────────────────────
+// -- Accessibility checker ---------------------------------------------
 const showA11y = ref(false);
 const a11y = useAccessibility(slides);
 
-// ── Slide-level mutations (notes / hidden / transition / animations) ──
+// -- Slide-level mutations (notes / hidden / transition / animations) --
 const {
 	onNotesUpdate,
 	toggleSlideHidden,
@@ -1286,7 +550,7 @@ const {
 	selectedElements,
 });
 
-// ── Align / distribute / group ────────────────────────────────────────
+// -- Align / distribute / group ----------------------------------------
 const { canGroup, canUngroup, canDistribute, onAlign, onDistribute, onGroup, onUngroup } =
 	useAlignGroup({
 		selectedElements,
@@ -1296,26 +560,26 @@ const { canGroup, canUngroup, canDistribute, onAlign, onDistribute, onGroup, onU
 		pushHistory: history.pushHistory,
 	});
 
-// ── Element context menu (right-click / long-press) ───────────────────
+// -- Element context menu (right-click / long-press) -------------------
 const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
 	canEdit: () => props.canEdit,
 	findActiveElement,
 	tableSelection,
-	hasClipboard,
+	hasClipboard: clipboard.hasClipboard,
 	canGroup,
 	editTemplateMode,
 	selectedElementIds,
-	inlineEditingElementId,
+	inlineEditingElementId: inlineEdit.inlineEditingElementId,
 	ops,
-	cutElement,
-	copyElement,
-	pasteElement,
+	cutElement: clipboard.cutElement,
+	copyElement: clipboard.copyElement,
+	pasteElement: clipboard.pasteElement,
 	onGroup,
 	onUngroup,
-	openHyperlinkDialog,
+	openHyperlinkDialog: hyperlink.openHyperlinkDialog,
 	// "Add Comment" opens the comments panel, matching React's menu action.
 	onAddComment: () => {
-		showComments.value = true;
+		comments.showComments.value = true;
 	},
 	aiEnabled: () => Boolean(props.ai),
 	onAskAi: () => {
@@ -1328,71 +592,22 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	},
 });
 
-// ── Autosave ──────────────────────────────────────────────────────────
-// `autosaveEnabled` is the title-bar AutoSave toggle (user-facing, defaults on),
-// mirroring React's `autosaveEnabled` useState(true). The engine only runs when
-// the host has opted into autosave AND editing is allowed AND the toggle is on.
-const autosaveEnabled = ref(true);
-const autosaveActive = computed(
-	() => props.canEdit && (props.autosave ?? false) && autosaveEnabled.value,
-);
-/**
- * When autosave is inactive, this computed explains why so the title bar can
- * display a meaningful status message to the user.
- */
-const autosaveDisabledReason = computed<string | undefined>(() => {
-	if (autosaveActive.value) {
-		return undefined;
-	}
-	if (!autosaveEnabled.value) {
-		return 'autosave_toggle_off';
-	}
-	if (!props.autosave) {
-		return 'no_file_path';
-	}
-	if (!props.canEdit) {
-		return 'autosave_toggle_off';
-	}
-	return undefined;
-});
-function toggleAutosave(): void {
-	autosaveEnabled.value = !autosaveEnabled.value;
-}
-const autosave = useAutosave({
+// -- Autosave ----------------------------------------------------------
+const { autosave, autosaveEnabled, toggleAutosave, autosaveDisabledReason } = useAutosaveWiring({
 	slides,
-	enabled: autosaveActive,
-	intervalMs: props.autosaveIntervalMs ?? 2000,
-	onSave: async () => {
-		const bytes = await getContent();
-		emit('autosave', bytes);
-		// Snapshot a restorable version on each autosave.
-		versionHistory.capture('Autosave', Date.now());
-		// Also persist to the shared IndexedDB recovery store (matches
-		// React/Angular/Vanilla/Svelte's `useAutosave`), so File ▸ Account's
-		// Storage & Privacy panel (`getLocalStorageUsageSummary`) and File ▸
-		// Open's "Recent" list have something real to report.
-		void saveAutosaveSnapshot(props.filePath ?? props.fileName ?? 'Untitled Presentation', bytes);
-	},
-});
-// Loading a deck reassigns `slides`, which the autosave watcher counts as an
-// edit; clear the dirty flag once loading settles so a freshly opened deck
-// reads "Saved to this PC" in the title bar, matching React.
-watch(loading, (now, was) => {
-	if (was && !now) {
-		autosave.isDirty.value = false;
-	}
+	loading,
+	canEdit: () => props.canEdit,
+	autosaveEnabledByHost: () => props.autosave ?? false,
+	intervalMs: () => props.autosaveIntervalMs,
+	snapshotName: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
+	getContent,
+	emitAutosave: (bytes) => emit('autosave', bytes),
+	captureVersion: (label, at) => versionHistoryWiring.versionHistory.capture(label, at),
 });
 
-// ── No-selection inspector deck actions (theme-by-path / slide size / doc
-// properties), feeding the tabbed SlideInspector's Properties tab. ────────
-const {
-	applyThemeByPath,
-	updateCanvasSize,
-	updateCoreProperties,
-	updateAppProperties,
-	updateCustomProperties,
-	updateTagCollections,
-} = useInspectorDeckActions({
+// -- No-selection inspector deck actions (theme-by-path / slide size /
+//    doc properties), feeding the tabbed SlideInspector's Properties tab.
+const deckActions = useInspectorDeckActions({
 	handler,
 	slideMasters,
 	canvasSize,
@@ -1406,34 +621,22 @@ const {
 	// Mirror React's refreshContentAfterThemeChange: re-serialise and reload so
 	// slide colours re-resolve against the newly-applied theme.
 	refreshContent: async () => {
-		internalContent.value = await getContent();
+		source.internalContent.value = await getContent();
 	},
 });
 
-// ── Comments ──────────────────────────────────────────────────────────
+// -- Comments ----------------------------------------------------------
 const authorNameRef = computed(() => props.authorName ?? 'You');
-const { showComments, activeComments, commentsApi, onCommentMarkerClick, commitComments } =
-	useCommentsWiring({
-		activeSlide,
-		activeSlideIndex,
-		slides,
-		authorName: authorNameRef,
-		pushHistory: history.pushHistory,
-	});
+const comments = useCommentsWiring({
+	activeSlide,
+	activeSlideIndex,
+	slides,
+	authorName: authorNameRef,
+	pushHistory: history.pushHistory,
+});
 
-// ── Collaboration (Yjs) + broadcast ────────────────────────────────────
-const {
-	collab,
-	collabActive,
-	shareOpen,
-	onShareStart,
-	onShareStop,
-	onCollabPointerMove,
-	broadcastOpen,
-	broadcastViewerUrl,
-	onBroadcastStart,
-	onBroadcastStop,
-} = useCollaborationWiring({
+// -- Collaboration (Yjs) + broadcast -----------------------------------
+const collaboration = useCollaborationWiring({
 	slides,
 	loadVersion,
 	getTemplateElements: () => templateElementsBySlideId.value,
@@ -1460,49 +663,66 @@ const {
 	onStopCollaboration: () => emit('stop-collaboration'),
 });
 
-// ── Digital signatures ────────────────────────────────────────────────
-const {
-	showSignatures,
-	signaturesApi,
-	hasDigitalSignatures,
-	showSignatureStripped,
-	onAckSignatureStripped,
-} = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
+// -- Panels and dialogs owned by their own composables ------------------
+const signatureWorkflow = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
+const slideShow = useSlideShowSettings({ presentationProperties });
+const password = usePasswordProtection();
+const fontEmbedding = useFontEmbedding({ slides, embeddedFonts: deck.embeddedFonts });
+const selectionPane = useSelectionPaneWiring({
+	findActiveElement,
+	activeSlide,
+	selectedElementIds,
+	ops,
+});
+const documentProperties = useDocumentPropertiesDialog({
+	coreProperties,
+	customProperties,
+	appProperties,
+});
+const headerFooterDialog = useHeaderFooterDialog({ headerFooter });
+const versionHistoryWiring = useVersionHistoryWiring({
+	slides,
+	pushHistory: history.pushHistory,
+});
+const customShowsWiring = useCustomShowsWiring({
+	customShows,
+	slides,
+	activeSlideIndex,
+	activeSlide,
+	pushHistory: history.pushHistory,
+});
 
-// ── Set Up Slide Show + Subtitles ──────────────────────────────────────
-const {
-	showSetUpSlideShow,
-	showSubtitles,
-	onSaveSlideShowSettings,
-	onPresentationPropertiesUpdate,
-	onToggleSubtitles,
-} = useSlideShowSettings({ presentationProperties });
+// -- Master view (slide / notes / handout masters) ---------------------
+const masterView = useMasterViewWiring({
+	slideMasters,
+	notesMaster,
+	handoutMaster,
+	markDirty: () => {
+		autosave.isDirty.value = true;
+	},
+});
 
-// ── Password protection ───────────────────────────────────────────────
-const {
-	showPasswordDialog,
-	isPasswordProtected,
-	presentationPassword,
-	onSetPassword,
-	onRemovePassword,
-} = usePasswordProtection();
+// -- Sections (group the slide rail) -----------------------------------
+const sectionOps = useSectionOperations({
+	sections,
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+});
+const hasSections = computed(() => sections.value.length > 0);
 
-// ── Font embedding ────────────────────────────────────────────────────
-const { showFontEmbedding, embedFontsEnabled, usedFontFamilies, embeddedFontNames } =
-	useFontEmbedding({
-		slides,
-		embeddedFonts,
-	});
+async function compareWithPresentation(): Promise<void> {
+	const picked = await openPptxFile();
+	if (!picked) {
+		return;
+	}
+	const incoming = await new PptxHandler().load(picked.buffer);
+	if (incoming) {
+		versionHistoryWiring.compareWithSlides(incoming.slides);
+	}
+}
 
-// ── Selection pane (View ▸ Selection Pane) ────────────────────────────
-const {
-	showSelectionPane,
-	onSelectionPaneSelect,
-	onSelectionPaneToggleVisibility,
-	onSelectionPaneReorder,
-} = useSelectionPaneWiring({ findActiveElement, activeSlide, selectedElementIds, ops });
-
-// ── Responsive / mobile chrome ────────────────────────────────────────
+// -- Responsive / mobile chrome ----------------------------------------
 // The viewer root element drives breakpoints from the CONTAINER width (so an
 // embedded viewer in a narrow sidebar gets mobile chrome), falling back to the
 // viewport when unmounted / no ResizeObserver. Mirrors React's containerRef.
@@ -1512,11 +732,9 @@ const { isMobile, isTouchDevice } = useIsMobile(768, viewerRootRef);
 // the fixed bottom bar above the keyboard.
 const { keyboardInset } = useKeyboardInsets();
 
-// ── Touch gestures (pinch-zoom + long-press) on the main canvas ────────
-// The gesture state machine is framework-agnostic (pptx-viewer-shared); this
-// composable owns only the native-listener lifecycle. Swipe navigation in view
-// mode keeps its own inline handler (onMainTouchStart/End) below; pinch-zoom
-// and long-press-to-context-menu are routed through the shared recogniser here.
+// Pinch-zoom + long-press on the main canvas. The gesture state machine is
+// framework-agnostic (pptx-viewer-shared); this composable owns only the
+// native-listener lifecycle. Swipe navigation keeps its own handlers (above).
 const mainRef = ref<HTMLElement | null>(null);
 useTouchGestures({
 	targetRef: mainRef,
@@ -1531,7 +749,7 @@ useTouchGestures({
 		onLongPress: (clientX, clientY) => {
 			// Mirror React: long-press opens the element context menu, but only in
 			// edit mode with an element already selected.
-			if (!props.canEdit || presenting.value) {
+			if (!props.canEdit || presentation.presenting.value) {
 				return;
 			}
 			const id = selectedElementIds.value[0];
@@ -1542,151 +760,19 @@ useTouchGestures({
 		},
 	},
 });
-const {
-	mobileSlidesOpen,
-	mobileInspectorOpen,
-	mobileCommentsOpen,
-	mobileNotesOpen,
-	openMobileSheet,
-	activeSheet: mobileActiveSheet,
-	mobileQuickInsert,
-} = useMobileChrome({ presenting, addText });
-
-// ── Document properties dialog ────────────────────────────────────────
-const { propertiesOpen, onPropertiesSave } = useDocumentPropertiesDialog({
-	coreProperties,
-	customProperties,
-	appProperties,
+const mobileChrome = useMobileChrome({
+	presenting: presentation.presenting,
+	addText: insertion.addText,
 });
 
-// ── Master view (slide / notes / handout masters) ─────────────────────
-const {
-	showMasterView,
-	masterViewTab,
-	activeMasterIndex,
-	activeLayoutIndex,
-	handoutSlidesPerPage,
-	onSelectMaster,
-	onSelectLayout,
-} = useMasterViewState();
-
-function onNotesMasterBackgroundChange(backgroundColor: string): void {
-	if (!notesMaster.value) {
-		return;
-	}
-	notesMaster.value = { ...notesMaster.value, backgroundColor };
-	autosave.isDirty.value = true;
-}
-
-function onHandoutMasterBackgroundChange(backgroundColor: string): void {
-	if (!handoutMaster.value) {
-		return;
-	}
-	handoutMaster.value = { ...handoutMaster.value, backgroundColor };
-	autosave.isDirty.value = true;
-}
-
-function onHandoutSlidesPerPageChange(slidesPerPage: number): void {
-	handoutSlidesPerPage.value = slidesPerPage;
-	if (handoutMaster.value) {
-		handoutMaster.value = { ...handoutMaster.value, slidesPerPage };
-		autosave.isDirty.value = true;
-	}
-}
-
-const activeMasterViewSlide = computed<PptxSlide | undefined>(() => {
-	const master = slideMasters.value[activeMasterIndex.value];
-	if (!master) {
-		return undefined;
-	}
-	const layout =
-		activeLayoutIndex.value === null ? undefined : master.layouts?.[activeLayoutIndex.value];
-	return {
-		id: layout?.path ?? master.path,
-		rId: '',
-		slideNumber: 0,
-		elements: layout
-			? [...(master.elements ?? []), ...(layout.elements ?? [])]
-			: (master.elements ?? []),
-		backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
-		backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
-	};
-});
-
-// ── Header / footer dialog ────────────────────────────────────────────
-const { showHeaderFooter, onHeaderFooterUpdate } = useHeaderFooterDialog({ headerFooter });
-
-// ── Sections (group the slide rail) ───────────────────────────────────
-const sectionOps = useSectionOperations({
-	sections,
-	slides,
-	activeSlideIndex,
-	pushHistory: history.pushHistory,
-});
-const hasSections = computed(() => sections.value.length > 0);
-// Section-grouped thumbnails render the merged slides (template layer included)
-// so the rail matches the canvas; grouping/order still come from `sectionOps`.
-const mergedSlidesBySection = computed(() =>
-	sectionOps.slidesBySection.value.map((group) => ({
-		...group,
-		slides: group.slides.map((slide) => mergedSlideById.value.get(slide.id) ?? slide),
-	})),
-);
-
-// ── Custom shows ──────────────────────────────────────────────────────
-const {
-	showCustomShows,
-	activeCustomShowId,
-	customShowOps,
-	isCurrentSlideInActiveShow,
-	onCreateCustomShow,
-	onDeleteCustomShow,
-	onRenameActiveCustomShow,
-	onDeleteActiveCustomShow,
-	onToggleCurrentSlideInActiveShow,
-} = useCustomShowsWiring({
-	customShows,
-	slides,
-	activeSlideIndex,
-	activeSlide,
-	pushHistory: history.pushHistory,
-});
-
-// ── Version history + compare ─────────────────────────────────────────
-// Snapshots accrue on each autosave (see the autosave `onSave` below).
-const {
-	versionHistory,
-	showVersionHistory,
-	compareResult,
-	compareVersionId,
-	showCompare,
-	onVersionRestore,
-	onVersionDelete,
-	onVersionCompare,
-	compareWithSlides,
-	onCompareClose,
-	onCompareAcceptAll,
-} = useVersionHistoryWiring({ slides, pushHistory: history.pushHistory });
-
-async function compareWithPresentation(): Promise<void> {
-	const picked = await openPptxFile();
-	if (!picked) {
-		return;
-	}
-	const incoming = await new PptxHandler().load(picked.buffer);
-	if (incoming) {
-		compareWithSlides(incoming.slides);
-	}
-}
-
-// ── Keyboard shortcuts ────────────────────────────────────────────────
+// -- Keyboard shortcuts ------------------------------------------------
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
 // overlay (Ctrl+/) are handled in `onEditorKeydown` before delegating.
-const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } = useEditorKeyboard({
+const { showShortcuts, onEditorKeydown, copySelected, cutSelected } = useEditorKeyboard({
 	canEdit: () => props.canEdit,
-	hasSelection,
-	presenting,
+	hasSelection: selection.hasSelection,
+	presenting: presentation.presenting,
 	findOpen,
 	selectedElementIds,
 	activeSlide,
@@ -1696,9 +782,9 @@ const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } =
 	pushHistory: history.pushHistory,
 	undo: history.undo,
 	redo: history.redo,
-	copyElement,
-	cutElement,
-	pasteElement,
+	copyElement: clipboard.copyElement,
+	cutElement: clipboard.cutElement,
+	pasteElement: clipboard.pasteElement,
 	duplicateSelected,
 	deleteSelected,
 	goPrev,
@@ -1708,19 +794,18 @@ const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } =
 	onUngroup,
 });
 
-// ── Office-style ribbon wiring (RibbonToolbar ← React Toolbar.tsx) ────────
+// -- Office-style ribbon wiring (RibbonToolbar <- React Toolbar.tsx) ----
 // The desktop chrome is the full Office ribbon. This block adapts the host's
 // existing state and handlers to the presentation-only `RibbonProps` contract.
+const ribbonUi = useRibbonUiState();
+// The subset the template and the local composables read directly; the whole
+// object still goes to `useViewerRibbonProps`.
 const {
-	toolbarSection,
-	newShapeType,
 	activeTool,
 	drawingColor,
 	drawingWidth,
 	inspectorOpen,
 	sidebarCollapsed,
-	ribbonExpanded,
-	overflowOpen,
 	notesExpanded,
 	showGrid,
 	showRulers,
@@ -1728,25 +813,25 @@ const {
 	spellCheckEnabled,
 	themeGalleryOpen,
 	themeEditorOpen,
-	eyedropperActive,
-} = useRibbonUiState();
+} = ribbonUi;
 
-// ── Viewer settings ───────────────────────────────────────────────────
+// -- Viewer settings ---------------------------------------------------
 const reducedMotion = ref(false);
 // Full PowerPoint File > Options model (persisted); the six legacy toggles
 // below stay the behavior source and sync with it both ways.
 const { optionsStore, viewerOptions } = useViewerOptionsStore();
-const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog({
+const { showSettings } = useViewerSettingsDialog({
 	autoSave: autosaveEnabled,
 	spellCheck: spellCheckEnabled,
 	showGrid,
 	showRulers,
-	snapToGrid,
+	snapToGrid: drag.snapToGrid,
 	reducedMotion,
 	optionsStore,
 	viewerOptions,
 });
 
+/** File > Options > Save > "Delete cached files". */
 function onOptionsClearCache(): void {
 	void (async () => {
 		const snapshots = await listAutosaveSnapshots();
@@ -1756,14 +841,14 @@ function onOptionsClearCache(): void {
 
 const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
 	canEdit: () => props.canEdit,
-	presenting,
+	presenting: presentation.presenting,
 	activeTool,
 	activeSlide,
 	selectedElementIds,
 	ops,
 });
 
-const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
+const themeEditing = useThemeEditing({
 	slides,
 	pptxTheme,
 	themeColorMap,
@@ -1772,14 +857,12 @@ const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
 	themeEditorOpen,
 });
 
-// ── AI assistant ──────────────────────────────────────────────────────
+// -- AI assistant ------------------------------------------------------
 // The Sparkles ribbon toggle and the right-hand chat panel are gated behind
 // the optional `ai` prop. The bridge is built unconditionally (a cheap pure
 // factory) but only consumed when the host opts in; its three write choke
 // points route through the editor-history layer so AI edits are a single
 // Ctrl+Z. The panel (and its `@ai-sdk/vue` peer) loads lazily on first open.
-// (`aiPanelOpen` + the focus/pick controller `aiPanel` are declared earlier,
-// beside the selection state they derive from.)
 /** Map a partial AI theme update onto the deck-wide theme editor (mirrors React's applyAiTheme). */
 function applyAiTheme(updates: Partial<PptxTheme>): void {
 	const current = pptxTheme.value;
@@ -1787,7 +870,7 @@ function applyAiTheme(updates: Partial<PptxTheme>): void {
 	if (!colorScheme) {
 		return;
 	}
-	applyTheme(
+	themeEditing.applyTheme(
 		colorScheme,
 		updates.fontScheme ?? current?.fontScheme,
 		updates.name ?? current?.name ?? 'Theme',
@@ -1819,17 +902,10 @@ const aiBridge = useAiBridge({
 	pickedFocus: () => aiPanel.pickTargets.value,
 });
 
-const {
-	ribbonMode,
-	activeTableSelection,
-	ribbonUpdateTextStyle,
-	ribbonUpdateTextCase,
-	ribbonFlip,
-	ribbonMoveToEdge,
-} = useRibbonActions({
+const ribbonActions = useRibbonActions({
 	canEdit: () => props.canEdit,
-	presenting,
-	showMasterView,
+	presenting: presentation.presenting,
+	showMasterView: masterView.showMasterView,
 	tableSelection,
 	selectedElements,
 	selectedElementIds,
@@ -1839,359 +915,140 @@ const {
 	pushHistory: history.pushHistory,
 	ops,
 });
+const { ribbonMode, ribbonUpdateTextStyle, ribbonMoveToEdge } = ribbonActions;
 
 watch(ribbonMode, (mode) => {
 	emit('mode-change', mode);
 });
 
-const ribbonProps = useRibbonProps({
-	ribbonMode,
+const ribbonProps = useViewerRibbonProps({
 	canEdit: () => props.canEdit,
 	isMobile,
-	sidebarCollapsed,
-	inspectorOpen,
-	ribbonExpanded,
-	toolbarSection,
 	zoom,
-	canUndo: history.canUndo,
-	canRedo: history.canRedo,
+	zoomIn,
+	zoomOut,
+	zoomReset,
 	findOpen,
-	selectedElements,
-	activeTableSelection,
-	editTemplateMode,
-	newShapeType,
-	activeTool,
-	drawingColor,
-	drawingWidth,
-	clipboard,
-	spellCheckEnabled,
-	showGrid,
-	showRulers,
-	showGuides,
-	snapToGrid,
-	snapToShape,
-	overflowOpen,
-	layoutOptions,
-	customShows,
-	activeCustomShowId,
-	isCurrentSlideInActiveShow,
-	themeEditorOpen,
-	themeGalleryOpen,
-	eyedropperActive,
-	showComments,
-	activeComments,
-	formatPainterActive,
-	canActivateFormatPainter,
-	showSelectionPane,
-	showSubtitles,
 	activeSlide,
 	activeSlideIndex,
-	toggleSlideHidden,
-	presenting,
-	canDistribute,
-	shareOpen,
+	showA11y,
 	showShortcuts,
 	showSettings,
-	showHeaderFooter,
-	showA11y,
-	showSorter,
-	showReadingView,
-	showOutlineView,
-	showCustomShows,
-	showVersionHistory,
-	showPasswordDialog,
-	propertiesOpen,
-	showFontEmbedding,
-	showSignatures,
-	showMasterView,
-	showSetUpSlideShow,
-	broadcastOpen,
-	showInsertSmartArt,
-	showEquationEditor,
-	collab,
-	startPresenting,
-	startPresenterView,
-	startRehearsal,
-	compareWithPresentation,
-	onAddAnimation,
-	onRemoveAnimation,
-	zoomIn,
-	zoomOut,
-	zoomReset,
-	undo: history.undo,
-	redo: history.redo,
-	addText,
-	addShape,
-	addTable,
-	addChart,
-	addField,
-	addActionButton,
-	openImagePicker,
-	openMediaPicker,
-	addGuide,
-	onAlign,
-	onDistribute,
-	copySelected,
-	cutSelected,
-	pasteElement,
-	ribbonFlip,
-	bringForward,
-	sendBackward,
-	ribbonMoveToEdge,
-	onGroup,
-	onUngroup,
-	updateSelectedShapeStyle,
-	openHyperlinkForSelection,
-	duplicateSelected,
-	deleteSelected,
-	handleOpenFile,
-	handleOpenRecentFile,
+	deck,
+	ui: ribbonUi,
+	selection,
+	history,
+	arrange: {
+		bringForward,
+		sendBackward,
+		duplicateSelected,
+		deleteSelected,
+		canDistribute,
+		onAlign,
+		onDistribute,
+		onGroup,
+		onUngroup,
+	},
+	editing: {
+		clipboard: clipboard.clipboard,
+		pasteElement: clipboard.pasteElement,
+		copySelected,
+		cutSelected,
+		formatPainterActive,
+		canActivateFormatPainter,
+		toggleFormatPainter,
+		updateSelectedShapeStyle,
+		openHyperlinkForSelection: hyperlink.openHyperlinkForSelection,
+	},
+	slideMutations: {
+		toggleSlideHidden,
+		onAddAnimation,
+		onRemoveAnimation,
+		onTransitionChange,
+		onApplyTransitionToAll,
+	},
+	ribbonActions,
+	drag,
+	insertion,
+	insertDialogs,
+	exporter,
+	printer,
+	presentation,
+	deckViews,
+	comments,
+	collaboration,
+	customShows: customShowsWiring,
+	versionHistory: versionHistoryWiring,
+	documentProperties,
+	fontEmbedding,
+	signatureWorkflow,
+	selectionPane,
+	slideShow,
+	password,
+	masterView,
+	headerFooterDialog,
+	handleOpenFile: source.handleOpenFile,
+	handleOpenRecentFile: source.handleOpenRecentFile,
 	createPresentation,
-	onExportPng,
-	onExportPdf,
-	onExportWebm,
-	onExportGif,
-	downloadAs,
-	packageForSharing,
-	onCopySlideAsImage,
-	openPrintDialog: printer.openPrintDialog,
-	ribbonUpdateTextStyle,
-	ribbonUpdateTextCase,
-	insertSlideFromLayout,
-	onRenameActiveCustomShow,
-	onDeleteActiveCustomShow,
-	onToggleCurrentSlideInActiveShow,
-	toggleFormatPainter,
-	onToggleSubtitles,
-	onTransitionChange,
-	onApplyTransitionToAll,
+	compareWithPresentation,
 });
 
-// ── Imperative surface (implements the shared PowerPointViewerAPI) ────
-defineExpose<PowerPointViewerExpose>({
-	getContent,
-	goTo,
-	goPrev,
-	goNext,
-	undo: () => history.undo(),
-	redo: () => history.redo(),
-	canUndo: () => history.canUndo.value,
-	canRedo: () => history.canRedo.value,
-	getZoom: () => zoom.value,
-	setZoom: (level: number) => {
-		// Shared clamp, not a hand-rolled one, so every binding refuses the same
-		// out-of-range zoom.
-		zoom.value = clampZoomScale(level);
-	},
+// -- Title-bar command surfaces ----------------------------------------
+const { handleCommandSearch, handleQuickAccessCommand } = useCommandDispatch({
+	updateTextStyle: ribbonUpdateTextStyle,
+	addText: insertion.addText,
+	addShape: insertion.addShape,
+	addTable: insertion.addTable,
+	addChart: insertion.addChart,
+	openImagePicker: insertion.openImagePicker,
+	openMediaPicker: insertion.openMediaPicker,
+	showInsertSmartArt: insertDialogs.showInsertSmartArt,
+	showEquationEditor: insertDialogs.showEquationEditor,
+	editingEquationOmml: insertDialogs.editingEquationOmml,
+	hyperlinkOpen: hyperlink.hyperlinkOpen,
+	showGrid,
+	showRulers,
+	showSorter: deckViews.showSorter,
+	spellCheckEnabled,
+	themeGalleryOpen,
 	zoomIn,
 	zoomOut,
 	zoomReset,
-	getMode: () => ribbonMode.value,
-	setMode: (newMode) => {
-		if (newMode === 'present') {
-			startPresenting();
-		} else if (newMode === 'master') {
-			showMasterView.value = true;
-		} else {
-			presenting.value = false;
-			showMasterView.value = false;
-		}
-	},
-	getActiveSlideIndex: () => activeSlideIndex.value,
-	setActiveSlideIndex: (index: number) => goTo(index),
-	getSlideCount: () => slideCount.value,
-	isDirty: () => autosave.isDirty.value,
-	// -- Slide access --
-	getSlides: () => slides.value,
-	getSlide: (index: number) => slides.value[index],
-	getActiveSlide: () => activeSlide.value,
-	// -- Slide manipulation --
-	addSlide: () => slideOps.addSlide(),
-	deleteSlides: (indexes: number[]) => {
-		for (const i of [...indexes].sort((a, b) => b - a)) {
-			slideOps.deleteSlide(i);
-		}
-	},
-	duplicateSlides: (indexes: number[]) => {
-		for (const i of indexes) {
-			slideOps.duplicateSlide(i);
-		}
-	},
-	moveSlide: (from: number, to: number) => slideOps.moveSlide(from, to),
-	toggleHideSlides: (indexes: number[]) => {
-		for (const i of indexes) {
-			toggleSlideHidden(i);
-		}
-	},
-	// -- Element access --
-	getElements: (slideIndex?: number) => {
-		const idx = slideIndex ?? activeSlideIndex.value;
-		const s = slides.value[idx];
-		return s?.elements ?? [];
-	},
-	getElementById: (elementId: string, slideIndex?: number) => {
-		const idx = slideIndex ?? activeSlideIndex.value;
-		const s = slides.value[idx];
-		return s?.elements.find((e) => e.id === elementId);
-	},
-	// -- Element manipulation --
-	updateElement: (elementId: string, updates: Partial<PptxElement>) => {
-		ops.updateElement(elementId, updates);
-	},
-	deleteElements: (elementIds: string[]) => {
-		for (const id of elementIds) {
-			ops.removeElement(id);
-		}
-	},
-	duplicateElement: (elementId: string) => ops.duplicateElement(elementId),
-	// -- Selection --
-	getSelectedElementIds: () => selectedElementIds.value,
-	selectElements: (ids: string[]) => {
-		selectedElementIds.value = ids;
-	},
-	clearSelection: () => {
-		selectedElementIds.value = [];
-	},
+	startPresenting: presentation.startPresenting,
+	moveToEdge: ribbonMoveToEdge,
+	duplicateSelected,
+	openPrintDialog: printer.openPrintDialog,
+	exportPdf: onExportPdf,
+	addSlide: slideOps.addSlide,
 });
 
-function handleCommandSearch(command: string): void {
-	const [category, action] = command.split('.');
-	switch (category) {
-		case 'format':
-			switch (action) {
-				case 'bold':
-					ribbonUpdateTextStyle({ bold: true });
-					break;
-				case 'italic':
-					ribbonUpdateTextStyle({ italic: true });
-					break;
-				case 'underline':
-					ribbonUpdateTextStyle({ underline: true });
-					break;
-				case 'alignLeft':
-					ribbonUpdateTextStyle({ align: 'left' });
-					break;
-				case 'alignCenter':
-					ribbonUpdateTextStyle({ align: 'center' });
-					break;
-				case 'alignRight':
-					ribbonUpdateTextStyle({ align: 'right' });
-					break;
-				case 'clear':
-					ribbonUpdateTextStyle({
-						bold: false,
-						italic: false,
-						underline: false,
-						strikethrough: false,
-					});
-					break;
-			}
-			break;
-		case 'insert':
-			switch (action) {
-				case 'textBox':
-					addText();
-					break;
-				case 'shape':
-					addShape('rect');
-					break;
-				case 'image':
-					openImagePicker();
-					break;
-				case 'media':
-					openMediaPicker();
-					break;
-				case 'table':
-					addTable();
-					break;
-				case 'chart':
-					addChart('bar');
-					break;
-				case 'smartArt':
-					showInsertSmartArt.value = true;
-					break;
-				case 'equation':
-					editingEquationOmml.value = null;
-					showEquationEditor.value = true;
-					break;
-				case 'link':
-					hyperlinkOpen.value = true;
-					break;
-			}
-			break;
-		case 'view':
-			switch (action) {
-				case 'toggleGrid':
-					showGrid.value = !showGrid.value;
-					break;
-				case 'toggleRulers':
-					showRulers.value = !showRulers.value;
-					break;
-				case 'slideSorter':
-					showSorter.value = true;
-					break;
-				case 'zoomToFit':
-					zoomReset();
-					break;
-			}
-			break;
-		case 'slideShow':
-			switch (action) {
-				case 'fromBeginning':
-					startPresenting();
-					break;
-				case 'presenterView':
-					startPresenting();
-					break;
-			}
-			break;
-		case 'design':
-			switch (action) {
-				case 'browseThemes':
-					themeGalleryOpen.value = !themeGalleryOpen.value;
-					break;
-			}
-			break;
-		case 'arrange':
-			switch (action) {
-				case 'bringToFront':
-					ribbonMoveToEdge('front');
-					break;
-				case 'sendToBack':
-					ribbonMoveToEdge('back');
-					break;
-				case 'duplicate':
-					duplicateSelected();
-					break;
-			}
-			break;
-		case 'review':
-			switch (action) {
-				case 'spelling':
-					spellCheckEnabled.value = !spellCheckEnabled.value;
-					break;
-			}
-			break;
-	}
-}
-
-/**
- * Run a Quick Access Toolbar command by catalog id. Save/Undo/Redo keep their
- * dedicated title-bar buttons (they carry the undo labels and the
- * `hiddenActions` gate), so only the options-configured remainder arrives here.
- */
-function handleQuickAccessCommand(id: string): void {
-	const handlers: Record<string, () => void> = {
-		presentFromStart: () => startPresenting(),
-		print: () => printer.openPrintDialog(),
-		exportPdf: () => void onExportPdf(),
-		newSlide: () => slideOps.addSlide(),
-		spellCheck: () => (spellCheckEnabled.value = !spellCheckEnabled.value),
+// -- Imperative surface (implements the shared PowerPointViewerAPI) ----
+defineExpose<PowerPointViewerExpose>(
+	useViewerApi({
+		slides,
+		activeSlide,
+		activeSlideIndex,
+		slideCount,
+		selectedElementIds,
+		zoom,
+		isDirty: autosave.isDirty,
+		presenting: presentation.presenting,
+		showMasterView: masterView.showMasterView,
+		mode: ribbonMode,
+		getContent,
+		goTo,
+		goPrev,
+		goNext,
 		zoomIn,
 		zoomOut,
-	};
-	handlers[id]?.();
-}
+		zoomReset,
+		startPresenting: presentation.startPresenting,
+		history,
+		slideOps,
+		toggleSlideHidden,
+		elementOps: ops,
+	}),
+);
 </script>
 
 <template>
@@ -2226,15 +1083,13 @@ function handleQuickAccessCommand(id: string): void {
 			<!-- Office-style ribbon on wide viewports; compact mobile top bar
 			     (menu / undo / redo / save / present / share) on narrow viewports
 			     (< 768px container width). Mirrors React's Toolbar.tsx which
-			     swaps in <MobileToolbar> when isNarrowViewport is true. The
-			     hamburger opens MobileMenuSheet so every ribbon section stays
-			     reachable on a phone where the desktop ribbon is hidden.
+			     swaps in <MobileToolbar> when isNarrowViewport is true.
 			     Unmounted while presenting (mirrors React's `mode !== 'present'`
 			     gate on `ViewerToolbarSection`): the full-screen PresentationMode
 			     overlay already covers it visually, but leaving it mounted keeps
 			     its controls tab-focusable and creates duplicate accessible names
 			     (e.g. a second "Present" / "Menu" button) underneath the overlay. -->
-			<template v-if="!presenting">
+			<template v-if="!presentation.presenting.value">
 				<!-- PowerPoint-style title bar sits ABOVE and OUTSIDE the
 				     role="toolbar" ribbon element (which e2e measures for height
 				     parity), gated like React on desktop + non-present. -->
@@ -2270,14 +1125,14 @@ function handleQuickAccessCommand(id: string): void {
 				<MobileToolbar v-else v-bind="ribbonProps" :hidden-actions="props.hiddenActions" />
 			</template>
 
-			<!-- Hidden pickers for Insert ▸ Image / Media -->
+			<!-- Hidden pickers for Insert > Image / Media -->
 			<input
 				ref="imageInputRef"
 				type="file"
 				accept="image/*"
 				aria-hidden="true"
 				style="display: none"
-				@change="onImageFileSelected"
+				@change="insertion.onImageFileSelected"
 			/>
 			<input
 				ref="mediaInputRef"
@@ -2285,7 +1140,7 @@ function handleQuickAccessCommand(id: string): void {
 				accept="audio/*,video/*"
 				aria-hidden="true"
 				style="display: none"
-				@change="onMediaFileSelected"
+				@change="insertion.onMediaFileSelected"
 			/>
 
 			<!-- Find & replace bar -->
@@ -2304,45 +1159,20 @@ function handleQuickAccessCommand(id: string): void {
 			/>
 
 			<div class="pptx-vue-body">
-				<!-- Flat slide rail (React-parity): number-left thumbnails + Add Slide + context menu.
-				     Hidden on mobile, where it would otherwise collapse the slide canvas to
-				     zero height; mobile navigates slides via the bottom bar's prev/next. -->
-				<SlidesPaneSidebar
-					v-if="!isMobile && !hasSections && !sidebarCollapsed"
-					:slides="mergedSlides"
-					:active-index="activeSlideIndex"
+				<ViewerSlideRail
+					v-if="!isMobile && !sidebarCollapsed"
+					:merged-slides="mergedSlides"
+					:merged-slide-by-id="selection.mergedSlideById.value"
+					:active-slide-index="activeSlideIndex"
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
 					:can-edit="props.canEdit"
-					:thumb-width="THUMB_WIDTH"
-					@select="goTo"
-					@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
-					@add-slide="slideOps.addSlide()"
-					@duplicate="(i) => slideOps.duplicateSlide(i)"
-					@delete="(i) => slideOps.deleteSlide(i)"
-					@toggle-hidden="toggleSlideHidden"
+					:has-sections="hasSections"
+					:section-ops="sectionOps"
+					:slide-ops="slideOps"
+					:go-to="goTo"
+					:toggle-slide-hidden="toggleSlideHidden"
 				/>
-				<!-- Sectioned rail when the deck declares sections (desktop only). -->
-				<nav
-					v-else-if="!isMobile && !sidebarCollapsed"
-					class="pptx-vue-thumbnails"
-					:aria-label="t('pptx.sections.slides')"
-				>
-					<SectionList
-						:groups="mergedSlidesBySection"
-						:canvas-size="canvasSize"
-						:media-data-urls="mediaDataUrls"
-						:active-index="activeSlideIndex"
-						:can-edit="props.canEdit"
-						@select="goTo"
-						@toggle-collapse="sectionOps.toggleSectionCollapse"
-						@rename="sectionOps.renameSection"
-						@move-up="sectionOps.moveSectionUp"
-						@move-down="sectionOps.moveSectionDown"
-						@delete="sectionOps.deleteSection"
-						@add-section="(idx) => sectionOps.addSection(t('pptx.sections.defaultName'), idx)"
-					/>
-				</nav>
 
 				<main
 					ref="mainRef"
@@ -2352,252 +1182,86 @@ function handleQuickAccessCommand(id: string): void {
 					@pointerdown="onCanvasPointerDown"
 					@dblclick.capture="onCanvasDoubleClick"
 					@contextmenu="onCanvasContextMenu"
-					@pointermove="onCollabPointerMove"
-					@touchstart="onMainTouchStart"
-					@touchend="onMainTouchEnd"
+					@pointermove="collaboration.onCollabPointerMove"
+					@touchstart="swipe.onTouchStart"
+					@touchend="swipe.onTouchEnd"
 				>
 					<SlideCanvas
 						:slide="activeSlide"
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
-						:show-rulers="showRulers && !presenting"
-						:ruler-selected-bounds="rulerSelectedBounds"
-						:can-drag-guides="props.canEdit && !presenting"
+						:show-rulers="showRulers && !presentation.presenting.value"
+						:ruler-selected-bounds="selection.rulerSelectedBounds.value"
+						:can-drag-guides="props.canEdit && !presentation.presenting.value"
 						:template-elements="activeTemplateElements"
-						:edit-template-mode="editTemplateMode && !presenting"
+						:edit-template-mode="editTemplateMode && !presentation.presenting.value"
 						@update:fit-scale="fitScale = $event"
-						@create-guide="addGuide"
+						@create-guide="drag.addGuide"
 					>
-						<!-- Dot grid overlay (View ▸ Grid): sits over content, under selection -->
-						<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
-						<!-- Numbered comment markers (click to open the comments panel) -->
-						<CommentMarkersOverlay
-							v-if="props.canEdit && !presenting && activeComments.length > 0"
-							:comments="activeComments"
-							:canvas-size="canvasSize"
-							@marker-click="onCommentMarkerClick"
-						/>
-						<!--
-							Draggable H/V alignment guides (View ▸ Guides).
-
-							`showGuides` hides the OVERLAY only. The guides array itself is
-							untouched, so snapping to a guide and the save round-trip still
-							see every guide the deck carries.
-						-->
-						<CanvasGuides
-							v-if="props.canEdit && !presenting"
-							:guides="showGuides ? guides : []"
-							:scale="effectiveZoom"
-							@move="onMoveGuide"
-							@remove="onRemoveGuide"
-						/>
-						<!-- Transient snap-to-shape alignment lines (during drag) -->
-						<SnapLinesOverlay v-if="snapLines.length > 0" :snap-lines="snapLines" />
-						<!-- Rubber-band selection rectangle (drag across empty canvas) -->
-						<MarqueeOverlay :rect="marquee" />
-						<!-- Ink capture (Draw tab): pointer-events on only while a tool is armed -->
-						<DrawingOverlay
-							v-if="props.canEdit"
-							:canvas-size="canvasSize"
-							:active="drawingActive"
-							:tool="activeTool"
-							:color="drawingColor"
-							:width="drawingWidth"
-							:scale="effectiveZoom"
-							@stroke="addInkStroke"
-							@erase="eraseInkAt"
-						/>
-						<!-- AI focus rings (picks + live-tool "AI is working here") -->
-						<AiFocusHighlightOverlay
-							v-if="props.ai && aiPanel.canvasHighlights.value.length > 0"
-							:highlights="aiPanel.canvasHighlights.value"
-							:elements="activeSlide?.elements ?? []"
-							:active-slide-index="activeSlideIndex"
-						/>
-						<!-- AI change animation (watch the applied edit land on the canvas) -->
-						<AiChangeOverlay
-							v-if="props.ai && aiPanel.changeBatch.value"
-							:batch="aiPanel.changeBatch.value"
-							:active-slide-index="activeSlideIndex"
-						/>
-						<!-- Motion path (Animations tab): dashed route + draggable end point -->
-						<MotionPathOverlay
-							v-if="props.canEdit && !presenting && inspectorElement && selectedMotionPath"
-							:element="inspectorElement"
-							:path="selectedMotionPath"
-							:canvas-size="canvasSize"
-							:scale="effectiveZoom"
+						<ViewerCanvasOverlays
 							:can-edit="props.canEdit"
-							@change-path="onMotionPathChange"
-						/>
-						<SelectionOverlay
-							v-if="props.canEdit && !inlineEditingElementId && !presenting"
-							:elements="selectedElements"
-							:selected-ids="selectedElementIds"
-							:zoom="effectiveZoom"
-							@transform-start="onTransformStart"
-							@transform="onTransform"
-							@transform-end="onTransformEnd"
-							@adjust-start="onAdjustStart"
-							@adjust="onAdjust"
-							@adjust-end="onAdjustEnd"
-							@request-edit="(p) => requestElementEdit(p.id)"
-						/>
-						<InlineTextEditor
-							v-if="props.canEdit && inlineEditingElement"
-							:element="inlineEditingElement"
-							:spell-check="spellCheckEnabled"
-							@change="updateInlineText"
-							@commit="commitInlineEdit"
-							@cancel="cancelInlineEdit"
-							@format="ribbonUpdateTextStyle"
-						/>
-						<!-- Both overlays live inside the scaled stage, which applies the
-						     zoom via its CSS transform; they render raw slide-space
-						     coordinates and must not be passed a zoom to multiply by. -->
-						<CollaborationCursors v-if="collabActive" :cursors="collab.cursors.value" />
-						<RemoteSelectionOverlay
-							v-if="collabActive"
-							:presences="collab.remotePresences.value"
-							:elements="activeSlide?.elements ?? []"
+							:presenting="presentation.presenting.value"
+							:canvas-size="canvasSize"
+							:effective-zoom="effectiveZoom"
+							:active-slide="activeSlide"
 							:active-slide-index="activeSlideIndex"
+							:selected-elements="selectedElements"
+							:selected-element-ids="selectedElementIds"
+							:marquee="marquee"
+							:active-comments="comments.activeComments.value"
+							:on-comment-marker-click="comments.onCommentMarkerClick"
+							:show-grid="showGrid"
+							:show-guides="showGuides"
+							:drag="drag"
+							:inline-edit="inlineEdit"
+							:inspector="inspector"
+							:collaboration="collaboration"
+							:spell-check-enabled="spellCheckEnabled"
+							:drawing-active="drawingActive"
+							:active-tool="activeTool"
+							:drawing-color="drawingColor"
+							:drawing-width="drawingWidth"
+							:on-stroke="addInkStroke"
+							:on-erase="eraseInkAt"
+							:ai="props.ai"
+							:ai-panel="aiPanel"
+							:on-request-edit="requestElementEdit"
+							:on-format="ribbonUpdateTextStyle"
 						/>
 					</SlideCanvas>
 				</main>
 
-				<!-- Property inspector (single selection, edit mode). On mobile this
-				     becomes a swipe-dismissable bottom sheet (see MobileSheet below). -->
-				<InspectorPane
-					v-if="props.canEdit && !isMobile && inspectorElementForPanels && inspectorOpen"
-					:element="inspectorElementForPanels"
+				<ViewerSidePanels
+					:deck="deck"
 					:can-edit="props.canEdit"
+					:is-mobile="isMobile"
+					:inspector-open="inspectorOpen"
+					:on-close-inspector="() => (inspectorOpen = false)"
+					:inspector-element="inspector.inspectorElementForPanels.value"
+					:active-slide="activeSlide"
 					:slide-count="slideCount"
-					:media-data-urls="mediaDataUrls"
-					:slide-elements="activeSlide?.elements ?? []"
-					:slide-animations="activeSlide?.animations ?? []"
-					@update="onInspectorUpdate"
-					@update-slide-animations="writeSlideAnimations"
-				/>
-
-				<!-- Slide-level inspector (no element selected): tabbed
-				     Elements / Properties / Comments pane, mirroring React. -->
-				<SlideInspector
-					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
-					:slide="activeSlide"
-					:theme="pptxTheme"
-					:presentation-properties="presentationProperties"
-					:can-edit="props.canEdit"
-					:theme-options="themeOptions"
-					:slide-masters="slideMasters"
-					:canvas-size="canvasSize"
-					:notes-canvas-size="notesCanvasSize"
-					:notes-master="notesMaster"
-					:handout-master="handoutMaster"
-					:core-properties="coreProperties"
-					:app-properties="appProperties"
-					:custom-properties="customProperties"
-					:tag-collections="tagCollections"
-					:comments="commentsApi.slideComments.value"
 					:author-name="authorNameRef"
-					@slide-update="applySlideBackgroundPatch"
-					@presentation-update="onPresentationPropertiesUpdate"
-					@apply-theme="applyThemeByPath"
-					@canvas-size-update="updateCanvasSize"
-					@update-core-properties="updateCoreProperties"
-					@update-app-properties="updateAppProperties"
-					@update-custom-properties="updateCustomProperties"
-					@update-tag-collections="updateTagCollections"
-					@select-element="onSelectionPaneSelect"
-					@comment-add="(t) => commitComments(commentsApi.addComment(t))"
-					@comment-remove="(id) => commitComments(commentsApi.removeComment(id))"
-					@comment-resolve="(id) => commitComments(commentsApi.resolveComment(id))"
-					@comment-reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
-					@close="inspectorOpen = false"
-				/>
-
-				<!-- AI assistant chat panel (right rail, sibling of the inspector).
-				     Gated behind the optional `ai` prop; lazily loaded on first open
-				     so `@ai-sdk/vue` + the AI core only ship when actually used. -->
-				<AiChatPanelLazy
-					v-if="
-						props.ai &&
-						aiPanelOpen &&
-						!isMobile &&
-						(ribbonMode === 'edit' || ribbonMode === 'master')
-					"
-					:bridge="aiBridge"
-					:config="props.ai"
+					:selected-element-ids="selectedElementIds"
+					:deck-actions="deckActions"
+					:comments="comments"
+					:accessibility="a11y"
+					:show-a11y="showA11y"
+					:signature-workflow="signatureWorkflow"
+					:selection-pane="selectionPane"
+					:collaboration="collaboration"
+					:custom-shows="customShowsWiring"
+					:ai="props.ai"
+					:ai-panel-open="aiPanelOpen"
+					:on-close-ai-panel="() => (aiPanelOpen = false)"
 					:ai-panel="aiPanel"
-					@close="aiPanelOpen = false"
-				/>
-
-				<!-- Accessibility checker -->
-				<AccessibilityPanel
-					v-if="props.canEdit && showA11y"
-					:issues="a11y.issues.value"
-					@select-slide="goTo"
-				/>
-
-				<!-- Comments (desktop right rail; mobile uses the bottom sheet below) -->
-				<CommentsPanel
-					v-if="props.canEdit && !isMobile && showComments"
-					:comments="commentsApi.slideComments.value"
-					:author-name="authorNameRef"
-					@add="(t) => commitComments(commentsApi.addComment(t))"
-					@remove="(id) => commitComments(commentsApi.removeComment(id))"
-					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
-					@reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
-				/>
-
-				<!-- Signed-document badge (opens the signatures panel). -->
-				<div
-					v-if="hasDigitalSignatures && !isMobile"
-					class="pointer-events-auto absolute right-2 top-2 z-50"
-				>
-					<SignatureStatusBadge
-						:has-signatures="hasDigitalSignatures"
-						:signature-count="signatures.length"
-						@click="showSignatures = true"
-					/>
-				</div>
-
-				<!-- Digital signatures -->
-				<SignaturesPanel v-if="showSignatures" :signatures="signatures" />
-
-				<!-- Selection pane (View ▸ Selection Pane): object list + z-order +
-				     visibility over the active slide's elements. -->
-				<SelectionPane
-					v-if="props.canEdit && !isMobile && showSelectionPane"
-					:elements="activeSlide?.elements ?? []"
-					:selected-ids="selectedElementIds"
-					:can-edit="props.canEdit"
-					@select="onSelectionPaneSelect"
-					@toggle-visibility="onSelectionPaneToggleVisibility"
-					@reorder="onSelectionPaneReorder"
-					@close="showSelectionPane = false"
-				/>
-
-				<!-- Collaboration follow-mode -->
-				<FollowModeBar
-					v-if="collabActive"
-					:presences="collab.remotePresences.value"
-					:followed-client-id="collab.followedClientId.value"
-					@follow="collab.followUser"
-				/>
-
-				<!-- Custom shows -->
-				<CustomShowsPanel
-					v-if="props.canEdit && showCustomShows"
-					:custom-shows="customShows"
-					:slides="slides"
-					:active-show-id="activeCustomShowId"
-					@create="onCreateCustomShow"
-					@rename="customShowOps.renameCustomShow"
-					@delete="onDeleteCustomShow"
-					@select="(id) => (activeCustomShowId = id)"
-					@toggle-slide="customShowOps.toggleSlideInShow"
-					@move-slide="customShowOps.moveSlideInShow"
+					:ai-bridge="aiBridge"
+					:ribbon-mode="ribbonMode"
+					:go-to="goTo"
+					:on-inspector-update="inspector.onInspectorUpdate"
+					:on-update-slide-animations="inspector.writeSlideAnimations"
+					:on-slide-update="applySlideBackgroundPatch"
+					:on-presentation-update="slideShow.onPresentationPropertiesUpdate"
 				/>
 			</div>
 
@@ -2633,416 +1297,122 @@ function handleQuickAccessCommand(id: string): void {
 				@zoom-out="zoomOut"
 				@zoom-to-fit="zoomReset"
 				@toggle-notes="notesExpanded = !notesExpanded"
-				@toggle-slide-sorter="showSorter = true"
-				@set-mode="(m) => (m === 'present' ? startPresenting() : (presenting = false))"
+				@toggle-slide-sorter="deckViews.showSorter.value = true"
+				@set-mode="
+					(m) =>
+						m === 'present'
+							? presentation.startPresenting()
+							: (presentation.presenting.value = false)
+				"
 			>
 				<!-- Collaboration status in the footer (React parity), replacing the
 				     former floating pill. -->
-				<template v-if="collabActive" #collaboration>
+				<template v-if="collaboration.collabActive.value" #collaboration>
 					<CollaborationStatusIndicator
-						:status="collab.status.value"
-						:connected-count="collab.connectedCount.value"
-						@retry="collab.retry"
+						:status="collaboration.collab.status.value"
+						:connected-count="collaboration.collab.connectedCount.value"
+						@retry="collaboration.collab.retry"
 					/>
 				</template>
 			</StatusBar>
 
-			<!-- Design ▸ Themes gallery -->
-			<ThemeGallery
-				:open="themeGalleryOpen"
-				:active-name="pptxTheme?.name"
+			<ViewerEditDialogs
 				:can-edit="props.canEdit"
-				@apply="applyThemePreset"
-				@close="themeGalleryOpen = false"
-			/>
-
-			<!-- Design ▸ Edit theme -->
-			<ThemeEditorPanel
-				v-if="themeEditorOpen && props.canEdit"
 				:theme="pptxTheme"
-				:can-edit="props.canEdit"
-				@apply="applyThemeEdit"
-				@close="themeEditorOpen = false"
-			/>
-
-			<!-- Element context menu (edit mode) -->
-			<ContextMenu
-				:open="contextMenu.open"
-				:x="contextMenu.x"
-				:y="contextMenu.y"
-				:items="contextItems"
-				:aria-label="t('pptx.contextMenu.ariaLabel')"
-				@select="onContextSelect"
-				@close="contextMenu.open = false"
-			/>
-
-			<!-- Hyperlink editor -->
-			<HyperlinkDialog
-				:open="hyperlinkOpen"
-				:element="hyperlinkTarget"
+				:theme-gallery-open="themeGalleryOpen"
+				:on-close-theme-gallery="() => (themeGalleryOpen = false)"
+				:theme-editor-open="themeEditorOpen"
+				:on-close-theme-editor="() => (themeEditorOpen = false)"
+				:theme-editing="themeEditing"
+				:context-menu="contextMenu"
+				:context-items="contextItems"
+				:on-context-select="onContextSelect"
+				:on-close-context-menu="() => (contextMenu.open = false)"
+				:hyperlink="hyperlink"
 				:slide-count="slideCount"
-				@save="onHyperlinkSave"
-				@close="hyperlinkOpen = false"
+				:collaboration="collaboration"
+				:share-defaults="props.shareDefaults"
 			/>
 
-			<!-- Share / collaboration -->
-			<ShareDialog
-				:open="shareOpen"
-				:defaults="props.shareDefaults"
-				:active="collabActive"
-				@start="onShareStart"
-				@stop="onShareStop"
-				@close="shareOpen = false"
-			/>
-
-			<!-- Document properties (General / Statistics / Custom) -->
-			<DocumentPropertiesDialog
-				:open="propertiesOpen"
+			<ViewerFileDialogs
+				:slides="slides"
+				:active-slide-index="activeSlideIndex"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
 				:core-properties="coreProperties"
 				:custom-properties="customProperties"
 				:app-properties="appProperties"
-				:slides="slides"
-				@save="onPropertiesSave"
-				@close="propertiesOpen = false"
-			/>
-
-			<!-- File ▸ Version History -->
-			<VersionHistoryPanel
-				:open="showVersionHistory"
-				:versions="versionHistory.versions.value"
-				:canvas-size="canvasSize"
-				:media-data-urls="mediaDataUrls"
-				@close="showVersionHistory = false"
-				@restore="onVersionRestore"
-				@delete="onVersionDelete"
-				@compare="onVersionCompare"
-			/>
-
-			<!-- Version history ▸ compare against current -->
-			<ComparePanel
-				:open="showCompare"
-				:compare-result="compareResult"
-				:canvas-size="canvasSize"
-				:media-data-urls="mediaDataUrls"
-				@close="onCompareClose"
-				@accept-all="onCompareAcceptAll"
-			/>
-
-			<!-- Print -->
-			<PrintDialog
-				:open="printer.isPrintDialogOpen.value"
-				:slides="slides"
-				:active-slide-index="activeSlideIndex"
-				@print="printer.print"
-				@close="printer.closePrintDialog"
-			/>
-
-			<!-- Keyboard shortcut help -->
-			<ShortcutPanel :open="showShortcuts" @close="showShortcuts = false" />
-
-			<!-- File / Help ▸ Options -->
-			<SettingsDialog
-				:open="showSettings"
-				:options="viewerOptions"
-				:on-option-change="(group, key, value) => optionsStore.setValue(group, key, value)"
-				:on-restore-options="(snapshot) => optionsStore.setOptions(snapshot)"
-				:on-ribbon-tab-hidden-change="
-					(tabId, hidden) => optionsStore.setRibbonTabHidden(tabId, hidden)
-				"
-				:on-quick-access-commands-change="(ids) => optionsStore.setQuickAccessCommands(ids)"
-				:on-reset-options="(group) => optionsStore.reset(group)"
-				:on-clear-cache="onOptionsClearCache"
-				:theme-key="themeKey"
-				:on-theme-select="selectTheme"
-				:locale-code="localeCode"
-				:on-locale-select="selectLocale"
+				:header-footer="headerFooter"
+				:document-properties="documentProperties"
+				:version-history="versionHistoryWiring"
+				:printer="printer"
+				:header-footer-dialog="headerFooterDialog"
+				:show-shortcuts="showShortcuts"
+				:on-close-shortcuts="() => (showShortcuts = false)"
+				:show-settings="showSettings"
+				:on-close-settings="() => (showSettings = false)"
+				:options-store="optionsStore"
+				:viewer-options="viewerOptions"
+				:theme-key="prefs.themeKey.value"
+				:on-theme-select="prefs.selectTheme"
+				:locale-code="prefs.localeCode.value"
+				:on-locale-select="prefs.selectLocale"
 				:available-themes="props.availableThemes"
-				:available-locales="resolvedAvailableLocales"
+				:available-locales="prefs.resolvedAvailableLocales.value"
 				:ai-enabled="Boolean(props.ai)"
-				@close="showSettings = false"
+				:on-clear-cache="onOptionsClearCache"
 			/>
-
-			<!-- Header & footer -->
-			<ModalDialog
-				:open="showHeaderFooter"
-				title="Header & footer"
-				@close="showHeaderFooter = false"
-			>
-				<HeaderFooterPanel
-					:header-footer="headerFooter"
-					@update="onHeaderFooterUpdate"
-					@close="showHeaderFooter = false"
-				/>
-			</ModalDialog>
 
 			<!-- Master views (slide / notes / handout) -->
-			<div
-				v-if="showMasterView"
-				class="pptx-vue-master-overlay"
-				role="dialog"
-				:aria-label="t('pptx.view.masterViews')"
-				style="
-					position: fixed;
-					inset: 0;
-					z-index: 1000;
-					display: flex;
-					justify-content: flex-start;
-					background: rgba(0, 0, 0, 0.45);
-				"
-				@click.self="showMasterView = false"
-			>
-				<MasterViewSidebar
-					:slide-masters="slideMasters"
-					:active-master-index="activeMasterIndex"
-					:active-layout-index="activeLayoutIndex"
-					:canvas-size="canvasSize"
-					:media-data-urls="mediaDataUrls"
-					:master-view-tab="masterViewTab"
-					:notes-master="notesMaster"
-					:handout-master="handoutMaster"
-					:handout-slides-per-page="handoutMaster?.slidesPerPage ?? handoutSlidesPerPage"
-					@select-master="onSelectMaster"
-					@select-layout="onSelectLayout"
-					@tab-change="masterViewTab = $event"
-					@handout-slides-per-page-change="onHandoutSlidesPerPageChange"
-					@notes-background-change="onNotesMasterBackgroundChange"
-					@handout-background-change="onHandoutMasterBackgroundChange"
-					@collapse="showMasterView = false"
-				/>
-				<main
-					class="pptx-vue-master-canvas"
-					style="
-						display: flex;
-						flex: 1;
-						min-width: 0;
-						align-items: center;
-						justify-content: center;
-						overflow: hidden;
-						background: var(--pptx-vue-background, #111827);
-					"
-					role="application"
-					:aria-label="
-						masterViewTab === 'notes'
-							? t('pptx.master.notesMasterTitle')
-							: masterViewTab === 'handout'
-								? t('pptx.master.handoutMasterTitle')
-								: t('pptx.master.title')
-					"
-				>
-					<NotesMasterCanvas
-						v-if="masterViewTab === 'notes'"
-						:notes-master="notesMaster"
-						:canvas-size="canvasSize"
-					/>
-					<HandoutMasterCanvas
-						v-else-if="masterViewTab === 'handout'"
-						:handout-master="handoutMaster"
-						:canvas-size="canvasSize"
-						:slides-per-page="handoutMaster?.slidesPerPage ?? handoutSlidesPerPage"
-					/>
-					<SlideStage
-						v-else-if="activeMasterViewSlide"
-						:slide="activeMasterViewSlide"
-						:canvas-size="canvasSize"
-						:media-data-urls="mediaDataUrls"
-						:scale="0.75"
-					/>
-				</main>
-			</div>
-
-			<!-- Broadcast -->
-			<BroadcastDialog
-				:open="broadcastOpen"
-				:active="collabActive"
-				:viewer-url="broadcastViewerUrl"
-				:defaults="{ serverUrl: props.shareDefaults?.serverUrl }"
-				@start="onBroadcastStart"
-				@stop="onBroadcastStop"
-				@close="broadcastOpen = false"
-			/>
-
-			<!-- Slide Show ▸ Set Up Slide Show -->
-			<SetUpSlideShowDialog
-				:open="showSetUpSlideShow"
-				:properties="presentationProperties"
-				:custom-shows="customShows"
-				:slide-count="slideCount"
-				@save="onSaveSlideShowSettings"
-				@close="showSetUpSlideShow = false"
-			/>
-
-			<!-- File ▸ Protect Presentation -->
-			<PasswordProtectionDialog
-				:open="showPasswordDialog"
-				:is-currently-protected="isPasswordProtected"
-				@set-password="onSetPassword"
-				@remove-password="onRemovePassword"
-				@close="showPasswordDialog = false"
-			/>
-
-			<!-- File ▸ Embed Fonts -->
-			<FontEmbeddingPanel
-				:open="showFontEmbedding"
-				:embed-fonts-enabled="embedFontsEnabled"
-				:used-font-families="usedFontFamilies"
-				:embedded-fonts="embeddedFontNames"
-				@toggle-embed-fonts="embedFontsEnabled = $event"
-				@close="showFontEmbedding = false"
-			/>
-
-			<!-- Insert ▸ SmartArt -->
-			<InsertSmartArtDialog
-				:open="showInsertSmartArt"
-				@insert="onInsertElement"
-				@close="showInsertSmartArt = false"
-			/>
-
-			<!-- Insert ▸ Equation (also re-edits an existing equation) -->
-			<EquationEditorDialog
-				:open="showEquationEditor"
-				:existing-omml="editingEquationOmml"
-				@insert="onInsertElement"
-				@apply="onApplyEquation"
-				@close="closeEquationEditor"
-			/>
-
-			<!-- First-edit warning: saving a signed deck strips its signatures. -->
-			<SignatureStrippedDialog
-				:open="showSignatureStripped"
-				:signature-count="signatures.length"
-				@confirm="onAckSignatureStripped"
-				@cancel="onAckSignatureStripped"
-			/>
-
-			<!-- Mobile bottom bar. Unmounted while presenting (mirrors React's
-			     `mode !== 'present'` gate on `MobileChromeOverlay`): otherwise its
-			     own "Next slide" / "Previous slide" buttons stay mounted (just
-			     covered by the full-screen PresentationMode overlay) and collide
-			     with the presentation's own same-named touch controls for
-			     accessible-role queries. -->
-			<MobileBottomBar
-				v-if="isMobile && !presenting"
-				:active-sheet="mobileActiveSheet"
-				:keyboard-inset="keyboardInset"
-				:comment-count="activeComments.length"
-				@slides="mobileSlidesOpen ? (mobileSlidesOpen = false) : openMobileSheet('slides')"
-				@insert="mobileQuickInsert"
-				@format="mobileInspectorOpen ? (mobileInspectorOpen = false) : openMobileSheet('format')"
-				@comments="mobileCommentsOpen ? (mobileCommentsOpen = false) : openMobileSheet('comments')"
-				@notes="mobileNotesOpen ? (mobileNotesOpen = false) : openMobileSheet('notes')"
-			/>
-
-			<!-- Mobile slide-rail sheet (the slides panel is a left rail on
-			     desktop, hidden inline on mobile). Reuses SlidesPaneSidebar inside
-			     the shared swipe-dismiss MobileSheet; selecting a slide closes it. -->
-			<MobileSlidesSheet
-				v-if="isMobile && !presenting"
-				:open="mobileSlidesOpen"
-				:slides="mergedSlides"
-				:active-index="activeSlideIndex"
+			<MasterViewOverlay
+				v-if="masterView.showMasterView.value"
+				:state="masterView"
+				:slide-masters="slideMasters"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
-				:can-edit="props.canEdit"
-				@close="mobileSlidesOpen = false"
-				@select="goTo"
-				@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
-				@add-slide="slideOps.addSlide()"
-				@duplicate="(i) => slideOps.duplicateSlide(i)"
-				@delete="(i) => slideOps.deleteSlide(i)"
-				@toggle-hidden="toggleSlideHidden"
+				:notes-master="notesMaster"
+				:handout-master="handoutMaster"
 			/>
 
-			<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Uses the
-			     shared MobileSheet so it swipe-dismisses like Format/Comments. -->
-			<MobileSheet
-				v-if="isMobile && !presenting"
-				:open="mobileNotesOpen"
-				:title="t('pptx.notes.title')"
-				@close="mobileNotesOpen = false"
-			>
-				<NotesPanel
-					:slide="activeSlide"
-					:expanded="true"
-					@update="onNotesUpdate"
-					@toggle="mobileNotesOpen = false"
-				/>
-			</MobileSheet>
+			<ViewerDeckDialogs
+				:collaboration="collaboration"
+				:broadcast-server-url="props.shareDefaults?.serverUrl"
+				:slide-show="slideShow"
+				:presentation-properties="presentationProperties"
+				:custom-shows="customShows"
+				:slide-count="slideCount"
+				:password="password"
+				:font-embedding="fontEmbedding"
+				:insert-dialogs="insertDialogs"
+				:signature-workflow="signatureWorkflow"
+				:signature-count="signatures.length"
+			/>
 
-			<!-- Mobile Format / properties sheet (right-rail inspector on desktop) -->
-			<MobileSheet
-				v-if="isMobile && props.canEdit && !presenting"
-				:open="mobileInspectorOpen"
-				inspector
-				:title="t('pptx.arrange.format')"
-				@close="mobileInspectorOpen = false"
-			>
-				<InspectorPane
-					v-if="inspectorElementForPanels"
-					mobile
-					:element="inspectorElementForPanels"
-					:can-edit="props.canEdit"
-					:slide-count="slideCount"
-					:media-data-urls="mediaDataUrls"
-					:slide-elements="activeSlide?.elements ?? []"
-					:slide-animations="activeSlide?.animations ?? []"
-					@update="onInspectorUpdate"
-					@update-slide-animations="writeSlideAnimations"
-				/>
-				<SlideInspector
-					v-else-if="slideCount > 0"
-					mobile
-					:slide="activeSlide"
-					:theme="pptxTheme"
-					:presentation-properties="presentationProperties"
-					:can-edit="props.canEdit"
-					:theme-options="themeOptions"
-					:slide-masters="slideMasters"
-					:canvas-size="canvasSize"
-					:notes-canvas-size="notesCanvasSize"
-					:notes-master="notesMaster"
-					:handout-master="handoutMaster"
-					:core-properties="coreProperties"
-					:app-properties="appProperties"
-					:custom-properties="customProperties"
-					:tag-collections="tagCollections"
-					:comments="commentsApi.slideComments.value"
-					:author-name="authorNameRef"
-					@slide-update="applySlideBackgroundPatch"
-					@presentation-update="onPresentationPropertiesUpdate"
-					@apply-theme="applyThemeByPath"
-					@canvas-size-update="updateCanvasSize"
-					@update-core-properties="updateCoreProperties"
-					@update-app-properties="updateAppProperties"
-					@update-custom-properties="updateCustomProperties"
-					@update-tag-collections="updateTagCollections"
-					@select-element="onSelectionPaneSelect"
-					@comment-add="(t) => commitComments(commentsApi.addComment(t))"
-					@comment-remove="(id) => commitComments(commentsApi.removeComment(id))"
-					@comment-resolve="(id) => commitComments(commentsApi.resolveComment(id))"
-					@comment-reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
-					@close="mobileInspectorOpen = false"
-				/>
-				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">
-					{{ t('pptx.inspector.noSlideSelected') }}
-				</p>
-			</MobileSheet>
-
-			<!-- Mobile Comments sheet (right-rail panel on desktop) -->
-			<MobileSheet
-				v-if="isMobile && props.canEdit && !presenting"
-				:open="mobileCommentsOpen"
-				:title="t('pptx.toolbar.comments')"
-				@close="mobileCommentsOpen = false"
-			>
-				<CommentsPanel
-					:comments="commentsApi.slideComments.value"
-					:author-name="authorNameRef"
-					@add="(t) => commitComments(commentsApi.addComment(t))"
-					@remove="(id) => commitComments(commentsApi.removeComment(id))"
-					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
-					@reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
-				/>
-			</MobileSheet>
+			<ViewerMobileSheets
+				v-if="isMobile && !presentation.presenting.value"
+				:chrome="mobileChrome"
+				:deck="deck"
+				:slide-ops="slideOps"
+				:comments="comments"
+				:deck-actions="deckActions"
+				:merged-slides="mergedSlides"
+				:active-slide="activeSlide"
+				:active-slide-index="activeSlideIndex"
+				:slide-count="slideCount"
+				:active-comments="comments.activeComments.value"
+				:can-edit="props.canEdit"
+				:keyboard-inset="keyboardInset"
+				:inspector-element="inspector.inspectorElementForPanels.value"
+				:author-name="authorNameRef"
+				:go-to="goTo"
+				:toggle-slide-hidden="toggleSlideHidden"
+				:on-notes-update="onNotesUpdate"
+				:on-inspector-update="inspector.onInspectorUpdate"
+				:on-update-slide-animations="inspector.writeSlideAnimations"
+				:on-slide-update="applySlideBackgroundPatch"
+				:on-presentation-update="slideShow.onPresentationPropertiesUpdate"
+				:on-select-element="selectionPane.onSelectionPaneSelect"
+			/>
 
 			<!-- Off-screen stage used to rasterise slides for export -->
 			<div
@@ -3070,75 +1440,22 @@ function handleQuickAccessCommand(id: string): void {
 			@cancel="exportProgressCtl.cancelExport"
 		/>
 
-		<!-- Slide sorter overlay -->
-		<SlideSorter
-			v-if="showSorter"
-			:slides="mergedSlides"
+		<ViewerPresentationLayer
+			:deck-views="deckViews"
+			:presentation="presentation"
+			:merged-slides="mergedSlides"
+			:slides="slides"
 			:canvas-size="canvasSize"
 			:media-data-urls="mediaDataUrls"
 			:content="props.content"
-			:active-index="activeSlideIndex"
-			:can-edit="props.canEdit"
-			@select="onSorterSelect"
-			@reorder="onSorterReorder"
-			@duplicate="(i) => slideOps.duplicateSlide(i)"
-			@delete="(i) => slideOps.deleteSlide(i)"
-			@toggle-hidden="toggleSlideHidden"
-			@close="showSorter = false"
-		/>
-
-		<!-- Outline view overlay (the deck as editable indented text) -->
-		<!--
-			The EDITABLE deck, not `mergedSlides`: the merged one has each slide's
-			inherited master/layout elements folded in, and committing that back
-			would bake the whole template layer into every slide's own elements.
-		-->
-		<OutlineViewOverlay
-			v-if="showOutlineView"
-			:slides="slides"
-			:canvas-size="canvasSize"
-			:can-edit="props.canEdit"
-			@commit="onOutlineCommit"
-			@close="showOutlineView = false"
-		/>
-
-		<!-- Reading view overlay (windowed; never the Fullscreen API) -->
-		<ReadingViewOverlay
-			v-if="showReadingView"
-			:slides="mergedSlides"
-			:canvas-size="canvasSize"
-			:media-data-urls="mediaDataUrls"
 			:active-slide-index="activeSlideIndex"
-			@exit="onReadingViewExit"
-		/>
-
-		<!-- Presentation / slideshow overlay -->
-		<PresentationMode
-			v-if="presenting"
-			:slides="mergedSlides"
-			:canvas-size="canvasSize"
-			:media-data-urls="mediaDataUrls"
-			:start-index="activeSlideIndex"
-			:start-in-presenter-view="startInPresenterView"
+			:can-edit="props.canEdit"
 			:presentation-properties="presentationProperties"
-			:active-custom-show="activePresentationCustomShow"
 			:end-with-black-slide="viewerOptions.advanced.slideShowEndWithBlackSlide"
 			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"
-			@close="closePresentation"
-			@slide-change="handlePresentSlideChange"
-		/>
-		<RehearseTimingsHud
-			v-if="rehearsal.rehearsing.value"
-			:slide-elapsed-ms="rehearsal.slideElapsedMs.value"
-			:total-elapsed-ms="rehearsal.totalElapsedMs.value"
-			:paused="rehearsal.paused.value"
-			@toggle-pause="rehearsal.togglePause"
-		/>
-		<RehearseTimingsSummary
-			v-if="rehearsal.showSummary.value"
-			:timings="rehearsal.recordedTimings.value"
-			@save="rehearsal.saveTimings"
-			@discard="rehearsal.dismissSummary"
+			:duplicate-slide="slideOps.duplicateSlide"
+			:delete-slide="slideOps.deleteSlide"
+			:toggle-slide-hidden="toggleSlideHidden"
 		/>
 	</div>
 </template>

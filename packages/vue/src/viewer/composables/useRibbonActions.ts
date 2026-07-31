@@ -54,6 +54,12 @@ export function toShapePreset(t: SupportedShapeType): ShapePreset {
  * (cell/text-style application, flip, front/back z-order). Extracted verbatim
  * from `PowerPointViewer.vue`; the big `ribbonProps` adapter stays in the SFC.
  */
+/**
+ * The ribbon-facing action surface. Inferred from the implementation so the two
+ * cannot drift; `useViewerRibbonProps` refers to this rather than restating it.
+ */
+export type UseRibbonActionsResult = ReturnType<typeof useRibbonActions>;
+
 export function useRibbonActions(input: UseRibbonActionsInput) {
 	const {
 		canEdit,

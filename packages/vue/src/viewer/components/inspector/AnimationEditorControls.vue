@@ -61,6 +61,11 @@ function label(element: PptxElement): string {
 	return animationElementLabel(element, element.id);
 }
 
+/** The row's effect name (`t` is an overloaded generic, hence the lambda). */
+function presetLabel(animation: PptxElementAnimation): string {
+	return animationPresetLabel(animation, (key: string) => t(key));
+}
+
 /**
  * Spell the direction / sequence / timing-curve wire tokens for display.
  *
@@ -87,7 +92,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 		data-animation-editor
 	>
 		<div class="flex items-center gap-1">
-			<strong class="flex-1 truncate">{{ animationPresetLabel(animation) }}</strong>
+			<strong class="flex-1 truncate">{{ presetLabel(animation) }}</strong>
 			<button type="button" class="text-primary" @click="emit('preview')">
 				{{ t('pptx.animation.preview') }}
 			</button>
