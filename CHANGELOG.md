@@ -10,6 +10,27 @@ dated sections beneath it are generated from
 
 ## 2026-07-31
 
+_Releases: pptx-react-viewer@2.8.0, pptx-vue-viewer@2.8.0, pptx-angular-viewer@2.8.0, pptx-vanilla-viewer@1.9.0, pptx-svelte-viewer@2.8.0_
+
+### Features
+
+- **shared:** Decide which slide-show clicks are a PowerPoint advance (by @ChristopherVR) ([12ab5c8](https://github.com/ChristopherVR/pptx-viewer/commit/12ab5c82f08083e725eae332ee19b03b5021ce79))
+
+### Bug Fixes
+
+- **react:** Advance the slide show when the presenter clicks (by @ChristopherVR) ([35490cc](https://github.com/ChristopherVR/pptx-viewer/commit/35490cc6164b6d4beb58d72bd6a19c919aba9862))
+- **vue:** Advance the slide show on a slide's authored timing (by @ChristopherVR) ([781d0d1](https://github.com/ChristopherVR/pptx-viewer/commit/781d0d1bce1e6761f9429ee30fc1126a29c211f4))
+- **angular:** Stop a morph's departing layer covering the incoming slide (by @ChristopherVR) ([e338731](https://github.com/ChristopherVR/pptx-viewer/commit/e3387314197ee7107d135e10fa04aef26bb86bf6))
+- **vue:** Paint a video's poster frame and hide its transport in a show (by @ChristopherVR) ([59c2852](https://github.com/ChristopherVR/pptx-viewer/commit/59c285287d990cd9254d8ac4929706568bd02f49))
+- **vanilla:** Advance the slide show on a slide's authored timing (by @ChristopherVR) ([525a167](https://github.com/ChristopherVR/pptx-viewer/commit/525a1673aad8ce00625ad0e0758b949b516c7141))
+- **e2e:** Drop binding-specific selectors from the new present specs (by @ChristopherVR) ([4db83a8](https://github.com/ChristopherVR/pptx-viewer/commit/4db83a8c401f3b3586784b7244ca131511757023))
+
+### Testing
+
+- **e2e:** Pin the morph departing layer to a see-through stage (by @ChristopherVR) ([34cd034](https://github.com/ChristopherVR/pptx-viewer/commit/34cd03460e4ae1612abd9e7c6525b60b64002b3c))
+
+## 2026-07-31
+
 _Releases: pptx-viewer-core@2.0.11, pptx-react-viewer@2.7.1, pptx-vue-viewer@2.7.1, pptx-angular-viewer@2.7.1, pptx-vanilla-viewer@1.8.1, pptx-svelte-viewer@2.7.1_
 
 ### Bug Fixes
