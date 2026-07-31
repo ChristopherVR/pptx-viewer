@@ -9,6 +9,12 @@ export interface ShapeLineStyleContext {
 	extractColorOpacity: (colorNode: XmlObject | undefined) => number | undefined;
 	extractGradientFillColor: (gradFill: XmlObject) => string | undefined;
 	extractGradientOpacity: (gradFill: XmlObject) => number | undefined;
+	// Structured gradient data for the outline. The averaged `strokeColor` alone
+	// cannot express a two-tone or fade-to-transparent outline.
+	extractGradientStops: (gradFill: XmlObject) => NonNullable<ShapeStyle['fillGradientStops']>;
+	extractGradientAngle: (gradFill: XmlObject) => number;
+	extractGradientType: (gradFill: XmlObject) => NonNullable<ShapeStyle['fillGradientType']>;
+	extractGradientPathType: (gradFill: XmlObject) => ShapeStyle['fillGradientPathType'];
 	normalizeStrokeDashType: (value: unknown) => StrokeDashType | undefined;
 	normalizeConnectorArrowType: (value: unknown) => ConnectorArrowType | undefined;
 	ensureArray: (value: unknown) => unknown[];
@@ -79,6 +85,15 @@ function applyStrokeColor(
 		style.strokeGradientXml = lineGradFill;
 		style.strokeColor = context.extractGradientFillColor(lineGradFill);
 		style.strokeOpacity = context.extractGradientOpacity(lineGradFill);
+		// Structured form for renderers: the averaged colour above flattens a
+		// two-tone outline and makes a fade-to-transparent one fully opaque.
+		const lineStops = context.extractGradientStops(lineGradFill);
+		if (lineStops.length > 0) {
+			style.strokeGradientStops = lineStops;
+			style.strokeGradientAngle = context.extractGradientAngle(lineGradFill);
+			style.strokeGradientType = context.extractGradientType(lineGradFill);
+			style.strokeGradientPathType = context.extractGradientPathType(lineGradFill);
+		}
 	} else if (lineNode['a:pattFill']) {
 		// Preserve the whole pattern node so save re-emits a single `a:pattFill`
 		// outline verbatim rather than downgrading it to a solid fill.
@@ -91,6 +106,15 @@ function applyStrokeColor(
 		style.strokeOpacity =
 			context.extractColorOpacity(linePatternFill['a:fgClr'] as XmlObject | undefined) ||
 			context.extractColorOpacity(linePatternFill['a:bgClr'] as XmlObject | undefined);
+		// Structured form, mirroring `fillPatternPreset` / `fillPatternBackgroundColor`.
+		const linePatternPreset = String(linePatternFill['@_prst'] || '').trim();
+		if (linePatternPreset.length > 0) {
+			style.strokePatternPreset = linePatternPreset;
+		}
+		const linePatternBg = context.parseColor(linePatternFill['a:bgClr'] as XmlObject | undefined);
+		if (linePatternBg) {
+			style.strokePatternBackgroundColor = linePatternBg;
+		}
 	}
 }
 

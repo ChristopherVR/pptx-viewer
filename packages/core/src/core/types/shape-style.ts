@@ -164,6 +164,27 @@ export interface ShapeStyle {
 	/** Raw `a:ln/a:pattFill` XML preserved for round-trip when the outline is
 	 *  pattern-filled. Re-emitted verbatim as the line's single fill on save. */
 	strokePatternXml?: XmlObject;
+	/**
+	 * Structured stops of a gradient outline (`a:ln/a:gradFill/a:gsLst`), in the
+	 * same shape as {@link fillGradientStops}.
+	 *
+	 * The raw XML above round-trips a gradient outline on save, but a renderer
+	 * cannot paint from it: it needs resolved colours and positions. Without
+	 * these, every binding fell back to {@link strokeColor} - a single averaged
+	 * colour - so a two-tone outline painted flat and a fade-to-transparent
+	 * outline painted fully opaque.
+	 */
+	strokeGradientStops?: ShapeStyle['fillGradientStops'];
+	/** Gradient outline angle in OOXML degrees (`a:lin/@ang`), 0 = left to right. */
+	strokeGradientAngle?: number;
+	/** Gradient outline kind: `linear` (`a:lin`) or `radial` (`a:path`). */
+	strokeGradientType?: ShapeStyle['fillGradientType'];
+	/** Path-gradient shape for a radial outline (`a:path/@path`). */
+	strokeGradientPathType?: ShapeStyle['fillGradientPathType'];
+	/** Preset name of a pattern outline (`a:ln/a:pattFill/@prst`). */
+	strokePatternPreset?: string;
+	/** Background colour of a pattern outline (`a:ln/a:pattFill/a:bgClr`). */
+	strokePatternBackgroundColor?: string;
 	strokeWidth?: number;
 	strokeOpacity?: number;
 	strokeDash?: StrokeDashType;

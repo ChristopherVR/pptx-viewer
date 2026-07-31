@@ -24,6 +24,10 @@ function makeContext(overrides: Partial<ShapeLineStyleContext> = {}): ShapeLineS
 		extractColorOpacity: () => undefined,
 		extractGradientFillColor: () => undefined,
 		extractGradientOpacity: () => undefined,
+		extractGradientStops: () => [],
+		extractGradientAngle: () => 0,
+		extractGradientType: () => 'linear',
+		extractGradientPathType: () => undefined,
 		normalizeStrokeDashType: (value: unknown): StrokeDashType | undefined => {
 			const valid: StrokeDashType[] = [
 				'solid',
@@ -207,6 +211,36 @@ describe('applyLineProperties — outline fill kind', () => {
 		expect(style.strokeColor).toBe('#7F007F');
 	});
 
+	it('models a gradient outline in structured form, not just raw XML', () => {
+		// The averaged `strokeColor` cannot express a two-tone or
+		// fade-to-transparent outline, so renderers need resolved stops.
+		const gradFill: XmlObject = { 'a:lin': { '@_ang': '5400000' } };
+		const style = makeStyle();
+		applyLineProperties({ 'a:gradFill': gradFill }, style, {
+			...makeContext(),
+			extractGradientStops: () => [
+				{ color: '#FF0000', position: 0 },
+				{ color: '#0000FF', position: 100, opacity: 0 },
+			],
+			extractGradientAngle: () => 90,
+			extractGradientType: () => 'linear',
+		});
+		expect(style.strokeGradientStops).toStrictEqual([
+			{ color: '#FF0000', position: 0 },
+			{ color: '#0000FF', position: 100, opacity: 0 },
+		]);
+		expect(style.strokeGradientAngle).toBe(90);
+		expect(style.strokeGradientType).toBe('linear');
+	});
+
+	it('leaves the structured gradient fields unset when there are no stops', () => {
+		const style = makeStyle();
+		applyLineProperties({ 'a:gradFill': {} }, style, makeContext());
+		expect(style.strokeFillMode).toBe('gradient');
+		expect(style.strokeGradientStops).toBeUndefined();
+		expect(style.strokeGradientAngle).toBeUndefined();
+	});
+
 	it('models a pattern outline and preserves the whole a:pattFill node', () => {
 		const pattFill: XmlObject = {
 			'@_prst': 'dkDnDiag',
@@ -218,6 +252,10 @@ describe('applyLineProperties — outline fill kind', () => {
 		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeFillMode).toBe('pattern');
 		expect(style.strokePatternXml).toBe(pattFill);
+		// Structured form, so a renderer can build the same tiled SVG the fill
+		// side already builds from `fillPatternPreset`.
+		expect(style.strokePatternPreset).toBe('dkDnDiag');
+		expect(style.strokePatternBackgroundColor).toBe('#445566');
 	});
 
 	it('models a noFill outline (no hidden line) as strokeFillMode "none"', () => {
