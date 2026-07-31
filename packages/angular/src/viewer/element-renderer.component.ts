@@ -8,6 +8,7 @@ import {
 	buildRunEffectStyle,
 	buildTextBody3DSceneStyle,
 	buildTextBuildSpec,
+	getOverflowSegments,
 	isElementHidden,
 	textBuildSpanStyle,
 	resolveAutoFitFontScale,
@@ -29,7 +30,7 @@ import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
 import {
 	getEffectFillOverlay,
-	getGradientStrokeOutline,
+	getStrokeOutline,
 	getSoftEdgeFilterDef,
 } from './element-effect-defs';
 import type { SoftEdgeFilterDef } from './element-effect-defs';
@@ -325,6 +326,7 @@ interface Paragraph {
 							[interactive]="interactive()"
 							[presenting]="presenting()"
 							[fieldContext]="fieldContext()"
+							[slideElements]="slideElements()"
 							[parentGroupFill]="childParentGroupFill()"
 						/>
 					}
@@ -364,7 +366,7 @@ interface Paragraph {
 							[style.mix-blend-mode]="ov.blendMode"
 						></div>
 					}
-					<!-- Gradient outline (a:ln/a:gradFill): a CSS border takes one colour only. -->
+					<!-- Gradient / pattern outline: a CSS border takes one flat colour only. -->
 					@if (gradientOutline(); as go) {
 						<svg
 							class="pptx-ng-gradient-outline"
@@ -381,14 +383,27 @@ interface Paragraph {
 							"
 						>
 							<defs>
-								@if (go.gradient.kind === 'radial') {
-									<radialGradient
-										[attr.id]="go.gradient.id"
-										[attr.cx]="go.gradient.cx"
-										[attr.cy]="go.gradient.cy"
-										[attr.r]="go.gradient.r"
+								@if (go.paint.kind === 'pattern') {
+									<pattern
+										[attr.id]="go.paint.id"
+										[attr.width]="go.paint.width"
+										[attr.height]="go.paint.height"
+										patternUnits="userSpaceOnUse"
 									>
-										@for (stop of go.gradient.stops; track $index) {
+										<image
+											[attr.href]="go.paint.href"
+											[attr.width]="go.paint.width"
+											[attr.height]="go.paint.height"
+										/>
+									</pattern>
+								} @else if (go.paint.kind === 'radial') {
+									<radialGradient
+										[attr.id]="go.paint.id"
+										[attr.cx]="go.paint.cx"
+										[attr.cy]="go.paint.cy"
+										[attr.r]="go.paint.r"
+									>
+										@for (stop of go.paint.stops; track $index) {
 											<stop
 												[attr.offset]="stop.offset"
 												[attr.stop-color]="stop.color"
@@ -398,13 +413,13 @@ interface Paragraph {
 									</radialGradient>
 								} @else {
 									<linearGradient
-										[attr.id]="go.gradient.id"
-										[attr.x1]="go.gradient.x1"
-										[attr.y1]="go.gradient.y1"
-										[attr.x2]="go.gradient.x2"
-										[attr.y2]="go.gradient.y2"
+										[attr.id]="go.paint.id"
+										[attr.x1]="go.paint.x1"
+										[attr.y1]="go.paint.y1"
+										[attr.x2]="go.paint.x2"
+										[attr.y2]="go.paint.y2"
 									>
-										@for (stop of go.gradient.stops; track $index) {
+										@for (stop of go.paint.stops; track $index) {
 											<stop
 												[attr.offset]="stop.offset"
 												[attr.stop-color]="stop.color"
@@ -417,7 +432,7 @@ interface Paragraph {
 							<path
 								[attr.d]="go.d"
 								fill="none"
-								[attr.stroke]="'url(#' + go.gradient.id + ')'"
+								[attr.stroke]="'url(#' + go.paint.id + ')'"
 								[attr.stroke-width]="go.strokeWidth"
 								[attr.stroke-dasharray]="go.dashArray"
 								[attr.stroke-linecap]="go.lineCap"
@@ -681,6 +696,19 @@ export class ElementRendererComponent {
 	readonly fieldContext = input<FieldSubstitutionContext | undefined>(undefined);
 
 	/**
+	 * The elements of the slide being painted, threaded down (including to
+	 * recursive group children) alongside {@link fieldContext}.
+	 *
+	 * Needed only by `a:linkedTxbx` chains: a text box in a linked chain renders
+	 * the slice of the chain's text that the preceding boxes could not hold,
+	 * which is computable only from its SIBLINGS. Mirrors React's `slideElements`
+	 * (taken from its `activeSlide.elements` prop). Left empty by a host that
+	 * renders an element outside any slide, in which case a linked box falls back
+	 * to its own authored segments.
+	 */
+	readonly slideElements = input<readonly PptxElement[]>([]);
+
+	/**
 	 * When true, inherited master/layout (template) elements get a visual
 	 * affordance (amber outline ring + slightly reduced opacity) signalling that
 	 * they are now directly editable. Has no effect on normal slide elements, and
@@ -717,8 +745,8 @@ export class ElementRendererComponent {
 	 * DAG fill-overlay tint (colour + blend mode) painted as a separate blended
 	 * layer over the shape. Undefined when the element has no fill overlay.
 	 */
-	/** Gradient `a:ln` outline, stroked as an SVG path over the element. */
-	readonly gradientOutline = computed(() => getGradientStrokeOutline(this.element()));
+	/** Gradient / pattern `a:ln` outline, stroked as an SVG path over the element. */
+	readonly gradientOutline = computed(() => getStrokeOutline(this.element()));
 
 	/** viewBox in the element's own pixel space, matching the outline path data. */
 	readonly outlineViewBox = computed(
@@ -871,7 +899,13 @@ export class ElementRendererComponent {
 		if (!hasTextProperties(el)) {
 			return [];
 		}
-		const segments = el.textSegments;
+		// `a:linkedTxbx`: when this box is part of a linked chain it paints the
+		// slice of the chain's text the preceding boxes could not hold, NOT its own
+		// authored segments. The shared helper returns undefined (one field check)
+		// for the overwhelmingly common non-chain element, so the fallback below is
+		// the normal path. Everything downstream (autofit scale, paragraph indents,
+		// bullets) still reads the element itself, exactly as React does.
+		const segments = getOverflowSegments(el, this.slideElements()) ?? el.textSegments;
 		if (!segments || segments.length === 0) {
 			return el.text
 				? [{ runs: [{ text: el.text, style: {} }], bulletStyle: {}, indentPx: 0 }]
