@@ -22,6 +22,21 @@ import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 // The `!!` name lives in its own module so `morph-flatten` can read it without
 // importing this one back (a cycle that breaks once the graph is bundled).
 export { getElementMorphName } from './morph-name';
+
+/**
+ * Whether two elements both carry text, and carry DIFFERENT text.
+ *
+ * Used to veto a purely positional match: same-place-different-words is the
+ * signature of a rebuilt panel, not of one object that moved. Whitespace is
+ * normalised so a reflowed line break does not read as a different string.
+ */
+function differentText(a: PptxElement, b: PptxElement): boolean {
+	const textOf = (element: PptxElement): string =>
+		((element as { text?: string }).text ?? '').replace(/\s+/gu, ' ').trim();
+	const fromText = textOf(a);
+	const toText = textOf(b);
+	return fromText !== '' && toText !== '' && fromText !== toText;
+}
 // ---------------------------------------------------------------------------
 // Creation identity (`a16:creationId`)
 // ---------------------------------------------------------------------------
@@ -232,6 +247,22 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 				continue;
 			}
 			if (fromEl.type !== toEl.type) {
+				continue;
+			}
+			// Proximity is the weakest signal there is: it says two elements sit
+			// in the same place, not that they are the same object. For TEXT that
+			// is not enough. The issue #131 deck rebuilds its centre panel on
+			// every topic slide with fresh text boxes - different `shapeId`,
+			// different name, different words, near-identical box - so this pass
+			// paired "Multi-Domain Fusion" with "Cyber and EM Spectrum" and glided
+			// one into the other, moving 11px and squeezing 193px of box down to
+			// 172px while the words dissolved. PowerPoint has no identity to match
+			// on there either, and simply fades the old out and the new in.
+			//
+			// Anything the author really did carry across keeps its `a16:creationId`
+			// (pass 2a) or its `!!` name (pass 1) and never reaches this pass, so
+			// gating here costs a real morph nothing.
+			if (differentText(fromEl, toEl)) {
 				continue;
 			}
 			const widthRatio =

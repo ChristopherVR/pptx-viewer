@@ -915,3 +915,62 @@ describe('edge cases', () => {
 		expect(pairs[0].toElement.id).toBe('b');
 	});
 });
+
+// ==========================================================================
+// Proximity must not pair unrelated text (issue #131 follow-up)
+// ==========================================================================
+
+describe('proximity matching of text elements', () => {
+	const textAt = (id: string, text: string, box: Partial<PptxElement> = {}): PptxElement =>
+		makeElement({ id, type: 'text', x: 500, y: 300, width: 200, height: 30, text, ...box });
+
+	it('does not pair two text boxes whose words differ', () => {
+		// The issue #131 deck rebuilds its centre panel per topic slide with fresh
+		// text boxes: different shapeId, different name, different words, nearly
+		// the same box. Pairing them on position alone glided one into the other,
+		// moving and resizing the text where PowerPoint - which has no identity to
+		// match on either - simply fades.
+		const result = matchMorphElementsFull(
+			makeSlide([textAt('a', 'Multi-Domain Fusion')]),
+			makeSlide([textAt('b', 'Cyber and EM Spectrum', { y: 301 })]),
+		);
+		expect(result.pairs).toHaveLength(0);
+		expect(result.unmatchedFrom).toHaveLength(1);
+		expect(result.unmatchedTo).toHaveLength(1);
+	});
+
+	it('still pairs the same words sitting in the same place', () => {
+		const result = matchMorphElementsFull(
+			makeSlide([textAt('a', 'Secure Data Movement')]),
+			makeSlide([textAt('b', 'Secure Data Movement')]),
+		);
+		expect(result.pairs).toHaveLength(1);
+	});
+
+	it('ignores whitespace differences when comparing the words', () => {
+		const result = matchMorphElementsFull(
+			makeSlide([textAt('a', 'Secure  Data\nMovement')]),
+			makeSlide([textAt('b', 'Secure Data Movement')]),
+		);
+		expect(result.pairs).toHaveLength(1);
+	});
+
+	it('still pairs different words when a stronger signal says it is one object', () => {
+		// A real carried-over shape keeps its `!!` name (pass 1) or its
+		// `a16:creationId` (pass 2a) and never reaches the proximity pass, so
+		// gating there costs a genuine morph nothing.
+		const result = matchMorphElementsFull(
+			makeSlide([textAt('a', 'Before', { name: '!!panel' })]),
+			makeSlide([textAt('b', 'After', { name: '!!panel', y: 400 })]),
+		);
+		expect(result.pairs).toHaveLength(1);
+	});
+
+	it('leaves non-text proximity matching alone', () => {
+		const result = matchMorphElementsFull(
+			makeSlide([makeElement({ id: 'a', type: 'shape', x: 500, y: 300 })]),
+			makeSlide([makeElement({ id: 'b', type: 'shape', x: 505, y: 305 })]),
+		);
+		expect(result.pairs).toHaveLength(1);
+	});
+});
