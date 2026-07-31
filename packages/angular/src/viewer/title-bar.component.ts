@@ -29,8 +29,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
 	DEFAULT_VIEWER_OPTIONS,
+	extraQuickAccessCommands,
 	filterCommands,
-	QUICK_ACCESS_COMMAND_CATALOG,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES,
 	TITLE_BAR_DEFAULT_FILE_KEY,
@@ -41,13 +41,42 @@ import type {
 	ViewerQuickAccessOptions,
 } from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
+import { QuickAccessStripComponent } from './quick-access-strip.component';
 import { toolbarVisibility } from './toolbar-visibility';
+
+/**
+ * Narrow the Quick Access options to the commands rendered BEYOND the dedicated
+ * Save/Undo/Redo buttons (which keep their own gating + labels), so the
+ * remainder can be handed to {@link QuickAccessStripComponent} as-is.
+ *
+ * Exported (and pure) because this package has no TestBed: the template's
+ * `@if (extraQat().commandIds.length > 0)` is exactly this list, so asserting
+ * it asserts what the strip renders.
+ */
+export function narrowToExtraQuickAccess(
+	options: ViewerQuickAccessOptions,
+): ViewerQuickAccessOptions {
+	return {
+		...options,
+		commandIds: options.visible
+			? extraQuickAccessCommands(options.commandIds).map((entry) => entry.id)
+			: [],
+	};
+}
 
 @Component({
 	selector: 'pptx-title-bar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe, LucideSave, LucideUndo, LucideRedo, LucideSearch],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		LucideSave,
+		LucideUndo,
+		LucideRedo,
+		LucideSearch,
+		QuickAccessStripComponent,
+	],
 	template: `
 		<div [class]="tb.container" data-pptx-title-bar>
 			<span [class]="tb.logo" aria-hidden="true">P</span>
@@ -120,22 +149,11 @@ import { toolbarVisibility } from './toolbar-visibility';
 							<svg lucideRedo class="h-3.5 w-3.5"></svg>
 						</button>
 					}
-					@for (cmd of extraQuickCommands(); track cmd.id) {
-						<button
-							type="button"
-							[class]="tb.quickButton"
-							[title]="cmd.labelKey | translate"
-							[attr.aria-label]="cmd.labelKey | translate"
-							(click)="onQuickCommand(cmd.id)"
-						>
-							@if (qat().showCommandLabels) {
-								<span class="text-[11px]">{{ cmd.labelKey | translate }}</span>
-							} @else {
-								<span class="text-[11px] font-semibold" aria-hidden="true">{{
-									(cmd.labelKey | translate).charAt(0)
-								}}</span>
-							}
-						</button>
+					@if (extraQat().commandIds.length > 0) {
+						<pptx-quick-access-strip
+							[quickAccess]="extraQat()"
+							(command)="onQuickCommand($event)"
+						/>
 					}
 				}
 
@@ -272,19 +290,11 @@ export class TitleBarComponent {
 	);
 
 	/**
-	 * Configured Quick Access commands beyond the dedicated save/undo/redo
-	 * buttons (which keep their own gating + labels). Rendered as text-label
-	 * buttons routed through {@link onQuickCommand}.
+	 * The Quick Access options narrowed to the commands beyond the dedicated
+	 * save/undo/redo buttons. Reusing {@link QuickAccessStripComponent} for the
+	 * remainder means those buttons carry real icons rather than a letter glyph.
 	 */
-	protected readonly extraQuickCommands = computed(() => {
-		const dedicated = new Set(['save', 'undo', 'redo']);
-		return this.qat()
-			.commandIds.filter((id) => !dedicated.has(id))
-			.map((id) => QUICK_ACCESS_COMMAND_CATALOG.find((entry) => entry.id === id))
-			.filter(
-				(entry): entry is (typeof QUICK_ACCESS_COMMAND_CATALOG)[number] => entry !== undefined,
-			);
-	});
+	protected readonly extraQat = computed(() => narrowToExtraQuickAccess(this.qat()));
 
 	/**
 	 * Route a Quick Access press: keep the dedicated save/undo/redo outputs

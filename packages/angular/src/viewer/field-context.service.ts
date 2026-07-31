@@ -2,6 +2,7 @@ import { Injectable, computed, inject } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { FieldSubstitutionContext } from '../internal/shared';
+import { buildFieldSubstitutionContext, resolveSlideTitle } from '../internal/shared';
 import { LoadContentService } from './load-content.service';
 
 /**
@@ -18,25 +19,23 @@ import { LoadContentService } from './load-content.service';
  * Provided alongside `LoadContentService` in the viewer subtree, so renderers
  * used outside the viewer (thumbnails, export) that inject it `optional` simply
  * fall back to no substitution.
+ *
+ * The assembly itself (including the slide-title resolution, which used to be a
+ * local `placeholderType` scan here and so never resolved a title on a real
+ * `.pptx`) lives in `pptx-viewer-shared`, so all five bindings build the same
+ * context; this service is only the signals adapter.
  */
 @Injectable()
 export class FieldContextService {
 	private readonly load = inject(LoadContentService);
 
 	/** Deck-level field context (header/footer + custom properties); slide parts unset. */
-	readonly deckContext = computed<FieldSubstitutionContext>(() => {
-		const hf = this.load.headerFooter();
-		return {
-			dateTimeText: hf?.dateTimeText,
-			dateFormat: hf?.dateFormat,
-			footerText: hf?.footerText,
-			headerText: hf?.headerText,
-			customProperties: this.load.customProperties().map((p) => ({
-				name: p.name,
-				value: p.value,
-			})),
-		};
-	});
+	readonly deckContext = computed<FieldSubstitutionContext>(() =>
+		buildFieldSubstitutionContext({
+			headerFooter: this.load.headerFooter(),
+			customProperties: this.load.customProperties(),
+		}),
+	);
 
 	/**
 	 * Build the full field context for a specific slide, folding the slide's
@@ -50,26 +49,4 @@ export class FieldContextService {
 			slideTitle: resolveSlideTitle(slide),
 		};
 	}
-}
-
-/**
- * Extract the slide-title text from the first title / centre-title placeholder
- * element on a slide, mirroring React's `ViewerCanvasArea` title scan. The
- * `placeholderType` discriminant is not a typed field on `PptxElement`, so it
- * is read via a narrow cast.
- */
-export function resolveSlideTitle(slide: PptxSlide | undefined): string | undefined {
-	if (!slide) {
-		return undefined;
-	}
-	for (const el of slide.elements) {
-		const phType = (el as { placeholderType?: string }).placeholderType;
-		if (phType === 'title' || phType === 'ctrTitle') {
-			const txt = (el as { text?: string }).text;
-			if (txt) {
-				return txt;
-			}
-		}
-	}
-	return undefined;
 }

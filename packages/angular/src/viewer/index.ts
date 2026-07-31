@@ -39,11 +39,24 @@ export { PresentationPropertiesPanelComponent } from './presentation-properties-
 export { PresentationSettingsCardComponent } from './presentation-settings-card.component';
 export { ThemeSelectorCardComponent } from './theme-selector-card.component';
 export { SlideSizeCardComponent } from './slide-size-card.component';
+export { SlideTransitionCardComponent } from './slide-transition-card.component';
+export { SlideBackgroundCardComponent } from './slide-background-card.component';
+export { TransitionDirectionPickerComponent } from './transition-direction-picker.component';
+export { TransitionPreviewComponent } from './transition-preview.component';
 export { NotesHandoutCardComponent } from './notes-handout-card.component';
 export { DocumentPropertiesCardComponent } from './document-properties-card.component';
+export { TagsCardComponent } from './tags-card.component';
 export { GradientPickerComponent } from './gradient-picker.component';
 export { EffectsPanelComponent } from './effects-panel.component';
 export { TextAdvancedPanelComponent } from './text-advanced-panel.component';
+export { Text3DPanelComponent } from './text-3d-panel.component';
+export {
+	TEXT_3D_BOTTOM_BEVEL_KEYS,
+	TEXT_3D_TOP_BEVEL_KEYS,
+	Text3DBevelSectionComponent,
+	bevelSizePatch,
+} from './text-3d-bevel-section.component';
+export type { Text3DBevelKeys } from './text-3d-bevel-section.component';
 export { TableDataEditorComponent } from './table-data-editor.component';
 export { TablePropertiesComponent } from './table-properties.component';
 export { TableCellFormattingComponent } from './table-cell-formatting.component';

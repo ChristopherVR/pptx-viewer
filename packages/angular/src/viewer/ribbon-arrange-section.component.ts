@@ -1,8 +1,13 @@
 /**
- * ribbon-arrange-section.component.ts: the Arrange ribbon tab (Order, Align,
- * Distribute, Clipboard, Format painter + flip, Group / edit). Split out of
- * {@link RibbonComponent}; behaviour and markup are unchanged. Actions bind
- * straight to the shared {@link EditorStateService}.
+ * ribbon-arrange-section.component.ts: the Arrange ribbon group (Order, Align,
+ * Distribute, Format painter + flip, Group / ungroup / outline width, Duplicate
+ * / Delete). Rendered both by the dedicated Arrange tab and at the end of the
+ * Home tab. Actions bind straight to the shared {@link EditorStateService}.
+ *
+ * It carries no Cut / Copy / Paste of its own. It used to, which made the Home
+ * tab offer each of the three twice: once here and once in the Clipboard group
+ * that {@link RibbonHomeSectionComponent} renders a few centimetres to the
+ * left. One command, one place per tab.
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
@@ -19,6 +24,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
+import { RibbonShapeExtrasComponent } from './ribbon-shape-extras.component';
 
 @Component({
 	selector: 'pptx-ribbon-arrange-section',
@@ -35,6 +41,7 @@ import { EditorStateService } from './editor-state.service';
 		LucideChevronDown,
 		LucideAlignHorizontalSpaceAround,
 		LucideAlignVerticalSpaceAround,
+		RibbonShapeExtrasComponent,
 	],
 	template: `
 		<!-- Order -->
@@ -62,6 +69,7 @@ import { EditorStateService } from './editor-state.service';
 				class="pptx-rb-gb"
 				[disabled]="!hasSel()"
 				[title]="'pptx.arrange.bringForward' | translate"
+				[attr.aria-label]="'pptx.arrange.bringForward' | translate"
 				(click)="editor.bringSelectedForward(slideIndex())"
 			>
 				{{ 'pptx.ribbon.fwd' | translate }}
@@ -71,6 +79,7 @@ import { EditorStateService } from './editor-state.service';
 				class="pptx-rb-gl"
 				[disabled]="!hasSel()"
 				[title]="'pptx.arrange.sendBackward' | translate"
+				[attr.aria-label]="'pptx.arrange.sendBackward' | translate"
 				(click)="editor.sendSelectedBackward(slideIndex())"
 			>
 				{{ 'pptx.ribbon.bwd' | translate }}
@@ -141,7 +150,7 @@ import { EditorStateService } from './editor-state.service';
 				type="button"
 				class="pptx-rb-gb"
 				[disabled]="!canDistribute()"
-				[title]="'pptx.ribbon.distributeHorizontally' | translate"
+				[title]="'pptx.arrange.distributeHorizontal' | translate"
 				(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
 			>
 				<svg lucideAlignHorizontalSpaceAround class="h-4 w-4"></svg>
@@ -150,40 +159,10 @@ import { EditorStateService } from './editor-state.service';
 				type="button"
 				class="pptx-rb-gl"
 				[disabled]="!canDistribute()"
-				[title]="'pptx.ribbon.distributeVertically' | translate"
+				[title]="'pptx.arrange.distributeVertical' | translate"
 				(click)="editor.distributeSelected(slideIndex(), 'vertical')"
 			>
 				<svg lucideAlignVerticalSpaceAround class="h-4 w-4"></svg>
-			</button>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Clipboard -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.copy' | translate"
-				(click)="editor.copySelected(slideIndex())"
-			>
-				{{ 'pptx.arrange.copy' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.cut' | translate"
-				(click)="editor.cutSelected(slideIndex())"
-			>
-				{{ 'pptx.arrange.cut' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[title]="'pptx.arrange.paste' | translate"
-				(click)="editor.paste(slideIndex())"
-			>
-				{{ 'pptx.arrange.paste' | translate }}
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>
@@ -199,7 +178,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.arrange.formatPainter' | translate"
 				(click)="toggleFormatPainter.emit()"
 			>
-				{{ 'pptx.ribbon.painter' | translate }}
+				{{ 'pptx.arrange.format' | translate }}
 			</button>
 			<button
 				type="button"
@@ -221,26 +200,15 @@ import { EditorStateService } from './editor-state.service';
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>
-		<!-- Group / edit -->
+		<!-- Group / ungroup / outline width -->
+		<pptx-ribbon-shape-extras
+			[slideIndex]="slideIndex()"
+			[selectedElement]="selectedElement()"
+			[canEdit]="canEdit()"
+		/>
+		<span class="pptx-rb-sep"></span>
+		<!-- Duplicate / delete -->
 		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.group' | translate"
-				(click)="editor.groupSelected(slideIndex())"
-			>
-				{{ 'pptx.ribbon.group' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.ungroup' | translate"
-				(click)="editor.ungroupSelected(slideIndex())"
-			>
-				{{ 'pptx.ribbon.ungroup' | translate }}
-			</button>
 			<button
 				type="button"
 				class="pptx-rb-gb"
@@ -266,6 +234,10 @@ export class RibbonArrangeSectionComponent {
 	protected readonly editor = inject(EditorStateService);
 
 	readonly slideIndex = input<number>(0);
+	/** The active selection, which gates Ungroup and the outline-width spinner. */
+	readonly selectedElement = input<PptxElement | null>(null);
+	/** Whether the deck is editable; a read-only deck cannot group or restyle. */
+	readonly canEdit = input<boolean>(false);
 	readonly formatPainterActive = input<boolean>(false);
 	readonly canActivateFormatPainter = input<boolean>(false);
 

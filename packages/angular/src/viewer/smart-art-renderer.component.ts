@@ -35,7 +35,6 @@ import type {
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import type { StyleMap } from './element-style';
-import { getContainerStyle } from './element-style';
 import { SLIDE_CONTEXT } from './slide-context';
 import {
 	buildChromeStyle,
@@ -73,6 +72,13 @@ import {
  *     `RenderedConnector[]` view-models. Every binding renders the same
  *     geometry; this maps those view-models to SVG exactly as Vue does.
  *  3. **Placeholder** -- when there is neither data nor any nodes/shapes.
+ *
+ * Positioning is NOT this component's job: its chrome root fills the positioned,
+ * element-id bearing box its host draws (the element dispatcher, the 3D
+ * renderer's fallback branch, or a preview stage), the same contract the chart
+ * and table renderers follow. Owning `left`/`top` here too offset the diagram
+ * twice, and stamping the element id on this root hid the host's marked node
+ * from anything reading the element contract by id.
  */
 @Component({
 	selector: 'pptx-smart-art-renderer',
@@ -81,236 +87,222 @@ import {
 	imports: [NgStyle, TranslatePipe],
 	template: `
 		<div
-			class="pptx-ng-element pptx-ng-smartart"
-			[ngStyle]="containerStyle()"
-			[attr.data-element-id]="element().id"
+			#smartartContainer
+			class="pptx-ng-smartart-chrome"
+			[ngStyle]="chromeStyle()"
+			[attr.role]="a11y() ? a11y()!.role : null"
+			[attr.aria-label]="a11y()?.label ?? null"
+			(mousemove)="onMouseMove($event)"
+			(mouseleave)="onMouseLeave()"
 		>
-			<div
-				#smartartContainer
-				class="pptx-ng-smartart-chrome"
-				[ngStyle]="chromeStyle()"
-				[attr.role]="a11y() ? a11y()!.role : null"
-				[attr.aria-label]="a11y()?.label ?? null"
-				(mousemove)="onMouseMove($event)"
-				(mouseleave)="onMouseLeave()"
-			>
-				@if (isEmpty()) {
-					<div class="pptx-ng-smartart-placeholder">
-						{{ 'pptx.smartArt.placeholder' | translate }}
-					</div>
-				} @else if (hasDrawingShapes()) {
-					<svg
-						class="pptx-ng-smartart-svg"
-						data-testid="smartart-drawing-shapes"
-						[attr.viewBox]="svgViewBox()"
-						preserveAspectRatio="xMidYMid meet"
-					>
-						@for (shape of renderedShapes(); track shape.key; let i = $index) {
-							<g
-								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
-								[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
-								[class.pptx-ng-smartart-node--editable]="
-									canEditNodes() && !!drawingShapeNodeIds()[i]
-								"
-							>
-								@if (shape.isEllipse) {
-									<ellipse
-										[attr.cx]="shape.cx"
-										[attr.cy]="shape.cy"
-										[attr.rx]="shape.width / 2"
-										[attr.ry]="shape.height / 2"
-										[attr.fill]="shape.fill"
-										[attr.stroke]="shape.stroke"
-										[attr.stroke-width]="shape.strokeWidth"
-										[attr.transform]="shape.transform ?? null"
-									/>
-								} @else {
-									<rect
-										[attr.x]="shape.x"
-										[attr.y]="shape.y"
-										[attr.width]="shape.width"
-										[attr.height]="shape.height"
-										[attr.rx]="shape.rx"
-										[attr.fill]="shape.fill"
-										[attr.stroke]="shape.stroke"
-										[attr.stroke-width]="shape.strokeWidth"
-										[attr.transform]="shape.transform ?? null"
-									/>
-								}
-								@if (shape.text) {
-									<text
-										[attr.x]="shape.textX"
-										text-anchor="middle"
-										dominant-baseline="central"
-										[attr.fill]="shape.fontColor"
-										[attr.font-size]="shape.fontSize"
-									>
-										@for (line of textLines(shape.text, shape.fontSize); track $index) {
-											<tspan [attr.x]="shape.textX" [attr.y]="shape.textY + line.offsetY">
-												{{ line.text }}
-											</tspan>
-										}
-									</text>
-								}
-							</g>
-						}
-					</svg>
-				} @else if (hasLayout()) {
-					<svg
-						class="pptx-ng-smartart-svg"
-						[attr.data-testid]="'smartart-' + layout().family"
-						[attr.viewBox]="layout().viewBox"
-						preserveAspectRatio="xMidYMid meet"
-						[attr.data-layout-family]="layout().family"
-					>
-						@for (conn of layout().connectors; track conn.key) {
-							<path
-								[attr.d]="conn.d"
-								fill="none"
-								stroke="#94a3b8"
-								stroke-width="1.5"
-								opacity="0.5"
-							/>
-						}
-						@for (node of layout().nodes; track node.key) {
-							<g
-								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
-								[class.pptx-ng-smartart-node--editable]="canEditNodes()"
-								[attr.tabindex]="canEditNodes() ? 0 : null"
-								[attr.role]="canEditNodes() ? 'button' : 'img'"
-								[attr.aria-label]="nodeAriaLabel(node) ?? node.text"
-								[attr.data-smartart-node-id]="nodeKeyId(node)"
-								(dblclick)="onNodeDblClick($event, node)"
-								(keydown)="onNodeKeydown($event, node)"
-							>
-								@if (nodeAriaLabel(node); as title) {
-									<title>{{ title }}</title>
-								}
-								@if (asCircle(node); as c) {
-									<circle
-										[attr.cx]="c.cx"
-										[attr.cy]="c.cy"
-										[attr.r]="c.r"
-										[attr.fill]="c.fill"
-										[attr.stroke]="c.stroke"
-										[attr.stroke-width]="c.strokeWidth"
-										[attr.opacity]="c.opacity"
-									/>
-									<text
-										[attr.x]="c.cx"
-										text-anchor="middle"
-										dominant-baseline="central"
-										fill="white"
-										[attr.font-size]="c.fontSize"
-									>
-										@for (line of textLines(c.text, c.fontSize); track $index) {
-											<tspan [attr.x]="c.cx" [attr.y]="c.cy + line.offsetY">{{ line.text }}</tspan>
-										}
-									</text>
-								} @else if (asPolygon(node); as p) {
-									<polygon
-										[attr.points]="p.points"
-										[attr.fill]="p.fill"
-										[attr.stroke]="p.stroke"
-										[attr.stroke-width]="p.strokeWidth"
-										[attr.opacity]="p.opacity"
-									/>
-									<text
-										[attr.x]="p.textX"
-										text-anchor="middle"
-										dominant-baseline="central"
-										fill="white"
-										[attr.font-size]="p.fontSize"
-									>
-										@for (line of textLines(p.text, p.fontSize); track $index) {
-											<tspan [attr.x]="p.textX" [attr.y]="p.textY + line.offsetY">
-												{{ line.text }}
-											</tspan>
-										}
-									</text>
-								} @else if (asRect(node); as r) {
-									<rect
-										[attr.x]="r.x"
-										[attr.y]="r.y"
-										[attr.width]="r.width"
-										[attr.height]="r.height"
-										[attr.rx]="r.rx"
-										[attr.fill]="r.fill"
-										[attr.stroke]="r.stroke"
-										[attr.stroke-width]="r.strokeWidth"
-										[attr.opacity]="r.opacity"
-									/>
-									<text
-										[attr.x]="r.textX"
-										text-anchor="middle"
-										dominant-baseline="central"
-										fill="white"
-										[attr.font-size]="r.fontSize"
-									>
-										@for (line of textLines(r.text, r.fontSize); track $index) {
-											<tspan [attr.x]="r.textX" [attr.y]="r.textY + line.offsetY">
-												{{ line.text }}
-											</tspan>
-										}
-									</text>
-								}
-							</g>
-						}
-					</svg>
-				} @else {
-					<div class="pptx-ng-smartart-placeholder">
-						{{ 'pptx.smartArt.placeholder' | translate }}
-					</div>
-				}
+			@if (isEmpty()) {
+				<div class="pptx-ng-smartart-placeholder">
+					{{ 'pptx.smartArt.placeholder' | translate }}
+				</div>
+			} @else if (hasDrawingShapes()) {
+				<svg
+					class="pptx-ng-smartart-svg"
+					data-testid="smartart-drawing-shapes"
+					[attr.viewBox]="svgViewBox()"
+					preserveAspectRatio="xMidYMid meet"
+				>
+					@for (shape of renderedShapes(); track shape.key; let i = $index) {
+						<g
+							[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
+							[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
+							[class.pptx-ng-smartart-node--editable]="canEditNodes() && !!drawingShapeNodeIds()[i]"
+						>
+							@if (shape.isEllipse) {
+								<ellipse
+									[attr.cx]="shape.cx"
+									[attr.cy]="shape.cy"
+									[attr.rx]="shape.width / 2"
+									[attr.ry]="shape.height / 2"
+									[attr.fill]="shape.fill"
+									[attr.stroke]="shape.stroke"
+									[attr.stroke-width]="shape.strokeWidth"
+									[attr.transform]="shape.transform ?? null"
+								/>
+							} @else {
+								<rect
+									[attr.x]="shape.x"
+									[attr.y]="shape.y"
+									[attr.width]="shape.width"
+									[attr.height]="shape.height"
+									[attr.rx]="shape.rx"
+									[attr.fill]="shape.fill"
+									[attr.stroke]="shape.stroke"
+									[attr.stroke-width]="shape.strokeWidth"
+									[attr.transform]="shape.transform ?? null"
+								/>
+							}
+							@if (shape.text) {
+								<text
+									[attr.x]="shape.textX"
+									text-anchor="middle"
+									dominant-baseline="central"
+									[attr.fill]="shape.fontColor"
+									[attr.font-size]="shape.fontSize"
+								>
+									@for (line of textLines(shape.text, shape.fontSize); track $index) {
+										<tspan [attr.x]="shape.textX" [attr.y]="shape.textY + line.offsetY">
+											{{ line.text }}
+										</tspan>
+									}
+								</text>
+							}
+						</g>
+					}
+				</svg>
+			} @else if (hasLayout()) {
+				<svg
+					class="pptx-ng-smartart-svg"
+					[attr.data-testid]="'smartart-' + layout().family"
+					[attr.viewBox]="layout().viewBox"
+					preserveAspectRatio="xMidYMid meet"
+					[attr.data-layout-family]="layout().family"
+				>
+					@for (conn of layout().connectors; track conn.key) {
+						<path [attr.d]="conn.d" fill="none" stroke="#94a3b8" stroke-width="1.5" opacity="0.5" />
+					}
+					@for (node of layout().nodes; track node.key) {
+						<g
+							[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
+							[class.pptx-ng-smartart-node--editable]="canEditNodes()"
+							[attr.tabindex]="canEditNodes() ? 0 : null"
+							[attr.role]="canEditNodes() ? 'button' : 'img'"
+							[attr.aria-label]="nodeAriaLabel(node) ?? node.text"
+							[attr.data-smartart-node-id]="nodeKeyId(node)"
+							(dblclick)="onNodeDblClick($event, node)"
+							(keydown)="onNodeKeydown($event, node)"
+						>
+							@if (nodeAriaLabel(node); as title) {
+								<title>{{ title }}</title>
+							}
+							@if (asCircle(node); as c) {
+								<circle
+									[attr.cx]="c.cx"
+									[attr.cy]="c.cy"
+									[attr.r]="c.r"
+									[attr.fill]="c.fill"
+									[attr.stroke]="c.stroke"
+									[attr.stroke-width]="c.strokeWidth"
+									[attr.opacity]="c.opacity"
+								/>
+								<text
+									[attr.x]="c.cx"
+									text-anchor="middle"
+									dominant-baseline="central"
+									fill="white"
+									[attr.font-size]="c.fontSize"
+								>
+									@for (line of textLines(c.text, c.fontSize); track $index) {
+										<tspan [attr.x]="c.cx" [attr.y]="c.cy + line.offsetY">{{ line.text }}</tspan>
+									}
+								</text>
+							} @else if (asPolygon(node); as p) {
+								<polygon
+									[attr.points]="p.points"
+									[attr.fill]="p.fill"
+									[attr.stroke]="p.stroke"
+									[attr.stroke-width]="p.strokeWidth"
+									[attr.opacity]="p.opacity"
+								/>
+								<text
+									[attr.x]="p.textX"
+									text-anchor="middle"
+									dominant-baseline="central"
+									fill="white"
+									[attr.font-size]="p.fontSize"
+								>
+									@for (line of textLines(p.text, p.fontSize); track $index) {
+										<tspan [attr.x]="p.textX" [attr.y]="p.textY + line.offsetY">
+											{{ line.text }}
+										</tspan>
+									}
+								</text>
+							} @else if (asRect(node); as r) {
+								<rect
+									[attr.x]="r.x"
+									[attr.y]="r.y"
+									[attr.width]="r.width"
+									[attr.height]="r.height"
+									[attr.rx]="r.rx"
+									[attr.fill]="r.fill"
+									[attr.stroke]="r.stroke"
+									[attr.stroke-width]="r.strokeWidth"
+									[attr.opacity]="r.opacity"
+								/>
+								<text
+									[attr.x]="r.textX"
+									text-anchor="middle"
+									dominant-baseline="central"
+									fill="white"
+									[attr.font-size]="r.fontSize"
+								>
+									@for (line of textLines(r.text, r.fontSize); track $index) {
+										<tspan [attr.x]="r.textX" [attr.y]="r.textY + line.offsetY">
+											{{ line.text }}
+										</tspan>
+									}
+								</text>
+							}
+						</g>
+					}
+				</svg>
+			} @else {
+				<div class="pptx-ng-smartart-placeholder">
+					{{ 'pptx.smartArt.placeholder' | translate }}
+				</div>
+			}
 
-				@if (canEditNodes() && hoveredNodeId() && !editState() && styleBarStyle()) {
-					<div
-						#styleBar
-						class="pptx-ng-smartart-style-bar"
-						[ngStyle]="styleBarStyle()!"
-						(mousedown)="$event.stopPropagation()"
-						(click)="$event.stopPropagation()"
-					>
-						@for (color of palette().slice(0, 6); track color) {
-							<button
-								type="button"
-								class="pptx-ng-smartart-swatch"
-								data-pptx-compact
-								[attr.aria-label]="'pptx.smartArt.setFill' | translate: { color: color }"
-								[style.background]="color"
-								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"
-							></button>
-						}
-					</div>
-				}
+			@if (canEditNodes() && hoveredNodeId() && !editState() && styleBarStyle()) {
+				<div
+					#styleBar
+					class="pptx-ng-smartart-style-bar"
+					[ngStyle]="styleBarStyle()!"
+					(mousedown)="$event.stopPropagation()"
+					(click)="$event.stopPropagation()"
+				>
+					@for (color of palette().slice(0, 6); track color) {
+						<button
+							type="button"
+							class="pptx-ng-smartart-swatch"
+							data-pptx-compact
+							[attr.aria-label]="'pptx.smartArt.setFill' | translate: { color: color }"
+							[style.background]="color"
+							(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"
+						></button>
+					}
+				</div>
+			}
 
-				<!--
-					Inline node-text editor. Positioned in element-local px (== viewBox
-					units, since the SVG viewBox matches the element pixel size and the
-					svg fills the chrome) over the double-clicked node. Commits via the
-					shared EditorStateService.updateElement path on Enter / blur.
-				-->
-				@if (editState(); as edit) {
-					<textarea
-						#nodeEditor
-						class="pptx-ng-smartart-node-editor"
-						[style.left.px]="edit.box.x"
-						[style.top.px]="edit.box.y"
-						[style.width.px]="edit.box.width"
-						[style.height.px]="edit.box.height"
-						[value]="edit.text"
-						(pointerdown)="$event.stopPropagation()"
-						(mousedown)="$event.stopPropagation()"
-						(click)="$event.stopPropagation()"
-						(dblclick)="$event.stopPropagation()"
-						(blur)="commitEdit($event)"
-						(keydown)="onEditorKeydown($event)"
-					></textarea>
-				}
+			<!--
+				Inline node-text editor. Positioned in element-local px (== viewBox
+				units, since the SVG viewBox matches the element pixel size and the
+				svg fills the chrome) over the double-clicked node. Commits via the
+				shared EditorStateService.updateElement path on Enter / blur.
+			-->
+			@if (editState(); as edit) {
+				<textarea
+					#nodeEditor
+					class="pptx-ng-smartart-node-editor"
+					[style.left.px]="edit.box.x"
+					[style.top.px]="edit.box.y"
+					[style.width.px]="edit.box.width"
+					[style.height.px]="edit.box.height"
+					[value]="edit.text"
+					(pointerdown)="$event.stopPropagation()"
+					(mousedown)="$event.stopPropagation()"
+					(click)="$event.stopPropagation()"
+					(dblclick)="$event.stopPropagation()"
+					(blur)="commitEdit($event)"
+					(keydown)="onEditorKeydown($event)"
+				></textarea>
+			}
 
-				<!-- Polite live region: announces node-text edit commits to AT. -->
-				<span class="pptx-ng-sr-only" aria-live="polite" role="status">{{ liveMessage() }}</span>
-			</div>
+			<!-- Polite live region: announces node-text edit commits to AT. -->
+			<span class="pptx-ng-sr-only" aria-live="polite" role="status">{{ liveMessage() }}</span>
 		</div>
 	`,
 	styles: `
@@ -412,7 +404,6 @@ import {
 export class SmartArtRendererComponent {
 	/** The smartArt element to render. Must be `type === 'smartArt'`. */
 	readonly element = input.required<PptxElement>();
-	readonly zIndex = input<number>(0);
 
 	/**
 	 * Whether inline on-canvas node-text editing is enabled. False in
@@ -494,10 +485,6 @@ export class SmartArtRendererComponent {
 		const el = this.element();
 		return el.type === 'smartArt' ? el.smartArtData : undefined;
 	});
-
-	readonly containerStyle = computed<StyleMap>(() =>
-		getContainerStyle(this.element(), this.zIndex()),
-	);
 
 	readonly chromeStyle = computed<StyleMap>(() => buildChromeStyle(this.smartArtData()?.chrome));
 

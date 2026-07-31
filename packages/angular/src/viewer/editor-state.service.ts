@@ -606,12 +606,24 @@ export class EditorStateService {
 		this.syncHistory();
 	}
 
-	/** Insert a blank slide after `afterIndex` (records history). */
-	addSlide(afterIndex: number): void {
+	/**
+	 * Insert a blank slide after `afterIndex` (records history).
+	 *
+	 * @param layoutPath - Package path of the slide layout the new slide should
+	 *   inherit from, as offered by the Home tab's "New Slide" split button.
+	 *   Omitted for a plain blank slide, which is what the button itself does.
+	 */
+	addSlide(afterIndex: number, layoutPath?: string): void {
 		const slides = this.slides();
 		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.addSlide'));
 		const id = this.newId();
-		const blank = { id, rId: id, slideNumber: 0, elements: [] } as PptxSlide;
+		const blank = {
+			id,
+			rId: id,
+			slideNumber: 0,
+			elements: [],
+			...(layoutPath ? { layoutPath } : {}),
+		} as PptxSlide;
 		const next = [...slides];
 		next.splice(Math.min(afterIndex + 1, next.length), 0, blank);
 		this.slides.set(this.renumber(next));

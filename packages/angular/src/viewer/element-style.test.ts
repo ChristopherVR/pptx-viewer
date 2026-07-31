@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getContainerStyle, getShapeFillStrokeStyle } from './element-style';
+import { getContainerStyle, getShapeFillStrokeStyle, getTextBlockStyle } from './element-style';
 
 /**
  * Minimal element factory. `getContainerStyle` only reads `PptxElementBase`
@@ -128,5 +128,31 @@ describe('getShapeFillStrokeStyle', () => {
 			baseElement({ shapeStyle: { fillColor: '#84E291', fillMode: 'solid' } }),
 		);
 		expect(opaque['background-color']).toBe('#84E291');
+	});
+});
+
+describe('getTextBlockStyle', () => {
+	function textElement(textStyle: Record<string, unknown>): PptxElement {
+		return baseElement({ type: 'text', text: 'hi', textStyle } as Partial<PptxElement>);
+	}
+
+	it('emits kebab-case CSS with px lengths for [ngStyle]', () => {
+		const style = getTextBlockStyle(textElement({ fontSize: 18, bold: true, vAlign: 'middle' }));
+		expect(style['font-size']).toBe('18px');
+		expect(style['font-weight']).toBe('700');
+		expect(style['justify-content']).toBe('center');
+		expect(style['line-height']).toBe('1.2');
+	});
+
+	// This binding's own copy of the text-block builder never read either
+	// property, so a shrink-to-fit title painted 43% too large and a
+	// `wrap="none"` line wrapped to three. Both now come from the shared builder.
+	it('applies the normAutofit font scale and never wraps a wrap="none" body', () => {
+		const autofit = getTextBlockStyle(
+			textElement({ fontSize: 40, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.7 }),
+		);
+		expect(autofit['font-size']).toBe('28px');
+		expect(getTextBlockStyle(textElement({ textWrap: 'none' }))['white-space']).toBe('nowrap');
+		expect(getTextBlockStyle(textElement({}))['white-space']).toBe('pre-wrap');
 	});
 });

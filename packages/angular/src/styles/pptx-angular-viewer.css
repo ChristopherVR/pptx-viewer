@@ -25,8 +25,10 @@
 @source '../viewer/**/*.ts';
 /* Shared class-token modules consumed verbatim by the Angular chrome (the
    title bar reads TITLE_BAR_CLASSES / TAB_ROW_ACTION_CLASSES from the vendored
-   shared source); scan them so their utilities are emitted. */
-@source '../internal/shared-src/render/title-bar.ts';
+   shared source); scan them so their utilities are emitted. The glob covers the
+   whole render directory rather than the one file, so a token added to a NEW
+   shared module is emitted without anyone remembering to widen this line. */
+@source '../internal/shared-src/render/**/*.ts';
 
 @import './theme.css';
 
@@ -53,6 +55,12 @@
 	}
 	.pptx-rb-sep {
 		@apply mx-1 w-px self-stretch bg-border/40;
+	}
+	/* Compact checkbox/label row used by the ribbon's "Options"-style groups
+	   (Slide Show, View), where PowerPoint stacks three small toggles in the
+	   height of one command button. */
+	.pptx-rb-toggle {
+		@apply flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px] text-foreground;
 	}
 	/* Native selects styled to sit flush with the surrounding ribbon pills
 	   (same height, radius, background and type size as .pptx-rb-pill /
@@ -96,6 +104,9 @@ pptx-ribbon-draw-section,
 pptx-ribbon-design-section,
 pptx-ribbon-transitions-section,
 pptx-ribbon-animations-section,
+pptx-ribbon-animation-gallery,
+pptx-ribbon-shape-extras,
+pptx-ribbon-hyperlink-button,
 pptx-ribbon-paragraph-controls,
 pptx-ribbon-insert-fields,
 pptx-ribbon-font-controls {
@@ -456,7 +467,11 @@ pptx-element-renderer {
 }
 
 .pptx-ng-bullet {
-	white-space: pre;
+	/* Inherit the text body's `white-space` (normally `pre-wrap`): hard-coding
+	   `pre` made the marker the ONE run on the slide with a different wrapping
+	   mode from every other binding, and from the runs beside it. Its authored
+	   spaces survive under `pre-wrap` just the same. */
+	white-space: inherit;
 }
 
 .pptx-ng-link {

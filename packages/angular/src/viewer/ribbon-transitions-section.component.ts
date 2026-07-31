@@ -97,9 +97,10 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.ribbon.applyTransitionToAll' | translate"
+			[attr.aria-label]="'pptx.headerFooter.applyToAll' | translate"
 			(click)="applyToAll()"
 		>
-			⧉ {{ 'pptx.headerFooter.applyToAll' | translate }}
+			<span aria-hidden="true">⧉</span> {{ 'pptx.headerFooter.applyToAll' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Advance Slide -->

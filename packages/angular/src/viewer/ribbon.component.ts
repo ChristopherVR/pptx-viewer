@@ -121,6 +121,7 @@ import type { RibbonTab } from './ribbon-types';
 					(openPassword)="openPassword.emit()"
 					(openFontEmbedding)="openFontEmbedding.emit()"
 					(openVersionHistory)="openVersionHistory.emit()"
+					(link)="link.emit()"
 					(openSettings)="requestSettings()"
 				/>
 				<pptx-ribbon-content-secondary

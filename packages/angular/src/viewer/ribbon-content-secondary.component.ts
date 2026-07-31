@@ -89,9 +89,6 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					[snapToShape]="snapToShape()"
 					[eyedropperActive]="eyedropperActive()"
 					(openSorter)="openSorter.emit()"
-					(toggleNotes)="toggleNotes.emit()"
-					(print)="print.emit()"
-					(openShortcuts)="openShortcuts.emit()"
 					(openMasterView)="openMasterView.emit()"
 					(toggleGrid)="toggleGrid.emit()"
 					(toggleRulers)="toggleRulers.emit()"
@@ -148,7 +145,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					{{ 'pptx.settings.keyboardShortcuts' | translate }}
 				</button>
 				<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
-					{{ 'pptx.ribbon.accessibility' | translate }}
+					{{ 'pptx.ribbon.accessibilityCheck' | translate }}
 				</button>
 			}
 			@case ('record') {

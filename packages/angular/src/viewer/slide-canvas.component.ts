@@ -25,8 +25,12 @@ import type {
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { applyRenderedElementAccessibility } from '../internal/shared';
-import type { CanvasSize } from '../internal/shared';
+import {
+	applyRenderedElementAccessibility,
+	RULER_FONT_SIZE,
+	RULER_THICKNESS,
+} from '../internal/shared';
+import type { CanvasSize, RulerUnit, Tick } from '../internal/shared';
 import type { AiChangeBatch } from '../internal/shared-ai';
 import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
@@ -39,8 +43,7 @@ import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
 import { InkDrawingService } from './ink-drawing.service';
 import { RulerGuidesService } from './ruler-guides.service';
-import { generateRulerTicks, RULER_THICKNESS } from './ruler-ticks';
-import type { RulerTick } from './ruler-ticks';
+import { rulerHighlight, rulerStripTicks } from './ruler-strips';
 import {
 	computeCornerHandle,
 	computeHandleBoxes,
@@ -380,12 +383,20 @@ function plainText(el: PptxElement): string {
 								stroke-dasharray="6 3"
 							/>
 						</svg>
+					}
 
-						<!--
-							User-created ruler guides.
-							Each guide has a non-interactive line body and an interactive
-							drag handle. Double-click the handle to delete the guide.
-						-->
+					<!--
+						User-created ruler guides.
+						Each guide has a non-interactive line body and an interactive
+						drag handle. Double-click the handle to delete the guide.
+
+						Deliberately OUTSIDE the showGuides() gate above (which owns the
+						static centre crosshair): a guide the user just dragged off a ruler
+						strip must be visible immediately, as it is in Vue and Vanilla.
+						While it lived under that gate, the drag-out gesture silently
+						produced an invisible guide unless View > Guides happened to be on.
+					-->
+					@if (interactive()) {
 						@for (g of rulerGuidesSvc.rulerGuides(); track g.id) {
 							<!-- Guide line body: pointer-events:none -->
 							<div
@@ -456,46 +467,63 @@ function plainText(el: PptxElement): string {
 					<!-- Corner square at the intersection of the two ruler strips -->
 					<div class="pptx-ng-ruler-corner" aria-hidden="true"></div>
 
-					<!-- Horizontal ruler: spans the top padding row of the wrapper -->
+					<!--
+						Horizontal ruler: spans the top padding row of the wrapper.
+						A guide is dropped on pointer-UP (not down), resolved by the shared
+						rulerDragToGuidePosition, so a stray click on the strip cannot
+						drop a guide the user never dragged out - the rule React, Vue,
+						Svelte and Vanilla all follow.
+					-->
 					<svg
 						class="pptx-ng-ruler-h"
-						aria-hidden="true"
+						data-pptx-ruler="h"
+						role="presentation"
 						[attr.width]="canvasSize().width * effectiveScalePublic()"
-						[attr.height]="20"
-						[style.cursor]="editable() ? 'crosshair' : null"
-						(pointerdown)="editable() ? rulerGuidesSvc.onHRulerPointerDown($event) : null"
+						[attr.height]="rulerThickness"
+						[style.cursor]="editable() ? 'row-resize' : null"
+						(pointerdown)="rulerGuidesSvc.onRulerPointerDown('h', $event)"
+						(pointerup)="rulerGuidesSvc.onRulerPointerUp('h', $event)"
 					>
 						<rect
 							[attr.width]="canvasSize().width * effectiveScalePublic()"
-							height="20"
+							[attr.height]="rulerThickness"
 							fill="#1e293b"
 						/>
+						@if (hRulerHighlight(); as highlight) {
+							<rect
+								[attr.x]="highlight.start"
+								y="0"
+								[attr.width]="highlight.span"
+								[attr.height]="rulerThickness"
+								fill="rgba(96,165,250,0.25)"
+							/>
+						}
 						<line
 							x1="0"
-							y1="19.5"
+							[attr.y1]="rulerThickness - 0.5"
 							[attr.x2]="canvasSize().width * effectiveScalePublic()"
-							y2="19.5"
+							[attr.y2]="rulerThickness - 0.5"
 							stroke="rgba(255,255,255,0.15)"
 							stroke-width="1"
 						/>
-						@for (tick of hRulerTicks(); track tick.position) {
+						@for (tick of hRulerTicks(); track $index) {
 							<line
 								[attr.x1]="tick.position"
-								y1="20"
+								[attr.y1]="rulerThickness"
 								[attr.x2]="tick.position"
-								[attr.y2]="tick.isMajor ? 8 : 14"
+								[attr.y2]="rulerThickness - rulerThickness * (tick.isMajor ? 0.6 : 0.3)"
 								stroke="rgba(156,163,175,0.7)"
 								[attr.stroke-width]="tick.isMajor ? 1 : 0.5"
 							/>
 							@if (tick.label) {
 								<text
 									[attr.x]="tick.position + 2"
-									y="8"
-									font-size="7"
+									[attr.y]="rulerFontSize + 1"
+									[attr.font-size]="rulerFontSize"
 									fill="rgba(156,163,175,0.9)"
 									style="font-family:system-ui,sans-serif"
 								>
-									{{ tick.label }}"
+									{{ tick.label }}
 								</text>
 							}
 						}
@@ -504,30 +532,41 @@ function plainText(el: PptxElement): string {
 					<!-- Vertical ruler: spans the left padding column of the wrapper -->
 					<svg
 						class="pptx-ng-ruler-v"
-						aria-hidden="true"
-						[attr.width]="20"
+						data-pptx-ruler="v"
+						role="presentation"
+						[attr.width]="rulerThickness"
 						[attr.height]="canvasSize().height * effectiveScalePublic()"
-						[style.cursor]="editable() ? 'crosshair' : null"
-						(pointerdown)="editable() ? rulerGuidesSvc.onVRulerPointerDown($event) : null"
+						[style.cursor]="editable() ? 'col-resize' : null"
+						(pointerdown)="rulerGuidesSvc.onRulerPointerDown('v', $event)"
+						(pointerup)="rulerGuidesSvc.onRulerPointerUp('v', $event)"
 					>
 						<rect
-							width="20"
+							[attr.width]="rulerThickness"
 							[attr.height]="canvasSize().height * effectiveScalePublic()"
 							fill="#1e293b"
 						/>
+						@if (vRulerHighlight(); as highlight) {
+							<rect
+								x="0"
+								[attr.y]="highlight.start"
+								[attr.width]="rulerThickness"
+								[attr.height]="highlight.span"
+								fill="rgba(96,165,250,0.25)"
+							/>
+						}
 						<line
-							x1="19.5"
+							[attr.x1]="rulerThickness - 0.5"
 							y1="0"
-							x2="19.5"
+							[attr.x2]="rulerThickness - 0.5"
 							[attr.y2]="canvasSize().height * effectiveScalePublic()"
 							stroke="rgba(255,255,255,0.15)"
 							stroke-width="1"
 						/>
-						@for (tick of vRulerTicks(); track tick.position) {
+						@for (tick of vRulerTicks(); track $index) {
 							<line
-								x1="20"
+								[attr.x1]="rulerThickness"
 								[attr.y1]="tick.position"
-								[attr.x2]="tick.isMajor ? 8 : 14"
+								[attr.x2]="rulerThickness - rulerThickness * (tick.isMajor ? 0.6 : 0.3)"
 								[attr.y2]="tick.position"
 								stroke="rgba(156,163,175,0.7)"
 								[attr.stroke-width]="tick.isMajor ? 1 : 0.5"
@@ -535,12 +574,12 @@ function plainText(el: PptxElement): string {
 							@if (tick.label) {
 								<text
 									x="2"
-									[attr.y]="tick.position + 9"
-									font-size="7"
+									[attr.y]="tick.position + rulerFontSize + 2"
+									[attr.font-size]="rulerFontSize"
 									fill="rgba(156,163,175,0.9)"
 									style="font-family:system-ui,sans-serif"
 								>
-									{{ tick.label }}"
+									{{ tick.label }}
 								</text>
 							}
 						}
@@ -573,6 +612,12 @@ export class SlideCanvasComponent implements SlideContext {
 	 * of the slide viewport. Only active on the interactive canvas.
 	 */
 	readonly showRulers = input<boolean>(false);
+	/**
+	 * Unit system for the ruler labels. Defaults to inches, as PowerPoint does;
+	 * the tick generator (shared with every other binding) also understands
+	 * centimetres, which the old Angular-only generator could not express.
+	 */
+	readonly rulerUnit = input<RulerUnit>('inches');
 	/**
 	 * When true, render a static center-crosshair guide overlay on the slide stage.
 	 * Only active on the interactive canvas.
@@ -1468,20 +1513,65 @@ export class SlideCanvasComponent implements SlideContext {
 	 */
 	protected readonly gridPatternId = `pptx-ng-grid-${Math.random().toString(36).slice(2, 8)}`;
 
-	/** Tick marks for the horizontal ruler strip (scaled slide width). */
-	readonly hRulerTicks = computed<ReadonlyArray<RulerTick>>(() => {
-		if (!this.interactive() || !this.showRulers()) {
-			return [];
-		}
-		return generateRulerTicks(this.canvasSize().width, this.effectiveScale());
-	});
+	/**
+	 * Tick marks for the horizontal ruler strip (scaled slide width).
+	 *
+	 * Generated by the SHARED `generateTicks`, which is what gives Angular the
+	 * same unit system, subdivision-density collapse at low zoom and label
+	 * thinning the other bindings have. A local generator used to live in
+	 * `ruler-ticks.ts` with fixed quarter-inch subdivisions and inch-only
+	 * labels, so Angular disagreed with every other binding at every zoom.
+	 */
+	readonly hRulerTicks = computed<ReadonlyArray<Tick>>(() =>
+		rulerStripTicks(
+			this.interactive() && this.showRulers(),
+			this.canvasSize().width,
+			this.effectiveScale(),
+			this.rulerUnit(),
+		),
+	);
 
 	/** Tick marks for the vertical ruler strip (scaled slide height). */
-	readonly vRulerTicks = computed<ReadonlyArray<RulerTick>>(() => {
-		if (!this.interactive() || !this.showRulers()) {
-			return [];
+	readonly vRulerTicks = computed<ReadonlyArray<Tick>>(() =>
+		rulerStripTicks(
+			this.interactive() && this.showRulers(),
+			this.canvasSize().height,
+			this.effectiveScale(),
+			this.rulerUnit(),
+		),
+	);
+
+	/** Ruler strip thickness / label font size, exposed for the template. */
+	protected readonly rulerThickness = RULER_THICKNESS;
+	protected readonly rulerFontSize = RULER_FONT_SIZE;
+
+	/**
+	 * Bounds of a single selection, highlighted on both strips (PowerPoint shades
+	 * the selected shape's span on its rulers). Multi-selection paints nothing,
+	 * matching React and Svelte.
+	 */
+	private readonly rulerHighlightBounds = computed(() => {
+		const ids = this.selectedIds();
+		if (ids.length !== 1) {
+			return null;
 		}
-		return generateRulerTicks(this.canvasSize().height, this.effectiveScale());
+		const all = [...this.templateElements(), ...(this.slide()?.elements ?? [])];
+		const element = all.find((candidate) => candidate.id === ids[0]);
+		return element
+			? { x: element.x, y: element.y, width: element.width, height: element.height }
+			: null;
+	});
+
+	/** Selected element extent (scaled px) highlighted on the horizontal strip. */
+	readonly hRulerHighlight = computed(() => {
+		const bounds = this.rulerHighlightBounds();
+		return rulerHighlight(bounds?.x, bounds?.width, this.effectiveScale());
+	});
+
+	/** Selected element extent (scaled px) highlighted on the vertical strip. */
+	readonly vRulerHighlight = computed(() => {
+		const bounds = this.rulerHighlightBounds();
+		return rulerHighlight(bounds?.y, bounds?.height, this.effectiveScale());
 	});
 
 	readonly stageStyle = computed<StyleMap>(() => {

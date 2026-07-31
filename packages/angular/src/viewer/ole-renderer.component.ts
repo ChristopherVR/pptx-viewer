@@ -4,7 +4,6 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 
 import { openUrlInNewTab } from '../internal/shared';
-import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import {
 	buildOleActionModel,
@@ -28,6 +27,10 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
  * type-badge overlay; otherwise a type-specific icon + label placeholder box
  * is drawn, mirroring the React / Vue fallback.
  *
+ * Positioning is NOT this component's job: it fills the positioned, element-id
+ * bearing box its host draws (see `element-renderer.component.ts`), the same
+ * contract the chart and table renderers follow.
+ *
  * Pure helpers (type resolution, colour / label maps, placeholder style) live
  * in `ole-renderer-helpers.ts` so they can be unit-tested without TestBed.
  *
@@ -39,14 +42,7 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle, TranslatePipe],
 	template: `
-		<div
-			class="pptx-ng-element pptx-ng-ole"
-			[ngStyle]="containerStyle()"
-			[attr.data-element-id]="element().id"
-			role="img"
-			[attr.aria-label]="ariaLabel()"
-			[attr.title]="infoTitle()"
-		>
+		<div class="pptx-ng-ole" role="img" [attr.aria-label]="ariaLabel()" [attr.title]="infoTitle()">
 			@if (previewSrc()) {
 				<!-- Preview image with type-badge overlay -->
 				<div class="pptx-ng-ole-preview">
@@ -331,6 +327,19 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 	`,
 	styles: [
 		`
+			/*
+				This renderer fills the positioned element box its host (the element
+				dispatcher) draws; it must NOT position itself. Owning left/top here
+				as well offset the OLE box twice, and stamping the element id on this
+				root hid the host's marked node from anything reading the element
+				contract by id.
+			*/
+			.pptx-ng-ole {
+				position: relative;
+				box-sizing: border-box;
+				width: 100%;
+				height: 100%;
+			}
 			.pptx-ng-ole-preview {
 				position: relative;
 				width: 100%;
@@ -419,13 +428,6 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 export class OleRendererComponent {
 	/** The element to render. Must be `type === 'ole'`. */
 	readonly element = input.required<PptxElement>();
-
-	readonly zIndex = input<number>(0);
-
-	/** Absolute container positioning + dimensions. */
-	readonly containerStyle = computed<StyleMap>(() =>
-		getContainerStyle(this.element(), this.zIndex()),
-	);
 
 	/** Narrowed OLE element: undefined when the input is not `type === 'ole'`. */
 	private readonly ole = computed<OlePptxElement | undefined>(() => {

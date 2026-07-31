@@ -103,7 +103,6 @@ const CHANGE_CASE_OPTIONS = [
 			<select
 				class="pptx-rb-select w-28"
 				[attr.aria-label]="'pptx.ribbon.fontFamily' | translate"
-				[disabled]="!isText()"
 				(change)="setFontFamily($event)"
 			>
 				@for (f of fontFamilies; track f) {
@@ -113,7 +112,6 @@ const CHANGE_CASE_OPTIONS = [
 			<select
 				class="pptx-rb-select w-14"
 				[attr.aria-label]="'pptx.ribbon.fontSize' | translate"
-				[disabled]="!isText()"
 				(change)="setFontSize($event)"
 			>
 				@for (s of fontSizes; track s) {
@@ -126,7 +124,8 @@ const CHANGE_CASE_OPTIONS = [
 				type="button"
 				class="pptx-rb-gb"
 				[disabled]="!isText()"
-				[title]="'pptx.ribbon.growFont' | translate"
+				[title]="'pptx.text.increaseFontSize' | translate"
+				[attr.aria-label]="'pptx.text.increaseFontSize' | translate"
 				(click)="stepFontSize(1)"
 			>
 				<svg lucideAArrowUp class="h-4 w-4"></svg>
@@ -135,7 +134,8 @@ const CHANGE_CASE_OPTIONS = [
 				type="button"
 				class="pptx-rb-gb"
 				[disabled]="!isText()"
-				[title]="'pptx.ribbon.shrinkFont' | translate"
+				[title]="'pptx.text.decreaseFontSize' | translate"
+				[attr.aria-label]="'pptx.text.decreaseFontSize' | translate"
 				(click)="stepFontSize(-1)"
 			>
 				<svg lucideAArrowDown class="h-4 w-4"></svg>
@@ -157,6 +157,7 @@ const CHANGE_CASE_OPTIONS = [
 				[disabled]="!isText()"
 				[ngClass]="curStyle()?.bold ? 'bg-accent' : ''"
 				[title]="'pptx.notes.bold' | translate"
+				[attr.aria-label]="'pptx.notes.bold' | translate"
 				(click)="toggleStyle('bold')"
 			>
 				B
@@ -167,6 +168,7 @@ const CHANGE_CASE_OPTIONS = [
 				[disabled]="!isText()"
 				[ngClass]="curStyle()?.italic ? 'bg-accent' : ''"
 				[title]="'pptx.notes.italic' | translate"
+				[attr.aria-label]="'pptx.notes.italic' | translate"
 				(click)="toggleStyle('italic')"
 			>
 				I
@@ -177,6 +179,7 @@ const CHANGE_CASE_OPTIONS = [
 				[disabled]="!isText()"
 				[ngClass]="curStyle()?.underline ? 'bg-accent' : ''"
 				[title]="'pptx.notes.underline' | translate"
+				[attr.aria-label]="'pptx.notes.underline' | translate"
 				(click)="toggleStyle('underline')"
 			>
 				U
@@ -187,6 +190,7 @@ const CHANGE_CASE_OPTIONS = [
 				[disabled]="!isText()"
 				[ngClass]="curStyle()?.strikethrough ? 'bg-accent' : ''"
 				[title]="'pptx.notes.strikethrough' | translate"
+				[attr.aria-label]="'pptx.notes.strikethrough' | translate"
 				(click)="toggleStyle('strikethrough')"
 			>
 				S
@@ -250,7 +254,7 @@ const CHANGE_CASE_OPTIONS = [
 			[current]="curColor()"
 			[presets]="fontColorPresets"
 			[disabled]="!isText()"
-			titleKey="pptx.ribbon.fontColour"
+			titleKey="pptx.text.fontColor"
 			swatchAriaKey="pptx.ribbon.fontColourValue"
 			(pick)="setColor($event)"
 		>
@@ -271,7 +275,7 @@ const CHANGE_CASE_OPTIONS = [
 			[current]="curHighlight()"
 			[presets]="highlightColorPresets"
 			[disabled]="!isText()"
-			titleKey="pptx.ribbon.textHighlightColour"
+			titleKey="pptx.text.highlightColor"
 			swatchAriaKey="pptx.ribbon.highlightColourValue"
 			(pick)="setHighlight($event)"
 		>

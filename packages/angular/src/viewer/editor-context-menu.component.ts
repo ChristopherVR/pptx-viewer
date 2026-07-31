@@ -4,6 +4,15 @@
  *
  * Selector: `pptx-editor-context-menu`
  *
+ * The item list is NOT written here. It comes from
+ * `buildContextMenuEntries` in `pptx-viewer-shared`, which is the one
+ * definition of what the canvas menu contains across all five bindings. This
+ * component's job is to describe what was right-clicked, render the entries it
+ * gets back, and route a chosen command to an editor operation. That is why
+ * Edit Hyperlink, Add Comment, Group and Ungroup are here at all: they were
+ * missing for as long as the list was hand-written, and nothing failed when
+ * they were.
+ *
  * Renders a small floating panel at (x, y) viewport coordinates, wired to
  * EditorStateService. Closes on:
  *  - Escape key (via @HostListener)
@@ -20,6 +29,8 @@
  *     [x]="m.x"
  *     [y]="m.y"
  *     [slideIndex]="activeSlideIndex()"
+ *     (editHyperlink)="docProperties.showHyperlink.set(true)"
+ *     (addComment)="openCommentsPanel()"
  *     (closed)="contextMenu.set(null)"
  *   />
  * }
@@ -37,19 +48,15 @@ import {
 	output,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { TablePptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
+import type { ContextMenuCommandId, ContextMenuEntry } from '../internal/shared';
+import { buildContextMenuEntries } from '../internal/shared';
+import { tableMenuContext } from './editor-context-menu-context';
+import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-dispatch';
+import { runContextMenuCommand } from './editor-context-menu-dispatch';
+import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import { EditorStateService } from './editor-state.service';
-import {
-	insertColumn,
-	insertRow,
-	mergeDown,
-	mergeRight,
-	mergeSelection,
-	removeColumn,
-	removeRow,
-	splitCursorCell,
-} from './table-data-helpers';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
 
@@ -59,275 +66,34 @@ import { TableSelectionService } from './table-selection.service';
 	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
+		<!-- data-pptx-context-menu is the neutral cross-binding hook for "this is
+		     the canvas context menu", alongside the role. -->
 		<ul
 			class="pptx-ctx__menu"
+			data-pptx-context-menu="true"
 			role="menu"
 			[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
 		>
-			<!-- ── Clipboard ─────────────────────────────────────────────────────── -->
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onCut()"
-				>
-					{{ 'pptx.contextMenu.cut' | translate }}
-				</button>
-			</li>
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onCopy()"
-				>
-					{{ 'pptx.contextMenu.copy' | translate }}
-				</button>
-			</li>
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasClipboard()"
-					(click)="onPaste()"
-				>
-					{{ 'pptx.contextMenu.paste' | translate }}
-				</button>
-			</li>
-
-			<!-- ── Divider ───────────────────────────────────────────────────────── -->
-			<li role="separator" class="pptx-ctx__divider"></li>
-
-			<!-- ── Element actions ───────────────────────────────────────────────── -->
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onDuplicate()"
-				>
-					{{ 'pptx.contextMenu.duplicate' | translate }}
-				</button>
-			</li>
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item pptx-ctx__item--danger"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onDelete()"
-				>
-					{{ 'pptx.contextMenu.delete' | translate }}
-				</button>
-			</li>
-
-			<!-- ── Divider ───────────────────────────────────────────────────────── -->
-			<li role="separator" class="pptx-ctx__divider"></li>
-
-			<!-- ── Z-order ───────────────────────────────────────────────────────── -->
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onBringToFront()"
-				>
-					{{ 'pptx.contextMenu.bringToFront' | translate }}
-				</button>
-			</li>
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onSendToBack()"
-				>
-					{{ 'pptx.contextMenu.sendToBack' | translate }}
-				</button>
-			</li>
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onBringForward()"
-				>
-					{{ 'pptx.contextMenu.bringForward' | translate }}
-				</button>
-			</li>
-			<li role="none">
-				<button
-					type="button"
-					class="pptx-ctx__item"
-					role="menuitem"
-					[disabled]="!editor.hasSelection()"
-					(click)="onSendBackward()"
-				>
-					{{ 'pptx.contextMenu.sendBackward' | translate }}
-				</button>
-			</li>
-
-			<!-- ── AI actions (only when the host enables AI + one element is picked) -->
-			@if (showAiActions()) {
-				<li role="separator" class="pptx-ctx__divider"></li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onAskAi()">
-						{{ 'pptx.ai.askAboutElement' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onFixAi()">
-						{{ 'pptx.ai.fixElement' | translate }}
-					</button>
-				</li>
-			}
-
-			<!-- Table row/column/merge actions (only when a table cell is selected) -->
-			@if (tableCtx(); as tc) {
-				<li role="separator" class="pptx-ctx__divider"></li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertRowAbove()">
-						{{ 'pptx.contextMenu.insertRowAbove' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertRowBelow()">
-						{{ 'pptx.contextMenu.insertRowBelow' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertColLeft()">
-						{{ 'pptx.contextMenu.insertColumnLeft' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertColRight()">
-						{{ 'pptx.contextMenu.insertColumnRight' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button
-						type="button"
-						class="pptx-ctx__item pptx-ctx__item--danger"
-						role="menuitem"
-						(click)="onDeleteRow()"
-					>
-						{{ 'pptx.contextMenu.deleteRow' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button
-						type="button"
-						class="pptx-ctx__item pptx-ctx__item--danger"
-						role="menuitem"
-						(click)="onDeleteColumn()"
-					>
-						{{ 'pptx.contextMenu.deleteColumn' | translate }}
-					</button>
-				</li>
-				<li role="separator" class="pptx-ctx__divider"></li>
-				@if (tc.sel.selectedCells && tc.sel.selectedCells.length >= 2) {
-					<li role="none">
-						<button
-							type="button"
-							class="pptx-ctx__item"
-							role="menuitem"
-							(click)="onMergeSelected()"
-						>
-							{{ 'pptx.contextMenu.mergeSelectedCells' | translate }}
-						</button>
-					</li>
+			@for (entry of entries(); track entry.id) {
+				@if (entry.separatorBefore) {
+					<li role="separator" class="pptx-ctx__divider"></li>
 				}
 				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onMergeRight()">
-						{{ 'pptx.table.mergeRight' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onMergeDown()">
-						{{ 'pptx.table.mergeDown' | translate }}
-					</button>
-				</li>
-				<li role="none">
-					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onSplitCell()">
-						{{ 'pptx.contextMenu.splitCell' | translate }}
+					<button
+						type="button"
+						class="pptx-ctx__item"
+						[class.pptx-ctx__item--danger]="!!entry.danger"
+						role="menuitem"
+						[disabled]="!!entry.disabled"
+						(click)="run(entry.id)"
+					>
+						{{ entry.labelKey | translate }}
 					</button>
 				</li>
 			}
 		</ul>
 	`,
-	styles: `
-		:host {
-			position: fixed;
-			left: var(--pptx-ctx-x, 0px);
-			top: var(--pptx-ctx-y, 0px);
-			z-index: 9000;
-			display: block;
-		}
-
-		.pptx-ctx__menu {
-			list-style: none;
-			margin: 0;
-			padding: 4px 0;
-			min-width: 160px;
-			background: var(--pptx-ctx-bg, #252526);
-			color: var(--pptx-ctx-fg, #e0e0e0);
-			border: 1px solid var(--pptx-ctx-border, #454545);
-			border-radius: 4px;
-			box-shadow:
-				0 4px 12px rgba(0, 0, 0, 0.4),
-				0 1px 3px rgba(0, 0, 0, 0.3);
-			font-size: 13px;
-			user-select: none;
-		}
-
-		.pptx-ctx__item {
-			display: block;
-			width: 100%;
-			padding: 5px 14px;
-			background: transparent;
-			border: none;
-			color: inherit;
-			text-align: left;
-			cursor: pointer;
-			font-size: inherit;
-			white-space: nowrap;
-		}
-
-		.pptx-ctx__item:hover:not(:disabled) {
-			background: var(--pptx-ctx-hover, #094771);
-			color: var(--pptx-ctx-hover-fg, #ffffff);
-		}
-
-		.pptx-ctx__item:disabled {
-			opacity: 0.4;
-			pointer-events: none;
-			cursor: default;
-		}
-
-		.pptx-ctx__item--danger {
-			color: var(--pptx-ctx-danger, #f47c7c);
-		}
-
-		.pptx-ctx__item--danger:hover:not(:disabled) {
-			background: var(--pptx-ctx-danger-hover, #4a1a1a);
-			color: var(--pptx-ctx-danger-fg, #ffaaaa);
-		}
-
-		.pptx-ctx__divider {
-			height: 1px;
-			background: var(--pptx-ctx-divider, #454545);
-			margin: 3px 0;
-		}
-	`,
+	styles: EDITOR_CONTEXT_MENU_STYLES,
 	host: {
 		'[style.--pptx-ctx-x]': 'x() + "px"',
 		'[style.--pptx-ctx-y]': 'y() + "px"',
@@ -352,6 +118,14 @@ export class EditorContextMenuComponent {
 	readonly askAi = output<void>();
 	/** "Fix with AI": open the assistant with a prefilled fix directive. */
 	readonly fixAi = output<void>();
+	/**
+	 * "Edit Hyperlink": the dialog lives at viewer level (it needs the selected
+	 * element and the document-properties service), so the menu asks for it
+	 * rather than owning it.
+	 */
+	readonly editHyperlink = output<void>();
+	/** "Add Comment": open the right-docked comments panel, as React does. */
+	readonly addComment = output<void>();
 
 	protected readonly editor = inject(EditorStateService);
 	private readonly tableSelection = inject(TableSelectionService, { optional: true });
@@ -378,6 +152,48 @@ export class EditorContextMenuComponent {
 		return { element: el, sel };
 	});
 
+	/** The single selected element, or null on an empty or multi selection. */
+	private readonly selectedElement = computed<PptxElement | null>(() => {
+		const ids = this.editor.selectedIds();
+		if (ids.length !== 1) {
+			return null;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		return slide?.elements.find((el) => el.id === ids[0]) ?? null;
+	});
+
+	/** The menu, as the shared command list builds it for this right-click. */
+	protected readonly entries = computed<ContextMenuEntry[]>(() => {
+		const table = this.tableCtx();
+		return buildContextMenuEntries({
+			elementType: this.selectedElement()?.type ?? null,
+			table: table ? tableMenuContext(table.element, table.sel) : null,
+			hasMultiSelection: this.editor.selectedIds().length >= 2,
+			aiEnabled: this.showAiActions(),
+			hasClipboard: this.editor.hasClipboard(),
+		});
+	});
+
+	/** Editor operations behind each command id (see the dispatch module). */
+	private readonly actions: ContextMenuActions = {
+		copy: () => this.editor.copySelected(this.slideIndex()),
+		cut: () => this.editor.cutSelected(this.slideIndex()),
+		paste: () => this.editor.paste(this.slideIndex()),
+		duplicate: () => this.editor.duplicateSelected(this.slideIndex()),
+		bringForward: () => this.editor.bringSelectedForward(this.slideIndex()),
+		sendBackward: () => this.editor.sendSelectedBackward(this.slideIndex()),
+		bringToFront: () => this.editor.bringSelectedToFront(this.slideIndex()),
+		sendToBack: () => this.editor.sendSelectedToBack(this.slideIndex()),
+		askAi: () => this.askAi.emit(),
+		fixAi: () => this.fixAi.emit(),
+		comment: () => this.addComment.emit(),
+		hyperlink: () => this.editHyperlink.emit(),
+		group: () => this.editor.groupSelected(this.slideIndex()),
+		ungroup: () => this.editor.ungroupSelected(this.slideIndex()),
+		remove: () => this.editor.deleteSelected(this.slideIndex()),
+		applyTable: (op) => this.applyTable(op),
+	};
+
 	// ── Close triggers ───────────────────────────────────────────────────────
 
 	@HostListener('document:keydown.escape')
@@ -396,103 +212,19 @@ export class EditorContextMenuComponent {
 		}
 	}
 
-	// ── Menu item actions ────────────────────────────────────────────────────
+	// ── Command dispatch ─────────────────────────────────────────────────────
 
-	protected onAskAi(): void {
-		this.askAi.emit();
+	/** Run the chosen command, then close: every item closes the menu. */
+	protected run(id: ContextMenuCommandId): void {
+		runContextMenuCommand(id, this.actions);
 		this.closed.emit();
-	}
-
-	protected onFixAi(): void {
-		this.fixAi.emit();
-		this.closed.emit();
-	}
-
-	protected onCut(): void {
-		this.editor.cutSelected(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onCopy(): void {
-		this.editor.copySelected(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onPaste(): void {
-		this.editor.paste(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onDuplicate(): void {
-		this.editor.duplicateSelected(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onDelete(): void {
-		this.editor.deleteSelected(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onBringToFront(): void {
-		this.editor.bringSelectedToFront(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onSendToBack(): void {
-		this.editor.sendSelectedToBack(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onBringForward(): void {
-		this.editor.bringSelectedForward(this.slideIndex());
-		this.closed.emit();
-	}
-
-	protected onSendBackward(): void {
-		this.editor.sendSelectedBackward(this.slideIndex());
-		this.closed.emit();
-	}
-
-	// ── Table row / column / merge actions ─────────────────────────────────────
-
-	protected onInsertRowAbove(): void {
-		this.applyTable((el, sel) => insertRow(el, sel.rowIndex, 'above'));
-	}
-	protected onInsertRowBelow(): void {
-		this.applyTable((el, sel) => insertRow(el, sel.rowIndex, 'below'));
-	}
-	protected onInsertColLeft(): void {
-		this.applyTable((el, sel) => insertColumn(el, sel.columnIndex, 'left'));
-	}
-	protected onInsertColRight(): void {
-		this.applyTable((el, sel) => insertColumn(el, sel.columnIndex, 'right'));
-	}
-	protected onDeleteRow(): void {
-		this.applyTable((el, sel) => removeRow(el, sel.rowIndex));
-	}
-	protected onDeleteColumn(): void {
-		this.applyTable((el, sel) => removeColumn(el, sel.columnIndex));
-	}
-	protected onMergeRight(): void {
-		this.applyTable((el, sel) => mergeRight(el, sel.rowIndex, sel.columnIndex));
-	}
-	protected onMergeDown(): void {
-		this.applyTable((el, sel) => mergeDown(el, sel.rowIndex, sel.columnIndex));
-	}
-	protected onSplitCell(): void {
-		this.applyTable((el, sel) => splitCursorCell(el, sel.rowIndex, sel.columnIndex));
-	}
-	protected onMergeSelected(): void {
-		this.applyTable((el, sel) => (sel.selectedCells ? mergeSelection(el, sel.selectedCells) : el));
 	}
 
 	/**
 	 * Run a pure table transform on the current table context and commit the
-	 * result through the editor (one undoable history entry), then close the menu.
+	 * result through the editor (one undoable history entry).
 	 */
-	private applyTable(
-		op: (element: TablePptxElement, sel: TableCellSelection) => TablePptxElement,
-	): void {
+	private applyTable(op: TableCommandOp): void {
 		const ctx = this.tableCtx();
 		if (!ctx) {
 			return;
@@ -503,6 +235,5 @@ export class EditorContextMenuComponent {
 				tableData: updated.tableData,
 			});
 		}
-		this.closed.emit();
 	}
 }

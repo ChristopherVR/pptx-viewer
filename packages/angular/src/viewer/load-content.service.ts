@@ -17,6 +17,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
 	ParsedTableStyleMap,
@@ -88,6 +89,13 @@ export class LoadContentService {
 	readonly notesCanvasSize = signal<CanvasSize | undefined>(undefined);
 	/** Custom document properties (used for `docproperty` field substitution). */
 	readonly customProperties = signal<PptxCustomProperty[]>([]);
+	/**
+	 * `ppt/tags/*.xml` name/value metadata, editable from the inspector's TAGS
+	 * card. Tags are how add-ins and automation stamp machine-readable data onto
+	 * a deck, so they are carried through save (see {@link saveSlides}) rather
+	 * than silently dropped.
+	 */
+	readonly tagCollections = signal<PptxTagCollection[]>([]);
 	/** Header/footer settings (footer/header/date-time text + format) for field substitution. */
 	readonly headerFooter = signal<PptxHeaderFooter | undefined>(undefined);
 	/** Whether the presentation contains digital signatures. */
@@ -152,6 +160,7 @@ export class LoadContentService {
 			throw new Error('No presentation is loaded.');
 		}
 		const customProperties = this.customProperties();
+		const tags = this.tagCollections();
 		return this.handler.save([...slides], {
 			headerFooter: this.headerFooter(),
 			presentationProperties: this.presentationProperties(),
@@ -162,6 +171,7 @@ export class LoadContentService {
 			coreProperties: this.coreProperties(),
 			appProperties: this.appProperties(),
 			customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
+			tags: tags.length > 0 ? tags.map((col) => ({ ...col, tags: [...col.tags] })) : undefined,
 			outputFormat,
 		});
 	}
@@ -342,6 +352,7 @@ export class LoadContentService {
 					: undefined,
 			);
 			this.customProperties.set(parsed.customProperties ?? []);
+			this.tagCollections.set(parsed.tags ?? []);
 			this.headerFooter.set(parsed.headerFooter);
 			this.hasDigitalSignatures.set(parsed.hasDigitalSignatures ?? false);
 			this.digitalSignatureCount.set(parsed.digitalSignatureCount ?? 0);

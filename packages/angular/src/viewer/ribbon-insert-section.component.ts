@@ -1,53 +1,45 @@
 /**
- * ribbon-insert-section.component.ts: the Insert ribbon tab (Text box / shapes /
- * image / media group, Table / SmartArt / Chart / Equation group, and the
+ * ribbon-insert-section.component.ts: the Insert ribbon tab (Text box / shape
+ * picker / image / media group, Table / SmartArt / Chart / Equation group, and the
  * Action + Field controls via {@link RibbonInsertFieldsComponent}). Split out of
  * {@link RibbonComponent}; behaviour and markup are unchanged.
  *
- * The chart-type dropdown is owned by the parent ribbon (so its selection
- * persists across tab switches) and passed in via `newChartType`; changes emit
- * `chartTypeChange`. Everything else inserts straight through the shared
- * {@link EditorStateService}.
+ * The chart-type and shape-type dropdowns are owned by the parent ribbon (so a
+ * selection survives a tab switch) and passed in via `newChartType` /
+ * `newShapeType`; changes emit `chartTypeChange` / `shapeTypeChange`. The shape
+ * picker offers the whole shared preset catalogue rather than a fixed
+ * rect/ellipse/line trio, matching React's Insert tab. Everything else inserts
+ * straight through the shared {@link EditorStateService}.
+ *
+ * The Links group is {@link RibbonHyperlinkButtonComponent}, and the file
+ * dialog / FileReader / image-probe plumbing behind Image and Media lives in
+ * `ribbon-insert-file-picker.ts`: both are out of this file so it stays inside
+ * the repo's 300-LOC budget.
  */
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import {
-	LucideCircle,
 	LucideDatabase,
 	LucideImage,
 	LucideLayers,
-	LucideSlash,
 	LucideSquare,
 	LucideVideo,
 } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 
-import { INSERT_CHART_TYPES } from '../internal/shared';
-import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
+import { INSERT_CHART_TYPES, SHAPE_PRESET_DEFS } from '../internal/shared';
+import type { ShapePresetType } from '../internal/shared';
+import {
+	newChartElement,
+	newPresetShapeElement,
+	newTableElement,
+	newTextElement,
+} from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { HeaderFooterRibbonButtonComponent } from './header-footer-ribbon-button.component';
+import { RibbonHyperlinkButtonComponent } from './ribbon-hyperlink-button.component';
 import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
-
-/** Read a File as a base64 data URL, resolving to '' on failure. */
-function readAsDataUrl(file: File): Promise<string> {
-	return new Promise((resolve) => {
-		const reader = new FileReader();
-		reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-		reader.onerror = () => resolve('');
-		reader.readAsDataURL(file);
-	});
-}
-
-/** Resolve an image data URL's natural dimensions (falls back to 400x300). */
-function imageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
-	return new Promise((resolve) => {
-		const img = new Image();
-		img.onload = () =>
-			resolve({ width: img.naturalWidth || 400, height: img.naturalHeight || 300 });
-		img.onerror = () => resolve({ width: 400, height: 300 });
-		img.src = dataUrl;
-	});
-}
+import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-picker';
 
 @Component({
 	selector: 'pptx-ribbon-insert-section',
@@ -58,13 +50,12 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 		TranslatePipe,
 		RibbonInsertFieldsComponent,
 		LucideSquare,
-		LucideCircle,
-		LucideSlash,
 		LucideImage,
 		LucideVideo,
 		LucideDatabase,
 		LucideLayers,
 		HeaderFooterRibbonButtonComponent,
+		RibbonHyperlinkButtonComponent,
 	],
 	template: `
 		<!-- Shapes group -->
@@ -77,29 +68,23 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 			>
 				{{ 'pptx.ribbon.textBox' | translate }}
 			</button>
+			<select
+				class="pptx-rb-select rounded-none border-y-0 border-l-0"
+				[title]="'pptx.insert.shapeType' | translate"
+				[value]="newShapeType()"
+				(change)="setShapeType($event)"
+			>
+				@for (sp of shapePresets; track sp.type) {
+					<option [value]="sp.type">{{ sp.i18nKey | translate }}</option>
+				}
+			</select>
 			<button
 				type="button"
 				class="pptx-rb-gb gap-1.5"
-				(click)="insertShape('rect')"
-				[title]="'pptx.ribbon.rectangle' | translate"
+				(click)="insertShape()"
+				[title]="'pptx.insert.addShape' | translate"
 			>
-				<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.ribbon.rect' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="insertShape('ellipse')"
-				[title]="'pptx.ribbon.ellipse' | translate"
-			>
-				<svg lucideCircle class="h-4 w-4"></svg> {{ 'pptx.ribbon.ellipse' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="insertShape('line')"
-				[title]="'pptx.ribbon.line' | translate"
-			>
-				<svg lucideSlash class="h-4 w-4"></svg> {{ 'pptx.ribbon.line' | translate }}
+				<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.insert.shape' | translate }}
 			</button>
 			<button
 				type="button"
@@ -190,6 +175,9 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>
+		<!-- Links -->
+		<pptx-ribbon-hyperlink-button (openHyperlink)="openHyperlink.emit()" />
+		<span class="pptx-rb-sep"></span>
 		<!-- Action button + Field dropdowns -->
 		<pptx-ribbon-insert-fields [slideIndex]="slideIndex()" />
 		<pptx-header-footer-ribbon-button />
@@ -201,19 +189,29 @@ export class RibbonInsertSectionComponent {
 
 	readonly slideIndex = input<number>(0);
 	readonly newChartType = input<PptxChartType>('bar');
+	readonly newShapeType = input<ShapePresetType>('rect');
 
 	readonly openSmartArtDialog = output<void>();
 	readonly openEquationDialog = output<void>();
+	/** "Hyperlink"; the host opens the hyperlink edit dialog for the selection. */
+	readonly openHyperlink = output<void>();
 	readonly chartTypeChange = output<PptxChartType>();
+	readonly shapeTypeChange = output<ShapePresetType>();
 
 	/** Chart types offered in the Insert tab dropdown (shared source of truth). */
 	protected readonly chartTypes = INSERT_CHART_TYPES;
+	/** Geometries offered by the Insert tab's shape picker (shared catalogue). */
+	protected readonly shapePresets = SHAPE_PRESET_DEFS;
 
 	protected insertText(): void {
 		this.editor.addElement(this.slideIndex(), newTextElement());
 	}
-	protected insertShape(kind: 'rect' | 'ellipse' | 'line'): void {
-		this.editor.addElement(this.slideIndex(), newShapeElement(kind));
+	protected setShapeType(event: Event): void {
+		this.shapeTypeChange.emit((event.target as HTMLSelectElement).value as ShapePresetType);
+	}
+	/** Insert the geometry currently chosen in the shape-type dropdown. */
+	protected insertShape(): void {
+		this.editor.addElement(this.slideIndex(), newPresetShapeElement(this.newShapeType()));
 	}
 	protected insertTable(): void {
 		this.editor.addElement(this.slideIndex(), newTableElement());
@@ -227,12 +225,12 @@ export class RibbonInsertSectionComponent {
 
 	/** Pick an image file and add it as an inline image element (data-URL backed). */
 	protected insertImage(): void {
-		this.pickFile('image/*', (file) => void this.addImageFile(file));
+		pickFile('image/*', (file) => void this.addImageFile(file));
 	}
 
 	/** Pick an audio/video file and add it as a media element (data-URL backed). */
 	protected insertMedia(): void {
-		this.pickFile('video/*,audio/*', (file) => void this.addMediaFile(file));
+		pickFile('video/*,audio/*', (file) => void this.addMediaFile(file));
 	}
 
 	private async addImageFile(file: File): Promise<void> {
@@ -275,25 +273,5 @@ export class RibbonInsertSectionComponent {
 			mediaMimeType: file.type,
 		} as PptxElement;
 		this.editor.addElement(this.slideIndex(), element);
-	}
-
-	/** Open the native file picker for a single file of the given accept type. */
-	private pickFile(accept: string, onFile: (file: File) => void): void {
-		if (typeof document === 'undefined') {
-			return;
-		}
-		const fileInput = document.createElement('input');
-		fileInput.type = 'file';
-		fileInput.accept = accept;
-		fileInput.style.display = 'none';
-		fileInput.addEventListener('change', () => {
-			const file = fileInput.files?.[0];
-			if (file) {
-				onFile(file);
-			}
-			fileInput.remove();
-		});
-		document.body.appendChild(fileInput);
-		fileInput.click();
 	}
 }

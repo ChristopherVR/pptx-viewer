@@ -58,6 +58,7 @@ import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableCellFormattingComponent } from './table-cell-formatting.component';
 import { TableDataEditorComponent } from './table-data-editor.component';
 import { TablePropertiesComponent } from './table-properties.component';
+import { Text3DPanelComponent } from './text-3d-panel.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 
@@ -81,6 +82,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 		ElementMiscPropertiesComponent,
 		ElementFlipControlsComponent,
 		ShapeAuthoringPanelComponent,
+		Text3DPanelComponent,
 		TextWarpGalleryComponent,
 		TranslatePipe,
 		LucideArrowUp,
@@ -390,6 +392,14 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						{{ 'pptx.inspector.textAdvanced' | translate }}
 					</summary>
 					<pptx-text-advanced-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
+
+				<!-- ── Advanced: 3D text (extrusion / bevels / material) ────────── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.text3d.title' | translate }}
+					</summary>
+					<pptx-text-3d-panel [element]="el()" (patch)="onPatch($event)" />
 				</details>
 			}
 

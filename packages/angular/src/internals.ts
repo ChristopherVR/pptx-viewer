@@ -99,6 +99,7 @@ export * from './viewer/table-renderer-helpers';
 // `RibbonComponent` itself is a curated export (see `viewer/index.ts` /
 // `pptx-angular-viewer`'s package root); the sub-sections below are internal
 // building blocks it composes for its own template.
+export * from './viewer/ribbon-animation-gallery.component';
 export { RibbonAnimationsSectionComponent } from './viewer/ribbon-animations-section.component';
 export { RibbonArrangeSectionComponent } from './viewer/ribbon-arrange-section.component';
 export { RibbonColorPopoverComponent } from './viewer/ribbon-color-popover.component';
@@ -109,11 +110,14 @@ export { RibbonEditingSectionComponent } from './viewer/ribbon-editing-section.c
 export { RibbonFileSectionComponent } from './viewer/ribbon-file-section.component';
 export { RibbonFontControlsComponent } from './viewer/ribbon-font-controls.component';
 export { RibbonHomeSectionComponent } from './viewer/ribbon-home-section.component';
+export { RibbonHyperlinkButtonComponent } from './viewer/ribbon-hyperlink-button.component';
+export * from './viewer/ribbon-insert-file-picker';
 export { RibbonInsertFieldsComponent } from './viewer/ribbon-insert-fields.component';
 export { RibbonInsertSectionComponent } from './viewer/ribbon-insert-section.component';
 export { RibbonParagraphControlsComponent } from './viewer/ribbon-paragraph-controls.component';
 export { RibbonPrimaryRowComponent } from './viewer/ribbon-primary-row.component';
 export { RibbonReviewSectionComponent } from './viewer/ribbon-review-section.component';
+export * from './viewer/ribbon-shape-extras.component';
 export { RibbonSlideshowSectionComponent } from './viewer/ribbon-slideshow-section.component';
 export * from './viewer/ribbon-text-helpers';
 export { RibbonTransitionsSectionComponent } from './viewer/ribbon-transitions-section.component';
@@ -125,7 +129,19 @@ export * from './viewer/presentation-overlay-helpers';
 export * from './viewer/presentation-subtitle-helpers';
 export * from './viewer/touch-gestures';
 export * from './viewer/swipe-dismiss';
-export * from './viewer/ruler-ticks';
+// Ruler tick generation + the drag-out-a-guide drop rule now come straight from
+// the shared module every binding uses; the Angular-only `ruler-ticks.ts` copy
+// (fixed quarter-inch subdivisions, inches only) was deleted with this export.
+export {
+	generateTicks,
+	PX_PER_CM,
+	PX_PER_INCH,
+	RULER_FONT_SIZE,
+	RULER_THICKNESS,
+	rulerDragToGuidePosition,
+} from './internal/shared';
+export type { RulerUnit, Tick } from './internal/shared';
+export * from './viewer/ruler-strips';
 export * from './viewer/zoom-renderer-helpers';
 export * from './viewer/shortcut-reference';
 

@@ -60,6 +60,7 @@ type MountFn = typeof MountModel3D;
 			class="pptx-ng-element pptx-ng-model3d"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
+			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
 			@if (showScene()) {
 				<div #scene class="pptx-ng-model3d-scene"></div>
@@ -114,6 +115,15 @@ export class Model3DRendererComponent implements OnDestroy {
 	 * editor; the root viewer can pass `false` in passive presentation mode.
 	 */
 	readonly interactive = input<boolean>(true);
+	/**
+	 * Emit the neutral element marker (`data-pptx-element="true"`) on this
+	 * renderer's root, the node that also carries `data-element-id`. Set only by
+	 * the main interactive canvas.
+	 *
+	 * Separate from `interactive` above, which is about the 3D scene's orbit
+	 * controls and defaults to `true` even on a thumbnail.
+	 */
+	readonly markElement = input<boolean>(false);
 
 	private readonly sceneRef = viewChild<ElementRef<HTMLDivElement>>('scene');
 

@@ -23,6 +23,7 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { STATUS_BAR_CLASSES } from '../internal/shared';
 import type { ToolbarActionId } from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
 import { toolbarVisibility } from './toolbar-visibility';
@@ -42,8 +43,14 @@ import { toolbarVisibility } from './toolbar-visibility';
 		LucidePlus,
 	],
 	template: `
+		<!--
+			The bound token pins the row height to the shared STATUS_BAR_METRICS
+			instead of letting it fall out of the padding + button box, which is how
+			the Vanilla and Svelte ports ended up 2px shorter than React's.
+		-->
 		<div
 			class="flex w-full items-center gap-1 border-t border-border bg-secondary/50 px-2 py-0.5 text-[10px] text-muted-foreground"
+			[ngClass]="statusBarHeightClass"
 		>
 			<!-- Left: slide counter + language + save state -->
 			<span class="shrink-0">
@@ -164,6 +171,8 @@ import { toolbarVisibility } from './toolbar-visibility';
 	`,
 })
 export class StatusBarComponent {
+	/** Shared height token; see the note above the row in the template. */
+	protected readonly statusBarHeightClass = STATUS_BAR_CLASSES.container;
 	readonly slideIndex = input<number>(0);
 	readonly slideCount = input<number>(0);
 	readonly canEdit = input<boolean>(false);

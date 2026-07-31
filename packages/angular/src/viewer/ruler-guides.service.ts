@@ -15,6 +15,7 @@
 
 import { Injectable, signal } from '@angular/core';
 
+import { rulerDragToGuidePosition } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
 
 /** A user-created guide line dragged from a ruler strip. */
@@ -45,6 +46,8 @@ export class RulerGuidesService {
 	readonly rulerGuides = signal<readonly RulerGuide[]>([]);
 	/** Active guide-drag state (id + axis only), or null when nothing is being dragged. */
 	private guideDrag: Pick<RulerGuide, 'id' | 'axis'> | null = null;
+	/** Ruler strip a drag-out-a-guide gesture was armed on, or null. */
+	private rulerDragAxis: 'h' | 'v' | null = null;
 
 	private host: RulerGuidesHost | null = null;
 
@@ -88,44 +91,60 @@ export class RulerGuidesService {
 		this.rulerGuides.update((gs) => gs.filter((g) => g.id !== id));
 	}
 
-	/** Drag from the horizontal ruler to create a new horizontal guide (axis:'y'). */
-	onHRulerPointerDown(event: PointerEvent): void {
-		const host = this.requireHost();
-		if (!host.editable()) {
-			return;
-		}
-		const stage = host.stageElement();
-		if (!stage) {
+	/**
+	 * Arm a drag-out-a-guide gesture on a ruler strip ('h' = the horizontal strip
+	 * along the top, 'v' = the vertical strip down the left).
+	 *
+	 * Nothing is created yet: the guide is dropped on pointer-UP so a stray click
+	 * on the strip cannot leave a guide behind. This is the gesture React, Vue,
+	 * Svelte and Vanilla all implement; Angular used to create the guide on
+	 * pointer-DOWN off its own stage-relative arithmetic, which both diverged
+	 * from the other bindings and duplicated the drop maths.
+	 */
+	onRulerPointerDown(axis: 'h' | 'v', event: PointerEvent): void {
+		if (!this.requireHost().editable()) {
 			return;
 		}
 		event.preventDefault();
-		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-		const rect = stage.getBoundingClientRect();
-		const z = host.effectiveScale() || 1;
-		const pos = (event.clientY - rect.top) / z;
-		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-		this.rulerGuides.update((gs) => [...gs, { id, axis: 'y' as const, pos: Math.max(0, pos) }]);
-		this.guideDrag = { id, axis: 'y' };
+		(event.currentTarget as Element | null)?.setPointerCapture?.(event.pointerId);
+		this.rulerDragAxis = axis;
 	}
 
-	/** Drag from the vertical ruler to create a new vertical guide (axis:'x'). */
-	onVRulerPointerDown(event: PointerEvent): void {
+	/**
+	 * Resolve an armed ruler drag: drop one guide when the pointer left the strip
+	 * and landed on the slide. All three rules (must have left the strip, strip
+	 * thickness subtracted before un-scaling, out-of-slide drops discarded) live
+	 * in the shared {@link rulerDragToGuidePosition}.
+	 */
+	onRulerPointerUp(axis: 'h' | 'v', event: PointerEvent): void {
+		const armed = this.rulerDragAxis;
+		this.rulerDragAxis = null;
+		const strip = event.currentTarget as Element | null;
+		if (armed !== axis || !strip) {
+			return;
+		}
+		try {
+			strip.releasePointerCapture?.(event.pointerId);
+		} catch {
+			// Capture may already have been released by the browser.
+		}
 		const host = this.requireHost();
-		if (!host.editable()) {
+		const rect = strip.getBoundingClientRect();
+		const offset = axis === 'h' ? event.clientY - rect.top : event.clientX - rect.left;
+		const size = host.canvasSize();
+		const position = rulerDragToGuidePosition(
+			offset,
+			host.effectiveScale(),
+			axis === 'h' ? size.height : size.width,
+		);
+		if (position === null) {
 			return;
 		}
-		const stage = host.stageElement();
-		if (!stage) {
-			return;
-		}
-		event.preventDefault();
-		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-		const rect = stage.getBoundingClientRect();
-		const z = host.effectiveScale() || 1;
-		const pos = (event.clientX - rect.left) / z;
 		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-		this.rulerGuides.update((gs) => [...gs, { id, axis: 'x' as const, pos: Math.max(0, pos) }]);
-		this.guideDrag = { id, axis: 'x' };
+		this.rulerGuides.update((gs) => [
+			...gs,
+			{ id, axis: axis === 'h' ? ('y' as const) : ('x' as const), pos: position },
+		]);
 	}
 
 	/** Update the dragged guide's position. Returns false when no guide drag is in progress (caller should fall through). */

@@ -10,9 +10,9 @@
 
 import { computed, Injectable, signal } from '@angular/core';
 
-const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.2;
-const ZOOM_MAX = 3;
+// The step and its bounds are shared with the other four bindings so the same
+// button press is worth the same amount of zoom everywhere.
+import { clampZoomScale, zoomInScale, zoomOutScale } from '../internal/shared';
 
 @Injectable()
 export class ViewerZoomService {
@@ -21,12 +21,17 @@ export class ViewerZoomService {
 	/** {@link zoom} rounded to a whole percentage for display. */
 	readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
 
+	/** Jump to an explicit zoom level, clamped by the shared bounds. */
+	setZoom(level: number): void {
+		this.zoom.set(clampZoomScale(level));
+	}
+
 	zoomIn(): void {
-		this.zoom.set(Math.min(ZOOM_MAX, Number((this.zoom() + ZOOM_STEP).toFixed(2))));
+		this.zoom.set(zoomInScale(this.zoom()));
 	}
 
 	zoomOut(): void {
-		this.zoom.set(Math.max(ZOOM_MIN, Number((this.zoom() - ZOOM_STEP).toFixed(2))));
+		this.zoom.set(zoomOutScale(this.zoom()));
 	}
 
 	zoomReset(): void {

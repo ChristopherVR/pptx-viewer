@@ -43,6 +43,7 @@ import type { InkStroke } from './ink-renderer-helpers';
 			class="pptx-ng-element pptx-ng-ink"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
+			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
 			@if (strokes().length > 0) {
 				<svg
@@ -93,6 +94,18 @@ export class InkRendererComponent {
 	readonly zIndex = input<number>(0);
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly replay = input<boolean>(false);
+	/**
+	 * Emit the neutral element marker (`data-pptx-element="true"`) on this
+	 * renderer's root, the node that also carries `data-element-id`.
+	 *
+	 * Set only by the main interactive canvas. It is an input rather than
+	 * something the dispatcher wraps around this component because the root here
+	 * positions itself absolutely, so an outer marked box would offset the ink
+	 * twice. Without it an ink element renders correctly but is not an element as
+	 * far as the shared contract is concerned, so anything enumerating or
+	 * hit-testing slide elements by the marker skips it.
+	 */
+	readonly markElement = input<boolean>(false);
 	readonly replayKeyframes = INK_REPLAY_KEYFRAMES;
 
 	readonly containerStyle = computed<StyleMap>(() =>

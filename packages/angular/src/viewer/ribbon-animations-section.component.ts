@@ -1,31 +1,42 @@
 /**
- * ribbon-animations-section.component.ts: the Animations ribbon tab (preview, the
- * Add Animation entrance/emphasis/exit gallery, Remove Animation, Animation
- * Panel). Split out of {@link RibbonComponent}; behaviour and markup are
- * unchanged. Animation edits go through the immutable helpers in
- * animation-author-helpers.ts and commit via {@link EditorStateService}.
+ * ribbon-animations-section.component.ts: the Animations ribbon tab (Preview,
+ * the entrance/emphasis/exit gallery, the Advanced Animation group, and the
+ * Timing group). Split out of {@link RibbonComponent}. Animation edits go
+ * through the immutable helpers in animation-author-helpers.ts and commit via
+ * {@link EditorStateService}.
+ *
+ * The preset gallery sits ON the ribbon rather than behind an "Add Animation"
+ * dropdown. PowerPoint puts it there, every other binding does too, and a
+ * control that only exists inside a hover menu cannot be reached by name, which
+ * is how this tab silently drifted out of parity. The gallery itself is
+ * {@link RibbonAnimationGalleryComponent}, which renders the whole shared
+ * catalogue.
  */
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import {
-	LucideChevronDown,
+	LucideClock3,
+	LucideMousePointerClick,
+	LucideMoveRight,
+	LucidePaintbrush,
 	LucidePanelRight,
 	LucidePlay,
 	LucideSparkles,
+	LucideStar,
 	LucideTrash2,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAnimationPreset, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import type { AnimationGroup } from '../internal/shared';
 import {
-	EMPHASIS_PRESETS,
-	ENTRANCE_PRESETS,
-	EXIT_PRESETS,
 	removeAnimation,
 	setAnimationEmphasis,
 	setAnimationEntrance,
 	setAnimationExit,
 } from './animation-author-helpers';
 import { EditorStateService } from './editor-state.service';
+import type { AnimationPresetPick } from './ribbon-animation-gallery.component';
+import { RibbonAnimationGalleryComponent } from './ribbon-animation-gallery.component';
 
 export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boolean {
 	return canEdit && hasSelection;
@@ -40,9 +51,14 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 		TranslatePipe,
 		LucidePlay,
 		LucideSparkles,
-		LucideChevronDown,
+		LucideStar,
+		LucideMoveRight,
+		LucideMousePointerClick,
+		LucidePaintbrush,
+		LucideClock3,
 		LucideTrash2,
 		LucidePanelRight,
+		RibbonAnimationGalleryComponent,
 	],
 	template: `
 		<!-- Preview: plays presentation from this slide; no element-only preview API yet -->
@@ -56,77 +72,54 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			<svg lucidePlay class="h-4 w-4"></svg> {{ 'pptx.animations.preview' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
-		<!-- Add Animation dropdown (hover-reveal, mirrors React pattern) -->
-		<div class="group relative">
-			<button
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="!canAuthor()"
-				[title]="'pptx.animations.addTooltip' | translate"
-			>
-				<svg lucideSparkles class="h-4 w-4"></svg>
-				{{ 'pptx.animations.addAnimation' | translate }}
-				<svg lucideChevronDown class="h-3 w-3"></svg>
-			</button>
-			<!-- Dropdown panel: shown on group hover -->
-			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
-				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
-					<!-- Entrance group -->
-					<div
-						class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
-					>
-						{{ 'pptx.animations.group.entrance' | translate }}
-					</div>
-					@for (item of entrancePresets; track item.value) {
-						<button
-							type="button"
-							[disabled]="!canAuthor()"
-							(click)="addAnimation(item.value, 'entrance')"
-							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-							[title]="'pptx.ribbonAnimations.entranceTooltip' | translate: { name: item.label }"
-						>
-							{{ item.label }}
-						</button>
-					}
-					<!-- Emphasis group -->
-					<div
-						class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
-					>
-						{{ 'pptx.animations.group.emphasis' | translate }}
-					</div>
-					@for (item of emphasisPresets; track item.value) {
-						<button
-							type="button"
-							[disabled]="!canAuthor()"
-							(click)="addAnimation(item.value, 'emphasis')"
-							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-							[title]="'pptx.ribbonAnimations.emphasisTooltip' | translate: { name: item.label }"
-						>
-							{{ item.label }}
-						</button>
-					}
-					<!-- Exit group -->
-					<div
-						class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
-					>
-						{{ 'pptx.animations.group.exit' | translate }}
-					</div>
-					@for (item of exitPresets; track item.value) {
-						<button
-							type="button"
-							[disabled]="!canAuthor()"
-							(click)="addAnimation(item.value, 'exit')"
-							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-							[title]="'pptx.ribbonAnimations.exitTooltip' | translate: { name: item.label }"
-						>
-							{{ item.label }}
-						</button>
-					}
-				</div>
-			</div>
-		</div>
+		<!-- Preset gallery: the whole shared catalogue, one button per preset -->
+		<pptx-ribbon-animation-gallery
+			[disabled]="!canAuthor()"
+			(addAnimation)="onGalleryPick($event)"
+		/>
 		<span class="pptx-rb-sep"></span>
-		<!-- Remove Animation -->
+		<!-- Advanced Animation -->
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="!canAuthor()"
+			(click)="addAnimation('fadeOut', 'exit')"
+		>
+			<svg lucideStar class="h-4 w-4 text-red-500"></svg>
+			{{ 'pptx.animations.exitEffects' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="!canAuthor()"
+			(click)="addAnimation('flyIn', 'entrance')"
+		>
+			<svg lucideMoveRight class="h-4 w-4"></svg>
+			{{ 'pptx.animations.pathAnimation' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="!canAuthor()"
+			(click)="toggleInspector.emit()"
+		>
+			<svg lucideSparkles class="h-4 w-4"></svg>
+			{{ 'pptx.animations.effectOptions' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="!canAuthor()"
+			(click)="toggleInspector.emit()"
+		>
+			<svg lucideMousePointerClick class="h-4 w-4"></svg>
+			{{ 'pptx.animations.trigger' | translate }}
+		</button>
+		<!-- Animation Painter: no cross-element animation copy API yet. -->
+		<button type="button" class="pptx-rb-pill" disabled>
+			<svg lucidePaintbrush class="h-4 w-4"></svg>
+			{{ 'pptx.animations.painter' | translate }}
+		</button>
 		<button
 			type="button"
 			class="pptx-rb-pill"
@@ -134,7 +127,7 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			[title]="'pptx.animations.removeTooltip' | translate"
 			(click)="removeAnim()"
 		>
-			<svg lucideTrash2 class="h-4 w-4"></svg> {{ 'pptx.ribbon.removeAnimation' | translate }}
+			<svg lucideTrash2 class="h-4 w-4"></svg> {{ 'pptx.animations.remove' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Animation Panel -->
@@ -147,6 +140,34 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			<svg lucidePanelRight class="h-4 w-4"></svg>
 			{{ 'pptx.animations.animationPanel' | translate }}
 		</button>
+		<span class="pptx-rb-sep"></span>
+		<!--
+			Timing: start mode and duration are authored in the Animation Panel; these
+			read-only stand-ins mirror PowerPoint's Timing group so the tab reads the
+			same across bindings. Both fields are disabled until the Animation Panel
+			can author them.
+		-->
+		<div class="grid grid-cols-[auto_5.5rem] items-center gap-x-1 gap-y-1 text-[10px]">
+			<label for="pptx-animation-start">{{ 'pptx.animations.start' | translate }}</label>
+			<select id="pptx-animation-start" class="pptx-rb-select h-6" disabled>
+				<option>{{ 'pptx.animations.onClick' | translate }}</option>
+				<option>{{ 'pptx.animations.withPrevious' | translate }}</option>
+				<option>{{ 'pptx.animations.afterPrevious' | translate }}</option>
+			</select>
+			<span class="flex items-center gap-1">
+				<svg lucideClock3 class="h-3 w-3"></svg>
+				{{ 'pptx.animations.duration' | translate }}
+			</span>
+			<input
+				type="number"
+				min="0"
+				step="0.1"
+				value="0.5"
+				class="pptx-rb-select h-6"
+				[attr.aria-label]="'pptx.animations.duration' | translate"
+				disabled
+			/>
+		</div>
 	`,
 })
 export class RibbonAnimationsSectionComponent {
@@ -159,10 +180,6 @@ export class RibbonAnimationsSectionComponent {
 	readonly present = output<void>();
 	readonly toggleInspector = output<void>();
 
-	protected readonly entrancePresets = ENTRANCE_PRESETS;
-	protected readonly emphasisPresets = EMPHASIS_PRESETS;
-	protected readonly exitPresets = EXIT_PRESETS;
-
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;
 	}
@@ -171,15 +188,17 @@ export class RibbonAnimationsSectionComponent {
 		return canAuthorAnimation(this.canEdit(), this.hasSel());
 	}
 
+	/** Apply the preset a gallery button asked for. */
+	protected onGalleryPick(pick: AnimationPresetPick): void {
+		this.addAnimation(pick.preset, pick.group);
+	}
+
 	/**
 	 * Add an animation preset to the selected element on the active slide.
 	 * Delegates to the immutable helpers in animation-author-helpers.ts and
 	 * commits the updated animations array via EditorStateService.updateSlide.
 	 */
-	protected addAnimation(
-		preset: PptxAnimationPreset,
-		group: 'entrance' | 'emphasis' | 'exit',
-	): void {
+	protected addAnimation(preset: PptxAnimationPreset, group: AnimationGroup): void {
 		if (!this.canEdit()) {
 			return;
 		}

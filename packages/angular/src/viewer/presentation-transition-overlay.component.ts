@@ -21,35 +21,15 @@ import {
 import type { StyleMap } from './element-style';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import {
-	SLIDE_TRANSITION_KEYFRAMES,
 	getSlideTransitionAnimations,
 	resolveTransitionDuration,
 	transitionSlideBoxSize,
 } from './transition-helpers';
 import type { SlideTransitionAnimations } from './transition-helpers';
-
-/** DOM id of the singleton <style> tag holding the transition keyframes. */
-const KEYFRAMES_STYLE_ID = 'pptx-ng-slide-transition-keyframes';
+import { ensureTransitionKeyframes } from './transition-keyframes';
 
 /** Safety margin (ms) added to the animation duration before firing complete. */
 const COMPLETE_MARGIN_MS = 50;
-
-/**
- * Ensure the slide-transition `@keyframes` are present in the document head
- * exactly once. SSR/test-safe (no-op when there is no `document`).
- */
-function ensureTransitionKeyframes(): void {
-	if (typeof document === 'undefined') {
-		return;
-	}
-	if (document.getElementById(KEYFRAMES_STYLE_ID)) {
-		return;
-	}
-	const style = document.createElement('style');
-	style.id = KEYFRAMES_STYLE_ID;
-	style.textContent = SLIDE_TRANSITION_KEYFRAMES;
-	document.head.appendChild(style);
-}
 
 /**
  * PresentationTransitionOverlayComponent: plays a PowerPoint slide transition

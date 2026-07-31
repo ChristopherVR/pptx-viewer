@@ -14,8 +14,9 @@ import { ViewerDialogsService } from './viewer-dialogs.service';
 			class="pptx-rb-gb"
 			(click)="dialogs.showHeaderFooter.set(true)"
 			[title]="'pptx.headerFooter.title' | translate"
+			[attr.aria-label]="'pptx.headerFooter.title' | translate"
 		>
-			# {{ 'pptx.headerFooter.title' | translate }}
+			<span aria-hidden="true">#</span> {{ 'pptx.headerFooter.title' | translate }}
 		</button>
 	`,
 })

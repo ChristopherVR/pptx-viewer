@@ -2,7 +2,10 @@
  * presentation-properties-panel.component.ts: the Properties tab body of the
  * default (no-selection) inspector, mirroring React's
  * `PresentationPropertiesPanel` section order: PRESENTATION, THEME, THEME
- * OVERRIDE, SLIDE SIZE, NOTES & HANDOUT, DOCUMENT.
+ * OVERRIDE, SLIDE SIZE, SLIDE TRANSITION, NOTES & HANDOUT, DOCUMENT, TAGS.
+ *
+ * SLIDE TRANSITION sits next to SLIDE SIZE because React pairs them in its
+ * `SlideProperties`; TAGS follows DOCUMENT, matching React's panel order.
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -16,6 +19,8 @@ import { NotesHandoutCardComponent } from './notes-handout-card.component';
 import { PresentationSettingsCardComponent } from './presentation-settings-card.component';
 import { SlideSizeCardComponent } from './slide-size-card.component';
 import { SlideThemeOverridePanelComponent } from './slide-theme-override-panel.component';
+import { SlideTransitionCardComponent } from './slide-transition-card.component';
+import { TagsCardComponent } from './tags-card.component';
 import { ThemeSelectorCardComponent } from './theme-selector-card.component';
 
 @Component({
@@ -28,8 +33,10 @@ import { ThemeSelectorCardComponent } from './theme-selector-card.component';
 		ThemeSelectorCardComponent,
 		SlideThemeOverridePanelComponent,
 		SlideSizeCardComponent,
+		SlideTransitionCardComponent,
 		NotesHandoutCardComponent,
 		DocumentPropertiesCardComponent,
+		TagsCardComponent,
 	],
 	template: `
 		<pptx-presentation-settings-card [canEdit]="canEdit()" />
@@ -45,8 +52,10 @@ import { ThemeSelectorCardComponent } from './theme-selector-card.component';
 			</section>
 		}
 		<pptx-slide-size-card [canEdit]="canEdit()" />
+		<pptx-slide-transition-card [slideIndex]="slideIndex()" [canEdit]="canEdit()" />
 		<pptx-notes-handout-card />
 		<pptx-document-properties-card [canEdit]="canEdit()" />
+		<pptx-tags-card [canEdit]="canEdit()" />
 	`,
 	styles: [
 		`

@@ -2,6 +2,10 @@
  * ribbon-drawing-group.component.ts: Drawing group for the Home tab ribbon.
  * Provides shape insertion, layer arrangement, and shape formatting placeholders.
  *
+ * The Arrange menu also carries Group / Ungroup, which is where PowerPoint
+ * puts them (Home > Drawing > Arrange) and where the other bindings expose
+ * them; the dedicated Arrange tab keeps its flat buttons.
+ *
  * Shape picks insert straight through the shared {@link EditorStateService}
  * (like the Insert and Arrange sections do), matching React's immediate-insert
  * behaviour (DrawingGroup -> onAddShape): the element appears at a default
@@ -101,6 +105,21 @@ const TOP_SHAPES: readonly ShapePresetDef[] = SHAPE_PRESET_DEFS.slice(0, 12);
 							>
 								{{ 'pptx.arrange.sendToBack' | translate }}
 							</button>
+							<span class="my-0.5 block h-px bg-border"></span>
+							<button
+								type="button"
+								class="whitespace-nowrap rounded px-2 py-0.5 text-left text-[11px] hover:bg-accent"
+								(click)="onGroup(true)"
+							>
+								{{ 'pptx.ribbon.group' | translate }}
+							</button>
+							<button
+								type="button"
+								class="whitespace-nowrap rounded px-2 py-0.5 text-left text-[11px] hover:bg-accent"
+								(click)="onGroup(false)"
+							>
+								{{ 'pptx.ribbon.ungroup' | translate }}
+							</button>
 						</div>
 					}
 				</div>
@@ -153,6 +172,16 @@ export class RibbonDrawingGroupComponent {
 			return;
 		}
 		this.editor.sendSelectedBackward(this.slideIndex());
+	}
+
+	/** Group or ungroup the selection, then close the menu. */
+	protected onGroup(group: boolean): void {
+		this.arrangeOpen.set(false);
+		if (group) {
+			this.editor.groupSelected(this.slideIndex());
+			return;
+		}
+		this.editor.ungroupSelected(this.slideIndex());
 	}
 
 	protected onArrangeEdge(edge: 'front' | 'back'): void {

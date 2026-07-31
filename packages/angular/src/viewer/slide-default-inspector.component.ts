@@ -30,6 +30,7 @@ import type { SlideInspectorTab } from './inspector-pane-header.component';
 import { InspectorPaneHeaderComponent } from './inspector-pane-header.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { PresentationPropertiesPanelComponent } from './presentation-properties-panel.component';
+import { SlideBackgroundCardComponent } from './slide-background-card.component';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
@@ -50,6 +51,7 @@ interface LayerRow {
 		InspectorPaneHeaderComponent,
 		InspectorPanelComponent,
 		PresentationPropertiesPanelComponent,
+		SlideBackgroundCardComponent,
 		CommentsPanelComponent,
 	],
 	template: `
@@ -93,18 +95,15 @@ interface LayerRow {
 						/>
 					} @else {
 						<pptx-presentation-properties-panel [canEdit]="canEdit()" [slideIndex]="slideIndex()" />
+						<!--
+							BACKGROUND card (colour / picture / clear), matching React's
+							SlideBackgroundPanel. The SLIDE card below keeps the speaker-notes
+							field, which Angular surfaces here rather than only in the notes pane.
+						-->
+						<pptx-slide-background-card [slideIndex]="slideIndex()" [canEdit]="canEdit()" />
 						@if (activeSlide(); as sl) {
 							<section class="icard" [attr.data-slide-key]="slideKey()">
 								<h3 class="icard__heading">{{ 'pptx.viewer.slide' | translate }}</h3>
-								<label class="icard__row">
-									<span class="icard__label">{{ 'pptx.viewer.background' | translate }}</span>
-									<input
-										type="color"
-										[disabled]="!canEdit()"
-										[attr.value]="sl.backgroundColor || '#ffffff'"
-										(change)="canvasEditing.onSlideBackground($event)"
-									/>
-								</label>
 								<label class="icard__col">
 									<span class="icard__label">{{ 'pptx.notes.title' | translate }}</span>
 									<textarea

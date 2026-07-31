@@ -8,7 +8,9 @@ import {
 	buildRunEffectStyle,
 	buildTextBody3DSceneStyle,
 	buildTextBuildSpec,
+	isElementHidden,
 	textBuildSpanStyle,
+	resolveAutoFitFontScale,
 	resolveParagraphIndent,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
@@ -63,9 +65,13 @@ import { ZoomRendererComponent } from './zoom-renderer.component';
  * `resolveUnderlineDecorationStyle` over the boolean underline to make the 16
  * OOXML underline styles visually distinct. Kept additive in the Angular
  * renderer so the shared helper's contract stays stable for its other consumers.
+ *
+ * `fontScale` is the body's `a:normAutofit/@fontScale`: a run authoring its own
+ * `sz` overrides the (already scaled) body font-size, so without it a
+ * shrink-to-fit title painted at full size.
  */
-function runStyleFromSegment(seg: TextSegment): StyleMap {
-	const style = segmentStyleToCss(seg);
+function runStyleFromSegment(seg: TextSegment, fontScale = 1): StyleMap {
+	const style = segmentStyleToCss(seg, fontScale);
 	const s = seg.style;
 	if (s) {
 		const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
@@ -183,6 +189,19 @@ interface Paragraph {
 	],
 	template: `
 		@switch (true) {
+			@case (isHidden()) {
+				<!--
+					Hidden via the Selection Pane: draw nothing, exactly as PowerPoint
+					does. This is the FIRST case on purpose - @switch takes the first
+					match, so one empty branch suppresses every element type at once
+					without wrapping (and re-indenting) the whole template. The host
+					carries \`display: contents\`, so an empty component collapses.
+					Rendering nothing (rather than an invisible box) is what keeps the
+					element out of hit-testing, the tab order and the export raster; it
+					stays listed in and selectable from the Selection Pane, which reads
+					the slide model rather than the DOM.
+				-->
+			}
 			@case (element().type === 'connector') {
 				<pptx-connector-renderer
 					[element]="element()"
@@ -195,11 +214,19 @@ interface Paragraph {
 				/>
 			}
 			@case (element().type === 'ink') {
+				<!--
+					This renderer (and zoom / model3d / 3D SmartArt below) positions its
+					own root box, so it takes the neutral element marker
+					(data-pptx-element) as an input instead of being wrapped in a marked
+					box the way chart / table / OLE are: an outer positioned box would
+					offset it twice.
+				-->
 				<pptx-ink-renderer
 					[element]="element()"
 					[zIndex]="zIndex()"
 					[mediaDataUrls]="mediaDataUrls()"
 					[replay]="presenting()"
+					[markElement]="interactive()"
 				/>
 			}
 			@case (element().type === 'zoom') {
@@ -207,6 +234,7 @@ interface Paragraph {
 					[element]="element()"
 					[zIndex]="zIndex()"
 					[mediaDataUrls]="mediaDataUrls()"
+					[markElement]="interactive()"
 				/>
 			}
 			@case (element().type === 'model3d') {
@@ -214,6 +242,7 @@ interface Paragraph {
 					[element]="element()"
 					[zIndex]="zIndex()"
 					[mediaDataUrls]="mediaDataUrls()"
+					[markElement]="interactive()"
 				/>
 			}
 			@case (element().type === 'smartArt' && smartArt3D()) {
@@ -221,6 +250,7 @@ interface Paragraph {
 					[element]="element()"
 					[zIndex]="zIndex()"
 					[canEdit]="interactive() && editable()"
+					[markElement]="interactive()"
 				/>
 			}
 			@case (element().type === 'smartArt') {
@@ -232,7 +262,6 @@ interface Paragraph {
 				>
 					<pptx-smart-art-renderer
 						[element]="element()"
-						[zIndex]="zIndex()"
 						[editable]="interactive() && editable()"
 						[animationState]="animationState()"
 					/>
@@ -245,7 +274,7 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
-					<pptx-ole-renderer [element]="element()" [zIndex]="zIndex()" />
+					<pptx-ole-renderer [element]="element()" />
 				</div>
 			}
 			@case (element().type === 'chart') {
@@ -548,6 +577,12 @@ export class ElementRendererComponent {
 	private readonly playback = inject(AnimationPlaybackService, { optional: true });
 	private readonly translate = inject(TranslateService);
 	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
+	/**
+	 * Whether the Selection Pane has hidden this element. Drives the empty first
+	 * `@case` in the template; see the comment there for why nothing is rendered
+	 * rather than rendered-and-hidden.
+	 */
+	readonly isHidden = computed(() => isElementHidden(this.element()));
 	/** Obstacle rects (absolute slide coords) for connector A* routing. */
 	readonly obstacles = input<readonly Rect[]>([]);
 	readonly canvasWidth = input<number>(0);
@@ -769,6 +804,10 @@ export class ElementRendererComponent {
 				? [{ runs: [{ text: el.text, style: {} }], bulletStyle: {}, indentPx: 0 }]
 				: [];
 		}
+		// `a:normAutofit/@fontScale`: applied to every authored run size, since a
+		// run's own `sz` overrides the (already scaled) body font-size. Mirrors
+		// shared `buildParagraphs` and React's `renderSingleSegment`.
+		const fontScale = resolveAutoFitFontScale(el.textStyle);
 		const paragraphIndents = el.paragraphIndents;
 		const out: Paragraph[] = [{ runs: [], bulletStyle: {}, indentPx: 0 }];
 		let paraStarted = false;
@@ -830,7 +869,7 @@ export class ElementRendererComponent {
 					current.spaceAfterPx = spacing.spaceAfterPx;
 				}
 				const baseFontSize = seg.style?.fontSize ?? el.textStyle?.fontSize ?? 16;
-				const bullet = resolveAngularParagraphBullet(seg, baseFontSize);
+				const bullet = resolveAngularParagraphBullet(seg, baseFontSize, fontScale);
 				if (bullet) {
 					current.bulletMarker = bullet.marker;
 					current.bulletPicture = bullet.picture;
@@ -841,6 +880,13 @@ export class ElementRendererComponent {
 					// the indent stop and removes the need for a spacer after
 					// the glyph. Mirrors shared `buildParagraphs`.
 					current.bulletStyle['display'] = 'inline-block';
+					// `text-indent` inherits, and an inline-block is a block
+					// container: without this reset the marker box applies the
+					// paragraph's negative first-line indent AGAIN internally and
+					// paints the glyph a full hang-width left of its own box
+					// (measured 27px outside the text inset). Mirrors shared
+					// `buildParagraphs`.
+					current.bulletStyle['text-indent'] = '0px';
 					if (indent.textIndentPx !== undefined && indent.textIndentPx < 0) {
 						current.bulletStyle['min-width'] = `${-indent.textIndentPx}px`;
 					} else {
@@ -860,7 +906,7 @@ export class ElementRendererComponent {
 			if (seg.equationXml) {
 				current.runs.push({
 					text: '',
-					style: runStyleFromSegment(seg),
+					style: runStyleFromSegment(seg, fontScale),
 					equationXml: seg.equationXml,
 					equationNumber: seg.equationNumber,
 				});
@@ -884,7 +930,7 @@ export class ElementRendererComponent {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
 				current.runs.push({
 					text,
-					style: runStyleFromSegment(seg),
+					style: runStyleFromSegment(seg, fontScale),
 					href,
 					tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
 				});

@@ -63,19 +63,31 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
 	imports: [NgStyle, SmartArtRendererComponent, TranslatePipe],
 	template: `
 		@if (useFallback()) {
-			<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
+			<!--
+				The SVG renderer only fills a box, so the positioned, id-bearing,
+				marked element node has to be drawn here.
+			-->
+			<div
+				class="pptx-ng-element pptx-ng-smartart"
+				[ngStyle]="containerStyle()"
+				[attr.data-element-id]="element().id"
+				[attr.data-pptx-element]="markElement() ? 'true' : null"
+			>
+				<pptx-smart-art-renderer [element]="element()" />
+			</div>
 		} @else {
 			<div
 				#container3d
 				class="pptx-ng-element pptx-ng-smartart-3d"
 				[ngStyle]="containerStyle()"
 				[attr.data-element-id]="element().id"
+				[attr.data-pptx-element]="markElement() ? 'true' : null"
 			>
 				<canvas #canvas class="pptx-ng-smartart-3d-canvas"></canvas>
 				@if (canEdit()) {
 					<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
 					<div class="pptx-ng-smartart-3d-hittest" (dblclick)="onOverlayDblClick($event)">
-						<pptx-smart-art-renderer [element]="element()" [editable]="false" [zIndex]="0" />
+						<pptx-smart-art-renderer [element]="element()" [editable]="false" />
 					</div>
 					@if (editState()) {
 						<textarea
@@ -140,6 +152,12 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	readonly zIndex = input<number>(0);
 	/** When true and the 3D scene is active, enables inline node text editing. */
 	readonly canEdit = input<boolean>(false);
+	/**
+	 * Emit the neutral element marker (`data-pptx-element="true"`) on the node
+	 * that also carries `data-element-id`: the 3D scene's root, or the box the
+	 * SVG fallback branch is drawn into. Set only by the main interactive canvas.
+	 */
+	readonly markElement = input<boolean>(false);
 
 	private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
 	private readonly containerEl = viewChild<ElementRef<HTMLElement>>('container3d');

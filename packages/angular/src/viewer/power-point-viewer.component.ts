@@ -745,6 +745,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					[showAiActions]="aiEnabled() && !!selectedElement()"
 					(askAi)="onContextMenuAskAi()"
 					(fixAi)="onContextMenuFixAi()"
+					(editHyperlink)="docProperties.showHyperlink.set(true)"
+					(addComment)="onContextMenuAddComment()"
 					(closed)="canvasEditing.contextMenuPos.set(null)"
 				/>
 			}
@@ -1691,6 +1693,10 @@ export class PowerPointViewerComponent {
 			canEdit: () => this.canEdit(),
 			presenting: () => this.presentationMode.presenting(),
 			activeSlideIndex: () => this.activeSlideIndex(),
+			// With nothing selected the horizontal arrows page the deck, which is
+			// what the other four bindings do and what a reader expects.
+			goPrev: () => this.goPrev(),
+			goNext: () => this.goNext(),
 		});
 
 		// Attach multi-touch gestures (pinch-zoom / swipe-nav / long-press menu)
@@ -1999,9 +2005,9 @@ export class PowerPointViewerComponent {
 	getZoom(): number {
 		return this.zoomSvc.zoom();
 	}
-	/** Set the zoom level (clamped to min/max bounds). */
+	/** Set the zoom level (clamped by the shared cross-binding bounds). */
 	setZoom(level: number): void {
-		this.zoomSvc.zoom.set(Math.min(Math.max(level, 0.2), 3));
+		this.zoomSvc.setZoom(level);
 	}
 	/** Zoom in by one step. */
 	zoomIn(): void {
@@ -2075,6 +2081,18 @@ export class PowerPointViewerComponent {
 	protected onContextMenuFixAi(): void {
 		this.aiPanelStore.fixSelection();
 		this.aiPanelOpen.set(true);
+	}
+
+	/**
+	 * Context-menu "Add Comment": show the comments panel, mirroring React's
+	 * `setIsInspectorPaneOpen(true) + setSidebarPanelMode('comments')`. It sets
+	 * the panel rather than toggling it, because choosing Add Comment while the
+	 * panel is already open must not close it; the mobile swipe-dismiss flag is
+	 * cleared for the same reason.
+	 */
+	protected onContextMenuAddComment(): void {
+		this.inspectorPanel.mobileInspectorHidden.set(false);
+		this.inspectorPanel.activePanel.set('comments');
 	}
 
 	/** Get the IDs of currently selected elements. */
