@@ -282,6 +282,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Write the Selection Pane's hide toggle back to `p:cNvPr/@hidden`.
+	 *
+	 * Without this the flag is viewer-local: hiding a shape, saving and
+	 * reopening brings it back, both here and in PowerPoint. The attribute is
+	 * DELETED rather than written as `"0"` when the element is visible, so a
+	 * shape that was never hidden round-trips byte-for-byte and one that is
+	 * un-hidden does not leave a redundant attribute behind.
+	 */
+	protected applyHiddenToCnvPr(shape: XmlObject, el: PptxElement): void {
+		for (const nvKey of PptxHandlerRuntime.NV_CONTAINERS) {
+			const nv = shape[nvKey] as XmlObject | undefined;
+			const cNvPr = nv?.['p:cNvPr'] as XmlObject | undefined;
+			if (cNvPr) {
+				if (el.hidden) {
+					cNvPr['@_hidden'] = '1';
+				} else {
+					delete cNvPr['@_hidden'];
+				}
+				return;
+			}
+		}
+	}
+
+	/**
 	 * Process a single slide element during save. Handles embedding,
 	 * transforms, geometry, styles, text, and sorts into collectors.
 	 */
@@ -484,6 +508,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Actions and locks
 		this.serializeElementActions(shape, el, ctx.resolveHyperlinkRelationshipId);
 		this.serializeShapeLocks(shape, el);
+
+		// Selection Pane visibility. Applied before the template branch below so a
+		// hidden inherited layout/master shape persists too.
+		this.applyHiddenToCnvPr(shape, el);
 
 		// Template elements
 		if (this.isTemplateElementId(el.id)) {

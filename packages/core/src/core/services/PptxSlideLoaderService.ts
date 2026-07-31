@@ -8,6 +8,7 @@
  * @module PptxSlideLoaderService
  */
 import { applyBackgroundFillToShapes } from '../core/builders/background-fill-shapes';
+import { applyHiddenFlagFromRawXml } from '../core/builders/element-hidden-flag';
 import type { PptxSlide, XmlObject } from '../types';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
@@ -252,6 +253,12 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			// load, and stamp each element's `shapeId`. Without this the animation
 			// target ids never match any loaded element id, so nothing animates.
 			reconcileAnimationTargets(elements, nativeAnimations, animations);
+
+			// PowerPoint's Selection Pane eye toggle lives on `p:cNvPr/@hidden`.
+			// Lift it onto the model here rather than in each per-type parser: they
+			// all capture the whole shape node on `element.rawXml`, so one pass
+			// covers shapes, pictures, connectors, graphic frames and groups.
+			applyHiddenFlagFromRawXml(elements);
 			const rawTiming = (slideXmlObj['p:sld'] as XmlObject | undefined)?.['p:timing'] as
 				| XmlObject
 				| undefined;
