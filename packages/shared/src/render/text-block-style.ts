@@ -29,6 +29,7 @@ import {
 	HYPERLINK_COLOR,
 } from '../constants';
 import { normalizeHexColor } from './fill-style';
+import { isLinkedTextBox } from './linked-text-box-overflow';
 import { resolveCssTextAlign } from './text-paragraph-style';
 import {
 	computeAutoFitTextStyle,
@@ -203,6 +204,15 @@ export function buildTextBlockStyle(
 	if (ts?.textWrap === 'none') {
 		style.whiteSpace = 'nowrap';
 		style.overflow = 'visible';
+	}
+
+	// A member of an `a:linkedTxbx` chain must CLIP, not spill: the text this box
+	// cannot hold is what the successor box renders, so letting it overflow here
+	// paints the same run twice (once escaping this box, once inside the next).
+	// Applied after the `wrap="none"` branch above so it wins for a no-wrap
+	// linked box, matching React, which appends the same `overflow: hidden` last.
+	if (isLinkedTextBox(element)) {
+		style.overflow = 'hidden';
 	}
 
 	// Auto-fit: the OOXML-provided `fontScale` / `lnSpcReduction` when present,

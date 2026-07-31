@@ -15,6 +15,7 @@
 
 	import { useTranslator } from '../../i18n/context';
 	import { getFieldContextGetter, provideFieldContext } from '../state/field-context';
+	import { provideSlideElements } from '../state/slide-elements';
 	import { styleToString } from '../style';
 	import ElementRenderer from './ElementRenderer.svelte';
 	import type { SlideStageProps } from './props';
@@ -43,6 +44,11 @@
 	// is captured once), hence the getter closure over the reactive `slide` prop.
 	const getDeckFieldContext = getFieldContextGetter();
 	provideFieldContext(() => deriveSlideFieldContext(getDeckFieldContext?.(), slide));
+
+	// Publish THIS stage's sibling list so a text box in an `a:linkedTxbx` chain
+	// can find the rest of its chain and render only its own slice of the
+	// overflow. Also a getter, for the same init-time capture reason as above.
+	provideSlideElements(() => slide?.elements);
 
 	const stageStyle = $derived(
 		styleToString({

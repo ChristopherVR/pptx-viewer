@@ -128,15 +128,24 @@ function resolveParagraphSpacing(pPr: TextSegment['paragraphProperties']): Parag
  * run text replaced via {@link substituteFieldText}, matching React's
  * per-run substitution in `text-segment-render`. When omitted, the output is
  * byte-identical to the no-context path (substitution is a strict no-op).
+ *
+ * `segmentOverrides` replaces the element's own `textSegments` for this render
+ * only. It exists for `a:linkedTxbx` chains, where the segments a box paints are
+ * not its authored segments but the slice the chain's overflow distribution gave
+ * it (see `getOverflowSegments`). It mirrors React's `renderTextSegments`
+ * `segmentOverrides` argument, so all five bindings resolve a chain identically.
+ * Everything downstream (autofit scale, paragraph indents, bullets) still comes
+ * from the element, exactly as React does.
  */
 export function buildParagraphs(
 	element: PptxElement,
 	fieldContext?: FieldSubstitutionContext,
+	segmentOverrides?: readonly TextSegment[],
 ): RenderParagraph[] {
 	if (!hasTextProperties(element)) {
 		return [];
 	}
-	const segments = element.textSegments;
+	const segments = segmentOverrides ?? element.textSegments;
 	if (!segments || segments.length === 0) {
 		return element.text ? [{ runs: [{ text: element.text, style: {} }], bulletStyle: {} }] : [];
 	}

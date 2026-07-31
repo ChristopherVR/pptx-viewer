@@ -1,4 +1,5 @@
-import { getLinkedTextBoxSegments, hasTextProperties } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
+import { getOverflowSegments, isLinkedTextBox as isLinkedTextBoxElement } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
@@ -28,9 +29,13 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 		isPresentationPassive,
 		slideElements,
 	} = options;
-	const isLinkedTextBox = hasTextProperties(el) && el.linkedTxbxId !== undefined;
-	const linkedSegments =
-		isLinkedTextBox && slideElements ? getLinkedTextBoxSegments(el, slideElements) : undefined;
+	// `a:linkedTxbx` overflow now resolves through `pptx-viewer-shared` so all
+	// five bindings distribute a chain's text through the one implementation.
+	// Behaviour is unchanged: the shared helper returns `undefined` for a
+	// non-chain element and for a missing sibling list, which is exactly what the
+	// guard this replaced computed.
+	const isLinkedTextBox = isLinkedTextBoxElement(el);
+	const linkedSegments = getOverflowSegments(el, slideElements);
 	const useSvgWarp = shouldUseSvgWarp(
 		hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined,
 	);

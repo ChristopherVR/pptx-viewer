@@ -32,13 +32,21 @@ export function isLinkedTextBoxHead(element: PptxElement): boolean {
  * box chain.
  *
  * Returns the segments that this element should display after overflow
- * distribution, or `undefined` if the element is not part of a chain or is the
- * only member.
+ * distribution, or `undefined` if the element is not part of a chain, is the
+ * only member, or the caller has no sibling list to resolve the chain against.
+ *
+ * `slideElements` is nullable so every binding can call this unconditionally at
+ * its text-render site: a surface that does not (yet) thread the sibling list
+ * down, or renders an element outside any slide, degrades to the element's own
+ * authored segments instead of forcing a guard into each view layer.
  */
 export function getOverflowSegments(
 	element: PptxElement,
-	slideElements: readonly PptxElement[],
+	slideElements: readonly PptxElement[] | undefined,
 ): TextSegment[] | undefined {
+	if (!slideElements || slideElements.length === 0) {
+		return undefined;
+	}
 	return getLinkedTextBoxSegments(element, slideElements);
 }
 

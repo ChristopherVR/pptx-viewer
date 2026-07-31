@@ -6,6 +6,7 @@ import { computed, ref, watchPostEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { provideSlideFieldContext } from '../composables/field-context';
+import { provideSlideElements } from '../composables/slide-elements';
 import { stripElementIdMarkers } from '../composables/stage-element-markers';
 import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
@@ -88,6 +89,11 @@ const stageRef = ref<HTMLElement | null>(null);
 // presenter preview or export stage must resolve them from the slide it paints
 // rather than from the active one.
 provideSlideFieldContext(() => props.slide);
+
+// Publish THIS stage's sibling list so a text box in an `a:linkedTxbx` chain can
+// find the rest of its chain and render only its own slice of the overflow.
+// Template elements are included because a chain may be authored on a layout.
+provideSlideElements(() => [...(props.templateElements ?? []), ...(props.slide?.elements ?? [])]);
 
 /** Template elements render behind the slide content; default to none. */
 const templateElements = computed<PptxElement[]>(() => props.templateElements ?? []);
