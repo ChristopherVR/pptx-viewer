@@ -110,6 +110,23 @@ Other demo gotchas:
   undefined" error from inside Svelte's own runtime and stopped decks rendering
   entirely. Delete the demo's `node_modules/.vite` and restart before believing
   a stack trace that points into a framework.
+- **A demo that never renders is usually a cached resolution failure, not your
+  code.** Vite caches a FAILED import resolution, so a module added while the
+  server was running keeps 500-ing after the file exists on disk and is
+  committed. The tell is that every e2e test times out on `#file-input` at once
+  while the page itself returns HTTP 200: the shell serves, the app never
+  mounts. Diagnose by checking which port actually 500s rather than assuming the
+  suite found a real regression:
+  `curl -s http://localhost:4176/@fs/<abs-path>/packages/shared/src/render/index.ts`
+  names the unresolved import. Then kill that port, delete that demo's
+  `node_modules/.vite`, and restart it. This has masked "all parity specs
+  failed" more than once; four of five demos being healthy is the clue.
+- **Rebuilding `packages/angular/dist` breaks the running Angular demo.** It
+  starts 404-ing on its own CSS and its vite pre-bundle of core goes stale
+  (`e2e/dist-freshness.ts` checks that second axis separately and tells you to
+  clear it). After any `bun run --filter pptx-angular-viewer build`, kill :4174,
+  `rm -rf demos/demo-angular/node_modules/.vite`, and restart before running
+  e2e.
 - The demos serve `e2e/fixtures` as their public dir, and the landing page's
   "or create a New Presentation" button gives an editable deck without a file.
 
