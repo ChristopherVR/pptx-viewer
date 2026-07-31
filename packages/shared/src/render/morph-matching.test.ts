@@ -368,12 +368,13 @@ describe('creationId identity matching', () => {
 		expect(pairs.find((p) => p.fromElement.id === 'a-2')?.toElement.id).toBe('b-1');
 	});
 
-	it('matches a !!-named shape ACROSS a grouping boundary', () => {
-		// PowerPoint's `!!` convention pairs by name wherever the shape sits in
-		// the tree. The issue #131 deck keeps its centre disc top-level on the
-		// overview slide and nests the identical shape inside a `!!Circle` group
-		// on every topic slide, so before group decomposition the two never
-		// matched and the whole centre faded instead of staying continuous.
+	it('refuses to pair a !!-named shape ACROSS a grouping boundary', () => {
+		// PowerPoint matches a morph level by level and only looks inside a group
+		// once the group itself has paired, so a shape nested on one slide and
+		// top-level on the other is NOT carried through - not even under `!!`.
+		// Sampled frames of the real issue #131 transition show that centre
+		// dissolving out to the artwork behind it and back in, which is what an
+		// unmatched pair looks like. See `morph-flatten`.
 		const from = makeSlide([
 			{
 				...makeElement({ id: 'circle', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
@@ -393,33 +394,73 @@ describe('creationId identity matching', () => {
 			} as PptxElement,
 		]);
 		const result = matchMorphElementsFull(from, to);
-		expect(result.pairs).toHaveLength(1);
-		expect(result.pairs[0].fromElement.id).toBe('nested');
-		expect(result.pairs[0].toElement.id).toBe('toplevel');
-		// The nested half is reported in ABSOLUTE coordinates so the generated
-		// keyframes measure the same space as every other element's.
-		expect(result.pairs[0].fromElement).toMatchObject({ x: 505, y: 225 });
-		// The group itself is gone from the lists: its children stand in for it.
-		expect(result.unmatchedFrom.map((e) => e.id)).not.toContain('circle');
+		expect(result.pairs).toHaveLength(0);
+		// The group stays whole, so it dissolves as one object.
+		expect(result.unmatchedFrom.map((e) => e.id)).toStrictEqual(['circle']);
+		expect(result.unmatchedTo.map((e) => e.id)).toStrictEqual(['toplevel']);
 	});
 
-	it('pairs leftovers occupying the exact same box, even across element types', () => {
-		// The issue #131 wheel keeps its centre as a bare shape on the overview
-		// slide and wraps the identical artwork in a group on the topic slides,
-		// so the two never matched and the disc faded out while its replacement
-		// faded in - the background showed through mid-transition.
+	it('pairs the contents of two groups that pair with each other', () => {
+		// Both topic slides of the issue #131 deck wrap the centre in a `!!Circle`
+		// group, and PowerPoint keeps that centre solid across the whole
+		// transition (the disc pixel holds RGB 39,40,42 from 0ms to 1000ms), so
+		// the contents must pair once the containers do.
+		const circle = (idPrefix: string, contentX: number): PptxElement =>
+			({
+				...makeElement({
+					id: `${idPrefix}-circle`,
+					type: 'group',
+					x: 505,
+					y: 225,
+					width: 270,
+					height: 270,
+				}),
+				name: '!!Circle',
+				children: [
+					{
+						...makeElement({
+							id: `${idPrefix}-content`,
+							type: 'shape',
+							x: contentX,
+							y: 0,
+							width: 270,
+							height: 270,
+						}),
+						name: '!!Content',
+					},
+				],
+			}) as PptxElement;
+		const result = matchMorphElementsFull(
+			makeSlide([circle('a', 0)]),
+			makeSlide([circle('b', 10)]),
+		);
+		expect(result.pairs).toHaveLength(1);
+		expect(result.pairs[0].fromElement.id).toBe('a-content');
+		expect(result.pairs[0].toElement.id).toBe('b-content');
+		// Reported in ABSOLUTE coordinates so the generated keyframes measure the
+		// same space as every other element's.
+		expect(result.pairs[0].fromElement).toMatchObject({ x: 505, y: 225 });
+		expect(result.pairs[0].toElement).toMatchObject({ x: 515, y: 225 });
+		expect(result.unmatchedFrom).toStrictEqual([]);
+	});
+
+	it('never pairs a shape with a GROUP that occupies the same box', () => {
+		// A same-box pass used to do exactly this, to hold the issue #131 wheel's
+		// centre solid where the overview slide has a bare `!!Content` shape and
+		// the topic slides a `!!Circle` group of the identical box. PowerPoint
+		// dissolves it instead: the disc's centre pixel reads RGB 39,40,42 at 0ms,
+		// 174,194,204 (the artwork BEHIND it) from 324ms to 449ms, and 39,40,42
+		// again by 983ms.
 		const from = makeSlide([
 			makeElement({ id: 'a-1', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
 		]);
 		const to = makeSlide([
 			makeElement({ id: 'b-1', type: 'shape', x: 505, y: 225, width: 270, height: 270 }),
 		]);
-		const pairs = matchMorphElements(from, to);
-		expect(pairs).toHaveLength(1);
-		expect(pairs[0].toElement.id).toBe('b-1');
+		expect(matchMorphElements(from, to)).toHaveLength(0);
 	});
 
-	it('does not same-box pair shapes that merely sit close together', () => {
+	it('does not pair shapes of different types that merely sit close together', () => {
 		const from = makeSlide([
 			makeElement({ id: 'a-1', type: 'group', x: 505, y: 225, width: 270, height: 270 }),
 		]);

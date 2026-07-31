@@ -118,12 +118,12 @@ export function buildMorphTransitionPlan(
 	// implementation detail of core rather than an assumption here.
 	//
 	// The list is FLATTENED the same way the matcher flattens it (see
-	// `morph-flatten`): a group holding a `!!`-named shape is decomposed into
-	// its children in absolute coordinates, and the animations are keyed by
-	// those children's ids. Painting the undecomposed group here instead would
-	// paint the children twice over - once inside the group, once as their own
-	// ghosts - and leave the group itself without an animation.
-	const outgoingElements = flattenMorphElements(fromSlide.elements);
+	// `morph-flatten`), against the SAME counterpart, so the two agree on which
+	// groups were decomposed: the animations are keyed by the decomposed
+	// children's ids. Painting the undecomposed group here instead would paint
+	// the children twice over - once inside the group, once as their own ghosts
+	// - and leave the group itself without an animation.
+	const outgoingElements = flattenMorphElements(fromSlide.elements, toSlide.elements);
 	const outgoingIds = new Set(outgoingElements.map((element) => element.id));
 
 	const incomingAnimations = new Map<string, string>();

@@ -15,13 +15,6 @@ import { getElementMorphName } from './morph-name';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 
-/**
- * Tolerance (px, slide coordinates) within which two boxes count as identical
- * for the same-box pass. Sub-pixel only: this pass ignores element type, so it
- * must never absorb a shape that merely sits close by.
- */
-const SAME_BOX_TOLERANCE_PX = 0.5;
-
 // ---------------------------------------------------------------------------
 // Element name extraction
 // ---------------------------------------------------------------------------
@@ -92,6 +85,10 @@ export function getElementCreationId(element: PptxElement): string | undefined {
  *   2b. Native shape id from `p:cNvPr/@id` (only when creationIds are absent)
  *   3. Type + proximity + size matching (same type within 300px, similar box)
  *
+ * Matching is per level of the shape tree: two groups that pair are decomposed
+ * so their contents can pair too, and a group with no counterpart stays one
+ * object (see `morph-flatten`).
+ *
  * Returns only matched pairs (no unmatched elements).
  *
  * @param fromSlide - The outgoing slide.
@@ -115,13 +112,13 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	const usedFrom = new Set<string>();
 	const usedTo = new Set<string>();
 
-	// A group holding a `!!`-named shape is decomposed into its children (in
-	// absolute coordinates) so that shape can be paired across the grouping
-	// boundary, which is what the `!!` convention is for. Groups without such a
-	// descendant - the overwhelming majority - stay whole and animate as one
-	// unit exactly as before. See `morph-flatten`.
-	const fromElements = flattenMorphElements(fromSlide.elements);
-	const toElements = flattenMorphElements(toSlide.elements);
+	// Two groups that pair with each other are decomposed into their children
+	// (in absolute coordinates) so the contents can pair too, which is how
+	// PowerPoint descends a matched container. A group with no counterpart -
+	// including one whose `!!`-named shape sits top-level on the other slide -
+	// stays whole and animates (or dissolves) as one unit. See `morph-flatten`.
+	const fromElements = flattenMorphElements(fromSlide.elements, toSlide.elements);
+	const toElements = flattenMorphElements(toSlide.elements, fromSlide.elements);
 
 	// Pass 1: match by !! naming convention
 	for (const fromEl of fromElements) {
@@ -259,39 +256,17 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 		}
 	}
 
-	// Pass 4: pair leftovers that occupy the EXACT same box, even across element
-	// types. A deck often restructures the same visual between slides - the
-	// issue #131 wheel keeps its centre as a bare shape on one slide and wraps
-	// the identical artwork in a group on the others - and PowerPoint carries
-	// that through as one continuing object. Left unmatched, the two halves
-	// fade out and in independently, so the middle of the transition showed the
-	// background straight through a disc that should stay solid.
+	// There is deliberately no further pass pairing leftovers that merely
+	// occupy the same box across element types. One used to exist, to carry the
+	// issue #131 wheel's centre through as one object where the overview slide
+	// holds it as a bare `!!Content` shape and the topic slides wrap the same
+	// artwork in a `!!Circle` group of the identical box. PowerPoint does not:
+	// sampled frames of the real transition show that centre dissolving out to
+	// the artwork behind it (RGB 39,40,42 -> 174,194,204 by 324ms) and back in,
+	// which is what an UNMATCHED pair looks like. Pairing a shape with a group
+	// held it solid instead, so the ghost never dissolved and the incoming half
+	// popped.
 	//
-	// The box must agree on all four numbers (within a sub-pixel tolerance),
-	// which is a far stricter test than the proximity pass and cannot pull in a
-	// merely nearby shape.
-	for (const fromEl of fromElements) {
-		if (usedFrom.has(fromEl.id)) {
-			continue;
-		}
-		for (const toEl of toElements) {
-			if (usedTo.has(toEl.id)) {
-				continue;
-			}
-			if (
-				Math.abs(fromEl.x - toEl.x) <= SAME_BOX_TOLERANCE_PX &&
-				Math.abs(fromEl.y - toEl.y) <= SAME_BOX_TOLERANCE_PX &&
-				Math.abs(fromEl.width - toEl.width) <= SAME_BOX_TOLERANCE_PX &&
-				Math.abs(fromEl.height - toEl.height) <= SAME_BOX_TOLERANCE_PX
-			) {
-				pairs.push({ fromElement: fromEl, toElement: toEl });
-				usedFrom.add(fromEl.id);
-				usedTo.add(toEl.id);
-				break;
-			}
-		}
-	}
-
 	// Collect unmatched elements
 	const unmatchedFrom = fromElements.filter((el) => !usedFrom.has(el.id));
 	const unmatchedTo = toElements.filter((el) => !usedTo.has(el.id));
