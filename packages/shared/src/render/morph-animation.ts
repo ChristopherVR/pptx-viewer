@@ -20,7 +20,13 @@ import { matchMorphElementsFull } from './morph-matching';
 import { tokenizeText } from './morph-text';
 import { buildTokenMorphAnimations, diffTokens } from './morph-text-tokens';
 import type { MorphAnimationStyle, MorphMode, MorphPair } from './morph-types';
-import { MORPH_EASING } from './morph-types';
+import {
+	MORPH_EASING,
+	MORPH_FADE_IN_EASING,
+	MORPH_FADE_IN_START_PERCENT,
+	MORPH_FADE_OUT_END_PERCENT,
+	MORPH_FADE_OUT_HOLD_PERCENT,
+} from './morph-types';
 
 // ---------------------------------------------------------------------------
 // Build colour/stroke interpolation keyframes
@@ -360,15 +366,27 @@ export function generateMorphGhostAnimations(
  * in 45deg steps, so clicking the neighbouring wedge sent the arrow the long
  * way around the dial.
  *
- * A half turn is ambiguous; +180 (clockwise) is chosen so the direction is at
- * least deterministic.
+ * An exact half turn has no shorter arc, and PowerPoint's choice there is not
+ * a fixed sign: it turns CLOCKWISE when the shape starts anywhere in
+ * [90, 270) and ANTI-clockwise otherwise. Measured on PowerPoint 16 by
+ * sampling the rendered frames of a half-turn morph, both on the issue #131
+ * wheel (0->180 anti, 45->225 anti, 90->270 clock, 135->315 clock, 180->360
+ * clock, 270->90 anti) and on a synthetic two-slide deck built for the purpose
+ * (0->180 anti, 45->225 anti, 90->270 clock, 270->90 anti), which agrees on
+ * every case. Always taking +180 sent the wheel's arrow round the wrong side
+ * for the wedge diametrically opposite the one on screen, so one click in
+ * seven looked nothing like the others.
  */
 export function shortestRotationTarget(fromDeg: number, toDeg: number): number {
 	let delta = (toDeg - fromDeg) % 360;
 	if (delta > 180) {
 		delta -= 360;
-	} else if (delta <= -180) {
+	} else if (delta < -180) {
 		delta += 360;
+	}
+	if (Math.abs(Math.abs(delta) - 180) < 1e-9) {
+		const start = ((fromDeg % 360) + 360) % 360;
+		delta = start >= 90 && start < 270 ? 180 : -180;
 	}
 	return fromDeg + delta;
 }
@@ -389,6 +407,15 @@ function staticTransformSuffix(el: PptxElement): string {
 /**
  * Generate fade-out animations for elements that only exist on the outgoing slide.
  *
+ * The shape dissolves in the FIRST quarter of the morph rather than across the
+ * whole of it, and holds at zero from there (see
+ * {@link MORPH_FADE_OUT_END_PERCENT} for the frames that were measured). Fading
+ * it over the full duration left it half-visible at the midpoint, on top of an
+ * incoming replacement that was itself half-visible, so the middle of every
+ * morph read as a double exposure where PowerPoint shows a clean gap.
+ *
+ * Nothing scales: PowerPoint's dissolve keeps the box exactly where it is.
+ *
  * @param elements - Unmatched elements from the outgoing slide.
  * @param durationMs - Animation duration in milliseconds.
  * @param startIndex - Index offset for unique keyframe naming.
@@ -401,20 +428,29 @@ export function generateUnmatchedFadeOutAnimations(
 ): MorphAnimationStyle[] {
 	return elements.map((el, i) => {
 		const safeName = `pptx-morph-fadeout-${startIndex + i}-${el.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
+		const transform = `\t\ttransform: scale(1)${staticTransformSuffix(el)};`;
 		const keyframes = `
 @keyframes ${safeName} {
-\tfrom {
+\t0% {
 \t\topacity: ${el.opacity ?? 1};
-\t\ttransform: scale(1)${staticTransformSuffix(el)};
+${transform}
 \t}
-\tto {
+\t${MORPH_FADE_OUT_HOLD_PERCENT}% {
+\t\topacity: ${el.opacity ?? 1};
+${transform}
+\t}
+\t${MORPH_FADE_OUT_END_PERCENT}% {
 \t\topacity: 0;
-\t\ttransform: scale(0.95)${staticTransformSuffix(el)};
+${transform}
+\t}
+\t100% {
+\t\topacity: 0;
+${transform}
 \t}
 }`;
 		return {
 			elementId: el.id,
-			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
+			animation: `${safeName} ${durationMs}ms linear forwards`,
 			keyframes,
 		};
 	});
@@ -422,6 +458,12 @@ export function generateUnmatchedFadeOutAnimations(
 
 /**
  * Generate fade-in animations for elements that only exist on the incoming slide.
+ *
+ * The shape stays completely invisible until the morph is
+ * {@link MORPH_FADE_IN_START_PERCENT}% through, then dissolves in on a
+ * decelerating curve. See that constant for the frames that were measured.
+ *
+ * Nothing scales: PowerPoint's dissolve keeps the box exactly where it is.
  *
  * @param elements - Unmatched elements from the incoming slide.
  * @param durationMs - Animation duration in milliseconds.
@@ -435,20 +477,26 @@ export function generateUnmatchedFadeInAnimations(
 ): MorphAnimationStyle[] {
 	return elements.map((el, i) => {
 		const safeName = `pptx-morph-fadein-${startIndex + i}-${el.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
+		const transform = `\t\ttransform: scale(1)${staticTransformSuffix(el)};`;
 		const keyframes = `
 @keyframes ${safeName} {
-\tfrom {
+\t0% {
 \t\topacity: 0;
-\t\ttransform: scale(0.95)${staticTransformSuffix(el)};
+${transform}
 \t}
-\tto {
+\t${MORPH_FADE_IN_START_PERCENT}% {
+\t\topacity: 0;
+\t\tanimation-timing-function: ${MORPH_FADE_IN_EASING};
+${transform}
+\t}
+\t100% {
 \t\topacity: ${el.opacity ?? 1};
-\t\ttransform: scale(1)${staticTransformSuffix(el)};
+${transform}
 \t}
 }`;
 		return {
 			elementId: el.id,
-			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
+			animation: `${safeName} ${durationMs}ms linear forwards`,
 			keyframes,
 		};
 	});

@@ -17,7 +17,13 @@ import { parseHexColor, lerpColor, rgbaToHex } from './morph-color';
 import { matchMorphElements, matchMorphElementsFull, getElementMorphName } from './morph-matching';
 import { parseSvgPath, serializeSvgPath, equalizePaths, interpolatePaths } from './morph-svg-path';
 import { tokenizeText, matchTextTokens } from './morph-text';
-import { MORPH_EASING } from './morph-types';
+import {
+	MORPH_EASING,
+	MORPH_FADE_IN_EASING,
+	MORPH_FADE_IN_START_PERCENT,
+	MORPH_FADE_OUT_END_PERCENT,
+	MORPH_FADE_OUT_HOLD_PERCENT,
+} from './morph-types';
 import type { MorphPair, RgbaColor, SvgPathCommand } from './morph-types';
 
 // ---------------------------------------------------------------------------
@@ -925,9 +931,23 @@ describe('generateMorphAnimations', () => {
 		expect(shortestRotationTarget(0, 45)).toBe(45);
 		expect(shortestRotationTarget(350, 10)).toBe(370);
 		expect(shortestRotationTarget(10, 350)).toBe(-10);
-		// A half turn is ambiguous; resolve it clockwise so it is deterministic.
-		expect(shortestRotationTarget(0, 180)).toBe(180);
+	});
+
+	it('turns a half turn the way PowerPoint does, which is not a fixed sign', () => {
+		// A half turn has no shorter arc. PowerPoint 16 goes CLOCKWISE from a
+		// start angle in [90, 270) and anti-clockwise otherwise, measured off
+		// the rendered frames of both the issue #131 wheel and a synthetic
+		// two-slide deck; the two agree on every case below. Always taking +180
+		// sent the wheel's arrow round the wrong side for the wedge diametrically
+		// opposite the one on screen.
+		expect(shortestRotationTarget(0, 180)).toBe(-180);
+		expect(shortestRotationTarget(45, 225)).toBe(-135);
+		expect(shortestRotationTarget(90, 270)).toBe(270);
+		expect(shortestRotationTarget(135, 315)).toBe(315);
 		expect(shortestRotationTarget(180, 0)).toBe(360);
+		expect(shortestRotationTarget(270, 90)).toBe(90);
+		// Still a half turn once the raw angles are reduced mod 360.
+		expect(shortestRotationTarget(360, 180)).toBe(180);
 	});
 
 	it('should include scale transform from size delta', () => {
@@ -1205,7 +1225,34 @@ describe('generateUnmatchedFadeOutAnimations', () => {
 		const anims = generateUnmatchedFadeOutAnimations(elements, 500, 0);
 		expect(anims).toHaveLength(2);
 		expect(anims[0].keyframes).toContain('opacity: 0');
-		expect(anims[0].animation).toContain(MORPH_EASING);
+		// Percentage stops carry the shape of the ramp, so the animation itself
+		// runs linear rather than on the whole-morph easing.
+		expect(anims[0].animation).toContain('500ms linear forwards');
+	});
+
+	it('dissolves out inside the first quarter and holds at zero (measured)', () => {
+		// PowerPoint clears an unmatched shape well before its replacement
+		// appears: alpha 0.98 at 3ms, 0.62 at 112ms, 0.13 at 210ms and gone by
+		// 238ms of a 1s morph. Fading across the whole duration instead left the
+		// midpoint a double exposure of both slides.
+		const anims = generateUnmatchedFadeOutAnimations([makeElement({ id: 'a' })], 1000, 0);
+		expect(anims[0].keyframes).toContain(`${MORPH_FADE_OUT_HOLD_PERCENT}% {`);
+		expect(anims[0].keyframes).toContain(`${MORPH_FADE_OUT_END_PERCENT}% {`);
+		expect(MORPH_FADE_OUT_END_PERCENT).toBeLessThan(MORPH_FADE_IN_START_PERCENT);
+		// Zero from the end of the ramp all the way to 100%.
+		const after = anims[0].keyframes.slice(
+			anims[0].keyframes.indexOf(`${MORPH_FADE_OUT_END_PERCENT}% {`),
+		);
+		expect(after).toContain('opacity: 0');
+		expect(after).not.toContain('opacity: 1');
+	});
+
+	it('never scales an unmatched element, in or out', () => {
+		// The measured box neither moves nor changes size: 427.1 x 241.4 slide
+		// px on every sampled frame of both a fade-out and a fade-in.
+		const el = makeElement({ id: 'a' });
+		expect(generateUnmatchedFadeOutAnimations([el], 500, 0)[0].keyframes).not.toContain('0.95');
+		expect(generateUnmatchedFadeInAnimations([el], 500, 0)[0].keyframes).not.toContain('0.95');
 	});
 
 	it('preserves element opacity in from state', () => {
@@ -1232,6 +1279,22 @@ describe('generateUnmatchedFadeInAnimations', () => {
 		const elements = [makeElement({ id: 'a', type: 'shape', opacity: 0.6 })];
 		const anims = generateUnmatchedFadeInAnimations(elements, 500, 0);
 		expect(anims[0].keyframes).toContain('opacity: 0.6');
+	});
+
+	it('stays invisible until the morph is nearly half done (measured)', () => {
+		// Nothing of the incoming shape is on screen before 401ms of a 1s morph;
+		// alpha is 0.18 at 464ms, 0.72 at 652ms and 0.99 at 935ms. Holding at
+		// zero for the first 42% is what leaves a clean gap between an
+		// unmatched shape leaving and its replacement arriving.
+		const anims = generateUnmatchedFadeInAnimations([makeElement({ id: 'a' })], 1000, 0);
+		const css = anims[0].keyframes;
+		expect(css).toContain(`${MORPH_FADE_IN_START_PERCENT}% {`);
+		// Zero at 0% AND at the start of the ramp; the ramp itself decelerates.
+		const upToRamp = css.slice(0, css.indexOf(`${MORPH_FADE_IN_START_PERCENT}% {`));
+		expect(upToRamp).toContain('opacity: 0');
+		expect(upToRamp).not.toContain('opacity: 1');
+		expect(css).toContain(`animation-timing-function: ${MORPH_FADE_IN_EASING}`);
+		expect(anims[0].animation).toContain('1000ms linear forwards');
 	});
 });
 

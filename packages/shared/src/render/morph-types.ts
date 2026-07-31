@@ -79,6 +79,38 @@ export interface SvgPathCommand {
 /** PowerPoint's morph transition uses a specific cubic-bezier easing. */
 export const MORPH_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
+/**
+ * When an unmatched OUTGOING shape has finished dissolving, as a percentage of
+ * the morph's duration, and when it starts.
+ *
+ * PowerPoint does not simply cross-fade the two slides over the whole
+ * transition: a shape with no counterpart is gone well before its replacement
+ * appears, so the middle of a morph shows neither. Measured on PowerPoint 16
+ * with a two-slide deck whose only shape exists on the first slide (a 1s
+ * morph, frames sampled ~25ms apart, alpha read off the pixels of a pure-red
+ * rectangle over white): alpha 0.98 at 3ms, 0.88 at 64ms, 0.62 at 112ms, 0.29
+ * at 175ms, 0.13 at 210ms, gone by 238ms. That is a LINEAR ramp from 35ms to
+ * 235ms (fit RMS 0.024, better than any eased curve). The box never moves or
+ * changes size across those frames, which is why nothing here scales.
+ */
+export const MORPH_FADE_OUT_HOLD_PERCENT = 4;
+/** @see MORPH_FADE_OUT_HOLD_PERCENT */
+export const MORPH_FADE_OUT_END_PERCENT = 23;
+
+/**
+ * When an unmatched INCOMING shape starts dissolving in, as a percentage of the
+ * morph's duration, and the curve it follows from there to full opacity.
+ *
+ * Same measurement, with the shape only on the SECOND slide: nothing at all
+ * until 401ms, then alpha 0.18 at 464ms, 0.48 at 561ms, 0.72 at 652ms, 0.90 at
+ * 776ms, 0.99 at 935ms. Fitting start and duration jointly puts the ramp at
+ * 425ms with a decelerating curve (`cubic-bezier(0, 0, 0.35, 1)`, fit RMS
+ * 0.008); `linear` over the same window is 9x worse.
+ */
+export const MORPH_FADE_IN_START_PERCENT = 42;
+/** @see MORPH_FADE_IN_START_PERCENT */
+export const MORPH_FADE_IN_EASING = 'cubic-bezier(0, 0, 0.35, 1)';
+
 /** Maximum pixel distance for proximity-based element matching. */
 export const PROXIMITY_THRESHOLD = 300;
 
