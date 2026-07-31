@@ -8,6 +8,25 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-31
+
+_Releases: pptx-react-viewer@2.7.0, pptx-vue-viewer@2.7.0, pptx-angular-viewer@2.7.0, pptx-vanilla-viewer@1.8.0, pptx-svelte-viewer@2.7.0_
+
+### Features
+
+- **shared:** Morph a !!-named shape across a grouping boundary (by @ChristopherVR) ([c74847d](https://github.com/ChristopherVR/pptx-viewer/commit/c74847dd53ef3344c4624c036a2f806ea62794c1))
+
+### Bug Fixes
+
+- **shared:** Morph rotates the short way round, like PowerPoint (by @ChristopherVR) ([255d0b5](https://github.com/ChristopherVR/pptx-viewer/commit/255d0b5541bdf12d66ab773090fee179072eb852))
+- **shared:** Honour the legacy spd speed, including for morph (by @ChristopherVR) ([ab796b9](https://github.com/ChristopherVR/pptx-viewer/commit/ab796b94e27fa8addbad5f70578b4c9a591c1b11))
+- **shared:** Keep a morphing object solid instead of dipping to the background (by @ChristopherVR) ([5f2b518](https://github.com/ChristopherVR/pptx-viewer/commit/5f2b518d39c16eeb207f70ea1df2583405022611))
+- **react:** Animate a group child that morphs on its own (by @ChristopherVR) ([6f1c44d](https://github.com/ChristopherVR/pptx-viewer/commit/6f1c44dfb9ced002566ad88aa45234c9650b4788))
+
+### Testing
+
+- **e2e:** Pin cross-group !! morph matching in all five bindings (by @ChristopherVR) ([ab64b96](https://github.com/ChristopherVR/pptx-viewer/commit/ab64b9640383f292b3f6794ab04b7924534772b1))
+
 ## 2026-07-30
 
 _Releases: pptx-viewer-core@2.0.10, pptx-react-viewer@2.6.7, pptx-vue-viewer@2.6.6, pptx-angular-viewer@2.6.6, pptx-vanilla-viewer@1.7.6, pptx-svelte-viewer@2.6.6_
