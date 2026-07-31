@@ -661,6 +661,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="customShowsCtl.presentationStartIndex()"
 					[showWithAnimation]="loader.presentationProperties().showWithAnimation"
+					[useTimings]="loader.presentationProperties().advanceMode !== 'manual'"
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
 					[sessionEnded]="audienceSessionEnded()"
 					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"

@@ -6,7 +6,7 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import { isClickAdvanceAllowed } from '../internal/shared';
+import { isClickAdvanceAllowed, resolveAutoAdvanceDelayMs } from '../internal/shared';
 
 /**
  * Whether a click/tap/swipe advance must be swallowed instead of moving to the
@@ -20,6 +20,28 @@ export function shouldBlockClickAdvance(
 	slide: PptxSlide | undefined,
 ): boolean {
 	return playbackComplete && !isClickAdvanceAllowed(slide);
+}
+
+/**
+ * Delay in ms before the show steps to the next slide on its own, or
+ * `undefined` when the current slide waits for input.
+ *
+ * The counterpart to {@link shouldBlockClickAdvance}: PowerPoint's
+ * `p:transition/@advTm` ("Advance slide: After <n>"). A slide authored
+ * `advClick="0" advTm="…"` is advanced ONLY by this timer, so honouring the
+ * click gate without also arming the timer strands the show on that slide with
+ * no visible response to any input. Nothing is scheduled once the end-of-show
+ * screen is up, or when the show is set to advance manually.
+ */
+export function resolveSlideAutoAdvanceMs(
+	slide: PptxSlide | undefined,
+	useTimings: boolean,
+	endOfShow: boolean,
+): number | undefined {
+	if (endOfShow) {
+		return undefined;
+	}
+	return resolveAutoAdvanceDelayMs(slide, { useTimings });
 }
 
 /**

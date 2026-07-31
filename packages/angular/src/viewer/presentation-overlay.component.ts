@@ -55,6 +55,7 @@ import {
 	hasVisibleSlideAfter,
 	nextVisibleIndex,
 	prevVisibleIndex,
+	resolveSlideAutoAdvanceMs,
 	shouldBlockClickAdvance,
 } from './presentation-overlay-helpers';
 import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
@@ -412,6 +413,13 @@ export class PresentationOverlayComponent implements OnInit {
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly startIndex = input<number>(0);
 	readonly showWithAnimation = input<boolean | undefined>(undefined);
+	/**
+	 * Whether authored slide timings (`p:transition/@advTm`) advance the show on
+	 * their own. False is PowerPoint's "Advance slides: Manually"
+	 * (`PptxPresentationProperties.advanceMode === 'manual'`); the default keeps
+	 * timings, matching "Using timings, if present".
+	 */
+	readonly useTimings = input<boolean>(true);
 	readonly subtitlesVisible = input<boolean>(false);
 	/**
 	 * Set by an audience display when the presenter ends the session and the
@@ -521,12 +529,45 @@ export class PresentationOverlayComponent implements OnInit {
 	/** The hover-trigger shape the pointer is currently over (fires a sequence once). */
 	private currentHoverTriggerId: string | undefined;
 
+	/** Pending `p:transition/@advTm` auto-advance timer for the current slide. */
+	private autoAdvanceTimer: ReturnType<typeof setTimeout> | undefined;
+
 	constructor() {
 		this.setupTouchGestures();
 		this.setupFullscreen();
 
 		ensurePresetAnimationKeyframes();
-		inject(DestroyRef).onDestroy(() => this.slideKeyframes.dispose());
+		inject(DestroyRef).onDestroy(() => {
+			this.slideKeyframes.dispose();
+			this.clearAutoAdvanceTimer();
+		});
+
+		// PowerPoint's "Advance slide: After <n>" timing (`p:transition/@advTm`).
+		// Re-armed on every slide change; the previous slide's pending timer is
+		// always cancelled first so a manual advance can never leave a stale timer
+		// running that skips the slide the presenter just moved to.
+		//
+		// Without this the show is not merely missing an auto-advance: a slide
+		// authored `advClick="0" advTm="…"` (PowerPoint's "on click OFF, after N")
+		// is advanced ONLY by this timer, and `shouldBlockClickAdvance` correctly
+		// swallows every click on it. The show then sits on that slide for ever
+		// with no visible response to input, which reads as "presentation mode
+		// does nothing at all".
+		effect(() => {
+			const delayMs = resolveSlideAutoAdvanceMs(
+				this.currentSlide(),
+				this.useTimings(),
+				this.endOfShow(),
+			);
+			this.clearAutoAdvanceTimer();
+			if (delayMs === undefined) {
+				return;
+			}
+			this.autoAdvanceTimer = setTimeout(() => {
+				this.autoAdvanceTimer = undefined;
+				this.navigate('next');
+			}, delayMs);
+		});
 
 		// Scope media-command (`p:cmd`) target lookups to the slide stage.
 		this.playback.setFrameRoot(() => this.stageRef()?.nativeElement ?? null);
@@ -1039,6 +1080,14 @@ export class PresentationOverlayComponent implements OnInit {
 	// ------------------------------------------------------------------
 	// Navigation helpers
 	// ------------------------------------------------------------------
+
+	/** Cancel any pending timed auto-advance. */
+	private clearAutoAdvanceTimer(): void {
+		if (this.autoAdvanceTimer !== undefined) {
+			clearTimeout(this.autoAdvanceTimer);
+			this.autoAdvanceTimer = undefined;
+		}
+	}
 
 	private navigate(direction: 'next' | 'prev' | 'first' | 'last'): void {
 		const slides = this.slides();

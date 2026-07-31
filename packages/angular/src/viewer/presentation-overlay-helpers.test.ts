@@ -6,6 +6,7 @@ import {
 	fitZoom,
 	nextVisibleIndex,
 	prevVisibleIndex,
+	resolveSlideAutoAdvanceMs,
 	shouldBlockClickAdvance,
 } from './presentation-overlay-helpers';
 
@@ -48,6 +49,46 @@ describe('shouldBlockClickAdvance', () => {
 
 	it('never blocks while animation builds remain (click still steps builds)', () => {
 		expect(shouldBlockClickAdvance(false, transitionSlide(false))).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// resolveSlideAutoAdvanceMs
+// ---------------------------------------------------------------------------
+
+describe('resolveSlideAutoAdvanceMs', () => {
+	const timed = (advanceAfterMs: number, advanceOnClick?: boolean): PptxSlide =>
+		slide({ transition: { type: 'fade', advanceAfterMs, advanceOnClick } });
+
+	it('schedules the authored advTm delay', () => {
+		expect(resolveSlideAutoAdvanceMs(timed(2500), true, false)).toBe(2500);
+		expect(resolveSlideAutoAdvanceMs(timed(0), true, false)).toBe(0);
+	});
+
+	/**
+	 * The regression this whole helper exists for. `solution-explorer.pptx`
+	 * slide 1 is authored `advClick="0" advTm="10"`: the click gate correctly
+	 * swallows every click, so if the timer is not armed the show sits on slide 1
+	 * for ever and looks completely dead. Both halves must agree.
+	 */
+	it('still advances a slide whose transition forbids click-advance', () => {
+		const stuckWithoutATimer = timed(10, false);
+		expect(shouldBlockClickAdvance(true, stuckWithoutATimer)).toBeTruthy();
+		expect(resolveSlideAutoAdvanceMs(stuckWithoutATimer, true, false)).toBe(10);
+	});
+
+	it('schedules nothing without an authored timing', () => {
+		expect(resolveSlideAutoAdvanceMs(slide(), true, false)).toBeUndefined();
+		expect(resolveSlideAutoAdvanceMs(transitionSlide(false), true, false)).toBeUndefined();
+		expect(resolveSlideAutoAdvanceMs(undefined, true, false)).toBeUndefined();
+	});
+
+	it('schedules nothing for a manual-advance show', () => {
+		expect(resolveSlideAutoAdvanceMs(timed(2500), false, false)).toBeUndefined();
+	});
+
+	it('schedules nothing once the end-of-show screen is up', () => {
+		expect(resolveSlideAutoAdvanceMs(timed(2500), true, true)).toBeUndefined();
 	});
 });
 
