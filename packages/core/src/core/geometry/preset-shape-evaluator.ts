@@ -170,8 +170,25 @@ export function evaluatePresetShape(
 	const paths: PresetSubpathResult[] = [];
 	for (const path of def.pathLst) {
 		const parts: string[] = [];
+		// `<a:path w="…" h="…">` declares a coordinate space the commands are
+		// authored in, which the renderer must map onto the shape box. Presets
+		// traced from the legacy 21600x21600 drawing grid (`lightningBolt`, both
+		// `irregularSeal`s) carry it, and ignoring it emitted raw 21600-unit
+		// coordinates into a shape a couple of hundred pixels wide: the geometry
+		// landed ~216x outside its own box, so the shape rendered as nothing at
+		// all. Absent (the common case) the path is already in shape units and
+		// both scales stay exactly 1, leaving every other preset byte-identical.
+		const spaceW = typeof path.w === 'number' && path.w > 0 ? path.w : undefined;
+		const spaceH = typeof path.h === 'number' && path.h > 0 ? path.h : undefined;
+		const inPathSpace = spaceW !== undefined || spaceH !== undefined;
+		const scaleX = spaceW === undefined ? 1 : w / spaceW;
+		const scaleY = spaceH === undefined ? 1 : h / spaceH;
+		const sx = inPathSpace ? (value: number): number => value * scaleX : (value: number) => value;
+		const sy = inPathSpace ? (value: number): number => value * scaleY : (value: number) => value;
+
 		// Track pen position so arcTo conversion can derive the implicit
-		// ellipse centre in the same way custom-geometry.ts does.
+		// ellipse centre in the same way custom-geometry.ts does. Kept in shape
+		// units (post-scale) so the arc converter sees the same space it emits.
 		let penX = 0;
 		let penY = 0;
 		let moveX = 0;
@@ -180,8 +197,8 @@ export function evaluatePresetShape(
 		for (const cmd of path.commands) {
 			switch (cmd.kind) {
 				case 'moveTo': {
-					const x = resolveToken(cmd.x, vars);
-					const y = resolveToken(cmd.y, vars);
+					const x = sx(resolveToken(cmd.x, vars));
+					const y = sy(resolveToken(cmd.y, vars));
 					parts.push(`M ${x} ${y}`);
 					penX = x;
 					penY = y;
@@ -190,38 +207,41 @@ export function evaluatePresetShape(
 					break;
 				}
 				case 'lnTo': {
-					const x = resolveToken(cmd.x, vars);
-					const y = resolveToken(cmd.y, vars);
+					const x = sx(resolveToken(cmd.x, vars));
+					const y = sy(resolveToken(cmd.y, vars));
 					parts.push(`L ${x} ${y}`);
 					penX = x;
 					penY = y;
 					break;
 				}
 				case 'quadBezTo': {
-					const x1 = resolveToken(cmd.x1, vars);
-					const y1 = resolveToken(cmd.y1, vars);
-					const x2 = resolveToken(cmd.x2, vars);
-					const y2 = resolveToken(cmd.y2, vars);
+					const x1 = sx(resolveToken(cmd.x1, vars));
+					const y1 = sy(resolveToken(cmd.y1, vars));
+					const x2 = sx(resolveToken(cmd.x2, vars));
+					const y2 = sy(resolveToken(cmd.y2, vars));
 					parts.push(`Q ${x1} ${y1} ${x2} ${y2}`);
 					penX = x2;
 					penY = y2;
 					break;
 				}
 				case 'cubicBezTo': {
-					const x1 = resolveToken(cmd.x1, vars);
-					const y1 = resolveToken(cmd.y1, vars);
-					const x2 = resolveToken(cmd.x2, vars);
-					const y2 = resolveToken(cmd.y2, vars);
-					const x3 = resolveToken(cmd.x3, vars);
-					const y3 = resolveToken(cmd.y3, vars);
+					const x1 = sx(resolveToken(cmd.x1, vars));
+					const y1 = sy(resolveToken(cmd.y1, vars));
+					const x2 = sx(resolveToken(cmd.x2, vars));
+					const y2 = sy(resolveToken(cmd.y2, vars));
+					const x3 = sx(resolveToken(cmd.x3, vars));
+					const y3 = sy(resolveToken(cmd.y3, vars));
 					parts.push(`C ${x1} ${y1} ${x2} ${y2} ${x3} ${y3}`);
 					penX = x3;
 					penY = y3;
 					break;
 				}
 				case 'arcTo': {
-					const wR = resolveToken(cmd.wR, vars);
-					const hR = resolveToken(cmd.hR, vars);
+					// Radii scale with their own axis; the OOXML sweep angles are
+					// parametric on that same axis-aligned ellipse, so they are
+					// carried through unchanged.
+					const wR = sx(resolveToken(cmd.wR, vars));
+					const hR = sy(resolveToken(cmd.hR, vars));
 					const stAng = resolveToken(cmd.stAng, vars);
 					const swAng = resolveToken(cmd.swAng, vars);
 					const result = ooxmlArcToSvg(wR, hR, stAng, swAng, penX, penY);

@@ -331,16 +331,36 @@ const pentagon: PresetShapeGeometryDefinition = {
 const hexagon: PresetShapeGeometryDefinition = {
 	name: 'hexagon',
 	avLst: { adj: 25000, vf: 115470 },
+	// Spec guides (ECMA-376 §20.1.9.18). Two corrections over the earlier port:
+	//
+	//  - `dy1` is `sin shd2 3600000`, i.e. shd2 scaled by sin(60deg). Using the
+	//    raw `shd2` as the half-height made it `hd2 * vf` = 1.1547 * hd2, so the
+	//    top and bottom vertices sat ~7.7% of the height OUTSIDE the shape box
+	//    and were clipped off at every size.
+	//  - `a` pins against `maxAdj` (which scales with the width/`ss` ratio), not
+	//    a flat 100000, so a wide hexagon can take its full authored inset.
+	//
+	// The `q1`..`q8` chain is the spec's own conditional for the text rect; the
+	// previous ad-hoc `q1` produced a right edge left of its left edge.
 	gdLst: [
-		gd('a', 'pin 0 adj 100000'),
+		gd('maxAdj', '*/ 50000 w ss'),
+		gd('a', 'pin 0 adj maxAdj'),
 		gd('shd2', '*/ hd2 vf 100000'),
 		gd('x1', '*/ ss a 100000'),
 		gd('x2', '+- r 0 x1'),
-		gd('y1', '+- vc 0 shd2'),
-		gd('y2', '+- vc shd2 0'),
-		gd('q1', '*/ shd2 115470 100000'),
-		gd('ir', '+- x1 0 q1'),
-		gd('il', '+- x1 q1 0'),
+		gd('dy1', 'sin shd2 3600000'),
+		gd('y1', '+- vc 0 dy1'),
+		gd('y2', '+- vc dy1 0'),
+		gd('q1', '*/ maxAdj -1 2'),
+		gd('q2', '+- a q1 0'),
+		gd('q3', '?: q2 4 2'),
+		gd('q4', '?: q2 3 2'),
+		gd('q5', '?: q2 q1 0'),
+		gd('q6', '+/ a q5 q1'),
+		gd('q7', '*/ q6 q4 -1'),
+		gd('q8', '+- q3 q7 0'),
+		gd('il', '*/ w q8 24'),
+		gd('ir', '+- r 0 il'),
 	],
 	rect: { l: 'il', t: 'y1', r: 'ir', b: 'y2' },
 	pathLst: [

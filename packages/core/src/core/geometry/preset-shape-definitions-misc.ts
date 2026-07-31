@@ -1125,8 +1125,12 @@ const heart: PresetShapeGeometryDefinition = {
 				},
 				{ kind: 'close' },
 			],
-			w: 21600,
-			h: 21600,
+			// No `w`/`h`: unlike `lightningBolt` and the `irregularSeal`s, this
+			// path's control points are already shape-space guides (`hc`, `hd4`,
+			// `b`, and a `gdLst` that pre-divides the ECMA 21600 constants by
+			// `w`/`h`). Declaring the 21600 space those constants came from would
+			// make the evaluator scale coordinates that were converted once
+			// already, collapsing the heart to a ~1px smear.
 		},
 	],
 };
@@ -1157,7 +1161,16 @@ function buildIrregularSeal(
 	commands.push({ kind: 'close' });
 	return {
 		name,
-		rect: { l: '4290', t: '4570', r: '17260', b: '17000' },
+		// `<a:rect>` is a sibling of `<a:pathLst>`, so it is read in SHAPE units
+		// even though the path below declares its own 21600 space. Left as bare
+		// 21600-unit literals the text rect landed thousands of pixels off the
+		// shape; expressed as formulas it tracks the box at any size.
+		rect: {
+			l: '*/ w 4290 21600',
+			t: '*/ h 4570 21600',
+			r: '*/ w 17260 21600',
+			b: '*/ h 17000 21600',
+		},
 		pathLst: [{ w: 21600, h: 21600, commands }],
 	};
 }
