@@ -1051,6 +1051,15 @@ const slideOps = useSlideOperations({
 	pushHistory: history.pushHistory,
 });
 
+/**
+ * The custom show a running slide show should follow, or null for the whole
+ * deck. Passed to `PresentationMode` so playback honours the selected show's
+ * membership and order, not just its dialog.
+ */
+const activePresentationCustomShow = computed(
+	() => customShows.value.find((show) => show.id === activeCustomShowId.value) ?? null,
+);
+
 // ── Clipboard (in-memory element copy/cut/paste) ──────────────────────
 const clipboard = ref<PptxElement | null>(null);
 const hasClipboard = computed(() => clipboard.value !== null);
@@ -3110,6 +3119,7 @@ function handleQuickAccessCommand(id: string): void {
 			:start-index="activeSlideIndex"
 			:start-in-presenter-view="startInPresenterView"
 			:presentation-properties="presentationProperties"
+			:active-custom-show="activePresentationCustomShow"
 			:end-with-black-slide="viewerOptions.advanced.slideShowEndWithBlackSlide"
 			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"
 			@close="closePresentation"

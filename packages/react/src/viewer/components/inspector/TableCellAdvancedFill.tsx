@@ -7,10 +7,10 @@ import {
 	GRADIENT_TYPE_OPTIONS,
 	LBL,
 	NUM,
-	PATTERN_OPTIONS,
 	SECTION_HEADING,
 	SEL,
 } from './table-cell-advanced-fill-constants';
+import { TableCellPatternFill } from './TableCellPatternFill';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -88,7 +88,7 @@ export function TableCellAdvancedFill({
 
 			{/* Pattern Controls */}
 			{fillMode === 'pattern' && (
-				<PatternControls
+				<TableCellPatternFill
 					cellStyle={cellStyle}
 					canEdit={canEdit}
 					onUpdateCellStyle={onUpdateCellStyle}
@@ -232,72 +232,6 @@ function GradientControls({
 			>
 				{t('pptx.table.gradientAddStop')}
 			</button>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Pattern sub-controls
-// ---------------------------------------------------------------------------
-
-function PatternControls({
-	cellStyle,
-	canEdit,
-	onUpdateCellStyle,
-}: TableCellAdvancedFillProps): React.ReactElement {
-	const { t } = useTranslation();
-
-	return (
-		<div className='space-y-1.5'>
-			<label className='flex flex-col gap-0.5'>
-				<span className={LBL}>{t('pptx.table.patternPreset')}</span>
-				<select
-					disabled={!canEdit}
-					className={SEL}
-					value={cellStyle.patternFillPreset ?? 'ltDnDiag'}
-					onChange={(e) =>
-						onUpdateCellStyle({
-							patternFillPreset: e.target.value,
-						})
-					}
-				>
-					{PATTERN_OPTIONS.map((p) => (
-						<option key={p} value={p}>
-							{p}
-						</option>
-					))}
-				</select>
-			</label>
-			<div className='grid grid-cols-2 gap-1.5'>
-				<label className='flex flex-col gap-0.5'>
-					<span className={LBL}>{t('pptx.table.patternForeground')}</span>
-					<input
-						type='color'
-						disabled={!canEdit}
-						className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-						value={cellStyle.patternFillForeground ?? '#000000'}
-						onChange={(e) =>
-							onUpdateCellStyle({
-								patternFillForeground: e.target.value,
-							})
-						}
-					/>
-				</label>
-				<label className='flex flex-col gap-0.5'>
-					<span className={LBL}>{t('pptx.table.patternBackground')}</span>
-					<input
-						type='color'
-						disabled={!canEdit}
-						className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-						value={cellStyle.patternFillBackground ?? '#FFFFFF'}
-						onChange={(e) =>
-							onUpdateCellStyle({
-								patternFillBackground: e.target.value,
-							})
-						}
-					/>
-				</label>
-			</div>
 		</div>
 	);
 }

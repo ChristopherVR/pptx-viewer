@@ -9,8 +9,14 @@ import type {
 	PptxElement,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
+import { schemaLabel } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
+import {
+	ANIMATION_DIRECTION_LABEL_KEYS,
+	ANIMATION_SEQUENCE_LABEL_KEYS,
+	ANIMATION_TIMING_CURVE_LABEL_KEYS,
+} from './animation-editor-label-keys';
 import { animationElementLabel, animationPresetLabel } from './animation-panel-model';
 
 const props = defineProps<{
@@ -53,6 +59,25 @@ function numberValue(event: Event): number {
 }
 function label(element: PptxElement): string {
 	return animationElementLabel(element, element.id);
+}
+
+/**
+ * Spell the direction / sequence / timing-curve wire tokens for display.
+ *
+ * Each select keeps its existing value list and still emits the raw token; only
+ * the option text changes. `t` is an overloaded generic, hence the narrowing
+ * lambda that `schemaLabel` expects.
+ */
+function directionLabel(direction: PptxAnimationDirection): string {
+	return schemaLabel(ANIMATION_DIRECTION_LABEL_KEYS, direction, (key: string) => t(key));
+}
+
+function sequenceLabel(sequence: PptxAnimationSequence): string {
+	return schemaLabel(ANIMATION_SEQUENCE_LABEL_KEYS, sequence, (key: string) => t(key));
+}
+
+function curveLabel(curve: PptxAnimationTimingCurve): string {
+	return schemaLabel(ANIMATION_TIMING_CURVE_LABEL_KEYS, curve, (key: string) => t(key));
 }
 </script>
 
@@ -108,7 +133,9 @@ function label(element: PptxElement): string {
 				:value="animation.direction ?? 'fromLeft'"
 				@change="emit('patch', { direction: value($event) as PptxAnimationDirection })"
 			>
-				<option v-for="item in directions" :key="item" :value="item">{{ item }}</option>
+				<option v-for="item in directions" :key="item" :value="item">
+					{{ directionLabel(item) }}
+				</option>
 			</select>
 		</label>
 		<label
@@ -118,7 +145,9 @@ function label(element: PptxElement): string {
 				:value="animation.sequence ?? 'asOne'"
 				@change="emit('patch', { sequence: value($event) as PptxAnimationSequence })"
 			>
-				<option v-for="item in sequences" :key="item" :value="item">{{ item }}</option>
+				<option v-for="item in sequences" :key="item" :value="item">
+					{{ sequenceLabel(item) }}
+				</option>
 			</select>
 		</label>
 		<label
@@ -162,7 +191,9 @@ function label(element: PptxElement): string {
 				:value="animation.timingCurve ?? 'ease'"
 				@change="emit('patch', { timingCurve: value($event) as PptxAnimationTimingCurve })"
 			>
-				<option v-for="item in curves" :key="item" :value="item">{{ item }}</option>
+				<option v-for="item in curves" :key="item" :value="item">
+					{{ curveLabel(item) }}
+				</option>
 			</select>
 		</label>
 		<div class="grid grid-cols-2 gap-2">

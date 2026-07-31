@@ -16,6 +16,11 @@
 		switchSmartArtLayout,
 		updateSmartArtNodeText,
 	} from 'pptx-viewer-core';
+	import {
+		schemaLabel,
+		SMARTART_COLOR_SCHEME_LABEL_KEYS,
+		SMARTART_STYLE_LABEL_KEYS,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -27,6 +32,9 @@
 	let selectedNodeId = $state<string | null>(null);
 	const selectedNode = $derived(data?.nodes.find((node) => node.id === selectedNodeId));
 
+	// `dgm:colorsDef` / `dgm:styleDef` family tokens. Both lists stay explicit so
+	// spelling them out through the shared tables cannot change which variations
+	// the editor offers.
 	const colorSchemes: readonly SmartArtColorScheme[] = [
 		'colorful1',
 		'colorful2',
@@ -34,6 +42,7 @@
 		'monochromatic1',
 		'monochromatic2',
 	];
+	const diagramStyles: readonly SmartArtStyle[] = ['flat', 'moderate', 'intense'];
 
 	function setNodeText(nodeId: string, text: string): void {
 		if (data) {
@@ -91,11 +100,11 @@
 			onchange={(event) => setColorScheme(event.currentTarget.value as SmartArtColorScheme)}
 		>
 			{#each colorSchemes as scheme}
-				<option value={scheme}>{scheme}</option>
+				<option value={scheme}>{schemaLabel(SMARTART_COLOR_SCHEME_LABEL_KEYS, scheme, t)}</option>
 			{/each}
 		</select>
 	</label>
-	<label class="pptx-svelte-smartart-field"><span>Diagram style</span><select value={data.style ?? 'moderate'} onchange={(event) => setDiagramStyle(event.currentTarget.value as SmartArtStyle)}><option value="flat">Flat</option><option value="moderate">Moderate</option><option value="intense">Intense</option></select></label>
+	<label class="pptx-svelte-smartart-field"><span>Diagram style</span><select value={data.style ?? 'moderate'} onchange={(event) => setDiagramStyle(event.currentTarget.value as SmartArtStyle)}>{#each diagramStyles as diagramStyle}<option value={diagramStyle}>{schemaLabel(SMARTART_STYLE_LABEL_KEYS, diagramStyle, t)}</option>{/each}</select></label>
 
 	<span class="pptx-svelte-smartart-label">{t('pptx.smartart.textPane')}</span>
 	<div class="pptx-svelte-smartart-nodes">

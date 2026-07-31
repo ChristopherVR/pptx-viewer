@@ -15,6 +15,7 @@ import {
 	DEFAULT_COLOR_MAP,
 	THEME_COLOR_SCHEME_KEYS,
 } from 'pptx-viewer-core';
+import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -50,6 +51,18 @@ const slotOptions = [...THEME_COLOR_SCHEME_KEYS];
 
 function currentTarget(alias: ColorMapAliasKey): string {
 	return override.value?.[alias] ?? DEFAULT_COLOR_MAP[alias];
+}
+
+/**
+ * Spell an `a:clrScheme` slot for display.
+ *
+ * The option VALUE stays the wire token (that is what lands in
+ * `clrMapOverride`); only the text changes, so the select offers exactly the
+ * same twelve slots it did before.
+ */
+function slotLabel(slot: string): string {
+	// `t` is an overloaded generic; narrow it to the plain shape `schemaLabel` wants.
+	return schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, slot, (key: string) => t(key));
 }
 
 /** Resolve a theme colour slot to a `#rrggbb` value for the preview swatch. */
@@ -120,7 +133,9 @@ function onAliasChange(alias: ColorMapAliasKey, event: Event): void {
 					:aria-label="`${ALIAS_LABELS[alias]} target slot`"
 					@change="(e) => onAliasChange(alias, e)"
 				>
-					<option v-for="slot in slotOptions" :key="slot" :value="slot">{{ slot }}</option>
+					<option v-for="slot in slotOptions" :key="slot" :value="slot">
+						{{ slotLabel(slot) }}
+					</option>
 				</select>
 			</div>
 		</div>

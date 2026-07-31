@@ -79,6 +79,48 @@ describe('slideThemeOverridePanel', () => {
 		);
 	});
 
+	/**
+	 * The target-slot select used to print the raw `a:clrScheme` slot names
+	 * (`dk1`, `folHlink`). Text and value are asserted separately on purpose: the
+	 * value is written straight into `clrMapOverride`, so it must stay the wire
+	 * token even though the text is now translated.
+	 */
+	it('spells the theme-colour slots but keeps their wire values', () => {
+		const wrapper = mount(SlideThemeOverridePanel, {
+			props: { slide: slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), theme },
+		});
+		const options = wrapper.findAll('select')[0].findAll('option');
+
+		expect(options.map((o) => (o.element as HTMLOptionElement).value)).toStrictEqual([
+			'dk1',
+			'lt1',
+			'dk2',
+			'lt2',
+			'accent1',
+			'accent2',
+			'accent3',
+			'accent4',
+			'accent5',
+			'accent6',
+			'hlink',
+			'folHlink',
+		]);
+		expect(options.map((o) => o.text())).toStrictEqual([
+			'Dark 1',
+			'Light 1',
+			'Dark 2',
+			'Light 2',
+			'Accent 1',
+			'Accent 2',
+			'Accent 3',
+			'Accent 4',
+			'Accent 5',
+			'Accent 6',
+			'Hyperlink',
+			'Followed Hyperlink',
+		]);
+	});
+
 	it('renders an alias row per colour-map key when active and remaps on select', async () => {
 		const active: Record<string, string> = { ...DEFAULT_COLOR_MAP, tx1: 'dk2' };
 		const wrapper = mount(SlideThemeOverridePanel, {

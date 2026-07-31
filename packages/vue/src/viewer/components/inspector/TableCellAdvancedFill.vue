@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
-import { FILL_MODE_OPTIONS, GRADIENT_TYPE_OPTIONS, PATTERN_OPTIONS } from 'pptx-viewer-shared';
+import {
+	FILL_MODE_OPTIONS,
+	FILL_PATTERN_LABEL_KEYS,
+	GRADIENT_TYPE_OPTIONS,
+	PATTERN_OPTIONS,
+	schemaLabel,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -56,6 +62,17 @@ function onFillModeChange(event: Event): void {
 	} else {
 		emit('update', { fillMode: next });
 	}
+}
+
+/**
+ * Spell an `a:pattFill/@prst` preset for display.
+ *
+ * `PATTERN_OPTIONS` is a bare token list, so the option VALUE (and therefore
+ * `patternFillPreset`) is unchanged; only the text is translated.
+ * `t` is an overloaded generic, hence the narrowing lambda.
+ */
+function patternLabel(preset: string): string {
+	return schemaLabel(FILL_PATTERN_LABEL_KEYS, preset, (key: string) => t(key));
 }
 
 function updateStop(index: number, patch: Partial<{ color: string; position: number }>): void {
@@ -166,7 +183,9 @@ function addStop(): void {
 						emit('update', { patternFillPreset: ($event.target as HTMLSelectElement).value })
 					"
 				>
-					<option v-for="p in PATTERN_OPTIONS" :key="p" :value="p">{{ p }}</option>
+					<option v-for="p in PATTERN_OPTIONS" :key="p" :value="p">
+						{{ patternLabel(p) }}
+					</option>
 				</select>
 			</label>
 			<div class="grid grid-cols-2 gap-1.5">

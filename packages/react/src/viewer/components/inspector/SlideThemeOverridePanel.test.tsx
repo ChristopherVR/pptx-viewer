@@ -86,6 +86,48 @@ describe('slideThemeOverridePanel', () => {
 		expect(container.querySelectorAll('select')).toHaveLength(12);
 	});
 
+	/**
+	 * The target-slot select used to print the raw `a:clrScheme` slot names
+	 * (`dk1`, `folHlink`) as if they were English. It must now show dictionary
+	 * keys while the option VALUES stay the wire tokens: those values are written
+	 * straight into `clrMapOverride`, so re-valuing an option would corrupt the
+	 * override and break parity with the other bindings.
+	 */
+	it('spells the theme-colour slots but keeps their wire values', () => {
+		renderPanel(slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), vi.fn());
+		const first = container.querySelector('select') as HTMLSelectElement;
+		const options = [...first.options];
+
+		expect(options.map((o) => o.value)).toStrictEqual([
+			'dk1',
+			'lt1',
+			'dk2',
+			'lt2',
+			'accent1',
+			'accent2',
+			'accent3',
+			'accent4',
+			'accent5',
+			'accent6',
+			'hlink',
+			'folHlink',
+		]);
+		expect(options.map((o) => o.textContent)).toStrictEqual([
+			'pptx.themeColor.dark1',
+			'pptx.themeColor.light1',
+			'pptx.themeColor.dark2',
+			'pptx.themeColor.light2',
+			'pptx.themeColor.accent1',
+			'pptx.themeColor.accent2',
+			'pptx.themeColor.accent3',
+			'pptx.themeColor.accent4',
+			'pptx.themeColor.accent5',
+			'pptx.themeColor.accent6',
+			'pptx.themeColor.hyperlink',
+			'pptx.themeColor.followedHyperlink',
+		]);
+	});
+
 	it('recolours theme-derived slide elements when an alias changes', () => {
 		const onUpdateSlide = vi.fn<(patch: Partial<PptxSlide>) => void>();
 		renderPanel(slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), onUpdateSlide);

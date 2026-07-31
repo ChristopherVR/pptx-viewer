@@ -718,6 +718,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[useTimings]="loader.presentationProperties().advanceMode !== 'manual'"
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
 					[sessionEnded]="audienceSessionEnded()"
+					[endWithBlackSlide]="viewerOpts.options().advanced.slideShowEndWithBlackSlide"
 					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"

@@ -5,6 +5,7 @@ import {
 	DEFAULT_COLOR_MAP,
 	THEME_COLOR_SCHEME_KEYS,
 } from 'pptx-viewer-core';
+import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -53,6 +54,9 @@ export function SlideThemeOverridePanel({
 	onUpdateSlide,
 }: SlideThemeOverridePanelProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	// `schemaLabel` takes a plain `(key) => string`; react-i18next's `t` is an
+	// overloaded generic, so narrow it once here rather than at each call site.
+	const translate = useCallback((key: string): string => t(key), [t]);
 
 	const override = activeSlide?.clrMapOverride;
 	const isOverrideActive = override !== undefined;
@@ -161,9 +165,14 @@ export function SlideThemeOverridePanel({
 									value={currentTarget}
 									onChange={(e) => handleAliasChange(alias, e.target.value)}
 								>
+									{/*
+									 * The option VALUE stays the raw `a:clrScheme` slot (that is what
+									 * gets written back into `clrMapOverride`); only the visible text
+									 * is spelled, so no option is added, dropped or re-valued.
+									 */}
 									{targetSlotOptions.map((slot) => (
 										<option key={slot} value={slot}>
-											{slot}
+											{schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, slot, translate)}
 										</option>
 									))}
 								</select>

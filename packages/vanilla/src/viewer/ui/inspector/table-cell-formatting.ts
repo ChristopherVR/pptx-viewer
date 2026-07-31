@@ -1,7 +1,28 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
+import { schemaLabel } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import type { InspectorHandlers, InspectorState } from './types';
+
+/**
+ * Captions for the cell alignment pickers.
+ *
+ * The values are `a:tc` wire tokens, so they stay verbatim; the keys are the
+ * ones the sibling `text-section.ts` already uses for the same three choices,
+ * which keeps one wording for "Middle" across the inspector rather than letting
+ * the table panel print the raw token.
+ */
+const ALIGN_LABEL_KEYS: Readonly<Record<string, string>> = {
+	left: 'pptx.textPanel.alignLeft',
+	center: 'pptx.textPanel.alignCenter',
+	right: 'pptx.textPanel.alignRight',
+};
+
+const VALIGN_LABEL_KEYS: Readonly<Record<string, string>> = {
+	top: 'pptx.textPanel.valignTop',
+	middle: 'pptx.textPanel.valignMiddle',
+	bottom: 'pptx.textPanel.valignBottom',
+};
 
 export interface TableCellFormatting {
 	el: HTMLElement;
@@ -60,13 +81,14 @@ export function createTableCellFormatting(
 	const select = <T extends string>(
 		label: string,
 		values: readonly T[],
+		keys: Readonly<Record<string, string>>,
 		onChange: (value: T) => void,
 	): HTMLSelectElement => {
 		const input = doc.createElement('select');
 		for (const value of values) {
 			const option = doc.createElement('option');
 			option.value = value;
-			option.textContent = value;
+			option.textContent = schemaLabel(keys, value, t);
 			input.appendChild(option);
 		}
 		input.addEventListener('change', () => onChange(input.value as T));
@@ -92,12 +114,16 @@ export function createTableCellFormatting(
 	const bold = toggle(t('pptx.format.bold'), 'bold');
 	const italic = toggle(t('pptx.format.italic'), 'italic');
 	const underline = toggle(t('pptx.format.underline'), 'underline');
-	const align = select(t('pptx.table.alignment'), ['left', 'center', 'right'] as const, (value) =>
-		apply({ align: value }),
+	const align = select(
+		t('pptx.table.alignment'),
+		['left', 'center', 'right'] as const,
+		ALIGN_LABEL_KEYS,
+		(value) => apply({ align: value }),
 	);
 	const vAlign = select(
 		t('pptx.table.verticalAlignment'),
 		['top', 'middle', 'bottom'] as const,
+		VALIGN_LABEL_KEYS,
 		(value) => apply({ vAlign: value }),
 	);
 	const inputs = [

@@ -18,6 +18,7 @@ import { useEditorHistory } from './useEditorHistory';
 import type { UsePresentationAnnotationsResult } from './usePresentationAnnotations';
 import type { UsePresentationModeResult } from './usePresentationMode';
 import { usePresentationSetup } from './usePresentationSetup';
+import { useViewerOptions } from './useViewerOptions';
 import type { ViewerState } from './useViewerState';
 import { useViewerState } from './useViewerState';
 import type { UseZoomViewportResult } from './useZoomViewport';
@@ -129,10 +130,16 @@ export function useViewerBuildingBlocksCore(
 		presentationGridSpacing: state.presentationProperties.gridSpacing,
 	});
 
+	// File > Options > Advanced owns "End with black slide". Reading it here (not
+	// only inside `PowerPointViewer`) keeps the headless building-blocks API on
+	// the same end-of-show behaviour as the packaged component.
+	const { options: viewerOptions } = useViewerOptions();
+
 	const { presentation, annotations, actionSoundHandlerRef } = usePresentationSetup({
 		mode,
 		slides,
 		visibleSlideIndexes,
+		endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
 		activeSlideIndex,
 		containerRef,
 		content,

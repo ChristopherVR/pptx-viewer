@@ -1,7 +1,25 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
+import { FILL_PATTERN_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import type { InspectorHandlers, InspectorState } from './types';
+
+/**
+ * The nine `a:pattFill` presets this panel offers, matching React's list. Kept
+ * as bare tokens because they are written straight onto
+ * `patternFillPreset`; the shared map only decides how each one is spelled.
+ */
+const PATTERN_PRESETS: readonly string[] = [
+	'ltDnDiag',
+	'dkDnDiag',
+	'ltUpDiag',
+	'dkUpDiag',
+	'smGrid',
+	'lgGrid',
+	'horz',
+	'vert',
+	'diagCross',
+];
 
 export interface TableCellFillControls {
 	el: HTMLElement;
@@ -24,14 +42,24 @@ export function createTableCellFillControls(
 			);
 		}
 	};
-	const select = (label: string, values: string[]): HTMLSelectElement => {
+	/**
+	 * @param keys optional wire-token to i18n-key map. Passing it spells the
+	 *   options out without touching the value list; omitting it keeps the token
+	 *   as the caption, which is still readable for word-like values such as
+	 *   `solid` or `top`.
+	 */
+	const select = (
+		label: string,
+		values: readonly string[],
+		keys?: Readonly<Record<string, string>>,
+	): HTMLSelectElement => {
 		const wrapper = doc.createElement('label');
 		wrapper.textContent = label;
 		const input = doc.createElement('select');
 		for (const value of values) {
 			const option = doc.createElement('option');
 			option.value = value;
-			option.textContent = value;
+			option.textContent = keys ? schemaLabel(keys, value, t) : value;
 			input.appendChild(option);
 		}
 		wrapper.appendChild(input);
@@ -57,17 +85,7 @@ export function createTableCellFillControls(
 	el.appendChild(gradientAngle);
 	const gradientStart = color(t('pptx.table.gradientStart'));
 	const gradientEnd = color(t('pptx.table.gradientEnd'));
-	const pattern = select(t('pptx.table.patternPreset'), [
-		'ltDnDiag',
-		'dkDnDiag',
-		'ltUpDiag',
-		'dkUpDiag',
-		'smGrid',
-		'lgGrid',
-		'horz',
-		'vert',
-		'diagCross',
-	]);
+	const pattern = select(t('pptx.table.patternPreset'), PATTERN_PRESETS, FILL_PATTERN_LABEL_KEYS);
 	const patternForeground = color(t('pptx.table.patternForeground'));
 	const patternBackground = color(t('pptx.table.patternBackground'));
 	const edge = select(t('pptx.table.cellBorders'), ['top', 'right', 'bottom', 'left']);

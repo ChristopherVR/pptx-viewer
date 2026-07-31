@@ -6,10 +6,13 @@ import type {
 	PptxChartMarkerSymbol,
 	PptxChartType,
 } from 'pptx-viewer-core';
+import { CHART_AXIS_TYPE_LABEL_KEYS, schemaLabel, upsertDataPoint } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { numbers, set, setOptions, value } from './chart-exhaustive-controls';
 import { createChartExhaustiveFields } from './chart-exhaustive-fields';
+import type { ChartPointIndexField } from './chart-point-index';
+import { createChartPointIndexField } from './chart-point-index';
 
 export interface ChartExhaustiveSection {
 	el: HTMLElement;
@@ -20,6 +23,13 @@ export function createChartExhaustiveSection(
 	doc: Document,
 	t: Translator,
 	onChange: (data: PptxChartData) => void,
+	/**
+	 * The point picker the per-point marker controls obey. The chart section
+	 * hands over the SAME instance the advanced section renders, so one box
+	 * drives every `c:dPt` control; when omitted this section renders its own,
+	 * which keeps it operable (and unit-testable) on its own.
+	 */
+	pointIndex?: ChartPointIndexField,
 ): ChartExhaustiveSection {
 	const el = doc.createElement('div');
 	el.className = 'pptxv-chart-exhaustive';
@@ -62,8 +72,11 @@ export function createChartExhaustiveSection(
 		seriesFields,
 		axisFields,
 	} = createChartExhaustiveFields(doc, t);
+	const ownsPointPicker = pointIndex === undefined;
+	const pointPicker = pointIndex ?? createChartPointIndexField(doc, t);
 	el.append(
 		series.label,
+		...(ownsPointPicker ? [pointPicker.label] : []),
 		...seriesFields.map(({ label }) => label),
 		axis.label,
 		...axisFields.map(({ label }) => label),
@@ -79,7 +92,11 @@ export function createChartExhaustiveSection(
 		const next = [...current.series];
 		const trend = item.trendlines?.[0];
 		const error = item.errBars?.[0];
-		const point = item.dataPoints?.[0] ?? { idx: 0 };
+		// `c:dPt` entries are sparse and keyed by `c:idx`, so the override has to
+		// be looked up by the picked index; the old `dataPoints[0]` pinned every
+		// per-point edit to whichever override happened to be first.
+		const pointIdx = pointPicker.selected();
+		const point = item.dataPoints?.find(({ idx }) => idx === pointIdx);
 		next[seriesIndex()] = {
 			...item,
 			seriesChartType: comboType.control.value as PptxChartType,
@@ -116,17 +133,18 @@ export function createChartExhaustiveSection(
 				...(item.marker ?? { symbol: 'auto' }),
 				spPr: { fillColor: markerFill.control.value, strokeColor: markerLine.control.value },
 			},
-			dataPoints: [
-				{
-					...point,
-					invertIfNegative: pointInvert.control.checked,
-					marker: {
-						symbol: pointMarker.control.value as PptxChartMarkerSymbol,
-						size: value(pointMarkerSize.control),
-					},
+			dataPoints: upsertDataPoint(item.dataPoints, {
+				...(point ?? { idx: pointIdx }),
+				invertIfNegative: pointInvert.control.checked,
+				marker: {
+					// Keep any per-point marker fill the point already carries: the
+					// section offers no control for it, and dropping it here would
+					// undo an edit made in another binding.
+					...point?.marker,
+					symbol: pointMarker.control.value as PptxChartMarkerSymbol,
+					size: value(pointMarkerSize.control),
 				},
-				...(item.dataPoints?.slice(1) ?? []),
-			],
+			}),
 		};
 		onChange({
 			...current,
@@ -173,6 +191,9 @@ export function createChartExhaustiveSection(
 	}
 	series.control.addEventListener('change', () => current && sync(current));
 	axis.control.addEventListener('change', () => current && sync(current));
+	// Picking a different point re-reads its override rather than committing, so
+	// the values still on screen for the previous point are not copied across.
+	pointPicker.subscribe(() => current && sync(current));
 	const sync = (data: PptxChartData): void => {
 		current = data;
 		setOptions(
@@ -183,7 +204,12 @@ export function createChartExhaustiveSection(
 		setOptions(
 			doc,
 			axis.control,
-			(data.axes ?? []).map((item, index) => [String(index), item.titleText ?? item.axisType]),
+			// As in the advanced section: an untitled axis captions itself with its
+			// element name, which must be spelled rather than shown as `catAx`.
+			(data.axes ?? []).map((item, index) => [
+				String(index),
+				item.titleText ?? schemaLabel(CHART_AXIS_TYPE_LABEL_KEYS, item.axisType, t),
+			]),
 		);
 		const item = data.series[seriesIndex()];
 		const trend = item?.trendlines?.[0];
@@ -213,9 +239,10 @@ export function createChartExhaustiveSection(
 		customMinus.control.value = error?.customMinus?.join(', ') ?? '';
 		markerFill.control.value = item?.marker?.spPr?.fillColor ?? '#4472c4';
 		markerLine.control.value = item?.marker?.spPr?.strokeColor ?? '#000000';
-		pointMarker.control.value = item?.dataPoints?.[0]?.marker?.symbol ?? 'none';
-		set(pointMarkerSize.control, item?.dataPoints?.[0]?.marker?.size);
-		pointInvert.control.checked = item?.dataPoints?.[0]?.invertIfNegative ?? false;
+		const selectedPoint = item?.dataPoints?.find(({ idx }) => idx === pointPicker.selected());
+		pointMarker.control.value = selectedPoint?.marker?.symbol ?? 'none';
+		set(pointMarkerSize.control, selectedPoint?.marker?.size);
+		pointInvert.control.checked = selectedPoint?.invertIfNegative ?? false;
 		const selectedAxis = data.axes?.[axisIndex()];
 		axisTitle.control.value = selectedAxis?.titleText ?? '';
 		set(minorUnit.control, selectedAxis?.minorUnit);

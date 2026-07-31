@@ -484,6 +484,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			mode,
 			slides,
 			visibleSlideIndexes,
+			// File > Options > Advanced > "End with black slide". Off means the show
+			// exits straight to the editor instead of raising the black end screen.
+			endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
 			activeSlideIndex,
 			containerRef,
 			content,

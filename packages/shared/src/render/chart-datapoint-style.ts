@@ -126,3 +126,30 @@ export function resolveDataPointMarker(
 		fill: point?.spPr?.fillColor ?? series.marker?.spPr?.fillColor,
 	};
 }
+
+/**
+ * Insert or replace the `c:dPt` override carrying `point.idx`, returning a NEW
+ * array (the input is never mutated).
+ *
+ * WHY this is shared rather than open-coded per inspector: `c:dPt` entries are
+ * SPARSE and unordered. A deck may carry a single override for point 7 and
+ * nothing else, so `dataPoints[n] = ...` retargets the edit at whichever point
+ * happens to occupy that slot, and `dataPoints[0]` pins every edit to the first
+ * override regardless of which point the user picked. The renderer resolves a
+ * point through {@link findDataPoint}, which keys on `c:idx`, so any editor that
+ * writes by array position disagrees with what gets painted. Keeping the write
+ * next to the lookup it has to agree with is what stops the two drifting.
+ */
+export function upsertDataPoint<P extends ChartDataPointLike>(
+	dataPoints: readonly P[] | undefined,
+	point: P,
+): P[] {
+	const next = [...(dataPoints ?? [])];
+	const position = next.findIndex((candidate) => candidate.idx === point.idx);
+	if (position >= 0) {
+		next[position] = point;
+	} else {
+		next.push(point);
+	}
+	return next;
+}

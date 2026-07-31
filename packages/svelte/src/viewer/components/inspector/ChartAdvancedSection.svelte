@@ -8,9 +8,31 @@
 	 * types where PowerPoint would discard the setting) instead of the
 	 * hard-coded English option lists this file used to carry.
 	 */
-	import type { PptxChartData, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
+	import type { PptxChartData, PptxChartMarkerSymbol, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
+	import { CHART_MARKER_SYMBOL_LABEL_KEYS, CHART_TYPE_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
+
+	import { useTranslator } from '../../../i18n/context';
 
 	const { data, onpatch }: { data: PptxChartData; onpatch: (patch: Partial<PptxChartData>) => void } = $props();
+	const t = useTranslator();
+	/**
+	 * The combo-chart per-series types and marker symbols this panel offers.
+	 * Listed here rather than taken from the shared option catalogues so that
+	 * spelling the tokens out cannot change WHICH values the selects carry.
+	 */
+	const seriesChartTypes: readonly PptxChartType[] = ['bar', 'line', 'area', 'scatter'];
+	const markerSymbols: readonly PptxChartMarkerSymbol[] = [
+		'auto',
+		'circle',
+		'diamond',
+		'square',
+		'star',
+		'triangle',
+		'plus',
+		'x',
+		'dash',
+		'dot',
+	];
 	// eslint-disable-next-line prefer-const
 	let pointSeries = $state(0);
 	const activeSeries = $derived(data.series[Math.min(pointSeries, data.series.length - 1)]);
@@ -38,8 +60,8 @@
 
 <details><summary>Series options</summary>
 	{#each data.series as series, index}<fieldset><legend>{series.name}</legend>
-		<label>Series chart type<select value={series.seriesChartType ?? ''} onchange={(event) => seriesPatch(index, { seriesChartType: (event.currentTarget.value || undefined) as PptxChartType | undefined })}><option value="">Chart default</option>{#each ['bar','line','area','scatter'] as type}<option value={type}>{type}</option>{/each}</select></label>
-		<div class="grid"><label>Marker<select value={series.marker?.symbol ?? ''} onchange={(event) => seriesPatch(index, { marker: event.currentTarget.value ? { ...series.marker, symbol: event.currentTarget.value as NonNullable<PptxChartSeries['marker']>['symbol'] } : undefined })}><option value="">None</option>{#each ['auto','circle','diamond','square','star','triangle','plus','x','dash','dot'] as marker}<option value={marker}>{marker}</option>{/each}</select></label>{#if series.marker}<label>Marker size<input type="number" min="2" max="72" value={series.marker.size ?? 6} onchange={(event) => seriesPatch(index, { marker: { ...series.marker!, size: Number(event.currentTarget.value) } })} /></label><label>Marker fill<input type="color" value={series.marker.spPr?.fillColor ?? series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { marker: { ...series.marker!, spPr: { ...series.marker!.spPr, fillColor: event.currentTarget.value } } })} /></label>{/if}</div>
+		<label>Series chart type<select value={series.seriesChartType ?? ''} onchange={(event) => seriesPatch(index, { seriesChartType: (event.currentTarget.value || undefined) as PptxChartType | undefined })}><option value="">Chart default</option>{#each seriesChartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
+		<div class="grid"><label>Marker<select value={series.marker?.symbol ?? ''} onchange={(event) => seriesPatch(index, { marker: event.currentTarget.value ? { ...series.marker, symbol: event.currentTarget.value as NonNullable<PptxChartSeries['marker']>['symbol'] } : undefined })}><option value="">None</option>{#each markerSymbols as marker}<option value={marker}>{schemaLabel(CHART_MARKER_SYMBOL_LABEL_KEYS, marker, t)}</option>{/each}</select></label>{#if series.marker}<label>Marker size<input type="number" min="2" max="72" value={series.marker.size ?? 6} onchange={(event) => seriesPatch(index, { marker: { ...series.marker!, size: Number(event.currentTarget.value) } })} /></label><label>Marker fill<input type="color" value={series.marker.spPr?.fillColor ?? series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { marker: { ...series.marker!, spPr: { ...series.marker!.spPr, fillColor: event.currentTarget.value } } })} /></label>{/if}</div>
 	</fieldset>{/each}
 </details>
 

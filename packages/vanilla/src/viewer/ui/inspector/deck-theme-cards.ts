@@ -5,6 +5,7 @@ import {
 	DEFAULT_COLOR_MAP,
 	THEME_COLOR_SCHEME_KEYS,
 } from 'pptx-viewer-core';
+import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -155,10 +156,13 @@ export function createThemeOverrideCard(
 		const slotSelect = doc.createElement('select');
 		slotSelect.className = 'pptxv-field-select-input';
 		slotSelect.setAttribute('aria-label', ALIAS_LABELS[alias]);
+		// The option VALUE stays the `a:clrScheme` slot name, because that is what
+		// the override map stores; only the caption is spelled out, so the picker
+		// no longer offers the user a choice between `dk1` and `folHlink`.
 		for (const slot of THEME_COLOR_SCHEME_KEYS) {
 			const optionEl = doc.createElement('option');
 			optionEl.value = slot;
-			optionEl.textContent = slot;
+			optionEl.textContent = schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, slot, t);
 			slotSelect.appendChild(optionEl);
 		}
 		slotSelect.value = currentTarget;

@@ -5,6 +5,7 @@ import {
 	resolveDataPointExplosion,
 	resolveDataPointFill,
 	resolveDataPointMarker,
+	upsertDataPoint,
 } from './chart-datapoint-style';
 
 describe('chart-datapoint-style', () => {
@@ -106,6 +107,44 @@ describe('chart-datapoint-style', () => {
 				dataPoints: [{ idx: 0, marker: { symbol: 'none' as const } }],
 			};
 			expect(resolveDataPointMarker(hidden, 0).symbol).toBe('none');
+		});
+	});
+
+	describe('upsertDataPoint', () => {
+		it('replaces the override carrying the same c:idx, not the same slot', () => {
+			const points = [
+				{ idx: 7, spPr: { fillColor: '#FF0000' } },
+				{ idx: 2, spPr: { fillColor: '#00FF00' } },
+			];
+			expect(upsertDataPoint(points, { idx: 2, spPr: { fillColor: '#0000FF' } })).toStrictEqual([
+				{ idx: 7, spPr: { fillColor: '#FF0000' } },
+				{ idx: 2, spPr: { fillColor: '#0000FF' } },
+			]);
+		});
+
+		it('appends when no override exists for that point yet', () => {
+			expect(upsertDataPoint([{ idx: 0 }], { idx: 4, explosion: 10 })).toStrictEqual([
+				{ idx: 0 },
+				{ idx: 4, explosion: 10 },
+			]);
+		});
+
+		it('starts a list when the series has no overrides at all', () => {
+			expect(upsertDataPoint(undefined, { idx: 3 })).toStrictEqual([{ idx: 3 }]);
+		});
+
+		it('leaves the input array untouched', () => {
+			const points = [{ idx: 0, explosion: 5 }];
+			upsertDataPoint(points, { idx: 0, explosion: 25 });
+			expect(points).toStrictEqual([{ idx: 0, explosion: 5 }]);
+		});
+
+		it('round-trips with findDataPoint, so the edit is what the renderer reads', () => {
+			const dataPoints = upsertDataPoint([{ idx: 5 }], {
+				idx: 1,
+				marker: { symbol: 'star' as const },
+			});
+			expect(findDataPoint({ dataPoints }, 1)?.marker?.symbol).toBe('star');
 		});
 	});
 });

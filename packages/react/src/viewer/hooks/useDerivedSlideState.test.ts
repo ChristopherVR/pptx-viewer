@@ -97,13 +97,16 @@ describe('computeVisibleSlideIndexes', () => {
 		expect(result).toStrictEqual([0, 1]);
 	});
 
-	it('returns empty array when all slides are hidden', () => {
+	it('falls back to the whole deck when every slide is hidden', () => {
+		// The alternative is a show that opens on an inert black rectangle, which
+		// reads as a broken viewer. See `resolveShowSlideIndexes` in the shared
+		// package for the reasoning.
 		const slides = [
 			makeSlide({ id: 's1', rId: 'r1', hidden: true }),
 			makeSlide({ id: 's2', rId: 'r2', hidden: true }),
 		];
 		const result = computeVisibleSlideIndexes(slides, null, []);
-		expect(result).toStrictEqual([]);
+		expect(result).toStrictEqual([0, 1]);
 	});
 
 	it('returns empty array for empty slides', () => {

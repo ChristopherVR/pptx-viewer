@@ -34,6 +34,7 @@
 		THEME_COLOR_SCHEME_KEYS,
 		THEME_PRESETS,
 	} from 'pptx-viewer-core';
+	import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -155,8 +156,15 @@
 						value={activeSlide.clrMapOverride[alias] ?? DEFAULT_COLOR_MAP[alias]}
 						onchange={(event) => aliasChange(alias, event.currentTarget.value)}
 					>
+						<!--
+							The target is an `a:clrScheme` element name (`dk1`, `folHlink`); the
+							shared table spells each one the way PowerPoint's own colour pickers
+							do, without changing which slots the select offers. The row caption
+							stays the raw alias (`bg1`, `tx1`) because it is this select's
+							accessible name, which the parity specs diff verbatim.
+						-->
 						{#each THEME_COLOR_SCHEME_KEYS as slot (slot)}
-							<option value={slot}>{slot}</option>
+							<option value={slot}>{schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, slot, t)}</option>
 						{/each}
 					</select>
 				</label>

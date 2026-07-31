@@ -1,5 +1,10 @@
 import type { SmartArtColorScheme, SmartArtLayoutType } from 'pptx-viewer-core';
 import { SWITCHABLE_LAYOUT_TYPES } from 'pptx-viewer-core';
+import {
+	schemaLabel,
+	SMARTART_COLOR_SCHEME_LABEL_KEYS,
+	SMARTART_LAYOUT_LABEL_KEYS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -37,7 +42,10 @@ export function createSmartArtSection(
 		const button = createEl(doc, 'button', 'pptxv-smartart-layout-button');
 		button.type = 'button';
 		button.dataset.testid = `smartart-layout-${layout}`;
-		button.textContent = t(`pptx.smartart.category.${layout}`);
+		// Same key the hand-built template produced, but routed through the shared
+		// map so a layout family missing from the dictionary shows its own name
+		// rather than a de-camel-cased key tail.
+		button.textContent = schemaLabel(SMARTART_LAYOUT_LABEL_KEYS, layout, t);
 		button.addEventListener('click', () => handlers.setSmartArtLayout(layout));
 		layoutButtons.set(layout, button);
 		layoutGrid.appendChild(button);
@@ -46,7 +54,13 @@ export function createSmartArtSection(
 
 	const colorScheme = makeSelectField(doc, {
 		label: t('pptx.smartart.colorScheme'),
-		options: COLOR_SCHEMES.map((scheme) => ({ value: scheme, label: scheme })),
+		// The `dgm:colorsDef` family name is what core stores, so it stays the
+		// option value; the caption is spelled from the shared map instead of
+		// showing the user `monochromatic2`.
+		options: COLOR_SCHEMES.map((scheme) => ({
+			value: scheme,
+			label: schemaLabel(SMARTART_COLOR_SCHEME_LABEL_KEYS, scheme, t),
+		})),
 		onChange: handlers.setSmartArtColorScheme,
 	});
 	const select = colorScheme.el.querySelector('select');

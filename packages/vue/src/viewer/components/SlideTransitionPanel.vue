@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
+import { schemaLabel, SLIDE_TRANSITION_LABEL_KEYS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -79,6 +80,20 @@ const NONE_VALUE = '__none__';
 /** Default transition duration (ms) applied when an effect is first chosen. */
 const DEFAULT_DURATION_MS = 1000;
 
+/**
+ * Spell a `p:transition` child-element name for display.
+ *
+ * The option VALUE stays the wire token that is emitted on the update, and
+ * `TRANSITION_TYPES` above is untouched, so the select still offers exactly the
+ * same effects; only the text is translated.
+ * `SLIDE_TRANSITION_LABEL_KEYS` covers the whole `PptxTransitionType` union,
+ * which is deliberately wider than this panel's list, so adding an effect here
+ * later needs no second edit. `t` is an overloaded generic, hence the lambda.
+ */
+function transitionLabel(type: PptxTransitionType): string {
+	return schemaLabel(SLIDE_TRANSITION_LABEL_KEYS, type, (key: string) => t(key));
+}
+
 const current = computed<PptxSlideTransition | undefined>(() => props.slide?.transition);
 
 /** The `<select>` value: `NONE_VALUE` when there is no transition (or `"none"`). */
@@ -138,7 +153,7 @@ function onDurationChange(event: Event): void {
 			>
 				<option :value="NONE_VALUE">{{ t('pptx.transition.none') }}</option>
 				<option v-for="type in TRANSITION_TYPES" :key="type" :value="type">
-					{{ type }}
+					{{ transitionLabel(type) }}
 				</option>
 			</select>
 		</label>

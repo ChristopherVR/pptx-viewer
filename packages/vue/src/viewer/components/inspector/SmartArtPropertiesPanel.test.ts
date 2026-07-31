@@ -269,3 +269,44 @@ describe('smartArtPropertiesPanel', () => {
 		expect(italic.attributes('aria-pressed')).toBe('true');
 	});
 });
+
+/**
+ * These controls used to print their OOXML wire tokens (`colorful1`, `flat`) as
+ * their own captions. Text and value are asserted separately: changing a value
+ * would write a different `dgm:` family into the deck and move this panel out of
+ * parity with the other bindings, so only the spelling may change.
+ */
+describe('smartArtPropertiesPanel - schema tokens are spelled, values are not', () => {
+	it('labels the colour-scheme options without changing their values', () => {
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
+		const options = wrapper.get('[data-testid="smartart-color-scheme"]').findAll('option');
+
+		expect(options.map((o) => (o.element as HTMLOptionElement).value)).toStrictEqual([
+			'colorful1',
+			'colorful2',
+			'colorful3',
+			'monochromatic1',
+			'monochromatic2',
+		]);
+		expect(options.map((o) => o.text())).toStrictEqual([
+			'Colourful 1',
+			'Colourful 2',
+			'Colourful 3',
+			'Monochromatic 1',
+			'Monochromatic 2',
+		]);
+	});
+
+	it('labels the style buttons without changing what they set', async () => {
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
+
+		expect(wrapper.get('[data-testid="smartart-style-flat"]').text()).toBe('Flat');
+		expect(wrapper.get('[data-testid="smartart-style-moderate"]').text()).toBe('Moderate');
+		expect(wrapper.get('[data-testid="smartart-style-intense"]').text()).toBe('Intense');
+
+		// The button still emits the wire token, not its caption.
+		await wrapper.get('[data-testid="smartart-style-moderate"]').trigger('click');
+		const next = lastSmartArtData(wrapper.emitted('update'));
+		expect(next.style).toBe('moderate');
+	});
+});

@@ -26,8 +26,9 @@ const { t } = useI18n();
 
 const layouts = computed<readonly SmartArtLayoutType[]>(() => SWITCHABLE_LAYOUT_TYPES);
 
+/** `t` is an overloaded generic; narrow it to the plain shape the helper wants. */
 function labelFor(layout: SmartArtLayoutType): string {
-	return smartArtLayoutLabel(layout);
+	return smartArtLayoutLabel(layout, (key: string) => t(key));
 }
 
 function onSwitch(layout: SmartArtLayoutType): void {

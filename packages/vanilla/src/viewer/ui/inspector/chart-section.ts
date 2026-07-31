@@ -1,9 +1,12 @@
 import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
+import { CHART_GROUPING_LABEL_KEYS, CHART_TYPE_LABEL_KEYS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createChartAdvancedSection } from './chart-advanced-section';
 import { createChartDataGrid } from './chart-data-grid';
+import { tokenSelect } from './chart-exhaustive-controls';
 import { createChartExhaustiveSection } from './chart-exhaustive-section';
+import { createChartPointIndexField } from './chart-point-index';
 import type { InspectorHandlers, InspectorState } from './types';
 
 const CHART_TYPES: readonly PptxChartType[] = [
@@ -22,6 +25,9 @@ const CHART_TYPES: readonly PptxChartType[] = [
 	'combo',
 ];
 
+/** `c:grouping` modes offered alongside the type, exactly as React offers them. */
+const GROUPINGS: readonly string[] = ['clustered', 'stacked', 'percentStacked'];
+
 export function createChartSection(
 	doc: Document,
 	t: Translator,
@@ -30,14 +36,19 @@ export function createChartSection(
 ) {
 	const el = section(t('pptx.chart.data'));
 	const title = input(doc, 'text', t('pptx.chart.title'));
-	const chartType = doc.createElement('select');
-	for (const value of CHART_TYPES) {
-		addOption(doc, chartType, value);
-	}
-	const grouping = doc.createElement('select');
-	for (const value of ['clustered', 'stacked', 'percentStacked']) {
-		addOption(doc, grouping, value);
-	}
+	// Both selects used to be bare, unlabelled `<select>`s whose options were the
+	// raw schema tokens (`percentStacked`, `doughnut`). React labels the same two
+	// with `pptx.chart.type` / `pptx.chart.grouping` and spells the options from
+	// the shared catalogues, so the value lists stay put and only the wording and
+	// the accessible name change.
+	const chartType = tokenSelect(doc, t('pptx.chart.type'), CHART_TYPES, CHART_TYPE_LABEL_KEYS, t);
+	const grouping = tokenSelect(
+		doc,
+		t('pptx.chart.grouping'),
+		GROUPINGS,
+		CHART_GROUPING_LABEL_KEYS,
+		t,
+	);
 	// The data grid replaces the old free-text categories/series textareas: the
 	// textarea round-trip rebuilt every series from parsed text, silently
 	// dropping per-series colour/marker/trendline fields the advanced controls
@@ -46,12 +57,26 @@ export function createChartSection(
 	const grid = createChartDataGrid(doc, t, (data) => handlers.setChartData(data));
 	const legend = checkbox(doc, t('pptx.chart.showLegend'));
 	const labels = checkbox(doc, t('pptx.chart.dataLabels'));
-	const advanced = createChartAdvancedSection(doc, t, (data) => handlers.setChartData(data));
-	const exhaustive = createChartExhaustiveSection(doc, t, (data) => handlers.setChartData(data));
+	// One point picker drives every `c:dPt` control in the panel: the advanced
+	// block renders it and edits the point fill/explosion, the exhaustive block
+	// reuses the same selection for the point marker and invert-if-negative.
+	const pointIndex = createChartPointIndexField(doc, t);
+	const advanced = createChartAdvancedSection(
+		doc,
+		t,
+		(data) => handlers.setChartData(data),
+		pointIndex,
+	);
+	const exhaustive = createChartExhaustiveSection(
+		doc,
+		t,
+		(data) => handlers.setChartData(data),
+		pointIndex,
+	);
 	el.append(
 		title.label,
-		chartType,
-		grouping,
+		chartType.label,
+		grouping.label,
 		grid.el,
 		legend.label,
 		labels.label,
@@ -67,8 +92,8 @@ export function createChartSection(
 		handlers.setChartData({
 			...current,
 			title: title.control.value,
-			chartType: chartType.value as PptxChartType,
-			grouping: grouping.value as PptxChartData['grouping'],
+			chartType: chartType.control.value as PptxChartType,
+			grouping: grouping.control.value as PptxChartData['grouping'],
 			style: {
 				...current.style,
 				hasTitle: title.control.value.trim().length > 0,
@@ -77,7 +102,13 @@ export function createChartSection(
 			},
 		});
 	};
-	for (const control of [title.control, chartType, grouping, legend.control, labels.control]) {
+	for (const control of [
+		title.control,
+		chartType.control,
+		grouping.control,
+		legend.control,
+		labels.control,
+	]) {
 		control.addEventListener('change', commit);
 	}
 
@@ -90,8 +121,8 @@ export function createChartSection(
 				return;
 			}
 			title.control.value = current.title ?? '';
-			chartType.value = current.chartType;
-			grouping.value = current.grouping ?? 'clustered';
+			chartType.control.value = current.chartType;
+			grouping.control.value = current.grouping ?? 'clustered';
 			grid.update(current);
 			legend.control.checked = current.style?.hasLegend ?? false;
 			labels.control.checked = current.style?.hasDataLabels ?? false;
@@ -113,11 +144,4 @@ function input(doc: Document, type: string, text: string) {
 function checkbox(doc: Document, text: string) {
 	const field = input(doc, 'checkbox', text);
 	return field;
-}
-
-function addOption(doc: Document, select: HTMLSelectElement, value: string): void {
-	const option = doc.createElement('option');
-	option.value = value;
-	option.textContent = value;
-	select.appendChild(option);
 }

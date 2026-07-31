@@ -1,4 +1,9 @@
-import type { PptxElement, PptxSmartArtData, PptxSmartArtNode } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSmartArtData,
+	PptxSmartArtNode,
+	SmartArtLayoutType,
+} from 'pptx-viewer-core';
 import { resetSmartArtEditCounter } from 'pptx-viewer-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
@@ -105,9 +110,19 @@ describe('useSmartArtEditing', () => {
 		expect(initial.resolvedLayoutType).toBe('list');
 	});
 
-	it('smartArtLayoutLabel falls back to title-case for unmapped types', () => {
-		expect(smartArtLayoutLabel('cycle')).toBe('Cycle');
-		expect(smartArtLayoutLabel('target')).toBe('Target');
+	it('smartArtLayoutLabel resolves the shared category key for every layout', () => {
+		// The helper hands the catalogue key to `translate`; asserting on the key
+		// keeps this test about the wiring rather than about English wording.
+		const echo = (key: string): string => key;
+		expect(smartArtLayoutLabel('cycle', echo)).toBe('pptx.smartart.category.cycle');
+		expect(smartArtLayoutLabel('target', echo)).toBe('pptx.smartart.category.target');
+		expect(smartArtLayoutLabel('bending', echo)).toBe('pptx.smartart.category.bending');
+	});
+
+	it('smartArtLayoutLabel falls back to the raw token for an unmapped layout', () => {
+		// A deck may carry a layout newer than the catalogue; showing the token
+		// beats showing nothing, and proves the value set is never filtered.
+		expect(smartArtLayoutLabel('unknown' as SmartArtLayoutType, (key) => key)).toBe('unknown');
 	});
 
 	it('exposes per-row display, move and remove disabled flags', () => {

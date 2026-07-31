@@ -51,3 +51,41 @@ describe('smartArtLayoutSwitcher', () => {
 		expect(wrapper.emitted('switch')).toBeUndefined();
 	});
 });
+
+/**
+ * The tile captions used to come from a private English map with a title-case
+ * fallback, so an unmapped layout rendered its raw wire token. They now resolve
+ * the shared `pptx.smartart.category.*` catalogue, which is the same source
+ * React's switcher uses, so the two bindings read identically.
+ */
+describe('smartArtLayoutSwitcher - category labels', () => {
+	it('spells every switchable layout from the shared catalogue', () => {
+		const wrapper = mount(SmartArtLayoutSwitcher, {
+			props: { current: 'list', canEdit: true },
+		});
+		const captions = Object.fromEntries(
+			SWITCHABLE_LAYOUT_TYPES.map((layout) => [
+				layout,
+				wrapper.get(`[data-testid="smartart-layout-${layout}"]`).text(),
+			]),
+		);
+
+		expect(captions.list).toBe('List');
+		expect(captions.hierarchy).toBe('Hierarchy');
+		expect(captions.bending).toBe('Bending');
+		expect(captions.venn).toBe('Venn');
+		// No tile may fall back to its raw token.
+		for (const layout of SWITCHABLE_LAYOUT_TYPES) {
+			expect(captions[layout]).not.toBe(layout);
+		}
+	});
+
+	it('keeps the tile title in step with its caption', () => {
+		const wrapper = mount(SmartArtLayoutSwitcher, {
+			props: { current: 'list', canEdit: true },
+		});
+		const tile = wrapper.get('[data-testid="smartart-layout-timeline"]');
+		expect(tile.attributes('title')).toBe('Timeline');
+		expect(tile.text()).toBe('Timeline');
+	});
+});

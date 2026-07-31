@@ -1,5 +1,5 @@
 import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
-import { groupSlidesBySection } from 'pptx-viewer-shared';
+import { groupSlidesBySection, resolveShowSlideIndexes } from 'pptx-viewer-shared';
 /**
  * useDerivedSlideState: Memoised computed values derived from slide and
  * presentation state.  Keeps the orchestrator component slim by hosting
@@ -58,23 +58,23 @@ export function computeGridSpacingPx(presentationGridSpacing: { cx: number } | u
 	return GRID_SIZE;
 }
 
-/** Compute visible slide indexes based on custom show or hidden state. */
+/**
+ * The ordered deck indexes the slide show visits: the active custom show's
+ * membership, minus any slide the author hid.
+ *
+ * The rule itself lives in `pptx-viewer-shared` so React, Vue, Angular, Svelte
+ * and Vanilla cannot answer "what comes next" differently and present a slide
+ * its author hid. This wrapper only adapts React's custom-show shape.
+ */
 export function computeVisibleSlideIndexes(
 	slides: PptxSlide[],
 	activeCustomShowId: string | null,
 	customShows: Array<{ id: string; name: string; slideRIds: string[] }>,
 ): number[] {
-	if (activeCustomShowId) {
-		const show = customShows.find((s) => s.id === activeCustomShowId);
-		if (show) {
-			const rIdToIndex = new Map<string, number>();
-			slides.forEach((s, i) => rIdToIndex.set(s.rId, i));
-			return show.slideRIds
-				.map((rId) => rIdToIndex.get(rId))
-				.filter((i): i is number => i !== undefined);
-		}
-	}
-	return slides.map((_, i) => i).filter((i) => !slides[i]?.hidden);
+	const activeShow = activeCustomShowId
+		? customShows.find((show) => show.id === activeCustomShowId)
+		: undefined;
+	return resolveShowSlideIndexes(slides, activeShow);
 }
 
 /** Compute slide section groups for the slides pane sidebar. */

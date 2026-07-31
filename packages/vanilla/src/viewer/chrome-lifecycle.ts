@@ -459,8 +459,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		packageForSharing: () => host.packageForSharing(),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),
-		goToFirstSlide: () => host.goToSlide(0),
-		goToLastSlide: () => host.goToSlide(host.getSlideCount() - 1),
+		goToFirstSlide: () => host.goToFirstSlide(),
+		goToLastSlide: () => host.goToLastSlide(),
 		exitPresentation: () => void host.exitPresentation(),
 		setPresentationPointerTool: (tool) => {
 			const pointer = host.getPresenterSnapshot().pointer ?? { x: 0.5, y: 0.5, color: '#ef4444' };

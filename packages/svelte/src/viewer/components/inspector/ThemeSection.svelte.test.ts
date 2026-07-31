@@ -1,6 +1,7 @@
 import type { PptxHandler, PptxTheme } from 'pptx-viewer-core';
-import { THEME_PRESETS } from 'pptx-viewer-core';
-import { PRESET_THEMES } from 'pptx-viewer-shared';
+import { THEME_COLOR_SCHEME_KEYS, THEME_PRESETS } from 'pptx-viewer-core';
+import { PRESET_THEMES, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -78,6 +79,44 @@ describe('themeSection', () => {
 		flushSync();
 
 		expect(editor.slides[0]?.clrMapOverride?.accent1).toBe('accent1');
+	});
+
+	it('spells the colour-map target slots instead of printing dk1 / folHlink', () => {
+		const mock = makeHandler();
+		const { target } = mountSection(mock);
+
+		target.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
+		flushSync();
+
+		const select = target.querySelector<HTMLSelectElement>('.aliases select');
+		if (!select) {
+			throw new Error('alias override select missing');
+		}
+		const options = Array.from(select.options);
+		// The value set is the parity contract with the other bindings: only the
+		// spelling moved.
+		expect(options.map((option) => option.value)).toStrictEqual([...THEME_COLOR_SCHEME_KEYS]);
+		expect(options.map((option) => option.textContent?.trim())).toStrictEqual(
+			THEME_COLOR_SCHEME_KEYS.map((slot) => translationsEn[THEME_COLOR_SLOT_LABEL_KEYS[slot]]),
+		);
+	});
+
+	it('keeps the raw alias as each override row caption (its accessible name)', () => {
+		const mock = makeHandler();
+		const { target } = mountSection(mock);
+
+		target.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
+		flushSync();
+
+		const captions = Array.from(target.querySelectorAll('.aliases label')).map((label) =>
+			Array.from(label.childNodes)
+				.filter((node) => node.nodeType === Node.TEXT_NODE)
+				.map((node) => node.textContent ?? '')
+				.join('')
+				.trim(),
+		);
+		expect(captions).toContain('bg1');
+		expect(captions).toContain('folHlink');
 	});
 
 	it('hosts the theme editor panel with the shared preset gallery', () => {

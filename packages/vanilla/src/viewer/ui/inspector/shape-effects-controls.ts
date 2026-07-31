@@ -1,5 +1,5 @@
 import type { ShapeStyle } from 'pptx-viewer-core';
-import { SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+import { ARROWHEAD_LABEL_KEYS, schemaLabel, SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import type { InspectorHandlers, InspectorState } from './types';
@@ -9,6 +9,16 @@ const QUICK_STYLES: Array<{ label: string; patch: Partial<ShapeStyle> }> = [
 	{ label: 'Subtle', patch: { fillColor: '#f2f2f2', strokeColor: '#a6a6a6', strokeWidth: 1 } },
 	{ label: 'Outline', patch: { fillColor: 'transparent', strokeColor: '#4472c4', strokeWidth: 2 } },
 	{ label: 'Dark', patch: { fillColor: '#262626', strokeColor: '#000000', strokeWidth: 1 } },
+];
+
+/** Arrowhead tokens the start/end pickers offer, in the order React lists them. */
+const ARROWHEAD_VALUES: readonly string[] = [
+	'none',
+	'triangle',
+	'stealth',
+	'diamond',
+	'oval',
+	'arrow',
 ];
 
 export interface ShapeEffectsControls {
@@ -74,12 +84,18 @@ export function createShapeEffectsControls(
 		handlers.setShapeStyle({ reflectionStartOpacity: reflection.checked ? 0.5 : undefined }),
 	);
 	field(t('pptx.textEffects.reflection'), reflection);
+	/**
+	 * The `a:headEnd`/`a:tailEnd` pickers. The six values are the arrowhead
+	 * tokens core writes back into the connector, so they stay verbatim; only
+	 * their captions come from the shared arrowhead map, which is what stops
+	 * `stealth` and `folHlink`-style tokens reaching the user untranslated.
+	 */
 	const arrow = (label: string, key: 'connectorStartArrow' | 'connectorEndArrow') => {
 		const input = doc.createElement('select');
-		for (const value of ['none', 'triangle', 'stealth', 'diamond', 'oval', 'arrow']) {
+		for (const value of ARROWHEAD_VALUES) {
 			const option = doc.createElement('option');
 			option.value = value;
-			option.textContent = value;
+			option.textContent = schemaLabel(ARROWHEAD_LABEL_KEYS, value, t);
 			input.appendChild(option);
 		}
 		input.addEventListener('change', () =>

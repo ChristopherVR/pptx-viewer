@@ -90,3 +90,47 @@ describe('slideTransitionPanel', () => {
 		expect(transition).toMatchObject({ type: 'fade', durationMs: 250 });
 	});
 });
+
+/**
+ * The effect select used to print the 45 raw `p:transition` element names
+ * (`randomBar`, `wheelReverse`, `flythrough`) as if they were English. The
+ * option VALUES are the wire tokens the panel emits, so they are asserted
+ * unchanged alongside the new text: the fix may only change spelling, never
+ * which effects the panel offers.
+ */
+describe('slideTransitionPanel - effect names', () => {
+	function typeSelect() {
+		const wrapper = mount(SlideTransitionPanel, { props: { slide: slide(undefined) } });
+		return wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]').findAll('option');
+	}
+
+	it('still offers the same 45 effects plus the None sentinel, by value', () => {
+		const values = typeSelect().map((o) => (o.element as HTMLOptionElement).value);
+		expect(values).toHaveLength(46);
+		expect(values[0]).toBe('__none__');
+		expect(values).toContain('randomBar');
+		expect(values).toContain('wheelReverse');
+		expect(values).toContain('flythrough');
+		expect(values).toContain('orbit');
+	});
+
+	it('spells each effect instead of printing its wire token', () => {
+		const byValue = new Map(
+			typeSelect().map((o) => [(o.element as HTMLOptionElement).value, o.text()]),
+		);
+		expect(byValue.get('randomBar')).toBe('Random Bars');
+		expect(byValue.get('wheelReverse')).toBe('Reverse Wheel');
+		expect(byValue.get('flythrough')).toBe('Fly Through');
+		expect(byValue.get('newsflash')).toBe('Newsflash');
+		expect(byValue.get('fade')).toBe('Fade');
+	});
+
+	it('leaves no option showing a raw camelCase token', () => {
+		for (const option of typeSelect()) {
+			const value = (option.element as HTMLOptionElement).value;
+			if (value !== '__none__') {
+				expect(option.text()).not.toBe(value);
+			}
+		}
+	});
+});

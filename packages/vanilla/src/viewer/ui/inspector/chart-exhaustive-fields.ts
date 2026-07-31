@@ -16,10 +16,25 @@
  *
  * @module vanilla/inspector/chart-exhaustive-fields
  */
-import { MARKER_SYMBOL_OPTIONS, TICK_LABEL_POSITION_OPTIONS } from 'pptx-viewer-shared';
+import {
+	CHART_DATA_LABEL_POSITION_LABEL_KEYS,
+	CHART_ERROR_BAR_DIRECTION_LABEL_KEYS,
+	CHART_TYPE_LABEL_KEYS,
+	ERROR_BAR_TYPE_OPTIONS,
+	MARKER_SYMBOL_OPTIONS,
+	TICK_LABEL_POSITION_OPTIONS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
-import { checkbox, color, input, number, optionSelect, select } from './chart-exhaustive-controls';
+import {
+	checkbox,
+	color,
+	input,
+	number,
+	optionSelect,
+	select,
+	tokenSelect,
+} from './chart-exhaustive-controls';
 
 /** Concrete marker symbols; the '' entry is the "series default" sentinel. */
 const POINT_MARKER_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !== '');
@@ -27,26 +42,27 @@ const POINT_MARKER_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.val
 /** Build every control of the exhaustive section, grouped by commit handler. */
 export function createChartExhaustiveFields(doc: Document, t: Translator) {
 	const series = select(doc, t('pptx.chart.series'), []);
-	const comboType = select(doc, t('pptx.chart.seriesType'), [
-		'bar',
-		'line',
-		'area',
-		'scatter',
-		'bubble',
-		'radar',
-	]);
+	// Not `COMBO_SERIES_TYPE_OPTIONS`: that catalogue carries a '' default and
+	// stops at four types, where this select offers six concrete ones and no
+	// sentinel. Only the spelling comes from shared, so the six values stand.
+	const comboType = tokenSelect(
+		doc,
+		t('pptx.chart.seriesType'),
+		['bar', 'line', 'area', 'scatter', 'bubble', 'radar'],
+		CHART_TYPE_LABEL_KEYS,
+		t,
+	);
 	const secondaryAxis = checkbox(doc, t('pptx.chart.secondaryAxis'));
-	const labelPosition = select(doc, t('pptx.chart.dataLabelPosition'), [
-		'bestFit',
-		'b',
-		'ctr',
-		'inBase',
-		'inEnd',
-		'l',
-		'outEnd',
-		'r',
-		't',
-	]);
+	// Likewise wider than `DATA_LABEL_POSITION_OPTIONS`, which omits the
+	// above/below/left/right positions line and scatter charts accept; those four
+	// were the ones showing up as a bare `t`, `b`, `l`, `r`.
+	const labelPosition = tokenSelect(
+		doc,
+		t('pptx.chart.dataLabelPosition'),
+		['bestFit', 'b', 'ctr', 'inBase', 'inEnd', 'l', 'outEnd', 'r', 't'],
+		CHART_DATA_LABEL_POSITION_LABEL_KEYS,
+		t,
+	);
 	const showValue = checkbox(doc, t('pptx.chart.showValue'));
 	const showCategory = checkbox(doc, t('pptx.chart.showCategory'));
 	const showSeries = checkbox(doc, t('pptx.chart.showSeriesName'));
@@ -58,8 +74,16 @@ export function createChartExhaustiveFields(doc: Document, t: Translator) {
 	const trendBackward = number(doc, t('pptx.chart.forecastBackward'));
 	const trendIntercept = number(doc, t('pptx.chart.trendlineIntercept'));
 	const trendColor = color(doc, t('pptx.chart.trendlineColor'));
-	const errorDirection = select(doc, t('pptx.chart.errorBarDirection'), ['x', 'y']);
-	const errorBarType = select(doc, t('pptx.chart.errorBarType'), ['both', 'minus', 'plus']);
+	const errorDirection = tokenSelect(
+		doc,
+		t('pptx.chart.errorBarDirection'),
+		['x', 'y'],
+		CHART_ERROR_BAR_DIRECTION_LABEL_KEYS,
+		t,
+	);
+	// The shared catalogue holds exactly these three `c:errBarType` values, so it
+	// can drive the control outright.
+	const errorBarType = optionSelect(doc, t('pptx.chart.errorBarType'), ERROR_BAR_TYPE_OPTIONS, t);
 	const errorColor = color(doc, t('pptx.chart.errorBarColor'));
 	const noEndCap = checkbox(doc, t('pptx.chart.noEndCap'));
 	const customPlus = input(doc, t('pptx.chart.customPlus'));

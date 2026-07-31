@@ -1,4 +1,13 @@
-import { zoomInScale, zoomOutScale } from 'pptx-viewer-shared';
+import {
+	firstShowSlideIndex,
+	hasShowSlideAfter,
+	lastShowSlideIndex,
+	nextShowSlideIndex,
+	previousShowSlideIndex,
+	resolveShowSlideIndexes,
+	zoomInScale,
+	zoomOutScale,
+} from 'pptx-viewer-shared';
 
 import type { RenderController } from './render-controller';
 import { clampSlideIndex } from './state';
@@ -23,6 +32,10 @@ const MAX_ZOOM = 8;
 export interface ViewerControls {
 	next(): void;
 	prev(): void;
+	/** Jump to the show's first slide (Home). */
+	firstSlide(): void;
+	/** Jump to the show's last slide (End). */
+	lastSlide(): void;
 	goToSlide(index: number): void;
 	slideCount(): number;
 	currentSlide(): number;
@@ -38,7 +51,26 @@ export function createViewerControls(
 	renderer: RenderController,
 	/** Ends the show; called when the end screen is dismissed forward. */
 	onEndShow?: () => void,
+	/**
+	 * File > Options > Advanced > "End with black slide". PowerPoint's default is
+	 * ON: running past the last slide raises the black end screen and only the
+	 * NEXT forward input ends the show. Off ends it at once. Read lazily because
+	 * the options controller is constructed after these controls.
+	 */
+	getEndWithBlackSlide?: () => boolean | undefined,
 ): ViewerControls {
+	/**
+	 * The deck indexes a running show visits: every slide the author did not hide.
+	 * PowerPoint's "Hide Slide" keeps the slide in the deck, the thumbnail rail
+	 * and the sorter but skips it while presenting, so this is consulted only by
+	 * `next` / `prev` / Home / End and never by `goToSlide`.
+	 */
+	const showOrder = (): number[] => resolveShowSlideIndexes(store.get().slides);
+
+	/**
+	 * Jump straight to a deck index. Deliberately NOT filtered by the show order:
+	 * PowerPoint's typed "slide number + Enter" reaches a hidden slide on purpose.
+	 */
 	const goToSlide = (index: number, enteringBackward = false): void => {
 		store.set({
 			currentSlide: clampSlideIndex(index, store.get().slides.length),
@@ -67,13 +99,26 @@ export function createViewerControls(
 			if (state.presenting && renderer.presentationPlayback.advance()) {
 				return;
 			}
-			if (state.presenting && state.currentSlide >= state.slides.length - 1) {
+			const order = showOrder();
+			if (state.presenting && !hasShowSlideAfter(state.currentSlide, order)) {
+				if (getEndWithBlackSlide?.() === false) {
+					// No black slide configured: PowerPoint ends the show outright
+					// rather than sitting on the last slide swallowing every advance.
+					onEndShow?.();
+					return;
+				}
 				// Nothing further to advance to: raise the black end screen rather
 				// than sitting on the last slide ignoring every further advance.
 				store.set({ endOfShow: true });
 				return;
 			}
-			goToSlide(state.currentSlide + 1);
+			// Outside a show the deck pages one slide at a time (hidden slides are
+			// still editable and still reachable); inside one the show order rules.
+			goToSlide(
+				state.presenting
+					? (nextShowSlideIndex(state.currentSlide, order) ?? state.currentSlide)
+					: state.currentSlide + 1,
+			);
 		},
 		prev: () => {
 			// A backward input while the end screen is up just dismisses it.
@@ -88,7 +133,28 @@ export function createViewerControls(
 				renderer.presentationPlayback.replayCurrentSlide(document);
 				return;
 			}
-			goToSlide(store.get().currentSlide - 1, store.get().presenting);
+			const state = store.get();
+			goToSlide(
+				state.presenting
+					? (previousShowSlideIndex(state.currentSlide, showOrder()) ?? state.currentSlide)
+					: state.currentSlide - 1,
+				state.presenting,
+			);
+		},
+		// Home / End land on the show's first / last slide, so a deck whose first
+		// or last slide is hidden does not open one on a key PowerPoint reads as
+		// "go to the start / end of the show".
+		firstSlide: () => {
+			const state = store.get();
+			goToSlide(state.presenting ? (firstShowSlideIndex(showOrder()) ?? 0) : 0);
+		},
+		lastSlide: () => {
+			const state = store.get();
+			goToSlide(
+				state.presenting
+					? (lastShowSlideIndex(showOrder()) ?? state.slides.length - 1)
+					: state.slides.length - 1,
+			);
 		},
 		goToSlide,
 		slideCount: () => store.get().slides.length,

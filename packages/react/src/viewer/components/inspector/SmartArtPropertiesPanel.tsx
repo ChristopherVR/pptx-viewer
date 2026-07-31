@@ -16,9 +16,8 @@ import type { BoundingBox } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { cn } from '../../utils';
 import { resolveSmartArtDataPalette } from '../../utils/smartart-helpers';
-import { HEADING, CARD, INPUT, BTN } from './inspector-pane-constants';
+import { HEADING, CARD, BTN } from './inspector-pane-constants';
 import {
 	canAddTopLevelNode,
 	canRemoveTopLevelNode,
@@ -35,6 +34,7 @@ import {
 } from './smartart-node-pane-handlers';
 import { SmartArtLayoutSwitcher } from './SmartArtLayoutSwitcher';
 import { SmartArtNodeRow } from './SmartArtNodeRow';
+import { SmartArtStyleControls } from './SmartArtStyleControls';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -48,9 +48,7 @@ interface SmartArtPropertiesPanelProps {
 	box?: BoundingBox;
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+// --- Constants -------------------------------------------------------------
 
 const COLOR_SCHEMES: SmartArtColorScheme[] = [
 	'colorful1',
@@ -217,46 +215,15 @@ export function SmartArtPropertiesPanel({
 					onUpdateSmartArt={updateSmartArt}
 				/>
 
-				<label className='flex flex-col gap-1 text-[11px]'>
-					<span className='text-muted-foreground'>{t('pptx.smartart.colorScheme')}</span>
-					<select
-						disabled={!canEdit}
-						data-testid='smartart-color-scheme'
-						aria-label={t('pptx.smartart.colorScheme')}
-						className={cn(INPUT, 'w-full')}
-						value={smartArtData.colorScheme ?? 'colorful1'}
-						onChange={(e) => updateSmartArt({ colorScheme: e.target.value as SmartArtColorScheme })}
-					>
-						{COLOR_SCHEMES.map((cs) => (
-							<option key={cs} value={cs}>
-								{cs}
-							</option>
-						))}
-					</select>
-				</label>
-
-				<label className='flex flex-col gap-1 text-[11px]'>
-					<span className='text-muted-foreground'>{t('pptx.smartart.style')}</span>
-					<div className='flex gap-1' role='group' aria-label={t('pptx.smartart.style')}>
-						{STYLE_OPTIONS.map((s) => (
-							<button
-								key={s}
-								type='button'
-								disabled={!canEdit}
-								aria-pressed={(smartArtData.style ?? 'flat') === s}
-								className={cn(
-									'flex-1 px-2 py-1 text-[10px] rounded border transition-colors',
-									(smartArtData.style ?? 'flat') === s
-										? 'border-primary bg-primary/20 text-primary'
-										: 'border-border text-muted-foreground hover:bg-muted',
-								)}
-								onClick={() => updateSmartArt({ style: s })}
-							>
-								{s}
-							</button>
-						))}
-					</div>
-				</label>
+				<SmartArtStyleControls
+					colorSchemes={COLOR_SCHEMES}
+					styleOptions={STYLE_OPTIONS}
+					colorScheme={smartArtData.colorScheme ?? 'colorful1'}
+					style={smartArtData.style ?? 'flat'}
+					canEdit={canEdit}
+					onChangeColorScheme={(colorScheme) => updateSmartArt({ colorScheme })}
+					onChangeStyle={(style) => updateSmartArt({ style })}
+				/>
 
 				<div className='flex items-center justify-between'>
 					<span className='text-[11px] text-muted-foreground'>

@@ -22,7 +22,9 @@
 		PptxChartType,
 	} from 'pptx-viewer-core';
 	import { setChartDataPointMarker } from 'pptx-viewer-core';
+	import { CHART_TYPE_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
 
+	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import ChartAdvancedSection from './ChartAdvancedSection.svelte';
 	import ChartAxisFormatSection from './ChartAxisFormatSection.svelte';
@@ -33,6 +35,28 @@
 	import ChartTrendlineSection from './ChartTrendlineSection.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
+	const t = useTranslator();
+	/**
+	 * The chart types this select offers, spelled out rather than derived from
+	 * `CHART_TYPE_LABEL_KEYS` (which covers every type core can parse). Keeping
+	 * the list explicit means translating the labels cannot silently add an
+	 * option the panel never had, which would move it out of React parity.
+	 */
+	const chartTypes: readonly PptxChartType[] = [
+		'bar',
+		'line',
+		'pie',
+		'doughnut',
+		'area',
+		'scatter',
+		'bubble',
+		'radar',
+		'waterfall',
+		'funnel',
+		'treemap',
+		'sunburst',
+		'combo',
+	];
 	const chart = $derived(
 		editor.selectedElement?.type === 'chart' ? editor.selectedElement : undefined,
 	);
@@ -93,7 +117,7 @@
 </script>
 
 {#if data}<div class="section">
-	<label>Chart type<select value={data.chartType} onchange={(event) => patch({ chartType: event.currentTarget.value as PptxChartType })}>{#each ['bar','line','pie','doughnut','area','scatter','bubble','radar','waterfall','funnel','treemap','sunburst','combo'] as type}<option value={type}>{type}</option>{/each}</select></label>
+	<label>Chart type<select value={data.chartType} onchange={(event) => patch({ chartType: event.currentTarget.value as PptxChartType })}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ title: event.currentTarget.value, style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
 	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label></div>
 	<ChartDataGrid

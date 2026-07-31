@@ -75,7 +75,55 @@ describe('smartArtPropertiesPanel - accessibility', () => {
 		const html = render(
 			<SmartArtPropertiesPanel smartArtData={data} canEdit onUpdateElement={vi.fn()} />,
 		);
-		expect(html).toMatch(/aria-pressed="true"[^>]*>moderate/u);
+		expect(html).toMatch(/aria-pressed="true"[^>]*>pptx\.smartart\.styleModerate/u);
+	});
+});
+
+/**
+ * These controls used to print the OOXML wire tokens (`colorful1`, `flat`) as
+ * their own captions. The regression guard has two halves: the text must be a
+ * dictionary key, and the VALUE must still be the wire token, because changing
+ * a value would silently move the control out of parity with the other four
+ * bindings and would write a different `dgm:` family into the deck.
+ */
+describe('smartArtPropertiesPanel - schema tokens are spelled, values are not', () => {
+	it('labels the colour-scheme options without changing their values', () => {
+		const html = render(
+			<SmartArtPropertiesPanel smartArtData={listData(1)} canEdit onUpdateElement={vi.fn()} />,
+		);
+		for (const scheme of [
+			'colorful1',
+			'colorful2',
+			'colorful3',
+			'monochromatic1',
+			'monochromatic2',
+		]) {
+			expect(html).toContain(`value="${scheme}"`);
+		}
+		expect(html).toContain('pptx.smartart.schemeColorful1');
+		expect(html).toContain('pptx.smartart.schemeMonochromatic2');
+		expect(html).not.toMatch(/>colorful1</u);
+		expect(html).not.toMatch(/>monochromatic1</u);
+	});
+
+	it('still offers exactly five colour schemes', () => {
+		const html = render(
+			<SmartArtPropertiesPanel smartArtData={listData(1)} canEdit onUpdateElement={vi.fn()} />,
+		);
+		expect(html.match(/<option /gu)).toHaveLength(5);
+	});
+
+	it('labels the three style buttons without changing what they set', () => {
+		const html = render(
+			<SmartArtPropertiesPanel smartArtData={listData(1)} canEdit onUpdateElement={vi.fn()} />,
+		);
+		expect(html).toContain('pptx.smartart.styleFlat');
+		expect(html).toContain('pptx.smartart.styleModerate');
+		expect(html).toContain('pptx.smartart.styleIntense');
+		expect(html).not.toMatch(/>flat</u);
+		expect(html).not.toMatch(/>intense</u);
+		// The group keeps its role and accessible name.
+		expect(html).toContain('aria-label="pptx.smartart.style"');
 	});
 });
 

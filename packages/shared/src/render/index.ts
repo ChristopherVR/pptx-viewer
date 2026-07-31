@@ -59,6 +59,12 @@ export * from './chart-sparkline';
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.
 export * from './chart-editor-options';
+// Wire-token -> i18n key lookups, so a control can spell an OOXML enum without
+// its option set being dictated by a shared catalogue.
+export * from './schema-label-keys';
+export * from './chart-schema-label-keys';
+export * from './fill-pattern-label-keys';
+export * from './slide-transition-label-keys';
 // Guarded add/remove/edit operations behind the chart inspector's data grid
 // (auto-naming, last-series/category protection, non-numeric cell rejection).
 export * from './chart-data-grid-ops';
@@ -763,6 +769,7 @@ export * from './font-availability';
 export * from './password-protection';
 export * from './viewer-preferences';
 export * from './presentation-setup';
+export * from './presentation-show-order';
 export * from './presentation-subtitles';
 export * from './account';
 export * from './viewer-prefs-storage';

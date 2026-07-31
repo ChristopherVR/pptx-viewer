@@ -1,3 +1,5 @@
+import { schemaLabel } from 'pptx-viewer-shared';
+
 export function field<T extends HTMLElement>(doc: Document, text: string, control: T) {
 	const label = doc.createElement('label');
 	label.textContent = text;
@@ -57,6 +59,33 @@ export function optionSelect(
 		doc,
 		control,
 		options.map((option) => [option.value, translate(option.labelKey)]),
+	);
+	return field(doc, text, control);
+}
+
+/**
+ * A select over a FIXED list of OOXML wire tokens, spelled through one of the
+ * shared `schema-label-keys` maps.
+ *
+ * Preferred over {@link select} whenever the value list must stay byte-for-byte
+ * as it is (because the control is already in parity with React) but the
+ * options were reaching the user as raw schema tokens such as `inBase`,
+ * `percentStacked` or `valAx`. Unlike {@link optionSelect} the catalogue here
+ * cannot change WHICH values are offered: it only decides how each one is
+ * spelled, and a token the map does not know still renders as itself.
+ */
+export function tokenSelect(
+	doc: Document,
+	text: string,
+	values: readonly string[],
+	keys: Readonly<Record<string, string>>,
+	translate: (key: string) => string,
+) {
+	const control = doc.createElement('select');
+	setOptions(
+		doc,
+		control,
+		values.map((item) => [item, schemaLabel(keys, item, translate)]),
 	);
 	return field(doc, text, control);
 }

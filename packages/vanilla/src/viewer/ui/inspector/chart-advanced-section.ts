@@ -13,7 +13,15 @@ import type {
 	PptxChartMarkerSymbol,
 	PptxChartTrendlineType,
 } from 'pptx-viewer-core';
-import { DISPLAY_UNITS_OPTIONS } from 'pptx-viewer-shared';
+import {
+	CHART_AXIS_TYPE_LABEL_KEYS,
+	CHART_MARKER_SYMBOL_LABEL_KEYS,
+	DISPLAY_UNITS_OPTIONS,
+	ERROR_BAR_VALTYPE_OPTIONS,
+	schemaLabel,
+	TRENDLINE_TYPE_OPTIONS,
+	upsertDataPoint,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import {
@@ -24,8 +32,11 @@ import {
 	select,
 	set,
 	setOptions,
+	tokenSelect,
 	value as optionalNumber,
 } from './chart-exhaustive-controls';
+import type { ChartPointIndexField } from './chart-point-index';
+import { createChartPointIndexField } from './chart-point-index';
 
 export interface ChartAdvancedSection {
 	el: HTMLElement;
@@ -36,6 +47,12 @@ export function createChartAdvancedSection(
 	doc: Document,
 	t: Translator,
 	onChange: (data: PptxChartData) => void,
+	/**
+	 * The point picker to obey. The chart section passes the SAME instance to
+	 * the exhaustive section so a single box drives every per-point control;
+	 * omitting it (as the unit tests do) gives this section a private one.
+	 */
+	pointIndex: ChartPointIndexField = createChartPointIndexField(doc, t),
 ): ChartAdvancedSection {
 	const el = doc.createElement('div');
 	el.className = 'pptxv-chart-advanced';
@@ -51,39 +68,28 @@ export function createChartAdvancedSection(
 	const reverse = checkbox(doc, t('pptx.chart.reverseOrder'));
 	const gridlines = checkbox(doc, t('pptx.chart.majorGridlines'));
 	const seriesSelect = select(doc, t('pptx.chart.series'), []);
-	const trendline = select(doc, t('pptx.chart.trendlines'), [
-		'',
-		'linear',
-		'exponential',
-		'logarithmic',
-		'polynomial',
-		'power',
-		'movingAvg',
-	]);
+	// The trendline and error-bar value lists were local literals that happened to
+	// match `chart-editor-options` entry for entry, so driving them from the
+	// shared catalogues changes nothing about what is offered while giving the
+	// options words instead of `movingAvg` and `stdErr`.
+	const trendline = optionSelect(doc, t('pptx.chart.trendlines'), TRENDLINE_TYPE_OPTIONS, t);
 	const equation = checkbox(doc, t('pptx.chart.trendlineEquation'));
 	const rSquared = checkbox(doc, t('pptx.chart.trendlineRSquared'));
-	const errorType = select(doc, t('pptx.chart.errorBars'), [
-		'',
-		'fixedVal',
-		'percentage',
-		'stdDev',
-		'stdErr',
-	]);
+	const errorType = optionSelect(doc, t('pptx.chart.errorBars'), ERROR_BAR_VALTYPE_OPTIONS, t);
 	const errorAmount = number(doc, t('pptx.chart.errorBarAmount'));
-	const marker = select(doc, t('pptx.chart.marker'), [
-		'none',
-		'auto',
-		'circle',
-		'diamond',
-		'square',
-		'star',
-		'triangle',
-		'x',
-		'plus',
-	]);
+	// Not `MARKER_SYMBOL_OPTIONS`: this select offers an explicit `auto` value
+	// where the shared list spells "auto" as the empty string, so switching
+	// catalogues would silently rewrite what the control writes to `c:symbol`.
+	// Only the spelling is taken from shared.
+	const marker = tokenSelect(
+		doc,
+		t('pptx.chart.marker'),
+		['none', 'auto', 'circle', 'diamond', 'square', 'star', 'triangle', 'x', 'plus'],
+		CHART_MARKER_SYMBOL_LABEL_KEYS,
+		t,
+	);
 	const markerSize = number(doc, t('pptx.chart.markerSize'));
 	const seriesColor = color(doc, t('pptx.chart.seriesColor'));
-	const pointIndex = number(doc, t('pptx.chart.dataPointIndex'));
 	const pointColor = color(doc, t('pptx.chart.dataPointColor'));
 	const pointExplosion = number(doc, t('pptx.chart.pointExplosion'));
 	el.append(
@@ -141,22 +147,13 @@ export function createChartAdvancedSection(
 		const previous = series[seriesIndex()];
 		const trendlineType = trendline.control.value as PptxChartTrendlineType | '';
 		const valType = errorType.control.value as PptxChartErrBars['valType'] | '';
-		const point = Math.max(0, (pointIndex.control.valueAsNumber || 1) - 1);
-		const dataPoints = [...(previous.dataPoints ?? [])];
-		const pointPosition = dataPoints.findIndex(({ idx }) => idx === point);
-		const nextPoint = {
-			...(pointPosition >= 0 ? dataPoints[pointPosition] : { idx: point }),
-			spPr: {
-				...(pointPosition >= 0 ? dataPoints[pointPosition].spPr : {}),
-				fillColor: pointColor.control.value,
-			},
+		const point = pointIndex.selected();
+		const existing = previous.dataPoints?.find(({ idx }) => idx === point);
+		const dataPoints = upsertDataPoint(previous.dataPoints, {
+			...(existing ?? { idx: point }),
+			spPr: { ...existing?.spPr, fillColor: pointColor.control.value },
 			explosion: optionalNumber(pointExplosion.control),
-		};
-		if (pointPosition >= 0) {
-			dataPoints[pointPosition] = nextPoint;
-		} else {
-			dataPoints.push(nextPoint);
-		}
+		});
 		series[seriesIndex()] = {
 			...previous,
 			color: seriesColor.control.value,
@@ -200,7 +197,6 @@ export function createChartAdvancedSection(
 		marker.control,
 		markerSize.control,
 		seriesColor.control,
-		pointIndex.control,
 		pointColor.control,
 		pointExplosion.control,
 	]) {
@@ -208,13 +204,21 @@ export function createChartAdvancedSection(
 	}
 	axisSelect.control.addEventListener('change', () => current && sync(current));
 	seriesSelect.control.addEventListener('change', () => current && sync(current));
+	// Picking a different point RE-READS it; it must not commit, or the colour
+	// still showing for the previous point would be stamped onto the new one.
+	pointIndex.subscribe(() => current && sync(current));
 
 	const sync = (data: PptxChartData): void => {
 		current = data;
 		setOptions(
 			doc,
 			axisSelect.control,
-			(data.axes ?? []).map((axis, index) => [String(index), axis.titleText ?? axis.axisType]),
+			// An untitled axis falls back to its element name, which used to reach
+			// the user as the literal `valAx`; spell it through the shared map.
+			(data.axes ?? []).map((axis, index) => [
+				String(index),
+				axis.titleText ?? schemaLabel(CHART_AXIS_TYPE_LABEL_KEYS, axis.axisType, t),
+			]),
 		);
 		setOptions(
 			doc,
@@ -238,9 +242,7 @@ export function createChartAdvancedSection(
 		marker.control.value = item?.marker?.symbol ?? 'none';
 		set(markerSize.control, item?.marker?.size);
 		seriesColor.control.value = item?.color ?? '#4472c4';
-		const point = item?.dataPoints?.find(
-			({ idx }) => idx === Math.max(0, (pointIndex.control.valueAsNumber || 1) - 1),
-		);
+		const point = item?.dataPoints?.find(({ idx }) => idx === pointIndex.selected());
 		pointColor.control.value = point?.spPr?.fillColor ?? item?.color ?? '#4472c4';
 		set(pointExplosion.control, point?.explosion);
 	};

@@ -7,6 +7,11 @@ import type {
 	SmartArtLayoutType,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
+import {
+	schemaLabel,
+	SMARTART_COLOR_SCHEME_LABEL_KEYS,
+	SMARTART_STYLE_LABEL_KEYS,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -71,6 +76,21 @@ const editing = useSmartArtEditing({
 const colorSchemes = SMARTART_COLOR_SCHEMES;
 const styleOptions = SMARTART_STYLE_OPTIONS;
 
+/**
+ * Spell the `dgm:colorsDef` / `dgm:styleDef` families for display.
+ *
+ * Both controls keep their existing value sets and still emit the raw wire
+ * tokens; only the visible text changes, so nothing is added or dropped.
+ * `t` is an overloaded generic, hence the narrowing lambda.
+ */
+function colorSchemeLabel(scheme: SmartArtColorScheme): string {
+	return schemaLabel(SMARTART_COLOR_SCHEME_LABEL_KEYS, scheme, (key: string) => t(key));
+}
+
+function styleLabel(style: SmartArtStyle): string {
+	return schemaLabel(SMARTART_STYLE_LABEL_KEYS, style, (key: string) => t(key));
+}
+
 const addDisabled = computed(() => !editable.value || !editing.canAdd.value);
 
 function onColorSchemeChange(event: Event): void {
@@ -122,7 +142,9 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 					:value="editing.colorScheme.value"
 					@change="onColorSchemeChange"
 				>
-					<option v-for="cs in colorSchemes" :key="cs" :value="cs">{{ cs }}</option>
+					<option v-for="cs in colorSchemes" :key="cs" :value="cs">
+						{{ colorSchemeLabel(cs) }}
+					</option>
 				</select>
 			</label>
 
@@ -144,7 +166,7 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 						"
 						@click="onSetStyle(s)"
 					>
-						{{ s }}
+						{{ styleLabel(s) }}
 					</button>
 				</div>
 			</div>
