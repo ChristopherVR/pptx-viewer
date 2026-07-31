@@ -1,7 +1,20 @@
 import { XmlObject, TextSegment, TextStyle } from '../../types';
 import { xmlText } from '../../utils';
+import { paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
+
+/** `a:p` children that contribute renderable content, in no particular order. */
+const PARAGRAPH_CONTENT_TAGS: ReadonlySet<string> = new Set([
+	'a:r',
+	'a:fld',
+	'a:t',
+	'a14:m',
+	'm:oMathPara',
+	'm:oMath',
+	'mc:AlternateContent',
+	'a:br',
+]);
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -200,89 +213,79 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 
 		// ── Process paragraph children in document order ──
-		// Iterate over object keys to preserve the interleaving order of
-		// runs (a:r), fields (a:fld), inline math (a14:m / m:oMathPara /
-		// m:oMath), mc:AlternateContent, line breaks (a:br), and direct
-		// text (a:t). Each key's array items are consumed sequentially,
-		// maintaining the positions of inline math relative to text runs.
-		const contentTagSet = new Set([
-			'a:r',
-			'a:fld',
-			'a:t',
-			'a14:m',
-			'm:oMathPara',
-			'm:oMath',
-			'mc:AlternateContent',
-			'a:br',
-		]);
+		// Runs (a:r), fields (a:fld), inline math (a14:m / m:oMathPara /
+		// m:oMath), mc:AlternateContent, line breaks (a:br) and direct text
+		// (a:t) all interleave freely in CT_TextParagraph, but fast-xml-parser
+		// collapses same-tag siblings under one key, so iterating the parsed
+		// keys re-emits them GROUPED BY TAG: an authored
+		// `"Slide " <a:fld/> " - " <a:fld/>` came back as both literal runs and
+		// only then both fields, i.e. every inline field jumped to the end of
+		// its paragraph. `paragraphContentEntries` replays the order recovered
+		// from the raw XML at parse time, and reports `authored: false` when
+		// there was nothing to recover (already grouped, or SDK-built).
+		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS, (value) =>
+			this.ensureArray(value),
+		);
+		const runCount = this.ensureArray(p['a:r']).length;
+		const breakCount = this.ensureArray(p['a:br']).length;
+		// Legacy repair, kept for the grouped case only: with the true order
+		// unknown, breaks were spread one-per-gap between the runs. When the
+		// authored order IS known it is used verbatim instead, which is both
+		// correct and avoids the synthetic break the repair would add.
+		const insertCollapsedBreaks = !authored && runCount > 1 && breakCount > 0;
+		let runIndex = 0;
 
-		for (const key of Object.keys(p)) {
-			if (!contentTagSet.has(key)) {
-				continue;
-			}
-
-			const items = this.ensureArray(p[key]);
-			const rawBreaks = p['a:br'];
-			const breakCount = Array.isArray(rawBreaks)
-				? rawBreaks.length
-				: rawBreaks === undefined
-					? 0
-					: 1;
-			const insertCollapsedBreaks = key === 'a:r' && items.length > 1 && breakCount > 0;
-			for (const [itemIndex, item] of items.entries()) {
-				switch (key) {
-					case 'a:r': {
-						processRun(item);
-						if (insertCollapsedBreaks && itemIndex < Math.min(items.length - 1, breakCount)) {
-							parts.push('\n');
-							segments.push({
-								text: '\n',
-								style: { ...mergedDefaultRunStyle },
-								isLineBreak: true,
-							});
-						}
-						break;
-					}
-					case 'a:fld':
-						processField(item as XmlObject);
-						break;
-					case 'a:t': {
-						const directText =
-							typeof item === 'string' ? item : item !== undefined ? String(item) : '';
-						appendRun(directText, p['a:rPr'] as XmlObject | undefined);
-						break;
-					}
-					case 'a14:m':
-					case 'm:oMathPara':
-					case 'm:oMath':
-						processMathElement(item);
-						break;
-					case 'mc:AlternateContent':
-						processAlternateContent(item);
-						break;
-					case 'a:br': {
-						if (insertCollapsedBreaks) {
-							break;
-						}
-						const brNode = (item ?? {}) as XmlObject;
-						const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
-						const brStyle = {
-							...mergedDefaultRunStyle,
-							...this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
-						} as TextStyle;
+		for (const [key, item] of entries) {
+			switch (key) {
+				case 'a:r': {
+					processRun(item as XmlObject);
+					if (insertCollapsedBreaks && runIndex < Math.min(runCount - 1, breakCount)) {
 						parts.push('\n');
-						const brSegment: TextSegment = {
+						segments.push({
 							text: '\n',
-							style: brStyle,
+							style: { ...mergedDefaultRunStyle },
 							isLineBreak: true,
-						};
-						if (brRunProps && typeof brRunProps === 'object') {
-							// Preserve the raw a:rPr for round-trip serialisation.
-							brSegment.breakRunProperties = { ...(brRunProps as Record<string, unknown>) };
-						}
-						segments.push(brSegment);
-						break;
+						});
 					}
+					runIndex++;
+					break;
+				}
+				case 'a:fld':
+					processField(item as XmlObject);
+					break;
+				case 'a:t': {
+					const directText =
+						typeof item === 'string' ? item : item !== undefined ? String(item) : '';
+					appendRun(directText, p['a:rPr'] as XmlObject | undefined);
+					break;
+				}
+				case 'a14:m':
+				case 'm:oMathPara':
+				case 'm:oMath':
+					processMathElement(item);
+					break;
+				case 'mc:AlternateContent':
+					processAlternateContent(item);
+					break;
+				case 'a:br': {
+					const brNode = (item ?? {}) as XmlObject;
+					const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
+					const brStyle = {
+						...mergedDefaultRunStyle,
+						...this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
+					} as TextStyle;
+					parts.push('\n');
+					const brSegment: TextSegment = {
+						text: '\n',
+						style: brStyle,
+						isLineBreak: true,
+					};
+					if (brRunProps && typeof brRunProps === 'object') {
+						// Preserve the raw a:rPr for round-trip serialisation.
+						brSegment.breakRunProperties = { ...(brRunProps as Record<string, unknown>) };
+					}
+					segments.push(brSegment);
+					break;
 				}
 			}
 		}

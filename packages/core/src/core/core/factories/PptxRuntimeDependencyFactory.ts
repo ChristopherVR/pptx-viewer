@@ -28,6 +28,7 @@ import type {
 } from '../../services';
 import { decodeXmlEntities } from '../../utils/xml-entities';
 import { annotateOmmlSiblingOrder } from '../runtime/omml-sibling-order';
+import { annotateParagraphSiblingOrder } from '../runtime/paragraph-sibling-order';
 import { annotateSmartArtTextOrder } from '../runtime/smartart-text-order';
 
 export interface PptxRuntimeDependencyFactoryInput {
@@ -120,6 +121,14 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			}
 			if (typeof xml === 'string' && xml.includes('oMath')) {
 				annotateOmmlSiblingOrder(xml, parsed);
+			}
+			// An `a:fld` / `a:br` interleaved with `a:r` collapses to
+			// grouped-by-tag keys, which is how every inline field ended up
+			// rendered at the END of its paragraph. The annotator re-checks for
+			// mixed content itself, so this gate only skips parts that carry no
+			// paragraphs at all.
+			if (typeof xml === 'string' && xml.includes('<a:p')) {
+				annotateParagraphSiblingOrder(xml, parsed);
 			}
 			return parsed;
 		}) as typeof parser.parse;

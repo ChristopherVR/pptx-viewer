@@ -13,27 +13,28 @@
  * oMath container whose raw child sequence is NOT grouped-by-tag: repeated
  * tags get position-marked keys (`m:r#pptx-order-3` via `orderedXmlKey`) so
  * object insertion order carries the true sequence. The markers live in the
- * key names, so - unlike the WeakMap side-channels used for custom geometry
- * and SmartArt text - the order survives the cloning that `equationXml`
- * undergoes in editor state, undo history, and collaboration codecs. The
- * save-side XMLBuilder strips `#pptx-order-N` from emitted tag names, so the
- * serialized OOXML regains the original interleaved form. Grouped-by-tag
- * containers (the overwhelmingly common case) are left untouched.
+ * key names, so - unlike the WeakMap side-channels used for custom geometry,
+ * SmartArt text and paragraph content - the order survives the cloning that
+ * `equationXml` undergoes in editor state, undo history, and collaboration
+ * codecs. The save-side XMLBuilder strips `#pptx-order-N` from emitted tag
+ * names, so the serialized OOXML regains the original interleaved form.
+ * Grouped-by-tag containers (the overwhelmingly common case) are left
+ * untouched.
+ *
+ * The raw-XML scanning primitives live in `xml-child-scan`, shared with the
+ * other order-restoring annotators.
  */
 
 import { orderedXmlKey } from '../../geometry';
 import type { XmlObject } from '../../types';
-
-function isXmlObject(value: unknown): value is XmlObject {
-	return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function ensureItems(value: unknown): unknown[] {
-	if (value === undefined || value === null) {
-		return [];
-	}
-	return Array.isArray(value) ? value : [value];
-}
+import {
+	ensureItems,
+	extractElementInnerXml,
+	isGroupedByTag,
+	isXmlObject,
+	localName,
+	scanDirectChildren,
+} from './xml-child-scan';
 
 /**
  * Set an own property whose key comes from untrusted XML tag names (which may
@@ -43,104 +44,6 @@ function ensureItems(value: unknown): unknown[] {
  */
 function setOwnProperty(node: XmlObject, key: string, value: XmlObject[string]): void {
 	Object.defineProperty(node, key, { value, writable: true, enumerable: true, configurable: true });
-}
-
-function localName(name: string): string {
-	const colon = name.indexOf(':');
-	return colon >= 0 ? name.slice(colon + 1) : name;
-}
-
-/** Matches an XML tag's name (open or close) at an exact position. */
-const TAG_NAME_RE = /<(\/)?([A-Za-z_][\w.:-]*)/uy;
-
-/**
- * Index just past the `>` that closes the tag starting at `xml[start]`
- * (`'<'`), skipping over `>` characters inside quoted attribute values.
- * Scans linearly (no regex backtracking) so it stays safe on adversarial,
- * untrusted OOXML input.
- */
-function findTagClose(xml: string, start: number): number {
-	let index = start;
-	while (index < xml.length) {
-		const char = xml[index];
-		if (char === '"' || char === "'") {
-			const closingQuote = xml.indexOf(char, index + 1);
-			index = closingQuote === -1 ? xml.length : closingQuote + 1;
-			continue;
-		}
-		if (char === '>') {
-			return index + 1;
-		}
-		index++;
-	}
-	return xml.length;
-}
-
-interface ScannedTag {
-	/** True for a closing tag (`</name>`). */
-	closing: boolean;
-	/** True for a self-closing tag (`<name/>`). */
-	selfClosing: boolean;
-	/** Full prefixed tag name. */
-	name: string;
-	/** Index of the tag's opening `<`. */
-	start: number;
-	/** Index just past the tag's closing `>`. */
-	end: number;
-}
-
-/** Scan forward from `from` for the next open/close/self-closing tag. */
-function nextTag(xml: string, from: number): ScannedTag | null {
-	let open = xml.indexOf('<', from);
-	while (open !== -1) {
-		TAG_NAME_RE.lastIndex = open;
-		const nameMatch = TAG_NAME_RE.exec(xml);
-		if (nameMatch) {
-			const end = findTagClose(xml, open);
-			const selfClosing = xml[end - 2] === '/';
-			return { closing: Boolean(nameMatch[1]), selfClosing, name: nameMatch[2]!, start: open, end };
-		}
-		open = xml.indexOf('<', open + 1);
-	}
-	return null;
-}
-
-/** Inner XML of every oMath element in document order ('' for empty ones). */
-function extractOmathInnerXml(xml: string): string[] {
-	const fragments: string[] = [];
-	let cursor = 0;
-	let tag = nextTag(xml, cursor);
-	while (tag) {
-		if (!tag.closing && localName(tag.name) === 'oMath') {
-			if (tag.selfClosing) {
-				fragments.push('');
-				cursor = tag.end;
-			} else {
-				const innerStart = tag.end;
-				let depth = 1;
-				let inner = xml.slice(innerStart);
-				let scanCursor = innerStart;
-				let nested = nextTag(xml, scanCursor);
-				while (nested) {
-					if (localName(nested.name) === 'oMath') {
-						depth += nested.closing ? -1 : nested.selfClosing ? 0 : 1;
-						if (depth === 0) {
-							inner = xml.slice(innerStart, nested.start);
-							break;
-						}
-					}
-					scanCursor = nested.end;
-					nested = nextTag(xml, scanCursor);
-				}
-				fragments.push(inner);
-				cursor = nested ? nested.end : xml.length;
-			}
-		} else {
-			cursor = tag.end;
-		}
-		tag = nextTag(xml, cursor);
-	}
-	return fragments;
 }
 
 /** Parsed oMath container objects in document order. */
@@ -174,57 +77,6 @@ function collectParsedOmathNodes(root: unknown): XmlObject[] {
 		}
 	}
 	return result;
-}
-
-interface RawChild {
-	/** Full prefixed tag name as written in the source. */
-	tag: string;
-	/** The child's inner XML ('' for self-closing/empty elements). */
-	inner: string;
-}
-
-/** Scan a container's inner XML for its direct children (tag + inner XML). */
-function scanDirectChildren(inner: string): RawChild[] {
-	const children: RawChild[] = [];
-	let depth = 0;
-	let open: { tag: string; innerStart: number } | null = null;
-	let cursor = 0;
-	let tag = nextTag(inner, cursor);
-	while (tag) {
-		if (tag.closing) {
-			depth = Math.max(0, depth - 1);
-			if (depth === 0 && open) {
-				children.push({ tag: open.tag, inner: inner.slice(open.innerStart, tag.start) });
-				open = null;
-			}
-		} else if (tag.selfClosing) {
-			if (depth === 0) {
-				children.push({ tag: tag.name, inner: '' });
-			}
-		} else {
-			if (depth === 0) {
-				open = { tag: tag.name, innerStart: tag.end };
-			}
-			depth++;
-		}
-		cursor = tag.end;
-		tag = nextTag(inner, cursor);
-	}
-	return children;
-}
-
-/** True while every tag's occurrences are contiguous (order-safe to collapse). */
-function isGroupedByTag(tags: string[]): boolean {
-	const seen = new Set<string>();
-	let previous = '';
-	for (const tag of tags) {
-		if (tag !== previous && seen.has(tag)) {
-			return false;
-		}
-		seen.add(tag);
-		previous = tag;
-	}
-	return true;
 }
 
 /**
@@ -276,7 +128,7 @@ function reorderContainer(node: XmlObject, rawInner: string): void {
 
 /** Rewrite every parsed oMath subtree so sibling order survives collapse. */
 export function annotateOmmlSiblingOrder(xml: string, parsed: unknown): void {
-	const fragments = extractOmathInnerXml(xml);
+	const fragments = extractElementInnerXml(xml, 'oMath');
 	if (fragments.length === 0) {
 		return;
 	}

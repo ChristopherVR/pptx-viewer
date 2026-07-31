@@ -1,5 +1,7 @@
 import { XmlObject, TextStyle, TextSegment } from '../../types';
 import type { BulletInfo } from '../../types';
+import type { ParagraphChild } from './paragraph-child-assembly';
+import { classifyParagraphChild, writeParagraphChildren } from './paragraph-child-assembly';
 
 /** EMU-per-pixel conversion constant (matches PptxHandlerRuntime.EMU_PER_PX). */
 export const EMU_PER_PX = 9525;
@@ -207,80 +209,22 @@ export function assembleParagraphXml(
 ): XmlObject {
 	// OOXML CT_TextParagraph requires child order: pPr?, (r|br|fld)*, endParaRPr?.
 	// Since fast-xml-parser serialises keys in insertion order, build the
-	// object in that exact sequence. Soft line breaks (`a:br`), equation
-	// nodes (`m:oMath` / `m:oMathPara` / `mc:AlternateContent`), and runs
-	// are routed under their respective keys.
+	// object in that exact sequence.
 	const paragraph: XmlObject = {
 		'a:pPr': paragraphProps,
 	};
 
-	const stripMarker = (run: XmlObject, marker: string): XmlObject => {
-		const { [marker]: _drop, ...rest } = run as Record<string, unknown>;
-		return rest as XmlObject;
-	};
+	// `runs` already arrives in segment order, so the authored sequence of
+	// runs / fields / breaks / inline math is simply its order.
+	const children = runs
+		.map((run) => classifyParagraphChild(run))
+		.filter((child): child is ParagraphChild => child !== undefined);
 
-	// Partition runs by type, preserving insertion order.
-	const regularRuns: XmlObject[] = [];
-	const fieldRuns: XmlObject[] = [];
-	const breakRuns: XmlObject[] = [];
-	const mathOMathPara: XmlObject[] = [];
-	const mathOMath: XmlObject[] = [];
-	const mathAlternate: XmlObject[] = [];
-	for (const run of runs) {
-		if ((run as Record<string, unknown>).__isField) {
-			fieldRuns.push(stripMarker(run, '__isField'));
-		} else if ((run as Record<string, unknown>).__isLineBreak) {
-			breakRuns.push(stripMarker(run, '__isLineBreak'));
-		} else if ((run as Record<string, unknown>).__isEquation) {
-			const eqXml = (run as Record<string, unknown>).__equationXml as
-				| Record<string, unknown>
-				| undefined;
-			if (eqXml) {
-				if (eqXml['m:oMathPara']) {
-					mathOMathPara.push(eqXml['m:oMathPara'] as XmlObject);
-				} else if (eqXml['m:oMath']) {
-					mathOMath.push(eqXml['m:oMath'] as XmlObject);
-				} else if (eqXml['mc:AlternateContent']) {
-					mathAlternate.push(eqXml['mc:AlternateContent'] as XmlObject);
-				} else if (eqXml['a14:m']) {
-					// a14:m wraps an inline math element; re-emit verbatim.
-					mathAlternate.push({ ...(eqXml as XmlObject) });
-				} else {
-					// Fallback: assume the captured object is itself the math node.
-					mathOMath.push(eqXml as XmlObject);
-				}
-			}
-		} else {
-			regularRuns.push(stripMarker(run, '__isField'));
-		}
-	}
-
-	if (regularRuns.length > 0) {
-		paragraph['a:r'] = regularRuns.length > 1 ? regularRuns : regularRuns[0];
-	}
-	if (breakRuns.length > 0) {
-		paragraph['a:br'] = breakRuns.length > 1 ? breakRuns : breakRuns[0];
-	}
-	if (fieldRuns.length > 0) {
-		paragraph['a:fld'] = fieldRuns.length > 1 ? fieldRuns : fieldRuns[0];
-	}
-	if (mathOMathPara.length > 0) {
-		paragraph['m:oMathPara'] = mathOMathPara.length > 1 ? mathOMathPara : mathOMathPara[0];
-	}
-	if (mathOMath.length > 0) {
-		paragraph['m:oMath'] = mathOMath.length > 1 ? mathOMath : mathOMath[0];
-	}
-	if (mathAlternate.length > 0) {
-		paragraph['mc:AlternateContent'] = mathAlternate.length > 1 ? mathAlternate : mathAlternate[0];
-	}
-	if (
-		regularRuns.length === 0 &&
-		fieldRuns.length === 0 &&
-		breakRuns.length === 0 &&
-		mathOMathPara.length === 0 &&
-		mathOMath.length === 0 &&
-		mathAlternate.length === 0
-	) {
+	if (children.length > 0) {
+		writeParagraphChildren(paragraph, children);
+	} else {
+		// Every run was an equation marker with no captured XML (or there were
+		// no runs at all): fall back to emitting whatever was handed in.
 		paragraph['a:r'] = runs.length > 1 ? runs : runs[0];
 	}
 

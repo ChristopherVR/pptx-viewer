@@ -518,3 +518,61 @@ describe('computeUniformSegmentOverrides', () => {
 		expect(result.bold).toBeTruthy();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// assembleParagraphXml: authored sibling order
+// ---------------------------------------------------------------------------
+/**
+ * A paragraph's runs, fields and breaks interleave freely, but a single object
+ * key can only hold one array, so grouping them by tag silently moved every
+ * field to the end of its paragraph: `"Slide " #fld " - " titlefld` saved back
+ * as `"Slide " " - " #fld titlefld`. Interleaved sequences therefore use core's
+ * `#pptx-order-N` key markers, which the XMLBuilder strips on serialisation.
+ */
+describe('assembleParagraphXml sibling order', () => {
+	const literal = (text: string): XmlObject => ({ 'a:t': text });
+	const field = (type: string): XmlObject => ({ __isField: true, '@_type': type });
+
+	it('keeps an inline field between the runs it was authored between', () => {
+		const result = assembleParagraphXml(
+			[literal('Slide '), field('slidenum'), literal(' - '), field('slidetitle')],
+			{},
+		);
+		expect(Object.keys(result)).toStrictEqual([
+			'a:pPr',
+			'a:r#pptx-order-0',
+			'a:fld#pptx-order-1',
+			'a:r#pptx-order-2',
+			'a:fld#pptx-order-3',
+			'a:endParaRPr',
+		]);
+		expect(result['a:r#pptx-order-0']).toStrictEqual({ 'a:t': 'Slide ' });
+		expect(result['a:fld#pptx-order-3']).toStrictEqual({ '@_type': 'slidetitle' });
+	});
+
+	it('keeps a soft break in its authored position between runs', () => {
+		const result = assembleParagraphXml(
+			[literal('one'), { __isLineBreak: true }, literal('two')],
+			{},
+		);
+		expect(Object.keys(result)).toStrictEqual([
+			'a:pPr',
+			'a:r#pptx-order-0',
+			'a:br',
+			'a:r#pptx-order-2',
+			'a:endParaRPr',
+		]);
+	});
+
+	it('leaves an already-grouped paragraph on plain keys', () => {
+		const result = assembleParagraphXml([literal('a'), literal('b'), field('slidenum')], {});
+		expect(Object.keys(result)).toStrictEqual(['a:pPr', 'a:r', 'a:fld', 'a:endParaRPr']);
+		expect(result['a:r']).toStrictEqual([{ 'a:t': 'a' }, { 'a:t': 'b' }]);
+	});
+
+	it('emits a grouped paragraph in its authored key order, not a fixed one', () => {
+		// A field-first footer ("#fld of N") must not be re-ordered to runs-first.
+		const result = assembleParagraphXml([field('slidenum'), literal(' of 10')], {});
+		expect(Object.keys(result)).toStrictEqual(['a:pPr', 'a:fld', 'a:r', 'a:endParaRPr']);
+	});
+});
