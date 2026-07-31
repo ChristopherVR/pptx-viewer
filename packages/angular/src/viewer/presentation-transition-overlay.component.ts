@@ -119,6 +119,7 @@ function ensureTransitionKeyframes(): void {
 					[zoom]="zoom()"
 					[autoFit]="false"
 					[interactive]="false"
+					[transparentBackground]="isMorph()"
 				/>
 			</div>
 		</div>
@@ -272,6 +273,16 @@ export class PresentationTransitionOverlayComponent {
 				)
 			: undefined,
 	);
+
+	/**
+	 * Whether this overlay is playing a morph.
+	 *
+	 * A morph layer paints only the departing slide's paired shapes over the live
+	 * incoming stage, so its stage background must be dropped
+	 * (`transparentBackground`). Every other transition animates a whole slide
+	 * surface out and keeps its own background.
+	 */
+	protected readonly isMorph = computed<boolean>(() => this.morphPlan() !== undefined);
 
 	/** The slide rendered in the animated layer (outgoing + its template). */
 	protected readonly layerSlide = computed<PptxSlide>(() => {

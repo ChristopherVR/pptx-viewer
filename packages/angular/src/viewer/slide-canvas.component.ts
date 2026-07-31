@@ -602,6 +602,19 @@ export class SlideCanvasComponent implements SlideContext {
 	 */
 	readonly autoFit = input<boolean>(true);
 	/**
+	 * Drop the resolved slide background so the stage stays see-through.
+	 *
+	 * Only a STACKED layer sets this: the morph transition overlay paints the
+	 * departing slide's paired elements directly over the incoming stage, and a
+	 * stage always paints `getSlideBackgroundStyle`, whose colour is never
+	 * transparent (it falls back to `DEFAULT_SLIDE_BACKGROUND`, i.e. white). At
+	 * the overlay's z-index that opaque field covered the incoming slide for the
+	 * whole morph, so the morph looked like a static slab that hard-cut at the
+	 * end. A whole-slide transition (fade / wipe / push) still needs its own
+	 * background and leaves this false.
+	 */
+	readonly transparentBackground = input<boolean>(false);
+	/**
 	 * When true (default), the canvas + its elements expose the framework-neutral
 	 * contract attributes (`data-pptx-viewport`, `aria-roledescription="slide"`,
 	 * `data-pptx-element`). Thumbnail / preview / presentation instances pass
@@ -1484,7 +1497,11 @@ export class SlideCanvasComponent implements SlideContext {
 			overflow: 'hidden',
 			'box-shadow': '0 10px 40px rgba(0, 0, 0, 0.35)',
 			// Resolved slide background: image → gradient → pattern → solid colour.
-			...getSlideBackgroundStyle(slide),
+			// A stacked overlay layer (the morph departing slide) opts out entirely
+			// and stays see-through, so it cannot occlude the stage beneath it.
+			...(this.transparentBackground()
+				? { background: 'none', 'background-color': 'transparent', 'box-shadow': 'none' }
+				: getSlideBackgroundStyle(slide)),
 		};
 		return style;
 	});
