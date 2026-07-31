@@ -72,6 +72,36 @@ const mediaSrc = computed(() => {
 const mediaKind = computed(() =>
 	props.element.type === 'media' ? props.element.mediaType : undefined,
 );
+
+/**
+ * The frame PowerPoint paints before the video decodes one of its own: the
+ * `p:pic`'s `blipFill` (parsed into `posterFrameData`), falling back to the
+ * element's own image data.
+ *
+ * Without it a full-bleed background video is a hole in the slide until the
+ * browser decodes a frame, and with `preload="metadata"` it never does: the
+ * whole slide renders as a flat empty stage. React has always passed one.
+ */
+const posterSrc = computed(() =>
+	props.element.type === 'media'
+		? (props.element.posterFrameData ?? imageSrc.value)
+		: imageSrc.value,
+);
+
+/** `<a:videoFile>` loop / autoplay flags parsed off the slide. */
+const shouldLoop = computed(() => props.element.type === 'media' && props.element.loop === true);
+const shouldAutoPlay = computed(
+	() => props.element.type === 'media' && props.element.autoPlay === true,
+);
+
+/**
+ * Native transport is an authoring affordance, not part of a slide show:
+ * PowerPoint's show plays media without a browser control bar painted across
+ * the slide. This mirrors React's `controls={!isPresentationMode}`; the flag
+ * was inverted here, so the editor hid the controls and the SHOW displayed
+ * them over the deck.
+ */
+const showControls = computed(() => !props.presenting);
 </script>
 
 <template>
@@ -85,7 +115,11 @@ const mediaKind = computed(() =>
 			v-if="mediaSrc && mediaKind === 'video'"
 			ref="mediaEl"
 			:src="mediaSrc"
-			:controls="!interactive"
+			:controls="showControls"
+			:poster="posterSrc"
+			:loop="shouldLoop"
+			:autoplay="shouldAutoPlay"
+			:muted="shouldAutoPlay && !presenting"
 			preload="metadata"
 			playsinline
 			:style="{
@@ -100,7 +134,9 @@ const mediaKind = computed(() =>
 			v-else-if="mediaSrc && mediaKind === 'audio'"
 			ref="mediaEl"
 			:src="mediaSrc"
-			controls
+			:controls="showControls"
+			:loop="shouldLoop"
+			:autoplay="shouldAutoPlay"
 			:style="{ width: '100%', pointerEvents: interactive ? 'none' : 'auto' }"
 		/>
 		<img
