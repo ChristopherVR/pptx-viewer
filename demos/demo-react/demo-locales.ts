@@ -9,6 +9,7 @@ export const demoStringsEn = {
 	'demo.dropzone.hint': 'Drop a .pptx file here or click to browse',
 	'demo.dropzone.hintCollab': 'Drop a .pptx file here or click to browse to start collaborating',
 	'demo.dropzone.processed': 'The file is processed entirely in the browser',
+	'demo.dropzone.browse': 'Browse files',
 	'demo.dropzone.newPresentation': 'or create a New Presentation',
 	'demo.dropzone.creating': 'Creating...',
 	'demo.dropzone.joiningBroadcast': 'Joining broadcast:',
@@ -22,6 +23,7 @@ export const demoStringsFr = {
 	'demo.dropzone.hintCollab':
 		'Deposez un fichier .pptx ici ou cliquez pour demarrer la collaboration',
 	'demo.dropzone.processed': 'Le fichier est traite entierement dans le navigateur',
+	'demo.dropzone.browse': 'Parcourir les fichiers',
 	'demo.dropzone.newPresentation': 'ou creer une nouvelle presentation',
 	'demo.dropzone.creating': 'Creation...',
 	'demo.dropzone.joiningBroadcast': 'Rejoindre la diffusion :',
@@ -34,6 +36,7 @@ export const demoStringsEs = {
 	'demo.dropzone.hint': 'Suelte un archivo .pptx aqui o haga clic para explorar',
 	'demo.dropzone.hintCollab': 'Suelte un archivo .pptx aqui o haga clic para comenzar a colaborar',
 	'demo.dropzone.processed': 'El archivo se procesa completamente en el navegador',
+	'demo.dropzone.browse': 'Explorar archivos',
 	'demo.dropzone.newPresentation': 'o crear una nueva presentacion',
 	'demo.dropzone.creating': 'Creando...',
 	'demo.dropzone.joiningBroadcast': 'Uniendose a la transmision:',
@@ -47,6 +50,7 @@ export const demoStringsDe = {
 	'demo.dropzone.hintCollab':
 		'PPTX-Datei hier ablegen oder klicken, um die Zusammenarbeit zu starten',
 	'demo.dropzone.processed': 'Die Datei wird vollstandig im Browser verarbeitet',
+	'demo.dropzone.browse': 'Dateien durchsuchen',
 	'demo.dropzone.newPresentation': 'oder eine neue Prasentation erstellen',
 	'demo.dropzone.creating': 'Wird erstellt...',
 	'demo.dropzone.joiningBroadcast': 'Ubertragung beitreten:',

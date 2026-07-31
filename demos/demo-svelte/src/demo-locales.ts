@@ -11,6 +11,7 @@
 export const demoStringsEn = {
 	'demo.dropzone.hint': 'Drop a .pptx file here or click to browse',
 	'demo.dropzone.processed': 'The file is processed entirely in the browser',
+	'demo.dropzone.browse': 'Browse files',
 	'demo.dropzone.newPresentation': 'or create a New Presentation',
 	'demo.dropzone.creating': 'Creating...',
 	'demo.dropzone.uploadAriaLabel': 'Upload PPTX file',
@@ -28,6 +29,7 @@ export const demoStringsEn = {
 export const demoStringsFr = {
 	'demo.dropzone.hint': 'Deposez un fichier .pptx ici ou cliquez pour parcourir',
 	'demo.dropzone.processed': 'Le fichier est traite entierement dans le navigateur',
+	'demo.dropzone.browse': 'Parcourir les fichiers',
 	'demo.dropzone.newPresentation': 'ou creer une nouvelle presentation',
 	'demo.dropzone.creating': 'Creation en cours...',
 	'demo.dropzone.uploadAriaLabel': 'Telecharger un fichier PPTX',
@@ -45,6 +47,7 @@ export const demoStringsFr = {
 export const demoStringsEs = {
 	'demo.dropzone.hint': 'Suelte un archivo .pptx aqui o haga clic para explorar',
 	'demo.dropzone.processed': 'El archivo se procesa completamente en el navegador',
+	'demo.dropzone.browse': 'Explorar archivos',
 	'demo.dropzone.newPresentation': 'o crear una nueva presentacion',
 	'demo.dropzone.creating': 'Creando...',
 	'demo.dropzone.uploadAriaLabel': 'Subir archivo PPTX',
@@ -62,6 +65,7 @@ export const demoStringsEs = {
 export const demoStringsDe = {
 	'demo.dropzone.hint': 'PPTX-Datei hier ablegen oder zum Durchsuchen klicken',
 	'demo.dropzone.processed': 'Die Datei wird vollstandig im Browser verarbeitet',
+	'demo.dropzone.browse': 'Dateien durchsuchen',
 	'demo.dropzone.newPresentation': 'oder eine neue Prasentation erstellen',
 	'demo.dropzone.creating': 'Wird erstellt...',
 	'demo.dropzone.uploadAriaLabel': 'PPTX-Datei hochladen',

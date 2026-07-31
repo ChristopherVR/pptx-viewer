@@ -77,8 +77,16 @@ body {
 	border: 0;
 }
 
-.demo-dropzone button {
+.demo-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
 	margin-top: 0.5rem;
+}
+
+.demo-dropzone button {
 	padding: 0.5rem 1rem;
 	border-radius: 0.5rem;
 	border: 1px solid var(--pptx-border, #374151);
@@ -91,6 +99,19 @@ body {
 
 .demo-dropzone button:hover {
 	background: var(--pptx-accent, #1f2937);
+}
+
+/* The primary call to action: the explicit "browse" control the copy promises. */
+.demo-dropzone button.demo-browse {
+	border-color: var(--pptx-primary, #6366f1);
+	background: var(--pptx-primary, #6366f1);
+	color: var(--pptx-primary-foreground, #ffffff);
+	font-weight: 500;
+}
+
+.demo-dropzone button.demo-browse:hover {
+	background: var(--pptx-primary, #6366f1);
+	opacity: 0.9;
 }
 
 .demo-error {

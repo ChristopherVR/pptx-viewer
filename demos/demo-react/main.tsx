@@ -1,5 +1,5 @@
 import { PptxHandler } from 'pptx-viewer-core';
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
@@ -793,6 +793,30 @@ function App() {
 		[handleFile],
 	);
 
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	/** Open the native picker from the explicit Browse control. */
+	const openFilePicker = useCallback(() => {
+		fileInputRef.current?.click();
+	}, []);
+
+	/**
+	 * The dashed zone paints `cursor: pointer` over its whole area and the copy
+	 * says "click to browse", so the whole area has to open the picker, not just
+	 * the one text line that happens to be a <label>. Clicks that originate on a
+	 * button, on the label, or on the input itself are already handled by those
+	 * elements; re-opening from here would double-fire or loop.
+	 */
+	const handleZoneClick = useCallback(
+		(e: React.MouseEvent<HTMLElement>) => {
+			if ((e.target as HTMLElement).closest('button, label[for="file-input"], #file-input')) {
+				return;
+			}
+			openFilePicker();
+		},
+		[openFilePicker],
+	);
+
 	if (content) {
 		return (
 			<main className='h-[100dvh] w-screen'>
@@ -853,7 +877,9 @@ function App() {
 			<div
 				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
 				role='group'
+				data-testid='dropzone'
 				aria-label={t('demo.dropzone.uploadAriaLabel')}
+				onClick={handleZoneClick}
 				onDrop={handleDrop}
 				onDragOver={handleDragOver}
 			>
@@ -885,21 +911,36 @@ function App() {
 					</label>
 				)}
 				<p className='text-sm text-muted-foreground'>{t('demo.dropzone.processed')}</p>
-				<button
-					onClick={(e) => {
-						e.stopPropagation();
-						void handleNewPresentation();
-					}}
-					className='mt-4 px-4 py-2 rounded-lg border border-border bg-muted hover:bg-accent text-foreground text-sm transition-colors'
-				>
-					{t('demo.dropzone.newPresentation')}
-				</button>
+				<div className='mt-4 flex flex-wrap items-center justify-center gap-2'>
+					<button
+						type='button'
+						data-testid='browse-files'
+						onClick={(e) => {
+							e.stopPropagation();
+							openFilePicker();
+						}}
+						className='px-4 py-2 rounded-lg border border-primary bg-primary text-primary-foreground hover:opacity-90 text-sm font-medium transition-opacity'
+					>
+						{t('demo.dropzone.browse')}
+					</button>
+					<button
+						type='button'
+						onClick={(e) => {
+							e.stopPropagation();
+							void handleNewPresentation();
+						}}
+						className='px-4 py-2 rounded-lg border border-border bg-muted hover:bg-accent text-foreground text-sm transition-colors'
+					>
+						{t('demo.dropzone.newPresentation')}
+					</button>
+				</div>
 				<input
 					type='file'
 					id='file-input'
 					accept='.pptx'
 					aria-label={t('demo.dropzone.uploadAriaLabel')}
 					className='sr-only'
+					ref={fileInputRef}
 					onChange={handleInputChange}
 				/>
 			</div>

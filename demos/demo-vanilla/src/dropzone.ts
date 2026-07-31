@@ -21,6 +21,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	const zone = document.createElement('div');
 	zone.className = 'demo-dropzone';
 	zone.setAttribute('role', 'group');
+	zone.dataset.testid = 'dropzone';
 	zone.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
 
 	const hint = document.createElement('label');
@@ -31,6 +32,15 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	const sub = document.createElement('p');
 	sub.className = 'demo-sub';
 	sub.textContent = t('demo.dropzone.processed');
+
+	const actions = document.createElement('div');
+	actions.className = 'demo-actions';
+
+	const browseButton = document.createElement('button');
+	browseButton.type = 'button';
+	browseButton.className = 'demo-browse';
+	browseButton.dataset.testid = 'browse-files';
+	browseButton.textContent = t('demo.dropzone.browse');
 
 	const sampleButton = document.createElement('button');
 	sampleButton.type = 'button';
@@ -43,11 +53,30 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	input.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
 	input.className = 'sr-only';
 
-	zone.append(hint, sub, sampleButton, input);
+	actions.append(browseButton, sampleButton);
+	zone.append(hint, sub, actions, input);
 	stage.append(heading, zone);
 
 	zone.addEventListener('dragover', (e) => {
 		e.preventDefault();
+	});
+	/**
+	 * The dashed zone paints `cursor: pointer` over its whole area and the copy
+	 * says "click to browse", so the whole area has to open the picker, not just
+	 * the one text line that happens to be a <label>. Clicks that originate on a
+	 * button, on the label, or on the input itself are already handled by those
+	 * elements; re-opening from here would double-fire or loop.
+	 */
+	zone.addEventListener('click', (e) => {
+		const target = e.target as HTMLElement | null;
+		if (target?.closest('button, label[for="file-input"], #file-input')) {
+			return;
+		}
+		input.click();
+	});
+	browseButton.addEventListener('click', (e) => {
+		e.stopPropagation();
+		input.click();
 	});
 	zone.addEventListener('drop', (e) => {
 		e.preventDefault();

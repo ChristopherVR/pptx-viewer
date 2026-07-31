@@ -418,6 +418,27 @@ function onInputChange(e: Event): void {
 		loadFile(file);
 	}
 }
+
+const fileInput = ref<HTMLInputElement | null>(null);
+
+/** Open the native picker from the explicit Browse control. */
+function openFilePicker(): void {
+	fileInput.value?.click();
+}
+
+/**
+ * The dashed zone paints `cursor: pointer` over its whole area and the copy
+ * says "click to browse", so the whole area has to open the picker, not just
+ * the one text line that happens to be a <label>. Clicks that originate on a
+ * button, on the label, or on the input itself are already handled by those
+ * elements; re-opening from here would double-fire or loop.
+ */
+function onZoneClick(e: MouseEvent): void {
+	if ((e.target as HTMLElement).closest('button, label[for="file-input"], #file-input')) {
+		return;
+	}
+	openFilePicker();
+}
 </script>
 
 <template>
@@ -443,7 +464,9 @@ function onInputChange(e: Event): void {
 		<div
 			class="demo-dropzone"
 			role="group"
+			data-testid="dropzone"
 			:aria-label="t('demo.dropzone.uploadAriaLabel')"
+			@click="onZoneClick"
 			@drop="onDrop"
 			@dragover.prevent
 		>
@@ -463,11 +486,22 @@ function onInputChange(e: Event): void {
 				<label class="demo-hint" for="file-input">{{ t('demo.dropzone.hint') }}</label>
 			</template>
 			<p class="demo-sub">{{ t('demo.dropzone.processed') }}</p>
-			<button type="button" @click.stop="newPresentation">
-				{{ t('demo.dropzone.newPresentation') }}
-			</button>
+			<div class="demo-actions">
+				<button
+					type="button"
+					class="demo-browse"
+					data-testid="browse-files"
+					@click.stop="openFilePicker"
+				>
+					{{ t('demo.dropzone.browse') }}
+				</button>
+				<button type="button" @click.stop="newPresentation">
+					{{ t('demo.dropzone.newPresentation') }}
+				</button>
+			</div>
 			<input
 				id="file-input"
+				ref="fileInput"
 				type="file"
 				accept=".pptx"
 				:aria-label="t('demo.dropzone.uploadAriaLabel')"
@@ -569,8 +603,16 @@ body {
 	font-family: ui-monospace, monospace;
 }
 
-.demo-dropzone button {
+.demo-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
 	margin-top: 0.5rem;
+}
+
+.demo-dropzone button {
 	padding: 0.5rem 1rem;
 	border-radius: 0.5rem;
 	border: 1px solid var(--pptx-border, #374151);
@@ -583,5 +625,18 @@ body {
 
 .demo-dropzone button:hover {
 	background: var(--pptx-accent, #1f2937);
+}
+
+/* The primary call to action: the explicit "browse" control the copy promises. */
+.demo-dropzone button.demo-browse {
+	border-color: var(--pptx-primary, #6366f1);
+	background: var(--pptx-primary, #6366f1);
+	color: var(--pptx-primary-foreground, #ffffff);
+	font-weight: 500;
+}
+
+.demo-dropzone button.demo-browse:hover {
+	background: var(--pptx-primary, #6366f1);
+	opacity: 0.9;
 }
 </style>

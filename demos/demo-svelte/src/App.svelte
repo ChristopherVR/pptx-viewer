@@ -192,6 +192,28 @@
 		}
 	}
 
+	// eslint-disable-next-line prefer-const -- `fileInput` is reassigned by Svelte bind:this.
+	let fileInput: HTMLInputElement | null = $state(null);
+
+	/** Open the native picker from the explicit Browse control. */
+	function openFilePicker(): void {
+		fileInput?.click();
+	}
+
+	/**
+	 * The dashed zone paints `cursor: pointer` over its whole area and the copy
+	 * says "click to browse", so the whole area has to open the picker, not just
+	 * the one text line that happens to be a <label>. Clicks that originate on a
+	 * button, on the label, or on the input itself are already handled by those
+	 * elements; re-opening from here would double-fire or loop.
+	 */
+	function onZoneClick(e: MouseEvent): void {
+		if ((e.target as HTMLElement).closest('button, label[for="file-input"], #file-input')) {
+			return;
+		}
+		openFilePicker();
+	}
+
 	function onViewerError(message: string): void {
 		errorMessage = message || t('demo.viewer.loadError');
 		bytes = null;
@@ -225,15 +247,27 @@
 		<div
 			class="demo-dropzone"
 			role="group"
+			data-testid="dropzone"
 			aria-label={t('demo.dropzone.uploadAriaLabel')}
+			onclick={onZoneClick}
 			ondrop={onDrop}
 			ondragover={(e) => e.preventDefault()}
 		>
 			<label class="demo-hint" for="file-input">{t('demo.dropzone.hint')}</label>
 			<p class="demo-sub">{t('demo.dropzone.processed')}</p>
-			<button type="button" onclick={(e) => (e.stopPropagation(), newPresentation())} disabled={creating}>
-				{creating ? t('demo.dropzone.creating') : t('demo.dropzone.newPresentation')}
-			</button>
+			<div class="demo-actions">
+				<button
+					type="button"
+					class="demo-browse"
+					data-testid="browse-files"
+					onclick={(e) => (e.stopPropagation(), openFilePicker())}
+				>
+					{t('demo.dropzone.browse')}
+				</button>
+				<button type="button" onclick={(e) => (e.stopPropagation(), newPresentation())} disabled={creating}>
+					{creating ? t('demo.dropzone.creating') : t('demo.dropzone.newPresentation')}
+				</button>
+			</div>
 			{#if errorMessage}
 				<p class="demo-error">{errorMessage}</p>
 			{/if}
@@ -241,6 +275,7 @@
 			     zone's onclick and re-open the file chooser in a loop -->
 			<input
 				id="file-input"
+				bind:this={fileInput}
 				type="file"
 				accept=".pptx"
 				aria-label={t('demo.dropzone.uploadAriaLabel')}
