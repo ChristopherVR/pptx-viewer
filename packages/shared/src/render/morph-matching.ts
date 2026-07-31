@@ -9,9 +9,9 @@
  * @module render/morph-matching
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
 
 import { flattenMorphElements } from './morph-flatten';
+import { getElementMorphName } from './morph-name';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 
@@ -26,38 +26,9 @@ const SAME_BOX_TOLERANCE_PX = 0.5;
 // Element name extraction
 // ---------------------------------------------------------------------------
 
-/**
- * Extract the morph-matching name from an element.
- *
- * Priority:
- * 1. Element name property from `cNvPr/@name` starting with "!!"
- * 2. Text content starting with "!!" (explicit morph name convention)
- *
- * PowerPoint matches elements across slides when their Selection Pane name
- * (i.e. `cNvPr/@name`) starts with `!!`. Elements with identical `!!`-prefixed
- * names are paired for morph animation regardless of type or position.
- *
- * @param element - The element to extract a morph name from.
- * @returns The morph name string, or undefined if none found.
- */
-export function getElementMorphName(element: PptxElement): string | undefined {
-	// Check !! naming convention on element name (cNvPr/@name) — primary source
-	if (element.name) {
-		const name = element.name.trim();
-		if (name.startsWith('!!')) {
-			return name;
-		}
-	}
-	// Check !! naming convention in text content — fallback
-	if (hasTextProperties(element) && element.text) {
-		const text = element.text.trim();
-		if (text.startsWith('!!')) {
-			return text;
-		}
-	}
-	return undefined;
-}
-
+// The `!!` name lives in its own module so `morph-flatten` can read it without
+// importing this one back (a cycle that breaks once the graph is bundled).
+export { getElementMorphName } from './morph-name';
 // ---------------------------------------------------------------------------
 // Creation identity (`a16:creationId`)
 // ---------------------------------------------------------------------------

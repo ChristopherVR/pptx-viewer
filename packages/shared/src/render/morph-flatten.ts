@@ -28,7 +28,7 @@
 
 import type { GroupPptxElement, PptxElement } from 'pptx-viewer-core';
 
-import { getElementMorphName } from './morph-matching';
+import { getElementMorphName } from './morph-name';
 
 /** Children of `element` when it is a group, else `undefined`. */
 function groupChildren(element: PptxElement): PptxElement[] | undefined {
