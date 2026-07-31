@@ -14,6 +14,7 @@ import ImagePanel from './ImagePanel.vue';
 import MediaPropertiesPanel from './MediaPropertiesPanel.vue';
 import SmartArtPropertiesPanel from './SmartArtPropertiesPanel.vue';
 import StrokePanel from './StrokePanel.vue';
+import TableDataGrid from './TableDataGrid.vue';
 import TablePanel from './TablePanel.vue';
 import TextPanel from './TextPanel.vue';
 
@@ -106,6 +107,7 @@ function relay(patch: Partial<PptxElement>): void {
 			>
 				{{ t('pptx.inspector.table') }}
 			</h3>
+			<TableDataGrid :element="element" :can-edit="props.canEdit" @update="relay" />
 			<TablePanel :element="element" @update="relay" />
 		</div>
 

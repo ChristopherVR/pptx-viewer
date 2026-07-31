@@ -1,3 +1,4 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	applyAcceptAllSlides,
 	applyAcceptSlide,
@@ -24,6 +25,8 @@ import { openCustomShowsDialog } from './ui/custom-shows-dialog';
 import { openHeaderFooterDialog } from './ui/header-footer-dialog';
 import { openHyperlinkEditDialog } from './ui/hyperlink-edit-dialog';
 import { openPrintSettingsDialog } from './ui/print-settings-dialog';
+import type { ReadingViewHandle } from './ui/reading-view';
+import { openReadingViewOverlay } from './ui/reading-view';
 import { openRehearseTimings } from './ui/rehearse-timings';
 import { openSelectionPane } from './ui/selection-pane';
 import { openSettingsDialog } from './ui/settings-dialog';
@@ -45,6 +48,8 @@ export interface ParityWorkflowHost {
 	setAutosaveEnabled(enabled: boolean): void;
 	print(options: PrintOptions): Promise<boolean>;
 	goToSlide(index: number): void;
+	/** Static single-slide render (`RenderController.renderSlideNode`) for Reading View. */
+	renderSlideNode(slide: PptxSlide, scale: number): HTMLElement;
 	enterPresentation(): Promise<void>;
 	/** Apply a viewer chrome theme (same mechanism as `PptxViewer.setTheme`); persists via the viewer's own precedence. */
 	setTheme(theme: ViewerTheme | undefined): void;
@@ -65,6 +70,9 @@ export interface ParityWorkflows {
 	startRehearsal(): void;
 	openSelectionPane(): void;
 	openSlideSorter(): void;
+	openReadingView(): void;
+	/** Tear the Reading View down (viewer teardown; it owns a document listener). */
+	closeReadingView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	openCustomShows(): void;
@@ -72,6 +80,9 @@ export interface ParityWorkflows {
 
 export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows {
 	const state = (): ViewerState => host.store.get();
+	// Held so the viewer can tear the overlay (and its document key listener)
+	// down on destroy, and so a second open never leaves an orphan behind.
+	let readingView: ReadingViewHandle | null = null;
 	return {
 		openSettings(tab = 'general') {
 			const themeState = host.getThemeState();
@@ -133,6 +144,25 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 		},
 		openSlideSorter() {
 			openSorter(host);
+		},
+		openReadingView() {
+			const current = state();
+			readingView?.close();
+			readingView = openReadingViewOverlay(host.doc, host.root(), host.t, {
+				slides: current.slides,
+				canvasSize: current.canvasSize,
+				initialSlideIndex: current.currentSlide,
+				renderStage: (slide, scale) => host.renderSlideNode(slide, scale),
+				// Reading View hands the reader back on the slide they stopped at.
+				onExit: (slideIndex) => {
+					readingView = null;
+					host.goToSlide(slideIndex);
+				},
+			});
+		},
+		closeReadingView() {
+			readingView?.close();
+			readingView = null;
 		},
 		openComments() {
 			const current = state();

@@ -20,6 +20,7 @@ export { MasterViewSidebar } from './MasterViewSidebar';
 export { NotesMasterCanvas } from './NotesMasterCanvas';
 export { HandoutMasterCanvas } from './HandoutMasterCanvas';
 export { SlideSorterOverlay } from './SlideSorterOverlay';
+export { ReadingViewOverlay } from './ReadingViewOverlay';
 export { SlideNotesPanel } from './SlideNotesPanel';
 export { VersionHistoryPanel } from './VersionHistoryPanel';
 export { ComparePanel } from './ComparePanel';

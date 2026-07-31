@@ -11,13 +11,12 @@
 	 * edit mode (an `editor.equationOps.editingId` is set) seeds the textarea
 	 * from the existing OMML and applies the replacement in place.
 	 */
-	import { convertOmmlToLatex } from 'pptx-viewer-shared';
+	import { compileLatexEquation, convertOmmlToLatex } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { buildEquationInsertElement } from '../../../editor';
-	import { compileLatexEquation } from './equation-latex-preview';
 	import EquationTemplateGallery from './EquationTemplateGallery.svelte';
 
 	const {

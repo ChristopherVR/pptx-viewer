@@ -56,19 +56,18 @@ describe('view section', () => {
 	});
 
 	/**
-	 * Reading View stays inert because no binding has a reading-view mode; that
-	 * one is copied from the reference deliberately. Snap to shape is NOT in
-	 * that category any more: it used to be a permanently disabled placeholder
-	 * next to a Guides checkbox that secretly drove shape snapping, so the tab
-	 * carried a label naming a feature that lived on a different control.
+	 * The regression this guards: Reading View shipped permanently `disabled` in
+	 * every binding, so a reader who found it in the ribbon got nothing at all.
+	 * Snap to shape used to be in the same category and is not any more.
 	 */
-	it('renders Reading View inert, as the reference does', () => {
-		const wrapper = mountViewSection();
-		const inert = wrapper
-			.findAll('button')
-			.filter((b) => b.attributes('disabled') !== undefined)
-			.map((b) => b.text());
-		expect(inert).toContain('pptx.view.readingView');
+	it('offers Reading View as a live control that opens the view', async () => {
+		const onOpenReadingView = vi.fn();
+		const wrapper = mountViewSection({ onOpenReadingView });
+		const reading = wrapper.findAll('button').find((b) => b.text() === 'pptx.view.readingView');
+
+		expect(reading?.attributes('disabled')).toBeUndefined();
+		await reading?.trigger('click');
+		expect(onOpenReadingView).toHaveBeenCalledOnce();
 	});
 
 	it('offers Snap to shape as a live toggle bound to the snapping flag', async () => {

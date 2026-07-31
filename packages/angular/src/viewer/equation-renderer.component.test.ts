@@ -21,7 +21,7 @@ import type { SafeHtml } from '@angular/platform-browser';
 import { describe, expect, it } from 'vitest';
 
 import type { OmmlNode } from '../internal/shared';
-import { ommlToMathml } from '../internal/shared';
+import { ommlToMathml, sanitizeMathMl } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Stub DomSanitizer
@@ -53,9 +53,11 @@ function makeComponent(
 	equationNumber: () => string | undefined;
 } {
 	// We cannot use Angular signals outside a reactive context in plain Vitest,
-	// so we exercise the underlying pure function directly and verify the
-	// sanitizer wiring manually.
-	const mathml = ommlToMathml(equationXml as OmmlNode);
+	// so we exercise the underlying pure functions directly and verify the
+	// sanitizer wiring manually. The `sanitizeMathMl` step mirrors the component:
+	// `bypassSecurityTrustHtml` turns Angular's own sanitiser off, so the markup
+	// must already be DOMPurify-clean by the time it gets there.
+	const mathml = sanitizeMathMl(ommlToMathml(equationXml as OmmlNode));
 	const safe = stubSanitizer.bypassSecurityTrustHtml(mathml);
 
 	return {
@@ -138,6 +140,20 @@ describe('equationRendererComponent (stub wiring)', () => {
 			},
 		});
 		expect(String(comp.safeMathml())).toContain('<mfrac>');
+	});
+
+	it('routes the markup through sanitizeMathMl before bypassing Angular', () => {
+		// The component hands its output to `bypassSecurityTrustHtml`, which
+		// disables Angular's own sanitiser, so the shared DOMPurify pass is the
+		// only thing left between deck-authored OMML and the DOM. This asserts
+		// the pass is wired, not that it strips a particular payload: DOMPurify
+		// under happy-dom (this suite's environment) does NOT strip everything a
+		// real browser does, so the stripping itself is asserted in shared's
+		// jsdom-backed `mathml-sanitize` / `equation-compile` tests.
+		const comp = makeComponent({ 'm:oMath': { 'm:r': { 'm:t': 'x' } } });
+		expect(String(comp.safeMathml())).toBe(
+			sanitizeMathMl(ommlToMathml({ 'm:oMath': { 'm:r': { 'm:t': 'x' } } } as OmmlNode)),
+		);
 	});
 
 	it('equationNumber is undefined when not supplied', () => {

@@ -169,5 +169,6 @@ export function buildInspectorState(
 		tableColumnWidths: el?.type === 'table' ? (el.tableData?.columnWidths ?? []) : [],
 		tableRowHeights:
 			el?.type === 'table' ? (el.tableData?.rows.map((row) => row.height ?? 32) ?? []) : [],
+		tableElement: el?.type === 'table' ? el : undefined,
 	};
 }

@@ -328,6 +328,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
 			print: (printOptions) => this.print(printOptions),
 			goToSlide: (index) => this.goToSlide(index),
+			renderSlideNode: (slide, scale) => this.renderer.renderSlideNode(slide, scale),
 			enterPresentation: () => this.enterPresentation(),
 			setTheme: (theme) => this.setTheme(theme),
 			setLocale: (locale) => this.setLocale(locale),
@@ -710,6 +711,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 
 	openSlideSorter(): void {
 		this.parityWorkflows.openSlideSorter();
+	}
+
+	/**
+	 * PowerPoint's Reading View: the deck at full window size with the chrome
+	 * reduced to a nav bar. Not a slide show, so no Fullscreen API is involved.
+	 */
+	openReadingView(): void {
+		this.parityWorkflows.openReadingView();
 	}
 
 	openComments(): void {
@@ -1104,6 +1113,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.contextMenu = null;
 		this.rulers?.destroy();
 		this.rulers = null;
+		this.parityWorkflows.closeReadingView();
 		this.closeAudienceWindow();
 		this.presenterChannel?.close();
 		this.sessions.destroy();

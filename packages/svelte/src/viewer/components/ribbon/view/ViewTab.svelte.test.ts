@@ -68,26 +68,31 @@ describe('viewTab', () => {
 	it('offers React’s presentation-view, master-view, zoom and window commands', () => {
 		const found = buttons(mountTab());
 
-		for (const name of ['Normal', 'Slide Sorter', 'Slide Master', 'Zoom to Fit']) {
+		for (const name of ['Normal', 'Slide Sorter', 'Reading View', 'Slide Master', 'Zoom to Fit']) {
 			expect(found.get(name), `${name} is missing from the View tab`).toBeDefined();
 			expect(found.get(name)?.disabled, `${name} should be usable`).toBeFalsy();
 		}
-		for (const name of ['Reading View', 'Handout Master', 'Notes Master', 'Zoom', 'Macros']) {
+		for (const name of ['Handout Master', 'Notes Master', 'Zoom', 'Macros']) {
 			expect(found.get(name), `${name} is missing from the View tab`).toBeDefined();
 			expect(found.get(name)?.disabled, `${name} is a disabled placeholder in React`).toBeTruthy();
 		}
 	});
 
-	it('routes Normal and Slide Sorter to their view switches', () => {
+	it('routes Normal, Slide Sorter and Reading View to their view switches', () => {
+		// Reading View shipped as a permanently disabled placeholder in all five
+		// bindings; this asserts the control is really wired, not just enabled.
 		const onnormal = vi.fn();
 		const onslidesorter = vi.fn();
-		const target = mountTab({ onnormal, onslidesorter });
+		const onreadingview = vi.fn();
+		const target = mountTab({ onnormal, onslidesorter, onreadingview });
 
 		buttons(target).get('Normal')?.click();
 		buttons(target).get('Slide Sorter')?.click();
+		buttons(target).get('Reading View')?.click();
 
 		expect(onnormal).toHaveBeenCalledOnce();
 		expect(onslidesorter).toHaveBeenCalledOnce();
+		expect(onreadingview).toHaveBeenCalledOnce();
 	});
 
 	it('drives guide visibility from Guides and snapping from Snap to Shape', () => {

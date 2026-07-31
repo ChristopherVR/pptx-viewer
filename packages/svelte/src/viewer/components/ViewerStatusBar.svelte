@@ -53,6 +53,7 @@
 			vm.onFullscreenToggle();
 		}
 		parityUi.slideSorterOpen = false;
+		parityUi.readingViewOpen = false;
 	}}
 	onslidesorter={() => (parityUi.slideSorterOpen = true)}
 	collaborationSlot={collab.active ? collabStatus : undefined}

@@ -12,7 +12,7 @@
  * @module viewer/utils/media-element-registry
  */
 
-import { parseMediaCommand } from 'pptx-viewer-shared';
+import { findMediaElementByElementId, runMediaCommand } from 'pptx-viewer-shared';
 import type { TimelineStepCommand } from 'pptx-viewer-shared';
 
 const registry = new Map<string, HTMLMediaElement>();
@@ -47,64 +47,25 @@ export function clearMediaElementRegistry(): void {
 }
 
 /**
- * Execute a timeline media command against the registered media element for its
- * target. Returns `true` when a media element was found and the verb applied,
- * `false` when the target is not registered or the command has no browser
- * mapping (in which case the caller should treat it as a no-op).
+ * Execute a timeline media command against the media element for its target.
+ * Returns `true` when a media element was found and the verb applied, `false`
+ * when the target cannot be resolved or the command has no browser mapping (in
+ * which case the caller should treat it as a no-op).
  *
- * Verb mapping:
- * - `playFrom` -> seek to the parsed offset (seconds), then play.
- * - `play` -> resume playback.
- * - `pause` -> pause playback.
- * - `stop` -> pause and rewind to the start.
- * - `togglePlay` -> pause if playing, else play.
+ * The verb mapping (`playFrom` / `play` / `pause` / `stop` / `togglePlay`) is
+ * shared with the other bindings via `runMediaCommand`; only the lookup is
+ * React's own. The registry is tried first because it is exact, then the shared
+ * `data-element-id` DOM scan the other four bindings use, which covers media
+ * rendered outside `PresentationMediaController` (the only component that
+ * registers). Without that fallback a `p:cmd` aimed at such a node silently did
+ * nothing here while it worked everywhere else.
  */
-export function executeMediaCommand(command: TimelineStepCommand): boolean {
-	const el = registry.get(command.targetId);
-	if (!el) {
-		return false;
-	}
-	const parsed = parseMediaCommand(command.command);
-	if (!parsed) {
-		return false;
-	}
-
-	const safePlay = (): void => {
-		void el.play().catch(() => {
-			/* autoplay blocked or not ready: ignore */
-		});
-	};
-	const safeSeek = (seconds: number): void => {
-		try {
-			el.currentTime = seconds;
-		} catch {
-			/* not seekable yet: ignore */
-		}
-	};
-
-	switch (parsed.verb) {
-		case 'playFrom':
-			safeSeek(parsed.seekSeconds ?? 0);
-			safePlay();
-			return true;
-		case 'play':
-			safePlay();
-			return true;
-		case 'pause':
-			el.pause();
-			return true;
-		case 'stop':
-			el.pause();
-			safeSeek(0);
-			return true;
-		case 'togglePlay':
-			if (el.paused) {
-				safePlay();
-			} else {
-				el.pause();
-			}
-			return true;
-		default:
-			return false;
-	}
+export function executeMediaCommand(
+	command: TimelineStepCommand,
+	frameRoot?: () => HTMLElement | null,
+): boolean {
+	return runMediaCommand(
+		command,
+		(targetId) => registry.get(targetId) ?? findMediaElementByElementId(targetId, frameRoot?.()),
+	);
 }

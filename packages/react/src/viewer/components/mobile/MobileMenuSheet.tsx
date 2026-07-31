@@ -314,6 +314,8 @@ function MobileSectionBody({
 						onToggleSelectionPane={p.onToggleSelectionPane}
 						eyedropperActive={p.eyedropperActive}
 						onToggleEyedropper={p.onToggleEyedropper}
+						onToggleSlideSorter={p.onToggleSlideSorter}
+						onOpenReadingView={p.onOpenReadingView}
 					/>
 				</div>
 			);

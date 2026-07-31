@@ -101,6 +101,7 @@ export interface ViewerToolbarSectionProps {
 		setActiveCustomShowId: React.Dispatch<React.SetStateAction<string | null>>;
 		setIsShortcutHelpOpen: React.Dispatch<React.SetStateAction<boolean>>;
 		setShowSlideSorter: React.Dispatch<React.SetStateAction<boolean>>;
+		setShowReadingView: React.Dispatch<React.SetStateAction<boolean>>;
 		presentationProperties: { showSubtitles?: boolean };
 		hasDigitalSignatures: boolean;
 		digitalSignatureCount: number;
@@ -549,6 +550,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onOpenSettings={onOpenSettings}
 				onRunAccessibilityCheck={dialogs.handleRunAccessibilityCheck}
 				onToggleSlideSorter={() => s.setShowSlideSorter((p) => !p)}
+				onOpenReadingView={() => s.setShowReadingView(true)}
 				onUpdateTextStyle={ops.updateSelectedTextStyle}
 				onTransformTextCase={ops.updateSelectedTextCase}
 				isOverflowMenuOpen={s.isOverflowMenuOpen}

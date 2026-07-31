@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import DOMPurify from 'dompurify';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
-import type { OmmlNode } from 'pptx-viewer-shared';
 import {
 	EQUATION_TEMPLATES,
-	convertLatexToOmml,
+	compileEquationTemplateMathMl,
+	compileLatexEquation,
 	convertOmmlToLatex,
-	convertOmmlToMathMl,
 } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -18,9 +16,10 @@ import ModalDialog from './ModalDialog.vue';
  * editing an OMML equation.
  *
  * Vue port of the React `EquationEditorDialog.tsx`. The user types LaTeX (or
- * picks a template); it is converted LaTeX → OMML (`convertLatexToOmml`) → MathML
- * (`convertOmmlToMathMl`, reused from `pptx-viewer-shared`, the same path
- * `EquationRenderer` uses) for the live preview. On confirm it emits both:
+ * picks a template); shared's `compileLatexEquation` turns it into OMML plus
+ * sanitised MathML (the same path `EquationRenderer` uses) for the live
+ * preview, which is why the `v-html` bindings below are safe. On confirm it
+ * emits both:
  *
  *  - `insert(element)`: a ready-to-add core {@link PptxElement} (a shape
  *    carrying the equation as a `textSegments[].equationXml` OMML tree, so
@@ -56,37 +55,8 @@ const { t } = useI18n();
  */
 const TEMPLATES = EQUATION_TEMPLATES;
 
-/**
- * Sanitise a MathML markup string. Falls back to the raw input when
- * `DOMPurify.sanitize` is unavailable (non-DOM test environments); the XSS
- * surface only matters in real browsers.
- */
-function sanitizeMathMl(markup: string): string {
-	const purify = DOMPurify as unknown as {
-		sanitize?: (dirty: string, cfg?: Record<string, unknown>) => string;
-	};
-	if (typeof purify.sanitize !== 'function') {
-		return markup;
-	}
-	return purify.sanitize(markup, { USE_PROFILES: { mathMl: true, svg: true } });
-}
-
-/** Convert a LaTeX string to sanitised MathML; '' on failure/empty. */
-function latexToMathMl(latex: string): string {
-	if (!latex.trim()) {
-		return '';
-	}
-	try {
-		const omml = convertLatexToOmml(latex);
-		const raw = convertOmmlToMathMl(omml as OmmlNode);
-		return raw ? sanitizeMathMl(raw) : '';
-	} catch {
-		return '';
-	}
-}
-
-/** Pre-computed MathML for each template tile. */
-const templateMathMl = computed(() => TEMPLATES.map((tmpl) => latexToMathMl(tmpl.latex)));
+/** Pre-computed MathML for each template tile (sanitised by shared). */
+const templateMathMl = computed(() => compileEquationTemplateMathMl());
 
 const latex = ref('');
 
@@ -115,19 +85,8 @@ watch(
 	{ immediate: true },
 );
 
-/** Live LaTeX → OMML → MathML for the preview + the segment payload. */
-const computedEquation = computed<{ mathml: string; omml: Record<string, unknown> }>(() => {
-	if (!latex.value.trim()) {
-		return { mathml: '', omml: {} };
-	}
-	try {
-		const omml = convertLatexToOmml(latex.value);
-		const mathml = convertOmmlToMathMl(omml as OmmlNode);
-		return { mathml: mathml ? sanitizeMathMl(mathml) : '', omml };
-	} catch {
-		return { mathml: '', omml: {} };
-	}
-});
+/** Live LaTeX -> OMML -> sanitised MathML for the preview + the segment payload. */
+const computedEquation = computed(() => compileLatexEquation(latex.value));
 
 /** True when there is renderable equation content to insert. */
 const hasContent = computed(

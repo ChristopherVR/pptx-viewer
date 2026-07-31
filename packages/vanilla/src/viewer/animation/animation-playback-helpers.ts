@@ -14,10 +14,9 @@
  * @module animation/animation-playback-helpers
  */
 
-import { PresentationAnimationController } from 'pptx-viewer-shared';
+import { executeMediaCommandInDom, PresentationAnimationController } from 'pptx-viewer-shared';
 import type { ElementAnimationState, TimelineClickGroup } from 'pptx-viewer-shared';
 
-import { executeMediaCommand } from './animation-media';
 import { playAnimationSound, stopAnimationSound } from './animation-sound';
 
 /** Updater over the element-state map (React `setState`-compatible). */
@@ -59,7 +58,7 @@ export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: Playbac
 			const command = step.command;
 			const timer = window.setTimeout(
 				() => {
-					executeMediaCommand(command, ctx.frameRoot);
+					executeMediaCommandInDom(command, ctx.frameRoot);
 				},
 				Math.max(0, step.delayMs),
 			);

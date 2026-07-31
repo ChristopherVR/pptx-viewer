@@ -32,6 +32,11 @@ export interface ViewTab {
  * in the status bar, which is always on screen, and duplicating them here made
  * this tab the only one in any binding with its own navigation row.
  *
+ * "Reading View" is a real command, not the disabled placeholder it shipped as
+ * in all five bindings: it opens the deck at full window size with the chrome
+ * reduced to a nav bar (see `ui/reading-view.ts`). It sits next to Normal and
+ * Slide Sorter because PowerPoint groups the three presentation views together.
+ *
  * "Guides" and "Snap to shape" are one control each, for the one thing each of
  * them names. They used to be crossed: Guides drove shape snapping and Snap to
  * shape was a permanently disabled placeholder, so the ribbon carried a label
@@ -60,6 +65,7 @@ export function createViewTab(
 	normal.btn.title = t('pptx.statusBar.normalView');
 	const sorter = command('pptx.slideSorter.title', handlers.openSlideSorter);
 	sorter.btn.title = t('pptx.view.slideSorterTooltip');
+	const reading = command('pptx.view.readingView', handlers.openReadingView);
 
 	const masterView = command('pptx.master.title', () => handlers.toggleMasterView?.());
 	masterView.btn.title = t('pptx.view.slideMasterTooltip');
@@ -94,7 +100,7 @@ export function createViewTab(
 	el.append(
 		normal.btn,
 		sorter.btn,
-		placeholder('pptx.view.readingView'),
+		reading.btn,
 		masterView.btn,
 		placeholder('pptx.master.handoutMasterTitle'),
 		placeholder('pptx.master.notesMasterTitle'),

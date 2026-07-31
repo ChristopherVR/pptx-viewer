@@ -28,6 +28,7 @@ import { CARD, HEADING, INPUT, POS_FIELDS } from './inspector-pane-constants';
 import { MediaPropertiesPanel } from './MediaPropertiesPanel';
 import { ShapeTextPanels } from './ShapeTextPanels';
 import { SmartArtPropertiesPanel } from './SmartArtPropertiesPanel';
+import { TableDataGrid } from './TableDataGrid';
 import { TablePropertiesPanel } from './TablePropertiesPanel';
 
 // ---------------------------------------------------------------------------
@@ -148,12 +149,19 @@ export function ElementInspectorBody({
 			</div>
 
 			{selectedElement.type === 'table' && (
-				<TablePropertiesPanel
-					tableElement={selectedElement as TablePptxElement}
-					canEdit={canEdit}
-					onUpdateElement={onUpdateElement}
-					tableEditorState={tableEditorState}
-				/>
+				<>
+					<TableDataGrid
+						tableElement={selectedElement as TablePptxElement}
+						canEdit={canEdit}
+						onUpdateElement={onUpdateElement}
+					/>
+					<TablePropertiesPanel
+						tableElement={selectedElement as TablePptxElement}
+						canEdit={canEdit}
+						onUpdateElement={onUpdateElement}
+						tableEditorState={tableEditorState}
+					/>
+				</>
 			)}
 
 			{selectedElement.type === 'chart' && (

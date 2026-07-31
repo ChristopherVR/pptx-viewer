@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import type { TimelineStepCommand } from '../utils/animation-timeline';
@@ -100,6 +101,36 @@ describe('executeMediaCommand', () => {
 		expect(executeMediaCommand(command({ command: 'stop' }))).toBeTruthy();
 		expect(mock.pause).toHaveBeenCalledOnce();
 		expect(mock.currentTime).toBe(0);
+	});
+
+	it('falls back to the shared data-element-id DOM lookup when nothing is registered', () => {
+		// Only `PresentationMediaController` registers, so a `p:cmd` aimed at media
+		// rendered anywhere else used to no-op in React while the other four
+		// bindings (which query the stage by `data-element-id`) drove it fine.
+		document.body.innerHTML =
+			'<div id="stage"><div data-element-id="video1"><video></video></div></div>';
+		const stage = document.querySelector<HTMLElement>('#stage');
+		const video = stage!.querySelector('video')!;
+		const play = vi.fn(() => Promise.resolve());
+		Object.defineProperty(video, 'play', { value: play });
+
+		expect(executeMediaCommand(command({ command: 'play' }), () => stage)).toBeTruthy();
+		expect(play).toHaveBeenCalledOnce();
+		document.body.innerHTML = '';
+	});
+
+	it('prefers the registered element over the DOM fallback', () => {
+		document.body.innerHTML = '<div data-element-id="video1"><video id="domCopy"></video></div>';
+		const domVideo = document.querySelector('video')!;
+		const domPlay = vi.fn(() => Promise.resolve());
+		Object.defineProperty(domVideo, 'play', { value: domPlay });
+		const registered = createMockMedia();
+		registerMediaElement('video1', asMediaElement(registered));
+
+		expect(executeMediaCommand(command({ command: 'play' }))).toBeTruthy();
+		expect(registered.play).toHaveBeenCalledOnce();
+		expect(domPlay).not.toHaveBeenCalled();
+		document.body.innerHTML = '';
 	});
 
 	it('togglePlay plays when paused and pauses when playing', () => {

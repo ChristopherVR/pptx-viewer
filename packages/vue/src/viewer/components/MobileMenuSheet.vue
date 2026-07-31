@@ -263,6 +263,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-toggle-selection-pane="props.onToggleSelectionPane"
 						:eyedropper-active="props.eyedropperActive"
 						:on-toggle-eyedropper="props.onToggleEyedropper"
+						:on-open-reading-view="props.onOpenReadingView"
 					/>
 				</div>
 

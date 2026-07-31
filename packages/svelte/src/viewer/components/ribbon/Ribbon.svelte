@@ -176,6 +176,7 @@
 				onentermasterview={props.onentermasterview}
 				onselectionpane={props.onselectionpane}
 				onslidesorter={props.onslidesorter}
+				onreadingview={props.onreadingview}
 			/>
 		{:else if activeTab === 'help'}
 			<HelpTab onaccessibility={() => (activeTab = 'review')} onshortcuts={props.onshortcuts} onsettings={props.onsettings} />

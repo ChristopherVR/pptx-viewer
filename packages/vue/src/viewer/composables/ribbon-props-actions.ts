@@ -152,6 +152,9 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onToggleSlideSorter: () => {
 			input.showSorter.value = true;
 		},
+		onOpenReadingView: () => {
+			input.showReadingView.value = true;
+		},
 		onUpdateTextStyle: input.ribbonUpdateTextStyle,
 		onTransformTextCase: input.ribbonUpdateTextCase,
 		onSetOverflowMenuOpen: (o: boolean) => {

@@ -7,8 +7,10 @@ import { useI18n } from 'vue-i18n';
  * View ribbon tab's Presentation Views, Master Views, Show, Zoom and Window
  * groups.
  *
- * Reading View is inert here because no reading-view mode exists in any binding
- * yet; that one is copied from the reference deliberately rather than "fixed".
+ * Reading View is live: it opens the windowed reading overlay (see
+ * `ReadingViewOverlay.vue`). It shipped `disabled` in every binding for a year,
+ * which is why the test below asserts it is enabled rather than asserting the
+ * placeholder.
  *
  * "Guides" and "Snap to shape" are one control each, for the one thing each of
  * them names. They used to be crossed: Guides drove shape snapping and Snap to
@@ -45,6 +47,7 @@ interface Props {
 	eyedropperActive?: boolean;
 	onToggleEyedropper?: () => void;
 	onToggleSlideSorter?: () => void;
+	onOpenReadingView?: () => void;
 	onZoomToFit?: () => void;
 }
 
@@ -68,7 +71,11 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 			>
 				{{ t('pptx.slideSorter.title') }}
 			</button>
-			<button disabled :class="pill" :title="t('pptx.view.readingView')">
+			<button
+				:class="pill"
+				:title="t('pptx.view.readingView')"
+				@click="props.onOpenReadingView?.()"
+			>
 				{{ t('pptx.view.readingView') }}
 			</button>
 		</div>

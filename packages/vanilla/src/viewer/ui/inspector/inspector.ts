@@ -12,6 +12,7 @@ import { createMediaSection } from './media-section';
 import { createPositionSection } from './position-section';
 import { createQuickStylesGallery } from './quick-styles-gallery';
 import { createSmartArtSection } from './smartart-section';
+import { createTableDataGrid } from './table-data-grid';
 import { createTableSection } from './table-section';
 import { createText3DSection } from './text-3d-section';
 import { createTextSection } from './text-section';
@@ -107,6 +108,12 @@ export function createInspector(
 	const text = createTextSection(doc, t, section, handlers);
 	const text3d = createText3DSection(doc, t, section, handlers);
 	const image = createImageSection(doc, t, section, handlers);
+	// The cell-text spreadsheet sits ABOVE the table's styling section, matching
+	// React's inspector order. It builds its own <section> (rather than using the
+	// `section()` factory) because it needs an aria-labelled landmark, so it is
+	// appended to the body by hand at exactly this point.
+	const tableDataGrid = createTableDataGrid(doc, t, handlers);
+	body.appendChild(tableDataGrid.el);
 	const table = createTableSection(doc, t, section, handlers);
 	const smartArt = createSmartArtSection(doc, t, section, handlers);
 	const action = createActionSection(doc, t, section, handlers);
@@ -119,6 +126,7 @@ export function createInspector(
 		text,
 		text3d,
 		image,
+		tableDataGrid,
 		table,
 		smartArt,
 		action,
@@ -150,6 +158,7 @@ export function createInspector(
 		},
 		setEditable(editable) {
 			el.hidden = !editable;
+			tableDataGrid.setEditable(editable);
 		},
 	};
 }

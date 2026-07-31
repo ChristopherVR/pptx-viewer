@@ -341,6 +341,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onToggleSelectionPane={p.onToggleSelectionPane}
 							eyedropperActive={p.eyedropperActive}
 							onToggleEyedropper={p.onToggleEyedropper}
+							onToggleSlideSorter={p.onToggleSlideSorter}
+							onOpenReadingView={p.onOpenReadingView}
 							onZoomToFit={p.onZoomToFit}
 						/>
 					)}

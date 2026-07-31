@@ -11,7 +11,9 @@ import type {
 	PptxSmartArtNodeStyle,
 	PptxTableCellStyle,
 	PptxTableData,
+	XmlObject,
 	PptxTagCollection,
+	TablePptxElement,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
@@ -111,6 +113,18 @@ export interface InspectorHandlers {
 	setTableBandedRows(enabled: boolean): void;
 	setTableCellPadding(padding: number): void;
 	setTableOptions(patch: Partial<PptxTableData>, cellStyle?: Partial<PptxTableCellStyle>): void;
+	/**
+	 * Replace the selected table's whole `tableData` (inspector data grid).
+	 *
+	 * `setTableOptions` cannot serve here: it re-applies the element's existing
+	 * rows after the patch, so a row/cell change made through it is discarded.
+	 */
+	/**
+	 * Replace the selected table's whole `tableData`, plus the graphic-frame
+	 * `rawXml` the renderer and save writer actually read for a table parsed from
+	 * a real deck (a `tableData`-only patch is invisible on such tables).
+	 */
+	setTableData(data: PptxTableData, rawXml?: XmlObject): void;
 	setTableCellStyle(row: number, column: number, patch: Partial<PptxTableCellStyle>): void;
 	setTableCellStyles(cells: TableCellPosition[], patch: Partial<PptxTableCellStyle>): void;
 	mutateTableStructure(cell: TableCellPosition, action: TableStructureAction): void;
@@ -213,6 +227,8 @@ export interface InspectorState {
 	tableCellStyle: PptxTableCellStyle | undefined;
 	tableColumnWidths: number[];
 	tableRowHeights: number[];
+	/** The selected table element itself, feeding the inspector data grid. */
+	tableElement?: TablePptxElement;
 }
 
 /**

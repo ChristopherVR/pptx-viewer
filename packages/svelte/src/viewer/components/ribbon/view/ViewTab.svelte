@@ -9,9 +9,11 @@
 	 * tab made the View tab claim controls React's View tab does not have, which
 	 * `e2e/ribbon-control-inventory.spec.ts` reads as drift in both directions.
 	 *
-	 * Reading View, Handout Master, Notes Master, Zoom (the level dropdown) and
-	 * Macros are disabled placeholders in React too. See `RecordTab.svelte` for
-	 * why they are rendered rather than dropped.
+	 * Handout Master, Notes Master, Zoom (the level dropdown) and Macros are
+	 * disabled placeholders in React too. See `RecordTab.svelte` for why they are
+	 * rendered rather than dropped. Reading View is NOT one of them any more: it
+	 * shipped inert in all five bindings for a year and is now a real view, so
+	 * leaving it disabled here would be the drift, not the parity.
 	 */
 	import type { ViewerPreferences } from 'pptx-viewer-shared';
 	import { updateViewerPreference } from 'pptx-viewer-shared';
@@ -29,6 +31,7 @@
 		onentermasterview,
 		onselectionpane,
 		onslidesorter,
+		onreadingview,
 		onnormal,
 		editor,
 		preferences,
@@ -45,6 +48,8 @@
 		onentermasterview?: () => void;
 		onselectionpane: () => void;
 		onslidesorter: () => void;
+		/** Opens Reading View: the deck at full window size, no Fullscreen API. */
+		onreadingview?: () => void;
 		/** Returns the viewer to the normal editing view (React's "Normal"). */
 		onnormal?: () => void;
 		editor: EditorState;
@@ -73,7 +78,7 @@
 		<RibbonCommand label={t('pptx.slideSorter.title')} title={t('pptx.statusBar.slideSorter')} onclick={onslidesorter}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="6" height="5" /><rect x="11.5" y="3.5" width="6" height="5" /><rect x="2.5" y="11.5" width="6" height="5" /><rect x="11.5" y="11.5" width="6" height="5" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.view.readingView')} disabled>
+		<RibbonCommand label={t('pptx.view.readingView')} title={t('pptx.view.readingView')} onclick={onreadingview}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 4.5h6a2 2 0 0 1 1.5.7 2 2 0 0 1 1.5-.7h6v11h-6a2 2 0 0 0-1.5.7 2 2 0 0 0-1.5-.7h-6zM10 5.2v10" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonGroup>

@@ -119,6 +119,7 @@ import NotesPanel from './components/NotesPanel.vue';
 import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
+import ReadingViewOverlay from './components/ReadingViewOverlay.vue';
 import RehearseTimingsHud from './components/RehearseTimingsHud.vue';
 import RehearseTimingsSummary from './components/RehearseTimingsSummary.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
@@ -1212,6 +1213,15 @@ function onSorterReorder(from: number, to: number): void {
 	slideOps.moveSlide(from, to);
 }
 
+// ── Reading view (deck at window size, editor chrome down to a nav bar) ──
+const showReadingView = ref(false);
+function onReadingViewExit(index: number): void {
+	// Leaving a view returns the editor to the slide that was on screen, exactly
+	// as leaving PowerPoint's Reading View does.
+	showReadingView.value = false;
+	goTo(index);
+}
+
 // ── Accessibility checker ─────────────────────────────────────────────
 const showA11y = ref(false);
 const a11y = useAccessibility(slides);
@@ -1840,6 +1850,7 @@ const ribbonProps = useRibbonProps({
 	showHeaderFooter,
 	showA11y,
 	showSorter,
+	showReadingView,
 	showCustomShows,
 	showVersionHistory,
 	showPasswordDialog,
@@ -3018,6 +3029,16 @@ function handleQuickAccessCommand(id: string): void {
 			@delete="(i) => slideOps.deleteSlide(i)"
 			@toggle-hidden="toggleSlideHidden"
 			@close="showSorter = false"
+		/>
+
+		<!-- Reading view overlay (windowed; never the Fullscreen API) -->
+		<ReadingViewOverlay
+			v-if="showReadingView"
+			:slides="mergedSlides"
+			:canvas-size="canvasSize"
+			:media-data-urls="mediaDataUrls"
+			:active-slide-index="activeSlideIndex"
+			@exit="onReadingViewExit"
 		/>
 
 		<!-- Presentation / slideshow overlay -->

@@ -236,6 +236,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onOpenSettings,
 		onRunAccessibilityCheck: dialogs.handleRunAccessibilityCheck,
 		onToggleSlideSorter: () => s.setShowSlideSorter((p) => !p),
+		onOpenReadingView: () => s.setShowReadingView(true),
 		onUpdateTextStyle: ops.updateSelectedTextStyle,
 		onTransformTextCase: ops.updateSelectedTextCase,
 		isOverflowMenuOpen: s.isOverflowMenuOpen,

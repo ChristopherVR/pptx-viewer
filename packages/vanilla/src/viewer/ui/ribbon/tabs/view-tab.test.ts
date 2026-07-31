@@ -20,6 +20,7 @@ function makeHandlers(over: Partial<RibbonNavHandlers> = {}): RibbonNavHandlers 
 		openCompare: vi.fn(),
 		openSelectionPane: vi.fn(),
 		openSlideSorter: vi.fn(),
+		openReadingView: vi.fn(),
 		openComments: vi.fn(),
 		openHyperlink: vi.fn(),
 		toggleViewOption: vi.fn(),
@@ -135,7 +136,6 @@ describe('createViewTab', () => {
 		const tab = createViewTab(document, t, makeHandlers());
 		tab.setEditable(true);
 		for (const label of [
-			t('pptx.view.readingView'),
 			t('pptx.master.handoutMasterTitle'),
 			t('pptx.master.notesMasterTitle'),
 			t('pptx.slideSorter.zoom'),
@@ -143,6 +143,20 @@ describe('createViewTab', () => {
 		]) {
 			expect(button(tab, label).disabled).toBeTruthy();
 		}
+	});
+
+	/**
+	 * Reading View shipped as a permanently disabled placeholder in all five
+	 * bindings, so a reader who found it in the ribbon got nothing at all.
+	 */
+	it('offers Reading View as a live command rather than an inert placeholder', () => {
+		const t = createTranslator();
+		const openReadingView = vi.fn();
+		const tab = createViewTab(document, t, makeHandlers({ openReadingView }));
+		const reading = button(tab, t('pptx.view.readingView'));
+		expect(reading.disabled).toBeFalsy();
+		reading.click();
+		expect(openReadingView).toHaveBeenCalledOnce();
 	});
 
 	it('hides the zoom commands when the zoom action is hidden', () => {

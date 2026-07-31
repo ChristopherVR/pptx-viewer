@@ -37,6 +37,8 @@ export interface ViewerUIState {
 	setSidebarPanelMode: React.Dispatch<React.SetStateAction<string>>;
 	showSlideSorter: boolean;
 	setShowSlideSorter: React.Dispatch<React.SetStateAction<boolean>>;
+	showReadingView: boolean;
+	setShowReadingView: React.Dispatch<React.SetStateAction<boolean>>;
 	isShortcutHelpOpen: boolean;
 	setIsShortcutHelpOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	isAccessibilityPanelOpen: boolean;
@@ -112,6 +114,7 @@ export function useViewerUIState(): ViewerUIState {
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	const [sidebarPanelMode, setSidebarPanelMode] = useState<string>('properties');
 	const [showSlideSorter, setShowSlideSorter] = useState(false);
+	const [showReadingView, setShowReadingView] = useState(false);
 	const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
 	const [isAccessibilityPanelOpen, setIsAccessibilityPanelOpen] = useState(false);
 	const [accessibilityIssues, setAccessibilityIssues] = useState<AccessibilityIssue[]>([]);
@@ -163,6 +166,8 @@ export function useViewerUIState(): ViewerUIState {
 		setSidebarPanelMode,
 		showSlideSorter,
 		setShowSlideSorter,
+		showReadingView,
+		setShowReadingView,
 		isShortcutHelpOpen,
 		setIsShortcutHelpOpen,
 		isAccessibilityPanelOpen,

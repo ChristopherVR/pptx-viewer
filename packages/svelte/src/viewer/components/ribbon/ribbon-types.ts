@@ -90,6 +90,8 @@ export interface RibbonProps {
 	oncustomshows: () => void;
 	onselectionpane: () => void;
 	onslidesorter: () => void;
+	/** View tab > Reading View: the deck at full window size, chrome reduced to a nav bar. */
+	onreadingview?: () => void;
 	/** View tab > Normal: leave slide sorter / slide show for the editing view. */
 	onnormal?: () => void;
 	preferences: ViewerPreferences;

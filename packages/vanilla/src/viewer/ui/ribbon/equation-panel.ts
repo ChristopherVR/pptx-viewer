@@ -1,11 +1,10 @@
 import {
+	compileEquationTemplateMathMl,
 	convertLatexToOmml,
 	convertOmmlToLatex,
-	convertOmmlToMathMl,
 	EQUATION_TEMPLATES,
-	sanitizeMathMl,
+	latexToMathMl,
 } from 'pptx-viewer-shared';
-import type { OmmlNode } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -18,20 +17,6 @@ export interface EquationPanel {
 	isOpen(): boolean;
 	setEditable(editable: boolean): void;
 	openEdit(id: string, omml: Record<string, unknown>): void;
-}
-
-/** Convert a LaTeX string to sanitized MathML; '' on failure/empty. */
-function latexToMathMl(latex: string): string {
-	if (!latex.trim()) {
-		return '';
-	}
-	try {
-		const omml = convertLatexToOmml(latex);
-		const mathml = convertOmmlToMathMl(omml as OmmlNode);
-		return mathml ? sanitizeMathMl(mathml) : '';
-	} catch {
-		return '';
-	}
 }
 
 /**
@@ -93,12 +78,13 @@ export function createEquationPanel(
 	templatesTitle.textContent = t('pptx.equation.templates');
 	const grid = createEl(doc, 'div', 'pptxv-eqdlg-grid');
 	const tiles: HTMLButtonElement[] = [];
-	for (const tmpl of EQUATION_TEMPLATES) {
+	const templateMathMl = compileEquationTemplateMathMl();
+	for (const [tmplIndex, tmpl] of EQUATION_TEMPLATES.entries()) {
 		const tile = createEl(doc, 'button', 'pptxv-eqdlg-template') as HTMLButtonElement;
 		tile.type = 'button';
 		tile.title = t(tmpl.i18nKey);
 		const math = createEl(doc, 'span', 'pptxv-eqdlg-template-math');
-		math.innerHTML = latexToMathMl(tmpl.latex);
+		math.innerHTML = templateMathMl[tmplIndex] ?? '';
 		const label = createEl(doc, 'span', 'pptxv-eqdlg-template-label');
 		label.textContent = t(tmpl.i18nKey);
 		tile.append(math, label);

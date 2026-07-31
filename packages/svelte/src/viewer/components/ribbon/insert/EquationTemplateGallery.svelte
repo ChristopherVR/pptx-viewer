@@ -6,13 +6,12 @@
 	 *
 	 * The catalogue (`EQUATION_TEMPLATES`) is shared across every binding; each
 	 * tile's MathML is compiled once here, on mount, because the set is static.
-	 * Every rendered string goes through `sanitizeMathMl` (inside
-	 * `latexToMathMl`) before the `{@html ...}` binding.
+	 * Every rendered string goes through `sanitizeMathMl` (inside shared's
+	 * `compileEquationTemplateMathMl`) before the `{@html ...}` binding.
 	 */
-	import { EQUATION_TEMPLATES } from 'pptx-viewer-shared';
+	import { compileEquationTemplateMathMl, EQUATION_TEMPLATES } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
-	import { latexToMathMl } from './equation-latex-preview';
 
 	const {
 		activeLatex,
@@ -24,7 +23,7 @@
 	} = $props();
 	const t = useTranslator();
 
-	const TEMPLATE_MATHML = EQUATION_TEMPLATES.map((tmpl) => latexToMathMl(tmpl.latex));
+	const TEMPLATE_MATHML = compileEquationTemplateMathMl();
 </script>
 
 <div class="templates">

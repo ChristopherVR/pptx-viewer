@@ -33,12 +33,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { TablePptxElement } from 'pptx-viewer-core';
 
 import {
-	insertColumn,
-	insertRow,
-	removeColumn,
-	removeRow,
-	setCellText,
-} from './table-data-helpers';
+	appendTableElementColumn,
+	appendTableElementRow,
+	buildTableDataGrid,
+	removeLastTableElementColumn,
+	removeLastTableElementRow,
+	setTableElementCellText,
+} from '../internal/shared';
+import { TABLE_DATA_EDITOR_STYLES } from './table-data-editor-styles';
+import { removeColumn, removeRow } from './table-data-helpers';
 import { TableSelectionService } from './table-selection.service';
 
 @Component({
@@ -68,7 +71,7 @@ import { TableSelectionService } from './table-selection.service';
 						<button
 							type="button"
 							class="pptx-tbl-editor__btn pptx-tbl-editor__btn--danger"
-							[disabled]="rowCount() <= 1"
+							[disabled]="!canRemoveRow()"
 							[title]="'pptx.tableDataEditor.removeRowTitle' | translate"
 							(click)="onRemoveLastRow()"
 						>
@@ -86,7 +89,7 @@ import { TableSelectionService } from './table-selection.service';
 						<button
 							type="button"
 							class="pptx-tbl-editor__btn pptx-tbl-editor__btn--danger"
-							[disabled]="colCount() <= 1"
+							[disabled]="!canRemoveColumn()"
 							[title]="'pptx.tableDataEditor.removeColumnTitle' | translate"
 							(click)="onRemoveLastColumn()"
 						>
@@ -108,10 +111,13 @@ import { TableSelectionService } from './table-selection.service';
 						@for (colIdx of colIndices(); track colIdx) {
 							<div class="pptx-tbl-editor__col-header" role="columnheader">
 								<span class="pptx-tbl-editor__col-label">{{ colIdx + 1 }}</span>
-								@if (canEdit() && colCount() > 1) {
+								@if (canEdit() && canRemoveColumn()) {
 									<button
 										type="button"
 										class="pptx-tbl-editor__remove-btn"
+										[attr.aria-label]="
+											'pptx.tableDataEditor.removeColumnN' | translate: { number: colIdx + 1 }
+										"
 										[title]="
 											'pptx.tableDataEditor.removeColumnN' | translate: { number: colIdx + 1 }
 										"
@@ -123,31 +129,40 @@ import { TableSelectionService } from './table-selection.service';
 							</div>
 						}
 					</div>
-					@for (row of rows(); track $index; let ri = $index) {
+					@for (row of rows(); track row.rowIndex) {
 						<div class="pptx-tbl-editor__row" role="row">
 							<!-- Row label + remove button -->
 							<div class="pptx-tbl-editor__row-header" role="rowheader">
-								<span class="pptx-tbl-editor__row-label">{{ ri + 1 }}</span>
-								@if (canEdit() && rowCount() > 1) {
+								<span class="pptx-tbl-editor__row-label">{{ row.rowIndex + 1 }}</span>
+								@if (canEdit() && canRemoveRow()) {
 									<button
 										type="button"
 										class="pptx-tbl-editor__remove-btn"
-										[title]="'pptx.tableDataEditor.removeRowN' | translate: { number: ri + 1 }"
-										(click)="onRemoveRow(ri)"
+										[attr.aria-label]="
+											'pptx.tableDataEditor.removeRowN' | translate: { number: row.rowIndex + 1 }
+										"
+										[title]="
+											'pptx.tableDataEditor.removeRowN' | translate: { number: row.rowIndex + 1 }
+										"
+										(click)="onRemoveRow(row.rowIndex)"
 									>
 										×
 									</button>
 								}
 							</div>
-							@for (cell of row.cells; track $index; let ci = $index) {
+							@for (cell of row.cells; track cell.colIndex) {
 								<div class="pptx-tbl-editor__cell" role="gridcell">
 									<input
 										type="text"
 										class="pptx-tbl-editor__input"
 										[disabled]="!canEdit()"
 										[value]="cell.text"
-										(focus)="onCellFocus(ri, ci)"
-										(change)="onCellChange($event, ri, ci)"
+										[attr.aria-label]="
+											'pptx.tableDataEditor.cellAriaLabel'
+												| translate: { row: cell.rowIndex + 1, column: cell.colIndex + 1 }
+										"
+										(focus)="onCellFocus(cell.rowIndex, cell.colIndex)"
+										(change)="onCellChange($event, cell.rowIndex, cell.colIndex)"
 									/>
 								</div>
 							}
@@ -157,140 +172,7 @@ import { TableSelectionService } from './table-selection.service';
 			</div>
 		</section>
 	`,
-	styles: `
-		.pptx-tbl-editor {
-			display: flex;
-			flex-direction: column;
-			gap: 0.35rem;
-			padding: 0.5rem 0;
-			border-bottom: 1px solid var(--pptx-inspector-border, #333);
-		}
-
-		.pptx-tbl-editor__header {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 0.35rem;
-		}
-
-		.pptx-tbl-editor__heading {
-			font-size: 10px;
-			font-weight: 600;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
-			color: var(--pptx-inspector-muted, #888);
-			margin: 0;
-		}
-
-		.pptx-tbl-editor__actions {
-			display: flex;
-			gap: 0.2rem;
-			flex-wrap: wrap;
-		}
-
-		.pptx-tbl-editor__btn {
-			padding: 2px 5px;
-			font-size: 10px;
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			border: 1px solid var(--pptx-inspector-border, #444);
-			color: inherit;
-			border-radius: 3px;
-			cursor: pointer;
-			white-space: nowrap;
-		}
-
-		.pptx-tbl-editor__btn:disabled {
-			opacity: 0.4;
-			cursor: not-allowed;
-		}
-
-		.pptx-tbl-editor__btn--danger {
-			color: var(--pptx-inspector-danger, #f47c7c);
-			border-color: var(--pptx-inspector-danger-border, #6b2a2a);
-		}
-
-		.pptx-tbl-editor__scroll {
-			overflow-x: auto;
-		}
-
-		.pptx-tbl-editor__grid {
-			display: flex;
-			flex-direction: column;
-			font-size: 11px;
-			min-width: 100%;
-			width: max-content;
-		}
-
-		.pptx-tbl-editor__row {
-			display: flex;
-		}
-
-		.pptx-tbl-editor__corner,
-		.pptx-tbl-editor__col-header,
-		.pptx-tbl-editor__row-header {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			color: var(--pptx-inspector-muted, #888);
-			font-weight: 400;
-			padding: 2px 4px;
-			border: 1px solid var(--pptx-inspector-border, #333);
-			margin: -0.5px;
-			white-space: nowrap;
-		}
-
-		.pptx-tbl-editor__col-header {
-			flex: 1 0 60px;
-		}
-
-		.pptx-tbl-editor__corner,
-		.pptx-tbl-editor__row-header {
-			flex: 0 0 40px;
-		}
-
-		.pptx-tbl-editor__col-label,
-		.pptx-tbl-editor__row-label {
-			margin-right: 2px;
-		}
-
-		.pptx-tbl-editor__remove-btn {
-			padding: 0 2px;
-			font-size: 11px;
-			line-height: 1;
-			background: none;
-			border: none;
-			color: var(--pptx-inspector-danger, #f47c7c);
-			cursor: pointer;
-		}
-
-		.pptx-tbl-editor__cell {
-			display: flex;
-			flex: 1 0 60px;
-			padding: 1px;
-			border: 1px solid var(--pptx-inspector-border, #333);
-			margin: -0.5px;
-		}
-
-		.pptx-tbl-editor__input {
-			width: 100%;
-			box-sizing: border-box;
-			padding: 2px 4px;
-			font-size: 11px;
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			color: inherit;
-			border: none;
-			outline: none;
-		}
-
-		.pptx-tbl-editor__input:focus {
-			background: var(--pptx-inspector-active-bg, #1a3a5c);
-		}
-
-		.pptx-tbl-editor__input:disabled {
-			opacity: 0.6;
-		}
-	`,
+	styles: TABLE_DATA_EDITOR_STYLES,
 })
 export class TableDataEditorComponent {
 	/** The table element being edited. */
@@ -306,12 +188,20 @@ export class TableDataEditorComponent {
 
 	// ── Computed helpers ────────────────────────────────────────────────────
 
-	protected readonly rows = computed(() => this.element().tableData?.rows ?? []);
-	protected readonly rowCount = computed(() => this.rows().length);
-	protected readonly colCount = computed(() => this.element().tableData?.columnWidths.length ?? 0);
-	protected readonly colIndices = computed(() =>
-		Array.from({ length: this.colCount() }, (_, i) => i),
-	);
+	/**
+	 * Normalised render model from `pptx-viewer-shared`. Using it (rather than
+	 * iterating `tableData.rows` directly) is what keeps ragged rows, which real
+	 * decks do contain, from rendering a lopsided grid with cells missing off the
+	 * right-hand edge.
+	 */
+	protected readonly grid = computed(() => buildTableDataGrid(this.element()));
+
+	protected readonly rows = computed(() => this.grid().rows);
+	protected readonly rowCount = computed(() => this.grid().rowCount);
+	protected readonly colCount = computed(() => this.grid().colCount);
+	protected readonly colIndices = computed(() => this.grid().colIndices);
+	protected readonly canRemoveRow = computed(() => this.grid().canRemoveRow);
+	protected readonly canRemoveColumn = computed(() => this.grid().canRemoveColumn);
 
 	// ── Event handlers ──────────────────────────────────────────────────────
 
@@ -320,7 +210,7 @@ export class TableDataEditorComponent {
 		if (text === null) {
 			return;
 		}
-		this.elementChange.emit(setCellText(this.element(), rowIndex, colIndex, text));
+		this.elementChange.emit(setTableElementCellText(this.element(), rowIndex, colIndex, text));
 	}
 
 	/** Focusing a cell selects it so the cell-formatting panel targets it. */
@@ -329,16 +219,11 @@ export class TableDataEditorComponent {
 	}
 
 	protected onAddRow(): void {
-		const last = this.rowCount() - 1;
-		this.elementChange.emit(insertRow(this.element(), Math.max(0, last), 'below'));
+		this.elementChange.emit(appendTableElementRow(this.element()));
 	}
 
 	protected onRemoveLastRow(): void {
-		const last = this.rowCount() - 1;
-		if (last < 0) {
-			return;
-		}
-		this.elementChange.emit(removeRow(this.element(), last));
+		this.elementChange.emit(removeLastTableElementRow(this.element()));
 	}
 
 	protected onRemoveRow(rowIndex: number): void {
@@ -346,16 +231,11 @@ export class TableDataEditorComponent {
 	}
 
 	protected onAddColumn(): void {
-		const last = this.colCount() - 1;
-		this.elementChange.emit(insertColumn(this.element(), Math.max(0, last), 'right'));
+		this.elementChange.emit(appendTableElementColumn(this.element()));
 	}
 
 	protected onRemoveLastColumn(): void {
-		const last = this.colCount() - 1;
-		if (last < 0) {
-			return;
-		}
-		this.elementChange.emit(removeColumn(this.element(), last));
+		this.elementChange.emit(removeLastTableElementColumn(this.element()));
 	}
 
 	protected onRemoveColumn(colIndex: number): void {

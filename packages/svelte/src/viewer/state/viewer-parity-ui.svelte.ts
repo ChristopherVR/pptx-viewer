@@ -21,6 +21,8 @@ export class ViewerParityUiState {
 	customShowsOpen = $state(false);
 	selectionPaneOpen = $state(false);
 	slideSorterOpen = $state(false);
+	/** View tab > Reading View: the deck at full window size, not a slide show. */
+	readingViewOpen = $state(false);
 	showGuides = $state(false);
 	snapToShape = $state(true);
 	guides = $state<{ axis: 'h' | 'v'; position: number }[]>([]);

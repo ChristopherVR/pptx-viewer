@@ -96,6 +96,7 @@ import { parseAudienceNonce, PresenterWindowService } from './presenter-window.s
 import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { ReadingViewOverlayComponent } from './reading-view-overlay.component';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { patchTextStyle } from './ribbon-text-helpers';
@@ -165,6 +166,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		PresenterViewComponent,
 		MobilePresenterViewComponent,
 		SlideSorterOverlayComponent,
+		ReadingViewOverlayComponent,
 		SlideDefaultInspectorComponent,
 		FindBarComponent,
 		FindReplaceBarComponent,
@@ -299,6 +301,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(a11y)="inspectorPanel.togglePanel('accessibility')"
 					(link)="docProperties.showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
+					(openReadingView)="showReadingView.set(true)"
 					(toggleNotes)="mobileSheetSvc.toggleNotes()"
 					(toggleFormatPainter)="formatPainter.toggle()"
 					(exportPng)="xport.exportPng()"
@@ -651,6 +654,22 @@ import { ZoomTargetService } from './zoom-target.service';
 					[activeIndex]="activeSlideIndex()"
 					(select)="goTo($event); showSorter.set(false)"
 					(closed)="showSorter.set(false)"
+				/>
+			}
+
+			@if (showReadingView()) {
+				<!--
+					The merged deck, so each slide carries its own inherited template
+					elements: the reader pages through the deck inside the overlay, and
+					a single active-slide template layer would paint one slide's master
+					over another's.
+				-->
+				<pptx-reading-view-overlay
+					[slides]="displaySlidesMut()"
+					[canvasSize]="loader.canvasSize()"
+					[mediaDataUrls]="loader.mediaDataUrls()"
+					[activeSlideIndex]="activeSlideIndex()"
+					(exit)="closeReadingView($event)"
 				/>
 			}
 
@@ -1211,6 +1230,12 @@ export class PowerPointViewerComponent {
 
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
+	/**
+	 * Reading View visibility: the deck at full window size with the editor
+	 * chrome cut back to a nav bar. Not the slide show (no fullscreen, no
+	 * pointer tools, no presenter console).
+	 */
+	protected readonly showReadingView = signal(false);
 	/** Full-canvas master editor visibility and active target. */
 	protected readonly showMasterView = signal(false);
 	protected readonly masterViewTab = signal<MasterViewTab>('slides');
@@ -1910,6 +1935,15 @@ export class PowerPointViewerComponent {
 			return;
 		}
 		this.activeSlideIndex.set(index);
+	}
+	/**
+	 * Leave Reading View on the slide the reader ended on, which is what leaving
+	 * any PowerPoint view does: the editor should not snap back to wherever it
+	 * was when the reader entered.
+	 */
+	protected closeReadingView(slideIndex: number): void {
+		this.showReadingView.set(false);
+		this.goTo(slideIndex);
 	}
 	goPrev(): void {
 		this.goTo(this.activeSlideIndex() - 1);

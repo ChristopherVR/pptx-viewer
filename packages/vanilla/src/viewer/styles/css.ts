@@ -16,6 +16,7 @@ import { MOBILE_SHEET_CSS } from './mobile-sheet-css';
 import { OPTIONS_DIALOG_CSS } from './options-dialog-css';
 import { PARITY_DIALOG_CSS } from './parity-dialog-css';
 import { PRESENTATION_TOUCH_CSS } from './presentation-touch-css';
+import { READING_VIEW_CSS } from './reading-view-css';
 import { RIBBON_CSS } from './ribbon-css';
 import { RIBBON_QUICK_CSS } from './ribbon-quick-css';
 import { SMARTART_DIALOG_CSS } from './smartart-dialog-css';
@@ -545,5 +546,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${OPTIONS_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${INSPECTOR_FORMAT_CSS}\n${ACCOUNT_CSS}\n${AI_CSS}\n${AI_FOCUS_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${OPTIONS_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${INSPECTOR_FORMAT_CSS}\n${ACCOUNT_CSS}\n${AI_CSS}\n${AI_FOCUS_CSS}\n${READING_VIEW_CSS}`;
 }

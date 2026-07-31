@@ -89,6 +89,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					[snapToShape]="snapToShape()"
 					[eyedropperActive]="eyedropperActive()"
 					(openSorter)="openSorter.emit()"
+					(openReadingView)="openReadingView.emit()"
 					(openMasterView)="openMasterView.emit()"
 					(toggleGrid)="toggleGrid.emit()"
 					(toggleRulers)="toggleRulers.emit()"
@@ -192,6 +193,8 @@ export class RibbonContentSecondaryComponent {
 	readonly a11y = output<void>();
 	readonly link = output<void>();
 	readonly openSorter = output<void>();
+	/** View tab > Reading View: the deck full-window, not the slide show. */
+	readonly openReadingView = output<void>();
 	readonly openMasterView = output<void>();
 	readonly toggleNotes = output<void>();
 	readonly toggleInspector = output<void>();

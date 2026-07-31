@@ -1,4 +1,9 @@
-import { EQUATION_TEMPLATES, sanitizeMathMl } from 'pptx-viewer-shared';
+import {
+	compileEquationTemplateMathMl,
+	compileLatexEquation,
+	EQUATION_TEMPLATES,
+	sanitizeMathMl,
+} from 'pptx-viewer-shared';
 import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
@@ -7,8 +12,6 @@ import { useModalDismissDrag } from '../hooks';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { cn } from '../utils';
 import { convertLatexToOmml, convertOmmlToLatex } from '../utils/latex-to-omml';
-import { convertOmmlToMathMl } from '../utils/omml-to-mathml';
-import type { OmmlNode } from '../utils/omml-to-mathml';
 
 // ── Equation templates ────────────────────────────────────────────────────
 
@@ -19,15 +22,7 @@ import type { OmmlNode } from '../utils/omml-to-mathml';
 const TEMPLATES = EQUATION_TEMPLATES;
 
 /** Pre-computed MathML strings for each template (computed once at module load). */
-const TEMPLATE_MATHML: string[] = TEMPLATES.map((tmpl) => {
-	try {
-		const tmplOmml = convertLatexToOmml(tmpl.latex);
-		const raw = convertOmmlToMathMl(tmplOmml as OmmlNode);
-		return raw ? sanitizeMathMl(raw) : '';
-	} catch {
-		return '';
-	}
-});
+const TEMPLATE_MATHML: string[] = compileEquationTemplateMathMl();
 
 // ── MathML preview renderer ──────────────────────────────────────────────
 
@@ -36,6 +31,11 @@ const TEMPLATE_MATHML: string[] = TEMPLATES.map((tmpl) => {
  *
  * Uses a ref-based approach because React cannot render MathML natively.
  * The container is updated whenever the `mathml` prop changes.
+ *
+ * Sanitises again on the way in even though the shared `compileLatexEquation`
+ * pipeline already did: this is the component's `innerHTML` sink and it accepts
+ * any caller's string, so the guarantee belongs at the sink too. DOMPurify is
+ * idempotent, so the second pass is a no-op for already-clean markup.
  *
  * @param props.mathml - The MathML markup string to render.
  */
@@ -124,19 +124,8 @@ export function EquationEditorDialog({
 		}
 	}, [isOpen, initialLatex]);
 
-	// Convert LaTeX -> OMML -> MathML for live preview
-	const { mathml, omml } = useMemo(() => {
-		if (!deferredLatex.trim()) {
-			return { mathml: '', omml: {} };
-		}
-		try {
-			const ommlObj = convertLatexToOmml(deferredLatex);
-			const mathmlStr = convertOmmlToMathMl(ommlObj as OmmlNode);
-			return { mathml: mathmlStr, omml: ommlObj };
-		} catch {
-			return { mathml: '', omml: {} };
-		}
-	}, [deferredLatex]);
+	// Convert LaTeX -> OMML -> sanitised MathML for live preview (shared pipeline).
+	const { mathml, omml } = useMemo(() => compileLatexEquation(deferredLatex), [deferredLatex]);
 
 	const handleInsert = useCallback(() => {
 		if (!latex.trim()) {

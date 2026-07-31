@@ -42,6 +42,8 @@ export interface ChromeCallbackDeps {
 	toggleSubtitles(): void;
 	openSelectionPane(): void;
 	openSlideSorter(): void;
+	/** Open Reading View (windowed deck at full window size). */
+	openReadingView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	openCustomShows(): void;
@@ -109,6 +111,7 @@ export function buildChromeCallbacks(
 			openCompare: () => deps.openCompare(),
 			openSelectionPane: () => deps.openSelectionPane(),
 			openSlideSorter: () => deps.openSlideSorter(),
+			openReadingView: () => deps.openReadingView(),
 			openComments: () => deps.openComments(),
 			openHyperlink: () => deps.openHyperlink(),
 			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
@@ -240,6 +243,7 @@ export function buildChromeCallbacks(
 		setTableBandedRows: (enabled) => deps.getEditActions().setTableBandedRows(enabled),
 		setTableCellPadding: (padding) => deps.getEditActions().setTableCellPadding(padding),
 		setTableOptions: (patch, cellStyle) => deps.getEditActions().setTableOptions(patch, cellStyle),
+		setTableData: (data, rawXml) => deps.getEditActions().setTableData(data, rawXml),
 		setTableCellStyle: (row, column, patch) =>
 			deps.getEditActions().setTableCellStyle(row, column, patch),
 		setTableCellStyles: (cells, patch) => deps.getEditActions().setTableCellStyles(cells, patch),

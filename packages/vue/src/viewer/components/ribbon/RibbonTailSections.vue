@@ -85,6 +85,7 @@ const s = computed(() => props.toolbarSection);
 		:on-toggle-selection-pane="props.onToggleSelectionPane"
 		:eyedropper-active="props.eyedropperActive"
 		:on-toggle-eyedropper="props.onToggleEyedropper"
+		:on-open-reading-view="props.onOpenReadingView"
 	/>
 
 	<HelpSection

@@ -37,6 +37,8 @@ export interface RibbonNavHandlers {
 	openCompare(): void;
 	openSelectionPane(): void;
 	openSlideSorter(): void;
+	/** Open PowerPoint's Reading View (windowed deck, not the slide show). */
+	openReadingView(): void;
 	openComments(): void;
 	openHyperlink(): void;
 	toggleTemplateEditing?(): void;

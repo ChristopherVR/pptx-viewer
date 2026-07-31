@@ -48,6 +48,12 @@ export interface RenderController {
 	renderStage(): void;
 	/** Rebuild the thumbnail rail from the current slide list. */
 	renderThumbnails(): void;
+	/**
+	 * Render one slide statically at `scale` (template elements included), for
+	 * surfaces outside the main canvas such as Reading View. Same path the
+	 * thumbnail rail draws through, so no surface grows its own element renderer.
+	 */
+	renderSlideNode(slide: PptxSlide, scale: number): HTMLElement;
 	/** Resolve the requested zoom into a concrete scale factor. */
 	effectiveScale(): number;
 	/**
@@ -354,6 +360,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		},
 		renderStage,
 		renderThumbnails,
+		renderSlideNode: (slide, scale) => renderStageFor(slide, scale),
 		effectiveScale,
 		fitScale,
 		zoomPercent,

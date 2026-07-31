@@ -40,6 +40,7 @@
 	import ShapeSection from './ShapeSection.svelte';
 	import SmartArtSection from './SmartArtSection.svelte';
 	import MediaSection from './MediaSection.svelte';
+	import TableDataGrid from './TableDataGrid.svelte';
 	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
 
@@ -139,6 +140,12 @@
 				{/if}
 
 				{#if isTable}
+					<!-- Cell text first (React's ElementInspectorBody renders the data
+					     grid before the table properties panel), then the structure and
+					     styling controls. -->
+					<div class="pptx-svelte-inspector-section">
+						<TableDataGrid {editor} {el} />
+					</div>
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.table')}</h4>
 						<TableSection {editor} {el} />

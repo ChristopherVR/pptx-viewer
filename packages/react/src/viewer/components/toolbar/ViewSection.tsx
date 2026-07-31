@@ -45,6 +45,8 @@ export interface ViewSectionProps {
 	eyedropperActive?: boolean;
 	onToggleEyedropper?: () => void;
 	onToggleSlideSorter?: () => void;
+	/** Enter PowerPoint's Reading View (full window, not the fullscreen show). */
+	onOpenReadingView?: () => void;
 	onZoomToFit?: () => void;
 }
 
@@ -67,7 +69,7 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 				<RibbonCommand
 					label={t('pptx.view.readingView')}
 					icon={<LuBookOpen />}
-					disabled
+					onClick={p.onOpenReadingView}
 					title={t('pptx.view.readingView')}
 				/>
 			</RibbonGroup>

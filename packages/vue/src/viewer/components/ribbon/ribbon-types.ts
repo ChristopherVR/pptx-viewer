@@ -255,6 +255,8 @@ export interface RibbonProps {
 	onOpenSettings?: () => void;
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
+	/** Open the windowed Reading View (NOT the fullscreen slide show). */
+	onOpenReadingView: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	onTransformTextCase: (mode: ChangeCaseMode) => void;

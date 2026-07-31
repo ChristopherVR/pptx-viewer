@@ -1,8 +1,9 @@
 /**
  * Styles for the inspector's format panels that have no React-equivalent
  * chrome elsewhere in this stylesheet: the Quick Styles gallery, the 3D-text
- * fields, the chart data grid, the media trim timeline, the slide-transition
- * direction picker, the Tags list and the theme editor card.
+ * fields, the chart data grid, the table data grid, the media trim timeline,
+ * the slide-transition direction picker, the Tags list and the theme editor
+ * card.
  *
  * Kept in its own module so `editor-css.ts` (already the largest chrome sheet)
  * stays inside the project's file-size budget.
@@ -79,6 +80,73 @@ export const INSPECTOR_FORMAT_CSS = `
 	cursor: pointer;
 }
 .pptxv-chart-grid-remove:hover { color: var(--pptx-destructive); }
+
+/* ── Table data grid ─────────────────────────────────────────────────── */
+.pptxv-table-grid-header { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.pptxv-table-grid-toolbar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.pptxv-table-grid-toolbar[hidden] { display: none; }
+.pptxv-table-grid-btn {
+	padding: 2px 6px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 10px;
+	cursor: pointer;
+}
+.pptxv-table-grid-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-table-grid-btn:disabled { opacity: 0.5; cursor: default; }
+.pptxv-table-grid-scroll { overflow-x: auto; }
+.pptxv-table-grid-body { display: flex; flex-direction: column; width: max-content; min-width: 100%; font-size: 11px; }
+.pptxv-table-grid-row { display: flex; }
+.pptxv-table-grid-head {
+	display: flex;
+	flex: 1 1 56px;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	min-width: 0;
+	margin: -1px 0 0 -1px;
+	padding: 1px 3px;
+	border: 1px solid var(--pptx-border);
+	background: var(--pptx-muted);
+	color: var(--pptx-muted-foreground);
+	white-space: nowrap;
+}
+.pptxv-table-grid-gutter { flex: 0 0 38px; }
+.pptxv-table-grid-cell {
+	display: flex;
+	flex: 1 1 56px;
+	min-width: 0;
+	margin: -1px 0 0 -1px;
+	padding: 1px;
+	border: 1px solid var(--pptx-border);
+}
+.pptxv-table-grid-input {
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	padding: 2px 4px;
+	border: none;
+	background: transparent;
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 11px;
+}
+.pptxv-table-grid-input:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
+.pptxv-table-grid-input:disabled { opacity: 0.6; }
+.pptxv-table-grid-remove {
+	padding: 0 2px;
+	border: none;
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	font: inherit;
+	line-height: 1;
+	cursor: pointer;
+}
+.pptxv-table-grid-remove[hidden] { display: none; }
+.pptxv-table-grid-remove:hover { color: var(--pptx-destructive); }
 
 /* ── Media trim timeline ─────────────────────────────────────────────── */
 .pptxv-media-timeline { display: grid; gap: 2px; margin: 6px 0; }

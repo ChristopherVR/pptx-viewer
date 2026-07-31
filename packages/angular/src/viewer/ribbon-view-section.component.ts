@@ -7,8 +7,10 @@
  * renders it: a tab whose controls are in a different order, or under
  * different names, cannot be scripted or documented once for all five.
  *
- * Reading View, Handout Master, Notes Master, Zoom and Macros render disabled:
- * each is a view or setting this viewer does not implement yet. Print,
+ * Handout Master, Notes Master, Zoom and Macros render disabled: each is a view
+ * or setting this viewer does not implement yet. Reading View used to sit in
+ * that list; it is now a real view (see {@link ReadingViewOverlayComponent}),
+ * so its pill opens the deck full-window with the chrome cut to a nav bar. Print,
  * Shortcuts and the Notes-pane toggle deliberately do NOT live here (PowerPoint
  * has none of them on View); they stay reachable from the File tab / overflow
  * menu, the Help tab, and the status bar respectively.
@@ -45,7 +47,12 @@ import { EditorStateService } from './editor-state.service';
 		>
 			{{ 'pptx.slideSorter.title' | translate }}
 		</button>
-		<button type="button" class="pptx-rb-pill" disabled>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.view.readingView' | translate"
+			(click)="openReadingView.emit()"
+		>
 			{{ 'pptx.view.readingView' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
@@ -193,6 +200,8 @@ export class RibbonViewSectionComponent {
 	readonly eyedropperActive = input<boolean>(false);
 
 	readonly openSorter = output<void>();
+	/** Enter Reading View: the deck full-window, NOT the fullscreen slide show. */
+	readonly openReadingView = output<void>();
 	readonly openMasterView = output<void>();
 	readonly toggleGrid = output<void>();
 	readonly toggleRulers = output<void>();

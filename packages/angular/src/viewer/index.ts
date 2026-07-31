@@ -22,6 +22,7 @@ export { Model3DRendererComponent } from './model3d-renderer.component';
 export { ZoomRendererComponent } from './zoom-renderer.component';
 export { PresentationOverlayComponent } from './presentation-overlay.component';
 export { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
+export { ReadingViewOverlayComponent } from './reading-view-overlay.component';
 export { FindBarComponent } from './find-bar.component';
 export { FindReplaceBarComponent } from './find-replace-bar.component';
 export {

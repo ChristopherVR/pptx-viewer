@@ -2,6 +2,7 @@ import type {
 	PptxImageEffects,
 	PptxTableCellStyle,
 	PptxTableData,
+	XmlObject,
 	PptxChartData,
 	MediaPptxElement,
 	ElementAction,
@@ -89,6 +90,8 @@ export interface InspectorActions {
 	setTableBandedRows(enabled: boolean): void;
 	setTableCellPadding(padding: number): void;
 	setTableOptions(patch: Partial<PptxTableData>, cellStyle?: Partial<PptxTableCellStyle>): void;
+	/** Replace the selection's whole table data (inspector data grid). */
+	setTableData(data: PptxTableData, rawXml?: XmlObject): void;
 	setTableCellStyle(row: number, column: number, patch: Partial<PptxTableCellStyle>): void;
 	setTableCellStyles(cells: TableCellPosition[], patch: Partial<PptxTableCellStyle>): void;
 	mutateTableStructure(cell: TableCellPosition, action: TableStructureAction): void;
@@ -198,6 +201,13 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 					},
 				} as Partial<typeof el>;
 			}),
+		// The data grid hands over a complete `tableData` (rows included), which
+		// `setTableOptions` would silently drop: it re-applies the element's
+		// existing rows after merging the patch.
+		setTableData: (data, rawXml) =>
+			applyToSelected((el) =>
+				el.type === 'table' ? { tableData: data, ...(rawXml ? { rawXml } : {}) } : {},
+			),
 		setTableCellStyle: (rowIndex, columnIndex, patch) =>
 			applyToSelected((el) => {
 				if (el.type !== 'table' || !el.tableData?.rows[rowIndex]?.cells[columnIndex]) {

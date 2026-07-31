@@ -3,7 +3,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import type { SafeHtml } from '@angular/platform-browser';
 
 import type { OmmlNode } from '../internal/shared';
-import { ommlToMathml } from '../internal/shared';
+import { ommlToMathml, sanitizeMathMl } from '../internal/shared';
 
 /**
  * EquationRendererComponent: Angular port of the Vue `EquationRenderer.vue`
@@ -89,10 +89,17 @@ export class EquationRendererComponent {
 	 * Converts the OMML input to MathML and wraps it in a `SafeHtml` value so
 	 * Angular's `[innerHTML]` binding renders the `<math>` markup instead of
 	 * stripping it.
+	 *
+	 * `bypassSecurityTrustHtml` switches Angular's own sanitiser off, and the
+	 * OMML comes from an arbitrary deck, so the markup is run through the shared
+	 * `sanitizeMathMl` (DOMPurify, MathML + SVG profiles) first. That is the same
+	 * guarantee the other four bindings apply at their raw-HTML sinks.
 	 */
 	readonly safeMathml = computed<SafeHtml>(() =>
 		// `equationXml` is typed `Record<string, unknown>` on the core segment; the
 		// shared converter walks it as an `OmmlNode` (core's recursive `XmlObject`).
-		this.sanitizer.bypassSecurityTrustHtml(ommlToMathml(this.equationXml() as OmmlNode)),
+		this.sanitizer.bypassSecurityTrustHtml(
+			sanitizeMathMl(ommlToMathml(this.equationXml() as OmmlNode)),
+		),
 	);
 }

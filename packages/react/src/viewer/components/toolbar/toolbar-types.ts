@@ -130,6 +130,8 @@ export interface ToolbarProps {
 	onOpenSettings?: () => void;
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
+	/** Enter PowerPoint's Reading View (full window, not the fullscreen show). */
+	onOpenReadingView: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	onTransformTextCase: (mode: ChangeCaseMode) => void;

@@ -25,10 +25,6 @@ import {
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
-	deleteTableColumn,
-	deleteTableRow,
-	insertTableColumn,
-	insertTableRow,
 	mergeCells,
 	splitCell,
 } from '../internal/shared';
@@ -68,45 +64,16 @@ function withTableData(
 // Structural row / column operations (merge-aware)
 // ---------------------------------------------------------------------------
 
-/**
- * Insert a blank row above or below `rowIdx`, growing any vertical merge spans
- * that straddle the insertion point (delegates to the shared `insertTableRow`).
- */
-export function insertRow(
-	element: TablePptxElement,
-	rowIdx: number,
-	position: 'above' | 'below',
-): TablePptxElement {
-	return withTableData(element, (td) => insertTableRow(td, rowIdx, position));
-}
-
-/**
- * Delete the row at `rowIdx`, adjusting vertical merge spans. No-op (element
- * returned unchanged) when the table has a single row.
- */
-export function removeRow(element: TablePptxElement, rowIdx: number): TablePptxElement {
-	return withTableData(element, (td) => deleteTableRow(td, rowIdx));
-}
-
-/**
- * Insert a blank column left or right of `colIdx`, splitting the source column's
- * width and growing horizontal merge spans (delegates to `insertTableColumn`).
- */
-export function insertColumn(
-	element: TablePptxElement,
-	colIdx: number,
-	position: 'left' | 'right',
-): TablePptxElement {
-	return withTableData(element, (td) => insertTableColumn(td, colIdx, position));
-}
-
-/**
- * Delete the column at `colIdx`, adjusting horizontal merge spans and
- * renormalising widths. No-op when the table has a single column.
- */
-export function removeColumn(element: TablePptxElement, colIdx: number): TablePptxElement {
-	return withTableData(element, (td) => deleteTableColumn(td, colIdx));
-}
+// These used to be hand-written element-level wrappers here. They now live in
+// `pptx-viewer-shared` (`render/table-data-grid`) so all five bindings share one
+// implementation; re-exported under the historical Angular names so the context
+// menu, cell-formatting panel and colocated tests keep importing them unchanged.
+export {
+	insertTableElementColumn as insertColumn,
+	insertTableElementRow as insertRow,
+	removeTableElementColumn as removeColumn,
+	removeTableElementRow as removeRow,
+} from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Merge / split operations

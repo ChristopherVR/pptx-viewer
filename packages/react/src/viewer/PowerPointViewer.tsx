@@ -981,6 +981,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					isShortcutHelpOpen={state.isShortcutHelpOpen}
 					isAccessibilityPanelOpen={state.isAccessibilityPanelOpen}
 					showSlideSorter={state.showSlideSorter}
+					showReadingView={state.showReadingView}
+					templateElements={state.templateElements}
 					accessibilityIssues={state.accessibilityIssues}
 					slides={slides}
 					activeSlideIndex={activeSlideIndex}
@@ -998,6 +1000,12 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					onDuplicateSlides={editorOps.slideOps.handleDuplicateSlides}
 					onToggleHideSlides={editorOps.slideOps.handleToggleHideSlides}
 					onCloseSorter={() => state.setShowSlideSorter(false)}
+					onCloseReadingView={(slideIndex) => {
+						// Leaving a view returns the editor to the slide that was on
+						// screen, exactly as leaving PowerPoint's Reading View does.
+						state.setShowReadingView(false);
+						state.setActiveSlideIndex(slideIndex);
+					}}
 					reducedMotion={reducedMotion}
 					onToggleReducedMotion={toggleReducedMotion}
 				/>
