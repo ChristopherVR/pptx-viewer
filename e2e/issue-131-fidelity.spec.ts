@@ -412,20 +412,7 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 		).toBeLessThan(2.5);
 	});
 
-	test('a !!-named shape nested in a group morphs across the grouping boundary', async ({
-		page,
-	}) => {
-		// PowerPoint's `!!` convention pairs two shapes by name wherever they sit
-		// in the shape tree. This deck keeps its centre disc top-level as
-		// `!!Content` on the overview slide and nests the identical `!!Content`
-		// inside a `!!Circle` GROUP on every topic slide. Matching only ever
-		// looked at a slide's top-level elements, so the pair never matched and
-		// the whole centre faded out and back in - the reporter's "the circle in
-		// the middle is not 1:1". Groups holding a `!!` shape are now decomposed
-		// for morph, so the nested half animates as its own object.
-		await loadDeck(page);
-		await gotoSlide(page, SLIDE.morphFirst);
-
+	async function enterSlideShow(page: Page): Promise<void> {
 		const slideShow = page.getByRole('button', { name: /^slide show$/iu });
 		if ((await slideShow.count()) > 0) {
 			await slideShow.last().click();
@@ -436,40 +423,84 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 				.click();
 		}
 		await page.waitForTimeout(900);
+	}
 
-		// Advance to slide 4, the first topic slide - it wraps its centre in the
-		// `!!Circle` group while slide 3 keeps the same `!!Content` top-level.
-		// PageDown rather than a wedge click: a wedge is a curved pie slice whose
-		// bounding-box CENTRE lands on its neighbour, so clicking it navigates
-		// somewhere unpredictable.
+	/** The `animation-name`s currently running on nodes with `data-element-id`. */
+	async function animationNamesFor(page: Page, elementId: string): Promise<string[]> {
+		return page.evaluate((id) => {
+			const names: string[] = [];
+			for (const node of document.querySelectorAll<HTMLElement>(`[data-element-id="${id}"]`)) {
+				if (node.getBoundingClientRect().width < 40) {
+					continue;
+				}
+				names.push(getComputedStyle(node).animationName);
+			}
+			return names;
+		}, elementId);
+	}
+
+	test('the centre DISSOLVES when only one slide groups it, and morphs when both do', async ({
+		page,
+	}) => {
+		// The reporter: "still issues with how the middle part transition works for
+		// different clicks around the circle. They are not behaving 1:1."
+		//
+		// This deck keeps its centre disc top-level as `!!Content` on the overview
+		// slide and nests the identical `!!Content` inside a `!!Circle` GROUP on
+		// every topic slide. PowerPoint matches a morph level by level and only
+		// descends into a group once the group itself has paired, so:
+		//
+		//   overview -> topic  the centre has no counterpart and DISSOLVES. Frames
+		//                      of the real transition (PowerPoint 16, sampled 25ms
+		//                      apart) read RGB 39,40,42 at the disc's centre at 0ms,
+		//                      174,194,204 (the artwork BEHIND it) from 324ms to
+		//                      449ms, and 39,40,42 again by 983ms.
+		//   topic -> topic     the two `!!Circle` groups pair, so their contents do
+		//                      too and the same pixel holds 39,40,42 throughout.
+		//
+		// Pairing the shape with the group instead held the centre solid across the
+		// first hop, so it popped instead of dissolving.
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.morphFirst);
+		await enterSlideShow(page);
+
+		// 3 -> 4. PageDown rather than a wedge click: a wedge is a curved pie slice
+		// whose bounding-box CENTRE lands on its neighbour, so clicking it
+		// navigates somewhere unpredictable.
 		await page.keyboard.press('PageDown');
 
-		// The nested `!!Content` on the ARRIVING slide must carry a morph
-		// animation of its own. Every binding stamps the child's core element id,
-		// so this is one assertion for all five.
+		// The arriving `!!Circle` group dissolves in AS A WHOLE...
 		await expect
 			.poll(
-				async () =>
-					page.evaluate(() => {
-						let animated = 0;
-						for (const node of document.querySelectorAll<HTMLElement>(
-							'[data-element-id="ppt/slides/slide4.xml-group-0-shape-0"]',
-						)) {
-							if (node.getBoundingClientRect().width < 100) {
-								continue;
-							}
-							if (getComputedStyle(node).animationName.includes('pptx-morph')) {
-								animated += 1;
-							}
-						}
-						return animated;
-					}),
+				async () => (await animationNamesFor(page, 'ppt/slides/slide4.xml-group-0')).join(' '),
 				{
-					message: 'the group-nested !!Content animates as its own morph object',
+					message: 'the ungrouped-on-the-other-side centre dissolves in as one object',
 					timeout: 8000,
 				},
 			)
-			.toBeGreaterThan(0);
+			.toContain('pptx-morph-fadein');
+		// ...so its `!!Content` child must NOT be animating on its own.
+		expect(
+			(await animationNamesFor(page, 'ppt/slides/slide4.xml-group-0-shape-0')).filter((name) =>
+				name.includes('pptx-morph'),
+			),
+			'the nested !!Content does not pair across the grouping boundary',
+		).toStrictEqual([]);
+
+		await page.waitForTimeout(1400);
+
+		// 4 -> 5: both slides group the centre, so now the contents DO pair.
+		await page.keyboard.press('PageDown');
+		await expect
+			.poll(
+				async () =>
+					(await animationNamesFor(page, 'ppt/slides/slide5.xml-group-0-shape-0')).join(' '),
+				{
+					message: 'two paired !!Circle groups carry their !!Content through',
+					timeout: 8000,
+				},
+			)
+			.toMatch(/pptx-morph-\d/u);
 	});
 
 	test('heading rhythm matches PowerPoint down the slide-13 panel (1.2 line height + endParaRPr blank lines)', async ({
