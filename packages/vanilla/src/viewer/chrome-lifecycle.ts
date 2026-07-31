@@ -4,6 +4,7 @@ import type {
 	PresentationSnapshot,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
+import { isPresentationAdvanceClick } from 'pptx-viewer-shared';
 
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
@@ -11,6 +12,7 @@ import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
 import { isSwipeAdvanceBlocked } from './presentation-advance-gate';
+import { attachAutoAdvance } from './presentation-auto-advance';
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
@@ -198,7 +200,9 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		if (!state.presenting || !(event.target instanceof Element)) {
 			return;
 		}
-		if (event.target.closest('button, a, input, select, textarea, [role="dialog"]')) {
+		// Live slide content and show chrome own their own clicks; the shared
+		// rule keeps every binding advancing on exactly the same targets.
+		if (!isPresentationAdvanceClick(event.target)) {
 			return;
 		}
 		if (!event.target.closest('.pptxv-stage')) {
@@ -216,8 +220,19 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		deps.next();
 	};
 	chrome.root.addEventListener('click', onPresentationClick);
+
+	// PowerPoint's "Advance slide: After <n>". Without it a deck whose slide also
+	// sets "on mouse click" OFF has no way forward at all: the gate above
+	// swallows every click and tap, and the show sits there for ever.
+	const detachAutoAdvance = attachAutoAdvance({
+		getState: () => store.get(),
+		subscribe: (listener) => store.subscribe(listener),
+		next: () => deps.next(),
+	});
+
 	const detachPresentationClick = (): void => {
 		chrome.root.removeEventListener('click', onPresentationClick);
+		detachAutoAdvance();
 		detachEndScreen();
 		endScreen.remove();
 	};
