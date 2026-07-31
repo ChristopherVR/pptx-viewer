@@ -91,6 +91,67 @@ test.describe('landing dropzone browse controls', () => {
 		await expectFileChooser(page, () => hintLabel(page).click());
 	});
 
+	/**
+	 * The reported symptom was "the browse button styling is wrong at
+	 * 1920x1080", so the layout is pinned at exactly that viewport. Everything
+	 * asserted here is something a person looking at the landing page would
+	 * notice: the two controls sit on one row, that row is centred in the dashed
+	 * card with real breathing room, and the primary control is actually painted
+	 * (not a default UA button, and not identical to the secondary one).
+	 */
+	test.describe('at 1920x1080', () => {
+		test.use({ viewport: { width: 1920, height: 1080 } });
+
+		test('the Browse control is a painted primary button, centred on one row', async ({ page }) => {
+			await gotoLanding(page);
+			const zoneBox = (await dropzone(page).boundingBox())!;
+			const browseBox = (await browseButton(page).boundingBox())!;
+			const newBox = (await page
+				.getByRole('button', { name: /new presentation/iu })
+				.first()
+				.boundingBox())!;
+
+			// One row: a wrapped action row is the classic wide-viewport styling bug.
+			expect(Math.abs(browseBox.y - newBox.y)).toBeLessThanOrEqual(2);
+			expect(browseBox.x + browseBox.width).toBeLessThanOrEqual(newBox.x);
+
+			// The row (not just the first button) is centred in the dashed card.
+			const rowCentre = (browseBox.x + newBox.x + newBox.width) / 2;
+			expect(Math.abs(rowCentre - (zoneBox.x + zoneBox.width / 2))).toBeLessThanOrEqual(2);
+
+			// Well inside the dashed border, never flush against it or spilling out.
+			expect(browseBox.x - zoneBox.x).toBeGreaterThanOrEqual(24);
+			expect(zoneBox.y + zoneBox.height - (browseBox.y + browseBox.height)).toBeGreaterThanOrEqual(
+				24,
+			);
+
+			// A real, comfortable hit target.
+			expect(browseBox.height).toBeGreaterThanOrEqual(32);
+			expect(browseBox.height).toBeLessThanOrEqual(48);
+			expect(browseBox.width).toBeGreaterThanOrEqual(80);
+
+			const paint = await browseButton(page).evaluate((node) => {
+				const own = getComputedStyle(node);
+				const sibling = [...node.parentElement!.querySelectorAll('button')].find(
+					(other) => other !== node,
+				);
+				return {
+					background: own.backgroundColor,
+					radius: Number.parseFloat(own.borderRadius),
+					fontSize: Number.parseFloat(own.fontSize),
+					cursor: own.cursor,
+					siblingBackground: sibling ? getComputedStyle(sibling).backgroundColor : null,
+				};
+			});
+			// Styled, not the browser's default grey box.
+			expect(paint.background).not.toBe('rgba(0, 0, 0, 0)');
+			expect(paint.radius).toBeGreaterThan(0);
+			expect(paint.fontSize).toBeGreaterThanOrEqual(13);
+			// Visibly the primary of the two.
+			expect(paint.background).not.toBe(paint.siblingBackground);
+		});
+	});
+
 	test('a deck picked through the Browse button renders', async ({ page }) => {
 		await gotoLanding(page);
 		const chooser = await expectFileChooser(page, () => browseButton(page).click());
