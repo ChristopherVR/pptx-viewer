@@ -302,6 +302,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		movePresentationSlide,
 		navigateToSlide,
 		slideCount: slides.length,
+		showSlideIndexes: visibleSlideIndexes,
 		onSetMode,
 		onSetPointerTool,
 		onEraseAnnotations,

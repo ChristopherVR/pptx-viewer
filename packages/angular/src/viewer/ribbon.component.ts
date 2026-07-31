@@ -175,6 +175,8 @@ import type { RibbonTab } from './ribbon-types';
 					(zoomToFit)="zoomToFit.emit()"
 					(toggleEyedropper)="toggleEyedropper.emit()"
 					(openSetUpSlideShow)="openSetUpSlideShow.emit()"
+					[activeSlideHidden]="activeSlideHidden()"
+					(toggleHideSlide)="toggleHideSlide.emit()"
 					(openCompare)="openCompare.emit()"
 					(openShortcuts)="openShortcuts.emit()"
 					(openSettings)="requestSettings()"
@@ -313,6 +315,10 @@ export class RibbonComponent {
 	readonly openEquationDialog = output<void>();
 	/** Emitted when the user clicks "Set Up Show" in the Slide Show tab. */
 	readonly openSetUpSlideShow = output<void>();
+	/** Emitted when the user clicks "Hide Slide" in the Slide Show tab. */
+	readonly toggleHideSlide = output<void>();
+	/** Whether the active slide is hidden, for Hide Slide's pressed state. */
+	readonly activeSlideHidden = input<boolean>(false);
 	/** Emitted when the user clicks "Compare" in the Review tab. */
 	readonly openCompare = output<void>();
 	/** Emitted when the user clicks "Password" in the Review tab. */

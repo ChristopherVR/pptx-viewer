@@ -210,6 +210,7 @@ export function useViewerBuildingBlocks(
 		printHandlers,
 		propertyHandlers,
 		dialogs,
+		activeSlideIndex,
 		slideOps: editorOps.slideOps,
 		ops: editorOps.ops,
 		onSetMode: handleSetMode,

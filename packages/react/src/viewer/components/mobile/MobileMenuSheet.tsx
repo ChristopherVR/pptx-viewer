@@ -266,6 +266,8 @@ function MobileSectionBody({
 						onEnterPresenterView={p.onEnterPresenterView ?? (() => {})}
 						onEnterRehearsalMode={p.onEnterRehearsalMode ?? (() => {})}
 						onOpenSetUpSlideShow={p.onOpenSetUpSlideShow ?? (() => {})}
+						onToggleHideSlide={p.onToggleHideSlide ?? (() => {})}
+						activeSlideHidden={p.activeSlideHidden ?? false}
 						onOpenBroadcastDialog={p.onOpenBroadcastDialog ?? (() => {})}
 						onToggleSubtitles={p.onToggleSubtitles ?? (() => {})}
 						showSubtitles={p.showSubtitles ?? false}

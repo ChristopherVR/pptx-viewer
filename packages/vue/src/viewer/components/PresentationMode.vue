@@ -17,6 +17,7 @@ import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
+import { usePresentationShowOrder } from '../composables/usePresentationShowOrder';
 import { usePresenterSession } from '../composables/usePresenterSession';
 import { useSlideAutoAdvance } from '../composables/useSlideAutoAdvance';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
@@ -60,6 +61,8 @@ const props = withDefaults(
 		startIndex?: number;
 		startInPresenterView?: boolean;
 		presentationProperties?: PptxPresentationProperties;
+		/** Membership of the running custom show, when one is selected. */
+		activeCustomShow?: { slideRIds: string[] } | null;
 		/** File > Options > Advanced > Slide Show behavior flags. */
 		endWithBlackSlide?: boolean;
 		promptKeepInkAnnotations?: boolean;
@@ -136,6 +139,21 @@ const frameStyle = computed<CSSProperties>(() => ({
 // Navigation
 // ---------------------------------------------------------------------------
 
+/**
+ * Which slides this show visits and what a press resolves to (hidden slides
+ * skipped, custom show honoured). The rule is shared so no binding can present
+ * a slide someone deliberately hid from the room.
+ */
+const showOrder = usePresentationShowOrder({
+	slides: () => props.slides,
+	activeCustomShow: () => props.activeCustomShow,
+});
+
+/**
+ * Jump straight to a deck index. Deliberately NOT filtered by the show order:
+ * PowerPoint's typed "slide number + Enter" reaches a hidden slide on purpose,
+ * and slide-zoom tiles link to whatever slide they name.
+ */
 function goTo(index: number): void {
 	const target = clampIndex(index);
 	if (target === currentIndex.value) {
@@ -259,7 +277,7 @@ function next(): void {
 	if (playback.advance()) {
 		return; // revealed an animation build step; stay on the slide
 	}
-	if (currentIndex.value >= props.slides.length - 1) {
+	if (!showOrder.hasNext(currentIndex.value)) {
 		if (showOptions.value.endWithBlackSlide) {
 			showEndScreen.value = true;
 		} else {
@@ -269,7 +287,7 @@ function next(): void {
 		}
 		return;
 	}
-	goTo(currentIndex.value + 1);
+	goTo(showOrder.next(currentIndex.value));
 }
 
 function prev(): void {
@@ -286,7 +304,7 @@ function prev(): void {
 	}
 	// PowerPoint shows a slide you step BACK onto with its builds already played.
 	playback.markNextEntryCompleted();
-	goTo(currentIndex.value - 1);
+	goTo(showOrder.previous(currentIndex.value));
 }
 
 /**
@@ -522,10 +540,10 @@ function handleKeyDown(event: KeyboardEvent): void {
 			prev();
 			return;
 		case 'first':
-			goTo(0);
+			goTo(showOrder.first(0));
 			return;
 		case 'last':
-			goTo(props.slides.length - 1);
+			goTo(showOrder.last(props.slides.length - 1));
 			return;
 		case 'goto': {
 			const index = mapped.slideNumber - 1;

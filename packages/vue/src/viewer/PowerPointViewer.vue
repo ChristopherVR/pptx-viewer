@@ -1885,6 +1885,8 @@ const ribbonProps = useRibbonProps({
 	showSelectionPane,
 	showSubtitles,
 	activeSlide,
+	activeSlideIndex,
+	toggleSlideHidden,
 	presenting,
 	canDistribute,
 	shareOpen,

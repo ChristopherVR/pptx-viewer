@@ -28,6 +28,8 @@
 		onrehearse,
 		onsubtitles,
 		oncustomshows,
+		onhideslide,
+		activeSlideHidden = false,
 		subtitlesEnabled = false,
 	}: {
 		onfrombeginning: () => void;
@@ -38,6 +40,13 @@
 		onrehearse: () => void;
 		onsubtitles: () => void;
 		oncustomshows: () => void;
+		/**
+		 * PowerPoint's Hide Slide: mark the ACTIVE slide to be skipped during the
+		 * show while it stays in the deck, the thumbnail rail and the sorter.
+		 */
+		onhideslide: () => void;
+		/** Whether the active slide is hidden, for Hide Slide's pressed state. */
+		activeSlideHidden?: boolean;
 		subtitlesEnabled?: boolean;
 	} = $props();
 	const t = useTranslator();
@@ -105,7 +114,11 @@
 		>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M8 15h4M6 3v4M12 8v4M10 13v4" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.slideShow.hideSlide')} disabled>
+		<RibbonCommand
+			label={t('pptx.slideShow.hideSlide')}
+			active={activeSlideHidden}
+			onclick={onhideslide}
+		>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 10S5.5 5 10 5s7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z" /><path d="m4 4 12 12" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand

@@ -176,3 +176,110 @@ describe('presentationController (native-timing)', () => {
 		expect(controller.transition).toBeNull();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Hidden slides ("Hide Slide") and the end of the show
+// ---------------------------------------------------------------------------
+
+/** A deck of `hidden` flags plus the controller driving it. */
+function showHarness(hidden: boolean[], endWithBlackSlide?: boolean) {
+	const deck = new Deck();
+	deck.slides = hidden.map((isHidden, index) =>
+		slide(`s${index + 1}`, { slideNumber: index + 1, hidden: isHidden }),
+	);
+	const exit = vi.fn();
+	const controller = new PresentationController({
+		getSlides: () => deck.slides,
+		getCurrentIndex: () => deck.index,
+		navigate: (i: number) => {
+			deck.index = i;
+		},
+		exit,
+		...(endWithBlackSlide === undefined ? {} : { getEndWithBlackSlide: () => endWithBlackSlide }),
+	});
+	controller.start();
+	return { deck, controller, exit };
+}
+
+describe('presentationController hidden slides', () => {
+	it('skips a hidden slide advancing forward', () => {
+		const { deck, controller } = showHarness([false, true, false]);
+		controller.advance();
+		expect(deck.index).toBe(2);
+	});
+
+	it('skips a hidden slide going backward', () => {
+		const { deck, controller } = showHarness([false, true, false]);
+		deck.index = 2;
+		controller.previousSlide();
+		expect(deck.index).toBe(0);
+	});
+
+	it('stays on the first show slide on a backward press', () => {
+		const { deck, controller } = showHarness([false, false]);
+		controller.previousSlide();
+		expect(deck.index).toBe(0);
+	});
+
+	it('ends the show at the last VISIBLE slide when trailing slides are hidden', () => {
+		const { deck, controller } = showHarness([false, false, true, true]);
+		deck.index = 1;
+		controller.advance();
+		expect(deck.index).toBe(1);
+		expect(controller.endOfShowVisible).toBeTruthy();
+	});
+
+	it('lands Home / End on the first / last VISIBLE slide', () => {
+		const { deck, controller } = showHarness([true, false, false, true]);
+		controller.lastSlide();
+		expect(deck.index).toBe(2);
+		controller.firstSlide();
+		expect(deck.index).toBe(1);
+	});
+
+	it('escapes forward from a hidden slide reached by a typed number', () => {
+		// `viewer.goTo` (the typed-number jump) is deliberately unfiltered, so the
+		// show can be sitting on a hidden slide when the next advance arrives.
+		const { deck, controller } = showHarness([false, true, false]);
+		deck.index = 1;
+		controller.advance();
+		expect(deck.index).toBe(2);
+	});
+
+	it('presents every slide when the whole deck is hidden', () => {
+		const { deck, controller } = showHarness([true, true]);
+		controller.advance();
+		expect(deck.index).toBe(1);
+	});
+});
+
+describe('presentationController end of show', () => {
+	it('raises the black end screen by default', () => {
+		const { controller, exit } = showHarness([false]);
+		controller.advance();
+		expect(controller.endOfShowVisible).toBeTruthy();
+		expect(exit).not.toHaveBeenCalled();
+	});
+
+	it('exits the show outright when the option is off', () => {
+		const { controller, exit } = showHarness([false], false);
+		controller.advance();
+		expect(controller.endOfShowVisible).toBeFalsy();
+		expect(exit).toHaveBeenCalledOnce();
+	});
+
+	it('exits on a second forward press from the end screen', () => {
+		const { controller, exit } = showHarness([false]);
+		controller.advance();
+		controller.advance();
+		expect(exit).toHaveBeenCalledOnce();
+	});
+
+	it('dismisses the end screen on a backward press without exiting', () => {
+		const { controller, exit } = showHarness([false]);
+		controller.advance();
+		expect(controller.retreat()).toBeTruthy();
+		expect(controller.endOfShowVisible).toBeFalsy();
+		expect(exit).not.toHaveBeenCalled();
+	});
+});

@@ -31,6 +31,13 @@ export interface SlideShowSectionProps {
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSetUpSlideShow: () => void;
+	/**
+	 * PowerPoint's Hide Slide toggle: marks the ACTIVE slide to be skipped during
+	 * the show while leaving it in the deck, the thumbnail rail and the sorter.
+	 */
+	onToggleHideSlide: () => void;
+	/** Whether the active slide is currently hidden, for the toggle's pressed state. */
+	activeSlideHidden: boolean;
 	onOpenBroadcastDialog: () => void;
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
@@ -130,7 +137,9 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 				<RibbonCommand
 					label={t('pptx.slideShow.hideSlide', { defaultValue: 'Hide Slide' })}
 					icon={<LuEyeOff />}
-					disabled
+					onClick={p.onToggleHideSlide}
+					active={p.activeSlideHidden}
+					pressed={p.activeSlideHidden}
 				/>
 				<RibbonCommand
 					label={t('pptx.slideShow.rehearseTimings')}

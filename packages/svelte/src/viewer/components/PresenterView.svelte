@@ -3,6 +3,7 @@
 	import {
 		formatElapsed,
 		formatTime,
+		nextPresentedSlide,
 		NOTES_FONT_SIZE_DEFAULT,
 		presenterPaneAdvancesOnClick,
 		stepPresenterZoom,
@@ -60,7 +61,7 @@ let showSlides = $state(false);
 		return () => clearInterval(timer);
 	});
 	const slide = $derived(slides[current]);
-	const nextSlide = $derived(slides.slice(current + 1).find((candidate) => !candidate.hidden));
+	const nextSlide = $derived(nextPresentedSlide(slides, current));
 	const mainScale = $derived(
 		canvasSize.width > 0 && canvasSize.height > 0
 			? Math.min(760 / canvasSize.width, 460 / canvasSize.height)

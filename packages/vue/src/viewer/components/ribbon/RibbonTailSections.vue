@@ -34,6 +34,8 @@ const s = computed(() => props.toolbarSection);
 		:on-enter-presenter-view="props.onEnterPresenterView ?? (() => {})"
 		:on-enter-rehearsal-mode="props.onEnterRehearsalMode ?? (() => {})"
 		:on-open-set-up-slide-show="props.onOpenSetUpSlideShow ?? (() => {})"
+		:on-toggle-hide-slide="props.onToggleHideSlide ?? (() => {})"
+		:active-slide-hidden="props.activeSlideHidden ?? false"
 		:on-open-broadcast-dialog="props.onOpenBroadcastDialog ?? (() => {})"
 		:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
 		:show-subtitles="props.showSubtitles ?? false"

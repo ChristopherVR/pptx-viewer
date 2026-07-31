@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	createInitialPresentationSnapshot,
+	nextPresentedSlide,
 	presenterPaneAdvancesOnClick,
 	stepPresenterZoom,
 } from 'pptx-viewer-shared';
@@ -145,7 +146,7 @@ function toggleAudience(): void {
 // -- Slide data -------------------------------------------------------------
 const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.currentSlideIndex]);
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	props.slides.slice(props.currentSlideIndex + 1).find((slide) => !slide.hidden),
+	nextPresentedSlide(props.slides, props.currentSlideIndex),
 );
 
 const notesText = computed(() => currentSlide.value?.notes ?? '');

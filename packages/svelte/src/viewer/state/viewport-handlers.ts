@@ -72,14 +72,16 @@ function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolea
 			// `retreat()` owns the end screen and the replay of a slide entered
 			// backward; only when it declines does the show leave the slide.
 			if (!deps.presentation.retreat()) {
-				deps.viewer.prev();
+				// The controller owns the show order, so a hidden slide is skipped
+				// going back exactly as it is going forward.
+				deps.presentation.previousSlide();
 			}
 			return true;
 		case 'first':
-			deps.viewer.first();
+			deps.presentation.firstSlide();
 			return true;
 		case 'last':
-			deps.viewer.last();
+			deps.presentation.lastSlide();
 			return true;
 		case 'goto': {
 			const index = mapped.slideNumber - 1;

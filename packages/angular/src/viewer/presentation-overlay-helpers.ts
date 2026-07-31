@@ -6,7 +6,16 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import { isClickAdvanceAllowed, resolveAutoAdvanceDelayMs } from '../internal/shared';
+import {
+	firstShowSlideIndex,
+	hasShowSlideAfter,
+	isClickAdvanceAllowed,
+	lastShowSlideIndex,
+	nextShowSlideIndex,
+	previousShowSlideIndex,
+	resolveAutoAdvanceDelayMs,
+	resolveShowSlideIndexes,
+} from '../internal/shared';
 
 /**
  * Whether a click/tap/swipe advance must be swallowed instead of moving to the
@@ -64,39 +73,31 @@ export function clampIndex(index: number, count: number): number {
 /**
  * Return the next visible (non-hidden) slide index after `current`.
  * Wraps around to `current` if no subsequent visible slide exists.
+ *
+ * Thin adapter over the shared show-order rule: Angular used to own this logic
+ * outright, which is exactly why the other four bindings presented hidden
+ * slides. Kept as a named export because the overlay's tests and the navigator
+ * read better in terms of "next visible slide" than raw index lists.
  */
 export function nextVisibleIndex(current: number, slides: readonly PptxSlide[]): number {
-	const count = slides.length;
-	if (count === 0) {
+	if (slides.length === 0) {
 		return 0;
 	}
-	for (let offset = 1; offset < count; offset++) {
-		const candidate = (current + offset) % count;
-		if (!slides[candidate].hidden) {
-			return candidate;
-		}
-	}
-	// All remaining slides are hidden; stay at current.
-	return current;
+	const order = resolveShowSlideIndexes(slides);
+	return nextShowSlideIndex(current, order, { loop: true }) ?? current;
 }
 
 /**
  * Return the previous visible (non-hidden) slide index before `current`.
- * Wraps around to `current` if no earlier visible slide exists.
+ * Returns `current` when no earlier visible slide exists: PowerPoint never
+ * wraps backward off the first slide.
  */
 export function prevVisibleIndex(current: number, slides: readonly PptxSlide[]): number {
-	const count = slides.length;
-	if (count === 0) {
+	if (slides.length === 0) {
 		return 0;
 	}
-	for (let offset = 1; offset < count; offset++) {
-		const candidate = (((current - offset) % count) + count) % count;
-		if (!slides[candidate].hidden) {
-			return candidate;
-		}
-	}
-	// All preceding slides are hidden; stay at current.
-	return current;
+	const order = resolveShowSlideIndexes(slides);
+	return previousShowSlideIndex(current, order) ?? current;
 }
 
 /**
@@ -115,16 +116,21 @@ export function fitZoom(canvasW: number, canvasH: number, vw: number, vh: number
 /**
  * Whether a visible (non-hidden) slide exists strictly AFTER `current`.
  *
- * `nextVisibleIndex` wraps modulo the deck length, which makes a show loop for
- * ever. PowerPoint only loops when "Loop continuously until Esc" is set;
- * otherwise running past the last slide ends the show. Callers use this to tell
- * "there is a next slide" from "we just wrapped".
+ * `nextVisibleIndex` wraps, which would make a show loop for ever. PowerPoint
+ * only loops when "Loop continuously until Esc" is set; otherwise running past
+ * the last slide ends the show. Callers use this to tell "there is a next
+ * slide" from "we just wrapped".
  */
 export function hasVisibleSlideAfter(current: number, slides: readonly PptxSlide[]): boolean {
-	for (let index = current + 1; index < slides.length; index++) {
-		if (!slides[index].hidden) {
-			return true;
-		}
-	}
-	return false;
+	return hasShowSlideAfter(current, resolveShowSlideIndexes(slides));
+}
+
+/** The show's first visible slide (Home), or 0 for an empty deck. */
+export function firstVisibleIndex(slides: readonly PptxSlide[]): number {
+	return firstShowSlideIndex(resolveShowSlideIndexes(slides)) ?? 0;
+}
+
+/** The show's last visible slide (End), or 0 for an empty deck. */
+export function lastVisibleIndex(slides: readonly PptxSlide[]): number {
+	return lastShowSlideIndex(resolveShowSlideIndexes(slides)) ?? 0;
 }

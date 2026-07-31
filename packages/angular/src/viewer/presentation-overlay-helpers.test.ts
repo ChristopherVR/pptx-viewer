@@ -191,10 +191,11 @@ describe('prevVisibleIndex', () => {
 		expect(prevVisibleIndex(2, s)).toBe(2);
 	});
 
-	it('wraps around before the start and finds a visible slide', () => {
+	it('stays put at the start of the show instead of wrapping backward', () => {
 		const s = slides(false, false, false);
-		// From 0 → wraps to 2, which is visible.
-		expect(prevVisibleIndex(0, s)).toBe(2);
+		// PowerPoint never wraps a backward press off slide 1; Angular used to
+		// jump the show to the LAST slide here, which no other binding does.
+		expect(prevVisibleIndex(0, s)).toBe(0);
 	});
 
 	it('handles an empty slide list', () => {

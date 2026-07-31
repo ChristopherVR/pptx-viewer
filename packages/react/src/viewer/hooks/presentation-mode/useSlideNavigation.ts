@@ -1,5 +1,10 @@
 import type { PptxAction, PptxSlide } from 'pptx-viewer-core';
-import { resolveAutoAdvanceDelayMs } from 'pptx-viewer-shared';
+import {
+	hasShowSlideAfter,
+	nextShowSlideIndex,
+	previousShowSlideIndex,
+	resolveAutoAdvanceDelayMs,
+} from 'pptx-viewer-shared';
 import { useRef, useCallback } from 'react';
 
 import type { ViewerMode } from '../../types';
@@ -133,6 +138,9 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				return;
 			}
 
+			// The show order (custom-show membership minus hidden slides) is resolved
+			// upstream; the shared helpers below turn it into "what comes next", so
+			// a slide the author hid is skipped in every binding identically.
 			const availableSlideIndexes =
 				visibleSlideIndexes.length > 0
 					? visibleSlideIndexes
@@ -141,12 +149,11 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				return;
 			}
 
-			const currentVisiblePosition = availableSlideIndexes.indexOf(presentationSlideIndex);
-			const normalizedCurrentPosition = currentVisiblePosition >= 0 ? currentVisiblePosition : 0;
-			const nextPosition = normalizedCurrentPosition + direction;
+			const pastLastSlide =
+				direction === 1 && !hasShowSlideAfter(presentationSlideIndex, availableSlideIndexes);
 
 			// --- Rehearsal: advancing past last slide ends rehearsal ---
-			if (rehearsing && direction === 1 && nextPosition >= availableSlideIndexes.length) {
+			if (rehearsing && pastLastSlide) {
 				recordCurrentSlideTime(presentationSlideIndex);
 				try {
 					if (document.fullscreenElement) {
@@ -164,31 +171,17 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 
 			// Advancing past the last slide (no loop, not rehearsing): let the
 			// presentation hook decide (black end-of-show slide or exit).
-			if (
-				!loopContinuously &&
-				!rehearsing &&
-				direction === 1 &&
-				nextPosition >= availableSlideIndexes.length &&
-				onAdvancePastLastSlide
-			) {
+			if (!loopContinuously && !rehearsing && pastLastSlide && onAdvancePastLastSlide) {
 				onAdvancePastLastSlide();
 				return;
 			}
 
-			// Loop wrap: if advancing past the last slide and loop is enabled,
-			// wrap around to the first slide instead of clamping.
-			let resolvedPosition: number;
-			if (
-				loopContinuously &&
-				!rehearsing &&
-				direction === 1 &&
-				nextPosition >= availableSlideIndexes.length
-			) {
-				resolvedPosition = 0;
-			} else {
-				resolvedPosition = Math.min(availableSlideIndexes.length - 1, Math.max(0, nextPosition));
-			}
-			const nextSlideIndex = availableSlideIndexes[resolvedPosition];
+			const nextSlideIndex =
+				direction === 1
+					? nextShowSlideIndex(presentationSlideIndex, availableSlideIndexes, {
+							loop: Boolean(loopContinuously) && !rehearsing,
+						})
+					: previousShowSlideIndex(presentationSlideIndex, availableSlideIndexes);
 			if (nextSlideIndex === undefined || nextSlideIndex === presentationSlideIndex) {
 				return;
 			}

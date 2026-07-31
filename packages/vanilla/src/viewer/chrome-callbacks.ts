@@ -38,6 +38,8 @@ export interface ChromeCallbackDeps {
 	openHeaderFooter(): void;
 	openCompare(): void;
 	openSetUpSlideShow(): void;
+	/** PowerPoint's Hide Slide: toggle the active slide's skip-in-show flag. */
+	toggleHideCurrentSlide(): void;
 	startRehearsal(): void;
 	toggleSubtitles(): void;
 	openSelectionPane(): void;
@@ -158,6 +160,7 @@ export function buildChromeCallbacks(
 			openPresenterView: () => deps.openPresenterView(),
 			openBroadcast: () => deps.openBroadcast(),
 			openSetUp: () => deps.openSetUpSlideShow(),
+			toggleHideSlide: () => deps.toggleHideCurrentSlide(),
 			startRehearsal: () => deps.startRehearsal(),
 			openCustomShows: () => deps.openCustomShows(),
 			toggleSubtitles: () => deps.toggleSubtitles(),

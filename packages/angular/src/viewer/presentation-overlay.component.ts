@@ -129,6 +129,13 @@ export class PresentationOverlayComponent implements OnInit {
 	 * screen so the room never sees the editing chrome.
 	 */
 	readonly sessionEnded = input<boolean>(false);
+	/**
+	 * File > Options > Advanced > "End with black slide". PowerPoint's default is
+	 * ON: advancing past the last slide raises the black "End of slide show"
+	 * screen and only the NEXT forward input ends the show. Off ends the show at
+	 * once instead of sitting on the last slide swallowing every advance.
+	 */
+	readonly endWithBlackSlide = input<boolean>(true);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -168,6 +175,7 @@ export class PresentationOverlayComponent implements OnInit {
 		annotations: this.annotations,
 		emitIndex: (index) => this.indexChange.emit(index),
 		requestClose: () => this.emitClosed(),
+		endWithBlackSlide: () => this.endWithBlackSlide(),
 	});
 
 	/**

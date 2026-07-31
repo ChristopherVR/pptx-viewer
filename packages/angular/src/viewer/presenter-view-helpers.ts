@@ -26,6 +26,7 @@
 import type { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
+import { nextPresentedSlide } from '../internal/shared';
 import type { StyleMap } from './element-style';
 
 export {
@@ -125,7 +126,7 @@ export function currentSlideAt(slides: readonly PptxSlide[], index: number): Ppt
  * slide, skipping hidden slides just as the live show does.
  */
 export function nextSlideAfter(slides: readonly PptxSlide[], index: number): PptxSlide | undefined {
-	return slides.slice(index + 1).find((slide) => !slide.hidden);
+	return nextPresentedSlide(slides, index);
 }
 
 /** "Slide 3 of 12" style label for the current position. */

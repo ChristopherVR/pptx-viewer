@@ -40,6 +40,13 @@ interface Props {
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSetUpSlideShow: () => void;
+	/**
+	 * PowerPoint's Hide Slide toggle: marks the ACTIVE slide to be skipped during
+	 * the show while leaving it in the deck, the thumbnail rail and the sorter.
+	 */
+	onToggleHideSlide: () => void;
+	/** Whether the active slide is hidden, for the toggle's pressed state. */
+	activeSlideHidden: boolean;
 	onOpenBroadcastDialog: () => void;
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
@@ -122,7 +129,7 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 		<Settings :class="ic" />
 		{{ t('pptx.slideShow.setUp') }}
 	</button>
-	<button disabled :class="pill">
+	<button :class="pill" :aria-pressed="props.activeSlideHidden" @click="props.onToggleHideSlide()">
 		<EyeOff :class="ic" />
 		{{ t('pptx.slideShow.hideSlide') }}
 	</button>

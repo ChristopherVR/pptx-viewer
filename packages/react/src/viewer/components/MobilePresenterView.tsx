@@ -5,6 +5,7 @@ import {
 	isLastSlide,
 	mobileElapsedSince,
 	mobileSlideCounter,
+	nextPresentedSlide,
 } from 'pptx-viewer-shared';
 /**
  * MobilePresenterView: single-column phone layout for presenter/speaker view.
@@ -69,8 +70,9 @@ export function MobilePresenterView({
 
 	// -- Slide data ----------------------------------------------------------
 	const currentSlide = slides[currentSlideIndex];
-	const nextSlide =
-		currentSlideIndex + 1 < slides.length ? slides[currentSlideIndex + 1] : undefined;
+	// The preview must be the slide the next advance really lands on, so it runs
+	// the shared show-order rule and skips slides the author hid.
+	const nextSlide = nextPresentedSlide(slides, currentSlideIndex);
 
 	if (!currentSlide) {
 		return (

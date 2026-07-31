@@ -93,6 +93,12 @@ export interface RibbonSlideShowHandlers {
 	openPresenterView(): void;
 	openBroadcast(): void;
 	openSetUp(): void;
+	/**
+	 * PowerPoint's Hide Slide: toggle the ACTIVE slide's `hidden` flag, which
+	 * makes the show skip it while it stays in the deck, the thumbnail rail and
+	 * the sorter.
+	 */
+	toggleHideSlide(): void;
 	startRehearsal(): void;
 	openCustomShows(): void;
 	toggleSubtitles(): void;

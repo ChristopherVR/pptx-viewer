@@ -21,7 +21,9 @@ import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
 import {
 	clampIndex,
+	firstVisibleIndex,
 	hasVisibleSlideAfter,
+	lastVisibleIndex,
 	nextVisibleIndex,
 	prevVisibleIndex,
 } from './presentation-overlay-helpers';
@@ -50,6 +52,13 @@ export interface ShowNavigatorDeps {
 	emitIndex: (index: number) => void;
 	/** Ask the host to end the show; the host guards against double-closing. */
 	requestClose: () => void;
+	/**
+	 * File > Options > Advanced > "End with black slide". PowerPoint's default
+	 * is ON: running past the last slide raises a black "End of slide show"
+	 * screen and only the NEXT forward input ends the show. Turning it off ends
+	 * the show immediately instead. Undefined means the PowerPoint default.
+	 */
+	endWithBlackSlide?: () => boolean | undefined;
 }
 
 export class PresentationShowNavigator {
@@ -177,10 +186,12 @@ export class PresentationShowNavigator {
 				next = prevVisibleIndex(current, slides);
 				break;
 			case 'first':
-				next = clampIndex(0, count);
+				// Home goes to the START OF THE SHOW, which is not slide 1 when the
+				// author hid it. Clamped anyway so an empty order cannot produce -1.
+				next = clampIndex(firstVisibleIndex(slides), count);
 				break;
 			case 'last':
-				next = clampIndex(count - 1, count);
+				next = clampIndex(lastVisibleIndex(slides), count);
 				break;
 		}
 
@@ -188,6 +199,12 @@ export class PresentationShowNavigator {
 			// Nothing further to advance to. `nextVisibleIndex` would wrap back to
 			// the first slide and loop for ever; PowerPoint only loops when "Loop
 			// continuously until Esc" is set, so end the show instead.
+			if (this.deps.endWithBlackSlide?.() === false) {
+				// No black slide configured: PowerPoint ends the show outright rather
+				// than sitting on the last slide ignoring every further advance.
+				this.deps.requestClose();
+				return;
+			}
 			this.endOfShow.set(true);
 			return;
 		}

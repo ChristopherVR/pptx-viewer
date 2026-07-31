@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { nextPresentedSlide } from 'pptx-viewer-shared';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuChevronLeft, LuChevronRight, LuMinus, LuPlus } from 'react-icons/lu';
@@ -39,7 +40,7 @@ export function PresenterNotesRail({
 }: PresenterNotesRailProps): React.ReactElement {
 	const { t } = useTranslation();
 	const slide = slides[current];
-	const nextSlide = slides.slice(current + 1).find((candidate) => !candidate.hidden);
+	const nextSlide = nextPresentedSlide(slides, current);
 	const notesText = slide?.notes ?? '';
 	const notesSegments = slide?.notesSegments;
 	const [notesDraft, setNotesDraft] = useState(notesText);

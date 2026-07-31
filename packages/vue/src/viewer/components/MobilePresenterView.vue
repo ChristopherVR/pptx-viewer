@@ -8,6 +8,7 @@ import {
 	mobileElapsedSince,
 	mobileNextThumbSize,
 	mobileSlideCounter,
+	nextPresentedSlide,
 } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -68,10 +69,10 @@ const elapsedText = computed(() =>
 
 // -- Slide data -------------------------------------------------------------
 const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.currentSlideIndex]);
+// The preview must be the slide the next advance really lands on, so it runs
+// the shared show-order rule and skips slides the author hid.
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	props.currentSlideIndex + 1 < props.slides.length
-		? props.slides[props.currentSlideIndex + 1]
-		: undefined,
+	nextPresentedSlide(props.slides, props.currentSlideIndex),
 );
 
 const counterText = computed(() =>

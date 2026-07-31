@@ -1,0 +1,160 @@
+import type { PptxSlide } from 'pptx-viewer-core';
+import { describe, expect, it } from 'vitest';
+
+import type { AnimationPlaybackService } from './animation-playback.service';
+import type { PresentationAnnotationsService } from './presentation-annotations.service';
+import { PresentationShowNavigator } from './presentation-show-navigator';
+
+/**
+ * The show navigator's slide-selection rules, driven directly (no TestBed): the
+ * class is a plain signal holder, so its dependencies are trivially faked.
+ */
+
+function slides(...hidden: boolean[]): PptxSlide[] {
+	return hidden.map(
+		(isHidden, index) =>
+			({
+				id: `s${index + 1}`,
+				rId: `rId${index + 1}`,
+				slideNumber: index + 1,
+				elements: [],
+				hidden: isHidden,
+			}) as PptxSlide,
+	);
+}
+
+interface Harness {
+	navigator: PresentationShowNavigator;
+	emitted: number[];
+	closes: number;
+}
+
+function makeNavigator(deck: PptxSlide[], endWithBlackSlide?: boolean): Harness {
+	const emitted: number[] = [];
+	let closes = 0;
+	// Only the members the navigator actually touches are implemented.
+	const playback = {
+		advance: () => false,
+		isSeededCompleted: () => false,
+		setSlide: () => undefined,
+	} as unknown as AnimationPlaybackService;
+	const annotations = {
+		setActiveSlide: () => undefined,
+	} as unknown as PresentationAnnotationsService;
+
+	const navigator = new PresentationShowNavigator({
+		slides: () => deck,
+		currentSlide: () => deck[navigator.currentIndex()],
+		showWithAnimation: () => true,
+		playback,
+		annotations,
+		emitIndex: (index) => emitted.push(index),
+		requestClose: () => {
+			closes += 1;
+		},
+		...(endWithBlackSlide === undefined ? {} : { endWithBlackSlide: () => endWithBlackSlide }),
+	});
+	return {
+		navigator,
+		emitted,
+		get closes() {
+			return closes;
+		},
+	};
+}
+
+describe('presentationShowNavigator hidden slides', () => {
+	it('skips a hidden slide advancing forward', () => {
+		const { navigator } = makeNavigator(slides(false, true, false));
+		navigator.navigate('next');
+		expect(navigator.currentIndex()).toBe(2);
+	});
+
+	it('skips a hidden slide going backward', () => {
+		const { navigator } = makeNavigator(slides(false, true, false));
+		navigator.goToSlide(2);
+		navigator.navigate('prev');
+		expect(navigator.currentIndex()).toBe(0);
+	});
+
+	it('stays on the first show slide on a backward press', () => {
+		const { navigator } = makeNavigator(slides(false, false));
+		navigator.navigate('prev');
+		expect(navigator.currentIndex()).toBe(0);
+	});
+
+	it('ends the show at the last VISIBLE slide when trailing slides are hidden', () => {
+		const { navigator } = makeNavigator(slides(false, false, true, true));
+		navigator.goToSlide(1);
+		navigator.navigate('next');
+		expect(navigator.currentIndex()).toBe(1);
+		expect(navigator.endOfShow()).toBeTruthy();
+	});
+
+	it('lands Home / End on the first / last VISIBLE slide', () => {
+		const { navigator } = makeNavigator(slides(true, false, false, true));
+		navigator.navigate('last');
+		expect(navigator.currentIndex()).toBe(2);
+		navigator.navigate('first');
+		expect(navigator.currentIndex()).toBe(1);
+	});
+
+	it('still reaches a hidden slide by direct jump (typed slide number)', () => {
+		const { navigator, emitted } = makeNavigator(slides(false, true, false));
+		navigator.goToSlide(1);
+		expect(navigator.currentIndex()).toBe(1);
+		expect(emitted).toStrictEqual([1]);
+	});
+
+	it('escapes forward from a hidden slide reached by number', () => {
+		const { navigator } = makeNavigator(slides(false, true, false));
+		navigator.goToSlide(1);
+		navigator.navigate('next');
+		expect(navigator.currentIndex()).toBe(2);
+	});
+
+	it('presents every slide when the whole deck is hidden', () => {
+		// Deliberate: a show that opens on an inert black screen reads as broken.
+		const { navigator } = makeNavigator(slides(true, true));
+		navigator.navigate('next');
+		expect(navigator.currentIndex()).toBe(1);
+	});
+});
+
+describe('presentationShowNavigator end of show', () => {
+	it('raises the black end screen by default', () => {
+		const harness = makeNavigator(slides(false));
+		harness.navigator.navigate('next');
+		expect(harness.navigator.endOfShow()).toBeTruthy();
+		expect(harness.closes).toBe(0);
+	});
+
+	it('raises the black end screen when the option is explicitly on', () => {
+		const harness = makeNavigator(slides(false), true);
+		harness.navigator.navigate('next');
+		expect(harness.navigator.endOfShow()).toBeTruthy();
+		expect(harness.closes).toBe(0);
+	});
+
+	it('exits the show outright when the option is off', () => {
+		const harness = makeNavigator(slides(false), false);
+		harness.navigator.navigate('next');
+		expect(harness.navigator.endOfShow()).toBeFalsy();
+		expect(harness.closes).toBe(1);
+	});
+
+	it('exits on a second forward press from the end screen', () => {
+		const harness = makeNavigator(slides(false));
+		harness.navigator.navigate('next');
+		harness.navigator.navigate('next');
+		expect(harness.closes).toBe(1);
+	});
+
+	it('dismisses the end screen on a backward press without exiting', () => {
+		const harness = makeNavigator(slides(false));
+		harness.navigator.navigate('next');
+		harness.navigator.navigate('prev');
+		expect(harness.navigator.endOfShow()).toBeFalsy();
+		expect(harness.closes).toBe(0);
+	});
+});

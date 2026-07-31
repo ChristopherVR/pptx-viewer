@@ -55,6 +55,7 @@ export function buildRibbonPropsState(input: UseRibbonPropsInput) {
 		eyedropperActive: input.eyedropperActive.value,
 		showSubtitles: input.showSubtitles.value,
 		activeSlide: input.activeSlide.value,
+		activeSlideHidden: Boolean(input.activeSlide.value?.hidden),
 		isCollaborating: input.collab.status.value === 'connected',
 		collaboratorCount: input.collab.connectedCount.value,
 	};

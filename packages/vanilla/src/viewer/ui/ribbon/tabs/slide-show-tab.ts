@@ -9,6 +9,8 @@ import type { RibbonSlideShowHandlers } from '../ribbon-types';
 export interface SlideShowTab {
 	el: HTMLElement;
 	setSubtitlesVisible(visible: boolean): void;
+	/** Reflect the active slide's `hidden` flag on the Hide Slide toggle. */
+	setHideSlideActive(active: boolean): void;
 }
 
 /** A show option rendered as a labelled checkbox, mirroring React's `RibbonToggle`. */
@@ -95,12 +97,14 @@ export function createSlideShowTab(
 		onClick: handlers.openSetUp,
 	});
 	setUp.btn.title = t('pptx.slideShow.setUpTooltip');
+	// PowerPoint's Hide Slide: skip the ACTIVE slide during the show while
+	// leaving it in the deck, the thumbnail rail and the sorter.
 	const hideSlide = makeButton(doc, {
 		label: t('pptx.slideShow.hideSlide'),
 		text: t('pptx.slideShow.hideSlide'),
-		onClick: () => {},
+		onClick: () => handlers.toggleHideSlide(),
 	});
-	hideSlide.setDisabled(true);
+	hideSlide.btn.setAttribute('aria-pressed', 'false');
 	const rehearse = makeButton(doc, {
 		label: t('pptx.slideShow.rehearseTimings'),
 		text: t('pptx.slideShow.rehearseTimings'),
@@ -150,5 +154,9 @@ export function createSlideShowTab(
 	return {
 		el,
 		setSubtitlesVisible: (visible) => subtitles.setActive(visible),
+		setHideSlideActive: (active) => {
+			hideSlide.setActive(active);
+			hideSlide.btn.setAttribute('aria-pressed', String(active));
+		},
 	};
 }

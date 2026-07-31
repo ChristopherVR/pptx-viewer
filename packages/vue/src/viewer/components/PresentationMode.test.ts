@@ -11,6 +11,7 @@ const canvasSize: CanvasSize = { width: 960, height: 540 };
 function makeSlide(id: string): PptxSlide {
 	return {
 		id,
+		rId: `r-${id}`,
 		elements: [],
 		backgroundColor: '#ffffff',
 	} as unknown as PptxSlide;
@@ -39,11 +40,22 @@ function makeTimedSlide(id: string): PptxSlide {
 	} as unknown as PptxSlide;
 }
 
+function makeHiddenSlide(id: string): PptxSlide {
+	return {
+		id,
+		rId: `r-${id}`,
+		elements: [],
+		backgroundColor: '#ffffff',
+		hidden: true,
+	} as unknown as PptxSlide;
+}
+
 function mountMode(
 	slides: PptxSlide[],
 	startIndex = 0,
 	startInPresenterView = false,
 	presentationProperties?: PptxPresentationProperties,
+	extraProps: Record<string, unknown> = {},
 ) {
 	return mount(PresentationMode, {
 		props: {
@@ -53,6 +65,7 @@ function mountMode(
 			startIndex,
 			startInPresenterView,
 			presentationProperties,
+			...extraProps,
 		},
 		attachTo: document.body,
 	});
@@ -210,6 +223,128 @@ describe('presentationMode', () => {
 		expect(wrapper.emitted('slide-change')).toHaveLength(1);
 		await settle();
 		expect(wrapper.emitted('slide-change')).toHaveLength(1);
+		wrapper.unmount();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Hidden slides ("Hide Slide") are skipped by the running show
+// ---------------------------------------------------------------------------
+
+describe('presentationMode hidden slides', () => {
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('skips a hidden slide advancing forward', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeHiddenSlide('s2'), makeSlide('s3')]);
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([2]);
+		wrapper.unmount();
+	});
+
+	it('skips a hidden slide going backward', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeHiddenSlide('s2'), makeSlide('s3')], 2);
+		pressKey('ArrowLeft');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([0]);
+		wrapper.unmount();
+	});
+
+	it('ends the show at the last VISIBLE slide when trailing slides are hidden', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeHiddenSlide('s2'), makeHiddenSlide('s3')]);
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		// No slide change: the black end-of-show screen goes up instead.
+		expect(wrapper.emitted('slide-change')).toBeUndefined();
+		expect(document.querySelector('.pptx-vue-presentation-end')).not.toBeNull();
+		wrapper.unmount();
+	});
+
+	it('lands Home / End on the first / last VISIBLE slide', async () => {
+		const wrapper = mountMode(
+			[makeHiddenSlide('s1'), makeSlide('s2'), makeSlide('s3'), makeHiddenSlide('s4')],
+			1,
+		);
+		pressKey('End');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.at(-1)).toStrictEqual([2]);
+		pressKey('Home');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.at(-1)).toStrictEqual([1]);
+		wrapper.unmount();
+	});
+
+	it('still reaches a hidden slide by its typed slide number', async () => {
+		// PowerPoint's documented escape hatch for backup slides: type the number.
+		const wrapper = mountMode([makeSlide('s1'), makeHiddenSlide('s2'), makeSlide('s3')]);
+		pressKey('2');
+		pressKey('Enter');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.at(-1)).toStrictEqual([1]);
+		wrapper.unmount();
+	});
+
+	it('escapes forward from a hidden slide reached by number', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeHiddenSlide('s2'), makeSlide('s3')], 1);
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([2]);
+		wrapper.unmount();
+	});
+
+	it('follows an active custom show membership and order', async () => {
+		const wrapper = mountMode(
+			[makeSlide('s1'), makeSlide('s2'), makeSlide('s3')],
+			0,
+			false,
+			undefined,
+			{ activeCustomShow: { slideRIds: ['r-s1', 'r-s3'] } },
+		);
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([2]);
+		wrapper.unmount();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// End of show ("End with black slide")
+// ---------------------------------------------------------------------------
+
+describe('presentationMode end of show', () => {
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('raises the black end screen by default', async () => {
+		const wrapper = mountMode([makeSlide('s1')]);
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('.pptx-vue-presentation-end')).not.toBeNull();
+		expect(wrapper.emitted('close')).toBeUndefined();
+		wrapper.unmount();
+	});
+
+	it('exits the show outright when the option is off', async () => {
+		const wrapper = mountMode([makeSlide('s1')], 0, false, undefined, {
+			endWithBlackSlide: false,
+		});
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('.pptx-vue-presentation-end')).toBeNull();
+		expect(wrapper.emitted('close')).toHaveLength(1);
+		wrapper.unmount();
+	});
+
+	it('exits on a second forward press from the end screen', async () => {
+		const wrapper = mountMode([makeSlide('s1')]);
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('close')).toHaveLength(1);
 		wrapper.unmount();
 	});
 });

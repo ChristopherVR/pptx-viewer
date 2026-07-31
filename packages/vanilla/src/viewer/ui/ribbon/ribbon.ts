@@ -55,6 +55,8 @@ export interface Ribbon {
 	setViewOptions(options: ViewToggleState): void;
 	setHasMacros(hasMacros: boolean): void;
 	setSubtitlesVisible(visible: boolean): void;
+	/** Reflect the active slide's `hidden` flag on the Hide Slide toggle. */
+	setHideSlideActive(active: boolean): void;
 	/** Reflect the inspector panel's open state on the quick-access toggle. */
 	setInspectorOpen(open: boolean): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
@@ -263,6 +265,7 @@ export function createRibbon(
 		setViewOptions: (options) => viewTab?.setViewOptions(options),
 		setHasMacros: (hasMacros) => fileTab?.setHasMacros(hasMacros),
 		setSubtitlesVisible: (visible) => slideShowTab?.setSubtitlesVisible(visible),
+		setHideSlideActive: (active) => slideShowTab?.setHideSlideActive(active),
 		setInspectorOpen: (open) => primary.setInspectorOpen(open),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		setHiddenOptionTabs,

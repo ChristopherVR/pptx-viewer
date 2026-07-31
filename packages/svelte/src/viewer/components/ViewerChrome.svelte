@@ -147,6 +147,12 @@
 		onfromcurrent={vm.onFullscreenToggle}
 		{onpresenter}
 		onsetupslideshow={() => (parityUi.setupSlideShowOpen = true)}
+		onhideslide={() =>
+			editor.commitSlides(
+				editor.slides.map((slide, index) =>
+					index === viewer.current ? { ...slide, hidden: !slide.hidden } : slide,
+				),
+			)}
 		onheaderfooter={() => (parityUi.headerFooterOpen = true)}
 		oncompare={() => void parityUi.compare.chooseFile()}
 		onshortcuts={() => (parityUi.shortcutsOpen = !parityUi.shortcutsOpen)}

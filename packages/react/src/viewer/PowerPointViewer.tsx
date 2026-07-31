@@ -758,6 +758,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									state={state}
 									selectedElement={selectedElement}
 									activeSlide={activeSlide}
+									activeSlideIndex={activeSlideIndex}
 									zoom={zoom}
 									history={history}
 									findReplace={editorOps.findReplace}

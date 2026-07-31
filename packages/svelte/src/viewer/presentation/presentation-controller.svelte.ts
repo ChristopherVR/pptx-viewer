@@ -1,5 +1,13 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import { isClickAdvanceAllowed } from 'pptx-viewer-shared';
+import {
+	firstShowSlideIndex,
+	hasShowSlideAfter,
+	isClickAdvanceAllowed,
+	lastShowSlideIndex,
+	nextShowSlideIndex,
+	previousShowSlideIndex,
+	resolveShowSlideIndexes,
+} from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
 
 import { AnimationPlayback } from './animation-playback.svelte';
@@ -83,6 +91,17 @@ export class PresentationController {
 		return this.#deps.getSlides()[this.#deps.getCurrentIndex()];
 	}
 
+	/**
+	 * The deck indexes this show visits: every slide the author did not hide.
+	 * PowerPoint's "Hide Slide" keeps the slide in the deck, the thumbnail rail
+	 * and the sorter but skips it while presenting, so only the show's own
+	 * next / previous / Home / End consult this. A direct jump (`viewer.goTo`,
+	 * used by the typed "slide number + Enter") deliberately does not.
+	 */
+	#showOrder(): number[] {
+		return resolveShowSlideIndexes(this.#deps.getSlides());
+	}
+
 	/** The active slide-transition overlay state, or `null` when none is playing. */
 	/** Whether the black "End of slide show" screen should be rendered. */
 	get endOfShowVisible(): boolean {
@@ -152,8 +171,9 @@ export class PresentationController {
 		if (fromClick && !isClickAdvanceAllowed(this.#currentSlide())) {
 			return;
 		}
-		const next = this.#deps.getCurrentIndex() + 1;
-		if (next >= this.#deps.getSlides().length) {
+		const current = this.#deps.getCurrentIndex();
+		const order = this.#showOrder();
+		if (!hasShowSlideAfter(current, order)) {
 			if (this.#deps.getEndWithBlackSlide?.() === false) {
 				// No black slide configured: end the show outright rather than
 				// sitting on the last slide ignoring every further advance.
@@ -163,7 +183,37 @@ export class PresentationController {
 			}
 			return;
 		}
-		this.#deps.navigate(next);
+		this.#deps.navigate(nextShowSlideIndex(current, order) ?? current);
+	}
+
+	/**
+	 * Backward slide change, skipping hidden slides. Called only after
+	 * {@link retreat} declines (it owns the end screen and the replay of a slide
+	 * entered backward). Stays put at the start of the show: PowerPoint never
+	 * wraps a backward press off the first slide.
+	 */
+	previousSlide(): void {
+		const current = this.#deps.getCurrentIndex();
+		const previous = previousShowSlideIndex(current, this.#showOrder());
+		if (previous !== undefined && previous !== current) {
+			this.#deps.navigate(previous);
+		}
+	}
+
+	/** Home: the show's first slide, which is not slide 1 when that one is hidden. */
+	firstSlide(): void {
+		const first = firstShowSlideIndex(this.#showOrder());
+		if (first !== undefined) {
+			this.#deps.navigate(first);
+		}
+	}
+
+	/** End: the show's last slide, skipping trailing hidden slides. */
+	lastSlide(): void {
+		const last = lastShowSlideIndex(this.#showOrder());
+		if (last !== undefined) {
+			this.#deps.navigate(last);
+		}
 	}
 
 	/**

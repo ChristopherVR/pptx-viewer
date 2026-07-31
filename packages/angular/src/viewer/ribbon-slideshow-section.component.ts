@@ -82,8 +82,14 @@ import { toolbarVisibility } from './toolbar-visibility';
 		>
 			{{ 'pptx.slideShow.setUp' | translate }}
 		</button>
-		<!-- Per-slide "skip in show" is not part of the slide model yet. -->
-		<button type="button" class="pptx-rb-pill" disabled>
+		<!-- PowerPoint's Hide Slide: skip the ACTIVE slide during the show while
+		     leaving it in the deck, the thumbnail rail and the sorter. -->
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[attr.aria-pressed]="activeSlideHidden()"
+			(click)="toggleHideSlide.emit()"
+		>
 			{{ 'pptx.slideShow.hideSlide' | translate }}
 		</button>
 		<button type="button" class="pptx-rb-pill" (click)="rehearseTimings.emit()">
@@ -160,6 +166,10 @@ export class RibbonSlideshowSectionComponent {
 	/** "Custom show"; the host opens the custom-show manager dialog. */
 	readonly openCustomShows = output<void>();
 	readonly openSetUpSlideShow = output<void>();
+	/** PowerPoint's Hide Slide toggle for the active slide. */
+	readonly toggleHideSlide = output<void>();
+	/** Whether the active slide is hidden, for Hide Slide's pressed state. */
+	readonly activeSlideHidden = input<boolean>(false);
 	readonly rehearseTimings = output<void>();
 	readonly record = output<void>();
 	readonly toggleSubtitles = output<void>();

@@ -6,6 +6,7 @@ import { PresentationController, usePresentationEffects } from '../presentation'
 import type { PresenterSession } from '../presentation';
 import { providePresentationElementStates } from './presentation-element-states-context';
 import type { PresentationLoader } from './presentation-loader.svelte';
+import type { ViewerOptionsState } from './viewer-options.svelte';
 import type { ViewerParityUiState } from './viewer-parity-ui.svelte';
 import type { ViewerState } from './viewer-state.svelte';
 import { createViewportHandlers } from './viewport-handlers';
@@ -19,6 +20,8 @@ export interface PresentationClusterDeps {
 	controller: EditorController;
 	/** The audience-display link, driven by the B/W blackout and Ctrl+M ink keys. */
 	presenterSession: PresenterSession;
+	/** File > Options, read for Advanced > "End with black slide". */
+	optionsState: ViewerOptionsState;
 	getEditingActive(): boolean;
 	getStageHolderEl(): HTMLDivElement | undefined;
 	getRootEl(): HTMLDivElement | undefined;
@@ -37,7 +40,7 @@ export interface PresentationCluster extends ViewportHandlers {
  * not just constructed objects.
  */
 export function usePresentationCluster(deps: PresentationClusterDeps): PresentationCluster {
-	const { editor, viewer, loader, parityUi, controller, presenterSession } = deps;
+	const { editor, viewer, loader, parityUi, controller, presenterSession, optionsState } = deps;
 
 	const presentation = new PresentationController({
 		getSlides: () => editor.renderedSlides,
@@ -53,6 +56,9 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			}
 		},
 		getFrameRoot: () => deps.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
+		// File > Options > Advanced > "End with black slide". Off means the show
+		// exits straight to the editor instead of raising the black end screen.
+		getEndWithBlackSlide: () => optionsState.options.advanced.slideShowEndWithBlackSlide,
 	});
 	// Publish the per-element native-animation state map so the chart / SmartArt /
 	// connector / shape renderers can reveal staged builds and relinquish animated

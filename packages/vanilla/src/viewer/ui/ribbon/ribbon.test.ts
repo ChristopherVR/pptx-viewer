@@ -83,6 +83,7 @@ function buildHandlers(): RibbonHandlers {
 			openCustomShows: vi.fn(),
 			toggleSubtitles: vi.fn(),
 			openSubtitleSettings: vi.fn(),
+			toggleHideSlide: vi.fn(),
 		},
 		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),

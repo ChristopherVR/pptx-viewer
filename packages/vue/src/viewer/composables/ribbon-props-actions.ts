@@ -217,6 +217,11 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onOpenSetUpSlideShow: () => {
 			input.showSetUpSlideShow.value = true;
 		},
+		// PowerPoint's Hide Slide: skip the active slide during the show while
+		// leaving it in the deck, the thumbnail rail and the sorter.
+		onToggleHideSlide: () => {
+			input.toggleSlideHidden(input.activeSlideIndex.value);
+		},
 		onOpenBroadcastDialog: () => {
 			input.broadcastOpen.value = true;
 		},

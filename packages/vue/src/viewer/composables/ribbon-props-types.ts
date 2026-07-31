@@ -71,6 +71,10 @@ export interface UseRibbonPropsStateInput {
 	showSelectionPane: Ref<boolean>;
 	showSubtitles: Ref<boolean>;
 	activeSlide: ComputedRef<PptxSlide | undefined>;
+	/** Index of the active slide, for per-slide ribbon commands (Hide Slide). */
+	activeSlideIndex: Ref<number>;
+	/** Toggle a slide's `hidden` flag (one undo step), from `useSlideMutations`. */
+	toggleSlideHidden: (index: number) => void;
 	presenting: Ref<boolean>;
 	canDistribute: ComputedRef<boolean>;
 	shareOpen: Ref<boolean>;

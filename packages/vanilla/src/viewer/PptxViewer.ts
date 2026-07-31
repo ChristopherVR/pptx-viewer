@@ -520,6 +520,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	next = (): void => this.controls.next();
 	prev = (): void => this.controls.prev();
 	goToSlide = (index: number): void => this.controls.goToSlide(index);
+	/** PowerPoint's Hide Slide: toggle the active slide's skip-in-show flag. */
+	toggleHideCurrentSlide = (): void => this.toggleHideSlides([this.store.get().currentSlide]);
+	/** Home: the show's first slide (skips a hidden slide 1 while presenting). */
+	goToFirstSlide = (): void => this.controls.firstSlide();
+	/** End: the show's last slide (skips trailing hidden slides while presenting). */
+	goToLastSlide = (): void => this.controls.lastSlide();
 	getSlideCount = (): number => this.controls.slideCount();
 	getCurrentSlide = (): number => this.controls.currentSlide();
 	getZoom = (): number => this.controls.zoom();

@@ -1,11 +1,21 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import {
+	hasShowSlideAfter,
+	nextShowSlideIndex,
+	previousShowSlideIndex,
+	resolveShowSlideIndexes,
+} from 'pptx-viewer-shared';
 import { describe, it, expect } from 'vitest';
 
 import { isClickAdvanceBlocked } from './useSlideNavigation';
 
 // ---------------------------------------------------------------------------
 // Pure logic extracted from useSlideNavigation for testing.
-// These mirror the navigation calculations inside movePresentationSlide.
+//
+// `computeNextSlidePosition` below calls the SAME shared show-order helpers the
+// hook calls, so this file cannot pass while the shipped rule regresses. It
+// used to re-implement the index arithmetic locally, which meant the tests kept
+// passing while four bindings presented hidden slides.
 // ---------------------------------------------------------------------------
 
 function slideWithTransition(transition?: Partial<PptxSlideTransition>): PptxSlide {
@@ -24,6 +34,19 @@ function resolveAvailableIndexes(visibleSlideIndexes: number[], totalSlideCount:
 	return visibleSlideIndexes.length > 0
 		? visibleSlideIndexes
 		: Array.from({ length: totalSlideCount }, (_, i) => i);
+}
+
+/** Build a deck of `hidden` flags, matching the shape the show order reads. */
+function deck(...hidden: boolean[]): PptxSlide[] {
+	return hidden.map(
+		(isHidden, index) =>
+			({
+				id: `s${index + 1}`,
+				rId: `rId${index + 1}`,
+				elements: [],
+				hidden: isHidden,
+			}) as PptxSlide,
+	);
 }
 
 /**
@@ -46,34 +69,26 @@ function computeNextSlidePosition(
 		return { nextSlideIndex: null, endRehearsal: false };
 	}
 
-	const currentVisiblePosition = availableSlideIndexes.indexOf(presentationSlideIndex);
-	const normalizedCurrentPosition = currentVisiblePosition >= 0 ? currentVisiblePosition : 0;
-	const nextPosition = normalizedCurrentPosition + direction;
+	const pastLastSlide =
+		direction === 1 && !hasShowSlideAfter(presentationSlideIndex, availableSlideIndexes);
 
 	// Rehearsal: advancing past last slide ends rehearsal
-	if (options.rehearsing && direction === 1 && nextPosition >= availableSlideIndexes.length) {
+	if (options.rehearsing && pastLastSlide) {
 		return { nextSlideIndex: null, endRehearsal: true };
 	}
 
-	// Loop wrap
-	let resolvedPosition: number;
-	if (
-		options.loopContinuously &&
-		!options.rehearsing &&
-		direction === 1 &&
-		nextPosition >= availableSlideIndexes.length
-	) {
-		resolvedPosition = 0;
-	} else {
-		resolvedPosition = Math.min(availableSlideIndexes.length - 1, Math.max(0, nextPosition));
-	}
+	const resolved =
+		direction === 1
+			? nextShowSlideIndex(presentationSlideIndex, availableSlideIndexes, {
+					loop: Boolean(options.loopContinuously) && !options.rehearsing,
+				})
+			: previousShowSlideIndex(presentationSlideIndex, availableSlideIndexes);
 
-	const nextSlideIndex = availableSlideIndexes[resolvedPosition];
-	if (nextSlideIndex === undefined || nextSlideIndex === presentationSlideIndex) {
+	if (resolved === undefined || resolved === presentationSlideIndex) {
 		return { nextSlideIndex: null, endRehearsal: false };
 	}
 
-	return { nextSlideIndex, endRehearsal: false };
+	return { nextSlideIndex: resolved, endRehearsal: false };
 }
 
 /**
@@ -186,11 +201,19 @@ describe('computeNextSlidePosition', () => {
 		expect(result.nextSlideIndex).toBe(7);
 	});
 
-	it('should handle current index not in available list', () => {
+	it('should step FORWARD out of a slide the show excludes', () => {
 		const visible = [0, 3, 7];
-		// presentationSlideIndex=5 is not in the list, normalized to position 0
+		// Slide 5 is hidden and was reached by typing "6" + Enter. Forward must
+		// escape to the next slide the show actually visits, not jump backward
+		// to the start (which the old position-0 normalisation did).
 		const result = computeNextSlidePosition(visible, 5, 1);
-		expect(result.nextSlideIndex).toBe(3); // position 0 + 1 = position 1 = index 3
+		expect(result.nextSlideIndex).toBe(7);
+	});
+
+	it('should step BACKWARD out of a slide the show excludes', () => {
+		const visible = [0, 3, 7];
+		const result = computeNextSlidePosition(visible, 5, -1);
+		expect(result.nextSlideIndex).toBe(3);
 	});
 
 	it('should not loop in rehearsal mode', () => {
@@ -315,5 +338,43 @@ describe('isClickAdvanceBlocked', () => {
 		const slide = slideWithTransition({ advanceOnClick: false, advanceAfterMs: 4000 });
 		expect(shouldScheduleAutoAdvance(slide.transition?.advanceAfterMs)).toBeTruthy();
 		expect(isClickAdvanceBlocked(slide, 1, 'explicit')).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tests: hidden slides are skipped by the show (regression)
+// ---------------------------------------------------------------------------
+
+describe('hidden slides during the show', () => {
+	it('skips a hidden slide advancing forward', () => {
+		const order = resolveShowSlideIndexes(deck(false, true, false));
+		expect(order).toStrictEqual([0, 2]);
+		expect(computeNextSlidePosition(order, 0, 1).nextSlideIndex).toBe(2);
+	});
+
+	it('skips a hidden slide going backward', () => {
+		const order = resolveShowSlideIndexes(deck(false, true, false));
+		expect(computeNextSlidePosition(order, 2, -1).nextSlideIndex).toBe(0);
+	});
+
+	it('treats the last visible slide as the end when trailing slides are hidden', () => {
+		const order = resolveShowSlideIndexes(deck(false, false, true, true));
+		expect(order).toStrictEqual([0, 1]);
+		expect(hasShowSlideAfter(1, order)).toBeFalsy();
+		expect(computeNextSlidePosition(order, 1, 1).nextSlideIndex).toBeNull();
+	});
+
+	it('wraps past trailing hidden slides to the first visible slide when looping', () => {
+		const order = resolveShowSlideIndexes(deck(true, false, false, true));
+		expect(order).toStrictEqual([1, 2]);
+		expect(computeNextSlidePosition(order, 2, 1, { loopContinuously: true }).nextSlideIndex).toBe(
+			1,
+		);
+	});
+
+	it('leaves a typed slide-number jump free to reach a hidden slide', () => {
+		// `navigateToSlide` is bounded by the DECK, never by the show order: this
+		// is PowerPoint's documented way to pull up a hidden backup slide.
+		expect(isValidNavigationTarget(1, 3, 0)).toBeTruthy();
 	});
 });

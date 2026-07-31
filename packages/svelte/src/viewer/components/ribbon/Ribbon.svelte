@@ -152,6 +152,8 @@
 				onrehearse={props.onrehearse}
 				onsubtitles={props.onsubtitles}
 				oncustomshows={props.oncustomshows}
+				onhideslide={props.onhideslide}
+				activeSlideHidden={Boolean(props.slides?.[props.current]?.hidden)}
 				subtitlesEnabled={props.subtitlesEnabled}
 				onbroadcast={props.onbroadcast}
 			/>

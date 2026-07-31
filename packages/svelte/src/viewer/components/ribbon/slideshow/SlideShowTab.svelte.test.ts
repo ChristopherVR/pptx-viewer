@@ -29,6 +29,7 @@ function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 			onrehearse: noop,
 			onsubtitles: noop,
 			oncustomshows: noop,
+			onhideslide: noop,
 			...overrides,
 		},
 	});
@@ -69,12 +70,22 @@ describe('slideShowTab', () => {
 		}
 	});
 
-	it('parks Rehearse Coach and Hide Slide exactly as React does', () => {
+	it('parks Rehearse Coach exactly as React does', () => {
 		const found = buttons(mountTab());
-		for (const name of ['Rehearse with Coach', 'Hide Slide']) {
-			expect(found.get(name), `${name} is missing from the Slide Show tab`).toBeDefined();
-			expect(found.get(name)?.disabled, `${name} is a disabled placeholder`).toBeTruthy();
-		}
+		expect(found.get('Rehearse with Coach')).toBeDefined();
+		expect(found.get('Rehearse with Coach')?.disabled).toBeTruthy();
+	});
+
+	it('toggles the active slide with Hide Slide and reflects its pressed state', () => {
+		const onhideslide = vi.fn();
+		const target = mountTab({ onhideslide, activeSlideHidden: true });
+		const button = buttons(target).get('Hide Slide');
+		expect(button).toBeDefined();
+		expect(button?.disabled).toBeFalsy();
+		// PowerPoint renders Hide Slide as a two-state toggle, not a one-shot.
+		expect(button?.getAttribute('aria-pressed')).toBe('true');
+		button?.click();
+		expect(onhideslide).toHaveBeenCalledOnce();
 	});
 
 	it('offers the playback option toggles', () => {

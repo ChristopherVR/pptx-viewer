@@ -130,5 +130,13 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		) {
 			chrome.ribbon?.setSubtitlesVisible(Boolean(state.presentationProperties.showSubtitles));
 		}
+		// The Hide Slide toggle reflects the ACTIVE slide, so it has to re-sync on a
+		// slide change as well as on an edit that flips the flag.
+		if (
+			state.currentSlide !== previous.currentSlide ||
+			state.slides[state.currentSlide]?.hidden !== previous.slides[previous.currentSlide]?.hidden
+		) {
+			chrome.ribbon?.setHideSlideActive(Boolean(state.slides[state.currentSlide]?.hidden));
+		}
 	};
 }

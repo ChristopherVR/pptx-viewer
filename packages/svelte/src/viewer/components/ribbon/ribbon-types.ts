@@ -78,6 +78,11 @@ export interface RibbonProps {
 	onfromcurrent: () => void;
 	onpresenter: () => void;
 	onsetupslideshow: () => void;
+	/**
+	 * PowerPoint's Hide Slide: mark the ACTIVE slide to be skipped during the
+	 * show while it stays in the deck, the thumbnail rail and the sorter.
+	 */
+	onhideslide: () => void;
 	onheaderfooter: () => void;
 	oncompare: () => void;
 	onshortcuts: () => void;

@@ -117,6 +117,8 @@ export interface ViewerToolbarSectionProps {
 	};
 	selectedElement: PptxElement | null;
 	activeSlide: PptxSlide | undefined;
+	/** Index of `activeSlide` in the deck, for per-slide ribbon commands. */
+	activeSlideIndex: number;
 	zoom: {
 		scale: number;
 		handleZoomIn: () => void;
@@ -171,6 +173,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		state: s,
 		selectedElement,
 		activeSlide,
+		activeSlideIndex,
 		zoom,
 		history,
 		findReplace,
@@ -610,6 +613,8 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				eyedropperActive={s.eyedropperActive}
 				onToggleEyedropper={() => s.setEyedropperActive((p) => !p)}
 				onOpenSetUpSlideShow={() => dialogs.setIsSetUpSlideShowOpen(true)}
+				onToggleHideSlide={() => slideOps.handleToggleHideSlides([activeSlideIndex])}
+				activeSlideHidden={Boolean(activeSlide?.hidden)}
 				onOpenBroadcastDialog={() => dialogs.setIsBroadcastDialogOpen(true)}
 				onToggleSubtitles={dialogs.handleToggleSubtitles}
 				showSubtitles={Boolean(s.presentationProperties.showSubtitles)}

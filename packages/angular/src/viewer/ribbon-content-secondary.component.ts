@@ -65,6 +65,8 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					(broadcast)="broadcast.emit()"
 					(openCustomShows)="openCustomShows.emit()"
 					(openSetUpSlideShow)="openSetUpSlideShow.emit()"
+					[activeSlideHidden]="activeSlideHidden()"
+					(toggleHideSlide)="toggleHideSlide.emit()"
 				/>
 			}
 			@case ('review') {
@@ -174,6 +176,8 @@ export class RibbonContentSecondaryComponent {
 	readonly themeGalleryOpen = input<boolean>(false);
 	readonly spellCheckEnabled = input<boolean>(false);
 	readonly showSubtitles = input<boolean>(false);
+	/** Whether the active slide is hidden, for Hide Slide's pressed state. */
+	readonly activeSlideHidden = input<boolean>(false);
 	/** Toolbar buttons the host wants hidden (threaded to the Slide Show section). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
@@ -213,6 +217,8 @@ export class RibbonContentSecondaryComponent {
 	readonly zoomToFit = output<void>();
 	readonly toggleEyedropper = output<void>();
 	readonly openSetUpSlideShow = output<void>();
+	/** PowerPoint's Hide Slide toggle for the active slide. */
+	readonly toggleHideSlide = output<void>();
 	readonly openCompare = output<void>();
 	readonly openShortcuts = output<void>();
 	readonly openSettings = output<void>();

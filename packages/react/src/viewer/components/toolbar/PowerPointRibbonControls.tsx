@@ -35,6 +35,7 @@ export function RibbonCommand({
 	active,
 	compact = false,
 	title,
+	pressed,
 }: {
 	label: string;
 	icon: React.ReactNode;
@@ -43,6 +44,8 @@ export function RibbonCommand({
 	active?: boolean;
 	compact?: boolean;
 	title?: string;
+	/** Renders the command as a two-state toggle (PowerPoint's Hide Slide). */
+	pressed?: boolean;
 }): React.ReactElement {
 	return (
 		<button
@@ -50,6 +53,7 @@ export function RibbonCommand({
 			onClick={onClick}
 			disabled={disabled}
 			title={title ?? label}
+			aria-pressed={pressed}
 			className={cn(
 				'inline-flex rounded-sm text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35',
 				active && 'bg-primary/15 text-primary ring-1 ring-primary/35',

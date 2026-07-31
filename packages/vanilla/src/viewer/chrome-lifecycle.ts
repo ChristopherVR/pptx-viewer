@@ -349,6 +349,10 @@ export interface ChromeHost {
 	packageForSharing(): Promise<void>;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
+	/** Home: the show's first slide (skips a hidden slide 1 while presenting). */
+	goToFirstSlide(): void;
+	/** End: the show's last slide (skips trailing hidden slides while presenting). */
+	goToLastSlide(): void;
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
 	openPresenterView(): void;
@@ -362,6 +366,8 @@ export interface ChromeHost {
 	openHeaderFooter(): void;
 	openCompare(): void;
 	openSetUpSlideShow(): void;
+	/** PowerPoint's Hide Slide: toggle the active slide's skip-in-show flag. */
+	toggleHideCurrentSlide(): void;
 	startRehearsal(): void;
 	toggleSubtitles(): void;
 	openSelectionPane(): void;
@@ -436,6 +442,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openHeaderFooter: () => host.openHeaderFooter(),
 		openCompare: () => host.openCompare(),
 		openSetUpSlideShow: () => host.openSetUpSlideShow(),
+		toggleHideCurrentSlide: () => host.toggleHideCurrentSlide(),
 		startRehearsal: () => host.startRehearsal(),
 		toggleSubtitles: () => host.toggleSubtitles(),
 		openSelectionPane: () => host.openSelectionPane(),

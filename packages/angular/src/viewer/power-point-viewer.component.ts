@@ -341,6 +341,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openEquationDialog)="dialogs.openEquationInsert()"
 					(openMasterView)="openMasterView()"
 					(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
+					[activeSlideHidden]="!!displaySlides()[activeSlideIndex()]?.hidden"
+					(toggleHideSlide)="toggleHideSlides([activeSlideIndex()])"
 					(openCompare)="onOpenCompare()"
 					(openPassword)="dialogs.showPassword.set(true)"
 					(openFontEmbedding)="dialogs.showFontEmbedding.set(true)"

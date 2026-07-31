@@ -179,6 +179,10 @@ export interface ToolbarProps {
 	eyedropperActive?: boolean;
 	onToggleEyedropper?: () => void;
 	onOpenSetUpSlideShow?: () => void;
+	/** PowerPoint's Hide Slide toggle for the active slide (Slide Show tab). */
+	onToggleHideSlide?: () => void;
+	/** Whether the active slide is hidden, for Hide Slide's pressed state. */
+	activeSlideHidden?: boolean;
 	onOpenBroadcastDialog?: () => void;
 	onToggleSubtitles?: () => void;
 	showSubtitles?: boolean;

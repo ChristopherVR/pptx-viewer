@@ -155,6 +155,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		parityUi: editorUi.parityUi,
 		controller: editorUi.controller,
 		presenterSession: presenter.presenterSession,
+		optionsState: editorUi.optionsState,
 		getEditingActive: () => derived.editingActive,
 		getStageHolderEl: options.getStageHolderEl,
 		getRootEl: options.getRootEl,

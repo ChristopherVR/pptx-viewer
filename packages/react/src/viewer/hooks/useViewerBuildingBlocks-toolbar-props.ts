@@ -36,6 +36,8 @@ export interface BuildToolbarPropsInput {
 	state: ViewerState;
 	selectedElement: PptxElement | null;
 	activeSlide: PptxSlide | undefined;
+	/** Index of `activeSlide` in the deck, for per-slide ribbon commands. */
+	activeSlideIndex: number;
 	zoom: {
 		scale: number;
 		handleZoomIn: () => void;
@@ -80,6 +82,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		state: s,
 		selectedElement,
 		activeSlide,
+		activeSlideIndex,
 		zoom,
 		history,
 		findReplace,
@@ -282,6 +285,10 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		eyedropperActive: s.eyedropperActive,
 		onToggleEyedropper: () => s.setEyedropperActive((p) => !p),
 		onOpenSetUpSlideShow: () => dialogs.setIsSetUpSlideShowOpen(true),
+		// PowerPoint's Hide Slide: skip the active slide during the show while
+		// leaving it in the deck, the rail and the sorter.
+		onToggleHideSlide: () => slideOps.handleToggleHideSlides([activeSlideIndex]),
+		activeSlideHidden: Boolean(activeSlide?.hidden),
 		onOpenBroadcastDialog: () => dialogs.setIsBroadcastDialogOpen(true),
 		onToggleSubtitles: dialogs.handleToggleSubtitles,
 		showSubtitles: Boolean(s.presentationProperties.showSubtitles),

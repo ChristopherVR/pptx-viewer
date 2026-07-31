@@ -1,5 +1,10 @@
 import type { PresentationPointerTool } from 'pptx-viewer-shared';
-import { createPresentationKeyBuffer, mapPresentationKey } from 'pptx-viewer-shared';
+import {
+	createPresentationKeyBuffer,
+	firstShowSlideIndex,
+	lastShowSlideIndex,
+	mapPresentationKey,
+} from 'pptx-viewer-shared';
 import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types';
@@ -14,8 +19,15 @@ export interface UsePresentationKeyboardInput {
 	movePresentationSlide: (direction: 1 | -1) => void;
 	/** Jump to a 0-based slide index (Home / End / typed slide number). */
 	navigateToSlide: (index: number) => void;
-	/** Total slide count, so End can resolve the last slide. */
+	/** Total slide count, bounding the typed "slide number + Enter" jump. */
 	slideCount: number;
+	/**
+	 * Deck indexes the show visits, in show order (hidden slides removed).
+	 * Home / End land on the show's first / last slide, so a deck whose first
+	 * or last slide is hidden does not open one on a key PowerPoint treats as
+	 * "go to the start / end of the show".
+	 */
+	showSlideIndexes: number[];
 	onSetMode: (mode: ViewerMode) => void;
 	/** Select a pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
 	onSetPointerTool?: (tool: PresentationPointerTool | 'arrow') => void;
@@ -51,6 +63,7 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 		movePresentationSlide,
 		navigateToSlide,
 		slideCount,
+		showSlideIndexes,
 		onSetMode,
 		onSetPointerTool,
 		onEraseAnnotations,
@@ -99,14 +112,20 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 				case 'previous':
 					movePresentationSlide(-1);
 					return;
-				case 'first':
-					navigateToSlide(0);
+				case 'first': {
+					const first = firstShowSlideIndex(showSlideIndexes);
+					navigateToSlide(first ?? 0);
 					return;
-				case 'last':
-					navigateToSlide(Math.max(0, slideCount - 1));
+				}
+				case 'last': {
+					const last = lastShowSlideIndex(showSlideIndexes);
+					navigateToSlide(last ?? Math.max(0, slideCount - 1));
 					return;
+				}
 				case 'goto': {
-					// Typed numbers are 1-based; ignore anything past the deck.
+					// Typed numbers are 1-based and bounded by the DECK, not the show:
+					// PowerPoint reaches a hidden slide this way on purpose, which is
+					// how a presenter pulls up a backup slide mid-show.
 					const index = mapped.slideNumber - 1;
 					if (index >= 0 && index < slideCount) {
 						navigateToSlide(index);
@@ -150,6 +169,7 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 		movePresentationSlide,
 		navigateToSlide,
 		slideCount,
+		showSlideIndexes,
 		onSetMode,
 		onSetPointerTool,
 		onEraseAnnotations,

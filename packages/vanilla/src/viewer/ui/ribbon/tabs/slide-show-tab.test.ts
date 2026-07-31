@@ -15,6 +15,7 @@ function makeHandlers(over: Partial<RibbonSlideShowHandlers> = {}): RibbonSlideS
 		openCustomShows: vi.fn(),
 		toggleSubtitles: vi.fn(),
 		openSubtitleSettings: vi.fn(),
+		toggleHideSlide: vi.fn(),
 		...over,
 	};
 }
@@ -47,11 +48,22 @@ describe('createSlideShowTab', () => {
 		expect(
 			(control(tab, t('pptx.slideShow.rehearseCoach')) as HTMLButtonElement).disabled,
 		).toBeTruthy();
-		expect(
-			(control(tab, t('pptx.slideShow.hideSlide')) as HTMLButtonElement).disabled,
-		).toBeTruthy();
 		expect(control(tab, t('pptx.slideShow.setUp'))).toBeTruthy();
 		expect(control(tab, t('pptx.slideShow.rehearseTimings'))).toBeTruthy();
+	});
+
+	it('toggles the active slide with Hide Slide and reflects its pressed state', () => {
+		const t = createTranslator();
+		const toggleHideSlide = vi.fn();
+		const tab = createSlideShowTab(document, t, { ...makeHandlers(), toggleHideSlide });
+		const button = control(tab, t('pptx.slideShow.hideSlide')) as HTMLButtonElement;
+		expect(button.disabled).toBeFalsy();
+		expect(button.getAttribute('aria-pressed')).toBe('false');
+		button.click();
+		expect(toggleHideSlide).toHaveBeenCalledOnce();
+		// The pressed state follows the deck, pushed in by the store sync.
+		tab.setHideSlideActive(true);
+		expect(button.getAttribute('aria-pressed')).toBe('true');
 	});
 
 	it('starts a recording from the Record command', () => {
