@@ -154,10 +154,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * survive a save: collapsing them to the plain-text path silently downgrades
 	 * a field to static text (e.g. a slide-number field becomes a frozen number)
 	 * or drops the equation, ruby, or bullet.
+	 *
+	 * `paragraphLevel` (`a:pPr/@lvl`) belongs on this list for the same reason
+	 * and used to be missing from it: a nested bullet whose runs all share one
+	 * style looked "uniform", so the save path discarded its segments and rebuilt
+	 * the paragraph from the flat string, which carries no indent level. Every
+	 * such paragraph came back from a round-trip flattened to the top level.
 	 */
 	protected isStructuralTextSegment(segment: TextSegment): boolean {
 		return Boolean(
-			segment.fieldType || segment.equationXml || segment.rubyText || segment.bulletInfo,
+			segment.fieldType ||
+			segment.equationXml ||
+			segment.rubyText ||
+			segment.bulletInfo ||
+			segment.paragraphLevel,
 		);
 	}
 
