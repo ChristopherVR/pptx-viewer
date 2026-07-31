@@ -57,6 +57,51 @@ export function resolveAutoAdvanceDelayMs(
 	return advanceAfterMs;
 }
 
+/**
+ * Click targets that own their own click during a running show and must never
+ * also step the slide on: hyperlinks and action buttons (PowerPoint follows the
+ * link instead of advancing), media transport, form controls, and anything
+ * inside a dialog. `[data-pptx-action]` is the attribute every binding stamps
+ * on an element carrying an on-click action.
+ */
+export const PRESENTATION_INERT_CLICK_SELECTOR =
+	'a, button, input, select, textarea, video, audio, [data-pptx-action], [role="dialog"]';
+
+/**
+ * A media element only owns its click while it exposes native transport: with
+ * no controls there is nothing on it to click, so it is as inert as any other
+ * picture. This matters for a full-bleed background video, which covers the
+ * ENTIRE slide: treating it as interactive would swallow every click on that
+ * slide and leave the presenter unable to advance at all.
+ */
+function isInertMedia(node: Element): boolean {
+	return (
+		(node.tagName === 'VIDEO' || node.tagName === 'AUDIO') && !(node as HTMLMediaElement).controls
+	);
+}
+
+/**
+ * Whether a click on `target` is PowerPoint's "On Mouse Click" advance rather
+ * than an interaction with live slide content or show chrome.
+ *
+ * Only decides whether the click *reaches* the advance; whether the advance is
+ * then allowed is {@link isClickAdvanceAllowed}'s job.
+ */
+export function isPresentationAdvanceClick(target: unknown): boolean {
+	if (typeof Element === 'undefined' || !(target instanceof Element)) {
+		return false;
+	}
+	for (let node: Element | null = target; node !== null; node = node.parentElement) {
+		if (isInertMedia(node)) {
+			continue;
+		}
+		if (node.matches(PRESENTATION_INERT_CLICK_SELECTOR)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 export function applyRehearsalTimings(
 	slides: readonly PptxSlide[],
 	timings: Readonly<Record<number, number>>,
