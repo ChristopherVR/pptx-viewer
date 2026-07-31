@@ -18,7 +18,7 @@
 	 */
 	import { hasShapeProperties } from 'pptx-viewer-core';
 	import {
-		buildGradientStrokeOutline,
+		buildStrokeOutline,
 		getComputedEffectStyle,
 		getSoftEdgeSvgFilter,
 		svgGradientFillRef,
@@ -46,11 +46,11 @@
 	);
 
 	/**
-	 * Stroked SVG outline for a gradient `a:ln`. A CSS border takes one colour
-	 * only, so a gradient outline is painted here instead, following the shape's
-	 * own geometry; `element-style.ts` drops the border for these shapes.
+	 * Stroked SVG outline for a gradient or pattern `a:ln`. A CSS border takes one
+	 * flat colour only, so the outline is painted here instead, following the
+	 * shape's own geometry; `element-style.ts` drops the border for these shapes.
 	 */
-	const strokeOutline = $derived(buildGradientStrokeOutline(element));
+	const strokeOutline = $derived(buildStrokeOutline(element));
 	const outlineViewBox = $derived(
 		`0 0 ${Math.max(element.width, 1)} ${Math.max(element.height, 1)}`,
 	);
@@ -73,26 +73,39 @@
 		style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none"
 	>
 		<defs>
-			{#if strokeOutline.gradient.kind === 'radial'}
-				<radialGradient
-					id={strokeOutline.gradient.id}
-					cx={strokeOutline.gradient.cx}
-					cy={strokeOutline.gradient.cy}
-					r={strokeOutline.gradient.r}
+			{#if strokeOutline.paint.kind === 'pattern'}
+				<pattern
+					id={strokeOutline.paint.id}
+					width={strokeOutline.paint.width}
+					height={strokeOutline.paint.height}
+					patternUnits="userSpaceOnUse"
 				>
-					{#each strokeOutline.gradient.stops as stop, idx (idx)}
+					<image
+						href={strokeOutline.paint.href}
+						width={strokeOutline.paint.width}
+						height={strokeOutline.paint.height}
+					/>
+				</pattern>
+			{:else if strokeOutline.paint.kind === 'radial'}
+				<radialGradient
+					id={strokeOutline.paint.id}
+					cx={strokeOutline.paint.cx}
+					cy={strokeOutline.paint.cy}
+					r={strokeOutline.paint.r}
+				>
+					{#each strokeOutline.paint.stops as stop, idx (idx)}
 						<stop offset={stop.offset} stop-color={stop.color} stop-opacity={stop.opacity} />
 					{/each}
 				</radialGradient>
 			{:else}
 				<linearGradient
-					id={strokeOutline.gradient.id}
-					x1={strokeOutline.gradient.x1}
-					y1={strokeOutline.gradient.y1}
-					x2={strokeOutline.gradient.x2}
-					y2={strokeOutline.gradient.y2}
+					id={strokeOutline.paint.id}
+					x1={strokeOutline.paint.x1}
+					y1={strokeOutline.paint.y1}
+					x2={strokeOutline.paint.x2}
+					y2={strokeOutline.paint.y2}
 				>
-					{#each strokeOutline.gradient.stops as stop, idx (idx)}
+					{#each strokeOutline.paint.stops as stop, idx (idx)}
 						<stop offset={stop.offset} stop-color={stop.color} stop-opacity={stop.opacity} />
 					{/each}
 				</linearGradient>
@@ -101,7 +114,7 @@
 		<path
 			d={strokeOutline.d}
 			fill="none"
-			stroke={svgGradientFillRef(strokeOutline.gradient)}
+			stroke={svgGradientFillRef(strokeOutline.paint)}
 			stroke-width={strokeOutline.strokeWidth}
 			stroke-dasharray={strokeOutline.dashArray}
 			stroke-linecap={strokeOutline.lineCap}
