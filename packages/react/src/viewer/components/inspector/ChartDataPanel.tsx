@@ -11,12 +11,7 @@ import type {
 	PptxChartType,
 } from 'pptx-viewer-core';
 import {
-	chartDataAddSeries,
-	chartDataRemoveSeries,
-	chartDataUpdatePoint,
 	chartDataChangeType,
-	chartDataAddCategory,
-	chartDataRemoveCategory,
 	setChartAxisLogScale,
 	setChartAxisTitleStyle,
 	setChartAxisGridlineStyle,
@@ -27,6 +22,14 @@ import {
 	setChartDataPointMarker,
 	setChartDataPointLabel,
 } from 'pptx-viewer-core';
+import {
+	addChartCategory,
+	addChartSeries,
+	removeChartCategory,
+	removeChartSeries,
+	setChartCategoryLabel,
+	setChartCellValue,
+} from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
 import { useChartPartSelection } from '../chart-part-selection';
@@ -178,69 +181,61 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[updateSeries],
 	);
 
+	// ── Data-grid edits ─────────────────────────────────────────
+	// The guards (auto-naming, keep-at-least-one, reject non-numeric cells) live
+	// in `pptx-viewer-shared`'s `chart-data-grid-ops` so every binding's grid
+	// behaves identically; `null` means the edit must not be applied.
 	const updateCategoryLabel = useCallback(
 		(catIndex: number, value: string) => {
-			if (!categories) {
-				return;
+			const next = chartData && setChartCategoryLabel(chartData, catIndex, value);
+			if (next) {
+				replaceChartData(next);
 			}
-			const updated = categories.map((c, i) => (i === catIndex ? value : c));
-			updateChartData({ categories: updated });
 		},
-		[categories, updateChartData],
+		[chartData, replaceChartData],
 	);
 
 	const updateValue = useCallback(
 		(seriesIndex: number, catIndex: number, raw: string) => {
-			if (!chartData) {
-				return;
+			const next = chartData && setChartCellValue(chartData, seriesIndex, catIndex, raw);
+			if (next) {
+				replaceChartData(next);
 			}
-			const num = Number.parseFloat(raw);
-			if (!Number.isFinite(num)) {
-				return;
-			}
-			replaceChartData(chartDataUpdatePoint(chartData, seriesIndex, catIndex, num));
 		},
 		[chartData, replaceChartData],
 	);
 
 	// ── Add / Remove helpers ────────────────────────────────────
 	const addCategory = useCallback(() => {
-		if (!chartData || !categories) {
-			return;
+		if (chartData) {
+			replaceChartData(addChartCategory(chartData));
 		}
-		replaceChartData(chartDataAddCategory(chartData, `Cat ${categories.length + 1}`));
-	}, [chartData, categories, replaceChartData]);
+	}, [chartData, replaceChartData]);
 
 	const removeCategory = useCallback(
 		(catIndex: number) => {
-			if (!chartData || !categories || categories.length <= 1) {
-				return;
+			const next = chartData && removeChartCategory(chartData, catIndex);
+			if (next) {
+				replaceChartData(next);
 			}
-			replaceChartData(chartDataRemoveCategory(chartData, catIndex));
 		},
-		[chartData, categories, replaceChartData],
+		[chartData, replaceChartData],
 	);
 
 	const addSeries = useCallback(() => {
-		if (!chartData || !categories || !series) {
-			return;
+		if (chartData) {
+			replaceChartData(addChartSeries(chartData));
 		}
-		replaceChartData(
-			chartDataAddSeries(chartData, {
-				name: `Series ${series.length + 1}`,
-				values: categories.map(() => 0),
-			}),
-		);
-	}, [chartData, categories, series, replaceChartData]);
+	}, [chartData, replaceChartData]);
 
 	const removeSeries = useCallback(
 		(seriesIndex: number) => {
-			if (!chartData || !series || series.length <= 1) {
-				return;
+			const next = chartData && removeChartSeries(chartData, seriesIndex);
+			if (next) {
+				replaceChartData(next);
 			}
-			replaceChartData(chartDataRemoveSeries(chartData, seriesIndex));
 		},
-		[chartData, series, replaceChartData],
+		[chartData, replaceChartData],
 	);
 
 	// ── SDK-op helpers (clone, mutate via core op, emit) ────────

@@ -1,6 +1,14 @@
 import type { GroupPptxElement, PptxElement, PptxSlide, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { getGroupChildParentFill, resolveGroupChildFill } from 'pptx-viewer-shared';
+import {
+	getAriaLabel,
+	getAriaRole,
+	getAriaRoleDescription,
+	getGroupChildParentFill,
+	isElementActionable,
+	isElementRendered,
+	resolveGroupChildFill,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_FILL_COLOR, DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
@@ -93,7 +101,13 @@ function StaticElementRendererImpl({
 	actionRequiresModifier = false,
 	animation,
 	exposeElementId = false,
-}: StaticElementRendererProps): React.ReactElement {
+}: StaticElementRendererProps): React.ReactElement | null {
+	// Selection-Pane-hidden elements are not drawn on any surface, so the static
+	// path (thumbnails, presenter previews, transition ghosts, export rasters)
+	// skips them too. This function holds no hooks, so the guard can lead.
+	if (!isElementRendered(element)) {
+		return null;
+	}
 	const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 	const hasFill =
 		(style?.fillColor !== undefined && style.fillColor !== 'transparent') ||
@@ -124,6 +138,16 @@ function StaticElementRendererImpl({
 	const isImage = element.type === 'picture' || element.type === 'image';
 	const action = element.actionClick;
 	const isActionable = Boolean(action && onActionClick);
+	// A node that exposes the element contract is a slide element in its own
+	// right (a live-stage group child), so it carries the same shared role /
+	// name model the other four bindings apply when they walk the flattened
+	// element tree - otherwise a grouped shape is addressable but anonymous.
+	// Overlay copies expose no id and stay on the plain actionable-only role.
+	const contractRole = exposeElementId
+		? getAriaRole(element, { actionable: isElementActionable(element) })
+		: isActionable
+			? 'button'
+			: undefined;
 
 	return (
 		<div
@@ -133,7 +157,9 @@ function StaticElementRendererImpl({
 			className={`${positioned ? 'absolute' : 'relative'} overflow-hidden ${
 				isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'
 			}`}
-			role={isActionable ? 'button' : undefined}
+			role={contractRole}
+			aria-label={exposeElementId ? getAriaLabel(element) : undefined}
+			aria-roledescription={exposeElementId ? getAriaRoleDescription(element) : undefined}
 			tabIndex={isActionable ? 0 : undefined}
 			title={isActionable ? action?.tooltip || action?.url || undefined : undefined}
 			onClick={

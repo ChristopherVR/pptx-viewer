@@ -1,6 +1,10 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { isPresentationAdvanceClick, shouldConfirmExternalHyperlink } from 'pptx-viewer-shared';
+import {
+	buildFieldSubstitutionContext,
+	isPresentationAdvanceClick,
+	shouldConfirmExternalHyperlink,
+} from 'pptx-viewer-shared';
 /**
  * ViewerCanvasArea: The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
@@ -140,35 +144,20 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		mode === 'master' ? (s.activeLayout ? (s.activeMaster?.elements ?? []) : []) : templateElements;
 
 	// ── Field substitution context ──────────────────────────────────────
-	const fieldContext = useMemo<FieldSubstitutionContext>(() => {
-		const hf = s.headerFooter;
-		// Extract slide title from first title/ctrTitle placeholder
-		let slideTitle: string | undefined;
-		if (activeSlide) {
-			for (const el of activeSlide.elements) {
-				const phType = (el as unknown as { placeholderType?: string }).placeholderType;
-				if (phType === 'title' || phType === 'ctrTitle') {
-					const txt = (el as unknown as { text?: string }).text;
-					if (txt) {
-						slideTitle = txt;
-						break;
-					}
-				}
-			}
-		}
-		return {
-			slideNumber: activeSlide?.slideNumber,
-			dateTimeText: hf.dateTimeText,
-			dateFormat: hf.dateFormat,
-			footerText: hf.footerText,
-			headerText: hf.headerText,
-			slideTitle,
-			customProperties: s.customProperties.map((p) => ({
-				name: p.name,
-				value: p.value,
-			})),
-		};
-	}, [s.headerFooter, s.customProperties, activeSlide]);
+	// Assembled by `pptx-viewer-shared` so all five bindings resolve fields
+	// identically. In particular the slide title now comes from core's
+	// `deriveSlideTitle`: the `placeholderType` property this used to scan for
+	// is never set on a parsed deck, so `slidetitle` fields silently kept their
+	// cached literal ("Title") on every real `.pptx`.
+	const fieldContext = useMemo<FieldSubstitutionContext>(
+		() =>
+			buildFieldSubstitutionContext({
+				headerFooter: s.headerFooter,
+				customProperties: s.customProperties,
+				slide: activeSlide,
+			}),
+		[s.headerFooter, s.customProperties, activeSlide],
+	);
 
 	// ── Table style context (theme + table style map for band colours) ──
 	const tableStyleContext = useMemo<TableStyleContext | undefined>(() => {

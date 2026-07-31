@@ -1,4 +1,5 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildFieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import type { SlideCanvasProps, ZoomViewport } from '../components/canvas/canvas-types';
 import type { CanvasSize, TableCellEditorState, ViewerMode } from '../types';
@@ -74,29 +75,16 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		mode === 'master' ? (s.activeLayout ? (s.activeMaster?.elements ?? []) : []) : templateElements;
 
 	// ── Field substitution context (slide title, header/footer, etc.) ────
-	let slideTitle: string | undefined;
-	if (activeSlide) {
-		for (const el of activeSlide.elements) {
-			const phType = (el as unknown as { placeholderType?: string }).placeholderType;
-			if (phType === 'title' || phType === 'ctrTitle') {
-				const txt = (el as unknown as { text?: string }).text;
-				if (txt) {
-					slideTitle = txt;
-					break;
-				}
-			}
-		}
-	}
-	const hf = s.headerFooter;
-	const fieldContext: FieldSubstitutionContext = {
-		slideNumber: activeSlide?.slideNumber,
-		dateTimeText: hf.dateTimeText,
-		dateFormat: hf.dateFormat,
-		footerText: hf.footerText,
-		headerText: hf.headerText,
-		slideTitle,
-		customProperties: s.customProperties.map((p) => ({ name: p.name, value: p.value })),
-	};
+	// Assembled by `pptx-viewer-shared` so all five bindings resolve fields
+	// identically. In particular the slide title now comes from core's
+	// `deriveSlideTitle`: the `placeholderType` property this used to scan for
+	// is never set on a parsed deck, so `slidetitle` fields silently kept their
+	// cached literal ("Title") on every real `.pptx`.
+	const fieldContext: FieldSubstitutionContext = buildFieldSubstitutionContext({
+		headerFooter: s.headerFooter,
+		customProperties: s.customProperties,
+		slide: activeSlide,
+	});
 
 	// ── Table style context (theme + table style map for band colours) ──
 	const tableStyleContext: TableStyleContext | undefined =
@@ -147,7 +135,9 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		showGrid: s.showGrid,
 		gridSpacingPx,
 		showRulers: s.showRulers,
-		guides: s.guides,
+		// View ▸ Guides hides the overlay without discarding the guides: they are
+		// still snapped to while dragging and still round-trip on save.
+		guides: s.showGuides ? s.guides : [],
 		presentationElementStates:
 			mode === 'present' ? presentation.presentationElementStates : undefined,
 		presentationKeyframesCss:

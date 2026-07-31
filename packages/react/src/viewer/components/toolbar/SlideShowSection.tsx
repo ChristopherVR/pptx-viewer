@@ -1,5 +1,5 @@
 import type { ToolbarActionId } from 'pptx-viewer-shared';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
 	LuCaptions,
@@ -16,12 +16,15 @@ import {
 
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
+import { CustomShowsControls } from './CustomShowsControls';
+import type { CustomShowsControlsProps } from './CustomShowsControls';
 import {
 	RibbonCommand,
 	RibbonCommandStack,
 	RibbonGroup,
 	RibbonToggle,
 } from './PowerPointRibbonControls';
+import { RibbonMenu } from './RibbonMenu';
 
 export interface SlideShowSectionProps {
 	onPresent: () => void;
@@ -32,6 +35,12 @@ export interface SlideShowSectionProps {
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
 	onSetMode: (mode: ViewerMode) => void;
+	/**
+	 * Everything the custom-show picker needs. `ToolbarProps` is a superset of
+	 * this (it is a `Pick` of it), so callers hand their whole props object over
+	 * rather than re-listing nine fields at every call site.
+	 */
+	customShowControls: CustomShowsControlsProps;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
 }
@@ -39,6 +48,25 @@ export interface SlideShowSectionProps {
 export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 	const { t } = useTranslation();
 	const { isHidden } = useToolbarVisibility(p.hiddenActions);
+	// The Custom Show command used to render disabled with no handler at all,
+	// while Vanilla and Svelte shipped working pickers. React already owned the
+	// picker (`CustomShowsControls`); it was simply never reachable from the
+	// Slide Show tab. A popover keeps the tab's control inventory unchanged
+	// while the menu is closed.
+	const [showsOpen, setShowsOpen] = useState(false);
+	const showsRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!showsOpen) {
+			return;
+		}
+		const handler = (event: MouseEvent) => {
+			if (showsRef.current && !showsRef.current.contains(event.target as Node)) {
+				setShowsOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handler);
+		return () => document.removeEventListener('mousedown', handler);
+	}, [showsOpen]);
 	return (
 		<>
 			<RibbonGroup label={t('pptx.slideShow.start', { defaultValue: 'Start Slide Show' })}>
@@ -46,13 +74,13 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					label={t('pptx.slideShow.fromBeginning')}
 					icon={<LuPlay />}
 					onClick={() => p.onSetMode('present')}
-					title='Start slide show from beginning'
+					title={t('pptx.slideShow.fromBeginningTooltip')}
 				/>
 				<RibbonCommand
 					label={t('pptx.slideShow.fromCurrent')}
 					icon={<LuMonitorPlay />}
 					onClick={p.onPresent}
-					title='Start slide show from current slide'
+					title={t('pptx.slideShow.fromCurrentTooltip')}
 				/>
 			</RibbonGroup>
 			<RibbonGroup label={t('pptx.slideShow.present', { defaultValue: 'Present' })}>
@@ -60,19 +88,30 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					label={t('pptx.slideShow.presenterView')}
 					icon={<LuPresentation />}
 					onClick={p.onEnterPresenterView}
-					title='Presenter view'
+					title={t('pptx.slideShow.presenterViewTooltip')}
 				/>
-				<RibbonCommand
-					label={t('pptx.slideShow.customShow', { defaultValue: 'Custom Show' })}
-					icon={<LuListVideo />}
-					disabled
-				/>
+				<div className='relative' ref={showsRef}>
+					<RibbonCommand
+						label={t('pptx.slideShow.customShow', { defaultValue: 'Custom Show' })}
+						icon={<LuListVideo />}
+						onClick={() => setShowsOpen((open) => !open)}
+						active={showsOpen}
+						title={t('pptx.customShows.customShowTooltip')}
+					/>
+					{showsOpen && (
+						<RibbonMenu anchorRef={showsRef} className='pt-1'>
+							<div className='flex items-center gap-1 rounded-lg border border-border bg-popover p-2 shadow-2xl'>
+								<CustomShowsControls {...p.customShowControls} />
+							</div>
+						</RibbonMenu>
+					)}
+				</div>
 				{!isHidden('broadcast') && (
 					<RibbonCommand
 						label={t('pptx.slideShow.broadcast')}
 						icon={<LuCast />}
 						onClick={p.onOpenBroadcastDialog}
-						title='Broadcast slide show'
+						title={t('pptx.slideShow.broadcastTooltip')}
 					/>
 				)}
 			</RibbonGroup>
@@ -86,7 +125,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					label={t('pptx.slideShow.setUp')}
 					icon={<LuSettings2 />}
 					onClick={p.onOpenSetUpSlideShow}
-					title='Set up slide show'
+					title={t('pptx.slideShow.setUpTooltip')}
 				/>
 				<RibbonCommand
 					label={t('pptx.slideShow.hideSlide', { defaultValue: 'Hide Slide' })}
@@ -97,7 +136,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					label={t('pptx.slideShow.rehearseTimings')}
 					icon={<LuClock3 />}
 					onClick={p.onEnterRehearsalMode}
-					title='Rehearse timings'
+					title={t('pptx.slideShow.rehearseTimingsTooltip')}
 				/>
 				<RibbonCommand
 					label={t('pptx.titleBar.record')}
@@ -130,7 +169,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 						label={t('pptx.slideShow.subtitles')}
 						checked={p.showSubtitles}
 						onChange={() => p.onToggleSubtitles()}
-						title='Toggle subtitles'
+						title={t('pptx.slideShow.subtitlesTooltip')}
 					/>
 					<RibbonCommand
 						compact

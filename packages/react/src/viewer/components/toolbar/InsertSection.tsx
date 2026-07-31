@@ -15,6 +15,7 @@ import {
 import { SHAPE_PRESETS, ACTION_BUTTON_PRESETS } from '../../constants';
 import type { SupportedShapeType } from '../../types';
 import { cn } from '../../utils';
+import { InsertHyperlinkButton } from './InsertHyperlinkButton';
 import { RibbonMenu } from './RibbonMenu';
 import { grp, ic, pill } from './toolbar-constants';
 
@@ -33,6 +34,9 @@ export interface InsertSectionProps {
 	onOpenHeaderFooter?: () => void;
 	onOpenImagePicker: () => void;
 	onOpenMediaPicker: () => void;
+	/** True when something is selected, so a link has a target to attach to. */
+	hasSelection: boolean;
+	onOpenHyperlinkDialog: () => void;
 }
 
 export function InsertSection(p: InsertSectionProps): React.ReactElement {
@@ -356,6 +360,10 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 					</RibbonMenu>
 				</div>
 			)}
+			<InsertHyperlinkButton
+				hasSelection={p.hasSelection}
+				onOpenHyperlinkDialog={p.onOpenHyperlinkDialog}
+			/>
 			{p.onOpenHeaderFooter && (
 				<button
 					type='button'

@@ -1,4 +1,10 @@
 import type { PptxTagCollection } from 'pptx-viewer-core';
+import {
+	addTagToCollections,
+	deleteTagFromCollections,
+	flattenTagCollections,
+	updateTagInCollections,
+} from 'pptx-viewer-shared';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuChevronRight, LuTrash2 } from 'react-icons/lu';
@@ -28,48 +34,20 @@ export function TagsSection({
 	const { t } = useTranslation();
 	const [collapsed, setCollapsed] = useState(true);
 
-	const allTags = tagCollections.flatMap((col, colIdx) =>
-		col.tags.map((tag, tagIdx) => ({ ...tag, colIdx, tagIdx })),
-	);
+	// Flattening + the immutable edits live in `pptx-viewer-shared` so every
+	// binding's Tags section addresses the nested collection model identically.
+	const allTags = flattenTagCollections(tagCollections);
 
 	const updateTag = (colIdx: number, tagIdx: number, field: 'name' | 'value', newValue: string) => {
-		const next = tagCollections.map((col, ci) => {
-			if (ci !== colIdx) {
-				return col;
-			}
-			return {
-				...col,
-				tags: col.tags.map((tag, ti) => (ti === tagIdx ? { ...tag, [field]: newValue } : tag)),
-			};
-		});
-		onUpdateTagCollections(next);
+		onUpdateTagCollections(updateTagInCollections(tagCollections, colIdx, tagIdx, field, newValue));
 	};
 
 	const deleteTag = (colIdx: number, tagIdx: number) => {
-		const next = tagCollections.map((col, ci) => {
-			if (ci !== colIdx) {
-				return col;
-			}
-			return {
-				...col,
-				tags: col.tags.filter((_, ti) => ti !== tagIdx),
-			};
-		});
-		onUpdateTagCollections(next);
+		onUpdateTagCollections(deleteTagFromCollections(tagCollections, colIdx, tagIdx));
 	};
 
 	const addTag = () => {
-		if (tagCollections.length === 0) {
-			onUpdateTagCollections([{ path: 'ppt/tags/tag1.xml', tags: [{ name: '', value: '' }] }]);
-		} else {
-			const next = tagCollections.map((col, ci) => {
-				if (ci !== 0) {
-					return col;
-				}
-				return { ...col, tags: [...col.tags, { name: '', value: '' }] };
-			});
-			onUpdateTagCollections(next);
-		}
+		onUpdateTagCollections(addTagToCollections(tagCollections));
 	};
 
 	return (

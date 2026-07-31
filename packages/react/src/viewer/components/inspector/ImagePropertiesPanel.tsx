@@ -8,6 +8,7 @@ import { ColorChangeSection } from './ColorChangeSection';
 import { ColorWashSection } from './ColorWashSection';
 import { DuotonePanel } from './DuotonePanel';
 import { ImageAdjustmentsPanel } from './ImageAdjustmentsPanel';
+import { ImageCropSection } from './ImageCropSection';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
 import { RangeSlider } from './RangeSlider';
 
@@ -80,6 +81,13 @@ export function ImagePropertiesPanel({
 						onChange={(v) => updateEffects({ saturation: v })}
 					/>
 				</div>
+
+				{/* Crop: the only crop editor in the React binding. */}
+				<ImageCropSection
+					selectedElement={selectedElement}
+					canEdit={canEdit}
+					onUpdateElement={onUpdateElement}
+				/>
 
 				{/* Transparency / Bi-Level Threshold */}
 				<ImageAdjustmentsPanel

@@ -1,5 +1,6 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import type { ViewerMode } from 'pptx-viewer-shared';
+import { clampZoomScale } from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
  * I/O, annotations, recovery, imperative handle, parent callbacks,
@@ -8,7 +9,6 @@ import type { ViewerMode } from 'pptx-viewer-shared';
 import { useEffect, useImperativeHandle, useState } from 'react';
 import type { Dispatch, ForwardedRef, RefObject, SetStateAction } from 'react';
 
-import { MIN_ZOOM_SCALE, MAX_ZOOM_SCALE } from '../constants';
 import type { PowerPointViewerHandle } from '../types';
 import type { AnnotationHandlersResult } from './useAnnotationHandlers';
 import { useAnnotationHandlers } from './useAnnotationHandlers';
@@ -263,7 +263,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 				return zoom.scale;
 			},
 			setZoom(level: number) {
-				zoom.setScale(Math.min(Math.max(level, MIN_ZOOM_SCALE), MAX_ZOOM_SCALE));
+				zoom.setScale(clampZoomScale(level));
 			},
 			zoomIn() {
 				zoom.handleZoomIn();

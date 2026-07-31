@@ -6,6 +6,7 @@ import type {
 	ShapeStyle,
 } from 'pptx-viewer-core';
 import {
+	filterRenderedElements,
 	getOleBadgeLabel,
 	getOleTypeColor,
 	getOleTypeLabel,
@@ -171,7 +172,11 @@ export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
 export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyle) {
 	return (
 		<div className='relative w-full h-full pointer-events-none'>
-			{children.map((c, childIndex) => {
+			{/* This fallback builds its own boxes rather than delegating to
+			    `ElementRenderer`, so it needs the Selection Pane's hide rule
+			    applied explicitly; filtering keeps hidden children out of the DOM
+			    entirely, matching the main renderer. */}
+			{filterRenderedElements(children).map((c, childIndex) => {
 				const { hf, fc, sw, sc } = shapeParams(c);
 				const baseSs = getShapeVisualStyle(c, hf, fc, sw, sc);
 				// `a:grpFill` child: inherit the enclosing group's resolved fill,

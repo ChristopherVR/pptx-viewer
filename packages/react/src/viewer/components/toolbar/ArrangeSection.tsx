@@ -1,32 +1,26 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-	LuChevronDown,
-	LuChevronUp,
-	LuClipboardPaste,
-	LuCopy,
-	LuPaintbrush,
-	LuTrash2,
-} from 'react-icons/lu';
+import { LuChevronDown, LuChevronUp, LuCopy, LuPaintbrush, LuTrash2 } from 'react-icons/lu';
 
-import type { ElementClipboardPayload } from '../../types';
 import { cn } from '../../utils';
+import { ShapeArrangeExtras } from './ShapeArrangeExtras';
 import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './toolbar-constants';
 
 export interface ArrangeSectionProps {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
-	clipboardPayload: ElementClipboardPayload | null;
+	/** How many elements the multi-select currently holds. */
+	selectedCount: number;
 	onAlignElements: (align: string) => void;
 	onDistributeElements: (axis: string) => void;
 	canDistribute: boolean;
-	onCopy: () => void;
-	onCut: () => void;
-	onPaste: () => void;
 	onFlip: (direction: 'horizontal' | 'vertical') => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
+	onGroupElements: () => void;
+	onUngroupElement: () => void;
+	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
 	onDuplicate: () => void;
 	onDelete: () => void;
 	formatPainterActive?: boolean;
@@ -70,27 +64,6 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						</button>
 					))}
 				</div>
-				<div className={grp}>
-					<button
-						onClick={p.onCopy}
-						disabled={!hasSel}
-						className={gB}
-						title={t('pptx.arrange.copy')}
-					>
-						<LuCopy className={ic} />
-					</button>
-					<button onClick={p.onCut} disabled={!canMut} className={gB} title={t('pptx.arrange.cut')}>
-						{t('pptx.arrange.cut')}
-					</button>
-					<button
-						onClick={p.onPaste}
-						disabled={!p.clipboardPayload || !p.canEdit}
-						className={gL}
-						title={t('pptx.arrange.paste')}
-					>
-						<LuClipboardPaste className={ic} />
-					</button>
-				</div>
 				{p.onToggleFormatPainter && (
 					<button
 						type='button'
@@ -130,6 +103,14 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						{t('pptx.arrange.flipV')}
 					</button>
 				</div>
+				<ShapeArrangeExtras
+					canEdit={p.canEdit}
+					selectedElement={p.selectedElement}
+					selectedCount={p.selectedCount}
+					onGroupElements={p.onGroupElements}
+					onUngroupElement={p.onUngroupElement}
+					onUpdateElementStyle={p.onUpdateElementStyle}
+				/>
 				<div className={grp}>
 					<button
 						onClick={() => p.onMoveLayer('backward')}

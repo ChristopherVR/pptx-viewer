@@ -30,10 +30,12 @@ export interface ViewSectionProps {
 	onSetSpellCheckEnabled: (enabled: boolean) => void;
 	showGrid: boolean;
 	showRulers: boolean;
+	showGuides: boolean;
 	snapToGrid: boolean;
 	snapToShape: boolean;
 	onSetShowGrid: (enabled: boolean) => void;
 	onSetShowRulers: (enabled: boolean) => void;
+	onSetShowGuides: (enabled: boolean) => void;
 	onSetSnapToGrid: (enabled: boolean) => void;
 	onSetSnapToShape: (enabled: boolean) => void;
 	onAddGuide: (axis: 'h' | 'v') => void;
@@ -51,18 +53,22 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 	return (
 		<>
 			<RibbonGroup label={t('pptx.view.presentationViews')}>
-				<RibbonCommand label={t('pptx.view.normal')} icon={<LuPanelTop />} title='Normal view' />
+				<RibbonCommand
+					label={t('pptx.view.normal')}
+					icon={<LuPanelTop />}
+					title={t('pptx.statusBar.normalView')}
+				/>
 				<RibbonCommand
 					label={t('pptx.slideSorter.title')}
 					icon={<LuLayoutGrid />}
 					onClick={p.onToggleSlideSorter}
-					title='Slide Sorter view'
+					title={t('pptx.view.slideSorterTooltip')}
 				/>
 				<RibbonCommand
 					label={t('pptx.view.readingView')}
 					icon={<LuBookOpen />}
 					disabled
-					title='Reading View'
+					title={t('pptx.view.readingView')}
 				/>
 			</RibbonGroup>
 			<RibbonGroup label={t('pptx.view.masterViews')}>
@@ -71,7 +77,7 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 					icon={<LuPresentation />}
 					onClick={p.onEnterMasterView}
 					disabled={!p.canEdit}
-					title='Edit slide masters and layouts'
+					title={t('pptx.view.slideMasterTooltip')}
 				/>
 				<RibbonCommand
 					label={t('pptx.master.handoutMasterTitle', { defaultValue: 'Handout Master' })}
@@ -95,12 +101,19 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						label={t('pptx.grid.grid')}
 						checked={p.showGrid}
 						onChange={p.onSetShowGrid}
-						title='Toggle grid'
+						title={t('pptx.grid.toggleGrid')}
 					/>
+					{/*
+						Guides shows and hides the drawing guides, nothing else. It used
+						to drive shape snapping instead, which left the "Snap to shape"
+						command below permanently disabled and described a feature that
+						lived on a differently-named control.
+					*/}
 					<RibbonToggle
 						label={t('pptx.view.guides', { defaultValue: 'Guides' })}
-						checked={p.snapToShape}
-						onChange={p.onSetSnapToShape}
+						checked={p.showGuides}
+						onChange={p.onSetShowGuides}
+						title={t('pptx.ribbon.toggleGuides')}
 					/>
 					<RibbonToggle label='Snap to grid' checked={p.snapToGrid} onChange={p.onSetSnapToGrid} />
 				</RibbonCommandStack>
@@ -111,7 +124,7 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						icon={<LuList />}
 						onClick={p.onToggleSelectionPane}
 						active={p.isSelectionPaneOpen}
-						title='Selection Pane'
+						title={t('pptx.selectionPane.title')}
 					/>
 					<RibbonCommand
 						compact
@@ -121,20 +134,27 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						active={p.eyedropperActive}
 						disabled={!p.canEdit}
 					/>
-					<RibbonCommand compact label='Snap to shape' icon={<LuGrid3X3 />} disabled />
+					<RibbonCommand
+						compact
+						label={t('pptx.view.snapToShape')}
+						icon={<LuGrid3X3 />}
+						onClick={() => p.onSetSnapToShape(!p.snapToShape)}
+						active={p.snapToShape}
+						title={t('pptx.view.snapToShape')}
+					/>
 					<RibbonCommand
 						compact
 						label='H Guide'
 						icon={<LuRuler />}
 						onClick={() => p.onAddGuide('h')}
-						title='Add horizontal guide'
+						title={t('pptx.view.addHorizontalGuide')}
 					/>
 					<RibbonCommand
 						compact
 						label='V Guide'
 						icon={<LuRuler />}
 						onClick={() => p.onAddGuide('v')}
-						title='Add vertical guide'
+						title={t('pptx.view.addVerticalGuide')}
 					/>
 				</RibbonCommandStack>
 			</RibbonGroup>

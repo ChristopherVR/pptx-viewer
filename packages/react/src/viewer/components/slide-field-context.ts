@@ -1,42 +1,16 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-
-import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
-
 /**
- * Extract the title text from a slide's first title placeholder, mirroring the
- * canvas field context built in `useViewerBuildingBlocks-canvas-props`.
- */
-function extractSlideTitle(slide: PptxSlide): string | undefined {
-	for (const el of slide.elements) {
-		const phType = (el as unknown as { placeholderType?: string }).placeholderType;
-		if (phType === 'title' || phType === 'ctrTitle') {
-			const txt = (el as unknown as { text?: string }).text;
-			if (txt) {
-				return txt;
-			}
-		}
-	}
-	return undefined;
-}
-
-/**
- * Specialise a presentation-wide field context for a single slide preview.
+ * Per-slide specialisation of the presentation-wide field-substitution context.
  *
- * The date/header/footer/custom-property fields are presentation-wide, but the
- * slide number and slide title are per-slide, so a thumbnail must resolve them
- * from its own slide rather than the active one. Returns `undefined` when no
- * base context is supplied so callers stay allocation-free.
+ * The implementation is framework-agnostic and lives in `pptx-viewer-shared`
+ * (`render/field-context`); this module re-exports it so the existing React
+ * import path keeps working.
+ *
+ * It used to be a local copy whose title scan read an element's
+ * `placeholderType` property. Nothing sets that property on a parsed deck (the
+ * placeholder type stays in the preserved raw XML, and a title's text may live
+ * in `textSegments` rather than `text`), so every `slidetitle` field on a real
+ * `.pptx` fell through to its cached literal, "Title". The shared helper
+ * delegates to core's `deriveSlideTitle` instead, which is the same resolution
+ * `docProps/app.xml` is written from.
  */
-export function deriveSlideFieldContext(
-	base: FieldSubstitutionContext | undefined,
-	slide: PptxSlide,
-): FieldSubstitutionContext | undefined {
-	if (!base) {
-		return undefined;
-	}
-	return {
-		...base,
-		slideNumber: slide.slideNumber,
-		slideTitle: extractSlideTitle(slide),
-	};
-}
+export { deriveSlideFieldContext } from 'pptx-viewer-shared';

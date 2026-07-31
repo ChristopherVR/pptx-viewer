@@ -1,5 +1,6 @@
 import { getSubstituteFontFamily } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
+import { resolveAutoFitFontScale } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
@@ -133,13 +134,10 @@ export function renderSingleSegment(
 	const rawFontSize = (segmentStyle.fontSize ||
 		element.textStyle?.fontSize ||
 		DEFAULT_TEXT_FONT_SIZE) as number;
-	// Apply normAutofit fontScale when present (e.g. 0.9 = 90%)
-	const autoFitScale =
-		element.textStyle?.autoFitFontScale !== undefined &&
-		element.textStyle.autoFitFontScale > 0 &&
-		element.textStyle.autoFitFontScale < 1
-			? element.textStyle.autoFitFontScale
-			: 1;
+	// Apply normAutofit fontScale when present (e.g. 0.9 = 90%). Resolved by the
+	// shared helper the other four bindings' run builders now call, so a body
+	// that shrinks its text shrinks it identically in all five.
+	const autoFitScale = resolveAutoFitFontScale(element.textStyle);
 	const baseFontSize = rawFontSize * autoFitScale;
 
 	// Baseline shift as a length relative to the (unscaled) base font size, so a

@@ -52,6 +52,7 @@ export interface ViewerToolbarSectionProps {
 		setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 		setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
 		setSelectedElementId: React.Dispatch<React.SetStateAction<string | null>>;
+		selectedElementIds: string[];
 		setSelectedElementIds: React.Dispatch<React.SetStateAction<string[]>>;
 		setTemplateElementsBySlideId: React.Dispatch<
 			React.SetStateAction<Record<string, PptxElement[]>>
@@ -75,6 +76,8 @@ export interface ViewerToolbarSectionProps {
 		setShowGrid: React.Dispatch<React.SetStateAction<boolean>>;
 		showRulers: boolean;
 		setShowRulers: React.Dispatch<React.SetStateAction<boolean>>;
+		showGuides: boolean;
+		setShowGuides: React.Dispatch<React.SetStateAction<boolean>>;
 		snapToGrid: boolean;
 		setSnapToGrid: React.Dispatch<React.SetStateAction<boolean>>;
 		snapToShape: boolean;
@@ -382,6 +385,28 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		[ops, insertHandlers, s, dialogs, zoom, onSetMode, onEnterPresenterView, manipulation],
 	);
 
+	/**
+	 * Run a Quick Access Toolbar command by catalog id. Save/Undo/Redo keep
+	 * their dedicated title-bar buttons (they carry undo labels and the
+	 * `hiddenActions` gate), so only the options-configured remainder arrives
+	 * here.
+	 */
+	const handleQuickAccessCommand = useCallback(
+		(id: string) => {
+			const handlers: Record<string, () => void> = {
+				presentFromStart: () => onSetMode('present'),
+				print: printHandlers.handlePrint,
+				exportPdf: exportHandlers.handleExportPdf,
+				newSlide: slideOps.handleAddSlide,
+				spellCheck: () => s.setSpellCheckEnabled((p) => !p),
+				zoomIn: zoom.handleZoomIn,
+				zoomOut: zoom.handleZoomOut,
+			};
+			handlers[id]?.();
+		},
+		[onSetMode, printHandlers, exportHandlers, slideOps, s, zoom],
+	);
+
 	return (
 		<>
 			{!dialogs.isNarrowViewport && (
@@ -403,6 +428,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 					findReplaceOpen={findReplace.findReplaceOpen}
 					onToggleFindReplace={() => findReplace.setFindReplaceOpen(!findReplace.findReplaceOpen)}
 					onCommandSearch={handleCommandSearch}
+					onQuickCommand={handleQuickAccessCommand}
 					hiddenActions={hiddenActions}
 				/>
 			)}
@@ -469,11 +495,13 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				spellCheckEnabled={s.spellCheckEnabled}
 				showGrid={s.showGrid}
 				showRulers={s.showRulers}
+				showGuides={s.showGuides}
 				snapToGrid={s.snapToGrid}
 				snapToShape={s.snapToShape}
 				onSetSpellCheckEnabled={s.setSpellCheckEnabled}
 				onSetShowGrid={s.setShowGrid}
 				onSetShowRulers={s.setShowRulers}
+				onSetShowGuides={s.setShowGuides}
 				onSetSnapToGrid={s.setSnapToGrid}
 				onSetSnapToShape={s.setSnapToShape}
 				onAddGuide={dialogs.handleAddGuide}
@@ -486,6 +514,13 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onFlip={manipulation.handleFlip}
 				onMoveLayer={manipulation.handleMoveLayer}
 				onMoveLayerToEdge={manipulation.handleMoveLayerToEdge}
+				onGroupElements={manipulation.handleGroupElements}
+				onUngroupElement={manipulation.handleUngroupElement}
+				onUpdateElementStyle={ops.updateSelectedShapeStyle}
+				selectedCount={
+					s.selectedElementIds.length > 0 ? s.selectedElementIds.length : selectedElement ? 1 : 0
+				}
+				onOpenHyperlinkDialog={() => dialogs.setIsHyperlinkDialogOpen(true)}
 				onDuplicate={manipulation.handleDuplicate}
 				onDelete={manipulation.handleDelete}
 				onExportPng={exportHandlers.handleExportPng}

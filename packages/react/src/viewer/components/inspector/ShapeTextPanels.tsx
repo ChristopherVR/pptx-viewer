@@ -4,13 +4,22 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SHAPE_PRESETS } from '../../constants';
-import { cn, normalizeHexColor } from '../../utils';
+import { cn, normalizeHexColor, sanitizeGradientStops } from '../../utils';
 import { DebouncedColorInput } from './DebouncedColorInput';
+import { FillStrokeProperties } from './FillStrokeProperties';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
+import { TextAdvancedSections } from './TextAdvancedSections';
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
+
+/**
+ * React keeps no recent-colour history yet (no binding-level store feeds one),
+ * so the swatch strip renders empty rather than being wired to a stale array.
+ * Hoisted to module scope so the identity is stable across renders.
+ */
+const EMPTY_RECENT_COLORS: string[] = [];
 
 interface ShapeTextPanelsProps {
 	selectedElement: PptxElement;
@@ -58,44 +67,27 @@ export function ShapeTextPanels({
 				</div>
 			)}
 
-			{/* Fill & Stroke */}
+			{/* Fill & Stroke: the full panel (fill MODE, gradient stops, pattern,
+			    picture fill, dash/join/cap, effects, quick styles), not just a
+			    pair of colour swatches. Vue's FillPanel and Svelte's
+			    FillStrokeSection already ship this; React rendered a cut-down
+			    card while the complete one sat unreferenced. */}
 			{hasShapeProperties(selectedElement) && (
-				<div className={CARD}>
+				<div className={CARD} data-pptx-fill-stroke>
 					<div className={HEADING}>{t('pptx.shape.fillStroke', 'Fill & Stroke')}</div>
-					<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
-						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Fill</span>
-							<DebouncedColorInput
-								disabled={!canEdit}
-								value={normalizeHexColor(selectedElement.shapeStyle?.fillColor, '#3b82f6')}
-								className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-								onCommit={(hex) => onUpdateElementStyle({ fillColor: hex, fillMode: 'solid' })}
-							/>
-						</label>
-						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Stroke</span>
-							<DebouncedColorInput
-								disabled={!canEdit}
-								value={normalizeHexColor(selectedElement.shapeStyle?.strokeColor, '#1f2937')}
-								className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-								onCommit={(hex) => onUpdateElementStyle({ strokeColor: hex })}
-							/>
-						</label>
-						<label className='flex items-center gap-1 col-span-2'>
-							<span className='w-16 text-muted-foreground'>
-								{t('pptx.shapeText.strokeWidthAbbrev')}
-							</span>
-							<input
-								type='number'
-								disabled={!canEdit}
-								className={INPUT}
-								min={0}
-								max={20}
-								value={selectedElement.shapeStyle?.strokeWidth ?? 1}
-								onChange={(e) => onUpdateElementStyle({ strokeWidth: Number(e.target.value) })}
-							/>
-						</label>
-					</div>
+					<FillStrokeProperties
+						selectedElement={selectedElement}
+						selectedShapeStyle={selectedElement.shapeStyle}
+						selectedShapeType={selectedElement.shapeType}
+						selectedGradientStops={sanitizeGradientStops(
+							selectedElement.shapeStyle?.fillGradientStops,
+						)}
+						recentColors={EMPTY_RECENT_COLORS}
+						canEdit={canEdit}
+						onUpdateShapeStyle={onUpdateElementStyle}
+						onSetFillColor={(hex) => onUpdateElementStyle({ fillColor: hex, fillMode: 'solid' })}
+						onSetStrokeColor={(hex) => onUpdateElementStyle({ strokeColor: hex })}
+					/>
 				</div>
 			)}
 
@@ -158,6 +150,14 @@ export function ShapeTextPanels({
 					</div>
 				</div>
 			)}
+
+			{/* Warp / effects / 3D text: gated on the same text-capable check as
+			    the card above, so they appear alongside the other text sections. */}
+			<TextAdvancedSections
+				selectedElement={selectedElement}
+				canEdit={canEdit}
+				onUpdateTextStyle={onUpdateTextStyle}
+			/>
 		</>
 	);
 }

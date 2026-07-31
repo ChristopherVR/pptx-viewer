@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { hasShapeProperties } from 'pptx-viewer-core';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
@@ -17,17 +17,10 @@ import type { ElementAnimationState } from '../../utils/animation-timeline';
  * (`a:hlinkClick` on any text run). Used to decide whether the element wrapper
  * must stay pointer-interactive so an inner hyperlink span can receive clicks.
  *
- * This must reflect the ELEMENT's data, not the presence of an `onHyperlinkClick`
- * handler prop: the handler is always supplied by the canvas, so keying off it
- * would make every element (including inert layout/master template shapes)
- * report as actionable and defeat the `editTemplateMode` interaction gate.
+ * Re-exported from `pptx-viewer-shared`: it is one half of the actionable-element
+ * rule, which every binding now shares so they classify a deck identically.
  */
-export function elementHasTextHyperlink(el: PptxElement): boolean {
-	if (!hasTextProperties(el)) {
-		return false;
-	}
-	return Boolean(el.textSegments?.some((segment) => Boolean(segment.style?.hyperlink)));
-}
+export { elementHasTextHyperlink } from 'pptx-viewer-shared';
 
 /* ───────────────────────── DagDuotone SVG filter ──────────────────────── */
 

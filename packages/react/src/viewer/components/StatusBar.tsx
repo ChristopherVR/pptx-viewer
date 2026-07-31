@@ -1,3 +1,4 @@
+import { STATUS_BAR_CLASSES } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -101,7 +102,15 @@ export function StatusBar({
 		'p-1 rounded-sm transition-colors hover:bg-accent/60 text-muted-foreground active:scale-95 active:opacity-80';
 
 	return (
-		<div className='w-full px-2 py-0.5 border-t border-border bg-secondary/50 text-[10px] text-muted-foreground flex items-center gap-1'>
+		<div
+			className={cn(
+				'w-full px-2 py-0.5 border-t border-border bg-secondary/50 text-[10px] text-muted-foreground flex items-center gap-1',
+				// Pins the row height to the shared metric instead of letting it fall
+				// out of the padding + button box, which is how the Vanilla and Svelte
+				// ports ended up 2px shorter than this one.
+				STATUS_BAR_CLASSES.container,
+			)}
+		>
 			{/* Left section: Slide counter + autosave status */}
 			<span className='shrink-0'>
 				{slideCount > 0

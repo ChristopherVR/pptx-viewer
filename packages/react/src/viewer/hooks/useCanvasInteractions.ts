@@ -59,6 +59,23 @@ export interface UseCanvasInteractionsInput {
 	transformCommittedText?: (text: string) => string;
 }
 
+/**
+ * True when a mousedown on an element should replace the selection and arm a
+ * drag.
+ *
+ * A modifier-click must not: it is a selection *toggle*, and the click handler
+ * that follows owns it. While mousedown replaced the selection unconditionally,
+ * the click's toggle then saw the just-clicked element as already selected and
+ * removed it again, so Shift+click could never build a multi-selection and
+ * Ctrl+G had nothing to group.
+ */
+export function mouseDownStartsSelectionDrag(event: {
+	shiftKey: boolean;
+	metaKey: boolean;
+}): boolean {
+	return !event.shiftKey && !event.metaKey;
+}
+
 export function useCanvasInteractions(
 	input: UseCanvasInteractionsInput,
 ): CanvasInteractionHandlers {
@@ -206,6 +223,9 @@ export function useCanvasInteractions(
 		// run), so commit deterministically rather than relying on blur ordering.
 		if (inlineEditingElementId && inlineEditingElementId !== elementId) {
 			handleInlineEditCommit();
+		}
+		if (!mouseDownStartsSelectionDrag(e)) {
+			return;
 		}
 		const wasSelected = selectedElementIdSet.has(elementId);
 		if (!wasSelected) {

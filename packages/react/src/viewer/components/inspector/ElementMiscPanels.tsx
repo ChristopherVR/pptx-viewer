@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { ConnectorArrowsSection } from './ConnectorArrowsSection';
 import { CARD, HEADING, INPUT, BTN } from './inspector-pane-constants';
 
 // ---------------------------------------------------------------------------
@@ -21,38 +22,22 @@ export function ConnectorPanel({
 	canEdit,
 	onUpdateElementStyle,
 }: ConnectorPanelProps): React.ReactElement | null {
-	const { t } = useTranslation();
 	if (selectedElement.type !== 'connector') {
 		return null;
 	}
+	// Delegates to ConnectorArrowsSection so the card offers the arrow SIZE
+	// (width + length) alongside the head style. OOXML carries `w`/`len` on
+	// `a:headEnd` / `a:tailEnd`, and the previous inline dropdown pair could
+	// only ever write the head type, leaving the two size attributes editable
+	// nowhere in React.
 	return (
 		<div className={CARD}>
 			<div className={HEADING}>Connector</div>
-			<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
-				{(
-					[
-						['Start', 'connectorStartArrow'],
-						['End', 'connectorEndArrow'],
-					] as const
-				).map(([label, key]) => (
-					<label key={key} className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>{label} Arrow</span>
-						<select
-							disabled={!canEdit}
-							className={cn(INPUT, 'w-full')}
-							value={selectedElement.shapeStyle?.[key] ?? 'none'}
-							onChange={(e) => onUpdateElementStyle({ [key]: e.target.value })}
-						>
-							<option value='none'>{t('pptx.arrowhead.none')}</option>
-							<option value='triangle'>{t('pptx.arrowhead.triangle')}</option>
-							<option value='arrow'>{t('pptx.arrowhead.arrow')}</option>
-							<option value='stealth'>{t('pptx.arrowhead.stealth')}</option>
-							<option value='diamond'>{t('pptx.arrowhead.diamond')}</option>
-							<option value='oval'>{t('pptx.arrowhead.oval')}</option>
-						</select>
-					</label>
-				))}
-			</div>
+			<ConnectorArrowsSection
+				selectedShapeStyle={selectedElement.shapeStyle}
+				canEdit={canEdit}
+				onUpdateShapeStyle={onUpdateElementStyle}
+			/>
 		</div>
 	);
 }

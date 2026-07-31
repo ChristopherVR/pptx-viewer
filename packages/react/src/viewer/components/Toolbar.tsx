@@ -12,6 +12,7 @@ import { DrawingGroup } from './toolbar/DrawingGroup';
 import { DrawSection } from './toolbar/DrawSection';
 import { EditingSection } from './toolbar/EditingSection';
 import { FileSection } from './toolbar/FileSection';
+import { HelpSection } from './toolbar/HelpSection';
 import { HomeSection } from './toolbar/HomeSection';
 import { InsertSection } from './toolbar/InsertSection';
 import { RecordSection } from './toolbar/RecordSection';
@@ -19,7 +20,6 @@ import { ReviewSection } from './toolbar/ReviewSection';
 import { SlideShowSection } from './toolbar/SlideShowSection';
 import { TabRowActions } from './toolbar/TabRowActions';
 import { TextSection } from './toolbar/TextSection';
-import { pill } from './toolbar/toolbar-constants';
 import type { ToolbarProps } from './toolbar/toolbar-types';
 import { ToolbarPrimaryRow } from './toolbar/ToolbarPrimaryRow';
 import { ViewSection } from './toolbar/ViewSection';
@@ -187,6 +187,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onOpenHeaderFooter={p.onOpenHeaderFooter}
 							onOpenImagePicker={p.onOpenImagePicker}
 							onOpenMediaPicker={p.onOpenMediaPicker}
+							hasSelection={Boolean(p.selectedElement)}
+							onOpenHyperlinkDialog={p.onOpenHyperlinkDialog}
 						/>
 					)}
 
@@ -229,16 +231,16 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						<ArrangeSection
 							canEdit={p.canEdit}
 							selectedElement={p.selectedElement}
-							clipboardPayload={p.clipboardPayload}
+							selectedCount={p.selectedCount}
 							onAlignElements={p.onAlignElements}
 							onDistributeElements={p.onDistributeElements}
 							canDistribute={p.canDistribute}
-							onCopy={p.onCopy}
-							onCut={p.onCut}
-							onPaste={p.onPaste}
 							onFlip={p.onFlip}
 							onMoveLayer={p.onMoveLayer}
 							onMoveLayerToEdge={p.onMoveLayerToEdge}
+							onGroupElements={p.onGroupElements}
+							onUngroupElement={p.onUngroupElement}
+							onUpdateElementStyle={p.onUpdateElementStyle}
 							onDuplicate={p.onDuplicate}
 							onDelete={p.onDelete}
 							formatPainterActive={p.formatPainterActive}
@@ -289,6 +291,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onToggleSubtitles={p.onToggleSubtitles ?? (() => {})}
 							showSubtitles={p.showSubtitles ?? false}
 							onSetMode={p.onSetMode}
+							customShowControls={p}
 							hiddenActions={p.hiddenActions}
 						/>
 					)}
@@ -323,10 +326,12 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onSetSpellCheckEnabled={p.onSetSpellCheckEnabled}
 							showGrid={p.showGrid}
 							showRulers={p.showRulers}
+							showGuides={p.showGuides}
 							snapToGrid={p.snapToGrid}
 							snapToShape={p.snapToShape}
 							onSetShowGrid={p.onSetShowGrid}
 							onSetShowRulers={p.onSetShowRulers}
+							onSetShowGuides={p.onSetShowGuides}
 							onSetSnapToGrid={p.onSetSnapToGrid}
 							onSetSnapToShape={p.onSetSnapToShape}
 							onAddGuide={p.onAddGuide}
@@ -340,24 +345,11 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 					)}
 
 					{sHlp && (
-						<>
-							<button
-								type='button'
-								onClick={p.onToggleShortcuts}
-								className={pill}
-								title={t('pptx.settings.keyboardShortcuts')}
-							>
-								{t('pptx.settings.keyboardShortcuts')}
-							</button>
-							<button
-								type='button'
-								onClick={p.onRunAccessibilityCheck}
-								className={pill}
-								title={t('pptx.ribbon.accessibilityCheck')}
-							>
-								{t('pptx.ribbon.accessibilityCheck')}
-							</button>
-						</>
+						<HelpSection
+							onOpenSettings={p.onOpenSettings}
+							onToggleShortcuts={p.onToggleShortcuts}
+							onRunAccessibilityCheck={p.onRunAccessibilityCheck}
+						/>
 					)}
 				</div>
 			)}

@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
 @source "../../packages/react/src/**/*.{ts,tsx}";
+/*
+ * Mirrors the `@source` list in `packages/react/src/styles/pptx-viewer.css`.
+ * This demo builds its own Tailwind sheet instead of importing the package's,
+ * so a source path added there has to be added here too or the demo renders a
+ * chrome the published package does not have (it was missing the shared class
+ * tokens, hence a transparent app logo and a stuck AutoSave knob).
+ */
+@source "../../packages/shared/src/render/**/*.ts";
 
 @import '../../packages/react/src/styles/theme.css';

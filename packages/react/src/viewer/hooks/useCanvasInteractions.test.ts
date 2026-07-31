@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, it, expect, vi } from 'vitest';
 
 import type { CanvasInteractionHandlers } from './canvas-interaction-types';
+import { mouseDownStartsSelectionDrag } from './useCanvasInteractions';
 
 // ---------------------------------------------------------------------------
 // useCanvasInteractions is a complex hook that produces event handlers.
@@ -405,5 +406,36 @@ describe('canvasInteractionHandlers type', () => {
 			handleInlineEditCommit: vi.fn<() => void>(),
 		};
 		expect(Object.keys(handlers)).toHaveLength(11);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Shift+click multi-selection (the mousedown / click hand-off)
+// ---------------------------------------------------------------------------
+
+describe('mouseDownStartsSelectionDrag', () => {
+	it('replaces the selection and arms a drag for a plain press', () => {
+		expect(mouseDownStartsSelectionDrag({ shiftKey: false, metaKey: false })).toBeTruthy();
+	});
+
+	it('stands down for a modifier press, which is a toggle owned by the click', () => {
+		expect(mouseDownStartsSelectionDrag({ shiftKey: true, metaKey: false })).toBeFalsy();
+		expect(mouseDownStartsSelectionDrag({ shiftKey: false, metaKey: true })).toBeFalsy();
+	});
+
+	/**
+	 * The regression itself, as the two handlers actually run: mousedown then
+	 * click. While mousedown replaced the selection on a Shift press, the click's
+	 * toggle removed the element it had just selected and the multi-selection
+	 * collapsed to nothing, which is why Ctrl+G never grouped anything in React.
+	 */
+	it('lets Shift+click extend a one-element selection to two', () => {
+		let selectedIds = ['el1'];
+		const press = { shiftKey: true, metaKey: false };
+		if (mouseDownStartsSelectionDrag(press)) {
+			selectedIds = ['el2'];
+		}
+		selectedIds = computeMultiSelectToggle('el2', selectedIds, null);
+		expect(selectedIds).toStrictEqual(['el1', 'el2']);
 	});
 });

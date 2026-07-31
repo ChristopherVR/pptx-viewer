@@ -1,5 +1,9 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { getGroupChildParentFill } from 'pptx-viewer-shared';
+import {
+	getGroupChildParentFill,
+	isElementActionable,
+	isElementRendered,
+} from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../constants';
@@ -23,7 +27,6 @@ import {
 	renderDagDuotoneFilterForElement,
 	getContainerStyle,
 	ActionIndicator,
-	elementHasTextHyperlink,
 } from './elements/element-renderer-helpers';
 import type { ElementRendererProps } from './elements/element-renderer-types';
 import { shapeParams } from './elements/element-shape-params';
@@ -136,6 +139,20 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			setIsMediaPlaying(playing);
 		}, []);
 
+		// The Selection Pane hid this element: draw nothing at all, exactly as
+		// PowerPoint does. Skipping the subtree (rather than painting it with
+		// `visibility: hidden`) is what keeps it out of hit-testing, the tab
+		// order, the accessibility tree, and the html2canvas export raster. The
+		// element is still listed in and selectable from the Selection Pane,
+		// which reads the slide model rather than the rendered DOM.
+		//
+		// Placed after the hooks above, never before them: an early return at the
+		// top of the component would make those hook calls conditional on a flag
+		// the user toggles at runtime.
+		if (!isElementRendered(el)) {
+			return null;
+		}
+
 		if (isConn) {
 			return (
 				<ConnectorElementRenderer
@@ -162,10 +179,15 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const canEditChart = effectiveCanInteract;
 
 		const hasAction = Boolean(el.actionClick && onActionClick);
-		const hasHoverAction = Boolean(el.actionHover);
-		const hasHyperlinks = Boolean(onHyperlinkClick) && elementHasTextHyperlink(el);
 		const isZoom = el.type === 'zoom' && Boolean(onZoomClick);
-		const isActionable = hasAction || hasHoverAction || hasHyperlinks || isZoom;
+		// The actionable rule itself lives in shared, so the four non-React
+		// bindings (which classify in a post-render DOM pass) reach the same
+		// verdict for the same deck instead of re-deriving it, or not at all.
+		const isActionable = isElementActionable(el, {
+			hasActionHandler: Boolean(onActionClick),
+			hasHyperlinkHandler: Boolean(onHyperlinkClick),
+			hasZoomHandler: Boolean(onZoomClick),
+		});
 
 		// Selection / hover affordance. Drawn as an `outline` inset by 1px so it
 		// lands exactly where the old 1px border did WITHOUT participating in
@@ -191,7 +213,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isFullscreenMedia =
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
-		const ariaRole = isActionable ? 'button' : getAriaRole(el);
+		const ariaRole = getAriaRole(el, { actionable: isActionable });
 		const ariaLabel = getAriaLabel(el);
 		const ariaRoleDescription = getAriaRoleDescription(el);
 		const isFocusable = effectiveCanInteract || isActionable;

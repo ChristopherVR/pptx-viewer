@@ -41,7 +41,7 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 					icon={<LuSpellCheck />}
 					onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
 					active={p.spellCheckEnabled}
-					title='Toggle spell check'
+					title={t('pptx.review.toggleSpellCheck')}
 				/>
 				<RibbonCommand
 					label={t('pptx.review.thesaurus', { defaultValue: 'Thesaurus' })}
@@ -80,7 +80,7 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 						icon={<LuGitCompare />}
 						onClick={p.onCompare}
 						disabled={!p.canEdit}
-						title='Compare with another presentation'
+						title={t('pptx.ribbon.compareTitle')}
 					/>
 				)}
 			</RibbonGroup>
@@ -92,7 +92,7 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 							icon={<LuMessageSquarePlus />}
 							onClick={p.onToggleComments}
 							active={p.isCommentsPanelOpen}
-							title='Toggle comments panel'
+							title={t('pptx.review.toggleComments')}
 						/>
 						{Boolean(p.slideCommentCount) && (
 							<span className='absolute right-0 top-0 rounded-full bg-primary px-1 text-[9px] text-white'>

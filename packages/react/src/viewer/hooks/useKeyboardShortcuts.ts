@@ -1,11 +1,18 @@
+import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
 /**
- * useKeyboardShortcuts: Global keyboard shortcut handler for the PowerPoint editor.
+ * useKeyboardShortcuts: the editor keymap, wired into React.
  *
- * Listens for keydown on the container element and dispatches to the
- * appropriate handler (delete, copy, paste, undo, redo, nudge, etc.).
+ * Key-to-action resolution lives in `pptx-viewer-shared`'s `mapEditorKey`, the
+ * one map all five bindings share; this hook only snapshots the guard state,
+ * dispatches, and owns the listener lifetime.
  *
- * Shortcuts are only active in "edit" mode and are suppressed when an
- * inline text edit, table cell edit, or drawing tool is active.
+ * The listener is registered on `window` exactly once. It used to be registered
+ * on the viewer container *as well*, "as a fallback", which meant every key
+ * whose target sat inside the container was handled twice: Ctrl+D produced two
+ * duplicates, Ctrl+V two pastes, an arrow nudged two steps and skipped two
+ * slides. A `window` listener already sees events from inside the container
+ * (they bubble), so the container listener was never a fallback, only a second
+ * delivery.
  */
 import { useEffect, useCallback, useRef } from 'react';
 
@@ -13,20 +20,11 @@ import type { TableCellEditorState, DrawingTool } from '../types';
 import type { ViewerMode } from '../types-core';
 
 /* ------------------------------------------------------------------ */
-/*  Constants                                                         */
-/* ------------------------------------------------------------------ */
-
-/** Small nudge step in EMU-equivalent pixels. */
-const NUDGE_SMALL = 2;
-/** Large nudge step (Shift+Arrow). */
-const NUDGE_LARGE = 20;
-
-/* ------------------------------------------------------------------ */
 /*  Input interface                                                   */
 /* ------------------------------------------------------------------ */
 
 export interface UseKeyboardShortcutsInput {
-	/** Container element ref: used to scope the listener. */
+	/** Container element ref, kept for API compatibility with the shell. */
 	containerRef: React.RefObject<HTMLDivElement | null>;
 
 	mode: ViewerMode;
@@ -44,7 +42,7 @@ export interface UseKeyboardShortcutsInput {
 	/** The IDs of the currently selected elements (effective). */
 	effectiveSelectedIds: string[];
 
-	// ── Action callbacks ────────────────────────────────────────────
+	// -- Action callbacks --------------------------------------------
 	onDelete: () => void;
 	onCopy: () => void;
 	onCut: () => void;
@@ -56,6 +54,12 @@ export interface UseKeyboardShortcutsInput {
 	onEscape: () => void;
 	/** Move selected elements by (dx, dy). */
 	onNudge: (dx: number, dy: number) => void;
+	/** Group the selection into one group element (Ctrl/Cmd+G). */
+	onGroup?: () => void;
+	/** Ungroup the selected group (Ctrl/Cmd+Shift+G). */
+	onUngroup?: () => void;
+	/** Show or hide the keyboard-shortcut reference ("?"). */
+	onToggleShortcuts?: () => void;
 	/** Navigate to previous visible slide (edit mode, no selection). */
 	onPrevSlide?: () => void;
 	/** Navigate to next visible slide (edit mode, no selection). */
@@ -73,169 +77,77 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 	inputRef.current = input;
 
 	const handleKeyDown = useCallback((e: KeyboardEvent) => {
-		const {
-			mode,
-			canEdit,
-			inlineEditingElementId,
-			tableEditorState,
-			activeTool,
-			hasSelection,
-			onDelete,
-			onCopy,
-			onCut,
-			onPaste,
-			onDuplicate,
-			onUndo,
-			onRedo,
-			onSelectAll,
-			onEscape,
-			onNudge,
-			onPrevSlide,
-			onNextSlide,
-		} = inputRef.current;
-
-		// Only active in edit mode
-		if (mode !== 'edit' || !canEdit) {
+		const current = inputRef.current;
+		const { action, dx, dy } = mapEditorKey(e, {
+			canEdit: current.canEdit,
+			isPresenting: current.mode !== 'edit',
+			hasSelection: current.hasSelection,
+			isEditingText: Boolean(current.inlineEditingElementId || current.tableEditorState?.isEditing),
+			isDrawing: current.activeTool !== 'select',
+			isTextInputTarget: isEditorTextInputTarget(e.target),
+		});
+		if (action === null) {
 			return;
 		}
+		e.preventDefault();
 
-		// If the user is typing inside an <input>, <textarea>, or
-		// contenteditable element, let the browser handle the event
-		// (except for Escape which should always work).
-		const target = e.target as HTMLElement | null;
-		const isTextInput =
-			target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
-
-		// ── Escape: always handled ─────────────────────────────────
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			onEscape();
-			return;
-		}
-
-		// Suppress shortcuts when inline-editing text, actively editing a table
-		// cell, or when a drawing tool is active.
-		if (inlineEditingElementId || tableEditorState?.isEditing || activeTool !== 'select') {
-			return;
-		}
-
-		// ... and when focus is in a text input
-		if (isTextInput) {
-			return;
-		}
-
-		const isMod = e.metaKey || e.ctrlKey;
-
-		// ── Delete / Backspace ──────────────────────────────────────
-		if ((e.key === 'Delete' || e.key === 'Backspace') && hasSelection) {
-			e.preventDefault();
-			onDelete();
-			return;
-		}
-
-		// ── Ctrl/Cmd combos ─────────────────────────────────────────
-		if (isMod) {
-			switch (e.key.toLowerCase()) {
-				case 'z':
-					e.preventDefault();
-					if (e.shiftKey) {
-						onRedo();
-					} else {
-						onUndo();
-					}
-					return;
-				case 'y':
-					e.preventDefault();
-					onRedo();
-					return;
-				case 'c':
-					if (hasSelection) {
-						e.preventDefault();
-						onCopy();
-					}
-					return;
-				case 'x':
-					if (hasSelection) {
-						e.preventDefault();
-						onCut();
-					}
-					return;
-				case 'v':
-					e.preventDefault();
-					onPaste();
-					return;
-				case 'd':
-					if (hasSelection) {
-						e.preventDefault();
-						onDuplicate();
-					}
-					return;
-				case 'a':
-					e.preventDefault();
-					onSelectAll();
-					return;
-			}
-		}
-
-		// ── Arrow key nudge ─────────────────────────────────────────
-		if (
-			hasSelection &&
-			(e.key === 'ArrowUp' ||
-				e.key === 'ArrowDown' ||
-				e.key === 'ArrowLeft' ||
-				e.key === 'ArrowRight')
-		) {
-			e.preventDefault();
-			const step = e.shiftKey ? NUDGE_LARGE : NUDGE_SMALL;
-			let dx = 0;
-			let dy = 0;
-			switch (e.key) {
-				case 'ArrowUp':
-					dy = -step;
-					break;
-				case 'ArrowDown':
-					dy = step;
-					break;
-				case 'ArrowLeft':
-					dx = -step;
-					break;
-				case 'ArrowRight':
-					dx = step;
-					break;
-			}
-			onNudge(dx, dy);
-			return;
-		}
-
-		// No element selection: use left/right arrows to navigate slides.
-		if (!hasSelection && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-			e.preventDefault();
-			if (e.key === 'ArrowLeft') {
-				onPrevSlide?.();
-			} else {
-				onNextSlide?.();
-			}
+		switch (action) {
+			case 'escape':
+				current.onEscape();
+				break;
+			case 'delete':
+				current.onDelete();
+				break;
+			case 'undo':
+				current.onUndo();
+				break;
+			case 'redo':
+				current.onRedo();
+				break;
+			case 'copy':
+				current.onCopy();
+				break;
+			case 'cut':
+				current.onCut();
+				break;
+			case 'paste':
+				current.onPaste();
+				break;
+			case 'duplicate':
+				current.onDuplicate();
+				break;
+			case 'selectAll':
+				current.onSelectAll();
+				break;
+			case 'group':
+				current.onGroup?.();
+				break;
+			case 'ungroup':
+				current.onUngroup?.();
+				break;
+			case 'toggleShortcuts':
+				current.onToggleShortcuts?.();
+				break;
+			case 'nudge':
+				current.onNudge(dx ?? 0, dy ?? 0);
+				break;
+			case 'prevSlide':
+				current.onPrevSlide?.();
+				break;
+			case 'nextSlide':
+				current.onNextSlide?.();
+				break;
+			default:
+				break;
 		}
 	}, []);
 
 	useEffect(() => {
-		const container = input.containerRef.current;
-
-		// Attach to the container so keydown events from the viewer
-		// are captured.  We also listen on window as a fallback so
-		// that shortcuts work even when the container itself doesn't
-		// have focus.
-		if (container) {
-			container.addEventListener('keydown', handleKeyDown);
-		}
+		// Once, on window: keydown from anywhere inside the viewer bubbles here,
+		// so a second container-scoped listener would only double-fire.
 		window.addEventListener('keydown', handleKeyDown);
 		return () => {
-			if (container) {
-				container.removeEventListener('keydown', handleKeyDown);
-			}
 			window.removeEventListener('keydown', handleKeyDown);
 		};
-		// Re-attach only if the container ref changes (essentially once).
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [input.containerRef, handleKeyDown]);
+	}, [handleKeyDown]);
 }

@@ -1,4 +1,5 @@
 import type { ShapeStyle } from 'pptx-viewer-core';
+import { quickStyleSwatchCss } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,15 +33,7 @@ export function QuickStylesGallery({
 						title={qs.name}
 						aria-label={qs.name}
 						className='h-7 w-full rounded border border-border hover:border-primary transition-colors'
-						style={{
-							background: qs.style.fillGradient || qs.style.fillColor || 'transparent',
-							boxShadow: qs.style.shadowColor
-								? `${qs.style.shadowOffsetX ?? 2}px ${qs.style.shadowOffsetY ?? 2}px ${qs.style.shadowBlur ?? 4}px ${qs.style.shadowColor}`
-								: undefined,
-							border: qs.style.strokeColor
-								? `${qs.style.strokeWidth ?? 1}px solid ${qs.style.strokeColor}`
-								: undefined,
-						}}
+						style={quickStyleSwatchCss(qs)}
 						onClick={() => onUpdateShapeStyle(qs.style)}
 					/>
 				))}

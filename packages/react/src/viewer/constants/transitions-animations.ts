@@ -8,34 +8,14 @@
  * a render site can switch to `t(option.i18nKey)` without a data-shape change.
  */
 
-import type { AnimationPresetOption, SlideTransitionOption } from '../types';
+import type { AnimationPresetOption } from '../types';
 
-export const SLIDE_TRANSITION_OPTIONS: (SlideTransitionOption & { i18nKey: string })[] = [
-	{ value: 'none', label: 'None', i18nKey: 'pptx.transition.none' },
-	{ value: 'cut', label: 'Cut', i18nKey: 'pptx.ribbon.transition.cut' },
-	{ value: 'fade', label: 'Fade', i18nKey: 'pptx.ribbon.transition.fade' },
-	{ value: 'push', label: 'Push', i18nKey: 'pptx.ribbon.transition.push' },
-	{ value: 'wipe', label: 'Wipe', i18nKey: 'pptx.ribbon.transition.wipe' },
-	{ value: 'split', label: 'Split', i18nKey: 'pptx.ribbon.transition.split' },
-	{ value: 'randomBar', label: 'Random Bars', i18nKey: 'pptx.transitionPresets.randomBars' },
-	{ value: 'blinds', label: 'Blinds', i18nKey: 'pptx.transitionPresets.blinds' },
-	{ value: 'checker', label: 'Checker', i18nKey: 'pptx.transitionPresets.checker' },
-	{ value: 'circle', label: 'Circle', i18nKey: 'pptx.transitionPresets.circle' },
-	{ value: 'comb', label: 'Comb', i18nKey: 'pptx.transitionPresets.comb' },
-	{ value: 'cover', label: 'Cover', i18nKey: 'pptx.ribbon.transition.cover' },
-	{ value: 'diamond', label: 'Diamond', i18nKey: 'pptx.transitionPresets.diamond' },
-	{ value: 'dissolve', label: 'Dissolve', i18nKey: 'pptx.transitionPresets.dissolve' },
-	{ value: 'plus', label: 'Plus', i18nKey: 'pptx.transitionPresets.plus' },
-	{ value: 'pull', label: 'Pull', i18nKey: 'pptx.transitionPresets.pull' },
-	{ value: 'random', label: 'Random', i18nKey: 'pptx.transitionPresets.random' },
-	{ value: 'strips', label: 'Strips', i18nKey: 'pptx.transitionPresets.strips' },
-	{ value: 'uncover', label: 'Uncover', i18nKey: 'pptx.ribbon.transition.uncover' },
-	{ value: 'wedge', label: 'Wedge', i18nKey: 'pptx.transitionPresets.wedge' },
-	{ value: 'wheel', label: 'Wheel', i18nKey: 'pptx.transitionPresets.wheel' },
-	{ value: 'zoom', label: 'Zoom', i18nKey: 'pptx.transitionPresets.zoom' },
-	{ value: 'newsflash', label: 'Newsflash', i18nKey: 'pptx.transitionPresets.newsflash' },
-	{ value: 'morph', label: 'Morph', i18nKey: 'pptx.transitionPresets.morph' },
-];
+/**
+ * The slide-transition catalogue now lives in `pptx-viewer-shared` so all five
+ * bindings' inspector sections read one list; re-exported here to preserve the
+ * React package's historical symbol surface.
+ */
+export { SLIDE_TRANSITION_OPTIONS } from 'pptx-viewer-shared';
 
 export const ANIMATION_PRESET_OPTIONS: (AnimationPresetOption & { i18nKey: string })[] = [
 	{ value: 'fadeIn', label: 'Fade In', i18nKey: 'pptx.animation.preset.fadeIn' },

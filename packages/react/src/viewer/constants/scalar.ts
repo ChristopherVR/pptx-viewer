@@ -28,8 +28,10 @@ export const SHAPE_ADJUSTMENT_MIN = 0;
 export const SHAPE_ADJUSTMENT_MAX = 50000;
 export const DEFAULT_ROUND_RECT_ADJUSTMENT = 16667;
 export const MINIMAP_WIDTH = 180;
-export const MIN_ZOOM_SCALE = 0.2;
-export const MAX_ZOOM_SCALE = 5;
+// Re-exported from pptx-viewer-shared: the zoom bounds are a cross-binding
+// contract (the same +/- control exists in all five), so they are defined once
+// there rather than copied into each binding's constants file.
+export { MAX_ZOOM_SCALE, MIN_ZOOM_SCALE } from 'pptx-viewer-shared';
 export const ZOOM_TO_SELECTION_PADDING = 96;
 export const GRID_SIZE = 8;
 export const SNAP_THRESHOLD = 6;

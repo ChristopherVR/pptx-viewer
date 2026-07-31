@@ -1,3 +1,4 @@
+import { buildDirectionGrid, TRANSITION_DIR_ARROWS } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -5,33 +6,12 @@ import { useTranslation } from 'react-i18next';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Arrow labels for direction tokens. */
-export const DIR_ARROWS: Record<string, string> = {
-	l: '\u2190',
-	r: '\u2192',
-	u: '\u2191',
-	d: '\u2193',
-	lu: '\u2196',
-	ld: '\u2199',
-	ru: '\u2197',
-	rd: '\u2198',
-	in: '\u25C9',
-	out: '\u25CE',
-	horz: '\u2194',
-	vert: '\u2195',
-};
-
-/** Grid positions for 4/8-direction layout. */
-const GRID_POSITIONS: Record<string, [number, number]> = {
-	lu: [0, 0],
-	u: [0, 1],
-	ru: [0, 2],
-	l: [1, 0],
-	r: [1, 2],
-	ld: [2, 0],
-	d: [2, 1],
-	rd: [2, 2],
-};
+/**
+ * Arrow labels for direction tokens. The table itself now lives in
+ * `pptx-viewer-shared` (every binding's direction picker draws the same
+ * glyphs); re-exported here for the React package's historical symbol surface.
+ */
+export const DIR_ARROWS: Readonly<Record<string, string>> = TRANSITION_DIR_ARROWS;
 
 // ---------------------------------------------------------------------------
 // Props
@@ -40,6 +20,8 @@ const GRID_POSITIONS: Record<string, [number, number]> = {
 export interface DirectionPickerProps {
 	directions: readonly string[];
 	value: string | undefined;
+	/** Greys the grid out when the viewer is not editable. */
+	disabled?: boolean;
 	onChange: (dir: string) => void;
 }
 
@@ -50,6 +32,7 @@ export interface DirectionPickerProps {
 export function DirectionPicker({
 	directions,
 	value,
+	disabled,
 	onChange,
 }: DirectionPickerProps): React.ReactElement {
 	const { t } = useTranslation();
@@ -61,6 +44,7 @@ export function DirectionPicker({
 					<button
 						key={dir}
 						type='button'
+						disabled={disabled}
 						onClick={() => onChange(dir)}
 						className={`px-2 py-1 rounded text-xs border ${
 							value === dir
@@ -76,18 +60,7 @@ export function DirectionPicker({
 		);
 	}
 
-	const cells: (string | null)[][] = [
-		[null, null, null],
-		[null, null, null],
-		[null, null, null],
-	];
-
-	for (const dir of directions) {
-		const pos = GRID_POSITIONS[dir];
-		if (pos) {
-			cells[pos[0]][pos[1]] = dir;
-		}
-	}
+	const cells = buildDirectionGrid(directions);
 
 	return (
 		<div className='inline-grid grid-cols-3 gap-0.5'>
@@ -100,6 +73,7 @@ export function DirectionPicker({
 						<button
 							key={cell}
 							type='button'
+							disabled={disabled}
 							onClick={() => onChange(cell)}
 							className={`w-6 h-6 rounded text-xs flex items-center justify-center border ${
 								value === cell

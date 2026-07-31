@@ -166,6 +166,8 @@ function MobileSectionBody({
 						onInsertField={p.onInsertField}
 						onOpenImagePicker={p.onOpenImagePicker}
 						onOpenMediaPicker={p.onOpenMediaPicker}
+						hasSelection={Boolean(p.selectedElement)}
+						onOpenHyperlinkDialog={p.onOpenHyperlinkDialog}
 					/>
 				</div>
 			);
@@ -200,16 +202,16 @@ function MobileSectionBody({
 					<ArrangeSection
 						canEdit={p.canEdit}
 						selectedElement={p.selectedElement}
-						clipboardPayload={p.clipboardPayload}
+						selectedCount={p.selectedCount}
 						onAlignElements={p.onAlignElements}
 						onDistributeElements={p.onDistributeElements}
 						canDistribute={p.canDistribute}
-						onCopy={p.onCopy}
-						onCut={p.onCut}
-						onPaste={p.onPaste}
 						onFlip={p.onFlip}
 						onMoveLayer={p.onMoveLayer}
 						onMoveLayerToEdge={p.onMoveLayerToEdge}
+						onGroupElements={p.onGroupElements}
+						onUngroupElement={p.onUngroupElement}
+						onUpdateElementStyle={p.onUpdateElementStyle}
 						onDuplicate={p.onDuplicate}
 						onDelete={p.onDelete}
 						formatPainterActive={p.formatPainterActive}
@@ -268,6 +270,7 @@ function MobileSectionBody({
 						onToggleSubtitles={p.onToggleSubtitles ?? (() => {})}
 						showSubtitles={p.showSubtitles ?? false}
 						onSetMode={p.onSetMode}
+						customShowControls={p}
 						hiddenActions={p.hiddenActions}
 					/>
 				</div>
@@ -297,6 +300,8 @@ function MobileSectionBody({
 						onSetSpellCheckEnabled={p.onSetSpellCheckEnabled}
 						showGrid={p.showGrid}
 						showRulers={p.showRulers}
+						showGuides={p.showGuides}
+						onSetShowGuides={p.onSetShowGuides}
 						snapToGrid={p.snapToGrid}
 						snapToShape={p.snapToShape}
 						onSetShowGrid={p.onSetShowGrid}

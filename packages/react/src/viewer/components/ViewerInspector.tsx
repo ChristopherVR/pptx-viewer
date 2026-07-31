@@ -138,12 +138,13 @@ export function ViewerInspector({
 		return null;
 	}
 
-	// Allow the comments tab to render even when no element is selected,
-	// because comments belong to the slide rather than a single element.
-	const tab = sidebarPanelMode as InspectorTab;
-	if (!selectedElement && tab !== 'comments' && tab !== 'properties') {
-		return null;
-	}
+	// No tab is gated on having a selection. Every one of them is slide-scoped:
+	// comments belong to the slide, properties covers the deck and slide when
+	// nothing is picked, and Elements is the per-slide layer list - the very
+	// place you go to FIND something to select. Gating it closed the whole
+	// inspector the moment you clicked "Elements" with an empty canvas
+	// selection, which is exactly when the layer list is most useful.
+	// `InspectorPane` and each tab already handle `selectedElement === null`.
 
 	const slideId = activeSlide?.id ?? '';
 	const commentDraft = comments.commentDraftBySlideId[slideId] ?? '';

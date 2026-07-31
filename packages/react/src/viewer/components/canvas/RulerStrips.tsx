@@ -4,6 +4,9 @@
  * Pure presentation components that render tick marks and optional
  * element-position highlight ranges. Extracted from Ruler.tsx to
  * keep each file under 300 lines.
+ *
+ * Each strip carries `data-pptx-ruler="h" | "v"`, the framework-neutral test
+ * contract every binding emits so one e2e spec can drive all five.
  */
 import React from 'react';
 
@@ -35,9 +38,15 @@ interface VerticalRulerProps {
 /*  HorizontalRuler                                                   */
 /* ------------------------------------------------------------------ */
 
-export const HorizontalRuler = React.memo(({ ticks, widthPx, highlight }: HorizontalRulerProps) => {
+function HorizontalRulerView({ ticks, widthPx, highlight }: HorizontalRulerProps) {
 	return (
-		<svg width={widthPx} height={RULER_THICKNESS} className='block select-none' aria-hidden='true'>
+		<svg
+			width={widthPx}
+			height={RULER_THICKNESS}
+			className='block select-none'
+			aria-hidden='true'
+			data-pptx-ruler='h'
+		>
 			{/* Background */}
 			<rect width={widthPx} height={RULER_THICKNESS} className='fill-gray-100 dark:fill-gray-800' />
 			{/* Bottom border */}
@@ -88,7 +97,9 @@ export const HorizontalRuler = React.memo(({ ticks, widthPx, highlight }: Horizo
 			})}
 		</svg>
 	);
-});
+}
+
+export const HorizontalRuler = React.memo(HorizontalRulerView);
 
 HorizontalRuler.displayName = 'HorizontalRuler';
 
@@ -96,9 +107,15 @@ HorizontalRuler.displayName = 'HorizontalRuler';
 /*  VerticalRuler                                                     */
 /* ------------------------------------------------------------------ */
 
-export const VerticalRuler = React.memo(({ ticks, heightPx, highlight }: VerticalRulerProps) => {
+function VerticalRulerView({ ticks, heightPx, highlight }: VerticalRulerProps) {
 	return (
-		<svg width={RULER_THICKNESS} height={heightPx} className='block select-none' aria-hidden='true'>
+		<svg
+			width={RULER_THICKNESS}
+			height={heightPx}
+			className='block select-none'
+			aria-hidden='true'
+			data-pptx-ruler='v'
+		>
 			{/* Background */}
 			<rect
 				width={RULER_THICKNESS}
@@ -153,6 +170,8 @@ export const VerticalRuler = React.memo(({ ticks, heightPx, highlight }: Vertica
 			})}
 		</svg>
 	);
-});
+}
+
+export const VerticalRuler = React.memo(VerticalRulerView);
 
 VerticalRuler.displayName = 'VerticalRuler';

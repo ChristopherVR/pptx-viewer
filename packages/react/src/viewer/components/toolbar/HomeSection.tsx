@@ -76,6 +76,10 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 	const fontMenuRef = useRef<HTMLDivElement>(null);
 	const sizeMenuRef = useRef<HTMLDivElement>(null);
 	const { fontFamily, fontSize } = extractFontInfo(p.selectedElement);
+	// Cut and Copy act on the selection, so with nothing selected they are
+	// no-ops. They used to render live anyway, which offered the user a button
+	// that could not do anything and disagreed with the Svelte binding.
+	const hasSelection = Boolean(p.selectedElement);
 
 	// Close font menu on outside click
 	useEffect(() => {
@@ -126,7 +130,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							setCutFeedback(true);
 							setTimeout(() => setCutFeedback(false), 600);
 						}}
-						disabled={!p.canEdit}
+						disabled={!p.canEdit || !hasSelection}
 						className={cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')}
 						title={t('pptx.arrange.cut')}
 					>
@@ -139,6 +143,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							setCopiedFeedback(true);
 							setTimeout(() => setCopiedFeedback(false), 600);
 						}}
+						disabled={!hasSelection}
 						className={cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')}
 						title={t('pptx.arrange.copy')}
 					>
@@ -186,6 +191,10 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						<button
 							type='button'
 							onClick={() => setFontMenuOpen((v) => !v)}
+							// Named explicitly: the trigger's only text is the CURRENT font, so
+							// without this it announces itself as "Segoe UI" and neither a screen
+							// reader nor a role+name query can find the control it actually is.
+							aria-label={t('pptx.ribbon.fontFamily')}
 							className='inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate hover:bg-accent/40 transition-colors cursor-pointer'
 						>
 							<span className='truncate'>{fontFamily}</span>
@@ -216,6 +225,8 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						<button
 							type='button'
 							onClick={() => setSizeMenuOpen((v) => !v)}
+							// Same reason as the font trigger above: its text is the current size.
+							aria-label={t('pptx.ribbon.fontSize')}
 							className='inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center hover:bg-accent/40 transition-colors cursor-pointer'
 						>
 							<span className='truncate'>{fontSize}</span>

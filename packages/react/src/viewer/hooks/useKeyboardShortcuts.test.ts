@@ -1,20 +1,17 @@
 /**
- * Tests for pure keyboard-shortcut logic extracted from useKeyboardShortcuts.
+ * Tests for the keyboard-shortcut decision logic behind useKeyboardShortcuts.
  *
- * We test the decision logic (which action fires for which key combo)
- * without needing a DOM or React lifecycle.
+ * The hook resolves keys through the shared `mapEditorKey`, so this suite drives
+ * that map through the same adapter the hook uses. It deliberately no longer
+ * re-implements the logic: the copy that used to live here is exactly how React
+ * ended up nudging 2px while three other bindings nudged 1px, with a green test
+ * suite the whole time.
  */
+import { mapEditorKey, NUDGE_LARGE, NUDGE_SMALL } from 'pptx-viewer-shared';
 import { describe, it, expect } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// Constants (mirror the hook)
-// ---------------------------------------------------------------------------
-
-const NUDGE_SMALL = 2;
-const NUDGE_LARGE = 20;
-
-// ---------------------------------------------------------------------------
-// Extracted pure dispatch function: mirrors the handleKeyDown closure
+// Adapter: the guard translation the hook performs, in one place
 // ---------------------------------------------------------------------------
 
 interface ShortcutInput {
@@ -37,6 +34,9 @@ type ActionName =
 	| 'paste'
 	| 'duplicate'
 	| 'selectAll'
+	| 'group'
+	| 'ungroup'
+	| 'toggleShortcuts'
 	| 'nudge'
 	| 'prevSlide'
 	| 'nextSlide'
@@ -48,104 +48,24 @@ interface DispatchResult {
 	dy?: number;
 }
 
-/**
- * Determine which action a keyboard event should trigger.
- * Returns null if the event should be ignored.
- */
+/** Resolve one key press exactly as the hook's keydown handler does. */
 function resolveShortcutAction(
 	key: string,
 	ctrlKey: boolean,
 	shiftKey: boolean,
 	input: ShortcutInput,
 ): DispatchResult {
-	const {
-		mode,
-		canEdit,
-		inlineEditingElementId,
-		tableEditorIsEditing,
-		activeTool,
-		hasSelection,
-		isTextInput,
-	} = input;
-
-	// Only active in edit mode
-	if (mode !== 'edit' || !canEdit) {
-		return { action: null };
-	}
-
-	// Escape: always handled
-	if (key === 'Escape') {
-		return { action: 'escape' };
-	}
-
-	// Suppress when inline-editing, table-editing, or drawing
-	if (inlineEditingElementId || tableEditorIsEditing || activeTool !== 'select') {
-		return { action: null };
-	}
-
-	// Suppress when in text input
-	if (isTextInput) {
-		return { action: null };
-	}
-
-	const isMod = ctrlKey;
-
-	// Delete / Backspace
-	if ((key === 'Delete' || key === 'Backspace') && hasSelection) {
-		return { action: 'delete' };
-	}
-
-	// Ctrl/Cmd combos
-	if (isMod) {
-		switch (key.toLowerCase()) {
-			case 'z':
-				return { action: shiftKey ? 'redo' : 'undo' };
-			case 'y':
-				return { action: 'redo' };
-			case 'c':
-				return hasSelection ? { action: 'copy' } : { action: null };
-			case 'x':
-				return hasSelection ? { action: 'cut' } : { action: null };
-			case 'v':
-				return { action: 'paste' };
-			case 'd':
-				return hasSelection ? { action: 'duplicate' } : { action: null };
-			case 'a':
-				return { action: 'selectAll' };
-		}
-	}
-
-	// Arrow key nudge
-	if (
-		hasSelection &&
-		(key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight')
-	) {
-		const step = shiftKey ? NUDGE_LARGE : NUDGE_SMALL;
-		let dx = 0;
-		let dy = 0;
-		switch (key) {
-			case 'ArrowUp':
-				dy = -step;
-				break;
-			case 'ArrowDown':
-				dy = step;
-				break;
-			case 'ArrowLeft':
-				dx = -step;
-				break;
-			case 'ArrowRight':
-				dx = step;
-				break;
-		}
-		return { action: 'nudge', dx, dy };
-	}
-
-	// Slide navigation (no selection)
-	if (!hasSelection && (key === 'ArrowLeft' || key === 'ArrowRight')) {
-		return { action: key === 'ArrowLeft' ? 'prevSlide' : 'nextSlide' };
-	}
-
-	return { action: null };
+	return mapEditorKey(
+		{ key, ctrlKey, shiftKey },
+		{
+			canEdit: input.canEdit,
+			isPresenting: input.mode !== 'edit',
+			hasSelection: input.hasSelection,
+			isEditingText: Boolean(input.inlineEditingElementId || input.tableEditorIsEditing),
+			isDrawing: input.activeTool !== 'select',
+			isTextInputTarget: input.isTextInput,
+		},
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -364,5 +284,28 @@ describe('useKeyboardShortcuts: shortcut dispatch logic', () => {
 			);
 			expect(result.action).toBe('nextSlide');
 		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Newly bound keys
+// ---------------------------------------------------------------------------
+
+describe('useKeyboardShortcuts: group, ungroup and the help panel', () => {
+	it('ctrl+G groups and ctrl+shift+G ungroups', () => {
+		expect(resolveShortcutAction('g', true, false, defaultInput()).action).toBe('group');
+		expect(resolveShortcutAction('g', true, true, defaultInput()).action).toBe('ungroup');
+	});
+
+	it('leaves ctrl+G alone with nothing selected', () => {
+		expect(
+			resolveShortcutAction('g', true, false, defaultInput({ hasSelection: false })).action,
+		).toBeNull();
+	});
+
+	it('"?" toggles the shortcut reference without needing a selection', () => {
+		expect(
+			resolveShortcutAction('?', false, true, defaultInput({ hasSelection: false })).action,
+		).toBe('toggleShortcuts');
 	});
 });

@@ -10,7 +10,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { CanvasSize } from '../../types-core';
-import { RULER_THICKNESS, generateTicks } from './ruler-utils';
+import { RULER_THICKNESS, generateTicks, rulerDragToGuidePosition } from './ruler-utils';
 import type { RulerUnit } from './ruler-utils';
 import { HorizontalRuler, VerticalRuler } from './RulerStrips';
 
@@ -131,37 +131,25 @@ export function Ruler({
 				// Capture may already be released
 			}
 
-			// Compute position in slide-local CSS px
-			const scale = editorScale || 1;
-			if (rulerDrag.axis === 'h') {
-				const rulerEl = hRulerRef.current;
-				if (!rulerEl) {
-					setRulerDrag(null);
-					return;
-				}
-				const rect = rulerEl.getBoundingClientRect();
-				const posScaled = e.clientY - rect.top;
-				// Only create guide if pointer moved past the ruler boundary
-				if (posScaled > RULER_THICKNESS) {
-					const positionPx = (posScaled - RULER_THICKNESS) / scale;
-					if (positionPx >= 0 && positionPx <= canvasSize.height) {
-						onCreateGuideFromRuler('h', positionPx);
-					}
-				}
-			} else {
-				const rulerEl = vRulerRef.current;
-				if (!rulerEl) {
-					setRulerDrag(null);
-					return;
-				}
-				const rect = rulerEl.getBoundingClientRect();
-				const posScaled = e.clientX - rect.left;
-				if (posScaled > RULER_THICKNESS) {
-					const positionPx = (posScaled - RULER_THICKNESS) / scale;
-					if (positionPx >= 0 && positionPx <= canvasSize.width) {
-						onCreateGuideFromRuler('v', positionPx);
-					}
-				}
+			// Compute position in slide-local CSS px. The drop rules (must have
+			// left the strip, strip thickness subtracted, out-of-slide drops
+			// discarded) live in `rulerDragToGuidePosition` so every binding
+			// resolves a ruler drag identically.
+			const horizontal = rulerDrag.axis === 'h';
+			const rulerEl = horizontal ? hRulerRef.current : vRulerRef.current;
+			if (!rulerEl) {
+				setRulerDrag(null);
+				return;
+			}
+			const rect = rulerEl.getBoundingClientRect();
+			const posScaled = horizontal ? e.clientY - rect.top : e.clientX - rect.left;
+			const positionPx = rulerDragToGuidePosition(
+				posScaled,
+				editorScale,
+				horizontal ? canvasSize.height : canvasSize.width,
+			);
+			if (positionPx !== null) {
+				onCreateGuideFromRuler(rulerDrag.axis, positionPx);
 			}
 			setRulerDrag(null);
 		},

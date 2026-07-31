@@ -58,8 +58,16 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 				ops.applySelection(allIds[0], allIds);
 			}
 		},
+		onGroup: manipulation.handleGroupElements,
+		onUngroup: manipulation.handleUngroupElement,
+		onToggleShortcuts: () => state.setIsShortcutHelpOpen((prev) => !prev),
 		onEscape: () => {
-			if (state.inlineEditingElementId) {
+			// The help panel is checked first: "?" opened it without disturbing the
+			// selection, so Escape has to be able to close it again without first
+			// clearing whatever the user had selected.
+			if (state.isShortcutHelpOpen) {
+				state.setIsShortcutHelpOpen(false);
+			} else if (state.inlineEditingElementId) {
 				state.setInlineEditingElementId(null);
 				state.setInlineEditingText('');
 			} else if (state.contextMenuState) {

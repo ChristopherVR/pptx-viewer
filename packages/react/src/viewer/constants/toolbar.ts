@@ -2,6 +2,8 @@
  * Toolbar section definitions and keyboard shortcut reference items.
  */
 
+import { VIEWER_SHORTCUT_REFERENCE } from 'pptx-viewer-shared';
+
 import type { ShortcutReferenceItem, ToolbarSection } from '../types';
 
 export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; labelKey: string }> = [
@@ -19,17 +21,8 @@ export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; labelKey: string }> =
 	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
 ];
 
-export const SHORTCUT_REFERENCE_ITEMS: ShortcutReferenceItem[] = [
-	{ actionKey: 'pptx.toolbar.undo', shortcut: 'Ctrl/Cmd+Z' },
-	{ actionKey: 'pptx.toolbar.redo', shortcut: 'Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y' },
-	{ actionKey: 'pptx.shortcuts.action.copyElement', shortcut: 'Ctrl/Cmd+C' },
-	{ actionKey: 'pptx.shortcuts.action.cutElement', shortcut: 'Ctrl/Cmd+X' },
-	{ actionKey: 'pptx.shortcuts.action.pasteElement', shortcut: 'Ctrl/Cmd+V' },
-	{ actionKey: 'pptx.shortcuts.action.duplicateElement', shortcut: 'Ctrl/Cmd+D' },
-	{ actionKey: 'pptx.shortcuts.action.deleteElement', shortcut: 'Delete / Backspace' },
-	{ actionKey: 'pptx.shortcuts.action.nudgeElement', shortcut: 'Arrow keys' },
-	{ actionKey: 'pptx.shortcuts.action.nudgeElementLarge', shortcut: 'Shift+Arrow keys' },
-	{ actionKey: 'pptx.shortcuts.action.zoomCanvas', shortcut: 'Ctrl/Cmd+Mouse wheel' },
-	{ actionKey: 'pptx.shortcuts.action.commitTextEdit', shortcut: 'Ctrl/Cmd+Enter' },
-	{ actionKey: 'pptx.shortcuts.action.cancelTextEdit', shortcut: 'Escape' },
-];
+/**
+ * The shortcut cheat sheet, straight from the shared reference so the panel can
+ * never list a binding whose key the shared keymap does not actually resolve.
+ */
+export const SHORTCUT_REFERENCE_ITEMS: readonly ShortcutReferenceItem[] = VIEWER_SHORTCUT_REFERENCE;

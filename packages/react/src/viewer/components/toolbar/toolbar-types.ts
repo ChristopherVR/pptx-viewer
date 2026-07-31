@@ -5,6 +5,7 @@ import type {
 	PptxChartType,
 	TextStyle,
 	PptxCustomShow,
+	ShapeStyle,
 } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 
@@ -77,11 +78,14 @@ export interface ToolbarProps {
 	spellCheckEnabled: boolean;
 	showGrid: boolean;
 	showRulers: boolean;
+	/** Whether the drawing guides are painted on the canvas (View ▸ Guides). */
+	showGuides: boolean;
 	snapToGrid: boolean;
 	snapToShape: boolean;
 	onSetSpellCheckEnabled: (enabled: boolean) => void;
 	onSetShowGrid: (enabled: boolean) => void;
 	onSetShowRulers: (enabled: boolean) => void;
+	onSetShowGuides: (enabled: boolean) => void;
 	onSetSnapToGrid: (enabled: boolean) => void;
 	onSetSnapToShape: (enabled: boolean) => void;
 	onAddGuide: (axis: 'h' | 'v') => void;
@@ -94,6 +98,16 @@ export interface ToolbarProps {
 	onFlip: (direction: 'horizontal' | 'vertical') => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
+	/** Combine the multi-selection into one group element. */
+	onGroupElements: () => void;
+	/** Dissolve the selected group back into its children. */
+	onUngroupElement: () => void;
+	/** Patch the selected element's shape style (outline width, fill, ...). */
+	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
+	/** How many elements the multi-select currently holds. */
+	selectedCount: number;
+	/** Open the hyperlink editor for the current selection. */
+	onOpenHyperlinkDialog: () => void;
 	onDuplicate: () => void;
 	onDelete: () => void;
 	/** Open another presentation (File ▸ Open). Hidden when not provided. */

@@ -13,6 +13,8 @@ import type { AutosaveStatus } from '../../hooks/useAutosave';
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
 import { cn } from '../../utils';
+import { useViewerOptionsContext } from '../viewer-options-context';
+import { TitleBarQuickExtras } from './TitleBarQuickExtras';
 
 export interface TitleBarProps {
 	mode: ViewerMode;
@@ -37,6 +39,11 @@ export interface TitleBarProps {
 	onCommandSearch?: (command: string) => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/**
+	 * Run a Quick Access command that is not one of the dedicated
+	 * Save/Undo/Redo buttons (`presentFromStart`, `print`, ...), by catalog id.
+	 */
+	onQuickCommand?: (id: string) => void;
 }
 
 /**
@@ -48,6 +55,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 	const { t } = useTranslation();
 	const editing = (p.mode === 'edit' || p.mode === 'master') && p.canEdit;
 	const { isHidden } = useToolbarVisibility(p.hiddenActions);
+	const quickAccess = useViewerOptionsContext().quickAccess;
 
 	const [searchQuery, setSearchQuery] = useState('');
 	const [searchFocused, setSearchFocused] = useState(false);
@@ -177,6 +185,13 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 							<LuRedo className='w-3.5 h-3.5' />
 						</button>
 					)}
+					{/*
+					 * Everything else File > Options > Quick Access Toolbar asks for, in
+					 * configured order. Without this the strip was hardcoded to the three
+					 * buttons above and silently ignored the options model, so it showed
+					 * three commands where the shared default (and Angular) had four.
+					 */}
+					<TitleBarQuickExtras quickAccess={quickAccess} onCommand={p.onQuickCommand} />
 
 					<div className={TB.separator} />
 				</>

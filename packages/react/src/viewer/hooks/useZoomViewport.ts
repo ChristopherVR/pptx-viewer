@@ -1,12 +1,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { clampZoomScale, zoomInScale, zoomOutScale } from 'pptx-viewer-shared';
 import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 
-import {
-	MIN_ZOOM_SCALE,
-	MAX_ZOOM_SCALE,
-	MIN_ELEMENT_SIZE,
-	ZOOM_TO_SELECTION_PADDING,
-} from '../constants';
+import { MIN_ELEMENT_SIZE, ZOOM_TO_SELECTION_PADDING } from '../constants';
 import type { CanvasSize } from '../types';
 
 /** Axis-aligned bounding box used by zoom / viewport helpers. */
@@ -127,7 +123,7 @@ export function useZoomViewport({
 				return;
 			}
 
-			const boundedScale = Math.min(Math.max(nextScale, MIN_ZOOM_SCALE), MAX_ZOOM_SCALE);
+			const boundedScale = clampZoomScale(nextScale);
 			const nextEditorScale = fitScale * boundedScale;
 			const centerX = (bounds.minX + bounds.maxX) / 2;
 			const centerY = (bounds.minY + bounds.maxY) / 2;
@@ -145,12 +141,14 @@ export function useZoomViewport({
 		[fitScale],
 	);
 
+	// The step itself lives in pptx-viewer-shared so all five bindings move the
+	// stage by the same amount per press (two of them stepped by 1.25x instead).
 	const handleZoomIn = useCallback(() => {
-		setScale((currentScale) => Math.min(currentScale + 0.1, MAX_ZOOM_SCALE));
+		setScale((currentScale) => zoomInScale(currentScale));
 	}, []);
 
 	const handleZoomOut = useCallback(() => {
-		setScale((currentScale) => Math.max(currentScale - 0.1, MIN_ZOOM_SCALE));
+		setScale((currentScale) => zoomOutScale(currentScale));
 	}, []);
 
 	const handleResetZoom = useCallback(() => {
@@ -204,10 +202,7 @@ export function useZoomViewport({
 			availableHeight / boundsHeight,
 		);
 		const safeFitScale = fitScale > Number.EPSILON ? fitScale : Number.EPSILON;
-		const nextScale = Math.min(
-			Math.max(targetEditorScale / safeFitScale, MIN_ZOOM_SCALE),
-			MAX_ZOOM_SCALE,
-		);
+		const nextScale = clampZoomScale(targetEditorScale / safeFitScale);
 
 		setScale(nextScale);
 
@@ -230,9 +225,7 @@ export function useZoomViewport({
 		}
 		event.preventDefault();
 		const delta = event.deltaY * -0.001;
-		setScale((currentScale) =>
-			Math.min(Math.max(currentScale + delta, MIN_ZOOM_SCALE), MAX_ZOOM_SCALE),
-		);
+		setScale((currentScale) => clampZoomScale(currentScale + delta));
 	}, []);
 
 	// Attach the wheel listener natively with { passive: false } so that

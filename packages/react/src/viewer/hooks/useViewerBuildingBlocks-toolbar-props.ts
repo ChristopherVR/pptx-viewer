@@ -118,6 +118,10 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 
 	const scopedLayoutOptions = scopeLayoutOptionsToActiveSlide(s.layoutOptions, activeSlide);
 
+	// Group needs two elements. A single click leaves `selectedElementIds` empty
+	// and only sets `selectedElementId`, so fall back to counting that one.
+	const selectionSize = selectedElement === null ? 0 : 1;
+
 	return {
 		fileName,
 		mode,
@@ -180,11 +184,13 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		spellCheckEnabled: s.spellCheckEnabled,
 		showGrid: s.showGrid,
 		showRulers: s.showRulers,
+		showGuides: s.showGuides,
 		snapToGrid: s.snapToGrid,
 		snapToShape: s.snapToShape,
 		onSetSpellCheckEnabled: s.setSpellCheckEnabled,
 		onSetShowGrid: s.setShowGrid,
 		onSetShowRulers: s.setShowRulers,
+		onSetShowGuides: s.setShowGuides,
 		onSetSnapToGrid: s.setSnapToGrid,
 		onSetSnapToShape: s.setSnapToShape,
 		onAddGuide: dialogs.handleAddGuide,
@@ -197,6 +203,11 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onFlip: manipulation.handleFlip,
 		onMoveLayer: manipulation.handleMoveLayer,
 		onMoveLayerToEdge: manipulation.handleMoveLayerToEdge,
+		onGroupElements: manipulation.handleGroupElements,
+		onUngroupElement: manipulation.handleUngroupElement,
+		onUpdateElementStyle: ops.updateSelectedShapeStyle,
+		selectedCount: s.selectedElementIds.length > 0 ? s.selectedElementIds.length : selectionSize,
+		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
 		onDuplicate: manipulation.handleDuplicate,
 		onDelete: manipulation.handleDelete,
 		onExportPng: exportHandlers.handleExportPng,
