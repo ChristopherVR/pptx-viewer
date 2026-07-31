@@ -1,7 +1,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildGradientStrokeOutline, outlinePathData, suppressesCssBorder } from './stroke-outline';
+import { buildStrokeOutline, outlinePathData, suppressesCssBorder } from './stroke-outline';
 
 const STOPS = [
 	{ color: '#F0FDFE', position: 0 },
@@ -54,12 +54,12 @@ describe('outlinePathData', () => {
 	});
 });
 
-describe('buildGradientStrokeOutline', () => {
+describe('buildStrokeOutline', () => {
 	it('builds a paint server and an outline path for a gradient outline', () => {
-		const outline = buildGradientStrokeOutline(shape(gradientStroke));
+		const outline = buildStrokeOutline(shape(gradientStroke));
 		expect(outline).toBeDefined();
-		expect(outline!.gradient.kind).toBe('linear');
-		expect(outline!.gradient.id).toBe('pptx-stroke-ppt_slides_slide4_xml-shape-3');
+		expect(outline!.paint.kind).toBe('linear');
+		expect(outline!.paint.id).toBe('pptx-stroke-ppt_slides_slide4_xml-shape-3');
 		expect(outline!.strokeWidth).toBe(3);
 		expect(outline!.d).toContain('M ');
 	});
@@ -67,28 +67,28 @@ describe('buildGradientStrokeOutline', () => {
 	it('namespaces the stroke paint server apart from the fill one', () => {
 		// A shape can carry BOTH a gradient fill and a gradient outline; sharing
 		// one id would make the second reference resolve to the first server.
-		const outline = buildGradientStrokeOutline(
+		const outline = buildStrokeOutline(
 			shape({
 				...gradientStroke,
 				fillMode: 'gradient',
 				fillGradientStops: STOPS,
 			}),
 		);
-		expect(outline!.gradient.id).toContain('-stroke-');
+		expect(outline!.paint.id).toContain('-stroke-');
 	});
 
 	it('follows the shape geometry rather than the bounding box', () => {
 		// An ellipse is painted with `border-radius` by the bindings, but the
 		// overlay has to trace the real outline or the gradient border would be a
 		// rectangle around it.
-		const outline = buildGradientStrokeOutline(
+		const outline = buildStrokeOutline(
 			shape(gradientStroke, { shapeType: 'ellipse' } as Partial<PptxElement>),
 		);
 		expect(outline!.d).toContain('A ');
 	});
 
 	it('carries the dash, cap and join through to SVG attributes', () => {
-		const outline = buildGradientStrokeOutline(
+		const outline = buildStrokeOutline(
 			shape({ ...gradientStroke, strokeDash: 'dash', lineCap: 'rnd', lineJoin: 'bevel' }),
 		);
 		expect(outline!.dashArray).toBeTruthy();
@@ -97,19 +97,64 @@ describe('buildGradientStrokeOutline', () => {
 	});
 
 	it('is undefined for a solid outline, no outline, or zero width', () => {
+		expect(buildStrokeOutline(shape({ strokeColor: '#000', strokeWidth: 2 }))).toBeUndefined();
+		expect(buildStrokeOutline(shape({ ...gradientStroke, strokeWidth: 0 }))).toBeUndefined();
 		expect(
-			buildGradientStrokeOutline(shape({ strokeColor: '#000', strokeWidth: 2 })),
-		).toBeUndefined();
-		expect(
-			buildGradientStrokeOutline(shape({ ...gradientStroke, strokeWidth: 0 })),
-		).toBeUndefined();
-		expect(
-			buildGradientStrokeOutline(shape({ ...gradientStroke, strokeGradientStops: [] })),
+			buildStrokeOutline(shape({ ...gradientStroke, strokeGradientStops: [] })),
 		).toBeUndefined();
 	});
 
 	it('tells the binding when to drop its CSS border', () => {
 		expect(suppressesCssBorder(shape(gradientStroke))).toBeTruthy();
 		expect(suppressesCssBorder(shape({ strokeColor: '#000', strokeWidth: 2 }))).toBeFalsy();
+	});
+});
+
+describe('buildStrokeOutline pattern outlines', () => {
+	const patternStroke: ShapeStyle = {
+		strokeFillMode: 'pattern',
+		strokeWidth: 4,
+		strokeColor: '#112233',
+		strokePatternPreset: 'dkDnDiag',
+		strokePatternBackgroundColor: '#445566',
+	};
+
+	it('strokes with a <pattern> paint server, not the bare foreground', () => {
+		// A CSS border cannot be hatched, so the pattern used to vanish entirely
+		// and the outline painted as a flat `strokeColor`.
+		const outline = buildStrokeOutline(shape(patternStroke));
+		expect(outline).toBeDefined();
+		expect(outline!.paint.kind).toBe('pattern');
+		expect(outline!.paint.id).toContain('-strokepat-');
+	});
+
+	it('carries a tile size and a data-URI tile', () => {
+		const paint = buildStrokeOutline(shape(patternStroke))!.paint;
+		if (paint.kind !== 'pattern') {
+			throw new Error('expected a pattern paint');
+		}
+		expect(paint.width).toBeGreaterThan(0);
+		expect(paint.height).toBeGreaterThan(0);
+		expect(paint.href.startsWith('data:image/svg+xml,')).toBeTruthy();
+		// Both pattern colours reach the tile.
+		expect(decodeURIComponent(paint.href)).toContain('#112233');
+		expect(decodeURIComponent(paint.href)).toContain('#445566');
+	});
+
+	it('drops the CSS border for a pattern outline too', () => {
+		expect(suppressesCssBorder(shape(patternStroke))).toBeTruthy();
+	});
+
+	it('keeps the solid fallback for a preset it cannot draw', () => {
+		expect(
+			buildStrokeOutline(shape({ ...patternStroke, strokePatternPreset: 'notARealPreset' })),
+		).toBeUndefined();
+	});
+
+	it('prefers a gradient outline when a style somehow carries both', () => {
+		const outline = buildStrokeOutline(
+			shape({ ...gradientStroke, strokePatternPreset: 'dkDnDiag' }),
+		);
+		expect(outline!.paint.kind).toBe('linear');
 	});
 });

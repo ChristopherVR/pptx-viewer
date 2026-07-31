@@ -1,12 +1,13 @@
 /**
- * Gradient / pattern OUTLINES (`a:ln/a:gradFill`, `a:ln/a:pattFill`).
+ * Gradient and pattern OUTLINES (`a:ln/a:gradFill`, `a:ln/a:pattFill`).
  *
  * Every binding paints a shape's outline as a CSS `border`, which can only take
- * a single colour. A gradient outline was therefore rendered with the parser's
- * averaged `strokeColor`: a two-tone outline came out flat, and one that fades
- * to transparent came out fully opaque along its whole length.
+ * a single flat colour. A gradient outline was therefore rendered with the
+ * parser's averaged `strokeColor` (two-tone came out flat, fade-to-transparent
+ * came out opaque), and a patterned outline with the pattern's foreground alone,
+ * so the hatching disappeared entirely.
  *
- * CSS has no way to fix this in place - `border-image` ignores `border-radius`
+ * CSS has no way to fix either in place - `border-image` ignores `border-radius`
  * and cannot follow a `clip-path` - so the outline is instead stroked as a real
  * SVG path laid over the element, using the shape's own resolved geometry. This
  * module turns an element into everything a binding needs for that overlay; the
@@ -18,20 +19,28 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { svgLineCap } from './connector-style';
 import { getSvgStrokeDasharray, normalizeStrokeDashType } from './element-style-transform';
 import { getResolvedShapeClipPath } from './shape-geometry';
-import { buildSvgStrokeGradientDef } from './svg-gradient-paint';
-import type { SvgGradientDef } from './svg-gradient-paint';
+import { buildSvgStrokeGradientDef, buildSvgStrokePatternDef } from './svg-gradient-paint';
+import type { SvgGradientDef, SvgPatternDef } from './svg-gradient-paint';
+
+/** The paint server an outline is stroked with: a gradient or a pattern. */
+export type StrokeOutlinePaint = SvgGradientDef | SvgPatternDef;
 
 /** Everything needed to stroke one shape's outline as an SVG overlay. */
-export interface GradientStrokeOutline {
+export interface StrokeOutline {
 	/** Path data in the element's own pixel space (viewBox `0 0 width height`). */
 	d: string;
-	/** Paint server to reference from the path's `stroke`. */
-	gradient: SvgGradientDef;
+	/** Paint server to define in `<defs>` and reference from the path's `stroke`. */
+	paint: StrokeOutlinePaint;
 	strokeWidth: number;
 	/** SVG `stroke-dasharray`, or `undefined` for a solid line. */
 	dashArray: string | undefined;
 	lineCap: 'butt' | 'round' | 'square';
 	lineJoin: 'round' | 'bevel' | 'miter';
+}
+
+/** Narrowing helper for bindings, whose templates cannot narrow a union inline. */
+export function isPatternPaint(paint: StrokeOutlinePaint): paint is SvgPatternDef {
+	return paint.kind === 'pattern';
 }
 
 /**
@@ -83,13 +92,11 @@ export function outlinePathData(
 }
 
 /**
- * Resolve the SVG overlay that paints an element's gradient outline, or
- * `undefined` when the element has no gradient outline to paint (the ordinary
- * case, where the binding's CSS border is correct and cheaper).
+ * Resolve the SVG overlay that paints an element's gradient or pattern outline,
+ * or `undefined` when the element has neither (the ordinary case, where the
+ * binding's CSS border is correct and cheaper).
  */
-export function buildGradientStrokeOutline(
-	element: PptxElement,
-): GradientStrokeOutline | undefined {
+export function buildStrokeOutline(element: PptxElement): StrokeOutline | undefined {
 	if (!hasShapeProperties(element)) {
 		return undefined;
 	}
@@ -98,8 +105,9 @@ export function buildGradientStrokeOutline(
 	if (!style || strokeWidth <= 0) {
 		return undefined;
 	}
-	const gradient = buildSvgStrokeGradientDef(style, element.id);
-	if (!gradient) {
+	const paint: StrokeOutlinePaint | undefined =
+		buildSvgStrokeGradientDef(style, element.id) ?? buildSvgStrokePatternDef(style, element.id);
+	if (!paint) {
 		return undefined;
 	}
 	const d = outlinePathData(getResolvedShapeClipPath(element), element.width, element.height);
@@ -108,7 +116,7 @@ export function buildGradientStrokeOutline(
 	}
 	return {
 		d,
-		gradient,
+		paint,
 		strokeWidth,
 		dashArray: getSvgStrokeDasharray(
 			normalizeStrokeDashType(style.strokeDash),
@@ -122,9 +130,9 @@ export function buildGradientStrokeOutline(
 
 /**
  * Whether a binding should suppress its CSS border for this element because the
- * gradient-stroke overlay is painting the outline instead. Keeping both would
- * draw the averaged solid colour underneath the gradient.
+ * stroke overlay is painting the outline instead. Keeping both would draw the
+ * averaged solid (or the pattern's bare foreground) underneath.
  */
 export function suppressesCssBorder(element: PptxElement): boolean {
-	return buildGradientStrokeOutline(element) !== undefined;
+	return buildStrokeOutline(element) !== undefined;
 }

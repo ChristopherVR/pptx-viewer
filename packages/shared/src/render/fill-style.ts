@@ -562,18 +562,30 @@ export const buildCssGradientFromShapeStyle = buildGradientCss;
 // Pattern fills (from React `color-patterns.ts`)
 // ---------------------------------------------------------------------------
 
+/** One tile of a preset pattern: its size plus the primitives that fill it. */
+export interface PatternTile {
+	/** Tile width in px. */
+	w: number;
+	/** Tile height in px. */
+	h: number;
+	/** SVG primitives that paint the tile, with no wrapping element. */
+	inner: string;
+}
+
 /**
- * Generates a tiled inline SVG markup string approximating an OOXML preset
- * pattern (ST_PresetPatternVal). Patterns paint a foreground (`fg`) on a
- * background (`bg`) fill. Returns `null` for unknown presets.
+ * Builds one tile of an OOXML preset pattern (ST_PresetPatternVal), painting a
+ * foreground (`fg`) on a background (`bg`). Returns `null` for unknown presets.
+ *
+ * Kept separate from {@link getPatternSvg} because the tile is needed in two
+ * different wrappers: a standalone `<svg>` document for the data-URI background
+ * a CSS fill uses, and an SVG `<pattern>` paint server for a patterned OUTLINE,
+ * which cannot go through `background-image` at all.
  *
  * Reference: ECMA-376 Part 1, §20.1.10.33.
  */
-export function getPatternSvg(preset: string, fg: string, bg: string): string | null {
+export function getPatternTile(preset: string, fg: string, bg: string): PatternTile | null {
 	const s = 8;
-	const xmlns = 'http://www.w3.org/2000/svg';
-	const svg = (w: number, h: number, inner: string) =>
-		`<svg xmlns="${xmlns}" width="${w}" height="${h}">${inner}</svg>`;
+	const svg = (w: number, h: number, inner: string): PatternTile => ({ w, h, inner });
 	const rect = (x: number, y: number, w: number, h: number, fill: string) =>
 		`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
 	const bgRect = (w: number, h: number) => rect(0, 0, w, h, bg);
@@ -958,6 +970,19 @@ export function getPatternSvg(preset: string, fg: string, bg: string): string | 
 		default:
 			return null;
 	}
+}
+
+/**
+ * Serialises one pattern tile into a standalone inline `<svg>` document, the
+ * form a CSS `background-image` data-URI needs. Returns `null` for unknown
+ * presets.
+ */
+export function getPatternSvg(preset: string, fg: string, bg: string): string | null {
+	const tile = getPatternTile(preset, fg, bg);
+	if (!tile) {
+		return null;
+	}
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${tile.w}" height="${tile.h}">${tile.inner}</svg>`;
 }
 
 /** Result of {@link buildPatternFill}. */
