@@ -1072,6 +1072,164 @@ describe('pptxNativeAnimationService', () => {
 			expect(interactiveAnim).toBeDefined();
 			expect(interactiveAnim!.triggerShapeId).toBe('triggerButton');
 			expect(interactiveAnim!.targetId).toBe('hiddenShape');
+
+			// The interactive effect must appear EXACTLY ONCE. The generic timing
+			// walk used to descend into the interactive `p:seq` as well, emitting a
+			// second copy tagged with the inherited main-sequence `onClick`
+			// trigger. That phantom copy became an extra MAIN-sequence click step,
+			// so pressing Next in a slide show burned a click doing nothing instead
+			// of advancing the slide.
+			const hiddenShapeAnims = result!.filter((a) => a.targetId === 'hiddenShape');
+			expect(hiddenShapeAnims).toHaveLength(1);
+			expect(hiddenShapeAnims[0].trigger).toBe('onShapeClick');
+		});
+
+		it('does not emit an interactive effect as a main-sequence click step', () => {
+			// Shape of `e2e/fixtures/solution-explorer.pptx` slide 2: a mainSeq that
+			// auto-plays a video plus an interactiveSeq that toggles pause when the
+			// video itself is clicked. PowerPoint advances to the next slide on the
+			// first Next press; the duplicated interactive step made it take two.
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:seq': [
+									{
+										'p:cTn': {
+											'@_id': '2',
+											'@_nodeType': 'mainSeq',
+											'p:childTnLst': {
+												'p:par': {
+													'p:cTn': {
+														'@_id': '3',
+														'@_nodeType': 'afterEffect',
+														'@_presetID': '1',
+														'@_presetClass': 'mediacall',
+														'p:childTnLst': {
+															'p:cmd': {
+																'@_type': 'call',
+																'@_cmd': 'playFrom(0.0)',
+																'p:cBhvr': {
+																	'p:tgtEl': { 'p:spTgt': { '@_spid': 'video' } },
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									{
+										'p:cTn': {
+											'@_id': '8',
+											'@_nodeType': 'interactiveSeq',
+											'p:stCondLst': {
+												'p:cond': {
+													'@_evt': 'onClick',
+													'@_delay': '0',
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'video' } },
+												},
+											},
+											'p:childTnLst': {
+												'p:par': {
+													'p:cTn': {
+														'@_id': '11',
+														'@_nodeType': 'clickEffect',
+														'@_presetID': '2',
+														'@_presetClass': 'mediacall',
+														'p:childTnLst': {
+															'p:cmd': {
+																'@_type': 'call',
+																'@_cmd': 'togglePause',
+																'p:cBhvr': {
+																	'p:tgtEl': { 'p:spTgt': { '@_spid': 'video' } },
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								],
+							},
+						},
+					},
+				},
+			});
+
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+
+			const toggles = result!.filter((a) => a.commandString === 'togglePause');
+			expect(toggles).toHaveLength(1);
+			expect(toggles[0].trigger).toBe('onShapeClick');
+			expect(toggles[0].triggerShapeId).toBe('video');
+
+			// The only main-sequence effect is the auto-started playback command.
+			const mainSeqAnims = result!.filter((a) => a.trigger === 'onClick');
+			expect(mainSeqAnims).toHaveLength(1);
+			expect(mainSeqAnims[0].commandString).toBe('playFrom(0.0)');
+		});
+
+		it('still finds an interactive sequence nested below the root', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'p:childTnLst': {
+											'p:seq': {
+												'p:cTn': {
+													'@_id': '3',
+													'@_nodeType': 'interactiveSeq',
+													'p:stCondLst': {
+														'p:cond': {
+															'@_evt': 'onClick',
+															'p:tgtEl': { 'p:spTgt': { '@_spid': 'deepTrigger' } },
+														},
+													},
+													'p:childTnLst': {
+														'p:par': {
+															'p:cTn': {
+																'@_id': '4',
+																'@_presetID': '1',
+																'@_presetClass': 'entr',
+																'p:childTnLst': {
+																	'p:set': {
+																		'p:cBhvr': {
+																			'p:tgtEl': { 'p:spTgt': { '@_spid': 'deepTarget' } },
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			const deep = result!.filter((a) => a.targetId === 'deepTarget');
+			expect(deep).toHaveLength(1);
+			expect(deep[0].trigger).toBe('onShapeClick');
+			expect(deep[0].triggerShapeId).toBe('deepTrigger');
 		});
 
 		it('skips mainSeq sequences in interactive parsing', () => {

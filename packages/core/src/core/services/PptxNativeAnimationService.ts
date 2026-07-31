@@ -44,6 +44,29 @@ import {
 } from './native-animation-helpers';
 
 /**
+ * True when a `p:seq` is an INTERACTIVE sequence: one that only runs when the
+ * viewer clicks a specific shape (`p:cTn/p:stCondLst/p:cond[@evt="onClick"]`
+ * with a `p:spTgt/@spid`), rather than a step of the slide's main sequence.
+ *
+ * Such a sequence is owned exclusively by
+ * {@link PptxNativeAnimationService.parseInteractiveSequences}, which re-walks
+ * it and tags every effect `onShapeClick`. The generic timing-tree walk must
+ * therefore SKIP it: walking it under the inherited `onClick` trigger emitted a
+ * duplicate of every interactive effect as a phantom MAIN-sequence click step,
+ * so pressing Next in a slide show silently burned a click doing nothing
+ * instead of advancing the slide (any deck with a click-to-pause video, e.g.
+ * `e2e/fixtures/solution-explorer.pptx` slide 2, froze on that slide for two
+ * presses and looked like "the slide show does not animate").
+ */
+function isInteractiveSequence(seq: XmlObject): boolean {
+	const cTn = seq['p:cTn'] as XmlObject | undefined;
+	if (!cTn || String(cTn['@_nodeType'] || '') === 'mainSeq') {
+		return false;
+	}
+	return extractTriggerShapeId(cTn) !== undefined;
+}
+
+/**
  * Interface for parsing native OOXML animation data from slide XML.
  */
 export interface IPptxNativeAnimationService {
@@ -337,6 +360,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					);
 				}
 				for (const sequence of sequences) {
+					// Interactive sequences belong to `parseInteractiveSequences`.
+					if (isInteractiveSequence(sequence)) {
+						continue;
+					}
 					this.walkTimingTree(sequence, animations, trigger, group);
 				}
 				// Exclusive containers: animations are mutually exclusive at runtime
@@ -365,6 +392,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			);
 		}
 		for (const sequence of directSequences) {
+			// Interactive sequences belong to `parseInteractiveSequences`.
+			if (isInteractiveSequence(sequence)) {
+				continue;
+			}
 			this.walkTimingTree(sequence, animations, currentTrigger, group);
 		}
 	}
@@ -487,6 +518,38 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	}
 
 	/**
+	 * Collect every interactive `p:seq` reachable from `node`.
+	 *
+	 * Interactive sequences are normally siblings of the main sequence under the
+	 * root `p:par`, but a deck may nest one deeper. The generic walk skips every
+	 * sequence {@link isInteractiveSequence} matches, so this collector has to
+	 * reach exactly the same set or those effects would be dropped entirely.
+	 * Collection stops at an interactive sequence: its own subtree is walked by
+	 * {@link parseInteractiveSequences} under that sequence's trigger shape.
+	 */
+	private collectInteractiveSequences(node: XmlObject, found: XmlObject[]): void {
+		const containers: XmlObject[] = [];
+		const cTn = node['p:cTn'] as XmlObject | undefined;
+		const childTnList = cTn?.['p:childTnLst'] as XmlObject | undefined;
+		if (childTnList) {
+			containers.push(
+				...ensureArray(childTnList['p:par']),
+				...ensureArray(childTnList['p:seq']),
+				...ensureArray(childTnList['p:excl']),
+			);
+		}
+		containers.push(...ensureArray(node['p:par']), ...ensureArray(node['p:seq']));
+
+		for (const container of containers) {
+			if (isInteractiveSequence(container)) {
+				found.push(container);
+				continue;
+			}
+			this.collectInteractiveSequences(container, found);
+		}
+	}
+
+	/**
 	 * Parse interactive sequences from the root `p:par` node.
 	 *
 	 * In OOXML, interactive sequences are sibling `p:seq` nodes alongside the
@@ -496,31 +559,12 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	 * See ISO/IEC 29500-1 S19.5.60 (CT_TLTimeNodeSequence).
 	 */
 	private parseInteractiveSequences(rootPar: XmlObject, animations: PptxNativeAnimation[]): void {
-		const rootCTn = rootPar['p:cTn'] as XmlObject | undefined;
-		if (!rootCTn) {
-			return;
-		}
+		const sequences: XmlObject[] = [];
+		this.collectInteractiveSequences(rootPar, sequences);
 
-		const childTnList = rootCTn['p:childTnLst'] as XmlObject | undefined;
-		if (!childTnList) {
-			return;
-		}
-
-		const sequences = ensureArray(childTnList['p:seq']);
 		for (const seq of sequences) {
 			const seqCTn = seq['p:cTn'] as XmlObject | undefined;
-			if (!seqCTn) {
-				continue;
-			}
-
-			// Skip the main sequence -- it has nodeType="mainSeq"
-			const nodeType = String(seqCTn['@_nodeType'] || '');
-			if (nodeType === 'mainSeq') {
-				continue;
-			}
-
-			// Extract the trigger shape ID from the sequence conditions
-			const triggerShapeId = extractTriggerShapeId(seqCTn);
+			const triggerShapeId = seqCTn ? extractTriggerShapeId(seqCTn) : undefined;
 			if (!triggerShapeId) {
 				continue;
 			}
