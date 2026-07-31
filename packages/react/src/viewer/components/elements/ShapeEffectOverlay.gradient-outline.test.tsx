@@ -92,3 +92,55 @@ describe('shapeEffectOverlay gradient outline', () => {
 		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(3);
 	});
 });
+
+/**
+ * Pattern OUTLINES (`a:ln/a:pattFill`). A CSS border cannot be hatched, so the
+ * pattern used to vanish entirely and the outline painted as the pattern's flat
+ * foreground. The tile rides in as a data-URI `<image>` inside a `<pattern>`, so
+ * the same descriptor renders from plain attributes in every binding.
+ */
+describe('shapeEffectOverlay pattern outline', () => {
+	const patternShape = () =>
+		shape({
+			strokeFillMode: 'pattern',
+			strokeColor: '#1F4E79',
+			strokePatternPreset: 'dkDnDiag',
+			strokePatternBackgroundColor: '#FFF2CC',
+			strokeGradientStops: undefined,
+		});
+
+	it('strokes with a tiled <pattern> paint server', () => {
+		const html = markup(patternShape());
+		expect(html).toContain('<pattern');
+		expect(html).toContain('patternUnits="userSpaceOnUse"');
+		expect(html).toContain('id="pptx-strokepat-ppt_slides_slide4_xml-shape-3"');
+		expect(html).toContain('stroke="url(#pptx-strokepat-ppt_slides_slide4_xml-shape-3)"');
+	});
+
+	it('carries both pattern colours in the tile', () => {
+		// Decode only the data URI: the surrounding markup has bare `%` (e.g. the
+		// `100%` sizing) that is not a valid escape sequence.
+		const href = /href="(data:image\/svg\+xml,[^"]*)"/u.exec(markup(patternShape()))?.[1];
+		expect(href, 'the tile rides in as a data URI').toBeTruthy();
+		const tile = decodeURIComponent(String(href));
+		expect(tile).toContain('#1F4E79');
+		expect(tile).toContain('#FFF2CC');
+	});
+
+	it('drops the CSS border for a pattern outline too', () => {
+		const element = patternShape();
+		const { hf, fc, sw, sc } = shapeParams(element);
+		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(0);
+	});
+
+	it('falls back to the CSS border for a preset it cannot draw', () => {
+		const element = shape({
+			strokeFillMode: 'pattern',
+			strokePatternPreset: 'notARealPreset',
+			strokeGradientStops: undefined,
+		});
+		expect(markup(element)).not.toContain('<pattern');
+		const { hf, fc, sw, sc } = shapeParams(element);
+		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(3);
+	});
+});

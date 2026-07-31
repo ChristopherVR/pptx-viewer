@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
-	buildGradientStrokeOutline,
+	buildStrokeOutline,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
 	svgGradientFillRef,
@@ -20,8 +20,9 @@ import type { CSSProperties } from 'react';
  *     than blending the whole element (which would also tint text/children).
  *     `getShapeVisualStyle` therefore no longer sets a whole-element
  *     `mix-blend-mode` when a fill-overlay colour is present.
- *  2. A gradient OUTLINE (`a:ln/a:gradFill`): a CSS `border` takes one colour
- *     only, so the outline is stroked as a real SVG path over the element,
+ *  2. A gradient or pattern OUTLINE (`a:ln/a:gradFill`, `a:ln/a:pattFill`): a
+ *     CSS `border` takes one flat colour only, so the outline is stroked as a
+ *     real SVG path over the element,
  *     following the shape's own geometry. `getShapeVisualStyle` drops the CSS
  *     border for these shapes so the averaged solid does not show underneath.
  *  3. The soft-edge feather `<filter>` (`a:softEdge`): the shape's CSS `filter`
@@ -44,7 +45,7 @@ export function ShapeEffectOverlay({
 
 	const overlay = getComputedEffectStyle(element).fillOverlay;
 	const softEdge = getSoftEdgeSvgFilter(element.shapeStyle, element.id);
-	const strokeOutline = buildGradientStrokeOutline(element);
+	const strokeOutline = buildStrokeOutline(element);
 	if (!overlay && !softEdge && !strokeOutline) {
 		return null;
 	}
@@ -90,14 +91,27 @@ export function ShapeEffectOverlay({
 					}}
 				>
 					<defs>
-						{strokeOutline.gradient.kind === 'radial' ? (
-							<radialGradient
-								id={strokeOutline.gradient.id}
-								cx={strokeOutline.gradient.cx}
-								cy={strokeOutline.gradient.cy}
-								r={strokeOutline.gradient.r}
+						{strokeOutline.paint.kind === 'pattern' ? (
+							<pattern
+								id={strokeOutline.paint.id}
+								width={strokeOutline.paint.width}
+								height={strokeOutline.paint.height}
+								patternUnits='userSpaceOnUse'
 							>
-								{strokeOutline.gradient.stops.map((stop, idx) => (
+								<image
+									href={strokeOutline.paint.href}
+									width={strokeOutline.paint.width}
+									height={strokeOutline.paint.height}
+								/>
+							</pattern>
+						) : strokeOutline.paint.kind === 'radial' ? (
+							<radialGradient
+								id={strokeOutline.paint.id}
+								cx={strokeOutline.paint.cx}
+								cy={strokeOutline.paint.cy}
+								r={strokeOutline.paint.r}
+							>
+								{strokeOutline.paint.stops.map((stop, idx) => (
 									<stop
 										key={idx}
 										offset={stop.offset}
@@ -108,13 +122,13 @@ export function ShapeEffectOverlay({
 							</radialGradient>
 						) : (
 							<linearGradient
-								id={strokeOutline.gradient.id}
-								x1={strokeOutline.gradient.x1}
-								y1={strokeOutline.gradient.y1}
-								x2={strokeOutline.gradient.x2}
-								y2={strokeOutline.gradient.y2}
+								id={strokeOutline.paint.id}
+								x1={strokeOutline.paint.x1}
+								y1={strokeOutline.paint.y1}
+								x2={strokeOutline.paint.x2}
+								y2={strokeOutline.paint.y2}
 							>
-								{strokeOutline.gradient.stops.map((stop, idx) => (
+								{strokeOutline.paint.stops.map((stop, idx) => (
 									<stop
 										key={idx}
 										offset={stop.offset}
@@ -128,7 +142,7 @@ export function ShapeEffectOverlay({
 					<path
 						d={strokeOutline.d}
 						fill='none'
-						stroke={svgGradientFillRef(strokeOutline.gradient)}
+						stroke={svgGradientFillRef(strokeOutline.paint)}
 						strokeWidth={strokeOutline.strokeWidth}
 						strokeDasharray={strokeOutline.dashArray}
 						strokeLinecap={strokeOutline.lineCap}

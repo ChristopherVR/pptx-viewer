@@ -157,7 +157,7 @@ export function getShapeVisualStyle(
 	// hard-coded `100% 100%` / `no-repeat` and lost both; the other four
 	// bindings already honour them through shared `getComputedFillStyle`.
 	const gradientTiling = getGradientTilingCss(ss);
-	// `ShapeEffectOverlay` strokes a gradient outline as an SVG path instead.
+	// `ShapeEffectOverlay` strokes a gradient/pattern outline as an SVG path.
 	const paintsGradientOutline = suppressesCssBorder(element);
 	// A DAG fill-overlay tint layer is painted separately by `ShapeEffectOverlay`
 	// when a colour is parsed; in that case the whole-element blend proxy below is
