@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 
 import type { CanvasSize } from '../types';
 import PresentationMode from './PresentationMode.vue';
@@ -24,7 +25,26 @@ function makeSlideNoClickAdvance(id: string): PptxSlide {
 	} as unknown as PptxSlide;
 }
 
-function mountMode(slides: PptxSlide[], startIndex = 0, startInPresenterView = false) {
+/**
+ * Slide 1 of `e2e/fixtures/solution-explorer.pptx`: `advClick="0" advTm="10"`,
+ * i.e. "on mouse click" OFF and "after 10 ms" ON. Its timing is the only thing
+ * that can move the show off it.
+ */
+function makeTimedSlide(id: string): PptxSlide {
+	return {
+		id,
+		elements: [],
+		backgroundColor: '#ffffff',
+		transition: { type: 'fade', advanceOnClick: false, advanceAfterMs: 10 },
+	} as unknown as PptxSlide;
+}
+
+function mountMode(
+	slides: PptxSlide[],
+	startIndex = 0,
+	startInPresenterView = false,
+	presentationProperties?: PptxPresentationProperties,
+) {
 	return mount(PresentationMode, {
 		props: {
 			slides,
@@ -32,6 +52,7 @@ function mountMode(slides: PptxSlide[], startIndex = 0, startInPresenterView = f
 			mediaDataUrls: new Map<string, string>(),
 			startIndex,
 			startInPresenterView,
+			presentationProperties,
 		},
 		attachTo: document.body,
 	});
@@ -39,6 +60,14 @@ function mountMode(slides: PptxSlide[], startIndex = 0, startInPresenterView = f
 
 function pressKey(key: string): void {
 	window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+}
+
+/** Let a 10 ms authored timing elapse and Vue flush the resulting render. */
+async function settle(): Promise<void> {
+	await new Promise((resolve) => {
+		setTimeout(resolve, 60);
+	});
+	await nextTick();
 }
 
 describe('presentationMode', () => {
@@ -146,6 +175,41 @@ describe('presentationMode', () => {
 		pressKey('ArrowRight');
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
+		wrapper.unmount();
+	});
+
+	// PowerPoint's "Advance slide: After <n>" (`p:transition/@advTm`). A slide
+	// authored `advClick="0" advTm="10"` has NO other way forward, so a show that
+	// only honours the click gate sits on it for ever and looks completely dead.
+	it('advances on the slide timing when click-advance is forbidden', async () => {
+		const wrapper = mountMode([makeTimedSlide('s1'), makeSlide('s2')]);
+		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
+			'1 / 2',
+		);
+		await settle();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
+		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
+			'2 / 2',
+		);
+		wrapper.unmount();
+	});
+
+	it('ignores authored timings when the show advances manually', async () => {
+		const wrapper = mountMode([makeTimedSlide('s1'), makeSlide('s2')], 0, false, {
+			advanceMode: 'manual',
+		});
+		await settle();
+		expect(wrapper.emitted('slide-change')).toBeUndefined();
+		wrapper.unmount();
+	});
+
+	it('does not keep advancing a slide with no timing of its own', async () => {
+		const wrapper = mountMode([makeTimedSlide('s1'), makeSlide('s2'), makeSlide('s3')]);
+		await settle();
+		// The timer belongs to slide 1 only; slide 2 waits for input.
+		expect(wrapper.emitted('slide-change')).toHaveLength(1);
+		await settle();
+		expect(wrapper.emitted('slide-change')).toHaveLength(1);
 		wrapper.unmount();
 	});
 });

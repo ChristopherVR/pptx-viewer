@@ -18,6 +18,7 @@ import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
 import { usePresenterSession } from '../composables/usePresenterSession';
+import { useSlideAutoAdvance } from '../composables/useSlideAutoAdvance';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
 import { useTouchGestures } from '../composables/useTouchGestures';
 import { provideZoomNavigation } from '../composables/zoom-navigation';
@@ -413,6 +414,18 @@ function onOverlayClick(): void {
 	}
 	advanceFromClick();
 }
+
+// PowerPoint's "Advance slide: After <n>" (`p:transition/@advTm`). Re-armed on
+// every slide change and always cancelled first. Slide 1 of a deck authored
+// `advClick="0" advTm="…"` has no other way forward, so without this the show
+// never leaves it and looks completely unresponsive.
+useSlideAutoAdvance({
+	slide: activeSlide,
+	useTimings: () => props.presentationProperties?.advanceMode !== 'manual',
+	suspended: showEndScreen,
+	position: currentIndex,
+	advance: next,
+});
 
 /** Toolbar `move(±1)` → next/prev. */
 function onToolbarMove(direction: 1 | -1): void {
