@@ -99,4 +99,34 @@ describe('getShapeFillStrokeStyle', () => {
 		expect(style['background-color']).toBeUndefined();
 		expect(style['background-image']).toBeUndefined();
 	});
+
+	/**
+	 * `<a:solidFill><a:schemeClr …><a:alpha val="0"/></a:schemeClr></a:solidFill>`
+	 * is a fully TRANSPARENT solid fill, which PowerPoint decks use routinely for
+	 * a full-bleed click-target rectangle laid over a background video. Angular
+	 * used to emit the bare `fillColor` and drop `fillOpacity`, so that invisible
+	 * overlay painted as an opaque block of colour and hid the whole slide behind
+	 * it (`solution-explorer.pptx` slide 2 rendered as a flat green rectangle).
+	 */
+	it('applies fillOpacity to a solid fill', () => {
+		const invisible = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { fillColor: '#84E291', fillMode: 'solid', fillOpacity: 0 },
+			}),
+		);
+		expect(invisible['background-color']).toBe('rgba(132, 226, 145, 0)');
+
+		const half = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { fillColor: '#84E291', fillMode: 'solid', fillOpacity: 0.5 },
+			}),
+		);
+		expect(half['background-color']).toBe('rgba(132, 226, 145, 0.5)');
+
+		// An unset opacity keeps the authored colour verbatim (matching React).
+		const opaque = getShapeFillStrokeStyle(
+			baseElement({ shapeStyle: { fillColor: '#84E291', fillMode: 'solid' } }),
+		);
+		expect(opaque['background-color']).toBe('#84E291');
+	});
 });

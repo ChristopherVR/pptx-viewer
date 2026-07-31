@@ -16,8 +16,6 @@ import {
 	toCssVerticalDirection,
 	toCssWritingMode,
 } from '../internal/shared';
-import { buildCssGradientFromShapeStyle } from './color-gradient';
-import { buildPatternFillCss } from './color-patterns';
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
 import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
@@ -92,53 +90,35 @@ export function getShapeFillStrokeStyle(
 	const style: StyleMap = {};
 
 	if (ss) {
-		// `a:grpFill` child (fillMode 'group'): inherit the enclosing group's
-		// resolved fill (threaded down by the group render branch). The shared
-		// resolver paints the parent group's fill in this child's own box.
-		const inheritedGroupFill =
-			ss.fillMode === 'group' && parentGroupFill
-				? getComputedFillStyle(el, parentGroupFill)
-				: undefined;
-		// Fill resolution order mirrors the React `getShapeVisualStyle`:
-		// image → pattern (SVG preset) → gradient (structured builder, with the
-		// parser's prebuilt CSS string as fallback) → solid colour. Skipped
-		// entirely while a `p:animClr` fill animation owns the colour.
-		const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
-		const patternCss = ss.fillMode === 'pattern' ? buildPatternFillCss(ss) : undefined;
-		const gradient =
-			ss.fillMode === 'gradient'
-				? (buildCssGradientFromShapeStyle(ss) ?? ss.fillGradient)
-				: ss.fillGradient;
-
-		if (animatesFill) {
-			// Leave `background-color` / `background-image` to the animated keyframes.
-		} else if (inheritedGroupFill) {
-			if (inheritedGroupFill.backgroundColor !== undefined) {
-				style['background-color'] = inheritedGroupFill.backgroundColor;
+		// Fill: resolved entirely by the shared builder, in React's order
+		//   image → structured gradient (falling back to the parser's prebuilt
+		//   `fillGradient` string) → preset pattern → solid colour WITH
+		//   `fillOpacity` applied. A `a:grpFill` child (fillMode 'group') inherits
+		//   `parentGroupFill`, painted in this child's own box.
+		//
+		// This deliberately delegates instead of re-deriving the cascade locally:
+		// the local copy dropped `ss.fillOpacity`, so a shape authored
+		// `<a:solidFill><a:schemeClr …><a:alpha val="0"/></a:schemeClr></a:solidFill>`
+		// (a fully TRANSPARENT overlay, common over a full-bleed background video)
+		// painted as an opaque block of colour and hid everything beneath it.
+		// Skipped entirely while a `p:animClr` fill animation owns the colour.
+		const fill = animatesFill ? undefined : getComputedFillStyle(el, parentGroupFill);
+		if (fill) {
+			if (fill.backgroundColor !== undefined) {
+				style['background-color'] = fill.backgroundColor;
 			}
-			if (inheritedGroupFill.backgroundImage !== undefined) {
-				style['background-image'] = inheritedGroupFill.backgroundImage;
+			if (fill.backgroundImage !== undefined) {
+				style['background-image'] = fill.backgroundImage;
 			}
-			if (inheritedGroupFill.backgroundRepeat !== undefined) {
-				style['background-repeat'] = inheritedGroupFill.backgroundRepeat;
+			if (fill.backgroundRepeat !== undefined) {
+				style['background-repeat'] = fill.backgroundRepeat;
 			}
-			if (inheritedGroupFill.backgroundSize !== undefined) {
-				style['background-size'] = inheritedGroupFill.backgroundSize;
+			if (fill.backgroundSize !== undefined) {
+				style['background-size'] = fill.backgroundSize;
 			}
-		} else if (imageFillUrl) {
-			style['background-color'] = 'transparent';
-			style['background-image'] = `url(${imageFillUrl})`;
-			style['background-repeat'] = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';
-			style['background-size'] = ss.fillImageMode === 'tile' ? 'auto' : '100% 100%';
-		} else if (patternCss) {
-			style['background-image'] = patternCss.backgroundImage;
-			style['background-color'] = patternCss.backgroundColor;
-			style['background-repeat'] = 'repeat';
-			style['background-size'] = 'auto';
-		} else if (gradient) {
-			style['background-image'] = gradient;
-		} else if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
-			style['background-color'] = ss.fillColor;
+			if (fill.backgroundPosition !== undefined) {
+				style['background-position'] = fill.backgroundPosition;
+			}
 		}
 
 		// Stroke.
