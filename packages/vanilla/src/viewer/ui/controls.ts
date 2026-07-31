@@ -43,6 +43,14 @@ export function makeButton(doc: Document, options: ButtonOptions): ButtonHandle 
 	if (options.icon) {
 		btn.appendChild(createIcon(doc, options.icon));
 	} else if (options.text !== undefined) {
+		// `.pptxv-btn` is a FIXED 28x28 icon box with `overflow: visible`, so a
+		// text label wider than 28px is painted (and hit-tested) outside the
+		// button's own border box, over whichever neighbour sits there. The
+		// later sibling wins `elementFromPoint`, which is how a coordinate click
+		// on one ribbon button used to activate the button to its right. Tagging
+		// every text-bearing button lets the stylesheet size the box to its
+		// label, so a button's ink can never leave its own rect.
+		btn.classList.add('pptxv-btn-text');
 		btn.textContent = options.text;
 	}
 	if (options.textLabel !== undefined) {

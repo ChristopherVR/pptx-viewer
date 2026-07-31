@@ -1,4 +1,10 @@
-import { defaultCssVars, STATUS_BAR_METRICS, TITLE_BAR_METRICS } from 'pptx-viewer-shared';
+import {
+	defaultCssVars,
+	HIDDEN_SLIDE_DIM_OPACITY,
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	STATUS_BAR_METRICS,
+	TITLE_BAR_METRICS,
+} from 'pptx-viewer-shared';
 
 import { ACCOUNT_CSS } from './account-css';
 import { AI_CSS } from './ai-css';
@@ -87,6 +93,32 @@ const CHROME_CSS = `
 	background: transparent;
 	color: inherit;
 	cursor: pointer;
+}
+/* Breathing room around a text label. Deliberately at .pptxv-btn's own
+ * specificity and just after it, so it beats the padding: 0 above (a label
+ * touching the button edge reads as one run of words in a ribbon row) while any
+ * context that already dresses its own buttons, e.g. .pptxv-eqdlg-footer
+ * button, still wins and keeps its dialog metrics. */
+.pptxv-btn-text { padding: 0 6px; }
+/* Hit-area contract for a button whose content is a TEXT label rather than a
+ * 16px icon (makeButton's "text" option). The 28x28 box above cannot hold a
+ * word and .pptxv-btn does not clip, so without this the label is painted, and
+ * HIT-TESTED, outside the button's own rect and on top of its neighbours: a
+ * click at one button's centre then activates the button beside it, because the
+ * later sibling paints last. Sizing the box to its label, and refusing to
+ * flex-shrink below it (which would re-create the overflow the moment a tab row
+ * runs out of width), keeps every button's ink inside its own bounding rect, so
+ * a coordinate click always reaches the control it looks like it is over. This
+ * is authoritative on purpose; the specialisations that give a text button its
+ * own metrics (.pptxv-btn-pill, .pptxv-animation-preset,
+ * .pptxv-motion-path-preset, .pptxv-theme-gallery,
+ * .pptxv-presentation-touch-controls) are declared later in the sheet at equal
+ * specificity and keep winning. */
+.pptxv-btn.pptxv-btn-text {
+	width: auto;
+	min-width: 28px;
+	flex: none;
+	white-space: nowrap;
 }
 .pptxv-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-btn:disabled { opacity: 0.4; cursor: default; }
@@ -247,6 +279,31 @@ const CHROME_CSS = `
 }
 .pptxv-thumb.is-active .pptxv-thumb-frame { border-color: var(--pptx-primary); }
 .pptxv-thumb:focus-visible .pptxv-thumb-frame { outline: 2px solid var(--pptx-ring); }
+/* Hidden slide (PowerPoint's Hide Slide): dim the preview and strike the slide
+   number with the shared diagonal slash. The slash carries the meaning on its
+   own, because dimming is a colour signal and a dark thumbnail looks dim too. */
+.pptxv-thumb[data-pptx-slide-hidden] .pptxv-thumb-frame > :first-child { opacity: ${HIDDEN_SLIDE_DIM_OPACITY}; }
+.pptxv-thumb[data-pptx-slide-hidden] .pptxv-thumb-num { background-image: ${HIDDEN_SLIDE_SLASH_GRADIENT}; }
+.pptxv-thumb-hidden {
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	z-index: 10;
+	display: inline-flex;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-thumb-hidden svg { width: 12px; height: 12px; }
+.pptxv-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
 .pptxv-thumb-section { display: flex; flex-direction: column; gap: 6px; }
 .pptxv-thumb-section-header { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .pptxv-thumb-section-toggle {
