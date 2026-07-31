@@ -29,6 +29,10 @@ export interface UseEditorKeyboardInput {
 	goPrev: () => void;
 	goNext: () => void;
 	onEscape: () => void;
+	/** Group the multi-selection into one group element (Ctrl/Cmd+G). */
+	onGroup?: () => void;
+	/** Ungroup the selected group (Ctrl/Cmd+Shift+G). */
+	onUngroup?: () => void;
 }
 
 export interface UseEditorKeyboardResult {
@@ -70,6 +74,8 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		goPrev,
 		goNext,
 		onEscape,
+		onGroup,
+		onUngroup,
 	} = input;
 
 	const showShortcuts = ref(false);
@@ -144,10 +150,24 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 			duplicate: duplicateSelected,
 			delete: deleteSelected,
 			selectAll: selectAllElements,
+			group: onGroup,
+			ungroup: onUngroup,
 			nudge: nudgeSelected,
 			prevSlide: goPrev,
 			nextSlide: goNext,
-			escape: onEscape,
+			toggleShortcuts: () => {
+				showShortcuts.value = !showShortcuts.value;
+			},
+			escape: () => {
+				// The help panel goes first: "?" opened it without touching the
+				// selection, so Escape must be able to close it again without also
+				// clearing what the user had selected.
+				if (showShortcuts.value) {
+					showShortcuts.value = false;
+					return;
+				}
+				onEscape();
+			},
 		},
 		canEdit,
 		hasSelection,

@@ -15,6 +15,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxSlideTransition,
+	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { ChangeCaseMode, ToolbarActionId } from 'pptx-viewer-shared';
@@ -86,6 +87,25 @@ export interface TableCellEditorState {
 	columnIndex: number;
 }
 
+/**
+ * The custom-show picker's whole contract.
+ *
+ * Named as one object because two places now render the same picker (the
+ * quick-access row and the Slide Show tab's popover), and passing nine props
+ * twice is nine chances for the two copies to drift apart.
+ */
+export interface CustomShowsControlsProps {
+	customShows: PptxCustomShow[];
+	activeCustomShowId: string | null;
+	canEdit: boolean;
+	isCurrentSlideInActiveShow: boolean;
+	onSetActiveCustomShowId: (id: string | null) => void;
+	onCreateCustomShow: () => void;
+	onRenameActiveCustomShow: () => void;
+	onDeleteActiveCustomShow: () => void;
+	onToggleCurrentSlideInActiveShow: () => void;
+}
+
 /** A `{ path, name }` layout option for the New-Slide dropdown. */
 export interface LayoutOption {
 	path: string;
@@ -112,6 +132,8 @@ export interface RibbonProps {
 	redoLabel?: string;
 	findReplaceOpen: boolean;
 	selectedElement: PptxElement | null;
+	/** How many elements the multi-select holds; Group needs two. */
+	selectedCount: number;
 	tableEditorState?: TableCellEditorState | null;
 	editTemplateMode: boolean;
 	newShapeType: SupportedShapeType;
@@ -122,6 +144,12 @@ export interface RibbonProps {
 	spellCheckEnabled: boolean;
 	showGrid: boolean;
 	showRulers: boolean;
+	/**
+	 * Guide-overlay visibility. Separate from `snapToShape`: hiding the guides
+	 * must not stop the editor snapping, and the guides stay in the model either
+	 * way so snapping and save still see the full list.
+	 */
+	showGuides: boolean;
 	snapToGrid: boolean;
 	snapToShape: boolean;
 	isOverflowMenuOpen: boolean;
@@ -187,6 +215,7 @@ export interface RibbonProps {
 	onSetSpellCheckEnabled: (enabled: boolean) => void;
 	onSetShowGrid: (enabled: boolean) => void;
 	onSetShowRulers: (enabled: boolean) => void;
+	onSetShowGuides: (enabled: boolean) => void;
 	onSetSnapToGrid: (enabled: boolean) => void;
 	onSetSnapToShape: (enabled: boolean) => void;
 	onAddGuide: (axis: 'h' | 'v') => void;
@@ -199,6 +228,12 @@ export interface RibbonProps {
 	onFlip: (direction: 'horizontal' | 'vertical') => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
+	onGroupElements: () => void;
+	onUngroupElement: () => void;
+	/** Patch the selection's `shapeStyle` (the Arrange group's outline width). */
+	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
+	/** Open the hyperlink editor for the selection (Insert > Link). */
+	onOpenHyperlinkDialog: () => void;
 	onDuplicate: () => void;
 	onDelete: () => void;
 	/** Open another presentation (File ▸ Open). Hidden when not provided. */

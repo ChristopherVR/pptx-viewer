@@ -10,6 +10,7 @@
  */
 import { Columns2, Minus, Monitor, Plus, Presentation, StickyNote } from 'lucide-vue-next';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { STATUS_BAR_CLASSES } from 'pptx-viewer-shared';
 import { computed, useSlots } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -83,8 +84,13 @@ const statusText = computed(() => {
 </script>
 
 <template>
+	<!--
+		The trailing token pins the row height to the shared STATUS_BAR_METRICS
+		instead of letting it fall out of the padding + button box, which is how
+		the Vanilla and Svelte ports ended up 2px shorter than React's.
+	-->
 	<div
-		class="w-full px-2 py-0.5 border-t border-border bg-secondary/50 text-[10px] text-muted-foreground flex items-center gap-1"
+		:class="`w-full px-2 py-0.5 border-t border-border bg-secondary/50 text-[10px] text-muted-foreground flex items-center gap-1 ${STATUS_BAR_CLASSES.container}`"
 	>
 		<!-- Left: slide counter + autosave status -->
 		<span class="shrink-0">

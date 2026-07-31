@@ -5,6 +5,7 @@
  * arrow grid placed by compass position.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /** Arrow glyphs for direction tokens. */
 const DIR_ARROWS: Record<string, string> = {
@@ -37,6 +38,8 @@ const GRID_POSITIONS: Record<string, [number, number]> = {
 const props = defineProps<{ directions: readonly string[]; value: string | undefined }>();
 const emit = defineEmits<{ change: [direction: string] }>();
 
+const { t } = useI18n();
+
 const isGrid = computed(() => props.directions.length > 3);
 
 /** 3x3 grid cells, each holding a direction token or null (empty slot). */
@@ -54,6 +57,14 @@ const cells = computed<(string | null)[]>(() => {
 function glyph(dir: string): string {
 	return DIR_ARROWS[dir] ?? dir;
 }
+
+/**
+ * Readable name for a direction token. The raw OOXML token ("lu", "rd") is
+ * what the button used to announce, which names nothing a user recognises.
+ */
+function title(dir: string): string {
+	return t(`pptx.transition.dir.${dir}`);
+}
 </script>
 
 <template>
@@ -68,7 +79,8 @@ function glyph(dir: string): string {
 					? 'border-primary bg-primary text-white'
 					: 'border-border bg-muted hover:bg-accent'
 			"
-			:title="dir"
+			:title="title(dir)"
+			:aria-label="title(dir)"
 			:aria-pressed="value === dir"
 			@click="emit('change', dir)"
 		>
@@ -87,7 +99,8 @@ function glyph(dir: string): string {
 						? 'border-primary bg-primary text-white'
 						: 'border-border bg-muted hover:bg-accent'
 				"
-				:title="cell"
+				:title="title(cell)"
+				:aria-label="title(cell)"
 				:aria-pressed="value === cell"
 				@click="emit('change', cell)"
 			>

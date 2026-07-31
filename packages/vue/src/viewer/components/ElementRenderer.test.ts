@@ -6,9 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { FieldContextKey } from '../composables/field-context';
 import ElementRenderer from './ElementRenderer.vue';
 
-function mountEl(element: PptxElement) {
+function mountEl(element: PptxElement, interactive = false) {
 	return mount(ElementRenderer, {
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1 },
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1, interactive },
 	});
 }
 
@@ -299,5 +299,70 @@ describe('elementRenderer per-run text effects', () => {
 		const style = block.attributes('style') ?? '';
 		expect(style).toContain('perspective');
 		expect(style).toContain('rotateX');
+	});
+});
+
+/**
+ * The neutral element contract: on the interactive canvas EVERY rendered
+ * element carries `data-pptx-element="true"`, whichever renderer drew it.
+ *
+ * Regression guard. Charts (and every other delegated renderer) painted
+ * perfectly while carrying no marker at all, because the dispatcher only set it
+ * on the branches whose box it renders itself. That made those types invisible
+ * to everything that enumerates or hit-tests slide elements by the marker
+ * (including every e2e selector built on it), with nothing failing.
+ */
+describe('elementRenderer neutral element marker', () => {
+	const marked = (element: PptxElement, interactive: boolean): string | undefined =>
+		mountEl(element, interactive).get('[data-element-id="e1"]').attributes('data-pptx-element');
+
+	const base = { id: 'e1', x: 5, y: 6, width: 120, height: 40 };
+
+	/** Minimal per-type payloads so each renderer takes its real branch. */
+	const cases: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
+		['text', { type: 'text', text: 'Hello' }],
+		['shape', { type: 'shape', shapeType: 'rect' }],
+		['image', { type: 'image', imageData: 'data:image/png;base64,QUJD' }],
+		['picture', { type: 'picture', imageData: 'data:image/png;base64,QUJD' }],
+		['connector', { type: 'connector', shapeType: 'straightConnector1' }],
+		[
+			'table',
+			{ type: 'table', tableData: { columnWidths: [1], rows: [{ cells: [{ text: 'x' }] }] } },
+		],
+		[
+			'chart',
+			{
+				type: 'chart',
+				chartData: {
+					chartType: 'bar',
+					categories: ['A'],
+					series: [{ name: 'S', values: [1] }],
+					style: {},
+				},
+			},
+		],
+		['smartArt', { type: 'smartArt' }],
+		['media', { type: 'media' }],
+		['ink', { type: 'ink', inkPaths: ['M 0 0 L 5 5'] }],
+		['ole', { type: 'ole' }],
+		['zoom', { type: 'zoom', zoomType: 'slide', targetSlideIndex: 0 }],
+		['model3d', { type: 'model3d' }],
+		['equation', { type: 'shape', textSegments: [{ text: '', equationXml: { 'm:oMath': {} } }] }],
+		[
+			'group',
+			{
+				type: 'group',
+				children: [{ id: 'c1', type: 'text', x: 0, y: 0, width: 50, height: 20, text: 'kid' }],
+			},
+		],
+		['unsupported', { type: 'contentPart' }],
+	];
+
+	it.each(cases)('marks a %s element on the interactive canvas', (_type, payload) => {
+		expect(marked({ ...base, ...payload } as PptxElement, true)).toBe('true');
+	});
+
+	it.each(cases)('leaves a %s element unmarked on a static surface', (_type, payload) => {
+		expect(marked({ ...base, ...payload } as PptxElement, false)).toBeUndefined();
 	});
 });

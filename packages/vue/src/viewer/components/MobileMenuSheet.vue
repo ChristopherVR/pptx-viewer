@@ -25,6 +25,7 @@ import { useToolbarVisibility } from '../composables/useToolbarVisibility';
 import MobileSheet from './MobileSheet.vue';
 import AnimationsSection from './ribbon/AnimationsSection.vue';
 import ArrangeSection from './ribbon/ArrangeSection.vue';
+import { toCustomShowsControlsProps } from './ribbon/custom-show-controls-props';
 import DesignSection from './ribbon/DesignSection.vue';
 import DrawSection from './ribbon/DrawSection.vue';
 import FileSection from './ribbon/FileSection.vue';
@@ -129,6 +130,8 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-insert-field="props.onInsertField"
 						:on-open-image-picker="props.onOpenImagePicker"
 						:on-open-media-picker="props.onOpenMediaPicker"
+						:has-selection="Boolean(props.selectedElement)"
+						:on-open-hyperlink-dialog="props.onOpenHyperlinkDialog"
 					/>
 				</div>
 
@@ -157,16 +160,16 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 					<ArrangeSection
 						:can-edit="props.canEdit"
 						:selected-element="props.selectedElement"
-						:clipboard-payload="props.clipboardPayload"
+						:selected-count="props.selectedCount"
 						:on-align-elements="props.onAlignElements"
 						:on-distribute-elements="props.onDistributeElements"
 						:can-distribute="props.canDistribute"
-						:on-copy="props.onCopy"
-						:on-cut="props.onCut"
-						:on-paste="props.onPaste"
 						:on-flip="props.onFlip"
 						:on-move-layer="props.onMoveLayer"
 						:on-move-layer-to-edge="props.onMoveLayerToEdge"
+						:on-group-elements="props.onGroupElements"
+						:on-ungroup-element="props.onUngroupElement"
+						:on-update-element-style="props.onUpdateElementStyle"
 						:on-duplicate="props.onDuplicate"
 						:on-delete="props.onDelete"
 						:format-painter-active="props.formatPainterActive"
@@ -217,6 +220,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
 						:show-subtitles="props.showSubtitles ?? false"
 						:on-set-mode="props.onSetMode"
+						:custom-show-controls="toCustomShowsControlsProps(props)"
 						:hidden-actions="props.hiddenActions"
 					/>
 				</div>
@@ -244,10 +248,12 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-set-spell-check-enabled="props.onSetSpellCheckEnabled"
 						:show-grid="props.showGrid"
 						:show-rulers="props.showRulers"
+						:show-guides="props.showGuides"
 						:snap-to-grid="props.snapToGrid"
 						:snap-to-shape="props.snapToShape"
 						:on-set-show-grid="props.onSetShowGrid"
 						:on-set-show-rulers="props.onSetShowRulers"
+						:on-set-show-guides="props.onSetShowGuides"
 						:on-set-snap-to-grid="props.onSetSnapToGrid"
 						:on-set-snap-to-shape="props.onSetSnapToShape"
 						:on-add-guide="props.onAddGuide"

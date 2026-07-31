@@ -84,6 +84,9 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onSetShowRulers: (enabled: boolean) => {
 			input.showRulers.value = enabled;
 		},
+		onSetShowGuides: (enabled: boolean) => {
+			input.showGuides.value = enabled;
+		},
 		onSetSnapToGrid: (enabled: boolean) => {
 			input.snapToGrid.value = enabled;
 		},
@@ -115,6 +118,10 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 			}
 		},
 		onMoveLayerToEdge: input.ribbonMoveToEdge,
+		onGroupElements: input.onGroup,
+		onUngroupElement: input.onUngroup,
+		onUpdateElementStyle: input.updateSelectedShapeStyle,
+		onOpenHyperlinkDialog: input.openHyperlinkForSelection,
 		onDuplicate: input.duplicateSelected,
 		onDelete: input.deleteSelected,
 		onOpenFile: input.handleOpenFile,

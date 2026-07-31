@@ -26,6 +26,15 @@ export interface UseRibbonUiStateResult {
 	showGrid: Ref<boolean>;
 	/** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
 	showRulers: Ref<boolean>;
+	/**
+	 * View ▸ Guides: whether the draggable H/V guides are DRAWN.
+	 *
+	 * Visibility only. The guides stay in the model when this is off, so
+	 * snapping to them and the save round-trip are unaffected; this used to be
+	 * conflated with `snapToShape`, which left the two settings unable to be
+	 * expressed independently.
+	 */
+	showGuides: Ref<boolean>;
 	/** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
 	spellCheckEnabled: Ref<boolean>;
 	/** Design ▸ Themes gallery overlay. */
@@ -57,6 +66,7 @@ export function useRibbonUiState(): UseRibbonUiStateResult {
 		notesExpanded: ref(false),
 		showGrid: ref(false),
 		showRulers: ref(false),
+		showGuides: ref(true),
 		spellCheckEnabled: ref(true),
 		themeGalleryOpen: ref(false),
 		themeEditorOpen: ref(false),

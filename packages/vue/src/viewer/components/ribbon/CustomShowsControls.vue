@@ -7,23 +7,13 @@
  * verbatim, callbacks arrive as function props, and React's `sep` JSX becomes
  * `<div :class="SEP" />`.
  */
-import type { PptxCustomShow } from 'pptx-viewer-core';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { SEP } from './ribbon-constants';
+import type { CustomShowsControlsProps } from './ribbon-types';
 
-interface Props {
-	customShows: PptxCustomShow[];
-	activeCustomShowId: string | null;
-	canEdit: boolean;
-	isCurrentSlideInActiveShow: boolean;
-	onSetActiveCustomShowId: (id: string | null) => void;
-	onCreateCustomShow: () => void;
-	onRenameActiveCustomShow: () => void;
-	onDeleteActiveCustomShow: () => void;
-	onToggleCurrentSlideInActiveShow: () => void;
-}
+interface Props extends CustomShowsControlsProps {}
 
 const props = defineProps<Props>();
 const { t } = useI18n();

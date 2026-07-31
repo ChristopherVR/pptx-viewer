@@ -201,6 +201,7 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 		:class="interactiveClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 		@pointerdown="onPointerdown"
 		@pointermove="onPointermove"
 		@pointerup="onPointerup"

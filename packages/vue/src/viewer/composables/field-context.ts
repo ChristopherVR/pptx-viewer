@@ -1,17 +1,23 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
+import { deriveSlideFieldContext } from 'pptx-viewer-shared';
 import type { InjectionKey, MaybeRefOrGetter } from 'vue';
-import { inject, toValue } from 'vue';
+import { inject, provide, toValue } from 'vue';
 
 /**
  * Field-substitution context made available to the element text renderers for
  * resolving OOXML field runs (slide number, date/time, header/footer, slide
  * title, document properties) into display text.
  *
- * Provided once at the viewer root via {@link FieldContextKey} and injected by
+ * Provided at the viewer root via {@link FieldContextKey} and injected by
  * `ElementRenderer` / `WordArtText`, so the hot `SlideStage` -> `ElementRenderer`
  * prop chain does not have to thread the context through every element. Mirrors
  * the React `fieldContext` built in `ViewerCanvasArea`.
+ *
+ * Two layers share the one key: the root provides the deck-level context built
+ * from the ACTIVE slide, and every `SlideStage` re-provides it re-pointed at the
+ * slide it actually paints (see {@link provideSlideFieldContext}), so a consumer
+ * only ever reads the nearest value.
  */
 
 /** Typed injection key for the field-substitution context (reactive getter or ref). */
@@ -37,23 +43,20 @@ export function resolveFieldContext(
 }
 
 /**
- * Extract the slide-title text from the first title / centre-title placeholder
- * element on a slide, mirroring React's `ViewerCanvasArea` title scan. The
- * `placeholderType` discriminant is not a typed field on `PptxElement`, so it
- * is read via a narrow cast.
+ * Re-provide the injected field context, re-pointed at ONE slide, for the whole
+ * subtree below the calling component (must be called from `setup`).
+ *
+ * The date / header / footer / document-property fields are presentation-wide,
+ * but the slide number and slide title are not: a surface painting a slide other
+ * than the active one (thumbnail rail, presenter preview, off-screen export
+ * stage) has to resolve those from the slide it actually renders, or every
+ * thumbnail prints the active slide's number.
+ *
+ * `inject` always reads the PARENT's provides in Vue, so re-providing the same
+ * key here cannot make this lookup self-referential. The provided value stays a
+ * getter so the derivation re-runs when the deck settings or the slide change.
  */
-export function resolveSlideTitle(slide: PptxSlide | undefined): string | undefined {
-	if (!slide) {
-		return undefined;
-	}
-	for (const el of slide.elements) {
-		const phType = (el as { placeholderType?: string }).placeholderType;
-		if (phType === 'title' || phType === 'ctrTitle') {
-			const txt = (el as { text?: string }).text;
-			if (txt) {
-				return txt;
-			}
-		}
-	}
-	return undefined;
+export function provideSlideFieldContext(slide: () => PptxSlide | undefined): void {
+	const deckSource = injectFieldContext();
+	provide(FieldContextKey, () => deriveSlideFieldContext(resolveFieldContext(deckSource), slide()));
 }

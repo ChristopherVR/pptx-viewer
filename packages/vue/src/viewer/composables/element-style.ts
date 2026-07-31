@@ -6,19 +6,14 @@ import {
 	hasTextProperties,
 } from 'pptx-viewer-core';
 import {
+	buildTextBlockStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
-	isVerticalTextDirection,
 	px,
-	resolveCssTextAlign,
-	resolveLineHeight,
-	toCssTextOrientation,
-	toCssVerticalDirection,
-	toCssWritingMode,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
@@ -37,16 +32,9 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
  * (`pptx-viewer-shared`) consumed from the renderer components.
  */
 
-/**
- * Default text-body insets, in px. Mirrors React's `DEFAULT_BODY_INSET_*_PX`
- * (PowerPoint defaults: 0.1" left/right, 0.05" top/bottom → EMU / EMU_PER_PIXEL).
- */
-const DEFAULT_BODY_INSET_LR_PX = 91440 / 9525;
-const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
-
-// `resolveLineHeight` (exact-pt vs proportional multiplier, italic-aware
-// default) now lives in pptx-viewer-shared (render/text-style-helpers), shared
-// with React.
+// The whole text-body style (insets, line height, font, alignment, writing
+// mode, autofit) is built by the shared `buildTextBlockStyle`, which React
+// renders from too; only the shape/fill cascade below stays local.
 
 /**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
@@ -213,111 +201,26 @@ export function getShapeFillStrokeStyle(
 }
 
 /**
- * Text block style for elements that carry text. Mirrors the essentials of
- * the React `getTextStyleForElement`.
+ * Text block style for elements that carry text.
+ *
+ * A thin adapter over the shared {@link buildTextBlockStyle}, which React
+ * renders from too. It used to be a hand-ported copy of React's builder, and
+ * the copy had silently lost `a:normAutofit` (a shrink-to-fit title painted 43%
+ * too large), `a:bodyPr/@wrap="none"` (a no-wrap line wrapped to three), the
+ * default font declaration, the italic padding nudge and the body margin/indent
+ * pair. `bodyLayout` adds the flex-column body + `anchor` justification this
+ * binding folds into the same element; `pxLengths` is required because Vue's
+ * style binding does not unit-suffix bare numbers.
  */
 export function getTextBlockStyle(el: PptxElement): CSSProperties {
 	if (!hasTextProperties(el)) {
 		return {};
 	}
-	const ts = el.textStyle;
-	// Body insets: PowerPoint pads text away from the shape edge. React applies
-	// these as padding; without them the Vue text hugs the box and mis-aligns
-	// horizontally vs React.
-	const bodyTop = ts?.bodyInsetTop ?? DEFAULT_BODY_INSET_TB_PX;
-	const bodyBottom = ts?.bodyInsetBottom ?? DEFAULT_BODY_INSET_TB_PX;
-	const bodyLeft = ts?.bodyInsetLeft ?? DEFAULT_BODY_INSET_LR_PX;
-	const bodyRight = ts?.bodyInsetRight ?? DEFAULT_BODY_INSET_LR_PX;
-	const style: CSSProperties = {
-		display: 'flex',
-		flexDirection: 'column',
-		width: '100%',
-		height: '100%',
-		overflow: 'visible',
-		whiteSpace: 'pre-wrap',
-		wordBreak: 'break-word',
-		paddingTop: px(bodyTop),
-		paddingBottom: px(bodyBottom),
-		paddingLeft: px(bodyLeft),
-		paddingRight: px(bodyRight),
-	};
-	if (!ts) {
-		style.color = DEFAULT_TEXT_COLOR;
-		return style;
-	}
-
-	style.color = ts.color ?? DEFAULT_TEXT_COLOR;
-	if (ts.fontFamily) {
-		style.fontFamily = ts.fontFamily;
-	}
-	// Font size is rendered in CSS px (unitless number in React). The parsed
-	// value is the px size; appending `pt` here would inflate every glyph by
-	// ~1.33× and overflow the box. Mirror React: emit px.
-	if (typeof ts.fontSize === 'number') {
-		style.fontSize = px(ts.fontSize);
-	}
-	// Line spacing: without this the browser's font-dependent `normal`
-	// (≈1.2–1.5) loosens multi-line text and pushes it out of its box.
-	style.lineHeight = resolveLineHeight(ts, Boolean(ts.italic));
-	if (ts.bold) {
-		style.fontWeight = 'bold';
-	}
-	if (ts.italic) {
-		style.fontStyle = 'italic';
-	}
-
-	const decorations: string[] = [];
-	if (ts.underline) {
-		decorations.push('underline');
-	}
-	if (ts.strikethrough) {
-		decorations.push('line-through');
-	}
-	if (decorations.length > 0) {
-		style.textDecoration = decorations.join(' ');
-	}
-
-	// Alignment: the special OOXML values justLow / dist / thaiDist all map to
-	// CSS `justify`, and an unset alignment defaults to `right` for RTL text.
-	// Mirrors React's `getTextStyleForElement` align branch + `resolveCssTextAlign`.
-	const isRtl = ts.rtl === true;
-	style.textAlign = resolveCssTextAlign(ts.align, isRtl) ?? 'left';
-
-	// Vertical text direction: writing-mode / text-orientation / direction.
-	// Mirrors React's `getTextStyleForElement` vertical-text branch. Only the
-	// `wordArtVertRtl` mode forces `direction: rtl`; otherwise paragraph-level
-	// RTL drives the direction.
-	if (isVerticalTextDirection(ts.textDirection)) {
-		const writingMode = toCssWritingMode(ts.textDirection);
-		const textOrientation = toCssTextOrientation(ts.textDirection);
-		const verticalDirection = toCssVerticalDirection(ts.textDirection);
-		if (writingMode) {
-			style.writingMode = writingMode;
-		}
-		if (textOrientation) {
-			style.textOrientation = textOrientation;
-		}
-		if (verticalDirection) {
-			style.direction = verticalDirection;
-		} else if (isRtl) {
-			style.direction = 'rtl';
-		}
-	} else if (isRtl) {
-		style.direction = 'rtl';
-	}
-
-	switch (ts.vAlign) {
-		case 'middle':
-			style.justifyContent = 'center';
-			break;
-		case 'bottom':
-			style.justifyContent = 'flex-end';
-			break;
-		default:
-			style.justifyContent = 'flex-start';
-	}
-
-	return style;
+	return buildTextBlockStyle(el, {
+		fallbackColor: DEFAULT_TEXT_COLOR,
+		bodyLayout: true,
+		pxLengths: true,
+	}) as CSSProperties;
 }
 
 /** Resolve a displayable image source for picture/image/media poster frames. */

@@ -16,6 +16,7 @@ import {
 	applyThemeToData,
 	cloneElement,
 	createEditorId,
+	hasShapeProperties,
 	hasTextProperties,
 	PptxHandler,
 } from 'pptx-viewer-core';
@@ -30,16 +31,21 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
+	ShapeStyle,
 } from 'pptx-viewer-core';
 import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared';
 import {
 	buildBroadcastViewerUrl,
+	buildFieldSubstitutionContext,
 	buildUserFontFaceStyles,
+	clampZoomScale,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	downloadBlob,
 	isTemplateElementId,
 	listAutosaveSnapshots,
+	MAX_ZOOM_SCALE,
+	MIN_ZOOM_SCALE,
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
@@ -47,8 +53,19 @@ import {
 	setCellText,
 	strokeToInkElement,
 	writeStoredViewerPrefs,
+	zoomInScale,
+	zoomOutScale,
 } from 'pptx-viewer-shared';
-import { computed, nextTick, onMounted, provide, ref, watch, watchEffect } from 'vue';
+import {
+	computed,
+	nextTick,
+	onBeforeUnmount,
+	onMounted,
+	provide,
+	ref,
+	watch,
+	watchEffect,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { LocaleCatalogEntry } from '../i18n';
@@ -89,6 +106,7 @@ import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
 import SlideInspector from './components/inspector/SlideInspector.vue';
 import ThemeEditorPanel from './components/inspector/ThemeEditorPanel.vue';
+import MarqueeOverlay from './components/MarqueeOverlay.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
 import MobileSheet from './components/MobileSheet.vue';
@@ -131,7 +149,7 @@ import {
 	replaceSlideAnimations,
 } from './composables/animation-persistence';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
-import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
+import { FieldContextKey } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { TableThemeKey } from './composables/table-theme';
 import { buildSaveSlides, isElementIdInteractive } from './composables/template-editing';
@@ -161,6 +179,7 @@ import { useInspectorDeckActions } from './composables/useInspectorDeckActions';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useLoadContent } from './composables/useLoadContent';
+import { useMarqueeSelection } from './composables/useMarqueeSelection';
 import { useMasterViewState } from './composables/useMasterViewState';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
@@ -360,27 +379,21 @@ provide(TableThemeKey, () => ({
 // slide number and friendly section name) instead of the raw target index.
 provideZoomTargetLookup((targetSlideIndex) => toZoomTargetInfo(slides.value[targetSlideIndex]));
 
-// Expose the OOXML field-substitution context (slide number, date/time,
-// header/footer, slide title, custom doc properties) to the text renderers via
-// provide/inject. Mirrors the React `fieldContext` built in `ViewerCanvasArea`.
-// A getter closure (run post-setup) safely references the later-declared
-// `activeSlide`, matching the TableThemeKey pattern above.
-provide(FieldContextKey, () => {
-	const hf = headerFooter.value;
-	const slide = activeSlide.value;
-	return {
-		slideNumber: slide?.slideNumber,
-		dateTimeText: hf?.dateTimeText,
-		dateFormat: hf?.dateFormat,
-		footerText: hf?.footerText,
-		headerText: hf?.headerText,
-		slideTitle: resolveSlideTitle(slide),
-		customProperties: customProperties.value.map((p) => ({
-			name: p.name,
-			value: p.value,
-		})),
-	};
-});
+// Expose the DECK-level OOXML field-substitution context (slide number,
+// date/time, header/footer, slide title, custom doc properties) to the text
+// renderers via provide/inject. Assembly lives in shared so every binding builds
+// the same shape; this component keeps only the reactive wiring. A getter
+// closure (run post-setup) safely references the later-declared `activeSlide`,
+// matching the TableThemeKey pattern above. Each `SlideStage` re-provides this
+// re-pointed at the slide IT paints, so thumbnails do not inherit the active
+// slide's number and title.
+provide(FieldContextKey, () =>
+	buildFieldSubstitutionContext({
+		headerFooter: headerFooter.value,
+		customProperties: customProperties.value,
+		slide: activeSlide.value,
+	}),
+);
 
 // Inline table-cell editing + table cell selection/resize contexts for
 // `TableRenderer` / `TablePanel`. Dependencies that don't exist yet at this
@@ -488,14 +501,13 @@ function onMainTouchEnd(event: TouchEvent): void {
 
 // ── Zoom ──────────────────────────────────────────────────────────────
 const zoom = ref(1);
-const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.2;
-const ZOOM_MAX = 5;
+// Step + bounds come from pptx-viewer-shared so one press is worth the same
+// amount of zoom in every binding.
 const zoomIn = () => {
-	zoom.value = Math.min(ZOOM_MAX, Number((zoom.value + ZOOM_STEP).toFixed(2)));
+	zoom.value = zoomInScale(zoom.value);
 };
 const zoomOut = () => {
-	zoom.value = Math.max(ZOOM_MIN, Number((zoom.value - ZOOM_STEP).toFixed(2)));
+	zoom.value = zoomOutScale(zoom.value);
 };
 const zoomReset = () => {
 	zoom.value = 1;
@@ -575,6 +587,15 @@ const selectedElements = computed<PptxElement[]>(() => {
 	return [...templateHits, ...slideHits];
 });
 
+/**
+ * Extent highlighted on the ruler strips: PowerPoint shades the selected
+ * shape's span on both rulers. Single selection only, matching React/Svelte.
+ */
+const rulerSelectedBounds = computed(() => {
+	const el = selectedElements.value.length === 1 ? selectedElements.value[0] : undefined;
+	return el ? { x: el.x, y: el.y, width: el.width, height: el.height } : null;
+});
+
 // Drop the table cell selection once its owning table is no longer selected, so
 // a stale highlight / inspector cell doesn't linger on the next selection.
 watch(selectedElementIds, (ids) => {
@@ -606,6 +627,21 @@ function selectElement(id: string, additive: boolean): void {
 function clearSelection(): void {
 	selectedElementIds.value = [];
 }
+
+// Rubber-band selection. Vue was the only binding without one, so a Vue user
+// had no way to select several elements in a single gesture and every
+// multi-selection command (Group, Align, Distribute) was that much harder to
+// reach. Template-owned elements join the band only in edit-template mode, the
+// same rule the pointer uses for a direct click.
+const { marquee, beginMarquee, cancelMarquee } = useMarqueeSelection({
+	getSelectableElements: () =>
+		[...activeTemplateElements.value, ...(activeSlide.value?.elements ?? [])].filter((el) =>
+			isElementIdInteractive(el.id, editTemplateMode.value),
+		),
+	getCanvasSize: () => canvasSize.value,
+	selectedElementIds,
+});
+onBeforeUnmount(cancelMarquee);
 
 // ── AI panel controller (focus / picks / live-tool canvas presence) ────
 // Owns the assistant's focus scope + the on-canvas highlight sources. Created
@@ -720,6 +756,15 @@ const lastCanvasTap = ref<{ id: string; time: number; x: number; y: number } | n
 
 function onCanvasPointerDown(event: PointerEvent): void {
 	if (!props.canEdit) {
+		return;
+	}
+	// Primary button only. A right-click also fires pointerdown, and this handler
+	// replaces the selection with the element under it, so a right-click on one of
+	// several selected shapes collapsed the selection to that one BEFORE the
+	// contextmenu handler ran: the menu then saw a single element and offered no
+	// Group. React, Svelte and Vanilla all filter the button here; Vue did not.
+	// (Touch and pen both report button 0 on pointerdown, so they still pass.)
+	if (event.button !== 0) {
 		return;
 	}
 	const target = event.target as HTMLElement | null;
@@ -854,7 +899,11 @@ function onCanvasPointerDown(event: PointerEvent): void {
 			startElementDrag(id, event, wasSelected);
 		}
 	} else {
+		// Empty canvas: start a rubber band. It resolves on pointerup, replacing
+		// (or extending, with a modifier) the selection with whatever it covered;
+		// a click-sized band therefore also clears, as the bare click used to.
 		clearSelection();
+		beginMarquee(event);
 	}
 }
 
@@ -1081,6 +1130,34 @@ function onHyperlinkSave(patch: Partial<PptxElement>): void {
 	}
 	hyperlinkOpen.value = false;
 }
+/**
+ * Insert ▸ Link: the ribbon has no element id to hand over, only "whatever is
+ * selected", so it resolves the target the same way the context menu does
+ * rather than opening the dialog on a stale one.
+ */
+function openHyperlinkForSelection(): void {
+	const id = selectedElementIds.value[0];
+	if (id !== undefined) {
+		openHyperlinkDialog(id);
+	}
+}
+
+/**
+ * Patch the selection's `shapeStyle` from the ribbon (the Arrange group's
+ * outline-width spinner). `shapeStyle` is a nested object on the element, so
+ * the current value has to be merged in or a one-field write erases fill,
+ * dash and every effect beside it. Routed through `ops.updateElement` so the
+ * change is one history entry, exactly like the inspector's panels.
+ */
+function updateSelectedShapeStyle(updates: Partial<ShapeStyle>): void {
+	const el = selectedElements.value[0];
+	if (!el || !hasShapeProperties(el)) {
+		return;
+	}
+	ops.updateElement(el.id, {
+		shapeStyle: { ...el.shapeStyle, ...updates },
+	} as Partial<PptxElement>);
+}
 
 // ── Find & replace ────────────────────────────────────────────────────
 const findOpen = ref(false);
@@ -1172,9 +1249,9 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	tableSelection,
 	hasClipboard,
 	canGroup,
-	canUngroup,
 	editTemplateMode,
 	selectedElementIds,
+	inlineEditingElementId,
 	ops,
 	cutElement,
 	copyElement,
@@ -1182,6 +1259,10 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	onGroup,
 	onUngroup,
 	openHyperlinkDialog,
+	// "Add Comment" opens the comments panel, matching React's menu action.
+	onAddComment: () => {
+		showComments.value = true;
+	},
 	aiEnabled: () => Boolean(props.ai),
 	onAskAi: () => {
 		aiPanel.askAboutSelection();
@@ -1386,8 +1467,8 @@ const mainRef = ref<HTMLElement | null>(null);
 useTouchGestures({
 	targetRef: mainRef,
 	currentScale: zoom,
-	minScale: ZOOM_MIN,
-	maxScale: ZOOM_MAX,
+	minScale: MIN_ZOOM_SCALE,
+	maxScale: MAX_ZOOM_SCALE,
 	enabled: isTouchDevice,
 	callbacks: {
 		onPinchZoom: (newScale) => {
@@ -1569,6 +1650,8 @@ const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } =
 	goPrev,
 	goNext,
 	onEscape,
+	onGroup,
+	onUngroup,
 });
 
 // ── Office-style ribbon wiring (RibbonToolbar ← React Toolbar.tsx) ────────
@@ -1587,6 +1670,7 @@ const {
 	notesExpanded,
 	showGrid,
 	showRulers,
+	showGuides,
 	spellCheckEnabled,
 	themeGalleryOpen,
 	themeEditorOpen,
@@ -1729,6 +1813,7 @@ const ribbonProps = useRibbonProps({
 	spellCheckEnabled,
 	showGrid,
 	showRulers,
+	showGuides,
 	snapToGrid,
 	snapToShape,
 	overflowOpen,
@@ -1795,6 +1880,10 @@ const ribbonProps = useRibbonProps({
 	bringForward,
 	sendBackward,
 	ribbonMoveToEdge,
+	onGroup,
+	onUngroup,
+	updateSelectedShapeStyle,
+	openHyperlinkForSelection,
 	duplicateSelected,
 	deleteSelected,
 	handleOpenFile,
@@ -1832,7 +1921,9 @@ defineExpose<PowerPointViewerExpose>({
 	canRedo: () => history.canRedo.value,
 	getZoom: () => zoom.value,
 	setZoom: (level: number) => {
-		zoom.value = Math.min(Math.max(level, ZOOM_MIN), ZOOM_MAX);
+		// Shared clamp, not a hand-rolled one, so every binding refuses the same
+		// out-of-range zoom.
+		zoom.value = clampZoomScale(level);
 	},
 	zoomIn,
 	zoomOut,
@@ -2025,6 +2116,24 @@ function handleCommandSearch(command: string): void {
 			break;
 	}
 }
+
+/**
+ * Run a Quick Access Toolbar command by catalog id. Save/Undo/Redo keep their
+ * dedicated title-bar buttons (they carry the undo labels and the
+ * `hiddenActions` gate), so only the options-configured remainder arrives here.
+ */
+function handleQuickAccessCommand(id: string): void {
+	const handlers: Record<string, () => void> = {
+		presentFromStart: () => startPresenting(),
+		print: () => printer.openPrintDialog(),
+		exportPdf: () => void onExportPdf(),
+		newSlide: () => slideOps.addSlide(),
+		spellCheck: () => (spellCheckEnabled.value = !spellCheckEnabled.value),
+		zoomIn,
+		zoomOut,
+	};
+	handlers[id]?.();
+}
 </script>
 
 <template>
@@ -2089,6 +2198,7 @@ function handleCommandSearch(command: string): void {
 					:find-replace-open="findOpen"
 					:on-toggle-find-replace="() => (findOpen = !findOpen)"
 					:on-command-search="handleCommandSearch"
+					:on-quick-command="handleQuickAccessCommand"
 					:hidden-actions="props.hiddenActions"
 				/>
 				<RibbonToolbar
@@ -2194,9 +2304,12 @@ function handleCommandSearch(command: string): void {
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
 						:show-rulers="showRulers && !presenting"
+						:ruler-selected-bounds="rulerSelectedBounds"
+						:can-drag-guides="props.canEdit && !presenting"
 						:template-elements="activeTemplateElements"
 						:edit-template-mode="editTemplateMode && !presenting"
 						@update:fit-scale="fitScale = $event"
+						@create-guide="addGuide"
 					>
 						<!-- Dot grid overlay (View ▸ Grid): sits over content, under selection -->
 						<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
@@ -2207,16 +2320,24 @@ function handleCommandSearch(command: string): void {
 							:canvas-size="canvasSize"
 							@marker-click="onCommentMarkerClick"
 						/>
-						<!-- Draggable H/V alignment guides (View ▸ Guides) -->
+						<!--
+							Draggable H/V alignment guides (View ▸ Guides).
+
+							`showGuides` hides the OVERLAY only. The guides array itself is
+							untouched, so snapping to a guide and the save round-trip still
+							see every guide the deck carries.
+						-->
 						<CanvasGuides
 							v-if="props.canEdit && !presenting"
-							:guides="guides"
+							:guides="showGuides ? guides : []"
 							:scale="effectiveZoom"
 							@move="onMoveGuide"
 							@remove="onRemoveGuide"
 						/>
 						<!-- Transient snap-to-shape alignment lines (during drag) -->
 						<SnapLinesOverlay v-if="snapLines.length > 0" :snap-lines="snapLines" />
+						<!-- Rubber-band selection rectangle (drag across empty canvas) -->
+						<MarqueeOverlay :rect="marquee" />
 						<!-- Ink capture (Draw tab): pointer-events on only while a tool is armed -->
 						<DrawingOverlay
 							v-if="props.canEdit"
@@ -2482,6 +2603,7 @@ function handleCommandSearch(command: string): void {
 				:x="contextMenu.x"
 				:y="contextMenu.y"
 				:items="contextItems"
+				:aria-label="t('pptx.contextMenu.ariaLabel')"
 				@select="onContextSelect"
 				@close="contextMenu.open = false"
 			/>

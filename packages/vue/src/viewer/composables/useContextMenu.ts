@@ -1,4 +1,5 @@
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+import { buildContextMenuEntries, resolveContextMenuElementId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -31,10 +32,20 @@ export interface UseContextMenuInput {
 	findActiveElement: (id: string) => PptxElement | undefined;
 	tableSelection: Ref<TableSelectionState | null>;
 	hasClipboard: ComputedRef<boolean>;
+	/**
+	 * Two or more elements are selected. Ungroup needs no equivalent flag: the
+	 * shared list derives it from the right-clicked element's own type, which is
+	 * how React decides it too.
+	 */
 	canGroup: ComputedRef<boolean>;
-	canUngroup: ComputedRef<boolean>;
 	editTemplateMode: Ref<boolean>;
 	selectedElementIds: Ref<string[]>;
+	/**
+	 * The element whose inline text editor is open, if any. The editor is a
+	 * sibling overlay rather than a child of the element, so a right-click inside
+	 * it hit-tests to nothing; this is what the menu falls back to.
+	 */
+	inlineEditingElementId: Ref<string | null>;
 	ops: EditorOperations;
 	cutElement: (id: string) => void;
 	copyElement: (id: string) => void;
@@ -42,6 +53,8 @@ export interface UseContextMenuInput {
 	onGroup: () => void;
 	onUngroup: () => void;
 	openHyperlinkDialog: (id: string) => void;
+	/** "Add Comment": open the comments panel, as React's menu does. */
+	onAddComment?: () => void;
 	/** Whether the AI assistant is enabled (adds the "Ask AI" / "Fix with AI" entries). */
 	aiEnabled?: () => boolean;
 	/** Open the AI panel scoped to the current element (empty composer). */
@@ -71,9 +84,9 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		tableSelection,
 		hasClipboard,
 		canGroup,
-		canUngroup,
 		editTemplateMode,
 		selectedElementIds,
+		inlineEditingElementId,
 		ops,
 		cutElement,
 		copyElement,
@@ -81,6 +94,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		onGroup,
 		onUngroup,
 		openHyperlinkDialog,
+		onAddComment,
 		aiEnabled,
 		onAskAi,
 		onFixAi,
@@ -97,9 +111,13 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 	 * cell is known: gates the row/column/merge entries. Mirrors React's ContextMenu
 	 * `isTable` / `hasMultiCellSelection` / `isMergedCell` derivation.
 	 */
-	const contextTable = computed(() => {
+	/** The element the menu was opened on, whatever its type. */
+	const contextElement = computed(() => {
 		const id = contextMenu.value.elementId;
-		const el = id ? findActiveElement(id) : undefined;
+		return id ? findActiveElement(id) : undefined;
+	});
+	const contextTable = computed(() => {
+		const el = contextElement.value;
 		if (!el || el.type !== 'table' || !el.tableData) {
 			return null;
 		}
@@ -116,58 +134,34 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		return { el, sel, isMerged, hasMulti };
 	});
 
+	/**
+	 * The menu, as the shared command list builds it.
+	 *
+	 * Vue used to hand-write this array and had quietly lost Bring to Front, Send
+	 * to Back and Add Comment, while offering Group / Ungroup permanently greyed
+	 * on a single shape where React offers neither. The list, its order and its
+	 * separators are now decided once, in `pptx-viewer-shared`; this composable
+	 * only translates the labels and routes the ids.
+	 */
 	const contextItems = computed<ContextMenuItem[]>(() => {
-		const items: ContextMenuItem[] = [
-			{ id: 'cut', label: t('pptx.contextMenu.cut') },
-			{ id: 'copy', label: t('pptx.contextMenu.copy') },
-			{ id: 'paste', label: t('pptx.contextMenu.paste'), disabled: !hasClipboard.value },
-			{ id: 'sep1', label: '', separator: true },
-			{ id: 'duplicate', label: t('pptx.contextMenu.duplicate') },
-			{ id: 'delete', label: t('pptx.contextMenu.delete') },
-			{ id: 'sep2', label: '', separator: true },
-			{ id: 'bring-forward', label: t('pptx.contextMenu.bringForward') },
-			{ id: 'send-backward', label: t('pptx.contextMenu.sendBackward') },
-			{ id: 'sep3', label: '', separator: true },
-			{ id: 'group', label: t('pptx.contextMenu.group'), disabled: !canGroup.value },
-			{ id: 'ungroup', label: t('pptx.contextMenu.ungroup'), disabled: !canUngroup.value },
-			{ id: 'sep4', label: '', separator: true },
-			{ id: 'hyperlink', label: t('pptx.contextMenu.editHyperlink') },
-		];
-		// AI assistant affordances (only when the host enabled the `ai` prop).
-		if (aiEnabled?.()) {
-			items.push(
-				{ id: 'sep-ai', label: '', separator: true },
-				{ id: 'ai-ask', label: t('pptx.ai.askAboutElement') },
-				{ id: 'ai-fix', label: t('pptx.ai.fixElement') },
-			);
-		}
 		const tbl = contextTable.value;
-		if (tbl) {
-			items.push(
-				{ id: 'sep-table', label: '', separator: true },
-				{ id: 'table-insert-row-above', label: t('pptx.contextMenu.insertRowAbove') },
-				{ id: 'table-insert-row-below', label: t('pptx.contextMenu.insertRowBelow') },
-				{ id: 'table-delete-row', label: t('pptx.contextMenu.deleteRow') },
-				{ id: 'table-insert-col-left', label: t('pptx.contextMenu.insertColumnLeft') },
-				{ id: 'table-insert-col-right', label: t('pptx.contextMenu.insertColumnRight') },
-				{ id: 'table-delete-col', label: t('pptx.contextMenu.deleteColumn') },
-				{ id: 'sep-table-merge', label: '', separator: true },
-			);
-			if (tbl.hasMulti) {
-				items.push({
-					id: 'table-merge-selected',
-					label: t('pptx.contextMenu.mergeSelectedCells'),
-				});
-			} else if (tbl.isMerged) {
-				items.push({ id: 'table-split', label: t('pptx.contextMenu.splitCell') });
-			} else {
-				items.push(
-					{ id: 'table-merge-right', label: t('pptx.contextMenu.mergeCells') },
-					{ id: 'table-merge-down', label: t('pptx.table.mergeDown') },
-				);
-			}
-		}
-		return items;
+		const entries = buildContextMenuEntries({
+			elementType: contextElement.value?.type ?? null,
+			table: tbl ? { hasMultiCellSelection: tbl.hasMulti, isMergedCell: tbl.isMerged } : null,
+			hasMultiSelection: canGroup.value,
+			aiEnabled: aiEnabled?.(),
+			hasClipboard: hasClipboard.value,
+		});
+		return entries.flatMap((entry, index) => {
+			const item: ContextMenuItem = {
+				id: entry.id,
+				label: t(entry.labelKey),
+				disabled: entry.disabled,
+			};
+			return entry.separatorBefore
+				? [{ id: `sep-${index}`, label: '', separator: true }, item]
+				: [item];
+		});
 	});
 
 	/** Apply a table op result (or no-op when null) to the context-menu table. */
@@ -184,7 +178,15 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		const host = (event.target as HTMLElement | null)?.closest(
 			'[data-element-id]',
 		) as HTMLElement | null;
-		const id = host?.dataset.elementId;
+		// A single click on a text box mounts the inline editor, which renders as
+		// an overlay beside the elements rather than inside the one it edits. The
+		// hit-test above therefore comes back empty for a right-click on the very
+		// element the user just picked, so fall back to the element being edited.
+		const id = resolveContextMenuElementId(
+			host?.dataset.elementId,
+			event.target,
+			inlineEditingElementId.value,
+		);
 		// Locked template elements (edit-template mode off) are not actionable.
 		if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
 			return;
@@ -222,6 +224,15 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 				break;
 			case 'send-backward':
 				ops.sendBackward(target);
+				break;
+			case 'bring-front':
+				ops.bringToFront(target);
+				break;
+			case 'send-back':
+				ops.sendToBack(target);
+				break;
+			case 'comment':
+				onAddComment?.();
 				break;
 			case 'group':
 				onGroup();

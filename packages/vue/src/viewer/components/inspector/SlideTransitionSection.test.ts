@@ -54,7 +54,7 @@ describe('slideTransitionSection', () => {
 			props: { slide: slide({ type: 'push', durationMs: 500 }) },
 		});
 		expect(wrapper.text()).toContain('Direction');
-		await wrapper.get('button[title="r"]').trigger('click');
+		await wrapper.get('button[title="Right"]').trigger('click');
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
 		expect(last.direction).toBe('r');
 		expect(last.type).toBe('push');
@@ -66,7 +66,7 @@ describe('slideTransitionSection', () => {
 		});
 		expect(wrapper.text()).toContain('Orientation');
 		// No directional picker for orientation types.
-		expect(wrapper.find('button[title="r"]').exists()).toBeFalsy();
+		expect(wrapper.find('button[title="Right"]').exists()).toBeFalsy();
 		const vert = wrapper.findAll('button').find((b) => b.text() === 'Vertical');
 		await vert!.trigger('click');
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;

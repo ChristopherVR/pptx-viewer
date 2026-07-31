@@ -1,17 +1,32 @@
 <!--
 	Animations ribbon section: Vue port of React's `toolbar/AnimationsSection.tsx`.
-	Faithful, mechanical port for visual + behavioral parity: a Preview button with
-	a transient active flash, a hover-revealed "Add Animation" preset menu, a
-	Remove button, and an Animation-Panel toggle. Class strings copied verbatim.
+
+	Preview, the always-visible preset gallery (the full shared catalogue, see
+	`AnimationPresetGallery.vue`), the Advanced Animation group (Exit Effects,
+	Path Animation, Effect Options, Animation Panel, Trigger, Painter, Remove)
+	and the Timing group (Start mode + Duration). Controls the reference renders
+	inert are rendered inert here too rather than omitted, so the tab offers the
+	same set either way.
 -->
 <script setup lang="ts">
-import { ChevronDown, PanelRight, Play, Sparkles, Trash2 } from 'lucide-vue-next';
+import {
+	Clock,
+	MousePointerClick,
+	MoveRight,
+	Paintbrush,
+	PanelRight,
+	Play,
+	Sparkles,
+	Star,
+	Trash2,
+} from 'lucide-vue-next';
 import type { PptxElement } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
-import { ic, pill, SEP } from './ribbon-constants';
+import AnimationPresetGallery from './AnimationPresetGallery.vue';
+import { ANIMATION_START_MODES, ic, pill, SEP } from './ribbon-constants';
 
 interface Props {
 	canEdit: boolean;
@@ -30,35 +45,8 @@ const props = defineProps<Props>();
 
 const { t } = useI18n();
 
-/* Preset categories shown in the "Add Animation" dropdown. */
-const ANIMATION_PRESETS = [
-	{
-		group: 'Entrance',
-		items: [
-			{ value: 'appear', label: 'Appear' },
-			{ value: 'fadeIn', label: 'Fade In' },
-			{ value: 'flyIn', label: 'Fly In' },
-		],
-	},
-	{
-		group: 'Emphasis',
-		items: [
-			{ value: 'pulse', label: 'Pulse' },
-			{ value: 'spin', label: 'Spin' },
-		],
-	},
-	{
-		group: 'Exit',
-		items: [
-			{ value: 'disappear', label: 'Disappear' },
-			{ value: 'fadeOut', label: 'Fade Out' },
-		],
-	},
-] as const;
-
 const previewActive = ref(false);
-const hasElement = computed(() => props.selectedElement !== null);
-const disabled = computed(() => !props.canEdit || !hasElement.value);
+const disabled = computed(() => !props.canEdit || props.selectedElement === null);
 
 function handlePreview(): void {
 	if (disabled.value) {
@@ -69,6 +57,10 @@ function handlePreview(): void {
 	setTimeout(() => {
 		previewActive.value = false;
 	}, 1200);
+}
+
+function openPanel(): void {
+	(props.onOpenAnimationPanel ?? props.onToggleInspector)();
 }
 </script>
 
@@ -87,60 +79,58 @@ function handlePreview(): void {
 
 	<div :class="SEP" />
 
-	<!-- Add Animation dropdown -->
-	<div class="relative group">
-		<button
-			type="button"
-			:disabled="disabled"
-			:class="pill"
-			:title="t('pptx.animations.addTooltip')"
-		>
-			<Sparkles :class="ic" />
-			{{ t('pptx.animations.addAnimation') }}
-			<ChevronDown class="w-3 h-3" />
-		</button>
-		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1">
-			<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1">
-				<template v-for="group in ANIMATION_PRESETS" :key="group.group">
-					<div
-						class="px-3 pt-1.5 pb-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
-					>
-						{{ t('pptx.animations.group.' + group.group.toLowerCase()) }}
-					</div>
-					<button
-						v-for="item in group.items"
-						:key="item.value"
-						type="button"
-						:disabled="disabled"
-						class="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-						:title="
-							t('pptx.animations.applyAnimation', {
-								name: t('pptx.animations.preset.' + item.value),
-							})
-						"
-						@click="
-							props.onAddAnimation?.(
-								item.value,
-								group.group.toLowerCase() as 'entrance' | 'emphasis' | 'exit',
-							)
-						"
-					>
-						{{ t('pptx.animations.preset.' + item.value) }}
-					</button>
-				</template>
-			</div>
-		</div>
-	</div>
+	<!-- Preset gallery (full shared catalogue) -->
+	<AnimationPresetGallery :disabled="disabled" :on-add-animation="props.onAddAnimation" />
 
 	<div :class="SEP" />
 
-	<!-- Remove Animation -->
+	<!-- Advanced Animation -->
+	<button
+		type="button"
+		:disabled="disabled"
+		:class="pill"
+		@click="props.onAddAnimation?.('fadeOut', 'exit')"
+	>
+		<Star :class="cn(ic, 'text-red-500')" />
+		{{ t('pptx.animations.exitEffects') }}
+	</button>
+	<button
+		type="button"
+		:disabled="disabled"
+		:class="pill"
+		@click="props.onAddAnimation?.('flyIn', 'entrance')"
+	>
+		<MoveRight :class="ic" />
+		{{ t('pptx.animations.pathAnimation') }}
+	</button>
+	<button type="button" :disabled="disabled" :class="pill" @click="openPanel">
+		<Sparkles :class="ic" />
+		{{ t('pptx.animations.effectOptions') }}
+	</button>
+	<button
+		type="button"
+		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
+		:title="t('pptx.animations.openPanelTooltip')"
+		@click="openPanel"
+	>
+		<PanelRight :class="ic" />
+		{{ t('pptx.animations.animationPanel') }}
+	</button>
+	<button type="button" :disabled="disabled" :class="pill" @click="openPanel">
+		<MousePointerClick :class="ic" />
+		{{ t('pptx.animations.trigger') }}
+	</button>
+	<!-- Animation Painter has no behaviour in any binding yet; inert, not absent. -->
+	<button type="button" disabled :class="pill">
+		<Paintbrush :class="ic" />
+		{{ t('pptx.animations.painter') }}
+	</button>
 	<button
 		type="button"
 		:disabled="disabled"
 		:class="pill"
 		:title="t('pptx.animations.removeTooltip')"
-		@click="props.onRemoveAnimation"
+		@click="props.onRemoveAnimation?.()"
 	>
 		<Trash2 :class="ic" />
 		{{ t('pptx.animations.remove') }}
@@ -148,14 +138,27 @@ function handlePreview(): void {
 
 	<div :class="SEP" />
 
-	<!-- Animation Panel toggle -->
-	<button
-		type="button"
-		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		:title="t('pptx.animations.openPanelTooltip')"
-		@click="(props.onOpenAnimationPanel ?? props.onToggleInspector)()"
-	>
-		<PanelRight :class="ic" />
-		{{ t('pptx.animations.animationPanel') }}
-	</button>
+	<!-- Timing -->
+	<div class="grid grid-cols-[48px_82px] items-center gap-x-1 gap-y-1 text-[10px]">
+		<label for="pptx-animation-start">{{ t('pptx.animations.start') }}</label>
+		<select
+			id="pptx-animation-start"
+			disabled
+			class="h-6 rounded-sm border border-border bg-muted px-1 text-[10px]"
+		>
+			<option v-for="mode in ANIMATION_START_MODES" :key="mode">{{ t(mode) }}</option>
+		</select>
+		<span class="flex items-center gap-1">
+			<Clock :class="ic" /> {{ t('pptx.animations.duration') }}
+		</span>
+		<input
+			type="number"
+			min="0"
+			step="0.1"
+			value="0.5"
+			disabled
+			:aria-label="t('pptx.animations.duration')"
+			class="h-6 rounded-sm border border-border bg-muted px-1 text-[10px]"
+		/>
+	</div>
 </template>

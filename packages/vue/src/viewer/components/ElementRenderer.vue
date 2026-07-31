@@ -6,6 +6,7 @@ import {
 	buildTextBody3DSceneStyle,
 	getGroupChildParentFill,
 	hasTextWarp,
+	isElementRendered,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -184,11 +185,35 @@ const hasText = computed(() =>
 const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template-editing' : null));
 
 /**
+ * The neutral element marker (`data-pptx-element="true"`) every binding
+ * advertises for a rendered slide element, or `undefined` on a static surface.
+ *
+ * Bound on the delegated renderer components (chart, table, connector, ink,
+ * ole, model3d, zoom, equation, 3D SmartArt) as well as on the branches that
+ * render their own box: each of those components has a single root `<div>` that
+ * already carries `data-element-id`, so Vue's attribute fallthrough lands the
+ * marker on exactly that node. Without it those types painted correctly but
+ * were not elements as far as the contract is concerned, so anything that
+ * enumerates or hit-tests slide elements by the marker skipped them silently.
+ */
+const elementMarker = computed<'true' | undefined>(() => (props.interactive ? 'true' : undefined));
+
+/**
  * Element-level click action (`actionClick`), when present. Drives the on-canvas
  * link tooltip (and the `group/link` hover container). Mirrors React's
  * `ElementRenderer`, which shows a styled {@link LinkTooltip} for any element
  * carrying an action in an interactive tree.
  */
+/**
+ * Whether this element reaches the canvas at all. The Selection Pane's eye
+ * toggle writes `element.hidden` (and `p:cNvPr/@hidden` on save); a hidden
+ * element is drawn nowhere, exactly as in PowerPoint. Rendering nothing (rather
+ * than painting an invisible box) is what keeps it out of hit-testing, the tab
+ * order and the export raster. It stays listed in and selectable from the
+ * Selection Pane, which reads the slide model rather than the DOM.
+ */
+const isRendered = computed(() => isElementRendered(props.element));
+
 const linkAction = computed(() => props.element.actionClick);
 const showLinkTooltip = computed(
 	() =>
@@ -205,14 +230,17 @@ const linkTooltipLabel = computed(
 </script>
 
 <template>
+	<!-- Hidden via the Selection Pane: render nothing at all (see `isRendered`). -->
+	<template v-if="!isRendered" />
+
 	<!-- Group: recurse into children -->
 	<div
-		v-if="element.type === 'group'"
+		v-else-if="element.type === 'group'"
 		class="pptx-vue-element pptx-vue-group"
 		:class="templateClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="elementMarker"
 	>
 		<ElementRenderer
 			v-for="(child, i) in element.children ?? []"
@@ -247,15 +275,27 @@ const linkTooltipLabel = computed(
 		:class="templateClass"
 	/>
 
-	<!-- Connector / line -->
+	<!--
+		Connector / line.
+
+		This and every delegated renderer below take `data-pptx-element` by
+		attribute fallthrough onto their single root box; see `elementMarker`.
+	-->
 	<ConnectorRenderer
 		v-else-if="element.type === 'connector'"
 		:element="element"
 		:z-index="zIndex"
 		:animation-state="animationState"
+		:data-pptx-element="elementMarker"
 	/>
 
 	<!-- Delegated element renderers (same prop contract) -->
+	<!--
+		Table and chart take `interactive` as a real prop (they already gate their
+		own editing on it) and mark their own root from it, so no fallthrough
+		attribute is bound here: the table's root is a `v-if`, and a fallthrough
+		attr on a branch that renders nothing warns at runtime.
+	-->
 	<TableRenderer
 		v-else-if="element.type === 'table'"
 		:element="element"
@@ -277,6 +317,7 @@ const linkTooltipLabel = computed(
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:replay="presenting"
+		:data-pptx-element="elementMarker"
 	/>
 	<SmartArtRenderer
 		v-else-if="element.type === 'smartArt'"
@@ -292,24 +333,28 @@ const linkTooltipLabel = computed(
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:replay="presenting"
+		:data-pptx-element="elementMarker"
 	/>
 	<OleRenderer
 		v-else-if="element.type === 'ole'"
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:data-pptx-element="elementMarker"
 	/>
 	<Model3DRenderer
 		v-else-if="element.type === 'model3d'"
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:data-pptx-element="elementMarker"
 	/>
 	<ZoomRenderer
 		v-else-if="element.type === 'zoom'"
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:data-pptx-element="elementMarker"
 	/>
 
 	<!-- Equation (OMML → MathML): equation text boxes delegate wholesale -->
@@ -318,6 +363,7 @@ const linkTooltipLabel = computed(
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:data-pptx-element="elementMarker"
 	/>
 
 	<!-- Text / shape -->
@@ -327,7 +373,7 @@ const linkTooltipLabel = computed(
 		:class="[templateClass, showLinkTooltip ? 'group/link' : null]"
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="elementMarker"
 	>
 		<DuotoneFilterDefs :element="element" />
 		<!-- Soft-edge <filter> defs + DAG fill-overlay tint layer. -->
@@ -358,7 +404,7 @@ const linkTooltipLabel = computed(
 		:class="templateClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="elementMarker"
 	>
 		<div class="pptx-vue-placeholder">{{ element.type }}</div>
 	</div>

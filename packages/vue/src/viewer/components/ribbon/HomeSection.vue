@@ -75,6 +75,9 @@ function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fo
 }
 
 const fontInfo = computed(() => extractFontInfo(props.selectedElement));
+// Cut and Copy act on the selection, so with nothing selected they are no-ops.
+// They used to render live anyway, offering a button that could not do anything.
+const hasSelection = computed(() => Boolean(props.selectedElement));
 const fontFamily = computed(() => fontInfo.value.fontFamily);
 const fontSize = computed(() => fontInfo.value.fontSize);
 
@@ -126,7 +129,7 @@ function handlePickSize(s: number): void {
 			</button>
 			<button
 				type="button"
-				:disabled="!props.canEdit"
+				:disabled="!props.canEdit || !hasSelection"
 				:class="cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')"
 				:title="t('pptx.arrange.cut')"
 				@click="handleCut()"
@@ -135,6 +138,7 @@ function handlePickSize(s: number): void {
 			</button>
 			<button
 				type="button"
+				:disabled="!hasSelection"
 				:class="cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')"
 				:title="t('pptx.arrange.copy')"
 				@click="handleCopy()"
@@ -183,6 +187,7 @@ function handlePickSize(s: number): void {
 			<div :ref="fontMenu.root" class="relative">
 				<button
 					type="button"
+					:aria-label="t('pptx.ribbon.fontFamily')"
 					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate hover:bg-accent/40 transition-colors cursor-pointer"
 					@click="fontMenu.toggle()"
 				>
@@ -210,6 +215,7 @@ function handlePickSize(s: number): void {
 			<div :ref="sizeMenu.root" class="relative">
 				<button
 					type="button"
+					:aria-label="t('pptx.ribbon.fontSize')"
 					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center hover:bg-accent/40 transition-colors cursor-pointer"
 					@click="sizeMenu.toggle()"
 				>

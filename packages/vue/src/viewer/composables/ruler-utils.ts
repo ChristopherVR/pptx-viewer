@@ -13,6 +13,7 @@ export {
 	PX_PER_CM,
 	RULER_THICKNESS,
 	RULER_FONT_SIZE,
+	rulerDragToGuidePosition,
 } from 'pptx-viewer-shared';
 
 export type { RulerUnit, Tick } from 'pptx-viewer-shared';

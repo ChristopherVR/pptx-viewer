@@ -472,6 +472,7 @@ function handleChangeCase(value: string): void {
 				:disabled="!canMut"
 				:class="[pill, effectiveTs?.textShadowColor ? 'bg-primary/20 ring-1 ring-primary' : '']"
 				:title="t('pptx.textEffects.shadow')"
+				:aria-label="t('pptx.textEffects.shadow')"
 				@mousedown.prevent
 				@click="handleToggleTextShadow"
 			>
@@ -533,6 +534,7 @@ function handleChangeCase(value: string): void {
 					:disabled="!canMut"
 					:class="pill"
 					:title="t('pptx.text.changeCase')"
+					:aria-label="t('pptx.text.changeCase')"
 					@mousedown.prevent
 					@click="changeCaseMenu.toggle()"
 				>

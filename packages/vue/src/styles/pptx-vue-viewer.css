@@ -16,6 +16,16 @@
 
 @source "../viewer/**/*.vue";
 @source "../viewer/**/*.ts";
+/*
+ * The chrome also renders class tokens that live ONLY in pptx-viewer-shared
+ * (TITLE_BAR_CLASSES, the table fill controls). Tailwind emits a utility only
+ * if it saw the literal string, so without this the arbitrary values in those
+ * tokens - `bg-[#c43e1c]`, `translate-x-[15px]` - were never generated and the
+ * app logo rendered transparent while the AutoSave knob never moved. Scanning
+ * the whole shared render directory (not just the one file) keeps the next
+ * token from repeating the bug.
+ */
+@source "../../../shared/src/render/**/*.ts";
 
 @import './theme.css';
 

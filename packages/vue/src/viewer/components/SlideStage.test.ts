@@ -1,8 +1,10 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
 
+import { FieldContextKey } from '../composables/field-context';
 import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
 
@@ -95,5 +97,86 @@ describe('slideStage element-id markers', () => {
 		await nextTick();
 		expect(wrapper.find('[data-element-id]').exists()).toBeFalsy();
 		expect(wrapper.text()).toContain('shape-2');
+	});
+});
+
+describe('slideStage per-slide field substitution', () => {
+	// Regression: the viewer root provided ONE field context built from the
+	// ACTIVE slide, and nothing re-provided it per stage, so every thumbnail in
+	// the rail (and the presenter preview) printed the active slide's number and
+	// title. Each stage must re-point the deck context at the slide it paints.
+	const DECK_CONTEXT: FieldSubstitutionContext = {
+		slideNumber: 1,
+		slideTitle: 'Cover',
+		footerText: 'Confidential',
+	};
+
+	function fieldElement(id: string, fieldType: string, placeholder: string): PptxElement {
+		return {
+			type: 'text',
+			id,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 40,
+			textSegments: [{ text: placeholder, style: {}, fieldType }],
+		} as unknown as PptxElement;
+	}
+
+	function titleElement(text: string): PptxElement {
+		return {
+			type: 'text',
+			id: 'title-1',
+			x: 0,
+			y: 60,
+			width: 200,
+			height: 40,
+			text,
+			placeholderType: 'title',
+		} as unknown as PptxElement;
+	}
+
+	function mountWithDeckContext(slide: PptxSlide) {
+		return mount(SlideStage, {
+			props: { slide, canvasSize, mediaDataUrls: new Map<string, string>() },
+			global: { provide: { [FieldContextKey as symbol]: () => DECK_CONTEXT } },
+		});
+	}
+
+	function slide4(elements: PptxElement[]): PptxSlide {
+		return { id: 'slide-4', slideNumber: 4, elements } as unknown as PptxSlide;
+	}
+
+	it('substitutes the stage own slide number, not the active slide number', () => {
+		const wrapper = mountWithDeckContext(
+			slide4([fieldElement('f1', 'slidenum', 'Slide #'), titleElement('Results')]),
+		);
+		expect(wrapper.text()).toContain('4');
+		expect(wrapper.text()).not.toContain('Slide #');
+		expect(wrapper.text()).not.toContain('Slide 1');
+	});
+
+	it('substitutes the stage own slide title, not the active slide title', () => {
+		const wrapper = mountWithDeckContext(
+			slide4([fieldElement('f1', 'slidetitle', '<title>'), titleElement('Results')]),
+		);
+		expect(wrapper.text()).toContain('Results');
+		expect(wrapper.text()).not.toContain('Cover');
+	});
+
+	it('keeps the deck-wide fields (footer) from the injected context', () => {
+		const wrapper = mountWithDeckContext(slide4([fieldElement('f1', 'footer', '<footer>')]));
+		expect(wrapper.text()).toContain('Confidential');
+	});
+
+	it('leaves field runs untouched when nothing provides a context', () => {
+		const wrapper = mount(SlideStage, {
+			props: {
+				slide: slide4([fieldElement('f1', 'slidenum', 'Slide #')]),
+				canvasSize,
+				mediaDataUrls: new Map<string, string>(),
+			},
+		});
+		expect(wrapper.text()).toContain('Slide #');
 	});
 });

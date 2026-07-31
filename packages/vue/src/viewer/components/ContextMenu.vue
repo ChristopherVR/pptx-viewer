@@ -28,6 +28,11 @@ const props = defineProps<{
 	x: number;
 	y: number;
 	items: ContextMenuItem[];
+	/**
+	 * Accessible name for the menu. Without one a screen reader announces an
+	 * unnamed menu, which is what three of the five bindings used to do.
+	 */
+	ariaLabel?: string;
 }>();
 
 const emit = defineEmits<{
@@ -154,6 +159,7 @@ onBeforeUnmount(removeListeners);
 			ref="menuRef"
 			class="pptx-vue-context-menu fixed z-[120] min-w-[180px] select-none rounded border border-border bg-popover py-1.5 text-xs leading-4 text-popover-foreground shadow-2xl"
 			role="menu"
+			:aria-label="ariaLabel"
 			:style="menuStyle"
 			data-pptx-context-menu="true"
 			@contextmenu.prevent

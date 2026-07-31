@@ -444,6 +444,7 @@ onBeforeUnmount(() => {
 		class="pptx-vue-element pptx-vue-table"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<TableResizeOverlay
 			:column-widths="tableData.columnWidths"

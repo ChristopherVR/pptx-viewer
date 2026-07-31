@@ -66,9 +66,15 @@ export function useElementDrag(input: UseElementDragInput) {
 	/** View ▸ H/V Guides: draggable alignment guides (authored slide px). */
 	const guides = ref<Guide[]>([]);
 
-	/** Add a centred horizontal/vertical guide (View ▸ H/V Guide buttons). */
-	function addGuide(axis: 'h' | 'v'): void {
-		guides.value = [...guides.value, createGuide(createEditorId('guide'), axis, canvasSize.value)];
+	/**
+	 * Add a horizontal/vertical guide. Centred by default (View ▸ H/V Guide
+	 * buttons); `position` is supplied when the guide was dragged off a ruler
+	 * strip, where the drop point has already been resolved by the shared
+	 * `rulerDragToGuidePosition`.
+	 */
+	function addGuide(axis: 'h' | 'v', position?: number): void {
+		const guide = createGuide(createEditorId('guide'), axis, canvasSize.value);
+		guides.value = [...guides.value, position === undefined ? guide : { ...guide, position }];
 	}
 	/** Drag a guide to a new (clamped) position. */
 	function onMoveGuide(payload: { id: string; position: number }): void {

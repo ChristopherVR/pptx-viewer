@@ -96,6 +96,10 @@ export interface EditorOperations {
 	bringForward: (elementId: string) => void;
 	/** Swap an element one step earlier in z-order (towards the back). */
 	sendBackward: (elementId: string) => void;
+	/** Move an element in front of every sibling on its layer. */
+	bringToFront: (elementId: string) => void;
+	/** Move an element behind every sibling on its layer. */
+	sendToBack: (elementId: string) => void;
 	/** Move an element to an explicit index within the active slide's z-order. */
 	reorder: (elementId: string, toIndex: number) => void;
 	/**
@@ -269,6 +273,29 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	const bringForward = (elementId: string): void => swapLayer(elementId, 1);
 	const sendBackward = (elementId: string): void => swapLayer(elementId, -1);
 
+	/**
+	 * Move an element to one end of its layer. Distinct from {@link swapLayer}:
+	 * PowerPoint's Bring to Front is one hop past every sibling, not one step, and
+	 * the Vue menu had no way to ask for it at all.
+	 */
+	const moveToEdge = (elementId: string, edge: 'front' | 'back'): void => {
+		const layer = elementsForId(elementId);
+		const index = layer.findIndex((el) => el.id === elementId);
+		const target = edge === 'front' ? layer.length - 1 : 0;
+		if (index === -1 || index === target) {
+			return;
+		}
+		commitForId(elementId, (elements) => {
+			const next = [...elements];
+			const [moved] = next.splice(index, 1);
+			next.splice(target, 0, moved);
+			return next;
+		});
+	};
+
+	const bringToFront = (elementId: string): void => moveToEdge(elementId, 'front');
+	const sendToBack = (elementId: string): void => moveToEdge(elementId, 'back');
+
 	const reorder = (elementId: string, toIndex: number): void => {
 		const layer = elementsForId(elementId);
 		const from = layer.findIndex((el) => el.id === elementId);
@@ -331,6 +358,8 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		duplicateElement: duplicateElementById,
 		bringForward,
 		sendBackward,
+		bringToFront,
+		sendToBack,
 		reorder,
 		updateElementText,
 	};

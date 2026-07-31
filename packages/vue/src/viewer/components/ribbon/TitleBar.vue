@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { Redo, Save, Search, Undo } from 'lucide-vue-next';
 import {
+	DEFAULT_VIEWER_OPTIONS,
+	extraQuickAccessCommands,
 	filterCommands,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from 'pptx-viewer-shared';
 import type { CommandSearchEntry, ToolbarActionId } from 'pptx-viewer-shared';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import type { AutosaveStatus } from '../../composables/useAutosave';
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
 import type { ViewerMode } from './ribbon-types';
+import TitleBarQuickAccess from './TitleBarQuickAccess.vue';
 
 interface Props {
 	mode: ViewerMode;
@@ -36,11 +40,28 @@ interface Props {
 	onCommandSearch?: (command: string) => void;
 	/** Toolbar buttons the host has asked to hide (gates Undo/Redo independently below). */
 	hiddenActions?: ToolbarActionId[];
+	/**
+	 * Run a Quick Access command that is not one of the dedicated
+	 * Save/Undo/Redo buttons (`presentFromStart`, `print`, ...), by catalog id.
+	 */
+	onQuickCommand?: (id: string) => void;
 }
 
 const props = defineProps<Props>();
 const { t } = useI18n();
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
+
+// The strip beyond Save/Undo/Redo comes from File > Options; hardcoding three
+// buttons is what left this binding a command short of the shared default.
+const viewerOptions = inject(ViewerOptionsKey, undefined);
+const quickAccess = computed(
+	() => viewerOptions?.value.quickAccess ?? DEFAULT_VIEWER_OPTIONS.quickAccess,
+);
+const extraQuickCommands = computed(() =>
+	(quickAccess.value.visible ? extraQuickAccessCommands(quickAccess.value.commandIds) : []).map(
+		(command) => ({ id: command.id, label: t(command.labelKey), icon: command.icon }),
+	),
+);
 
 const editing = computed(() => (props.mode === 'edit' || props.mode === 'master') && props.canEdit);
 
@@ -156,6 +177,13 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 			>
 				<Redo class="w-3.5 h-3.5" />
 			</button>
+			<!-- Everything else File > Options > Quick Access Toolbar asks for. -->
+			<TitleBarQuickAccess
+				v-if="extraQuickCommands.length > 0"
+				:items="extraQuickCommands"
+				:show-labels="quickAccess.showCommandLabels"
+				:on-command="(id: string) => props.onQuickCommand?.(id)"
+			/>
 
 			<div :class="TB.separator" />
 		</template>

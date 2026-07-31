@@ -10,7 +10,7 @@ describe('directionPicker', () => {
 		});
 		const buttons = wrapper.findAll('button');
 		expect(buttons).toHaveLength(2);
-		await wrapper.get('button[title="out"]').trigger('click');
+		await wrapper.get('button[title="Out"]').trigger('click');
 		expect(wrapper.emitted('change')?.[0]).toStrictEqual(['out']);
 	});
 
@@ -20,11 +20,11 @@ describe('directionPicker', () => {
 		// 8 direction buttons (the centre cell stays empty).
 		expect(wrapper.findAll('button')).toHaveLength(8);
 		// Selected direction is marked pressed.
-		expect(wrapper.get('button[title="r"]').attributes('aria-pressed')).toBe('true');
+		expect(wrapper.get('button[title="Right"]').attributes('aria-pressed')).toBe('true');
 	});
 
 	it('shows the direction token when no arrow glyph is mapped', () => {
 		const wrapper = mount(DirectionPicker, { props: { directions: ['xyz'], value: undefined } });
-		expect(wrapper.get('button[title="xyz"]').text()).toBe('xyz');
+		expect(wrapper.get('button[title="Xyz"]').text()).toBe('xyz');
 	});
 });

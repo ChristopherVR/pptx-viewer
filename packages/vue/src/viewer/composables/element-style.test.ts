@@ -117,9 +117,31 @@ describe('getTextBlockStyle', () => {
 		// Font size is emitted in CSS px (unitless React convention), not pt;
 		// appending pt would inflate every glyph by ~1.33× and overflow the box.
 		expect(style.fontSize).toBe('18px');
-		expect(style.fontWeight).toBe('bold');
+		// Numeric weight, as React emits: this style is now built by the shared
+		// `buildTextBlockStyle` that both bindings render from.
+		expect(style.fontWeight).toBe(700);
 		expect(style.textAlign).toBe('center');
 		expect(style.justifyContent).toBe('center');
+	});
+
+	// Defect A / B: this binding's own copy of the builder never read either
+	// property, so a shrink-to-fit title painted 43% too large and a
+	// `wrap="none"` line wrapped. Both now come from the shared builder.
+	it('applies the normAutofit font scale and never wraps a wrap="none" body', () => {
+		expect(
+			getTextBlockStyle(
+				shape({
+					textStyle: {
+						fontSize: 40,
+						autoFit: true,
+						autoFitMode: 'normal',
+						autoFitFontScale: 0.7,
+					},
+				}),
+			).fontSize,
+		).toBe('28px');
+		expect(getTextBlockStyle(shape({ textStyle: { textWrap: 'none' } })).whiteSpace).toBe('nowrap');
+		expect(getTextBlockStyle(shape({ textStyle: {} })).whiteSpace).toBe('pre-wrap');
 	});
 
 	it("applies PowerPoint's 1.2 default line-height and honours explicit line spacing", () => {

@@ -6,6 +6,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { RULER_THICKNESS } from '../composables/ruler-utils';
+import type { RulerUnit } from '../composables/ruler-utils';
 import type { CanvasSize } from '../types';
 import RulerStrips from './RulerStrips.vue';
 import SlideStage from './SlideStage.vue';
@@ -32,6 +33,12 @@ const props = defineProps<{
 	zoom?: number;
 	/** Show the horizontal/vertical rulers along the slide edges (View ▸ Rulers). */
 	showRulers?: boolean;
+	/** Unit system for the ruler labels; defaults to inches, as PowerPoint does. */
+	rulerUnit?: RulerUnit;
+	/** Selected element extent (unscaled slide px) highlighted on the rulers. */
+	rulerSelectedBounds?: { x: number; y: number; width: number; height: number } | null;
+	/** Allow dragging a guide off a ruler strip (editing only). */
+	canDragGuides?: boolean;
 	/**
 	 * Master/layout (template) elements for the active slide, rendered by
 	 * {@link SlideStage} in a dedicated layer behind the slide content.
@@ -44,7 +51,11 @@ const props = defineProps<{
 	editTemplateMode?: boolean;
 }>();
 
-const emit = defineEmits<{ 'update:fitScale': [number] }>();
+const emit = defineEmits<{
+	'update:fitScale': [number];
+	/** Guide dragged off a ruler strip (axis + unscaled slide-local position). */
+	createGuide: [axis: 'h' | 'v', position: number];
+}>();
 
 const { t } = useI18n();
 
@@ -79,8 +90,16 @@ function recomputeFit(): void {
 	}
 	// Reserve the 1rem (16px) top/bottom margin and a little horizontal breathing
 	// room so the slide and its shadow are never flush against the edges.
-	const availW = Math.max(el.clientWidth - 16, 0);
-	const availH = Math.max(el.clientHeight - 32, 0);
+	//
+	// With rulers on, reserve their thickness too: the strips are drawn just
+	// OUTSIDE the wrapper (top: -20px / left: -20px), so a slide fitted to the
+	// full viewport width leaves the auto side-margins under 20px and the
+	// scroll container clips the vertical strip away entirely. Twice the
+	// thickness horizontally, because `margin: auto` splits the slack evenly
+	// and only the left half is the gutter the strip needs.
+	const gutter = props.showRulers ? RULER_THICKNESS : 0;
+	const availW = Math.max(el.clientWidth - 16 - gutter * 2, 0);
+	const availH = Math.max(el.clientHeight - 32 - gutter, 0);
 	if (!availW || !availH) {
 		emit('update:fitScale', 1);
 		return;
@@ -104,8 +123,9 @@ onBeforeUnmount(() => {
 	observer = null;
 });
 
-// Re-fit when the authored slide size changes (e.g. switching decks).
-watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
+// Re-fit when the authored slide size changes (e.g. switching decks), and when
+// the rulers appear/disappear, since they change the space available to fit in.
+watch(() => [props.canvasSize.width, props.canvasSize.height, props.showRulers], recomputeFit);
 </script>
 
 <template>
@@ -117,7 +137,15 @@ watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
 			aria-roledescription="slide"
 			:aria-label="t('pptx.canvas.slide')"
 		>
-			<RulerStrips v-if="showRulers" :canvas-size="canvasSize" :scale="scale" />
+			<RulerStrips
+				v-if="showRulers"
+				:canvas-size="canvasSize"
+				:scale="scale"
+				:unit="rulerUnit"
+				:selected-bounds="rulerSelectedBounds"
+				:draggable="canDragGuides"
+				@create-guide="(axis, position) => emit('createGuide', axis, position)"
+			/>
 			<SlideStage
 				:slide="slide"
 				:canvas-size="canvasSize"

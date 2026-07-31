@@ -1,20 +1,39 @@
 <script setup lang="ts">
-import { Captions, Cast, Clock, Monitor, Play, Settings } from 'lucide-vue-next';
+import {
+	Captions,
+	Cast,
+	Clock,
+	EyeOff,
+	ListVideo,
+	Monitor,
+	Play,
+	Settings,
+	Video,
+} from 'lucide-vue-next';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import CustomShowsControls from './CustomShowsControls.vue';
 import { ic, pill, SEP } from './ribbon-constants';
 /**
  * SlideShowSection: the Vue 3 port of React's `toolbar/SlideShowSection.tsx`.
- * Renders the Slide Show ribbon tab's Start (From Beginning / From Current
- * Slide), Presenter (Presenter View / Rehearse Timings), Set Up (Set Up Slide
- * Show / Broadcast) and Captions (Subtitles) groups. A faithful, mechanical port
- * for visual + behavioral parity: class strings are copied verbatim and `cn`
- * drives the active-state class on the Subtitles toggle.
+ *
+ * Start (From Beginning / From Current Slide), Present (Presenter View, Custom
+ * show, Broadcast), Set Up (Rehearse with Coach, Set Up Slide Show, Hide Slide,
+ * Rehearse Timings, Record) and Options (Keep Updated, Use Timings, Play
+ * Narrations, Media Controls, Subtitles, Subtitle Settings).
+ *
+ * The reference renders several of these inert pending a backing feature; they
+ * are rendered inert here rather than omitted, so a user comparing bindings
+ * finds the same tab either way. Custom show is NOT one of them any more: the
+ * picker (`CustomShowsControls.vue`) has always existed, it simply was never
+ * reachable from this tab. It opens in a popover so the tab's control inventory
+ * is unchanged while the menu is closed.
  */
-import type { ViewerMode } from './ribbon-types';
+import type { CustomShowsControlsProps, ViewerMode } from './ribbon-types';
+import { useDropdown } from './use-dropdown';
 
 interface Props {
 	onPresent: () => void;
@@ -25,6 +44,8 @@ interface Props {
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
 	onSetMode: (mode: ViewerMode) => void;
+	/** Everything the custom-show picker needs; see `CustomShowsControls.vue`. */
+	customShowControls: CustomShowsControlsProps;
 	/** Toolbar buttons the host has asked to hide (gates the Broadcast button below). */
 	hiddenActions?: ToolbarActionId[];
 }
@@ -32,6 +53,10 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
+const showsMenu = useDropdown();
+
+/** A checkbox pill: matches the reference's `RibbonToggle`, which is a labelled input. */
+const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px]';
 </script>
 
 <template>
@@ -56,23 +81,25 @@ const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 		<Monitor :class="ic" />
 		{{ t('pptx.slideShow.presenterView') }}
 	</button>
-	<button
-		:class="pill"
-		:title="t('pptx.slideShow.rehearseTimingsTooltip')"
-		@click="props.onEnterRehearsalMode()"
-	>
-		<Clock :class="ic" />
-		{{ t('pptx.slideShow.rehearseTimings') }}
-	</button>
-	<div :class="SEP" />
-	<button
-		:class="pill"
-		:title="t('pptx.slideShow.setUpTooltip')"
-		@click="props.onOpenSetUpSlideShow()"
-	>
-		<Settings :class="ic" />
-		{{ t('pptx.slideShow.setUp') }}
-	</button>
+	<div :ref="showsMenu.root" class="relative">
+		<button
+			type="button"
+			:class="cn(pill, showsMenu.open.value ? 'bg-primary hover:bg-primary/80 text-white' : '')"
+			:aria-expanded="showsMenu.open.value"
+			:title="t('pptx.customShows.customShowTooltip')"
+			@click="showsMenu.toggle()"
+		>
+			<ListVideo :class="ic" />
+			{{ t('pptx.slideShow.customShow') }}
+		</button>
+		<div v-if="showsMenu.open.value" class="absolute left-0 top-full z-50 flex flex-col pt-1">
+			<div
+				class="flex items-center gap-1 rounded-lg border border-border bg-popover p-2 shadow-2xl"
+			>
+				<CustomShowsControls v-bind="props.customShowControls" />
+			</div>
+		</div>
+	</div>
 	<button
 		v-if="!isHidden('broadcast')"
 		:class="pill"
@@ -83,12 +110,67 @@ const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 		{{ t('pptx.slideShow.broadcast') }}
 	</button>
 	<div :class="SEP" />
-	<button
-		:class="cn(pill, props.showSubtitles ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		:title="t('pptx.slideShow.subtitlesTooltip')"
-		@click="props.onToggleSubtitles()"
-	>
-		<Captions :class="ic" />
-		{{ t('pptx.slideShow.subtitles') }}
+	<button disabled :class="pill">
+		<Video :class="ic" />
+		{{ t('pptx.slideShow.rehearseCoach') }}
 	</button>
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.setUpTooltip')"
+		@click="props.onOpenSetUpSlideShow()"
+	>
+		<Settings :class="ic" />
+		{{ t('pptx.slideShow.setUp') }}
+	</button>
+	<button disabled :class="pill">
+		<EyeOff :class="ic" />
+		{{ t('pptx.slideShow.hideSlide') }}
+	</button>
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.rehearseTimingsTooltip')"
+		@click="props.onEnterRehearsalMode()"
+	>
+		<Clock :class="ic" />
+		{{ t('pptx.slideShow.rehearseTimings') }}
+	</button>
+	<button :class="pill" @click="props.onEnterRehearsalMode()">
+		<Video :class="ic" />
+		{{ t('pptx.titleBar.record') }}
+	</button>
+	<div :class="SEP" />
+	<div class="flex flex-col justify-start gap-0.5">
+		<label :class="toggleRow">
+			<input type="checkbox" disabled class="h-3 w-3 accent-primary disabled:opacity-35" />
+			{{ t('pptx.slideShow.keepUpdated') }}
+		</label>
+		<label :class="toggleRow">
+			<input type="checkbox" checked class="h-3 w-3 accent-primary" />
+			{{ t('pptx.slideShow.useTimings') }}
+		</label>
+		<label :class="toggleRow">
+			<input type="checkbox" checked class="h-3 w-3 accent-primary" />
+			{{ t('pptx.slideShow.playNarrations') }}
+		</label>
+	</div>
+	<div class="flex flex-col justify-start gap-0.5">
+		<label :class="toggleRow">
+			<input type="checkbox" checked class="h-3 w-3 accent-primary" />
+			{{ t('pptx.slideShow.mediaControls') }}
+		</label>
+		<label :class="cn(toggleRow, props.showSubtitles ? 'bg-primary/15 text-primary' : '')">
+			<input
+				type="checkbox"
+				class="h-3 w-3 accent-primary"
+				:checked="props.showSubtitles"
+				:title="t('pptx.slideShow.subtitlesTooltip')"
+				@change="props.onToggleSubtitles()"
+			/>
+			{{ t('pptx.slideShow.subtitles') }}
+		</label>
+		<button :class="pill" @click="props.onToggleSubtitles()">
+			<Captions :class="ic" />
+			{{ t('pptx.slideShow.subtitleSettings') }}
+		</button>
+	</div>
 </template>

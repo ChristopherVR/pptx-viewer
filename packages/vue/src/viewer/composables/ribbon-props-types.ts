@@ -52,6 +52,8 @@ export interface UseRibbonPropsStateInput {
 	spellCheckEnabled: Ref<boolean>;
 	showGrid: Ref<boolean>;
 	showRulers: Ref<boolean>;
+	/** Guide-overlay visibility; independent of snapping (see `useRibbonUiState`). */
+	showGuides: Ref<boolean>;
 	snapToGrid: Ref<boolean>;
 	snapToShape: Ref<boolean>;
 	overflowOpen: Ref<boolean>;
@@ -123,6 +125,12 @@ export interface UseRibbonPropsActionsInput {
 	bringForward: () => void;
 	sendBackward: () => void;
 	ribbonMoveToEdge: (dir: string) => void;
+	onGroup: () => void;
+	onUngroup: () => void;
+	/** Patch the selection's `shapeStyle` (the Arrange group's outline width). */
+	updateSelectedShapeStyle: RibbonProps['onUpdateElementStyle'];
+	/** Open the hyperlink editor on the current selection (Insert ▸ Link). */
+	openHyperlinkForSelection: () => void;
 	duplicateSelected: () => void;
 	deleteSelected: () => void;
 	handleOpenFile: () => void;

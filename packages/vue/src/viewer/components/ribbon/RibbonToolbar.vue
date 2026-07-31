@@ -23,18 +23,14 @@ import DrawingGroup from './DrawingGroup.vue';
 import DrawSection from './DrawSection.vue';
 import EditingSection from './EditingSection.vue';
 import FileSection from './FileSection.vue';
-import HelpSection from './HelpSection.vue';
 import HomeSection from './HomeSection.vue';
 import InsertSection from './InsertSection.vue';
-import RecordSection from './RecordSection.vue';
-import ReviewSection from './ReviewSection.vue';
 import type { RibbonProps } from './ribbon-types';
 import RibbonTabBar from './RibbonTabBar.vue';
-import SlideShowSection from './SlideShowSection.vue';
+import RibbonTailSections from './RibbonTailSections.vue';
 import TextSection from './TextSection.vue';
 import ToolbarPrimaryRow from './ToolbarPrimaryRow.vue';
 import TransitionsSection from './TransitionsSection.vue';
-import ViewSection from './ViewSection.vue';
 
 interface Props extends RibbonProps {}
 
@@ -144,6 +140,8 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-open-header-footer="props.onOpenHeaderFooter"
 				:on-open-image-picker="props.onOpenImagePicker"
 				:on-open-media-picker="props.onOpenMediaPicker"
+				:has-selection="Boolean(props.selectedElement)"
+				:on-open-hyperlink-dialog="props.onOpenHyperlinkDialog"
 			/>
 
 			<TextSection
@@ -186,16 +184,16 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				v-if="s === 'home' || s === 'arrange'"
 				:can-edit="props.canEdit"
 				:selected-element="props.selectedElement"
-				:clipboard-payload="props.clipboardPayload"
+				:selected-count="props.selectedCount"
 				:on-align-elements="props.onAlignElements"
 				:on-distribute-elements="props.onDistributeElements"
 				:can-distribute="props.canDistribute"
-				:on-copy="props.onCopy"
-				:on-cut="props.onCut"
-				:on-paste="props.onPaste"
 				:on-flip="props.onFlip"
 				:on-move-layer="props.onMoveLayer"
 				:on-move-layer-to-edge="props.onMoveLayerToEdge"
+				:on-group-elements="props.onGroupElements"
+				:on-ungroup-element="props.onUngroupElement"
+				:on-update-element-style="props.onUpdateElementStyle"
 				:on-duplicate="props.onDuplicate"
 				:on-delete="props.onDelete"
 				:format-painter-active="props.formatPainterActive"
@@ -232,67 +230,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-remove-animation="props.onRemoveAnimation"
 			/>
 
-			<SlideShowSection
-				v-if="s === 'slideShow'"
-				:on-present="() => props.onSetMode('present')"
-				:on-enter-presenter-view="props.onEnterPresenterView ?? (() => {})"
-				:on-enter-rehearsal-mode="props.onEnterRehearsalMode ?? (() => {})"
-				:on-open-set-up-slide-show="props.onOpenSetUpSlideShow ?? (() => {})"
-				:on-open-broadcast-dialog="props.onOpenBroadcastDialog ?? (() => {})"
-				:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
-				:show-subtitles="props.showSubtitles ?? false"
-				:on-set-mode="props.onSetMode"
-				:hidden-actions="props.hiddenActions"
-			/>
-
-			<ReviewSection
-				v-if="s === 'review'"
-				:can-edit="props.canEdit"
-				:spell-check-enabled="props.spellCheckEnabled"
-				:on-set-spell-check-enabled="props.onSetSpellCheckEnabled"
-				:on-toggle-comments="props.onToggleComments"
-				:is-comments-panel-open="props.isCommentsPanelOpen"
-				:slide-comment-count="props.slideCommentCount"
-				:on-compare="props.onCompare"
-				:on-set-language="props.onOpenSettings"
-				:on-open-accessibility-check="props.onRunAccessibilityCheck"
-			/>
-
-			<RecordSection
-				v-if="s === 'record'"
-				:on-record-from-beginning="props.onEnterRehearsalMode ?? (() => {})"
-				:on-record-from-current="props.onEnterRehearsalMode ?? (() => {})"
-			/>
-
-			<ViewSection
-				v-if="s === 'view'"
-				:can-edit="props.canEdit"
-				:edit-template-mode="props.editTemplateMode"
-				:on-set-edit-template-mode="props.onSetEditTemplateMode"
-				:spell-check-enabled="props.spellCheckEnabled"
-				:on-set-spell-check-enabled="props.onSetSpellCheckEnabled"
-				:show-grid="props.showGrid"
-				:show-rulers="props.showRulers"
-				:snap-to-grid="props.snapToGrid"
-				:snap-to-shape="props.snapToShape"
-				:on-set-show-grid="props.onSetShowGrid"
-				:on-set-show-rulers="props.onSetShowRulers"
-				:on-set-snap-to-grid="props.onSetSnapToGrid"
-				:on-set-snap-to-shape="props.onSetSnapToShape"
-				:on-add-guide="props.onAddGuide"
-				:on-zoom-to-fit="props.onZoomToFit"
-				:on-enter-master-view="props.onEnterMasterView"
-				:is-selection-pane-open="props.isSelectionPaneOpen"
-				:on-toggle-selection-pane="props.onToggleSelectionPane"
-				:eyedropper-active="props.eyedropperActive"
-				:on-toggle-eyedropper="props.onToggleEyedropper"
-			/>
-
-			<HelpSection
-				v-if="s === 'help'"
-				:on-toggle-shortcuts="props.onToggleShortcuts"
-				:on-run-accessibility-check="props.onRunAccessibilityCheck"
-			/>
+			<RibbonTailSections v-bind="props" />
 		</div>
 	</div>
 </template>

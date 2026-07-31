@@ -89,4 +89,19 @@ describe('titleBar', () => {
 		expect(redoHidden.find('button[aria-label="Undo"]').exists()).toBeTruthy();
 		expect(redoHidden.find('button[aria-label="Redo"]').exists()).toBeFalsy();
 	});
+
+	// The strip beyond Save/Undo/Redo is options-driven. This binding used to
+	// hardcode the trio, so it showed three commands where the shared default
+	// (and Angular) had four.
+	it('renders the options-driven quick-access commands after Save/Undo/Redo', () => {
+		const wrapper = mountTitleBar();
+		expect(wrapper.find('button[aria-label="From Beginning"]').exists()).toBeTruthy();
+	});
+
+	it('routes a quick-access command to the host by catalog id', async () => {
+		const onQuickCommand = vi.fn();
+		const wrapper = mountTitleBar({ onQuickCommand });
+		await wrapper.get('button[aria-label="From Beginning"]').trigger('click');
+		expect(onQuickCommand).toHaveBeenCalledWith('presentFromStart');
+	});
 });

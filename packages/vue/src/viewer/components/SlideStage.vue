@@ -5,6 +5,7 @@ import type { CSSProperties } from 'vue';
 import { computed, ref, watchPostEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { provideSlideFieldContext } from '../composables/field-context';
 import { stripElementIdMarkers } from '../composables/stage-element-markers';
 import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
@@ -80,6 +81,13 @@ const props = withDefaults(
 );
 const { t } = useI18n();
 const stageRef = ref<HTMLElement | null>(null);
+
+// Re-point the deck-wide field context at THIS stage's slide before the element
+// renderers read it: date / header / footer / document-property fields are
+// presentation-wide, but the slide number and title are not, so a thumbnail,
+// presenter preview or export stage must resolve them from the slide it paints
+// rather than from the active one.
+provideSlideFieldContext(() => props.slide);
 
 /** Template elements render behind the slide content; default to none. */
 const templateElements = computed<PptxElement[]>(() => props.templateElements ?? []);

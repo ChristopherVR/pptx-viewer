@@ -17,8 +17,8 @@ import {
 /**
  * InsertSection: the Vue 3 port of React's `toolbar/InsertSection.tsx`. Renders
  * the Insert ribbon tab: Text box, the Shape-type `<select>` + Add-shape cluster,
- * Image / Media / Table / SmartArt / Equation pills, and the hover-driven Action
- * Button and Insert Field dropdowns plus the Date/Time picker modal. A faithful,
+ * Image / Media / Table / SmartArt / Equation / Link pills, and the hover-driven
+ * Action Button and Insert Field dropdowns plus the Date/Time picker modal. A faithful,
  * mechanical port for visual + behavioral parity: class strings are copied
  * verbatim and the date-picker's `useState`/`useEffect(mousedown)` plumbing
  * becomes local `ref`s with a backdrop-click + outside-click guard.
@@ -41,11 +41,15 @@ import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import InsertHyperlinkButton from './InsertHyperlinkButton.vue';
 import { grp, ic, pill } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
 
 interface Props {
 	canEdit: boolean;
+	/** Whether an element is selected; gates the Link button (see below). */
+	hasSelection: boolean;
+	onOpenHyperlinkDialog: () => void;
 	newShapeType: SupportedShapeType;
 	onSetNewShapeType: (type: SupportedShapeType) => void;
 	onAddTextBox: () => void;
@@ -309,7 +313,7 @@ function previewTime(): string {
 		@click="props.onAddTextBox()"
 	>
 		<Type :class="ic" />
-		{{ t('pptx.ribbon.text') }}
+		{{ t('pptx.ribbon.textBox') }}
 	</button>
 	<div :class="grp">
 		<select
@@ -532,6 +536,10 @@ function previewTime(): string {
 			</div>
 		</div>
 	</div>
+	<InsertHyperlinkButton
+		:has-selection="props.hasSelection"
+		:on-open-hyperlink-dialog="props.onOpenHyperlinkDialog"
+	/>
 	<button
 		v-if="props.onOpenHeaderFooter"
 		type="button"

@@ -1,32 +1,40 @@
 <!--
 	Arrange ribbon section: Vue port of React's `toolbar/ArrangeSection.tsx`.
 	Faithful, mechanical port for visual + behavioral parity: align cluster,
-	clipboard cluster, optional format-painter toggle, flip, layer ordering,
-	duplicate, and delete. Class strings copied verbatim from React.
+	optional format-painter toggle, flip, group/ungroup + outline width
+	(`ShapeArrangeExtras.vue`), layer ordering, duplicate, and delete. Class
+	strings copied verbatim from React.
+
+	This group deliberately does NOT repeat Cut / Copy / Paste. It used to, and
+	since the Home tab already renders the Clipboard group beside it, every one
+	of those three commands appeared twice on the same tab under the same name:
+	two buttons that claim to be "Copy" is a tab that cannot be addressed by
+	name, by a user or by a test.
 -->
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, ClipboardPaste, Copy, Paintbrush, Trash2 } from 'lucide-vue-next';
-import type { PptxElement } from 'pptx-viewer-core';
+import { ChevronDown, ChevronUp, Copy, Paintbrush, Trash2 } from 'lucide-vue-next';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './ribbon-constants';
-import type { ElementClipboardPayload } from './ribbon-types';
+import ShapeArrangeExtras from './ShapeArrangeExtras.vue';
 
 interface Props {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
-	clipboardPayload: ElementClipboardPayload | null;
+	/** How many elements the multi-select currently holds; Group needs two. */
+	selectedCount: number;
 	onAlignElements: (align: string) => void;
 	onDistributeElements: (axis: string) => void;
 	canDistribute: boolean;
-	onCopy: () => void;
-	onCut: () => void;
-	onPaste: () => void;
 	onFlip: (direction: 'horizontal' | 'vertical') => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
+	onGroupElements: () => void;
+	onUngroupElement: () => void;
+	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
 	onDuplicate: () => void;
 	onDelete: () => void;
 	formatPainterActive?: boolean;
@@ -63,26 +71,10 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			type="button"
 			:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
 			:disabled="!props.canEdit || !props.canDistribute"
-			:title="t('pptx.ribbon.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1) + 'ly')"
+			:title="t('pptx.arrange.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1))"
 			@click="props.onDistributeElements(d.k)"
 		>
 			<component :is="d.icon" :class="ic" />
-		</button>
-	</div>
-	<div :class="grp">
-		<button :class="gB" :disabled="!hasSel" :title="t('pptx.arrange.copy')" @click="props.onCopy">
-			<Copy :class="ic" />
-		</button>
-		<button :class="gB" :disabled="!canMut" :title="t('pptx.arrange.cut')" @click="props.onCut">
-			{{ t('pptx.arrange.cut') }}
-		</button>
-		<button
-			:class="gL"
-			:disabled="!props.clipboardPayload || !props.canEdit"
-			:title="t('pptx.arrange.paste')"
-			@click="props.onPaste"
-		>
-			<ClipboardPaste :class="ic" />
 		</button>
 	</div>
 	<button
@@ -122,6 +114,14 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			{{ t('pptx.arrange.flipV') }}
 		</button>
 	</div>
+	<ShapeArrangeExtras
+		:can-edit="props.canEdit"
+		:selected-element="props.selectedElement"
+		:selected-count="props.selectedCount"
+		:on-group-elements="props.onGroupElements"
+		:on-ungroup-element="props.onUngroupElement"
+		:on-update-element-style="props.onUpdateElementStyle"
+	/>
 	<div :class="grp">
 		<button
 			:class="gB"
