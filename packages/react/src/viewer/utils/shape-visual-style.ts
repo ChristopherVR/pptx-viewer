@@ -5,6 +5,7 @@ import {
 	getGradientTileRectCss,
 	getSoftEdgeFilterId,
 	sanitizeGradientStops,
+	suppressesCssBorder,
 } from 'pptx-viewer-shared';
 /**
  * Shape visual style computation.
@@ -156,6 +157,8 @@ export function getShapeVisualStyle(
 	// hard-coded `100% 100%` / `no-repeat` and lost both; the other four
 	// bindings already honour them through shared `getComputedFillStyle`.
 	const gradientTiling = getGradientTilingCss(ss);
+	// `ShapeEffectOverlay` strokes a gradient outline as an SVG path instead.
+	const paintsGradientOutline = suppressesCssBorder(element);
 	// A DAG fill-overlay tint layer is painted separately by `ShapeEffectOverlay`
 	// when a colour is parsed; in that case the whole-element blend proxy below is
 	// suppressed so the overlay layer owns the blend (mirrors shared
@@ -352,9 +355,19 @@ export function getShapeVisualStyle(
 		// two adjacent 40px buttons rendered with a 2px gap PowerPoint does not
 		// draw. The affordance is an `outline` instead (see `ElementRenderer`),
 		// which paints in the same place without taking part in layout.
-		borderWidth: strokeWidth > 0 ? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth) : 0,
-		borderColor: strokeWidth > 0 ? resolvedStrokeColor : undefined,
-		borderStyle: strokeWidth > 0 ? getCssBorderDashStyle(strokeDash, ss?.compoundLine) : undefined,
+		// A gradient outline is painted by `ShapeEffectOverlay` as a stroked SVG
+		// path following the shape's geometry, because a CSS border can only take
+		// one colour. Keeping the border too would draw the parser's averaged
+		// solid underneath the gradient.
+		borderWidth:
+			strokeWidth > 0 && !paintsGradientOutline
+				? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth)
+				: 0,
+		borderColor: strokeWidth > 0 && !paintsGradientOutline ? resolvedStrokeColor : undefined,
+		borderStyle:
+			strokeWidth > 0 && !paintsGradientOutline
+				? getCssBorderDashStyle(strokeDash, ss?.compoundLine)
+				: undefined,
 		strokeLinejoin: lineJoinCss,
 		strokeMiterlimit: miterLimitCss,
 		strokeLinecap:
