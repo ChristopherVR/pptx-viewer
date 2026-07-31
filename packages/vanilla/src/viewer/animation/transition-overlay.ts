@@ -87,6 +87,12 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 	if (morphPlan) {
 		inLayer.dataset.pptxMorphIncoming = 'true';
 		outLayer.dataset.pptxMorphOutgoing = 'true';
+		// The departing snapshot only carries the morphing shapes and sits ABOVE
+		// the incoming slide, so it must not keep the outgoing slide's own
+		// background: `getSlideBackgroundStyle` always resolves to an OPAQUE fill,
+		// which would cover the whole morph with a flat slab for its duration.
+		outgoing.style.background = 'none';
+		outgoing.style.backgroundColor = 'transparent';
 		const keep = new Set(morphPlan.outgoingElements.map((element) => element.id));
 		for (const node of outgoing.querySelectorAll<HTMLElement>('[data-element-id]')) {
 			const id = node.dataset.elementId;
@@ -134,8 +140,13 @@ function buildLayer(
 	layer.className = 'pptxv-transition-layer';
 	layer.dataset.pptxTransitionLayer = state;
 	layer.style.position = 'absolute';
-	layer.style.top = '0';
-	layer.style.left = '0';
+	// `inset`, not `top`/`left`: the stage inside scales with a CSS `transform`,
+	// which never changes its laid-out box, so an auto-sized layer measures the
+	// deck's NATIVE size (e.g. 1280x720) while the stage paints the display size
+	// (1920x1080). With `overflow: hidden` that crops the transition to a
+	// deck-sized top-left corner and the rest of the screen cuts straight to the
+	// next slide. Pinning to the overlay puts the clip on the slide edge.
+	layer.style.inset = '0';
 	layer.style.overflow = 'hidden';
 	layer.style.zIndex = String(zIndex);
 	layer.style.willChange = 'transform, opacity, clip-path, filter';
