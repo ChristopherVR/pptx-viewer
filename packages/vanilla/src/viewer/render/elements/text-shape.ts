@@ -1,4 +1,4 @@
-import { buildParagraphs, getContainerStyle } from 'pptx-viewer-shared';
+import { buildParagraphs, getContainerStyle, getOverflowSegments } from 'pptx-viewer-shared';
 
 import { composeTransforms, createEl } from '../dom';
 import { getShapeFillStrokeStyle, getTextBlockStyle } from '../element-styles';
@@ -6,7 +6,7 @@ import type { ElementRenderer } from '../types';
 import { renderEquations } from './equation';
 import { renderExtrusionOverlay } from './extrusion-overlay';
 import {
-	renderGradientStrokeOutline,
+	renderStrokeOutline,
 	renderShapeFillOverlay,
 	renderShapeFilterDefs,
 } from './shape-filter-defs';
@@ -56,8 +56,8 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	if (fillOverlay) {
 		el.appendChild(fillOverlay);
 	}
-	// Gradient outline: a CSS border takes one colour only, so it is stroked here.
-	const gradientOutline = renderGradientStrokeOutline(context.document, element);
+	// Gradient / pattern outline: a CSS border takes one flat colour only.
+	const gradientOutline = renderStrokeOutline(context.document, element);
 	if (gradientOutline) {
 		el.appendChild(gradientOutline);
 	}
@@ -69,7 +69,12 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	} else if (warped) {
 		el.appendChild(warped);
 	} else {
-		const paragraphs = buildParagraphs(element, context.fieldContext);
+		// `a:linkedTxbx`: a box in a linked chain paints only the slice of the
+		// chain's text the preceding boxes could not hold, resolved against its
+		// siblings on the slide being rendered. Returns undefined (and costs one
+		// field check) for the overwhelmingly common non-chain element.
+		const linkedSegments = getOverflowSegments(element, context.slide?.elements);
+		const paragraphs = buildParagraphs(element, context.fieldContext, linkedSegments);
 		const hasText = paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined);
 		if (hasText) {
 			el.appendChild(

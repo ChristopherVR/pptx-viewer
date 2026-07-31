@@ -1,11 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
-	buildGradientStrokeOutline,
+	buildStrokeOutline,
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
 	getSoftEdgeSvgFilter,
 	svgGradientFillRef,
+	isPatternPaint,
 	svgGradientMarkup,
 } from 'pptx-viewer-shared';
 
@@ -68,19 +69,16 @@ export function renderShapeFillOverlay(doc: Document, element: PptxElement): HTM
 }
 
 /**
- * Gradient OUTLINE (`a:ln/a:gradFill`) painted as a stroked SVG path over the
- * element, following the shape's own geometry.
+ * Gradient / pattern OUTLINE (`a:ln/a:gradFill`, `a:ln/a:pattFill`) painted as a
+ * stroked SVG path over the element, following the shape's own geometry.
  *
- * A CSS `border` takes a single colour, so a gradient outline was drawn with the
- * parser's averaged `strokeColor`: flat where it should be two-tone, opaque
- * where it should fade out. `element-styles.ts` drops the CSS border for these
- * shapes so the averaged solid does not show underneath this overlay.
+ * A CSS `border` takes a single flat colour, so a gradient outline was drawn
+ * with the parser's averaged `strokeColor` and a patterned one lost its hatching
+ * entirely. `element-styles.ts` drops the CSS border for these shapes so the
+ * flat colour does not show underneath this overlay.
  */
-export function renderGradientStrokeOutline(
-	doc: Document,
-	element: PptxElement,
-): SVGSVGElement | null {
-	const outline = buildGradientStrokeOutline(element);
+export function renderStrokeOutline(doc: Document, element: PptxElement): SVGSVGElement | null {
+	const outline = buildStrokeOutline(element);
 	if (!outline) {
 		return null;
 	}
@@ -95,12 +93,30 @@ export function renderGradientStrokeOutline(
 		'position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none',
 	);
 	const defs = createSvgEl(doc, 'defs');
-	defs.innerHTML = svgGradientMarkup(outline.gradient);
+	if (isPatternPaint(outline.paint)) {
+		// The tile rides in as a data-URI <image> so the same descriptor renders
+		// from plain attributes in every binding.
+		const pattern = createSvgEl(doc, 'pattern', {
+			id: outline.paint.id,
+			width: outline.paint.width,
+			height: outline.paint.height,
+			patternUnits: 'userSpaceOnUse',
+		});
+		const image = createSvgEl(doc, 'image', {
+			href: outline.paint.href,
+			width: outline.paint.width,
+			height: outline.paint.height,
+		});
+		pattern.appendChild(image);
+		defs.appendChild(pattern);
+	} else {
+		defs.innerHTML = svgGradientMarkup(outline.paint);
+	}
 	svg.appendChild(defs);
 	const path = createSvgEl(doc, 'path', {
 		d: outline.d,
 		fill: 'none',
-		stroke: svgGradientFillRef(outline.gradient),
+		stroke: svgGradientFillRef(outline.paint),
 		'stroke-width': outline.strokeWidth,
 		'stroke-linecap': outline.lineCap,
 		'stroke-linejoin': outline.lineJoin,
