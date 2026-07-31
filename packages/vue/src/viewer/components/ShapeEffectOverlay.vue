@@ -7,7 +7,11 @@
  *  1. A DAG fill-overlay tint layer (`ComputedEffectStyle.fillOverlay`): an
  *     absolutely-positioned, blended `<div>` painted over the element rather
  *     than blending the whole element (which would also tint text/children).
- *  2. The soft-edge feather `<filter>` (`a:softEdge`): the shape's CSS `filter`
+ *  2. A gradient OUTLINE (`a:ln/a:gradFill`): a CSS `border` takes one colour
+ *     only, so the outline is stroked as a real SVG path over the element,
+ *     following the shape's own geometry. `element-style.ts` drops the CSS
+ *     border for these shapes so the averaged solid does not show underneath.
+ *  3. The soft-edge feather `<filter>` (`a:softEdge`): the shape's CSS `filter`
  *     already carries a `url(#soft-edge-<id>)` reference (emitted by shared
  *     `getEffectFilterCss`); this injects the matching `<filter>` markup into a
  *     hidden, zero-size `<svg><defs>` so that reference resolves. Mirrors how
@@ -18,7 +22,12 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import { getComputedEffectStyle, getSoftEdgeSvgFilter } from 'pptx-viewer-shared';
+import {
+	buildGradientStrokeOutline,
+	getComputedEffectStyle,
+	getSoftEdgeSvgFilter,
+	svgGradientFillRef,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -57,6 +66,19 @@ const softEdge = computed(() => {
 	}
 	return getSoftEdgeSvgFilter(props.element.shapeStyle, props.element.id);
 });
+
+/** Stroked SVG outline for a gradient `a:ln`, or `undefined` for a solid one. */
+const strokeOutline = computed(() => buildGradientStrokeOutline(props.element));
+
+/** `url(#…)` reference to the outline's paint server. */
+const strokePaint = computed(() =>
+	strokeOutline.value ? svgGradientFillRef(strokeOutline.value.gradient) : undefined,
+);
+
+/** viewBox in the element's own pixel space, matching the outline path data. */
+const outlineViewBox = computed(
+	() => `0 0 ${Math.max(props.element.width, 1)} ${Math.max(props.element.height, 1)}`,
+);
 </script>
 
 <template>
@@ -75,4 +97,62 @@ const softEdge = computed(() => {
 		aria-hidden="true"
 		:style="fillOverlayStyle"
 	/>
+	<svg
+		v-if="strokeOutline"
+		class="pptx-vue-gradient-outline"
+		aria-hidden="true"
+		:viewBox="outlineViewBox"
+		preserveAspectRatio="none"
+		style="
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			overflow: visible;
+			pointer-events: none;
+		"
+	>
+		<defs>
+			<radialGradient
+				v-if="strokeOutline.gradient.kind === 'radial'"
+				:id="strokeOutline.gradient.id"
+				:cx="strokeOutline.gradient.cx"
+				:cy="strokeOutline.gradient.cy"
+				:r="strokeOutline.gradient.r"
+			>
+				<stop
+					v-for="(stop, idx) in strokeOutline.gradient.stops"
+					:key="idx"
+					:offset="stop.offset"
+					:stop-color="stop.color"
+					:stop-opacity="stop.opacity"
+				/>
+			</radialGradient>
+			<linearGradient
+				v-else
+				:id="strokeOutline.gradient.id"
+				:x1="strokeOutline.gradient.x1"
+				:y1="strokeOutline.gradient.y1"
+				:x2="strokeOutline.gradient.x2"
+				:y2="strokeOutline.gradient.y2"
+			>
+				<stop
+					v-for="(stop, idx) in strokeOutline.gradient.stops"
+					:key="idx"
+					:offset="stop.offset"
+					:stop-color="stop.color"
+					:stop-opacity="stop.opacity"
+				/>
+			</linearGradient>
+		</defs>
+		<path
+			:d="strokeOutline.d"
+			fill="none"
+			:stroke="strokePaint"
+			:stroke-width="strokeOutline.strokeWidth"
+			:stroke-dasharray="strokeOutline.dashArray"
+			:stroke-linecap="strokeOutline.lineCap"
+			:stroke-linejoin="strokeOutline.lineJoin"
+		/>
+	</svg>
 </template>

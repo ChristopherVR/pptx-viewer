@@ -13,6 +13,7 @@ import {
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
+	suppressesCssBorder,
 	px,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -98,8 +99,10 @@ export function getShapeFillStrokeStyle(
 			}
 		}
 
-		// Stroke.
-		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
+		// Stroke. A gradient outline is stroked as an SVG path by
+		// `ShapeEffectOverlay` (a CSS border takes one colour only), so the border
+		// is dropped here rather than drawing the averaged solid underneath it.
+		const strokeWidth = suppressesCssBorder(el) ? 0 : Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
 			if (animatesStroke) {
 				// Keep the width / dash; leave the colour to the animated keyframes.
