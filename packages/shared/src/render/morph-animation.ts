@@ -174,6 +174,72 @@ export function morphPairNeedsCrossfade(fromElement: PptxElement, toElement: Ppt
 	return appearanceSignature(fromElement) !== appearanceSignature(toElement);
 }
 
+/** Sub-pixel tolerance for calling a pair's geometry unchanged. */
+const GEOMETRY_EPSILON = 0.5;
+
+/**
+ * Whether a matched pair is INERT: identical appearance, and neither moved,
+ * resized, rotated nor flipped. Its ghost in the overlay is therefore a
+ * pixel-perfect stand-in for the live element underneath.
+ *
+ * Most of a Morph deck is inert - the authoring pattern is to duplicate a slide
+ * and restyle one thing, so 26 of 32 pairs on this deck's transitions are
+ * untouched - which makes what we do with them the dominant visual effect.
+ */
+export function isInertMorphPair(fromElement: PptxElement, toElement: PptxElement): boolean {
+	return (
+		Math.abs(fromElement.x - toElement.x) <= GEOMETRY_EPSILON &&
+		Math.abs(fromElement.y - toElement.y) <= GEOMETRY_EPSILON &&
+		Math.abs(fromElement.width - toElement.width) <= GEOMETRY_EPSILON &&
+		Math.abs(fromElement.height - toElement.height) <= GEOMETRY_EPSILON &&
+		(fromElement.rotation ?? 0) === (toElement.rotation ?? 0) &&
+		Boolean(fromElement.flipHorizontal) === Boolean(toElement.flipHorizontal) &&
+		Boolean(fromElement.flipVertical) === Boolean(toElement.flipVertical) &&
+		(fromElement.opacity ?? 1) === (toElement.opacity ?? 1) &&
+		!morphPairNeedsCrossfade(fromElement, toElement)
+	);
+}
+
+/**
+ * Whether a crossfading pair's INCOMING half may fade in over its ghost.
+ *
+ * Fading both halves of a dissolve leaves the middle of the transition
+ * part-transparent, so a solid object goes see-through and the background shows
+ * through it - the reason the incoming half is otherwise pinned at its final
+ * opacity. That only matters when the element actually paints a body: a text
+ * box over `noFill` has nothing to hollow out, and pinning it means the new
+ * wording is at full strength from frame 1 while the old dissolves off it,
+ * which reads as the new text simply appearing rather than cross-dissolving.
+ */
+function crossfadeIncomingMayFadeIn(element: PptxElement): boolean {
+	const image = element as { imagePath?: string; svgPath?: string };
+	if (image.imagePath || image.svgPath) {
+		return false;
+	}
+	if (!hasShapeProperties(element)) {
+		return true;
+	}
+	const style = element.shapeStyle;
+	if (!style) {
+		return true;
+	}
+	// An explicit `a:noFill`, or a fill turned fully transparent, paints nothing.
+	if (style.fillMode === 'none' || (style.fillOpacity ?? 1) === 0) {
+		return true;
+	}
+	// Otherwise anything that names a paint - solid colour, gradient, pattern or
+	// image fill - is a body that would go see-through if both halves faded.
+	// `fillMode` being absent is NOT on its own evidence of no fill: a style
+	// carrying only `fillColor` still paints.
+	return !(
+		style.fillColor ||
+		style.fillGradient ||
+		style.fillGradientStops?.length ||
+		style.fillPatternPreset ||
+		style.fillImageUrl
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Generate CSS keyframes for morph pairs
 // ---------------------------------------------------------------------------
@@ -229,24 +295,34 @@ export function generateMorphAnimations(
 			toElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
 
-		// A restyled pair dissolves via its outgoing GHOST, which is painted in
-		// the overlay directly above this element and fades 1 -> 0 (see
-		// `generateMorphGhostAnimations`). This half therefore has to stay at its
-		// final opacity for the whole flight: fading it IN as well left both
-		// layers part-transparent in the middle of the transition, so the
-		// background showed straight through what should be a solid object and
-		// both states were legible at once (issue #131: the wheel's centre disc
-		// went see-through mid-morph where PowerPoint keeps it solid and only
-		// dissolves the content on top of it).
+		// An INERT pair is painted twice: its ghost is a pixel-identical copy
+		// sitting in the overlay directly above it. For an opaque element that is
+		// invisible, but a PART-TRANSPARENT one composites with itself and reads
+		// noticeably more solid for the whole transition, then snaps back when the
+		// overlay is torn down - "opacity animating on elements that should be
+		// unchanged" (issue #131). The ghost cannot simply be dropped instead:
+		// the overlay is one flat layer, and every transition in that deck opens
+		// with a full-slide backdrop ghost that IS fading, so anything left out of
+		// the overlay would be veiled by it. Hold this half hidden and let the
+		// ghost be the single visible copy; both are removed together when the
+		// plan ends, so the element reappears in the same frame.
+		const inert = isInertMorphPair(fromElement, toElement);
+		// A restyled pair dissolves via its outgoing GHOST, which fades 1 -> 0 in
+		// the overlay above this element. Only a body-less element (a text box on
+		// `noFill`) may fade IN underneath it - see `crossfadeIncomingMayFadeIn`.
+		const crossfadesIn =
+			!inert &&
+			morphPairNeedsCrossfade(fromElement, toElement) &&
+			crossfadeIncomingMayFadeIn(toElement);
 
 		// Build from/to property blocks
 		const fromProps: string[] = [
 			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${fromRot}deg)${flips};`,
-			`\t\topacity: ${fromOpacity};`,
+			`\t\topacity: ${inert ? 0 : crossfadesIn ? 0 : fromOpacity};`,
 		];
 		const toProps: string[] = [
 			`\t\ttransform: translate(0, 0) scale(1, 1) rotate(${toRot}deg)${flips};`,
-			`\t\topacity: ${toOpacity};`,
+			`\t\topacity: ${inert ? 0 : toOpacity};`,
 		];
 
 		// Fill color interpolation

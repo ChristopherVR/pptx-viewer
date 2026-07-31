@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
 	generateMorphAnimations,
+	isInertMorphPair,
 	generateMorphGhostAnimations,
 	shortestRotationTarget,
 	generateUnmatchedFadeOutAnimations,
@@ -1558,5 +1559,138 @@ describe('morphPairNeedsCrossfade', () => {
 describe('mORPH_EASING', () => {
 	it('is a cubic-bezier string', () => {
 		expect(MORPH_EASING).toMatch(/^cubic-bezier\(/u);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// issue #131 follow-up: what a morph does with pairs it should leave alone
+// ---------------------------------------------------------------------------
+
+describe('morph inert pairs (issue #131 follow-up)', () => {
+	const still = (id: string, extra: Partial<PptxElement> = {}) =>
+		makeElement({
+			id,
+			type: 'shape',
+			x: 10,
+			y: 20,
+			width: 100,
+			height: 50,
+			shapeStyle: { fillMode: 'solid', fillColor: '#3D4146', fillOpacity: 0.5 },
+			...extra,
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+
+	it('recognises an unchanged, unmoved pair as inert', () => {
+		expect(isInertMorphPair(still('a'), still('b'))).toBeTruthy();
+	});
+
+	it('does not call a moved or restyled pair inert', () => {
+		expect(isInertMorphPair(still('a'), still('b', { x: 40 }))).toBeFalsy();
+		expect(
+			isInertMorphPair(
+				still('a'),
+				still('b', {
+					shapeStyle: { fillMode: 'solid', fillColor: '#000000' },
+				} as Partial<PptxElement>),
+			),
+		).toBeFalsy();
+		expect(isInertMorphPair(still('a'), still('b', { rotation: 90 }))).toBeFalsy();
+	});
+
+	it('holds an inert pair’s incoming half hidden so its ghost is the only copy', () => {
+		// The ghost is pixel-identical and sits directly above it. Painting both
+		// composites a part-transparent element with itself, so it reads more
+		// solid for the whole transition and snaps back at teardown - the
+		// reporter's "opacity animating on elements that should be unchanged".
+		const anims = generateMorphAnimations(
+			[{ fromElement: still('a'), toElement: still('b') }],
+			500,
+		);
+		const frames = anims[0].keyframes;
+		expect(frames).toContain('opacity: 0;');
+		expect(frames).not.toContain('opacity: 1;');
+	});
+
+	it('still paints the inert ghost, which the overlay needs for z-order', () => {
+		// It cannot simply be dropped: the overlay is one flat layer above the
+		// stage, and a fading full-slide backdrop ghost would veil anything left
+		// out of it.
+		const ghosts = generateMorphGhostAnimations(
+			[{ fromElement: still('a'), toElement: still('b') }],
+			500,
+			0,
+		);
+		expect(ghosts).toHaveLength(1);
+		// It stands in for the live element, so it stays fully visible: only a
+		// restyled pair's ghost dissolves.
+		expect(ghosts[0].keyframes).not.toContain('opacity: 0;');
+	});
+});
+
+describe('morph crossfade fade-in (issue #131 follow-up)', () => {
+	const textBox = (id: string, text: string) =>
+		makeElement({
+			id,
+			type: 'text',
+			x: 10,
+			y: 20,
+			width: 100,
+			height: 50,
+			text,
+			shapeStyle: { fillMode: 'none' },
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+
+	it('fades a body-less text pair IN so the new wording dissolves', () => {
+		// Pinned at full opacity the new words are at full strength on frame 1
+		// with the old dissolving off them, which reads as the next slide's text
+		// simply appearing.
+		const anims = generateMorphAnimations(
+			[
+				{
+					fromElement: textBox('a', 'Multi-Domain Fusion'),
+					toElement: textBox('b', 'Cyber and EM'),
+				},
+			],
+			500,
+		);
+		expect(anims[0].keyframes).toContain('opacity: 0;');
+		expect(anims[0].keyframes).toContain('opacity: 1;');
+	});
+
+	it('still refuses to fade in anything that paints a body', () => {
+		// Regression guard for the wheel's centre disc: fading both halves left
+		// the middle of the transition see-through.
+		const disc = (id: string, colour: string) =>
+			makeElement({
+				id,
+				type: 'shape',
+				x: 10,
+				y: 20,
+				width: 100,
+				height: 50,
+				shapeStyle: { fillMode: 'solid', fillColor: colour },
+			} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+		const anims = generateMorphAnimations(
+			[{ fromElement: disc('a', '#ff0000'), toElement: disc('b', '#00ff00') }],
+			500,
+		);
+		expect(anims[0].keyframes).not.toContain('opacity: 0;');
+	});
+
+	it('refuses for a picture too', () => {
+		const pic = (id: string, path: string) =>
+			makeElement({
+				id,
+				type: 'picture',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 50,
+				imagePath: path,
+			} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+		const anims = generateMorphAnimations(
+			[{ fromElement: pic('a', 'a.png'), toElement: pic('b', 'b.png') }],
+			500,
+		);
+		expect(anims[0].keyframes).not.toContain('opacity: 0;');
 	});
 });
