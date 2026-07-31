@@ -7,8 +7,9 @@
  *  1. A DAG fill-overlay tint layer (`ComputedEffectStyle.fillOverlay`): an
  *     absolutely-positioned, blended `<div>` painted over the element rather
  *     than blending the whole element (which would also tint text/children).
- *  2. A gradient OUTLINE (`a:ln/a:gradFill`): a CSS `border` takes one colour
- *     only, so the outline is stroked as a real SVG path over the element,
+ *  2. A gradient or pattern OUTLINE (`a:ln/a:gradFill`, `a:ln/a:pattFill`): a
+ *     CSS `border` takes one flat colour only, so the outline is stroked as a
+ *     real SVG path over the element,
  *     following the shape's own geometry. `element-style.ts` drops the CSS
  *     border for these shapes so the averaged solid does not show underneath.
  *  3. The soft-edge feather `<filter>` (`a:softEdge`): the shape's CSS `filter`
@@ -23,7 +24,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
-	buildGradientStrokeOutline,
+	buildStrokeOutline,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
 	svgGradientFillRef,
@@ -68,11 +69,11 @@ const softEdge = computed(() => {
 });
 
 /** Stroked SVG outline for a gradient `a:ln`, or `undefined` for a solid one. */
-const strokeOutline = computed(() => buildGradientStrokeOutline(props.element));
+const strokeOutline = computed(() => buildStrokeOutline(props.element));
 
 /** `url(#…)` reference to the outline's paint server. */
 const strokePaint = computed(() =>
-	strokeOutline.value ? svgGradientFillRef(strokeOutline.value.gradient) : undefined,
+	strokeOutline.value ? svgGradientFillRef(strokeOutline.value.paint) : undefined,
 );
 
 /** viewBox in the element's own pixel space, matching the outline path data. */
@@ -113,15 +114,28 @@ const outlineViewBox = computed(
 		"
 	>
 		<defs>
+			<pattern
+				v-if="strokeOutline.paint.kind === 'pattern'"
+				:id="strokeOutline.paint.id"
+				:width="strokeOutline.paint.width"
+				:height="strokeOutline.paint.height"
+				patternUnits="userSpaceOnUse"
+			>
+				<image
+					:href="strokeOutline.paint.href"
+					:width="strokeOutline.paint.width"
+					:height="strokeOutline.paint.height"
+				/>
+			</pattern>
 			<radialGradient
-				v-if="strokeOutline.gradient.kind === 'radial'"
-				:id="strokeOutline.gradient.id"
-				:cx="strokeOutline.gradient.cx"
-				:cy="strokeOutline.gradient.cy"
-				:r="strokeOutline.gradient.r"
+				v-else-if="strokeOutline.paint.kind === 'radial'"
+				:id="strokeOutline.paint.id"
+				:cx="strokeOutline.paint.cx"
+				:cy="strokeOutline.paint.cy"
+				:r="strokeOutline.paint.r"
 			>
 				<stop
-					v-for="(stop, idx) in strokeOutline.gradient.stops"
+					v-for="(stop, idx) in strokeOutline.paint.stops"
 					:key="idx"
 					:offset="stop.offset"
 					:stop-color="stop.color"
@@ -130,14 +144,14 @@ const outlineViewBox = computed(
 			</radialGradient>
 			<linearGradient
 				v-else
-				:id="strokeOutline.gradient.id"
-				:x1="strokeOutline.gradient.x1"
-				:y1="strokeOutline.gradient.y1"
-				:x2="strokeOutline.gradient.x2"
-				:y2="strokeOutline.gradient.y2"
+				:id="strokeOutline.paint.id"
+				:x1="strokeOutline.paint.x1"
+				:y1="strokeOutline.paint.y1"
+				:x2="strokeOutline.paint.x2"
+				:y2="strokeOutline.paint.y2"
 			>
 				<stop
-					v-for="(stop, idx) in strokeOutline.gradient.stops"
+					v-for="(stop, idx) in strokeOutline.paint.stops"
 					:key="idx"
 					:offset="stop.offset"
 					:stop-color="stop.color"
