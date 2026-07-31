@@ -63,6 +63,23 @@ function chain(): [PptxElementWithText, PptxElementWithText] {
 	return [linkedBox('head', 0, [{ text: 'ABCDEFGHIJ', style: {} }]), linkedBox('tail', 1)];
 }
 
+/**
+ * A group wrapping the given children. Children carry group-relative x/y but
+ * SLIDE-scale width/height, which is exactly how the loader and `groupElements`
+ * build one, and why the capacity estimate needs no coordinate correction.
+ */
+function group(id: string, children: PptxElement[]): PptxElement {
+	return {
+		type: 'group',
+		id,
+		x: 100,
+		y: 100,
+		width: 400,
+		height: 300,
+		children,
+	} as PptxElement;
+}
+
 describe('getOverflowSegments', () => {
 	it('splits the chain text so each box renders only its own slice', () => {
 		const [head, tail] = chain();
@@ -87,6 +104,88 @@ describe('getOverflowSegments', () => {
 	it('returns undefined for a chain of one, so a lone box keeps its own text', () => {
 		const [head] = chain();
 		expect(getOverflowSegments(head, [head])).toBeUndefined();
+	});
+});
+
+/**
+ * Chain resolution has to descend into `p:grpSp`. Every binding passes the
+ * slide's TOP-LEVEL element list to `getOverflowSegments`, including at a group
+ * child's own render site, so before the walk existed a chain authored inside a
+ * group resolved to no chain at all: the head painted the whole text and the
+ * successor rendered blank, in all five bindings.
+ *
+ * `a:linkedTxbx/@id` is scoped to the slide part, not to a branch of the shape
+ * tree, so a chain is resolved wherever its members sit, group boundaries
+ * included. The expected splits below are the same 'ABC' / 'DEFGHIJ' the
+ * top-level cases assert, which is the point: nesting must not change them.
+ */
+describe('getOverflowSegments across group nesting', () => {
+	it('resolves a chain authored entirely inside a group', () => {
+		const [head, tail] = chain();
+		const slide = [group('g1', [head, tail])];
+		expect(getOverflowSegments(head, slide)?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(getOverflowSegments(tail, slide)?.map((s) => s.text)).toStrictEqual(['DEFGHIJ']);
+	});
+
+	it('resolves a chain inside a nested group', () => {
+		const [head, tail] = chain();
+		const slide = [group('outer', [group('inner', [head, tail])])];
+		expect(getOverflowSegments(head, slide)?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(getOverflowSegments(tail, slide)?.map((s) => s.text)).toStrictEqual(['DEFGHIJ']);
+	});
+
+	// Deliberate: OOXML does not confine a chain to one group, so a chain that
+	// crosses a group boundary flows rather than breaking. Seq ordering, not
+	// nesting, decides who paints what.
+	it('flows a chain whose head is grouped and whose successor is not', () => {
+		const [head, tail] = chain();
+		const slide = [group('g1', [head]), tail];
+		expect(getOverflowSegments(head, slide)?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(getOverflowSegments(tail, slide)?.map((s) => s.text)).toStrictEqual(['DEFGHIJ']);
+	});
+
+	it('flows a chain split across two sibling groups', () => {
+		const [head, tail] = chain();
+		const slide = [group('g1', [head]), group('g2', [tail])];
+		expect(getOverflowSegments(head, slide)?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(getOverflowSegments(tail, slide)?.map((s) => s.text)).toStrictEqual(['DEFGHIJ']);
+	});
+
+	// Sequence, not document order, orders the chain: a successor authored
+	// BEFORE its head, in an earlier group, still receives the overflow.
+	it('orders by seq, not by position in the tree', () => {
+		const [head, tail] = chain();
+		const slide = [group('g1', [tail]), head];
+		expect(getOverflowSegments(head, slide)?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(getOverflowSegments(tail, slide)?.map((s) => s.text)).toStrictEqual(['DEFGHIJ']);
+	});
+
+	it('leaves a lone grouped box alone, so a one-member chain keeps its text', () => {
+		const [head] = chain();
+		expect(getOverflowSegments(head, [group('g1', [head])])).toBeUndefined();
+	});
+
+	it('does not confuse two chains with different ids in the same group', () => {
+		const [head, tail] = chain();
+		const other = linkedBox('other', 0, [{ text: 'ZZZZZZ', style: {} }]);
+		(other as { linkedTxbxId?: number }).linkedTxbxId = 8;
+		const slide = [group('g1', [head, other, tail])];
+		expect(getOverflowSegments(head, slide)?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(getOverflowSegments(other, slide)).toBeUndefined();
+	});
+
+	it('maps grouped and nested members in one pass', () => {
+		const [head, tail] = chain();
+		const map = buildSlideOverflowMap([group('outer', [group('inner', [head]), tail])]);
+		expect(map.get('head')?.map((s) => s.text)).toStrictEqual(['ABC']);
+		expect(map.get('tail')?.map((s) => s.text)).toStrictEqual(['DEFGHIJ']);
+	});
+
+	it('survives a cyclic group tree instead of recursing forever', () => {
+		const [head, tail] = chain();
+		const cycle = group('g1', [head, tail]) as PptxElement & { children: PptxElement[] };
+		cycle.children.push(cycle);
+		expect(getOverflowSegments(head, [cycle])?.map((s) => s.text)).toStrictEqual(['ABC']);
 	});
 });
 
