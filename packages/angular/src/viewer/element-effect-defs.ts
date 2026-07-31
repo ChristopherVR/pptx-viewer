@@ -9,8 +9,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
-import { getComputedEffectStyle, getSoftEdgeSvgFilter } from '../internal/shared';
-import type { FillOverlayCss } from '../internal/shared';
+import {
+	buildGradientStrokeOutline,
+	getComputedEffectStyle,
+	getSoftEdgeSvgFilter,
+} from '../internal/shared';
+import type { FillOverlayCss, GradientStrokeOutline } from '../internal/shared';
 import type { DuotoneFilterDef } from './duotone-filter';
 
 /** Injectable soft-edge `<filter>` descriptor (id + feather radius in px). */
@@ -47,6 +51,19 @@ export function getSoftEdgeFilterDef(el: PptxElement): SoftEdgeFilterDef | undef
  */
 export function getEffectFillOverlay(el: PptxElement): FillOverlayCss | undefined {
 	return getComputedEffectStyle(el).fillOverlay;
+}
+
+/**
+ * Stroked SVG outline for a gradient `a:ln`, or `undefined` for a solid one.
+ *
+ * A CSS `border` takes a single colour, so a gradient outline rendered with the
+ * parser's averaged `strokeColor`: flat where it should be two-tone, opaque
+ * where it should fade out. The renderer strokes this path over the element
+ * instead, following the shape's own geometry, and `element-style.ts` drops the
+ * CSS border so the averaged solid does not show underneath.
+ */
+export function getGradientStrokeOutline(el: PptxElement): GradientStrokeOutline | undefined {
+	return buildGradientStrokeOutline(el);
 }
 
 /**

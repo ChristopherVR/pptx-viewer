@@ -7,6 +7,7 @@ import {
 	buildTextBlockStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	suppressesCssBorder,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
 	px,
@@ -111,7 +112,10 @@ export function getShapeFillStrokeStyle(
 		}
 
 		// Stroke.
-		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
+		// A gradient outline is stroked as an SVG path by the renderer (a CSS border
+		// takes one colour only), so drop the border rather than drawing the
+		// averaged solid underneath it.
+		const strokeWidth = suppressesCssBorder(el) ? 0 : Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
 			const dash =
 				ss.strokeDash && ss.strokeDash !== 'solid'

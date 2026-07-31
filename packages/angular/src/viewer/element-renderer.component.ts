@@ -27,7 +27,11 @@ import { AnimationPlaybackService } from './animation-playback.service';
 import { ChartElementViewComponent } from './chart-element-view.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
-import { getEffectFillOverlay, getSoftEdgeFilterDef } from './element-effect-defs';
+import {
+	getEffectFillOverlay,
+	getGradientStrokeOutline,
+	getSoftEdgeFilterDef,
+} from './element-effect-defs';
 import type { SoftEdgeFilterDef } from './element-effect-defs';
 import {
 	getContainerStyle,
@@ -360,6 +364,67 @@ interface Paragraph {
 							[style.mix-blend-mode]="ov.blendMode"
 						></div>
 					}
+					<!-- Gradient outline (a:ln/a:gradFill): a CSS border takes one colour only. -->
+					@if (gradientOutline(); as go) {
+						<svg
+							class="pptx-ng-gradient-outline"
+							aria-hidden="true"
+							[attr.viewBox]="outlineViewBox()"
+							preserveAspectRatio="none"
+							style="
+								position: absolute;
+								inset: 0;
+								width: 100%;
+								height: 100%;
+								overflow: visible;
+								pointer-events: none;
+							"
+						>
+							<defs>
+								@if (go.gradient.kind === 'radial') {
+									<radialGradient
+										[attr.id]="go.gradient.id"
+										[attr.cx]="go.gradient.cx"
+										[attr.cy]="go.gradient.cy"
+										[attr.r]="go.gradient.r"
+									>
+										@for (stop of go.gradient.stops; track $index) {
+											<stop
+												[attr.offset]="stop.offset"
+												[attr.stop-color]="stop.color"
+												[attr.stop-opacity]="stop.opacity"
+											/>
+										}
+									</radialGradient>
+								} @else {
+									<linearGradient
+										[attr.id]="go.gradient.id"
+										[attr.x1]="go.gradient.x1"
+										[attr.y1]="go.gradient.y1"
+										[attr.x2]="go.gradient.x2"
+										[attr.y2]="go.gradient.y2"
+									>
+										@for (stop of go.gradient.stops; track $index) {
+											<stop
+												[attr.offset]="stop.offset"
+												[attr.stop-color]="stop.color"
+												[attr.stop-opacity]="stop.opacity"
+											/>
+										}
+									</linearGradient>
+								}
+							</defs>
+							<path
+								[attr.d]="go.d"
+								fill="none"
+								[attr.stroke]="'url(#' + go.gradient.id + ')'"
+								[attr.stroke-width]="go.strokeWidth"
+								[attr.stroke-dasharray]="go.dashArray"
+								[attr.stroke-linecap]="go.lineCap"
+								[attr.stroke-linejoin]="go.lineJoin"
+							/>
+						</svg>
+					}
 					@if (pathWarp(); as warp) {
 						<svg
 							[attr.width]="warp.width"
@@ -652,6 +717,14 @@ export class ElementRendererComponent {
 	 * DAG fill-overlay tint (colour + blend mode) painted as a separate blended
 	 * layer over the shape. Undefined when the element has no fill overlay.
 	 */
+	/** Gradient `a:ln` outline, stroked as an SVG path over the element. */
+	readonly gradientOutline = computed(() => getGradientStrokeOutline(this.element()));
+
+	/** viewBox in the element's own pixel space, matching the outline path data. */
+	readonly outlineViewBox = computed(
+		() => `0 0 ${Math.max(this.element().width, 1)} ${Math.max(this.element().height, 1)}`,
+	);
+
 	readonly fillOverlay = computed<FillOverlayCss | undefined>(() =>
 		getEffectFillOverlay(this.element()),
 	);
