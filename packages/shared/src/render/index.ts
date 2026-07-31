@@ -197,6 +197,9 @@ export * from './animation-css';
 // `animation-css` for the preset → CSS keyframe mapping. The stateful hooks /
 // services / RAF loops stay in each binding.
 export * from './animation-authoring';
+// Naming layer over both preset vocabularies (editor `PptxAnimationPreset`
+// tokens and core's OOXML preset catalogue), so no timeline prints a wire id.
+export * from './animation-preset-labels';
 export * from './animation-playback';
 // Native-animation (OOXML `p:timing` tree) timeline engine — preset tables,
 // keyframe definitions, colour interpolation, dynamic/static keyframe
@@ -770,6 +773,10 @@ export * from './password-protection';
 export * from './viewer-preferences';
 export * from './presentation-setup';
 export * from './presentation-show-order';
+// The rail / sorter cue for a slide `presentation-show-order` will skip: the
+// neutral marker attribute, the shared slash mark, and the description id that
+// announces the state without touching the tile's accessible name.
+export * from './hidden-slide-cue';
 export * from './presentation-subtitles';
 export * from './account';
 export * from './viewer-prefs-storage';

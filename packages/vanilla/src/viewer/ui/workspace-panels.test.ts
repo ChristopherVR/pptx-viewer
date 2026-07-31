@@ -72,7 +72,14 @@ describe('workspace parity panels', () => {
 
 	it('creates custom shows and applies safe hyperlinks', () => {
 		const onSave = vi.fn();
-		openCustomShowsDialog(document, createTranslator(), [], [slide], onSave, vi.fn());
+		openCustomShowsDialog(document, createTranslator(), {
+			shows: [],
+			slides: [slide],
+			activeShowId: null,
+			onSave,
+			onSetActive: vi.fn(),
+			onRun: vi.fn(),
+		});
 		Array.from(document.querySelectorAll('button'))
 			.find((button) => button.textContent === 'Create New Show')!
 			.click();

@@ -20,8 +20,15 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from '../internal/shared';
-import type { CanvasSize } from '../internal/shared';
+import {
+	computeVirtualRange,
+	HIDDEN_SLIDE_DIM_OPACITY,
+	HIDDEN_SLIDE_LABEL_KEY,
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	hiddenSlideCue,
+	SLIDE_VIRTUALIZATION_THRESHOLD,
+} from '../internal/shared';
+import type { CanvasSize, HiddenSlideCue } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
@@ -202,5 +209,26 @@ export class SlidesPanelComponent {
 
 	sectionIndex(sectionId: string): number {
 		return this.editor.sections().findIndex((section) => section.id === sectionId);
+	}
+
+	/** Dictionary key for the word shown and announced on a hidden slide's card. */
+	readonly hiddenLabelKey = HIDDEN_SLIDE_LABEL_KEY;
+
+	/**
+	 * The hidden-slide slash and dim, bound as inline styles rather than written
+	 * into `slides-panel.component.css`. A component stylesheet cannot read a TS
+	 * constant, so a literal copy there would be free to drift from the four
+	 * other bindings; binding the shared values makes drift impossible.
+	 */
+	readonly slashGradient = HIDDEN_SLIDE_SLASH_GRADIENT;
+	readonly dimOpacity = HIDDEN_SLIDE_DIM_OPACITY;
+
+	/**
+	 * The shared rail/sorter cue for one card. A hidden slide is still LISTED
+	 * here (hiding only removes it from the show), so without this the panel gave
+	 * a user no way to tell that a slide will be skipped.
+	 */
+	hiddenCue(slide: { hidden?: boolean }, index: number): HiddenSlideCue {
+		return hiddenSlideCue(slide.hidden, 'rail', index);
 	}
 }

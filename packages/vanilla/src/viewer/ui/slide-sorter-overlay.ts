@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { HIDDEN_SLIDE_ATTRIBUTE, HIDDEN_SLIDE_LABEL_KEY, hiddenSlideCue } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -42,8 +43,21 @@ export function openSlideSorterOverlay(
 		card.classList.toggle('is-hidden', Boolean(slide.hidden));
 		const preview = createEl(doc, 'button');
 		preview.type = 'button';
-		preview.textContent = String(index + 1);
+		// The number lives in its own span so the hidden-slide slash can be drawn
+		// across the number alone rather than the whole preview button.
+		const num = createEl(doc, 'span', 'pptxv-sorter-num');
+		num.textContent = String(index + 1);
+		preview.appendChild(num);
 		preview.setAttribute('aria-label', t('pptx.compare.slideNumber', { number: index + 1 }));
+		const cue = hiddenSlideCue(slide.hidden, 'sorter', index);
+		if (cue.marker && cue.labelId) {
+			card.setAttribute(HIDDEN_SLIDE_ATTRIBUTE, cue.marker);
+			preview.setAttribute('aria-describedby', cue.labelId);
+			const badge = createEl(doc, 'span', 'pptxv-sorter-hidden');
+			badge.id = cue.labelId;
+			badge.textContent = t(HIDDEN_SLIDE_LABEL_KEY);
+			preview.appendChild(badge);
+		}
 		preview.addEventListener('click', () => {
 			options.onSelect(index);
 			overlay.remove();

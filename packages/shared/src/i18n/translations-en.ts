@@ -1,3 +1,5 @@
+import { animationPresetTranslationsEn } from './translations-en-animation-presets';
+
 /**
  * The canonical English UI-string dictionary for pptx-viewer. None of the
  * React/Vue/Angular binding packages ship translations themselves - each
@@ -8,6 +10,10 @@
  * instead of drifting into three separate copies.
  */
 export const translationsEn: Record<string, string> = {
+	// Animation effect names for both preset vocabularies (278 mechanical
+	// entries), kept in their own module so they don't drown the UI copy here.
+	...animationPresetTranslationsEn,
+
 	// Status bar
 	'pptx.statusBar.allSaved': 'All saved',
 	'pptx.statusBar.unsavedChanges': 'Unsaved changes',
@@ -2470,7 +2476,6 @@ export const translationsEn: Record<string, string> = {
 	'pptx.action.slideNumberPlaceholder': 'Slide number (1-based)',
 	'pptx.animation.trigger.afterDelay': 'After delay',
 	'pptx.animationPanel.stepsMore': '{{base}} +{{extra}} more',
-	'pptx.arrowhead.arrow': 'Arrow',
 	'pptx.arrowhead.diamond': 'Diamond',
 	'pptx.arrowhead.none': 'None',
 	'pptx.arrowhead.openArrow': 'Open Arrow',

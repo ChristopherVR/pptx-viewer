@@ -1,4 +1,13 @@
+import { HIDDEN_SLIDE_SLASH_GRADIENT } from 'pptx-viewer-shared';
+
 export const PARITY_DIALOG_CSS = `
+/* Hidden slide in the sorter: the card is already dimmed by \`.is-hidden\`, so
+   this adds the two signals dimming cannot carry, because opacity is a
+   colour-only cue: the shared diagonal slash across the slide number, and the
+   state spelled out in words. */
+.pptxv-sorter-num { display: inline-block; padding: 0 3px; }
+.pptxv-sorter-card[data-pptx-slide-hidden] .pptxv-sorter-num { background-image: ${HIDDEN_SLIDE_SLASH_GRADIENT}; }
+.pptxv-sorter-hidden { display: block; margin-top: 4px; font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: var(--pptx-muted-foreground); }
 .pptxv-parity-backdrop { position: fixed; inset: 0; z-index: 1200; border: 0; background: rgb(0 0 0 / .55); }
 .pptxv-parity-dialog { position: fixed; z-index: 1201; top: 50%; left: 50%; display: flex; flex-direction: column; width: min(440px, calc(100vw - 32px)); max-height: 88vh; transform: translate(-50%, -50%); overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 10px; background: var(--pptx-background); color: var(--pptx-foreground); box-shadow: 0 24px 70px rgb(0 0 0 / .34); }
 .pptxv-parity-header, .pptxv-parity-footer { display: flex; align-items: center; padding: 12px 16px; border-color: var(--pptx-border); }
@@ -42,6 +51,7 @@ export const PARITY_DIALOG_CSS = `
 .pptxv-comment-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--pptx-border); border-radius: 6px; } .pptxv-comment-card.is-resolved { opacity: .6; } .pptxv-comment-card textarea, .pptxv-workspace-list > textarea { min-height: 58px; padding: 6px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; resize: vertical; } .pptxv-comment-card div { display: flex; gap: 4px; }
 .pptxv-slide-sorter { position: absolute; z-index: 50; inset: 0; display: flex; flex-direction: column; background: color-mix(in srgb, var(--pptx-background) 96%, transparent); color: var(--pptx-foreground); }
 .pptxv-sorter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; overflow: auto; padding: 18px; } .pptxv-sorter-card { overflow: hidden; border: 2px solid var(--pptx-border); border-radius: 7px; background: var(--pptx-card); } .pptxv-sorter-card.is-current { border-color: var(--pptx-primary); } .pptxv-sorter-card.is-hidden { opacity: .5; } .pptxv-sorter-card > button { display: grid; width: 100%; min-height: 90px; place-items: center; border: 0; background: var(--pptx-muted); color: inherit; font-size: 22px; cursor: pointer; } .pptxv-sorter-card div { display: flex; gap: 3px; padding: 5px; } .pptxv-sorter-card div button { flex: 1; padding: 4px; border: 0; background: transparent; color: inherit; font-size: 9px; cursor: pointer; }
+.pptxv-custom-shows-active { display: flex; align-items: center; gap: 8px; } .pptxv-custom-shows-active select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; }
 .pptxv-custom-shows article { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; padding: 8px; border: 1px solid var(--pptx-border); border-radius: 6px; } .pptxv-custom-shows article > div { grid-column: 1 / -1; max-height: 140px; overflow: auto; }
 @media (max-width: 767px) { .pptxv-parity-dialog { top: auto; bottom: 0; width: 100%; max-height: 88dvh; transform: translateX(-50%); border-radius: 16px 16px 0 0; } }
 `;

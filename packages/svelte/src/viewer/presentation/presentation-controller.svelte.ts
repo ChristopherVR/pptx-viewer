@@ -63,6 +63,11 @@ export interface PresentationControllerDeps {
 	exit?(): void;
 	/** `p:showPr` "end with black slide"; defaults to on, like PowerPoint. */
 	getEndWithBlackSlide?(): boolean | undefined;
+	/**
+	 * Membership of the custom show the user selected, or null/undefined for the
+	 * whole deck. Restricts and reorders the show; hiding still wins over it.
+	 */
+	getActiveCustomShow?(): { slideRIds: string[] } | null | undefined;
 }
 
 export class PresentationController {
@@ -92,14 +97,18 @@ export class PresentationController {
 	}
 
 	/**
-	 * The deck indexes this show visits: every slide the author did not hide.
+	 * The deck indexes this show visits: the selected custom show's membership
+	 * (or the whole deck), minus every slide the author hid.
+	 *
 	 * PowerPoint's "Hide Slide" keeps the slide in the deck, the thumbnail rail
 	 * and the sorter but skips it while presenting, so only the show's own
 	 * next / previous / Home / End consult this. A direct jump (`viewer.goTo`,
-	 * used by the typed "slide number + Enter") deliberately does not.
+	 * used by the typed "slide number + Enter") deliberately does not. The same
+	 * shared rule resolves custom-show membership, which is what makes hiding win
+	 * over it: a slide pulled out of rotation stays out of the shows it is in.
 	 */
 	#showOrder(): number[] {
-		return resolveShowSlideIndexes(this.#deps.getSlides());
+		return resolveShowSlideIndexes(this.#deps.getSlides(), this.#deps.getActiveCustomShow?.());
 	}
 
 	/** The active slide-transition overlay state, or `null` when none is playing. */

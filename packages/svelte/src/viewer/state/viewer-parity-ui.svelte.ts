@@ -19,6 +19,16 @@ export class ViewerParityUiState {
 	printSettingsOpen = $state(false);
 	subtitlesEnabled = $state(false);
 	customShowsOpen = $state(false);
+	/**
+	 * The custom show a started slide show is restricted to, or null for the
+	 * whole deck. Shows were definable and persisted here, but nothing held an
+	 * active one, so selecting a show changed nothing about what presented.
+	 *
+	 * A playback choice for this session, not an edit: it deliberately does NOT
+	 * live on `EditorPresentationMetadata`, so selecting a show neither enters
+	 * the undo history nor marks the document dirty.
+	 */
+	activeCustomShowId = $state<string | null>(null);
 	selectionPaneOpen = $state(false);
 	slideSorterOpen = $state(false);
 	/** View tab > Reading View: the deck at full window size, not a slide show. */

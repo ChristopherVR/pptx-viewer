@@ -1,5 +1,11 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import {
+	HIDDEN_SLIDE_LABEL_KEY,
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	hiddenSlideCue,
+} from 'pptx-viewer-shared';
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuEyeOff, LuMessageSquare } from 'react-icons/lu';
 
 import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../../constants';
@@ -68,7 +74,13 @@ function SlideItemInner({
 	onDrop,
 	slideRef,
 }: SlideItemProps): React.ReactElement {
+	const { t } = useTranslation();
 	const isHidden = Boolean(slide.hidden);
+	// The shared rail/sorter cue. The dim and the eye-off badge were already
+	// here; what was missing is a signal that is not colour (the slash across
+	// the number) and one assistive tech can hear (the description). Both are
+	// bound rather than styled so the mark is identical in all five bindings.
+	const cue = hiddenSlideCue(slide.hidden, 'rail', slideIndex);
 
 	const handleContextMenu = useCallback(
 		(e: React.MouseEvent) => {
@@ -95,6 +107,8 @@ function SlideItemInner({
 			ref={slideRef}
 			aria-label={`Go to slide ${slideIndex + 1}`}
 			aria-current={isActive ? 'true' : undefined}
+			aria-describedby={cue.labelId}
+			data-pptx-slide-hidden={cue.marker}
 			className={cn(
 				'group relative flex w-full items-center gap-1 cursor-pointer border-0 bg-transparent py-0.5 px-1 text-left transition-all',
 				isActive &&
@@ -115,6 +129,7 @@ function SlideItemInner({
 						'text-[10px] tabular-nums text-right select-none w-full',
 						isActive ? 'text-primary font-medium' : 'text-muted-foreground',
 					)}
+					style={isHidden ? { backgroundImage: HIDDEN_SLIDE_SLASH_GRADIENT } : undefined}
 				>
 					{slideIndex + 1}
 				</span>
@@ -158,8 +173,9 @@ function SlideItemInner({
 					</div>
 				)}
 				{isHidden && (
-					<div className='absolute bottom-0.5 right-0.5 z-10'>
+					<div className='absolute bottom-0.5 right-0.5 z-10' id={cue.labelId}>
 						<LuEyeOff className='w-3 h-3 text-muted-foreground' />
+						<span className='sr-only'>{t(HIDDEN_SLIDE_LABEL_KEY)}</span>
 					</div>
 				)}
 				{rehearsalTimings && typeof rehearsalTimings[slideIndex] === 'number' && (

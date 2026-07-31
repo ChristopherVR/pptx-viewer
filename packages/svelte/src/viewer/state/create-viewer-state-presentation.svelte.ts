@@ -59,6 +59,13 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		// File > Options > Advanced > "End with black slide". Off means the show
 		// exits straight to the editor instead of raising the black end screen.
 		getEndWithBlackSlide: () => optionsState.options.advanced.slideShowEndWithBlackSlide,
+		// Slide Show > Custom Shows: restrict playback to the selected show's
+		// members. Resolved fresh on every read so a show edited (or deleted) mid
+		// session is honoured without re-creating the controller.
+		getActiveCustomShow: () =>
+			parityUi.activeCustomShowId
+				? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
+				: null,
 	});
 	// Publish the per-element native-animation state map so the chart / SmartArt /
 	// connector / shape renderers can reveal staged builds and relinquish animated

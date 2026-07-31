@@ -59,6 +59,28 @@ describe('schema label keys', () => {
 		expect(raw).toStrictEqual([]);
 	});
 
+	describe('arrowhead types', () => {
+		// The one catalogue whose exact wording the bindings disagreed on: Angular
+		// interpolated `pptx.arrowhead.<token>` and so called the `arrow` head
+		// "Arrow", while everything reading this table called it "Open Arrow".
+		// PowerPoint's own object model settles it (`msoArrowheadOpen`), so pin the
+		// six spellings here rather than leaving them to each binding.
+		it('spells every head the way PowerPoint names it', () => {
+			const spelled = Object.fromEntries(
+				Object.entries(ARROWHEAD_LABEL_KEYS).map(([token, key]) => [token, translationsEn[key]]),
+			);
+
+			expect(spelled).toStrictEqual({
+				none: 'None',
+				triangle: 'Triangle',
+				stealth: 'Stealth',
+				diamond: 'Diamond',
+				oval: 'Oval',
+				arrow: 'Open Arrow',
+			});
+		});
+	});
+
 	describe('schemaLabel', () => {
 		const translate = (key: string) => `<${key}>`;
 

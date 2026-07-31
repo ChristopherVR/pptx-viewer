@@ -59,6 +59,14 @@ export interface ViewerState {
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
 	customShows: PptxCustomShow[];
+	/**
+	 * The custom show a started slide show is restricted to, or null for the
+	 * whole deck. Custom shows were definable here but nothing could select one,
+	 * so picking a show had no effect on what actually presented; this is the
+	 * state the show-order rule needs to honour membership (React, Vue and
+	 * Angular each hold the same id).
+	 */
+	activeCustomShowId: string | null;
 	embeddedFonts: PptxEmbeddedFont[];
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
@@ -190,6 +198,7 @@ export function createInitialViewerState(): ViewerState {
 		appProperties: undefined,
 		customProperties: [],
 		customShows: [],
+		activeCustomShowId: null,
 		embeddedFonts: [],
 		hasDigitalSignatures: false,
 		digitalSignatureCount: 0,

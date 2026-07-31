@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { keyToLabel, translationsEn } from '../internal/shared-src/i18n';
 import {
+	arrowheadLabelKey,
 	arrowSizeLabelKey,
 	fillPatternLabelKey,
 	schemaLabelKey,
@@ -77,6 +78,30 @@ describe('smartArt tokens', () => {
 		expect(renderedLabel(smartArtLayoutLabelKey('list'))).toBe('List');
 		expect(renderedLabel(smartArtLayoutLabelKey('bending'))).toBe('Bending');
 		expect(renderedLabel(smartArtLayoutLabelKey('venn'))).toBe('Venn');
+	});
+});
+
+describe('arrowhead types', () => {
+	// The connector picker used to build its key by interpolating the token
+	// (`pptx.arrowhead.${value}`), which spelled the `arrow` head "Arrow" while
+	// React/Vanilla/Svelte, reading the shared catalogue, spelled it "Open Arrow".
+	// Routing through the catalogue is what makes the five agree.
+	it('spells every head the way the other bindings do', () => {
+		const spelled = Object.fromEntries(
+			(['none', 'triangle', 'stealth', 'diamond', 'oval', 'arrow'] as const).map((type) => [
+				type,
+				renderedLabel(arrowheadLabelKey(type)),
+			]),
+		);
+
+		expect(spelled).toStrictEqual({
+			none: 'None',
+			triangle: 'Triangle',
+			stealth: 'Stealth',
+			diamond: 'Diamond',
+			oval: 'Oval',
+			arrow: 'Open Arrow',
+		});
 	});
 });
 

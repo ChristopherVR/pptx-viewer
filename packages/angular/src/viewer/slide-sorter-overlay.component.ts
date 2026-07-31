@@ -10,7 +10,12 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CanvasSize } from '../internal/shared';
+import {
+	HIDDEN_SLIDE_LABEL_KEY,
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	hiddenSlideCue,
+} from '../internal/shared';
+import type { CanvasSize, HiddenSlideCue } from '../internal/shared';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 
@@ -128,5 +133,20 @@ export class SlideSorterOverlayComponent {
 		// may not exist on all versions of the core type.
 		const s = slide as unknown as Record<string, unknown>;
 		return s['hidden'] === true;
+	}
+
+	/** Dictionary key for the word shown and announced on a hidden slide's cell. */
+	readonly hiddenLabelKey = HIDDEN_SLIDE_LABEL_KEY;
+
+	/** Shared slash mark, bound inline so a stylesheet copy cannot drift. */
+	readonly slashGradient = HIDDEN_SLIDE_SLASH_GRADIENT;
+
+	/**
+	 * The shared cue for one cell. The dim already came off `.is-hidden`, but
+	 * opacity is a colour-only signal and said nothing to a screen reader, so
+	 * this adds the number slash, the word, and the neutral marker attribute.
+	 */
+	hiddenCue(slide: PptxSlide, index: number): HiddenSlideCue {
+		return hiddenSlideCue(this.isHiddenSlide(slide), 'sorter', index);
 	}
 }

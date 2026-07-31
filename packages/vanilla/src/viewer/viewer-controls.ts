@@ -60,12 +60,23 @@ export function createViewerControls(
 	getEndWithBlackSlide?: () => boolean | undefined,
 ): ViewerControls {
 	/**
-	 * The deck indexes a running show visits: every slide the author did not hide.
+	 * The deck indexes a running show visits: the active custom show's membership
+	 * (or the whole deck), minus every slide the author hid.
+	 *
 	 * PowerPoint's "Hide Slide" keeps the slide in the deck, the thumbnail rail
 	 * and the sorter but skips it while presenting, so this is consulted only by
-	 * `next` / `prev` / Home / End and never by `goToSlide`.
+	 * `next` / `prev` / Home / End and never by `goToSlide`. Custom-show
+	 * membership is resolved by the same shared rule, which is what makes hiding
+	 * win over membership: a slide pulled out of rotation stays out of every show
+	 * it belongs to.
 	 */
-	const showOrder = (): number[] => resolveShowSlideIndexes(store.get().slides);
+	const showOrder = (): number[] => {
+		const state = store.get();
+		const active = state.activeCustomShowId
+			? state.customShows.find(({ id }) => id === state.activeCustomShowId)
+			: undefined;
+		return resolveShowSlideIndexes(state.slides, active);
+	};
 
 	/**
 	 * Jump straight to a deck index. Deliberately NOT filtered by the show order:

@@ -125,7 +125,18 @@
 }
 
 .pptx-ng-sorter-index {
+	display: inline-block;
+	padding: 0 0.2rem;
 	font-size: 0.6875rem;
+	color: rgba(255, 255, 255, 0.55);
+	user-select: none;
+}
+
+/* The hidden state spelled out, so the cue is not carried by dimming alone. */
+.pptx-ng-sorter-hidden {
+	font-size: 0.5625rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
 	color: rgba(255, 255, 255, 0.55);
 	user-select: none;
 }

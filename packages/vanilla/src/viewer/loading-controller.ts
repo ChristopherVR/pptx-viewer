@@ -82,6 +82,9 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				appProperties: loaded.appProperties,
 				customProperties: loaded.customProperties,
 				customShows: loaded.customShows,
+				// Custom-show ids belong to the document that defined them, so the
+				// previous deck's active show must not survive into this one.
+				activeCustomShowId: null,
 				embeddedFonts: loaded.embeddedFonts,
 				hasDigitalSignatures: loaded.hasDigitalSignatures,
 				digitalSignatureCount: loaded.digitalSignatureCount,

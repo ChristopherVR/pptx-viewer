@@ -1,5 +1,11 @@
 import type { PptxSection, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
-import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
+import {
+	computeVirtualRange,
+	HIDDEN_SLIDE_ATTRIBUTE,
+	HIDDEN_SLIDE_LABEL_KEY,
+	hiddenSlideCue,
+	SLIDE_VIRTUALIZATION_THRESHOLD,
+} from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -98,6 +104,22 @@ export function createThumbnailRail(
 		});
 		frame.appendChild(sourceRenderStage!(slide, scale));
 		btn.append(num, frame);
+		// A slide the author hid still lists here (hiding is a slide-show rule),
+		// so it needs the shared cue: the dim + number slash come off the marker
+		// attribute in CSS, and the description carries the state to assistive
+		// tech without disturbing the "Go to slide {{n}}" accessible name.
+		const cue = hiddenSlideCue(slide.hidden, 'rail', index);
+		if (cue.marker && cue.labelId) {
+			btn.setAttribute(HIDDEN_SLIDE_ATTRIBUTE, cue.marker);
+			btn.setAttribute('aria-describedby', cue.labelId);
+			const badge = createEl(doc, 'span', 'pptxv-thumb-hidden');
+			badge.id = cue.labelId;
+			badge.appendChild(createIcon(doc, 'eye-off'));
+			const word = createEl(doc, 'span', 'pptxv-sr-only');
+			word.textContent = t(HIDDEN_SLIDE_LABEL_KEY);
+			badge.appendChild(word);
+			frame.appendChild(badge);
+		}
 		btn.addEventListener('click', () => onSelect(index));
 		buttons.set(index, btn);
 		return btn;

@@ -6,9 +6,18 @@
 	 */
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import X from '@lucide/svelte/icons/x';
-	import { computeVirtualRange, groupSlidesBySection, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
+	import {
+		computeVirtualRange,
+		groupSlidesBySection,
+		HIDDEN_SLIDE_DIM_OPACITY,
+		HIDDEN_SLIDE_LABEL_KEY,
+		HIDDEN_SLIDE_SLASH_GRADIENT,
+		hiddenSlideCue,
+		SLIDE_VIRTUALIZATION_THRESHOLD,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import SlideStage from './SlideStage.svelte';
@@ -80,12 +89,23 @@
 </script>
 
 {#snippet thumbnail(slide: (typeof slides)[number], index: number)}
+	<!--
+		A slide the author hid is still LISTED here, because hiding only removes it
+		from the show. Without a cue the rail gave a user no way to tell that a
+		slide will be skipped, so it gets all three shared signals: the dim, the
+		diagonal slash across its number (a shape, since colour alone is not an
+		accessible signal), and a "Hidden" description that assistive tech
+		announces after the unchanged "Go to slide {{n}}" name.
+	-->
+	{@const cue = hiddenSlideCue(slide.hidden, 'rail', index)}
 	<button
 		type="button"
 		class="pptx-svelte-thumb"
 		class:pptx-svelte-thumb-active={index === current}
 		aria-label={t('pptx.slidesPanel.goToSlide', { n: index + 1 })}
 		aria-current={index === current ? 'true' : undefined}
+		aria-describedby={cue.labelId}
+		data-pptx-slide-hidden={cue.marker}
 		draggable={editable}
 		class:pptx-svelte-thumb-dragging={draggedIndex === index}
 		class:pptx-svelte-thumb-drop-target={draggedIndex !== null && draggedIndex !== index}
@@ -95,9 +115,21 @@
 		ondragover={editable ? (event) => event.preventDefault() : undefined}
 		ondrop={editable ? (event) => onDrop(index, event) : undefined}
 	>
-		<span class="pptx-svelte-thumb-number">{index + 1}</span>
+		<span
+			class="pptx-svelte-thumb-number"
+			style={cue.hidden ? `background-image: ${HIDDEN_SLIDE_SLASH_GRADIENT}` : undefined}
+			>{index + 1}</span
+		>
 		<span class="pptx-svelte-thumb-frame" style={`width: ${THUMB_WIDTH}px; height: ${thumbHeight}px`}>
-			<SlideStage {slide} {canvasSize} {mediaDataUrls} scale={thumbScale} />
+			<span class="pptx-svelte-thumb-stage" style={cue.hidden ? `opacity: ${HIDDEN_SLIDE_DIM_OPACITY}` : undefined}>
+				<SlideStage {slide} {canvasSize} {mediaDataUrls} scale={thumbScale} />
+			</span>
+			{#if cue.hidden}
+				<span class="pptx-svelte-thumb-hidden" id={cue.labelId}>
+					<EyeOff size={12} aria-hidden="true" />
+					<span class="pptx-svelte-sr-only">{t(HIDDEN_SLIDE_LABEL_KEY)}</span>
+				</span>
+			{/if}
 		</span>
 	</button>
 {/snippet}
@@ -246,12 +278,37 @@
 	}
 
 	.pptx-svelte-thumb-frame {
+		position: relative;
 		display: block;
 		overflow: hidden;
 		border-radius: 3px;
 		outline: 2px solid var(--pptx-border, #33334d);
 		background: #fff;
 		pointer-events: none;
+	}
+
+	.pptx-svelte-thumb-stage { display: block; }
+
+	/* Hidden-slide corner badge, matching React's SlideItem LuEyeOff marker. */
+	.pptx-svelte-thumb-hidden {
+		position: absolute;
+		right: 2px;
+		bottom: 2px;
+		z-index: 10;
+		display: inline-flex;
+		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
+	.pptx-svelte-sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	.pptx-svelte-thumb-active .pptx-svelte-thumb-frame {

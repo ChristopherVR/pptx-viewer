@@ -107,7 +107,6 @@ export const translations = {
 	'pptx.action.gotoSlide': 'Ir a la diapositiva',
 	'pptx.action.gotoUrl': 'Ir a URL',
 	'pptx.action.slideNumberPlaceholder': 'Número de diapositiva (basado en 1)',
-	'pptx.arrowhead.arrow': 'Flecha',
 	'pptx.arrowhead.diamond': 'Diamante',
 	'pptx.arrowhead.none': 'Ninguno',
 	'pptx.arrowhead.openArrow': 'Flecha abierta',

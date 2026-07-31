@@ -20,6 +20,7 @@
 				@for (item of renderedSlides(); track item.slide.id) {
 					@let slide = item.slide;
 					@let i = item.index;
+					@let hidden = hiddenCue(slide, i);
 					@if (item.sectionStart) {
 						<header class="pptx-ng-section-header" [attr.data-section-id]="item.section?.id">
 							<button
@@ -73,6 +74,7 @@
 						<div
 							class="pptx-ng-spanel-card"
 							[class.is-active]="i === activeIndex()"
+							[attr.data-pptx-slide-hidden]="hidden.marker ?? null"
 							role="option"
 							[attr.aria-selected]="i === activeIndex()"
 							[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
@@ -83,10 +85,18 @@
 								type="button"
 								class="pptx-ng-spanel-thumb-btn"
 								[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
+								[attr.aria-describedby]="hidden.labelId ?? null"
 								(click)="select.emit(i)"
 							>
-								<!-- Slide number badge (left column) -->
-								<span class="pptx-ng-spanel-num" aria-hidden="true">{{ i + 1 }}</span>
+								<!-- Slide number badge (left column). Struck through with the shared
+								     diagonal slash when the slide is hidden, which is PowerPoint's own
+								     cue and, unlike the dimming, is not a colour-only signal. -->
+								<span
+									class="pptx-ng-spanel-num"
+									aria-hidden="true"
+									[style.background-image]="hidden.hidden ? slashGradient : null"
+									>{{ i + 1 }}</span
+								>
 
 								<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
 								<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
@@ -99,7 +109,33 @@
 										[editable]="false"
 										[autoFit]="false"
 										[interactive]="false"
+										[style.opacity]="hidden.hidden ? dimOpacity : null"
 									/>
+									@if (hidden.hidden) {
+										<!-- Announced through aria-describedby, so the accessible name
+										     stays exactly "Go to slide {{ i + 1 }}". -->
+										<span class="pptx-ng-spanel-hidden" [id]="hidden.labelId">
+											<svg
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												aria-hidden="true"
+											>
+												<path
+													d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"
+												/>
+												<path
+													d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"
+												/>
+												<path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+												<path d="M1 1l22 22" />
+											</svg>
+											<span class="pptx-ng-sr-only">{{ hiddenLabelKey | translate }}</span>
+										</span>
+									}
 								</div>
 							</button>
 

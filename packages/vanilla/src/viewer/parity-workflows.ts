@@ -199,20 +199,23 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 		},
 		openCustomShows() {
 			const current = state();
-			openCustomShowsDialog(
-				host.doc,
-				host.t,
-				current.customShows,
-				current.slides,
-				(shows) => host.editor.updateCustomShows(shows),
-				(show) => {
-					const first = current.slides.findIndex(({ rId }) => show.slideRIds.includes(rId));
+			openCustomShowsDialog(host.doc, host.t, {
+				shows: current.customShows,
+				slides: current.slides,
+				activeShowId: current.activeCustomShowId,
+				onSave: (shows) => host.editor.updateCustomShows(shows),
+				// The id lives in viewer state, not the editor's document state: it is
+				// a playback choice for this session, not an edit to the deck, so it
+				// must not enter the undo history or mark the file dirty.
+				onSetActive: (id) => host.store.set({ activeCustomShowId: id }),
+				onRun: (show) => {
+					const first = state().slides.findIndex(({ rId }) => show.slideRIds.includes(rId));
 					if (first >= 0) {
 						host.goToSlide(first);
 					}
 					void host.enterPresentation();
 				},
-			);
+			});
 		},
 	};
 }

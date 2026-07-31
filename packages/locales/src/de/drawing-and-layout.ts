@@ -109,7 +109,6 @@ export const translations = {
 	'pptx.action.gotoSlide': 'Zu Folie wechseln',
 	'pptx.action.gotoUrl': 'URL öffnen',
 	'pptx.action.slideNumberPlaceholder': 'Foliennummer (1-basiert)',
-	'pptx.arrowhead.arrow': 'Pfeil',
 	'pptx.arrowhead.diamond': 'Diamant',
 	'pptx.arrowhead.none': 'Keine',
 	'pptx.arrowhead.openArrow': 'Offener Pfeil',

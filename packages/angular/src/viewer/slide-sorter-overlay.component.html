@@ -36,12 +36,15 @@
 		<div class="pptx-ng-sorter-grid-scroll">
 			<div class="pptx-ng-sorter-grid" [ngStyle]="gridStyle()">
 				@for (slide of slides(); track slide.id; let i = $index) {
+					@let hidden = hiddenCue(slide, i);
 					<button
 						type="button"
 						class="pptx-ng-sorter-cell"
 						[class.is-active]="i === activeIndex()"
-						[class.is-hidden]="isHiddenSlide(slide)"
+						[class.is-hidden]="hidden.hidden"
+						[attr.data-pptx-slide-hidden]="hidden.marker ?? null"
 						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
+						[attr.aria-describedby]="hidden.labelId ?? null"
 						[attr.aria-current]="i === activeIndex() ? 'true' : null"
 						(click)="onThumbClick(i)"
 					>
@@ -56,8 +59,19 @@
 								[interactive]="false"
 							/>
 						</div>
-						<!-- Slide number badge -->
-						<span class="pptx-ng-sorter-index" aria-hidden="true">{{ i + 1 }}</span>
+						<!-- Slide number badge, struck through with the shared diagonal
+						     slash when hidden (PowerPoint's own cue). -->
+						<span
+							class="pptx-ng-sorter-index"
+							aria-hidden="true"
+							[style.background-image]="hidden.hidden ? slashGradient : null"
+							>{{ i + 1 }}</span
+						>
+						@if (hidden.hidden) {
+							<span class="pptx-ng-sorter-hidden" [id]="hidden.labelId">{{
+								hiddenLabelKey | translate
+							}}</span>
+						}
 					</button>
 				}
 			</div>

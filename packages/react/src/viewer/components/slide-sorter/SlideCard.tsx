@@ -1,5 +1,11 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import {
+	HIDDEN_SLIDE_LABEL_KEY,
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	hiddenSlideCue,
+} from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuEyeOff } from 'react-icons/lu';
 
 import type { CanvasSize } from '../../types';
@@ -51,6 +57,11 @@ function SlideCardImpl({
 	onDragLeave,
 	onDrop,
 }: SlideCardProps): React.ReactElement {
+	const { t } = useTranslation();
+	// Dimming a card said nothing to a screen reader and nothing to a user who
+	// cannot separate it from a dark thumbnail. The shared cue adds the slash and
+	// the announced description on top of the dim that was already here.
+	const cue = hiddenSlideCue(slide.hidden, 'sorter', index);
 	return (
 		<div
 			className={cn(
@@ -64,6 +75,8 @@ function SlideCardImpl({
 							: 'border-border bg-background/50 hover:border-border',
 				slide.hidden && 'opacity-40',
 			)}
+			data-pptx-slide-hidden={cue.marker}
+			aria-describedby={cue.labelId}
 			onClick={(e) => onSlideClick(e, index)}
 			onDoubleClick={() => onDoubleClick(index)}
 			onContextMenu={(e) => onContextMenu(e, index)}
@@ -82,13 +95,21 @@ function SlideCardImpl({
 			<div className='mt-1 flex items-center justify-between px-0.5'>
 				<span
 					className={cn(
-						'text-[11px] font-medium',
+						'text-[11px] font-medium px-0.5',
 						isSelected ? 'text-primary' : isActive ? 'text-primary/70' : 'text-muted-foreground',
 					)}
+					style={cue.hidden ? { backgroundImage: HIDDEN_SLIDE_SLASH_GRADIENT } : undefined}
 				>
 					{index + 1}
 				</span>
-				{slide.hidden && <LuEyeOff className='h-3 w-3 text-muted-foreground' />}
+				{cue.hidden && (
+					<span className='flex items-center gap-1' id={cue.labelId}>
+						<LuEyeOff className='h-3 w-3 text-muted-foreground' />
+						<span className='text-[9px] uppercase tracking-wide text-muted-foreground'>
+							{t(HIDDEN_SLIDE_LABEL_KEY)}
+						</span>
+					</span>
+				)}
 			</div>
 
 			{/* Selection checkmark */}

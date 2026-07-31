@@ -25,6 +25,7 @@
 
 import {
 	ARROW_SIZE_LABEL_KEYS,
+	ARROWHEAD_LABEL_KEYS,
 	FILL_PATTERN_LABEL_KEYS,
 	schemaLabel,
 	SMARTART_COLOR_SCHEME_LABEL_KEYS,
@@ -68,6 +69,19 @@ export function smartArtStyleLabelKey(style: string): string {
 /** SmartArt layout family (`list`, `process`, `bending`, ...). */
 export function smartArtLayoutLabelKey(layout: string): string {
 	return schemaLabelKey(SMARTART_LAYOUT_LABEL_KEYS, layout);
+}
+
+/**
+ * `a:headEnd`/`a:tailEnd` arrowhead type (`none`, `triangle`, `arrow`, ...).
+ *
+ * WHY it goes through the shared catalogue instead of interpolating the token
+ * into `pptx.arrowhead.<token>`: that shortcut spelled `arrow` as "Arrow",
+ * while the other four bindings (which all read this catalogue) spelled it
+ * "Open Arrow", which is what PowerPoint calls that head (`msoArrowheadOpen`).
+ * The same control therefore read differently depending on the framework.
+ */
+export function arrowheadLabelKey(type: string): string {
+	return schemaLabelKey(ARROWHEAD_LABEL_KEYS, type);
 }
 
 /** Arrowhead width/length step (`sm` / `med` / `lg`). */

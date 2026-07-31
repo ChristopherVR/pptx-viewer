@@ -9,7 +9,7 @@ import type {
 } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 
-import { arrowSizeLabelKey } from './schema-token-labels';
+import { arrowheadLabelKey, arrowSizeLabelKey } from './schema-token-labels';
 
 const ARROWS: readonly ConnectorArrowType[] = [
 	'none',
@@ -199,7 +199,7 @@ export class ElementMiscPropertiesComponent {
 	protected readonly oleType = computed(() => getOleObjectTypeLabel(this.ole()?.oleObjectType));
 
 	protected arrowLabel(value: ConnectorArrowType): string {
-		return `pptx.arrowhead.${value}`;
+		return arrowheadLabelKey(value);
 	}
 	/**
 	 * Spell an arrowhead width/length step. `sm` / `med` / `lg` are the literal

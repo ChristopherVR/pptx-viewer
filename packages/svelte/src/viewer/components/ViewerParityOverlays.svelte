@@ -73,7 +73,7 @@
 {#if ui.compare.open}<ComparePanel compare={ui.compare} onclose={() => (ui.compare.open = false)} />{/if}
 {#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} />{/if}
 <RehearseTimings rehearse={ui.rehearse} onsave={() => ui.rehearse.save(editor)} ondiscard={() => ui.rehearse.discard()} />
-{#if ui.customShowsOpen}<CustomShowsDialog shows={editor.customShows} slides={editor.slides} onclose={() => (ui.customShowsOpen = false)} onsave={(shows) => editor.presentationMetadata.updateCustomShows(shows)} />{/if}
+{#if ui.customShowsOpen}<CustomShowsDialog shows={editor.customShows} slides={editor.slides} activeShowId={ui.activeCustomShowId} onclose={() => (ui.customShowsOpen = false)} onsave={(shows) => editor.presentationMetadata.updateCustomShows(shows)} onsetactive={(id) => (ui.activeCustomShowId = id)} />{/if}
 {#if ui.selectionPaneOpen}<SelectionPane {editor} onclose={() => (ui.selectionPaneOpen = false)} />{/if}
 {#if ui.slideSorterOpen}<SlideSorterOverlay {slides} {canvasSize} {mediaDataUrls} {current} onselect={onselectslide} onmove={onmoveslide} onclose={() => (ui.slideSorterOpen = false)} />{/if}
 {#if ui.outlineViewOpen}<OutlineViewOverlay slides={editor.slides} {canvasSize} canEdit={editor.editable} oncommit={(next) => editor.commitSlides(next)} onactiveslide={onselectslide} onclose={() => (ui.outlineViewOpen = false)} />{/if}

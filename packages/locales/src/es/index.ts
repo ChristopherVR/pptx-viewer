@@ -1,5 +1,6 @@
 import { translations as accessibility_print_and_export } from './accessibility-print-and-export';
 import { translations as ai_assistant } from './ai-assistant';
+import { translations as animation_presets } from './animation-presets';
 import { translations as animations } from './animations';
 import { translations as application_shell } from './application-shell';
 import { translations as backstage } from './backstage';
@@ -26,6 +27,7 @@ export const translationsEs: Record<string, string> = {
 	...drawing_and_layout,
 	...accessibility_print_and_export,
 	...animations,
+	...animation_presets,
 	...collaboration_and_sharing,
 	...navigation_and_layout,
 	...masters_and_themes,
