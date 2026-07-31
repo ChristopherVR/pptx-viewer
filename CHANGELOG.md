@@ -10,6 +10,39 @@ dated sections beneath it are generated from
 
 ## 2026-07-31
 
+_Releases: pptx-viewer-core@2.0.11, pptx-react-viewer@2.7.1, pptx-vue-viewer@2.7.1, pptx-angular-viewer@2.7.1, pptx-vanilla-viewer@1.8.1, pptx-svelte-viewer@2.7.1_
+
+### Bug Fixes
+
+- **demos:** Make the whole landing dropzone open the file picker (by @ChristopherVR) ([c170443](https://github.com/ChristopherVR/pptx-viewer/commit/c17044308f4aab22409c1f1fa585860ce2487483))
+- **shared:** Match PowerPoint's morph dissolve windows and half-turn direction (by @ChristopherVR) ([661c250](https://github.com/ChristopherVR/pptx-viewer/commit/661c250ff429f0d8ea2f0bb5e2992a7d57af0353))
+- **shared:** Stop morph pairing a shape with the group that wraps it (by @ChristopherVR) ([d240498](https://github.com/ChristopherVR/pptx-viewer/commit/d240498388734b5e81b238036856d891f86f2570))
+- **core:** Stop an interactive sequence adding a phantom click step (by @ChristopherVR) ([65a4738](https://github.com/ChristopherVR/pptx-viewer/commit/65a4738a6eb8fd0b34999c52dd7e1244c5f0e6b5))
+- **vue:** Make the slide show's transitions visible on a large display (by @ChristopherVR) ([8c6acd9](https://github.com/ChristopherVR/pptx-viewer/commit/8c6acd9bb9226b9522161bfe00fdb44f4c6bba20))
+- **demos:** Match the React landing card metrics in the Vue demo (by @ChristopherVR) ([3fcaa69](https://github.com/ChristopherVR/pptx-viewer/commit/3fcaa69a963d3c84de12b6dabecf05b2874e876b))
+- **shared:** Resolve the timed slide auto-advance delay (by @ChristopherVR) ([beba8cc](https://github.com/ChristopherVR/pptx-viewer/commit/beba8ccb834f1eb04db305d68ac31d40beda4232))
+- **angular:** Paint a fully transparent solid fill transparently (by @ChristopherVR) ([8410d7d](https://github.com/ChristopherVR/pptx-viewer/commit/8410d7dc08fe9fdf49cc684346cdbe0ca1042a1c))
+- **angular:** Advance the slide show on a slide's authored timing (by @ChristopherVR) ([6435beb](https://github.com/ChristopherVR/pptx-viewer/commit/6435beb0156cb71087a61f90c857f44f7b10da06))
+- **svelte:** Wire the backstage browse control and stretch its nav rail (by @ChristopherVR) ([339adb2](https://github.com/ChristopherVR/pptx-viewer/commit/339adb2c0c8a0871f8690562499c1c7f04b463a5))
+- **svelte:** Make the slide show's transitions visible on a large display (by @ChristopherVR) ([f8a8b8a](https://github.com/ChristopherVR/pptx-viewer/commit/f8a8b8a47145577bb57dda020ada69ab9bb74fa0))
+- **vanilla:** Make the slide show's transitions visible on a large display (by @ChristopherVR) ([ef02b5e](https://github.com/ChristopherVR/pptx-viewer/commit/ef02b5e8f00398f4bb59d41c3918104b5b074654))
+- **svelte:** Advance the slide show on a slide's authored timing (by @ChristopherVR) ([3ce750a](https://github.com/ChristopherVR/pptx-viewer/commit/3ce750ae5847a9406f24a221fd31cda6f36dc8a0))
+
+### Refactor
+
+- **shared:** Break the morph-matching <-> morph-flatten import cycle (by @ChristopherVR) ([92223c5](https://github.com/ChristopherVR/pptx-viewer/commit/92223c542d357d2831b4b3641180fec20c264dc1))
+
+### Testing
+
+- **e2e:** Drive the landing browse controls, not the hidden input (by @ChristopherVR) ([7416220](https://github.com/ChristopherVR/pptx-viewer/commit/7416220442ed1a17740d1f5cfcb0735eb401474c))
+- **e2e:** Pin the morph centre to PowerPoint's dissolve, in all five bindings (by @ChristopherVR) ([34fc778](https://github.com/ChristopherVR/pptx-viewer/commit/34fc7787368b2e3543d8cc294be8601718221636))
+- **e2e:** Add a production-build slide-show smoke guard (by @ChristopherVR) ([9830d1e](https://github.com/ChristopherVR/pptx-viewer/commit/9830d1ee1166f755e22b6d836f8c10f40de468ae))
+- **e2e:** Assert transitions and the browse button by what a human sees (by @ChristopherVR) ([0d7f46a](https://github.com/ChristopherVR/pptx-viewer/commit/0d7f46a18a461cdd50a29dfa3d9b2812d8917574))
+- **e2e:** Drive the viewer's own File > Open browse control (by @ChristopherVR) ([0978b6b](https://github.com/ChristopherVR/pptx-viewer/commit/0978b6b1e1c737e09ea864a87c18da1f730ab28f))
+- **e2e:** Pin the slide-2 transparent overlay and the timed advance (by @ChristopherVR) ([4e3d1fd](https://github.com/ChristopherVR/pptx-viewer/commit/4e3d1fd04de79e8a827501c95e12706db274b855))
+
+## 2026-07-31
+
 _Releases: pptx-react-viewer@2.7.0, pptx-vue-viewer@2.7.0, pptx-angular-viewer@2.7.0, pptx-vanilla-viewer@1.8.0, pptx-svelte-viewer@2.7.0_
 
 ### Features
