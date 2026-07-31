@@ -10,6 +10,67 @@ dated sections beneath it are generated from
 
 ## 2026-07-31
 
+_Releases: pptx-viewer-core@2.1.0, pptx-react-viewer@2.9.0, pptx-vue-viewer@2.9.0, pptx-angular-viewer@2.9.0, pptx-vanilla-viewer@1.10.0, pptx-svelte-viewer@2.9.0_
+
+### Features
+
+- **shared:** Give every referenced translation key a real entry (by @ChristopherVR) ([8ff4461](https://github.com/ChristopherVR/pptx-viewer/commit/8ff4461d0376408330ef5ce875b4aa7a13d0614f))
+- **shared:** Own the logic five bindings had each hand-ported (by @ChristopherVR) ([60b9b0d](https://github.com/ChristopherVR/pptx-viewer/commit/60b9b0d06d60d674835ef23166ca9c46c1b191ba))
+- **vanilla:** Reach ribbon, inspector and canvas parity with the reference (by @ChristopherVR) ([26ff896](https://github.com/ChristopherVR/pptx-viewer/commit/26ff8968b20a7affdd48ee6e8dcf89d18097302b))
+- **svelte:** Close the ribbon, inspector and ruler gaps against the reference (by @ChristopherVR) ([f2e0684](https://github.com/ChristopherVR/pptx-viewer/commit/f2e0684c4df94ff9e27dc878b7221431ec71e9de))
+- **vue:** Close the ribbon, context-menu and field-context gaps (by @ChristopherVR) ([8273f08](https://github.com/ChristopherVR/pptx-viewer/commit/8273f089a2646f266ed3f176bc8ce7a20fa71b30))
+- **angular:** Reach ribbon and inspector parity, and stop double-stamping elements (by @ChristopherVR) ([5982b7a](https://github.com/ChristopherVR/pptx-viewer/commit/5982b7a4ee7bc233b20ee7705e9f84160831c986))
+- **core:** Model a gradient / pattern outline in structured form (by @ChristopherVR) ([69322c9](https://github.com/ChristopherVR/pptx-viewer/commit/69322c94ab40e37f19a1789c3149b5dd5d71498c))
+- **shared:** Stroke a gradient outline as SVG instead of a flat border (by @ChristopherVR) ([fc72324](https://github.com/ChristopherVR/pptx-viewer/commit/fc723241643cdc18bb6ad0c113ca08763c9426ad))
+- **react:** Paint a gradient outline with a stroked SVG path (by @ChristopherVR) ([5885d81](https://github.com/ChristopherVR/pptx-viewer/commit/5885d817ff7329b79edf1b59610718edaaaaa3ed))
+- **vue:** Paint a gradient outline with a stroked SVG path (by @ChristopherVR) ([33d8b10](https://github.com/ChristopherVR/pptx-viewer/commit/33d8b1000664c94a82fbb590cba0226c53931b9b))
+- **svelte:** Paint a gradient outline with a stroked SVG path (by @ChristopherVR) ([dd43f2d](https://github.com/ChristopherVR/pptx-viewer/commit/dd43f2ddf135ab698cf37086823a0ea54ffd6694))
+- **vanilla:** Paint a gradient outline with a stroked SVG path (by @ChristopherVR) ([b9804ac](https://github.com/ChristopherVR/pptx-viewer/commit/b9804ac1d6a0fd5d72f40b360d576132cca2fb90))
+- **angular:** Paint a gradient outline with a stroked SVG path (by @ChristopherVR) ([352ea59](https://github.com/ChristopherVR/pptx-viewer/commit/352ea59a97af4966af13680f2d48caabe8987af0))
+- **shared:** Stroke a patterned outline with a real pattern tile (by @ChristopherVR) ([9d8c3bd](https://github.com/ChristopherVR/pptx-viewer/commit/9d8c3bdfbd40e78d0fc66d9325efedb0bc9a3ea4))
+- **react:** Stroke a patterned outline, not its bare foreground (by @ChristopherVR) ([fc6348e](https://github.com/ChristopherVR/pptx-viewer/commit/fc6348ef022d55442ee7b5125ab52d74aa38e2d5))
+- **vue:** Stroke a patterned outline, not its bare foreground (by @ChristopherVR) ([72e2a4c](https://github.com/ChristopherVR/pptx-viewer/commit/72e2a4cfcaab5e05b950582b12d811c47b57f83f))
+- **svelte:** Stroke a patterned outline, not its bare foreground (by @ChristopherVR) ([f11c0f5](https://github.com/ChristopherVR/pptx-viewer/commit/f11c0f5b613911a3cbeda61d31af731729f0dab5))
+- **vanilla:** Stroke a patterned outline, not its bare foreground (by @ChristopherVR) ([1b3ee4f](https://github.com/ChristopherVR/pptx-viewer/commit/1b3ee4f75444027b88bce70928328233edad49af))
+- **angular:** Stroke a patterned outline, not its bare foreground (by @ChristopherVR) ([8da41b8](https://github.com/ChristopherVR/pptx-viewer/commit/8da41b8b6d016de0c025d14155b87f0994f12188))
+- **shared:** Translate the File backstage and merge the stray key namespaces (by @ChristopherVR) ([e56aa6d](https://github.com/ChristopherVR/pptx-viewer/commit/e56aa6d3f00e4cbd23983036a195cba3c2d6bf6b))
+
+### Bug Fixes
+
+- **shared:** Honour authored preset adjustments and emit parseable gradient CSS (by @ChristopherVR) ([dbf5640](https://github.com/ChristopherVR/pptx-viewer/commit/dbf5640fb532082ca96d6a7dc8b439e07dd34a80))
+- **react:** Paint freeform gradients and honour gradient tiling (by @ChristopherVR) ([cff1958](https://github.com/ChristopherVR/pptx-viewer/commit/cff1958b9858fdd9e1861e86dd6e692a2d2a84d4))
+- **vue:** Apply the gradient tile background-position (by @ChristopherVR) ([eafb597](https://github.com/ChristopherVR/pptx-viewer/commit/eafb597f7b69b638ef028dfeb707c43d39292ca7))
+- **svelte:** Apply the gradient tile background-position (by @ChristopherVR) ([7c3d664](https://github.com/ChristopherVR/pptx-viewer/commit/7c3d664e4ec635570549f0d0b464294170dfbde0))
+- **e2e:** Measure the clip-path area against the path's own extent (by @ChristopherVR) ([484ce9e](https://github.com/ChristopherVR/pptx-viewer/commit/484ce9e245783210dab3899fc8cff00f3ddd36ab))
+- **core:** Honour a preset path's own coordinate space, and repair hexagon (by @ChristopherVR) ([8e4a91d](https://github.com/ChristopherVR/pptx-viewer/commit/8e4a91d76a2bdd3ba3369ed541bc262d2a9c06f4))
+- **core:** Rebuild flowChartTerminator from its spec Beziers (by @ChristopherVR) ([0e81403](https://github.com/ChristopherVR/pptx-viewer/commit/0e8140381fe6af3719a52dcc1b39f16609b5faf0))
+- **core:** Keep an inline field in the position it was authored in (by @ChristopherVR) ([beb2067](https://github.com/ChristopherVR/pptx-viewer/commit/beb2067fc11ae709a26b4f9e6714fa557375ec85))
+- **core:** Rebuild sun as a disc plus eight detached rays (by @ChristopherVR) ([cd2fcd4](https://github.com/ChristopherVR/pptx-viewer/commit/cd2fcd4baec66f040671aea332d1bcd2250a2e7f))
+- **react:** Stop firing every shortcut twice, and surface the panels it had built (by @ChristopherVR) ([05f9eba](https://github.com/ChristopherVR/pptx-viewer/commit/05f9eba3333d7fad275a000855b2e114bd6dd44b))
+- **core:** Round-trip the Selection Pane hide toggle (by @ChristopherVR) ([14bdb23](https://github.com/ChristopherVR/pptx-viewer/commit/14bdb23d8c2840cc93d8a891c31ac9e8ffdf44cf))
+- **shared:** Resolve a click on a group's child to the group (by @ChristopherVR) ([88ef671](https://github.com/ChristopherVR/pptx-viewer/commit/88ef671c4af065c0e21327ceec5840a2de4d4516))
+- **shared:** Flow linked text-box overflow in every binding (by @ChristopherVR) ([abe1bb0](https://github.com/ChristopherVR/pptx-viewer/commit/abe1bb0702315c8a65582f1d64f62c6679298143))
+
+### Refactor
+
+- **svelte:** Clear the file-size debt, and the duplicate viewer state behind it (by @ChristopherVR) ([830bcc9](https://github.com/ChristopherVR/pptx-viewer/commit/830bcc9ed77d85f1461f4861a326dbbba7ebcc31))
+
+### Testing
+
+- **angular:** Pin the ellipse-sized circle path gradient (by @ChristopherVR) ([9b12ba1](https://github.com/ChristopherVR/pptx-viewer/commit/9b12ba1b8396c57763d21119ceb7dd247469973b))
+- **core:** Pin issue #132 fill and adjustment parsing against the reporter deck (by @ChristopherVR) ([06cd312](https://github.com/ChristopherVR/pptx-viewer/commit/06cd31287bcbd3895a834bed9f89af443526dca2))
+- **e2e:** Add the issue #132 deck fixture and cross-binding spec (by @ChristopherVR) ([74f960a](https://github.com/ChristopherVR/pptx-viewer/commit/74f960ad5334dbd5d9dad548bb834b1513fd11e1))
+- **e2e:** Diff the five bindings against each other, not just thresholds (by @ChristopherVR) ([2014f44](https://github.com/ChristopherVR/pptx-viewer/commit/2014f445a38c6a93aa248ee5a24a525a49785ce0))
+- **e2e:** Assert a gradient outline is stroked in every binding (by @ChristopherVR) ([d46fde5](https://github.com/ChristopherVR/pptx-viewer/commit/d46fde56d754748920d7cc6a0967d89a66ba7857))
+- **e2e:** Cover gradient and pattern outlines across the bindings (by @ChristopherVR) ([2492c53](https://github.com/ChristopherVR/pptx-viewer/commit/2492c53d8feee2ad881bae09b9c72b1d0408a1f5))
+- **e2e:** Wait for the shapes, not a fixed delay, in the outline spec (by @ChristopherVR) ([c5a8da9](https://github.com/ChristopherVR/pptx-viewer/commit/c5a8da9d1c15d6b4104e3227c8748c443382f084))
+
+### Styling
+
+- **e2e:** Drop em-dashes from spec comments (by @ChristopherVR) ([003052d](https://github.com/ChristopherVR/pptx-viewer/commit/003052dba950e4740f5da3d2f1f7ac844999bfce))
+
+## 2026-07-31
+
 _Releases: pptx-react-viewer@2.8.0, pptx-vue-viewer@2.8.0, pptx-angular-viewer@2.8.0, pptx-vanilla-viewer@1.9.0, pptx-svelte-viewer@2.8.0_
 
 ### Features
