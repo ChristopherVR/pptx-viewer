@@ -95,31 +95,38 @@
 		hiddenActions={props.hiddenActions}
 	/>
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />
+	<!-- The File backstage is a full-screen `position: fixed` overlay, not a row
+	     of ribbon groups, so it is deliberately a sibling of
+	     `.pptx-svelte-ribbon-content`: that container's `> * { align-items:
+	     flex-start }` rule (which top-aligns each tab's groups) otherwise landed
+	     on the backstage flex row and stopped its left nav rail stretching to
+	     the full window height. -->
+	{#if activeTab === 'file'}
+		<FileTab
+			fileName={props.fileName}
+			onclose={() => (activeTab = 'home')}
+			oncreatepresentation={(templateId) => props.editor.setSlides(createBackstagePresentation(templateId))}
+			ondownload={props.ondownload}
+			ondownloadppsx={props.ondownloadppsx}
+			ondownloadpptm={props.ondownloadpptm}
+			onpackage={props.onpackage}
+			hasMacros={props.hasMacros}
+			onopenfile={props.onopenfile}
+			onopenrecent={props.onopenrecent}
+			exportUi={props.exportUi}
+			onproperties={() => setPropertiesOpen(true)}
+			onfonts={() => (fontsOpen = true)}
+			onsignatures={() => (signaturesOpen = true)}
+			onprotect={() => (protectionOpen = true)}
+			onversionhistory={props.onversionhistory}
+			onshare={props.onshare}
+			onprint={props.onprintsettings}
+			onsettings={props.onsettings}
+			accountAuth={props.accountAuth}
+		/>
+	{/if}
 	<div class="pptx-svelte-ribbon-content">
-		{#if activeTab === 'file'}
-				<FileTab
-					fileName={props.fileName}
-					onclose={() => (activeTab = 'home')}
-					oncreatepresentation={(templateId) => props.editor.setSlides(createBackstagePresentation(templateId))}
-					ondownload={props.ondownload}
-					ondownloadppsx={props.ondownloadppsx}
-					ondownloadpptm={props.ondownloadpptm}
-					onpackage={props.onpackage}
-					hasMacros={props.hasMacros}
-				onopenfile={props.onopenfile}
-				onopenrecent={props.onopenrecent}
-					exportUi={props.exportUi}
-				onproperties={() => setPropertiesOpen(true)}
-				onfonts={() => (fontsOpen = true)}
-				onsignatures={() => (signaturesOpen = true)}
-				onprotect={() => (protectionOpen = true)}
-				onversionhistory={props.onversionhistory}
-					onshare={props.onshare}
-					onprint={props.onprintsettings}
-					onsettings={props.onsettings}
-					accountAuth={props.accountAuth}
-			/>
-		{:else if activeTab === 'home'}
+		{#if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
 		{:else if activeTab === 'insert'}
 			<InsertTab editor={props.editor} canvasSize={props.canvasSize} onheaderfooter={props.onheaderfooter} />

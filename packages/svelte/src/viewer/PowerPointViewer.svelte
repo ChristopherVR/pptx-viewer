@@ -17,6 +17,7 @@
 		endAudienceDisplay,
 		makeSlideId,
 		mayLeaveSlideShow,
+		openPptxFile,
 		readBackstageRecentFile,
 		readStoredViewerPrefs,
 		resolveThemeCatalogEntry,
@@ -162,6 +163,7 @@
 		setThemeKey(themeCatalog.find((entry) => entry.theme === next)?.key ?? 'default');
 	}
 
+
 	// Locale: unlike `theme`, there is no "host forces this locale no matter
 	// what" case in this binding, so once the user picks a language via
 	// Options, `localeOverride` always wins over the `locale` prop for the
@@ -183,6 +185,25 @@
 	provideSmartArt3D(() => smartArt3D);
 
 	const loader = new PresentationLoader();
+
+	// File > Open > "Browse this device": let the host override it (the
+	// `onopenfile` prop), otherwise fall back to the built-in native picker and
+	// load the chosen deck in place. Without the fallback the control is inert
+	// in every host that does not pass `onopenfile`, which is what made it look
+	// dead in the demo; React, Vue, Angular and Vanilla all fall back this way.
+	function handleOpenFile(): void {
+		if (onopenfile) {
+			onopenfile();
+			return;
+		}
+		void (async () => {
+			const picked = await openPptxFile();
+			if (picked) {
+				await loader.load(picked.buffer);
+			}
+		})();
+	}
+
 	provideRenderContext({
 		getColorScheme: () => loader.colorScheme,
 		getTableStyleMap: () => loader.tableStyleMap,
@@ -888,7 +909,7 @@
 				onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
 				onaddguide={(axis) => { parityUi.guides = [...parityUi.guides, { axis, position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2 }]; parityUi.showGuides = true; }}
 				{exportUi}
-				{onopenfile}
+				onopenfile={handleOpenFile}
 				onopenrecent={(key) => {
 					void (async () => {
 						const bytes = await readBackstageRecentFile(key);

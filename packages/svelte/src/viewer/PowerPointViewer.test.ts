@@ -170,6 +170,69 @@ describe('powerPointViewer', () => {
 		expect(target.querySelector('.pptx-svelte-master-canvas .pptx-svelte-stage')).not.toBeNull();
 	});
 
+	/**
+	 * File > Open > "Browse this device" was inert: the backstage received the
+	 * optional `onopenfile` host prop straight through, so with no host handler
+	 * (the demos, and the default for any embedder) clicking it did nothing at
+	 * all, while React/Vue/Angular/Vanilla fall back to the shared
+	 * `openPptxFile()` picker. The fallback creates a transient
+	 * `<input type="file">` and clicks it, which is what this asserts.
+	 */
+	it('opens a native file picker from File > Open > Browse this device', async () => {
+		const { target } = await mountViewer({ editable: true });
+		const clicked: HTMLInputElement[] = [];
+		const realClick = HTMLInputElement.prototype.click;
+		vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(
+			function (this: HTMLInputElement) {
+				if (this.type === 'file') {
+					clicked.push(this);
+					return;
+				}
+				realClick.call(this);
+			},
+		);
+
+		const byText = (text: string): HTMLButtonElement | undefined =>
+			[...target.querySelectorAll<HTMLButtonElement>('button')].find(
+				(button) => button.textContent?.trim() === text,
+			);
+
+		[...target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-ribbon-tab')]
+			.find((button) => button.textContent?.trim() === 'File')
+			?.click();
+		flushSync();
+		byText('Open')?.click();
+		flushSync();
+		const browse = byText('Browse this device');
+		expect(browse, 'the Open pane has no Browse control').toBeDefined();
+		browse?.click();
+		flushSync();
+
+		expect(clicked).toHaveLength(1);
+		expect(clicked[0].accept).toContain('.pptx');
+	});
+
+	/**
+	 * The backstage is a full-screen `position: fixed` overlay, so it must not
+	 * live inside the ribbon's content row: that row styles every direct child
+	 * with `align-items: flex-start`, which stopped the backstage nav rail
+	 * stretching and left a short stub column floating at the top of the window.
+	 */
+	it('renders the File backstage outside the ribbon content row', async () => {
+		const { target } = await mountViewer({ editable: true });
+		[...target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-ribbon-tab')]
+			.find((button) => button.textContent?.trim() === 'File')
+			?.click();
+		flushSync();
+
+		const backstage = target.querySelector('[role="dialog"][aria-label="File"]');
+		expect(backstage).not.toBeNull();
+		expect(backstage?.closest('.pptx-svelte-ribbon-content')).toBeNull();
+		// ...and the rail's bottom group is separated by the flex spacer that a
+		// non-stretched rail collapses.
+		expect(backstage?.querySelector('aside nav i')).not.toBeNull();
+	});
+
 	it('reports load errors through onerror', async () => {
 		const target = document.createElement('div');
 		document.body.appendChild(target);
