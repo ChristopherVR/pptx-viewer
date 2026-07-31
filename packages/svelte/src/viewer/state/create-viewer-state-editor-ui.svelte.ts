@@ -64,6 +64,19 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getSnapToGrid: () => parityUi.preferences.snapToGrid,
 		getSnapToShape: () => parityUi.snapToShape,
 		getGuides: () => parityUi.guides,
+		// The stage gesture preventDefault()s the click, so the keymap's focus has
+		// to be put back on the (focusable) viewer root after every canvas press.
+		getRootEl: () => options.getRootEl() ?? null,
+		toggleShortcuts: () => {
+			parityUi.shortcutsOpen = !parityUi.shortcutsOpen;
+		},
+		closeShortcuts: () => {
+			if (!parityUi.shortcutsOpen) {
+				return false;
+			}
+			parityUi.shortcutsOpen = false;
+			return true;
+		},
 	});
 
 	const findReplace = new FindReplaceState({

@@ -45,9 +45,11 @@ describe('resolveNavigationKey', () => {
 });
 
 describe('zoom steps', () => {
-	it('steps up and down multiplicatively with clamping', () => {
-		expect(zoomInPercent(100)).toBe(125);
-		expect(zoomOutPercent(125)).toBe(100);
+	// Re-exported from pptx-viewer-shared so one press is worth the same amount
+	// of zoom in every binding (this package used to step by 1.25x instead).
+	it('steps up and down by the shared 10 points, with clamping', () => {
+		expect(zoomInPercent(100)).toBe(110);
+		expect(zoomOutPercent(110)).toBe(100);
 		expect(zoomInPercent(ZOOM_MAX_PERCENT)).toBe(ZOOM_MAX_PERCENT);
 		expect(zoomOutPercent(ZOOM_MIN_PERCENT)).toBe(ZOOM_MIN_PERCENT);
 	});

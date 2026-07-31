@@ -14,7 +14,7 @@
 	import { getContainerStyle, getImageSrc, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex }: ElementRendererProps = $props();
+	const { element, mediaDataUrls, zIndex, interactive = false }: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	const imageSrc = $derived(getImageSrc(element, mediaDataUrls));
@@ -51,7 +51,7 @@
 	);
 </script>
 
-<div class="pptx-svelte-element pptx-svelte-image" style={containerStyle} data-element-id={element.id}>
+<div class="pptx-svelte-element pptx-svelte-image" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
 	<!-- SVG <filter> defs for duotone / advanced-alpha / artistic image effects. -->
 	{#each imageFx.svgFilters as f (f.id)}
 		<svg width="0" height="0" aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden">

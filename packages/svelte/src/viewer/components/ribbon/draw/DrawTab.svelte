@@ -13,10 +13,9 @@
 	 * (`editor-ink-gesture.ts`); this tab only edits tool/colour/width state,
 	 * matching the thin-presentation split every other ribbon tab follows.
 	 *
-	 * Scope note: React's `DrawingTool` / Angular's `DrawTool` also include a
-	 * `'freeform'` tool (draws a closed custom-geometry shape instead of an
-	 * ink stroke); this wave only ports pen/highlighter/eraser/select, matching
-	 * the task's explicit tool list.
+	 * Freeform shares the pen's gesture but commits a closed custom-geometry
+	 * `shape` instead of an `ink` stroke, so the result can be filled, outlined
+	 * and reshaped like any other shape afterwards (`editor-freeform.ts`).
 	 */
 	import { useTranslator } from '../../../../i18n/context';
 	import type { InkDrawTool } from '../../../editor/editor-ink-controller.svelte';
@@ -36,6 +35,7 @@
 		{ id: 'pen', labelKey: 'pptx.ribbon.tool.pen' },
 		{ id: 'highlighter', labelKey: 'pptx.ribbon.tool.highlighter' },
 		{ id: 'eraser', labelKey: 'pptx.ribbon.tool.eraser' },
+		{ id: 'freeform', labelKey: 'pptx.ribbon.tool.freeform' },
 	];
 </script>
 
@@ -76,7 +76,7 @@
 							stroke-linejoin="round"
 						/></svg
 					>
-				{:else}
+				{:else if tool.id === 'eraser'}
 					<svg viewBox="0 0 16 16" aria-hidden="true"
 						><rect
 							x="3"
@@ -90,6 +90,17 @@
 							stroke-width="1.3"
 						/><path d="M2.5 14h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg
 					>
+				{:else}
+					<svg viewBox="0 0 16 16" aria-hidden="true"
+						><path
+							d="M2.5 12c1-5 3-8 5-8s1.5 5 3 5 2-2 3-3"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.3"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/></svg
+					>
 				{/if}
 			</button>
 		{/each}
@@ -98,7 +109,8 @@
 	<SwatchColorPicker
 		value={ink.color}
 		disabled={!editor.editable}
-		label={t('pptx.ribbon.penColour')}
+		label={t('pptx.ribbon.colour')}
+		title={t('pptx.ribbon.penColour')}
 		glyph="P"
 		onselect={(hex) => ink.setColor(hex)}
 	/>
@@ -110,7 +122,6 @@
 			min={MIN_WIDTH}
 			max={MAX_WIDTH}
 			disabled={!editor.editable}
-			aria-label={t('pptx.ribbon.strokeWidth')}
 			value={ink.width}
 			oninput={(e) => ink.setWidth(Number(e.currentTarget.value))}
 		/>

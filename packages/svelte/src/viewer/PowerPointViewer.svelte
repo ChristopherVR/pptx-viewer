@@ -11,7 +11,9 @@
 	import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 	import {
 		applyAutoCorrect,
+		buildFieldSubstitutionContext,
 		buildUserFontFaceStyles,
+		clampZoomScale,
 		createBlankSlide,
 		DEFAULT_VIEWER_OPTIONS,
 		endAudienceDisplay,
@@ -26,7 +28,7 @@
 		toggleSheet,
 		writeStoredViewerPrefs,
 	} from 'pptx-viewer-shared';
-	import type { MobileSheetKey, ViewerMode } from 'pptx-viewer-shared';
+	import type { FieldSubstitutionContext, MobileSheetKey, ViewerMode } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
@@ -34,6 +36,7 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import CollaborationStatusIndicator from './collab/components/CollaborationStatusIndicator.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
+	import type { StageContextMenu } from './components/props';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import SignatureStrippedDialog from './components/SignatureStrippedDialog.svelte';
 	import ViewerParityOverlays from './components/ViewerParityOverlays.svelte';
@@ -67,6 +70,7 @@
 	import { provideViewerOptions } from './state/viewer-options-context';
 	import { useViewerOptionsWiring } from './state/viewer-options-wiring.svelte';
 	import { ViewerParityUiState } from './state/viewer-parity-ui.svelte';
+	import { provideFieldContext } from './state/field-context';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { providePresentationElementStates } from './state/presentation-element-states-context';
 	import { provideRenderContext } from './state/render-context';
@@ -246,7 +250,7 @@
 	let stageHolderEl = $state<HTMLDivElement>();
 	// eslint-disable-next-line prefer-const
 	let masterScale = $state(1);
-	let stageContextMenu = $state<{ x: number; y: number } | null>(null);
+	let stageContextMenu = $state<StageContextMenu | null>(null);
 	let activeMobileSheet = $state<MobileSheetKey>(null);
 	const editor = new EditorState({
 		getCurrent: () => viewer.current,
@@ -277,8 +281,8 @@
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => stageHolderEl ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
-		onContextMenu: (x, y) => {
-			stageContextMenu = { x, y };
+		onContextMenu: (x, y, cell) => {
+			stageContextMenu = { x, y, cell };
 		},
 		getSnapToGrid: () => parityUi.preferences.snapToGrid,
 		getSnapToShape: () => parityUi.snapToShape,
@@ -286,6 +290,19 @@
 		// `collab` is declared below; these accessors only run from user input.
 		getLivePatcher: () => collab.livePatcher,
 		getActiveSlide: () => editor.slides[viewer.current],
+		// The stage gesture preventDefault()s the click, so the keymap's focus has
+		// to be put back on the (focusable) viewer root after every canvas press.
+		getRootEl: () => rootEl ?? null,
+		toggleShortcuts: () => {
+			parityUi.shortcutsOpen = !parityUi.shortcutsOpen;
+		},
+		closeShortcuts: () => {
+			if (!parityUi.shortcutsOpen) {
+				return false;
+			}
+			parityUi.shortcutsOpen = false;
+			return true;
+		},
 	});
 	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
 	const findReplace = new FindReplaceState({
@@ -577,6 +594,22 @@
 	// connector / shape renderers can reveal staged builds and relinquish animated
 	// fill / stroke (mirrors Vue's `providePresentationElementStates`).
 	providePresentationElementStates(() => presentation.elementStates);
+	/**
+	 * Deck-level OOXML field-substitution context (date/time, header/footer,
+	 * document properties, plus the active slide's number and title) so field
+	 * runs render their display text instead of the authored placeholder
+	 * ("Slide #"). Each `SlideStage` re-points the per-slide parts at its own
+	 * slide, and the off-screen export stage is seeded with the same source.
+	 */
+	function deckFieldContext(): FieldSubstitutionContext {
+		return buildFieldSubstitutionContext({
+			headerFooter: editor.headerFooter,
+			customProperties: editor.customProperties,
+			slide: activeSlide,
+		});
+	}
+	// A getter closure (not a snapshot) keeps the runes reads live for consumers.
+	provideFieldContext(deckFieldContext);
 	usePresentationEffects({
 		controller: presentation,
 		getPresenting: () => viewer.isFullscreen,
@@ -635,6 +668,7 @@
 		getCurrent: () => viewer.current,
 		getTranslator: () => t,
 		getSmartArt3D: () => smartArt3D,
+		getFieldContext: deckFieldContext,
 	});
 	// Toolbar export menu + progress modal state (Vue `useExportProgress` port).
 	const exportUi = new ExportUiState({
@@ -686,7 +720,9 @@
 	export const goPrev = (): void => viewer.prev();
 	export const goNext = (): void => viewer.next();
 	export const getZoom = (): number => effectivePercent / 100;
-	export const setZoom = (level: number): void => { viewer.zoomPercent = Math.max(10, Math.min(400, level * 100)); };
+	// Shared clamp, not a hand-rolled one, so every binding refuses the same
+	// out-of-range zoom.
+	export const setZoom = (level: number): void => { viewer.zoomPercent = clampZoomScale(level) * 100; };
 	export const zoomIn = (): void => viewer.zoomIn(effectivePercent);
 	export const zoomOut = (): void => viewer.zoomOut(effectivePercent);
 	export const zoomReset = (): void => { viewer.zoomPercent = 100; };
@@ -768,6 +804,24 @@
 	export const exportGif = exportingApi.exportGif;
 	export const exportVideo = exportingApi.exportVideo;
 	export const print = exportingApi.print;
+
+	/**
+	 * Run a Quick Access Toolbar command by catalog id. Save/Undo/Redo keep
+	 * their dedicated title-bar buttons (they carry the undo state), so only the
+	 * options-configured remainder arrives here.
+	 */
+	function runQuickAccessCommand(id: string): void {
+		const handlers: Record<string, () => void> = {
+			presentFromStart: () => { goTo(0); setMode('present'); },
+			print: () => void exportingApi.print(),
+			exportPdf: () => void exportingApi.exportPdf(),
+			newSlide: () => addSlide(),
+			spellCheck: () => { parityUi.preferences.spellCheck = !parityUi.preferences.spellCheck; },
+			zoomIn: () => zoomIn(),
+			zoomOut: () => zoomOut(),
+		};
+		handlers[id]?.();
+	}
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} />
@@ -832,6 +886,7 @@
 			onundo={() => editor.undo()}
 			onredo={() => editor.redo()}
 			onfindreplace={() => findReplace.toggle()}
+			onquickcommand={runQuickAccessCommand}
 		/>
 		{#if showRibbon}
 			<Ribbon
@@ -903,6 +958,12 @@
 				oncustomshows={() => (parityUi.customShowsOpen = true)}
 				onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
 				onslidesorter={() => (parityUi.slideSorterOpen = true)}
+				onnormal={() => {
+					if (viewer.isFullscreen) {
+						onFullscreenToggle();
+					}
+					parityUi.slideSorterOpen = false;
+				}}
 				preferences={parityUi.preferences}
 				onpreferenceschange={(next) => { parityUi.preferences = next; }}
 				showGuides={parityUi.showGuides}
@@ -996,6 +1057,8 @@
 		annotations={parityUi.annotations}
 		guides={parityUi.showGuides ? parityUi.guides : []}
 		onchangeguide={(index, position) => { parityUi.guides = parityUi.guides.map((guide, guideIndex) => guideIndex === index ? { ...guide, position } : guide); }}
+		onaddguide={(axis, position) => { parityUi.guides = [...parityUi.guides, { axis, position }]; parityUi.showGuides = true; }}
+		showRulers={parityUi.preferences.showRulers}
 		spellCheck={parityUi.preferences.spellCheck}
 		onstageresize={(width, height) => {
 			viewportWidth = width;
@@ -1194,7 +1257,6 @@
 	}
 	:global(.pptx-svelte-reduced-motion *) { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 	:global(.pptx-svelte-show-grid .pptx-svelte-stage-holder)::after { position:absolute;inset:0;z-index:4;pointer-events:none;background-image:linear-gradient(#64748b22 1px,transparent 1px),linear-gradient(90deg,#64748b22 1px,transparent 1px);background-size:12px 12px;content:''; }
-	:global(.pptx-svelte-show-rulers .pptx-svelte-stage-holder) { border-top:18px solid #d6d3d1; border-left:18px solid #d6d3d1; }
 
 	@media (forced-colors: active) {
 		:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):focus-visible) {

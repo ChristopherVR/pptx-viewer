@@ -83,8 +83,8 @@
 				disabled={!editor.editable}
 				aria-haspopup="menu"
 				aria-expanded={openMenu === 'new'}
-				aria-label={t('pptx.ribbon.duplicateSlide')}
-				title={t('pptx.ribbon.duplicateSlide')}
+				aria-label={t('pptx.home.chooseLayout')}
+				title={t('pptx.home.chooseLayout')}
 				onclick={() => (openMenu = openMenu === 'new' ? null : 'new')}
 			>
 				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -129,7 +129,6 @@
 			type="button"
 			class="pptx-svelte-rgroup-main"
 			disabled={!editor.editable}
-			aria-label={t('pptx.sections.resetSlideTitle')}
 			title={t('pptx.sections.resetSlideTitle')}
 			onclick={() => void runAsync(() => editor.slidesOps.resetSlide())}
 		>
@@ -141,7 +140,6 @@
 			type="button"
 			class="pptx-svelte-rgroup-main"
 			disabled={!editor.editable || editor.slides.length === 0}
-			aria-label={t('pptx.sections.addSection')}
 			title={t('pptx.sections.addSection')}
 			onclick={() => editor.sectionOps.add(t('pptx.sections.defaultName'))}
 		>

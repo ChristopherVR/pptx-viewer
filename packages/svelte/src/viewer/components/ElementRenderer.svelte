@@ -7,9 +7,10 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, hasTextWarp, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, hasTextWarp, isElementHidden, isTemplateElement } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
+	import { getFieldContextGetter } from '../state/field-context';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
 	import {
 		getPresentationElementStatesGetter,
@@ -41,6 +42,16 @@
 
 	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps =
 		$props();
+	/**
+	 * Whether THIS element takes part in the neutral element contract
+	 * (`data-pptx-element="true"`) and in pointer interaction.
+	 *
+	 * Forwarded to every delegated view, not just the branches that render their
+	 * own box here: Svelte has no attribute fallthrough, so a view that is not
+	 * handed this flag cannot mark its root, and its element type drops out of
+	 * the contract entirely (charts and tables painted correctly while being
+	 * invisible to anything that enumerates or hit-tests elements by the marker).
+	 */
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
 	/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
 	const childParentGroupFill = $derived(getGroupChildParentFill(element));
@@ -65,8 +76,20 @@
 	const isShapeLike = $derived(element.type === 'text' || element.type === 'shape');
 	const isImageLike = $derived(element.type === 'picture' || element.type === 'image');
 
+	// Captured at init for the same reason as the animation states above:
+	// `getContext` only resolves during component initialisation, so the getter
+	// is taken here and invoked inside the `$derived` to stay reactive.
+	const getFieldContext = getFieldContextGetter();
+	/**
+	 * OOXML field-substitution context (slide number, date/time, header/footer,
+	 * slide title, document properties), provided by the viewer root and
+	 * re-pointed per slide by `SlideStage`. Without it a slide-number run renders
+	 * its authored placeholder ("Slide #") instead of the resolved "Slide 1".
+	 */
+	const fieldContext = $derived(getFieldContext?.());
+
 	/** Rendered paragraphs (runs + bullet/indent), built by shared logic. */
-	const paragraphs = $derived(buildParagraphs(element));
+	const paragraphs = $derived(buildParagraphs(element, fieldContext));
 	const hasText = $derived(
 		paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 	);
@@ -74,6 +97,8 @@
 		hasTextProperties(element) && (element.textSegments ?? []).some((segment) => segment.equationXml),
 	);
 	const warpedText = $derived(hasTextWarp(element));
+	/** Selection Pane visibility; see the leading branch of the markup below. */
+	const isHidden = $derived(isElementHidden(element));
 	const extrusion = $derived.by(() => {
 		const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 		return build3DExtrusionData(
@@ -86,7 +111,16 @@
 	});
 </script>
 
-{#if element.type === 'group'}
+{#if isHidden}
+	<!--
+		Hidden via the Selection Pane: draw nothing, exactly as PowerPoint does.
+		This leads the chain so one empty branch suppresses every element type at
+		once. Rendering nothing (rather than an invisible box) is what keeps the
+		element out of hit-testing, the tab order and the export raster; it stays
+		listed in and selectable from the Selection Pane, which reads the slide
+		model rather than the DOM.
+	-->
+{:else if element.type === 'group'}
 	<!-- Group: recurse into children. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-group"
@@ -99,31 +133,31 @@
 		{/each}
 	</div>
 {:else if isImageLike}
-	<ImageBox {element} {mediaDataUrls} {zIndex} />
+	<ImageBox {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
 {:else if element.type === 'connector'}
-	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} />
+	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} />
 {:else if element.type === 'table'}
-	<TableView {element} {mediaDataUrls} {zIndex} {interactive} {ontablecellcommit} />
+	<TableView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} {ontablecellcommit} />
 {:else if element.type === 'chart'}
-	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} />
+	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} />
 {:else if element.type === 'smartArt' && smartArt3D}
-	<SmartArt3DView {element} {mediaDataUrls} {zIndex} />
+	<SmartArt3DView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
 {:else if element.type === 'smartArt'}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
 {:else if element.type === 'media'}
-	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} />
+	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
 {:else if element.type === 'ink'}
-	<InkView {element} {mediaDataUrls} {zIndex} {presenting} />
+	<InkView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
 {:else if element.type === 'ole'}
-	<OleView {element} {mediaDataUrls} {zIndex} />
+	<OleView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
 {:else if element.type === 'contentPart'}
-	<ContentPartView {element} {mediaDataUrls} {zIndex} {presenting} />
+	<ContentPartView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
 {:else if element.type === 'zoom'}
-	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} />
+	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
 {:else if element.type === 'model3d'}
-	<Model3dView {element} {mediaDataUrls} {zIndex} />
+	<Model3dView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
 {:else if hasEquation}
-	<EquationView {element} {mediaDataUrls} {zIndex} />
+	<EquationView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
 {:else if isShapeLike}
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
@@ -147,5 +181,5 @@
 		{/if}
 	</div>
 {:else}
-	<PlaceholderElement {element} {mediaDataUrls} {zIndex} />
+	<PlaceholderElement {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
 {/if}

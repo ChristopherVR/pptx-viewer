@@ -23,7 +23,13 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false }: ElementRendererProps = $props();
+	const {
+		element,
+		mediaDataUrls,
+		zIndex,
+		presenting = false,
+		interactive = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const media = $derived(element.type === 'media' ? element : undefined);
@@ -60,6 +66,7 @@
 		class:pptx-svelte-media-fallback={isFallback}
 		style={containerStyle}
 		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
 	>
 		{#if view.mediaSrc && media.mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -- source PPTX media carries no caption track -->

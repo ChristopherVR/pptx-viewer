@@ -25,10 +25,14 @@
 
 <div class="backdrop">
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-	<section role="dialog" tabindex="-1" aria-modal="true" aria-label={t('pptx.hyperlink.title')}>
-		<h2>{t('pptx.hyperlink.title')}</h2>
-		<label>{t('pptx.hyperlink.address')}<input type="url" bind:value={url} /></label>
-		<label>{t('pptx.hyperlink.screenTip')}<input bind:value={tooltip} /></label>
+	<!-- The keys here are the ones the shared dictionary actually defines:
+	     `pptx.hyperlink.title` / `.address` / `.screenTip` do not exist, so the
+	     translator's key-to-label fallback silently titled this dialog "Title"
+	     and labelled its fields "Address" / "Screen Tip" by accident. -->
+	<section role="dialog" tabindex="-1" aria-modal="true" aria-label={t('pptx.hyperlink.editTitle')}>
+		<h2>{t('pptx.hyperlink.editTitle')}</h2>
+		<label>{t('pptx.hyperlink.urlLabel')}<input type="url" bind:value={url} /></label>
+		<label>{t('pptx.hyperlink.tooltipLabel')}<input bind:value={tooltip} /></label>
 		<footer><button onclick={onclose}>{t('common.cancel')}</button><button class="primary" onclick={save}>{t('common.ok')}</button></footer>
 	</section>
 </div>

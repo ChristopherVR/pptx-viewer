@@ -13,7 +13,7 @@
 	import type { ElementRendererProps } from './props';
 	import ConnectorLabel from './ConnectorLabel.svelte';
 
-	const { element, zIndex, animationState }: ElementRendererProps = $props();
+	const { element, zIndex, animationState, interactive = false }: ElementRendererProps = $props();
 
 	const geometry = $derived(buildConnectorGeometry(element, zIndex));
 	/**
@@ -37,7 +37,7 @@
 	const textElement = $derived(hasTextProperties(element) ? element : undefined);
 </script>
 
-<div class="pptx-svelte-element pptx-svelte-connector" style={wrapperStyle} data-element-id={element.id}>
+<div class="pptx-svelte-element pptx-svelte-connector" style={wrapperStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
 	<svg
 		width={geometry.svgW}
 		height={geometry.svgH}

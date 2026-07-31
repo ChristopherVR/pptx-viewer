@@ -35,6 +35,13 @@ export {
 	toggleListTypePatch,
 } from './editor-paragraph-mutations';
 export {
+	hasTextShadow,
+	setColumnCountPatch,
+	setTextDirectionPatch,
+	toggleTextShadowPatch,
+} from './editor-text-body-mutations';
+export { strokeToFreeformShape } from './editor-freeform';
+export {
 	changeCasePatch,
 	clearFormattingPatch,
 	setCharacterSpacingPatch,

@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, FieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
 import { ExportController } from './export-controller.svelte';
@@ -20,6 +20,13 @@ export interface ExportWiringDeps {
 	getCurrent(): number;
 	getTranslator(): Translator;
 	getSmartArt3D(): boolean;
+	/**
+	 * Deck-level field-substitution context, so an exported slide resolves its
+	 * slide-number / date / footer runs exactly like the on-screen stage does.
+	 * Optional: a host wiring exports without a viewer root simply exports the
+	 * authored placeholder text, as before.
+	 */
+	getFieldContext?(): FieldSubstitutionContext | undefined;
 }
 
 export interface ExportWiring {
@@ -50,6 +57,7 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 				getMediaDataUrls: deps.getMediaDataUrls,
 				getTranslator: deps.getTranslator,
 				smartArt3D: deps.getSmartArt3D(),
+				getFieldContext: () => deps.getFieldContext?.(),
 			});
 		}
 		return rasterizer;

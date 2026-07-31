@@ -12,6 +12,7 @@ import type {
 	PptxSlideMaster,
 	PptxPresentationProperties,
 	PptxCustomShow,
+	PptxTagCollection,
 } from 'pptx-viewer-core';
 import type { TemplateElementMap } from 'pptx-viewer-shared';
 import { cloneTemplateElementsBySlideId } from 'pptx-viewer-shared';
@@ -31,6 +32,8 @@ export interface EditorSnapshot {
 	coreProperties: PptxCoreProperties | undefined;
 	appProperties: PptxAppProperties | undefined;
 	customProperties: PptxCustomProperty[];
+	/** `ppt/tags/*.xml` name/value metadata, editable in the inspector. */
+	tagCollections: PptxTagCollection[];
 }
 
 export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
@@ -47,6 +50,7 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
 		coreProperties: structuredClone(snapshot.coreProperties),
 		appProperties: structuredClone(snapshot.appProperties),
 		customProperties: structuredClone(snapshot.customProperties),
+		tagCollections: structuredClone(snapshot.tagCollections),
 	};
 }
 
@@ -69,6 +73,8 @@ export async function saveEditorDocument(
 		...(snapshot.customProperties.length > 0
 			? { customProperties: snapshot.customProperties }
 			: {}),
+		// Omitted when empty so a deck with no tag parts is not given one.
+		...(snapshot.tagCollections.length > 0 ? { tags: snapshot.tagCollections } : {}),
 	};
 	const hasMasters =
 		snapshot.slideMasters.length > 0 ||

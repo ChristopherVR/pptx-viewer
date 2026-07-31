@@ -22,6 +22,8 @@
 	import NotesHandoutSection from './NotesHandoutSection.svelte';
 	import PresentationSettingsSection from './PresentationSettingsSection.svelte';
 	import SlideSizeSection from './SlideSizeSection.svelte';
+	import SlideTransitionSection from './SlideTransitionSection.svelte';
+	import TagsSection from './TagsSection.svelte';
 	import ThemeSection from './ThemeSection.svelte';
 	import ThemeSelectorSection from './ThemeSelectorSection.svelte';
 
@@ -98,6 +100,13 @@
 			/>
 		</div>
 	{/if}
+	<!-- React pairs slide size + transition in `SlideProperties`; same order. -->
+	{#if activeSlide}
+		<div class="pptx-svelte-inspector-section">
+			<h4>{t('pptx.slideInspector.slideTransition')}</h4>
+			<SlideTransitionSection {editor} />
+		</div>
+	{/if}
 	<div class="pptx-svelte-inspector-section">
 		<h4>{t('pptx.documentProperties.notesHandoutHeading')}</h4>
 		<NotesHandoutSection
@@ -116,6 +125,14 @@
 			onupdatecore={(patch) => deck.updateCoreProperties(patch)}
 			onupdateapp={(patch) => deck.updateAppProperties(patch)}
 			onupdatecustom={(next) => deck.updateCustomProperties(next)}
+		/>
+	</div>
+	<!-- React renders TAGS from the same PresentationPropertiesPanel. -->
+	<div class="pptx-svelte-inspector-section">
+		<TagsSection
+			tagCollections={editor.tagCollections}
+			{canEdit}
+			onupdate={(next) => editor.updateTagCollections(next)}
 		/>
 	</div>
 	{#if activeSlide}

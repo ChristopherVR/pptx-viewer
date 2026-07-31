@@ -65,8 +65,8 @@
 	<button
 		type="button"
 		disabled={!canFlip}
-		aria-label={t('pptx.arrange.flipHorizontally')}
-		title={t('pptx.arrange.flipH')}
+		aria-label={t('pptx.arrange.flipH')}
+		title={t('pptx.arrange.flipHorizontally')}
 		onclick={() => editor.arrangeOps.flipSelected('horizontal')}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M3 5l2-2 2 2M3 11l2 2 2-2M13 5l-2-2-2 2M13 11l-2 2-2-2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -74,8 +74,8 @@
 	<button
 		type="button"
 		disabled={!canFlip}
-		aria-label={t('pptx.arrange.flipVertically')}
-		title={t('pptx.arrange.flipV')}
+		aria-label={t('pptx.arrange.flipV')}
+		title={t('pptx.arrange.flipVertically')}
 		onclick={() => editor.arrangeOps.flipSelected('vertical')}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M5 3l-2 2 2 2M11 3l2 2-2 2M5 13l-2-2 2-2M11 13l2-2-2-2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -98,6 +98,24 @@
 		onclick={() => editor.arrangeOps.ungroupSelected()}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /></svg>
+	</button>
+	<span class="pptx-svelte-arrangex-sep" aria-hidden="true"></span>
+	<!-- The Arrange group's labelled Format Painter, beside the Clipboard
+	     group's icon-only one. Both drive the same controller; PowerPoint (and
+	     React) offer it in both places because the Arrange group is where you
+	     are already working when you want to copy a shape's look. -->
+	<button
+		type="button"
+		class="pptx-svelte-arrangex-wide"
+		class:pptx-svelte-arrangex-on={editor.formatPainter.active}
+		data-active={editor.formatPainter.active}
+		aria-pressed={editor.formatPainter.active}
+		disabled={!editor.formatPainter.enabled}
+		title={t('pptx.arrange.formatPainter')}
+		onclick={() => editor.formatPainter.toggle()}
+	>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h8v4H3zM11 4h2v5H8v4H6V8h5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
+		<span>{t('pptx.arrange.format')}</span>
 	</button>
 </div>
 
@@ -134,6 +152,19 @@
 	.pptx-svelte-arrangex svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	.pptx-svelte-arrangex-wide {
+		gap: 4px;
+		padding: 0 8px;
+		font: inherit;
+		font-size: 11.5px;
+		white-space: nowrap;
+	}
+
+	.pptx-svelte-arrangex-on {
+		background: var(--pptx-primary, #6366f1);
+		color: #fff;
 	}
 
 	.pptx-svelte-arrangex-sep {

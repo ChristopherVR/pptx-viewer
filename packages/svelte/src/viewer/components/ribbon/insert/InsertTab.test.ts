@@ -59,8 +59,10 @@ describe('insertTab', () => {
 	it('inserts a 3x3 table via the table button', () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
+		// Named by its visible text, not an aria-label: the ribbon-inventory
+		// contract is that every binding calls this button "Table".
 		const tableBtn = Array.from(target.querySelectorAll('button')).find(
-			(b) => b.getAttribute('aria-label') === 'Insert table',
+			(b) => b.textContent?.trim() === 'Table',
 		);
 		tableBtn?.click();
 		flushSync();

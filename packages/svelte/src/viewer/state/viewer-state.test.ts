@@ -47,11 +47,11 @@ describe('viewerState', () => {
 		const state = new ViewerState();
 		expect(state.zoomPercent).toBeNull();
 		state.zoomIn(80);
-		expect(state.zoomPercent).toBe(100);
+		expect(state.zoomPercent).toBe(90);
 		state.zoomIn(100);
-		expect(state.zoomPercent).toBe(125);
-		state.zoomOut(999);
 		expect(state.zoomPercent).toBe(100);
+		state.zoomOut(999);
+		expect(state.zoomPercent).toBe(90);
 		state.zoomToFit();
 		expect(state.zoomPercent).toBeNull();
 	});

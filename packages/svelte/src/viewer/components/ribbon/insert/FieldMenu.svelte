@@ -40,7 +40,7 @@
 <select
 	class="pptx-svelte-insert-select"
 	disabled={!editor.editable}
-	aria-label={t('pptx.field.insertField')}
+	aria-label={t('pptx.field.field')}
 	title={t('pptx.field.insertField')}
 	value=""
 	onchange={onChange}

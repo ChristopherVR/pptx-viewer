@@ -20,7 +20,17 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, presenting = false }: ElementRendererProps = $props();
+	// The `interactive` prop is aliased to `markElement` here to keep it apart
+	// from this view's own `clickable`: a zoom tile is clickable only while
+	// PRESENTING (it navigates to its target slide), whereas the prop means
+	// "this node takes part in the neutral element contract" and is set on the
+	// editing canvas instead. The two are never true together.
+	const {
+		element,
+		zIndex,
+		presenting = false,
+		interactive: markElement = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
 	const navigation = useZoomNavigation();
 
@@ -33,7 +43,7 @@
 			? buildSummaryZoomView(zoom, (index) => resolveZoomTargetInfo(navigation, index))
 			: undefined,
 	);
-	const interactive = $derived(Boolean(presenting && navigation && view));
+	const clickable = $derived(Boolean(presenting && navigation && view));
 	const slideNumber = $derived(targetInfo?.slideNumber ?? (view?.target ?? 0) + 1);
 	const sectionLabel = $derived(targetInfo?.sectionName ?? view?.sectionId);
 	const thumbnailStyle = $derived(
@@ -53,20 +63,20 @@
 	);
 
 	function activate(): void {
-		if (interactive && view) {
+		if (clickable && view) {
 			navigation?.navigateToZoomTarget(view.target);
 		}
 	}
 
 	function activateSummary(event: Event, target: number): void {
-		if (!interactive) {return;}
+		if (!clickable) {return;}
 		event.preventDefault();
 		event.stopPropagation();
 		navigation?.navigateToZoomTarget(target);
 	}
 
 	function onClick(event: MouseEvent): void {
-		if (!interactive) {
+		if (!clickable) {
 			return;
 		}
 		event.stopPropagation();
@@ -74,7 +84,7 @@
 	}
 
 	function onKeydown(event: KeyboardEvent): void {
-		if (!interactive || (event.key !== 'Enter' && event.key !== ' ')) {
+		if (!clickable || (event.key !== 'Enter' && event.key !== ' ')) {
 			return;
 		}
 		event.preventDefault();
@@ -89,12 +99,13 @@
 		class="pptx-svelte-element pptx-svelte-zoom"
 		style={containerStyle}
 		data-element-id={element.id}
+		data-pptx-element={markElement ? 'true' : undefined}
 		data-zoom-type={view.zoomType}
 		data-zoom-target={view.target}
 		aria-label={summaryView?.ariaLabel ?? ariaLabel}
-		role={summaryView ? 'group' : interactive ? 'button' : undefined}
-		tabindex={!summaryView && interactive ? 0 : undefined}
-		class:pptx-svelte-zoom-interactive={interactive}
+		role={summaryView ? 'group' : clickable ? 'button' : undefined}
+		tabindex={!summaryView && clickable ? 0 : undefined}
+		class:pptx-svelte-zoom-interactive={clickable}
 		onclick={onClick}
 		onkeydown={onKeydown}
 	>
@@ -108,8 +119,8 @@
 						data-zoom-target={tile.targetSlideIndex}
 						data-section-id={tile.sectionId}
 						aria-label={tile.ariaLabel}
-						role={interactive ? 'button' : undefined}
-						tabindex={interactive ? 0 : undefined}
+						role={clickable ? 'button' : undefined}
+						tabindex={clickable ? 0 : undefined}
 						onclick={(event) => activateSummary(event, tile.targetSlideIndex)}
 						onkeydown={(event) => {
 							if (event.key === 'Enter' || event.key === ' ') activateSummary(event, tile.targetSlideIndex);

@@ -33,7 +33,7 @@
 <select
 	class="pptx-svelte-insert-select"
 	disabled={!editor.editable}
-	aria-label={t('pptx.ribbon.insertActionButton')}
+	aria-label={t('pptx.ribbon.action')}
 	title={t('pptx.ribbon.insertActionButton')}
 	value=""
 	onchange={onChange}

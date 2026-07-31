@@ -27,8 +27,11 @@
 	import type { ChromeUiState, InspectorTabId } from '../../state/chrome-ui.svelte';
 	import { useInspectorDeck } from '../../state/inspector-deck';
 	import ReviewCommentsPanel from '../ribbon/review/ReviewCommentsPanel.svelte';
+	import ActionSettingsPanel from './ActionSettingsPanel.svelte';
+	import AltTextSection from './AltTextSection.svelte';
 	import AnimationPanel from './AnimationPanel.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
+	import QuickStylesGallery from './QuickStylesGallery.svelte';
 	import ChartSection from './ChartSection.svelte';
 	import ElementsListSection from './ElementsListSection.svelte';
 	import ImageSection from './ImageSection.svelte';
@@ -73,6 +76,9 @@
 	const isSmartArt = $derived(el?.type === 'smartArt');
 	const isChart = $derived(el?.type === 'chart');
 	const isMedia = $derived(el?.type === 'media');
+	// React gates Quick Styles on shape/text (FillStrokeProperties): the presets
+	// are shape-fill recipes and mean nothing on a picture or a table.
+	const canQuickStyle = $derived(el?.type === 'shape' || el?.type === 'text');
 </script>
 
 <aside
@@ -109,6 +115,9 @@
 				{#if canShape}
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.fillStroke')}</h4>
+						{#if canQuickStyle}
+							<QuickStylesGallery {editor} {el} />
+						{/if}
 						<ShapeSection {editor} {el} />
 						<FillStrokeSection {editor} {el} />
 					</div>
@@ -125,6 +134,7 @@
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.image')}</h4>
 						<ImageSection {editor} {el} />
+						<AltTextSection {editor} {el} />
 					</div>
 				{/if}
 
@@ -143,6 +153,13 @@
 				{/if}
 				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>Chart</h4><ChartSection {editor} /></div>{/if}
 				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
+
+				<!-- Click / hover actions apply to every element type (React's
+				     ElementInspectorBody renders ActionSettingsPanel unconditionally). -->
+				<div class="pptx-svelte-inspector-section">
+					<h4>{t('pptx.action.title')}</h4>
+					<ActionSettingsPanel {editor} {el} />
+				</div>
 			{:else}
 				<PresentationPropertiesPanel {editor} {deck} {canvasSize} {handler} {presentationTheme} {onthemechange} />
 				{#if !activeSlide}

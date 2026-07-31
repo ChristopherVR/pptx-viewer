@@ -37,7 +37,6 @@
 		disabled={!editor.editable}
 		aria-haspopup="dialog"
 		aria-expanded={open}
-		aria-label={t('pptx.ribbon.insertSmartArt')}
 		title={t('pptx.ribbon.insertSmartArt')}
 		onclick={openDialog}
 	>

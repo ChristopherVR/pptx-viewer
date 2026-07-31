@@ -13,6 +13,7 @@ import type {
 	PptxSlideMaster,
 	PptxPresentationProperties,
 	PptxCustomShow,
+	PptxTagCollection,
 	TextSegment,
 } from 'pptx-viewer-core';
 import type { ElementClipboardPayload, TemplateElementMap } from 'pptx-viewer-shared';
@@ -62,6 +63,12 @@ export class EditorState {
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
+	/**
+	 * The deck's `ppt/tags/*.xml` name/value metadata. Seeded from the load via
+	 * {@link adoptTagCollections} and edited by the inspector's Tags section;
+	 * carried through the undo snapshot and re-emitted on save.
+	 */
+	tagCollections = $state.raw<PptxTagCollection[]>([]);
 	masterViewTarget = $state.raw<MasterViewTarget | null>(null);
 	readonly selection = new EditorSelection();
 	editable = $state(false);
@@ -204,6 +211,9 @@ export class EditorState {
 		this.coreProperties = structuredClone(coreProperties);
 		this.appProperties = structuredClone(appProperties);
 		this.customProperties = structuredClone(customProperties);
+		// Cleared here, then seeded by `adoptTagCollections` once the loader has
+		// parsed the tag parts; a freshly created deck legitimately has none.
+		this.tagCollections = [];
 		this.presentationMetadata.set(headerFooter, presentationProperties, customShows);
 		this.masterViewTarget = null;
 		this.selection.clear();
@@ -335,6 +345,7 @@ export class EditorState {
 		this.coreProperties = restored.coreProperties;
 		this.appProperties = restored.appProperties;
 		this.customProperties = restored.customProperties;
+		this.tagCollections = restored.tagCollections;
 		this.presentationMetadata.set(
 			restored.headerFooter,
 			restored.presentationProperties,
@@ -370,6 +381,28 @@ export class EditorState {
 		this.coreProperties = { ...core };
 		this.appProperties = { ...app };
 		this.customProperties = custom.map((property) => ({ ...property }));
+		this.commitChange();
+	}
+
+	/**
+	 * Seed the deck's tag parts straight after a load. Deliberately NOT an undo
+	 * step: the load already cleared history, and treating the parsed value as
+	 * a user edit would mark a pristine deck dirty.
+	 */
+	adoptTagCollections(tags: readonly PptxTagCollection[]): void {
+		this.tagCollections = structuredClone(tags as PptxTagCollection[]);
+	}
+
+	/** Replace the tag collections as one undoable edit (inspector Tags section). */
+	updateTagCollections(next: readonly PptxTagCollection[]): void {
+		if (!this.editable) {
+			return;
+		}
+		this.pushHistory();
+		this.tagCollections = next.map((collection) => ({
+			...collection,
+			tags: collection.tags.map((tag) => ({ ...tag })),
+		}));
 		this.commitChange();
 	}
 

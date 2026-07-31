@@ -15,10 +15,13 @@
 	import TextFormatGroup from '../../TextFormatGroup.svelte';
 	import ArrangeExtras from './ArrangeExtras.svelte';
 	import ClipboardGroup from './ClipboardGroup.svelte';
+	import DrawingGroup from './DrawingGroup.svelte';
 	import EditingGroup from './EditingGroup.svelte';
 	import FontExtrasGroup from './FontExtrasGroup.svelte';
+	import ParagraphDropdowns from './ParagraphDropdowns.svelte';
 	import ParagraphGroup from './ParagraphGroup.svelte';
 	import SlidesGroup from './SlidesGroup.svelte';
+	import TextShadowToggle from './TextShadowToggle.svelte';
 
 	const {
 		editor,
@@ -41,6 +44,7 @@
 		<div class="pptx-svelte-hometab-row">
 			<TextFormatGroup {editor} />
 			<FontExtrasGroup {editor} />
+			<TextShadowToggle {editor} />
 		</div>
 		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.font')}</span>
 	</div>
@@ -48,12 +52,14 @@
 	<div class="pptx-svelte-hometab-group">
 		<div class="pptx-svelte-hometab-row">
 			<ParagraphGroup {editor} />
+			<ParagraphDropdowns {editor} />
 		</div>
 		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.paragraph')}</span>
 	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<div class="pptx-svelte-hometab-group">
 		<div class="pptx-svelte-hometab-row">
+			<DrawingGroup {editor} />
 			<ShapeFormatGroup {editor} />
 			<ArrangeGroup {editor} />
 			<ArrangeExtras {editor} />

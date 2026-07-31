@@ -4,6 +4,7 @@
 	 * deliberately independent from the top toolbar so read-only viewers retain
 	 * PowerPoint's navigation and zoom chrome.
 	 */
+	import { STATUS_BAR_METRICS } from 'pptx-viewer-shared';
 	import type { Snippet } from 'svelte';
 	import { useTranslator } from '../../i18n/context';
 	import type { AutosaveStatus } from '../state/autosave.svelte';
@@ -61,7 +62,14 @@
 	const normalActive = $derived(!isFullscreen && !slideSorterActive);
 </script>
 
-<div class="pptx-svelte-statusbar" role="toolbar" aria-label={t('pptx.statusBar.slideShow')}>
+<!--
+	No landmark role here, matching the other four bindings. The row is a mixed
+	region of live readouts and controls, not a toolbar (nothing implements a
+	toolbar's roving tabindex), and it used to carry aria-label "Slide show" -
+	the accessible name of a BUTTON inside it - which made the region and the
+	button indistinguishable in a screen reader's landmark list.
+-->
+<div class="pptx-svelte-statusbar" style="--pptx-status-height:{STATUS_BAR_METRICS.height}px">
 	<div class="pptx-svelte-statusbar-left">
 		<span aria-live="polite">{total > 0 ? t('pptx.statusBar.slideOf', { current: current + 1, total }) : t('pptx.statusBar.noSlides')}</span>
 		<i></i><span class="pptx-svelte-statusbar-wide">{t('pptx.statusBar.language')}</span><i></i>
@@ -89,7 +97,10 @@
 </div>
 
 <style>
-	.pptx-svelte-statusbar { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:20px; padding:2px 8px; border-top:1px solid var(--pptx-border,#33334d); background:color-mix(in srgb,var(--pptx-secondary,#1e1e2e) 50%,transparent); color:var(--pptx-muted-foreground,#a5a5b5); font:10px system-ui,sans-serif; flex:none; }
+	/* Height pinned from the shared STATUS_BAR_METRICS (via the title bar's
+	   --pptx-status-height) rather than left to emerge from the padding +
+	   button box, which is how this row ended up 2px shorter than React's. */
+	.pptx-svelte-statusbar { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:var(--pptx-status-height,29px); padding:2px 8px; border-top:1px solid var(--pptx-border,#33334d); background:color-mix(in srgb,var(--pptx-secondary,#1e1e2e) 50%,transparent); color:var(--pptx-muted-foreground,#a5a5b5); font:10px system-ui,sans-serif; flex:none; }
 	.pptx-svelte-statusbar-left,.pptx-svelte-statusbar-right { display:flex; align-items:center; gap:3px; min-width:0; }.pptx-svelte-statusbar-left > span { white-space:nowrap; }.pptx-svelte-statusbar i { width:1px; height:13px; margin:0 4px; background:var(--pptx-border,#33334d); }
 	.pptx-svelte-statusbar button { display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:23px; height:22px; padding:0 4px; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }.pptx-svelte-statusbar button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); color:var(--pptx-card-foreground,#e2e8f0); }.pptx-svelte-statusbar button:disabled { opacity:.38; cursor:default; }.pptx-svelte-statusbar button.active { color:var(--pptx-primary,#6366f1); }.pptx-svelte-statusbar svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.45; stroke-linecap:round; stroke-linejoin:round; }.pptx-svelte-statusbar-zoom { min-width:43px !important; font-variant-numeric:tabular-nums; }.pptx-svelte-statusbar-save.error { color:#f87171; }.pptx-svelte-statusbar-save.saving { color:#facc15; }
 	@media (max-width:767px), (max-width:1023px) and (max-height:520px) { .pptx-svelte-statusbar { display:none; }.pptx-svelte-statusbar-wide { display:none; } }

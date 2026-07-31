@@ -90,6 +90,8 @@ export interface RibbonProps {
 	oncustomshows: () => void;
 	onselectionpane: () => void;
 	onslidesorter: () => void;
+	/** View tab > Normal: leave slide sorter / slide show for the editing view. */
+	onnormal?: () => void;
 	preferences: ViewerPreferences;
 	onpreferenceschange: (preferences: ViewerPreferences) => void;
 	showGuides: boolean;

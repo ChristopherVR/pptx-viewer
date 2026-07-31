@@ -1,7 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
-import { publishLiveInlineText } from 'pptx-viewer-shared';
+import {
+	armEditorKeyboard,
+	publishLiveInlineText,
+	resolveContextMenuElementId,
+} from 'pptx-viewer-shared';
 
+import { readTableCellTarget } from './context-menu-dispatch';
 import type { EditorControllerDeps } from './editor-controller-deps';
 import {
 	elementInteractionBox,
@@ -103,11 +108,25 @@ export class EditorController {
 			copySelected: () => this.#editor.clipboardOps.copySelected(),
 			cutSelected: () => this.#editor.clipboardOps.cutSelected(),
 			paste: () => void this.#editor.clipboardOps.pasteClipboard(),
+			selectAll: () => {
+				// Template-owned elements are only selectable while edit-template mode
+				// is on, so the same interactivity rule the pointer uses applies here.
+				const ids = this.#currentElements()
+					.filter((element) => this.#editor.isElementInteractive(element.id))
+					.map((element) => element.id);
+				if (ids.length > 0) {
+					this.#editor.selection.setAll(ids);
+				}
+			},
+			groupSelected: () => this.#editor.arrangeOps.groupSelected(),
+			ungroupSelected: () => this.#editor.arrangeOps.ungroupSelected(),
 			cancelFormatPainter: () => {
 				const active = this.#editor.formatPainter.active;
 				this.#editor.formatPainter.cancel();
 				return active;
 			},
+			toggleShortcuts: () => this.#deps.toggleShortcuts?.(),
+			closeShortcuts: () => this.#deps.closeShortcuts?.() ?? false,
 		});
 
 		this.#selectionGestures = createSelectionGestureController({
@@ -164,6 +183,12 @@ export class EditorController {
 	}
 
 	onStagePointerDown = (event: PointerEvent): void => {
+		// The gestures below call preventDefault(), which suppresses the focus move
+		// this click would otherwise make. Without repairing it here focus stays on
+		// document.body, outside the root's keydown listener, and every shortcut is
+		// silently dead after the most ordinary interaction there is: clicking a
+		// shape and pressing Delete.
+		armEditorKeyboard(this.#deps.getRootEl?.() ?? null);
 		if (
 			!this.#editor.editable ||
 			this.#deps.getPresenting() ||
@@ -242,13 +267,29 @@ export class EditorController {
 		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.inkOps.isDrawing) {
 			return;
 		}
-		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
+		// The inline text editor is an overlay beside the elements, not a child of
+		// the one it edits, so a right-click inside it hit-tests to nothing. Fall
+		// back to the element being edited rather than swallowing the menu on the
+		// element the user just clicked.
+		const id = resolveContextMenuElementId(
+			resolveTopLevelElementId(event.target, this.#deps.getStageRoot()),
+			event.target,
+			this.editingId,
+		);
 		if (!id || !this.#editor.isElementInteractive(id)) {
 			return;
 		}
 		event.preventDefault();
-		this.#editor.select(id);
-		this.#deps.onContextMenu?.(event.clientX, event.clientY);
+		// Only when the right-click landed OUTSIDE the current selection. An
+		// unconditional select collapsed a multi-selection to the one element
+		// under the cursor, so right-clicking either of two rubber-banded shapes
+		// left the menu with nothing to Group, which is how Svelte shipped.
+		if (!this.#editor.selection.has(id)) {
+			this.#editor.select(id);
+		}
+		// The right-clicked table cell (if any) rides along: the menu's row /
+		// column / merge commands act on the cell under the pointer.
+		this.#deps.onContextMenu?.(event.clientX, event.clientY, readTableCellTarget(event.target));
 	};
 
 	onHandlePointerDown = (handle: ResizeHandleId, event: PointerEvent): void => {

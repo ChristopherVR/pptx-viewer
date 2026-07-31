@@ -7,9 +7,14 @@
 	 * layout.
 	 */
 	import type { PptxElement } from 'pptx-viewer-core';
-	import { applyRenderedElementAccessibility, getSlideBackgroundStyle } from 'pptx-viewer-shared';
+	import {
+		applyRenderedElementAccessibility,
+		deriveSlideFieldContext,
+		getSlideBackgroundStyle,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
+	import { getFieldContextGetter, provideFieldContext } from '../state/field-context';
 	import { styleToString } from '../style';
 	import ElementRenderer from './ElementRenderer.svelte';
 	import type { SlideStageProps } from './props';
@@ -29,6 +34,15 @@
 	}: SlideStageProps = $props();
 
 	const t = useTranslator();
+
+	// Re-point the deck-wide field context at THIS stage's slide before the
+	// element renderers read it: the date / header / footer / document-property
+	// fields are presentation-wide, but the slide number and title are not, so a
+	// thumbnail or presenter preview must resolve them from the slide it paints
+	// rather than the active one. Both calls must happen at init (Svelte context
+	// is captured once), hence the getter closure over the reactive `slide` prop.
+	const getDeckFieldContext = getFieldContextGetter();
+	provideFieldContext(() => deriveSlideFieldContext(getDeckFieldContext?.(), slide));
 
 	const stageStyle = $derived(
 		styleToString({

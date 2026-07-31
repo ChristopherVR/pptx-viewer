@@ -91,6 +91,9 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 					deps.loader.presentationProperties,
 					deps.loader.customShows,
 				);
+				// Seeded separately from setSlides (which clears them) so the
+				// parsed tag parts survive the load without becoming an undo step.
+				deps.editor.adoptTagCollections(deps.loader.tagCollections);
 				// Must run before this commit's effects flush: a live collab
 				// session re-adopts the shared doc's slides so the load cannot
 				// clobber (or publish over) already-synced room content.

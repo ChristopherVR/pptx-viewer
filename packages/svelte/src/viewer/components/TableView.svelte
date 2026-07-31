@@ -72,7 +72,7 @@
 </script>
 
 {#if tableData && rows.length > 0}
-	<div class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id}>
+	<div class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
 		<table class="pptx-svelte-table-grid">
 			{#if colWidths.length > 0}
 				<colgroup>
@@ -85,7 +85,11 @@
 				{#each rows as row (row.key)}
 					<tr style={row.style}>
 						{#each row.cells as cell (cell.key)}
-							<td class="pptx-svelte-table-cell" colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>
+							<!-- The model coordinates travel on the cell itself: the canvas
+							     context menu reads them back off the DOM to target its row /
+							     column / merge commands, and merge-absorbed cells are not
+							     rendered, so a cell's DOM position is not its model position. -->
+							<td class="pptx-svelte-table-cell" data-cell-row={cell.rowIndex} data-cell-col={cell.cellIndex} colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>
 								{#if cell.diagonals}
 									<!-- Diagonal cell borders as an absolutely positioned SVG overlay. -->
 									<svg

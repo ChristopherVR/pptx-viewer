@@ -65,11 +65,13 @@
 </script>
 
 <div class="pptx-svelte-fontx" role="group" aria-label={t('pptx.ribbon.font')}>
+	<!-- Never disabled, for the same reason as the size box in
+	     `TextFormatGroup.svelte`: React leaves the font pickers live and the
+	     patch below is a no-op without a text element. -->
 	<select
 		class="pptx-svelte-ribbon-select pptx-svelte-fontx-family"
-		disabled={!active}
-		aria-label={t('pptx.text.fontFamily')}
-		title={t('pptx.text.fontFamily')}
+		aria-label={t('pptx.ribbon.fontFamily')}
+		title={t('pptx.ribbon.fontFamily')}
 		value={fontFamily}
 		onchange={(e) => el && apply(setFontFamilyPatch(el, e.currentTarget.value))}
 	>
@@ -169,7 +171,8 @@
 	<SwatchColorPicker
 		value={textColor}
 		disabled={!active}
-		label={t('pptx.textProperties.textColor')}
+		label={t('pptx.text.fontColor')}
+		title={t('pptx.textProperties.textColor')}
 		glyph="A"
 		onselect={(hex) => el && apply(setTextColorPatch(el, hex))}
 	/>

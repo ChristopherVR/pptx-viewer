@@ -32,7 +32,7 @@
 
 	type ViewState = 'idle' | 'loading' | 'mounted' | 'failed';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const model = $derived(element.type === 'model3d' ? element : undefined);
@@ -105,6 +105,7 @@
 		class="pptx-svelte-element pptx-svelte-model3d"
 		style={containerStyle}
 		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
 	>
 		{#if viewState !== 'mounted'}
 			{#if posterSrc}

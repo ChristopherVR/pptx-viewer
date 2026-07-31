@@ -16,6 +16,11 @@ function makeDeps(over: Partial<EditorKeyboardDeps> = {}): EditorKeyboardDeps {
 		copySelected: vi.fn(),
 		cutSelected: vi.fn(),
 		paste: vi.fn(),
+		selectAll: vi.fn(),
+		groupSelected: vi.fn(),
+		ungroupSelected: vi.fn(),
+		toggleShortcuts: vi.fn(),
+		closeShortcuts: () => false,
 		...over,
 	};
 }
@@ -106,5 +111,40 @@ describe('createEditorKeydownHandler', () => {
 		const handler = createEditorKeydownHandler(deps);
 		handler(key({ key: 'v', ctrlKey: true }));
 		expect(deps.paste).toHaveBeenCalledOnce();
+	});
+});
+
+describe('createEditorKeydownHandler: shortcuts ported from the other bindings', () => {
+	it('selects every element on Ctrl+A', () => {
+		const deps = makeDeps();
+		createEditorKeydownHandler(deps)(key({ key: 'a', ctrlKey: true }));
+		expect(deps.selectAll).toHaveBeenCalledOnce();
+	});
+
+	it('groups on Ctrl+G and ungroups on Ctrl+Shift+G', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'g', ctrlKey: true }));
+		expect(deps.groupSelected).toHaveBeenCalledOnce();
+		handler(key({ key: 'g', ctrlKey: true, shiftKey: true }));
+		expect(deps.ungroupSelected).toHaveBeenCalledOnce();
+	});
+
+	it('opens the cheat sheet on "?" and closes it on Escape before deselecting', () => {
+		const deps = makeDeps({ closeShortcuts: vi.fn(() => true) });
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: '?', shiftKey: true }));
+		expect(deps.toggleShortcuts).toHaveBeenCalledOnce();
+		handler(key({ key: 'Escape' }));
+		expect(deps.closeShortcuts).toHaveBeenCalledOnce();
+		expect(deps.deselect).not.toHaveBeenCalled();
+	});
+
+	it('leaves the arrows to the root navigation fall-through with nothing selected', () => {
+		const deps = makeDeps({ getSelectedId: () => null });
+		const event = key({ key: 'ArrowRight', cancelable: true });
+		createEditorKeydownHandler(deps)(event);
+		expect(deps.nudgeSelected).not.toHaveBeenCalled();
+		expect(event.preventDefault).not.toHaveBeenCalled();
 	});
 });

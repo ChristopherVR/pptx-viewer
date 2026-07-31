@@ -6,7 +6,7 @@
 	const t = useTranslator();
 </script>
 <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-<aside class="panel" role="dialog" tabindex="-1" aria-labelledby="shortcuts-title">
+<aside class="panel" data-pptx-shortcuts-panel="true" role="dialog" tabindex="-1" aria-labelledby="shortcuts-title">
 	<header><h2 id="shortcuts-title">{t('pptx.shortcuts.title')}</h2><button type="button" onclick={onclose}>{t('pptx.shortcuts.close')}</button></header>
 	<div>{#each VIEWER_SHORTCUT_REFERENCE as shortcut, index}<p class:stripe={index % 2 === 0}><span>{t(shortcut.actionKey)}</span><kbd>{shortcut.shortcut}</kbd></p>{/each}</div>
 </aside>

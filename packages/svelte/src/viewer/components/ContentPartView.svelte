@@ -21,7 +21,12 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, presenting = false }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		presenting = false,
+		interactive = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const contentPart = $derived(element.type === 'contentPart' ? element : undefined);
@@ -37,6 +42,7 @@
 		class="pptx-svelte-element pptx-svelte-contentpart"
 		style={containerStyle}
 		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
 	>
 		{#if strokes.length > 0}
 			<svg

@@ -1,4 +1,13 @@
 <script lang="ts">
+	/**
+	 * ChartAdvancedSection: the per-series styling and per-point disclosures.
+	 *
+	 * Error bars deliberately do NOT live here any more: they moved to
+	 * `ChartErrorBarSection`, which drives the same edits from the shared
+	 * `chart-editor-options` catalogue (translated labels, and hidden on chart
+	 * types where PowerPoint would discard the setting) instead of the
+	 * hard-coded English option lists this file used to carry.
+	 */
 	import type { PptxChartData, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 
 	const { data, onpatch }: { data: PptxChartData; onpatch: (patch: Partial<PptxChartData>) => void } = $props();
@@ -31,8 +40,6 @@
 	{#each data.series as series, index}<fieldset><legend>{series.name}</legend>
 		<label>Series chart type<select value={series.seriesChartType ?? ''} onchange={(event) => seriesPatch(index, { seriesChartType: (event.currentTarget.value || undefined) as PptxChartType | undefined })}><option value="">Chart default</option>{#each ['bar','line','area','scatter'] as type}<option value={type}>{type}</option>{/each}</select></label>
 		<div class="grid"><label>Marker<select value={series.marker?.symbol ?? ''} onchange={(event) => seriesPatch(index, { marker: event.currentTarget.value ? { ...series.marker, symbol: event.currentTarget.value as NonNullable<PptxChartSeries['marker']>['symbol'] } : undefined })}><option value="">None</option>{#each ['auto','circle','diamond','square','star','triangle','plus','x','dash','dot'] as marker}<option value={marker}>{marker}</option>{/each}</select></label>{#if series.marker}<label>Marker size<input type="number" min="2" max="72" value={series.marker.size ?? 6} onchange={(event) => seriesPatch(index, { marker: { ...series.marker!, size: Number(event.currentTarget.value) } })} /></label><label>Marker fill<input type="color" value={series.marker.spPr?.fillColor ?? series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { marker: { ...series.marker!, spPr: { ...series.marker!.spPr, fillColor: event.currentTarget.value } } })} /></label>{/if}</div>
-		<label>Error bars<select value={series.errBars?.[0]?.valType ?? ''} onchange={(event) => seriesPatch(index, { errBars: event.currentTarget.value ? [{ direction: 'y', barType: series.errBars?.[0]?.barType ?? 'both', valType: event.currentTarget.value as NonNullable<PptxChartSeries['errBars']>[number]['valType'], val: series.errBars?.[0]?.val }] : undefined })}><option value="">None</option><option value="fixedVal">Fixed value</option><option value="percentage">Percentage</option><option value="stdDev">Standard deviation</option><option value="stdErr">Standard error</option></select></label>
-		{#if series.errBars?.[0]}<div class="grid"><label>Direction<select value={series.errBars[0].barType} onchange={(event) => seriesPatch(index, { errBars: [{ ...series.errBars![0], barType: event.currentTarget.value as NonNullable<PptxChartSeries['errBars']>[number]['barType'] }] })}><option value="both">Both</option><option value="plus">Plus</option><option value="minus">Minus</option></select></label><label>Amount<input type="number" value={series.errBars[0].val ?? ''} onchange={(event) => seriesPatch(index, { errBars: [{ ...series.errBars![0], val: event.currentTarget.value ? Number(event.currentTarget.value) : undefined }] })} /></label></div>{/if}
 	</fieldset>{/each}
 </details>
 

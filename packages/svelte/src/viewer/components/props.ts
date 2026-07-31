@@ -14,6 +14,7 @@ import type {
 	ToolbarActionId,
 } from 'pptx-viewer-shared';
 
+import type { ContextMenuCellTarget } from '../editor/context-menu-dispatch';
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorMarqueeRect } from '../editor/editor-selection-gestures';
 import type { EditorState } from '../editor/editor-state.svelte';
@@ -43,8 +44,10 @@ export interface ElementRendererProps {
 	/**
 	 * True only on the main (interactive) canvas, never the thumbnail rail.
 	 * Marks the rendered root node with `data-pptx-element="true"` (the
-	 * framework-neutral e2e test hook React/Vue/Angular also emit) for the
-	 * element types that render their own wrapper directly (group, text/shape).
+	 * framework-neutral contract React/Vue/Angular/Vanilla also emit). EVERY
+	 * element renderer honours it, not only the ones the dispatcher boxes
+	 * itself: Svelte has no attribute fallthrough, so a view that ignores this
+	 * flag silently leaves its element type out of the contract.
 	 * Defaults to `false`.
 	 */
 	interactive?: boolean;
@@ -272,15 +275,36 @@ export interface EditorLayerProps {
 	spellCheck?: boolean;
 }
 
+/**
+ * Where the canvas context menu opened, and on which table cell.
+ *
+ * Owned by the viewer shell and handed straight to `ElementContextMenu`; the
+ * cell is what turns the shared menu's table block on and gives it a target.
+ */
+export interface StageContextMenu {
+	x: number;
+	y: number;
+	cell: ContextMenuCellTarget | null;
+}
+
 /** Position and callbacks for the editable element context menu. */
 export interface ElementContextMenuProps {
 	x: number;
 	y: number;
 	editor: EditorState;
+	/**
+	 * The table cell the right-click landed on, which is what gates (and
+	 * targets) the row / column / merge commands. Null for every other click.
+	 */
+	cell?: ContextMenuCellTarget | null;
 	/** "Ask AI about this" action (shown only when the host enables the `ai` prop). */
 	onaskai?: () => void;
 	/** "Fix with AI" action (shown only when the host enables the `ai` prop). */
 	onfixai?: () => void;
+	/** "Add Comment": opens the inspector's Comments tab (mirrors React). */
+	oncomment?: () => void;
+	/** "Edit Hyperlink": opens the hyperlink dialog for the selected element. */
+	onhyperlink?: () => void;
 	onclose: () => void;
 }
 

@@ -1,32 +1,35 @@
 <script lang="ts">
 	/**
-	 * ViewTab: the ribbon's View tab. Zoom in/out/fit, fullscreen (Slide
-	 * Show), and the Notes toggle, relocated from the pre-ribbon toolbar's
-	 * always-visible zoom group.
+	 * ViewTab: the ribbon's View tab, at React's `ViewSection` control set
+	 * (Presentation Views / Master Views / Show / Zoom / Window).
+	 *
+	 * Zoom in, zoom out, "Slide Show" and the notes toggle used to live here as
+	 * well; they are not gone, they moved back to where React keeps them, the
+	 * bottom `StatusBar`, which already offers all four. Duplicating them on the
+	 * tab made the View tab claim controls React's View tab does not have, which
+	 * `e2e/ribbon-control-inventory.spec.ts` reads as drift in both directions.
+	 *
+	 * Reading View, Handout Master, Notes Master, Zoom (the level dropdown) and
+	 * Macros are disabled placeholders in React too. See `RecordTab.svelte` for
+	 * why they are rendered rather than dropped.
 	 */
-	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
-	import List from '@lucide/svelte/icons/list';
-	import { useTranslator } from '../../../../i18n/context';
 	import type { ViewerPreferences } from 'pptx-viewer-shared';
 	import { updateViewerPreference } from 'pptx-viewer-shared';
-	import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+
+	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import RibbonCommand from '../RibbonCommand.svelte';
+	import RibbonGroup from '../RibbonGroup.svelte';
+	import ViewShowGroup from './ViewShowGroup.svelte';
 
 	const {
-		zoomPercent,
-		onzoomin,
-		onzoomout,
 		onzoomfit,
-		isFullscreen,
-		onfullscreen,
 		editTemplateMode = false,
 		onsettemplateediting,
 		onentermasterview,
-		showNotes = false,
-		notesExpanded = false,
-		onnotestoggle,
 		onselectionpane,
 		onslidesorter,
+		onnormal,
 		editor,
 		preferences,
 		onpreferenceschange,
@@ -36,20 +39,14 @@
 		onsnapToShapechange,
 		onaddguide,
 	}: {
-		zoomPercent: number;
-		onzoomin: () => void;
-		onzoomout: () => void;
 		onzoomfit: () => void;
-		isFullscreen: boolean;
-		onfullscreen: () => void;
 		editTemplateMode?: boolean;
 		onsettemplateediting?: (enabled: boolean) => void;
 		onentermasterview?: () => void;
-		showNotes?: boolean;
-		notesExpanded?: boolean;
-		onnotestoggle?: () => void;
 		onselectionpane: () => void;
 		onslidesorter: () => void;
+		/** Returns the viewer to the normal editing view (React's "Normal"). */
+		onnormal?: () => void;
 		editor: EditorState;
 		preferences: ViewerPreferences;
 		onpreferenceschange: (preferences: ViewerPreferences) => void;
@@ -61,139 +58,87 @@
 	} = $props();
 
 	const t = useTranslator();
-	function toggle(key: 'showGrid' | 'showRulers' | 'snapToGrid'): void {
+
+	function togglePreference(key: 'showGrid' | 'showRulers' | 'snapToGrid'): void {
 		onpreferenceschange(updateViewerPreference(preferences, key, !preferences[key]));
 	}
-	async function eyedropper(): Promise<void> {
-		const Picker = (window as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
-		const el = editor.selectedElement;
-		if (!Picker || !el || !('shapeStyle' in el)) {
-			return;
-		}
-		const { sRGBHex } = await new Picker().open();
-		editor.patchSelected({ shapeStyle: { ...el.shapeStyle, fillMode: 'solid', fillColor: sRGBHex } as ShapeStyle } as Partial<PptxElement>);
-	}
+
 </script>
 
-<div class="pptx-svelte-viewtab" role="group" aria-label={t('pptx.ribbon.tab.view')}>
-	<button type="button" aria-label={t('pptx.statusBar.zoomOut')} title={t('pptx.statusBar.zoomOut')} onclick={onzoomout}>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg>
-	</button>
-	<button
-		type="button"
-		class="pptx-svelte-viewtab-zoom"
-		aria-label={t('pptx.view.zoomToFit')}
-		title={t('pptx.view.zoomToFitTooltip')}
-		onclick={onzoomfit}
-	>
-		{zoomPercent}%
-	</button>
-	<button type="button" aria-label={t('pptx.statusBar.zoomIn')} title={t('pptx.statusBar.zoomIn')} onclick={onzoomin}>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg>
-	</button>
+<div class="pptx-svelte-viewtab">
+	<RibbonGroup label={t('pptx.view.presentationViews')}>
+		<RibbonCommand label={t('pptx.view.normal')} title={t('pptx.statusBar.normalView')} onclick={onnormal}>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="11" rx="1" /><path d="M2.5 7.5h15" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.slideSorter.title')} title={t('pptx.statusBar.slideSorter')} onclick={onslidesorter}>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="6" height="5" /><rect x="11.5" y="3.5" width="6" height="5" /><rect x="2.5" y="11.5" width="6" height="5" /><rect x="11.5" y="11.5" width="6" height="5" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.view.readingView')} disabled>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 4.5h6a2 2 0 0 1 1.5.7 2 2 0 0 1 1.5-.7h6v11h-6a2 2 0 0 0-1.5.7 2 2 0 0 0-1.5-.7h-6zM10 5.2v10" /></svg>{/snippet}
+		</RibbonCommand>
+	</RibbonGroup>
 
-	<span class="pptx-svelte-viewtab-sep" aria-hidden="true"></span>
-	<button type="button" class:pptx-svelte-viewtab-active={preferences.showRulers} aria-pressed={preferences.showRulers} onclick={() => toggle('showRulers')}>Rulers</button>
-	<button type="button" class:pptx-svelte-viewtab-active={preferences.showGrid} aria-pressed={preferences.showGrid} onclick={() => toggle('showGrid')}>Grid</button>
-	<button type="button" class:pptx-svelte-viewtab-active={showGuides} aria-pressed={showGuides} onclick={() => onshowguideschange(!showGuides)}>Guides</button>
-	<button type="button" class:pptx-svelte-viewtab-active={preferences.snapToGrid} aria-pressed={preferences.snapToGrid} onclick={() => toggle('snapToGrid')}>Snap to grid</button>
-	<button type="button" class:pptx-svelte-viewtab-active={snapToShape} aria-pressed={snapToShape} onclick={() => onsnapToShapechange(!snapToShape)}>Snap to shape</button>
-	<button type="button" onclick={() => onaddguide('h')}>Add H guide</button><button type="button" onclick={() => onaddguide('v')}>Add V guide</button>
-	<button type="button" disabled={!editor.editable || typeof window === 'undefined' || !('EyeDropper' in window) || !editor.selectedElement} onclick={() => void eyedropper()}>Eyedropper</button>
-	<!-- No aria-label here: it would override the visible "Slide Master" text as
-	     the accessible name (the cross-binding e2e contract); the tooltip stays
-	     on title only. -->
-	<button type="button" disabled={!editor.editable} title={t('pptx.view.slideMasterTooltip')} onclick={() => onentermasterview?.()}>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3h11v9h-11zM5 6h6M5 8.5h4M4 1.5v3M12 1.5v3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
-		<span>{t('pptx.master.title')}</span>
-	</button>
-
-	<button type="button" title={t('pptx.ribbon.toggleSelectionPane')} onclick={onselectionpane}><List size={15} aria-hidden="true" /> <span>{t('pptx.ribbon.selectionPane')}</span></button>
-	<button type="button" onclick={onslidesorter}><LayoutGrid size={15} aria-hidden="true" /> <span>{t('pptx.view.slideSorter')}</span></button>
-
-	<button
-		type="button"
-		data-testid="template-edit-toggle"
-		class:pptx-svelte-viewtab-active={editTemplateMode}
-		aria-label={t(editTemplateMode ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')}
-		title={t('pptx.view.templateEditingTooltip')}
-		aria-pressed={editTemplateMode}
-		disabled={!editor.editable}
-		onclick={() => onsettemplateediting?.(!editTemplateMode)}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM5 1.8v3.4M11 1.8v3.4M5 10.2h6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		<span>{editTemplateMode ? t('pptx.ribbon.templatesOn') : t('pptx.ribbon.templatesOff')}</span>
-	</button>
-
-	<button
-		type="button"
-		aria-label={t('pptx.statusBar.slideShow')}
-		title={t('pptx.statusBar.slideShow')}
-		aria-pressed={isFullscreen}
-		onclick={onfullscreen}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		<span>{t('pptx.view.presentationViews')}</span>
-	</button>
-	{#if showNotes}
-		<button
-			type="button"
-			class:pptx-svelte-viewtab-active={notesExpanded}
-			aria-label={t('pptx.statusBar.toggleNotes')}
-			title={t('pptx.statusBar.toggleNotes')}
-			aria-pressed={notesExpanded}
-			onclick={() => onnotestoggle?.()}
+	<RibbonGroup label={t('pptx.view.masterViews')}>
+		<RibbonCommand
+			label={t('pptx.master.title')}
+			title={t('pptx.view.slideMasterTooltip')}
+			disabled={!editor.editable}
+			onclick={() => onentermasterview?.()}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h9v11h-9zM5 5.5h6M5 8h6M5 10.5h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-			<span>{t('pptx.notes.title')}</span>
-		</button>
-	{/if}
+			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="11" rx="1" /><path d="M6 8h8M6 11h5M5 2v3M15 2v3" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.master.handoutMasterTitle')} disabled>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6" /><rect x="11" y="3" width="6" height="6" /><rect x="3" y="11" width="6" height="6" /><rect x="11" y="11" width="6" height="6" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.master.notesMasterTitle')} disabled>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="4" y="2.5" width="12" height="15" rx="1" /><path d="M7 6h6M7 9h6M7 12h4" /></svg>{/snippet}
+		</RibbonCommand>
+	</RibbonGroup>
+
+	<RibbonGroup label={t('pptx.view.show')}>
+		<ViewShowGroup
+			{editor}
+			{preferences}
+			ontogglepreference={togglePreference}
+			{showGuides}
+			{snapToShape}
+			onguideschange={onshowguideschange}
+			onsnaptoshapechange={onsnapToShapechange}
+			{onaddguide}
+			{onselectionpane}
+		/>
+	</RibbonGroup>
+
+	<RibbonGroup label={t('pptx.slideSorter.zoom')}>
+		<RibbonCommand label={t('pptx.slideSorter.zoom')} disabled>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5" /><path d="m13 13 4 4M6.8 9h4.4M9 6.8v4.4" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.view.zoomToFit')} title={t('pptx.view.zoomToFitTooltip')} onclick={onzoomfit}>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" /></svg>{/snippet}
+		</RibbonCommand>
+	</RibbonGroup>
+
+	<RibbonGroup label={t('pptx.view.window')}>
+		<RibbonCommand
+			label={t(editTemplateMode ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')}
+			title={t('pptx.view.templateEditingTooltip')}
+			testid="template-edit-toggle"
+			active={editTemplateMode}
+			disabled={!editor.editable}
+			onclick={() => onsettemplateediting?.(!editTemplateMode)}
+		>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="1" /><path d="M6 2v3M14 2v3M6 13h8" /></svg>{/snippet}
+		</RibbonCommand>
+		<RibbonCommand label={t('pptx.view.macros')} disabled>
+			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m7 6-4 4 4 4M13 6l4 4-4 4" /></svg>{/snippet}
+		</RibbonCommand>
+	</RibbonGroup>
 </div>
 
 <style>
 	.pptx-svelte-viewtab {
 		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.pptx-svelte-viewtab button {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		height: 28px;
-		padding: 0 8px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-		font: inherit;
-		font-size: 12px;
-	}
-
-	.pptx-svelte-viewtab button:hover {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-viewtab svg {
-		width: 15px;
-		height: 15px;
-	}
-
-	.pptx-svelte-viewtab-zoom {
-		min-width: 52px;
-		justify-content: center;
-	}
-
-	.pptx-svelte-viewtab-active {
-		color: var(--pptx-primary, #6366f1);
-	}
-
-	.pptx-svelte-viewtab-sep {
-		width: 1px;
-		height: 22px;
-		background: var(--pptx-border, #33334d);
+		align-items: stretch;
+		flex-wrap: nowrap;
 	}
 </style>

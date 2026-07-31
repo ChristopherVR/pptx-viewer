@@ -96,12 +96,15 @@
 	>
 		<span aria-hidden="true">A-</span>
 	</button>
+	<!-- Never disabled, matching React: the size box shows the ribbon's current
+	     type size whether or not something is selected, and `setSize` is a
+	     no-op without a text element. Greying it out made Svelte the only
+	     binding whose Font group looked dead on an empty selection. -->
 	<input
 		class="pptx-svelte-fmt-size"
 		type="number"
 		min="1"
 		max="400"
-		disabled={!active}
 		aria-label={t('pptx.ribbon.fontSize')}
 		title={t('pptx.ribbon.fontSize')}
 		value={Math.round(fontSize)}

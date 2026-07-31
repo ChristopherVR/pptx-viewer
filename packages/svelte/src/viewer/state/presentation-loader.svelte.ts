@@ -12,6 +12,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTagCollection,
 	PptxThemeColorScheme,
 	PptxTheme,
 	PptxThemeOption,
@@ -45,6 +46,8 @@ export class PresentationLoader {
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
+	/** Parsed `ppt/tags/*.xml` collections, editable in the inspector's Tags section. */
+	tagCollections = $state.raw<PptxTagCollection[]>([]);
 	embeddedFonts = $state.raw<PptxEmbeddedFont[]>([]);
 	hasDigitalSignatures = $state(false);
 	digitalSignatureCount = $state(0);
@@ -128,6 +131,7 @@ export class PresentationLoader {
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;
 			this.customProperties = parsed.customProperties ?? [];
+			this.tagCollections = parsed.tags ?? [];
 			this.embeddedFonts = parsed.embeddedFonts ?? [];
 			this.hasDigitalSignatures = parsed.hasDigitalSignatures ?? false;
 			this.digitalSignatureCount = parsed.digitalSignatureCount ?? 0;

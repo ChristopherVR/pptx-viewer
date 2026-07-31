@@ -11,7 +11,7 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false }: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 </script>
@@ -21,6 +21,7 @@
 	style={containerStyle}
 	data-element-id={element.id}
 	data-element-type={element.type}
+	data-pptx-element={interactive ? 'true' : undefined}
 >
 	<span class="pptx-svelte-placeholder-label">{element.type}</span>
 </div>

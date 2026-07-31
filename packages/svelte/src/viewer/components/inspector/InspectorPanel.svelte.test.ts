@@ -127,7 +127,7 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeTruthy();
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text', 'Action']);
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).toBeNull();
 	});
 
@@ -137,7 +137,7 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text', 'Action']);
 	});
 
 	it('shows Position + Fill & Stroke + Image for an image element (no Text section)', () => {
@@ -146,7 +146,7 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Image']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Image', 'Action']);
 	});
 
 	it('shows only Position + Table for a table element (no Fill & Stroke or Text)', () => {
@@ -155,7 +155,37 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Table']);
+		expect(sectionTitles(target)).toStrictEqual(['Table', 'Action']);
+	});
+
+	it('offers Quick Styles for a shape but not for an image (React FillStrokeProperties gating)', () => {
+		const shape = shapeEl();
+		const shapeEditor = makeEditor([shape]);
+		shapeEditor.select(shape.id);
+		const { target } = mountInspector(shapeEditor);
+		expect(target.querySelector('.pptx-svelte-quick-styles')).not.toBeNull();
+		cleanup?.();
+
+		const image = imageEl();
+		const imageEditor = makeEditor([image]);
+		imageEditor.select(image.id);
+		const { target: imageTarget } = mountInspector(imageEditor);
+		expect(imageTarget.querySelector('.pptx-svelte-quick-styles')).toBeNull();
+	});
+
+	it('offers the alt-text field for an image but not for a shape', () => {
+		const image = imageEl();
+		const imageEditor = makeEditor([image]);
+		imageEditor.select(image.id);
+		const { target } = mountInspector(imageEditor);
+		expect(target.querySelector('.pptx-svelte-alt-text')).not.toBeNull();
+		cleanup?.();
+
+		const shape = shapeEl();
+		const shapeEditor = makeEditor([shape]);
+		shapeEditor.select(shape.id);
+		const { target: shapeTarget } = mountInspector(shapeEditor);
+		expect(shapeTarget.querySelector('.pptx-svelte-alt-text')).toBeNull();
 	});
 
 	it('has no header close button on the tab row (React InspectorPane parity)', () => {
@@ -241,6 +271,7 @@ describe('inspectorPanel deck properties (no selection)', () => {
 			'Theme',
 			'Theme Override',
 			'Slide Size',
+			'Slide transition',
 			'Notes & Handout',
 			'Document',
 			'Slide',
@@ -255,6 +286,7 @@ describe('inspectorPanel deck properties (no selection)', () => {
 			'Presentation',
 			'Theme',
 			'Slide Size',
+			'Slide transition',
 			'Notes & Handout',
 			'Document',
 			'Slide',

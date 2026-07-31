@@ -8,18 +8,40 @@
 		groupIntoParagraphs,
 		normalizeHexColor,
 		shouldUseSvgWarp,
+		substituteFieldText,
 	} from 'pptx-viewer-shared';
 
+	import { getFieldContextGetter } from '../state/field-context';
 	import { styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	const { element, zIndex }: ElementRendererProps = $props();
+	// Captured at init: `getContext` only resolves during component
+	// initialisation, so the getter is invoked inside the `$derived` below.
+	const getFieldContext = getFieldContextGetter();
 	const textElement = $derived(hasTextProperties(element) ? element : undefined);
 	const preset = $derived(textElement?.textStyle?.textWarpPreset);
 	const category = $derived(classifyTextWarp(preset));
 	const usesPath = $derived(category === 'path' && shouldUseSvgWarp(preset));
 	const usesCss = $derived(category === 'envelope' || category === 'simple');
-	const paragraphs = $derived(textElement ? groupIntoParagraphs(textElement) : []);
+	// Warped WordArt bypasses `buildParagraphs`, so it substitutes field runs
+	// itself via a per-segment transform; without this a slide-number field
+	// inside WordArt would still render its authored "Slide #" placeholder.
+	const paragraphs = $derived(
+		textElement
+			? groupIntoParagraphs(textElement, (segment) => {
+					if (!segment.fieldType) {
+						return segment;
+					}
+					const substituted = substituteFieldText(
+						segment.text,
+						segment.fieldType,
+						getFieldContext?.(),
+					);
+					return substituted === segment.text ? segment : { ...segment, text: substituted };
+				})
+			: [],
+	);
 	const width = $derived(Math.max(element.width, 1));
 	const height = $derived(Math.max(element.height, 1));
 	const pathPrefix = $derived(`warp-${element.id.replace(/[^a-zA-Z0-9_-]/gu, '_')}`);

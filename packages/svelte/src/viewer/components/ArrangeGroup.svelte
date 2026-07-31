@@ -25,7 +25,7 @@
 		type="button"
 		class="pptx-svelte-arrange-btn"
 		disabled={!enabled}
-		aria-label={t('pptx.arrange.bringToFront')}
+		aria-label={t('pptx.arrange.front')}
 		title={t('pptx.arrange.bringToFront')}
 		onclick={() => move('front')}
 	>
@@ -55,7 +55,7 @@
 		type="button"
 		class="pptx-svelte-arrange-btn"
 		disabled={!enabled}
-		aria-label={t('pptx.arrange.sendToBack')}
+		aria-label={t('pptx.arrange.back')}
 		title={t('pptx.arrange.sendToBack')}
 		onclick={() => move('back')}
 	>

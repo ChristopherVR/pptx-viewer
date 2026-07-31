@@ -1,10 +1,11 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, FieldSubstitutionContext } from 'pptx-viewer-shared';
 import { mount, unmount } from 'svelte';
 
 import { I18N_CONTEXT_KEY } from '../../i18n/context';
 import type { Translator } from '../../i18n/translator';
 import SlideStage from '../components/SlideStage.svelte';
+import { FieldContextKey } from '../state/field-context';
 import { SmartArt3DContextKey } from '../state/smart-art-3d-context';
 import { renderToCanvas } from './render-to-canvas';
 
@@ -18,6 +19,13 @@ export interface RasterizeSlideDeps {
 	getTranslator(): Translator;
 	/** Opt-in WebGL SmartArt renderer flag; see `PowerPointViewerProps.smartArt3D`. */
 	smartArt3D: boolean;
+	/**
+	 * Deck-level OOXML field-substitution context. The capture stage is mounted
+	 * outside the viewer tree, so without this an exported PNG/PDF would print
+	 * the authored "Slide #" placeholder while the screen shows "Slide 1".
+	 * `SlideStage` re-points its per-slide fields at the slide being captured.
+	 */
+	getFieldContext?: () => FieldSubstitutionContext | undefined;
 	/**
 	 * Overridable frame-wait before capture (test seam: the real
 	 * `requestAnimationFrame` double-wait is not worth driving through fake
@@ -114,6 +122,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			context: new Map<unknown, unknown>([
 				[I18N_CONTEXT_KEY, deps.getTranslator()],
 				[SmartArt3DContextKey, () => deps.smartArt3D],
+				[FieldContextKey, () => deps.getFieldContext?.()],
 			]),
 		});
 		await waitForFrame();

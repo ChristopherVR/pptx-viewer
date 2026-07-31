@@ -12,12 +12,12 @@ import ElementRenderer from './ElementRenderer.svelte';
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement): HTMLElement {
+function mountEl(element: PptxElement, interactive = false): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1 },
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1, interactive },
 	});
 	flushSync();
 	cleanup = () => {
@@ -188,4 +188,92 @@ describe('elementRenderer dispatch', () => {
 			expect(target.querySelector(selector)).not.toBeNull();
 		},
 	);
+});
+
+/**
+ * The neutral element contract: on the interactive canvas EVERY rendered
+ * element carries `data-pptx-element="true"`, whichever renderer drew it.
+ *
+ * Regression guard. Charts and tables painted perfectly here while carrying no
+ * marker at all, because Svelte has no attribute fallthrough and the dispatcher
+ * only marked the branches whose box it renders itself. That made those types
+ * invisible to everything that enumerates or hit-tests slide elements by the
+ * marker (including every e2e selector built on it), with nothing failing.
+ */
+describe('elementRenderer neutral element marker', () => {
+	const marked = (target: HTMLElement): string | null | undefined =>
+		target.querySelector('[data-element-id="e1"]')?.getAttribute('data-pptx-element');
+
+	const equationSegments = [{ text: '', equationXml: { 'm:oMath': { 'm:r': { 'm:t': 'x' } } } }];
+
+	/** Minimal per-type payloads so each renderer takes its real branch. */
+	const CASES: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
+		['text', { type: 'text', text: 'Hello' }],
+		['shape', { type: 'shape', shapeType: 'rect' }],
+		['image', { type: 'image', imageData: 'data:image/png;base64,QUJD' }],
+		['picture', { type: 'picture', imageData: 'data:image/png;base64,QUJD' }],
+		['connector', { type: 'connector', shapeType: 'straightConnector1' }],
+		[
+			'table',
+			{ type: 'table', tableData: { columnWidths: [1], rows: [{ cells: [{ text: 'x' }] }] } },
+		],
+		[
+			'chart',
+			{
+				type: 'chart',
+				chartData: {
+					chartType: 'bar',
+					categories: ['A'],
+					series: [{ name: 'S', values: [1] }],
+					style: {},
+				},
+			},
+		],
+		['smartArt', { type: 'smartArt' }],
+		['media', { type: 'media' }],
+		['ink', { type: 'ink', inkPaths: ['M 0 0 L 5 5'] }],
+		['ole', { type: 'ole' }],
+		['contentPart', { type: 'contentPart' }],
+		['zoom', { type: 'zoom', zoomType: 'slide', targetSlideIndex: 0 }],
+		['model3d', { type: 'model3d' }],
+		['equation', { type: 'shape', textSegments: equationSegments }],
+		[
+			'group',
+			{
+				type: 'group',
+				children: [{ id: 'c1', type: 'text', x: 0, y: 0, width: 50, height: 20, text: 'kid' }],
+			},
+		],
+		['unknown', { type: 'unknown' }],
+	];
+
+	it.each(CASES)('marks a %s element on the interactive canvas', (_type, payload) => {
+		expect(marked(mountEl({ ...base, ...payload } as PptxElement, true))).toBe('true');
+	});
+
+	it.each(CASES)('leaves a %s element unmarked on a static surface', (_type, payload) => {
+		expect(marked(mountEl({ ...base, ...payload } as PptxElement, false))).toBeNull();
+	});
+
+	it('leaves a locked template element unmarked even on the interactive canvas', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ElementRenderer, {
+			target,
+			props: {
+				element: { ...base, id: 'layout-shape-3', type: 'chart' } as PptxElement,
+				mediaDataUrls: new Map<string, string>(),
+				zIndex: 1,
+				interactive: true,
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+		const root = target.querySelector('[data-element-id="layout-shape-3"]');
+		expect(root).not.toBeNull();
+		expect(root?.getAttribute('data-pptx-element')).toBeNull();
+	});
 });

@@ -5,10 +5,10 @@ import { EditorState } from '../../../editor/editor-state.svelte';
 import ShapePicker from './ShapePicker.svelte';
 
 /**
- * ShapePicker tests: the trigger + popup-grid shape gallery extracted from
- * `InsertTab.svelte`. Covers the open/close toggle and that picking a preset
- * inserts a `shape` element and closes the popup (the glyph-rendering logic
- * itself is covered by `shape-glyphs.test.ts`).
+ * ShapePicker tests: the Insert tab's "Shape type" select beside its "Shape"
+ * insert button. Covers the accessible names the cross-binding ribbon
+ * inventory diffs on, that the staged type is what gets inserted, and the
+ * read-only gate (glyph rendering itself is covered by `shape-glyphs.test.ts`).
  */
 
 let cleanup: (() => void) | undefined;
@@ -25,7 +25,10 @@ function makeEditor(editable = true): EditorState {
 	return editor;
 }
 
-function mountPicker(editor: EditorState): HTMLElement {
+function mountPicker(editor: EditorState): {
+	select: HTMLSelectElement;
+	insert: HTMLButtonElement;
+} {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ShapePicker, { target, props: { editor } });
@@ -34,28 +37,41 @@ function mountPicker(editor: EditorState): HTMLElement {
 		unmount(instance);
 		target.remove();
 	};
-	return target;
+	const select = target.querySelector('select');
+	const insert = target.querySelector('button');
+	if (!select || !insert) {
+		throw new Error('shape type select or insert button not found');
+	}
+	return { select, insert };
 }
 
 describe('shapePicker', () => {
-	it('opens the grid on trigger click and inserts the chosen preset', () => {
-		const editor = makeEditor();
-		const target = mountPicker(editor);
-
-		target.querySelector('button')?.click();
-		flushSync();
-		const presetButtons = target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
-		expect(presetButtons.length).toBeGreaterThan(0);
-
-		presetButtons[0]?.click();
-		flushSync();
-
-		expect(editor.slides[0]?.elements[0]?.type).toBe('shape');
-		expect(target.querySelector('[role="menu"]')).toBeNull();
+	it('names the pair the way every binding names it', () => {
+		const { select, insert } = mountPicker(makeEditor());
+		expect(select.getAttribute('aria-label')).toBe('Shape type');
+		expect(insert.textContent?.trim()).toBe('Shape');
 	});
 
-	it('disables the trigger when not editable', () => {
-		const target = mountPicker(makeEditor(false));
-		expect(target.querySelector('button')?.hasAttribute('disabled')).toBeTruthy();
+	it('inserts the staged preset type', () => {
+		const editor = makeEditor();
+		const { select, insert } = mountPicker(editor);
+
+		const second = select.options[1]?.value;
+		expect(second).toBeTruthy();
+		select.value = second;
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		insert.click();
+		flushSync();
+
+		const inserted = editor.slides[0]?.elements[0];
+		expect(inserted?.type).toBe('shape');
+		expect(inserted?.type === 'shape' ? inserted.shapeType : '').toBe(second);
+	});
+
+	it('disables both controls when not editable', () => {
+		const { select, insert } = mountPicker(makeEditor(false));
+		expect(select.disabled).toBeTruthy();
+		expect(insert.disabled).toBeTruthy();
 	});
 });

@@ -6,9 +6,10 @@ import { EditorState } from '../../../editor/editor-state.svelte';
 import ChartMenu from './ChartMenu.svelte';
 
 /**
- * ChartMenu tests: the native `<select>` Insert > Chart dropdown. Selecting
- * an entry inserts a chart element immediately (undoable, selected), and the
- * select resets to its placeholder so the same entry can be picked again.
+ * ChartMenu tests: Insert > Chart as React's split control, a "Chart type"
+ * `<select>` that only stages a pending type beside a "Chart" button that
+ * commits it (undoable, selected). Staging separately is what makes inserting
+ * the same chart type twice in a row possible.
  */
 
 const CANVAS: CanvasSize = { width: 960, height: 540 };
@@ -27,7 +28,7 @@ function makeEditor(editable = true): EditorState {
 	return editor;
 }
 
-function mountMenu(editor: EditorState): HTMLSelectElement {
+function mountMenu(editor: EditorState): { select: HTMLSelectElement; insert: HTMLButtonElement } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ChartMenu, { target, props: { editor, canvasSize: CANVAS } });
@@ -37,36 +38,57 @@ function mountMenu(editor: EditorState): HTMLSelectElement {
 		target.remove();
 	};
 	const select = target.querySelector('select');
-	if (!select) {
-		throw new Error('select not found');
+	const insert = target.querySelector('button');
+	if (!select || !insert) {
+		throw new Error('chart type select or insert button not found');
 	}
-	return select;
+	return { select, insert };
 }
 
 describe('chartMenu', () => {
 	it('is disabled when the editor is not editable', () => {
-		const select = mountMenu(makeEditor(false));
+		const { select, insert } = mountMenu(makeEditor(false));
 		expect(select.disabled).toBeTruthy();
+		expect(insert.disabled).toBeTruthy();
+	});
+
+	it('names the two controls the way every binding names them', () => {
+		const { select, insert } = mountMenu(makeEditor());
+		expect(select.getAttribute('aria-label')).toBe('Chart type');
+		expect(insert.textContent?.trim()).toBe('Chart');
 	});
 
 	it('lists every shared insert-chart type as an option', () => {
-		const select = mountMenu(makeEditor());
+		const { select } = mountMenu(makeEditor());
 		const values = Array.from(select.options).map((o) => o.value);
 		expect(values).toContain('bar');
 		expect(values).toContain('pie');
 	});
 
-	it('inserts a chart element, selects it, and resets the select', () => {
+	it('inserts the staged chart type and selects the new element', () => {
 		const editor = makeEditor();
-		const select = mountMenu(editor);
+		const { select, insert } = mountMenu(editor);
 
 		select.value = 'pie';
 		select.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		insert.click();
 		flushSync();
 
 		expect(editor.slides[0]?.elements).toHaveLength(1);
 		expect(editor.slides[0]?.elements[0]?.type).toBe('chart');
 		expect(editor.selectedElementId).toBe(editor.slides[0]?.elements[0]?.id);
-		expect(select.value).toBe('');
+	});
+
+	it('inserts the same type twice without re-picking it', () => {
+		const editor = makeEditor();
+		const { insert } = mountMenu(editor);
+
+		insert.click();
+		flushSync();
+		insert.click();
+		flushSync();
+
+		expect(editor.slides[0]?.elements).toHaveLength(2);
 	});
 });

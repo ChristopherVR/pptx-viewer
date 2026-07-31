@@ -133,11 +133,16 @@
 		{:else if activeTab === 'draw'}
 			<DrawTab editor={props.editor} />
 		{:else if activeTab === 'design'}
-			<DesignTab editor={props.editor} theme={props.theme} onsettheme={props.onsettheme} />
+			<DesignTab
+				editor={props.editor}
+				theme={props.theme}
+				onsettheme={props.onsettheme}
+				onslidesize={() => setPropertiesOpen(true)}
+			/>
 		{:else if activeTab === 'transitions'}
-			<TransitionsTab editor={props.editor} />
+			<TransitionsTab editor={props.editor} chromeUi={props.chromeUi} />
 		{:else if activeTab === 'animations'}
-			<AnimationsTab editor={props.editor} />
+			<AnimationsTab editor={props.editor} chromeUi={props.chromeUi} />
 		{:else if activeTab === 'slideShow'}
 			<SlideShowTab
 				onfrombeginning={props.onfrombeginning}
@@ -147,6 +152,7 @@
 				onrehearse={props.onrehearse}
 				onsubtitles={props.onsubtitles}
 				oncustomshows={props.oncustomshows}
+				subtitlesEnabled={props.subtitlesEnabled}
 				onbroadcast={props.onbroadcast}
 			/>
 		{:else if activeTab === 'review'}
@@ -163,15 +169,8 @@
 				snapToShape={props.snapToShape}
 				onsnapToShapechange={props.onsnapToShapechange}
 				onaddguide={props.onaddguide}
-				zoomPercent={props.zoomPercent}
-				onzoomin={props.onzoomin}
-				onzoomout={props.onzoomout}
 				onzoomfit={props.onzoomfit}
-				isFullscreen={props.isFullscreen}
-				onfullscreen={props.onfullscreen}
-				showNotes={props.showNotes}
-				notesExpanded={props.notesExpanded}
-				onnotestoggle={props.onnotestoggle}
+				onnormal={props.onnormal}
 				editTemplateMode={props.editor.editTemplateMode}
 				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
 				onentermasterview={props.onentermasterview}

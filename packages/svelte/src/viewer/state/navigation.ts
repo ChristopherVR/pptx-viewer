@@ -39,20 +39,20 @@ export function resolveNavigationKey(key: string): NavigationAction | undefined 
 	}
 }
 
-/** Zoom bounds and multiplicative step shared by toolbar and shortcuts. */
-export const ZOOM_MIN_PERCENT = 25;
-export const ZOOM_MAX_PERCENT = 400;
-const ZOOM_STEP = 1.25;
-
-/** Next zoom level up from `current` percent, clamped. */
-export function zoomInPercent(current: number): number {
-	return Math.min(ZOOM_MAX_PERCENT, Math.round(current * ZOOM_STEP));
-}
-
-/** Next zoom level down from `current` percent, clamped. */
-export function zoomOutPercent(current: number): number {
-	return Math.max(ZOOM_MIN_PERCENT, Math.round(current / ZOOM_STEP));
-}
+/**
+ * Zoom bounds and step, re-exported from `pptx-viewer-shared`.
+ *
+ * These used to be a local 1.25x multiplicative step, so one press of the same
+ * button zoomed 25% here and 10% in React/Vue/Angular. The arithmetic now lives
+ * in one place for all five bindings; these names stay because they are part of
+ * this package's public API.
+ */
+export {
+	ZOOM_MAX_PERCENT,
+	ZOOM_MIN_PERCENT,
+	zoomInPercent,
+	zoomOutPercent,
+} from 'pptx-viewer-shared';
 
 /**
  * Fit-to-viewport scale for a canvas inside a viewport, with breathing room.

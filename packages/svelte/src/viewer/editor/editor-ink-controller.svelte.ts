@@ -1,16 +1,20 @@
 import type { InkPoint } from 'pptx-viewer-shared';
 import { pointsToSvgPathD, strokeToInkElement } from 'pptx-viewer-shared';
 
+import { strokeToFreeformShape } from './editor-freeform';
 import { removeElement } from './editor-mutations';
 import type { EditorState } from './editor-state.svelte';
 
 /**
  * The ribbon Draw tab's active tool. `'select'` means "not drawing": the
  * stage's normal selection/drag/resize gestures own the pointer, matching
- * React's `DrawingTool` / Angular's `DrawTool` conventions (minus `freeform`,
- * out of scope for this wave; see the Draw tab's JSDoc).
+ * React's `DrawingTool` / Angular's `DrawTool`.
+ *
+ * `freeform` shares the pen's gesture but commits a closed custom-geometry
+ * SHAPE rather than an ink stroke, so the result is editable/fillable like any
+ * other shape; see `editor-freeform.ts`.
  */
-export type InkDrawTool = 'select' | 'pen' | 'highlighter' | 'eraser';
+export type InkDrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
 
 const DEFAULT_INK_COLOR = '#000000';
 const DEFAULT_INK_WIDTH = 3;
@@ -80,12 +84,20 @@ export class EditorInkController {
 	}
 
 	/**
-	 * Finalise the in-progress stroke into a new `ink` element (undoable via
-	 * `EditorState.insertElement`), or discard it silently when too short (a
-	 * plain tap) or the tool changed mid-gesture.
+	 * Finalise the in-progress stroke (undoable via `EditorState.insertElement`),
+	 * or discard it silently when too short (a plain tap) or the tool changed
+	 * mid-gesture. Pen/highlighter commit an `ink` element; freeform commits a
+	 * closed custom-geometry `shape`.
 	 */
 	commitStroke(points: readonly InkPoint[]): void {
 		this.livePathD = '';
+		if (this.tool === 'freeform') {
+			const shape = strokeToFreeformShape(points, this.color, this.width);
+			if (shape) {
+				this.#editor.insertElement(shape);
+			}
+			return;
+		}
 		if (this.tool !== 'pen' && this.tool !== 'highlighter') {
 			return;
 		}

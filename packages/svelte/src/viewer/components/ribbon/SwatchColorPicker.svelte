@@ -14,6 +14,7 @@
 		onselect,
 		disabled = false,
 		label,
+		title,
 		glyph,
 		swatches,
 	}: {
@@ -21,6 +22,8 @@
 		onselect: (hex: string) => void;
 		disabled?: boolean;
 		label: string;
+		/** Tooltip, when it should differ from the accessible name. Defaults to `label`. */
+		title?: string;
 		/** Short text glyph shown on the trigger button (e.g. "A", "H"). */
 		glyph: string;
 		/** Defaults to a standard Office theme-colour set when omitted. */
@@ -66,7 +69,7 @@
 		aria-haspopup="menu"
 		aria-expanded={open}
 		aria-label={label}
-		title={label}
+		title={title ?? label}
 		onclick={() => (open = !open)}
 	>
 		<span class="pptx-svelte-swatch-glyph">{glyph}</span>

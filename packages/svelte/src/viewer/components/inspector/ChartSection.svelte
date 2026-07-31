@@ -1,28 +1,61 @@
 <script lang="ts">
-	import type { PptxChartAxisFormatting, PptxChartData, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
+	/**
+	 * ChartSection: the chart inspector body, mirroring React's
+	 * `inspector/ChartDataPanel.tsx` composition.
+	 *
+	 * Order matches React: type + title + display toggles, then the
+	 * spreadsheet-style {@link ChartDataGrid}, then per-series styling, axes,
+	 * {@link ChartErrorBarSection}, and the advanced disclosures.
+	 *
+	 * The old comma-joined "series values" text input is kept alongside the grid
+	 * because it remains the fastest way to paste a whole row; the grid is what
+	 * makes a single cell editable without retyping the rest.
+	 */
+	import type {
+		PptxChartAxisFormatting,
+		PptxChartData,
+		PptxChartErrBars,
+		PptxChartSeries,
+		PptxChartType,
+	} from 'pptx-viewer-core';
 
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import ChartAdvancedSection from './ChartAdvancedSection.svelte';
+	import ChartDataGrid from './ChartDataGrid.svelte';
+	import ChartErrorBarSection from './ChartErrorBarSection.svelte';
 	import ChartLabelsAxesSection from './ChartLabelsAxesSection.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
-	const chart = $derived(editor.selectedElement?.type === 'chart' ? editor.selectedElement : undefined);
+	const chart = $derived(
+		editor.selectedElement?.type === 'chart' ? editor.selectedElement : undefined,
+	);
 	const data = $derived(chart?.chartData);
+	const canEdit = $derived(editor.editable);
 
 	function patch(next: Partial<PptxChartData>): void {
 		if (chart && data) {
 			editor.applyElementPatch(chart.id, { chartData: { ...data, ...next } });
 		}
 	}
+	/** Replace the whole chart-data object (used by the grid's structural edits). */
+	function replace(next: PptxChartData): void {
+		if (chart) {
+			editor.applyElementPatch(chart.id, { chartData: next });
+		}
+	}
 	function seriesPatch(index: number, next: Partial<PptxChartSeries>): void {
 		if (data) {
-			patch({ series: data.series.map((series, i) => i === index ? { ...series, ...next } : series) });
+			patch({ series: data.series.map((series, i) => (i === index ? { ...series, ...next } : series)) });
 		}
 	}
 	function axisPatch(index: number, next: Partial<PptxChartAxisFormatting>): void {
 		if (data) {
-			patch({ axes: (data.axes ?? []).map((axis, i) => i === index ? { ...axis, ...next } : axis) });
+			patch({ axes: (data.axes ?? []).map((axis, i) => (i === index ? { ...axis, ...next } : axis)) });
 		}
+	}
+	/** Set or clear one series' error bars (core stores them as a 1-item array). */
+	function setErrorBars(index: number, errBars: PptxChartErrBars | null): void {
+		seriesPatch(index, { errBars: errBars ? [errBars] : undefined });
 	}
 </script>
 
@@ -30,8 +63,15 @@
 	<label>Chart type<select value={data.chartType} onchange={(event) => patch({ chartType: event.currentTarget.value as PptxChartType })}>{#each ['bar','line','pie','doughnut','area','scatter','bubble','radar','waterfall','funnel','treemap','sunburst','combo'] as type}<option value={type}>{type}</option>{/each}</select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ title: event.currentTarget.value, style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
 	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label></div>
+	<ChartDataGrid
+		{data}
+		{canEdit}
+		onreplace={replace}
+		onrenameseries={(index, name) => seriesPatch(index, { name })}
+	/>
 	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { color: event.currentTarget.value })} /><select aria-label="Trendline" value={series.trendlines?.[0]?.trendlineType ?? ''} onchange={(event) => seriesPatch(index, { trendlines: (event.currentTarget.value ? [{ trendlineType: event.currentTarget.value }] : []) as PptxChartSeries['trendlines'] })}><option value="">No trendline</option>{#each ['linear','exponential','logarithmic','polynomial','power','movingAvg'] as type}<option value={type}>{type}</option>{/each}</select></fieldset>{/each}
 	<h5>Axes</h5>{#each data.axes ?? [] as axis, index}<fieldset><input aria-label="Axis title" value={axis.titleText ?? ''} oninput={(event) => axisPatch(index, { titleText: event.currentTarget.value })} /><input type="number" aria-label="Axis minimum" placeholder="Min" value={axis.min ?? ''} onchange={(event) => axisPatch(index, { min: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /><input type="number" aria-label="Axis maximum" placeholder="Max" value={axis.max ?? ''} onchange={(event) => axisPatch(index, { max: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /></fieldset>{/each}
+	<ChartErrorBarSection {data} {canEdit} onseterrorbars={setErrorBars} />
 	<ChartLabelsAxesSection {data} onpatch={patch} />
 	<ChartAdvancedSection {data} onpatch={patch} />
 </div>{/if}

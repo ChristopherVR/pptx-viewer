@@ -6,7 +6,7 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false }: ElementRendererProps = $props();
 	const equations = $derived.by(() => {
 		if (!hasTextProperties(element)) {
 			return [];
@@ -24,7 +24,7 @@
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 </script>
 
-<div class="pptx-svelte-element pptx-svelte-equation-wrapper" style={containerStyle} data-element-id={element.id}>
+<div class="pptx-svelte-element pptx-svelte-equation-wrapper" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
 	{#each equations as equation (equation.key)}
 		{#if equation.number}
 			<span class="pptx-svelte-equation-numbered">

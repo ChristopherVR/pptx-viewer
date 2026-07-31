@@ -14,7 +14,12 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, presenting = false }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		presenting = false,
+		interactive = false,
+	}: ElementRendererProps = $props();
 
 	const ink = $derived(element.type === 'ink' ? element : undefined);
 	const strokes = $derived(ink ? buildInkStrokes(ink, presenting) : []);
@@ -23,7 +28,7 @@
 </script>
 
 {#if ink}
-	<div class="pptx-svelte-element pptx-svelte-ink" style={containerStyle} data-element-id={element.id}>
+	<div class="pptx-svelte-element pptx-svelte-ink" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
 		{#if strokes.length > 0}
 			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none" style={toolStyle}>
 				{#if presenting}<style>{INK_REPLAY_KEYFRAMES}</style>{/if}

@@ -18,7 +18,7 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const view = $derived(element.type === 'ole' ? buildOleView(element) : undefined);
@@ -38,6 +38,7 @@
 		class="pptx-svelte-element pptx-svelte-ole"
 		style={containerStyle}
 		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
 		role="group"
 		aria-label={view.ariaLabel}
 		title={view.titleText}

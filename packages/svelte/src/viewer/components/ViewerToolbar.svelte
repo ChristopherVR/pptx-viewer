@@ -44,7 +44,12 @@
 	const t = useTranslator();
 </script>
 
-<div class="pptx-svelte-toolbar" role="toolbar" aria-label={t('pptx.statusBar.slideShow')}>
+<!--
+	Named after what this toolbar IS, not after one of its buttons. It used to
+	carry the "Slide show" label, which is the accessible name of a control it
+	contains, leaving the region and the button indistinguishable by name.
+-->
+<div class="pptx-svelte-toolbar" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	{#if editable}
 		<div class="pptx-svelte-toolbar-group pptx-svelte-toolbar-edit">
 			<button

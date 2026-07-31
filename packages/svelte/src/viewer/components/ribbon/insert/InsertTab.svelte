@@ -115,7 +115,6 @@
 	<button
 		type="button"
 		disabled={!editor.editable}
-		aria-label={t('pptx.ribbon.insertImage')}
 		title={t('pptx.ribbon.insertImage')}
 		onclick={() => imageInput?.click()}
 	>
@@ -126,18 +125,16 @@
 	<button
 		type="button"
 		disabled={!editor.editable}
-		aria-label={t('pptx.ribbon.insertMedia')}
 		title={t('pptx.ribbon.insertMedia')}
 		onclick={() => mediaInput?.click()}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11v8h-11z" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M6.5 6.2 10 8l-3.5 1.8Z" fill="currentColor" /></svg>
-		<span>{t('pptx.ribbon.insertMedia')}</span>
+		<span>{t('pptx.ribbon.media')}</span>
 	</button>
 
 	<button
 		type="button"
 		disabled={!editor.editable}
-		aria-label={t('pptx.insert.insertTable')}
 		title={t('pptx.insert.insertTable')}
 		onclick={() => editor.insertElement(newTableElement())}
 	>
@@ -152,19 +149,20 @@
 		disabled={!editor.editable}
 		aria-haspopup="dialog"
 		aria-expanded={equationOpen}
-		aria-label={t('pptx.ribbon.insertEquation')}
 		title={t('pptx.ribbon.insertEquation')}
 		onclick={toggleEquationDialog}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l-3 5 3 5H4M9 8h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		<span>{t('pptx.equation.insertTitle')}</span>
+		<span>{t('pptx.ribbon.equation')}</span>
 	</button>
 
 	<SmartArtMenu {editor} {canvasSize} />
 	<ActionButtonMenu {editor} {canvasSize} />
 	<FieldMenu {editor} {canvasSize} />
 	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}><Hash size={15} aria-hidden="true" /> <span>{t('pptx.headerFooter.title')}</span></button>{/if}
-	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}><Link size={15} aria-hidden="true" /> <span>{t('pptx.hyperlink.title')}</span></button>
+	<!-- `pptx.hyperlink.title` has no dictionary entry, so this button used to
+	     render as the humanised key fallback, "Title". -->
+	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}><Link size={15} aria-hidden="true" /> <span>{t('pptx.hyperlinkDialog.title')}</span></button>
 
 	<input bind:this={imageInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onImageFileChange} />
 	<input bind:this={mediaInput} type="file" accept="video/*,audio/*" class="pptx-svelte-inserttab-file" onchange={onMediaFileChange} />

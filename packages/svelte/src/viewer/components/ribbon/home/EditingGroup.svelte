@@ -42,7 +42,7 @@
 		<button
 			type="button"
 			disabled={editor.slides.length === 0}
-			aria-label={t('pptx.editing.selectAll')}
+			aria-label={t('pptx.ribbon.tool.select')}
 			title={t('pptx.editing.selectAll')}
 			onclick={selectAll}
 		>

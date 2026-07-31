@@ -1,37 +1,21 @@
 <script lang="ts">
 	/**
-	 * ViewerBody: thumbnail rail + slide viewport (stage, editing overlay,
-	 * load/error states) + notes panel. Split out of `PowerPointViewer.svelte`
-	 * to keep that file under the repo's file-size budget; purely
-	 * presentational, all state/logic stays owned by the parent.
+	 * ViewerBody: the viewer's three-column layout, thumbnail rail | slide
+	 * viewport + notes panel | inspector. Split out of `PowerPointViewer.svelte`
+	 * to keep that file under the repo's file-size budget; purely presentational,
+	 * all state/logic stays owned by the parent.
+	 *
+	 * Everything inside the viewport (placeholders, the scaled stage, its ruler
+	 * strips and overlay stack, the context menu) lives in `ViewerStage`, and the
+	 * prop contract lives in `viewer-body-props.ts`, so this file stays layout
+	 * only: it measures the viewport and decides which of the three columns are
+	 * present, nothing more.
 	 */
-	import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
-	import type { PptxHandler, PptxSlide, PptxTheme, TextSegment } from 'pptx-viewer-core';
-	import type { CanvasSize, RemoteCursor, SanitizedPresence } from 'pptx-viewer-shared';
-	import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
-	import type { AiChangeBatch } from 'pptx-viewer-shared/ai';
-
-	import type { AiCanvasHighlight } from '../ai/ai-panel-controller.svelte';
-	import AiChangeOverlay from './ai/AiChangeOverlay.svelte';
-	import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.svelte';
-	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
-	import RemoteSelectionOverlay from '../collab/components/RemoteSelectionOverlay.svelte';
-	import type { EditorController } from '../editor/editor-controller.svelte';
-	import type { EditorState } from '../editor/editor-state.svelte';
-	import type { ChromeUiState } from '../state/chrome-ui.svelte';
-	import type { Translator } from '../../i18n/translator';
-	import type { TransitionState } from '../presentation';
-	import type { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
-	import { PresentationTransitionOverlay } from '../presentation';
-	import EditorLayer from './EditorLayer.svelte';
-	import ElementContextMenu from './ElementContextMenu.svelte';
-	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
-	import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
-	import SlideCanvas from './SlideCanvas.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
-	import AlignmentGuides from './AlignmentGuides.svelte';
+	import type { ViewerBodyProps } from './viewer-body-props';
+	import ViewerStage from './ViewerStage.svelte';
 
 	const {
 		t,
@@ -71,6 +55,9 @@
 		annotations,
 		guides = [],
 		onchangeguide,
+		onaddguide,
+		showRulers = false,
+		rulerUnit = 'inches',
 		spellCheck = false,
 		chromeUi,
 		aiPickMode = false,
@@ -80,68 +67,7 @@
 		onaipickelement,
 		onaskai,
 		onfixai,
-	}: {
-		t: Translator;
-		editor: EditorState;
-		handler?: PptxHandler | null;
-		presentationTheme?: PptxTheme;
-		onthemechange?: (theme: PptxTheme) => void;
-		chromeVisible: boolean;
-		showThumbnails: boolean;
-		showNotes: boolean;
-		displaySlides: PptxSlide[];
-		canvasSize: CanvasSize;
-		mediaDataUrls: Map<string, string>;
-		current: number;
-		onselect: (index: number) => void;
-		loading: boolean;
-		isEncrypted: boolean;
-		error: string | null;
-		activeSlide: PptxSlide | undefined;
-		scale: number;
-		presenting: boolean;
-		/** Active slide-transition overlay state (presentation mode), or null. */
-		presentationTransition: TransitionState | null;
-		/** Called when the transition overlay finishes (host drops the overlay). */
-		onTransitionDone: () => void;
-		/** Advance the presentation (step animation build, else next slide). */
-		onAdvance: () => void;
-		editingActive: boolean;
-		controller: EditorController;
-		onstageresize: (width: number, height: number) => void;
-		onstageholder: (el: HTMLDivElement | null) => void;
-		notesExpanded: boolean;
-		onNotesCommit?: (notes: string, segments?: TextSegment[]) => void;
-		onNotesToggle: () => void;
-		/** Remote collaborators' cursors on the active slide (unscaled slide px). */
-		collabCursors?: RemoteCursor[];
-		/** Remote collaborators' presence (drives the remote-selection overlay). */
-		collabPresences?: SanitizedPresence[];
-		/** Open element menu position, supplied by the editing controller. */
-		contextMenu: { x: number; y: number } | null;
-		onContextMenuClose: () => void;
-		onmoveSlide?: (fromIndex: number, toIndex: number) => void;
-		annotations: PresentationAnnotations;
-		guides?: readonly { axis: 'h' | 'v'; position: number }[];
-		onchangeguide?: (index: number, position: number) => void;
-		spellCheck?: boolean;
-		/** Side-panel open/collapsed state shared with the ribbon's toggles. */
-		chromeUi?: ChromeUiState;
-		/** True while the AI panel is picking a slide element (see SlideCanvas). */
-		aiPickMode?: boolean;
-		/** True while a running AI tool is active (enables the canvas colour tween). */
-		aiActive?: boolean;
-		/** Rings the AI focus overlay should draw on the active slide. */
-		aiHighlights?: readonly AiCanvasHighlight[];
-		/** Just-applied AI change batch the canvas should animate (glide/fade/glow). */
-		aiChangeBatch?: AiChangeBatch | null;
-		/** Route a picked canvas element to the AI focus (pick mode). */
-		onaipickelement?: (elementId: string) => void;
-		/** "Ask AI about this" from the element context menu (gated on the `ai` prop). */
-		onaskai?: () => void;
-		/** "Fix with AI" from the element context menu (gated on the `ai` prop). */
-		onfixai?: () => void;
-	} = $props();
+	}: ViewerBodyProps = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
 	// eslint-disable-next-line prefer-const
@@ -151,39 +77,6 @@
 	$effect(() => {
 		onstageresize(viewportWidth, viewportHeight);
 	});
-
-	function commitTableCell(id: string, rowIndex: number, cellIndex: number, text: string): void {
-		const table = editor.activeElements.find((element) => element.id === id);
-		if (table?.type !== 'table') {
-			return;
-		}
-		const updated = setCellText(table, rowIndex, cellIndex, text);
-		editor.applyElementPatch(id, { tableData: updated.tableData });
-	}
-
-	function commitSmartArtNode(id: string, nodeId: string, text: string): void {
-		const element = editor.activeElements.find((candidate) => candidate.id === id);
-		if (
-			element?.type !== 'smartArt' ||
-			!element.smartArtData ||
-			!shouldCommitSmartArtNodeText(element.smartArtData, nodeId, text)
-		) {
-			return;
-		}
-		const next = updateSmartArtNodeText(element.smartArtData, nodeId, text);
-		editor.applyElementPatch(id, { smartArtData: next });
-	}
-
-	function commitSmartArtFill(id: string, nodeId: string, fill: string): void {
-		const element = editor.activeElements.find((candidate) => candidate.id === id);
-		if (element?.type !== 'smartArt' || !element.smartArtData) {
-			return;
-		}
-		const next = setSmartArtNodeStyle(element.smartArtData, nodeId, { fillColor: fill });
-		if (next !== element.smartArtData) {
-			editor.applyElementPatch(id, { smartArtData: next });
-		}
-	}
 </script>
 
 <div class="pptx-svelte-body">
@@ -215,86 +108,44 @@
 			bind:clientHeight={viewportHeight}
 			data-pptx-viewport
 		>
-			{#if loading}
-				<div class="pptx-svelte-message" role="status">{t('common.loading')}</div>
-			{:else if isEncrypted}
-				<div class="pptx-svelte-message" role="alert">{t('pptx.encryptedFile.message')}</div>
-			{:else if error}
-				<div class="pptx-svelte-message" role="alert">{error}</div>
-			{:else if activeSlide}
-				<SlideCanvas
-					slide={activeSlide}
-					{canvasSize}
-					{mediaDataUrls}
-					{scale}
-					{presenting}
-					{editingActive}
-					editTemplateMode={editor.editTemplateMode}
-					ontablecellcommit={editingActive ? commitTableCell : undefined}
-					onsmartartnodecommit={editingActive ? commitSmartArtNode : undefined}
-					onsmartartnodefill={editingActive ? commitSmartArtFill : undefined}
-					{onstageholder}
-					onstagepointerdown={controller.onStagePointerDown}
-					onstagepointermove={controller.onStagePointerMove}
-					onstagedblclick={controller.onStageDblClick}
-					onstagecontextmenu={controller.onStageContextMenu}
-					onstageclick={presenting ? onAdvance : undefined}
-					{aiPickMode}
-					{aiActive}
-					{onaipickelement}
-				>
-					{#if aiHighlights.length > 0}
-						<AiFocusHighlightOverlay
-							highlights={aiHighlights}
-							elements={activeSlide?.elements ?? []}
-							activeSlideIndex={current}
-							{scale}
-							{canvasSize}
-						/>
-					{/if}
-					{#if aiChangeBatch}
-						<AiChangeOverlay
-							batch={aiChangeBatch}
-							activeSlideIndex={current}
-							{scale}
-							{canvasSize}
-						/>
-					{/if}
-					{#if editingActive && guides.length && onchangeguide}<AlignmentGuides {guides} {scale} onchange={onchangeguide} />{/if}
-					{#if editingActive}
-						<EditorLayer {controller} {scale} {spellCheck} />
-						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
-					{/if}
-					{#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} />{/if}
-					{#if collabPresences.length > 0}
-						<RemoteSelectionOverlay
-							presences={collabPresences}
-							elements={activeSlide?.elements ?? []}
-							activeSlideIndex={current}
-							zoom={scale}
-						/>
-					{/if}
-					{#if collabCursors.length > 0}
-						<CollaborationCursors cursors={collabCursors} zoom={scale} />
-					{/if}
-					{#if presenting && presentationTransition}
-						<PresentationTransitionOverlay
-							outgoingSlide={presentationTransition.outgoing}
-							incomingSlide={presentationTransition.incoming}
-							{canvasSize}
-							{mediaDataUrls}
-							{scale}
-							transition={presentationTransition.transition}
-							ondone={onTransitionDone}
-						/>
-					{/if}
-				</SlideCanvas>
-				{#if contextMenu}
-					<ElementContextMenu x={contextMenu.x} y={contextMenu.y} {editor} {onaskai} {onfixai} onclose={onContextMenuClose} />
-				{/if}
-			{:else}
-				<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
-			{/if}
+			<ViewerStage
+				{t}
+				{editor}
+				{controller}
+				{canvasSize}
+				{mediaDataUrls}
+				{current}
+				{loading}
+				{isEncrypted}
+				{error}
+				{activeSlide}
+				{scale}
+				{presenting}
+				{presentationTransition}
+				{onTransitionDone}
+				{onAdvance}
+				{editingActive}
+				{onstageholder}
+				{collabCursors}
+				{collabPresences}
+				{contextMenu}
+				{onContextMenuClose}
+				{annotations}
+				{guides}
+				{onchangeguide}
+				{onaddguide}
+				{showRulers}
+				{rulerUnit}
+				{spellCheck}
+				{chromeUi}
+				{aiPickMode}
+				{aiActive}
+				{aiHighlights}
+				{aiChangeBatch}
+				{onaipickelement}
+				{onaskai}
+				{onfixai}
+			/>
 		</div>
 		{#if showNotes && chromeVisible && displaySlides.length > 0}
 			<NotesPanel
@@ -331,12 +182,5 @@
 		overflow: auto;
 		min-width: 0;
 		min-height: 0;
-	}
-
-	.pptx-svelte-message {
-		margin: auto;
-		font-family: system-ui, sans-serif;
-		font-size: 14px;
-		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 </style>
