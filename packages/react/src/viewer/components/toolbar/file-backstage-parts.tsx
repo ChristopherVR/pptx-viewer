@@ -1,6 +1,7 @@
 import { BACKSTAGE_TEMPLATES, formatBackstageDate, formatBackstageSize } from 'pptx-viewer-shared';
 import type { BackstageRecentFile, ToolbarActionId } from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface FileSectionProps {
 	fileName?: string;
@@ -25,6 +26,7 @@ export interface FileSectionProps {
 	onOpenPasswordProtection?: () => void;
 	onOpenFontEmbedding?: () => void;
 	onOpenDigitalSignatures?: () => void;
+	onOpenVersionHistory?: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
 }
@@ -54,9 +56,10 @@ export function BackstageAction(props: {
 export function BackstageNewGallery(props: {
 	onCreate: (templateId: string) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<>
-			<h2 className='mt-7 text-[17px] font-semibold'>New</h2>
+			<h2 className='mt-7 text-[17px] font-semibold'>{t('pptx.backstage.newHeading')}</h2>
 			<div className='mt-5 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6'>
 				{BACKSTAGE_TEMPLATES.map((template) => (
 					<button
@@ -69,9 +72,11 @@ export function BackstageNewGallery(props: {
 							className='block aspect-[16/9] border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-lg'
 							style={{ background: template.preview }}
 						/>
-						<strong className='mt-2 block truncate text-[12px] font-medium'>{template.name}</strong>
+						<strong className='mt-2 block truncate text-[12px] font-medium'>
+							{t(template.nameKey, { defaultValue: template.name })}
+						</strong>
 						<span className='block truncate text-[10px] text-muted-foreground'>
-							{template.description}
+							{t(template.descriptionKey, { defaultValue: template.description })}
 						</span>
 					</button>
 				))}
@@ -84,12 +89,13 @@ export function BackstageRecentList(props: {
 	files: BackstageRecentFile[];
 	onOpen?: (key: string) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='mt-5 border-t border-border'>
 			<div className='grid grid-cols-[1fr_120px_90px] px-3 py-2 text-[11px] font-semibold text-muted-foreground'>
-				<span>Name</span>
-				<span>Date modified</span>
-				<span>Size</span>
+				<span>{t('pptx.backstage.columnName')}</span>
+				<span>{t('pptx.backstage.columnModified')}</span>
+				<span>{t('pptx.backstage.columnSize')}</span>
 			</div>
 			{props.files.map((file) => (
 				<button
@@ -110,7 +116,7 @@ export function BackstageRecentList(props: {
 						</span>
 					</span>
 					<span className='text-[11px] text-muted-foreground'>
-						{formatBackstageDate(file.timestamp)}
+						{formatBackstageDate(file.timestamp, Date.now(), t)}
 					</span>
 					<span className='text-[11px] text-muted-foreground'>
 						{formatBackstageSize(file.size)}
@@ -119,7 +125,7 @@ export function BackstageRecentList(props: {
 			))}
 			{props.files.length === 0 && (
 				<div className='border-t border-border px-3 py-10 text-center text-sm text-muted-foreground'>
-					No recent presentations yet. Open or autosave a file and it will appear here.
+					{t('pptx.backstage.noRecent')}
 				</div>
 			)}
 		</div>

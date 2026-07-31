@@ -150,6 +150,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onOpenPasswordProtection={p.onOpenPasswordProtection}
 							onOpenFontEmbedding={p.onOpenFontEmbedding}
 							onOpenDigitalSignatures={p.onOpenDigitalSignatures}
+							onOpenVersionHistory={p.onToggleVersionHistory}
 							hiddenActions={p.hiddenActions}
 						/>
 					)}

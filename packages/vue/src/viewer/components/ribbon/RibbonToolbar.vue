@@ -102,6 +102,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-open-password-protection="props.onOpenPasswordProtection"
 				:on-open-font-embedding="props.onOpenFontEmbedding"
 				:on-open-digital-signatures="props.onOpenDigitalSignatures"
+				:on-open-version-history="props.onToggleVersionHistory"
 				:hidden-actions="props.hiddenActions"
 			/>
 

@@ -59,7 +59,7 @@ export function ThemeGallery({
 				type='button'
 				className='fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm'
 				onClick={onClose}
-				aria-label={t('common.close')}
+				aria-label={t('pptx.common.close')}
 			/>
 
 			{/* Modal */}
@@ -69,17 +69,17 @@ export function ThemeGallery({
 					<div className='flex items-center justify-between px-6 py-4 border-b border-border'>
 						<div>
 							<h2 className='text-lg font-semibold text-foreground'>
-								{t('powerpoint.toolbar.themes.gallery.title')}
+								{t('pptx.themes.gallery.title')}
 							</h2>
 							<p className='text-xs text-muted-foreground mt-0.5'>
-								{t('powerpoint.toolbar.themes.gallery.description')}
+								{t('pptx.themes.gallery.description')}
 							</p>
 						</div>
 						<button
 							type='button'
 							onClick={onClose}
 							className='p-2 rounded hover:bg-accent transition-colors'
-							aria-label={t('common.close')}
+							aria-label={t('pptx.common.close')}
 						>
 							<LuX className='w-5 h-5' />
 						</button>
@@ -111,7 +111,7 @@ export function ThemeGallery({
 										className='inline-flex items-center gap-2 px-3 py-1.5 rounded bg-accent hover:bg-accent/80 text-xs font-medium text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 									>
 										<LuUpload className='w-3.5 h-3.5' />
-										{t('powerpoint.toolbar.themes.gallery.importTheme')}
+										{t('pptx.themes.gallery.importTheme')}
 									</button>
 									<input
 										ref={fileInputRef}
@@ -129,7 +129,7 @@ export function ThemeGallery({
 								onClick={onClose}
 								className='px-3 py-1.5 rounded bg-accent hover:bg-accent/80 text-xs font-medium text-foreground transition-colors'
 							>
-								{t('common.cancel')}
+								{t('pptx.common.cancel')}
 							</button>
 							<button
 								type='button'
@@ -137,7 +137,7 @@ export function ThemeGallery({
 								disabled={!canEdit || !selectedTheme}
 								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-xs font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 							>
-								{t('common.apply')}
+								{t('pptx.common.apply')}
 							</button>
 						</div>
 					</div>

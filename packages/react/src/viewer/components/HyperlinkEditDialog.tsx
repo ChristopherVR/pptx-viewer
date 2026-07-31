@@ -209,14 +209,14 @@ export function HyperlinkEditDialog({
 							className='px-3 py-1.5 text-xs rounded border border-border text-foreground hover:bg-muted'
 							onClick={onCancel}
 						>
-							{t('common.cancel')}
+							{t('pptx.common.cancel')}
 						</button>
 						<button
 							type='button'
 							className='px-3 py-1.5 text-xs rounded bg-primary text-white hover:bg-primary/90'
 							onClick={handleConfirm}
 						>
-							{t('common.apply')}
+							{t('pptx.common.apply')}
 						</button>
 					</div>
 				</div>

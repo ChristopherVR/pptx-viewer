@@ -49,7 +49,7 @@ const { t } = useI18n();
 				class="rounded-lg bg-accent px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent/80"
 				@click="emit('cancel')"
 			>
-				{{ t('common.cancel') }}
+				{{ t('pptx.common.cancel') }}
 			</button>
 			<button
 				type="button"

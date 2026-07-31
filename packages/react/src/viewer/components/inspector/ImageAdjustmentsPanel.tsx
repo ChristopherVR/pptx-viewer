@@ -91,7 +91,7 @@ export function ImageAdjustmentsPanel({
 						className='rounded bg-muted hover:bg-accent border border-border px-1.5 py-0.5 text-[10px] text-foreground disabled:opacity-50'
 						onClick={handleReset}
 					>
-						{t('common.reset')}
+						{t('pptx.common.reset')}
 					</button>
 				)}
 			</div>

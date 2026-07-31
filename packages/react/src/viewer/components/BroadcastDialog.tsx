@@ -213,7 +213,7 @@ export function BroadcastDialog({
 								onClick={onClose}
 								className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
 							>
-								{t('common.close')}
+								{t('pptx.common.close')}
 							</button>
 							<button
 								type='button'

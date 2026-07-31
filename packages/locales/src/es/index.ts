@@ -2,6 +2,7 @@ import { translations as accessibility_print_and_export } from './accessibility-
 import { translations as ai_assistant } from './ai-assistant';
 import { translations as animations } from './animations';
 import { translations as application_shell } from './application-shell';
+import { translations as backstage } from './backstage';
 import { translations as charts } from './charts';
 import { translations as collaboration_and_sharing } from './collaboration-and-sharing';
 import { translations as drawing_and_layout } from './drawing-and-layout';
@@ -19,6 +20,7 @@ import { translations as viewer_options } from './viewer-options';
 
 export const translationsEs: Record<string, string> = {
 	...application_shell,
+	...backstage,
 	...ai_assistant,
 	...editing_and_review,
 	...drawing_and_layout,

@@ -30,7 +30,7 @@ interface SlideNotesPanelProps {
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export const SlideNotesPanel: React.FC<SlideNotesPanelProps> = ({
+export function SlideNotesPanel({
 	activeSlide,
 	allSlides,
 	isExpanded,
@@ -38,7 +38,7 @@ export const SlideNotesPanel: React.FC<SlideNotesPanelProps> = ({
 	onToggle,
 	onUpdateNotes,
 	panelHeight,
-}) => {
+}: SlideNotesPanelProps) {
 	const { t } = useTranslation();
 
 	const {
@@ -90,7 +90,7 @@ export const SlideNotesPanel: React.FC<SlideNotesPanelProps> = ({
 			{isExpanded && (
 				<button
 					type='button'
-					aria-label={t('common.close')}
+					aria-label={t('pptx.common.close')}
 					onClick={onToggle}
 					className='md:hidden fixed inset-0 z-20 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150'
 				/>
@@ -206,4 +206,4 @@ export const SlideNotesPanel: React.FC<SlideNotesPanelProps> = ({
 			</div>
 		</>
 	);
-};
+}

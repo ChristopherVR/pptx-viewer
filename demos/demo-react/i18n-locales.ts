@@ -415,16 +415,16 @@ export const translationsFr: Record<TranslationKey, string> = {
 	'pptx.encryptedFile.instructions': "Saisissez le mot de passe pour l'ouvrir.",
 
 	// Common (shared verb/label vocabulary reused across dialogs and panels)
-	'common.close': 'Fermer',
-	'common.cancel': 'Annuler',
-	'common.apply': 'Appliquer',
-	'common.delete': 'Supprimer',
-	'common.done': 'Terminé',
-	'common.loading': 'Chargement...',
-	'common.ok': 'OK',
-	'common.remove': 'Supprimer',
-	'common.reset': 'Réinitialiser',
-	'common.save': 'Enregistrer',
+	'pptx.common.close': 'Fermer',
+	'pptx.common.cancel': 'Annuler',
+	'pptx.common.apply': 'Appliquer',
+	'pptx.common.delete': 'Supprimer',
+	'pptx.common.done': 'Terminé',
+	'pptx.common.loading': 'Chargement...',
+	'pptx.common.ok': 'OK',
+	'pptx.common.remove': 'Supprimer',
+	'pptx.common.reset': 'Réinitialiser',
+	'pptx.common.save': 'Enregistrer',
 };
 
 export const translationsEs: Record<TranslationKey, string> = {
@@ -820,16 +820,16 @@ export const translationsEs: Record<TranslationKey, string> = {
 	'pptx.encryptedFile.instructions': 'Introduzca la contraseña para abrirlo.',
 
 	// Common (shared verb/label vocabulary reused across dialogs and panels)
-	'common.close': 'Cerrar',
-	'common.cancel': 'Cancelar',
-	'common.apply': 'Aplicar',
-	'common.delete': 'Eliminar',
-	'common.done': 'Hecho',
-	'common.loading': 'Cargando...',
-	'common.ok': 'Aceptar',
-	'common.remove': 'Quitar',
-	'common.reset': 'Restablecer',
-	'common.save': 'Guardar',
+	'pptx.common.close': 'Cerrar',
+	'pptx.common.cancel': 'Cancelar',
+	'pptx.common.apply': 'Aplicar',
+	'pptx.common.delete': 'Eliminar',
+	'pptx.common.done': 'Hecho',
+	'pptx.common.loading': 'Cargando...',
+	'pptx.common.ok': 'Aceptar',
+	'pptx.common.remove': 'Quitar',
+	'pptx.common.reset': 'Restablecer',
+	'pptx.common.save': 'Guardar',
 };
 
 export const translationsDe: Record<TranslationKey, string> = {
@@ -1225,14 +1225,14 @@ export const translationsDe: Record<TranslationKey, string> = {
 	'pptx.encryptedFile.instructions': 'Geben Sie das Kennwort ein, um sie zu offnen.',
 
 	// Common
-	'common.close': 'Schliessen',
-	'common.cancel': 'Abbrechen',
-	'common.apply': 'Ubernehmen',
-	'common.delete': 'Loschen',
-	'common.done': 'Fertig',
-	'common.loading': 'Wird geladen...',
-	'common.ok': 'OK',
-	'common.remove': 'Entfernen',
-	'common.reset': 'Zurucksetzen',
-	'common.save': 'Speichern',
+	'pptx.common.close': 'Schliessen',
+	'pptx.common.cancel': 'Abbrechen',
+	'pptx.common.apply': 'Ubernehmen',
+	'pptx.common.delete': 'Loschen',
+	'pptx.common.done': 'Fertig',
+	'pptx.common.loading': 'Wird geladen...',
+	'pptx.common.ok': 'OK',
+	'pptx.common.remove': 'Entfernen',
+	'pptx.common.reset': 'Zurucksetzen',
+	'pptx.common.save': 'Speichern',
 };

@@ -58,7 +58,7 @@ function handleApply(): void {
 			<button
 				type="button"
 				class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
-				:aria-label="t('common.close')"
+				:aria-label="t('pptx.common.close')"
 				@click="emit('close')"
 			/>
 
@@ -67,22 +67,22 @@ function handleApply(): void {
 				<div
 					class="bg-background border border-border rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col"
 					role="dialog"
-					:aria-label="t('powerpoint.toolbar.themes.gallery.ariaLabel')"
+					:aria-label="t('pptx.themes.gallery.ariaLabel')"
 				>
 					<!-- Header -->
 					<div class="flex items-center justify-between px-6 py-4 border-b border-border">
 						<div>
 							<h2 class="text-lg font-semibold text-foreground">
-								{{ t('powerpoint.toolbar.themes.gallery.title') }}
+								{{ t('pptx.themes.gallery.title') }}
 							</h2>
 							<p class="text-xs text-muted-foreground mt-0.5">
-								{{ t('powerpoint.toolbar.themes.gallery.description') }}
+								{{ t('pptx.themes.gallery.description') }}
 							</p>
 						</div>
 						<button
 							type="button"
 							class="p-2 rounded hover:bg-accent transition-colors"
-							:aria-label="t('common.close')"
+							:aria-label="t('pptx.common.close')"
 							@click="emit('close')"
 						>
 							<X class="w-5 h-5" />
@@ -109,7 +109,7 @@ function handleApply(): void {
 							class="px-3 py-1.5 rounded bg-accent hover:bg-accent/80 text-xs font-medium text-foreground transition-colors"
 							@click="emit('close')"
 						>
-							{{ t('common.cancel') }}
+							{{ t('pptx.common.cancel') }}
 						</button>
 						<button
 							type="button"
@@ -117,7 +117,7 @@ function handleApply(): void {
 							class="px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-xs font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
 							@click="handleApply"
 						>
-							{{ t('common.apply') }}
+							{{ t('pptx.common.apply') }}
 						</button>
 					</div>
 				</div>

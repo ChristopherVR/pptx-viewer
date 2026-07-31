@@ -5,6 +5,7 @@ import {
 	buildParagraphs,
 	buildTextBody3DSceneStyle,
 	getGroupChildParentFill,
+	getOverflowSegments,
 	hasTextWarp,
 	isElementRendered,
 } from 'pptx-viewer-shared';
@@ -19,6 +20,7 @@ import {
 } from '../composables/element-style';
 import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 import { injectPresentationElementStates } from '../composables/presentation-element-states';
+import { injectSlideElements, resolveSlideElements } from '../composables/slide-elements';
 import { useSmartArt3D } from '../composables/smart-art-3d';
 import { build3DExtrusionData } from '../composables/visual-3d';
 import ActionButtonGlyphOverlay from './ActionButtonGlyphOverlay.vue';
@@ -81,6 +83,9 @@ const smartArt3D = useSmartArt3D();
 
 /** OOXML field-substitution context (slide number, date/time, etc.), provided by the viewer root. */
 const fieldContextSource = injectFieldContext();
+
+/** Sibling elements of the slide being painted, used to resolve linked text box chains. */
+const slideElementsSource = injectSlideElements();
 
 /**
  * Native-animation playback state for this element (present only during a running
@@ -173,9 +178,18 @@ const hasEquation = computed(
 /** Whether this element's text is warped (WordArt / `prstTxWarp`). */
 const isWarpedText = computed(() => hasTextWarp(props.element));
 
+/**
+ * The slice of an `a:linkedTxbx` chain's text this box renders, or `undefined`
+ * when the element is not in a chain (the overwhelmingly common case, resolved
+ * by a single field check inside the shared helper).
+ */
+const linkedSegments = computed(() =>
+	getOverflowSegments(props.element, resolveSlideElements(slideElementsSource)),
+);
+
 /** Rendered paragraphs (runs + bullet/indent), built by shared logic. */
 const paragraphs = computed(() =>
-	buildParagraphs(props.element, resolveFieldContext(fieldContextSource)),
+	buildParagraphs(props.element, resolveFieldContext(fieldContextSource), linkedSegments.value),
 );
 const hasText = computed(() =>
 	paragraphs.value.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),

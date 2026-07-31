@@ -106,7 +106,7 @@ export function NotesPrintDialog({
 						onClick={onClose}
 						className='text-muted-foreground hover:text-foreground text-sm'
 					>
-						{t('common.close')}
+						{t('pptx.common.close')}
 					</button>
 				</div>
 				<div className='flex-1 overflow-y-auto p-4 space-y-4'>

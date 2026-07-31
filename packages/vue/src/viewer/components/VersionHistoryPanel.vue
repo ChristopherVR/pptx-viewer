@@ -73,7 +73,7 @@ function togglePreview(id: string): void {
 			<button
 				type="button"
 				class="pptx-vue-version-close inline-flex h-6 w-6 items-center justify-center rounded p-0 text-lg leading-none text-muted-foreground hover:bg-accent hover:text-foreground"
-				:aria-label="t('common.close')"
+				:aria-label="t('pptx.common.close')"
 				@click="emit('close')"
 			>
 				<X class="h-4 w-4" aria-hidden="true" />
@@ -149,7 +149,7 @@ function togglePreview(id: string): void {
 						class="pptx-vue-version-btn pptx-vue-version-btn--danger inline-flex cursor-pointer items-center rounded bg-red-600/20 px-2.5 py-1 text-[11px] text-red-400 transition-colors hover:bg-red-600/30"
 						@click="emit('delete', version.id)"
 					>
-						{{ t('common.delete') }}
+						{{ t('pptx.common.delete') }}
 					</button>
 				</div>
 			</div>

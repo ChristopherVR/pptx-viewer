@@ -170,14 +170,14 @@ export function SetUpSlideShowDialog({
 							onClick={onClose}
 							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
 						>
-							{t('common.cancel')}
+							{t('pptx.common.cancel')}
 						</button>
 						<button
 							type='button'
 							onClick={handleSave}
 							className='px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-[12px] text-white transition-colors'
 						>
-							{t('common.ok')}
+							{t('pptx.common.ok')}
 						</button>
 					</div>
 				</div>

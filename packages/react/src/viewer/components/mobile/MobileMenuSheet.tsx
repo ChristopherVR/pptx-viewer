@@ -343,6 +343,7 @@ function MobileSectionBody({
 						onOpenPasswordProtection={p.onOpenPasswordProtection}
 						onOpenFontEmbedding={p.onOpenFontEmbedding}
 						onOpenDigitalSignatures={p.onOpenDigitalSignatures}
+						onOpenVersionHistory={p.onToggleVersionHistory}
 						hiddenActions={p.hiddenActions}
 					/>
 				</div>

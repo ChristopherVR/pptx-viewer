@@ -46,7 +46,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 
 			<div footer>
 				<button type="button" class="pptx-ng-sig-btn" (click)="cancel.emit()">
-					{{ 'common.cancel' | translate }}
+					{{ 'pptx.common.cancel' | translate }}
 				</button>
 				<button
 					type="button"

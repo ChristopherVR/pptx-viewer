@@ -16,126 +16,91 @@ import {
 	Video,
 } from 'lucide';
 import type { IconNode } from 'lucide';
-import type { BackstagePage, ToolbarActionId } from 'pptx-viewer-shared';
-import { isActionHidden } from 'pptx-viewer-shared';
+import type { BackstageCardId, BackstagePage, ToolbarActionId } from 'pptx-viewer-shared';
+import { backstageCardsFor, isActionHidden } from 'pptx-viewer-shared';
 
+import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import type { RibbonFileHandlers } from '../ribbon-types';
 import { button } from './file-tab-dom';
 import { createLucideIcon } from './file-tab-icons';
 
+const CARD_ICONS: Record<BackstageCardId, IconNode> = {
+	protect: LockKeyhole,
+	inspect: Info,
+	embedFonts: Type,
+	signatures: BadgeCheck,
+	versionHistory: Clock3,
+	saveAsPptx: FileText,
+	saveAsPpsx: Presentation,
+	saveAsPptm: FileCode2,
+	package: Package,
+	pdf: FileText,
+	png: Image,
+	video: Video,
+	gif: Images,
+	copyImage: Copy,
+	print: Printer,
+	share: UserPlus,
+	sharePackage: Package,
+};
+
+/**
+ * The backstage action-card grid for one page.
+ *
+ * Card order, titles and bodies come from `pptx-viewer-shared`; this module
+ * only maps each card to its lucide glyph and to the handler that runs it. The
+ * copy used to be hardcoded here, which made the whole File tab
+ * untranslatable and let it drift from the other four bindings.
+ */
 export function createFileActionGrid(
 	doc: Document,
 	page: BackstagePage,
 	handlers: RibbonFileHandlers,
 	hasMacros: boolean,
 	run: (callback: () => void) => void,
+	t: Translator,
 	hiddenActions?: readonly ToolbarActionId[],
 ): HTMLElement {
 	const grid = createEl(doc, 'div', 'pptxv-bs-actions');
-	const action = (title: string, body: string, icon: IconNode, callback: () => void) => {
-		const result = button(doc, '', () => run(callback));
+	if (page === 'export' && isActionHidden('export', hiddenActions)) {
+		return grid;
+	}
+	const callbacks: Record<BackstageCardId, (() => void) | undefined> = {
+		protect: handlers.openPasswordProtection,
+		inspect: handlers.openDocumentProperties,
+		embedFonts: handlers.openFontEmbedding,
+		signatures: handlers.openDigitalSignatures,
+		versionHistory: handlers.openVersionHistory,
+		saveAsPptx: handlers.save,
+		saveAsPpsx: handlers.saveAsPpsx,
+		saveAsPptm: handlers.saveAsPptm,
+		package: handlers.packageForSharing,
+		pdf: handlers.exportPdf,
+		png: handlers.exportPng,
+		video: handlers.exportVideo,
+		gif: handlers.exportGif,
+		copyImage: handlers.copySlideAsImage,
+		print: handlers.print,
+		share: handlers.openShare,
+		sharePackage: handlers.packageForSharing,
+	};
+	for (const card of backstageCardsFor(page)) {
+		if (card.id === 'saveAsPptm' && !hasMacros) {
+			continue;
+		}
+		const callback = callbacks[card.id];
+		const result = button(doc, '', () => run(() => callback?.()));
 		const glyph = doc.createElement('b');
-		glyph.appendChild(createLucideIcon(doc, icon, 22));
+		glyph.appendChild(createLucideIcon(doc, CARD_ICONS[card.id], 22));
 		const copy = doc.createElement('span');
 		const heading = doc.createElement('strong');
-		heading.textContent = title;
+		heading.textContent = t(card.titleKey);
 		const text = doc.createElement('small');
-		text.textContent = body;
+		text.textContent = t(card.bodyKey);
 		copy.append(heading, text);
 		result.append(glyph, copy);
-		return result;
-	};
-	if (page === 'saveAs') {
-		grid.append(
-			action('PowerPoint Presentation', 'Save an editable .pptx copy.', FileText, handlers.save),
-			action('PowerPoint Show', 'Save a .ppsx slide show.', Presentation, handlers.saveAsPpsx),
-			action(
-				'Package for Sharing',
-				'Bundle the deck and linked assets.',
-				Package,
-				handlers.packageForSharing,
-			),
-		);
-		if (hasMacros) {
-			grid.append(
-				action(
-					'Macro-Enabled Presentation',
-					'Preserve VBA in a .pptm file.',
-					FileCode2,
-					handlers.saveAsPptm,
-				),
-			);
-		}
-	}
-	if (page === 'export' && !isActionHidden('export', hiddenActions)) {
-		grid.append(
-			action('Create PDF', 'Publish one page per slide.', FileText, handlers.exportPdf),
-			action('Export current slide', 'Create a high-quality PNG.', Image, handlers.exportPng),
-			action('Create a Video', 'Export timings and animations.', Video, handlers.exportVideo),
-			action(
-				'Create an Animated GIF',
-				'Make a compact looping preview.',
-				Images,
-				handlers.exportGif,
-			),
-			action('Copy as Image', 'Copy the current slide.', Copy, handlers.copySlideAsImage),
-		);
-	}
-	if (page === 'print') {
-		grid.append(
-			action('Print Presentation', 'Choose layout and output settings.', Printer, handlers.print),
-		);
-	}
-	if (page === 'share') {
-		grid.append(
-			action(
-				'Share with People',
-				'Invite others to collaborate on this presentation.',
-				UserPlus,
-				handlers.openShare,
-			),
-			action(
-				'Package for Sharing',
-				'Download a self-contained package.',
-				Package,
-				handlers.packageForSharing,
-			),
-		);
-	}
-	if (page === 'info') {
-		grid.append(
-			action(
-				'Version History',
-				'Restore or remove the latest recovery snapshot.',
-				Clock3,
-				handlers.openVersionHistory,
-			),
-			action(
-				'Document Properties',
-				'View and edit presentation metadata and statistics.',
-				Info,
-				handlers.openDocumentProperties,
-			),
-			action(
-				'Protect Presentation',
-				'Control access and editing preferences.',
-				LockKeyhole,
-				handlers.openPasswordProtection,
-			),
-			action(
-				'Embed Fonts',
-				'Keep typography consistent across devices.',
-				Type,
-				handlers.openFontEmbedding,
-			),
-			action(
-				'Digital Signatures',
-				'View signatures attached to this presentation.',
-				BadgeCheck,
-				handlers.openDigitalSignatures,
-			),
-		);
+		grid.appendChild(result);
 	}
 	return grid;
 }

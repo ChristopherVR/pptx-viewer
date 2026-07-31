@@ -50,7 +50,7 @@ const TABS = [
 		</div>
 		<button
 			type="button"
-			:title="t('common.close')"
+			:title="t('pptx.common.close')"
 			class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
 			@click="emit('close')"
 		>

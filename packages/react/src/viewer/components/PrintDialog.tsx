@@ -216,7 +216,7 @@ export function PrintDialog({
 							onClick={onClose}
 							className='px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors'
 						>
-							{t('common.cancel')}
+							{t('pptx.common.cancel')}
 						</button>
 						<button
 							type='button'

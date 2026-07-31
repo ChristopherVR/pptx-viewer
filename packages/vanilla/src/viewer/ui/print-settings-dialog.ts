@@ -66,7 +66,7 @@ export function openPrintSettingsDialog(
 		['pureBlackWhite', t('pptx.print.blackAndWhite')],
 	]);
 	const frame = appendCheckRow(doc, shell.body, t('pptx.print.frameSlides'), false);
-	appendDialogButton(doc, shell.footer, t('common.cancel'), shell.close);
+	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
 	appendDialogButton(
 		doc,
 		shell.footer,

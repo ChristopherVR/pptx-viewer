@@ -1,31 +1,42 @@
-<div class="bs" role="dialog" aria-modal="true" aria-label="File">
+<div
+	class="bs"
+	role="dialog"
+	aria-modal="true"
+	[attr.aria-label]="'pptx.backstage.title' | translate"
+>
 	<aside>
-		<button class="back" type="button" aria-label="Back to presentation" (click)="close.emit()">
+		<button
+			class="back"
+			type="button"
+			[attr.aria-label]="'pptx.backstage.back' | translate"
+			(click)="close.emit()"
+		>
 			<pptx-backstage-nav-icon page="back" />
 		</button>
 		<nav>
 			@for (item of mainNav(); track item.id) {
 				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
-					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.label }}
+					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.labelKey | translate }}
 				</button>
 			}
 			<i></i>
 			@for (item of footerNav; track item.id) {
 				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
-					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.label }}
+					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.labelKey | translate }}
 				</button>
 			}
 		</nav>
 	</aside>
 	<main>
-		<h1>{{ page() === 'home' ? 'Good evening' : title() }}</h1>
+		<h1>{{ (page() === 'home' ? 'pptx.backstage.greeting' : titleKey()) | translate }}</h1>
 		@if (page() === 'home' || page() === 'new') {
-			<h2>New</h2>
+			<h2>{{ 'pptx.backstage.newHeading' | translate }}</h2>
 			<div class="templates">
 				@for (template of templates; track template.id) {
 					<button type="button" (click)="create(template.id)">
-						<b [style.background]="template.preview"></b><strong>{{ template.name }}</strong
-						><small>{{ template.description }}</small>
+						<b [style.background]="template.preview"></b
+						><strong>{{ template.nameKey | translate }}</strong
+						><small>{{ template.descriptionKey | translate }}</small>
 					</button>
 				}
 			</div>
@@ -34,16 +45,22 @@
 			<input
 				class="search"
 				type="search"
-				placeholder="Search recent presentations"
+				[attr.placeholder]="'pptx.backstage.searchPlaceholder' | translate"
 				[value]="query()"
 				(input)="query.set($any($event.target).value)"
 			/>
 			@if (page() === 'open') {
-				<button class="primary" type="button" (click)="run(openFile)">Browse this device</button>
+				<button class="primary" type="button" (click)="run(openFile)">
+					{{ 'pptx.backstage.browseDevice' | translate }}
+				</button>
 			}
-			<h2>Recent</h2>
+			<h2>{{ 'pptx.backstage.recentHeading' | translate }}</h2>
 			<div class="recent">
-				<header><span>Name</span><span>Date modified</span><span>Size</span></header>
+				<header>
+					<span>{{ 'pptx.backstage.columnName' | translate }}</span
+					><span>{{ 'pptx.backstage.columnModified' | translate }}</span
+					><span>{{ 'pptx.backstage.columnSize' | translate }}</span>
+				</header>
 				@for (file of visibleRecent(); track file.key) {
 					<button type="button" (click)="openRecent(file.key)">
 						<span class="name"
@@ -56,18 +73,18 @@
 						><span>{{ size(file.size) }}</span>
 					</button>
 				} @empty {
-					<p>No recent presentations yet.</p>
+					<p>{{ 'pptx.backstage.noRecent' | translate }}</p>
 				}
 			</div>
 		}
 		@if (actions().length) {
 			<div class="actions">
-				@for (action of actions(); track action.title) {
+				@for (action of actions(); track action.titleKey) {
 					<button type="button" (click)="run(action.event)">
 						<b>{{ action.icon }}</b
 						><span
-							><strong>{{ action.title }}</strong
-							><small>{{ action.body }}</small></span
+							><strong>{{ action.titleKey | translate }}</strong
+							><small>{{ action.bodyKey | translate }}</small></span
 						>
 					</button>
 				}
@@ -79,11 +96,16 @@
 		@if (page() === 'options') {
 			<section class="card">
 				<b class="avatar">⚙</b>
-				<h2>PowerPoint Options</h2>
-				<p>Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.</p>
-				<button class="primary" type="button" (click)="run(options)">Open Options</button>
+				<h2>{{ 'pptx.backstage.optionsTitle' | translate }}</h2>
+				<p>{{ 'pptx.backstage.optionsBody' | translate }}</p>
+				<button class="primary" type="button" (click)="run(options)">
+					{{ 'pptx.backstage.openOptions' | translate }}
+				</button>
 			</section>
 		}
-		<footer>{{ fileName() || 'Untitled Presentation.pptx' }} · Saved to this browser</footer>
+		<footer>
+			{{ fileName() || ('pptx.backstage.untitled' | translate) }} ·
+			{{ 'pptx.backstage.savedToBrowser' | translate }}
+		</footer>
 	</main>
 </div>

@@ -53,7 +53,7 @@ export function DigitalSignaturesDialog({
 				type='button'
 				style={{ zIndex: 1200 }}
 				className='fixed inset-0 bg-black/60'
-				aria-label={t('common.close')}
+				aria-label={t('pptx.common.close')}
 				onClick={onClose}
 			/>
 			{/* Dialog */}
@@ -78,7 +78,7 @@ export function DigitalSignaturesDialog({
 							type='button'
 							onClick={onClose}
 							className='p-1 rounded hover:bg-accent transition-colors'
-							aria-label={t('common.close')}
+							aria-label={t('pptx.common.close')}
 						>
 							<LuX className='w-4 h-4 text-muted-foreground' />
 						</button>
@@ -129,7 +129,7 @@ export function DigitalSignaturesDialog({
 							onClick={onClose}
 							className='px-3 py-1.5 text-xs rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors'
 						>
-							{t('common.close')}
+							{t('pptx.common.close')}
 						</button>
 					</div>
 				</div>

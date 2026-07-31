@@ -40,7 +40,7 @@ export function SignatureStrippedDialog({
 				type='button'
 				style={{ zIndex: 1200 }}
 				className='fixed inset-0 bg-black/60'
-				aria-label={t('common.close')}
+				aria-label={t('pptx.common.close')}
 				onClick={onCancel}
 			/>
 			{/* Dialog */}
@@ -61,7 +61,7 @@ export function SignatureStrippedDialog({
 							type='button'
 							onClick={onCancel}
 							className='p-1 rounded hover:bg-accent transition-colors'
-							aria-label={t('common.close')}
+							aria-label={t('pptx.common.close')}
 						>
 							<LuX className='w-4 h-4 text-muted-foreground' />
 						</button>
@@ -91,7 +91,7 @@ export function SignatureStrippedDialog({
 							onClick={onCancel}
 							className='px-3 py-1.5 text-xs rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors'
 						>
-							{t('common.cancel')}
+							{t('pptx.common.cancel')}
 						</button>
 						<button
 							type='button'

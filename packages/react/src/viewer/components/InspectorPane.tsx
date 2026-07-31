@@ -102,7 +102,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 			{isOpen && (
 				<button
 					type='button'
-					aria-label={t('common.close')}
+					aria-label={t('pptx.common.close')}
 					onClick={onClose}
 					className='md:hidden fixed inset-0 z-20 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150'
 				/>

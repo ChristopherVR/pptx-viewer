@@ -1,8 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
+	backstageCardsFor,
 	formatBackstageDate,
 	formatBackstageSize,
 	isActionHidden,
@@ -10,6 +20,7 @@ import {
 } from '../internal/shared';
 import type {
 	AccountAuthConfig,
+	BackstageCardId,
 	BackstagePage,
 	BackstageRecentFile,
 	ToolbarActionId,
@@ -18,11 +29,31 @@ import { AccountPageComponent } from './account-page.component';
 import { BackstageNavIconComponent } from './backstage-nav-icon.component';
 
 interface BackstageAction {
-	title: string;
-	body: string;
+	titleKey: string;
+	bodyKey: string;
 	icon: string;
 	event: { emit: () => void };
 }
+
+const CARD_ICONS: Record<BackstageCardId, string> = {
+	protect: '🔒',
+	inspect: 'ⓘ',
+	embedFonts: 'T',
+	signatures: '✓',
+	versionHistory: '↺',
+	saveAsPptx: 'P',
+	saveAsPpsx: '▶',
+	saveAsPptm: 'M',
+	package: '□',
+	pdf: 'PDF',
+	png: 'PNG',
+	video: '▶',
+	gif: 'GIF',
+	copyImage: '▣',
+	print: '▧',
+	share: '◇',
+	sharePackage: '□',
+};
 
 /**
  * Pure, testable filter: the main (non-footer) backstage nav entries visible
@@ -43,7 +74,7 @@ export function visibleMainNav(
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [BackstageNavIconComponent, AccountPageComponent],
+	imports: [BackstageNavIconComponent, AccountPageComponent, TranslatePipe],
 	templateUrl: './ribbon-file-section.component.html',
 	styleUrl: './ribbon-file-section.component.css',
 })
@@ -79,14 +110,26 @@ export class RibbonFileSectionComponent {
 	readonly share = output<void>();
 	readonly options = output<void>();
 
+	/**
+	 * Optional: the backstage only needs a translator for the two strings the
+	 * shared helpers build (relative dates, recent-file fallbacks). A host that
+	 * has not provided ngx-translate should still get an English backstage
+	 * rather than an NG0201 at construction time.
+	 */
+	private readonly translate = inject(TranslateService, { optional: true });
+	private readonly t = this.translate
+		? (key: string, params?: Record<string, string | number>): string =>
+				this.translate?.instant(key, params) ?? key
+		: undefined;
 	protected readonly templates = BACKSTAGE_TEMPLATES;
 	protected readonly mainNav = computed(() => visibleMainNav(this.hiddenActions()));
 	protected readonly footerNav = BACKSTAGE_NAV.filter((item) => item.group);
 	protected readonly page = signal<BackstagePage>('home');
 	protected readonly query = signal('');
 	protected readonly recent = signal<BackstageRecentFile[]>([]);
-	protected readonly title = computed(
-		() => BACKSTAGE_NAV.find((item) => item.id === this.page())?.label ?? 'Home',
+	protected readonly titleKey = computed(
+		() =>
+			BACKSTAGE_NAV.find((item) => item.id === this.page())?.labelKey ?? 'pptx.backstage.nav.home',
 	);
 	protected readonly visibleRecent = computed(() => {
 		const q = this.query().trim().toLowerCase();
@@ -94,12 +137,15 @@ export class RibbonFileSectionComponent {
 			? this.recent().filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q))
 			: this.recent();
 	});
-	protected readonly date = formatBackstageDate;
 	protected readonly size = formatBackstageSize;
 	protected readonly actions = computed(() => this.pageActions(this.page()));
 
 	constructor() {
-		void (async () => this.recent.set(await listBackstageRecentFiles()))();
+		void (async () => this.recent.set(await listBackstageRecentFiles(this.t)))();
+	}
+
+	protected date(timestamp: number): string {
+		return formatBackstageDate(timestamp, Date.now(), this.t);
 	}
 
 	protected selectPage(id: BackstagePage): void {
@@ -133,53 +179,39 @@ export class RibbonFileSectionComponent {
 		this.close.emit();
 	}
 
-	private action(
-		title: string,
-		body: string,
-		icon: string,
-		event: { emit: () => void },
-	): BackstageAction {
-		return { title, body, icon, event };
-	}
-
+	/**
+	 * Card order, wording and dictionary keys come from `pptx-viewer-shared`;
+	 * this only maps each card to its glyph and to the output that fires it, so
+	 * the backstage cannot be worded differently here than in the other four
+	 * bindings.
+	 */
 	private pageActions(page: BackstagePage): BackstageAction[] {
-		const a = this.action.bind(this);
-		if (page === 'info') {
-			return [
-				a('Protect Presentation', 'Control what changes people can make.', '🔒', this.openPassword),
-				a('Inspect Presentation', 'Review properties and hidden content.', 'ⓘ', this.info),
-				a('Embed Fonts', 'Keep typography consistent across devices.', 'T', this.openFontEmbedding),
-				a('Digital Signatures', 'View and manage attached signatures.', '✓', this.signatures),
-			];
-		}
-		if (page === 'saveAs') {
-			return [
-				a('PowerPoint Presentation', 'Save an editable .pptx copy.', 'P', this.save),
-				a('PowerPoint Show', 'Save a .ppsx slide show.', '▶', this.savePpsx),
-				...(this.hasMacros()
-					? [a('Macro-Enabled Presentation', 'Preserve VBA in a .pptm file.', 'M', this.savePptm)]
-					: []),
-				a('Package for Sharing', 'Bundle the deck and linked assets.', '□', this.packageForSharing),
-			];
-		}
-		if (page === 'export') {
-			return [
-				a('Create PDF', 'Publish one page per slide.', 'PDF', this.exportPdf),
-				a('Export current slide', 'Create a high-quality PNG.', 'PNG', this.exportPng),
-				a('Create a Video', 'Export timings and animations.', '▶', this.exportVideo),
-				a('Create an Animated GIF', 'Make a compact looping preview.', 'GIF', this.exportGif),
-				a('Copy as Image', 'Copy the current slide.', '▣', this.copySlideAsImage),
-			];
-		}
-		if (page === 'print') {
-			return [a('Print Presentation', 'Choose layout and output settings.', '▧', this.print)];
-		}
-		if (page === 'share') {
-			return [
-				a('Share with People', 'Invite collaborators to work together.', '◇', this.share),
-				a('Package for Sharing', 'Download a self-contained package.', '□', this.packageForSharing),
-			];
-		}
-		return [];
+		const events: Record<BackstageCardId, { emit: () => void }> = {
+			protect: this.openPassword,
+			inspect: this.info,
+			embedFonts: this.openFontEmbedding,
+			signatures: this.signatures,
+			versionHistory: this.openVersionHistory,
+			saveAsPptx: this.save,
+			saveAsPpsx: this.savePpsx,
+			saveAsPptm: this.savePptm,
+			package: this.packageForSharing,
+			pdf: this.exportPdf,
+			png: this.exportPng,
+			video: this.exportVideo,
+			gif: this.exportGif,
+			copyImage: this.copySlideAsImage,
+			print: this.print,
+			share: this.share,
+			sharePackage: this.packageForSharing,
+		};
+		return backstageCardsFor(page)
+			.filter((card) => card.id !== 'saveAsPptm' || this.hasMacros())
+			.map((card) => ({
+				titleKey: card.titleKey,
+				bodyKey: card.bodyKey,
+				icon: CARD_ICONS[card.id],
+				event: events[card.id],
+			}));
 	}
 }

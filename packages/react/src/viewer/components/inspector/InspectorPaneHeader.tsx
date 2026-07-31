@@ -42,7 +42,7 @@ export function InspectorPaneHeader({
 			<button
 				type='button'
 				onClick={onClose}
-				title={t('common.close')}
+				title={t('pptx.common.close')}
 				className='p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'
 			>
 				<LuX className='w-4 h-4' />

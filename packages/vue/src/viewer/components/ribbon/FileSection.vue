@@ -9,6 +9,7 @@ import {
 } from 'pptx-viewer-shared';
 import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 import AccountPage from './AccountPage.vue';
@@ -17,17 +18,21 @@ import { backstageIcon } from './file-section-icons';
 import type { FileSectionProps } from './file-section-types';
 
 const props = defineProps<FileSectionProps>();
+const { t } = useI18n();
 const page = ref<BackstagePage>('home');
 const query = ref('');
 const recent = ref<BackstageRecentFile[]>([]);
-onMounted(() => void listBackstageRecentFiles().then((items) => (recent.value = items)));
+onMounted(() => void listBackstageRecentFiles(t).then((items) => (recent.value = items)));
 const visibleRecent = computed(() => {
 	const q = query.value.trim().toLowerCase();
 	return q
 		? recent.value.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q))
 		: recent.value;
 });
-const title = computed(() => BACKSTAGE_NAV.find((item) => item.id === page.value)?.label ?? 'Home');
+const title = computed(() => {
+	const current = BACKSTAGE_NAV.find((item) => item.id === page.value);
+	return current ? t(current.labelKey) : t('pptx.backstage.nav.home');
+});
 const run = (action?: () => void) => {
 	action?.();
 	if (action) {
@@ -55,14 +60,14 @@ function selectPage(id: BackstagePage): void {
 		class="fixed inset-0 z-[200] flex bg-background font-[Aptos,Segoe_UI,sans-serif] text-foreground max-md:flex-col"
 		role="dialog"
 		aria-modal="true"
-		aria-label="File"
+		:aria-label="t('pptx.backstage.title')"
 	>
 		<aside
 			class="flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary max-md:w-full max-md:flex-row max-md:items-center max-md:overflow-x-auto max-md:border-r-0 max-md:border-b"
 		>
 			<button
 				type="button"
-				aria-label="Back to presentation"
+				:aria-label="t('pptx.backstage.back')"
 				class="grid min-h-12 place-items-center border-b border-border text-xl hover:bg-accent max-md:min-w-[48px] max-md:shrink-0 max-md:border-b-0 max-md:border-r"
 				@click="props.onClose()"
 			>
@@ -84,7 +89,7 @@ function selectPage(id: BackstagePage): void {
 					@click="selectPage(item.id)"
 				>
 					<component :is="backstageIcon(item.id)" :size="17" aria-hidden="true" />
-					{{ item.label }}
+					{{ t(item.labelKey) }}
 				</button>
 				<div class="flex-1 max-md:hidden" />
 				<button
@@ -100,16 +105,18 @@ function selectPage(id: BackstagePage): void {
 					@click="selectPage(item.id)"
 				>
 					<component :is="backstageIcon(item.id)" :size="17" aria-hidden="true" />
-					{{ item.label }}
+					{{ t(item.labelKey) }}
 				</button>
 			</nav>
 		</aside>
 		<main
 			class="min-w-0 flex-1 overflow-y-auto px-[clamp(32px,4vw,72px)] py-5 max-md:px-4 max-md:py-4"
 		>
-			<h1 class="text-[24px] font-semibold">{{ page === 'home' ? 'Good evening' : title }}</h1>
+			<h1 class="text-[24px] font-semibold">
+				{{ page === 'home' ? t('pptx.backstage.greeting') : title }}
+			</h1>
 			<template v-if="page === 'home' || page === 'new'">
-				<h2 class="mt-7 text-[17px] font-semibold">New</h2>
+				<h2 class="mt-7 text-[17px] font-semibold">{{ t('pptx.backstage.newHeading') }}</h2>
 				<div class="mt-5 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6">
 					<button
 						v-for="template in BACKSTAGE_TEMPLATES"
@@ -122,10 +129,10 @@ function selectPage(id: BackstagePage): void {
 							class="block aspect-[16/9] border border-border shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-lg"
 							:style="{ background: template.preview }"
 						/><strong class="mt-2 block truncate text-[12px] font-medium">{{
-							template.name
+							t(template.nameKey)
 						}}</strong
 						><span class="block truncate text-[10px] text-muted-foreground">{{
-							template.description
+							t(template.descriptionKey)
 						}}</span>
 					</button>
 				</div>
@@ -134,7 +141,7 @@ function selectPage(id: BackstagePage): void {
 				<input
 					v-model="query"
 					class="mt-8 h-10 w-full max-w-[540px] border border-input bg-card px-4 text-[13px] text-card-foreground outline-none focus:border-ring"
-					placeholder="Search recent presentations"
+					:placeholder="t('pptx.backstage.searchPlaceholder')"
 				/>
 				<button
 					v-if="page === 'open'"
@@ -142,14 +149,16 @@ function selectPage(id: BackstagePage): void {
 					class="mt-4 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
 					@click="run(props.onOpenFile)"
 				>
-					Browse this device
+					{{ t('pptx.backstage.browseDevice') }}
 				</button>
-				<h2 class="mt-6 text-[16px] font-semibold">Recent</h2>
+				<h2 class="mt-6 text-[16px] font-semibold">{{ t('pptx.backstage.recentHeading') }}</h2>
 				<div class="mt-5 border-t border-border">
 					<div
 						class="grid grid-cols-[1fr_120px_90px] px-3 py-2 text-[11px] font-semibold text-muted-foreground"
 					>
-						<span>Name</span><span>Date modified</span><span>Size</span>
+						<span>{{ t('pptx.backstage.columnName') }}</span
+						><span>{{ t('pptx.backstage.columnModified') }}</span
+						><span>{{ t('pptx.backstage.columnSize') }}</span>
 					</div>
 					<button
 						v-for="file in visibleRecent"
@@ -169,7 +178,7 @@ function selectPage(id: BackstagePage): void {
 								}}</small></span
 							></span
 						><span class="text-[11px] text-muted-foreground">{{
-							formatBackstageDate(file.timestamp)
+							formatBackstageDate(file.timestamp, Date.now(), t)
 						}}</span
 						><span class="text-[11px] text-muted-foreground">{{
 							formatBackstageSize(file.size)
@@ -179,7 +188,7 @@ function selectPage(id: BackstagePage): void {
 						v-if="visibleRecent.length === 0"
 						class="border-t border-border px-3 py-10 text-center text-sm text-muted-foreground"
 					>
-						No recent presentations yet.
+						{{ t('pptx.backstage.noRecent') }}
 					</div>
 				</div>
 			</template>
@@ -194,9 +203,9 @@ function selectPage(id: BackstagePage): void {
 					<span class="grid size-10 shrink-0 place-items-center bg-accent text-primary"
 						><component :is="action[2]" :size="20" aria-hidden="true" /></span
 					><span
-						><strong class="block text-[15px]">{{ action[0] }}</strong
+						><strong class="block text-[15px]">{{ t(action[0], action[4]) }}</strong
 						><span class="mt-1 block text-[12px] leading-5 text-muted-foreground">{{
-							action[1]
+							t(action[1], action[5])
 						}}</span></span
 					>
 				</button>
@@ -211,20 +220,21 @@ function selectPage(id: BackstagePage): void {
 				>
 					<Settings :size="28" aria-hidden="true" />
 				</div>
-				<h2 class="mt-4 text-lg font-semibold">PowerPoint Options</h2>
+				<h2 class="mt-4 text-lg font-semibold">{{ t('pptx.backstage.optionsTitle') }}</h2>
 				<p class="mt-2 text-sm leading-6 text-muted-foreground">
-					Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.
+					{{ t('pptx.backstage.optionsBody') }}
 				</p>
 				<button
 					type="button"
 					class="mt-6 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
 					@click="run(props.onOpenSettings)"
 				>
-					Open Options
+					{{ t('pptx.backstage.openOptions') }}
 				</button>
 			</div>
 			<p class="mt-12 text-[11px] text-muted-foreground">
-				{{ props.fileName || 'Untitled Presentation.pptx' }} · Saved to this browser
+				{{ props.fileName || t('pptx.backstage.untitled') }} ·
+				{{ t('pptx.backstage.savedToBrowser') }}
 			</p>
 		</main>
 	</div>

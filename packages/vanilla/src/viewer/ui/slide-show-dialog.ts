@@ -108,11 +108,11 @@ export function openSlideShowDialog(
 			(draft as Record<string, unknown>)[key] = inverse ? !input.checked : input.checked;
 		});
 	}
-	appendDialogButton(doc, shell.footer, t('common.cancel'), shell.close);
+	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
 	appendDialogButton(
 		doc,
 		shell.footer,
-		t('common.ok'),
+		t('pptx.common.ok'),
 		() => {
 			draft.showSlidesFrom = Number(from.value);
 			draft.showSlidesTo = Number(to.value);

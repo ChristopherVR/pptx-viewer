@@ -290,6 +290,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-open-password-protection="props.onOpenPasswordProtection"
 						:on-open-font-embedding="props.onOpenFontEmbedding"
 						:on-open-digital-signatures="props.onOpenDigitalSignatures"
+						:on-open-version-history="props.onToggleVersionHistory"
 						:hidden-actions="props.hiddenActions"
 					/>
 				</div>

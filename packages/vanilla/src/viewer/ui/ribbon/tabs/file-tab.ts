@@ -26,6 +26,14 @@ export interface FileTab {
 	setHasMacros(hasMacros: boolean): void;
 }
 
+/** A `<span>` carrying translated text, built as a node so the label is never
+ * interpolated into an HTML string. */
+function span(doc: Document, text: string): HTMLSpanElement {
+	const el = doc.createElement('span');
+	el.textContent = text;
+	return el;
+}
+
 export function createFileTab(
 	doc: Document,
 	t: Translator,
@@ -37,10 +45,10 @@ export function createFileTab(
 	const el = createEl(doc, 'div', 'pptxv-backstage');
 	el.setAttribute('role', 'dialog');
 	el.setAttribute('aria-modal', 'true');
-	el.setAttribute('aria-label', 'File');
+	el.setAttribute('aria-label', t('pptx.backstage.title'));
 	const aside = doc.createElement('aside');
 	const back = iconButton(doc, 'back', onClose, 'pptxv-bs-back');
-	back.setAttribute('aria-label', 'Back to presentation');
+	back.setAttribute('aria-label', t('pptx.backstage.back'));
 	const nav = doc.createElement('nav');
 	aside.append(back, nav);
 	const main = doc.createElement('main');
@@ -50,7 +58,7 @@ export function createFileTab(
 	let query = '';
 	let recent: BackstageRecentFile[] = [];
 	void (async () => {
-		recent = await listBackstageRecentFiles();
+		recent = await listBackstageRecentFiles(t);
 		render();
 	})();
 
@@ -79,23 +87,23 @@ export function createFileTab(
 			if (item.group && !nav.querySelector('i')) {
 				nav.appendChild(doc.createElement('i'));
 			}
-			const itemButton = labeledIconButton(doc, item.id, item.label, () => setPage(item.id));
+			const itemButton = labeledIconButton(doc, item.id, t(item.labelKey), () => setPage(item.id));
 			itemButton.classList.toggle('active', page === item.id);
 			nav.appendChild(itemButton);
 		}
 	}
 	function renderTemplates(): void {
 		const heading = doc.createElement('h2');
-		heading.textContent = 'New';
+		heading.textContent = t('pptx.backstage.newHeading');
 		const grid = createEl(doc, 'div', 'pptxv-bs-templates');
 		for (const template of BACKSTAGE_TEMPLATES) {
 			const item = button(doc, '', () => run(() => handlers.createPresentation(template.id)));
 			const preview = doc.createElement('b');
 			preview.style.background = template.preview;
 			const name = doc.createElement('strong');
-			name.textContent = template.name;
+			name.textContent = t(template.nameKey);
 			const description = doc.createElement('small');
-			description.textContent = template.description;
+			description.textContent = t(template.descriptionKey);
 			item.append(preview, name, description);
 			grid.appendChild(item);
 		}
@@ -105,7 +113,7 @@ export function createFileTab(
 		const search = doc.createElement('input');
 		search.className = 'pptxv-bs-search';
 		search.type = 'search';
-		search.placeholder = 'Search recent presentations';
+		search.placeholder = t('pptx.backstage.searchPlaceholder');
 		search.value = query;
 		search.addEventListener('input', () => {
 			query = search.value;
@@ -114,14 +122,23 @@ export function createFileTab(
 		main.appendChild(search);
 		if (page === 'open') {
 			main.appendChild(
-				button(doc, 'Browse this device', () => run(handlers.openFile), 'pptxv-bs-primary'),
+				button(
+					doc,
+					t('pptx.backstage.browseDevice'),
+					() => run(handlers.openFile),
+					'pptxv-bs-primary',
+				),
 			);
 		}
 		const heading = doc.createElement('h2');
-		heading.textContent = 'Recent';
+		heading.textContent = t('pptx.backstage.recentHeading');
 		const list = createEl(doc, 'div', 'pptxv-bs-recent');
 		const header = doc.createElement('header');
-		header.innerHTML = '<span>Name</span><span>Date modified</span><span>Size</span>';
+		header.replaceChildren(
+			span(doc, t('pptx.backstage.columnName')),
+			span(doc, t('pptx.backstage.columnModified')),
+			span(doc, t('pptx.backstage.columnSize')),
+		);
 		list.appendChild(header);
 		const needle = query.trim().toLowerCase();
 		const files = needle
@@ -140,7 +157,7 @@ export function createFileTab(
 			labels.append(strong, small);
 			name.append(badge, labels);
 			const date = doc.createElement('span');
-			date.textContent = formatBackstageDate(file.timestamp);
+			date.textContent = formatBackstageDate(file.timestamp, Date.now(), t);
 			const size = doc.createElement('span');
 			size.textContent = formatBackstageSize(file.size);
 			row.append(name, date, size);
@@ -148,26 +165,30 @@ export function createFileTab(
 		}
 		if (!files.length) {
 			const empty = doc.createElement('p');
-			empty.textContent = 'No recent presentations yet.';
+			empty.textContent = t('pptx.backstage.noRecent');
 			list.appendChild(empty);
 		}
 		main.append(heading, list);
 	}
 	function renderActions(): void {
-		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run, hiddenActions));
+		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run, t, hiddenActions));
 	}
 	function renderOptionsCard(): void {
 		const card = createEl(doc, 'section', 'pptxv-bs-card');
 		const avatar = doc.createElement('b');
 		avatar.appendChild(createLucideIcon(doc, Settings, 24));
 		const heading = doc.createElement('h2');
-		heading.textContent = 'PowerPoint Options';
+		heading.textContent = t('pptx.backstage.optionsTitle');
 		const copy = doc.createElement('p');
-		copy.textContent =
-			'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.';
+		copy.textContent = t('pptx.backstage.optionsBody');
 		card.append(avatar, heading, copy);
 		card.appendChild(
-			button(doc, 'Open Options', () => run(handlers.openSettings), 'pptxv-bs-primary'),
+			button(
+				doc,
+				t('pptx.backstage.openOptions'),
+				() => run(handlers.openSettings),
+				'pptxv-bs-primary',
+			),
 		);
 		main.appendChild(card);
 	}
@@ -177,8 +198,8 @@ export function createFileTab(
 		const heading = doc.createElement('h1');
 		heading.textContent =
 			page === 'home'
-				? 'Good evening'
-				: (BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
+				? t('pptx.backstage.greeting')
+				: t(BACKSTAGE_NAV.find((item) => item.id === page)?.labelKey ?? 'pptx.backstage.nav.home');
 		main.appendChild(heading);
 		if (page === 'home' || page === 'new') {
 			renderTemplates();
@@ -196,7 +217,7 @@ export function createFileTab(
 			renderAccountPage(doc, t, main, accountAuth);
 		}
 		const footer = doc.createElement('footer');
-		footer.textContent = 'Presentation · Saved to this browser';
+		footer.textContent = `${t('pptx.backstage.untitled')} · ${t('pptx.backstage.savedToBrowser')}`;
 		main.appendChild(footer);
 	}
 	render();

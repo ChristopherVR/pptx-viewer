@@ -52,7 +52,7 @@ export type SlideInspectorTab = 'elements' | 'properties' | 'comments';
 			<button
 				type="button"
 				class="hdr__close"
-				[title]="'common.close' | translate"
+				[title]="'pptx.common.close' | translate"
 				(click)="closePane.emit()"
 			>
 				<svg lucideX class="hdr__icon hdr__icon--close"></svg>

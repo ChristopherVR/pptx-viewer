@@ -69,7 +69,7 @@ export function HyperlinkPopover({
 						onClick={onClose}
 						className='px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground'
 					>
-						{t('common.cancel')}
+						{t('pptx.common.cancel')}
 					</button>
 					<button
 						type='submit'

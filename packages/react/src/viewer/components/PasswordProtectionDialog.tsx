@@ -131,7 +131,7 @@ export function PasswordProtectionDialog({
 				type='button'
 				style={{ zIndex: 1200 }}
 				className='fixed inset-0 bg-black/60'
-				aria-label={t('common.close')}
+				aria-label={t('pptx.common.close')}
 				onClick={handleClose}
 			/>
 			{/* Dialog */}
@@ -159,7 +159,7 @@ export function PasswordProtectionDialog({
 							type='button'
 							onClick={handleClose}
 							className='p-1 rounded hover:bg-accent transition-colors'
-							aria-label={t('common.close')}
+							aria-label={t('pptx.common.close')}
 						>
 							<LuX className='w-4 h-4 text-muted-foreground' aria-hidden='true' />
 						</button>
@@ -290,7 +290,7 @@ export function PasswordProtectionDialog({
 								onClick={handleClose}
 								className='px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors'
 							>
-								{t('common.cancel')}
+								{t('pptx.common.cancel')}
 							</button>
 							<button
 								type='button'

@@ -36,7 +36,7 @@ export function openVersionHistoryPanel(
 	close.addEventListener('click', () => panel.remove());
 	header.append(icon, title, close);
 	const content = createEl(doc, 'div', 'pptxv-version-content');
-	content.textContent = t('common.loading');
+	content.textContent = t('pptx.common.loading');
 	panel.append(header, content);
 	mount.appendChild(panel);
 
@@ -65,7 +65,7 @@ export function openVersionHistoryPanel(
 			});
 			const remove = createEl(doc, 'button', 'is-danger');
 			remove.type = 'button';
-			remove.textContent = t('common.delete');
+			remove.textContent = t('pptx.common.delete');
 			remove.addEventListener('click', () => {
 				void deleteAutosaveSnapshot(version.key).then(() => card.remove());
 			});

@@ -192,7 +192,7 @@ export function VersionHistoryPanel({
 			<div className='flex-1 overflow-y-auto'>
 				{loading && (
 					<div className='px-3 py-8 text-center text-xs text-muted-foreground'>
-						{t('common.loading')}
+						{t('pptx.common.loading')}
 					</div>
 				)}
 
@@ -225,7 +225,7 @@ export function VersionHistoryPanel({
 								>
 									<LuDownload className='w-3 h-3' />
 									{restoringKey === version.key
-										? t('common.loading')
+										? t('pptx.common.loading')
 										: t('pptx.versionHistory.restore')}
 								</button>
 								<button
@@ -234,7 +234,7 @@ export function VersionHistoryPanel({
 									className='inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] bg-red-600/20 text-red-400 hover:bg-red-600/30 disabled:opacity-40'
 								>
 									<LuTrash2 className='w-3 h-3' />
-									{t('common.delete')}
+									{t('pptx.common.delete')}
 								</button>
 							</div>
 						</div>

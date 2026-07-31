@@ -462,17 +462,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.encryptedFile.message': 'This file is encrypted.',
 	'pptx.encryptedFile.instructions': 'Enter the password to open it.',
 
-	// Common (shared verb/label vocabulary reused across dialogs and panels)
-	'common.close': 'Close',
-	'common.cancel': 'Cancel',
-	'common.apply': 'Apply',
-	'common.delete': 'Delete',
-	'common.done': 'Done',
-	'common.loading': 'Loading…',
-	'common.ok': 'OK',
-	'common.remove': 'Remove',
-	'common.reset': 'Reset',
-	'common.save': 'Save',
+	// Common (shared verb/label vocabulary reused across dialogs and panels).
+	// The rest of this vocabulary lives with the other `pptx.common.*` entries
+	// further down; these three had no `pptx.`-prefixed twin.
+	'pptx.common.apply': 'Apply',
+	'pptx.common.loading': 'Loading…',
+	'pptx.common.remove': 'Remove',
 
 	// Accessibility (additions)
 	'pptx.accessibility.heading': 'Accessibility',
@@ -755,11 +750,10 @@ export const translationsEn: Record<string, string> = {
 	// Canvas
 	'pptx.canvas.slide': 'Slide',
 
-	// Theme gallery (matches React's non-"pptx."-prefixed powerpoint.* namespace)
-	'powerpoint.toolbar.themes.gallery.title': 'Themes',
-	'powerpoint.toolbar.themes.gallery.description':
-		'Pick a built-in theme to recolour every slide in the deck.',
-	'powerpoint.toolbar.themes.gallery.ariaLabel': 'Theme gallery',
+	// Theme gallery
+	'pptx.themes.gallery.title': 'Themes',
+	'pptx.themes.gallery.description': 'Pick a built-in theme to recolour every slide in the deck.',
+	'pptx.themes.gallery.ariaLabel': 'Theme gallery',
 
 	// SmartArt (mixed casing preserved from source sweep - see follow-up note)
 	'pptx.smartArt.setFill': 'Set fill to {{color}}',
@@ -997,7 +991,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentationSettings.slidesPerPage': 'Slides / page',
 
 	// Theme gallery (additions)
-	'powerpoint.toolbar.themes.gallery.importTheme': 'Import Theme',
+	'pptx.themes.gallery.importTheme': 'Import Theme',
 
 	// Action buttons
 	'pptx.action.onClick': 'On Click',
@@ -3157,6 +3151,96 @@ export const translationsEn: Record<string, string> = {
 	'pptx.documentProperties.summary.keywords': 'Keywords',
 
 	'pptx.animations.galleryAria': 'Add Animation: Entrance, Emphasis, and Exit effects',
+
+	// File-tab backstage. Wording follows PowerPoint's own File tab. Every
+	// string here used to be hardcoded in all five bindings, which made the
+	// backstage the last wholly untranslatable surface in the viewer.
+	'pptx.backstage.nav.home': 'Home',
+	'pptx.backstage.nav.new': 'New',
+	'pptx.backstage.nav.open': 'Open',
+	'pptx.backstage.nav.info': 'Info',
+	'pptx.backstage.nav.save': 'Save',
+	'pptx.backstage.nav.saveAs': 'Save As',
+	'pptx.backstage.nav.print': 'Print',
+	'pptx.backstage.nav.share': 'Share',
+	'pptx.backstage.nav.export': 'Export',
+	'pptx.backstage.nav.close': 'Close',
+	'pptx.backstage.nav.account': 'Account',
+	'pptx.backstage.nav.options': 'Options',
+
+	'pptx.backstage.title': 'File',
+	'pptx.backstage.back': 'Back to presentation',
+	'pptx.backstage.greeting': 'Good evening',
+	'pptx.backstage.newHeading': 'New',
+	'pptx.backstage.searchPlaceholder': 'Search recent presentations',
+	'pptx.backstage.browseDevice': 'Browse this device',
+	'pptx.backstage.recentHeading': 'Recent',
+	'pptx.backstage.columnName': 'Name',
+	'pptx.backstage.columnModified': 'Date modified',
+	'pptx.backstage.columnSize': 'Size',
+	'pptx.backstage.noRecent': 'No recent presentations yet.',
+	'pptx.backstage.untitled': 'Untitled Presentation.pptx',
+	'pptx.backstage.savedToBrowser': 'Saved to this browser',
+	'pptx.backstage.browserStorage': 'Browser storage',
+	'pptx.backstage.justNow': 'Just now',
+	'pptx.backstage.minutesAgo': '{{count}} min ago',
+	'pptx.backstage.hoursAgo': '{{count}} hr ago',
+	'pptx.backstage.optionsTitle': 'PowerPoint Options',
+	'pptx.backstage.optionsBody':
+		'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.',
+	'pptx.backstage.openOptions': 'Open Options',
+
+	'pptx.backstage.template.blank.name': 'Blank Presentation',
+	'pptx.backstage.template.blank.description': 'Start with a clean canvas',
+	'pptx.backstage.template.warm.name': 'Warm Welcome',
+	'pptx.backstage.template.warm.description': 'Bold editorial title slides',
+	'pptx.backstage.template.geometry.name': 'Geometric',
+	'pptx.backstage.template.geometry.description': 'Modern shapes and strong contrast',
+	'pptx.backstage.template.mono.name': 'Urban Monochrome',
+	'pptx.backstage.template.mono.description': 'Architectural black and white',
+	'pptx.backstage.template.earth.name': 'Earthy Inspiration',
+	'pptx.backstage.template.earth.description': 'Natural, calm presentation system',
+	'pptx.backstage.template.future.name': 'Future Forward',
+	'pptx.backstage.template.future.description': 'Clean technology storytelling',
+
+	'pptx.backstage.card.protect.title': 'Protect Presentation',
+	'pptx.backstage.card.protect.body': 'Control what changes people can make to this presentation.',
+	'pptx.backstage.card.inspect.title': 'Inspect Presentation',
+	'pptx.backstage.card.inspect.body':
+		'Review document properties, accessibility, and hidden content.',
+	'pptx.backstage.card.embedFonts.title': 'Embed Fonts',
+	'pptx.backstage.card.embedFonts.body':
+		'Keep typography consistent when the file moves between devices.',
+	'pptx.backstage.card.signatures.title': 'Digital Signatures',
+	'pptx.backstage.card.signatures.body':
+		'View and manage signatures attached to this presentation.',
+	'pptx.backstage.card.versionHistory.title': 'Version History',
+	'pptx.backstage.card.versionHistory.body': 'Restore or remove the latest recovery snapshot.',
+	'pptx.backstage.card.saveAsPptx.title': 'PowerPoint Presentation',
+	'pptx.backstage.card.saveAsPptx.body': 'Save an editable .pptx copy.',
+	'pptx.backstage.card.saveAsPpsx.title': 'PowerPoint Show',
+	'pptx.backstage.card.saveAsPpsx.body': 'Save a .ppsx file that opens directly in slide show.',
+	'pptx.backstage.card.saveAsPptm.title': 'Macro-Enabled Presentation',
+	'pptx.backstage.card.saveAsPptm.body': 'Preserve VBA content in a .pptm file.',
+	'pptx.backstage.card.package.title': 'Package for Sharing',
+	'pptx.backstage.card.package.body': 'Bundle the presentation and linked assets.',
+	'pptx.backstage.card.pdf.title': 'Create PDF',
+	'pptx.backstage.card.pdf.body': 'Publish a portable document with one page per slide.',
+	'pptx.backstage.card.png.title': 'Export current slide',
+	'pptx.backstage.card.png.body': 'Create a high-quality PNG image.',
+	'pptx.backstage.card.video.title': 'Create a Video',
+	'pptx.backstage.card.video.body': 'Export slide timings and animations as WebM.',
+	'pptx.backstage.card.gif.title': 'Create an Animated GIF',
+	'pptx.backstage.card.gif.body': 'Make a compact looping preview.',
+	'pptx.backstage.card.copyImage.title': 'Copy as Image',
+	'pptx.backstage.card.copyImage.body': 'Copy the current slide to the clipboard.',
+	'pptx.backstage.card.print.title': 'Print Presentation',
+	'pptx.backstage.card.print.body':
+		'Choose a printer, layout, copies, and output settings in your browser print dialog.',
+	'pptx.backstage.card.share.title': 'Share with People',
+	'pptx.backstage.card.share.body': 'Invite collaborators and work on the presentation together.',
+	'pptx.backstage.card.sharePackage.title': 'Package for Sharing',
+	'pptx.backstage.card.sharePackage.body': 'Download a self-contained package for offline sharing.',
 };
 
 /**

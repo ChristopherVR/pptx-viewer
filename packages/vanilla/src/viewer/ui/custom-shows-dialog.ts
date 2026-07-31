@@ -69,11 +69,11 @@ export function openCustomShowsDialog(
 		});
 		render();
 	});
-	appendDialogButton(doc, shell.footer, t('common.cancel'), shell.close);
+	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
 	appendDialogButton(
 		doc,
 		shell.footer,
-		t('common.ok'),
+		t('pptx.common.ok'),
 		() => {
 			onSave(draft);
 			shell.close();

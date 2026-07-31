@@ -242,7 +242,7 @@ export function buildViewerChrome(
 	root.appendChild(presentationTouchControls.el);
 
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
-	loadingOverlay.textContent = t('common.loading');
+	loadingOverlay.textContent = t('pptx.common.loading');
 	loadingOverlay.setAttribute('role', 'status');
 	loadingOverlay.setAttribute('aria-live', 'polite');
 	loadingOverlay.hidden = true;

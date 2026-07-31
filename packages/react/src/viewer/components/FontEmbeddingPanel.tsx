@@ -65,7 +65,7 @@ export function FontEmbeddingPanel({
 				type='button'
 				style={{ zIndex: 1200 }}
 				className='fixed inset-0 bg-black/60'
-				aria-label={t('common.close')}
+				aria-label={t('pptx.common.close')}
 				onClick={onClose}
 			/>
 			{/* Dialog */}
@@ -86,7 +86,7 @@ export function FontEmbeddingPanel({
 							type='button'
 							onClick={onClose}
 							className='p-1 rounded hover:bg-accent transition-colors'
-							aria-label={t('common.close')}
+							aria-label={t('pptx.common.close')}
 						>
 							<LuX className='w-4 h-4 text-muted-foreground' />
 						</button>
@@ -177,7 +177,7 @@ export function FontEmbeddingPanel({
 							onClick={onClose}
 							className='px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors'
 						>
-							{t('common.done')}
+							{t('pptx.common.done')}
 						</button>
 					</div>
 				</div>
