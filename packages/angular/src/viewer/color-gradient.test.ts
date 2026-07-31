@@ -192,7 +192,9 @@ describe('buildCirclePathGradient', () => {
 			b: 0,
 		});
 		// center=50,50 → radius = max(50,50,50,50) = 50
-		expect(result).toBe('radial-gradient(circle 50% at 50% 50%, #ff0000 0%, #0000ff 100%)');
+		// `circle <percentage>` is invalid CSS; the explicit-size form uses
+		// matching ellipse semi-axes so browsers do not drop the declaration.
+		expect(result).toBe('radial-gradient(ellipse 50% 50% at 50% 50%, #ff0000 0%, #0000ff 100%)');
 	});
 });
 
