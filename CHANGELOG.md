@@ -10,6 +10,21 @@ dated sections beneath it are generated from
 
 ## 2026-07-31
 
+_Releases: pptx-react-viewer@2.11.1, pptx-vue-viewer@2.11.1, pptx-angular-viewer@2.11.1, pptx-vanilla-viewer@1.12.1, pptx-svelte-viewer@2.11.1_
+
+### Bug Fixes
+
+- **shared:** Stop a morph gliding one text box into an unrelated one (by @ChristopherVR) ([bc4789f](https://github.com/ChristopherVR/pptx-viewer/commit/bc4789fef0dbcaf8d524b19f99fac15847597ad0))
+- **shared:** Stop a morph double-painting unchanged shapes, and dissolve text (by @ChristopherVR) ([d4b3952](https://github.com/ChristopherVR/pptx-viewer/commit/d4b3952757d719b2c7e1b4be307b14a15c56f73a))
+- Stop showing users raw OOXML tokens, and make Vanilla's point index work (by @ChristopherVR) ([33d63ce](https://github.com/ChristopherVR/pptx-viewer/commit/33d63cec94a22ddf7cc0b57ddaa61ddb43eaedd3))
+- Skip hidden slides in the show, and honour endWithBlackSlide (by @ChristopherVR) ([2a9ef49](https://github.com/ChristopherVR/pptx-viewer/commit/2a9ef49f97f976eb088a2fcc092b56a54b112fa3))
+
+### Refactor
+
+- **angular:** Decompose the view layer's oversized components (by @ChristopherVR) ([2887d2e](https://github.com/ChristopherVR/pptx-viewer/commit/2887d2e0d4c4f600d7cb80c497bf7d65c8f6635a))
+
+## 2026-07-31
+
 _Releases: pptx-viewer-core@2.1.1, pptx-react-viewer@2.11.0, pptx-vue-viewer@2.11.0, pptx-angular-viewer@2.11.0, pptx-vanilla-viewer@1.12.0, pptx-svelte-viewer@2.11.0_
 
 ### Features
