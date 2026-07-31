@@ -541,18 +541,24 @@ body {
 	background: var(--pptx-background, #030712);
 }
 
+/*
+ * Kept metric-for-metric identical to the React demo's landing card, which is
+ * the reference for demo chrome: 900px cap, 3rem padding, 12px hint gap, 16px
+ * before the action row, 14px secondary text, and the same corner radii. The
+ * Vue card used to run 16px taller with a smaller sub-line, so the two demos
+ * did not line up side by side at 1920x1080.
+ */
 .demo-dropzone {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 0.75rem;
 	max-width: 900px;
 	width: 100%;
 	padding: 3rem;
 	text-align: center;
 	border: 2px dashed var(--pptx-border, #374151);
-	border-radius: 0.75rem;
+	border-radius: 0.625rem;
 	cursor: pointer;
 	transition:
 		border-color 0.15s,
@@ -565,7 +571,7 @@ body {
 }
 
 .demo-join {
-	margin: 0;
+	margin: 0 0 0.5rem;
 	font-weight: 500;
 	color: var(--pptx-foreground, #f3f4f6);
 }
@@ -575,11 +581,15 @@ body {
 	margin: 0;
 	font-size: 1rem;
 	color: var(--pptx-muted-foreground, #9ca3af);
+	/* The copy says "click to browse" and the label really does open the picker,
+	   so the pointer has to confirm it (the dashed card's `cursor: pointer` does
+	   not reach a <label>, which resets to the default arrow). */
+	cursor: pointer;
 }
 
 .demo-sub {
 	margin: 0;
-	font-size: 0.8rem;
+	font-size: 0.875rem;
 	color: var(--pptx-muted-foreground, #9ca3af);
 }
 
@@ -609,16 +619,16 @@ body {
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
-	margin-top: 0.5rem;
+	margin-top: 1rem;
 }
 
 .demo-dropzone button {
 	padding: 0.5rem 1rem;
-	border-radius: 0.5rem;
+	border-radius: 0.375rem;
 	border: 1px solid var(--pptx-border, #374151);
 	background: var(--pptx-muted, #1f2937);
 	color: var(--pptx-foreground, #f3f4f6);
-	font-size: 0.85rem;
+	font-size: 0.875rem;
 	cursor: pointer;
 	transition: background 0.15s;
 }
