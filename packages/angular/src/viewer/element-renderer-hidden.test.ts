@@ -14,17 +14,17 @@
  *     would silently restore the bug, and there is no rendering test here to
  *     catch it. Reading the source is the only seam available.
  */
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
 import { isElementHidden, isElementRendered } from '../internal/shared';
+import { componentSource as readComponentSource } from './component-source.test-support';
 
-const componentSource = readFileSync(
-	resolve(dirname(fileURLToPath(import.meta.url)), 'element-renderer.component.ts'),
-	'utf8',
+const componentSource = readComponentSource(
+	dirname(fileURLToPath(import.meta.url)),
+	'element-renderer.component.ts',
 );
 
 describe('the shared rule the renderer delegates to', () => {

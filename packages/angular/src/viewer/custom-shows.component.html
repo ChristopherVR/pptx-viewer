@@ -1,0 +1,174 @@
+@if (open()) {
+	<!-- Backdrop -->
+	<div class="pptx-ng-cs-backdrop" aria-hidden="true" (click)="close.emit()"></div>
+
+	<!-- Dialog -->
+	<div class="pptx-ng-cs-dialog" role="dialog" aria-modal="true" aria-labelledby="pptx-cs-title">
+		<header class="pptx-ng-cs-header">
+			<h2 id="pptx-cs-title" class="pptx-ng-cs-title">
+				{{ 'pptx.customShows.title' | translate }}
+			</h2>
+			<button
+				type="button"
+				class="pptx-ng-cs-close"
+				[attr.aria-label]="'pptx.customShows.closeDialog' | translate"
+				(click)="close.emit()"
+			>
+				<svg lucideX class="h-4 w-4"></svg>
+			</button>
+		</header>
+
+		<div class="pptx-ng-cs-body">
+			<!-- Existing shows list -->
+			<section class="pptx-ng-cs-section">
+				<h3 class="pptx-ng-cs-section-title">
+					{{ 'pptx.customShows.savedShows' | translate }}
+					@if (customShows().length > 0) {
+						<span class="pptx-ng-cs-badge">{{ customShows().length }}</span>
+					}
+				</h3>
+
+				@if (customShows().length > 0) {
+					<ul class="pptx-ng-cs-show-list">
+						@for (show of customShows(); track show.id) {
+							<li
+								class="pptx-ng-cs-show-row"
+								[class.pptx-ng-cs-show-row--active]="show.id === activeCustomShowId()"
+							>
+								<!-- Edit mode for this show -->
+								@if (editingShowId() === show.id) {
+									<div class="pptx-ng-cs-edit-row">
+										<input
+											type="text"
+											class="pptx-ng-cs-input"
+											[value]="editDraftName()"
+											[attr.aria-label]="'pptx.customShows.editNameLabel' | translate"
+											(input)="onEditNameInput($event)"
+										/>
+										<button
+											type="button"
+											class="pptx-ng-cs-btn pptx-ng-cs-btn--primary"
+											[disabled]="!canSaveEdit()"
+											(click)="saveEdit(show.id)"
+										>
+											{{ 'pptx.customShows.save' | translate }}
+										</button>
+										<button type="button" class="pptx-ng-cs-btn" (click)="editingShowId.set(null)">
+											{{ 'pptx.customShows.cancel' | translate }}
+										</button>
+									</div>
+									<!-- Slide picker for edit -->
+									<div class="pptx-ng-cs-slide-picker">
+										@for (slide of slides(); track slide.id; let i = $index) {
+											<label class="pptx-ng-cs-slide-option">
+												<input
+													type="checkbox"
+													[checked]="editDraftSlideIds().includes(slide.id)"
+													(change)="toggleEditSlide(slide.id)"
+												/>
+												<span>{{ slideLabel(slide, i) }}</span>
+											</label>
+										}
+									</div>
+								} @else {
+									<div class="pptx-ng-cs-show-info">
+										<span class="pptx-ng-cs-show-name">{{ show.name }}</span>
+										<span class="pptx-ng-cs-show-meta">
+											{{
+												'pptx.customShows.slideCount' | translate: { count: show.slideIds.length }
+											}}
+										</span>
+									</div>
+									<div class="pptx-ng-cs-show-actions">
+										<button
+											type="button"
+											class="pptx-ng-cs-btn"
+											[class.pptx-ng-cs-btn--active]="show.id === activeCustomShowId()"
+											[title]="
+												(show.id === activeCustomShowId()
+													? 'pptx.customShows.unsetActive'
+													: 'pptx.customShows.setActive'
+												) | translate
+											"
+											(click)="onToggleActive(show.id)"
+										>
+											{{
+												(show.id === activeCustomShowId()
+													? 'pptx.customShows.active'
+													: 'pptx.customShows.setActiveShort'
+												) | translate
+											}}
+										</button>
+										<button
+											type="button"
+											class="pptx-ng-cs-btn"
+											[title]="'pptx.customShows.editShow' | translate"
+											(click)="startEdit(show)"
+										>
+											{{ 'pptx.customShows.edit' | translate }}
+										</button>
+										<button
+											type="button"
+											class="pptx-ng-cs-btn pptx-ng-cs-btn--danger"
+											[title]="'pptx.customShows.deleteShow' | translate"
+											(click)="remove.emit(show.id)"
+										>
+											{{ 'pptx.customShows.delete' | translate }}
+										</button>
+									</div>
+								}
+							</li>
+						}
+					</ul>
+				} @else {
+					<p class="pptx-ng-cs-empty">{{ 'pptx.customShows.empty' | translate }}</p>
+				}
+			</section>
+
+			<!-- Create new show form -->
+			<section class="pptx-ng-cs-section">
+				<h3 class="pptx-ng-cs-section-title">{{ 'pptx.customShows.createNew' | translate }}</h3>
+				<div class="pptx-ng-cs-create-form">
+					<input
+						type="text"
+						class="pptx-ng-cs-input"
+						[placeholder]="'pptx.customShows.namePlaceholder' | translate"
+						[value]="draftName()"
+						[attr.aria-label]="'pptx.customShows.newNameLabel' | translate"
+						(input)="onDraftNameInput($event)"
+					/>
+
+					@if (slides().length > 0) {
+						<div class="pptx-ng-cs-slide-picker">
+							@for (slide of slides(); track slide.id; let i = $index) {
+								<label class="pptx-ng-cs-slide-option">
+									<input
+										type="checkbox"
+										[checked]="draftSlideIds().includes(slide.id)"
+										(change)="toggleDraftSlide(slide.id)"
+									/>
+									<span>{{ slideLabel(slide, i) }}</span>
+								</label>
+							}
+						</div>
+					}
+
+					<button
+						type="button"
+						class="pptx-ng-cs-btn pptx-ng-cs-btn--primary"
+						[disabled]="!canCreate()"
+						(click)="submitCreate()"
+					>
+						{{ 'pptx.customShows.create' | translate }}
+					</button>
+				</div>
+			</section>
+		</div>
+
+		<footer class="pptx-ng-cs-footer">
+			<button type="button" class="pptx-ng-cs-btn" (click)="close.emit()">
+				{{ 'pptx.customShows.close' | translate }}
+			</button>
+		</footer>
+	</div>
+}

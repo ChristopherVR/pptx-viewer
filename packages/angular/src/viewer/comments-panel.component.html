@@ -1,0 +1,81 @@
+<aside class="pptx-ng-comments" [attr.aria-label]="'pptx.comments.slideComments' | translate">
+	<header class="pptx-ng-comments__header">
+		<h2 class="pptx-ng-comments__title">{{ 'pptx.toolbar.comments' | translate }}</h2>
+		<span class="pptx-ng-comments__count" data-testid="comment-count">
+			{{ comments().length }}
+		</span>
+	</header>
+
+	@if (comments().length > 0) {
+		<ul class="pptx-ng-comments__list">
+			@for (comment of comments(); track comment.id) {
+				<li
+					class="pptx-ng-comments__item"
+					[class.pptx-ng-comments__item--resolved]="comment.resolved"
+					[attr.data-comment-id]="comment.id"
+				>
+					<div class="pptx-ng-comments__meta">
+						<span class="pptx-ng-comments__author">{{
+							comment.author || ('pptx.comments.unknownAuthor' | translate)
+						}}</span>
+						@if (formatTimestamp(comment.createdAt); as ts) {
+							<time class="pptx-ng-comments__time">{{ ts }}</time>
+						}
+					</div>
+					<p class="pptx-ng-comments__text">{{ comment.text }}</p>
+					<div class="pptx-ng-comments__actions">
+						<button
+							type="button"
+							class="pptx-ng-comments__action"
+							[attr.data-comment-id]="comment.id"
+							[attr.aria-pressed]="comment.resolved ? 'true' : 'false'"
+							(click)="resolve.emit(comment.id)"
+						>
+							{{
+								(comment.resolved ? 'pptx.comments.reopen' : 'pptx.comments.resolve') | translate
+							}}
+						</button>
+						<button
+							type="button"
+							class="pptx-ng-comments__action pptx-ng-comments__action--danger"
+							[attr.data-comment-id]="comment.id"
+							[attr.aria-label]="'pptx.comments.removeComment' | translate"
+							(click)="remove.emit(comment.id)"
+						>
+							{{ 'pptx.comments.remove' | translate }}
+						</button>
+					</div>
+				</li>
+			}
+		</ul>
+	} @else {
+		<p class="pptx-ng-comments__empty" data-testid="comments-empty">
+			{{ 'pptx.comments.noneOnSlide' | translate }}
+		</p>
+	}
+
+	<form class="pptx-ng-comments__compose" (submit)="submit($event)">
+		<label
+			class="pptx-ng-comments__compose-label"
+			[title]="'pptx.comments.commentingAs' | translate: { name: authorName() }"
+		>
+			{{ 'pptx.comments.addComment' | translate }}
+		</label>
+		<textarea
+			class="pptx-ng-comments__textarea"
+			rows="3"
+			[placeholder]="'pptx.comments.writePlaceholder' | translate"
+			[attr.aria-label]="'pptx.comments.addComment' | translate"
+			[value]="draft()"
+			(input)="onDraftInput($event)"
+		></textarea>
+		<button
+			type="submit"
+			class="pptx-ng-comments__submit"
+			[disabled]="!canAdd()"
+			data-testid="add-comment"
+		>
+			{{ 'pptx.comments.addComment' | translate }}
+		</button>
+	</form>
+</aside>

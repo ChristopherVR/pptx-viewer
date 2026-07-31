@@ -1,0 +1,190 @@
+@if (currentSlide(); as current) {
+	<pptx-presenter-controls
+		[snapshot]="presenterWindow.snapshot()"
+		[audienceOpen]="isAudienceWindowOpen()"
+		[slides]="slides()"
+		[current]="currentSlideIndex()"
+		[canvasSize]="canvasSize()"
+		[mediaDataUrls]="mediaDataUrls()"
+		(patch)="presenterWindow.updateSnapshot($event)"
+		(navigate)="navigateToSlide.emit($event)"
+		(audience)="onToggleAudienceWindow()"
+		(end)="exit.emit()"
+	/>
+	<div class="pptx-ng-presenter-body">
+		<!-- Current slide (≈70%) -->
+		<div
+			class="pptx-ng-presenter-current"
+			[class.pptx-ng-presenter-current--advances]="paneAdvancesOnClick()"
+			role="presentation"
+			data-pptx-presenter-slide
+			(click)="onSlidePaneClick()"
+		>
+			<div class="pptx-ng-presenter-preview-stage">
+				<pptx-slide-canvas
+					[slide]="currentPreviewSlide()"
+					[canvasSize]="canvasSize()"
+					[mediaDataUrls]="mediaDataUrls()"
+					[zoom]="1"
+					[interactive]="false"
+				/>
+			</div>
+			<div class="pptx-ng-presenter-slide-badge">{{ slideBadge() }}</div>
+		</div>
+
+		<!-- Controls (≈30%) -->
+		<div class="pptx-ng-presenter-side">
+			<!-- Header: clock + elapsed + window/exit -->
+			<div class="pptx-ng-presenter-header">
+				<div>
+					<div class="pptx-ng-presenter-label">
+						{{ 'pptx.presenter.currentTime' | translate }}
+					</div>
+					<div class="pptx-ng-presenter-clock">{{ clockLabel() }}</div>
+				</div>
+				<div>
+					<div class="pptx-ng-presenter-label">{{ 'pptx.presenter.elapsed' | translate }}</div>
+					<div class="pptx-ng-presenter-clock pptx-ng-presenter-elapsed">
+						{{ elapsedLabel() }}
+					</div>
+				</div>
+				<div style="display: flex; align-items: center; gap: 0.25rem">
+					<button
+						type="button"
+						class="pptx-ng-presenter-iconbtn"
+						(click)="onToggleAudienceWindow()"
+						[attr.aria-label]="
+							(isAudienceWindowOpen()
+								? 'pptx.presenter.closeAudienceWindow'
+								: 'pptx.presenter.openAudienceWindow'
+							) | translate
+						"
+						[title]="
+							(isAudienceWindowOpen()
+								? 'pptx.presenter.closeAudienceWindow'
+								: 'pptx.presenter.openAudienceWindow'
+							) | translate
+						"
+					>
+						{{ isAudienceWindowOpen() ? '▣' : '□' }}
+					</button>
+					<button
+						type="button"
+						class="pptx-ng-presenter-iconbtn"
+						(click)="exit.emit()"
+						[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
+						[title]="'pptx.presenter.endPresentation' | translate"
+					>
+						&#x2715;
+					</button>
+				</div>
+			</div>
+
+			<!-- Navigation -->
+			<div class="pptx-ng-presenter-nav">
+				<button
+					type="button"
+					class="pptx-ng-presenter-navbtn"
+					(click)="movePresentationSlide.emit(-1)"
+					[disabled]="currentSlideIndex() === 0"
+					[title]="'pptx.presenter.previousSlide' | translate"
+				>
+					&#x2039; {{ 'pptx.presenter.prev' | translate }}
+				</button>
+				<span class="pptx-ng-presenter-counter">{{ counterLabel() }}</span>
+				<button
+					type="button"
+					class="pptx-ng-presenter-navbtn"
+					(click)="movePresentationSlide.emit(1)"
+					[disabled]="currentSlideIndex() >= slides().length - 1"
+					[title]="'pptx.presenter.nextSlide' | translate"
+				>
+					{{ 'pptx.presenter.next' | translate }} &#x203A;
+				</button>
+			</div>
+
+			<!-- Next slide preview -->
+			<div class="pptx-ng-presenter-next">
+				<div class="pptx-ng-presenter-label" style="margin-bottom: 0.5rem">
+					{{ 'pptx.presenter.nextSlidePreview' | translate }}
+				</div>
+				@if (nextPreviewSlide(); as next) {
+					<pptx-slide-canvas
+						[slide]="next"
+						[canvasSize]="canvasSize()"
+						[mediaDataUrls]="mediaDataUrls()"
+						[zoom]="1"
+						[interactive]="false"
+					/>
+				} @else {
+					<div class="pptx-ng-presenter-next-empty">
+						{{ 'pptx.presenter.endOfPresentation' | translate }}
+					</div>
+				}
+			</div>
+
+			<!-- Speaker notes -->
+			<div class="pptx-ng-presenter-notes">
+				<div class="pptx-ng-presenter-notes-head">
+					<div class="pptx-ng-presenter-label">
+						{{ 'pptx.presenter.speakerNotes' | translate }}
+					</div>
+					<div class="pptx-ng-presenter-notes-size">
+						<button
+							type="button"
+							class="pptx-ng-presenter-iconbtn"
+							(click)="decreaseNotesFontSize()"
+							[disabled]="notesFontSize() <= NOTES_FONT_SIZE_MIN"
+							[attr.aria-label]="'pptx.presenter.decreaseFontSize' | translate"
+							[title]="'pptx.presenter.decreaseFontSize' | translate"
+						>
+							&#x2212;
+						</button>
+						<span class="pptx-ng-presenter-notes-size-value">{{ notesFontSize() }}px</span>
+						<button
+							type="button"
+							class="pptx-ng-presenter-iconbtn"
+							(click)="increaseNotesFontSize()"
+							[disabled]="notesFontSize() >= NOTES_FONT_SIZE_MAX"
+							[attr.aria-label]="'pptx.presenter.increaseFontSize' | translate"
+							[title]="'pptx.presenter.increaseFontSize' | translate"
+						>
+							&#x2b;
+						</button>
+					</div>
+				</div>
+				<div class="pptx-ng-presenter-notes-body" [ngStyle]="notesBodyStyle()">
+					@if (notes().hasRichNotes) {
+						@for (seg of notes().segments; track seg.key) {
+							@if (seg.isBreak) {
+								<br />
+							} @else {
+								<span [ngStyle]="seg.style">{{ seg.text }}</span>
+							}
+						}
+					} @else if (notes().hasAnyNotes) {
+						{{ notes().plainText }}
+					} @else {
+						<span class="pptx-ng-presenter-notes-empty">
+							{{ 'pptx.presenter.noNotes' | translate }}
+						</span>
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Timer progress bar -->
+	<div
+		class="pptx-ng-presenter-progress"
+		role="progressbar"
+		[attr.aria-valuenow]="progressValue()"
+		aria-valuemin="0"
+		aria-valuemax="100"
+		[attr.aria-label]="'pptx.presenter.timerProgress' | translate"
+	>
+		<div class="pptx-ng-presenter-progress-fill" [style.width.%]="timerPercent()"></div>
+	</div>
+} @else {
+	<div class="pptx-ng-presenter-empty">{{ 'pptx.presenter.noSlides' | translate }}</div>
+}

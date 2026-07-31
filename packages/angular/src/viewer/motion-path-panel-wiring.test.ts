@@ -11,9 +11,6 @@
  * No Angular TestBed (see `vitest.config.ts`): the panel is constructed in a
  * plain `Injector` and the stage styles are read from the source.
  */
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-
 import { Injector, runInInjectionContext, signal } from '@angular/core';
 import type { InputSignal, OutputEmitterRef } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
@@ -22,16 +19,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { motionPathPresetById } from '../internal/shared';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
+import { componentSource } from './component-source.test-support';
 
-const CANVAS_SOURCE = readFileSync(path.join(__dirname, 'slide-canvas.component.ts'), 'utf8');
-const PRESENTATION_SOURCE = readFileSync(
-	path.join(__dirname, 'presentation-overlay.component.ts'),
-	'utf8',
-);
-const PANEL_SOURCE = readFileSync(
-	path.join(__dirname, 'animation-author-panel.component.ts'),
-	'utf8',
-);
+const CANVAS_SOURCE = componentSource(__dirname, 'slide-canvas.component.ts');
+const PRESENTATION_SOURCE = componentSource(__dirname, 'presentation-overlay.component.ts');
+const PANEL_SOURCE = componentSource(__dirname, 'animation-author-panel.component.ts');
 
 const SHAPE = { id: 'shape-1', type: 'shape', x: 0, y: 0, width: 10, height: 10 } as PptxElement;
 

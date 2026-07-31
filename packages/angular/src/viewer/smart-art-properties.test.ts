@@ -12,6 +12,7 @@ import type { PptxSmartArtData, PptxSmartArtNode } from 'pptx-viewer-core';
 import { resetSmartArtEditCounter } from 'pptx-viewer-core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { keyToLabel, translationsEn } from '../internal/shared-src/i18n';
 import {
 	addSmartArtNode,
 	addSmartArtNodeAsChild,
@@ -23,6 +24,11 @@ import {
 	SWITCHABLE_LAYOUT_TYPES,
 	updateSmartArtNodeText,
 } from './editor-insert';
+import {
+	smartArtColorSchemeLabelKey,
+	smartArtLayoutLabelKey,
+	smartArtStyleLabelKey,
+} from './schema-token-labels';
 import {
 	addItem,
 	addSubItem,
@@ -308,5 +314,62 @@ describe('setLayout', () => {
 			expect(next.resolvedLayoutType).toBe(layout);
 			expect(next.nodes).toHaveLength(3);
 		}
+	});
+});
+
+// ── Wire-token spelling ──────────────────────────────────────────────────────
+
+/**
+ * The three option groups in this panel (layout, colour variation, style) used
+ * to print the `dgm:` token itself, so the picker offered "colorful1" and
+ * "bending" as if they were English words. The values are a file-format
+ * contract, so relabelling must leave them alone; these tests hold both ends.
+ */
+describe('option spelling', () => {
+	/** The text a template renders for `key`, resolved the way the host does. */
+	function renderedLabel(key: string): string {
+		return (translationsEn as Record<string, string | undefined>)[key] ?? keyToLabel(key);
+	}
+
+	it('still offers the same five colour variations', () => {
+		expect([...SMART_ART_COLOR_SCHEMES]).toStrictEqual([
+			'colorful1',
+			'colorful2',
+			'colorful3',
+			'monochromatic1',
+			'monochromatic2',
+		]);
+	});
+
+	it('spells each colour variation', () => {
+		expect(
+			SMART_ART_COLOR_SCHEMES.map((s) => renderedLabel(smartArtColorSchemeLabelKey(s))),
+		).toStrictEqual([
+			'Colourful 1',
+			'Colourful 2',
+			'Colourful 3',
+			'Monochromatic 1',
+			'Monochromatic 2',
+		]);
+	});
+
+	it('still offers the same three style intensities, spelled as words', () => {
+		expect([...SMART_ART_STYLE_OPTIONS]).toStrictEqual(['flat', 'moderate', 'intense']);
+		expect(
+			SMART_ART_STYLE_OPTIONS.map((s) => renderedLabel(smartArtStyleLabelKey(s))),
+		).toStrictEqual(['Flat', 'Moderate', 'Intense']);
+	});
+
+	it('spells every switchable layout, with none falling back to its token', () => {
+		const labels = SWITCHABLE_LAYOUT_TYPES.map((layout) =>
+			renderedLabel(smartArtLayoutLabelKey(layout)),
+		);
+
+		expect(labels).toHaveLength(SWITCHABLE_LAYOUT_TYPES.length);
+		for (const [index, layout] of SWITCHABLE_LAYOUT_TYPES.entries()) {
+			expect(labels[index]).not.toBe(layout);
+		}
+		expect(labels).toContain('List');
+		expect(labels).toContain('Hierarchy');
 	});
 });

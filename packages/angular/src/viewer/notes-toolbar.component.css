@@ -1,0 +1,96 @@
+:host {
+	display: block;
+}
+.pptx-ng-notes-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.25rem;
+}
+.pptx-ng-notes-tb-group {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	overflow: hidden;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: 0.25rem;
+	background: rgba(0, 0, 0, 0.03);
+}
+.pptx-ng-notes-tb-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.25rem 0.4rem;
+	border: none;
+	background: transparent;
+	color: #111827;
+	cursor: pointer;
+}
+.pptx-ng-notes-tb-btn.has-divider {
+	border-left: 1px solid rgba(0, 0, 0, 0.12);
+}
+.pptx-ng-notes-tb-btn:hover {
+	background: rgba(0, 0, 0, 0.06);
+}
+.pptx-ng-notes-tb-toggle {
+	padding: 0.2rem 0.5rem;
+	font-size: 10px;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: 0.25rem;
+	background: rgba(0, 0, 0, 0.03);
+	color: #111827;
+	cursor: pointer;
+}
+.pptx-ng-notes-tb-toggle:hover {
+	background: rgba(0, 0, 0, 0.06);
+}
+.pptx-ng-notes-link-popover {
+	position: absolute;
+	bottom: 100%;
+	left: 0;
+	z-index: 10;
+	width: 18rem;
+	margin-bottom: 0.25rem;
+	padding: 0.75rem;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	border-radius: 0.5rem;
+	background: #ffffff;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.pptx-ng-notes-link-label {
+	display: block;
+	margin: 0 0 0.125rem;
+	font-size: 10px;
+	color: #6b7280;
+}
+.pptx-ng-notes-link-input {
+	width: 100%;
+	margin-bottom: 0.5rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 12px;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	border-radius: 0.25rem;
+}
+.pptx-ng-notes-link-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+.pptx-ng-notes-link-cancel {
+	padding: 0.25rem 0.5rem;
+	font-size: 10px;
+	border: none;
+	background: transparent;
+	color: #6b7280;
+	cursor: pointer;
+}
+.pptx-ng-notes-link-insert {
+	padding: 0.25rem 0.5rem;
+	font-size: 10px;
+	border: none;
+	border-radius: 0.25rem;
+	background: #6366f1;
+	color: #ffffff;
+	cursor: pointer;
+}

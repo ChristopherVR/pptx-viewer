@@ -1,0 +1,90 @@
+<pptx-table-resize-overlay
+	[columnWidths]="columnWidths()"
+	[editable]="editable()"
+	(resizeColumns)="onResizeColumns($event)"
+	(resizeRow)="onResizeRow($event)"
+>
+	<div class="pptx-ng-table-wrapper">
+		<table class="pptx-ng-table">
+			@if (colStyles().length > 0) {
+				<colgroup>
+					@for (colStyle of colStyles(); track $index) {
+						<col [ngStyle]="colStyle" />
+					}
+				</colgroup>
+			}
+			<tbody>
+				@for (row of rows(); track $index) {
+					<tr [ngStyle]="row.rowStyle">
+						@for (vm of row.cells; track $index) {
+							<td
+								class="pptx-ng-cell"
+								[class.is-selected]="isSelectedAnchor(vm.rowIndex, vm.colIndex)"
+								[class.is-in-range]="isInRange(vm.rowIndex, vm.colIndex)"
+								[class.is-editable]="editable()"
+								[ngStyle]="vm.tdStyle"
+								[attr.colspan]="vm.colSpan ?? null"
+								[attr.rowspan]="vm.rowSpan ?? null"
+								(click)="onCellClick($event, vm.rowIndex, vm.colIndex)"
+								(dblclick)="onCellDblClick($event, vm.rowIndex, vm.colIndex)"
+							>
+								@if (isEditing(vm.rowIndex, vm.colIndex)) {
+									<input
+										#cellInput
+										type="text"
+										class="pptx-ng-cell-input"
+										[value]="vm.cell.text ?? ''"
+										(pointerdown)="$event.stopPropagation()"
+										(mousedown)="$event.stopPropagation()"
+										(click)="$event.stopPropagation()"
+										(dblclick)="$event.stopPropagation()"
+										(blur)="commitCellEdit($event)"
+										(keydown)="onCellInputKeydown($event)"
+									/>
+								} @else if (vm.paragraphs.length > 0) {
+									@for (para of vm.paragraphs; track $index) {
+										<p class="pptx-ng-cell-para">
+											@for (run of para; track $index) {
+												@if (run.isLineBreak) {
+													<br />
+												} @else {
+													<span [ngStyle]="run.style">{{ run.text }}</span>
+												}
+											}
+										</p>
+									}
+								} @else {
+									{{ vm.displayText }}
+								}
+								@if (vm.diagonal; as diag) {
+									<svg class="pptx-ng-cell-diag" aria-hidden="true">
+										@if (diag.diagDownColor && diag.diagDownWidth) {
+											<line
+												x1="0"
+												y1="0"
+												x2="100%"
+												y2="100%"
+												[attr.stroke]="diag.diagDownColor"
+												[attr.stroke-width]="diag.diagDownWidth"
+											/>
+										}
+										@if (diag.diagUpColor && diag.diagUpWidth) {
+											<line
+												x1="0"
+												y1="100%"
+												x2="100%"
+												y2="0"
+												[attr.stroke]="diag.diagUpColor"
+												[attr.stroke-width]="diag.diagUpWidth"
+											/>
+										}
+									</svg>
+								}
+							</td>
+						}
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</pptx-table-resize-overlay>

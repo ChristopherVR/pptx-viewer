@@ -1,0 +1,66 @@
+<!-- Backdrop -->
+<div class="pptx-ng-sorter-backdrop" (click)="onBackdropClick($event)">
+	<!-- Modal panel -->
+	<div class="pptx-ng-sorter-panel" (click)="$event.stopPropagation()">
+		<!-- Header -->
+		<header class="pptx-ng-sorter-header">
+			<h2 class="pptx-ng-sorter-title">{{ 'pptx.slideSorter.title' | translate }}</h2>
+			<span class="pptx-ng-sorter-count">{{
+				'pptx.slideSorter.slideCount' | translate: { count: slides().length }
+			}}</span>
+			<button
+				type="button"
+				class="pptx-ng-sorter-close"
+				[attr.aria-label]="'pptx.slideSorter.close' | translate"
+				(click)="closed.emit()"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<line x1="18" y1="6" x2="6" y2="18" />
+					<line x1="6" y1="6" x2="18" y2="18" />
+				</svg>
+			</button>
+		</header>
+
+		<!-- Scrollable grid -->
+		<div class="pptx-ng-sorter-grid-scroll">
+			<div class="pptx-ng-sorter-grid" [ngStyle]="gridStyle()">
+				@for (slide of slides(); track slide.id; let i = $index) {
+					<button
+						type="button"
+						class="pptx-ng-sorter-cell"
+						[class.is-active]="i === activeIndex()"
+						[class.is-hidden]="isHiddenSlide(slide)"
+						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
+						[attr.aria-current]="i === activeIndex() ? 'true' : null"
+						(click)="onThumbClick(i)"
+					>
+						<!-- Thumbnail clipping wrapper -->
+						<div class="pptx-ng-sorter-thumb-clip" [ngStyle]="clipStyle()">
+							<pptx-slide-canvas
+								[slide]="slide"
+								[canvasSize]="canvasSize()"
+								[mediaDataUrls]="mediaDataUrls()"
+								[zoom]="thumbZoom()"
+								[autoFit]="false"
+								[interactive]="false"
+							/>
+						</div>
+						<!-- Slide number badge -->
+						<span class="pptx-ng-sorter-index" aria-hidden="true">{{ i + 1 }}</span>
+					</button>
+				}
+			</div>
+		</div>
+	</div>
+</div>

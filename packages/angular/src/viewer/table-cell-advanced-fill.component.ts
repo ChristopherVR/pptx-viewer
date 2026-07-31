@@ -7,7 +7,7 @@
  * Angular port of the React `TableCellAdvancedFill`. Emits partial
  * `PptxTableCellStyle` patches through `styleChange`; the parent merges them
  * into the selected cell. Option lists come from `pptx-viewer-shared`
- * (`FILL_MODE_OPTIONS` / `GRADIENT_TYPE_OPTIONS` / `PATTERN_OPTIONS`); a live
+ * (`FILL_MODE_OPTIONS` / `GRADIENT_TYPE_OPTIONS` / `patternPresetOptions`); a live
  * `gradientFillCss` string is rebuilt on every gradient edit so the renderer
  * reflects the change immediately.
  */
@@ -15,8 +15,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 
-import { FILL_MODE_OPTIONS, GRADIENT_TYPE_OPTIONS, PATTERN_OPTIONS } from '../internal/shared';
-import { buildGradientFillCss } from './table-properties-helpers';
+import { FILL_MODE_OPTIONS, GRADIENT_TYPE_OPTIONS } from '../internal/shared';
+import { fillPatternLabelKey } from './schema-token-labels';
+import {
+	buildGradientFillCss,
+	DEFAULT_PATTERN_FILL_PRESET,
+	patternPresetOptions,
+} from './table-properties-helpers';
 
 type GradientStop = { color: string; position: number };
 
@@ -110,11 +115,11 @@ type GradientStop = { color: string; position: number };
 						<select
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
-							[value]="cellStyle().patternFillPreset ?? 'ltDnDiag'"
+							[value]="patternPreset()"
 							(change)="onPatternPreset($event)"
 						>
-							@for (p of patterns; track p) {
-								<option [value]="p">{{ p }}</option>
+							@for (p of patterns(); track p) {
+								<option [value]="p">{{ patternLabelKey(p) | translate }}</option>
 							}
 						</select>
 					</label>
@@ -238,7 +243,20 @@ export class TableCellAdvancedFillComponent {
 		value: o.value,
 		i18nKey: o.i18nKey,
 	}));
-	protected readonly patterns = PATTERN_OPTIONS;
+	/** The cell's pattern preset, or the fallback the panel would seed. */
+	protected readonly patternPreset = computed(
+		() => this.cellStyle().patternFillPreset ?? DEFAULT_PATTERN_FILL_PRESET,
+	);
+
+	/**
+	 * Offered presets, widened to include the current one when it sits outside
+	 * the offered slice (the fallback preset does), so the `<select>` cannot show
+	 * a value the cell does not have and then commit it on the next change.
+	 */
+	protected readonly patterns = computed(() => patternPresetOptions(this.patternPreset()));
+
+	/** Spell a preset: the picker used to offer `ltHorz` / `narVert` verbatim. */
+	protected patternLabelKey = fillPatternLabelKey;
 	protected readonly margins: ReadonlyArray<{
 		key: 'marginTop' | 'marginBottom' | 'marginLeft' | 'marginRight';
 		label: string;
@@ -280,7 +298,7 @@ export class TableCellAdvancedFillComponent {
 		} else if (mode === 'pattern') {
 			this.styleChange.emit({
 				fillMode: 'pattern',
-				patternFillPreset: this.cellStyle().patternFillPreset ?? 'ltDnDiag',
+				patternFillPreset: this.patternPreset(),
 				patternFillForeground: this.cellStyle().patternFillForeground ?? '#000000',
 				patternFillBackground: this.cellStyle().patternFillBackground ?? '#FFFFFF',
 				gradientFillCss: undefined,

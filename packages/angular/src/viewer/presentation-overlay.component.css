@@ -1,0 +1,101 @@
+:host {
+	display: block;
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	background: #000;
+	cursor: pointer;
+	user-select: none;
+}
+
+.pptx-ng-presentation-root {
+	position: absolute;
+	inset: 0;
+	/* Allow vertical scrolling/pinch but let us interpret horizontal swipes. */
+	touch-action: pan-y;
+}
+
+.pptx-ng-presentation-close:hover,
+.pptx-ng-presentation-nav:hover {
+	background: rgba(0, 0, 0, 0.75);
+}
+
+.pptx-ng-presentation-tools {
+	position: absolute;
+	bottom: max(1rem, env(safe-area-inset-bottom));
+	/* Bottom-left, clear of the centred slide counter (mirrors React, which
+	   keeps the bottom-centre reserved for the counter). */
+	left: 1rem;
+	display: flex;
+	gap: 0.25rem;
+	padding: 0.25rem;
+	border-radius: 0.5rem;
+	background: rgba(0, 0, 0, 0.55);
+	z-index: 80;
+}
+
+.pptx-ng-presentation-tools button {
+	width: 2rem;
+	height: 2rem;
+	border: none;
+	border-radius: 0.35rem;
+	background: transparent;
+	color: #fff;
+	font-size: 1rem;
+	cursor: pointer;
+}
+
+.pptx-ng-presentation-tools button:hover {
+	background: rgba(255, 255, 255, 0.15);
+}
+
+.pptx-ng-presentation-tools button.is-active {
+	background: rgba(255, 255, 255, 0.3);
+}
+.presenter-blank {
+	position: absolute;
+	inset: 0;
+	z-index: 75;
+}
+.pptx-ng-presentation-end {
+	position: absolute;
+	inset: 0;
+	z-index: 90;
+	display: flex;
+	align-items: flex-start;
+	border: 0;
+	padding: 0;
+	background: #000;
+	text-align: left;
+	cursor: default;
+}
+.pptx-ng-presentation-end span {
+	padding: 0.75rem 1rem;
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 12px;
+}
+.presenter-laser {
+	position: absolute;
+	z-index: 76;
+	width: 20px;
+	height: 20px;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	background: #ef4444;
+	box-shadow: 0 0 20px 8px #ef444488;
+	pointer-events: none;
+}
+.presenter-caption {
+	position: absolute;
+	z-index: 77;
+	left: 10%;
+	right: 10%;
+	bottom: 2rem;
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	background: #000c;
+	color: #fff;
+	text-align: center;
+	font-size: 1.25rem;
+	pointer-events: none;
+}

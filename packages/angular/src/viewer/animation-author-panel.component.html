@@ -1,0 +1,320 @@
+<aside class="pptx-ng-anim" [attr.aria-label]="'pptx.animations.propertiesLabel' | translate">
+	<!-- ── Header ───────────────────────────────────────────────────── -->
+	<div class="pptx-ng-anim__header">
+		<span class="pptx-ng-anim__title">{{ 'pptx.animations.animation' | translate }}</span>
+		@if (currentHasAnimation()) {
+			<div class="pptx-ng-anim__header-actions">
+				<button
+					type="button"
+					class="pptx-ng-anim__preview-btn"
+					[title]="'pptx.animations.previewTooltip' | translate"
+					(click)="onPreview()"
+				>
+					{{ 'pptx.animations.preview' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-anim__remove-btn inline-flex items-center gap-1"
+					[disabled]="!canEdit()"
+					[title]="'pptx.animations.removeFromElement' | translate"
+					(click)="onRemove()"
+				>
+					<svg lucideX class="h-3.5 w-3.5"></svg> {{ 'pptx.animations.remove' | translate }}
+				</button>
+			</div>
+		}
+	</div>
+
+	<!-- ── Entrance preset ──────────────────────────────────────────── -->
+	<section class="pptx-ng-anim__section">
+		<label class="pptx-ng-anim__label" for="anim-entrance">{{
+			'pptx.animations.group.entrance' | translate
+		}}</label>
+		<select
+			id="anim-entrance"
+			class="pptx-ng-anim__select"
+			[disabled]="!canEdit()"
+			[value]="current()?.entrance ?? 'none'"
+			(change)="onSelect($event, 'entrance')"
+		>
+			<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
+			@for (opt of entrancePresets; track opt.value) {
+				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+			}
+		</select>
+	</section>
+
+	<!-- ── Emphasis preset ──────────────────────────────────────────── -->
+	<section class="pptx-ng-anim__section">
+		<label class="pptx-ng-anim__label" for="anim-emphasis">{{
+			'pptx.animations.group.emphasis' | translate
+		}}</label>
+		<select
+			id="anim-emphasis"
+			class="pptx-ng-anim__select"
+			[disabled]="!canEdit()"
+			[value]="current()?.emphasis ?? 'none'"
+			(change)="onSelect($event, 'emphasis')"
+		>
+			<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
+			@for (opt of emphasisPresets; track opt.value) {
+				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+			}
+		</select>
+	</section>
+
+	<!-- ── Exit preset ──────────────────────────────────────────────── -->
+	<section class="pptx-ng-anim__section">
+		<label class="pptx-ng-anim__label" for="anim-exit">{{
+			'pptx.animations.group.exit' | translate
+		}}</label>
+		<select
+			id="anim-exit"
+			class="pptx-ng-anim__select"
+			[disabled]="!canEdit()"
+			[value]="current()?.exit ?? 'none'"
+			(change)="onSelect($event, 'exit')"
+		>
+			<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
+			@for (opt of exitPresets; track opt.value) {
+				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+			}
+		</select>
+	</section>
+
+	<!-- ── Motion path: geometry, not a preset, so it gets its own row ─ -->
+	<section class="pptx-ng-anim__section">
+		<pptx-motion-path-row
+			[motionPath]="current()?.motionPath"
+			[canEdit]="canEdit()"
+			(presetChange)="onMotionPathChange($event)"
+		/>
+	</section>
+
+	<!-- ── Effect options: only shown when an animation is set ─────── -->
+	@if (currentHasAnimation()) {
+		<!-- ── Direction picker (directional presets only) ──────────── -->
+		@if (currentShowDirection()) {
+			<section class="pptx-ng-anim__section">
+				<span class="pptx-ng-anim__label">{{ 'pptx.animations.direction' | translate }}</span>
+				<div class="pptx-ng-anim__direction-grid">
+					@for (opt of directionOptions; track opt.value) {
+						<button
+							type="button"
+							class="pptx-ng-anim__dir-btn"
+							[class.is-active]="current()?.direction === opt.value"
+							[disabled]="!canEdit()"
+							[title]="opt.labelKey | translate"
+							(click)="onDirectionChange(opt.value)"
+						>
+							{{ opt.arrow }}
+						</button>
+					}
+				</div>
+			</section>
+		}
+
+		<!-- ── Sequence ─────────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			<label class="pptx-ng-anim__label" for="anim-sequence">{{
+				'pptx.animations.sequence' | translate
+			}}</label>
+			<select
+				id="anim-sequence"
+				class="pptx-ng-anim__select"
+				[disabled]="!canEdit()"
+				[value]="current()?.sequence ?? 'asOne'"
+				(change)="onSelect($event, 'sequence')"
+			>
+				@for (opt of sequenceOptions; track opt.value) {
+					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				}
+			</select>
+		</section>
+
+		<!-- ── Timing heading ────────────────────────────────────────── -->
+		<div class="pptx-ng-anim__subheading">{{ 'pptx.animations.timing' | translate }}</div>
+
+		<!-- ── Trigger ──────────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			<label class="pptx-ng-anim__label" for="anim-trigger">{{
+				'pptx.animations.trigger' | translate
+			}}</label>
+			<select
+				id="anim-trigger"
+				class="pptx-ng-anim__select"
+				[disabled]="!canEdit()"
+				[value]="current()?.trigger ?? 'onClick'"
+				(change)="onSelect($event, 'trigger')"
+			>
+				@for (opt of triggerOptions; track opt.value) {
+					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				}
+			</select>
+		</section>
+
+		<!-- ── Trigger shape (onShapeClick only) ─────────────────────── -->
+		@if (current()?.trigger === 'onShapeClick') {
+			<section class="pptx-ng-anim__section">
+				<label class="pptx-ng-anim__label" for="anim-trigger-shape">{{
+					'pptx.animations.triggerShape' | translate
+				}}</label>
+				<select
+					id="anim-trigger-shape"
+					class="pptx-ng-anim__select"
+					[disabled]="!canEdit()"
+					[value]="current()?.triggerShapeId ?? ''"
+					(change)="onTriggerShapeChange($event)"
+				>
+					<option value="">{{ 'pptx.animations.selectShapeOption' | translate }}</option>
+					@for (el of otherElements(); track el.id) {
+						<option [value]="el.id">{{ elementLabel(el) }}</option>
+					}
+				</select>
+			</section>
+		}
+
+		<!-- ── Duration ─────────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			@if (elementKey(); as key) {
+				<div [attr.data-el-key]="key">
+					<label class="pptx-ng-anim__label" for="anim-duration">{{
+						'pptx.animations.durationMs' | translate
+					}}</label>
+					<input
+						id="anim-duration"
+						class="pptx-ng-anim__input"
+						type="number"
+						inputmode="numeric"
+						min="100"
+						max="10000"
+						step="50"
+						[disabled]="!canEdit()"
+						[value]="seed().durationMs"
+						(change)="onNumber($event, 'duration')"
+					/>
+				</div>
+			}
+		</section>
+
+		<!-- ── Delay ────────────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			@if (elementKey(); as key) {
+				<div [attr.data-el-key]="key">
+					<label class="pptx-ng-anim__label" for="anim-delay">{{
+						'pptx.animations.delayMs' | translate
+					}}</label>
+					<input
+						id="anim-delay"
+						class="pptx-ng-anim__input"
+						type="number"
+						inputmode="numeric"
+						min="0"
+						max="10000"
+						step="50"
+						[disabled]="!canEdit()"
+						[value]="seed().delayMs"
+						(change)="onNumber($event, 'delay')"
+					/>
+				</div>
+			}
+		</section>
+
+		<!-- ── Timing curve ──────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			<label class="pptx-ng-anim__label" for="anim-timing-curve">{{
+				'pptx.animations.timingCurve' | translate
+			}}</label>
+			<select
+				id="anim-timing-curve"
+				class="pptx-ng-anim__select"
+				[disabled]="!canEdit()"
+				[value]="current()?.timingCurve ?? 'ease'"
+				(change)="onSelect($event, 'timingCurve')"
+			>
+				@for (opt of timingCurveOptions; track opt.value) {
+					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				}
+			</select>
+		</section>
+
+		<!-- ── Repeat count ──────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			@if (elementKey(); as key) {
+				<div [attr.data-el-key]="key">
+					<label class="pptx-ng-anim__label" for="anim-repeat-count">{{
+						'pptx.animations.repeat' | translate
+					}}</label>
+					<input
+						id="anim-repeat-count"
+						class="pptx-ng-anim__input"
+						type="number"
+						inputmode="numeric"
+						min="1"
+						max="100"
+						step="1"
+						[disabled]="!canEdit()"
+						[value]="seed().repeatCount"
+						(change)="onNumber($event, 'repeatCount')"
+					/>
+				</div>
+			}
+		</section>
+
+		<!-- ── Repeat mode ───────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			<label class="pptx-ng-anim__label" for="anim-repeat-mode">{{
+				'pptx.animations.repeatUntil' | translate
+			}}</label>
+			<select
+				id="anim-repeat-mode"
+				class="pptx-ng-anim__select"
+				[disabled]="!canEdit()"
+				[value]="current()?.repeatMode ?? 'none'"
+				(change)="onSelect($event, 'repeatMode')"
+			>
+				@for (opt of repeatModeOptions; track opt.value) {
+					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				}
+			</select>
+		</section>
+
+		<!-- ── Order controls ────────────────────────────────────────── -->
+		<section class="pptx-ng-anim__section">
+			<span class="pptx-ng-anim__label">{{
+				'pptx.animations.order' | translate: { value: orderLabel() }
+			}}</span>
+			<div class="pptx-ng-anim__row">
+				<button
+					type="button"
+					class="pptx-ng-anim__order-btn inline-flex items-center gap-1"
+					[disabled]="!canEdit()"
+					[title]="'pptx.animations.moveEarlier' | translate"
+					(click)="onMoveUp()"
+				>
+					<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
+					{{ 'pptx.animations.earlier' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-anim__order-btn inline-flex items-center gap-1"
+					[disabled]="!canEdit()"
+					[title]="'pptx.animations.moveLater' | translate"
+					(click)="onMoveDown()"
+				>
+					<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
+					{{ 'pptx.animations.later' | translate }}
+				</button>
+			</div>
+		</section>
+
+		<pptx-animation-timeline
+			[animations]="animations()"
+			[elements]="slideElements()"
+			[selectedElementId]="element().id"
+			[canEdit]="canEdit()"
+			(animationsChange)="animationsChange.emit($event)"
+		/>
+	}
+	<!-- end @if (currentHasAnimation()) -->
+</aside>

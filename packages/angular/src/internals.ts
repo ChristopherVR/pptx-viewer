@@ -178,6 +178,7 @@ export { SelectionPaneComponent } from './viewer/selection-pane.component';
 export { ThemeGalleryComponent } from './viewer/theme-gallery.component';
 export * from './viewer/theme-gallery-presets';
 export { TitleBarComponent } from './viewer/title-bar.component';
+export { TitleBarSearchComponent } from './viewer/title-bar-search.component';
 export * from './viewer/slide-canvas-helpers';
 export * from './viewer/slide-sorter-overlay-helpers';
 export * from './viewer/animation-author-helpers';

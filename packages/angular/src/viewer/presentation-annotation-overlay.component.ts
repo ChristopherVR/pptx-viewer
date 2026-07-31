@@ -36,77 +36,8 @@ import { PresentationAnnotationsService } from './presentation-annotations.servi
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle],
-	styles: `
-		:host {
-			display: block;
-			position: absolute;
-			inset: 0;
-			/* Pointer-events toggled dynamically via [ngStyle] on the inner wrapper. */
-			pointer-events: none;
-		}
-
-		.pptx-ng-anno-wrapper {
-			position: absolute;
-			inset: 0;
-		}
-
-		.pptx-ng-anno-svg {
-			position: absolute;
-			top: 0;
-			left: 0;
-			/* The SVG is authored at the native canvas size and scaled up/down. */
-			transform-origin: top left;
-			overflow: visible;
-		}
-
-		.pptx-ng-laser-dot {
-			position: absolute;
-			border-radius: 50%;
-			pointer-events: none;
-			background: rgba(255, 0, 0, 0.85);
-			box-shadow:
-				0 0 12px 6px rgba(255, 0, 0, 0.5),
-				0 0 24px 12px rgba(255, 0, 0, 0.25);
-			filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.7));
-		}
-	`,
-	template: `
-		@if (isArmed()) {
-			<div
-				class="pptx-ng-anno-wrapper"
-				[ngStyle]="wrapperStyle()"
-				(pointerdown)="onPointerDown($event)"
-				(pointermove)="onPointerMove($event)"
-				(pointerup)="onPointerUp($event)"
-				(pointerleave)="onPointerLeave($event)"
-			>
-				<svg
-					#svg
-					class="pptx-ng-anno-svg"
-					[attr.width]="canvasSize().width"
-					[attr.height]="canvasSize().height"
-					[attr.viewBox]="viewBox()"
-					[ngStyle]="svgStyle()"
-				>
-					@for (s of allStrokes(); track s.id) {
-						<path
-							[attr.d]="strokePath(s.points)"
-							fill="none"
-							[attr.stroke]="s.color"
-							[attr.stroke-width]="s.width"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							[attr.opacity]="s.opacity"
-						/>
-					}
-				</svg>
-
-				@if (service.tool() === 'laser' && service.laserPosition(); as lp) {
-					<div class="pptx-ng-laser-dot" [ngStyle]="laserDotStyle(lp.x, lp.y)"></div>
-				}
-			</div>
-		}
-	`,
+	styleUrl: './presentation-annotation-overlay.component.css',
+	templateUrl: './presentation-annotation-overlay.component.html',
 })
 export class PresentationAnnotationOverlayComponent {
 	// ------------------------------------------------------------------

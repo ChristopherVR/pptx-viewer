@@ -1,0 +1,436 @@
+<div
+	#viewport
+	class="pptx-ng-canvas-viewport"
+	[attr.data-pptx-viewport]="interactive() ? '' : null"
+	(pointerdown)="onViewportPointerDown($event)"
+>
+	<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
+		<div
+			#stage
+			class="pptx-ng-canvas-stage"
+			[class.is-editable]="editable()"
+			role="region"
+			[attr.aria-roledescription]="interactive() ? 'slide' : null"
+			[attr.data-pptx-ai-active]="aiActive() ? 'true' : null"
+			[ngStyle]="stageStyle()"
+			(pointerdown)="onStagePointerDown($event)"
+			(contextmenu)="onContextMenu($event)"
+			(dblclick)="onDblClick($event)"
+		>
+			<!--
+				Template layer: inherited master/layout elements, rendered BEHIND
+				the slide's own elements (lower z-index). Interactive + given the
+				amber editable affordance only while editTemplateMode is on; when
+				off they render inertly with no affordance, exactly as core
+				delivered them.
+			-->
+			@for (element of templateElements(); track element.id; let i = $index) {
+				<pptx-element-renderer
+					[element]="element"
+					[mediaDataUrls]="mediaDataUrls()"
+					[zIndex]="i"
+					[obstacles]="connectorObstacles()"
+					[canvasWidth]="canvasSize().width"
+					[canvasHeight]="canvasSize().height"
+					[interactive]="interactive() && editTemplateMode()"
+					[editable]="editable() && editTemplateMode()"
+					[fieldContext]="fieldContext()"
+					[slideElements]="allElements()"
+					[editTemplateMode]="editTemplateMode()"
+					(cellCommit)="cellCommit.emit($event)"
+					(tableChange)="tableChange.emit($event)"
+				/>
+			}
+			@for (element of elements(); track element.id; let i = $index) {
+				<pptx-element-renderer
+					[element]="element"
+					[mediaDataUrls]="mediaDataUrls()"
+					[zIndex]="templateElements().length + i"
+					[obstacles]="connectorObstacles()"
+					[canvasWidth]="canvasSize().width"
+					[canvasHeight]="canvasSize().height"
+					[interactive]="interactive()"
+					[presenting]="presenting()"
+					[editable]="editable()"
+					[fieldContext]="fieldContext()"
+					[slideElements]="allElements()"
+					[editTemplateMode]="false"
+					(cellCommit)="cellCommit.emit($event)"
+					(tableChange)="tableChange.emit($event)"
+				/>
+			}
+			@if (aiHighlights().length > 0 || aiActive()) {
+				<pptx-ai-focus-highlight-overlay
+					[highlights]="aiHighlights()"
+					[elements]="elements()"
+					[activeSlideIndex]="aiActiveSlideIndex()"
+				/>
+			}
+			@if (aiChangeBatch(); as batch) {
+				<pptx-ai-change-overlay [batch]="batch" [activeSlideIndex]="aiActiveSlideIndex()" />
+			}
+			@for (box of selectionBoxes(); track box.id) {
+				<div
+					class="pptx-ng-selection"
+					[style.left.px]="box.x"
+					[style.top.px]="box.y"
+					[style.width.px]="box.width"
+					[style.height.px]="box.height"
+				></div>
+			}
+			@for (h of handleBoxes(); track h.handle) {
+				<button
+					type="button"
+					class="pptx-ng-handle"
+					[attr.aria-label]="'Resize element from ' + h.handle"
+					[style.left.px]="h.left"
+					[style.top.px]="h.top"
+					[style.width.px]="h.size"
+					[style.height.px]="h.size"
+					[style.cursor]="h.cursor"
+					(pointerdown)="onHandlePointerDown($event, h.handle)"
+					(keydown)="onResizeHandleKeydown($event, h.handle)"
+				></button>
+			}
+			@if (marqueeRect(); as mr) {
+				<div
+					class="pptx-ng-marquee"
+					[style.left.px]="mr.x"
+					[style.top.px]="mr.y"
+					[style.width.px]="mr.width"
+					[style.height.px]="mr.height"
+				></div>
+			}
+			@for (g of snapGuides(); track $index) {
+				<div
+					class="pptx-ng-snap-guide"
+					[style.left.px]="g.axis === 'x' ? g.pos : g.start"
+					[style.top.px]="g.axis === 'x' ? g.start : g.pos"
+					[style.width.px]="g.axis === 'x' ? 0 : g.end - g.start"
+					[style.height.px]="g.axis === 'x' ? g.end - g.start : 0"
+				></div>
+			}
+			@if (rotateHandle(); as rh) {
+				<button
+					type="button"
+					class="pptx-ng-rotate-handle"
+					[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"
+					[style.left.px]="rh.left"
+					[style.top.px]="rh.top"
+					[style.width.px]="rh.size"
+					[style.height.px]="rh.size"
+					(pointerdown)="onRotatePointerDown($event)"
+					(keydown)="onRotateHandleKeydown($event)"
+				></button>
+			}
+			@if (adjustHandle(); as ah) {
+				<!--
+					Shape-adjustment affordance (amber diamond). Mirrors React's
+					separate "Adjust shape" handle: a selection-only control that
+					appears for a selected element in editable mode and is gone in
+					presentation (the whole canvas is non-editable then). Dragging it
+					adjusts the shape via the same resize pipeline (SE corner),
+					keeping it a real, useful affordance rather than a decoy.
+				-->
+				<button
+					type="button"
+					class="pptx-ng-adjust-handle"
+					[attr.aria-label]="'pptx.canvas.adjustShape' | translate"
+					[style.left.px]="ah.left"
+					[style.top.px]="ah.top"
+					[style.width.px]="ah.size"
+					[style.height.px]="ah.size"
+					(pointerdown)="onHandlePointerDown($event, 'se')"
+					(keydown)="onResizeHandleKeydown($event, 'se')"
+				></button>
+			}
+			@if (editingBox(); as eb) {
+				<textarea
+					#textEditor
+					data-inline-editor
+					class="pptx-ng-text-editor"
+					aria-label="Edit slide text"
+					[spellcheck]="spellCheck()"
+					[style.left.px]="eb.x"
+					[style.top.px]="eb.y"
+					[style.width.px]="eb.width"
+					[style.height.px]="eb.height"
+					(pointerdown)="$event.stopPropagation()"
+					(input)="onTextInput($event, eb.id)"
+					(blur)="commitText($event, eb.id)"
+					(keydown)="onEditorKeydown($event)"
+				></textarea>
+			}
+
+			<!--
+				View overlays: editor aids only, never on thumbnails/preview/presentation.
+				All are pointer-events:none so they never break selection/drag.
+				None carry data-pptx-element / aria-roledescription / data-pptx-viewport.
+			-->
+			@if (interactive() && showGrid()) {
+				<svg
+					class="pptx-ng-overlay-grid"
+					aria-hidden="true"
+					[attr.width]="canvasSize().width"
+					[attr.height]="canvasSize().height"
+				>
+					<defs>
+						<pattern
+							[attr.id]="gridPatternId"
+							[attr.width]="gridSpacingPx()"
+							[attr.height]="gridSpacingPx()"
+							patternUnits="userSpaceOnUse"
+						>
+							<circle
+								[attr.cx]="gridSpacingPx() / 2"
+								[attr.cy]="gridSpacingPx() / 2"
+								r="0.6"
+								fill="rgba(156,163,175,0.55)"
+							/>
+						</pattern>
+					</defs>
+					<rect
+						[attr.width]="canvasSize().width"
+						[attr.height]="canvasSize().height"
+						[attr.fill]="'url(#' + gridPatternId + ')'"
+					/>
+				</svg>
+			}
+
+			@if (interactive() && showGuides()) {
+				<!--
+					Center crosshair: one horizontal line and one vertical line
+					through the midpoint of the slide. Static; draggable guides
+					are a follow-up.
+				-->
+				<svg
+					class="pptx-ng-overlay-guides"
+					aria-hidden="true"
+					[attr.width]="canvasSize().width"
+					[attr.height]="canvasSize().height"
+				>
+					<!-- Horizontal center guide -->
+					<line
+						x1="0"
+						[attr.y1]="canvasSize().height / 2"
+						[attr.x2]="canvasSize().width"
+						[attr.y2]="canvasSize().height / 2"
+						stroke="rgba(99,102,241,0.7)"
+						stroke-width="1"
+						stroke-dasharray="6 3"
+					/>
+					<!-- Vertical center guide -->
+					<line
+						[attr.x1]="canvasSize().width / 2"
+						y1="0"
+						[attr.x2]="canvasSize().width / 2"
+						[attr.y2]="canvasSize().height"
+						stroke="rgba(99,102,241,0.7)"
+						stroke-width="1"
+						stroke-dasharray="6 3"
+					/>
+				</svg>
+			}
+
+			<!--
+				User-created ruler guides.
+				Each guide has a non-interactive line body and an interactive
+				drag handle. Double-click the handle to delete the guide.
+
+				Deliberately OUTSIDE the showGuides() gate above (which owns the
+				static centre crosshair): a guide the user just dragged off a ruler
+				strip must be visible immediately, as it is in Vue and Vanilla.
+				While it lived under that gate, the drag-out gesture silently
+				produced an invisible guide unless View > Guides happened to be on.
+			-->
+			@if (interactive()) {
+				@for (g of rulerGuidesSvc.rulerGuides(); track g.id) {
+					<!-- Guide line body: pointer-events:none -->
+					<div
+						class="pptx-ng-ruler-guide-line"
+						[style.left.px]="g.axis === 'x' ? g.pos : 0"
+						[style.top.px]="g.axis === 'y' ? g.pos : 0"
+						[style.width]="g.axis === 'x' ? '1px' : '100%'"
+						[style.height]="g.axis === 'y' ? '1px' : '100%'"
+					></div>
+					<!-- Drag handle: pointer-events:auto -->
+					<div
+						class="pptx-ng-ruler-guide-handle"
+						[style.left.px]="g.axis === 'x' ? g.pos - 4 : 0"
+						[style.top.px]="g.axis === 'y' ? g.pos - 4 : 0"
+						[style.width]="g.axis === 'x' ? '9px' : '100%'"
+						[style.height]="g.axis === 'y' ? '9px' : '100%'"
+						[style.cursor]="g.axis === 'x' ? 'col-resize' : 'row-resize'"
+						(pointerdown)="rulerGuidesSvc.onGuidePointerDown($event, g.id, g.axis)"
+						(dblclick)="rulerGuidesSvc.onGuideDoubleClick($event, g.id)"
+						[title]="'pptx.canvas.guideTooltip' | translate"
+					></div>
+				}
+			}
+
+			<!--
+				Live ink stroke preview: shown while the user is drawing.
+				pointer-events:none so it never intercepts element gestures.
+				No data-pptx-element / aria-roledescription / data-pptx-viewport.
+			-->
+			@if (inkDrawing.active() && inkDrawing.liveInkPath() && drawTool() !== 'select') {
+				<svg
+					class="pptx-ng-ink-preview"
+					aria-hidden="true"
+					[attr.width]="canvasSize().width"
+					[attr.height]="canvasSize().height"
+					style="position: absolute; inset: 0; pointer-events: none; z-index: 70"
+				>
+					<path
+						[attr.d]="inkDrawing.liveInkPath()"
+						fill="none"
+						[attr.stroke]="drawColor()"
+						[attr.stroke-width]="drawWidth()"
+						[attr.stroke-opacity]="drawTool() === 'highlighter' ? 0.4 : 1"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			}
+
+			<!--
+				Projected overlays (collaboration cursors + remote selections).
+				They live INSIDE the scaled stage so the stage's CSS
+				transform:scale() applies the on-screen scale exactly once and
+				they can be authored in raw, unscaled slide coordinates, exactly
+				like the React/Vue overlays.
+			-->
+			<ng-content />
+		</div>
+
+		<!--
+			Ruler strips: siblings to the scaled stage inside the wrapper div,
+			absolutely positioned at top:0/left:0 within the wrapper's padding area.
+			The wrapper's padding (RULER_THICKNESS px top+left) reserves space for
+			these strips so the stage content starts below/right of them.
+			pointer-events:none so they never intercept element gestures.
+		-->
+		@if (interactive() && showRulers()) {
+			<!-- Corner square at the intersection of the two ruler strips -->
+			<div class="pptx-ng-ruler-corner" aria-hidden="true"></div>
+
+			<!--
+				Horizontal ruler: spans the top padding row of the wrapper.
+				A guide is dropped on pointer-UP (not down), resolved by the shared
+				rulerDragToGuidePosition, so a stray click on the strip cannot
+				drop a guide the user never dragged out - the rule React, Vue,
+				Svelte and Vanilla all follow.
+			-->
+			<svg
+				class="pptx-ng-ruler-h"
+				data-pptx-ruler="h"
+				role="presentation"
+				[attr.width]="canvasSize().width * effectiveScalePublic()"
+				[attr.height]="rulerThickness"
+				[style.cursor]="editable() ? 'row-resize' : null"
+				(pointerdown)="rulerGuidesSvc.onRulerPointerDown('h', $event)"
+				(pointerup)="rulerGuidesSvc.onRulerPointerUp('h', $event)"
+			>
+				<rect
+					[attr.width]="canvasSize().width * effectiveScalePublic()"
+					[attr.height]="rulerThickness"
+					fill="#1e293b"
+				/>
+				@if (hRulerHighlight(); as highlight) {
+					<rect
+						[attr.x]="highlight.start"
+						y="0"
+						[attr.width]="highlight.span"
+						[attr.height]="rulerThickness"
+						fill="rgba(96,165,250,0.25)"
+					/>
+				}
+				<line
+					x1="0"
+					[attr.y1]="rulerThickness - 0.5"
+					[attr.x2]="canvasSize().width * effectiveScalePublic()"
+					[attr.y2]="rulerThickness - 0.5"
+					stroke="rgba(255,255,255,0.15)"
+					stroke-width="1"
+				/>
+				@for (tick of hRulerTicks(); track $index) {
+					<line
+						[attr.x1]="tick.position"
+						[attr.y1]="rulerThickness"
+						[attr.x2]="tick.position"
+						[attr.y2]="rulerThickness - rulerThickness * (tick.isMajor ? 0.6 : 0.3)"
+						stroke="rgba(156,163,175,0.7)"
+						[attr.stroke-width]="tick.isMajor ? 1 : 0.5"
+					/>
+					@if (tick.label) {
+						<text
+							[attr.x]="tick.position + 2"
+							[attr.y]="rulerFontSize + 1"
+							[attr.font-size]="rulerFontSize"
+							fill="rgba(156,163,175,0.9)"
+							style="font-family: system-ui, sans-serif"
+						>
+							{{ tick.label }}
+						</text>
+					}
+				}
+			</svg>
+
+			<!-- Vertical ruler: spans the left padding column of the wrapper -->
+			<svg
+				class="pptx-ng-ruler-v"
+				data-pptx-ruler="v"
+				role="presentation"
+				[attr.width]="rulerThickness"
+				[attr.height]="canvasSize().height * effectiveScalePublic()"
+				[style.cursor]="editable() ? 'col-resize' : null"
+				(pointerdown)="rulerGuidesSvc.onRulerPointerDown('v', $event)"
+				(pointerup)="rulerGuidesSvc.onRulerPointerUp('v', $event)"
+			>
+				<rect
+					[attr.width]="rulerThickness"
+					[attr.height]="canvasSize().height * effectiveScalePublic()"
+					fill="#1e293b"
+				/>
+				@if (vRulerHighlight(); as highlight) {
+					<rect
+						x="0"
+						[attr.y]="highlight.start"
+						[attr.width]="rulerThickness"
+						[attr.height]="highlight.span"
+						fill="rgba(96,165,250,0.25)"
+					/>
+				}
+				<line
+					[attr.x1]="rulerThickness - 0.5"
+					y1="0"
+					[attr.x2]="rulerThickness - 0.5"
+					[attr.y2]="canvasSize().height * effectiveScalePublic()"
+					stroke="rgba(255,255,255,0.15)"
+					stroke-width="1"
+				/>
+				@for (tick of vRulerTicks(); track $index) {
+					<line
+						[attr.x1]="rulerThickness"
+						[attr.y1]="tick.position"
+						[attr.x2]="rulerThickness - rulerThickness * (tick.isMajor ? 0.6 : 0.3)"
+						[attr.y2]="tick.position"
+						stroke="rgba(156,163,175,0.7)"
+						[attr.stroke-width]="tick.isMajor ? 1 : 0.5"
+					/>
+					@if (tick.label) {
+						<text
+							x="2"
+							[attr.y]="tick.position + rulerFontSize + 2"
+							[attr.font-size]="rulerFontSize"
+							fill="rgba(156,163,175,0.9)"
+							style="font-family: system-ui, sans-serif"
+						>
+							{{ tick.label }}
+						</text>
+					}
+				}
+			</svg>
+		}
+	</div>
+</div>

@@ -41,6 +41,11 @@ import type {
 
 import { SWITCHABLE_LAYOUT_TYPES } from './editor-insert';
 import {
+	smartArtColorSchemeLabelKey,
+	smartArtLayoutLabelKey,
+	smartArtStyleLabelKey,
+} from './schema-token-labels';
+import {
 	canAddTopLevelNode,
 	canRemoveTopLevelNode,
 	describeSmartArtBounds,
@@ -101,7 +106,7 @@ import {
 							[attr.aria-pressed]="activeLayout() === layout"
 							(click)="onLayout(layout)"
 						>
-							{{ layout }}
+							{{ layoutLabelKey(layout) | translate }}
 						</button>
 					}
 				</div>
@@ -119,7 +124,7 @@ import {
 					(change)="onColorScheme($event)"
 				>
 					@for (scheme of colorSchemes; track scheme) {
-						<option [value]="scheme">{{ scheme }}</option>
+						<option [value]="scheme">{{ colorSchemeLabelKey(scheme) | translate }}</option>
 					}
 				</select>
 			</label>
@@ -141,7 +146,7 @@ import {
 							[attr.aria-pressed]="activeStyle() === styleOpt"
 							(click)="onStyle(styleOpt)"
 						>
-							{{ styleOpt }}
+							{{ styleLabelKey(styleOpt) | translate }}
 						</button>
 					}
 				</div>
@@ -356,14 +361,15 @@ import {
 			white-space: nowrap;
 		}
 
-		.pptx-sa-props__layout {
-			flex: 1 0 auto;
-			text-transform: capitalize;
-		}
-
+		/*
+		 * No text-transform: these buttons used to print the raw wire token
+		 * ("list", "flat"), and capitalising it was the only thing that made it
+		 * look like a word. They now render dictionary text, which arrives cased
+		 * for its locale, so capitalising would mangle multi-word translations.
+		 */
+		.pptx-sa-props__layout,
 		.pptx-sa-props__style {
 			flex: 1 0 auto;
-			text-transform: capitalize;
 		}
 
 		.pptx-sa-props__layout.is-active,
@@ -528,6 +534,13 @@ export class SmartArtPropertiesComponent {
 	protected readonly activeStyle = computed(() => currentStyle(this.smartArtData()));
 
 	protected isChild = isChildNode;
+
+	// ── Wire-token spelling ──────────────────────────────────────────────────
+	// These three controls used to print the `dgm:` schema token itself, so the
+	// picker offered "colorful1" and "bending" as if they were English words.
+	protected layoutLabelKey = smartArtLayoutLabelKey;
+	protected colorSchemeLabelKey = smartArtColorSchemeLabelKey;
+	protected styleLabelKey = smartArtStyleLabelKey;
 
 	// ── Node-count boundary constraints ──────────────────────────────────────
 	/** Count of top-level (parentless) nodes, for boundary checks. */

@@ -1,0 +1,65 @@
+<section class="pptx-ng-notes-panel" [attr.data-collapsed]="collapsed()">
+	<button
+		type="button"
+		class="pptx-ng-notes-header"
+		[attr.aria-expanded]="!collapsed()"
+		(click)="toggle()"
+	>
+		<span class="pptx-ng-notes-label">{{ 'pptx.notes.speakerNotes' | translate }}</span>
+		<span class="pptx-ng-notes-chevron" aria-hidden="true">
+			@if (collapsed()) {
+				<svg lucideChevronRight class="h-4 w-4"></svg>
+			} @else {
+				<svg lucideChevronDown class="h-4 w-4"></svg>
+			}
+		</span>
+	</button>
+
+	@if (!collapsed()) {
+		<div id="slide-notes-content" class="pptx-ng-notes-body">
+			@if (slide()) {
+				<pptx-notes-toolbar
+					[isRichEnabled]="isRichEnabled()"
+					[showLinkPopover]="showLinkPopover()"
+					[savedSelectionText]="savedSelectionText()"
+					(inline)="inlineCommand($event)"
+					(paragraph)="paragraphCommand($event)"
+					(linkButtonClick)="openLinkPopover()"
+					(insertLink)="insertLink($event)"
+					(closeLinkPopover)="showLinkPopover.set(false)"
+					(print)="printNotes()"
+					(toggleRich)="toggleRich()"
+				/>
+			}
+
+			<div
+				#richEditor
+				class="pptx-ng-notes-rich"
+				[hidden]="!showRich()"
+				[attr.contenteditable]="showRich() ? 'true' : 'false'"
+				role="textbox"
+				aria-multiline="true"
+				[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
+				(input)="onRichInput()"
+				(keydown)="onRichKeydown($event)"
+				(blur)="onRichInput()"
+				(click)="onEditorClick($event)"
+			></div>
+
+			<textarea
+				#textarea
+				name="slide-notes"
+				class="pptx-ng-notes-textarea"
+				[hidden]="showRich()"
+				[disabled]="!slide()"
+				[attr.placeholder]="
+					(slide() ? 'pptx.notes.addSpeakerNotes' : 'pptx.notes.noSlide') | translate
+				"
+				[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
+				spellcheck="true"
+				(change)="onPlainCommit($event)"
+				(blur)="onPlainCommit($event)"
+			></textarea>
+		</div>
+	}
+</section>

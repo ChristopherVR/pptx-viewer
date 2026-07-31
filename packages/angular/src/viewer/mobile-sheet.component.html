@@ -1,0 +1,59 @@
+@if (open()) {
+	<div class="pptx-ng-msheet-root">
+		<!-- Backdrop -->
+		<button
+			type="button"
+			class="pptx-ng-msheet-backdrop"
+			[attr.aria-label]="'pptx.mobileSheet.close' | translate"
+			(click)="closed.emit()"
+		></button>
+
+		<!-- Panel -->
+		<div
+			#panel
+			class="pptx-ng-msheet-panel"
+			[ngStyle]="panelStyle()"
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+			[attr.aria-label]="title() || ('pptx.mobileSheet.ariaLabel' | translate)"
+		>
+			<!--
+				Drag handle + header form a single swipe-to-dismiss grab
+				region so the gesture isn't limited to the thin pill.
+			-->
+			<div
+				class="pptx-ng-msheet-grab"
+				(pointerdown)="onPointerDown($event)"
+				(pointermove)="onPointerMove($event)"
+				(pointerup)="onPointerUp($event)"
+				(pointercancel)="onPointerUp($event)"
+			>
+				<div class="pptx-ng-msheet-handle-row">
+					<div class="pptx-ng-msheet-handle"></div>
+				</div>
+
+				<!-- Header -->
+				@if (title()) {
+					<div class="pptx-ng-msheet-header">
+						<span class="pptx-ng-msheet-title">{{ title() }}</span>
+					</div>
+				}
+				<button
+					type="button"
+					class="pptx-ng-msheet-close"
+					[attr.aria-label]="'pptx.mobileSheet.close' | translate"
+					(pointerdown)="$event.stopPropagation()"
+					(click)="closed.emit()"
+				>
+					&times;
+				</button>
+			</div>
+
+			<!-- Body -->
+			<div class="pptx-ng-msheet-body">
+				<ng-content />
+			</div>
+		</div>
+	</div>
+}

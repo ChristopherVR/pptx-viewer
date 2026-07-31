@@ -8,20 +8,34 @@ import {
 	THEME_COLOR_SCHEME_KEYS,
 } from 'pptx-viewer-core';
 
+import { themeColorSlotLabelKey } from './schema-token-labels';
+
+/**
+ * Row label per `p:clrMapOvr` alias, as an i18n key where one exists.
+ *
+ * The eight aliases that are named after a theme slot reuse the shared slot
+ * catalogue, so they translate and spell the slot exactly as the picker beside
+ * them does. `bg1`/`tx1`/`bg2`/`tx2` name the colour MAP rather than a slot and
+ * the shared dictionary has no key for them yet, so they stay the English
+ * literal the reference binding shows; `TranslatePipe` echoes an unknown key
+ * unchanged, so both kinds render correctly through the same expression.
+ */
 const LABELS: Record<ColorMapAliasKey, string> = {
 	bg1: 'Background 1',
 	tx1: 'Text 1',
 	bg2: 'Background 2',
 	tx2: 'Text 2',
-	accent1: 'Accent 1',
-	accent2: 'Accent 2',
-	accent3: 'Accent 3',
-	accent4: 'Accent 4',
-	accent5: 'Accent 5',
-	accent6: 'Accent 6',
-	hlink: 'Hyperlink',
-	folHlink: 'Followed Hyperlink',
+	accent1: themeColorSlotLabelKey('accent1'),
+	accent2: themeColorSlotLabelKey('accent2'),
+	accent3: themeColorSlotLabelKey('accent3'),
+	accent4: themeColorSlotLabelKey('accent4'),
+	accent5: themeColorSlotLabelKey('accent5'),
+	accent6: themeColorSlotLabelKey('accent6'),
+	hlink: themeColorSlotLabelKey('hlink'),
+	folHlink: themeColorSlotLabelKey('folHlink'),
 };
+
+export { LABELS as COLOR_MAP_ALIAS_LABEL_KEYS };
 
 export function createIdentityColorMapOverride(): Record<string, string> {
 	return Object.fromEntries(COLOR_MAP_ALIAS_KEYS.map((key) => [key, DEFAULT_COLOR_MAP[key]]));
@@ -41,11 +55,11 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 			@if (active()) {
 				@for (alias of aliases; track alias) {
 					<label class="mapping">
-						<span>{{ labels[alias] }}</span>
+						<span>{{ labels[alias] | translate }}</span>
 						<i [style.background-color]="slotColor(current(alias))"></i>
 						<select [value]="current(alias)" (change)="change(alias, $event)">
 							@for (slot of slots; track slot) {
-								<option [value]="slot">{{ slot }}</option>
+								<option [value]="slot">{{ slotLabelKey(slot) | translate }}</option>
 							}
 						</select>
 					</label>
@@ -105,6 +119,14 @@ export class SlideThemeOverridePanelComponent {
 	protected readonly slots = THEME_COLOR_SCHEME_KEYS;
 	protected readonly labels = LABELS;
 	protected readonly active = computed(() => this.slide().clrMapOverride !== undefined);
+
+	/**
+	 * Spell a target slot: the picker used to offer `dk1` / `folHlink` verbatim,
+	 * which read as noise next to the friendly alias label in the same row.
+	 */
+	protected slotLabelKey(slot: string): string {
+		return themeColorSlotLabelKey(slot);
+	}
 
 	protected current(alias: ColorMapAliasKey): string {
 		return this.slide().clrMapOverride?.[alias] ?? DEFAULT_COLOR_MAP[alias];

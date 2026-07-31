@@ -1,0 +1,35 @@
+@if (isArmed()) {
+	<div
+		class="pptx-ng-anno-wrapper"
+		[ngStyle]="wrapperStyle()"
+		(pointerdown)="onPointerDown($event)"
+		(pointermove)="onPointerMove($event)"
+		(pointerup)="onPointerUp($event)"
+		(pointerleave)="onPointerLeave($event)"
+	>
+		<svg
+			#svg
+			class="pptx-ng-anno-svg"
+			[attr.width]="canvasSize().width"
+			[attr.height]="canvasSize().height"
+			[attr.viewBox]="viewBox()"
+			[ngStyle]="svgStyle()"
+		>
+			@for (s of allStrokes(); track s.id) {
+				<path
+					[attr.d]="strokePath(s.points)"
+					fill="none"
+					[attr.stroke]="s.color"
+					[attr.stroke-width]="s.width"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					[attr.opacity]="s.opacity"
+				/>
+			}
+		</svg>
+
+		@if (service.tool() === 'laser' && service.laserPosition(); as lp) {
+			<div class="pptx-ng-laser-dot" [ngStyle]="laserDotStyle(lp.x, lp.y)"></div>
+		}
+	</div>
+}

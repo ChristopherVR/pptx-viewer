@@ -1,0 +1,172 @@
+:host {
+	position: absolute;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	flex-direction: column;
+	background: #0b0b0c;
+	color: #f5f5f5;
+	font-family: system-ui, sans-serif;
+	padding-top: env(safe-area-inset-top, 0px);
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	padding-left: env(safe-area-inset-left, 0px);
+	padding-right: env(safe-area-inset-right, 0px);
+}
+
+.pptx-ng-mpresenter-header,
+.pptx-ng-mpresenter-next,
+.pptx-ng-mpresenter-ctl {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 1rem;
+}
+
+.pptx-ng-mpresenter-header {
+	justify-content: space-between;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pptx-ng-mpresenter-label {
+	font-size: 0.625rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+.pptx-ng-mpresenter-elapsed {
+	font-family: ui-monospace, monospace;
+	font-variant-numeric: tabular-nums;
+	font-size: 1.125rem;
+	color: #6ea8fe;
+}
+
+.pptx-ng-mpresenter-counter {
+	font-family: ui-monospace, monospace;
+	font-variant-numeric: tabular-nums;
+	font-size: 0.875rem;
+}
+
+.pptx-ng-mpresenter-exit {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	min-height: 44px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.75);
+	cursor: pointer;
+	font-size: 1.25rem;
+	line-height: 1;
+}
+
+.pptx-ng-mpresenter-exit:hover {
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+}
+
+.pptx-ng-mpresenter-main {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #000;
+	padding: 0.75rem;
+}
+
+.pptx-ng-mpresenter-main-stage {
+	width: 100%;
+	max-width: 640px;
+}
+
+.pptx-ng-mpresenter-next {
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pptx-ng-mpresenter-thumb {
+	flex: 0 0 auto;
+	overflow: hidden;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	border-radius: 4px;
+}
+
+.pptx-ng-mpresenter-next-empty {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: center;
+	justify-content: center;
+	height: 3rem;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.04);
+	font-size: 0.625rem;
+	font-style: italic;
+	color: rgba(255, 255, 255, 0.5);
+}
+
+.pptx-ng-mpresenter-notes {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding: 0.5rem 1rem;
+}
+
+.pptx-ng-mpresenter-notes-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	margin-top: 0.25rem;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.04);
+	padding: 0.5rem 0.75rem;
+	white-space: pre-wrap;
+	line-height: 1.5;
+	font-size: 15px;
+}
+
+.pptx-ng-mpresenter-notes-empty {
+	font-style: italic;
+	color: rgba(255, 255, 255, 0.5);
+}
+
+.pptx-ng-mpresenter-ctl {
+	justify-content: space-between;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pptx-ng-mpresenter-navbtn {
+	flex: 1 1 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.375rem;
+	height: 44px;
+	border: none;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.08);
+	color: #f5f5f5;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.pptx-ng-mpresenter-navbtn:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.16);
+}
+
+.pptx-ng-mpresenter-navbtn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.pptx-ng-mpresenter-empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: rgba(255, 255, 255, 0.6);
+}

@@ -1,0 +1,32 @@
+:host {
+	display: block;
+	position: absolute;
+	inset: 0;
+	/* Pointer-events toggled dynamically via [ngStyle] on the inner wrapper. */
+	pointer-events: none;
+}
+
+.pptx-ng-anno-wrapper {
+	position: absolute;
+	inset: 0;
+}
+
+.pptx-ng-anno-svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	/* The SVG is authored at the native canvas size and scaled up/down. */
+	transform-origin: top left;
+	overflow: visible;
+}
+
+.pptx-ng-laser-dot {
+	position: absolute;
+	border-radius: 50%;
+	pointer-events: none;
+	background: rgba(255, 0, 0, 0.85);
+	box-shadow:
+		0 0 12px 6px rgba(255, 0, 0, 0.5),
+		0 0 24px 12px rgba(255, 0, 0, 0.25);
+	filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.7));
+}

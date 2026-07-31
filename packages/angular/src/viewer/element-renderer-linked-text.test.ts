@@ -13,18 +13,18 @@
  * `buildParagraphs`, it has its own inlined signal reimplementation, so this
  * binding can silently drift from the other four in a way no shared test sees.
  */
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { PptxElement, PptxElementWithText, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildTextBlockStyle, getOverflowSegments } from '../internal/shared';
+import { componentSource } from './component-source.test-support';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const rendererSource = readFileSync(resolve(here, 'element-renderer.component.ts'), 'utf8');
-const canvasSource = readFileSync(resolve(here, 'slide-canvas.component.ts'), 'utf8');
+const rendererSource = componentSource(here, 'element-renderer.component.ts');
+const canvasSource = componentSource(here, 'slide-canvas.component.ts');
 
 /**
  * A box small enough that the core capacity estimate resolves to exactly 3

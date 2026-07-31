@@ -1,0 +1,169 @@
+<div #root class="pptx-ng-presentation-root">
+	<!--
+		Slide counter, rendered first in DOM (before slide content) so a
+		generic "N / M" text query resolves to it rather than to any slide-text
+		run that happens to read like "24 / 7". Position is fixed, so DOM order
+		does not affect its on-screen placement.
+	-->
+	<span class="pptx-ng-presentation-counter" [ngStyle]="counterStyle">
+		{{ counterLabel() }}
+	</span>
+
+	<!-- Black "End of slide show" screen: the show has run past its last
+	     slide. It MUST be visible - while it is up the next input either
+	     goes nowhere (backward) or ends the show (forward), so a deck that
+	     kept painting the last slide looked stuck and swallowed advances. -->
+	@if (endOfShow()) {
+		<button
+			type="button"
+			class="pptx-ng-presentation-end"
+			data-pptx-end-of-show
+			(click)="onEndScreenClick($event)"
+		>
+			<span>{{ 'pptx.presentation.endOfSlideShow' | translate }}</span>
+		</button>
+	}
+
+	<div
+		#stage
+		class="pptx-ng-presentation-stage"
+		[ngStyle]="stageContainerStyle()"
+		(click)="onBodyClick($event)"
+		(mouseover)="onStageHover($event)"
+		(mouseout)="onStageHoverEnd($event)"
+		(contextmenu)="$event.preventDefault()"
+	>
+		<pptx-slide-canvas
+			[slide]="currentSlide()"
+			[canvasSize]="canvasSize()"
+			[mediaDataUrls]="mediaDataUrls()"
+			[zoom]="zoom()"
+			[autoFit]="false"
+			[interactive]="false"
+			[presenting]="true"
+		/>
+
+		@if (activeTransition(); as t) {
+			<pptx-presentation-transition-overlay
+				[outgoingSlide]="t.outgoing"
+				[incomingSlide]="currentSlide()"
+				[canvasSize]="canvasSize()"
+				[transition]="t.transition"
+				[mediaDataUrls]="mediaDataUrls()"
+				[zoom]="zoom()"
+				(complete)="activeTransition.set(null)"
+			/>
+		}
+
+		<!-- Ink annotation overlay (pen/highlighter/eraser/laser). Ctrl+M
+		     hides the markup without discarding the strokes. -->
+		@if (inkMarkupVisible()) {
+			<pptx-presentation-annotation-overlay [canvasSize]="canvasSize()" [zoom]="zoom()" />
+		}
+	</div>
+	@if (presenterWindow.snapshot().blackout !== 'none') {
+		<div class="presenter-blank" [style.background]="presenterWindow.snapshot().blackout"></div>
+	}
+	@if (presenterWindow.snapshot().pointer?.tool === 'laser') {
+		<div
+			class="presenter-laser"
+			[style.left.%]="(presenterWindow.snapshot().pointer?.x ?? 0.5) * 100"
+			[style.top.%]="(presenterWindow.snapshot().pointer?.y ?? 0.5) * 100"
+		></div>
+	}
+	@if (presenterWindow.snapshot().subtitlesVisible && presenterWindow.snapshot().caption) {
+		<div class="presenter-caption">{{ presenterWindow.snapshot().caption }}</div>
+	}
+
+	<!-- Live-caption (subtitle) bar. -->
+	<pptx-presentation-subtitle-bar [visible]="subtitlesVisible()" />
+
+	<!-- Annotation tool toolbar (bottom-centre). -->
+	<div
+		class="pptx-ng-presentation-tools"
+		role="toolbar"
+		[attr.aria-label]="'pptx.presentation.annotationTools' | translate"
+	>
+		<button
+			type="button"
+			[class.is-active]="annotations.tool() === 'pen'"
+			(click)="selectTool('pen')"
+			[attr.aria-label]="'pptx.presentation.pen' | translate"
+		>
+			<svg lucidePenTool class="h-4 w-4"></svg>
+		</button>
+		<button
+			type="button"
+			[class.is-active]="annotations.tool() === 'highlighter'"
+			(click)="selectTool('highlighter')"
+			[attr.aria-label]="'pptx.presentation.highlighter' | translate"
+		>
+			<svg lucideHighlighter class="h-4 w-4"></svg>
+		</button>
+		<button
+			type="button"
+			[class.is-active]="annotations.tool() === 'eraser'"
+			(click)="selectTool('eraser')"
+			[attr.aria-label]="'pptx.presentation.eraser' | translate"
+		>
+			<svg lucideEraser class="h-4 w-4"></svg>
+		</button>
+		<button
+			type="button"
+			[class.is-active]="annotations.tool() === 'laser'"
+			(click)="selectTool('laser')"
+			[attr.aria-label]="'pptx.presentation.laserPointer' | translate"
+		>
+			<svg lucideMousePointer2 class="h-4 w-4"></svg>
+		</button>
+		<button
+			type="button"
+			(click)="annotations.clearAnnotations()"
+			[attr.aria-label]="'pptx.presentation.clearAnnotations' | translate"
+		>
+			<svg lucideTrash2 class="h-4 w-4"></svg>
+		</button>
+		<button
+			type="button"
+			[class.is-active]="subtitlesVisible()"
+			(click)="toggleSubtitles()"
+			[attr.aria-label]="'pptx.presentation.liveCaptions' | translate"
+		>
+			CC
+		</button>
+	</div>
+
+	<!-- Always-visible close button (top-right, safe-area aware). -->
+	<button
+		type="button"
+		class="pptx-ng-presentation-close"
+		[ngStyle]="closeButtonStyle"
+		(click)="onChromeButton($event, 'close')"
+		(touchend)="onChromeButtonTouch($event, 'close')"
+		[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
+	>
+		<svg lucideX class="h-5 w-5"></svg>
+	</button>
+
+	<!-- Edge navigation buttons (vertically centred, touch-friendly). -->
+	<button
+		type="button"
+		class="pptx-ng-presentation-nav pptx-ng-presentation-prev"
+		[ngStyle]="prevButtonStyle"
+		(click)="onChromeButton($event, 'prev')"
+		(touchend)="onChromeButtonTouch($event, 'prev')"
+		[attr.aria-label]="'pptx.presenter.previousSlide' | translate"
+	>
+		<svg lucideChevronLeft class="h-6 w-6"></svg>
+	</button>
+	<button
+		type="button"
+		class="pptx-ng-presentation-nav pptx-ng-presentation-next"
+		[ngStyle]="nextButtonStyle"
+		(click)="onChromeButton($event, 'next')"
+		(touchend)="onChromeButtonTouch($event, 'next')"
+		[attr.aria-label]="'pptx.presenter.nextSlide' | translate"
+	>
+		<svg lucideChevronRight class="h-6 w-6"></svg>
+	</button>
+</div>

@@ -13,35 +13,27 @@
  * verbatim from the shared {@link TITLE_BAR_CLASSES} so the three bindings stay
  * pixel-identical. The host is a plain block (no `display:contents`) so the row
  * renders as one 36px flex strip.
+ *
+ * The search box and its command palette live in
+ * {@link TitleBarSearchComponent}: they are the only stateful part of this row,
+ * and keeping them here pushed the file past the repo's 300 LOC ceiling.
  */
 import { NgClass } from '@angular/common';
-import {
-	ChangeDetectionStrategy,
-	Component,
-	computed,
-	inject,
-	input,
-	output,
-	signal,
-} from '@angular/core';
-import { LucideRedo, LucideSave, LucideSearch, LucideUndo } from '@lucide/angular';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { LucideRedo, LucideSave, LucideUndo } from '@lucide/angular';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import {
 	DEFAULT_VIEWER_OPTIONS,
 	extraQuickAccessCommands,
-	filterCommands,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from '../internal/shared';
-import type {
-	CommandSearchEntry,
-	ToolbarActionId,
-	ViewerQuickAccessOptions,
-} from '../internal/shared';
+import type { ToolbarActionId, ViewerQuickAccessOptions } from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
 import { QuickAccessStripComponent } from './quick-access-strip.component';
+import { TitleBarSearchComponent } from './title-bar-search.component';
 import { toolbarVisibility } from './toolbar-visibility';
 
 /**
@@ -74,8 +66,8 @@ export function narrowToExtraQuickAccess(
 		LucideSave,
 		LucideUndo,
 		LucideRedo,
-		LucideSearch,
 		QuickAccessStripComponent,
+		TitleBarSearchComponent,
 	],
 	template: `
 		<div [class]="tb.container" data-pptx-title-bar>
@@ -172,72 +164,11 @@ export function narrowToExtraQuickAccess(
 
 			<span [class]="tb.searchWrap">
 				@if (canEdit()) {
-					<div class="relative w-full max-w-md">
-						<div
-							[class]="tb.searchBox"
-							[ngClass]="
-								searchFocused() || findReplaceOpen() ? 'text-foreground bg-background' : ''
-							"
-						>
-							<span [class]="tb.searchIcon" aria-hidden="true"
-								><svg lucideSearch class="h-3.5 w-3.5"></svg
-							></span>
-							<input
-								type="text"
-								[value]="searchQuery()"
-								(input)="searchQuery.set($any($event.target).value)"
-								(focus)="searchFocused.set(true)"
-								(blur)="onSearchBlur()"
-								(keydown)="onSearchKeyDown($event)"
-								class="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60"
-								[placeholder]="'pptx.titleBar.searchPlaceholder' | translate"
-								[attr.aria-label]="'pptx.titleBar.search' | translate"
-							/>
-						</div>
-						@if (searchFocused() && searchQuery().trim()) {
-							<div
-								class="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto"
-							>
-								@if (commandResults().length > 0) {
-									<div
-										class="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
-									>
-										{{ 'pptx.titleBar.searchCommands' | translate }}
-									</div>
-									@for (entry of commandResults().slice(0, 8); track entry.command) {
-										<button
-											type="button"
-											class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
-											(mousedown)="selectCommand(entry)"
-										>
-											<span class="truncate">{{ entry.labelKey | translate }}</span>
-											<span class="ml-auto text-[10px] text-muted-foreground capitalize">{{
-												entry.category
-											}}</span>
-										</button>
-									}
-								} @else {
-									<div class="px-3 py-2 text-xs text-muted-foreground">
-										{{ 'pptx.titleBar.searchNoResults' | translate }}
-									</div>
-								}
-								<div class="border-t border-border/60">
-									<button
-										type="button"
-										class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
-										(mousedown)="openFindReplace()"
-									>
-										<svg lucideSearch class="h-3.5 w-3.5"></svg>
-										<span
-											>{{ 'pptx.titleBar.searchContent' | translate }} &ldquo;{{
-												searchQuery()
-											}}&rdquo;</span
-										>
-									</button>
-								</div>
-							</div>
-						}
-					</div>
+					<pptx-title-bar-search
+						[findReplaceOpen]="findReplaceOpen()"
+						(commandSearch)="commandSearch.emit($event)"
+						(toggleFindReplace)="toggleFindReplace.emit()"
+					/>
 				}
 			</span>
 
@@ -276,13 +207,9 @@ export class TitleBarComponent {
 	readonly toggleFindReplace = output<void>();
 	readonly commandSearch = output<string>();
 
-	private readonly translate = inject(TranslateService);
 	protected readonly tb = TITLE_BAR_CLASSES;
 	protected readonly defaultFileKey = TITLE_BAR_DEFAULT_FILE_KEY;
 	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
-
-	protected readonly searchQuery = signal('');
-	protected readonly searchFocused = signal(false);
 
 	/** Resolved Quick Access options (host-supplied, or the default trio+). */
 	protected readonly qat = computed<ViewerQuickAccessOptions>(
@@ -313,10 +240,6 @@ export class TitleBarComponent {
 		}
 	}
 
-	protected readonly commandResults = computed(() =>
-		filterCommands(this.searchQuery(), (key) => this.translate.instant(key)),
-	);
-
 	/** The i18n key for the save-location status text (next to the file name). */
 	protected readonly statusKey = computed(() => {
 		const status = this.autosaveStatus();
@@ -342,35 +265,4 @@ export class TitleBarComponent {
 		}
 		return '';
 	});
-
-	protected selectCommand(entry: CommandSearchEntry): void {
-		this.commandSearch.emit(entry.command);
-		this.searchQuery.set('');
-		this.searchFocused.set(false);
-	}
-
-	protected openFindReplace(): void {
-		this.toggleFindReplace.emit();
-		this.searchFocused.set(false);
-		this.searchQuery.set('');
-	}
-
-	protected onSearchBlur(): void {
-		// Delay to allow mousedown on dropdown items to fire first.
-		setTimeout(() => this.searchFocused.set(false), 150);
-	}
-
-	protected onSearchKeyDown(event: KeyboardEvent): void {
-		if (event.key === 'Enter' && this.searchQuery().trim()) {
-			const results = this.commandResults();
-			if (results.length > 0) {
-				this.selectCommand(results[0]);
-			} else {
-				this.openFindReplace();
-			}
-		} else if (event.key === 'Escape') {
-			this.searchQuery.set('');
-			this.searchFocused.set(false);
-		}
-	}
 }

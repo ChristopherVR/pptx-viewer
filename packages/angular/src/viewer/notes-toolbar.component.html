@@ -1,0 +1,82 @@
+<div
+	class="pptx-ng-notes-toolbar"
+	role="toolbar"
+	[attr.aria-label]="'pptx.notesToolbar.ariaLabel' | translate"
+>
+	<div class="pptx-ng-notes-tb-group">
+		@for (btn of buttons; track btn.labelKey) {
+			<button
+				type="button"
+				class="pptx-ng-notes-tb-btn"
+				[class.has-divider]="btn.group"
+				[title]="btn.labelKey | translate"
+				[attr.aria-label]="btn.labelKey | translate"
+				(click)="run(btn.action)"
+			>
+				<svg
+					viewBox="0 0 24 24"
+					width="14"
+					height="14"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path [attr.d]="btn.path" />
+				</svg>
+			</button>
+		}
+
+		@if (showLinkPopover()) {
+			<div class="pptx-ng-notes-link-popover">
+				<form (submit)="submitLink($event)">
+					<label class="pptx-ng-notes-link-label">{{ 'pptx.notes.linkUrl' | translate }}</label>
+					<input
+						#linkUrlInput
+						class="pptx-ng-notes-link-input"
+						type="text"
+						[attr.placeholder]="'pptx.notes.linkUrlPlaceholder' | translate"
+						[value]="linkUrl()"
+						(input)="linkUrl.set(asValue($event))"
+					/>
+					<label class="pptx-ng-notes-link-label">{{
+						'pptx.notes.linkDisplayText' | translate
+					}}</label>
+					<input
+						class="pptx-ng-notes-link-input"
+						type="text"
+						[attr.placeholder]="'pptx.notes.linkDisplayText' | translate"
+						[value]="linkText()"
+						(input)="linkText.set(asValue($event))"
+					/>
+					<div class="pptx-ng-notes-link-actions">
+						<button
+							type="button"
+							class="pptx-ng-notes-link-cancel"
+							(click)="closeLinkPopover.emit()"
+						>
+							{{ 'pptx.common.cancel' | translate }}
+						</button>
+						<button type="submit" class="pptx-ng-notes-link-insert">
+							{{ 'pptx.notes.insertLink' | translate }}
+						</button>
+					</div>
+				</form>
+			</div>
+		}
+	</div>
+
+	<button
+		type="button"
+		class="pptx-ng-notes-tb-toggle"
+		[title]="
+			(isRichEnabled() ? 'pptx.notes.switchToPlainEditor' : 'pptx.notes.switchToRichEditor')
+				| translate
+		"
+		(click)="toggleRich.emit()"
+	>
+		{{ (isRichEnabled() ? 'pptx.notes.plainEditor' : 'pptx.notes.richEditor') | translate }}
+	</button>
+</div>

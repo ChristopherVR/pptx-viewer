@@ -28,18 +28,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { LucideArrowDown, LucideArrowUp, LucideX } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import type {
-	PptxAnimationDirection,
-	PptxAnimationPreset,
-	PptxAnimationRepeatMode,
-	PptxAnimationSequence,
-	PptxAnimationTimingCurve,
-	PptxAnimationTrigger,
-	PptxElement,
-	PptxElementAnimation,
-} from 'pptx-viewer-core';
+import type { PptxAnimationDirection, PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 
 import { applyMotionPathPreset, clearMotionPath } from '../internal/shared';
+import {
+	ANIMATION_NUMBER_SETTERS,
+	ANIMATION_SELECT_SETTERS,
+	numberFromInput,
+	setTriggerShape,
+	stringFromSelect,
+} from './animation-author-fields';
+import type { AnimationNumberField, AnimationSelectField } from './animation-author-fields';
 import {
 	DIRECTION_OPTIONS,
 	EMPHASIS_PRESETS,
@@ -54,18 +53,7 @@ import {
 	removeAnimation,
 	reorderAnimationDown,
 	reorderAnimationUp,
-	setAnimationEmphasis,
-	setAnimationEntrance,
-	setAnimationExit,
-	setDelay,
 	setDirection,
-	setDuration,
-	setRepeatCount,
-	setRepeatMode,
-	setSequence,
-	setTimingCurve,
-	setTrigger,
-	setTriggerShapeId,
 	showDirectionPicker,
 } from './animation-author-helpers';
 import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
@@ -85,515 +73,8 @@ import { MotionPathRowComponent } from './motion-path-row.component';
 		AnimationTimelineComponent,
 		MotionPathRowComponent,
 	],
-	template: `
-		<aside class="pptx-ng-anim" [attr.aria-label]="'pptx.animations.propertiesLabel' | translate">
-			<!-- ── Header ───────────────────────────────────────────────────── -->
-			<div class="pptx-ng-anim__header">
-				<span class="pptx-ng-anim__title">{{ 'pptx.animations.animation' | translate }}</span>
-				@if (currentHasAnimation()) {
-					<div class="pptx-ng-anim__header-actions">
-						<button
-							type="button"
-							class="pptx-ng-anim__preview-btn"
-							[title]="'pptx.animations.previewTooltip' | translate"
-							(click)="onPreview()"
-						>
-							{{ 'pptx.animations.preview' | translate }}
-						</button>
-						<button
-							type="button"
-							class="pptx-ng-anim__remove-btn inline-flex items-center gap-1"
-							[disabled]="!canEdit()"
-							[title]="'pptx.animations.removeFromElement' | translate"
-							(click)="onRemove()"
-						>
-							<svg lucideX class="h-3.5 w-3.5"></svg> {{ 'pptx.animations.remove' | translate }}
-						</button>
-					</div>
-				}
-			</div>
-
-			<!-- ── Entrance preset ──────────────────────────────────────────── -->
-			<section class="pptx-ng-anim__section">
-				<label class="pptx-ng-anim__label" for="anim-entrance">{{
-					'pptx.animations.group.entrance' | translate
-				}}</label>
-				<select
-					id="anim-entrance"
-					class="pptx-ng-anim__select"
-					[disabled]="!canEdit()"
-					[value]="current()?.entrance ?? 'none'"
-					(change)="onEntranceChange($event)"
-				>
-					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
-					@for (opt of entrancePresets; track opt.value) {
-						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-					}
-				</select>
-			</section>
-
-			<!-- ── Emphasis preset ──────────────────────────────────────────── -->
-			<section class="pptx-ng-anim__section">
-				<label class="pptx-ng-anim__label" for="anim-emphasis">{{
-					'pptx.animations.group.emphasis' | translate
-				}}</label>
-				<select
-					id="anim-emphasis"
-					class="pptx-ng-anim__select"
-					[disabled]="!canEdit()"
-					[value]="current()?.emphasis ?? 'none'"
-					(change)="onEmphasisChange($event)"
-				>
-					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
-					@for (opt of emphasisPresets; track opt.value) {
-						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-					}
-				</select>
-			</section>
-
-			<!-- ── Exit preset ──────────────────────────────────────────────── -->
-			<section class="pptx-ng-anim__section">
-				<label class="pptx-ng-anim__label" for="anim-exit">{{
-					'pptx.animations.group.exit' | translate
-				}}</label>
-				<select
-					id="anim-exit"
-					class="pptx-ng-anim__select"
-					[disabled]="!canEdit()"
-					[value]="current()?.exit ?? 'none'"
-					(change)="onExitChange($event)"
-				>
-					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
-					@for (opt of exitPresets; track opt.value) {
-						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-					}
-				</select>
-			</section>
-
-			<!-- ── Motion path: geometry, not a preset, so it gets its own row ─ -->
-			<section class="pptx-ng-anim__section">
-				<pptx-motion-path-row
-					[motionPath]="current()?.motionPath"
-					[canEdit]="canEdit()"
-					(presetChange)="onMotionPathChange($event)"
-				/>
-			</section>
-
-			<!-- ── Effect options: only shown when an animation is set ─────── -->
-			@if (currentHasAnimation()) {
-				<!-- ── Direction picker (directional presets only) ──────────── -->
-				@if (currentShowDirection()) {
-					<section class="pptx-ng-anim__section">
-						<span class="pptx-ng-anim__label">{{ 'pptx.animations.direction' | translate }}</span>
-						<div class="pptx-ng-anim__direction-grid">
-							@for (opt of directionOptions; track opt.value) {
-								<button
-									type="button"
-									class="pptx-ng-anim__dir-btn"
-									[class.is-active]="current()?.direction === opt.value"
-									[disabled]="!canEdit()"
-									[title]="opt.labelKey | translate"
-									(click)="onDirectionChange(opt.value)"
-								>
-									{{ opt.arrow }}
-								</button>
-							}
-						</div>
-					</section>
-				}
-
-				<!-- ── Sequence ─────────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-sequence">{{
-						'pptx.animations.sequence' | translate
-					}}</label>
-					<select
-						id="anim-sequence"
-						class="pptx-ng-anim__select"
-						[disabled]="!canEdit()"
-						[value]="current()?.sequence ?? 'asOne'"
-						(change)="onSequenceChange($event)"
-					>
-						@for (opt of sequenceOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-						}
-					</select>
-				</section>
-
-				<!-- ── Timing heading ────────────────────────────────────────── -->
-				<div class="pptx-ng-anim__subheading">{{ 'pptx.animations.timing' | translate }}</div>
-
-				<!-- ── Trigger ──────────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-trigger">{{
-						'pptx.animations.trigger' | translate
-					}}</label>
-					<select
-						id="anim-trigger"
-						class="pptx-ng-anim__select"
-						[disabled]="!canEdit()"
-						[value]="current()?.trigger ?? 'onClick'"
-						(change)="onTriggerChange($event)"
-					>
-						@for (opt of triggerOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-						}
-					</select>
-				</section>
-
-				<!-- ── Trigger shape (onShapeClick only) ─────────────────────── -->
-				@if (current()?.trigger === 'onShapeClick') {
-					<section class="pptx-ng-anim__section">
-						<label class="pptx-ng-anim__label" for="anim-trigger-shape">{{
-							'pptx.animations.triggerShape' | translate
-						}}</label>
-						<select
-							id="anim-trigger-shape"
-							class="pptx-ng-anim__select"
-							[disabled]="!canEdit()"
-							[value]="current()?.triggerShapeId ?? ''"
-							(change)="onTriggerShapeChange($event)"
-						>
-							<option value="">{{ 'pptx.animations.selectShapeOption' | translate }}</option>
-							@for (el of otherElements(); track el.id) {
-								<option [value]="el.id">{{ elementLabel(el) }}</option>
-							}
-						</select>
-					</section>
-				}
-
-				<!-- ── Duration ─────────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					@if (elementKey(); as key) {
-						<div [attr.data-el-key]="key">
-							<label class="pptx-ng-anim__label" for="anim-duration">{{
-								'pptx.animations.durationMs' | translate
-							}}</label>
-							<input
-								id="anim-duration"
-								class="pptx-ng-anim__input"
-								type="number"
-								inputmode="numeric"
-								min="100"
-								max="10000"
-								step="50"
-								[disabled]="!canEdit()"
-								[value]="seed().durationMs"
-								(change)="onDurationChange($event)"
-							/>
-						</div>
-					}
-				</section>
-
-				<!-- ── Delay ────────────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					@if (elementKey(); as key) {
-						<div [attr.data-el-key]="key">
-							<label class="pptx-ng-anim__label" for="anim-delay">{{
-								'pptx.animations.delayMs' | translate
-							}}</label>
-							<input
-								id="anim-delay"
-								class="pptx-ng-anim__input"
-								type="number"
-								inputmode="numeric"
-								min="0"
-								max="10000"
-								step="50"
-								[disabled]="!canEdit()"
-								[value]="seed().delayMs"
-								(change)="onDelayChange($event)"
-							/>
-						</div>
-					}
-				</section>
-
-				<!-- ── Timing curve ──────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-timing-curve">{{
-						'pptx.animations.timingCurve' | translate
-					}}</label>
-					<select
-						id="anim-timing-curve"
-						class="pptx-ng-anim__select"
-						[disabled]="!canEdit()"
-						[value]="current()?.timingCurve ?? 'ease'"
-						(change)="onTimingCurveChange($event)"
-					>
-						@for (opt of timingCurveOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-						}
-					</select>
-				</section>
-
-				<!-- ── Repeat count ──────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					@if (elementKey(); as key) {
-						<div [attr.data-el-key]="key">
-							<label class="pptx-ng-anim__label" for="anim-repeat-count">{{
-								'pptx.animations.repeat' | translate
-							}}</label>
-							<input
-								id="anim-repeat-count"
-								class="pptx-ng-anim__input"
-								type="number"
-								inputmode="numeric"
-								min="1"
-								max="100"
-								step="1"
-								[disabled]="!canEdit()"
-								[value]="seed().repeatCount"
-								(change)="onRepeatCountChange($event)"
-							/>
-						</div>
-					}
-				</section>
-
-				<!-- ── Repeat mode ───────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-repeat-mode">{{
-						'pptx.animations.repeatUntil' | translate
-					}}</label>
-					<select
-						id="anim-repeat-mode"
-						class="pptx-ng-anim__select"
-						[disabled]="!canEdit()"
-						[value]="current()?.repeatMode ?? 'none'"
-						(change)="onRepeatModeChange($event)"
-					>
-						@for (opt of repeatModeOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
-						}
-					</select>
-				</section>
-
-				<!-- ── Order controls ────────────────────────────────────────── -->
-				<section class="pptx-ng-anim__section">
-					<span class="pptx-ng-anim__label">{{
-						'pptx.animations.order' | translate: { value: orderLabel() }
-					}}</span>
-					<div class="pptx-ng-anim__row">
-						<button
-							type="button"
-							class="pptx-ng-anim__order-btn inline-flex items-center gap-1"
-							[disabled]="!canEdit()"
-							[title]="'pptx.animations.moveEarlier' | translate"
-							(click)="onMoveUp()"
-						>
-							<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
-							{{ 'pptx.animations.earlier' | translate }}
-						</button>
-						<button
-							type="button"
-							class="pptx-ng-anim__order-btn inline-flex items-center gap-1"
-							[disabled]="!canEdit()"
-							[title]="'pptx.animations.moveLater' | translate"
-							(click)="onMoveDown()"
-						>
-							<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
-							{{ 'pptx.animations.later' | translate }}
-						</button>
-					</div>
-				</section>
-
-				<pptx-animation-timeline
-					[animations]="animations()"
-					[elements]="slideElements()"
-					[selectedElementId]="element().id"
-					[canEdit]="canEdit()"
-					(animationsChange)="animationsChange.emit($event)"
-				/>
-			}
-			<!-- end @if (currentHasAnimation()) -->
-		</aside>
-	`,
-	styles: `
-		.pptx-ng-anim {
-			display: flex;
-			flex-direction: column;
-			gap: 0;
-			padding: 0.5rem;
-			background: var(--pptx-inspector-bg, #1e1e1e);
-			color: var(--pptx-inspector-fg, #e0e0e0);
-			font-size: 12px;
-			min-width: 220px;
-			overflow-y: auto;
-		}
-
-		.pptx-ng-anim__header {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding-bottom: 0.4rem;
-			border-bottom: 1px solid var(--pptx-inspector-border, #333);
-			margin-bottom: 0.35rem;
-		}
-
-		.pptx-ng-anim__title {
-			font-size: 10px;
-			font-weight: 600;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
-			color: var(--pptx-inspector-muted, #888);
-		}
-		.pptx-ng-anim__header-actions {
-			display: flex;
-			align-items: center;
-			gap: 4px;
-		}
-		.pptx-ng-anim__preview-btn {
-			padding: 2px 6px;
-			border: 1px solid var(--pptx-primary, #4c9ffe);
-			border-radius: 3px;
-			background: transparent;
-			color: var(--pptx-primary, #4c9ffe);
-			cursor: pointer;
-			font-size: 10px;
-		}
-
-		.pptx-ng-anim__subheading {
-			font-size: 10px;
-			font-weight: 600;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
-			color: var(--pptx-inspector-muted, #888);
-			padding: 0.4rem 0 0.2rem;
-			border-top: 1px solid var(--pptx-inspector-border, #333);
-			margin-top: 0.2rem;
-		}
-
-		.pptx-ng-anim__section {
-			padding: 0.25rem 0;
-			border-bottom: 1px solid var(--pptx-inspector-border, #2a2a2a);
-		}
-
-		.pptx-ng-anim__section:last-child {
-			border-bottom: none;
-		}
-
-		.pptx-ng-anim__label {
-			display: block;
-			font-size: 10px;
-			color: var(--pptx-inspector-muted, #888);
-			margin-bottom: 0.2rem;
-		}
-
-		.pptx-ng-anim__select,
-		.pptx-ng-anim__input {
-			width: 100%;
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			border: 1px solid var(--pptx-inspector-border, #444);
-			color: inherit;
-			border-radius: 3px;
-			padding: 3px 6px;
-			font-size: 12px;
-			box-sizing: border-box;
-		}
-
-		.pptx-ng-anim__select:disabled,
-		.pptx-ng-anim__input:disabled {
-			opacity: 0.5;
-			cursor: not-allowed;
-		}
-
-		.pptx-ng-anim__direction-grid {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.25rem;
-		}
-
-		.pptx-ng-anim__dir-btn {
-			width: 30px;
-			height: 30px;
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			border: 1px solid var(--pptx-inspector-border, #444);
-			color: inherit;
-			border-radius: 3px;
-			cursor: pointer;
-			font-size: 14px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.pptx-ng-anim__dir-btn.is-active {
-			background: var(--pptx-inspector-active, #0078d4);
-			border-color: var(--pptx-inspector-active, #0078d4);
-			color: #fff;
-		}
-
-		.pptx-ng-anim__dir-btn:disabled {
-			opacity: 0.5;
-			cursor: not-allowed;
-		}
-
-		.pptx-ng-anim__row {
-			display: flex;
-			gap: 0.35rem;
-		}
-
-		.pptx-ng-anim__order-btn {
-			flex: 1;
-			padding: 3px 6px;
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			border: 1px solid var(--pptx-inspector-border, #444);
-			color: inherit;
-			border-radius: 3px;
-			cursor: pointer;
-			font-size: 11px;
-			white-space: nowrap;
-		}
-
-		.pptx-ng-anim__order-btn:hover:not(:disabled) {
-			background: var(--pptx-inspector-hover, #3a3a3a);
-		}
-
-		.pptx-ng-anim__order-btn:disabled {
-			opacity: 0.5;
-			cursor: not-allowed;
-		}
-
-		.pptx-ng-anim__remove-btn {
-			padding: 2px 6px;
-			background: transparent;
-			border: 1px solid var(--pptx-inspector-danger-border, #6b2a2a);
-			color: var(--pptx-inspector-danger, #f47c7c);
-			border-radius: 3px;
-			cursor: pointer;
-			font-size: 10px;
-		}
-
-		.pptx-ng-anim__remove-btn:hover {
-			background: var(--pptx-inspector-danger-hover, #4a1a1a);
-		}
-
-		/* ── Touch / mobile ──────────────────────────────────────────────────── */
-		@media (pointer: coarse), (max-width: 640px) {
-			.pptx-ng-anim {
-				width: 100%;
-				min-width: 0;
-				box-sizing: border-box;
-				font-size: 14px;
-			}
-
-			.pptx-ng-anim__select,
-			.pptx-ng-anim__input {
-				min-height: 40px;
-				font-size: 16px; /* prevents iOS auto-zoom */
-				padding: 6px 8px;
-			}
-
-			.pptx-ng-anim__dir-btn {
-				width: 40px;
-				height: 40px;
-			}
-
-			.pptx-ng-anim__order-btn {
-				min-height: 40px;
-				font-size: 13px;
-			}
-		}
-	`,
+	templateUrl: './animation-author-panel.component.html',
+	styleUrl: './animation-author-panel.component.css',
 })
 export class AnimationAuthorPanelComponent {
 	private readonly translate = inject(TranslateService);
@@ -716,30 +197,49 @@ export class AnimationAuthorPanelComponent {
 		}
 	}
 
-	// ── Preset handlers ───────────────────────────────────────────────────────
+	// ── Control handlers ─────────────────────────────────────────────────────
 
-	protected onEntranceChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationPreset | 'none' | undefined;
+	/**
+	 * Every `<select>` in the panel commits through here. The field name picks the
+	 * shared patch builder out of {@link ANIMATION_SELECT_SETTERS}; see that
+	 * module for why there is one handler rather than seven.
+	 */
+	protected onSelect(event: Event, field: AnimationSelectField): void {
+		const value = stringFromSelect(event);
 		if (value === undefined) {
 			return;
 		}
-		this.emit(setAnimationEntrance(this.animations(), this.element().id, value));
+		const apply = ANIMATION_SELECT_SETTERS[field] as (
+			animations: readonly PptxElementAnimation[],
+			elementId: string,
+			value: string,
+		) => PptxElementAnimation[];
+		this.emit(apply(this.animations(), this.element().id, value));
 	}
 
-	protected onExitChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationPreset | 'none' | undefined;
-		if (value === undefined) {
+	/** Every numeric `<input>` in the panel commits through here. */
+	protected onNumber(event: Event, field: AnimationNumberField): void {
+		const value = numberFromInput(event);
+		if (value === null) {
 			return;
 		}
-		this.emit(setAnimationExit(this.animations(), this.element().id, value));
+		this.emit(ANIMATION_NUMBER_SETTERS[field](this.animations(), this.element().id, value));
 	}
 
-	protected onEmphasisChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationPreset | 'none' | undefined;
-		if (value === undefined) {
-			return;
-		}
-		this.emit(setAnimationEmphasis(this.animations(), this.element().id, value));
+	/**
+	 * The trigger-shape picker is the exception to the table above: its empty
+	 * option means "no trigger shape" and must reach the setter as `undefined`
+	 * rather than being ignored.
+	 */
+	protected onTriggerShapeChange(event: Event): void {
+		const value = stringFromSelect(event);
+		this.emit(
+			setTriggerShape(
+				this.animations(),
+				this.element().id,
+				value && value.length > 0 ? value : undefined,
+			),
+		);
 	}
 
 	// ── Motion path ───────────────────────────────────────────────────────────
@@ -762,81 +262,10 @@ export class AnimationAuthorPanelComponent {
 		);
 	}
 
-	// ── Trigger handlers ─────────────────────────────────────────────────────
-
-	protected onTriggerChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationTrigger | undefined;
-		if (!value) {
-			return;
-		}
-		this.emit(setTrigger(this.animations(), this.element().id, value));
-	}
-
-	protected onTriggerShapeChange(event: Event): void {
-		const value = stringFromSelect(event);
-		this.emit(
-			setTriggerShapeId(
-				this.animations(),
-				this.element().id,
-				value && value.length > 0 ? value : undefined,
-			),
-		);
-	}
-
-	// ── Timing handlers ───────────────────────────────────────────────────────
-
-	protected onDurationChange(event: Event): void {
-		const val = numberFromInput(event);
-		if (val === null) {
-			return;
-		}
-		this.emit(setDuration(this.animations(), this.element().id, val));
-	}
-
-	protected onDelayChange(event: Event): void {
-		const val = numberFromInput(event);
-		if (val === null) {
-			return;
-		}
-		this.emit(setDelay(this.animations(), this.element().id, val));
-	}
-
-	protected onTimingCurveChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationTimingCurve | undefined;
-		if (!value) {
-			return;
-		}
-		this.emit(setTimingCurve(this.animations(), this.element().id, value));
-	}
-
-	protected onRepeatCountChange(event: Event): void {
-		const val = numberFromInput(event);
-		if (val === null) {
-			return;
-		}
-		this.emit(setRepeatCount(this.animations(), this.element().id, val));
-	}
-
-	protected onRepeatModeChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationRepeatMode | 'none' | undefined;
-		if (value === undefined) {
-			return;
-		}
-		this.emit(setRepeatMode(this.animations(), this.element().id, value));
-	}
-
-	// ── Direction / sequence ─────────────────────────────────────────────────
+	// ── Direction (button group, not a select) ───────────────────────────────
 
 	protected onDirectionChange(dir: PptxAnimationDirection): void {
 		this.emit(setDirection(this.animations(), this.element().id, dir));
-	}
-
-	protected onSequenceChange(event: Event): void {
-		const value = stringFromSelect(event) as PptxAnimationSequence | undefined;
-		if (!value) {
-			return;
-		}
-		this.emit(setSequence(this.animations(), this.element().id, value));
 	}
 
 	// ── Order controls ────────────────────────────────────────────────────────
@@ -854,27 +283,4 @@ export class AnimationAuthorPanelComponent {
 	protected onRemove(): void {
 		this.emit(removeAnimation(this.animations(), this.element().id));
 	}
-}
-
-// ==========================================================================
-// Module-private DOM helpers
-// ==========================================================================
-
-/** Extract the string value from a <select> change event, or undefined. */
-function stringFromSelect(event: Event): string | undefined {
-	const target = event.target;
-	if (!(target instanceof HTMLSelectElement)) {
-		return undefined;
-	}
-	return target.value;
-}
-
-/** Extract a finite number from an <input> change event, or null. */
-function numberFromInput(event: Event): number | null {
-	const target = event.target;
-	if (!(target instanceof HTMLInputElement)) {
-		return null;
-	}
-	const parsed = parseFloat(target.value);
-	return Number.isFinite(parsed) ? parsed : null;
 }

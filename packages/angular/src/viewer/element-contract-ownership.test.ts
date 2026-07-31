@@ -13,15 +13,14 @@
  * component sources: leaf renderers that are drawn INTO a host-owned box must
  * not claim the id, and the hosts that draw that box must.
  */
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-
 import { describe, expect, it } from 'vitest';
+
+import { componentSource } from './component-source.test-support';
 
 const VIEWER_DIR = import.meta.dirname;
 
 function source(file: string): string {
-	return readFileSync(path.join(VIEWER_DIR, file), 'utf8');
+	return componentSource(VIEWER_DIR, file);
 }
 
 /** Renderers that fill a box their host positions, so own no element identity. */

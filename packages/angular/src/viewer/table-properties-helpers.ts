@@ -13,6 +13,7 @@ import type { PptxTableCellStyle, PptxTableData, PptxTableRow } from 'pptx-viewe
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import type { TableStylePreset } from '../internal/shared';
+import { PATTERN_OPTIONS } from '../internal/shared';
 
 /** Default row height (px) used when a row has no explicit height. */
 export const DEFAULT_TABLE_ROW_HEIGHT = 32;
@@ -131,4 +132,31 @@ export function buildGradientFillCss(
 		return `radial-gradient(circle, ${parts})`;
 	}
 	return `linear-gradient(${Math.round(ooxmlGradientAngleToCssDegrees(angle))}deg, ${parts})`;
+}
+
+// ── Pattern fill presets ─────────────────────────────────────────────────────
+
+/**
+ * Preset a pattern fill falls back to when the cell carries none.
+ *
+ * Matches the reference binding, and the value the panel seeds when the fill
+ * mode is switched to "pattern".
+ */
+export const DEFAULT_PATTERN_FILL_PRESET = 'ltDnDiag';
+
+/**
+ * The presets the pattern picker offers for a cell currently set to `current`.
+ *
+ * WHY this is not just `PATTERN_OPTIONS`: that list is the first 20 of the 56
+ * OOXML presets, and the fallback preset (`ltDnDiag`, index 27) is not among
+ * them. A cell carrying any preset outside the slice therefore rendered a
+ * `<select>` whose value matched no `<option>`, so the browser displayed the
+ * first entry instead and the very next interaction silently rewrote a fill the
+ * user never touched. Appending the current preset when it is off-list keeps it
+ * representable without changing the catalogue the picker offers.
+ */
+export function patternPresetOptions(current: string | undefined): readonly string[] {
+	const preset = current ?? DEFAULT_PATTERN_FILL_PRESET;
+	const offered = PATTERN_OPTIONS as readonly string[];
+	return offered.includes(preset) ? offered : [...offered, preset];
 }

@@ -50,6 +50,13 @@ export function shapeTypePatch(element: PptxElement, shapeType: string): Partial
 						@for (preset of presets; track preset.type) {
 							<option [value]="preset.type">{{ preset.label }}</option>
 						}
+						<!--
+							Accepted deviation: this prints the raw a:prstGeom token. The deck
+							may carry any of the 188 presets while the gallery offers a subset,
+							and showing the token is what keeps the current geometry
+							representable, so the picker cannot silently rewrite it. There is
+							no catalogue of preset-geometry names to spell it from.
+						-->
 						@if (unknownType()) {
 							<option [value]="shapeType()">{{ shapeType() }}</option>
 						}

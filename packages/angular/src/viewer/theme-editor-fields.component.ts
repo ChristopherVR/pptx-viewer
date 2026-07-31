@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTheme, PptxThemeColorScheme, PptxThemeFontScheme } from 'pptx-viewer-core';
 
+import { themeColorSlotLabelKey } from './schema-token-labels';
+
 export interface CustomThemeEdit {
 	colorScheme: PptxThemeColorScheme;
 	fontScheme: PptxThemeFontScheme;
@@ -36,6 +38,18 @@ const DEFAULT_COLORS: PptxThemeColorScheme = {
 	folHlink: '#954F72',
 };
 
+/**
+ * The 12 `a:clrScheme` slots the editor exposes, in schema order.
+ *
+ * Exported so a unit test can pin the set (this package's suite is TestBed-free,
+ * so the template itself is out of reach): the swatches are now captioned from
+ * the shared label catalogue, and relabelling must never quietly add or drop a
+ * slot.
+ */
+export const THEME_EDITOR_COLOR_SLOTS = Object.keys(DEFAULT_COLORS) as Array<
+	keyof PptxThemeColorScheme
+>;
+
 @Component({
 	selector: 'pptx-theme-editor-fields',
 	standalone: true,
@@ -49,9 +63,9 @@ const DEFAULT_COLORS: PptxThemeColorScheme = {
 			</label>
 			<div class="colors">
 				@for (slot of slots; track slot) {
-					<label [title]="slot">
+					<label [title]="slotLabelKey(slot) | translate">
 						<input type="color" [value]="color(slot)" (input)="setColor(slot, $event)" />
-						<span>{{ slot }}</span>
+						<span>{{ slotLabelKey(slot) | translate }}</span>
 					</label>
 				}
 			</div>
@@ -134,7 +148,7 @@ const DEFAULT_COLORS: PptxThemeColorScheme = {
 export class ThemeEditorFieldsComponent {
 	readonly theme = input<PptxTheme | undefined>();
 	readonly applyTheme = output<CustomThemeEdit>();
-	readonly slots = Object.keys(DEFAULT_COLORS) as Array<keyof PptxThemeColorScheme>;
+	readonly slots = THEME_EDITOR_COLOR_SLOTS;
 	readonly colors = signal<PptxThemeColorScheme>({ ...DEFAULT_COLORS });
 	readonly name = signal('Custom Theme');
 	readonly majorFont = signal('Calibri Light');
@@ -146,6 +160,14 @@ export class ThemeEditorFieldsComponent {
 		this.name.set(theme?.name ?? 'Custom Theme');
 		this.majorFont.set(theme?.fontScheme?.majorFont?.latin ?? 'Calibri Light');
 		this.minorFont.set(theme?.fontScheme?.minorFont?.latin ?? 'Calibri');
+	}
+
+	/**
+	 * Spell a theme slot: the swatch used to be captioned (and tooltipped) with
+	 * the raw `a:clrScheme` child name, so users saw `dk1` / `folHlink`.
+	 */
+	protected slotLabelKey(slot: keyof PptxThemeColorScheme): string {
+		return themeColorSlotLabelKey(String(slot));
 	}
 
 	protected value(event: Event): string {

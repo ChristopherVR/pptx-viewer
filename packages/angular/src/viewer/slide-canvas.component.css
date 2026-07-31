@@ -1,0 +1,9 @@
+/*
+ * In editor mode the stage must own all pointer gestures so touch
+ * drag/resize/rotate/marquee aren't stolen by the browser for
+ * panning/pinch-zooming. View-only mode keeps default behaviour so
+ * the slide can still be scrolled.
+ */
+.pptx-ng-canvas-stage.is-editable {
+	touch-action: none;
+}

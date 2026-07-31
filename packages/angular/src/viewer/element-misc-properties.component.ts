@@ -9,6 +9,8 @@ import type {
 } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 
+import { arrowSizeLabelKey } from './schema-token-labels';
+
 const ARROWS: readonly ConnectorArrowType[] = [
 	'none',
 	'triangle',
@@ -17,7 +19,13 @@ const ARROWS: readonly ConnectorArrowType[] = [
 	'diamond',
 	'oval',
 ];
-const SIZES = ['sm', 'med', 'lg'] as const;
+/**
+ * Arrowhead width / length steps, i.e. the `a:headEnd/@w` and `@len` values.
+ *
+ * Exported so a unit test can pin the offered set while the labels change (the
+ * package's suite is TestBed-free, so the template is out of reach).
+ */
+export const ARROW_SIZE_VALUES = ['sm', 'med', 'lg'] as const;
 const GEOMETRIES = [
 	['straightConnector1', 'Straight'],
 	['bentConnector2', 'Bent'],
@@ -69,7 +77,7 @@ export function connectorStylePatch(
 							<span>{{ end }} width</span>
 							<select [value]="sizeValue(end, 'Width')" (change)="onSize(end, 'Width', $event)">
 								@for (size of sizes; track size) {
-									<option [value]="size">{{ size }}</option>
+									<option [value]="size">{{ sizeLabel(size) | translate }}</option>
 								}
 							</select>
 						</label>
@@ -77,7 +85,7 @@ export function connectorStylePatch(
 							<span>{{ end }} length</span>
 							<select [value]="sizeValue(end, 'Length')" (change)="onSize(end, 'Length', $event)">
 								@for (size of sizes; track size) {
-									<option [value]="size">{{ size }}</option>
+									<option [value]="size">{{ sizeLabel(size) | translate }}</option>
 								}
 							</select>
 						</label>
@@ -175,7 +183,7 @@ export class ElementMiscPropertiesComponent {
 	readonly element = input.required<PptxElement>();
 	readonly patch = output<Partial<PptxElement>>();
 	protected readonly arrows = ARROWS;
-	protected readonly sizes = SIZES;
+	protected readonly sizes = ARROW_SIZE_VALUES;
 	protected readonly geometries = GEOMETRIES;
 	protected readonly ends = ['Start', 'End'] as const;
 	protected readonly connector = computed(() => this.element().type === 'connector');
@@ -192,6 +200,14 @@ export class ElementMiscPropertiesComponent {
 
 	protected arrowLabel(value: ConnectorArrowType): string {
 		return `pptx.arrowhead.${value}`;
+	}
+	/**
+	 * Spell an arrowhead width/length step. `sm` / `med` / `lg` are the literal
+	 * `a:headEnd/@w` and `@len` attribute values, so the picker was offering
+	 * three abbreviations from the schema rather than words.
+	 */
+	protected sizeLabel(size: string): string {
+		return arrowSizeLabelKey(size);
 	}
 	protected arrowValue(end: 'Start' | 'End'): ConnectorArrowType {
 		return (
