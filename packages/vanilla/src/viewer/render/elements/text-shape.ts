@@ -5,7 +5,11 @@ import { getShapeFillStrokeStyle, getTextBlockStyle } from '../element-styles';
 import type { ElementRenderer } from '../types';
 import { renderEquations } from './equation';
 import { renderExtrusionOverlay } from './extrusion-overlay';
-import { renderShapeFillOverlay, renderShapeFilterDefs } from './shape-filter-defs';
+import {
+	renderGradientStrokeOutline,
+	renderShapeFillOverlay,
+	renderShapeFilterDefs,
+} from './shape-filter-defs';
 import { renderTextBlock } from './text-block';
 import { renderWarpedText } from './text-warp';
 
@@ -51,6 +55,11 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	const fillOverlay = renderShapeFillOverlay(context.document, element);
 	if (fillOverlay) {
 		el.appendChild(fillOverlay);
+	}
+	// Gradient outline: a CSS border takes one colour only, so it is stroked here.
+	const gradientOutline = renderGradientStrokeOutline(context.document, element);
+	if (gradientOutline) {
+		el.appendChild(gradientOutline);
 	}
 
 	const equation = renderEquations(element, context);

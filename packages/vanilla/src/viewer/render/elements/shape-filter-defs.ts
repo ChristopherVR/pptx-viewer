@@ -1,9 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
+	buildGradientStrokeOutline,
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
 	getSoftEdgeSvgFilter,
+	svgGradientFillRef,
+	svgGradientMarkup,
 } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl } from '../dom';
@@ -62,4 +65,49 @@ export function renderShapeFillOverlay(doc: Document, element: PptxElement): HTM
 	});
 	layer.setAttribute('aria-hidden', 'true');
 	return layer;
+}
+
+/**
+ * Gradient OUTLINE (`a:ln/a:gradFill`) painted as a stroked SVG path over the
+ * element, following the shape's own geometry.
+ *
+ * A CSS `border` takes a single colour, so a gradient outline was drawn with the
+ * parser's averaged `strokeColor`: flat where it should be two-tone, opaque
+ * where it should fade out. `element-styles.ts` drops the CSS border for these
+ * shapes so the averaged solid does not show underneath this overlay.
+ */
+export function renderGradientStrokeOutline(
+	doc: Document,
+	element: PptxElement,
+): SVGSVGElement | null {
+	const outline = buildGradientStrokeOutline(element);
+	if (!outline) {
+		return null;
+	}
+	const svg = createSvgEl(doc, 'svg', {
+		class: 'pptx-vanilla-gradient-outline',
+		'aria-hidden': 'true',
+		viewBox: `0 0 ${Math.max(element.width, 1)} ${Math.max(element.height, 1)}`,
+		preserveAspectRatio: 'none',
+	});
+	svg.setAttribute(
+		'style',
+		'position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none',
+	);
+	const defs = createSvgEl(doc, 'defs');
+	defs.innerHTML = svgGradientMarkup(outline.gradient);
+	svg.appendChild(defs);
+	const path = createSvgEl(doc, 'path', {
+		d: outline.d,
+		fill: 'none',
+		stroke: svgGradientFillRef(outline.gradient),
+		'stroke-width': outline.strokeWidth,
+		'stroke-linecap': outline.lineCap,
+		'stroke-linejoin': outline.lineJoin,
+	});
+	if (outline.dashArray) {
+		path.setAttribute('stroke-dasharray', outline.dashArray);
+	}
+	svg.appendChild(path);
+	return svg;
 }
