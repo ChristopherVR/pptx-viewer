@@ -10,6 +10,23 @@ dated sections beneath it are generated from
 
 ## 2026-07-31
 
+_Releases: pptx-viewer-core@2.1.1, pptx-react-viewer@2.11.0, pptx-vue-viewer@2.11.0, pptx-angular-viewer@2.11.0, pptx-vanilla-viewer@1.12.0, pptx-svelte-viewer@2.11.0_
+
+### Features
+
+- **shared:** Outline view, motion-path authoring, and chart marker resolution (by @ChristopherVR) ([e6a3621](https://github.com/ChristopherVR/pptx-viewer/commit/e6a362195b811231c76a24eb94de8e95795716f8))
+- Outline view, motion-path authoring and the missing chart controls (by @ChristopherVR) ([278de2f](https://github.com/ChristopherVR/pptx-viewer/commit/278de2f5754f2b8bb19722460e047deb4cd72fbb))
+
+### Bug Fixes
+
+- **core:** Stop dropping a:pPr/@lvl when a paragraph's runs share one style (by @ChristopherVR) ([03aa4ed](https://github.com/ChristopherVR/pptx-viewer/commit/03aa4edeea15336b032227601cc57fb65d378b1c))
+
+### Documentation
+
+- Record the two stale-cache failure modes that keep costing time (by @ChristopherVR) ([e580d8c](https://github.com/ChristopherVR/pptx-viewer/commit/e580d8ccac2c8f3d4d31d7500a681d2c95f7dd38))
+
+## 2026-07-31
+
 _Releases: pptx-react-viewer@2.10.0, pptx-vue-viewer@2.10.0, pptx-angular-viewer@2.10.0, pptx-vanilla-viewer@1.11.0, pptx-svelte-viewer@2.10.0_
 
 ### Features
