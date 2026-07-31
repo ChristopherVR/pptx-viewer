@@ -4,6 +4,7 @@ import {
 	findDataPoint,
 	resolveDataPointExplosion,
 	resolveDataPointFill,
+	resolveDataPointMarker,
 } from './chart-datapoint-style';
 
 describe('chart-datapoint-style', () => {
@@ -48,5 +49,63 @@ describe('chart-datapoint-style', () => {
 
 	it('defaults to 0 when nothing is set', () => {
 		expect(resolveDataPointExplosion({}, 0)).toBe(0);
+	});
+
+	describe('resolveDataPointMarker', () => {
+		const markerSeries = {
+			marker: { symbol: 'circle' as const, size: 6, spPr: { fillColor: '#4472C4' } },
+			dataPoints: [
+				{ idx: 1, marker: { symbol: 'star' as const, size: 14, spPr: { fillColor: '#FF0000' } } },
+				// Symbol-only override: size and fill must still come from the series.
+				{ idx: 2, marker: { symbol: 'square' as const } },
+				// A `c:dPt` with no marker at all leaves the series marker alone.
+				{ idx: 3, spPr: { fillColor: '#00FF00' } },
+			],
+		};
+
+		it('overrides every marker field for the point that pins them', () => {
+			expect(resolveDataPointMarker(markerSeries, 1)).toStrictEqual({
+				symbol: 'star',
+				size: 14,
+				fill: '#FF0000',
+			});
+		});
+
+		it('falls back per field, so a symbol-only override keeps series size and fill', () => {
+			expect(resolveDataPointMarker(markerSeries, 2)).toStrictEqual({
+				symbol: 'square',
+				size: 6,
+				fill: '#4472C4',
+			});
+		});
+
+		it('uses the series marker for points with no marker override', () => {
+			expect(resolveDataPointMarker(markerSeries, 3)).toStrictEqual({
+				symbol: 'circle',
+				size: 6,
+				fill: '#4472C4',
+			});
+			expect(resolveDataPointMarker(markerSeries, 99)).toStrictEqual({
+				symbol: 'circle',
+				size: 6,
+				fill: '#4472C4',
+			});
+		});
+
+		it('resolves to all-undefined when neither series nor point sets a marker', () => {
+			expect(resolveDataPointMarker({}, 0)).toStrictEqual({
+				symbol: undefined,
+				size: undefined,
+				fill: undefined,
+			});
+		});
+
+		it('lets a point hide its own marker with symbol none', () => {
+			const hidden = {
+				marker: { symbol: 'circle' as const },
+				dataPoints: [{ idx: 0, marker: { symbol: 'none' as const } }],
+			};
+			expect(resolveDataPointMarker(hidden, 0).symbol).toBe('none');
+		});
 	});
 });

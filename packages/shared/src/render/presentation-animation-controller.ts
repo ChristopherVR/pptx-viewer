@@ -47,6 +47,7 @@ import {
 } from './animation-timeline-text-build';
 import type { TextBuildSegmentCounts } from './animation-timeline-text-build';
 import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
+import { motionPathNativeAnimations } from './motion-path-authoring';
 
 /**
  * Options accepted by {@link PresentationAnimationController.computeStates} and
@@ -104,7 +105,10 @@ export class PresentationAnimationController {
 	 * id list (base element ids + text-build sub-element ids) to track.
 	 */
 	public static fromSlide(slide: PptxSlide): PresentationAnimationController {
-		const nativeAnims = slide.nativeAnimations ?? [];
+		// Motion paths authored in this session live on the editor model until the
+		// deck is saved; project them in so pressing play right after applying one
+		// actually moves the shape.
+		const nativeAnims = [...(slide.nativeAnimations ?? []), ...motionPathNativeAnimations(slide)];
 		const segmentCounts = buildSegmentCounts(slide, nativeAnims);
 		const expandedAnims =
 			segmentCounts.size > 0 ? expandTextBuildAnimations(nativeAnims, segmentCounts) : nativeAnims;

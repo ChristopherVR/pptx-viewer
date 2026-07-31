@@ -150,6 +150,13 @@ export const translations = {
 	'pptx.view.masterViews': 'Vues principales',
 	'pptx.view.normal': 'Normale',
 	'pptx.view.presentationViews': 'Vues de présentation',
+	'pptx.view.outlineView': 'Mode Plan',
+	'pptx.view.outlineViewTooltip':
+		'Mode Plan : modifier la présentation sous forme de texte indenté',
+	'pptx.outline.titleLine': 'Titre de la diapositive',
+	'pptx.outline.bodyLine': 'Ligne du plan',
+	'pptx.outline.hint':
+		'Tab et Maj+Tab changent le niveau. Entrée ajoute une ligne ; sur un titre, une diapositive.',
 	'pptx.view.readingView': 'Vue de lecture',
 	'pptx.view.selection': 'Sélection',
 	'pptx.view.slideMasterTooltip': 'Modifier les masques des diapositives et les mises en page',

@@ -149,6 +149,12 @@ export const translations = {
 	'pptx.view.masterViews': 'Vistas maestras',
 	'pptx.view.normal': 'Normal',
 	'pptx.view.presentationViews': 'Vistas de presentación',
+	'pptx.view.outlineView': 'Vista de esquema',
+	'pptx.view.outlineViewTooltip': 'Vista de esquema: edita la presentación como texto con sangría',
+	'pptx.outline.titleLine': 'Título de la diapositiva',
+	'pptx.outline.bodyLine': 'Línea del esquema',
+	'pptx.outline.hint':
+		'Tab y Mayús+Tab cambian el nivel. Intro añade una línea; en un título añade una diapositiva.',
 	'pptx.view.readingView': 'Vista de lectura',
 	'pptx.view.selection': 'Selección',
 	'pptx.view.slideMasterTooltip': 'Editar patrones de diapositivas y diseños',

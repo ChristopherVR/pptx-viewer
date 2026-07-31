@@ -12,9 +12,18 @@
  * @module chart-datapoint-style
  */
 
+import type { PptxChartMarkerSymbol } from 'pptx-viewer-core';
+
 /** Minimal shape props subset needed to resolve a point fill. */
 interface PointShapeProps {
 	fillColor?: string;
+}
+
+/** Minimal marker shape consumed here (mirrors `PptxChartMarker`). */
+export interface ChartMarkerLike {
+	symbol?: PptxChartMarkerSymbol;
+	size?: number;
+	spPr?: PointShapeProps;
 }
 
 /** Minimal data-point shape consumed here (mirrors `PptxChartDataPoint`). */
@@ -22,12 +31,22 @@ export interface ChartDataPointLike {
 	idx: number;
 	spPr?: PointShapeProps;
 	explosion?: number;
+	marker?: ChartMarkerLike;
 }
 
 /** Minimal series shape consumed here (mirrors `PptxChartSeries`). */
 export interface ChartSeriesLike {
 	color?: string;
+	marker?: ChartMarkerLike;
 	dataPoints?: ChartDataPointLike[];
+}
+
+/** The marker attributes actually drawn for one data point. */
+export interface ResolvedPointMarker {
+	symbol: PptxChartMarkerSymbol | undefined;
+	size: number | undefined;
+	/** Marker-specific fill, when the point or series pins one. */
+	fill: string | undefined;
 }
 
 /** Look up the `c:dPt` override for a point index, if any. */
@@ -78,4 +97,32 @@ export function resolveDataPointExplosion(
 ): number {
 	const point = findDataPoint(series, pointIndex);
 	return point?.explosion ?? series.explosion ?? 0;
+}
+
+/**
+ * Resolve the marker actually drawn for one data point.
+ *
+ * OOXML lets a `c:dPt` carry its own `c:marker`, which overrides the series
+ * `c:ser/c:marker` for that point alone: the classic use is highlighting a
+ * single outlier with a bigger star while the rest of the line keeps its small
+ * circles. Every field falls back independently, matching PowerPoint: a point
+ * marker that sets only `c:symbol` keeps the series size and fill.
+ *
+ * This exists because the per-point marker was a write-only feature. The core
+ * parser read `c:dPt/c:marker`, the save writer round-tripped it, and three
+ * bindings shipped an inspector control for it, but the renderer only ever
+ * looked at `series.marker`, so editing a point marker changed the file and
+ * left the canvas untouched. Resolving it here fixes every binding at once,
+ * since they all paint the same shared view model.
+ */
+export function resolveDataPointMarker(
+	series: ChartSeriesLike,
+	pointIndex: number,
+): ResolvedPointMarker {
+	const point = findDataPoint(series, pointIndex)?.marker;
+	return {
+		symbol: point?.symbol ?? series.marker?.symbol,
+		size: point?.size ?? series.marker?.size,
+		fill: point?.spPr?.fillColor ?? series.marker?.spPr?.fillColor,
+	};
 }

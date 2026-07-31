@@ -12,7 +12,7 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
-import { resolveDataPointFill } from './chart-datapoint-style';
+import { resolveDataPointFill, resolveDataPointMarker } from './chart-datapoint-style';
 import { smoothLinePath } from './chart-line-path';
 import { buildMarkerPrimitive } from './chart-marker-shape';
 import type {
@@ -44,10 +44,16 @@ export interface SeriesPlotResult {
 /**
  * Build the marker for a data point (honouring `marker.symbol`/`size`) and push
  * it, unless the symbol is `none`. Shared by the line / area / scatter builders.
+ *
+ * `pointIndex` is the SOURCE index (the `c:idx` a `c:dPt` is keyed by), not the
+ * display position, because a chart with hidden/filtered categories renders
+ * fewer points than the series declares and the override must still land on the
+ * point the author picked.
  */
 function pushMarker(
 	out: SvgPrimitive[],
 	series: PptxChartSeries,
+	pointIndex: number,
 	cx: number,
 	cy: number,
 	fill: string,
@@ -55,12 +61,15 @@ function pushMarker(
 	part: ChartPartRef,
 	opacity?: number,
 ): void {
+	const marker = resolveDataPointMarker(series, pointIndex);
 	const m = buildMarkerPrimitive({
-		symbol: series.marker?.symbol,
-		size: series.marker?.size,
+		symbol: marker.symbol,
+		size: marker.size,
 		cx,
 		cy,
-		fill,
+		// A marker fill (series or per-point) wins over the plot fill, which is
+		// what the line/area body is drawn with.
+		fill: marker.fill ?? fill,
 		defaultRadius,
 		part,
 	});
@@ -158,6 +167,7 @@ export function buildLines(
 			pushMarker(
 				primitives,
 				series,
+				idx,
 				pt.x,
 				pt.y,
 				resolveDataPointFill(series, idx, c) ?? c,
@@ -239,6 +249,7 @@ export function buildAreas(
 			pushMarker(
 				primitives,
 				series,
+				idx,
 				pt.x,
 				pt.y,
 				resolveDataPointFill(series, idx, c) ?? c,
@@ -289,6 +300,7 @@ export function buildScatter(
 			pushMarker(
 				primitives,
 				series,
+				vi,
 				dot.cx,
 				dot.cy,
 				resolveDataPointFill(series, vi, c) ?? c,

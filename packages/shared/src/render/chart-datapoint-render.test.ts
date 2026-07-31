@@ -156,3 +156,78 @@ describe('pie varyColors + dPt override rendering (issue #72)', () => {
 		expect(fills.every((f) => f !== '#00FF00')).toBeTruthy();
 	});
 });
+
+/**
+ * The per-point marker (`c:dPt/c:marker`) was the same class of unwired
+ * feature as the fill above: parsed, saved and editable in the inspector, but
+ * the line/area/scatter builders only ever read `series.marker`, so a point
+ * marker changed the .pptx and never the canvas.
+ */
+describe('dPt marker override rendering', () => {
+	const lineData: PptxChartData = {
+		chartType: 'line',
+		categories: ['A', 'B', 'C'],
+		series: [
+			{
+				name: 'S',
+				values: [10, 20, 30],
+				color: '#123456',
+				marker: { symbol: 'circle', size: 6 },
+				dataPoints: [
+					{ idx: 1, marker: { symbol: 'square', size: 20, spPr: { fillColor: OVERRIDE } } },
+				],
+			},
+		],
+	};
+
+	it('draws the overridden line point with its own symbol, size and fill', () => {
+		const vm = buildChartViewModel(chartElement(lineData));
+		const overridden = vm.primitives.find(
+			(p) => p.part?.role === 'dataPoint' && p.part.pointIndex === 1,
+		);
+		// square -> rect, and the marker size is a point diameter.
+		expect(overridden?.kind).toBe('rect');
+		expect(overridden?.fill).toBe(OVERRIDE);
+		expect(overridden?.kind === 'rect' ? overridden.w : 0).toBe(20);
+	});
+
+	it('leaves the other points on the series marker', () => {
+		const vm = buildChartViewModel(chartElement(lineData));
+		const plain = vm.primitives.find(
+			(p) => p.part?.role === 'dataPoint' && p.part.pointIndex === 0,
+		);
+		expect(plain?.kind).toBe('circle');
+		expect(plain?.fill).toBe('#123456');
+	});
+
+	it('hides a single point when its override symbol is none', () => {
+		const hidden: PptxChartData = {
+			...lineData,
+			series: [{ ...lineData.series[0], dataPoints: [{ idx: 1, marker: { symbol: 'none' } }] }],
+		};
+		const vm = buildChartViewModel(chartElement(hidden));
+		const points = vm.primitives.filter((p) => p.part?.role === 'dataPoint');
+		expect(points.map((p) => p.part?.pointIndex)).toStrictEqual([0, 2]);
+	});
+
+	it('honours a per-point marker on a scatter series', () => {
+		const scatter: PptxChartData = {
+			chartType: 'scatter',
+			categories: ['1', '2', '3'],
+			series: [
+				{
+					name: 'S',
+					values: [5, 10, 15],
+					color: '#123456',
+					dataPoints: [{ idx: 2, marker: { symbol: 'square', spPr: { fillColor: OVERRIDE } } }],
+				},
+			],
+		};
+		const vm = buildChartViewModel(chartElement(scatter));
+		const overridden = vm.primitives.find(
+			(p) => p.part?.role === 'dataPoint' && p.part.pointIndex === 2,
+		);
+		expect(overridden?.kind).toBe('rect');
+		expect(overridden?.fill).toBe(OVERRIDE);
+	});
+});

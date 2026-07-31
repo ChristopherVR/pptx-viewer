@@ -230,6 +230,13 @@ export * from './presentation-animation-controller';
 export * from './animation-media-commands';
 export * from './animation-media-playback';
 export * from './animation-preview';
+// Motion-path authoring (`p:animMotion`): the Lines/Arcs/Turns/Shapes/Loops
+// preset catalogue, the slide-space geometry the canvas overlay draws and drags,
+// and the slide-`animations[]` patch builders + preview descriptor. The gallery,
+// the overlay view and the `<style>` injection stay in each binding.
+export * from './motion-path-presets';
+export * from './motion-path-geometry';
+export * from './motion-path-authoring';
 // `visual-3d` is the public surface; it re-exports the symbols from its sibling
 // modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,
 // `visual-3d-color`, `visual-3d-constants`), so they are NOT flattened here to
@@ -590,6 +597,11 @@ export * from './presentation-keymap';
 // PowerPoint's Reading View: the deck at full window size with the editor
 // chrome reduced to a nav bar, deliberately NOT the fullscreen slide show.
 export * from './reading-view';
+// PowerPoint's Outline view: the deck as an editable indented text document,
+// one row per (element, paragraph) pair. `outline-view` reads the deck,
+// `outline-view-edit` turns a keystroke into a new deck.
+export * from './outline-view';
+export * from './outline-view-edit';
 // Editor keyboard map: the editing shortcut set (clipboard, history, nudge,
 // group, select-all, slide paging, help) as one shared mapping, so the five
 // bindings cannot disagree about what Ctrl+D or an arrow key does.

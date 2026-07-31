@@ -168,14 +168,18 @@ export function animationFor(
 
 /**
  * Returns `true` when the element has at least one active effect (entrance,
- * exit, or emphasis) in the slide's animation list.
+ * exit, emphasis, or a motion path) in the slide's animation list.
+ *
+ * The motion path counts because it is driven by the same entry's timing
+ * fields: without it, a motion-path-only element would hide its own
+ * duration / delay / trigger controls.
  */
 export function hasAnimation(
 	slideAnimations: readonly PptxElementAnimation[],
 	elementId: string,
 ): boolean {
 	const entry = animationFor(slideAnimations, elementId);
-	return Boolean(entry && (entry.entrance || entry.exit || entry.emphasis));
+	return Boolean(entry && (entry.entrance || entry.exit || entry.emphasis || entry.motionPath));
 }
 
 /**
@@ -239,7 +243,9 @@ function setEffect(
 	const value = preset === 'none' ? undefined : preset;
 	return upsert(anims, elementId, (cur) => {
 		const next: PptxElementAnimation = { ...cur, [group]: value };
-		if (!next.entrance && !next.exit && !next.emphasis) {
+		// A motion path keeps the entry alive: clearing the entrance preset must
+		// not silently delete the path the user drew on the canvas.
+		if (!next.entrance && !next.exit && !next.emphasis && !next.motionPath) {
 			return null;
 		}
 		return next;

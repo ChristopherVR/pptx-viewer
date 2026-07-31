@@ -150,6 +150,13 @@ export const translations = {
 	'pptx.view.masterViews': 'Masteransichten',
 	'pptx.view.normal': 'Normal',
 	'pptx.view.presentationViews': 'Präsentationsansichten',
+	'pptx.view.outlineView': 'Gliederungsansicht',
+	'pptx.view.outlineViewTooltip':
+		'Gliederungsansicht: Präsentation als eingerückten Text bearbeiten',
+	'pptx.outline.titleLine': 'Folientitel',
+	'pptx.outline.bodyLine': 'Gliederungszeile',
+	'pptx.outline.hint':
+		'Tab und Umschalt+Tab ändern die Ebene. Eingabe fügt eine Zeile hinzu; bei einem Titel eine Folie.',
 	'pptx.view.readingView': 'Leseansicht',
 	'pptx.view.selection': 'Auswahl',
 	'pptx.view.slideMasterTooltip': 'Bearbeiten Sie Folienmaster und Layouts',

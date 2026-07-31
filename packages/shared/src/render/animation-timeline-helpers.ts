@@ -89,6 +89,24 @@ function applyFlyDirection(
 // ==========================================================================
 
 /**
+ * Express one motion-path coordinate as a CSS length measured against the SLIDE.
+ *
+ * OOXML motion-path numbers are fractions of the slide, but a CSS
+ * `translate(%)` resolves against the ELEMENT's own box, so every parsed path
+ * used to under-travel by the ratio between the two (a small shape barely
+ * moved). The offset is therefore emitted as `calc(var(--pptx-slide-w) * f)`;
+ * a binding sets those custom properties on its slide stage, and the fallback
+ * is the default canvas size so an unset stage still travels a sane distance.
+ *
+ * @param percent - Sampled coordinate in percent-of-slide units (path * 100).
+ * @param axis - `w` for the horizontal offset, `h` for the vertical one.
+ */
+function slideOffset(percent: number, axis: 'w' | 'h'): string {
+	const fallback = axis === 'w' ? '1280px' : '720px';
+	return `calc(var(--pptx-slide-${axis}, ${fallback}) * ${(percent / 100).toFixed(4)})`;
+}
+
+/**
  * Build a dynamic CSS `@keyframes` block for motion path, rotation, scale, or
  * colour animations that don't map to a static effect preset. Uses the
  * `pptx-motionPath-*` / `pptx-rotateBy-*` / `pptx-scaleBy-*` / `pptx-color-*`
@@ -109,7 +127,7 @@ export function buildDynamicKeyframes(
 		for (let i = 0; i < points.length; i++) {
 			const pct = Math.round((i / (points.length - 1)) * 100);
 			kfLines.push(
-				`\t${pct}% { transform: translate(${points[i].x.toFixed(2)}%, ${points[i].y.toFixed(2)}%); }`,
+				`\t${pct}% { transform: translate(${slideOffset(points[i].x, 'w')}, ${slideOffset(points[i].y, 'h')}); }`,
 			);
 		}
 		return {
@@ -178,8 +196,8 @@ export function buildDynamicKeyframe(
 		const lines: string[] = [];
 		for (let i = 0; i < points.length; i++) {
 			const pct = Math.round((i / (points.length - 1)) * 100);
-			const tx = points[i].x.toFixed(2);
-			const ty = points[i].y.toFixed(2);
+			const tx = slideOffset(points[i].x, 'w');
+			const ty = slideOffset(points[i].y, 'h');
 
 			if (anim.motionPathRotateAuto) {
 				// Compute the tangent angle at this point using the direction
@@ -190,10 +208,10 @@ export function buildDynamicKeyframe(
 				const dy = i < points.length - 1 ? next.y - points[i].y : points[i].y - prev.y;
 				const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
 				lines.push(
-					`\t${pct}% { transform: translate(${tx}%, ${ty}%) rotate(${angleDeg.toFixed(2)}deg); }`,
+					`\t${pct}% { transform: translate(${tx}, ${ty}) rotate(${angleDeg.toFixed(2)}deg); }`,
 				);
 			} else {
-				lines.push(`\t${pct}% { transform: translate(${tx}%, ${ty}%); }`);
+				lines.push(`\t${pct}% { transform: translate(${tx}, ${ty}); }`);
 			}
 		}
 		return {
