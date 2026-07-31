@@ -5,6 +5,7 @@
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import { animationTypeLabel, timelineLabel } from '../../inspector/animation-panel-helpers';
 	import { reorderAnimationEntries } from './animation-timeline-editing';
 	import { DIRECTION_LABEL_KEYS, REPEAT_MODE_LABEL_KEYS, SEQUENCE_LABEL_KEYS, TIMING_CURVE_LABEL_KEYS, TRIGGER_LABEL_KEYS } from './animation-timeline-labels';
 
@@ -23,6 +24,18 @@
 	function replace(elementId: string, patch: Partial<PptxElementAnimation>): void {
 		commit(animations.map((item) => item.elementId === elementId ? { ...item, ...patch } : item));
 	}
+	/**
+	 * The row's caption: the animated element, then the effect.
+	 *
+	 * Both used to be wire values here: the element was printed as its raw
+	 * `elementId` (`ppt/slides/slide1.xml-shape-0`) and the effect was not shown
+	 * at all, so the row named nothing a user could recognise. The other four
+	 * bindings name both.
+	 */
+	function rowLabel(animation: PptxElementAnimation): string {
+		const target = timelineLabel(animation, slide?.elements ?? []);
+		return `${target} - ${animationTypeLabel(animation, t)}`;
+	}
 	function drop(targetId: string): void {
 		if (draggingId && draggingId !== targetId) {
 			commit(reorderAnimationEntries(animations, draggingId, targetId));
@@ -32,9 +45,9 @@
 </script>
 
 {#if animations.length}<div class="timeline"><h4>Animation Timeline</h4>{#each animations as animation, index (animation.elementId)}<div role="listitem" class:selected={animation.elementId === editor.selectedElementId} draggable="true" ondragstart={() => (draggingId = animation.elementId)} ondragover={(event) => event.preventDefault()} ondrop={() => drop(animation.elementId)}>
-	<button type="button" class="target" onclick={() => editor.select(animation.elementId)}><GripVertical size={12} aria-hidden="true" /> {index + 1}. {animation.elementId}</button>
+	<button type="button" class="target" onclick={() => editor.select(animation.elementId)}><GripVertical size={12} aria-hidden="true" /> {index + 1}. {rowLabel(animation)}</button>
 	<select aria-label="Trigger" value={animation.trigger ?? 'onClick'} onchange={(event) => replace(animation.elementId, { trigger: event.currentTarget.value as PptxAnimationTrigger })}>{#each TRIGGER_VALUES as trigger}<option value={trigger}>{schemaLabel(TRIGGER_LABEL_KEYS, trigger, t)}</option>{/each}</select>
-	{#if animation.trigger === 'onShapeClick' || animation.trigger === 'onHover'}<select aria-label="Trigger shape" value={animation.triggerShapeId ?? ''} onchange={(event) => replace(animation.elementId, { triggerShapeId: event.currentTarget.value || undefined })}><option value="">Choose shape</option>{#each slide?.elements ?? [] as element}<option value={element.id}>{element.id}</option>{/each}</select>{/if}
+	{#if animation.trigger === 'onShapeClick' || animation.trigger === 'onHover'}<select aria-label="Trigger shape" value={animation.triggerShapeId ?? ''} onchange={(event) => replace(animation.elementId, { triggerShapeId: event.currentTarget.value || undefined })}><option value="">{t('pptx.animation.trigger.selectShape')}</option>{#each slide?.elements ?? [] as element}<option value={element.id}>{timelineLabel({ elementId: element.id }, slide?.elements ?? [])}</option>{/each}</select>{/if}
 	<select aria-label="Direction" value={animation.direction ?? 'fromBottom'} onchange={(event) => replace(animation.elementId, { direction: event.currentTarget.value as PptxAnimationDirection })}>{#each DIRECTION_VALUES as direction}<option value={direction}>{schemaLabel(DIRECTION_LABEL_KEYS, direction, t)}</option>{/each}</select>
 	<select aria-label="Sequence" value={animation.sequence ?? 'asOne'} onchange={(event) => replace(animation.elementId, { sequence: event.currentTarget.value as PptxAnimationSequence })}>{#each SEQUENCE_VALUES as sequence}<option value={sequence}>{schemaLabel(SEQUENCE_LABEL_KEYS, sequence, t)}</option>{/each}</select>
 	<select aria-label="Timing curve" value={animation.timingCurve ?? 'ease'} onchange={(event) => replace(animation.elementId, { timingCurve: event.currentTarget.value as PptxAnimationTimingCurve })}>{#each TIMING_CURVE_VALUES as curve}<option value={curve}>{schemaLabel(TIMING_CURVE_LABEL_KEYS, curve, t)}</option>{/each}</select>

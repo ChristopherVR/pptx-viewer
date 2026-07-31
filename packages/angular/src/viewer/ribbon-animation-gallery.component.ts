@@ -26,6 +26,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAnimationPreset } from 'pptx-viewer-core';
 
 import {
+	animationPresetLabelKey,
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
@@ -46,10 +47,12 @@ export interface AnimationPresetCategory {
 	presets: readonly AnimationPresetEntry[];
 }
 
-/** The i18n key naming a preset, shared by every binding's gallery. */
-export function animationPresetLabelKey(preset: PptxAnimationPreset): string {
-	return `pptx.animation.preset.${preset}`;
-}
+/**
+ * The i18n key naming a preset, shared by every binding's gallery. Re-exported
+ * from `pptx-viewer-shared` (where it now lives alongside the rest of the
+ * animation naming layer) so this module's public surface is unchanged.
+ */
+export { animationPresetLabelKey };
 
 function entries(presets: readonly PptxAnimationPreset[]): readonly AnimationPresetEntry[] {
 	return presets.map((value) => ({ value, labelKey: animationPresetLabelKey(value) }));

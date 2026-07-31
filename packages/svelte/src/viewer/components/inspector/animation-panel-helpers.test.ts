@@ -1,4 +1,5 @@
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -66,11 +67,20 @@ describe('timelineLabel', () => {
 });
 
 describe('animationTypeLabel', () => {
-	it('prefers entrance, then emphasis, then exit, then custom', () => {
-		expect(animationTypeLabel(anim({ elementId: 'a', entrance: 'fadeIn' }))).toBe('fadeIn');
-		expect(animationTypeLabel(anim({ elementId: 'a', emphasis: 'pulse' }))).toBe('pulse');
-		expect(animationTypeLabel(anim({ elementId: 'a', exit: 'fadeOut' }))).toBe('fadeOut');
-		expect(animationTypeLabel(anim({ elementId: 'a' }))).toBe('custom');
+	/** The dictionary lookup a host performs, so the tooltip's real text is asserted. */
+	const t = (key: string): string => translationsEn[key] ?? key;
+
+	it('names the effect rather than printing its wire token', () => {
+		expect(animationTypeLabel(anim({ elementId: 'a', entrance: 'fadeIn' }), t)).toBe('Fade In');
+		expect(animationTypeLabel(anim({ elementId: 'a', emphasis: 'pulse' }), t)).toBe('Pulse');
+		expect(animationTypeLabel(anim({ elementId: 'a', exit: 'fadeOut' }), t)).toBe('Fade Out');
+	});
+
+	it('prefers entrance, then emphasis, then exit, then the generic word', () => {
+		expect(
+			animationTypeLabel(anim({ elementId: 'a', entrance: 'fadeIn', exit: 'fadeOut' }), t),
+		).toBe('Fade In');
+		expect(animationTypeLabel(anim({ elementId: 'a' }), t)).toBe('Animation');
 	});
 });
 

@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 
+import { animationEffectLabelKey } from '../internal/shared';
 import { getAnimationElementLabel } from './animation-author-view';
 import { previewAngularAnimation, stopAngularAnimationPreview } from './animation-preview-player';
 
@@ -52,6 +54,7 @@ export function buildAnimationTimelineBars(
 	selector: 'pptx-animation-timeline',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (sorted().length) {
 			<section class="timeline" aria-label="Animation timeline">
@@ -81,7 +84,7 @@ export function buildAnimationTimelineBars(
 						>
 							<span class="grip">⋮⋮</span><span class="order">{{ index + 1 }}.</span
 							><span class="name">{{ label(animation.elementId) }}</span
-							><span class="effect">{{ effect(animation) }}</span>
+							><span class="effect">{{ effect(animation) | translate }}</span>
 						</div>
 					}
 				</div>
@@ -179,8 +182,14 @@ export class AnimationTimelineComponent {
 		}
 		return getAnimationElementLabel(element);
 	}
+	/**
+	 * The i18n key naming the row's effect, not finished text: resolving text in
+	 * an `OnPush` getter would freeze the wording at the language that happened
+	 * to be active when the view last rendered. The row used to print the raw
+	 * preset token (`fadeIn`) here.
+	 */
 	protected effect(animation: PptxElementAnimation): string {
-		return String(animation.entrance ?? animation.emphasis ?? animation.exit ?? 'custom');
+		return animationEffectLabelKey(animation);
 	}
 	protected preview(animation: PptxElementAnimation): void {
 		previewAngularAnimation(animation);

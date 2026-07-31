@@ -55,7 +55,7 @@
 					class={`pptx-svelte-animtl-bar-seg ${typeClass(bar.anim)}`}
 					class:is-selected={bar.anim.elementId === selectedElementId}
 					style={`left:${bar.leftPercent}%;width:${Math.max(bar.widthPercent, 2)}%`}
-					title={`${label(bar.anim)} - ${animationTypeLabel(bar.anim)} (${bar.anim.durationMs ?? 500}ms)`}
+					title={`${label(bar.anim)} - ${animationTypeLabel(bar.anim, t)} (${bar.anim.durationMs ?? 500}ms)`}
 					onmouseenter={() => startAnimationPreview(bar.anim)}
 					onmouseleave={stopAnimationPreview}
 				></div>

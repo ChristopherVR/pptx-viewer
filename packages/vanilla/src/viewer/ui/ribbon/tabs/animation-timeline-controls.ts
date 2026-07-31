@@ -1,4 +1,5 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
+import { animationEffectLabel } from 'pptx-viewer-shared';
 
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
 import type { Translator } from '../../../i18n';
@@ -62,8 +63,9 @@ export function animationRow(
 	});
 	row.classList.toggle('is-selected', animation.elementId === selectedElementId);
 	const label = createEl(doc, 'span', 'pptxv-animation-timeline-name');
-	const effect = animation.entrance ?? animation.emphasis ?? animation.exit ?? 'custom';
-	label.textContent = `${index + 1}. ${effect}`;
+	// Named through the shared resolver: the row used to print the raw preset
+	// token (`fadeIn`) where the effect's name belongs.
+	label.textContent = `${index + 1}. ${animationEffectLabel(animation, t)}`;
 	const up = makeButton(doc, {
 		label: t('pptx.animation.moveUp'),
 		text: '↑',

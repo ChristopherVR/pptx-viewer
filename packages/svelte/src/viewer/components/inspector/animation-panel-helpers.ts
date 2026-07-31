@@ -1,6 +1,7 @@
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { getElementLabel } from 'pptx-viewer-shared';
+import { animationEffectLabel, getElementLabel } from 'pptx-viewer-shared';
+import type { AnimationLabelTranslate } from 'pptx-viewer-shared';
 
 import { updateSlide } from '../../editor/editor-mutations';
 import type { EditorState } from '../../editor/editor-state.svelte';
@@ -83,9 +84,15 @@ export function timelineLabel(
 	return text || getElementLabel(el);
 }
 
-/** Effect name shown in a bar's tooltip (React's `animationTypeLabel`). */
-export function animationTypeLabel(anim: PptxElementAnimation): string {
-	return anim.entrance ?? anim.emphasis ?? anim.exit ?? 'custom';
+/**
+ * Effect name shown in a bar's tooltip (React's `animationTypeLabel`).
+ *
+ * It used to print the preset token verbatim, so the tooltip read `fadeIn`
+ * rather than "Fade In" and never translated; the shared resolver names both
+ * the editor and the OOXML catalogue vocabularies.
+ */
+export function animationTypeLabel(anim: PptxElementAnimation, t: AnimationLabelTranslate): string {
+	return animationEffectLabel(anim, t);
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { animationEffectLabel } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -45,6 +46,7 @@ function animationKind(animation: PptxElementAnimation): 'entrance' | 'emphasis'
  */
 export function renderTimelineBar(
 	doc: Document,
+	t: Translator,
 	bar: HTMLElement,
 	ordered: readonly PptxElementAnimation[],
 	elements: readonly PptxElement[],
@@ -63,7 +65,9 @@ export function renderTimelineBar(
 			const width = Math.max(((animation.durationMs ?? 500) / totalMs) * 100, 2);
 			seg.style.left = `${left}%`;
 			seg.style.width = `${width}%`;
-			const effect = animation.entrance ?? animation.emphasis ?? animation.exit ?? 'custom';
+			// Named through the shared resolver: the tooltip used to print the raw
+			// preset token (`fadeIn`) where the effect's name belongs.
+			const effect = animationEffectLabel(animation, t);
 			seg.title = `${animationTargetLabel(animation, elements)} - ${effect} (${animation.durationMs ?? 500}ms)`;
 			return seg;
 		}),

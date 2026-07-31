@@ -29,8 +29,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxAnimationTrigger, PptxElementAnimation } from 'pptx-viewer-core';
-import { getAnimationPresetInfo } from 'pptx-viewer-core';
 
+import { animationEffectLabelKey } from '../internal/shared';
 import type { AnimationClickGroup } from './animation-playback-helpers';
 
 /** A single rendered playback step (one click group). */
@@ -54,13 +54,17 @@ const TRIGGER_LABEL_KEYS: ReadonlyArray<{ value: PptxAnimationTrigger; key: stri
 	{ value: 'afterDelay', key: 'pptx.animation.trigger.afterDelay' },
 ];
 
+/**
+ * The step's effect name.
+ *
+ * This used to look the element's preset token up in core's OOXML catalogue,
+ * which is keyed by wire ids (`entr.1`) and so never matched an editor token
+ * (`fadeIn`); the fallback then printed that token straight into the step row.
+ * The shared resolver understands both vocabularies and answers with an i18n
+ * key, so the step reads "Fade In" in every language.
+ */
 function presetLabel(anim: PptxElementAnimation, translate: TranslateService): string {
-	const presetId = anim.entrance ?? anim.emphasis ?? anim.exit;
-	if (!presetId) {
-		return translate.instant('pptx.animation.animation');
-	}
-	const info = getAnimationPresetInfo(presetId);
-	return info?.label ?? presetId;
+	return translate.instant(animationEffectLabelKey(anim));
 }
 
 function triggerLabel(

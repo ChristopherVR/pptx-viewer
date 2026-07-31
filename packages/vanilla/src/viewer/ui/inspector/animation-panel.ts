@@ -275,7 +275,7 @@ export function createAnimationPanel(
 
 			const ordered = [...state.animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 			timeline.hidden = ordered.length === 0;
-			renderTimelineBar(doc, bar, ordered, state.elements, state.selectedElementId);
+			renderTimelineBar(doc, t, bar, ordered, state.elements, state.selectedElementId);
 			list.replaceChildren(
 				...ordered.map((entry, index) =>
 					renderOrderRow(

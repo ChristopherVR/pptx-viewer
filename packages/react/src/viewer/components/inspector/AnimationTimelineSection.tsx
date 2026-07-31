@@ -1,4 +1,5 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
+import { animationEffectLabel } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -39,10 +40,6 @@ function animationTypeColor(anim: PptxElementAnimation): string {
 	return 'bg-muted-foreground/40';
 }
 
-function animationTypeLabel(anim: PptxElementAnimation): string {
-	return anim.entrance ?? anim.emphasis ?? anim.exit ?? 'custom';
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -53,6 +50,9 @@ export function AnimationTimelineSection({
 	handlers,
 }: AnimationTimelineSectionProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	// `t` is an overloaded generic; narrow it to the plain shape shared wants.
+	const effectLabel = (anim: PptxElementAnimation): string =>
+		animationEffectLabel(anim, (key) => t(key));
 	const {
 		sortedAnimations,
 		dragIndex,
@@ -96,7 +96,7 @@ export function AnimationTimelineSection({
 									left: `${bar.leftPercent}%`,
 									width: `${Math.max(bar.widthPercent, 2)}%`,
 								}}
-								title={`${getTimelineLabel(bar.anim)} - ${animationTypeLabel(bar.anim)} (${bar.anim.durationMs ?? 500}ms)`}
+								title={`${getTimelineLabel(bar.anim)} - ${effectLabel(bar.anim)} (${bar.anim.durationMs ?? 500}ms)`}
 								onMouseEnter={() => handleAnimationHover(bar.anim)}
 								onMouseLeave={handleAnimationHoverEnd}
 							/>
