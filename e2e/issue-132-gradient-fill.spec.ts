@@ -113,8 +113,17 @@ async function paintOf(
 	}, elementIdSuffix);
 }
 
-/** Shoelace area of the polygon described by a `path('M … Z')` clip-path. */
-function pathAreaFraction(clipPath: string, width: number, height: number): number {
+/**
+ * Shoelace area of the polygon described by a `path('M … Z')` clip-path, as a
+ * fraction of the box that path spans.
+ *
+ * Normalised against the path's OWN extent rather than the element's rendered
+ * `getBoundingClientRect`: the slide stage is CSS-scaled to the viewport, so the
+ * measured box shrinks while `clip-path` coordinates stay in the element's
+ * authored slide-space pixels. Dividing by the rendered box mixes the two and
+ * inflates the ratio by the square of the stage scale.
+ */
+function pathAreaFraction(clipPath: string): number {
 	const points = [...clipPath.matchAll(/(-?[\d.]+)[ ,]+(-?[\d.]+)/gu)].map(([, x, y]) => [
 		Number(x),
 		Number(y),
@@ -125,7 +134,9 @@ function pathAreaFraction(clipPath: string, width: number, height: number): numb
 		const [x2, y2] = points[(index + 1) % points.length];
 		twiceArea += x1 * y2 - x2 * y1;
 	}
-	return Math.abs(twiceArea / 2) / (width * height);
+	const spanX = Math.max(...points.map(([x]) => x)) - Math.min(...points.map(([x]) => x));
+	const spanY = Math.max(...points.map(([, y]) => y)) - Math.min(...points.map(([, y]) => y));
+	return Math.abs(twiceArea / 2) / (spanX * spanY);
 }
 
 test.describe('issue #132 - gradient fill / preset adjustment fidelity', () => {
@@ -156,7 +167,7 @@ test.describe('issue #132 - gradient fill / preset adjustment fidelity', () => {
 
 		// `adj="84929"` leaves 1 - 0.84929 of the box painted. The default
 		// adjustment painted 0.8 of it, burying the slide's body text.
-		const fraction = pathAreaFraction(paint!.clipPath, paint!.width, paint!.height);
+		const fraction = pathAreaFraction(paint!.clipPath);
 		expect(fraction, 'painted area matches the authored skew').toBeCloseTo(1 - 0.84929, 2);
 	});
 
