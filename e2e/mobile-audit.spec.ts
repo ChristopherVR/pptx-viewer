@@ -14,7 +14,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { test, expect, devices } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
@@ -37,6 +37,23 @@ function shot(page: Page, name: string) {
 
 function bottomBarNav(page: Page) {
 	return page.getByRole('navigation', { name: 'Editor actions' });
+}
+
+/**
+ * Does a hit test at this control's centre actually land on the control?
+ *
+ * `toBeVisible()` only asks whether an element has a box and is not
+ * `visibility: hidden`; it says nothing about whether the element is covered by
+ * an overlay or opted out of hit testing with `pointer-events: none`. Both are
+ * ways a control can look present in a screenshot and in the accessibility tree
+ * while being impossible to operate.
+ */
+async function hitsItself(target: Locator): Promise<boolean> {
+	return target.evaluate((node) => {
+		const rect = node.getBoundingClientRect();
+		const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+		return hit === node || node.contains(hit);
+	});
 }
 
 test.describe('mobile audit (Pixel 7 touch)', () => {
@@ -121,6 +138,19 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await expect(next).toBeVisible();
 		await expect(prev).toBeVisible();
 		await expect(close).toBeVisible();
+		// Visible is not the same as reachable. In present mode the auto-hiding
+		// show toolbar keeps its own "Next Slide" / "Previous Slide" / "End
+		// Presentation" buttons in the DOM but inert (`pointer-events: none`) on a
+		// coarse pointer, so they satisfy `toBeVisible()` while no user can press
+		// them. One binding emitted that toolbar ahead of the touch controls, and
+		// every by-name lookup - a screen reader's as much as this spec's
+		// `.first()` - resolved to the dead copy. Assert the control the name
+		// actually resolves to is the one that receives the touch.
+		expect(await hitsItself(next), 'the first "Next Slide" by name is not tappable').toBe(true);
+		expect(await hitsItself(prev), 'the first "Previous Slide" by name is not tappable').toBe(true);
+		expect(await hitsItself(close), 'the first "End Presentation" by name is not tappable').toBe(
+			true,
+		);
 		await next.tap();
 		await page.waitForTimeout(500);
 		await shot(page, '08b-present-next');

@@ -79,25 +79,20 @@
 	<pptx-presentation-subtitle-bar [visible]="subtitlesVisible()" />
 
 	<!--
-		The show toolbar (bottom-centre, auto-hiding): navigation, counter,
-		elapsed time, annotation tools, presenter view and end-show, per
-		`PRESENT_TOOLBAR_CONTROLS` in pptx-viewer-shared.
-	-->
-	<pptx-presentation-toolbar
-		[currentSlideIndex]="currentIndex()"
-		[totalSlides]="slides().length"
-		[presentationStartTime]="showStartedAt"
-		[presenterMode]="presenterMode()"
-		(move)="navigator.navigate($event === 1 ? 'next' : 'prev')"
-		(presenterViewToggle)="presenterViewToggle.emit()"
-		(endPresentation)="onToolbarEnd()"
-	/>
-
-	<!--
 		Touch-only chrome (close button, edge arrows, counter pill). The
 		component stylesheet hides all three unless the device has a coarse
 		pointer, matching React's `PresentationTouchControls`: on a desktop they
 		duplicate the toolbar above and put a SECOND slide counter on screen.
+
+		Rendered BEFORE the show toolbar, as React renders its touch controls,
+		because both carry the same accessible names ("Next Slide", "Previous
+		Slide", "End Presentation"). On a coarse pointer the toolbar's copies are
+		still in the DOM but inert (`pointer-events: none`), so whichever comes
+		first is what a by-name lookup - a screen reader's, or a spec's `.first()`
+		- resolves to. With the toolbar first, every such lookup landed on a
+		button no user could press: it reported itself visible and enabled, and
+		the tap was swallowed by the overlay. Position is fixed on all of these,
+		so moving them in the DOM does not move them on screen.
 	-->
 	<!-- Always-visible close button (top-right, safe-area aware). -->
 	<button
@@ -132,4 +127,19 @@
 	>
 		<svg lucideChevronRight class="h-6 w-6"></svg>
 	</button>
+
+	<!--
+		The show toolbar (bottom-centre, auto-hiding): navigation, counter,
+		elapsed time, annotation tools, presenter view and end-show, per
+		`PRESENT_TOOLBAR_CONTROLS` in pptx-viewer-shared.
+	-->
+	<pptx-presentation-toolbar
+		[currentSlideIndex]="currentIndex()"
+		[totalSlides]="slides().length"
+		[presentationStartTime]="showStartedAt"
+		[presenterMode]="presenterMode()"
+		(move)="navigator.navigate($event === 1 ? 'next' : 'prev')"
+		(presenterViewToggle)="presenterViewToggle.emit()"
+		(endPresentation)="onToolbarEnd()"
+	/>
 </div>
