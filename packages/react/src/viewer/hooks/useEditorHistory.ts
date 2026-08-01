@@ -99,10 +99,23 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 	const [canRedo, setCanRedo] = useState(false);
 	const [undoLabel, setUndoLabel] = useState<string | undefined>(undefined);
 	const [redoLabel, setRedoLabel] = useState<string | undefined>(undefined);
-	// State value intentionally unread: setter is used solely to trigger
-	// re-renders via `markDirty` when history changes.
-	// eslint-disable-next-line react/hook-use-state
-	const [_isDirty, setIsDirty] = useState(false);
+	/**
+	 * Monotonic counter bumped by every `markDirty()` call, i.e. by every local
+	 * edit-commit choke point in the editor.
+	 *
+	 * It exists because the cheap hash below is deliberately blind to an
+	 * element's CONTENT: it only sees slide / element counts. An edit that
+	 * rewrites a property in place (any inspector field, a ribbon format
+	 * command, an inline-text commit) changes no count, so without a nonce the
+	 * hash is byte-identical before and after and the effect returns before it
+	 * ever reaches the snapshot push. The edit lands on screen and is silently
+	 * absent from the undo stack.
+	 *
+	 * `markDirty` previously flipped a boolean, which changes state exactly
+	 * once in a session and so could not re-open the gate. Counting instead
+	 * makes every commit distinguishable.
+	 */
+	const [editCommitNonce, setEditCommitNonce] = useState(0);
 
 	// -- Helpers ------------------------------------------------------------
 
@@ -164,7 +177,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 	}, []);
 
 	const markDirty = useCallback(() => {
-		setIsDirty((previous) => (previous ? previous : true));
+		setEditCommitNonce((previous) => previous + 1);
 	}, []);
 
 	// -- Stack navigation ---------------------------------------------------
@@ -264,11 +277,19 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		// Skip the deep stringify when slide / element counts and ids
 		// match the previous snapshot. This catches the very common case
 		// where the effect re-runs but no real state shape changed.
-		// `pointerCommitNonce` is part of the hash so a committed pointer
-		// interaction (move / resize / adjust / on-canvas chart edit) forces
-		// the deep comparison even though it changes no counts; without it
-		// those edits never reached the snapshot push and were not undoable.
-		const cheapHash = `${pointerCommitNonce}|${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
+		//
+		// Both nonces are part of the hash because the counts alone cannot see
+		// a content-only edit, and a content-only edit is still an undo step:
+		//   - `pointerCommitNonce` covers a committed pointer interaction
+		//     (move / resize / adjust / on-canvas chart edit).
+		//   - `editCommitNonce` covers every other local commit, via the
+		//     `markDirty()` that each edit choke point already calls: inspector
+		//     fields, ribbon formatting, inline-text commits, table and theme
+		//     edits. Without it none of those armed Undo.
+		// Opening the gate only costs a stringify; the serialized comparison
+		// below still rejects a commit that changed nothing, so a handler that
+		// calls `markDirty()` without touching the deck pushes no entry.
+		const cheapHash = `${pointerCommitNonce}|${editCommitNonce}|${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
 			.map((s) => `${s.id}:${s.elements.length}`)
 			.join('/')}`;
 		if (cheapHash === lastCheapHashRef.current) {
@@ -305,6 +326,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		buildHistorySnapshot,
 		canvasSize.height,
 		canvasSize.width,
+		editCommitNonce,
 		error,
 		hasActivePointerInteraction,
 		loading,

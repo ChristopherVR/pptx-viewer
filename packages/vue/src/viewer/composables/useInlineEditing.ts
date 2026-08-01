@@ -112,6 +112,23 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		const text = autoCorrect(inlineEditingText.value);
 		inlineEditingElementId.value = null;
 		if (el) {
+			// Clicking into a text box and clicking straight back out is not an
+			// edit, and PowerPoint does not offer to undo it. Committing anyway
+			// recorded a snapshot identical to the live deck, and because this
+			// path fires on every blur - including the blur caused by pressing
+			// the ribbon's own Undo button - the stack gained a fresh no-op entry
+			// faster than Undo could drain it. Two real edits later, Undo popped
+			// only the no-op it had just created and the deck never moved: the
+			// button stayed lit forever and the earlier edits became unreachable.
+			//
+			// Comparing the committed text also protects the segments: an element
+			// carrying rich `textSegments` but no plain `text` seeded the editor
+			// with '', so a no-op commit remapped its runs from an empty string
+			// and erased them.
+			const currentText = (el as { text?: string }).text ?? '';
+			if (text === currentText) {
+				return;
+			}
 			const segments = remapTextToSegments(
 				text,
 				(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,

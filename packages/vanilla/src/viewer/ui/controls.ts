@@ -162,11 +162,27 @@ export function makeNumberField(doc: Document, options: NumberFieldOptions): Num
 	input.step = String(options.step ?? 1);
 	el.appendChild(input);
 
+	/**
+	 * The value the model already holds, so a commit that would not change
+	 * anything can be dropped.
+	 *
+	 * Enter fires BOTH handlers below: the `keydown` listener commits, and the
+	 * browser then raises `change` because the value differs from the one the
+	 * field was focused with. Each commit is a separate undo step, so typing one
+	 * number and pressing Enter took two presses of Undo to reverse, the first of
+	 * which appeared to do nothing at all. Re-committing an unchanged value is
+	 * never meaningful, so tracking the last committed value collapses the pair
+	 * and also stops a plain focus-and-leave being recorded as an edit.
+	 */
+	let committedValue = Number.NaN;
+
 	const commit = (): void => {
 		const value = Number.parseFloat(input.value);
-		if (Number.isFinite(value)) {
-			options.onCommit(value);
+		if (!Number.isFinite(value) || value === committedValue) {
+			return;
 		}
+		committedValue = value;
+		options.onCommit(value);
 	};
 	input.addEventListener('change', commit);
 	input.addEventListener('keydown', (event) => {
@@ -179,9 +195,15 @@ export function makeNumberField(doc: Document, options: NumberFieldOptions): Num
 		el,
 		input,
 		setValue(value) {
+			const displayed = Math.round(value * 100) / 100;
+			// Whatever the model says is by definition already committed, even
+			// while the field is focused and therefore not repainted. Store the
+			// DISPLAYED precision: that is what the input parses back, so a model
+			// value of 53.004 shown as 53 must not read as a pending edit.
+			committedValue = displayed;
 			// Never clobber the field while the user is editing it.
 			if (doc.activeElement !== input) {
-				input.value = String(Math.round(value * 100) / 100);
+				input.value = String(displayed);
 			}
 		},
 		setDisabled(disabled) {
