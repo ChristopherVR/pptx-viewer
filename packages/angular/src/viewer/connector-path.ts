@@ -18,6 +18,7 @@ export type { ConnectorRouting, MarkerShape, ConnectorGeometry } from '../intern
 export {
 	buildConnectorGeometry,
 	buildDashArray,
+	connectorHitStrokeWidth,
 	connectorKind,
 	connectorBendFraction,
 	buildConnectorPathD,

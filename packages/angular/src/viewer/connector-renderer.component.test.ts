@@ -15,6 +15,7 @@ import {
 	buildDashArray,
 	buildWrapperStyle,
 	connectorBendFraction,
+	connectorHitStrokeWidth,
 	connectorKind,
 	markerPath,
 	normalizeArrow,
@@ -404,5 +405,52 @@ describe('buildConnectorPathD', () => {
 		expect(buildConnectorPathD('bentConnector3', 100, 0, 0, 50, 0.5)).toBe(
 			'M100,0 L50,0 L50,50 L0,50',
 		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Pointer hit target
+// ---------------------------------------------------------------------------
+
+/**
+ * The connector wrapper is `pointer-events: none`, so its mostly-empty bounding
+ * box never swallows clicks meant for the shapes it spans. That also left the
+ * LINE unclickable: no pointer route reached a connector at all, and its
+ * arrowhead controls could only be opened from the inspector's Elements list.
+ * The template paints `geo().hitPathD` at `geo().hitStrokeWidth` with
+ * `pointer-events: stroke`; these pin the values it binds.
+ */
+describe('connector pointer hit target', () => {
+	it('never offers a target narrower than a finger', () => {
+		expect(connectorHitStrokeWidth(0)).toBe(14);
+		expect(connectorHitStrokeWidth(2)).toBe(14);
+	});
+
+	it('scales the target with a thick line', () => {
+		expect(connectorHitStrokeWidth(10)).toBe(30);
+	});
+
+	it('follows the endpoints of a straight connector, which has no path', () => {
+		const geo = buildConnectorGeometry(connector({ height: 40 }), 0);
+
+		expect(geo.pathD).toBeUndefined();
+		expect(geo.hitPathD).toBe('M0,0 L200,40');
+		// strokeWidth 3 -> 9, floored at the 14px minimum.
+		expect(geo.hitStrokeWidth).toBe(14);
+	});
+
+	it('follows the routed path when the connector bends', () => {
+		const geo = buildConnectorGeometry(
+			connector({ height: 40, shapeType: 'bentConnector3' } as Partial<PptxElement>),
+			0,
+		);
+
+		expect(geo.hitPathD).toBe(geo.pathD);
+	});
+
+	it('mirrors the endpoints of a flipped connector so the target follows the ink', () => {
+		const geo = buildConnectorGeometry(connector({ height: 40, flipHorizontal: true }), 0);
+
+		expect(geo.hitPathD).toBe('M200,0 L0,40');
 	});
 });

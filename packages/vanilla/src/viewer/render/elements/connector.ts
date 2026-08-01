@@ -3,6 +3,7 @@ import { getConnectorPathGeometry, hasShapeProperties, hasTextProperties } from 
 import {
 	buildDashArray,
 	buildParagraphs,
+	connectorHitStrokeWidth,
 	connectorNeedsPath,
 	DEFAULT_STROKE_COLOR,
 	getCompoundLineOffsets,
@@ -131,6 +132,30 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 	const usePath = connectorNeedsPath(shapeType) && hasShapeProperties(element);
 	const pathData = usePath ? getConnectorPathGeometry(element).pathData : undefined;
 
+	// Straight-connector endpoints, mirrored by flips; reused by the hit target
+	// below and by the painted `<line>` strands.
+	const x1 = element.flipHorizontal ? w : 0;
+	const y1 = element.flipVertical ? h : 0;
+	const x2 = element.flipHorizontal ? 0 : w;
+	const y2 = element.flipVertical ? 0 : h;
+
+	// The only pointer-reachable part of a connector: a transparent stroke along
+	// the line that opts back into hit testing. The wrapper is
+	// `pointer-events: none` so a connector's mostly-empty bounding box never
+	// swallows clicks meant for the shapes it spans, which left the line itself
+	// unclickable until this path existed.
+	const hit = createSvgEl(doc, 'path', {
+		class: 'pptxv-connector-hit',
+		d: pathData ?? `M${x1},${y1} L${x2},${y2}`,
+		fill: 'none',
+		stroke: 'transparent',
+		'stroke-width': connectorHitStrokeWidth(strokeWidth),
+		'stroke-linecap': 'round',
+		'stroke-linejoin': 'round',
+	});
+	hit.style.pointerEvents = 'stroke';
+	svg.appendChild(hit);
+
 	offsets.forEach((offset, idx) => {
 		const stroke: Record<string, string | number | undefined> = {
 			// Inherit the wrapper's base stroke so a colour animation cascades.
@@ -155,12 +180,11 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 				node.style.transform = `translate(0, ${offset}px)`;
 			}
 		} else {
-			// Straight connector endpoints, mirrored by flips.
 			node = createSvgEl(doc, 'line', {
-				x1: element.flipHorizontal ? w : 0,
-				y1: (element.flipVertical ? h : 0) + offset,
-				x2: element.flipHorizontal ? 0 : w,
-				y2: (element.flipVertical ? 0 : h) + offset,
+				x1,
+				y1: y1 + offset,
+				x2,
+				y2: y2 + offset,
 				...stroke,
 			});
 		}

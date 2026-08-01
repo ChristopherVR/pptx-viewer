@@ -94,6 +94,24 @@
 			{/if}
 		</defs>
 
+		<!--
+			The only pointer-reachable part of a connector: a transparent stroke along
+			the line that opts back into hit testing. The wrapper is
+			pointer-events:none so a connector's mostly-empty bounding box never
+			swallows clicks meant for the shapes it spans, which left the line itself
+			unclickable until this path existed.
+		-->
+		<path
+			class="pptx-svelte-connector-hit"
+			d={geometry.hitPathD}
+			fill="none"
+			stroke="transparent"
+			stroke-width={geometry.hitStrokeWidth}
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			style="pointer-events: stroke"
+		/>
+
 		{#each geometry.compoundOffsets as offset, idx (idx)}
 			{#if geometry.pathD}
 				<path

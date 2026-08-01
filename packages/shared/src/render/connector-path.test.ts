@@ -1,6 +1,12 @@
+import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildDashArray, markerPath } from './connector-path';
+import {
+	buildConnectorGeometry,
+	buildDashArray,
+	connectorHitStrokeWidth,
+	markerPath,
+} from './connector-path';
 
 describe('buildDashArray', () => {
 	it('returns undefined for solid / missing dashes', () => {
@@ -60,5 +66,45 @@ describe('markerPath', () => {
 		expect(markerPath('diamond').d).toBe('M5 0 L10 5 L5 10 L0 5 Z');
 		expect(markerPath('stealth').d).toBe('M0 0 L10 5 L0 10 L3 5 Z');
 		expect(markerPath('oval').shape).toBe('circle');
+	});
+});
+
+describe('connector pointer hit target', () => {
+	it('never offers a target narrower than a finger', () => {
+		expect(connectorHitStrokeWidth(0)).toBe(14);
+		expect(connectorHitStrokeWidth(2)).toBe(14);
+	});
+
+	it('scales with a thick line so the target stays proportional', () => {
+		expect(connectorHitStrokeWidth(6)).toBe(18);
+		expect(connectorHitStrokeWidth(10)).toBe(30);
+	});
+
+	it('follows the endpoints of a straight connector, which has no path', () => {
+		const geo = buildConnectorGeometry(
+			{ id: 'c1', type: 'connector', x: 0, y: 0, width: 100, height: 50 } as PptxElement,
+			3,
+		);
+		expect(geo.pathD).toBeUndefined();
+		expect(geo.hitPathD).toBe('M0,0 L100,50');
+		expect(geo.hitStrokeWidth).toBe(14);
+	});
+
+	it('follows the routed path when the connector bends', () => {
+		const geo = buildConnectorGeometry(
+			{
+				id: 'c2',
+				type: 'connector',
+				shapeType: 'bentConnector3',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 50,
+				shapeStyle: { strokeWidth: 8 },
+			} as PptxElement,
+			3,
+		);
+		expect(geo.hitPathD).toBe(geo.pathD);
+		expect(geo.hitStrokeWidth).toBe(24);
 	});
 });

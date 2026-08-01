@@ -823,8 +823,38 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		});
 	}
 
-	/** Open a clean audience display while retaining this editor as the presenter surface. */
+	/**
+	 * Mount the presenter console on this screen.
+	 *
+	 * Deliberately does NOT open the audience display. Vanilla used to do both
+	 * at once, which is why its `audience` control always read "Close Audience
+	 * Window" the moment the console appeared while the other four read "Open".
+	 * In every other binding presenter view is the presenter's own surface and
+	 * the audience window is a separate, explicit toggle; coupling them also
+	 * meant a presenter who only wanted their notes got a popup they had to
+	 * dismiss.
+	 */
 	openPresenterView(): void {
+		this.store.set({ notesExpanded: true });
+		this.presenterView?.dispose();
+		this.presenterView = mountPresenterView(this.buildPresenterViewOptions());
+
+		// The presenter's own screen must be IN the show, not an editor with a
+		// console laid over it: without this `presenting` stayed false, so the
+		// slide stayed editable and neither click-to-advance nor the presentation
+		// keymap reached it.
+		if (!this.store.get().presenting) {
+			void this.enterPresentation();
+		}
+	}
+
+	/**
+	 * Open the audience display in its own window and hand it the deck.
+	 *
+	 * Split out of {@link openPresenterView} so the console and the second
+	 * screen are independent, as they are in the other four bindings.
+	 */
+	openAudienceWindow(): void {
 		this.closeAudienceWindow();
 		// Arm the latch BEFORE the popup exists. Opening it drops this window out
 		// of fullscreen, and the `fullscreenchange` that says so is dispatched on
@@ -849,9 +879,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		}
 		this.audienceWindow = popup;
 		this.presenterSessionId = createPresentationSessionId();
-		this.store.set({ notesExpanded: true });
-		this.presenterView?.dispose();
-		this.presenterView = mountPresenterView(this.buildPresenterViewOptions());
+		this.presenterView?.syncSnapshot();
 		const sessionId = this.presenterSessionId;
 		const url = buildPresentationAudienceUrl(window.location.href, sessionId);
 		void resolveAudienceScreenPlacement(window).then((placement) => {
@@ -870,22 +898,6 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			.then((bytes) => storePresentationDeck(sessionId, bytes))
 			.then(() => popup.location.replace(url))
 			.catch(() => this.closeAudienceWindow());
-
-		// The presenter's own screen must be IN the show, not an editor with a
-		// console laid over it: without this `presenting` stayed false, so the
-		// slide stayed editable and neither click-to-advance nor the presentation
-		// keymap reached it. This runs AFTER the popup is opened because opening a
-		// popup cancels an in-flight fullscreen request.
-		//
-		// A show that is ALREADY running is deliberately not re-entered here. The
-		// old code tested `store.presenting` and, finding it still true because
-		// the popup's `fullscreenchange` had not been delivered yet, did nothing;
-		// the event then landed and ended the show. Restoring fullscreen is now
-		// the latch's job in `chrome-lifecycle`, which runs when the event
-		// actually arrives instead of guessing beforehand.
-		if (!this.store.get().presenting) {
-			void this.enterPresentation();
-		}
 	}
 
 	private getPresenterChannel(): BroadcastChannel | null {
@@ -976,7 +988,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				}),
 			toggleCaptions: () => this.togglePresenterCaptions(),
 			toggleAudience: () =>
-				this.isAudienceWindowOpen() ? this.closeAudienceWindow() : this.openPresenterView(),
+				this.isAudienceWindowOpen() ? this.closeAudienceWindow() : this.openAudienceWindow(),
 			swapDisplays: () => this.swapPresenterDisplays(),
 			end: () => {
 				this.closeAudienceWindow();
@@ -1006,12 +1018,18 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	/**
-	 * The show toolbar's presenter-view control: open the presenter console and
-	 * audience display when they are closed, close them when they are open.
+	 * The show toolbar's presenter-view control: mount the presenter console
+	 * when it is closed, tear it down when it is open. Closing the console also
+	 * closes the audience display, because the console owns the only control
+	 * that could close it afterwards.
 	 */
 	togglePresenterView(): void {
 		if (this.presenterView) {
 			this.closeAudienceWindow();
+			this.presenterView.dispose();
+			this.presenterView = null;
+			this.presenterCaptions?.dispose();
+			this.presenterCaptions = null;
 			this.syncPresentationToolbar();
 			return;
 		}
@@ -1123,10 +1141,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		}
 		this.audienceWindow = null;
 		this.presenterSessionId = '';
-		this.presenterView?.dispose();
-		this.presenterView = null;
-		this.presenterCaptions?.dispose();
-		this.presenterCaptions = null;
+		// The console outlives the audience display: they are independent
+		// surfaces, and repainting is only needed so the `audience` control
+		// flips back to "Open Audience Window".
+		this.presenterView?.syncSnapshot();
 		// Deliberately does NOT disarm the latch. Closing the audience display
 		// again does not un-open the popup, so a fullscreen bounce it already
 		// caused can still be in flight; the latch's own time bound is what

@@ -15,6 +15,7 @@ import type { ConnectorArrowType, PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../constants';
+import { connectorHitStrokeWidth } from './connector-hit-target';
 import { routeOrthogonalConnector, waypointsToPathD } from './connector-router';
 import type { RouterRect } from './connector-router';
 import {
@@ -24,6 +25,10 @@ import {
 	svgLineCap,
 } from './connector-style';
 import { getSvgStrokeDasharray, normalizeStrokeDashType } from './element-style-transform';
+
+// Re-exported so the historical `render/connector-path` import surface (and the
+// package barrel, which spreads this module) still carries the hit-target rule.
+export { CONNECTOR_HIT_MIN_WIDTH, connectorHitStrokeWidth } from './connector-hit-target';
 
 /**
  * Optional obstacle-avoidance routing context for bent connectors. When
@@ -96,6 +101,15 @@ export interface ConnectorGeometry {
 	endMarker: MarkerShape | null;
 	startMarkerRef: string | null;
 	endMarkerRef: string | null;
+	/**
+	 * `path` data for the invisible pointer target that runs along the stroke.
+	 * Always set: it is {@link pathD} for a bent/curved connector, and the
+	 * straight `(x1,y1) -> (x2,y2)` segment otherwise, so a binding can emit one
+	 * `<path>` for the hit target regardless of which shape it paints.
+	 */
+	hitPathD: string;
+	/** `stroke-width` for the hit target. See {@link connectorHitStrokeWidth}. */
+	hitStrokeWidth: number;
 	/** Inline `style` string for the wrapper `<div>`. */
 	wrapperStyle: string;
 }
@@ -194,6 +208,11 @@ export function buildConnectorGeometry(
 		endMarker,
 		startMarkerRef,
 		endMarkerRef,
+		// A straight connector has no `pathD`, so the hit target falls back to its
+		// endpoints; both forms are a `path`, which keeps the binding templates to
+		// a single node instead of a line/path branch of their own.
+		hitPathD: pathD ?? `M${x1},${y1} L${x2},${y2}`,
+		hitStrokeWidth: connectorHitStrokeWidth(strokeWidth),
 		wrapperStyle,
 	};
 }

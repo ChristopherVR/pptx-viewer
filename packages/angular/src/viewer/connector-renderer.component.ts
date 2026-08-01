@@ -99,6 +99,23 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 						</filter>
 					}
 				</defs>
+				<!--
+					The only pointer-reachable part of a connector: a transparent stroke
+					along the line that opts back into hit testing. The wrapper is
+					pointer-events:none so a connector's mostly-empty bounding box never
+					swallows clicks meant for the shapes it spans, which left the line
+					itself unclickable until this path existed.
+				-->
+				<path
+					class="pptx-ng-connector-hit"
+					[attr.d]="geo().hitPathD"
+					fill="none"
+					stroke="transparent"
+					[attr.stroke-width]="geo().hitStrokeWidth"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					style="pointer-events: stroke"
+				/>
 				@for (strand of strands(); track strand.key) {
 					@if (geo().pathD) {
 						<path
