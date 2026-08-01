@@ -54,11 +54,14 @@ import type {
 } from 'pptx-viewer-core';
 
 import { applyChart3DDepth } from './chart-3d-depth';
+import { DEFAULT_CHART_AREA_FILL, chartAreaFill, plotAreaFill } from './chart-area-fill';
+import { niceValueAxisBounds } from './chart-axis-nice';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
+import { formatChartNumber } from './chart-number-format';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildPieDataLabels } from './chart-pie-labels';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
@@ -114,9 +117,17 @@ export interface ValueRange {
 	logBase?: number;
 	/** Whether values increase from top to bottom. */
 	reverseOrder?: boolean;
+	/**
+	 * Step between major gridlines when the bounds came from the automatic
+	 * scale. See the same field on `ValueRange` in `chart-helpers.ts`.
+	 */
+	majorUnit?: number;
 }
 
-/** Compute a Y-axis range that always includes zero. */
+/**
+ * Automatic Y-axis range, on PowerPoint's terms. See `chart-axis-nice.ts`; this
+ * mirrors `computeValueRange` in `chart-helpers.ts`.
+ */
 export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): ValueRange {
 	let dataMin = Number.POSITIVE_INFINITY;
 	let dataMax = Number.NEGATIVE_INFINITY;
@@ -133,13 +144,14 @@ export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): Value
 	if (dataMin === Number.POSITIVE_INFINITY) {
 		return { min: 0, max: 1, span: 1 };
 	}
-	const min = Math.min(dataMin, 0);
-	const max = Math.max(dataMax, 0);
-	const span = Math.max(max - min, 1);
-	return { min, max, span };
+	const { min, max, majorUnit } = niceValueAxisBounds(dataMin, dataMax);
+	return { min, max, span: Math.max(max - min, Number.EPSILON), majorUnit };
 }
 
-/** Compute the value range for a stacked bar (sum of positive values per category). */
+/**
+ * Value range for a stacked bar: the per-category sums, then the same automatic
+ * scale as any other value axis.
+ */
 export function computeStackedValueRange(
 	series: ReadonlyArray<PptxChartSeries>,
 	catCount: number,
@@ -160,10 +172,8 @@ export function computeStackedValueRange(
 		maxSum = Math.max(maxSum, pos);
 		minSum = Math.min(minSum, neg);
 	}
-	const min = Math.min(minSum, 0);
-	const max = Math.max(maxSum, 0);
-	const span = Math.max(max - min, 1);
-	return { min, max, span };
+	const { min, max, majorUnit } = niceValueAxisBounds(Math.min(minSum, 0), Math.max(maxSum, 0));
+	return { min, max, span: Math.max(max - min, Number.EPSILON), majorUnit };
 }
 
 /**
@@ -191,8 +201,16 @@ export function valueToY(val: number, range: ValueRange, topY: number, bottomY: 
 // Formatting
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Format a numeric axis label to a short human-readable string. */
-export function formatAxisValue(val: number): string {
+/**
+ * Format a numeric axis or data label to a short human-readable string, or
+ * through the chart's own `c:numFmt/@formatCode` when it declares one. See
+ * `formatAxisValue` in `chart-helpers.ts`, which this mirrors.
+ */
+export function formatAxisValue(val: number, formatCode?: string): string {
+	const formatted = formatChartNumber(val, formatCode);
+	if (formatted !== undefined) {
+		return formatted;
+	}
 	if (Math.abs(val) >= 1_000_000) {
 		return `${(val / 1_000_000).toFixed(1)}M`;
 	}
@@ -473,6 +491,17 @@ export interface ChartViewModel {
 	/** Right-side (secondary) value-axis tick labels. Present only with a secondary axis. */
 	secondaryAxisLabels?: SvgText[];
 	/**
+	 * SVG `fill` for the full-bleed chart-area rect, resolved from
+	 * `c:chartSpace/c:spPr`. `undefined` means the chart declared `a:noFill` and
+	 * NOTHING should be painted behind it. See `chart-area-fill.ts`.
+	 */
+	areaFill?: string;
+	/**
+	 * SVG `fill` for the plot-area rect, resolved from `c:plotArea/c:spPr`.
+	 * `undefined` means paint nothing and let the chart area show through.
+	 */
+	plotFill?: string;
+	/**
 	 * Overlay primitives (regression trendlines, error bars, axis titles) layered
 	 * on top of the base cartesian primitives. Already appended to `primitives`;
 	 * surfaced separately so a projector can style/segregate them if desired.
@@ -507,6 +536,25 @@ const AXIS_LABEL_COLOR = '#64748b';
 const ZERO_LINE_COLOR = '#94a3b8';
 const TICK_COUNT = 5;
 
+/**
+ * Tick values for a range: one per major unit when the automatic scale supplied
+ * one (it snapped the bounds to whole multiples, so this lands on round numbers
+ * exactly as PowerPoint does), otherwise an even division of the span.
+ */
+function axisTickValues(range: ValueRange): number[] {
+	const unit = range.majorUnit;
+	if (unit !== undefined && Number.isFinite(unit) && unit > 0 && !range.logScale) {
+		const steps = Math.round((range.max - range.min) / unit);
+		if (steps >= 1 && steps <= 100) {
+			return Array.from({ length: steps + 1 }, (_unused, index) => range.min + unit * index);
+		}
+	}
+	return Array.from(
+		{ length: TICK_COUNT + 1 },
+		(_unused, index) => range.min + (range.span / TICK_COUNT) * index,
+	);
+}
+
 export function buildGridlinesAndLabels(
 	range: ValueRange,
 	layout: PlotLayout,
@@ -514,8 +562,7 @@ export function buildGridlinesAndLabels(
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
 
-	for (let i = 0; i <= TICK_COUNT; i++) {
-		const val = range.min + (range.span / TICK_COUNT) * i;
+	for (const val of axisTickValues(range)) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 
 		gridlines.push({
@@ -1058,16 +1105,35 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 
 	// Pie-of-pie / bar-of-pie splits one series across a primary + secondary plot.
 	if (chartType === 'ofPie') {
-		return withUserShapeOverlay(buildOfPieViewModel(element, chartData, categoryLabels), chartData);
+		return withChartAreaFill(
+			withUserShapeOverlay(buildOfPieViewModel(element, chartData, categoryLabels), chartData),
+			chartData,
+		);
 	}
 
 	// 3D chart kinds keep their flat geometry but get an oblique depth pass driven
 	// by c:view3D so they read as 3D instead of collapsing to a flat plot.
 	const flat = buildFlatViewModel(element, chartData, categoryLabels, kind);
 	if (is3DChartType(chartType)) {
-		return withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData);
+		return withChartAreaFill(
+			withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData),
+			chartData,
+		);
 	}
-	return withUserShapeOverlay(flat, chartData);
+	return withChartAreaFill(withUserShapeOverlay(flat, chartData), chartData);
+}
+
+/**
+ * Stamp the resolved chart-area / plot-area fills onto a finished view-model so
+ * every binding paints (or skips) the same background rect. A chart that
+ * declares `<a:noFill/>` gets `areaFill: undefined` and no rect at all.
+ */
+function withChartAreaFill(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
+	return {
+		...vm,
+		areaFill: chartAreaFill(chartData),
+		plotFill: plotAreaFill(chartData),
+	};
 }
 
 /**
@@ -1158,6 +1224,8 @@ export function buildFallbackViewModel(
 	return {
 		svgWidth,
 		svgHeight,
+		// No chart data to read a fill from, so the historical wash stands.
+		areaFill: DEFAULT_CHART_AREA_FILL,
 		title: undefined,
 		titleX: svgWidth / 2,
 		titleY: 14,
@@ -1246,6 +1314,7 @@ function buildPieViewModel(
 			outerR,
 			position: chartData.style.dataLabels?.position,
 			showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
+			numberFormat: chartData.series[0]?.numberFormat,
 		});
 		dataLabels.push(...labelResult.labels);
 		primitives.push(...labelResult.leaderLines);
@@ -1389,7 +1458,7 @@ function buildRadarViewModel(
 					kind: 'text',
 					x: p.x,
 					y: p.y - 8,
-					text: formatAxisValue(val),
+					text: formatAxisValue(val, series.numberFormat),
 					fontSize: 7,
 					fill: '#334155',
 					textAnchor: 'middle',

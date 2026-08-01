@@ -146,6 +146,21 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 		}
 
 		const lineNode = shapeProps['a:ln'] as XmlObject | undefined;
+		// `<p:style><a:lnRef>` is the BASE outline (the theme's `lnStyleLst`
+		// entry plus the referenced colour); `spPr/a:ln` overrides individual
+		// properties on top of it. Treating the two as alternatives dropped the
+		// theme colour for any shape that carried both, which is the ordinary
+		// shape a connector produces: PowerPoint writes the colour into `a:lnRef`
+		// and leaves `a:ln` holding nothing but the arrow ends
+		// (`<a:ln><a:headEnd type="oval"/></a:ln>`). Those connectors fell through
+		// to the default stroke and drew black instead of the theme accent.
+		//
+		// Resolving the ref first is safe because `applyLineProperties` only
+		// writes what the `a:ln` actually declares - and `<a:noFill/>` still wins,
+		// since it returns early after clearing the stroke outright.
+		if (styleNode?.['a:lnRef']) {
+			this.context.resolveThemeLineRef(styleNode['a:lnRef'] as XmlObject, style);
+		}
 		if (lineNode) {
 			// `applyLineProperties` returns true for `<a:ln><a:noFill/></a:ln>`,
 			// meaning "outline fully resolved as none". That is a statement about
@@ -156,8 +171,6 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			// no outline. Losing `fontRef` is what made themed accent buttons
 			// resolve their text colour to black.
 			applyLineProperties(lineNode, style, this.context);
-		} else if (styleNode?.['a:lnRef']) {
-			this.context.resolveThemeLineRef(styleNode['a:lnRef'] as XmlObject, style);
 		}
 
 		Object.assign(style, this.context.extractShadowStyle(shapeProps));

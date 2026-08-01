@@ -116,6 +116,33 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Resolve the `c:spPr` fill of a chart container (`c:chartSpace` or
+	 * `c:plotArea`) to a colour string, or the literal `'none'` for
+	 * `<a:noFill/>`. Returns `undefined` when the container declares no fill at
+	 * all, which leaves the choice to the renderer.
+	 *
+	 * `<a:noFill/>` parses to the empty STRING, so presence - not truthiness -
+	 * has to decide.
+	 */
+	private parseChartContainerFill(container: XmlObject | undefined): string | undefined {
+		const shapeProperties = this.xmlLookupService.getChildByLocalName(container, 'spPr');
+		if (!shapeProperties) {
+			return undefined;
+		}
+		// `getChildByLocalName` returns undefined for non-object values, and
+		// `<a:noFill/>` parses to the empty STRING, so presence has to be checked
+		// against the keys directly.
+		const hasNoFill = Object.keys(shapeProperties).some(
+			(key) => this.compatibilityService.getXmlLocalName(key) === 'noFill',
+		);
+		if (hasNoFill) {
+			return 'none';
+		}
+		const solidFill = this.xmlLookupService.getChildByLocalName(shapeProperties, 'solidFill');
+		return solidFill ? this.parseColor(solidFill) : undefined;
+	}
+
+	/**
 	 * Extract chart style metadata from chart XML.
 	 */
 	protected extractChartStyle(
@@ -132,6 +159,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const styleNode = this.xmlLookupService.getChildByLocalName(chartSpace, 'style');
 		if (styleNode?.['@_val']) {
 			style.styleId = parseInt(String(styleNode['@_val']));
+			hasStyle = true;
+		}
+
+		// Chart-area fill (`c:chartSpace/c:spPr`). `<a:noFill/>` is the common
+		// case and means the chart floats on the slide background; recording it as
+		// `'none'` stops renderers painting their own panel behind it.
+		const chartAreaFill = this.parseChartContainerFill(chartSpace);
+		if (chartAreaFill) {
+			style.chartAreaFill = chartAreaFill;
 			hasStyle = true;
 		}
 
@@ -165,6 +201,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Plot area gridlines
 			const plotArea = this.xmlLookupService.getChildByLocalName(chartRoot, 'plotArea');
 			if (plotArea) {
+				const plotAreaFill = this.parseChartContainerFill(plotArea);
+				if (plotAreaFill) {
+					style.plotAreaFill = plotAreaFill;
+					hasStyle = true;
+				}
 				const valAx = this.xmlLookupService.getChildByLocalName(plotArea, 'valAx');
 				if (valAx) {
 					const majorGridlines = this.xmlLookupService.getChildByLocalName(valAx, 'majorGridlines');

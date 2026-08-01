@@ -1,4 +1,5 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
+import { chartAreaFill } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { renderChrome, renderOverlays } from './chart-chrome';
@@ -24,6 +25,7 @@ export function renderWaterfallChart(
 	categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
 	const style = chartData.style;
+	const areaFill = chartAreaFill(chartData);
 	const legendPos = style?.legendPosition || 'b';
 	const values = chartData.series[0]?.values ?? [];
 	const range = computeValueRangeForChart(chartData.series, chartData.axes);
@@ -101,7 +103,9 @@ export function renderWaterfallChart(
 			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
 			preserveAspectRatio='none'
 		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
+			{areaFill && (
+				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill={areaFill} />
+			)}
 			{renderChrome(element.id, chartData, layout, range, categoryLabels, {
 				categoryAxisStyle: 'bar',
 			})}
@@ -118,6 +122,7 @@ export function renderComboChart(
 	categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
 	const style = chartData.style;
+	const areaFill = chartAreaFill(chartData);
 	const legendPos = style?.legendPosition || 'b';
 
 	// Compute layout with secondary axis & data table awareness
@@ -240,7 +245,9 @@ export function renderComboChart(
 				viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
 				preserveAspectRatio='none'
 			>
-				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
+				{areaFill && (
+					<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill={areaFill} />
+				)}
 				{renderChrome(
 					element.id,
 					chartData,

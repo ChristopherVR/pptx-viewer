@@ -9,7 +9,7 @@ const EMU_PER_PX = 9525;
  * Build a PptxShapeStyleExtractor with minimal stubs.
  * The stubs return deterministic values so we can test extraction logic.
  */
-function createExtractor() {
+function createExtractor(overrides: Record<string, unknown> = {}) {
 	return new PptxShapeStyleExtractor({
 		emuPerPx: EMU_PER_PX,
 		parseColor: (colorNode: XmlObject | undefined) => {
@@ -89,6 +89,7 @@ function createExtractor() {
 		extractReflectionStyle: () => ({}),
 		extractBlurStyle: () => ({}),
 		extractEffectDagStyle: () => ({}),
+		...overrides,
 	});
 }
 
@@ -385,6 +386,54 @@ describe('pptxShapeStyleExtractor', () => {
 			const style = extractor.extractShapeStyle(spPr, styleNode);
 			expect(style.fillMode).toBe('none');
 			expect(style.fillColor).toBe('transparent');
+		});
+	});
+
+	/**
+	 * issue #132 - `a:lnRef` is the BASE outline and `a:ln` overrides it, so the
+	 * two are not alternatives. PowerPoint routinely writes a connector's colour
+	 * into `<a:lnRef>` and leaves `<a:ln>` holding only the arrow ends; treating
+	 * the presence of `a:ln` as "the ref does not apply" stroked those in the
+	 * default colour.
+	 */
+	describe('lnRef as the base for a:ln', () => {
+		const themed = createExtractor({
+			resolveThemeLineRef: (_ref: XmlObject, style: Record<string, unknown>) => {
+				style.strokeColor = '#10A8AC';
+				style.strokeWidth = 1;
+			},
+		});
+		const styleNode: XmlObject = {
+			'a:lnRef': { '@_idx': '1', 'a:schemeClr': { '@_val': 'accent1' } },
+		};
+
+		it('keeps the ref colour when a:ln only carries arrow ends', () => {
+			const spPr: XmlObject = { 'a:ln': { 'a:headEnd': { '@_type': 'oval' } } };
+			const style = themed.extractShapeStyle(spPr, styleNode);
+			expect(style.strokeColor).toBe('#10A8AC');
+			expect(style.connectorStartArrow).toBe('oval');
+		});
+
+		it('lets an explicit a:ln colour override the ref', () => {
+			const spPr: XmlObject = {
+				'a:ln': { '@_w': '19050', 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } } },
+			};
+			const style = themed.extractShapeStyle(spPr, styleNode);
+			expect(style.strokeColor).toBe('#FF0000');
+			expect(style.strokeWidth).toBe(2);
+		});
+
+		it('lets a:noFill override the ref outright', () => {
+			const spPr: XmlObject = { 'a:ln': { 'a:noFill': '' } } as unknown as XmlObject;
+			const style = themed.extractShapeStyle(spPr, styleNode);
+			expect(style.strokeFillMode).toBe('none');
+			expect(style.strokeColor).toBe('transparent');
+			expect(style.strokeWidth).toBe(0);
+		});
+
+		it('still applies the ref when there is no a:ln at all', () => {
+			const style = themed.extractShapeStyle({}, styleNode);
+			expect(style.strokeColor).toBe('#10A8AC');
 		});
 	});
 });

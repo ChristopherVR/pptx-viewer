@@ -34,8 +34,12 @@ export function getConnectorAdjustment(
 export function getConnectorPathGeometry(
 	element: PptxElementWithShapeStyle,
 ): ConnectorPathGeometry {
-	const width = Math.max(element.width, 1);
-	const height = Math.max(element.height, 1);
+	// The connector's TRUE extent, not a clamped one. A vertical connector is
+	// authored `cx="0"`, and rounding that up to 1 tilts the line by a pixel
+	// over its whole length. The renderer pads the wrapper box out to a grabbable
+	// size separately, without touching these coordinates.
+	const width = Math.max(element.width, 0);
+	const height = Math.max(element.height, 0);
 	const normalizedType = (element.shapeType || '').toLowerCase();
 	const mapX = (value: number) => value;
 	const mapY = (value: number) => value;

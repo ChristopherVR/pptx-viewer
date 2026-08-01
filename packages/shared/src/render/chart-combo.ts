@@ -224,7 +224,7 @@ export function buildComboViewModel(
 						kind: 'text',
 						x: point.x,
 						y: point.y - 7,
-						text: formatAxisValue(point.value),
+						text: formatAxisValue(point.value, series.numberFormat),
 						fontSize: 7,
 						fill: '#334155',
 						textAnchor: 'middle',
@@ -292,7 +292,7 @@ function appendBarLabels(
 				xPositions?.[displayIndex] ??
 				layout.plotLeft + groupWidth * displayIndex + offset + barWidth / 2,
 			y: value >= 0 ? Math.min(zeroY, valueY) - 4 : Math.max(zeroY, valueY) + 10,
-			text: formatAxisValue(value),
+			text: formatAxisValue(value, series.numberFormat),
 			fontSize: 7,
 			fill: '#334155',
 			textAnchor: 'middle',

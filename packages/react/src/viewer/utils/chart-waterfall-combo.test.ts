@@ -166,7 +166,9 @@ describe('combo chart: bar and line geometry', () => {
 	});
 
 	it('should compute line Y from valueToY', () => {
-		const range = computeValueRange([{ name: 'A', values: [0, 50, 100] }]);
+		// An explicit range: the subject here is the linear mapping, not the
+		// automatic scale (which rounds its bounds out; see `chart-axis-nice.ts`).
+		const range = { min: 0, max: 100, span: 100 };
 		const midY = valueToY(50, range, 0, 200);
 		expect(midY).toBe(100); // midpoint
 	});

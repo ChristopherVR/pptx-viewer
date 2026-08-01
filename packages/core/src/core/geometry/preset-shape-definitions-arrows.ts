@@ -704,17 +704,20 @@ const stripedRightArrow: PresetShapeGeometryDefinition = {
 	name: 'stripedRightArrow',
 	avLst: { adj1: 50000, adj2: 50000 },
 	gdLst: [
+		// Head length runs off `ss`, the short side, not `w`. See the note on
+		// `rightArrow` in `preset-shape-definitions-table.ts`.
+		gd('maxAdj2', '*/ 84375 w ss'),
 		gd('a1', 'pin 0 adj1 100000'),
-		gd('a2', 'pin 0 adj2 100000'),
+		gd('a2', 'pin 0 adj2 maxAdj2'),
 		gd('y1', '*/ hd2 a1 100000'),
 		gd('y2', '+- vc 0 y1'),
 		gd('y3', '+- vc y1 0'),
 		gd('x2', '*/ ss 1 32'),
 		gd('x3', '*/ ss 2 32'),
 		gd('x4', '*/ ss 5 32'),
-		gd('x5', '*/ w a2 100000'),
+		gd('x5', '*/ ss a2 100000'),
 		gd('x6', '+- r 0 x5'),
-		gd('dx', '*/ hd2 x5 wd2'),
+		gd('dx', '*/ y1 x5 hd2'),
 		gd('x7', '+- x6 dx 0'),
 	],
 	rect: { l: 'x4', t: 'y2', r: 'x7', b: 'y3' },
@@ -751,14 +754,17 @@ const notchedRightArrow: PresetShapeGeometryDefinition = {
 	name: 'notchedRightArrow',
 	avLst: { adj1: 50000, adj2: 50000 },
 	gdLst: [
+		// Head length runs off `ss`, the short side, not `w`. See the note on
+		// `rightArrow` in `preset-shape-definitions-table.ts`.
+		gd('maxAdj2', '*/ 100000 w ss'),
 		gd('a1', 'pin 0 adj1 100000'),
-		gd('a2', 'pin 0 adj2 100000'),
+		gd('a2', 'pin 0 adj2 maxAdj2'),
 		gd('y1', '*/ hd2 a1 100000'),
 		gd('y2', '+- vc 0 y1'),
 		gd('y3', '+- vc y1 0'),
-		gd('x2', '*/ w a2 100000'),
+		gd('x2', '*/ ss a2 100000'),
 		gd('x1', '+- r 0 x2'),
-		gd('dx2', '*/ hd2 x2 wd2'),
+		gd('dx2', '*/ y1 x2 hd2'),
 		gd('x3', '+- x1 dx2 0'),
 		gd('nx', '*/ y1 1 1'),
 	],
@@ -781,11 +787,17 @@ const notchedRightArrow: PresetShapeGeometryDefinition = {
 };
 
 // homePlate — 5-sided pentagon (rectangle with one pointed end).
-//   adj1 = arrow point length as a fraction of w (default 50000).
+//   adj = point length as a fraction of `ss`, the short side (default 50000),
+//   pinned so it can reach the full width but no further.
 const homePlate: PresetShapeGeometryDefinition = {
 	name: 'homePlate',
 	avLst: { adj: 50000 },
-	gdLst: [gd('a', 'pin 0 adj 100000'), gd('x1', '*/ w a 100000')],
+	gdLst: [
+		gd('maxAdj', '*/ 100000 w ss'),
+		gd('a', 'pin 0 adj maxAdj'),
+		gd('dx1', '*/ ss a 100000'),
+		gd('x1', '+- r 0 dx1'),
+	],
 	rect: { l: 'l', t: 't', r: 'x1', b: 'b' },
 	pathLst: [
 		{
@@ -801,13 +813,20 @@ const homePlate: PresetShapeGeometryDefinition = {
 	],
 };
 
-// chevron — rightward chevron with notched tail. adj1 = notch depth (default
-// 50000 = halfway).
+// chevron: rightward chevron with notched tail. adj = point/notch depth as a
+// fraction of `ss`, the short side (default 50000), pinned so it can reach the
+// full width but no further. Measuring it against `w` made every wide, short
+// chevron a shallow arrowhead instead of a chevron.
 const chevron: PresetShapeGeometryDefinition = {
 	name: 'chevron',
 	avLst: { adj: 50000 },
-	gdLst: [gd('a', 'pin 0 adj 100000'), gd('x1', '*/ w a 100000'), gd('x2', '+- r 0 x1')],
-	rect: { l: 'l', t: 't', r: 'x2', b: 'b' },
+	gdLst: [
+		gd('maxAdj', '*/ 100000 w ss'),
+		gd('a', 'pin 0 adj maxAdj'),
+		gd('x1', '*/ ss a 100000'),
+		gd('x2', '+- r 0 x1'),
+	],
+	rect: { l: 'x1', t: 't', r: 'x2', b: 'b' },
 	pathLst: [
 		{
 			commands: [

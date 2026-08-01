@@ -46,10 +46,18 @@ const fixturePath = resolve(
 const SLIDE = {
 	/** The reporter's parallelogram, full-bleed over the slide's body text. */
 	parallelogram: 2,
-	/** Panels with linear `a:gradFill` fills. */
+	/** Panels with linear `a:gradFill` fills, plus a themed vertical connector. */
 	linearGradients: 3,
 	/** Circle-path radial gradient with an oversized `a:tileRect`. */
 	cornerRadial: 4,
+	/** Percentage bar chart (`c:numFmt formatCode="0%"`, `c:spPr/a:noFill`). */
+	percentChart: 5,
+	/** Body text set in an uninstalled CJK sans. */
+	uninstalledFont: 12,
+	/** Elbows drawn from three zero-extent straight connectors. */
+	zeroExtentConnectors: 25,
+	/** Full-width `rightArrow` shapes (`8792048 x 256208` EMU). */
+	longArrows: 26,
 } as const;
 
 const LOAD_TIMEOUT_MS = 60_000;
@@ -252,5 +260,232 @@ test.describe('issue #132 - gradient fill / preset adjustment fidelity', () => {
 		// onto the shape's own corner.
 		expect(paint?.backgroundSize).toBe('200% 200%');
 		expect(paint?.backgroundPosition).toBe('100% 100%');
+	});
+
+	/**
+	 * A `rightArrow` measures its head against `ss` (the SHORT side), so slide
+	 * 26's 8792048 x 256208 EMU arrow is a hairline shaft with a small head.
+	 * Scaling off `w` instead put the head halfway along the shape: every one of
+	 * these arrows rendered as a huge elongated triangle.
+	 */
+	test('a long arrow keeps a small head, not one half its length', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.longArrows);
+
+		const paint = await paintOf(page, 'slide26.xml-shape-4');
+		expect(paint, 'found the full-width arrow').not.toBeNull();
+
+		// The clip path spans the shape; the head starts at `r - ss`, so the
+		// rightmost interior vertex sits within one short side of the tip.
+		const xs = [...paint!.clipPath.matchAll(/(-?[\d.]+)[ ,]+(-?[\d.]+)/gu)].map(([, x]) =>
+			Number(x),
+		);
+		const ys = [...paint!.clipPath.matchAll(/(-?[\d.]+)[ ,]+(-?[\d.]+)/gu)].map(([, , y]) =>
+			Number(y),
+		);
+		const width = Math.max(...xs);
+		const height = Math.max(...ys);
+		const headStart = Math.max(...xs.filter((x) => x < width - 0.01));
+		expect(
+			width - headStart,
+			'head depth is one short side, not half the width',
+		).toBeLessThanOrEqual(height + 1);
+	});
+
+	/**
+	 * The deck draws its elbows out of three separate straight connectors, each
+	 * with one extent authored at zero. The SVG user space has to map uniformly
+	 * onto device pixels or the line leans and its round `a:headEnd` markers
+	 * smear into bars.
+	 */
+	test('a zero-extent connector maps its SVG uniformly', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.zeroExtentConnectors);
+
+		const scales = await page.evaluate(() => {
+			const out: Array<{ id: string; sx: number; sy: number }> = [];
+			for (const host of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+				const id = host.dataset.elementId ?? '';
+				if (!id.includes('-conn-')) {
+					continue;
+				}
+				const svg = host.querySelector('svg');
+				const box = svg?.getBoundingClientRect();
+				const view = svg?.getAttribute('viewBox')?.split(/\s+/u).map(Number);
+				if (!svg || !box || !view || box.width === 0 || box.height === 0) {
+					continue;
+				}
+				out.push({ id, sx: box.width / view[2], sy: box.height / view[3] });
+			}
+			return out;
+		});
+
+		expect(scales.length, 'found the slide’s connectors').toBeGreaterThan(0);
+		for (const { id, sx, sy } of scales) {
+			// Anisotropy is the defect: React stretched a 1-unit viewBox across a
+			// 12px pad, scaling x by 12 while y stayed near 1.
+			expect(sx / sy, `${id} is not stretched on one axis`).toBeCloseTo(1, 1);
+		}
+	});
+
+	/**
+	 * `<p:style><a:lnRef idx="1"><a:schemeClr val="accent1"/>` is the only place
+	 * slide 3's connector states its colour; `spPr/a:ln` holds nothing but
+	 * `<a:headEnd type="oval"/>`. Dropping the style node stroked it in the
+	 * default dark grey.
+	 */
+	test('a connector takes its colour from the style reference', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.linearGradients);
+
+		const strokes = await page.evaluate(() => {
+			const host = [...document.querySelectorAll<HTMLElement>('[data-element-id]')].find((node) =>
+				(node.dataset.elementId ?? '').endsWith('slide3.xml-conn-0'),
+			);
+			if (!host) {
+				return null;
+			}
+			// The COMPUTED stroke, not the attribute: one binding puts the colour on
+			// the wrapper and strokes its `<line>` with `stroke="inherit"`.
+			return [...host.querySelectorAll('path, line')]
+				.map((node) => getComputedStyle(node).stroke)
+				.filter((value) => value !== '' && value !== 'none' && !value.includes('0, 0, 0, 0'));
+		});
+
+		expect(strokes, 'found the themed connector').not.toBeNull();
+		// accent1 of this deck's theme: #10A8AC.
+		expect(strokes!.some((value) => value.replace(/\s/gu, '') === 'rgb(16,168,172)')).toBe(true);
+	});
+
+	/**
+	 * `c:numFmt formatCode="0%"` on the value axis, and the same code on the
+	 * series' value cache. The cached values are fractions (0.52), so without the
+	 * format code the chart rendered `0.5` where PowerPoint renders `52%`.
+	 */
+	test('a percentage chart labels its axis and bars in percent', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.percentChart);
+
+		const labels = await page.evaluate(() => {
+			const host = [...document.querySelectorAll<HTMLElement>('[data-element-id]')].find((node) =>
+				(node.dataset.elementId ?? '').endsWith('slide5.xml-frame-0'),
+			);
+			// Trimmed: bindings differ in the whitespace they leave around SVG text.
+			return host
+				? [...host.querySelectorAll('svg text')].map((node) => (node.textContent ?? '').trim())
+				: null;
+		});
+
+		expect(labels, 'found the chart').not.toBeNull();
+		expect(labels!.filter((text) => text.includes('%')).length).toBeGreaterThan(4);
+		// The 52% bar's data label, and no raw fraction anywhere.
+		expect(labels).toContain('52%');
+		expect(labels!.some((text) => /^0\.\d+$/u.test(text.trim()))).toBe(false);
+	});
+
+	/**
+	 * PowerPoint's automatic value axis rounds its bounds out to whole major
+	 * units, so this chart reads `0% 20% 40% 60%` even though the tallest bar is
+	 * 52%. Running the axis to the data maximum and dividing it into five gave
+	 * `0% 10% 21% 31% 42% 52%` - every label a different arbitrary number.
+	 */
+	test('the value axis is labelled in round steps', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.percentChart);
+
+		const axisLabels = await page.evaluate(() => {
+			const host = [...document.querySelectorAll<HTMLElement>('[data-element-id]')].find((node) =>
+				(node.dataset.elementId ?? '').endsWith('slide5.xml-frame-0'),
+			);
+			if (!host) {
+				return null;
+			}
+			// Value-axis ticks are the percentage labels left of the plot; the data
+			// labels sit above their bars. Take the leftmost column of them.
+			// The tick labels are right-anchored against the axis, so they share a
+			// right edge; the data labels are centred over their bars and each has
+			// its own. Cluster on that edge and take the biggest column, then read
+			// it bottom-to-top.
+			const texts = [...host.querySelectorAll<SVGTextElement>('svg text')]
+				.map((node) => {
+					const box = node.getBoundingClientRect();
+					return {
+						text: (node.textContent ?? '').trim(),
+						right: Math.round(box.right),
+						y: box.top,
+					};
+				})
+				.filter((entry) => entry.text.endsWith('%'));
+			const columns = new Map<number, Array<{ text: string; y: number }>>();
+			for (const entry of texts) {
+				const column = columns.get(entry.right) ?? [];
+				column.push({ text: entry.text, y: entry.y });
+				columns.set(entry.right, column);
+			}
+			const axis = [...columns.values()].sort((a, b) => b.length - a.length)[0] ?? [];
+			return axis.sort((a, b) => b.y - a.y).map((entry) => entry.text);
+		});
+
+		expect(axisLabels, 'found the chart').not.toBeNull();
+		expect(axisLabels).toStrictEqual(['0%', '20%', '40%', '60%']);
+	});
+
+	/**
+	 * Both `c:chartSpace/c:spPr` and `c:plotArea/c:spPr` declare `<a:noFill/>`,
+	 * so the chart floats on the slide. Every binding painted a hardcoded wash
+	 * across the whole chart instead, boxing it into a grey panel.
+	 */
+	test('a noFill chart paints no background panel', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.percentChart);
+
+		const backgrounds = await page.evaluate(() => {
+			const host = [...document.querySelectorAll<HTMLElement>('[data-element-id]')].find((node) =>
+				(node.dataset.elementId ?? '').endsWith('slide5.xml-frame-0'),
+			);
+			const svg = host?.querySelector('svg');
+			if (!svg) {
+				return null;
+			}
+			const viewBox = svg.getAttribute('viewBox')?.split(/\s+/u).map(Number) ?? [0, 0, 0, 0];
+			// Any rect covering the whole chart is a background panel.
+			return [...svg.querySelectorAll('rect')].filter(
+				(rect) =>
+					Number(rect.getAttribute('width')) >= viewBox[2] &&
+					Number(rect.getAttribute('height')) >= viewBox[3],
+			).length;
+		});
+
+		expect(backgrounds, 'found the chart').not.toBeNull();
+		expect(backgrounds).toBe(0);
+	});
+
+	/**
+	 * The deck is set in `思源黑体 CN Light`, which is not installed. PowerPoint
+	 * substitutes a sans; emitting the bare authored name left the browser to
+	 * pick its own default, which for CJK is a SERIF.
+	 */
+	test('an uninstalled font still resolves to a generic family', async ({ page }) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.uninstalledFont);
+
+		const families = await page.evaluate(() => {
+			const host = [...document.querySelectorAll<HTMLElement>('[data-element-id]')].find((node) =>
+				(node.dataset.elementId ?? '').endsWith('slide12.xml-shape-1'),
+			);
+			if (!host) {
+				return null;
+			}
+			return [host, ...host.querySelectorAll<HTMLElement>('*')]
+				.map((node) => getComputedStyle(node).fontFamily)
+				.filter((value) => value.includes('思源黑体'));
+		});
+
+		expect(families, 'found the text element').not.toBeNull();
+		expect(families!.length).toBeGreaterThan(0);
+		for (const family of families!) {
+			// Every declaration naming the missing font must end in a generic.
+			expect(family, 'declares a generic fallback').toMatch(/(sans-serif|serif|monospace)\s*$/u);
+		}
 	});
 });

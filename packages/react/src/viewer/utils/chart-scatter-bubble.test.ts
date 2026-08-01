@@ -1,7 +1,7 @@
 import type { PptxChartSeries } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { computeValueRange, valueToY } from './chart-helpers';
+import { valueToY } from './chart-helpers';
 import { computeLayout } from './chart-layout';
 
 /**
@@ -49,8 +49,9 @@ describe('scatter chart: point position computation', () => {
 	});
 
 	it('should map Y using valueToY for each data point', () => {
-		const series: PptxChartSeries[] = [{ name: 'A', values: [0, 50, 100] }];
-		const range = computeValueRange(series);
+		// An explicit range: the subject here is the linear mapping, not the
+		// automatic scale (which rounds its bounds out; see `chart-axis-nice.ts`).
+		const range = { min: 0, max: 100, span: 100 };
 		const topY = 10;
 		const bottomY = 110;
 		const y0 = valueToY(0, range, topY, bottomY);

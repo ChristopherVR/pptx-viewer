@@ -25,6 +25,11 @@ function hasRicherAxisFeatures(chartData: PptxChartData): boolean {
 					Boolean(
 						axis.logScale ||
 						axis.displayUnits ||
+						// A `c:numFmt` is only honoured on the `buildPrimaryAxis`
+						// path; the fast path has no axis to read it from. The two
+						// agree tick-for-tick when no log scale or display unit is
+						// in play, so routing a formatted axis here costs nothing.
+						axis.numFmt?.formatCode ||
 						axis.axPos === 'r' ||
 						axis.orientation === 'maxMin' ||
 						axis.majorUnit !== undefined ||

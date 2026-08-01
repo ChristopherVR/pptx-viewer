@@ -53,12 +53,16 @@ function valueAxisLabelPlacement(
 		: { x: layout.plotRight + 4, textAnchor: 'start' };
 }
 
-/** Format a value-axis tick: display-unit scaled when the axis declares units. */
+/**
+ * Format a value-axis tick: display-unit scaled when the axis declares units,
+ * otherwise through the axis's own `c:numFmt/@formatCode`. Without the format
+ * code a percentage axis renders its cached fractions raw (`0.2` for `20%`).
+ */
 function formatTick(val: number, axis: PptxChartAxisFormatting | undefined): string {
 	if (axis?.displayUnits) {
 		return formatAxisValueWithUnits(val, axis);
 	}
-	return formatAxisValue(val);
+	return formatAxisValue(val, axis?.numFmt?.formatCode);
 }
 
 /**

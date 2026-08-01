@@ -74,18 +74,24 @@ describe('computeValueRange', () => {
 		expect(computeValueRange([])).toStrictEqual({ min: 0, max: 1, span: 1 });
 	});
 
-	it('always includes zero in the range', () => {
+	// The range is PowerPoint's automatic scale, not the raw data extent: zero
+	// anchored, 5% headroom, then rounded out to whole major units so the
+	// gridlines land on round numbers. See `chart-axis-nice.ts`.
+	it('anchors at zero and rounds out to a whole major unit', () => {
 		const range = computeValueRange([{ name: 'A', values: [5, 10, 15] }]);
 		expect(range.min).toBe(0);
-		expect(range.max).toBe(15);
-		expect(range.span).toBe(15);
+		expect(range.max).toBe(20);
+		expect(range.majorUnit).toBe(5);
 	});
 
 	it('extends below zero when values are negative', () => {
 		const range = computeValueRange([{ name: 'A', values: [-5, -10, 3] }]);
-		expect(range.min).toBe(-10);
-		expect(range.max).toBe(3);
-		expect(range.span).toBe(13);
+		expect(range.min).toBe(-15);
+		expect(range.max).toBe(5);
+		expect(range.majorUnit).toBe(5);
+		// The data still fits inside the rounded bounds.
+		expect(range.min).toBeLessThanOrEqual(-10);
+		expect(range.max).toBeGreaterThanOrEqual(3);
 	});
 
 	it('span is at least 1 when all values equal zero', () => {
@@ -95,11 +101,12 @@ describe('computeValueRange', () => {
 
 	it('handles datasets larger than the JavaScript argument limit', () => {
 		const values = Array.from({ length: 200_000 }, (_, index) => index - 100_000);
-		expect(computeValueRange([{ name: 'Large', values }])).toStrictEqual({
-			min: -100_000,
-			max: 99_999,
-			span: 199_999,
-		});
+		const range = computeValueRange([{ name: 'Large', values }]);
+		// Spread-free min/max scan: the point of the test. The bounds are then
+		// rounded out by the automatic scale like any other range.
+		expect(range.min).toBeLessThanOrEqual(-100_000);
+		expect(range.max).toBeGreaterThanOrEqual(99_999);
+		expect(Number.isFinite(range.span)).toBeTruthy();
 	});
 });
 
@@ -110,8 +117,10 @@ describe('computeStackedValueRange', () => {
 			{ name: 'B', values: [5, 15] },
 		];
 		const range = computeStackedValueRange(series, 2);
-		expect(range.max).toBe(35);
+		// Category sums are 15 and 35; the automatic scale rounds 35 out to 40.
 		expect(range.min).toBe(0);
+		expect(range.max).toBe(40);
+		expect(range.majorUnit).toBe(10);
 	});
 
 	it('tracks negative stacks separately', () => {
@@ -120,8 +129,10 @@ describe('computeStackedValueRange', () => {
 			{ name: 'B', values: [-5, 10] },
 		];
 		const range = computeStackedValueRange(series, 2);
-		expect(range.min).toBe(-15);
-		expect(range.max).toBe(15);
+		// Sums straddle zero (-15 and +15); both ends round outwards.
+		expect(range.min).toBeLessThanOrEqual(-15);
+		expect(range.max).toBeGreaterThanOrEqual(15);
+		expect(range.majorUnit).toBeGreaterThan(0);
 	});
 });
 

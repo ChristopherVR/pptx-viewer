@@ -39,10 +39,19 @@ describe('cartesian linear default path', () => {
 		style: { hasLegend: true, legendPosition: 'b' },
 	};
 
-	it('emits six tick gridlines for a linear value axis', () => {
+	// The tick count follows the automatic scale's major unit rather than a fixed
+	// division: 80..150 rounds out to a 0..200 axis in steps of 50, so five
+	// gridlines land on 0 / 50 / 100 / 150 / 200. See `chart-axis-nice.ts`.
+	it('steps a linear value axis by its major unit', () => {
 		const vm = buildChartViewModel(chartElement(baselineBar));
-		expect(vm.gridlines).toHaveLength(6);
-		expect(vm.axisLabels).toHaveLength(6);
+		expect(vm.gridlines).toHaveLength(5);
+		expect(vm.axisLabels.map((label) => label.text)).toStrictEqual([
+			'0',
+			'50',
+			'100',
+			'150',
+			'200',
+		]);
 	});
 
 	it('leaves the new optional fields undefined when no rich features present', () => {
@@ -67,8 +76,9 @@ describe('cartesian linear default path', () => {
 		const vm = buildChartViewModel(chartElement(stacked));
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects).toHaveLength(6);
-		// Linear stacked still produces 6 gridlines (abs sum range).
-		expect(vm.gridlines).toHaveLength(6);
+		// Category sums top out at 240, which rounds out to a 0..300 axis in steps
+		// of 100: four gridlines.
+		expect(vm.gridlines).toHaveLength(4);
 	});
 });
 

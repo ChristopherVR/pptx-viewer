@@ -48,14 +48,16 @@ const LEGEND_ITEM_WIDTH = 80;
 			class="pptx-ng-chart-svg"
 			style="overflow: visible; display: block; pointer-events: none;"
 		>
-			<!-- Background tint -->
-			<rect
-				x="0"
-				y="0"
-				[attr.width]="vm().svgWidth"
-				[attr.height]="vm().svgHeight"
-				fill="#0f172a0d"
-			/>
+			<!-- Chart-area fill; absent when the deck declares c:chartSpace/a:noFill -->
+			@if (vm().areaFill) {
+				<rect
+					x="0"
+					y="0"
+					[attr.width]="vm().svgWidth"
+					[attr.height]="vm().svgHeight"
+					[attr.fill]="vm().areaFill"
+				/>
+			}
 
 			<!-- Chart title (data-chart-part enables in-place editing in edit mode) -->
 			@if (vm().title) {

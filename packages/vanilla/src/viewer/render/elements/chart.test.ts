@@ -104,8 +104,10 @@ describe('renderChartElement', () => {
 		expect(texts).toContain('Q3');
 		// Value-axis tick labels (0..max) are present.
 		expect(texts).toContain('0');
-		// Gridlines: 6 ticks for the value axis.
-		expect(svg.querySelectorAll('line').length).toBeGreaterThanOrEqual(6);
+		// Gridlines: one per major unit of the automatic scale, which rounds the
+		// bounds out to round numbers rather than dividing the span into a fixed
+		// count (see `chart-axis-nice.ts` in `pptx-viewer-shared`).
+		expect(svg.querySelectorAll('line').length).toBeGreaterThanOrEqual(4);
 		// Legend: one group per series with a swatch and the series name.
 		const legendItems = svg.querySelectorAll('g.pptxv-chart-legend-item');
 		expect(legendItems).toHaveLength(2);

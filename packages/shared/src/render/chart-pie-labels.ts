@@ -29,6 +29,8 @@ export interface PieLabelParams {
 	position?: PptxChartDataLabelPosition;
 	/** `c:showLeaderLines`. Defaults to on for outside labels. */
 	showLeaderLines?: boolean;
+	/** Series `c:numFmt` / cache format code applied to each label value. */
+	numberFormat?: string;
 }
 
 export interface PieLabelResult {
@@ -47,7 +49,7 @@ export function isOutsidePosition(position: PptxChartDataLabelPosition | undefin
  * leader line from the rim point to the label anchor.
  */
 export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
-	const { slices, values, cx, cy, outerR, position, showLeaderLines } = params;
+	const { slices, values, cx, cy, outerR, position, showLeaderLines, numberFormat } = params;
 	const outside = isOutsidePosition(position);
 	const labels: SvgText[] = [];
 	const leaderLines: SvgLine[] = [];
@@ -62,7 +64,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 				kind: 'text',
 				x: slice.labelX,
 				y: slice.labelY,
-				text: formatAxisValue(val),
+				text: formatAxisValue(val, numberFormat),
 				fontSize: 8,
 				fill: '#ffffff',
 				textAnchor: 'middle',
@@ -84,7 +86,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			kind: 'text',
 			x: labelX + (cos >= 0 ? 2 : -2),
 			y: labelY,
-			text: formatAxisValue(val),
+			text: formatAxisValue(val, numberFormat),
 			fontSize: 8,
 			fill: '#334155',
 			textAnchor: anchor,

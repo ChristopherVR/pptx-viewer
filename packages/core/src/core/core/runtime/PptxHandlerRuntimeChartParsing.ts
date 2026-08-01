@@ -449,6 +449,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						.filter((value) => Number.isFinite(value));
 			const blanks = hasBlanks ? expanded.map((value) => value === null) : undefined;
 
+			// Number-format code for this series' data labels. An explicit
+			// `c:dLbls/c:numFmt` wins; otherwise `@sourceLinked` semantics apply and
+			// the format comes from the value cache, which is where PowerPoint
+			// actually keeps it for the ordinary "linked to source" case.
+			const seriesNumberFormat =
+				String(
+					this.xmlLookupService.getChildByLocalName(
+						this.xmlLookupService.getChildByLocalName(seriesNode, 'dLbls'),
+						'numFmt',
+					)?.['@_formatCode'] ?? '',
+				).trim() ||
+				String(
+					this.xmlLookupService.getScalarChildByLocalName(
+						this.xmlLookupService.getChildByLocalName(
+							this.xmlLookupService.getChildByLocalName(valNode, 'numRef') ?? valNode,
+							'numCache',
+						),
+						'formatCode',
+					) ?? '',
+				).trim();
+
 			const seriesShapeProperties = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr');
 			const seriesColor = this.parseColor(
 				this.xmlLookupService.getChildByLocalName(seriesShapeProperties, 'solidFill'),
@@ -503,6 +524,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
 				...(blanks ? { blanks } : {}),
+				...(seriesNumberFormat ? { numberFormat: seriesNumberFormat } : {}),
 				color: seriesColor,
 				...(trendlines.length > 0 ? { trendlines } : {}),
 				...(errBars.length > 0 ? { errBars } : {}),

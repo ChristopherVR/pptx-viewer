@@ -246,7 +246,11 @@ describe('buildComboViewModel', () => {
 			line?.kind === 'polyline'
 				? line.points.split(' ').map((point) => Number(point.split(',')[1]))
 				: [];
-		expect(Math.abs((yCoordinates[0] ?? 0) - (yCoordinates[1] ?? 0))).toBeGreaterThan(100);
+		// Mapped to the secondary axis (rounded out to 0..3) the two points sit a
+		// third of the plot apart. Mapped to the PRIMARY axis, whose range runs to
+		// thousands, they would be a fraction of a pixel apart, which is what this
+		// gap discriminates.
+		expect(Math.abs((yCoordinates[0] ?? 0) - (yCoordinates[1] ?? 0))).toBeGreaterThan(40);
 		expect(vm.secondaryGridlines).toBeDefined();
 		expect(vm.secondaryAxisLabels?.some((label) => label.text === '2')).toBeTruthy();
 	});

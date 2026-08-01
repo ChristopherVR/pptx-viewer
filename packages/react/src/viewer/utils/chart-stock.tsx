@@ -1,4 +1,5 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
+import { chartAreaFill } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { renderChrome, renderOverlays } from './chart-chrome';
@@ -13,6 +14,7 @@ export function renderStockChart(
 	categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
 	const style = chartData.style;
+	const areaFill = chartAreaFill(chartData);
 	const legendPos = style?.legendPosition || 'b';
 	const range = computeValueRangeForChart(chartData.series, chartData.axes);
 	const layout = computeLayout(element.width, element.height, style, true, legendPos);
@@ -97,7 +99,9 @@ export function renderStockChart(
 				viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
 				preserveAspectRatio='none'
 			>
-				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
+				{areaFill && (
+					<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill={areaFill} />
+				)}
 				{renderChrome(element.id, chartData, layout, range, categoryLabels, {
 					categoryAxisStyle: 'bar',
 				})}

@@ -50,6 +50,8 @@ export * from './equation-templates';
 // editor drives its live preview and insert payload from.
 export * from './equation-compile';
 export * from './chart-helpers';
+export * from './chart-area-fill';
+export * from './chart-number-format';
 export * from './chart-trendlines';
 export * from './chart-axis';
 export * from './chart-palette';

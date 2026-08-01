@@ -18,7 +18,7 @@
  */
 
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import { getSubstituteFontFamily, hasTextProperties, parsePanoseString } from 'pptx-viewer-core';
 
 import {
 	DEFAULT_BODY_INSET_LR_PX,
@@ -174,7 +174,18 @@ export function buildTextBlockStyle(
 	// Always declare a size and a family: see DEFAULT_FONT_FAMILY for why an
 	// omitted declaration is a real rendering difference, not a no-op.
 	style.fontSize = ts?.fontSize || DEFAULT_TEXT_FONT_SIZE;
-	style.fontFamily = ts?.fontFamily || DEFAULT_FONT_FAMILY;
+	// Through PANOSE substitution, never the bare authored name: the fallback
+	// chain is what supplies the stand-in when the font is absent. Emitting
+	// `font-family: "思源黑体 CN Light"` on its own leaves the browser to pick its
+	// own default, which for CJK text is a SERIF - PowerPoint substitutes a sans,
+	// so the whole deck rendered in the wrong typeface class. Runs already went
+	// through `getSubstituteFontFamily` in `segmentStyleToCss`; the body did not,
+	// and the body is what plain (unsegmented) text inherits.
+	// The authored PANOSE picks the right generic (a serif font with no entry in
+	// the substitution map must not fall back to sans, and vice versa).
+	style.fontFamily = ts?.fontFamily
+		? getSubstituteFontFamily(ts.fontFamily, parsePanoseString(ts.latinFontPanose))
+		: DEFAULT_FONT_FAMILY;
 	style.fontWeight = ts?.bold ? 700 : 400;
 	style.fontStyle = ts?.italic ? 'italic' : 'normal';
 	style.textDecorationLine = decorations.length > 0 ? decorations.join(' ') : 'none';

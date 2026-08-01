@@ -453,6 +453,14 @@ export interface PptxChartSeries {
 	 * `c:dispBlanksAs` (gap / zero / span) using this mask.
 	 */
 	blanks?: boolean[];
+	/**
+	 * ECMA-376 number-format code for this series' values, resolved from
+	 * `c:ser/c:dLbls/c:numFmt/@formatCode` and falling back to the value cache's
+	 * own `c:numCache/c:formatCode` (which is what `@sourceLinked="1"` means).
+	 * Data labels render through it: a percentage series caches fractions, so
+	 * without the code `0.52` reaches the label where PowerPoint shows `52%`.
+	 */
+	numberFormat?: string;
 	color?: string;
 	trendlines?: PptxChartTrendline[];
 	errBars?: PptxChartErrBars[];
@@ -563,6 +571,16 @@ export interface PptxChartStyle {
 	hasTitle?: boolean;
 	/** Whether gridlines are visible. */
 	hasGridlines?: boolean;
+	/**
+	 * Chart-area fill from `c:chartSpace/c:spPr`: a resolved colour, or the
+	 * literal `'none'` when the source declares `<a:noFill/>`. Absent when the
+	 * chart says nothing, in which case the renderer picks its own default.
+	 * PowerPoint decks routinely set `a:noFill` so the chart floats on the slide
+	 * background; painting a panel behind it boxes the chart in.
+	 */
+	chartAreaFill?: string;
+	/** Plot-area fill from `c:plotArea/c:spPr`. See {@link chartAreaFill}. */
+	plotAreaFill?: string;
 	/** Whether data labels are shown. */
 	hasDataLabels?: boolean;
 	/** Chart-level data-label content/position options (when `hasDataLabels`). */

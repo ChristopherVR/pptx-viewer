@@ -28,28 +28,31 @@ describe('computeValueRange', () => {
 		expect(result).toStrictEqual({ min: 0, max: 1, span: 1 });
 	});
 
-	it('should compute range including zero for all-positive values', () => {
+	// The range is PowerPoint's automatic scale, not the raw data extent: zero
+	// anchored, 5% headroom, then rounded out to whole major units. See
+	// `chart-axis-nice.ts` in `pptx-viewer-shared`.
+	it('should anchor at zero and round out for all-positive values', () => {
 		const series: PptxChartSeries[] = [{ name: 'A', values: [10, 20, 30] }];
 		const result = computeValueRange(series);
 		expect(result.min).toBe(0);
-		expect(result.max).toBe(30);
-		expect(result.span).toBe(30);
+		expect(result.max).toBe(40);
+		expect(result.majorUnit).toBe(10);
 	});
 
-	it('should compute range including zero for all-negative values', () => {
+	it('should anchor at zero and round out for all-negative values', () => {
 		const series: PptxChartSeries[] = [{ name: 'A', values: [-30, -20, -10] }];
 		const result = computeValueRange(series);
-		expect(result.min).toBe(-30);
+		expect(result.min).toBe(-40);
 		expect(result.max).toBe(0);
-		expect(result.span).toBe(30);
+		expect(result.majorUnit).toBe(10);
 	});
 
-	it('should compute range for mixed positive and negative values', () => {
+	it('should round both ends out for mixed positive and negative values', () => {
 		const series: PptxChartSeries[] = [{ name: 'A', values: [-5, 0, 15] }];
 		const result = computeValueRange(series);
-		expect(result.min).toBe(-5);
-		expect(result.max).toBe(15);
-		expect(result.span).toBe(20);
+		expect(result.min).toBe(-10);
+		expect(result.max).toBe(20);
+		expect(result.majorUnit).toBe(10);
 	});
 
 	it('should compute range across multiple series', () => {
@@ -59,8 +62,8 @@ describe('computeValueRange', () => {
 		];
 		const result = computeValueRange(series);
 		expect(result.min).toBe(0);
-		expect(result.max).toBe(50);
-		expect(result.span).toBe(50);
+		expect(result.max).toBe(60);
+		expect(result.majorUnit).toBe(20);
 	});
 
 	it('should enforce minimum span of 1 when all values are zero', () => {
@@ -73,8 +76,9 @@ describe('computeValueRange', () => {
 		const series: PptxChartSeries[] = [{ name: 'A', values: [42] }];
 		const result = computeValueRange(series);
 		expect(result.min).toBe(0);
-		expect(result.max).toBe(42);
-		expect(result.span).toBe(42);
+		// Flat data still gets a rounded axis rather than one pinned to the value.
+		expect(result.max).toBeGreaterThanOrEqual(42);
+		expect(result.majorUnit).toBeGreaterThan(0);
 	});
 });
 
@@ -340,7 +344,7 @@ describe('computeValueRangeForChart', () => {
 		const result = computeValueRangeForChart(series);
 		expect(result.logScale).toBeUndefined();
 		expect(result.min).toBe(0);
-		expect(result.max).toBe(30);
+		expect(result.max).toBe(40);
 	});
 
 	it('should use linear range when no log axis exists', () => {
@@ -349,7 +353,7 @@ describe('computeValueRangeForChart', () => {
 		const result = computeValueRangeForChart(series, axes);
 		expect(result.logScale).toBeUndefined();
 		expect(result.min).toBe(0);
-		expect(result.max).toBe(30);
+		expect(result.max).toBe(40);
 	});
 
 	it('should use log range when a valAx has logScale and logBase', () => {

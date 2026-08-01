@@ -53,7 +53,10 @@
 				viewBox={`0 0 ${vm.svgWidth} ${vm.svgHeight}`}
 				preserveAspectRatio={view.preserveAspectRatio}
 			>
-				<rect x="0" y="0" width={vm.svgWidth} height={vm.svgHeight} fill="#0f172a11" />
+				<!-- Absent when the deck declares `<a:noFill/>` on `c:chartSpace`. -->
+				{#if vm.areaFill}
+					<rect x="0" y="0" width={vm.svgWidth} height={vm.svgHeight} fill={vm.areaFill} />
+				{/if}
 
 				{#if vm.title}
 					<text

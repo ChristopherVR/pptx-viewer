@@ -5,6 +5,9 @@ import type {
 	PptxChartAxisFormatting,
 } from 'pptx-viewer-core';
 
+import { niceValueAxisBounds } from './chart-axis-nice';
+import { formatChartNumber } from './chart-number-format';
+
 /**
  * Framework-agnostic chart helpers, a focused Vue port of the React package's
  * `viewer/utils/chart-helpers.ts`, `chart-layout.ts`, and
@@ -195,20 +198,32 @@ export interface ValueRange {
 	logBase?: number;
 	/** Whether values increase from top to bottom (`c:orientation="maxMin"`). */
 	reverseOrder?: boolean;
+	/**
+	 * Step between major gridlines when the bounds came from the automatic
+	 * scale, which always spans a whole number of them. Tick generators use it
+	 * instead of dividing the span evenly, which is what keeps the labels on
+	 * round numbers. Absent when an explicit `c:min`/`c:max` overrode the
+	 * automatic bounds, since the unit no longer divides them.
+	 */
+	majorUnit?: number;
 }
 
-/** Compute a Y-axis range that always includes zero. */
+/**
+ * Automatic Y-axis range, on PowerPoint's terms: zero-anchored where that reads
+ * sensibly, padded, and rounded out to whole major units. See
+ * `chart-axis-nice.ts` for the rules. Running the axis to the raw data maximum
+ * instead put the top gridline on whatever the tallest bar happened to be.
+ */
 export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): ValueRange {
 	const allValues = series.flatMap((s) => s.values);
 	if (allValues.length === 0) {
 		return { min: 0, max: 1, span: 1 };
 	}
-	const dataMin = Math.min(...allValues);
-	const dataMax = Math.max(...allValues);
-	const min = Math.min(dataMin, 0);
-	const max = Math.max(dataMax, 0);
-	const span = Math.max(max - min, 1);
-	return { min, max, span };
+	const { min, max, majorUnit } = niceValueAxisBounds(
+		Math.min(...allValues),
+		Math.max(...allValues),
+	);
+	return { min, max, span: Math.max(max - min, Number.EPSILON), majorUnit };
 }
 
 /**
@@ -232,8 +247,20 @@ export function valueToY(val: number, range: ValueRange, topY: number, bottomY: 
 	return range.reverseOrder ? topY + ratio * usable : bottomY - ratio * usable;
 }
 
-/** Compact axis-value formatting (1.2K / 3.4M / integer / one-decimal). */
-export function formatAxisValue(val: number): string {
+/**
+ * Compact axis-value formatting (1.2K / 3.4M / integer / one-decimal).
+ *
+ * `formatCode` is the chart's own `c:numFmt/@formatCode`. When the source
+ * declares one - `0%`, `#,##0`, `$#,##0.00` - it WINS: the cached values behind
+ * a percentage chart are fractions, and the compact fallback renders them as
+ * `0.5` where PowerPoint shows `50%`. Codes outside the supported subset fall
+ * through to the compact form, which is what every caller did before.
+ */
+export function formatAxisValue(val: number, formatCode?: string): string {
+	const formatted = formatChartNumber(val, formatCode);
+	if (formatted !== undefined) {
+		return formatted;
+	}
 	if (Math.abs(val) >= 1_000_000) {
 		return `${(val / 1_000_000).toFixed(1)}M`;
 	}

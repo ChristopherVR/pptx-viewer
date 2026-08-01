@@ -8,6 +8,7 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	applyChartBuildReveal,
+	chartAreaFill,
 	computeLayout,
 	computeValueRange,
 	resolveCategoryLabels,
@@ -147,6 +148,12 @@ const placeholderLabel = computed(() => `Chart: ${chartType.value}`);
 const style = computed(() => chartData.value?.style);
 const legendPos = computed(() => style.value?.legendPosition || 'b');
 
+/**
+ * Chart-area background. `undefined` when the deck declares `<a:noFill/>` on
+ * `c:chartSpace`, in which case no rect is painted at all.
+ */
+const areaFill = computed(() => chartAreaFill(chartData.value));
+
 /** Plot layout for axis-based charts (combo / stock / waterfall / surface). */
 const layout = computed<PlotLayout>(() =>
 	computeLayout(props.element.width, props.element.height, style.value, true, legendPos.value),
@@ -235,11 +242,12 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 			preserveAspectRatio="none"
 		>
 			<rect
+				v-if="areaFill"
 				:x="0"
 				:y="0"
 				:width="noAxisLayout.svgWidth"
 				:height="noAxisLayout.svgHeight"
-				fill="#0f172a11"
+				:fill="areaFill"
 			/>
 			<text
 				v-if="style?.hasTitle"
@@ -276,7 +284,7 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 			:viewBox="`0 0 ${svgWidth} ${svgHeight}`"
 			preserveAspectRatio="none"
 		>
-			<rect :x="0" :y="0" :width="svgWidth" :height="svgHeight" fill="#0f172a11" />
+			<rect v-if="areaFill" :x="0" :y="0" :width="svgWidth" :height="svgHeight" :fill="areaFill" />
 			<text
 				v-if="style?.hasTitle"
 				:x="svgWidth / 2"
@@ -321,7 +329,7 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 			:viewBox="`0 0 ${svgWidth} ${svgHeight}`"
 			preserveAspectRatio="none"
 		>
-			<rect :x="0" :y="0" :width="svgWidth" :height="svgHeight" fill="#0f172a11" />
+			<rect v-if="areaFill" :x="0" :y="0" :width="svgWidth" :height="svgHeight" :fill="areaFill" />
 
 			<ChartChrome
 				v-if="chartData"

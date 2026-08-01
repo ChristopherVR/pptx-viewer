@@ -25,7 +25,8 @@ import { ResizeHandles } from './ResizeHandles';
 export type { ConnectorRendererProps };
 
 export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.memo(
-	({
+	// oxlint-disable-next-line prefer-arrow-callback -- named fn gives the memo component its displayName
+	function ConnectorElementRendererInner({
 		el,
 		isSelected,
 		canInteract,
@@ -38,10 +39,21 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		onResizePointerDown,
 		onAdjustmentPointerDown,
 		animationState,
-	}) => {
+	}) {
 		const shapeEl = hasShapeProperties(el) ? el : undefined;
-		const viewWidth = Math.max(el.width, 1);
-		const viewHeight = Math.max(el.height, 1);
+		// The wrapper is padded out to `MIN_ELEMENT_SIZE` so a zero-width vertical
+		// (or zero-height horizontal) connector still has something to grab. The
+		// SVG user space has to be the PADDED box, not the authored extent: a
+		// `viewBox="0 0 1 145"` stretched across a 12px-wide box under
+		// `preserveAspectRatio="none"` scales x by 12 and y by ~0.9, which tilts
+		// the line off vertical and smears its round `a:headEnd`/`a:tailEnd`
+		// markers into bars. Matching the viewBox to the box keeps the mapping
+		// 1:1, and the geometry still starts at 0 so the line lands exactly where
+		// it was authored, with the padding hanging off to the right/bottom.
+		const boxWidth = Math.max(el.width, MIN_ELEMENT_SIZE);
+		const boxHeight = Math.max(el.height, MIN_ELEMENT_SIZE);
+		const viewWidth = Math.max(el.width, 0);
+		const viewHeight = Math.max(el.height, 0);
 		const ss = shapeEl?.shapeStyle;
 		const strokeWidth = Math.max(0, ss?.strokeWidth ?? 2);
 		const strokeColor = normalizeHexColor(ss?.strokeColor, DEFAULT_STROKE_COLOR);
@@ -91,8 +103,8 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 				style={{
 					left: el.x,
 					top: el.y,
-					width: Math.max(el.width, MIN_ELEMENT_SIZE),
-					height: Math.max(el.height, MIN_ELEMENT_SIZE),
+					width: boxWidth,
+					height: boxHeight,
 					transform: getElementTransform(el),
 					transformOrigin: 'center',
 					background: 'transparent',
@@ -106,7 +118,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 				}}
 			>
 				<svg
-					viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+					viewBox={`0 0 ${boxWidth} ${boxHeight}`}
 					className='w-full h-full'
 					preserveAspectRatio='none'
 					style={{ overflow: 'visible', pointerEvents: 'none' }}

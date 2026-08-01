@@ -52,6 +52,10 @@ export function computeValueRangeForAxis(
 			: undefined;
 	const min = validMin ?? automatic.min;
 	let max = validMax ?? automatic.max;
+	// An explicit bound breaks the automatic scale's guarantee that the span is a
+	// whole number of major units, so the unit no longer describes these bounds.
+	const majorUnit =
+		validMin === undefined && validMax === undefined ? automatic.majorUnit : undefined;
 	if (max <= min) {
 		max = logBase ? min * logBase : min + 1;
 	}
@@ -62,6 +66,7 @@ export function computeValueRangeForAxis(
 		min,
 		max,
 		span: Math.max(span, Number.EPSILON),
+		...(majorUnit !== undefined ? { majorUnit } : {}),
 		...(logBase ? { logScale: true, logBase } : {}),
 		...(axis?.orientation === 'maxMin' ? { reverseOrder: true } : {}),
 	};
@@ -118,6 +123,14 @@ export function generateAxisTicks(
 	const explicit = generateIntervalTicks(range, axis?.majorUnit ?? 0);
 	if (explicit.length > 0) {
 		return explicit;
+	}
+	// The automatic scale already picked a round step and snapped the bounds to
+	// whole multiples of it, so stepping by that unit reproduces PowerPoint's
+	// labels exactly. Dividing the span evenly instead is what put ticks on
+	// 10.4 / 20.8 / 31.2 where PowerPoint writes 20 / 40 / 60.
+	const automatic = generateIntervalTicks(range, range.majorUnit ?? 0);
+	if (automatic.length > 0) {
+		return automatic;
 	}
 	return Array.from(
 		{ length: defaultIntervals + 1 },

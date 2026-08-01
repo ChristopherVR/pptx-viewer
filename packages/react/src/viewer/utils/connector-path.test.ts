@@ -103,11 +103,22 @@ describe('getConnectorPathGeometry', () => {
 		expect(geom.endY).toBe(100);
 	});
 
-	it('clamps minimum width and height to 1', () => {
+	// issue #132: the geometry keeps the connector's TRUE extent. It used to be
+	// clamped up to 1, which tilted a `<a:ext cx="0"/>` vertical connector by a
+	// pixel over its whole length once the renderer stretched the SVG across the
+	// padded, grabbable wrapper box. Padding is the renderer's business now
+	// (`ConnectorElementRenderer` sizes the viewBox to the padded box); these
+	// coordinates stay authored.
+	it('keeps a zero extent at zero rather than clamping it to 1', () => {
 		const el = makeElement({ width: 0, height: 0 });
 		const geom = getConnectorPathGeometry(el);
-		expect(geom.endX).toBe(1);
-		expect(geom.endY).toBe(1);
+		expect(geom.endX).toBe(0);
+		expect(geom.endY).toBe(0);
+	});
+
+	it('keeps a zero-width vertical connector plumb', () => {
+		const geom = getConnectorPathGeometry(makeElement({ width: 0, height: 145 }));
+		expect(geom.pathData).toBe('M 0 0 L 0 145');
 	});
 
 	// ── Bent connector (generic) ──────────────────────────────────────────

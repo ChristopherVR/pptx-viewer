@@ -1,4 +1,4 @@
-import { getSubstituteFontFamily } from 'pptx-viewer-core';
+import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
 import { resolveAutoFitFontScale } from 'pptx-viewer-shared';
 import React from 'react';
@@ -160,16 +160,36 @@ export function renderSingleSegment(
 	const rawFontFamily = segmentStyle.fontFamily || element.textStyle?.fontFamily;
 	// Apply PANOSE-based font substitution with fallback chain
 	const baseFontFamily = rawFontFamily
-		? getSubstituteFontFamily(rawFontFamily)
+		? getSubstituteFontFamily(
+				rawFontFamily,
+				parsePanoseString(segmentStyle.latinFontPanose ?? element.textStyle?.latinFontPanose),
+			)
 		: DEFAULT_FONT_FAMILY;
 
-	// Per-script font info for Unicode font fallback
+	// Per-script font info for Unicode font fallback. Every entry goes through
+	// the SAME substitution as `latin`, for two reasons. The obvious one: a bare
+	// `a:ea` name emitted on the inner script span overrides the parent's
+	// fallback chain, so a deck whose east-asian font is not installed drops to
+	// the browser's default - which for CJK is a serif, where PowerPoint
+	// substitutes a sans. The subtle one: the comparison below is by string, so
+	// leaving `ea` bare while `latin` carries a chain made an identical typeface
+	// look distinct and emitted that clobbering span in the first place.
+	const scriptFont = (name: string | undefined, panose: string | undefined): string =>
+		name ? getSubstituteFontFamily(name, parsePanoseString(panose)) : baseFontFamily;
 	const scriptFonts = {
 		latin: baseFontFamily,
-		eastAsia: segmentStyle.eastAsiaFont || element.textStyle?.eastAsiaFont || baseFontFamily,
-		complexScript:
-			segmentStyle.complexScriptFont || element.textStyle?.complexScriptFont || baseFontFamily,
-		symbol: segmentStyle.symbolFont || element.textStyle?.symbolFont || baseFontFamily,
+		eastAsia: scriptFont(
+			segmentStyle.eastAsiaFont || element.textStyle?.eastAsiaFont,
+			segmentStyle.eastAsiaFontPanose ?? element.textStyle?.eastAsiaFontPanose,
+		),
+		complexScript: scriptFont(
+			segmentStyle.complexScriptFont || element.textStyle?.complexScriptFont,
+			segmentStyle.complexScriptFontPanose ?? element.textStyle?.complexScriptFontPanose,
+		),
+		symbol: scriptFont(
+			segmentStyle.symbolFont || element.textStyle?.symbolFont,
+			segmentStyle.symbolFontPanose ?? element.textStyle?.symbolFontPanose,
+		),
 	};
 	const needsScriptFonts = hasDistinctScriptFonts(scriptFonts);
 

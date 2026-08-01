@@ -108,7 +108,14 @@ const legendItems = computed<LegendLayout[]>(() => {
 		:viewBox="`0 0 ${vm.svgWidth} ${vm.svgHeight}`"
 		:preserveAspectRatio="preserveAspectRatio"
 	>
-		<rect :x="0" :y="0" :width="vm.svgWidth" :height="vm.svgHeight" fill="#0f172a11" />
+		<rect
+			v-if="vm.areaFill"
+			:x="0"
+			:y="0"
+			:width="vm.svgWidth"
+			:height="vm.svgHeight"
+			:fill="vm.areaFill"
+		/>
 
 		<text
 			v-if="vm.title"

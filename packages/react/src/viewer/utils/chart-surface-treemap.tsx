@@ -1,4 +1,5 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
+import { chartAreaFill } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { renderTitle, renderLegend, renderChrome } from './chart-chrome';
@@ -86,6 +87,7 @@ function renderIsometricSurfaceChart(
 	categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
 	const style = chartData.style;
+	const areaFill = chartAreaFill(chartData);
 	const legendPos = style?.legendPosition || 'b';
 	const layout = computeLayout(element.width, element.height, style, false, legendPos);
 	const range = computeValueRangeForChart(chartData.series, chartData.axes);
@@ -202,7 +204,9 @@ function renderIsometricSurfaceChart(
 			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
 			preserveAspectRatio='xMidYMid meet'
 		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
+			{areaFill && (
+				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill={areaFill} />
+			)}
 			{renderTitle(element.id, style, chartData.title, layout.svgWidth)}
 			{renderLegend(element.id, style, chartData.series, layout)}
 			{polygons}
@@ -223,6 +227,7 @@ export function renderFlatSurfaceChart(
 	categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
 	const style = chartData.style;
+	const areaFill = chartAreaFill(chartData);
 	const legendPos = style?.legendPosition || 'b';
 	const layout = computeLayout(element.width, element.height, style, true, legendPos);
 	const range = computeValueRangeForChart(chartData.series, chartData.axes);
@@ -257,7 +262,9 @@ export function renderFlatSurfaceChart(
 			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
 			preserveAspectRatio='none'
 		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
+			{areaFill && (
+				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill={areaFill} />
+			)}
 			{renderChrome(element.id, chartData, layout, range, categoryLabels, {
 				categoryAxisStyle: 'bar',
 			})}
@@ -323,6 +330,7 @@ export function renderTreemapChart(
 	categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
 	const style = chartData.style;
+	const areaFill = chartAreaFill(chartData);
 	const legendPos = style?.legendPosition || 'b';
 	const layout = computeLayout(element.width, element.height, style, false, legendPos);
 	const allValues = chartData.series.flatMap((s) => s.values);
@@ -390,7 +398,9 @@ export function renderTreemapChart(
 			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
 			preserveAspectRatio='none'
 		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
+			{areaFill && (
+				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill={areaFill} />
+			)}
 			{renderTitle(element.id, style, chartData.title, layout.svgWidth)}
 			{renderLegend(element.id, style, chartData.series, layout)}
 			{rects}

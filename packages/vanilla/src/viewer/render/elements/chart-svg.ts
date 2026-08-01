@@ -34,15 +34,19 @@ export function renderChartViewModelSvg(
 	});
 	applyStyleMap(svg, { width: '100%', height: '100%', display: 'block' });
 
-	svg.appendChild(
-		createSvgEl(doc, 'rect', {
-			x: 0,
-			y: 0,
-			width: vm.svgWidth,
-			height: vm.svgHeight,
-			fill: '#0f172a11',
-		}),
-	);
+	// Skipped entirely when the deck declares `<a:noFill/>` on `c:chartSpace`:
+	// an SVG `rect` with no `fill` paints black, so the element must not exist.
+	if (vm.areaFill) {
+		svg.appendChild(
+			createSvgEl(doc, 'rect', {
+				x: 0,
+				y: 0,
+				width: vm.svgWidth,
+				height: vm.svgHeight,
+				fill: vm.areaFill,
+			}),
+		);
+	}
 
 	if (vm.title) {
 		const title = createSvgEl(doc, 'text', {
