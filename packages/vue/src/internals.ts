@@ -81,7 +81,6 @@ export * from './viewer/composables/useRibbonActions';
 export * from './viewer/composables/useRibbonProps';
 export * from './viewer/composables/useRibbonUiState';
 export * from './viewer/composables/useSectionOperations';
-export * from './viewer/composables/useSelection';
 export * from './viewer/composables/useSelectionPaneWiring';
 export * from './viewer/composables/useSheetDismissDrag';
 export * from './viewer/composables/useSignatures';
