@@ -4,6 +4,7 @@ import type { SafeHtml } from '@angular/platform-browser';
 import { DomSanitizer } from '@angular/platform-browser';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { getImageOverflow } from '../internal/shared';
 import { ColorChangedImageComponent } from './color-changed-image.component';
 import { getContainerStyle, getImageSrc } from './element-style';
 import { buildAngularImageRenderView } from './image-renderer-helpers';
@@ -63,7 +64,13 @@ export class ImageRendererComponent {
 
 	private readonly sanitizer = inject(DomSanitizer);
 
-	readonly containerStyle = computed(() => getContainerStyle(this.element(), this.zIndex()));
+	// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
+	// scaling the source up and translating the cropped-away part out of the
+	// frame, so without it the discarded region paints over its neighbours.
+	readonly containerStyle = computed(() => ({
+		...getContainerStyle(this.element(), this.zIndex()),
+		overflow: getImageOverflow(this.element()),
+	}));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
 	readonly view = computed(() => buildAngularImageRenderView(this.element()));
 	readonly safeFilters = computed<Array<{ id: string; markup: SafeHtml }>>(() =>

@@ -1,13 +1,15 @@
 <script lang="ts">
 	/**
 	 * ImageBox: the picture/image branch of `ElementRenderer` (port of Vue's
-	 * `ElementImageBox`). Renders an `<img>` (object-fit contain) with the
-	 * shared computed CSS filter + any SVG `<filter>` defs for duotone /
+	 * `ElementImageBox`). Renders an `<img>` under the shared fill/crop fit with
+	 * the shared computed CSS filter + any SVG `<filter>` defs for duotone /
 	 * artistic image effects.
 	 */
 	import {
 		getComputedImageStyle,
 		getImageColorWashStyle,
+		getImageFitStyle,
+		getImageOverflow,
 		resolveColorChangedImageSource,
 	} from 'pptx-viewer-shared';
 
@@ -16,7 +18,12 @@
 
 	const { element, mediaDataUrls, zIndex, interactive = false }: ElementRendererProps = $props();
 
-	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+	// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
+	// scaling the source up and translating the cropped-away part out of the
+	// frame, so without it the discarded region paints over its neighbours.
+	const containerStyle = $derived(
+		styleToString({ ...getContainerStyle(element, zIndex), overflow: getImageOverflow(element) }),
+	);
 	const imageSrc = $derived(getImageSrc(element, mediaDataUrls));
 	const imageEffects = $derived(
 		element.type === 'image' || element.type === 'picture' ? element.imageEffects : undefined,
@@ -41,9 +48,7 @@
 	});
 	const imgStyle = $derived(
 		styleToString({
-			width: '100%',
-			height: '100%',
-			objectFit: 'contain',
+			...getImageFitStyle(element),
 			display: 'block',
 			...(imageFx.filter ? { filter: imageFx.filter } : {}),
 			...(imageFx.opacity !== undefined ? { opacity: imageFx.opacity } : {}),

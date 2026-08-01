@@ -1,11 +1,17 @@
 <script setup lang="ts">
 /**
  * ElementImageBox: the picture/image branch of `ElementRenderer`, extracted to
- * keep the dispatcher thin. Renders an `<img>` (object-fit contain) with the
- * computed CSS filter + any SVG `<filter>` defs for duotone/artistic effects.
+ * keep the dispatcher thin. Renders an `<img>` under the shared fill/crop fit
+ * with the computed CSS filter + any SVG `<filter>` defs for duotone/artistic
+ * effects.
  */
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
-import { getComputedImageStyle, getImageColorWashStyle } from 'pptx-viewer-shared';
+import {
+	getComputedImageStyle,
+	getImageColorWashStyle,
+	getImageFitStyle,
+	getImageOverflow,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -20,8 +26,15 @@ const props = defineProps<{
 	interactive?: boolean;
 }>();
 
-const containerStyle = computed<CSSProperties>(() =>
-	getContainerStyle(props.element, props.zIndex),
+// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
+// scaling the source up and translating the cropped-away part out of the frame,
+// so without it the discarded region paints over its neighbours.
+const containerStyle = computed<CSSProperties>(() => ({
+	...getContainerStyle(props.element, props.zIndex),
+	overflow: getImageOverflow(props.element),
+}));
+const imageFitStyle = computed<CSSProperties>(
+	() => getImageFitStyle(props.element) as CSSProperties,
 );
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 const imageFx = computed(() => getComputedImageStyle(props.element));
@@ -67,9 +80,7 @@ const { displaySrc } = useColorChangeImage({ src: imageSrc, clrChange });
 			:src="displaySrc ?? imageSrc"
 			alt=""
 			:style="{
-				width: '100%',
-				height: '100%',
-				objectFit: 'contain',
+				...imageFitStyle,
 				display: 'block',
 				filter: imageFx.filter,
 				opacity: imageFx.opacity,

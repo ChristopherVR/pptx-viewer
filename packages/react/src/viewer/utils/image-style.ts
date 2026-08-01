@@ -1,12 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
+import { getImageFitStyle } from 'pptx-viewer-shared';
 /**
  * Image mask, render style, crop shape, and tiling helpers
  * for the PowerPoint editor.
  */
 import type React from 'react';
 
-import { clampCropValue } from './color';
 import { getResolvedShapeClipPath } from './resolved-shape-clip-path';
 import { getRoundRectRadiusPx } from './shape-adjustment';
 
@@ -54,56 +54,17 @@ export function getImageMaskStyle(element: PptxElement): React.CSSProperties | u
 	return { clipPath };
 }
 
+/**
+ * The `<img>` style for a picture: its shape mask plus the shared fill/crop fit.
+ *
+ * The fit half lives in `pptx-viewer-shared` because every binding needs the
+ * identical `<a:srcRect>` maths; only the mask (which depends on React's
+ * resolved-clip-path helpers) stays here.
+ */
 export function getImageRenderStyle(element: PptxElement): React.CSSProperties {
-	const maskStyle = getImageMaskStyle(element) || {};
-	if (!isImageLikeElement(element)) {
-		return {
-			...maskStyle,
-			width: '100%',
-			height: '100%',
-			objectFit: 'cover',
-		};
-	}
-
-	const cropLeft = clampCropValue(element.cropLeft);
-	const cropTop = clampCropValue(element.cropTop);
-	const cropRight = clampCropValue(element.cropRight);
-	const cropBottom = clampCropValue(element.cropBottom);
-	const hasCrop = cropLeft + cropRight > 0.0001 || cropTop + cropBottom > 0.0001;
-
-	if (!hasCrop) {
-		return {
-			...maskStyle,
-			width: '100%',
-			height: '100%',
-			objectFit: 'cover',
-		};
-	}
-
-	const safeHorizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
-	const safeVerticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
-	const normalizedLeft = clampCropValue(cropLeft * safeHorizontalScale);
-	const normalizedRight = clampCropValue(cropRight * safeHorizontalScale);
-	const normalizedTop = clampCropValue(cropTop * safeVerticalScale);
-	const normalizedBottom = clampCropValue(cropBottom * safeVerticalScale);
-	const remainingWidth = Math.max(0.01, 1 - normalizedLeft - normalizedRight);
-	const remainingHeight = Math.max(0.01, 1 - normalizedTop - normalizedBottom);
-
-	const tx = Math.round((-normalizedLeft / remainingWidth) * 10000) / 100;
-	const ty = Math.round((-normalizedTop / remainingHeight) * 10000) / 100;
-	const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
-	const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
-
 	return {
-		...maskStyle,
-		position: 'absolute',
-		width: '100%',
-		height: '100%',
-		maxWidth: 'none',
-		maxHeight: 'none',
-		objectFit: 'fill',
-		transformOrigin: 'top left',
-		transform: `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})`,
+		...(getImageMaskStyle(element) || {}),
+		...(getImageFitStyle(element) as React.CSSProperties),
 	};
 }
 

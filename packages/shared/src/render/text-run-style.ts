@@ -100,12 +100,15 @@ export function segmentStyleToCss(seg: TextSegment, fontScale = 1): RunStyle {
 	if (s.color) {
 		style.color = s.color;
 	}
-	if (s.bold) {
-		style.fontWeight = 'bold';
-	}
-	if (s.italic) {
-		style.fontStyle = 'italic';
-	}
+	// Declared unconditionally, exactly as React's `renderSingleSegment` does, and
+	// that is the whole point: the text BLOCK also carries a `font-weight` /
+	// `font-style` derived from the element's resolved text style, so a run that
+	// merely omits `b` / `i` inherits the block's value instead of falling back to
+	// regular. On a real deck a bold heading in the first paragraph therefore
+	// turned every following paragraph of the same shape bold, which reflows the
+	// text and pushes it out of its box.
+	style.fontWeight = s.bold ? 'bold' : 'normal';
+	style.fontStyle = s.italic ? 'italic' : 'normal';
 	const deco: string[] = [];
 	if (s.underline) {
 		deco.push('underline');

@@ -15,8 +15,10 @@
  * cascade), so each binding keeps its own to avoid changing render output.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 
 import type { CssStyleMap } from './element-style-transform';
+import { clampCropValue } from './fill-style';
 
 /** Map a number to a CSS pixel string. */
 export function px(n: number): string {
@@ -60,13 +62,28 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
 	return style;
 }
 
-/** Resolve a displayable image source for picture/image/media poster frames. */
+/**
+ * Resolve a displayable image source for picture/image/media poster frames.
+ *
+ * The SVG variant is preferred over the raster one, which is not merely a
+ * quality choice: `<a:blip>` can carry an `asvg:svgBlip` extension whose
+ * `r:embed` is the ONLY relationship on the blip, so there is no raster
+ * fallback at all. A resolver that looks solely at `imageData` renders those
+ * pictures as an empty box, and real decks use exactly that shape for icon
+ * artwork. PowerPoint paints the SVG when both are present, so preferring it
+ * is also the higher-fidelity answer when a raster fallback does exist.
+ */
 export function getImageSrc(
 	el: PptxElement,
 	mediaDataUrls: Map<string, string>,
 ): string | undefined {
 	if (el.type === 'picture' || el.type === 'image') {
-		return el.imageData ?? (el.imagePath ? mediaDataUrls.get(el.imagePath) : undefined);
+		return (
+			el.svgData ??
+			(el.svgPath ? mediaDataUrls.get(el.svgPath) : undefined) ??
+			el.imageData ??
+			(el.imagePath ? mediaDataUrls.get(el.imagePath) : undefined)
+		);
 	}
 	if (el.type === 'media') {
 		return (
@@ -74,4 +91,88 @@ export function getImageSrc(
 		);
 	}
 	return undefined;
+}
+
+/**
+ * `overflow` for a picture's container box.
+ *
+ * Pictures clip, because {@link getImageFitStyle} renders a crop by
+ * deliberately painting the cropped-away part outside the frame. The one
+ * exception is a blur with `@grow`, whose halo is MEANT to bleed past the
+ * element box (see `getComputedEffectStyle().overflowVisible`); clipping there
+ * would trade one visible defect for another. Mirrors React's container rule.
+ */
+export function getImageOverflow(el: PptxElement): 'hidden' | 'visible' {
+	const shapeStyle = hasShapeProperties(el) ? el.shapeStyle : undefined;
+	const blurHaloBleeds =
+		Boolean(shapeStyle?.blurGrow) &&
+		typeof shapeStyle?.blurRadius === 'number' &&
+		shapeStyle.blurRadius > 0;
+	return blurHaloBleeds ? 'visible' : 'hidden';
+}
+
+/**
+ * How a picture's `<img>` should fill its frame, including the `<a:srcRect>`
+ * source crop.
+ *
+ * CSS `object-fit` cannot express an OOXML source crop: `contain` and `cover`
+ * pick a region of the FRAME, whereas `srcRect` picks a region of the SOURCE
+ * bitmap which PowerPoint then stretches to fill the frame. The crop is
+ * therefore rendered by scaling the image by the reciprocal of the surviving
+ * region and translating the cropped-away part out of the (overflow-hidden)
+ * frame. Skipping it does not merely mis-scale the picture, it shows the wrong
+ * part of it: a deck that crops one wide composite image into several different
+ * insets otherwise renders the same photo in every one of them.
+ *
+ * Callers must give the containing element `overflow: hidden`, since the
+ * cropped branch deliberately paints outside the frame.
+ *
+ * @returns A neutral CSS map to spread onto the `<img>`; never `undefined`, so
+ *          the uncropped case still pins the shared `cover` fit that every
+ *          binding must agree on.
+ */
+export function getImageFitStyle(el: PptxElement): CssStyleMap {
+	const uncropped: CssStyleMap = {
+		width: '100%',
+		height: '100%',
+		objectFit: 'cover',
+	};
+	if (!isImageLikeElement(el)) {
+		return uncropped;
+	}
+
+	const cropLeft = clampCropValue(el.cropLeft);
+	const cropTop = clampCropValue(el.cropTop);
+	const cropRight = clampCropValue(el.cropRight);
+	const cropBottom = clampCropValue(el.cropBottom);
+	if (cropLeft + cropRight <= 0.0001 && cropTop + cropBottom <= 0.0001) {
+		return uncropped;
+	}
+
+	// A crop that swallows (almost) the whole source would divide by ~0 below, so
+	// the pair is rescaled to leave a 1% sliver rather than producing Infinity.
+	const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
+	const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
+	const left = clampCropValue(cropLeft * horizontalScale);
+	const right = clampCropValue(cropRight * horizontalScale);
+	const top = clampCropValue(cropTop * verticalScale);
+	const bottom = clampCropValue(cropBottom * verticalScale);
+	const remainingWidth = Math.max(0.01, 1 - left - right);
+	const remainingHeight = Math.max(0.01, 1 - top - bottom);
+
+	const tx = Math.round((-left / remainingWidth) * 10000) / 100;
+	const ty = Math.round((-top / remainingHeight) * 10000) / 100;
+	const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
+	const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
+
+	return {
+		position: 'absolute',
+		width: '100%',
+		height: '100%',
+		maxWidth: 'none',
+		maxHeight: 'none',
+		objectFit: 'fill',
+		transformOrigin: 'top left',
+		transform: `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})`,
+	};
 }

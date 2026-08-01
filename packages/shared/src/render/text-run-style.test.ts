@@ -73,8 +73,26 @@ describe('segmentStyleToCss run properties', () => {
 		expect(none.fontVariantCaps).toBeUndefined();
 	});
 
-	it('leaves a plain run untouched (no extra keys)', () => {
-		expect(segmentStyleToCss(seg({ fontSize: 16 }))).toStrictEqual({ fontSize: '16px' });
+	it('adds no keys beyond the always-declared weight and slant', () => {
+		expect(segmentStyleToCss(seg({ fontSize: 16 }))).toStrictEqual({
+			fontSize: '16px',
+			fontWeight: 'normal',
+			fontStyle: 'normal',
+		});
+	});
+
+	it('declares regular weight and slant so the text block cannot leak its own', () => {
+		// Regression: the text block carries a `font-weight` / `font-style` from the
+		// element's resolved text style, so omitting these on a run let a bold
+		// heading in the first paragraph turn every later paragraph of the same
+		// shape bold. React has always declared both per run.
+		const plain = segmentStyleToCss(seg({}));
+		expect(plain.fontWeight).toBe('normal');
+		expect(plain.fontStyle).toBe('normal');
+
+		const emphasised = segmentStyleToCss(seg({ bold: true, italic: true }));
+		expect(emphasised.fontWeight).toBe('bold');
+		expect(emphasised.fontStyle).toBe('italic');
 	});
 });
 

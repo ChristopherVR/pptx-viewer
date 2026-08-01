@@ -2,6 +2,8 @@ import {
 	getComputedImageStyle,
 	getContainerStyle,
 	getImageColorWashStyle,
+	getImageFitStyle,
+	getImageOverflow,
 	getImageSrc,
 	resolveColorChangedImageSource,
 } from 'pptx-viewer-shared';
@@ -11,12 +13,18 @@ import type { ElementRenderer } from '../types';
 
 /**
  * Renderer for `image` / `picture` elements: an absolutely positioned box with
- * an `<img>` (object-fit contain), the shared computed CSS filter, and any SVG
- * `<filter>` defs required by duotone / artistic image effects.
+ * an `<img>` under the shared fill/crop fit, the shared computed CSS filter, and
+ * any SVG `<filter>` defs required by duotone / artistic image effects.
  */
 export const renderImageElement: ElementRenderer = (element, zIndex, context) => {
 	const doc = context.document;
-	const el = createEl(doc, 'div', 'pptxv-element pptxv-image', getContainerStyle(element, zIndex));
+	// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
+	// scaling the source up and translating the cropped-away part out of the
+	// frame, so without it the discarded region paints over its neighbours.
+	const el = createEl(doc, 'div', 'pptxv-element pptxv-image', {
+		...getContainerStyle(element, zIndex),
+		overflow: getImageOverflow(element),
+	});
 	el.dataset.elementId = element.id;
 
 	const src = getImageSrc(element, new Map(context.mediaDataUrls));
@@ -41,9 +49,7 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 
 	const img = createEl(doc, 'img', undefined, {
-		width: '100%',
-		height: '100%',
-		objectFit: 'contain',
+		...getImageFitStyle(element),
 		display: 'block',
 	});
 	img.src = src;

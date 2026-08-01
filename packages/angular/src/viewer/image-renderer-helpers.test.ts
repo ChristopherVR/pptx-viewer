@@ -82,12 +82,22 @@ describe('buildAngularImageRenderView', () => {
 		expect(view.imageStyle).toStrictEqual({
 			width: '100%',
 			height: '100%',
-			'object-fit': 'contain',
+			objectFit: 'cover',
 			display: 'block',
 		});
 		expect(view.svgFilters).toStrictEqual([]);
 		expect(view.clrChange).toBeUndefined();
 		expect(view.colorWashStyle).toBeUndefined();
+	});
+
+	it('applies the authored source crop rather than fitting the whole bitmap', () => {
+		// Regression: Angular hard-coded `object-fit: contain` and ignored
+		// `<a:srcRect>`, so an inset cropped out of a wide composite image showed
+		// the whole composite instead of its own region.
+		const view = buildAngularImageRenderView(image({}, { cropLeft: 0.25, cropRight: 0.25 }));
+
+		expect(view.imageStyle['objectFit']).toBe('fill');
+		expect(view.imageStyle['transform']).toBe('translate(-50%, 0%) scale(2, 1)');
 	});
 
 	it('clips both the image and color wash to the authored crop shape', () => {

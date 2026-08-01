@@ -4,6 +4,7 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 import {
 	getComputedImageStyle,
 	getImageColorWashStyle,
+	getImageFitStyle,
 	getResolvedShapeClipPathFor,
 } from '../internal/shared';
 import type { ImageSvgFilterDefinition } from '../internal/shared';
@@ -34,10 +35,10 @@ export function getImageCropShapeClipPath(element: PptxElement): string | undefi
 /** Build the complete shared image-effect view consumed by Angular templates. */
 export function buildAngularImageRenderView(element: PptxElement): AngularImageRenderView {
 	const computed = getComputedImageStyle(element);
+	// The fill/crop fit comes from shared so the `<a:srcRect>` source crop is the
+	// same maths in every binding; `[ngStyle]` accepts its camelCase keys.
 	const imageStyle: StyleMap = {
-		width: '100%',
-		height: '100%',
-		'object-fit': 'contain',
+		...getImageFitStyle(element),
 		display: 'block',
 	};
 	if (computed.filter) {
