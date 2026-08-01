@@ -232,6 +232,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			<div
 				data-pptx-element='true'
 				data-element-id={el.id}
+				// The neutral marker `PRESENTATION_INERT_CLICK_SELECTOR` keys off, so
+				// a tap or swipe on an action shape never ALSO steps the show on.
+				// `StaticElementRenderer` and the four non-React bindings' DOM pass
+				// stamp the same attribute.
+				data-pptx-action={isActionable ? 'click' : undefined}
 				role={ariaRole}
 				aria-label={ariaLabel}
 				aria-roledescription={ariaRoleDescription}

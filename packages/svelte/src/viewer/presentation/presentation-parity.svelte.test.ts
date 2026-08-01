@@ -26,6 +26,24 @@ describe('presentation parity state', () => {
 		expect(annotations.count).toBe(0);
 	});
 
+	it('draws each tool in its own colour', () => {
+		const annotations = new PresentationAnnotations();
+		expect(annotations.penColor).toBe('#ff0000');
+		expect(annotations.highlighterColor).toBe('#ffff00');
+
+		annotations.penColor = '#0000ff';
+		annotations.highlighterColor = '#00ff00';
+		annotations.tool = 'pen';
+		annotations.pointerDown(0, { x: 1, y: 1 });
+		expect(annotations.current?.color).toBe('#0000ff');
+		annotations.pointerUp(0);
+
+		// The highlighter used to be hardcoded to #fde047 regardless of the model.
+		annotations.tool = 'highlighter';
+		annotations.pointerDown(0, { x: 1, y: 1 });
+		expect(annotations.current?.color).toBe('#00ff00');
+	});
+
 	it('writes rehearsed slide timing to transitions', () => {
 		const target = editor();
 		const rehearse = new RehearseState();

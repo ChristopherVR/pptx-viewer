@@ -141,6 +141,23 @@ describe('mediaBox', () => {
 		expect(container?.textContent).toContain('Media');
 	});
 
+	// A full-bleed background video with `controls` paints Chrome's own black
+	// transport across the bottom of the presented slide, over the show toolbar.
+	// React suppresses it (`controls={!isPresentationMode}`).
+	it('hides the native transport while presenting', () => {
+		const { target } = mountEl(
+			mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }),
+			undefined,
+			true,
+		);
+		expect(target.querySelector('video')?.hasAttribute('controls')).toBeFalsy();
+		expect(
+			mountEl(mediaElement({ mediaType: 'audio', mediaData: MP3_DATA_URL }), undefined, true)
+				.target.querySelector('audio')
+				?.hasAttribute('controls'),
+		).toBeFalsy();
+	});
+
 	describe('presentation-mode autoplay', () => {
 		it('does not autoplay when presenting is false', () => {
 			mountEl(mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }), undefined, false);

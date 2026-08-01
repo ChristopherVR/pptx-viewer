@@ -1,18 +1,18 @@
 import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import type {
+	PresentationPointerState,
 	PresentationPointerTool,
 	PresentationSnapshot,
 	ViewerQuickAccessOptions,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
-import { isPresentationAdvanceClick } from 'pptx-viewer-shared';
 
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
 import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
-import { isSwipeAdvanceBlocked } from './presentation-advance-gate';
+import { isSwipeAdvanceBlocked, resolvePresentationStageClick } from './presentation-advance-gate';
 import { attachAutoAdvance } from './presentation-auto-advance';
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
@@ -58,6 +58,10 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	exitPresentation(): void;
 	/** Select a slide-show pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
 	setPresentationPointerTool?(tool: PresentationPointerTool): void;
+	/** Set the slide-show pointer/ink colour (show toolbar's colour palettes). */
+	setPresentationPointerColor?(color: string): void;
+	/** Open or close the presenter console + audience display (show toolbar). */
+	togglePresenterView?(): void;
 	/** Erase the show's ink annotations (E). */
 	erasePresentationAnnotations?(): void;
 	/** Show or hide ink markup (Ctrl+M). */
@@ -123,6 +127,15 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			},
 		},
 		accountAuth: options.accountAuth,
+		// The show toolbar's annotation controls have no ribbon equivalent, so
+		// they are wired straight to the presenter-snapshot mutators the keyboard
+		// shortcuts already use; both surfaces then drive one source of truth.
+		presentationToolbarHandlers: {
+			setTool: (tool) => deps.setPresentationPointerTool?.(tool),
+			setColor: (color) => deps.setPresentationPointerColor?.(color),
+			clearAnnotations: () => deps.erasePresentationAnnotations?.(),
+			togglePresenterView: () => deps.togglePresenterView?.(),
+		},
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -232,21 +245,26 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		if (!state.presenting || !(event.target instanceof Element)) {
 			return;
 		}
-		// Live slide content and show chrome own their own clicks; the shared
-		// rule keeps every binding advancing on exactly the same targets.
-		if (!isPresentationAdvanceClick(event.target)) {
-			return;
-		}
 		if (!event.target.closest('.pptxv-stage')) {
 			return;
 		}
-		if (
-			isSwipeAdvanceBlocked({
-				presenting: state.presenting,
-				animationBuildsComplete: renderer.presentationPlayback.isComplete(),
-				currentSlide: state.slides[state.currentSlide],
-			})
-		) {
+		// PowerPoint's precedence (an on-slide Action Setting under the pointer,
+		// then live content that owns its click, then the show's own advance)
+		// lives in `presentation-advance-gate` so it can be unit-tested without
+		// standing up the whole chrome.
+		const shouldAdvance = resolvePresentationStageClick({
+			target: event.target,
+			presenting: state.presenting,
+			animationBuildsComplete: renderer.presentationPlayback.isComplete(),
+			currentSlide: state.slides[state.currentSlide],
+			slideCount: state.slides.length,
+			runner: {
+				goToSlide: (index) => deps.goToSlide(index),
+				move: (direction) => (direction > 0 ? deps.next() : deps.prev()),
+				endShow: () => deps.exitPresentation(),
+			},
+		});
+		if (!shouldAdvance) {
 			return;
 		}
 		deps.next();
@@ -356,9 +374,13 @@ export interface ChromeHost {
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
 	openPresenterView(): void;
+	/** Open the presenter console when closed, close it when open. */
+	togglePresenterView(): void;
 	exitPresentation(): Promise<void>;
 	getPresenterSnapshot(): PresentationSnapshot;
 	updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void;
+	/** Discard the show's ink strokes (E, and the show toolbar's Clear button). */
+	clearPresentationAnnotations(): void;
 	openBroadcast(): void;
 	openShare(): void;
 	openAccessibility(): void;
@@ -470,10 +492,26 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToLastSlide: () => host.goToLastSlide(),
 		exitPresentation: () => void host.exitPresentation(),
 		setPresentationPointerTool: (tool) => {
-			const pointer = host.getPresenterSnapshot().pointer ?? { x: 0.5, y: 0.5, color: '#ef4444' };
-			host.updatePresenterSnapshot({ pointer: { ...pointer, tool } });
+			const pointer: PresentationPointerState = host.getPresenterSnapshot().pointer ?? {
+				x: 0.5,
+				y: 0.5,
+				color: '#ef4444',
+				tool: 'none',
+			};
+			// PowerPoint's tool buttons are radio-like but re-clicking the active
+			// one puts the pointer back to the arrow, which is the only way to stop
+			// drawing without reaching for the keyboard. Matches React, whose
+			// `setPresentationTool` toggles at the same (shared) level.
+			host.updatePresenterSnapshot({
+				pointer: { ...pointer, tool: pointer.tool === tool ? 'none' : tool },
+			});
 		},
-		erasePresentationAnnotations: () => host.updatePresenterSnapshot({ inkStrokes: [] }),
+		setPresentationPointerColor: (color) => {
+			const pointer = host.getPresenterSnapshot().pointer ?? { x: 0.5, y: 0.5, tool: 'none' };
+			host.updatePresenterSnapshot({ pointer: { ...pointer, color } });
+		},
+		togglePresenterView: () => host.togglePresenterView(),
+		erasePresentationAnnotations: () => host.clearPresentationAnnotations(),
 		togglePresentationInkMarkup: () =>
 			host.updatePresenterSnapshot({
 				inkMarkupVisible: host.getPresenterSnapshot().inkMarkupVisible === false,

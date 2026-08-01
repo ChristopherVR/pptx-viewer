@@ -11,6 +11,7 @@
 	 */
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
 	import PresentationEndScreen from './PresentationEndScreen.svelte';
+	import PresentationToolbar from './PresentationToolbar.svelte';
 	import PresentationTouchControls from './PresentationTouchControls.svelte';
 	import PresenterView from './PresenterView.svelte';
 
@@ -18,7 +19,21 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, presentation, presenterSession } = vm;
+	const { loader, viewer, editor, presentation, presenterSession, parityUi } = vm;
+
+	/**
+	 * Step the show. Forward runs the click-stepped animation build first and
+	 * only then changes slide; backward asks the controller to rewind a build
+	 * before falling back to the previous slide. Same wiring the touch controls
+	 * use, so the two navigation surfaces cannot behave differently.
+	 */
+	function move(direction: 1 | -1): void {
+		if (direction === 1) {
+			presentation.advance();
+		} else if (!presentation.retreat()) {
+			viewer.prev();
+		}
+	}
 	const pointer = $derived(presenterSession.snapshot.pointer);
 </script>
 
@@ -28,6 +43,15 @@
 		total={viewer.slideCount}
 		onprev={() => (presentation.retreat() ? undefined : viewer.prev())}
 		onnext={() => presentation.advance()}
+		onexit={vm.onFullscreenToggle}
+	/>
+	<PresentationToolbar
+		annotations={parityUi.annotations}
+		current={viewer.current}
+		total={viewer.slideCount}
+		presenterMode={vm.presenterMode}
+		onmove={move}
+		onpresenterview={() => (vm.presenterMode = !vm.presenterMode)}
 		onexit={vm.onFullscreenToggle}
 	/>
 {/if}

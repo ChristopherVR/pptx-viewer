@@ -15,6 +15,8 @@ import type { MobileToolbar } from './mobile-toolbar';
 import { createMobileToolbar } from './mobile-toolbar';
 import type { NotesPanel } from './notes-panel';
 import { createNotesPanel } from './notes-panel';
+import type { PresentationToolbar, PresentationToolbarHandlers } from './presentation-toolbar';
+import { createPresentationToolbar } from './presentation-toolbar';
 import type { PresentationTouchControls } from './presentation-touch-controls';
 import { createPresentationTouchControls } from './presentation-touch-controls';
 import type { Ribbon } from './ribbon/ribbon';
@@ -48,6 +50,15 @@ export interface ChromeOptions {
 	ribbonHandlers: RibbonHandlers;
 	/** Inspector actions (geometry + shape fill/stroke). */
 	inspectorHandlers: InspectorHandlers;
+	/**
+	 * Slide-show toolbar actions (annotation tools, presenter view, end show).
+	 * Navigation and exit reuse `ribbonHandlers.nav`; only the annotation and
+	 * presenter-console actions have no ribbon equivalent, so they arrive here.
+	 */
+	presentationToolbarHandlers: Pick<
+		PresentationToolbarHandlers,
+		'setTool' | 'setColor' | 'clearAnnotations' | 'togglePresenterView'
+	>;
 	/** PowerPoint-style top chrome, built when the toolbar is visible. */
 	titleBar: TitleBarDeps;
 	/** Optional File > Account sign-in hook point; disabled/absent by default. */
@@ -89,6 +100,8 @@ export interface ViewerChrome {
 	mobileActionSheets: MobileActionSheets | null;
 	/** Persistent exit and navigation affordances for touch slide shows. */
 	presentationTouchControls: PresentationTouchControls;
+	/** Auto-hiding floating show toolbar (desktop slide-show chrome). */
+	presentationToolbar: PresentationToolbar;
 	setLoading(loading: boolean): void;
 	setError(message: string | null): void;
 	setEmpty(empty: boolean): void;
@@ -241,6 +254,17 @@ export function buildViewerChrome(
 	presentationTouchControls.update(0, 0);
 	root.appendChild(presentationTouchControls.el);
 
+	// The desktop bar measures its bottom trigger zone against `root`, which is
+	// also the element the Fullscreen API promotes, so the zone stays correct in
+	// and out of fullscreen without re-reading the viewport.
+	const presentationToolbar = createPresentationToolbar(doc, t, root, {
+		previous: options.ribbonHandlers.nav.prev,
+		next: options.ribbonHandlers.nav.next,
+		end: options.ribbonHandlers.nav.togglePresentation,
+		...options.presentationToolbarHandlers,
+	});
+	root.appendChild(presentationToolbar.el);
+
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('pptx.common.loading');
 	loadingOverlay.setAttribute('role', 'status');
@@ -271,6 +295,7 @@ export function buildViewerChrome(
 		mobileToolbar,
 		mobileActionSheets,
 		presentationTouchControls,
+		presentationToolbar,
 		setLoading(loading) {
 			loadingOverlay.hidden = !loading;
 			root.setAttribute('aria-busy', String(loading));
@@ -285,6 +310,9 @@ export function buildViewerChrome(
 		},
 		setPresenting(presenting) {
 			root.classList.toggle('pptxv-presenting', presenting);
+			// The bar owns a 1s timer and two document listeners; both are armed
+			// only for the duration of the show.
+			presentationToolbar.setPresenting(presenting);
 		},
 	};
 }

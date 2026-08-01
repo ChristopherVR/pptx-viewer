@@ -114,7 +114,7 @@ watchPostEffect(() => {
 		return;
 	}
 	if (props.interactive || props.presenting) {
-		applyRenderedElementAccessibility(stage, elements);
+		applyRenderedElementAccessibility(stage, elements, { presenting: props.presenting === true });
 	} else if (props.preserveElementIds) {
 		// Morph drives per-element CSS keyed on `data-element-id`, so the two
 		// transition layers must keep their markers. Safe because the host hides

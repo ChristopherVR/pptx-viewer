@@ -368,6 +368,9 @@ export type {
 export { PresentationAnnotationsService } from './presentation-annotations.service';
 export { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 export { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
+export { PresentationToolbarComponent } from './presentation-toolbar.component';
+export type { PresentToolbarAction } from './presentation-toolbar.component';
+export { PresentToolbarAutoHide } from './presentation-toolbar-view';
 export type { AnnotationStroke, PresentationTool } from './presentation-annotations-helpers';
 
 // Presentation transitions + presenter view

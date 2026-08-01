@@ -5,8 +5,12 @@
 	 *
 	 * - Playable source cascade: `mediaData` (data URL embedded by the load
 	 *   pipeline) first, then `mediaPath` looked up in `mediaDataUrls`.
-	 * - Video renders a native `<video controls>` (with the poster frame when
-	 *   one exists); audio renders a native `<audio controls>`.
+	 * - Video renders a native `<video>` (with the poster frame when one exists);
+	 *   audio renders a native `<audio>`. The native transport is suppressed
+	 *   while presenting, as React does (`controls={!isPresentationMode}`):
+	 *   PowerPoint shows none, and a full-bleed background video otherwise draws
+	 *   Chrome's own black scrubber across the bottom of the slide, on top of the
+	 *   presentation toolbar.
 	 * - No playable source: the poster / thumbnail image alone.
 	 * - Nothing at all: a graceful typed fallback box labelled "Media".
 	 *
@@ -75,12 +79,16 @@
 				class="pptx-svelte-media-video"
 				src={view.mediaSrc}
 				poster={view.posterSrc}
-				controls
+				controls={!presenting}
 				preload="metadata"
 				playsinline
 			></video>
 		{:else if view.mediaSrc && media.mediaType === 'audio'}
-			<audio bind:this={mediaEl} class="pptx-svelte-media-audio" src={view.mediaSrc} controls
+			<audio
+				bind:this={mediaEl}
+				class="pptx-svelte-media-audio"
+				src={view.mediaSrc}
+				controls={!presenting}
 			></audio>
 		{:else if view.posterSrc}
 			<img class="pptx-svelte-media-poster" src={view.posterSrc} alt="" />

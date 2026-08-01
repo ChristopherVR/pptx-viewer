@@ -232,6 +232,30 @@ export class ViewerPresentationModeService {
 		}
 	}
 
+	/**
+	 * Swap between the fullscreen show and the presenter (speaker) console, the
+	 * show toolbar's presenter-view toggle and PowerPoint's `N`. Mirrors React's
+	 * `togglePresenterView`.
+	 *
+	 * The two are mutually exclusive rather than stacked: the show overlay is
+	 * `position: fixed; z-index: 10000` while the console sits inside the viewer
+	 * at `z-index: 50`, so leaving both up would paint the show straight over the
+	 * console and the toggle would look inert. The full-deck `activeSlideIndex`
+	 * is what both read, so the swap keeps the presenter on the same slide.
+	 */
+	togglePresenterView(): void {
+		if (this.presentingPresenter()) {
+			this.presentingPresenter.set(false);
+			this.presenting.set(true);
+			return;
+		}
+		if (this.presenterStartTime() === null) {
+			this.presenterStartTime.set(Date.now());
+		}
+		this.presentingPresenter.set(true);
+		this.presenting.set(false);
+	}
+
 	/** Close the presenter view (and any audience overlay/window it opened). */
 	exitPresenter(): void {
 		this.presentingPresenter.set(false);

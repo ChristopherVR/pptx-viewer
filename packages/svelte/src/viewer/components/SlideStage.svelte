@@ -74,14 +74,31 @@
 		}),
 	);
 
-	function accessibleStage(node: HTMLElement, elements: readonly PptxElement[]) {
+	/** What the accessibility pass needs; both parts must re-trigger it. */
+	interface AccessibleStageParams {
+		elements: readonly PptxElement[];
+		/** True only for a RUNNING slide show, never for a thumbnail or preview. */
+		presenting: boolean;
+	}
+
+	// `presenting` travels as an action PARAMETER rather than being closed over:
+	// entering the show flips the flag on the SAME component instance, and an
+	// action body only re-runs when its parameter changes. Closed over, the stage
+	// stayed unmarked, the show's hit-testing rule never applied, and a
+	// decorative shape painted over the deck's navigation swallowed every click.
+	function accessibleStage(node: HTMLElement, params: AccessibleStageParams) {
+		let current = params;
 		function apply(): void {
-			queueMicrotask(() => applyRenderedElementAccessibility(node, elements));
+			queueMicrotask(() =>
+				applyRenderedElementAccessibility(node, current.elements, {
+					presenting: current.presenting,
+				}),
+			);
 		}
 		apply();
 		return {
-			update(next: readonly PptxElement[]): void {
-				elements = next;
+			update(next: AccessibleStageParams): void {
+				current = next;
 				apply();
 			},
 		};
@@ -96,7 +113,7 @@
      which only withhold the region role from thumbnail stages. -->
 <div
 	class="pptx-svelte-stage"
-	use:accessibleStage={slide?.elements ?? []}
+	use:accessibleStage={{ elements: slide?.elements ?? [], presenting }}
 	style={stageStyle}
 	role={interactive ? 'region' : undefined}
 	aria-roledescription={interactive ? 'slide' : undefined}

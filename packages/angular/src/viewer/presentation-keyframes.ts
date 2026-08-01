@@ -19,7 +19,7 @@
  * @module viewer/presentation-keyframes
  */
 
-import { ANIMATION_KEYFRAMES_CSS } from '../internal/shared';
+import { ANIMATION_KEYFRAMES_CSS, PRESENTATION_HIT_TEST_CSS } from '../internal/shared';
 
 let presetInjected = false;
 
@@ -30,7 +30,9 @@ export function ensurePresetAnimationKeyframes(): void {
 	}
 	const style = document.createElement('style');
 	style.setAttribute('data-pptx-ng-animation-keyframes', '');
-	style.textContent = ANIMATION_KEYFRAMES_CSS;
+	// Plus the show's hit-testing rule: scenery is pointer-transparent so a click
+	// reaches the action shape underneath it (or the show's own advance).
+	style.textContent = `${ANIMATION_KEYFRAMES_CSS}\n${PRESENTATION_HIT_TEST_CSS}`;
 	document.head.appendChild(style);
 	presetInjected = true;
 }

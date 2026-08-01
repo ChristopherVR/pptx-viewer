@@ -1,0 +1,201 @@
+<!--
+	The 16 slots of `PRESENT_TOOLBAR_CONTROLS` (pptx-viewer-shared), in order.
+	Each carries its shared id as `data-pptx-present-control` so a parity spec
+	can read the inventory off any binding without knowing its markup.
+-->
+<div
+	data-pptx-present-toolbar
+	role="toolbar"
+	[attr.aria-label]="'pptx.toolbar.presentationToolbarAria' | translate"
+	[class]="ui.container"
+	(click)="$event.stopPropagation()"
+>
+	<button
+		type="button"
+		data-pptx-present-control="previous"
+		[class]="ui.button"
+		[disabled]="atFirstSlide()"
+		[attr.title]="'pptx.presenter.previousSlide' | translate"
+		[attr.aria-label]="'pptx.presenter.previousSlide' | translate"
+		(click)="onControlClick($event, 'previous')"
+		(touchend)="onControlTouch($event, 'previous')"
+	>
+		<svg lucideChevronLeft [class]="ui.icon"></svg>
+	</button>
+
+	<span data-pptx-present-control="counter" [class]="ui.counter">{{ counterLabel() }}</span>
+
+	<button
+		type="button"
+		data-pptx-present-control="next"
+		[class]="ui.button"
+		[disabled]="atLastSlide()"
+		[attr.title]="'pptx.presenter.nextSlide' | translate"
+		[attr.aria-label]="'pptx.presenter.nextSlide' | translate"
+		(click)="onControlClick($event, 'next')"
+		(touchend)="onControlTouch($event, 'next')"
+	>
+		<svg lucideChevronRight [class]="ui.icon"></svg>
+	</button>
+
+	<div data-pptx-present-control="divider-navigation" [class]="ui.divider"></div>
+
+	<div
+		data-pptx-present-control="timer"
+		[class]="ui.timer"
+		[attr.title]="'pptx.presenter.elapsed' | translate"
+		[attr.aria-label]="'pptx.presenter.elapsed' | translate"
+	>
+		<svg lucideTimer [class]="ui.timerIcon"></svg>
+		<span>{{ elapsedLabel() }}</span>
+	</div>
+
+	<div data-pptx-present-control="divider-timer" [class]="ui.divider"></div>
+
+	<button
+		type="button"
+		data-pptx-present-control="laser"
+		[class]="ui.toggleClass(annotations.tool() === 'laser')"
+		[attr.title]="'pptx.presentation.laserPointer' | translate"
+		[attr.aria-label]="'pptx.presentation.laserPointer' | translate"
+		(click)="onControlClick($event, 'laser')"
+		(touchend)="onControlTouch($event, 'laser')"
+	>
+		<svg lucideMousePointer2 [class]="ui.icon"></svg>
+	</button>
+
+	<div [class]="ui.group">
+		<button
+			type="button"
+			data-pptx-present-control="pen"
+			[class]="ui.toggleClass(annotations.tool() === 'pen')"
+			[attr.title]="'pptx.presentation.pen' | translate"
+			[attr.aria-label]="'pptx.presentation.pen' | translate"
+			(click)="onControlClick($event, 'pen')"
+			(touchend)="onControlTouch($event, 'pen')"
+		>
+			<svg lucidePenTool [class]="ui.icon"></svg>
+			<span [class]="ui.swatchBar" [style.background-color]="annotations.penColor()"></span>
+		</button>
+		<button
+			type="button"
+			data-pptx-present-control="pen-color"
+			[class]="ui.caret"
+			[attr.title]="'pptx.presentationToolbar.penColor' | translate"
+			[attr.aria-label]="'pptx.presentationToolbar.penColor' | translate"
+			(click)="onControlClick($event, 'pen-color')"
+			(touchend)="onControlTouch($event, 'pen-color')"
+		>
+			<svg lucideChevronDown [class]="ui.caretIcon"></svg>
+		</button>
+		@if (openPalette() === 'pen') {
+			<div [class]="ui.palette">
+				@for (color of ui.penColors; track color) {
+					<button
+						type="button"
+						[class]="ui.swatchClass(annotations.penColor() === color)"
+						[style.background-color]="color"
+						[attr.aria-label]="
+							'pptx.presentationToolbar.penColorValue' | translate: { color: color }
+						"
+						(click)="pickColor($event, 'pen', color)"
+						(touchend)="pickColor($event, 'pen', color)"
+					></button>
+				}
+			</div>
+		}
+	</div>
+
+	<div [class]="ui.group">
+		<button
+			type="button"
+			data-pptx-present-control="highlighter"
+			[class]="ui.toggleClass(annotations.tool() === 'highlighter')"
+			[attr.title]="'pptx.presentation.highlighter' | translate"
+			[attr.aria-label]="'pptx.presentation.highlighter' | translate"
+			(click)="onControlClick($event, 'highlighter')"
+			(touchend)="onControlTouch($event, 'highlighter')"
+		>
+			<svg lucideHighlighter [class]="ui.icon"></svg>
+			<span [class]="ui.swatchBar" [style.background-color]="annotations.highlighterColor()"></span>
+		</button>
+		<button
+			type="button"
+			data-pptx-present-control="highlighter-color"
+			[class]="ui.caret"
+			[attr.title]="'pptx.presentationToolbar.highlighterColor' | translate"
+			[attr.aria-label]="'pptx.presentationToolbar.highlighterColor' | translate"
+			(click)="onControlClick($event, 'highlighter-color')"
+			(touchend)="onControlTouch($event, 'highlighter-color')"
+		>
+			<svg lucideChevronDown [class]="ui.caretIcon"></svg>
+		</button>
+		@if (openPalette() === 'highlighter') {
+			<div [class]="ui.palette">
+				@for (color of ui.highlighterColors; track color) {
+					<button
+						type="button"
+						[class]="ui.swatchClass(annotations.highlighterColor() === color)"
+						[style.background-color]="color"
+						[attr.aria-label]="
+							'pptx.presentationToolbar.highlighterColorValue' | translate: { color: color }
+						"
+						(click)="pickColor($event, 'highlighter', color)"
+						(touchend)="pickColor($event, 'highlighter', color)"
+					></button>
+				}
+			</div>
+		}
+	</div>
+
+	<button
+		type="button"
+		data-pptx-present-control="eraser"
+		[class]="ui.toggleClass(annotations.tool() === 'eraser')"
+		[attr.title]="'pptx.presentation.eraser' | translate"
+		[attr.aria-label]="'pptx.presentation.eraser' | translate"
+		(click)="onControlClick($event, 'eraser')"
+		(touchend)="onControlTouch($event, 'eraser')"
+	>
+		<svg lucideEraser [class]="ui.icon"></svg>
+	</button>
+
+	<button
+		type="button"
+		data-pptx-present-control="clear"
+		[class]="ui.clearClass(hasAnnotations())"
+		[disabled]="!hasAnnotations()"
+		[attr.title]="'pptx.presentation.clearAnnotations' | translate"
+		[attr.aria-label]="'pptx.presentation.clearAnnotations' | translate"
+		(click)="onControlClick($event, 'clear')"
+		(touchend)="onControlTouch($event, 'clear')"
+	>
+		<svg lucideTrash2 [class]="ui.icon"></svg>
+	</button>
+
+	<div data-pptx-present-control="divider-tools" [class]="ui.divider"></div>
+
+	<button
+		type="button"
+		data-pptx-present-control="presenter-view"
+		[class]="ui.toggleClass(presenterMode())"
+		[attr.title]="'pptx.presenter.presenterView' | translate"
+		[attr.aria-label]="'pptx.presenter.presenterView' | translate"
+		(click)="onControlClick($event, 'presenter-view')"
+		(touchend)="onControlTouch($event, 'presenter-view')"
+	>
+		<svg lucidePanelRight [class]="ui.icon"></svg>
+	</button>
+
+	<button
+		type="button"
+		data-pptx-present-control="end"
+		[class]="ui.end"
+		[attr.title]="'pptx.presenter.endPresentation' | translate"
+		[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
+		(click)="onControlClick($event, 'end')"
+		(touchend)="onControlTouch($event, 'end')"
+	>
+		<svg lucideX [class]="ui.icon"></svg>
+	</button>
+</div>

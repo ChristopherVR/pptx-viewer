@@ -52,8 +52,12 @@ export interface ViewerBodyProps {
 	presentationTransition: TransitionState | null;
 	/** Called when the transition overlay finishes (host drops the overlay). */
 	onTransitionDone: () => void;
-	/** Advance the presentation (step animation build, else next slide). */
-	onAdvance: () => void;
+	/**
+	 * A click on the running show's stage. The event is passed through because
+	 * PowerPoint resolves an on-slide Action Setting under the pointer BEFORE
+	 * falling back to click-to-advance.
+	 */
+	onAdvance: (event: MouseEvent) => void;
 	editingActive: boolean;
 	controller: EditorController;
 	onstageresize: (width: number, height: number) => void;

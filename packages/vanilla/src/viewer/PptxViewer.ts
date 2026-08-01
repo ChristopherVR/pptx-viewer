@@ -899,6 +899,41 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		renderAudienceEffects(this.container, this.presenterSnapshot);
 		this.syncAudience(this.presenterSnapshot.slideIndex);
 		this.annotations.sync(this.presenterSnapshot);
+		this.syncPresentationToolbar();
+	}
+
+	/** Discard the show's ink strokes (E, and the show toolbar's Clear button). */
+	clearPresentationAnnotations(): void {
+		this.annotations.clear();
+	}
+
+	/**
+	 * Reflect the presenter snapshot on the show toolbar.
+	 *
+	 * The snapshot is the single source of truth for the active pointer tool and
+	 * the show's ink, so the bar never keeps its own copy: every mutation, from a
+	 * bar button, a keyboard shortcut or the presenter console, lands here.
+	 */
+	private syncPresentationToolbar(): void {
+		this.lifecycle.chrome.presentationToolbar.update({
+			tool: this.presenterSnapshot.pointer?.tool ?? 'none',
+			hasAnnotations: (this.presenterSnapshot.inkStrokes?.length ?? 0) > 0,
+			presenterViewActive: this.disposePresenterConsole !== null,
+		});
+	}
+
+	/**
+	 * The show toolbar's presenter-view control: open the presenter console and
+	 * audience display when they are closed, close them when they are open.
+	 */
+	togglePresenterView(): void {
+		if (this.disposePresenterConsole) {
+			this.closeAudienceWindow();
+			this.syncPresentationToolbar();
+			return;
+		}
+		this.openPresenterView();
+		this.syncPresentationToolbar();
 	}
 
 	private connectAudienceRole(): void {

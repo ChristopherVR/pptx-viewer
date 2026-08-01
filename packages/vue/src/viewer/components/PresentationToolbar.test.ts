@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import { PRESENT_TOOLBAR_ORDER } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import type { PresentationTool } from '../composables/usePresentationAnnotations';
@@ -23,6 +24,37 @@ describe('presentationToolbar', () => {
 	it('renders the slide counter (one-based)', () => {
 		const wrapper = mountToolbar();
 		expect(wrapper.find('.pptx-vue-ptb-counter').text()).toBe('2 / 5');
+	});
+
+	// The bar drifted from React once already (its own i18n namespace for half
+	// the labels, an 18px colour caret, no ticking timer). Pinning the shared
+	// inventory here is what makes a repeat show up as a unit-test failure.
+	it('renders the shared control inventory in order', () => {
+		const wrapper = mountToolbar({ showPresenterToggle: true });
+		const ids = wrapper
+			.findAll('[data-pptx-present-control]')
+			.map((node) => node.attributes('data-pptx-present-control'));
+		expect(ids).toStrictEqual([...PRESENT_TOOLBAR_ORDER]);
+	});
+
+	it('names its controls exactly as React does', () => {
+		const wrapper = mountToolbar({ showPresenterToggle: true });
+		const nameOf = (id: string): string | undefined =>
+			wrapper.find(`[data-pptx-present-control="${id}"]`).attributes('aria-label');
+		expect(nameOf('previous')).toBe('Previous Slide');
+		expect(nameOf('next')).toBe('Next Slide');
+		expect(nameOf('clear')).toBe('Clear Annotations');
+		expect(nameOf('presenter-view')).toBe('Presenter View');
+		expect(nameOf('end')).toBe('End Presentation');
+	});
+
+	// The bar mounts before its host records the start time, so a mount-only
+	// interval left the readout showing a negative elapsed ("-1:-1") forever.
+	it('never shows a negative elapsed time when the show starts after mount', async () => {
+		const wrapper = mountToolbar({ presentationStartTime: null });
+		expect(wrapper.find('[data-pptx-present-control="timer"]').text()).toBe('00:00');
+		await wrapper.setProps({ presentationStartTime: Date.now() + 500 });
+		expect(wrapper.find('[data-pptx-present-control="timer"]').text()).toBe('00:00');
 	});
 
 	it('emits move on nav buttons and end-presentation', async () => {
@@ -61,7 +93,7 @@ describe('presentationToolbar', () => {
 
 	it('disables clear-all when there are no annotations', async () => {
 		const wrapper = mountToolbar({ hasAnnotations: false });
-		const clear = wrapper.find('[aria-label="Clear annotations"]');
+		const clear = wrapper.find('[aria-label="Clear Annotations"]');
 		expect(clear.attributes('disabled')).toBeDefined();
 		await clear.trigger('click');
 		expect(wrapper.emitted('clear-annotations')).toBeUndefined();
@@ -69,16 +101,16 @@ describe('presentationToolbar', () => {
 
 	it('emits clear-annotations when enabled', async () => {
 		const wrapper = mountToolbar({ hasAnnotations: true });
-		await wrapper.find('[aria-label="Clear annotations"]').trigger('click');
+		await wrapper.find('[aria-label="Clear Annotations"]').trigger('click');
 		expect(wrapper.emitted('clear-annotations')).toHaveLength(1);
 	});
 
 	it('shows the presenter-view toggle only when enabled', async () => {
 		const without = mountToolbar({ showPresenterToggle: false });
-		expect(without.find('[aria-label="Presenter view"]').exists()).toBeFalsy();
+		expect(without.find('[aria-label="Presenter View"]').exists()).toBeFalsy();
 
 		const wrapper = mountToolbar({ showPresenterToggle: true });
-		await wrapper.find('[aria-label="Presenter view"]').trigger('click');
+		await wrapper.find('[aria-label="Presenter View"]').trigger('click');
 		expect(wrapper.emitted('toggle-presenter-view')).toHaveLength(1);
 	});
 

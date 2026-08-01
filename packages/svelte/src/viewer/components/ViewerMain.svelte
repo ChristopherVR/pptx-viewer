@@ -91,7 +91,7 @@
 		presenting={viewer.isFullscreen}
 		presentationTransition={vm.presentation.transition}
 		onTransitionDone={() => vm.presentation.endTransition()}
-		onAdvance={() => vm.presentation.advance(true)}
+		onAdvance={(event) => vm.presentation.handleStageClick(event.target)}
 		editingActive={vm.editingActive}
 		{controller}
 		annotations={parityUi.annotations}

@@ -404,8 +404,9 @@ export class SlideCanvasComponent implements SlideContext {
 			const stage = this.stageRef()?.nativeElement;
 			const elements = this.allElements();
 			const interactive = this.interactive();
-			if (stage && interactive) {
-				queueMicrotask(() => applyRenderedElementAccessibility(stage, elements));
+			const presenting = this.presenting();
+			if (stage && (interactive || presenting)) {
+				queueMicrotask(() => applyRenderedElementAccessibility(stage, elements, { presenting }));
 			}
 		});
 

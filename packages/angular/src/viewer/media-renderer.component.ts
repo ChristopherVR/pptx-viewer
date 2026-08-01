@@ -40,8 +40,14 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
  *
  * On the interactive (edit) canvas native controls are suppressed and pointer
  * events are disabled so a click selects / moves the element rather than
- * scrubbing playback; preview / presentation canvases play normally. This
- * mirrors Vue's `interactive`-gated controls.
+ * scrubbing playback.
+ *
+ * They are suppressed during a SHOW too, which the `interactive` gate alone got
+ * backwards: a running show is non-interactive, so it turned the transport ON,
+ * and a full-bleed background video then painted Chrome's own black scrubber
+ * across the bottom of the slide, over the presentation toolbar. PowerPoint
+ * shows no transport during a show either; React gates on the same condition
+ * (`controls={!isPresentationMode}`).
  */
 @Component({
 	selector: 'pptx-media-renderer',
@@ -62,7 +68,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 						class="pptx-ng-media-el pptx-ng-media-audio"
 						[class.pptx-ng-media-inert]="interactive()"
 						[src]="src + trimFragment()"
-						[controls]="!interactive()"
+						[controls]="!interactive() && !presenting()"
 						[loop]="loop()"
 						preload="metadata"
 					></audio>
@@ -73,7 +79,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 						[class.pptx-ng-media-inert]="interactive()"
 						[src]="src + trimFragment()"
 						[poster]="poster() ?? null"
-						[controls]="!interactive()"
+						[controls]="!interactive() && !presenting()"
 						[loop]="loop()"
 						preload="metadata"
 						playsInline

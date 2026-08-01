@@ -1,6 +1,10 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { MediaCaptionTrack, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { componentSource } from './component-source.test-support';
 import {
 	asMediaElement,
 	buildTrimFragment,
@@ -90,5 +94,34 @@ describe('resolveCaptionTracks', () => {
 		expect(resolved[0].isDefault).toBeTruthy();
 		expect(resolved[1].src).toBe('blob:cc');
 		expect(resolved[1].isDefault).toBeFalsy();
+	});
+});
+
+/**
+ * The show must paint no native media transport.
+ *
+ * `interactive` alone got this backwards: a running show is non-interactive, so
+ * `[controls]="!interactive()"` turned the transport ON, and a full-bleed
+ * background video then drew Chrome's own black scrubber across the bottom of
+ * the presented slide, on top of the presentation toolbar. React gates on the
+ * same condition (`controls={!isPresentationMode}`).
+ *
+ * Asserted against the authored template text because this package has no
+ * TestBed (see `vitest.config.ts`), the same technique the other component
+ * contract specs use.
+ */
+describe('the media transport during a show', () => {
+	it('is suppressed while presenting as well as while editing', () => {
+		const source = componentSource(
+			dirname(fileURLToPath(import.meta.url)),
+			'media-renderer.component.ts',
+		);
+		const bindings = [...source.matchAll(/\[controls\]="(?<expression>[^"]+)"/gu)].map(
+			(match) => match.groups?.expression,
+		);
+		expect(bindings).toHaveLength(2);
+		for (const binding of bindings) {
+			expect(binding).toBe('!interactive() && !presenting()');
+		}
 	});
 });

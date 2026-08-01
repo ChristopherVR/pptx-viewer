@@ -32,6 +32,15 @@ const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> =
 		'hiddenFill',
 		'hiddenLine',
 	]),
+	// PowerPoint 2016+ writes the Morph transition as `<p159:morph @option>`,
+	// either inside an `mc:Choice Requires="p159"` or in a `p:transition/p:extLst`
+	// extension. Both forms are parsed (see `PptxSlideTransitionService`), so the
+	// choice IS supported: without this entry every morph slide reported
+	// `UNSUPPORTED_ALTERNATE_CONTENT_CHOICE`, which reads as "the transition was
+	// dropped and the fallback fade was used" when in fact the morph plays.
+	// `morph` alone is listed on purpose: any OTHER `p159:*` element still makes
+	// the choice unsupported and falls back, which is the honest answer.
+	p159: new Set(['morph']),
 	a14: new Set(['m', 'hiddenFill', 'hiddenLine', 'imgEffect', 'imgLayer']),
 	a16: new Set(['svgBlip', 'colId']),
 	asvg: new Set(['svgBlip']),

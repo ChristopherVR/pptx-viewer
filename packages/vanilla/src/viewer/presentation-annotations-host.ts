@@ -9,6 +9,13 @@ import type { ViewerChrome } from './ui';
 
 export interface PresentationAnnotationsHost {
 	sync(snapshot: PresentationSnapshot): void;
+	/**
+	 * Discard the show's ink. The controller owns the strokes, so emptying
+	 * `snapshot.inkStrokes` alone never erased anything: the next `sync` remounted
+	 * the overlay from the controller's own (untouched) list and the ink came
+	 * straight back.
+	 */
+	clear(): void;
 	finish(): Promise<'none' | 'kept' | 'discarded'>;
 	dispose(): void;
 }
@@ -52,6 +59,7 @@ export function createPresentationAnnotationsHost(options: {
 				pointer: snapshot.pointer,
 			});
 		},
+		clear: () => controller.clear(),
 		finish: () => controller.finishPresentation(),
 		dispose: () => controller.dispose(),
 	};

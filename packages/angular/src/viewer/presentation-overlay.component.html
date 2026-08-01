@@ -78,61 +78,27 @@
 	<!-- Live-caption (subtitle) bar. -->
 	<pptx-presentation-subtitle-bar [visible]="subtitlesVisible()" />
 
-	<!-- Annotation tool toolbar (bottom-centre). -->
-	<div
-		class="pptx-ng-presentation-tools"
-		role="toolbar"
-		[attr.aria-label]="'pptx.presentation.annotationTools' | translate"
-	>
-		<button
-			type="button"
-			[class.is-active]="annotations.tool() === 'pen'"
-			(click)="selectTool('pen')"
-			[attr.aria-label]="'pptx.presentation.pen' | translate"
-		>
-			<svg lucidePenTool class="h-4 w-4"></svg>
-		</button>
-		<button
-			type="button"
-			[class.is-active]="annotations.tool() === 'highlighter'"
-			(click)="selectTool('highlighter')"
-			[attr.aria-label]="'pptx.presentation.highlighter' | translate"
-		>
-			<svg lucideHighlighter class="h-4 w-4"></svg>
-		</button>
-		<button
-			type="button"
-			[class.is-active]="annotations.tool() === 'eraser'"
-			(click)="selectTool('eraser')"
-			[attr.aria-label]="'pptx.presentation.eraser' | translate"
-		>
-			<svg lucideEraser class="h-4 w-4"></svg>
-		</button>
-		<button
-			type="button"
-			[class.is-active]="annotations.tool() === 'laser'"
-			(click)="selectTool('laser')"
-			[attr.aria-label]="'pptx.presentation.laserPointer' | translate"
-		>
-			<svg lucideMousePointer2 class="h-4 w-4"></svg>
-		</button>
-		<button
-			type="button"
-			(click)="annotations.clearAnnotations()"
-			[attr.aria-label]="'pptx.presentation.clearAnnotations' | translate"
-		>
-			<svg lucideTrash2 class="h-4 w-4"></svg>
-		</button>
-		<button
-			type="button"
-			[class.is-active]="subtitlesVisible()"
-			(click)="toggleSubtitles()"
-			[attr.aria-label]="'pptx.presentation.liveCaptions' | translate"
-		>
-			CC
-		</button>
-	</div>
+	<!--
+		The show toolbar (bottom-centre, auto-hiding): navigation, counter,
+		elapsed time, annotation tools, presenter view and end-show, per
+		`PRESENT_TOOLBAR_CONTROLS` in pptx-viewer-shared.
+	-->
+	<pptx-presentation-toolbar
+		[currentSlideIndex]="currentIndex()"
+		[totalSlides]="slides().length"
+		[presentationStartTime]="showStartedAt"
+		[presenterMode]="presenterMode()"
+		(move)="navigator.navigate($event === 1 ? 'next' : 'prev')"
+		(presenterViewToggle)="presenterViewToggle.emit()"
+		(endPresentation)="onToolbarEnd()"
+	/>
 
+	<!--
+		Touch-only chrome (close button, edge arrows, counter pill). The
+		component stylesheet hides all three unless the device has a coarse
+		pointer, matching React's `PresentationTouchControls`: on a desktop they
+		duplicate the toolbar above and put a SECOND slide counter on screen.
+	-->
 	<!-- Always-visible close button (top-right, safe-area aware). -->
 	<button
 		type="button"

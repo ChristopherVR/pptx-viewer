@@ -111,4 +111,42 @@ describe('elementRenderer actionable role', () => {
 		);
 		expect(role).toBe('img');
 	});
+
+	// PowerPoint's "Action: None" keeps an `a:hlinkClick` on the shape (to carry
+	// a highlight or a sound) but navigates nowhere, so it is not a control - and
+	// in a slide show a click on it must pass through to click-to-advance.
+	it('does not announce an "Action: None" shape as a button', () => {
+		const role = roleOf(
+			makeProps({
+				element: shape({ actionClick: { action: 'ppaction://noaction', highlightClick: true } }),
+				onActionClick: vi.fn<() => void>(),
+			}),
+		);
+		expect(role).toBe('img');
+	});
+
+	// `data-pptx-action` is the neutral marker the show's click classifier keys
+	// off, so an action shape never ALSO steps the slide show on.
+	it('marks an actionable element so it never also advances the show', () => {
+		act(() => {
+			root.render(
+				<ElementRenderer
+					{...makeProps({
+						element: shape({ actionClick: { targetSlideIndex: 4 } }),
+						onActionClick: vi.fn<() => void>(),
+					})}
+				/>,
+			);
+		});
+		expect(
+			container.querySelector('[data-pptx-element="true"]')?.getAttribute('data-pptx-action'),
+		).toBe('click');
+
+		act(() => {
+			root.render(<ElementRenderer {...makeProps({})} />);
+		});
+		expect(
+			container.querySelector('[data-pptx-element="true"]')?.hasAttribute('data-pptx-action'),
+		).toBeFalsy();
+	});
 });

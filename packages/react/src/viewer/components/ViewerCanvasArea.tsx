@@ -3,6 +3,7 @@ import type { ToolbarActionId } from 'pptx-viewer-shared';
 import {
 	buildFieldSubstitutionContext,
 	isPresentationAdvanceClick,
+	PRESENT_TOOLBAR_CLASSES,
 	shouldConfirmExternalHyperlink,
 } from 'pptx-viewer-shared';
 /**
@@ -609,7 +610,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 			{/* Presentation floating toolbar with auto-hide */}
 			{mode === 'present' && (
 				<div
-					className='absolute bottom-6 left-1/2 -translate-x-1/2 z-[80] transition-opacity duration-300'
+					className={PRESENT_TOOLBAR_CLASSES.wrapper}
 					style={{
 						opacity: annotations.toolbarVisible ? 1 : 0,
 						pointerEvents: annotations.toolbarVisible ? 'auto' : 'none',

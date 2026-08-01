@@ -20,38 +20,26 @@
 	background: rgba(0, 0, 0, 0.75);
 }
 
-.pptx-ng-presentation-tools {
-	position: absolute;
-	bottom: max(1rem, env(safe-area-inset-bottom));
-	/* Bottom-left, clear of the centred slide counter (mirrors React, which
-	   keeps the bottom-centre reserved for the counter). */
-	left: 1rem;
-	display: flex;
-	gap: 0.25rem;
-	padding: 0.25rem;
-	border-radius: 0.5rem;
-	background: rgba(0, 0, 0, 0.55);
-	z-index: 80;
+/*
+   Touch-only chrome. React shows its corner close button, its big edge arrows
+   and its counter pill from `PresentationTouchControls`, which renders only on
+   a coarse pointer; the auto-hiding toolbar covers all three on a desktop, and
+   leaving the pill up put a SECOND slide counter on screen, which is exactly
+   the kind of drift a screenshot comparison catches and a code review does not.
+
+   `!important` is load-bearing: these elements carry `[ngStyle]` records (see
+   `presentation-overlay-chrome-styles.ts`) whose inline `display` a plain rule
+   cannot beat. `not all and (...)` rather than bare `not (...)` so the query
+   still parses on engines without Media Queries 4 boolean syntax.
+*/
+@media not all and (any-pointer: coarse) {
+	.pptx-ng-presentation-close,
+	.pptx-ng-presentation-nav,
+	.pptx-ng-presentation-counter {
+		display: none !important;
+	}
 }
 
-.pptx-ng-presentation-tools button {
-	width: 2rem;
-	height: 2rem;
-	border: none;
-	border-radius: 0.35rem;
-	background: transparent;
-	color: #fff;
-	font-size: 1rem;
-	cursor: pointer;
-}
-
-.pptx-ng-presentation-tools button:hover {
-	background: rgba(255, 255, 255, 0.15);
-}
-
-.pptx-ng-presentation-tools button.is-active {
-	background: rgba(255, 255, 255, 0.3);
-}
 .presenter-blank {
 	position: absolute;
 	inset: 0;

@@ -20,6 +20,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	acceptsPresentationInput,
 	createPresentationKeyBuffer,
+	handlePresentationStageClick,
 	mapPresentationKey,
 } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
@@ -129,7 +130,30 @@ export class PresentationInputController {
 				return;
 			}
 		}
+		// An on-slide Action Setting (`a:hlinkClick`) outranks the advance:
+		// PowerPoint follows the shape's link and leaves the show where the link
+		// lands, rather than ALSO stepping to the next slide.
+		if (this.handleActionClick(event.target) !== 'advance') {
+			return;
+		}
 		this.advanceFromClick();
+	}
+
+	/**
+	 * Run any on-slide action under the pointer, and report what the click left
+	 * for the show: only `'advance'` reaches {@link advanceFromClick}.
+	 */
+	private handleActionClick(target: EventTarget | null): 'action' | 'advance' | 'inert' {
+		return handlePresentationStageClick(
+			target,
+			this.deps.currentSlide(),
+			{ slideCount: this.deps.slides().length },
+			{
+				goToSlide: (index) => this.deps.navigator.goToSlide(index),
+				move: (direction) => this.deps.navigator.navigate(direction > 0 ? 'next' : 'prev'),
+				endShow: () => this.deps.requestClose(),
+			},
+		);
 	}
 
 	/**

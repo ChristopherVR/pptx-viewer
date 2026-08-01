@@ -51,6 +51,43 @@ describe('applyRenderedElementAccessibility', () => {
 		).toBe('shape: roundRect');
 	});
 
+	it('marks an action shape so it never also steps the slide show on', () => {
+		const stage = document.createElement('div');
+		stage.innerHTML =
+			'<div data-element-id="cta"></div><div data-element-id="art"></div><div data-element-id="dead"></div>';
+		const elements = [
+			{ ...base, id: 'cta', type: 'shape', actionClick: { targetSlideIndex: 4 } },
+			{ ...base, id: 'art', type: 'image' },
+			// PowerPoint's "Action: None" keeps an `a:hlinkClick` but does nothing,
+			// so the click must pass straight through to the show.
+			{ ...base, id: 'dead', type: 'shape', actionClick: { action: 'ppaction://noaction' } },
+		] as PptxElement[];
+		applyRenderedElementAccessibility(stage, elements);
+		expect(
+			stage.querySelector('[data-element-id="cta"]')?.hasAttribute('data-pptx-action'),
+		).toBeTruthy();
+		expect(
+			stage.querySelector('[data-element-id="art"]')?.hasAttribute('data-pptx-action'),
+		).toBeFalsy();
+		expect(
+			stage.querySelector('[data-element-id="dead"]')?.hasAttribute('data-pptx-action'),
+		).toBeFalsy();
+		expect(stage.querySelector('[data-element-id="dead"]')?.getAttribute('role')).not.toBe(
+			'button',
+		);
+	});
+
+	it('marks a running show’s stage so its scenery stops taking clicks', () => {
+		const stage = document.createElement('div');
+		stage.innerHTML = '<div data-element-id="art"></div>';
+		const elements = [{ ...base, id: 'art', type: 'image' }] as PptxElement[];
+		applyRenderedElementAccessibility(stage, elements, { presenting: true });
+		expect(stage.hasAttribute('data-pptx-presenting')).toBeTruthy();
+		// Leaving the show clears it again: the editing canvas stays hit-testable.
+		applyRenderedElementAccessibility(stage, elements, { presenting: false });
+		expect(stage.hasAttribute('data-pptx-presenting')).toBeFalsy();
+	});
+
 	it('includes nested group children', () => {
 		const stage = document.createElement('div');
 		stage.innerHTML = '<div data-element-id="group"><div data-element-id="child"></div></div>';

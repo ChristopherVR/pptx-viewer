@@ -226,20 +226,31 @@ export class PresentationShowNavigator {
 	}
 
 	/**
-	 * Jump directly to `index` (clamped to the slide range). Used by the
-	 * zoom-navigation context for a click-to-jump from a zoom tile: this is a
-	 * transition-less jump, so it does NOT replay the target slide's transition.
+	 * Jump directly to `index` (clamped to the slide range). Used by zoom tiles
+	 * and by on-slide Action Settings (`ppaction://hlinksldjump`).
+	 *
+	 * A jump ENTERS the target slide, so PowerPoint plays that slide's
+	 * transition exactly as a forward step does. Committing with `null` here is
+	 * why a deck navigated by clicking its own on-slide links showed no morph at
+	 * all while the same transition played fine on PageDown.
 	 */
 	goToSlide(index: number): void {
-		const count = this.deps.slides().length;
+		const slides = this.deps.slides();
+		const count = slides.length;
 		if (count === 0) {
 			return;
 		}
 		const next = clampIndex(index, count);
-		if (next === this.currentIndex()) {
+		const current = this.currentIndex();
+		if (next === current) {
 			return;
 		}
-		this.commit(next, null);
+		const incoming = slides[next];
+		const outgoing = slides[current];
+		this.commit(
+			next,
+			incoming?.transition && outgoing ? { outgoing, transition: incoming.transition } : null,
+		);
 	}
 
 	/**

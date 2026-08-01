@@ -1,4 +1,8 @@
-import { ANIMATION_KEYFRAMES_CSS, SLIDE_TRANSITION_KEYFRAMES_CSS } from 'pptx-viewer-shared';
+import {
+	ANIMATION_KEYFRAMES_CSS,
+	PRESENTATION_HIT_TEST_CSS,
+	SLIDE_TRANSITION_KEYFRAMES_CSS,
+} from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
 
 /** `<style>` id for the once-per-document static presentation keyframe block. */
@@ -18,7 +22,9 @@ export function ensurePresentationKeyframes(doc: Document): void {
 	}
 	const style = doc.createElement('style');
 	style.id = KEYFRAMES_ELEMENT_ID;
-	style.textContent = `${ANIMATION_KEYFRAMES_CSS}\n${SLIDE_TRANSITION_KEYFRAMES_CSS}`;
+	// Plus the show's hit-testing rule: scenery is pointer-transparent so a click
+	// reaches the action shape underneath it (or the show's own advance).
+	style.textContent = `${ANIMATION_KEYFRAMES_CSS}\n${SLIDE_TRANSITION_KEYFRAMES_CSS}\n${PRESENTATION_HIT_TEST_CSS}`;
 	(doc.head ?? doc.documentElement).appendChild(style);
 }
 

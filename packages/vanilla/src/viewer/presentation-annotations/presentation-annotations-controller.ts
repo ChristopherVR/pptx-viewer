@@ -46,6 +46,23 @@ export function createPresentationAnnotationsController(
 	let strokes: PresentationInkStroke[] = [];
 	let unmount = (): void => undefined;
 	let lastStage: PresentationAnnotationStage | null = null;
+	let lastOverlayKey: string | null = null;
+
+	/**
+	 * Everything about a stage that changes what the overlay element must be.
+	 * The pointer's x/y are deliberately excluded: they change on every mouse
+	 * move, and remounting on one destroyed the SVG mid-gesture (the drag reports
+	 * its position, the report re-synced the stage, the re-sync replaced the
+	 * element that was capturing the pointer), so a pen stroke could never finish
+	 * and the show's Clear button stayed disabled for ever.
+	 */
+	const overlayKey = (stage: PresentationAnnotationStage): string =>
+		[
+			String(stage.active),
+			String(stage.slideIndex),
+			stage.pointer?.tool ?? 'none',
+			stage.pointer?.color ?? '',
+		].join('|');
 
 	const notify = (): void => options.onStrokesChange?.([...strokes]);
 	const mount = (): void => {
@@ -104,8 +121,16 @@ export function createPresentationAnnotationsController(
 	};
 	return {
 		syncStage(stage) {
+			const key = overlayKey(stage);
+			// A stage rebuild empties `stageWrap`, so the overlay is also remounted
+			// whenever it is no longer in the tree, not only when an input changed.
+			const missing = stage.stageWrap.querySelector('.pptxv-presentation-annotations') === null;
+			const changed = stage.stageWrap !== lastStage?.stageWrap || key !== lastOverlayKey;
 			lastStage = stage;
-			mount();
+			lastOverlayKey = key;
+			if (changed || missing) {
+				mount();
+			}
 		},
 		getStrokes: () => strokes,
 		setStrokes(next) {

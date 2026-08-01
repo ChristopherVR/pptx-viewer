@@ -91,7 +91,7 @@ describe('presentationMode', () => {
 	it('renders a slide stage for the active slide', () => {
 		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
 		expect(document.querySelector('.pptx-vue-stage')).not.toBeNull();
-		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
+		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
 			'1 / 2',
 		);
 		wrapper.unmount();
@@ -108,7 +108,7 @@ describe('presentationMode', () => {
 		pressKey('ArrowRight');
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
-		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
+		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
 			'2 / 3',
 		);
 		wrapper.unmount();
@@ -196,12 +196,12 @@ describe('presentationMode', () => {
 	// only honours the click gate sits on it for ever and looks completely dead.
 	it('advances on the slide timing when click-advance is forbidden', async () => {
 		const wrapper = mountMode([makeTimedSlide('s1'), makeSlide('s2')]);
-		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
+		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
 			'1 / 2',
 		);
 		await settle();
 		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
-		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
+		expect(document.querySelector('[data-pptx-present-control="counter"]')?.textContent).toContain(
 			'2 / 2',
 		);
 		wrapper.unmount();

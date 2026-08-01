@@ -104,4 +104,41 @@ describe('createPresentationAnnotationsController', () => {
 		expect(first.querySelector('.pptxv-presentation-annotations')).toBeNull();
 		expect(rebuilt.querySelector('.pptxv-presentation-annotations')).not.toBeNull();
 	});
+
+	it('keeps the overlay element across a pointer-position-only sync', () => {
+		const controller = createPresentationAnnotationsController({
+			doc: document,
+			t: createTranslator(),
+			getSlides: () => [slide('slide-1')],
+			commitSlides: vi.fn(),
+		});
+		const stageWrap = document.createElement('div');
+		const sync = (x: number): void =>
+			controller.syncStage({
+				stageWrap,
+				active: true,
+				slideIndex: 0,
+				canvasSize: { width: 960, height: 540 },
+				pointer: { tool: 'pen', x, y: 0.5, color: '#ef4444' },
+			});
+		sync(0.1);
+		const overlay = stageWrap.querySelector('.pptxv-presentation-annotations');
+
+		// A drag publishes its pointer position on every move, which syncs the
+		// stage. Replacing the SVG here cancelled the pointer capture, so no
+		// stroke ever completed and Clear stayed disabled through the whole show.
+		sync(0.2);
+		sync(0.3);
+		expect(stageWrap.querySelector('.pptxv-presentation-annotations')).toBe(overlay);
+
+		// A real change (tool, slide, colour, stage) still rebuilds it.
+		controller.syncStage({
+			stageWrap,
+			active: true,
+			slideIndex: 0,
+			canvasSize: { width: 960, height: 540 },
+			pointer: { tool: 'highlighter', x: 0.3, y: 0.5, color: '#ef4444' },
+		});
+		expect(stageWrap.querySelector('.pptxv-presentation-annotations')).not.toBe(overlay);
+	});
 });

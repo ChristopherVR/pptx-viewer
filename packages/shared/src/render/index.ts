@@ -781,6 +781,13 @@ export * from './font-availability';
 export * from './password-protection';
 export * from './viewer-preferences';
 export * from './presentation-setup';
+// PowerPoint's precedence for a click during a running show: an on-slide
+// Action Setting first, then live content that owns its own click, then
+// click-to-advance.
+export * from './presentation-action';
+// Only action shapes, media transport and links take the pointer while a show
+// runs; the rest of the slide is scenery the click passes through.
+export * from './presentation-hit-test';
 export * from './presentation-show-order';
 // The rail / sorter cue for a slide `presentation-show-order` will skip: the
 // neutral marker attribute, the shared slash mark, and the description id that

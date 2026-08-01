@@ -38,6 +38,12 @@ export type { MasterViewSidebar, MasterViewSidebarOptions } from './master-view-
 export { createMasterViewSidebar } from './master-view-sidebar';
 export type { PresentationController } from './presentation';
 export { createPresentationController } from './presentation';
+export type {
+	PresentationToolbar,
+	PresentationToolbarHandlers,
+	PresentationToolbarState,
+} from './presentation-toolbar';
+export { createPresentationToolbar } from './presentation-toolbar';
 export type { PresentationTouchControls } from './presentation-touch-controls';
 export { createPresentationTouchControls } from './presentation-touch-controls';
 export * from './ribbon';

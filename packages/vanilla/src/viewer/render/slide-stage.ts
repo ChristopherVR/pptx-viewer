@@ -18,6 +18,7 @@ import {
 	isElementActionable,
 	isElementRendered,
 	isTemplateElementId,
+	PRESENTATION_STAGE_ATTRIBUTE,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -105,6 +106,13 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		stage.setAttribute('aria-roledescription', 'slide');
 		stage.setAttribute('aria-label', t('pptx.canvas.slide'));
 	}
+	// Marks a RUNNING show so `PRESENTATION_HIT_TEST_CSS` makes its scenery
+	// pointer-transparent: only action shapes, media transport and links take a
+	// click, exactly as in PowerPoint. The other bindings get this attribute
+	// from the shared accessibility pass, which this stage does not use.
+	if (options.presenting) {
+		stage.setAttribute(PRESENTATION_STAGE_ATTRIBUTE, 'true');
+	}
 
 	const context: ElementRenderContext = {
 		document: doc,
@@ -172,7 +180,15 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 function applyElementAccessibility(node: HTMLElement | SVGElement, element: PptxElement): void {
 	// Actionable elements (click/hover action, text hyperlink, zoom tile) are
 	// announced as buttons, matching React's element renderer.
-	const role = getAriaRole(element, { actionable: isElementActionable(element) });
+	const actionable = isElementActionable(element);
+	// The neutral marker `PRESENTATION_INERT_CLICK_SELECTOR` keys off: an
+	// element that owns its own click must never also step the slide show on.
+	if (actionable) {
+		node.setAttribute('data-pptx-action', 'click');
+	} else {
+		node.removeAttribute('data-pptx-action');
+	}
+	const role = getAriaRole(element, { actionable });
 	if (role !== undefined) {
 		node.setAttribute('role', role);
 	}

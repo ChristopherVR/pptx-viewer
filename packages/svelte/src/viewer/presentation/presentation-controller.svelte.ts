@@ -1,6 +1,7 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	firstShowSlideIndex,
+	handlePresentationStageClick,
 	hasShowSlideAfter,
 	isClickAdvanceAllowed,
 	lastShowSlideIndex,
@@ -154,6 +155,38 @@ export class PresentationController {
 	/** Reset a hover shape's sequence so the next hover replays it. */
 	handleHoverEnd(shapeId: string): void {
 		this.playback.handleHoverEnd(shapeId);
+	}
+
+	/**
+	 * A click landing on the running show's stage.
+	 *
+	 * PowerPoint reads an on-slide Action Setting (`a:hlinkClick`) first: the
+	 * shape's link runs and the show does NOT also step on. Only what is left
+	 * over reaches {@link advance}. Without this a deck navigated by its own
+	 * on-slide buttons (a wheel of `ppaction://hlinksldjump` slices, say) went to
+	 * the NEXT slide on every click instead of to the one that was clicked.
+	 */
+	handleStageClick(target: unknown): void {
+		const outcome = handlePresentationStageClick(
+			target,
+			this.#currentSlide(),
+			{ slideCount: this.#deps.getSlides().length },
+			{
+				goToSlide: (index) => this.#deps.navigate(index),
+				move: (direction) => {
+					if (direction > 0) {
+						this.advance();
+					} else {
+						this.previousSlide();
+					}
+				},
+				endShow: () => this.#deps.exit?.(),
+				playSound: this.#deps.onPlayActionSound,
+			},
+		);
+		if (outcome === 'advance') {
+			this.advance(true);
+		}
 	}
 
 	/**

@@ -170,6 +170,14 @@ export const PRESENT_TOOLBAR_METRICS = {
 	counterMinWidth: 48,
 	/** Counter / timer font size (`text-xs`). */
 	fontSize: 12,
+	/**
+	 * Counter / timer line height (`text-xs` is 12px/16px, not 12px/1).
+	 *
+	 * Spelled out because the hand-ported bindings reach for `font: 12px/1` and
+	 * land a 12px-tall readout next to React's 16px one, which shifts the bar's
+	 * own height and every baseline in it.
+	 */
+	lineHeight: 16,
 	/** Gap between the timer icon and its readout (`gap-1.5`). */
 	timerGap: 6,
 	/** Distance from the bottom of the show surface to the bar (`bottom-6`). */
@@ -222,9 +230,17 @@ export const PRESENT_TOOLBAR_CLASSES = {
 		'text-xs font-mono tabular-nums text-white/80 px-1.5 select-none min-w-[48px] text-center',
 	/** Elapsed-time readout. */
 	timer: 'flex items-center gap-1.5 text-xs font-mono tabular-nums text-white/60 px-1 select-none',
-	/** Colour palette popover. */
+	/**
+	 * Colour palette popover.
+	 *
+	 * `w-max` is load-bearing. An absolutely positioned grid shrink-to-fits its
+	 * positioned ancestor, which here is the 64px tool+caret pair, so without it
+	 * the four 36px swatch columns are squeezed into 50px and overlap each other
+	 * to the point that a swatch cannot be clicked. React shipped it that way,
+	 * and the ports faithfully reproduced the defect.
+	 */
 	palette:
-		'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-neutral-800 rounded-lg border border-white/20 shadow-xl grid grid-cols-4 gap-2',
+		'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 w-max bg-neutral-800 rounded-lg border border-white/20 shadow-xl grid grid-cols-4 gap-2',
 	/** One colour swatch inside the palette. */
 	swatch: 'w-9 h-9 rounded-full border-2 transition-transform hover:scale-110',
 	/** Underline showing a tool's current colour. */
@@ -257,6 +273,7 @@ export function presentToolbarCssVars(): Record<string, string> {
 		'--pptx-pt-divider-color': m.dividerColor,
 		'--pptx-pt-counter-min': `${String(m.counterMinWidth)}px`,
 		'--pptx-pt-font-size': `${String(m.fontSize)}px`,
+		'--pptx-pt-line-height': `${String(m.lineHeight)}px`,
 		'--pptx-pt-timer-gap': `${String(m.timerGap)}px`,
 		'--pptx-pt-bottom': `${String(m.bottomOffset)}px`,
 		'--pptx-pt-z': String(m.zIndex),

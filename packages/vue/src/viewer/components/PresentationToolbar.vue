@@ -12,7 +12,8 @@ import {
 	Trash2,
 	X,
 } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { PRESENT_TOOLBAR_CLASSES } from 'pptx-viewer-shared';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
@@ -66,11 +67,32 @@ const showHighlighterColors = ref(false);
 const toolbarRef = ref<HTMLDivElement | null>(null);
 
 // -- Elapsed timer ----------------------------------------------------------
+//
+// `now` is re-seeded whenever the show (re)starts, and the interval is armed by
+// a watcher rather than only on mount. The bar mounts BEFORE the host records
+// `presentationStartTime`, so a mount-only interval never armed and the frozen
+// mount-time `now` was subtracted from a LATER start time: the readout showed a
+// negative elapsed ("-1:-1") for the whole show.
 const now = ref(Date.now());
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
+function stopTicking(): void {
+	if (intervalId !== null) {
+		clearInterval(intervalId);
+		intervalId = null;
+	}
+}
+
+function startTicking(): void {
+	stopTicking();
+	now.value = Date.now();
+	intervalId = setInterval(() => {
+		now.value = Date.now();
+	}, 1000);
+}
+
 const elapsed = computed(() =>
-	props.presentationStartTime ? now.value - props.presentationStartTime : 0,
+	props.presentationStartTime ? Math.max(0, now.value - props.presentationStartTime) : 0,
 );
 const elapsedText = computed(() => formatElapsed(elapsed.value));
 
@@ -82,20 +104,24 @@ function onDocMouseDown(event: MouseEvent): void {
 	}
 }
 
+watch(
+	() => props.presentationStartTime,
+	(startTime) => {
+		if (startTime) {
+			startTicking();
+		} else {
+			stopTicking();
+		}
+	},
+	{ immediate: true },
+);
+
 onMounted(() => {
-	if (props.presentationStartTime) {
-		intervalId = setInterval(() => {
-			now.value = Date.now();
-		}, 1000);
-	}
 	document.addEventListener('mousedown', onDocMouseDown);
 });
 
 onBeforeUnmount(() => {
-	if (intervalId !== null) {
-		clearInterval(intervalId);
-		intervalId = null;
-	}
+	stopTicking();
 	document.removeEventListener('mousedown', onDocMouseDown);
 });
 
@@ -147,17 +173,17 @@ function pickHighlighterColor(color: string): void {
 	}
 }
 
-// Shared utility class strings mirroring the React `PresentationToolbar`.
-const NAV_BTN_CLASS =
-	'flex items-center justify-center w-9 h-9 rounded-md transition-colors text-white/70 hover:text-white hover:bg-white/10 disabled:text-white/20 disabled:cursor-not-allowed';
+// The bar's look comes from `PRESENT_TOOLBAR_CLASSES` in `pptx-viewer-shared`,
+// not from hand-copied utilities: copying them by hand is how this bar's colour
+// carets ended up 18px wide against React's 28px.
+const CLASSES = PRESENT_TOOLBAR_CLASSES;
 
-function toolClass(tool: PresentationTool): Array<string | Record<string, boolean>> {
+function toolClass(tool: PresentationTool): string[] {
 	return [
 		'pptx-vue-ptb-btn',
-		'relative flex items-center justify-center w-9 h-9 rounded-md transition-colors',
 		props.presentationTool === tool
-			? 'pptx-vue-ptb-btn--active bg-white/25 text-white'
-			: 'text-white/70 hover:text-white hover:bg-white/10',
+			? `pptx-vue-ptb-btn--active ${CLASSES.toggleActive}`
+			: CLASSES.toggle,
 	];
 }
 </script>
@@ -165,24 +191,31 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 <template>
 	<div
 		ref="toolbarRef"
-		class="pptx-vue-ptb flex items-center gap-1 rounded-xl border border-white/15 bg-neutral-900/90 px-3 py-2 shadow-2xl backdrop-blur-md"
+		class="pptx-vue-ptb"
+		:class="CLASSES.container"
+		data-pptx-present-toolbar
+		role="toolbar"
+		:aria-label="t('pptx.toolbar.presentationToolbarAria')"
 		@click.stop
 	>
 		<!-- Previous -->
 		<button
 			type="button"
 			class="pptx-vue-ptb-btn"
-			:class="NAV_BTN_CLASS"
+			:class="CLASSES.button"
+			data-pptx-present-control="previous"
 			:disabled="atFirst"
-			:title="t('pptx.mobileBar.previousSlide')"
-			:aria-label="t('pptx.mobileBar.previousSlide')"
+			:title="t('pptx.presenter.previousSlide')"
+			:aria-label="t('pptx.presenter.previousSlide')"
 			@click="emit('move', -1)"
 		>
 			<ChevronLeft :size="18" aria-hidden="true" />
 		</button>
 
 		<span
-			class="pptx-vue-ptb-counter min-w-[48px] select-none px-1.5 text-center font-mono text-xs tabular-nums text-white/80"
+			class="pptx-vue-ptb-counter"
+			:class="CLASSES.counter"
+			data-pptx-present-control="counter"
 			>{{ counterText }}</span
 		>
 
@@ -190,32 +223,45 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<button
 			type="button"
 			class="pptx-vue-ptb-btn"
-			:class="NAV_BTN_CLASS"
+			:class="CLASSES.button"
+			data-pptx-present-control="next"
 			:disabled="atLast"
-			:title="t('pptx.mobileBar.nextSlide')"
-			:aria-label="t('pptx.mobileBar.nextSlide')"
+			:title="t('pptx.presenter.nextSlide')"
+			:aria-label="t('pptx.presenter.nextSlide')"
 			@click="emit('move', 1)"
 		>
 			<ChevronRight :size="18" aria-hidden="true" />
 		</button>
 
-		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
+		<div
+			class="pptx-vue-ptb-divider"
+			:class="CLASSES.divider"
+			data-pptx-present-control="divider-navigation"
+		/>
 
 		<!-- Elapsed timer -->
 		<div
-			class="pptx-vue-ptb-timer flex select-none items-center gap-1.5 px-1 font-mono text-xs tabular-nums text-white/60"
-			:title="t('pptx.mpresenter.elapsed')"
+			class="pptx-vue-ptb-timer"
+			:class="CLASSES.timer"
+			data-pptx-present-control="timer"
+			:title="t('pptx.presenter.elapsed')"
+			:aria-label="t('pptx.presenter.elapsed')"
 		>
 			<Timer :size="14" aria-hidden="true" />
 			<span>{{ elapsedText }}</span>
 		</div>
 
-		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
+		<div
+			class="pptx-vue-ptb-divider"
+			:class="CLASSES.divider"
+			data-pptx-present-control="divider-timer"
+		/>
 
 		<!-- Laser -->
 		<button
 			type="button"
 			:class="toolClass('laser')"
+			data-pptx-present-control="laser"
 			:title="t('pptx.presentation.laserPointer')"
 			:aria-label="t('pptx.presentation.laserPointer')"
 			@click="handleToolClick('laser')"
@@ -228,6 +274,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				:class="toolClass('pen')"
+				data-pptx-present-control="pen"
 				:title="t('pptx.presentation.pen')"
 				:aria-label="t('pptx.presentation.pen')"
 				@click="handleToolClick('pen')"
@@ -235,13 +282,16 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			>
 				<PenTool :size="18" aria-hidden="true" />
 				<span
-					class="pptx-vue-ptb-swatch absolute bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
+					class="pptx-vue-ptb-swatch"
+					:class="CLASSES.swatchBar"
 					:style="{ backgroundColor: penColor }"
 				/>
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+				class="pptx-vue-ptb-caret"
+				:class="CLASSES.caret"
+				data-pptx-present-control="pen-color"
 				data-pptx-compact
 				:title="t('pptx.presentationToolbar.penColor')"
 				:aria-label="t('pptx.presentationToolbar.penColor')"
@@ -249,18 +299,16 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			>
 				<ChevronDown :size="12" aria-hidden="true" />
 			</button>
-			<div
-				v-if="showPenColors"
-				class="pptx-vue-ptb-palette absolute bottom-full left-1/2 mb-2 grid -translate-x-1/2 grid-cols-4 gap-2 rounded-lg border border-white/20 bg-neutral-800 p-3 shadow-xl"
-			>
+			<div v-if="showPenColors" class="pptx-vue-ptb-palette" :class="CLASSES.palette">
 				<button
 					v-for="color in PEN_COLORS"
 					:key="color"
 					type="button"
-					class="pptx-vue-ptb-color h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
-					:class="
-						penColor === color ? 'pptx-vue-ptb-color--active border-white' : 'border-white/20'
-					"
+					class="pptx-vue-ptb-color"
+					:class="[
+						CLASSES.swatch,
+						penColor === color ? 'pptx-vue-ptb-color--active border-white' : 'border-white/20',
+					]"
 					:style="{ backgroundColor: color }"
 					:aria-label="t('pptx.presentationToolbar.penColorValue', { color })"
 					@click="pickPenColor(color)"
@@ -273,6 +321,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				:class="toolClass('highlighter')"
+				data-pptx-present-control="highlighter"
 				:title="t('pptx.presentation.highlighter')"
 				:aria-label="t('pptx.presentation.highlighter')"
 				@click="handleToolClick('highlighter')"
@@ -280,13 +329,16 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			>
 				<Highlighter :size="18" aria-hidden="true" />
 				<span
-					class="pptx-vue-ptb-swatch absolute bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
+					class="pptx-vue-ptb-swatch"
+					:class="CLASSES.swatchBar"
 					:style="{ backgroundColor: highlighterColor }"
 				/>
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+				class="pptx-vue-ptb-caret"
+				:class="CLASSES.caret"
+				data-pptx-present-control="highlighter-color"
 				data-pptx-compact
 				:title="t('pptx.presentationToolbar.highlighterColor')"
 				:aria-label="t('pptx.presentationToolbar.highlighterColor')"
@@ -294,20 +346,18 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			>
 				<ChevronDown :size="12" aria-hidden="true" />
 			</button>
-			<div
-				v-if="showHighlighterColors"
-				class="pptx-vue-ptb-palette absolute bottom-full left-1/2 mb-2 grid -translate-x-1/2 grid-cols-4 gap-2 rounded-lg border border-white/20 bg-neutral-800 p-3 shadow-xl"
-			>
+			<div v-if="showHighlighterColors" class="pptx-vue-ptb-palette" :class="CLASSES.palette">
 				<button
 					v-for="color in HIGHLIGHTER_COLORS"
 					:key="color"
 					type="button"
-					class="pptx-vue-ptb-color h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
-					:class="
+					class="pptx-vue-ptb-color"
+					:class="[
+						CLASSES.swatch,
 						highlighterColor === color
 							? 'pptx-vue-ptb-color--active border-white'
-							: 'border-white/20'
-					"
+							: 'border-white/20',
+					]"
 					:style="{ backgroundColor: color }"
 					:aria-label="t('pptx.presentationToolbar.highlighterColorValue', { color })"
 					@click="pickHighlighterColor(color)"
@@ -319,6 +369,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<button
 			type="button"
 			:class="toolClass('eraser')"
+			data-pptx-present-control="eraser"
 			:title="t('pptx.presentation.eraser')"
 			:aria-label="t('pptx.presentation.eraser')"
 			@click="handleToolClick('eraser')"
@@ -329,34 +380,32 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<!-- Clear all -->
 		<button
 			type="button"
-			class="pptx-vue-ptb-btn flex h-9 w-9 items-center justify-center rounded-md transition-colors"
-			:class="
-				hasAnnotations
-					? 'pptx-vue-ptb-btn--danger text-white/70 hover:bg-white/10 hover:text-red-400'
-					: 'cursor-not-allowed text-white/30'
-			"
+			class="pptx-vue-ptb-btn"
+			:class="[CLASSES.button, hasAnnotations ? 'pptx-vue-ptb-btn--danger hover:text-red-400' : '']"
+			data-pptx-present-control="clear"
 			:disabled="!hasAnnotations"
-			:title="t('pptx.presentationToolbar.clearAnnotations')"
-			:aria-label="t('pptx.presentationToolbar.clearAnnotations')"
+			:title="t('pptx.presentation.clearAnnotations')"
+			:aria-label="t('pptx.presentation.clearAnnotations')"
 			@click="hasAnnotations && emit('clear-annotations')"
 		>
 			<Trash2 :size="18" aria-hidden="true" />
 		</button>
 
-		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
+		<div
+			class="pptx-vue-ptb-divider"
+			:class="CLASSES.divider"
+			data-pptx-present-control="divider-tools"
+		/>
 
 		<!-- Presenter view toggle -->
 		<button
 			v-if="showPresenterToggle"
 			type="button"
-			class="pptx-vue-ptb-btn flex h-9 w-9 items-center justify-center rounded-md transition-colors"
-			:class="
-				presenterMode
-					? 'pptx-vue-ptb-btn--active bg-white/25 text-white'
-					: 'text-white/70 hover:bg-white/10 hover:text-white'
-			"
-			:title="t('pptx.presentationToolbar.presenterView')"
-			:aria-label="t('pptx.presentationToolbar.presenterView')"
+			class="pptx-vue-ptb-btn"
+			:class="presenterMode ? `pptx-vue-ptb-btn--active ${CLASSES.toggleActive}` : CLASSES.toggle"
+			data-pptx-present-control="presenter-view"
+			:title="t('pptx.presenter.presenterView')"
+			:aria-label="t('pptx.presenter.presenterView')"
 			@click="emit('toggle-presenter-view')"
 		>
 			<PanelRight :size="18" aria-hidden="true" />
@@ -365,7 +414,9 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<!-- End presentation -->
 		<button
 			type="button"
-			class="pptx-vue-ptb-btn pptx-vue-ptb-btn--end flex h-9 w-9 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-red-400"
+			class="pptx-vue-ptb-btn pptx-vue-ptb-btn--end"
+			:class="[CLASSES.button, 'hover:text-red-400']"
+			data-pptx-present-control="end"
 			:title="t('pptx.presenter.endPresentation')"
 			:aria-label="t('pptx.presenter.endPresentation')"
 			@click="emit('end-presentation')"

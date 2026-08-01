@@ -17,9 +17,8 @@ import type { ElementRenderer } from '../types';
  * - Nothing at all: a graceful typed fallback box labelled "Media".
  * - Presentation-mode autoplay: when `context.presenting` is true the element
  *   starts playing right after it is appended to the DOM (matching Vue's
- *   mounted-watcher via the shared `startMediaAutoplay`); the edit-canvas
- *   controls suppression Vue does is not applicable here, the vanilla binding
- *   is a plain viewer, so controls are always enabled.
+ *   mounted-watcher via the shared `startMediaAutoplay`), and the native
+ *   transport is suppressed there, as React does (`controls={!isPresentationMode}`).
  */
 
 /**
@@ -62,7 +61,10 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 			display: 'block',
 		});
 		video.src = mediaSrc;
-		video.controls = true;
+		// No transport during a show: PowerPoint paints none, and a full-bleed
+		// background video otherwise draws Chrome's own black scrubber across the
+		// bottom of the slide, on top of the presentation toolbar.
+		video.controls = !context.presenting;
 		video.preload = 'metadata';
 		video.playsInline = true;
 		if (posterSrc) {
@@ -76,7 +78,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 	if (mediaSrc && element.mediaType === 'audio') {
 		const audio = createEl(doc, 'audio', 'pptxv-media-audio', { width: '100%' });
 		audio.src = mediaSrc;
-		audio.controls = true;
+		audio.controls = !context.presenting;
 		el.appendChild(audio);
 		applyMediaPresentingState(audio, context.presenting, element.trimStartMs);
 		return el;

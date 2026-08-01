@@ -19,6 +19,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { isNoOpPresentationAction } from './presentation-action';
+
 /**
  * Whether the element actually carries a run-level text hyperlink
  * (`a:hlinkClick` on any text run).
@@ -63,10 +65,14 @@ export function isElementActionable(
 	options: ElementActionabilityOptions = {},
 ): boolean {
 	const { hasActionHandler = true, hasHyperlinkHandler = true, hasZoomHandler = true } = options;
-	if (element.actionClick && hasActionHandler) {
+	// `ppaction://noaction` is PowerPoint's "Action: None" - the shape keeps an
+	// `a:hlinkClick` entry (usually to carry a highlight or a sound) but does
+	// nothing. Announcing it as a button was wrong, and in a slide show it made
+	// the shape swallow the click-to-advance instead of letting it through.
+	if (element.actionClick && hasActionHandler && !isNoOpPresentationAction(element.actionClick)) {
 		return true;
 	}
-	if (element.actionHover) {
+	if (element.actionHover && !isNoOpPresentationAction(element.actionHover)) {
 		return true;
 	}
 	if (hasHyperlinkHandler && elementHasTextHyperlink(element)) {

@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
+import { isAlternateContentChoiceSupported } from '../utils/alternate-content';
 import { PptxSlideTransitionService } from './PptxSlideTransitionService';
 import { PptxXmlLookupService } from './PptxXmlLookupService';
 
@@ -105,5 +106,28 @@ describe('morph as a direct child of p:transition', () => {
 		const ext = (node?.['p:extLst'] as XmlObject | undefined)?.['p:ext'] as XmlObject | undefined;
 
 		expect((ext?.['p159:morph'] as XmlObject | undefined)?.['@_option']).toBe('byChar');
+	});
+
+	// The compatibility inspector reported UNSUPPORTED_ALTERNATE_CONTENT_CHOICE
+	// for every one of these slides ("its fallback is used"), which reads as "the
+	// morph was dropped for a fade" even though the choice is exactly what the
+	// parser reads. On the reporter's 14-slide deck that was 12 misleading
+	// warnings pointing an investigation at a non-existent parsing gap.
+	it('reports the p159 morph choice as SUPPORTED, not as a dropped fallback', () => {
+		const choice = (morphSlideXml('byObject')['p:sld'] as XmlObject)['mc:AlternateContent'] as
+			| XmlObject
+			| undefined;
+		expect(isAlternateContentChoiceSupported(choice?.['mc:Choice'] as XmlObject)).toBeTruthy();
+	});
+
+	// Only `p159:morph` is implemented, so any other element in that namespace
+	// must still fall back rather than being silently claimed as handled.
+	it('still falls back for a p159 choice carrying an unimplemented element', () => {
+		expect(
+			isAlternateContentChoiceSupported({
+				'@_Requires': 'p159',
+				'p:transition': { 'p159:somethingElse': {} },
+			}),
+		).toBeFalsy();
 	});
 });

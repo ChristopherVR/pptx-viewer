@@ -721,6 +721,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
 					[sessionEnded]="audienceSessionEnded()"
 					[endWithBlackSlide]="viewerOpts.options().advanced.slideShowEndWithBlackSlide"
+					[presenterMode]="presentationMode.presentingPresenter()"
+					(presenterViewToggle)="presentationMode.togglePresenterView()"
 					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"

@@ -1,7 +1,7 @@
 import type { PptxAction } from 'pptx-viewer-core';
+import { runPresentationAction } from 'pptx-viewer-shared';
 
 import type { ViewerMode } from '../../types';
-import { isUrlSafe } from '../../utils/hyperlink-security';
 
 // ---------------------------------------------------------------------------
 // Presentation action handler
@@ -17,58 +17,32 @@ export interface PresentationActionDeps {
 
 /**
  * Handle a presentation action (action buttons, hyperlinks, slide jumps).
- * Extracted from the main hook to keep file sizes manageable.
+ *
+ * The verb table itself lives in `pptx-viewer-shared`
+ * (`resolvePresentationAction`): it used to live here, which is why the other
+ * four bindings had no way to follow an on-slide action at all. This is now
+ * only the React-flavoured wiring of that decision onto the show's navigation.
  */
 export function handlePresentationActionImpl(
 	action: PptxAction,
 	deps: PresentationActionDeps,
 ): void {
-	const actionStr = action.action || '';
-	if (action.soundPath && deps.onPlayActionSound) {
-		deps.onPlayActionSound(action.soundPath);
-	}
-
-	// Internal slide jump via targetSlideIndex
-	if (typeof action.targetSlideIndex === 'number') {
-		// Clamp to valid range
-		const clamped = Math.max(
-			0,
-			Math.min(deps.slidesLength - 1, Math.floor(action.targetSlideIndex)),
-		);
-		if (deps.slidesLength > 0) {
-			deps.navigateToSlide(clamped);
-		}
-		return;
-	}
-
-	// OOXML show-jump actions: ppaction://hlinkshowjump?jump=<verb>
-	if (actionStr.includes('hlinkshowjump')) {
-		const lower = actionStr.toLowerCase();
-		if (lower.includes('nextslide')) {
-			deps.movePresentationSlide(1);
-		} else if (lower.includes('previousslide')) {
-			deps.movePresentationSlide(-1);
-		} else if (lower.includes('firstslide')) {
-			deps.navigateToSlide(0);
-		} else if (lower.includes('lastslide')) {
-			deps.navigateToSlide(deps.slidesLength - 1);
-		} else if (lower.includes('endshow')) {
-			deps.onSetMode('edit');
-		}
-		return;
-	}
-
-	// Slide-jump action (ppaction://hlinksldjump) without targetSlideIndex
-	// falls through: the targetSlideIndex case above should handle it,
-	// but if for some reason it wasn't resolved, ignore gracefully.
-	if (actionStr.includes('hlinksldjump')) {
-		return;
-	}
-
-	// External URL: open in a new tab/window (with security validation)
-	if (action.url && !actionStr.includes('hlinksldjump')) {
-		if (isUrlSafe(action.url)) {
-			window.open(action.url, '_blank', 'noopener,noreferrer');
-		}
-	}
+	runPresentationAction(
+		action,
+		{ slideCount: deps.slidesLength },
+		{
+			goToSlide: (slideIndex) => {
+				deps.navigateToSlide(slideIndex);
+			},
+			move: (direction) => {
+				deps.movePresentationSlide(direction);
+			},
+			endShow: () => {
+				deps.onSetMode('edit');
+			},
+			playSound: deps.onPlayActionSound
+				? (soundPath) => deps.onPlayActionSound?.(soundPath)
+				: undefined,
+		},
+	);
 }

@@ -79,6 +79,10 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				zoomPercent: renderer.zoomPercent(),
 			});
 			chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
+			chrome.presentationToolbar.update({
+				current: state.currentSlide,
+				total: state.slides.length,
+			});
 			chrome.mobileActionSheets?.update(
 				state.currentSlide,
 				state.slides,

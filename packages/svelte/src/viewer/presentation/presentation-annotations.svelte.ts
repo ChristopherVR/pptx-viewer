@@ -14,7 +14,15 @@ export interface PresentationStroke {
 
 export class PresentationAnnotations {
 	tool = $state<PresentationInkTool>('none');
-	color = $state('#ef4444');
+	/**
+	 * Pen and highlighter carry SEPARATE colours, as they do in PowerPoint and
+	 * in every other binding. This used to be one `color` field with the
+	 * highlighter hardcoded to `#fde047`, which made the show toolbar's
+	 * highlighter palette a lie: picking a colour changed the pen instead.
+	 * The defaults are `PEN_COLORS[0]` and `HIGHLIGHTER_COLORS[0]`.
+	 */
+	penColor = $state('#ff0000');
+	highlighterColor = $state('#ffff00');
 	current = $state.raw<PresentationStroke | null>(null);
 	bySlide = $state.raw<Map<number, PresentationStroke[]>>(new Map());
 	laser = $state.raw<InkPoint | null>(null);
@@ -41,7 +49,7 @@ export class PresentationAnnotations {
 		this.current = {
 			id: `presentation-${++this.#sequence}`,
 			points: [point],
-			color: this.tool === 'highlighter' ? '#fde047' : this.color,
+			color: this.tool === 'highlighter' ? this.highlighterColor : this.penColor,
 			width: this.tool === 'highlighter' ? 14 : 2.5,
 			tool: this.tool,
 		};

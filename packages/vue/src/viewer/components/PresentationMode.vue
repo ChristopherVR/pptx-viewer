@@ -19,7 +19,14 @@
  * and last slide, Esc exits, and a click on the stage advances.
  */
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
-import { ANIMATION_KEYFRAMES_CSS, endAudienceDisplay, mayLeaveSlideShow } from 'pptx-viewer-shared';
+import {
+	ANIMATION_KEYFRAMES_CSS,
+	endAudienceDisplay,
+	handlePresentationStageClick,
+	mayLeaveSlideShow,
+	PRESENT_TOOLBAR_METRICS,
+	PRESENTATION_HIT_TEST_CSS,
+} from 'pptx-viewer-shared';
 import { computed, onMounted, ref } from 'vue';
 
 import { providePresentationElementStates } from '../composables/presentation-element-states';
@@ -230,10 +237,20 @@ const presentationStartTime = ref<number | null>(null);
 onMounted(() => {
 	presentationStartTime.value = Date.now();
 });
+/**
+ * Where the auto-hiding show toolbar sits, read from the shared chrome spec
+ * rather than re-typed here: the offset, stacking order and fade are the same
+ * design in all five bindings and a scoped stylesheet cannot see the constant.
+ */
+const toolbarSlotStyle = computed(() => ({
+	bottom: `${String(PRESENT_TOOLBAR_METRICS.bottomOffset)}px`,
+	zIndex: String(PRESENT_TOOLBAR_METRICS.zIndex),
+	transitionDuration: `${String(PRESENT_TOOLBAR_METRICS.fadeMs)}ms`,
+}));
 /** Whether the presenter view (notes + next-slide preview) is shown. */
 const presenterMode = ref(props.startInPresenterView);
 /** On a phone, the presenter view uses a single-column mobile layout. */
-const { isMobile, isTouchDevice } = useIsMobile();
+const { isMobile } = useIsMobile();
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
 /** PowerPoint's Ctrl+M: hide ink markup without discarding the strokes. */
@@ -257,12 +274,47 @@ function onToolbarMove(direction: 1 | -1): void {
 }
 
 /**
+ * How an on-slide Action Setting (`a:hlinkClick`) navigates this show.
+ * `goTo` is deliberately the unfiltered jump: an action names its target slide
+ * outright, hidden or not, exactly as PowerPoint's typed slide number does.
+ */
+const actionOptions = computed(() => ({ slideCount: props.slides.length }));
+const actionRunner = {
+	goToSlide: (index: number) => {
+		nav.goTo(index);
+	},
+	move: (direction: 1 | -1) => {
+		if (direction > 0) {
+			nav.next();
+		} else {
+			nav.prev();
+		}
+	},
+	endShow: () => {
+		close();
+	},
+};
+
+/**
  * Tap-to-advance, but only when no drawing tool is armed and the presenter
  * view is not covering the stage; otherwise a pen stroke or a presenter-view
  * click would skip slides.
+ *
+ * An on-slide Action Setting outranks the advance: PowerPoint follows the
+ * shape's link and leaves the show where the link lands. The shared classifier
+ * runs it and tells us whether anything is left for the tap.
  */
-function onOverlayClick(): void {
+function onOverlayClick(event: MouseEvent): void {
 	if (annotations.presentationTool.value !== 'none' || presenterMode.value) {
+		return;
+	}
+	const outcome = handlePresentationStageClick(
+		event.target,
+		nav.activeSlide.value,
+		actionOptions.value,
+		actionRunner,
+	);
+	if (outcome !== 'advance') {
 		return;
 	}
 	nav.advanceFromClick();
@@ -322,9 +374,12 @@ useTouchGestures({
 	<Teleport to="body">
 		<div ref="overlayRef" class="pptx-vue-presentation" @click="onOverlayClick">
 			<!-- Inject the static preset @keyframes plus this slide's native-animation
-			     (`p:timing`) keyframes (staged builds + `p:animClr` colour stops). -->
+			     (`p:timing`) keyframes (staged builds + `p:animClr` colour stops),
+			     plus the show's hit-testing rule: scenery is pointer-transparent so a
+			     click reaches the action shape underneath it (or the show's advance). -->
 			<component :is="'style'"
-				>{{ ANIMATION_KEYFRAMES_CSS }}{{ playback.presentationKeyframesCss.value }}</component
+				>{{ ANIMATION_KEYFRAMES_CSS }}{{ PRESENTATION_HIT_TEST_CSS
+				}}{{ playback.presentationKeyframesCss.value }}</component
 			>
 			<div
 				ref="frameRef"
@@ -415,12 +470,6 @@ useTouchGestures({
 			<!-- Live caption bar. -->
 			<PresentationSubtitleBar :visible="subtitlesOn" @click.stop />
 
-			<!-- Mouse users get a slide counter; the auto-hiding PresentationToolbar
-			     already carries their nav + end controls. -->
-			<div v-if="!isTouchDevice" class="pptx-vue-presentation-counter" @click.stop>
-				{{ nav.currentIndex.value + 1 }} / {{ slides.length }}
-			</div>
-
 			<!-- Persistent touch controls (close + prev/next + counter): the primary
 			     touch affordance for exiting / navigating the slideshow, since the
 			     mouse toolbar stays hidden without a pointer move and a phone has no
@@ -447,6 +496,7 @@ useTouchGestures({
 			<div
 				class="pptx-vue-presentation-toolbar-slot"
 				:class="{ 'is-visible': toolbarVisible }"
+				:style="toolbarSlotStyle"
 				@click.stop
 			>
 				<PresentationToolbar
@@ -502,38 +552,20 @@ useTouchGestures({
 	overflow: hidden;
 }
 
+/* Offset, stacking order and fade come from `toolbarSlotStyle` (the shared
+   `PRESENT_TOOLBAR_METRICS`); only the layout that has no number to share
+   stays here. */
 .pptx-vue-presentation-toolbar-slot {
 	position: absolute;
-	bottom: 24px;
 	left: 50%;
 	transform: translateX(-50%);
-	z-index: 80;
 	opacity: 0;
 	pointer-events: none;
-	transition: opacity 300ms;
+	transition-property: opacity;
 }
 
 .pptx-vue-presentation-toolbar-slot.is-visible {
 	opacity: 1;
 	pointer-events: auto;
-}
-
-.pptx-vue-presentation-counter {
-	position: fixed;
-	bottom: 16px;
-	left: 50%;
-	transform: translateX(-50%);
-	padding: 4px 12px;
-	border-radius: 999px;
-	background-color: rgba(0, 0, 0, 0.55);
-	color: #ffffff;
-	font-size: 13px;
-	font-family:
-		system-ui,
-		-apple-system,
-		sans-serif;
-	line-height: 1.4;
-	user-select: none;
-	pointer-events: none;
 }
 </style>

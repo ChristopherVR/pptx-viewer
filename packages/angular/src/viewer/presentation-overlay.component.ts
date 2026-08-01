@@ -14,16 +14,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import {
-	LucideChevronLeft,
-	LucideChevronRight,
-	LucideEraser,
-	LucideHighlighter,
-	LucideMousePointer2,
-	LucidePenTool,
-	LucideTrash2,
-	LucideX,
-} from '@lucide/angular';
+import { LucideChevronLeft, LucideChevronRight, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
@@ -54,6 +45,7 @@ import {
 import { PresentationShowNavigator } from './presentation-show-navigator';
 import { PresentationStageAnimator } from './presentation-stage-animator';
 import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
+import { PresentationToolbarComponent } from './presentation-toolbar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 import { PresenterWindowService } from './presenter-window.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -90,12 +82,8 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		PresentationTransitionOverlayComponent,
 		PresentationAnnotationOverlayComponent,
 		PresentationSubtitleBarComponent,
+		PresentationToolbarComponent,
 		TranslatePipe,
-		LucidePenTool,
-		LucideHighlighter,
-		LucideEraser,
-		LucideMousePointer2,
-		LucideTrash2,
 		LucideX,
 		LucideChevronLeft,
 		LucideChevronRight,
@@ -136,6 +124,8 @@ export class PresentationOverlayComponent implements OnInit {
 	 * once instead of sitting on the last slide swallowing every advance.
 	 */
 	readonly endWithBlackSlide = input<boolean>(true);
+	/** Whether presenter view is up (tints the toolbar's presenter-view toggle). */
+	readonly presenterMode = input<boolean>(false);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -143,7 +133,13 @@ export class PresentationOverlayComponent implements OnInit {
 
 	readonly indexChange = output<number>();
 	readonly closed = output<void>();
+	/** Live-caption preference; driven by the host's ribbon, not by show chrome. */
 	readonly subtitlesChange = output<boolean>();
+	/**
+	 * The toolbar's presenter-view toggle was pressed. The host owns the swap
+	 * (this overlay and the presenter console cannot both be on screen).
+	 */
+	readonly presenterViewToggle = output<void>();
 	/**
 	 * Fired just before `closed` when the show carries ink annotations, so the
 	 * host can offer the keep/discard prompt (mirrors React's exit flow).
@@ -370,6 +366,13 @@ export class PresentationOverlayComponent implements OnInit {
 		};
 	});
 
+	/**
+	 * Epoch ms the show opened, feeding the toolbar's elapsed readout. Captured
+	 * at construction because this overlay is created exactly when the show
+	 * starts, so the readout runs from 00:00 without the host tracking it.
+	 */
+	protected readonly showStartedAt = Date.now();
+
 	/** "3 / 12" label. */
 	protected readonly counterLabel = computed<string>(() => {
 		const count = this.slides().length;
@@ -456,14 +459,9 @@ export class PresentationOverlayComponent implements OnInit {
 		this.emitClosed();
 	}
 
-	/** Toggle an annotation tool (clicking the active one disarms it). */
-	protected selectTool(tool: 'pen' | 'highlighter' | 'eraser' | 'laser'): void {
-		this.annotations.setTool(tool);
-	}
-
-	/** Toggle the live-caption (subtitle) bar. */
-	protected toggleSubtitles(): void {
-		this.subtitlesChange.emit(!this.subtitlesVisible());
+	/** The show toolbar's end button: same exit path as Escape / the close button. */
+	protected onToolbarEnd(): void {
+		this.emitClosed();
 	}
 
 	/**
