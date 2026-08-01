@@ -173,8 +173,37 @@ describe('connectorRenderer - bent connectors', () => {
 				zIndex: 0,
 			},
 		});
-		const path = wrapper.get('path');
+		// Skip the invisible hit target, which paints nothing.
+		const path = wrapper.get('path:not(.pptx-vue-connector-hit)');
 		expect(path.attributes('stroke')).toBe('#0000ff');
+	});
+});
+
+// ── Pointer hit target ────────────────────────────────────────────────────────
+
+describe('connectorRenderer - hit target', () => {
+	it('opts the line itself back into hit testing so it can be selected', () => {
+		// The wrapper is `pointer-events: none`, so without this stroke no click
+		// on the canvas could ever reach a connector and the inspector's
+		// arrowhead card was unreachable by pointer.
+		const wrapper = mount(ConnectorRenderer, { props: { element: connector(), zIndex: 0 } });
+		const hit = wrapper.get('path.pptx-vue-connector-hit');
+		expect(hit.attributes('stroke')).toBe('transparent');
+		expect(hit.attributes('style')).toContain('pointer-events: stroke');
+		// Wide enough to hit: 3x the stroke, floored at 14px, matching React.
+		expect(Number(hit.attributes('stroke-width'))).toBe(14);
+	});
+
+	it('follows the routed path for a bent connector', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({ shapeType: 'bentConnector3', width: 200, height: 100 }),
+				zIndex: 0,
+			},
+		});
+		const hit = wrapper.get('path.pptx-vue-connector-hit');
+		const visible = wrapper.get('path:not(.pptx-vue-connector-hit)');
+		expect(hit.attributes('d')).toBe(visible.attributes('d'));
 	});
 });
 
@@ -287,7 +316,8 @@ describe('connectorRenderer - compound lines', () => {
 				zIndex: 0,
 			},
 		});
-		const paths = wrapper.findAll('path');
+		// Visible strokes only; the invisible hit target is not one of them.
+		const paths = wrapper.findAll('path:not(.pptx-vue-connector-hit)');
 		expect(paths).toHaveLength(2);
 		expect(wrapper.find('line').exists()).toBeFalsy();
 	});

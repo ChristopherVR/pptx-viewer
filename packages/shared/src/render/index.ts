@@ -389,6 +389,10 @@ export * from './connector-style';
 // obstacle routing), and arrow `<marker>` shapes. Re-uses `connectorKind` from
 // `connector-style`. The `<svg>`/`<path>` emission stays in each binding.
 export * from './connector-path';
+// The inspector's six connector arrowhead dropdowns (`a:headEnd`/`a:tailEnd`
+// type + `@w` + `@len`), described once so no binding restates the option
+// order, the fallbacks or the caption keys in a private table of its own.
+export * from './connector-arrow-controls';
 export * from './format-painter';
 export * from './remap-text';
 export * from './shape-adjustment';
@@ -599,6 +603,11 @@ export * from './eyedropper';
 // Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
 // pen/highlighter colour swatches, and slide-counter formatting.
 export * from './presentation-toolbar';
+// Show chrome inventory: which controls the slide-show toolbar carries, in what
+// order, under which accessible names, and at what measurements. The content
+// counterpart to `presentation-toolbar`'s behaviour, so no binding invents its
+// own bar.
+export * from './present-chrome';
 // Slide-show keyboard map: PowerPoint's published shortcut set (navigation,
 // slide-number jump, blank screens, pointer tools) as one shared mapping so no
 // binding invents its own bindings.

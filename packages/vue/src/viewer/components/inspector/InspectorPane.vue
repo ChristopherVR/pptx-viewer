@@ -8,6 +8,7 @@ import ActionSettingsPanel from './ActionSettingsPanel.vue';
 import AnimationPanel from './AnimationPanel.vue';
 import ArrangePanel from './ArrangePanel.vue';
 import ChartPanel from './ChartPanel.vue';
+import ConnectorArrowsPanel from './ConnectorArrowsPanel.vue';
 import EffectsPanel from './EffectsPanel.vue';
 import FillPanel from './FillPanel.vue';
 import ImagePanel from './ImagePanel.vue';
@@ -52,6 +53,9 @@ const isTable = computed(() => props.element.type === 'table');
 const isChart = computed(() => props.element.type === 'chart');
 const isSmartArt = computed(() => props.element.type === 'smartArt');
 const isMedia = computed(() => props.element.type === 'media');
+// Arrowheads are a connector-only concern: `a:headEnd`/`a:tailEnd` are written
+// on a `p:cxnSp`, so the card must not appear for any other element type.
+const isConnector = computed(() => props.element.type === 'connector');
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -175,6 +179,15 @@ function relay(patch: Partial<PptxElement>): void {
 				{{ t('pptx.inspector.line') }}
 			</h3>
 			<StrokePanel :element="element" @update="relay" />
+		</div>
+
+		<div v-if="isConnector" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				{{ t('pptx.elementType.connector') }}
+			</h3>
+			<ConnectorArrowsPanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</div>
 
 		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">

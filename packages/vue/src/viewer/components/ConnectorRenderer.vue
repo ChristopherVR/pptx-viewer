@@ -117,6 +117,26 @@ const y1 = computed(() => (props.element.flipVertical ? h.value : 0));
 const x2 = computed(() => (props.element.flipHorizontal ? 0 : w.value));
 const y2 = computed(() => (props.element.flipVertical ? 0 : h.value));
 
+// ── Pointer hit target ────────────────────────────────────────────────────────
+
+/**
+ * WHY a separate invisible stroke: the wrapper is `pointer-events: none` (so a
+ * connector's empty bounding box never swallows clicks meant for the shapes it
+ * spans), which left the line itself unclickable too. No pointer route reached
+ * a connector at all, so the inspector's connector card could only be opened
+ * from the Elements list. React has always carried this transparent, generously
+ * wide stroke that opts back INTO hit testing; `pointer-events: stroke` keeps
+ * the target on the line and off the box.
+ */
+const hitTargetWidth = computed(() => Math.max(strokeWidth.value * 3, 14));
+
+/** The routed path when the connector bends, else its straight endpoints. */
+const hitPathData = computed(() =>
+	usePathRouting.value && pathGeometry.value
+		? pathGeometry.value.pathData
+		: `M ${x1.value} ${y1.value} L ${x2.value} ${y2.value}`,
+);
+
 // ── Arrowheads ───────────────────────────────────────────────────────────────
 
 const startArrow = computed(() => normalizeArrow(ss.value?.connectorStartArrow));
@@ -273,6 +293,18 @@ function offsetTransform(offset: number): string | undefined {
 					/>
 				</filter>
 			</defs>
+
+			<!-- Invisible click target: the only pointer-reachable part of a connector. -->
+			<path
+				class="pptx-vue-connector-hit"
+				:d="hitPathData"
+				fill="none"
+				stroke="transparent"
+				:stroke-width="hitTargetWidth"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				style="pointer-events: stroke"
+			/>
 
 			<!-- ── Bent / curved connector: multi-segment <path> ─────────────────── -->
 			<template v-if="usePathRouting && pathGeometry">
