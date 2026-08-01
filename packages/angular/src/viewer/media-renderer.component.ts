@@ -12,7 +12,7 @@ import {
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
-import { startMediaAutoplay } from '../internal/shared';
+import { applyMediaPlaybackAttributes, startMediaAutoplay } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
 import { ColorChangedImageComponent } from './color-changed-image.component';
@@ -163,7 +163,13 @@ export class MediaRendererComponent {
 		// Presentation autoplay: once the media node is in the DOM and this is the
 		// live stage, start playback; pause again if it leaves present mode. Reads
 		// mediaSrc so a source swap re-evaluates. The shared helper owns the
-		// `.play()` + blocked-autoplay handling so all three bindings match.
+		// `.play()` + blocked-autoplay handling so all five bindings match.
+		//
+		// The deck's authored playback settings are applied on the same pass.
+		// `volume` and `playbackRate` are IDL properties with no attribute form,
+		// so the template cannot bind them the way it binds `loop`, and until this
+		// they were simply dropped: `solution-explorer.pptx` slide 2 declares
+		// `vol="0"` and Angular played it at full volume.
 		effect(() => {
 			const el = this.mediaElRef()?.nativeElement;
 			const presenting = this.presenting();
@@ -171,8 +177,12 @@ export class MediaRendererComponent {
 			if (!el) {
 				return;
 			}
+			const media = asMediaElement(this.element());
+			if (media) {
+				applyMediaPlaybackAttributes(el, media);
+			}
 			if (presenting) {
-				startMediaAutoplay(el, { trimStartMs: asMediaElement(this.element())?.trimStartMs });
+				startMediaAutoplay(el, { trimStartMs: media?.trimStartMs });
 			} else if (!el.paused) {
 				el.pause();
 			}

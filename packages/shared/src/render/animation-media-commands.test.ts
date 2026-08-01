@@ -185,3 +185,70 @@ describe('buildTimeline p:cmd steps', () => {
 		expect(steps[1].delayMs).toBe(500);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// solution-explorer.pptx slide 2: a looping background video whose p:timing
+// says "start with the slide" and "toggle on click". Both halves regressed.
+// ---------------------------------------------------------------------------
+describe('slide-entry and click-to-toggle media commands', () => {
+	/**
+	 * The shape core parses out of the deck: a `mediacall` effect inside a click
+	 * step that ALSO carries an `onBegin` time-node condition, which is how
+	 * PowerPoint spells "this step runs when the slide appears". The collapsed
+	 * `trigger` stays `'onClick'` because the sole start condition carries no
+	 * event, so only `groupAutoStart` distinguishes it.
+	 */
+	function makeEntryCommandAnim(): PptxNativeAnimation {
+		return {
+			targetId: 'video1',
+			trigger: 'onClick',
+			commandType: 'call',
+			commandString: 'playFrom(0.0)',
+			startConditions: [{ delay: 0 }],
+			groupAutoStart: true,
+			parGroupIndex: 0,
+		} as PptxNativeAnimation;
+	}
+
+	it('auto-starts the group holding a slide-entry media command', () => {
+		const result = buildTimeline([makeEntryCommandAnim()]);
+		expect(result.clickGroups).toHaveLength(1);
+		expect(result.clickGroups[0].autoAdvance).toBeTruthy();
+		expect(result.clickGroups[0].steps[0].command?.command).toBe('playFrom(0.0)');
+	});
+
+	it('still click-gates a group whose condition really is a click', () => {
+		const result = buildTimeline([
+			{
+				...makeEntryCommandAnim(),
+				startConditions: [{ event: 'onClick' }],
+			} as PptxNativeAnimation,
+		]);
+		expect(result.clickGroups[0].autoAdvance).toBeUndefined();
+	});
+
+	it('keeps a togglePause command in its interactive sequence', () => {
+		const result = buildTimeline([
+			makeCommandAnim({
+				trigger: 'onShapeClick',
+				triggerShapeId: 'video1',
+				commandString: 'togglePause',
+			} as Partial<PptxNativeAnimation>),
+		]);
+		const sequence = result.interactiveSequences.get('video1');
+		expect(sequence).toBeDefined();
+		const step = sequence?.[0].steps[0];
+		expect(step?.command).toStrictEqual({
+			type: 'call',
+			command: 'togglePause',
+			targetId: 'video1',
+		});
+		expect(step?.elementId).toBe('');
+		expect(step?.cssAnimation).toBe('');
+	});
+
+	it('maps togglePause onto the same two-way verb as togglePlay', () => {
+		expect(parseMediaCommand('togglePause')).toStrictEqual({ verb: 'togglePlay' });
+		expect(parseMediaCommand('TOGGLEPAUSE')).toStrictEqual({ verb: 'togglePlay' });
+	});
+});

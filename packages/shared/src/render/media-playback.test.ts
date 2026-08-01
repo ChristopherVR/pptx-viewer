@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { startMediaAutoplay } from './media-playback';
+import {
+	applyMediaPlaybackAttributes,
+	mediaPlaybackAttributes,
+	startMediaAutoplay,
+} from './media-playback';
 
 /** Minimal HTMLMediaElement stand-in exposing just what the helper touches. */
 function fakeMedia(play: () => Promise<void> | undefined): {
@@ -78,5 +82,40 @@ describe('startMediaAutoplay', () => {
 		} as unknown as HTMLMediaElement;
 		expect(() => startMediaAutoplay(el, { trimStartMs: 2000 })).not.toThrow();
 		expect(playCalls).toBe(1);
+	});
+});
+
+describe('mediaPlaybackAttributes', () => {
+	it('defaults an element that declares nothing to a plain, non-looping node', () => {
+		expect(mediaPlaybackAttributes({})).toStrictEqual({
+			loop: false,
+			volume: 1,
+			playbackRate: 1,
+		});
+	});
+
+	it('carries the deck loop flag, which Vanilla and Svelte used to drop', () => {
+		expect(mediaPlaybackAttributes({ loop: true }).loop).toBeTruthy();
+	});
+
+	it('honours a silent deck (p:cMediaNode vol="0")', () => {
+		expect(mediaPlaybackAttributes({ volume: 0 }).volume).toBe(0);
+	});
+
+	it('clamps out-of-range volume and playback rate', () => {
+		expect(mediaPlaybackAttributes({ volume: 4 }).volume).toBe(1);
+		expect(mediaPlaybackAttributes({ volume: -1 }).volume).toBe(0);
+		expect(mediaPlaybackAttributes({ playbackSpeed: 99 }).playbackRate).toBe(4);
+		expect(mediaPlaybackAttributes({ playbackSpeed: 0 }).playbackRate).toBe(0.25);
+	});
+});
+
+describe('applyMediaPlaybackAttributes', () => {
+	it('writes all three onto a live node', () => {
+		const el = { loop: false, volume: 1, playbackRate: 1 } as HTMLMediaElement;
+		applyMediaPlaybackAttributes(el, { loop: true, volume: 0, playbackSpeed: 2 });
+		expect(el.loop).toBeTruthy();
+		expect(el.volume).toBe(0);
+		expect(el.playbackRate).toBe(2);
 	});
 });

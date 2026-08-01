@@ -111,7 +111,12 @@ function parsePlayFrom(raw: string): ParsedMediaCommand | undefined {
  * - `play` / `resume` -> resume playback.
  * - `pause` -> pause playback.
  * - `stop` / `stopMedia` -> pause and rewind to the start.
- * - `togglePlay` -> pause if playing, else play.
+ * - `togglePlay` / `togglePause` -> pause if playing, else play.
+ *
+ * `togglePause` is PowerPoint's own spelling: a video authored with "click to
+ * pause" emits `<p:cmd type="call" cmd="togglePause"/>` in its interactiveSeq,
+ * never `togglePlay`. Both name the same two-way toggle, so they map to one
+ * verb; missing the alias made clicking such a video silently do nothing.
  *
  * Any other command string (including non-media `evt` / `verb` commands, or a
  * numeric verb code with no browser analogue) returns `undefined` so the caller
@@ -138,7 +143,7 @@ export function parseMediaCommand(commandString: string): ParsedMediaCommand | u
 	if (lower === 'stop' || lower === 'stopmedia') {
 		return { verb: 'stop' };
 	}
-	if (lower === 'toggleplay') {
+	if (lower === 'toggleplay' || lower === 'togglepause') {
 		return { verb: 'togglePlay' };
 	}
 
