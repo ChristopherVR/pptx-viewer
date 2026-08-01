@@ -6,15 +6,15 @@ import {
 	NOTES_FONT_SIZE_MAX,
 	NOTES_FONT_SIZE_MIN,
 	NOTES_FONT_SIZE_STEP,
-	TIMER_SEGMENT_MS,
+	PRESENTER_TIMER_SEGMENT_MS,
 	buildNotesSegments,
 	clampNotesFontSize,
-	computeTimerProgress,
 	currentSlideAt,
 	elapsedSince,
 	formatElapsed,
 	formatTime,
 	nextSlideAfter,
+	presenterTimerProgress,
 	resolvePresenterNotes,
 	slideCounter,
 	slideLabel,
@@ -90,9 +90,9 @@ describe('formatElapsed', () => {
 		expect(formatElapsed(600000)).toBe('10:00');
 	});
 
-	it('treats negative input as zero', () => {
-		expect(formatElapsed(-1000)).toBe('00:00');
-	});
+	// Negative input is NOT clamped by the shared formatter (see
+	// `presenter-view-helpers.ts`); `elapsedSince` clamps at the point the
+	// duration is derived, which is the case covered below.
 });
 
 // ---------------------------------------------------------------------------
@@ -160,35 +160,42 @@ describe('font size constants', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeTimerProgress
+// presenterTimerProgress (shared; re-exported here, so the Angular presenter
+// view and every other binding pace a talk in the same five-minute segment)
 // ---------------------------------------------------------------------------
 
-describe('computeTimerProgress', () => {
+describe('presenterTimerProgress', () => {
 	it('reports 0% / segment 0 at the start', () => {
-		expect(computeTimerProgress(0)).toStrictEqual({ percent: 0, segment: 0 });
+		expect(presenterTimerProgress(0)).toStrictEqual({ percent: 0, segment: 0 });
 	});
 
 	it('reports 50% halfway through the first segment', () => {
-		const result = computeTimerProgress(TIMER_SEGMENT_MS / 2);
+		const result = presenterTimerProgress(PRESENTER_TIMER_SEGMENT_MS / 2);
 		expect(result.percent).toBeCloseTo(50);
 		expect(result.segment).toBe(0);
 	});
 
 	it('rolls over to segment 1 at the segment boundary', () => {
-		const result = computeTimerProgress(TIMER_SEGMENT_MS);
+		const result = presenterTimerProgress(PRESENTER_TIMER_SEGMENT_MS);
 		expect(result.segment).toBe(1);
 		expect(result.percent).toBeCloseTo(0);
 	});
 
 	it('caps percent at 100', () => {
 		// Construct a value whose modulo would exceed the segment if mis-computed.
-		const result = computeTimerProgress(TIMER_SEGMENT_MS * 2 + TIMER_SEGMENT_MS / 4);
+		const result = presenterTimerProgress(
+			PRESENTER_TIMER_SEGMENT_MS * 2 + PRESENTER_TIMER_SEGMENT_MS / 4,
+		);
 		expect(result.percent).toBeLessThanOrEqual(100);
 		expect(result.segment).toBe(2);
 	});
 
 	it('treats negative elapsed as zero', () => {
-		expect(computeTimerProgress(-5000)).toStrictEqual({ percent: 0, segment: 0 });
+		expect(presenterTimerProgress(-5000)).toStrictEqual({ percent: 0, segment: 0 });
+	});
+
+	it('paces a talk in five-minute segments', () => {
+		expect(PRESENTER_TIMER_SEGMENT_MS).toBe(5 * 60 * 1000);
 	});
 });
 
@@ -251,6 +258,30 @@ describe('nextSlideAfter', () => {
 	it('returns undefined for an empty deck', () => {
 		expect(nextSlideAfter([], 0)).toBeUndefined();
 	});
+
+	// The three below are the shared `nextPresentedSlide` contract rather than a
+	// naive `slides[index + 1]`. They exist because the preview and the SHOW must
+	// agree: a preview that promises a slide the show then skips is worse than no
+	// preview at all.
+	it('skips a run of consecutive hidden slides', () => {
+		const hiddenRun = [
+			slide({ id: 'a' }),
+			slide({ id: 'b', hidden: true }),
+			slide({ id: 'c', hidden: true }),
+			slide({ id: 'd' }),
+		];
+		expect(nextSlideAfter(hiddenRun, 0)?.id).toBe('d');
+	});
+
+	it('reports the end of the show when every later slide is hidden', () => {
+		const trailingHidden = [slide({ id: 'a' }), slide({ id: 'b', hidden: true })];
+		expect(nextSlideAfter(trailingHidden, 0)).toBeUndefined();
+	});
+
+	it('still advances when the CURRENT slide is itself hidden', () => {
+		const fromHidden = [slide({ id: 'a', hidden: true }), slide({ id: 'b' })];
+		expect(nextSlideAfter(fromHidden, 0)?.id).toBe('b');
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -306,8 +337,16 @@ describe('buildNotesSegments', () => {
 			segment('x', { color: '#ff0000', fontSize: 18, fontFamily: 'Arial' }),
 		]);
 		expect(out[0].style['color']).toBe('#ff0000');
-		expect(out[0].style['font-size']).toBe('18px');
+		// POINTS, not pixels. Angular used to emit `18px` from a forked builder
+		// while shared (and therefore every other binding) emitted `18pt`, so the
+		// same notes run rendered a third smaller here than anywhere else.
+		expect(out[0].style['font-size']).toBe('18pt');
 		expect(out[0].style['font-family']).toBe('Arial');
+	});
+
+	it('emits kebab-case style keys for the Angular ngStyle binding', () => {
+		const out = buildNotesSegments([segment('x', { bold: true, fontSize: 12 })]);
+		expect(Object.keys(out[0].style).some((key) => /[A-Z]/u.test(key))).toBeFalsy();
 	});
 
 	it('produces stable, unique keys per token', () => {

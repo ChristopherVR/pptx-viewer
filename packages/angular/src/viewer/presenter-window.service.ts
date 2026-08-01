@@ -29,6 +29,7 @@ import {
 	resolveAudienceScreenPlacement,
 	secureRandomUuid,
 	mergePresentationSnapshot,
+	swapPresentationWindows,
 } from '../internal/shared';
 import type { PresentationSnapshot } from '../internal/shared';
 import {
@@ -122,6 +123,20 @@ export class PresenterWindowService {
 
 	isAudienceWindowOpen(): boolean {
 		return this.audienceWindow !== null && !this.audienceWindow.closed;
+	}
+
+	/**
+	 * PowerPoint's "Swap Displays": trade screens with the audience window.
+	 * Counterpart of React's `usePresenterWindow().swapDisplays`. False means no
+	 * audience window, or no Window Management API to move windows with; that is
+	 * a capability report, not a failure, and nothing moves.
+	 */
+	async swapDisplays(): Promise<boolean> {
+		const audience = this.audienceWindow;
+		if (typeof window === 'undefined' || !audience || audience.closed) {
+			return false;
+		}
+		return swapPresentationWindows(window, audience);
 	}
 
 	syncSlideToAudience(slideIndex: number): void {

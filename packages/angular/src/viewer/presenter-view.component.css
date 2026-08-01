@@ -28,12 +28,18 @@
 	background: #000;
 	padding: 1rem;
 	min-width: 0;
+	/* A zoomed pane must clip, not spill over the rail (React's `main` carries
+	   `overflow-hidden` for the same reason). */
+	overflow: hidden;
 }
 
 .pptx-ng-presenter-preview-stage {
 	width: 100%;
 	max-width: 100%;
 	min-height: 0;
+	/* The console zoom (scale + origin) is bound per-frame; only the easing is
+	   static. Matches React's `transition-transform duration-200`. */
+	transition: transform 200ms ease;
 }
 
 .pptx-ng-presenter-slide-badge {

@@ -6,9 +6,11 @@
 		[current]="currentSlideIndex()"
 		[canvasSize]="canvasSize()"
 		[mediaDataUrls]="mediaDataUrls()"
+		[templateElements]="templateElements()"
 		(patch)="presenterWindow.updateSnapshot($event)"
 		(navigate)="navigateToSlide.emit($event)"
 		(audience)="onToggleAudienceWindow()"
+		(swapDisplays)="onSwapDisplays()"
 		(end)="exit.emit()"
 	/>
 	<div class="pptx-ng-presenter-body">
@@ -20,7 +22,7 @@
 			data-pptx-presenter-slide
 			(click)="onSlidePaneClick()"
 		>
-			<div class="pptx-ng-presenter-preview-stage">
+			<div class="pptx-ng-presenter-preview-stage" [ngStyle]="previewStageStyle()">
 				<pptx-slide-canvas
 					[slide]="currentPreviewSlide()"
 					[canvasSize]="canvasSize()"
@@ -86,8 +88,10 @@
 					type="button"
 					class="pptx-ng-presenter-navbtn"
 					(click)="movePresentationSlide.emit(-1)"
-					[disabled]="currentSlideIndex() === 0"
-					[title]="'pptx.presenter.previousSlide' | translate"
+					[disabled]="prevDisabled()"
+					data-pptx-presenter-control="prev"
+					[attr.aria-label]="'pptx.presenter.prev' | translate"
+					[title]="'pptx.presenter.prev' | translate"
 				>
 					&#x2039; {{ 'pptx.presenter.prev' | translate }}
 				</button>
@@ -96,15 +100,17 @@
 					type="button"
 					class="pptx-ng-presenter-navbtn"
 					(click)="movePresentationSlide.emit(1)"
-					[disabled]="currentSlideIndex() >= slides().length - 1"
-					[title]="'pptx.presenter.nextSlide' | translate"
+					[disabled]="nextDisabled()"
+					data-pptx-presenter-control="next"
+					[attr.aria-label]="'pptx.presenter.next' | translate"
+					[title]="'pptx.presenter.next' | translate"
 				>
 					{{ 'pptx.presenter.next' | translate }} &#x203A;
 				</button>
 			</div>
 
 			<!-- Next slide preview -->
-			<div class="pptx-ng-presenter-next">
+			<div class="pptx-ng-presenter-next" data-pptx-presenter-next-preview>
 				<div class="pptx-ng-presenter-label" style="margin-bottom: 0.5rem">
 					{{ 'pptx.presenter.nextSlidePreview' | translate }}
 				</div>
@@ -124,7 +130,7 @@
 			</div>
 
 			<!-- Speaker notes -->
-			<div class="pptx-ng-presenter-notes">
+			<div class="pptx-ng-presenter-notes" data-pptx-presenter-notes>
 				<div class="pptx-ng-presenter-notes-head">
 					<div class="pptx-ng-presenter-label">
 						{{ 'pptx.presenter.speakerNotes' | translate }}
@@ -135,6 +141,7 @@
 							class="pptx-ng-presenter-iconbtn"
 							(click)="decreaseNotesFontSize()"
 							[disabled]="notesFontSize() <= NOTES_FONT_SIZE_MIN"
+							data-pptx-presenter-control="notes-font-decrease"
 							[attr.aria-label]="'pptx.presenter.decreaseFontSize' | translate"
 							[title]="'pptx.presenter.decreaseFontSize' | translate"
 						>
@@ -146,6 +153,7 @@
 							class="pptx-ng-presenter-iconbtn"
 							(click)="increaseNotesFontSize()"
 							[disabled]="notesFontSize() >= NOTES_FONT_SIZE_MAX"
+							data-pptx-presenter-control="notes-font-increase"
 							[attr.aria-label]="'pptx.presenter.increaseFontSize' | translate"
 							[title]="'pptx.presenter.increaseFontSize' | translate"
 						>

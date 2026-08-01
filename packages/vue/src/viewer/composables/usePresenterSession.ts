@@ -9,6 +9,7 @@ import {
 	PRESENTATION_MESSAGE_ORIGIN,
 	resolveAudienceScreenPlacement,
 	mergePresentationSnapshot,
+	swapPresentationWindows,
 } from 'pptx-viewer-shared';
 import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -109,6 +110,20 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 		return true;
 	}
 
+	/**
+	 * Move the console onto the audience screen and the deck onto the presenter's
+	 * (PowerPoint's "Swap Displays"). Needs the Window Management API to know
+	 * where the two screens are, so it reports `false` where that is unavailable
+	 * rather than moving windows blind.
+	 */
+	async function swapDisplays(): Promise<boolean> {
+		const target = audienceWindow;
+		if (!target || target.closed) {
+			return false;
+		}
+		return swapPresentationWindows(window, target);
+	}
+
 	watch(options.currentSlideIndex, (index) => {
 		updateSnapshot({ slideIndex: index });
 	});
@@ -155,5 +170,13 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 		channel = null;
 	});
 
-	return { isAudience, audienceOpen, snapshot, updateSnapshot, openAudience, closeAudience };
+	return {
+		isAudience,
+		audienceOpen,
+		snapshot,
+		updateSnapshot,
+		openAudience,
+		closeAudience,
+		swapDisplays,
+	};
 }

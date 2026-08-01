@@ -1,5 +1,10 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { nextPresentedSlide } from 'pptx-viewer-shared';
+import {
+	nextPresentedSlide,
+	PRESENTER_CONSOLE_CLASSES,
+	presenterNextDisabled,
+	presenterPrevDisabled,
+} from 'pptx-viewer-shared';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuChevronLeft, LuChevronRight, LuMinus, LuPlus } from 'react-icons/lu';
@@ -59,18 +64,16 @@ export function PresenterNotesRail({
 	);
 
 	return (
-		<aside className='flex flex-[3] min-w-[260px] max-w-[440px] flex-col border-l border-border bg-background'>
+		<aside className={PRESENTER_CONSOLE_CLASSES.rail}>
 			<header className='flex items-center justify-between border-b border-border/60 px-4 py-3'>
 				<div>
-					<div className='text-[10px] uppercase tracking-wider text-muted-foreground'>
+					<div className={PRESENTER_CONSOLE_CLASSES.railHeading}>
 						{t('pptx.presenter.currentTime')}
 					</div>
 					<div className='font-mono text-lg tabular-nums'>{formatTime(new Date(now))}</div>
 				</div>
 				<div className='text-right'>
-					<div className='text-[10px] uppercase tracking-wider text-muted-foreground'>
-						{t('pptx.presenter.elapsed')}
-					</div>
+					<div className={PRESENTER_CONSOLE_CLASSES.railHeading}>{t('pptx.presenter.elapsed')}</div>
 					<div className='font-mono text-lg tabular-nums text-primary'>
 						{formatElapsed(elapsed)}
 					</div>
@@ -81,7 +84,8 @@ export function PresenterNotesRail({
 				<button
 					type='button'
 					onClick={() => onMove(-1)}
-					disabled={current === 0}
+					disabled={presenterPrevDisabled(current)}
+					data-pptx-presenter-control='prev'
 					className='inline-flex items-center gap-1 rounded bg-muted px-3 py-1.5 text-xs disabled:opacity-40'
 				>
 					<LuChevronLeft /> {t('pptx.presenter.prev')}
@@ -93,19 +97,23 @@ export function PresenterNotesRail({
 				 * Next stays live on the last slide. PowerPoint's console advances
 				 * from there to the end-of-show screen and then out of the show;
 				 * disabling it stranded the presenter on the final slide with no way
-				 * to finish, so the audience display never closed either.
+				 * to finish, so the audience display never closed either. The comment
+				 * was not enough to stop three ports disabling it anyway, so the rule
+				 * is now shared code (`presenterNextDisabled`).
 				 */}
 				<button
 					type='button'
 					onClick={() => onMove(1)}
+					disabled={presenterNextDisabled()}
+					data-pptx-presenter-control='next'
 					className='inline-flex items-center gap-1 rounded bg-muted px-3 py-1.5 text-xs disabled:opacity-40'
 				>
 					{t('pptx.presenter.next')} <LuChevronRight />
 				</button>
 			</nav>
 
-			<section className='border-b border-border/60 px-4 py-3'>
-				<div className='mb-2 text-[10px] uppercase tracking-wider text-muted-foreground'>
+			<section className='border-b border-border/60 px-4 py-3' data-pptx-presenter-next-preview>
+				<div className={`mb-2 ${PRESENTER_CONSOLE_CLASSES.railHeading}`}>
 					{t('pptx.presenter.nextSlidePreview')}
 				</div>
 				{nextSlide ? (
@@ -121,9 +129,9 @@ export function PresenterNotesRail({
 				)}
 			</section>
 
-			<section className='flex min-h-0 flex-1 flex-col px-4 py-3'>
+			<section className='flex min-h-0 flex-1 flex-col px-4 py-3' data-pptx-presenter-notes>
 				<div className='mb-2 flex items-center justify-between'>
-					<div className='text-[10px] uppercase tracking-wider text-muted-foreground'>
+					<div className={PRESENTER_CONSOLE_CLASSES.railHeading}>
 						{t('pptx.presenter.speakerNotes')}
 					</div>
 					<div className='flex items-center gap-1'>
@@ -131,6 +139,7 @@ export function PresenterNotesRail({
 							type='button'
 							onClick={() => setFontSize(clampNotesFontSize(fontSize - NOTES_FONT_SIZE_STEP))}
 							disabled={fontSize <= NOTES_FONT_SIZE_MIN}
+							data-pptx-presenter-control='notes-font-decrease'
 							aria-label={t('pptx.presenter.decreaseFontSize')}
 						>
 							<LuMinus />
@@ -140,6 +149,7 @@ export function PresenterNotesRail({
 							type='button'
 							onClick={() => setFontSize(clampNotesFontSize(fontSize + NOTES_FONT_SIZE_STEP))}
 							disabled={fontSize >= NOTES_FONT_SIZE_MAX}
+							data-pptx-presenter-control='notes-font-increase'
 							aria-label={t('pptx.presenter.increaseFontSize')}
 						>
 							<LuPlus />

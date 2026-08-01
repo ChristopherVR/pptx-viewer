@@ -1,5 +1,6 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
+import { PRESENTER_CONSOLE_CLASSES, presenterTimerProgress } from 'pptx-viewer-shared';
 /**
  * PresenterView: Split-screen presenter layout with current slide,
  * next slide preview, speaker notes, timer, and navigation controls.
@@ -147,13 +148,13 @@ export function PresenterView({
 		);
 	}
 
-	// -- Timer progress (5-minute segments) ------------------------------------
-	const TIMER_SEGMENT_MS = 5 * 60 * 1000; // 5 minutes per bar fill
-	const timerProgress = Math.min(100, ((elapsed % TIMER_SEGMENT_MS) / TIMER_SEGMENT_MS) * 100);
-	const timerSegment = Math.floor(elapsed / TIMER_SEGMENT_MS);
+	// -- Timer progress --------------------------------------------------------
+	// Segment length and the clamp live in shared: the bar was inlined here,
+	// re-derived in Vue, helper-wrapped in Angular and absent from the other two.
+	const timerProgress = presenterTimerProgress(elapsed);
 
 	return (
-		<div className='absolute inset-0 z-50 flex flex-col bg-card text-foreground'>
+		<div className={PRESENTER_CONSOLE_CLASSES.root}>
 			<PresenterConsoleToolbar
 				snapshot={snapshot}
 				audienceOpen={Boolean(isAudienceWindowOpen)}
@@ -175,13 +176,13 @@ export function PresenterView({
 				onToggleSubtitles={onToggleSubtitles}
 				onExit={onExit}
 			/>
-			<div className='flex flex-1 min-h-0'>
+			<div className={PRESENTER_CONSOLE_CLASSES.body}>
 				{/* Left panel -- current slide (70%). Clicking it advances the show. */}
 				<div
 					role='presentation'
 					data-pptx-presenter-slide
 					onClick={handleSlidePaneClick}
-					className={`relative flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden ${
+					className={`${PRESENTER_CONSOLE_CLASSES.main} ${
 						paneAdvancesOnClick ? 'cursor-pointer' : ''
 					}`}
 				>
@@ -246,17 +247,20 @@ export function PresenterView({
 
 			{/* Timer progress bar */}
 			<div
-				className='h-1.5 w-full bg-muted/60 flex-shrink-0'
+				className={PRESENTER_CONSOLE_CLASSES.progressTrack}
 				role='progressbar'
-				aria-valuenow={Math.round(timerProgress)}
+				aria-valuenow={Math.round(timerProgress.percent)}
 				aria-valuemin={0}
 				aria-valuemax={100}
 				aria-label={t('pptx.presenter.timerProgress')}
-				title={`${formatElapsed(elapsed)} (segment ${timerSegment + 1})`}
+				title={t('pptx.presenter.timerTitle', {
+					elapsed: formatElapsed(elapsed),
+					segment: timerProgress.segment + 1,
+				})}
 			>
 				<div
-					className='h-full bg-primary transition-[width] duration-1000 ease-linear'
-					style={{ width: `${timerProgress}%` }}
+					className={PRESENTER_CONSOLE_CLASSES.progressFill}
+					style={{ width: `${timerProgress.percent}%` }}
 				/>
 			</div>
 		</div>

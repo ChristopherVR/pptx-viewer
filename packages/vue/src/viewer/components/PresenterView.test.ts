@@ -38,6 +38,29 @@ describe('presenterView', () => {
 		expect(wrapper.findAll('.pptx-vue-stage')).toHaveLength(2);
 	});
 
+	it('renders the console control strip with a real deck', async () => {
+		// Regression: the strip used to render ONLY in the empty-deck branch, so a
+		// real deck had no timer, zoom, annotation, blackout, captions or End.
+		const wrapper = mountView();
+		expect(wrapper.find('[data-pptx-presenter-strip]').exists()).toBeTruthy();
+		expect(wrapper.find('[data-pptx-presenter-control="timer-toggle"]').exists()).toBeTruthy();
+		expect(wrapper.find('[data-pptx-presenter-control="end"]').exists()).toBeTruthy();
+
+		await wrapper.find('[data-pptx-presenter-control="zoom-in"]').trigger('click');
+		expect(wrapper.emitted('update-snapshot')).toHaveLength(1);
+
+		await wrapper.find('[data-pptx-presenter-control="all-slides"]').trigger('click');
+		expect(wrapper.find('[data-pptx-presenter-navigator]').exists()).toBeTruthy();
+		expect(wrapper.find('[data-pptx-presenter-navigator]').text()).toContain('See All Slides');
+	});
+
+	it('titles the timer progress bar through the dictionary', () => {
+		const wrapper = mountView({ presentationStartTime: Date.now() - 65000 });
+		const bar = wrapper.find('[role="progressbar"]');
+		expect(bar.attributes('aria-label')).toBe('Timer Progress');
+		expect(bar.attributes('title')).toMatch(/\(segment 1\)$/u);
+	});
+
 	it('shows plain speaker notes', () => {
 		const wrapper = mountView();
 		expect(wrapper.find('.pptx-vue-presenter-notes').text()).toContain('Speaker notes here');
@@ -51,8 +74,18 @@ describe('presenterView', () => {
 	it('shows the end-of-presentation marker on the last slide', () => {
 		const wrapper = mountView({ currentSlideIndex: 1 });
 		expect(wrapper.find('.pptx-vue-presenter-preview-empty').text()).toContain(
-			'End of presentation',
+			'End of Presentation',
 		);
+	});
+
+	it('skips hidden slides in the next-slide preview', () => {
+		const wrapper = mountView({
+			slides: [makeSlide('s1'), makeSlide('s2', { hidden: true }), makeSlide('s3')],
+			currentSlideIndex: 0,
+		});
+		// s2 is hidden, so the preview shows s3 rather than the end-of-show marker.
+		expect(wrapper.find('.pptx-vue-presenter-preview-empty').exists()).toBeFalsy();
+		expect(wrapper.findAll('.pptx-vue-stage')).toHaveLength(2);
 	});
 
 	it('emits move and exit intents', async () => {
@@ -66,14 +99,19 @@ describe('presenterView', () => {
 		expect(wrapper.emitted('exit')).toHaveLength(1);
 	});
 
-	it('disables prev on the first slide and next on the last', () => {
+	it('disables prev on the first slide but never next', async () => {
 		const first = mountView({ currentSlideIndex: 0 });
 		const firstBtns = first.findAll('.pptx-vue-presenter-nav-btn');
 		expect(firstBtns[0]?.attributes('disabled')).toBeDefined();
 
+		// Next stays live on the last slide: PowerPoint advances from there to the
+		// end-of-show screen and out of the show, and disabling it stranded the
+		// presenter with no way to finish (so the audience display never closed).
 		const last = mountView({ currentSlideIndex: 1 });
 		const lastBtns = last.findAll('.pptx-vue-presenter-nav-btn');
-		expect(lastBtns[1]?.attributes('disabled')).toBeDefined();
+		expect(lastBtns[1]?.attributes('disabled')).toBeUndefined();
+		await lastBtns[1]?.trigger('click');
+		expect(last.emitted('move')?.[0]).toStrictEqual([1]);
 	});
 
 	it('adjusts the notes font size within bounds', async () => {

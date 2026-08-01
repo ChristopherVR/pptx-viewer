@@ -1,23 +1,31 @@
 /**
  * presenter-view-helpers.ts
  *
- * Helpers for `PresenterViewComponent`: time/elapsed formatting, notes
- * font-size clamping, rich-notes segment → view-model derivation, timer
- * progress, and current/next-slide selection.
+ * Helpers for `PresenterViewComponent`: rich-notes segment -> view-model
+ * derivation, elapsed-time derivation, and current/next-slide selection.
  *
- * The identical pure helpers (notes font-size constants, `clampNotesFontSize`,
- * `formatTime`) now live in `pptx-viewer-shared` and are re-exported here from
- * `../internal/shared` so existing Angular imports of
- * `./presenter-view-helpers` keep resolving.
+ * Everything genuinely pure now lives in `pptx-viewer-shared` and is re-exported
+ * here so existing Angular imports of `./presenter-view-helpers` keep resolving.
+ * The three forks this file used to carry are gone, and each of them was a real
+ * divergence rather than a stylistic one:
  *
- * Kept LOCAL (intentionally diverging from shared):
- *  - `formatElapsed`: clamps negative input to zero (shared's does not).
- *  - `NotesSegmentViewModel` / `buildNotesSegments`: produce a kebab-case
- *    `StyleMap` with `px` font sizes for the Angular template, unlike shared's
- *    camelCase `NotesSpan` (`pt`).
+ *  - `formatElapsed` clamped negative input while shared's did not, so the two
+ *    disagreed on a snapshot restored from a peer with a future start time. The
+ *    clamp now happens where the elapsed value is COMPUTED (see
+ *    {@link elapsedSince} and the presentation toolbar), which is the only place
+ *    that can tell a negative duration from a legitimate one.
+ *  - `computeTimerProgress` / `TIMER_SEGMENT_MS` re-derived the console's
+ *    five-minute progress segment that shared now owns as
+ *    `presenterTimerProgress` / `PRESENTER_TIMER_SEGMENT_MS`.
+ *  - `buildNotesSegments` emitted `font-size` in **px** where shared's
+ *    `notesSegmentsToSpans` emits **pt**, so a 12pt notes run rendered at 12px
+ *    in Angular and 16px in every other binding. It now delegates and only
+ *    rewrites the camelCase keys into the kebab-case {@link StyleMap} the
+ *    Angular template binds through `ngStyle`; the UNIT is shared's.
  *
  * Kept TestBed-free (vitest + happy-dom). ng-packagr lib-target constraints:
- * no `String.prototype.replaceAll`, no regex named-capture-groups.
+ * no `String.prototype.replaceAll`, no `Array.prototype.at`/`findLastIndex`,
+ * no regex named-capture-groups.
  *
  * `slideLabel` accepts an optional `TranslateService` so callers with access
  * to one get translated text; callers without one (e.g. plain unit tests)
@@ -26,69 +34,22 @@
 import type { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
-import { nextPresentedSlide } from '../internal/shared';
+import { nextPresentedSlide, notesSegmentsToSpans } from '../internal/shared';
 import type { StyleMap } from './element-style';
+import { cssObjectToStyleMap } from './table-renderer-helpers';
 
 export {
 	clampNotesFontSize,
+	formatElapsed,
 	formatTime,
 	NOTES_FONT_SIZE_DEFAULT,
 	NOTES_FONT_SIZE_MAX,
 	NOTES_FONT_SIZE_MIN,
 	NOTES_FONT_SIZE_STEP,
+	PRESENTER_TIMER_SEGMENT_MS,
+	presenterTimerProgress,
 } from '../internal/shared';
-
-// ---------------------------------------------------------------------------
-// Time formatting (local: negative-clamping differs from shared)
-// ---------------------------------------------------------------------------
-
-/**
- * Format a millisecond duration as MM:SS, or HH:MM:SS when the elapsed
- * time is one hour or longer. Sub-second values are floored; negative inputs
- * are treated as zero.
- */
-export function formatElapsed(elapsedMs: number): string {
-	const safeMs = elapsedMs > 0 ? elapsedMs : 0;
-	const totalSeconds = Math.floor(safeMs / 1000);
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor((totalSeconds % 3600) / 60);
-	const seconds = totalSeconds % 60;
-	if (hours > 0) {
-		return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
-	}
-	return `${pad2(minutes)}:${pad2(seconds)}`;
-}
-
-/** Zero-pad a non-negative integer to at least two digits. */
-function pad2(value: number): string {
-	return String(value).padStart(2, '0');
-}
-
-// ---------------------------------------------------------------------------
-// Timer progress (5-minute segments)
-// ---------------------------------------------------------------------------
-
-/** Milliseconds per timer progress-bar fill (one 5-minute segment). */
-export const TIMER_SEGMENT_MS = 5 * 60 * 1000;
-
-export interface TimerProgress {
-	/** Fill percentage of the current segment, clamped to [0, 100]. */
-	percent: number;
-	/** Zero-based index of the current 5-minute segment. */
-	segment: number;
-}
-
-/**
- * Derive the timer progress-bar fill (percent within the current 5-minute
- * segment) and the segment index from an elapsed duration. Mirrors the React
- * PresenterView `timerProgress` / `timerSegment` computation.
- */
-export function computeTimerProgress(elapsedMs: number): TimerProgress {
-	const safeMs = elapsedMs > 0 ? elapsedMs : 0;
-	const percent = Math.min(100, ((safeMs % TIMER_SEGMENT_MS) / TIMER_SEGMENT_MS) * 100);
-	const segment = Math.floor(safeMs / TIMER_SEGMENT_MS);
-	return { percent, segment };
-}
+export type { PresenterTimerProgress } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Elapsed time from a start timestamp
@@ -98,6 +59,9 @@ export function computeTimerProgress(elapsedMs: number): TimerProgress {
  * Compute the elapsed milliseconds between `startTime` (epoch ms, or null when
  * the presentation has not started) and `now`. Returns 0 when no start time is
  * set or the clock has not advanced past the start.
+ *
+ * This clamp is why shared's `formatElapsed` needs none: a duration handed to
+ * the formatter has already been resolved against a wall clock here.
  */
 export function elapsedSince(startTime: number | null, now: number): number {
 	if (startTime === null || startTime === undefined) {
@@ -122,8 +86,13 @@ export function currentSlideAt(slides: readonly PptxSlide[], index: number): Ppt
 }
 
 /**
- * Return the next slide (index + 1), or undefined when `index` is the last
- * slide, skipping hidden slides just as the live show does.
+ * Return the slide the show would advance to from `index`, or undefined at the
+ * end of the deck.
+ *
+ * Delegates to the shared `nextPresentedSlide`, which is what makes the
+ * next-slide preview agree with the show itself: it skips hidden slides and
+ * honours custom-show membership, neither of which a naive `slides[index + 1]`
+ * can do.
  */
 export function nextSlideAfter(slides: readonly PptxSlide[], index: number): PptxSlide | undefined {
 	return nextPresentedSlide(slides, index);
@@ -159,44 +128,23 @@ export interface NotesSegmentViewModel {
 }
 
 /**
- * Derive a list of notes view-model tokens from rich-text `TextSegment`s,
- * mirroring the React `renderNotesSegments` styling rules. Paragraph breaks
- * become break tokens; styled runs carry an inline `StyleMap`.
+ * Derive notes view-model tokens from rich-text `TextSegment`s.
+ *
+ * The styling rules (which properties, in which units) belong to shared's
+ * `notesSegmentsToSpans`; all this adds is the camelCase -> kebab-case rewrite
+ * the Angular `ngStyle` binding is written against.
  */
 export function buildNotesSegments(segments: readonly TextSegment[]): NotesSegmentViewModel[] {
-	return segments.map((segment, index) => {
-		if (segment.isParagraphBreak) {
-			return { key: `br-${index}`, isBreak: true, text: '', style: {} };
-		}
-		const style: StyleMap = {};
-		const s = segment.style;
-		if (s.bold) {
-			style['font-weight'] = 'bold';
-		}
-		if (s.italic) {
-			style['font-style'] = 'italic';
-		}
-		const decorations: string[] = [];
-		if (s.underline) {
-			decorations.push('underline');
-		}
-		if (s.strikethrough) {
-			decorations.push('line-through');
-		}
-		if (decorations.length > 0) {
-			style['text-decoration'] = decorations.join(' ');
-		}
-		if (s.color) {
-			style['color'] = s.color;
-		}
-		if (s.fontSize) {
-			style['font-size'] = `${s.fontSize}px`;
-		}
-		if (s.fontFamily) {
-			style['font-family'] = s.fontFamily;
-		}
-		return { key: `seg-${index}`, isBreak: false, text: segment.text, style };
-	});
+	return notesSegmentsToSpans([...segments]).map((span) =>
+		span.kind === 'break'
+			? { key: span.key, isBreak: true, text: '', style: {} }
+			: {
+					key: span.key,
+					isBreak: false,
+					text: span.text,
+					style: cssObjectToStyleMap(span.style),
+				},
+	);
 }
 
 export interface PresenterNotes {

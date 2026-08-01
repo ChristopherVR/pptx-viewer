@@ -1,5 +1,17 @@
 <script setup lang="ts">
+/**
+ * PresenterSlideGrid - the presenter console's "See All Slides" navigator.
+ *
+ * Its headings were hard-coded English (`Slide navigator`, `See all slides`,
+ * `Close`), so the overlay stayed English in every locale; they now resolve
+ * through the shared {@link PRESENTER_NAVIGATOR_LABEL_KEYS}. The overlay's
+ * geometry comes from the shared Tailwind tokens so the navigator is the same
+ * size and stacking order in every binding (it sat at three different z-indexes
+ * before they were shared).
+ */
 import type { PptxSlide } from 'pptx-viewer-core';
+import { PRESENTER_CONSOLE_CLASSES, PRESENTER_NAVIGATOR_LABEL_KEYS } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
@@ -11,20 +23,27 @@ defineProps<{
 	mediaDataUrls: Map<string, string>;
 }>();
 const emit = defineEmits<{ (e: 'select', index: number): void; (e: 'close'): void }>();
+
+const { t } = useI18n();
+const navigatorKeys = PRESENTER_NAVIGATOR_LABEL_KEYS;
+const classes = PRESENTER_CONSOLE_CLASSES;
 </script>
 <template>
-	<div class="slide-grid">
+	<div class="slide-grid" :class="classes.navigator" data-pptx-presenter-navigator>
 		<header>
 			<div>
-				<small>Slide navigator</small>
-				<h2>See all slides</h2>
+				<small>{{ t(navigatorKeys.title) }}</small>
+				<h2>{{ t(navigatorKeys.subtitle) }}</h2>
 			</div>
-			<button @click="emit('close')">Close</button>
+			<button type="button" data-pptx-presenter-control="close-navigator" @click="emit('close')">
+				{{ t(navigatorKeys.close) }}
+			</button>
 		</header>
-		<main>
+		<main :class="classes.navigatorGrid">
 			<button
 				v-for="(slide, index) in slides"
 				:key="slide.id ?? index"
+				type="button"
 				:class="{ current: index === current, hidden: slide.hidden }"
 				@click="emit('select', index)"
 			>
@@ -44,13 +63,9 @@ const emit = defineEmits<{ (e: 'select', index: number): void; (e: 'close'): voi
 	</div>
 </template>
 <style scoped>
+/* Position, stacking and grid geometry come from the shared Tailwind tokens on
+   the elements above; only the navigator's own chrome is styled here. */
 .slide-grid {
-	position: absolute;
-	inset: 0;
-	z-index: 120;
-	display: flex;
-	flex-direction: column;
-	background: #020617f9;
 	color: #f8fafc;
 }
 .slide-grid header {
@@ -75,13 +90,6 @@ const emit = defineEmits<{ (e: 'select', index: number): void; (e: 'close'): voi
 	color: inherit;
 	padding: 9px;
 	cursor: pointer;
-}
-.slide-grid main {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-	gap: 20px;
-	padding: 24px;
-	overflow: auto;
 }
 .slide-grid main button {
 	text-align: left;

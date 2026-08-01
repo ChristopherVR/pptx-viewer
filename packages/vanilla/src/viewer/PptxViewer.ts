@@ -838,6 +838,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.store.set({ notesExpanded: true });
 		this.presenterView?.dispose();
 		this.presenterView = mountPresenterView(this.buildPresenterViewOptions());
+		this.markPresenterConsoleOpen(true);
 
 		// The presenter's own screen must be IN the show, not an editor with a
 		// console laid over it: without this `presenting` stayed false, so the
@@ -954,12 +955,16 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return {
 			doc: this.doc,
 			t: this.t,
-			container: this.container,
+			// The CHROME ROOT, not the host container. The chrome root is the
+			// element the Fullscreen API is holding, and a fullscreen browser
+			// paints only that element's subtree: a console mounted alongside it
+			// is in the DOM, reports its own layout, and is simply never drawn.
+			container: this.lifecycle.chrome.root,
 			getSnapshot: () => this.presenterSnapshot,
 			getSlides: () => this.store.get().slides,
 			getCurrent: () => this.getCurrentSlide(),
 			getElapsedMs: () => this.presenterSnapshot.elapsedMs ?? 0,
-			canvasWidth: () => this.store.get().canvasSize.width,
+			canvasSize: () => this.store.get().canvasSize,
 			renderSlide: (slide, scale) => this.renderer.renderSlideNode(slide, scale),
 			navigate: (index) => this.goToSlide(index),
 			move: (direction) => (direction === 1 ? this.controls.next() : this.controls.prev()),
@@ -1009,6 +1014,17 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	 * the show's ink, so the bar never keeps its own copy: every mutation, from a
 	 * bar button, a keyboard shortcut or the presenter console, lands here.
 	 */
+	/**
+	 * Mark the chrome while the presenter console owns the screen.
+	 *
+	 * The show toolbar has to stand down: the console carries its own
+	 * navigation, annotation tools and End control, and leaving the bar up put a
+	 * SECOND set of them over the console, at a higher stacking order.
+	 */
+	private markPresenterConsoleOpen(open: boolean): void {
+		this.lifecycle.chrome.root.classList.toggle('pptxv-presenter-open', open);
+	}
+
 	private syncPresentationToolbar(): void {
 		this.lifecycle.chrome.presentationToolbar.update({
 			tool: this.presenterSnapshot.pointer?.tool ?? 'none',
@@ -1030,6 +1046,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			this.presenterView = null;
 			this.presenterCaptions?.dispose();
 			this.presenterCaptions = null;
+			this.markPresenterConsoleOpen(false);
 			this.syncPresentationToolbar();
 			return;
 		}

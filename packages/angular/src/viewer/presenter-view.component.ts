@@ -12,7 +12,11 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { presenterPaneAdvancesOnClick } from '../internal/shared';
+import {
+	presenterNextDisabled,
+	presenterPaneAdvancesOnClick,
+	presenterPrevDisabled,
+} from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { PresenterControlsComponent } from './presenter-controls.component';
@@ -22,12 +26,12 @@ import {
 	NOTES_FONT_SIZE_MIN,
 	NOTES_FONT_SIZE_STEP,
 	clampNotesFontSize,
-	computeTimerProgress,
 	currentSlideAt,
 	elapsedSince,
 	formatElapsed,
 	formatTime,
 	nextSlideAfter,
+	presenterTimerProgress,
 	resolvePresenterNotes,
 	slideCounter,
 	slideLabel,
@@ -152,7 +156,42 @@ export class PresenterViewComponent {
 
 	protected readonly elapsedLabel = computed<string>(() => formatElapsed(this.elapsedMs()));
 
-	private readonly timerProgress = computed(() => computeTimerProgress(this.elapsedMs()));
+	private readonly timerProgress = computed(() => presenterTimerProgress(this.elapsedMs()));
+
+	/**
+	 * Whether Previous / Next are unusable, straight from the shared rule.
+	 *
+	 * Next is NEVER disabled: PowerPoint's console advances from the last slide
+	 * to the end-of-show screen and then out of the show, so gating it on
+	 * `index >= slides.length - 1` (as this component used to) strands the
+	 * presenter on the final slide with no way to finish, and the audience
+	 * display never closes either.
+	 */
+	protected readonly prevDisabled = computed<boolean>(() =>
+		presenterPrevDisabled(this.currentSlideIndex()),
+	);
+
+	protected readonly nextDisabled = computed<boolean>(() => presenterNextDisabled());
+
+	/**
+	 * The console zoom, applied to the current-slide pane.
+	 *
+	 * The pane used to hard-code `[zoom]="1"`, so the strip's zoom buttons
+	 * mutated the snapshot (and the audience display honoured it) while the
+	 * presenter's own pane never moved a pixel. Scaling the STAGE wrapper rather
+	 * than the canvas mirrors React's `PresenterSlideFrame`: the canvas keeps
+	 * auto-fitting its (layout-measured, transform-immune) viewport, and the
+	 * zoom rides on top of that fit about the snapshot's focal point.
+	 */
+	protected readonly previewStageStyle = computed<StyleMap>(() => {
+		const zoom = this.presenterWindow.snapshot().zoom;
+		const originX = (zoom?.originX ?? 0.5) * 100;
+		const originY = (zoom?.originY ?? 0.5) * 100;
+		return {
+			transform: `scale(${zoom?.scale ?? 1})`,
+			'transform-origin': `${originX}% ${originY}%`,
+		};
+	});
 
 	protected readonly timerPercent = computed<number>(() => this.timerProgress().percent);
 
@@ -207,6 +246,16 @@ export class PresenterViewComponent {
 		} else {
 			this.openAudienceWindow.emit();
 		}
+	}
+
+	/**
+	 * Move the console onto the audience's screen and vice versa (PowerPoint's
+	 * "Swap Displays"). Best-effort: the underlying Window Management API is not
+	 * universally available, so a `false` result is not an error, it is a browser
+	 * that will not move windows for us.
+	 */
+	protected onSwapDisplays(): void {
+		void this.presenterWindow.swapDisplays();
 	}
 
 	// ------------------------------------------------------------------
