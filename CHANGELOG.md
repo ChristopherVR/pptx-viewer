@@ -8,6 +8,26 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-01
+
+_Releases: pptx-viewer-core@2.1.2, pptx-react-viewer@2.12.0, pptx-vue-viewer@2.12.0, pptx-angular-viewer@2.12.0, pptx-vanilla-viewer@1.13.0, pptx-svelte-viewer@2.12.0_
+
+### Features
+
+- Mark hidden slides in every rail and sorter, and honour custom shows in vanilla and svelte (by @ChristopherVR) ([b61f202](https://github.com/ChristopherVR/pptx-viewer/commit/b61f2029b09d2bad78fc53bdd0f0d5538b171aa9))
+- Name every animation preset a user can reach, in every locale (by @ChristopherVR) ([f99962d](https://github.com/ChristopherVR/pptx-viewer/commit/f99962d0e98d579ad45ee77299b1df1f326fde6d))
+- **vue:** Add the connector arrowhead controls, and make connectors clickable (by @ChristopherVR) ([2b0976e](https://github.com/ChristopherVR/pptx-viewer/commit/2b0976ea68b4ffc6c3ab7fd5d58aed1c8f5d1356))
+
+### Bug Fixes
+
+- **vanilla:** Let a ribbon button with a text label size to its text (by @ChristopherVR) ([e8ed06e](https://github.com/ChristopherVR/pptx-viewer/commit/e8ed06e1ed6e499f1005ea2a44969fa946c3d60e))
+- **shared:** Paint SVG-only pictures, honour srcRect crops, stop bold leaking (by @ChristopherVR) ([ff866db](https://github.com/ChristopherVR/pptx-viewer/commit/ff866db22a2f59f0fbb6da518b4055e8edd80481))
+- Give every binding React's slide-show bar, and make slice clicks work (by @ChristopherVR) ([31f30f7](https://github.com/ChristopherVR/pptx-viewer/commit/31f30f7f26117e3badb34c2e2e0a29f32f8da608))
+
+### Refactor
+
+- **vue:** Decompose the two largest view-layer files (by @ChristopherVR) ([0bd2568](https://github.com/ChristopherVR/pptx-viewer/commit/0bd25680a428a47eecba38c4f50839c7a93eba80))
+
 ## 2026-07-31
 
 _Releases: pptx-react-viewer@2.11.1, pptx-vue-viewer@2.11.1, pptx-angular-viewer@2.11.1, pptx-vanilla-viewer@1.12.1, pptx-svelte-viewer@2.11.1_
