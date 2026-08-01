@@ -11,11 +11,14 @@
  * `connector-style.ts` and is re-used here rather than re-declared.
  */
 
-import type { ConnectorArrowType, PptxElement } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../constants';
+import { buildDashArray } from './connector-dash';
 import { connectorHitStrokeWidth } from './connector-hit-target';
+import { markerPath, normalizeArrow } from './connector-markers';
+import type { MarkerShape } from './connector-markers';
 import { routeOrthogonalConnector, waypointsToPathD } from './connector-router';
 import type { RouterRect } from './connector-router';
 import {
@@ -24,11 +27,15 @@ import {
 	getCompoundLineWidths,
 	svgLineCap,
 } from './connector-style';
-import { getSvgStrokeDasharray, normalizeStrokeDashType } from './element-style-transform';
 
 // Re-exported so the historical `render/connector-path` import surface (and the
-// package barrel, which spreads this module) still carries the hit-target rule.
+// package barrel, which spreads this module) still carries the hit-target rule
+// and the arrow-head marker shapes, both of which now live in their own modules.
 export { CONNECTOR_HIT_MIN_WIDTH, connectorHitStrokeWidth } from './connector-hit-target';
+export { markerPath, normalizeArrow } from './connector-markers';
+export type { ArrowSize, MarkerShape } from './connector-markers';
+export { buildDashArray } from './connector-dash';
+export type { DashSegment } from './connector-dash';
 
 /**
  * Optional obstacle-avoidance routing context for bent connectors. When
@@ -40,29 +47,6 @@ export interface ConnectorRouting {
 	obstacles: ReadonlyArray<RouterRect>;
 	canvasWidth: number;
 	canvasHeight: number;
-}
-
-/** A single custom-dash segment (percent-of-line-width, 1000ths of a percent). */
-export interface DashSegment {
-	dash: number;
-	space: number;
-}
-
-/** Arrow head size token (`a:ln/a:headEnd|tailEnd/@w|@len`). */
-export type ArrowSize = 'sm' | 'med' | 'lg';
-
-/** Shape description for a SVG `<marker>` element (viewBox 0 0 10 10). */
-export interface MarkerShape {
-	shape: 'path' | 'circle';
-	d?: string;
-	/**
-	 * Suggested `markerWidth` (along the line: arrow *length*). Derived from the
-	 * connector's `@len` size token. Bindings should apply this instead of a
-	 * hard-coded value so `sm`/`lg` arrows scale. Defaults to the historical `4`.
-	 */
-	markerWidth: number;
-	/** Suggested `markerHeight` (perpendicular: arrow *width*, from `@w`). */
-	markerHeight: number;
 }
 
 /** All derived connector rendering values, computed from a `PptxElement`. */
@@ -218,36 +202,6 @@ export function buildConnectorGeometry(
 }
 
 /**
- * Return the SVG `stroke-dasharray` string for a given OOXML stroke dash preset
- * and width, or `undefined` for solid lines (no attribute needed).
- *
- * Produces a distinct pattern per preset (`dash`, `lgDash`, `dashDot`,
- * `sysDashDotDot`, etc.) rather than collapsing every non-dot preset to a single
- * `3w/w` approximation, and honours a `custDash` segment list (`a:custDash/a:ds`)
- * when supplied. This delegates to the same {@link getSvgStrokeDasharray} the
- * shape/border code uses, so connectors and shape outlines stay in lock-step.
- *
- * @param dash               Raw `a:ln/@prstDash` token (e.g. `"lgDashDot"`).
- * @param strokeWidth        Resolved stroke width in px.
- * @param customDashSegments Optional `custDash` segments; when present they take
- *                           precedence and are rendered as an explicit pattern.
- */
-export function buildDashArray(
-	dash: string | undefined,
-	strokeWidth: number,
-	customDashSegments?: ReadonlyArray<DashSegment>,
-): string | undefined {
-	const segments =
-		customDashSegments && customDashSegments.length > 0
-			? customDashSegments.map((seg) => ({ dash: seg.dash, space: seg.space }))
-			: undefined;
-	// A `custDash` implies the `custom` dash family even when no `@prstDash`
-	// token was authored alongside it.
-	const dashType = segments ? 'custom' : normalizeStrokeDashType(dash);
-	return getSvgStrokeDasharray(dashType, strokeWidth, segments);
-}
-
-/**
  * Normalise a connector's first adjustment value (`adj1`/`adj`) to a 0..1
  * fraction that positions the elbow / curve mid-axis. OOXML stores these in
  * 1000ths of a percent (0..100000); values already in 0..1 are passed through.
@@ -302,53 +256,6 @@ export function buildConnectorPathD(
 		return `M${x1},${y1} Q${x2},${y1} ${x2},${y2}`;
 	}
 	return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
-}
-
-/**
- * Base `markerWidth`/`markerHeight` (in `strokeWidth` units) for a `med` arrow.
- * `sm`/`lg` scale relative to this, mirroring PowerPoint's discrete sizes and
- * the React binding's `ARROW_SIZE_SCALE`.
- */
-const ARROW_BASE_MARKER_SIZE = 4;
-const ARROW_SIZE_SCALE: Record<ArrowSize, number> = { sm: 0.6, med: 1, lg: 1.5 };
-
-/**
- * Map a `ConnectorArrowType` value to its SVG marker shape, scaling the marker
- * box by the arrow's width (`@w`) and length (`@len`) size tokens.
- *
- * The `<marker>` viewBox stays `0 0 10 10`; the returned {@link MarkerShape}
- * carries `markerWidth` (length, along the line) and `markerHeight` (width,
- * perpendicular) so bindings render `sm`/`med`/`lg` arrows at the right size
- * instead of a single fixed dimension.
- *
- * @param type        Arrow head shape.
- * @param arrowWidth  `@w` size token (perpendicular thickness). Defaults `med`.
- * @param arrowLength `@len` size token (length along the line). Defaults `med`.
- */
-export function markerPath(
-	type: ConnectorArrowType,
-	arrowWidth?: ArrowSize,
-	arrowLength?: ArrowSize,
-): MarkerShape {
-	const markerWidth = ARROW_BASE_MARKER_SIZE * (ARROW_SIZE_SCALE[arrowLength ?? 'med'] ?? 1);
-	const markerHeight = ARROW_BASE_MARKER_SIZE * (ARROW_SIZE_SCALE[arrowWidth ?? 'med'] ?? 1);
-	const box = { markerWidth, markerHeight };
-	switch (type) {
-		case 'diamond':
-			return { shape: 'path', d: 'M5 0 L10 5 L5 10 L0 5 Z', ...box };
-		case 'oval':
-			return { shape: 'circle', ...box };
-		case 'stealth':
-			return { shape: 'path', d: 'M0 0 L10 5 L0 10 L3 5 Z', ...box };
-		// triangle / arrow / fallback
-		default:
-			return { shape: 'path', d: 'M0 0 L10 5 L0 10 Z', ...box };
-	}
-}
-
-/** Normalise a raw arrow type value: coerce `"none"` / `undefined` → `undefined`. */
-export function normalizeArrow(a: ConnectorArrowType | undefined): ConnectorArrowType | undefined {
-	return a && a !== 'none' ? a : undefined;
 }
 
 /**
