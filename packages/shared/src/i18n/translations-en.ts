@@ -1232,6 +1232,18 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presenter.eraseAllInk': 'Erase All Ink on Slide',
 	'pptx.presenter.slideLabel': 'Slide {{current}} of {{total}}',
 	'pptx.presenter.timerProgress': 'Timer Progress',
+	// Presenter console strip (see render/presenter-chrome.ts). React shipped
+	// these as hard-coded English `title` attributes, which is why they arrive
+	// as new keys rather than reused ones.
+	'pptx.presenter.toggleTimer': 'Pause or Resume Timer',
+	'pptx.presenter.resetTimer': 'Reset Timer',
+	'pptx.presenter.zoomIn': 'Zoom In',
+	'pptx.presenter.zoomOut': 'Zoom Out',
+	'pptx.presenter.resetZoom': 'Reset Zoom',
+	'pptx.presenter.swapDisplays': 'Swap Displays',
+	'pptx.presenter.slideNavigator': 'Slide Navigator',
+	'pptx.presenter.closeNavigator': 'Close',
+	'pptx.presenter.timerTitle': '{{elapsed}} (segment {{segment}})',
 
 	// Print dialog
 	'pptx.print.allSlides': 'All Slides',
@@ -2200,6 +2212,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.editorToolbar.resetZoom': 'Reset zoom',
 	'pptx.editorToolbar.resetZoomTo100': 'Reset zoom to 100%',
 	'pptx.effects.innerShadow': 'Inner Shadow',
+	'pptx.element.hasAction': 'Has action',
 	'pptx.element.linkFallback': 'Link',
 	'pptx.export.export': 'Export',
 	'pptx.export.gifAnimated': 'Animated GIF',

@@ -608,6 +608,14 @@ export * from './presentation-toolbar';
 // counterpart to `presentation-toolbar`'s behaviour, so no binding invents its
 // own bar.
 export * from './present-chrome';
+// Presenter-console inventory + geometry: which controls the presenter view
+// carries, in what order, under which label keys, and at what measurements.
+// The `present-chrome` counterpart for the console rather than the show bar.
+export * from './presenter-chrome';
+export * from './presenter-chrome-metrics';
+// Presenter-view lifecycle: the one-shot latch that stops the audience popup's
+// fullscreen bounce being mistaken for the presenter ending the show.
+export * from './presenter-show-lifecycle';
 // Slide-show keyboard map: PowerPoint's published shortcut set (navigation,
 // slide-number jump, blank screens, pointer tools) as one shared mapping so no
 // binding invents its own bindings.
@@ -667,6 +675,13 @@ export * from './accessibility';
 // Whether an element is a control (click/hover action, text hyperlink, zoom
 // tile). Drives the `role="button"` override above, so all five bindings agree.
 export * from './element-actionability';
+// On-canvas action affordances (amber "has action" badge + hover link tooltip):
+// the show/hide rule, the fallback text chain, and the shared CSS, so all five
+// bindings draw the same authoring chrome and never during a slide show.
+export * from './element-action-affordance';
+// The same affordances painted at a stage boundary, for the four bindings whose
+// element renderer dispatches straight to a per-type component with no wrapper.
+export * from './element-action-affordance-dom';
 // Whether an element reaches the canvas at all: the Selection Pane's hide/show
 // rule (`p:cNvPr/@hidden`), applied by every binding's element renderer.
 export * from './element-visibility';

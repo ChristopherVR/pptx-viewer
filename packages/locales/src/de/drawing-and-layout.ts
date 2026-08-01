@@ -99,6 +99,7 @@ export const translations = {
 	'pptx.design.formatBackgroundTooltip':
 		'Öffnen Sie den Inspektor, um den Folienhintergrund zu bearbeiten',
 	'pptx.design.slideSizeTooltip': 'Folienabmessungen ändern (16:9, 4:3, benutzerdefiniert)',
+	'pptx.element.hasAction': 'Hat Aktion',
 	'pptx.element.linkFallback': 'Link',
 	'pptx.align.bottom': 'Unten ausrichten',
 	'pptx.align.centerH': 'Mittig ausrichten',

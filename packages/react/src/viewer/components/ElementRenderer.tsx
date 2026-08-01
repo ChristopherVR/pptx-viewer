@@ -3,6 +3,7 @@ import {
 	getGroupChildParentFill,
 	isElementActionable,
 	isElementRendered,
+	LINK_TOOLTIP_HOST_CLASS,
 } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 
@@ -21,18 +22,17 @@ import {
 } from '../utils';
 import { getAriaRole, getAriaLabel, getAriaRoleDescription } from '../utils/accessibility';
 import { build3DExtrusionData } from '../utils/shape-visual-3d';
+import { ActionAffordances, useActionAffordance } from './elements/ActionAffordance';
 import { ConnectorElementRenderer } from './elements/ConnectorElementRenderer';
 import { getElementInteractionProps } from './elements/element-interaction-props';
 import {
 	renderDagDuotoneFilterForElement,
 	getContainerStyle,
-	ActionIndicator,
 } from './elements/element-renderer-helpers';
 import type { ElementRendererProps } from './elements/element-renderer-types';
 import { shapeParams } from './elements/element-shape-params';
 import { renderBody } from './elements/ElementBody';
 import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
-import { LinkTooltip } from './elements/LinkTooltip';
 import { ResizeHandles } from './elements/ResizeHandles';
 import { getScopedElementHandlers } from './elements/scoped-element-handlers';
 import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
@@ -133,6 +133,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				build3DExtrusionData(shapeStyle3d?.shape3d, shapeStyle3d?.scene3d, fc, el.width, el.height),
 			[shapeStyle3d?.shape3d, shapeStyle3d?.scene3d, fc, el.width, el.height],
 		);
+
+		// Authoring chrome for an Action Setting (amber badge + hover tooltip).
+		// Resolved through shared so all five bindings agree on when it shows and
+		// what it says; a hook, so it must sit above the early returns below.
+		const actionAffordance = useActionAffordance(el, canInteract);
 
 		const [isMediaPlaying, setIsMediaPlaying] = useState(false);
 		const handleMediaPlayStateChange = useCallback((playing: boolean): void => {
@@ -249,7 +254,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					effectiveCanInteract || isActionable ? '' : 'pointer-events-none',
 					isFullscreenMedia ? 'pointer-events-auto' : '',
 					selB,
-					effectiveCanInteract && el.actionClick && 'group/link',
+					// Shared class the tooltip's `:hover` rule keys off (see
+					// `ACTION_AFFORDANCE_CSS`), replacing React's Tailwind `group/link`
+					// so the four non-Tailwind bindings reveal it the same way.
+					actionAffordance.showLinkTooltip && LINK_TOOLTIP_HOST_CLASS,
 				)}
 				style={getContainerStyle({
 					el,
@@ -336,18 +344,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					onUpdateChartElement: chartUpdateHandler,
 					onFormatText,
 				})}
-				{(el.actionClick || el.actionHover) && canInteract && (
-					<ActionIndicator
-						clickTooltip={el.actionClick?.tooltip}
-						hoverTooltip={el.actionHover?.tooltip}
-					/>
-				)}
-				{effectiveCanInteract && el.actionClick && (
-					<LinkTooltip
-						label={el.actionClick.tooltip || el.actionClick.url || el.actionClick.action || 'Link'}
-						hasUrl={Boolean(el.actionClick.url)}
-					/>
-				)}
+				<ActionAffordances affordance={actionAffordance} />
 				{effectiveShowResizeHandles && !effectiveIsInlineEditing && (
 					<ResizeHandles
 						elementId={el.id}

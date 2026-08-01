@@ -19,8 +19,19 @@
 	 * starts on its own via the shared `startMediaAutoplay` (matches Vue's
 	 * `ElementMediaBox.vue`, so all bindings behave identically); it pauses
 	 * again when `presenting` turns off.
+	 *
+	 * Authored playback settings (`loop`, `volume`, `playbackSpeed`) come from the
+	 * shared `mediaPlaybackAttributes` / `applyMediaPlaybackAttributes`. Dropping
+	 * them is not cosmetic: `e2e/fixtures/solution-explorer.pptx` slide 2 holds a
+	 * two-second background video the deck marks `loop` with `vol="0"`, and
+	 * without the loop flag it played once, hit its end and froze on the last
+	 * frame, which reads exactly like "the video never started".
 	 */
-	import { startMediaAutoplay } from 'pptx-viewer-shared';
+	import {
+		applyMediaPlaybackAttributes,
+		mediaPlaybackAttributes,
+		startMediaAutoplay,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { resolveMediaView } from '../render';
@@ -41,6 +52,10 @@
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	const isFallback = $derived(view !== undefined && !view.mediaSrc && !view.posterSrc);
 	const trimStartMs = $derived(media?.trimStartMs);
+	// `loop` is a real attribute, so it binds declaratively; `volume` and
+	// `playbackRate` are IDL properties with no attribute form and have to be
+	// applied imperatively below.
+	const playback = $derived(mediaPlaybackAttributes(media ?? {}));
 
 	// The conditionally-rendered `<video>`/`<audio>` template's `bind:this`
 	// writes this (invisible to the linter); it must be `$state` so Svelte
@@ -53,9 +68,14 @@
 		const el = mediaEl;
 		// Track trimStartMs so a change while already presenting re-seeks.
 		const trim = trimStartMs;
-		if (!el) {
+		// Read the element itself so an authored volume / speed change re-applies.
+		const source = media;
+		if (!el || !source) {
 			return;
 		}
+		// Applied BEFORE playback starts, so a `vol="0"` clip never blares out
+		// during its first frames while effects settle.
+		applyMediaPlaybackAttributes(el, source);
 		if (presenting) {
 			startMediaAutoplay(el, { trimStartMs: trim });
 		} else if (!el.paused) {
@@ -80,6 +100,7 @@
 				src={view.mediaSrc}
 				poster={view.posterSrc}
 				controls={!presenting}
+				loop={playback.loop}
 				preload="metadata"
 				playsinline
 			></video>
@@ -89,6 +110,7 @@
 				class="pptx-svelte-media-audio"
 				src={view.mediaSrc}
 				controls={!presenting}
+				loop={playback.loop}
 			></audio>
 		{:else if view.posterSrc}
 			<img class="pptx-svelte-media-poster" src={view.posterSrc} alt="" />

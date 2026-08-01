@@ -180,7 +180,7 @@ describe('renderMediaElement', () => {
 			video.play();
 			expect(video.paused).toBeFalsy();
 
-			applyMediaPresentingState(video, false, undefined);
+			applyMediaPresentingState(video, false, {});
 
 			expect(video.paused).toBeTruthy();
 		});
@@ -189,7 +189,7 @@ describe('renderMediaElement', () => {
 			const video = document.createElement('video');
 			const pauseSpy = vi.spyOn(video, 'pause');
 
-			applyMediaPresentingState(video, false, undefined);
+			applyMediaPresentingState(video, false, {});
 
 			expect(pauseSpy).not.toHaveBeenCalled();
 		});
@@ -197,10 +197,28 @@ describe('renderMediaElement', () => {
 		it('applyMediaPresentingState starts playback (with trim seek) when presenting is true', () => {
 			const video = document.createElement('video');
 
-			applyMediaPresentingState(video, true, 1000);
+			applyMediaPresentingState(video, true, { trimStartMs: 1000 });
 
 			expect(video.currentTime).toBe(1);
 			expect(video.paused).toBeFalsy();
+		});
+
+		it('carries the deck loop flag onto the node', () => {
+			// A looping short clip that never got `loop` played once and froze on
+			// its last frame, which reads as media that never started at all.
+			const video = document.createElement('video');
+
+			applyMediaPresentingState(video, true, { loop: true });
+
+			expect(video.loop).toBeTruthy();
+		});
+
+		it('honours a silent deck rather than playing at full volume', () => {
+			const video = document.createElement('video');
+
+			applyMediaPresentingState(video, true, { volume: 0 });
+
+			expect(video.volume).toBe(0);
 		});
 	});
 });

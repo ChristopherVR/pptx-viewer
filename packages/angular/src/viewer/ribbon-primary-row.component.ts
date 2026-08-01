@@ -161,7 +161,8 @@ export function visibleOverflowItems(
 								[disabled]="slideCount() === 0"
 								(click)="presenter.emit(); presentMenuOpen.set(false)"
 							>
-								{{ 'pptx.ribbon.presenterView' | translate }}
+								<!-- Same key as the Slide Show tab and the other four bindings. -->
+								{{ 'pptx.slideShow.presenterView' | translate }}
 							</button>
 							@if (!toolbar.isHidden('broadcast')) {
 								<button

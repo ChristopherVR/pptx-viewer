@@ -281,7 +281,16 @@ export function buildTimeline(
 				// is how PowerPoint renders a deck whose opening effects are "With
 				// Previous"; without it the first group was always click-gated and
 				// the slide showed nothing until the viewer clicked.
-				currentGroupAutoStart = !isOnClick && singleAnim.groupAutoStart === true;
+				// `isOnClick` alone is the wrong test: `resolveAnimationStart` keeps
+				// the node's fallback trigger (`onClick`) whenever its condition list
+				// carries no actionable semantics, so a step the deck marks as
+				// auto-starting AND whose only condition is `<p:cond delay="0"/>`
+				// looked click-gated. `requiresInteraction` distinguishes the two,
+				// which is what makes a slide-entry `p:cmd` media command (the
+				// `playFrom(0.0)` on solution-explorer slide 2) start with the slide
+				// instead of waiting for a Next press.
+				currentGroupAutoStart =
+					singleAnim.groupAutoStart === true && !effective.requiresInteraction;
 				subGroupIndex = singleAnim.parGroupIndex;
 				subGroupStartMs = 0;
 			}
@@ -445,7 +454,14 @@ function buildSequenceGroups(
 		for (const anim of anims) {
 			let effect = resolveEffect(anim);
 			const dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
-			if (!effect && !dynamic) {
+			// An interactive sequence can hold a `p:cmd` media command just as the
+			// main sequence can (PowerPoint's "click the video to pause it" is
+			// authored exactly that way). Without this branch the step fell through
+			// to the unmapped-preset safety net, and because a `mediacall` effect
+			// carries no whitelisted `presetClass` the net returned nothing and the
+			// command was dropped in silence.
+			const isCommand = !effect && !dynamic && isMediaCommandAnimation(anim);
+			if (!effect && !dynamic && !isCommand) {
 				// Same unmapped-preset safety net as the main timeline loop.
 				effect = fallbackEffectForClass(anim.presetClass);
 				if (!effect) {
@@ -453,7 +469,7 @@ function buildSequenceGroups(
 				}
 			}
 
-			const keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
+			const keyframe = isCommand ? '' : effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
 			if (effect) {
 				neededKeyframes.add(effect);
 			}
@@ -461,13 +477,14 @@ function buildSequenceGroups(
 				dynamicBlocks.push(dynamic.css);
 			}
 
-			const elementId = anim.targetId ?? '';
+			// Command steps carry no element visibility semantics; see the main loop.
+			const elementId = isCommand ? '' : (anim.targetId ?? '');
 			const seqTrigger: PptxAnimationTrigger = anim.trigger ?? 'onShapeClick';
-			const duration = anim.durationMs ?? defaultDuration(anim.presetClass);
+			const duration = isCommand ? 0 : (anim.durationMs ?? defaultDuration(anim.presetClass));
 			// Same single-quantity rule as the main sequence: never sum the two.
 			const animDelay = Math.max(anim.delayMs ?? 0, anim.triggerDelayMs ?? 0);
 			const triggerDelay = 0;
-			const presetClass = anim.presetClass ?? 'entr';
+			const presetClass = isCommand ? 'emph' : (anim.presetClass ?? 'entr');
 			const fill = fillModeForClass(anim.presetClass);
 			const iterCount = anim.repeatCount ?? 1;
 			const direction = anim.autoReverse ? 'alternate' : 'normal';
@@ -498,7 +515,9 @@ function buildSequenceGroups(
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
 			const easing = cssEasingForAnimation(anim);
-			const cssAnimation = `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
+			const cssAnimation = isCommand
+				? ''
+				: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
 			seqGroup.push({
 				elementId,
@@ -511,8 +530,9 @@ function buildSequenceGroups(
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: anim.soundPath,
 				stopSound: anim.stopSound,
-				build: resolveStepBuildDescriptor(anim),
-				colorTargets: stepColorTargets(anim),
+				command: isCommand ? buildStepCommand(anim) : undefined,
+				build: isCommand ? undefined : resolveStepBuildDescriptor(anim),
+				colorTargets: isCommand ? undefined : stepColorTargets(anim),
 			});
 		}
 

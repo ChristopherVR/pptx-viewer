@@ -1,4 +1,5 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
+import { mediaPlaybackAttributes } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -75,22 +76,31 @@ export function PresentationMediaController({
 		return registerMediaElement(element.id, el);
 	}, [element.id]);
 
+	// The clamps that turn authored playback settings into DOM values live in
+	// shared, so all five bindings agree on what `vol="0"` or a 10x rate means.
+	// `loop` is declarative here (the <video>/<audio> `loop` prop, from
+	// `element.loop`), so only the two IDL-only properties are applied by hand.
+	const { volume: playbackVolume, playbackRate } = mediaPlaybackAttributes({
+		loop: element.loop,
+		volume: element.volume,
+		playbackSpeed: element.playbackSpeed,
+	});
+
 	// Apply volume
 	useEffect(() => {
 		const el = mediaRef.current;
 		if (el) {
-			el.volume = Math.max(0, Math.min(1, volume));
+			el.volume = playbackVolume;
 		}
-	}, [volume]);
+	}, [playbackVolume]);
 
 	// Apply playback speed
-	const playbackSpeed = element.playbackSpeed ?? 1;
 	useEffect(() => {
 		const el = mediaRef.current;
 		if (el) {
-			el.playbackRate = Math.max(0.25, Math.min(4, playbackSpeed));
+			el.playbackRate = playbackRate;
 		}
-	}, [playbackSpeed]);
+	}, [playbackRate]);
 
 	// Track play/pause state and notify parent
 	useEffect(() => {

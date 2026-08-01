@@ -30,8 +30,11 @@ import {
 	readStoredViewerPrefs,
 	resolveAudienceScreenPlacement,
 	shouldCommitSmartArtNodeText,
+	stepPresenterZoom,
 	storePresentationDeck,
+	swapPresentationWindows,
 	createInitialPresentationSnapshot,
+	createPresenterShowGuard,
 	createBlankSlide,
 	createBackstagePresentation,
 	DEFAULT_VIEWER_OPTIONS,
@@ -63,7 +66,9 @@ import { createParityWorkflows } from './parity-workflows';
 import type { PresentationAnnotationsHost } from './presentation-annotations-host';
 import { createPresentationAnnotationsHost } from './presentation-annotations-host';
 import { applyPresentationThemePreset } from './presentation-theme-controller';
-import { mountPresenterConsole, renderAudienceEffects } from './presenter-console';
+import { createPresenterCaptions, mountPresenterView } from './presenter';
+import type { PresenterCaptions, PresenterViewHandle, PresenterViewOptions } from './presenter';
+import { renderAudienceEffects } from './presenter-console';
 import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
@@ -137,7 +142,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private presenterSessionId = '';
 	private presenterSequence = 0;
 	private presenterSnapshot = createInitialPresentationSnapshot();
-	private disposePresenterConsole: (() => void) | null = null;
+	private presenterView: PresenterViewHandle | null = null;
+	private presenterCaptions: PresenterCaptions | null = null;
+	/**
+	 * Latch telling the fullscreen handler that the next exit is the audience
+	 * popup stealing focus, not the presenter leaving. See
+	 * `render/presenter-show-lifecycle`.
+	 */
+	private readonly presenterShowGuard = createPresenterShowGuard();
 	private userFontsStyle: HTMLStyleElement | null = null;
 	private embedFontsEnabled = false;
 	private signatureWarningAcknowledged = false;
@@ -366,6 +378,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			this.annotations.sync(this.presenterSnapshot);
 			if (previous.presenting && !state.presenting) {
 				void this.annotations.finish();
+			}
+			// The console paints its own copy of the current slide, the next-slide
+			// preview and the notes, none of which the stage renderer touches.
+			if (state.currentSlide !== previous.currentSlide || state.slides !== previous.slides) {
+				this.presenterView?.syncSlide();
 			}
 		});
 		this.detachSignatureWarning = this.store.subscribe((state, previous) => {
@@ -809,32 +826,32 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** Open a clean audience display while retaining this editor as the presenter surface. */
 	openPresenterView(): void {
 		this.closeAudienceWindow();
+		// Arm the latch BEFORE the popup exists. Opening it drops this window out
+		// of fullscreen, and the `fullscreenchange` that says so is dispatched on
+		// a later task: by the time it arrives, nothing in the DOM distinguishes
+		// it from the presenter pressing Escape. Only intent does, and this is
+		// where the intent is known. Arm it only when a show is actually running;
+		// arming from the editor would leave the latch to swallow the presenter's
+		// first real Escape a moment later.
+		if (this.store.get().presenting) {
+			this.presenterShowGuard.expectAudienceBounce();
+		}
 		const popup = window.open(
 			'about:blank',
 			'pptx-viewer-audience',
 			'popup=yes,width=1280,height=720',
 		);
 		if (!popup) {
+			// A blocked popup causes no bounce, so a latch left armed here would
+			// eat the presenter's next Escape.
+			this.presenterShowGuard.disarm();
 			return;
 		}
 		this.audienceWindow = popup;
 		this.presenterSessionId = createPresentationSessionId();
 		this.store.set({ notesExpanded: true });
-		this.disposePresenterConsole?.();
-		this.disposePresenterConsole = mountPresenterConsole({
-			container: this.container,
-			getSnapshot: () => this.presenterSnapshot,
-			getSlides: () => this.store.get().slides,
-			getCurrent: () => this.getCurrentSlide(),
-			update: (patch) => this.updatePresenterSnapshot(patch),
-			navigate: (index) => this.goToSlide(index),
-			toggleAudience: () =>
-				this.isAudienceWindowOpen() ? this.closeAudienceWindow() : this.openPresenterView(),
-			end: () => {
-				this.closeAudienceWindow();
-				void this.exitPresentation();
-			},
-		});
+		this.presenterView?.dispose();
+		this.presenterView = mountPresenterView(this.buildPresenterViewOptions());
 		const sessionId = this.presenterSessionId;
 		const url = buildPresentationAudienceUrl(window.location.href, sessionId);
 		void resolveAudienceScreenPlacement(window).then((placement) => {
@@ -855,10 +872,17 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			.catch(() => this.closeAudienceWindow());
 
 		// The presenter's own screen must be IN the show, not an editor with a
-		// console strip laid over it: without this `presenting` stayed false, so
-		// the slide stayed editable and neither click-to-advance nor the
-		// presentation keymap reached it. This runs AFTER the popup is opened
-		// because opening a popup cancels an in-flight fullscreen request.
+		// console laid over it: without this `presenting` stayed false, so the
+		// slide stayed editable and neither click-to-advance nor the presentation
+		// keymap reached it. This runs AFTER the popup is opened because opening a
+		// popup cancels an in-flight fullscreen request.
+		//
+		// A show that is ALREADY running is deliberately not re-entered here. The
+		// old code tested `store.presenting` and, finding it still true because
+		// the popup's `fullscreenchange` had not been delivered yet, did nothing;
+		// the event then landed and ended the show. Restoring fullscreen is now
+		// the latch's job in `chrome-lifecycle`, which runs when the event
+		// actually arrives instead of guessing beforehand.
 		if (!this.store.get().presenting) {
 			void this.enterPresentation();
 		}
@@ -900,6 +924,65 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.syncAudience(this.presenterSnapshot.slideIndex);
 		this.annotations.sync(this.presenterSnapshot);
 		this.syncPresentationToolbar();
+		// The console reads the snapshot for its pressed states and its zoom, and
+		// it holds no copy of its own: every mutation, wherever it came from,
+		// lands here and repaints it.
+		this.presenterView?.syncSnapshot();
+	}
+
+	/**
+	 * Assemble the presenter console's dependencies.
+	 *
+	 * All of it is read through getters rather than captured: the console
+	 * outlives individual slides, snapshots and even chrome remounts, and a
+	 * captured slide array is how a console ends up painting a stale deck after
+	 * an edit.
+	 */
+	private buildPresenterViewOptions(): PresenterViewOptions {
+		return {
+			doc: this.doc,
+			t: this.t,
+			container: this.container,
+			getSnapshot: () => this.presenterSnapshot,
+			getSlides: () => this.store.get().slides,
+			getCurrent: () => this.getCurrentSlide(),
+			getElapsedMs: () => this.presenterSnapshot.elapsedMs ?? 0,
+			canvasWidth: () => this.store.get().canvasSize.width,
+			renderSlide: (slide, scale) => this.renderer.renderSlideNode(slide, scale),
+			navigate: (index) => this.goToSlide(index),
+			move: (direction) => (direction === 1 ? this.controls.next() : this.controls.prev()),
+			isAudienceOpen: () => this.isAudienceWindowOpen(),
+			toggleTimer: () => this.updatePresenterSnapshot({ paused: !this.presenterSnapshot.paused }),
+			resetTimer: () => this.updatePresenterSnapshot({ paused: false, elapsedMs: 0 }),
+			stepZoom: (direction) =>
+				this.updatePresenterSnapshot({
+					zoom: stepPresenterZoom(
+						this.presenterSnapshot.zoom ?? { scale: 1, originX: 0.5, originY: 0.5 },
+						direction,
+					),
+				}),
+			resetZoom: () =>
+				this.updatePresenterSnapshot({ zoom: { scale: 1, originX: 0.5, originY: 0.5 } }),
+			setPointerTool: (tool) =>
+				this.updatePresenterSnapshot({
+					pointer: {
+						...(this.presenterSnapshot.pointer ?? { x: 0.5, y: 0.5, color: '#ef4444' }),
+						tool,
+					},
+				}),
+			setBlackout: (value) =>
+				this.updatePresenterSnapshot({
+					blackout: this.presenterSnapshot.blackout === value ? 'none' : value,
+				}),
+			toggleCaptions: () => this.togglePresenterCaptions(),
+			toggleAudience: () =>
+				this.isAudienceWindowOpen() ? this.closeAudienceWindow() : this.openPresenterView(),
+			swapDisplays: () => this.swapPresenterDisplays(),
+			end: () => {
+				this.closeAudienceWindow();
+				void this.exitPresentation();
+			},
+		};
 	}
 
 	/** Discard the show's ink strokes (E, and the show toolbar's Clear button). */
@@ -918,7 +1001,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.lifecycle.chrome.presentationToolbar.update({
 			tool: this.presenterSnapshot.pointer?.tool ?? 'none',
 			hasAnnotations: (this.presenterSnapshot.inkStrokes?.length ?? 0) > 0,
-			presenterViewActive: this.disposePresenterConsole !== null,
+			presenterViewActive: this.presenterView !== null,
 		});
 	}
 
@@ -927,13 +1010,45 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	 * audience display when they are closed, close them when they are open.
 	 */
 	togglePresenterView(): void {
-		if (this.disposePresenterConsole) {
+		if (this.presenterView) {
 			this.closeAudienceWindow();
 			this.syncPresentationToolbar();
 			return;
 		}
 		this.openPresenterView();
 		this.syncPresentationToolbar();
+	}
+
+	/** Start or stop the console's live captions, publishing onto the snapshot. */
+	private togglePresenterCaptions(): void {
+		this.presenterCaptions ??= createPresenterCaptions({
+			doc: this.doc,
+			t: this.t,
+			emit: (patch) => this.updatePresenterSnapshot(patch),
+		});
+		this.presenterCaptions.toggle();
+	}
+
+	/**
+	 * Trade places with the audience display, PowerPoint's "Swap displays".
+	 * A no-op when no audience window is open, which is why the console's
+	 * control is disabled in that state.
+	 */
+	private swapPresenterDisplays(): void {
+		const audience = this.audienceWindow;
+		if (!audience || audience.closed) {
+			return;
+		}
+		void swapPresentationWindows(window, audience);
+	}
+
+	/**
+	 * Tell the fullscreen handler what a fullscreen exit during a running show
+	 * meant. Delegates to the shared one-shot latch, which only answers
+	 * `'restore-show'` for the bounce {@link openPresenterView} armed it for.
+	 */
+	classifyPresentationExit(): 'end-show' | 'restore-show' {
+		return this.presenterShowGuard.classifyFullscreenExit();
 	}
 
 	private connectAudienceRole(): void {
@@ -1008,8 +1123,16 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		}
 		this.audienceWindow = null;
 		this.presenterSessionId = '';
-		this.disposePresenterConsole?.();
-		this.disposePresenterConsole = null;
+		this.presenterView?.dispose();
+		this.presenterView = null;
+		this.presenterCaptions?.dispose();
+		this.presenterCaptions = null;
+		// Deliberately does NOT disarm the latch. Closing the audience display
+		// again does not un-open the popup, so a fullscreen bounce it already
+		// caused can still be in flight; the latch's own time bound is what
+		// stops it outliving that. This path is also reached when the deck fails
+		// to hand over, and ending the presenter's show because of a failed
+		// handover would be the very bug this guard exists to prevent.
 	}
 
 	/**

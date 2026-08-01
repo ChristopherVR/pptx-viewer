@@ -153,6 +153,15 @@ function StaticElementRendererImpl({
 		<div
 			data-static-element-type={element.type}
 			data-element-id={exposeElementId ? element.id : undefined}
+			// The neutral element marker belongs on the same nodes as the rest of
+			// the contract. A live-stage group child already carries the id, the
+			// role, the accessible name and `data-pptx-action`, so withholding just
+			// this attribute made React advertise 28 elements on a slide where the
+			// other four bindings advertised 33 - the same DOM, counted differently.
+			// It is not a selection key (a click on a child resolves UP to the group
+			// via `resolveTopLevelElementId`, which walks `data-element-id`), so
+			// marking children cannot change what a click selects.
+			data-pptx-element={exposeElementId ? 'true' : undefined}
 			data-pptx-action={isActionable ? 'click' : undefined}
 			className={`${positioned ? 'absolute' : 'relative'} overflow-hidden ${
 				isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'

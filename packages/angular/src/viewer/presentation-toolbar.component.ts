@@ -57,7 +57,7 @@ import {
 	isAtFirstSlide,
 	isAtLastSlide,
 } from './presentation-toolbar-view';
-import { formatElapsed } from './presenter-view-helpers';
+import { elapsedSince, formatElapsed } from './presenter-view-helpers';
 
 /** The control ids that run an action (dividers and readouts are inert). */
 export type PresentToolbarAction =
@@ -154,8 +154,12 @@ export class PresentationToolbarComponent {
 	protected readonly counterLabel = computed(() =>
 		formatSlideCounter(this.currentSlideIndex(), this.totalSlides()),
 	);
+	// `elapsedSince` clamps a start time in the future to zero before formatting.
+	// The shared `formatElapsed` deliberately does not clamp (a negative duration
+	// is meaningful to some callers), so the guard belongs here, at the point the
+	// duration is derived from the wall clock.
 	protected readonly elapsedLabel = computed(() =>
-		formatElapsed(this.now() - (this.presentationStartTime() ?? this.mountedAt)),
+		formatElapsed(elapsedSince(this.presentationStartTime() ?? this.mountedAt, this.now())),
 	);
 	protected readonly atFirstSlide = computed(() => isAtFirstSlide(this.currentSlideIndex()));
 	protected readonly atLastSlide = computed(() =>

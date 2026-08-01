@@ -85,6 +85,19 @@ export interface EffectiveStartCondition {
 	hasHoverAlternative: boolean;
 	/** True when the governing delay was "indefinite" (waits forever / manual). */
 	indefinite: boolean;
+	/**
+	 * True when the node genuinely waits for the viewer before it starts.
+	 *
+	 * {@link EffectiveStartCondition.trigger} cannot answer that on its own,
+	 * because a condition list that carries no actionable semantics keeps the
+	 * node's already-derived `fallbackTrigger` (case 4 below), and that fallback
+	 * is `'onClick'` for anything OOXML did not label otherwise. A media
+	 * `p:cmd` whose only start condition is `<p:cond delay="0"/>` therefore
+	 * looks click-gated while the deck means "start with the slide", which is
+	 * how `solution-explorer.pptx` slide 2 ended up with a video that never
+	 * started until the presenter pressed Next.
+	 */
+	requiresInteraction: boolean;
 }
 
 /** Normalise a possibly-indefinite delay to a non-negative number of ms. */
@@ -96,6 +109,11 @@ function normalizeDelay(delay: number | undefined): { ms: number; indefinite: bo
 		return { ms: 0, indefinite: true };
 	}
 	return { ms: delay, indefinite: false };
+}
+
+/** Triggers that only fire once the viewer does something. */
+function isInteractiveTrigger(trigger: PptxAnimationTrigger): boolean {
+	return trigger === 'onClick' || trigger === 'onShapeClick' || trigger === 'onHover';
 }
 
 function classifyCondition(cond: AnimationCondition): 'click' | 'hover' | 'timenode' | 'delay' {
@@ -139,6 +157,7 @@ export function resolveEffectiveStartCondition(
 		hasClickAlternative: false,
 		hasHoverAlternative: false,
 		indefinite: false,
+		requiresInteraction: isInteractiveTrigger(fallbackTrigger),
 	};
 
 	if (!conditions || conditions.length === 0) {
@@ -192,6 +211,8 @@ export function resolveEffectiveStartCondition(
 		base.indefinite = indefinite;
 		base.dependsOnTimeNodeId = timenode.targetTimeNodeId;
 		base.dependsOnEvent = timenode.event;
+		// Chained off another node's begin/end: the timeline starts it, not a click.
+		base.requiresInteraction = false;
 		return base;
 	}
 
@@ -202,16 +223,22 @@ export function resolveEffectiveStartCondition(
 		base.trigger = clickCond ? 'onClick' : 'afterDelay';
 		base.delayMs = ms;
 		base.indefinite = indefinite;
+		// The delay fires on its own; a coexisting click only brings it forward,
+		// so this node does not WAIT for the viewer even when `trigger` says
+		// `onClick` (that spelling exists so the engine offers the early-out).
+		base.requiresInteraction = indefinite;
 		return base;
 	}
 
 	// 3. Interactive trigger governs.
 	if (clickCond) {
 		base.trigger = clickCond.targetShapeId ? 'onShapeClick' : 'onClick';
+		base.requiresInteraction = true;
 		return base;
 	}
 	if (hoverCond) {
 		base.trigger = 'onHover';
+		base.requiresInteraction = true;
 		return base;
 	}
 
@@ -220,6 +247,7 @@ export function resolveEffectiveStartCondition(
 	if (delayCond) {
 		base.trigger = fallbackTrigger;
 		base.delayMs = 0;
+		base.requiresInteraction = false;
 	}
 	return base;
 }

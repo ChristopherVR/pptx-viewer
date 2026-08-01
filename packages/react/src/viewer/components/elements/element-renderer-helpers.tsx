@@ -118,26 +118,8 @@ export function getContainerStyle({
 	};
 }
 
-/* ────────────────────── Action indicator badge ────────────────────────── */
-
-interface ActionIndicatorProps {
-	clickTooltip: string | undefined;
-	hoverTooltip: string | undefined;
-}
-
-/** Small amber lightning-bolt badge shown when an element has an action. */
-export function ActionIndicator({
-	clickTooltip,
-	hoverTooltip,
-}: ActionIndicatorProps): React.ReactElement {
-	return (
-		<div
-			className='absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center shadow'
-			title={clickTooltip || hoverTooltip || 'Has action'}
-		>
-			<svg className='w-2.5 h-2.5 text-white' viewBox='0 0 24 24' fill='currentColor'>
-				<path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z' />
-			</svg>
-		</div>
-	);
-}
+/*
+ * The action-indicator badge and the link tooltip moved to
+ * `./ActionAffordance`, which renders the shared (binding-neutral) markup and
+ * styling from `pptx-viewer-shared`.
+ */

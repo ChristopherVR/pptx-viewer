@@ -158,6 +158,60 @@ describe('mediaBox', () => {
 		).toBeFalsy();
 	});
 
+	/**
+	 * Authored playback settings. Dropping `loop` is a real, user-visible bug:
+	 * `e2e/fixtures/solution-explorer.pptx` slide 2 holds a two-second background
+	 * video the deck marks `loop` with `vol="0"`, so without the flag it played
+	 * once, hit its end and froze on the last frame, which reads exactly like
+	 * "the video never started". Volume and playbackRate are IDL properties with
+	 * no attribute form, so they can only be asserted on the live node.
+	 */
+	describe('authored playback settings', () => {
+		it('loops a video the deck marked loop, and only that one', () => {
+			expect(
+				mountEl(mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, loop: true }))
+					.target.querySelector('video')
+					?.hasAttribute('loop'),
+			).toBeTruthy();
+			cleanup?.();
+			cleanup = undefined;
+
+			expect(
+				mountEl(mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }))
+					.target.querySelector('video')
+					?.hasAttribute('loop'),
+			).toBeFalsy();
+		});
+
+		it('loops audio the same way', () => {
+			const { target } = mountEl(
+				mediaElement({ mediaType: 'audio', mediaData: MP3_DATA_URL, loop: true }),
+			);
+			expect(target.querySelector('audio')?.hasAttribute('loop')).toBeTruthy();
+		});
+
+		it('applies the authored volume and playback speed to the live node', () => {
+			const { target } = mountEl(
+				mediaElement({
+					mediaType: 'video',
+					mediaData: MP4_DATA_URL,
+					volume: 0,
+					playbackSpeed: 1.5,
+				}),
+			);
+			const video = target.querySelector<HTMLVideoElement>('video');
+			expect(video?.volume).toBe(0);
+			expect(video?.playbackRate).toBe(1.5);
+		});
+
+		it('defaults to full volume at normal speed when the deck says nothing', () => {
+			const { target } = mountEl(mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }));
+			const video = target.querySelector<HTMLVideoElement>('video');
+			expect(video?.volume).toBe(1);
+			expect(video?.playbackRate).toBe(1);
+		});
+	});
+
 	describe('presentation-mode autoplay', () => {
 		it('does not autoplay when presenting is false', () => {
 			mountEl(mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }), undefined, false);

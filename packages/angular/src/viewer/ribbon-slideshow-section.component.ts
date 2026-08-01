@@ -48,13 +48,19 @@ import { toolbarVisibility } from './toolbar-visibility';
 			{{ 'pptx.slideShow.fromCurrent' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
+		<!-- Presenter View. Deliberately NOT gated on slideCount(): no other
+		     binding disables it, and e2e/ribbon-control-inventory.spec.ts diffs
+		     exactly which controls each binding leaves usable. The label key is
+		     pptx.slideShow.* for the same reason: the old pptx.ribbon.* key
+		     happens to carry the same English, so the inventory's accessible-name
+		     diff passed by luck and would have broken on any locale edit. -->
 		<button
 			type="button"
 			class="pptx-rb-pill"
-			[disabled]="slideCount() === 0"
+			[title]="'pptx.slideShow.presenterViewTooltip' | translate"
 			(click)="presenter.emit()"
 		>
-			{{ 'pptx.ribbon.presenterView' | translate }}
+			{{ 'pptx.slideShow.presenterView' | translate }}
 		</button>
 		<button
 			type="button"

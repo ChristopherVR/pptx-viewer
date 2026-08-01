@@ -26,7 +26,10 @@ import type {
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
+	actionAffordanceLabels,
+	applyElementActionAffordances,
 	applyRenderedElementAccessibility,
+	isTemplateElement,
 	RULER_FONT_SIZE,
 	RULER_THICKNESS,
 } from '../internal/shared';
@@ -52,7 +55,7 @@ import {
 	resolveInteractiveElementId,
 } from './selection-geometry';
 import { getSlideBackgroundStyle } from './slide-background';
-import { isViewportBackgroundPressTarget } from './slide-canvas-helpers';
+import { affordanceElements, isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { SLIDE_CONTEXT } from './slide-context';
 import type { SlideContext } from './slide-context';
 import { computeSnap, snapToGridStep } from './snap-guides';
@@ -405,8 +408,23 @@ export class SlideCanvasComponent implements SlideContext {
 			const elements = this.allElements();
 			const interactive = this.interactive();
 			const presenting = this.presenting();
+			// An inherited master/layout shape only gets the authoring chrome while
+			// it is actually editable, matching React's `canInteract` gate.
+			const decorated = affordanceElements(elements, this.editTemplateMode(), isTemplateElement);
 			if (stage && (interactive || presenting)) {
-				queueMicrotask(() => applyRenderedElementAccessibility(stage, elements, { presenting }));
+				queueMicrotask(() => {
+					applyRenderedElementAccessibility(stage, elements, { presenting });
+					// The on-canvas action affordances (amber badge + hover link
+					// tooltip) ride the same post-render pass: `ElementRendererComponent`
+					// dispatches every non-shape type straight to a per-type component
+					// whose root IS the element node, leaving no wrapper in the template
+					// to hang the chrome off.
+					applyElementActionAffordances(stage, decorated, {
+						canInteract: interactive,
+						presenting,
+						labels: actionAffordanceLabels((key) => this.translate.instant(key) as string),
+					});
+				});
 			}
 		});
 

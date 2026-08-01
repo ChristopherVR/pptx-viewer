@@ -1,4 +1,10 @@
-import { getContainerStyle, getImageSrc, startMediaAutoplay } from 'pptx-viewer-shared';
+import {
+	applyMediaPlaybackAttributes,
+	getContainerStyle,
+	getImageSrc,
+	startMediaAutoplay,
+} from 'pptx-viewer-shared';
+import type { MediaPlaybackSource } from 'pptx-viewer-shared';
 
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
@@ -22,19 +28,28 @@ import type { ElementRenderer } from '../types';
  */
 
 /**
- * Apply the presentation-mode play/pause state to a mounted `<video>`/`<audio>`
- * element. Since the vanilla renderer rebuilds the whole stage on every state
- * change (no persistent element to `watch`), this runs once right after the
- * element is appended: start autoplay when presenting, otherwise make sure a
- * (rare, already-playing) element is paused. Exported for direct testing.
+ * Apply the deck's playback settings and the presentation-mode play/pause state
+ * to a mounted `<video>`/`<audio>`. Since the vanilla renderer rebuilds the
+ * whole stage on every state change (no persistent element to `watch`), this
+ * runs once right after the element is appended: start autoplay when
+ * presenting, otherwise make sure a (rare, already-playing) element is paused.
+ * Exported for direct testing.
+ *
+ * `loop` / `volume` / `playbackRate` come from the shared resolver rather than
+ * being left at their defaults. Dropping `loop` is not cosmetic: a deck that
+ * loops a short background clip (solution-explorer slide 2 loops a 2-second
+ * video) played it once, hit the end and froze on the last frame, which reads
+ * exactly like media that never started. Leaving `volume` alone was worse: a
+ * deck marked `vol="0"` played at full volume.
  */
 export function applyMediaPresentingState(
 	el: HTMLMediaElement,
 	presenting: boolean,
-	trimStartMs: number | undefined,
+	playback: MediaPlaybackSource & { trimStartMs?: number },
 ): void {
+	applyMediaPlaybackAttributes(el, playback);
 	if (presenting) {
-		startMediaAutoplay(el, { trimStartMs });
+		startMediaAutoplay(el, { trimStartMs: playback.trimStartMs });
 	} else if (!el.paused) {
 		el.pause();
 	}
@@ -71,7 +86,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 			video.setAttribute('poster', posterSrc);
 		}
 		el.appendChild(video);
-		applyMediaPresentingState(video, context.presenting, element.trimStartMs);
+		applyMediaPresentingState(video, context.presenting, element);
 		return el;
 	}
 
@@ -80,7 +95,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		audio.src = mediaSrc;
 		audio.controls = !context.presenting;
 		el.appendChild(audio);
-		applyMediaPresentingState(audio, context.presenting, element.trimStartMs);
+		applyMediaPresentingState(audio, context.presenting, element);
 		return el;
 	}
 

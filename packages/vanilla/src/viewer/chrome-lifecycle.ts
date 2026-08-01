@@ -62,6 +62,17 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	setPresentationPointerColor?(color: string): void;
 	/** Open or close the presenter console + audience display (show toolbar). */
 	togglePresenterView?(): void;
+	/**
+	 * Say what a fullscreen exit seen while the show is running actually meant.
+	 *
+	 * Opening the audience display is a `window.open`, and every engine drops
+	 * the opener out of fullscreen when the popup takes focus. That arrives as
+	 * an ordinary `fullscreenchange`, indistinguishable from the presenter
+	 * pressing Escape unless the code that opened the popup says so, which is
+	 * what `render/presenter-show-lifecycle`'s latch is for. Without this hook
+	 * the console mounted and the show underneath it was torn down.
+	 */
+	classifyPresentationExit?(): 'end-show' | 'restore-show';
 	/** Erase the show's ink annotations (E). */
 	erasePresentationAnnotations?(): void;
 	/** Show or hide ink markup (Ctrl+M). */
@@ -286,9 +297,25 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		detachEndScreen();
 		endScreen.remove();
 	};
+	// The callback needs the controller it is being passed to, so it reads it
+	// back through this box rather than closing over an uninitialised binding:
+	// a fullscreen exit caused by the audience popup is answered by re-entering
+	// the show, not by ending it.
+	const presentationRef: { current: PresentationController | undefined } = { current: undefined };
 	const presentation = createPresentationController(chrome.root, (presenting) => {
+		if (!presenting && store.get().presenting) {
+			if (deps.classifyPresentationExit?.() === 'restore-show') {
+				// Keep `presenting` true and take fullscreen back. Re-entering is
+				// still inside the click's transient activation, and if the request
+				// is refused the controller falls back to its CSS-only show, so the
+				// presenter never lands back in the editor either way.
+				void presentationRef.current?.enter();
+				return;
+			}
+		}
 		store.set({ presenting });
 	});
+	presentationRef.current = presentation;
 
 	let resizeObserver: ResizeObserver | null = null;
 	if (typeof ResizeObserver !== 'undefined') {
@@ -376,6 +403,8 @@ export interface ChromeHost {
 	openPresenterView(): void;
 	/** Open the presenter console when closed, close it when open. */
 	togglePresenterView(): void;
+	/** See {@link MountChromeDeps.classifyPresentationExit}. */
+	classifyPresentationExit(): 'end-show' | 'restore-show';
 	exitPresentation(): Promise<void>;
 	getPresenterSnapshot(): PresentationSnapshot;
 	updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void;
@@ -511,6 +540,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 			host.updatePresenterSnapshot({ pointer: { ...pointer, color } });
 		},
 		togglePresenterView: () => host.togglePresenterView(),
+		classifyPresentationExit: () => host.classifyPresentationExit(),
 		erasePresentationAnnotations: () => host.clearPresentationAnnotations(),
 		togglePresentationInkMarkup: () =>
 			host.updatePresenterSnapshot({

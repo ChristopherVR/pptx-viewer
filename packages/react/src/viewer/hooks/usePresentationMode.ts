@@ -1,4 +1,8 @@
-import { buildMorphTransitionPlan, morphOptionToMode } from 'pptx-viewer-shared';
+import {
+	buildMorphTransitionPlan,
+	createPresenterShowGuard,
+	morphOptionToMode,
+} from 'pptx-viewer-shared';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { acceptsPresentationInput } from './presentation-mode/audience-content-store';
@@ -63,9 +67,11 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	// slide (Options > Advanced > "End with black slide").
 	const [endOfShowVisible, setEndOfShowVisible] = useState(false);
 	const [presentationStartTime, setPresentationStartTime] = useState<number | null>(null);
-	// Guards against the fullscreenchange listener exiting present mode
-	// when we intentionally exit fullscreen to switch to presenter view.
-	const switchingToPresenterRef = useRef(false);
+	// Guards against the fullscreenchange listener exiting present mode when we
+	// intentionally leave fullscreen to switch to presenter view. React grew this
+	// latch first, as a private ref; it is now shared so the other four bindings
+	// classify the same exit the same way (see `presenter-show-lifecycle`).
+	const showGuard = useMemo(() => createPresenterShowGuard(), []);
 
 	// -----------------------------------------------------------------------
 	// Sub-hooks
@@ -261,9 +267,9 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	const togglePresenterView = useCallback(() => {
 		if (!presenterMode) {
 			// Switch from fullscreen to presenter view: exit fullscreen first.
-			// Set the guard so the fullscreenchange listener doesn't exit
+			// Arm the guard so the fullscreenchange listener doesn't exit
 			// present mode when it sees fullscreen disappear.
-			switchingToPresenterRef.current = true;
+			showGuard.expectAudienceBounce();
 			try {
 				if (document.fullscreenElement) {
 					void document.exitFullscreen().catch(() => {
@@ -291,7 +297,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 				/* fullscreen not supported */
 			}
 		}
-	}, [presenterMode, presentationStartTime, containerRef]);
+	}, [presenterMode, presentationStartTime, containerRef, showGuard]);
 
 	// -----------------------------------------------------------------------
 	// Keyboard navigation
@@ -395,8 +401,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		const handleFullscreenChange = () => {
 			// When toggling to presenter view, we intentionally exit fullscreen.
 			// Don't treat that as "user wants to leave present mode".
-			if (switchingToPresenterRef.current) {
-				switchingToPresenterRef.current = false;
+			if (showGuard.classifyFullscreenExit() === 'restore-show') {
 				wasFullscreen = Boolean(document.fullscreenElement);
 				return;
 			}
@@ -423,6 +428,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		recordCurrentSlideTime,
 		presentationSlideIndex,
 		setShowRehearsalSummary,
+		showGuard,
 	]);
 
 	// -----------------------------------------------------------------------

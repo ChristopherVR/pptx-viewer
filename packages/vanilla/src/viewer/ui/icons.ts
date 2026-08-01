@@ -112,7 +112,17 @@ export type IconName =
 	| 'git-merge'
 	| 'pin'
 	| 'pin-off'
-	| 'bug';
+	| 'bug'
+	// Presenter console strip (see render/presenter-chrome in the shared package).
+	| 'circle-pause'
+	| 'circle-play'
+	| 'rotate-ccw'
+	| 'grid-2x2'
+	| 'scan'
+	| 'mouse-pointer-2'
+	| 'captions'
+	| 'monitor-off'
+	| 'arrow-left-right';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -340,6 +350,20 @@ const ICON_PATHS: Record<IconName, string[]> = {
 		'M20 16h-2',
 		'M12 20v-8',
 	],
+	'circle-pause': ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M10 9v6', 'M14 9v6'],
+	'circle-play': ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M10 8l6 4-6 4z'],
+	'rotate-ccw': ['M3 12a9 9 0 1 0 3-6.7L3 8', 'M3 3v5h5'],
+	'grid-2x2': ['M3 3h18v18H3z', 'M12 3v18', 'M3 12h18'],
+	scan: [
+		'M3 8V5a2 2 0 0 1 2-2h3',
+		'M16 3h3a2 2 0 0 1 2 2v3',
+		'M21 16v3a2 2 0 0 1-2 2h-3',
+		'M8 21H5a2 2 0 0 1-2-2v-3',
+	],
+	'mouse-pointer-2': ['M4 3l7 17 2.5-6.5L20 11z'],
+	captions: ['M3 5h18v14H3z', 'M7 12h3', 'M14 12h3'],
+	'monitor-off': ['M3 5h13', 'M21 5v9', 'M3 5v9h11', 'M8 21h8', 'M12 17v4', 'M3 3l18 18'],
+	'arrow-left-right': ['M8 3L4 7l4 4', 'M4 7h16', 'M16 13l4 4-4 4', 'M20 17H4'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

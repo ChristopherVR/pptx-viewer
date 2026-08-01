@@ -16,3 +16,21 @@ export function isViewportBackgroundPressTarget(
 ): boolean {
 	return target === currentTarget;
 }
+
+/**
+ * Which elements the on-canvas action affordances (amber "has action" badge +
+ * hover link tooltip) may decorate.
+ *
+ * An inherited master/layout shape is inert until edit-template mode is on, so
+ * it must not advertise an action the user cannot reach yet; that mirrors
+ * React's `canInteract` gate, which is off for the template layer until the
+ * mode is enabled. Split out of the component's post-render effect so it is
+ * testable without a TestBed, like the rest of this package.
+ */
+export function affordanceElements<T>(
+	elements: readonly T[],
+	editTemplateMode: boolean,
+	isTemplate: (element: T) => boolean,
+): readonly T[] {
+	return editTemplateMode ? elements : elements.filter((element) => !isTemplate(element));
+}

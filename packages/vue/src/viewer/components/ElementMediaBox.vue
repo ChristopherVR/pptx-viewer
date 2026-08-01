@@ -7,7 +7,12 @@
  * element; preview/present play normally.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { startMediaAutoplay } from 'pptx-viewer-shared';
+import {
+	applyMediaPlaybackAttributes,
+	mediaPlaybackAttributes,
+	startMediaAutoplay,
+} from 'pptx-viewer-shared';
+import type { MediaPlaybackSource } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -37,17 +42,32 @@ const trimStartMs = computed(() =>
 );
 
 /**
+ * The deck's authored playback settings (`loop` / `vol` / playback rate) for
+ * this node, or nothing when the element is not media.
+ */
+const playbackSource = computed<MediaPlaybackSource>(() =>
+	props.element.type === 'media' ? props.element : {},
+);
+
+/**
  * Autoplay on the presentation stage: start playback once the element is
  * mounted and `presenting` is on; pause again if the stage is torn down or the
  * element leaves present mode. Delegates the `.play()` + blocked-autoplay
  * handling to the shared helper so all three bindings behave identically.
+ *
+ * The authored playback settings are pushed onto the live node in the same
+ * pass, because `volume` and `playbackRate` are IDL properties with no
+ * attribute form: a template binding cannot set them the way it sets `loop`.
+ * Without this, `solution-explorer.pptx` slide 2 (`vol="0"`) played at full
+ * volume here while React honoured the deck.
  */
 watch(
-	[mediaEl, () => props.presenting, () => trimStartMs.value],
+	[mediaEl, () => props.presenting, () => trimStartMs.value, playbackSource],
 	([el, presenting]) => {
 		if (!el) {
 			return;
 		}
+		applyMediaPlaybackAttributes(el, playbackSource.value);
 		if (presenting) {
 			void nextTick(() => startMediaAutoplay(el, { trimStartMs: trimStartMs.value }));
 		} else if (!el.paused) {
@@ -89,7 +109,7 @@ const posterSrc = computed(() =>
 );
 
 /** `<a:videoFile>` loop / autoplay flags parsed off the slide. */
-const shouldLoop = computed(() => props.element.type === 'media' && props.element.loop === true);
+const shouldLoop = computed(() => mediaPlaybackAttributes(playbackSource.value).loop);
 const shouldAutoPlay = computed(
 	() => props.element.type === 'media' && props.element.autoPlay === true,
 );

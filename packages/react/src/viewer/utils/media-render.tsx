@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { mediaPlaybackAttributes } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -54,8 +55,10 @@ export function renderMediaElement(
 	// Poster frame data URL (resolved during parsing)
 	const posterUrl = element.posterFrameData ?? undefined;
 
-	// Loop flag
-	const shouldLoop = element.loop === true;
+	// Loop flag, read through the shared mapping so `element.loop` is interpreted
+	// identically in every binding (two of them simply dropped it, and a looping
+	// two-second clip that plays once looks exactly like a video that never ran).
+	const shouldLoop = mediaPlaybackAttributes(element).loop;
 	const shouldAutoPlay = options?.autoPlay === true || element.autoPlay === true;
 	const isFullScreen = options?.fullScreen === true;
 	const isPresentationMode = options?.isPresentationMode === true;

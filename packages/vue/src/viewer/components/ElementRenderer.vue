@@ -11,7 +11,6 @@ import {
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 import {
 	getContainerStyle,
@@ -32,7 +31,6 @@ import ElementMediaBox from './ElementMediaBox.vue';
 import EquationRenderer from './EquationRenderer.vue';
 import Extrusion3DOverlay from './Extrusion3DOverlay.vue';
 import InkRenderer from './InkRenderer.vue';
-import LinkTooltip from './LinkTooltip.vue';
 import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
 import ShapeEffectOverlay from './ShapeEffectOverlay.vue';
@@ -75,8 +73,6 @@ const props = defineProps<{
 	 */
 	parentGroupFill?: ShapeStyle;
 }>();
-
-const { t } = useI18n();
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 const smartArt3D = useSmartArt3D();
@@ -212,12 +208,16 @@ const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template
  */
 const elementMarker = computed<'true' | undefined>(() => (props.interactive ? 'true' : undefined));
 
-/**
- * Element-level click action (`actionClick`), when present. Drives the on-canvas
- * link tooltip (and the `group/link` hover container). Mirrors React's
- * `ElementRenderer`, which shows a styled {@link LinkTooltip} for any element
- * carrying an action in an interactive tree.
+/*
+ * The on-canvas action affordances (amber "has action" badge + hover link
+ * tooltip) used to be rendered here, but only for the text / shape branch: this
+ * component dispatches every other type straight to a per-type view whose root
+ * IS the element node, so there was nowhere to put them for a picture, chart,
+ * table or media element. They are now painted for ALL types at the stage
+ * boundary by `applyElementActionAffordances` (see `SlideStage.vue`), from the
+ * same shared rule and stylesheet the other four bindings use.
  */
+
 /**
  * Whether this element reaches the canvas at all. The Selection Pane's eye
  * toggle writes `element.hidden` (and `p:cNvPr/@hidden` on save); a hidden
@@ -227,20 +227,6 @@ const elementMarker = computed<'true' | undefined>(() => (props.interactive ? 't
  * Selection Pane, which reads the slide model rather than the DOM.
  */
 const isRendered = computed(() => isElementRendered(props.element));
-
-const linkAction = computed(() => props.element.actionClick);
-const showLinkTooltip = computed(
-	() =>
-		props.interactive === true &&
-		Boolean(linkAction.value?.url || linkAction.value?.tooltip || linkAction.value?.action),
-);
-const linkTooltipLabel = computed(
-	() =>
-		linkAction.value?.tooltip ||
-		linkAction.value?.url ||
-		linkAction.value?.action ||
-		t('pptx.element.linkFallback'),
-);
 </script>
 
 <template>
@@ -384,7 +370,7 @@ const linkTooltipLabel = computed(
 	<div
 		v-else-if="isShapeLike"
 		class="pptx-vue-element pptx-vue-shape"
-		:class="[templateClass, showLinkTooltip ? 'group/link' : null]"
+		:class="templateClass"
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
@@ -402,12 +388,6 @@ const linkTooltipLabel = computed(
 			:text-style="textStyle"
 			:element-id="element.id"
 			:sub-element-anim-states="presentationStates"
-		/>
-		<!-- On-canvas hyperlink / action tooltip (edit-mode hover). -->
-		<LinkTooltip
-			v-if="showLinkTooltip"
-			:label="linkTooltipLabel"
-			:has-url="Boolean(linkAction?.url)"
 		/>
 	</div>
 

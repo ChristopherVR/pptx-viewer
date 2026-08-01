@@ -1,7 +1,8 @@
 import type { ShapeStyle } from 'pptx-viewer-core';
-import { ARROWHEAD_LABEL_KEYS, schemaLabel, SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+import { SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import { createConnectorArrowControls } from './connector-arrow-controls';
 import type { InspectorHandlers, InspectorState } from './types';
 
 const QUICK_STYLES: Array<{ label: string; patch: Partial<ShapeStyle> }> = [
@@ -9,16 +10,6 @@ const QUICK_STYLES: Array<{ label: string; patch: Partial<ShapeStyle> }> = [
 	{ label: 'Subtle', patch: { fillColor: '#f2f2f2', strokeColor: '#a6a6a6', strokeWidth: 1 } },
 	{ label: 'Outline', patch: { fillColor: 'transparent', strokeColor: '#4472c4', strokeWidth: 2 } },
 	{ label: 'Dark', patch: { fillColor: '#262626', strokeColor: '#000000', strokeWidth: 1 } },
-];
-
-/** Arrowhead tokens the start/end pickers offer, in the order React lists them. */
-const ARROWHEAD_VALUES: readonly string[] = [
-	'none',
-	'triangle',
-	'stealth',
-	'diamond',
-	'oval',
-	'arrow',
 ];
 
 export interface ShapeEffectsControls {
@@ -84,31 +75,10 @@ export function createShapeEffectsControls(
 		handlers.setShapeStyle({ reflectionStartOpacity: reflection.checked ? 0.5 : undefined }),
 	);
 	field(t('pptx.textEffects.reflection'), reflection);
-	/**
-	 * The `a:headEnd`/`a:tailEnd` pickers. The six values are the arrowhead
-	 * tokens core writes back into the connector, so they stay verbatim; only
-	 * their captions come from the shared arrowhead map, which is what stops
-	 * `stealth` and `folHlink`-style tokens reaching the user untranslated.
-	 */
-	const arrow = (label: string, key: 'connectorStartArrow' | 'connectorEndArrow') => {
-		const input = doc.createElement('select');
-		for (const value of ARROWHEAD_VALUES) {
-			const option = doc.createElement('option');
-			option.value = value;
-			option.textContent = schemaLabel(ARROWHEAD_LABEL_KEYS, value, t);
-			input.appendChild(option);
-		}
-		input.addEventListener('change', () =>
-			handlers.setShapeStyle({ [key]: input.value === 'none' ? undefined : input.value }),
-		);
-		const wrapper = doc.createElement('label');
-		wrapper.textContent = label;
-		wrapper.appendChild(input);
-		el.appendChild(wrapper);
-		return input;
-	};
-	const startArrow = arrow(t('pptx.connectorArrows.startArrow'), 'connectorStartArrow');
-	const endArrow = arrow(t('pptx.connectorArrows.endArrow'), 'connectorEndArrow');
+	// The six `a:headEnd`/`a:tailEnd` dropdowns are their own card; see
+	// `connector-arrow-controls`.
+	const arrows = createConnectorArrowControls(doc, t, handlers);
+	el.appendChild(arrows.el);
 	const inputs = [
 		shapeType,
 		shadowColor,
@@ -118,8 +88,6 @@ export function createShapeEffectsControls(
 		glowRadius,
 		softEdge,
 		reflection,
-		startArrow,
-		endArrow,
 	];
 
 	return {
@@ -135,10 +103,7 @@ export function createShapeEffectsControls(
 			reflection.checked = Boolean(style.reflectionStartOpacity);
 			shapeType.value = state.shapeType ?? 'rect';
 			shapeType.hidden = !state.shapeType;
-			startArrow.value = style.connectorStartArrow ?? 'none';
-			endArrow.value = style.connectorEndArrow ?? 'none';
-			startArrow.parentElement!.hidden = !state.isConnector;
-			endArrow.parentElement!.hidden = !state.isConnector;
+			arrows.update(state);
 			for (const input of inputs) {
 				input.disabled = !state.canShape;
 			}

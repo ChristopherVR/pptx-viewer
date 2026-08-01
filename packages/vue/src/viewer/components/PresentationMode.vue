@@ -455,6 +455,7 @@ useTouchGestures({
 				@move="onToolbarMove"
 				@open-audience="presenterSession.openAudience"
 				@close-audience="presenterSession.closeAudience"
+				@swap-displays="() => void presenterSession.swapDisplays()"
 				@navigate="nav.goTo"
 				@update-snapshot="presenterSession.updateSnapshot"
 				@exit="presenterMode = false"

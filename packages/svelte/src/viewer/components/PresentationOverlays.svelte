@@ -24,14 +24,23 @@
 	/**
 	 * Step the show. Forward runs the click-stepped animation build first and
 	 * only then changes slide; backward asks the controller to rewind a build
-	 * before falling back to the previous slide. Same wiring the touch controls
-	 * use, so the two navigation surfaces cannot behave differently.
+	 * before falling back to the previous slide.
+	 *
+	 * EVERY navigation surface goes through here (the show toolbar, the touch
+	 * controls and the presenter console), which is the point: the console used
+	 * to move with `viewer.goTo(viewer.current + direction)`, bypassing the show
+	 * order entirely. Its next-slide PREVIEW correctly skipped a hidden slide
+	 * (shared `nextPresentedSlide`) but the Next button then landed on that very
+	 * slide, so the room saw a slide the author had hidden and the preview had
+	 * promised something else. `presentation.advance()` /
+	 * `presentation.previousSlide()` both resolve the show order, so all three
+	 * surfaces now agree with the preview and with the keyboard.
 	 */
 	function move(direction: 1 | -1): void {
 		if (direction === 1) {
 			presentation.advance();
 		} else if (!presentation.retreat()) {
-			viewer.prev();
+			presentation.previousSlide();
 		}
 	}
 	const pointer = $derived(presenterSession.snapshot.pointer);
@@ -41,8 +50,8 @@
 	<PresentationTouchControls
 		current={viewer.current}
 		total={viewer.slideCount}
-		onprev={() => (presentation.retreat() ? undefined : viewer.prev())}
-		onnext={() => presentation.advance()}
+		onprev={() => move(-1)}
+		onnext={() => move(1)}
 		onexit={vm.onFullscreenToggle}
 	/>
 	<PresentationToolbar
@@ -82,11 +91,12 @@
 		mediaDataUrls={loader.mediaDataUrls}
 		startedAt={vm.presenterStartedAt}
 		audienceOpen={presenterSession.audienceOpen}
-		onmove={(direction) => viewer.goTo(viewer.current + direction)}
+		onmove={move}
 		onaudience={() =>
 			presenterSession.audienceOpen
 				? presenterSession.closeAudience()
 				: presenterSession.openAudience()}
+		onswap={() => void presenterSession.swapDisplays()}
 		onexit={() => {
 			presenterSession.closeAudience();
 			vm.presenterMode = false;

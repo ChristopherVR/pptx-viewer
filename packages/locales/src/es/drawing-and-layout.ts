@@ -97,6 +97,7 @@ export const translations = {
 	'pptx.design.editThemeTooltip': 'Editar colores y fuentes del tema de presentación',
 	'pptx.design.formatBackgroundTooltip': 'Abrir inspector para editar el fondo de la diapositiva',
 	'pptx.design.slideSizeTooltip': 'Cambiar dimensiones de diapositiva (16:9, 4:3, personalizado)',
+	'pptx.element.hasAction': 'Tiene acción',
 	'pptx.element.linkFallback': 'Enlace',
 	'pptx.align.bottom': 'Alinear abajo',
 	'pptx.align.centerH': 'Alinear centro',

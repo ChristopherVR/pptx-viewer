@@ -383,17 +383,22 @@ export {
 	SLIDE_TRANSITION_KEYFRAMES,
 } from './transition-helpers';
 export type { SlideTransitionAnimations } from './transition-helpers';
+// `computeTimerProgress` / `TimerProgress` / `TIMER_SEGMENT_MS` were an Angular
+// re-derivation of the console's five-minute progress segment; they are now the
+// shared `presenterTimerProgress` / `PresenterTimerProgress` /
+// `PRESENTER_TIMER_SEGMENT_MS`, which every binding reads.
 export {
 	formatTime,
 	formatElapsed,
 	clampNotesFontSize,
-	computeTimerProgress,
+	presenterTimerProgress,
+	PRESENTER_TIMER_SEGMENT_MS,
 	resolvePresenterNotes,
 } from './presenter-view-helpers';
 export type {
 	NotesSegmentViewModel,
 	PresenterNotes,
-	TimerProgress,
+	PresenterTimerProgress,
 } from './presenter-view-helpers';
 
 // Audience window handoff (opt-in, framework-agnostic; wire-compatible with

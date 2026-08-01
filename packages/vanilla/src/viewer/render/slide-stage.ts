@@ -11,6 +11,8 @@ import type {
 	FieldSubstitutionContext,
 } from 'pptx-viewer-shared';
 import {
+	actionAffordanceLabels,
+	applyElementActionAffordances,
 	getAriaLabel,
 	getAriaRole,
 	getAriaRoleDescription,
@@ -167,6 +169,26 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 			stage.appendChild(node);
 		}
 	});
+
+	// Authoring chrome for an Action Setting (amber "has action" badge + hover
+	// link tooltip). Applied here, once the stage is assembled, rather than
+	// inside each element renderer: the registry hands every type its own root
+	// node, so a per-renderer copy would be a dozen duplicates of the same
+	// markup. An inherited master/layout shape only gets it while template
+	// editing is on, matching the interaction gate above.
+	if (interactive) {
+		applyElementActionAffordances(
+			stage,
+			slide.elements.filter(
+				(element) => options.templateEditing || !isTemplateElementId(element.id),
+			),
+			{
+				canInteract: true,
+				presenting: options.presenting ?? false,
+				labels: actionAffordanceLabels((key) => t(key)),
+			},
+		);
+	}
 
 	return stage;
 }

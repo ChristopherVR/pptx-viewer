@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { applyRenderedElementAccessibility, getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import {
+	actionAffordanceLabels,
+	applyElementActionAffordances,
+	applyRenderedElementAccessibility,
+	getSlideBackgroundStyle,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, ref, watchPostEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -105,6 +110,16 @@ const accessibleElements = computed(() => [
 	...(props.slide?.elements ?? []),
 ]);
 
+/**
+ * The template layer is interactive only when the canvas as a whole is
+ * interactive AND edit-template mode is on. Computed here (not inline in the
+ * template) so the SFC stays presentational. Declared above the post-render
+ * effect below, which reads it.
+ */
+const templateLayerInteractive = computed(
+	() => (props.interactive ?? false) && (props.editTemplateMode ?? false),
+);
+
 watchPostEffect(() => {
 	const stage = stageRef.value;
 	// Read the element list in both branches so structural changes re-trigger
@@ -115,6 +130,24 @@ watchPostEffect(() => {
 	}
 	if (props.interactive || props.presenting) {
 		applyRenderedElementAccessibility(stage, elements, { presenting: props.presenting === true });
+		// The on-canvas action affordances (amber badge + hover link tooltip) are
+		// painted at the stage boundary rather than inside `ElementRenderer`,
+		// because that component dispatches straight to a per-type view whose root
+		// IS the element node, leaving no wrapper to hang the chrome off. A
+		// template-layer element is only decorated while it is actually editable,
+		// mirroring React's `canInteract` gate.
+		applyElementActionAffordances(
+			stage,
+			[
+				...(templateLayerInteractive.value ? templateElements.value : []),
+				...(props.slide?.elements ?? []),
+			],
+			{
+				canInteract: props.interactive === true,
+				presenting: props.presenting === true,
+				labels: actionAffordanceLabels((key) => t(key)),
+			},
+		);
 	} else if (props.preserveElementIds) {
 		// Morph drives per-element CSS keyed on `data-element-id`, so the two
 		// transition layers must keep their markers. Safe because the host hides
@@ -127,15 +160,6 @@ watchPostEffect(() => {
 		stripElementIdMarkers(stage);
 	}
 });
-
-/**
- * The template layer is interactive only when the canvas as a whole is
- * interactive AND edit-template mode is on. Computed here (not inline in the
- * template) so the SFC stays presentational.
- */
-const templateLayerInteractive = computed(
-	() => (props.interactive ?? false) && (props.editTemplateMode ?? false),
-);
 
 const stageStyle = computed<CSSProperties>(() => ({
 	width: `${props.canvasSize.width}px`,

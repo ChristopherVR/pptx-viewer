@@ -113,7 +113,9 @@ describe('shapeSection arrowhead selects', () => {
 		} as PptxElement;
 		const target = mountAt(ShapeSection, { editor: editorWith(element), el: element });
 
-		for (const caption of ['Start arrow', 'End arrow']) {
+		// Title Case, from `pptx.connectorArrows.*`: the captions are the controls'
+		// accessible names, and they are diffed against React.
+		for (const caption of ['Start Arrow', 'End Arrow']) {
 			const select = selectFor(target, caption);
 			expect(values(select)).toStrictEqual(arrows);
 			expect(texts(select)).toStrictEqual(translated(ARROWHEAD_LABEL_KEYS, arrows));

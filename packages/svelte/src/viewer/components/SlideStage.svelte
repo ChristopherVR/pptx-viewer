@@ -8,6 +8,8 @@
 	 */
 	import type { PptxElement } from 'pptx-viewer-core';
 	import {
+		actionAffordanceLabels,
+		applyElementActionAffordances,
 		applyRenderedElementAccessibility,
 		deriveSlideFieldContext,
 		getSlideBackgroundStyle,
@@ -74,11 +76,13 @@
 		}),
 	);
 
-	/** What the accessibility pass needs; both parts must re-trigger it. */
+	/** What the post-render stage passes need; each part must re-trigger them. */
 	interface AccessibleStageParams {
 		elements: readonly PptxElement[];
 		/** True only for a RUNNING slide show, never for a thumbnail or preview. */
 		presenting: boolean;
+		/** True only for the live editing canvas; gates the action affordances. */
+		interactive: boolean;
 	}
 
 	// `presenting` travels as an action PARAMETER rather than being closed over:
@@ -89,11 +93,21 @@
 	function accessibleStage(node: HTMLElement, params: AccessibleStageParams) {
 		let current = params;
 		function apply(): void {
-			queueMicrotask(() =>
+			queueMicrotask(() => {
 				applyRenderedElementAccessibility(node, current.elements, {
 					presenting: current.presenting,
-				}),
-			);
+				});
+				// The on-canvas action affordances (amber badge + hover link
+				// tooltip) ride the same post-render pass: `ElementRenderer`
+				// dispatches every non-shape type straight to a per-type view whose
+				// root IS the element node, so there is no wrapper inside the
+				// component tree to hang the chrome off.
+				applyElementActionAffordances(node, current.elements, {
+					canInteract: current.interactive,
+					presenting: current.presenting,
+					labels: actionAffordanceLabels((key) => t(key)),
+				});
+			});
 		}
 		apply();
 		return {
@@ -113,7 +127,7 @@
      which only withhold the region role from thumbnail stages. -->
 <div
 	class="pptx-svelte-stage"
-	use:accessibleStage={{ elements: slide?.elements ?? [], presenting }}
+	use:accessibleStage={{ elements: slide?.elements ?? [], presenting, interactive }}
 	style={stageStyle}
 	role={interactive ? 'region' : undefined}
 	aria-roledescription={interactive ? 'slide' : undefined}

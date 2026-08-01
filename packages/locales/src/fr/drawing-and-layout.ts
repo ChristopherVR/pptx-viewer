@@ -99,6 +99,7 @@ export const translations = {
 		"Ouvrir l'inspecteur pour modifier l'arrière-plan de la diapositive",
 	'pptx.design.slideSizeTooltip':
 		'Modifier les dimensions de la diapositive (16:9, 4:3, personnalisé)',
+	'pptx.element.hasAction': 'Comporte une action',
 	'pptx.element.linkFallback': 'Lien',
 	'pptx.align.bottom': 'Aligner en bas',
 	'pptx.align.centerH': 'Aligner au centre',
