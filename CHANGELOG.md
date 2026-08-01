@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-08-01
 
+_Releases: pptx-react-viewer@2.12.1, pptx-vue-viewer@2.12.1, pptx-angular-viewer@2.12.1, pptx-vanilla-viewer@1.13.1, pptx-svelte-viewer@2.12.1_
+
+### Bug Fixes
+
+- Make an inspector edit exactly one undo step, in every binding (by @ChristopherVR) ([48733d4](https://github.com/ChristopherVR/pptx-viewer/commit/48733d4a9dbe8d7887b0a103cc7cb1e90882464b))
+- Let the presenter finish the show, and keep scrubbers out of its panes (by @ChristopherVR) ([c7c12bc](https://github.com/ChristopherVR/pptx-viewer/commit/c7c12bc053548c8e94d3da385461d6569a1695a0))
+
+### Refactor
+
+- **vue:** Drop the orphaned useSelection composable (by @ChristopherVR) ([f5f31f3](https://github.com/ChristopherVR/pptx-viewer/commit/f5f31f3710bbf26e0dd60e0c68a852b033ee8e22))
+- **shared:** Split arrow markers and dash patterns out of connector-path (by @ChristopherVR) ([53d47d1](https://github.com/ChristopherVR/pptx-viewer/commit/53d47d1d529fe17f165a16ec9de7b7f29b17845c))
+
+## 2026-08-01
+
 _Releases: pptx-viewer-core@2.1.2, pptx-react-viewer@2.12.0, pptx-vue-viewer@2.12.0, pptx-angular-viewer@2.12.0, pptx-vanilla-viewer@1.13.0, pptx-svelte-viewer@2.12.0_
 
 ### Features
