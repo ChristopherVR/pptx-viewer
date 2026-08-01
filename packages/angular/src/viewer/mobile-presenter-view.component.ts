@@ -15,11 +15,11 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from '../internal/shared';
 import {
 	formatMobileElapsed,
-	isFirstSlide,
-	isLastSlide,
 	mobileElapsedSince,
 	mobileNextThumbSize,
 	mobileSlideCounter,
+	presenterNextDisabled,
+	presenterPrevDisabled,
 } from '../internal/shared';
 import { currentSlideAt, nextSlideAfter, resolvePresenterNotes } from './presenter-view-helpers';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -115,11 +115,14 @@ export class MobilePresenterViewComponent {
 		mobileSlideCounter(this.currentSlideIndex(), this.slides().length),
 	);
 
-	protected readonly atFirst = computed<boolean>(() => isFirstSlide(this.currentSlideIndex()));
-
-	protected readonly atLast = computed<boolean>(() =>
-		isLastSlide(this.currentSlideIndex(), this.slides().length),
+	// The desktop console's rules, not a phone-sized copy of them: Next stays live
+	// on the last slide so the presenter can reach the end-of-show screen and
+	// finish, exactly as the split-screen console does.
+	protected readonly prevDisabled = computed<boolean>(() =>
+		presenterPrevDisabled(this.currentSlideIndex()),
 	);
+
+	protected readonly nextDisabled = computed<boolean>(() => presenterNextDisabled());
 
 	/** Next-slide thumbnail box (CSS px); width drives the slide-canvas autoFit. */
 	protected readonly thumbStyle = computed(() => {

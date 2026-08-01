@@ -14,6 +14,10 @@ const MP3_DATA_URL = 'data:audio/mpeg;base64,AAAA';
 function makeContext(
 	mediaDataUrls = new Map<string, string>(),
 	presenting = false,
+	// Defaults to the AUTHORING canvas, the surface these cases model. A still
+	// of a slide (thumbnail rail, presenter console pane) is `interactive: false`
+	// and is covered separately below.
+	interactive = true,
 ): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
@@ -25,6 +29,7 @@ function makeContext(
 		t: createTranslator(),
 		smartArt3D: false,
 		presenting,
+		interactive,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};
@@ -153,6 +158,26 @@ describe('renderMediaElement', () => {
 				makeContext(new Map(), false),
 			) as HTMLElement;
 			expect(edited.querySelector<HTMLVideoElement>('video')?.controls).toBeTruthy();
+		});
+
+		it('paints no transport on a STILL of a slide (a console pane or thumbnail)', () => {
+			// Neither interactive nor presenting: the presenter console's panes and
+			// the thumbnail rail. `!presenting` alone put Chrome's scrubber across
+			// all of them, so the console drew a control bar over a slide the
+			// speaker cannot play.
+			const still = renderMediaElement(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }),
+				0,
+				makeContext(new Map(), false, false),
+			) as HTMLElement;
+			expect(still.querySelector<HTMLVideoElement>('video')?.controls).toBeFalsy();
+
+			const stillAudio = renderMediaElement(
+				mediaElement({ mediaType: 'audio', mediaData: MP3_DATA_URL }),
+				0,
+				makeContext(new Map(), false, false),
+			) as HTMLElement;
+			expect(stillAudio.querySelector<HTMLAudioElement>('audio')?.controls).toBeFalsy();
 		});
 
 		it('does not autoplay when context.presenting is false', () => {

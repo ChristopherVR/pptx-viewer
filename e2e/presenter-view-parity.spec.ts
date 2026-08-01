@@ -25,7 +25,7 @@
  *
  * Run: bunx playwright test presenter-view-parity
  */
-import { expect, test } from '@playwright/test';
+import { devices, expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 // Imported from source rather than restated: the bindings render from these
@@ -40,6 +40,32 @@ import { acrossFrameworks, splitReference } from './support/parity';
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const DECK = fixture('solution-explorer.pptx');
+
+/**
+ * A ONE-slide deck, for the navigation rules.
+ *
+ * Its only slide is simultaneously the first and the last, so a console opened
+ * on it is on the last slide with no navigation at all: no key handling, no
+ * thumbnail rail (there is none below the mobile breakpoint) and no counting
+ * clicks through animation builds. It also hits the exact predicate that was
+ * wrong, `isLastSlide(0, 1)`, which is true.
+ */
+const ONE_SLIDE_DECK = fixture('linked-textbox.pptx');
+
+/**
+ * The form factors the console must behave identically on.
+ *
+ * Below the mobile breakpoint React, Vue and Angular swap the split-screen
+ * console for a single-column phone layout, and all three of those phone
+ * layouts disabled Next on the last slide while their own desktop consoles left
+ * it live. Vanilla and Svelte have no phone layout and render the desktop
+ * console at any width, so the same deck stranded a presenter on three bindings
+ * out of five, on one form factor out of two.
+ */
+const FORM_FACTORS = [
+	{ name: 'desktop', device: { viewport: { width: 1440, height: 900 } } },
+	{ name: 'phone', device: devices['Pixel 7'] },
+] as const;
 
 /** Strip slots only; dividers and the spacer carry no control node. */
 const STRIP_IDS = PRESENTER_CONSOLE_ORDER.filter(
@@ -73,21 +99,27 @@ interface ConsoleProbe {
  * `data-pptx-present-control` contract. Going through the ribbon instead would
  * make this spec a test of five different ribbons.
  */
-async function openPresenterView(page: Page, origin: string): Promise<void> {
-	await loadDeckAt(page, origin, DECK);
+async function openPresenterView(page: Page, origin: string, deck: string = DECK): Promise<void> {
+	await loadDeckAt(page, origin, deck);
 	await page.waitForTimeout(800);
 	await page
 		.getByRole('button', { name: /^present$|slide show/iu })
 		.first()
-		.click();
+		.click({ force: true });
 	await page.waitForTimeout(1200);
-	// The show bar auto-hides until the pointer moves.
-	await page.mouse.move(720, 870);
-	await page.mouse.move(721, 868);
+	// The show bar auto-hides until the pointer moves. Measured off the live
+	// viewport rather than hard-coded: a phone viewport is narrower than the
+	// desktop x the two moves used to use, so the pointer landed outside the
+	// page entirely and the bar never came back.
+	const view = page.viewportSize() ?? { width: 1440, height: 900 };
+	const revealX = Math.round(view.width / 2);
+	const revealY = Math.round(view.height - 40);
+	await page.mouse.move(revealX, revealY);
+	await page.mouse.move(revealX + 1, revealY - 2);
 	await page.waitForTimeout(400);
 	// `force`: the bar sits over the stage, which owns pointer events in some
 	// bindings, and this spec is not measuring hit-testing.
-	await page.locator('[data-pptx-present-control="presenter-view"]').click({ force: true });
+	await page.locator('[data-pptx-present-control="presenter-view"]').first().click({ force: true });
 	await page.waitForTimeout(1500);
 }
 
@@ -220,31 +252,102 @@ test.describe('cross-binding presenter view', () => {
 		expect(problems.join('\n')).toBe('');
 	});
 
-	test('the Next control is never disabled, in any binding', async ({ browser }, testInfo) => {
-		// PowerPoint's console advances from the last slide to the end-of-show
-		// screen and then out of the show. Three bindings had independently added
-		// `disabled` on the last slide, which strands the presenter with no way to
-		// finish, so the audience display never closes either.
+	for (const factor of FORM_FACTORS) {
+		test(`on the last slide, Next stays live and Previous is disabled (${factor.name})`, async ({
+			browser,
+		}, testInfo) => {
+			// PowerPoint's console advances from the last slide to the end-of-show
+			// screen and then out of the show, so `presenterNextDisabled` is always
+			// false. Bindings kept re-deciding it locally: three desktop consoles
+			// added `disabled={current >= slides.length - 1}` (fixed once the rule
+			// moved into shared), and all three PHONE consoles then made the same
+			// call again through a near-duplicate `isLastSlide` helper, which
+			// stranded a presenter on a phone while a laptop let them finish.
+			//
+			// The deck has exactly one slide, so the console opens on the last slide
+			// without navigating: the phone layout has no thumbnail rail to jump
+			// with, and counting clicks to the end is at the mercy of every
+			// animation build on the way.
+			const results = await acrossFrameworks(
+				browser,
+				testInfo,
+				async (page, origin) => {
+					await openPresenterView(page, origin, ONE_SLIDE_DECK);
+					return page.evaluate(() => {
+						const read = (id: string) => {
+							const node = document.querySelector(`[data-pptx-presenter-control="${id}"]`);
+							if (node === null) {
+								return null;
+							}
+							return {
+								disabled:
+									node instanceof HTMLButtonElement
+										? node.disabled
+										: node.getAttribute('aria-disabled') === 'true',
+								visible: node.getClientRects().length > 0,
+							};
+						};
+						return { next: read('next'), prev: read('prev') };
+					});
+				},
+				{ device: factor.device },
+			);
+
+			const problems: string[] = [];
+			for (const { framework, value } of results) {
+				if (value.next === null) {
+					problems.push(`${framework.name}: no presenter "next" control`);
+				} else {
+					if (value.next.disabled) {
+						problems.push(`${framework.name}: presenter "next" is disabled on the last slide`);
+					}
+					if (!value.next.visible) {
+						problems.push(`${framework.name}: presenter "next" renders no box`);
+					}
+				}
+				if (value.prev === null) {
+					problems.push(`${framework.name}: no presenter "prev" control`);
+				} else if (!value.prev.disabled) {
+					problems.push(`${framework.name}: presenter "prev" is live on the first slide`);
+				}
+			}
+			expect(problems.join('\n')).toBe('');
+		});
+	}
+
+	test('no presenter pane paints a native media transport', async ({ browser }, testInfo) => {
+		// A console pane is a STILL of a slide: the speaker cannot play it, and
+		// PowerPoint paints no control bar on one. Four bindings rendered their
+		// panes through a non-presenting stage whose rule was `controls =
+		// !presenting`, so Chrome's black scrubber sat across the bottom of the
+		// current-slide pane and the next-slide preview.
+		//
+		// The check is one-sided on purpose. React's preview renderer is handed no
+		// media map, so its video falls back to a poster IMAGE and there is no
+		// `<video>` to carry a transport; requiring a media node in every console
+		// would fail on the one binding that never had the defect.
 		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
 			await openPresenterView(page, origin);
 			return page.evaluate(() => {
-				const next = document.querySelector('[data-pptx-presenter-control="next"]');
+				const panes = [
+					...document.querySelectorAll(
+						'[data-pptx-presenter-slide], [data-pptx-presenter-next-preview]',
+					),
+				];
+				const media = panes.flatMap((pane) => [...pane.querySelectorAll('video, audio')]);
 				return {
-					found: next !== null,
-					disabled:
-						next instanceof HTMLButtonElement
-							? next.disabled
-							: next?.getAttribute('aria-disabled') === 'true',
+					total: media.length,
+					withTransport: media.filter((node) => (node as HTMLMediaElement).controls).length,
 				};
 			});
 		});
 
 		const problems: string[] = [];
 		for (const { framework, value } of results) {
-			if (!value.found) {
-				problems.push(`${framework.name}: no rail "next" control`);
-			} else if (value.disabled) {
-				problems.push(`${framework.name}: rail "next" is disabled`);
+			if (value.withTransport > 0) {
+				problems.push(
+					`${framework.name}: ${value.withTransport} of ${value.total} media node(s) in the presenter panes still paint a native transport`,
+				);
 			}
 		}
 		expect(problems.join('\n')).toBe('');

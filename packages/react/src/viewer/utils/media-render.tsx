@@ -15,6 +15,14 @@ export interface RenderMediaOptions {
 	autoPlay?: boolean;
 	fullScreen?: boolean;
 	isPresentationMode?: boolean;
+	/**
+	 * Whether to paint the browser's native transport. Defaults to the show rule
+	 * (`!isPresentationMode`); the STILL surfaces (presenter console panes,
+	 * thumbnails, previews) pass `false` explicitly, because they are not in
+	 * presentation mode and would otherwise get a scrubber over a slide the
+	 * viewer cannot play. See the shared `mediaTransportVisible`.
+	 */
+	showTransport?: boolean;
 	/** Callback fired when the media play/pause state changes. */
 	onPlayStateChange?: (isPlaying: boolean) => void;
 }
@@ -62,6 +70,7 @@ export function renderMediaElement(
 	const shouldAutoPlay = options?.autoPlay === true || element.autoPlay === true;
 	const isFullScreen = options?.fullScreen === true;
 	const isPresentationMode = options?.isPresentationMode === true;
+	const showTransport = options?.showTransport ?? !isPresentationMode;
 
 	// Play-across-slides: register persistent audio with resolved dataUrl.
 	// The PresentationMediaController auto-play effect handles this when
@@ -143,6 +152,7 @@ export function renderMediaElement(
 							shouldAutoPlay={shouldAutoPlay}
 							isFullScreen={isFullScreen}
 							isPresentationMode={isPresentationMode}
+							showTransport={showTransport}
 						/>
 					)}
 				</PresentationMediaController>
@@ -211,7 +221,7 @@ export function renderMediaElement(
 							mediaMimeType={mediaMimeType}
 							shouldLoop={shouldLoop}
 							shouldAutoPlay={shouldAutoPlay}
-							isPresentationMode={isPresentationMode}
+							showTransport={showTransport}
 						/>
 					)}
 				</PresentationMediaController>

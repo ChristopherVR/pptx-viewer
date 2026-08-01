@@ -48,6 +48,22 @@ export const DEFAULT_TOLERANCE: ParityTolerance = {
 };
 
 /**
+ * How to open the pages a parity scenario runs against.
+ *
+ * `device` takes a Playwright device descriptor (`devices['Pixel 7']`) so a
+ * parity spec can state "and again on a phone" without owning a viewport table.
+ * Chrome that only exists below the mobile breakpoint (the phone presenter
+ * console, the bottom action bar) is otherwise unreachable from these specs,
+ * and unreachable chrome is exactly where the five bindings drift.
+ */
+export interface AcrossFrameworksOptions {
+	path?: string;
+	viewport?: { width: number; height: number };
+	/** A `devices[...]` descriptor; its viewport is used unless `viewport` overrides it. */
+	device?: Parameters<Browser['newPage']>[0];
+}
+
+/**
  * Open one page per framework in this project's comparison set, run `scenario`
  * against each, and hand back the results paired with their binding.
  *
@@ -58,14 +74,16 @@ export async function acrossFrameworks<T>(
 	browser: Browser,
 	testInfo: TestInfo,
 	scenario: (page: Page, origin: string) => Promise<T>,
-	options: { path?: string; viewport?: { width: number; height: number } } = {},
+	options: AcrossFrameworksOptions = {},
 ): Promise<FrameworkResult<T>[]> {
 	const frameworks = comparisonSet(testInfo.project.name);
+	const pageOptions =
+		options.device || options.viewport
+			? { ...options.device, ...(options.viewport ? { viewport: options.viewport } : {}) }
+			: undefined;
 	const opened = await Promise.all(
 		frameworks.map(async (framework) => {
-			const page = await browser.newPage(
-				options.viewport ? { viewport: options.viewport } : undefined,
-			);
+			const page = await browser.newPage(pageOptions);
 			return { framework, page };
 		}),
 	);

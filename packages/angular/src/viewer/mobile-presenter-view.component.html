@@ -79,8 +79,9 @@
 		<button
 			type="button"
 			class="pptx-ng-mpresenter-navbtn"
+			data-pptx-presenter-control="prev"
 			(click)="movePresentationSlide.emit(-1)"
-			[disabled]="atFirst()"
+			[disabled]="prevDisabled()"
 			[attr.aria-label]="'pptx.presenter.previousSlide' | translate"
 			[title]="'pptx.presenter.previousSlide' | translate"
 		>
@@ -89,10 +90,11 @@
 		<button
 			type="button"
 			class="pptx-ng-mpresenter-navbtn"
+			data-pptx-presenter-control="next"
 			(click)="movePresentationSlide.emit(1)"
-			[disabled]="atLast()"
-			[attr.aria-label]="'pptx.presenter.nextSlidePreview' | translate"
-			[title]="'pptx.presenter.nextSlidePreview' | translate"
+			[disabled]="nextDisabled()"
+			[attr.aria-label]="'pptx.presenter.nextSlide' | translate"
+			[title]="'pptx.presenter.nextSlide' | translate"
 		>
 			{{ 'pptx.presenter.next' | translate }} &#x203A;
 		</button>

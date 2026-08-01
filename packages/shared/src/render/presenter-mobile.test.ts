@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { presenterNextDisabled, presenterPrevDisabled } from './presenter-chrome';
 import {
 	formatMobileElapsed,
-	isFirstSlide,
-	isLastSlide,
 	MOBILE_NEXT_THUMB_WIDTH,
 	mobileElapsedSince,
 	mobileNextThumbSize,
@@ -50,17 +49,18 @@ describe('mobileSlideCounter', () => {
 	});
 });
 
-describe('isFirstSlide / isLastSlide', () => {
-	it('detects the first slide (and negative indices)', () => {
-		expect(isFirstSlide(0)).toBeTruthy();
-		expect(isFirstSlide(-1)).toBeTruthy();
-		expect(isFirstSlide(1)).toBeFalsy();
+describe('phone navigation predicates', () => {
+	// The phone console reads the DESKTOP console's rules. It used to own an
+	// `isLastSlide` of its own and disable Next with it, so the same deck stranded
+	// a presenter on a phone and let them finish on a laptop.
+	it('disables Previous only on the first slide, as the desktop console does', () => {
+		expect(presenterPrevDisabled(0)).toBeTruthy();
+		expect(presenterPrevDisabled(-1)).toBeTruthy();
+		expect(presenterPrevDisabled(1)).toBeFalsy();
 	});
 
-	it('detects the last slide (and out-of-range indices)', () => {
-		expect(isLastSlide(11, 12)).toBeTruthy();
-		expect(isLastSlide(12, 12)).toBeTruthy();
-		expect(isLastSlide(5, 12)).toBeFalsy();
+	it('never disables Next, including on the last slide', () => {
+		expect(presenterNextDisabled()).toBeFalsy();
 	});
 });
 

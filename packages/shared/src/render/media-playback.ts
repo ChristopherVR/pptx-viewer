@@ -80,3 +80,42 @@ export function applyMediaPlaybackAttributes(
 	el.volume = attributes.volume;
 	el.playbackRate = attributes.playbackRate;
 }
+
+/** Which surface a slide is being painted on, as far as a media element cares. */
+export interface MediaTransportSurface {
+	/** True only on the live slide-show stage. */
+	presenting: boolean;
+	/**
+	 * True when the slide is painted as a STILL of itself: the presenter
+	 * console's current-slide pane and next-slide preview, the slide-thumbnail
+	 * rail, an export raster. Never the surface the show is actually running on.
+	 */
+	preview: boolean;
+	/**
+	 * What the binding would do on its own AUTHORING canvas, which the five
+	 * deliberately differ on: React paints a transport there, Angular suppresses
+	 * it so a click selects the shape instead, Vue paints one but makes it inert.
+	 * That difference is not this function's business; it only overrides the
+	 * answer on the two surfaces where PowerPoint never paints a transport.
+	 */
+	canvasTransport: boolean;
+}
+
+/**
+ * Whether a media element should carry the browser's native transport.
+ *
+ * PowerPoint paints no control bar during a show, and none on a still of a
+ * slide either. Four bindings got the still wrong: the presenter console's
+ * panes render through a NON-presenting stage, so `controls = !presenting` (and
+ * Angular's `controls = !interactive && !presenting`) turned Chrome's black
+ * scrubber ON inside the console, across the bottom of a slide the presenter
+ * cannot even play. React escaped only by accident - its preview renderer
+ * passes no media map, so the video falls back to a poster image and there is
+ * no `<video>` to put a transport on.
+ */
+export function mediaTransportVisible(surface: MediaTransportSurface): boolean {
+	if (surface.presenting || surface.preview) {
+		return false;
+	}
+	return surface.canvasTransport;
+}

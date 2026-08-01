@@ -2,6 +2,7 @@ import {
 	applyMediaPlaybackAttributes,
 	getContainerStyle,
 	getImageSrc,
+	mediaTransportVisible,
 	startMediaAutoplay,
 } from 'pptx-viewer-shared';
 import type { MediaPlaybackSource } from 'pptx-viewer-shared';
@@ -59,6 +60,16 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 	if (element.type !== 'media') {
 		return null;
 	}
+	// A stage that is neither interactive nor presenting is a STILL of a slide:
+	// the presenter console's current-slide pane and next-slide preview, the
+	// thumbnail rail, an export raster. `!presenting` alone put Chrome's black
+	// scrubber across all of them, so the presenter console painted a transport
+	// over a slide the speaker cannot play.
+	const showTransport = mediaTransportVisible({
+		presenting: context.presenting,
+		preview: context.interactive !== true && !context.presenting,
+		canvasTransport: true,
+	});
 	const doc = context.document;
 	const el = createEl(doc, 'div', 'pptxv-element pptxv-media', getContainerStyle(element, zIndex));
 	el.dataset.elementId = element.id;
@@ -79,7 +90,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		// No transport during a show: PowerPoint paints none, and a full-bleed
 		// background video otherwise draws Chrome's own black scrubber across the
 		// bottom of the slide, on top of the presentation toolbar.
-		video.controls = !context.presenting;
+		video.controls = showTransport;
 		video.preload = 'metadata';
 		video.playsInline = true;
 		if (posterSrc) {
@@ -93,7 +104,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 	if (mediaSrc && element.mediaType === 'audio') {
 		const audio = createEl(doc, 'audio', 'pptxv-media-audio', { width: '100%' });
 		audio.src = mediaSrc;
-		audio.controls = !context.presenting;
+		audio.controls = showTransport;
 		el.appendChild(audio);
 		applyMediaPresentingState(audio, context.presenting, element);
 		return el;

@@ -50,10 +50,14 @@ function mountEl(
 	element: PptxElement,
 	mediaDataUrls = new Map<string, string>(),
 	presenting = false,
+	// Defaults to the AUTHORING canvas, the surface these cases model. A still of
+	// a slide (thumbnail rail, presenter console pane) is `interactive: false`
+	// and is covered separately below.
+	interactive = true,
 ): MountResult {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	const props = $state({ element, mediaDataUrls, zIndex: 2, presenting });
+	const props = $state({ element, mediaDataUrls, zIndex: 2, presenting, interactive });
 	const instance = mount(ElementRenderer, { target, props });
 	flushSync();
 	cleanup = () => {
@@ -124,6 +128,20 @@ describe('mediaBox', () => {
 		expect(audio?.getAttribute('src')).toBe(MP3_DATA_URL);
 		expect(audio?.hasAttribute('controls')).toBeTruthy();
 		expect(target.querySelector('video')).toBeNull();
+	});
+
+	it('paints no transport on a STILL of a slide (a console pane or thumbnail)', () => {
+		// Neither interactive nor presenting: the presenter console's panes and the
+		// thumbnail rail. `!presenting` alone put Chrome's scrubber across all of
+		// them, so the console drew a control bar over a slide the speaker cannot
+		// play.
+		const { target } = mountEl(
+			mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }),
+			new Map(),
+			false,
+			false,
+		);
+		expect(target.querySelector('video')?.hasAttribute('controls')).toBeFalsy();
 	});
 
 	it('falls back to the poster image when no playable source exists', () => {

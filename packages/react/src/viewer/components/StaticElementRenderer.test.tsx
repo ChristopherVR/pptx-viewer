@@ -120,3 +120,30 @@ describe('static rich element rendering', () => {
 		}
 	});
 });
+
+describe('static surfaces and the native media transport', () => {
+	// A still of a slide (presenter console pane, thumbnail, transition layer) is
+	// not in presentation mode, so the `controls={!isPresentationMode}` rule alone
+	// would paint Chrome's scrubber across it. React only escaped that by accident
+	// - its previews are handed no media map, so the video falls back to a poster
+	// image - and the other four bindings, which do thread the map, drew a control
+	// bar over a slide the speaker cannot play. The surface now says what it is.
+	const video: PptxElement = {
+		id: 'media-1',
+		type: 'media',
+		x: 0,
+		y: 0,
+		width: 320,
+		height: 180,
+		mediaType: 'video',
+		mediaData: 'data:video/mp4;base64,AAAA',
+	};
+
+	it('renders a video with no transport', () => {
+		const html = renderToStaticMarkup(
+			<StaticElementRenderer element={video} activeSlide={slide} allSlides={[slide]} zIndex={0} />,
+		);
+		expect(html).toContain('<video');
+		expect(html).not.toContain('controls');
+	});
+});

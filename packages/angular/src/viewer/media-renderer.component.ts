@@ -12,7 +12,11 @@ import {
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
-import { applyMediaPlaybackAttributes, startMediaAutoplay } from '../internal/shared';
+import {
+	applyMediaPlaybackAttributes,
+	mediaTransportVisible,
+	startMediaAutoplay,
+} from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
 import { ColorChangedImageComponent } from './color-changed-image.component';
@@ -48,6 +52,13 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
  * across the bottom of the slide, over the presentation toolbar. PowerPoint
  * shows no transport during a show either; React gates on the same condition
  * (`controls={!isPresentationMode}`).
+ *
+ * The same `interactive` gate turned it on for every STILL of a slide as well
+ * (the presenter console's current-slide pane and next-slide preview, the
+ * thumbnail rail), so the console painted a scrubber over a slide the speaker
+ * cannot play. {@link showControls} routes the decision through the shared
+ * `mediaTransportVisible`, which owns the show/still rules for all five
+ * bindings and leaves the authoring canvas to each of them.
  */
 @Component({
 	selector: 'pptx-media-renderer',
@@ -68,7 +79,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 						class="pptx-ng-media-el pptx-ng-media-audio"
 						[class.pptx-ng-media-inert]="interactive()"
 						[src]="src + trimFragment()"
-						[controls]="!interactive() && !presenting()"
+						[controls]="showControls()"
 						[loop]="loop()"
 						preload="metadata"
 					></audio>
@@ -79,7 +90,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 						[class.pptx-ng-media-inert]="interactive()"
 						[src]="src + trimFragment()"
 						[poster]="poster() ?? null"
-						[controls]="!interactive() && !presenting()"
+						[controls]="showControls()"
 						[loop]="loop()"
 						preload="metadata"
 						playsInline
@@ -188,6 +199,23 @@ export class MediaRendererComponent {
 			}
 		});
 	}
+
+	/**
+	 * Whether to paint the browser's native transport.
+	 *
+	 * `canvasTransport: false` is this binding's own long-standing answer for its
+	 * authoring canvas: a click there selects or moves the picture, so a scrubber
+	 * would only steal the gesture (the element also carries `pptx-ng-media-inert`
+	 * for the same reason). React paints one on its canvas; that difference is
+	 * deliberate and is the only thing the shared rule leaves to the binding.
+	 */
+	readonly showControls = computed<boolean>(() =>
+		mediaTransportVisible({
+			presenting: this.presenting(),
+			preview: !this.interactive() && !this.presenting(),
+			canvasTransport: false,
+		}),
+	);
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),

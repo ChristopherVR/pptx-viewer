@@ -3,12 +3,12 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	formatMobileElapsed,
-	isFirstSlide,
-	isLastSlide,
 	mobileElapsedSince,
 	mobileNextThumbSize,
 	mobileSlideCounter,
 	nextPresentedSlide,
+	presenterNextDisabled,
+	presenterPrevDisabled,
 } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -78,8 +78,11 @@ const nextSlide = computed<PptxSlide | undefined>(() =>
 const counterText = computed(() =>
 	mobileSlideCounter(props.currentSlideIndex, props.slides.length),
 );
-const atFirst = computed(() => isFirstSlide(props.currentSlideIndex));
-const atLast = computed(() => isLastSlide(props.currentSlideIndex, props.slides.length));
+// The desktop console's rules, not a phone-sized copy of them: Next stays live
+// on the last slide so the presenter can reach the end-of-show screen and
+// finish, exactly as the split-screen console does.
+const prevDisabled = computed(() => presenterPrevDisabled(props.currentSlideIndex));
+const nextDisabled = computed(() => presenterNextDisabled());
 
 const notesText = computed(() => currentSlide.value?.notes ?? '');
 const notesSpans = computed(() => {
@@ -158,7 +161,7 @@ const thumbFrameStyle = computed(() => ({
 			class="pptx-vue-mpresenter-next flex items-center gap-3 border-b border-border/60 px-4 py-2"
 		>
 			<span class="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted-foreground">{{
-				t('pptx.mobileBar.nextSlide')
+				t('pptx.presenter.nextSlidePreview')
 			}}</span>
 			<div
 				v-if="nextSlide"
@@ -206,9 +209,10 @@ const thumbFrameStyle = computed(() => ({
 			<button
 				type="button"
 				class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded bg-muted text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-				:disabled="atFirst"
-				:title="t('pptx.mobileBar.previousSlide')"
-				:aria-label="t('pptx.mobileBar.previousSlide')"
+				data-pptx-presenter-control="prev"
+				:disabled="prevDisabled"
+				:title="t('pptx.presenter.previousSlide')"
+				:aria-label="t('pptx.presenter.previousSlide')"
 				@click="emit('move', -1)"
 			>
 				<ChevronLeft class="w-5 h-5" aria-hidden="true" />
@@ -217,9 +221,10 @@ const thumbFrameStyle = computed(() => ({
 			<button
 				type="button"
 				class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded bg-muted text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-				:disabled="atLast"
-				:title="t('pptx.mobileBar.nextSlide')"
-				:aria-label="t('pptx.mobileBar.nextSlide')"
+				data-pptx-presenter-control="next"
+				:disabled="nextDisabled"
+				:title="t('pptx.presenter.nextSlide')"
+				:aria-label="t('pptx.presenter.nextSlide')"
 				@click="emit('move', 1)"
 			>
 				{{ t('pptx.mpresenter.next') }}

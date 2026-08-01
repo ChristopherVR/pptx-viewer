@@ -45,6 +45,14 @@ export interface RenderBodyOptions {
 	findHl?: ElementFindHighlights;
 	onHyperlinkClick?: (url: string) => void;
 	isPresentationPassive?: boolean;
+	/**
+	 * True when this body is painted onto a STILL of a slide (the presenter
+	 * console's panes, a thumbnail, any `StaticElementRenderer` surface) rather
+	 * than onto the canvas or the live show stage. Media reads it: a still never
+	 * carries the browser's native transport, and `isPresentationPassive` cannot
+	 * answer that on its own, because a still is not in presentation mode.
+	 */
+	isStaticSurface?: boolean;
 	handleMediaPlayStateChange?: (isPlaying: boolean) => void;
 	presentationElementStates?: ReadonlyMap<string, ElementAnimationState>;
 	/** All elements on the current slide, used for linked text box overflow distribution. */

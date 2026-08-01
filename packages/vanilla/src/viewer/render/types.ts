@@ -69,6 +69,17 @@ export interface ElementRenderContext {
 	 * slideshow behaviour. `false` for the editor canvas and thumbnail rail.
 	 */
 	readonly presenting: boolean;
+	/**
+	 * True only for the surface the user is authoring on. `false` for every
+	 * still of a slide (thumbnail rail, presenter console panes, export raster)
+	 * AND for the live show stage, which is driven, not edited.
+	 *
+	 * Media reads it: a stage that is neither interactive nor presenting is a
+	 * still, and a still never carries the browser's native transport (see the
+	 * shared `mediaTransportVisible`). Optional so the many hand-built contexts
+	 * in tests keep compiling; the stage always sets it.
+	 */
+	readonly interactive?: boolean;
 	readonly onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
 	readonly onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/**

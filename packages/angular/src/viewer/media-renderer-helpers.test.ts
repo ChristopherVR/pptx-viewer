@@ -98,20 +98,25 @@ describe('resolveCaptionTracks', () => {
 });
 
 /**
- * The show must paint no native media transport.
+ * The show must paint no native media transport, and neither must a STILL of a
+ * slide.
  *
  * `interactive` alone got this backwards: a running show is non-interactive, so
  * `[controls]="!interactive()"` turned the transport ON, and a full-bleed
  * background video then drew Chrome's own black scrubber across the bottom of
- * the presented slide, on top of the presentation toolbar. React gates on the
- * same condition (`controls={!isPresentationMode}`).
+ * the presented slide, on top of the presentation toolbar. Adding `&&
+ * !presenting()` fixed the show and left every still wrong the same way: the
+ * presenter console's panes and the thumbnail rail are non-interactive AND not
+ * presenting, so the console painted a transport over a slide the speaker
+ * cannot play. Both bindings now defer to `showControls()`, which asks the
+ * shared `mediaTransportVisible` and so cannot drift from the other four.
  *
  * Asserted against the authored template text because this package has no
  * TestBed (see `vitest.config.ts`), the same technique the other component
  * contract specs use.
  */
 describe('the media transport during a show', () => {
-	it('is suppressed while presenting as well as while editing', () => {
+	it('defers both bindings to the shared show/still rule', () => {
 		const source = componentSource(
 			dirname(fileURLToPath(import.meta.url)),
 			'media-renderer.component.ts',
@@ -121,7 +126,10 @@ describe('the media transport during a show', () => {
 		);
 		expect(bindings).toHaveLength(2);
 		for (const binding of bindings) {
-			expect(binding).toBe('!interactive() && !presenting()');
+			expect(binding).toBe('showControls()');
 		}
+		// ...and the computed behind it is the shared predicate, not a local guess.
+		expect(source).toContain('mediaTransportVisible({');
+		expect(source).toContain('preview: !this.interactive() && !this.presenting(),');
 	});
 });

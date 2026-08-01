@@ -72,21 +72,16 @@ export function mobileSlideCounter(currentIndex: number, total: number): string 
 	return `${currentIndex + 1} / ${total}`;
 }
 
-/**
- * Whether the deck is on its first slide (used to disable the "previous"
- * control). Negative indices are treated as the first slide.
- */
-export function isFirstSlide(currentIndex: number): boolean {
-	return currentIndex <= 0;
-}
-
-/**
- * Whether the deck is on its last slide (used to disable the "next" control).
- * An out-of-range index past the end also counts as the last slide.
- */
-export function isLastSlide(currentIndex: number, total: number): boolean {
-	return currentIndex >= total - 1;
-}
+// The phone layout deliberately owns NO first/last predicates of its own.
+//
+// It used to: an `isFirstSlide` / `isLastSlide` pair lived here, and all three
+// phone consoles wired Next's `disabled` to `isLastSlide`. The desktop console
+// answers the same question with `presenterNextDisabled` in `presenter-chrome`,
+// which is always false because PowerPoint advances from the last slide to the
+// end-of-show screen and then out of the show. So the same deck stranded a
+// presenter on a phone and let them finish on a laptop. Both consoles now read
+// `presenterPrevDisabled` / `presenterNextDisabled` from `presenter-chrome`, and
+// there is no near-miss duplicate here for a fourth port to reach for.
 
 // ---------------------------------------------------------------------------
 // Elapsed-time formatting

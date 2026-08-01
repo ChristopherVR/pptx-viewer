@@ -10,6 +10,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import {
 	applyMediaPlaybackAttributes,
 	mediaPlaybackAttributes,
+	mediaTransportVisible,
 	startMediaAutoplay,
 } from 'pptx-viewer-shared';
 import type { MediaPlaybackSource } from 'pptx-viewer-shared';
@@ -120,8 +121,19 @@ const shouldAutoPlay = computed(
  * the slide. This mirrors React's `controls={!isPresentationMode}`; the flag
  * was inverted here, so the editor hid the controls and the SHOW displayed
  * them over the deck.
+ *
+ * A stage that is neither interactive nor presenting is a STILL of a slide (the
+ * presenter console's panes, the thumbnail rail), and `!presenting` alone put
+ * Chrome's scrubber across those too: the presenter console painted a control
+ * bar over a slide the speaker cannot play. The rule now comes from shared.
  */
-const showControls = computed(() => !props.presenting);
+const showControls = computed(() =>
+	mediaTransportVisible({
+		presenting: props.presenting === true,
+		preview: props.interactive !== true && props.presenting !== true,
+		canvasTransport: true,
+	}),
+);
 </script>
 
 <template>

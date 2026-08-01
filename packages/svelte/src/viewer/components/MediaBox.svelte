@@ -30,6 +30,7 @@
 	import {
 		applyMediaPlaybackAttributes,
 		mediaPlaybackAttributes,
+		mediaTransportVisible,
 		startMediaAutoplay,
 	} from 'pptx-viewer-shared';
 
@@ -56,6 +57,13 @@
 	// `playbackRate` are IDL properties with no attribute form and have to be
 	// applied imperatively below.
 	const playback = $derived(mediaPlaybackAttributes(media ?? {}));
+	// A stage that is neither interactive nor presenting is a STILL of a slide
+	// (the presenter console's panes, the thumbnail rail), and `!presenting`
+	// alone painted Chrome's scrubber across those too: the console drew a
+	// control bar over a slide the speaker cannot play. The rule is shared.
+	const showControls = $derived(
+		mediaTransportVisible({ presenting, preview: !interactive && !presenting, canvasTransport: true }),
+	);
 
 	// The conditionally-rendered `<video>`/`<audio>` template's `bind:this`
 	// writes this (invisible to the linter); it must be `$state` so Svelte
@@ -99,7 +107,7 @@
 				class="pptx-svelte-media-video"
 				src={view.mediaSrc}
 				poster={view.posterSrc}
-				controls={!presenting}
+				controls={showControls}
 				loop={playback.loop}
 				preload="metadata"
 				playsinline
@@ -109,7 +117,7 @@
 				bind:this={mediaEl}
 				class="pptx-svelte-media-audio"
 				src={view.mediaSrc}
-				controls={!presenting}
+				controls={showControls}
 				loop={playback.loop}
 			></audio>
 		{:else if view.posterSrc}

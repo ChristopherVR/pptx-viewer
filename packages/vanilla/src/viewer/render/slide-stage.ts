@@ -133,6 +133,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		t,
 		smartArt3D: options.smartArt3D ?? false,
 		presenting: options.presenting ?? false,
+		interactive,
 		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,
 		onSmartArtNodeFillChange: options.onSmartArtNodeFillChange,
 		registry,

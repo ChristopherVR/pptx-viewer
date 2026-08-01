@@ -8,6 +8,7 @@ import type {
 	ZoomPptxElement,
 } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
+import { mediaTransportVisible } from 'pptx-viewer-shared';
 import React from 'react';
 
 import {
@@ -59,6 +60,7 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		onColResize,
 		onRowResize,
 		isPresentationPassive,
+		isStaticSurface,
 		handleMediaPlayStateChange,
 		allSlides,
 		onZoomClick,
@@ -154,6 +156,13 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 			autoPlay: isPresentationPassive,
 			fullScreen: isPresentationPassive && Boolean(el.fullScreen),
 			isPresentationMode: isPresentationPassive,
+			// A still of a slide never carries a transport, whatever the canvas
+			// does. The rule is shared so the five bindings cannot drift on it.
+			showTransport: mediaTransportVisible({
+				presenting: isPresentationPassive === true,
+				preview: isStaticSurface === true,
+				canvasTransport: true,
+			}),
 			onPlayStateChange: handleMediaPlayStateChange,
 		});
 	}

@@ -19,9 +19,19 @@ function makeMedia(overrides: Partial<MediaPptxElement> = {}): MediaPptxElement 
 	};
 }
 
-function mountMedia(element: MediaPptxElement) {
+function mountMedia(
+	element: MediaPptxElement,
+	surface: { interactive?: boolean; presenting?: boolean } = {},
+) {
 	return mount(ElementMediaBox, {
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1 },
+		props: {
+			element,
+			mediaDataUrls: new Map<string, string>(),
+			zIndex: 1,
+			// Defaults to the AUTHORING canvas, the surface most cases model.
+			interactive: surface.interactive ?? true,
+			presenting: surface.presenting ?? false,
+		},
 	});
 }
 
@@ -45,5 +55,27 @@ describe('elementMediaBox playback settings', () => {
 		expect(video.volume).toBe(1);
 		expect(video.playbackRate).toBe(1);
 		expect(wrapper.find('video').attributes('loop')).toBeUndefined();
+	});
+});
+
+describe('elementMediaBox native transport', () => {
+	it('paints one on the authoring canvas', () => {
+		expect(mountMedia(makeMedia()).find('video').attributes('controls')).toBeDefined();
+	});
+
+	it('paints none during a show', () => {
+		// PowerPoint shows no control bar, and a full-bleed background video
+		// otherwise draws Chrome's own scrubber across the presented slide.
+		const wrapper = mountMedia(makeMedia(), { interactive: false, presenting: true });
+		expect(wrapper.find('video').attributes('controls')).toBeUndefined();
+	});
+
+	it('paints none on a STILL of a slide (a console pane or thumbnail)', () => {
+		// Neither interactive nor presenting: the presenter console's panes and the
+		// thumbnail rail. `!presenting` alone put Chrome's scrubber across all of
+		// them, so the console drew a control bar over a slide the speaker cannot
+		// play.
+		const wrapper = mountMedia(makeMedia(), { interactive: false, presenting: false });
+		expect(wrapper.find('video').attributes('controls')).toBeUndefined();
 	});
 });

@@ -1,11 +1,11 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import {
 	formatMobileElapsed,
-	isFirstSlide,
-	isLastSlide,
 	mobileElapsedSince,
 	mobileSlideCounter,
 	nextPresentedSlide,
+	presenterNextDisabled,
+	presenterPrevDisabled,
 } from 'pptx-viewer-shared';
 /**
  * MobilePresenterView: single-column phone layout for presenter/speaker view.
@@ -86,8 +86,11 @@ export function MobilePresenterView({
 	const notesSegments = currentSlide.notesSegments;
 	const hasRichNotes = notesSegments && notesSegments.length > 0;
 
-	const atFirst = isFirstSlide(currentSlideIndex);
-	const atLast = isLastSlide(currentSlideIndex, slides.length);
+	// The desktop console's rules, not a phone-sized copy of them: Next stays live
+	// on the last slide so the presenter can reach the end-of-show screen and
+	// finish, exactly as the split-screen console does.
+	const prevDisabled = presenterPrevDisabled(currentSlideIndex);
+	const nextDisabled = presenterNextDisabled();
 
 	const insetStyle: React.CSSProperties = {
 		paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -173,8 +176,9 @@ export function MobilePresenterView({
 			<div className='flex items-center justify-between gap-3 px-4 py-2 border-t border-border/60'>
 				<button
 					type='button'
+					data-pptx-presenter-control='prev'
 					onClick={() => onMovePresentationSlide(-1)}
-					disabled={atFirst}
+					disabled={prevDisabled}
 					className='inline-flex items-center justify-center gap-1.5 flex-1 h-11 rounded bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors'
 					title={t('pptx.presenter.previousSlide')}
 					aria-label={t('pptx.presenter.previousSlide')}
@@ -184,8 +188,9 @@ export function MobilePresenterView({
 				</button>
 				<button
 					type='button'
+					data-pptx-presenter-control='next'
 					onClick={() => onMovePresentationSlide(1)}
-					disabled={atLast}
+					disabled={nextDisabled}
 					className='inline-flex items-center justify-center gap-1.5 flex-1 h-11 rounded bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors'
 					title={t('pptx.presenter.nextSlide')}
 					aria-label={t('pptx.presenter.nextSlide')}

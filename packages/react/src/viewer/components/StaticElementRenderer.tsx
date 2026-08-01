@@ -253,6 +253,11 @@ function StaticElementRendererImpl({
 					onCommit: noop,
 					onCancel: noop,
 					isPresentationPassive: false,
+					// This renderer only ever paints a STILL of a slide (presenter
+					// console panes, thumbnails, previews). It is not in presentation
+					// mode, so without saying so a video here would carry Chrome's
+					// scrubber over a slide nobody can play.
+					isStaticSurface: true,
 					slideElements: activeSlide?.elements,
 					allSlides,
 					sourceSlideIndex,

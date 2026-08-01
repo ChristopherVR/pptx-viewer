@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	applyMediaPlaybackAttributes,
 	mediaPlaybackAttributes,
+	mediaTransportVisible,
 	startMediaAutoplay,
 } from './media-playback';
 
@@ -117,5 +118,28 @@ describe('applyMediaPlaybackAttributes', () => {
 		expect(el.loop).toBeTruthy();
 		expect(el.volume).toBe(0);
 		expect(el.playbackRate).toBe(2);
+	});
+});
+
+describe('mediaTransportVisible', () => {
+	it('never paints a transport on the live show stage', () => {
+		expect(
+			mediaTransportVisible({ presenting: true, preview: false, canvasTransport: true }),
+		).toBeFalsy();
+	});
+
+	it('never paints a transport on a still (presenter panes, thumbnails)', () => {
+		expect(
+			mediaTransportVisible({ presenting: false, preview: true, canvasTransport: true }),
+		).toBeFalsy();
+	});
+
+	it('leaves the authoring canvas to the binding', () => {
+		expect(
+			mediaTransportVisible({ presenting: false, preview: false, canvasTransport: true }),
+		).toBeTruthy();
+		expect(
+			mediaTransportVisible({ presenting: false, preview: false, canvasTransport: false }),
+		).toBeFalsy();
 	});
 });

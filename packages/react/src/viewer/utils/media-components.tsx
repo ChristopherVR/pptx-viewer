@@ -160,6 +160,8 @@ interface VideoWithMetadataProps {
 	shouldAutoPlay: boolean;
 	isFullScreen: boolean;
 	isPresentationMode: boolean;
+	/** Whether to paint the browser's native transport (shared rule). */
+	showTransport: boolean;
 }
 
 export function VideoWithMetadata({
@@ -174,6 +176,7 @@ export function VideoWithMetadata({
 	shouldAutoPlay,
 	isFullScreen,
 	isPresentationMode,
+	showTransport,
 }: VideoWithMetadataProps): React.ReactElement {
 	useMediaMetadataExtraction(mediaRef, element);
 	const captionTracks = element.captionTracks ?? [];
@@ -182,7 +185,7 @@ export function VideoWithMetadata({
 		<video
 			ref={mediaRef as React.RefObject<HTMLVideoElement>}
 			className={`w-full h-full pointer-events-auto ${isFullScreen ? 'object-cover' : 'object-contain'}`}
-			controls={!isPresentationMode}
+			controls={showTransport}
 			preload='metadata'
 			playsInline
 			autoPlay={shouldAutoPlay}
@@ -211,7 +214,8 @@ interface AudioWithMetadataProps {
 	mediaMimeType: string | undefined;
 	shouldLoop: boolean;
 	shouldAutoPlay: boolean;
-	isPresentationMode: boolean;
+	/** Whether to paint the browser's native transport (shared rule). */
+	showTransport: boolean;
 }
 
 export function AudioWithMetadata({
@@ -223,7 +227,7 @@ export function AudioWithMetadata({
 	mediaMimeType,
 	shouldLoop,
 	shouldAutoPlay,
-	isPresentationMode,
+	showTransport,
 }: AudioWithMetadataProps): React.ReactElement {
 	useMediaMetadataExtraction(mediaRef, element);
 
@@ -232,7 +236,7 @@ export function AudioWithMetadata({
 			<audio
 				ref={mediaRef as React.RefObject<HTMLAudioElement>}
 				className='w-full'
-				controls={!isPresentationMode}
+				controls={showTransport}
 				preload='metadata'
 				autoPlay={shouldAutoPlay}
 				loop={shouldLoop}
