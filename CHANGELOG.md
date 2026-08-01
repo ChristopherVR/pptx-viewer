@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-01
 
+_Releases: pptx-viewer-core@2.2.0, pptx-react-viewer@2.13.0, pptx-vue-viewer@2.13.0, pptx-angular-viewer@2.13.0, pptx-vanilla-viewer@1.14.0, pptx-svelte-viewer@2.13.0_
+
+### Features
+
+- Fixed graphs and arrows shapes (by @ChristopherVR) ([94813f5](https://github.com/ChristopherVR/pptx-viewer/commit/94813f52a75fb3b42f72e7c33be41393b794cf82))
+
+## 2026-08-01
+
 _Releases: pptx-react-viewer@2.12.1, pptx-vue-viewer@2.12.1, pptx-angular-viewer@2.12.1, pptx-vanilla-viewer@1.13.1, pptx-svelte-viewer@2.12.1_
 
 ### Bug Fixes
