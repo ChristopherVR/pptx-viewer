@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.13.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.13.1) - 2026-08-05
+
+### Dependencies
+
+- **deps:** Bump ai from 7.0.48 to 7.0.44 ([#134](https://github.com/ChristopherVR/pptx-viewer/issues/134)) (by @dependabot[bot]) ([08a13e0](https://github.com/ChristopherVR/pptx-viewer/commit/08a13e076caa6d97e22bd706e57657407aef1dd8))
+
+### Chores
+
+- **deps-dev:** Update vite requirement from ^8.1.5 to ^8.2.0 ([#135](https://github.com/ChristopherVR/pptx-viewer/issues/135)) (by @dependabot[bot]) ([1e7e296](https://github.com/ChristopherVR/pptx-viewer/commit/1e7e2965eff8635dfa8b94fa196b89ed1d0fd0c7))
+
 ## [2.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.13.0) - 2026-08-01
 
 ## [2.12.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.12.1) - 2026-08-01

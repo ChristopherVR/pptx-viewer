@@ -8,6 +8,47 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-05
+
+_Releases: pptx-viewer-core@2.2.1, pptx-react-viewer@2.13.1, pptx-vue-viewer@2.13.1, pptx-angular-viewer@2.13.1, pptx-vanilla-viewer@1.14.1, pptx-svelte-viewer@2.13.1_
+
+### Bug Fixes
+
+- **shared:** Wrap knife-edge lines where PowerPoint wraps them (by @ChristopherVR) ([b8c7a1b](https://github.com/ChristopherVR/pptx-viewer/commit/b8c7a1b389e65c8be500f0cf62ac88a01ead37ee))
+- **svelte:** Load @ai-sdk/svelte's Chat through a dynamic import (by @ChristopherVR) ([47f35ed](https://github.com/ChristopherVR/pptx-viewer/commit/47f35ed6b63e2f8e6a451afce3611c101653f6c7))
+- **react:** Load @ai-sdk/react's useChat through a dynamic import (by @ChristopherVR) ([e36f98b](https://github.com/ChristopherVR/pptx-viewer/commit/e36f98bc5651b6d2f4469311b85bd4425484ccf1))
+- **vue:** Load @ai-sdk/vue's useChat through a dynamic import (by @ChristopherVR) ([c3c59d3](https://github.com/ChristopherVR/pptx-viewer/commit/c3c59d37be3a21e5de41967934a5d066ed25cd86))
+- **core:** Resolve omitted-lvl paragraphs through lvl1pPr, defPPr beneath (by @ChristopherVR) ([af1cb66](https://github.com/ChristopherVR/pptx-viewer/commit/af1cb669b93757b2eb99ab0e9cb1a91de96d6d75))
+- **shared:** Stack a:spcPct line spacing on the 1.2 single-spacing pitch (by @ChristopherVR) ([ab47eff](https://github.com/ChristopherVR/pptx-viewer/commit/ab47eff995da02cab3a0979b418b7b4099033eb0))
+- **core:** Play p14/p15 transitions written as mc:Choice direct children (by @ChristopherVR) ([b6877a6](https://github.com/ChristopherVR/pptx-viewer/commit/b6877a6b26bba9bb7ff7ca93e031878be91e507f))
+- **core:** Resolve transition and timing across multiple mc envelopes (by @ChristopherVR) ([3e16e9e](https://github.com/ChristopherVR/pptx-viewer/commit/3e16e9eb5e5b8aae9b741b45e0ae482652c2a1eb))
+- **shared:** Cross-slide audio foundation + visibility pause for slide shows (by @ChristopherVR) ([21ce9e0](https://github.com/ChristopherVR/pptx-viewer/commit/21ce9e08a9d4b05f285563ada8195273444e9ed4))
+- **core:** Model a:stretch/a:fillRect as frame placement, not source crop (by @ChristopherVR) ([bbb7fc4](https://github.com/ChristopherVR/pptx-viewer/commit/bbb7fc4ee0841ece6bbab7eaf0c03b2380a3960c))
+- **react:** Play map-sourced cross-slide audio and pause the show when hidden (by @ChristopherVR) ([69adb91](https://github.com/ChristopherVR/pptx-viewer/commit/69adb9197d2470c59e0b125cb132d0c7ca1e12c4))
+- **vue:** Keep cross-slide audio playing and pause the show when hidden (by @ChristopherVR) ([5cc9974](https://github.com/ChristopherVR/pptx-viewer/commit/5cc9974cadc56aa9087c261e5bfcdc88beeaba14))
+- **svelte:** Keep cross-slide audio playing and pause the show when hidden (by @ChristopherVR) ([6ea6a7b](https://github.com/ChristopherVR/pptx-viewer/commit/6ea6a7b89b342e4b07f3e6a45c056b77a94468f6))
+- **vanilla:** Keep cross-slide audio playing and pause the show when hidden (by @ChristopherVR) ([7bb75ec](https://github.com/ChristopherVR/pptx-viewer/commit/7bb75ecfa6c2c697471d9acc90dff9c6ef87b718))
+- **angular:** Keep cross-slide audio playing and pause the show when hidden (by @ChristopherVR) ([90e6f54](https://github.com/ChristopherVR/pptx-viewer/commit/90e6f544ab6535c6fe114872c71ffc22102a7895))
+
+### Testing
+
+- **angular:** Guard against a static optional-peer AI import reappearing (by @ChristopherVR) ([121daeb](https://github.com/ChristopherVR/pptx-viewer/commit/121daeb68cdccbc66bc059a16dd7ef37d5076fbd))
+- **vanilla:** Guard against a static optional-peer AI import reappearing (by @ChristopherVR) ([13a3cc7](https://github.com/ChristopherVR/pptx-viewer/commit/13a3cc75d06153dec49d81a960760a891d1eb7c3))
+
+### Dependencies
+
+- **deps:** Bump ai from 7.0.48 to 7.0.44 ([#134](https://github.com/ChristopherVR/pptx-viewer/issues/134)) (by @dependabot[bot]) ([08a13e0](https://github.com/ChristopherVR/pptx-viewer/commit/08a13e076caa6d97e22bd706e57657407aef1dd8))
+- **deps:** Update lucide-react requirement from ^1.27.0 to ^1.28.0 ([#140](https://github.com/ChristopherVR/pptx-viewer/issues/140)) (by @dependabot[bot]) ([5d29620](https://github.com/ChristopherVR/pptx-viewer/commit/5d296201e4307c959fbd8cb987f8fb46ea8e73e2))
+- **deps:** Update @lucide/svelte requirement from ^1.27.0 to ^1.28.0 ([#142](https://github.com/ChristopherVR/pptx-viewer/issues/142)) (by @dependabot[bot]) ([1a13fb6](https://github.com/ChristopherVR/pptx-viewer/commit/1a13fb6f78117837865769323735d57ad4cb0a8f))
+- **deps:** Update @vitejs/plugin-react requirement ([#139](https://github.com/ChristopherVR/pptx-viewer/issues/139)) (by @dependabot[bot]) ([2768ad0](https://github.com/ChristopherVR/pptx-viewer/commit/2768ad0165d8dbf28628278dfaabb5dc0490ce40))
+- **deps:** Bump Angular to 22.1.x consistently across all packages (by @ChristopherVR) ([13c4e5e](https://github.com/ChristopherVR/pptx-viewer/commit/13c4e5e1ee6bcd9723b89757d1a32da2cced1a2a))
+
+### Chores
+
+- **deps-dev:** Bump oxfmt in the minor-and-patch group ([#133](https://github.com/ChristopherVR/pptx-viewer/issues/133)) (by @dependabot[bot]) ([5df1086](https://github.com/ChristopherVR/pptx-viewer/commit/5df1086f0f5bebc197cc03605cb5167f209f0357))
+- **deps-dev:** Update vite requirement from ^8.1.5 to ^8.2.0 ([#135](https://github.com/ChristopherVR/pptx-viewer/issues/135)) (by @dependabot[bot]) ([1e7e296](https://github.com/ChristopherVR/pptx-viewer/commit/1e7e2965eff8635dfa8b94fa196b89ed1d0fd0c7))
+- **deps-dev:** Bump oxlint from 1.77.0 to 1.76.0 ([#138](https://github.com/ChristopherVR/pptx-viewer/issues/138)) (by @dependabot[bot]) ([0a33b5e](https://github.com/ChristopherVR/pptx-viewer/commit/0a33b5ec442a6ca4dca89bafeecc743cf4196669))
+
 ## 2026-08-01
 
 _Releases: pptx-viewer-core@2.2.0, pptx-react-viewer@2.13.0, pptx-vue-viewer@2.13.0, pptx-angular-viewer@2.13.0, pptx-vanilla-viewer@1.14.0, pptx-svelte-viewer@2.13.0_
