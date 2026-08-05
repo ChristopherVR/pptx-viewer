@@ -50,11 +50,26 @@ export function resolveShowAutoAdvanceMs(state: AutoAdvanceState): number | unde
 	});
 }
 
+/** Live handle onto the armed auto-advance returned by {@link attachAutoAdvance}. */
+export interface AutoAdvanceHandle {
+	/**
+	 * Cancel the pending tick without unsubscribing. Used by the presentation
+	 * visibility handler while the tab is hidden: the deck must not run on
+	 * unseen. Store-driven re-arming only kicks back in when something that
+	 * affects the schedule actually changes, so a plain cancel stays cancelled.
+	 */
+	cancel: () => void;
+	/** Re-arm the CURRENT slide's full delay from scratch (tab visible again). */
+	rearm: () => void;
+	/** Cancel any pending timer and unsubscribe from the store. */
+	detach: () => void;
+}
+
 /**
  * Arm the timed auto-advance and keep it in sync with the store. Returns a
- * detach function that cancels any pending timer and unsubscribes.
+ * handle exposing cancel / re-arm (for the visibility pause) and detach.
  */
-export function attachAutoAdvance(deps: AutoAdvanceDeps): () => void {
+export function attachAutoAdvance(deps: AutoAdvanceDeps): AutoAdvanceHandle {
 	const setTimer =
 		deps.setTimer ?? ((handler, delayMs) => setTimeout(handler, delayMs) as unknown as number);
 	const clearTimer = deps.clearTimer ?? ((handle) => clearTimeout(handle));
@@ -117,8 +132,12 @@ export function attachAutoAdvance(deps: AutoAdvanceDeps): () => void {
 	const detachStore = deps.subscribe(sync);
 	sync();
 
-	return () => {
-		cancel();
-		detachStore();
+	return {
+		cancel,
+		rearm: arm,
+		detach: () => {
+			cancel();
+			detachStore();
+		},
 	};
 }

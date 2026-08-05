@@ -1,8 +1,11 @@
+import type { MediaPptxElement } from 'pptx-viewer-core';
 import {
 	applyMediaPlaybackAttributes,
 	getContainerStyle,
 	getImageSrc,
+	mediaPlaybackAttributes,
 	mediaTransportVisible,
+	registerPersistentAudio,
 	startMediaAutoplay,
 } from 'pptx-viewer-shared';
 import type { MediaPlaybackSource } from 'pptx-viewer-shared';
@@ -56,6 +59,38 @@ export function applyMediaPresentingState(
 	}
 }
 
+/**
+ * Register a `playAcrossSlides` audio element with the shared persistent-audio
+ * manager, using the same resolved source, loop, volume and trim start the
+ * slide-local element would have used. PowerPoint keeps such background audio
+ * playing when the show advances, but this renderer rebuilds the whole stage on
+ * every state change, so the slide-local `<audio>` dies with its slide's DOM;
+ * the manager's hidden document-level element survives it.
+ *
+ * Returns true when the persistent element owns playback, in which case the
+ * slide-local media node must stay silent or the track doubles. Idempotent per
+ * element id (the manager no-ops a re-register), so the per-navigation stage
+ * rebuild does not restart the track.
+ */
+export function registerCrossSlideAudio(
+	element: MediaPptxElement,
+	src: string | undefined,
+): boolean {
+	if (element.playAcrossSlides !== true || element.mediaType !== 'audio' || !src) {
+		return false;
+	}
+	const playback = mediaPlaybackAttributes(element);
+	registerPersistentAudio(
+		element.id,
+		src,
+		element.mediaMimeType,
+		playback.loop,
+		playback.volume,
+		(element.trimStartMs ?? 0) / 1000,
+	);
+	return true;
+}
+
 export const renderMediaElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'media') {
 		return null;
@@ -106,6 +141,15 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		audio.src = mediaSrc;
 		audio.controls = showTransport;
 		el.appendChild(audio);
+		// "Play across slides" audio: a hidden document-level element (the shared
+		// persistent-audio manager) carries the sound so it survives the stage
+		// rebuild on advance. The slide-local copy must then stay silent, or the
+		// track doubles while its own slide is up.
+		if (context.presenting && registerCrossSlideAudio(element, mediaSrc)) {
+			audio.muted = true;
+			applyMediaPlaybackAttributes(audio, element);
+			return el;
+		}
 		applyMediaPresentingState(audio, context.presenting, element);
 		return el;
 	}

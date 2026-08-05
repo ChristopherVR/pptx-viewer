@@ -14,6 +14,7 @@ import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
 import { isSwipeAdvanceBlocked, resolvePresentationStageClick } from './presentation-advance-gate';
 import { attachAutoAdvance } from './presentation-auto-advance';
+import { attachShowVisibilityPause } from './presentation-visibility';
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
@@ -285,15 +286,27 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	// PowerPoint's "Advance slide: After <n>". Without it a deck whose slide also
 	// sets "on mouse click" OFF has no way forward at all: the gate above
 	// swallows every click and tap, and the show sits there for ever.
-	const detachAutoAdvance = attachAutoAdvance({
+	const autoAdvance = attachAutoAdvance({
 		getState: () => store.get(),
 		subscribe: (listener) => store.subscribe(listener),
 		next: () => deps.next(),
 	});
 
+	// A hidden tab is a paused show (media + auto-advance), and the end of the
+	// show is the end of its cross-slide persistent audio. See
+	// `presentation-visibility.ts`.
+	const detachShowVisibility = attachShowVisibilityPause({
+		getPresenting: () => store.get().presenting,
+		subscribe: (listener) => store.subscribe(listener),
+		root: chrome.root,
+		cancelAutoAdvance: autoAdvance.cancel,
+		rearmAutoAdvance: autoAdvance.rearm,
+	});
+
 	const detachPresentationClick = (): void => {
 		chrome.root.removeEventListener('click', onPresentationClick);
-		detachAutoAdvance();
+		autoAdvance.detach();
+		detachShowVisibility();
 		detachEndScreen();
 		endScreen.remove();
 	};

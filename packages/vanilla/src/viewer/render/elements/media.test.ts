@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it, vi } from 'vitest';
+import { hasPersistentAudio, stopAllPersistentAudio } from 'pptx-viewer-shared';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n';
 import { createElementRendererRegistry } from '../registry';
@@ -244,6 +245,78 @@ describe('renderMediaElement', () => {
 			applyMediaPresentingState(video, true, { volume: 0 });
 
 			expect(video.volume).toBe(0);
+		});
+	});
+
+	describe('cross-slide ("play across slides") audio', () => {
+		afterEach(() => {
+			stopAllPersistentAudio();
+		});
+
+		const crossSlideAudio = () =>
+			mediaElement({
+				mediaType: 'audio',
+				mediaData: MP3_DATA_URL,
+				mediaMimeType: 'audio/mpeg',
+				playAcrossSlides: true,
+				loop: true,
+				volume: 0.5,
+				trimStartMs: 2000,
+			});
+
+		it('registers the track with the persistent manager while presenting', () => {
+			const node = renderMediaElement(crossSlideAudio(), 0, makeContext(new Map(), true));
+			expect(node).toBeTruthy();
+			expect(hasPersistentAudio('m1')).toBeTruthy();
+
+			const persistent = document.querySelector<HTMLAudioElement>(
+				'[data-pptx-persistent-audio="m1"]',
+			);
+			expect(persistent?.getAttribute('src')).toBe(MP3_DATA_URL);
+			expect(persistent?.loop).toBeTruthy();
+			expect(persistent?.volume).toBe(0.5);
+		});
+
+		it('keeps the slide-local copy silent so the track never doubles', () => {
+			const node = renderMediaElement(
+				crossSlideAudio(),
+				0,
+				makeContext(new Map(), true),
+			) as HTMLElement;
+			const audio = node.querySelector<HTMLAudioElement>('audio');
+			expect(audio?.muted).toBeTruthy();
+			// The autoplay path is skipped: the persistent element plays instead.
+			expect(audio?.paused).toBeTruthy();
+			// The authored settings still land on the visible node.
+			expect(audio?.loop).toBeTruthy();
+		});
+
+		it('survives the stage rebuild a slide change performs, without restarting', () => {
+			renderMediaElement(crossSlideAudio(), 0, makeContext(new Map(), true));
+			const persistent = document.querySelector<HTMLAudioElement>(
+				'[data-pptx-persistent-audio="m1"]',
+			);
+			// The vanilla renderer rebuilds the whole stage per navigation; the old
+			// slide-local <audio> is discarded, and re-rendering the owning slide
+			// re-registers, which must be a no-op (same element, not a restart).
+			renderMediaElement(crossSlideAudio(), 0, makeContext(new Map(), true));
+			expect(document.querySelectorAll('[data-pptx-persistent-audio="m1"]')).toHaveLength(1);
+			expect(document.querySelector('[data-pptx-persistent-audio="m1"]')).toBe(persistent);
+		});
+
+		it('does not register outside a running show', () => {
+			renderMediaElement(crossSlideAudio(), 0, makeContext(new Map(), false));
+			expect(hasPersistentAudio('m1')).toBeFalsy();
+		});
+
+		it('plays a plain (non-cross-slide) audio inline as before', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'audio', mediaData: MP3_DATA_URL }),
+				0,
+				makeContext(new Map(), true),
+			) as HTMLElement;
+			expect(hasPersistentAudio('m1')).toBeFalsy();
+			expect(node.querySelector<HTMLAudioElement>('audio')?.paused).toBeFalsy();
 		});
 	});
 });

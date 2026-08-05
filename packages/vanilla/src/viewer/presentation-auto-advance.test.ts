@@ -99,7 +99,7 @@ describe('attachAutoAdvance', () => {
 
 	it('advances a slide that forbids click-advance but sets a timing', () => {
 		const h = harness();
-		const detach = attachAutoAdvance(h.deps);
+		const { detach } = attachAutoAdvance(h.deps);
 		expect(h.scheduled).toStrictEqual([10]);
 
 		h.runTimers();
@@ -112,7 +112,7 @@ describe('attachAutoAdvance', () => {
 
 	it('cancels the outgoing slide timer when the presenter advances manually', () => {
 		const h = harness();
-		const detach = attachAutoAdvance(h.deps);
+		const { detach } = attachAutoAdvance(h.deps);
 		expect(h.pending()).toBe(1);
 
 		// A manual move to an untimed slide must leave nothing running, or the
@@ -128,7 +128,7 @@ describe('attachAutoAdvance', () => {
 		h.deps.next.mockImplementation(() => {
 			/* build step only */
 		});
-		const detach = attachAutoAdvance(h.deps);
+		const { detach } = attachAutoAdvance(h.deps);
 
 		h.runTimers();
 		expect(h.deps.next).toHaveBeenCalledOnce();
@@ -138,7 +138,7 @@ describe('attachAutoAdvance', () => {
 
 	it('ignores unrelated store churn instead of restarting the timing', () => {
 		const h = harness();
-		const detach = attachAutoAdvance(h.deps);
+		const { detach } = attachAutoAdvance(h.deps);
 		expect(h.scheduled).toStrictEqual([10]);
 
 		// A patch that cannot affect the schedule must not re-arm; re-arming on
@@ -150,10 +150,33 @@ describe('attachAutoAdvance', () => {
 
 	it('cancels everything on detach', () => {
 		const h = harness();
-		const detach = attachAutoAdvance(h.deps);
+		const { detach } = attachAutoAdvance(h.deps);
 		detach();
 		expect(h.pending()).toBe(0);
 		h.set({ currentSlide: 0, presenting: true });
 		expect(h.pending()).toBe(0);
+	});
+
+	it('cancel stops the pending tick and rearm restarts the full delay', () => {
+		// The visibility handler's contract: hiding the tab cancels the pending
+		// advance (the deck must not run on unseen), and the timing starts over
+		// from scratch when the tab is visible again.
+		const h = harness();
+		const handle = attachAutoAdvance(h.deps);
+		expect(h.pending()).toBe(1);
+
+		handle.cancel();
+		expect(h.pending()).toBe(0);
+		// Unrelated store churn while hidden must not resurrect the timer.
+		h.set({});
+		expect(h.pending()).toBe(0);
+
+		handle.rearm();
+		expect(h.pending()).toBe(1);
+		expect(h.scheduled).toStrictEqual([10, 10]);
+
+		h.runTimers();
+		expect(h.deps.next).toHaveBeenCalledOnce();
+		handle.detach();
 	});
 });
