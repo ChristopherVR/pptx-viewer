@@ -72,6 +72,34 @@ describe('getImageFitStyle', () => {
 		});
 	});
 
+	it('places the image into a negative a:fillRect region, clipped by the frame', () => {
+		// Issue #132 deck, phone photo: l=-129.239%, r=-19.565% paints the image
+		// 2.48x the frame width, shifted far left, clipped by overflow hidden.
+		const style = getImageFitStyle(
+			picture({ fillRectLeft: -1.29239, fillRectRight: -0.19565 } as Partial<PptxElement>),
+		);
+		expect(style['position']).toBe('absolute');
+		expect(style['objectFit']).toBe('fill');
+		expect(style['transformOrigin']).toBe('top left');
+		expect(style['transform']).toBe('translate(-129.24%, 0%) scale(2.48804, 1)');
+	});
+
+	it('composes a source crop with a fillRect placement', () => {
+		const style = getImageFitStyle(
+			picture({
+				cropLeft: 0.25,
+				cropRight: 0.25,
+				fillRectLeft: 0.1,
+				fillRectRight: 0.1,
+			} as Partial<PptxElement>),
+		);
+		// Placement maps the img onto the fill-rect region of the frame, then
+		// the crop transform magnifies within that box.
+		expect(style['transform']).toBe(
+			'translate(10%, 0%) scale(0.8, 1) translate(-50%, 0%) scale(2, 1)',
+		);
+	});
+
 	it('scales and offsets the source so a crop shows the right region', () => {
 		// Keep the middle half horizontally: the surviving 50% must be blown up
 		// 2x and pulled left by half of its own (post-scale) width.

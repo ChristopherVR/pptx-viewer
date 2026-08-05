@@ -204,6 +204,20 @@ export interface PptxImageProperties {
 	cropRight?: number;
 	/** Crop from bottom edge as 0..1 fraction (OOXML `a:srcRect/@b`). */
 	cropBottom?: number;
+	/**
+	 * Stretch target inset from the left frame edge as a signed fraction
+	 * (OOXML `a:stretch/a:fillRect/@l`). Unlike `cropLeft` (which selects a
+	 * region of the SOURCE bitmap), a fill-rect selects the region of the
+	 * FRAME the whole image is stretched into; negative values push the
+	 * image beyond the frame edge, and the overflow is clipped.
+	 */
+	fillRectLeft?: number;
+	/** Stretch target inset from the top frame edge (`a:fillRect/@t`). */
+	fillRectTop?: number;
+	/** Stretch target inset from the right frame edge (`a:fillRect/@r`). */
+	fillRectRight?: number;
+	/** Stretch target inset from the bottom frame edge (`a:fillRect/@b`). */
+	fillRectBottom?: number;
 	/** Image tiling offset X in px. */
 	tileOffsetX?: number;
 	/** Image tiling offset Y in px. */

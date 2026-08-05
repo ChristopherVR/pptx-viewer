@@ -141,29 +141,61 @@ export function getImageFitStyle(el: PptxElement): CssStyleMap {
 		return uncropped;
 	}
 
+	// `a:stretch/a:fillRect` stretches the (cropped) image into a sub-rect of
+	// the FRAME; negative offsets legitimately push it past the frame edges,
+	// and the overflow-hidden frame clips the spill (issue #132 deck, phone
+	// photo). Expressed as a transform, NOT as left/width placement: bindings
+	// stamp a pixel-sized shape clip-path on the img itself, and a transform
+	// moves the already-clipped result while a geometry change would move the
+	// img out of its own clip and blank it.
+	const frLeft = el.fillRectLeft ?? 0;
+	const frTop = el.fillRectTop ?? 0;
+	const frRight = el.fillRectRight ?? 0;
+	const frBottom = el.fillRectBottom ?? 0;
+	const hasFillRect =
+		Math.abs(frLeft) + Math.abs(frTop) + Math.abs(frRight) + Math.abs(frBottom) > 0.0001;
+	const placementTransform = hasFillRect
+		? `translate(${round2(frLeft * 100)}%, ${round2(frTop * 100)}%) scale(${round6(
+				Math.max(0.01, 1 - frLeft - frRight),
+			)}, ${round6(Math.max(0.01, 1 - frTop - frBottom))})`
+		: '';
+
 	const cropLeft = clampCropValue(el.cropLeft);
 	const cropTop = clampCropValue(el.cropTop);
 	const cropRight = clampCropValue(el.cropRight);
 	const cropBottom = clampCropValue(el.cropBottom);
-	if (cropLeft + cropRight <= 0.0001 && cropTop + cropBottom <= 0.0001) {
+	const hasCrop = cropLeft + cropRight > 0.0001 || cropTop + cropBottom > 0.0001;
+	if (!hasCrop && !hasFillRect) {
 		return uncropped;
 	}
 
-	// A crop that swallows (almost) the whole source would divide by ~0 below, so
-	// the pair is rescaled to leave a 1% sliver rather than producing Infinity.
-	const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
-	const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
-	const left = clampCropValue(cropLeft * horizontalScale);
-	const right = clampCropValue(cropRight * horizontalScale);
-	const top = clampCropValue(cropTop * verticalScale);
-	const bottom = clampCropValue(cropBottom * verticalScale);
-	const remainingWidth = Math.max(0.01, 1 - left - right);
-	const remainingHeight = Math.max(0.01, 1 - top - bottom);
+	let cropTransform = '';
+	if (hasCrop) {
+		// A crop that swallows (almost) the whole source would divide by ~0
+		// below, so the pair is rescaled to leave a 1% sliver rather than
+		// producing Infinity.
+		const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
+		const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
+		const left = clampCropValue(cropLeft * horizontalScale);
+		const right = clampCropValue(cropRight * horizontalScale);
+		const top = clampCropValue(cropTop * verticalScale);
+		const bottom = clampCropValue(cropBottom * verticalScale);
+		const remainingWidth = Math.max(0.01, 1 - left - right);
+		const remainingHeight = Math.max(0.01, 1 - top - bottom);
 
-	const tx = Math.round((-left / remainingWidth) * 10000) / 100;
-	const ty = Math.round((-top / remainingHeight) * 10000) / 100;
-	const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
-	const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
+		const tx = Math.round((-left / remainingWidth) * 10000) / 100;
+		const ty = Math.round((-top / remainingHeight) * 10000) / 100;
+		const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
+		const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
+		cropTransform = `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})`;
+	}
+
+	// Placement first, crop second: transforms compose right-to-left, so the
+	// crop magnifies within the box the placement has already mapped onto the
+	// fill-rect region (translate percentages resolve against the img border
+	// box and are scaled by the preceding placement scale, which is exactly
+	// "percent of the placed width").
+	const transform = [placementTransform, cropTransform].filter(Boolean).join(' ');
 
 	return {
 		position: 'absolute',
@@ -173,6 +205,16 @@ export function getImageFitStyle(el: PptxElement): CssStyleMap {
 		maxHeight: 'none',
 		objectFit: 'fill',
 		transformOrigin: 'top left',
-		transform: `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})`,
+		transform,
 	};
+}
+
+/** Round to two decimals for stable CSS percentage output. */
+function round2(value: number): number {
+	return Math.round(value * 100) / 100;
+}
+
+/** Round to six decimals for stable CSS scale output. */
+function round6(value: number): number {
+	return Math.round(value * 1e6) / 1e6;
 }

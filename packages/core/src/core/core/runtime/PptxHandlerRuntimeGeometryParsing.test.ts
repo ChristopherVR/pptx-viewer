@@ -75,37 +75,49 @@ function parseCropFraction(value: unknown): number | undefined {
 	return normalized;
 }
 
+// --- Extracted from parseSignedRectFraction ---
+function parseSignedRectFraction(value: unknown): number | undefined {
+	const raw = Number.parseInt(String(value ?? ''), 10);
+	if (!Number.isFinite(raw)) {
+		return undefined;
+	}
+	return Math.max(-1000000, Math.min(1000000, raw)) / 100000;
+}
+
 // --- Extracted from readImageCropFromBlipFill ---
 function readImageCropFromBlipFill(blipFill: Record<string, unknown> | undefined): {
 	cropLeft?: number;
 	cropTop?: number;
 	cropRight?: number;
 	cropBottom?: number;
+	fillRectLeft?: number;
+	fillRectTop?: number;
+	fillRectRight?: number;
+	fillRectBottom?: number;
 } {
-	// Primary crop source: a:srcRect
+	const result: ReturnType<typeof readImageCropFromBlipFill> = {};
+
+	// Source crop: a:srcRect selects a region of the source bitmap.
 	const sourceRect = blipFill?.['a:srcRect'] as Record<string, unknown> | undefined;
 	if (sourceRect) {
-		const cropLeft = parseCropFraction(sourceRect['@_l']);
-		const cropTop = parseCropFraction(sourceRect['@_t']);
-		const cropRight = parseCropFraction(sourceRect['@_r']);
-		const cropBottom = parseCropFraction(sourceRect['@_b']);
-		return { cropLeft, cropTop, cropRight, cropBottom };
+		result.cropLeft = parseCropFraction(sourceRect['@_l']);
+		result.cropTop = parseCropFraction(sourceRect['@_t']);
+		result.cropRight = parseCropFraction(sourceRect['@_r']);
+		result.cropBottom = parseCropFraction(sourceRect['@_b']);
 	}
 
-	// Fallback: a:stretch/a:fillRect with non-zero margins also acts as crop
+	// Stretch target: a:stretch/a:fillRect selects the FRAME region the image
+	// is stretched into (signed; negative pushes past the frame edge).
 	const stretchNode = blipFill?.['a:stretch'] as Record<string, unknown> | undefined;
 	const fillRect = stretchNode?.['a:fillRect'] as Record<string, unknown> | undefined;
 	if (fillRect) {
-		const l = parseCropFraction(fillRect['@_l']);
-		const t = parseCropFraction(fillRect['@_t']);
-		const r = parseCropFraction(fillRect['@_r']);
-		const b = parseCropFraction(fillRect['@_b']);
-		if (l !== undefined || t !== undefined || r !== undefined || b !== undefined) {
-			return { cropLeft: l, cropTop: t, cropRight: r, cropBottom: b };
-		}
+		result.fillRectLeft = parseSignedRectFraction(fillRect['@_l']);
+		result.fillRectTop = parseSignedRectFraction(fillRect['@_t']);
+		result.fillRectRight = parseSignedRectFraction(fillRect['@_r']);
+		result.fillRectBottom = parseSignedRectFraction(fillRect['@_b']);
 	}
 
-	return {};
+	return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -398,26 +410,22 @@ describe('readImageCropFromBlipFill', () => {
 		});
 	});
 
-	it('should use a:stretch/a:fillRect as fallback', () => {
+	it('maps a:stretch/a:fillRect to the fillRect placement fields, signs preserved', () => {
+		// Issue #132 deck, phone photo: the image extends 129% past the left
+		// frame edge and 19.5% past the right, clipped by the frame.
 		const result = readImageCropFromBlipFill({
+			'a:srcRect': {},
 			'a:stretch': {
-				'a:fillRect': {
-					'@_l': '10000',
-					'@_t': '10000',
-					'@_r': '10000',
-					'@_b': '10000',
-				},
+				'a:fillRect': { '@_l': '-129239', '@_r': '-19565' },
 			},
 		});
-		expect(result).toStrictEqual({
-			cropLeft: 0.1,
-			cropTop: 0.1,
-			cropRight: 0.1,
-			cropBottom: 0.1,
-		});
+		expect(result.fillRectLeft).toBeCloseTo(-1.29239, 5);
+		expect(result.fillRectRight).toBeCloseTo(-0.19565, 5);
+		expect(result.fillRectTop).toBeUndefined();
+		expect(result.cropLeft).toBeUndefined();
 	});
 
-	it('should prefer a:srcRect over a:stretch/a:fillRect', () => {
+	it('keeps a:srcRect and a:stretch/a:fillRect as independent axes', () => {
 		const result = readImageCropFromBlipFill({
 			'a:srcRect': { '@_l': '20000' },
 			'a:stretch': {
@@ -425,14 +433,20 @@ describe('readImageCropFromBlipFill', () => {
 			},
 		});
 		expect(result.cropLeft).toBe(0.2);
+		expect(result.fillRectLeft).toBe(0.5);
 	});
 
-	it('should return empty object when a:stretch/a:fillRect has no values', () => {
+	it('parses no offsets when a:stretch/a:fillRect has no values', () => {
 		const result = readImageCropFromBlipFill({
 			'a:stretch': {
 				'a:fillRect': {},
 			},
 		});
-		expect(result).toStrictEqual({});
+		expect(result).toStrictEqual({
+			fillRectLeft: undefined,
+			fillRectTop: undefined,
+			fillRectRight: undefined,
+			fillRectBottom: undefined,
+		});
 	});
 });

@@ -468,36 +468,65 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	protected readImageCropFromBlipFill(
 		blipFill: XmlObject | undefined,
-	): Pick<PptxImageLikeElement, 'cropLeft' | 'cropTop' | 'cropRight' | 'cropBottom'> {
-		// Primary crop source: a:srcRect
+	): Pick<
+		PptxImageLikeElement,
+		| 'cropLeft'
+		| 'cropTop'
+		| 'cropRight'
+		| 'cropBottom'
+		| 'fillRectLeft'
+		| 'fillRectTop'
+		| 'fillRectRight'
+		| 'fillRectBottom'
+	> {
+		const result: Pick<
+			PptxImageLikeElement,
+			| 'cropLeft'
+			| 'cropTop'
+			| 'cropRight'
+			| 'cropBottom'
+			| 'fillRectLeft'
+			| 'fillRectTop'
+			| 'fillRectRight'
+			| 'fillRectBottom'
+		> = {};
+
+		// Source crop: a:srcRect selects a region of the source bitmap.
 		const sourceRect = blipFill?.['a:srcRect'] as XmlObject | undefined;
 		if (sourceRect) {
-			const cropLeft = this.parseCropFraction(sourceRect['@_l']);
-			const cropTop = this.parseCropFraction(sourceRect['@_t']);
-			const cropRight = this.parseCropFraction(sourceRect['@_r']);
-			const cropBottom = this.parseCropFraction(sourceRect['@_b']);
-			return { cropLeft, cropTop, cropRight, cropBottom };
+			result.cropLeft = this.parseCropFraction(sourceRect['@_l']);
+			result.cropTop = this.parseCropFraction(sourceRect['@_t']);
+			result.cropRight = this.parseCropFraction(sourceRect['@_r']);
+			result.cropBottom = this.parseCropFraction(sourceRect['@_b']);
 		}
 
-		// Fallback: a:stretch/a:fillRect with non-zero margins also acts as crop
+		// Stretch target: a:stretch/a:fillRect selects the region of the FRAME
+		// the (cropped) image is stretched into. Distinct from a source crop,
+		// and legitimately negative: `l="-129239"` paints the image far past
+		// the left frame edge and clips it (issue #132 deck, phone photo).
 		const stretchNode = blipFill?.['a:stretch'] as XmlObject | undefined;
 		const fillRect = stretchNode?.['a:fillRect'] as XmlObject | undefined;
 		if (fillRect) {
-			const l = this.parseCropFraction(fillRect['@_l']);
-			const t = this.parseCropFraction(fillRect['@_t']);
-			const r = this.parseCropFraction(fillRect['@_r']);
-			const b = this.parseCropFraction(fillRect['@_b']);
-			if (l !== undefined || t !== undefined || r !== undefined || b !== undefined) {
-				return {
-					cropLeft: l,
-					cropTop: t,
-					cropRight: r,
-					cropBottom: b,
-				};
-			}
+			result.fillRectLeft = this.parseSignedRectFraction(fillRect['@_l']);
+			result.fillRectTop = this.parseSignedRectFraction(fillRect['@_t']);
+			result.fillRectRight = this.parseSignedRectFraction(fillRect['@_r']);
+			result.fillRectBottom = this.parseSignedRectFraction(fillRect['@_b']);
 		}
 
-		return {};
+		return result;
+	}
+
+	/**
+	 * Parse a signed ST_Percentage rect offset (thousandths of a percent) to a
+	 * fraction. Unlike {@link parseCropFraction} the sign is preserved; the
+	 * magnitude is capped at 10x the frame to bound hostile input.
+	 */
+	protected parseSignedRectFraction(value: unknown): number | undefined {
+		const raw = Number.parseInt(String(value ?? ''), 10);
+		if (!Number.isFinite(raw)) {
+			return undefined;
+		}
+		return Math.max(-1000000, Math.min(1000000, raw)) / 100000;
 	}
 
 	protected extractShapeStyle(spPr: XmlObject | undefined, styleNode?: XmlObject): ShapeStyle {
