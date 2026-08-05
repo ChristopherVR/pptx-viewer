@@ -254,7 +254,14 @@ export const CINEMATIC_TRANSITION_KEYFRAMES = `
 /* ── Airplane (fly off like a paper plane) ──────────────────────────── */
 @keyframes pptx-tr-airplane-out { 0% { transform: perspective(1200px) translate3d(0, 0, 0) rotate3d(1, -1, 0, 0deg) scale(1); opacity: 1; } 40% { transform: perspective(1200px) translate3d(10%, -10%, 0) rotate3d(1, -1, 0, 25deg) scale(.85); opacity: 1; } 100% { transform: perspective(1200px) translate3d(150%, -70%, 0) rotate3d(1, -1, 1, 70deg) scale(.05); opacity: 0; } }
 
-/* ── Origami (fold out / unfold in) ─────────────────────────────────── */
-@keyframes pptx-tr-origami-out { from { transform: perspective(1600px) rotateY(0deg) scaleX(1); transform-origin: left center; opacity: 1; } to { transform: perspective(1600px) rotateY(75deg) scaleX(.25); transform-origin: left center; opacity: .2; } }
-@keyframes pptx-tr-origami-in { from { transform: perspective(1600px) rotateY(-75deg) scaleX(.25); transform-origin: right center; opacity: .2; } to { transform: perspective(1600px) rotateY(0deg) scaleX(1); transform-origin: right center; opacity: 1; } }
+/* ── Origami (fold the sheet over its top edge; the next unfolds up) ──
+   The old single-phase rotateY + scaleX compressed the outgoing slide into a
+   narrow vertical sliver for most of the (3+ second) duration, which read as
+   "just a grey line" instead of paper folding (issue #132). The fold is now
+   hinged like a real sheet: the outgoing slide creases over its TOP edge,
+   dims as it tips through edge-on, and tumbles away shrinking; the incoming
+   slide lies folded at its BOTTOM edge and rises into place. The edge-on
+   moment is brief and already mid-fade, so no line artifact survives. */
+@keyframes pptx-tr-origami-out { 0% { transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1); transform-origin: top center; opacity: 1; filter: brightness(1); } 45% { transform: perspective(1400px) rotateX(-52deg) translateY(2%) scale(.96); transform-origin: top center; opacity: 1; filter: brightness(.82); } 70% { transform: perspective(1400px) rotateX(-84deg) translateY(8%) scale(.88); transform-origin: top center; opacity: .8; filter: brightness(.68); } 100% { transform: perspective(1400px) rotateX(-125deg) translateY(30%) scale(.68); transform-origin: top center; opacity: 0; filter: brightness(.55); } }
+@keyframes pptx-tr-origami-in { 0% { transform: perspective(1400px) rotateX(62deg) scale(.94); transform-origin: bottom center; opacity: 0; filter: brightness(.7); } 30% { transform: perspective(1400px) rotateX(62deg) scale(.94); transform-origin: bottom center; opacity: .65; filter: brightness(.75); } 100% { transform: perspective(1400px) rotateX(0deg) scale(1); transform-origin: bottom center; opacity: 1; filter: brightness(1); } }
 `;
