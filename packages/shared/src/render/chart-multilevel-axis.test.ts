@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildPrimaryAxis } from './chart-axis-render';
 import { buildDateAxisPlan } from './chart-date-axis';
+import { chartFontPx } from './chart-font';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type { PlotLayout, ValueRange } from './chart-view-model';
 
@@ -131,7 +132,8 @@ describe('typed chart axis styling', () => {
 		};
 		const plan = buildDateAxisPlan(chartData, layout)!;
 		expect(plan.labels.every((label) => label.fontFamily === 'Arial')).toBeTruthy();
-		expect(plan.labels.every((label) => label.fontSize === 11)).toBeTruthy();
+		// 11 pt parsed by core renders at 11 * 4/3 px (pt -> px at the view-model boundary).
+		expect(plan.labels.every((label) => label.fontSize === chartFontPx(11))).toBeTruthy();
 		expect(plan.labels.every((label) => label.fill === '#112233')).toBeTruthy();
 		expect(plan.tickMarks.every((line) => line.stroke === '#445566')).toBeTruthy();
 		expect(plan.tickMarks.every((line) => line.strokeWidth === 2)).toBeTruthy();

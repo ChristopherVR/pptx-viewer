@@ -307,12 +307,12 @@ describe('buildWaterfallViewModel — edge cases', () => {
 		}
 	});
 
-	it('svgWidth and svgHeight are at least 320x180', () => {
+	it('svgWidth and svgHeight match the element frame box exactly', () => {
 		const el = makeElement(10, 10);
 		const data = makeWaterfallData([10, 20]);
 		const vm = buildWaterfallViewModel(el, data, data.categories);
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(180);
+		expect(vm.svgWidth).toBe(10);
+		expect(vm.svgHeight).toBe(10);
 	});
 });
 
@@ -362,11 +362,11 @@ describe('buildRegionMapViewModel — basic structure', () => {
 		expect(texts.length).toBeGreaterThan(0);
 	});
 
-	it('svgWidth and svgHeight enforce minimum sizes', () => {
+	it('svgWidth and svgHeight match the element frame box exactly', () => {
 		const smallEl = makeElement(50, 50);
 		const vm = buildRegionMapViewModel(smallEl, data, labels);
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(200);
+		expect(vm.svgWidth).toBe(50);
+		expect(vm.svgHeight).toBe(50);
 	});
 
 	it('includes a legend colour bar (rect primitives) for the scale', () => {

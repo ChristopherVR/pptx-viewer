@@ -60,6 +60,7 @@ import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
+import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { formatChartNumber } from './chart-number-format';
 import { buildOfPieViewModel } from './chart-ofpie';
@@ -265,8 +266,12 @@ export function computePlotLayout(
 	hasAxes: boolean,
 	options?: PlotLayoutOptions,
 ): PlotLayout {
-	const svgWidth = Math.max(320, elementWidth);
-	const svgHeight = Math.max(180, elementHeight);
+	// The SVG viewBox must equal the element's frame box exactly: bindings render
+	// it with `preserveAspectRatio="none"`, so ANY minimum here (historically
+	// 320x180) makes the chart scale non-uniformly inside its host (issue #132:
+	// a 475x174 frame got a 475x180 viewBox, squeezing y by 0.967).
+	const svgWidth = Math.max(1, elementWidth);
+	const svgHeight = Math.max(1, elementHeight);
 
 	let plotLeft = hasAxes ? 48 : 8;
 	let plotTop = 8;
@@ -580,7 +585,7 @@ export function buildGridlinesAndLabels(
 			x: layout.plotLeft - 4,
 			y,
 			text: formatAxisValue(val),
-			fontSize: 8,
+			fontSize: DEFAULT_CHART_TEXT_PX,
 			fill: AXIS_LABEL_COLOR,
 			textAnchor: 'end',
 			dominantBaseline: 'central',
@@ -624,7 +629,7 @@ export function buildCategoryLabels(
 			x,
 			y: layout.plotBottom + 12,
 			text: label,
-			fontSize: 8,
+			fontSize: DEFAULT_CHART_TEXT_PX,
 			fill: AXIS_LABEL_COLOR,
 			textAnchor: 'middle',
 		} satisfies SvgText;
@@ -1219,8 +1224,10 @@ export function buildFallbackViewModel(
 	height: number,
 	label: string,
 ): ChartViewModel {
-	const svgWidth = Math.max(width, 100);
-	const svgHeight = Math.max(height, 60);
+	// Match the frame box exactly (bindings stretch with preserveAspectRatio
+	// "none"; a minimum here would scale the fallback non-uniformly).
+	const svgWidth = Math.max(width, 1);
+	const svgHeight = Math.max(height, 1);
 	return {
 		svgWidth,
 		svgHeight,
@@ -1412,7 +1419,7 @@ function buildRadarViewModel(
 			x: cx + labelR * Math.cos(angle),
 			y: cy + labelR * Math.sin(angle),
 			text: categoryLabels[i] ?? '',
-			fontSize: 8,
+			fontSize: DEFAULT_CHART_TEXT_PX,
 			fill: RADAR_LABEL_COLOR,
 			textAnchor: 'middle',
 			dominantBaseline: 'central',
@@ -1459,7 +1466,7 @@ function buildRadarViewModel(
 					x: p.x,
 					y: p.y - 8,
 					text: formatAxisValue(val, series.numberFormat),
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#334155',
 					textAnchor: 'middle',
 				});

@@ -51,6 +51,7 @@ export * from './equation-templates';
 export * from './equation-compile';
 export * from './chart-helpers';
 export * from './chart-area-fill';
+export * from './chart-font';
 export * from './chart-number-format';
 export * from './chart-trendlines';
 export * from './chart-axis';

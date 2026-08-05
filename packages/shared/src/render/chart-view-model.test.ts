@@ -195,10 +195,17 @@ describe('computePlotLayout', () => {
 		series: [],
 	};
 
-	it('produces a minimum SVG size of 320x180', () => {
-		const layout = computePlotLayout(100, 50, baseData, true);
-		expect(layout.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(layout.svgHeight).toBeGreaterThanOrEqual(180);
+	it('matches the element frame box exactly (issue #132: no 320x180 minimum)', () => {
+		// Bindings render the viewBox with preserveAspectRatio="none"; any minimum
+		// makes the chart scale non-uniformly. A 475x174 frame must produce a
+		// 475x174 viewBox (the old 180 floor squeezed y by 174/180).
+		const layout = computePlotLayout(475, 174, baseData, true);
+		expect(layout.svgWidth).toBe(475);
+		expect(layout.svgHeight).toBe(174);
+
+		const small = computePlotLayout(100, 50, baseData, true);
+		expect(small.svgWidth).toBe(100);
+		expect(small.svgHeight).toBe(50);
 	});
 
 	it('reserves left margin when hasAxes = true', () => {
@@ -641,10 +648,10 @@ describe('buildFallbackViewModel', () => {
 		expect(vm.legend).toHaveLength(0);
 	});
 
-	it('enforces minimum svg dimensions', () => {
+	it('matches the frame box exactly (no minimum svg dimensions)', () => {
 		const vm = buildFallbackViewModel(10, 10, 'X');
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(100);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(60);
+		expect(vm.svgWidth).toBe(10);
+		expect(vm.svgHeight).toBe(10);
 	});
 });
 

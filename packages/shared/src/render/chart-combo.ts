@@ -10,6 +10,7 @@ import {
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type {
@@ -225,7 +226,7 @@ export function buildComboViewModel(
 						x: point.x,
 						y: point.y - 7,
 						text: formatAxisValue(point.value, series.numberFormat),
-						fontSize: 7,
+						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 						fill: '#334155',
 						textAnchor: 'middle',
 					});
@@ -293,7 +294,7 @@ function appendBarLabels(
 				layout.plotLeft + groupWidth * displayIndex + offset + barWidth / 2,
 			y: value >= 0 ? Math.min(zeroY, valueY) - 4 : Math.max(zeroY, valueY) + 10,
 			text: formatAxisValue(value, series.numberFormat),
-			fontSize: 7,
+			fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 			fill: '#334155',
 			textAnchor: 'middle',
 		});

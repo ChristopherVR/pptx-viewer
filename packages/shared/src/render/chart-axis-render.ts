@@ -156,7 +156,7 @@ export function buildPrimaryAxis(
 				x: labelX,
 				y: midY,
 				text: unitLabel,
-				...chartAxisTextStyle(axis, 9),
+				...chartAxisTextStyle(axis),
 				textAnchor: 'middle',
 				transform: `rotate(-90, ${labelX}, ${midY})`,
 			});
@@ -180,7 +180,7 @@ export function buildSecondaryAxis(
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
 	const textStyle = chartAxisTextStyle(axis);
-	const captionStyle = chartAxisTextStyle(axis, 9);
+	const captionStyle = chartAxisTextStyle(axis);
 	const axisLine = buildVerticalAxisLine(axis, axisX, layout);
 	if (axisLine) {
 		gridlines.push(axisLine);

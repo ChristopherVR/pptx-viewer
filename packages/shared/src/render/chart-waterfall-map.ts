@@ -18,6 +18,7 @@
 
 import type { PptxChartData, PptxChartRegionMapOptions, PptxElement } from 'pptx-viewer-core';
 
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import {
 	buildRegionMapEntries,
 	formatRegionMapValue,
@@ -107,7 +108,7 @@ export function buildWaterfallViewModel(
 				x: x + barWidth / 2,
 				y: y - 4,
 				text: formatAxisValue(value),
-				fontSize: 7,
+				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: '#334155',
 				textAnchor: 'middle',
 			} satisfies SvgText);
@@ -506,8 +507,10 @@ export function buildRegionMapViewModel(
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const svgWidth = Math.max(element.width, 320);
-	const svgHeight = Math.max(element.height, 200);
+	// Match the element frame exactly; bindings stretch the viewBox with
+	// preserveAspectRatio "none", so a minimum would scale non-uniformly.
+	const svgWidth = Math.max(element.width, 1);
+	const svgHeight = Math.max(element.height, 1);
 
 	const categories = categoryLabels.length > 0 ? categoryLabels : chartData.categories;
 	const series = chartData.series[0];

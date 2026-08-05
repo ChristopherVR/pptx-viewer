@@ -310,8 +310,11 @@ export function computeLayout(
 	legendPos: string,
 	options?: ComputeLayoutOptions,
 ): PlotLayout {
-	const svgWidth = Math.max(320, elementWidth);
-	const svgHeight = Math.max(180, elementHeight);
+	// Match the element frame exactly; bindings stretch the viewBox with
+	// preserveAspectRatio "none", so a minimum would scale non-uniformly
+	// (see computePlotLayout in chart-view-model.ts).
+	const svgWidth = Math.max(1, elementWidth);
+	const svgHeight = Math.max(1, elementHeight);
 	let plotLeft = hasAxes ? 48 : 8;
 	let plotTop = 8;
 	let plotRight = svgWidth - 8;

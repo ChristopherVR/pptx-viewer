@@ -1,5 +1,6 @@
 import type { PptxChartAxisFormatting, PptxChartShapeProps } from 'pptx-viewer-core';
 
+import { DEFAULT_CHART_TEXT_PX, chartFontPx } from './chart-font';
 import type { SvgLine, SvgText } from './chart-view-model';
 
 const DEFAULT_COLOR = '#64748b';
@@ -18,12 +19,18 @@ function dashArray(style: string | undefined, width: number): string | undefined
 	return `${unit * 3} ${unit * 2}`;
 }
 
+/**
+ * SvgText style for axis-driven chart text (tick labels, category labels,
+ * captions). `axis.fontSize` is parsed in POINTS by core; it crosses the
+ * pt -> px boundary exactly here (see chart-font.ts). `defaultFontSizePx` is
+ * already px and defaults to PowerPoint's 10 pt chart text (13.33 px).
+ */
 export function chartAxisTextStyle(
 	axis: PptxChartAxisFormatting | undefined,
-	defaultFontSize = 8,
+	defaultFontSizePx = DEFAULT_CHART_TEXT_PX,
 ): Pick<SvgText, 'fontSize' | 'fill' | 'fontWeight' | 'fontFamily'> {
 	return {
-		fontSize: axis?.fontSize ?? defaultFontSize,
+		fontSize: axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : defaultFontSizePx,
 		fill: axis?.fontColor ?? DEFAULT_COLOR,
 		...(axis?.fontBold !== undefined ? { fontWeight: axis.fontBold ? 'bold' : 'normal' } : {}),
 		...(axis?.fontFamily ? { fontFamily: axis.fontFamily } : {}),

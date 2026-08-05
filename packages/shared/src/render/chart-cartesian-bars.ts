@@ -14,6 +14,7 @@ import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
 import {
 	computeStackedBarRects,
@@ -142,7 +143,7 @@ export function buildBars(
 						x: x + singleBarWidth / 2,
 						y: val >= 0 ? y - 4 : y + h + 10,
 						text: formatAxisValue(val, series[si].numberFormat),
-						fontSize: 7,
+						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 						fill: '#334155',
 						textAnchor: 'middle',
 					});
@@ -227,7 +228,7 @@ export function buildBars(
 					x: x + barW / 2,
 					y: y + h / 2 + 3,
 					text: `${Math.round(val)}%`,
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#ffffff',
 					textAnchor: 'middle',
 					fontWeight: 'bold',
@@ -281,7 +282,7 @@ function pushClusteredStackedLabels(
 				x,
 				y: labelY,
 				text: formatAxisValue(val, series[si].numberFormat),
-				fontSize: 7,
+				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: '#334155',
 				textAnchor: 'middle',
 			});

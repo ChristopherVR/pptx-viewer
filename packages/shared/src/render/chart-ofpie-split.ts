@@ -95,8 +95,10 @@ export function sliceAngles(values: ReadonlyArray<number>): SliceAngle[] {
 
 /** Compute the primary + secondary plot placement for a chart element. */
 export function computeOfPieGeom(element: PptxElement, secondPieSize: number): OfPieGeom {
-	const svgWidth = Math.max(element.width, 320);
-	const svgHeight = Math.max(element.height, 180);
+	// Match the element frame exactly; bindings stretch the viewBox with
+	// preserveAspectRatio "none", so a minimum would scale non-uniformly.
+	const svgWidth = Math.max(element.width, 1);
+	const svgHeight = Math.max(element.height, 1);
 	const primaryR = Math.max(Math.min(svgWidth * 0.28, svgHeight * 0.4), 4);
 	const secScale = Math.min(Math.max(secondPieSize / 100, 0.3), 1.4);
 	return {

@@ -79,10 +79,10 @@ describe('buildSurfaceViewModel — isometric (≥2 series, ≥2 categories)', (
 		expect(vm.zeroLine).toBeUndefined();
 	});
 
-	it('svgWidth and svgHeight are at least 320x180', () => {
+	it('svgWidth and svgHeight match the element frame box exactly', () => {
 		const vm = buildSurfaceViewModel(makeElement(50, 50), makeSurfaceData(2, 2), ['C1', 'C2']);
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(180);
+		expect(vm.svgWidth).toBe(50);
+		expect(vm.svgHeight).toBe(50);
 	});
 
 	it('includes legend entries when hasLegend is true', () => {
@@ -423,7 +423,7 @@ describe('buildTreemapViewModel — edge cases', () => {
 		expect(areas[0]).toBeGreaterThan(areas[1] ?? 0);
 	});
 
-	it('svgWidth and svgHeight are at least 320x180', () => {
+	it('svgWidth and svgHeight match the element frame box exactly', () => {
 		const el = makeElement(10, 10);
 		const data: PptxChartData = {
 			chartType: 'treemap',
@@ -431,7 +431,7 @@ describe('buildTreemapViewModel — edge cases', () => {
 			series: [{ name: 'S', values: [1] }],
 		};
 		const vm = buildTreemapViewModel(el, data, data.categories);
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(180);
+		expect(vm.svgWidth).toBe(10);
+		expect(vm.svgHeight).toBe(10);
 	});
 });

@@ -13,6 +13,7 @@
 
 import type { PptxChartData } from 'pptx-viewer-core';
 
+import { DEFAULT_CHART_TEXT_PX, chartFontPx } from './chart-font';
 import type { SvgLine, SvgPolygon, SvgPrimitive, SvgText } from './chart-view-model';
 
 type UserShape = NonNullable<PptxChartData['userShapes']>[number];
@@ -48,7 +49,11 @@ function textPrimitives(
 	if (!shape.paragraphs || shape.paragraphs.length === 0) {
 		return [];
 	}
-	const lineH = 12;
+	// para.fontSize is parsed in POINTS (core's chart-user-shapes-parser); it
+	// crosses the pt -> px boundary here (see chart-font.ts).
+	const fontPxOf = (para: NonNullable<UserShape['paragraphs']>[number]): number =>
+		para.fontSize !== undefined ? chartFontPx(para.fontSize) : DEFAULT_CHART_TEXT_PX;
+	const lineH = Math.max(12, ...shape.paragraphs.map((para) => fontPxOf(para) * 1.2));
 	const totalH = shape.paragraphs.length * lineH;
 	let cursorY = box.y + Math.max((box.h - totalH) / 2, 0) + lineH * 0.75;
 	const out: SvgText[] = [];
@@ -66,7 +71,7 @@ function textPrimitives(
 			x: tx,
 			y: cursorY,
 			text: para.text,
-			fontSize: para.fontSize ?? 9,
+			fontSize: fontPxOf(para),
 			fill: para.color ?? '#1e293b',
 			textAnchor: anchor,
 			fontWeight: para.bold ? 'bold' : 'normal',

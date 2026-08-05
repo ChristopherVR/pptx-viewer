@@ -1,6 +1,7 @@
 import type { PptxChartData, PptxChartHistogramOptions, PptxElement } from 'pptx-viewer-core';
 
 import { distributionRange } from './chart-distribution-range';
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { buildParetoAxis, buildParetoPrimitives, orderParetoEntries } from './chart-pareto';
 import type { ParetoEntry } from './chart-pareto';
 import type {
@@ -215,7 +216,7 @@ export function buildHistogramViewModel(
 				x: bar.x + bar.w / 2,
 				y: bar.y - 4,
 				text: formatAxisValue(values[index]),
-				fontSize: 7,
+				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: DATA_LABEL_COLOR,
 				textAnchor: 'middle',
 			}))

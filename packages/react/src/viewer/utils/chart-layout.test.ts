@@ -4,10 +4,13 @@ import { describe, it, expect } from 'vitest';
 import { computeLayout } from './chart-layout';
 
 describe('computeLayout', () => {
-	it('should enforce minimum SVG dimensions', () => {
+	it('keeps the SVG box equal to the frame box (no minimum floors)', () => {
+		// The old 320x180 floors made the viewBox disagree with the host box,
+		// and preserveAspectRatio="none" then scaled x and y non-uniformly
+		// (issue #132, "the x and y axis are not 1:1").
 		const layout = computeLayout(100, 50, undefined, false, 'b');
-		expect(layout.svgWidth).toBe(320);
-		expect(layout.svgHeight).toBe(180);
+		expect(layout.svgWidth).toBe(100);
+		expect(layout.svgHeight).toBe(50);
 	});
 
 	it('should use element dimensions when larger than minimums', () => {

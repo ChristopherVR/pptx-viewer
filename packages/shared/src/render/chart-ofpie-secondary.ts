@@ -8,6 +8,7 @@
  *
  * @module chart-ofpie-secondary
  */
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { OfPieGeom, SliceAngle } from './chart-ofpie-split';
 import { sliceAngles } from './chart-ofpie-split';
 import type { SvgLine, SvgPath, SvgRect, SvgText } from './chart-view-model';
@@ -20,7 +21,7 @@ export function sliceLabel(x: number, y: number, value: number): SvgText {
 		x,
 		y,
 		text: formatAxisValue(value),
-		fontSize: 8,
+		fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 		fill: '#ffffff',
 		textAnchor: 'middle',
 		fontWeight: 'bold',

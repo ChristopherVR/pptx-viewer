@@ -13,6 +13,7 @@
  */
 import type { PptxChartDataLabelPosition } from 'pptx-viewer-core';
 
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { formatAxisValue } from './chart-view-model';
 import type { PieSliceGeometry, SvgLine, SvgText } from './chart-view-model';
 
@@ -65,7 +66,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 				x: slice.labelX,
 				y: slice.labelY,
 				text: formatAxisValue(val, numberFormat),
-				fontSize: 8,
+				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: '#ffffff',
 				textAnchor: 'middle',
 				fontWeight: 'bold',
@@ -87,7 +88,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			x: labelX + (cos >= 0 ? 2 : -2),
 			y: labelY,
 			text: formatAxisValue(val, numberFormat),
-			fontSize: 8,
+			fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 			fill: '#334155',
 			textAnchor: anchor,
 			dominantBaseline: 'central',

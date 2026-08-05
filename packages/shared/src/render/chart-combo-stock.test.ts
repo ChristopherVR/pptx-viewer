@@ -505,15 +505,15 @@ describe('buildComboViewModel', () => {
 		expect(() => buildComboViewModel(makeElement(), chartData, [])).not.toThrow();
 	});
 
-	it('enforces minimum SVG dimensions', () => {
+	it('matches the element frame box exactly (no minimum SVG dimensions)', () => {
 		const chartData: PptxChartData = {
 			chartType: 'combo',
 			categories: [],
 			series: [{ name: 'Bars', values: [1] }],
 		};
 		const vm = buildComboViewModel(makeElement(10, 10), chartData, []);
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(180);
+		expect(vm.svgWidth).toBe(10);
+		expect(vm.svgHeight).toBe(10);
 	});
 
 	// ── series colour ─────────────────────────────────────────────────────────
@@ -934,14 +934,14 @@ describe('buildStockViewModel', () => {
 		expect(() => buildStockViewModel(makeElement(), chartData, [])).not.toThrow();
 	});
 
-	it('enforces minimum SVG dimensions', () => {
+	it('matches the element frame box exactly (no minimum SVG dimensions)', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: [],
 			series: [],
 		};
 		const vm = buildStockViewModel(makeElement(10, 10), chartData, []);
-		expect(vm.svgWidth).toBeGreaterThanOrEqual(320);
-		expect(vm.svgHeight).toBeGreaterThanOrEqual(180);
+		expect(vm.svgWidth).toBe(10);
+		expect(vm.svgHeight).toBe(10);
 	});
 });

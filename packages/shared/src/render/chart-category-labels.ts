@@ -2,6 +2,7 @@ import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 
 import { chartAxisTextStyle } from './chart-axis-style';
 import { categoryX } from './chart-category-position';
+import { DEFAULT_CHART_TEXT_PX, chartFontPx } from './chart-font';
 import type { PlotLayout, SvgText } from './chart-view-model';
 
 interface LabelGroup {
@@ -41,7 +42,9 @@ export function buildMultiLevelCategoryLabels(
 	const textAnchor: SvgText['textAnchor'] =
 		axis?.labelAlignment === 'l' ? 'start' : axis?.labelAlignment === 'r' ? 'end' : 'middle';
 	const direction = labelsAbove ? -1 : 1;
-	const bandHeight = Math.max(axis?.fontSize ?? 8, 8) + 4;
+	// Band height tracks the rendered px size (axis.fontSize is parsed in points).
+	const fontPx = axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX;
+	const bandHeight = Math.max(fontPx, 8) + 4;
 	return levels.flatMap((level, levelIndex) => {
 		const values = sourceIndices.map((sourceIndex) => level[sourceIndex] ?? '');
 		return groupedLabels(values).flatMap((group) => {

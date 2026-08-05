@@ -18,6 +18,7 @@
 
 import type { PptxChartData, PptxChartSeries, PptxChartTrendline } from 'pptx-viewer-core';
 
+import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX, chartFontPx } from './chart-font';
 import type {
 	PlotLayout,
 	SvgLine,
@@ -404,7 +405,7 @@ export function computeTrendlinePrimitives(
 					x: last.x,
 					y: last.y - 6,
 					text: labelParts.join('  '),
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: strokeColor,
 					textAnchor: 'end',
 				};
@@ -451,6 +452,12 @@ export function computeAxisTitlePrimitives(
 		return out;
 	}
 
+	// Axis-title font: core folds a parsed/edited title size into `axis.fontSize`
+	// (points); convert at the pt -> px boundary, defaulting to PowerPoint's
+	// 10 pt chart text. See chart-font.ts.
+	const titleFontPx = (axis: { fontSize?: number }): number =>
+		axis.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX;
+
 	// X axis title (category axis at bottom).
 	const catAxis = axes.find((a) => a.axisType === 'catAx' && a.axPos !== 'r' && a.titleText);
 	if (catAxis?.titleText) {
@@ -459,7 +466,7 @@ export function computeAxisTitlePrimitives(
 			x: layout.plotLeft + layout.plotWidth / 2,
 			y: layout.plotBottom + 22,
 			text: catAxis.titleText,
-			fontSize: 9,
+			fontSize: titleFontPx(catAxis),
 			fill: AXIS_TITLE_COLOR,
 			textAnchor: 'middle',
 			fontWeight: 'bold',
@@ -480,7 +487,7 @@ export function computeAxisTitlePrimitives(
 			x: yx,
 			y: yy,
 			text: valAxis.titleText,
-			fontSize: 9,
+			fontSize: titleFontPx(valAxis),
 			fill: AXIS_TITLE_COLOR,
 			textAnchor: 'middle',
 			fontWeight: 'bold',
@@ -512,6 +519,8 @@ function formatDataValue(val: number): string {
 /**
  * Layout constants for the SVG data table rendered below the plot area.
  * Kept as named constants so tests can assert against them without magic numbers.
+ * Cell text stays at 8 px deliberately: it is sized to fit this 14 px row
+ * grid (a geometry fit, not a PowerPoint text-class default; see chart-font.ts).
  */
 export const DATA_TABLE_ROW_H = 14;
 export const DATA_TABLE_HEADER_H = 14;

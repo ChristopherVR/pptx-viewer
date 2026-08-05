@@ -13,6 +13,7 @@ import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
 import { resolveDataPointFill, resolveDataPointMarker } from './chart-datapoint-style';
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { smoothLinePath } from './chart-line-path';
 import { buildMarkerPrimitive } from './chart-marker-shape';
 import type {
@@ -186,7 +187,7 @@ export function buildLines(
 					x: pt.x,
 					y: pt.y - 7,
 					text: formatAxisValue(val, series.numberFormat),
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#334155',
 					textAnchor: 'middle',
 				});
@@ -268,7 +269,7 @@ export function buildAreas(
 					x: pt.x,
 					y: pt.y - 6,
 					text: formatAxisValue(val, series.numberFormat),
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#334155',
 					textAnchor: 'middle',
 				});
@@ -320,7 +321,7 @@ export function buildScatter(
 					x: dot.cx,
 					y: dot.cy - 6,
 					text: formatAxisValue(val, series.numberFormat),
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#334155',
 					textAnchor: 'middle',
 				});
@@ -374,7 +375,7 @@ export function buildBubbles(
 					x: dot.cx,
 					y: dot.cy - 10,
 					text: formatAxisValue(val, series.numberFormat),
-					fontSize: 7,
+					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#334155',
 					textAnchor: 'middle',
 				});
