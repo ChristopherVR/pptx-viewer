@@ -18,6 +18,7 @@ import { parseP14DirectChild } from './p14-transition-parser';
 import { parseP15DirectChild } from './p15-transition-parser';
 import { PptxSlideTransitionService } from './PptxSlideTransitionService';
 import { PptxXmlLookupService } from './PptxXmlLookupService';
+import { resolveSlideTimingNode } from './slide-transition-envelope';
 
 function getXmlLocalName(xmlKey: string): string {
 	if (!xmlKey) {
@@ -155,6 +156,30 @@ describe('issue-132 envelope integration', () => {
 		const result = service.parseSlideTransition(slideXml);
 
 		expect(result?.type).toBe('fade');
+	});
+
+	it('finds the transition and the timing across TWO sibling envelopes', () => {
+		// Deck slides 5/22 carry two slide-root mc:AlternateContent siblings:
+		// one wrapping p:transition, one wrapping p:timing. The parser surfaces
+		// them as an array; both payloads must resolve.
+		const twoEnvelopeXml = ORIGAMI_SLIDE_XML.replace(
+			'</mc:AlternateContent>',
+			`</mc:AlternateContent>
+	<mc:AlternateContent>
+		<mc:Choice Requires="p14">
+			<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" nodeType="tmRoot"/></p:par></p:tnLst></p:timing>
+		</mc:Choice>
+		<mc:Fallback>
+			<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" nodeType="tmRoot"/></p:par></p:tnLst></p:timing>
+		</mc:Fallback>
+	</mc:AlternateContent>`,
+		);
+		const slideXml = xmlParser.parse(twoEnvelopeXml) as XmlObject;
+
+		expect(service.parseSlideTransition(slideXml)?.type).toBe('origami');
+		const timing = resolveSlideTimingNode(slideXml['p:sld'] as XmlObject | undefined);
+		expect(timing).toBeDefined();
+		expect((timing as XmlObject)['p:tnLst']).toBeDefined();
 	});
 });
 

@@ -42,6 +42,7 @@ import {
 	extractAfterEffect,
 	parseTimingPercentFraction,
 } from './native-animation-helpers';
+import { resolveSlideTimingNode } from './slide-transition-envelope';
 
 /**
  * True when a `p:seq` is an INTERACTIVE sequence: one that only runs when the
@@ -96,7 +97,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	 */
 	public parseNativeAnimations(slideXml: XmlObject): PptxNativeAnimation[] | undefined {
 		try {
-			const timing = (slideXml?.['p:sld'] as XmlObject | undefined)?.['p:timing'];
+			// `resolveSlideTimingNode` also finds a `p:timing` wrapped in a
+			// slide-root `mc:AlternateContent` envelope (issue #132 deck).
+			const timing = resolveSlideTimingNode(slideXml?.['p:sld'] as XmlObject | undefined);
 			if (!timing || typeof timing !== 'object') {
 				return undefined;
 			}

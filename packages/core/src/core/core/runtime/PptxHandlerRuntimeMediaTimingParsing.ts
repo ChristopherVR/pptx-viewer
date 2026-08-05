@@ -1,3 +1,4 @@
+import { resolveSlideTimingNode } from '../../services/slide-transition-envelope';
 import { XmlObject } from '../../types';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeImageEffects';
@@ -139,9 +140,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const result = new Map<string, MediaTimingData>();
 
 		try {
-			const timing = (slideXml?.['p:sld'] as XmlObject | undefined)?.['p:timing'] as
-				| XmlObject
-				| undefined;
+			// `resolveSlideTimingNode` also finds a `p:timing` wrapped in a
+			// slide-root `mc:AlternateContent` envelope (issue #132 deck).
+			const timing = resolveSlideTimingNode(slideXml?.['p:sld'] as XmlObject | undefined);
 			if (!timing) {
 				return result;
 			}

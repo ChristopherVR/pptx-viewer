@@ -8,6 +8,25 @@ import type { XmlObject } from '../types';
 import { isAlternateContentChoiceSupported } from '../utils/mc-capabilities';
 import { P14_TRANSITION_TYPES } from './p14-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
+import { PptxXmlLookupService } from './PptxXmlLookupService';
+
+/** Stateless default lookup for callers without an injected service. */
+const defaultLookup: IPptxXmlLookupService = new PptxXmlLookupService();
+
+/**
+ * Resolve a slide root's `p:timing` tree, whether it sits directly on
+ * `p:sld` or (PowerPoint 2010+ timing features) inside a slide-root
+ * `mc:AlternateContent` envelope. READ-side only: save-side round-trip
+ * keeps re-emitting the preserved envelope verbatim, so the enveloped
+ * timing must NOT additionally be written as a direct child.
+ */
+export function resolveSlideTimingNode(slideRoot: XmlObject | undefined): XmlObject | undefined {
+	const direct = slideRoot?.['p:timing'];
+	if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
+		return direct as XmlObject;
+	}
+	return findEnvelopeChildByLocalName(slideRoot, 'timing', defaultLookup);
+}
 
 /**
  * Locate a `<p:transition>` wrapped in a slide-root `mc:AlternateContent`
@@ -33,25 +52,46 @@ export function findTransitionInAlternateContent(
 	slideRoot: XmlObject | undefined,
 	lookup: IPptxXmlLookupService,
 ): XmlObject | undefined {
-	const altContent = lookup.getChildByLocalName(slideRoot, 'AlternateContent');
-	if (!altContent) {
-		return undefined;
-	}
-	const choices = lookup.getChildrenArrayByLocalName(altContent, 'Choice');
-	let unsupportedChoiceTransition: XmlObject | undefined;
-	for (const choice of choices) {
-		const transitionNode = lookup.getChildByLocalName(choice, 'transition');
-		if (!transitionNode) {
-			continue;
+	return findEnvelopeChildByLocalName(slideRoot, 'transition', lookup);
+}
+
+/**
+ * Locate a named element inside the slide-root `mc:AlternateContent`
+ * envelope(s), following the MCE semantics documented on
+ * {@link findTransitionInAlternateContent}.
+ *
+ * A slide can carry SEVERAL sibling envelopes (the issue #132 deck wraps
+ * `p:transition` and `p:timing` in two separate ones), which the XML parser
+ * surfaces as an array; each envelope is scanned independently and the first
+ * one containing the requested element decides.
+ */
+export function findEnvelopeChildByLocalName(
+	slideRoot: XmlObject | undefined,
+	localName: string,
+	lookup: IPptxXmlLookupService,
+): XmlObject | undefined {
+	for (const envelope of lookup.getChildrenArrayByLocalName(slideRoot, 'AlternateContent')) {
+		let unsupportedChoiceNode: XmlObject | undefined;
+		for (const choice of lookup.getChildrenArrayByLocalName(envelope, 'Choice')) {
+			const node = lookup.getChildByLocalName(choice, localName);
+			if (!node) {
+				continue;
+			}
+			if (isAlternateContentChoiceSupported(choice)) {
+				return node;
+			}
+			unsupportedChoiceNode ??= node;
 		}
-		if (isAlternateContentChoiceSupported(choice)) {
-			return transitionNode;
+		const fallbackNode = lookup.getChildByLocalName(
+			lookup.getChildByLocalName(envelope, 'Fallback'),
+			localName,
+		);
+		const found = fallbackNode ?? unsupportedChoiceNode;
+		if (found) {
+			return found;
 		}
-		unsupportedChoiceTransition ??= transitionNode;
 	}
-	const fallback = lookup.getChildByLocalName(altContent, 'Fallback');
-	const fallbackTransition = lookup.getChildByLocalName(fallback, 'transition');
-	return fallbackTransition ?? unsupportedChoiceTransition;
+	return undefined;
 }
 
 /**
