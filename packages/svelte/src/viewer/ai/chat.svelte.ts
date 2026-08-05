@@ -11,9 +11,20 @@
  * This module (and, through it, `@ai-sdk/svelte` + the optional `ai` SDK) is
  * only reached through the lazily-imported `AiChatPanel.svelte`, so the base
  * viewer bundle never statically pulls the SDK.
+ *
+ * `Chat` itself is loaded with a runtime `import()`, not a static named
+ * import: `@ai-sdk/svelte` is an optional peer, and a consumer who has not
+ * installed it gets an empty stub module from their bundler's optional-peer
+ * handling. A static `import { Chat } from '@ai-sdk/svelte'` asks Rollup to
+ * validate that named binding at link time, which fails the CONSUMER's
+ * production build outright (`"Chat" is not exported`) even though this
+ * module is never reached unless the AI panel actually opens. A dynamic
+ * `import()` defers that lookup to when `Chat` is actually read off the
+ * resolved module, at runtime, inside `init()`, so a consumer who never
+ * installs the SDK can still build (see issue #143).
  */
 
-import { Chat } from '@ai-sdk/svelte';
+import type { Chat as ChatType } from '@ai-sdk/svelte';
 import type { ChatStatus } from 'ai';
 import { createAiChatSession, isAiAvailable, toolCanvasTarget } from 'pptx-viewer-shared/ai';
 import type {
@@ -66,7 +77,7 @@ export class SvelteAiChat {
 	/** Mirror of the session's staged proposals (refreshed imperatively). */
 	proposals = $state<ProposalView[]>([]);
 
-	#chat = $state.raw<Chat<PptxAiUIMessage> | undefined>(undefined);
+	#chat = $state.raw<ChatType<PptxAiUIMessage> | undefined>(undefined);
 	// Reactive so a consumer `$effect` (the panel's change-animator subscription)
 	// re-runs once the session is bootstrapped by `init()`.
 	#session = $state.raw<PptxAiChatSession | undefined>(undefined);
@@ -112,6 +123,7 @@ export class SvelteAiChat {
 				this.#deps.config,
 			);
 			this.#session = session;
+			const { Chat } = await import('@ai-sdk/svelte');
 			this.#chat = new Chat<PptxAiUIMessage>({
 				transport: session.transport,
 				sendAutomaticallyWhen: session.sendAutomaticallyWhen,
