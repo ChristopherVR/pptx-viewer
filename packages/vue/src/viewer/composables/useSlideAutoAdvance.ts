@@ -38,6 +38,13 @@ export interface SlideAutoAdvanceInput {
 export interface SlideAutoAdvanceResult {
 	/** Cancel any pending auto-advance (exposed for tests and manual teardown). */
 	cancel: () => void;
+	/**
+	 * Re-arm the timer for the CURRENT slide from scratch. Used when the tab
+	 * becomes visible again after a hide cancelled the pending advance: the show
+	 * must not step forward while nobody can see it, but the slide's authored
+	 * timing starts over once it is back on screen.
+	 */
+	rearm: () => void;
 }
 
 export function useSlideAutoAdvance(input: SlideAutoAdvanceInput): SlideAutoAdvanceResult {
@@ -85,5 +92,5 @@ export function useSlideAutoAdvance(input: SlideAutoAdvanceInput): SlideAutoAdva
 
 	onBeforeUnmount(cancel);
 
-	return { cancel };
+	return { cancel, rearm: arm };
 }

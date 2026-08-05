@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import type { MediaPptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { hasPersistentAudio, stopAllPersistentAudio } from 'pptx-viewer-shared';
+import { afterEach, describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
 
 import ElementMediaBox from './ElementMediaBox.vue';
@@ -77,5 +78,72 @@ describe('elementMediaBox native transport', () => {
 		// play.
 		const wrapper = mountMedia(makeMedia(), { interactive: false, presenting: false });
 		expect(wrapper.find('video').attributes('controls')).toBeUndefined();
+	});
+});
+
+describe('elementMediaBox cross-slide ("play across slides") audio', () => {
+	afterEach(() => {
+		stopAllPersistentAudio();
+	});
+
+	function makeCrossSlideAudio(overrides: Partial<MediaPptxElement> = {}): MediaPptxElement {
+		return makeMedia({
+			mediaType: 'audio',
+			mediaData: 'data:audio/mpeg;base64,AAAA',
+			mediaMimeType: 'audio/mpeg',
+			playAcrossSlides: true,
+			loop: true,
+			volume: 0.5,
+			trimStartMs: 2000,
+			...overrides,
+		});
+	}
+
+	it('registers the track with the persistent manager while presenting and keeps the slide-local copy silent', async () => {
+		const wrapper = mountMedia(makeCrossSlideAudio(), { interactive: false, presenting: true });
+		await nextTick();
+
+		expect(hasPersistentAudio('media_1')).toBeTruthy();
+		const persistent = document.querySelector<HTMLAudioElement>(
+			'[data-pptx-persistent-audio="media_1"]',
+		);
+		expect(persistent?.getAttribute('src')).toBe('data:audio/mpeg;base64,AAAA');
+		expect(persistent?.loop).toBeTruthy();
+		expect(persistent?.volume).toBe(0.5);
+
+		// The slide-local copy must stay silent, or the track doubles.
+		const local = wrapper.find('audio').element;
+		expect(local.muted).toBeTruthy();
+		expect(local.paused).toBeTruthy();
+		wrapper.unmount();
+	});
+
+	it('is NOT stopped by the slide-local element unmounting on slide change', async () => {
+		const wrapper = mountMedia(makeCrossSlideAudio(), { interactive: false, presenting: true });
+		await nextTick();
+		expect(hasPersistentAudio('media_1')).toBeTruthy();
+
+		// Advancing the show unmounts the owning slide's DOM; the persistent
+		// (document-level) track keeps playing.
+		wrapper.unmount();
+		expect(hasPersistentAudio('media_1')).toBeTruthy();
+		expect(document.querySelector('[data-pptx-persistent-audio="media_1"]')).not.toBeNull();
+	});
+
+	it('does not register outside a running show', async () => {
+		const wrapper = mountMedia(makeCrossSlideAudio());
+		await nextTick();
+		expect(hasPersistentAudio('media_1')).toBeFalsy();
+		wrapper.unmount();
+	});
+
+	it('does not register cross-slide playback for video', async () => {
+		const wrapper = mountMedia(makeMedia({ playAcrossSlides: true }), {
+			interactive: false,
+			presenting: true,
+		});
+		await nextTick();
+		expect(hasPersistentAudio('media_1')).toBeFalsy();
+		wrapper.unmount();
 	});
 });

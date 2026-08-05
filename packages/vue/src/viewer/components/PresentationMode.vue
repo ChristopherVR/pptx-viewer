@@ -39,6 +39,7 @@ import { usePresentationKeyboard } from '../composables/usePresentationKeyboard'
 import { usePresentationNavigation } from '../composables/usePresentationNavigation';
 import { usePresentationShowOrder } from '../composables/usePresentationShowOrder';
 import { usePresentationViewport } from '../composables/usePresentationViewport';
+import { usePresentationVisibilityPause } from '../composables/usePresentationVisibilityPause';
 import { usePresenterSession } from '../composables/usePresenterSession';
 import { useSlideAutoAdvance } from '../composables/useSlideAutoAdvance';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
@@ -147,12 +148,22 @@ const { onFrameClick, onFrameHover, onFrameHoverEnd } = usePresentationAnimation
 // every slide change and always cancelled first. Slide 1 of a deck authored
 // `advClick="0" advTm="..."` has no other way forward, so without this the show
 // never leaves it and looks completely unresponsive.
-useSlideAutoAdvance({
+const autoAdvance = useSlideAutoAdvance({
 	slide: nav.activeSlide,
 	useTimings: () => props.presentationProperties?.advanceMode !== 'manual',
 	suspended: nav.showEndScreen,
 	position: nav.currentIndex,
 	advance: nav.next,
+});
+
+// A hidden tab is a paused show: stage media and cross-slide persistent audio
+// stop, and the pending auto-advance timer is cancelled so the deck does not
+// run on unseen; everything resumes when the tab is visible again. Unmounting
+// this overlay is the show's exit, which also ends all cross-slide audio.
+usePresentationVisibilityPause({
+	root: overlayRef,
+	cancelAutoAdvance: autoAdvance.cancel,
+	rearmAutoAdvance: autoAdvance.rearm,
 });
 
 // -- Presenter session (audience display link) -------------------------

@@ -1,5 +1,10 @@
 import { mount } from '@vue/test-utils';
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import {
+	hasPersistentAudio,
+	registerPersistentAudio,
+	stopAllPersistentAudio,
+} from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
 
@@ -224,6 +229,60 @@ describe('presentationMode', () => {
 		await settle();
 		expect(wrapper.emitted('slide-change')).toHaveLength(1);
 		wrapper.unmount();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// A hidden tab is a paused show (visibility pause + cross-slide audio)
+// ---------------------------------------------------------------------------
+
+function setVisibility(state: 'visible' | 'hidden'): void {
+	Object.defineProperty(document, 'visibilityState', {
+		configurable: true,
+		get: () => state,
+	});
+	document.dispatchEvent(new Event('visibilitychange'));
+}
+
+describe('presentationMode visibility pause', () => {
+	afterEach(() => {
+		stopAllPersistentAudio();
+		Object.defineProperty(document, 'visibilityState', {
+			configurable: true,
+			get: () => 'visible',
+		});
+		document.body.replaceChildren();
+	});
+
+	it('cancels the timed auto-advance while the tab is hidden and re-arms it when visible', async () => {
+		const wrapper = mountMode([makeTimedSlide('s1'), makeSlide('s2')]);
+		// Hide before the 10 ms timing elapses: the deck must not run on unseen.
+		setVisibility('hidden');
+		await settle();
+		expect(wrapper.emitted('slide-change')).toBeUndefined();
+
+		// Back on screen: the current slide's timing re-arms from scratch.
+		setVisibility('visible');
+		await settle();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
+		wrapper.unmount();
+	});
+
+	it('stops cross-slide persistent audio on exit, not on slide change', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
+		registerPersistentAudio('bg-track', 'data:audio/mpeg;base64,AAAA', 'audio/mpeg', true, 1, 0);
+		expect(hasPersistentAudio('bg-track')).toBeTruthy();
+
+		// A slide change leaves the track playing (that is the whole feature).
+		pressKey('ArrowRight');
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
+		expect(hasPersistentAudio('bg-track')).toBeTruthy();
+
+		// Unmounting the overlay is the show's exit: the track ends with it.
+		wrapper.unmount();
+		expect(hasPersistentAudio('bg-track')).toBeFalsy();
+		expect(document.querySelectorAll('[data-pptx-persistent-audio]')).toHaveLength(0);
 	});
 });
 

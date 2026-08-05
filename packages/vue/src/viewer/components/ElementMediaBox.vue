@@ -18,6 +18,7 @@ import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { registerCrossSlideAudio } from '../composables/cross-slide-audio';
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
 
 const props = defineProps<{
@@ -70,6 +71,20 @@ watch(
 		}
 		applyMediaPlaybackAttributes(el, playbackSource.value);
 		if (presenting) {
+			// "Play across slides" audio: a hidden document-level element (the shared
+			// persistent-audio manager) carries the sound so it survives this slide's
+			// unmount when the show advances. The slide-local copy must then stay
+			// silent, or the track doubles while its own slide is up.
+			if (
+				props.element.type === 'media' &&
+				registerCrossSlideAudio(props.element, mediaSrc.value)
+			) {
+				el.muted = true;
+				if (!el.paused) {
+					el.pause();
+				}
+				return;
+			}
 			void nextTick(() => startMediaAutoplay(el, { trimStartMs: trimStartMs.value }));
 		} else if (!el.paused) {
 			el.pause();
