@@ -8,6 +8,21 @@
  * The focused-target bar (picks / pin / live selection) and the live
  * "AI as a collaborator" canvas focus are driven by the shared
  * {@link AiPanelController} threaded down from `PowerPointViewer`.
+ *
+ * `@ai-sdk/vue` is resolved with a top-level `await import(...)` HERE, rather
+ * than a static import in {@link useAiConversation}. `@ai-sdk/vue` is an
+ * optional peer, so a consumer who has not installed it gets an empty stub
+ * module from their bundler's optional-peer handling; a static
+ * `import { useChat } from '@ai-sdk/vue'` anywhere in the reachable module
+ * graph asks Rollup to validate that named binding at link time, which fails
+ * the CONSUMER's production build outright even though this component is
+ * only reached once the user opens the AI panel. A top-level `await` in
+ * `<script setup>` is compiled with Vue's `withAsyncContext`, which restores
+ * the active component instance after the import resolves, so the
+ * `useAiConversation(...)` call right after it still runs as a normal
+ * synchronous part of `setup()` (see issue #143, fixed the same way for
+ * `pptx-svelte-viewer`). This makes `AiConversation` an async-setup
+ * component, hence the `<Suspense>` boundary around it in `AiChatPanel.vue`.
  */
 import { TriangleAlert } from 'lucide-vue-next';
 import type { PptxAiBridge, PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
@@ -29,6 +44,8 @@ const props = defineProps<{
 }>();
 const { t } = useI18n();
 
+const { useChat } = await import('@ai-sdk/vue');
+
 const {
 	messages,
 	error,
@@ -40,7 +57,7 @@ const {
 	applyProposal,
 	rejectProposal,
 	acceptAllProposals,
-} = useAiConversation(props.session, props.config, {
+} = useAiConversation(useChat, props.session, props.config, {
 	// Live "AI as a collaborator" focus: as each tool runs, navigate to and
 	// highlight the slide / element(s) it touches so the canvas mirrors the
 	// assistant in real time (and colour edits tween while it is active).

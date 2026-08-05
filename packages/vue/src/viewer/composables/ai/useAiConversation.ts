@@ -10,8 +10,20 @@
  * Everything reachable from here (including `@ai-sdk/vue`) sits inside the
  * lazily-loaded AI chat-panel chunk, so importing the viewer never forces the
  * optional SDK peers to be installed.
+ *
+ * `useChat` is INJECTED (see {@link UseChatFn}), not statically imported: that
+ * package is an optional peer, so a consumer who has not installed it gets an
+ * empty stub module from their bundler's optional-peer handling. A static
+ * `import { useChat } from '@ai-sdk/vue'` asks Rollup to validate that named
+ * binding at link time, which fails the CONSUMER's production build outright
+ * even though this module is only reached once the AI panel actually opens.
+ * `AiConversation.vue` resolves the real `useChat` with a top-level
+ * `await import('@ai-sdk/vue')` (Vue's compiler wraps it with
+ * `withAsyncContext`, so the reactive setup context survives the await) and
+ * passes it in here, so this module never has to import the SDK itself (see
+ * issue #143, fixed for `pptx-svelte-viewer`; this is the same defect in
+ * `pptx-vue-viewer`).
  */
-import { useChat } from '@ai-sdk/vue';
 import type { ChatStatus, UIMessage } from 'ai';
 import type {
 	PptxAiChatSession,
@@ -65,7 +77,11 @@ export interface UseAiConversationOptions {
 	onToolTarget?: (target: ToolCanvasTarget | null) => void;
 }
 
+/** `@ai-sdk/vue`'s `useChat`, resolved at runtime by `AiConversation.vue` (see file doc). */
+export type UseChatFn = typeof import('@ai-sdk/vue').useChat;
+
 export function useAiConversation(
+	useChat: UseChatFn,
 	session: PptxAiChatSession,
 	config: PptxAiConfig,
 	options: UseAiConversationOptions = {},

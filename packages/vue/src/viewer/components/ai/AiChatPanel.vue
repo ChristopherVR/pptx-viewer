@@ -1,12 +1,16 @@
 <script setup lang="ts">
 /**
  * AiChatPanel: the right-hand AI assistant pane. Loaded via
- * `defineAsyncComponent` from `PowerPointViewer.vue`, so its `@ai-sdk/vue` +
+ * `defineAsyncComponent` from `PowerPointViewer.vue`, so its
  * `pptx-viewer-shared/ai` runtime imports only load when the panel is first
  * opened.
  *
  * The panel is a thin shell: it builds/guards the session via {@link useAiChat}
  * and, once ready, delegates the whole conversation to {@link AiConversation}.
+ * `AiConversation` resolves the optional `@ai-sdk/vue` peer itself with a
+ * top-level `await import(...)` (see its doc), which makes it an async-setup
+ * component; the `<Suspense>` below is required so Vue has somewhere to mount
+ * it once that import resolves.
  */
 import { LoaderCircle, Sparkles, TriangleAlert, X } from 'lucide-vue-next';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
@@ -85,12 +89,18 @@ const panel = computed<AiPanelController>(() => props.aiPanel ?? fallbackPanel);
 			</p>
 		</div>
 
-		<AiConversation
-			v-else-if="state === 'ready' && session"
-			:session="session"
-			:config="props.config"
-			:bridge="props.bridge"
-			:ai-panel="panel"
-		/>
+		<Suspense v-else-if="state === 'ready' && session">
+			<AiConversation
+				:session="session"
+				:config="props.config"
+				:bridge="props.bridge"
+				:ai-panel="panel"
+			/>
+			<template #fallback>
+				<div class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
+					<LoaderCircle class="w-5 h-5 animate-spin" />
+				</div>
+			</template>
+		</Suspense>
 	</div>
 </template>
