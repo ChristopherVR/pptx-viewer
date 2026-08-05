@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-08-05
 
+_Releases: pptx-viewer-core@2.2.2, pptx-react-viewer@2.13.2, pptx-vue-viewer@2.13.2, pptx-angular-viewer@2.13.2, pptx-vanilla-viewer@1.14.2, pptx-svelte-viewer@2.13.2_
+
+### Bug Fixes
+
+- **core:** Resolve styled full font names and add condensed fallbacks (by @ChristopherVR) ([26b1f74](https://github.com/ChristopherVR/pptx-viewer/commit/26b1f745929fe33cda2044dc4a24ff4edbbab0d5))
+- **shared:** Draw chart text at point size and scale chart SVGs 1:1 (by @ChristopherVR) ([da333f9](https://github.com/ChristopherVR/pptx-viewer/commit/da333f933eeba0af226ca1894639696350e23cfb))
+- **shared:** Suspend the show on window blur, not only tab-hide (by @ChristopherVR) ([4a2c254](https://github.com/ChristopherVR/pptx-viewer/commit/4a2c254350554c189a53a0284aeb72e84b724740))
+- **shared:** Fold the origami transition like a sheet of paper (by @ChristopherVR) ([f0f9fc2](https://github.com/ChristopherVR/pptx-viewer/commit/f0f9fc2710a4c1a3760729cfddca0afc7f66c70d))
+- **shared:** Cover the fillRect placement fields in the collab schema (by @ChristopherVR) ([d455ed7](https://github.com/ChristopherVR/pptx-viewer/commit/d455ed72b254633d34e08d7694069e6c0d9f5615))
+
+## 2026-08-05
+
 _Releases: pptx-viewer-core@2.2.1, pptx-react-viewer@2.13.1, pptx-vue-viewer@2.13.1, pptx-angular-viewer@2.13.1, pptx-vanilla-viewer@1.14.1, pptx-svelte-viewer@2.13.1_
 
 ### Bug Fixes
