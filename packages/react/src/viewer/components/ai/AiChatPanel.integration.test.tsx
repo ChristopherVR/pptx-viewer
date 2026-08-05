@@ -1,3 +1,4 @@
+import { useChat } from '@ai-sdk/react';
 import type { ChatTransport } from 'ai';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type {
@@ -211,6 +212,7 @@ describe('aiChatPanel integration', () => {
 		await act(async () => {
 			root?.render(
 				React.createElement(AiChatPanel, {
+					useChat,
 					bridge,
 					config: stagingConfig(),
 					aiPanel: {

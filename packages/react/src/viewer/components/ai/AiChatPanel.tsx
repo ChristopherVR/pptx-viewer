@@ -1,7 +1,10 @@
 /**
  * AiChatPanel: the right-hand AI assistant pane. Default-exported so it can be
- * `React.lazy`-loaded (its `@ai-sdk/react` + `pptx-viewer-shared/ai` runtime
- * imports only load when the panel is first opened).
+ * `React.lazy`-loaded (its `pptx-viewer-shared/ai` runtime imports only load
+ * when the panel is first opened).
+ *
+ * `useChat` is a prop, not a static `@ai-sdk/react` import: see the doc on
+ * {@link UseChatFn} / `AiChatPanelLazy` for why.
  *
  * The panel is a thin shell: it builds/guards the session via {@link useAiChat}
  * and, once ready, delegates the whole conversation to {@link AiConversation}.
@@ -13,10 +16,13 @@ import { LuLoaderCircle, LuSparkles, LuTriangleAlert, LuX } from 'react-icons/lu
 
 import { deckIdFromBridge } from '../../hooks/ai/ai-deck-id';
 import { useAiChat } from '../../hooks/ai/useAiChat';
+import type { UseChatFn } from '../../hooks/ai/useAiConversation';
 import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
 import { AiConversation } from './AiConversation';
 
 export interface AiChatPanelProps {
+	/** `@ai-sdk/react`'s `useChat`, resolved by `AiChatPanelLazy`'s lazy factory. */
+	useChat: UseChatFn;
 	bridge: PptxAiBridge;
 	config: PptxAiConfig;
 	aiPanel: AiPanelController;
@@ -25,6 +31,7 @@ export interface AiChatPanelProps {
 }
 
 export default function AiChatPanel({
+	useChat,
 	bridge,
 	config,
 	aiPanel,
@@ -78,6 +85,7 @@ export default function AiChatPanel({
 
 			{state === 'ready' && session && (
 				<AiConversation
+					useChat={useChat}
 					session={session}
 					config={config}
 					bridge={bridge}

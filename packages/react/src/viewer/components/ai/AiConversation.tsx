@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuHistory, LuMessageSquarePlus, LuTrash2, LuTriangleAlert } from 'react-icons/lu';
 
+import type { UseChatFn } from '../../hooks/ai/useAiConversation';
 import { useAiConversation } from '../../hooks/ai/useAiConversation';
 import { useAiHistory } from '../../hooks/ai/useAiHistory';
 import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
@@ -20,6 +21,8 @@ import { AiMessageList } from './AiMessageList';
 import { AiProposalCard } from './AiProposalCard';
 
 export interface AiConversationProps {
+	/** `@ai-sdk/react`'s `useChat`, resolved by `AiChatPanelLazy`'s lazy factory. */
+	useChat: UseChatFn;
 	session: PptxAiChatSession;
 	config: PptxAiConfig;
 	bridge: PptxAiBridge;
@@ -27,9 +30,16 @@ export interface AiConversationProps {
 	deckId: string;
 }
 
-export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiConversationProps) {
+export function AiConversation({
+	useChat,
+	session,
+	config,
+	bridge,
+	aiPanel,
+	deckId,
+}: AiConversationProps) {
 	const { t } = useTranslation();
-	const chat = useAiConversation(session, config, bridge, {
+	const chat = useAiConversation(useChat, session, config, bridge, {
 		// Live "AI as a collaborator" focus: as each tool runs, navigate to and
 		// highlight the slide / element(s) it touches so the canvas mirrors the
 		// assistant in real time (and colour edits tween while it is active).

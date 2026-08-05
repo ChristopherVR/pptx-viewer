@@ -6,8 +6,18 @@
  * each tool call we run the tool against the deck via `session.executeToolCall`
  * and hand the JSON result (or error) back with `addToolOutput`; the session's
  * `sendAutomaticallyWhen` predicate then resubmits so the model can continue.
+ *
+ * `useChat` is INJECTED (see {@link UseChatFn}), not statically imported from
+ * `@ai-sdk/react`: that package is an optional peer, so a consumer who has not
+ * installed it gets an empty stub module from their bundler's optional-peer
+ * handling. A static `import { useChat } from '@ai-sdk/react'` asks Rollup to
+ * validate that named binding at link time, which fails the CONSUMER's
+ * production build outright even though this module is only reached once the
+ * AI panel actually opens. `AiChatPanelLazy` resolves the real `useChat` with a
+ * runtime `import()` inside its `React.lazy` factory and threads it down as a
+ * prop, so this module never has to import the SDK itself (see issue #143,
+ * fixed for `pptx-svelte-viewer`; this is the same defect in `pptx-viewer`).
  */
-import { useChat } from '@ai-sdk/react';
 import type { ChatStatus } from 'ai';
 import type {
 	PptxAiBridge,
@@ -40,6 +50,9 @@ type AddToolOutput = (arg: {
 	errorText?: string;
 }) => void;
 
+/** `@ai-sdk/react`'s `useChat`, resolved at runtime by {@link AiChatPanelLazy} (see file doc). */
+export type UseChatFn = typeof import('@ai-sdk/react').useChat;
+
 export interface UseAiConversationResult {
 	messages: AiUiMessage[];
 	status: ChatStatus;
@@ -67,6 +80,7 @@ export interface UseAiConversationOptions {
 }
 
 export function useAiConversation(
+	useChat: UseChatFn,
 	session: PptxAiChatSession,
 	config: PptxAiConfig,
 	bridge: PptxAiBridge,

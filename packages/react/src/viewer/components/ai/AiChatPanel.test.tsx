@@ -1,3 +1,4 @@
+import { useChat } from '@ai-sdk/react';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 // @vitest-environment happy-dom
@@ -112,6 +113,7 @@ describe('aiChatPanel', () => {
 		await act(async () => {
 			root?.render(
 				React.createElement(AiChatPanel, {
+					useChat,
 					bridge: makeBridge(),
 					config: stubConfig(),
 					aiPanel: stubPanel(),
@@ -141,6 +143,7 @@ describe('aiChatPanel', () => {
 		await act(async () => {
 			root?.render(
 				React.createElement(AiChatPanel, {
+					useChat,
 					bridge: makeBridge(),
 					config: stubConfig(),
 					aiPanel: stubPanel(),

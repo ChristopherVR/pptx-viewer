@@ -3,14 +3,36 @@
  * this wrapper is cheap; the real panel chunk (and its `@ai-sdk/react` +
  * `pptx-viewer-shared/ai` dependencies) is only fetched when the panel is first
  * rendered (i.e. when the user opens the assistant).
+ *
+ * `@ai-sdk/react` is resolved with a runtime `import()` HERE, inside the lazy
+ * factory, rather than as a static import in the panel chunk itself.
+ * `@ai-sdk/react` is an optional peer, so a consumer who has not installed it
+ * gets an empty stub module from their bundler's optional-peer handling; a
+ * static `import { useChat } from '@ai-sdk/react'` anywhere in the reachable
+ * module graph asks Rollup to validate that named binding at link time, which
+ * fails the CONSUMER's production build outright (`"useChat" is not
+ * exported`) even though the AI panel is only reached once the user opens it.
+ * Resolving it with `import()` alongside the panel chunk, then threading the
+ * resolved function down as a prop, defers that lookup to runtime instead (see
+ * issue #143, fixed the same way for `pptx-svelte-viewer`).
  */
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { lazy, Suspense } from 'react';
 import { LuLoaderCircle } from 'react-icons/lu';
 
 import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
+import type { AiChatPanelProps } from './AiChatPanel';
 
-const AiChatPanel = lazy(() => import('./AiChatPanel'));
+const AiChatPanel = lazy(async () => {
+	const [{ useChat }, { default: Panel }] = await Promise.all([
+		import('@ai-sdk/react'),
+		import('./AiChatPanel'),
+	]);
+	function BoundAiChatPanel(props: Omit<AiChatPanelProps, 'useChat'>) {
+		return <Panel {...props} useChat={useChat} />;
+	}
+	return { default: BoundAiChatPanel };
+});
 
 export interface AiChatPanelLazyProps {
 	bridge: PptxAiBridge;

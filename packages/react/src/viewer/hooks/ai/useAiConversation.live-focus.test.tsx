@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { useChat } from '@ai-sdk/react';
 import type { ChatTransport } from 'ai';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type {
@@ -124,7 +125,7 @@ function Harness(props: {
 	onFlash: (target: ToolCanvasTarget | null) => void;
 	sendRef: { current: ((text: string) => void) | null };
 }) {
-	const chat = useAiConversation(props.session, props.config, props.bridge, {
+	const chat = useAiConversation(useChat, props.session, props.config, props.bridge, {
 		onToolTarget: (target) => {
 			if (target && target.slideIndex !== undefined) {
 				props.bridge.goToSlide(target.slideIndex);
