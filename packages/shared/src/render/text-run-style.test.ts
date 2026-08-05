@@ -1,7 +1,11 @@
 import type { TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { applyUnderlineVariant, segmentStyleToCss } from './text-run-style';
+import {
+	POWERPOINT_METRIC_TRACKING,
+	applyUnderlineVariant,
+	segmentStyleToCss,
+} from './text-run-style';
 
 function seg(style: NonNullable<TextSegment['style']>): TextSegment {
 	return { text: 'x', style };
@@ -9,9 +13,15 @@ function seg(style: NonNullable<TextSegment['style']>): TextSegment {
 
 describe('segmentStyleToCss run properties', () => {
 	it('maps character spacing to letter-spacing px (hundredths of a point)', () => {
-		// 100 (=1pt) -> 1 * 96/72 px
-		expect(segmentStyleToCss(seg({ characterSpacing: 100 })).letterSpacing).toBe(`${96 / 72}px`);
-		expect(segmentStyleToCss(seg({ characterSpacing: 0 })).letterSpacing).toBeUndefined();
+		// 100 (=1pt) -> 1 * 96/72 px, layered over the metric-compensation tracking.
+		expect(segmentStyleToCss(seg({ characterSpacing: 100 })).letterSpacing).toBe(
+			`calc(${96 / 72}px + ${POWERPOINT_METRIC_TRACKING})`,
+		);
+		// No authored spacing still carries the tracking, so knife-edge lines wrap
+		// where PowerPoint wraps them (issue #131, slide 13).
+		expect(segmentStyleToCss(seg({ characterSpacing: 0 })).letterSpacing).toBe(
+			POWERPOINT_METRIC_TRACKING,
+		);
 	});
 
 	it('scales an authored run size by the body autofit font scale', () => {
@@ -73,11 +83,12 @@ describe('segmentStyleToCss run properties', () => {
 		expect(none.fontVariantCaps).toBeUndefined();
 	});
 
-	it('adds no keys beyond the always-declared weight and slant', () => {
+	it('adds no keys beyond the always-declared weight, slant and tracking', () => {
 		expect(segmentStyleToCss(seg({ fontSize: 16 }))).toStrictEqual({
 			fontSize: '16px',
 			fontWeight: 'normal',
 			fontStyle: 'normal',
+			letterSpacing: POWERPOINT_METRIC_TRACKING,
 		});
 	});
 

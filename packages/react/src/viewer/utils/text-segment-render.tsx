@@ -1,6 +1,6 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
-import { resolveAutoFitFontScale } from 'pptx-viewer-shared';
+import { POWERPOINT_METRIC_TRACKING, resolveAutoFitFontScale } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
@@ -121,11 +121,13 @@ export function renderSingleSegment(
 	// Sub/superscript text also renders smaller; keep the conventional reduction.
 	const baselineFontScale = baselineFraction !== 0 ? 0.65 : 1;
 
-	// Character spacing → CSS letter-spacing (hundredths of a point → px)
+	// Character spacing → CSS letter-spacing (hundredths of a point → px),
+	// layered on top of the metric-compensation tracking every run carries so
+	// the browser wraps where PowerPoint does (see POWERPOINT_METRIC_TRACKING).
 	const letterSpacing =
 		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
-			? `${(segmentStyle.characterSpacing / 100) * (96 / 72)}px`
-			: undefined;
+			? `calc(${(segmentStyle.characterSpacing / 100) * (96 / 72)}px + ${POWERPOINT_METRIC_TRACKING})`
+			: POWERPOINT_METRIC_TRACKING;
 
 	// Text fill: gradient or pattern → CSS background-clip:text technique
 	const textFillStyles = buildTextFillCss(segmentStyle);

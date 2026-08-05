@@ -412,6 +412,84 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 		).toBeLessThan(2.5);
 	});
 
+	/** Visual line texts inside the panel containing `needle` (largest copy). */
+	async function panelLineTexts(page: Page, needle: string): Promise<string[]> {
+		return page.evaluate((marker) => {
+			let host: HTMLElement | undefined;
+			let bestArea = 0;
+			for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+				if (!(node.textContent ?? '').includes(marker)) {
+					continue;
+				}
+				const box = node.getBoundingClientRect();
+				if (box.width * box.height > bestArea) {
+					bestArea = box.width * box.height;
+					host = node;
+				}
+			}
+			if (!host) {
+				return [];
+			}
+			const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+			const lines: string[] = [];
+			let current = '';
+			let prevTop: number | null = null;
+			for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+				const text = n.textContent ?? '';
+				const range = document.createRange();
+				for (let i = 0; i < text.length; i++) {
+					range.setStart(n, i);
+					range.setEnd(n, i + 1);
+					const rect = range.getBoundingClientRect();
+					if (rect.width === 0 && rect.height === 0) {
+						continue;
+					}
+					if (prevTop === null) {
+						prevTop = rect.top;
+					} else if (rect.top - prevTop > 3) {
+						lines.push(current);
+						current = '';
+						prevTop = rect.top;
+					}
+					current += text[i];
+				}
+			}
+			if (current) {
+				lines.push(current);
+			}
+			return lines;
+		}, needle);
+	}
+
+	test('a knife-edge bullet wraps where PowerPoint wraps it, not a word later', async ({
+		page,
+	}) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.insetPanel);
+
+		// COM ground truth (`TextRange.Lines`): the first bullet of the slide-13
+		// panel breaks after "compositis" ("Summis solido quantus compositis /
+		// synephebos acuti ruant."). PowerPoint's GDI-compatible metrics measure
+		// the line ~0.5% wider than the browser's fractional advances, so without
+		// the shared per-run tracking (POWERPOINT_METRIC_TRACKING) the browser
+		// squeezed "synephebos" onto the first line and the paragraph wrapped a
+		// word later than PowerPoint (the reporter's last remaining slide-13
+		// delta on issue #131).
+		const lines = await panelLineTexts(page, 'Summis');
+		const firstIndex = lines.findIndex((line) => line.includes('Summis'));
+		expect(firstIndex, 'found the Summis line').toBeGreaterThanOrEqual(0);
+		const first = lines[firstIndex] ?? '';
+		const second = lines[firstIndex + 1] ?? '';
+		expect(
+			first.trim().endsWith('compositis'),
+			`line 1 breaks after "compositis" (got "${first.trim()}")`,
+		).toBe(true);
+		expect(
+			second.trimStart().startsWith('synephebos'),
+			`line 2 starts at "synephebos" (got "${second.trim()}")`,
+		).toBe(true);
+	});
+
 	async function enterSlideShow(page: Page): Promise<void> {
 		const slideShow = page.getByRole('button', { name: /^slide show$/iu });
 		if ((await slideShow.count()) > 0) {

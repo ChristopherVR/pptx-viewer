@@ -21,6 +21,26 @@ const PX_PER_POINT = 96 / 72;
 const BASELINE_FONT_SCALE = 0.65;
 
 /**
+ * Flat tracking (in em) every run carries so the browser wraps lines where
+ * PowerPoint does.
+ *
+ * PowerPoint measures text with GDI-compatible (hinted) metrics, which run
+ * consistently wider than the browser's fractional advances: COM `BoundWidth`
+ * ground truth on the issue #131 deck puts every Arial line 0.4-0.6% wider
+ * than Chrome measures the same string, so the browser squeezes one more word
+ * onto a knife-edge line than PowerPoint and the paragraph wraps a word late.
+ * Solving that deck's slides 5/13/14 for the tracking that reproduces every
+ * PowerPoint break point gives the window (0.0019em, 0.0104em); 0.003em sits
+ * inside it and matches the measured metric gap. At a 10px font this is
+ * 0.03px per glyph: far below anything visible, but enough to tip knife-edge
+ * fits the way PowerPoint tips them.
+ */
+export const POWERPOINT_METRIC_TRACKING_EM = 0.003;
+
+/** {@link POWERPOINT_METRIC_TRACKING_EM} as the CSS length every run gets. */
+export const POWERPOINT_METRIC_TRACKING = `${POWERPOINT_METRIC_TRACKING_EM}em`;
+
+/**
  * Layer the "extra" run properties that neither the boolean decoration set nor
  * `buildRunEffectStyle` cover: character spacing, super/subscript baseline
  * shift, highlight background, text outline stroke, underline colour, kerning,
@@ -28,9 +48,12 @@ const BASELINE_FONT_SCALE = 0.65;
  * shared builder (Vue / Angular / Svelte / Vanilla) reaches run-prop parity.
  */
 function applyExtraRunProps(style: RunStyle, s: NonNullable<TextSegment['style']>): void {
-	// Character spacing (`a:rPr/@spc`, hundredths of a point) → letter-spacing px.
+	// Character spacing (`a:rPr/@spc`, hundredths of a point) → letter-spacing px,
+	// layered on top of the metric-compensation tracking every run carries.
 	if (typeof s.characterSpacing === 'number' && s.characterSpacing !== 0) {
-		style.letterSpacing = `${(s.characterSpacing / 100) * PX_PER_POINT}px`;
+		style.letterSpacing = `calc(${(s.characterSpacing / 100) * PX_PER_POINT}px + ${POWERPOINT_METRIC_TRACKING})`;
+	} else {
+		style.letterSpacing = POWERPOINT_METRIC_TRACKING;
 	}
 	// Kerning (`a:rPr/@kern`): 0 disables kerning, any other value enables it.
 	if (typeof s.kerning === 'number') {
