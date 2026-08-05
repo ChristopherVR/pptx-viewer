@@ -89,7 +89,7 @@
 		"lib0": "^0.2.117",
 		"lint-staged": "^17.2.0",
 		"oxfmt": "^0.61.0",
-		"oxlint": "^1.75.0",
+		"oxlint": "^1.76.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
 		"rollup": "^4.62.3",
