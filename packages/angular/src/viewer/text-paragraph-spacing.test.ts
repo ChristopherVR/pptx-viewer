@@ -15,7 +15,8 @@ describe('resolveParagraphSpacing', () => {
 
 	it('maps a proportional lineSpacing multiplier to a unitless line-height', () => {
 		const out = resolveParagraphSpacing({ lineSpacing: 1.5 } as TextStyle);
-		expect(out.lineHeight).toBe(1.5);
+		// 1.5 stacks on the 1.2 single-spacing base (spcPct multiplies the pitch).
+		expect(out.lineHeight).toBeCloseTo(1.8, 10);
 	});
 
 	it('prefers exact lineSpacingExactPt (as a pt string) over the multiplier', () => {

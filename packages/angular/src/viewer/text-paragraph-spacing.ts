@@ -7,6 +7,8 @@
  */
 import type { TextSegment } from 'pptx-viewer-core';
 
+import { proportionalLineHeight } from '../internal/shared-src/render/text-style-helpers';
+
 /** Resolved per-paragraph line-height + space-before/after. */
 export interface ParagraphSpacing {
 	/** Unitless multiplier (`a:spcPct`) or a `"<n>pt"` string (`a:spcPts`). */
@@ -32,7 +34,9 @@ export function resolveParagraphSpacing(pPr: TextSegment['paragraphProperties'])
 	if (typeof pPr.lineSpacingExactPt === 'number' && pPr.lineSpacingExactPt > 0) {
 		out.lineHeight = `${pPr.lineSpacingExactPt}pt`;
 	} else if (typeof pPr.lineSpacing === 'number' && pPr.lineSpacing > 0) {
-		out.lineHeight = pPr.lineSpacing;
+		// `a:spcPct` stacks on the 1.2 single-spacing base (see
+		// `proportionalLineHeight` in the shared text-style-helpers).
+		out.lineHeight = proportionalLineHeight(pPr.lineSpacing);
 	}
 	if (typeof pPr.paragraphSpacingBefore === 'number') {
 		out.spaceBeforePx = pPr.paragraphSpacingBefore;

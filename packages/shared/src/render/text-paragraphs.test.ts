@@ -173,7 +173,8 @@ describe('buildParagraphs', () => {
 				},
 			]),
 		);
-		expect(paras[0]).toMatchObject({ lineHeight: 1.5, spaceBeforePx: 12, spaceAfterPx: 6 });
+		expect(paras[0]).toMatchObject({ spaceBeforePx: 12, spaceAfterPx: 6 });
+		expect(paras[0].lineHeight).toBeCloseTo(1.8, 10);
 		// Exact points win over a proportional multiplier and emit a pt string.
 		expect(paras[1].lineHeight).toBe('18pt');
 		expect(paras[1].spaceBeforePx).toBeUndefined();

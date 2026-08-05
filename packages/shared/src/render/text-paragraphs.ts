@@ -21,7 +21,7 @@ import { substituteFieldText } from './text-field-substitution';
 import { buildRunEffectStyle } from './text-run-effects';
 import type { RunStyle } from './text-run-style';
 import { applyUnderlineVariant, segmentStyleToCss } from './text-run-style';
-import { resolveAutoFitFontScale } from './text-style-helpers';
+import { proportionalLineHeight, resolveAutoFitFontScale } from './text-style-helpers';
 
 // Re-exported so existing `pptx-viewer-shared` / `./text-paragraphs` import
 // paths for the run-style types + builder keep working after the split.
@@ -106,7 +106,9 @@ function resolveParagraphSpacing(pPr: TextSegment['paragraphProperties']): Parag
 	if (typeof pPr.lineSpacingExactPt === 'number' && pPr.lineSpacingExactPt > 0) {
 		out.lineHeight = `${pPr.lineSpacingExactPt}pt`;
 	} else if (typeof pPr.lineSpacing === 'number' && pPr.lineSpacing > 0) {
-		out.lineHeight = pPr.lineSpacing;
+		// `a:spcPct` stacks on the 1.2 single-spacing base (see
+		// `proportionalLineHeight` in text-style-helpers).
+		out.lineHeight = proportionalLineHeight(pPr.lineSpacing);
 	}
 	if (typeof pPr.paragraphSpacingBefore === 'number') {
 		out.spaceBeforePx = pPr.paragraphSpacingBefore;

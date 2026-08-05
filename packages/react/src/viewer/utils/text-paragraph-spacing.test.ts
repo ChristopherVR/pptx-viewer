@@ -45,7 +45,8 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { lineSpacing: 1.5 } as TextStyle,
 			bodyStyle: undefined,
 		});
-		expect(result.lineHeight).toBe(1.5);
+		// 1.5 stacks on the 1.2 single-spacing base (spcPct multiplies the pitch).
+		expect(result.lineHeight).toBeCloseTo(1.8, 10);
 	});
 
 	it('maps exact-pt line spacing to a px line-height', () => {
@@ -64,7 +65,7 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { lineSpacing: 2 } as TextStyle,
 			bodyStyle: { lineSpacingExactPt: 40 } as TextStyle,
 		});
-		expect(result.lineHeight).toBe(2);
+		expect(result.lineHeight).toBeCloseTo(2.4, 10);
 	});
 
 	it('suppresses first-paragraph top spacing when spaceFirstLast is false', () => {

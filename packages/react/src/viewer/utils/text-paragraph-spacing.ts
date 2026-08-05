@@ -15,6 +15,7 @@
  * it is only consumed by the React paragraph renderer.
  */
 import type { TextStyle } from 'pptx-viewer-core';
+import { proportionalLineHeight } from 'pptx-viewer-shared';
 
 const PT_TO_PX = 96 / 72;
 
@@ -70,7 +71,9 @@ export function resolveParagraphSpacing(input: ParagraphSpacingInput): Paragraph
 	if (typeof exactPt === 'number' && exactPt > 0) {
 		result.lineHeight = `${exactPt * PT_TO_PX}px`;
 	} else if (typeof multiplier === 'number' && multiplier > 0) {
-		result.lineHeight = multiplier;
+		// `a:spcPct` stacks on PowerPoint's 1.2 single-spacing pitch; see
+		// `proportionalLineHeight` for the COM measurement.
+		result.lineHeight = proportionalLineHeight(multiplier);
 	}
 
 	return result;

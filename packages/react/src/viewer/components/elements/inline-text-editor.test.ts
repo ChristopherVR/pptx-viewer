@@ -775,8 +775,8 @@ describe('getTextStyleForElement', () => {
 		});
 		const style = getTextStyleForElement(el, DEFAULT_TEXT_COLOR);
 
-		// 1.5 * (1 - 0.2) ≈ 1.2 (floating point)
-		expect(style.lineHeight).toBeCloseTo(1.2, 10);
+		// 1.5 * 1.2 (single-spacing base) * (1 - 0.2) = 1.44
+		expect(style.lineHeight).toBeCloseTo(1.44, 10);
 	});
 
 	it('should set overflow visible for autofit text', () => {

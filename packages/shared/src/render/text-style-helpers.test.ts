@@ -16,11 +16,17 @@ describe('resolveLineHeight', () => {
 	});
 
 	it('ignores a non-positive exact pt and uses the multiplier', () => {
-		expect(resolveLineHeight({ lineSpacingExactPt: 0, lineSpacing: 1.5 }, false)).toBe(1.5);
+		// 1.5 stacks on the 1.2 single-spacing base (spcPct multiplies the pitch).
+		expect(resolveLineHeight({ lineSpacingExactPt: 0, lineSpacing: 1.5 }, false)).toBeCloseTo(
+			1.8,
+			10,
+		);
 	});
 
 	it('uses the proportional multiplier when set', () => {
-		expect(resolveLineHeight({ lineSpacing: 2 }, false)).toBe(2);
+		// 200% spacing lays out at 2.4x the font size in PowerPoint (COM-measured
+		// on the issue #132 deck), not 2.0x: spcPct stacks on the 1.2 base.
+		expect(resolveLineHeight({ lineSpacing: 2 }, false)).toBeCloseTo(2.4, 10);
 	});
 
 	it('defaults to PowerPoint single spacing (1.2x), italic or not', () => {
@@ -82,7 +88,7 @@ describe('computeAutoFitTextStyle', () => {
 
 	it('reduces line-height for lnSpcReduction', () => {
 		const ts: TextStyle = { autoFit: true, lineSpacing: 1.2, autoFitLineSpacingReduction: 0.25 };
-		expect(computeAutoFitTextStyle({ ...base, textStyle: ts }).lineHeight).toBeCloseTo(0.9, 5);
+		expect(computeAutoFitTextStyle({ ...base, textStyle: ts }).lineHeight).toBeCloseTo(1.08, 5);
 	});
 
 	it('shrinks via heuristic when spAutoFit text overflows', () => {

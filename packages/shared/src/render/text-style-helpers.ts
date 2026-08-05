@@ -54,7 +54,21 @@ export function resolveLineHeight(
 		return `${textStyle.lineSpacingExactPt}pt`;
 	}
 	void hasItalicRuns;
-	return textStyle?.lineSpacing || DEFAULT_LINE_HEIGHT;
+	// `a:spcPct` multiplies PowerPoint's single-spacing pitch, it does not
+	// replace it: 200% at 20pt lays out at a 48pt pitch (2.4x, measured via COM
+	// export on the issue #132 deck), so the multiplier stacks on the 1.2 base.
+	return proportionalLineHeight(textStyle?.lineSpacing);
+}
+
+/**
+ * CSS line-height for a proportional `a:spcPct` multiplier: the multiplier
+ * stacked on PowerPoint's {@link DEFAULT_LINE_HEIGHT} single-spacing pitch,
+ * or that base itself when no multiplier is set.
+ */
+export function proportionalLineHeight(lineSpacing: number | undefined): number {
+	return typeof lineSpacing === 'number' && lineSpacing > 0
+		? lineSpacing * DEFAULT_LINE_HEIGHT
+		: DEFAULT_LINE_HEIGHT;
 }
 
 // ── Vertical text mapping ──────────────────────────────────────────────────
@@ -224,7 +238,7 @@ export function computeAutoFitTextStyle(input: AutoFitInput): AutoFitResult {
 		const textLength = text.length;
 		const lineHeight = ts.lineSpacingExactPt
 			? ts.lineSpacingExactPt / baseFontSize
-			: ts.lineSpacing || DEFAULT_LINE_HEIGHT;
+			: proportionalLineHeight(ts.lineSpacing);
 		const approxCharsPerLine = Math.max(1, Math.floor(width / (baseFontSize * 0.6)));
 		const estimatedLines = Math.max(1, Math.ceil(textLength / approxCharsPerLine));
 		const requiredHeight = estimatedLines * baseFontSize * lineHeight;
@@ -237,9 +251,8 @@ export function computeAutoFitTextStyle(input: AutoFitInput): AutoFitResult {
 
 	// normAutofit with lnSpcReduction: reduce line height.
 	if (ts.autoFitLineSpacingReduction !== undefined && ts.autoFitLineSpacingReduction > 0) {
-		const baseLineHeight =
-			typeof ts.lineSpacing === 'number' ? ts.lineSpacing : DEFAULT_LINE_HEIGHT;
-		result.lineHeight = baseLineHeight * (1 - ts.autoFitLineSpacingReduction);
+		result.lineHeight =
+			proportionalLineHeight(ts.lineSpacing) * (1 - ts.autoFitLineSpacingReduction);
 	}
 
 	return result;

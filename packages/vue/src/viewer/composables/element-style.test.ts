@@ -147,9 +147,10 @@ describe('getTextBlockStyle', () => {
 	it("applies PowerPoint's 1.2 default line-height and honours explicit line spacing", () => {
 		// 1.2 is PowerPoint's single spacing, measured via COM (issue #131).
 		expect(getTextBlockStyle(shape({ textStyle: { fontSize: 18 } })).lineHeight).toBe(1.2);
+		// The spcPct multiplier stacks on the 1.2 base: 0.9 * 1.2 = 1.08.
 		expect(
 			getTextBlockStyle(shape({ textStyle: { fontSize: 18, lineSpacing: 0.9 } })).lineHeight,
-		).toBe(0.9);
+		).toBeCloseTo(1.08, 10);
 		expect(
 			getTextBlockStyle(shape({ textStyle: { fontSize: 18, lineSpacingExactPt: 20 } })).lineHeight,
 		).toBe('20pt');

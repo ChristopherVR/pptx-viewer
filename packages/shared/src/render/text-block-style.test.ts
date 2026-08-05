@@ -55,7 +55,7 @@ describe('buildTextBlockStyle', () => {
 				lineSpacing: 1.5,
 			}),
 		);
-		expect(style.lineHeight).toBeCloseTo(1.2, 10);
+		expect(style.lineHeight).toBeCloseTo(1.44, 10);
 	});
 
 	// Defect B: `a:bodyPr/@wrap="none"` was applied by React alone.
