@@ -750,6 +750,11 @@ export * from './smartart-reflow-to-shapes';
 // + swallowed autoplay-blocked rejection) each binding calls when present mode
 // makes a media element's slide the live surface.
 export * from './media-playback';
+// Cross-slide ("play across slides") audio survives slide unmount via the
+// document-level persistent-audio manager, and a running show pauses its
+// media + auto-advance while the tab is hidden.
+export * from './media-persistent-audio';
+export * from './presentation-visibility';
 export * from './media-trim-timeline';
 export * from './summary-zoom';
 

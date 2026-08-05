@@ -185,6 +185,31 @@ export function parseCtnMediaTiming(cTn: XmlObject | undefined, mediaTag: string
 }
 
 /**
+ * Whether audio keeps playing when the presentation advances.
+ *
+ * Two storage forms exist: `dur="indefinite"` on the `p:cTn` (folded into
+ * {@link parseCtnMediaTiming}'s result, passed here as `ctnPlayAcrossSlides`)
+ * and PowerPoint's `cMediaNode/@numSld` span (999 = "play across all
+ * slides"), which the issue #132 deck uses WITHOUT any cTn dur. The exact
+ * N-slide span is not modelled; any span beyond the current slide plays
+ * until stopped. Audio-only, matching PowerPoint's UI.
+ */
+export function resolvePlayAcrossSlides(
+	cMediaNode: XmlObject,
+	ctnPlayAcrossSlides: boolean,
+	mediaTag: string,
+): boolean {
+	if (ctnPlayAcrossSlides) {
+		return true;
+	}
+	if (mediaTag !== 'p:audio') {
+		return false;
+	}
+	const numSld = Number.parseInt(String(cMediaNode['@_numSld'] ?? ''), 10);
+	return Number.isFinite(numSld) && numSld > 1;
+}
+
+/**
  * Parse extension list data for a media node, extracting fade durations,
  * playback speed, trim overrides, and bookmarks.
  */

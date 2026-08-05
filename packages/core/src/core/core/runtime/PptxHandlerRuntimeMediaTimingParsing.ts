@@ -8,6 +8,7 @@ import {
 	getImageMimeTypeFromPath,
 	parseCtnMediaTiming,
 	parseMediaExtensionData,
+	resolvePlayAcrossSlides,
 } from './PptxHandlerRuntimeMediaParsingUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -61,6 +62,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Hide-when-not-playing
 				const hideWhenNotPlaying = cMediaNode['@_showWhenStopped'] === '0';
 
+				// Play across slides: the `cMediaNode/@numSld` form is folded in
+				// alongside the cTn `dur="indefinite"` heuristic (issue #132).
+				const playAcrossSlides = resolvePlayAcrossSlides(
+					cMediaNode,
+					timing.playAcrossSlides,
+					mediaTag,
+				);
+
 				// Poster frame — resolve rId
 				let posterFramePath: string | undefined;
 				const posterRId = cMediaNode['@_posterFrame'];
@@ -93,7 +102,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					fadeInDuration: extData.fadeInDuration,
 					fadeOutDuration: extData.fadeOutDuration,
 					autoPlay: timing.autoPlay || undefined,
-					playAcrossSlides: timing.playAcrossSlides || undefined,
+					playAcrossSlides: playAcrossSlides || undefined,
 					hideWhenNotPlaying: hideWhenNotPlaying || undefined,
 					bookmarks: extData.bookmarks.length > 0 ? extData.bookmarks : undefined,
 					playbackSpeed: extData.playbackSpeed,

@@ -5,6 +5,7 @@ import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
 import {
 	parseCtnMediaTiming,
 	parseMediaExtensionData,
+	resolvePlayAcrossSlides,
 } from './PptxHandlerRuntimeMediaParsingUtils';
 
 // ---------------------------------------------------------------------------
@@ -84,7 +85,8 @@ function walkMediaTimingTree(node: XmlObject, result: Map<string, MediaTimingDat
 				fadeInDuration: extData.fadeInDuration,
 				fadeOutDuration: extData.fadeOutDuration,
 				autoPlay: timing.autoPlay || undefined,
-				playAcrossSlides: timing.playAcrossSlides || undefined,
+				playAcrossSlides:
+					resolvePlayAcrossSlides(cMediaNode, timing.playAcrossSlides, mediaTag) || undefined,
 				hideWhenNotPlaying: hideWhenNotPlaying || undefined,
 				bookmarks: extData.bookmarks.length > 0 ? extData.bookmarks : undefined,
 				playbackSpeed: extData.playbackSpeed,
@@ -168,6 +170,41 @@ describe('walkMediaTimingTree', () => {
 		expect(data.loop).toBeTruthy();
 		expect(data.autoPlay).toBeTruthy();
 		expect(data.playAcrossSlides).toBeTruthy();
+	});
+
+	it('marks audio with cMediaNode/@numSld > 1 as playAcrossSlides (issue #132 deck form)', () => {
+		const result = new Map<string, MediaTimingData>();
+		// Background music stored ONLY via numSld: no dur="indefinite" on the cTn.
+		const node: XmlObject = {
+			'p:audio': {
+				'p:cMediaNode': {
+					'@_vol': '80000',
+					'@_numSld': '999',
+					'@_showWhenStopped': '0',
+					'p:tgtEl': { 'p:spTgt': { '@_spid': '3' } },
+					'p:cTn': { '@_repeatCount': 'indefinite', '@_fill': 'hold' },
+				},
+			},
+		};
+		walkMediaTimingTree(node, result);
+		const data = result.get('3')!;
+		expect(data.playAcrossSlides).toBeTruthy();
+		expect(data.loop).toBeTruthy();
+	});
+
+	it('does not mark video as playAcrossSlides from numSld', () => {
+		const result = new Map<string, MediaTimingData>();
+		const node: XmlObject = {
+			'p:video': {
+				'p:cMediaNode': {
+					'@_numSld': '999',
+					'p:tgtEl': { 'p:spTgt': { '@_spid': '7' } },
+					'p:cTn': {},
+				},
+			},
+		};
+		walkMediaTimingTree(node, result);
+		expect(result.get('7')!.playAcrossSlides).toBeUndefined();
 	});
 
 	it('should parse fullScreen flag', () => {
