@@ -8,6 +8,7 @@ import {
 	nextShowSlideIndex,
 	previousShowSlideIndex,
 	resolveShowSlideIndexes,
+	stopAllPersistentAudio,
 } from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
 
@@ -301,6 +302,10 @@ export class PresentationController {
 		this.playback.reset();
 		this.#transition = null;
 		this.#endOfShow = false;
+		// Presentation EXIT (never a slide change, which goes through
+		// `onSlideChange`): cross-slide "play across slides" audio ends with the
+		// show it belongs to.
+		stopAllPersistentAudio();
 	}
 
 	/**

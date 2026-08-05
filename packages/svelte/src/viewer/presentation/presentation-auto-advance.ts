@@ -41,3 +41,46 @@ export function resolveSlideAutoAdvanceMs(input: SlideAutoAdvanceInput): number 
 	}
 	return resolveAutoAdvanceDelayMs(input.slide, { useTimings: input.useTimings });
 }
+
+/**
+ * The show's timed auto-advance, as an object so it can be cancelled and
+ * re-armed from OUTSIDE the `$effect` that schedules it: the presentation
+ * visibility handler cancels the pending tick while the tab is hidden (the
+ * deck must not run on unseen) and re-arms the current slide's full delay once
+ * the tab is visible again. Pure timers (no runes), unit-testable on its own;
+ * `presentation-effects` owns the reactive scheduling.
+ */
+export class ShowAutoAdvanceTimer {
+	#timer: ReturnType<typeof setTimeout> | undefined;
+	#delayMs: number | undefined;
+
+	constructor(private readonly advance: () => void) {}
+
+	/** Adopt the current slide's resolved delay and (re)arm from scratch. */
+	schedule(delayMs: number | undefined): void {
+		this.#delayMs = delayMs;
+		this.arm();
+	}
+
+	/** (Re)start the pending tick for the last scheduled delay. */
+	arm(): void {
+		// Always cancel first: re-arming must never leave two timers running.
+		this.cancel();
+		const delayMs = this.#delayMs;
+		if (delayMs === undefined) {
+			return;
+		}
+		this.#timer = setTimeout(() => {
+			this.#timer = undefined;
+			this.advance();
+		}, delayMs);
+	}
+
+	/** Cancel the pending tick without forgetting the scheduled delay. */
+	cancel(): void {
+		if (this.#timer !== undefined) {
+			clearTimeout(this.#timer);
+			this.#timer = undefined;
+		}
+	}
+}

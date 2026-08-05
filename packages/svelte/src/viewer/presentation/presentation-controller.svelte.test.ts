@@ -1,4 +1,5 @@
 import type { PptxElement, PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
+import { hasPersistentAudio, registerPersistentAudio } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PresentationController } from './presentation-controller.svelte';
@@ -174,6 +175,29 @@ describe('presentationController (native-timing)', () => {
 		expect(controller.transition).not.toBeNull();
 		controller.endTransition();
 		expect(controller.transition).toBeNull();
+	});
+
+	it('stop() ends cross-slide persistent audio; onSlideChange leaves it playing', () => {
+		const deck = new Deck();
+		deck.slides = [slide('s1'), slide('s2')];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: () => {},
+		});
+		controller.start();
+
+		registerPersistentAudio('bg-track', 'data:audio/mpeg;base64,AAAA', 'audio/mpeg', true, 1, 0);
+		expect(hasPersistentAudio('bg-track')).toBeTruthy();
+
+		// A slide change must NOT kill the track: that is the whole feature.
+		controller.onSlideChange(0, 1);
+		expect(hasPersistentAudio('bg-track')).toBeTruthy();
+
+		// Leaving the show ends it.
+		controller.stop();
+		expect(hasPersistentAudio('bg-track')).toBeFalsy();
+		expect(document.querySelectorAll('[data-pptx-persistent-audio]')).toHaveLength(0);
 	});
 });
 

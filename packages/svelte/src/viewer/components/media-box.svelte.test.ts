@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { hasPersistentAudio, stopAllPersistentAudio } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -283,6 +284,70 @@ describe('mediaBox', () => {
 
 			setPresenting(false);
 			expect(video?.paused).toBeTruthy();
+		});
+	});
+
+	describe('cross-slide ("play across slides") audio', () => {
+		afterEach(() => {
+			stopAllPersistentAudio();
+		});
+
+		function crossSlideAudio(overrides: Record<string, unknown> = {}): PptxElement {
+			return mediaElement({
+				mediaType: 'audio',
+				mediaData: MP3_DATA_URL,
+				mediaMimeType: 'audio/mpeg',
+				playAcrossSlides: true,
+				loop: true,
+				volume: 0.5,
+				trimStartMs: 2000,
+				...overrides,
+			});
+		}
+
+		it('registers the track with the persistent manager while presenting and keeps the slide-local copy silent', () => {
+			const { target } = mountEl(crossSlideAudio(), undefined, true, false);
+
+			expect(hasPersistentAudio('m1')).toBeTruthy();
+			const persistent = document.querySelector<HTMLAudioElement>(
+				'[data-pptx-persistent-audio="m1"]',
+			);
+			expect(persistent?.getAttribute('src')).toBe(MP3_DATA_URL);
+			expect(persistent?.loop).toBeTruthy();
+			expect(persistent?.volume).toBe(0.5);
+
+			// The slide-local copy must stay silent, or the track doubles: the
+			// autoplay path is skipped and the node is muted.
+			expect(startMediaAutoplay).not.toHaveBeenCalled();
+			expect(target.querySelector<HTMLAudioElement>('audio')?.muted).toBeTruthy();
+		});
+
+		it('is NOT stopped by the slide-local element unmounting on slide change', () => {
+			mountEl(crossSlideAudio(), undefined, true, false);
+			expect(hasPersistentAudio('m1')).toBeTruthy();
+
+			// Advancing the show unmounts the owning slide's DOM; the persistent
+			// (document-level) track keeps playing.
+			cleanup?.();
+			cleanup = undefined;
+			expect(hasPersistentAudio('m1')).toBeTruthy();
+			expect(document.querySelector('[data-pptx-persistent-audio="m1"]')).not.toBeNull();
+		});
+
+		it('does not register outside a running show', () => {
+			mountEl(crossSlideAudio());
+			expect(hasPersistentAudio('m1')).toBeFalsy();
+		});
+
+		it('does not register cross-slide playback for video', () => {
+			mountEl(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, playAcrossSlides: true }),
+				undefined,
+				true,
+				false,
+			);
+			expect(hasPersistentAudio('m1')).toBeFalsy();
+			expect(startMediaAutoplay).toHaveBeenCalledOnce();
 		});
 	});
 });

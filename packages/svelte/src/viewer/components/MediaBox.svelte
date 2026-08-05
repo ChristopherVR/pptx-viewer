@@ -35,7 +35,7 @@
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
-	import { resolveMediaView } from '../render';
+	import { registerCrossSlideAudio, resolveMediaView } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
@@ -85,6 +85,17 @@
 		// during its first frames while effects settle.
 		applyMediaPlaybackAttributes(el, source);
 		if (presenting) {
+			// "Play across slides" audio: a hidden document-level element (the shared
+			// persistent-audio manager) carries the sound so it survives this slide's
+			// unmount when the show advances. The slide-local copy must then stay
+			// silent, or the track doubles while its own slide is up.
+			if (registerCrossSlideAudio(source, view?.mediaSrc)) {
+				el.muted = true;
+				if (!el.paused) {
+					el.pause();
+				}
+				return;
+			}
 			startMediaAutoplay(el, { trimStartMs: trim });
 		} else if (!el.paused) {
 			el.pause();

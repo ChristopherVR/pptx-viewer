@@ -19,7 +19,7 @@ export {
 export type { SmartArtView, SvgTextLine } from './smartart-view';
 export { buildInkStrokes, inkViewBox } from './ink-view';
 export type { InkStrokeView } from './ink-view';
-export { resolveMediaView } from './media-view';
+export { registerCrossSlideAudio, resolveMediaView } from './media-view';
 export type { MediaView } from './media-view';
 export { buildOleView, getOleIconShapes } from './ole-view';
 export type { OleIconShape, OleView } from './ole-view';

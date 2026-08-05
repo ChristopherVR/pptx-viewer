@@ -1,10 +1,11 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
+import { attachPresentationVisibilityPause } from 'pptx-viewer-shared';
 import { untrack } from 'svelte';
 
 import { applyAnimationStyles } from './apply-animation-styles';
 import { syncNativeAnimationKeyframes } from './keyframes';
-import { resolveSlideAutoAdvanceMs } from './presentation-auto-advance';
+import { resolveSlideAutoAdvanceMs, ShowAutoAdvanceTimer } from './presentation-auto-advance';
 import type { PresentationController } from './presentation-controller.svelte';
 import { attachPresentationTriggerListeners } from './presentation-triggers';
 
@@ -124,22 +125,40 @@ export function usePresentationEffects(deps: PresentationEffectsDeps): void {
 	//
 	// Nothing is scheduled outside the show, on the end-of-show screen, or when
 	// the show advances manually. Reading `endOfShowVisible` here is what makes
-	// the end screen cancel the timer rather than tick past it.
+	// the end screen cancel the timer rather than tick past it. The timer itself
+	// lives in `ShowAutoAdvanceTimer` so the visibility handler below can cancel
+	// and re-arm it from outside this effect.
+	const autoAdvance = new ShowAutoAdvanceTimer(() => {
+		// Same contract as a Next press: reveal the slide's remaining animation
+		// builds first, and only then step to the next slide.
+		deps.controller.advance();
+	});
 	$effect(() => {
-		const delayMs = resolveSlideAutoAdvanceMs({
-			presenting: deps.getPresenting(),
-			slide: deps.getActiveSlide(),
-			useTimings: deps.getUseTimings?.() ?? true,
-			endOfShow: deps.controller.endOfShowVisible,
-		});
-		if (delayMs === undefined) {
+		autoAdvance.schedule(
+			resolveSlideAutoAdvanceMs({
+				presenting: deps.getPresenting(),
+				slide: deps.getActiveSlide(),
+				useTimings: deps.getUseTimings?.() ?? true,
+				endOfShow: deps.controller.endOfShowVisible,
+			}),
+		);
+		return () => autoAdvance.cancel();
+	});
+
+	// (5) A hidden tab is a paused show: the shared handler pauses the stage's
+	// playing media and the cross-slide persistent audio while `document.hidden`,
+	// and this wiring also cancels the pending auto-advance so the deck does not
+	// run on unseen; everything resumes (and the current slide's timing re-arms
+	// from scratch) when the tab is visible again. Attached only while the show
+	// runs; the effect's cleanup detaches it on exit.
+	$effect(() => {
+		if (!deps.getPresenting()) {
 			return;
 		}
-		const timer = setTimeout(() => {
-			// Same contract as a Next press: reveal the slide's remaining animation
-			// builds first, and only then step to the next slide.
-			deps.controller.advance();
-		}, delayMs);
-		return () => clearTimeout(timer);
+		return attachPresentationVisibilityPause({
+			root: deps.getStageRoot() ?? undefined,
+			onHidden: () => autoAdvance.cancel(),
+			onVisible: () => autoAdvance.arm(),
+		});
 	});
 }
