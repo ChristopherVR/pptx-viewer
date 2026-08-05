@@ -2,12 +2,14 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { MediaCaptionTrack, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
+import { hasPersistentAudio, stopAllPersistentAudio } from '../internal/shared';
 import { componentSource } from './component-source.test-support';
 import {
 	asMediaElement,
 	buildTrimFragment,
+	registerCrossSlideAudio,
 	resolveCaptionTracks,
 	resolveMediaSrc,
 } from './media-renderer-helpers';
@@ -94,6 +96,64 @@ describe('resolveCaptionTracks', () => {
 		expect(resolved[0].isDefault).toBeTruthy();
 		expect(resolved[1].src).toBe('blob:cc');
 		expect(resolved[1].isDefault).toBeFalsy();
+	});
+});
+
+describe('registerCrossSlideAudio', () => {
+	afterEach(() => {
+		stopAllPersistentAudio();
+	});
+
+	function crossSlideAudio(overrides: Partial<MediaPptxElement> = {}): MediaPptxElement {
+		return mediaEl({
+			mediaType: 'audio',
+			mediaData: 'data:audio/mpeg;base64,AAAA',
+			mediaMimeType: 'audio/mpeg',
+			playAcrossSlides: true,
+			loop: true,
+			volume: 0.5,
+			trimStartMs: 2000,
+			...overrides,
+		});
+	}
+
+	it('registers playAcrossSlides audio with the persistent manager', () => {
+		expect(registerCrossSlideAudio(crossSlideAudio(), 'data:audio/mpeg;base64,AAAA')).toBeTruthy();
+		expect(hasPersistentAudio('m1')).toBeTruthy();
+
+		// The persistent element is DOCUMENT-level: destroying the slide's own DOM
+		// on advance cannot touch it, which is the whole point.
+		const persistent = document.querySelector<HTMLAudioElement>(
+			'[data-pptx-persistent-audio="m1"]',
+		);
+		expect(persistent?.getAttribute('src')).toBe('data:audio/mpeg;base64,AAAA');
+		expect(persistent?.loop).toBeTruthy();
+		expect(persistent?.volume).toBe(0.5);
+	});
+
+	it('is idempotent per element id (re-entering the slide never restarts the track)', () => {
+		registerCrossSlideAudio(crossSlideAudio(), 'data:audio/mpeg;base64,AAAA');
+		const persistent = document.querySelector('[data-pptx-persistent-audio="m1"]');
+		registerCrossSlideAudio(crossSlideAudio(), 'data:audio/mpeg;base64,AAAA');
+		expect(document.querySelectorAll('[data-pptx-persistent-audio="m1"]')).toHaveLength(1);
+		expect(document.querySelector('[data-pptx-persistent-audio="m1"]')).toBe(persistent);
+	});
+
+	it('declines video, non-cross-slide audio, and a missing source', () => {
+		expect(
+			registerCrossSlideAudio(
+				crossSlideAudio({ mediaType: 'video' }),
+				'data:video/mp4;base64,AAAA',
+			),
+		).toBeFalsy();
+		expect(
+			registerCrossSlideAudio(
+				crossSlideAudio({ playAcrossSlides: undefined }),
+				'data:audio/mpeg;base64,AAAA',
+			),
+		).toBeFalsy();
+		expect(registerCrossSlideAudio(crossSlideAudio(), undefined)).toBeFalsy();
+		expect(hasPersistentAudio('m1')).toBeFalsy();
 	});
 });
 

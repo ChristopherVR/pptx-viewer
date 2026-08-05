@@ -24,6 +24,7 @@ import { inject, Injectable, signal } from '@angular/core';
 
 import { LoadContentService } from './load-content.service';
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
+import { endShowMediaCleanup } from './presentation-overlay-helpers';
 import { PresenterWindowService } from './presenter-window.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
 
@@ -186,6 +187,10 @@ export class ViewerPresentationModeService {
 
 	closePresentation(): void {
 		this.presenting.set(false);
+		// The show has ended (this path never runs on a slide change), so its
+		// cross-slide "play across slides" audio ends with it. The presenter-view
+		// swap goes through togglePresenterView instead, which keeps it playing.
+		endShowMediaCleanup();
 		if (this.rehearsing()) {
 			this.recordCurrentSlide();
 			this.rehearsing.set(false);
@@ -261,6 +266,9 @@ export class ViewerPresentationModeService {
 		this.presentingPresenter.set(false);
 		this.presenting.set(false);
 		this.presenterWindow.closeAudienceWindow();
+		// Leaving the presenter console ends the whole show, and with it any
+		// cross-slide "play across slides" audio.
+		endShowMediaCleanup();
 	}
 
 	/** Presentation exited with ink on it: offer the keep/discard prompt. */

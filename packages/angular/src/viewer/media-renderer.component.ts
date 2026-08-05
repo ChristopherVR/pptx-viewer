@@ -25,6 +25,7 @@ import type { StyleMap } from './element-style';
 import {
 	asMediaElement,
 	buildTrimFragment,
+	registerCrossSlideAudio,
 	resolveCaptionTracks,
 	resolveMediaSrc,
 } from './media-renderer-helpers';
@@ -193,6 +194,17 @@ export class MediaRendererComponent {
 				applyMediaPlaybackAttributes(el, media);
 			}
 			if (presenting) {
+				// "Play across slides" audio: a hidden document-level element (the
+				// shared persistent-audio manager) carries the sound so it survives
+				// this slide's unmount when the show advances. The slide-local copy
+				// must then stay silent, or the track doubles while its slide is up.
+				if (media && registerCrossSlideAudio(media, this.mediaSrc())) {
+					el.muted = true;
+					if (!el.paused) {
+						el.pause();
+					}
+					return;
+				}
 				startMediaAutoplay(el, { trimStartMs: media?.trimStartMs });
 			} else if (!el.paused) {
 				el.pause();

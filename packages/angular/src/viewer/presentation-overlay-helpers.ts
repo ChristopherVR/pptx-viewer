@@ -7,6 +7,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
+	attachPresentationVisibilityPause,
 	firstShowSlideIndex,
 	hasShowSlideAfter,
 	isClickAdvanceAllowed,
@@ -15,6 +16,7 @@ import {
 	previousShowSlideIndex,
 	resolveAutoAdvanceDelayMs,
 	resolveShowSlideIndexes,
+	stopAllPersistentAudio,
 } from '../internal/shared';
 
 /**
@@ -51,6 +53,39 @@ export function resolveSlideAutoAdvanceMs(
 		return undefined;
 	}
 	return resolveAutoAdvanceDelayMs(slide, { useTimings });
+}
+
+/**
+ * Attach the show's visibility pause: while the tab is hidden the shared
+ * handler pauses the stage's playing media and the cross-slide persistent
+ * audio, and the binding-provided callbacks cancel / re-arm the timed
+ * auto-advance so the deck does not run on unseen. Returns the detach
+ * function. Kept TestBed-free so the wiring can be unit-tested directly.
+ */
+export function attachShowVisibilityPause(deps: {
+	/** The overlay root containing the stage; only media inside it is paused. */
+	root: ParentNode | undefined;
+	/** Cancel the pending auto-advance timer (the tab was hidden). */
+	cancelAutoAdvance: () => void;
+	/** Re-arm the auto-advance timer for the current slide (tab visible again). */
+	rearmAutoAdvance: () => void;
+}): () => void {
+	return attachPresentationVisibilityPause({
+		root: deps.root,
+		onHidden: deps.cancelAutoAdvance,
+		onVisible: deps.rearmAutoAdvance,
+	});
+}
+
+/**
+ * The show has ENDED (never a slide change): stop and remove all cross-slide
+ * "play across slides" persistent audio. Called by the host's exit paths
+ * (`closePresentation` / `exitPresenter`), not by the overlay's own destroy,
+ * because swapping to the presenter console destroys the overlay while the
+ * show, and its background audio, carry on.
+ */
+export function endShowMediaCleanup(): void {
+	stopAllPersistentAudio();
 }
 
 /**

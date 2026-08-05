@@ -1,8 +1,19 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	hasPersistentAudio,
+	registerPersistentAudio,
+	stopAllPersistentAudio,
+} from '../internal/shared';
+import { componentSource } from './component-source.test-support';
+import {
+	attachShowVisibilityPause,
 	clampIndex,
+	endShowMediaCleanup,
 	fitZoom,
 	nextVisibleIndex,
 	prevVisibleIndex,
@@ -241,5 +252,107 @@ describe('fitZoom', () => {
 	it('returns 1 as a safe fallback for negative dimensions', () => {
 		expect(fitZoom(-1, 600, 800, 600)).toBe(1);
 		expect(fitZoom(800, 600, 800, -1)).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Visibility pause + end-of-show media cleanup
+// ---------------------------------------------------------------------------
+
+function setVisibility(state: 'visible' | 'hidden'): void {
+	Object.defineProperty(document, 'visibilityState', {
+		configurable: true,
+		get: () => state,
+	});
+	document.dispatchEvent(new Event('visibilitychange'));
+}
+
+describe('attachShowVisibilityPause', () => {
+	afterEach(() => {
+		stopAllPersistentAudio();
+		Object.defineProperty(document, 'visibilityState', {
+			configurable: true,
+			get: () => 'visible',
+		});
+	});
+
+	it('cancels the auto-advance when the tab hides and re-arms it when visible', () => {
+		const cancelAutoAdvance = vi.fn();
+		const rearmAutoAdvance = vi.fn();
+		const detach = attachShowVisibilityPause({
+			root: document.createElement('div'),
+			cancelAutoAdvance,
+			rearmAutoAdvance,
+		});
+
+		setVisibility('hidden');
+		expect(cancelAutoAdvance).toHaveBeenCalledOnce();
+		expect(rearmAutoAdvance).not.toHaveBeenCalled();
+
+		setVisibility('visible');
+		expect(rearmAutoAdvance).toHaveBeenCalledOnce();
+		detach();
+	});
+
+	it('stops reacting after detach', () => {
+		const cancelAutoAdvance = vi.fn();
+		const detach = attachShowVisibilityPause({
+			root: undefined,
+			cancelAutoAdvance,
+			rearmAutoAdvance: () => {},
+		});
+		detach();
+		setVisibility('hidden');
+		expect(cancelAutoAdvance).not.toHaveBeenCalled();
+	});
+
+	it('pauses cross-slide persistent audio while hidden', () => {
+		registerPersistentAudio('bg-track', 'data:audio/mpeg;base64,AAAA', 'audio/mpeg', true, 1, 0);
+		const persistent = document.querySelector<HTMLAudioElement>(
+			'[data-pptx-persistent-audio="bg-track"]',
+		);
+		expect(persistent).not.toBeNull();
+		// The manager's element reports paused=false while "playing".
+		Object.defineProperty(persistent, 'paused', { configurable: true, get: () => false });
+		const pause = vi.spyOn(persistent as HTMLAudioElement, 'pause').mockImplementation(() => {});
+
+		const detach = attachShowVisibilityPause({
+			root: document.createElement('div'),
+			cancelAutoAdvance: () => {},
+			rearmAutoAdvance: () => {},
+		});
+		setVisibility('hidden');
+		expect(pause).toHaveBeenCalledOnce();
+		detach();
+	});
+});
+
+describe('endShowMediaCleanup', () => {
+	it('stops and removes all cross-slide persistent audio', () => {
+		registerPersistentAudio('bg-track-2', 'data:audio/mpeg;base64,AAAA', undefined, false, 1, 0);
+		expect(hasPersistentAudio('bg-track-2')).toBeTruthy();
+
+		endShowMediaCleanup();
+		expect(hasPersistentAudio('bg-track-2')).toBeFalsy();
+		expect(document.querySelectorAll('[data-pptx-persistent-audio]')).toHaveLength(0);
+	});
+
+	// This package has no TestBed (see `vitest.config.ts`), so the exit wiring is
+	// asserted against the authored sources, the same technique the transport
+	// spec uses: BOTH host exit paths end the show's cross-slide audio, and the
+	// overlay attaches the visibility pause. The presenter-view swap deliberately
+	// does not (the show, and its background audio, carry on in the console).
+	it('is called from both host exit paths, and the overlay attaches the pause', () => {
+		const dir = dirname(fileURLToPath(import.meta.url));
+		const service = componentSource(dir, 'viewer-presentation-mode.service.ts');
+		const closeBody = service.slice(service.indexOf('closePresentation('));
+		expect(closeBody.slice(0, closeBody.indexOf('}'))).toContain('endShowMediaCleanup()');
+		const exitBody = service.slice(service.indexOf('exitPresenter('));
+		expect(exitBody.slice(0, exitBody.indexOf('}'))).toContain('endShowMediaCleanup()');
+		const toggleBody = service.slice(service.indexOf('togglePresenterView('));
+		expect(toggleBody.slice(0, toggleBody.indexOf('}'))).not.toContain('endShowMediaCleanup()');
+
+		const overlay = componentSource(dir, 'presentation-overlay.component.ts');
+		expect(overlay).toContain('attachShowVisibilityPause({');
 	});
 });

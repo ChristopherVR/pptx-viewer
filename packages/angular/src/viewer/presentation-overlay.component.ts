@@ -37,7 +37,12 @@ import {
 	OVERLAY_NEXT_BUTTON_STYLE,
 	OVERLAY_PREV_BUTTON_STYLE,
 } from './presentation-overlay-chrome-styles';
-import { clampIndex, fitZoom, resolveSlideAutoAdvanceMs } from './presentation-overlay-helpers';
+import {
+	attachShowVisibilityPause,
+	clampIndex,
+	fitZoom,
+	resolveSlideAutoAdvanceMs,
+} from './presentation-overlay-helpers';
 import {
 	setupPresentationFullscreen,
 	setupPresentationTouchGestures,
@@ -276,6 +281,28 @@ export class PresentationOverlayComponent implements OnInit {
 		effect(() => {
 			this.navigator.armAutoAdvance(
 				resolveSlideAutoAdvanceMs(this.currentSlide(), this.useTimings(), this.endOfShow()),
+			);
+		});
+
+		// A hidden tab is a paused show: the shared handler pauses the stage's
+		// playing media and the cross-slide persistent audio while the document is
+		// hidden, and these callbacks cancel / re-arm the timed auto-advance so
+		// the deck does not run on unseen. Attached once the overlay root exists;
+		// the effect's cleanup detaches it when the overlay goes away.
+		effect((onCleanup) => {
+			const root = this.rootRef()?.nativeElement;
+			if (!root) {
+				return;
+			}
+			onCleanup(
+				attachShowVisibilityPause({
+					root,
+					cancelAutoAdvance: () => this.navigator.clearAutoAdvance(),
+					rearmAutoAdvance: () =>
+						this.navigator.armAutoAdvance(
+							resolveSlideAutoAdvanceMs(this.currentSlide(), this.useTimings(), this.endOfShow()),
+						),
+				}),
 			);
 		});
 
