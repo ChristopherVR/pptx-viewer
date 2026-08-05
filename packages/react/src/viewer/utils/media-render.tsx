@@ -5,7 +5,7 @@ import React from 'react';
 
 import { MediaNotFoundPlaceholder, VideoWithMetadata, AudioWithMetadata } from './media-components';
 import { PresentationMediaController } from './media-controller';
-import { registerPersistentAudio, buildTrimFragment } from './media-persistent-audio';
+import { buildTrimFragment } from './media-persistent-audio';
 
 // ---------------------------------------------------------------------------
 // Public render options
@@ -72,28 +72,9 @@ export function renderMediaElement(
 	const isPresentationMode = options?.isPresentationMode === true;
 	const showTransport = options?.showTransport ?? !isPresentationMode;
 
-	// Play-across-slides: register persistent audio with resolved dataUrl.
-	// The PresentationMediaController auto-play effect handles this when
-	// element.mediaData is set, but when data comes from mediaDataUrls we
-	// must register here since the controller only sees the element fields.
-	if (
-		isPresentationMode &&
-		shouldAutoPlay &&
-		element.playAcrossSlides &&
-		element.mediaType === 'audio' &&
-		dataUrl &&
-		!element.mediaData
-	) {
-		const trimStartSec = element.trimStartMs !== undefined ? element.trimStartMs / 1000 : 0;
-		registerPersistentAudio(
-			element.id,
-			dataUrl,
-			mediaMimeType,
-			shouldLoop,
-			element.volume ?? 1,
-			trimStartSec,
-		);
-	}
+	// Play-across-slides audio is registered by the PresentationMediaController
+	// auto-play effect, which receives this resolved dataUrl (element bytes or
+	// mediaDataUrls lookup) via its `resolvedDataUrl` prop.
 
 	// Check for explicitly missing media
 	if (element.mediaMissing) {
@@ -136,6 +117,7 @@ export function renderMediaElement(
 					element={element}
 					isPresentationMode={isPresentationMode}
 					shouldAutoPlay={shouldAutoPlay}
+					resolvedDataUrl={dataUrl}
 					isFullScreen={isFullScreen}
 					onPlayStateChange={options?.onPlayStateChange}
 				>
@@ -208,6 +190,7 @@ export function renderMediaElement(
 					element={element}
 					isPresentationMode={isPresentationMode}
 					shouldAutoPlay={shouldAutoPlay}
+					resolvedDataUrl={dataUrl}
 					isFullScreen={false}
 					onPlayStateChange={options?.onPlayStateChange}
 				>

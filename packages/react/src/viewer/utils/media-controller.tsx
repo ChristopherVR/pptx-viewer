@@ -21,6 +21,14 @@ interface PresentationMediaControllerProps {
 	 * on this to actually start playback for media inserted without the flag.
 	 */
 	shouldAutoPlay: boolean;
+	/**
+	 * The resolved media source the inline element renders with:
+	 * `element.mediaData` or the `mediaDataUrls` lookup by `element.mediaPath`
+	 * (see `renderMediaElement`). The play-across-slides branch registers the
+	 * persistent audio with this, so audio whose bytes live in the map (not on
+	 * the element) still survives slide unmount.
+	 */
+	resolvedDataUrl?: string;
 	/** Whether this media is in full-screen overlay mode. */
 	isFullScreen: boolean;
 	/** Callback fired when media play/pause state changes. */
@@ -36,6 +44,7 @@ export function PresentationMediaController({
 	element,
 	isPresentationMode,
 	shouldAutoPlay,
+	resolvedDataUrl,
 	isFullScreen,
 	onPlayStateChange,
 	children,
@@ -80,7 +89,11 @@ export function PresentationMediaController({
 	// shared, so all five bindings agree on what `vol="0"` or a 10x rate means.
 	// `loop` is declarative here (the <video>/<audio> `loop` prop, from
 	// `element.loop`), so only the two IDL-only properties are applied by hand.
-	const { volume: playbackVolume, playbackRate } = mediaPlaybackAttributes({
+	const {
+		loop: shouldLoop,
+		volume: playbackVolume,
+		playbackRate,
+	} = mediaPlaybackAttributes({
 		loop: element.loop,
 		volume: element.volume,
 		playbackSpeed: element.playbackSpeed,
@@ -242,25 +255,25 @@ export function PresentationMediaController({
 
 		// Play-across-slides: register with persistent manager so audio
 		// survives slide unmount. The media element in the slide is hidden;
-		// a detached <audio> plays instead.
+		// a detached <audio> plays instead. The source is resolved exactly like
+		// the inline path's src: element bytes first, then the caller's
+		// mediaDataUrls lookup (passed in as `resolvedDataUrl`).
 		if (element.playAcrossSlides && element.mediaType === 'audio') {
-			const dataUrl =
-				element.mediaData ??
-				(element.mediaPath
-					? undefined // resolved later when rendering
-					: undefined);
+			const dataUrl = element.mediaData ?? resolvedDataUrl;
 			if (dataUrl) {
 				registerPersistentAudio(
 					element.id,
 					dataUrl,
 					element.mediaMimeType,
-					element.loop === true,
-					volume,
+					shouldLoop,
+					playbackVolume,
 					trimStartSec,
 				);
+				// The detached persistent element plays; don't also play inline.
+				return;
 			}
-			// Don't also play the inline element
-			return;
+			// No source resolved: fall through so the inline element at least
+			// plays on this slide instead of the audio being silently dropped.
 		}
 
 		const el = mediaRef.current;
@@ -284,12 +297,12 @@ export function PresentationMediaController({
 		element.playAcrossSlides,
 		element.mediaType,
 		element.mediaData,
-		element.mediaPath,
 		element.mediaMimeType,
-		element.loop,
 		element.id,
+		resolvedDataUrl,
+		shouldLoop,
+		playbackVolume,
 		trimStartSec,
-		volume,
 	]);
 
 	const wrapperStyle: React.CSSProperties = hideWhenNotPlaying

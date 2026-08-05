@@ -1,4 +1,5 @@
 import {
+	attachPresentationVisibilityPause,
 	buildMorphTransitionPlan,
 	createPresenterShowGuard,
 	morphOptionToMode,
@@ -343,6 +344,25 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	scheduleAutoAdvanceRef.current = scheduleAutoAdvanceForSlide;
 	const activeSlideIndexRef = useRef(activeSlideIndex);
 	activeSlideIndexRef.current = activeSlideIndex;
+	const presentationSlideIndexRef = useRef(presentationSlideIndex);
+	presentationSlideIndexRef.current = presentationSlideIndex;
+	const clearPresentationTimersRef = useRef(clearPresentationTimers);
+	clearPresentationTimersRef.current = clearPresentationTimers;
+
+	// A hidden tab is a paused show: stage media and cross-slide persistent
+	// audio stop, and the pending auto-advance timer is cancelled so the deck
+	// does not run on unseen. When the tab is visible again the media resumes
+	// and auto-advance re-arms for the slide the show is currently on.
+	useEffect(() => {
+		if (mode !== 'present') {
+			return;
+		}
+		return attachPresentationVisibilityPause({
+			root: containerRef.current ?? undefined,
+			onHidden: () => clearPresentationTimersRef.current(),
+			onVisible: () => scheduleAutoAdvanceRef.current(presentationSlideIndexRef.current),
+		});
+	}, [mode, containerRef]);
 
 	useEffect(() => {
 		if (mode === 'present') {
