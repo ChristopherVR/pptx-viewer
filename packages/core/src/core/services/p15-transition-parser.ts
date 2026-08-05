@@ -58,6 +58,51 @@ function optionalBoolean(value: unknown): boolean | undefined {
 	return undefined;
 }
 
+/** Read a `p15:prstTrans` element's `@prst` / `@invX` / `@invY` details. */
+function readPrstTrans(value: unknown): P15ParseResult | undefined {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return undefined;
+	}
+	const detail = value as XmlObject;
+	const prst = String(detail['@_prst'] || '').trim();
+	if (!P15_TRANSITION_PRESETS.has(prst)) {
+		return undefined;
+	}
+	return {
+		type: prst as PptxTransitionType,
+		invX: optionalBoolean(detail['@_invX']),
+		invY: optionalBoolean(detail['@_invY']),
+	};
+}
+
+/**
+ * Parse a `p15:prstTrans` written as a DIRECT child of `p:transition`.
+ *
+ * Inside an `mc:Choice Requires="p15"` envelope the requirement is already
+ * declared by the envelope, so PowerPoint emits
+ * `<p15:prstTrans prst="origami"/>` straight onto `p:transition` instead of
+ * routing it through the `p:extLst` escape hatch (mirroring how
+ * `p159:morph` is written in its Choice form).
+ */
+export function parseP15DirectChild(
+	transitionNode: XmlObject,
+	getXmlLocalName: (xmlKey: string) => string,
+): P15ParseResult | undefined {
+	for (const [key, value] of Object.entries(transitionNode)) {
+		if (key.startsWith('@_')) {
+			continue;
+		}
+		if (getXmlLocalName(key) !== 'prstTrans') {
+			continue;
+		}
+		const result = readPrstTrans(value);
+		if (result) {
+			return result;
+		}
+	}
+	return undefined;
+}
+
 /**
  * Parse a `p15:prstTrans` preset transition from the transition's extLst
  * XML node. Walks the `p:ext` entries (mirroring the p14 parser) and, for
@@ -82,19 +127,10 @@ export function parseP15FromExtLst(
 			if (getXmlLocalName(key) !== 'prstTrans') {
 				continue;
 			}
-			if (!value || typeof value !== 'object' || Array.isArray(value)) {
-				continue;
+			const result = readPrstTrans(value);
+			if (result) {
+				return result;
 			}
-			const detail = value as XmlObject;
-			const prst = String(detail['@_prst'] || '').trim();
-			if (!P15_TRANSITION_PRESETS.has(prst)) {
-				continue;
-			}
-			return {
-				type: prst as PptxTransitionType,
-				invX: optionalBoolean(detail['@_invX']),
-				invY: optionalBoolean(detail['@_invY']),
-			};
 		}
 	}
 	return undefined;

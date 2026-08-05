@@ -38,6 +38,56 @@ export interface P14ParseResult {
 	pattern?: string;
 }
 
+/** Read the `@dir` / `@orient` / `@pattern` details off a p14 transition element. */
+function readP14Details(localName: string, value: unknown): P14ParseResult {
+	const type = localName as PptxTransitionType;
+	let direction: string | undefined;
+	let orient: PptxSplitOrientation | undefined;
+	let pattern: string | undefined;
+
+	if (value && typeof value === 'object' && !Array.isArray(value)) {
+		const detail = value as XmlObject;
+		const rawDir = String(detail['@_dir'] || '').trim();
+		if (rawDir.length > 0) {
+			direction = rawDir;
+		}
+		const rawOrient = String(detail['@_orient'] || '').trim();
+		if (rawOrient === 'horz' || rawOrient === 'vert') {
+			orient = rawOrient;
+		}
+		const rawPattern = String(detail['@_pattern'] || '').trim();
+		if (rawPattern.length > 0) {
+			pattern = rawPattern;
+		}
+	}
+
+	return { type, direction, orient, pattern };
+}
+
+/**
+ * Parse a p14 transition written as a DIRECT child of `p:transition`.
+ *
+ * Inside an `mc:Choice Requires="p14"` envelope the requirement is already
+ * declared by the envelope, so PowerPoint emits e.g. `<p14:reveal dir="r"/>`
+ * straight onto `p:transition` instead of routing it through the `p:extLst`
+ * escape hatch (mirroring how `p159:morph` is written in its Choice form).
+ */
+export function parseP14DirectChild(
+	transitionNode: XmlObject,
+	getXmlLocalName: (xmlKey: string) => string,
+): P14ParseResult | undefined {
+	for (const [key, value] of Object.entries(transitionNode)) {
+		if (key.startsWith('@_')) {
+			continue;
+		}
+		const localName = getXmlLocalName(key);
+		if (P14_TRANSITION_TYPES.has(localName)) {
+			return readP14Details(localName, value);
+		}
+	}
+	return undefined;
+}
+
 /**
  * Parse p14 transition elements from the extLst XML node.
  * Structure: `<p:extLst><p:ext uri="..."><p14:XXX @dir @pattern /></p:ext></p:extLst>`
@@ -62,28 +112,7 @@ export function parseP14FromExtLst(
 				continue;
 			}
 
-			const type = localName as PptxTransitionType;
-			let direction: string | undefined;
-			let orient: PptxSplitOrientation | undefined;
-			let pattern: string | undefined;
-
-			if (value && typeof value === 'object' && !Array.isArray(value)) {
-				const detail = value as XmlObject;
-				const rawDir = String(detail['@_dir'] || '').trim();
-				if (rawDir.length > 0) {
-					direction = rawDir;
-				}
-				const rawOrient = String(detail['@_orient'] || '').trim();
-				if (rawOrient === 'horz' || rawOrient === 'vert') {
-					orient = rawOrient;
-				}
-				const rawPattern = String(detail['@_pattern'] || '').trim();
-				if (rawPattern.length > 0) {
-					pattern = rawPattern;
-				}
-			}
-
-			return { type, direction, orient, pattern };
+			return readP14Details(localName, value);
 		}
 	}
 	return undefined;

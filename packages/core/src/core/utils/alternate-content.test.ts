@@ -16,7 +16,7 @@ describe('areNamespacesSupported', () => {
 
 	it('returns true only for namespaces with declared capabilities', () => {
 		expect(areNamespacesSupported('p14')).toBeTruthy();
-		expect(areNamespacesSupported('p15')).toBeFalsy();
+		expect(areNamespacesSupported('p15')).toBeTruthy();
 		expect(areNamespacesSupported('a14')).toBeTruthy();
 		expect(areNamespacesSupported('asvg')).toBeTruthy();
 	});

@@ -1,29 +1,18 @@
+import { P14_TRANSITION_TYPES } from '../services/p14-transition-parser';
 import type { XmlObject } from '../types';
 
 const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> = {
+	// Office 2010 (p14) transitions are shared with the parser's canonical
+	// list (`P14_TRANSITION_TYPES`) so the two can never drift apart again:
+	// this set used to be a hand-copied subset that was missing `reveal` and
+	// `ripple`, so every `mc:Choice Requires="p14"` carrying one of them
+	// reported `UNSUPPORTED_ALTERNATE_CONTENT_CHOICE` and silently used the
+	// fallback fade even though the parser handles both. The extra names are
+	// the non-transition p14 features we also parse.
 	p14: new Set([
+		...P14_TRANSITION_TYPES,
 		'transition',
-		'conveyor',
-		'pan',
-		'glitter',
-		'prism',
-		'vortex',
-		'switch',
-		'flip',
-		'gallery',
-		'honeycomb',
-		'flash',
-		'shred',
-		'warp',
-		'flythrough',
-		'doors',
-		'window',
-		'ferris',
 		'newsflash',
-		'wheelReverse',
-		'rotate',
-		'orbit',
-		'cube',
 		'media',
 		'trim',
 		'fade',
@@ -32,6 +21,17 @@ const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> =
 		'hiddenFill',
 		'hiddenLine',
 	]),
+	// PowerPoint 2013+ writes its preset transitions (Origami, Fracture, Peel
+	// Off, Page Curl, ...) as `<p15:prstTrans prst="...">`, either inside an
+	// `mc:Choice Requires="p15"` or in a `p:transition/p:extLst` extension.
+	// Both forms are parsed (see `PptxSlideTransitionService`), so the choice
+	// IS supported: without this entry every p15 slide reported
+	// `UNSUPPORTED_ALTERNATE_CONTENT_CHOICE`, which reads as "the transition
+	// was dropped and the fallback fade was used" when in fact the preset
+	// plays. `prstTrans` alone is listed on purpose: any OTHER `p15:*`
+	// element still makes the choice unsupported and falls back, which is
+	// the honest answer.
+	p15: new Set(['prstTrans']),
 	// PowerPoint 2016+ writes the Morph transition as `<p159:morph @option>`,
 	// either inside an `mc:Choice Requires="p159"` or in a `p:transition/p:extLst`
 	// extension. Both forms are parsed (see `PptxSlideTransitionService`), so the
