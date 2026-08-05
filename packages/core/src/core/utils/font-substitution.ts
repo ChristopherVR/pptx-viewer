@@ -87,6 +87,30 @@ export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
 	Gulim: ['Noto Sans CJK KR', 'AppleGothic', 'sans-serif'],
 	Malgun: ['Noto Sans CJK KR', 'Apple SD Gothic Neo', 'sans-serif'],
 	'Malgun Gothic': ['Noto Sans CJK KR', 'Apple SD Gothic Neo', 'sans-serif'],
+	// Source Han Sans (Adobe/Google) ships the same glyphs as Noto Sans CJK;
+	// the zh-CN name 思源黑体 is how decks authored in Chinese reference it.
+	'思源黑体 CN': [
+		'Source Han Sans CN',
+		'Noto Sans CJK SC',
+		'Noto Sans SC',
+		'Microsoft YaHei',
+		'sans-serif',
+	],
+	思源黑体: [
+		'Source Han Sans SC',
+		'Noto Sans CJK SC',
+		'Noto Sans SC',
+		'Microsoft YaHei',
+		'sans-serif',
+	],
+	'Source Han Sans CN': [
+		'思源黑体 CN',
+		'Noto Sans CJK SC',
+		'Noto Sans SC',
+		'Microsoft YaHei',
+		'sans-serif',
+	],
+	微软雅黑: ['Microsoft YaHei', 'Noto Sans CJK SC', 'PingFang SC', 'sans-serif'],
 
 	// Complex script fonts
 	'Arabic Typesetting': ['Noto Naskh Arabic', 'serif'],
@@ -108,6 +132,11 @@ export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
 	MoolBoran: ['Noto Sans Khmer', 'sans-serif'],
 
 	// Decorative / Display
+	// Condensed display faces: decks often reference the FULL style name
+	// ("Bebas Neue Regular"); the suffix-stripped base resolves here. The
+	// fallbacks must stay condensed, or short numeric labels sized to the
+	// narrow face overflow their text boxes and wrap (issue #132, "77%").
+	'Bebas Neue': ['Oswald', 'Arial Narrow', 'Impact', 'sans-serif'],
 	'Century Gothic': ['URW Gothic', 'Futura', 'sans-serif'],
 	Oswald: ['Agency FB', 'Arial Narrow', 'sans-serif'],
 	'Franklin Gothic': ['Liberation Sans', 'Helvetica Neue', 'sans-serif'],
@@ -119,6 +148,72 @@ export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
 	Constantia: ['Liberation Serif', 'Palatino', 'serif'],
 	Corbel: ['Liberation Sans', 'Lucida Grande', 'sans-serif'],
 };
+
+/* ------------------------------------------------------------------ */
+/*  Style-suffix normalization                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Trailing tokens that name a weight/style rather than a family. OOXML
+ * typefaces frequently carry the FULL font name ("Bebas Neue Regular",
+ * "思源黑体 CN Light") while the OS registers the FAMILY ("Bebas Neue"),
+ * so a CSS lookup by the full name misses an installed font PowerPoint
+ * happily resolves.
+ */
+const FONT_STYLE_SUFFIX_TOKENS = new Set([
+	'regular',
+	'normal',
+	'book',
+	'roman',
+	'thin',
+	'hairline',
+	'extralight',
+	'ultralight',
+	'demilight',
+	'semilight',
+	'light',
+	'medium',
+	'demibold',
+	'semibold',
+	'bold',
+	'extrabold',
+	'ultrabold',
+	'heavy',
+	'black',
+	'extrablack',
+	'ultra',
+	'italic',
+	'oblique',
+]);
+
+/**
+ * The family name with trailing weight/style tokens removed (up to two,
+ * e.g. "Semibold Italic"), or `undefined` when nothing was stripped.
+ *
+ * The full name always stays FIRST in any font chain; the stripped base
+ * is only an additional candidate, so genuine families that end in a
+ * weight word ("Arial Black") still win when installed.
+ */
+export function stripFontStyleSuffix(fontName: string): string | undefined {
+	let name = fontName.trim();
+	let stripped = false;
+	for (let i = 0; i < 2; i++) {
+		const idx = name.lastIndexOf(' ');
+		if (idx <= 0) {
+			break;
+		}
+		const token = name
+			.slice(idx + 1)
+			.toLowerCase()
+			.replace(/-/g, '');
+		if (!FONT_STYLE_SUFFIX_TOKENS.has(token)) {
+			break;
+		}
+		name = name.slice(0, idx).trim();
+		stripped = true;
+	}
+	return stripped && name.length > 0 ? name : undefined;
+}
 
 /* ------------------------------------------------------------------ */
 /*  PANOSE classification maps                                        */
@@ -352,24 +447,7 @@ export function getSubstituteFontFamily(fontName: string, panose?: number[]): st
 	if (!trimmed) {
 		return 'sans-serif';
 	}
-
-	// Strategy 1: Direct substitution map
-	const directSubs = FONT_SUBSTITUTION_MAP[trimmed];
-	if (directSubs) {
-		return buildFontFamilyString(trimmed, directSubs);
-	}
-
-	// Strategy 2: PANOSE-based classification
-	if (panose && panose.length >= 4) {
-		const genericFamily = classifyPanose(panose);
-		const concreteFonts = GENERIC_FAMILY_CONCRETE_FONTS[genericFamily];
-		if (concreteFonts) {
-			return buildFontFamilyString(trimmed, concreteFonts);
-		}
-	}
-
-	// Strategy 3: Default fallback
-	return buildFontFamilyString(trimmed, ['sans-serif']);
+	return buildFontFamilyString(trimmed, getSubstituteFonts(trimmed, panose));
 }
 
 /**
@@ -387,10 +465,17 @@ export function getSubstituteFonts(fontName: string, panose?: number[]): readonl
 		return ['sans-serif'];
 	}
 
-	// Strategy 1: Direct substitution map
-	const directSubs = FONT_SUBSTITUTION_MAP[trimmed];
+	// A full font name ("Bebas Neue Regular") also tries its family base
+	// ("Bebas Neue"), both as an installed-font candidate and as the key
+	// into the substitution map.
+	const baseName = stripFontStyleSuffix(trimmed);
+	const basePrefix: string[] = baseName ? [baseName] : [];
+
+	// Strategy 1: Direct substitution map (full name first, then base)
+	const directSubs =
+		FONT_SUBSTITUTION_MAP[trimmed] ?? (baseName ? FONT_SUBSTITUTION_MAP[baseName] : undefined);
 	if (directSubs) {
-		return directSubs;
+		return [...basePrefix, ...directSubs];
 	}
 
 	// Strategy 2: PANOSE-based classification
@@ -398,12 +483,12 @@ export function getSubstituteFonts(fontName: string, panose?: number[]): readonl
 		const genericFamily = classifyPanose(panose);
 		const concreteFonts = GENERIC_FAMILY_CONCRETE_FONTS[genericFamily];
 		if (concreteFonts) {
-			return concreteFonts;
+			return [...basePrefix, ...concreteFonts];
 		}
 	}
 
 	// Strategy 3: Default fallback
-	return ['sans-serif'];
+	return [...basePrefix, 'sans-serif'];
 }
 
 /**
