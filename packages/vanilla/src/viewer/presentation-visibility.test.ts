@@ -55,6 +55,9 @@ function harness(presenting = false) {
 }
 
 beforeEach(() => {
+	// jsdom reports hasFocus() false by default; the visibility-pause helper
+	// treats an unfocused window as suspended, so pin the baseline to focused.
+	vi.spyOn(document, 'hasFocus').mockReturnValue(true);
 	vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
 });
 

@@ -16,6 +16,9 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+	// jsdom reports hasFocus() false by default; the visibility-pause helper
+	// treats an unfocused window as suspended, so pin the baseline to focused.
+	vi.spyOn(document, 'hasFocus').mockReturnValue(true);
 	vi.useFakeTimers();
 	container = document.createElement('div');
 	document.body.appendChild(container);

@@ -5,11 +5,17 @@ import {
 	registerPersistentAudio,
 	stopAllPersistentAudio,
 } from 'pptx-viewer-shared';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
 import type { CanvasSize } from '../types';
 import PresentationMode from './PresentationMode.vue';
+
+beforeEach(() => {
+	// jsdom reports hasFocus() false by default; the visibility-pause helper
+	// treats an unfocused window as suspended, so pin the baseline to focused.
+	vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+});
 
 const canvasSize: CanvasSize = { width: 960, height: 540 };
 

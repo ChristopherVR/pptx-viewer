@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	hasPersistentAudio,
@@ -24,10 +24,17 @@ function stageWithAudio(): { root: HTMLElement; audio: HTMLAudioElement } {
 	return { root, audio };
 }
 
+beforeEach(() => {
+	// jsdom reports hasFocus() false by default; the helper treats an
+	// unfocused window as suspended, so pin the baseline to focused.
+	vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+});
+
 afterEach(() => {
 	stopAllPersistentAudio();
 	document.body.replaceChildren();
 	setVisibilityCleanup();
+	vi.restoreAllMocks();
 });
 
 function setVisibilityCleanup(): void {
@@ -84,6 +91,46 @@ describe('attachPresentationVisibilityPause', () => {
 		detach();
 		setVisibility('hidden');
 		expect(onHidden).not.toHaveBeenCalled();
+	});
+
+	it('suspends when the WINDOW loses focus even though the tab stays visible', () => {
+		// Issue #132: alt-tabbing to another application leaves the tab
+		// visible, so visibilitychange never fires; the blur signal must
+		// pause the show.
+		const onHidden = vi.fn();
+		const onVisible = vi.fn();
+		const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+		const detach = attachPresentationVisibilityPause({ onHidden, onVisible });
+
+		window.dispatchEvent(new Event('blur'));
+		expect(onHidden).toHaveBeenCalledOnce();
+
+		hasFocus.mockReturnValue(true);
+		window.dispatchEvent(new Event('focus'));
+		expect(onVisible).toHaveBeenCalledOnce();
+		detach();
+		hasFocus.mockRestore();
+	});
+
+	it('does not double-suspend when blur and tab-hide overlap', () => {
+		const onHidden = vi.fn();
+		const onVisible = vi.fn();
+		const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+		const detach = attachPresentationVisibilityPause({ onHidden, onVisible });
+
+		window.dispatchEvent(new Event('blur'));
+		setVisibility('hidden');
+		expect(onHidden).toHaveBeenCalledOnce();
+
+		// Still unfocused: becoming visible alone must NOT resume.
+		setVisibility('visible');
+		expect(onVisible).not.toHaveBeenCalled();
+
+		hasFocus.mockReturnValue(true);
+		window.dispatchEvent(new Event('focus'));
+		expect(onVisible).toHaveBeenCalledOnce();
+		detach();
+		hasFocus.mockRestore();
 	});
 
 	it('pauses persistent (cross-slide) audio while hidden and resumes it', () => {

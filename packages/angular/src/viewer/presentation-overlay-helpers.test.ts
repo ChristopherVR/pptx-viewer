@@ -2,7 +2,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { PptxSlide } from 'pptx-viewer-core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	hasPersistentAudio,
@@ -20,6 +20,12 @@ import {
 	resolveSlideAutoAdvanceMs,
 	shouldBlockClickAdvance,
 } from './presentation-overlay-helpers';
+
+beforeEach(() => {
+	// jsdom reports hasFocus() false by default; the visibility-pause helper
+	// treats an unfocused window as suspended, so pin the baseline to focused.
+	vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+});
 
 // ---------------------------------------------------------------------------
 // Slide factory

@@ -1,15 +1,20 @@
 /**
- * Presentation visibility pause: while a slide show is running, hiding the
- * tab (switching tabs, minimising the window) must pause what the audience
- * can no longer see or follow, exactly like pressing pause:
+ * Presentation visibility pause: while a slide show is running, backgrounding
+ * the browser must pause what the audience can no longer see or follow,
+ * exactly like pressing pause:
  *
  *  - slide-stage `<audio>` / `<video>` elements that are currently playing,
  *  - cross-slide persistent audio ({@link pauseAllPersistentAudio}),
  *  - the auto-advance timer (via the binding's arm/cancel callbacks).
  *
- * Everything resumes when the document becomes visible again. Each binding
- * attaches this once when presentation mode starts and calls the returned
- * detach function when it ends.
+ * "Backgrounded" covers BOTH signals: the tab being hidden (switching tabs,
+ * minimising) via `visibilitychange`, and the window merely losing focus
+ * (clicking another application while the browser stays on screen) via
+ * `window` blur/focus. The issue #132 reporter alt-tabbed away with the
+ * browser still visible and the soundtrack kept playing; visibility alone
+ * never fires for that. Everything resumes when the document is visible AND
+ * focused again. Each binding attaches this once when presentation mode
+ * starts and calls the returned detach function when it ends.
  */
 import { pauseAllPersistentAudio, resumeAllPersistentAudio } from './media-persistent-audio';
 
@@ -20,17 +25,17 @@ export interface PresentationVisibilityOptions {
 	 * paused. Defaults to `document`.
 	 */
 	root?: ParentNode;
-	/** Cancel the pending auto-advance timer (tab was hidden). */
+	/** Cancel the pending auto-advance timer (show was backgrounded). */
 	onHidden?: () => void;
-	/** Re-arm the auto-advance timer for the current slide (tab is visible). */
+	/** Re-arm the auto-advance timer for the current slide (show is live). */
 	onVisible?: () => void;
 }
 
 /**
- * Attach the `visibilitychange` handler for a running presentation.
+ * Attach the backgrounding handlers for a running presentation.
  *
- * @returns Detach function; also resumes nothing (a hidden-paused show that
- *          exits presentation mode tears its media down anyway).
+ * @returns Detach function; it resumes nothing (a suspended show that exits
+ *          presentation mode tears its media down anyway).
  */
 export function attachPresentationVisibilityPause(
 	options: PresentationVisibilityOptions = {},
@@ -39,11 +44,18 @@ export function attachPresentationVisibilityPause(
 		return () => {};
 	}
 	const root: ParentNode = options.root ?? document;
-	/** Stage media paused by the last hide, to resume on the next show. */
+	/** Stage media paused by the last suspension, to resume on the next. */
 	let pausedMedia: Array<HTMLMediaElement> = [];
+	/** Whether the show is currently suspended (transition-edge tracking). */
+	let suspended = false;
 
-	const onVisibilityChange = (): void => {
-		if (document.visibilityState === 'hidden') {
+	const update = (): void => {
+		const shouldSuspend = document.visibilityState === 'hidden' || !document.hasFocus();
+		if (shouldSuspend === suspended) {
+			return;
+		}
+		suspended = shouldSuspend;
+		if (shouldSuspend) {
 			pausedMedia = [];
 			for (const media of root.querySelectorAll<HTMLMediaElement>('audio, video')) {
 				if (!media.paused && !media.ended) {
@@ -67,8 +79,12 @@ export function attachPresentationVisibilityPause(
 		options.onVisible?.();
 	};
 
-	document.addEventListener('visibilitychange', onVisibilityChange);
+	document.addEventListener('visibilitychange', update);
+	window.addEventListener('blur', update);
+	window.addEventListener('focus', update);
 	return () => {
-		document.removeEventListener('visibilitychange', onVisibilityChange);
+		document.removeEventListener('visibilitychange', update);
+		window.removeEventListener('blur', update);
+		window.removeEventListener('focus', update);
 	};
 }
