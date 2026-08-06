@@ -1,3 +1,4 @@
+import { MAX_ZOOM_SCALE, MIN_ZOOM_SCALE } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createPptxViewer, PptxViewer } from './PptxViewer';
@@ -112,13 +113,19 @@ describe('createPptxViewer', () => {
 	});
 
 	it('clamps setZoom and reports the effective scale', () => {
+		// Zoom is clamped by the SHARED fit-relative bounds (0.2x - 5x of the fit
+		// scale), the same ones React, Vue, Angular and Svelte use. This binding
+		// used to apply its own wider absolute bounds (0.1 - 8), which is why the
+		// same API call produced a different result here than in the other four.
+		// The harness has no layout, so the fit scale is 1 and the fit-relative
+		// bounds land directly on the absolute scale.
 		const { viewer } = mount();
 		viewer.setZoom(2);
 		expect(viewer.getZoom()).toBe(2);
 		viewer.setZoom(99);
-		expect(viewer.getZoom()).toBe(8);
+		expect(viewer.getZoom()).toBe(MAX_ZOOM_SCALE);
 		viewer.setZoom(0.0001);
-		expect(viewer.getZoom()).toBe(0.1);
+		expect(viewer.getZoom()).toBe(MIN_ZOOM_SCALE);
 	});
 
 	it('fires onZoomChange with the new scale', () => {

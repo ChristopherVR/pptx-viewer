@@ -177,7 +177,11 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),
-		onPinchZoom: (zoom) => store.set({ zoom }),
+		// Routed through the controls, not written to the store directly: the
+		// zoom model (and its bounds) lives in the shared zoom store now, and a
+		// raw store write would bypass it - which is how the pinch gesture ended
+		// up as the one zoom entry point with no clamping at all.
+		onPinchZoom: (zoom) => deps.setZoom(zoom),
 		isSwipeEnabled: () => {
 			const state = store.get();
 			return state.presenting || !state.editable;
@@ -396,6 +400,8 @@ export interface ChromeHost {
 	};
 	prev(): void;
 	next(): void;
+	/** Set an ABSOLUTE stage scale (the pinch gesture's units). */
+	setZoom(zoom: number): void;
 	zoomIn(): void;
 	zoomOut(): void;
 	zoomToFit(): void;
@@ -480,6 +486,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		initialTheme: host.currentTheme,
 		prev: () => host.prev(),
 		next: () => host.next(),
+		setZoom: (zoom: number) => host.setZoom(zoom),
 		zoomIn: () => host.zoomIn(),
 		zoomOut: () => host.zoomOut(),
 		zoomToFit: () => host.zoomToFit(),

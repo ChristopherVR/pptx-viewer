@@ -5,24 +5,12 @@ import {
 	nextShowSlideIndex,
 	previousShowSlideIndex,
 	resolveShowSlideIndexes,
-	zoomInScale,
-	zoomOutScale,
+	createViewerZoomStore,
 } from 'pptx-viewer-shared';
 
 import type { RenderController } from './render-controller';
 import { clampSlideIndex } from './state';
 import type { Store, ViewerState, ZoomLevel } from './state';
-
-/**
- * Bounds on the ABSOLUTE stage scale the store holds, which is the user zoom
- * multiplied by the fit-to-viewport scale. They are deliberately wider than the
- * shared `clampZoomScale` bounds (which constrain the fit-relative user zoom,
- * where fit === 100%): on a small viewport a legal 20% user zoom is a far
- * smaller absolute scale, and clamping it with the user-zoom rule would pin the
- * stage at the wrong size.
- */
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 8;
 
 /**
  * Navigation + zoom controls for the vanilla viewer, factored out of
@@ -89,9 +77,42 @@ export function createViewerControls(
 			enteringBackward,
 		});
 	};
+	// The zoom itself lives in the shared `createViewerZoomStore`, so this
+	// binding uses the same zoom MODEL as the other four rather than its own
+	// absolute-scale encoding. The vanilla store keeps holding an absolute
+	// `ZoomLevel`, because the render pipeline and `state-sync` diff on it; this
+	// is the one place the two representations meet.
+	const zoomStore = createViewerZoomStore();
+
+	/** Project the shared model back onto the store's absolute `ZoomLevel`. */
+	const publishZoom = (): void => {
+		const { zoom, fitScale, manual } = zoomStore.getState();
+		store.set({ zoom: manual ? fitScale * zoom : 'fit' });
+	};
+	zoomStore.subscribe(publishZoom);
+
+	/**
+	 * Feed the current viewport measurement in before any user-initiated zoom.
+	 * The shared model is fit-relative, so it can only convert to and from an
+	 * absolute scale if it knows the fit factor at the moment of the action.
+	 */
+	const measureFit = (): number => {
+		const fitScale = renderer.fitScale();
+		zoomStore.dispatch({ type: 'set-fit-scale', fitScale });
+		return fitScale;
+	};
+
 	const setZoom = (zoom: ZoomLevel): void => {
-		store.set({
-			zoom: zoom === 'fit' ? 'fit' : Math.min(Math.max(zoom, MIN_ZOOM), MAX_ZOOM),
+		if (zoom === 'fit') {
+			zoomStore.dispatch({ type: 'zoom-to-fit' });
+			return;
+		}
+		// Callers pass an ABSOLUTE stage scale (the pinch gesture and the public
+		// `setZoom` API both do), so divide the fit factor back out.
+		const fitScale = measureFit();
+		zoomStore.dispatch({
+			type: 'set-zoom',
+			zoom: fitScale > Number.EPSILON ? zoom / fitScale : zoom,
 		});
 	};
 	return {
@@ -172,12 +193,17 @@ export function createViewerControls(
 		currentSlide: () => store.get().currentSlide,
 		zoom: () => renderer.effectiveScale(),
 		setZoom,
-		// The store holds an ABSOLUTE scale, but the shared step (like React's) is
-		// relative to fit, where fit === 100%. So step the fit-relative factor and
-		// multiply it back out; stepping the absolute scale would make one press
-		// worth a different amount of zoom in every viewport size.
-		zoomIn: () => setZoom(renderer.fitScale() * zoomInScale(renderer.zoomPercent() / 100)),
-		zoomOut: () => setZoom(renderer.fitScale() * zoomOutScale(renderer.zoomPercent() / 100)),
-		zoomToFit: () => setZoom('fit'),
+		// The shared store already holds the fit-relative user factor, so a step is
+		// just a command. Re-measuring first keeps the absolute value it projects
+		// correct for the current viewport.
+		zoomIn: () => {
+			measureFit();
+			zoomStore.dispatch({ type: 'zoom-in' });
+		},
+		zoomOut: () => {
+			measureFit();
+			zoomStore.dispatch({ type: 'zoom-out' });
+		},
+		zoomToFit: () => zoomStore.dispatch({ type: 'zoom-to-fit' }),
 	};
 }

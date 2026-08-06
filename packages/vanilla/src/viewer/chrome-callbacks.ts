@@ -15,6 +15,8 @@ import type { ChromeOptions } from './ui';
 export interface ChromeCallbackDeps {
 	prev(): void;
 	next(): void;
+	/** Set an ABSOLUTE stage scale (the units the pinch gesture reports). */
+	setZoom(zoom: number): void;
 	zoomIn(): void;
 	zoomOut(): void;
 	zoomToFit(): void;
