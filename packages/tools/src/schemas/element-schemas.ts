@@ -58,6 +58,13 @@ export const UpdateElementSchema = z.object({
 	flipV: z.boolean().optional(),
 });
 
+export const RenameElementSchema = z.object({
+	filePath: z.string().describe('Path to the PPTX file'),
+	slideIndex: z.number().int().min(0).describe('Zero-based slide index'),
+	elementId: z.string().describe('Element ID to rename'),
+	name: z.string().describe('New element name (empty string clears the name)'),
+});
+
 export const DeleteElementsSchema = z.object({
 	filePath: z.string().describe('Path to the PPTX file'),
 	slideIndex: z.number().int().min(0),

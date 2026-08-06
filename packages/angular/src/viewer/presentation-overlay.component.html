@@ -56,13 +56,25 @@
 		}
 
 		<!-- Ink annotation overlay (pen/highlighter/eraser/laser). Ctrl+M
-		     hides the markup without discarding the strokes. -->
+		     hides the markup without discarding the strokes. The host carries
+		     the shared blackboard z-index so strokes stay visible ABOVE the
+		     blackout sheet while the screen is blanked (the stage no longer
+		     creates a stacking context, see stageContainerStyle). -->
 		@if (inkMarkupVisible()) {
-			<pptx-presentation-annotation-overlay [canvasSize]="canvasSize()" [zoom]="zoom()" />
+			<pptx-presentation-annotation-overlay
+				data-pptx-annotation-overlay
+				[style.z-index]="annotationOverlayZ()"
+				[canvasSize]="canvasSize()"
+				[zoom]="zoom()"
+			/>
 		}
 	</div>
 	@if (presenterWindow.snapshot().blackout !== 'none') {
-		<div class="presenter-blank" [style.background]="presenterWindow.snapshot().blackout"></div>
+		<div
+			class="presenter-blank"
+			data-pptx-blackout
+			[style.background]="presenterWindow.snapshot().blackout"
+		></div>
 	}
 	@if (presenterWindow.snapshot().pointer?.tool === 'laser') {
 		<div

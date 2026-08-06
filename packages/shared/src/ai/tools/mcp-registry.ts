@@ -170,6 +170,13 @@ export const MCP_TOOL_ENTRIES: Record<string, McpToolEntry> = {
 		'slides',
 		'Update element',
 	),
+	rename_element: entry(
+		'Rename an element (the name shown in the selection pane).',
+		mcpSchemas.RenameElementSchema,
+		mcp.renameElement,
+		'slides',
+		'Rename element',
+	),
 	delete_elements: entry(
 		'Delete one or more elements by id.',
 		mcpSchemas.DeleteElementsSchema,

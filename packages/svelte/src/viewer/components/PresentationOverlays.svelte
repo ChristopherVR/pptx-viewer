@@ -59,6 +59,8 @@
 		current={viewer.current}
 		total={viewer.slideCount}
 		presenterMode={vm.presenterMode}
+		blackout={presenterSession.snapshot.blackout}
+		onblackoutchange={(value) => presenterSession.updateSnapshot({ blackout: value })}
 		onmove={move}
 		onpresenterview={() => (vm.presenterMode = !vm.presenterMode)}
 		onexit={vm.onFullscreenToggle}
@@ -72,7 +74,7 @@
 	<PresentationEndScreen onexit={() => presentation.advance()} />
 {/if}
 {#if presenterSession.snapshot.blackout !== 'none'}
-	<div class="presenter-blackout" style={`background:${presenterSession.snapshot.blackout}`}></div>
+	<div class="presenter-blackout" data-pptx-blackout style={`background:${presenterSession.snapshot.blackout}`}></div>
 {/if}
 {#if pointer?.tool === 'laser'}
 	<div

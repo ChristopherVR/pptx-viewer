@@ -8,6 +8,7 @@ export function PresentationAudienceEffects({ snapshot }: { snapshot: Presentati
 		<div className='pointer-events-none absolute inset-0 z-[75] overflow-hidden'>
 			{snapshot.blackout !== 'none' && (
 				<div
+					data-pptx-blackout
 					className={`absolute inset-0 ${snapshot.blackout === 'black' ? 'bg-black' : 'bg-white'}`}
 				/>
 			)}

@@ -45,6 +45,7 @@ describe('the show-toolbar inventory', () => {
 			'highlighter',
 			'highlighter-color',
 			'eraser',
+			'blackboard',
 			'clear',
 			'divider-tools',
 			'presenter-view',

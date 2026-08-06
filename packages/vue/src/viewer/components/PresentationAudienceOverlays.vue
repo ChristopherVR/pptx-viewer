@@ -18,6 +18,7 @@ defineProps<{ snapshot: PresentationSnapshot }>();
 	<div
 		v-if="snapshot.blackout !== 'none'"
 		class="absolute inset-0 z-[75]"
+		data-pptx-blackout
 		:style="{ background: snapshot.blackout }"
 	/>
 	<div

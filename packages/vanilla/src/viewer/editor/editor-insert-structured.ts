@@ -1,6 +1,6 @@
-import type { PptxChartType, PptxElement, SmartArtLayout } from 'pptx-viewer-core';
+import type { PptxElement, SmartArtLayout } from 'pptx-viewer-core';
 import { createEditorId } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, InsertChartKind } from 'pptx-viewer-shared';
 import {
 	buildActionButtonElement,
 	buildSmartArtPresetData,
@@ -25,12 +25,15 @@ const SMARTART_SIZE = { width: 600, height: 340 };
 /** Default box size (px) for a freshly-inserted field placeholder shape. */
 const FIELD_SIZE = { width: 200, height: 40 };
 
-/** Build a new, centred chart element for the given chart type. */
+/**
+ * Build a new, centred chart element for the given insert-dropdown entry
+ * (`'column'` yields vertical columns, `'bar'` horizontal bars).
+ */
 export function buildChartInsertElement(
-	chartType: PptxChartType,
+	chartKind: InsertChartKind,
 	canvasSize: CanvasSize,
 ): PptxElement {
-	const el = createDefaultChartElement(chartType);
+	const el = createDefaultChartElement(chartKind);
 	centerOnCanvas(el, canvasSize);
 	return el;
 }

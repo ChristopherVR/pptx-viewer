@@ -35,6 +35,7 @@
 		presentationTransition,
 		onTransitionDone,
 		editingActive,
+		blackout = 'none',
 		collabCursors = [],
 		collabPresences = [],
 		annotations,
@@ -82,7 +83,7 @@
 		onchangepath={(next) => editor.animationOps.setMotionPath(next)}
 	/>
 {/if}
-{#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} />{/if}
+{#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} {blackout} />{/if}
 {#if collabPresences.length > 0}
 	<RemoteSelectionOverlay
 		presences={collabPresences}

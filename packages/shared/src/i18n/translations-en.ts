@@ -427,6 +427,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentation.pen': 'Pen',
 	'pptx.presentation.highlighter': 'Highlighter',
 	'pptx.presentation.eraser': 'Eraser',
+	'pptx.presentation.blackboard': 'Blackboard',
 	'pptx.presentation.laserPointer': 'Laser Pointer',
 	'pptx.presentation.endOfSlideShow': 'End of slide show, click to exit.',
 	'pptx.presentation.pointerTools': 'Pointer Options',
@@ -1800,6 +1801,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.documentProperties.modified': 'Modified',
 	'pptx.selectionPane.showElement': 'Show element',
 	'pptx.selectionPane.hideElement': 'Hide element',
+	'pptx.selectionPane.renameElement': 'Rename element',
 	'pptx.share.activeTitle': 'Collaboration active',
 	'pptx.share.connecting': 'Connecting',
 	'pptx.share.participantSingular': 'participant',
@@ -1974,6 +1976,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ribbon.justify': 'Justify',
 	'pptx.toolbar.findAndReplace': 'Find and replace',
 	// Chart option labels (value/grouping/legend/axis/marker/trendline/etc. select lists)
+	'pptx.chart.typeColumn': 'Column',
 	'pptx.chart.typeBar': 'Bar',
 	'pptx.chart.typeLine': 'Line',
 	'pptx.chart.typePie': 'Pie',

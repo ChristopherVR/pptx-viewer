@@ -3,10 +3,11 @@ import {
 	formatElapsed,
 	formatSlideCounter,
 	HIGHLIGHTER_COLORS,
+	isBlackboardActive,
 	isInBottomTriggerZone,
 	PEN_COLORS,
 } from 'pptx-viewer-shared';
-import type { PresentationPointerTool } from 'pptx-viewer-shared';
+import type { PresentationBlackout, PresentationPointerTool } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { buildPresentationToolbarDom } from './presentation-toolbar-controls';
@@ -31,6 +32,8 @@ export interface PresentationToolbarHandlers {
 	setTool(tool: PresentationPointerTool): void;
 	/** Set the active pointer colour (picking a swatch also selects its tool). */
 	setColor(color: string): void;
+	/** One-click blackboard: arm/disarm the black screen and the pen together. */
+	toggleBlackboard(): void;
 	clearAnnotations(): void;
 	/** Open/close the presenter console + audience display. */
 	togglePresenterView(): void;
@@ -43,6 +46,8 @@ export interface PresentationToolbarState {
 	current: number;
 	total: number;
 	tool: PresentationPointerTool;
+	/** Blackout state; with the pen it marks the Blackboard toggle active. */
+	blackout: PresentationBlackout;
 	hasAnnotations: boolean;
 	presenterViewActive: boolean;
 }
@@ -69,6 +74,7 @@ export function createPresentationToolbar(
 		current: 0,
 		total: 0,
 		tool: 'none',
+		blackout: 'none',
 		hasAnnotations: false,
 		presenterViewActive: false,
 	};
@@ -96,6 +102,7 @@ export function createPresentationToolbar(
 		parts.pen.toggle.setActive(state.tool === 'pen');
 		parts.highlighter.toggle.setActive(state.tool === 'highlighter');
 		parts.eraser.setActive(state.tool === 'eraser');
+		parts.blackboard.setActive(isBlackboardActive(state.blackout, state.tool));
 		parts.clear.setDisabled(!state.hasAnnotations);
 		parts.presenterView.setActive(state.presenterViewActive);
 		parts.pen.bar.style.backgroundColor = penColor;

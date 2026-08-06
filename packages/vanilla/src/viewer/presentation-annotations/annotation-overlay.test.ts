@@ -18,6 +18,7 @@ describe('mountAnnotationOverlay', () => {
 			slideIndex: 2,
 			tool: 'pen',
 			color: '#123456',
+			blackout: 'none',
 			strokes: [],
 			onChange,
 		});
@@ -57,6 +58,7 @@ describe('mountAnnotationOverlay', () => {
 			slideIndex: 0,
 			tool: 'eraser',
 			color: '#ef4444',
+			blackout: 'none',
 			strokes: [
 				{
 					id: 'one',

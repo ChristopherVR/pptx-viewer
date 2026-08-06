@@ -68,6 +68,7 @@ export const translations = {
 	'pptx.chart.pointFillClear': 'Punktfüllung löschen',
 	'pptx.chart.pointExplosion': 'Scheibenexplosion',
 	'pptx.chart.heading': 'Diagramm',
+	'pptx.chart.typeColumn': 'Säule',
 	'pptx.chart.typeBar': 'Balken',
 	'pptx.chart.typeLine': 'Linie',
 	'pptx.chart.typePie': 'Kreis',

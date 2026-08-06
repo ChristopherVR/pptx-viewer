@@ -18,10 +18,15 @@
  * to it) unchanged.
  */
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
-import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 
-import { DEFAULT_INSERT_CHART_TYPE } from '../internal/shared';
-import type { AccountAuthConfig, ShapePresetType, ToolbarActionId } from '../internal/shared';
+import { DEFAULT_INSERT_CHART_KIND } from '../internal/shared';
+import type {
+	AccountAuthConfig,
+	InsertChartKind,
+	ShapePresetType,
+	ToolbarActionId,
+} from '../internal/shared';
 import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
 import { RibbonDrawingGroupComponent } from './ribbon-drawing-group.component';
 import { RibbonFileSectionComponent } from './ribbon-file-section.component';
@@ -195,8 +200,8 @@ export class RibbonContentComponent {
 	readonly openFontEmbedding = output<void>();
 	readonly openVersionHistory = output<void>();
 	readonly openSettings = output<void>();
-	/** The chart type currently chosen in the Insert tab dropdown (survives tab switches). */
-	protected readonly newChartType = signal<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
+	/** The chart entry currently chosen in the Insert tab dropdown (survives tab switches). */
+	protected readonly newChartType = signal<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 	/** The shape geometry currently chosen in the Insert tab dropdown (survives tab switches). */
 	protected readonly newShapeType = signal<ShapePresetType>('rect');
 }

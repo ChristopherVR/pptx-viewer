@@ -137,6 +137,7 @@ export const translations = {
 	'pptx.notes.switchToRichEditor': 'Cambiar al editor enriquecido',
 	'pptx.selectionPane.showElement': 'Mostrar elemento',
 	'pptx.selectionPane.hideElement': 'Ocultar elemento',
+	'pptx.selectionPane.renameElement': 'Cambiar nombre del elemento',
 	'pptx.canvas.adjustShape': 'Ajustar la forma',
 	'pptx.canvas.guideTooltip': 'Arrastre para mover la guía, haga doble clic para eliminar',
 	'pptx.guides.dragHint': 'Arrastra para mover la guía',

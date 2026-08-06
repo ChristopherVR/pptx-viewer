@@ -57,7 +57,7 @@ export interface ChromeOptions {
 	 */
 	presentationToolbarHandlers: Pick<
 		PresentationToolbarHandlers,
-		'setTool' | 'setColor' | 'clearAnnotations' | 'togglePresenterView'
+		'setTool' | 'setColor' | 'toggleBlackboard' | 'clearAnnotations' | 'togglePresenterView'
 	>;
 	/** PowerPoint-style top chrome, built when the toolbar is visible. */
 	titleBar: TitleBarDeps;

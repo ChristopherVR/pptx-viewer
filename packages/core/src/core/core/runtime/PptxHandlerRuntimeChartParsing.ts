@@ -167,6 +167,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const barGapWidth = this.parseChartNumberVal(seriesContainer, 'gapWidth');
 		const barOverlap = this.parseChartNumberVal(seriesContainer, 'overlap');
 
+		// Bar direction (c:barDir): "bar" is a horizontal bar chart, "col" (or an
+		// absent element) a vertical column chart.
+		let barDirection: PptxChartData['barDirection'];
+		const barDirNode = this.xmlLookupService.getChildByLocalName(seriesContainer, 'barDir');
+		if (barDirNode?.['@_val'] !== undefined) {
+			barDirection = String(barDirNode['@_val']).trim() === 'bar' ? 'bar' : 'col';
+		}
+
 		// Store the chart part path for round-trip save
 		const chartPartPath = chartPart.partPath;
 
@@ -277,6 +285,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(doughnutHoleSize !== undefined ? { doughnutHoleSize } : {}),
 			...(barGapWidth !== undefined ? { barGapWidth } : {}),
 			...(barOverlap !== undefined ? { barOverlap } : {}),
+			...(barDirection !== undefined ? { barDirection } : {}),
 			chartPartPath,
 			chartRelationshipId,
 			...(dataTable ? { dataTable } : {}),

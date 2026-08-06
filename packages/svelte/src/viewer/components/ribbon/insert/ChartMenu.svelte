@@ -11,9 +11,8 @@
 	 * both. The chart itself comes from the shared `insert-chart.ts` catalogue,
 	 * fully populated with default data.
 	 */
-	import type { PptxChartType } from 'pptx-viewer-core';
-	import type { CanvasSize } from 'pptx-viewer-shared';
-	import { INSERT_CHART_TYPES } from 'pptx-viewer-shared';
+	import type { CanvasSize, InsertChartKind } from 'pptx-viewer-shared';
+	import { DEFAULT_INSERT_CHART_KIND, INSERT_CHART_TYPES } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -23,7 +22,7 @@
 	const t = useTranslator();
 
 	// eslint-disable-next-line prefer-const
-	let chartType = $state<PptxChartType>(INSERT_CHART_TYPES[0].type);
+	let chartKind = $state<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 </script>
 
 <div class="pptx-svelte-insert-split">
@@ -32,18 +31,18 @@
 		disabled={!editor.editable}
 		aria-label={t('pptx.ribbon.chartType')}
 		title={t('pptx.ribbon.chartType')}
-		value={chartType}
-		onchange={(event) => (chartType = event.currentTarget.value as PptxChartType)}
+		value={chartKind}
+		onchange={(event) => (chartKind = event.currentTarget.value as InsertChartKind)}
 	>
-		{#each INSERT_CHART_TYPES as ct (ct.type)}
-			<option value={ct.type}>{ct.label}</option>
+		{#each INSERT_CHART_TYPES as ct (ct.id)}
+			<option value={ct.id}>{t(ct.labelKey)}</option>
 		{/each}
 	</select>
 	<button
 		type="button"
 		disabled={!editor.editable}
 		title={t('pptx.ribbon.insertChart')}
-		onclick={() => editor.insertElement(buildChartInsertElement(chartType, canvasSize))}
+		onclick={() => editor.insertElement(buildChartInsertElement(chartKind, canvasSize))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2v12h12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /><rect x="4.5" y="7.5" width="2" height="4.5" fill="currentColor" /><rect x="7.75" y="5" width="2" height="7" fill="currentColor" /><rect x="11" y="9" width="2" height="3" fill="currentColor" /></svg>
 		<span>{t('pptx.ribbon.chart')}</span>

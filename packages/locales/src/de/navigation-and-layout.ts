@@ -137,6 +137,7 @@ export const translations = {
 	'pptx.notes.switchToRichEditor': 'Wechseln Sie zum Rich-Editor',
 	'pptx.selectionPane.showElement': 'Element anzeigen',
 	'pptx.selectionPane.hideElement': 'Element ausblenden',
+	'pptx.selectionPane.renameElement': 'Element umbenennen',
 	'pptx.canvas.adjustShape': 'Form anpassen',
 	'pptx.canvas.guideTooltip':
 		'Ziehen Sie, um die Hilfslinie zu verschieben, und doppelklicken Sie, um sie zu entfernen',

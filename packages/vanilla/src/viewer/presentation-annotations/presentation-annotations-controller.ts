@@ -1,7 +1,8 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { strokeToInkElement } from 'pptx-viewer-shared';
+import { annotationOverlayZIndex, strokeToInkElement } from 'pptx-viewer-shared';
 import type {
 	CanvasSize,
+	PresentationBlackout,
 	PresentationInkPoint,
 	PresentationInkStroke,
 	PresentationPointerState,
@@ -27,6 +28,8 @@ export interface PresentationAnnotationStage {
 	slideIndex: number;
 	canvasSize: CanvasSize;
 	pointer?: PresentationPointerState;
+	/** Blackout state; the overlay is raised above the blank sheet while set. */
+	blackout: PresentationBlackout;
 }
 
 export interface PresentationAnnotationsController {
@@ -77,6 +80,7 @@ export function createPresentationAnnotationsController(
 			slideIndex: stage.slideIndex,
 			tool,
 			color: stage.pointer?.color ?? '#ef4444',
+			blackout: stage.blackout,
 			strokes,
 			onChange(next) {
 				strokes = next;
@@ -130,6 +134,15 @@ export function createPresentationAnnotationsController(
 			lastOverlayKey = key;
 			if (changed || missing) {
 				mount();
+			}
+			// The blackout state moves the overlay's stacking level (above the blank
+			// sheet during a blackout, back down otherwise) without a remount, so a
+			// stroke in progress is never cut off by a B/W toggle.
+			const overlay = stage.stageWrap.querySelector<SVGSVGElement>(
+				'.pptxv-presentation-annotations',
+			);
+			if (overlay) {
+				overlay.style.zIndex = String(annotationOverlayZIndex(stage.blackout));
 			}
 		},
 		getStrokes: () => strokes,

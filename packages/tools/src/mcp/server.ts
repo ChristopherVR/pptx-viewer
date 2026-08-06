@@ -244,6 +244,27 @@ export function createServer(): McpServer {
 	);
 
 	server.registerTool(
+		'rename_element',
+		{
+			description: "Rename an element (the selection pane's display name; cNvPr/@name)",
+			inputSchema: schemas.RenameElementSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				elementTools.renameElement(ctx, params),
+			);
+			return {
+				content: [
+					{
+						type: 'text' as const,
+						text: JSON.stringify(result, null, 2),
+					},
+				],
+			};
+		},
+	);
+
+	server.registerTool(
 		'delete_elements',
 		{
 			description: 'Delete one or more elements by ID',

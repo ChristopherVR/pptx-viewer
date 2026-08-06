@@ -8,11 +8,13 @@ import {
 	MousePointer2,
 	PanelRight,
 	PenTool,
+	Presentation,
 	Timer,
 	Trash2,
 	X,
 } from 'lucide-vue-next';
-import { PRESENT_TOOLBAR_CLASSES } from 'pptx-viewer-shared';
+import { isBlackboardActive, PRESENT_TOOLBAR_CLASSES } from 'pptx-viewer-shared';
+import type { PresentationBlackout } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -49,14 +51,18 @@ const props = withDefaults(
 		presenterMode?: boolean;
 		/** Whether to show the presenter-view toggle button. */
 		showPresenterToggle?: boolean;
+		/** Presenter-snapshot blackout state, for the Blackboard toggle. */
+		blackout?: PresentationBlackout;
 	}>(),
-	{ presenterMode: false, showPresenterToggle: false },
+	{ presenterMode: false, showPresenterToggle: false, blackout: 'none' },
 );
 
 const emit = defineEmits<{
 	(e: 'set-tool', tool: PresentationTool): void;
 	(e: 'set-pen-color' | 'set-highlighter-color', color: string): void;
-	(e: 'clear-annotations' | 'end-presentation' | 'toggle-presenter-view'): void;
+	(
+		e: 'clear-annotations' | 'end-presentation' | 'toggle-presenter-view' | 'toggle-blackboard',
+	): void;
 	(e: 'move', direction: 1 | -1): void;
 }>();
 
@@ -186,6 +192,13 @@ function toolClass(tool: PresentationTool): string[] {
 			: CLASSES.toggle,
 	];
 }
+
+/**
+ * One-click blackboard: active only when the black screen AND the pen are
+ * armed together (shared rule). The click itself is resolved by the host via
+ * the shared `toggleBlackboard` transition.
+ */
+const blackboardActive = computed(() => isBlackboardActive(props.blackout, props.presentationTool));
 </script>
 
 <template>
@@ -375,6 +388,21 @@ function toolClass(tool: PresentationTool): string[] {
 			@click="handleToolClick('eraser')"
 		>
 			<Eraser :size="18" aria-hidden="true" />
+		</button>
+
+		<!-- Blackboard (blank screen + pen in one click) -->
+		<button
+			type="button"
+			:class="[
+				'pptx-vue-ptb-btn',
+				blackboardActive ? `pptx-vue-ptb-btn--active ${CLASSES.toggleActive}` : CLASSES.toggle,
+			]"
+			data-pptx-present-control="blackboard"
+			:title="t('pptx.presentation.blackboard')"
+			:aria-label="t('pptx.presentation.blackboard')"
+			@click="emit('toggle-blackboard')"
+		>
+			<Presentation :size="18" aria-hidden="true" />
 		</button>
 
 		<!-- Clear all -->

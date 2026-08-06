@@ -10,7 +10,7 @@ import type {
 import {
 	applyMotionPathPreset,
 	createBackstagePresentation,
-	DEFAULT_INSERT_CHART_TYPE,
+	DEFAULT_INSERT_CHART_KIND,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
 import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
@@ -328,7 +328,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 							insertHandlers.handleAddTable();
 							break;
 						case 'chart':
-							insertHandlers.handleAddChart(DEFAULT_INSERT_CHART_TYPE);
+							insertHandlers.handleAddChart(DEFAULT_INSERT_CHART_KIND);
 							break;
 						case 'smartArt':
 							dialogs.setIsSmartArtDialogOpen(true);

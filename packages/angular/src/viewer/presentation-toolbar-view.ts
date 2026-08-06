@@ -20,7 +20,31 @@ import {
 	HIGHLIGHTER_COLORS,
 	PEN_COLORS,
 	PRESENT_TOOLBAR_CLASSES,
+	toggleBlackboard,
 } from '../internal/shared';
+import type { PresentationBlackout, PresentationPointerTool } from '../internal/shared';
+
+// ---------------------------------------------------------------------------
+// Control ids
+// ---------------------------------------------------------------------------
+
+/** The control ids that run an action (dividers and readouts are inert). */
+export type PresentToolbarAction =
+	| 'previous'
+	| 'next'
+	| 'laser'
+	| 'pen'
+	| 'pen-color'
+	| 'highlighter'
+	| 'highlighter-color'
+	| 'eraser'
+	| 'blackboard'
+	| 'clear'
+	| 'presenter-view'
+	| 'end';
+
+/** Which colour palette popover is open, if any. */
+export type OpenPalette = 'none' | 'pen' | 'highlighter';
 
 // ---------------------------------------------------------------------------
 // Class tokens (Tailwind-scanned)
@@ -107,6 +131,40 @@ export function isAtFirstSlide(currentSlideIndex: number): boolean {
  */
 export function isAtLastSlide(currentSlideIndex: number, totalSlides: number): boolean {
 	return currentSlideIndex >= totalSlides - 1;
+}
+
+// ---------------------------------------------------------------------------
+// Blackboard
+// ---------------------------------------------------------------------------
+
+/** The two peers one Blackboard press mutates (see {@link runBlackboardToggle}). */
+export interface BlackboardToggleDeps {
+	/** Current blank-screen state (presenter-window snapshot `blackout`). */
+	blackout: PresentationBlackout;
+	/** Currently-armed annotation tool. */
+	tool: PresentationPointerTool;
+	/** Patch the blank screen (the same path the B/W keyboard toggle uses). */
+	setBlackout: (value: PresentationBlackout) => void;
+	/**
+	 * Arm a tool via `PresentationAnnotationsService.setTool`, which has
+	 * PowerPoint toggle semantics (arming the armed tool disarms it).
+	 */
+	setTool: (value: PresentationPointerTool) => void;
+}
+
+/**
+ * Apply one press of the show toolbar's Blackboard toggle: shared
+ * `toggleBlackboard` decides the target state (black screen + pen together, or
+ * neither), and this helper drives the two Angular services there. `setTool`
+ * is only invoked when the target differs from the current tool, because its
+ * toggle semantics would otherwise DISARM the pen the press meant to keep.
+ */
+export function runBlackboardToggle(deps: BlackboardToggleDeps): void {
+	const next = toggleBlackboard(deps.blackout, deps.tool);
+	deps.setBlackout(next.blackout);
+	if (deps.tool !== next.tool) {
+		deps.setTool(next.tool);
+	}
 }
 
 // ---------------------------------------------------------------------------

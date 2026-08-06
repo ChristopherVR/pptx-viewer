@@ -10,8 +10,8 @@
 
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 
-import { createDefaultChartElement } from '../internal/shared';
-import type { ShapePresetType } from '../internal/shared';
+import { DEFAULT_INSERT_CHART_KIND, createDefaultChartElement } from '../internal/shared';
+import type { InsertChartKind, ShapePresetType } from '../internal/shared';
 
 export {
 	newTextElement,
@@ -52,10 +52,14 @@ export {
  * to `''` so `EditorStateService.addElement` assigns a real id, matching the
  * other factories surfaced by this shim.
  *
- * @param chartType - The chart family to create (bar, line, pie, etc.).
+ * @param chartKind - The insert-dropdown entry to create ('column' yields
+ *   vertical columns, 'bar' horizontal bars); a raw `PptxChartType` is still
+ *   accepted for callers that predate the dropdown ids.
  */
-export function newChartElement(chartType: PptxChartType): PptxElement {
-	return { ...createDefaultChartElement(chartType), id: '' } as PptxElement;
+export function newChartElement(
+	chartKind: InsertChartKind | PptxChartType = DEFAULT_INSERT_CHART_KIND,
+): PptxElement {
+	return { ...createDefaultChartElement(chartKind), id: '' } as PptxElement;
 }
 
 /**

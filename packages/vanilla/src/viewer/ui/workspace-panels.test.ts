@@ -30,12 +30,73 @@ describe('workspace parity panels', () => {
 			onSelect,
 			onToggleHidden,
 			onReorder: vi.fn(),
+			onRename: vi.fn(),
 		});
 		const buttons = document.querySelectorAll<HTMLButtonElement>('.pptxv-selection-row button');
 		buttons[0].click();
 		buttons[1].click();
 		expect(onSelect).toHaveBeenCalledWith('shape');
 		expect(onToggleHidden).toHaveBeenCalledWith('shape');
+	});
+
+	it('prefers an explicit element name for the row label', () => {
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [{ ...element, name: 'Hero Title' } as PptxElement],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename: vi.fn(),
+		});
+		expect(document.querySelector('[data-pptx-selection-name]')?.textContent).toBe('Hero Title');
+	});
+
+	it('renames from the selection pane: dblclick edits, Enter commits', () => {
+		const onRename = vi.fn();
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [element],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename,
+		});
+		const pane = document.querySelector<HTMLElement>('[data-pptx-selection-pane]')!;
+		const label = pane.querySelector<HTMLButtonElement>('[data-pptx-selection-name]')!;
+		expect(label.textContent).toBe('Agenda');
+		label.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+		const input = pane.querySelector<HTMLInputElement>('input[type="text"]')!;
+		expect(input.getAttribute('aria-label')).toBe('Rename element');
+		expect(input.value).toBe('Agenda');
+		input.value = 'Agenda Header';
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		expect(onRename).toHaveBeenCalledWith('shape', 'Agenda Header');
+		expect(pane.querySelector('input[type="text"]')).toBeNull();
+		expect(label.textContent).toBe('Agenda Header');
+	});
+
+	it('cancels a selection-pane rename with Escape', () => {
+		const onRename = vi.fn();
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [element],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename,
+		});
+		const pane = document.querySelector<HTMLElement>('[data-pptx-selection-pane]')!;
+		const label = pane.querySelector<HTMLButtonElement>('[data-pptx-selection-name]')!;
+		label.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		const input = pane.querySelector<HTMLInputElement>('input[type="text"]')!;
+		input.value = 'Discarded';
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+		expect(onRename).not.toHaveBeenCalled();
+		expect(pane.querySelector('input[type="text"]')).toBeNull();
+		expect(label.textContent).toBe('Agenda');
 	});
 
 	it('dispatches sorter and comment actions', () => {

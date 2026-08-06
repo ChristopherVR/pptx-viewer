@@ -25,10 +25,14 @@ import {
 	LucideVideo,
 } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 
-import { INSERT_CHART_TYPES, SHAPE_PRESET_DEFS } from '../internal/shared';
-import type { ShapePresetType } from '../internal/shared';
+import {
+	DEFAULT_INSERT_CHART_KIND,
+	INSERT_CHART_TYPES,
+	SHAPE_PRESET_DEFS,
+} from '../internal/shared';
+import type { InsertChartKind, ShapePresetType } from '../internal/shared';
 import {
 	newChartElement,
 	newPresetShapeElement,
@@ -128,8 +132,8 @@ import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-p
 				[value]="newChartType()"
 				(change)="setChartType($event)"
 			>
-				@for (ct of chartTypes; track ct.type) {
-					<option [value]="ct.type">{{ ct.label }}</option>
+				@for (ct of chartTypes; track ct.id) {
+					<option [value]="ct.id">{{ ct.labelKey | translate }}</option>
 				}
 			</select>
 			<button
@@ -188,14 +192,15 @@ export class RibbonInsertSectionComponent {
 	private readonly translate = inject(TranslateService);
 
 	readonly slideIndex = input<number>(0);
-	readonly newChartType = input<PptxChartType>('bar');
+	/** The insert-chart dropdown entry ('column' is vertical, 'bar' horizontal). */
+	readonly newChartType = input<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 	readonly newShapeType = input<ShapePresetType>('rect');
 
 	readonly openSmartArtDialog = output<void>();
 	readonly openEquationDialog = output<void>();
 	/** "Hyperlink"; the host opens the hyperlink edit dialog for the selection. */
 	readonly openHyperlink = output<void>();
-	readonly chartTypeChange = output<PptxChartType>();
+	readonly chartTypeChange = output<InsertChartKind>();
 	readonly shapeTypeChange = output<ShapePresetType>();
 
 	/** Chart types offered in the Insert tab dropdown (shared source of truth). */
@@ -217,7 +222,7 @@ export class RibbonInsertSectionComponent {
 		this.editor.addElement(this.slideIndex(), newTableElement());
 	}
 	protected setChartType(event: Event): void {
-		this.chartTypeChange.emit((event.target as HTMLSelectElement).value as PptxChartType);
+		this.chartTypeChange.emit((event.target as HTMLSelectElement).value as InsertChartKind);
 	}
 	protected insertChart(): void {
 		this.editor.addElement(this.slideIndex(), newChartElement(this.newChartType()));

@@ -5,6 +5,8 @@
  * mode. Captures pointer events for pen/highlighter/eraser tools and
  * displays the laser pointer dot.
  */
+import { annotationOverlayZIndex } from 'pptx-viewer-shared';
+import type { PresentationBlackout } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 
 import type {
@@ -22,6 +24,11 @@ export interface PresentationAnnotationOverlayProps {
 	canvasSize: CanvasSize;
 	editorScale: number;
 	presentationTool: PresentationTool;
+	/**
+	 * Current blackout state: during a black/white screen the overlay is raised
+	 * above the blackout sheet so ink stays visible (blackboard mode).
+	 */
+	blackout: PresentationBlackout;
 	annotationStrokes: AnnotationStroke[];
 	currentStroke: AnnotationStroke | null;
 	laserPosition: LaserPosition | null;
@@ -73,6 +80,7 @@ export function PresentationAnnotationOverlay({
 	canvasSize,
 	editorScale,
 	presentationTool,
+	blackout,
 	annotationStrokes,
 	currentStroke,
 	laserPosition,
@@ -186,9 +194,10 @@ export function PresentationAnnotationOverlay({
 
 	return (
 		<div
+			data-pptx-annotation-overlay
 			className='absolute inset-0'
 			style={{
-				zIndex: 60,
+				zIndex: annotationOverlayZIndex(blackout),
 				cursor: getCursorForTool(presentationTool),
 				pointerEvents: isCapturing ? 'auto' : 'none',
 			}}

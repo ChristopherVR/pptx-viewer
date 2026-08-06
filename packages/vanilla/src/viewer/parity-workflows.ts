@@ -259,6 +259,9 @@ function openObjectSelection(host: ParityWorkflowHost): void {
 			host.editor.applyElementPatch(id, {
 				hidden: !slide?.elements.find((element) => element.id === id)?.hidden,
 			}),
+		// The history-integrated patch path, so a rename is undoable and marks the
+		// deck dirty like every other edit. An undefined name clears cNvPr/@name.
+		onRename: (id, name) => host.editor.applyElementPatch(id, { name }),
 		onReorder: (from, to) => {
 			if (!slide || from === to) {
 				return;

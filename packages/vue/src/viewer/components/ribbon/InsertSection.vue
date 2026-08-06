@@ -31,12 +31,12 @@ import {
  * `group-hover` (no state), exactly as React; only the Date/Time modal keeps
  * reactive state.
  */
-import type { PptxChartType } from 'pptx-viewer-core';
 import {
 	ACTION_BUTTON_PRESETS,
-	DEFAULT_INSERT_CHART_TYPE,
+	DEFAULT_INSERT_CHART_KIND,
 	INSERT_CHART_TYPES,
 } from 'pptx-viewer-shared';
+import type { InsertChartKind } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -55,7 +55,7 @@ interface Props {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
-	onAddChart?: (chartType: PptxChartType) => void;
+	onAddChart?: (chartKind: InsertChartKind) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
@@ -215,8 +215,8 @@ const activeShapePreset = computed(() =>
 	SHAPE_PRESETS.find((sp) => sp.type === props.newShapeType),
 );
 
-/** The chart type chosen in the insert dropdown (mirrors React's `newChartType`). */
-const newChartType = ref<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
+/** The chart kind chosen in the insert dropdown (mirrors React's `newChartType`). */
+const newChartType = ref<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 const chartTypes = INSERT_CHART_TYPES;
 
 /* Date/Time picker modal state: React's local `useState` + outside-click. */
@@ -375,10 +375,10 @@ function previewTime(): string {
 			:value="newChartType"
 			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
 			:title="t('pptx.ribbon.chartType')"
-			@change="newChartType = ($event.target as HTMLSelectElement).value as PptxChartType"
+			@change="newChartType = ($event.target as HTMLSelectElement).value as InsertChartKind"
 		>
-			<option v-for="ct in chartTypes" :key="ct.type" :value="ct.type" class="bg-background">
-				{{ ct.label }}
+			<option v-for="ct in chartTypes" :key="ct.id" :value="ct.id" class="bg-background">
+				{{ t(ct.labelKey) }}
 			</option>
 		</select>
 		<button

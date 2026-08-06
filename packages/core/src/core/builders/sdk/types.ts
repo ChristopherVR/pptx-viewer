@@ -197,6 +197,8 @@ export interface ChartInput {
 	hasLegend?: boolean;
 	legendPosition?: 't' | 'b' | 'l' | 'r' | 'tr';
 	grouping?: 'clustered' | 'stacked' | 'percentStacked';
+	/** Bar series direction (`c:barDir`): vertical columns (default) or horizontal bars. */
+	barDirection?: 'col' | 'bar';
 }
 
 export interface ChartOptions extends Partial<ElementPosition> {}

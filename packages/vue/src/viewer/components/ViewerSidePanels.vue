@@ -155,6 +155,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		@select="selectionPane.onSelectionPaneSelect"
 		@toggle-visibility="selectionPane.onSelectionPaneToggleVisibility"
 		@reorder="selectionPane.onSelectionPaneReorder"
+		@rename="selectionPane.onSelectionPaneRename"
 		@close="selectionPane.showSelectionPane.value = false"
 	/>
 

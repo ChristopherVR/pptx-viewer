@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	addElement,
 	updateElement,
+	renameElement,
 	deleteElements,
 	arrangeElements,
 	cloneElement,
@@ -173,6 +174,45 @@ describe('updateElement', () => {
 		expect(() => updateElement(ctx(), { slideIndex: 0, elementId: 'nonexistent' })).toThrow(
 			'not found',
 		);
+	});
+});
+
+// ── renameElement ─────────────────────────────────────────────────────────────
+
+describe('renameElement', () => {
+	it('sets the element name and reports dirty', () => {
+		const c = ctx();
+		const result = renameElement(c, { slideIndex: 0, elementId: 'el-0', name: 'Intro Title' });
+		expect(result.dirty).toBeTruthy();
+		expect(result.result).toStrictEqual({ elementId: 'el-0', name: 'Intro Title' });
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0');
+		expect(el?.name).toBe('Intro Title');
+	});
+
+	it('trims surrounding whitespace', () => {
+		const c = ctx();
+		renameElement(c, { slideIndex: 0, elementId: 'el-1', name: '  Hero Shape  ' });
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-1');
+		expect(el?.name).toBe('Hero Shape');
+	});
+
+	it('clears the name when given an empty string', () => {
+		const c = ctx();
+		renameElement(c, { slideIndex: 0, elementId: 'el-0', name: 'Named' });
+		renameElement(c, { slideIndex: 0, elementId: 'el-0', name: '   ' });
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0');
+		expect(el?.name).toBeUndefined();
+		expect(el !== undefined && 'name' in el).toBeFalsy();
+	});
+
+	it('throws on missing element', () => {
+		expect(() => renameElement(ctx(), { slideIndex: 0, elementId: 'nope', name: 'X' })).toThrow(
+			'not found',
+		);
+	});
+
+	it('throws on an out-of-range slide index', () => {
+		expect(() => renameElement(ctx(), { slideIndex: 5, elementId: 'el-0', name: 'X' })).toThrow();
 	});
 });
 

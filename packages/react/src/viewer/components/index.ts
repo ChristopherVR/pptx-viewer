@@ -50,7 +50,8 @@ export { InspectorPane } from './InspectorPane';
 
 // Presentation annotation tools
 export { PresentationAnnotationOverlay } from './PresentationAnnotationOverlay';
-export { PresentationToolbar, PresentationToolbarWrapper } from './PresentationToolbar';
+export { PresentationToolbar } from './PresentationToolbar';
+export { PresentationToolbarWrapper } from './PresentationToolbarWrapper';
 export { PresentationTouchControls } from './PresentationTouchControls';
 export { PresentationSubtitleBar } from './PresentationSubtitleBar';
 export { PresentationTransitionOverlay } from './PresentationTransitionOverlay';

@@ -9,7 +9,9 @@
  *    carry the undo labels and the `hiddenActions` gate), so only the
  *    options-configured remainder arrives here.
  */
-import type { PptxChartType, TextStyle } from 'pptx-viewer-core';
+import type { TextStyle } from 'pptx-viewer-core';
+import { DEFAULT_INSERT_CHART_KIND } from 'pptx-viewer-shared';
+import type { InsertChartKind } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import type { ShapePreset } from '../components/EditorToolbar.vue';
@@ -24,7 +26,7 @@ export interface CommandDispatchActions {
 	addText: () => void;
 	addShape: (preset: ShapePreset) => void;
 	addTable: () => void;
-	addChart: (chartType: PptxChartType) => void;
+	addChart: (chartKind: InsertChartKind) => void;
 	openImagePicker: () => void;
 	openMediaPicker: () => void;
 	showInsertSmartArt: Ref<boolean>;
@@ -80,7 +82,7 @@ export function useCommandDispatch(actions: CommandDispatchActions): UseCommandD
 			image: () => actions.openImagePicker(),
 			media: () => actions.openMediaPicker(),
 			table: () => actions.addTable(),
-			chart: () => actions.addChart('bar'),
+			chart: () => actions.addChart(DEFAULT_INSERT_CHART_KIND),
 			smartArt: () => {
 				actions.showInsertSmartArt.value = true;
 			},

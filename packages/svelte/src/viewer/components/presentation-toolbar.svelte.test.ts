@@ -27,14 +27,24 @@ afterEach(() => {
 	cleanup = undefined;
 });
 
-function mountToolbar(current = 1, total = 3, presenterMode = false) {
+function mountToolbar(
+	current = 1,
+	total = 3,
+	presenterMode = false,
+	blackout: 'none' | 'black' | 'white' = 'none',
+) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const annotations = new PresentationAnnotations();
-	const callbacks = { onmove: vi.fn(), onpresenterview: vi.fn(), onexit: vi.fn() };
+	const callbacks = {
+		onmove: vi.fn(),
+		onpresenterview: vi.fn(),
+		onexit: vi.fn(),
+		onblackoutchange: vi.fn(),
+	};
 	const instance = mount(PresentationToolbar, {
 		target,
-		props: { annotations, current, total, presenterMode, ...callbacks },
+		props: { annotations, current, total, presenterMode, blackout, ...callbacks },
 	});
 	flushSync();
 	cleanup = () => {
@@ -190,6 +200,42 @@ describe('presentationToolbar', () => {
 		flushSync();
 		expect(annotations.highlighterColor).toBe(HIGHLIGHTER_COLORS[3]);
 		expect(annotations.tool).toBe('highlighter');
+	});
+
+	it('arms the black screen and the pen together from the blackboard toggle', () => {
+		const { target, annotations, onblackoutchange } = mountToolbar();
+		expect(control(target, 'blackboard').getAttribute('aria-pressed')).toBe('false');
+
+		control(target, 'blackboard').click();
+		flushSync();
+		expect(annotations.tool).toBe('pen');
+		expect(onblackoutchange).toHaveBeenCalledExactlyOnceWith('black');
+	});
+
+	it('disarms both when the blackboard pair is already active', () => {
+		const { target, annotations, onblackoutchange } = mountToolbar(1, 3, false, 'black');
+		annotations.tool = 'pen';
+		flushSync();
+		expect(control(target, 'blackboard').getAttribute('aria-pressed')).toBe('true');
+
+		control(target, 'blackboard').click();
+		flushSync();
+		expect(annotations.tool).toBe('none');
+		expect(onblackoutchange).toHaveBeenCalledExactlyOnceWith('none');
+	});
+
+	it('completes the pair instead of tearing it down when only half is armed', () => {
+		// Blackout up but eraser armed: the click must finish the blackboard,
+		// not disarm the blank screen.
+		const { target, annotations, onblackoutchange } = mountToolbar(1, 3, false, 'black');
+		annotations.tool = 'eraser';
+		flushSync();
+		expect(control(target, 'blackboard').getAttribute('aria-pressed')).toBe('false');
+
+		control(target, 'blackboard').click();
+		flushSync();
+		expect(annotations.tool).toBe('pen');
+		expect(onblackoutchange).toHaveBeenCalledExactlyOnceWith('black');
 	});
 
 	it('starts hidden and reveals itself on mouse movement', () => {

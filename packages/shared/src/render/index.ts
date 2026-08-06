@@ -627,6 +627,11 @@ export * from './presentation-toolbar';
 // counterpart to `presentation-toolbar`'s behaviour, so no binding invents its
 // own bar.
 export * from './present-chrome';
+
+// Blackboard mode: the z-index rule that keeps show ink above the blackout
+// sheet, and the one-click "black screen + pen" toggle state used by the show
+// toolbar's Blackboard action.
+export * from './presentation-blackboard';
 // Presenter-console inventory + geometry: which controls the presenter view
 // carries, in what order, under which label keys, and at what measurements.
 // The `present-chrome` counterpart for the console rather than the show bar.

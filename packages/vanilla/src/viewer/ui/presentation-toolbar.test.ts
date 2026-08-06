@@ -19,6 +19,7 @@ function build(overrides: Partial<PresentationToolbarHandlers> = {}) {
 		next: vi.fn(),
 		setTool: vi.fn(),
 		setColor: vi.fn(),
+		toggleBlackboard: vi.fn(),
 		clearAnnotations: vi.fn(),
 		togglePresenterView: vi.fn(),
 		end: vi.fn(),
@@ -100,6 +101,30 @@ describe('createPresentationToolbar', () => {
 		expect(control(toolbar.el, 'pen')?.getAttribute('aria-pressed')).toBe('true');
 		expect(control(toolbar.el, 'laser')?.getAttribute('aria-pressed')).toBe('false');
 		expect(control(toolbar.el, 'presenter-view')?.getAttribute('aria-pressed')).toBe('true');
+	});
+
+	it('renders the blackboard toggle between eraser and clear and routes its click', () => {
+		const { toolbar, handlers } = build();
+		const ids = controlIds(toolbar.el);
+		expect(ids.indexOf('blackboard')).toBe(ids.indexOf('eraser') + 1);
+		expect(ids.indexOf('clear')).toBe(ids.indexOf('blackboard') + 1);
+
+		control(toolbar.el, 'blackboard')?.click();
+		expect(handlers.toggleBlackboard).toHaveBeenCalledOnce();
+	});
+
+	it('marks the blackboard toggle active only for the black screen + pen pair', () => {
+		const { toolbar } = build();
+		expect(control(toolbar.el, 'blackboard')?.getAttribute('aria-pressed')).toBe('false');
+
+		toolbar.update({ blackout: 'black', tool: 'pen' });
+		expect(control(toolbar.el, 'blackboard')?.getAttribute('aria-pressed')).toBe('true');
+
+		// A white screen or a different tool is not blackboard mode.
+		toolbar.update({ blackout: 'white', tool: 'pen' });
+		expect(control(toolbar.el, 'blackboard')?.getAttribute('aria-pressed')).toBe('false');
+		toolbar.update({ blackout: 'black', tool: 'eraser' });
+		expect(control(toolbar.el, 'blackboard')?.getAttribute('aria-pressed')).toBe('false');
 	});
 
 	it('routes every action handler', () => {

@@ -1,5 +1,5 @@
 <!--
-	The 16 slots of `PRESENT_TOOLBAR_CONTROLS` (pptx-viewer-shared), in order.
+	The 17 slots of `PRESENT_TOOLBAR_CONTROLS` (pptx-viewer-shared), in order.
 	Each carries its shared id as `data-pptx-present-control` so a parity spec
 	can read the inventory off any binding without knowing its markup.
 -->
@@ -158,6 +158,19 @@
 		(touchend)="onControlTouch($event, 'eraser')"
 	>
 		<svg lucideEraser [class]="ui.icon"></svg>
+	</button>
+
+	<!-- One-click blackboard: arms the black screen AND the pen together. -->
+	<button
+		type="button"
+		data-pptx-present-control="blackboard"
+		[class]="ui.toggleClass(blackboardActive())"
+		[attr.title]="'pptx.presentation.blackboard' | translate"
+		[attr.aria-label]="'pptx.presentation.blackboard' | translate"
+		(click)="onControlClick($event, 'blackboard')"
+		(touchend)="onControlTouch($event, 'blackboard')"
+	>
+		<svg lucidePresentation [class]="ui.icon"></svg>
 	</button>
 
 	<button

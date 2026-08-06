@@ -2,15 +2,16 @@
 import { Eye, EyeOff, GripVertical } from 'lucide-vue-next';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 /**
  * SelectionPane: lists every element on the active slide with visibility
- * toggles and drag-to-reorder (z-order). Vue port of the React
- * `SelectionPane.tsx`. The pane is presentational: it emits `select`,
- * `toggle-visibility`, and `reorder`; the host routes those through the
- * history-tracked editor operations so they undo/redo like any other edit.
+ * toggles, drag-to-reorder (z-order), and double-click-to-rename. Vue port of
+ * the React `SelectionPane.tsx`. The pane is presentational: it emits
+ * `select`, `toggle-visibility`, `reorder`, and `rename`; the host routes
+ * those through the history-tracked editor operations so they undo/redo like
+ * any other edit.
  */
 const props = defineProps<{
 	elements: PptxElement[];
@@ -22,6 +23,7 @@ const emit = defineEmits<{
 	select: [id: string];
 	'toggle-visibility': [id: string];
 	reorder: [payload: { from: number; to: number }];
+	rename: [payload: { id: string; name: string | undefined }];
 	close: [];
 }>();
 
@@ -44,11 +46,60 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
 };
 
 function displayName(element: PptxElement, index: number): string {
+	if (element.name && element.name.trim().length > 0) {
+		return element.name.trim();
+	}
 	if (hasTextProperties(element) && element.text && element.text.trim().length > 0) {
 		return element.text.trim().slice(0, 32);
 	}
 	const typeKey = TYPE_LABEL_KEYS[element.type] ?? 'pptx.elementType.object';
 	return t('pptx.selectionPane.elementLabel', { type: t(typeKey), number: index + 1 });
+}
+
+// -- Inline rename (double-click the row label, like React) ------------------
+const editingId = ref<string | null>(null);
+const editDraft = ref('');
+const renameInputRef = ref<HTMLInputElement | null>(null);
+/** Function ref: a string ref inside `v-for` would collect into an array. */
+function setRenameInput(el: unknown): void {
+	renameInputRef.value = el instanceof HTMLInputElement ? el : null;
+}
+// The display name the rename input was seeded with: an unedited commit (blur
+// or Enter without typing) must not write that fallback label into the element
+// as its name. Mirrors React's `editSeedRef`.
+let editSeed = '';
+
+function startRename(element: PptxElement, index: number): void {
+	if (!props.canEdit) {
+		return;
+	}
+	editingId.value = element.id;
+	editDraft.value = displayName(element, index);
+	editSeed = editDraft.value;
+	void nextTick(() => {
+		renameInputRef.value?.focus();
+		renameInputRef.value?.select();
+	});
+}
+
+/** Commit the trimmed draft: non-empty renames, empty clears the name. */
+function commitRename(element: PptxElement): void {
+	if (editingId.value !== element.id) {
+		return;
+	}
+	editingId.value = null;
+	const trimmed = editDraft.value.trim();
+	// Unedited commit: keep whatever the element had (in particular, do not
+	// persist a "Shape 3"-style fallback label as a real name).
+	if (trimmed === editSeed.trim()) {
+		return;
+	}
+	emit('rename', { id: element.id, name: trimmed.length > 0 ? trimmed : undefined });
+}
+
+/** Escape: drop the draft without emitting (clearing first disarms blur). */
+function cancelRename(): void {
+	editingId.value = null;
 }
 
 // Top-most element first (reverse of paint order), matching PowerPoint.
@@ -85,7 +136,7 @@ function onDrop(targetIndex: number): void {
 </script>
 
 <template>
-	<div class="flex h-full w-56 flex-col border-l border-border bg-popover">
+	<div class="flex h-full w-56 flex-col border-l border-border bg-popover" data-pptx-selection-pane>
 		<div class="flex items-center justify-between border-b border-border px-3 py-2">
 			<span class="text-xs font-medium text-foreground">{{ t('pptx.selectionPane.heading') }}</span>
 			<button
@@ -105,7 +156,7 @@ function onDrop(targetIndex: number): void {
 				v-for="{ element, index } in rows"
 				v-else
 				:key="element.id"
-				:draggable="props.canEdit"
+				:draggable="props.canEdit && editingId !== element.id"
 				class="flex cursor-pointer items-center gap-1.5 px-2 py-1 text-xs transition-colors"
 				:class="[
 					props.selectedIds.includes(element.id)
@@ -126,7 +177,26 @@ function onDrop(targetIndex: number): void {
 					v-if="props.canEdit"
 					class="h-3 w-3 flex-shrink-0 cursor-grab text-muted-foreground"
 				/>
-				<span class="flex-1 truncate">{{ displayName(element, index) }}</span>
+				<span
+					class="flex-1 truncate"
+					data-pptx-selection-name
+					@dblclick.stop="startRename(element, index)"
+				>
+					<input
+						v-if="editingId === element.id"
+						:ref="setRenameInput"
+						type="text"
+						:aria-label="t('pptx.selectionPane.renameElement')"
+						:value="editDraft"
+						class="w-full rounded border border-border bg-muted px-1 py-0.5 text-xs outline-none"
+						@input="editDraft = ($event.target as HTMLInputElement).value"
+						@blur="commitRename(element)"
+						@keydown.enter="commitRename(element)"
+						@keydown.escape="cancelRename"
+						@click.stop
+					/>
+					<template v-else>{{ displayName(element, index) }}</template>
+				</span>
 				<button
 					type="button"
 					class="flex-shrink-0 text-muted-foreground hover:text-foreground"

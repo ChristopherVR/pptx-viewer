@@ -357,6 +357,44 @@ export function updateElement(
 	};
 }
 
+// ── renameElement ───────────────────────────────────────────────────────────
+
+export interface RenameElementParams {
+	slideIndex: number;
+	elementId: string;
+	/** New element name (`cNvPr/@name`); an empty string clears the name. */
+	name: string;
+}
+
+export function renameElement(
+	ctx: ToolContext,
+	params: RenameElementParams,
+): ToolResult<{ elementId: string; name: string }> {
+	const err = validateSlideIndex(params.slideIndex, ctx.pptxData.slides.length);
+	if (err) {
+		throw new Error(err);
+	}
+
+	const slide = ctx.pptxData.slides[params.slideIndex];
+	const el = slide.elements.find((e) => e.id === params.elementId);
+	if (!el) {
+		throw new Error(`Element '${params.elementId}' not found on slide ${params.slideIndex}.`);
+	}
+
+	const name = params.name.trim();
+	if (name.length === 0) {
+		delete el.name;
+	} else {
+		el.name = name;
+	}
+
+	return {
+		pptxData: ctx.pptxData,
+		dirty: true,
+		result: { elementId: params.elementId, name },
+	};
+}
+
 // ── deleteElements ──────────────────────────────────────────────────────────
 
 export interface DeleteElementsParams {

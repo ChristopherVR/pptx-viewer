@@ -133,7 +133,7 @@ function axisFormatting(
 function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlObject {
 	const container: XmlObject = {};
 	if (family === 'bar') {
-		container['c:barDir'] = { '@_val': 'col' };
+		container['c:barDir'] = { '@_val': chartData.barDirection === 'bar' ? 'bar' : 'col' };
 		container['c:grouping'] = { '@_val': chartData.grouping ?? 'clustered' };
 		container['c:varyColors'] = { '@_val': '0' };
 	} else if (family === 'line' || family === 'area') {

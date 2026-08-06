@@ -81,7 +81,7 @@ npx @christophervr/pptx-viewer --pm pnpm                           # force a pac
 | **Svelte**     | [`pptx-svelte-viewer`](https://www.npmjs.com/package/pptx-svelte-viewer)   | The Svelte 5 counterpart, built on the same shared engine.                 |
 | **Vanilla JS** | [`pptx-vanilla-viewer`](https://www.npmjs.com/package/pptx-vanilla-viewer) | The zero-framework binding: plain DOM, one factory function.               |
 | **Core only**  | [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)       | The framework-agnostic parse/edit/save/convert SDK, no UI.                 |
-| **MCP server** | [`pptx-viewer-mcp`](https://www.npmjs.com/package/pptx-viewer-mcp)         | 53 PowerPoint editing tools exposed to AI agents (Claude, Cursor, ...).    |
+| **MCP server** | [`pptx-viewer-mcp`](https://www.npmjs.com/package/pptx-viewer-mcp)         | 54 PowerPoint editing tools exposed to AI agents (Claude, Cursor, ...).    |
 
 ## Why this exists
 

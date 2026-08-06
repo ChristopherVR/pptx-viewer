@@ -1,5 +1,4 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
 /**
  * Selection Pane: lists all elements on the active slide with
  * visibility toggles, rename-on-double-click, and drag-to-reorder.
@@ -9,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { LuEye, LuEyeOff, LuGripVertical } from 'react-icons/lu';
 
 import { cn } from '../utils';
+import { getElementDisplayName } from './selection-pane-utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -25,33 +25,6 @@ export interface SelectionPaneProps {
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	markDirty: () => void;
 	onClose: () => void;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getElementDisplayName(element: PptxElement, index: number): string {
-	if (hasTextProperties(element) && element.text && element.text.trim().length > 0) {
-		return element.text.trim().slice(0, 32);
-	}
-	const typeLabels: Record<string, string> = {
-		text: 'Text Box',
-		shape: 'Shape',
-		connector: 'Connector',
-		image: 'Image',
-		picture: 'Picture',
-		chart: 'Chart',
-		table: 'Table',
-		smartArt: 'SmartArt',
-		media: 'Media',
-		group: 'Group',
-		ink: 'Ink',
-		ole: 'Object',
-		unknown: 'Object',
-	};
-	const label = typeLabels[element.type] ?? 'Object';
-	return `${label} ${index + 1}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +50,10 @@ export function SelectionPane({
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editingName, setEditingName] = useState('');
 	const inputRef = useRef<HTMLInputElement>(null);
+	// The display name the rename input was seeded with: an unedited commit
+	// (blur or Enter without typing) must not write that fallback label into
+	// the element as its name.
+	const editSeedRef = useRef('');
 
 	// Drag reorder state
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -122,17 +99,45 @@ export function SelectionPane({
 			}
 			setEditingId(element.id);
 			setEditingName(displayName);
+			editSeedRef.current = displayName;
 			setTimeout(() => inputRef.current?.select(), 0);
 		},
 		[canEdit],
 	);
 
 	const commitRename = useCallback(() => {
-		// Renaming is cosmetic; we don't have a `name` field on PptxElement,
-		// so we just clear the editing state. In a full implementation this
-		// would persist to element metadata.
+		const elementId = editingId;
 		setEditingId(null);
-	}, []);
+		if (elementId === null) {
+			return;
+		}
+		const trimmed = editingName.trim();
+		// Unedited commit: keep whatever the element had (in particular, do not
+		// persist a "Shape 3"-style fallback label as a real name).
+		if (trimmed === editSeedRef.current.trim()) {
+			return;
+		}
+		setSlides((prevSlides) => {
+			const nextSlides = [...prevSlides];
+			const slide = nextSlides[activeSlideIndex];
+			if (!slide) {
+				return prevSlides;
+			}
+			const nextElements = [...(slide.elements ?? [])];
+			const idx = nextElements.findIndex((e) => e.id === elementId);
+			if (idx === -1) {
+				return prevSlides;
+			}
+			// Round-trips through save as cNvPr/@name; an empty commit clears it.
+			nextElements[idx] = {
+				...nextElements[idx],
+				name: trimmed.length > 0 ? trimmed : undefined,
+			} as PptxElement;
+			nextSlides[activeSlideIndex] = { ...slide, elements: nextElements };
+			return nextSlides;
+		});
+		markDirty();
+	}, [editingId, editingName, activeSlideIndex, setSlides, markDirty]);
 
 	const handleDragStart = useCallback((index: number) => {
 		setDragIndex(index);
@@ -179,7 +184,10 @@ export function SelectionPane({
 	const reversed = [...elements].reverse();
 
 	return (
-		<div className='flex flex-col h-full bg-popover border-l border-border w-56'>
+		<div
+			data-pptx-selection-pane
+			className='flex flex-col h-full bg-popover border-l border-border w-56'
+		>
 			<div className='flex items-center justify-between px-3 py-2 border-b border-border'>
 				<span className='text-xs font-medium text-foreground'>{t('pptx.selectionPane.title')}</span>
 				<button
@@ -226,11 +234,12 @@ export function SelectionPane({
 								{canEdit && (
 									<LuGripVertical className='w-3 h-3 text-muted-foreground flex-shrink-0 cursor-grab' />
 								)}
-								<span className='flex-1 truncate'>
+								<span data-pptx-selection-name className='flex-1 truncate'>
 									{isEditing ? (
 										<input
 											ref={inputRef}
 											type='text'
+											aria-label={t('pptx.selectionPane.renameElement')}
 											value={editingName}
 											onChange={(e) => setEditingName(e.target.value)}
 											onBlur={commitRename}

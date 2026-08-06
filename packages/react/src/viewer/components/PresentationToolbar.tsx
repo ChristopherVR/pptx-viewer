@@ -6,10 +6,15 @@
  * annotation tool toggles (laser/pen/highlighter/eraser), and an
  * end-presentation button.
  *
- * Auto-hides after 3 seconds of no mouse movement. Re-appears when
- * the mouse moves near the bottom of the screen.
+ * Auto-hide behaviour lives in `PresentationToolbarWrapper.tsx`.
  */
-import { HIGHLIGHTER_COLORS, PEN_COLORS, PRESENT_TOOLBAR_CLASSES } from 'pptx-viewer-shared';
+import {
+	HIGHLIGHTER_COLORS,
+	isBlackboardActive,
+	PEN_COLORS,
+	PRESENT_TOOLBAR_CLASSES,
+} from 'pptx-viewer-shared';
+import type { PresentationBlackout } from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,17 +26,14 @@ import {
 	LuChevronLeft,
 	LuChevronRight,
 	LuChevronDown,
+	LuPresentation,
 	LuTimer,
 	LuX,
 	LuPanelRight,
 } from 'react-icons/lu';
 
 import type { PresentationTool } from '../hooks/usePresentationAnnotations';
-import {
-	AUTO_HIDE_DELAY_MS,
-	isInBottomTriggerZone,
-	formatSlideCounter,
-} from './presentation-toolbar-utils';
+import { formatSlideCounter } from './presentation-toolbar-utils';
 import { formatElapsed } from './presenter-view-utils';
 
 // ---------------------------------------------------------------------------
@@ -48,6 +50,10 @@ export interface PresentationToolbarProps {
 	onSetPenColor: (color: string) => void;
 	onSetHighlighterColor: (color: string) => void;
 	onClearAnnotations: () => void;
+	/** Current blackout state, for the Blackboard toggle's active reading. */
+	blackout: PresentationBlackout;
+	/** One click arms (or disarms) the black screen and the pen together. */
+	onToggleBlackboard: () => void;
 
 	// --- Navigation props ---
 	/** Zero-based index of the current presentation slide. */
@@ -79,6 +85,8 @@ export function PresentationToolbar({
 	onSetPenColor,
 	onSetHighlighterColor,
 	onClearAnnotations,
+	blackout,
+	onToggleBlackboard,
 	currentSlideIndex,
 	totalSlides,
 	onMovePresentationSlide,
@@ -342,6 +350,22 @@ export function PresentationToolbar({
 				<LuEraser size={18} />
 			</button>
 
+			{/* Blackboard: black screen + pen, armed and disarmed as a pair */}
+			<button
+				type='button'
+				data-pptx-present-control='blackboard'
+				className={
+					isBlackboardActive(blackout, presentationTool)
+						? PRESENT_TOOLBAR_CLASSES.toggleActive
+						: PRESENT_TOOLBAR_CLASSES.toggle
+				}
+				onClick={onToggleBlackboard}
+				title={t('pptx.presentation.blackboard')}
+				aria-label={t('pptx.presentation.blackboard')}
+			>
+				<LuPresentation size={18} />
+			</button>
+
 			{/* Clear all */}
 			<button
 				type='button'
@@ -387,96 +411,6 @@ export function PresentationToolbar({
 			>
 				<LuX size={18} />
 			</button>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Auto-hide wrapper: renders PresentationToolbar with show/hide behavior.
-// ---------------------------------------------------------------------------
-
-export interface PresentationToolbarWrapperProps extends PresentationToolbarProps {
-	/** Ref to the container element used for bottom-zone hit testing. */
-	containerRef?: React.RefObject<HTMLElement | null>;
-}
-
-/**
- * Wraps `PresentationToolbar` with auto-hide logic:
- * - Shows on any mouse movement
- * - Hides after `AUTO_HIDE_DELAY_MS` (3 s) of no movement
- * - Always shows when hovering over the toolbar itself
- * - Uses CSS opacity transitions for smooth fade in/out
- */
-export function PresentationToolbarWrapper({
-	containerRef,
-	...toolbarProps
-}: PresentationToolbarWrapperProps): React.ReactElement {
-	const [visible, setVisible] = useState(false);
-	const hideTimerRef = useRef<number | null>(null);
-	const hoveringRef = useRef(false);
-
-	const clearHideTimer = useCallback(() => {
-		if (hideTimerRef.current !== null) {
-			window.clearTimeout(hideTimerRef.current);
-			hideTimerRef.current = null;
-		}
-	}, []);
-
-	const resetHideTimer = useCallback(() => {
-		clearHideTimer();
-		hideTimerRef.current = window.setTimeout(() => {
-			if (!hoveringRef.current) {
-				setVisible(false);
-			}
-		}, AUTO_HIDE_DELAY_MS);
-	}, [clearHideTimer]);
-
-	useEffect(() => {
-		const handleMouseMove = (e: MouseEvent) => {
-			const container = containerRef?.current;
-			if (container) {
-				const rect = container.getBoundingClientRect();
-				if (isInBottomTriggerZone(e.clientY, rect.height, rect.top)) {
-					setVisible(true);
-					resetHideTimer();
-					return;
-				}
-			}
-
-			// Any movement shows the toolbar, then starts auto-hide countdown
-			setVisible(true);
-			resetHideTimer();
-		};
-
-		document.addEventListener('mousemove', handleMouseMove);
-		return () => {
-			document.removeEventListener('mousemove', handleMouseMove);
-			clearHideTimer();
-		};
-	}, [containerRef, resetHideTimer, clearHideTimer]);
-
-	const handleMouseEnter = useCallback(() => {
-		hoveringRef.current = true;
-		clearHideTimer();
-		setVisible(true);
-	}, [clearHideTimer]);
-
-	const handleMouseLeave = useCallback(() => {
-		hoveringRef.current = false;
-		resetHideTimer();
-	}, [resetHideTimer]);
-
-	return (
-		<div
-			className={PRESENT_TOOLBAR_CLASSES.wrapper}
-			style={{
-				opacity: visible ? 1 : 0,
-				pointerEvents: visible ? 'auto' : 'none',
-			}}
-			onMouseEnter={handleMouseEnter}
-			onMouseLeave={handleMouseLeave}
-		>
-			<PresentationToolbar {...toolbarProps} />
 		</div>
 	);
 }

@@ -21,7 +21,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
-import { mayLeaveSlideShow } from '../internal/shared';
+import { annotationOverlayZIndex, mayLeaveSlideShow } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -43,6 +43,7 @@ import {
 	attachShowVisibilityPause,
 	clampIndex,
 	fitZoom,
+	presentationStageStyle,
 	resolveSlideAutoAdvanceMs,
 } from './presentation-overlay-helpers';
 import {
@@ -378,26 +379,24 @@ export class PresentationOverlayComponent implements OnInit {
 		return fitZoom(size.width, size.height, this.viewportW(), this.viewportH());
 	});
 
-	/** Centre the scaled slide in the viewport. */
-	protected readonly stageContainerStyle = computed<Record<string, string>>(() => {
-		const size = this.canvasSize();
-		const z = this.zoom();
-		return {
-			position: 'absolute',
-			top: '50%',
-			left: '50%',
-			width: `${size.width * z}px`,
-			height: `${size.height * z}px`,
-			transform: 'translate(-50%, -50%)',
-			// Motion-path keyframes translate by a fraction of the SLIDE (see
-			// `slideOffset` in the shared timeline helpers), so the presentation
-			// stage publishes the slide size the same way the editing stage does.
-			// Without it every parsed path falls back to the 1280x720 default and a
-			// deck authored at another size under-travels.
-			'--pptx-slide-w': `${size.width}px`,
-			'--pptx-slide-h': `${size.height}px`,
-		};
-	});
+	/**
+	 * Centre the scaled slide in the viewport. Numeric offsets, deliberately not
+	 * a `translate(-50%, -50%)`: see {@link presentationStageStyle} for why a
+	 * transform here broke the blackboard's ink layering.
+	 */
+	protected readonly stageContainerStyle = computed<Record<string, string>>(() =>
+		presentationStageStyle(this.canvasSize(), this.zoom(), this.viewportW(), this.viewportH()),
+	);
+
+	/**
+	 * Stacking level of the local ink overlay: raised above the blackout sheet
+	 * while the screen is blanked (PowerPoint's blackboard), 60 otherwise. The
+	 * decision lives in shared `annotationOverlayZIndex`; it only works because
+	 * the stage above is no longer a stacking context.
+	 */
+	protected readonly annotationOverlayZ = computed<number>(() =>
+		annotationOverlayZIndex(this.presenterWindow.snapshot().blackout),
+	);
 
 	/**
 	 * Epoch ms the show opened, feeding the toolbar's elapsed readout. Captured

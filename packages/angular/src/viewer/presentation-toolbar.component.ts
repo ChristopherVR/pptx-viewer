@@ -42,13 +42,14 @@ import {
 	LucideMousePointer2,
 	LucidePanelRight,
 	LucidePenTool,
+	LucidePresentation,
 	LucideTimer,
 	LucideTrash2,
 	LucideX,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { formatSlideCounter, isInBottomTriggerZone } from '../internal/shared';
+import { formatSlideCounter, isBlackboardActive, isInBottomTriggerZone } from '../internal/shared';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
 import type { PresentationTool } from './presentation-annotations.service';
 import {
@@ -56,25 +57,13 @@ import {
 	PresentToolbarAutoHide,
 	isAtFirstSlide,
 	isAtLastSlide,
+	runBlackboardToggle,
 } from './presentation-toolbar-view';
+import type { OpenPalette, PresentToolbarAction } from './presentation-toolbar-view';
 import { elapsedSince, formatElapsed } from './presenter-view-helpers';
+import { PresenterWindowService } from './presenter-window.service';
 
-/** The control ids that run an action (dividers and readouts are inert). */
-export type PresentToolbarAction =
-	| 'previous'
-	| 'next'
-	| 'laser'
-	| 'pen'
-	| 'pen-color'
-	| 'highlighter'
-	| 'highlighter-color'
-	| 'eraser'
-	| 'clear'
-	| 'presenter-view'
-	| 'end';
-
-/** Which colour palette popover is open, if any. */
-type OpenPalette = 'none' | 'pen' | 'highlighter';
+export type { PresentToolbarAction } from './presentation-toolbar-view';
 
 @Component({
 	selector: 'pptx-presentation-toolbar',
@@ -90,6 +79,7 @@ type OpenPalette = 'none' | 'pen' | 'highlighter';
 		LucideMousePointer2,
 		LucidePanelRight,
 		LucidePenTool,
+		LucidePresentation,
 		LucideTimer,
 		LucideTrash2,
 		LucideX,
@@ -133,12 +123,11 @@ export class PresentationToolbarComponent {
 	// ------------------------------------------------------------------
 
 	protected readonly annotations = inject(PresentationAnnotationsService);
+	/** Owns the blank-screen state the Blackboard toggle drives. */
+	private readonly presenterWindow = inject(PresenterWindowService);
 	private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-	// ------------------------------------------------------------------
-	// Template constants
-	// ------------------------------------------------------------------
-
+	/** Template constants (class tokens, palettes, helper fns). */
 	protected readonly ui = PRESENT_TOOLBAR_VIEW;
 
 	// ------------------------------------------------------------------
@@ -167,6 +156,10 @@ export class PresentationToolbarComponent {
 	);
 	protected readonly hasAnnotations = computed(
 		() => this.annotations.annotationStrokes().length > 0,
+	);
+	/** Blackboard reads active only as the black screen + pen combination. */
+	protected readonly blackboardActive = computed(() =>
+		isBlackboardActive(this.presenterWindow.snapshot().blackout, this.annotations.tool()),
 	);
 
 	private readonly autoHide = new PresentToolbarAutoHide((value) => {
@@ -271,6 +264,14 @@ export class PresentationToolbarComponent {
 			case 'pen-color':
 			case 'highlighter-color':
 				this.togglePalette(action === 'pen-color' ? 'pen' : 'highlighter');
+				return;
+			case 'blackboard':
+				runBlackboardToggle({
+					blackout: this.presenterWindow.snapshot().blackout,
+					tool: this.annotations.tool(),
+					setBlackout: (blackout) => this.presenterWindow.updateSnapshot({ blackout }),
+					setTool: (tool) => this.annotations.setTool(tool),
+				});
 				return;
 			case 'clear':
 				this.annotations.clearAnnotations();

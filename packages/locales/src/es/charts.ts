@@ -68,6 +68,7 @@ export const translations = {
 	'pptx.chart.pointFillClear': 'Borrar relleno de puntos',
 	'pptx.chart.pointExplosion': 'explosión de rebanada',
 	'pptx.chart.heading': 'Cuadro',
+	'pptx.chart.typeColumn': 'Columna',
 	'pptx.chart.typeBar': 'Bar',
 	'pptx.chart.typeLine': 'Línea',
 	'pptx.chart.typePie': 'Pastel',

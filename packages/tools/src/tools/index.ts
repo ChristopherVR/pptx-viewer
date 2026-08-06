@@ -32,6 +32,7 @@ export {
 export {
 	addElement,
 	updateElement,
+	renameElement,
 	deleteElements,
 	arrangeElements,
 	cloneElement,
@@ -44,6 +45,7 @@ export type {
 	AddElementParams,
 	AddElementResult,
 	UpdateElementParams,
+	RenameElementParams,
 	DeleteElementsParams,
 	ArrangeElementsParams,
 	CloneElementParams,

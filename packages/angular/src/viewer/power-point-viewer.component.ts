@@ -574,6 +574,7 @@ import { ZoomTargetService } from './zoom-target.service';
 										(bringForward)="canvasEditing.onSelectionPaneBringForward($event)"
 										(sendBackward)="canvasEditing.onSelectionPaneSendBackward($event)"
 										(toggleHidden)="canvasEditing.onToggleElementHidden($event)"
+										(renameElement)="canvasEditing.onSelectionPaneRename($event)"
 									/>
 								}
 								@default {
@@ -2440,7 +2441,9 @@ export class PowerPointViewerComponent {
 				this.editor.addElement(idx, newTableElement());
 				break;
 			case 'chart':
-				this.editor.addElement(idx, newChartElement('bar'));
+				// Default insert entry (column: vertical bars, what 'bar' drew before
+				// the renderer learned horizontal bars).
+				this.editor.addElement(idx, newChartElement());
 				break;
 			case 'smartArt':
 				this.showSmartArtInsert.set(true);

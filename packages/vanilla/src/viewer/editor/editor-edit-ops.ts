@@ -1,7 +1,7 @@
-import type { PptxChartType, PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
-import { createGuide, isElementIdInteractive } from 'pptx-viewer-shared';
-import type { Guide, ShapePresetType } from 'pptx-viewer-shared';
+import { createGuide, DEFAULT_INSERT_CHART_KIND, isElementIdInteractive } from 'pptx-viewer-shared';
+import type { Guide, InsertChartKind, ShapePresetType } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { getActiveElements } from './editor-active-elements';
@@ -90,7 +90,8 @@ export interface EditActions
 	insert(kind: InsertKind, shapeType?: ShapePresetType): void;
 	insertImage(): Promise<void>;
 	insertMedia(): Promise<void>;
-	insertChart(chartType: PptxChartType): void;
+	/** Insert a default chart for the given dropdown entry (defaults to Column). */
+	insertChart(chartKind?: InsertChartKind): void;
 	insertSmartArt(layout: SmartArtLayout, defaultItems: string[]): void;
 	insertEquation(omml: Record<string, unknown>): void;
 	updateEquation(id: string, omml: Record<string, unknown>): void;
@@ -225,12 +226,12 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 			insertElement(await pickMediaElement(doc, state.canvasSize));
 		},
 
-		insertChart(chartType) {
+		insertChart(chartKind = DEFAULT_INSERT_CHART_KIND) {
 			const state = store.get();
 			if (!state.slides[state.currentSlide]) {
 				return;
 			}
-			insertElement(buildChartInsertElement(chartType, state.canvasSize));
+			insertElement(buildChartInsertElement(chartKind, state.canvasSize));
 		},
 		insertSmartArt(layout, defaultItems) {
 			const state = store.get();

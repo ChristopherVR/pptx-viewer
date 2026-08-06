@@ -1,4 +1,5 @@
 import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
+import { toggleBlackboard } from 'pptx-viewer-shared';
 import type {
 	PresentationPointerState,
 	PresentationPointerTool,
@@ -80,6 +81,8 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	togglePresentationInkMarkup?(): void;
 	/** Blank the screen black or white (B / W, or `.` / `,`). */
 	togglePresentationBlank?(value: 'black' | 'white'): void;
+	/** One-click blackboard: arm/disarm the black screen + pen (show toolbar). */
+	togglePresentationBlackboard?(): void;
 	/** Live File > Options > Quick Access Toolbar group driving the strip. */
 	getQuickAccessOptions(): ViewerQuickAccessOptions;
 	/** ScreenTip-styled tooltip for a strip button (undefined suppresses it). */
@@ -145,6 +148,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		presentationToolbarHandlers: {
 			setTool: (tool) => deps.setPresentationPointerTool?.(tool),
 			setColor: (color) => deps.setPresentationPointerColor?.(color),
+			toggleBlackboard: () => deps.togglePresentationBlackboard?.(),
 			clearAnnotations: () => deps.erasePresentationAnnotations?.(),
 			togglePresenterView: () => deps.togglePresenterView?.(),
 		},
@@ -564,6 +568,23 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 			host.updatePresenterSnapshot({
 				blackout: host.getPresenterSnapshot().blackout === value ? 'none' : value,
 			}),
+		togglePresentationBlackboard: () => {
+			const snapshot = host.getPresenterSnapshot();
+			const pointer: PresentationPointerState = snapshot.pointer ?? {
+				x: 0.5,
+				y: 0.5,
+				color: '#ef4444',
+				tool: 'none',
+			};
+			// The shared rule decides both halves atomically: black screen + pen on,
+			// or both off. Applied through the same snapshot path the pen button
+			// uses, so the toolbar, keyboard and presenter console stay in sync.
+			const next = toggleBlackboard(snapshot.blackout, pointer.tool);
+			host.updatePresenterSnapshot({
+				blackout: next.blackout,
+				pointer: { ...pointer, tool: next.tool },
+			});
+		},
 		commitNotes: (notes, notesSegments) => host.editor.commitNotes(notes, notesSegments),
 		exportSlidePng: () => host.exportSlidePng(),
 		copySlideAsImage: () => host.copySlideAsImage(),

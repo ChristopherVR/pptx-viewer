@@ -6,13 +6,13 @@
 import type {
 	PptxElement,
 	PptxSlide,
-	PptxChartType,
 	TextPptxElement,
 	ShapePptxElement,
 	InkPptxElement,
 	SmartArtLayout,
 } from 'pptx-viewer-core';
 import { createDefaultChartElement, newTableElement } from 'pptx-viewer-shared';
+import type { InsertChartKind } from 'pptx-viewer-shared';
 
 import type { HyperlinkEditData } from '../components/hyperlink-edit-types';
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEXT_FONT_SIZE } from '../constants';
@@ -37,7 +37,7 @@ export interface InsertElementHandlers {
 	handleAddTextBox: () => void;
 	handleAddShape: () => void;
 	handleAddTable: () => void;
-	handleAddChart: (chartType: PptxChartType) => void;
+	handleAddChart: (chartKind: InsertChartKind) => void;
 	handleInsertSmartArt: (layout: SmartArtLayout, defaultItems: string[]) => void;
 	handleInsertEquation: (omml: Record<string, unknown>) => void;
 	handleUpdateEquation: (omml: Record<string, unknown>) => void;
@@ -120,11 +120,11 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 		});
 	};
 
-	const handleAddChart = (chartType: PptxChartType) => {
+	const handleAddChart = (chartKind: InsertChartKind) => {
 		if (!activeSlide) {
 			return;
 		}
-		addElement(createDefaultChartElement(chartType));
+		addElement(createDefaultChartElement(chartKind));
 	};
 
 	const structured = createStructuredElementHandlers({

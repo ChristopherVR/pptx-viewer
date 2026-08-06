@@ -16,12 +16,13 @@ export interface UseSelectionPaneWiringResult {
 	onSelectionPaneSelect: (id: string) => void;
 	onSelectionPaneToggleVisibility: (id: string) => void;
 	onSelectionPaneReorder: (payload: { from: number; to: number }) => void;
+	onSelectionPaneRename: (payload: { id: string; name: string | undefined }) => void;
 }
 
 /**
  * useSelectionPaneWiring: View ▸ Selection Pane (object list + z-order +
- * visibility over the active slide's elements). Extracted verbatim from
- * `PowerPointViewer.vue`.
+ * visibility + rename over the active slide's elements). Extracted verbatim
+ * from `PowerPointViewer.vue`.
  */
 export function useSelectionPaneWiring(
 	input: UseSelectionPaneWiringInput,
@@ -44,11 +45,22 @@ export function useSelectionPaneWiring(
 			ops.reorder(el.id, payload.to);
 		}
 	}
+	/**
+	 * Rename (double-click in the pane): routed through the history-integrated
+	 * `updateElement` so a rename undoes/redoes like any other edit. An
+	 * `undefined` name clears the element's name back to the fallback label.
+	 */
+	function onSelectionPaneRename(payload: { id: string; name: string | undefined }): void {
+		if (findActiveElement(payload.id)) {
+			ops.updateElement(payload.id, { name: payload.name } as Partial<PptxElement>);
+		}
+	}
 
 	return {
 		showSelectionPane,
 		onSelectionPaneSelect,
 		onSelectionPaneToggleVisibility,
 		onSelectionPaneReorder,
+		onSelectionPaneRename,
 	};
 }

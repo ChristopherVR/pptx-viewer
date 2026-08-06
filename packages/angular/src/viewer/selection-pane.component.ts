@@ -6,40 +6,23 @@
  * Displays elements in reverse z-order (topmost first = last in the elements array).
  * Each row shows a type icon, the element's name or id, visibility toggle, and
  * z-order nudge buttons. Clicking a row selects that element; clicking the eye icon
- * toggles its `hidden` flag; the up/down arrows bring it forward or send it backward.
+ * toggles its `hidden` flag; the up/down arrows bring it forward or send it backward;
+ * double-clicking the name label edits it inline (Enter/blur commit, Escape cancels).
  *
  * Presentational only: all state mutations are surfaced as outputs.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { LucideArrowDown, LucideArrowUp, LucideEye, LucideEyeOff } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-/** Unicode icon by element type (no Lucide dependency in Angular). */
-const ELEMENT_TYPE_ICONS: Record<string, string> = {
-	text: 'T',
-	shape: '▭',
-	image: 'Img',
-	table: '⊞',
-	chart: 'Cht',
-	connector: '╱',
-	group: '▣',
-	smartArt: '◈',
-	media: '▶',
-	ink: '✏',
-	ole: 'OLE',
-};
+import { elementIcon, elementLabel, renameCommitName } from './selection-pane-helpers';
 
-function elementIcon(type: string): string {
-	return ELEMENT_TYPE_ICONS[type] ?? '?';
-}
-
-function elementLabel(el: PptxElement): string {
-	if ('name' in el && typeof el.name === 'string' && el.name.trim().length > 0) {
-		return el.name;
-	}
-	return el.id;
+/** Payload of `renameElement`: `undefined` clears the element's name. */
+export interface SelectionPaneRename {
+	id: string;
+	name: string | undefined;
 }
 
 @Component({
@@ -48,7 +31,11 @@ function elementLabel(el: PptxElement): string {
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe, LucideEye, LucideEyeOff, LucideArrowUp, LucideArrowDown],
 	template: `
-		<aside class="pptx-ng-sel-pane" [attr.aria-label]="'pptx.selectionPane.title' | translate">
+		<aside
+			class="pptx-ng-sel-pane"
+			data-pptx-selection-pane
+			[attr.aria-label]="'pptx.selectionPane.title' | translate"
+		>
 			<header class="pptx-ng-sel-pane__header">
 				<h2 class="pptx-ng-sel-pane__title">{{ 'pptx.selectionPane.title' | translate }}</h2>
 				<span class="pptx-ng-sel-pane__count">{{ elements().length }}</span>
@@ -69,7 +56,28 @@ function elementLabel(el: PptxElement): string {
 								typeIcon(el.type)
 							}}</span>
 
-							<span class="pptx-ng-sel-pane__label" [title]="elLabel(el)">{{ elLabel(el) }}</span>
+							<span
+								class="pptx-ng-sel-pane__label"
+								data-pptx-selection-name
+								[title]="elLabel(el)"
+								(dblclick)="startRename(el)"
+							>
+								@if (editingId() === el.id) {
+									<input
+										type="text"
+										class="pptx-ng-sel-pane__rename"
+										autofocus
+										[value]="renameSeed"
+										[attr.aria-label]="'pptx.selectionPane.renameElement' | translate"
+										(click)="$event.stopPropagation()"
+										(keydown.enter)="commitRename(el.id, $event)"
+										(keydown.escape)="cancelRename($event)"
+										(blur)="commitRename(el.id, $event)"
+									/>
+								} @else {
+									{{ elLabel(el) }}
+								}
+							</span>
 
 							<div class="pptx-ng-sel-pane__actions" (click)="$event.stopPropagation()">
 								<button
@@ -119,126 +127,7 @@ function elementLabel(el: PptxElement): string {
 			}
 		</aside>
 	`,
-	styles: [
-		`
-			:host {
-				display: block;
-				height: 100%;
-				width: 100%;
-			}
-
-			.pptx-ng-sel-pane {
-				display: flex;
-				flex-direction: column;
-				min-height: 0;
-				height: 100%;
-				width: 100%;
-				background: var(--pptx-card, #111827);
-				color: var(--pptx-foreground, #f3f4f6);
-				border-left: 1px solid var(--pptx-border, #374151);
-				font-family: system-ui, sans-serif;
-			}
-
-			.pptx-ng-sel-pane__header {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				padding: 12px 16px;
-				border-bottom: 1px solid var(--pptx-border, #374151);
-				flex-shrink: 0;
-			}
-
-			.pptx-ng-sel-pane__title {
-				margin: 0;
-				font-size: 14px;
-				font-weight: 600;
-			}
-
-			.pptx-ng-sel-pane__count {
-				font-size: 12px;
-				color: var(--pptx-muted-foreground, #9ca3af);
-			}
-
-			.pptx-ng-sel-pane__list {
-				list-style: none;
-				margin: 0;
-				padding: 8px;
-				overflow-y: auto;
-				flex: 1 1 auto;
-				min-height: 0;
-			}
-
-			.pptx-ng-sel-pane__row {
-				display: flex;
-				align-items: center;
-				gap: 6px;
-				padding: 6px 8px;
-				border-radius: 6px;
-				border: 1px solid transparent;
-				cursor: pointer;
-				margin-bottom: 2px;
-				transition: background 0.1s;
-				user-select: none;
-			}
-
-			.pptx-ng-sel-pane__row:hover {
-				background: var(--pptx-accent, #1f2937);
-			}
-
-			.pptx-ng-sel-pane__row--selected {
-				border-color: var(--pptx-primary, #6366f1);
-				background: color-mix(in srgb, var(--pptx-primary, #6366f1) 15%, transparent);
-			}
-
-			.pptx-ng-sel-pane__row--hidden {
-				opacity: 0.5;
-			}
-
-			.pptx-ng-sel-pane__icon {
-				flex-shrink: 0;
-				width: 20px;
-				text-align: center;
-				font-size: 12px;
-				color: var(--pptx-muted-foreground, #9ca3af);
-			}
-
-			.pptx-ng-sel-pane__label {
-				flex: 1 1 auto;
-				font-size: 12px;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-				min-width: 0;
-			}
-
-			.pptx-ng-sel-pane__actions {
-				display: flex;
-				gap: 2px;
-				flex-shrink: 0;
-			}
-
-			.pptx-ng-sel-pane__btn {
-				background: transparent;
-				border: 1px solid var(--pptx-border, #374151);
-				color: inherit;
-				border-radius: 4px;
-				padding: 2px 5px;
-				font-size: 11px;
-				cursor: pointer;
-				line-height: 1.2;
-			}
-
-			.pptx-ng-sel-pane__btn:hover {
-				background: var(--pptx-accent, #1f2937);
-			}
-
-			.pptx-ng-sel-pane__empty {
-				padding: 16px;
-				font-size: 13px;
-				color: var(--pptx-muted-foreground, #9ca3af);
-			}
-		`,
-	],
+	styleUrl: './selection-pane.component.css',
 })
 export class SelectionPaneComponent {
 	/** All elements on the active slide. */
@@ -254,11 +143,45 @@ export class SelectionPaneComponent {
 	readonly sendBackward = output<string>();
 	/** Emits the id of the element whose hidden flag should be toggled. */
 	readonly toggleHidden = output<string>();
+	/** Emits the rename commit; `name: undefined` clears the element's name. */
+	readonly renameElement = output<SelectionPaneRename>();
 
 	/** Elements reversed so the topmost (last in array) appears first in the list. */
 	protected readonly reversedElements = computed<readonly PptxElement[]>(() =>
 		[...this.elements()].reverse(),
 	);
+
+	/** Id of the row whose name is being edited inline, or null. */
+	protected readonly editingId = signal<string | null>(null);
+	/** The label the rename input was seeded with (unedited commits are no-ops). */
+	protected renameSeed = '';
+
+	/** Double-click on the name label: open the inline rename input. */
+	protected startRename(el: PptxElement): void {
+		this.renameSeed = elementLabel(el);
+		this.editingId.set(el.id);
+	}
+
+	/**
+	 * Commit (Enter or blur). Enter closes the input, which fires blur; the
+	 * editingId guard makes that second call a no-op instead of a double emit.
+	 */
+	protected commitRename(id: string, event: Event): void {
+		if (this.editingId() !== id) {
+			return;
+		}
+		this.editingId.set(null);
+		const patch = renameCommitName(this.renameSeed, (event.target as HTMLInputElement).value);
+		if (patch !== null) {
+			this.renameElement.emit({ id, name: patch.name });
+		}
+	}
+
+	/** Escape: drop the edit without committing. */
+	protected cancelRename(event: Event): void {
+		event.stopPropagation();
+		this.editingId.set(null);
+	}
 
 	protected isSelected(id: string): boolean {
 		return this.selectedIds().includes(id);

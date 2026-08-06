@@ -21,6 +21,7 @@ import { buildAreas, buildBubbles, buildLines, buildScatter } from './chart-cart
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
+import { buildHorizontalBarViewModel } from './chart-horizontal-bars';
 import {
 	computeAxisTitlePrimitives,
 	computeDataTablePrimitives,
@@ -60,6 +61,11 @@ export function buildCartesianViewModel(
 	categoryLabels: ReadonlyArray<string>,
 	kind: SupportedChartKind,
 ): ChartViewModel {
+	// `c:barDir val="bar"`: PowerPoint's horizontal Bar chart is the transpose
+	// of this column-oriented engine, so it gets its own dedicated builder.
+	if (kind === 'bar' && chartData.barDirection === 'bar') {
+		return buildHorizontalBarViewModel(element, chartData, categoryLabels);
+	}
 	const seriesCount = chartData.series.length;
 	const layoutOpts = computeLayoutOptions(chartData.axes, chartData.dataTable, seriesCount);
 	const layout = computePlotLayout(element.width, element.height, chartData, true, layoutOpts);

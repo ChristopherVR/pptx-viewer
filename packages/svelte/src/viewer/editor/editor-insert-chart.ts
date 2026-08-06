@@ -1,5 +1,5 @@
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, InsertChartKind } from 'pptx-viewer-shared';
 import { createDefaultChartElement } from 'pptx-viewer-shared';
 
 import { centerOnCanvas } from './editor-insert';
@@ -10,12 +10,16 @@ import { centerOnCanvas } from './editor-insert';
  * and centres the result on the slide canvas.
  */
 
-/** Build a new, centred chart element for the given chart type. */
+/**
+ * Build a new, centred chart element for the given insert-dropdown entry.
+ * `'column'` yields vertical columns, `'bar'` horizontal bars; a raw
+ * `PptxChartType` is still accepted for API callers.
+ */
 export function buildChartInsertElement(
-	chartType: PptxChartType,
+	chartKind: InsertChartKind | PptxChartType,
 	canvasSize: CanvasSize,
 ): PptxElement {
-	const el: PptxElement = createDefaultChartElement(chartType);
+	const el: PptxElement = createDefaultChartElement(chartKind);
 	centerOnCanvas(el, canvasSize);
 	return el;
 }

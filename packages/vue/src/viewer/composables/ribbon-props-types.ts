@@ -1,5 +1,4 @@
 import type {
-	PptxChartType,
 	PptxComment,
 	PptxCustomShow,
 	PptxElement,
@@ -8,7 +7,12 @@ import type {
 	PptxSlide,
 	PptxTheme,
 } from 'pptx-viewer-core';
-import type { AlignEdge, DistributeAxis, SlideTemplateId } from 'pptx-viewer-shared';
+import type {
+	AlignEdge,
+	DistributeAxis,
+	InsertChartKind,
+	SlideTemplateId,
+} from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 
 import type { ShapePreset } from '../components/EditorToolbar.vue';
@@ -119,7 +123,7 @@ export interface UseRibbonPropsActionsInput {
 	addText: () => void;
 	addShape: (preset: ShapePreset) => void;
 	addTable: () => void;
-	addChart: (chartType: PptxChartType) => void;
+	addChart: (chartKind: InsertChartKind) => void;
 	addField: (fieldType: string, value?: string) => void;
 	addActionButton: (shapeType: string) => void;
 	openImagePicker: () => void;

@@ -5,6 +5,7 @@ import {
 	isPresentationAdvanceClick,
 	PRESENT_TOOLBAR_CLASSES,
 	shouldConfirmExternalHyperlink,
+	toggleBlackboard,
 } from 'pptx-viewer-shared';
 /**
  * ViewerCanvasArea: The `<main>` element containing the slide canvas,
@@ -275,6 +276,20 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		[annotations.presentationTool, mode, presentation],
 	);
 
+	// ── Blackboard toggle: black screen + pen armed / disarmed as a pair ──
+	// `setPresentationTool` toggles a re-selected tool off, so the tool setter
+	// is only invoked when the target differs from what is already armed.
+	const handleToggleBlackboard = useCallback(() => {
+		const next = toggleBlackboard(
+			presentation.presenterSnapshot.blackout,
+			annotations.presentationTool,
+		);
+		presentation.setPresenterBlackout(next.blackout);
+		if (next.tool !== annotations.presentationTool) {
+			annotations.setPresentationTool(next.tool);
+		}
+	}, [annotations, presentation]);
+
 	// ── Toolbar hover handling: keep toolbar visible while hovering ────
 	const toolbarHoveringRef = useRef(false);
 
@@ -417,6 +432,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 									canvasSize={canvasSize}
 									editorScale={stageScale}
 									presentationTool={annotations.presentationTool}
+									blackout={presentation.presenterSnapshot.blackout}
 									annotationStrokes={annotations.annotationStrokes}
 									currentStroke={annotations.currentStroke}
 									laserPosition={annotations.laserPosition}
@@ -627,6 +643,8 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 						onSetPenColor={annotations.setPenColor}
 						onSetHighlighterColor={annotations.setHighlighterColor}
 						onClearAnnotations={annotations.clearAnnotations}
+						blackout={presentation.presenterSnapshot.blackout}
+						onToggleBlackboard={handleToggleBlackboard}
 						currentSlideIndex={presentation.presentationSlideIndex}
 						totalSlides={slides.length}
 						onMovePresentationSlide={presentation.movePresentationSlide}

@@ -114,6 +114,35 @@ describe('presentationToolbar', () => {
 		expect(wrapper.emitted('toggle-presenter-view')).toHaveLength(1);
 	});
 
+	// One click on the Blackboard control must arm the black screen and the pen
+	// together; the toolbar itself only reports the click, the host resolves it
+	// through the shared `toggleBlackboard` transition.
+	it('renders the blackboard toggle and emits toggle-blackboard on click', async () => {
+		const wrapper = mountToolbar();
+		const blackboard = wrapper.find('[data-pptx-present-control="blackboard"]');
+		expect(blackboard.exists()).toBeTruthy();
+		expect(blackboard.attributes('aria-label')).toBe('Blackboard');
+		await blackboard.trigger('click');
+		expect(wrapper.emitted('toggle-blackboard')).toHaveLength(1);
+	});
+
+	it('marks blackboard active only when blackout AND pen are armed together', () => {
+		const active = mountToolbar({ blackout: 'black', presentationTool: 'pen' });
+		expect(active.find('[data-pptx-present-control="blackboard"]').classes()).toContain(
+			'pptx-vue-ptb-btn--active',
+		);
+
+		const penOnly = mountToolbar({ blackout: 'none', presentationTool: 'pen' });
+		expect(penOnly.find('[data-pptx-present-control="blackboard"]').classes()).not.toContain(
+			'pptx-vue-ptb-btn--active',
+		);
+
+		const blackoutEraser = mountToolbar({ blackout: 'black', presentationTool: 'eraser' });
+		expect(blackoutEraser.find('[data-pptx-present-control="blackboard"]').classes()).not.toContain(
+			'pptx-vue-ptb-btn--active',
+		);
+	});
+
 	it('disables prev on the first slide and next on the last', () => {
 		const first = mountToolbar({ currentSlideIndex: 0, totalSlides: 3 });
 		const firstNav = first.findAll('.pptx-vue-ptb-btn');

@@ -11,7 +11,7 @@
  * navigation, Vanilla and Svelte no bar at all). This asserts the rendered
  * order and the accessible names against the shared spec.
  */
-import { PRESENT_TOOLBAR_ORDER } from 'pptx-viewer-shared';
+import { PRESENT_TOOLBAR_ORDER, toggleBlackboard } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -59,6 +59,8 @@ function renderToolbar(overrides: Record<string, unknown> = {}): void {
 				onSetPenColor={() => undefined}
 				onSetHighlighterColor={() => undefined}
 				onClearAnnotations={() => undefined}
+				blackout='none'
+				onToggleBlackboard={() => undefined}
 				currentSlideIndex={1}
 				totalSlides={5}
 				onMovePresentationSlide={() => undefined}
@@ -105,6 +107,7 @@ describe('the slide-show toolbar', () => {
 		expect(nameOf('pen')).toBe('Pen');
 		expect(nameOf('pen-color')).toBe('Pen colour');
 		expect(nameOf('highlighter-color')).toBe('Highlighter colour');
+		expect(nameOf('blackboard')).toBe('Blackboard');
 		expect(nameOf('clear')).toBe('Clear Annotations');
 		expect(nameOf('presenter-view')).toBe('Presenter View');
 		expect(nameOf('end')).toBe('End Presentation');
@@ -129,6 +132,37 @@ describe('the slide-show toolbar', () => {
 		expect(
 			container.querySelector<HTMLButtonElement>('[data-pptx-present-control="next"]')?.disabled,
 		).toBeTruthy();
+	});
+
+	it('arms the black screen and the pen together from the blackboard toggle', () => {
+		const setBlackout = vi.fn<(value: string) => void>();
+		const setTool = vi.fn<(tool: string) => void>();
+		// Same wiring as ViewerCanvasArea: the click routes through the shared
+		// toggle so one press arms both halves of blackboard mode.
+		renderToolbar({
+			onToggleBlackboard: () => {
+				const next = toggleBlackboard('none', 'none');
+				setBlackout(next.blackout);
+				setTool(next.tool);
+			},
+		});
+		act(() => {
+			container
+				.querySelector<HTMLButtonElement>('[data-pptx-present-control="blackboard"]')
+				?.click();
+		});
+		expect(setBlackout).toHaveBeenCalledWith('black');
+		expect(setTool).toHaveBeenCalledWith('pen');
+	});
+
+	it('reads the blackboard toggle as active only when blackout and pen are both armed', () => {
+		renderToolbar({ blackout: 'black', presentationTool: 'pen' });
+		const active = container.querySelector('[data-pptx-present-control="blackboard"]');
+		expect(active?.className).toContain('bg-white/25');
+
+		renderToolbar({ blackout: 'black', presentationTool: 'none' });
+		const inactive = container.querySelector('[data-pptx-present-control="blackboard"]');
+		expect(inactive?.className).not.toContain('bg-white/25');
 	});
 
 	it('names each colour swatch with its value', () => {

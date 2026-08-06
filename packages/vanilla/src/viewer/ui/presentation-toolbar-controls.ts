@@ -48,6 +48,7 @@ export interface PresentationToolbarParts {
 	pen: ToolGroup;
 	highlighter: ToolGroup;
 	eraser: ButtonHandle;
+	blackboard: ButtonHandle;
 	clear: ButtonHandle;
 	presenterView: ButtonHandle;
 	end: ButtonHandle;
@@ -220,6 +221,15 @@ export function buildPresentationToolbarDom(
 			handlers.setTool('eraser');
 		},
 	});
+	const blackboard = control(doc, t, {
+		id: 'blackboard',
+		labelKey: 'pptx.presentation.blackboard',
+		icon: 'presentation',
+		onClick: () => {
+			closePalettes();
+			handlers.toggleBlackboard();
+		},
+	});
 	const clear = control(doc, t, {
 		id: 'clear',
 		labelKey: 'pptx.presentation.clearAnnotations',
@@ -251,6 +261,7 @@ export function buildPresentationToolbarDom(
 		pen.el,
 		highlighter.el,
 		eraser.btn,
+		blackboard.btn,
 		clear.btn,
 		divider('divider-tools'),
 		presenterView.btn,
@@ -274,6 +285,7 @@ export function buildPresentationToolbarDom(
 		pen,
 		highlighter,
 		eraser,
+		blackboard,
 		clear,
 		presenterView,
 		end,

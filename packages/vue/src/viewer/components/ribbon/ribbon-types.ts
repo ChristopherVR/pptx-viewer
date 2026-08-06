@@ -10,7 +10,6 @@
  * them, so the ribbon degrades gracefully during the incremental wire-up.
  */
 import type {
-	PptxChartType,
 	PptxCustomShow,
 	PptxElement,
 	PptxSlide,
@@ -21,6 +20,7 @@ import type {
 import type {
 	AnimationApplyGroup,
 	ChangeCaseMode,
+	InsertChartKind,
 	SlideTemplateId,
 	ToolbarActionId,
 } from 'pptx-viewer-shared';
@@ -206,7 +206,7 @@ export interface RibbonProps {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
-	onAddChart?: (chartType: PptxChartType) => void;
+	onAddChart?: (chartKind: InsertChartKind) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;

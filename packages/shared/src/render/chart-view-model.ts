@@ -537,17 +537,18 @@ export interface ChartViewModel {
 // Chrome helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GRIDLINE_COLOR = '#e2e8f0';
-const AXIS_LABEL_COLOR = '#64748b';
-const ZERO_LINE_COLOR = '#94a3b8';
+export const GRIDLINE_COLOR = '#e2e8f0';
+export const AXIS_LABEL_COLOR = '#64748b';
+export const ZERO_LINE_COLOR = '#94a3b8';
 const TICK_COUNT = 5;
 
 /**
  * Tick values for a range: one per major unit when the automatic scale supplied
  * one (it snapped the bounds to whole multiples, so this lands on round numbers
  * exactly as PowerPoint does), otherwise an even division of the span.
+ * Exported for the transposed (horizontal-bar) axis builder.
  */
-function axisTickValues(range: ValueRange): number[] {
+export function axisTickValues(range: ValueRange): number[] {
 	const unit = range.majorUnit;
 	if (unit !== undefined && Number.isFinite(unit) && unit > 0 && !range.logScale) {
 		const steps = Math.round((range.max - range.min) / unit);

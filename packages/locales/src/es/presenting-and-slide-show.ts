@@ -6,6 +6,7 @@ export const translations = {
 	'pptx.presentation.pen': 'Bolígrafo',
 	'pptx.presentation.highlighter': 'Resaltador',
 	'pptx.presentation.eraser': 'Borrador',
+	'pptx.presentation.blackboard': 'Pizarra',
 	'pptx.presentation.laserPointer': 'Puntero láser',
 	'pptx.presentation.endOfSlideShow': 'Fin de la presentación, haga clic para salir.',
 	'pptx.presentation.pointerTools': 'Opciones de puntero',

@@ -1,3 +1,4 @@
+import { PRESENT_BLACKOUT_Z } from 'pptx-viewer-shared';
 import type { PresentationSnapshot } from 'pptx-viewer-shared';
 
 /**
@@ -25,10 +26,13 @@ export function renderAudienceEffects(
 	};
 	if (snapshot.blackout !== 'none') {
 		const el = add('blank');
+		// E2E contract: the blackout sheet, stacked at the shared blackout level
+		// so the annotation overlay's blackboard z-index can beat it.
+		el.setAttribute('data-pptx-blackout', '');
 		Object.assign(el.style, {
 			position: 'absolute',
 			inset: '0',
-			zIndex: '75',
+			zIndex: String(PRESENT_BLACKOUT_Z),
 			background: snapshot.blackout,
 		});
 	}

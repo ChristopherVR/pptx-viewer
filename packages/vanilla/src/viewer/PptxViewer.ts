@@ -935,7 +935,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 
 	updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void {
 		this.presenterSnapshot = mergePresentationSnapshot(this.presenterSnapshot, patch);
-		renderAudienceEffects(this.container, this.presenterSnapshot);
+		// Painted into the CHROME ROOT (the element the Fullscreen API holds and
+		// the `.pptxv` positioning context), not the host container: a blackout
+		// sheet mounted beside the fullscreen element is never drawn during a
+		// real fullscreen show.
+		renderAudienceEffects(this.lifecycle.chrome.root, this.presenterSnapshot);
 		this.syncAudience(this.presenterSnapshot.slideIndex);
 		this.annotations.sync(this.presenterSnapshot);
 		this.syncPresentationToolbar();
@@ -1030,6 +1034,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private syncPresentationToolbar(): void {
 		this.lifecycle.chrome.presentationToolbar.update({
 			tool: this.presenterSnapshot.pointer?.tool ?? 'none',
+			blackout: this.presenterSnapshot.blackout,
 			hasAnnotations: (this.presenterSnapshot.inkStrokes?.length ?? 0) > 0,
 			presenterViewActive: this.presenterView !== null,
 		});
@@ -1102,7 +1107,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			if (audienceSession && message.sessionId === audienceSession) {
 				if (message.type === 'presenter-state') {
 					this.presenterSnapshot = message.snapshot;
-					renderAudienceEffects(this.container, message.snapshot);
+					// Same target as updatePresenterSnapshot: the chrome root, so the
+					// effects stay visible when this audience tab goes fullscreen.
+					renderAudienceEffects(this.lifecycle.chrome.root, message.snapshot);
 					this.goToSlide(message.snapshot.slideIndex);
 				}
 				if (message.type === 'presenter-slide-change') {

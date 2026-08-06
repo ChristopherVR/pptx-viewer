@@ -6,6 +6,7 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import type { CanvasSize } from '../internal/shared';
 import {
 	attachPresentationVisibilityPause,
 	firstShowSlideIndex,
@@ -168,4 +169,39 @@ export function firstVisibleIndex(slides: readonly PptxSlide[]): number {
 /** The show's last visible slide (End), or 0 for an empty deck. */
 export function lastVisibleIndex(slides: readonly PptxSlide[]): number {
 	return lastShowSlideIndex(resolveShowSlideIndexes(slides)) ?? 0;
+}
+
+/**
+ * Style record centring the scaled slide stage in the viewport.
+ *
+ * The offsets are computed numerically ((viewport - scaled size) / 2, exactly
+ * how React's PresentationStage centres) rather than with the historical
+ * `left/top: 50%` + `translate(-50%, -50%)`: a transform makes the stage a
+ * stacking context, which trapped every z-index inside it (the ink annotation
+ * overlay in particular) BELOW the sibling blackout sheet, so blackboard
+ * strokes painted invisibly under the black screen. See the shared
+ * `render/presentation-blackboard` module for the layering rules.
+ */
+export function presentationStageStyle(
+	size: CanvasSize,
+	zoom: number,
+	viewportW: number,
+	viewportH: number,
+): Record<string, string> {
+	const width = size.width * zoom;
+	const height = size.height * zoom;
+	return {
+		position: 'absolute',
+		top: `${(viewportH - height) / 2}px`,
+		left: `${(viewportW - width) / 2}px`,
+		width: `${width}px`,
+		height: `${height}px`,
+		// Motion-path keyframes translate by a fraction of the SLIDE (see
+		// `slideOffset` in the shared timeline helpers), so the presentation
+		// stage publishes the slide size the same way the editing stage does.
+		// Without it every parsed path falls back to the 1280x720 default and a
+		// deck authored at another size under-travels.
+		'--pptx-slide-w': `${size.width}px`,
+		'--pptx-slide-h': `${size.height}px`,
+	};
 }

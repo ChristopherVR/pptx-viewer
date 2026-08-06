@@ -1,5 +1,11 @@
 import type { PptxHandler, PptxSlide, PptxTheme, TextSegment } from 'pptx-viewer-core';
-import type { CanvasSize, RemoteCursor, RulerUnit, SanitizedPresence } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	PresentationBlackout,
+	RemoteCursor,
+	RulerUnit,
+	SanitizedPresence,
+} from 'pptx-viewer-shared';
 import type { AiChangeBatch } from 'pptx-viewer-shared/ai';
 
 import type { Translator } from '../../i18n/translator';
@@ -59,6 +65,12 @@ export interface ViewerBodyProps {
 	 */
 	onAdvance: (event: MouseEvent) => void;
 	editingActive: boolean;
+	/**
+	 * Presenter blackout state, mirrored from the presenter session's snapshot.
+	 * The annotation overlay reads it to raise the ink above the blank sheet
+	 * (shared `annotationOverlayZIndex`), so blackboard strokes stay visible.
+	 */
+	blackout?: PresentationBlackout;
 	controller: EditorController;
 	onstageresize: (width: number, height: number) => void;
 	onstageholder: (el: HTMLDivElement | null) => void;
@@ -124,6 +136,7 @@ export type ViewerStageProps = Pick<
 	| 'onTransitionDone'
 	| 'onAdvance'
 	| 'editingActive'
+	| 'blackout'
 	| 'onstageholder'
 	| 'collabCursors'
 	| 'collabPresences'
@@ -164,6 +177,7 @@ export type SlideOverlaysProps = Pick<
 	| 'presentationTransition'
 	| 'onTransitionDone'
 	| 'editingActive'
+	| 'blackout'
 	| 'collabCursors'
 	| 'collabPresences'
 	| 'annotations'

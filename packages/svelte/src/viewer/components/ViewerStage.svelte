@@ -38,6 +38,7 @@
 		onTransitionDone,
 		onAdvance,
 		editingActive,
+		blackout = 'none',
 		onstageholder,
 		collabCursors = [],
 		collabPresences = [],
@@ -144,6 +145,7 @@
 				{presentationTransition}
 				{onTransitionDone}
 				{editingActive}
+				{blackout}
 				{collabCursors}
 				{collabPresences}
 				{annotations}

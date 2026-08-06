@@ -6,6 +6,7 @@ export const translations = {
 	'pptx.presentation.pen': 'Stift',
 	'pptx.presentation.highlighter': 'Textmarker',
 	'pptx.presentation.eraser': 'Radierer',
+	'pptx.presentation.blackboard': 'Tafel',
 	'pptx.presentation.laserPointer': 'Laserpointer',
 	'pptx.presentation.endOfSlideShow': 'Ende der Bildschirmpräsentation, zum Beenden klicken.',
 	'pptx.presentation.pointerTools': 'Zeigeroptionen',

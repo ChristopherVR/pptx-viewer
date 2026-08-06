@@ -216,6 +216,17 @@ export class ViewerCanvasEditingService {
 	}
 
 	/**
+	 * Commit a selection-pane inline rename through the history-integrated
+	 * update path. `name: undefined` clears the authored name (round-trips as a
+	 * dropped `cNvPr/@name` on save).
+	 */
+	onSelectionPaneRename(event: { id: string; name: string | undefined }): void {
+		this.editor.updateElement(this.requireHost().activeSlideIndex(), event.id, {
+			name: event.name,
+		});
+	}
+
+	/**
 	 * Commit a table cell's inline text edit. Finds the table element on the
 	 * active slide, rebuilds its `tableData` with the new cell text, and patches
 	 * it through the editor (which records undo history).

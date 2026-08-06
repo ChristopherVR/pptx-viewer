@@ -25,6 +25,7 @@
 	import MousePointer2 from '@lucide/svelte/icons/mouse-pointer-2';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
 	import PenTool from '@lucide/svelte/icons/pen-tool';
+	import Presentation from '@lucide/svelte/icons/presentation';
 	import Timer from '@lucide/svelte/icons/timer';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import X from '@lucide/svelte/icons/x';
@@ -32,10 +33,13 @@
 		formatElapsed,
 		formatSlideCounter,
 		HIGHLIGHTER_COLORS,
+		isBlackboardActive,
 		PEN_COLORS,
 		PRESENT_TOOLBAR_METRICS,
 		presentToolbarStyleAttr,
+		toggleBlackboard,
 	} from 'pptx-viewer-shared';
+	import type { PresentationBlackout } from 'pptx-viewer-shared';
 	import type { Component } from 'svelte';
 
 	import { useTranslator } from '../../i18n/context';
@@ -48,6 +52,8 @@
 		current,
 		total,
 		presenterMode,
+		blackout = 'none',
+		onblackoutchange,
 		onmove,
 		onpresenterview,
 		onexit,
@@ -57,6 +63,10 @@
 		current: number;
 		total: number;
 		presenterMode: boolean;
+		/** The show's blackout state, mirrored from the presenter snapshot. */
+		blackout?: PresentationBlackout;
+		/** Route a blackout change back to the presenter session's snapshot. */
+		onblackoutchange?: (value: PresentationBlackout) => void;
 		/** Step the show forward (1) or back (-1). */
 		onmove: (direction: 1 | -1) => void;
 		onpresenterview: () => void;
@@ -89,6 +99,15 @@
 		chrome.closePalettes();
 	}
 
+	/** One click on Blackboard arms the black screen + pen together, or disarms both. */
+	const blackboardActive = $derived(isBlackboardActive(blackout, annotations.tool));
+	function clickBlackboard(): void {
+		const next = toggleBlackboard(blackout, annotations.tool);
+		annotations.tool = next.tool;
+		onblackoutchange?.(next.blackout);
+		chrome.closePalettes();
+	}
+
 	/** Picking a colour also arms its tool, matching React. */
 	function pickColor(key: PresentPaletteKey, color: string): void {
 		if (key === 'pen') {
@@ -112,6 +131,36 @@
 		event.stopPropagation();
 	}
 </script>
+
+{#snippet action(id: string, labelKey: string, Icon: Component, onpress: () => void, disabled = false, danger = false)}
+	<button
+		type="button"
+		class="pptx-svelte-present-button"
+		class:danger
+		data-pptx-present-control={id}
+		{disabled}
+		aria-label={t(labelKey)}
+		title={t(labelKey)}
+		onclick={onpress}
+	>
+		<Icon size={icon} aria-hidden="true" />
+	</button>
+{/snippet}
+
+{#snippet toggle(id: string, active: boolean, labelKey: string, Icon: Component, onpress: () => void)}
+	<button
+		type="button"
+		class="pptx-svelte-present-toggle"
+		class:active
+		data-pptx-present-control={id}
+		aria-pressed={active}
+		aria-label={t(labelKey)}
+		title={t(labelKey)}
+		onclick={onpress}
+	>
+		<Icon size={icon} aria-hidden="true" />
+	</button>
+{/snippet}
 
 {#snippet tool(id: string, name: 'pen' | 'highlighter' | 'eraser' | 'laser', labelKey: string, Icon: Component, bar?: string)}
 	<button
@@ -183,31 +232,11 @@
 		onclick={stop}
 		onpointerdown={stop}
 	>
-		<button
-			type="button"
-			class="pptx-svelte-present-button"
-			data-pptx-present-control="previous"
-			disabled={current === 0}
-			aria-label={t('pptx.presenter.previousSlide')}
-			title={t('pptx.presenter.previousSlide')}
-			onclick={() => onmove(-1)}
-		>
-			<ChevronLeft size={icon} aria-hidden="true" />
-		</button>
+		{@render action('previous', 'pptx.presenter.previousSlide', ChevronLeft, () => onmove(-1), current === 0)}
 		<span class="pptx-svelte-present-counter" data-pptx-present-control="counter">
 			{formatSlideCounter(current, total)}
 		</span>
-		<button
-			type="button"
-			class="pptx-svelte-present-button"
-			data-pptx-present-control="next"
-			disabled={current >= total - 1}
-			aria-label={t('pptx.presenter.nextSlide')}
-			title={t('pptx.presenter.nextSlide')}
-			onclick={() => onmove(1)}
-		>
-			<ChevronRight size={icon} aria-hidden="true" />
-		</button>
+		{@render action('next', 'pptx.presenter.nextSlide', ChevronRight, () => onmove(1), current >= total - 1)}
 		<div class="pptx-svelte-present-divider" data-pptx-present-control="divider-navigation"></div>
 		<div
 			class="pptx-svelte-present-timer"
@@ -229,40 +258,11 @@
 			{@render palette('highlighter', HIGHLIGHTER_COLORS, annotations.highlighterColor, 'pptx.presentationToolbar.highlighterColor', 'pptx.presentationToolbar.highlighterColorValue')}
 		</div>
 		{@render tool('eraser', 'eraser', 'pptx.presentation.eraser', Eraser)}
-		<button
-			type="button"
-			class="pptx-svelte-present-button"
-			data-pptx-present-control="clear"
-			disabled={annotations.count === 0}
-			aria-label={t('pptx.presentation.clearAnnotations')}
-			title={t('pptx.presentation.clearAnnotations')}
-			onclick={() => annotations.clear()}
-		>
-			<Trash2 size={icon} aria-hidden="true" />
-		</button>
+		{@render toggle('blackboard', blackboardActive, 'pptx.presentation.blackboard', Presentation, clickBlackboard)}
+		{@render action('clear', 'pptx.presentation.clearAnnotations', Trash2, () => annotations.clear(), annotations.count === 0)}
 		<div class="pptx-svelte-present-divider" data-pptx-present-control="divider-tools"></div>
-		<button
-			type="button"
-			class="pptx-svelte-present-toggle"
-			class:active={presenterMode}
-			data-pptx-present-control="presenter-view"
-			aria-pressed={presenterMode}
-			aria-label={t('pptx.presenter.presenterView')}
-			title={t('pptx.presenter.presenterView')}
-			onclick={onpresenterview}
-		>
-			<PanelRight size={icon} aria-hidden="true" />
-		</button>
-		<button
-			type="button"
-			class="pptx-svelte-present-button danger"
-			data-pptx-present-control="end"
-			aria-label={t('pptx.presenter.endPresentation')}
-			title={t('pptx.presenter.endPresentation')}
-			onclick={onexit}
-		>
-			<X size={icon} aria-hidden="true" />
-		</button>
+		{@render toggle('presenter-view', presenterMode, 'pptx.presenter.presenterView', PanelRight, onpresenterview)}
+		{@render action('end', 'pptx.presenter.endPresentation', X, onexit, false, true)}
 	</div>
 </div>
 

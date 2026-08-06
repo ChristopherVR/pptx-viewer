@@ -49,7 +49,7 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, controller, chromeUi, parityUi, collab } = vm;
+	const { loader, viewer, editor, controller, chromeUi, parityUi, collab, presenterSession } = vm;
 
 	function applyTheme(next: NonNullable<typeof loader.presentationTheme>): void {
 		loader.presentationTheme = next;
@@ -89,6 +89,7 @@
 		activeSlide={vm.activeSlide}
 		scale={vm.scale}
 		presenting={viewer.isFullscreen}
+		blackout={presenterSession.snapshot.blackout}
 		presentationTransition={vm.presentation.transition}
 		onTransitionDone={() => vm.presentation.endTransition()}
 		onAdvance={(event) => vm.presentation.handleStageClick(event.target)}

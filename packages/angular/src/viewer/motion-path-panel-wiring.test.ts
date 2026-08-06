@@ -20,9 +20,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { motionPathPresetById } from '../internal/shared';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { componentSource } from './component-source.test-support';
+import { presentationStageStyle } from './presentation-overlay-helpers';
 
 const CANVAS_SOURCE = componentSource(__dirname, 'slide-canvas.component.ts');
-const PRESENTATION_SOURCE = componentSource(__dirname, 'presentation-overlay.component.ts');
 const PANEL_SOURCE = componentSource(__dirname, 'animation-author-panel.component.ts');
 
 const SHAPE = { id: 'shape-1', type: 'shape', x: 0, y: 0, width: 10, height: 10 } as PptxElement;
@@ -112,7 +112,11 @@ describe('slide-size custom properties', () => {
 	});
 
 	it('the presentation stage publishes it too', () => {
-		expect(PRESENTATION_SOURCE).toContain("'--pptx-slide-w': `${size.width}px`");
-		expect(PRESENTATION_SOURCE).toContain("'--pptx-slide-h': `${size.height}px`");
+		// The stage style record moved to `presentationStageStyle` (a pure helper,
+		// so the blackboard layering fix could be tested); assert the published
+		// values directly rather than grepping the component source.
+		const style = presentationStageStyle({ width: 960, height: 540 }, 1, 960, 540);
+		expect(style['--pptx-slide-w']).toBe('960px');
+		expect(style['--pptx-slide-h']).toBe('540px');
 	});
 });

@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { PRESENT_ANNOTATION_OVER_BLACKOUT_Z, PRESENT_ANNOTATION_Z } from 'pptx-viewer-shared';
 import type { PresentationInkStroke } from 'pptx-viewer-shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,6 +40,7 @@ describe('createPresentationAnnotationsController', () => {
 			active: false,
 			slideIndex: 0,
 			canvasSize: { width: 1000, height: 500 },
+			blackout: 'none',
 		});
 		controller.setStrokes([stroke]);
 
@@ -89,6 +91,7 @@ describe('createPresentationAnnotationsController', () => {
 			active: true,
 			slideIndex: 0,
 			canvasSize: { width: 960, height: 540 },
+			blackout: 'none',
 			pointer: { tool: 'pen', x: 0.5, y: 0.5, color: '#ef4444' },
 		});
 		expect(first.querySelector('.pptxv-presentation-annotations')).not.toBeNull();
@@ -99,6 +102,7 @@ describe('createPresentationAnnotationsController', () => {
 			active: true,
 			slideIndex: 0,
 			canvasSize: { width: 960, height: 540 },
+			blackout: 'none',
 			pointer: { tool: 'eraser', x: 0.5, y: 0.5, color: '#ef4444' },
 		});
 		expect(first.querySelector('.pptxv-presentation-annotations')).toBeNull();
@@ -119,6 +123,7 @@ describe('createPresentationAnnotationsController', () => {
 				active: true,
 				slideIndex: 0,
 				canvasSize: { width: 960, height: 540 },
+				blackout: 'none',
 				pointer: { tool: 'pen', x, y: 0.5, color: '#ef4444' },
 			});
 		sync(0.1);
@@ -137,8 +142,41 @@ describe('createPresentationAnnotationsController', () => {
 			active: true,
 			slideIndex: 0,
 			canvasSize: { width: 960, height: 540 },
+			blackout: 'none',
 			pointer: { tool: 'highlighter', x: 0.3, y: 0.5, color: '#ef4444' },
 		});
 		expect(stageWrap.querySelector('.pptxv-presentation-annotations')).not.toBe(overlay);
+	});
+
+	it('raises the overlay above the blackout sheet without remounting it', () => {
+		const controller = createPresentationAnnotationsController({
+			doc: document,
+			t: createTranslator(),
+			getSlides: () => [slide('slide-1')],
+			commitSlides: vi.fn(),
+		});
+		const stageWrap = document.createElement('div');
+		const sync = (blackout: 'none' | 'black' | 'white'): void =>
+			controller.syncStage({
+				stageWrap,
+				active: true,
+				slideIndex: 0,
+				canvasSize: { width: 960, height: 540 },
+				blackout,
+				pointer: { tool: 'pen', x: 0.5, y: 0.5, color: '#ef4444' },
+			});
+		sync('none');
+		const overlay = stageWrap.querySelector<SVGSVGElement>('.pptxv-presentation-annotations');
+		expect(overlay?.hasAttribute('data-pptx-annotation-overlay')).toBeTruthy();
+		expect(overlay?.style.zIndex).toBe(String(PRESENT_ANNOTATION_Z));
+
+		// Blanking the screen lifts the ink above the blackout sheet (z 75) so the
+		// "blackboard" strokes stay visible, without cutting off a live gesture.
+		sync('black');
+		expect(stageWrap.querySelector('.pptxv-presentation-annotations')).toBe(overlay);
+		expect(overlay?.style.zIndex).toBe(String(PRESENT_ANNOTATION_OVER_BLACKOUT_Z));
+
+		sync('none');
+		expect(overlay?.style.zIndex).toBe(String(PRESENT_ANNOTATION_Z));
 	});
 });

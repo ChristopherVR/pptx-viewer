@@ -105,6 +105,14 @@ export const PRESENT_TOOLBAR_CONTROLS: readonly PresentToolbarControl[] = [
 		icon: 'chevron-down',
 	},
 	{ id: 'eraser', kind: 'toggle', labelKey: 'pptx.presentation.eraser', icon: 'eraser' },
+	{
+		// One-click blackboard: arms the black screen AND the pen together (see
+		// render/presentation-blackboard.ts for the state + layering rules).
+		id: 'blackboard',
+		kind: 'toggle',
+		labelKey: 'pptx.presentation.blackboard',
+		icon: 'presentation',
+	},
 	{ id: 'clear', kind: 'button', labelKey: 'pptx.presentation.clearAnnotations', icon: 'trash-2' },
 	{ id: 'divider-tools', kind: 'divider' },
 	{

@@ -26,6 +26,7 @@ import {
 	mayLeaveSlideShow,
 	PRESENT_TOOLBAR_METRICS,
 	PRESENTATION_HIT_TEST_CSS,
+	toggleBlackboard,
 } from 'pptx-viewer-shared';
 import { computed, onMounted, ref } from 'vue';
 
@@ -285,6 +286,22 @@ function onToolbarMove(direction: 1 | -1): void {
 }
 
 /**
+ * Toolbar Blackboard toggle: one click arms the black screen and the pen
+ * together, one click disarms both (shared `toggleBlackboard` transition).
+ * The blackout travels the same presenter-snapshot path as the keyboard's
+ * B / W toggles; the tool is written directly (not via `setPresentationTool`,
+ * which TOGGLES and would clear an already-armed pen).
+ */
+function onToggleBlackboard(): void {
+	const next = toggleBlackboard(
+		presenterSession.snapshot.value.blackout,
+		annotations.presentationTool.value,
+	);
+	presenterSession.updateSnapshot({ blackout: next.blackout });
+	annotations.presentationTool.value = next.tool;
+}
+
+/**
  * How an on-slide Action Setting (`a:hlinkClick`) navigates this show.
  * `goTo` is deliberately the unfiltered jump: an action names its target slide
  * outright, hidden or not, exactly as PowerPoint's typed slide number does.
@@ -413,6 +430,7 @@ useTouchGestures({
 					v-if="inkMarkupVisible"
 					:canvas-size="canvasSize"
 					:editor-scale="scale"
+					:blackout="presenterSession.snapshot.value.blackout"
 					:presentation-tool="annotations.presentationTool.value"
 					:annotation-strokes="annotations.annotationStrokes.value"
 					:current-stroke="annotations.currentStroke.value"
@@ -521,6 +539,7 @@ useTouchGestures({
 					:presentation-start-time="presentationStartTime"
 					:presenter-mode="presenterMode"
 					:show-presenter-toggle="true"
+					:blackout="presenterSession.snapshot.value.blackout"
 					@set-tool="annotations.setPresentationTool"
 					@set-pen-color="annotations.setPenColor"
 					@set-highlighter-color="annotations.setHighlighterColor"
@@ -528,6 +547,7 @@ useTouchGestures({
 					@move="onToolbarMove"
 					@end-presentation="close"
 					@toggle-presenter-view="presenterMode = !presenterMode"
+					@toggle-blackboard="onToggleBlackboard"
 				/>
 			</div>
 

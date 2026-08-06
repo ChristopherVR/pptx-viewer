@@ -536,6 +536,7 @@ export function createChartElement(
 		series,
 		title: input.title,
 		grouping: input.grouping,
+		...(input.barDirection !== undefined ? { barDirection: input.barDirection } : {}),
 		style: {
 			hasLegend: input.hasLegend ?? true,
 			legendPosition: input.legendPosition,

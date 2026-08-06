@@ -5,7 +5,7 @@
  * read the component's authored template as text via `componentSource`, the
  * same technique the element-renderer and context-menu contract specs use. That
  * is not a weaker assertion than rendering for what is being checked here: the
- * template is static markup, so "the 16 shared control ids appear once each, in
+ * template is static markup, so "the 17 shared control ids appear once each, in
  * order, each naming itself from the shared i18n key" is fully decidable from
  * the source, and it is exactly the drift that let Angular ship a five-button
  * strip while React shipped sixteen slots.
@@ -24,7 +24,9 @@ import {
 	PRESENT_TOOLBAR_CONTROLS,
 	PRESENT_TOOLBAR_ORDER,
 } from '../internal/shared';
+import type { PresentationBlackout, PresentationPointerTool } from '../internal/shared';
 import { componentSource } from './component-source.test-support';
+import { presentationStageStyle } from './presentation-overlay-helpers';
 import {
 	PRESENT_TOOLBAR_VIEW,
 	PresentToolbarAutoHide,
@@ -33,6 +35,7 @@ import {
 	presentToolbarClearClass,
 	presentToolbarSwatchClass,
 	presentToolbarToggleClass,
+	runBlackboardToggle,
 } from './presentation-toolbar-view';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -64,8 +67,14 @@ describe('show toolbar inventory', () => {
 		expect(renderedControlIds()).toStrictEqual([...PRESENT_TOOLBAR_ORDER]);
 	});
 
-	it('renders all sixteen slots, not the old five-button annotation strip', () => {
-		expect(renderedControlIds()).toHaveLength(16);
+	it('renders all seventeen slots, not the old five-button annotation strip', () => {
+		expect(renderedControlIds()).toHaveLength(17);
+	});
+
+	it('slots the blackboard toggle between the eraser and clear, as shared orders it', () => {
+		const ids = renderedControlIds();
+		expect(ids.indexOf('blackboard')).toBe(ids.indexOf('eraser') + 1);
+		expect(ids.indexOf('clear')).toBe(ids.indexOf('blackboard') + 1);
 	});
 
 	it('names each control from its shared i18n key, for the screen reader AND the tooltip', () => {
@@ -237,6 +246,77 @@ describe('show toolbar auto-hide', () => {
 		expect(PRESENT_TOOLBAR_VIEW.wrapper).toContain('transition-opacity');
 		expect(source).toContain("'[style.opacity]'");
 		expect(source).toContain("'[style.pointer-events]'");
+	});
+});
+
+describe('blackboard toggle wiring', () => {
+	/** Drive one press and capture what reached the two services. */
+	function press(
+		blackout: PresentationBlackout,
+		tool: PresentationPointerTool,
+	): { blackouts: PresentationBlackout[]; tools: PresentationPointerTool[] } {
+		const blackouts: PresentationBlackout[] = [];
+		const tools: PresentationPointerTool[] = [];
+		runBlackboardToggle({
+			blackout,
+			tool,
+			setBlackout: (value) => blackouts.push(value),
+			setTool: (value) => tools.push(value),
+		});
+		return { blackouts, tools };
+	}
+
+	it('arms the black screen and the pen together from an idle show', () => {
+		expect(press('none', 'none')).toStrictEqual({ blackouts: ['black'], tools: ['pen'] });
+	});
+
+	it('completes a partial state (blackout up, eraser armed) instead of tearing it down', () => {
+		expect(press('black', 'eraser')).toStrictEqual({ blackouts: ['black'], tools: ['pen'] });
+	});
+
+	it('never calls the toggling setTool with an already-armed pen (which would disarm it)', () => {
+		// setTool has PowerPoint toggle semantics: setTool('pen') while the pen is
+		// armed would disarm it, so the helper must skip the call entirely.
+		expect(press('none', 'pen')).toStrictEqual({ blackouts: ['black'], tools: [] });
+	});
+
+	it('disarms both from the active blackboard state', () => {
+		expect(press('black', 'pen')).toStrictEqual({ blackouts: ['none'], tools: ['none'] });
+	});
+
+	it('routes the control through the shared state helpers in the template', () => {
+		expect(controlMarkup('blackboard')).toContain('[class]="ui.toggleClass(blackboardActive())"');
+		expect(source).toContain('isBlackboardActive(');
+		expect(source).toContain('runBlackboardToggle(');
+	});
+});
+
+describe('blackboard layering (ink above the blackout sheet)', () => {
+	it('stamps the e2e contract attributes on the overlay and the blank', () => {
+		expect(overlaySource).toContain('data-pptx-annotation-overlay');
+		expect(overlaySource).toContain('data-pptx-blackout');
+	});
+
+	it('binds the annotation overlay z-index to the shared blackboard decision', () => {
+		expect(overlaySource).toContain('[style.z-index]="annotationOverlayZ()"');
+		expect(overlaySource).toContain('annotationOverlayZIndex(');
+	});
+
+	it('centres the stage numerically, never with a transform (a stacking-context trap)', () => {
+		// A transform on the stage container makes it a stacking context, which
+		// pins every z-index inside it BELOW the sibling z-75 blackout sheet: the
+		// exact bug that painted blackboard ink invisibly under the black screen.
+		// (The quoted form matches only a TS style record; the laser dot's CSS
+		// transform is unrelated and stays.)
+		expect(overlaySource).not.toContain("transform: 'translate(-50%, -50%)'");
+		expect(overlaySource).toContain('presentationStageStyle(');
+
+		const style = presentationStageStyle({ width: 1280, height: 720 }, 0.5, 1000, 800);
+		expect(style['transform']).toBeUndefined();
+		expect(style['left']).toBe('180px');
+		expect(style['top']).toBe('220px');
+		expect(style['width']).toBe('640px');
+		expect(style['height']).toBe('360px');
 	});
 });
 

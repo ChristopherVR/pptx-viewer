@@ -2,12 +2,16 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxSlideTransition,
-	PptxChartType,
 	TextStyle,
 	PptxCustomShow,
 	ShapeStyle,
 } from 'pptx-viewer-core';
-import type { AnimationApplyGroup, SlideTemplateId, ToolbarActionId } from 'pptx-viewer-shared';
+import type {
+	AnimationApplyGroup,
+	InsertChartKind,
+	SlideTemplateId,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 
 import type {
 	DrawingTool,
@@ -67,7 +71,7 @@ export interface ToolbarProps {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
-	onAddChart?: (chartType: PptxChartType) => void;
+	onAddChart?: (chartKind: InsertChartKind) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;

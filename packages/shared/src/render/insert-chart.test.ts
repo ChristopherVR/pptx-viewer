@@ -1,26 +1,38 @@
 import { describe, expect, it } from 'vitest';
 
+import { translationsEn } from '../i18n/translations-en';
 import {
 	createDefaultChartElement,
+	DEFAULT_INSERT_CHART_KIND,
 	DEFAULT_INSERT_CHART_TYPE,
 	INSERT_CHART_TYPES,
 } from './insert-chart';
 
 describe('insert-chart', () => {
 	it('exposes the common chart types in the dropdown list', () => {
-		const types = INSERT_CHART_TYPES.map((o) => o.type);
-		expect(types).toContain('bar');
-		expect(types).toContain('line');
-		expect(types).toContain('pie');
-		expect(types).toContain('doughnut');
-		expect(types).toContain('area');
-		expect(types).toContain('scatter');
+		const ids = INSERT_CHART_TYPES.map((o) => o.id);
+		expect(ids).toStrictEqual(['column', 'bar', 'line', 'pie', 'doughnut', 'area', 'scatter']);
 		for (const opt of INSERT_CHART_TYPES) {
 			expect(opt.label.length).toBeGreaterThan(0);
 		}
 	});
 
-	it('defaults to a bar chart type', () => {
+	it('names every entry from a key the dictionary actually defines', () => {
+		const missing = INSERT_CHART_TYPES.filter((opt) => !(opt.labelKey in translationsEn));
+		expect(missing).toStrictEqual([]);
+	});
+
+	it('distinguishes Column (vertical) from Bar (horizontal) over the same family', () => {
+		const column = INSERT_CHART_TYPES.find((opt) => opt.id === 'column');
+		const bar = INSERT_CHART_TYPES.find((opt) => opt.id === 'bar');
+		expect(column?.type).toBe('bar');
+		expect(bar?.type).toBe('bar');
+		expect(column?.barDirection).toBe('col');
+		expect(bar?.barDirection).toBe('bar');
+	});
+
+	it('defaults to the column entry over the bar chart family', () => {
+		expect(DEFAULT_INSERT_CHART_KIND).toBe('column');
 		expect(DEFAULT_INSERT_CHART_TYPE).toBe('bar');
 	});
 
@@ -40,9 +52,21 @@ describe('insert-chart', () => {
 		expect(el.height).toBeGreaterThan(0);
 	});
 
-	it('uses the default chart type when none is supplied', () => {
+	it('uses the default (column) entry when none is supplied', () => {
 		const el = createDefaultChartElement();
-		expect(el.chartData?.chartType).toBe(DEFAULT_INSERT_CHART_TYPE);
+		expect(el.chartData?.chartType).toBe('bar');
+		expect(el.chartData?.barDirection).toBe('col');
+	});
+
+	it('inserting Bar yields a horizontal bar chart', () => {
+		const el = createDefaultChartElement('bar');
+		expect(el.chartData?.chartType).toBe('bar');
+		expect(el.chartData?.barDirection).toBe('bar');
+	});
+
+	it('leaves non-bar families without a bar direction', () => {
+		const el = createDefaultChartElement('pie');
+		expect(el.chartData?.barDirection).toBeUndefined();
 	});
 
 	it('honours position overrides', () => {

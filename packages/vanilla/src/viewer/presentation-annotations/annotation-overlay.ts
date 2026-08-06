@@ -1,9 +1,11 @@
 import {
+	annotationOverlayZIndex,
 	appendPresentationInkPoint,
 	erasePresentationInkAt,
 	presentationInkPath,
 } from 'pptx-viewer-shared';
 import type {
+	PresentationBlackout,
 	PresentationInkPoint,
 	PresentationInkStroke,
 	PresentationPointerTool,
@@ -14,6 +16,12 @@ export interface AnnotationOverlayOptions {
 	slideIndex: number;
 	tool: PresentationPointerTool;
 	color: string;
+	/**
+	 * Current blackout state: decides the overlay's stacking level via the
+	 * shared `annotationOverlayZIndex` rule (above the blackout sheet while the
+	 * screen is blanked, just above the slide otherwise).
+	 */
+	blackout: PresentationBlackout;
 	strokes: readonly PresentationInkStroke[];
 	onChange(strokes: PresentationInkStroke[]): void;
 	onPointerMove?(point: PresentationInkPoint): void;
@@ -57,10 +65,12 @@ export function mountAnnotationOverlay(options: AnnotationOverlayOptions): () =>
 	svg.setAttribute('viewBox', '0 0 100 100');
 	svg.setAttribute('preserveAspectRatio', 'none');
 	svg.setAttribute('aria-label', 'Presentation annotations');
+	// E2E contract: the element carrying the shared annotation-overlay z-index.
+	svg.setAttribute('data-pptx-annotation-overlay', '');
 	Object.assign(svg.style, {
 		position: 'absolute',
 		inset: '0',
-		zIndex: '80',
+		zIndex: String(annotationOverlayZIndex(options.blackout)),
 		width: '100%',
 		height: '100%',
 		cursor: tool === 'laser' ? 'none' : 'crosshair',

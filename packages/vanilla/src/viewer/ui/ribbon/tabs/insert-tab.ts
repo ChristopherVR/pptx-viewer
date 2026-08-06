@@ -59,7 +59,7 @@ export function createInsertTab(
 		icon: 'table',
 		onClick: () => handlers.insert('table'),
 	});
-	const chart = createChartControl(doc, t, (chartType) => handlers.insertChart(chartType));
+	const chart = createChartControl(doc, t, (chartKind) => handlers.insertChart(chartKind));
 	const smartArt = createSmartArtControl(doc, t, (layout, defaultItems) =>
 		handlers.insertSmartArt(layout, defaultItems),
 	);

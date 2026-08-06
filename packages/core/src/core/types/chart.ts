@@ -55,6 +55,18 @@ export type PptxChartType =
 	| 'unknown';
 
 /**
+ * Bar series direction (OOXML `ST_BarDir`): `"col"` is a vertical column
+ * chart, `"bar"` a horizontal bar chart.
+ *
+ * @example
+ * ```ts
+ * const dir: PptxChartBarDirection = "col";
+ * // => "col" - one of: "col" | "bar"
+ * ```
+ */
+export type PptxChartBarDirection = 'col' | 'bar';
+
+/**
  * Supported trendline regression types.
  *
  * @example
@@ -792,6 +804,12 @@ export interface PptxChartData {
 	 * (`c:holeSize/@val`, 10 through 90). Absent uses the renderer default.
 	 */
 	doughnutHoleSize?: number;
+	/**
+	 * Bar series direction (`c:barDir/@val`): `"col"` draws vertical columns,
+	 * `"bar"` draws horizontal bars. Absent means `"col"` (PowerPoint's own
+	 * default), so only horizontal bar charts need to carry the field.
+	 */
+	barDirection?: PptxChartBarDirection;
 	/**
 	 * Bar/column gap between category clusters as a percentage of bar width
 	 * (`c:gapWidth/@val`, 0 through 500). Absent uses the renderer default.

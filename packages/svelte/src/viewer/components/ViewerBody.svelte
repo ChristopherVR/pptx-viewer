@@ -41,6 +41,7 @@
 		onTransitionDone,
 		onAdvance,
 		editingActive,
+		blackout = 'none',
 		controller,
 		onstageresize,
 		onstageholder,
@@ -125,6 +126,7 @@
 				{onTransitionDone}
 				{onAdvance}
 				{editingActive}
+				{blackout}
 				{onstageholder}
 				{collabCursors}
 				{collabPresences}

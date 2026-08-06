@@ -1,5 +1,5 @@
-import type { PptxChartType } from 'pptx-viewer-core';
-import { INSERT_CHART_TYPES, DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
+import { INSERT_CHART_TYPES, DEFAULT_INSERT_CHART_KIND } from 'pptx-viewer-shared';
+import type { InsertChartKind } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,7 +26,7 @@ export interface InsertSectionProps {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
-	onAddChart?: (chartType: PptxChartType) => void;
+	onAddChart?: (chartKind: InsertChartKind) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
@@ -45,7 +45,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 	const [datePickerOpen, setDatePickerOpen] = useState(false);
 	const [datePickerValue, setDatePickerValue] = useState('');
 	const [dateFormat, setDateFormat] = useState('locale');
-	const [newChartType, setNewChartType] = useState<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
+	const [newChartKind, setNewChartKind] = useState<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 	const datePickerRef = useRef<HTMLDivElement>(null);
 	const actionMenuRef = useRef<HTMLDivElement>(null);
 	const fieldMenuRef = useRef<HTMLDivElement>(null);
@@ -179,19 +179,24 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 			{p.onAddChart && (
 				<div className={grp}>
 					<select
-						value={newChartType}
-						onChange={(e) => setNewChartType(e.target.value as PptxChartType)}
+						value={newChartKind}
+						onChange={(e) => {
+							// The option values are exactly the INSERT_CHART_TYPES ids, so
+							// resolve the union member by lookup instead of casting.
+							const kind = INSERT_CHART_TYPES.find((ct) => ct.id === e.target.value)?.id;
+							setNewChartKind(kind ?? DEFAULT_INSERT_CHART_KIND);
+						}}
 						className='bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs'
 						title={t('pptx.ribbon.chartType')}
 					>
 						{INSERT_CHART_TYPES.map((ct) => (
-							<option key={ct.type} value={ct.type} className='bg-background'>
-								{ct.label}
+							<option key={ct.id} value={ct.id} className='bg-background'>
+								{t(ct.labelKey)}
 							</option>
 						))}
 					</select>
 					<button
-						onClick={() => p.onAddChart!(newChartType)}
+						onClick={() => p.onAddChart!(newChartKind)}
 						disabled={!canEdit}
 						className='inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs'
 						title={t('pptx.ribbon.insertChart')}

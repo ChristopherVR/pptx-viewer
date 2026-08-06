@@ -57,6 +57,7 @@ export function createPresentationAnnotationsHost(options: {
 				slideIndex: state.currentSlide,
 				canvasSize: state.canvasSize,
 				pointer: snapshot.pointer,
+				blackout: snapshot.blackout,
 			});
 		},
 		clear: () => controller.clear(),

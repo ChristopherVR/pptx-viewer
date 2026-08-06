@@ -131,7 +131,7 @@ describe('createInsertTab', () => {
 		expect(insertMedia).toHaveBeenCalledOnce();
 	});
 
-	it('inserts the chart type parked in the picker select', () => {
+	it('inserts the chart kind parked in the picker select', () => {
 		const insertChart = vi.fn();
 		const t = createTranslator();
 		const tab = createInsertTab(
@@ -142,8 +142,21 @@ describe('createInsertTab', () => {
 			vi.fn(),
 			vi.fn(),
 		);
+		// The dropdown carries the entry id, not the raw chart family: Column and
+		// Bar are two entries over the same 'bar' type and must stay distinct.
+		const selects = tab.el.querySelectorAll<HTMLSelectElement>('.pptxv-select-button-select');
+		const chartSelect = selects[1];
+		expect([...chartSelect.options].map((option) => option.textContent)).toStrictEqual(
+			INSERT_CHART_TYPES.map((ct) => t(ct.labelKey)),
+		);
 		tab.el.querySelector<HTMLButtonElement>('[aria-label="Chart"]')?.click();
-		expect(insertChart).toHaveBeenCalledWith(INSERT_CHART_TYPES[0].type);
+		expect(insertChart).toHaveBeenCalledWith(INSERT_CHART_TYPES[0].id);
+
+		insertChart.mockClear();
+		const barIndex = INSERT_CHART_TYPES.findIndex((ct) => ct.id === 'bar');
+		chartSelect.value = String(barIndex);
+		tab.el.querySelector<HTMLButtonElement>('[aria-label="Chart"]')?.click();
+		expect(insertChart).toHaveBeenCalledWith('bar');
 	});
 
 	it('opens the Header & Footer dialog', () => {
