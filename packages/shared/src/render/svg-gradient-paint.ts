@@ -274,9 +274,9 @@ function escapeAttr(value: string): string {
 		.replace(/>/gu, '&gt;');
 }
 
-/** Coerces a value to a finite number, for numeric attributes built into markup. */
-function numAttr(value: number): number {
-	return Number.isFinite(value) ? value : 0;
+/** Coerces a value to a finite number and escapes it, for numeric attributes built into markup. */
+function numAttr(value: number): string {
+	return escapeAttr(String(Number.isFinite(value) ? value : 0));
 }
 
 /**
