@@ -22,3 +22,6 @@ export * from './core';
 export * from './services';
 export * from './utils';
 export * from './openxml';
+
+// Legacy PowerPoint 97-2003 (.ppt) import
+export { EncryptedPptError, isLegacyPpt, convertPptToPptx } from './ppt';

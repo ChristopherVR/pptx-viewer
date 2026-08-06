@@ -6,6 +6,7 @@ import type {
 	PptxHandlerLoadOptions,
 	PptxHandlerSaveOptions,
 } from './core';
+import { convertPptToPptx, isLegacyPpt } from './ppt';
 import type {
 	PptxChartData,
 	PptxCompatibilityWarning,
@@ -21,6 +22,7 @@ import type {
 	XmlObject,
 } from './types';
 import { detectFileFormat, EncryptedFileError } from './utils/encryption-detection';
+import { parseOle2 } from './utils/ole2-parser';
 import { decryptPptx, encryptPptx } from './utils/ooxml-crypto';
 import type { EncryptionOptions } from './utils/ooxml-crypto';
 import { applyThemeToData } from './utils/theme-switching';
@@ -369,7 +371,25 @@ export class PptxHandlerCore {
 	public async load(data: ArrayBuffer, options: PptxHandlerLoadOptions = {}): Promise<PptxData> {
 		const detection = detectFileFormat(data);
 
-		if (detection.encrypted) {
+		if (detection.format === 'ole') {
+			// A malformed compound file falls through to the encrypted-OOXML
+			// branch, which produces the historical EncryptedFileError.
+			let ole: ReturnType<typeof parseOle2> | undefined;
+			try {
+				ole = parseOle2(data);
+			} catch {
+				ole = undefined;
+			}
+
+			// A legacy PowerPoint 97-2003 (.ppt) binary presentation: convert
+			// it to an in-memory PPTX package and load that. Editing works as
+			// usual; saving produces a .pptx (like modern PowerPoint does).
+			if (ole && isLegacyPpt(ole)) {
+				const pptxBytes = await convertPptToPptx(ole);
+				return this.runtime.load(pptxBytes, options);
+			}
+
+			// Otherwise the OLE container wraps an encrypted OOXML package.
 			if (!options.password) {
 				throw new EncryptedFileError(
 					'This presentation is encrypted. Provide a password via options.password to open it.',
