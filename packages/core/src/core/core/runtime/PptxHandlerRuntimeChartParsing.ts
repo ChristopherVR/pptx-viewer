@@ -471,9 +471,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				).trim();
 
 			const seriesShapeProperties = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr');
-			const seriesColor = this.parseColor(
-				this.xmlLookupService.getChildByLocalName(seriesShapeProperties, 'solidFill'),
-			);
+			// A series' explicit colour lives at `c:ser/c:spPr/a:solidFill` for area
+			// fills (bar/area/pie/bubble), but line-drawn series (line/scatter/radar/
+			// stock) author it on the outline instead: `c:ser/c:spPr/a:ln/a:solidFill`.
+			// Reading only the direct fill dropped those, so authored line colours
+			// fell back to the render-side palette.
+			const readsLineColor =
+				seriesChartType === 'line' ||
+				seriesChartType === 'line3D' ||
+				seriesChartType === 'scatter' ||
+				seriesChartType === 'radar' ||
+				seriesChartType === 'stock';
+			const seriesColor =
+				this.parseColor(
+					this.xmlLookupService.getChildByLocalName(seriesShapeProperties, 'solidFill'),
+				) ??
+				(readsLineColor
+					? this.parseColor(
+							this.xmlLookupService.getChildByLocalName(
+								this.xmlLookupService.getChildByLocalName(seriesShapeProperties, 'ln'),
+								'solidFill',
+							),
+						)
+					: undefined);
 
 			const fallbackValues =
 				values.length > 0 ? values : categories.map((_, index) => index + 1 + seriesIndex);
