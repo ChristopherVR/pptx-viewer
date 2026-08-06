@@ -15,6 +15,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties, hasShapeProperties } from 'pptx-viewer-core';
 
 import { parseHexColor, lerpColor } from './morph-color';
+import { flattenMorphElements } from './morph-flatten';
 import { generateGeometryMorphAnimation } from './morph-geometry-keyframes';
 import { matchMorphElementsFull } from './morph-matching';
 import { tokenizeText } from './morph-text';
@@ -200,6 +201,84 @@ export function isInertMorphPair(fromElement: PptxElement, toElement: PptxElemen
 	);
 }
 
+// ---------------------------------------------------------------------------
+// Which outgoing shapes the overlay has to paint
+// ---------------------------------------------------------------------------
+
+/** Axis-aligned box, used only to ask whether one ghost can hide another. */
+interface MorphBox {
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
+}
+
+/** The area a shape occupies over the whole morph (start box union end box). */
+function travelledBox(from: PptxElement, to?: PptxElement): MorphBox {
+	const boxes = to ? [from, to] : [from];
+	return {
+		left: Math.min(...boxes.map((element) => element.x)),
+		top: Math.min(...boxes.map((element) => element.y)),
+		right: Math.max(...boxes.map((element) => element.x + element.width)),
+		bottom: Math.max(...boxes.map((element) => element.y + element.height)),
+	};
+}
+
+function boxesOverlap(a: MorphBox, b: MorphBox): boolean {
+	return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+}
+
+/**
+ * The outgoing shapes the transition overlay actually has to paint.
+ *
+ * The overlay is one flat layer ABOVE the live stage, so everything it paints
+ * hides whatever the incoming slide is doing underneath - including the shapes
+ * that only exist on the incoming slide and are dissolving IN. A ghost is
+ * therefore only worth that cost when it shows something the live stage cannot:
+ *
+ * - a shape with **no counterpart** has nowhere else to be drawn;
+ * - a pair whose **appearance changed** has to dissolve its old look away, and
+ *   the live element underneath is already wearing the new one;
+ * - a pair that merely moved (or did not move at all) is drawn identically by
+ *   its live counterpart, which travels the very same path - the ghost is a
+ *   duplicate, and an opaque one.
+ *
+ * The last kind is kept in exactly one case: when something painted BELOW it is
+ * itself dissolving, whatever is left out of the overlay would be seen through
+ * that dissolve instead of over it. That is the issue #131 case (a full-slide
+ * backdrop crossfading between two photos, with the wheel drawn over it) and it
+ * still gets a full set of ghosts. When the backdrop is UNCHANGED, as it is on
+ * every jump into this deck's detail slides, nothing needs protecting and the
+ * backdrop ghost is dropped - which is what stopped the incoming callouts from
+ * appearing at all until the overlay was torn down (issue #144).
+ *
+ * @param outgoingElements - The outgoing slide, flattened, in document order.
+ * @param pairs - The matched pairs; anything not in here has no counterpart.
+ * @returns The ids of the outgoing elements to paint, in the same order.
+ */
+export function resolveMorphGhostIds(
+	outgoingElements: PptxElement[],
+	pairs: MorphPair[],
+): Set<string> {
+	const counterparts = new Map(pairs.map((pair) => [pair.fromElement.id, pair.toElement]));
+	const painted = new Set<string>();
+	const paintedBoxes: MorphBox[] = [];
+
+	for (const element of outgoingElements) {
+		const counterpart = counterparts.get(element.id);
+		const box = travelledBox(element, counterpart);
+		const required =
+			!counterpart ||
+			morphPairNeedsCrossfade(element, counterpart) ||
+			paintedBoxes.some((below) => boxesOverlap(below, box));
+		if (required) {
+			painted.add(element.id);
+			paintedBoxes.push(box);
+		}
+	}
+	return painted;
+}
+
 /**
  * Whether a crossfading pair's INCOMING half may fade in over its ghost.
  *
@@ -253,17 +332,30 @@ function crossfadeIncomingMayFadeIn(element: PptxElement): boolean {
  * @param pairs - Matched element pairs from the morph matching pass.
  * @param durationMs - Animation duration in milliseconds.
  * @param _mode - Morph granularity mode (reserved for future use in this function).
+ * @param ghostIds - Outgoing ids the overlay will paint (see
+ *   {@link resolveMorphGhostIds}). A pair whose ghost is NOT painted has no
+ *   stand-in above it, so this half must stay visible. Defaults to "all", the
+ *   behaviour before the ghost set existed.
  * @returns An array of animation style descriptors for each pair.
  */
 export function generateMorphAnimations(
 	pairs: MorphPair[],
 	durationMs: number,
 	_mode: MorphMode = 'object',
+	ghostIds?: ReadonlySet<string>,
 ): MorphAnimationStyle[] {
 	const animations: MorphAnimationStyle[] = [];
 
 	for (let index = 0; index < pairs.length; index++) {
 		const { fromElement, toElement } = pairs[index];
+		const ghosted = ghostIds?.has(fromElement.id) ?? true;
+		// Nothing moved, nothing changed, and no ghost is painted over it: the
+		// element already looks exactly as it should, for the whole morph. Leaving
+		// it alone (rather than animating it from itself to itself) also keeps it
+		// out of the binding's animation state, so nothing has to unwind at the end.
+		if (!ghosted && isInertMorphPair(fromElement, toElement)) {
+			continue;
+		}
 		const safeName = `pptx-morph-${index}-${toElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
 
 		// Position and geometry interpolation. Deltas are CENTRE to centre:
@@ -295,18 +387,17 @@ export function generateMorphAnimations(
 			toElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
 
-		// An INERT pair is painted twice: its ghost is a pixel-identical copy
-		// sitting in the overlay directly above it. For an opaque element that is
-		// invisible, but a PART-TRANSPARENT one composites with itself and reads
-		// noticeably more solid for the whole transition, then snaps back when the
-		// overlay is torn down - "opacity animating on elements that should be
-		// unchanged" (issue #131). The ghost cannot simply be dropped instead:
-		// the overlay is one flat layer, and every transition in that deck opens
-		// with a full-slide backdrop ghost that IS fading, so anything left out of
-		// the overlay would be veiled by it. Hold this half hidden and let the
+		// A GHOSTED inert pair is painted twice: its ghost is a pixel-identical
+		// copy sitting in the overlay directly above it. For an opaque element
+		// that is invisible, but a PART-TRANSPARENT one composites with itself and
+		// reads noticeably more solid for the whole transition, then snaps back
+		// when the overlay is torn down - "opacity animating on elements that
+		// should be unchanged" (issue #131). Hold this half hidden and let the
 		// ghost be the single visible copy; both are removed together when the
-		// plan ends, so the element reappears in the same frame.
-		const inert = isInertMorphPair(fromElement, toElement);
+		// plan ends, so the element reappears in the same frame. Where the ghost
+		// was dropped as redundant (see `resolveMorphGhostIds`) this half IS the
+		// single copy and the loop above has already skipped it.
+		const inert = ghosted && isInertMorphPair(fromElement, toElement);
 		// A restyled pair dissolves via its outgoing GHOST, which fades 1 -> 0 in
 		// the overlay above this element. Only a body-less element (a text box on
 		// `noFill`) may fade IN underneath it - see `crossfadeIncomingMayFadeIn`.
@@ -385,16 +476,23 @@ ${toProps.join('\n')}
  * @param pairs - Matched pairs.
  * @param durationMs - Animation duration in milliseconds.
  * @param startIndex - Index offset for unique keyframe naming.
+ * @param ghostIds - Outgoing ids the overlay will paint (see
+ *   {@link resolveMorphGhostIds}); pairs outside it get no ghost. Defaults to
+ *   "all", the behaviour before the ghost set existed.
  * @returns Ghost animation descriptors keyed by the OUTGOING element id.
  */
 export function generateMorphGhostAnimations(
 	pairs: MorphPair[],
 	durationMs: number,
 	startIndex: number,
+	ghostIds?: ReadonlySet<string>,
 ): MorphAnimationStyle[] {
 	const animations: MorphAnimationStyle[] = [];
 	for (let index = 0; index < pairs.length; index++) {
 		const { fromElement, toElement } = pairs[index];
+		if (ghostIds && !ghostIds.has(fromElement.id)) {
+			continue;
+		}
 		const fadesOut = morphPairNeedsCrossfade(fromElement, toElement);
 		const safeName = `pptx-morph-ghost-${startIndex + index}-${fromElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
 		const dx = toElement.x + toElement.width / 2 - (fromElement.x + fromElement.width / 2);
@@ -640,8 +738,17 @@ export function generateFullMorphTransition(
 	const matchResult = matchMorphElementsFull(fromSlide, toSlide);
 	const allAnimations: MorphAnimationStyle[] = [];
 
+	// Decide up front which outgoing shapes the overlay will paint: both halves
+	// of a pair have to agree on it, since a hidden live element with no ghost
+	// above it is an invisible shape, and a ghost with a visible element under it
+	// is a double exposure.
+	const ghostIds = resolveMorphGhostIds(
+		flattenMorphElements(fromSlide.elements, toSlide.elements),
+		matchResult.pairs,
+	);
+
 	// Generate main element morph animations
-	const pairAnims = generateMorphAnimations(matchResult.pairs, durationMs, mode);
+	const pairAnims = generateMorphAnimations(matchResult.pairs, durationMs, mode, ghostIds);
 	allAnimations.push(...pairAnims);
 
 	// Shape-geometry morph: for matched pairs whose shape outline changes
@@ -666,7 +773,12 @@ export function generateFullMorphTransition(
 	}
 
 	// Outgoing half of every restyled pair's crossfade.
-	const ghosts = generateMorphGhostAnimations(matchResult.pairs, durationMs, pairAnims.length);
+	const ghosts = generateMorphGhostAnimations(
+		matchResult.pairs,
+		durationMs,
+		pairAnims.length,
+		ghostIds,
+	);
 	allAnimations.push(...ghosts);
 
 	// Generate fade-out for unmatched from elements

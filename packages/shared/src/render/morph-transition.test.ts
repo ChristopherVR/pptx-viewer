@@ -1413,8 +1413,21 @@ describe('generateFullMorphTransition', () => {
 			makeElement({ id: 'only-to', type: 'image', x: 300, y: 300 }),
 		]);
 		const anims = generateFullMorphTransition(from, to, 800, 'object');
-		// Should have: 1 pair animation + its outgoing ghost + 1 fade-out + 1 fade-in
-		expect(anims).toHaveLength(4);
+		// Should have: 1 pair animation + 1 fade-out + 1 fade-in. The pair only
+		// MOVED, so its ghost would draw exactly what the incoming half already
+		// draws along the same path, and gets dropped (issue #144).
+		expect(anims).toHaveLength(3);
+		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(0);
+	});
+
+	it('ghosts a pair whose appearance changed, so the old look can dissolve', () => {
+		const from = makeSlide([
+			makeElement({ id: 'a', type: 'shape', x: 0, y: 0, shapeStyle: { fillColor: '#FF0000' } }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'a', type: 'shape', x: 100, y: 100, shapeStyle: { fillColor: '#00FF00' } }),
+		]);
+		const anims = generateFullMorphTransition(from, to, 800, 'object');
 		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(1);
 	});
 
@@ -1493,10 +1506,10 @@ describe('generateFullMorphTransition', () => {
 		const from = makeSlide([makeElement({ id: 'a', type: 'shape', x: 0, y: 0 })]);
 		const to = makeSlide([makeElement({ id: 'a', type: 'shape', x: 100, y: 100 })]);
 		const anims = generateFullMorphTransition(from, to, 500);
-		// Object mode: the pair's incoming animation + its outgoing ghost, and no
-		// text animations.
-		expect(anims).toHaveLength(2);
-		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(1);
+		// Object mode: the pair's incoming animation and nothing else - no ghost
+		// (the pair only moved) and no text animations.
+		expect(anims).toHaveLength(1);
+		expect(anims.filter((a) => a.keyframes.includes('ghost'))).toHaveLength(0);
 	});
 });
 

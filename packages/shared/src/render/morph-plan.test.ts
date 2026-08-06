@@ -57,17 +57,15 @@ describe('buildMorphTransitionPlan', () => {
 		expect(plan?.keyframesCss).toContain('translate(0, 0)');
 	});
 
-	it('paints the whole outgoing slide in the overlay, in document order', () => {
-		// The overlay is one flat layer above the live stage, so it has to carry
-		// every outgoing element (not just the departing ones) or a crossfading
-		// backdrop hides the shapes left out of it. Order is the slide's own, so
-		// the copy keeps its z-stacking.
+	it('paints the departing shapes in the overlay, in document order', () => {
+		// The overlay carries what the live stage cannot draw for itself. Order is
+		// the outgoing slide's own, so the copy keeps its z-stacking.
 		const from = slide('a', [shape('a-1', 'Title', 0, 0), shape('a-2', 'Leaving', 10, 10)]);
 		const to = slide('b', [shape('b-1', 'Title', 200, 100)]);
 
 		const plan = buildMorphTransitionPlan(from, to, 500);
 
-		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-1', 'a-2']);
+		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-2']);
 		for (const element of plan?.outgoingElements ?? []) {
 			expect(plan?.outgoingAnimations.has(element.id)).toBeTruthy();
 			// An outgoing element must never be attached to the incoming slide.
@@ -75,9 +73,36 @@ describe('buildMorphTransitionPlan', () => {
 		}
 	});
 
-	it('glides a matched outgoing half onto its counterpart', () => {
-		const from = slide('a', [shape('a-1', 'Title', 0, 0)]);
-		const to = slide('b', [shape('b-1', 'Title', 200, 100)]);
+	it('keeps a ghost that a dissolving shape below it would otherwise show through', () => {
+		// A full-slide backdrop whose PICTURE changes has to dissolve, and the
+		// overlay is one flat layer above the live stage: every shape drawn over
+		// that backdrop needs its own ghost or it is seen through the dissolve
+		// instead of over it (issue #131).
+		const backdrop = (id: string, image: string): PptxElement =>
+			({
+				id,
+				name: '!!Background',
+				type: 'picture',
+				x: 0,
+				y: 0,
+				width: 1280,
+				height: 720,
+				imagePath: image,
+			}) as PptxElement;
+		const from = slide('a', [backdrop('a-0', 'one.png'), shape('a-1', 'Title', 100, 100)]);
+		const to = slide('b', [backdrop('b-0', 'two.png'), shape('b-1', 'Title', 100, 100)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+
+		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-0', 'a-1']);
+		expect(plan?.outgoingAnimations.get('a-0')).toContain('pptx-morph-ghost-');
+	});
+
+	it('glides a restyled outgoing half onto its counterpart', () => {
+		const restyled = (id: string, fill: string, x: number): PptxElement =>
+			({ ...shape(id, 'Title', x, x / 2), shapeStyle: { fillColor: fill } }) as PptxElement;
+		const from = slide('a', [restyled('a-1', '#FF0000', 0)]);
+		const to = slide('b', [restyled('b-1', '#00FF00', 200)]);
 
 		const plan = buildMorphTransitionPlan(from, to, 500);
 
@@ -94,7 +119,11 @@ describe('buildMorphTransitionPlan', () => {
 		const plan = buildMorphTransitionPlan(from, to, 500);
 
 		expect(plan?.incomingAnimations.has('b-2')).toBeTruthy();
-		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-1']);
+		// `a-1` did not move and did not change, so the live stage already draws
+		// it: ghosting it would only hide `b-2` dissolving in underneath (issue
+		// #144 - a detail slide's callouts never appeared until the overlay came
+		// down).
+		expect(plan?.outgoingElements).toStrictEqual([]);
 	});
 
 	it('emits one keyframes block per animation it hands out', () => {

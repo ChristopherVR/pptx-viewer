@@ -55,6 +55,10 @@ export interface MorphTransitionPlan {
 	 * carries an entry in {@link MorphTransitionPlan.outgoingAnimations}: it
 	 * either fades out in place (no counterpart) or glides onto its counterpart,
 	 * dissolving into it when the appearance changed.
+	 *
+	 * This is a SUBSET of the outgoing slide: a shape the live stage already
+	 * draws identically is left out, because the overlay is opaque above it and
+	 * would hide the incoming slide's own arrivals. See `resolveMorphGhostIds`.
 	 */
 	outgoingElements: PptxElement[];
 	/** Animation duration in ms, echoed for convenience. */
@@ -123,8 +127,8 @@ export function buildMorphTransitionPlan(
 	// children's ids. Painting the undecomposed group here instead would paint
 	// the children twice over - once inside the group, once as their own ghosts
 	// - and leave the group itself without an animation.
-	const outgoingElements = flattenMorphElements(fromSlide.elements, toSlide.elements);
-	const outgoingIds = new Set(outgoingElements.map((element) => element.id));
+	const flattenedOutgoing = flattenMorphElements(fromSlide.elements, toSlide.elements);
+	const outgoingIds = new Set(flattenedOutgoing.map((element) => element.id));
 
 	const incomingAnimations = new Map<string, string>();
 	const outgoingAnimations = new Map<string, string>();
@@ -138,6 +142,16 @@ export function buildMorphTransitionPlan(
 			incomingAnimations.set(animation.elementId, animation.animation);
 		}
 	}
+
+	// An outgoing shape with no animation is one whose ghost the engine dropped
+	// as redundant: its live counterpart draws the same thing along the same
+	// path, so painting it again in the overlay would only hide what is arriving
+	// beneath it (issue #144 - the detail slide's callouts never appeared until
+	// the overlay came down). Deriving the list from the animations keeps this
+	// decision in one place, `resolveMorphGhostIds`.
+	const outgoingElements = flattenedOutgoing.filter((element) =>
+		outgoingAnimations.has(element.id),
+	);
 
 	return {
 		keyframesCss: keyframes.join('\n'),

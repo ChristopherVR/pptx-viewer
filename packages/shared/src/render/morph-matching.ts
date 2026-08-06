@@ -23,6 +23,32 @@ import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 // importing this one back (a cycle that breaks once the graph is bundled).
 export { getElementMorphName } from './morph-name';
 
+/** Depth cap for the recursive text read; real decks never nest this far. */
+const TEXT_MAX_DEPTH = 8;
+
+/**
+ * Everything an element WRITES, including the text of its descendants.
+ *
+ * A group paints nothing itself - all of its words live in its children - so
+ * reading only `element.text` reports every group as wordless and lets two
+ * groups with nothing in common look interchangeable (issue #144: a wheel
+ * slide's centre panel paired with a detail slide's callout box and glided
+ * across the slide, "drifting text"). The same recursion is why
+ * `appearanceSignature` descends into children.
+ */
+function elementText(element: PptxElement, depth = 0): string {
+	const own = (element as { text?: string }).text ?? '';
+	const children = (element as { children?: PptxElement[] }).children;
+	if (!children || depth >= TEXT_MAX_DEPTH) {
+		return own;
+	}
+	let text = own;
+	for (const child of children) {
+		text += ` ${elementText(child, depth + 1)}`;
+	}
+	return text;
+}
+
 /**
  * Whether two elements both carry text, and carry DIFFERENT text.
  *
@@ -32,10 +58,32 @@ export { getElementMorphName } from './morph-name';
  */
 function differentText(a: PptxElement, b: PptxElement): boolean {
 	const textOf = (element: PptxElement): string =>
-		((element as { text?: string }).text ?? '').replace(/\s+/gu, ' ').trim();
+		elementText(element).replace(/\s+/gu, ' ').trim();
 	const fromText = textOf(a);
 	const toText = textOf(b);
 	return fromText !== '' && toText !== '' && fromText !== toText;
+}
+
+/**
+ * Whether both elements carry an explicit `!!` morph name and those names
+ * DIFFER.
+ *
+ * The `!!` prefix is the author telling PowerPoint which shapes are the same
+ * object across slides, so two different `!!` names are a statement that these
+ * two are NOT (pass 1 already paired every side that agreed). Letting such a
+ * pair fall through to a weaker signal is how an off-canvas 100x74 rect named
+ * `!!D` came to be paired with a detail slide's `!!Breakdgsdfgdfsg` header
+ * chip 247px away, flying an empty grey box in from off-stage - the
+ * "mystery box" of issue #144. Mirrors the `a16:creationId` rule in pass 2b:
+ * evidence of identity that disagrees is evidence of difference.
+ */
+function conflictingMorphNames(a: PptxElement, b: PptxElement): boolean {
+	const fromName = getElementMorphName(a);
+	if (!fromName) {
+		return false;
+	}
+	const toName = getElementMorphName(b);
+	return Boolean(toName) && toName !== fromName;
 }
 // ---------------------------------------------------------------------------
 // Creation identity (`a16:creationId`)
@@ -216,6 +264,9 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 				if (creationIdOf(fromEl) && creationIdOf(toEl)) {
 					continue;
 				}
+				if (conflictingMorphNames(fromEl, toEl)) {
+					continue;
+				}
 				pairs.push({ fromElement: fromEl, toElement: toEl });
 				usedFrom.add(fromEl.id);
 				usedTo.add(toEl.id);
@@ -263,6 +314,11 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 			// (pass 2a) or its `!!` name (pass 1) and never reaches this pass, so
 			// gating here costs a real morph nothing.
 			if (differentText(fromEl, toEl)) {
+				continue;
+			}
+			// An explicit `!!` name that disagrees is the author saying these are
+			// two different objects; proximity must not overrule it.
+			if (conflictingMorphNames(fromEl, toEl)) {
 				continue;
 			}
 			const widthRatio =

@@ -904,14 +904,26 @@ describe('edge cases', () => {
 		expect(pairs[0].toElement.id).toBe('b');
 	});
 
-	it('does not match when !! names differ', () => {
+	it('does not match when !! names differ, not even by proximity', () => {
 		const from = makeSlide([makeElement({ id: 'a', type: 'shape', name: '!!alpha', x: 0, y: 0 })]);
 		const to = makeSlide([makeElement({ id: 'b', type: 'shape', name: '!!beta', x: 10, y: 10 })]);
+		// Two DIFFERENT `!!` names are the author saying these are two different
+		// objects, so the weaker passes must not overrule it (issue #144: an
+		// off-canvas `!!D` rect paired with a header chip named `!!Break…` and
+		// flew an empty grey box in from off-stage).
+		expect(matchMorphElements(from, to)).toHaveLength(0);
+	});
+
+	it('still pairs by proximity when only one side carries a !! name', () => {
+		// One-sided naming is not a statement about the other shape, so the
+		// automatic passes stay in play - which is what PowerPoint does when it
+		// finds no `!!` counterpart.
+		const from = makeSlide([makeElement({ id: 'a', type: 'shape', name: '!!alpha', x: 0, y: 0 })]);
+		const to = makeSlide([
+			makeElement({ id: 'b', type: 'shape', name: 'Rectangle 1', x: 10, y: 10 }),
+		]);
 		const pairs = matchMorphElements(from, to);
-		// !! names differ, so no !! match. Fall through to proximity match.
 		expect(pairs).toHaveLength(1);
-		// Matched by proximity since both are shapes within threshold
-		expect(pairs[0].fromElement.id).toBe('a');
 		expect(pairs[0].toElement.id).toBe('b');
 	});
 });
@@ -972,5 +984,46 @@ describe('proximity matching of text elements', () => {
 			makeSlide([makeElement({ id: 'b', type: 'shape', x: 505, y: 305 })]),
 		);
 		expect(result.pairs).toHaveLength(1);
+	});
+
+	it('reads the words of a group from its children before pairing it', () => {
+		// A group paints nothing itself, so comparing only its own (empty) text
+		// made every group look wordless and interchangeable: issue #144's wheel
+		// slide had its centre panel paired with the detail slide's callout box
+		// and the old wording glided across the slide ("drifting text").
+		const group = (id: string, words: string, box: Partial<PptxElement>): PptxElement =>
+			makeElement({
+				id,
+				type: 'group',
+				width: 220,
+				height: 100,
+				...box,
+				children: [makeElement({ id: `${id}-child`, type: 'text', text: words })],
+			} as Partial<PptxElement>);
+
+		const result = matchMorphElementsFull(
+			makeSlide([group('a', 'Secure Data Movement', { x: 533, y: 285 })]),
+			makeSlide([group('b', 'Possumus continer', { x: 717, y: 283 })]),
+		);
+		expect(result.pairs).toHaveLength(0);
+		expect(result.unmatchedFrom).toHaveLength(1);
+		expect(result.unmatchedTo).toHaveLength(1);
+	});
+
+	it('still pairs two groups reading the same, in the same place', () => {
+		const group = (id: string, x: number): PptxElement =>
+			makeElement({
+				id,
+				type: 'group',
+				x,
+				y: 285,
+				width: 220,
+				height: 100,
+				children: [makeElement({ id: `${id}-child`, type: 'text', text: 'Same words' })],
+			} as Partial<PptxElement>);
+
+		expect(
+			matchMorphElementsFull(makeSlide([group('a', 533)]), makeSlide([group('b', 553)])).pairs,
+		).toHaveLength(1);
 	});
 });
