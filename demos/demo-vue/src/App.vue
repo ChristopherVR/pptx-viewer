@@ -407,7 +407,7 @@ async function newPresentation(): Promise<void> {
 function onDrop(e: DragEvent): void {
 	e.preventDefault();
 	const file = e.dataTransfer?.files?.[0];
-	if (file && (file.name.endsWith('.pptx') || file.name.endsWith('.ppt'))) {
+	if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
 		loadFile(file);
 	}
 }
@@ -503,7 +503,7 @@ function onZoneClick(e: MouseEvent): void {
 				id="file-input"
 				ref="fileInput"
 				type="file"
-				accept=".pptx,.ppt"
+				accept=".pptx,.ppt,.json"
 				:aria-label="t('demo.dropzone.uploadAriaLabel')"
 				class="sr-only"
 				@change="onInputChange"

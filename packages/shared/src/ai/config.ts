@@ -41,6 +41,7 @@ export type PptxAiToolName =
 	| 'get_presentation_properties'
 	| 'run_accessibility_check'
 	| 'convert_to_markdown'
+	| 'export_to_json'
 	// ── MCP element editing ──
 	| 'add_element'
 	| 'update_element'
@@ -83,6 +84,7 @@ export type PptxAiToolName =
 	| 'update_metadata'
 	| 'manage_sections'
 	| 'update_presentation_properties'
+	| 'import_from_json'
 	| 'apply_layout';
 
 type Resolvable<T> = T | (() => T | Promise<T>);

@@ -8,4 +8,5 @@ export { normalizePath, getDirectory, deriveOutputPath } from './base';
 export { MediaContext, dataUrlToMediaBytes, generateMediaFilename } from './media-context';
 export { SvgExporter } from './SvgExporter';
 export type { SvgExportOptions } from './SvgExporter';
+export * from './json';
 export type { FileSystemAdapter, ConversionOptions, ConversionResult } from './types';

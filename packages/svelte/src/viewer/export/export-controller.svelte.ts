@@ -1,6 +1,11 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxData, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { downloadBlob, downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
+import {
+	downloadBlob,
+	downloadDataUrl,
+	exportAbortError,
+	exportDeckJson,
+} from 'pptx-viewer-shared';
 
 import type { ExportGifOptions } from './export-gif';
 import { exportSlidesToGifBlob } from './export-gif';
@@ -38,6 +43,10 @@ export interface ExportControllerDeps {
 	openPrintWindow?: OpenPrintWindow;
 	/** Base file name (without extension) for downloads. Defaults to `presentation`. */
 	fileName?: string;
+	/** Live presentation data for the deck-JSON export; undefined before a load. */
+	getDeckData?(): PptxData | undefined;
+	/** Source file name for the deck-JSON download (`deck.pptx` -> `deck.json`). */
+	getFileName?(): string | undefined;
 }
 
 function resolveBaseName(fileName: string | undefined): string {
@@ -115,6 +124,19 @@ export class ExportController {
 		} finally {
 			this.exporting = false;
 		}
+	}
+
+	/**
+	 * Serialize the live deck to `pptx-viewer-json` and trigger the download.
+	 * Pure data serialization (shared `exportDeckJson`): synchronous, no
+	 * rasterization pipeline, no progress modal, no `exporting` toggle.
+	 */
+	exportJson(): void {
+		const data = this.#deps.getDeckData?.();
+		if (!data) {
+			return;
+		}
+		exportDeckJson(data, this.#deps.getFileName?.() ?? this.#deps.fileName ?? null);
 	}
 
 	/** Export every slide as a multi-page PDF download (one slide per page). */

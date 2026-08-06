@@ -96,6 +96,7 @@ export function createRibbonPropsFixture(overrides: Partial<RibbonProps> = {}): 
 		onExportPdf: noop,
 		onExportVideo: noop,
 		onExportGif: noop,
+		onExportJson: noop,
 		onPackageForSharing: noop,
 		onSaveAsPptx: noop,
 		onSaveAsPpsx: noop,

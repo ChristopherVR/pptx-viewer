@@ -217,6 +217,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onExportPdf: exportHandlers.handleExportPdf,
 		onExportVideo: exportHandlers.handleExportVideo,
 		onExportGif: exportHandlers.handleExportGif,
+		onExportJson: exportHandlers.handleExportJson,
 		onPackageForSharing: exportHandlers.handlePackageForSharing,
 		onOpenFile,
 		onOpenRecentFile,

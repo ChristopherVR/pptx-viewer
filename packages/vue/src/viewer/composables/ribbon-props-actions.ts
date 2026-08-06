@@ -131,6 +131,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onExportPdf: input.onExportPdf,
 		onExportVideo: input.onExportWebm,
 		onExportGif: input.onExportGif,
+		onExportJson: input.onExportJson,
 		onPackageForSharing: () => void input.packageForSharing(),
 		onOpenShareDialog: () => {
 			input.shareOpen.value = true;

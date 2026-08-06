@@ -248,6 +248,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		onExportPdf: o.exporter.onExportPdf,
 		onExportWebm: o.exporter.onExportWebm,
 		onExportGif: o.exporter.onExportGif,
+		onExportJson: o.exporter.onExportJson,
 		downloadAs: o.exporter.downloadAs,
 		packageForSharing: o.exporter.packageForSharing,
 		onCopySlideAsImage: o.exporter.onCopySlideAsImage,

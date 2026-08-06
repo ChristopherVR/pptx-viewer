@@ -69,6 +69,7 @@ export interface ChromeCallbackDeps {
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
+	exportJson(): void;
 	print(): Promise<boolean>;
 	openFile(): void;
 	openRecentFile(key: string): void;
@@ -152,6 +153,7 @@ export function buildChromeCallbacks(
 			exportPdf: () => void deps.exportPdf(),
 			exportGif: () => void deps.exportGif(),
 			exportVideo: () => void deps.exportVideo(),
+			exportJson: () => deps.exportJson(),
 			print: () => void deps.print(),
 		},
 		slideShow: {

@@ -79,6 +79,9 @@ export const translations = {
 	'pptx.backstage.card.video.body': 'Folienanzeigedauer und Animationen als WebM exportieren.',
 	'pptx.backstage.card.gif.title': 'Animiertes GIF erstellen',
 	'pptx.backstage.card.gif.body': 'Eine kompakte Endlosvorschau erstellen.',
+	'pptx.backstage.card.json.title': 'Als JSON exportieren',
+	'pptx.backstage.card.json.body':
+		'Ein portables JSON-Dokument speichern, das sich verlustfrei wieder importieren lässt.',
 	'pptx.backstage.card.copyImage.title': 'Als Bild kopieren',
 	'pptx.backstage.card.copyImage.body': 'Die aktuelle Folie in die Zwischenablage kopieren.',
 	'pptx.backstage.card.print.title': 'Präsentation drucken',

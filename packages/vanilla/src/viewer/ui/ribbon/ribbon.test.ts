@@ -71,6 +71,7 @@ function buildHandlers(): RibbonHandlers {
 			exportPdf: vi.fn(),
 			exportGif: vi.fn(),
 			exportVideo: vi.fn(),
+			exportJson: vi.fn(),
 			print: vi.fn(),
 		},
 		slideShow: {

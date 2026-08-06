@@ -146,6 +146,14 @@ export type {
 	ExportSlideSvgResult,
 } from './export-tools.js';
 
+export { exportToJson, importFromJson } from './json-tools.js';
+export type {
+	ExportToJsonParams,
+	ExportToJsonResult,
+	ImportFromJsonParams,
+	ImportFromJsonResult,
+} from './json-tools.js';
+
 export { manageHyperlinks } from './hyperlink-tools.js';
 export type {
 	ManageHyperlinksParams,

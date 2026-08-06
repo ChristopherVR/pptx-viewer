@@ -20,6 +20,7 @@ function mountFileSection(hiddenActions?: string[]) {
 			onCreatePresentation: () => {},
 			onExportPng: () => {},
 			onExportPdf: () => {},
+			onExportJson: () => {},
 			onExportVideo: () => {},
 			onExportGif: () => {},
 			onPackageForSharing: () => {},

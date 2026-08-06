@@ -180,7 +180,7 @@
 	function onDrop(e: DragEvent): void {
 		e.preventDefault();
 		const file = e.dataTransfer?.files?.[0];
-		if (file && (file.name.endsWith('.pptx') || file.name.endsWith('.ppt'))) {
+		if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
 			openFile(file);
 		}
 	}
@@ -277,7 +277,7 @@
 				id="file-input"
 				bind:this={fileInput}
 				type="file"
-				accept=".pptx,.ppt"
+				accept=".pptx,.ppt,.json"
 				aria-label={t('demo.dropzone.uploadAriaLabel')}
 				class="sr-only"
 				onclick={(e) => e.stopPropagation()}

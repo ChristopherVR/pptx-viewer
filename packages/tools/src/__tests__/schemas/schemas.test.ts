@@ -7,6 +7,7 @@ import {
 	GroupElementsSchema,
 	BatchUpdateElementsSchema,
 } from '../../schemas/element-schemas.js';
+import { ExportToJsonSchema, ImportFromJsonSchema } from '../../schemas/json-schemas.js';
 import {
 	GetSlideSchema,
 	AddSlideSchema,
@@ -530,6 +531,38 @@ describe('content schemas', () => {
 				semanticMode: true,
 			});
 			expect(result.success).toBeTruthy();
+		});
+	});
+
+	describe('exportToJsonSchema', () => {
+		it('accepts minimal input', () => {
+			const result = ExportToJsonSchema.safeParse({ filePath: '/test.pptx' });
+			expect(result.success).toBeTruthy();
+		});
+
+		it('accepts the pretty flag', () => {
+			const result = ExportToJsonSchema.safeParse({ filePath: '/test.pptx', pretty: false });
+			expect(result.success).toBeTruthy();
+		});
+
+		it('rejects missing filePath', () => {
+			const result = ExportToJsonSchema.safeParse({});
+			expect(result.success).toBeFalsy();
+		});
+	});
+
+	describe('importFromJsonSchema', () => {
+		it('accepts valid input', () => {
+			const result = ImportFromJsonSchema.safeParse({
+				filePath: '/test.pptx',
+				json: '{"format":"pptx-viewer-json"}',
+			});
+			expect(result.success).toBeTruthy();
+		});
+
+		it('rejects missing json text', () => {
+			const result = ImportFromJsonSchema.safeParse({ filePath: '/test.pptx' });
+			expect(result.success).toBeFalsy();
 		});
 	});
 });

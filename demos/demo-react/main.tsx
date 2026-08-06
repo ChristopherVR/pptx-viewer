@@ -772,7 +772,7 @@ function App() {
 		(e: React.DragEvent) => {
 			e.preventDefault();
 			const file = e.dataTransfer.files[0];
-			if (file && (file.name.endsWith('.pptx') || file.name.endsWith('.ppt'))) {
+			if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
 				handleFile(file);
 			}
 		},
@@ -937,7 +937,7 @@ function App() {
 				<input
 					type='file'
 					id='file-input'
-					accept='.pptx,.ppt'
+					accept='.pptx,.ppt,.json'
 					aria-label={t('demo.dropzone.uploadAriaLabel')}
 					className='sr-only'
 					ref={fileInputRef}

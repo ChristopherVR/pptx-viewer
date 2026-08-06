@@ -236,6 +236,46 @@ describe('createExportController', () => {
 		expect(rasterizeSlide).toHaveBeenCalledExactlyOnceWith(0);
 	});
 
+	it('exports the deck as a pptx-viewer-json download named after the source file', () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
+		let downloadName = '';
+		let blob: Blob | undefined;
+		const createObjectURL = vi.fn((value: Blob) => {
+			blob = value;
+			return 'blob:deck-json';
+		});
+		Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+		Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+		const orig = document.createElement.bind(document);
+		const spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+			const el = orig(tag) as HTMLElement;
+			if (tag === 'a') {
+				const anchor = el as HTMLAnchorElement;
+				vi.spyOn(anchor, 'click').mockImplementation(() => {});
+				Object.defineProperty(anchor, 'download', {
+					get: () => downloadName,
+					set: (value: string) => {
+						downloadName = value;
+					},
+				});
+			}
+			return el;
+		});
+
+		const { exportJson } = createExportController({
+			store: makeStore(2),
+			rasterizeSlide,
+			fileName: 'My Deck.pptx',
+		});
+		exportJson();
+
+		expect(downloadName).toBe('My Deck.json');
+		expect(blob).toBeDefined();
+		expect(blob?.type).toContain('application/json');
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		spy.mockRestore();
+	});
+
 	it('uses the given base file name (extension stripped) for downloads', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
 		let downloadName = '';

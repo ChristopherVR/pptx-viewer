@@ -376,6 +376,7 @@ function createMockToolbarProps(overrides: Partial<ToolbarProps> = {}): ToolbarP
 		onExportPdf: vi.fn<() => void>(),
 		onExportVideo: vi.fn<() => void>(),
 		onExportGif: vi.fn<() => void>(),
+		onExportJson: vi.fn<() => void>(),
 		onPackageForSharing: vi.fn<() => void>(),
 		onSaveAsPptx: vi.fn<() => void>(),
 		onSaveAsPpsx: vi.fn<() => void>(),
@@ -685,6 +686,7 @@ describe('toolbar - File tab', () => {
 		onExportPdf: vi.fn<() => void>(),
 		onExportVideo: vi.fn<() => void>(),
 		onExportGif: vi.fn<() => void>(),
+		onExportJson: vi.fn<() => void>(),
 		onPackageForSharing: vi.fn<() => void>(),
 		onSaveAsPpsx: vi.fn<() => void>(),
 		onSaveAsPptm: vi.fn<() => void>(),
@@ -731,6 +733,23 @@ describe('toolbar - File tab', () => {
 		expect(html).toContain('role="dialog"');
 		expect(html).toContain('aria-modal="true"');
 		expect(html).toContain('aria-label="Back to presentation"');
+	});
+
+	it('renders the Export as JSON card on the Export backstage page', async () => {
+		const { BackstageCards } = await import('./file-backstage-cards');
+		const onExportJson = vi.fn<() => void>();
+		const props = createFileProps({
+			onExportJson,
+		}) as unknown as import('./file-backstage-parts').FileSectionProps;
+		const html = render(
+			React.createElement(BackstageCards, {
+				page: 'export',
+				props,
+				run: (action?: () => void) => action?.(),
+			}),
+		);
+		expect(html).toContain('Export as JSON');
+		expect(html).toContain('Save a portable JSON document that re-imports with full fidelity.');
 	});
 });
 
@@ -1913,6 +1932,7 @@ function createHiddenActionsFileProps(hiddenActions?: ToolbarActionId[]) {
 		onExportPdf: vi.fn<() => void>(),
 		onExportVideo: vi.fn<() => void>(),
 		onExportGif: vi.fn<() => void>(),
+		onExportJson: vi.fn<() => void>(),
 		onPackageForSharing: vi.fn<() => void>(),
 		onSaveAsPpsx: vi.fn<() => void>(),
 		onSaveAsPptm: vi.fn<() => void>(),

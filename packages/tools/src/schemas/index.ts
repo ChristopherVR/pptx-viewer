@@ -8,6 +8,7 @@ export * from './template-schemas.js';
 export * from './metadata-schemas.js';
 export * from './section-schemas.js';
 export * from './export-schemas.js';
+export * from './json-schemas.js';
 export * from './hyperlink-schemas.js';
 export * from './geometry-schemas.js';
 export * from './lock-schemas.js';

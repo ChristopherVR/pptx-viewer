@@ -1,11 +1,11 @@
 ---
 title: MCP & Tools
-description: pptx-viewer-mcp provides 51 pure PPTX manipulation tools, Zod input schemas, an MCP server, and a Y.Doc collaboration codec - all built on pptx-viewer-core.
+description: pptx-viewer-mcp provides 53 pure PPTX manipulation tools, Zod input schemas, an MCP server, and a Y.Doc collaboration codec - all built on pptx-viewer-core.
 ---
 
 # MCP & Tools
 
-`pptx-viewer-mcp` (source lives in `packages/tools`) provides the tooling for driving PPTX edits from AI agents and collaborative runtimes: **51 pure tool functions**, **Zod schemas** for every tool input, an **MCP server**, and a **Y.Doc collaboration codec**. It is built entirely on top of [`pptx-viewer-core`](/core/).
+`pptx-viewer-mcp` (source lives in `packages/tools`) provides the tooling for driving PPTX edits from AI agents and collaborative runtimes: **53 pure tool functions**, **Zod schemas** for every tool input, an **MCP server**, and a **Y.Doc collaboration codec**. It is built entirely on top of [`pptx-viewer-core`](/core/).
 
 ::: tip Where this fits
 The tools take the [`PptxData` model](/guide/data-model) the core engine produces, mutate it as plain in-memory data, and hand it back. They add no file I/O or framework dependencies of their own - you (or the provided MCP server / execution pipeline) decide how to load and persist.
@@ -25,12 +25,12 @@ The package exposes four import paths:
 
 | Entry point               | Contents                                                                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `pptx-viewer-mcp`         | The 51 tool functions + provider types + execution pipeline (`loadPresentation`, `savePresentation`, `executeToolWithContext`). |
+| `pptx-viewer-mcp`         | The 53 tool functions + provider types + execution pipeline (`loadPresentation`, `savePresentation`, `executeToolWithContext`). |
 | `pptx-viewer-mcp/schemas` | Zod schemas for every tool input.                                                                                               |
 | `pptx-viewer-mcp/codec`   | `PptxCodec` - the Y.Doc ↔ PPTX-bytes codec.                                                                                     |
 | `pptx-viewer-mcp/mcp`     | `createServer()` - programmatic MCP server factory.                                                                             |
 
-## The 51 tool functions
+## The 53 tool functions
 
 Every tool is a **pure function**: it receives a `ToolContext`, returns a `ToolResult`, and performs no file I/O. They are grouped by concern:
 
@@ -46,7 +46,7 @@ Every tool is a **pure function**: it receives a `ToolContext`, returns a `ToolR
 | **Sections**              | 1     | `manageSections`                                                                                                                                                                                           |
 | **Metadata & properties** | 4     | `getMetadata`, `updateMetadata`, `getPresentationProperties`, `updatePresentationProperties`                                                                                                               |
 | **Validation & repair**   | 3     | `runAccessibilityCheck`, `validatePresentation`, `repairPresentation`                                                                                                                                      |
-| **Conversion & export**   | 3     | `convertToMarkdown`, `exportToSvg`, `exportSlideSvg`                                                                                                                                                       |
+| **Conversion & export**   | 5     | `convertToMarkdown`, `exportToSvg`, `exportSlideSvg`, `exportToJson`, `importFromJson`                                                                                                                     |
 
 The package additionally exports `mergePresentationT` and `diffPresentationsT` for merge/diff workflows; those two are plain functions and are not registered on the MCP server.
 
@@ -125,7 +125,7 @@ Run the bundled MCP server so an MCP client (Claude Desktop, Cursor, etc.) can c
 }
 ```
 
-The binary is also installed as **`pptx-tools`** after a global install (`npm i -g pptx-viewer-mcp`). All 51 tools are exposed over stdio under their **snake_case** names - e.g. `get_slide`, `add_slide`, `batch_update_elements`, `convert_to_markdown`. Each MCP tool accepts a `filePath` parameter; the server handles loading and saving internally.
+The binary is also installed as **`pptx-tools`** after a global install (`npm i -g pptx-viewer-mcp`). All 53 tools are exposed over stdio under their **snake_case** names - e.g. `get_slide`, `add_slide`, `batch_update_elements`, `convert_to_markdown`. Each MCP tool accepts a `filePath` parameter; the server handles loading and saving internally.
 
 To embed the server programmatically rather than via the CLI, use the factory from the `/mcp` entry point:
 
@@ -133,7 +133,7 @@ To embed the server programmatically rather than via the CLI, use the factory fr
 import { createServer } from 'pptx-viewer-mcp/mcp';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-const server = createServer(); // McpServer with all 51 tools registered
+const server = createServer(); // McpServer with all 53 tools registered
 await server.connect(new StdioServerTransport());
 ```
 

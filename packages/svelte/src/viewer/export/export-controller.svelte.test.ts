@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxData, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ExportController } from './export-controller.svelte';
@@ -48,6 +48,14 @@ vi.mock(import('./export-video'), async (importOriginal) => ({
 vi.mock(import('./export-print'), async (importOriginal) => ({
 	...(await importOriginal()),
 	printSlides: printSlidesMock,
+}));
+
+// The deck-JSON export is pure serialization in `pptx-viewer-shared`
+// (`exportDeckJson`); mock it so this suite only covers the delegation.
+const { exportDeckJsonMock } = vi.hoisted(() => ({ exportDeckJsonMock: vi.fn() }));
+vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
+	...(await importOriginal()),
+	exportDeckJson: exportDeckJsonMock,
 }));
 
 function fakeCanvas(): HTMLCanvasElement {
@@ -341,6 +349,23 @@ describe('exportController', () => {
 		});
 		await expect(controller.print()).resolves.toBeFalsy();
 		expect(printSlidesMock).not.toHaveBeenCalled();
+	});
+
+	it('exports the deck as JSON via the shared serializer', () => {
+		const data = { slides: [], width: 960, height: 540 } as unknown as PptxData;
+		const controller = make({
+			rasterizeSlide: vi.fn(),
+			getDeckData: () => data,
+			getFileName: () => 'My Deck.pptx',
+		});
+		controller.exportJson();
+		expect(exportDeckJsonMock).toHaveBeenCalledExactlyOnceWith(data, 'My Deck.pptx');
+	});
+
+	it('skips the JSON export when no deck-data accessor is wired', () => {
+		const controller = make({ rasterizeSlide: vi.fn() });
+		controller.exportJson();
+		expect(exportDeckJsonMock).not.toHaveBeenCalled();
 	});
 
 	it('refuses to start a GIF export while another export is running', async () => {

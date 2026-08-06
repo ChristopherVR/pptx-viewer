@@ -280,6 +280,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-export-pdf="props.onExportPdf"
 						:on-export-video="props.onExportVideo"
 						:on-export-gif="props.onExportGif"
+						:on-export-json="props.onExportJson"
 						:on-package-for-sharing="props.onPackageForSharing"
 						:on-save-as-pptx="props.onSaveAsPptx"
 						:on-save-as-ppsx="props.onSaveAsPpsx"

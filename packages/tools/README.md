@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Edit PowerPoint files from an AI agent. It ships a ready-to-run [MCP](https://modelcontextprotocol.io) server that gives an agent 51 PowerPoint editing tools (for example "add a slide" or "replace text"). The same tools are also available as plain functions you can call yourself, along with their Zod input schemas and a codec for real-time collaboration (Y.Doc). The [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine is bundled in, so a single install gives you everything and you never install the core separately.
+Edit PowerPoint files from an AI agent. It ships a ready-to-run [MCP](https://modelcontextprotocol.io) server that gives an agent 53 PowerPoint editing tools (for example "add a slide" or "replace text"). The same tools are also available as plain functions you can call yourself, along with their Zod input schemas and a codec for real-time collaboration (Y.Doc). The [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine is bundled in, so a single install gives you everything and you never install the core separately.
 
 ![An AI agent calling validated MCP tools to edit and save a PowerPoint file](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/mcp-tools.svg)
 
@@ -31,7 +31,7 @@ No clone, no build, no separate core install. Point your MCP client at the publi
 
 That is the entire setup. `npx` downloads `pptx-viewer-mcp` and its bundled `pptx-viewer-core` engine on first run, so there is nothing else to install. Add the config above, restart your client, and the tools are available.
 
-This works in Claude Desktop, Claude Code, Cursor, and any MCP-compatible client. All 51 tools are exposed over stdio in snake_case (for example `add_slide`, `batch_update_elements`). Every tool takes a `filePath` argument and the server handles load and save internally. File access is scoped to a root directory (`PPTX_TOOLS_ROOT`, defaulting to the process working directory) and restricted to `.pptx` and `.ppt` files.
+This works in Claude Desktop, Claude Code, Cursor, and any MCP-compatible client. All 53 tools are exposed over stdio in snake_case (for example `add_slide`, `batch_update_elements`). Every tool takes a `filePath` argument and the server handles load and save internally. File access is scoped to a root directory (`PPTX_TOOLS_ROOT`, defaulting to the process working directory) and restricted to `.pptx` and `.ppt` files.
 
 > If you prefer a global install (`npm i -g pptx-viewer-mcp`), the same server is available as the `pptx-tools` binary. Point `command` at `pptx-tools` with no args.
 
@@ -73,7 +73,7 @@ See [Use as a library](#use-as-a-library) below for the higher-level `executeToo
 
 | Entry point               | Contents                                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `pptx-viewer-mcp`         | 51 tool functions, the `PptxHandler` engine, provider types, and the execution pipeline               |
+| `pptx-viewer-mcp`         | 53 tool functions, the `PptxHandler` engine, provider types, and the execution pipeline               |
 | `pptx-viewer-mcp/schemas` | Zod schemas for every tool input                                                                      |
 | `pptx-viewer-mcp/codec`   | `PptxCodec`, the Y.Doc to PPTX bytes codec                                                            |
 | `pptx-viewer-mcp/mcp`     | The runnable stdio server entry (what `npx pptx-viewer-mcp` executes); importing it starts the server |
@@ -95,7 +95,7 @@ See [Use as a library](#use-as-a-library) below for the higher-level `executeToo
 | Sections & hyperlinks (2) | `manageSections` `manageHyperlinks`                                                                                                                          |
 | Geometry & locking (2)    | `replaceGeometry` `setElementLock`                                                                                                                           |
 | Validation (2)            | `validatePresentation` `repairPresentation`                                                                                                                  |
-| Export & conversion (3)   | `convertToMarkdown` `exportToSvg` `exportSlideSvg`                                                                                                           |
+| Export & conversion (5)   | `convertToMarkdown` `exportToSvg` `exportSlideSvg` `exportToJson` `importFromJson`                                                                           |
 
 ## Use as a library
 

@@ -170,6 +170,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getRootEl: options.getRootEl,
 		getEditable,
 		getFieldContext: fieldContext,
+		getFileName: () => options.getFileName?.(),
 		onnotesupdate: options.onnotesupdate,
 	});
 

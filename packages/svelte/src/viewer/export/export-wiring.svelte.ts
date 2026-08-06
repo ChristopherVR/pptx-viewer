@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxData, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize, FieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
@@ -27,6 +27,10 @@ export interface ExportWiringDeps {
 	 * authored placeholder text, as before.
 	 */
 	getFieldContext?(): FieldSubstitutionContext | undefined;
+	/** Live presentation data for the deck-JSON export; undefined before a load. */
+	getDeckData?(): PptxData | undefined;
+	/** Source file name for the deck-JSON download (`deck.pptx` -> `deck.json`). */
+	getFileName?(): string | undefined;
 }
 
 export interface ExportWiring {
@@ -69,6 +73,8 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 		getCanvasSize: deps.getCanvasSize,
 		getSlides: deps.getSlides,
 		rasterizeSlide: (index) => getRasterizer().rasterizeSlide(index),
+		getDeckData: () => deps.getDeckData?.(),
+		getFileName: () => deps.getFileName?.(),
 	});
 
 	return {

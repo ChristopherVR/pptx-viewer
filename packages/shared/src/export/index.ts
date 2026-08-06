@@ -19,6 +19,8 @@
 // Browser download helpers (object-URL anchor click) + the rich download
 // filename sanitizer. The only DOM-touching helpers in this subtree.
 export * from './download-helpers';
+// Deck-as-JSON (pptx-viewer-json) export: filename derivation + download.
+export * from './deck-json';
 // Canvas -> JPEG byte extraction for PDF embedding.
 export * from './canvas-jpeg';
 export * from './package-readme';

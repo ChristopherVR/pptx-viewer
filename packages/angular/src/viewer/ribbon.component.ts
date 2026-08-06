@@ -114,6 +114,7 @@ import type { RibbonTab } from './ribbon-types';
 					(exportPdf)="exportPdf.emit()"
 					(exportGif)="exportGif.emit()"
 					(exportVideo)="exportVideo.emit()"
+					(exportJson)="exportJson.emit()"
 					(copySlideAsImage)="copySlideAsImage.emit()"
 					(replace)="replace.emit()"
 					(openSmartArtDialog)="openSmartArtDialog.emit()"
@@ -284,6 +285,7 @@ export class RibbonComponent {
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
 	readonly exportVideo = output<void>();
+	readonly exportJson = output<void>();
 	readonly copySlideAsImage = output<void>();
 	readonly replace = output<void>();
 	/** Design/Transitions/Animations tabs want the right-docked Inspector panel opened. */

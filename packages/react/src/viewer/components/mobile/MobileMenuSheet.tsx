@@ -334,6 +334,7 @@ function MobileSectionBody({
 						onExportPdf={p.onExportPdf}
 						onExportVideo={p.onExportVideo}
 						onExportGif={p.onExportGif}
+						onExportJson={p.onExportJson}
 						onPackageForSharing={p.onPackageForSharing}
 						onSaveAsPptx={p.onSaveAsPptx}
 						onSaveAsPpsx={p.onSaveAsPpsx}

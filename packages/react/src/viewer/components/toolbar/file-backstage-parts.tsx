@@ -13,6 +13,7 @@ export interface FileSectionProps {
 	onExportPdf: () => void;
 	onExportVideo: () => void;
 	onExportGif: () => void;
+	onExportJson: () => void;
 	onPackageForSharing: () => void;
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;

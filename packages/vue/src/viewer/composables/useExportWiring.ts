@@ -1,6 +1,6 @@
-import type { PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
+import type { PptxData, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { downloadBlob } from 'pptx-viewer-shared';
+import { downloadBlob, exportDeckJson } from 'pptx-viewer-shared';
 import { computed, nextTick, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -21,6 +21,8 @@ export interface UseExportWiringInput {
 	activeSlideIndex: Ref<number>;
 	saveAs: (format: PptxSaveFormat) => Promise<Uint8Array>;
 	fileName?: () => string | undefined;
+	/** Snapshot the live deck (slides + presentation-level state) for JSON export. */
+	getDeckData: () => PptxData;
 }
 
 export interface UseExportWiringResult {
@@ -35,6 +37,7 @@ export interface UseExportWiringResult {
 	onExportPdf: () => void;
 	onExportGif: () => void;
 	onExportWebm: () => void;
+	onExportJson: () => void;
 	downloadAs: (format: PptxSaveFormat) => Promise<void>;
 	packageForSharing: () => Promise<void>;
 	onCopySlideAsImage: () => Promise<void>;
@@ -94,6 +97,15 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		void exportProgressCtl.runWebm();
 	}
 
+	/** Serialise the live deck to pptx-viewer-json and trigger a browser download. */
+	function onExportJson(): void {
+		try {
+			exportDeckJson(input.getDeckData(), input.fileName?.() ?? null);
+		} catch (err) {
+			console.error('[PowerPointViewer] Export as JSON failed:', err);
+		}
+	}
+
 	/** Serialise to a chosen OpenXML format and trigger a browser download. */
 	async function downloadAs(format: PptxSaveFormat): Promise<void> {
 		try {
@@ -147,6 +159,7 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		onExportPdf,
 		onExportGif,
 		onExportWebm,
+		onExportJson,
 		downloadAs,
 		packageForSharing,
 		onCopySlideAsImage,

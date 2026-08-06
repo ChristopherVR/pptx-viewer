@@ -319,6 +319,12 @@ export interface PptxViewerInstance extends PowerPointViewerAPI {
 	 * `openPrintWindow` that writes into an iframe you own).
 	 */
 	print(options?: PrintOptions): Promise<boolean>;
+	/**
+	 * Serialize the deck to `pptx-viewer-json` and trigger a browser download
+	 * (the File > Export > "Export as JSON" backstage card). Synchronous: the
+	 * JSON is built from the live viewer state, no rasterisation involved.
+	 */
+	exportJson(): void;
 	/** The element-renderer registry in effect (extension point). */
 	getRegistry(): ElementRendererRegistry;
 	/**

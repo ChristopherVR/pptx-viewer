@@ -5,6 +5,7 @@
 	import Clock3 from '@lucide/svelte/icons/clock-3';
 	import Copy from '@lucide/svelte/icons/copy';
 	import FileCode2 from '@lucide/svelte/icons/file-code-2';
+	import FileJson from '@lucide/svelte/icons/file-json';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import Image from '@lucide/svelte/icons/image';
@@ -37,8 +38,8 @@
 	const visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
 	const title = $derived(t(BACKSTAGE_NAV.find((item) => item.id === page)?.labelKey ?? 'pptx.backstage.nav.home'));
 	function run(action?: () => void): void { action?.(); if (action) {onclose();} }
-	const CARD_ICONS: Record<BackstageCardId, Component> = { protect: LockKeyhole, inspect: Info, embedFonts: Type, signatures: BadgeCheck, versionHistory: Clock3, saveAsPptx: FileText, saveAsPpsx: Presentation, saveAsPptm: FileCode2, package: Package, pdf: FileText, png: Image, video: Video, gif: Images, copyImage: Copy, print: Printer, share: Share2, sharePackage: Package };
-	const cardHandlers = $derived<Record<BackstageCardId, (() => void) | undefined>>({ protect: onprotect, inspect: onproperties, embedFonts: onfonts, signatures: onsignatures, versionHistory: onversionhistory, saveAsPptx: ondownload, saveAsPpsx: ondownloadppsx, saveAsPptm: ondownloadpptm, package: onpackage, pdf: () => void exportUi?.runPdf(), png: () => exportUi?.runPng(), video: () => void exportUi?.runVideo(), gif: () => void exportUi?.runGif(), copyImage: () => exportUi?.runCopyImage(), print: onprint, share: onshare, sharePackage: onpackage });
+	const CARD_ICONS: Record<BackstageCardId, Component> = { protect: LockKeyhole, inspect: Info, embedFonts: Type, signatures: BadgeCheck, versionHistory: Clock3, saveAsPptx: FileText, saveAsPpsx: Presentation, saveAsPptm: FileCode2, package: Package, pdf: FileText, png: Image, video: Video, gif: Images, json: FileJson, copyImage: Copy, print: Printer, share: Share2, sharePackage: Package };
+	const cardHandlers = $derived<Record<BackstageCardId, (() => void) | undefined>>({ protect: onprotect, inspect: onproperties, embedFonts: onfonts, signatures: onsignatures, versionHistory: onversionhistory, saveAsPptx: ondownload, saveAsPpsx: ondownloadppsx, saveAsPptm: ondownloadpptm, package: onpackage, pdf: () => void exportUi?.runPdf(), png: () => exportUi?.runPng(), video: () => void exportUi?.runVideo(), gif: () => void exportUi?.runGif(), json: () => void exportUi?.runJson(), copyImage: () => exportUi?.runCopyImage(), print: onprint, share: onshare, sharePackage: onpackage });
 	const cards = $derived(backstageCardsFor(page).filter((card) => card.id !== 'saveAsPptm' || hasMacros));
 	function select(id: BackstagePage): void { if (id === 'close') {onclose();} else if (id === 'save') {run(ondownload);} else if (id === 'options' && onsettings) {run(onsettings);} else {page = id;} }
 </script>

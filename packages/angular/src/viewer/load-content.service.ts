@@ -7,6 +7,7 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxData,
 	PptxElement,
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
@@ -54,6 +55,11 @@ import type { CanvasSize } from '../internal/shared';
 export class LoadContentService {
 	/** Parsed slides (with image Blob URLs patched in). */
 	readonly slides = signal<PptxSlide[]>([]);
+	/**
+	 * The full parsed presentation (slides patched with resolved image data
+	 * URLs), for whole-deck exports such as the `pptx-viewer-json` download.
+	 */
+	readonly parsedData = signal<PptxData | undefined>(undefined);
 	/** Slide canvas size in pixels. */
 	readonly canvasSize = signal<CanvasSize>({
 		width: DEFAULT_CANVAS_WIDTH,
@@ -321,6 +327,7 @@ export class LoadContentService {
 			this.activeBlobUrls = loadBlobUrls;
 			this.handler = newHandler;
 			this.slides.set(nextSlides);
+			this.parsedData.set({ ...parsed, slides: nextSlides });
 			this.mediaDataUrls.set(nextMediaUrls);
 			this.canvasSize.set({
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,

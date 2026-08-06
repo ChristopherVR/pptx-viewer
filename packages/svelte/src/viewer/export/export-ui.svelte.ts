@@ -89,6 +89,19 @@ export class ExportUiState {
 			.catch((err: unknown) => this.#fail('PNG', err));
 	}
 
+	/**
+	 * Export the deck as a `pptx-viewer-json` download (no modal; a pure,
+	 * synchronous serialization with no capture pipeline).
+	 */
+	runJson(): void {
+		try {
+			this.#deps.controller.exportJson();
+			this.#deps.onComplete?.();
+		} catch (err) {
+			this.#fail('JSON', err);
+		}
+	}
+
 	/** Copy the current slide to the system image clipboard. */
 	runCopyImage(): void {
 		this.#deps.controller

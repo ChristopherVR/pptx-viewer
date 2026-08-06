@@ -94,6 +94,8 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		handoutMaster: state.handoutMaster as unknown as Record<string, unknown> | undefined,
 		guides: state.guides,
 		activeSlideIndexForGuides: state.activeSlideIndex,
+		theme: state.theme,
+		canvasSize,
 		password,
 	});
 

@@ -19,7 +19,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { PptxSaveFormat, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
-import { downloadBlob, openPptxFile } from '../internal/shared';
+import { downloadBlob, exportDeckJson, openPptxFile } from '../internal/shared';
 import { ExportService } from './export.service';
 import { LoadContentService } from './load-content.service';
 import { buildSharingPackage } from './package-sharing';
@@ -121,6 +121,23 @@ export class ViewerFileIOService {
 
 	async saveAsPptm(): Promise<void> {
 		await this.saveAs('pptm');
+	}
+
+	/**
+	 * File > Export > Export as JSON: serialise the live deck (templates merged
+	 * back in when editing) to `pptx-viewer-json` and trigger the download.
+	 * `sourceName` (the host `fileName` input) seeds the download filename.
+	 */
+	exportJson(sourceName?: string | null): void {
+		const host = this.requireHost();
+		const data = this.loader.parsedData();
+		if (!data) {
+			return;
+		}
+		const slides = host.canEdit()
+			? buildSaveSlides(host.slides(), host.templateElementsBySlideId())
+			: this.loader.slides();
+		exportDeckJson({ ...data, slides: [...slides] }, sourceName);
 	}
 
 	/** Bundle the presentation and its usage notes in a shareable ZIP archive. */

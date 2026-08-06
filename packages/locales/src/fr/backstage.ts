@@ -80,6 +80,9 @@ export const translations = {
 		'Exportez le minutage des diapositives et les animations au format WebM.',
 	'pptx.backstage.card.gif.title': 'Créer un GIF animé',
 	'pptx.backstage.card.gif.body': 'Créez un aperçu compact en boucle.',
+	'pptx.backstage.card.json.title': 'Exporter en JSON',
+	'pptx.backstage.card.json.body':
+		'Enregistrez un document JSON portable qui se réimporte avec une fidélité totale.',
 	'pptx.backstage.card.copyImage.title': 'Copier comme image',
 	'pptx.backstage.card.copyImage.body': 'Copiez la diapositive active dans le presse-papiers.',
 	'pptx.backstage.card.print.title': 'Imprimer la présentation',

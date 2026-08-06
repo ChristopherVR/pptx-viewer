@@ -49,6 +49,7 @@ const CARD_ICONS: Record<BackstageCardId, string> = {
 	png: 'PNG',
 	video: '▶',
 	gif: 'GIF',
+	json: '{}',
 	copyImage: '▣',
 	print: '▧',
 	share: '◇',
@@ -99,6 +100,7 @@ export class RibbonFileSectionComponent {
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
 	readonly exportVideo = output<void>();
+	readonly exportJson = output<void>();
 	readonly copySlideAsImage = output<void>();
 	readonly print = output<void>();
 	readonly info = output<void>();
@@ -200,6 +202,7 @@ export class RibbonFileSectionComponent {
 			png: this.exportPng,
 			video: this.exportVideo,
 			gif: this.exportGif,
+			json: this.exportJson,
 			copyImage: this.copySlideAsImage,
 			print: this.print,
 			share: this.share,

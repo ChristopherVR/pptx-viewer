@@ -122,6 +122,7 @@ export interface ToolbarProps {
 	onExportPdf: () => void;
 	onExportVideo: () => void;
 	onExportGif: () => void;
+	onExportJson: () => void;
 	onPackageForSharing: () => void;
 	onOpenShareDialog?: () => void;
 	onSaveAsPptx: () => void;

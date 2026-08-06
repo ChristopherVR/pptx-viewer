@@ -6,6 +6,7 @@ import type { EditorState } from '../editor/editor-state.svelte';
 import { ExportUiState } from '../export/export-ui.svelte';
 import { createExportWiring } from '../export/export-wiring.svelte';
 import type { ExportWiring } from '../export/export-wiring.svelte';
+import { buildDeckExportData } from './deck-export-data';
 import type { PresentationLoader } from './presentation-loader.svelte';
 import type { ViewerState } from './viewer-state.svelte';
 
@@ -23,6 +24,8 @@ export interface ExportNotesClusterDeps {
 	 * slide-number / date / footer runs exactly like the on-screen stage does.
 	 */
 	getFieldContext?(): FieldSubstitutionContext;
+	/** Host-supplied source file name, used to name the deck-JSON download. */
+	getFileName?(): string | undefined;
 	onnotesupdate?: (notes: string) => void;
 }
 
@@ -54,6 +57,8 @@ export function buildExportNotesCluster(deps: ExportNotesClusterDeps): ExportNot
 		getTranslator: () => deps.t,
 		getSmartArt3D: deps.getSmartArt3D,
 		getFieldContext: () => deps.getFieldContext?.(),
+		getDeckData: () => buildDeckExportData(editor, loader),
+		getFileName: () => deps.getFileName?.(),
 	});
 	const exportUi = new ExportUiState({
 		controller: exportWiring.controller,

@@ -102,6 +102,13 @@ export const MCP_TOOL_ENTRIES: Record<string, McpToolEntry> = {
 		'read',
 		'Convert to markdown',
 	),
+	export_to_json: entry(
+		'Export the presentation to the portable pptx-viewer-json document format.',
+		mcpSchemas.ExportToJsonSchema,
+		mcp.exportToJson,
+		'read',
+		'Export to JSON',
+	),
 
 	// ── slide structure ────────────────────────────────────────────────────────
 	add_slide: entry(
@@ -378,6 +385,14 @@ export const MCP_TOOL_ENTRIES: Record<string, McpToolEntry> = {
 		mcp.updatePresentationProperties,
 		'deck',
 		'Update presentation properties',
+	),
+	import_from_json: entry(
+		'Replace the whole presentation with a deck imported from a pptx-viewer-json document.',
+		mcpSchemas.ImportFromJsonSchema,
+		mcp.importFromJson,
+		'deck',
+		'Import from JSON',
+		true,
 	),
 };
 

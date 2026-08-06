@@ -79,6 +79,9 @@ export const translations = {
 		'Exporte los intervalos de diapositivas y las animaciones como WebM.',
 	'pptx.backstage.card.gif.title': 'Crear un GIF animado',
 	'pptx.backstage.card.gif.body': 'Cree una vista previa compacta en bucle.',
+	'pptx.backstage.card.json.title': 'Exportar como JSON',
+	'pptx.backstage.card.json.body':
+		'Guarde un documento JSON portátil que se reimporta con total fidelidad.',
 	'pptx.backstage.card.copyImage.title': 'Copiar como imagen',
 	'pptx.backstage.card.copyImage.body': 'Copie la diapositiva actual al portapapeles.',
 	'pptx.backstage.card.print.title': 'Imprimir presentación',

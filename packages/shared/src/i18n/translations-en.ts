@@ -3303,6 +3303,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.backstage.card.video.body': 'Export slide timings and animations as WebM.',
 	'pptx.backstage.card.gif.title': 'Create an Animated GIF',
 	'pptx.backstage.card.gif.body': 'Make a compact looping preview.',
+	'pptx.backstage.card.json.title': 'Export as JSON',
+	'pptx.backstage.card.json.body':
+		'Save a portable JSON document that re-imports with full fidelity.',
 	'pptx.backstage.card.copyImage.title': 'Copy as Image',
 	'pptx.backstage.card.copyImage.body': 'Copy the current slide to the clipboard.',
 	'pptx.backstage.card.print.title': 'Print Presentation',

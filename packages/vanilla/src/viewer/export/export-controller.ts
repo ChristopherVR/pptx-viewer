@@ -1,4 +1,5 @@
-import { downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
+import type { PptxData } from 'pptx-viewer-core';
+import { downloadDataUrl, exportAbortError, exportDeckJson } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ExportGifOptions } from './export-gif';
@@ -41,6 +42,45 @@ export interface ExportController {
 	exportVideo(options?: ExportVideoOptions): Promise<void>;
 	/** Assemble the printable document and open it in a print window. */
 	print(options?: PrintOptions): Promise<boolean>;
+	/** Serialize the deck to `pptx-viewer-json` and download it. */
+	exportJson(): void;
+}
+
+/**
+ * Assemble the live {@link PptxData} for the deck-JSON export from the store
+ * (the store, not the load-time handler, is the source of truth once edits
+ * land). Mirrors the AI bridge's `readDeckData` seam: fields the vanilla state
+ * does not track are simply omitted from the JSON.
+ */
+function deckDataFromState(state: ViewerState): PptxData {
+	return {
+		slides: state.slides,
+		width: state.canvasSize.width,
+		height: state.canvasSize.height,
+		sections: state.sections,
+		presentationProperties: state.presentationProperties,
+		headerFooter: state.headerFooter,
+		coreProperties: state.coreProperties,
+		appProperties: state.appProperties,
+		customProperties: state.customProperties,
+		customShows: state.customShows,
+		embeddedFonts: state.embeddedFonts,
+		slideMasters: state.slideMasters,
+		themeOptions: state.themeOptions,
+		notesMaster: state.notesMaster,
+		handoutMaster: state.handoutMaster,
+		hasMacros: state.hasMacros,
+		tableStyleMap: state.tableStyleMap,
+		tags: state.tagCollections,
+		theme:
+			state.colorScheme || state.fontScheme || state.themeName
+				? {
+						name: state.themeName,
+						colorScheme: state.colorScheme,
+						fontScheme: state.fontScheme,
+					}
+				: undefined,
+	};
 }
 
 function resolveBaseName(fileName: string | undefined): string {
@@ -151,10 +191,20 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 		});
 	}
 
+	/**
+	 * Deck-as-JSON export: pure serialization of the live state, no
+	 * rasterisation, so it neither needs nor takes the single-export guard.
+	 * The shared helper derives `deck.json` from the raw source file name.
+	 */
+	function exportJson(): void {
+		exportDeckJson(deckDataFromState(deps.store.get()), deps.fileName);
+	}
+
 	return {
 		exportSlidePng,
 		copySlideAsImage,
 		exportPdf,
+		exportJson,
 		exportGif: (options) => guarded(undefined, () => runGifExport(capture, options)),
 		exportVideo: (options) => guarded(undefined, () => runVideoExport(capture, options)),
 		print: (options) => guarded(false, () => runPrint(capture, options)),

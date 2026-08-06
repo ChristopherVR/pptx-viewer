@@ -8,6 +8,7 @@ import * as elementTools from '../tools/element-tools.js';
 import * as exportTools from '../tools/export-tools.js';
 import * as geometryTools from '../tools/geometry-tools.js';
 import * as hyperlinkTools from '../tools/hyperlink-tools.js';
+import * as jsonTools from '../tools/json-tools.js';
 import * as layoutTools from '../tools/layout-tools.js';
 import * as lockTools from '../tools/lock-tools.js';
 import * as metadataTools from '../tools/metadata-tools.js';
@@ -809,6 +810,37 @@ export function createServer(): McpServer {
 		async (params) => {
 			const result = await runMcpTool(params.filePath, (ctx) =>
 				exportTools.exportSlideSvg(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'export_to_json',
+		{
+			description:
+				'Export the presentation to the portable pptx-viewer-json document format ' +
+				'(self-contained, binary assets embedded as base64)',
+			inputSchema: schemas.ExportToJsonSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				jsonTools.exportToJson(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'import_from_json',
+		{
+			description:
+				'Replace the presentation content with a deck imported from a pptx-viewer-json document',
+			inputSchema: schemas.ImportFromJsonSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				jsonTools.importFromJson(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},

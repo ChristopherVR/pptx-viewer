@@ -40,3 +40,30 @@ export type {
 // ── Headless SVG exporter ──
 export { SvgExporter } from './converter';
 export type { SvgExportOptions } from './converter';
+
+// ── Portable deck-as-JSON converter (pptx-viewer-json) ──
+export {
+	PptxJsonConverter,
+	applyImportedPptxData,
+	buildPptxJsonDocument,
+	serializePptxToJson,
+	parsePptxJson,
+	parsePptxJsonDocument,
+	pptxDataFromJsonDocument,
+	deserializePptxFromJson,
+	isPptxJsonText,
+	decodePptxJsonText,
+	PptxJsonFormatError,
+	PPTX_JSON_FORMAT,
+	PPTX_JSON_VERSION,
+	PPTX_JSON_FILE_EXTENSION,
+	PPTX_JSON_MIME_TYPE,
+	PRESENTATION_FIELD_KEYS,
+	PRESENTATION_FIELD_NAMES,
+} from './converter';
+export type {
+	PptxJsonDocument,
+	PptxJsonAssetStats,
+	PptxJsonConverterOptions,
+	PptxJsonSerializeOptions,
+} from './converter';

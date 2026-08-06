@@ -54,6 +54,8 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handoutMaster,
 		guides,
 		activeSlideIndexForGuides,
+		theme,
+		canvasSize,
 		password,
 	} = input;
 
@@ -72,6 +74,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 	};
 
 	const {
+		handleExportJson,
 		handlePackageForSharing,
 		handleSaveAsFormat,
 		handleSaveAsPptx,
@@ -95,6 +98,8 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handoutMaster,
 		guides,
 		activeSlideIndexForGuides,
+		theme,
+		canvasSize,
 		modalControls,
 		password,
 	});
@@ -313,6 +318,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handleCopySlideAsImage,
 		handleExportVideo,
 		handleExportGif,
+		handleExportJson,
 		handlePackageForSharing,
 		handleSaveAsFormat,
 		handleSaveAsPptx,

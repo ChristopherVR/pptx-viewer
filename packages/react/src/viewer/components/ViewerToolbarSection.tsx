@@ -543,6 +543,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onExportPdf={exportHandlers.handleExportPdf}
 				onExportVideo={exportHandlers.handleExportVideo}
 				onExportGif={exportHandlers.handleExportGif}
+				onExportJson={exportHandlers.handleExportJson}
 				onPackageForSharing={exportHandlers.handlePackageForSharing}
 				onOpenFile={onOpenFile}
 				onOpenRecentFile={onOpenRecentFile}

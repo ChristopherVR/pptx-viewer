@@ -146,6 +146,7 @@ export interface UseRibbonPropsActionsInput {
 	onExportPdf: () => void;
 	onExportWebm: () => void;
 	onExportGif: () => void;
+	onExportJson: () => void;
 	downloadAs: (format: PptxSaveFormat) => Promise<void>;
 	packageForSharing: () => Promise<void>;
 	onCopySlideAsImage: () => Promise<void>;

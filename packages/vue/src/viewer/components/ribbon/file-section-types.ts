@@ -8,6 +8,8 @@ export interface FileSectionProps {
 	onOpenRecentFile?: (key: string) => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
+	/** Serialise the deck to pptx-viewer-json and download it (Export page card). */
+	onExportJson: () => void;
 	onExportVideo: () => void;
 	onExportGif: () => void;
 	onPackageForSharing: () => void;

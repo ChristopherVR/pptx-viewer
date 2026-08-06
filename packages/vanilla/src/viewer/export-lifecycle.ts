@@ -23,6 +23,8 @@ export interface ExportLifecycleDeps {
 	registry: ElementRendererRegistry;
 	getTranslator(): Translator;
 	smartArt3D: boolean;
+	/** Source file name (title-bar name); drives export download names. */
+	fileName?: string;
 }
 
 /** The export slice of the public viewer API (see `PptxViewerInstance`). */
@@ -39,6 +41,8 @@ export interface ViewerExportApi {
 	exportVideo(options?: ExportVideoOptions): Promise<void>;
 	/** Open the assembled print document in a print window (`false` = blocked). */
 	print(options?: PrintOptions): Promise<boolean>;
+	/** Serialize the deck to `pptx-viewer-json` and trigger the download. */
+	exportJson(): void;
 }
 
 export interface ExportLifecycle extends ViewerExportApi {
@@ -78,6 +82,10 @@ export abstract class ViewerExportHost implements ViewerExportApi {
 	async print(options?: PrintOptions): Promise<boolean> {
 		return this.exporter.print(options);
 	}
+
+	exportJson(): void {
+		this.exporter.exportJson();
+	}
 }
 
 /**
@@ -93,6 +101,7 @@ export function createExportLifecycle(deps: ExportLifecycleDeps): ExportLifecycl
 	const controller: ExportController = createExportController({
 		store: deps.store,
 		rasterizeSlide: (index) => rasterizer.rasterizeSlide(index),
+		fileName: deps.fileName,
 	});
 	// Multi-slide exports (PDF / GIF / video) run through the progress envelope
 	// so a visible modal (bar + status + Cancel) accompanies them, exactly like
@@ -113,6 +122,7 @@ export function createExportLifecycle(deps: ExportLifecycleDeps): ExportLifecycl
 		exportSlidePng: (index) => controller.exportSlidePng(index),
 		copySlideAsImage: (index) => controller.copySlideAsImage(index),
 		exportPdf: (options) => progressUi.runPdf(options),
+		exportJson: () => controller.exportJson(),
 		exportGif: (options) => progressUi.runGif(options),
 		exportVideo: (options) => progressUi.runVideo(options),
 		print: (options) => controller.print(options),

@@ -35,6 +35,7 @@ const noopController: ExportController = {
 	exportSlidePng: async () => undefined,
 	copySlideAsImage: async () => undefined,
 	exportPdf: async () => undefined,
+	exportJson: () => undefined,
 	exportGif: async () => undefined,
 	exportVideo: async () => undefined,
 	print: async () => false,

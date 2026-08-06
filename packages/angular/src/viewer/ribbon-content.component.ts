@@ -65,6 +65,7 @@ import type { RibbonTab } from './ribbon-types';
 					(exportPdf)="exportPdf.emit()"
 					(exportGif)="exportGif.emit()"
 					(exportVideo)="exportVideo.emit()"
+					(exportJson)="exportJson.emit()"
 					(copySlideAsImage)="copySlideAsImage.emit()"
 					(print)="print.emit()"
 					(info)="info.emit()"
@@ -176,6 +177,7 @@ export class RibbonContentComponent {
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
 	readonly exportVideo = output<void>();
+	readonly exportJson = output<void>();
 	readonly copySlideAsImage = output<void>();
 	readonly replace = output<void>();
 	readonly openSmartArtDialog = output<void>();

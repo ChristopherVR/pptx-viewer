@@ -1,12 +1,20 @@
 import JSZip from 'jszip';
-import type { PptxElement, PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
+import type {
+	PptxData,
+	PptxElement,
+	PptxSlide,
+	PptxSaveFormat,
+	PptxHandler,
+	PptxTheme,
+} from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
-import { downloadBlob } from 'pptx-viewer-shared';
+import { downloadBlob, exportDeckJson } from 'pptx-viewer-shared';
 /**
  * useExportSaveAs: Save-As format and Package-for-Sharing handlers.
  */
 import type { RefObject } from 'react';
 
+import type { CanvasSize } from '../types';
 import { generatePackageReadme } from '../utils/export';
 import { buildSaveSlides } from '../utils/template-editing';
 import type { ExportModalControls } from './export-handler-types';
@@ -35,11 +43,16 @@ export interface UseExportSaveAsInput {
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	activeSlideIndexForGuides: number;
+	/** Live theme, carried into the deck-JSON export document. */
+	theme: PptxTheme | undefined;
+	/** Slide canvas size in CSS pixels, carried into the deck-JSON export. */
+	canvasSize: CanvasSize;
 	modalControls: ExportModalControls;
 	password?: string;
 }
 
 export interface ExportSaveAsResult {
+	handleExportJson: () => void;
 	handlePackageForSharing: () => Promise<void>;
 	handleSaveAsFormat: (format: PptxSaveFormat) => Promise<void>;
 	handleSaveAsPptx: () => void;
@@ -66,6 +79,8 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		handoutMaster,
 		guides,
 		activeSlideIndexForGuides,
+		theme,
+		canvasSize,
 		modalControls,
 		password,
 	} = input;
@@ -195,6 +210,40 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		return handler.save(slidesToSave, saveOptions as Parameters<typeof handler.save>[1]);
 	};
 
+	/**
+	 * "Export as JSON" backstage card: serialize the live deck to a portable
+	 * `pptx-viewer-json` document and download it immediately (no sub-dialog).
+	 * Mirrors the Save-As path: template (master/layout) elements are folded
+	 * back into the slides and the presentation-level state travels along, so
+	 * the JSON document reloads with the same fidelity as a saved .pptx.
+	 */
+	const handleExportJson = () => {
+		const sourceName = filePath ? filePath.replace(/\\/gu, '/').split('/').pop() : undefined;
+		const data = {
+			slides: buildSaveSlides(slides, templateElementsBySlideId),
+			width: canvasSize.width,
+			height: canvasSize.height,
+			widthEmu: guidePxToEmu(canvasSize.width),
+			heightEmu: guidePxToEmu(canvasSize.height),
+			theme,
+			headerFooter,
+			presentationProperties,
+			customShows: customShows.length > 0 ? customShows : undefined,
+			sections: sections.length > 0 ? sections : undefined,
+			coreProperties: coreProperties ?? undefined,
+			appProperties: appProperties ?? undefined,
+			customProperties: customProperties.length > 0 ? customProperties : undefined,
+			tags: tagCollections.length > 0 ? tagCollections : undefined,
+			notesMaster,
+			handoutMaster,
+		} as unknown as PptxData;
+		try {
+			exportDeckJson(data, sourceName);
+		} catch (err) {
+			console.error('[PowerPointViewer] JSON export failed:', err);
+		}
+	};
+
 	const handleSaveAsPptx = () => {
 		void handleSaveAsFormat('pptx');
 	};
@@ -206,6 +255,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 	};
 
 	return {
+		handleExportJson,
 		handlePackageForSharing,
 		handleSaveAsFormat,
 		handleSaveAsPptx,

@@ -25,6 +25,7 @@ export type BackstageCardId =
 	| 'png'
 	| 'video'
 	| 'gif'
+	| 'json'
 	| 'copyImage'
 	| 'print'
 	| 'share'
@@ -90,6 +91,11 @@ export const BACKSTAGE_CARDS: Readonly<Record<BackstageCardId, BackstageCard>> =
 	png: card('png', 'Export current slide', 'Create a high-quality PNG image.'),
 	video: card('video', 'Create a Video', 'Export slide timings and animations as WebM.'),
 	gif: card('gif', 'Create an Animated GIF', 'Make a compact looping preview.'),
+	json: card(
+		'json',
+		'Export as JSON',
+		'Save a portable JSON document that re-imports with full fidelity.',
+	),
 	copyImage: card('copyImage', 'Copy as Image', 'Copy the current slide to the clipboard.'),
 	print: card(
 		'print',
@@ -121,7 +127,7 @@ export const BACKSTAGE_PAGE_CARDS: Readonly<
 > = {
 	info: ['protect', 'inspect', 'embedFonts', 'signatures', 'versionHistory'],
 	saveAs: ['saveAsPptx', 'saveAsPpsx', 'saveAsPptm', 'package'],
-	export: ['pdf', 'png', 'video', 'gif', 'copyImage'],
+	export: ['pdf', 'png', 'video', 'gif', 'json', 'copyImage'],
 	print: ['print'],
 	share: ['share', 'sharePackage'],
 };

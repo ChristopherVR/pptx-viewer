@@ -62,6 +62,7 @@ import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
 import { useAiPanelController } from './composables/ai/useAiPanelController';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
+import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { TableThemeKey } from './composables/table-theme';
@@ -509,6 +510,7 @@ const exporter = useExportWiring({
 	activeSlideIndex,
 	saveAs: deck.saveAs,
 	fileName: () => props.fileName,
+	getDeckData: () => readDeckData(deck),
 });
 const { exportStageRef, exportSlide, rasterizeSlide, exportProgressCtl, downloadAs, onExportPdf } =
 	exporter;

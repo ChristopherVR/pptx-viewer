@@ -202,6 +202,16 @@ const TOOL_PHRASES: Record<string, ToolPhrase> = {
 		present: () => 'Exporting to Markdown',
 		past: () => 'Exported to Markdown',
 	},
+	export_to_json: {
+		icon: 'view',
+		present: () => 'Exporting to JSON',
+		past: () => 'Exported to JSON',
+	},
+	import_from_json: {
+		icon: 'slide',
+		present: () => 'Importing deck from JSON',
+		past: () => 'Imported deck from JSON',
+	},
 
 	// ── element editing ────────────────────────────────────────────────────────
 	update_element: {

@@ -4,6 +4,7 @@ import {
 	Copy,
 	Download,
 	FileImage,
+	FileJson,
 	FileText,
 	Info,
 	Lock,
@@ -49,6 +50,7 @@ const ICONS: Record<BackstageCardId, Component> = {
 	png: FileImage,
 	video: Video,
 	gif: Box,
+	json: FileJson,
 	copyImage: Copy,
 	print: Printer,
 	share: Share2,
@@ -66,7 +68,8 @@ const ICONS: Record<BackstageCardId, Component> = {
  *
  * `isHidden` gates the Export page's action cards on the shared `'export'`
  * toolbar-action id: when hidden, the Export page renders no cards instead of
- * PNG/PDF/Video/GIF/Copy-as-Image. Save-As, Print, and Share are unaffected;
+ * PNG/PDF/Video/GIF/JSON/Copy-as-Image. Save-As, Print, and Share are
+ * unaffected;
  * they map to their own ids elsewhere, not `'export'`.
  */
 export function buildFileSectionActions(
@@ -91,6 +94,7 @@ export function buildFileSectionActions(
 		png: props.onExportPng,
 		video: props.onExportVideo,
 		gif: props.onExportGif,
+		json: props.onExportJson,
 		copyImage: props.onCopySlideAsImage,
 		print: props.onPrint,
 		share: props.onOpenShareDialog,

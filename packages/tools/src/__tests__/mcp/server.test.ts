@@ -28,9 +28,9 @@ describe('mcp server tool registration', () => {
 		await client.connect(clientTransport);
 	});
 
-	it('lists all 51 registered tools', async () => {
+	it('lists all 53 registered tools', async () => {
 		const result = await client.listTools();
-		expect(result.tools).toHaveLength(51);
+		expect(result.tools).toHaveLength(53);
 	});
 
 	it('includes all expected tool names', async () => {
@@ -80,6 +80,8 @@ describe('mcp server tool registration', () => {
 			'manage_sections',
 			'export_to_svg',
 			'export_slide_svg',
+			'export_to_json',
+			'import_from_json',
 			'manage_hyperlinks',
 			'replace_geometry',
 			'set_element_lock',

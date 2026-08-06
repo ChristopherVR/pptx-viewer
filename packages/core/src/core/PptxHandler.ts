@@ -1,7 +1,17 @@
-import { PresentationBuilder } from './builders/sdk/PresentationBuilder';
+import {
+	applyImportedPptxData,
+	decodePptxJsonText,
+	deserializePptxFromJson,
+} from '../converter/json';
+import {
+	PresentationBuilder,
+	buildBlankPresentationArchive,
+} from './builders/sdk/PresentationBuilder';
 import type { PresentationBuilderResult } from './builders/sdk/PresentationBuilder';
 import type { PresentationOptions } from './builders/sdk/types';
+import type { PptxHandlerLoadOptions } from './core';
 import { PptxHandlerCore } from './PptxHandlerCore';
+import type { PptxData } from './types';
 
 /**
  * Public facade for the PPTX editor handler.
@@ -74,5 +84,42 @@ export class PptxHandler extends PptxHandlerCore {
 	 */
 	static async create(options?: PresentationOptions): Promise<PresentationBuilderResult> {
 		return PresentationBuilder.create(options);
+	}
+
+	/**
+	 * Parse a presentation from an `ArrayBuffer`, accepting both `.pptx`
+	 * archives and portable `pptx-viewer-json` documents.
+	 *
+	 * The buffer is sniffed first: JSON documents (leading `{` plus the
+	 * `"pptx-viewer-json"` format marker) are routed to {@link loadFromJson};
+	 * everything else goes through the regular ZIP/OLE2 pipeline.
+	 */
+	public override async load(
+		data: ArrayBuffer,
+		options: PptxHandlerLoadOptions = {},
+	): Promise<PptxData> {
+		const jsonText = decodePptxJsonText(data);
+		if (jsonText !== null) {
+			return this.loadFromJson(jsonText, options);
+		}
+		return super.load(data, options);
+	}
+
+	/**
+	 * Load a presentation from `pptx-viewer-json` text.
+	 *
+	 * A minimal blank package is generated and loaded first so that the
+	 * handler keeps a valid in-memory archive (editing and {@link save} keep
+	 * working), then the imported model is overlaid on top: imported
+	 * presentation fields win, and the slide array is replaced wholesale.
+	 */
+	public async loadFromJson(text: string, options: PptxHandlerLoadOptions = {}): Promise<PptxData> {
+		const imported = deserializePptxFromJson(text);
+		const blankBytes = await buildBlankPresentationArchive({
+			width: imported.widthEmu,
+			height: imported.heightEmu,
+		});
+		const base = await super.load(blankBytes, options);
+		return applyImportedPptxData(base, imported);
 	}
 }

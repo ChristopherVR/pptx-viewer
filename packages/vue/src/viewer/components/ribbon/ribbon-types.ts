@@ -245,6 +245,8 @@ export interface RibbonProps {
 	onExportPdf: () => void;
 	onExportVideo: () => void;
 	onExportGif: () => void;
+	/** Serialise the deck to pptx-viewer-json and download it (Export page card). */
+	onExportJson: () => void;
 	onPackageForSharing: () => void;
 	onOpenShareDialog?: () => void;
 	onSaveAsPptx: () => void;

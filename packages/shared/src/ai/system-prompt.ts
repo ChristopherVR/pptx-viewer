@@ -18,7 +18,7 @@ ask for one). They are grouped as:
   markdown + an element inventory with ids, types, bounds, z-order), get_element,
   get_speaker_notes, find_text, get_theme, get_metadata, get_layouts,
   find_placeholders, get_presentation_properties, run_accessibility_check,
-  convert_to_markdown.
+  convert_to_markdown, export_to_json (portable pptx-viewer-json document).
 - Navigate the user's view: go_to_slide, select_elements (highlights elements for
   the user).
 - Edit elements: update_element, update_element_style, move/resize via
@@ -33,7 +33,8 @@ ask for one). They are grouped as:
   update_slide_properties (background/notes/visibility), set_slide_transition.
 - Theme + presentation: apply_theme_preset, update_theme_colors,
   update_theme_fonts, set_canvas_size, update_metadata, manage_sections,
-  update_presentation_properties, apply_layout.
+  update_presentation_properties, apply_layout, import_from_json (replace the
+  whole deck from a pptx-viewer-json document; destructive, confirm first).
 
 Working with the user's SELECTION (focus):
 - The user can scope you to specific slides or elements: by selecting them on the

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildFileSectionActions } from './file-section-actions';
 import type { FileSectionProps } from './file-section-types';
@@ -9,6 +9,7 @@ function noopProps(): FileSectionProps {
 		onCreatePresentation: () => {},
 		onExportPng: () => {},
 		onExportPdf: () => {},
+		onExportJson: () => {},
 		onExportVideo: () => {},
 		onExportGif: () => {},
 		onPackageForSharing: () => {},
@@ -35,10 +36,19 @@ describe('buildFileSectionActions', () => {
 	const notHidden = () => false;
 	const hideExport = (id: string) => id === 'export';
 
-	it('returns the five export cards by default (hiddenActions omitted → not hidden)', () => {
+	it('returns the six export cards by default (hiddenActions omitted → not hidden)', () => {
 		const actions = buildFileSectionActions('export', noopProps(), notHidden);
-		expect(actions).toHaveLength(5);
+		expect(actions).toHaveLength(6);
 		expect(actions.map((action) => action[4])).toContain('Create PDF');
+	});
+
+	it('maps the json card to onExportJson', () => {
+		const onExportJson = vi.fn();
+		const actions = buildFileSectionActions('export', { ...noopProps(), onExportJson }, notHidden);
+		const jsonCard = actions.find((action) => action[4] === 'Export as JSON');
+		expect(jsonCard).toBeDefined();
+		jsonCard?.[3]?.();
+		expect(onExportJson).toHaveBeenCalledOnce();
 	});
 
 	it('returns no cards on the export page when "export" is hidden', () => {

@@ -83,6 +83,7 @@ export interface RibbonFileHandlers {
 	exportPdf(): void;
 	exportGif(): void;
 	exportVideo(): void;
+	exportJson(): void;
 	print(): void;
 }
 

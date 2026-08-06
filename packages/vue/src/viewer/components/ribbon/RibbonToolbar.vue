@@ -89,6 +89,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-export-pdf="props.onExportPdf"
 				:on-export-video="props.onExportVideo"
 				:on-export-gif="props.onExportGif"
+				:on-export-json="props.onExportJson"
 				:on-package-for-sharing="props.onPackageForSharing"
 				:on-save-as-pptx="props.onSaveAsPptx"
 				:on-save-as-ppsx="props.onSaveAsPpsx"

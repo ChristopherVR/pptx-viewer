@@ -6,11 +6,12 @@
  */
 
 /**
- * Default `accept` filter for PowerPoint presentations the viewer can load.
- * Includes legacy binary `.ppt` (PowerPoint 97-2003), which core auto-detects
- * and converts through the pptx pipeline on load.
+ * Default `accept` filter for presentations the viewer can load: PowerPoint
+ * archives, legacy binary `.ppt` (PowerPoint 97-2003, auto-detected and
+ * converted through the pptx pipeline on load), plus portable
+ * `pptx-viewer-json` documents.
  */
-export const PPTX_OPEN_ACCEPT = '.pptx,.ppsx,.pptm,.potx,.ppt';
+export const PPTX_OPEN_ACCEPT = '.pptx,.ppsx,.pptm,.potx,.ppt,.json';
 
 export interface OpenFilePickerOptions {
 	/** Comma-separated `accept` list. Defaults to {@link PPTX_OPEN_ACCEPT}. */

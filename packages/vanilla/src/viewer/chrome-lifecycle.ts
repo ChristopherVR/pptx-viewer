@@ -454,6 +454,7 @@ export interface ChromeHost {
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
+	exportJson(): void;
 	print(): Promise<boolean>;
 	openPrintDialog(): void;
 	openFile(): void;
@@ -569,6 +570,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		exportPdf: () => host.exportPdf(),
 		exportGif: () => host.exportGif(),
 		exportVideo: () => host.exportVideo(),
+		exportJson: () => host.exportJson(),
 		print: () => Promise.resolve((host.openPrintDialog(), true)),
 		openFile: () => host.openFile(),
 		openRecentFile: (key) => host.openRecentFile(key),

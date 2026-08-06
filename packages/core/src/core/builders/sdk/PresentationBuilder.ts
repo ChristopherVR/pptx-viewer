@@ -399,6 +399,66 @@ function appPropsXml(slideCount: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Blank package generation
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the raw bytes of a minimal valid blank presentation package: theme,
+ * slide master, the 11 standard layouts, optional initial blank slides, and
+ * all required relationships/content types.
+ *
+ * Used by {@link PresentationBuilder.create} and by the `pptx-viewer-json`
+ * import path, which loads a blank package before overlaying imported data
+ * so that editing and save operations work without the original archive.
+ */
+export async function buildBlankPresentationArchive(
+	options?: PresentationOptions,
+): Promise<ArrayBuffer> {
+	const width = options?.width ?? DEFAULT_WIDTH;
+	const height = options?.height ?? DEFAULT_HEIGHT;
+	const themeName = options?.theme?.name ?? 'Office Theme';
+	const colors = { ...DEFAULT_COLORS, ...options?.theme?.colors };
+	const majorFont = options?.theme?.fonts?.majorFont ?? DEFAULT_MAJOR_FONT;
+	const minorFont = options?.theme?.fonts?.minorFont ?? DEFAULT_MINOR_FONT;
+	const layoutCount = STANDARD_LAYOUTS.length;
+	const initialSlideCount = Math.max(0, options?.initialSlideCount ?? 0);
+
+	// The "Blank" layout is index 7 (1-based) in STANDARD_LAYOUTS
+	const blankLayoutIdx = STANDARD_LAYOUTS.findIndex((l) => l.type === 'blank') + 1 || 7;
+
+	// Build the ZIP
+	const zip = new JSZip();
+
+	zip.file('[Content_Types].xml', contentTypesXml(layoutCount, initialSlideCount));
+	zip.file('_rels/.rels', rootRelsXml());
+	zip.file('ppt/presentation.xml', presentationXml(width, height, initialSlideCount));
+	zip.file('ppt/_rels/presentation.xml.rels', presentationRelsXml(layoutCount, initialSlideCount));
+	zip.file('ppt/slideMasters/slideMaster1.xml', slideMasterXml(layoutCount));
+	zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', slideMasterRelsXml(layoutCount));
+
+	for (let i = 0; i < layoutCount; i++) {
+		const layout = STANDARD_LAYOUTS[i];
+		zip.file(`ppt/slideLayouts/slideLayout${i + 1}.xml`, slideLayoutXml(layout.name, layout.type));
+		zip.file(`ppt/slideLayouts/_rels/slideLayout${i + 1}.xml.rels`, slideLayoutRelsXml());
+	}
+
+	// Add initial slides (all use the "Blank" layout)
+	for (let i = 0; i < initialSlideCount; i++) {
+		zip.file(`ppt/slides/slide${i + 1}.xml`, slideXml());
+		zip.file(`ppt/slides/_rels/slide${i + 1}.xml.rels`, slideRelsXml(blankLayoutIdx));
+	}
+
+	zip.file('ppt/theme/theme1.xml', themeXml(themeName, colors, majorFont, minorFont));
+	zip.file('ppt/presProps.xml', presPropsXml());
+	zip.file('ppt/viewProps.xml', viewPropsXml());
+	zip.file('ppt/tableStyles.xml', tableStylesXml());
+	zip.file('docProps/core.xml', corePropsXml(options?.title, options?.creator));
+	zip.file('docProps/app.xml', appPropsXml(initialSlideCount));
+
+	return zip.generateAsync({ type: 'arraybuffer' });
+}
+
+// ---------------------------------------------------------------------------
 // PresentationBuilder
 // ---------------------------------------------------------------------------
 
@@ -442,55 +502,8 @@ export class PresentationBuilder {
 	 * @returns Handler, parsed data, and a slide builder factory.
 	 */
 	static async create(options?: PresentationOptions): Promise<PresentationBuilderResult> {
-		const width = options?.width ?? DEFAULT_WIDTH;
-		const height = options?.height ?? DEFAULT_HEIGHT;
-		const themeName = options?.theme?.name ?? 'Office Theme';
-		const colors = { ...DEFAULT_COLORS, ...options?.theme?.colors };
-		const majorFont = options?.theme?.fonts?.majorFont ?? DEFAULT_MAJOR_FONT;
-		const minorFont = options?.theme?.fonts?.minorFont ?? DEFAULT_MINOR_FONT;
-		const layoutCount = STANDARD_LAYOUTS.length;
-		const initialSlideCount = Math.max(0, options?.initialSlideCount ?? 0);
-
-		// The "Blank" layout is index 7 (1-based) in STANDARD_LAYOUTS
-		const blankLayoutIdx = STANDARD_LAYOUTS.findIndex((l) => l.type === 'blank') + 1 || 7;
-
-		// Build the ZIP
-		const zip = new JSZip();
-
-		zip.file('[Content_Types].xml', contentTypesXml(layoutCount, initialSlideCount));
-		zip.file('_rels/.rels', rootRelsXml());
-		zip.file('ppt/presentation.xml', presentationXml(width, height, initialSlideCount));
-		zip.file(
-			'ppt/_rels/presentation.xml.rels',
-			presentationRelsXml(layoutCount, initialSlideCount),
-		);
-		zip.file('ppt/slideMasters/slideMaster1.xml', slideMasterXml(layoutCount));
-		zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', slideMasterRelsXml(layoutCount));
-
-		for (let i = 0; i < layoutCount; i++) {
-			const layout = STANDARD_LAYOUTS[i];
-			zip.file(
-				`ppt/slideLayouts/slideLayout${i + 1}.xml`,
-				slideLayoutXml(layout.name, layout.type),
-			);
-			zip.file(`ppt/slideLayouts/_rels/slideLayout${i + 1}.xml.rels`, slideLayoutRelsXml());
-		}
-
-		// Add initial slides (all use the "Blank" layout)
-		for (let i = 0; i < initialSlideCount; i++) {
-			zip.file(`ppt/slides/slide${i + 1}.xml`, slideXml());
-			zip.file(`ppt/slides/_rels/slide${i + 1}.xml.rels`, slideRelsXml(blankLayoutIdx));
-		}
-
-		zip.file('ppt/theme/theme1.xml', themeXml(themeName, colors, majorFont, minorFont));
-		zip.file('ppt/presProps.xml', presPropsXml());
-		zip.file('ppt/viewProps.xml', viewPropsXml());
-		zip.file('ppt/tableStyles.xml', tableStylesXml());
-		zip.file('docProps/core.xml', corePropsXml(options?.title, options?.creator));
-		zip.file('docProps/app.xml', appPropsXml(initialSlideCount));
-
-		// Generate the buffer and load it
-		const buffer = await zip.generateAsync({ type: 'arraybuffer' });
+		// Generate the minimal package and load it
+		const buffer = await buildBlankPresentationArchive(options);
 		const handler = new PptxHandler();
 		const data = await handler.load(buffer);
 

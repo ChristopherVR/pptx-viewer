@@ -7,7 +7,7 @@
 
 export { Presentation } from './Presentation';
 
-export { PresentationBuilder } from './PresentationBuilder';
+export { PresentationBuilder, buildBlankPresentationArchive } from './PresentationBuilder';
 export type { PresentationBuilderResult } from './PresentationBuilder';
 
 export { SlideBuilder } from './SlideBuilder';

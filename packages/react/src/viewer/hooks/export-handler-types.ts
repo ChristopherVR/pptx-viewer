@@ -1,8 +1,16 @@
-import type { PptxElement, PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSlide,
+	PptxSaveFormat,
+	PptxHandler,
+	PptxTheme,
+} from 'pptx-viewer-core';
 /**
  * Types and utility helpers for export handlers.
  */
 import type { RefObject, MutableRefObject, Dispatch, SetStateAction } from 'react';
+
+import type { CanvasSize } from '../types';
 
 export interface UseExportHandlersInput {
 	slides: PptxSlide[];
@@ -33,6 +41,10 @@ export interface UseExportHandlersInput {
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	activeSlideIndexForGuides: number;
+	/** Live theme, carried into the deck-JSON export document. */
+	theme: PptxTheme | undefined;
+	/** Slide canvas size in CSS pixels, carried into the deck-JSON export. */
+	canvasSize: CanvasSize;
 	password?: string;
 }
 
@@ -43,6 +55,7 @@ export interface ExportHandlersResult {
 	handleCopySlideAsImage: () => Promise<void>;
 	handleExportVideo: () => Promise<void>;
 	handleExportGif: () => Promise<void>;
+	handleExportJson: () => void;
 	handlePackageForSharing: () => Promise<void>;
 	handleSaveAsFormat: (format: PptxSaveFormat) => Promise<void>;
 	handleSaveAsPptx: () => void;

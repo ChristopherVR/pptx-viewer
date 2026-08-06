@@ -307,6 +307,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			registry: this.registry,
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
+			fileName: options.fileName,
 		});
 		// File > Options controller: owns the persisted options store and turns
 		// option values into behavior. Created before the parity workflows (which
