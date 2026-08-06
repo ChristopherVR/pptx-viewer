@@ -24,21 +24,35 @@ import { expect, test } from '@playwright/test';
 import { CHART_SLIDES } from './fixtures/generate-chart-fixture';
 import { fixture, loadDeckAt, slideStage, thumbnail } from './support/deck';
 import { acrossFrameworks, formatDiff, splitReference } from './support/parity';
+import { applyExclusions } from './support/parity-exclusions';
+import type { ParityExclusion } from './support/parity-exclusions';
 import { diffCharts, fingerprintCharts } from './support/svg-fingerprint';
+
+/**
+ * Known, documented divergences (parity debt); see `support/parity-exclusions`.
+ *
+ * Empty on purpose. The colour divergence this once excluded (Angular painting
+ * different series colours than the other four) was the two shared entry
+ * points carrying two different default palettes (`DEFAULT_CHART_PALETTE` vs
+ * the view-model's `DEFAULT_PALETTE`); they are now one Office-accent set, and
+ * explicit `<c:srgbClr>` series colours win over the palette everywhere (core
+ * also parses line-series colours from `c:spPr/a:ln`). Add an entry only per
+ * the `support/parity-exclusions` policy, and delete it when its bug is fixed.
+ */
+const KNOWN_DIVERGENCES: readonly ParityExclusion[] = [];
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const GALLERY = fixture('chart-gallery.pptx');
 
 /**
- * How many gallery slides to compare.
- *
- * The full gallery is long and every slide costs one navigation on each of the
- * bindings under comparison. These cover the distinct rendering families
- * (bar/line/area/pie/doughnut and whatever follows them in the manifest);
- * `chart-rendering.spec.ts` remains the exhaustive per-type sweep.
+ * Every gallery slide is compared: the rendering families past the first eight
+ * (scatter, bubble, radar, combo and friends) are exactly the ones with the
+ * most per-binding painting code, so capping the sweep excluded the slides
+ * most likely to drift. `chart-rendering.spec.ts` remains the per-binding
+ * threshold sweep.
  */
-const SLIDES_UNDER_COMPARISON = Math.min(8, CHART_SLIDES.length);
+const SLIDES_UNDER_COMPARISON = CHART_SLIDES.length;
 
 test.describe('cross-binding chart rendering', () => {
 	test('every binding paints the shared chart model identically', async ({ browser }, testInfo) => {
@@ -53,6 +67,13 @@ test.describe('cross-binding chart rendering', () => {
 			> = {};
 			for (let slide = 1; slide <= SLIDES_UNDER_COMPARISON; slide += 1) {
 				await thumbnail(page, slide).click();
+				// Neutral navigation-done signal: the wait below is satisfied by the
+				// PREVIOUS slide's chart <svg> too, so without this the capture races
+				// slide switching in the slower bindings.
+				await page
+					.getByText(new RegExp(`\\b${slide} of \\d+\\b`, 'u'))
+					.first()
+					.waitFor({ timeout: 15_000 });
 				await slideStage(page).waitFor();
 				// The chart renderers mount their <svg> after the slide stage paints,
 				// so wait for the drawing itself rather than the element box. Located
@@ -77,12 +98,15 @@ test.describe('cross-binding chart rendering', () => {
 			const perBinding: string[] = [];
 			for (const [key, referenceCharts] of Object.entries(reference.value)) {
 				const candidateCharts = candidate.value[key] ?? [];
+				const raw = diffCharts(referenceCharts, candidateCharts).map(
+					(problem) => `[${key}] ${problem}`,
+				);
 				perBinding.push(
-					...diffCharts(referenceCharts, candidateCharts).map((problem) => `[${key}] ${problem}`),
+					...applyExclusions(raw, { binding: candidate.framework.name }, KNOWN_DIVERGENCES),
 				);
 			}
 			if (perBinding.length > 0) {
-				problems.push(formatDiff(candidate.framework.name, perBinding));
+				problems.push(formatDiff(candidate.framework.name, perBinding, 60));
 			}
 		}
 

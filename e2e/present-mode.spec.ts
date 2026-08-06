@@ -33,13 +33,20 @@ async function startShow(page: Page): Promise<void> {
 }
 
 /**
- * Text of the largest painted slide surface, used as a binding-neutral
+ * Text of the RUNNING SHOW's slide surface, used as a binding-neutral
  * "which slide is showing" probe (slide counters differ per binding, and deck
  * text can contain "n / m" strings of its own).
+ *
+ * The show stage is found by the shared `data-pptx-presenting` marker that
+ * every binding's presenting stage carries (stamped by
+ * `applyRenderedElementAccessibility`, or directly where a binding renders its
+ * accessibility in the view layer). Reading ONLY the marker is the contract:
+ * the still-mounted editor canvas and the thumbnails mirror the active slide
+ * index, so a looser probe could read those and pass without a show at all.
  */
 async function visibleSlideText(page: Page): Promise<string> {
 	return page.evaluate(() => {
-		const stage = [...document.querySelectorAll('[aria-roledescription="slide"]')]
+		const stage = [...document.querySelectorAll('[data-pptx-presenting]')]
 			.filter((node) => node.getBoundingClientRect().width > 200)
 			.sort((a, b) => b.getBoundingClientRect().width - a.getBoundingClientRect().width)[0];
 		return stage ? (stage.textContent ?? '').replace(/\s+/gu, ' ').trim().slice(0, 40) : '';

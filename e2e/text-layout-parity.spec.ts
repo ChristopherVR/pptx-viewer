@@ -4,24 +4,25 @@
  *
  * `slide-render-parity.spec.ts` compares one dominant text node per element,
  * which is coarse enough that a whole class of divergence renders green. This
- * spec compares every run, and pins the five defects a text-layout audit
- * confirmed:
+ * spec compares every run. It exists because a text-layout audit found real
+ * divergences of exactly this shape; those are FIXED (all five bindings build
+ * their text-block style from shared `buildTextBlockStyle`, commit 60b9b0d0),
+ * and this spec is what keeps them fixed:
  *
- *  1. Autofit is React-only. `computeAutoFitTextStyle()` (shared) is called by
- *     `packages/react/src/viewer/utils/text-utils.tsx` and nowhere else, and
- *     React additionally scales each run by `autoFitFontScale`, so a title
- *     authored `<a:normAutofit fontScale="70000"/>` paints ~43% larger in the
- *     other four than in React (and than in PowerPoint).
- *  2. `a:bodyPr/@wrap="none"` is React-only. React emits `white-space: nowrap`;
- *     Vue, Angular, Vanilla and Svelte hardcode `pre-wrap` in their text-block
- *     style and never read `textStyle.textWrap`, so the line wraps.
- *  3. Unset font size / family fall back differently. React always declares a
- *     size and a family; the others omit the property and inherit. Compared as
- *     computed size plus MEASURED advance, never as a family string: the
- *     fallback stacks legitimately differ, only their metrics have to agree.
- *     A run authored with no `sz` and no `a:latin` no longer diverges (core
- *     resolves the theme's minor font before any binding sees it), but a
- *     BULLET MARKER, which no deck authors a typeface for, still does.
+ *  1. Autofit (`<a:normAutofit fontScale="70000"/>`): once React-only, so a
+ *     shrunk title painted ~43% larger in the other four. Now applied by the
+ *     shared text-block style for every binding; the `AutofitTitle` shape of
+ *     `text-layout.pptx` pins it via each run's computed `font-size`.
+ *  2. `a:bodyPr/@wrap="none"`: once React-only (`white-space: nowrap`), while
+ *     the other four hardcoded `pre-wrap` and wrapped the line. Now shared;
+ *     the `NoWrapLine` shape pins it, `whiteSpace` being one of the
+ *     exactly-compared run properties and `lineCount` catching the wrap.
+ *  3. Unset font size / family. The shared text-block style always declares
+ *     both (`DEFAULT_FONT_FAMILY` when nothing is authored), and core resolves
+ *     the theme's minor font before any binding sees a run. Still compared as
+ *     computed size plus MEASURED advance rather than as a family string, so
+ *     any future fallback drift (a bullet marker, an inherited run) fails on
+ *     its metric consequence no matter which stack produced it.
  *  4. Line height is compared as `line-height / font-size`, so a font-size
  *     drift is reported once rather than counted twice.
  *  5. Run count. A binding that renders three runs where React renders four

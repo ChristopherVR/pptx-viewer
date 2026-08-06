@@ -17,13 +17,26 @@ const fixturePath = resolve(
  * layout/master paths, causing:
  *  - Missing black background (defaulted to white)
  *  - Missing layout decorative elements
+ *
+ * All assertions are scoped to the main slide canvas (`[data-pptx-viewport]`
+ * and the first `[aria-roledescription="slide"]` stage inside it), never to
+ * `document.body`: the thumbnail rail renders the same text and elements, so
+ * a page-wide read can pass while the canvas is broken.
  */
+
+/**
+ * Rendered elements on slide 1 of this fixture: the slide's own 3 shapes
+ * (`ppt/slides/slide16.xml` has 3 top-level `p:sp`) plus 8 decorative layout
+ * elements that only render when the absolute layout path resolves. All five
+ * bindings emit `data-element-id` on both kinds.
+ */
+const EXPECTED_SLIDE1_ELEMENTS = 11;
 
 async function openDeck(page: Page): Promise<void> {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	// Wait for the first slide element to appear
-	await page.locator('[data-pptx-element="true"]').first().waitFor({ timeout: 15_000 });
+	await page.locator('[data-pptx-viewport] [data-element-id]').first().waitFor({ timeout: 15_000 });
 }
 
 test.describe('absolute-path relationship targets (PowerPoint Online files)', () => {
@@ -33,13 +46,9 @@ test.describe('absolute-path relationship targets (PowerPoint Online files)', ()
 		// The slide stage should have a black (or very dark) background.
 		// The layout defines: <a:solidFill><a:schemeClr val="tx1"/></a:solidFill>
 		// which maps to dk1 = #000000 in this theme.
-		const bgColor = await page.evaluate(() => {
-			const stage = document.querySelector('[aria-roledescription="slide"]');
-			if (!stage) {
-				throw new Error('no slide stage found');
-			}
-			return getComputedStyle(stage).backgroundColor;
-		});
+		const stage = page.locator('[data-pptx-viewport] [aria-roledescription="slide"]').first();
+		await stage.waitFor({ timeout: 10_000 });
+		const bgColor = await stage.evaluate((node) => getComputedStyle(node).backgroundColor);
 
 		// rgb(0, 0, 0) = black
 		expect(bgColor).toBe('rgb(0, 0, 0)');
@@ -48,29 +57,22 @@ test.describe('absolute-path relationship targets (PowerPoint Online files)', ()
 	test('loads layout decorative elements', async ({ page }) => {
 		await openDeck(page);
 
-		// The layout has decorative group shapes (ellipses, lines, etc.)
-		// that should be rendered as layout elements. Without the fix,
-		// no elements would appear since even slide-authored shapes rely on
-		// the layout path being resolved for placeholder styling.
-		const elementCount = await page.evaluate(() => {
-			return document.querySelectorAll('[data-pptx-element="true"]').length;
-		});
-
-		// The slide has text placeholders + layout decorative shapes.
-		// Without the fix, path resolution fails silently and elements are
-		// missing or improperly styled.
-		expect(elementCount).toBeGreaterThanOrEqual(3);
+		// Exactly the slide's own shapes plus the layout decorations; fewer means
+		// the absolute layout path silently failed to resolve again, more means
+		// something double-renders.
+		await expect(page.locator('[data-pptx-viewport] [data-element-id]')).toHaveCount(
+			EXPECTED_SLIDE1_ELEMENTS,
+		);
 	});
 
 	test('slide text content is visible', async ({ page }) => {
 		await openDeck(page);
 
-		// The slide has direct text content (title, footer, body) that should
-		// render. Use a broader search since the slide container selector may vary.
-		const hasText = await page.evaluate(() => {
-			const body = document.body.innerText;
-			return body.includes('COLLAGE') || body.includes('DIGITAL TIME CAPSULE');
-		});
-		expect(hasText).toBe(true);
+		// The slide's own body text, read from the main canvas only (the
+		// thumbnail rail would satisfy a body-wide search even with a blank
+		// canvas).
+		await expect(page.locator('[data-pptx-viewport]').first()).toContainText(
+			/digital time capsule/iu,
+		);
 	});
 });

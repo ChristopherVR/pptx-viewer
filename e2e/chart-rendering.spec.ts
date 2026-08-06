@@ -19,13 +19,19 @@ import type { ChartSlideSpec } from './fixtures/generate-chart-fixture';
  * (`[data-pptx-element="true"]`,
  * `[aria-roledescription="slide"]`, inline `<svg>`).
  *
- * Per chart slide the spec:
- *   (a) PARITY - captures the rendered form of the chart element (a real chart
- *       `<svg>` with per-type geometry, or the "Chart" placeholder fallback) and
- *       asserts the SAME contract holds. Because the body is framework-agnostic,
- *       a divergence in any of the five bindings fails the run and names the
- *       chart kind. When a chart renders as SVG, the per-type primitive counts
- *       (`<rect>` / `<path>` / `<circle>` / `<polygon>`) are validated too.
+ * One test per chart kind (so one broken kind cannot mask the rest). Per kind:
+ *   (a) PARITY - the chart renders as a real `<svg>` (never the "Chart"
+ *       placeholder) and its data-bearing primitives meet a per-type profile
+ *       DERIVED from the fixture data ({@link expectedPrimitives}): bars are
+ *       `<rect>`s (>= series x categories), pie/doughnut/funnel/sunburst
+ *       slices are `<path>`s (>= categories), line/area series are
+ *       `<polyline>`s, scatter/bubble/marker points are `<circle>`s, radar
+ *       series are `<polygon>`s, box-whisker whiskers are `<line>`s. Chrome
+ *       (gridlines, legend swatches, plot background) sits on top of those
+ *       minima, which is why the bounds are `>=`. Axis/category/legend text
+ *       must render too. Both React and Vue were measured emitting identical
+ *       primitive counts (same shared engine), so the profile holds for every
+ *       binding or the run names the divergent kind.
  *   (b) VISUAL - screenshots the chart element to
  *       `e2e/__screenshots__/<framework>-<charttype>.png` for eyeballing.
  *
@@ -123,7 +129,7 @@ function escapeRe(s: string): string {
 }
 
 /** Counts of each SVG primitive kind within a chart `<svg>` (0s if no svg). */
-async function primitiveCounts(el: Locator): Promise<{
+interface PrimitiveCounts {
 	hasSvg: boolean;
 	rect: number;
 	path: number;
@@ -132,7 +138,9 @@ async function primitiveCounts(el: Locator): Promise<{
 	polyline: number;
 	line: number;
 	text: number;
-}> {
+}
+
+async function primitiveCounts(el: Locator): Promise<PrimitiveCounts> {
 	return el.evaluate((node) => {
 		const svg = node.querySelector('svg');
 		return {
@@ -148,43 +156,75 @@ async function primitiveCounts(el: Locator): Promise<{
 	});
 }
 
+/** One primitive lower bound with the data-derived reason it must hold. */
+interface PrimitiveExpectation {
+	kind: 'rect' | 'path' | 'circle' | 'polygon' | 'polyline' | 'line';
+	min: number;
+	why: string;
+}
+
 /**
- * Per-type minimum primitive expectations for a rendered chart `<svg>`.
- * Lower-bound (`>=`) because the shared engine adds chrome (gridlines, ticks,
- * legend swatches) whose exact count is not the parity target - the target is
- * that the *same* engine drives all five bindings, so the same bounds hold.
+ * The per-type minimum data primitives, derived from the fixture manifest
+ * (`seriesCount` x `categoryCount`). Bounds are `>=` because engine chrome
+ * (plot background rect, legend swatches, gridlines) adds primitives of the
+ * same kinds on top of the data marks.
  */
-function assertSvgTypeShape(
-	slide: ChartSlideSpec,
-	counts: Awaited<ReturnType<typeof primitiveCounts>>,
-): void {
-	// Every chart, whatever its kind, must draw *some* geometry: an empty svg is
-	// the regression this guards against. We total the drawable kinds the shared
-	// engine emits (bars `rect`, slices/arcs `path`, area/line bands `polyline`,
-	// rings/trapezoids `polygon`, points `circle`) rather than asserting a
-	// per-type breakdown, because the parity target is that the *same* engine
-	// drives all five bindings (so the same svg renders), not a specific
-	// primitive mix. The screenshots are the per-type visual record.
-	const drawable = counts.rect + counts.path + counts.circle + counts.polygon + counts.polyline;
-	expect(drawable, `${slide.key} (${slide.chartType}): drew geometry`).toBeGreaterThan(0);
-	// A real chart also paints axis/category/legend text in every binding.
-	expect(counts.text, `${slide.key}: labels`).toBeGreaterThan(0);
+function expectedPrimitives(slide: ChartSlideSpec): PrimitiveExpectation[] {
+	const { seriesCount: series, categoryCount: categories } = slide;
+	const points = series * categories;
+	switch (slide.chartType) {
+		case 'bar':
+			return [{ kind: 'rect', min: points, why: `one bar per series x category (${points})` }];
+		case 'line':
+			return [
+				{ kind: 'polyline', min: series, why: `one line per series (${series})` },
+				{ kind: 'circle', min: points, why: `one marker per point (${points})` },
+				{ kind: 'path', min: 1, why: 'the fixture line chart carries a trendline' },
+			];
+		case 'area':
+			return [{ kind: 'polyline', min: series, why: `one area band per series (${series})` }];
+		case 'pie':
+		case 'doughnut':
+			return [{ kind: 'path', min: categories, why: `one slice per category (${categories})` }];
+		case 'radar':
+			return [
+				{ kind: 'polygon', min: series, why: `one radar ring per series (${series})` },
+				{ kind: 'circle', min: points, why: `one vertex marker per point (${points})` },
+			];
+		case 'scatter':
+		case 'bubble':
+			return [{ kind: 'circle', min: points, why: `one point per series x category (${points})` }];
+		case 'funnel':
+			return [{ kind: 'path', min: categories, why: `one trapezoid per category (${categories})` }];
+		case 'sunburst':
+			return [{ kind: 'path', min: categories, why: `one arc per leaf category (${categories})` }];
+		case 'histogram':
+			return [{ kind: 'rect', min: categories, why: `one bin bar per category (${categories})` }];
+		case 'boxWhisker':
+			return [
+				// Measured on the shared engine: 9 rects (boxes + plot chrome). The
+				// box count does not decompose cleanly as series x categories, so the
+				// bound only requires that several quartile boxes drew.
+				{ kind: 'rect', min: 5, why: 'quartile boxes' },
+				{ kind: 'line', min: points, why: `whisker segments (>= ${points})` },
+			];
+		default:
+			return [{ kind: 'rect', min: 1, why: 'unknown chart type still draws geometry' }];
+	}
 }
 
 test.describe('chart rendering (cross-framework parity)', () => {
-	test('every chart kind renders an identical contract + captures screenshots', async ({
-		page,
-	}, testInfo) => {
-		const framework = testInfo.project.name;
-		mkdirSync(screenshotDir, { recursive: true });
+	mkdirSync(screenshotDir, { recursive: true });
 
-		await openGalleryInPresentMode(page);
+	for (let i = 0; i < CHART_SLIDES.length; i++) {
+		const slide = CHART_SLIDES[i];
 
-		const renderedAsSvg: string[] = [];
-
-		for (let i = 0; i < CHART_SLIDES.length; i++) {
-			const slide = CHART_SLIDES[i];
-			if (i > 0) {
+		test(`${slide.key} renders its per-type SVG profile + screenshot`, async ({
+			page,
+		}, testInfo) => {
+			const framework = testInfo.project.name;
+			await openGalleryInPresentMode(page);
+			for (let step = 0; step < i; step++) {
 				await nextSlide(page);
 			}
 
@@ -196,22 +236,21 @@ test.describe('chart rendering (cross-framework parity)', () => {
 			await expect(el, `${slide.key}: chart element present`).toBeVisible();
 
 			const counts = await primitiveCounts(el);
-
 			expect(counts.hasSvg, `${slide.key}: chart renders as SVG`).toBe(true);
-			assertSvgTypeShape(slide, counts);
+			for (const expectation of expectedPrimitives(slide)) {
+				expect(
+					counts[expectation.kind],
+					`${slide.key} (${slide.chartType}): <${expectation.kind}> x${expectation.min} - ${expectation.why}`,
+				).toBeGreaterThanOrEqual(expectation.min);
+			}
+			// A real chart also paints its title plus axis/category/legend text.
+			expect(counts.text, `${slide.key}: labels`).toBeGreaterThan(1);
 			await expect(el, `${slide.key}: real chart, not placeholder`).toContainText(slide.title);
-			renderedAsSvg.push(slide.key);
 
 			// (b) VISUAL - screenshot the chart element per framework + type.
 			await el.screenshot({
 				path: resolve(screenshotDir, `${framework}-${slide.key}.png`),
 			});
-		}
-
-		// Surface the rendered-form tally in the report for quick triage.
-		testInfo.annotations.push({
-			type: 'chart-render-form',
-			description: `svg=[${renderedAsSvg.join(',')}]`,
 		});
-	});
+	}
 });

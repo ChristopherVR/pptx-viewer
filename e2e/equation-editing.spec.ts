@@ -218,21 +218,22 @@ test.describe('equation editing', () => {
 		// Deselect the freshly-inserted equation first.
 		await page.keyboard.press('Escape');
 
-		// Save via File ▸ Save .pptx. Scoped to the ribbon toolbar (matches
+		// Save via File ▸ Save. Scoped to the ribbon toolbar (matches
 		// `switchToInsertTab`) rather than an unscoped `page.locator('button')`
 		// text filter. The toolbar scope avoids matching persistent quick-save
 		// controls exposed elsewhere in the viewer.
 		await ribbonTab(page, 'File').click();
 		await page.waitForTimeout(300);
 
-		// React/Vue label this button "Save .pptx"; Angular's File tab only
-		// offers a single generic "Save" button (always .pptx format, per its
-		// "Save as Presentation (.pptx)" tooltip) rather than React/Vue's
-		// separate .pptx/.ppsx/.pptm buttons - a real feature gap, not a test
-		// bug. `.last()` picks the File-tab-scoped button over the persistent
-		// quick-save icon some bindings also render earlier in the DOM.
+		// Every binding's File tab is the shared backstage now: a "Save" nav
+		// entry (saves .pptx directly) plus a "Save As" page offering the
+		// .pptx/.ppsx/.pptm flavors from the shared BACKSTAGE_PAGE_CARDS list
+		// (live-verified in all five, Angular included; the old "Angular offers
+		// only a generic Save" accommodation is gone). `.last()` picks the
+		// File-tab-scoped Save over the persistent quick-save icon some
+		// bindings also render earlier in the DOM.
 		const downloadPromise = page.waitForEvent('download');
-		const saveBtn = page.getByRole('button', { name: /^Save(\s\.pptx)?$/iu }).last();
+		const saveBtn = page.getByRole('button', { name: /^Save$/iu }).last();
 		await saveBtn.click();
 
 		const download = await downloadPromise;

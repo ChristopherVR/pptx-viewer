@@ -160,7 +160,7 @@ test.describe('mobile manipulation (Pixel 7 touch)', () => {
 
 		await target.tap(); // select → rotate handle appears above the top edge
 		await page.waitForTimeout(200);
-		const rotateBtn = page.getByRole('button', { name: 'Rotate' });
+		const rotateBtn = page.getByRole('button', { name: /^rotate element$/iu });
 		await expect(rotateBtn).toBeVisible();
 
 		const elBox = (await target.boundingBox())!;

@@ -162,8 +162,11 @@ test.describe('anatidae deck: real-PowerPoint slide-show fidelity', () => {
 
 		// The full-bleed panel is the deck's first shape. Its slide background is
 		// white; the `a:fillRef` it also carries points at the blue accent.
+		// Scoped to the main canvas: in two bindings the document-order-first
+		// `[data-element-id]` is the THUMBNAIL rail's copy of the shape, which
+		// could keep this green even if the canvas mispainted.
 		const fill = await page.evaluate(() => {
-			const box = document.querySelector<HTMLElement>('[data-element-id]');
+			const box = document.querySelector<HTMLElement>('[data-pptx-viewport] [data-element-id]');
 			return box ? getComputedStyle(box).backgroundColor : '';
 		});
 		expect(fill).toBe('rgb(255, 255, 255)');

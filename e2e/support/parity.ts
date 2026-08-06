@@ -11,9 +11,13 @@
  */
 import type { Browser, Page, TestInfo } from '@playwright/test';
 
+import { colorsMatch } from './color-match';
 import type { ElementFingerprint, SlideFingerprint } from './fingerprint';
 import { comparisonSet, REFERENCE, urlOf } from './frameworks';
 import type { FrameworkDemo } from './frameworks';
+import { diffElementStyle, diffZOrder } from './style-parity';
+
+export { colorsMatch } from './color-match';
 
 /** A per-framework result of replaying the scenario. */
 export interface FrameworkResult<T> {
@@ -114,40 +118,6 @@ export function splitReference<T>(results: FrameworkResult<T>[]): {
 	};
 }
 
-function parseColor(value: string): [number, number, number, number] | null {
-	const match = /rgba?\(([^)]+)\)/u.exec(value);
-	if (!match) {
-		return null;
-	}
-	const parts = match[1].split(/[,/]/u).map((part) => Number.parseFloat(part));
-	if (parts.length < 3 || parts.some((part) => !Number.isFinite(part))) {
-		return null;
-	}
-	return [parts[0], parts[1], parts[2], parts[3] ?? 1];
-}
-
-/** True when two computed colours are the same to within `tolerance` per channel. */
-export function colorsMatch(a: string, b: string, tolerance: number): boolean {
-	if (a === b) {
-		return true;
-	}
-	const left = parseColor(a);
-	const right = parseColor(b);
-	if (!left || !right) {
-		return false;
-	}
-	// Fully transparent paints look identical whatever their nominal channels.
-	if (left[3] === 0 && right[3] === 0) {
-		return true;
-	}
-	return (
-		Math.abs(left[0] - right[0]) <= tolerance &&
-		Math.abs(left[1] - right[1]) <= tolerance &&
-		Math.abs(left[2] - right[2]) <= tolerance &&
-		Math.abs(left[3] - right[3]) <= 0.05
-	);
-}
-
 function describe(element: ElementFingerprint): string {
 	return element.text ? `"${element.text}"` : `element #${element.index}`;
 }
@@ -222,12 +192,9 @@ function diffElement(
 			`${label}: background is ${candidate.background}, reference has ${reference.background}`,
 		);
 	}
-	if (reference.kinds.join(',') !== candidate.kinds.join(',')) {
-		problems.push(
-			`${label}: renders [${candidate.kinds.join(', ') || 'no sub-renderers'}], ` +
-				`reference renders [${reference.kinds.join(', ') || 'no sub-renderers'}]`,
-		);
-	}
+	// Opacity, letter-spacing, per-side borders, background-image, effects,
+	// clip-path, rotation and sub-renderer counts live in the style module.
+	problems.push(...diffElementStyle(label, reference, candidate, tolerance));
 
 	return problems;
 }
@@ -264,6 +231,9 @@ export function diffSlides(
 	for (const extra of candidateByKey.values()) {
 		problems.push(`${describe(extra)}: rendered, but the reference has no such element`);
 	}
+
+	// Stacking: DOM order is paint order for overlapping slide content.
+	problems.push(...diffZOrder(reference.elements, candidate.elements));
 
 	return problems;
 }

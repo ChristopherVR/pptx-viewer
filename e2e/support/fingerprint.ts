@@ -17,13 +17,25 @@
  *    the same 54px title measured that way came out 37% larger in one binding
  *    purely because its stage element sits below the zoom transform rather than
  *    above it.
+ *  - Style STRINGS (gradients, shadows, filters, clip paths, borders) need no
+ *    such normalisation: every binding lays the slide out at the same unscaled
+ *    slide dimensions and only then applies the stage zoom as a transform, so
+ *    computed px values are already in slide space and comparable directly.
+ *    They are only cleaned of float noise and `url()` payloads (see
+ *    `support/fingerprint-capture`).
  *
  * What survives is exactly what should match: relative position, relative type
- * scale, and the non-metric styling (family, weight, colour, alignment).
+ * scale, rotation, stacking order, and the non-metric styling (family, weight,
+ * colour, alignment, fills, borders, effects).
+ *
+ * The measurement itself lives in `support/fingerprint-capture` (it must be a
+ * single self-contained `page.evaluate` callback); this module owns the shape
+ * of the data and re-exports the capture so callers import one place.
  *
  * @module e2e/support/fingerprint
  */
-import type { Page } from '@playwright/test';
+
+export { fingerprintSlide } from './fingerprint-capture';
 
 /** A box as a percentage of the slide stage (x/y from the stage's top-left). */
 export interface FingerprintRect {
@@ -52,6 +64,14 @@ export interface FingerprintType {
 	color: string;
 }
 
+/** The four sides of an element's border, each `<width>px <style> <color>` or `none`. */
+export interface FingerprintBorders {
+	top: string;
+	right: string;
+	bottom: string;
+	left: string;
+}
+
 /** One rendered slide element. */
 export interface ElementFingerprint {
 	/** Stable identity used to pair this element with its counterpart. */
@@ -64,11 +84,28 @@ export interface ElementFingerprint {
 	type: FingerprintType | null;
 	/** Computed `background-color` of the element box. */
 	background: string;
-	/** Shorthand of the element's own border, if any. */
+	/** Shorthand of the element's own top border (legacy single-side capture). */
 	border: string;
+	/** All four borders. */
+	borders: FingerprintBorders;
+	/** Computed `background-image`, numbers rounded and `url()` payloads elided. */
+	backgroundImage: string;
+	/** Computed `box-shadow`, normalised the same way (`none` when absent). */
+	boxShadow: string;
+	/** Computed `filter`, normalised the same way (`none` when absent). */
+	filter: string;
+	/** Computed `clip-path`, normalised the same way (`none` when absent). */
+	clipPath: string;
+	/** Rotation painted onto the element, degrees, rounded to 0.1. */
+	rotationDeg: number;
 	opacity: number;
-	/** Tag names of the element's rendering descendants, e.g. `svg`, `img`, `table`. */
-	kinds: string[];
+	/**
+	 * Count of each rendering descendant tag, e.g. `{ img: 2, svg: 1 }`.
+	 *
+	 * A count, not a de-duplicated set: an element that paints one image where
+	 * the reference paints five used to fingerprint identically.
+	 */
+	kinds: Record<string, number>;
 }
 
 /** Everything measurable about the slide currently on the main canvas. */
@@ -76,151 +113,4 @@ export interface SlideFingerprint {
 	/** Stage width / height, as painted. */
 	aspect: number;
 	elements: ElementFingerprint[];
-}
-
-/**
- * Measure the main-canvas slide.
- *
- * Runs entirely in the page so it never depends on binding internals: it walks
- * the neutral `[data-pptx-element="true"]` contract and reads computed style.
- */
-export async function fingerprintSlide(page: Page): Promise<SlideFingerprint> {
-	return page.evaluate(() => {
-		const stage = document.querySelector('[aria-roledescription="slide"]');
-		if (!(stage instanceof HTMLElement)) {
-			throw new Error('no slide stage on the page');
-		}
-		const stageRect = stage.getBoundingClientRect();
-
-		const pct = (value: number, basis: number): number =>
-			basis === 0 ? 0 : Math.round((value / basis) * 10_000) / 100;
-		const px = (value: string): number => {
-			const parsed = Number.parseFloat(value);
-			return Number.isFinite(parsed) ? parsed : 0;
-		};
-		const collapse = (value: string): string => value.replace(/\s+/gu, ' ').trim();
-
-		/**
-		 * Vertical scale applied to `node` by the CSS transforms (and `zoom`)
-		 * between it and the document, i.e. the factor that turns a computed
-		 * `font-size` into the height it is actually painted at.
-		 */
-		const paintedScale = (node: Element): number => {
-			let scale = 1;
-			let current: Element | null = node;
-			while (current && current !== document.documentElement) {
-				const style = getComputedStyle(current);
-				if (style.transform && style.transform !== 'none') {
-					scale *= new DOMMatrixReadOnly(style.transform).d;
-				}
-				const zoom = Number.parseFloat(style.zoom);
-				if (Number.isFinite(zoom) && zoom > 0 && zoom !== 1) {
-					scale *= zoom;
-				}
-				current = current.parentElement;
-			}
-			return scale === 0 ? 1 : Math.abs(scale);
-		};
-
-		/** The descendant that actually carries text, biggest one wins. */
-		const dominantTextNode = (root: Element): Element | null => {
-			let best: Element | null = null;
-			let bestSize = -1;
-			for (const node of [root, ...root.querySelectorAll('*')]) {
-				const ownsText = [...node.childNodes].some(
-					(child) => child.nodeType === Node.TEXT_NODE && child.textContent?.trim(),
-				);
-				if (!ownsText) {
-					continue;
-				}
-				const size = px(getComputedStyle(node).fontSize);
-				if (size > bestSize) {
-					bestSize = size;
-					best = node;
-				}
-			}
-			return best;
-		};
-
-		const elements = [...document.querySelectorAll('[data-pptx-element="true"]')].filter((el) =>
-			// Thumbnails reuse the element contract; keep only what is inside the
-			// stage we measured.
-			stage.contains(el),
-		);
-
-		const seen = new Map<string, number>();
-		const measured = elements.map((el, index) => {
-			const rect = el.getBoundingClientRect();
-			const text = collapse(el.textContent ?? '').slice(0, 60);
-			const textNode = dominantTextNode(el);
-			const style = getComputedStyle(el);
-
-			// `data-element-id` is core-assigned (e.g. `ppt/slides/slide3.xml-shape-19`)
-			// and identical in every binding, so it pairs elements exactly. Text is
-			// the fallback for the stages where a binding drops the attribute, and
-			// the DOM index the last resort for untexted shapes.
-			const elementId = el.getAttribute('data-element-id');
-			const base = elementId
-				? `id:${elementId}`
-				: text
-					? `text:${text.toLowerCase()}`
-					: `shape:${index}`;
-			const repeat = seen.get(base) ?? 0;
-			seen.set(base, repeat + 1);
-
-			let type: FingerprintType | null = null;
-			if (textNode) {
-				const ts = getComputedStyle(textNode);
-				const scale = paintedScale(textNode);
-				type = {
-					sizePct: pct(px(ts.fontSize) * scale, stageRect.height),
-					family: ts.fontFamily.toLowerCase().replaceAll('"', '').replaceAll("'", ''),
-					weight: ts.fontWeight,
-					style: ts.fontStyle,
-					lineHeightPct:
-						ts.lineHeight === 'normal' ? 0 : pct(px(ts.lineHeight) * scale, stageRect.height),
-					letterSpacingPct:
-						ts.letterSpacing === 'normal' ? 0 : pct(px(ts.letterSpacing) * scale, stageRect.height),
-					align: ts.textAlign,
-					transform: ts.textTransform,
-					decoration: ts.textDecorationLine,
-					color: ts.color,
-				};
-			}
-
-			const kinds = [
-				...new Set(
-					[...el.querySelectorAll('svg, img, table, video, audio, canvas, iframe')].map((node) =>
-						node.tagName.toLowerCase(),
-					),
-				),
-			].sort();
-
-			return {
-				key: repeat === 0 ? base : `${base}#${repeat}`,
-				index,
-				text,
-				rect: {
-					x: pct(rect.x - stageRect.x, stageRect.width),
-					y: pct(rect.y - stageRect.y, stageRect.height),
-					width: pct(rect.width, stageRect.width),
-					height: pct(rect.height, stageRect.height),
-				},
-				type,
-				background: style.backgroundColor,
-				border:
-					px(style.borderTopWidth) > 0
-						? `${Math.round(px(style.borderTopWidth))}px ${style.borderTopStyle} ${style.borderTopColor}`
-						: 'none',
-				opacity: Math.round(Number.parseFloat(style.opacity) * 100) / 100,
-				kinds,
-			} satisfies ElementFingerprint;
-		});
-
-		return {
-			aspect:
-				stageRect.height === 0 ? 0 : Math.round((stageRect.width / stageRect.height) * 1000) / 1000,
-			elements: measured,
-		} satisfies SlideFingerprint;
-	});
 }

@@ -31,11 +31,13 @@ test.use({ viewport: { width: 1440, height: 900 } });
 /** Slides of the reporter's deck that put content inside groups. */
 const SLIDES = [1, 2, 3, 12];
 
-/** How many nodes the stage marks, and how many carry an element id. */
+/** What the stage marks: the counts, and the actual id multiset behind them. */
 interface MarkerCount {
 	slide: number;
 	marked: number;
 	withId: number;
+	/** Sorted `data-element-id` values, duplicates kept. */
+	ids: string[];
 }
 
 async function countMarkers(
@@ -45,14 +47,41 @@ async function countMarkers(
 	const counts = await page.evaluate(() => {
 		const stage = document.querySelector('[aria-roledescription="slide"]');
 		if (!stage) {
-			return { marked: 0, withId: 0 };
+			return { marked: 0, withId: 0, ids: [] as string[] };
 		}
 		return {
 			marked: stage.querySelectorAll('[data-pptx-element="true"]').length,
 			withId: stage.querySelectorAll('[data-element-id]').length,
+			ids: [...stage.querySelectorAll('[data-element-id]')]
+				.map((el) => el.getAttribute('data-element-id') ?? '')
+				.sort(),
 		};
 	});
 	return { slide, ...counts };
+}
+
+/**
+ * The ids on one side of a comparison but not the other, as a multiset diff.
+ *
+ * Equal counts can hide a binding rendering a DIFFERENT subset of elements
+ * (one extra decoration, one dropped shape - net zero), so the sets are what
+ * gets compared; the counts remain as the cheap internal-consistency check.
+ */
+function missingIds(from: readonly string[], inOther: readonly string[]): string[] {
+	const remaining = new Map<string, number>();
+	for (const id of inOther) {
+		remaining.set(id, (remaining.get(id) ?? 0) + 1);
+	}
+	const missing: string[] = [];
+	for (const id of from) {
+		const count = remaining.get(id) ?? 0;
+		if (count === 0) {
+			missing.push(id);
+		} else {
+			remaining.set(id, count - 1);
+		}
+	}
+	return missing;
 }
 
 test.describe('cross-binding element marker', () => {
@@ -68,6 +97,13 @@ test.describe('cross-binding element marker', () => {
 				if (slide > 1) {
 					await thumbnail(page, slide).click();
 					await slideStage(page).waitFor();
+					// The "N of M" indicator is the only neutral navigation-done signal;
+					// polling on marker counts alone captured the PREVIOUS slide's DOM in
+					// the slower bindings (its counts satisfy the poll immediately).
+					await page
+						.getByText(new RegExp(`\\b${slide} of \\d+\\b`, 'u'))
+						.first()
+						.waitFor({ timeout: 15_000 });
 				}
 				// Angular and Svelte apply the contract in a microtask after mount.
 				await expect
@@ -97,13 +133,31 @@ test.describe('cross-binding element marker', () => {
 		}
 
 		for (const candidate of candidates) {
-			const perBinding = reference.value.flatMap((expected, index) => {
+			const perBinding: string[] = [];
+			reference.value.forEach((expected, index) => {
 				const actual = candidate.value[index];
-				return actual && actual.marked !== expected.marked
-					? [
-							`slide ${expected.slide}: marks ${actual.marked} elements, reference marks ${expected.marked}`,
-						]
-					: [];
+				if (!actual) {
+					return;
+				}
+				if (actual.marked !== expected.marked) {
+					perBinding.push(
+						`slide ${expected.slide}: marks ${actual.marked} elements, reference marks ${expected.marked}`,
+					);
+				}
+				// The id SETS, not just the counts: equal totals can still be two
+				// different subsets of the slide's elements.
+				const dropped = missingIds(expected.ids, actual.ids);
+				if (dropped.length > 0) {
+					perBinding.push(
+						`slide ${expected.slide}: does not render ids [${dropped.join(', ')}] that the reference renders`,
+					);
+				}
+				const invented = missingIds(actual.ids, expected.ids);
+				if (invented.length > 0) {
+					perBinding.push(
+						`slide ${expected.slide}: renders ids [${invented.join(', ')}] that the reference does not`,
+					);
+				}
 			});
 			if (perBinding.length > 0) {
 				problems.push(formatDiff(candidate.framework.name, perBinding));

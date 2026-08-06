@@ -89,9 +89,15 @@ function diffContract(
 		}
 		byId.delete(expected.elementId);
 
-		if (expected.tagged && !actual.tagged) {
+		// Both directions: a candidate that tags an element the reference leaves
+		// untagged is just as much a contract divergence as the reverse, and the
+		// one-directional check silently blessed whatever React happened to omit.
+		if (expected.tagged !== actual.tagged) {
+			const detail = expected.roleDescription || expected.role;
 			problems.push(
-				`${where}: element ${expected.elementId} (${expected.roleDescription || expected.role}) is missing data-pptx-element="true"`,
+				actual.tagged
+					? `${where}: element ${expected.elementId} (${detail}) carries data-pptx-element="true", but the reference leaves it untagged`
+					: `${where}: element ${expected.elementId} (${detail}) is missing data-pptx-element="true"`,
 			);
 		}
 		for (const key of ['role', 'roleDescription', 'label'] as const) {
@@ -126,6 +132,12 @@ test.describe('cross-binding element contract', () => {
 				for (let slide = 1; slide <= deck.slides; slide += 1) {
 					if (slide > 1) {
 						await thumbnail(page, slide).click();
+						// Neutral navigation-done signal; a poll on contract counts alone
+						// can capture the PREVIOUS slide's DOM in the slower bindings.
+						await page
+							.getByText(new RegExp(`\\b${slide} of \\d+\\b`, 'u'))
+							.first()
+							.waitFor({ timeout: 15_000 });
 					}
 					await slideStage(page).waitFor();
 					// Angular and Svelte apply the accessibility attributes in a
