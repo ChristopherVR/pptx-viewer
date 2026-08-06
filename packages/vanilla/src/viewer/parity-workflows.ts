@@ -19,6 +19,7 @@ import type { PrintOptions } from './export/export-print';
 import type { Translator } from './i18n';
 import { loadPresentation, revokeBlobUrls } from './load/load-presentation';
 import { createOutlineWorkflow } from './outline-workflow';
+import { createSelectionPaneWorkflow } from './selection-pane-workflow';
 import type { Store, ViewerState } from './state';
 import { openCommentsPanel } from './ui/comments-panel';
 import { openComparePanel } from './ui/compare-panel';
@@ -29,7 +30,6 @@ import { openPrintSettingsDialog } from './ui/print-settings-dialog';
 import type { ReadingViewHandle } from './ui/reading-view';
 import { openReadingViewOverlay } from './ui/reading-view';
 import { openRehearseTimings } from './ui/rehearse-timings';
-import { openSelectionPane } from './ui/selection-pane';
 import { openSettingsDialog } from './ui/settings-dialog';
 import { openSlideShowDialog } from './ui/slide-show-dialog';
 import { openSlideSorterOverlay } from './ui/slide-sorter-overlay';
@@ -89,6 +89,9 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 	// down on destroy, and so a second open never leaves an orphan behind.
 	let readingView: ReadingViewHandle | null = null;
 	const outline = createOutlineWorkflow(host);
+	// Like Outline view, the Selection Pane owns a live store subscription, so it
+	// lives in its own module and is released before a second open.
+	const selection = createSelectionPaneWorkflow(host);
 	return {
 		openSettings(tab = 'general') {
 			const themeState = host.getThemeState();
@@ -149,7 +152,7 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 			});
 		},
 		openSelectionPane() {
-			openObjectSelection(host);
+			selection.open();
 		},
 		openSlideSorter() {
 			openSorter(host);
@@ -246,36 +249,6 @@ async function comparePresentation(host: ParityWorkflowHost): Promise<void> {
 		revokeBlobUrls(incoming.blobUrls);
 		incoming.handler.dispose();
 	}
-}
-
-function openObjectSelection(host: ParityWorkflowHost): void {
-	const current = host.store.get();
-	const slide = current.slides[current.currentSlide];
-	openSelectionPane(host.doc, host.root(), host.t, {
-		elements: slide?.elements ?? [],
-		selectedIds: current.selectedElementIds,
-		onSelect: (id) => host.editor.selectElements([id]),
-		onToggleHidden: (id) =>
-			host.editor.applyElementPatch(id, {
-				hidden: !slide?.elements.find((element) => element.id === id)?.hidden,
-			}),
-		// The history-integrated patch path, so a rename is undoable and marks the
-		// deck dirty like every other edit. An undefined name clears cNvPr/@name.
-		onRename: (id, name) => host.editor.applyElementPatch(id, { name }),
-		onReorder: (from, to) => {
-			if (!slide || from === to) {
-				return;
-			}
-			const elements = [...slide.elements];
-			const [moved] = elements.splice(from, 1);
-			elements.splice(to, 0, moved);
-			host.editor.commitSlides(
-				current.slides.map((item, index) =>
-					index === current.currentSlide ? { ...item, elements } : item,
-				),
-			);
-		},
-	});
 }
 
 function openSorter(host: ParityWorkflowHost): void {

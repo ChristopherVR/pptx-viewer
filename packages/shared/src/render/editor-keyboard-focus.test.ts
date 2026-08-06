@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
 
-import { armEditorKeyboard } from './editor-keyboard-focus';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { armEditorKeyboard, restoreEditorKeyboardFocus } from './editor-keyboard-focus';
 import type { EditorKeyboardFocusTarget } from './editor-keyboard-focus';
 
 /** A viewer root stub whose owning document reports `active` as focused. */
@@ -46,5 +48,46 @@ describe('armEditorKeyboard', () => {
 	it('is a no-op without a root', () => {
 		expect(armEditorKeyboard(null)).toBeFalsy();
 		expect(armEditorKeyboard(undefined)).toBeFalsy();
+	});
+});
+
+describe('restoreEditorKeyboardFocus', () => {
+	afterEach(() => document.body.replaceChildren());
+
+	/** A viewer root (tabindex, as every binding renders it) holding a panel input. */
+	function pane(): { viewer: HTMLDivElement; input: HTMLInputElement } {
+		const viewer = document.createElement('div');
+		viewer.setAttribute('tabindex', '0');
+		const panel = document.createElement('aside');
+		const input = document.createElement('input');
+		panel.append(input);
+		viewer.append(panel);
+		document.body.append(viewer);
+		return { viewer, input };
+	}
+
+	it('hands focus back to the viewer root when the inline editor still holds it', () => {
+		const { viewer, input } = pane();
+		input.focus();
+		expect(document.activeElement).toBe(input);
+
+		expect(restoreEditorKeyboardFocus(input)).toBeTruthy();
+		expect(document.activeElement).toBe(viewer);
+	});
+
+	it('does not leave focus on the body once the editor is removed', () => {
+		const { viewer, input } = pane();
+		input.focus();
+		restoreEditorKeyboardFocus(input);
+		input.remove();
+		expect(document.activeElement).toBe(viewer);
+	});
+
+	it('reports false when nothing up the tree can take the keyboard', () => {
+		const orphan = document.createElement('input');
+		document.body.append(orphan);
+		expect(restoreEditorKeyboardFocus(orphan)).toBeFalsy();
+		expect(restoreEditorKeyboardFocus(null)).toBeFalsy();
+		expect(restoreEditorKeyboardFocus(undefined)).toBeFalsy();
 	});
 });

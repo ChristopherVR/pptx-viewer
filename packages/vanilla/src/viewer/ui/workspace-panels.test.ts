@@ -77,6 +77,85 @@ describe('workspace parity panels', () => {
 		expect(label.textContent).toBe('Agenda Header');
 	});
 
+	/**
+	 * The pane used to be a snapshot of the deck as it stood when it opened, so
+	 * undoing a rename put the old name back in the model while the row went on
+	 * showing the new one. It now follows a live feed.
+	 */
+	it('re-renders its rows from the live model, so an undone rename reverts', () => {
+		let push: ((model: { elements: PptxElement[]; selectedIds: string[] }) => void) | null = null;
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [{ ...element, name: 'Rectangle 13' } as PptxElement],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename: vi.fn(),
+			subscribe: (listener) => {
+				push = listener;
+				return () => {
+					push = null;
+				};
+			},
+		});
+		const pane = document.querySelector<HTMLElement>('[data-pptx-selection-pane]')!;
+		const label = (): string | null =>
+			pane.querySelector('[data-pptx-selection-name]')?.textContent ?? null;
+		expect(label()).toBe('Rectangle 13');
+
+		push!({ elements: [{ ...element, name: 'Renamed' } as PptxElement], selectedIds: [] });
+		expect(label()).toBe('Renamed');
+
+		// Undo: the model goes back, and so must the row.
+		push!({ elements: [{ ...element, name: 'Rectangle 13' } as PptxElement], selectedIds: [] });
+		expect(label()).toBe('Rectangle 13');
+	});
+
+	it('releases its store subscription when the pane is closed', () => {
+		const unsubscribe = vi.fn();
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [element],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename: vi.fn(),
+			subscribe: () => unsubscribe,
+		});
+		document.querySelector<HTMLButtonElement>('[data-pptx-selection-pane] header button')!.click();
+		expect(unsubscribe).toHaveBeenCalledOnce();
+		expect(document.querySelector('[data-pptx-selection-pane]')).toBeNull();
+	});
+
+	/**
+	 * Committing a rename must hand the keyboard back to the viewer root: this
+	 * binding listens for `keydown` there, and focus otherwise falls to
+	 * `document.body` when the input is removed, which silently killed the
+	 * Ctrl+Z that undoes the rename.
+	 */
+	it('returns focus to the viewer root when a rename ends', () => {
+		const root = document.createElement('div');
+		root.setAttribute('tabindex', '0');
+		document.body.append(root);
+		openSelectionPane(document, root, createTranslator(), {
+			elements: [element],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename: vi.fn(),
+		});
+		const label = root.querySelector<HTMLButtonElement>('[data-pptx-selection-name]')!;
+		label.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		const input = root.querySelector<HTMLInputElement>('input[type="text"]')!;
+		expect(document.activeElement).toBe(input);
+
+		input.value = 'Agenda Header';
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		expect(document.activeElement).toBe(root);
+	});
+
 	it('cancels a selection-pane rename with Escape', () => {
 		const onRename = vi.fn();
 		openSelectionPane(document, document.body, createTranslator(), {

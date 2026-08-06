@@ -167,3 +167,63 @@ describe('svelte selection pane rename', () => {
 		});
 	});
 });
+
+/**
+ * Ending a rename must hand the keyboard back to the viewer root. This binding
+ * listens for `keydown` on that root, so a commit that leaves focus on
+ * `document.body` (where it lands once the input unmounts) makes the very next
+ * Ctrl+Z a no-op: the rename went through history, but undo could not be
+ * reached.
+ */
+describe('svelte selection pane rename focus', () => {
+	/** Mount the pane inside a focusable viewer root, as the real shell renders it. */
+	function mountInViewer(editor: EditorState): { root: HTMLDivElement; target: HTMLElement } {
+		const root = document.createElement('div');
+		root.setAttribute('tabindex', '0');
+		document.body.appendChild(root);
+		const target = document.createElement('div');
+		root.appendChild(target);
+		const instance = mount(SelectionPane, { target, props: { editor, onclose: () => {} } });
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			root.remove();
+		};
+		return { root, target };
+	}
+
+	function startRename(target: HTMLElement): HTMLInputElement {
+		target
+			.querySelector<HTMLElement>('[data-pptx-selection-name]')!
+			.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		flushSync();
+		return target.querySelector<HTMLInputElement>('input[type="text"]')!;
+	}
+
+	it('returns focus to the viewer root when Enter commits', () => {
+		const editor = createEditor([shape({ id: 'sp_1', name: 'Old' })]);
+		const { root, target } = mountInViewer(editor);
+		const input = startRename(target);
+		expect(document.activeElement).toBe(input);
+
+		input.value = 'New name';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+
+		expect(document.activeElement).toBe(root);
+		// The blur that focus move causes must not commit a second time.
+		expect(editor.applyElementPatch).toHaveBeenCalledExactlyOnceWith('sp_1', { name: 'New name' });
+	});
+
+	it('returns focus to the viewer root when Escape cancels', () => {
+		const editor = createEditor([shape({ id: 'sp_1', name: 'Old' })]);
+		const { root, target } = mountInViewer(editor);
+		const input = startRename(target);
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		flushSync();
+
+		expect(document.activeElement).toBe(root);
+		expect(editor.applyElementPatch).not.toHaveBeenCalled();
+	});
+});

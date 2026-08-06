@@ -45,3 +45,40 @@ export function armEditorKeyboard(root: EditorKeyboardFocusTarget | null | undef
 	root.focus({ preventScroll: true });
 	return true;
 }
+
+/** The bit of a focus target this module actually calls. */
+interface FocusableNode {
+	focus(options?: { preventScroll?: boolean }): void;
+}
+
+/** Narrow an unknown node to something focusable without asserting `any`. */
+function asFocusable(node: unknown): FocusableNode | null {
+	const candidate = node as { focus?: unknown } | null;
+	return candidate && typeof candidate.focus === 'function' ? (candidate as FocusableNode) : null;
+}
+
+/**
+ * Hand the keyboard back to the viewer when an inline editor is about to go
+ * away (a selection-pane rename input, say, committed with Enter or dropped
+ * with Escape).
+ *
+ * {@link armEditorKeyboard} deliberately does nothing while focus is already
+ * inside the viewer, which is exactly the case here: the input still holds
+ * focus at commit time and is removed a tick later, dumping focus on
+ * `document.body`. Every binding that listens for `keydown` on its own root
+ * then goes deaf, so the Ctrl+Z that undoes the edit the user just made is
+ * silently ignored. Call this from the commit/cancel handler, while the
+ * departing node is still in the document.
+ *
+ * The target is the nearest ancestor carrying a `tabindex`, which is the viewer
+ * root in all five bindings. Returns false when there is no such ancestor (the
+ * node is detached, or the host renders a read-only viewer with no tabindex).
+ */
+export function restoreEditorKeyboardFocus(from: Element | null | undefined): boolean {
+	const host = asFocusable(from?.closest('[tabindex]'));
+	if (!host) {
+		return false;
+	}
+	host.focus({ preventScroll: true });
+	return true;
+}

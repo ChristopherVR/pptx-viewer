@@ -5,7 +5,7 @@
 	import SendToBack from '@lucide/svelte/icons/send-to-back';
 	import X from '@lucide/svelte/icons/x';
 	import type { PptxElement } from 'pptx-viewer-core';
-	import { isElementHidden } from 'pptx-viewer-shared';
+	import { isElementHidden, restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
 	import type { EditorState } from '../editor/editor-state.svelte'; import { useTranslator } from '../../i18n/context';
 
 	const { editor, onclose }: { editor: EditorState; onclose: () => void } = $props(); const t = useTranslator();
@@ -23,24 +23,44 @@
 	// ── Inline rename (double-click a row's name label, as in React) ────────
 	let renamingId = $state<string | null>(null);
 	let renameValue = $state('');
+	let renameInput = $state<HTMLInputElement | null>(null);
 
 	function beginRename(element: PptxElement): void {
 		renamingId = element.id;
 		renameValue = element.name ?? '';
 	}
+	/**
+	 * Give the keyboard back to the viewer root before the input goes away.
+	 * Focus would otherwise fall to `document.body`, which is outside the root
+	 * this binding listens on, and the Ctrl+Z that undoes the rename would be
+	 * swallowed. Shared (`restoreEditorKeyboardFocus`), because three bindings
+	 * shipped the same hole.
+	 */
+	function releaseRenameFocus(): void {
+		restoreEditorKeyboardFocus(renameInput);
+	}
 	/** Commit the trimmed name through the history-integrated patch channel. */
 	function commitRename(): void {
 		if (renamingId === null) { return; }
-		const name = renameValue.trim();
-		editor.applyElementPatch(renamingId, { name: name.length > 0 ? name : undefined });
+		const id = renamingId;
+		// Clear first: focusing the root blurs the input, which re-enters this
+		// handler through `onblur`; a null `renamingId` makes that a no-op.
 		renamingId = null;
+		releaseRenameFocus();
+		const name = renameValue.trim();
+		editor.applyElementPatch(id, { name: name.length > 0 ? name : undefined });
+	}
+	function cancelRename(): void {
+		renamingId = null;
+		releaseRenameFocus();
 	}
 	function renameKeydown(event: KeyboardEvent): void {
 		if (event.key === 'Enter') { event.preventDefault(); commitRename(); }
-		else if (event.key === 'Escape') { event.stopPropagation(); renamingId = null; }
+		else if (event.key === 'Escape') { event.stopPropagation(); cancelRename(); }
 	}
 	/** Svelte action: focus + select the rename input the moment it mounts. */
 	function autofocus(node: HTMLInputElement): void {
+		renameInput = node;
 		node.focus();
 		node.select();
 	}

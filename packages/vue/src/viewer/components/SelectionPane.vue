@@ -2,6 +2,7 @@
 import { Eye, EyeOff, GripVertical } from 'lucide-vue-next';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -82,12 +83,26 @@ function startRename(element: PptxElement, index: number): void {
 	});
 }
 
+/**
+ * Give the keyboard back to the viewer root before the input unmounts.
+ *
+ * Without this, focus lands on `document.body` when the input goes away and
+ * the viewer (which listens for `keydown` on its own root) never sees the
+ * Ctrl+Z that undoes the rename. Shared, because three bindings had it.
+ */
+function releaseRenameFocus(): void {
+	restoreEditorKeyboardFocus(renameInputRef.value);
+}
+
 /** Commit the trimmed draft: non-empty renames, empty clears the name. */
 function commitRename(element: PptxElement): void {
 	if (editingId.value !== element.id) {
 		return;
 	}
+	// Clear first: focusing the root blurs the input, and the `blur` handler
+	// re-enters here. With `editingId` already null that re-entry is a no-op.
 	editingId.value = null;
+	releaseRenameFocus();
 	const trimmed = editDraft.value.trim();
 	// Unedited commit: keep whatever the element had (in particular, do not
 	// persist a "Shape 3"-style fallback label as a real name).
@@ -100,6 +115,7 @@ function commitRename(element: PptxElement): void {
 /** Escape: drop the draft without emitting (clearing first disarms blur). */
 function cancelRename(): void {
 	editingId.value = null;
+	releaseRenameFocus();
 }
 
 // Top-most element first (reverse of paint order), matching PowerPoint.
