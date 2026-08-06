@@ -97,7 +97,7 @@
 	<RibbonCommand
 		compact
 		label={t('pptx.view.selection')}
-		title={t('pptx.ribbon.toggleSelectionPane')}
+		title={t('pptx.selectionPane.title')}
 		onclick={onselectionpane}
 	>
 		{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M4 5h12M4 10h12M4 15h8" /></svg>{/snippet}

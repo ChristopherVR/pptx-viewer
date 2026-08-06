@@ -122,7 +122,7 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
-			[title]="'pptx.ribbon.toggleSelectionPane' | translate"
+			[title]="'pptx.selectionPane.title' | translate"
 			(click)="toggleSelectionPane.emit()"
 		>
 			{{ 'pptx.view.selection' | translate }}
