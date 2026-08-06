@@ -125,7 +125,6 @@ export const translations = {
 	'pptx.ribbon.toggleGridOverlay': 'Alternar superposición de cuadrícula',
 	'pptx.ribbon.guides': 'Guías',
 	'pptx.ribbon.toggleGuides': 'Alternar líneas guía centrales',
-	'pptx.ribbon.toggleSelectionPane': 'Mostrar/ocultar el panel de selección',
 	'pptx.ribbon.snapToGridTitle': 'Ajustar elementos a la cuadrícula mientras se mueve',
 	'pptx.ribbon.templatesOn': 'Plantillas activadas',
 	'pptx.ribbon.templatesOff': 'Plantillas desactivadas',

@@ -125,7 +125,6 @@ export const translations = {
 	'pptx.ribbon.toggleGridOverlay': 'Activer/désactiver la superposition de la grille',
 	'pptx.ribbon.guides': 'Guides',
 	'pptx.ribbon.toggleGuides': 'Basculer les lignes de guidage centrales',
-	'pptx.ribbon.toggleSelectionPane': 'Afficher/masquer le volet Sélection',
 	'pptx.ribbon.snapToGridTitle': 'Aligner les éléments sur la grille lors du déplacement',
 	'pptx.ribbon.templatesOn': 'Modèles activés',
 	'pptx.ribbon.templatesOff': 'Modèles désactivés',

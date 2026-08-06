@@ -8,6 +8,16 @@ export const SVELTE_APP_SVELTE = `<script lang="ts">
 	import type { CollaborationConfig } from 'pptx-svelte-viewer';
 	import { PowerPointViewer } from 'pptx-svelte-viewer';
 
+	/**
+	 * The presentation formats this viewer can open: OOXML and the legacy binary
+	 * PowerPoint format, which pptx-viewer-core converts on load. Kept as an
+	 * explicit check because a drop event carries no accept filtering.
+	 */
+	function isPresentation(file: File | undefined): file is File {
+		const name = file?.name.toLowerCase() ?? '';
+		return name.endsWith('.pptx') || name.endsWith('.ppt');
+	}
+
 	let content = $state<Uint8Array | null>(null);
 	let over = $state(false);
 	let collab = $state<CollaborationConfig | undefined>();
@@ -19,7 +29,7 @@ export const SVELTE_APP_SVELTE = `<script lang="ts">
 	function onDrop(e: DragEvent) {
 		over = false;
 		const file = e.dataTransfer?.files?.[0];
-		if (file?.name.endsWith('.pptx')) void loadFile(file);
+		if (isPresentation(file)) void loadFile(file);
 	}
 
 	function onPick(e: Event) {
@@ -58,10 +68,10 @@ export const SVELTE_APP_SVELTE = `<script lang="ts">
 	>
 		<div class="dropzone" class:over>
 			<h1>Open a Presentation</h1>
-			<p>Drag &amp; drop a .pptx file here, or</p>
+			<p>Drag &amp; drop a .pptx or .ppt file here, or</p>
 			<label class="pick-label" onclick={(e) => e.stopPropagation()}>
-				Choose .pptx file
-				<input id="file-input" type="file" accept=".pptx" style="display: none" onchange={onPick} />
+				Choose a file
+				<input id="file-input" type="file" accept=".pptx,.ppt" style="display: none" onchange={onPick} />
 			</label>
 			<span class="or-sep">or</span>
 			<button class="new-btn" onclick={(e) => { e.stopPropagation(); void newPresentation(); }}>

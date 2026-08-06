@@ -6,8 +6,9 @@
  */
 
 export const demoStringsEn = {
-	'demo.dropzone.hint': 'Drop a .pptx file here or click to browse',
-	'demo.dropzone.hintCollab': 'Drop a .pptx file here or click to browse to start collaborating',
+	'demo.dropzone.hint': 'Drop a .pptx or .ppt file here or click to browse',
+	'demo.dropzone.hintCollab':
+		'Drop a .pptx or .ppt file here or click to browse to start collaborating',
 	'demo.dropzone.processed': 'The file is processed entirely in the browser',
 	'demo.dropzone.browse': 'Browse files',
 	'demo.dropzone.newPresentation': 'or create a New Presentation',
@@ -15,13 +16,13 @@ export const demoStringsEn = {
 	'demo.dropzone.joiningBroadcast': 'Joining broadcast:',
 	'demo.dropzone.loadingBroadcast': 'Loading presentation from broadcaster\u2026',
 	'demo.dropzone.joiningSession': 'Joining collaboration session:',
-	'demo.dropzone.uploadAriaLabel': 'Upload PPTX file',
+	'demo.dropzone.uploadAriaLabel': 'Upload a presentation',
 };
 
 export const demoStringsFr = {
-	'demo.dropzone.hint': 'Deposez un fichier .pptx ici ou cliquez pour parcourir',
+	'demo.dropzone.hint': 'Deposez un fichier .pptx ou .ppt ici ou cliquez pour parcourir',
 	'demo.dropzone.hintCollab':
-		'Deposez un fichier .pptx ici ou cliquez pour demarrer la collaboration',
+		'Deposez un fichier .pptx ou .ppt ici ou cliquez pour demarrer la collaboration',
 	'demo.dropzone.processed': 'Le fichier est traite entierement dans le navigateur',
 	'demo.dropzone.browse': 'Parcourir les fichiers',
 	'demo.dropzone.newPresentation': 'ou creer une nouvelle presentation',
@@ -29,12 +30,13 @@ export const demoStringsFr = {
 	'demo.dropzone.joiningBroadcast': 'Rejoindre la diffusion :',
 	'demo.dropzone.loadingBroadcast': 'Chargement de la presentation depuis le diffuseur...',
 	'demo.dropzone.joiningSession': 'Rejoindre la session de collaboration :',
-	'demo.dropzone.uploadAriaLabel': 'Telecharger un fichier PPTX',
+	'demo.dropzone.uploadAriaLabel': 'Telecharger une presentation',
 };
 
 export const demoStringsEs = {
-	'demo.dropzone.hint': 'Suelte un archivo .pptx aqui o haga clic para explorar',
-	'demo.dropzone.hintCollab': 'Suelte un archivo .pptx aqui o haga clic para comenzar a colaborar',
+	'demo.dropzone.hint': 'Suelte un archivo .pptx o .ppt aqui o haga clic para explorar',
+	'demo.dropzone.hintCollab':
+		'Suelte un archivo .pptx o .ppt aqui o haga clic para comenzar a colaborar',
 	'demo.dropzone.processed': 'El archivo se procesa completamente en el navegador',
 	'demo.dropzone.browse': 'Explorar archivos',
 	'demo.dropzone.newPresentation': 'o crear una nueva presentacion',
@@ -42,13 +44,13 @@ export const demoStringsEs = {
 	'demo.dropzone.joiningBroadcast': 'Uniendose a la transmision:',
 	'demo.dropzone.loadingBroadcast': 'Cargando presentacion desde el emisor...',
 	'demo.dropzone.joiningSession': 'Uniendose a la sesion de colaboracion:',
-	'demo.dropzone.uploadAriaLabel': 'Subir archivo PPTX',
+	'demo.dropzone.uploadAriaLabel': 'Subir una presentacion',
 };
 
 export const demoStringsDe = {
-	'demo.dropzone.hint': 'PPTX-Datei hier ablegen oder zum Durchsuchen klicken',
+	'demo.dropzone.hint': 'PPTX- oder PPT-Datei hier ablegen oder zum Durchsuchen klicken',
 	'demo.dropzone.hintCollab':
-		'PPTX-Datei hier ablegen oder klicken, um die Zusammenarbeit zu starten',
+		'PPTX- oder PPT-Datei hier ablegen oder klicken, um die Zusammenarbeit zu starten',
 	'demo.dropzone.processed': 'Die Datei wird vollstandig im Browser verarbeitet',
 	'demo.dropzone.browse': 'Dateien durchsuchen',
 	'demo.dropzone.newPresentation': 'oder eine neue Prasentation erstellen',
@@ -56,5 +58,5 @@ export const demoStringsDe = {
 	'demo.dropzone.joiningBroadcast': 'Ubertragung beitreten:',
 	'demo.dropzone.loadingBroadcast': 'Prasentation vom Sender wird geladen...',
 	'demo.dropzone.joiningSession': 'Zusammenarbeitssitzung beitreten:',
-	'demo.dropzone.uploadAriaLabel': 'PPTX-Datei hochladen',
+	'demo.dropzone.uploadAriaLabel': 'Praesentation hochladen',
 };

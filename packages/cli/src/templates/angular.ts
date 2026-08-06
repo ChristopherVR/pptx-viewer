@@ -6,6 +6,16 @@ import { PptxHandler } from 'pptx-viewer-core';
 import type { CollaborationConfig } from 'pptx-angular-viewer';
 import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 
+/**
+ * The presentation formats this viewer can open: OOXML and the legacy binary
+ * PowerPoint format, which pptx-viewer-core converts on load. Kept as an
+ * explicit check because a drop event carries no accept filtering.
+ */
+function isPresentation(file: File | undefined): file is File {
+	const name = file?.name.toLowerCase() ?? '';
+	return name.endsWith('.pptx') || name.endsWith('.ppt');
+}
+
 @Component({
 	selector: 'app-root',
 	standalone: true,
@@ -46,10 +56,10 @@ import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 			>
 				<div class="dropzone">
 					<h1>Open a Presentation</h1>
-					<p>Drag &amp; drop a .pptx file here, or</p>
+					<p>Drag &amp; drop a .pptx or .ppt file here, or</p>
 					<label class="pick-label" (click)="$event.stopPropagation()">
-						Choose .pptx file
-						<input #fileInput type="file" accept=".pptx" style="display: none" (change)="onPick($event)" />
+						Choose a file
+						<input #fileInput type="file" accept=".pptx,.ppt" style="display: none" (change)="onPick($event)" />
 					</label>
 					<span class="or-sep">or</span>
 					<button class="new-btn" (click)="$event.stopPropagation(); newPresentation()">New Presentation</button>
@@ -67,7 +77,7 @@ export class App {
 		e.preventDefault();
 		this.over.set(false);
 		const file = e.dataTransfer?.files?.[0];
-		if (file?.name.endsWith('.pptx')) this.content.set(await file.arrayBuffer());
+		if (isPresentation(file)) this.content.set(await file.arrayBuffer());
 	}
 
 	async onPick(e: Event) {

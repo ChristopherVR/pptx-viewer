@@ -15,6 +15,16 @@ import { PowerPointViewer } from 'pptx-react-viewer';
 import 'pptx-react-viewer/styles.css';
 import './i18n';
 
+/**
+ * The presentation formats this viewer can open: OOXML and the legacy binary
+ * PowerPoint format, which pptx-viewer-core converts on load. Kept as an
+ * explicit check because a drop event carries no accept filtering.
+ */
+function isPresentation(file: File | undefined): file is File {
+	const name = file?.name.toLowerCase() ?? '';
+	return name.endsWith('.pptx') || name.endsWith('.ppt');
+}
+
 export default function App() {
 	const [content, setContent] = useState<Uint8Array | null>(null);
 	const [over, setOver] = useState(false);
@@ -56,18 +66,18 @@ export default function App() {
 					e.preventDefault();
 					setOver(false);
 					const file = e.dataTransfer.files[0];
-					if (file?.name.endsWith('.pptx')) void loadFile(file);
+					if (isPresentation(file)) void loadFile(file);
 				}}
 				onClick={() => document.getElementById('file-input')?.click()}
 			>
 				<h1>Open a Presentation</h1>
-				<p>Drag &amp; drop a .pptx file here, or</p>
+				<p>Drag &amp; drop a .pptx or .ppt file here, or</p>
 				<label className="pick-label" onClick={(e) => e.stopPropagation()}>
-					Choose .pptx file
+					Choose a file
 					<input
 						id="file-input"
 						type="file"
-						accept=".pptx"
+						accept=".pptx,.ppt"
 						style={{ display: 'none' }}
 						onChange={(e) => {
 							const file = e.target.files?.[0];

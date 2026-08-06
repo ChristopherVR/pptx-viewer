@@ -125,7 +125,6 @@ export const translations = {
 	'pptx.ribbon.toggleGridOverlay': 'Rasterüberlagerung umschalten',
 	'pptx.ribbon.guides': 'Hilfslinien',
 	'pptx.ribbon.toggleGuides': 'Schalten Sie die mittleren Hilfslinien um',
-	'pptx.ribbon.toggleSelectionPane': 'Blendet den Auswahlbereich ein/aus',
 	'pptx.ribbon.snapToGridTitle': 'Elemente beim Verschieben am Raster ausrichten',
 	'pptx.ribbon.templatesOn': 'Vorlagen aktiviert',
 	'pptx.ribbon.templatesOff': 'Vorlagen aus',

@@ -1930,7 +1930,6 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ribbon.toggleGridOverlay': 'Toggle grid overlay',
 	'pptx.ribbon.guides': 'Guides',
 	'pptx.ribbon.toggleGuides': 'Toggle center guide lines',
-	'pptx.ribbon.toggleSelectionPane': 'Show/hide the Selection pane',
 	'pptx.ribbon.snapToGridTitle': 'Snap elements to grid while moving',
 	'pptx.ribbon.templatesOn': 'Templates On',
 	'pptx.ribbon.templatesOff': 'Templates Off',

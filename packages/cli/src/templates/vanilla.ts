@@ -8,6 +8,16 @@ import { PptxHandler } from 'pptx-viewer-core';
 
 import './style.css';
 
+/**
+ * The presentation formats this viewer can open: OOXML and the legacy binary
+ * PowerPoint format, which pptx-viewer-core converts on load. Kept as an
+ * explicit check because a drop event carries no accept filtering.
+ */
+function isPresentation(file: File | undefined): file is File {
+	const name = file?.name.toLowerCase() ?? '';
+	return name.endsWith('.pptx') || name.endsWith('.ppt');
+}
+
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 function show(source: ArrayBuffer | Uint8Array): void {
@@ -30,15 +40,15 @@ function showLanding(): void {
 	h1.textContent = 'Open a Presentation';
 
 	const hint = document.createElement('p');
-	hint.textContent = 'Drag & drop a .pptx file here, or';
+	hint.textContent = 'Drag & drop a .pptx or .ppt file here, or';
 
 	const label = document.createElement('label');
 	label.className = 'pick-label';
-	label.textContent = 'Choose .pptx file';
+	label.textContent = 'Choose a file';
 
 	const input = document.createElement('input');
 	input.type = 'file';
-	input.accept = '.pptx';
+	input.accept = '.pptx,.ppt';
 	input.style.display = 'none';
 	label.append(input);
 
@@ -63,7 +73,7 @@ function showLanding(): void {
 		e.preventDefault();
 		zone.classList.remove('over');
 		const file = e.dataTransfer?.files?.[0];
-		if (file?.name.endsWith('.pptx')) void file.arrayBuffer().then(show);
+		if (isPresentation(file)) void file.arrayBuffer().then(show);
 	});
 
 	// Click the zone to open the file picker (but not if the button was clicked).

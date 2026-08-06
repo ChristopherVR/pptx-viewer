@@ -9,6 +9,16 @@ import type { CollaborationConfig } from 'pptx-vue-viewer';
 import { PowerPointViewer } from 'pptx-vue-viewer';
 import 'pptx-vue-viewer/styles.css';
 
+/**
+ * The presentation formats this viewer can open: OOXML and the legacy binary
+ * PowerPoint format, which pptx-viewer-core converts on load. Kept as an
+ * explicit check because a drop event carries no accept filtering.
+ */
+function isPresentation(file: File | undefined): file is File {
+	const name = file?.name.toLowerCase() ?? '';
+	return name.endsWith('.pptx') || name.endsWith('.ppt');
+}
+
 const content = ref<Uint8Array>();
 const over = ref(false);
 const collab = ref<CollaborationConfig | undefined>();
@@ -20,7 +30,7 @@ async function loadFile(file: File) {
 function onDrop(e: DragEvent) {
 	over.value = false;
 	const file = e.dataTransfer?.files?.[0];
-	if (file?.name.endsWith('.pptx')) void loadFile(file);
+	if (isPresentation(file)) void loadFile(file);
 }
 
 function onPick(e: Event) {
@@ -58,10 +68,10 @@ async function newPresentation() {
 	>
 		<div :class="['dropzone', { over }]">
 			<h1>Open a Presentation</h1>
-			<p>Drag &amp; drop a .pptx file here, or</p>
+			<p>Drag &amp; drop a .pptx or .ppt file here, or</p>
 			<label class="pick-label" @click.stop>
-				Choose .pptx file
-				<input ref="input" type="file" accept=".pptx" style="display: none" @change="onPick" />
+				Choose a file
+				<input ref="input" type="file" accept=".pptx,.ppt" style="display: none" @change="onPick" />
 			</label>
 			<span class="or-sep">or</span>
 			<button class="new-btn" @click.stop="newPresentation">New Presentation</button>
