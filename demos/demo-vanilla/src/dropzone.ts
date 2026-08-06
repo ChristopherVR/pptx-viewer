@@ -49,7 +49,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	const input = document.createElement('input');
 	input.id = 'file-input';
 	input.type = 'file';
-	input.accept = '.pptx';
+	input.accept = '.pptx,.ppt';
 	input.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
 	input.className = 'sr-only';
 
@@ -81,7 +81,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	zone.addEventListener('drop', (e) => {
 		e.preventDefault();
 		const file = e.dataTransfer?.files?.[0];
-		if (file?.name.endsWith('.pptx')) {
+		if (file && (file.name.endsWith('.pptx') || file.name.endsWith('.ppt'))) {
 			handlers.onFile(file);
 		}
 	});

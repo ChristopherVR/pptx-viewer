@@ -87,7 +87,7 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 					#fileInput
 					id="file-input"
 					type="file"
-					accept=".pptx"
+					accept=".pptx,.ppt"
 					[attr.aria-label]="tr('demo.dropzone.uploadAriaLabel')"
 					class="sr-only"
 					(change)="onInputChange($event)"
@@ -247,7 +247,7 @@ export class DropzoneComponent {
 	protected onDrop(e: DragEvent): void {
 		e.preventDefault();
 		const picked = e.dataTransfer?.files?.[0];
-		if (picked?.name.endsWith('.pptx')) {
+		if (picked && (picked.name.endsWith('.pptx') || picked.name.endsWith('.ppt'))) {
 			this.file.emit(picked);
 		}
 	}
