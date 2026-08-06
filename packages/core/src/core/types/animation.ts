@@ -175,7 +175,12 @@ export interface PptxNativeAnimation {
 	motionPath?: string;
 	/** Motion origin: "layout" or "parent". */
 	motionOrigin?: string;
-	/** Whether the element auto-rotates to follow the motion path tangent (`p:animMotion/@rAng` = "0"). */
+	/**
+	 * Whether the element auto-rotates to follow the motion path tangent.
+	 * Viewer-authoring-only hint: OOXML has no such flag (`p:animMotion/@rAng`
+	 * is a plain rotation angle that PowerPoint writes as "0" on every path),
+	 * so the parser never sets this.
+	 */
 	motionPathRotateAuto?: boolean;
 	/** Path edit mode from `p:animMotion/@pathEditMode` (e.g. "relative", "fixed"). */
 	motionPathEditMode?: string;

@@ -218,6 +218,23 @@ describe('extractChildMotionValues', () => {
 		expect(result.motionOrigin).toBe('layout');
 	});
 
+	it('does NOT read rAng="0" as auto-rotate (PowerPoint writes it on every path)', () => {
+		// `p:animMotion/@rAng` is a plain rotation angle (60000ths of a degree)
+		// that PowerPoint stamps as "0" on every authored motion path. Treating
+		// it as "rotate along the path tangent" turned right-pointing arrows 180
+		// degrees on a leftward path (issue #132).
+		const childTnList: XmlObject = {
+			'p:animMotion': {
+				'@_path': 'M 0 0 L -0.08 0',
+				'@_origin': 'layout',
+				'@_rAng': '0',
+			},
+		};
+		const result = extractChildMotionValues(childTnList);
+		expect(result.motionPath).toBe('M 0 0 L -0.08 0');
+		expect(result.motionPathRotateAuto).toBeUndefined();
+	});
+
 	it('extracts rotation from p:animRot', () => {
 		const childTnList: XmlObject = {
 			'p:animRot': {

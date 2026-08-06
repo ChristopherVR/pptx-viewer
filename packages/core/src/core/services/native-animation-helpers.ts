@@ -76,7 +76,8 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 } {
 	let motionPath: string | undefined;
 	let motionOrigin: string | undefined;
-	let motionPathRotateAuto: boolean | undefined;
+	// Never parsed from XML (see the rAng note below); authoring-only hint.
+	const motionPathRotateAuto: boolean | undefined = undefined;
 	let motionPathEditMode: string | undefined;
 	let motionPtsTypes: string | undefined;
 	let rotationBy: number | undefined;
@@ -115,14 +116,13 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 		if (motionNode['@_path'] !== undefined) {
 			motionPath = String(motionNode['@_path']);
 			motionOrigin = motionNode['@_origin'] ? String(motionNode['@_origin']) : undefined;
-			// p:animMotion/@rAng = "0" means the element auto-rotates to follow the
-			// path tangent direction (equivalent to CSS offset-rotate: auto).
-			if (motionNode['@_rAng'] !== undefined) {
-				const rAng = String(motionNode['@_rAng']);
-				if (rAng === '0') {
-					motionPathRotateAuto = true;
-				}
-			}
+			// `p:animMotion/@rAng` is a ROTATION ANGLE (60000ths of a degree), and
+			// PowerPoint writes `rAng="0"` on every plain motion path it authors.
+			// It must NOT be read as "auto-rotate along the path": doing so spun
+			// every motion-path target to the path tangent (a leftward path turned
+			// right-pointing arrows 180 degrees, issue #132). OOXML has no
+			// auto-rotate flag on `p:animMotion`, so `motionPathRotateAuto` is
+			// never inferred from it; it stays a viewer-authoring-only hint.
 			if (motionNode['@_pathEditMode'] !== undefined) {
 				motionPathEditMode = String(motionNode['@_pathEditMode']);
 			}
