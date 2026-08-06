@@ -613,6 +613,8 @@ export * from './text-build-spans';
 export * from './presenter-console';
 export * from './presentation-print-settings';
 export * from './presentation-session';
+// The selectively-subscribable store the shared viewer state is built on.
+export * from './viewer-store';
 // No-op-write guards for the hot state paths (presenter snapshot, presence
 // list). Shared so a write that carries no new information is dropped once,
 // rather than re-rendering each binding in turn (issue #145).

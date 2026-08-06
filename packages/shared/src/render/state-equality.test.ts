@@ -18,7 +18,7 @@ import {
 	mergePresentationSnapshot,
 	presenterElapsed,
 } from './presenter-console';
-import { presenceListsEqual, presentationSnapshotsEqual } from './state-equality';
+import { presenceListsEqual, presentationSnapshotsEqual, sameArray } from './state-equality';
 
 describe('mergePresentationSnapshot no-op guard', () => {
 	it('returns the SAME object when the patch changes nothing', () => {
@@ -75,6 +75,35 @@ describe('mergePresentationSnapshot no-op guard', () => {
 	it('ignores `sequence` when comparing snapshots', () => {
 		const a = createInitialPresentationSnapshot();
 		expect(presentationSnapshotsEqual(a, { ...a, sequence: a.sequence + 99 })).toBeTruthy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+
+describe('sameArray', () => {
+	it('treats a rebuilt-but-identical array as unchanged', () => {
+		// The case that matters: a deep-cloning store hands back a new array for
+		// a slice nothing touched.
+		expect(sameArray(['insert', 'design'], ['insert', 'design'])).toBeTruthy();
+	});
+
+	it('is order sensitive', () => {
+		expect(sameArray(['a', 'b'], ['b', 'a'])).toBeFalsy();
+	});
+
+	it('detects length and member changes', () => {
+		expect(sameArray(['a'], ['a', 'b'])).toBeFalsy();
+		expect(sameArray(['a'], ['b'])).toBeFalsy();
+	});
+
+	it('accepts a custom member equality', () => {
+		const byId = (x: { id: number }, y: { id: number }) => x.id === y.id;
+		expect(sameArray([{ id: 1 }], [{ id: 1 }], byId)).toBeTruthy();
+		expect(sameArray([{ id: 1 }], [{ id: 2 }], byId)).toBeFalsy();
+	});
+
+	it('treats two empty arrays as equal', () => {
+		expect(sameArray([], [])).toBeTruthy();
 	});
 });
 

@@ -26,6 +26,34 @@ import type {
 	PresentationZoomState,
 } from './presentation-session-types';
 
+/**
+ * Shallow, order-sensitive array equality, for selector subscriptions whose
+ * slice is an array.
+ *
+ * Needed more often than it looks. Several shared stores rebuild their state by
+ * deep-cloning it on every write (`cloneViewerOptions` is one), so a nested
+ * array is a NEW array after any change anywhere in the object, even when its
+ * contents did not move. Under the default `Object.is` a selector reading that
+ * array would therefore fire on every unrelated write, which is exactly the
+ * over-notification a selector is supposed to prevent.
+ */
+export function sameArray<T>(
+	a: readonly T[],
+	b: readonly T[],
+	isEqual: (x: T, y: T) => boolean = Object.is,
+): boolean {
+	if (a === b) {
+		return true;
+	}
+	if (a.length !== b.length) {
+		return false;
+	}
+	return a.every((entry, index) => {
+		const other = b[index];
+		return other !== undefined && isEqual(entry, other);
+	});
+}
+
 function zoomEqual(
 	a: PresentationZoomState | undefined,
 	b: PresentationZoomState | undefined,

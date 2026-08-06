@@ -1,5 +1,6 @@
 import type { ToolbarTabId } from '../toolbar-actions';
 import { readStoredViewerPrefs, writeStoredViewerPrefs } from '../viewer-prefs-storage';
+import { createViewerStore } from '../viewer-store';
 import type {
 	StoredViewerOptions,
 	ViewerOptionPrimitive,
@@ -36,6 +37,31 @@ export interface ViewerOptionsStore {
 	/** Reset every option (or one tab-group) back to defaults. */
 	reset(group?: ViewerOptionsGroupId): void;
 	subscribe(listener: ViewerOptionsListener): () => void;
+	/**
+	 * Subscribe to ONE projection of the options, woken only when that
+	 * projection changes.
+	 *
+	 * `subscribe` above wakes on every option change, which in a binding means
+	 * the whole options consumer re-renders because the user toggled something
+	 * unrelated. A ribbon control that reads `ribbon.hiddenTabIds` should not
+	 * care that an autosave interval moved (issue #145).
+	 *
+	 * IMPORTANT for array/object slices: every write here deep-clones the whole
+	 * options object (`cloneViewerOptions`), so a nested array is a NEW array
+	 * after ANY change, even one that did not touch it. Under the default
+	 * `Object.is` such a selector would fire on every write and buy nothing.
+	 * Pass a value equality for those, e.g. the shared `sameArray`.
+	 */
+	subscribeSelector<T>(
+		selector: (options: ViewerOptions) => T,
+		listener: (value: T, previous: T) => void,
+		isEqual?: (a: T, b: T) => boolean,
+	): () => void;
+	/**
+	 * Apply several option writes as ONE notification, so a multi-field
+	 * operation costs a single render instead of one per field.
+	 */
+	batch(write: () => void): void;
 }
 
 export interface ViewerOptionsStoreInit {
@@ -48,33 +74,37 @@ export interface ViewerOptionsStoreInit {
 export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerOptionsStore {
 	const persist = init?.persist !== false;
 	const seeded = mergeViewerOptions(init?.initial);
-	let options = persist ? overlayStored(seeded, readStoredViewerPrefs().options) : seeded;
-	const listeners = new Set<ViewerOptionsListener>();
+	// Backed by the shared selectively-subscribable runtime rather than a private
+	// listener Set, so consumers can subscribe to one option instead of to "the
+	// options" and a multi-field write can land as a single notification.
+	const store = createViewerStore(
+		persist ? overlayStored(seeded, readStoredViewerPrefs().options) : seeded,
+	);
+	const options = (): ViewerOptions => store.getState();
 
 	function commit(next: ViewerOptions): void {
-		options = next;
+		// Persist before notifying, so a subscriber that reads storage during its
+		// callback sees the value it was just told about.
 		if (persist) {
 			writeStoredViewerPrefs({ options: diffViewerOptions(next) });
 		}
-		for (const listener of listeners) {
-			listener(options);
-		}
+		store.setState(next);
 	}
 
 	return {
-		getOptions: () => options,
+		getOptions: options,
 		setOptions: (next) => commit(cloneViewerOptions(next)),
 		setValue: (group, key, value) => {
 			const defaults = DEFAULT_VIEWER_OPTIONS[group] as unknown as Record<string, unknown>;
 			if (!(key in defaults) || typeof defaults[key] !== typeof value) {
 				return;
 			}
-			const next = cloneViewerOptions(options);
+			const next = cloneViewerOptions(options());
 			(next[group] as unknown as Record<string, unknown>)[key] = value;
 			commit(next);
 		},
 		getValue: (group, key) => {
-			const record = options[group] as unknown as Record<string, unknown>;
+			const record = options()[group] as unknown as Record<string, unknown>;
 			const value = record[key];
 			return typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string'
 				? value
@@ -84,19 +114,19 @@ export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerO
 			if (tabId === 'file') {
 				return;
 			}
-			const current = options.ribbon.hiddenTabIds;
+			const current = options().ribbon.hiddenTabIds;
 			const has = current.includes(tabId);
 			if (hidden === has) {
 				return;
 			}
-			const next = cloneViewerOptions(options);
+			const next = cloneViewerOptions(options());
 			next.ribbon.hiddenTabIds = hidden
 				? [...current, tabId]
 				: current.filter((id) => id !== tabId);
 			commit(next);
 		},
 		setQuickAccessCommands: (commandIds) => {
-			const next = cloneViewerOptions(options);
+			const next = cloneViewerOptions(options());
 			next.quickAccess.commandIds = [...commandIds];
 			commit(next);
 		},
@@ -105,15 +135,15 @@ export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerO
 				commit(cloneViewerOptions(DEFAULT_VIEWER_OPTIONS));
 				return;
 			}
-			const next = cloneViewerOptions(options);
+			const next = cloneViewerOptions(options());
 			const defaults = cloneViewerOptions(DEFAULT_VIEWER_OPTIONS);
 			(next as Record<ViewerOptionsGroupId, unknown>)[group] = defaults[group];
 			commit(next);
 		},
-		subscribe: (listener) => {
-			listeners.add(listener);
-			return () => listeners.delete(listener);
-		},
+		subscribe: (listener) => store.subscribe(() => listener(store.getState())),
+		subscribeSelector: (selector, listener, isEqual) =>
+			store.subscribeSelector(selector, listener, isEqual),
+		batch: (write) => store.batch(write),
 	};
 }
 
