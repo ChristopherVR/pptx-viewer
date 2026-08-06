@@ -5,11 +5,23 @@ import type { Translator } from '../../i18n';
 import { createConnectorArrowControls } from './connector-arrow-controls';
 import type { InspectorHandlers, InspectorState } from './types';
 
-const QUICK_STYLES: Array<{ label: string; patch: Partial<ShapeStyle> }> = [
-	{ label: 'Accent', patch: { fillColor: '#4472c4', strokeColor: '#2f5597', strokeWidth: 1 } },
-	{ label: 'Subtle', patch: { fillColor: '#f2f2f2', strokeColor: '#a6a6a6', strokeWidth: 1 } },
-	{ label: 'Outline', patch: { fillColor: 'transparent', strokeColor: '#4472c4', strokeWidth: 2 } },
-	{ label: 'Dark', patch: { fillColor: '#262626', strokeColor: '#000000', strokeWidth: 1 } },
+const QUICK_STYLES: Array<{ labelKey: string; patch: Partial<ShapeStyle> }> = [
+	{
+		labelKey: 'pptx.shape.quickStyleAccent',
+		patch: { fillColor: '#4472c4', strokeColor: '#2f5597', strokeWidth: 1 },
+	},
+	{
+		labelKey: 'pptx.shape.quickStyleSubtle',
+		patch: { fillColor: '#f2f2f2', strokeColor: '#a6a6a6', strokeWidth: 1 },
+	},
+	{
+		labelKey: 'pptx.shape.quickStyleOutline',
+		patch: { fillColor: 'transparent', strokeColor: '#4472c4', strokeWidth: 2 },
+	},
+	{
+		labelKey: 'pptx.shape.quickStyleDark',
+		patch: { fillColor: '#262626', strokeColor: '#000000', strokeWidth: 1 },
+	},
 ];
 
 export interface ShapeEffectsControls {
@@ -28,7 +40,7 @@ export function createShapeEffectsControls(
 	for (const style of QUICK_STYLES) {
 		const button = doc.createElement('button');
 		button.type = 'button';
-		button.textContent = style.label;
+		button.textContent = t(style.labelKey);
 		button.addEventListener('click', () => handlers.setShapeStyle(style.patch));
 		gallery.appendChild(button);
 	}

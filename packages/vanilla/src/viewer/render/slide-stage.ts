@@ -149,13 +149,15 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 			}
 			const node = registry.resolve(element.type)(element, zIndex, context);
 			if (node && interactive && 'setAttribute' in node) {
+				// The element marker means "rendered slide element carrying the
+				// contract", not "editable right now": an interaction-locked template
+				// (master/layout) element keeps it, matching the other bindings, and
+				// only loses pointer interactivity.
 				const templateLocked = isTemplateElementId(element.id) && !options.templateEditing;
 				if (templateLocked) {
 					node.style.pointerEvents = 'none';
-					node.removeAttribute('data-pptx-element');
-				} else {
-					node.setAttribute('data-pptx-element', 'true');
 				}
+				node.setAttribute('data-pptx-element', 'true');
 				applyElementAccessibility(node, element);
 			}
 			return node;

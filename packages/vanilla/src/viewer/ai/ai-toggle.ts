@@ -82,6 +82,9 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 	}
 
 	const host = createEl(doc, 'aside', 'pptxv-ai-panel');
+	// The neutral cross-binding marker the e2e/support layer addresses the
+	// assistant pane by (all five bindings carry it).
+	host.setAttribute('data-pptx-ai-panel', '');
 	host.setAttribute('aria-label', t('pptx.ai.title'));
 	host.hidden = true;
 	// Mount into `.pptxv-body` alongside the viewport / inspector.
@@ -131,6 +134,7 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 				config: deps.config,
 				controller,
 				goToSlide: deps.goToSlide,
+				onClose: () => void setOpen(false),
 			});
 			// Once the session exists, play applied AI edits on the canvas: reveal
 			// the changed slide and glide/fade a ghost per changed element.

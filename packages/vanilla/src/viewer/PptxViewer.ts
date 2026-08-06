@@ -220,6 +220,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onSectionMove: (sectionId, direction) =>
 				this.editor?.getEditActions().sections.moveSection(sectionId, direction),
 			onZoomClick: (targetSlideIndex) => this.controls.goToSlide(targetSlideIndex),
+			onCommentMarkerClick: () => this.parityWorkflows.openComments(),
 			onSmartArtNodeTextChange: (element, nodeId, text) => {
 				if (
 					element.type !== 'smartArt' ||

@@ -9,10 +9,14 @@ import type { PptxViewerOptions } from './types';
  * viewer's persisted theme/locale state (`PptxViewer.currentTheme` /
  * `currentThemeKey` / `currentLocale`).
  *
- * Precedence, mirroring the other bindings' "host callback vs internal
- * persistence" convention: an explicit constructor option always wins, then a
- * previously persisted `localStorage` choice (see `viewer-prefs-storage.ts`
- * in `pptx-viewer-shared`), then the shared catalog's built-in default.
+ * Precedence, mirroring the other four bindings: a previously persisted user
+ * choice (see `viewer-prefs-storage.ts` in `pptx-viewer-shared`) beats the
+ * host's constructor defaults, then the shared catalog's built-in default
+ * applies. The host `theme` option still wins while the resolved catalog key
+ * is `'default'` (that entry maps to `undefined`), exactly like the Svelte
+ * binding's `theme` prop; hosts that own persistence themselves wire
+ * `onThemeChange`/`onLocaleChange`, in which case nothing is ever stored and
+ * their options are always used.
  */
 
 /** Reverse-lookup: the catalog key whose theme reference matches `theme` (`undefined` matches the 'default' entry). */
@@ -28,20 +32,19 @@ export interface InitialThemeState {
 	theme: ViewerTheme | undefined;
 }
 
-/** Resolve the theme to mount with: `options.theme` > stored prefs > catalog default. */
+/** Resolve the theme to mount with: stored prefs > `options.theme` > catalog default. */
 export function resolveInitialThemeState(
 	options: PptxViewerOptions,
 	storedThemeKey: string | undefined,
 	catalog: readonly ThemeCatalogEntry[],
 ): InitialThemeState {
-	if (options.theme !== undefined) {
-		return { key: findThemeCatalogKey(options.theme, catalog) ?? 'default', theme: options.theme };
-	}
 	const key =
 		storedThemeKey && catalog.some((entry) => entry.key === storedThemeKey)
 			? storedThemeKey
-			: 'default';
-	return { key, theme: catalog.find((entry) => entry.key === key)?.theme };
+			: (findThemeCatalogKey(options.theme, catalog) ?? 'default');
+	// The 'default' entry (and an ad hoc host theme with no catalog match) maps
+	// to `undefined`, so the host `theme` option still applies there.
+	return { key, theme: catalog.find((entry) => entry.key === key)?.theme ?? options.theme };
 }
 
 /**
@@ -65,17 +68,14 @@ export function resolveAvailableLocales(options: PptxViewerOptions): readonly Lo
 	);
 }
 
-/** Resolve the locale to start with: `options.locale` > stored prefs (if still offered) > `'en'`. */
+/** Resolve the locale to start with: stored prefs (if still offered) > `options.locale` > `'en'`. */
 export function resolveInitialLocale(
 	options: PptxViewerOptions,
 	storedLocaleCode: string | undefined,
 	availableLocales: readonly LocaleCatalogEntry[],
 ): string {
-	if (options.locale !== undefined) {
-		return options.locale;
-	}
 	if (storedLocaleCode && availableLocales.some((entry) => entry.code === storedLocaleCode)) {
 		return storedLocaleCode;
 	}
-	return 'en';
+	return options.locale ?? 'en';
 }

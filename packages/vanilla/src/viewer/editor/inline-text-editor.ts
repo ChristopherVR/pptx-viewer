@@ -1,6 +1,6 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { getInlineEditorSelection, remapTextToSegments } from 'pptx-viewer-shared';
+import { getInlineEditorSelection, placeCaretAtEnd, remapTextToSegments } from 'pptx-viewer-shared';
 import type { InlineTextSelection } from 'pptx-viewer-shared';
 
 import { createEl } from '../render';
@@ -164,6 +164,9 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 
 	overlayRoot.appendChild(surface);
 	surface.focus();
+	// Caret at the END of the seeded text so typing appends (the contract the
+	// other bindings follow; focus alone leaves the caret at the start).
+	placeCaretAtEnd(surface);
 
 	return {
 		el: surface,

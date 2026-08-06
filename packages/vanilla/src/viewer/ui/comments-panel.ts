@@ -3,16 +3,43 @@ import type { PptxComment } from 'pptx-viewer-core';
 import type { CommentActions } from '../editor/editor-comment-actions';
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createCommentThreadView } from './comment-thread-view';
 
+/** Live view of the active slide's comments backing the workspace pane. */
+export interface CommentsPanelModel {
+	/** The active slide's comments at this moment. */
+	getComments(): readonly PptxComment[];
+	/** Notify on any state change; returns an unsubscribe function. */
+	subscribe(listener: () => void): () => void;
+}
+
+/** Detach hook stored on the pane so a replacement can end its subscription. */
+const DISPOSE = Symbol('pptxv-comments-panel-dispose');
+
+interface DisposablePane extends HTMLElement {
+	[DISPOSE]?: () => void;
+}
+
+/**
+ * The workspace Comments pane. LIVE, not a snapshot: it subscribes to the
+ * store (the same pattern the inspector Comments tab rides via its
+ * store-driven `update`) and rebuilds its card list whenever the comment
+ * model changes, so a resolve/edit/delete re-renders in place and an add
+ * appends the new card with the pane still open. The compose draft lives
+ * outside the rebuilt card list and survives re-renders.
+ */
 export function openCommentsPanel(
 	doc: Document,
 	host: HTMLElement,
 	t: Translator,
-	comments: readonly PptxComment[],
+	model: CommentsPanelModel,
 	actions: CommentActions,
 ): void {
-	host.querySelector('[data-pptx-comments-panel]')?.remove();
-	const pane = createEl(doc, 'aside', 'pptxv-workspace-pane');
+	const existing = host.querySelector<DisposablePane>('[data-pptx-comments-panel]');
+	existing?.[DISPOSE]?.();
+	existing?.remove();
+
+	const pane: DisposablePane = createEl(doc, 'aside', 'pptxv-workspace-pane');
 	pane.dataset.pptxCommentsPanel = 'true';
 	const header = createEl(doc, 'header');
 	const title = createEl(doc, 'h2');
@@ -23,38 +50,22 @@ export function openCommentsPanel(
 	close.setAttribute('aria-label', t('pptx.common.close'));
 	header.append(title, close);
 	pane.appendChild(header);
+
 	const list = createEl(doc, 'div', 'pptxv-workspace-list');
-	if (!comments.length) {
-		const empty = createEl(doc, 'p');
-		empty.textContent = t('pptx.comments.noneOnSlide');
-		list.appendChild(empty);
-	}
-	for (const comment of comments) {
-		const card = createEl(doc, 'article', 'pptxv-comment-card');
-		card.classList.toggle('is-resolved', Boolean(comment.resolved));
-		const author = createEl(doc, 'strong');
-		author.textContent = comment.author ?? 'You';
-		const input = createEl(doc, 'textarea');
-		input.value = comment.text;
-		input.setAttribute('aria-label', t('pptx.comments.edit'));
-		const controls = createEl(doc, 'div');
-		for (const [label, action] of [
-			[t('pptx.comments.save'), () => actions.editComment(comment.id, input.value)],
-			[
-				t(comment.resolved ? 'pptx.comments.unresolve' : 'pptx.comments.resolve'),
-				() => actions.toggleCommentResolved(comment.id),
-			],
-			[t('pptx.comments.delete'), () => actions.deleteComment(comment.id)],
-		] as const) {
-			const button = createEl(doc, 'button');
-			button.type = 'button';
-			button.textContent = label;
-			button.addEventListener('click', action);
-			controls.appendChild(button);
-		}
-		card.append(author, input, controls);
-		list.appendChild(card);
-	}
+	// The SAME threaded view the inspector Comments tab renders, so the pane a
+	// canvas "Add Comment" lands in offers replies too (it used to offer only
+	// save/resolve/delete, leaving no way to reply without closing it).
+	const threads = createCommentThreadView(doc, t, actions);
+	const empty = createEl(doc, 'p');
+	empty.textContent = t('pptx.comments.noneOnSlide');
+	list.append(threads.el, empty);
+
+	const render = (): void => {
+		const comments: readonly PptxComment[] = model.getComments();
+		empty.hidden = comments.length > 0;
+		threads.update(comments, true);
+	};
+
 	const draft = createEl(doc, 'textarea');
 	draft.placeholder = t('pptx.comments.addPlaceholder');
 	const add = createEl(doc, 'button');
@@ -62,11 +73,37 @@ export function openCommentsPanel(
 	add.textContent = t('pptx.comments.addComment');
 	add.addEventListener('click', () => {
 		if (actions.addComment(draft.value)) {
-			pane.remove();
+			// The subscription re-renders the card list; the pane stays open.
+			draft.value = '';
 		}
 	});
 	list.append(draft, add);
 	pane.appendChild(list);
-	close.addEventListener('click', () => pane.remove());
+
+	// Re-render only when the comment ARRAY changes (every mutation replaces
+	// it), so unrelated store traffic never clobbers an in-progress card edit.
+	let lastRendered = model.getComments();
+	const dispose = (): void => {
+		unsubscribe();
+		delete pane[DISPOSE];
+	};
+	const unsubscribe = model.subscribe(() => {
+		if (!pane.isConnected) {
+			dispose();
+			return;
+		}
+		const next = model.getComments();
+		if (next !== lastRendered) {
+			lastRendered = next;
+			render();
+		}
+	});
+	pane[DISPOSE] = dispose;
+
+	close.addEventListener('click', () => {
+		dispose();
+		pane.remove();
+	});
+	render();
 	host.appendChild(pane);
 }

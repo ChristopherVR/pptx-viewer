@@ -6,10 +6,16 @@
  * dynamically imported by `ai-toggle.ts` only when the panel first opens.
  */
 
-import { createVanillaChat, toolCanvasTarget, toRenderableParts } from 'pptx-viewer-shared/ai';
+import {
+	createVanillaChat,
+	deckIdFromBridge,
+	toolCanvasTarget,
+	toRenderableParts,
+} from 'pptx-viewer-shared/ai';
 import type {
 	AiChangeAnimator,
 	PptxAiBridge,
+	PptxAiChatStore,
 	PptxAiConfig,
 	VanillaChatController,
 	VanillaChatSnapshot,
@@ -19,6 +25,7 @@ import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { createIcon } from '../ui/icons';
 import { createAiFocusBar } from './ai-focus-bar';
+import { createAiHistoryMenu } from './ai-history-menu';
 import { renderMessages } from './ai-messages';
 import type { AiFocusController } from './ai-panel-controller';
 import { renderProposals } from './ai-proposals';
@@ -39,8 +46,12 @@ export interface AiPanelDeps {
 	controller?: AiFocusController;
 	/** Navigate the viewer to a slide (drives the live tool focus). */
 	goToSlide?(index: number): void;
+	/** Close the panel (the header's "Close AI assistant" control). */
+	onClose?(): void;
 	/** Defaults to the shared {@link createVanillaChat}. */
 	createChat?: ChatFactory;
+	/** Chat-history store override for tests; defaults to the shared store. */
+	historyStore?: PptxAiChatStore;
 }
 
 export interface AiPanel {
@@ -61,7 +72,15 @@ export async function createAiPanel(deps: AiPanelDeps): Promise<AiPanel> {
 	const header = createEl(doc, 'div', 'pptxv-ai-header');
 	const title = createEl(doc, 'span', 'pptxv-ai-title');
 	title.textContent = t('pptx.ai.title');
-	header.append(createIcon(doc, 'sparkles'), title);
+	// The header close control the other four bindings expose ("Close AI
+	// assistant"); the toolbar toggle stays the other way to dismiss the pane.
+	const closeBtn = createEl(doc, 'button', 'pptxv-ai-close');
+	closeBtn.type = 'button';
+	closeBtn.title = t('pptx.ai.close');
+	closeBtn.setAttribute('aria-label', t('pptx.ai.close'));
+	closeBtn.appendChild(createIcon(doc, 'close'));
+	closeBtn.addEventListener('click', () => deps.onClose?.());
+	header.append(createIcon(doc, 'sparkles'), title, closeBtn);
 
 	// Chat controller is referenced lazily by the focus bar's merge directive,
 	// which only fires on a user click (well after the controller is created).
@@ -97,6 +116,9 @@ export async function createAiPanel(deps: AiPanelDeps): Promise<AiPanel> {
 	const textarea = createEl(doc, 'textarea', 'pptxv-ai-input');
 	textarea.rows = 2;
 	textarea.placeholder = t('pptx.ai.placeholder');
+	// An explicit accessible name (the other bindings' composers carry one);
+	// mirrors the placeholder so assistive tech and tests see the same string.
+	textarea.setAttribute('aria-label', t('pptx.ai.placeholder'));
 	const sendBtn = createEl(doc, 'button', 'pptxv-ai-send');
 	sendBtn.type = 'submit';
 	sendBtn.setAttribute('aria-label', t('pptx.ai.send'));
@@ -118,6 +140,21 @@ export async function createAiPanel(deps: AiPanelDeps): Promise<AiPanel> {
 		return { destroy: () => host.replaceChildren() };
 	}
 	const controller = chat;
+
+	// Chat history: the header "Chats" toggle + saved-chat dropdown, backed by
+	// the shared per-deck store. Transcript changes are forwarded below for the
+	// debounced auto-save.
+	const history = createAiHistoryMenu({
+		doc,
+		t,
+		deckId: deckIdFromBridge(deps.bridge),
+		store: deps.historyStore,
+		getMessages: () => controller.getSnapshot().messages,
+		setMessages: (next) => controller.setMessages(next),
+	});
+	header.insertBefore(history.button, closeBtn);
+	host.appendChild(history.el);
+	const unsubscribeHistory = controller.subscribe(() => history.notifyMessagesChanged());
 
 	// Live "AI as a collaborator" focus: as each tool call's input becomes
 	// available, navigate to and flash the slide / element(s) it touches so the
@@ -226,6 +263,8 @@ export async function createAiPanel(deps: AiPanelDeps): Promise<AiPanel> {
 		changeAnimator: controller.changeAnimator,
 		destroy() {
 			unsubscribe();
+			unsubscribeHistory();
+			history.destroy();
 			unsubscribeFocus?.();
 			focusBar?.destroy();
 			host.replaceChildren();

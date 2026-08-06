@@ -5,7 +5,12 @@ import type {
 	ExportVideoOptions,
 	PrintOptions,
 } from './export';
-import { createExportController, createRasterizeSlide } from './export';
+import {
+	createExportController,
+	createExportProgressModal,
+	createExportProgressUi,
+	createRasterizeSlide,
+} from './export';
 import type { Translator } from './i18n';
 import type { ElementRendererRegistry } from './render';
 import type { Store, ViewerState } from './state';
@@ -89,14 +94,31 @@ export function createExportLifecycle(deps: ExportLifecycleDeps): ExportLifecycl
 		store: deps.store,
 		rasterizeSlide: (index) => rasterizer.rasterizeSlide(index),
 	});
+	// Multi-slide exports (PDF / GIF / video) run through the progress envelope
+	// so a visible modal (bar + status + Cancel) accompanies them, exactly like
+	// the other four bindings' ExportProgressModal. PNG/copy (single capture)
+	// and print (owns its own surface) stay modal-less, matching those bindings.
+	const modal = createExportProgressModal({
+		doc: deps.doc,
+		getTranslator: deps.getTranslator,
+		onCancel: () => progressUi.cancel(),
+	});
+	const progressUi = createExportProgressUi({
+		modal,
+		controller,
+		getTranslator: deps.getTranslator,
+	});
 
 	return {
 		exportSlidePng: (index) => controller.exportSlidePng(index),
 		copySlideAsImage: (index) => controller.copySlideAsImage(index),
-		exportPdf: (options) => controller.exportPdf(options),
-		exportGif: (options) => controller.exportGif(options),
-		exportVideo: (options) => controller.exportVideo(options),
+		exportPdf: (options) => progressUi.runPdf(options),
+		exportGif: (options) => progressUi.runGif(options),
+		exportVideo: (options) => progressUi.runVideo(options),
 		print: (options) => controller.print(options),
-		destroy: () => rasterizer.destroy(),
+		destroy: () => {
+			progressUi.cancel();
+			rasterizer.destroy();
+		},
 	};
 }

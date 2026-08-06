@@ -9,6 +9,7 @@ import {
 	cellPatternFillCss,
 	cellRunStyle,
 	cellStyleToCss,
+	DEFAULT_FONT_FAMILY,
 	DEFAULT_TEXT_COLOR,
 	getCellDiagonalBorders,
 	getContainerStyle,
@@ -55,6 +56,9 @@ export const renderTableElement: ElementRenderer = (element, zIndex, context) =>
 		height: '100%',
 		borderCollapse: 'collapse',
 		tableLayout: 'fixed',
+		// Load-bearing: an unstyled cell otherwise inherits the HOST chrome's
+		// font stack; all five bindings declare the same shared default here.
+		fontFamily: DEFAULT_FONT_FAMILY,
 	});
 
 	appendColgroup(doc, table, tableData.columnWidths);

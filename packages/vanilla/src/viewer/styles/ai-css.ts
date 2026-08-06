@@ -20,6 +20,7 @@ export const AI_CSS = `
 
 /* ── Panel shell (sibling of the inspector inside .pptxv-body) ─────────── */
 .pptxv-ai-panel {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	flex: none;
@@ -42,6 +43,20 @@ export const AI_CSS = `
 	font-weight: 600;
 }
 .pptxv-ai-header svg { width: 16px; height: 16px; color: var(--pptx-primary); }
+.pptxv-ai-close {
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	border: none;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	cursor: pointer;
+}
+.pptxv-ai-close:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-ai-close svg { color: currentColor; }
 
 /* ── Transcript ───────────────────────────────────────────────────────── */
 .pptxv-ai-messages {

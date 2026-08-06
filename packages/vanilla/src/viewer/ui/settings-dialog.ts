@@ -63,6 +63,11 @@ export interface ViewerOptionsDialogDeps {
  * a left rail with schema-driven panes on the right (vanilla counterpart of
  * React's `SettingsDialog`). Changes apply to the store live; Cancel restores
  * the snapshot taken when the dialog opened; OK (and Escape/backdrop) confirm.
+ *
+ * `t` must be a LIVE translator (the caller passes a delegating wrapper, see
+ * `parity-workflows`): picking a language on the Language pane re-renders the
+ * whole open dialog (title, nav rail, footer, pane) under the new locale, as
+ * the other four bindings' reactive dialogs already do.
  */
 export function openSettingsDialog(
 	doc: Document,
@@ -138,7 +143,9 @@ export function openSettingsDialog(
 			(code) => {
 				selectedLocaleCode = code;
 				deps.localeOptions.onSelect(code);
-				renderPane();
+				// The locale just changed under the open dialog: every label in it
+				// (title, nav rail, footer, pane) is stale, not only the pane.
+				renderChrome();
 			},
 		);
 		pane.appendChild(section);
@@ -201,17 +208,22 @@ export function openSettingsDialog(
 		aiActive = false;
 		renderPane();
 	};
-	for (const tab of VIEWER_OPTIONS_TABS) {
-		const button = appendDialogButton(doc, nav, t(tab.labelKey), () => selectTab(tab.id));
-		button.dataset.tab = tab.id;
-	}
-	if (deps.aiEnabled) {
-		aiNavButton = appendDialogButton(doc, nav, t('pptx.ai.settingsSectionTitle'), () => {
-			aiActive = true;
-			renderPane();
-		});
-		aiNavButton.dataset.tab = 'ai';
-	}
+	const renderNav = (): void => {
+		nav.replaceChildren();
+		nav.setAttribute('aria-label', t('pptx.options.title'));
+		for (const tab of VIEWER_OPTIONS_TABS) {
+			const button = appendDialogButton(doc, nav, t(tab.labelKey), () => selectTab(tab.id));
+			button.dataset.tab = tab.id;
+		}
+		aiNavButton = null;
+		if (deps.aiEnabled) {
+			aiNavButton = appendDialogButton(doc, nav, t('pptx.ai.settingsSectionTitle'), () => {
+				aiActive = true;
+				renderPane();
+			});
+			aiNavButton.dataset.tab = 'ai';
+		}
+	};
 
 	// Live re-render on any store commit (a control edit, reset, or an external
 	// change); self-detaches once the dialog leaves the document.
@@ -223,15 +235,15 @@ export function openSettingsDialog(
 		renderPane();
 	});
 
-	appendDialogButton(doc, shell.footer, t('pptx.options.resetAll'), () => {
+	const resetButton = appendDialogButton(doc, shell.footer, t('pptx.options.resetAll'), () => {
 		store.reset();
 	});
-	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), () => {
+	const cancelButton = appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), () => {
 		store.setOptions(snapshot);
 		shell.close();
 		unsubscribe();
 	});
-	appendDialogButton(
+	const okButton = appendDialogButton(
 		doc,
 		shell.footer,
 		t('pptx.common.ok'),
@@ -241,5 +253,16 @@ export function openSettingsDialog(
 		},
 		true,
 	);
-	renderPane();
+
+	/** (Re)paint every translated label in the dialog under the CURRENT locale. */
+	function renderChrome(): void {
+		shell.heading.textContent = t('pptx.options.title');
+		renderNav();
+		resetButton.textContent = t('pptx.options.resetAll');
+		cancelButton.textContent = t('pptx.common.cancel');
+		okButton.textContent = t('pptx.common.ok');
+		renderPane();
+	}
+
+	renderChrome();
 }

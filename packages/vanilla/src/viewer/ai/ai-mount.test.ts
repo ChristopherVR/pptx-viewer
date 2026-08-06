@@ -42,6 +42,9 @@ describe('ai chat mounting', () => {
 		expect(toggle?.getAttribute('aria-expanded')).toBe('false');
 		const panel = container.querySelector<HTMLElement>('.pptxv-ai-panel');
 		expect(panel).toBeTruthy();
+		// The pane carries the neutral cross-binding marker the e2e support
+		// layer (and hosts) address the assistant by.
+		expect(panel?.hasAttribute('data-pptx-ai-panel')).toBeTruthy();
 		// The panel is mounted but hidden until the toggle is first clicked; the
 		// heavy panel builder (and the optional `ai` SDK) load lazily on open.
 		expect(panel?.hidden).toBeTruthy();

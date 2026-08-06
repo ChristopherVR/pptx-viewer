@@ -9,11 +9,13 @@ import {
 import { ACCOUNT_CSS } from './account-css';
 import { AI_CSS } from './ai-css';
 import { AI_FOCUS_CSS } from './ai-focus-css';
+import { AI_HISTORY_CSS } from './ai-history-css';
 import { ANIMATION_AUTHORING_CSS } from './animation-authoring-css';
 import { COLLAB_CSS } from './collab-css';
 import { DOCUMENT_PROPERTIES_CSS } from './document-properties-css';
 import { EDITOR_CSS } from './editor-css';
 import { EQUATION_DIALOG_CSS } from './equation-dialog-css';
+import { EXPORT_PROGRESS_CSS } from './export-progress-css';
 import { FILE_INFO_CSS } from './file-info-css';
 import { INSPECTOR_FORMAT_CSS } from './inspector-format-css';
 import { INSPECTOR_PANELS_CSS } from './inspector-panels-css';
@@ -34,8 +36,9 @@ import { SMARTART_DIALOG_CSS } from './smartart-dialog-css';
  * The viewer stylesheet, scoped under the `.pptxv` root class.
  *
  * All chrome colors come from the shared `--pptx-*` theme custom properties
- * (see `pptx-viewer-shared/theme`): the defaults are emitted onto `.pptxv`
- * from the shared `defaultCssVars()`, and a host `ViewerTheme` overrides them
+ * (see `pptx-viewer-shared/theme`): the defaults are emitted at zero
+ * specificity onto the page root from the shared `defaultCssVars()` (see
+ * {@link defaultVarsBlock} for why), and a host `ViewerTheme` overrides them
  * per instance via inline style (see `themeToCssVars`).
  */
 
@@ -47,11 +50,19 @@ import { SMARTART_DIALOG_CSS } from './smartart-dialog-css';
  */
 const TB = TITLE_BAR_METRICS;
 
+/**
+ * The built-in theme tokens as a LAST-RESORT layer, matching the other four
+ * bindings: `:where(:root)` has zero specificity, so any `--pptx-*` value the
+ * host page declares (a `:root` rule or inline vars on `<html>`) wins over
+ * these defaults. They used to be declared on `.pptxv` itself, which shadowed
+ * the host's own declarations and made the "Default" catalog entry resolve to
+ * the built-in dark palette instead of clearing to the host chrome.
+ */
 function defaultVarsBlock(): string {
 	const vars = Object.entries(defaultCssVars())
 		.map(([key, value]) => `\t${key}: ${value};`)
 		.join('\n');
-	return `.pptxv {\n${vars}\n}`;
+	return `:where(:root) {\n${vars}\n}`;
 }
 
 const CHROME_CSS = `
@@ -350,7 +361,13 @@ const CHROME_CSS = `
 	flex: none;
 	box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
 }
-.pptxv-stage { background: #fff; }
+/* The slide surface must NOT inherit the chrome's typography. The .pptxv root
+   sets font-size 14px for the ribbon/panels, and that cascaded into slide
+   content that authors no size of its own (table cells are the visible case),
+   so the same deck rendered its table text 14px here and 16px in the other
+   four bindings, which take the document default. Restating the baseline on
+   the stage keeps slide content independent of chrome styling. */
+.pptxv-stage { background: #fff; font-size: 16px; }
 /* In editor mode the slide surface must own all pointer/touch gestures so a
    finger drag/resize/rotate isn't stolen by the browser for panning or
    pinch-zoom. View-only mode keeps default touch behaviour so the deck scrolls. */
@@ -606,5 +623,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${PRESENTATION_TOOLBAR_CSS}\n${PRESENTER_VIEW_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${OPTIONS_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${INSPECTOR_FORMAT_CSS}\n${ACCOUNT_CSS}\n${AI_CSS}\n${AI_FOCUS_CSS}\n${READING_VIEW_CSS}\n${OUTLINE_VIEW_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${PRESENTATION_TOOLBAR_CSS}\n${PRESENTER_VIEW_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${OPTIONS_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${INSPECTOR_FORMAT_CSS}\n${ACCOUNT_CSS}\n${AI_CSS}\n${AI_HISTORY_CSS}\n${AI_FOCUS_CSS}\n${READING_VIEW_CSS}\n${OUTLINE_VIEW_CSS}\n${EXPORT_PROGRESS_CSS}`;
 }

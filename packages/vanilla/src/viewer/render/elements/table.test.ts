@@ -1,5 +1,6 @@
 import type { PptxElement, PptxTableCell, PptxTableData } from 'pptx-viewer-core';
 import type { CellTextRun } from 'pptx-viewer-shared';
+import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import { createTranslator } from '../../i18n';
@@ -161,6 +162,13 @@ describe('renderTableElement', () => {
 	it('falls back to plain cell text when no runs are present', () => {
 		const plainTd = renderTable().querySelectorAll('tbody tr')[0].querySelectorAll('td')[1];
 		expect(plainTd.querySelector('span')?.textContent).toBe('Q1');
+	});
+
+	it('declares the shared default font family on the table root', () => {
+		// Without it an unstyled cell inherits the HOST chrome's font stack, and
+		// the same deck measured different type metrics in every binding.
+		const table = renderTable().querySelector<HTMLElement>('table');
+		expect(table?.style.fontFamily).toBe(DEFAULT_FONT_FAMILY);
 	});
 
 	it('is dispatched through the registry via registerTableChartRenderers', () => {

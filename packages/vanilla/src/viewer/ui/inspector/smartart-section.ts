@@ -133,15 +133,15 @@ export function createSmartArtSection(
 				handlers.setSmartArtNodeStyle(node.id, { italic: !node.style?.italic }),
 			);
 			const hierarchy = createEl(doc, 'span', 'pptxv-smartart-hierarchy');
-			for (const [action, text] of [
-				['addChild', '+Child'],
-				['promote', 'Outdent'],
-				['demote', 'Indent'],
-				['remove', 'Delete'],
+			for (const [action, labelKey] of [
+				['addChild', 'pptx.smartArt.addSubItem'],
+				['promote', 'pptx.smartart.promote'],
+				['demote', 'pptx.smartart.demote'],
+				['remove', 'pptx.common.delete'],
 			] as const) {
 				const button = doc.createElement('button');
 				button.type = 'button';
-				button.textContent = text;
+				button.textContent = t(labelKey);
 				button.addEventListener('click', () => handlers.mutateSmartArtNode(node.id, action));
 				hierarchy.appendChild(button);
 			}

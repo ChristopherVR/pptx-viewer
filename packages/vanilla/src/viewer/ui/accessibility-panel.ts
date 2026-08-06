@@ -64,7 +64,7 @@ export function createAccessibilityPanel(
 			const message = createEl(doc, 'span', 'pptxv-accessibility-issue-message');
 			message.textContent = issue.message;
 			const slide = createEl(doc, 'span', 'pptxv-accessibility-issue-slide');
-			slide.textContent = `Slide ${issue.slideIndex + 1}`;
+			slide.textContent = t('pptx.notes.slideN', { n: issue.slideIndex + 1 });
 			item.append(type, message, slide);
 			item.addEventListener('click', () => onSelectSlide(issue.slideIndex));
 			groupEl.appendChild(item);

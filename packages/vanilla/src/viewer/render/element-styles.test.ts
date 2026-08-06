@@ -1,7 +1,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getTextBlockStyle } from './element-styles';
+import { getShapeFillStrokeStyle, getTextBlockStyle } from './element-styles';
+import { renderStrokeOutline } from './elements/shape-filter-defs';
 
 /** A text element carrying the given text style. */
 function textElement(textStyle: Record<string, unknown>): PptxElement {
@@ -35,5 +36,52 @@ describe('getTextBlockStyle', () => {
 		expect(autofit['fontSize']).toBe('28px');
 		expect(getTextBlockStyle(textElement({ textWrap: 'none' }))['whiteSpace']).toBe('nowrap');
 		expect(getTextBlockStyle(textElement({}))['whiteSpace']).toBe('pre-wrap');
+	});
+});
+
+/**
+ * Stroke-only ("open") preset geometry (`<a:prstGeom prst="line"/>`, `arc`, the
+ * connector family). These have no region to fill and no box to outline, so the
+ * CSS border painted a rectangle edge where PowerPoint draws the line itself;
+ * the shared `buildStrokeOutline` strokes the evaluated geometry instead.
+ */
+describe('stroke-only preset geometry', () => {
+	/** The media deck's horizontal rule: `prst="line"`, 1 EMU tall, 1.5pt black. */
+	const rule = (overrides: Record<string, unknown> = {}): PptxElement =>
+		({
+			id: 'rule-1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 0,
+			shapeType: 'line',
+			shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
+			...overrides,
+		}) as unknown as PptxElement;
+
+	it('leaves the container bare: no fill, no border, no clip-path', () => {
+		const style = getShapeFillStrokeStyle(rule());
+		expect(style['backgroundColor']).toBe('transparent');
+		expect(style['border']).toBe('none');
+		expect(style['borderTop']).toBeUndefined();
+		expect(style['clipPath']).toBeUndefined();
+	});
+
+	it('strokes the evaluated geometry over the padded box', () => {
+		const svg = renderStrokeOutline(document, rule());
+		expect(svg).not.toBeNull();
+		expect(svg?.getAttribute('viewBox')).toBe('0 0 400 12');
+		const path = svg?.querySelector('path');
+		expect(path?.getAttribute('d')).toBe('M 0 0 L 400 1');
+		expect(path?.getAttribute('stroke')).toBe('#000000');
+		expect(svg?.querySelector('defs')).toBeNull();
+	});
+
+	it('leaves a closed preset to its CSS border', () => {
+		expect(renderStrokeOutline(document, rule({ shapeType: 'rect', height: 100 }))).toBeNull();
+		expect(getShapeFillStrokeStyle(rule({ shapeType: 'rect', height: 100 }))['border']).toContain(
+			'2px',
+		);
 	});
 });

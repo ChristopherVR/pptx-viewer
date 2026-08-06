@@ -4,6 +4,8 @@ import { createEl } from '../render';
 export interface DialogShell {
 	backdrop: HTMLButtonElement;
 	dialog: HTMLElement;
+	/** The header's `<h2>`; dialogs that re-label live (Options) re-set its text. */
+	heading: HTMLHeadingElement;
 	body: HTMLElement;
 	footer: HTMLElement;
 	close(): void;
@@ -46,7 +48,7 @@ export function createParityDialogShell(doc: Document, t: Translator, title: str
 	backdrop.addEventListener('click', close);
 	closeButton.addEventListener('click', close);
 	queueMicrotask(() => closeButton.focus());
-	return { backdrop, dialog, body, footer, close };
+	return { backdrop, dialog, heading, body, footer, close };
 }
 
 export function appendDialogButton(

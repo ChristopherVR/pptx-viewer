@@ -7,6 +7,7 @@ import type { Translator } from './i18n';
 import type { ElementRenderContext, ElementRendererRegistry } from './render';
 import { renderSlideStage, reRenderPresentationElements } from './render';
 import { buildRenderFieldContext } from './render-field-context';
+import { appendCommentMarkers } from './render/comment-markers';
 import type { Store, ViewerState } from './state';
 import type { ViewerChrome } from './ui';
 import { renderHandoutMasterCanvas, renderNotesMasterCanvas } from './ui/master-canvases';
@@ -32,6 +33,8 @@ export interface RenderControllerDeps {
 	onSectionMove(sectionId: string, direction: 'up' | 'down'): void;
 	/** Navigate from a presentation Zoom tile. */
 	onZoomClick(targetSlideIndex: number, returnSlideIndex: number): void;
+	/** A canvas comment marker dot was clicked; bring the comments UI on screen. */
+	onCommentMarkerClick?(commentId: string): void;
 	onSmartArtNodeTextChange?(element: PptxElement, nodeId: string, text: string): void;
 	onSmartArtNodeFillChange?(element: PptxElement, nodeId: string, fill: string): void;
 	/**
@@ -233,6 +236,19 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			}
 		} else if (slide) {
 			stageNode = renderStageFor(slide, scale, state.presenting, true, pageSize);
+			// Numbered comment markers, drawn inside the stage whenever an editable
+			// slide has comments (Vue's visibility semantics). The stage is rebuilt
+			// on every store change, so the dots track the comment model live.
+			if (state.editable && !state.presenting) {
+				appendCommentMarkers(
+					doc,
+					stageNode,
+					slide.comments ?? [],
+					pageSize,
+					deps.getTranslator(),
+					deps.onCommentMarkerClick,
+				);
+			}
 		}
 		if (stageNode && slide) {
 			chrome.stageWrap.appendChild(stageNode);

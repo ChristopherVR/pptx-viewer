@@ -5,8 +5,8 @@ import {
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
 	getSoftEdgeSvgFilter,
-	svgGradientFillRef,
 	isPatternPaint,
+	strokeOutlineViewBox,
 	svgGradientMarkup,
 } from 'pptx-viewer-shared';
 
@@ -69,13 +69,17 @@ export function renderShapeFillOverlay(doc: Document, element: PptxElement): HTM
 }
 
 /**
- * Gradient / pattern OUTLINE (`a:ln/a:gradFill`, `a:ln/a:pattFill`) painted as a
- * stroked SVG path over the element, following the shape's own geometry.
+ * Stroked SVG OUTLINE painted over the element, following the shape's own
+ * geometry, for the two cases a CSS `border` cannot paint:
  *
- * A CSS `border` takes a single flat colour, so a gradient outline was drawn
- * with the parser's averaged `strokeColor` and a patterned one lost its hatching
- * entirely. `element-styles.ts` drops the CSS border for these shapes so the
- * flat colour does not show underneath this overlay.
+ *  - a gradient / pattern line (`a:ln/a:gradFill`, `a:ln/a:pattFill`): a border
+ *    takes a single flat colour, so a gradient outline was drawn with the
+ *    parser's averaged `strokeColor` and a patterned one lost its hatching;
+ *  - a stroke-only ("open") preset (`line`, `arc`, the connector family): it has
+ *    no region to fill and no box to outline, so a border drew a RECTANGLE.
+ *
+ * `element-styles.ts` drops the CSS border for these shapes so neither the flat
+ * colour nor the box shows underneath this overlay.
  */
 export function renderStrokeOutline(doc: Document, element: PptxElement): SVGSVGElement | null {
 	const outline = buildStrokeOutline(element);
@@ -85,45 +89,53 @@ export function renderStrokeOutline(doc: Document, element: PptxElement): SVGSVG
 	const svg = createSvgEl(doc, 'svg', {
 		class: 'pptx-vanilla-gradient-outline',
 		'aria-hidden': 'true',
-		viewBox: `0 0 ${Math.max(element.width, 1)} ${Math.max(element.height, 1)}`,
+		viewBox: strokeOutlineViewBox(element),
 		preserveAspectRatio: 'none',
 	});
 	svg.setAttribute(
 		'style',
 		'position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none',
 	);
-	const defs = createSvgEl(doc, 'defs');
-	if (isPatternPaint(outline.paint)) {
-		// The tile rides in as a data-URI <image> so the same descriptor renders
-		// from plain attributes in every binding.
-		const pattern = createSvgEl(doc, 'pattern', {
-			id: outline.paint.id,
-			width: outline.paint.width,
-			height: outline.paint.height,
-			patternUnits: 'userSpaceOnUse',
-		});
-		const image = createSvgEl(doc, 'image', {
-			href: outline.paint.href,
-			width: outline.paint.width,
-			height: outline.paint.height,
-		});
-		pattern.appendChild(image);
-		defs.appendChild(pattern);
-	} else {
-		defs.innerHTML = svgGradientMarkup(outline.paint);
+	// A flat-coloured outline (an open preset) needs no paint server at all.
+	if (outline.paint) {
+		const defs = createSvgEl(doc, 'defs');
+		if (isPatternPaint(outline.paint)) {
+			// The tile rides in as a data-URI <image> so the same descriptor renders
+			// from plain attributes in every binding.
+			const pattern = createSvgEl(doc, 'pattern', {
+				id: outline.paint.id,
+				width: outline.paint.width,
+				height: outline.paint.height,
+				patternUnits: 'userSpaceOnUse',
+			});
+			const image = createSvgEl(doc, 'image', {
+				href: outline.paint.href,
+				width: outline.paint.width,
+				height: outline.paint.height,
+			});
+			pattern.appendChild(image);
+			defs.appendChild(pattern);
+		} else {
+			defs.innerHTML = svgGradientMarkup(outline.paint);
+		}
+		svg.appendChild(defs);
 	}
-	svg.appendChild(defs);
-	const path = createSvgEl(doc, 'path', {
-		d: outline.d,
-		fill: 'none',
-		stroke: svgGradientFillRef(outline.paint),
-		'stroke-width': outline.strokeWidth,
-		'stroke-linecap': outline.lineCap,
-		'stroke-linejoin': outline.lineJoin,
-	});
-	if (outline.dashArray) {
-		path.setAttribute('stroke-dasharray', outline.dashArray);
+	for (const strand of outline.strands) {
+		const path = createSvgEl(doc, 'path', {
+			d: outline.d,
+			fill: 'none',
+			stroke: outline.stroke,
+			'stroke-width': strand.strokeWidth,
+			'stroke-linecap': outline.lineCap,
+			'stroke-linejoin': outline.lineJoin,
+		});
+		if (outline.dashArray) {
+			path.setAttribute('stroke-dasharray', outline.dashArray);
+		}
+		if (strand.offset !== 0) {
+			path.setAttribute('style', `transform:translate(0, ${strand.offset}px)`);
+		}
+		svg.appendChild(path);
 	}
-	svg.appendChild(path);
 	return svg;
 }

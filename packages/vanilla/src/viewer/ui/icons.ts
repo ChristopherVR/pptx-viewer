@@ -107,6 +107,7 @@ export type IconName =
 	| 'alert'
 	| 'close'
 	| 'crosshair'
+	| 'history'
 	| 'timer'
 	| 'link'
 	| 'git-merge'
@@ -320,6 +321,9 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	],
 	close: ['M18 6L6 18', 'M6 6l12 12'],
 	crosshair: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 2v4', 'M12 18v4', 'M2 12h4', 'M18 12h4'],
+	// Clock with a counter-clockwise arrow (Lucide's `history`): the AI panel's
+	// saved-chats ("Chats") toggle.
+	history: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5', 'M12 7v5l4 2'],
 	// Stopwatch (Lucide's `timer`): the slide show's elapsed readout. The other
 	// bindings pull `LuTimer` from an icon package; this one has no such
 	// dependency, so the path data lives here like every other viewer icon.

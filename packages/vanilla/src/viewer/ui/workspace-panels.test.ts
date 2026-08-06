@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxComment, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -55,19 +55,103 @@ describe('workspace parity panels', () => {
 		expect(onDuplicate).toHaveBeenCalledWith(0);
 		document.body.replaceChildren();
 		const addComment = vi.fn(() => 'comment');
-		openCommentsPanel(document, document.body, createTranslator(), [], {
-			addComment,
-			addCommentReply: vi.fn(),
-			editComment: vi.fn(),
-			deleteComment: vi.fn(),
-			toggleCommentResolved: vi.fn(),
-		});
+		openCommentsPanel(
+			document,
+			document.body,
+			createTranslator(),
+			{ getComments: () => [], subscribe: () => () => undefined },
+			{
+				addComment,
+				addCommentReply: vi.fn(),
+				editComment: vi.fn(),
+				deleteComment: vi.fn(),
+				toggleCommentResolved: vi.fn(),
+			},
+		);
 		const draft = document.querySelector('textarea')!;
 		draft.value = 'Review this';
 		Array.from(document.querySelectorAll('button'))
 			.find((button) => button.textContent === 'Add Comment')!
 			.click();
 		expect(addComment).toHaveBeenCalledWith('Review this');
+		// The pane is LIVE now: it stays open after an add and clears the draft.
+		expect(document.querySelector('[data-pptx-comments-panel]')).not.toBeNull();
+		expect(draft.value).toBe('');
+	});
+
+	it('re-renders the comments pane when the model notifies a change', () => {
+		let comments: readonly PptxComment[] = [
+			{ id: 'c1', text: 'First pass', author: 'Alice', resolved: false },
+		];
+		const listeners: Array<() => void> = [];
+		openCommentsPanel(
+			document,
+			document.body,
+			createTranslator(),
+			{
+				getComments: () => comments,
+				subscribe: (listener) => {
+					listeners.push(listener);
+					return () => undefined;
+				},
+			},
+			{
+				addComment: vi.fn(() => null),
+				addCommentReply: vi.fn(),
+				editComment: vi.fn(),
+				deleteComment: vi.fn(),
+				toggleCommentResolved: vi.fn(),
+			},
+		);
+		// The pane renders the SAME threaded view as the inspector Comments tab
+		// (shared `createCommentThreadView`), so it offers a Reply affordance.
+		expect(document.querySelectorAll('.pptxv-inspector-comment')).toHaveLength(1);
+		expect(document.querySelector('.pptxv-inspector-comment.is-resolved')).toBeNull();
+		const replyButton = Array.from(document.querySelectorAll('button')).find(
+			(button) => button.textContent === 'Reply',
+		);
+		expect(replyButton, 'the workspace pane offers a Reply affordance').toBeDefined();
+		// A resolve replaces the comment array; the notified pane re-renders.
+		comments = [{ id: 'c1', text: 'First pass', author: 'Alice', resolved: true }];
+		for (const listener of listeners) {
+			listener();
+		}
+		expect(document.querySelector('.pptxv-inspector-comment.is-resolved')).not.toBeNull();
+	});
+
+	it('submits a reply from the workspace comments pane', () => {
+		const addCommentReply = vi.fn();
+		openCommentsPanel(
+			document,
+			document.body,
+			createTranslator(),
+			{
+				getComments: () => [{ id: 'c1', text: 'First pass', author: 'Alice', resolved: false }],
+				subscribe: () => () => undefined,
+			},
+			{
+				addComment: vi.fn(() => null),
+				addCommentReply,
+				editComment: vi.fn(),
+				deleteComment: vi.fn(),
+				toggleCommentResolved: vi.fn(),
+			},
+		);
+		// `pptx.comments.reply` (open the composer) and `pptx.comments.addReply`
+		// (submit it) both read "Reply", so the submit is the LAST match, which
+		// is also how the neutral e2e helper picks it.
+		const replyButtons = (): HTMLButtonElement[] =>
+			Array.from(document.querySelectorAll('button')).filter(
+				(button) => button.textContent === 'Reply',
+			);
+		replyButtons()[0].click();
+		const replyBox = document.querySelector<HTMLTextAreaElement>(
+			'.pptxv-inspector-comment-reply-form textarea',
+		)!;
+		replyBox.value = 'Looks good';
+		replyBox.dispatchEvent(new Event('input'));
+		replyButtons().at(-1)!.click();
+		expect(addCommentReply).toHaveBeenCalledWith('c1', 'Looks good');
 	});
 
 	it('creates custom shows and applies safe hyperlinks', () => {

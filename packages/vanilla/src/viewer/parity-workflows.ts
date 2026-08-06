@@ -95,7 +95,10 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 			const localeState = host.getLocaleState();
 			// The shortcut reference lives inside the Customize Ribbon pane now.
 			const initialTab: ViewerOptionsTabId = tab === 'shortcuts' ? 'ribbon' : 'general';
-			openSettingsDialog(host.doc, host.t, {
+			// A LIVE translator, not the current `host.t` value: picking a language
+			// inside the dialog reassigns the viewer's translator, and the open
+			// dialog re-renders itself with whatever `host.t` is by then.
+			openSettingsDialog(host.doc, (key, params) => host.t(key, params), {
 				store: host.optionsStore,
 				initialTab,
 				aiEnabled: host.aiEnabled,
@@ -177,12 +180,17 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 			outline.close();
 		},
 		openComments() {
-			const current = state();
 			openCommentsPanel(
 				host.doc,
 				host.root(),
 				host.t,
-				current.slides[current.currentSlide]?.comments ?? [],
+				{
+					getComments: () => {
+						const current = state();
+						return current.slides[current.currentSlide]?.comments ?? [];
+					},
+					subscribe: (listener) => host.store.subscribe(() => listener()),
+				},
 				host.editor.getEditActions().comments,
 			);
 		},

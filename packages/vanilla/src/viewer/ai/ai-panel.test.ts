@@ -46,6 +46,7 @@ function fakeController(bridge: PptxAiBridge): VanillaChatController {
 		regenerate: async () => undefined,
 		stop: async () => undefined,
 		clearError: () => undefined,
+		setMessages: () => undefined,
 		getSnapshot: () => ({ messages: [], status: 'ready' }),
 		subscribe: () => () => undefined,
 		proposals,
@@ -81,11 +82,73 @@ describe('createAiPanel', () => {
 
 		expect(host.querySelector('.pptxv-ai-composer')).toBeTruthy();
 		expect(host.querySelector('.pptxv-ai-input')).toBeTruthy();
+		// The composer carries an explicit accessible name (parity with the
+		// other four bindings' composers).
+		expect(host.querySelector('.pptxv-ai-input')?.getAttribute('aria-label')).toBe(
+			'Ask about this deck…',
+		);
 		const proposals = host.querySelector<HTMLElement>('.pptxv-ai-proposals');
 		expect(proposals?.hidden).toBeFalsy();
 		const card = host.querySelector('.pptxv-ai-proposal');
 		expect(card).toBeTruthy();
 		expect(card?.querySelector('.pptxv-ai-proposal-label')?.textContent).toBe('Add a title');
+	});
+
+	it('renders a header "Chats" button that toggles the saved-chat menu', async () => {
+		host = document.createElement('div');
+		document.body.appendChild(host);
+		const bridge = fakeBridge();
+
+		await createAiPanel({
+			host,
+			doc: document,
+			t: createTranslator('en'),
+			bridge,
+			config,
+			createChat: async () => fakeController(bridge),
+		});
+
+		const chats = host.querySelector<HTMLButtonElement>('.pptxv-ai-chats');
+		expect(chats).toBeTruthy();
+		expect(chats?.textContent).toBe('Chats');
+		// The toggle sits in the header, before the close control.
+		expect(chats?.parentElement?.classList.contains('pptxv-ai-header')).toBeTruthy();
+
+		const menu = host.querySelector<HTMLElement>('.pptxv-ai-history');
+		expect(menu).toBeTruthy();
+		expect(menu?.hidden).toBeTruthy();
+		chats?.click();
+		expect(menu?.hidden).toBeFalsy();
+		expect(menu?.querySelector('.pptxv-ai-history-title')?.textContent).toBe('Saved chats');
+		expect(menu?.querySelector('.pptxv-ai-history-empty')?.textContent).toBe('No saved chats yet.');
+		expect(menu?.querySelector('.pptxv-ai-history-hint')?.textContent).toBe(
+			'Chats are saved in this browser.',
+		);
+		chats?.click();
+		expect(menu?.hidden).toBeTruthy();
+	});
+
+	it('offers a header "Close AI assistant" control that calls onClose', async () => {
+		host = document.createElement('div');
+		document.body.appendChild(host);
+		const bridge = fakeBridge();
+		const onClose = vi.fn();
+
+		await createAiPanel({
+			host,
+			doc: document,
+			t: createTranslator('en'),
+			bridge,
+			config,
+			onClose,
+			createChat: async () => fakeController(bridge),
+		});
+
+		const close = host.querySelector<HTMLButtonElement>('.pptxv-ai-close');
+		expect(close).toBeTruthy();
+		expect(close?.getAttribute('aria-label')).toBe('Close AI assistant');
+		close?.click();
+		expect(onClose).toHaveBeenCalledOnce();
 	});
 
 	it('applies the proposal through the controller store when Accept is clicked', async () => {
@@ -142,6 +205,7 @@ describe('createAiPanel', () => {
 			regenerate: async () => undefined,
 			stop: async () => undefined,
 			clearError: () => undefined,
+			setMessages: () => undefined,
 			getSnapshot: () => snapshot,
 			subscribe: () => () => undefined,
 			proposals: new ProposalStore(bridge),
