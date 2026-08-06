@@ -172,6 +172,13 @@ export class SvelteAiChat {
 		void this.#chat?.stop();
 	}
 
+	/** Replace the whole transcript (chat-history resume / new chat). */
+	setMessages(messages: PptxAiUIMessage[]): void {
+		if (this.#chat) {
+			this.#chat.messages = messages;
+		}
+	}
+
 	clearError(): void {
 		this.#chat?.clearError();
 	}

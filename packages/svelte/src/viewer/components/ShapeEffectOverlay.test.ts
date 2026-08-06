@@ -71,4 +71,40 @@ describe('shapeEffectOverlay', () => {
 		expect(target.querySelector('.pptx-svelte-fill-overlay')).toBeNull();
 		expect(target.querySelector('svg')).toBeNull();
 	});
+
+	it('strokes a stroke-only ("open") preset instead of boxing it in a border', () => {
+		// `<a:prstGeom prst="line"/>` has no region to fill and no box to outline;
+		// a CSS border drew a rectangle edge where PowerPoint draws the line.
+		const target = render({
+			type: 'shape',
+			id: 'rule-1',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 0,
+			shapeType: 'line',
+			shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
+		} as unknown as PptxElement);
+		const path = target.querySelector('svg path');
+		expect(path?.getAttribute('d')).toBe('M 0 0 L 400 1');
+		expect(path?.getAttribute('stroke')).toBe('#000000');
+		// The viewBox is the PAINTED box (padded to MIN_ELEMENT_SIZE), so the rule
+		// is not stretched into a diagonal.
+		expect(target.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 400 12');
+		expect(target.querySelector('svg defs')).toBeNull();
+	});
+
+	it('leaves a closed preset to its CSS border', () => {
+		const target = render({
+			type: 'shape',
+			id: 'box-1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 80,
+			shapeType: 'rect',
+			shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
+		} as unknown as PptxElement);
+		expect(target.querySelector('svg')).toBeNull();
+	});
 });

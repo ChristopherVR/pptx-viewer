@@ -19,6 +19,7 @@
 	import { getFieldContextGetter, provideFieldContext } from '../state/field-context';
 	import { provideSlideElements } from '../state/slide-elements';
 	import { styleToString } from '../style';
+	import CommentMarkersOverlay from './CommentMarkersOverlay.svelte';
 	import ElementRenderer from './ElementRenderer.svelte';
 	import type { SlideStageProps } from './props';
 
@@ -34,6 +35,8 @@
 		ontablecellcommit,
 		onsmartartnodecommit,
 		onsmartartnodefill,
+		comments = [],
+		oncommentmarkerclick,
 	}: SlideStageProps = $props();
 
 	const t = useTranslator();
@@ -136,4 +139,7 @@
 	{#each slide?.elements ?? [] as element, index (element.id)}
 		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
 	{/each}
+	{#if comments.length > 0}
+		<CommentMarkersOverlay {comments} {canvasSize} onmarkerclick={oncommentmarkerclick} />
+	{/if}
 </div>

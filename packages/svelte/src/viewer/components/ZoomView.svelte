@@ -30,6 +30,7 @@
 		zIndex,
 		presenting = false,
 		interactive: markElement = false,
+		marked = false,
 	}: ElementRendererProps = $props();
 	const t = useTranslator();
 	const navigation = useZoomNavigation();
@@ -99,7 +100,7 @@
 		class="pptx-svelte-element pptx-svelte-zoom"
 		style={containerStyle}
 		data-element-id={element.id}
-		data-pptx-element={markElement ? 'true' : undefined}
+		data-pptx-element={markElement || marked ? 'true' : undefined}
 		data-zoom-type={view.zoomType}
 		data-zoom-target={view.target}
 		aria-label={summaryView?.ariaLabel ?? ariaLabel}

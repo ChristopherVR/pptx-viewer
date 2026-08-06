@@ -30,6 +30,8 @@
 		ontablecellcommit,
 		onsmartartnodecommit,
 		onsmartartnodefill,
+		comments = [],
+		oncommentmarkerclick,
 		onstageholder,
 		onstagepointerdown,
 		onstagepointermove,
@@ -104,6 +106,8 @@
 		{ontablecellcommit}
 		{onsmartartnodecommit}
 		{onsmartartnodefill}
+		{comments}
+		{oncommentmarkerclick}
 	/>
 	{#if children}{@render children()}{/if}
 </div>

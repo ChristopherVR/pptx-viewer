@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 /**
@@ -42,6 +42,15 @@ export interface SlideStageProps {
 	) => void;
 	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
+	/**
+	 * Comments drawn as numbered marker dots INSIDE the stage (the
+	 * `aria-roledescription="slide"` region, the framework-neutral e2e hook).
+	 * The host passes the active slide's comments only while it is editable
+	 * (Vue's visibility semantics), so thumbnails and the show stay clean.
+	 */
+	comments?: readonly PptxComment[];
+	/** A marker dot was clicked; the host brings its comments UI on screen. */
+	oncommentmarkerclick?: (commentId: string) => void;
 }
 
 export interface SlideCanvasProps {
@@ -63,6 +72,10 @@ export interface SlideCanvasProps {
 	) => void;
 	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
+	/** Passed through to `SlideStage`; see {@link SlideStageProps.comments}. */
+	comments?: readonly PptxComment[];
+	/** Passed through to `SlideStage`; see {@link SlideStageProps.oncommentmarkerclick}. */
+	oncommentmarkerclick?: (commentId: string) => void;
 	/** Reports the stage-holder node to the host on mount/teardown (editing hit-surface, export capture anchor). */
 	onstageholder?: (el: HTMLDivElement | null) => void;
 	onstagepointerdown?: (event: PointerEvent) => void;

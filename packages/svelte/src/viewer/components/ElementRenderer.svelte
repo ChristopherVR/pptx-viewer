@@ -41,7 +41,7 @@
 	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps =
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, marked = false, editTemplateMode = false, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps =
 		$props();
 	/**
 	 * Whether THIS element takes part in the neutral element contract
@@ -54,6 +54,13 @@
 	 * invisible to anything that enumerates or hit-tests elements by the marker).
 	 */
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
+	/**
+	 * Whether THIS element's root carries `data-pptx-element="true"`. Wider than
+	 * `elementInteractive`: an interaction-locked template (master/layout)
+	 * element on the main canvas keeps the marker (it is still a rendered slide
+	 * element carrying the contract), it only loses pointer interactivity.
+	 */
+	const elementMarked = $derived(interactive || marked);
 	/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
 	const childParentGroupFill = $derived(getGroupChildParentFill(element));
 
@@ -136,45 +143,45 @@
 		class="pptx-svelte-element pptx-svelte-group"
 		style={styleToString({ ...getContainerStyle(element, zIndex), pointerEvents: elementInteractive ? 'auto' : 'none' })}
 		data-element-id={element.id}
-		data-pptx-element={elementInteractive ? 'true' : undefined}
+		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {editTemplateMode} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
 		{/each}
 	</div>
 {:else if isImageLike}
-	<ImageBox {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
+	<ImageBox {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'connector'}
-	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} />
+	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'table'}
-	<TableView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} {ontablecellcommit} />
+	<TableView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {ontablecellcommit} />
 {:else if element.type === 'chart'}
-	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} />
+	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'smartArt' && smartArt3D}
-	<SmartArt3DView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
+	<SmartArt3DView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'smartArt'}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
 {:else if element.type === 'media'}
-	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
+	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'ink'}
-	<InkView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
+	<InkView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'ole'}
-	<OleView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
+	<OleView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'contentPart'}
-	<ContentPartView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
+	<ContentPartView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'zoom'}
-	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} />
+	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'model3d'}
-	<Model3dView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
+	<Model3dView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
 {:else if hasEquation}
-	<EquationView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
+	<EquationView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
 {:else if isShapeLike}
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-shape"
 		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill, animationState?.animatesFill, animationState?.animatesStroke), pointerEvents: elementInteractive ? 'auto' : 'none' })}
 		data-element-id={element.id}
-		data-pptx-element={elementInteractive ? 'true' : undefined}
+		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
 		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
@@ -191,5 +198,5 @@
 		{/if}
 	</div>
 {:else}
-	<PlaceholderElement {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} />
+	<PlaceholderElement {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
 {/if}

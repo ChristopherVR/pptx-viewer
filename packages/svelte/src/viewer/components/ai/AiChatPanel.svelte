@@ -17,12 +17,13 @@
 	import { onMount, untrack } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
-	import { useChatHistoryPersistence } from '../../ai/ai-chat-persistence.svelte';
+	import { useAiChatHistory } from '../../ai/ai-chat-history.svelte';
 	import type { AiPanelController } from '../../ai/ai-panel-controller.svelte';
 	import { SvelteAiChat } from '../../ai/chat.svelte';
 	import AiComposer from './AiComposer.svelte';
 	import AiErrorBanner from './AiErrorBanner.svelte';
 	import AiFocusBar from './AiFocusBar.svelte';
+	import AiHistoryMenu from './AiHistoryMenu.svelte';
 	import AiMessageList from './AiMessageList.svelte';
 	import AiPendingChanges from './AiPendingChanges.svelte';
 
@@ -83,15 +84,16 @@
 		chat.acceptAllProposals();
 	}
 
-	// Persist the running transcript to the shared history store (write half only;
-	// the export in File > Options > AI reads it back).
+	// Chat history: debounced per-deck persistence + the "Chats" resume menu
+	// (shared controller; the export in File > Options > AI reads the same store).
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
-	useChatHistoryPersistence({
+	const history = useAiChatHistory({
 		// The bridge is created once for the panel's lifetime (it reads live viewer
 		// state through getters), so capturing it here is intentional.
 		// svelte-ignore state_referenced_locally
 		bridge,
 		getMessages: () => chat.messages,
+		setMessages: (messages) => chat.setMessages(messages),
 		getUntitledLabel: () => t('pptx.ai.untitledChat'),
 	});
 
@@ -129,6 +131,16 @@
 		</div>
 	{:else if chat.initState === 'ready'}
 		<div class="pptx-svelte-ai-body">
+			<AiHistoryMenu
+				chats={history.chats}
+				activeChatId={history.activeChatId}
+				canClear={chat.messages.length > 0}
+				onresume={(id) => void history.resumeChat(id)}
+				ondelete={(id) => void history.deleteChat(id)}
+				onnewchat={() => history.newChat()}
+				onclearchat={() => history.clearCurrent()}
+			/>
+
 			<AiFocusBar
 				targets={aiPanel.effectiveTargets}
 				slides={bridge.getSlides()}

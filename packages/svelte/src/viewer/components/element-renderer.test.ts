@@ -255,7 +255,11 @@ describe('elementRenderer neutral element marker', () => {
 		expect(marked(mountEl({ ...base, ...payload } as PptxElement, false))).toBeNull();
 	});
 
-	it('leaves a locked template element unmarked even on the interactive canvas', () => {
+	it('keeps the marker on a locked template element on the interactive canvas', () => {
+		// The marker means "rendered slide element carrying the contract", not
+		// "editable right now": an interaction-locked template (layout/master)
+		// element keeps it, matching React and the other bindings. Interaction is
+		// gated separately, per id, by `isElementIdInteractive`.
 		const target = document.createElement('div');
 		document.body.appendChild(target);
 		const instance = mount(ElementRenderer, {
@@ -274,6 +278,6 @@ describe('elementRenderer neutral element marker', () => {
 		};
 		const root = target.querySelector('[data-element-id="layout-shape-3"]');
 		expect(root).not.toBeNull();
-		expect(root?.getAttribute('data-pptx-element')).toBeNull();
+		expect(root?.getAttribute('data-pptx-element')).toBe('true');
 	});
 });

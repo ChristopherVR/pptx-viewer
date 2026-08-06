@@ -61,9 +61,9 @@
 		}
 	}
 
-	// React's INSPECTOR_TABS labels 'Elements' literally (no dictionary key).
+	// Same dictionary key the vanilla inspector uses for its Elements tab.
 	const tabs = $derived<Array<{ id: InspectorTabId; label: string }>>([
-		{ id: 'elements', label: 'Elements' },
+		{ id: 'elements', label: t('pptx.documentProperties.statistics.elements') },
 		{ id: 'properties', label: t('pptx.inspector.properties') },
 		{ id: 'comments', label: t('pptx.toolbar.comments') },
 	]);
@@ -158,8 +158,8 @@
 						<SmartArtSection {editor} {el} />
 					</div>
 				{/if}
-				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>Chart</h4><ChartSection {editor} /></div>{/if}
-				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
+				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>{t('pptx.inspector.chart')}</h4><ChartSection {editor} /></div>{/if}
+				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>{t('pptx.inspector.media')}</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
 
 				<!-- Click / hover actions apply to every element type (React's
 				     ElementInspectorBody renders ActionSettingsPanel unconditionally). -->

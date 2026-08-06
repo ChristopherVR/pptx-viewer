@@ -26,6 +26,7 @@
 		zIndex,
 		presenting = false,
 		interactive = false,
+		marked = false,
 	}: ElementRendererProps = $props();
 	const t = useTranslator();
 
@@ -42,7 +43,7 @@
 		class="pptx-svelte-element pptx-svelte-contentpart"
 		style={containerStyle}
 		data-element-id={element.id}
-		data-pptx-element={interactive ? 'true' : undefined}
+		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
 		{#if strokes.length > 0}
 			<svg

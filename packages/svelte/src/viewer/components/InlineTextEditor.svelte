@@ -9,6 +9,7 @@
 	 * / the shared `remapTextToSegments`), so per-run styles and field metadata
 	 * survive the round trip.
 	 */
+	import { placeCaretAtEnd } from 'pptx-viewer-shared';
 	import { onDestroy, onMount, untrack } from 'svelte';
 
 	import { readEditableText, resolveInlineSurface } from '../editor/inline-text';
@@ -74,6 +75,9 @@
 		if (el) {
 			el.textContent = initialText;
 			el.focus();
+			// Caret at the END of the seeded text so typing appends (the contract
+			// the other bindings follow; focus alone leaves the caret at the start).
+			placeCaretAtEnd(el);
 		}
 	});
 

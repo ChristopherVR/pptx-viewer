@@ -17,7 +17,7 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, animationState, interactive = false }: ElementRendererProps = $props();
+	const { element, zIndex, animationState, interactive = false, marked = false }: ElementRendererProps = $props();
 
 	/** Staged chart-build descriptor, when an active native animation reveals one. */
 	const chartBuild = $derived(
@@ -45,7 +45,7 @@
 </script>
 
 {#if view}
-	<div class="pptx-svelte-element pptx-svelte-chart" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
+	<div class="pptx-svelte-element pptx-svelte-chart" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
 		{#if view.kind === 'chart'}
 			{@const vm = view.vm}
 			<svg

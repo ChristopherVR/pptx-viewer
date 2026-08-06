@@ -35,13 +35,54 @@ describe('reviewCommentsPanel', () => {
 
 		expect(editor.slides[0]?.comments?.[0]?.text).toBe('Check the opening slide');
 		expect(target.textContent).toContain('Check the opening slide');
-		(target.querySelector('.pptx-svelte-comment-actions button') as HTMLButtonElement).click();
+		const actionButton = (label: string): HTMLButtonElement =>
+			Array.from(
+				target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-comment-actions button'),
+			).find((button) => button.textContent === label)!;
+		actionButton('Resolve').click();
 		flushSync();
 		expect(editor.slides[0]?.comments?.[0]?.resolved).toBeTruthy();
-		(
-			target.querySelectorAll('.pptx-svelte-comment-actions button')[1] as HTMLButtonElement
-		).click();
+		actionButton('Remove').click();
 		flushSync();
 		expect(editor.slides[0]?.comments).toStrictEqual([]);
+	});
+
+	it('appends a threaded reply nested under the parent card', () => {
+		const target = document.createElement('div');
+		const editor = createEditor();
+		editor.setSlides([
+			{
+				id: 'slide-1',
+				elements: [],
+				comments: [{ id: 'c1', text: 'Parent comment', author: 'Alice' }],
+			} as PptxSlide,
+		]);
+		const instance = mount(ReviewCommentsPanel, { target, props: { editor } });
+		cleanup = () => unmount(instance);
+
+		Array.from(target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-comment-actions button'))
+			.find((button) => button.textContent === 'Reply')!
+			.click();
+		flushSync();
+		const replyBox = target.querySelector(
+			'.pptx-svelte-comment-reply-compose textarea',
+		) as HTMLTextAreaElement;
+		expect(replyBox.getAttribute('placeholder')).toContain('Reply');
+		replyBox.value = 'A threaded reply';
+		replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		(target.querySelector('.pptx-svelte-comment-reply-submit') as HTMLButtonElement).click();
+		flushSync();
+
+		const parent = editor.slides[0]?.comments?.[0];
+		expect(parent?.replies?.[0]).toMatchObject({
+			text: 'A threaded reply',
+			threadId: 'c1',
+			parentId: 'c1',
+		});
+		// The reply renders nested INSIDE the parent card's replies block.
+		expect(target.querySelector('.pptx-svelte-comment-replies')?.textContent).toContain(
+			'A threaded reply',
+		);
 	});
 });

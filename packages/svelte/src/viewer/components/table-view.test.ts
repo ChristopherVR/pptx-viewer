@@ -1,5 +1,6 @@
 import type { PptxElement, PptxTableCell, PptxTableData } from 'pptx-viewer-core';
 import type { CellTextRun } from 'pptx-viewer-shared';
+import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -161,5 +162,23 @@ describe('tableView', () => {
 			.querySelectorAll('tbody tr')[0]
 			.querySelectorAll('td')[1];
 		expect(plainTd.querySelector('span')?.textContent).toBe('Q1');
+	});
+
+	it('puts no whitespace between cells in the table text', () => {
+		// Svelte keeps a text node for the indentation between `<td>` and its
+		// content, so a pretty-printed cell used to contribute a stray space and
+		// this binding alone read "Name Q1 Q2" where the other four read
+		// "NameQ1Q2". Anything that compares a table element's text (the
+		// cross-binding parity harness does) saw that as a content difference.
+		const table = mountEl(buildTableElement()).querySelector('table');
+		const headerRow = table?.querySelectorAll('tbody tr')[0];
+		expect(headerRow?.textContent).toBe('NameQ1Q2');
+	});
+
+	it('declares the shared default font family on the table root', () => {
+		// Without it an unstyled cell inherits the HOST chrome's font stack, and
+		// the same deck measured different type metrics in every binding.
+		const table = mountEl(buildTableElement()).querySelector<HTMLElement>('table');
+		expect(table?.style.fontFamily).toBe(DEFAULT_FONT_FAMILY);
 	});
 });

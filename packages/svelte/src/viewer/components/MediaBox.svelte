@@ -45,6 +45,7 @@
 		zIndex,
 		presenting = false,
 		interactive = false,
+		marked = false,
 	}: ElementRendererProps = $props();
 	const t = useTranslator();
 
@@ -109,7 +110,7 @@
 		class:pptx-svelte-media-fallback={isFallback}
 		style={containerStyle}
 		data-element-id={element.id}
-		data-pptx-element={interactive ? 'true' : undefined}
+		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
 		{#if view.mediaSrc && media.mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -- source PPTX media carries no caption track -->

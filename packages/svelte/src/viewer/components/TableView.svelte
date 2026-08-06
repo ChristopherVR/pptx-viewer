@@ -8,12 +8,14 @@
 	 * pattern fills, diagonal borders (SVG overlay), and rich per-run text.
 	 * All style resolution lives in `render/table-view.ts` + shared helpers.
 	 */
+	import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
+
 	import { buildTableRows, columnWidthStyles } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import { useTableStyleContext } from '../state/render-context';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, interactive = false, ontablecellcommit }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false, marked = false, ontablecellcommit }: ElementRendererProps = $props();
 
 	const tableData = $derived(element.type === 'table' ? element.tableData : undefined);
 	const tableStyleContext = $derived(useTableStyleContext());
@@ -72,8 +74,10 @@
 </script>
 
 {#if tableData && rows.length > 0}
-	<div class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive ? 'true' : undefined}>
-		<table class="pptx-svelte-table-grid">
+	<div class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
+		<!-- Load-bearing family: an unstyled cell otherwise inherits the HOST
+		     chrome's font; all five bindings declare the same shared default. -->
+		<table class="pptx-svelte-table-grid" style="font-family: {DEFAULT_FONT_FAMILY}">
 			{#if colWidths.length > 0}
 				<colgroup>
 					{#each colWidths as width, i (i)}
@@ -89,8 +93,13 @@
 							     context menu reads them back off the DOM to target its row /
 							     column / merge commands, and merge-absorbed cells are not
 							     rendered, so a cell's DOM position is not its model position. -->
-							<td class="pptx-svelte-table-cell" data-cell-row={cell.rowIndex} data-cell-col={cell.cellIndex} colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>
-								{#if cell.diagonals}
+						<!-- The branch delimiters sit TIGHT against the tags on purpose:
+						     Svelte keeps a text node for the indentation between `<td>`
+						     and its content, so a pretty-printed cell contributed a stray
+						     space to the table's text content, and this binding alone
+						     reported "Feature Starter Team" where the other four report
+						     "FeatureStarterTeam". -->
+						<td class="pptx-svelte-table-cell" data-cell-row={cell.rowIndex} data-cell-col={cell.cellIndex} colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>{#if cell.diagonals}
 									<!-- Diagonal cell borders as an absolutely positioned SVG overlay. -->
 									<svg
 										class="pptx-svelte-table-diag"
@@ -119,23 +128,16 @@
 											/>
 										{/if}
 									</svg>
-								{/if}
-								{#if editingKey === cell.key}
+								{/if}{#if editingKey === cell.key}
 									<input use:focusInput data-inline-editor type="text" bind:value={draft} onpointerdown={(event) => event.stopPropagation()} onclick={(event) => event.stopPropagation()} onblur={() => commit(cell)} onkeydown={(event) => { if (event.key === 'Enter') commit(cell); else if (event.key === 'Escape') editingKey = null; }} />
-								{:else if cell.runs}
-									{#each cell.runs as run (run.key)}
-										{#if run.isParagraphBreak}
-											<div class="pptx-svelte-table-para-break" style="display: block; height: 0"></div>
-										{:else if run.isLineBreak}
-											<br />
-										{:else}
-											<span class="pptx-svelte-table-run" style={run.style}>{run.text}</span>
-										{/if}
-									{/each}
-								{:else}
-									<span class="pptx-svelte-table-text" style="position: relative">{cell.text}</span>
-								{/if}
-							</td>
+								{:else if cell.runs}{#each cell.runs as run (run.key)}{#if run.isParagraphBreak}<div
+											class="pptx-svelte-table-para-break"
+											style="display: block; height: 0"
+										></div>{:else if run.isLineBreak}<br />{:else}<span
+											class="pptx-svelte-table-run"
+											style={run.style}>{run.text}</span>{/if}{/each}{:else}<span
+										class="pptx-svelte-table-text"
+										style="position: relative">{cell.text}</span>{/if}</td>
 						{/each}
 					</tr>
 				{/each}

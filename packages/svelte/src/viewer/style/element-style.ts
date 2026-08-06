@@ -6,6 +6,8 @@ import {
 	getComputed3dStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	paintedStrokeWidth,
+	isStrokeOnlyPresetElement,
 	suppressesCssBorder,
 	getContainerStyle as sharedGetContainerStyle,
 	getCssBorderDashStyle,
@@ -78,7 +80,9 @@ export function getShapeFillStrokeStyle(
 		// A gradient outline is stroked as an SVG path by `ShapeEffectOverlay` (a
 		// CSS border takes one colour only), so drop the border rather than
 		// drawing the averaged solid underneath it.
-		const strokeWidth = suppressesCssBorder(el) ? 0 : Math.max(0, ss.strokeWidth ?? 0);
+		// `paintedStrokeWidth`: a width-only fill-less <a:ln> paints NO outline
+		// (PowerPoint ground truth; see shared stroke-paint).
+		const strokeWidth = suppressesCssBorder(el) ? 0 : paintedStrokeWidth(ss);
 		if (strokeWidth > 0) {
 			if (animatesStroke) {
 				// Keep the width / dash; leave the colour to the animated keyframes.
@@ -132,6 +136,19 @@ export function getShapeFillStrokeStyle(
 		return style;
 	}
 
+	// Stroke-only ("open") presets - `line`, `arc`, the connector family - have
+	// no region to fill and no box to outline: `ShapeEffectOverlay` strokes the
+	// evaluated geometry from shared `buildStrokeOutline`. The container keeps
+	// its effects but drops the fill, the border and the clip-path; the clip in
+	// particular encloses zero area for an open path and would clip the overlay
+	// away entirely.
+	if (isStrokeOnlyPresetElement(el)) {
+		style.backgroundColor = 'transparent';
+		delete style.backgroundImage;
+		style.border = 'none';
+		return style;
+	}
+
 	if (normalizedShapeType === 'roundRect') {
 		const radiusPx = getRoundRectRadiusPx(el);
 		if (radiusPx > 0.01) {
@@ -151,6 +168,8 @@ export function getShapeFillStrokeStyle(
 		return style;
 	}
 
+	// A line-typed shape whose geometry the preset evaluator cannot open (it
+	// carries custom `pathData`): approximate it with the top edge only.
 	if (normalizedShapeType === 'line') {
 		const strokeWidth = Math.max(0, el.shapeStyle?.strokeWidth ?? 0);
 		style.backgroundColor = 'transparent';

@@ -31,6 +31,15 @@ export interface ElementRendererProps {
 	 * Defaults to `false`.
 	 */
 	interactive?: boolean;
+	/**
+	 * Emit the `data-pptx-element` marker even though `interactive` is off.
+	 * The dispatcher sets this for interaction-locked template (master/layout)
+	 * elements on the main canvas: they are still rendered slide elements as far
+	 * as the contract is concerned (the marker means "carries the element
+	 * contract", not "editable right now"), matching the other four bindings.
+	 * Defaults to `false`.
+	 */
+	marked?: boolean;
 	/** Whether inherited layout/master nodes participate in pointer editing. */
 	editTemplateMode?: boolean;
 	/**

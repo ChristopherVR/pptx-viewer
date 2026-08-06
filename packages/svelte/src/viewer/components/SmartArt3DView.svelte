@@ -25,7 +25,7 @@
 	import type { ElementRendererProps } from './props';
 	import SmartArtView from './SmartArtView.svelte';
 
-	const { element, mediaDataUrls, zIndex, interactive = false }: ElementRendererProps = $props();
+	const { element, mediaDataUrls, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 
@@ -95,7 +95,7 @@
 		class="pptx-svelte-element pptx-svelte-smartart-3d"
 		style={containerStyle}
 		data-element-id={element.id}
-		data-pptx-element={interactive ? 'true' : undefined}
+		data-pptx-element={interactive || marked ? 'true' : undefined}
 		data-testid={`smartart-${element.type === 'smartArt' ? element.smartArtData?.layout ?? 'diagram' : 'diagram'}`}
 	>
 		<canvas bind:this={canvasEl} class="pptx-svelte-smartart-3d-canvas"></canvas>
