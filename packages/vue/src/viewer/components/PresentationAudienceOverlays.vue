@@ -15,9 +15,15 @@ defineProps<{ snapshot: PresentationSnapshot }>();
 </script>
 
 <template>
+	<!--
+		The blackout sheet is decorative: PowerPoint still advances the show when
+		the presenter clicks a blanked screen, and the ink overlay (raised above
+		this sheet while blanked) must keep receiving the presses that draw on the
+		"blackboard". A sheet that swallowed pointer input would strand the show.
+	-->
 	<div
 		v-if="snapshot.blackout !== 'none'"
-		class="absolute inset-0 z-[75]"
+		class="pointer-events-none absolute inset-0 z-[75]"
 		data-pptx-blackout
 		:style="{ background: snapshot.blackout }"
 	/>

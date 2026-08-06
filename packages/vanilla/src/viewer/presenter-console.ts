@@ -34,6 +34,12 @@ export function renderAudienceEffects(
 			inset: '0',
 			zIndex: String(PRESENT_BLACKOUT_Z),
 			background: snapshot.blackout,
+			// Decorative sheet only: PowerPoint still advances the show when the
+			// presenter clicks a blanked screen, and the ink overlay (raised above
+			// this while blanked) must keep receiving the presses that draw on the
+			// "blackboard". A sheet that swallowed pointer input would strand the
+			// show with no way to click past it.
+			pointerEvents: 'none',
 		});
 	}
 	if (snapshot.pointer?.tool === 'laser') {

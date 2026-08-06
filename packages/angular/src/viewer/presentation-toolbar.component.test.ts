@@ -302,6 +302,14 @@ describe('blackboard layering (ink above the blackout sheet)', () => {
 		expect(overlaySource).toContain('annotationOverlayZIndex(');
 	});
 
+	it('keeps the blackout sheet decorative so a blanked show still advances', () => {
+		// PowerPoint advances on a click anywhere on a blanked screen, and the ink
+		// overlay is raised above this sheet while blanked precisely so strokes
+		// land on it. A sheet that accepted pointer input would swallow both.
+		const rule = /\.presenter-blank\s*\{(?<body>[^}]*)\}/u.exec(overlaySource);
+		expect(rule?.groups?.['body']).toMatch(/pointer-events:\s*none/u);
+	});
+
 	it('centres the stage numerically, never with a transform (a stacking-context trap)', () => {
 		// A transform on the stage container makes it a stacking context, which
 		// pins every z-index inside it BELOW the sibling z-75 blackout sheet: the
