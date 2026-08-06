@@ -7,6 +7,8 @@ import {
 	buildTextBlockStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	paintedStrokeWidth,
+	isStrokeOnlyPresetElement,
 	suppressesCssBorder,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
@@ -115,7 +117,9 @@ export function getShapeFillStrokeStyle(
 		// A gradient outline is stroked as an SVG path by the renderer (a CSS border
 		// takes one colour only), so drop the border rather than drawing the
 		// averaged solid underneath it.
-		const strokeWidth = suppressesCssBorder(el) ? 0 : Math.max(0, ss.strokeWidth ?? 0);
+		// `paintedStrokeWidth`: a width-only fill-less <a:ln> paints NO outline
+		// (PowerPoint ground truth; see shared stroke-paint).
+		const strokeWidth = suppressesCssBorder(el) ? 0 : paintedStrokeWidth(ss);
 		if (strokeWidth > 0) {
 			const dash =
 				ss.strokeDash && ss.strokeDash !== 'solid'
@@ -164,6 +168,20 @@ export function getShapeFillStrokeStyle(
 	if (fx.opacity !== undefined) {
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
 		style['opacity'] = elementOpacity * fx.opacity;
+	}
+
+	// Stroke-only ("open") presets - `line`, `arc`, the connector family - have
+	// no region to fill and no box to outline: the renderer strokes the evaluated
+	// geometry from shared `buildStrokeOutline`. The container keeps its effects
+	// but drops the fill, the border and the clip-path; the clip in particular
+	// encloses zero area for an open path and would clip the overlay away
+	// entirely. (Angular boxed these in all four borders, so a `line` rendered as
+	// a rectangle outline.)
+	if (isStrokeOnlyPresetElement(el)) {
+		style['background-color'] = 'transparent';
+		delete style['background-image'];
+		style['border'] = 'none';
+		return style;
 	}
 
 	// Geometry. ellipse / roundRect get cheap `border-radius` approximations;

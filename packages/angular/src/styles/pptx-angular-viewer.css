@@ -812,20 +812,25 @@ pptx-element-renderer {
 		cursor: pointer;
 	}
 
-	/* AI assistant pane: dock it as a bottom sheet (full width, bounded height,
-	   below the canvas) instead of the desktop right-rail side panel. Overrides
-	   the component's Tailwind `w-80 h-full border-l` so the canvas above stays
-	   visible and interactive (the panel is a flex sibling, not an overlay, so
-	   without this it keeps `height:100%` and squeezes the canvas to nothing).
-	   Matches React's mobile bottom sheet (fixed 75dvh so it reads as a proper
-	   sheet rather than shrinking to its content, rounded top, top border, no
-	   left border, elevated shadow). Un-layered so it beats the Tailwind
+	/* AI assistant pane: an OVERLAY bottom sheet pinned to the body's bottom
+	   edge (React/Vue parity: `absolute inset-x-0 bottom-0 top-auto h-[75dvh]`),
+	   not an in-flow flex sibling. As a flex child it sat after the canvas (with
+	   its own min-height), so the sheet's top landed at ~56% of the viewport
+	   while its 75dvh height pushed ~280px, including the composer, below the
+	   fold and unreachable. Pinning `bottom: 0` inside the positioned
+	   `.pptx-ng-body` keeps the whole sheet, composer included, on screen with
+	   the canvas visible and interactive above it. Overrides the component's
+	   Tailwind `w-80 h-full border-l`; un-layered so it beats the Tailwind
 	   `utilities` layer. */
 	.pptx-ng-ai-panel {
-		flex: 0 0 auto;
+		position: absolute;
+		inset-inline: 0;
+		bottom: 0;
+		top: auto;
+		z-index: 30;
 		width: 100%;
 		height: 75dvh;
-		max-height: 75dvh;
+		max-height: 90dvh;
 		border-left: none;
 		border-top: 1px solid var(--pptx-border, #374151);
 		border-top-left-radius: 1rem;

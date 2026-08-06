@@ -5,7 +5,9 @@ import {
 	DestroyRef,
 	ElementRef,
 	HostListener,
+	Injector,
 	OnInit,
+	afterNextRender,
 	computed,
 	effect,
 	inject,
@@ -324,21 +326,25 @@ export class PresentationOverlayComponent implements OnInit {
 
 		// Apply each element's native-animation state (visibility, CSS animation,
 		// interactive/hover cursor) to its rendered node whenever the state map or
-		// the slide changes. Deferred to an animation frame so the new slide's
-		// `[data-element-id]` nodes are in the DOM first. Structural reveals (chart /
-		// SmartArt build, fill / stroke inherit) are applied declaratively by the
-		// renderers themselves via the injected AnimationPlaybackService.
+		// the slide changes. Applied pre-paint (see the `afterNextRender` note
+		// below). Structural reveals (chart / SmartArt build, fill / stroke
+		// inherit) are applied declaratively by the renderers themselves via the
+		// injected AnimationPlaybackService.
+		const injector = inject(Injector);
 		effect(() => {
 			// Register reactive dependencies.
 			this.playback.presentationElementStates();
 			this.playback.interactiveTriggerShapeIds();
 			this.playback.hoverTriggerShapeIds();
 			this.currentSlide();
-			if (typeof requestAnimationFrame === 'function') {
-				requestAnimationFrame(() => this.stageAnimator.applyAnimationStyles());
-			} else {
-				this.stageAnimator.applyAnimationStyles();
-			}
+			// `afterNextRender` runs once the incoming slide's `[data-element-id]`
+			// nodes are in the DOM but still BEFORE the browser paints, unlike the
+			// `requestAnimationFrame` this used to use, which let a whole frame of
+			// the new slide paint at its FINAL state first (the "end state flash",
+			// issue #132). An `afterRenderEffect` would also be pre-paint but only
+			// re-runs on a render pass, so a state change with no template change
+			// (every build advance) would never reach the DOM.
+			afterNextRender(() => this.stageAnimator.applyAnimationStyles(), { injector });
 		});
 	}
 

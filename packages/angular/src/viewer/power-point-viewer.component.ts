@@ -60,9 +60,11 @@ import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
+import { CommentMarkersOverlayComponent } from './comment-markers-overlay.component';
 import {
 	addCommentToList,
 	removeCommentFromList,
+	replyToCommentInList,
 	toggleCommentResolvedInList,
 } from './comments-helpers';
 import { CommentsPanelComponent } from './comments-panel.component';
@@ -180,6 +182,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
 		ExportProgressModalComponent,
+		CommentMarkersOverlayComponent,
 		CommentsPanelComponent,
 		SignaturesPanelComponent,
 		AccessibilityPanelComponent,
@@ -475,6 +478,20 @@ import { ZoomTargetService } from './zoom-target.service';
 								[canEdit]="canEdit()"
 								(pathChange)="onMotionPathChange($event)"
 							/>
+							<!--
+								Numbered comment markers: projected for the same reason the
+								collaboration overlays are (inside the scaled stage, raw slide
+								coordinates). Shown whenever an editable slide has comments,
+								matching Vue's visibility semantics; a click opens the
+								comments panel.
+							-->
+							@if (canEdit() && !presentationMode.presenting() && activeComments().length > 0) {
+								<pptx-comment-markers-overlay
+									[comments]="activeComments()"
+									[canvasSize]="loader.canvasSize()"
+									(markerClick)="onCommentMarkerClick()"
+								/>
+							}
 						</pptx-slide-canvas>
 						@if (collab.active() && collab.presence().length > 0) {
 							<div class="pptx-ng-collab-follow">
@@ -540,6 +557,7 @@ import { ZoomTargetService } from './zoom-target.service';
 										(add)="onCommentAdd($event)"
 										(remove)="onCommentRemove($event)"
 										(resolve)="onCommentResolve($event)"
+										(reply)="onCommentReply($event)"
 									/>
 								}
 								@case ('selection') {
@@ -571,6 +589,7 @@ import { ZoomTargetService } from './zoom-target.service';
 										(commentAdd)="onCommentAdd($event)"
 										(commentRemove)="onCommentRemove($event)"
 										(commentResolve)="onCommentResolve($event)"
+										(commentReply)="onCommentReply($event)"
 									/>
 								}
 							}
@@ -2200,6 +2219,12 @@ export class PowerPointViewerComponent {
 		this.inspectorPanel.activePanel.set('comments');
 	}
 
+	/** Canvas marker click: bring the comments panel on screen (same as above). */
+	protected onCommentMarkerClick(): void {
+		this.inspectorPanel.mobileInspectorHidden.set(false);
+		this.inspectorPanel.activePanel.set('comments');
+	}
+
 	/** Get the IDs of currently selected elements. */
 	getSelectedElementIds(): string[] {
 		return [...this.editor.selectedIds()];
@@ -2555,6 +2580,14 @@ export class PowerPointViewerComponent {
 	/** Toggle a comment's resolved flag on the active slide. */
 	onCommentResolve(id: string): void {
 		const next = toggleCommentResolvedInList(this.activeComments(), id);
+		if (next) {
+			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
+		}
+	}
+
+	/** Append a threaded reply under a top-level comment on the active slide. */
+	onCommentReply(event: { parentId: string; text: string }): void {
+		const next = replyToCommentInList(this.activeComments(), event.parentId, event.text, 'You');
 		if (next) {
 			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
 		}

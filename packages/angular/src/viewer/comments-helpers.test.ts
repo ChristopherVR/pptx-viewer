@@ -12,6 +12,7 @@ import {
 	addCommentToList,
 	generateCommentId,
 	removeCommentFromList,
+	replyToCommentInList,
 	toggleCommentResolvedInList,
 } from './comments-helpers';
 
@@ -167,5 +168,31 @@ describe('toggleCommentResolvedInList', () => {
 
 	it('returns null for an empty list', () => {
 		expect(toggleCommentResolvedInList([], 'anything')).toBeNull();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// replyToCommentInList
+// ---------------------------------------------------------------------------
+
+describe('replyToCommentInList', () => {
+	it('nests the reply under the parent with threading metadata', () => {
+		const list = [comment({ id: 'a' })];
+		const next = replyToCommentInList(list, 'a', '  A reply  ', 'Bob');
+		expect(next?.[0].replies).toHaveLength(1);
+		expect(next?.[0].replies?.[0]).toMatchObject({
+			text: 'A reply',
+			author: 'Bob',
+			threadId: 'a',
+			parentId: 'a',
+		});
+		// Source untouched
+		expect(list[0].replies).toBeUndefined();
+	});
+
+	it('returns null for blank text or an unknown parent', () => {
+		const list = [comment({ id: 'a' })];
+		expect(replyToCommentInList(list, 'a', '   ', 'Bob')).toBeNull();
+		expect(replyToCommentInList(list, 'missing', 'Hi', 'Bob')).toBeNull();
 	});
 });

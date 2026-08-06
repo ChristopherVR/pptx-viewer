@@ -20,6 +20,7 @@
 			[canvasWidth]="canvasWidth()"
 			[canvasHeight]="canvasHeight()"
 			[interactive]="interactive()"
+			[marked]="elementMarked()"
 			[animationState]="animationState()"
 		/>
 	}
@@ -36,7 +37,7 @@
 			[zIndex]="zIndex()"
 			[mediaDataUrls]="mediaDataUrls()"
 			[replay]="presenting()"
-			[markElement]="interactive()"
+			[markElement]="elementMarked()"
 		/>
 	}
 	@case (element().type === 'zoom') {
@@ -44,7 +45,7 @@
 			[element]="element()"
 			[zIndex]="zIndex()"
 			[mediaDataUrls]="mediaDataUrls()"
-			[markElement]="interactive()"
+			[markElement]="elementMarked()"
 		/>
 	}
 	@case (element().type === 'model3d') {
@@ -52,7 +53,7 @@
 			[element]="element()"
 			[zIndex]="zIndex()"
 			[mediaDataUrls]="mediaDataUrls()"
-			[markElement]="interactive()"
+			[markElement]="elementMarked()"
 		/>
 	}
 	@case (element().type === 'smartArt' && smartArt3D()) {
@@ -60,7 +61,7 @@
 			[element]="element()"
 			[zIndex]="zIndex()"
 			[canEdit]="interactive() && editable()"
-			[markElement]="interactive()"
+			[markElement]="elementMarked()"
 		/>
 	}
 	@case (element().type === 'smartArt') {
@@ -68,7 +69,7 @@
 			class="pptx-ng-element pptx-ng-smartart"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-smart-art-renderer
 				[element]="element()"
@@ -82,7 +83,7 @@
 			class="pptx-ng-element pptx-ng-ole"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-ole-renderer [element]="element()" />
 		</div>
@@ -92,7 +93,7 @@
 			class="pptx-ng-element pptx-ng-chart"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-chart-element-view
 				[element]="element()"
@@ -106,7 +107,7 @@
 			class="pptx-ng-element pptx-ng-table"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-table-renderer
 				[element]="element()"
@@ -121,7 +122,7 @@
 			class="pptx-ng-element pptx-ng-group"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			@for (child of children(); track child.id) {
 				<pptx-element-renderer
@@ -129,6 +130,7 @@
 					[mediaDataUrls]="mediaDataUrls()"
 					[zIndex]="$index"
 					[interactive]="interactive()"
+					[marked]="marked()"
 					[presenting]="presenting()"
 					[fieldContext]="fieldContext()"
 					[slideElements]="slideElements()"
@@ -143,6 +145,7 @@
 			[mediaDataUrls]="mediaDataUrls()"
 			[zIndex]="zIndex()"
 			[interactive]="interactive()"
+			[marked]="elementMarked()"
 		/>
 	}
 	@case (element().type === 'media') {
@@ -151,6 +154,7 @@
 			[mediaDataUrls]="mediaDataUrls()"
 			[zIndex]="zIndex()"
 			[interactive]="interactive()"
+			[marked]="elementMarked()"
 			[presenting]="presenting()"
 			[placeholderLabel]="placeholderLabel()"
 		/>
@@ -160,7 +164,7 @@
 			class="pptx-ng-element pptx-ng-shape"
 			[ngStyle]="shapeContainerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			@if (fillOverlay(); as ov) {
 				<div
@@ -171,7 +175,8 @@
 					[style.mix-blend-mode]="ov.blendMode"
 				></div>
 			}
-			<!-- Gradient / pattern outline: a CSS border takes one flat colour only. -->
+			<!-- Stroked outline: a CSS border takes one flat colour, and cannot
+			     outline an open preset (`line`, `arc`) at all. -->
 			@if (gradientOutline(); as go) {
 				<svg
 					class="pptx-ng-gradient-outline"
@@ -187,62 +192,69 @@
 						pointer-events: none;
 					"
 				>
-					<defs>
-						@if (go.paint.kind === 'pattern') {
-							<pattern
-								[attr.id]="go.paint.id"
-								[attr.width]="go.paint.width"
-								[attr.height]="go.paint.height"
-								patternUnits="userSpaceOnUse"
-							>
-								<image
-									[attr.href]="go.paint.href"
-									[attr.width]="go.paint.width"
-									[attr.height]="go.paint.height"
-								/>
-							</pattern>
-						} @else if (go.paint.kind === 'radial') {
-							<radialGradient
-								[attr.id]="go.paint.id"
-								[attr.cx]="go.paint.cx"
-								[attr.cy]="go.paint.cy"
-								[attr.r]="go.paint.r"
-							>
-								@for (stop of go.paint.stops; track $index) {
-									<stop
-										[attr.offset]="stop.offset"
-										[attr.stop-color]="stop.color"
-										[attr.stop-opacity]="stop.opacity"
+					@if (go.paint; as paint) {
+						<defs>
+							@if (paint.kind === 'pattern') {
+								<pattern
+									[attr.id]="paint.id"
+									[attr.width]="paint.width"
+									[attr.height]="paint.height"
+									patternUnits="userSpaceOnUse"
+								>
+									<image
+										[attr.href]="paint.href"
+										[attr.width]="paint.width"
+										[attr.height]="paint.height"
 									/>
-								}
-							</radialGradient>
-						} @else {
-							<linearGradient
-								[attr.id]="go.paint.id"
-								[attr.x1]="go.paint.x1"
-								[attr.y1]="go.paint.y1"
-								[attr.x2]="go.paint.x2"
-								[attr.y2]="go.paint.y2"
-							>
-								@for (stop of go.paint.stops; track $index) {
-									<stop
-										[attr.offset]="stop.offset"
-										[attr.stop-color]="stop.color"
-										[attr.stop-opacity]="stop.opacity"
-									/>
-								}
-							</linearGradient>
-						}
-					</defs>
-					<path
-						[attr.d]="go.d"
-						fill="none"
-						[attr.stroke]="'url(#' + go.paint.id + ')'"
-						[attr.stroke-width]="go.strokeWidth"
-						[attr.stroke-dasharray]="go.dashArray"
-						[attr.stroke-linecap]="go.lineCap"
-						[attr.stroke-linejoin]="go.lineJoin"
-					/>
+								</pattern>
+							} @else if (paint.kind === 'radial') {
+								<radialGradient
+									[attr.id]="paint.id"
+									[attr.cx]="paint.cx"
+									[attr.cy]="paint.cy"
+									[attr.r]="paint.r"
+								>
+									@for (stop of paint.stops; track $index) {
+										<stop
+											[attr.offset]="stop.offset"
+											[attr.stop-color]="stop.color"
+											[attr.stop-opacity]="stop.opacity"
+										/>
+									}
+								</radialGradient>
+							} @else {
+								<linearGradient
+									[attr.id]="paint.id"
+									[attr.x1]="paint.x1"
+									[attr.y1]="paint.y1"
+									[attr.x2]="paint.x2"
+									[attr.y2]="paint.y2"
+								>
+									@for (stop of paint.stops; track $index) {
+										<stop
+											[attr.offset]="stop.offset"
+											[attr.stop-color]="stop.color"
+											[attr.stop-opacity]="stop.opacity"
+										/>
+									}
+								</linearGradient>
+							}
+						</defs>
+					}
+					@for (strand of go.strands; track $index) {
+						<path
+							[attr.d]="go.d"
+							fill="none"
+							[attr.stroke]="go.stroke"
+							[attr.stroke-width]="strand.strokeWidth"
+							[attr.stroke-dasharray]="go.dashArray"
+							[attr.stroke-linecap]="go.lineCap"
+							[attr.stroke-linejoin]="go.lineJoin"
+							[style.transform]="
+								strand.offset !== 0 ? 'translate(0, ' + strand.offset + 'px)' : null
+							"
+						/>
+					}
 				</svg>
 			}
 			@if (pathWarp(); as warp) {
@@ -375,7 +387,7 @@
 			class="pptx-ng-element pptx-ng-unsupported"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
 		</div>

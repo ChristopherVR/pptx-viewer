@@ -123,6 +123,11 @@ export class AiChatService {
 		void this.controller?.stop();
 	}
 
+	/** Replace the whole transcript (chat-history resume / new chat / clear). */
+	setMessages(messages: PptxAiUIMessage[]): void {
+		this.controller?.setMessages(messages);
+	}
+
 	/** Clear the current error and return to the ready state. */
 	clearError(): void {
 		this.controller?.clearError();

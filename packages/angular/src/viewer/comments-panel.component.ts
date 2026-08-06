@@ -4,8 +4,9 @@
  * Selector: `pptx-comments-panel`
  *
  * Presentational only: it renders the supplied `comments` (already filtered to
- * the active slide by the host) and surfaces add / remove / resolve intents via
- * outputs. The host owns state and commits history-aware comment-array writes.
+ * the active slide by the host, nested replies included) and surfaces
+ * add / remove / resolve / reply intents via outputs. The host owns state and
+ * commits history-aware comment-array writes.
  *
  * Timestamps are formatted with the core `formatCommentTimestamp` helper so the
  * Angular binding matches the React/Vue formatting exactly.
@@ -18,6 +19,7 @@
  *   (add)="onAddComment($event)"
  *   (remove)="onRemoveComment($event)"
  *   (resolve)="onResolveComment($event)"
+ *   (reply)="onReplyComment($event)"
  * />
  * ```
  */
@@ -65,6 +67,9 @@ export class CommentsPanelComponent {
 	/** Emits the id of a comment whose resolved flag should toggle. */
 	readonly resolve = output<string>();
 
+	/** Emits the parent comment id + trimmed text of a threaded reply. */
+	readonly reply = output<{ parentId: string; text: string }>();
+
 	// -------------------------------------------------------------------------
 	// Draft state
 	// -------------------------------------------------------------------------
@@ -74,6 +79,15 @@ export class CommentsPanelComponent {
 
 	/** Whether the draft has non-whitespace content (enables the submit button). */
 	readonly canAdd = computed<boolean>(() => this.draft().trim().length > 0);
+
+	/** Id of the comment whose reply composer is open (one at a time). */
+	readonly replyingTo = signal<string | null>(null);
+
+	/** Current text typed into the open reply composer. */
+	readonly replyDraft = signal('');
+
+	/** Whether the reply draft has content (enables the reply submit button). */
+	readonly canReply = computed<boolean>(() => this.replyDraft().trim().length > 0);
 
 	// -------------------------------------------------------------------------
 	// Event handlers
@@ -92,6 +106,38 @@ export class CommentsPanelComponent {
 		}
 		this.add.emit(text);
 		this.draft.set('');
+	}
+
+	/** Localized reply-composer placeholder ("Reply to <author>..."). */
+	replyPlaceholder(comment: PptxComment): string {
+		return this.translate.instant('pptx.comments.replyPlaceholder', {
+			author: comment.author || this.translate.instant('pptx.comments.unknownAuthor'),
+		});
+	}
+
+	/** Open the reply composer under `parentId` (closing any other composer). */
+	startReply(parentId: string): void {
+		this.replyingTo.set(parentId);
+		this.replyDraft.set('');
+	}
+
+	cancelReply(): void {
+		this.replyingTo.set(null);
+		this.replyDraft.set('');
+	}
+
+	onReplyInput(event: Event): void {
+		const target = event.target as HTMLTextAreaElement;
+		this.replyDraft.set(target.value);
+	}
+
+	submitReply(parentId: string): void {
+		const text = this.replyDraft().trim();
+		if (text.length === 0) {
+			return;
+		}
+		this.reply.emit({ parentId, text });
+		this.cancelReply();
 	}
 
 	formatTimestamp(value: string | undefined): string {

@@ -21,9 +21,12 @@ import { LucideLoaderCircle, LucideSparkles, LucideTriangleAlert, LucideX } from
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { PptxAiBridge, PptxAiConfig } from '../../internal/shared-ai';
+import { deckIdFromBridge } from '../../internal/shared-ai';
 import { AiChatService } from './ai-chat.service';
 import { AiComposerComponent } from './ai-composer.component';
 import { AiFocusBarComponent } from './ai-focus-bar.component';
+import { AiHistoryMenuComponent } from './ai-history-menu.component';
+import { AiHistoryService } from './ai-history.service';
 import { AiMessageListComponent } from './ai-message-list.component';
 import { AiPanelStore } from './ai-panel-store';
 import { AiProposalCardComponent } from './ai-proposal-card.component';
@@ -32,13 +35,14 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 	selector: 'pptx-ai-chat-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [AiChatService],
+	providers: [AiChatService, AiHistoryService],
 	imports: [
 		TranslatePipe,
 		AiMessageListComponent,
 		AiProposalCardComponent,
 		AiComposerComponent,
 		AiFocusBarComponent,
+		AiHistoryMenuComponent,
 		LucideSparkles,
 		LucideX,
 		LucideLoaderCircle,
@@ -75,7 +79,9 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 					</div>
 				}
 				@case ('ready') {
-					<div class="flex min-h-0 flex-1 flex-col">
+					<div class="relative flex min-h-0 flex-1 flex-col">
+						<pptx-ai-history-menu [canClear]="chat.messages().length > 0" />
+
 						<pptx-ai-focus-bar
 							[slides]="bridge().getSlides()"
 							(sendDirective)="chat.send($event)"
@@ -165,6 +171,8 @@ export class AiChatPanelComponent {
 	readonly closed = output<void>();
 
 	protected readonly chat = inject(AiChatService);
+	/** Chat-history persistence + the "Chats" resume menu (panel-scoped). */
+	protected readonly history = inject(AiHistoryService);
 	/** Shared panel scope + on-canvas highlight store (provided by the viewer). */
 	protected readonly store = inject(AiPanelStore);
 
@@ -196,6 +204,24 @@ export class AiChatPanelComponent {
 		// change) do not tear the live session down.
 		effect(() => {
 			this.chat.init(this.bridge(), this.config());
+		});
+
+		// Chat history: bootstrap the per-deck controller once the session is
+		// ready (both inits are idempotent), and debounce-save on every
+		// transcript change.
+		effect(() => {
+			if (this.chat.state() !== 'ready') {
+				return;
+			}
+			this.history.init({
+				deckId: deckIdFromBridge(this.bridge()),
+				getMessages: () => [...this.chat.messages()],
+				setMessages: (messages) => this.chat.setMessages(messages),
+			});
+		});
+		effect(() => {
+			this.chat.messages();
+			this.history.notifyMessagesChanged();
 		});
 	}
 

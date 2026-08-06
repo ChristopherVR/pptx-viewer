@@ -11,6 +11,9 @@ export type { BridgeDeps } from './ai-bridge';
 export { aiToggleVisible } from './ai-gating';
 export { AiComposerComponent } from './ai-composer.component';
 export { AiFocusBarComponent } from './ai-focus-bar.component';
+export { AiHistoryMenuComponent } from './ai-history-menu.component';
+export { AiHistoryService } from './ai-history.service';
+export type { AiHistoryInitDeps } from './ai-history.service';
 export {
 	buildChatLogExport,
 	buildChatLogMarkdown,

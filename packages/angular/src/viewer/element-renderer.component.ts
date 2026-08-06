@@ -15,6 +15,7 @@ import {
 	resolveParagraphIndent,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
+	strokeOutlineViewBox,
 	substituteFieldText,
 } from '../internal/shared';
 import type {
@@ -236,6 +237,18 @@ export class ElementRendererComponent {
 	readonly interactive = input<boolean>(true);
 
 	/**
+	 * Emit the `data-pptx-element` marker even though `interactive` is false.
+	 * The slide canvas sets this for template (master/layout) elements, which are
+	 * interaction-locked outside edit-template mode but are still rendered slide
+	 * elements as far as the contract is concerned (the marker means "carries the
+	 * element contract", not "editable right now"), matching the other bindings.
+	 */
+	readonly marked = input<boolean>(false);
+
+	/** Whether this element's root carries `data-pptx-element="true"`. */
+	readonly elementMarked = computed(() => this.interactive() || this.marked());
+
+	/**
 	 * True only on the live presentation stage; threaded to the media renderer so
 	 * a slide's media autoplays when the slide becomes active (and to group
 	 * children so nested media autoplays too). False everywhere else.
@@ -303,13 +316,14 @@ export class ElementRendererComponent {
 	 * DAG fill-overlay tint (colour + blend mode) painted as a separate blended
 	 * layer over the shape. Undefined when the element has no fill overlay.
 	 */
-	/** Gradient / pattern `a:ln` outline, stroked as an SVG path over the element. */
+	/**
+	 * Stroked SVG outline: a gradient / pattern `a:ln`, or a stroke-only ("open")
+	 * preset such as `line` or `arc`, neither of which a CSS border can paint.
+	 */
 	readonly gradientOutline = computed(() => getStrokeOutline(this.element()));
 
-	/** viewBox in the element's own pixel space, matching the outline path data. */
-	readonly outlineViewBox = computed(
-		() => `0 0 ${Math.max(this.element().width, 1)} ${Math.max(this.element().height, 1)}`,
-	);
+	/** viewBox in the element's PAINTED box, which the path data is authored in. */
+	readonly outlineViewBox = computed(() => strokeOutlineViewBox(this.element()));
 
 	readonly fillOverlay = computed<FillOverlayCss | undefined>(() =>
 		getEffectFillOverlay(this.element()),

@@ -42,7 +42,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 			class="pptx-ng-element pptx-ng-connector"
 			[style]="wrapperStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
 			<svg
 				[attr.width]="geo().svgW"
@@ -168,6 +168,8 @@ export class ConnectorRendererComponent {
 	readonly canvasHeight = input<number>(0);
 	/** See ElementRenderer.interactive: gates the data-pptx-element contract attr. */
 	readonly interactive = input<boolean>(true);
+	/** Keep the data-pptx-element marker on interaction-locked template elements. */
+	readonly marked = input<boolean>(false);
 	/**
 	 * Native-animation playback state. When an active `p:animClr` colour animation
 	 * targets the stroke (`animatesStroke`), the SVG stroke + arrowheads paint

@@ -126,6 +126,7 @@ interface LayerRow {
 						(add)="commentAdd.emit($event)"
 						(remove)="commentRemove.emit($event)"
 						(resolve)="commentResolve.emit($event)"
+						(reply)="commentReply.emit($event)"
 					/>
 				}
 			}
@@ -204,6 +205,7 @@ export class SlideDefaultInspectorComponent {
 	readonly commentAdd = output<string>();
 	readonly commentRemove = output<string>();
 	readonly commentResolve = output<string>();
+	readonly commentReply = output<{ parentId: string; text: string }>();
 
 	protected readonly editor = inject(EditorStateService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);

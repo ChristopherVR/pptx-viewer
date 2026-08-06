@@ -80,9 +80,72 @@
 	word-break: break-word;
 }
 
+.pptx-ng-comments__replies {
+	list-style: none;
+	margin: 0 0 8px;
+	padding: 0 0 0 12px;
+	border-left: 2px solid var(--pptx-border, #374151);
+}
+
+.pptx-ng-comments__reply {
+	margin-bottom: 6px;
+}
+
+.pptx-ng-comments__reply-author {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.pptx-ng-comments__reply-text {
+	margin: 0;
+	font-size: 12px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 .pptx-ng-comments__actions {
 	display: flex;
 	gap: 8px;
+}
+
+.pptx-ng-comments__reply-compose {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.pptx-ng-comments__reply-textarea {
+	resize: vertical;
+	width: 100%;
+	padding: 8px;
+	border-radius: 6px;
+	border: 1px solid var(--pptx-border, #374151);
+	background: var(--pptx-background, #030712);
+	color: inherit;
+	font: inherit;
+	font-size: 12px;
+}
+
+.pptx-ng-comments__reply-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.pptx-ng-comments__reply-submit {
+	font-size: 12px;
+	padding: 4px 10px;
+	border-radius: 6px;
+	border: none;
+	background: var(--pptx-primary, #6366f1);
+	color: #fff;
+	cursor: pointer;
+}
+
+.pptx-ng-comments__reply-submit:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
 }
 
 .pptx-ng-comments__action {

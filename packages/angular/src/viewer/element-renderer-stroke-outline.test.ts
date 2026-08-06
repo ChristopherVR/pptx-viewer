@@ -57,16 +57,16 @@ describe('elementRenderer stroke outline (pattern)', () => {
 	it('exposes a <pattern> paint server with a tile the template can bind', () => {
 		const outline = getStrokeOutline(shape(PATTERN));
 		expect(outline).toBeDefined();
-		expect(outline!.paint.kind).toBe('pattern');
-		if (outline!.paint.kind !== 'pattern') {
+		expect(outline!.paint!.kind).toBe('pattern');
+		if (outline!.paint!.kind !== 'pattern') {
 			throw new Error('expected a pattern paint');
 		}
 		// Every field the Angular template binds with `[attr.…]`.
-		expect(outline!.paint.id).toBeTruthy();
-		expect(outline!.paint.width).toBeGreaterThan(0);
-		expect(outline!.paint.height).toBeGreaterThan(0);
-		expect(outline!.paint.href.startsWith('data:image/svg+xml,')).toBeTruthy();
-		const tile = decodeURIComponent(outline!.paint.href);
+		expect(outline!.paint!.id).toBeTruthy();
+		expect(outline!.paint!.width).toBeGreaterThan(0);
+		expect(outline!.paint!.height).toBeGreaterThan(0);
+		expect(outline!.paint!.href.startsWith('data:image/svg+xml,')).toBeTruthy();
+		const tile = decodeURIComponent(outline!.paint!.href);
 		expect(tile).toContain('#1F4E79');
 		expect(tile).toContain('#FFF2CC');
 	});
@@ -87,11 +87,11 @@ describe('elementRenderer stroke outline (pattern)', () => {
 describe('elementRenderer stroke outline (gradient)', () => {
 	it('exposes a linear paint server with both stops', () => {
 		const outline = getStrokeOutline(shape(GRADIENT));
-		expect(outline!.paint.kind).toBe('linear');
-		if (outline!.paint.kind === 'pattern') {
+		expect(outline!.paint!.kind).toBe('linear');
+		if (outline!.paint!.kind === 'pattern') {
 			throw new Error('expected a gradient paint');
 		}
-		expect(outline!.paint.stops.map((stop) => stop.color)).toStrictEqual(['#FF0000', '#0000FF']);
+		expect(outline!.paint!.stops.map((stop) => stop.color)).toStrictEqual(['#FF0000', '#0000FF']);
 	});
 
 	it('drops the CSS border for a gradient outline', () => {
@@ -104,5 +104,43 @@ describe('elementRenderer stroke outline (solid control)', () => {
 		const solid = shape({ strokeFillMode: 'solid', strokeColor: '#00B050', strokeWidth: 6 });
 		expect(getStrokeOutline(solid)).toBeUndefined();
 		expect(String(getShapeFillStrokeStyle(solid)['border'])).toContain('#00B050');
+	});
+});
+
+/**
+ * Stroke-only ("open") preset geometry (`<a:prstGeom prst="line"/>`, `arc`, the
+ * connector family). Angular drew a CSS border on ALL FOUR edges for these, so a
+ * `line` rendered as a rectangle outline; they are stroked from the shared
+ * `buildStrokeOutline` now, like every other binding.
+ */
+describe('elementRenderer stroke outline (stroke-only preset)', () => {
+	/** The media deck's horizontal rule: `prst="line"`, 1 EMU tall, 1.5pt black. */
+	const rule = (overrides: Partial<PptxElement> = {}): PptxElement =>
+		shape({ strokeColor: '#000000', strokeWidth: 2 }, {
+			shapeType: 'line',
+			width: 400,
+			height: 0,
+			...overrides,
+		} as Partial<PptxElement>);
+
+	it('strokes the evaluated geometry with a flat colour, no paint server', () => {
+		const outline = getStrokeOutline(rule());
+		expect(outline!.paint).toBeUndefined();
+		expect(outline!.stroke).toBe('#000000');
+		expect(outline!.d).toBe('M 0 0 L 400 1');
+		expect(outline!.strands).toStrictEqual([{ strokeWidth: 2, offset: 0 }]);
+	});
+
+	it('leaves the container with no border, no fill and no clip-path', () => {
+		const style = getShapeFillStrokeStyle(rule());
+		expect(style['border']).toBe('none');
+		expect(style['background-color']).toBe('transparent');
+		expect(style['clip-path']).toBeUndefined();
+	});
+
+	it('leaves a closed preset boxed by its CSS border, as before', () => {
+		const box = rule({ shapeType: 'rect', height: 140 } as Partial<PptxElement>);
+		expect(getStrokeOutline(box)).toBeUndefined();
+		expect(String(getShapeFillStrokeStyle(box)['border'])).toContain('#000000');
 	});
 });

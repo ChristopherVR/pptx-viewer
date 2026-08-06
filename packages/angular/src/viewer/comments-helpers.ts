@@ -10,5 +10,6 @@ export {
 	generateCommentId,
 	addCommentToList,
 	removeCommentFromList,
+	replyToCommentInList,
 	toggleCommentResolvedInList,
 } from '../internal/shared';

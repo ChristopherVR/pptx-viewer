@@ -71,7 +71,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 			class="pptx-ng-element pptx-ng-media"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
 			@if (mediaSrc(); as src) {
 				@if (mediaKind() === 'audio') {
@@ -156,6 +156,8 @@ export class MediaRendererComponent {
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zIndex = input<number>(0);
 	readonly interactive = input<boolean>(true);
+	/** Keep the data-pptx-element marker on interaction-locked template elements. */
+	readonly marked = input<boolean>(false);
 	/**
 	 * True only on the live presentation stage. When set, the media element
 	 * starts playing on its own once mounted (as PowerPoint does when a slide

@@ -137,6 +137,7 @@ export { ommlToMathml, convertOmmlToMathMl } from '../internal/shared';
 export { LoadContentService } from './load-content.service';
 
 // Comments
+export { CommentMarkersOverlayComponent } from './comment-markers-overlay.component';
 export { CommentsPanelComponent } from './comments-panel.component';
 export { CommentsService, generateCommentId } from './comments.service';
 export {

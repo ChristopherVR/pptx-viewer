@@ -228,6 +228,11 @@ export class SlideCanvasComponent implements SlideContext {
 	 * True only for the live presentation stage: slide-content media autoplays.
 	 * Left false for thumbnails, the sorter and the editor canvas so their media
 	 * stays quiet (the template layer never autoplays regardless).
+	 *
+	 * A presenting stage also carries the show contract: the shared
+	 * `data-pptx-presenting` marker (stamped by
+	 * `applyRenderedElementAccessibility`) plus `aria-roledescription="slide"`,
+	 * so a running show is discoverable the same way in all five bindings.
 	 */
 	readonly presenting = input<boolean>(false);
 	/** Ids of currently-selected elements (drawn with a selection outline). */

@@ -16,6 +16,7 @@ import {
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStyleContext } from '../internal/shared';
+import { DEFAULT_FONT_FAMILY } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { LoadContentService } from './load-content.service';
 import { buildColStyles, buildTableViewModel } from './table-renderer-helpers';
@@ -60,6 +61,13 @@ interface EditingCell {
 	styleUrl: './table-renderer.component.css',
 })
 export class TableRendererComponent {
+	/**
+	 * Font stack for table text with no authored typeface, declared on the
+	 * `<table>` root. Load-bearing: an unstyled cell otherwise inherits the HOST
+	 * chrome's font, so the same table measured a different stack in every
+	 * binding's demo. All five bindings declare this same shared default.
+	 */
+	readonly defaultTableFontFamily = DEFAULT_FONT_FAMILY;
 	private readonly injector = inject(Injector);
 	/** Shared cell-selection state (present only inside the editor subtree). */
 	private readonly selectionSvc = inject(TableSelectionService, { optional: true });

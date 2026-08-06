@@ -19,7 +19,7 @@ import { buildAngularImageRenderView } from './image-renderer-helpers';
 			class="pptx-ng-element pptx-ng-image"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
-			[attr.data-pptx-element]="interactive() ? 'true' : null"
+			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
 			@for (filter of safeFilters(); track filter.id) {
 				<svg
@@ -61,6 +61,8 @@ export class ImageRendererComponent {
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zIndex = input<number>(0);
 	readonly interactive = input<boolean>(false);
+	/** Keep the data-pptx-element marker on interaction-locked template elements. */
+	readonly marked = input<boolean>(false);
 
 	private readonly sanitizer = inject(DomSanitizer);
 

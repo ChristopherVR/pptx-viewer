@@ -23,6 +23,26 @@
 						}
 					</div>
 					<p class="pptx-ng-comments__text">{{ comment.text }}</p>
+
+					<!-- Threaded replies, nested inside the parent card -->
+					@if (comment.replies && comment.replies.length > 0) {
+						<ul class="pptx-ng-comments__replies">
+							@for (replyItem of comment.replies; track replyItem.id) {
+								<li class="pptx-ng-comments__reply" [attr.data-comment-id]="replyItem.id">
+									<div class="pptx-ng-comments__meta">
+										<span class="pptx-ng-comments__reply-author">{{
+											replyItem.author || ('pptx.comments.unknownAuthor' | translate)
+										}}</span>
+										@if (formatTimestamp(replyItem.createdAt); as replyTs) {
+											<time class="pptx-ng-comments__time">{{ replyTs }}</time>
+										}
+									</div>
+									<p class="pptx-ng-comments__reply-text">{{ replyItem.text }}</p>
+								</li>
+							}
+						</ul>
+					}
+
 					<div class="pptx-ng-comments__actions">
 						<button
 							type="button"
@@ -37,6 +57,14 @@
 						</button>
 						<button
 							type="button"
+							class="pptx-ng-comments__action"
+							[attr.data-comment-id]="comment.id"
+							(click)="startReply(comment.id)"
+						>
+							{{ 'pptx.comments.reply' | translate }}
+						</button>
+						<button
+							type="button"
 							class="pptx-ng-comments__action pptx-ng-comments__action--danger"
 							[attr.data-comment-id]="comment.id"
 							[attr.aria-label]="'pptx.comments.removeComment' | translate"
@@ -45,6 +73,33 @@
 							{{ 'pptx.comments.remove' | translate }}
 						</button>
 					</div>
+
+					<!-- Reply composer -->
+					@if (replyingTo() === comment.id) {
+						<div class="pptx-ng-comments__reply-compose">
+							<textarea
+								class="pptx-ng-comments__reply-textarea"
+								rows="2"
+								[placeholder]="replyPlaceholder(comment)"
+								[attr.aria-label]="'pptx.comments.reply' | translate"
+								[value]="replyDraft()"
+								(input)="onReplyInput($event)"
+							></textarea>
+							<div class="pptx-ng-comments__reply-actions">
+								<button type="button" class="pptx-ng-comments__action" (click)="cancelReply()">
+									{{ 'pptx.comments.cancel' | translate }}
+								</button>
+								<button
+									type="button"
+									class="pptx-ng-comments__reply-submit"
+									[disabled]="!canReply()"
+									(click)="submitReply(comment.id)"
+								>
+									{{ 'pptx.comments.reply' | translate }}
+								</button>
+							</div>
+						</div>
+					}
 				</li>
 			}
 		</ul>

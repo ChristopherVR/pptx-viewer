@@ -10,7 +10,7 @@
 			class="pptx-ng-canvas-stage"
 			[class.is-editable]="editable()"
 			role="region"
-			[attr.aria-roledescription]="interactive() ? 'slide' : null"
+			[attr.aria-roledescription]="interactive() || presenting() ? 'slide' : null"
 			[attr.data-pptx-ai-active]="aiActive() ? 'true' : null"
 			[ngStyle]="stageStyle()"
 			(pointerdown)="onStagePointerDown($event)"
@@ -22,7 +22,9 @@
 				the slide's own elements (lower z-index). Interactive + given the
 				amber editable affordance only while editTemplateMode is on; when
 				off they render inertly with no affordance, exactly as core
-				delivered them.
+				delivered them. `marked` keeps the data-pptx-element contract on
+				them even while locked: the marker means "rendered slide element",
+				not "editable right now".
 			-->
 			@for (element of templateElements(); track element.id; let i = $index) {
 				<pptx-element-renderer
@@ -33,6 +35,7 @@
 					[canvasWidth]="canvasSize().width"
 					[canvasHeight]="canvasSize().height"
 					[interactive]="interactive() && editTemplateMode()"
+					[marked]="interactive()"
 					[editable]="editable() && editTemplateMode()"
 					[fieldContext]="fieldContext()"
 					[slideElements]="allElements()"
@@ -82,7 +85,7 @@
 				<button
 					type="button"
 					class="pptx-ng-handle"
-					[attr.aria-label]="'Resize element from ' + h.handle"
+					[attr.aria-label]="'pptx.selectionOverlay.resize' | translate: { handle: h.handle }"
 					[style.left.px]="h.left"
 					[style.top.px]="h.top"
 					[style.width.px]="h.size"
