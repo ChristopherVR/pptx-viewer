@@ -94,6 +94,17 @@ export type { GhostStyle } from './change-animation-css';
 export { createChatHistoryStore } from './chat-history-store';
 export type { PptxAiChatStore, PptxAiChatSummary, PptxAiStoredChat } from './chat-history-store';
 
+export {
+	createAiChatHistoryController,
+	deckIdFromBridge,
+	deriveChatTitle,
+	newChatId,
+} from './chat-history-controller';
+export type {
+	AiChatHistoryController,
+	AiChatHistoryControllerDeps,
+} from './chat-history-controller';
+
 export { createVanillaChat } from './vanilla-chat';
 export type { VanillaChatController, VanillaChatSnapshot } from './vanilla-chat';
 

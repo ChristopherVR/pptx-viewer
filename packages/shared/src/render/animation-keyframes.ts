@@ -7,11 +7,18 @@
  * @module render/animation-keyframes
  */
 
+import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 import type { EffectName } from './animation-timeline-types';
 
 // ==========================================================================
 // CSS @keyframes definitions for each effect
 // ==========================================================================
+
+// The wipe/peek/blinds/split/box/random-bars reveals are CSS `mask` sweeps,
+// NOT `clip-path` keyframes: a `clip-path` animation replaces the element's
+// own geometry clip (preset outlines, image crops) for its whole duration, so
+// a thin shape wiped in as its full bounding box (a filled rectangle "blob").
+// A mask composites with the geometry clip instead. See `animation-mask-reveal`.
 
 const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	// ---- Entrance effects ----
@@ -50,12 +57,12 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	100% { opacity: 1; transform: scale(1); }
 }`,
 	wipeIn: `@keyframes pptx-wipeIn {
-	from { clip-path: inset(0 100% 0 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskEdgeDecl('left', 'hidden')} opacity: 1; }
+	to { ${maskEdgeDecl('left', 'shown')} opacity: 1; }
 }`,
 	splitIn: `@keyframes pptx-splitIn {
-	from { clip-path: inset(50% 0 50% 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskShapeDecl('splitHorizontalOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('splitHorizontalOut', 'shown')} opacity: 1; }
 }`,
 	dissolveIn: `@keyframes pptx-dissolveIn {
 	0% { opacity: 0; filter: blur(8px); }
@@ -66,12 +73,12 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	to { opacity: 1; transform: rotate(0deg) scale(1); }
 }`,
 	blindsIn: `@keyframes pptx-blindsIn {
-	from { clip-path: inset(0 0 100% 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskEdgeDecl('top', 'hidden')} opacity: 1; }
+	to { ${maskEdgeDecl('top', 'shown')} opacity: 1; }
 }`,
 	boxIn: `@keyframes pptx-boxIn {
-	from { clip-path: inset(50% 50% 50% 50%); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
 }`,
 	floatIn: `@keyframes pptx-floatIn {
 	from { opacity: 0; transform: translateY(40px); }
@@ -102,14 +109,14 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	100% { opacity: 1; }
 }`,
 	peekIn: `@keyframes pptx-peekIn {
-	from { clip-path: inset(100% 0 0 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskEdgeDecl('bottom', 'hidden')} opacity: 1; }
+	to { ${maskEdgeDecl('bottom', 'shown')} opacity: 1; }
 }`,
 	randomBarsIn: `@keyframes pptx-randomBarsIn {
-	0% { clip-path: inset(0 100% 0 0); opacity: 1; }
-	30% { clip-path: inset(0 60% 0 0); opacity: 1; }
-	60% { clip-path: inset(0 30% 0 0); opacity: 1; }
-	100% { clip-path: inset(0 0 0 0); opacity: 1; }
+	0% { ${maskEdgeDecl('left', 'hidden')} opacity: 1; }
+	30% { ${maskEdgePartialDecl('left', 0.4)} opacity: 1; }
+	60% { ${maskEdgePartialDecl('left', 0.7)} opacity: 1; }
+	100% { ${maskEdgeDecl('left', 'shown')} opacity: 1; }
 }`,
 	spinnerIn: `@keyframes pptx-spinnerIn {
 	from { opacity: 0; transform: rotate(-720deg) scale(0.4); }
@@ -155,8 +162,8 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	100% { opacity: 0; transform: scale(0.3); }
 }`,
 	wipeOut: `@keyframes pptx-wipeOut {
-	from { clip-path: inset(0 0 0 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 100%); opacity: 0; }
+	from { ${maskEdgeDecl('right', 'shown')} opacity: 1; }
+	to { ${maskEdgeDecl('right', 'hidden')} opacity: 0; }
 }`,
 	shrinkOut: `@keyframes pptx-shrinkOut {
 	from { opacity: 1; transform: scale(1); }

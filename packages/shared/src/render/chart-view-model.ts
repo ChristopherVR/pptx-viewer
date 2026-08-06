@@ -62,6 +62,7 @@ import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoi
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
+import { DEFAULT_CHART_PALETTE } from './chart-helpers';
 import { formatChartNumber } from './chart-number-format';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildPieDataLabels } from './chart-pie-labels';
@@ -74,19 +75,14 @@ import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterf
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Default Office accent palette (accent1-accent6).
- * Mirrors `DEFAULT_CHART_PALETTE` from chart-helpers.ts.
+ * Default Office accent palette (accent1-accent6 plus the two chart extras).
+ *
+ * An alias of `DEFAULT_CHART_PALETTE` (chart-helpers.ts), on purpose: the two
+ * shared entry points used to carry different fallback palettes, so the same
+ * unstyled chart painted Office accents in one binding and a Tailwind-ish set
+ * in another depending on which helper its renderer imported.
  */
-export const DEFAULT_PALETTE: readonly string[] = [
-	'#4472C4',
-	'#ED7D31',
-	'#A5A5A5',
-	'#FFC000',
-	'#5B9BD5',
-	'#70AD47',
-	'#FF0000',
-	'#00B0F0',
-];
+export const DEFAULT_PALETTE: readonly string[] = DEFAULT_CHART_PALETTE;
 
 /** Return the palette colour for an index, preferring a parsed colour palette. */
 export function paletteColor(index: number, colorPalette: readonly string[] | undefined): string {
@@ -94,13 +90,18 @@ export function paletteColor(index: number, colorPalette: readonly string[] | un
 	return pal[index % pal.length];
 }
 
-/** Resolve a series' colour, preferring the series' own `color` property. */
+/**
+ * Resolve a series' colour, preferring the series' own `color` property, then
+ * its marker fill (scatter series often author `a:ln/a:noFill` on the series
+ * and put the colour on `c:marker/c:spPr`; the points paint that fill, so the
+ * legend swatch must match it), then the palette.
+ */
 export function seriesColor(
 	series: PptxChartSeries,
 	index: number,
 	colorPalette: readonly string[] | undefined,
 ): string {
-	return series.color ?? paletteColor(index, colorPalette);
+	return series.color ?? series.marker?.spPr?.fillColor ?? paletteColor(index, colorPalette);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1328,8 +1329,12 @@ function buildPieViewModel(
 	}
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
+	// Legend swatches must match the slices: a per-point `c:dPt` fill overrides
+	// the palette on the slice, so it overrides it on the swatch too.
 	const legend: LegendEntry[] = categoryLabels.map((label, i) => ({
-		color: paletteColor(i, chartData.colorPalette),
+		color: pieSeries
+			? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
+			: paletteColor(i, chartData.colorPalette),
 		label,
 	}));
 

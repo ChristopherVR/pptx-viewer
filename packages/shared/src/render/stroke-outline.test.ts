@@ -1,7 +1,12 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildStrokeOutline, outlinePathData, suppressesCssBorder } from './stroke-outline';
+import {
+	buildStrokeOutline,
+	outlinePathData,
+	strokeOutlineViewBox,
+	suppressesCssBorder,
+} from './stroke-outline';
 
 const STOPS = [
 	{ color: '#F0FDFE', position: 0 },
@@ -58,8 +63,8 @@ describe('buildStrokeOutline', () => {
 	it('builds a paint server and an outline path for a gradient outline', () => {
 		const outline = buildStrokeOutline(shape(gradientStroke));
 		expect(outline).toBeDefined();
-		expect(outline!.paint.kind).toBe('linear');
-		expect(outline!.paint.id).toBe('pptx-stroke-ppt_slides_slide4_xml-shape-3');
+		expect(outline!.paint!.kind).toBe('linear');
+		expect(outline!.paint!.id).toBe('pptx-stroke-ppt_slides_slide4_xml-shape-3');
 		expect(outline!.strokeWidth).toBe(3);
 		expect(outline!.d).toContain('M ');
 	});
@@ -74,7 +79,7 @@ describe('buildStrokeOutline', () => {
 				fillGradientStops: STOPS,
 			}),
 		);
-		expect(outline!.paint.id).toContain('-stroke-');
+		expect(outline!.paint!.id).toContain('-stroke-');
 	});
 
 	it('follows the shape geometry rather than the bounding box', () => {
@@ -110,6 +115,92 @@ describe('buildStrokeOutline', () => {
 	});
 });
 
+describe('buildStrokeOutline stroke-only ("open") presets', () => {
+	/** The media deck's horizontal rule: `prst="line"`, 1 EMU tall, 1.5pt black. */
+	function line(overrides: Partial<PptxElement> = {}, style: ShapeStyle = {}): PptxElement {
+		return shape({ strokeColor: '#000000', strokeWidth: 2, ...style }, {
+			shapeType: 'line',
+			width: 400,
+			height: 0,
+			...overrides,
+		} as Partial<PptxElement>);
+	}
+
+	it('strokes the evaluated geometry instead of leaving a CSS border to box it', () => {
+		const outline = buildStrokeOutline(line());
+		expect(outline).toBeDefined();
+		// Painted as a flat colour: there is no paint server to define.
+		expect(outline!.paint).toBeUndefined();
+		expect(outline!.stroke).toBe('#000000');
+		expect(outline!.d).toBe('M 0 0 L 400 1');
+		expect(outline!.strokeWidth).toBe(2);
+	});
+
+	it('drops the CSS border so the box is not outlined as well', () => {
+		expect(suppressesCssBorder(line())).toBeTruthy();
+	});
+
+	it('strokes an arc, which is the same defect on a curve', () => {
+		const outline = buildStrokeOutline(
+			line({
+				shapeType: 'arc',
+				width: 200,
+				height: 120,
+				shapeAdjustments: { adj1: 0, adj2: 10800000 },
+			} as Partial<PptxElement>),
+		);
+		expect(outline!.d).toContain('A ');
+		expect(outline!.paint).toBeUndefined();
+	});
+
+	it('strokes the whole elbow of an open connector preset', () => {
+		const outline = buildStrokeOutline(
+			line({ shapeType: 'bentConnector3', width: 200, height: 120 }),
+		);
+		expect(outline!.d).toBe('M 0 0 L 100 0 L 100 120 L 200 120');
+	});
+
+	it('leaves closed presets to the CSS border', () => {
+		for (const shapeType of ['rect', 'ellipse', 'roundRect', 'triangle']) {
+			expect(buildStrokeOutline(line({ shapeType, width: 200, height: 120 }))).toBeUndefined();
+			expect(suppressesCssBorder(line({ shapeType, width: 200, height: 120 }))).toBeFalsy();
+		}
+	});
+
+	it('defaults a width-less open preset to a 2px line rather than nothing', () => {
+		const outline = buildStrokeOutline(line({}, { strokeColor: '#123456' }));
+		expect(outline!.strokeWidth).toBe(2);
+		expect(outline!.stroke).toBe('#123456');
+	});
+
+	it('honours stroke opacity, dash, cap and join', () => {
+		const outline = buildStrokeOutline(
+			line({}, { strokeColor: '#000000', strokeWidth: 3, strokeOpacity: 0.5, strokeDash: 'dash' }),
+		);
+		expect(outline!.stroke).toBe('rgba(0, 0, 0, 0.5)');
+		expect(outline!.dashArray).toBeTruthy();
+	});
+
+	it('paints one strand for a single line and several for a compound one', () => {
+		expect(buildStrokeOutline(line())!.strands).toStrictEqual([{ strokeWidth: 2, offset: 0 }]);
+		const compound = buildStrokeOutline(line({}, { strokeWidth: 4, compoundLine: 'dbl' }))!;
+		expect(compound.strands).toHaveLength(2);
+		expect(compound.strands[0].offset).not.toBe(compound.strands[1].offset);
+	});
+
+	it('takes the overlay viewBox from the PAINTED box, not the authored extent', () => {
+		// A 1-EMU rule is padded to MIN_ELEMENT_SIZE; a viewBox of the authored
+		// extent would be stretched 12x vertically and tilt the rule into a diagonal.
+		expect(strokeOutlineViewBox(line())).toBe('0 0 400 12');
+		expect(strokeOutlineViewBox(line({ width: 200, height: 120 }))).toBe('0 0 200 120');
+	});
+
+	it('ignores custom geometry and non-shape elements', () => {
+		expect(buildStrokeOutline(line({ pathData: 'M 0 0 L 5 5' }))).toBeUndefined();
+		expect(buildStrokeOutline(line({ type: 'image' }))).toBeUndefined();
+	});
+});
+
 describe('buildStrokeOutline pattern outlines', () => {
 	const patternStroke: ShapeStyle = {
 		strokeFillMode: 'pattern',
@@ -124,13 +215,13 @@ describe('buildStrokeOutline pattern outlines', () => {
 		// and the outline painted as a flat `strokeColor`.
 		const outline = buildStrokeOutline(shape(patternStroke));
 		expect(outline).toBeDefined();
-		expect(outline!.paint.kind).toBe('pattern');
-		expect(outline!.paint.id).toContain('-strokepat-');
+		expect(outline!.paint!.kind).toBe('pattern');
+		expect(outline!.paint!.id).toContain('-strokepat-');
 	});
 
 	it('carries a tile size and a data-URI tile', () => {
 		const paint = buildStrokeOutline(shape(patternStroke))!.paint;
-		if (paint.kind !== 'pattern') {
+		if (paint?.kind !== 'pattern') {
 			throw new Error('expected a pattern paint');
 		}
 		expect(paint.width).toBeGreaterThan(0);
@@ -155,6 +246,6 @@ describe('buildStrokeOutline pattern outlines', () => {
 		const outline = buildStrokeOutline(
 			shape({ ...gradientStroke, strokePatternPreset: 'dkDnDiag' }),
 		);
-		expect(outline!.paint.kind).toBe('linear');
+		expect(outline!.paint!.kind).toBe('linear');
 	});
 });

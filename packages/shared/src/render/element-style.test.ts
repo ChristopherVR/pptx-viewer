@@ -10,7 +10,13 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getImageFitStyle, getImageOverflow, getImageSrc } from './element-style';
+import {
+	getContainerStyle,
+	getImageFitStyle,
+	getImageOverflow,
+	getImageSrc,
+	paintedElementSize,
+} from './element-style';
 
 function picture(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -23,6 +29,31 @@ function picture(overrides: Partial<PptxElement> = {}): PptxElement {
 		...overrides,
 	} as PptxElement;
 }
+
+describe('getContainerStyle degenerate boxes', () => {
+	// A `<a:prstGeom prst="line"/>` rule authored with `cy="1"` EMU rounds to a
+	// zero-pixel box. React has always padded such a box to MIN_ELEMENT_SIZE so it
+	// stays hoverable and grabbable; the other four did not, so the same slide
+	// measured a different height in each.
+	it('pads a zero-height element to the minimum element size', () => {
+		const style = getContainerStyle(picture({ width: 400, height: 0 }), 3);
+		expect(style['width']).toBe('400px');
+		expect(style['height']).toBe('12px');
+	});
+
+	it('leaves a normally sized element alone', () => {
+		const style = getContainerStyle(picture({ width: 400, height: 300 }), 3);
+		expect(style['width']).toBe('400px');
+		expect(style['height']).toBe('300px');
+	});
+
+	it('exposes the painted box so the stroke overlay can match its viewBox', () => {
+		expect(paintedElementSize(picture({ width: 0, height: 0 }))).toStrictEqual({
+			width: 12,
+			height: 12,
+		});
+	});
+});
 
 describe('getImageSrc', () => {
 	it('resolves a picture whose only blip is an SVG extension', () => {

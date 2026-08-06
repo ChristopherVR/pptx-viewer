@@ -15,7 +15,7 @@
  * cascade), so each binding keeps its own to avoid changing render output.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
+import { MIN_ELEMENT_SIZE, hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 
 import type { CssStyleMap } from './element-style-transform';
 import { clampCropValue } from './fill-style';
@@ -23,6 +23,29 @@ import { clampCropValue } from './fill-style';
 /** Map a number to a CSS pixel string. */
 export function px(n: number): string {
 	return `${n}px`;
+}
+
+/**
+ * The box an element is PAINTED in: its authored extent, padded out to
+ * {@link MIN_ELEMENT_SIZE} in either axis.
+ *
+ * PowerPoint decks contain degenerate shapes - a horizontal rule authored as
+ * `<a:prstGeom prst="line"/>` with `cy="1"` EMU is the canonical one - whose box
+ * rounds to zero pixels. A zero-sized box cannot be hovered, clicked or dragged,
+ * so every binding pads it; React has always done so (`getContainerStyle`, and
+ * again in its connector renderer), and the other four did not, which is one
+ * half of why the same slide measured a different height in each.
+ *
+ * The padding never moves the paint: the shape's geometry is still resolved at
+ * the authored extent and the extra pixels hang off the right/bottom, which is
+ * why the stroke overlay takes its viewBox from this box
+ * ({@link strokeOutlineViewBox}) rather than from the authored size.
+ */
+export function paintedElementSize(el: PptxElement): { width: number; height: number } {
+	return {
+		width: Math.max(el.width, MIN_ELEMENT_SIZE),
+		height: Math.max(el.height, MIN_ELEMENT_SIZE),
+	};
 }
 
 /**
@@ -41,12 +64,13 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
 		transforms.push('scaleY(-1)');
 	}
 
+	const painted = paintedElementSize(el);
 	const style: CssStyleMap = {
 		position: 'absolute',
 		left: px(el.x),
 		top: px(el.y),
-		width: px(el.width),
-		height: px(el.height),
+		width: px(painted.width),
+		height: px(painted.height),
 		zIndex,
 		boxSizing: 'border-box',
 	};

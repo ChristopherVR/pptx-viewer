@@ -54,6 +54,7 @@ export function computeBoxWhiskerGeometry(
 	layout: PlotLayout,
 	range: ValueRange,
 	colorPalette: readonly string[] | undefined,
+	seriesColorOverride?: string,
 ): BoxWhiskerGeometry[] {
 	const groupWidth = layout.plotWidth / catCount;
 	const boxW = groupWidth * 0.5;
@@ -92,7 +93,9 @@ export function computeBoxWhiskerGeometry(
 			yQ3: valueToY(stats.q3, range, layout.plotTop, layout.plotBottom),
 			yMed: valueToY(stats.median, range, layout.plotTop, layout.plotBottom),
 			yMean: valueToY(mean, range, layout.plotTop, layout.plotBottom),
-			fill: paletteColor(categoryIndex, colorPalette),
+			// An explicit series colour (cx:series spPr solidFill) wins over the
+			// per-category palette cycle, as in PowerPoint.
+			fill: seriesColorOverride ?? paletteColor(categoryIndex, colorPalette),
 			points: observations.map((item, index) => ({
 				x: boxX + boxW * (0.2 + (0.6 * (index + 1)) / (observations.length + 1)),
 				y: valueToY(item.value, range, layout.plotTop, layout.plotBottom),
@@ -227,6 +230,7 @@ export function buildBoxWhiskerViewModel(
 		layout,
 		range,
 		chartData.colorPalette,
+		chartData.series[0]?.color,
 	);
 	const primitives = geometries.flatMap((geometry, index) => [
 		...whiskerPrimitives(geometry),
@@ -242,7 +246,7 @@ export function buildBoxWhiskerViewModel(
 		layout.plotTop,
 	);
 	const categoryLegend: LegendEntry[] = categoryLabels.map((label, index) => ({
-		color: paletteColor(index, chartData.colorPalette),
+		color: chartData.series[0]?.color ?? paletteColor(index, chartData.colorPalette),
 		label,
 	}));
 	return {

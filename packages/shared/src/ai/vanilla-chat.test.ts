@@ -70,4 +70,27 @@ describe('createVanillaChat', () => {
 		expect(assistantText(final.messages)).toContain('Hello there');
 		expect(seen.length).toBeGreaterThan(0);
 	});
+
+	it('setMessages replaces the transcript and notifies subscribers', async () => {
+		const controller = await createVanillaChat({
+			bridge: makeMockBridge(),
+			config: { connection: { kind: 'transport', transport: stubTransport('hi') } },
+		});
+		const seen: VanillaChatSnapshot[] = [];
+		controller.subscribe((snapshot) => seen.push(snapshot));
+
+		const transcript: PptxAiUIMessage[] = [
+			{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'resumed question' }] },
+			{ id: 'm2', role: 'assistant', parts: [{ type: 'text', text: 'resumed answer' }] },
+		] as PptxAiUIMessage[];
+		controller.setMessages(transcript);
+
+		expect(seen).toHaveLength(1);
+		expect(seen[0].messages).toStrictEqual(transcript);
+		expect(controller.getSnapshot().messages).toStrictEqual(transcript);
+
+		controller.setMessages([]);
+		expect(controller.getSnapshot().messages).toStrictEqual([]);
+		expect(seen).toHaveLength(2);
+	});
 });

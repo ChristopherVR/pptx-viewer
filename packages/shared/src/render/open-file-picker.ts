@@ -5,8 +5,12 @@
  * pick → ArrayBuffer flow stay identical across React / Vue / Angular.
  */
 
-/** Default `accept` filter for PowerPoint presentations the viewer can load. */
-export const PPTX_OPEN_ACCEPT = '.pptx,.ppsx,.pptm,.potx';
+/**
+ * Default `accept` filter for PowerPoint presentations the viewer can load.
+ * Includes legacy binary `.ppt` (PowerPoint 97-2003), which core auto-detects
+ * and converts through the pptx pipeline on load.
+ */
+export const PPTX_OPEN_ACCEPT = '.pptx,.ppsx,.pptm,.potx,.ppt';
 
 export interface OpenFilePickerOptions {
 	/** Comma-separated `accept` list. Defaults to {@link PPTX_OPEN_ACCEPT}. */

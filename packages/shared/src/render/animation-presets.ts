@@ -27,13 +27,18 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		6: 'expandIn',
 		9: 'dissolveIn',
 		10: 'fadeIn',
-		12: 'flashIn',
+		// entr.11 = Flash Once, entr.12 = Peek In, entr.16 = Split per the
+		// MS-OI29500 entrance catalog. (12 was mislabelled Flash Once and 16
+		// Peek In, so a Peek In entrance BLINKED and a Split entrance peeked.)
+		// Ground truth from a real PowerPoint deck (issue #132): preset 12
+		// carries `p:animEffect filter="wipe(...)"` (a peek reveal) and preset
+		// 16 carries `filter="barn(...)"` (the split barn-door reveal).
+		11: 'flashIn',
+		12: 'peekIn',
 		14: 'randomBarsIn',
-		16: 'peekIn',
-		// entr.17 = Split per MS-OI29500 / the catalog. (Previously this id was
-		// mislabelled randomBarsIn, so imported Split entrances rendered as
-		// Random Bars.) entr.14 above is Random Bars.
-		17: 'splitIn',
+		16: 'splitIn',
+		// entr.17 = Stretch; an expand-from-nothing scale is the closest match.
+		17: 'expandIn',
 		22: 'wipeIn',
 		23: 'zoomIn',
 		26: 'riseUp',
@@ -134,4 +139,43 @@ export const FLY_SUBTYPE_TO_EDGE: Readonly<Record<number, FlyEdge>> = {
 	6: 'right', // bottom-right (4|2)
 	9: 'left', // top-left (8|1)
 	12: 'left', // bottom-left (8|4)
+};
+
+/**
+ * Map a Wipe `presetSubtype` to the edge the reveal GROWS FROM.
+ *
+ * Unlike Fly / Peek (whose subtype is the object's ORIGIN edge), Wipe encodes
+ * the direction the wipe front TRAVELS: subtype 1 pairs with
+ * `filter="wipe(up)"` (the front moves up, so the reveal starts at the
+ * BOTTOM edge), 2 with `wipe(right)` (starts at the left), 4 with
+ * `wipe(down)` (starts at the top) and 8 with `wipe(left)` (starts at the
+ * right). Verified against PowerPoint-authored XML (issue #132 deck), where
+ * every wipe carries both the subtype and the explicit filter direction.
+ * Routing these through {@link FLY_SUBTYPE_TO_EDGE} rendered every
+ * directional wipe from the OPPOSITE side.
+ */
+export const WIPE_SUBTYPE_TO_EDGE: Readonly<Record<number, FlyEdge>> = {
+	1: 'bottom',
+	2: 'left',
+	4: 'top',
+	8: 'right',
+};
+
+/** Split (`barn`) subtype -> reveal orientation + in/out direction. */
+export type SplitVariant =
+	| 'splitHorizontalIn'
+	| 'splitHorizontalOut'
+	| 'splitVerticalIn'
+	| 'splitVerticalOut';
+
+/**
+ * Map a Split `presetSubtype` to its barn-door variant. 21 = `barn(inVertical)`
+ * (verified against PowerPoint-authored XML), 26 = `barn(inHorizontal)`,
+ * 10 = `barn(outVertical)`, 5 = `barn(outHorizontal)`.
+ */
+export const SPLIT_SUBTYPE_TO_VARIANT: Readonly<Record<number, SplitVariant>> = {
+	5: 'splitHorizontalOut',
+	10: 'splitVerticalOut',
+	21: 'splitVerticalIn',
+	26: 'splitHorizontalIn',
 };

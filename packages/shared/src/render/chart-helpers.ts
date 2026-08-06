@@ -35,16 +35,25 @@ const ACCENT6 = '#70AD47';
 
 const ACCENTS = [ACCENT1, ACCENT2, ACCENT3, ACCENT4, ACCENT5, ACCENT6];
 
-/** The default fallback palette used when no chart style is specified. */
+/**
+ * The default fallback palette used when no chart style is specified.
+ *
+ * The Office accent cycle (accent1-6 plus the two chart extras), i.e. what
+ * PowerPoint paints for a chart with no style part. This MUST stay identical
+ * to `chart-view-model.ts`'s `DEFAULT_PALETTE` (which aliases it): the two
+ * used to differ (this one was a Tailwind-ish set), and since the bindings
+ * reach the shared engine through both entry points, the same deck fell back
+ * to two different palettes depending on the binding.
+ */
 export const DEFAULT_CHART_PALETTE: ReadonlyArray<string> = [
-	'#3b82f6',
-	'#22c55e',
-	'#f97316',
-	'#eab308',
-	'#a855f7',
-	'#ec4899',
-	'#14b8a6',
-	'#f43f5e',
+	'#4472C4',
+	'#ED7D31',
+	'#A5A5A5',
+	'#FFC000',
+	'#5B9BD5',
+	'#70AD47',
+	'#FF0000',
+	'#00B0F0',
 ];
 
 /** Parse a hex colour string (#RRGGBB) into [r, g, b]. */
@@ -160,15 +169,22 @@ export function getChartStylePalette(styleId?: number): ReadonlyArray<string> {
 	return palette;
 }
 
-/** Resolve a series colour: explicit colour → parsed palette → style palette. */
+/**
+ * Resolve a series colour: explicit colour → marker fill → parsed palette →
+ * style palette. The marker fallback covers scatter series authored with
+ * `c:ser/c:spPr/a:ln/a:noFill` plus a coloured `c:marker/c:spPr`: the points
+ * paint the marker fill directly, so the legend swatch must match it rather
+ * than fall back to the palette.
+ */
 export function seriesColor(
 	series: PptxChartSeries,
 	index: number,
 	styleId?: number,
 	colorPalette?: string[],
 ): string {
-	if (series.color) {
-		return series.color;
+	const explicit = series.color ?? series.marker?.spPr?.fillColor;
+	if (explicit) {
+		return explicit;
 	}
 	if (colorPalette && colorPalette.length > 0) {
 		return colorPalette[index % colorPalette.length];

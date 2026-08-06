@@ -30,6 +30,8 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 
+import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
+
 /**
  * The kind of effect a {@link PptxElementAnimation} is playing. Determines the
  * default CSS `animation-fill-mode` and the initial (pre-play) visibility.
@@ -342,12 +344,12 @@ export const ANIMATION_KEYFRAMES_CSS = `
 	100% { opacity: 1; transform: scale(1); }
 }
 @keyframes ${KEYFRAME_PREFIX}-wipeIn {
-	from { clip-path: inset(0 100% 0 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskEdgeDecl('left', 'hidden')} opacity: 1; }
+	to { ${maskEdgeDecl('left', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-splitIn {
-	from { clip-path: inset(50% 0 50% 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskShapeDecl('splitHorizontalOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('splitHorizontalOut', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-dissolveIn {
 	0% { opacity: 0; filter: blur(8px); }
@@ -358,12 +360,12 @@ export const ANIMATION_KEYFRAMES_CSS = `
 	to { opacity: 1; transform: rotate(0deg) scale(1); }
 }
 @keyframes ${KEYFRAME_PREFIX}-blindsIn {
-	from { clip-path: inset(0 0 100% 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskEdgeDecl('top', 'hidden')} opacity: 1; }
+	to { ${maskEdgeDecl('top', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-boxIn {
-	from { clip-path: inset(50% 50% 50% 50%); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-floatIn {
 	from { opacity: 0; transform: translateY(40px); }
@@ -394,14 +396,14 @@ export const ANIMATION_KEYFRAMES_CSS = `
 	100% { opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-peekIn {
-	from { clip-path: inset(100% 0 0 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 0); opacity: 1; }
+	from { ${maskEdgeDecl('bottom', 'hidden')} opacity: 1; }
+	to { ${maskEdgeDecl('bottom', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-randomBarsIn {
-	0% { clip-path: inset(0 100% 0 0); opacity: 1; }
-	30% { clip-path: inset(0 60% 0 0); opacity: 1; }
-	60% { clip-path: inset(0 30% 0 0); opacity: 1; }
-	100% { clip-path: inset(0 0 0 0); opacity: 1; }
+	0% { ${maskEdgeDecl('left', 'hidden')} opacity: 1; }
+	30% { ${maskEdgePartialDecl('left', 0.4)} opacity: 1; }
+	60% { ${maskEdgePartialDecl('left', 0.7)} opacity: 1; }
+	100% { ${maskEdgeDecl('left', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-spinnerIn {
 	from { opacity: 0; transform: rotate(-720deg) scale(0.4); }
@@ -435,8 +437,8 @@ export const ANIMATION_KEYFRAMES_CSS = `
 	100% { opacity: 0; transform: scale(0.3); }
 }
 @keyframes ${KEYFRAME_PREFIX}-wipeOut {
-	from { clip-path: inset(0 0 0 0); opacity: 1; }
-	to { clip-path: inset(0 0 0 100%); opacity: 0; }
+	from { ${maskEdgeDecl('right', 'shown')} opacity: 1; }
+	to { ${maskEdgeDecl('right', 'hidden')} opacity: 0; }
 }
 @keyframes ${KEYFRAME_PREFIX}-shrinkOut {
 	from { opacity: 1; transform: scale(1); }

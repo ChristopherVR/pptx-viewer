@@ -1,68 +1,60 @@
 /**
  * `animation-directional`: generate direction-aware `@keyframes` for the
- * clip-path family of entrance/exit effects (wipe, peek, blinds, split) so a
+ * mask-reveal family of entrance/exit effects (wipe, peek, blinds, split) so a
  * `p:cTn/@presetSubtype` direction code is honoured, not just for Fly.
  *
- * PowerPoint encodes the direction as an origin-edge bitmask (1=top, 2=right,
- * 4=bottom, 8=left; corners combine bits). The static preset keyframes bake in
- * one fixed direction, so a deck that wipes "from the top" would previously
- * always render the default "from the left". This module produces a dynamic
- * clip-path keyframe for the requested direction instead. Effects that are not
- * a directional clip-path (Fly is redirected earlier, zoom/spin/etc. carry no
- * direction) return `undefined` and fall back to their static effect.
+ * Two different subtype encodings are in play (verified against
+ * PowerPoint-authored XML, which pairs each subtype with an explicit
+ * `p:animEffect/@filter` direction):
+ *  - Fly / Peek / Blinds use the origin-edge bitmask (1=top, 2=right,
+ *    4=bottom, 8=left): the code names the edge the object/reveal comes FROM.
+ *  - Wipe uses the TRAVEL direction: subtype 1 = `wipe(up)` (reveal grows
+ *    from the bottom edge), i.e. the opposite edge of the fly encoding.
+ *  - Split uses barn-door variant codes (21 = `barn(inVertical)`, etc.).
+ *
+ * The reveals are CSS `mask` sweeps rather than `clip-path` keyframes: a
+ * `clip-path` animation REPLACES the element's own geometry clip (parallelogram
+ * outlines, image crops), flooding the bounding box with fill mid-animation.
+ * See `animation-mask-reveal`.
  *
  * @module render/animation-directional
  */
 
-import { FLY_SUBTYPE_TO_EDGE } from './animation-presets';
+import { maskEdgeDecl, maskShapeDecl } from './animation-mask-reveal';
+import type { RevealEdge } from './animation-mask-reveal';
+import {
+	FLY_SUBTYPE_TO_EDGE,
+	SPLIT_SUBTYPE_TO_VARIANT,
+	WIPE_SUBTYPE_TO_EDGE,
+} from './animation-presets';
+import type { SplitVariant } from './animation-presets';
 import type { EffectName } from './animation-timeline-types';
 
-/** Effects whose reveal/hide is a single directional clip-path sweep. */
-const WIPE_LIKE: ReadonlySet<EffectName> = new Set<EffectName>([
-	'wipeIn',
-	'peekIn',
-	'blindsIn',
-	'wipeOut',
-]);
+/** Effects whose subtype is a WIPE travel-direction code. */
+const WIPE_ENCODED: ReadonlySet<EffectName> = new Set<EffectName>(['wipeIn', 'wipeOut']);
 
-/** Effects whose reveal opens symmetrically from the centre (split bands). */
-const SPLIT_LIKE: ReadonlySet<EffectName> = new Set<EffectName>(['splitIn']);
+/** Effects whose subtype is an origin-edge code (like Fly). */
+const ORIGIN_ENCODED: ReadonlySet<EffectName> = new Set<EffectName>(['peekIn', 'blindsIn']);
 
-/** Starting `clip-path` inset for a wipe that reveals from the given edge. */
-function wipeStartInset(edge: 'top' | 'right' | 'bottom' | 'left'): string {
-	switch (edge) {
-		case 'left':
-			return 'inset(0 100% 0 0)';
-		case 'right':
-			return 'inset(0 0 0 100%)';
-		case 'top':
-			return 'inset(0 0 100% 0)';
-		case 'bottom':
-		default:
-			return 'inset(100% 0 0 0)';
-	}
+/** Build a mask reveal (entrance) keyframe growing from `edge`. */
+function maskRevealCss(name: string, edge: RevealEdge): string {
+	return `@keyframes ${name} {\n\tfrom { ${maskEdgeDecl(edge, 'hidden')} opacity: 1; }\n\tto { ${maskEdgeDecl(edge, 'shown')} opacity: 1; }\n}`;
 }
 
-/** Build a wipe reveal (entrance) keyframe growing from `edge`. */
-function wipeRevealCss(name: string, edge: 'top' | 'right' | 'bottom' | 'left'): string {
-	return `@keyframes ${name} {\n\tfrom { clip-path: ${wipeStartInset(edge)}; opacity: 1; }\n\tto { clip-path: inset(0 0 0 0); opacity: 1; }\n}`;
+/** Build a mask hide (exit) keyframe collapsing toward `edge`. */
+function maskHideCss(name: string, edge: RevealEdge): string {
+	return `@keyframes ${name} {\n\tfrom { ${maskEdgeDecl(edge, 'shown')} opacity: 1; }\n\tto { ${maskEdgeDecl(edge, 'hidden')} opacity: 0; }\n}`;
 }
 
-/** Build a wipe hide (exit) keyframe collapsing toward `edge`. */
-function wipeHideCss(name: string, edge: 'top' | 'right' | 'bottom' | 'left'): string {
-	return `@keyframes ${name} {\n\tfrom { clip-path: inset(0 0 0 0); opacity: 1; }\n\tto { clip-path: ${wipeStartInset(edge)}; opacity: 0; }\n}`;
-}
-
-/** Build a split reveal keyframe opening vertically or horizontally. */
-function splitRevealCss(name: string, orientation: 'vertical' | 'horizontal'): string {
-	const start = orientation === 'vertical' ? 'inset(0 50% 0 50%)' : 'inset(50% 0 50% 0)';
-	return `@keyframes ${name} {\n\tfrom { clip-path: ${start}; opacity: 1; }\n\tto { clip-path: inset(0 0 0 0); opacity: 1; }\n}`;
+/** Build a split (barn-door) reveal keyframe for the given variant. */
+function splitRevealCss(name: string, variant: SplitVariant): string {
+	return `@keyframes ${name} {\n\tfrom { ${maskShapeDecl(variant, 'hidden')} opacity: 1; }\n\tto { ${maskShapeDecl(variant, 'shown')} opacity: 1; }\n}`;
 }
 
 /**
- * Build a directional `@keyframes` block for a clip-path entrance/exit effect,
- * or `undefined` when the effect is not directional or no direction subtype was
- * supplied (so the caller keeps the static preset).
+ * Build a directional `@keyframes` block for a mask-reveal entrance/exit
+ * effect, or `undefined` when the effect is not directional or no direction
+ * subtype was supplied (so the caller keeps the static preset).
  */
 export function buildDirectionalKeyframe(
 	effect: EffectName,
@@ -72,19 +64,29 @@ export function buildDirectionalKeyframe(
 	if (subtype === undefined) {
 		return undefined;
 	}
-	const edge = FLY_SUBTYPE_TO_EDGE[subtype];
-	if (!edge) {
-		return undefined;
-	}
 	const name = `pptx-tl-dir-${uid}`;
 
-	if (SPLIT_LIKE.has(effect)) {
-		const orientation = edge === 'left' || edge === 'right' ? 'vertical' : 'horizontal';
-		return { keyframeName: name, css: splitRevealCss(name, orientation) };
+	if (effect === 'splitIn') {
+		const variant = SPLIT_SUBTYPE_TO_VARIANT[subtype];
+		if (!variant) {
+			return undefined;
+		}
+		return { keyframeName: name, css: splitRevealCss(name, variant) };
 	}
-	if (WIPE_LIKE.has(effect)) {
-		const css = effect === 'wipeOut' ? wipeHideCss(name, edge) : wipeRevealCss(name, edge);
+	if (WIPE_ENCODED.has(effect)) {
+		const edge = WIPE_SUBTYPE_TO_EDGE[subtype];
+		if (!edge) {
+			return undefined;
+		}
+		const css = effect === 'wipeOut' ? maskHideCss(name, edge) : maskRevealCss(name, edge);
 		return { keyframeName: name, css };
+	}
+	if (ORIGIN_ENCODED.has(effect)) {
+		const edge = FLY_SUBTYPE_TO_EDGE[subtype];
+		if (!edge) {
+			return undefined;
+		}
+		return { keyframeName: name, css: maskRevealCss(name, edge) };
 	}
 	return undefined;
 }

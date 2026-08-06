@@ -45,14 +45,26 @@ describe('getInitialStyleForEffect', () => {
 		expect(style).toStrictEqual({ opacity: 0, transform: 'scale(0.3)' });
 	});
 
-	it('should return clip-path based style for "wipeIn"', () => {
+	it('should return a hidden mask-reveal style for "wipeIn"', () => {
 		const style = getInitialStyleForEffect('wipeIn');
-		expect(style).toStrictEqual({ clipPath: 'inset(0 100% 0 0)', opacity: 1 });
+		expect(style).toStrictEqual({
+			maskImage: 'linear-gradient(to right, #000 50%, transparent 50%)',
+			maskSize: '200% 100%',
+			maskRepeat: 'no-repeat',
+			maskPosition: '100% 0%',
+			opacity: 1,
+		});
 	});
 
-	it('should return clip-path based style for "splitIn"', () => {
+	it('should return a hidden centre-band mask for "splitIn"', () => {
 		const style = getInitialStyleForEffect('splitIn');
-		expect(style).toStrictEqual({ clipPath: 'inset(50% 0 50% 0)', opacity: 1 });
+		expect(style).toStrictEqual({
+			maskImage: 'linear-gradient(#000, #000)',
+			maskPosition: 'center',
+			maskRepeat: 'no-repeat',
+			maskSize: '100% 0%',
+			opacity: 1,
+		});
 	});
 
 	it('should return blur filter for "dissolveIn"', () => {
@@ -65,14 +77,26 @@ describe('getInitialStyleForEffect', () => {
 		expect(style).toStrictEqual({ opacity: 0, transform: 'rotate(-360deg) scale(0.5)' });
 	});
 
-	it('should return clip-path for "blindsIn"', () => {
+	it('should return a hidden top-edge mask for "blindsIn"', () => {
 		const style = getInitialStyleForEffect('blindsIn');
-		expect(style).toStrictEqual({ clipPath: 'inset(0 0 100% 0)', opacity: 1 });
+		expect(style).toStrictEqual({
+			maskImage: 'linear-gradient(to bottom, #000 50%, transparent 50%)',
+			maskSize: '100% 200%',
+			maskRepeat: 'no-repeat',
+			maskPosition: '0% 100%',
+			opacity: 1,
+		});
 	});
 
-	it('should return clip-path for "boxIn"', () => {
+	it('should return a hidden centre-box mask for "boxIn"', () => {
 		const style = getInitialStyleForEffect('boxIn');
-		expect(style).toStrictEqual({ clipPath: 'inset(50% 50% 50% 50%)', opacity: 1 });
+		expect(style).toStrictEqual({
+			maskImage: 'linear-gradient(#000, #000)',
+			maskPosition: 'center',
+			maskRepeat: 'no-repeat',
+			maskSize: '0% 0%',
+			opacity: 1,
+		});
 	});
 
 	it('should return translateY(40px) for "floatIn"', () => {
@@ -105,9 +129,15 @@ describe('getInitialStyleForEffect', () => {
 		expect(style).toStrictEqual({ opacity: 0 });
 	});
 
-	it('should return clip-path for "peekIn"', () => {
+	it('should return a hidden bottom-edge mask for "peekIn"', () => {
 		const style = getInitialStyleForEffect('peekIn');
-		expect(style).toStrictEqual({ clipPath: 'inset(100% 0 0 0)', opacity: 1 });
+		expect(style).toStrictEqual({
+			maskImage: 'linear-gradient(to top, #000 50%, transparent 50%)',
+			maskSize: '100% 200%',
+			maskRepeat: 'no-repeat',
+			maskPosition: '0% 0%',
+			opacity: 1,
+		});
 	});
 
 	it('should return rotate(-720deg) for "spinnerIn"', () => {
@@ -125,9 +155,15 @@ describe('getInitialStyleForEffect', () => {
 		expect(style).toStrictEqual({ opacity: 0 });
 	});
 
-	it('should return clip-path based style for "randomBarsIn"', () => {
+	it('should return a hidden left-edge mask for "randomBarsIn"', () => {
 		const style = getInitialStyleForEffect('randomBarsIn');
-		expect(style).toStrictEqual({ clipPath: 'inset(0 100% 0 0)', opacity: 1 });
+		expect(style).toStrictEqual({
+			maskImage: 'linear-gradient(to right, #000 50%, transparent 50%)',
+			maskSize: '200% 100%',
+			maskRepeat: 'no-repeat',
+			maskPosition: '100% 0%',
+			opacity: 1,
+		});
 	});
 });
 

@@ -63,6 +63,45 @@ export function removeCommentFromList(comments: PptxComment[], id: string): Pptx
 }
 
 /**
+ * Append a threaded reply under the top-level comment `parentId`.
+ *
+ * The reply is nested inside the parent's `replies` array and stamped with
+ * `threadId`/`parentId` (mirroring React's `handleSubmitReply`), inheriting
+ * the parent's `elementId` anchor when it has one.
+ * @returns the NEW full comment array, or `null` when `text` is blank or the
+ *   parent is not found.
+ */
+export function replyToCommentInList(
+	comments: PptxComment[],
+	parentId: string,
+	text: string,
+	authorName: string,
+): PptxComment[] | null {
+	const trimmed = text.trim();
+	if (trimmed.length === 0) {
+		return null;
+	}
+	const parent = comments.find((comment) => comment.id === parentId);
+	if (!parent) {
+		return null;
+	}
+	const reply: PptxComment = {
+		id: generateCommentId(),
+		text: trimmed,
+		author: authorName,
+		createdAt: new Date().toISOString(),
+		threadId: parentId,
+		parentId,
+		...(parent.elementId ? { elementId: parent.elementId } : {}),
+	};
+	return comments.map((comment) =>
+		comment.id === parentId
+			? { ...comment, replies: [...(comment.replies ?? []), reply] }
+			: comment,
+	);
+}
+
+/**
  * Toggle the `resolved` flag of a comment (by id) in a comment list.
  * @returns the NEW full comment array, or `null` when nothing changed.
  */

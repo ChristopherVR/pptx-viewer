@@ -34,6 +34,12 @@ export interface VanillaChatController {
 	stop(): Promise<void>;
 	/** Clear an error and return to the ready state. */
 	clearError(): void;
+	/**
+	 * Replace the whole transcript (chat-history resume / new chat) and notify
+	 * subscribers. Does not touch the in-flight request; callers should `stop()`
+	 * first when a response is streaming.
+	 */
+	setMessages(messages: PptxAiUIMessage[]): void;
 	/** Current snapshot. */
 	getSnapshot(): VanillaChatSnapshot;
 	/** Subscribe to snapshot changes; returns an unsubscribe function. */
@@ -159,6 +165,11 @@ export async function createVanillaChat(options: {
 		regenerate: () => chat.regenerate(),
 		stop: () => chat.stop(),
 		clearError: () => chat.clearError(),
+		setMessages: (next: PptxAiUIMessage[]) => {
+			// Assign through the ChatState setter so `AbstractChat` and subscribers
+			// both observe the swap.
+			state.messages = [...next];
+		},
 		getSnapshot: () => ({ messages: [...messages], status, error }),
 		subscribe: (listener) => {
 			listeners.add(listener);

@@ -341,6 +341,36 @@ describe('expandTextBuildAnimations - iterate stagger', () => {
 		const out = expandTextBuildAnimations([abs], new Map([['title', counts]]));
 		expect(out[1].delayMs).toBe(120);
 	});
+
+	// PowerPoint's "by letter, 0% delay between letters" plays every letter
+	// simultaneously. Collapsing the 0 to the sequential fallback chained each
+	// letter after the previous one's FULL duration, so a 30-character line took
+	// many seconds and pushed every later effect in the group out with it: the
+	// issue #132 deck's closing slide queued a pulse at t=27s because of it.
+	it('a zero tmPct interval starts every letter simultaneously', () => {
+		const zero = {
+			...anim,
+			iterate: { type: 'lt', tmPct: 0 },
+		} as unknown as PptxNativeAnimation;
+		const out = expandTextBuildAnimations([zero], new Map([['title', counts]]));
+		expect(out).toHaveLength(3);
+		expect(out[0].delayMs).toBe(1000);
+		// Simultaneous: withPrevious with a 0 interval, full duration kept.
+		expect(out[1].trigger).toBe('withPrevious');
+		expect(out[1].delayMs).toBe(0);
+		expect(out[2].delayMs).toBe(0);
+		expect(out.every((a) => a.durationMs === 400)).toBeTruthy();
+	});
+
+	it('a zero tmAbs interval starts every letter simultaneously', () => {
+		const zero = {
+			...anim,
+			iterate: { type: 'lt', tmAbs: 0 },
+		} as unknown as PptxNativeAnimation;
+		const out = expandTextBuildAnimations([zero], new Map([['title', counts]]));
+		expect(out[1].trigger).toBe('withPrevious');
+		expect(out[1].delayMs).toBe(0);
+	});
 });
 
 describe('by-paragraph builds that also iterate', () => {

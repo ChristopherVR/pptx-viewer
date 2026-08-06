@@ -8,6 +8,7 @@
 
 import type { PptxAnimationPreset, PptxNativeAnimation } from 'pptx-viewer-core';
 
+import { maskEdgeInitialStyle, maskShapeInitialStyle } from './animation-mask-reveal';
 import { resolveEffect } from './animation-timeline-helpers';
 import type { AnimationStyle, EffectName } from './animation-timeline-types';
 
@@ -44,8 +45,10 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 
 /**
  * Returns the initial CSS styles for an element before its entrance animation
- * plays. For clip-path-based animations the element is visible but fully
- * clipped; for all other entrances it starts fully transparent.
+ * plays. For mask-reveal animations the element is visible but fully masked
+ * out (a mask composites with the element's own geometry `clip-path`, which a
+ * `clip-path` keyframe would clobber); for all other entrances it starts fully
+ * transparent.
  */
 export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 	switch (effect) {
@@ -78,17 +81,17 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 		case 'dissolveIn':
 			return { opacity: 0, filter: 'blur(8px)' };
 		case 'wipeIn':
-			return { clipPath: 'inset(0 100% 0 0)', opacity: 1 };
+			return maskEdgeInitialStyle('left');
 		case 'splitIn':
-			return { clipPath: 'inset(50% 0 50% 0)', opacity: 1 };
+			return maskShapeInitialStyle('splitHorizontalOut');
 		case 'blindsIn':
-			return { clipPath: 'inset(0 0 100% 0)', opacity: 1 };
+			return maskEdgeInitialStyle('top');
 		case 'boxIn':
-			return { clipPath: 'inset(50% 50% 50% 50%)', opacity: 1 };
+			return maskShapeInitialStyle('boxOut');
 		case 'peekIn':
-			return { clipPath: 'inset(100% 0 0 0)', opacity: 1 };
+			return maskEdgeInitialStyle('bottom');
 		case 'randomBarsIn':
-			return { clipPath: 'inset(0 100% 0 0)', opacity: 1 };
+			return maskEdgeInitialStyle('left');
 		case 'appear':
 		case 'fadeIn':
 		case 'checkerboardIn':

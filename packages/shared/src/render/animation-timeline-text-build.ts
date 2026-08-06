@@ -84,18 +84,27 @@ export function effectiveTextBuildType(
  *
  * `p:tmAbs` is already milliseconds; `p:tmPct` is a percentage of the effect's
  * own duration in 1000ths of a percent (PowerPoint's default is `10000`, i.e.
- * 10%). Returns `undefined` when the animation is not iterate-driven, so the
- * caller keeps the slide-build defaults.
+ * 10%). A ZERO interval is meaningful: PowerPoint plays "by letter" with a 0%
+ * delay as all letters simultaneously, so `0` must be returned as `0` (every
+ * piece starts together), NOT collapsed to `undefined`. Falling through to the
+ * `undefined` sequential fallback chained each letter after the previous one's
+ * full duration, turning an instant reveal into a multi-second crawl that also
+ * pushed every later effect in the group tens of seconds out (issue #132).
+ * Returns `undefined` only when the animation is not iterate-driven at all, so
+ * the caller keeps the slide-build defaults.
  */
 function iterateStaggerMs(anim: PptxNativeAnimation, durationMs: number): number | undefined {
 	const iterate = anim.iterate;
 	if (!iterate || iterate.type === 'el') {
 		return undefined;
 	}
-	if (typeof iterate.tmAbs === 'number' && Number.isFinite(iterate.tmAbs) && iterate.tmAbs > 0) {
+	if (typeof iterate.tmAbs === 'number' && Number.isFinite(iterate.tmAbs) && iterate.tmAbs >= 0) {
 		return iterate.tmAbs;
 	}
-	if (typeof iterate.tmPct === 'number' && Number.isFinite(iterate.tmPct) && iterate.tmPct > 0) {
+	if (typeof iterate.tmPct === 'number' && Number.isFinite(iterate.tmPct) && iterate.tmPct >= 0) {
+		if (iterate.tmPct === 0) {
+			return 0;
+		}
 		return Math.max(1, Math.round((iterate.tmPct / 100000) * durationMs));
 	}
 	return undefined;

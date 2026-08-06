@@ -978,6 +978,10 @@ export const translationsEn: Record<string, string> = {
 
 	// Shape / slide background / presentation settings
 	'pptx.shape.quickStyles': 'Quick Styles',
+	'pptx.shape.quickStyleAccent': 'Accent',
+	'pptx.shape.quickStyleSubtle': 'Subtle',
+	'pptx.shape.quickStyleOutline': 'Outline',
+	'pptx.shape.quickStyleDark': 'Dark',
 	'pptx.slideBackground.colour': 'Colour',
 	'pptx.slideBackground.colourAriaLabel': 'Slide background colour',
 	'pptx.slideBackground.image': 'Image',
@@ -2653,7 +2657,6 @@ export const translationsEn: Record<string, string> = {
 	'pptx.paragraph.rightToLeft': 'Right to Left',
 	'pptx.paragraph.textDirection': 'Text Direction',
 	'pptx.print.handoutPerPageTitle': 'Handout {{count}} per page',
-	'pptx.resizeHandles.rotateAria': 'Rotate',
 	'pptx.ribbon.columns1': '1 Column',
 	'pptx.ribbon.columns2': '2 Columns',
 	'pptx.ribbon.columns3': '3 Columns',

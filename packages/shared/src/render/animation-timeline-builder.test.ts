@@ -467,7 +467,9 @@ describe('buildTimeline', () => {
 		expect(result.clickGroups).toHaveLength(1);
 		const step = result.clickGroups[0].steps[0];
 		expect(step.keyframeName).toMatch(/^pptx-tl-dir-/u);
-		expect(result.keyframesCss).toContain('clip-path: inset(0 0 100% 0)');
+		// Directional wipes are mask sweeps, never clip-path keyframes.
+		expect(result.keyframesCss).toContain('mask-image');
+		expect(result.keyframesCss).not.toContain('clip-path');
 		// Still registered as an entrance (initially hidden).
 		expect(result.entranceElementIds.has('el1')).toBeTruthy();
 	});

@@ -46,17 +46,22 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('100%');
 	});
 
-	it('should return clip-path keyframes for "wipeIn"', () => {
+	it('should return mask-reveal keyframes for "wipeIn" (never clip-path)', () => {
 		const kf = getEffectKeyframes('wipeIn');
 		expect(kf).toContain('@keyframes pptx-wipeIn');
-		expect(kf).toContain('clip-path');
-		expect(kf).toContain('inset(0 100% 0 0)');
+		// A clip-path keyframe would clobber the element's own geometry clip.
+		expect(kf).not.toContain('clip-path');
+		expect(kf).toContain('mask-image: linear-gradient(to right, #000 50%, transparent 50%)');
+		expect(kf).toContain('mask-position: 100% 0%');
+		expect(kf).toContain('mask-position: 0% 0%');
 	});
 
-	it('should return clip-path keyframes for "splitIn"', () => {
+	it('should return mask-reveal keyframes for "splitIn"', () => {
 		const kf = getEffectKeyframes('splitIn');
 		expect(kf).toContain('@keyframes pptx-splitIn');
-		expect(kf).toContain('inset(50% 0 50% 0)');
+		expect(kf).not.toContain('clip-path');
+		expect(kf).toContain('mask-size: 100% 0%');
+		expect(kf).toContain('mask-size: 100% 101%');
 	});
 
 	it('should return exit keyframes for "fadeOut"', () => {
@@ -176,7 +181,9 @@ describe('getEffectKeyframes', () => {
 	it('should return keyframes for "wipeOut"', () => {
 		const kf = getEffectKeyframes('wipeOut');
 		expect(kf).toContain('@keyframes pptx-wipeOut');
-		expect(kf).toContain('clip-path');
+		expect(kf).not.toContain('clip-path');
+		expect(kf).toContain('mask-image');
+		expect(kf).toContain('opacity: 0');
 	});
 
 	it('should return keyframes for "dissolveOut"', () => {

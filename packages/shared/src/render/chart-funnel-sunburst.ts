@@ -87,6 +87,7 @@ export function computeFunnelSegments(
 	plotHeight: number,
 	categories: ReadonlyArray<string>,
 	colorPalette: readonly string[] | undefined,
+	seriesColorOverride?: string,
 ): FunnelSegment[] {
 	const count = values.length;
 	if (count === 0) {
@@ -114,7 +115,9 @@ export function computeFunnelSegments(
 
 		out.push({
 			d,
-			fill: paletteColor(i, colorPalette),
+			// An explicit series colour (c:ser/cx:series spPr solidFill) wins over
+			// the per-segment palette cycle, as in PowerPoint.
+			fill: seriesColorOverride ?? paletteColor(i, colorPalette),
 			topW,
 			botW,
 			labelX: centerX,
@@ -145,6 +148,7 @@ export function buildFunnelViewModel(
 		layout.plotHeight,
 		categoryLabels,
 		chartData.colorPalette,
+		chartData.series[0]?.color,
 	);
 
 	const primitives: SvgPrimitive[] = [];

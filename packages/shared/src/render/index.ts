@@ -25,9 +25,12 @@ export * from './fill-style';
 // `a:gradFill` → SVG paint server, for the freeform (`a:custGeom`) shapes that
 // are painted as a real `<path>` and so cannot take a CSS gradient.
 export * from './svg-gradient-paint';
-// Gradient outlines (`a:ln/a:gradFill`): a CSS border takes one colour only, so
-// the outline is stroked as an SVG path over the element instead.
+// Stroked SVG outlines: a gradient line (`a:ln/a:gradFill`), which a CSS border
+// cannot express, and a stroke-only ("open") preset such as `line` or `arc`,
+// which has no box to put a border on.
 export * from './stroke-outline';
+export * from './stroke-only-preset';
+export * from './stroke-paint';
 // `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
 export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
@@ -211,6 +214,10 @@ export * from './animation-playback';
 // injection, audio playback, and file reading stay in each binding.
 export * from './animation-timeline-types';
 export * from './animation-presets';
+// CSS `mask` reveal states for the wipe / peek / blinds / split / box family.
+// A mask composites with the element's own geometry `clip-path`, which a
+// `clip-path` keyframe would replace (flooding a thin shape's bounding box).
+export * from './animation-mask-reveal';
 export * from './animation-keyframes';
 export * from './animation-color';
 // Staged-build (p:bldChart / p:bldDgm) mode resolution + time->progress helpers
@@ -385,6 +392,7 @@ export * from './text-theme';
 export * from './kinsoku-styles';
 export * from './tab-leader';
 export * from './inline-selection-utils';
+export * from './inline-caret';
 export * from './text-case-transform';
 export * from './linked-text-box-overflow';
 export * from './connector-router';
@@ -554,7 +562,7 @@ export * from './custom-shows';
 // capture/encode loop that calls these stay in each binding.
 export * from './export-progress';
 // Native file-open picker — framework-agnostic `<input type=file>` helper +
-// default `.pptx/.ppsx/.pptm/.potx` accept list, used by every binding's
+// default `.pptx/.ppsx/.pptm/.potx/.ppt` accept list, used by every binding's
 // File ▸ Open action to load another presentation.
 export * from './open-file-picker';
 // Mobile-adapted presenter view: pure geometry (next-slide thumbnail scaling),
@@ -721,8 +729,11 @@ export * from './image-adjustments';
 // toggle state + merge patches, plus a uniform default-cell-padding patch
 // builder (this binding has no per-cell selection model; see module docs).
 export * from './table-inspector';
-// Active-slide comment-array transforms (add/remove/toggle-resolved).
+// Active-slide comment-array transforms (add/remove/toggle-resolved/reply).
 export * from './comments-list';
+// Canvas comment-marker descriptors (numbered dots + "<author>: <text>"
+// titles); each binding renders these inside its slide stage.
+export * from './comment-markers';
 // Touch-gesture state machine: pinch-to-zoom (two-finger distance ratio),
 // single-finger horizontal swipe, and long-press recognition driven purely by
 // DOM `TouchEvent`-shaped objects. Each binding owns the listener attach/detach
