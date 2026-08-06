@@ -139,4 +139,64 @@ describe('selectionOverlay', () => {
 		window.dispatchEvent(pointer('pointerup', { clientX: 1, clientY: 1 }));
 		wrapper.unmount();
 	});
+
+	// A press that never leaves the dead zone is a tap, not a drag, and the
+	// overlay is what turns "click an already-selected element again" into an
+	// inline edit. Nothing else in the app can emit this.
+	it('treats a tap that never moved as a request to edit, not a transform', async () => {
+		const wrapper = mount(SelectionOverlay, {
+			attachTo: document.body,
+			props: { elements: [el()], selectedIds: ['s1'], zoom: 1 },
+		});
+		const body = wrapper.find('.pptx-vue-selection-body');
+		body.element.dispatchEvent(pointer('pointerdown', { clientX: 0, clientY: 0 }));
+		window.dispatchEvent(pointer('pointerup', { clientX: 0, clientY: 0 }));
+		await wrapper.vm.$nextTick();
+
+		expect(wrapper.emitted('requestEdit')?.[0]?.[0]).toStrictEqual({ id: 's1' });
+		expect(wrapper.emitted('transformEnd')).toBeFalsy();
+		wrapper.unmount();
+	});
+
+	it('rotates about the box centre, and snaps to 15 degrees with shift held', async () => {
+		const wrapper = mount(SelectionOverlay, {
+			attachTo: document.body,
+			props: { elements: [el()], selectedIds: ['s1'], zoom: 1 },
+		});
+		// Rotation is the one gesture that maps client coords through the overlay
+		// root, so the root's rect has to be believable; happy-dom reports zeroes.
+		const root = wrapper.find('[data-testid="selection-overlay"]').element;
+		vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+			left: 0,
+			top: 0,
+			right: 800,
+			bottom: 600,
+			width: 800,
+			height: 600,
+			x: 0,
+			y: 0,
+			toJSON: () => ({}),
+		} as DOMRect);
+
+		const knob = wrapper.find('.pptx-vue-rotate-knob');
+		knob.element.dispatchEvent(pointer('pointerdown', { clientX: 200, clientY: 100 }));
+		// The box spans (100,100)-(300,200), so its centre is (200,150). A pointer
+		// straight to the right of the centre is 90 degrees from straight up.
+		window.dispatchEvent(pointer('pointermove', { clientX: 400, clientY: 150 }));
+		await wrapper.vm.$nextTick();
+
+		const moves = wrapper.emitted('transform');
+		const rotated = moves?.[moves.length - 1]?.[0] as { rotation: number };
+		expect(rotated.rotation).toBeCloseTo(90, 5);
+
+		// Shift snaps to the nearest 15-degree step.
+		window.dispatchEvent(pointer('pointermove', { clientX: 400, clientY: 130, shiftKey: true }));
+		await wrapper.vm.$nextTick();
+		const all = wrapper.emitted('transform');
+		const snapped = all?.[all.length - 1]?.[0] as { rotation: number };
+		expect(snapped.rotation % 15).toBeCloseTo(0, 5);
+
+		window.dispatchEvent(pointer('pointerup', { clientX: 400, clientY: 130 }));
+		wrapper.unmount();
+	});
 });

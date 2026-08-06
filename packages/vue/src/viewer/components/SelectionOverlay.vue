@@ -13,6 +13,11 @@
  * Interaction uses pointer capture on `document` so a gesture keeps tracking
  * even if the pointer leaves the handle.
  *
+ * This file is deliberately thin: the placement maths live in
+ * `selection-overlay-geometry` and the four-mode pointer state machine in the
+ * `selection-gesture` composable, both of which are plain functions and are
+ * tested as such. What is left here is the reactive wiring and the markup.
+ *
  * Emitted events
  * --------------
  * - `transformStart` { id }                     : gesture begins.
@@ -23,23 +28,26 @@
  * `transformEnd` as the commit point for history/undo.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import {
-	applyDragDelta,
-	applyResize,
-	boxCenter,
-	computeRotation,
-	RESIZE_HANDLES,
-	snapAngle,
-} from 'pptx-viewer-shared';
-import type { InteractionBox, ResizeHandleId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import {
-	getDraggedShapeAdjustmentValue,
-	getShapeAdjustmentHandleDescriptor,
-} from '../composables/shape-adjustment';
+import { useSelectionGesture } from '../composables/selection-gesture';
+import { getShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
 import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
+import {
+	adjustHandleStyle as adjustHandleStyleFor,
+	boxStyle,
+	HANDLE_LIST,
+	handleStyle,
+	inverseZoom as inverseZoomFor,
+	IS_COARSE_POINTER,
+	rotateKnobStyle as rotateKnobStyleFor,
+	rotateStemStyle as rotateStemStyleFor,
+} from './selection-overlay-geometry';
+import type { SelectedBox } from './selection-overlay-geometry';
+
+// Re-exported for consumers that type the emitted payloads.
+export type { AdjustPayload, TransformPayload } from './selection-overlay-geometry';
 
 const props = defineProps<{
 	elements: PptxElement[];
@@ -47,46 +55,21 @@ const props = defineProps<{
 	zoom: number;
 }>();
 
-export interface TransformPayload {
-	id: string;
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	rotation: number;
-}
-
-export interface AdjustPayload {
-	id: string;
-	value: number;
-}
-
-const { t } = useI18n();
-
 const emit = defineEmits<{
 	transformStart: [payload: { id: string }];
-	transform: [payload: TransformPayload];
-	transformEnd: [payload: TransformPayload];
+	transform: [payload: import('./selection-overlay-geometry').TransformPayload];
+	transformEnd: [payload: import('./selection-overlay-geometry').TransformPayload];
 	adjustStart: [payload: { id: string }];
-	adjust: [payload: AdjustPayload];
-	adjustEnd: [payload: AdjustPayload];
+	adjust: [payload: import('./selection-overlay-geometry').AdjustPayload];
+	adjustEnd: [payload: import('./selection-overlay-geometry').AdjustPayload];
 	/** A tap (no drag) on an already-selected element: enter inline edit. */
 	requestEdit: [payload: { id: string }];
 }>();
 
-/** The adjustment-handle descriptor for a selected element, or null. */
-function adjustDescriptorFor(id: string): ShapeAdjustmentHandleDescriptor | null {
-	const el = props.elements.find((e) => e.id === id);
-	return el ? getShapeAdjustmentHandleDescriptor(el) : null;
-}
+const { t } = useI18n();
 
-// ---------------------------------------------------------------------------
-// Geometry of currently-selected elements
-// ---------------------------------------------------------------------------
-
-interface SelectedBox extends InteractionBox {
-	id: string;
-}
+/** The overlay root, so a rotation can map client coords into element space. */
+const rootEl = ref<HTMLElement | null>(null);
 
 const selectedBoxes = computed<SelectedBox[]>(() => {
 	const ids = new Set(props.selectedIds);
@@ -107,334 +90,35 @@ function boxForId(id: string): SelectedBox | undefined {
 	return selectedBoxes.value.find((b) => b.id === id);
 }
 
-// Length of the rotate-handle stem, in element px (visually constant via the
-// parent scale; matches typical editor affordances).
-const ROTATE_STEM = 24;
-
-/**
- * True when the primary pointer is coarse (touch). Computed once at module load
- * and guarded for environments without `matchMedia` (SSR/tests). On touch the
- * handle/knob hit areas are grown so they can actually be grabbed with a finger.
- */
-const IS_COARSE_POINTER: boolean =
-	typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-
-// ---------------------------------------------------------------------------
-// Active gesture state
-// ---------------------------------------------------------------------------
-
-type GestureKind = 'move' | 'resize' | 'rotate' | 'adjust';
-
-interface Gesture {
-	kind: GestureKind;
-	id: string;
-	pointerId: number;
-	startClientX: number;
-	startClientY: number;
-	startBox: InteractionBox;
-	handle?: ResizeHandleId;
-	/** Whether the gesture has moved past the dead-zone threshold. */
-	moved: boolean;
-	/** Shift held: used for rotation snap. */
-	shift: boolean;
-	last: TransformPayload;
-	/** Start state for an `adjust` gesture (round-rect corner radius). */
-	adjust?: { startAdjustment: number; lastValue: number };
+/** The adjustment-handle descriptor for a selected element, or null. */
+function adjustDescriptorFor(id: string): ShapeAdjustmentHandleDescriptor | null {
+	const el = props.elements.find((e) => e.id === id);
+	return el ? getShapeAdjustmentHandleDescriptor(el) : null;
 }
 
-const gesture = ref<Gesture | null>(null);
+const { beginGesture, beginAdjust } = useSelectionGesture({
+	zoom: () => props.zoom,
+	boxForId,
+	adjustDescriptorFor,
+	rootEl,
+	onTransformStart: (payload) => emit('transformStart', payload),
+	onTransform: (payload) => emit('transform', payload),
+	onTransformEnd: (payload) => emit('transformEnd', payload),
+	onAdjustStart: (payload) => emit('adjustStart', payload),
+	onAdjust: (payload) => emit('adjust', payload),
+	onAdjustEnd: (payload) => emit('adjustEnd', payload),
+	onRequestEdit: (payload) => emit('requestEdit', payload),
+});
 
-function payloadFromBox(id: string, box: InteractionBox): TransformPayload {
-	return {
-		id,
-		x: box.x,
-		y: box.y,
-		width: box.width,
-		height: box.height,
-		rotation: box.rotation ?? 0,
-	};
-}
+const handleList = HANDLE_LIST;
+const inverseZoom = computed<number>(() => inverseZoomFor(props.zoom));
 
-// ---------------------------------------------------------------------------
-// Pointer-space -> element-space mapping for rotation
-// ---------------------------------------------------------------------------
-
-/** The overlay root, so we can map client coords into element space. */
-const rootEl = ref<HTMLElement | null>(null);
-
-/**
- * Convert a client (screen) point into element-space coordinates, accounting
- * for the overlay's on-screen position and the canvas `zoom`.
- */
-function clientToElement(clientX: number, clientY: number): { x: number; y: number } {
-	const scale = props.zoom || 1;
-	const rect = rootEl.value?.getBoundingClientRect();
-	const left = rect?.left ?? 0;
-	const top = rect?.top ?? 0;
-	return {
-		x: (clientX - left) / scale,
-		y: (clientY - top) / scale,
-	};
-}
-
-// ---------------------------------------------------------------------------
-// Gesture lifecycle
-// ---------------------------------------------------------------------------
-
-function beginGesture(
-	kind: GestureKind,
-	id: string,
-	event: PointerEvent,
-	handle?: ResizeHandleId,
-): void {
-	const box = boxForId(id);
-	if (!box) {
-		return;
-	}
-	event.preventDefault();
-	event.stopPropagation();
-
-	const startBox: InteractionBox = {
-		x: box.x,
-		y: box.y,
-		width: box.width,
-		height: box.height,
-		rotation: box.rotation ?? 0,
-	};
-
-	gesture.value = {
-		kind,
-		id,
-		pointerId: event.pointerId,
-		startClientX: event.clientX,
-		startClientY: event.clientY,
-		startBox,
-		handle,
-		moved: false,
-		shift: event.shiftKey,
-		last: payloadFromBox(id, startBox),
-	};
-
-	const target = event.currentTarget as HTMLElement | null;
-	target?.setPointerCapture?.(event.pointerId);
-
-	window.addEventListener('pointermove', onPointerMove);
-	window.addEventListener('pointerup', onPointerUp);
-	window.addEventListener('pointercancel', onPointerUp);
-
-	emit('transformStart', { id });
-}
-
-/** Begin a round-rect corner-radius adjustment gesture (the amber diamond). */
-function beginAdjust(id: string, event: PointerEvent): void {
-	const box = boxForId(id);
-	const descriptor = adjustDescriptorFor(id);
-	if (!box || !descriptor) {
-		return;
-	}
-	event.preventDefault();
-	event.stopPropagation();
-	const startBox: InteractionBox = {
-		x: box.x,
-		y: box.y,
-		width: box.width,
-		height: box.height,
-		rotation: box.rotation ?? 0,
-	};
-	gesture.value = {
-		kind: 'adjust',
-		id,
-		pointerId: event.pointerId,
-		startClientX: event.clientX,
-		startClientY: event.clientY,
-		startBox,
-		moved: false,
-		shift: false,
-		last: payloadFromBox(id, startBox),
-		adjust: { startAdjustment: descriptor.value, lastValue: descriptor.value },
-	};
-	const target = event.currentTarget as HTMLElement | null;
-	target?.setPointerCapture?.(event.pointerId);
-	window.addEventListener('pointermove', onPointerMove);
-	window.addEventListener('pointerup', onPointerUp);
-	window.addEventListener('pointercancel', onPointerUp);
-	emit('adjustStart', { id });
-}
-
-function onPointerMove(event: PointerEvent): void {
-	const g = gesture.value;
-	if (!g || event.pointerId !== g.pointerId) {
-		return;
-	}
-
-	const dxScreen = event.clientX - g.startClientX;
-	const dyScreen = event.clientY - g.startClientY;
-	if (!g.moved && (Math.abs(dxScreen) > 2 || Math.abs(dyScreen) > 2)) {
-		g.moved = true;
-	}
-	if (!g.moved) {
-		return;
-	}
-
-	// Round-rect corner-radius adjustment: emits `adjust`, not a geometry transform.
-	if (g.kind === 'adjust' && g.adjust) {
-		const deltaXel = dxScreen / (props.zoom || 1);
-		const value = getDraggedShapeAdjustmentValue(
-			{
-				elementId: g.id,
-				key: 'adj',
-				shapeType: 'roundrect',
-				startClientX: g.startClientX,
-				startClientY: g.startClientY,
-				startAdjustment: g.adjust.startAdjustment,
-				startWidth: g.startBox.width,
-				startHeight: g.startBox.height,
-				moved: g.moved,
-			},
-			deltaXel,
-		);
-		g.adjust.lastValue = value;
-		emit('adjust', { id: g.id, value });
-		return;
-	}
-
-	let next: TransformPayload;
-	if (g.kind === 'move') {
-		next = payloadFromBox(g.id, applyDragDelta(g.startBox, dxScreen, dyScreen, props.zoom));
-	} else if (g.kind === 'resize' && g.handle) {
-		next = payloadFromBox(g.id, applyResize(g.startBox, g.handle, dxScreen, dyScreen, props.zoom));
-	} else {
-		// rotate
-		const center = boxCenter(g.startBox);
-		const pointer = clientToElement(event.clientX, event.clientY);
-		let angle = computeRotation(center, pointer);
-		if (event.shiftKey) {
-			angle = snapAngle(angle);
-		}
-		next = { ...payloadFromBox(g.id, g.startBox), rotation: angle };
-	}
-
-	g.last = next;
-	emit('transform', next);
-}
-
-function onPointerUp(event: PointerEvent): void {
-	const g = gesture.value;
-	if (!g || event.pointerId !== g.pointerId) {
-		return;
-	}
-	detachGlobalListeners();
-	if (g.kind === 'adjust' && g.adjust) {
-		emit('adjustEnd', { id: g.id, value: g.adjust.lastValue });
-	} else if (g.kind === 'move' && !g.moved) {
-		// A tap on the already-selected element (no drag) → enter inline edit,
-		// mirroring React's "click selected element again to edit".
-		emit('requestEdit', { id: g.id });
-	} else {
-		// Emit a final commit. If the gesture never moved, `last` is the start box,
-		// which is a harmless no-op commit (consumers can short-circuit identical).
-		emit('transformEnd', g.last);
-	}
-	gesture.value = null;
-}
-
-function detachGlobalListeners(): void {
-	window.removeEventListener('pointermove', onPointerMove);
-	window.removeEventListener('pointerup', onPointerUp);
-	window.removeEventListener('pointercancel', onPointerUp);
-}
-
-// ---------------------------------------------------------------------------
-// Handle metadata (placement only; visual offset handled by CSS classes)
-// ---------------------------------------------------------------------------
-
-interface HandleMeta {
-	id: ResizeHandleId;
-	cursor: string;
-	/** Fractional position within the box: 0 = left/top, 1 = right/bottom. */
-	fx: number;
-	fy: number;
-}
-
-const HANDLE_META: Record<ResizeHandleId, { cursor: string; fx: number; fy: number }> = {
-	nw: { cursor: 'nwse-resize', fx: 0, fy: 0 },
-	n: { cursor: 'ns-resize', fx: 0.5, fy: 0 },
-	ne: { cursor: 'nesw-resize', fx: 1, fy: 0 },
-	e: { cursor: 'ew-resize', fx: 1, fy: 0.5 },
-	se: { cursor: 'nwse-resize', fx: 1, fy: 1 },
-	s: { cursor: 'ns-resize', fx: 0.5, fy: 1 },
-	sw: { cursor: 'nesw-resize', fx: 0, fy: 1 },
-	w: { cursor: 'ew-resize', fx: 0, fy: 0.5 },
-};
-
-const handleList = computed<HandleMeta[]>(() =>
-	RESIZE_HANDLES.map((id) => ({ id, ...HANDLE_META[id] })),
-);
-
-/**
- * Inverse of the stage zoom. The overlay lives INSIDE the zoom-scaled stage,
- * so a handle sized in plain px shrinks with the zoom: at a typical fit zoom
- * of ~0.7 a 10px handle painted only ~7px on screen and its reach inside the
- * corner fell to ~3px, while the other four bindings keep a 10px screen-px
- * handle centred on the corner. Sizing via `calc(Npx * inverseZoom)` keeps the
- * on-screen hit area constant, matching the common contract.
- */
-const inverseZoom = computed<number>(() => 1 / (props.zoom || 1));
-
-function boxStyle(box: SelectedBox): Record<string, string> {
-	const rotation = box.rotation ?? 0;
-	return {
-		left: `${box.x}px`,
-		top: `${box.y}px`,
-		width: `${box.width}px`,
-		height: `${box.height}px`,
-		transform: rotation ? `rotate(${rotation}deg)` : 'none',
-	};
-}
-
-function handleStyle(meta: HandleMeta, box: SelectedBox): Record<string, string> {
-	return {
-		left: `${meta.fx * box.width}px`,
-		top: `${meta.fy * box.height}px`,
-		cursor: meta.cursor,
-	};
-}
-
-/**
- * Stem length in ELEMENT px for the current zoom. The stem is a constant 24
- * SCREEN px in every binding (see vanilla's `selection-overlay.ts` and
- * Svelte's `SelectionOverlay.svelte`); Vue used a flat 24 element px, so at a
- * mobile fit zoom of ~0.3 the knob sat only ~7 screen px above the top edge
- * and the (correctly sized) N resize handle covered it, swallowing the
- * rotate press.
- */
-function stemFor(): number {
-	return ROTATE_STEM * inverseZoom.value;
-}
-
-function rotateStemStyle(box: SelectedBox): Record<string, string> {
-	return {
-		left: `${box.width / 2}px`,
-		top: `${-stemFor()}px`,
-		height: `${stemFor()}px`,
-	};
-}
-
-function rotateKnobStyle(box: SelectedBox): Record<string, string> {
-	return {
-		left: `${box.width / 2}px`,
-		top: `${-stemFor()}px`,
-	};
-}
-
-function adjustHandleStyle(box: SelectedBox): Record<string, string> {
-	const descriptor = adjustDescriptorFor(box.id);
-	return {
-		left: `${descriptor?.left ?? 0}px`,
-		top: `${descriptor?.top ?? 0}px`,
-		cursor: descriptor?.cursor ?? 'ew-resize',
-	};
-}
+const rotateStemStyle = (box: SelectedBox): Record<string, string> =>
+	rotateStemStyleFor(box, props.zoom);
+const rotateKnobStyle = (box: SelectedBox): Record<string, string> =>
+	rotateKnobStyleFor(box, props.zoom);
+const adjustHandleStyle = (box: SelectedBox): Record<string, string> =>
+	adjustHandleStyleFor(adjustDescriptorFor(box.id));
 </script>
 
 <template>

@@ -12,7 +12,7 @@
 	 * handles / rotate knob do, so a click on empty box interior still reaches
 	 * the element beneath and drives a move gesture.
 	 */
-	import { RESIZE_HANDLES } from 'pptx-viewer-shared';
+	import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
 	import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -23,31 +23,6 @@
 
 	const t = useTranslator();
 
-	/** Rotate-handle stem length in screen px (constant at any zoom). */
-	const ROTATE_STEM_PX = 24;
-
-	const HANDLE_CURSORS: Record<ResizeHandleId, string> = {
-		nw: 'nwse-resize',
-		n: 'ns-resize',
-		ne: 'nesw-resize',
-		e: 'ew-resize',
-		se: 'nwse-resize',
-		s: 'ns-resize',
-		sw: 'nesw-resize',
-		w: 'ew-resize',
-	};
-
-	/** Fractional handle position within the box: 0 = left/top, 1 = right/bottom. */
-	const HANDLE_POSITIONS: Record<ResizeHandleId, { fx: number; fy: number }> = {
-		nw: { fx: 0, fy: 0 },
-		n: { fx: 0.5, fy: 0 },
-		ne: { fx: 1, fy: 0 },
-		e: { fx: 1, fy: 0.5 },
-		se: { fx: 1, fy: 1 },
-		s: { fx: 0.5, fy: 1 },
-		sw: { fx: 0, fy: 1 },
-		w: { fx: 0, fy: 0.5 },
-	};
 
 	// `border-width:${scale}px` scales the outline with the zoom so it tracks
 	// React's border/ring (which live inside React's scaled stage). Without it
@@ -89,7 +64,7 @@
 				<button
 					type="button"
 					class="pptx-svelte-sel-handle"
-					style={`left:${HANDLE_POSITIONS[handle].fx * 100}%;top:${HANDLE_POSITIONS[handle].fy * 100}%;cursor:${HANDLE_CURSORS[handle]}`}
+					style={`left:${RESIZE_HANDLE_GEOMETRY[handle].fx * 100}%;top:${RESIZE_HANDLE_GEOMETRY[handle].fy * 100}%;cursor:${RESIZE_HANDLE_GEOMETRY[handle].cursor}`}
 					data-handle={handle}
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
 					data-pptx-compact

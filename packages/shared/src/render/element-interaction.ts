@@ -61,6 +61,46 @@ export const RESIZE_HANDLES: readonly ResizeHandleId[] = [
 	'w',
 ] as const;
 
+/** Where one resize handle sits on the box, and the cursor it shows. */
+export interface ResizeHandleGeometry {
+	/** CSS cursor value (not a class name). */
+	cursor: string;
+	/** Fractional x within the box: 0 = left edge, 1 = right edge. */
+	fx: number;
+	/** Fractional y within the box: 0 = top edge, 1 = bottom edge. */
+	fy: number;
+}
+
+/**
+ * The canonical placement + cursor for all eight handles.
+ *
+ * All five bindings had their own copy of this table: Vue as `HANDLE_META`,
+ * Svelte and Vanilla as a `HANDLE_CURSORS` / `HANDLE_POSITIONS` pair, Angular
+ * as a `switch` plus a string-matching `handleAnchor`, and React as `cursor-*`
+ * Tailwind classes on hand-placed corner/edge lists. Five copies of eight
+ * constants is five chances for one binding to put a handle on the wrong corner
+ * or show a resize cursor pointing the wrong way, with nothing to catch it.
+ */
+export const RESIZE_HANDLE_GEOMETRY: Readonly<Record<ResizeHandleId, ResizeHandleGeometry>> = {
+	nw: { cursor: 'nwse-resize', fx: 0, fy: 0 },
+	n: { cursor: 'ns-resize', fx: 0.5, fy: 0 },
+	ne: { cursor: 'nesw-resize', fx: 1, fy: 0 },
+	e: { cursor: 'ew-resize', fx: 1, fy: 0.5 },
+	se: { cursor: 'nwse-resize', fx: 1, fy: 1 },
+	s: { cursor: 'ns-resize', fx: 0.5, fy: 1 },
+	sw: { cursor: 'nesw-resize', fx: 0, fy: 1 },
+	w: { cursor: 'ew-resize', fx: 0, fy: 0.5 },
+};
+
+/**
+ * Rotate-handle stem length in SCREEN px, i.e. constant at any zoom.
+ *
+ * The overlay lives inside the zoom-scaled stage, so this is divided by the
+ * zoom wherever it is applied; a stem that scaled with the zoom would drift
+ * away from the box as the user zoomed out.
+ */
+export const ROTATE_STEM_PX = 24;
+
 export interface Point {
 	x: number;
 	y: number;

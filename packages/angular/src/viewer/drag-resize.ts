@@ -8,13 +8,17 @@
  * box) and returns a plain `Box` (no `rotation` field) to keep the existing
  * call sites and tests unchanged.
  *
- * `handleCursor` / `handleAnchor` are render-display helpers used only by the
- * Angular SlideCanvas, so they stay local here rather than in shared.
+ * `handleCursor` / `handleAnchor` keep their Angular-facing signatures because
+ * the SlideCanvas template calls them, but they now read the shared handle
+ * table rather than restating it: this file used to derive the cursor from a
+ * `switch` and the anchor from string matching, which is a fourth spelling of
+ * eight constants the other bindings each kept their own copy of.
  */
 import {
 	applyDragDelta as sharedApplyDragDelta,
 	applyResize as sharedApplyResize,
 	computeMarqueeHitIds as sharedComputeMarqueeHitIds,
+	RESIZE_HANDLE_GEOMETRY,
 	RESIZE_HANDLES as SHARED_RESIZE_HANDLES,
 } from '../internal/shared';
 import type { MarqueeElementRect, ResizeHandleId } from '../internal/shared';
@@ -38,25 +42,12 @@ export const MIN_RESIZE = 8;
 
 /** CSS cursor for a handle. */
 export function handleCursor(handle: ResizeHandle): string {
-	switch (handle) {
-		case 'n':
-		case 's':
-			return 'ns-resize';
-		case 'e':
-		case 'w':
-			return 'ew-resize';
-		case 'nw':
-		case 'se':
-			return 'nwse-resize';
-		default:
-			return 'nesw-resize';
-	}
+	return RESIZE_HANDLE_GEOMETRY[handle].cursor;
 }
 
 /** Handle anchor as fractions (0..1) of the box, for positioning the handle. */
 export function handleAnchor(handle: ResizeHandle): { fx: number; fy: number } {
-	const fx = handle.includes('w') ? 0 : handle.includes('e') ? 1 : 0.5;
-	const fy = handle.includes('n') ? 0 : handle.includes('s') ? 1 : 0.5;
+	const { fx, fy } = RESIZE_HANDLE_GEOMETRY[handle];
 	return { fx, fy };
 }
 

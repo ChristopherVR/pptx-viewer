@@ -27,8 +27,15 @@ export interface ResizeHandlesProps {
  */
 const HANDLE_TOUCH_ACTION = { touchAction: 'none' as const };
 
-// Corner handle positions and cursors
-const CORNER_HANDLES: {
+// Corner handle positions and cursors.
+//
+// The cursor and corner of each handle are the shared `RESIZE_HANDLE_GEOMETRY`
+// contract; they are spelled out as literal Tailwind classes here rather than
+// derived from it because Tailwind extracts class names statically, so a
+// `cursor-${...}` template would be purged and the handle would show the
+// default arrow. `ResizeHandles.test.tsx` asserts these literals still agree
+// with the shared table, which is the part a refactor can silently break.
+export const CORNER_HANDLES: {
 	handle: ResizeHandle;
 	posClass: string;
 	cursor: string;
@@ -55,8 +62,9 @@ const CORNER_HANDLES: {
 	},
 ];
 
-// Edge midpoint handle positions and cursors
-const EDGE_HANDLES: {
+// Edge midpoint handle positions and cursors (see CORNER_HANDLES on why the
+// class names are literal).
+export const EDGE_HANDLES: {
 	handle: ResizeHandle;
 	posClass: string;
 	cursor: string;
