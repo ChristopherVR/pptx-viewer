@@ -51,6 +51,28 @@ export function annotationOverlayZIndex(blackout: PresentationBlackout): number 
 }
 
 /**
+ * Whether the ink overlay owns a pointer gesture, i.e. whether the press that
+ * started it must be kept away from the show surface underneath.
+ *
+ * A slide show advances on a click anywhere on the stage, and the annotation
+ * overlay is a child of that stage in every binding. With a tool armed, a
+ * stroke therefore ends with the show stepping to the next slide, and the ink
+ * that was just drawn (it belongs to the slide it was drawn on) vanishes with
+ * it: the drawing appears not to work at all. Whenever this returns true the
+ * overlay must `preventDefault()` + `stopPropagation()` on the gesture, and on
+ * the `click` that follows it as well: cancelling `pointerdown` suppresses the
+ * compatibility mouse events but NOT the click, which was measured advancing
+ * the show on its own.
+ *
+ * With no tool armed the overlay keeps painting existing ink but lets presses
+ * through, because PowerPoint still advances on a click while old annotations
+ * are on screen.
+ */
+export function annotationCapturesPointer(tool: PresentationPointerTool): boolean {
+	return tool !== 'none';
+}
+
+/**
  * Whether the Blackboard toggle reads as active: the screen is blacked out
  * AND the pen is armed. A white screen or a different tool is not blackboard
  * mode (the `B`/`W` switches and the individual tools stay independently

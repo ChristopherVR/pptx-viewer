@@ -114,6 +114,11 @@
 		position: absolute;
 		inset: 0;
 		z-index: 75;
+		/* Decorative sheet only, exactly like React's: PowerPoint still advances
+		   the show when the presenter clicks a blanked screen, and the ink
+		   overlay (raised above this while blanked) must keep receiving the
+		   presses that draw on the "blackboard". */
+		pointer-events: none;
 	}
 
 	.presenter-laser {

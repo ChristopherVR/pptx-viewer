@@ -5,6 +5,7 @@ import {
 	PRESENT_ANNOTATION_OVER_BLACKOUT_Z,
 	PRESENT_ANNOTATION_Z,
 	PRESENT_BLACKOUT_Z,
+	annotationCapturesPointer,
 	annotationOverlayZIndex,
 	isBlackboardActive,
 	toggleBlackboard,
@@ -24,6 +25,20 @@ describe('annotationOverlayZIndex (the layering decision)', () => {
 
 	it('never covers the show toolbar', () => {
 		expect(PRESENT_ANNOTATION_OVER_BLACKOUT_Z).toBeLessThan(PRESENT_TOOLBAR_METRICS.zIndex);
+	});
+});
+
+describe('annotationCapturesPointer', () => {
+	it('claims the gesture for every drawing tool', () => {
+		expect(annotationCapturesPointer('pen')).toBeTruthy();
+		expect(annotationCapturesPointer('highlighter')).toBeTruthy();
+		expect(annotationCapturesPointer('eraser')).toBeTruthy();
+		expect(annotationCapturesPointer('laser')).toBeTruthy();
+	});
+
+	it('lets a press through to the show surface with no tool armed', () => {
+		// PowerPoint still advances on a click while old ink is on screen.
+		expect(annotationCapturesPointer('none')).toBeFalsy();
 	});
 });
 
