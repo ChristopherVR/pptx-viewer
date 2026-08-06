@@ -4,6 +4,7 @@ import {
 	getGradientTileFlipCss,
 	getGradientTileRectCss,
 	getSoftEdgeFilterId,
+	isStrokeOnlyPresetElement,
 	sanitizeGradientStops,
 	suppressesCssBorder,
 } from 'pptx-viewer-shared';
@@ -44,7 +45,6 @@ import {
 	getCompoundLineBoxShadow,
 	getCompoundLineBorderWidth,
 } from './style';
-import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
 
 /**
  * Resolves the `background-size` / `background-position` / `background-repeat`
@@ -128,10 +128,11 @@ export function getShapeVisualStyle(
 		element.pathWidth > 0 &&
 		typeof element.pathHeight === 'number' &&
 		element.pathHeight > 0;
-	// Open, stroke-only presets (e.g. `arc`) are painted by `renderVectorShape`
-	// as a stroked SVG outline. Suppress the container fill/border (and the
-	// wedge clip-path) so the shape reads as an outline, not a filled region.
-	const rendersStrokeOnlyPreset = Boolean(getStrokeOnlyPresetPaths(element));
+	// Open, stroke-only presets (`line`, `arc`, the connector family) are painted
+	// by `ShapeEffectOverlay` from the shared `buildStrokeOutline` as a stroked
+	// SVG path. Suppress the container fill/border (and the wedge clip-path) so
+	// the shape reads as an outline, not a filled region boxed by a border.
+	const rendersStrokeOnlyPreset = isStrokeOnlyPresetElement(element);
 	const fillOpacity = element.shapeStyle?.fillOpacity;
 	const strokeOpacity = element.shapeStyle?.strokeOpacity;
 	const strokeDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
@@ -442,7 +443,10 @@ export function getShapeVisualStyle(
 		};
 	}
 
-	if (normalizedShapeType === 'line') {
+	// A `line` whose geometry is stroke-only is painted by the overlay; only a
+	// line-typed shape the evaluator cannot open (custom geometry) still needs
+	// the one-edge border approximation below.
+	if (normalizedShapeType === 'line' && !rendersStrokeOnlyPreset) {
 		return {
 			...base,
 			backgroundColor: 'transparent',

@@ -4,7 +4,7 @@ import {
 	createPresenterShowGuard,
 	morphOptionToMode,
 } from 'pptx-viewer-shared';
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { acceptsPresentationInput } from './presentation-mode/audience-content-store';
 import type {
@@ -90,6 +90,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		handleHoverStart,
 		handleHoverEnd,
 		runPresentationEntranceAnimations,
+		seedSlideAnimations,
+		startSlideAnimations,
 		isSeededCompleted,
 		presentationTimersRef,
 	} = useAnimationPlayback({ slides, onPlayActionSound, showWithAnimation });
@@ -154,7 +156,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onAdvancePastLastSlide: handleAdvancePastLastSlide,
 		playNextAnimationGroup,
 		clearPresentationTimers,
-		runPresentationEntranceAnimations,
+		seedSlideAnimations,
+		startSlideAnimations,
 		presentationTimersRef,
 		rehearsing,
 		recordCurrentSlideTime,
@@ -364,7 +367,11 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		});
 	}, [mode, containerRef]);
 
-	useEffect(() => {
+	// Layout effect on purpose: entering the show must seed the first slide's
+	// animation states BEFORE the browser paints the presentation stage, or the
+	// opening slide flashes every entrance-animated element at its final state
+	// for a frame before snapping back to replay (issue #132).
+	useLayoutEffect(() => {
 		if (mode === 'present') {
 			// Only runs when entering present mode (mode changes to "present").
 			// Slide-to-slide navigation during presentation is handled entirely

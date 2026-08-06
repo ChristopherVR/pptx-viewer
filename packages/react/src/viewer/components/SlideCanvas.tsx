@@ -283,7 +283,10 @@ export function SlideCanvas({
 							mediaDataUrls={mediaDataUrls}
 							selectionColorClass='blue-400'
 							showHoverBorder={false}
-							opacity={0.95}
+							// No opacity override: PowerPoint paints layout/master content at
+							// full opacity, and the other four bindings agree. The 0.95
+							// "template" transparency comes from the templateEditing
+							// affordance below, only while edit-template mode is on.
 							templateEditing={editTemplateMode}
 							zIndex={index}
 							imageAltText='Template element'

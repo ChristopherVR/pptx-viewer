@@ -16,10 +16,14 @@ export interface SlideTransitionDeps {
 	clearPresentationTimers: () => void;
 	setPresentationSlideIndex: (index: number) => void;
 	onSetActiveSlideIndex: (index: number) => void;
-	runPresentationEntranceAnimations: (
-		slideIndex: number,
-		options?: SeedSlideAnimationOptions,
-	) => void;
+	/**
+	 * Seed the incoming slide's animation timeline (initial hidden states)
+	 * WITHOUT starting playback. Called synchronously with the slide swap so the
+	 * incoming slide never paints its animated elements at their final state.
+	 */
+	seedSlideAnimations: (slideIndex: number, options?: SeedSlideAnimationOptions) => void;
+	/** Start playback (auto-play group + entrance timers) for the seeded slide. */
+	startSlideAnimations: (slideIndex: number) => void;
 	scheduleAutoAdvanceForSlide?: (slideIndex: number) => void;
 	presentationTimersRef: { current: number[] };
 	/** Mount the transition overlay (or clear it with `null`). */
@@ -58,10 +62,15 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 	deps.clearPresentationTimers();
 
 	// Swap to the incoming slide immediately: the main stage renders it while the
-	// overlay (if any) animates the outgoing slide on top.
+	// overlay (if any) animates the outgoing slide on top. The animation timeline
+	// is seeded in the SAME batch, so the incoming slide's first paint already
+	// has its entrance-animated elements hidden. Deferring the seed until the
+	// transition finished rendered every animated element at its FINAL state
+	// under (and through) the overlay, then snapped them back to replay.
 	deps.setPresentationSlideIndex(nextSlideIndex);
 	deps.onSetActiveSlideIndex(nextSlideIndex);
 	deps.setPresentationSlideVisible(true);
+	deps.seedSlideAnimations(nextSlideIndex, { completed: deps.seedCompleted });
 
 	if (durationMs > 0 && transition) {
 		if (transition.soundPath && deps.onPlayActionSound) {
@@ -73,10 +82,10 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 			transition,
 			durationMs,
 		});
+		// Playback (auto-play builds, entrance timers, auto-advance) still waits
+		// for the transition, so builds don't run underneath the overlay.
 		const timer = window.setTimeout(() => {
-			deps.runPresentationEntranceAnimations(nextSlideIndex, {
-				completed: deps.seedCompleted,
-			});
+			deps.startSlideAnimations(nextSlideIndex);
 			deps.scheduleAutoAdvanceForSlide?.(nextSlideIndex);
 		}, durationMs);
 		deps.presentationTimersRef.current.push(timer);
@@ -85,6 +94,6 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 
 	// Instant transition (none / cut / backward / jump): reveal at once.
 	deps.setTransitionOverlay(null);
-	deps.runPresentationEntranceAnimations(nextSlideIndex, { completed: deps.seedCompleted });
+	deps.startSlideAnimations(nextSlideIndex);
 	deps.scheduleAutoAdvanceForSlide?.(nextSlideIndex);
 }

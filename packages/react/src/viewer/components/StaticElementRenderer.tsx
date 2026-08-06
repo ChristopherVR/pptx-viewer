@@ -7,6 +7,7 @@ import {
 	getGroupChildParentFill,
 	isElementActionable,
 	isElementRendered,
+	paintedStrokeWidth,
 	resolveGroupChildFill,
 } from 'pptx-viewer-shared';
 import React from 'react';
@@ -114,7 +115,8 @@ function StaticElementRendererImpl({
 		Boolean(buildCssGradientFromShapeStyle(style) || style?.fillGradient) ||
 		(style?.fillMode === 'pattern' && Boolean(style.fillPatternPreset));
 	const fill = normalizeHexColor(style?.fillColor, DEFAULT_FILL_COLOR);
-	const strokeWidth = Math.max(0, style?.strokeWidth || 0);
+	// Width-only fill-less <a:ln>: paint no outline (see shared stroke-paint).
+	const strokeWidth = paintedStrokeWidth(style);
 	const stroke = normalizeHexColor(style?.strokeColor, DEFAULT_STROKE_COLOR);
 	const baseVisualStyle = getShapeVisualStyle(element, hasFill, fill, strokeWidth, stroke);
 	// `a:grpFill`: a child with fillMode 'group' inherits the enclosing group's

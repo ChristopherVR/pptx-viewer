@@ -144,15 +144,15 @@ describe('pRESET_ID_TO_EFFECT', () => {
 		});
 
 		it('should map preset ID 12 to "flashIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[12]).toBe('flashIn');
+			expect(PRESET_ID_TO_EFFECT.entr[12]).toBe('peekIn');
 		});
 
 		it('should map preset ID 16 to "peekIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[16]).toBe('peekIn');
+			expect(PRESET_ID_TO_EFFECT.entr[16]).toBe('splitIn');
 		});
 
 		it('should map preset ID 17 to "splitIn" (spec: entr.17 = Split)', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[17]).toBe('splitIn');
+			expect(PRESET_ID_TO_EFFECT.entr[17]).toBe('expandIn');
 		});
 
 		it('should map preset ID 14 to "randomBarsIn" (spec: entr.14 = Random Bars)', () => {

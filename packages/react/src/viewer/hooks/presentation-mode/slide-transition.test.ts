@@ -30,7 +30,8 @@ function createMockDeps(overrides: Partial<SlideTransitionDeps> = {}): SlideTran
 		clearPresentationTimers: vi.fn<() => void>(),
 		setPresentationSlideIndex: vi.fn<() => void>(),
 		onSetActiveSlideIndex: vi.fn<() => void>(),
-		runPresentationEntranceAnimations: vi.fn<() => void>(),
+		seedSlideAnimations: vi.fn<() => void>(),
+		startSlideAnimations: vi.fn<() => void>(),
 		scheduleAutoAdvanceForSlide: vi.fn<() => void>(),
 		presentationTimersRef: { current: [] },
 		setTransitionOverlay: vi.fn<() => void>(),
@@ -119,17 +120,24 @@ describe('executeSlideTransition', () => {
 		expect(deps.onPlayActionSound).not.toHaveBeenCalled();
 	});
 
-	it('defers entrance animations until the transition duration elapses', () => {
+	it('seeds the incoming slide synchronously with the swap (no final-state flash)', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
 
-		// Not run synchronously: the overlay is still covering the incoming slide.
-		expect(deps.runPresentationEntranceAnimations).not.toHaveBeenCalled();
+		// The seed (initial hidden states) is part of the same update as the slide
+		// swap, so the incoming slide's first paint never shows final states.
+		expect(deps.seedSlideAnimations).toHaveBeenCalledWith(1, { completed: undefined });
+	});
+
+	it('defers playback start until the transition duration elapses', () => {
+		const deps = createMockDeps();
+		executeSlideTransition(1, deps);
+
+		// Playback does not start under the overlay.
+		expect(deps.startSlideAnimations).not.toHaveBeenCalled();
 
 		vi.advanceTimersByTime(300);
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
-			completed: undefined,
-		});
+		expect(deps.startSlideAnimations).toHaveBeenCalledWith(1);
 		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
 	});
 
@@ -143,10 +151,9 @@ describe('executeSlideTransition', () => {
 		const deps = createMockDeps({ playTransition: false });
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
-		// Instant: entrance runs synchronously, no deferred timer.
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
-			completed: undefined,
-		});
+		// Instant: seed + playback start run synchronously, no deferred timer.
+		expect(deps.seedSlideAnimations).toHaveBeenCalledWith(1, { completed: undefined });
+		expect(deps.startSlideAnimations).toHaveBeenCalledWith(1);
 		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
 		expect(deps.presentationTimersRef.current).toHaveLength(0);
 	});
@@ -160,9 +167,8 @@ describe('executeSlideTransition', () => {
 		});
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
-			completed: undefined,
-		});
+		expect(deps.seedSlideAnimations).toHaveBeenCalledWith(1, { completed: undefined });
+		expect(deps.startSlideAnimations).toHaveBeenCalledWith(1);
 	});
 
 	it('reveals the slide instantly when it has no transition at all', () => {
@@ -171,9 +177,8 @@ describe('executeSlideTransition', () => {
 		});
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
-			completed: undefined,
-		});
+		expect(deps.seedSlideAnimations).toHaveBeenCalledWith(1, { completed: undefined });
+		expect(deps.startSlideAnimations).toHaveBeenCalledWith(1);
 		expect(deps.presentationTimersRef.current).toHaveLength(0);
 	});
 });

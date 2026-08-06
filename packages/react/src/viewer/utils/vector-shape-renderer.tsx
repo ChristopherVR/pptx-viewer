@@ -18,8 +18,7 @@ import {
 } from './connector-path';
 import { getShapeType } from './shape-types';
 import { normalizeStrokeDashType, getSvgStrokeDasharray } from './style';
-import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
-import { renderCustomGeometryVector, renderStrokeOnlyPreset } from './vector-subpath-render';
+import { renderCustomGeometryVector } from './vector-subpath-render';
 
 export function renderVectorShape(
 	element: PptxElement,
@@ -270,21 +269,9 @@ export function renderVectorShape(
 		);
 	}
 
-	// Open, stroke-only presets (e.g. `arc`): `evaluatePresetShape` reports
-	// `fillNone`, so paint a stroked outline rather than flood-filling the wedge.
-	// Placed last so connector/callout shapes keep their dedicated renderers.
-	const strokeOnlyPreset = getStrokeOnlyPresetPaths(element);
-	if (strokeOnlyPreset) {
-		return renderStrokeOnlyPreset(
-			strokeOnlyPreset,
-			element.width,
-			element.height,
-			element.shapeStyle,
-			strokePaint,
-			strokeWidth,
-			dashArray,
-		);
-	}
-
+	// Open, stroke-only presets (`line`, `arc`, the connector family) are painted
+	// by `ShapeEffectOverlay` from the SHARED `buildStrokeOutline`, which is the
+	// one implementation all five bindings stroke them with; painting them here
+	// as well would double the overlay.
 	return null;
 }

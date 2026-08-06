@@ -56,7 +56,10 @@ export interface UseSlideNavigationInput {
 	onAdvancePastLastSlide?: () => void;
 	playNextAnimationGroup: () => boolean;
 	clearPresentationTimers: () => void;
-	runPresentationEntranceAnimations: (slideIndex: number) => void;
+	/** Seed the incoming slide's initial animation states (no playback). */
+	seedSlideAnimations: (slideIndex: number, options?: { completed?: boolean }) => void;
+	/** Start the seeded slide's playback (auto-play group + entrance timers). */
+	startSlideAnimations: (slideIndex: number) => void;
 	presentationTimersRef: { current: number[] };
 	rehearsing: boolean;
 	recordCurrentSlideTime: (slideIndex: number) => void;
@@ -90,7 +93,8 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		onAdvancePastLastSlide,
 		playNextAnimationGroup,
 		clearPresentationTimers,
-		runPresentationEntranceAnimations,
+		seedSlideAnimations,
+		startSlideAnimations,
 		presentationTimersRef,
 		rehearsing,
 		recordCurrentSlideTime,
@@ -199,7 +203,8 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				clearPresentationTimers,
 				setPresentationSlideIndex,
 				onSetActiveSlideIndex,
-				runPresentationEntranceAnimations,
+				seedSlideAnimations,
+				startSlideAnimations,
 				scheduleAutoAdvanceForSlide: rehearsing ? undefined : scheduleAutoAdvanceForSlide,
 				presentationTimersRef,
 				setTransitionOverlay,
@@ -221,7 +226,8 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			presentationTimersRef,
 			recordCurrentSlideTime,
 			rehearsing,
-			runPresentationEntranceAnimations,
+			seedSlideAnimations,
+			startSlideAnimations,
 			scheduleAutoAdvanceForSlide,
 			setShowRehearsalSummary,
 			slides,
@@ -257,7 +263,8 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				clearPresentationTimers,
 				setPresentationSlideIndex,
 				onSetActiveSlideIndex,
-				runPresentationEntranceAnimations,
+				seedSlideAnimations,
+				startSlideAnimations,
 				scheduleAutoAdvanceForSlide,
 				presentationTimersRef,
 				setTransitionOverlay,
@@ -277,7 +284,8 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			onSetActiveSlideIndex,
 			presentationSlideIndex,
 			presentationTimersRef,
-			runPresentationEntranceAnimations,
+			seedSlideAnimations,
+			startSlideAnimations,
 			scheduleAutoAdvanceForSlide,
 			slides,
 			setPresentationSlideIndex,

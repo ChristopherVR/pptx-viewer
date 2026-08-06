@@ -1,7 +1,7 @@
 /**
- * Pure paint-decision logic for per-sub-path custom geometry and stroke-only
- * presets. Kept free of JSX so it is unit-testable without React DOM; the SVG
- * emission lives in `vector-subpath-render.tsx`.
+ * Pure paint-decision logic for per-sub-path custom geometry. Kept free of JSX
+ * so it is unit-testable without React DOM; the SVG emission lives in
+ * `vector-subpath-render.tsx`.
  *
  * A custom geometry (`a:custGeom`) can carry several sub-paths, each with its
  * own `@fill` mode (norm / lighten / darken / none) and `@stroke` flag. These
@@ -9,8 +9,7 @@
  * so the renderer can emit one `<path>` per sub-path instead of concatenating
  * them into a single element-level fill.
  */
-import { evaluatePresetShape, hasShapeProperties } from 'pptx-viewer-core';
-import type { CustomGeometrySubpathSvg, PptxElement, PresetSubpathResult } from 'pptx-viewer-core';
+import type { CustomGeometrySubpathSvg } from 'pptx-viewer-core';
 
 import { colorWithOpacity, hexToRgbChannels } from './color';
 
@@ -90,38 +89,4 @@ export function buildCustomSubpathPaints(
 			stroked: subpath.stroke !== false,
 		};
 	});
-}
-
-/**
- * Return a preset shape's evaluated sub-paths only when the geometry is a
- * stroke-only ("open") preset such as `arc`: `evaluatePresetShape` reports
- * `fillNone`. Custom geometry (which paints via `pathData`), non-`shape`
- * elements, and normal filled presets return `undefined` so callers keep their
- * existing rendering.
- */
-export function getStrokeOnlyPresetPaths(element: PptxElement): PresetSubpathResult[] | undefined {
-	// Restricted to `shape` elements: images/pictures paint their own bitmap and
-	// must never be reinterpreted as a stroke-only outline.
-	if (element.type !== 'shape' || !hasShapeProperties(element)) {
-		return undefined;
-	}
-	const shapeType = element.shapeType;
-	if (!shapeType || shapeType === 'custom') {
-		return undefined;
-	}
-	// Custom geometry already renders through the `pathData` branch.
-	if (element.pathData) {
-		return undefined;
-	}
-	const result = evaluatePresetShape(
-		shapeType,
-		Math.max(element.width, 1),
-		Math.max(element.height, 1),
-		element.shapeAdjustments,
-	);
-	if (!result || !result.fillNone) {
-		return undefined;
-	}
-	const drawable = result.paths.filter((path) => path.d !== '');
-	return drawable.length > 0 ? drawable : undefined;
 }

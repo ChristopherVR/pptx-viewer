@@ -1,5 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import { CHARACTER_SPACING_OPTIONS } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -325,15 +326,9 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						</button>
 						<RibbonMenu anchorRef={charSpacingRef} className='hidden group-hover:block pt-1'>
 							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-32'>
-								{[
-									{ label: 'Very Tight', value: -150 },
-									{ label: 'Tight', value: -75 },
-									{ label: 'Normal', value: 0 },
-									{ label: 'Loose', value: 75 },
-									{ label: 'Very Loose', value: 150 },
-								].map((opt) => (
+								{CHARACTER_SPACING_OPTIONS.map((opt) => (
 									<button
-										key={opt.label}
+										key={opt.i18nKey}
 										type='button'
 										className='flex items-center w-full px-3 py-1.5 text-xs hover:bg-muted transition-colors'
 										onMouseDown={(e) => e.preventDefault()}
@@ -344,7 +339,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 											p.onUpdateTextStyle({ characterSpacing: opt.value });
 										}}
 									>
-										{opt.label}
+										{t(opt.i18nKey)}
 									</button>
 								))}
 							</div>

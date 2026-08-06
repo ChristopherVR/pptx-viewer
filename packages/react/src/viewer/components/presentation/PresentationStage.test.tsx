@@ -9,7 +9,7 @@
  * live slide content (a hyperlink, an action shape) is NOT also an advance.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { isPresentationAdvanceClick } from 'pptx-viewer-shared';
+import { isPresentationAdvanceClick, PRESENTATION_STAGE_ATTRIBUTE } from 'pptx-viewer-shared';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -93,5 +93,22 @@ describe('presentationStage click-to-advance', () => {
 		expect(onStageClick).toHaveBeenCalledOnce();
 		// ... and the shared target rule agrees it is an advance, not an interaction.
 		expect(isPresentationAdvanceClick(element)).toBeTruthy();
+	});
+});
+
+describe('presentationStage show contract', () => {
+	// Every binding's RUNNING show surface carries the shared marker plus the
+	// slide roledescription, so the framework-neutral e2e probe (and assistive
+	// tech) find the show the same way in all five bindings.
+	it('carries data-pptx-presenting and aria-roledescription="slide" on one surface', () => {
+		renderStage(vi.fn());
+
+		const stage = container.querySelector<HTMLElement>(`[${PRESENTATION_STAGE_ATTRIBUTE}]`);
+		expect(stage, 'the slide region carries the shared presenting marker').not.toBeNull();
+		expect(stage?.getAttribute('aria-roledescription')).toBe('slide');
+		// The marked surface is the one the slide content renders into.
+		expect(
+			stage?.querySelector('[data-element-id="ppt/slides/slide2.xml-shape-0"]'),
+		).not.toBeNull();
 	});
 });

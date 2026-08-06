@@ -1,5 +1,6 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { placeCaretAtEnd } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
@@ -125,15 +126,8 @@ export function InlineTextEditor({
 			return;
 		}
 		el.focus();
-		// Place cursor at end of content
-		const selection = window.getSelection();
-		if (selection) {
-			const range = document.createRange();
-			range.selectNodeContents(el);
-			range.collapse(false);
-			selection.removeAllRanges();
-			selection.addRange(range);
-		}
+		// Place cursor at end of content (shared contract helper).
+		placeCaretAtEnd(el);
 	}, []);
 
 	// After a formatting update, React re-renders the contentEditable children

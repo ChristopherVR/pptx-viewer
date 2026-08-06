@@ -45,9 +45,10 @@ export function contextMenuContext(props: ContextMenuProps): ContextMenuContext 
 /**
  * Command id to handler.
  *
- * The entries that mutate structure (hyperlink, table, group) close the menu
- * because they open a dialog or reshape what is under it; the plain ones leave
- * it to the viewer, which is the behaviour React shipped with.
+ * EVERY entry closes the menu after running. The viewer's `onAction` does not
+ * close it, and the other four bindings' menus all close on command, so an
+ * unwrapped entry here left the invisible full-screen backdrop mounted and
+ * eating the next click (live-verified with the "comment" entry).
  */
 export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandlers {
 	const { onAction, onClose } = props;
@@ -58,17 +59,17 @@ export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandler
 			onClose();
 		});
 	return {
-		copy: () => onAction('copy'),
-		cut: () => onAction('cut'),
-		paste: () => onAction('paste'),
-		duplicate: () => onAction('duplicate'),
-		'bring-forward': () => onAction('bring-forward'),
-		'send-backward': () => onAction('send-backward'),
-		'bring-front': () => onAction('bring-front'),
-		'send-back': () => onAction('send-back'),
-		'ai-ask': props.onAskAi,
-		'ai-fix': props.onFixAi,
-		comment: () => onAction('comment'),
+		copy: andClose(() => onAction('copy')),
+		cut: andClose(() => onAction('cut')),
+		paste: andClose(() => onAction('paste')),
+		duplicate: andClose(() => onAction('duplicate')),
+		'bring-forward': andClose(() => onAction('bring-forward')),
+		'send-backward': andClose(() => onAction('send-backward')),
+		'bring-front': andClose(() => onAction('bring-front')),
+		'send-back': andClose(() => onAction('send-back')),
+		'ai-ask': andClose(props.onAskAi),
+		'ai-fix': andClose(props.onFixAi),
+		comment: andClose(() => onAction('comment')),
 		hyperlink: andClose(() => onAction('editHyperlink')),
 		'table-insert-row-above': andClose(() => props.onInsertTableRow('above')),
 		'table-insert-row-below': andClose(() => props.onInsertTableRow('below')),
@@ -82,6 +83,6 @@ export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandler
 		'table-split': andClose(props.onSplitCell),
 		group: andClose(() => onAction('group')),
 		ungroup: andClose(() => onAction('ungroup')),
-		delete: () => onAction('delete'),
+		delete: andClose(() => onAction('delete')),
 	};
 }

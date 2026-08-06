@@ -1,26 +1,8 @@
-import type { CustomGeometrySubpathSvg, PptxElement } from 'pptx-viewer-core';
+import type { CustomGeometrySubpathSvg } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { colorWithOpacity } from './color';
-import {
-	adjustFillForMode,
-	buildCustomSubpathPaints,
-	getStrokeOnlyPresetPaths,
-} from './vector-subpath-paint';
-
-function makeShapeElement(
-	overrides: Partial<PptxElement> & { shapeType?: string } = {},
-): PptxElement {
-	return {
-		id: 'shape-1',
-		type: 'shape',
-		x: 0,
-		y: 0,
-		width: 100,
-		height: 100,
-		...overrides,
-	} as PptxElement;
-}
+import { adjustFillForMode, buildCustomSubpathPaints } from './vector-subpath-paint';
 
 function subpath(overrides: Partial<CustomGeometrySubpathSvg> = {}): CustomGeometrySubpathSvg {
 	return { d: 'M 0 0 L 10 10', ...overrides };
@@ -104,33 +86,5 @@ describe('buildCustomSubpathPaints', () => {
 	it('preserves the sub-path d string', () => {
 		const paints = buildCustomSubpathPaints([subpath({ d: 'M 1 2 L 3 4' })], true, '#000000', 1);
 		expect(paints[0].d).toBe('M 1 2 L 3 4');
-	});
-});
-
-describe('getStrokeOnlyPresetPaths', () => {
-	it('returns stroke-only paths for an open preset (arc)', () => {
-		const result = getStrokeOnlyPresetPaths(makeShapeElement({ shapeType: 'arc' }));
-		expect(result).toBeDefined();
-		expect(result?.length).toBeGreaterThan(0);
-		expect(result?.every((p) => p.d !== '')).toBeTruthy();
-	});
-
-	it('returns undefined for a normal filled preset (rect)', () => {
-		expect(getStrokeOnlyPresetPaths(makeShapeElement({ shapeType: 'rect' }))).toBeUndefined();
-	});
-
-	it('returns undefined when the shape already renders custom pathData', () => {
-		expect(
-			getStrokeOnlyPresetPaths(makeShapeElement({ shapeType: 'arc', pathData: 'M 0 0 L 5 5' })),
-		).toBeUndefined();
-	});
-
-	it('returns undefined for custom geometry shapeType', () => {
-		expect(getStrokeOnlyPresetPaths(makeShapeElement({ shapeType: 'custom' }))).toBeUndefined();
-	});
-
-	it('returns undefined for non-shape elements', () => {
-		const image = { id: 'i1', type: 'image', x: 0, y: 0, width: 10, height: 10 } as PptxElement;
-		expect(getStrokeOnlyPresetPaths(image)).toBeUndefined();
 	});
 });

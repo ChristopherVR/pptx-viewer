@@ -1,4 +1,5 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { PRESENTATION_STAGE_ATTRIBUTE } from 'pptx-viewer-shared';
 /**
  * PresentationStage: the slide show surface.
  *
@@ -154,6 +155,11 @@ export function PresentationStage({
 					role='region'
 					aria-roledescription='slide'
 					aria-label={`Slide ${(sourceSlideIndex ?? 0) + 1}`}
+					// The shared running-show marker every binding's show stage carries
+					// (`applyRenderedElementAccessibility` stamps it elsewhere; React
+					// renders accessibility per element in JSX, so the stage stamps it
+					// directly). e2e reads the visible slide through this attribute.
+					{...{ [PRESENTATION_STAGE_ATTRIBUTE]: 'true' }}
 					className='absolute top-0 left-0 overflow-hidden'
 					style={
 						{

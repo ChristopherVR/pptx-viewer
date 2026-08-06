@@ -1,5 +1,5 @@
 /**
- * Per-sub-path custom-geometry and stroke-only preset SVG rendering.
+ * Per-sub-path custom-geometry SVG rendering.
  *
  * Split out of `vector-shape-renderer.tsx` so that file stays small. The pure
  * paint-decision logic lives in `vector-subpath-paint.ts`; this module only
@@ -8,12 +8,13 @@
  * The legacy renderer concatenated every custom-geometry sub-path into one
  * `<path>` with a single element-level fill, so a stroke-only sub-path inside a
  * filled shape (or a lightened contour) could not be honoured. These helpers
- * emit one `<path>` per sub-path instead. Open presets such as `arc` are
- * handled the same way: `evaluatePresetShape` reports `fillNone`, and we paint a
- * stroked outline rather than flood-filling the wedge.
+ * emit one `<path>` per sub-path instead. Open PRESETS (`line`, `arc`, the
+ * connector family) are not handled here at all: they are stroked from the
+ * shared `buildStrokeOutline` by `ShapeEffectOverlay`, so that all five bindings
+ * paint them from one implementation.
  */
 import { customGeometryPathsToSvgSubpaths } from 'pptx-viewer-core';
-import type { CustomGeometryPath, PresetSubpathResult, ShapeStyle } from 'pptx-viewer-core';
+import type { CustomGeometryPath, ShapeStyle } from 'pptx-viewer-core';
 import { svgGradientFillRef, svgLineCap } from 'pptx-viewer-shared';
 import type { SvgGradientDef } from 'pptx-viewer-shared';
 import React from 'react';
@@ -225,39 +226,6 @@ export function renderCustomGeometryVector(
 			preserveAspectRatio='none'
 		>
 			{animatesFill ? null : gradientDefs(gradient)}
-			{nodes}
-		</svg>
-	);
-}
-
-/**
- * Render a stroke-only preset (e.g. `arc`) as an outlined SVG. Each evaluated
- * sub-path is stroked (honouring its own `@stroke` flag and compound-line
- * strands); no fill is emitted.
- */
-export function renderStrokeOnlyPreset(
-	presetPaths: PresetSubpathResult[],
-	width: number,
-	height: number,
-	shapeStyle: ShapeStyle | undefined,
-	strokePaint: string,
-	strokeWidth: number,
-	dashArray: string | undefined,
-): React.ReactNode {
-	const ctx = strokeContext(shapeStyle, strokePaint, Math.max(strokeWidth, 1), dashArray);
-	const nodes: React.ReactNode[] = [];
-	presetPaths.forEach((path, idx) => {
-		if (path.stroke === false) {
-			return;
-		}
-		nodes.push(...strokeStrands(path.d, `pre${idx}`, ctx));
-	});
-	return (
-		<svg
-			viewBox={`0 0 ${Math.max(width, 1)} ${Math.max(height, 1)}`}
-			className='w-full h-full pointer-events-none'
-			preserveAspectRatio='none'
-		>
 			{nodes}
 		</svg>
 	);

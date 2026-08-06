@@ -4,10 +4,50 @@ import {
 	buildStrokeOutline,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
-	svgGradientFillRef,
+	strokeOutlineViewBox,
 } from 'pptx-viewer-shared';
+import type { StrokeOutlinePaint } from 'pptx-viewer-shared';
 import React from 'react';
 import type { CSSProperties } from 'react';
+
+/**
+ * The `<defs>` paint server an outline is stroked with. Only a gradient or a
+ * pattern needs one; a flat colour rides on the path's `stroke` directly.
+ */
+function renderOutlinePaint(paint: StrokeOutlinePaint): React.ReactElement {
+	if (paint.kind === 'pattern') {
+		return (
+			<pattern
+				id={paint.id}
+				width={paint.width}
+				height={paint.height}
+				patternUnits='userSpaceOnUse'
+			>
+				<image href={paint.href} width={paint.width} height={paint.height} />
+			</pattern>
+		);
+	}
+	const stops = paint.stops.map((stop, idx) => (
+		<stop
+			key={idx}
+			offset={stop.offset}
+			stopColor={stop.color}
+			stopOpacity={typeof stop.opacity === 'number' ? stop.opacity : undefined}
+		/>
+	));
+	if (paint.kind === 'radial') {
+		return (
+			<radialGradient id={paint.id} cx={paint.cx} cy={paint.cy} r={paint.r}>
+				{stops}
+			</radialGradient>
+		);
+	}
+	return (
+		<linearGradient id={paint.id} x1={paint.x1} y1={paint.y1} x2={paint.x2} y2={paint.y2}>
+			{stops}
+		</linearGradient>
+	);
+}
 
 /**
  * ShapeEffectOverlay: paints the two shape-effect extras that need their own
@@ -20,11 +60,13 @@ import type { CSSProperties } from 'react';
  *     than blending the whole element (which would also tint text/children).
  *     `getShapeVisualStyle` therefore no longer sets a whole-element
  *     `mix-blend-mode` when a fill-overlay colour is present.
- *  2. A gradient or pattern OUTLINE (`a:ln/a:gradFill`, `a:ln/a:pattFill`): a
- *     CSS `border` takes one flat colour only, so the outline is stroked as a
- *     real SVG path over the element,
- *     following the shape's own geometry. `getShapeVisualStyle` drops the CSS
- *     border for these shapes so the averaged solid does not show underneath.
+ *  2. A stroked SVG OUTLINE, for the two cases a CSS border cannot paint: a
+ *     gradient / pattern line (`a:ln/a:gradFill`, `a:ln/a:pattFill`), which a
+ *     border can only render as one flat colour, and a stroke-only ("open")
+ *     preset such as `line` or `arc`, which has no box to put a border on. Both
+ *     are stroked as a real SVG path over the element, following the shape's own
+ *     geometry; `getShapeVisualStyle` drops the CSS border for these shapes so
+ *     the averaged solid (or a rectangle) does not show underneath.
  *  3. The soft-edge feather `<filter>` (`a:softEdge`): the shape's CSS `filter`
  *     already carries a `url(#soft-edge-<id>)` reference (emitted by
  *     `getShapeVisualStyle`); this injects the matching `<filter>` markup into a
@@ -79,7 +121,7 @@ export function ShapeEffectOverlay({
 				<svg
 					className='pptx-react-gradient-outline'
 					aria-hidden='true'
-					viewBox={`0 0 ${Math.max(element.width, 1)} ${Math.max(element.height, 1)}`}
+					viewBox={strokeOutlineViewBox(element)}
 					preserveAspectRatio='none'
 					style={{
 						position: 'absolute',
@@ -90,64 +132,22 @@ export function ShapeEffectOverlay({
 						pointerEvents: 'none',
 					}}
 				>
-					<defs>
-						{strokeOutline.paint.kind === 'pattern' ? (
-							<pattern
-								id={strokeOutline.paint.id}
-								width={strokeOutline.paint.width}
-								height={strokeOutline.paint.height}
-								patternUnits='userSpaceOnUse'
-							>
-								<image
-									href={strokeOutline.paint.href}
-									width={strokeOutline.paint.width}
-									height={strokeOutline.paint.height}
-								/>
-							</pattern>
-						) : strokeOutline.paint.kind === 'radial' ? (
-							<radialGradient
-								id={strokeOutline.paint.id}
-								cx={strokeOutline.paint.cx}
-								cy={strokeOutline.paint.cy}
-								r={strokeOutline.paint.r}
-							>
-								{strokeOutline.paint.stops.map((stop, idx) => (
-									<stop
-										key={idx}
-										offset={stop.offset}
-										stopColor={stop.color}
-										stopOpacity={typeof stop.opacity === 'number' ? stop.opacity : undefined}
-									/>
-								))}
-							</radialGradient>
-						) : (
-							<linearGradient
-								id={strokeOutline.paint.id}
-								x1={strokeOutline.paint.x1}
-								y1={strokeOutline.paint.y1}
-								x2={strokeOutline.paint.x2}
-								y2={strokeOutline.paint.y2}
-							>
-								{strokeOutline.paint.stops.map((stop, idx) => (
-									<stop
-										key={idx}
-										offset={stop.offset}
-										stopColor={stop.color}
-										stopOpacity={typeof stop.opacity === 'number' ? stop.opacity : undefined}
-									/>
-								))}
-							</linearGradient>
-						)}
-					</defs>
-					<path
-						d={strokeOutline.d}
-						fill='none'
-						stroke={svgGradientFillRef(strokeOutline.paint)}
-						strokeWidth={strokeOutline.strokeWidth}
-						strokeDasharray={strokeOutline.dashArray}
-						strokeLinecap={strokeOutline.lineCap}
-						strokeLinejoin={strokeOutline.lineJoin}
-					/>
+					{strokeOutline.paint ? <defs>{renderOutlinePaint(strokeOutline.paint)}</defs> : null}
+					{strokeOutline.strands.map((strand, idx) => (
+						<path
+							key={idx}
+							d={strokeOutline.d}
+							fill='none'
+							stroke={strokeOutline.stroke}
+							strokeWidth={strand.strokeWidth}
+							strokeDasharray={strokeOutline.dashArray}
+							strokeLinecap={strokeOutline.lineCap}
+							strokeLinejoin={strokeOutline.lineJoin}
+							style={
+								strand.offset !== 0 ? { transform: `translate(0, ${strand.offset}px)` } : undefined
+							}
+						/>
+					))}
 				</svg>
 			) : null}
 		</>

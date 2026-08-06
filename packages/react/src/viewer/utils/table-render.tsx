@@ -14,6 +14,7 @@ import type {
  *   - table-render-data.tsx       - renderTableFromTableData (programmatic tables)
  *   - table-render.tsx            - renderTableElement (XML-based tables)
  */
+import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -103,7 +104,15 @@ export function renderTableElement(
 					isEditable && hasCellSelectionHandler ? 'pointer-events-auto' : 'pointer-events-none',
 				)}
 			>
-				<table className='w-full h-full border-collapse table-fixed'>
+				{/* The explicit family is load-bearing: an unstyled cell otherwise
+				    inherits the HOST chrome's font, so the same table measured a
+				    different stack (and different metrics) in every binding's demo.
+				    All five bindings declare the same shared default on the table
+				    root; authored cell/run/table-style fonts still win below it. */}
+				<table
+					className='w-full h-full border-collapse table-fixed'
+					style={{ fontFamily: DEFAULT_FONT_FAMILY }}
+				>
 					{parsedTable.columnPercentages.length > 0 ? (
 						<colgroup>
 							{parsedTable.columnPercentages.map((percentage, columnIndex) => (

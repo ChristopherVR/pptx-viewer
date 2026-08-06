@@ -1,4 +1,5 @@
 import type { TablePptxElement, PptxTableCell } from 'pptx-viewer-core';
+import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { cn } from '../../utils';
@@ -58,7 +59,15 @@ export function renderTableFromTableData(
 					isEditable && hasCellSelectionHandler ? 'pointer-events-auto' : 'pointer-events-none',
 				)}
 			>
-				<table className='w-full h-full border-collapse table-fixed'>
+				{/* The explicit family is load-bearing: an unstyled cell otherwise
+				    inherits the HOST chrome's font, so the same table measured a
+				    different stack (and different metrics) in every binding. All
+				    five declare the same shared default on the table root;
+				    authored cell/run/table-style fonts still win below it. */}
+				<table
+					className='w-full h-full border-collapse table-fixed'
+					style={{ fontFamily: DEFAULT_FONT_FAMILY }}
+				>
 					{tableData.columnWidths.length > 0 && (
 						<colgroup>
 							{tableData.columnWidths.map((w, ci) => (

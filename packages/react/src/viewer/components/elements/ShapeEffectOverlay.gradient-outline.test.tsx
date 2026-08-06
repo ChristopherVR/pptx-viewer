@@ -144,3 +144,55 @@ describe('shapeEffectOverlay pattern outline', () => {
 		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(3);
 	});
 });
+
+/**
+ * Stroke-only ("open") PRESET geometry (`<a:prstGeom prst="line"/>`, `arc`, the
+ * connector family).
+ *
+ * These presets have no region to fill and no box to outline, so a CSS border
+ * drew a RECTANGLE where PowerPoint draws a line or an arc. They are stroked
+ * from the shared `buildStrokeOutline` here, which is the single implementation
+ * all five bindings paint them with.
+ */
+describe('shapeEffectOverlay stroke-only preset', () => {
+	/** The media deck's horizontal rule: `prst="line"`, 1 EMU tall, 1.5pt black. */
+	const rule = (overrides: Record<string, unknown> = {}): PptxElement =>
+		({
+			id: 'rule-1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 0,
+			shapeType: 'line',
+			shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
+			...overrides,
+		}) as unknown as PptxElement;
+
+	it('strokes the geometry with a flat colour and no paint server', () => {
+		const html = markup(rule());
+		expect(html).toContain('d="M 0 0 L 400 1"');
+		expect(html).toContain('stroke="#000000"');
+		expect(html).not.toContain('<linearGradient');
+	});
+
+	it('sizes the viewBox to the padded box so the rule stays horizontal', () => {
+		// The authored extent (400x0) stretched over the 12px-tall padded box
+		// would tilt the rule into a diagonal.
+		expect(markup(rule())).toContain('viewBox="0 0 400 12"');
+	});
+
+	it('drops the container fill, border and clip-path', () => {
+		const element = rule();
+		const { hf, fc, sw, sc } = shapeParams(element);
+		const style = getShapeVisualStyle(element, hf, fc, sw, sc);
+		expect(style.backgroundColor).toBe('transparent');
+		expect(style.borderWidth).toBeUndefined();
+		expect(style.borderTopWidth).toBeUndefined();
+		expect(style.clipPath).toBeUndefined();
+	});
+
+	it('leaves a closed preset to its CSS border', () => {
+		expect(markup(rule({ shapeType: 'rect', height: 100 }))).toBe('');
+	});
+});
