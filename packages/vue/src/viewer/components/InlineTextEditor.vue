@@ -12,6 +12,7 @@
  * (via `remapTextToSegments`) so per-run styling is preserved.
  */
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import { placeCaretAtEnd } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -87,13 +88,8 @@ onMounted(() => {
 	}
 	node.innerText = seedText();
 	node.focus();
-	// Place the caret at the end of the seeded text.
-	const range = document.createRange();
-	range.selectNodeContents(node);
-	range.collapse(false);
-	const selection = window.getSelection();
-	selection?.removeAllRanges();
-	selection?.addRange(range);
+	// Place the caret at the end of the seeded text (shared contract helper).
+	placeCaretAtEnd(node);
 });
 
 function onInput(): void {

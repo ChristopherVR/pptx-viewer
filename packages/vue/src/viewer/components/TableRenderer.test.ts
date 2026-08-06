@@ -95,6 +95,13 @@ describe('tableRenderer', () => {
 		expect(wrapper.find('table').exists()).toBeTruthy();
 	});
 
+	it('declares the shared default font family on the table root', () => {
+		// Without it an unstyled cell inherits the HOST chrome's font stack, and
+		// the same deck measured different type metrics in every binding.
+		const wrapper = mount(TableRenderer, { props: { element: table(basicGrid), zIndex: 0 } });
+		expect(wrapper.get('table').attributes('style')).toContain('Segoe UI');
+	});
+
 	it('renders the right number of rows and cells for a basic grid', () => {
 		const wrapper = mount(TableRenderer, { props: { element: table(basicGrid), zIndex: 0 } });
 		expect(wrapper.findAll('tr')).toHaveLength(2);

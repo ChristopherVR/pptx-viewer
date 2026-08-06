@@ -7,11 +7,13 @@
  *  1. A DAG fill-overlay tint layer (`ComputedEffectStyle.fillOverlay`): an
  *     absolutely-positioned, blended `<div>` painted over the element rather
  *     than blending the whole element (which would also tint text/children).
- *  2. A gradient or pattern OUTLINE (`a:ln/a:gradFill`, `a:ln/a:pattFill`): a
- *     CSS `border` takes one flat colour only, so the outline is stroked as a
- *     real SVG path over the element,
- *     following the shape's own geometry. `element-style.ts` drops the CSS
- *     border for these shapes so the averaged solid does not show underneath.
+ *  2. A stroked SVG OUTLINE, for the two cases a CSS `border` cannot paint: a
+ *     gradient / pattern line (`a:ln/a:gradFill`, `a:ln/a:pattFill`), which a
+ *     border can only render as one flat colour, and a stroke-only ("open")
+ *     preset such as `line` or `arc`, which has no box to put a border on. Both
+ *     follow the shape's own geometry; `element-style.ts` drops the CSS border
+ *     for these shapes so the averaged solid (or a rectangle) cannot show
+ *     underneath.
  *  3. The soft-edge feather `<filter>` (`a:softEdge`): the shape's CSS `filter`
  *     already carries a `url(#soft-edge-<id>)` reference (emitted by shared
  *     `getEffectFilterCss`); this injects the matching `<filter>` markup into a
@@ -27,7 +29,7 @@ import {
 	buildStrokeOutline,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
-	svgGradientFillRef,
+	strokeOutlineViewBox,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -68,18 +70,14 @@ const softEdge = computed(() => {
 	return getSoftEdgeSvgFilter(props.element.shapeStyle, props.element.id);
 });
 
-/** Stroked SVG outline for a gradient `a:ln`, or `undefined` for a solid one. */
+/**
+ * Stroked SVG outline for a gradient `a:ln` or a stroke-only preset, or
+ * `undefined` when the CSS border is correct (a closed shape, solid line).
+ */
 const strokeOutline = computed(() => buildStrokeOutline(props.element));
 
-/** `url(#…)` reference to the outline's paint server. */
-const strokePaint = computed(() =>
-	strokeOutline.value ? svgGradientFillRef(strokeOutline.value.paint) : undefined,
-);
-
-/** viewBox in the element's own pixel space, matching the outline path data. */
-const outlineViewBox = computed(
-	() => `0 0 ${Math.max(props.element.width, 1)} ${Math.max(props.element.height, 1)}`,
-);
+/** viewBox in the element's PAINTED box, which the path data is authored in. */
+const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
 </script>
 
 <template>
@@ -113,7 +111,7 @@ const outlineViewBox = computed(
 			pointer-events: none;
 		"
 	>
-		<defs>
+		<defs v-if="strokeOutline.paint">
 			<pattern
 				v-if="strokeOutline.paint.kind === 'pattern'"
 				:id="strokeOutline.paint.id"
@@ -160,13 +158,16 @@ const outlineViewBox = computed(
 			</linearGradient>
 		</defs>
 		<path
+			v-for="(strand, idx) in strokeOutline.strands"
+			:key="idx"
 			:d="strokeOutline.d"
 			fill="none"
-			:stroke="strokePaint"
-			:stroke-width="strokeOutline.strokeWidth"
+			:stroke="strokeOutline.stroke"
+			:stroke-width="strand.strokeWidth"
 			:stroke-dasharray="strokeOutline.dashArray"
 			:stroke-linecap="strokeOutline.lineCap"
 			:stroke-linejoin="strokeOutline.lineJoin"
+			:style="strand.offset !== 0 ? { transform: `translate(0, ${strand.offset}px)` } : undefined"
 		/>
 	</svg>
 </template>

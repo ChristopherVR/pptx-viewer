@@ -66,6 +66,8 @@ const props = defineProps<{
 	 * break single-element test locators.
 	 */
 	interactive?: boolean;
+	/** Emit the data-pptx-element marker even when not interactive (template layer). */
+	marked?: boolean;
 	/**
 	 * Native-animation playback state. A staged diagram build
 	 * (`build.kind === 'diagram'`) reveals the leading nodes / drawing shapes for
@@ -505,7 +507,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 		class="pptx-vue-element pptx-vue-smartart"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="props.interactive ? 'true' : undefined"
+		:data-pptx-element="props.interactive || props.marked ? 'true' : undefined"
 		aria-roledescription="diagram"
 	>
 		<div

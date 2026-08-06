@@ -24,6 +24,8 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	zIndex: number;
 	interactive?: boolean;
+	/** Emit the data-pptx-element marker even when not interactive (template layer). */
+	marked?: boolean;
 }>();
 
 // The clip is load-bearing, not cosmetic: a cropped picture is rendered by
@@ -60,7 +62,7 @@ const { displaySrc } = useColorChangeImage({ src: imageSrc, clrChange });
 		class="pptx-vue-element pptx-vue-image"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
 		<!-- SVG <filter> defs for duotone / advanced-alpha / artistic image effects. -->
 		<svg

@@ -75,37 +75,36 @@ describe('getShapeFillStrokeStyle', () => {
 		expect(style.borderRadius).toBeUndefined();
 	});
 
-	it('clips a sized line shape via the preset path (matches React order)', () => {
-		// The preset evaluator returns a `path()` for `line`, which (exactly as
-		// in the React `getShapeVisualStyle` cascade) wins ahead of the bare
-		// top-edge fallback. The fallback only applies when no clip-path resolves
-		// (e.g. degenerate dimensions).
+	it('leaves a line shape bare for the stroke overlay to paint', () => {
+		// `line` is stroke-only geometry: `ShapeEffectOverlay` strokes the
+		// evaluated path from shared `buildStrokeOutline`. A CSS border here would
+		// box the shape into the rectangle it does not have, and the preset's
+		// clip-path (a zero-area open path) would clip the overlay away.
 		const style = getShapeFillStrokeStyle(
 			shape({
 				type: 'shape',
 				shapeType: 'line',
-				shapeStyle: { strokeColor: '#123456', strokeWidth: 3 },
-			}),
-		);
-		expect(style.clipPath).toBeTypeOf('string');
-		expect(style.borderTop).toBeUndefined();
-	});
-
-	it('draws a bare top edge for a line shape with no resolvable clip-path', () => {
-		// width/height of 0 forces the cascade to skip the path evaluator; `line`
-		// has no static-table entry, so the bare top-edge fallback is used.
-		const style = getShapeFillStrokeStyle(
-			shape({
-				type: 'shape',
-				shapeType: 'line',
-				width: 0,
-				height: 0,
 				shapeStyle: { strokeColor: '#123456', strokeWidth: 3 },
 			}),
 		);
 		expect(style.backgroundColor).toBe('transparent');
 		expect(style.border).toBe('none');
-		expect(style.borderTop).toBe('3px solid #123456');
+		expect(style.borderTop).toBeUndefined();
+		expect(style.clipPath).toBeUndefined();
+	});
+
+	it('does the same for a degenerate 1-EMU rule', () => {
+		const style = getShapeFillStrokeStyle(
+			shape({
+				type: 'shape',
+				shapeType: 'line',
+				width: 400,
+				height: 0,
+				shapeStyle: { strokeColor: '#123456', strokeWidth: 3 },
+			}),
+		);
+		expect(style.border).toBe('none');
+		expect(style.borderTop).toBeUndefined();
 	});
 });
 

@@ -371,6 +371,16 @@ const handleList = computed<HandleMeta[]>(() =>
 	RESIZE_HANDLES.map((id) => ({ id, ...HANDLE_META[id] })),
 );
 
+/**
+ * Inverse of the stage zoom. The overlay lives INSIDE the zoom-scaled stage,
+ * so a handle sized in plain px shrinks with the zoom: at a typical fit zoom
+ * of ~0.7 a 10px handle painted only ~7px on screen and its reach inside the
+ * corner fell to ~3px, while the other four bindings keep a 10px screen-px
+ * handle centred on the corner. Sizing via `calc(Npx * inverseZoom)` keeps the
+ * on-screen hit area constant, matching the common contract.
+ */
+const inverseZoom = computed<number>(() => 1 / (props.zoom || 1));
+
 function boxStyle(box: SelectedBox): Record<string, string> {
 	const rotation = box.rotation ?? 0;
 	return {
@@ -390,18 +400,30 @@ function handleStyle(meta: HandleMeta, box: SelectedBox): Record<string, string>
 	};
 }
 
+/**
+ * Stem length in ELEMENT px for the current zoom. The stem is a constant 24
+ * SCREEN px in every binding (see vanilla's `selection-overlay.ts` and
+ * Svelte's `SelectionOverlay.svelte`); Vue used a flat 24 element px, so at a
+ * mobile fit zoom of ~0.3 the knob sat only ~7 screen px above the top edge
+ * and the (correctly sized) N resize handle covered it, swallowing the
+ * rotate press.
+ */
+function stemFor(): number {
+	return ROTATE_STEM * inverseZoom.value;
+}
+
 function rotateStemStyle(box: SelectedBox): Record<string, string> {
 	return {
 		left: `${box.width / 2}px`,
-		top: `${-ROTATE_STEM}px`,
-		height: `${ROTATE_STEM}px`,
+		top: `${-stemFor()}px`,
+		height: `${stemFor()}px`,
 	};
 }
 
 function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 	return {
 		left: `${box.width / 2}px`,
-		top: `${-ROTATE_STEM}px`,
+		top: `${-stemFor()}px`,
 	};
 }
 
@@ -421,6 +443,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 		class="pptx-vue-selection-overlay"
 		:class="{ 'is-coarse-pointer': IS_COARSE_POINTER }"
 		data-testid="selection-overlay"
+		:style="{ '--pptx-vue-hs': String(inverseZoom) }"
 	>
 		<div
 			v-for="box in selectedBoxes"
@@ -502,9 +525,11 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 
 .pptx-vue-resize-handle {
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	margin: -5px 0 0 -5px;
+	/* Sized against the inverse stage zoom (--pptx-vue-hs) so the on-screen
+	   hit area stays 10px regardless of zoom; see `inverseZoom` above. */
+	width: calc(10px * var(--pptx-vue-hs, 1));
+	height: calc(10px * var(--pptx-vue-hs, 1));
+	margin: calc(-5px * var(--pptx-vue-hs, 1)) 0 0 calc(-5px * var(--pptx-vue-hs, 1));
 	padding: 0;
 	border: 1px solid #ffffff;
 	border-radius: 9999px;
@@ -521,9 +546,9 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
  * footprint stays modest but the tappable area is large.
  */
 .pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-resize-handle {
-	width: 22px;
-	height: 22px;
-	margin: -11px 0 0 -11px;
+	width: calc(22px * var(--pptx-vue-hs, 1));
+	height: calc(22px * var(--pptx-vue-hs, 1));
+	margin: calc(-11px * var(--pptx-vue-hs, 1)) 0 0 calc(-11px * var(--pptx-vue-hs, 1));
 }
 
 .pptx-vue-rotate-stem {
@@ -536,9 +561,9 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 
 .pptx-vue-rotate-knob {
 	position: absolute;
-	width: 12px;
-	height: 12px;
-	margin: -6px 0 0 -6px;
+	width: calc(12px * var(--pptx-vue-hs, 1));
+	height: calc(12px * var(--pptx-vue-hs, 1));
+	margin: calc(-6px * var(--pptx-vue-hs, 1)) 0 0 calc(-6px * var(--pptx-vue-hs, 1));
 	padding: 0;
 	border: 1px solid #ffffff;
 	border-radius: 9999px;
@@ -550,17 +575,17 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 }
 
 .pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-rotate-knob {
-	width: 24px;
-	height: 24px;
-	margin: -12px 0 0 -12px;
+	width: calc(24px * var(--pptx-vue-hs, 1));
+	height: calc(24px * var(--pptx-vue-hs, 1));
+	margin: calc(-12px * var(--pptx-vue-hs, 1)) 0 0 calc(-12px * var(--pptx-vue-hs, 1));
 }
 
 /* Shape-adjustment handle: amber diamond (rotate 45°), mirrors React. */
 .pptx-vue-adjust-handle {
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	margin: -5px 0 0 -5px;
+	width: calc(10px * var(--pptx-vue-hs, 1));
+	height: calc(10px * var(--pptx-vue-hs, 1));
+	margin: calc(-5px * var(--pptx-vue-hs, 1)) 0 0 calc(-5px * var(--pptx-vue-hs, 1));
 	padding: 0;
 	border: 1px solid #ffffff;
 	background: #fcd34d;
@@ -571,8 +596,8 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 }
 
 .pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-adjust-handle {
-	width: 22px;
-	height: 22px;
-	margin: -11px 0 0 -11px;
+	width: calc(22px * var(--pptx-vue-hs, 1));
+	height: calc(22px * var(--pptx-vue-hs, 1));
+	margin: calc(-11px * var(--pptx-vue-hs, 1)) 0 0 calc(-11px * var(--pptx-vue-hs, 1));
 }
 </style>

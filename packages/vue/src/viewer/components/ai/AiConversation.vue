@@ -24,15 +24,23 @@
  * `pptx-svelte-viewer`). This makes `AiConversation` an async-setup
  * component, hence the `<Suspense>` boundary around it in `AiChatPanel.vue`.
  */
-import { TriangleAlert } from 'lucide-vue-next';
-import type { PptxAiBridge, PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { computed, onBeforeUnmount } from 'vue';
+import { History, MessageSquarePlus, Trash2, TriangleAlert } from 'lucide-vue-next';
+import type {
+	PptxAiBridge,
+	PptxAiChatSession,
+	PptxAiConfig,
+	PptxAiUIMessage,
+} from 'pptx-viewer-shared/ai';
+import { deckIdFromBridge } from 'pptx-viewer-shared/ai';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useAiChatHistory } from '../../composables/ai/useAiChatHistory';
 import { useAiConversation } from '../../composables/ai/useAiConversation';
 import type { AiPanelController } from '../../composables/ai/useAiPanelController';
 import AiComposer from './AiComposer.vue';
 import AiFocusBar from './AiFocusBar.vue';
+import AiHistoryMenu from './AiHistoryMenu.vue';
 import AiMessageList from './AiMessageList.vue';
 import AiProposalCard from './AiProposalCard.vue';
 
@@ -69,6 +77,17 @@ const {
 	},
 });
 
+// Chat history: debounced per-deck persistence + the "Chats" resume menu.
+const history = useAiChatHistory({
+	deckId: deckIdFromBridge(props.bridge),
+	messages,
+	setMessages: (next: PptxAiUIMessage[]) => {
+		messages.value = next;
+	},
+	untitledLabel: t('pptx.ai.untitledChat'),
+});
+const historyOpen = ref(false);
+
 // Applied-edit animation: when the AI apply path publishes a batch of changed
 // elements, reveal that slide and hand the batch to the canvas overlay so the
 // user watches the edit land (glide old->new, fade/scale in-out, glow).
@@ -102,7 +121,49 @@ function onAcceptAll(): void {
 </script>
 
 <template>
-	<div class="flex min-h-0 flex-1 flex-col">
+	<div class="relative flex min-h-0 flex-1 flex-col">
+		<div class="flex items-center gap-1 border-b border-border px-2 py-1">
+			<button
+				type="button"
+				class="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent"
+				@click="historyOpen = !historyOpen"
+			>
+				<History class="w-3.5 h-3.5" />
+				{{ t('pptx.ai.chats') }}
+			</button>
+			<div class="ml-auto flex items-center gap-0.5">
+				<button
+					type="button"
+					:title="t('pptx.ai.newChat')"
+					:aria-label="t('pptx.ai.newChat')"
+					class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+					@click="history.newChat()"
+				>
+					<MessageSquarePlus class="w-3.5 h-3.5" />
+				</button>
+				<button
+					type="button"
+					:title="t('pptx.ai.clearChat')"
+					:aria-label="t('pptx.ai.clearChat')"
+					:disabled="messages.length === 0"
+					class="rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40"
+					@click="history.clearCurrent()"
+				>
+					<Trash2 class="w-3.5 h-3.5" />
+				</button>
+			</div>
+		</div>
+
+		<AiHistoryMenu
+			v-if="historyOpen"
+			:chats="history.chats.value"
+			:active-chat-id="history.activeChatId.value"
+			@resume="(id) => void history.resumeChat(id)"
+			@delete="(id) => void history.deleteChat(id)"
+			@new-chat="history.newChat()"
+			@close="historyOpen = false"
+		/>
+
 		<AiFocusBar
 			:targets="effectiveTargets"
 			:slides="props.bridge.getSlides()"

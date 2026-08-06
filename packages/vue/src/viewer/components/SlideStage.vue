@@ -192,7 +192,10 @@ const stageStyle = computed<CSSProperties>(() => ({
 		:aria-label="presenting ? t('pptx.canvas.slide') : undefined"
 		:aria-hidden="!interactive && !presenting ? 'true' : undefined"
 	>
-		<!-- Template (master/layout) layer: behind the slide content (lower z). -->
+		<!-- Template (master/layout) layer: behind the slide content (lower z).
+		     `marked` keeps the data-pptx-element contract on these elements even
+		     while they are interaction-locked (outside edit-template mode): the
+		     marker means "rendered slide element", not "editable right now". -->
 		<ElementRenderer
 			v-for="(element, index) in templateElements"
 			:key="element.id"
@@ -200,6 +203,7 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:media-data-urls="mediaDataUrls"
 			:z-index="index"
 			:interactive="templateLayerInteractive"
+			:marked="interactive ?? false"
 			:template-editing="editTemplateMode ?? false"
 		/>
 		<!-- Slide content (template-free after the load-time partition). -->

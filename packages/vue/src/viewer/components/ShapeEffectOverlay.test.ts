@@ -45,4 +45,48 @@ describe('shapeEffectOverlay', () => {
 		expect(wrapper.find('svg').exists()).toBeTruthy();
 		expect(wrapper.html()).toContain('id="soft-edge-sp1"');
 	});
+
+	it('strokes a stroke-only ("open") preset instead of leaving a box border', () => {
+		// `<a:prstGeom prst="line"/>` has no region to fill and no box to outline;
+		// a CSS border drew a rectangle where PowerPoint draws the line itself.
+		const wrapper = mount(ShapeEffectOverlay, {
+			props: {
+				element: {
+					type: 'shape',
+					id: 'rule-1',
+					x: 0,
+					y: 0,
+					width: 400,
+					height: 0,
+					shapeType: 'line',
+					shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
+				} as unknown as PptxElement,
+			},
+		});
+		const path = wrapper.get('path');
+		expect(path.attributes('d')).toBe('M 0 0 L 400 1');
+		expect(path.attributes('stroke')).toBe('#000000');
+		// The viewBox is the PAINTED box (padded to MIN_ELEMENT_SIZE), so the rule
+		// is not stretched into a diagonal.
+		expect(wrapper.get('svg').attributes('viewBox')).toBe('0 0 400 12');
+		expect(wrapper.html()).not.toContain('<defs');
+	});
+
+	it('leaves a closed preset to its CSS border', () => {
+		const wrapper = mount(ShapeEffectOverlay, {
+			props: {
+				element: {
+					type: 'shape',
+					id: 'sp2',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 80,
+					shapeType: 'rect',
+					shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
+				} as unknown as PptxElement,
+			},
+		});
+		expect(wrapper.find('svg').exists()).toBeFalsy();
+	});
 });

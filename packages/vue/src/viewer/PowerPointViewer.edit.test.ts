@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import ComparePanel from './components/ComparePanel.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
@@ -31,6 +31,35 @@ describe('powerPointViewer editing wiring', () => {
 		await flushPromises();
 		expect(wrapper.findComponent(VersionHistoryPanel).exists()).toBeTruthy();
 		expect(wrapper.findComponent(ComparePanel).exists()).toBeTruthy();
+	});
+
+	// Regression test: `ribbonProps` does not carry the AI bindings, and the
+	// template passed them only to the desktop <RibbonToolbar>, so on a phone
+	// viewport the mobile toolbar's `aiEnabled` stayed undefined and the
+	// "Toggle AI assistant" button never rendered: the assistant was
+	// unreachable on mobile even with `ai` configured.
+	it('wires the AI toggle into the mobile toolbar when ai is configured', async () => {
+		// Force the mobile chrome: no ResizeObserver in jsdom, so useIsMobile
+		// falls back to matchMedia; a matching stub flips isMobile on.
+		const mql = {
+			matches: true,
+			media: '(max-width: 767px)',
+			addEventListener: () => {},
+			removeEventListener: () => {},
+		};
+		vi.stubGlobal('matchMedia', () => mql);
+		try {
+			const wrapper = mount(PowerPointViewer, {
+				props: {
+					canEdit: true,
+					ai: { connection: { kind: 'endpoint', api: '/ai' } },
+				},
+			});
+			await flushPromises();
+			expect(wrapper.find('button[aria-label="Toggle AI assistant"]').exists()).toBeTruthy();
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 
 	it('matches the React 20% to 500% imperative zoom range', async () => {

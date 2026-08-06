@@ -60,6 +60,14 @@ const props = defineProps<{
 	 */
 	interactive?: boolean;
 	/**
+	 * When true, emit the `data-pptx-element` marker even though `interactive` is
+	 * off. The main canvas sets this for template (master/layout) elements, which
+	 * are interaction-locked outside edit-template mode but are still rendered
+	 * slide elements as far as the contract is concerned (mirrors React, which
+	 * always tags canvas elements and gates interactivity separately).
+	 */
+	marked?: boolean;
+	/**
 	 * When true, this element belongs to the slide layout/master and the viewer is
 	 * in edit-template mode: draw a visual affordance so the user can tell apart
 	 * the (now editable) shared template shapes from normal slide content.
@@ -205,8 +213,12 @@ const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template
  * marker on exactly that node. Without it those types painted correctly but
  * were not elements as far as the contract is concerned, so anything that
  * enumerates or hit-tests slide elements by the marker skipped them silently.
+ *
+ * `marked` keeps the marker on interaction-locked template-layer elements.
  */
-const elementMarker = computed<'true' | undefined>(() => (props.interactive ? 'true' : undefined));
+const elementMarker = computed<'true' | undefined>(() =>
+	props.interactive || props.marked ? 'true' : undefined,
+);
 
 /*
  * The on-canvas action affordances (amber "has action" badge + hover link
@@ -249,6 +261,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 			:media-data-urls="mediaDataUrls"
 			:z-index="i"
 			:interactive="interactive"
+			:marked="marked"
 			:presenting="presenting"
 			:parent-group-fill="childParentGroupFill"
 		/>
@@ -261,6 +274,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:marked="marked"
 		:class="templateClass"
 	/>
 
@@ -271,6 +285,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:marked="marked"
 		:presenting="presenting"
 		:class="templateClass"
 	/>
@@ -302,6 +317,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:marked="marked"
 	/>
 	<ChartRenderer
 		v-else-if="element.type === 'chart'"
@@ -309,6 +325,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:marked="marked"
 		:animation-state="animationState"
 	/>
 	<SmartArt3DRenderer
@@ -325,6 +342,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:marked="marked"
 		:animation-state="animationState"
 	/>
 	<InkRenderer

@@ -1122,7 +1122,19 @@ defineExpose<PowerPointViewerExpose>(
 					:is-ai-panel-open="aiPanelOpen"
 					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 				/>
-				<MobileToolbar v-else v-bind="ribbonProps" :hidden-actions="props.hiddenActions" />
+				<!-- The AI bindings must be passed here too: `ribbonProps` does not
+				     carry them, so without these the mobile toolbar's Sparkles
+				     toggle never rendered and the assistant was unreachable on
+				     phones (the desktop quick-access bar is replaced by this
+				     toolbar on mobile). -->
+				<MobileToolbar
+					v-else
+					v-bind="ribbonProps"
+					:hidden-actions="props.hiddenActions"
+					:ai-enabled="Boolean(props.ai)"
+					:is-ai-panel-open="aiPanelOpen"
+					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
+				/>
 			</template>
 
 			<!-- Hidden pickers for Insert > Image / Media -->

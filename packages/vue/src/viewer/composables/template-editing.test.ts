@@ -81,10 +81,13 @@ function mountStage(editTemplateMode: boolean) {
 }
 
 describe('slideStage template layer', () => {
-	it('renders the template layer non-interactive and unhighlighted when the mode is off', () => {
+	it('renders the template layer marked but unhighlighted when the mode is off', () => {
 		const wrapper = mountStage(false);
 		const template = wrapper.get('[data-element-id="layout-shape-3"]');
-		expect(template.attributes('data-pptx-element')).toBeUndefined();
+		// The element marker stays on: it means "rendered slide element carrying
+		// the contract", not "editable right now". Interaction is gated per id by
+		// `isElementIdInteractive`, so the marker does not make it selectable.
+		expect(template.attributes('data-pptx-element')).toBe('true');
 		expect(template.classes()).not.toContain('pptx-vue-template-editing');
 		// Slide content stays interactive regardless of the mode.
 		const normal = wrapper.get('[data-element-id="shape-1"]');

@@ -16,6 +16,7 @@ import {
 	cellPatternFillCss,
 	cellRunStyle,
 	cellStyleToCss,
+	DEFAULT_FONT_FAMILY,
 	getCellDiagonalBorders,
 	getTableCellBandStyle,
 } from 'pptx-viewer-shared';
@@ -62,6 +63,8 @@ const props = withDefaults(
 		 * are disabled regardless of the injected editing context.
 		 */
 		interactive?: boolean;
+		/** Emit the data-pptx-element marker even when not interactive (template layer). */
+		marked?: boolean;
 		/**
 		 * PPTX theme colour scheme from the active presentation theme.
 		 * When supplied, band / header emphasis colours are resolved against
@@ -444,7 +447,7 @@ onBeforeUnmount(() => {
 		class="pptx-vue-element pptx-vue-table"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
 		<TableResizeOverlay
 			:column-widths="tableData.columnWidths"
@@ -452,7 +455,11 @@ onBeforeUnmount(() => {
 			@resize-columns="onResizeColumns"
 			@resize-row="onResizeRow"
 		>
-			<table class="pptx-vue-table__grid">
+			<!-- The explicit family is load-bearing: an unstyled cell otherwise
+			     inherits the HOST chrome's font, so the same table measured a
+			     different stack in every binding's demo. All five bindings declare
+			     the same shared default on the table root. -->
+			<table class="pptx-vue-table__grid" :style="{ fontFamily: DEFAULT_FONT_FAMILY }">
 				<colgroup v-if="columnPercentages.length > 0">
 					<col
 						v-for="(width, ci) in columnPercentages"

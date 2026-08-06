@@ -95,11 +95,14 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:on-close="onCloseInspector"
 	/>
 
-	<!-- AI assistant chat panel (right rail, sibling of the inspector).
+	<!-- AI assistant chat panel (desktop: right rail, sibling of the
+	     inspector; mobile: a 75dvh bottom sheet via its own max-md classes).
 	     Gated behind the optional `ai` prop; lazily loaded on first open
-	     so `@ai-sdk/vue` + the AI core only ship when actually used. -->
+	     so `@ai-sdk/vue` + the AI core only ship when actually used. React
+	     parity: NOT gated on isMobile; a `!isMobile` clause here made the
+	     assistant unopenable on phones. -->
 	<AiChatPanelLazy
-		v-if="ai && aiPanelOpen && !isMobile && (ribbonMode === 'edit' || ribbonMode === 'master')"
+		v-if="ai && aiPanelOpen && (ribbonMode === 'edit' || ribbonMode === 'master')"
 		:bridge="aiBridge"
 		:config="ai"
 		:ai-panel="aiPanel"

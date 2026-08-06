@@ -67,6 +67,22 @@ describe('aiChatPanel', () => {
 		expect(wrapper.text()).toContain('Ask the assistant');
 	});
 
+	it('renders a Chats button that toggles the saved-chat history menu', async () => {
+		wrapper = mount(AiChatPanel, { props: { bridge: makeBridge(), config: stubConfig() } });
+		await settle();
+
+		const chatsBtn = wrapper.findAll('button').find((b) => b.text().trim() === 'Chats');
+		expect(chatsBtn).toBeTruthy();
+		expect(wrapper.text()).not.toContain('Saved chats');
+
+		await chatsBtn?.trigger('click');
+		expect(wrapper.text()).toContain('Saved chats');
+		expect(wrapper.text()).toContain('No saved chats yet.');
+		expect(wrapper.text()).toContain('Chats are saved in this browser.');
+		const newChat = wrapper.findAll('button').find((b) => b.text().trim() === 'New chat');
+		expect(newChat).toBeTruthy();
+	});
+
 	it('emits close when the close button is clicked', async () => {
 		wrapper = mount(AiChatPanel, { props: { bridge: makeBridge(), config: stubConfig() } });
 		await settle();

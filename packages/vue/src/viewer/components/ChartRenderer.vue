@@ -59,6 +59,8 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	/** True only on the primary editable canvas: enables direct chart editing. */
 	interactive?: boolean;
+	/** Emit the data-pptx-element marker even when not interactive (template layer). */
+	marked?: boolean;
 	/**
 	 * Native-animation playback state. When it carries a staged chart build
 	 * (`build.kind === 'chart'`) the chart reveals its series / categories / cells
@@ -208,7 +210,7 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 		:class="interactiveClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="interactive || marked ? 'true' : undefined"
 		@pointerdown="onPointerdown"
 		@pointermove="onPointermove"
 		@pointerup="onPointerup"

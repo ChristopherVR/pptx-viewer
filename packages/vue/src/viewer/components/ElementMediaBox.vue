@@ -26,6 +26,8 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	zIndex: number;
 	interactive?: boolean;
+	/** Emit the data-pptx-element marker even when not interactive (template layer). */
+	marked?: boolean;
 	/**
 	 * True only on the live presentation stage: the media element should then
 	 * begin playing on its own (as PowerPoint does when a slide with media
@@ -156,7 +158,7 @@ const showControls = computed(() =>
 		class="pptx-vue-element pptx-vue-media"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		:data-pptx-element="interactive ? 'true' : undefined"
+		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
 		<video
 			v-if="mediaSrc && mediaKind === 'video'"
