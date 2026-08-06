@@ -109,16 +109,30 @@ async function loadDeckSlowlyAt(
 	await page.waitForFunction(() => document.fonts.status === 'loaded');
 }
 
-/** Switch to `slide` and wait until its content (charts included) is painted. */
-async function gotoSlide(page: Page, slide: number, totalSlides: number): Promise<void> {
+/**
+ * Switch to `slide` and wait until its content (charts included) is painted.
+ *
+ * `navTimeout` is the deck's own load budget rather than the default action
+ * timeout: a media-heavy deck keeps repainting its thumbnail rail while every
+ * preview renders, so the target button stays "not stable" well past 10s even
+ * though nothing is wrong with it.
+ */
+async function gotoSlide(
+	page: Page,
+	slide: number,
+	totalSlides: number,
+	navTimeout: number,
+): Promise<void> {
 	if (slide > 1) {
-		await thumbnail(page, slide).click();
+		const target = thumbnail(page, slide);
+		await target.scrollIntoViewIfNeeded({ timeout: navTimeout });
+		await target.click({ timeout: navTimeout });
 		// The slide indicator is the only neutral "navigation done" signal; \b
 		// keeps "2 of 12" from matching inside "12 of 12".
 		await page
 			.getByText(new RegExp(`\\b${slide} of ${totalSlides}\\b`, 'u'))
 			.first()
-			.waitFor();
+			.waitFor({ timeout: navTimeout });
 	}
 	// Charts mount their <svg> after the slide stage paints; wait for the ink,
 	// not just the frame, or the two sides of the diff race the renderer.
@@ -145,7 +159,7 @@ test.describe('cross-binding slide rendering', () => {
 				}
 				const perSlide: SlideFingerprint[] = [];
 				for (const slide of deck.slides) {
-					await gotoSlide(page, slide, deck.totalSlides);
+					await gotoSlide(page, slide, deck.totalSlides, deck.loadTimeout);
 					perSlide.push(await fingerprintSlide(page));
 				}
 				return perSlide;

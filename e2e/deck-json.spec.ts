@@ -124,7 +124,13 @@ test.describe('deck-as-JSON export + import', () => {
 		// real text probe from slide 1 of the sample deck.
 		await expect(backstage(page)).toBeHidden({ timeout: 30_000 });
 		await expect(page.getByText(/\b1 of 7\b/u).first()).toBeVisible({ timeout: 60_000 });
-		expect(await page.locator('[data-pptx-viewport] [data-element-id]').count()).toBeGreaterThan(0);
-		await expect(page.getByText('Product Overview', { exact: true }).first()).toBeVisible();
+		// Auto-retrying: the slide indicator paints before the canvas remounts its
+		// elements, so a one-shot count() samples the gap and reads zero.
+		await expect(page.locator('[data-pptx-viewport] [data-element-id]').first()).toBeAttached({
+			timeout: 60_000,
+		});
+		await expect(page.getByText('Product Overview', { exact: true }).first()).toBeVisible({
+			timeout: 30_000,
+		});
 	});
 });

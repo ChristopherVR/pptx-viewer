@@ -108,8 +108,11 @@ async function probeBlackboard(page: Page, origin: string): Promise<BlackboardPr
 	await page.mouse.up();
 	await page.waitForTimeout(300);
 
+	// Any stroke path inside the overlay: four bindings hang the marker on a
+	// wrapper around the <svg>, one puts it on the <svg> itself, and which node
+	// carries it makes no visual difference.
 	const strokeCount = await page
-		.locator('[data-pptx-annotation-overlay] svg path')
+		.locator('[data-pptx-annotation-overlay] path')
 		.count()
 		.catch(() => 0);
 	const overlayZ = await effectiveZ(page, '[data-pptx-annotation-overlay]');
