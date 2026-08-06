@@ -16,6 +16,7 @@
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { anchoredPopup } from '../anchored-popup';
+	import SlideTemplatesLauncher from './SlideTemplatesLauncher.svelte';
 
 	const { editor, onnavigate }: { editor: EditorState; onnavigate: (index: number) => void } =
 		$props();
@@ -96,6 +97,9 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Slide Templates gallery: pre-designed starter slides (React parity). -->
+		<SlideTemplatesLauncher {editor} {onnavigate} />
 
 		<!-- Layout dropdown: re-map the current slide onto another layout. -->
 		<div class="pptx-svelte-rgroup-split" bind:this={layoutSplitEl} onfocusout={onFocusOut}>

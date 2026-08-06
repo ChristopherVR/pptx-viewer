@@ -144,6 +144,8 @@ function MobileSectionBody({
 						onToggleFormatPainter={p.onToggleFormatPainter}
 						layoutOptions={p.layoutOptions}
 						onInsertSlideFromLayout={p.onInsertSlideFromLayout}
+						onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
+						templateScheme={p.templateScheme}
 						selectedElement={p.selectedElement}
 						onUpdateTextStyle={p.onUpdateTextStyle}
 					/>

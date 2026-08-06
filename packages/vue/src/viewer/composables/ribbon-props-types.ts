@@ -6,9 +6,10 @@ import type {
 	PptxLayoutOption,
 	PptxSaveFormat,
 	PptxSlide,
+	PptxTheme,
 } from 'pptx-viewer-core';
-import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
-import type { ComputedRef, Ref } from 'vue';
+import type { AlignEdge, DistributeAxis, SlideTemplateId } from 'pptx-viewer-shared';
+import type { ComputedRef, Ref, ShallowRef } from 'vue';
 
 import type { ShapePreset } from '../components/EditorToolbar.vue';
 import type {
@@ -58,6 +59,8 @@ export interface UseRibbonPropsStateInput {
 	snapToShape: Ref<boolean>;
 	overflowOpen: Ref<boolean>;
 	layoutOptions: Ref<PptxLayoutOption[]>;
+	/** Loaded deck theme; template gallery previews resolve scheme colours against it. */
+	theme: ShallowRef<PptxTheme | undefined>;
 	customShows: Ref<PptxCustomShow[]>;
 	activeCustomShowId: Ref<string | null>;
 	isCurrentSlideInActiveShow: ComputedRef<boolean>;
@@ -154,6 +157,7 @@ export interface UseRibbonPropsActionsInput {
 	ribbonUpdateTextStyle: RibbonProps['onUpdateTextStyle'];
 	ribbonUpdateTextCase: RibbonProps['onTransformTextCase'];
 	insertSlideFromLayout: (layoutPath: string, layoutName?: string) => Promise<void>;
+	insertSlideFromTemplate: (templateId: SlideTemplateId) => void;
 	onRenameActiveCustomShow: () => void;
 	onDeleteActiveCustomShow: () => void;
 	onToggleCurrentSlideInActiveShow: () => void;

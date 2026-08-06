@@ -1,10 +1,12 @@
 import { cloneElement } from 'pptx-viewer-core';
 import type { PptxLayoutOption } from 'pptx-viewer-core';
+import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-shared';
 
 import {
 	deleteSlideAt,
 	duplicateSlideAt,
 	insertBlankSlideAfter,
+	insertTemplateSlideAfter,
 	moveSlide,
 } from './editor-slide-ops';
 import type { EditorState } from './editor-state.svelte';
@@ -32,6 +34,31 @@ export class EditorSlidesController {
 		const { slides, newIndex } = insertBlankSlideAfter(
 			this.#editor.slides,
 			this.#editor.currentSlideIndex,
+		);
+		this.#editor.commitSlides(slides);
+		return newIndex;
+	}
+
+	/**
+	 * Insert a shared-catalogue template slide after the current one, as one
+	 * undoable step (Home > Slide Templates gallery). The caller (the gallery
+	 * launcher, which can read the render context) passes the deck's scheme and
+	 * canvas size in `options` so the slide inherits the theme; without them
+	 * the shared builder falls back to the Office default scheme at 1280x720.
+	 * Returns the new index, or null when not editable.
+	 */
+	insertSlideFromTemplate(
+		templateId: SlideTemplateId,
+		options: SlideTemplateBuildOptions = {},
+	): number | null {
+		if (!this.#editor.editable) {
+			return null;
+		}
+		const { slides, newIndex } = insertTemplateSlideAfter(
+			this.#editor.slides,
+			this.#editor.currentSlideIndex,
+			templateId,
+			options,
 		);
 		this.#editor.commitSlides(slides);
 		return newIndex;

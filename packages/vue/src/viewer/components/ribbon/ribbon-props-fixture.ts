@@ -112,6 +112,7 @@ export function createRibbonPropsFixture(overrides: Partial<RibbonProps> = {}): 
 		onTransformTextCase: noop,
 		onSetOverflowMenuOpen: noop,
 		onInsertSlideFromLayout: noop,
+		onInsertSlideFromTemplate: noop,
 		onSetActiveCustomShowId: noop,
 		onCreateCustomShow: noop,
 		onRenameActiveCustomShow: noop,

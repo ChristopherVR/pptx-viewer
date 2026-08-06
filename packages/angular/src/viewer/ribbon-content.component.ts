@@ -88,6 +88,7 @@ import type { RibbonTab } from './ribbon-types';
 					[canActivateFormatPainter]="canActivateFormatPainter()"
 					(toggleFormatPainter)="toggleFormatPainter.emit()"
 					(findReplace)="find.emit()"
+					(openTemplateGallery)="openTemplateGallery.emit()"
 				/>
 				<span class="pptx-rb-sep"></span>
 				<pptx-ribbon-drawing-group [canEdit]="canEdit()" [slideIndex]="slideIndex()" />
@@ -182,6 +183,8 @@ export class RibbonContentComponent {
 	readonly replace = output<void>();
 	readonly openSmartArtDialog = output<void>();
 	readonly openEquationDialog = output<void>();
+	/** "Slide Templates" in the Home tab's Slides group; the host opens the gallery. */
+	readonly openTemplateGallery = output<void>();
 	/**
 	 * Insert > Hyperlink. Shares the ribbon's existing `link` output with the
 	 * Review tab's Link command: both open the one hyperlink edit dialog the

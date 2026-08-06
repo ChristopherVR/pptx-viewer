@@ -1,8 +1,17 @@
+import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuChevronDown, LuFolderPlus, LuPlus, LuRotateCcw, LuLayoutGrid } from 'react-icons/lu';
+import {
+	LuChevronDown,
+	LuFolderPlus,
+	LuLayoutTemplate,
+	LuPlus,
+	LuRotateCcw,
+	LuLayoutGrid,
+} from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { SlideTemplateGalleryDialog } from '../SlideTemplateGalleryDialog';
 import { RibbonMenu } from './RibbonMenu';
 import { ic, pill, sep } from './toolbar-constants';
 
@@ -10,6 +19,9 @@ export interface SlidesGroupProps {
 	canEdit: boolean;
 	layoutOptions: Array<{ path: string; name: string }>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
+	/** Deck scheme map so template previews show the deck's theme colours. */
+	templateScheme?: Record<string, string>;
 	onApplyLayout?: (path: string) => void;
 	onResetSlide?: () => void;
 	onAddSection?: () => void;
@@ -19,6 +31,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 	const { t } = useTranslation();
 	const [newSlideMenuOpen, setNewSlideMenuOpen] = useState(false);
 	const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+	const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
 	const newSlideMenuRef = useRef<HTMLDivElement>(null);
 	const layoutMenuRef = useRef<HTMLDivElement>(null);
 
@@ -107,6 +120,20 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						)}
 					</div>
 
+					{/* Slide Templates gallery button */}
+					{p.onInsertSlideFromTemplate && (
+						<button
+							type='button'
+							disabled={!p.canEdit}
+							className={pill}
+							title={t('pptx.home.slideTemplates')}
+							onClick={() => setTemplateGalleryOpen(true)}
+						>
+							<LuLayoutTemplate className={ic} />
+							{t('pptx.home.slideTemplates')}
+						</button>
+					)}
+
 					{/* Layout button */}
 					<div className='relative inline-flex items-center' ref={layoutMenuRef}>
 						<button
@@ -168,6 +195,15 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 			</div>
 
 			{sep}
+
+			{p.onInsertSlideFromTemplate && (
+				<SlideTemplateGalleryDialog
+					isOpen={templateGalleryOpen}
+					onClose={() => setTemplateGalleryOpen(false)}
+					onInsert={(templateId) => p.onInsertSlideFromTemplate?.(templateId)}
+					scheme={p.templateScheme}
+				/>
+			)}
 		</>
 	);
 }

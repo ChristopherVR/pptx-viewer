@@ -5,11 +5,13 @@ import type {
 	PptxSlideTransition,
 	PptxElementAnimation,
 	PptxAnimationPreset,
+	PptxTheme,
 } from 'pptx-viewer-core';
 import {
 	applyMotionPathPreset,
 	createBackstagePresentation,
 	DEFAULT_INSERT_CHART_TYPE,
+	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
 import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
 /**
@@ -89,6 +91,8 @@ export interface ViewerToolbarSectionProps {
 		isOverflowMenuOpen: boolean;
 		setIsOverflowMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
 		layoutOptions: PptxLayoutOption[];
+		/** Loaded deck theme; used to resolve template-gallery scheme colours. */
+		theme?: PptxTheme;
 		hasMacros: boolean;
 		isThemeEditorOpen: boolean;
 		setIsThemeEditorOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -574,6 +578,8 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSetOverflowMenuOpen={s.setIsOverflowMenuOpen}
 				layoutOptions={scopedLayoutOptions}
 				onInsertSlideFromLayout={slideOps.handleInsertSlideFromLayout}
+				onInsertSlideFromTemplate={slideOps.handleInsertSlideFromTemplate}
+				templateScheme={templateSchemeFromTheme(s.theme?.colorScheme)}
 				customShows={s.customShows}
 				activeCustomShowId={s.activeCustomShowId}
 				onSetActiveCustomShowId={s.setActiveCustomShowId}

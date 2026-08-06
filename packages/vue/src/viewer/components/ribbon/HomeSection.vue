@@ -11,6 +11,7 @@ import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -42,6 +43,9 @@ interface Props {
 	onToggleFormatPainter?: () => void;
 	layoutOptions: LayoutOption[];
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
+	/** Deck scheme map so template previews show the deck's theme colours. */
+	templateScheme?: Record<string, string>;
 	onApplyLayout?: (path: string) => void;
 	onResetSlide?: () => void;
 	onAddSection?: () => void;
@@ -174,6 +178,8 @@ function handlePickSize(s: number): void {
 		:can-edit="props.canEdit"
 		:layout-options="props.layoutOptions"
 		:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
+		:on-insert-slide-from-template="props.onInsertSlideFromTemplate"
+		:template-scheme="props.templateScheme"
 		:on-apply-layout="props.onApplyLayout"
 		:on-reset-slide="props.onResetSlide"
 		:on-add-section="props.onAddSection"

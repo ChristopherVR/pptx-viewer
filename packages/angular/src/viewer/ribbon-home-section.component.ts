@@ -12,6 +12,7 @@ import {
 	LucideCopy,
 	LucideFolderPlus,
 	LucideLayoutGrid,
+	LucideLayoutTemplate,
 	LucidePaintbrush,
 	LucidePlus,
 	LucideRotateCcw,
@@ -41,6 +42,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 		LucideCopy,
 		LucideFolderPlus,
 		LucideLayoutGrid,
+		LucideLayoutTemplate,
 		LucidePaintbrush,
 		LucideRotateCcw,
 		LucideScissors,
@@ -152,6 +154,21 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 					</div>
 				}
 				<div class="pptx-rb-grp">
+					<!--
+						Slide Templates gallery (React SlidesGroup parity): opens the
+						modal template gallery hosted by the viewer, which inserts the
+						chosen pre-designed slide after the active one.
+					-->
+					<button
+						type="button"
+						class="pptx-rb-gb whitespace-nowrap"
+						[disabled]="!canEdit()"
+						[title]="'pptx.home.slideTemplates' | translate"
+						(click)="openTemplateGallery.emit()"
+					>
+						<svg lucideLayoutTemplate class="h-4 w-4"></svg>
+						{{ 'pptx.home.slideTemplates' | translate }}
+					</button>
 					<button
 						type="button"
 						class="pptx-rb-gb whitespace-nowrap"
@@ -237,6 +254,8 @@ export class RibbonHomeSectionComponent {
 
 	readonly toggleFormatPainter = output<void>();
 	readonly findReplace = output<void>();
+	/** "Slide Templates" in the Slides group; the host opens the gallery dialog. */
+	readonly openTemplateGallery = output<void>();
 	readonly applyLayout = output<string>();
 	readonly resetSlide = output<void>();
 

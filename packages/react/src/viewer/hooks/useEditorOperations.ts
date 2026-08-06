@@ -218,6 +218,8 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		ops,
 		history,
 		handlerRef,
+		canvasSize,
+		theme: state.theme,
 	});
 
 	const tableOps = useTableOperations({

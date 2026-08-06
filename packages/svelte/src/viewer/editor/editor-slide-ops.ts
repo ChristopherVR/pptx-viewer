@@ -1,6 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { cloneSlide } from 'pptx-viewer-core';
-import { createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
+import { buildSlideTemplateSlide, createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
+import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-shared';
 
 /**
  * Pure slide-array mutations for the Home tab's Slides group (New slide /
@@ -24,6 +25,28 @@ export function insertBlankSlideAfter(
 	const insertAt = Math.min(Math.max(afterIndex + 1, 0), slides.length);
 	const next = [...slides];
 	next.splice(insertAt, 0, createBlankSlide(insertAt + 1, makeSlideId));
+	return { slides: renumbered(next), newIndex: insertAt };
+}
+
+/**
+ * Insert a pre-designed template slide immediately after `afterIndex`.
+ * The slide content comes from the shared catalogue (`buildSlideTemplateSlide`),
+ * so what the gallery previews is exactly what lands in the deck. Pass the
+ * deck's scheme/canvas size in `options` so the new slide inherits the theme.
+ */
+export function insertTemplateSlideAfter(
+	slides: readonly PptxSlide[],
+	afterIndex: number,
+	templateId: SlideTemplateId,
+	options: SlideTemplateBuildOptions = {},
+): { slides: PptxSlide[]; newIndex: number } {
+	const insertAt = Math.min(Math.max(afterIndex + 1, 0), slides.length);
+	const next = [...slides];
+	next.splice(
+		insertAt,
+		0,
+		buildSlideTemplateSlide(templateId, makeSlideId(), insertAt + 1, options),
+	);
 	return { slides: renumbered(next), newIndex: insertAt };
 }
 

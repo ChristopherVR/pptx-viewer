@@ -119,6 +119,8 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-toggle-format-painter="props.onToggleFormatPainter"
 				:layout-options="props.layoutOptions"
 				:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
+				:on-insert-slide-from-template="props.onInsertSlideFromTemplate"
+				:template-scheme="props.templateScheme"
 				:on-apply-layout="props.onApplyLayout"
 				:on-reset-slide="props.onResetSlide"
 				:on-add-section="props.onAddSection"

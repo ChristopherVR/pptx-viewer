@@ -116,6 +116,7 @@ import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideNavigation } from './composables/useSlideNavigation';
 import { useSlideOperations } from './composables/useSlideOperations';
 import { useSlideShowSettings } from './composables/useSlideShowSettings';
+import { useSlideTemplateInsertion } from './composables/useSlideTemplateInsertion';
 import { useSmartArtNodeEditContext } from './composables/useSmartArtNodeEditContext';
 import { useSwipeNavigation } from './composables/useSwipeNavigation';
 import { useTableCellEditingContext } from './composables/useTableCellEditingContext';
@@ -429,6 +430,15 @@ const insertion = useElementInsertion({
 // The two hidden `<input type="file">` pickers bind by string ref, so their
 // refs must be top-level bindings in this SFC.
 const { imageInputRef, mediaInputRef } = insertion;
+
+// -- Slide-template insertion (Home tab gallery) -----------------------
+const templateInsertion = useSlideTemplateInsertion({
+	canvasSize,
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+	theme: pptxTheme,
+});
 const { deleteSelected, duplicateSelected, bringForward, sendBackward } = useMultiSelectOps({
 	selectedElementIds,
 	ops,
@@ -972,6 +982,7 @@ const ribbonProps = useViewerRibbonProps({
 	ribbonActions,
 	drag,
 	insertion,
+	templateInsertion,
 	insertDialogs,
 	exporter,
 	printer,

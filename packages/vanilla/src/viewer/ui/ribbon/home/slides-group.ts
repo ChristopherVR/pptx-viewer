@@ -1,15 +1,22 @@
+import type { SlideTemplateId } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import { createIcon } from '../../icons';
 import type { LayoutOption } from '../ribbon-types';
+import { createSlideTemplateDialog } from './slide-template-dialog';
 
 export interface SlidesGroupHandlers {
 	addSlide(): void;
 	insertSlideFromLayout(layoutPath: string, layoutName?: string): void;
+	/** Insert a pre-designed starter slide from the shared template catalog. */
+	insertSlideFromTemplate(templateId: SlideTemplateId): void;
 	applyLayout(layoutPath: string): void;
 	resetSlide(): void;
 	addSection(): void;
+	/** Deck scheme map so template previews show the deck's theme colours. */
+	getTemplateScheme?(): Record<string, string> | undefined;
 }
 
 export interface SlidesGroupState {
@@ -115,6 +122,21 @@ export function createSlidesGroup(
 	});
 	newSlideSplit.append(add.btn, caret, newSlideMenu.el);
 
+	// -- Slide Templates gallery (React's LuLayoutTemplate pill) ---------------
+	const templateDialog = createSlideTemplateDialog(doc, t, {
+		onInsert: (templateId) => handlers.insertSlideFromTemplate(templateId),
+		getScheme: () => handlers.getTemplateScheme?.(),
+	});
+	const templates = makeButton(doc, {
+		label: t('pptx.home.slideTemplates'),
+		icon: 'slide-templates',
+		textLabel: t('pptx.home.slideTemplates'),
+		onClick: () => {
+			const host = templates.btn.closest<HTMLElement>('.pptxv') ?? doc.body;
+			templateDialog.open(host);
+		},
+	});
+
 	// -- Layout dropdown -------------------------------------------------------
 	const layoutHost = createEl(doc, 'div', 'pptxv-slides-menu-host');
 	const layout = makeButton(doc, {
@@ -147,7 +169,7 @@ export function createSlidesGroup(
 	});
 	section.btn.title = t('pptx.sections.addSection');
 
-	row.append(newSlideSplit, layoutHost, reset.btn, section.btn);
+	row.append(newSlideSplit, templates.btn, layoutHost, reset.btn, section.btn);
 
 	return {
 		el,
@@ -159,12 +181,14 @@ export function createSlidesGroup(
 			// The caret only appears when there are layouts to choose (React parity).
 			caret.hidden = !hasLayouts;
 			caret.disabled = !editable;
+			templates.setDisabled(!editable);
 			layout.setDisabled(!editable || !hasLayouts);
 			reset.setDisabled(!editable || slideCount === 0);
 			section.setDisabled(!editable || slideCount === 0);
 			if (!editable) {
 				newSlideMenu.close();
 				layoutMenu.close();
+				templateDialog.close();
 			}
 		},
 	};

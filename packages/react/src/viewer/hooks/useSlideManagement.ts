@@ -2,8 +2,14 @@
  * useSlideManagement: Slide CRUD operations: add, move, delete,
  * duplicate, toggle-hide, insert-from-layout, and context menu.
  */
-import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
+import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import {
+	buildSlideTemplateSlide,
+	createBlankSlide,
+	makeSlideId,
+	templateSchemeFromTheme,
+} from 'pptx-viewer-shared';
+import type { SlideTemplateId } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type { EditorHistoryResult } from './useEditorHistory';
@@ -18,6 +24,10 @@ export interface UseSlideManagementInput {
 	history: EditorHistoryResult;
 	/** Ref to the loaded PPTX handler; `current` is null before initial load. */
 	handlerRef?: React.RefObject<PptxHandler | null> | React.MutableRefObject<PptxHandler | null>;
+	/** Canvas size in px, used to scale inserted template slides. */
+	canvasSize?: { width: number; height: number };
+	/** Loaded deck theme; template slides resolve scheme colours against it. */
+	theme?: PptxTheme;
 }
 
 export interface SlideManagementHandlers {
@@ -28,6 +38,7 @@ export interface SlideManagementHandlers {
 	handleDuplicateSlides: (indexes: number[]) => void;
 	handleToggleHideSlides: (indexes: number[]) => void;
 	handleInsertSlideFromLayout: (layoutPath: string, layoutName?: string) => void;
+	handleInsertSlideFromTemplate: (templateId: SlideTemplateId) => void;
 }
 
 /**
@@ -47,7 +58,16 @@ export function insertSlideFromLayoutUpdater(
 }
 
 export function useSlideManagement(input: UseSlideManagementInput): SlideManagementHandlers {
-	const { slides, activeSlideIndex, setActiveSlideIndex, ops, history, handlerRef } = input;
+	const {
+		slides,
+		activeSlideIndex,
+		setActiveSlideIndex,
+		ops,
+		history,
+		handlerRef,
+		canvasSize,
+		theme,
+	} = input;
 
 	const handleAddSlide = () => {
 		const newSlide = createBlankSlide(slides.length + 1);
@@ -191,6 +211,17 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 		}
 	};
 
+	const handleInsertSlideFromTemplate = (templateId: SlideTemplateId) => {
+		const insertAt = activeSlideIndex + 1;
+		const draft = buildSlideTemplateSlide(templateId, makeSlideId(), slides.length + 1, {
+			...(canvasSize ? { slideWidth: canvasSize.width, slideHeight: canvasSize.height } : {}),
+			scheme: templateSchemeFromTheme(theme?.colorScheme),
+		});
+		ops.updateSlides((prev) => insertSlideFromLayoutUpdater(prev, activeSlideIndex, draft));
+		setActiveSlideIndex(insertAt);
+		history.markDirty();
+	};
+
 	return {
 		handleAddSlide,
 		handleMoveSlide,
@@ -199,5 +230,6 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 		handleDuplicateSlides,
 		handleToggleHideSlides,
 		handleInsertSlideFromLayout,
+		handleInsertSlideFromTemplate,
 	};
 }

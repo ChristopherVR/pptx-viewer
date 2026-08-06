@@ -1,3 +1,5 @@
+import { templateSchemeFromTheme } from 'pptx-viewer-shared';
+
 import type { UseRibbonPropsInput } from './ribbon-props-types';
 
 /**
@@ -41,6 +43,7 @@ export function buildRibbonPropsState(input: UseRibbonPropsInput) {
 		snapToShape: input.snapToShape.value,
 		isOverflowMenuOpen: input.overflowOpen.value,
 		layoutOptions: input.layoutOptions.value,
+		templateScheme: templateSchemeFromTheme(input.theme.value?.colorScheme),
 		customShows: input.customShows.value,
 		activeCustomShowId: input.activeCustomShowId.value,
 		isCurrentSlideInActiveShow: input.isCurrentSlideInActiveShow.value,

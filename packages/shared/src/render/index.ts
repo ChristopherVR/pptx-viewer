@@ -329,6 +329,11 @@ export * from './section-operations';
 // Slide CRUD factories: blank-slide builder + `slide-<ts>-<rand>` id helper
 // (with optional id override). Each binding's slide-management layer calls these.
 export * from './slide-operations';
+// Slide template gallery: catalogue of pre-designed starter slides (title,
+// agenda, comparison, ...) built as theme-aware PptxSlide content. Single
+// source of truth for every binding's New Slide template gallery and its
+// live-rendered previews.
+export * from './slide-templates';
 // OLE download/open helpers: file-size formatting + browser-openable MIME check
 // for the binding OLE renderers' download/open actions.
 export * from './ole-actions';

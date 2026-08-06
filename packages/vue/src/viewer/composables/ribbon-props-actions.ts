@@ -166,6 +166,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		},
 		onInsertSlideFromLayout: (path: string, name?: string) =>
 			void input.insertSlideFromLayout(path, name),
+		onInsertSlideFromTemplate: input.insertSlideFromTemplate,
 		onSetActiveCustomShowId: (id: string | null) => {
 			input.activeCustomShowId.value = id;
 		},

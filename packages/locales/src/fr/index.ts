@@ -14,6 +14,7 @@ import { translations as masters_and_themes } from './masters-and-themes';
 import { translations as navigation_and_layout } from './navigation-and-layout';
 import { translations as presenting_and_slide_show } from './presenting-and-slide-show';
 import { translations as ribbon } from './ribbon';
+import { translations as slide_templates } from './slide-templates';
 import { translations as smart_art } from './smart-art';
 import { translations as tables } from './tables';
 import { translations as text_and_equations } from './text-and-equations';
@@ -39,5 +40,6 @@ export const translationsFr: Record<string, string> = {
 	...fills_and_strokes,
 	...tables,
 	...ribbon,
+	...slide_templates,
 	...viewer_options,
 };

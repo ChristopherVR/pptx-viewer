@@ -72,6 +72,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getColorScheme: () => loader.colorScheme,
 		getTableStyleMap: () => loader.tableStyleMap,
 		getFontScheme: () => loader.presentationTheme?.fontScheme,
+		getCanvasSize: () => loader.canvasSize,
 	});
 	const viewer = new ViewerState();
 	// The `use*Cluster` helpers below are named after this codebase's

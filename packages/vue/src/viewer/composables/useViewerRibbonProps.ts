@@ -12,7 +12,13 @@
  * Nothing is computed here; every field is forwarded verbatim. If a mapping
  * ever needs a decision, that decision belongs in the owning composable.
  */
-import type { PptxCustomShow, PptxElement, PptxLayoutOption, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxCustomShow,
+	PptxElement,
+	PptxLayoutOption,
+	PptxSlide,
+	PptxTheme,
+} from 'pptx-viewer-core';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 
 import type { RibbonProps } from '../components/ribbon/ribbon-types';
@@ -39,12 +45,15 @@ import type { UseSelectionModelResult } from './useSelectionModel';
 import type { UseSelectionPaneWiringResult } from './useSelectionPaneWiring';
 import type { UseSignatureWorkflowResult } from './useSignatureWorkflow';
 import type { UseSlideShowSettingsResult } from './useSlideShowSettings';
+import type { UseSlideTemplateInsertionResult } from './useSlideTemplateInsertion';
 import type { UseVersionHistoryWiringResult } from './useVersionHistoryWiring';
 
 /** The subset of `useLoadContent`'s result the ribbon reads. */
 export interface RibbonDeckInput {
 	layoutOptions: ShallowRef<PptxLayoutOption[]>;
 	customShows: ShallowRef<PptxCustomShow[]>;
+	/** Loaded deck theme; template gallery previews resolve scheme colours against it. */
+	theme: ShallowRef<PptxTheme | undefined>;
 }
 
 /** Undo/redo surface (`useEditorHistory`), narrowed to what the ribbon needs. */
@@ -113,6 +122,7 @@ export interface UseViewerRibbonPropsOptions {
 	ribbonActions: UseRibbonActionsResult;
 	drag: UseElementDragResult;
 	insertion: UseElementInsertionResult;
+	templateInsertion: UseSlideTemplateInsertionResult;
 	insertDialogs: UseInsertElementDialogsResult;
 	exporter: UseExportWiringResult;
 	printer: UsePrintResult;
@@ -167,6 +177,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		snapToShape: o.drag.snapToShape,
 		overflowOpen: o.ui.overflowOpen,
 		layoutOptions: o.deck.layoutOptions,
+		theme: o.deck.theme,
 		customShows: o.deck.customShows,
 		activeCustomShowId: o.customShows.activeCustomShowId,
 		isCurrentSlideInActiveShow: o.customShows.isCurrentSlideInActiveShow,
@@ -256,6 +267,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		ribbonUpdateTextStyle: o.ribbonActions.ribbonUpdateTextStyle,
 		ribbonUpdateTextCase: o.ribbonActions.ribbonUpdateTextCase,
 		insertSlideFromLayout: o.insertion.insertSlideFromLayout,
+		insertSlideFromTemplate: o.templateInsertion.insertSlideFromTemplate,
 		onRenameActiveCustomShow: o.customShows.onRenameActiveCustomShow,
 		onDeleteActiveCustomShow: o.customShows.onDeleteActiveCustomShow,
 		onToggleCurrentSlideInActiveShow: o.customShows.onToggleCurrentSlideInActiveShow,

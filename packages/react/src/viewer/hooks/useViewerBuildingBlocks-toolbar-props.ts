@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { createBackstagePresentation } from 'pptx-viewer-shared';
+import { createBackstagePresentation, templateSchemeFromTheme } from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { ToolbarProps } from '../components/toolbar/toolbar-types';
@@ -248,6 +248,8 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onSetOverflowMenuOpen: s.setIsOverflowMenuOpen,
 		layoutOptions: scopedLayoutOptions,
 		onInsertSlideFromLayout: slideOps.handleInsertSlideFromLayout,
+		onInsertSlideFromTemplate: slideOps.handleInsertSlideFromTemplate,
+		templateScheme: templateSchemeFromTheme(s.theme?.colorScheme),
 		customShows: s.customShows,
 		activeCustomShowId: s.activeCustomShowId,
 		onSetActiveCustomShowId: s.setActiveCustomShowId,

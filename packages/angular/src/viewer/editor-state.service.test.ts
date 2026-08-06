@@ -1,6 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { SLIDE_TEMPLATES } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 
 function element(id: string, x = 0, y = 0): PptxElement {
@@ -158,6 +159,33 @@ describe('editorStateService', () => {
 		expect(svc.slides().map((s) => s.slideNumber)).toStrictEqual([1, 2, 3]);
 		svc.undo();
 		expect(svc.slides()).toHaveLength(2);
+	});
+
+	it('inserts a template slide after the given index with elements and undo support', () => {
+		const svc = deck();
+		svc.insertSlideFromTemplate(0, 'title');
+		expect(svc.slides()).toHaveLength(3);
+		// The template slide lands AFTER the given index and carries content.
+		const inserted = svc.slides()[1];
+		expect(inserted.id).not.toBe('s2');
+		expect(inserted.elements.length).toBeGreaterThan(0);
+		expect(inserted.backgroundColor).toBeTruthy();
+		expect(svc.slides().map((s) => s.slideNumber)).toStrictEqual([1, 2, 3]);
+		expect(svc.canUndo()).toBeTruthy();
+		expect(svc.undoLabel()).toBe('Insert slide from template');
+		svc.undo();
+		expect(svc.slides().map((s) => s.id)).toStrictEqual(['s1', 's2']);
+	});
+
+	it('inserts a distinct slide for every catalogued template (12 gallery options)', () => {
+		expect(SLIDE_TEMPLATES).toHaveLength(12);
+		const svc = deck();
+		for (const spec of SLIDE_TEMPLATES) {
+			svc.insertSlideFromTemplate(0, spec.id);
+		}
+		expect(svc.slides()).toHaveLength(2 + SLIDE_TEMPLATES.length);
+		const ids = svc.slides().map((s) => s.id);
+		expect(new Set(ids).size).toBe(ids.length);
 	});
 
 	it('deletes a slide but keeps at least one', () => {

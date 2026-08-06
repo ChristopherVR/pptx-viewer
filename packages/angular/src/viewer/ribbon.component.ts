@@ -119,6 +119,7 @@ import type { RibbonTab } from './ribbon-types';
 					(replace)="replace.emit()"
 					(openSmartArtDialog)="openSmartArtDialog.emit()"
 					(openEquationDialog)="openEquationDialog.emit()"
+					(openTemplateGallery)="openTemplateGallery.emit()"
 					(openPassword)="openPassword.emit()"
 					(openFontEmbedding)="openFontEmbedding.emit()"
 					(openVersionHistory)="openVersionHistory.emit()"
@@ -313,6 +314,8 @@ export class RibbonComponent {
 	readonly toggleEyedropper = output<void>();
 	/** "SmartArt" in the Insert tab; the host opens the gallery dialog and does the insert. */
 	readonly openSmartArtDialog = output<void>();
+	/** "Slide Templates" in the Home tab; the host opens the gallery dialog and does the insert. */
+	readonly openTemplateGallery = output<void>();
 	/** Emitted when the user clicks "Equation" in the Insert tab (opens the editor). */
 	readonly openEquationDialog = output<void>();
 	/** Emitted when the user clicks "Set Up Show" in the Slide Show tab. */

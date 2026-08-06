@@ -110,6 +110,8 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-toggle-format-painter="props.onToggleFormatPainter"
 						:layout-options="props.layoutOptions"
 						:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
+						:on-insert-slide-from-template="props.onInsertSlideFromTemplate"
+						:template-scheme="props.templateScheme"
 						:selected-element="props.selectedElement"
 						:on-update-text-style="props.onUpdateTextStyle"
 					/>

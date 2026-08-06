@@ -88,6 +88,7 @@ export * from './viewer/composables/useSignatureWorkflow';
 export * from './viewer/composables/useSlideMutations';
 export * from './viewer/composables/useSlideOperations';
 export * from './viewer/composables/useSlideShowSettings';
+export * from './viewer/composables/useSlideTemplateInsertion';
 export * from './viewer/composables/useSmartArtEditing';
 export * from './viewer/composables/useSmartArtFocus';
 export * from './viewer/composables/useSmartArtHoverRect';

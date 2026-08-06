@@ -57,9 +57,11 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 	const slides: SlidesGroup = createSlidesGroup(doc, t, {
 		addSlide: edit.addSlide,
 		insertSlideFromLayout: edit.insertSlideFromLayout,
+		insertSlideFromTemplate: edit.insertSlideFromTemplate,
 		applyLayout: edit.applyLayout,
 		resetSlide: edit.resetSlide,
 		addSection: () => edit.sections.addSection(t('pptx.sections.defaultName')),
+		getTemplateScheme: () => edit.getTemplateScheme(),
 	});
 	const font: FontGroup = createFontGroup(doc, t, {
 		toggleBold: edit.toggleBold,

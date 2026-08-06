@@ -7,7 +7,7 @@ import type {
 	PptxCustomShow,
 	ShapeStyle,
 } from 'pptx-viewer-core';
-import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup, SlideTemplateId, ToolbarActionId } from 'pptx-viewer-shared';
 
 import type {
 	DrawingTool,
@@ -146,6 +146,10 @@ export interface ToolbarProps {
 	onSetOverflowMenuOpen: (open: boolean) => void;
 	layoutOptions: Array<{ path: string; name: string }>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	/** Insert a pre-designed starter slide from the template gallery. */
+	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
+	/** Deck scheme map so template gallery previews show the deck theme. */
+	templateScheme?: Record<string, string>;
 	customShows: PptxCustomShow[];
 	activeCustomShowId: string | null;
 	onSetActiveCustomShowId: (id: string | null) => void;

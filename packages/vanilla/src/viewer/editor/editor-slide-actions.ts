@@ -1,6 +1,12 @@
 import { cloneElement, cloneSlide } from 'pptx-viewer-core';
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
+import {
+	buildSlideTemplateSlide,
+	createBlankSlide,
+	makeSlideId,
+	templateSchemeFromTheme,
+} from 'pptx-viewer-shared';
+import type { SlideTemplateId } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { EditorOps } from './editor-operations';
@@ -24,6 +30,10 @@ export interface SlideActions {
 	deleteSlide(): void;
 	/** Insert a new slide below the current one, keyed to the given layout. */
 	insertSlideFromLayout(layoutPath: string, layoutName?: string): void;
+	/** Insert a pre-designed starter slide from the shared template catalog. */
+	insertSlideFromTemplate(templateId: SlideTemplateId): void;
+	/** Resolved deck theme scheme map for template builds and gallery previews. */
+	getTemplateScheme(): Record<string, string>;
 	/** Re-key the current slide onto another layout (React's Layout button). */
 	applyLayout(layoutPath: string): void;
 	/** Reset the current slide to its own layout's defaults (React's Reset). */
@@ -171,6 +181,36 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 			});
 			ops.commitChange();
 			resolveLayout(insertAt, layoutPath, draft.id);
+		},
+
+		insertSlideFromTemplate(templateId) {
+			const state = store.get();
+			if (!state.editable) {
+				return;
+			}
+			ops.pushHistory();
+			const insertAt = state.currentSlide + 1;
+			const slide = buildSlideTemplateSlide(templateId, makeSlideId(), insertAt + 1, {
+				slideWidth: state.canvasSize.width,
+				slideHeight: state.canvasSize.height,
+				scheme: templateSchemeFromTheme(state.colorScheme),
+			});
+			const slides = renumber([
+				...state.slides.slice(0, insertAt),
+				slide,
+				...state.slides.slice(insertAt),
+			]);
+			store.set({
+				slides,
+				currentSlide: insertAt,
+				selectedElementId: null,
+				selectedElementIds: [],
+			});
+			ops.commitChange();
+		},
+
+		getTemplateScheme() {
+			return templateSchemeFromTheme(store.get().colorScheme);
 		},
 
 		applyLayout(layoutPath) {

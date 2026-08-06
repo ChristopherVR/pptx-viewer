@@ -1,5 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
+import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } from 'react-icons/lu';
@@ -21,6 +22,8 @@ export interface HomeSectionProps {
 	onToggleFormatPainter?: () => void;
 	layoutOptions: Array<{ path: string; name: string }>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
+	templateScheme?: Record<string, string>;
 	onApplyLayout?: (path: string) => void;
 	onResetSlide?: () => void;
 	onAddSection?: () => void;
@@ -179,6 +182,8 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 				canEdit={p.canEdit}
 				layoutOptions={p.layoutOptions}
 				onInsertSlideFromLayout={p.onInsertSlideFromLayout}
+				onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
+				templateScheme={p.templateScheme}
 				onApplyLayout={p.onApplyLayout}
 				onResetSlide={p.onResetSlide}
 				onAddSection={p.onAddSection}

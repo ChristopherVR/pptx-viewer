@@ -18,7 +18,12 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { AnimationApplyGroup, ChangeCaseMode, ToolbarActionId } from 'pptx-viewer-shared';
+import type {
+	AnimationApplyGroup,
+	ChangeCaseMode,
+	SlideTemplateId,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 
 /** Viewer interaction mode. Mirrors React `ViewerMode`. */
 export type ViewerMode = 'preview' | 'edit' | 'present' | 'master';
@@ -267,6 +272,10 @@ export interface RibbonProps {
 	onTransformTextCase: (mode: ChangeCaseMode) => void;
 	onSetOverflowMenuOpen: (open: boolean) => void;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	/** Insert a pre-designed slide template after the active slide (Home ▸ Slide Templates). */
+	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
+	/** Deck scheme map so template gallery previews show the deck's theme colours. */
+	templateScheme?: Record<string, string>;
 	onApplyLayout?: (path: string) => void;
 	onResetSlide?: () => void;
 	onAddSection?: () => void;

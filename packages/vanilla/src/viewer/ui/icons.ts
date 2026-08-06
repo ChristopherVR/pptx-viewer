@@ -65,6 +65,7 @@ export type IconName =
 	| 'replace'
 	| 'new-slide'
 	| 'layout'
+	| 'slide-templates'
 	| 'table'
 	| 'image'
 	| 'video'
@@ -245,6 +246,7 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	replace: ['M4 7h11l-3-3', 'M4 7l3 3', 'M20 17H9l3-3', 'M20 17l-3 3'],
 	'new-slide': ['M4 4h16v16H4z', 'M12 8v8', 'M8 12h8'],
 	layout: ['M3 4h18v16H3z', 'M3 10h18', 'M9 10v10'],
+	'slide-templates': ['M3 3h18v7H3z', 'M3 14h9v7H3z', 'M16 14h5v7h-5z'],
 	table: ['M3 4h18v16H3z', 'M3 10h18', 'M3 16h18', 'M9 4v16', 'M15 4v16'],
 	image: ['M3 4h18v16H3z', 'M8 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M4 18l5-5 4 4 3-3 4 4'],
 	video: ['M3 5h13v14H3z', 'M16 10l5-3v10l-5-3z'],

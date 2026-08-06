@@ -35,12 +35,14 @@ import {
 	resolveThemeCatalogEntry,
 	setMotionPath,
 	shouldAutoFollowBroadcaster,
+	templateSchemeFromTheme,
 	THEME_CATALOG,
 	viewerOptionsToPreferences,
 	writeStoredViewerPrefs,
 } from '../internal/shared';
 import type {
 	AccountAuthConfig,
+	SlideTemplateId,
 	ThemeCatalogEntry,
 	ToolbarActionId,
 	ViewerSettings,
@@ -113,6 +115,7 @@ import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideDefaultInspectorComponent } from './slide-default-inspector.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
+import { SlideTemplateGalleryDialogComponent } from './slide-template-gallery-dialog.component';
 import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
@@ -208,6 +211,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		SelectionPaneComponent,
 		CustomShowsComponent,
 		InsertSmartArtDialogComponent,
+		SlideTemplateGalleryDialogComponent,
 		ViewerExtraDialogsComponent,
 		RehearseTimingsComponent,
 		AiChatPanelComponent,
@@ -342,6 +346,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(toggleSelectionPane)="inspectorPanel.togglePanel('selection')"
 					(openCustomShows)="customShowsCtl.showDialog.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
+					(openTemplateGallery)="showTemplateGallery.set(true)"
 					(openEquationDialog)="dialogs.openEquationInsert()"
 					(openMasterView)="openMasterView()"
 					(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
@@ -935,6 +940,14 @@ import { ZoomTargetService } from './zoom-target.service';
 					(insert)="onInsertSmartArt($event)"
 					(close)="showSmartArtInsert.set(false)"
 				/>
+
+				<!-- ── Slide Templates gallery dialog ─────────────────────────── -->
+				<pptx-slide-template-gallery-dialog
+					[open]="showTemplateGallery()"
+					[scheme]="templateScheme()"
+					(insert)="onInsertTemplateSlide($event)"
+					(close)="showTemplateGallery.set(false)"
+				/>
 			}
 
 			<!-- ── Mobile chrome (narrow / touch viewports only) ─────────────── -->
@@ -1382,6 +1395,12 @@ export class PowerPointViewerComponent {
 	]);
 	/** Whether the Insert SmartArt gallery dialog is open. */
 	protected readonly showSmartArtInsert = signal(false);
+	/** Whether the Slide Templates gallery dialog is open. */
+	protected readonly showTemplateGallery = signal(false);
+	/** Deck scheme map for template gallery previews (deck theme colours). */
+	protected readonly templateScheme = computed<Record<string, string>>(() =>
+		templateSchemeFromTheme(this.loader.theme()?.colorScheme),
+	);
 	/** The single selected element on the active slide (for the inspector). */
 	protected readonly selectedElement = computed<PptxElement | null>(() => {
 		const ids = this.editor.selectedIds();
@@ -2605,6 +2624,18 @@ export class PowerPointViewerComponent {
 		const element = buildSmartArtInsertElement(event.layout, event.items);
 		this.editor.addElement(this.activeSlideIndex(), element);
 		this.showSmartArtInsert.set(false);
+	}
+
+	/**
+	 * Insert the chosen slide template after the active slide (one undoable
+	 * history entry via {@link EditorStateService.insertSlideFromTemplate}) and
+	 * select the new slide, mirroring React's `handleInsertSlideFromTemplate`.
+	 */
+	protected onInsertTemplateSlide(templateId: SlideTemplateId): void {
+		const insertAt = this.activeSlideIndex() + 1;
+		this.editor.insertSlideFromTemplate(this.activeSlideIndex(), templateId);
+		this.goTo(insertAt);
+		this.showTemplateGallery.set(false);
 	}
 
 	/**

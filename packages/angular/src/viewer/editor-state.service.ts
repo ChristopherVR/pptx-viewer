@@ -17,7 +17,14 @@ import { TranslateService } from '@ngx-translate/core';
 import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-viewer-core';
 import type { PptxElement, PptxHeaderFooter, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
-import { groupSlidesBySection, isTemplateElement, isTemplateElementId } from '../internal/shared';
+import {
+	buildSlideTemplateSlide,
+	groupSlidesBySection,
+	isTemplateElement,
+	isTemplateElementId,
+	templateSchemeFromTheme,
+} from '../internal/shared';
+import type { SlideTemplateId } from '../internal/shared';
 import { translationsEn } from '../internal/shared-src/i18n';
 import { computeAlign, computeDistribute } from './align-distribute';
 import type { AlignMode, DistributeMode } from './align-distribute';
@@ -626,6 +633,30 @@ export class EditorStateService {
 		} as PptxSlide;
 		const next = [...slides];
 		next.splice(Math.min(afterIndex + 1, next.length), 0, blank);
+		this.slides.set(this.renumber(next));
+		this.selectedIds.set([]);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/**
+	 * Insert a pre-designed template slide after `afterIndex` (records history).
+	 *
+	 * The slide is built by the shared catalogue (`buildSlideTemplateSlide`) on
+	 * the loaded deck's canvas size and theme scheme, so inserted content matches
+	 * the deck's look; without a loaded deck it falls back to the standard
+	 * 1280x720 canvas and the Office default scheme.
+	 */
+	insertSlideFromTemplate(afterIndex: number, templateId: SlideTemplateId): void {
+		const slides = this.slides();
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.insertTemplateSlide'));
+		const canvas = this.loader?.canvasSize();
+		const draft = buildSlideTemplateSlide(templateId, this.newId(), 0, {
+			...(canvas ? { slideWidth: canvas.width, slideHeight: canvas.height } : {}),
+			scheme: templateSchemeFromTheme(this.loader?.theme()?.colorScheme),
+		});
+		const next = [...slides];
+		next.splice(Math.min(afterIndex + 1, next.length), 0, draft);
 		this.slides.set(this.renumber(next));
 		this.selectedIds.set([]);
 		this.dirty.set(true);

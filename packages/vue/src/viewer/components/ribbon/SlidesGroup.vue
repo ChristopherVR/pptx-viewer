@@ -1,13 +1,23 @@
 <script setup lang="ts">
 /**
- * SlidesGroup: New Slide split button, Layout (apply to current), Reset, and
- * Section controls. Extracted from HomeSection to keep it under 300 LOC.
- * Vue port of React's `toolbar/SlidesGroup.tsx`.
+ * SlidesGroup: New Slide split button, Slide Templates gallery, Layout (apply
+ * to current), Reset, and Section controls. Extracted from HomeSection to keep
+ * it under 300 LOC. Vue port of React's `toolbar/SlidesGroup.tsx`.
  */
-import { ChevronDown, FolderPlus, LayoutGrid, Plus, RotateCcw } from 'lucide-vue-next';
+import {
+	ChevronDown,
+	FolderPlus,
+	LayoutGrid,
+	LayoutTemplate,
+	Plus,
+	RotateCcw,
+} from 'lucide-vue-next';
+import type { SlideTemplateId } from 'pptx-viewer-shared';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import SlideTemplateGalleryDialog from '../SlideTemplateGalleryDialog.vue';
 import { ic, MENU_ITEM, MENU_PANEL, pill } from './ribbon-constants';
 import type { LayoutOption } from './ribbon-types';
 import { useDropdown } from './use-dropdown';
@@ -16,6 +26,9 @@ interface Props {
 	canEdit: boolean;
 	layoutOptions: LayoutOption[];
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
+	/** Deck scheme map so template previews show the deck's theme colours. */
+	templateScheme?: Record<string, string>;
 	onApplyLayout?: (path: string) => void;
 	onResetSlide?: () => void;
 	onAddSection?: () => void;
@@ -26,6 +39,11 @@ const { t } = useI18n();
 
 const layoutMenu = useDropdown();
 const layoutApplyMenu = useDropdown();
+const templateGalleryOpen = ref(false);
+
+function handleInsertTemplate(templateId: SlideTemplateId): void {
+	props.onInsertSlideFromTemplate?.(templateId);
+}
 
 function handleNewSlide(): void {
 	if (props.layoutOptions.length > 0) {
@@ -90,6 +108,19 @@ function handleApplyLayout(lo: LayoutOption): void {
 				</div>
 			</div>
 
+			<!-- Slide Templates gallery button -->
+			<button
+				v-if="props.onInsertSlideFromTemplate"
+				type="button"
+				:disabled="!props.canEdit"
+				:class="pill"
+				:title="t('pptx.home.slideTemplates')"
+				@click="templateGalleryOpen = true"
+			>
+				<LayoutTemplate :class="ic" />
+				{{ t('pptx.home.slideTemplates') }}
+			</button>
+
 			<!-- Layout (apply to current slide) -->
 			<div :ref="layoutApplyMenu.root" class="relative inline-flex items-center">
 				<button
@@ -148,4 +179,12 @@ function handleApplyLayout(lo: LayoutOption): void {
 			t('pptx.sections.slides')
 		}}</span>
 	</div>
+
+	<SlideTemplateGalleryDialog
+		v-if="props.onInsertSlideFromTemplate"
+		:open="templateGalleryOpen"
+		:scheme="props.templateScheme"
+		@insert="handleInsertTemplate"
+		@close="templateGalleryOpen = false"
+	/>
 </template>

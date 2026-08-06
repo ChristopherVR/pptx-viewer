@@ -5,6 +5,7 @@ import {
 	deleteSlideAt,
 	duplicateSlideAt,
 	insertBlankSlideAfter,
+	insertTemplateSlideAfter,
 	moveSlide,
 } from './editor-slide-ops';
 
@@ -30,6 +31,32 @@ describe('editor-slide-ops insertBlankSlideAfter', () => {
 		const slides = [slide('a', 1)];
 		const { newIndex } = insertBlankSlideAfter(slides, 99);
 		expect(newIndex).toBe(1);
+	});
+});
+
+describe('editor-slide-ops insertTemplateSlideAfter', () => {
+	it('inserts a populated template slide right after the given index and renumbers', () => {
+		const slides = [slide('a', 1), slide('b', 2)];
+		const { slides: next, newIndex } = insertTemplateSlideAfter(slides, 0, 'title');
+		expect(newIndex).toBe(1);
+		expect(next).toHaveLength(3);
+		expect(next[1].id).not.toBe('a');
+		expect(next[1].elements.length).toBeGreaterThan(0);
+		expect(next[1].backgroundColor).toBeTruthy();
+		expect(next.map((s) => s.slideNumber)).toStrictEqual([1, 2, 3]);
+	});
+
+	it('clamps to appending after the last slide', () => {
+		const { slides: next, newIndex } = insertTemplateSlideAfter([slide('a', 1)], 99, 'blank');
+		expect(newIndex).toBe(1);
+		expect(next).toHaveLength(2);
+	});
+
+	it('resolves template colours from the provided deck scheme', () => {
+		const { slides: next } = insertTemplateSlideAfter([slide('a', 1)], 0, 'title', {
+			scheme: { bg1: '#123456', lt1: '#123456' },
+		});
+		expect(next[1].backgroundColor).toBe('#123456');
 	});
 });
 
