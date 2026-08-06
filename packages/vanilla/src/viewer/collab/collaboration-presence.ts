@@ -6,14 +6,14 @@
  * `createPresencePublisher` (the same nested `presence` awareness field
  * every binding reads), and projects inbound awareness state into
  * `store.get().remotePresences` / `.cursors` via the shared
- * `derivePresenceList` / `presenceToCursors`, so the cursors overlay and
- * status UI re-render off the store like the rest of the viewer.
+ * memoising `createPresenceProjector`, so the cursors overlay and status UI
+ * re-render off the store like the rest of the viewer, and only when an
+ * awareness event actually changes something visible (issue #145).
  */
 import type { AwarenessLike, PresenceIdentity, PresencePublisher } from 'pptx-viewer-shared';
 import {
 	createPresencePublisher,
-	derivePresenceList,
-	presenceToCursors,
+	createPresenceProjector,
 	PRESENCE_HEARTBEAT_MS,
 } from 'pptx-viewer-shared';
 
@@ -48,16 +48,25 @@ export function createPresenceController(
 	const publisher: PresencePublisher = createPresencePublisher(awareness, identity);
 	const selfId = awareness.clientID ?? -1;
 	let localActiveSlide = 0;
+	// Memoises the awareness -> presence projection so idle heartbeats are dropped.
+	const projector = createPresenceProjector();
 
 	function refresh(): void {
 		const { width, height } = getCanvasSize();
-		const list = derivePresenceList(
+		// This binding repaints imperatively, so an awareness event that carries
+		// no visible change is not just a wasted diff, it is a wasted DOM write.
+		// Peer heartbeats fire on a fixed interval, so an idle room repainted the
+		// cursor layer forever. The shared projector gates that (issue #145).
+		const { list, cursors, changed } = projector.project(
 			awareness.getStates(),
 			selfId,
 			readBound(width),
 			readBound(height),
+			localActiveSlide,
 		);
-		const cursors = presenceToCursors(list, localActiveSlide);
+		if (!changed) {
+			return;
+		}
 		const followed = store.get().followedClientId;
 		store.set({
 			remotePresences: list,

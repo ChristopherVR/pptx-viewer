@@ -6,6 +6,7 @@ import type {
 	PresentationSnapshot,
 	PresentationZoomState,
 } from './presentation-session';
+import { presentationSnapshotsEqual } from './state-equality';
 
 export const PRESENTER_ZOOM_MIN = 1;
 export const PRESENTER_ZOOM_MAX = 4;
@@ -98,16 +99,29 @@ export function erasePresentationInkAt(
 	);
 }
 
+/**
+ * Merge a patch into a presentation snapshot.
+ *
+ * Returns `current` UNCHANGED when the patch conveys nothing new. Without that
+ * guard the merge was a guaranteed re-render trigger in all five bindings: it
+ * always allocated a fresh object and always bumped `sequence`, so no consumer
+ * could ever bail out, however well memoised it was. That is what let a
+ * once-a-second presenter tick re-render an entire idle editor (issue #145).
+ *
+ * `sequence` therefore only advances on a real change, which is also what makes
+ * it meaningful: it now counts state transitions rather than merge calls.
+ */
 export function mergePresentationSnapshot(
 	current: PresentationSnapshot,
 	patch: Partial<PresentationSnapshot>,
 ): PresentationSnapshot {
-	return {
+	const next: PresentationSnapshot = {
 		...current,
 		...patch,
 		sequence: Math.max(current.sequence + 1, patch.sequence ?? 0),
 		zoom: patch.zoom ? clampPresenterZoom(patch.zoom) : current.zoom,
 	};
+	return presentationSnapshotsEqual(current, next) ? current : next;
 }
 
 export function presentationInkPath(points: readonly PresentationInkPoint[]): string {

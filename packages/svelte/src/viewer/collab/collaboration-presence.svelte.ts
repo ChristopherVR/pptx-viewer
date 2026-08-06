@@ -6,7 +6,8 @@
  * Publishes the local user's cursor/selection/active-slide via the shared
  * `createPresencePublisher` (the same nested `presence` awareness field
  * every binding reads), and projects inbound awareness state into reactive
- * `$state` fields via the shared `derivePresenceList`/`presenceToCursors`.
+ * `$state` fields via the shared, memoising `createPresenceProjector`, which
+ * drops awareness events that carry no visible change (issue #145).
  */
 import type {
 	AwarenessLike,
@@ -17,8 +18,7 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	createPresencePublisher,
-	derivePresenceList,
-	presenceToCursors,
+	createPresenceProjector,
 	PRESENCE_HEARTBEAT_MS,
 } from 'pptx-viewer-shared';
 
@@ -39,6 +39,8 @@ export class CollaborationPresence {
 	#selfId = -1;
 	#localActiveSlide = 0;
 	#heartbeat: ReturnType<typeof setInterval> | null = null;
+	/** Memoises the awareness -> presence projection so idle heartbeats are dropped. */
+	readonly #projector = createPresenceProjector();
 
 	constructor(getCanvasSize: () => { width?: number; height?: number }) {
 		this.#getCanvasSize = getCanvasSize;
@@ -69,6 +71,7 @@ export class CollaborationPresence {
 		this.#awareness = null;
 		this.#selfId = -1;
 		this.#localActiveSlide = 0;
+		this.#projector.reset();
 		this.cursors = [];
 		this.remotePresences = [];
 		this.followedClientId = null;
@@ -102,14 +105,22 @@ export class CollaborationPresence {
 			return;
 		}
 		const { width, height } = this.#getCanvasSize();
-		const list = derivePresenceList(
+		// Assigning `$state` invalidates whether or not the value differs, and
+		// awareness fires on every peer heartbeat, so this re-rendered the cursor
+		// overlay on a fixed interval in an idle room. The shared projector
+		// answers "did anything visible move?" for all five bindings (issue #145).
+		const { list, cursors, changed } = this.#projector.project(
 			this.#awareness.getStates(),
 			this.#selfId,
 			readBound(width),
 			readBound(height),
+			this.#localActiveSlide,
 		);
+		if (!changed) {
+			return;
+		}
 		this.remotePresences = list;
-		this.cursors = presenceToCursors(list, this.#localActiveSlide);
+		this.cursors = cursors;
 		if (this.followedClientId !== null && !list.some((p) => p.clientId === this.followedClientId)) {
 			this.followedClientId = null;
 		}

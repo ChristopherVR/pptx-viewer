@@ -2,12 +2,12 @@
  * collaboration-presence-view.ts: project inbound awareness state into the
  * render-ready view-models the Vue collaboration components consume.
  *
- * Sanitisation, stale-drop and cursor mapping all live in `pptx-viewer-shared`
- * (`derivePresenceList` / `presenceToCursors`); this module adapts their output
- * to the binding's `RemotePresence` shape and filters cursors to the local
- * user's active slide (so peers on other slides do not paint stray cursors).
+ * Sanitisation, stale-drop, cursor mapping and the no-op-change memo all live
+ * in `pptx-viewer-shared` (`createPresenceProjector`); this module adapts their
+ * output to the binding's `RemotePresence` shape and filters cursors to the
+ * local user's active slide (so peers on other slides paint no stray cursors).
  */
-import { derivePresenceList, presenceToCursors } from 'pptx-viewer-shared';
+import { createPresenceProjector } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
@@ -27,28 +27,64 @@ export function readBound(source: Ref<number> | number | undefined): number {
 export interface PresenceProjection {
 	presences: RemotePresence[];
 	cursors: RemoteCursor[];
+	/**
+	 * False when nothing visible changed, in which case both arrays are the SAME
+	 * references returned last time and the caller should skip its `ref` writes.
+	 */
+	changed: boolean;
 }
 
 /**
- * Derive the remote-presence and cursor view-models from a raw awareness state
- * map. Cursors are limited to peers on `localActiveSlide`.
+ * Build a memoising projection from a raw awareness state map to the Vue
+ * collaboration view-models. Cursors are limited to peers on `localActiveSlide`.
+ *
+ * Stateful (rather than the pure function this used to be) because awareness
+ * fires on every peer heartbeat and on our own local writes, none of which
+ * necessarily change anything a user can see. Assigning a fresh array to a
+ * `ref` triggers regardless, so an idle room re-rendered the cursor overlay on
+ * a fixed interval. The shared `createPresenceProjector` decides that once for
+ * every binding; this only adds the Vue-specific `RemotePresence` mapping on
+ * top, and reuses the previous mapping when the projector reports no change.
  */
-export function projectPresence(
-	states: Map<number, Record<string, unknown>>,
-	selfId: number,
-	width: number,
-	height: number,
-	localActiveSlide: number,
-): PresenceProjection {
-	const list = derivePresenceList(states, selfId, width, height);
-	const presences = list.map<RemotePresence>((p) => ({
-		clientId: p.clientId,
-		userName: p.userName,
-		color: p.userColor,
-		cursor: { x: p.cursorX, y: p.cursorY },
-		selectionIds: p.selectedElementId ? [p.selectedElementId] : [],
-		activeSlide: p.activeSlideIndex,
-		role: p.role,
-	}));
-	return { presences, cursors: presenceToCursors(list, localActiveSlide) };
+export function createPresenceProjection(): {
+	project: (
+		states: Map<number, Record<string, unknown>>,
+		selfId: number,
+		width: number,
+		height: number,
+		localActiveSlide: number,
+	) => PresenceProjection;
+	reset: () => void;
+} {
+	const projector = createPresenceProjector();
+	let lastPresences: RemotePresence[] = [];
+
+	return {
+		project(states, selfId, width, height, localActiveSlide) {
+			const { list, cursors, changed } = projector.project(
+				states,
+				selfId,
+				width,
+				height,
+				localActiveSlide,
+			);
+			if (!changed) {
+				return { presences: lastPresences, cursors, changed: false };
+			}
+			lastPresences = list.map<RemotePresence>((p) => ({
+				clientId: p.clientId,
+				userName: p.userName,
+				color: p.userColor,
+				cursor: { x: p.cursorX, y: p.cursorY },
+				selectionIds: p.selectedElementId ? [p.selectedElementId] : [],
+				activeSlide: p.activeSlideIndex,
+				role: p.role,
+			}));
+			return { presences: lastPresences, cursors, changed: true };
+		},
+		reset() {
+			projector.reset();
+			lastPresences = [];
+		},
+	};
 }

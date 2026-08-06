@@ -9,7 +9,7 @@
  *
  * @module collaboration/usePresenceTracking
  */
-import { BROADCAST_THROTTLE_MS, derivePresenceList } from 'pptx-viewer-shared';
+import { BROADCAST_THROTTLE_MS, createPresenceProjector } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 
@@ -49,6 +49,9 @@ export function usePresenceTracking({
 	canvasHeight,
 }: UsePresenceTrackingInput): UsePresenceTrackingResult {
 	const [remoteUsers, setRemoteUsers] = useState<UserPresence[]>([]);
+	const projectorRef = useRef<ReturnType<typeof createPresenceProjector> | null>(null);
+	projectorRef.current ??= createPresenceProjector();
+	const projector = projectorRef.current;
 
 	// Throttle state
 	const lastBroadcastRef = useRef(0);
@@ -126,13 +129,23 @@ export function usePresenceTracking({
 		const handleChange = () => {
 			// Sanitise + stale-drop + skip-local in one shared pass; the returned
 			// SanitizedPresence[] is structurally a UserPresence[].
-			const users = derivePresenceList(
+			//
+			// Awareness also fires for our OWN local writes and for every peer's
+			// heartbeat, neither of which changes anything visible. The shared
+			// projector answers that once for all five bindings: when nothing a
+			// user could see moved it reports `changed: false`, and we leave the
+			// existing array in place rather than re-rendering the collaboration
+			// layer on a timer (issue #145).
+			const { list, changed } = projector.project(
 				awareness.getStates() as Map<number, Record<string, unknown>>,
 				localClientId,
 				canvasWidth,
 				canvasHeight,
 			);
-			setRemoteUsers(users);
+			if (!changed) {
+				return;
+			}
+			setRemoteUsers(list);
 		};
 
 		awareness.on('change', handleChange);
@@ -146,7 +159,7 @@ export function usePresenceTracking({
 			awareness.off('change', handleChange);
 			awareness.off('update', handleChange);
 		};
-	}, [awareness, localClientId, canvasWidth, canvasHeight]);
+	}, [awareness, localClientId, canvasWidth, canvasHeight, projector]);
 
 	// ── Heartbeat: keep presence fresh so stale filter doesn't expire us
 	useEffect(() => {

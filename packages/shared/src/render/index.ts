@@ -425,6 +425,9 @@ export * from './collaboration-presence';
 // Throttled local-presence publisher, shared by every binding's collaboration
 // layer (writes the same nested `presence` awareness field they all read).
 export * from './collaboration-presence-publisher';
+// Memoising awareness -> presence/cursor projection: returns the previous
+// result by identity when an awareness event carries no visible change.
+export * from './collaboration-presence-projector';
 export * from './collaboration-sync';
 // One-way broadcast auto-follow policy (only a local `viewer` follows the
 // session `owner`), shared by every binding so the rule cannot drift.
@@ -610,6 +613,10 @@ export * from './text-build-spans';
 export * from './presenter-console';
 export * from './presentation-print-settings';
 export * from './presentation-session';
+// No-op-write guards for the hot state paths (presenter snapshot, presence
+// list). Shared so a write that carries no new information is dropped once,
+// rather than re-rendering each binding in turn (issue #145).
+export * from './state-equality';
 // Audience content store: IndexedDB presenter <-> audience deck handoff, plus
 // the audience-tab hash detection helpers. Shared by every binding.
 export * from './audience-content-store';

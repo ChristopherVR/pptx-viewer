@@ -26,7 +26,7 @@ import type {
 } from '../internal/shared';
 import {
 	createCollaborationLivePatcher,
-	derivePresenceList,
+	createPresenceProjector,
 	isMixedContentBlocked,
 	presenceToCursors,
 	registerCollaborationTeardown,
@@ -109,15 +109,31 @@ export class CollaborationService {
 	 */
 	private connectToken = 0;
 
+	/** Memoises the awareness -> presence projection so idle heartbeats are dropped. */
+	private readonly projector = createPresenceProjector();
+
 	private readonly refreshPresence = (): void => {
 		const s = this.session;
 		if (!s) {
+			// Leaving the room clears the memo, so a re-join is never mistaken for
+			// "nothing changed" against the previous session's peers.
+			this.projector.reset();
 			this.presence.set([]);
 			return;
 		}
-		this.presence.set(
-			derivePresenceList(s.awareness.getStates(), s.selfId, this.canvasWidth, this.canvasHeight),
+		// A signal notifies on every `set` with a fresh array, and awareness fires
+		// on each peer heartbeat as well as on our own writes, so this used to
+		// re-run the collaboration overlay's computeds on a timer. The shared
+		// projector reports whether anything visible actually moved (issue #145).
+		const { list, changed } = this.projector.project(
+			s.awareness.getStates(),
+			s.selfId,
+			this.canvasWidth,
+			this.canvasHeight,
 		);
+		if (changed) {
+			this.presence.set(list);
+		}
 	};
 
 	constructor() {

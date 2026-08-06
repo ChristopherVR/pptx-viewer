@@ -81,7 +81,24 @@ export function createPresencePublisher(
 		});
 	}
 
+	/** Whether `patch` would actually change any field of the local state. */
+	function changesLocalState(patch: Partial<LocalPresenceState>): boolean {
+		return (Object.keys(patch) as (keyof LocalPresenceState)[]).some(
+			(key) => patch[key] !== local[key],
+		);
+	}
+
 	function update(patch: Partial<LocalPresenceState>): void {
+		// A patch that says nothing new is dropped before it reaches the wire.
+		// Bindings call this from pointer-move and selection handlers that
+		// re-fire with identical values (a cursor resting inside one slide pixel,
+		// a re-click on the already-selected element). Publishing anyway re-stamps
+		// `lastUpdated`, which every peer sees as a presence change and turns into
+		// a re-render, so an idle room kept re-rendering all five bindings.
+		// `flush` is exempt: the heartbeat MUST keep publishing or peers time us out.
+		if (!changesLocalState(patch)) {
+			return;
+		}
 		Object.assign(local, patch);
 		const elapsed = Date.now() - lastBroadcast;
 		if (elapsed >= BROADCAST_THROTTLE_MS) {

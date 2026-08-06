@@ -33,7 +33,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
 import { watchLoadAdoption } from './collaboration-load-adoption';
-import { projectPresence, readBound } from './collaboration-presence-view';
+import { createPresenceProjection, readBound } from './collaboration-presence-view';
 import { createCollabProvider } from './collaboration-provider';
 import type { CollabProviderHandle } from './collaboration-provider';
 import type {
@@ -130,19 +130,35 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		writeBack.cancel();
 	}
 
+	// Memoises the awareness -> view-model projection so idle peer heartbeats
+	// do not re-render the collaboration overlay.
+	const presenceProjection = createPresenceProjection();
+
 	function refreshPresence(): void {
 		if (!awareness) {
+			presenceProjection.reset();
 			remotePresences.value = [];
 			cursors.value = [];
 			return;
 		}
-		const { presences, cursors: nextCursors } = projectPresence(
+		// Assigning a ref triggers whether or not the value differs, and awareness
+		// fires on every peer heartbeat, so an idle room re-rendered the cursor
+		// overlay on a fixed interval. Skip the writes entirely when the shared
+		// projector reports nothing visible moved (issue #145).
+		const {
+			presences,
+			cursors: nextCursors,
+			changed,
+		} = presenceProjection.project(
 			awareness.getStates(),
 			selfId,
 			readBound(options.canvasWidth),
 			readBound(options.canvasHeight),
 			localActiveSlide,
 		);
+		if (!changed) {
+			return;
+		}
 		remotePresences.value = presences;
 		cursors.value = nextCursors;
 		if (
