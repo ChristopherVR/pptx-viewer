@@ -3,7 +3,7 @@ import { THEME_COLOR_SCHEME_KEYS } from 'pptx-viewer-core';
 import React, { useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { buildThemeColorGrid, THEME_COLOR_LABELS } from '../../utils/theme';
+import { buildThemeColorGrid, themeColorLabel } from '../../utils/theme';
 import {
 	THEME_EDITOR_CARD as CARD,
 	THEME_EDITOR_HEADING as HEADING,
@@ -44,7 +44,12 @@ export function ThemeColorSchemeEditor({
 }: ThemeColorSchemeEditorProps): React.ReactElement {
 	const { t } = useTranslation();
 
-	const previewGrid = useMemo(() => buildThemeColorGrid(editColors), [editColors]);
+	// The slot captions and the grid's row/column labels reach the DOM as
+	// tooltips and aria-labels, so they are resolved through the shared
+	// `pptx.themeColor.*` keys rather than the module's English fallbacks.
+	const slotLabel = useCallback((key: keyof PptxThemeColorScheme) => themeColorLabel(key, t), [t]);
+
+	const previewGrid = useMemo(() => buildThemeColorGrid(editColors, t), [editColors, t]);
 
 	const handleColorText = useCallback(
 		(val: string) => {
@@ -72,12 +77,12 @@ export function ThemeColorSchemeEditor({
 										: 'border-border hover:border-muted-foreground'
 								} disabled:opacity-40 disabled:cursor-not-allowed`}
 								style={{ backgroundColor: editColors[key] }}
-								title={`${THEME_COLOR_LABELS[key]}: ${editColors[key]}`}
-								aria-label={`${THEME_COLOR_LABELS[key]}: ${editColors[key]}`}
+								title={`${slotLabel(key)}: ${editColors[key]}`}
+								aria-label={`${slotLabel(key)}: ${editColors[key]}`}
 								onClick={() => onSetActivePickerKey(activePickerKey === key ? null : key)}
 							/>
 							<span className='text-[9px] text-muted-foreground truncate w-full text-center'>
-								{THEME_COLOR_LABELS[key]}
+								{slotLabel(key)}
 							</span>
 						</div>
 					))}
@@ -87,7 +92,7 @@ export function ThemeColorSchemeEditor({
 				{activePickerKey && (
 					<div className='mt-2 flex items-center gap-2 rounded bg-background p-2'>
 						<span className='text-[10px] text-muted-foreground min-w-[60px]'>
-							{THEME_COLOR_LABELS[activePickerKey]}
+							{slotLabel(activePickerKey)}
 						</span>
 						<input
 							type='color'

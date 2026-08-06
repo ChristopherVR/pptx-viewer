@@ -93,6 +93,7 @@ export const translations = {
 	'pptx.chart.typeBoxWhisker': 'Kastengrafik',
 	'pptx.chart.typeRegionMap': 'Flächenkartogramm',
 	'pptx.chart.typeUnknown': 'Unbekannt',
+	'pptx.chart.placeholderLabel': 'Diagramm: {{type}}',
 	'pptx.chart.groupingClustered': 'Gruppiert',
 	'pptx.chart.groupingStacked': 'Gestapelt',
 	'pptx.chart.groupingPercentStacked': '100 % gestapelt',

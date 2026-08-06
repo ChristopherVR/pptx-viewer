@@ -60,7 +60,7 @@ export function createAccessibilityPanel(
 			item.setAttribute('role', 'listitem');
 			item.dataset.issueKey = issueTrackKey(issue, index);
 			const type = createEl(doc, 'strong', 'pptxv-accessibility-issue-type');
-			type.textContent = issueTypeLabel(issue.type);
+			type.textContent = issueTypeLabel(issue.type, (key) => t(key));
 			const message = createEl(doc, 'span', 'pptxv-accessibility-issue-message');
 			message.textContent = issue.message;
 			const slide = createEl(doc, 'span', 'pptxv-accessibility-issue-slide');
@@ -82,7 +82,9 @@ export function createAccessibilityPanel(
 				empty.textContent = t('pptx.accessibility.noIssuesFound');
 				list.appendChild(empty);
 			} else {
-				for (const group of groupIssuesBySeverity(issues)) {
+				// Severity headings come from the shared key map; grouping without a
+				// translator renders English into an otherwise translated panel.
+				for (const group of groupIssuesBySeverity(issues, (key) => t(key))) {
 					renderGroup(group);
 				}
 			}

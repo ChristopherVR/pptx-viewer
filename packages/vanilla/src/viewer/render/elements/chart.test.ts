@@ -139,7 +139,9 @@ describe('renderChartElement', () => {
 	it('renders a labelled placeholder for charts without data', () => {
 		const container = renderChart(undefined);
 		expect(container.querySelector('svg')).toBeNull();
-		expect(container.textContent).toContain('Chart: bar');
+		// The chart kind is spelled through `pptx.chart.type*`, not printed as the
+		// raw OOXML token: a placeholder reading "Chart: bar" was untranslatable.
+		expect(container.textContent).toContain('Chart: Bar');
 	});
 
 	it('is dispatched through the registry via registerTableChartRenderers', () => {

@@ -8,6 +8,7 @@ export {
 	shadeColor,
 	THEME_COLOR_TINT_ROWS,
 	THEME_COLOR_LABELS,
+	themeColorLabel,
 	buildThemeColorGrid,
 	themeColorSchemeToSwatches,
 } from 'pptx-viewer-shared';

@@ -5,6 +5,9 @@ import type { StyleMap } from './element-style';
 import { getContainerStyle } from './element-style';
 import type { ZoomTargetInfo } from './zoom-target.service';
 
+/** Resolves a `pptx.*` key, interpolating `{{...}}` params when given. */
+export type ZoomTranslate = (key: string, params?: Record<string, string>) => string;
+
 /** Fallback tile background when the target slide has no background colour. */
 const FALLBACK_THUMBNAIL_BG = '#f0f0f0';
 
@@ -58,31 +61,49 @@ export interface ZoomViewModel {
  *
  * Returns sensible defaults for non-zoom elements (all derived strings are
  * empty/fallback values, `zoom` is `undefined`).
+ *
+ * @param translate - The binding's translator. Every string this builds ends up
+ *   in the DOM as a badge, a tile caption or an `aria-label`, and this helper
+ *   spelled all of them in English until the keys existed; omit it only in the
+ *   unit tests that assert the English wording.
  */
 export function buildZoomViewModel(
 	element: PptxElement,
 	targetInfo?: ZoomTargetInfo,
+	translate?: ZoomTranslate,
 ): ZoomViewModel {
 	const zoom = isZoomElement(element) ? element : undefined;
 	const previewSrc = zoom?.imageData;
 	const targetSlideIndex = zoom?.targetSlideIndex ?? 0;
 	const zoomType: 'slide' | 'section' | 'summary' = zoom?.zoomType ?? 'slide';
 	const targetSectionId = zoom?.targetSectionId;
-	const badgeText =
+	const badgeKey =
+		zoomType === 'section'
+			? 'pptx.zoom.sectionZoom'
+			: zoomType === 'summary'
+				? 'pptx.zoom.summaryZoom'
+				: 'pptx.zoom.slideZoom';
+	const englishBadge =
 		zoomType === 'section'
 			? 'Section Zoom'
 			: zoomType === 'summary'
 				? 'Summary Zoom'
 				: 'Slide Zoom';
-	const slideLabel =
-		targetInfo?.slideNumber !== undefined
-			? `Slide ${targetInfo.slideNumber}`
-			: `Slide ${targetSlideIndex + 1}`;
+	const badgeText = translate ? translate(badgeKey) : englishBadge;
+	const slideNumber = targetInfo?.slideNumber ?? targetSlideIndex + 1;
+	const slideLabel = translate
+		? translate('pptx.zoom.slideNumber', { number: String(slideNumber) })
+		: `Slide ${slideNumber}`;
 	const thumbnailBackground = targetInfo?.backgroundColor ?? FALLBACK_THUMBNAIL_BG;
 	const sectionCaption = targetInfo?.sectionName ?? targetSectionId;
-	let ariaLabel = `Zoom to slide ${targetSlideIndex + 1}`;
+	const number = String(targetSlideIndex + 1);
+	let ariaLabel = translate
+		? translate('pptx.zoom.ariaLabel', { number })
+		: `Zoom to slide ${number}`;
 	if (zoomType === 'section' && targetSectionId) {
-		ariaLabel = `${ariaLabel} (section: ${targetSectionId})`;
+		ariaLabel = translate
+			? translate('pptx.zoom.ariaLabelSection', { number, section: targetSectionId })
+			: `${ariaLabel} (section: ${targetSectionId})`;
 	}
 
 	return {

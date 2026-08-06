@@ -1,4 +1,19 @@
+/**
+ * summary-zoom.ts: the framework-neutral tile model for an Office 2016 Summary
+ * Zoom container, consumed by all five bindings.
+ *
+ * Every caption this module produces reaches the DOM (as a tile subtitle or an
+ * `aria-label`), so it takes the binding's translator rather than hard-coding
+ * English. The parameter is optional purely so existing callers keep
+ * compiling; a viewer that omits it renders a French deck's zoom tiles in
+ * English.
+ *
+ * @module render/summary-zoom
+ */
 import type { ZoomPptxElement } from 'pptx-viewer-core';
+
+/** Resolves a `pptx.*` key, interpolating `{{...}}` params when given. */
+export type SummaryZoomTranslate = (key: string, params?: Record<string, string>) => string;
 
 export interface SummaryZoomTargetInfo {
 	slideNumber?: number;
@@ -29,10 +44,15 @@ export interface SummaryZoomView {
 	ariaLabel: string;
 }
 
-/** Build the ordered, framework-neutral tile model for a Summary Zoom container. */
+/**
+ * Build the ordered, framework-neutral tile model for a Summary Zoom container.
+ *
+ * @param translate - The binding's translator; omit for English.
+ */
 export function buildSummaryZoomView(
 	element: ZoomPptxElement,
 	lookup?: SummaryZoomTargetLookup,
+	translate?: SummaryZoomTranslate,
 ): SummaryZoomView | undefined {
 	if (element.zoomType !== 'summary' || !element.summaryTargets?.length) {
 		return undefined;
@@ -48,14 +68,21 @@ export function buildSummaryZoomView(
 			sectionId: target.sectionId,
 			targetSlideIndex: target.targetSlideIndex,
 			label,
-			slideLabel: `Slide ${slideNumber}`,
+			slideLabel: translate
+				? translate('pptx.zoom.slideNumber', { number: String(slideNumber) })
+				: `Slide ${slideNumber}`,
 			imageSrc: target.imageData,
 			backgroundColor: targetInfo?.backgroundColor ?? '#f0f0f0',
 			style:
 				layout === 'fixed'
 					? fixedTileStyle(element, target.x, target.y, target.width, target.height)
 					: { position: 'relative', minWidth: '0', minHeight: '0' },
-			ariaLabel: `Zoom to section ${label}, slide ${slideNumber}`,
+			ariaLabel: translate
+				? translate('pptx.zoom.ariaLabelSummaryTile', {
+						section: label,
+						number: String(slideNumber),
+					})
+				: `Zoom to section ${label}, slide ${slideNumber}`,
 		};
 	});
 	return {
@@ -71,7 +98,9 @@ export function buildSummaryZoomView(
 						height: '100%',
 					},
 		tiles,
-		ariaLabel: `Summary Zoom with ${tiles.length} sections`,
+		ariaLabel: translate
+			? translate('pptx.zoom.ariaLabelSummary', { count: String(tiles.length) })
+			: `Summary Zoom with ${tiles.length} sections`,
 	};
 }
 

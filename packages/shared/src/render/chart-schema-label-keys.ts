@@ -135,3 +135,29 @@ export const CHART_ERROR_BAR_DIRECTION_LABEL_KEYS: Readonly<Record<string, strin
 	x: 'pptx.chart.errorBarDirectionX',
 	y: 'pptx.chart.errorBarDirectionY',
 };
+
+/**
+ * Caption for the fallback tile a binding paints when a chart element carries
+ * no renderable series (an unsupported type, or data that failed to enrich).
+ *
+ * Vue, Svelte and Vanilla each built this string by hand as
+ * `` `Chart: ${chartType}` ``, which put an untranslated English word and a raw
+ * OOXML token on the slide. React and Angular paint no such tile at all, so
+ * this is the only place the wording exists; keeping it here is what stops the
+ * three that do from drifting again.
+ *
+ * @param chartType - Wire token from `PptxChartData.chartType`.
+ * @param translate - The binding's translator. It must support the `{{type}}`
+ *   interpolation used by `pptx.chart.placeholderLabel`.
+ */
+export function chartPlaceholderLabel(
+	chartType: PptxChartType | string | undefined,
+	translate: (key: string, params?: Record<string, string>) => string,
+): string {
+	const token = chartType ?? 'unknown';
+	const typeKey = CHART_TYPE_LABEL_KEYS[token as PptxChartType];
+	// An unmapped token is still worth showing: a deck may carry a chart kind
+	// newer than this table, and a blank tile reads as a broken renderer.
+	const typeName = typeKey === undefined ? token : translate(typeKey);
+	return translate('pptx.chart.placeholderLabel', { type: typeName });
+}

@@ -753,6 +753,10 @@ export const translationsEn: Record<string, string> = {
 	'pptx.zoom.sectionZoom': 'Section Zoom',
 	'pptx.zoom.ariaLabel': 'Zoom to slide {{number}}',
 	'pptx.zoom.ariaLabelSection': 'Zoom to slide {{number}} (section: {{section}})',
+	'pptx.zoom.summaryZoom': 'Summary Zoom',
+	'pptx.zoom.slideNumber': 'Slide {{number}}',
+	'pptx.zoom.ariaLabelSummary': 'Summary Zoom with {{count}} sections',
+	'pptx.zoom.ariaLabelSummaryTile': 'Zoom to section {{section}}, slide {{number}}',
 
 	// Canvas
 	'pptx.canvas.slide': 'Slide',
@@ -3391,6 +3395,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.themeColor.accent6': 'Accent 6',
 	'pptx.themeColor.hyperlink': 'Hyperlink',
 	'pptx.themeColor.followedHyperlink': 'Followed Hyperlink',
+	'pptx.themeColor.tintBase': 'Base',
+	'pptx.themeColor.tintLighter80': 'Lighter 80%',
+	'pptx.themeColor.tintLighter60': 'Lighter 60%',
+	'pptx.themeColor.tintLighter40': 'Lighter 40%',
+	'pptx.themeColor.tintDarker25': 'Darker 25%',
+	'pptx.themeColor.tintDarker50': 'Darker 50%',
 
 	'pptx.smartart.schemeColorful1': 'Colourful 1',
 	'pptx.smartart.schemeColorful2': 'Colourful 2',
@@ -3423,6 +3433,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.chart.typeBoxWhisker': 'Box and Whisker',
 	'pptx.chart.typeRegionMap': 'Filled Map',
 	'pptx.chart.typeUnknown': 'Unknown',
+	'pptx.chart.placeholderLabel': 'Chart: {{type}}',
 	'pptx.chart.groupingStandard': 'Standard',
 	'pptx.chart.seriesAxis': 'Series axis',
 	'pptx.chart.labelPosAbove': 'Above',

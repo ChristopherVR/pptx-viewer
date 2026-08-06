@@ -140,7 +140,9 @@ describe('chartView', () => {
 	it('renders a labelled placeholder for charts without data', () => {
 		const target = mountEl(buildChartElement(undefined));
 		expect(target.querySelector('svg')).toBeNull();
-		expect(target.textContent).toContain('Chart: bar');
+		// The chart kind is spelled through `pptx.chart.type*`, not printed as the
+		// raw OOXML token: a placeholder reading "Chart: bar" was untranslatable.
+		expect(target.textContent).toContain('Chart: Bar');
 	});
 
 	it('colours untagged series from an explicit parsed palette', () => {

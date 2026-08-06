@@ -9,12 +9,14 @@ import type {
 import {
 	applyChartBuildReveal,
 	chartAreaFill,
+	chartPlaceholderLabel,
 	computeLayout,
 	computeValueRange,
 	resolveCategoryLabels,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
@@ -68,6 +70,8 @@ const props = defineProps<{
 	 */
 	animationState?: ElementAnimationState;
 }>();
+
+const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -143,7 +147,9 @@ const renderKind = computed<RenderKind>(() => resolveRenderKind(chartData.value)
 
 const isPlaceholder = computed(() => renderKind.value === 'placeholder');
 
-const placeholderLabel = computed(() => `Chart: ${chartType.value}`);
+const placeholderLabel = computed(() =>
+	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
+);
 
 // ── Shared layout ────────────────────────────────────────────────
 

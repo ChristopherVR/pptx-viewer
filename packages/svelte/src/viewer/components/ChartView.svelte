@@ -13,11 +13,13 @@
 	 */
 	import { applyChartBuildReveal } from 'pptx-viewer-shared';
 
+	import { useTranslator } from '../../i18n/context';
 	import { buildChartView, buildLegendItems, partAttrs } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	const { element, zIndex, animationState, interactive = false, marked = false }: ElementRendererProps = $props();
+	const t = useTranslator();
 
 	/** Staged chart-build descriptor, when an active native animation reveals one. */
 	const chartBuild = $derived(
@@ -38,7 +40,7 @@
 	});
 
 	const view = $derived(
-		revealedElement.type === 'chart' ? buildChartView(revealedElement) : undefined,
+		revealedElement.type === 'chart' ? buildChartView(revealedElement, t) : undefined,
 	);
 	const legendItems = $derived(view?.kind === 'chart' ? buildLegendItems(view.vm) : []);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));

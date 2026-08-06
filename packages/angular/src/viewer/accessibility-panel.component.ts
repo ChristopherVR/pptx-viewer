@@ -21,8 +21,8 @@
  * ```
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { AccessibilityIssue, AccessibilityIssueType } from 'pptx-viewer-core';
 
 import { groupIssuesBySeverity, issueTrackKey, issueTypeLabel } from './accessibility-helpers';
@@ -248,8 +248,18 @@ export class AccessibilityPanelComponent {
 	// Derived
 	// -------------------------------------------------------------------------
 
-	/** Non-empty severity groups in display order. */
-	readonly groups = computed<AccessibilityIssueGroup[]>(() => groupIssuesBySeverity(this.issues()));
+	private readonly translate = inject(TranslateService);
+
+	/**
+	 * Non-empty severity groups in display order.
+	 *
+	 * The headings are translated through the shared key map rather than taken
+	 * from the module's English constants: this panel rendered "Errors" to a
+	 * French user while Vue's rendered "Erreurs" from the same aggregation.
+	 */
+	readonly groups = computed<AccessibilityIssueGroup[]>(() =>
+		groupIssuesBySeverity(this.issues(), (key) => this.translate.instant(key)),
+	);
 
 	/** True when there is at least one issue. */
 	readonly hasIssues = computed<boolean>(() => this.issues().length > 0);
@@ -259,7 +269,7 @@ export class AccessibilityPanelComponent {
 	// -------------------------------------------------------------------------
 
 	typeLabel(type: AccessibilityIssueType): string {
-		return issueTypeLabel(type);
+		return issueTypeLabel(type, (key) => this.translate.instant(key));
 	}
 
 	/** Stable-ish track key; issues have no id of their own. */

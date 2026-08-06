@@ -2,11 +2,13 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import {
 	applyChartBuildReveal,
 	buildChartViewModel,
+	chartPlaceholderLabel,
 	getChartStylePalette,
 	getContainerStyle,
 	resolveChartKind,
 } from 'pptx-viewer-shared';
 
+import type { Translator } from '../../i18n';
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
 import { renderChartViewModelSvg } from './chart-svg';
@@ -53,13 +55,13 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
 			? applyChartBuildReveal(element.chartData, build)
 			: element.chartData;
 	if (!chartData || chartData.series.length === 0) {
-		container.appendChild(renderChartPlaceholder(doc, chartData?.chartType ?? 'bar'));
+		container.appendChild(renderChartPlaceholder(doc, chartData?.chartType ?? 'bar', context.t));
 		return container;
 	}
 
 	const kind = resolveChartKind(chartData.chartType ?? 'bar');
 	if (kind === 'unsupported') {
-		container.appendChild(renderChartPlaceholder(doc, chartData.chartType));
+		container.appendChild(renderChartPlaceholder(doc, chartData.chartType, context.t));
 		return container;
 	}
 
@@ -95,7 +97,7 @@ export function resolveChartPalette(chartData: PptxChartData): string[] {
 }
 
 /** Labelled placeholder for unsupported / empty charts (mirrors Vue's). */
-function renderChartPlaceholder(doc: Document, chartType: string): HTMLElement {
+function renderChartPlaceholder(doc: Document, chartType: string, t: Translator): HTMLElement {
 	const placeholder = createEl(doc, 'div', 'pptxv-placeholder pptxv-chart-placeholder', {
 		display: 'flex',
 		alignItems: 'center',
@@ -108,6 +110,6 @@ function renderChartPlaceholder(doc: Document, chartType: string): HTMLElement {
 		border: '1px dashed #cbd5e1',
 		boxSizing: 'border-box',
 	});
-	placeholder.textContent = `Chart: ${chartType}`;
+	placeholder.textContent = chartPlaceholderLabel(chartType, (key, params) => t(key, params));
 	return placeholder;
 }

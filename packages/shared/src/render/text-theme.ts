@@ -13,6 +13,8 @@
 import type { PptxTheme, PptxThemeFontScheme, PptxThemeColorScheme } from 'pptx-viewer-core';
 import { THEME_COLOR_SCHEME_KEYS } from 'pptx-viewer-core';
 
+import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from './schema-label-keys';
+
 /**
  * Resolve OOXML theme font tokens (`+mj-lt`, `+mn-lt`, etc.) to actual font
  * family names using the theme's font scheme.
@@ -96,8 +98,10 @@ export function shadeColor(hex: string, shadeFactor: number): string {
 
 /** Tint/shade row definition for the PowerPoint-style theme colour grid. */
 export interface ThemeColorTintRow {
-	/** Row label for accessibility / tooltips. */
+	/** English row label for accessibility / tooltips; the fallback for `labelKey`. */
 	label: string;
+	/** `pptx.*` translation key for the row label. */
+	labelKey: string;
 	/** Transform function: base hex to variant hex. */
 	transform: (hex: string) => string;
 }
@@ -112,15 +116,41 @@ export interface ThemeColorTintRow {
  * Row 5: 50% shade (darkest)
  */
 export const THEME_COLOR_TINT_ROWS: ReadonlyArray<ThemeColorTintRow> = [
-	{ label: 'Base', transform: (c) => c },
-	{ label: 'Lighter 80%', transform: (c) => tintColor(c, 0.8) },
-	{ label: 'Lighter 60%', transform: (c) => tintColor(c, 0.6) },
-	{ label: 'Lighter 40%', transform: (c) => tintColor(c, 0.4) },
-	{ label: 'Darker 25%', transform: (c) => shadeColor(c, 0.25) },
-	{ label: 'Darker 50%', transform: (c) => shadeColor(c, 0.5) },
+	{ label: 'Base', labelKey: 'pptx.themeColor.tintBase', transform: (c) => c },
+	{
+		label: 'Lighter 80%',
+		labelKey: 'pptx.themeColor.tintLighter80',
+		transform: (c) => tintColor(c, 0.8),
+	},
+	{
+		label: 'Lighter 60%',
+		labelKey: 'pptx.themeColor.tintLighter60',
+		transform: (c) => tintColor(c, 0.6),
+	},
+	{
+		label: 'Lighter 40%',
+		labelKey: 'pptx.themeColor.tintLighter40',
+		transform: (c) => tintColor(c, 0.4),
+	},
+	{
+		label: 'Darker 25%',
+		labelKey: 'pptx.themeColor.tintDarker25',
+		transform: (c) => shadeColor(c, 0.25),
+	},
+	{
+		label: 'Darker 50%',
+		labelKey: 'pptx.themeColor.tintDarker50',
+		transform: (c) => shadeColor(c, 0.5),
+	},
 ];
 
-/** Display labels for the 12 base theme colour scheme keys. */
+/**
+ * English display labels for the 12 base theme colour scheme keys.
+ *
+ * The fallback, not the source of truth: `THEME_COLOR_SLOT_LABEL_KEYS` in
+ * `schema-label-keys` holds the translation keys for the same 12 slots, and is
+ * what {@link buildThemeColorGrid} resolves when handed a translator.
+ */
 export const THEME_COLOR_LABELS: Record<keyof PptxThemeColorScheme, string> = {
 	dk1: 'Dark 1',
 	lt1: 'Light 1',
@@ -139,8 +169,16 @@ export const THEME_COLOR_LABELS: Record<keyof PptxThemeColorScheme, string> = {
 /**
  * Build the full 12x6 grid of theme colours from a colour scheme.
  * Returns an array of rows, each row is an array of `{ hex, schemeKey, label }`.
+ *
+ * @param translate - The binding's translator. The row and column labels reach
+ *   the DOM as tooltips, `aria-label`s and swatch captions, so a grid built
+ *   without one is an untranslatable control; it is optional only so existing
+ *   callers keep compiling, and every binding in this repo passes it.
  */
-export function buildThemeColorGrid(colorScheme: PptxThemeColorScheme): Array<
+export function buildThemeColorGrid(
+	colorScheme: PptxThemeColorScheme,
+	translate?: (key: string) => string,
+): Array<
 	Array<{
 		hex: string;
 		schemeKey: keyof PptxThemeColorScheme;
@@ -152,10 +190,25 @@ export function buildThemeColorGrid(colorScheme: PptxThemeColorScheme): Array<
 		THEME_COLOR_SCHEME_KEYS.map((key) => ({
 			hex: row.transform(colorScheme[key]),
 			schemeKey: key,
-			rowLabel: row.label,
-			colLabel: THEME_COLOR_LABELS[key],
+			rowLabel: translate ? translate(row.labelKey) : row.label,
+			colLabel: translate
+				? schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, key, translate)
+				: THEME_COLOR_LABELS[key],
 		})),
 	);
+}
+
+/**
+ * Translated display label for one of the 12 theme colour slots, for the
+ * bindings that label a swatch outside {@link buildThemeColorGrid}.
+ */
+export function themeColorLabel(
+	key: keyof PptxThemeColorScheme,
+	translate?: (translationKey: string) => string,
+): string {
+	return translate
+		? schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, key, translate)
+		: THEME_COLOR_LABELS[key];
 }
 
 /**

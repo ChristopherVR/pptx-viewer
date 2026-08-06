@@ -1,10 +1,26 @@
 import type { ZoomPptxElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ZoomElementRenderer } from './ZoomElementRenderer';
 
-vi.mock(import('react-i18next'), () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+// The real English dictionary, not a key-echoing stub: the badge and the tile
+// captions come from `pptx.zoom.*` keys now, so a stub would let this spec pass
+// against text no user ever sees.
+vi.mock(import('react-i18next'), () => ({
+	useTranslation: () => ({
+		t: (key: string, params?: Record<string, string>) => {
+			const text = translationsEn[key];
+			if (text === undefined) {
+				return key;
+			}
+			return params
+				? text.replace(/\{\{(\w+)\}\}/gu, (_match, name: string) => String(params[name] ?? ''))
+				: text;
+		},
+	}),
+}));
 
 describe('zoom element renderer summary zoom', () => {
 	it('renders ordered section targets without a Slide Zoom label', () => {
@@ -45,5 +61,7 @@ describe('zoom element renderer summary zoom', () => {
 		expect(html).toContain('data-zoom-target="4"');
 		expect(html).toContain('Summary Zoom');
 		expect(html).not.toContain('Slide Zoom');
+		// The per-tile subtitle is built in shared and translated the same way.
+		expect(html).toContain('Slide 2');
 	});
 });

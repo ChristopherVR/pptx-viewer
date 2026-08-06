@@ -41,7 +41,7 @@
 	const targetInfo = $derived(view ? resolveZoomTargetInfo(navigation, view.target) : undefined);
 	const summaryView = $derived(
 		zoom
-			? buildSummaryZoomView(zoom, (index) => resolveZoomTargetInfo(navigation, index))
+			? buildSummaryZoomView(zoom, (index) => resolveZoomTargetInfo(navigation, index), t)
 			: undefined,
 	);
 	const clickable = $derived(Boolean(presenting && navigation && view));
@@ -130,7 +130,7 @@
 						{#if tile.imageSrc}<img src={tile.imageSrc} alt={tile.ariaLabel} draggable="false" />{:else}<div>{tile.label}</div><div>{tile.slideLabel}</div>{/if}
 					</div>
 				{/each}
-				<div class="pptx-svelte-zoom-badge">Summary Zoom</div>
+				<div class="pptx-svelte-zoom-badge">{t('pptx.zoom.summaryZoom')}</div>
 			</div>
 		{:else}
 		<div class="pptx-svelte-zoom-tile">

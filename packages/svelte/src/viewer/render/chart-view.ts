@@ -3,6 +3,7 @@ import type { ChartPartRef, ChartViewModel } from 'pptx-viewer-shared';
 import {
 	buildChartViewModel,
 	chartPartToAttrs,
+	chartPlaceholderLabel,
 	getChartStylePalette,
 	resolveChartKind,
 } from 'pptx-viewer-shared';
@@ -34,16 +35,29 @@ export function resolveChartPalette(chartData: PptxChartData): string[] {
 	return [...getChartStylePalette(chartData.style?.styleId)];
 }
 
-/** Build the renderable view (or placeholder) for a chart element. */
-export function buildChartView(element: ChartPptxElement): ChartView {
+/**
+ * Build the renderable view (or placeholder) for a chart element.
+ *
+ * @param translate - The binding's translator, used for the placeholder
+ *   caption. It is optional so the pure unit tests can call this without an
+ *   i18n context; a viewer always passes one.
+ */
+export function buildChartView(
+	element: ChartPptxElement,
+	translate?: (key: string, params?: Record<string, string>) => string,
+): ChartView {
 	const chartData = element.chartData;
+	const placeholder = (chartType: string | undefined): ChartView => ({
+		kind: 'placeholder',
+		label: translate ? chartPlaceholderLabel(chartType, translate) : `Chart: ${chartType ?? 'bar'}`,
+	});
 	if (!chartData || chartData.series.length === 0) {
-		return { kind: 'placeholder', label: `Chart: ${chartData?.chartType ?? 'bar'}` };
+		return placeholder(chartData?.chartType ?? 'bar');
 	}
 
 	const kind = resolveChartKind(chartData.chartType ?? 'bar');
 	if (kind === 'unsupported') {
-		return { kind: 'placeholder', label: `Chart: ${chartData.chartType}` };
+		return placeholder(chartData.chartType);
 	}
 
 	// Thread the resolved palette into the shared engine (non-destructively)

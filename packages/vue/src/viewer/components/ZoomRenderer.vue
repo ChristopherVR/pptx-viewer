@@ -58,7 +58,9 @@ const badgeText = computed(() =>
 const targetLookup = injectZoomTargetLookup();
 const targetInfo = computed(() => targetLookup?.(targetSlideIndex.value));
 const summaryView = computed(() =>
-	zoom.value ? buildSummaryZoomView(zoom.value, targetLookup) : undefined,
+	zoom.value
+		? buildSummaryZoomView(zoom.value, targetLookup, (key, params) => t(key, params ?? {}))
+		: undefined,
 );
 
 const thumbnailStyle = computed<CSSProperties>(() => ({

@@ -93,6 +93,7 @@ export const translations = {
 	'pptx.chart.typeBoxWhisker': 'Cajas y bigotes',
 	'pptx.chart.typeRegionMap': 'Mapa coroplético',
 	'pptx.chart.typeUnknown': 'Desconocido',
+	'pptx.chart.placeholderLabel': 'Gráfico: {{type}}',
 	'pptx.chart.groupingClustered': 'agrupado',
 	'pptx.chart.groupingStacked': 'apilados',
 	'pptx.chart.groupingPercentStacked': '100% apilado',

@@ -41,14 +41,21 @@ const SEVERITY_ORDER: Record<AccessibilityIssueSeverity, number> = {
 /** Severity groups in display order (errors first, then warnings, then tips). */
 export const SEVERITY_GROUPS: readonly AccessibilityIssueSeverity[] = ['error', 'warning', 'tip'];
 
-/** Human-readable heading for each severity group. */
+/**
+ * English headings for each severity group.
+ *
+ * The fallback, not the source of truth: {@link SEVERITY_LABEL_KEYS} is what a
+ * binding should feed its translator. These stay exported because they are the
+ * text a caller with no translator gets, and because they are part of the
+ * historical public surface of this module.
+ */
 export const SEVERITY_LABELS: Record<AccessibilityIssueSeverity, string> = {
 	error: 'Errors',
 	warning: 'Warnings',
 	tip: 'Tips',
 };
 
-/** Human-readable label for each issue type. */
+/** English label for each issue type; see {@link TYPE_LABEL_KEYS}. */
 export const TYPE_LABELS: Record<AccessibilityIssueType, string> = {
 	missingAltText: 'Missing alt text',
 	missingSlideTitle: 'Missing slide title',
@@ -57,6 +64,34 @@ export const TYPE_LABELS: Record<AccessibilityIssueType, string> = {
 	duplicateTitle: 'Duplicate title',
 	blankSlide: 'Blank slide',
 };
+
+/**
+ * `pptx.*` translation key for each severity heading.
+ *
+ * Vue kept a private copy of this map (and of {@link TYPE_LABEL_KEYS}) inside
+ * its panel while Angular, Svelte and Vanilla rendered the English constants
+ * above, so the same checker spoke two languages depending on which binding
+ * you opened it in. The keys live here now, next to the aggregation they
+ * label.
+ */
+export const SEVERITY_LABEL_KEYS: Record<AccessibilityIssueSeverity, string> = {
+	error: 'pptx.accessibility.severityErrors',
+	warning: 'pptx.accessibility.severityWarnings',
+	tip: 'pptx.accessibility.severityTips',
+};
+
+/** `pptx.*` translation key for each issue type. */
+export const TYPE_LABEL_KEYS: Record<AccessibilityIssueType, string> = {
+	missingAltText: 'pptx.accessibility.typeMissingAltText',
+	missingSlideTitle: 'pptx.accessibility.typeMissingSlideTitle',
+	lowContrast: 'pptx.accessibility.typeLowContrast',
+	complexTable: 'pptx.accessibility.typeComplexTable',
+	duplicateTitle: 'pptx.accessibility.typeDuplicateTitle',
+	blankSlide: 'pptx.accessibility.typeBlankSlide',
+};
+
+/** Resolves a `pptx.*` key to display text. */
+export type AccessibilityTranslate = (key: string) => string;
 
 /** A severity group with its (non-empty) issues, used for rendering. */
 export interface AccessibilityIssueGroup {
@@ -121,20 +156,27 @@ export function countAccessibilityIssues(issues: readonly AccessibilityIssue[]):
 /**
  * Partition issues into non-empty severity groups in display order
  * (errors -> warnings -> tips).
+ *
+ * @param translate - The binding's translator. Omit it to get English, which
+ *   is what every existing caller did before the keys moved here.
  */
 export function groupIssuesBySeverity(
 	issues: readonly AccessibilityIssue[],
+	translate?: AccessibilityTranslate,
 ): AccessibilityIssueGroup[] {
 	return SEVERITY_GROUPS.map((severity) => ({
 		severity,
-		label: SEVERITY_LABELS[severity],
+		label: translate ? translate(SEVERITY_LABEL_KEYS[severity]) : SEVERITY_LABELS[severity],
 		issues: issues.filter((issue) => issue.severity === severity),
 	})).filter((group) => group.issues.length > 0);
 }
 
-/** Human-readable label for an issue type. */
-export function issueTypeLabel(type: AccessibilityIssueType): string {
-	return TYPE_LABELS[type];
+/** Human-readable label for an issue type, translated when a translator is given. */
+export function issueTypeLabel(
+	type: AccessibilityIssueType,
+	translate?: AccessibilityTranslate,
+): string {
+	return translate ? translate(TYPE_LABEL_KEYS[type]) : TYPE_LABELS[type];
 }
 
 /**

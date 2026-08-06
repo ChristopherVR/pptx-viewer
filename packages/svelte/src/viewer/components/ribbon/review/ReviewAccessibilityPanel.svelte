@@ -31,7 +31,11 @@
 
 	let hasRun = $state(false);
 	let issues = $state.raw<ReturnType<typeof collectAccessibilityIssues>>([]);
-	const groups = $derived(groupIssuesBySeverity(issues));
+	// The severity headings and type labels come from the shared key maps: this
+	// panel used to rebuild the key from the ENGLISH label
+	// (`pptx.accessibility.severity${group.label}`), which silently breaks the
+	// moment that label is translated.
+	const groups = $derived(groupIssuesBySeverity(issues, t));
 
 	function runCheck(): void {
 		issues = collectAccessibilityIssues(slides);
@@ -63,9 +67,9 @@
 			</div>
 		{:else}
 			<div class="pptx-svelte-review-list" aria-label={t('pptx.accessibility.issuesList')}>
-				{#each groups as group (group.label)}
+				{#each groups as group (group.severity)}
 					<section class="pptx-svelte-review-group">
-						<h4>{t(`pptx.accessibility.severity${group.label}`)}</h4>
+						<h4>{group.label}</h4>
 						{#each group.issues as issue, index (issueTrackKey(issue, index))}
 							<button
 								type="button"
@@ -74,9 +78,9 @@
 							>
 								<span class="pptx-svelte-review-icon" aria-hidden="true">{severityIcon(issue.severity)}</span>
 								<span class="pptx-svelte-review-copy">
-									<strong>{issueTypeLabel(issue.type)}</strong>
+									<strong>{issueTypeLabel(issue.type, t)}</strong>
 									<span>{issue.message}</span>
-									<small>Slide {issue.slideIndex + 1}. {issue.suggestion}</small>
+									<small>{t('pptx.zoom.slideNumber', { number: String(issue.slideIndex + 1) })}. {issue.suggestion}</small>
 								</span>
 							</button>
 						{/each}

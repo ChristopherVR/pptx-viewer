@@ -22,16 +22,23 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 		return null;
 	}
 	const doc = context.document;
-	const summaryView = buildSummaryZoomView(element, (index) => {
-		const slide = context.slides?.[index];
-		return slide
-			? {
-					slideNumber: slide.slideNumber,
-					sectionName: slide.sectionName,
-					backgroundColor: slide.backgroundColor,
-				}
-			: undefined;
-	});
+	const summaryView = buildSummaryZoomView(
+		element,
+		(index) => {
+			const slide = context.slides?.[index];
+			return slide
+				? {
+						slideNumber: slide.slideNumber,
+						sectionName: slide.sectionName,
+						backgroundColor: slide.backgroundColor,
+					}
+				: undefined;
+		},
+		// The tile captions and the container aria-label are built in shared; the
+		// translator is what keeps them from rendering English inside an otherwise
+		// translated viewer.
+		(key, params) => context.t(key, params),
+	);
 	if (summaryView) {
 		const root = createEl(
 			doc,
@@ -87,7 +94,7 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 			content.appendChild(tileElement);
 		}
 		const badge = createEl(doc, 'div', 'pptxv-zoom-badge');
-		badge.textContent = 'Summary Zoom';
+		badge.textContent = context.t('pptx.zoom.summaryZoom');
 		content.appendChild(badge);
 		root.appendChild(content);
 		return root;

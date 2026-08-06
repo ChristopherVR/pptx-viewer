@@ -33,16 +33,22 @@ export function ZoomElementRenderer({
 	sourceSlideIndex,
 }: ZoomElementRendererProps): React.ReactElement {
 	const { t } = useTranslation();
-	const summaryView = buildSummaryZoomView(element, (index) => {
-		const slide = slides?.[index];
-		return slide
-			? {
-					slideNumber: slide.slideNumber,
-					sectionName: slide.sectionName,
-					backgroundColor: slide.backgroundColor,
-				}
-			: undefined;
-	});
+	const summaryView = buildSummaryZoomView(
+		element,
+		(index) => {
+			const slide = slides?.[index];
+			return slide
+				? {
+						slideNumber: slide.slideNumber,
+						sectionName: slide.sectionName,
+						backgroundColor: slide.backgroundColor,
+					}
+				: undefined;
+		},
+		// The tile captions and aria-labels are built in shared; without this the
+		// slide subtitle and the container's aria-label stay English.
+		(key: string, params?: Record<string, string>) => t(key, params ?? {}),
+	);
 	if (summaryView) {
 		return (
 			<div
@@ -101,7 +107,9 @@ export function ZoomElementRenderer({
 						)}
 					</div>
 				))}
-				<div style={{ position: 'absolute', right: 4, bottom: 4, fontSize: 9 }}>Summary Zoom</div>
+				<div style={{ position: 'absolute', right: 4, bottom: 4, fontSize: 9 }}>
+					{t('pptx.zoom.summaryZoom')}
+				</div>
 			</div>
 		);
 	}

@@ -147,7 +147,9 @@ describe('chartRenderer', () => {
 			props: { element: chartElement(data('ofPie')), zIndex: 0 },
 		});
 		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
-		expect(wrapper.text()).toContain('Chart: ofPie');
+		// `ofPie` is a wire token, not a word: the placeholder now spells it via
+		// `pptx.chart.typeOfPie` like every other chart-kind control.
+		expect(wrapper.text()).toContain('Chart: Pie of Pie');
 	});
 
 	it('renders the placeholder when chart data is missing', () => {

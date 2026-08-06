@@ -87,7 +87,7 @@
 		onchange={(next) => onguideschange(next)}
 	/>
 	<RibbonToggle
-		label="Snap to grid"
+		label={t('pptx.grid.snapToGrid')}
 		checked={preferences.snapToGrid}
 		onchange={() => ontogglepreference('snapToGrid')}
 	/>
@@ -120,10 +120,20 @@
 	>
 		{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 7h14M3 13h14M7 3v14M13 3v14" /></svg>{/snippet}
 	</RibbonCommand>
-	<RibbonCommand compact label="H Guide" onclick={() => onaddguide('h')}>
+	<RibbonCommand
+		compact
+		label={t('pptx.view.hGuide')}
+		title={t('pptx.view.addHorizontalGuide')}
+		onclick={() => onaddguide('h')}
+	>
 		{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2 10h16" /></svg>{/snippet}
 	</RibbonCommand>
-	<RibbonCommand compact label="V Guide" onclick={() => onaddguide('v')}>
+	<RibbonCommand
+		compact
+		label={t('pptx.view.vGuide')}
+		title={t('pptx.view.addVerticalGuide')}
+		onclick={() => onaddguide('v')}
+	>
 		{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M10 2v16" /></svg>{/snippet}
 	</RibbonCommand>
 </RibbonCommandStack>

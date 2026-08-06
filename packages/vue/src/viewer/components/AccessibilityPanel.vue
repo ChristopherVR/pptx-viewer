@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type {
-	AccessibilityIssue,
-	AccessibilityIssueSeverity,
-	AccessibilityIssueType,
-} from 'pptx-viewer-core';
+import type { AccessibilityIssue, AccessibilityIssueType } from 'pptx-viewer-core';
+import { groupIssuesBySeverity, issueTrackKey, issueTypeLabel } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -29,47 +26,21 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-/** Severity groups in display order. */
-const SEVERITY_GROUPS: readonly AccessibilityIssueSeverity[] = ['error', 'warning', 'tip'];
-
-const SEVERITY_LABEL_KEYS: Record<AccessibilityIssueSeverity, string> = {
-	error: 'pptx.accessibility.severityErrors',
-	warning: 'pptx.accessibility.severityWarnings',
-	tip: 'pptx.accessibility.severityTips',
-};
-
-const TYPE_LABEL_KEYS: Record<AccessibilityIssueType, string> = {
-	missingAltText: 'pptx.accessibility.typeMissingAltText',
-	missingSlideTitle: 'pptx.accessibility.typeMissingSlideTitle',
-	lowContrast: 'pptx.accessibility.typeLowContrast',
-	complexTable: 'pptx.accessibility.typeComplexTable',
-	duplicateTitle: 'pptx.accessibility.typeDuplicateTitle',
-	blankSlide: 'pptx.accessibility.typeBlankSlide',
-};
-
-interface IssueGroup {
-	severity: AccessibilityIssueSeverity;
-	label: string;
-	issues: AccessibilityIssue[];
-}
-
-const groups = computed<IssueGroup[]>(() =>
-	SEVERITY_GROUPS.map((severity) => ({
-		severity,
-		label: t(SEVERITY_LABEL_KEYS[severity]),
-		issues: props.issues.filter((issue) => issue.severity === severity),
-	})).filter((group) => group.issues.length > 0),
-);
+// Grouping, ordering and the severity/type wording all come from
+// `pptx-viewer-shared`: this panel used to keep its own copies of the key maps
+// and its own grouping loop, which is how the same checker ended up translated
+// here and hard-coded English in Angular, Svelte and Vanilla.
+const groups = computed(() => groupIssuesBySeverity(props.issues, (key: string) => t(key)));
 
 const hasIssues = computed(() => props.issues.length > 0);
 
 function typeLabel(type: AccessibilityIssueType): string {
-	return t(TYPE_LABEL_KEYS[type]);
+	return issueTypeLabel(type, (key: string) => t(key));
 }
 
 /** Stable-ish key for v-for; issues have no id of their own. */
 function issueKey(issue: AccessibilityIssue, index: number): string {
-	return `${issue.slideIndex}-${issue.type}-${issue.elementId ?? 'slide'}-${index}`;
+	return issueTrackKey(issue, index);
 }
 
 function onSelect(issue: AccessibilityIssue): void {

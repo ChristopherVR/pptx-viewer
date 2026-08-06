@@ -10,7 +10,7 @@
 	 */
 	import type { PptxThemeColorScheme } from 'pptx-viewer-core';
 	import { THEME_COLOR_SCHEME_KEYS } from 'pptx-viewer-core';
-	import { buildThemeColorGrid, THEME_COLOR_LABELS } from 'pptx-viewer-shared';
+	import { buildThemeColorGrid, themeColorLabel } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { ThemeEditorState } from './theme-editor-state.svelte';
@@ -18,7 +18,12 @@
 	const { state, canEdit }: { state: ThemeEditorState; canEdit: boolean } = $props();
 	const t = useTranslator();
 
-	const previewGrid = $derived(buildThemeColorGrid(state.colors));
+	// Slot captions and the grid's row/column labels reach the DOM as tooltips
+	// and aria-labels, so they resolve through the shared `pptx.themeColor.*`
+	// keys rather than the module's English fallbacks.
+	const slotLabel = (key: keyof PptxThemeColorScheme): string => themeColorLabel(key, t);
+
+	const previewGrid = $derived(buildThemeColorGrid(state.colors, t));
 	const activeKey = $derived(state.activePickerKey);
 
 	function togglePicker(key: keyof PptxThemeColorScheme): void {
@@ -34,31 +39,31 @@
 				<button
 					type="button"
 					disabled={!canEdit}
-					title={`${THEME_COLOR_LABELS[key]}: ${state.colors[key]}`}
-					aria-label={`${THEME_COLOR_LABELS[key]}: ${state.colors[key]}`}
+					title={`${slotLabel(key)}: ${state.colors[key]}`}
+					aria-label={`${slotLabel(key)}: ${state.colors[key]}`}
 					aria-pressed={activeKey === key}
 					class:pptx-svelte-theme-swatch-active={activeKey === key}
 					style={`background:${state.colors[key]}`}
 					onclick={() => togglePicker(key)}
 				></button>
-				<small>{THEME_COLOR_LABELS[key]}</small>
+				<small>{slotLabel(key)}</small>
 			</div>
 		{/each}
 	</div>
 	{#if activeKey}
 		<div class="pptx-svelte-theme-picker">
-			<span>{THEME_COLOR_LABELS[activeKey]}</span>
+			<span>{slotLabel(activeKey)}</span>
 			<input
 				type="color"
 				disabled={!canEdit}
-				aria-label={THEME_COLOR_LABELS[activeKey]}
+				aria-label={slotLabel(activeKey)}
 				value={state.colors[activeKey]}
 				oninput={(event) => state.setColor(activeKey, event.currentTarget.value)}
 			/>
 			<input
 				type="text"
 				disabled={!canEdit}
-				aria-label={`${THEME_COLOR_LABELS[activeKey]} hex`}
+				aria-label={`${slotLabel(activeKey)} hex`}
 				value={state.colors[activeKey]}
 				onchange={(event) => state.setColorText(event.currentTarget.value)}
 			/>

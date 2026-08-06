@@ -93,6 +93,7 @@ export const translations = {
 	'pptx.chart.typeBoxWhisker': 'Boîte à moustaches',
 	'pptx.chart.typeRegionMap': 'Carte choroplèthe',
 	'pptx.chart.typeUnknown': 'Inconnu',
+	'pptx.chart.placeholderLabel': 'Graphique : {{type}}',
 	'pptx.chart.groupingClustered': 'En cluster',
 	'pptx.chart.groupingStacked': 'Empilé',
 	'pptx.chart.groupingPercentStacked': '100 % empilé',
