@@ -55,7 +55,7 @@ export class ViewerTouchGesturesService {
 			const teardown = attachTouchGestures(el, {
 				getScale: () => this.zoomSvc.zoom(),
 				callbacks: {
-					onPinchZoom: (newScale) => this.zoomSvc.zoom.set(newScale),
+					onPinchZoom: (newScale) => this.zoomSvc.setZoom(newScale),
 					onSwipe: (direction) => {
 						// Edit mode: leave single-finger gestures to element manipulation.
 						if (host.canEdit()) {

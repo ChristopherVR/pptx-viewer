@@ -1,9 +1,14 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { clampZoomScale, zoomInScale, zoomOutScale } from 'pptx-viewer-shared';
+import { clampZoomScale, createViewerZoomStore } from 'pptx-viewer-shared';
+import type { ViewerZoomState, ViewerZoomStore } from 'pptx-viewer-shared';
 import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 
 import { MIN_ELEMENT_SIZE, ZOOM_TO_SELECTION_PADDING } from '../constants';
 import type { CanvasSize } from '../types';
+import { useViewerStore } from './useViewerStore';
+
+/** Module scope so the selector identity is stable across renders. */
+const selectZoom = (state: ViewerZoomState): number => state.zoom;
 
 /** Axis-aligned bounding box used by zoom / viewport helpers. */
 interface SelectionBounds {
@@ -54,7 +59,18 @@ export function useZoomViewport({
 	const renderScaleRef = useRef(1);
 
 	// ── State ─────────────────────────────────────────────────────────────
-	const [scale, setScale] = useState(1);
+	// The user's zoom factor lives in the shared zoom store, so the zoom MODEL
+	// (not merely the step size) is one definition across all five bindings.
+	// Reading it through a selector subscription also means this hook re-renders
+	// for a zoom change and not for anything else in the store (issue #145).
+	const storeRef = useRef<ViewerZoomStore | null>(null);
+	storeRef.current ??= createViewerZoomStore();
+	const store = storeRef.current;
+	const scale = useViewerStore(store, selectZoom);
+	const setScale = useCallback(
+		(next: number) => store.dispatch({ type: 'set-zoom', zoom: next }),
+		[store],
+	);
 	const [editorDimensions, setEditorDimensions] = useState<CanvasSize | null>(null);
 
 	// ── Derived ───────────────────────────────────────────────────────────
@@ -78,6 +94,13 @@ export function useZoomViewport({
 	useEffect(() => {
 		renderScaleRef.current = editorScale;
 	}, [editorScale]);
+
+	// Publish the measured viewport fit into the store, so consumers can select
+	// the effective on-screen scale from one place. A repeated measurement is
+	// dropped by the reducer, so a ResizeObserver settling costs nothing.
+	useEffect(() => {
+		store.dispatch({ type: 'set-fit-scale', fitScale });
+	}, [store, fitScale]);
 
 	// Measure the available editor area (the scrollable canvas viewport) so
 	// `fitScale` reflects reality and the slide is fit-to-contain by default.
@@ -144,20 +167,20 @@ export function useZoomViewport({
 	// The step itself lives in pptx-viewer-shared so all five bindings move the
 	// stage by the same amount per press (two of them stepped by 1.25x instead).
 	const handleZoomIn = useCallback(() => {
-		setScale((currentScale) => zoomInScale(currentScale));
-	}, []);
+		store.dispatch({ type: 'zoom-in' });
+	}, [store]);
 
 	const handleZoomOut = useCallback(() => {
-		setScale((currentScale) => zoomOutScale(currentScale));
-	}, []);
+		store.dispatch({ type: 'zoom-out' });
+	}, [store]);
 
 	const handleResetZoom = useCallback(() => {
-		setScale(1);
-	}, []);
+		store.dispatch({ type: 'zoom-to-fit' });
+	}, [store]);
 
 	const handleZoomToFit = useCallback(() => {
-		setScale(1);
-	}, []);
+		store.dispatch({ type: 'zoom-to-fit' });
+	}, [store]);
 
 	const handleZoomToSelection = useCallback(() => {
 		if (selectedElements.length === 0) {
@@ -217,16 +240,26 @@ export function useZoomViewport({
 		effectiveEditorDimensions.width,
 		fitScale,
 		selectedElements,
+		setScale,
 	]);
 
-	const handleWheel = useCallback((event: WheelEvent) => {
-		if (!event.ctrlKey) {
-			return;
-		}
-		event.preventDefault();
-		const delta = event.deltaY * -0.001;
-		setScale((currentScale) => clampZoomScale(currentScale + delta));
-	}, []);
+	const handleWheel = useCallback(
+		(event: WheelEvent) => {
+			if (!event.ctrlKey) {
+				return;
+			}
+			event.preventDefault();
+			const delta = event.deltaY * -0.001;
+			// Read the live value from the store rather than closing over `scale`:
+			// wheel events arrive faster than React commits, so a captured value
+			// would quantise the gesture to the last rendered scale.
+			store.dispatch({
+				type: 'set-zoom',
+				zoom: clampZoomScale(store.getState().zoom + delta),
+			});
+		},
+		[store],
+	);
 
 	// Attach the wheel listener natively with { passive: false } so that
 	// preventDefault() works. React's onWheel is passive since React 17+.

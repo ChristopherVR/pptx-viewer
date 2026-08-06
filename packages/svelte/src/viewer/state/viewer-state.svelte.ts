@@ -1,4 +1,7 @@
-import { clampSlideIndex, resolveNavigationKey, zoomInPercent, zoomOutPercent } from './navigation';
+import { createViewerZoomStore, viewerZoomPercent } from 'pptx-viewer-shared';
+
+import { clampSlideIndex, resolveNavigationKey } from './navigation';
+import { viewerStoreSelection } from './viewer-store.svelte';
 
 /**
  * Reactive viewer chrome state (runes-based): current slide, zoom mode, and
@@ -10,10 +13,31 @@ export class ViewerState {
 	slideCount = $state(0);
 	/** Active slide index (0-based). */
 	current = $state(0);
-	/** Manual zoom percent, or `null` for fit-to-viewport. */
-	zoomPercent = $state<number | null>(null);
+	/**
+	 * The zoom itself lives in the shared `createViewerZoomStore`, so the model
+	 * is one definition across all five bindings rather than this binding's own
+	 * "percent, or null for fit" encoding. That encoding is kept at THIS
+	 * boundary (see the accessor below) so no component or `deck-api` call site
+	 * has to change.
+	 */
+	readonly #zoom = createViewerZoomStore();
+	readonly #zoomSelection = viewerStoreSelection(this.#zoom, (state) => state);
 	/** True while the viewer root is the fullscreen element. */
 	isFullscreen = $state(false);
+
+	/** Manual zoom percent, or `null` for fit-to-viewport. */
+	get zoomPercent(): number | null {
+		const state = this.#zoomSelection.value;
+		return state.manual ? viewerZoomPercent(state.zoom) : null;
+	}
+
+	set zoomPercent(percent: number | null) {
+		if (percent === null) {
+			this.#zoom.dispatch({ type: 'zoom-to-fit' });
+			return;
+		}
+		this.#zoom.dispatch({ type: 'set-zoom', zoom: percent / 100 });
+	}
 
 	/** Reset for a freshly-loaded presentation. */
 	reset(slideCount: number, initialSlide = 0): void {
@@ -48,15 +72,23 @@ export class ViewerState {
 	 * measurements), so the component passes it in.
 	 */
 	zoomIn(effectivePercent: number): void {
-		this.zoomPercent = zoomInPercent(this.zoomPercent ?? effectivePercent);
+		// Seed the store with wherever the view actually is before stepping, then
+		// step: both land as ONE notification, so a press is one render.
+		this.#zoom.dispatch(
+			{ type: 'set-zoom', zoom: (this.zoomPercent ?? effectivePercent) / 100 },
+			{ type: 'zoom-in' },
+		);
 	}
 
 	zoomOut(effectivePercent: number): void {
-		this.zoomPercent = zoomOutPercent(this.zoomPercent ?? effectivePercent);
+		this.#zoom.dispatch(
+			{ type: 'set-zoom', zoom: (this.zoomPercent ?? effectivePercent) / 100 },
+			{ type: 'zoom-out' },
+		);
 	}
 
 	zoomToFit(): void {
-		this.zoomPercent = null;
+		this.#zoom.dispatch({ type: 'zoom-to-fit' });
 	}
 
 	/**
