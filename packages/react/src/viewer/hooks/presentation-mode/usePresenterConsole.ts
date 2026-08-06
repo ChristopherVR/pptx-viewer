@@ -23,7 +23,18 @@ export interface UsePresenterConsoleResult {
 	updateSnapshot: (patch: Partial<PresentationSnapshot>) => void;
 }
 
-export function usePresenterConsole(slideIndex: number): UsePresenterConsoleResult {
+/**
+ * @param active - Whether a slide show is running. This hook is mounted by the
+ *   root viewer for the whole session, so the clock MUST be gated on it: an
+ *   ungated interval ticked once a second during ordinary editing, and because
+ *   `mergePresentationSnapshot` always allocates a fresh object and bumps
+ *   `sequence`, React could never bail out of the resulting render. That
+ *   re-rendered the entire editor tree at 1 Hz forever (issue #145).
+ */
+export function usePresenterConsole(
+	slideIndex: number,
+	active: boolean,
+): UsePresenterConsoleResult {
 	const timerRef = useRef(createPresenterTimer());
 	const [snapshot, setSnapshot] = useState(() => createInitialPresentationSnapshot(slideIndex));
 	const patch = useCallback((value: Partial<PresentationSnapshot>) => {
@@ -32,6 +43,17 @@ export function usePresenterConsole(slideIndex: number): UsePresenterConsoleResu
 
 	useEffect(() => patch({ slideIndex }), [patch, slideIndex]);
 	useEffect(() => {
+		if (!active) {
+			return;
+		}
+		// The elapsed reading is "time since this show started", so the clock is
+		// re-based on entry rather than left running from mount. It used to be
+		// seeded at mount, and since `createInitialPresentationSnapshot` always
+		// sets a numeric `elapsedMs` the `presentationStartTime` fallback in
+		// `PresenterView` was dead code - so a deck presented half an hour into an
+		// editing session opened its console reading 30:00 instead of 00:00.
+		timerRef.current = resetPresenterTimer();
+		patch({ paused: false, elapsedMs: 0 });
 		const timer = window.setInterval(() => {
 			patch({
 				paused: timerRef.current.paused,
@@ -39,7 +61,7 @@ export function usePresenterConsole(slideIndex: number): UsePresenterConsoleResu
 			});
 		}, 1000);
 		return () => window.clearInterval(timer);
-	}, [patch]);
+	}, [active, patch]);
 
 	return {
 		snapshot,

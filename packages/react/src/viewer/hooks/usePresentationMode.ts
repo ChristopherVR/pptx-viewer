@@ -204,7 +204,10 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		useZoomNavigation({ navigateToSlide });
 	const openAllSlides = useCallback(() => setAllSlidesOpen(true), []);
 	const closeAllSlides = useCallback(() => setAllSlidesOpen(false), []);
-	const presenterConsole = usePresenterConsole(presentationSlideIndex);
+	// Gated on the show being live: this hook is mounted for the whole session,
+	// so an always-on console clock re-rendered the entire editor at 1 Hz while
+	// the user was only editing (issue #145).
+	const presenterConsole = usePresenterConsole(presentationSlideIndex, mode === 'present');
 
 	const {
 		openAudienceWindow,
