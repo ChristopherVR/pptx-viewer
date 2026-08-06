@@ -265,21 +265,41 @@ export function svgGradientFillRef(def: SvgGradientDef | SvgPatternDef): string 
 	return `url(#${def.id})`;
 }
 
+/** Escapes a value for safe use inside a double-quoted SVG/HTML attribute. */
+function escapeAttr(value: string): string {
+	return String(value)
+		.replace(/&/gu, '&amp;')
+		.replace(/"/gu, '&quot;')
+		.replace(/</gu, '&lt;')
+		.replace(/>/gu, '&gt;');
+}
+
+/** Coerces a value to a finite number, for numeric attributes built into markup. */
+function numAttr(value: number): number {
+	return Number.isFinite(value) ? value : 0;
+}
+
 /**
  * Serialise a definition to SVG markup, for bindings that build their DOM as a
  * string (the vanilla renderer) rather than through a component tree.
+ *
+ * Every interpolated field is escaped/coerced here even though upstream
+ * builders already sanitize colours and ids: this is the string-concatenation
+ * boundary that lands in `innerHTML`, so it stays safe on its own regardless
+ * of how a `SvgGradientDef` was constructed.
  */
 export function svgGradientMarkup(def: SvgGradientDef): string {
+	const id = escapeAttr(def.id);
 	const stops = def.stops
 		.map(
 			(stop) =>
-				`<stop offset="${stop.offset}" stop-color="${stop.color}"${
-					typeof stop.opacity === 'number' ? ` stop-opacity="${stop.opacity}"` : ''
+				`<stop offset="${numAttr(stop.offset)}" stop-color="${escapeAttr(stop.color)}"${
+					typeof stop.opacity === 'number' ? ` stop-opacity="${numAttr(stop.opacity)}"` : ''
 				}/>`,
 		)
 		.join('');
 	if (def.kind === 'radial') {
-		return `<radialGradient id="${def.id}" cx="${def.cx}" cy="${def.cy}" r="${def.r}">${stops}</radialGradient>`;
+		return `<radialGradient id="${id}" cx="${numAttr(def.cx)}" cy="${numAttr(def.cy)}" r="${numAttr(def.r)}">${stops}</radialGradient>`;
 	}
-	return `<linearGradient id="${def.id}" x1="${def.x1}" y1="${def.y1}" x2="${def.x2}" y2="${def.y2}">${stops}</linearGradient>`;
+	return `<linearGradient id="${id}" x1="${numAttr(def.x1)}" y1="${numAttr(def.y1)}" x2="${numAttr(def.x2)}" y2="${numAttr(def.y2)}">${stops}</linearGradient>`;
 }
