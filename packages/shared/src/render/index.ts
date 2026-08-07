@@ -21,6 +21,7 @@
  *               recalculation when connected shapes move + connection sites).
  */
 export * from './shape-geometry';
+export * from './shape-geometry-cascade';
 export * from './fill-style';
 // `a:gradFill` → SVG paint server, for the freeform (`a:custGeom`) shapes that
 // are painted as a real `<path>` and so cannot take a CSS gradient.
