@@ -5,8 +5,11 @@ import type {
 } from 'pptx-vanilla-viewer';
 import {
 	createPptxViewer,
+	forgetSessionDeck,
 	loadPresentationDeck,
 	parsePresentationSessionId,
+	rememberSessionDeck,
+	restoreSessionDeck,
 	themeToCssVars,
 } from 'pptx-vanilla-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
@@ -80,11 +83,51 @@ function showError(message: string): void {
 	zone.append(error);
 }
 
+/**
+ * Remember the deck now on screen for THIS tab, so the next load can reopen it
+ * (see the `restoreSessionDeck` call at the bottom of this file). Audience tabs
+ * are fed by the presenter window and never restore themselves.
+ */
+function rememberSource(source: PptxViewerSource, name: string): void {
+	if (parsePresentationSessionId(window.location.hash)) {
+		return;
+	}
+	if (source instanceof File) {
+		void source.arrayBuffer().then((buf) => rememberSessionDeck(name, new Uint8Array(buf)));
+		return;
+	}
+	if (source instanceof Uint8Array) {
+		void rememberSessionDeck(name, source);
+		return;
+	}
+	if (source instanceof ArrayBuffer) {
+		void rememberSessionDeck(name, new Uint8Array(source));
+	}
+}
+
+/**
+ * Drop `?sample=1` from the address bar.
+ *
+ * The docs landing page embeds the demo with `?sample=1` so it opens
+ * pre-populated. Once the user opens a deck of their own that param is stale:
+ * left in place it would re-seed the bundled sample on the next refresh and
+ * throw away what they were looking at.
+ */
+function dropSampleParam(): void {
+	const url = new URL(window.location.href);
+	if (!url.searchParams.has('sample')) {
+		return;
+	}
+	url.searchParams.delete('sample');
+	window.history.replaceState({}, '', url.toString());
+}
+
 function openViewer(
 	source: PptxViewerSource,
 	name: string,
 	collaboration?: CollaborationConfig,
 ): void {
+	rememberSource(source, name);
 	viewer?.destroy();
 	viewer = null;
 	app.replaceChildren();
@@ -109,6 +152,8 @@ function openViewer(
 		shareDefaults: { userName },
 		onError: (message, error) => {
 			console.error('pptx-vanilla-viewer failed to load', message, error);
+			// A deck the viewer cannot load must not be reopened on every refresh.
+			void forgetSessionDeck();
 			showLanding();
 			showError(message || t('demo.viewer.loadError'));
 		},
@@ -125,9 +170,11 @@ function showLanding(): void {
 	app.append(
 		createDropzone({
 			onFile: (file) => {
+				dropSampleParam();
 				openViewer(file, file.name);
 			},
 			onNewPresentation: () => {
+				dropSampleParam();
 				void (async () => {
 					const { handler, data } = await PptxHandler.createBlank({
 						title: 'Untitled Presentation',
@@ -189,15 +236,28 @@ if (audienceSession) {
 		handler.dispose();
 		openViewer(bytes, 'Shared Session', buildRoomConfig(joinRoom, userName));
 	})();
-} else if (wantSample) {
-	void fetchSampleDeck().then((sample) => {
-		if (sample) {
-			openViewer(sample, 'sample-deck.pptx');
-		} else {
-			showLanding();
-		}
-		return undefined;
-	});
 } else {
-	showLanding();
+	// Nothing in the URL to join: reopen whatever this tab had before a refresh
+	// (with any autosaved edits, since `restoreSessionDeck` prefers the newer of
+	// the two). A restored deck beats `?sample=1`: this tab has moved on from the
+	// bundled sample, so the flag is retired rather than seeding it again.
+	void restoreSessionDeck().then((deck) => {
+		if (deck) {
+			dropSampleParam();
+			openViewer(deck.data, deck.fileName || 'Presentation');
+			return undefined;
+		}
+		if (!wantSample) {
+			showLanding();
+			return undefined;
+		}
+		return fetchSampleDeck().then((sample) => {
+			if (sample) {
+				openViewer(sample, 'sample-deck.pptx');
+			} else {
+				showLanding();
+			}
+			return undefined;
+		});
+	});
 }

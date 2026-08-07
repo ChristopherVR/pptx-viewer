@@ -12,6 +12,8 @@ import {
 	loadAudienceContent,
 	parseAudienceNonce,
 	PowerPointViewerComponent,
+	rememberSessionDeck,
+	restoreSessionDeck,
 	themeToCssVars,
 	translationsEn,
 } from 'pptx-angular-viewer';
@@ -171,9 +173,22 @@ export class AppComponent {
 		this.translate.use(this.languageKey());
 
 		this.autoConnectFromUrl();
-		void this.loadSampleFromUrl();
+		// Restore first: a tab that already has a deck of its own must not have the
+		// `?sample=1` deck dropped back on top of it.
+		void this.restoreSession().then(() => this.loadSampleFromUrl());
 		this.joinFromUrl();
 		void this.loadAudienceTab();
+
+		// Remember the open deck for THIS tab so the next load can reopen it (see
+		// `restoreSession`). Audience tabs are fed by the presenter, never restored.
+		effect(() => {
+			const bytes = this.content();
+			const name = this.fileName();
+			if (!bytes || isAudienceTab()) {
+				return;
+			}
+			void rememberSessionDeck(name, bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+		});
 
 		// Keep the document title in sync with the collaboration / broadcast role.
 		effect(() => {
@@ -255,11 +270,13 @@ export class AppComponent {
 
 	// ── File loading ─────────────────────────────────────────────────────────
 	async loadFile(file: File): Promise<void> {
+		this.dropSampleParam();
 		this.fileName.set(file.name);
 		this.content.set(new Uint8Array(await file.arrayBuffer()));
 	}
 
 	async newPresentation(): Promise<void> {
+		this.dropSampleParam();
 		this.isBusy.set(true);
 		try {
 			const { handler, data } = await PptxHandler.createBlank({
@@ -272,6 +289,45 @@ export class AppComponent {
 		} finally {
 			this.isBusy.set(false);
 		}
+	}
+
+	/**
+	 * Drop `?sample=1` from the address bar.
+	 *
+	 * The docs landing page embeds the demo with `?sample=1` so it opens
+	 * pre-populated. Once the user opens a deck of their own that param is stale:
+	 * left in place it would re-seed the bundled sample on the next refresh and
+	 * throw away what they were looking at.
+	 */
+	private dropSampleParam(): void {
+		const url = new URL(window.location.href);
+		if (!url.searchParams.has('sample')) {
+			return;
+		}
+		url.searchParams.delete('sample');
+		window.history.replaceState({}, '', url.toString());
+	}
+
+	/**
+	 * Reopen the deck this tab had before a refresh (with any autosaved edits;
+	 * `restoreSessionDeck` prefers whichever of the two is newer).
+	 */
+	private async restoreSession(): Promise<void> {
+		// Collaboration / broadcast / audience tabs are fed by the session and never
+		// restore.
+		if (this.content() || this.urlRoom || this.urlBroadcast || isAudienceTab()) {
+			return;
+		}
+		const deck = await restoreSessionDeck();
+		if (!deck || this.content()) {
+			return;
+		}
+		// This tab has moved on from the bundled sample (the user opened a deck of
+		// their own, possibly through the viewer's own File > Open), so a leftover
+		// `?sample=1` must not re-seed it on the next refresh.
+		this.dropSampleParam();
+		this.content.set(deck.data);
+		this.fileName.set(deck.fileName);
 	}
 
 	// ── Collaboration / broadcast / audience wiring ──────────────────────────

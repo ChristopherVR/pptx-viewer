@@ -14,6 +14,8 @@ import {
 	isAudienceTab,
 	loadAudienceContent,
 	parseAudienceNonce,
+	rememberSessionDeck,
+	restoreSessionDeck,
 	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
@@ -287,9 +289,29 @@ function useRootTheme(theme: ViewerTheme) {
 
 const RECOVERY_STORAGE_KEY = 'pptx-demo-last-file';
 
+/**
+ * Drop `?sample=1` from the address bar.
+ *
+ * The docs landing page embeds the demo with `?sample=1` so it opens
+ * pre-populated. Once the user opens a deck of their own that param is stale:
+ * left in place it would re-seed the bundled sample on the next refresh and
+ * throw away what they were looking at.
+ */
+function dropSampleParam(): void {
+	const url = new URL(window.location.href);
+	if (!url.searchParams.has('sample')) {
+		return;
+	}
+	url.searchParams.delete('sample');
+	window.history.replaceState({}, '', url.toString());
+}
+
 function App() {
 	const [content, setContent] = useState<Uint8Array | null>(null);
 	const [fileName, setFileName] = useState<string>('');
+	// Whether the "does this tab have a deck to reopen?" check has finished. The
+	// `?sample=1` auto-load waits for it so a restored deck wins over the sample.
+	const [restoreChecked, setRestoreChecked] = useState(false);
 	const [recoveryOffer, setRecoveryOffer] = useState<{
 		filePath: string;
 		timestamp: number;
@@ -513,9 +535,11 @@ function App() {
 
 	// Auto-load the bundled sample deck when `?sample=1` is present. Runs before
 	// the blank-deck collab bootstrap below (local fetch beats its 1.5s timer),
-	// so a `?sample=1&room=…` host pane seeds the session with the sample.
+	// so a `?sample=1&room=…` host pane seeds the session with the sample, and
+	// AFTER the restore check below: a tab that already has a deck of its own
+	// must not have the sample dropped back on top of it.
 	useEffect(() => {
-		if (!urlSample || content) {
+		if (!urlSample || content || !restoreChecked) {
 			return;
 		}
 		let cancelled = false;
@@ -539,7 +563,7 @@ function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, [urlSample, content]);
+	}, [urlSample, content, restoreChecked]);
 
 	// When joining via URL with a room/broadcast param, download PPTX from the
 	// collab server — but ONLY if the server is in the trusted-host allowlist.
@@ -648,6 +672,47 @@ function App() {
 		};
 	}, []);
 
+	// ── Refresh survival ────────────────────────────────────────────────────
+	// Remember the open deck for THIS tab, and reopen it on the next load. A
+	// refresh used to drop the presentation and land the user back on the file
+	// picker; now it comes back, with any autosaved edits (restoreSessionDeck
+	// prefers the newer of the two). An audience tab is fed by the presenter
+	// window, so it neither remembers nor restores.
+	useEffect(() => {
+		if (!content || isAudienceTab()) {
+			return;
+		}
+		void rememberSessionDeck(fileName, content);
+	}, [content, fileName]);
+
+	useEffect(() => {
+		// Collaboration / broadcast / audience tabs are fed by the session; they
+		// never restore, and must not hold the sample fetch up either.
+		if (joinRoomId || isAudienceTab()) {
+			setRestoreChecked(true);
+			return;
+		}
+		let cancelled = false;
+		void restoreSessionDeck().then((deck) => {
+			if (cancelled) {
+				return undefined;
+			}
+			if (deck) {
+				// This tab has moved on from the bundled sample (the user opened a
+				// deck of their own, possibly through the viewer's own File > Open),
+				// so a leftover `?sample=1` must not re-seed it on the next refresh.
+				dropSampleParam();
+				setContent(deck.data);
+				setFileName(deck.fileName);
+			}
+			setRestoreChecked(true);
+			return undefined;
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [joinRoomId]);
+
 	// ── Recovery detection on mount ─────────────────────────────────────────
 	// Check IndexedDB for autosave snapshots. If we find one for the last opened
 	// file (persisted in localStorage), offer to restore it.
@@ -739,6 +804,7 @@ function App() {
 	}, [languageKey]);
 
 	const handleFile = useCallback((file: File) => {
+		dropSampleParam();
 		setFileName(file.name);
 		try {
 			localStorage.setItem(RECOVERY_STORAGE_KEY, file.name);
@@ -754,6 +820,7 @@ function App() {
 	}, []);
 
 	const handleNewPresentation = useCallback(async () => {
+		dropSampleParam();
 		const { handler, data } = await PptxHandler.createBlank({
 			title: 'Untitled Presentation',
 			initialSlideCount: 1,

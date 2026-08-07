@@ -5,6 +5,8 @@ import {
 	isAudienceTab,
 	loadAudienceContent,
 	parsePresentationSessionId,
+	rememberSessionDeck,
+	restoreSessionDeck,
 	themeToCssVars,
 } from 'pptx-vue-viewer';
 import type { CollaborationConfig } from 'pptx-vue-viewer';
@@ -34,6 +36,9 @@ import { themes } from './themes';
 
 const content = shallowRef<Uint8Array | null>(null);
 const fileName = ref('');
+// Whether the "does this tab have a deck to reopen?" check has finished. The
+// `?sample=1` auto-load waits for it so a restored deck wins over the sample.
+const restoreChecked = ref(false);
 
 // Demo AI provider: the host builds an OpenAI-compatible browser model from
 // localStorage-supplied fields and passes it to the viewer's optional `ai`
@@ -219,9 +224,11 @@ function handleStopCollaboration(): void {
 }
 
 // Auto-load the bundled sample deck when `?sample=1` is present, so a
-// `?sample=1&room=…` host pane seeds the session with the sample.
+// `?sample=1&room=…` host pane seeds the session with the sample. Waits for the
+// restore check below: a tab that already has a deck of its own must not have
+// the sample dropped back on top of it.
 watchEffect((onCleanup) => {
-	if (!urlSample || content.value) {
+	if (!restoreChecked.value || !urlSample || content.value) {
 		return;
 	}
 	let cancelled = false;
@@ -355,6 +362,58 @@ onMounted(() => {
 	);
 });
 
+// ── Refresh survival ───────────────────────────────────────────────────────
+// Remember the open deck for THIS tab, and reopen it on the next load. A
+// refresh used to drop the presentation and land the user back on the file
+// picker; now it comes back, with any autosaved edits (restoreSessionDeck
+// prefers the newer of the two). An audience tab is fed by the presenter
+// window, so it neither remembers nor restores.
+watchEffect(() => {
+	const bytes = content.value;
+	if (!bytes || isAudienceTab()) {
+		return;
+	}
+	void rememberSessionDeck(fileName.value, bytes);
+});
+
+onMounted(() => {
+	// Collaboration / broadcast / audience tabs are fed by the session; they never
+	// restore, and must not hold the sample fetch up either.
+	if (joinRoomId.value || isAudienceTab()) {
+		restoreChecked.value = true;
+		return;
+	}
+	void restoreSessionDeck().then((deck) => {
+		if (deck && !content.value) {
+			// This tab has moved on from the bundled sample (the user opened a deck
+			// of their own, possibly through the viewer's own File > Open), so a
+			// leftover `?sample=1` must not re-seed it on the next refresh.
+			dropSampleParam();
+			content.value = deck.data;
+			fileName.value = deck.fileName;
+		}
+		restoreChecked.value = true;
+		return undefined;
+	});
+});
+
+/**
+ * Drop `?sample=1` from the address bar.
+ *
+ * The docs landing page embeds the demo with `?sample=1` so it opens
+ * pre-populated. Once the user opens a deck of their own that param is stale:
+ * left in place it would re-seed the bundled sample on the next refresh and
+ * throw away what they were looking at.
+ */
+function dropSampleParam(): void {
+	const url = new URL(window.location.href);
+	if (!url.searchParams.has('sample')) {
+		return;
+	}
+	url.searchParams.delete('sample');
+	window.history.replaceState({}, '', url.toString());
+}
+
 // Update document title when in collaboration/broadcast mode.
 watchEffect(() => {
 	const config = collaborationConfig.value;
@@ -387,6 +446,7 @@ function onDirtyChange(dirty: boolean): void {
 
 // ── Loading ────────────────────────────────────────────────────────────────
 function loadFile(file: File): void {
+	dropSampleParam();
 	fileName.value = file.name;
 	const reader = new FileReader();
 	reader.onload = () => {
@@ -396,6 +456,7 @@ function loadFile(file: File): void {
 }
 
 async function newPresentation(): Promise<void> {
+	dropSampleParam();
 	const { handler, data } = await PptxHandler.createBlank({
 		title: 'Untitled Presentation',
 		initialSlideCount: 1,

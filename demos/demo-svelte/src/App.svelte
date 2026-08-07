@@ -8,9 +8,12 @@
 	 */
 	import type { CollaborationConfig, PptxAiConfig } from 'pptx-svelte-viewer';
 	import {
+		forgetSessionDeck,
 		loadPresentationDeck,
 		parsePresentationSessionId,
 		PowerPointViewer,
+		rememberSessionDeck,
+		restoreSessionDeck,
 		themeToCssVars,
 	} from 'pptx-svelte-viewer';
 	import { PptxHandler } from 'pptx-viewer-core';
@@ -118,6 +121,7 @@
 	});
 
 	function openFile(file: File): void {
+		dropSampleParam();
 		errorMessage = '';
 		aiConfig = buildViewerAiConfig();
 		fileName = file.name;
@@ -131,6 +135,7 @@
 	let creating = $state(false);
 
 	async function newPresentation(): Promise<void> {
+		dropSampleParam();
 		creating = true;
 		aiConfig = buildViewerAiConfig();
 		try {
@@ -170,11 +175,65 @@
 		}
 	}
 
+	// ── Refresh survival ────────────────────────────────────────────────────
+	// Remember the open deck for THIS tab, and reopen it on the next load. A
+	// refresh used to drop the presentation and land the user back on the file
+	// picker; now it comes back, with any autosaved edits (restoreSessionDeck
+	// prefers the newer of the two). An audience tab is fed by the presenter
+	// window, so it neither remembers nor restores.
+	$effect(() => {
+		const current = bytes;
+		if (!current || audienceSession) {
+			return;
+		}
+		void rememberSessionDeck(fileName, current);
+	});
+
+	/**
+	 * Reopen the deck this tab had before a refresh, falling back to the
+	 * `?sample=1` deck. A restored deck beats the sample: this tab has moved on
+	 * from it (the user opened a deck of their own, possibly through the viewer's
+	 * own File > Open), so the flag is retired rather than seeding it again.
+	 */
+	async function restoreSession(): Promise<void> {
+		const deck = await restoreSessionDeck();
+		if (!deck || bytes) {
+			if (urlSample && !bytes) {
+				await loadSampleDeck();
+			}
+			return;
+		}
+		dropSampleParam();
+		aiConfig = buildViewerAiConfig();
+		bytes = deck.data;
+		fileName = deck.fileName;
+		document.title = `${deck.fileName} - PPTX Viewer`;
+	}
+
+	/**
+	 * Drop `?sample=1` from the address bar.
+	 *
+	 * The docs landing page embeds the demo with `?sample=1` so it opens
+	 * pre-populated. Once the user opens a deck of their own that param is stale:
+	 * left in place it would re-seed the bundled sample on the next refresh and
+	 * throw away what they were looking at.
+	 */
+	function dropSampleParam(): void {
+		const url = new URL(window.location.href);
+		if (!url.searchParams.has('sample')) {
+			return;
+		}
+		url.searchParams.delete('sample');
+		window.history.replaceState(null, '', url.toString());
+	}
+
 	if (urlRoom) {
 		joinRoom(urlRoom);
 		void (urlSample ? loadSampleDeck() : newPresentation());
-	} else if (urlSample) {
-		void loadSampleDeck();
+	} else if (!audienceSession) {
+		// The audience branch above owns its tab; everything else reopens this
+		// tab's deck, falling back to the sample and then to the dropzone.
+		void restoreSession();
 	}
 
 	function onDrop(e: DragEvent): void {
@@ -218,6 +277,8 @@
 		errorMessage = message || t('demo.viewer.loadError');
 		bytes = null;
 		document.title = 'pptx-svelte-viewer demo';
+		// A deck the viewer cannot load must not be reopened on every refresh.
+		void forgetSessionDeck();
 	}
 </script>
 
