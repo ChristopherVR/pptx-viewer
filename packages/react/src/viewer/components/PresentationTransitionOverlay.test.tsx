@@ -164,6 +164,74 @@ describe('presentationTransitionOverlay', () => {
 		expect(img).toContain('animation:pptx-morph-crop-ghost-');
 	});
 
+	// Regression (issue #146): a shape arriving inside a shape that persists
+	// dissolves in UNDER the overlay's ghost of that shape, so nobody ever sees
+	// it. The plan hands those few over separately and the overlay has to paint
+	// them, above every ghost, with the incoming slide as their context.
+	it('paints the arriving shapes the plan lifted above the ghosts', () => {
+		const disc = {
+			type: 'shape',
+			name: '!!Content',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 300,
+			shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+		};
+		// A departing backdrop is what keeps the unchanged disc's ghost painted,
+		// exactly as the reporter's deck has it.
+		const outgoing = {
+			id: 'out',
+			elements: [
+				{
+					id: 'out-backdrop',
+					type: 'shape',
+					name: 'Backdrop',
+					x: 0,
+					y: 0,
+					width: 960,
+					height: 540,
+				} as unknown as PptxElement,
+				{ ...disc, id: 'out-disc' } as unknown as PptxElement,
+			],
+		} as PptxSlide;
+		const incoming = {
+			id: 'in',
+			elements: [
+				{ ...disc, id: 'in-disc' } as unknown as PptxElement,
+				{
+					id: 'in-wording',
+					type: 'text',
+					name: 'TextBox 9',
+					x: 50,
+					y: 60,
+					width: 200,
+					height: 30,
+					text: 'Arriving Wording',
+				} as unknown as PptxElement,
+			],
+		} as PptxSlide;
+		const plan = buildMorphTransitionPlan(outgoing, incoming, 500)!;
+		expect(plan.overlayIncomingElements.map((element) => element.id)).toStrictEqual(['in-wording']);
+
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={outgoing}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={{ type: 'morph', durationMs: 500 }}
+				durationMs={500}
+				morphPlan={plan}
+				incomingSlide={incoming}
+				onComplete={vi.fn()}
+			/>,
+		);
+
+		expect(html).toContain('data-pptx-morph-lifted="in-wording"');
+		expect(html).toContain('Arriving Wording');
+		expect(html).toMatch(/animation:\s*pptx-morph-fadein-/u);
+	});
+
 	it('ignores a non-positive stage scale and falls back to measuring', () => {
 		const html = renderToStaticMarkup(
 			<PresentationTransitionOverlay

@@ -55,6 +55,13 @@ export interface PresentationTransitionOverlayProps {
 	 * `usePresentationMode`).
 	 */
 	morphPlan?: MorphTransitionPlan;
+	/**
+	 * The arriving slide, needed only as the render context for the few of its
+	 * own shapes a morph has to paint above the ghosts (see
+	 * {@link MorphTransitionPlan.overlayIncomingElements}). Every other
+	 * transition ignores it.
+	 */
+	incomingSlide?: PptxSlide;
 	/** Called when the transition animation completes. */
 	onComplete: () => void;
 }
@@ -117,6 +124,7 @@ export function PresentationTransitionOverlay({
 	durationMs,
 	scale: stageScale,
 	morphPlan,
+	incomingSlide,
 	onComplete,
 }: PresentationTransitionOverlayProps): React.ReactElement | null {
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -226,6 +234,26 @@ export function PresentationTransitionOverlay({
 								/>
 							</div>
 						))}
+						{/* The arriving shapes a ghost above them would otherwise hide for
+						    the whole morph, painted here instead so they dissolve in where
+						    a viewer can see them (issue #146). Their copy on the live stage
+						    is held invisible by the plan, so nothing composites twice. */}
+						{incomingSlide &&
+							morphPlan.overlayIncomingElements.map((element, index) => (
+								<div
+									key={element.id}
+									data-pptx-morph-lifted={element.id}
+									style={{ position: 'absolute', inset: 0 }}
+								>
+									<StaticElementRenderer
+										element={element}
+										activeSlide={incomingSlide}
+										allSlides={[incomingSlide]}
+										zIndex={morphPlan.outgoingElements.length + index}
+										animation={morphPlan.overlayIncomingAnimations.get(element.id)}
+									/>
+								</div>
+							))}
 					</div>
 				</div>
 			</div>

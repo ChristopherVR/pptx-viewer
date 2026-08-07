@@ -98,6 +98,20 @@ const morphOutgoingSlide = computed<PptxSlide | undefined>(() => {
 	return { ...props.outgoingSlide, elements: plan.outgoingElements };
 });
 
+/**
+ * The arriving shapes a ghost above them would otherwise hide for the whole
+ * morph, painted in their own layer over the departing one (issue #146). Their
+ * copy on the incoming layer is held invisible by the plan, so the two never
+ * composite with each other.
+ */
+const morphLiftedSlide = computed<PptxSlide | undefined>(() => {
+	const plan = morphPlan.value;
+	if (!plan || !props.incomingSlide || plan.overlayIncomingElements.length === 0) {
+		return undefined;
+	}
+	return { ...props.incomingSlide, elements: plan.overlayIncomingElements };
+});
+
 const morphCss = computed(() => {
 	const plan = morphPlan.value;
 	if (!plan) {
@@ -106,6 +120,7 @@ const morphCss = computed(() => {
 	return [
 		buildMorphScopedCss(plan, 'data-pptx-morph-incoming', 'incoming'),
 		buildMorphScopedCss(plan, 'data-pptx-morph-outgoing', 'outgoing'),
+		buildMorphScopedCss(plan, 'data-pptx-morph-lifted', 'lifted'),
 	].join('\n');
 });
 
@@ -122,6 +137,8 @@ const outgoingLayerStyle = computed<CSSProperties>(() => ({
 			? animations.value.outgoing
 			: undefined,
 }));
+
+const liftedLayerStyle = computed<CSSProperties>(() => ({ zIndex: 3 }));
 
 const incomingLayerStyle = computed<CSSProperties>(() => ({
 	zIndex: morphPlan.value ? 1 : incomingZIndex.value,
@@ -198,6 +215,26 @@ onBeforeUnmount(clearTimer);
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
 				:preserve-element-ids="Boolean(morphPlan)"
+			/>
+		</div>
+
+		<!-- The arriving shapes that dissolve in ABOVE a departing one. They live
+		     on the incoming slide, so the layer below draws them under the
+		     departing layer, where nobody would see them. -->
+		<div
+			v-if="morphLiftedSlide"
+			class="pptx-vue-transition-layer"
+			data-pptx-transition-layer="lifted"
+			data-pptx-morph-lifted="true"
+			:style="liftedLayerStyle"
+		>
+			<SlideStage
+				:slide="morphLiftedSlide"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				:scale="scale"
+				preserve-element-ids
+				transparent-background
 			/>
 		</div>
 	</div>

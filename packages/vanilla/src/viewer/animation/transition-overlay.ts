@@ -88,6 +88,20 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 		'incoming',
 	);
 
+	// A shape ARRIVING on top of a departing one lives on the incoming slide, so
+	// the layer below draws it under the departing layer and nobody ever sees it
+	// dissolve in (issue #146). Those few get their own layer above; their copy
+	// on the incoming layer is held invisible by the plan, so the two never
+	// composite with each other.
+	const lifted =
+		morphPlan && morphPlan.overlayIncomingElements.length > 0
+			? keepOnlyElements(
+					incoming.cloneNode(true) as HTMLElement,
+					morphPlan.overlayIncomingElements.map((element) => element.id),
+				)
+			: undefined;
+	const liftedLayer = lifted ? buildLayer(doc, lifted, 3, 'none', 'lifted') : undefined;
+
 	if (morphPlan) {
 		inLayer.dataset.pptxMorphIncoming = 'true';
 		outLayer.dataset.pptxMorphOutgoing = 'true';
@@ -95,24 +109,26 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 		// the incoming slide, so it must not keep the outgoing slide's own
 		// background: `getSlideBackgroundStyle` always resolves to an OPAQUE fill,
 		// which would cover the whole morph with a flat slab for its duration.
-		outgoing.style.background = 'none';
-		outgoing.style.backgroundColor = 'transparent';
-		const keep = new Set(morphPlan.outgoingElements.map((element) => element.id));
-		for (const node of outgoing.querySelectorAll<HTMLElement>('[data-element-id]')) {
-			const id = node.dataset.elementId;
-			if (id !== undefined && !keep.has(id)) {
-				node.remove();
-			}
+		keepOnlyElements(
+			outgoing,
+			morphPlan.outgoingElements.map((element) => element.id),
+		);
+		if (liftedLayer) {
+			liftedLayer.dataset.pptxMorphLifted = 'true';
 		}
 		const style = doc.createElement('style');
 		style.textContent = [
 			buildMorphScopedCss(morphPlan, 'data-pptx-morph-incoming', 'incoming'),
 			buildMorphScopedCss(morphPlan, 'data-pptx-morph-outgoing', 'outgoing'),
+			buildMorphScopedCss(morphPlan, 'data-pptx-morph-lifted', 'lifted'),
 		].join('\n');
 		overlay.appendChild(style);
 	}
 
 	overlay.append(outLayer, inLayer);
+	if (liftedLayer) {
+		overlay.appendChild(liftedLayer);
+	}
 	stageWrap.appendChild(overlay);
 
 	let done = false;
@@ -133,12 +149,51 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 	return finish;
 }
 
+/**
+ * Strip a cloned stage down to the given element ids and drop its slide
+ * background.
+ *
+ * Every morph layer paints a SUBSET of a slide over another layer, so it must
+ * not keep that slide's own background: `getSlideBackgroundStyle` always
+ * resolves to an OPAQUE fill, which would cover everything below it with a flat
+ * slab for the whole transition.
+ *
+ * A kept shape's ANCESTORS are spared too. The plan's lists are flattened, so a
+ * group's children can be named individually while the group itself is not, and
+ * dropping the group would take the very shapes this layer exists to paint with
+ * it. The group also has to stay for them to land in the right place: their
+ * keyframes are computed in slide space, which only agrees with the DOM because
+ * the children are absolutely positioned inside the group's own box.
+ */
+function keepOnlyElements(stage: HTMLElement, ids: readonly string[]): HTMLElement {
+	stage.style.background = 'none';
+	stage.style.backgroundColor = 'transparent';
+	const keep = new Set(ids);
+	const spared = new Set<Element>();
+	for (const node of stage.querySelectorAll<HTMLElement>('[data-element-id]')) {
+		const id = node.dataset.elementId;
+		if (id === undefined || !keep.has(id)) {
+			continue;
+		}
+		for (let ancestor: Element | null = node; ancestor && ancestor !== stage;) {
+			spared.add(ancestor);
+			ancestor = ancestor.parentElement;
+		}
+	}
+	for (const node of [...stage.querySelectorAll<HTMLElement>('[data-element-id]')]) {
+		if (!spared.has(node)) {
+			node.remove();
+		}
+	}
+	return stage;
+}
+
 function buildLayer(
 	doc: Document,
 	stage: HTMLElement,
 	zIndex: number,
 	animation: string,
-	state: 'outgoing' | 'incoming',
+	state: 'outgoing' | 'incoming' | 'lifted',
 ): HTMLElement {
 	const layer = doc.createElement('div');
 	layer.className = 'pptxv-transition-layer';

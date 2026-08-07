@@ -1,7 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildMorphTransitionPlan, morphOptionToMode } from './morph-plan';
+import { buildMorphScopedCss, buildMorphTransitionPlan, morphOptionToMode } from './morph-plan';
 
 function shape(id: string, name: string, x: number, y: number): PptxElement {
 	return {
@@ -135,5 +135,77 @@ describe('buildMorphTransitionPlan', () => {
 
 		expect(handedOut).toBeGreaterThan(0);
 		expect(plan?.keyframesCss.match(/@keyframes/gu) ?? []).toHaveLength(handedOut);
+	});
+
+	describe('an arrival a ghost would hide (issue #146)', () => {
+		/** An unchanged, opaque disc with new wording arriving inside it. */
+		function discAndWording(): { from: PptxSlide; to: PptxSlide } {
+			const disc = (id: string): PptxElement =>
+				({
+					id,
+					name: '!!Content',
+					type: 'shape',
+					x: 0,
+					y: 0,
+					width: 300,
+					height: 300,
+					shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+				}) as PptxElement;
+			// The disc has to be ghosted for this to bite, which takes something
+			// dissolving below it: a departing backdrop, exactly as the deck has.
+			const backdrop = (id: string): PptxElement =>
+				({
+					id,
+					name: 'Backdrop',
+					type: 'shape',
+					x: 0,
+					y: 0,
+					width: 1280,
+					height: 720,
+				}) as PptxElement;
+			return {
+				from: slide('a', [backdrop('a-0'), disc('a-1')]),
+				to: slide('b', [disc('b-1'), shape('b-2', 'Multi-Domain Fusion', 50, 60)]),
+			};
+		}
+
+		it('paints it in the overlay and holds the stage copy invisible', () => {
+			const { from, to } = discAndWording();
+
+			const plan = buildMorphTransitionPlan(from, to, 500);
+
+			expect(plan?.outgoingElements.map((e) => e.id)).toContain('a-1');
+			expect(plan?.overlayIncomingElements.map((e) => e.id)).toStrictEqual(['b-2']);
+			// The overlay copy carries the real dissolve...
+			expect(plan?.overlayIncomingAnimations.get('b-2')).toContain('pptx-morph-fadein-');
+			// ...and the one still on the live stage holds at nothing, so the two
+			// never composite with each other.
+			expect(plan?.incomingAnimations.get('b-2')).toContain('pptx-morph-lifted-hidden');
+			expect(plan?.keyframesCss).toContain('@keyframes pptx-morph-lifted-hidden');
+		});
+
+		it('leaves the plan alone when no ghost covers anything arriving', () => {
+			const from = slide('a', [shape('a-1', 'Title', 0, 0)]);
+			const to = slide('b', [shape('b-1', 'Title', 0, 0), shape('b-2', 'Arriving', 400, 400)]);
+
+			const plan = buildMorphTransitionPlan(from, to, 500);
+
+			expect(plan?.overlayIncomingElements).toStrictEqual([]);
+			expect(plan?.overlayIncomingAnimations.size).toBe(0);
+			expect(plan?.keyframesCss).not.toContain('pptx-morph-lifted-hidden');
+		});
+
+		it('emits the lifted rules under their own scope', () => {
+			const { from, to } = discAndWording();
+			const plan = buildMorphTransitionPlan(from, to, 500)!;
+
+			const lifted = buildMorphScopedCss(plan, 'data-pptx-morph-lifted', 'lifted');
+			const incoming = buildMorphScopedCss(plan, 'data-pptx-morph-incoming', 'incoming');
+
+			expect(lifted).toContain('[data-pptx-morph-lifted] [data-element-id="b-2"]');
+			expect(lifted).toContain('pptx-morph-fadein-');
+			expect(incoming).toContain('[data-pptx-morph-incoming] [data-element-id="b-2"]');
+			expect(incoming).toContain('pptx-morph-lifted-hidden');
+		});
 	});
 });

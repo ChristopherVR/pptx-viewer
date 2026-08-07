@@ -36,10 +36,27 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { generateFullMorphTransition } from './morph-animation';
+import { generateFullMorphTransition, morphPairNeedsCrossfade } from './morph-animation';
 import { flattenMorphElements } from './morph-flatten';
 import { matchMorphElementsFull } from './morph-matching';
+import { resolveMorphOverlayArrivals } from './morph-overlay-order';
 import type { MorphMode } from './morph-types';
+
+/**
+ * Keyframes for an incoming shape whose dissolve has been lifted into the
+ * overlay: the copy left on the live stage holds at nothing for the whole
+ * morph, so the two copies never composite with each other.
+ */
+const LIFTED_HIDDEN_NAME = 'pptx-morph-lifted-hidden';
+const LIFTED_HIDDEN_KEYFRAMES = `
+@keyframes ${LIFTED_HIDDEN_NAME} {
+\tfrom {
+\t\topacity: 0;
+\t}
+\tto {
+\t\topacity: 0;
+\t}
+}`;
 
 /** Everything needed to play one morph transition. */
 export interface MorphTransitionPlan {
@@ -65,6 +82,33 @@ export interface MorphTransitionPlan {
 	incomingImageAnimations: Map<string, string>;
 	/** Outgoing (ghost) counterpart of {@link MorphTransitionPlan.incomingImageAnimations}. */
 	outgoingImageAnimations: Map<string, string>;
+	/**
+	 * Incoming-slide element id -> CSS `animation` shorthand for the copy the
+	 * overlay paints, above every ghost.
+	 *
+	 * These are the arriving shapes a ghost would otherwise hide for the whole
+	 * transition (see {@link MorphTransitionPlan.overlayIncomingElements}). Their
+	 * entry in {@link MorphTransitionPlan.incomingAnimations} has been replaced
+	 * by one that holds them invisible, so the stage copy stays out of the way
+	 * and only this one is seen.
+	 */
+	overlayIncomingAnimations: Map<string, string>;
+	/**
+	 * The incoming-slide elements to paint in the overlay ON TOP of
+	 * {@link MorphTransitionPlan.outgoingElements}, in document order.
+	 *
+	 * The overlay is one flat layer above the live stage, which is only faithful
+	 * while every ghost really does belong on top of everything the stage draws.
+	 * A shape arriving INSIDE a persisting one does not: the wheel deck's centre
+	 * disc is unchanged between slides, so its ghost is opaque for the whole
+	 * morph, and the title and body dissolving in within it were invisible until
+	 * the overlay came down (issue #146). Painting those here restores the order
+	 * PowerPoint composites in.
+	 *
+	 * Usually empty. A binding renders these with the INCOMING slide as their
+	 * context, applying {@link MorphTransitionPlan.overlayIncomingAnimations}.
+	 */
+	overlayIncomingElements: PptxElement[];
 	/**
 	 * The outgoing slide's elements, in document order, for the binding to
 	 * render in its transition overlay for the duration of the morph. Each one
@@ -179,13 +223,58 @@ export function buildMorphTransitionPlan(
 		outgoingAnimations.has(element.id),
 	);
 
+	// Everything the overlay paints hides whatever the live stage is doing
+	// underneath, which is wrong for a shape that ARRIVES on top of a ghost:
+	// it dissolves in where nobody can see it and appears in one frame when the
+	// overlay is torn down (issue #146 - the wheel's centre disc is unchanged,
+	// so its opaque ghost sat over the new title, body and button for the whole
+	// morph). Those few move up into the overlay, above the ghosts, and the
+	// copy on the stage is held invisible so the two never composite.
+	//
+	// Only a ghost that KEEPS its opacity counts. One that dissolves is out of
+	// the way inside the first quarter, long before an arrival begins to appear,
+	// so it hides nothing worth moving an animation for.
+	const flattenedIncoming = flattenMorphElements(toSlide.elements, fromSlide.elements);
+	const holdingGhostIds = new Set(
+		match.pairs
+			.filter(
+				(candidate) =>
+					outgoingAnimations.has(candidate.fromElement.id) &&
+					!morphPairNeedsCrossfade(candidate.fromElement, candidate.toElement),
+			)
+			.map((candidate) => candidate.fromElement.id),
+	);
+	const lifted = resolveMorphOverlayArrivals(
+		flattenedOutgoing,
+		flattenedIncoming,
+		match.pairs,
+		holdingGhostIds,
+	);
+	const overlayIncomingAnimations = new Map<string, string>();
+	for (const id of lifted) {
+		const animation = incomingAnimations.get(id);
+		if (animation === undefined) {
+			continue;
+		}
+		overlayIncomingAnimations.set(id, animation);
+		incomingAnimations.set(id, `${LIFTED_HIDDEN_NAME} ${durationMs}ms linear forwards`);
+	}
+	if (overlayIncomingAnimations.size > 0) {
+		keyframes.push(LIFTED_HIDDEN_KEYFRAMES);
+	}
+	const overlayIncomingElements = flattenedIncoming.filter((element) =>
+		overlayIncomingAnimations.has(element.id),
+	);
+
 	return {
 		keyframesCss: keyframes.join('\n'),
 		incomingAnimations,
 		outgoingAnimations,
 		incomingImageAnimations,
 		outgoingImageAnimations,
+		overlayIncomingAnimations,
 		outgoingElements,
+		overlayIncomingElements,
 		durationMs,
 	};
 }
@@ -212,12 +301,15 @@ function cssAttributeValue(value: string): string {
  *   are unique to the slide being animated and need no ancestor to disambiguate.
  *   That is what lets a binding whose incoming slide is rendered OUTSIDE the
  *   overlay (Angular, React) still drive it from here.
+ * @param which - Which half to emit: the live stage's `incoming` elements, the
+ *   overlay's `outgoing` ghosts, or the `lifted` copies the overlay paints over
+ *   those ghosts (see {@link MorphTransitionPlan.overlayIncomingElements}).
  * @returns Keyframes plus the scoped `animation` rules, ready to inject.
  */
 export function buildMorphScopedCss(
 	plan: MorphTransitionPlan,
 	scopeAttribute: string,
-	which: 'incoming' | 'outgoing' = 'incoming',
+	which: 'incoming' | 'outgoing' | 'lifted' = 'incoming',
 ): string {
 	return `${plan.keyframesCss}\n${buildMorphAnimationRules(plan, scopeAttribute, which)}`;
 }
@@ -240,7 +332,7 @@ export function buildMorphScopedCss(
 export function buildMorphAnimationRules(
 	plan: MorphTransitionPlan,
 	scopeAttribute: string,
-	which: 'incoming' | 'outgoing' = 'incoming',
+	which: 'incoming' | 'outgoing' | 'lifted' = 'incoming',
 	only?: 'image',
 ): string {
 	const prefix = scopeAttribute ? `[${scopeAttribute}] ` : '';
@@ -252,11 +344,21 @@ export function buildMorphAnimationRules(
 			);
 		}
 	};
+	// `lifted` is the incoming half painted in the overlay rather than on the
+	// stage, so it shares the incoming img channel and differs only in which
+	// container animation it carries.
 	if (only !== 'image') {
-		emit(which === 'incoming' ? plan.incomingAnimations : plan.outgoingAnimations, '');
+		emit(
+			which === 'outgoing'
+				? plan.outgoingAnimations
+				: which === 'lifted'
+					? plan.overlayIncomingAnimations
+					: plan.incomingAnimations,
+			'',
+		);
 	}
 	// The picture-crop channel targets the `<img>` the element renders, which
 	// every binding draws inside the `data-element-id` container.
-	emit(which === 'incoming' ? plan.incomingImageAnimations : plan.outgoingImageAnimations, ' img');
+	emit(which === 'outgoing' ? plan.outgoingImageAnimations : plan.incomingImageAnimations, ' img');
 	return rules.join('\n');
 }

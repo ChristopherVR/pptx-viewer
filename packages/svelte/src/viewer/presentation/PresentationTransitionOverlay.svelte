@@ -80,11 +80,24 @@
 		morphPlan && outgoingSlide ? { ...outgoingSlide, elements: morphPlan.outgoingElements } : undefined,
 	);
 
+	/**
+	 * The arriving shapes a ghost above them would otherwise hide for the whole
+	 * morph, painted in their own layer over the departing one (issue #146).
+	 * Their copy on the incoming layer is held invisible by the plan, so the two
+	 * never composite with each other.
+	 */
+	const morphLiftedSlide = $derived(
+		morphPlan && incomingSlide && morphPlan.overlayIncomingElements.length > 0
+			? { ...incomingSlide, elements: morphPlan.overlayIncomingElements }
+			: undefined,
+	);
+
 	const morphCss = $derived(
 		morphPlan
 			? [
 					buildMorphScopedCss(morphPlan, 'data-pptx-morph-incoming', 'incoming'),
 					buildMorphScopedCss(morphPlan, 'data-pptx-morph-outgoing', 'outgoing'),
+					buildMorphScopedCss(morphPlan, 'data-pptx-morph-lifted', 'lifted'),
 				].join('\n')
 			: '',
 	);
@@ -97,6 +110,7 @@
 	const incomingStyle = $derived(
 		styleToString(layerStyle(morphPlan ? 'none' : animations.incoming, morphPlan ? 1 : animations.outgoingOnTop ? 1 : 2)),
 	);
+	const liftedStyle = styleToString(layerStyle('none', 3));
 
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -151,6 +165,19 @@
 	>
 		<SlideStage slide={incomingSlide} {canvasSize} {mediaDataUrls} {scale} />
 	</div>
+	{#if morphLiftedSlide}
+		<!-- The arriving shapes that dissolve in ABOVE a departing one. They live
+		     on the incoming slide, so the layer below draws them under the
+		     departing layer, where nobody would see them. -->
+		<div
+			class="pptx-svelte-transition-layer"
+			data-pptx-transition-layer="lifted"
+			data-pptx-morph-lifted="true"
+			style={liftedStyle}
+		>
+			<SlideStage slide={morphLiftedSlide} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
+		</div>
+	{/if}
 </div>
 
 <style>

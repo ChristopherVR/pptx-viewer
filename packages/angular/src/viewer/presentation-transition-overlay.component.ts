@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
-import type { CanvasSize } from '../internal/shared';
+import type { CanvasSize, MorphTransitionPlan } from '../internal/shared';
 import {
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
@@ -30,6 +30,29 @@ import { ensureTransitionKeyframes } from './transition-keyframes';
 
 /** Safety margin (ms) added to the animation duration before firing complete. */
 const COMPLETE_MARGIN_MS = 50;
+
+/**
+ * The slide the overlay paints ABOVE its ghosts, or `undefined` when a morph
+ * has nothing to lift.
+ *
+ * A shape arriving inside a shape that persists is drawn on the live stage,
+ * UNDER this overlay, so the persisting shape's opaque ghost hides it for the
+ * whole transition (issue #146). `buildMorphTransitionPlan` names those few and
+ * holds their stage copy invisible; this wraps them as a slide the component's
+ * own `pptx-slide-canvas` can render.
+ *
+ * Exported and pure so it can be unit-tested: this package renders no component
+ * under test (see `action-settings-panel.component.test.ts`).
+ */
+export function morphLiftedSlide(
+	plan: MorphTransitionPlan | undefined,
+	incomingSlide: PptxSlide | undefined,
+): PptxSlide | undefined {
+	if (!plan || !incomingSlide || plan.overlayIncomingElements.length === 0) {
+		return undefined;
+	}
+	return { ...incomingSlide, elements: [...plan.overlayIncomingElements] };
+}
 
 /**
  * PresentationTransitionOverlayComponent: plays a PowerPoint slide transition
@@ -103,6 +126,30 @@ const COMPLETE_MARGIN_MS = 50;
 				/>
 			</div>
 		</div>
+
+		<!-- The arriving shapes that dissolve in ABOVE a departing one. They are on
+		     the live stage below this overlay, where the departing layer hides them
+		     for the whole morph, so they are painted again here. -->
+		@if (liftedSlide(); as lifted) {
+			<div
+				class="pptx-ng-transition-layer"
+				data-pptx-transition-layer="lifted"
+				data-pptx-morph-lifted="true"
+				[ngStyle]="{ 'z-index': '41' }"
+			>
+				<div [ngStyle]="slideBoxStyle()">
+					<pptx-slide-canvas
+						[slide]="lifted"
+						[canvasSize]="canvasSize()"
+						[mediaDataUrls]="mediaDataUrls()"
+						[zoom]="zoom()"
+						[autoFit]="false"
+						[interactive]="false"
+						[transparentBackground]="true"
+					/>
+				</div>
+			</div>
+		}
 	`,
 })
 export class PresentationTransitionOverlayComponent {
@@ -171,6 +218,9 @@ export class PresentationTransitionOverlayComponent {
 					? [
 							buildMorphScopedCss(plan, '', 'incoming'),
 							buildMorphScopedCss(plan, 'data-pptx-morph-outgoing', 'outgoing'),
+							// Scoped, so it outranks the unscoped `incoming` rule that holds
+							// the stage's copy of the same element invisible.
+							buildMorphScopedCss(plan, 'data-pptx-morph-lifted', 'lifted'),
 						].join('\n')
 					: null,
 			);
@@ -277,6 +327,16 @@ export class PresentationTransitionOverlayComponent {
 		}
 		return { ...slide, elements: [...template, ...slide.elements] };
 	});
+
+	/**
+	 * The arriving shapes the morph has to paint over its own ghosts, or
+	 * `undefined` when there are none (issue #146). They sit on the live stage
+	 * below this overlay, where the departing layer would hide them for the whole
+	 * transition; the plan holds that copy invisible and hands them here instead.
+	 */
+	protected readonly liftedSlide = computed<PptxSlide | undefined>(() =>
+		morphLiftedSlide(this.morphPlan(), this.incomingSlide()),
+	);
 
 	/** Layer container style: animation + stacking relative to the stage. */
 	protected readonly layerStyle = computed<StyleMap>(() => {

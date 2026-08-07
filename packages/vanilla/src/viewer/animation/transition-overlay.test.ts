@@ -63,6 +63,57 @@ function rescaledPictureSlide(id: string, crop: Record<string, number>): PptxSli
 	} as unknown as PptxSlide;
 }
 
+/**
+ * The shape of the issue #146 morph: an unchanged opaque disc, a backdrop that
+ * departs (so the disc's ghost is kept as a shield), and new wording arriving
+ * INSIDE the disc.
+ */
+function discAndWording(): { from: PptxSlide; to: PptxSlide } {
+	const disc = {
+		type: 'shape',
+		name: '!!Content',
+		x: 0,
+		y: 0,
+		width: 300,
+		height: 300,
+		shapeType: 'ellipse',
+		shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+	};
+	return {
+		from: {
+			id: 'out',
+			elements: [
+				{
+					id: 'out-backdrop',
+					type: 'shape',
+					name: 'Backdrop',
+					x: 0,
+					y: 0,
+					width: 960,
+					height: 540,
+				},
+				{ ...disc, id: 'out-disc' },
+			],
+		} as unknown as PptxSlide,
+		to: {
+			id: 'in',
+			elements: [
+				{ ...disc, id: 'in-disc' },
+				{
+					id: 'in-wording',
+					type: 'text',
+					name: 'TextBox 9',
+					x: 50,
+					y: 60,
+					width: 200,
+					height: 30,
+					text: 'Multi-Domain Fusion',
+				},
+			],
+		} as unknown as PptxSlide,
+	};
+}
+
 describe('playTransitionOverlay', () => {
 	let doc: Document;
 	let stageWrap: HTMLElement;
@@ -154,6 +205,39 @@ describe('playTransitionOverlay', () => {
 		const css = [...stageWrap.querySelectorAll('style')].map((node) => node.textContent).join('\n');
 		expect(css).toContain('[data-element-id="in-picture"] img { animation: pptx-morph-crop-');
 		expect(css).toContain('@keyframes pptx-morph-crop-');
+		cancel();
+	});
+
+	// Regression (issue #146): the wheel deck's centre disc is identical on both
+	// slides, so its opaque ghost sat over the wording dissolving in inside it -
+	// invisible until the overlay came down. The plan hands those few over
+	// separately and the overlay must paint them above every ghost.
+	it('paints the arriving shapes the plan lifted, above the departing layer', () => {
+		const outgoing = buildStage(doc, ['out-backdrop', 'out-disc']);
+		const incoming = buildStage(doc, ['in-disc', 'in-wording']);
+		const cancel = playTransitionOverlay({
+			doc,
+			stageWrap,
+			outgoing,
+			incoming,
+			transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			outgoingSlide: discAndWording().from,
+			incomingSlide: discAndWording().to,
+			onDone: vi.fn(),
+		});
+
+		const lifted = stageWrap.querySelector<HTMLElement>('[data-pptx-morph-lifted]');
+		expect(lifted).not.toBeNull();
+		expect(lifted!.style.zIndex).toBe('3');
+		// The clone is stripped to exactly what the plan lifted.
+		expect(lifted!.querySelector('[data-element-id="in-wording"]')).not.toBeNull();
+		expect(lifted!.querySelector('[data-element-id="in-disc"]')).toBeNull();
+
+		const css = [...stageWrap.querySelectorAll('style')].map((node) => node.textContent).join('\n');
+		expect(css).toContain('[data-pptx-morph-lifted] [data-element-id="in-wording"]');
+		expect(css).toMatch(
+			/\[data-pptx-morph-incoming\] \[data-element-id="in-wording"\] \{ animation: pptx-morph-lifted-hidden/u,
+		);
 		cancel();
 	});
 

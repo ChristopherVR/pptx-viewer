@@ -70,6 +70,43 @@ function rescaledPicture(slideId: string, crop: Record<string, number>): PptxSli
 	]);
 }
 
+/**
+ * The shape of the issue #146 morph: an unchanged opaque disc, a backdrop that
+ * departs (so the disc's ghost is kept as a shield), and new wording arriving
+ * INSIDE the disc.
+ */
+function discAndWording(): { from: PptxSlide; to: PptxSlide } {
+	const disc = {
+		type: 'shape',
+		name: '!!Content',
+		x: 0,
+		y: 0,
+		width: 300,
+		height: 300,
+		shapeType: 'ellipse',
+		shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+	};
+	return {
+		from: makeSlide('out', [
+			{ id: 'out-backdrop', type: 'shape', name: 'Backdrop', x: 0, y: 0, width: 960, height: 540 },
+			{ ...disc, id: 'out-disc' },
+		]),
+		to: makeSlide('in', [
+			{ ...disc, id: 'in-disc' },
+			{
+				id: 'in-wording',
+				type: 'text',
+				name: 'TextBox 9',
+				x: 50,
+				y: 60,
+				width: 200,
+				height: 30,
+				text: 'Multi-Domain Fusion',
+			},
+		]),
+	};
+}
+
 function mountOverlay(transition: PptxSlideTransition | undefined, scale = 1) {
 	const morph = transition?.type === 'morph';
 	return mount(PresentationTransitionOverlay, {
@@ -226,5 +263,40 @@ describe('presentationTransitionOverlay', () => {
 			/inset:\s*0|width:\s*100%/u,
 		);
 		expect(layerRule).not.toMatch(/top:\s*0;\s*\n?\s*left:\s*0;/u);
+	});
+
+	// Regression (issue #146): the wheel deck's centre disc is identical on both
+	// slides, so its opaque ghost sat over the title, body and button dissolving
+	// in inside it - they were invisible until the overlay came down. The plan
+	// hands those few over separately and the overlay must paint them, above
+	// every ghost, from the INCOMING slide.
+	it('paints the arriving shapes the plan lifted, above the departing layer', () => {
+		const { from, to } = discAndWording();
+		const wrapper = mount(PresentationTransitionOverlay, {
+			props: {
+				outgoingSlide: from,
+				incomingSlide: to,
+				canvasSize,
+				mediaDataUrls: new Map<string, string>(),
+				scale: 1,
+				transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			},
+		});
+
+		const lifted = wrapper.find('[data-pptx-morph-lifted]');
+		expect(lifted.exists()).toBeTruthy();
+		expect(lifted.attributes('style')).toContain('z-index: 3');
+		expect(lifted.html()).toContain('Multi-Domain Fusion');
+		// Its copy on the incoming layer is held invisible, so the two never
+		// composite with each other.
+		const css = wrapper
+			.findAll('style')
+			.map((node) => node.element.textContent ?? '')
+			.join('\n');
+		expect(css).toContain('[data-pptx-morph-lifted] [data-element-id="in-wording"]');
+		expect(css).toMatch(
+			/\[data-pptx-morph-incoming\] \[data-element-id="in-wording"\] \{ animation: pptx-morph-lifted-hidden/u,
+		);
+		wrapper.unmount();
 	});
 });

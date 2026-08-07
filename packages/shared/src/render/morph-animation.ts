@@ -23,6 +23,8 @@ import {
 	morphImageCropChanged,
 } from './morph-image-crop';
 import { matchMorphElementsFull } from './morph-matching';
+import type { MorphBox } from './morph-overlay-order';
+import { boxesOverlap, travelledBox } from './morph-overlay-order';
 import { tokenizeText } from './morph-text';
 import { buildTokenMorphAnimations, diffTokens } from './morph-text-tokens';
 import type { MorphAnimationStyle, MorphMode, MorphPair } from './morph-types';
@@ -215,29 +217,6 @@ export function isInertMorphPair(fromElement: PptxElement, toElement: PptxElemen
 // ---------------------------------------------------------------------------
 // Which outgoing shapes the overlay has to paint
 // ---------------------------------------------------------------------------
-
-/** Axis-aligned box, used only to ask whether one ghost can hide another. */
-interface MorphBox {
-	left: number;
-	top: number;
-	right: number;
-	bottom: number;
-}
-
-/** The area a shape occupies over the whole morph (start box union end box). */
-function travelledBox(from: PptxElement, to?: PptxElement): MorphBox {
-	const boxes = to ? [from, to] : [from];
-	return {
-		left: Math.min(...boxes.map((element) => element.x)),
-		top: Math.min(...boxes.map((element) => element.y)),
-		right: Math.max(...boxes.map((element) => element.x + element.width)),
-		bottom: Math.max(...boxes.map((element) => element.y + element.height)),
-	};
-}
-
-function boxesOverlap(a: MorphBox, b: MorphBox): boolean {
-	return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-}
 
 /**
  * The outgoing shapes the transition overlay actually has to paint.

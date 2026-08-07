@@ -473,6 +473,9 @@ export * from './morph-svg-path';
 export * from './morph-matching';
 // Group decomposition so a `!!`-named shape matches across a grouping boundary.
 export * from './morph-flatten';
+// One merged z-order over both slides, so the transition overlay knows which
+// arriving shapes it would otherwise hide behind a ghost.
+export * from './morph-overlay-order';
 export * from './morph-text';
 // Intelligent token-level text morph: LCS diff (shared/added/removed) + per-
 // token slide/fade keyframe building, consumed by `morph-animation`.

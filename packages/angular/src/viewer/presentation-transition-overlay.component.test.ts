@@ -16,15 +16,18 @@
  * inert and the picture cut between crops in a single frame.
  *
  * No Angular TestBed (see `vitest.config.ts`), so the injected CSS is built
- * from the same shared helpers the component's effect calls.
+ * from the same shared helpers the component's effect calls, and the
+ * template's `@if (liftedSlide(); as lifted)` predicate is tested through the
+ * pure `morphLiftedSlide` it delegates to (issue #146).
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildMorphScopedCss, buildMorphTransitionPlan } from '../internal/shared';
+import { morphLiftedSlide } from './presentation-transition-overlay.component';
 
 const OVERLAY_SOURCE = readFileSync(
 	path.join(__dirname, 'presentation-transition-overlay.component.ts'),
@@ -84,5 +87,101 @@ describe('presentationTransitionOverlayComponent morph css', () => {
 		expect(container).toBeGreaterThan(-1);
 		expect(img).toBeGreaterThan(container);
 		expect(IMAGE_RENDERER_SOURCE).toContain('[ngStyle]="view().imageStyle"');
+	});
+});
+
+function slide(id: string, elements: PptxElement[]): PptxSlide {
+	return { id, elements, backgroundColor: '#ffffff' } as unknown as PptxSlide;
+}
+
+/**
+ * The shape of the issue #146 morph: an unchanged opaque disc, a backdrop that
+ * departs (so the disc's ghost is kept as a shield), and new wording arriving
+ * INSIDE the disc.
+ */
+function discAndWording(): { from: PptxSlide; to: PptxSlide } {
+	const disc = {
+		type: 'shape',
+		name: '!!Content',
+		x: 0,
+		y: 0,
+		width: 300,
+		height: 300,
+		shapeType: 'ellipse',
+		shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+	};
+	return {
+		from: slide('out', [
+			{
+				id: 'out-backdrop',
+				type: 'shape',
+				name: 'Backdrop',
+				x: 0,
+				y: 0,
+				width: 960,
+				height: 540,
+			} as unknown as PptxElement,
+			{ ...disc, id: 'out-disc' } as unknown as PptxElement,
+		]),
+		to: slide('in', [
+			{ ...disc, id: 'in-disc' } as unknown as PptxElement,
+			{
+				id: 'in-wording',
+				type: 'text',
+				name: 'TextBox 9',
+				x: 50,
+				y: 60,
+				width: 200,
+				height: 30,
+				text: 'Multi-Domain Fusion',
+			} as unknown as PptxElement,
+		]),
+	};
+}
+
+describe('morphLiftedSlide', () => {
+	it('wraps exactly the shapes the plan lifted, on the incoming slide', () => {
+		const { from, to } = discAndWording();
+		const plan = buildMorphTransitionPlan(from, to, 800);
+
+		const lifted = morphLiftedSlide(plan, to);
+
+		expect(lifted?.id).toBe('in');
+		expect(lifted?.elements.map((element) => element.id)).toStrictEqual(['in-wording']);
+		// The disc keeps its ghost: it is the shield the wording has to clear.
+		expect(plan?.outgoingElements.map((element) => element.id)).toContain('out-disc');
+	});
+
+	it('renders no extra layer when a morph has nothing to lift', () => {
+		const from = slide('out', [
+			{
+				id: 'out-1',
+				type: 'shape',
+				name: 'Rect',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 50,
+			} as unknown as PptxElement,
+		]);
+		const to = slide('in', [
+			{
+				id: 'in-1',
+				type: 'shape',
+				name: 'Rect',
+				x: 200,
+				y: 0,
+				width: 100,
+				height: 50,
+			} as unknown as PptxElement,
+		]);
+
+		expect(morphLiftedSlide(buildMorphTransitionPlan(from, to, 800), to)).toBeUndefined();
+	});
+
+	it('renders no extra layer without a plan or an incoming slide', () => {
+		const { from, to } = discAndWording();
+		expect(morphLiftedSlide(undefined, to)).toBeUndefined();
+		expect(morphLiftedSlide(buildMorphTransitionPlan(from, to, 800), undefined)).toBeUndefined();
 	});
 });

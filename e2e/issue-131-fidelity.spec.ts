@@ -508,11 +508,25 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 		await page.waitForTimeout(900);
 	}
 
-	/** The `animation-name`s currently running on nodes with `data-element-id`. */
+	/**
+	 * The `animation-name`s currently running on every copy of an element.
+	 *
+	 * A morph can paint an arriving shape in the transition overlay rather than
+	 * on the live stage, when a ghost above it would otherwise hide it for the
+	 * whole transition (issue #146). That copy carries the dissolve and the stage
+	 * copy is held invisible, so a query that reads only `data-element-id` sees
+	 * the wrong half. `data-pptx-morph-lifted` marks the other one in every
+	 * binding: as the layer in the four that stack whole slides (whose contents
+	 * keep their own `data-element-id`), and as a per-element wrapper in React.
+	 */
 	async function animationNamesFor(page: Page, elementId: string): Promise<string[]> {
 		return page.evaluate((id) => {
 			const names: string[] = [];
-			for (const node of document.querySelectorAll<HTMLElement>(`[data-element-id="${id}"]`)) {
+			const nodes = [
+				...document.querySelectorAll<HTMLElement>(`[data-element-id="${id}"]`),
+				...document.querySelectorAll<HTMLElement>(`[data-pptx-morph-lifted="${id}"] *`),
+			];
+			for (const node of nodes) {
 				if (node.getBoundingClientRect().width < 40) {
 					continue;
 				}
