@@ -13,6 +13,7 @@
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 
+import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import type { PictureBulletMarker } from './bullet-list';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
@@ -155,6 +156,15 @@ export function buildParagraphs(
 	// `a:normAutofit/@fontScale`: applied to every authored run size below, since
 	// a run's own `sz` overrides the (already scaled) body font-size.
 	const fontScale = resolveAutoFitFontScale(element.textStyle);
+	// What a run that declares no font of its own inherits from the text body.
+	// Only used to measure the run for its PowerPoint metric compensation, so it
+	// mirrors what `buildTextBlockStyle` declares on the block itself.
+	const blockFont = {
+		fontFamily: element.textStyle?.fontFamily
+			? getSubstituteFontFamily(element.textStyle.fontFamily)
+			: DEFAULT_FONT_FAMILY,
+		fontSizePx: (element.textStyle?.fontSize || DEFAULT_TEXT_FONT_SIZE) * fontScale,
+	};
 	const paragraphIndents = element.paragraphIndents;
 	const grouped: Array<{ paraSegments: TextSegment[]; terminator?: TextSegment }> = [
 		{ paraSegments: [] },
@@ -195,7 +205,7 @@ export function buildParagraphs(
 				? substituteFieldText(rawText, seg.fieldType, fieldContext)
 				: rawText;
 			if (text) {
-				const style = segmentStyleToCss(seg, fontScale);
+				const style = segmentStyleToCss(seg, fontScale, { text, blockFont });
 				applyUnderlineVariant(style, seg);
 				// Per-run text effects (gradient/pattern fill, outer/inner shadow,
 				// 3D extrusion text-shadow, blur, HSL, alpha opacity, glow,

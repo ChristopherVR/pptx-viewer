@@ -11,6 +11,8 @@ import type { TextSegment } from 'pptx-viewer-core';
 import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
 import { resolveUnderlineDecorationStyle } from './text-decoration';
+import type { RunFontSpec } from './text-metric-tracking';
+import { resolveMetricTrackingPx } from './text-metric-tracking';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -21,24 +23,27 @@ const PX_PER_POINT = 96 / 72;
 const BASELINE_FONT_SCALE = 0.65;
 
 /**
- * Flat tracking (in em) every run carries so the browser wraps lines where
- * PowerPoint does.
+ * Combine the authored `a:rPr/@spc` character spacing with the measured
+ * PowerPoint metric compensation into one `letter-spacing`, or leave it
+ * undeclared when neither applies.
  *
- * PowerPoint measures text with GDI-compatible (hinted) metrics, which run
- * consistently wider than the browser's fractional advances: COM `BoundWidth`
- * ground truth on the issue #131 deck puts every Arial line 0.4-0.6% wider
- * than Chrome measures the same string, so the browser squeezes one more word
- * onto a knife-edge line than PowerPoint and the paragraph wraps a word late.
- * Solving that deck's slides 5/13/14 for the tracking that reproduces every
- * PowerPoint break point gives the window (0.0019em, 0.0104em); 0.003em sits
- * inside it and matches the measured metric gap. At a 10px font this is
- * 0.03px per glyph: far below anything visible, but enough to tip knife-edge
- * fits the way PowerPoint tips them.
+ * The compensation is derived from the run's own characters
+ * (`resolveMetricTracking`); an earlier attempt used one flat constant for
+ * every run and regressed short labels that PowerPoint keeps on one line
+ * (issue #149).
  */
-export const POWERPOINT_METRIC_TRACKING_EM = 0.003;
-
-/** {@link POWERPOINT_METRIC_TRACKING_EM} as the CSS length every run gets. */
-export const POWERPOINT_METRIC_TRACKING = `${POWERPOINT_METRIC_TRACKING_EM}em`;
+function resolveLetterSpacing(
+	s: NonNullable<TextSegment['style']>,
+	text: string,
+	font: RunFontSpec,
+): string | undefined {
+	const authored =
+		typeof s.characterSpacing === 'number' && s.characterSpacing !== 0
+			? (s.characterSpacing / 100) * PX_PER_POINT
+			: 0;
+	const spacing = authored + resolveMetricTrackingPx(text, font);
+	return spacing === 0 ? undefined : `${spacing}px`;
+}
 
 /**
  * Layer the "extra" run properties that neither the boolean decoration set nor
@@ -47,13 +52,15 @@ export const POWERPOINT_METRIC_TRACKING = `${POWERPOINT_METRIC_TRACKING_EM}em`;
  * and `a:rPr/@cap` caps. Mirrors React's `renderSingleSegment` span style so the
  * shared builder (Vue / Angular / Svelte / Vanilla) reaches run-prop parity.
  */
-function applyExtraRunProps(style: RunStyle, s: NonNullable<TextSegment['style']>): void {
-	// Character spacing (`a:rPr/@spc`, hundredths of a point) → letter-spacing px,
-	// layered on top of the metric-compensation tracking every run carries.
-	if (typeof s.characterSpacing === 'number' && s.characterSpacing !== 0) {
-		style.letterSpacing = `calc(${(s.characterSpacing / 100) * PX_PER_POINT}px + ${POWERPOINT_METRIC_TRACKING})`;
-	} else {
-		style.letterSpacing = POWERPOINT_METRIC_TRACKING;
+function applyExtraRunProps(
+	style: RunStyle,
+	s: NonNullable<TextSegment['style']>,
+	text: string,
+	font: RunFontSpec,
+): void {
+	const letterSpacing = resolveLetterSpacing(s, text, font);
+	if (letterSpacing !== undefined) {
+		style.letterSpacing = letterSpacing;
 	}
 	// Kerning (`a:rPr/@kern`): 0 disables kerning, any other value enables it.
 	if (typeof s.kerning === 'number') {
@@ -90,8 +97,24 @@ function applyExtraRunProps(style: RunStyle, s: NonNullable<TextSegment['style']
  * `resolveAutoFitFontScale`). It has to be applied HERE and not only on the
  * text body, because a run that authors its own `sz` overrides the body's
  * font-size, so scaling the body alone left every authored run at full size.
+ *
+ * `context` only feeds the metric measurement behind `letter-spacing`; the
+ * emitted style still declares nothing the run did not author. It is optional:
+ * without it the run is measured with its own text and against the default
+ * font, which is what it renders with anyway when it inherits nothing.
  */
-export function segmentStyleToCss(seg: TextSegment, fontScale = 1): RunStyle {
+export interface RunStyleContext {
+	/** What the run actually renders, if not `seg.text` (field substitution). */
+	text?: string;
+	/** What the run inherits from the text body when it declares no font. */
+	blockFont?: RunFontSpec;
+}
+
+export function segmentStyleToCss(
+	seg: TextSegment,
+	fontScale = 1,
+	context: RunStyleContext = {},
+): RunStyle {
 	const s = seg.style ?? {};
 	const style: RunStyle = {};
 	if (s.fontFamily) {
@@ -142,7 +165,19 @@ export function segmentStyleToCss(seg: TextSegment, fontScale = 1): RunStyle {
 	if (deco.length > 0) {
 		style.textDecoration = deco.join(' ');
 	}
-	applyExtraRunProps(style, s);
+	// The font the run will actually paint with: its own declarations where it
+	// made them, the body's where it did not. Bold and italic are always the
+	// run's own (both are declared unconditionally just above).
+	const runFont: RunFontSpec = {
+		fontFamily: (style.fontFamily as string | undefined) ?? context.blockFont?.fontFamily,
+		fontSizePx:
+			typeof style.fontSize === 'string'
+				? Number.parseFloat(style.fontSize)
+				: context.blockFont?.fontSizePx,
+		bold: Boolean(s.bold),
+		italic: Boolean(s.italic),
+	};
+	applyExtraRunProps(style, s, context.text ?? seg.text ?? '', runFont);
 	return style;
 }
 

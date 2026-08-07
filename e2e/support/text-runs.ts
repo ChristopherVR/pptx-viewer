@@ -234,3 +234,61 @@ export async function measureTextRuns(page: Page): Promise<ElementRunMetrics[]> 
 		return out;
 	}, ADVANCE_CHARS);
 }
+
+/**
+ * The visual lines of the text body containing `needle`, measured on the
+ * LARGEST rendered copy so a slide-rail thumbnail can never win the match.
+ *
+ * Where the text broke is not in the DOM: a paragraph is one text node whatever
+ * the browser did with it. So each character's client rect is taken and a new
+ * line is started whenever the baseline steps down. That works identically in
+ * all five bindings, which is the point: nothing here knows which one it is
+ * looking at.
+ */
+export async function visualLines(page: Page, needle: string): Promise<string[]> {
+	return page.evaluate((marker) => {
+		let host: HTMLElement | undefined;
+		let bestArea = 0;
+		for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+			if (!(node.textContent ?? '').includes(marker)) {
+				continue;
+			}
+			const box = node.getBoundingClientRect();
+			if (box.width * box.height > bestArea) {
+				bestArea = box.width * box.height;
+				host = node;
+			}
+		}
+		if (!host) {
+			return [];
+		}
+		const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+		const lines: string[] = [];
+		let current = '';
+		let previousTop: number | null = null;
+		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+			const text = node.textContent ?? '';
+			const range = document.createRange();
+			for (let i = 0; i < text.length; i++) {
+				range.setStart(node, i);
+				range.setEnd(node, i + 1);
+				const rect = range.getBoundingClientRect();
+				if (rect.width === 0 && rect.height === 0) {
+					continue;
+				}
+				if (previousTop === null) {
+					previousTop = rect.top;
+				} else if (rect.top - previousTop > 3) {
+					lines.push(current);
+					current = '';
+					previousTop = rect.top;
+				}
+				current += text[i];
+			}
+		}
+		if (current) {
+			lines.push(current);
+		}
+		return lines.map((line) => line.trim()).filter((line) => line.length > 0);
+	}, needle);
+}

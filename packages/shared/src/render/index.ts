@@ -386,9 +386,11 @@ export * from './text-effects-3d';
 // (glow/inner-shadow/blur/HSL) + alpha opacity + reflection into ONE neutral
 // CSS record (no-op `{}` for plain runs), mirroring React's per-run span style.
 export * from './text-run-effects';
-// Per-run inline-style builder + the PowerPoint metric-compensation tracking
-// constant React layers into its own span style.
+// Per-run inline-style builder (Vue / Angular / Svelte / Vanilla run spans).
 export * from './text-run-style';
+// Per-run advance-width compensation that makes the browser break lines where
+// PowerPoint breaks them. React layers it into its own span style.
+export * from './text-metric-tracking';
 // MathML/SVG sanitisation (DOMPurify wrapper, non-DOM fallback) for equation
 // rendering. React + Vue consume it; Angular uses its own DomSanitizer.
 export * from './mathml-sanitize';

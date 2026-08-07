@@ -1,6 +1,6 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
-import { POWERPOINT_METRIC_TRACKING, resolveAutoFitFontScale } from 'pptx-viewer-shared';
+import { resolveAutoFitFontScale, resolveMetricTrackingPx } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
@@ -121,13 +121,11 @@ export function renderSingleSegment(
 	// Sub/superscript text also renders smaller; keep the conventional reduction.
 	const baselineFontScale = baselineFraction !== 0 ? 0.65 : 1;
 
-	// Character spacing → CSS letter-spacing (hundredths of a point → px),
-	// layered on top of the metric-compensation tracking every run carries so
-	// the browser wraps where PowerPoint does (see POWERPOINT_METRIC_TRACKING).
-	const letterSpacing =
+	// Character spacing → CSS letter-spacing (hundredths of a point → px).
+	const authoredLetterSpacing =
 		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
-			? `calc(${(segmentStyle.characterSpacing / 100) * (96 / 72)}px + ${POWERPOINT_METRIC_TRACKING})`
-			: POWERPOINT_METRIC_TRACKING;
+			? (segmentStyle.characterSpacing / 100) * (96 / 72)
+			: 0;
 
 	// Text fill: gradient or pattern → CSS background-clip:text technique
 	const textFillStyles = buildTextFillCss(segmentStyle);
@@ -194,6 +192,20 @@ export function renderSingleSegment(
 		),
 	};
 	const needsScriptFonts = hasDistinctScriptFonts(scriptFonts);
+
+	// Advance-width compensation on top of any authored spacing, so the browser
+	// breaks this run's lines where PowerPoint breaks them. Derived from the
+	// run's own characters: the disagreement between PowerPoint's 1/8-point
+	// advance grid and the browser's fractional advances runs in BOTH directions,
+	// so a flat constant wraps some strings early (issue #149).
+	const metricTracking = resolveMetricTrackingPx(textValue, {
+		fontFamily: baseFontFamily,
+		fontSizePx: baseFontSize * baselineFontScale,
+		bold: Boolean(segmentStyle.bold),
+		italic: Boolean(segmentStyle.italic),
+	});
+	const totalLetterSpacing = authoredLetterSpacing + metricTracking;
+	const letterSpacing = totalLetterSpacing === 0 ? undefined : `${totalLetterSpacing}px`;
 
 	const spanStyle: React.CSSProperties = {
 		color: resolvedSegmentColor,
