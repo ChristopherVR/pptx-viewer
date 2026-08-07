@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.0) - 2026-08-07
+
+### Features
+
+- **core:** Export and import decks as portable JSON (by @ChristopherVR) ([965fc05](https://github.com/ChristopherVR/pptx-viewer/commit/965fc05ce0993d97a15d6199c8763eada99fa646))
+- **shared:** Blackboard mode, element rename and column charts (by @ChristopherVR) ([a69ffce](https://github.com/ChristopherVR/pptx-viewer/commit/a69ffce0a7635632cf19cb060b329a8ff5d19422))
+
 ## [2.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.0.2) - 2026-07-27
 
 ### Bug Fixes

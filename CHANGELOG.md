@@ -8,6 +8,59 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-07
+
+_Releases: pptx-viewer-core@2.3.0, pptx-react-viewer@2.14.0, pptx-vue-viewer@2.14.0, pptx-angular-viewer@2.14.0, pptx-vanilla-viewer@1.15.0, pptx-svelte-viewer@2.14.0, pptx-viewer-mcp@2.1.0, @christophervr/pptx-viewer@1.6.0_
+
+### Features
+
+- **core:** Import legacy PowerPoint 97-2003 (.ppt) files (by @ChristopherVR) ([6f71bd3](https://github.com/ChristopherVR/pptx-viewer/commit/6f71bd31270afac2bdc3df4ad082a3e08d5b3e75))
+- **core:** Export and import decks as portable JSON (by @ChristopherVR) ([965fc05](https://github.com/ChristopherVR/pptx-viewer/commit/965fc05ce0993d97a15d6199c8763eada99fa646))
+- **shared:** Insert slides from a template gallery (by @ChristopherVR) ([abc7f77](https://github.com/ChristopherVR/pptx-viewer/commit/abc7f77d911c644faa09540eaab30a684f4b6e19))
+- **shared:** Blackboard mode, element rename and column charts (by @ChristopherVR) ([a69ffce](https://github.com/ChristopherVR/pptx-viewer/commit/a69ffce0a7635632cf19cb060b329a8ff5d19422))
+- **shared:** Selectively-subscribable viewer store with per-binding adapters (by @ChristopherVR) ([745c554](https://github.com/ChristopherVR/pptx-viewer/commit/745c554866d66c6318db353ab678e34f235f8037))
+
+### Bug Fixes
+
+- **core:** Stop inferring motion-path auto-rotate from rAng (by @ChristopherVR) ([32ee041](https://github.com/ChristopherVR/pptx-viewer/commit/32ee041249ebd5f761f54275bb98148548c7364e))
+- **core:** Read line-series colours from a:ln/a:solidFill (by @ChristopherVR) ([714c10a](https://github.com/ChristopherVR/pptx-viewer/commit/714c10a2b29843dbb8481c98330db0f29a509b2d))
+- **shared:** Animation reveal, stroke paint and comment threading (by @ChristopherVR) ([946aea2](https://github.com/ChristopherVR/pptx-viewer/commit/946aea274a82dbc9fd231e4caeb269fecf9d8334))
+- **locales:** Cover new shape and selection keys in de, es and fr (by @ChristopherVR) ([09eabb0](https://github.com/ChristopherVR/pptx-viewer/commit/09eabb02e2cd7cafd87a11378653b1996fc2760e))
+- **react:** Seed entrance animations before the slide paints (by @ChristopherVR) ([6e64403](https://github.com/ChristopherVR/pptx-viewer/commit/6e64403caee423118f6f8ad4c865d53cb6f0de69))
+- **vue:** Reach the AI assistant on mobile and scale resize handles (by @ChristopherVR) ([f2795d5](https://github.com/ChristopherVR/pptx-viewer/commit/f2795d5190bb310ca4ad8ea5c6dfe546b088eb4e))
+- **angular:** Apply animation styles before paint and fix the AI sheet (by @ChristopherVR) ([2ba4267](https://github.com/ChristopherVR/pptx-viewer/commit/2ba4267912b0d1cc2946c29a78b467521c747feb))
+- **svelte:** Translate inspector tabs and place the caret at the end (by @ChristopherVR) ([b6d302c](https://github.com/ChristopherVR/pptx-viewer/commit/b6d302cd570a1d8b09f3cc06dfcca1d897b354a9))
+- **vanilla:** Restore saved preferences and stop chrome leaking into slides (by @ChristopherVR) ([0a6f842](https://github.com/ChristopherVR/pptx-viewer/commit/0a6f842295eeb407ec27ec4cf457c9ba06aec203))
+- **angular:** Title the Selection Pane control like every other binding (by @ChristopherVR) ([801a88a](https://github.com/ChristopherVR/pptx-viewer/commit/801a88a7c5a06cd8d2d1592b94ab28936e0143c3))
+- **shared:** Keep a drawing gesture from advancing the show (by @ChristopherVR) ([e2578cc](https://github.com/ChristopherVR/pptx-viewer/commit/e2578cc462725d70761058295de13f35c3ccb6fe))
+- **shared:** Return the keyboard to the viewer after an inline edit (by @ChristopherVR) ([351947a](https://github.com/ChristopherVR/pptx-viewer/commit/351947a1e515ad748f2fa23ec0dee59b1b1a8fbc))
+- **present:** Let a blanked screen pass clicks through to the show (by @ChristopherVR) ([a8cc5d2](https://github.com/ChristopherVR/pptx-viewer/commit/a8cc5d265959d98a8bee8ab9ace42dfeef53aba2))
+- **shared:** Translate the labels five bindings were rendering in English (by @ChristopherVR) ([d1bfad6](https://github.com/ChristopherVR/pptx-viewer/commit/d1bfad666119f27b3a01266729a471af8a0e47ea))
+- **cli:** Let the scaffolded starters open legacy .ppt decks (by @ChristopherVR) ([2cde7f8](https://github.com/ChristopherVR/pptx-viewer/commit/2cde7f84dded2d4beca7e0f48b8d0a50d0968bf5))
+- **shared:** Escape SVG gradient markup attributes (by @ChristopherVR) ([7e5dd23](https://github.com/ChristopherVR/pptx-viewer/commit/7e5dd232103f90b822ca268fdb5a15b0c619be1b))
+- **react:** Stop the presenter clock re-rendering the editor once a second (by @ChristopherVR) ([6a6d3e4](https://github.com/ChristopherVR/pptx-viewer/commit/6a6d3e453fc611115a9257cc2a20ba379241626a))
+- **shared:** Route numeric SVG gradient attributes through the escape barrier (by @ChristopherVR) ([58485f3](https://github.com/ChristopherVR/pptx-viewer/commit/58485f36219d8b07c73825e47c8f7cd8b43e5a19))
+- **shared:** Stop a morph inventing pairs and hiding what arrives (by @ChristopherVR) ([058051d](https://github.com/ChristopherVR/pptx-viewer/commit/058051d88201f71d64c3dee8b373af70a5f005a9))
+
+### Performance
+
+- **shared:** Drop state writes that carry no new information (by @ChristopherVR) ([74ba824](https://github.com/ChristopherVR/pptx-viewer/commit/74ba82402f5f73fe1d3d7c04989374417444f2d2))
+
+### Refactor
+
+- **shared:** Place the eight resize handles from one table (by @ChristopherVR) ([86feabb](https://github.com/ChristopherVR/pptx-viewer/commit/86feabbdf23fb0bed31b44a472b2ae411110dba9))
+- **shared:** Move the canvas zoom slice onto the viewer runtime (by @ChristopherVR) ([054c9eb](https://github.com/ChristopherVR/pptx-viewer/commit/054c9eb5757ceefc10d71e596acb3b0b46d96820))
+- **vanilla:** Put the zoom slice on the shared viewer runtime (by @ChristopherVR) ([367295d](https://github.com/ChristopherVR/pptx-viewer/commit/367295dc6bf65664fda72cddb25b5670f07f1ff9))
+
+### Testing
+
+- **e2e:** Compare bindings visually and close the parity exclusions (by @ChristopherVR) ([32b6314](https://github.com/ChristopherVR/pptx-viewer/commit/32b631430e1f4bd3ab9ee8d6e8cacf1771d08a8f))
+- **e2e:** Make heavy-deck navigation and post-import waits reliable (by @ChristopherVR) ([d0c51f4](https://github.com/ChristopherVR/pptx-viewer/commit/d0c51f48284bdd1e00bc85d2cd0d39b178fbbd7f))
+
+### Chores
+
+- **demos:** Accept .ppt in the file pickers and dropzones (by @ChristopherVR) ([0e2193c](https://github.com/ChristopherVR/pptx-viewer/commit/0e2193cd5eb53867bc72a2249e9cb2c322725bd3))
+
 ## 2026-08-05
 
 _Releases: pptx-viewer-core@2.2.2, pptx-react-viewer@2.13.2, pptx-vue-viewer@2.13.2, pptx-angular-viewer@2.13.2, pptx-vanilla-viewer@1.14.2, pptx-svelte-viewer@2.13.2_
