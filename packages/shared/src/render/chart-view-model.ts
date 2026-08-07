@@ -60,7 +60,7 @@ import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
-import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
+import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { DEFAULT_CHART_PALETTE } from './chart-helpers';
 import { formatChartNumber } from './chart-number-format';
@@ -260,6 +260,28 @@ export interface PlotLayoutOptions {
  * viewer-first single-axis layout; the secondary-axis / data-table reservations
  * only apply when explicitly requested.
  */
+/**
+ * Vertical space to reserve under the plot for the category axis: the gap
+ * `c:lblOffset` asks for, plus one line box of the axis font.
+ *
+ * The old flat 24 px was calibrated when chart text was drawn pt-as-px. Once
+ * `chartFontPx` scaled every label by 4/3, an 11.95 pt axis no longer fitted in
+ * 24 px and its labels were pushed back up onto the plot. The `Math.max(24, …)`
+ * floor keeps the previous behaviour for default-font and axis-less charts, so
+ * only oversized-font charts move.
+ *
+ * @param chartData The chart whose category axis is being measured.
+ * @returns Pixels to reserve below the plot area.
+ */
+function categoryAxisBand(chartData: PptxChartData): number {
+	const axis = chartData.axes?.find(
+		(candidate) => candidate.axisType === 'catAx' || candidate.axisType === 'dateAx',
+	);
+	const fontPx = axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX;
+	const offset = 4 + 8 * ((axis?.labelOffset ?? 100) / 100);
+	return Math.max(24, offset + fontPx * 1.2);
+}
+
 export function computePlotLayout(
 	elementWidth: number,
 	elementHeight: number,
@@ -277,7 +299,7 @@ export function computePlotLayout(
 	let plotLeft = hasAxes ? 48 : 8;
 	let plotTop = 8;
 	let plotRight = svgWidth - 8;
-	let plotBottom = svgHeight - (hasAxes ? 24 : 8);
+	let plotBottom = svgHeight - (hasAxes ? categoryAxisBand(chartData) : 8);
 
 	const style = chartData.style;
 	const legendPos = style?.legendPosition ?? 'b';

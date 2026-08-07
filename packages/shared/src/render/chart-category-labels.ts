@@ -45,6 +45,14 @@ export function buildMultiLevelCategoryLabels(
 	// Band height tracks the rendered px size (axis.fontSize is parsed in points).
 	const fontPx = axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX;
 	const bandHeight = Math.max(fontPx, 8) + 4;
+	// `SvgText.y` is the ALPHABETIC BASELINE (this is the one label emitter that
+	// does not set `dominant-baseline`), so `offset` - the gap `c:lblOffset` asks
+	// for between the axis and its labels - only becomes a real gap once the
+	// glyph ascent is added below the axis, or the descent removed above it.
+	// Without this the ink of a label under the axis starts ~0.8 em higher than
+	// intended and crowds the plot: measured against PowerPoint the gap was 1.2px
+	// where it should be 17.6px.
+	const baselineShift = labelsAbove ? -0.2 * fontPx : 0.8 * fontPx;
 	return levels.flatMap((level, levelIndex) => {
 		const values = sourceIndices.map((sourceIndex) => level[sourceIndex] ?? '');
 		return groupedLabels(values).flatMap((group) => {
@@ -57,7 +65,7 @@ export function buildMultiLevelCategoryLabels(
 				{
 					kind: 'text' as const,
 					x: (startX + endX) / 2,
-					y: labelY + direction * (offset + levelIndex * bandHeight),
+					y: labelY + direction * (offset + levelIndex * bandHeight) + baselineShift,
 					text: group.text,
 					textAnchor,
 					...chartAxisTextStyle(axis),
