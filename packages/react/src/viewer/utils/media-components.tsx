@@ -1,6 +1,5 @@
 import type { MediaPptxElement, MediaCaptionTrack, MediaMetadata } from 'pptx-viewer-core';
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // MediaMetadataExtractor: extracts duration, resolution, codec from
@@ -96,51 +95,6 @@ export function CaptionTrackRenderer({
 				);
 			})}
 		</>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// MediaNotFoundPlaceholder: shown when media file is missing/broken
-// ---------------------------------------------------------------------------
-
-interface MediaNotFoundPlaceholderProps {
-	mediaType: string;
-}
-
-export function MediaNotFoundPlaceholder({
-	mediaType,
-}: MediaNotFoundPlaceholderProps): React.ReactElement {
-	const { t } = useTranslation();
-	const isVideo = mediaType === 'video';
-	return (
-		<div className='w-full h-full flex flex-col items-center justify-center gap-2 pointer-events-none bg-black/30 rounded border border-dashed border-white/20'>
-			<svg
-				width='36'
-				height='36'
-				viewBox='0 0 24 24'
-				fill='none'
-				stroke='currentColor'
-				strokeWidth='1.5'
-				className='text-white/50'
-			>
-				{isVideo ? (
-					<>
-						<rect x='2' y='4' width='20' height='16' rx='2' />
-						<line x1='2' y1='4' x2='22' y2='20' />
-					</>
-				) : (
-					<>
-						<circle cx='12' cy='12' r='10' />
-						<line x1='4' y1='4' x2='20' y2='20' />
-					</>
-				)}
-			</svg>
-			<span className='text-[10px] text-white/50'>
-				{t('pptx.media.typeNotFound', {
-					type: isVideo ? t('pptx.file.video') : t('pptx.file.audio'),
-				})}
-			</span>
-		</div>
 	);
 }
 

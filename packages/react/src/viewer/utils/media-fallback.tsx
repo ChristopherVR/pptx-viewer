@@ -1,14 +1,13 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
 import {
 	MEDIA_CHROME_ATTRIBUTE,
-	MEDIA_PLAY_BADGE_POINTS,
+	mediaFallbackIcon,
+	mediaFallbackLabelKey,
 	mediaFallbackVisual,
 } from 'pptx-viewer-shared';
-import type { MediaSurface } from 'pptx-viewer-shared';
+import type { MediaFallbackVisual, MediaSurface } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
-
-import { MediaNotFoundPlaceholder } from './media-components';
 
 /**
  * What a media element paints when no `<video>`/`<audio>` can be mounted: the
@@ -30,81 +29,110 @@ export interface MediaFallbackProps {
 	surface: MediaSurface;
 }
 
-/** The centred play triangle, drawn over a poster frame on the canvas. */
-function PlayBadge(): React.ReactElement {
+/** Translate a shared label key. This is a plain function, so no hook here. */
+function label(key: string | undefined): string | undefined {
+	return key === undefined
+		? undefined
+		: (translationsEn[key as keyof typeof translationsEn] as string | undefined);
+}
+
+/**
+ * The shared icon for a resolved fallback, drawn as stroked paths so the five
+ * bindings render the same geometry from the same array.
+ */
+function FallbackIcon({
+	paths,
+	size,
+	className,
+}: {
+	paths: readonly string[];
+	size: number;
+	className: string;
+}): React.ReactElement | null {
+	if (paths.length === 0) {
+		return null;
+	}
+	return (
+		<svg
+			width={size}
+			height={size}
+			viewBox='0 0 24 24'
+			fill='none'
+			stroke='currentColor'
+			strokeWidth='1.5'
+			className={className}
+		>
+			{paths.map((d) => (
+				<path key={d} d={d} />
+			))}
+		</svg>
+	);
+}
+
+/** The centred affordance drawn over a poster frame on the authoring canvas. */
+function Badge({
+	visual,
+	element,
+}: {
+	visual: MediaFallbackVisual;
+	element: MediaPptxElement;
+}): React.ReactElement | null {
+	if (visual.badge === 'none') {
+		return null;
+	}
+	const isMissing = visual.badge === 'missing';
 	return (
 		<div
-			className='absolute inset-0 flex items-center justify-center'
-			{...{ [MEDIA_CHROME_ATTRIBUTE]: 'play' }}
+			className={`absolute inset-0 flex flex-col items-center justify-center ${
+				isMissing ? 'gap-1' : ''
+			}`}
+			{...{ [MEDIA_CHROME_ATTRIBUTE]: visual.badge }}
 		>
-			<svg
-				width='48'
-				height='48'
-				viewBox='0 0 24 24'
-				fill='none'
-				stroke='currentColor'
-				strokeWidth='1.5'
-				className='text-white/80 drop-shadow-md'
-			>
-				<polygon points={MEDIA_PLAY_BADGE_POINTS} />
-			</svg>
+			<FallbackIcon
+				paths={mediaFallbackIcon(visual, element.mediaType)}
+				size={isMissing ? 32 : 48}
+				className={isMissing ? 'text-white/60' : 'text-white/80 drop-shadow-md'}
+			/>
+			{isMissing && (
+				<span className='text-[10px] text-white/60'>
+					{label(mediaFallbackLabelKey(visual, element.mediaType))}
+				</span>
+			)}
 		</div>
 	);
 }
 
-/** The crossed circle + label shown over a poster standing in for missing media. */
-function MissingBadge(): React.ReactElement {
-	return (
-		<div
-			className='absolute inset-0 flex flex-col items-center justify-center gap-1'
-			{...{ [MEDIA_CHROME_ATTRIBUTE]: 'missing' }}
-		>
-			<svg
-				width='32'
-				height='32'
-				viewBox='0 0 24 24'
-				fill='none'
-				stroke='currentColor'
-				strokeWidth='1.5'
-				className='text-white/60'
-			>
-				<circle cx='12' cy='12' r='10' />
-				<line x1='4' y1='4' x2='20' y2='20' />
-			</svg>
-			<span className='text-[10px] text-white/60'>{translationsEn['pptx.media.notFound']}</span>
-		</div>
-	);
-}
-
-/** The typed box shown when there is not even a poster to paint. */
-function TypedPlaceholder({ isAudio }: { isAudio: boolean }): React.ReactElement {
+/** The box drawn when there is not even a poster frame to paint. */
+function Placeholder({
+	visual,
+	element,
+}: {
+	visual: MediaFallbackVisual;
+	element: MediaPptxElement;
+}): React.ReactElement | null {
+	if (visual.placeholder === 'none') {
+		return null;
+	}
+	const isMissing = visual.placeholder === 'missing';
 	return (
 		<div
 			className={`w-full h-full flex flex-col items-center justify-center gap-1 pointer-events-none rounded ${
-				isAudio ? 'bg-black/10' : 'bg-black/20'
+				isMissing
+					? 'bg-black/30 border border-dashed border-white/20'
+					: element.mediaType === 'audio'
+						? 'bg-black/10'
+						: 'bg-black/20'
 			}`}
-			{...{ [MEDIA_CHROME_ATTRIBUTE]: 'placeholder' }}
+			{...{ [MEDIA_CHROME_ATTRIBUTE]: visual.placeholder }}
 		>
-			<svg
-				width={isAudio ? '24' : '32'}
-				height={isAudio ? '24' : '32'}
-				viewBox='0 0 24 24'
-				fill='none'
-				stroke='currentColor'
-				strokeWidth='1.5'
-				className='text-white/70'
-			>
-				{isAudio ? (
-					<>
-						<path d='M9 18V5l12-2v13' />
-						<circle cx='6' cy='18' r='3' />
-						<circle cx='18' cy='16' r='3' />
-					</>
-				) : (
-					<polygon points={MEDIA_PLAY_BADGE_POINTS} />
-				)}
-			</svg>
-			<span className='text-[10px] text-white/70'>{isAudio ? 'Audio' : 'Video'}</span>
+			<FallbackIcon
+				paths={mediaFallbackIcon(visual, element.mediaType)}
+				size={isMissing ? 36 : element.mediaType === 'audio' ? 24 : 32}
+				className={isMissing ? 'text-white/50' : 'text-white/70'}
+			/>
+			<span className={`text-[10px] ${isMissing ? 'text-white/50' : 'text-white/70'}`}>
+				{label(mediaFallbackLabelKey(visual, element.mediaType))}
+			</span>
 		</div>
 	);
 }
@@ -118,8 +146,10 @@ export function renderMediaFallback({
 	posterUrl,
 	surface,
 }: MediaFallbackProps): React.ReactNode {
-	const missing = element.mediaMissing === true;
-	const visual = mediaFallbackVisual(surface, { hasPoster: Boolean(posterUrl), missing });
+	const visual = mediaFallbackVisual(surface, {
+		hasPoster: Boolean(posterUrl),
+		missing: element.mediaMissing === true,
+	});
 
 	if (visual.poster && posterUrl) {
 		return (
@@ -127,22 +157,16 @@ export function renderMediaFallback({
 				<img
 					src={posterUrl}
 					alt={
-						missing
+						visual.dimPoster
 							? translationsEn['pptx.media.posterAlt']
 							: translationsEn['pptx.media.videoPosterAlt']
 					}
 					className={`w-full h-full object-contain${visual.dimPoster ? ' opacity-50' : ''}`}
 				/>
-				{visual.badge && (missing ? <MissingBadge /> : <PlayBadge />)}
+				<Badge visual={visual} element={element} />
 			</div>
 		);
 	}
 
-	if (!visual.placeholder) {
-		return null;
-	}
-	if (missing) {
-		return <MediaNotFoundPlaceholder mediaType={element.mediaType ?? 'video'} />;
-	}
-	return <TypedPlaceholder isAudio={element.mediaType === 'audio'} />;
+	return <Placeholder visual={visual} element={element} />;
 }

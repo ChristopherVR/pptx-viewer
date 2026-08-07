@@ -98,13 +98,25 @@ describe('renderMediaElement fallback chrome', () => {
 
 	it('keeps the typed placeholder box on the authoring canvas', () => {
 		const node = paint(media(), {});
-		expect(node.querySelector('[data-pptx-media-chrome="placeholder"]')).toBeTruthy();
-		expect(node.textContent).toContain('Video');
+		expect(node.querySelector('[data-pptx-media-chrome="typed"]')).toBeTruthy();
+		// The clip type, translated - not the hard-coded English "Video" this
+		// renderer used to print in a package that ships four locales.
+		expect(node.textContent).toBe('Video clip');
+		const audio = paint(media({ mediaType: 'audio' }), {});
+		expect(audio.textContent).toBe('Audio clip');
 	});
 
 	it('keeps the missing-media mark and the dimmed poster on the canvas', () => {
 		const node = paint(media({ mediaMissing: true, posterFrameData: PNG_DATA_URL }), {});
 		expect(node.querySelector('img')?.className).toContain('opacity-50');
 		expect(node.querySelector('[data-pptx-media-chrome="missing"]')).toBeTruthy();
+		expect(node.textContent).toBe('Media not found');
+	});
+
+	// The four ported bindings read a boolean `badge` as "paint a badge" and drew
+	// a PLAY triangle over media the package had failed to find.
+	it('never paints a play badge over missing media', () => {
+		const node = paint(media({ mediaMissing: true, posterFrameData: PNG_DATA_URL }), {});
+		expect(node.querySelector('[data-pptx-media-chrome="play"]')).toBeNull();
 	});
 });
