@@ -28,8 +28,11 @@
 	 * frame, which reads exactly like "the video never started".
 	 */
 	import {
+		MEDIA_PLAY_BADGE_POINTS,
 		applyMediaPlaybackAttributes,
+		mediaFallbackVisual,
 		mediaPlaybackAttributes,
+		mediaSurfaceOf,
 		mediaTransportVisible,
 		startMediaAutoplay,
 	} from 'pptx-viewer-shared';
@@ -52,7 +55,6 @@
 	const media = $derived(element.type === 'media' ? element : undefined);
 	const view = $derived(media ? resolveMediaView(media, mediaDataUrls) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
-	const isFallback = $derived(view !== undefined && !view.mediaSrc && !view.posterSrc);
 	const trimStartMs = $derived(media?.trimStartMs);
 	// `loop` is a real attribute, so it binds declaratively; `volume` and
 	// `playbackRate` are IDL properties with no attribute form and have to be
@@ -62,9 +64,25 @@
 	// (the presenter console's panes, the thumbnail rail), and `!presenting`
 	// alone painted Chrome's scrubber across those too: the console drew a
 	// control bar over a slide the speaker cannot play. The rule is shared.
-	const showControls = $derived(
-		mediaTransportVisible({ presenting, preview: !interactive && !presenting, canvasTransport: true }),
+	const surface = $derived(mediaSurfaceOf({ interactive, presenting }));
+	const showControls = $derived(mediaTransportVisible({ ...surface, canvasTransport: true }));
+
+	/**
+	 * What to paint when no `<video>`/`<audio>` can be mounted.
+	 *
+	 * A still of a slide - the slide-transition overlay, the presenter console's
+	 * panes, the thumbnail rail - gets the poster frame and nothing else: the
+	 * play badge and the typed placeholder box are authoring chrome, and issue
+	 * #147 is exactly that chrome riding along inside a morph. The rule is shared
+	 * so the five bindings cannot drift on it.
+	 */
+	const fallback = $derived(
+		mediaFallbackVisual(surface, {
+			hasPoster: Boolean(view?.posterSrc),
+			missing: media?.mediaMissing === true,
+		}),
 	);
+	const isFallback = $derived(view !== undefined && !view.mediaSrc && fallback.placeholder);
 
 	// The conditionally-rendered `<video>`/`<audio>` template's `bind:this`
 	// writes this (invisible to the linter); it must be `$state` so Svelte
@@ -132,10 +150,31 @@
 				controls={showControls}
 				loop={playback.loop}
 			></audio>
-		{:else if view.posterSrc}
-			<img class="pptx-svelte-media-poster" src={view.posterSrc} alt="" />
-		{:else}
-			<span class="pptx-svelte-media-fallback-label">{t('pptx.elementType.media')}</span>
+		{:else if fallback.poster && view.posterSrc}
+			<img
+				class="pptx-svelte-media-poster"
+				class:pptx-svelte-media-dim={fallback.dimPoster}
+				src={view.posterSrc}
+				alt=""
+			/>
+			<!-- Authoring-canvas chrome only; `data-pptx-media-chrome` is the neutral
+			     marker `e2e/media-transition-chrome.spec.ts` asserts the absence of. -->
+			{#if fallback.badge}
+				<svg
+					data-pptx-media-chrome="play"
+					class="pptx-svelte-media-badge"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+				>
+					<polygon points={MEDIA_PLAY_BADGE_POINTS} />
+				</svg>
+			{/if}
+		{:else if fallback.placeholder}
+			<span class="pptx-svelte-media-fallback-label" data-pptx-media-chrome="placeholder"
+				>{t('pptx.elementType.media')}</span
+			>
 		{/if}
 	</div>
 {/if}
@@ -151,6 +190,23 @@
 
 	.pptx-svelte-media-audio {
 		width: 100%;
+	}
+
+	/* A poster standing in for media the package could not resolve. */
+	.pptx-svelte-media-dim {
+		opacity: 0.5;
+	}
+
+	.pptx-svelte-media-badge {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 48px;
+		height: 48px;
+		transform: translate(-50%, -50%);
+		color: rgba(255, 255, 255, 0.8);
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+		pointer-events: none;
 	}
 
 	/* Unavailable media: reuse the placeholder look for a graceful fallback. */

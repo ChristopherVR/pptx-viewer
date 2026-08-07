@@ -160,6 +160,32 @@ describe('mediaBox', () => {
 		expect(container?.textContent).toContain('Media');
 	});
 
+	// Issue #147: a slide-transition overlay is a STILL of the outgoing slide, so
+	// media chrome painted there rides along inside the transition - the reporter
+	// caught a play triangle drifting through a morph out of a background video.
+	it('paints the poster frame with no play badge on a still of a slide', () => {
+		const { target } = mountEl(
+			mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL }),
+			new Map(),
+			false,
+			false,
+		);
+		expect(target.querySelector('img')?.getAttribute('src')).toBe(PNG_DATA_URL);
+		expect(target.querySelector('[data-pptx-media-chrome]')).toBeNull();
+	});
+
+	it('paints no labelled fallback box on a still of a slide', () => {
+		const { target } = mountEl(mediaElement({ mediaType: 'video' }), new Map(), false, false);
+		const container = target.querySelector<HTMLElement>('[data-element-id="m1"]');
+		expect(container?.classList.contains('pptx-svelte-media-fallback')).toBeFalsy();
+		expect(container?.textContent).toBe('');
+	});
+
+	it('paints the play badge over the poster on the authoring canvas', () => {
+		const { target } = mountEl(mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL }));
+		expect(target.querySelector('[data-pptx-media-chrome="play"]')).toBeTruthy();
+	});
+
 	// A full-bleed background video with `controls` paints Chrome's own black
 	// transport across the bottom of the presented slide, over the show toolbar.
 	// React suppresses it (`controls={!isPresentationMode}`).
