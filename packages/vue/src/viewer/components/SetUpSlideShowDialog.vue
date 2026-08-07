@@ -109,7 +109,7 @@ const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>((
 						name="advanceMode"
 						value="manual"
 						class="accent-primary"
-						:checked="(draft.advanceMode ?? 'manual') === 'manual'"
+						:checked="draft.advanceMode === 'manual'"
 						@change="update({ advanceMode: 'manual' })"
 					/>
 					<span>{{ t('pptx.slideShow.advanceManual') }}</span>
@@ -120,7 +120,7 @@ const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>((
 						name="advanceMode"
 						value="useTimings"
 						class="accent-primary"
-						:checked="draft.advanceMode === 'useTimings'"
+						:checked="(draft.advanceMode ?? 'useTimings') === 'useTimings'"
 						@change="update({ advanceMode: 'useTimings' })"
 					/>
 					<span>{{ t('pptx.slideShow.advanceTimings') }}</span>

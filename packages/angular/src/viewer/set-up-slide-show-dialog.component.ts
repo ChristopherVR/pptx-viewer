@@ -102,7 +102,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							name="advanceMode"
 							class="pptx-ng-sss-radio"
 							value="manual"
-							[checked]="(draft().advanceMode ?? 'manual') === 'manual'"
+							[checked]="draft().advanceMode === 'manual'"
 							(change)="update({ advanceMode: 'manual' })"
 						/>
 						<span>{{ 'pptx.slideShow.manually' | translate }}</span>
@@ -113,7 +113,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							name="advanceMode"
 							class="pptx-ng-sss-radio"
 							value="useTimings"
-							[checked]="draft().advanceMode === 'useTimings'"
+							[checked]="(draft().advanceMode ?? 'useTimings') === 'useTimings'"
 							(change)="update({ advanceMode: 'useTimings' })"
 						/>
 						<span>{{ 'pptx.slideShow.useTimings' | translate }}</span>

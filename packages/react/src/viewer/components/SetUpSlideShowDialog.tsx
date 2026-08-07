@@ -141,7 +141,7 @@ export function SetUpSlideShowDialog({
 									type='radio'
 									name='advanceMode'
 									value='manual'
-									checked={(draft.advanceMode ?? 'manual') === 'manual'}
+									checked={draft.advanceMode === 'manual'}
 									onChange={() => update({ advanceMode: 'manual' })}
 									className='accent-primary'
 								/>
@@ -152,7 +152,7 @@ export function SetUpSlideShowDialog({
 									type='radio'
 									name='advanceMode'
 									value='useTimings'
-									checked={draft.advanceMode === 'useTimings'}
+									checked={(draft.advanceMode ?? 'useTimings') === 'useTimings'}
 									onChange={() => update({ advanceMode: 'useTimings' })}
 									className='accent-primary'
 								/>

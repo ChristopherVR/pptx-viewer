@@ -84,7 +84,12 @@ export function openSlideShowDialog(
 		['manual', 'pptx.slideShow.manually'],
 		['useTimings', 'pptx.slideShow.useTimings'],
 	] as const) {
-		const input = appendCheckRow(doc, advance, t(key), (draft.advanceMode ?? 'manual') === value);
+		const input = appendCheckRow(
+			doc,
+			advance,
+			t(key),
+			(draft.advanceMode ?? 'useTimings') === value,
+		);
 		input.type = 'radio';
 		input.name = 'advance';
 		input.addEventListener('change', () => {

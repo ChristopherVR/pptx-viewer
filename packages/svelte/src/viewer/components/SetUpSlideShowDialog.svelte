@@ -33,8 +33,8 @@
 				{#if customShows.length}<label><input type="radio" name="range" checked={draft.showSlidesMode === 'customShow'} onchange={() => (draft = { ...draft, showSlidesMode: 'customShow' })} />{t('pptx.slideShow.customShow')}<select aria-label={t('pptx.slideShow.customShow')} value={draft.showSlidesCustomShowId ?? customShows[0]?.id} onchange={(event) => (draft = { ...draft, showSlidesCustomShowId: event.currentTarget.value })}>{#each customShows as show}<option value={show.id}>{show.name}</option>{/each}</select></label>{/if}
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.advanceSlides')}</legend>
-				<label><input type="radio" name="advance" checked={(draft.advanceMode ?? 'manual') === 'manual'} onchange={() => (draft = { ...draft, advanceMode: 'manual' })} />{t('pptx.slideShow.manually')}</label>
-				<label><input type="radio" name="advance" checked={draft.advanceMode === 'useTimings'} onchange={() => (draft = { ...draft, advanceMode: 'useTimings' })} />{t('pptx.slideShow.useTimings')}</label>
+				<label><input type="radio" name="advance" checked={draft.advanceMode === 'manual'} onchange={() => (draft = { ...draft, advanceMode: 'manual' })} />{t('pptx.slideShow.manually')}</label>
+				<label><input type="radio" name="advance" checked={(draft.advanceMode ?? 'useTimings') === 'useTimings'} onchange={() => (draft = { ...draft, advanceMode: 'useTimings' })} />{t('pptx.slideShow.useTimings')}</label>
 			</fieldset>
 			<fieldset><legend>{t('pptx.slideShow.showOptions')}</legend>
 				<label><input type="checkbox" checked={draft.loopContinuously ?? false} onchange={(event) => option('loopContinuously', event.currentTarget.checked)} />{t('pptx.slideShow.loopContinuously')}</label>
