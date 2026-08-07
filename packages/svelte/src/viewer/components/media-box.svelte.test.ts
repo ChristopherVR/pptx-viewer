@@ -157,7 +157,9 @@ describe('mediaBox', () => {
 		expect(target.querySelector('img')).toBeNull();
 		const container = target.querySelector<HTMLElement>('[data-element-id="m1"]');
 		expect(container?.classList.contains('pptx-svelte-media-fallback')).toBeTruthy();
-		expect(container?.textContent).toContain('Media');
+		// The clip type, not the flat "Media" every unplayable element used to get.
+		expect(container?.textContent).toContain('Video clip');
+		expect(target.querySelector('[data-pptx-media-chrome="typed"]')).toBeTruthy();
 	});
 
 	// Issue #147: a slide-transition overlay is a STILL of the outgoing slide, so
@@ -184,6 +186,18 @@ describe('mediaBox', () => {
 	it('paints the play badge over the poster on the authoring canvas', () => {
 		const { target } = mountEl(mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL }));
 		expect(target.querySelector('[data-pptx-media-chrome="play"]')).toBeTruthy();
+	});
+
+	// Reading a boolean `badge` as "paint a badge" drew a PLAY triangle over
+	// media the package had failed to find - the opposite of what React said.
+	it('marks missing media as not found, never with a play badge', () => {
+		const { target } = mountEl(
+			mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL, mediaMissing: true }),
+		);
+		expect(target.querySelector('[data-pptx-media-chrome="play"]')).toBeNull();
+		expect(target.querySelector('[data-pptx-media-chrome="missing"]')?.textContent).toContain(
+			'Media not found',
+		);
 	});
 
 	// A full-bleed background video with `controls` paints Chrome's own black

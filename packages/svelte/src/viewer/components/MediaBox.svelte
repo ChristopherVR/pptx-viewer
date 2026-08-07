@@ -28,8 +28,9 @@
 	 * frame, which reads exactly like "the video never started".
 	 */
 	import {
-		MEDIA_PLAY_BADGE_POINTS,
 		applyMediaPlaybackAttributes,
+		mediaFallbackIcon,
+		mediaFallbackLabelKey,
 		mediaFallbackVisual,
 		mediaPlaybackAttributes,
 		mediaSurfaceOf,
@@ -82,7 +83,12 @@
 			missing: media?.mediaMissing === true,
 		}),
 	);
-	const isFallback = $derived(view !== undefined && !view.mediaSrc && fallback.placeholder);
+	/** The shared icon paths and label key for whatever the fallback resolved to. */
+	const fallbackIcon = $derived(mediaFallbackIcon(fallback, media?.mediaType));
+	const fallbackLabelKey = $derived(mediaFallbackLabelKey(fallback, media?.mediaType));
+	const isFallback = $derived(
+		view !== undefined && !view.mediaSrc && fallback.placeholder !== 'none',
+	);
 
 	// The conditionally-rendered `<video>`/`<audio>` template's `bind:this`
 	// writes this (invisible to the linter); it must be `$state` so Svelte
@@ -159,22 +165,35 @@
 			/>
 			<!-- Authoring-canvas chrome only; `data-pptx-media-chrome` is the neutral
 			     marker `e2e/media-transition-chrome.spec.ts` asserts the absence of. -->
-			{#if fallback.badge}
-				<svg
-					data-pptx-media-chrome="play"
+			{#if fallback.badge !== 'none'}
+				<div
+					data-pptx-media-chrome={fallback.badge}
 					class="pptx-svelte-media-badge"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
+					class:pptx-svelte-media-badge-missing={fallback.badge === 'missing'}
 				>
-					<polygon points={MEDIA_PLAY_BADGE_POINTS} />
-				</svg>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						{#each fallbackIcon as d (d)}
+							<path {d} />
+						{/each}
+					</svg>
+					{#if fallbackLabelKey && fallback.badge === 'missing'}
+						<span>{t(fallbackLabelKey)}</span>
+					{/if}
+				</div>
 			{/if}
-		{:else if fallback.placeholder}
-			<span class="pptx-svelte-media-fallback-label" data-pptx-media-chrome="placeholder"
-				>{t('pptx.elementType.media')}</span
-			>
+		{:else if fallback.placeholder !== 'none'}
+			<div class="pptx-svelte-media-placeholder" data-pptx-media-chrome={fallback.placeholder}>
+				{#if fallbackIcon.length > 0}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						{#each fallbackIcon as d (d)}
+							<path {d} />
+						{/each}
+					</svg>
+				{/if}
+				{#if fallbackLabelKey}
+					<span>{t(fallbackLabelKey)}</span>
+				{/if}
+			</div>
 		{/if}
 	</div>
 {/if}
@@ -199,14 +218,47 @@
 
 	.pptx-svelte-media-badge {
 		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 48px;
-		height: 48px;
-		transform: translate(-50%, -50%);
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
 		color: rgba(255, 255, 255, 0.8);
 		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 		pointer-events: none;
+		font-size: 11px;
+		font-family: system-ui, sans-serif;
+	}
+
+	.pptx-svelte-media-badge svg {
+		width: 48px;
+		height: 48px;
+	}
+
+	.pptx-svelte-media-badge-missing {
+		color: rgba(255, 255, 255, 0.6);
+	}
+
+	.pptx-svelte-media-badge-missing svg {
+		width: 32px;
+		height: 32px;
+	}
+
+	.pptx-svelte-media-placeholder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		font-size: 11px;
+		font-family: system-ui, sans-serif;
+		color: rgba(100, 116, 139, 0.9);
+	}
+
+	.pptx-svelte-media-placeholder svg {
+		width: 32px;
+		height: 32px;
 	}
 
 	/* Unavailable media: reuse the placeholder look for a graceful fallback. */
@@ -220,9 +272,5 @@
 		overflow: hidden;
 	}
 
-	.pptx-svelte-media-fallback-label {
-		font-size: 11px;
-		font-family: system-ui, sans-serif;
-		color: rgba(100, 116, 139, 0.9);
-	}
+
 </style>
