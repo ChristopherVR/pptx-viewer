@@ -190,6 +190,40 @@ if (snapshot) {
 await deleteAutosaveSnapshot('report.pptx');
 ```
 
+### Reopening the deck after a refresh {#session-restore}
+
+Recovery snapshots answer "the tab crashed, can I get my edits back?". A plain **refresh** is the
+more common case, and it has its own helpers. Every binding re-exports `rememberSessionDeck` /
+`restoreSessionDeck` (also available from `pptx-viewer-shared`), which remember the open deck **per
+browser tab** and hand it back on the next load:
+
+```ts
+import { rememberSessionDeck, restoreSessionDeck } from 'pptx-react-viewer';
+
+// After the host loads a deck:
+await rememberSessionDeck(file.name, bytes);
+
+// On mount, before falling back to your file picker:
+const deck = await restoreSessionDeck();
+if (deck) {
+	setContent(deck.data);
+	setFilePath(deck.fileName);
+}
+```
+
+- **Scope is one browser tab.** The record is keyed by an id held in `sessionStorage`, so a refresh
+  reopens the deck while a brand-new tab still starts empty, and two tabs holding different decks
+  never steal each other's content.
+- **Edits are not lost.** `restoreSessionDeck()` prefers a newer autosave snapshot of the same
+  `fileName`, so a refresh mid-edit comes back with the edited deck rather than the bytes it was
+  opened with.
+- **The viewer's own File ▸ Open is covered.** Opening a deck from the backstage (or from Recent)
+  swaps it inside the viewer without notifying the host, so those paths record it themselves.
+- `forgetSessionDeck()` drops the record. Every call is best-effort: a blocked IndexedDB or a
+  partitioned `sessionStorage` degrades to "nothing to restore", never to a thrown error.
+
+All five demo apps use exactly this flow, which is why a refresh keeps the presentation on screen.
+
 ### Example: recovery on page reload
 
 ```tsx

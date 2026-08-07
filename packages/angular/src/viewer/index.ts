@@ -411,6 +411,17 @@ export {
 	loadAudienceContent,
 	clearAudienceContent,
 } from './audience-content-store';
+// Session restore (opt-in, host-driven): remember the deck the host has open,
+// per browser tab, so a page refresh reopens it instead of dropping the user
+// back on the file picker.
+export {
+	forgetSessionDeck,
+	getSessionTabId,
+	loadSessionDeck,
+	rememberSessionDeck,
+	restoreSessionDeck,
+} from '../internal/shared';
+export type { SessionDeck } from '../internal/shared';
 export {
 	PresenterWindowService,
 	PRESENTER_CHANNEL_NAME,

@@ -598,6 +598,9 @@ export * from './format-helpers';
 // `crypto.getRandomValues` rather than `Math.random()`. Used anywhere a value
 // gates something security-sensitive (session nonces, room codes, GUIDs).
 export * from './secure-random';
+// Session restore: remember the deck a host has open (per browser tab) so a
+// page refresh reopens it instead of dropping the user back on the dropzone.
+export * from './session-restore';
 // Broadcast helpers: room-id generation, start-form validation, and the
 // viewer-link builder for the one-way broadcast (presenter -> viewers) session.
 export * from './broadcast-helpers';

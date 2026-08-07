@@ -5,6 +5,8 @@
  * pick → ArrayBuffer flow stay identical across React / Vue / Angular.
  */
 
+import { rememberSessionDeck } from './session-restore';
+
 /**
  * Default `accept` filter for presentations the viewer can load: PowerPoint
  * archives, legacy binary `.ppt` (PowerPoint 97-2003, auto-detected and
@@ -66,6 +68,11 @@ export function openFilePicker(options: OpenFilePickerOptions = {}): Promise<Fil
 /**
  * Opens the picker and reads the chosen file into an `ArrayBuffer` ready to hand
  * to the loader. Resolves `null` when the user cancels.
+ *
+ * The picked deck is also remembered for this browser tab (see
+ * `./session-restore`). Every binding's File > Open swaps the deck INSIDE the
+ * viewer without telling the host, so without this a host that restores on load
+ * would reopen the deck it handed in rather than the one the user picked.
  */
 export async function openPptxFile(
 	options: OpenFilePickerOptions = {},
@@ -74,5 +81,7 @@ export async function openPptxFile(
 	if (!file) {
 		return null;
 	}
-	return { file, buffer: await file.arrayBuffer() };
+	const buffer = await file.arrayBuffer();
+	void rememberSessionDeck(file.name, new Uint8Array(buffer));
+	return { file, buffer };
 }

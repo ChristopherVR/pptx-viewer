@@ -25,6 +25,18 @@ export {
 } from './hooks/presentation-mode/audience-content-store';
 export { isAudienceTab, parseAudienceNonce } from './hooks/presentation-mode/usePresenterWindow';
 
+// Session restore (opt-in): the host remembers the deck it has open, per browser
+// tab, so a page refresh reopens it instead of dropping the user back on the
+// file picker. The viewer never calls these itself; the bytes belong to the host.
+export {
+	forgetSessionDeck,
+	getSessionTabId,
+	loadSessionDeck,
+	rememberSessionDeck,
+	restoreSessionDeck,
+} from 'pptx-viewer-shared';
+export type { SessionDeck } from 'pptx-viewer-shared';
+
 // Theme switching (opt-in, tree-shakeable)
 export { useThemeSwitching } from './hooks/useThemeSwitching';
 export type { UseThemeSwitchingInput, ThemeSwitchingResult } from './hooks/useThemeSwitching';

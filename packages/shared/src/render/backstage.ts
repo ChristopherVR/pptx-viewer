@@ -1,6 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import { getAutosaveSnapshot, listAutosaveSnapshots } from './autosave-store';
+import { rememberSessionDeck } from './session-restore';
 import { createBlankSlide } from './slide-operations';
 
 export type BackstagePage =
@@ -189,11 +190,22 @@ export async function listBackstageRecentFiles(
 	}
 }
 
+/**
+ * Load a recent file's bytes for File > Open > Recent.
+ *
+ * Like the picker (see `openPptxFile`), the reopened deck is remembered for
+ * this browser tab: the viewer swaps it in without telling the host, so a host
+ * that restores on load would otherwise reopen the deck it handed in.
+ */
 export async function readBackstageRecentFile(key: string): Promise<Uint8Array | undefined> {
 	if (typeof indexedDB === 'undefined') {
 		return undefined;
 	}
-	return (await getAutosaveSnapshot(key))?.data;
+	const data = (await getAutosaveSnapshot(key))?.data;
+	if (data) {
+		void rememberSessionDeck(key, data);
+	}
+	return data;
 }
 
 /**

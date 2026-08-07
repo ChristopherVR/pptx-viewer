@@ -120,6 +120,17 @@ export {
 	loadPresentationDeck,
 	parsePresentationSessionId,
 } from 'pptx-viewer-shared';
+// Session restore (opt-in, host-driven): remember the deck the host has open,
+// per browser tab, so a page refresh reopens it instead of dropping the user
+// back on the file picker.
+export {
+	forgetSessionDeck,
+	getSessionTabId,
+	loadSessionDeck,
+	rememberSessionDeck,
+	restoreSessionDeck,
+} from 'pptx-viewer-shared';
+export type { SessionDeck } from 'pptx-viewer-shared';
 
 // ── Core escape-hatch types ────────────────────────────────────────────
 export type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
