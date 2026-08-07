@@ -263,14 +263,29 @@ export function useZoomViewport({
 
 	// Attach the wheel listener natively with { passive: false } so that
 	// preventDefault() works. React's onWheel is passive since React 17+.
+	//
+	// The viewport does not exist on the viewer's first commit (with no deck
+	// loaded `SlideCanvas` is unmounted), and `handleWheel` is stable because
+	// `store` is a ref, so a plain effect ran ONCE against a null ref and never
+	// re-ran: the listener was never attached at all and Ctrl+wheel zoom was
+	// dead. Retry on an animation frame until the node exists, exactly as the
+	// ResizeObserver above does.
 	useEffect(() => {
-		const viewport = canvasViewportRef.current;
-		if (!viewport) {
-			return;
-		}
-		viewport.addEventListener('wheel', handleWheel, { passive: false });
+		let raf = 0;
+		let attached: HTMLDivElement | null = null;
+		const attach = (): void => {
+			const viewport = canvasViewportRef.current;
+			if (!viewport) {
+				raf = requestAnimationFrame(attach);
+				return;
+			}
+			attached = viewport;
+			viewport.addEventListener('wheel', handleWheel, { passive: false });
+		};
+		attach();
 		return () => {
-			viewport.removeEventListener('wheel', handleWheel);
+			cancelAnimationFrame(raf);
+			attached?.removeEventListener('wheel', handleWheel);
 		};
 	}, [handleWheel]);
 
