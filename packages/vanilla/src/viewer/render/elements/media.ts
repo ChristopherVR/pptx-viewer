@@ -1,9 +1,13 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
 import {
+	MEDIA_CHROME_ATTRIBUTE,
+	MEDIA_PLAY_BADGE_POINTS,
 	applyMediaPlaybackAttributes,
 	getContainerStyle,
 	getImageSrc,
+	mediaFallbackVisual,
 	mediaPlaybackAttributes,
+	mediaSurfaceOf,
 	mediaTransportVisible,
 	registerPersistentAudio,
 	startMediaAutoplay,
@@ -100,11 +104,11 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 	// thumbnail rail, an export raster. `!presenting` alone put Chrome's black
 	// scrubber across all of them, so the presenter console painted a transport
 	// over a slide the speaker cannot play.
-	const showTransport = mediaTransportVisible({
+	const surface = mediaSurfaceOf({
+		interactive: context.interactive === true,
 		presenting: context.presenting,
-		preview: context.interactive !== true && !context.presenting,
-		canvasTransport: true,
 	});
+	const showTransport = mediaTransportVisible({ ...surface, canvasTransport: true });
 	const doc = context.document;
 	const el = createEl(doc, 'div', 'pptxv-element pptxv-media', getContainerStyle(element, zIndex));
 	el.dataset.elementId = element.id;
@@ -154,23 +158,58 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		return el;
 	}
 
-	if (posterSrc) {
+	// No playable source. A still of a slide - the transition overlay, the
+	// presenter console's panes, the thumbnail rail - paints the poster frame and
+	// nothing else: the play badge and the typed placeholder box are authoring
+	// chrome, and issue #147 is exactly that chrome riding along inside a morph.
+	const fallback = mediaFallbackVisual(surface, {
+		hasPoster: Boolean(posterSrc),
+		missing: element.mediaMissing === true,
+	});
+
+	if (fallback.poster && posterSrc) {
 		const img = createEl(doc, 'img', 'pptxv-media-poster', {
 			width: '100%',
 			height: '100%',
 			objectFit: 'contain',
 			display: 'block',
+			opacity: fallback.dimPoster ? '0.5' : '',
 		});
 		img.src = posterSrc;
 		img.alt = '';
 		el.appendChild(img);
+		if (fallback.badge) {
+			el.appendChild(buildPlayBadge(doc));
+		}
 		return el;
 	}
 
-	// Unavailable media: reuse the placeholder look for a graceful fallback box.
-	el.classList.add('pptxv-placeholder');
-	const label = createEl(doc, 'div', 'pptxv-placeholder-label');
-	label.textContent = context.t('pptx.elementType.media');
-	el.appendChild(label);
+	if (fallback.placeholder) {
+		// Unavailable media: reuse the placeholder look for a graceful fallback box.
+		el.classList.add('pptxv-placeholder');
+		el.setAttribute(MEDIA_CHROME_ATTRIBUTE, 'placeholder');
+		const label = createEl(doc, 'div', 'pptxv-placeholder-label');
+		label.textContent = context.t('pptx.elementType.media');
+		el.appendChild(label);
+	}
 	return el;
 };
+
+/**
+ * The centred play triangle painted over a poster frame on the authoring
+ * canvas. `MEDIA_CHROME_ATTRIBUTE` is the neutral marker
+ * `e2e/media-transition-chrome.spec.ts` asserts the absence of on a transition.
+ */
+function buildPlayBadge(doc: Document): SVGSVGElement {
+	const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	svg.setAttribute('viewBox', '0 0 24 24');
+	svg.setAttribute('fill', 'none');
+	svg.setAttribute('stroke', 'currentColor');
+	svg.setAttribute('stroke-width', '1.5');
+	svg.setAttribute(MEDIA_CHROME_ATTRIBUTE, 'play');
+	svg.setAttribute('class', 'pptxv-media-badge');
+	const polygon = doc.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+	polygon.setAttribute('points', MEDIA_PLAY_BADGE_POINTS);
+	svg.appendChild(polygon);
+	return svg;
+}

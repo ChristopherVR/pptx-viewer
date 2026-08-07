@@ -117,6 +117,42 @@ describe('renderMediaElement', () => {
 		expect(node.textContent).toContain('Media');
 	});
 
+	// Issue #147: a slide-transition overlay is a STILL of the outgoing slide, so
+	// media chrome painted there rides along inside the transition - the reporter
+	// caught a play triangle drifting through a morph out of a background video.
+	describe('media chrome on a still of a slide (issue #147)', () => {
+		const still = (): ElementRenderContext => makeContext(new Map(), false, false);
+
+		it('paints the poster frame with no play badge over it', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL }),
+				0,
+				still(),
+			) as HTMLElement;
+			expect(node.querySelector('img')?.getAttribute('src')).toBe(PNG_DATA_URL);
+			expect(node.querySelector('[data-pptx-media-chrome]')).toBeNull();
+		});
+
+		it('paints no labelled placeholder box for unresolvable media', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'video' }),
+				0,
+				still(),
+			) as HTMLElement;
+			expect(node.classList.contains('pptxv-placeholder')).toBeFalsy();
+			expect(node.textContent).toBe('');
+		});
+
+		it('still paints the badge on the authoring canvas', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL }),
+				0,
+				makeContext(),
+			) as HTMLElement;
+			expect(node.querySelector('[data-pptx-media-chrome="play"]')).toBeTruthy();
+		});
+	});
+
 	describe('presentation-mode autoplay', () => {
 		it('autoplays the mounted <video> when context.presenting is true', () => {
 			const node = renderMediaElement(

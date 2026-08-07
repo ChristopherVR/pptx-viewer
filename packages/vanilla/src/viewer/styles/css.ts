@@ -596,6 +596,19 @@ const CHROME_CSS = `
 	border-radius: 4px;
 }
 
+/* ── Media play badge (authoring canvas only, see mediaFallbackVisual) ── */
+.pptxv-media-badge {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 48px;
+	height: 48px;
+	transform: translate(-50%, -50%);
+	color: rgb(255 255 255 / 0.8);
+	filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
+	pointer-events: none;
+}
+
 /* ── Overlays ────────────────────────────────────────────────────────── */
 .pptxv-overlay {
 	position: absolute;
