@@ -375,17 +375,23 @@ jobs:
     needs: [scope, build]
     if: needs.scope.outputs.run-e2e == 'true'
     runs-on: ubuntu-latest
-    name: e2e-${{ matrix.key }}
+    name: e2e-${{ matrix.key }} (shard ${{ matrix.shard }}/3)
     # Hang protection only; genuine hangs are caught much earlier by
-    # Playwright's own per-test timeout. The Angular leg (the slowest: it runs
-    # against built dist) legitimately reached 15:14 on 2026-07-30 with every
-    # test green and was cancelled at the finish line by a 15-minute ceiling,
-    # so keep several minutes of headroom over the slowest passing leg.
+    # Playwright's own per-test timeout. This ceiling is per SHARD, not per
+    # binding.
+    #
+    # Raising it is not the answer: it went 15 -> 25 on 2026-07-30, and the
+    # suite has since grown from 129 tests to 291 (55 spec files -> 75). At the
+    # observed per-test rate the react leg alone needs ~40 minutes of honest
+    # work - it is the parity REFERENCE, so its parity specs sweep all five
+    # demos. Splitting each binding three ways keeps a shard near 15 minutes as
+    # the suite keeps growing, instead of ratcheting this number every fortnight.
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         key: ${{ fromJSON(needs.scope.outputs.e2e-projects) }}
+        shard: [1, 2, 3]
     steps:
       # See the equivalent guard in `test`: a skipped leg must not report green.
       - name: Require the ${{ matrix.key }} build to have succeeded
@@ -449,8 +455,8 @@ jobs:
       - name: Install Playwright browsers
         run: bun run e2e:install
 
-      - name: Run e2e (${{ matrix.key }})
-        run: bun run e2e -- --project=${{ matrix.key }} --workers=2 --reporter=list,html,github
+      - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/3)
+        run: bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/3 --workers=2 --reporter=list,html,github
 
       # Failures used to be visible only by downloading an artifact, which meant
       # nobody looked. Put the failing spec names in the run summary instead.
@@ -458,21 +464,21 @@ jobs:
         if: failure()
         run: |
           {
-            echo "### e2e failures (${{ matrix.key }})"
+            echo "### e2e failures (${{ matrix.key }} shard ${{ matrix.shard }}/3)"
             echo ""
             if [ -f test-results/.last-run.json ]; then
               echo '```'
               node -e "const r=require('./test-results/.last-run.json');(r.failedTests||[]).forEach(t=>console.log(t));" || true
               echo '```'
             fi
-            echo "Full HTML report: see the \`playwright-report-${{ matrix.key }}\` artifact on this run."
+            echo "Full HTML report: see the \`playwright-report-${{ matrix.key }}-${{ matrix.shard }}\` artifact on this run."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ matrix.key }}
+          name: playwright-report-${{ matrix.key }}-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/

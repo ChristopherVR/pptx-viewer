@@ -46,6 +46,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
 const outputDir = resolve(
 	fileURLToPath(new URL('../test-results/equation-editing/', import.meta.url)),
@@ -241,12 +243,17 @@ test.describe('equation editing', () => {
 		const savePath = resolve(outputDir, `${testInfo.project.name}-${fileName}`);
 		await download.saveAs(savePath);
 
-		// Reload the just-saved file through the app's own file input. None of
-		// the three demos expose an "Open another file" affordance while a deck
-		// is already loaded (`#file-input` only exists in the empty/dropzone
-		// state - e.g. demo-react's `main.tsx` unmounts it once `content` is
-		// set), so a fresh navigation back to the dropzone is what a real
-		// close-and-reopen round-trip looks like.
+		// Reload the just-saved file through the app's own file input. No demo
+		// exposes an "Open another file" affordance while a deck is already
+		// loaded (`#file-input` only exists in the empty/dropzone state - e.g.
+		// demo-react's `main.tsx` unmounts it once `content` is set), so a fresh
+		// navigation back to the dropzone is what a real close-and-reopen
+		// round-trip looks like.
+		//
+		// Clearing the tab session is what MAKES that navigation land on the
+		// dropzone: session-restore would otherwise reopen the deck and the
+		// input would never mount.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(savePath);
 		await page.locator('[data-pptx-element="true"]').first().waitFor();

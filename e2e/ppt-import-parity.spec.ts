@@ -23,7 +23,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-import { elementWithText, fixture, loadDeck } from './support/deck';
+import { elementWithText, fixture, loadDeck, resetTabSession } from './support/deck';
 import { fingerprintSlide } from './support/fingerprint';
 import { diffFormats } from './support/format-parity';
 import { applyExclusions } from './support/parity-exclusions';
@@ -93,7 +93,10 @@ test.describe('legacy .ppt import', () => {
 		const fromPpt = await fingerprintSlide(page);
 		expect(fromPpt.elements.length, 'the .ppt deck rendered an empty slide').toBeGreaterThan(0);
 
-		// Fresh page state, same binding, same slide, canonical format.
+		// Fresh page state, same binding, same slide, canonical format. The
+		// session reset is what keeps it fresh: session-restore would otherwise
+		// reopen the .ppt deck and the dropzone's #file-input never mounts.
+		await resetTabSession(page);
 		await openPpt(page, 'sample-deck.pptx');
 		const fromPptx = await fingerprintSlide(page);
 

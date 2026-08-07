@@ -32,6 +32,25 @@ export async function loadDeck(page: Page, fixturePath: string = SAMPLE_DECK): P
 	await uploadDeck(page, fixturePath);
 }
 
+/**
+ * Forget this tab's restored session so the NEXT navigation lands on the
+ * landing dropzone.
+ *
+ * `packages/shared/src/render/session-restore.ts` keys the restore off a
+ * `sessionStorage` tab id, so a spec that opens a deck and then navigates back
+ * to `/` in the same page is restored straight into the viewer and never sees
+ * `#file-input` - which exists only in the empty/dropzone state. Viewer
+ * PREFERENCES live in `localStorage` and are deliberately left intact, so a
+ * spec asserting that a persisted choice survives a reload still gets one.
+ *
+ * Not folded into {@link loadDeck}: it is called ~200 times and would need a
+ * probe on every first load, and `session-restore.spec.ts` deliberately relies
+ * on the restore happening.
+ */
+export async function resetTabSession(page: Page): Promise<void> {
+	await page.evaluate(() => sessionStorage.clear());
+}
+
 /** As {@link loadDeck}, but against an explicit URL (cross-binding harness). */
 export async function loadDeckAt(page: Page, url: string, fixturePath: string): Promise<void> {
 	await page.goto(url);

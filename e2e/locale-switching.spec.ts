@@ -32,7 +32,7 @@ import type { Page } from '@playwright/test';
 import { translationsDe, translationsEs, translationsFr } from '../packages/locales/src';
 import { LOCALE_CATALOG } from '../packages/shared/src/i18n/locale-catalog';
 import { translationsEn } from '../packages/shared/src/i18n/translations-en';
-import { loadDeck } from './support/deck';
+import { loadDeck, resetTabSession } from './support/deck';
 import {
 	openOptionsDialog,
 	optionsCategory,
@@ -196,6 +196,9 @@ test.describe('File > Options > Language switching', () => {
 		await expect.poll(async () => (await readViewerPrefs(page)).localeCode).toBe(code);
 
 		// Reload the app (same origin, same storage) and open the deck again.
+		// Drop the tab's session first, or session-restore reopens the deck
+		// straight into the viewer and the dropzone's #file-input never mounts.
+		await resetTabSession(page);
 		await loadDeck(page);
 
 		// The stored preference must survive the reload AND re-label the chrome
