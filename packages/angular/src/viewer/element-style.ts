@@ -7,8 +7,9 @@ import {
 	buildTextBlockStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	getCssBorderDashStyle,
 	paintedStrokeWidth,
-	isStrokeOnlyPresetElement,
+	resolveShapeGeometry,
 	suppressesCssBorder,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
@@ -17,11 +18,7 @@ import {
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
 import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
-import {
-	getResolvedShapeClipPath,
-	isHollowShapeElement,
-	isIdentityRectClip,
-} from './shape-geometry';
+import { isHollowShapeElement } from './shape-geometry';
 import { cssObjectToStyleMap } from './table-renderer-helpers';
 
 /**
@@ -174,24 +171,6 @@ export function getShapeFillStrokeStyle(
 		style['opacity'] = elementOpacity * fx.opacity;
 	}
 
-	// Stroke-only ("open") presets - `line`, `arc`, the connector family - have
-	// no region to fill and no box to outline: the renderer strokes the evaluated
-	// geometry from shared `buildStrokeOutline`. The container keeps its effects
-	// but drops the fill, the border and the clip-path; the clip in particular
-	// encloses zero area for an open path and would clip the overlay away
-	// entirely. (Angular boxed these in all four borders, so a `line` rendered as
-	// a rectangle outline.)
-	if (isStrokeOnlyPresetElement(el)) {
-		style['background-color'] = 'transparent';
-		delete style['background-image'];
-		style['border'] = 'none';
-		return style;
-	}
-
-	// Geometry. ellipse / roundRect get cheap `border-radius` approximations;
-	// every other preset geometry falls back to an SVG `clip-path` derived from
-	// the core geometry engine (mirrors the Vue port's cascade). Plain
-	// rectangles resolve to `undefined` and stay unclipped.
 	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
 	// outline only, so its interior must not swallow clicks meant for what it is
 	// drawn over. ShapeEffectOverlay paints a transparent pointer-events:stroke
@@ -200,24 +179,45 @@ export function getShapeFillStrokeStyle(
 		style['pointer-events'] = 'none';
 	}
 
-	const shapeType = 'shapeType' in el ? el.shapeType : undefined;
-	if (shapeType === 'ellipse' || shapeType === 'circle') {
-		style['border-radius'] = '50%';
-		return style;
+	// Geometry: the branch ORDER and every threshold live in shared
+	// `resolveShapeGeometry`, so this binding only maps the decision onto its
+	// kebab-case style map. Angular's own copy of the cascade had drifted four
+	// ways: it compared `shapeType` raw so `oval` and any capitalised spelling
+	// missed the ellipse branch, it had no connector or cylinder branch at all,
+	// and it rounded `roundRect` by a hardcoded 10% of the short side instead of
+	// the authored `a:avLst/adj` (the spec default alone is ~16.7%).
+	const geometry = resolveShapeGeometry(el);
+	switch (geometry.kind) {
+		case 'bare':
+			style['background-color'] = 'transparent';
+			style['border'] = 'none';
+			return style;
+		case 'strokeOnly':
+			// An open preset has no region to fill and no box to outline: the
+			// renderer strokes the evaluated geometry from `buildStrokeOutline`.
+			// The clip in particular encloses zero area for an open path and would
+			// clip that overlay away entirely.
+			style['background-color'] = 'transparent';
+			delete style['background-image'];
+			style['border'] = 'none';
+			return style;
+		case 'borderRadius':
+			style['border-radius'] = geometry.radius;
+			return style;
+		case 'clipPath':
+			style['clip-path'] = geometry.clipPath;
+			return style;
+		case 'lineEdge':
+			style['background-color'] = 'transparent';
+			style['border'] = 'none';
+			style['border-top'] =
+				`${px(geometry.strokeWidth)} ${getCssBorderDashStyle(el.shapeStyle?.strokeDash)} ${
+					el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR
+				}`;
+			return style;
+		default:
+			return style;
 	}
-	if (shapeType === 'roundRect') {
-		style['border-radius'] = px(Math.min(el.width, el.height) * 0.1);
-		return style;
-	}
-
-	// A rect preset's clip is its own box: skip it so overflowing text spills
-	// visibly (as PowerPoint does) instead of being sliced.
-	const clipPath = isIdentityRectClip(el) ? undefined : getResolvedShapeClipPath(el);
-	if (clipPath) {
-		style['clip-path'] = clipPath;
-	}
-
-	return style;
 }
 
 /**

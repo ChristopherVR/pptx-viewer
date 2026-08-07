@@ -1,10 +1,5 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import {
-	getRoundRectRadiusPx,
-	getShapeType,
-	hasShapeProperties,
-	hasTextProperties,
-} from 'pptx-viewer-core';
+import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildTextBlockStyle,
 	getComputedEffectStyle,
@@ -12,10 +7,8 @@ import {
 	getContainerStyle as sharedGetContainerStyle,
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
-	getResolvedShapeClipPath,
 	isHollowShapeElement,
-	isIdentityRectClip,
-	isStrokeOnlyPresetElement,
+	resolveShapeGeometry,
 	paintedStrokeWidth,
 	suppressesCssBorder,
 	px,
@@ -162,8 +155,6 @@ export function getShapeFillStrokeStyle(
 	// rotation/flip transform is composed separately in `ElementRenderer`.
 	merge3dStyle(style, getComputed3dStyle(el));
 
-	// Geometry: mirror the React `getShapeVisualStyle` priority cascade:
-	// connector → roundRect (radius) → ellipse → clip-path → line → cylinder.
 	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
 	// outline only, so its interior must not swallow clicks meant for what it is
 	// drawn over. ShapeEffectOverlay paints a transparent pointer-events:stroke
@@ -172,67 +163,41 @@ export function getShapeFillStrokeStyle(
 		style.pointerEvents = 'none';
 	}
 
-	const normalizedShapeType = getShapeType(el.shapeType);
-
-	if (el.type === 'connector' || normalizedShapeType === 'connector') {
-		// Connectors paint as SVG (ConnectorRenderer); the box itself is bare.
-		style.backgroundColor = 'transparent';
-		style.border = 'none';
-		return style;
-	}
-
-	// Stroke-only ("open") presets - `line`, `arc`, the connector family - have
-	// no region to fill and no box to outline: `ShapeEffectOverlay` strokes the
-	// evaluated geometry from shared `buildStrokeOutline`. The container keeps
-	// its effects but drops the fill, the border and the clip-path; the clip in
-	// particular encloses zero area for an open path and would clip the overlay
-	// away entirely.
-	if (isStrokeOnlyPresetElement(el)) {
-		style.backgroundColor = 'transparent';
-		delete style.backgroundImage;
-		style.border = 'none';
-		return style;
-	}
-
-	if (normalizedShapeType === 'roundRect') {
-		const radiusPx = getRoundRectRadiusPx(el);
-		if (radiusPx > 0.01) {
-			style.borderRadius = px(radiusPx);
+	// Geometry: the branch ORDER and every threshold live in shared
+	// `resolveShapeGeometry`, so this binding only maps the decision onto its
+	// own style-object shape. Keeping the cascade in one place is what stops the
+	// copies drifting - Angular's had, four separate ways.
+	const geometry = resolveShapeGeometry(el);
+	switch (geometry.kind) {
+		case 'bare':
+			// Connectors paint as SVG (ConnectorRenderer); the box itself is bare.
+			style.backgroundColor = 'transparent';
+			style.border = 'none';
+			return style;
+		case 'strokeOnly':
+			// An open preset has no region to fill and no box to outline:
+			// `ShapeEffectOverlay` strokes the evaluated geometry. The clip in
+			// particular encloses zero area and would clip that overlay away.
+			style.backgroundColor = 'transparent';
+			delete style.backgroundImage;
+			style.border = 'none';
+			return style;
+		case 'borderRadius':
+			style.borderRadius = geometry.radius;
+			return style;
+		case 'clipPath':
+			style.clipPath = geometry.clipPath;
+			return style;
+		case 'lineEdge': {
+			const strokeWidth = geometry.strokeWidth;
+			style.backgroundColor = 'transparent';
+			style.border = 'none';
+			style.borderTop = `${px(strokeWidth)} ${getCssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			return style;
 		}
-		return style;
+		default:
+			return style;
 	}
-
-	if (normalizedShapeType === 'ellipse') {
-		// `50%`, not a huge px value: CSS clamps over-large radii uniformly, so
-		// `9999px` on a non-square box becomes a pill with flat long edges.
-		style.borderRadius = '50%';
-		return style;
-	}
-
-	// A rect preset's clip is its own box: skip it so overflowing text spills
-	// visibly (as PowerPoint does) instead of being sliced.
-	const clipPath = isIdentityRectClip(el) ? undefined : getResolvedShapeClipPath(el);
-	if (clipPath) {
-		style.clipPath = clipPath;
-		return style;
-	}
-
-	if (normalizedShapeType === 'line') {
-		// A line-typed shape whose geometry the preset evaluator cannot open (it
-		// carries custom `pathData`): approximate it with the top edge only.
-		const strokeWidth = Math.max(0, el.shapeStyle?.strokeWidth ?? 0);
-		style.backgroundColor = 'transparent';
-		style.border = 'none';
-		style.borderTop = `${px(Math.max(strokeWidth, 2))} ${getCssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
-		return style;
-	}
-
-	if (normalizedShapeType === 'cylinder') {
-		style.borderRadius = '48% / 12%';
-		return style;
-	}
-
-	return style;
 }
 
 /**

@@ -156,3 +156,50 @@ describe('getTextBlockStyle', () => {
 		expect(getTextBlockStyle(textElement({}))['white-space']).toBe('pre-wrap');
 	});
 });
+
+/**
+ * Angular kept its own hand-ported copy of the geometry cascade, and it had
+ * drifted four separate ways before it was routed through shared
+ * `resolveShapeGeometry`. Each of these failed on the old copy.
+ */
+describe('getShapeFillStrokeStyle - geometry cascade parity', () => {
+	it('normalises `oval` onto the ellipse branch', () => {
+		// Angular compared `shapeType` RAW (`=== 'ellipse' || === 'circle'`), so
+		// `oval` - a preset offered in the shape picker - fell through to a
+		// clip-path here while the other four bindings gave it a radius.
+		const style = getShapeFillStrokeStyle(
+			baseElement({ shapeType: 'oval', shapeStyle: {} } as Partial<PptxElement>),
+		);
+		expect(style['border-radius']).toBe('50%');
+	});
+
+	it('is case-insensitive about the preset name', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({ shapeType: 'Ellipse', shapeStyle: {} } as Partial<PptxElement>),
+		);
+		expect(style['border-radius']).toBe('50%');
+	});
+
+	it('rounds a roundRect by its AUTHORED adjustment, not a flat 10%', () => {
+		// The old copy used `Math.min(w, h) * 0.1` and ignored `a:avLst/adj`
+		// entirely - wrong even for the default, which is 16667/50000 * 0.5 =
+		// ~16.7% of the short side. Here: 50 * 0.5 * (25000/50000) = 12.5px.
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeType: 'roundRect',
+				shapeStyle: {},
+				shapeAdjustments: { adj: 25000 },
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['border-radius']).toBe('12.5px');
+	});
+
+	it('leaves a connector box bare', () => {
+		// The old copy had no connector branch at all.
+		const style = getShapeFillStrokeStyle(
+			baseElement({ type: 'connector', shapeStyle: {} } as unknown as Partial<PptxElement>),
+		);
+		expect(style['background-color']).toBe('transparent');
+		expect(style['border']).toBe('none');
+	});
+});
