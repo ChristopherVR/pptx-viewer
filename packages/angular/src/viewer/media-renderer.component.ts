@@ -13,8 +13,9 @@ import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
 import {
-	MEDIA_PLAY_BADGE_POINTS,
 	applyMediaPlaybackAttributes,
+	mediaFallbackIcon,
+	mediaFallbackLabelKey,
 	mediaTransportVisible,
 	startMediaAutoplay,
 } from '../internal/shared';
@@ -129,21 +130,35 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 				}
 				<!-- Authoring-canvas chrome only; data-pptx-media-chrome is the neutral
 				     marker e2e/media-transition-chrome.spec.ts asserts the absence of. -->
-				@if (fallback().badge) {
-					<svg
-						data-pptx-media-chrome="play"
+				@if (fallback().badge !== 'none') {
+					<div
+						[attr.data-pptx-media-chrome]="fallback().badge"
 						class="pptx-ng-media-badge"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
+						[class.pptx-ng-media-badge-missing]="fallback().badge === 'missing'"
 					>
-						<polygon [attr.points]="playBadgePoints" />
-					</svg>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+							@for (d of fallbackIcon(); track d) {
+								<path [attr.d]="d" />
+							}
+						</svg>
+						@if (fallback().badge === 'missing') {
+							<span>{{ fallbackLabel() }}</span>
+						}
+					</div>
 				}
-			} @else if (fallback().placeholder) {
-				<div class="pptx-ng-placeholder" data-pptx-media-chrome="placeholder">
-					{{ placeholderLabel() }}
+			} @else if (fallback().placeholder !== 'none') {
+				<div
+					class="pptx-ng-placeholder pptx-ng-media-placeholder"
+					[attr.data-pptx-media-chrome]="fallback().placeholder"
+				>
+					@if (fallbackIcon().length > 0) {
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+							@for (d of fallbackIcon(); track d) {
+								<path [attr.d]="d" />
+							}
+						</svg>
+					}
+					<span>{{ fallbackLabel() }}</span>
 				</div>
 			}
 		</div>
@@ -178,14 +193,36 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 			}
 			.pptx-ng-media-badge {
 				position: absolute;
-				top: 50%;
-				left: 50%;
-				width: 48px;
-				height: 48px;
-				transform: translate(-50%, -50%);
+				inset: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 4px;
+				font-size: 10px;
 				color: rgba(255, 255, 255, 0.8);
 				filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 				pointer-events: none;
+			}
+			.pptx-ng-media-badge svg {
+				width: 48px;
+				height: 48px;
+			}
+			.pptx-ng-media-badge-missing {
+				color: rgba(255, 255, 255, 0.6);
+			}
+			.pptx-ng-media-badge-missing svg {
+				width: 32px;
+				height: 32px;
+			}
+			.pptx-ng-media-placeholder {
+				flex-direction: column;
+				gap: 4px;
+				font-size: 10px;
+			}
+			.pptx-ng-media-placeholder svg {
+				width: 32px;
+				height: 32px;
 			}
 		`,
 	],
@@ -289,8 +326,17 @@ export class MediaRendererComponent {
 		mediaFallbackFor(this.element(), Boolean(this.poster()), this.surface()),
 	);
 
-	/** The play triangle, as a shared `<polygon points>` in a 24x24 viewBox. */
-	readonly playBadgePoints = MEDIA_PLAY_BADGE_POINTS;
+	/** The shared icon paths and resolved label for whatever the fallback is. */
+	readonly fallbackIcon = computed<readonly string[]>(() =>
+		mediaFallbackIcon(this.fallback(), this.mediaKind()),
+	);
+
+	private readonly translate = inject(TranslateService);
+
+	readonly fallbackLabel = computed<string>(() => {
+		const key = mediaFallbackLabelKey(this.fallback(), this.mediaKind());
+		return key === undefined ? '' : (this.translate.instant(key) as string);
+	});
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),

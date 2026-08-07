@@ -4,7 +4,13 @@ import { fileURLToPath } from 'node:url';
 import type { MediaCaptionTrack, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { hasPersistentAudio, stopAllPersistentAudio } from '../internal/shared';
+import {
+	MEDIA_FALLBACK_ICONS,
+	hasPersistentAudio,
+	mediaFallbackIcon,
+	mediaFallbackLabelKey,
+	stopAllPersistentAudio,
+} from '../internal/shared';
 import { componentSource } from './component-source.test-support';
 import {
 	asMediaElement,
@@ -214,22 +220,37 @@ describe('mediaFallbackFor', () => {
 		expect(mediaFallbackFor(mediaEl(), true, still)).toStrictEqual({
 			poster: true,
 			dimPoster: false,
-			badge: false,
-			placeholder: false,
+			badge: 'none',
+			placeholder: 'none',
 		});
 	});
 
 	it('paints no placeholder box for unresolvable media on a still', () => {
-		expect(mediaFallbackFor(mediaEl(), false, still).placeholder).toBeFalsy();
+		expect(mediaFallbackFor(mediaEl(), false, still).placeholder).toBe('none');
 	});
 
 	it('paints no chrome during a running show either', () => {
-		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), true, show).badge).toBeFalsy();
+		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), true, show).badge).toBe('none');
 	});
 
 	it('keeps the play badge and the placeholder box on the authoring canvas', () => {
-		expect(mediaFallbackFor(mediaEl(), true, canvas).badge).toBeTruthy();
-		expect(mediaFallbackFor(mediaEl(), false, canvas).placeholder).toBeTruthy();
+		expect(mediaFallbackFor(mediaEl(), true, canvas).badge).toBe('play');
+		expect(mediaFallbackFor(mediaEl(), false, canvas).placeholder).toBe('typed');
+	});
+
+	// Reading a boolean `badge` as "paint a badge" drew a PLAY triangle over
+	// media the package had failed to find - the opposite of what React said.
+	it('asks for the not-found mark, never a play badge, over missing media', () => {
+		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), true, canvas).badge).toBe('missing');
+		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), false, canvas).placeholder).toBe(
+			'missing',
+		);
+	});
+
+	it('names the clip type in the placeholder, rather than a flat "Media"', () => {
+		const box = mediaFallbackFor(mediaEl({ mediaType: 'video' }), false, canvas);
+		expect(mediaFallbackLabelKey(box, 'video')).toBe('pptx.media.videoClip');
+		expect(mediaFallbackIcon(box, 'video')).toStrictEqual(MEDIA_FALLBACK_ICONS.play);
 	});
 
 	it('dims a poster standing in for missing media, on the canvas only', () => {
@@ -243,7 +264,7 @@ describe('mediaFallbackFor', () => {
 			'media-renderer.component.ts',
 		);
 		expect(source).toContain('@else if (fallback().poster && poster(); as posterSrc)');
-		expect(source).toContain('@if (fallback().badge)');
-		expect(source).toContain('@else if (fallback().placeholder)');
+		expect(source).toContain("@if (fallback().badge !== 'none')");
+		expect(source).toContain("@else if (fallback().placeholder !== 'none')");
 	});
 });
