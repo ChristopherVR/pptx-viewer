@@ -35,7 +35,21 @@ export interface MorphAnimationStyle {
 	animation: string;
 	/** Inline keyframes block to inject. */
 	keyframes: string;
+	/**
+	 * Which node inside the element the animation belongs on.
+	 *
+	 * `element` (the default) is the element's own positioned container, the
+	 * node that carries its static transform. `image` is the `<img>` INSIDE
+	 * that container, which every binding renders for a picture: a source crop
+	 * (`a:srcRect`) is painted by transforming the img within its frame, so
+	 * morphing a crop change has to animate that node and not the frame - the
+	 * frame is usually exactly the same size on both slides (issue #148).
+	 */
+	target?: MorphAnimationTarget;
 }
+
+/** @see MorphAnimationStyle.target */
+export type MorphAnimationTarget = 'element' | 'image';
 
 /** Morph granularity mode matching PowerPoint's morph effect options. */
 export type MorphMode = 'object' | 'word' | 'character';

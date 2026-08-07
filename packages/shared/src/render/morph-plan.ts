@@ -50,6 +50,22 @@ export interface MorphTransitionPlan {
 	/** Outgoing-slide element id -> CSS `animation` shorthand. */
 	outgoingAnimations: Map<string, string>;
 	/**
+	 * Incoming-slide element id -> CSS `animation` shorthand for the `<img>`
+	 * INSIDE that element, never for the element's own container.
+	 *
+	 * A picture's source crop (`a:srcRect`, which is what PowerPoint's "Scale
+	 * Height"/"Scale Width" writes) is painted by transforming the img within
+	 * its frame, and the frame itself is usually identical on both slides - so
+	 * this is a separate channel rather than another entry in
+	 * {@link MorphTransitionPlan.incomingAnimations}, which would collide on the
+	 * same element id. {@link buildMorphScopedCss} emits it as a descendant
+	 * rule; a binding that applies animations as inline props instead must
+	 * target the img itself (issue #148).
+	 */
+	incomingImageAnimations: Map<string, string>;
+	/** Outgoing (ghost) counterpart of {@link MorphTransitionPlan.incomingImageAnimations}. */
+	outgoingImageAnimations: Map<string, string>;
+	/**
 	 * The outgoing slide's elements, in document order, for the binding to
 	 * render in its transition overlay for the duration of the morph. Each one
 	 * carries an entry in {@link MorphTransitionPlan.outgoingAnimations}: it
@@ -132,15 +148,25 @@ export function buildMorphTransitionPlan(
 
 	const incomingAnimations = new Map<string, string>();
 	const outgoingAnimations = new Map<string, string>();
+	const incomingImageAnimations = new Map<string, string>();
+	const outgoingImageAnimations = new Map<string, string>();
 	const keyframes: string[] = [];
 
 	for (const animation of animations) {
 		keyframes.push(animation.keyframes);
-		if (outgoingIds.has(animation.elementId)) {
-			outgoingAnimations.set(animation.elementId, animation.animation);
-		} else {
-			incomingAnimations.set(animation.elementId, animation.animation);
-		}
+		const isOutgoing = outgoingIds.has(animation.elementId);
+		// An `image`-targeted animation rides the `<img>` inside the element, so
+		// it goes in its own map: it shares an element id with the container
+		// animation and would otherwise overwrite it.
+		const target =
+			animation.target === 'image'
+				? isOutgoing
+					? outgoingImageAnimations
+					: incomingImageAnimations
+				: isOutgoing
+					? outgoingAnimations
+					: incomingAnimations;
+		target.set(animation.elementId, animation.animation);
 	}
 
 	// An outgoing shape with no animation is one whose ghost the engine dropped
@@ -157,6 +183,8 @@ export function buildMorphTransitionPlan(
 		keyframesCss: keyframes.join('\n'),
 		incomingAnimations,
 		outgoingAnimations,
+		incomingImageAnimations,
+		outgoingImageAnimations,
 		outgoingElements,
 		durationMs,
 	};
@@ -191,13 +219,44 @@ export function buildMorphScopedCss(
 	scopeAttribute: string,
 	which: 'incoming' | 'outgoing' = 'incoming',
 ): string {
-	const animations = which === 'incoming' ? plan.incomingAnimations : plan.outgoingAnimations;
+	return `${plan.keyframesCss}\n${buildMorphAnimationRules(plan, scopeAttribute, which)}`;
+}
+
+/**
+ * Just the `animation` rules of a plan, with no `@keyframes` block.
+ *
+ * For a binding that already injects {@link MorphTransitionPlan.keyframesCss}
+ * itself and applies the element-level animations some other way (React merges
+ * them into its per-element animation state), but still needs the descendant
+ * rules that {@link MorphTransitionPlan.incomingImageAnimations} cannot be
+ * expressed as an inline style for.
+ *
+ * @param plan - The plan to render.
+ * @param scopeAttribute - As {@link buildMorphScopedCss}.
+ * @param which - Which half of the transition to emit.
+ * @param only - `'image'` emits only the `<img>` descendant rules; omit for all.
+ * @returns The newline-joined rules (no trailing newline); `''` when there are none.
+ */
+export function buildMorphAnimationRules(
+	plan: MorphTransitionPlan,
+	scopeAttribute: string,
+	which: 'incoming' | 'outgoing' = 'incoming',
+	only?: 'image',
+): string {
 	const prefix = scopeAttribute ? `[${scopeAttribute}] ` : '';
 	const rules: string[] = [];
-	for (const [elementId, animation] of animations) {
-		rules.push(
-			`${prefix}[data-element-id="${cssAttributeValue(elementId)}"] { animation: ${animation}; }`,
-		);
+	const emit = (animations: Map<string, string>, suffix: string): void => {
+		for (const [elementId, animation] of animations) {
+			rules.push(
+				`${prefix}[data-element-id="${cssAttributeValue(elementId)}"]${suffix} { animation: ${animation}; }`,
+			);
+		}
+	};
+	if (only !== 'image') {
+		emit(which === 'incoming' ? plan.incomingAnimations : plan.outgoingAnimations, '');
 	}
-	return `${plan.keyframesCss}\n${rules.join('\n')}`;
+	// The picture-crop channel targets the `<img>` the element renders, which
+	// every binding draws inside the `data-element-id` container.
+	emit(which === 'incoming' ? plan.incomingImageAnimations : plan.outgoingImageAnimations, ' img');
+	return rules.join('\n');
 }

@@ -53,6 +53,23 @@ function morphable(slideId: string, x: number): PptxSlide {
 	]);
 }
 
+/** A full-slide picture whose frame never moves and whose source crop does. */
+function rescaledPicture(slideId: string, crop: Record<string, number>): PptxSlide {
+	return makeSlide(slideId, [
+		{
+			id: `${slideId}-picture`,
+			type: 'picture',
+			name: '!!Background',
+			x: 0,
+			y: 0,
+			width: 960,
+			height: 540,
+			imagePath: 'ppt/media/image9.png',
+			...crop,
+		},
+	]);
+}
+
 function mountOverlay(transition: PptxSlideTransition | undefined, scale = 1) {
 	const morph = transition?.type === 'morph';
 	return mount(PresentationTransitionOverlay, {
@@ -167,6 +184,32 @@ describe('presentationTransitionOverlay', () => {
 		for (const stage of wrapper.findAll('.pptx-vue-stage')) {
 			expect(stage.attributes('style')).toContain('background-color: #ffffff');
 		}
+		wrapper.unmount();
+	});
+
+	it('zooms a picture whose only change is its source crop', () => {
+		// PowerPoint's "Scale Height"/"Scale Width" is an `a:srcRect` crop inside
+		// an unchanged frame, so the two halves of this pair agree on position,
+		// size, blip and every style: the morph engine saw an inert pair and the
+		// picture cut between crops in a single frame (issue #148). The crop is
+		// painted on the `<img>`, so the rule has to reach that node.
+		const wrapper = mount(PresentationTransitionOverlay, {
+			props: {
+				outgoingSlide: rescaledPicture('out', { cropLeft: 0.05739, cropRight: 0.05739 }),
+				incomingSlide: rescaledPicture('in', { cropLeft: 0.00356, cropRight: 0.00356 }),
+				canvasSize,
+				mediaDataUrls: new Map<string, string>(),
+				scale: 1,
+				transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			},
+		});
+
+		const css = wrapper
+			.findAll('style')
+			.map((node) => node.text())
+			.join('\n');
+		expect(css).toContain('[data-element-id="in-picture"] img { animation: pptx-morph-crop-');
+		expect(css).toContain('@keyframes pptx-morph-crop-');
 		wrapper.unmount();
 	});
 

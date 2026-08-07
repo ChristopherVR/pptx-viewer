@@ -1,5 +1,6 @@
 import {
 	attachPresentationVisibilityPause,
+	buildMorphAnimationRules,
 	buildMorphTransitionPlan,
 	createPresenterShowGuard,
 	morphOptionToMode,
@@ -512,13 +513,18 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		return merged;
 	}, [morphPlan, presentationElementStates]);
 
-	const morphedKeyframesCss = useMemo(
-		() =>
-			morphPlan
-				? `${presentationKeyframesCss ?? ''}\n${morphPlan.keyframesCss}`
-				: presentationKeyframesCss,
-		[morphPlan, presentationKeyframesCss],
-	);
+	// A picture's source crop rides the `<img>` INSIDE the element, so unlike
+	// every other morph animation it cannot be merged into the element state
+	// above: it needs a descendant rule. The stage injects this stylesheet, and
+	// the ids are unique to the arriving slide, so no scope attribute is needed
+	// (see `buildMorphAnimationRules`). Issue #148.
+	const morphedKeyframesCss = useMemo(() => {
+		if (!morphPlan) {
+			return presentationKeyframesCss;
+		}
+		const imageRules = buildMorphAnimationRules(morphPlan, '', 'incoming', 'image');
+		return `${presentationKeyframesCss ?? ''}\n${morphPlan.keyframesCss}\n${imageRules}`;
+	}, [morphPlan, presentationKeyframesCss]);
 
 	// -----------------------------------------------------------------------
 	// Return

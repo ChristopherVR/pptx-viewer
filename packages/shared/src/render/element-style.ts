@@ -165,6 +165,42 @@ export function getImageFitStyle(el: PptxElement): CssStyleMap {
 		return uncropped;
 	}
 
+	const { placement, crop } = imageFitTransformParts(el);
+	if (!placement && !crop) {
+		return uncropped;
+	}
+
+	// Placement first, crop second: transforms compose right-to-left, so the
+	// crop magnifies within the box the placement has already mapped onto the
+	// fill-rect region (translate percentages resolve against the img border
+	// box and are scaled by the preceding placement scale, which is exactly
+	// "percent of the placed width").
+	const transform = [placement, crop].filter(Boolean).join(' ');
+
+	return {
+		position: 'absolute',
+		width: '100%',
+		height: '100%',
+		maxWidth: 'none',
+		maxHeight: 'none',
+		objectFit: 'fill',
+		transformOrigin: 'top left',
+		transform,
+	};
+}
+
+/** A `translate`/`scale` pair that changes nothing, used to pad a transform. */
+const IDENTITY_TRANSFORM_PAIR = 'translate(0%, 0%) scale(1, 1)';
+
+/**
+ * The two halves of a picture's fit transform: the `a:stretch/a:fillRect`
+ * PLACEMENT and the `a:srcRect` source CROP. Either is `''` when absent.
+ */
+function imageFitTransformParts(el: PptxElement): { placement: string; crop: string } {
+	if (!isImageLikeElement(el)) {
+		return { placement: '', crop: '' };
+	}
+
 	// `a:stretch/a:fillRect` stretches the (cropped) image into a sub-rect of
 	// the FRAME; negative offsets legitimately push it past the frame edges,
 	// and the overflow-hidden frame clips the spill (issue #132 deck, phone
@@ -178,7 +214,7 @@ export function getImageFitStyle(el: PptxElement): CssStyleMap {
 	const frBottom = el.fillRectBottom ?? 0;
 	const hasFillRect =
 		Math.abs(frLeft) + Math.abs(frTop) + Math.abs(frRight) + Math.abs(frBottom) > 0.0001;
-	const placementTransform = hasFillRect
+	const placement = hasFillRect
 		? `translate(${round2(frLeft * 100)}%, ${round2(frTop * 100)}%) scale(${round6(
 				Math.max(0.01, 1 - frLeft - frRight),
 			)}, ${round6(Math.max(0.01, 1 - frTop - frBottom))})`
@@ -188,49 +224,55 @@ export function getImageFitStyle(el: PptxElement): CssStyleMap {
 	const cropTop = clampCropValue(el.cropTop);
 	const cropRight = clampCropValue(el.cropRight);
 	const cropBottom = clampCropValue(el.cropBottom);
-	const hasCrop = cropLeft + cropRight > 0.0001 || cropTop + cropBottom > 0.0001;
-	if (!hasCrop && !hasFillRect) {
-		return uncropped;
+	if (cropLeft + cropRight <= 0.0001 && cropTop + cropBottom <= 0.0001) {
+		return { placement, crop: '' };
 	}
 
-	let cropTransform = '';
-	if (hasCrop) {
-		// A crop that swallows (almost) the whole source would divide by ~0
-		// below, so the pair is rescaled to leave a 1% sliver rather than
-		// producing Infinity.
-		const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
-		const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
-		const left = clampCropValue(cropLeft * horizontalScale);
-		const right = clampCropValue(cropRight * horizontalScale);
-		const top = clampCropValue(cropTop * verticalScale);
-		const bottom = clampCropValue(cropBottom * verticalScale);
-		const remainingWidth = Math.max(0.01, 1 - left - right);
-		const remainingHeight = Math.max(0.01, 1 - top - bottom);
+	// A crop that swallows (almost) the whole source would divide by ~0
+	// below, so the pair is rescaled to leave a 1% sliver rather than
+	// producing Infinity.
+	const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
+	const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
+	const left = clampCropValue(cropLeft * horizontalScale);
+	const right = clampCropValue(cropRight * horizontalScale);
+	const top = clampCropValue(cropTop * verticalScale);
+	const bottom = clampCropValue(cropBottom * verticalScale);
+	const remainingWidth = Math.max(0.01, 1 - left - right);
+	const remainingHeight = Math.max(0.01, 1 - top - bottom);
 
-		const tx = Math.round((-left / remainingWidth) * 10000) / 100;
-		const ty = Math.round((-top / remainingHeight) * 10000) / 100;
-		const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
-		const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
-		cropTransform = `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})`;
+	const tx = Math.round((-left / remainingWidth) * 10000) / 100;
+	const ty = Math.round((-top / remainingHeight) * 10000) / 100;
+	const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
+	const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
+	return { placement, crop: `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})` };
+}
+
+/**
+ * The `<img>` `transform` that renders a picture's fill-rect placement and
+ * source crop, as one string.
+ *
+ * This is the value {@link getImageFitStyle} puts on the element; it is exposed
+ * separately so the Morph engine can animate BETWEEN two pictures' crops
+ * without re-deriving the maths (issue #148: PowerPoint's "Scale Height" /
+ * "Scale Width" is an `a:srcRect` crop, so a slide pair that differs only in
+ * scale has identical frames and morphed as a hard cut).
+ *
+ * @param el - The picture element.
+ * @param padToIdentity - When true, ALWAYS emits both the placement and the
+ *   crop `translate`/`scale` pair, substituting an identity pair where the
+ *   element has none. Two pictures then produce the same transform function
+ *   list, which is what lets CSS interpolate them function-by-function instead
+ *   of decomposing to a matrix (and lets an uncropped end of a pair sit at a
+ *   true identity, so the element lands exactly on its static style).
+ * @returns The transform value; `''` only when there is nothing to apply and
+ *   `padToIdentity` is false.
+ */
+export function buildImageFitTransform(el: PptxElement, padToIdentity = false): string {
+	const { placement, crop } = imageFitTransformParts(el);
+	if (!padToIdentity) {
+		return [placement, crop].filter(Boolean).join(' ');
 	}
-
-	// Placement first, crop second: transforms compose right-to-left, so the
-	// crop magnifies within the box the placement has already mapped onto the
-	// fill-rect region (translate percentages resolve against the img border
-	// box and are scaled by the preceding placement scale, which is exactly
-	// "percent of the placed width").
-	const transform = [placementTransform, cropTransform].filter(Boolean).join(' ');
-
-	return {
-		position: 'absolute',
-		width: '100%',
-		height: '100%',
-		maxWidth: 'none',
-		maxHeight: 'none',
-		objectFit: 'fill',
-		transformOrigin: 'top left',
-		transform,
-	};
+	return `${placement || IDENTITY_TRANSFORM_PAIR} ${crop || IDENTITY_TRANSFORM_PAIR}`;
 }
 
 /** Round to two decimals for stable CSS percentage output. */

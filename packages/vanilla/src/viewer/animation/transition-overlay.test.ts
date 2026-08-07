@@ -43,6 +43,26 @@ function morphSlide(id: string, x: number): PptxSlide {
 	} as unknown as PptxSlide;
 }
 
+/** A full-slide picture whose frame never moves and whose source crop does. */
+function rescaledPictureSlide(id: string, crop: Record<string, number>): PptxSlide {
+	return {
+		id,
+		elements: [
+			{
+				id: `${id}-picture`,
+				type: 'picture',
+				name: '!!Background',
+				x: 0,
+				y: 0,
+				width: 960,
+				height: 540,
+				imagePath: 'ppt/media/image9.png',
+				...crop,
+			},
+		],
+	} as unknown as PptxSlide;
+}
+
 describe('playTransitionOverlay', () => {
 	let doc: Document;
 	let stageWrap: HTMLElement;
@@ -111,6 +131,29 @@ describe('playTransitionOverlay', () => {
 		expect(outgoing.style.backgroundColor).toBe('transparent');
 		// The incoming layer is a real surface and keeps its background.
 		expect(incoming.style.backgroundColor).toBe('rgb(255, 255, 255)');
+		cancel();
+	});
+
+	it('zooms a picture whose only change is its source crop', () => {
+		// PowerPoint's "Scale Height"/"Scale Width" is an `a:srcRect` crop inside
+		// an unchanged frame, so both halves of this pair agree on position, size,
+		// blip and style: the engine saw an inert pair and the picture cut between
+		// crops in a single frame (issue #148). The crop is painted on the `<img>`,
+		// so the rule has to reach that node and not the element container.
+		const cancel = playTransitionOverlay({
+			doc,
+			stageWrap,
+			outgoing: buildStage(doc, ['out-picture']),
+			incoming: buildStage(doc, ['in-picture']),
+			transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			outgoingSlide: rescaledPictureSlide('out', { cropLeft: 0.05739, cropRight: 0.05739 }),
+			incomingSlide: rescaledPictureSlide('in', { cropLeft: 0.00356, cropRight: 0.00356 }),
+			onDone: vi.fn(),
+		});
+
+		const css = [...stageWrap.querySelectorAll('style')].map((node) => node.textContent).join('\n');
+		expect(css).toContain('[data-element-id="in-picture"] img { animation: pptx-morph-crop-');
+		expect(css).toContain('@keyframes pptx-morph-crop-');
 		cancel();
 	});
 

@@ -482,6 +482,10 @@ export * from './morph-text-tokens';
 export * from './morph-geometry';
 export * from './morph-geometry-interp';
 export * from './morph-geometry-keyframes';
+// Picture source-crop (`a:srcRect`) morphing: PowerPoint's "Scale Height" /
+// "Scale Width" is a crop inside an unchanged frame, so a rescaled picture is
+// invisible to every other comparison in the engine (issue #148).
+export * from './morph-image-crop';
 export * from './morph-animation';
 // Slide-transition (slide-to-slide swap) CSS/keyframe generation — pure mapping
 // from a `PptxSlideTransition` to the outgoing/incoming `animation` shorthands

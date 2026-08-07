@@ -73,6 +73,17 @@ export interface StaticElementRendererProps {
 	 */
 	animation?: string;
 	/**
+	 * CSS `animation` shorthand applied to the picture's `<img>` instead of its
+	 * container.
+	 *
+	 * A source crop (`a:srcRect`) is painted by transforming the img inside an
+	 * unchanged frame, so morphing PowerPoint's "Scale Height"/"Scale Width"
+	 * animates that node (issue #148). The other four bindings reach it with a
+	 * descendant CSS rule; overlay copies here expose no `data-element-id` to
+	 * select on, so it is passed down instead.
+	 */
+	imageAnimation?: string;
+	/**
 	 * Stamp `data-element-id` on the rendered node.
 	 *
 	 * Off by default: the transition overlay paints copies of the OUTGOING
@@ -102,6 +113,7 @@ function StaticElementRendererImpl({
 	onActionClick,
 	actionRequiresModifier = false,
 	animation,
+	imageAnimation,
 	exposeElementId = false,
 }: StaticElementRendererProps): React.ReactElement | null {
 	// Selection-Pane-hidden elements are not drawn on any surface, so the static
@@ -247,7 +259,9 @@ function StaticElementRendererImpl({
 					txtSE: hasTextProperties(element) ? element.textStyle : undefined,
 					txtS: textStyle,
 					vecShape: renderVectorShape(element, hasFill, fill, strokeWidth, stroke),
-					imgStyle: getImageRenderStyle(element),
+					imgStyle: imageAnimation
+						? { ...getImageRenderStyle(element), animation: imageAnimation }
+						: getImageRenderStyle(element),
 					imgFilter: getImageEffectsFilter(element),
 					imgOpacity: getImageEffectsOpacity(element),
 					imgAlt: '',

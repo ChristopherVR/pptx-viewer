@@ -222,6 +222,7 @@ export function PresentationTransitionOverlay({
 									allSlides={[outgoingSlide]}
 									zIndex={index}
 									animation={morphPlan.outgoingAnimations.get(element.id)}
+									imageAnimation={morphPlan.outgoingImageAnimations.get(element.id)}
 								/>
 							</div>
 						))}

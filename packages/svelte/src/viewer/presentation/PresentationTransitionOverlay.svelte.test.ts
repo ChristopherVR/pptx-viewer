@@ -52,6 +52,23 @@ function morphable(slideId: string, x: number): PptxSlide {
 	]);
 }
 
+/** A full-slide picture whose frame never moves and whose source crop does. */
+function rescaledPicture(slideId: string, crop: Record<string, number>): PptxSlide {
+	return makeSlide(slideId, [
+		{
+			id: `${slideId}-picture`,
+			type: 'picture',
+			name: '!!Background',
+			x: 0,
+			y: 0,
+			width: 960,
+			height: 540,
+			imagePath: 'ppt/media/image9.png',
+			...crop,
+		},
+	]);
+}
+
 let cleanup: (() => void) | undefined;
 
 afterEach(() => {
@@ -98,6 +115,36 @@ describe('presentationTransitionOverlay', () => {
 		expect(outgoing.getAttribute('style')).not.toContain('#ffffff');
 		// The incoming layer is a real surface and keeps its background.
 		expect(incoming.getAttribute('style')).toContain('#ffffff');
+	});
+
+	it('zooms a picture whose only change is its source crop', () => {
+		// PowerPoint's "Scale Height"/"Scale Width" is an `a:srcRect` crop inside
+		// an unchanged frame, so both halves of this pair agree on position, size,
+		// blip and style: the engine saw an inert pair and the picture cut between
+		// crops in a single frame (issue #148). The crop is painted on the `<img>`,
+		// so the rule has to reach that node and not the element container.
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(PresentationTransitionOverlay, {
+			target,
+			props: {
+				outgoingSlide: rescaledPicture('out', { cropLeft: 0.05739, cropRight: 0.05739 }),
+				incomingSlide: rescaledPicture('in', { cropLeft: 0.00356, cropRight: 0.00356 }),
+				canvasSize,
+				mediaDataUrls: new Map<string, string>(),
+				transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+				ondone: vi.fn(),
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+
+		const css = [...target.querySelectorAll('style')].map((node) => node.textContent).join('\n');
+		expect(css).toContain('[data-element-id="in-picture"] img { animation: pptx-morph-crop-');
+		expect(css).toContain('@keyframes pptx-morph-crop-');
 	});
 
 	it('keeps the slide background on a non-morph transition snapshot', () => {

@@ -228,4 +228,39 @@ describe('issue #130 - solution-explorer parse fidelity', () => {
 		expect(callout?.textStyle?.fontFamily).toBe('Arial');
 		expect(callout?.textStyle?.color).toBe('#FFFFFF');
 	});
+
+	it('carries the backdrop picture scale as a source crop, not as a frame size', async () => {
+		const data = await loadDeck();
+		if (!data) {
+			return;
+		}
+
+		// Issue #148: PowerPoint's Format Picture > Size panel reads "Scale
+		// Height"/"Scale Width" 113% on slide 3 and 101% on slide 12 for the SAME
+		// backdrop photo. There is no scale attribute in OOXML - it is an
+		// `a:srcRect` crop inside a frame that is byte-identical on both slides,
+		// which is exactly why the morph engine has to compare the crop and not
+		// just the box (`morphImageCropChanged` in `pptx-viewer-shared`).
+		type Backdrop = {
+			imagePath?: string;
+			cropLeft?: number;
+			cropTop?: number;
+			cropRight?: number;
+			cropBottom?: number;
+		};
+		const slide3 = findByName(data, 2, '!!Background') as (PptxElement & Backdrop) | undefined;
+		const slide12 = findByName(data, 11, '!!Background') as (PptxElement & Backdrop) | undefined;
+
+		expect(slide3?.imagePath).toBe(slide12?.imagePath);
+		for (const key of ['x', 'y', 'width', 'height'] as const) {
+			expect(slide3?.[key]).toBe(slide12?.[key]);
+		}
+		// `<a:srcRect l="5739" t="5422" r="5739" b="5422"/>`: 1/(1-2*0.05739) = 1.13.
+		expect(slide3?.cropLeft).toBeCloseTo(0.05739, 6);
+		expect(slide3?.cropTop).toBeCloseTo(0.05422, 6);
+		// `<a:srcRect l="356" r="356"/>`: 1/(1-2*0.00356) = 1.007, and no vertical
+		// crop at all - the axes are independent and both have to survive parsing.
+		expect(slide12?.cropLeft).toBeCloseTo(0.00356, 6);
+		expect(slide12?.cropTop ?? 0).toBe(0);
+	});
 });

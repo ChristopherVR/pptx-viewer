@@ -17,6 +17,11 @@ import { hasTextProperties, hasShapeProperties } from 'pptx-viewer-core';
 import { parseHexColor, lerpColor } from './morph-color';
 import { flattenMorphElements } from './morph-flatten';
 import { generateGeometryMorphAnimation } from './morph-geometry-keyframes';
+import {
+	generateImageCropGhostAnimations,
+	generateImageCropMorphAnimations,
+	morphImageCropChanged,
+} from './morph-image-crop';
 import { matchMorphElementsFull } from './morph-matching';
 import { tokenizeText } from './morph-text';
 import { buildTokenMorphAnimations, diffTokens } from './morph-text-tokens';
@@ -186,9 +191,15 @@ const GEOMETRY_EPSILON = 0.5;
  * Most of a Morph deck is inert - the authoring pattern is to duplicate a slide
  * and restyle one thing, so 26 of 32 pairs on this deck's transitions are
  * untouched - which makes what we do with them the dominant visual effect.
+ *
+ * A picture's SOURCE CROP counts here even though it moves no box: PowerPoint's
+ * "Scale Height"/"Scale Width" is an `a:srcRect` crop inside an unchanged frame,
+ * so a picture rescaled between two slides compares equal on every other axis
+ * and would otherwise be skipped entirely (issue #148).
  */
 export function isInertMorphPair(fromElement: PptxElement, toElement: PptxElement): boolean {
 	return (
+		!morphImageCropChanged(fromElement, toElement) &&
 		Math.abs(fromElement.x - toElement.x) <= GEOMETRY_EPSILON &&
 		Math.abs(fromElement.y - toElement.y) <= GEOMETRY_EPSILON &&
 		Math.abs(fromElement.width - toElement.width) <= GEOMETRY_EPSILON &&
@@ -761,6 +772,12 @@ export function generateFullMorphTransition(
 		}
 	}
 
+	// Picture crop morph: a pair whose `a:srcRect` changed zooms its source
+	// region inside an otherwise unchanged frame (PowerPoint's "Scale
+	// Height"/"Scale Width"). This rides the element's `<img>`, not its
+	// container, so it is additive to whatever the pair does above.
+	allAnimations.push(...generateImageCropMorphAnimations(matchResult.pairs, durationMs));
+
 	// Generate text morph animations for text-bearing matched pairs
 	if (mode === 'word' || mode === 'character') {
 		for (let i = 0; i < matchResult.pairs.length; i++) {
@@ -780,6 +797,10 @@ export function generateFullMorphTransition(
 		ghostIds,
 	);
 	allAnimations.push(...ghosts);
+
+	// The same zoom on the painted ghosts, so a crop change that IS crossfading
+	// dissolves from the region the outgoing slide actually showed.
+	allAnimations.push(...generateImageCropGhostAnimations(matchResult.pairs, durationMs, ghostIds));
 
 	// Generate fade-out for unmatched from elements
 	const fadeOuts = generateUnmatchedFadeOutAnimations(
