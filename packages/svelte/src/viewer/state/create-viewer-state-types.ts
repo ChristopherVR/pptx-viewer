@@ -178,6 +178,8 @@ export interface ViewerStateBag {
 	onFullscreenToggle(): void;
 	onFullscreenChange(): void;
 	onKeydown(event: KeyboardEvent): void;
+	/** PowerPoint navigates a running show on the wheel; inert while editing. */
+	onWheel(event: WheelEvent): void;
 	downloadPptx(fileName?: string): Promise<void>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	/** Tear down every constructed controller (call from the host's `onDestroy`). */

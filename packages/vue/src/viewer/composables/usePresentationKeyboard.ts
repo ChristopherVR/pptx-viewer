@@ -9,7 +9,9 @@
 import {
 	acceptsPresentationInput,
 	createPresentationKeyBuffer,
+	createWheelStepBuffer,
 	mapPresentationKey,
+	mapPresentationWheel,
 } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 import { onBeforeUnmount, onMounted } from 'vue';
@@ -116,10 +118,26 @@ export function usePresentationKeyboard(options: UsePresentationKeyboardOptions)
 		}
 	}
 
+	// PowerPoint navigates a running show on the wheel: down advances, up goes
+	// back. The step buffer keeps one trackpad flick to one slide.
+	const wheelBuffer = createWheelStepBuffer();
+	function handleWheel(event: WheelEvent): void {
+		const mapped = mapPresentationWheel(event, wheelBuffer);
+		if (mapped.intent === 'next-slide') {
+			event.preventDefault();
+			options.next();
+		} else if (mapped.intent === 'previous-slide') {
+			event.preventDefault();
+			options.prev();
+		}
+	}
+
 	onMounted(() => {
 		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('wheel', handleWheel, { passive: false });
 	});
 	onBeforeUnmount(() => {
 		window.removeEventListener('keydown', handleKeyDown);
+		window.removeEventListener('wheel', handleWheel);
 	});
 }

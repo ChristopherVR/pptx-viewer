@@ -2,7 +2,9 @@ import type { PresentationPointerTool } from 'pptx-viewer-shared';
 import {
 	acceptsPresentationInput,
 	createPresentationKeyBuffer,
+	createWheelStepBuffer,
 	mapPresentationKey,
+	mapPresentationWheel,
 } from 'pptx-viewer-shared';
 
 export interface KeyboardHandlers {
@@ -82,9 +84,29 @@ export function attachKeyboardNavigation(
 		event.preventDefault();
 	};
 
+	// PowerPoint navigates a running show on the wheel: down advances, up goes
+	// back. The step buffer keeps one trackpad flick to one slide.
+	const wheelBuffer = createWheelStepBuffer();
+	const onWheel = (event: WheelEvent): void => {
+		// Only a running show navigates; the editor scrolls natively.
+		if (!handlers.isPresenting?.() || !acceptsPresentationInput()) {
+			return;
+		}
+		const mapped = mapPresentationWheel(event, wheelBuffer);
+		if (mapped.intent === 'next-slide') {
+			event.preventDefault();
+			handlers.next();
+		} else if (mapped.intent === 'previous-slide') {
+			event.preventDefault();
+			handlers.prev();
+		}
+	};
+
 	root.addEventListener('keydown', onKeyDown);
+	root.addEventListener('wheel', onWheel, { passive: false });
 	return () => {
 		root.removeEventListener('keydown', onKeyDown);
+		root.removeEventListener('wheel', onWheel);
 	};
 }
 

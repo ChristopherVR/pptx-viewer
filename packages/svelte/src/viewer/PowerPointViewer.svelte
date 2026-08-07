@@ -183,6 +183,7 @@
 	aria-busy={loader.loading}
 	tabindex="0"
 	onkeydown={vm.onKeydown}
+	onwheel={vm.onWheel}
 	onpointerdown={() => {
 		if (vm.presenterSession.isAudience && !document.fullscreenElement) {
 			void rootEl?.requestFullscreen?.().catch(() => undefined);

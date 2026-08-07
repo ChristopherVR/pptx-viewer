@@ -21,7 +21,9 @@ import {
 	acceptsPresentationInput,
 	createPresentationKeyBuffer,
 	handlePresentationStageClick,
+	createWheelStepBuffer,
 	mapPresentationKey,
+	mapPresentationWheel,
 } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -51,7 +53,29 @@ export class PresentationInputController {
 	/** Digit buffer backing PowerPoint's "type a slide number, then Enter" jump. */
 	private readonly keyBuffer = createPresentationKeyBuffer();
 
+	/** Partial wheel charge, so one trackpad flick is one slide step. */
+	private readonly wheelBuffer = createWheelStepBuffer();
+
 	constructor(private readonly deps: PresentationInputDeps) {}
+
+	/**
+	 * Document-level wheel handling while a show runs: PowerPoint advances on
+	 * wheel-down and goes back on wheel-up. Inert while editing, where the
+	 * viewport scrolls natively.
+	 */
+	handleWheel(event: WheelEvent): void {
+		if (!acceptsPresentationInput()) {
+			return;
+		}
+		const mapped = mapPresentationWheel(event, this.wheelBuffer);
+		if (mapped.intent === 'next-slide') {
+			event.preventDefault();
+			this.deps.navigator.navigate('next');
+		} else if (mapped.intent === 'previous-slide') {
+			event.preventDefault();
+			this.deps.navigator.navigate('prev');
+		}
+	}
 
 	/** Document-level key handling, so no focusable element is required. */
 	handleKeyDown(event: KeyboardEvent): void {

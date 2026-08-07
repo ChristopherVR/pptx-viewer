@@ -2,7 +2,9 @@ import type { PresentationPointerTool } from 'pptx-viewer-shared';
 import {
 	acceptsPresentationInput,
 	createPresentationKeyBuffer,
+	createWheelStepBuffer,
 	mapPresentationKey,
+	mapPresentationWheel,
 	mayLeaveSlideShow,
 } from 'pptx-viewer-shared';
 
@@ -34,6 +36,8 @@ export interface ViewportHandlers {
 	onFullscreenToggle(): void;
 	onFullscreenChange(): void;
 	onKeydown(event: KeyboardEvent): void;
+	/** PowerPoint navigates a running show on the wheel; inert while editing. */
+	onWheel(event: WheelEvent): void;
 }
 
 /**
@@ -115,7 +119,28 @@ function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolea
 }
 
 export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHandlers {
+	// Partial wheel charge, so one trackpad flick is one slide step.
+	const wheelBuffer = createWheelStepBuffer();
 	return {
+		onWheel(event: WheelEvent): void {
+			// Only a running show navigates on the wheel; the editor lets the
+			// viewport scroll natively.
+			// `isFullscreen` is this binding's "a show is running" signal - the same
+			// gate `onKeydown` uses below.
+			if (!deps.viewer.isFullscreen || !acceptsPresentationInput()) {
+				return;
+			}
+			const mapped = mapPresentationWheel(event, wheelBuffer);
+			if (mapped.intent === 'next-slide') {
+				event.preventDefault();
+				deps.presentation.advance();
+			} else if (mapped.intent === 'previous-slide') {
+				event.preventDefault();
+				if (!deps.presentation.retreat()) {
+					deps.presentation.previousSlide();
+				}
+			}
+		},
 		onFullscreenToggle(): void {
 			// An audience display mirrors the presenter's screen: Esc / `-` must not
 			// drop it out of the show and expose the editing chrome to the room.

@@ -293,6 +293,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		onFullscreenToggle: presentationCluster.onFullscreenToggle,
 		onFullscreenChange: presentationCluster.onFullscreenChange,
 		onKeydown: presentationCluster.onKeydown,
+		onWheel: presentationCluster.onWheel,
 		downloadPptx: editingApi.downloadPptx,
 		downloadAs: editingApi.downloadAs,
 		destroy,

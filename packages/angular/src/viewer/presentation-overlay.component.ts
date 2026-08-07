@@ -430,6 +430,16 @@ export class PresentationOverlayComponent implements OnInit {
 	 * CSS overlay. `emitClosed()` is itself guarded against double-firing, so it
 	 * is safe if our own close flow *also* triggers this event.
 	 */
+	/**
+	 * PowerPoint navigates a running show on the wheel: down advances, up goes
+	 * back. This overlay only exists while a show runs, so no extra mode gate is
+	 * needed - the same reason its key handling lives here.
+	 */
+	@HostListener('document:wheel', ['$event'])
+	protected onWheel(event: WheelEvent): void {
+		this.input.handleWheel(event);
+	}
+
 	@HostListener('document:fullscreenchange')
 	protected onFullscreenChange(): void {
 		if (hasExitedFullscreen(typeof document === 'undefined' ? null : document)) {
