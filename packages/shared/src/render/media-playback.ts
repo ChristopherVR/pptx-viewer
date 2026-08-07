@@ -82,15 +82,35 @@ export function applyMediaPlaybackAttributes(
 }
 
 /** Which surface a slide is being painted on, as far as a media element cares. */
-export interface MediaTransportSurface {
+export interface MediaSurface {
 	/** True only on the live slide-show stage. */
 	presenting: boolean;
 	/**
 	 * True when the slide is painted as a STILL of itself: the presenter
 	 * console's current-slide pane and next-slide preview, the slide-thumbnail
-	 * rail, an export raster. Never the surface the show is actually running on.
+	 * rail, a slide-transition overlay, an export raster. Never the surface the
+	 * show is actually running on.
 	 */
 	preview: boolean;
+}
+
+/**
+ * Derive a {@link MediaSurface} from the two flags a binding's renderer carries.
+ *
+ * "Neither interactive nor presenting" is what a STILL of a slide looks like
+ * from inside an element renderer, and all four declarative bindings had spelt
+ * that out by hand - twice each, once per shared media rule. Deriving it once
+ * keeps a binding from quietly answering the two rules differently.
+ */
+export function mediaSurfaceOf(input: { interactive: boolean; presenting: boolean }): MediaSurface {
+	return {
+		presenting: input.presenting,
+		preview: !input.interactive && !input.presenting,
+	};
+}
+
+/** {@link MediaSurface} plus the one answer each binding owns for itself. */
+export interface MediaTransportSurface extends MediaSurface {
 	/**
 	 * What the binding would do on its own AUTHORING canvas, which the five
 	 * deliberately differ on: React paints a transport there, Angular suppresses
@@ -119,3 +139,80 @@ export function mediaTransportVisible(surface: MediaTransportSurface): boolean {
 	}
 	return surface.canvasTransport;
 }
+
+/** What a media element has to fall back on when it cannot mount a player. */
+export interface MediaFallbackInput {
+	/** The element resolved a poster / preview frame to paint. */
+	hasPoster: boolean;
+	/** The deck references media the package could not resolve (`mediaMissing`). */
+	missing?: boolean;
+}
+
+/** The layers a media element paints when no playable source is available. */
+export interface MediaFallbackVisual {
+	/** Paint the poster frame. Only ever true when the element has one. */
+	poster: boolean;
+	/** Dim the poster, signalling that the media behind it is unavailable. */
+	dimPoster: boolean;
+	/**
+	 * Paint the centred affordance over the poster: a play badge, or the
+	 * media-not-found mark + label when {@link MediaFallbackInput.missing}.
+	 */
+	badge: boolean;
+	/** Paint the typed placeholder box ("Video" / "Audio") instead of a poster. */
+	placeholder: boolean;
+}
+
+/**
+ * What a media element paints when it has no playable source.
+ *
+ * WHY this is shared (issue #147): a slide-transition overlay is a STILL of the
+ * outgoing slide, and React's overlay renders it without the media map, so a
+ * full-bleed background video fell back to its poster frame AND to the centred
+ * play badge that goes with it. The badge is authoring chrome, not slide
+ * content, so `solution-explorer.pptx` played a mystery play triangle across
+ * the middle of every morph out of slide 2 - which is exactly what the reporter
+ * caught at 11s. The same class of artefact was one map away in the other four:
+ * their typed "Media" placeholder box is chrome too, and it paints on any still
+ * whose media cannot resolve.
+ *
+ * The rule: a still of a slide - and the show itself - paints slide CONTENT and
+ * nothing else. Only the authoring canvas adds the affordance that says "this
+ * picture is a video you cannot play here".
+ */
+export function mediaFallbackVisual(
+	surface: MediaSurface,
+	input: MediaFallbackInput,
+): MediaFallbackVisual {
+	const contentOnly = surface.presenting || surface.preview;
+	if (contentOnly) {
+		return {
+			poster: input.hasPoster,
+			dimPoster: false,
+			badge: false,
+			placeholder: false,
+		};
+	}
+	return {
+		poster: input.hasPoster,
+		dimPoster: input.hasPoster && input.missing === true,
+		badge: true,
+		placeholder: !input.hasPoster,
+	};
+}
+
+/**
+ * The play triangle every binding draws for {@link MediaFallbackVisual.badge},
+ * as an SVG `<polygon points>` in a 24x24 `viewBox`.
+ *
+ * Shared so the five badges cannot drift into five slightly different triangles;
+ * each binding still owns the wrapper markup its template system prefers.
+ */
+export const MEDIA_PLAY_BADGE_POINTS = '5 3 19 12 5 21 5 3';
+
+/**
+ * Neutral DOM marker on the play badge / typed placeholder, so a
+ * framework-neutral e2e can assert that no binding paints media chrome onto a
+ * transition overlay (`e2e/media-transition-chrome.spec.ts`).
+ */
+export const MEDIA_CHROME_ATTRIBUTE = 'data-pptx-media-chrome';

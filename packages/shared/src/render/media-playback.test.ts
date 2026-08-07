@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	applyMediaPlaybackAttributes,
+	mediaFallbackVisual,
 	mediaPlaybackAttributes,
+	mediaSurfaceOf,
 	mediaTransportVisible,
 	startMediaAutoplay,
 } from './media-playback';
@@ -141,5 +143,82 @@ describe('mediaTransportVisible', () => {
 		expect(
 			mediaTransportVisible({ presenting: false, preview: false, canvasTransport: false }),
 		).toBeFalsy();
+	});
+});
+
+describe('mediaSurfaceOf', () => {
+	it('reads the authoring canvas as neither a show nor a still', () => {
+		expect(mediaSurfaceOf({ interactive: true, presenting: false })).toStrictEqual({
+			presenting: false,
+			preview: false,
+		});
+	});
+
+	it('reads a non-interactive, non-presenting renderer as a still', () => {
+		expect(mediaSurfaceOf({ interactive: false, presenting: false })).toStrictEqual({
+			presenting: false,
+			preview: true,
+		});
+	});
+
+	it('never calls the live show stage a still', () => {
+		expect(mediaSurfaceOf({ interactive: false, presenting: true })).toStrictEqual({
+			presenting: true,
+			preview: false,
+		});
+	});
+});
+
+describe('mediaFallbackVisual', () => {
+	const still = { presenting: false, preview: true };
+	const show = { presenting: true, preview: false };
+	const canvas = { presenting: false, preview: false };
+
+	it('paints the poster and nothing else on a still (issue #147)', () => {
+		expect(mediaFallbackVisual(still, { hasPoster: true })).toStrictEqual({
+			poster: true,
+			dimPoster: false,
+			badge: false,
+			placeholder: false,
+		});
+	});
+
+	it('paints no chrome on a still whose media is missing outright', () => {
+		const visual = mediaFallbackVisual(still, { hasPoster: false, missing: true });
+		expect(visual.badge).toBeFalsy();
+		expect(visual.placeholder).toBeFalsy();
+	});
+
+	it('paints no chrome during a running show either', () => {
+		const visual = mediaFallbackVisual(show, { hasPoster: true, missing: true });
+		expect(visual).toStrictEqual({
+			poster: true,
+			dimPoster: false,
+			badge: false,
+			placeholder: false,
+		});
+	});
+
+	it('adds the play badge over a poster on the authoring canvas', () => {
+		expect(mediaFallbackVisual(canvas, { hasPoster: true })).toStrictEqual({
+			poster: true,
+			dimPoster: false,
+			badge: true,
+			placeholder: false,
+		});
+	});
+
+	it('dims a poster standing in for missing media, on the canvas only', () => {
+		expect(mediaFallbackVisual(canvas, { hasPoster: true, missing: true }).dimPoster).toBeTruthy();
+		expect(mediaFallbackVisual(still, { hasPoster: true, missing: true }).dimPoster).toBeFalsy();
+	});
+
+	it('falls back to the typed placeholder box when there is no poster', () => {
+		expect(mediaFallbackVisual(canvas, { hasPoster: false })).toStrictEqual({
+			poster: false,
+			dimPoster: false,
+			badge: true,
+			placeholder: true,
+		});
 	});
 });
