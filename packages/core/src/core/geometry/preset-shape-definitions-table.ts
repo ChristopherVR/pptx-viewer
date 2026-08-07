@@ -227,10 +227,17 @@ const parallelogram: PresetShapeGeometryDefinition = {
 	name: 'parallelogram',
 	avLst: { adj: 25000 },
 	gdLst: [
-		gd('a', 'pin 0 adj 100000'),
-		gd('x1', '*/ w a 200000'),
+		// The skew is measured against `ss` (the SHORT side), not `w`, and `adj`
+		// pins against `maxAdj` rather than a flat 100000 (ECMA-376 20.1.9.venus).
+		// Scaling off `w` only agrees with PowerPoint while w <= h; for a wide,
+		// short parallelogram it overstates the skew, so a band authored to butt
+		// against a neighbouring shape fell short of it and left a wedge of slide
+		// background showing through the seam.
+		gd('maxAdj', '*/ 100000 w ss'),
+		gd('a', 'pin 0 adj maxAdj'),
+		gd('x1', '*/ ss a 200000'),
 		gd('x2', '+- w 0 x1'),
-		gd('x3', '*/ w a 100000'),
+		gd('x3', '*/ ss a 100000'),
 		gd('x4', '+- r 0 x3'),
 		gd('x5', '*/ x3 1 2'),
 		gd('x6', '+- r 0 x5'),

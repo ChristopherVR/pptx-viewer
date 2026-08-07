@@ -122,6 +122,35 @@ describe('evaluatePresetShape', () => {
 		const result = evaluatePresetShape('rect', 400, 300);
 		expect(result?.textRect).toStrictEqual({ l: 0, t: 0, r: 400, b: 300 });
 	});
+
+	it('parallelogram measures its skew against the SHORT side, not the width', () => {
+		// ECMA-376 20.1.9 derives the skew from `ss` (min(w, h)) and pins `adj`
+		// against `maxAdj = 100000 * w / ss`. Scaling off `w` instead agrees with
+		// PowerPoint only while w <= h, so the bug hid on tall/square shapes and
+		// only showed on WIDE ones.
+		//
+		// Tall shape (w < h): ss === w, so both readings coincide.
+		const tall = evaluatePresetShape('parallelogram', 100, 400, { adj: 50000 });
+		expect(tall?.svgPath).toContain('L 50 0');
+
+		// Wide shape (w > h): ss === h. The skew is 50% of the HEIGHT (50), not
+		// 50% of the width (200), so the top-left vertex sits at x=50.
+		const wide = evaluatePresetShape('parallelogram', 400, 100, { adj: 50000 });
+		expect(wide?.svgPath).toContain('L 50 0');
+		expect(wide?.svgPath).not.toContain('L 200 0');
+	});
+
+	it('parallelogram pins adj against maxAdj so the skew cannot exceed the width', () => {
+		// `adj` is a percentage OF THE SHORT SIDE, so on a wide shape a value
+		// past `maxAdj = 100000 * w / ss` would push the vertex beyond the right
+		// edge and invert the shape. Here maxAdj = 100000 * 400 / 100 = 400000.
+		const clamped = evaluatePresetShape('parallelogram', 400, 100, { adj: 900000 });
+		const xs = [...(clamped?.svgPath ?? '').matchAll(/-?[\d.]+(?= )/gu)].map(Number);
+		for (const x of xs) {
+			expect(x).toBeLessThanOrEqual(400);
+			expect(x).toBeGreaterThanOrEqual(0);
+		}
+	});
 });
 
 describe('getShapeClipPathFromPreset', () => {
