@@ -78,6 +78,23 @@ describe('preset shape geometry — rects/snips/foldedCorner/teardrop/corner', (
 		expect(RECTS_SNIPS_PRESET_DEFINITIONS.teardrop?.avLst?.adj).toBe(100000);
 	});
 
+	it('teardrop bulges its point OUTWARDS through the frame corner', () => {
+		// Both quadratic controls must sit on the frame edges - (x2, t) then
+		// (r, y2) - so the corner swells out through (r, t). Controls placed
+		// inside the frame scoop it inwards instead, turning the shape into a
+		// circle with a bite out of it: a ring of teardrops then leaves a
+		// star-shaped hole where the points should meet (issue #132 slide 17).
+		const def = RECTS_SNIPS_PRESET_DEFINITIONS.teardrop;
+		const beziers = def?.pathLst[0].commands.filter((c) => c.kind === 'quadBezTo') ?? [];
+		expect(beziers).toHaveLength(2);
+		expect(beziers[0]).toMatchObject({ x1: 'x2', y1: 't' });
+		expect(beziers[1]).toMatchObject({ x1: 'r', y1: 'y2' });
+		// ...and the guides those controls reference must be declared.
+		const guides = new Set((def?.gdLst ?? []).map((g) => g.name));
+		expect(guides).toContain('x2');
+		expect(guides).toContain('y2');
+	});
+
 	it('foldedCorner emits 3 paths (body, flap, stroke)', () => {
 		const def = RECTS_SNIPS_PRESET_DEFINITIONS.foldedCorner;
 		expect(def?.pathLst).toHaveLength(3);

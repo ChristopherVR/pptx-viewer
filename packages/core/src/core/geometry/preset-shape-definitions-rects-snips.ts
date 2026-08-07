@@ -308,6 +308,12 @@ const foldedCorner: PresetShapeGeometryDefinition = {
 // arcs (BR → BL → TL) and two quadratic Beziers that route from the top of
 // the left arc up to the stretched tip at (x1,y1) and back down to the right
 // of the bottom arc, with the tip displaced from (r,t) by (a-100000)/100000.
+//
+// Both Bezier CONTROL points sit on the frame edges - (x2, t) then (r, y2),
+// the midpoints between each arc end and the tip - so the corner bulges
+// outwards through (r, t). Controls placed inside the frame instead scoop the
+// corner inwards, turning each petal into a circle with a bite out of it and
+// leaving a star-shaped hole where a ring of them should meet.
 const teardrop: PresetShapeGeometryDefinition = {
 	name: 'teardrop',
 	avLst: { adj: 100000 },
@@ -317,6 +323,8 @@ const teardrop: PresetShapeGeometryDefinition = {
 		gd('dy1', '*/ hd2 a 100000'),
 		gd('x1', '+- hc dx1 0'),
 		gd('y1', '+- vc 0 dy1'),
+		gd('x2', '+/ hc x1 2'),
+		gd('y2', '+/ vc y1 2'),
 	],
 	rect: FULL_RECT,
 	pathLst: [
@@ -324,8 +332,10 @@ const teardrop: PresetShapeGeometryDefinition = {
 			commands: [
 				{ kind: 'moveTo', x: 'l', y: 'vc' },
 				{ kind: 'arcTo', wR: 'wd2', hR: 'hd2', stAng: 'cd2', swAng: 'cd4' },
-				{ kind: 'quadBezTo', x1: 'hc', y1: 'y1', x2: 'x1', y2: 'y1' },
-				{ kind: 'quadBezTo', x1: 'x1', y1: 'vc', x2: 'r', y2: 'vc' },
+				// `x1`/`y1` here are the CONTROL point, `x2`/`y2` the endpoint; the
+				// guides keep the spec's own names, hence `x1: 'x2'`.
+				{ kind: 'quadBezTo', x1: 'x2', y1: 't', x2: 'x1', y2: 'y1' },
+				{ kind: 'quadBezTo', x1: 'r', y1: 'y2', x2: 'r', y2: 'vc' },
 				{ kind: 'arcTo', wR: 'wd2', hR: 'hd2', stAng: '0', swAng: 'cd4' },
 				{ kind: 'arcTo', wR: 'wd2', hR: 'hd2', stAng: 'cd4', swAng: 'cd4' },
 				{ kind: 'close' },
