@@ -10,6 +10,24 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-react-viewer@2.15.3, pptx-vue-viewer@2.15.3, pptx-angular-viewer@2.15.3, pptx-vanilla-viewer@1.16.3, pptx-svelte-viewer@2.15.3_
+
+### Bug Fixes
+
+- **shared:** Stop category-axis labels crowding the plot (by @ChristopherVR) ([b511ac4](https://github.com/ChristopherVR/pptx-viewer/commit/b511ac44bb53ed2ca20932801c805ea7f0a2fcd1))
+- Let clicks fall through an unfilled shape's interior (by @ChristopherVR) ([7e17f9d](https://github.com/ChristopherVR/pptx-viewer/commit/7e17f9ddacd058d9b5c13f1060f58621faeb9908))
+- Hollow-shape click-through in the remaining four bindings (by @ChristopherVR) ([fee05ad](https://github.com/ChristopherVR/pptx-viewer/commit/fee05ad5463de9949f289d3aac889794bc7d834a))
+
+### Refactor
+
+- **shared:** Single-source the shape geometry cascade (by @ChristopherVR) ([396e4a2](https://github.com/ChristopherVR/pptx-viewer/commit/396e4a28299168af0564364e9b0be7413b2c8ce8))
+
+### Documentation
+
+- Record how binding duplication actually happens (by @ChristopherVR) ([918ef78](https://github.com/ChristopherVR/pptx-viewer/commit/918ef78dbe8ce10fba170bdf68ac5627158d7fe7))
+
+## 2026-08-07
+
 _Releases: pptx-viewer-core@2.3.2, pptx-react-viewer@2.15.2, pptx-vue-viewer@2.15.2, pptx-angular-viewer@2.15.2, pptx-vanilla-viewer@1.16.2, pptx-svelte-viewer@2.15.2_
 
 ### Bug Fixes
