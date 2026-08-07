@@ -13,6 +13,7 @@ import {
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
+	isHollowShapeElement,
 	isIdentityRectClip,
 	isStrokeOnlyPresetElement,
 	paintedStrokeWidth,
@@ -163,6 +164,14 @@ export function getShapeFillStrokeStyle(
 
 	// Geometry: mirror the React `getShapeVisualStyle` priority cascade:
 	// connector → roundRect (radius) → ellipse → clip-path → line → cylinder.
+	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
+	// outline only, so its interior must not swallow clicks meant for what it is
+	// drawn over. ShapeEffectOverlay paints a transparent pointer-events:stroke
+	// band that opts the outline back in.
+	if (isHollowShapeElement(el)) {
+		style.pointerEvents = 'none';
+	}
+
 	const normalizedShapeType = getShapeType(el.shapeType);
 
 	if (el.type === 'connector' || normalizedShapeType === 'connector') {

@@ -6,6 +6,7 @@ import type { ElementRenderer } from '../types';
 import { renderEquations } from './equation';
 import { renderExtrusionOverlay } from './extrusion-overlay';
 import {
+	renderHollowHitOutline,
 	renderStrokeOutline,
 	renderShapeFillOverlay,
 	renderShapeFilterDefs,
@@ -60,6 +61,12 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	const gradientOutline = renderStrokeOutline(context.document, element);
 	if (gradientOutline) {
 		el.appendChild(gradientOutline);
+	}
+	// An unfilled, textless shape is a FRAME: its box is pointer-events:none so
+	// clicks fall through, and this transparent band opts its OUTLINE back in.
+	const hollowHit = renderHollowHitOutline(context.document, element);
+	if (hollowHit) {
+		el.appendChild(hollowHit);
 	}
 
 	const equation = renderEquations(element, context);

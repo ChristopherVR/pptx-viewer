@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, isElementHidden, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, isElementHidden, isHollowShapeElement, isTemplateElement } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
@@ -54,6 +54,11 @@
 	 * invisible to anything that enumerates or hit-tests elements by the marker).
 	 */
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
+	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
+	// outline only, so its interior must not swallow clicks meant for what it is
+	// drawn over. ShapeEffectOverlay paints a transparent pointer-events:stroke
+	// band that opts the outline back in.
+	const isHollowShape = $derived(isHollowShapeElement(element));
 	/**
 	 * Whether THIS element's root carries `data-pptx-element="true"`. Wider than
 	 * `elementInteractive`: an interaction-locked template (master/layout)
@@ -179,7 +184,7 @@
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-shape"
-		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill, animationState?.animatesFill, animationState?.animatesStroke), pointerEvents: elementInteractive ? 'auto' : 'none' })}
+		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill, animationState?.animatesFill, animationState?.animatesStroke), pointerEvents: elementInteractive && !isHollowShape ? 'auto' : 'none' })}
 		data-element-id={element.id}
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>

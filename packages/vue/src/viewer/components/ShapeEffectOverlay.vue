@@ -29,6 +29,7 @@ import {
 	buildStrokeOutline,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
+	buildHollowHitOutline,
 	strokeOutlineViewBox,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -75,6 +76,13 @@ const softEdge = computed(() => {
  * `undefined` when the CSS border is correct (a closed shape, solid line).
  */
 const strokeOutline = computed(() => buildStrokeOutline(props.element));
+
+/**
+ * Transparent outline hit band for an unfilled, textless shape. Its container is
+ * `pointer-events: none` so clicks fall through to whatever it is drawn over;
+ * this opts the OUTLINE back in (same trick as connector-hit-target).
+ */
+const hollowHit = computed(() => buildHollowHitOutline(props.element));
 
 /** viewBox in the element's PAINTED box, which the path data is authored in. */
 const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
@@ -168,6 +176,28 @@ const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
 			:stroke-linecap="strokeOutline.lineCap"
 			:stroke-linejoin="strokeOutline.lineJoin"
 			:style="strand.offset !== 0 ? { transform: `translate(0, ${strand.offset}px)` } : undefined"
+		/>
+	</svg>
+	<svg
+		v-if="hollowHit"
+		aria-hidden="true"
+		:viewBox="outlineViewBox"
+		preserveAspectRatio="none"
+		style="
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			overflow: visible;
+			pointer-events: none;
+		"
+	>
+		<path
+			:d="hollowHit.d"
+			fill="none"
+			stroke="transparent"
+			:stroke-width="hollowHit.strokeWidth"
+			style="pointer-events: stroke"
 		/>
 	</svg>
 </template>

@@ -175,6 +175,31 @@
 					[style.mix-blend-mode]="ov.blendMode"
 				></div>
 			}
+			<!-- Hollow frame hit target: an unfilled, textless shape is hit-tested
+			     on its outline only, so its interior lets clicks through. -->
+			@if (hollowHit(); as hit) {
+				<svg
+					aria-hidden="true"
+					[attr.viewBox]="outlineViewBox()"
+					preserveAspectRatio="none"
+					style="
+						position: absolute;
+						inset: 0;
+						width: 100%;
+						height: 100%;
+						overflow: visible;
+						pointer-events: none;
+					"
+				>
+					<path
+						[attr.d]="hit.d"
+						fill="none"
+						stroke="transparent"
+						[attr.stroke-width]="hit.strokeWidth"
+						style="pointer-events: stroke"
+					/>
+				</svg>
+			}
 			<!-- Stroked outline: a CSS border takes one flat colour, and cannot
 			     outline an open preset (`line`, `arc`) at all. -->
 			@if (gradientOutline(); as go) {

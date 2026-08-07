@@ -15,6 +15,7 @@ import {
 	resolveParagraphIndent,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
+	buildHollowHitOutline,
 	strokeOutlineViewBox,
 	substituteFieldText,
 } from '../internal/shared';
@@ -324,6 +325,13 @@ export class ElementRendererComponent {
 
 	/** viewBox in the element's PAINTED box, which the path data is authored in. */
 	readonly outlineViewBox = computed(() => strokeOutlineViewBox(this.element()));
+
+	/**
+	 * Transparent outline hit band for an unfilled, textless shape. Its container
+	 * is `pointer-events: none` so clicks fall through to whatever it is drawn
+	 * over; this opts the OUTLINE back in (same trick as the connector target).
+	 */
+	readonly hollowHit = computed(() => buildHollowHitOutline(this.element()));
 
 	readonly fillOverlay = computed<FillOverlayCss | undefined>(() =>
 		getEffectFillOverlay(this.element()),

@@ -17,7 +17,11 @@ import {
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
 import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
-import { getResolvedShapeClipPath, isIdentityRectClip } from './shape-geometry';
+import {
+	getResolvedShapeClipPath,
+	isHollowShapeElement,
+	isIdentityRectClip,
+} from './shape-geometry';
 import { cssObjectToStyleMap } from './table-renderer-helpers';
 
 /**
@@ -188,6 +192,14 @@ export function getShapeFillStrokeStyle(
 	// every other preset geometry falls back to an SVG `clip-path` derived from
 	// the core geometry engine (mirrors the Vue port's cascade). Plain
 	// rectangles resolve to `undefined` and stay unclipped.
+	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
+	// outline only, so its interior must not swallow clicks meant for what it is
+	// drawn over. ShapeEffectOverlay paints a transparent pointer-events:stroke
+	// band that opts the outline back in.
+	if (isHollowShapeElement(el)) {
+		style['pointer-events'] = 'none';
+	}
+
 	const shapeType = 'shapeType' in el ? el.shapeType : undefined;
 	if (shapeType === 'ellipse' || shapeType === 'circle') {
 		style['border-radius'] = '50%';

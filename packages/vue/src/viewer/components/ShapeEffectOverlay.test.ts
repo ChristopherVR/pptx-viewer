@@ -87,6 +87,11 @@ describe('shapeEffectOverlay', () => {
 				} as unknown as PptxElement,
 			},
 		});
-		expect(wrapper.find('svg').exists()).toBeFalsy();
+		// A closed preset must not get a PAINTED stroke outline - its CSS border
+		// draws the edge. It does still get the transparent pointer-events:stroke
+		// hit band, because this fixture is unfilled and textless: a hollow frame,
+		// whose interior must let clicks through to whatever it is drawn over.
+		expect(wrapper.html()).not.toContain('#000000');
+		expect(wrapper.html()).toContain('transparent');
 	});
 });

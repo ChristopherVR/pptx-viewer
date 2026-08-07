@@ -105,6 +105,12 @@ describe('shapeEffectOverlay', () => {
 			shapeType: 'rect',
 			shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
 		} as unknown as PptxElement);
-		expect(target.querySelector('svg')).toBeNull();
+		// A closed preset must not get a PAINTED stroke outline - its CSS border
+		// draws the edge. It does still get the transparent pointer-events:stroke
+		// hit band, because this fixture is unfilled and textless: a hollow frame,
+		// whose interior must let clicks through to whatever it is drawn over.
+		const html = target.innerHTML;
+		expect(html).not.toContain('#000000');
+		expect(html).toContain('transparent');
 	});
 });

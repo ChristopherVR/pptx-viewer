@@ -25,6 +25,7 @@
 		buildStrokeOutline,
 		getComputedEffectStyle,
 		getSoftEdgeSvgFilter,
+		buildHollowHitOutline,
 		strokeOutlineViewBox,
 	} from 'pptx-viewer-shared';
 
@@ -59,11 +60,35 @@
 	const strokeOutline = $derived(buildStrokeOutline(element));
 	/** viewBox in the element's PAINTED box, which the path data is authored in. */
 	const outlineViewBox = $derived(strokeOutlineViewBox(element));
+
+	/**
+	 * Transparent outline hit band for an unfilled, textless shape. Its container
+	 * is `pointer-events: none` so clicks fall through to whatever it is drawn
+	 * over; this opts the OUTLINE back in (same trick as connector-hit-target).
+	 */
+	const hollowHit = $derived(buildHollowHitOutline(element));
 </script>
 
 {#if softEdge}
 	<svg width="0" height="0" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
 		<defs>{@html softEdge.filterMarkup}</defs>
+	</svg>
+{/if}
+
+{#if hollowHit}
+	<svg
+		aria-hidden="true"
+		viewBox={outlineViewBox}
+		preserveAspectRatio="none"
+		style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none"
+	>
+		<path
+			d={hollowHit.d}
+			fill="none"
+			stroke="transparent"
+			stroke-width={hollowHit.strokeWidth}
+			style="pointer-events:stroke"
+		/>
 	</svg>
 {/if}
 {#if fillOverlayStyle}

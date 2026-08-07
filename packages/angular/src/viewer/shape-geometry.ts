@@ -11,5 +11,6 @@
 export {
 	getResolvedShapeClipPath,
 	getResolvedShapeClipPathFor,
+	isHollowShapeElement,
 	isIdentityRectClip,
 } from '../internal/shared';

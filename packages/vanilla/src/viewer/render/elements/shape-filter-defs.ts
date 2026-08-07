@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
+	buildHollowHitOutline,
 	buildStrokeOutline,
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
@@ -81,6 +82,36 @@ export function renderShapeFillOverlay(doc: Document, element: PptxElement): HTM
  * `element-styles.ts` drops the CSS border for these shapes so neither the flat
  * colour nor the box shows underneath this overlay.
  */
+/**
+ * Transparent outline hit band for an unfilled, textless shape. Its container is
+ * `pointer-events: none` so clicks fall through to whatever it is drawn over;
+ * this opts the OUTLINE back in (same trick as the connector hit target).
+ */
+export function renderHollowHitOutline(doc: Document, element: PptxElement): SVGSVGElement | null {
+	const hit = buildHollowHitOutline(element);
+	if (!hit) {
+		return null;
+	}
+	const svg = createSvgEl(doc, 'svg', {
+		'aria-hidden': 'true',
+		viewBox: strokeOutlineViewBox(element),
+		preserveAspectRatio: 'none',
+	});
+	svg.setAttribute(
+		'style',
+		'position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none',
+	);
+	const path = createSvgEl(doc, 'path', {
+		d: hit.d,
+		fill: 'none',
+		stroke: 'transparent',
+		'stroke-width': hit.strokeWidth,
+	});
+	path.setAttribute('style', 'pointer-events:stroke');
+	svg.appendChild(path);
+	return svg;
+}
+
 export function renderStrokeOutline(doc: Document, element: PptxElement): SVGSVGElement | null {
 	const outline = buildStrokeOutline(element);
 	if (!outline) {
