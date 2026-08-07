@@ -46,7 +46,10 @@ async function expectFileChooser(page: Page, action: () => Promise<void>) {
 	const [chooser] = await Promise.all([page.waitForEvent('filechooser'), action()]);
 	expect(chooser.isMultiple()).toBe(false);
 	expect(await chooser.element().getAttribute('id')).toBe('file-input');
-	expect(await chooser.element().getAttribute('accept')).toBe('.pptx');
+	// `.ppt` (legacy binary) and `.json` (the portable-deck export added by
+	// `feat(core): export and import decks as portable JSON`) are both real
+	// import paths, so all five demos offer them alongside `.pptx`.
+	expect(await chooser.element().getAttribute('accept')).toBe('.pptx,.ppt,.json');
 	return chooser;
 }
 
