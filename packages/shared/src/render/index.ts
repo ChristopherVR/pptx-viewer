@@ -22,6 +22,7 @@
  */
 export * from './hollow-shape-hit-test';
 export * from './shape-geometry';
+export * from './wheel-intent';
 export * from './shape-geometry-cascade';
 export * from './fill-style';
 // `a:gradFill` → SVG paint server, for the freeform (`a:custGeom`) shapes that

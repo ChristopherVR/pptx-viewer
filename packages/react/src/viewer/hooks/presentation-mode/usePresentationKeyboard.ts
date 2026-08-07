@@ -3,7 +3,9 @@ import {
 	createPresentationKeyBuffer,
 	firstShowSlideIndex,
 	lastShowSlideIndex,
+	createWheelStepBuffer,
 	mapPresentationKey,
+	mapPresentationWheel,
 } from 'pptx-viewer-shared';
 import { useEffect, useRef } from 'react';
 
@@ -58,6 +60,8 @@ export interface UsePresentationKeyboardInput {
  * resolves the same chords; this hook only performs the resulting actions.
  */
 export function usePresentationKeyboard(input: UsePresentationKeyboardInput): void {
+	// Partial wheel charge, so one trackpad flick is one slide step.
+	const wheelBufferRef = useRef(createWheelStepBuffer());
 	const {
 		mode,
 		movePresentationSlide,
@@ -160,9 +164,27 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 			}
 		};
 
+		// PowerPoint navigates a running show on the wheel: down advances, up goes
+		// back. The step buffer keeps one trackpad flick to one slide.
+		const handleWheel = (event: WheelEvent): void => {
+			if (mode !== 'present' || !acceptsPresentationInput()) {
+				return;
+			}
+			const mapped = mapPresentationWheel(event, wheelBufferRef.current);
+			if (mapped.intent === 'next-slide') {
+				event.preventDefault();
+				movePresentationSlide(1);
+			} else if (mapped.intent === 'previous-slide') {
+				event.preventDefault();
+				movePresentationSlide(-1);
+			}
+		};
+
 		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('wheel', handleWheel, { passive: false });
 		return () => {
 			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('wheel', handleWheel);
 		};
 	}, [
 		mode,

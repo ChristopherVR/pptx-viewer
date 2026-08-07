@@ -1,5 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { clampZoomScale, createViewerZoomStore } from 'pptx-viewer-shared';
+import {
+	clampZoomScale,
+	createViewerZoomStore,
+	createWheelStepBuffer,
+	mapEditingWheel,
+} from 'pptx-viewer-shared';
 import type { ViewerZoomState, ViewerZoomStore } from 'pptx-viewer-shared';
 import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 
@@ -57,6 +62,8 @@ export function useZoomViewport({
 	const canvasStageRef = useRef<HTMLDivElement>(null);
 	const canvasViewportRef = useRef<HTMLDivElement>(null);
 	const renderScaleRef = useRef(1);
+	// Partial wheel charge, shared with the editing-wheel mapper.
+	const wheelBufferRef = useRef(createWheelStepBuffer());
 
 	// ── State ─────────────────────────────────────────────────────────────
 	// The user's zoom factor lives in the shared zoom store, so the zoom MODEL
@@ -245,17 +252,20 @@ export function useZoomViewport({
 
 	const handleWheel = useCallback(
 		(event: WheelEvent) => {
-			if (!event.ctrlKey) {
+			// `canScrollFurther: true` keeps a plain wheel scrolling the viewport
+			// natively; only Ctrl+wheel is claimed here. Slide-stepping at the scroll
+			// extent needs navigation this hook does not own - see wheel-intent.
+			const mapped = mapEditingWheel(event, wheelBufferRef.current, true);
+			if (mapped.intent !== 'zoom') {
 				return;
 			}
 			event.preventDefault();
-			const delta = event.deltaY * -0.001;
 			// Read the live value from the store rather than closing over `scale`:
 			// wheel events arrive faster than React commits, so a captured value
 			// would quantise the gesture to the last rendered scale.
 			store.dispatch({
 				type: 'set-zoom',
-				zoom: clampZoomScale(store.getState().zoom + delta),
+				zoom: clampZoomScale(store.getState().zoom + mapped.deltaScale),
 			});
 		},
 		[store],
