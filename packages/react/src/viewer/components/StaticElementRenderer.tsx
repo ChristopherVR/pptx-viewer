@@ -21,6 +21,7 @@ import {
 	getImageRenderStyle,
 	getShapeVisualStyle,
 	getTextStyleForElement,
+	isConnectorOrLineElement,
 	isEditableTextElement,
 	normalizeHexColor,
 	renderVectorShape,
@@ -165,9 +166,14 @@ function StaticElementRendererImpl({
 			// marking children cannot change what a click selects.
 			data-pptx-element={exposeElementId ? 'true' : undefined}
 			data-pptx-action={isActionable ? 'click' : undefined}
-			className={`${positioned ? 'absolute' : 'relative'} overflow-hidden ${
-				isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'
-			}`}
+			// A straight connector has one extent of 0, so the wrapper below is
+			// padded to 1px. Clipping that box throws away almost the whole
+			// `non-scaling-stroke`, which is why connectors vanished from thumbnails
+			// while the live stage (ConnectorElementRenderer, an unclipped
+			// MIN_ELEMENT_SIZE box) drew them fine.
+			className={`${positioned ? 'absolute' : 'relative'} ${
+				isConnectorOrLineElement(element) ? '' : 'overflow-hidden'
+			} ${isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
 			role={contractRole}
 			aria-label={exposeElementId ? getAriaLabel(element) : undefined}
 			aria-roledescription={exposeElementId ? getAriaRoleDescription(element) : undefined}
