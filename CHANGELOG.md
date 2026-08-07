@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-viewer-core@2.3.1, pptx-react-viewer@2.15.1, pptx-vue-viewer@2.15.1, pptx-angular-viewer@2.15.1, pptx-vanilla-viewer@1.16.1, pptx-svelte-viewer@2.15.1_
+
+### Bug Fixes
+
+- **core:** Recognize nodeType="afterEffect" when parsing animation triggers (by @ChristopherVR) ([554c077](https://github.com/ChristopherVR/pptx-viewer/commit/554c077b6d0960c5777163a83afe27ee9795b8c2))
+
+## 2026-08-07
+
 _Releases: pptx-react-viewer@2.15.0, pptx-vue-viewer@2.15.0, pptx-angular-viewer@2.15.0, pptx-vanilla-viewer@1.16.0, pptx-svelte-viewer@2.15.0_
 
 ### Features
