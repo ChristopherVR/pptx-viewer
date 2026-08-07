@@ -232,7 +232,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 
 			// Determine trigger from nodeType attribute, falling back to inherited trigger
 			let trigger = currentTrigger;
-			if (nodeType === 'afterPrevious' || nodeType === 'afterPrev') {
+			if (nodeType === 'afterEffect' || nodeType === 'afterPrevious' || nodeType === 'afterPrev') {
 				trigger = 'afterPrevious';
 			} else if (nodeType === 'withPrevious' || nodeType === 'withEffect') {
 				trigger = 'withPrevious';

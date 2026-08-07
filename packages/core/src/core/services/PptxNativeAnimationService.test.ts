@@ -218,6 +218,22 @@ describe('pptxNativeAnimationService', () => {
 			expect(result![0].trigger).toBe('afterPrevious');
 		});
 
+		it("extracts trigger from nodeType 'afterEffect' (the real OOXML value)", () => {
+			// PowerPoint itself only ever emits 'afterEffect' for a "Start: After
+			// Previous" effect (ECMA-376 ST_TLTimeNodeType); 'afterPrevious' and
+			// 'afterPrev', covered above, do not occur in real files - they are
+			// this codebase's own internal trigger name, not an XML value. Real
+			// decks (e.g. a staggered wipe-in logo built from several shapes)
+			// fell through to the inherited trigger instead, desyncing the
+			// stagger between siblings and leaving a visible gap mid-animation.
+			const slideXml = buildSimpleEntranceSlide('shape1', {
+				nodeType: 'afterEffect',
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			expect(result![0].trigger).toBe('afterPrevious');
+		});
+
 		it("extracts trigger from nodeType 'mouseOver' as onHover", () => {
 			const slideXml = buildSimpleEntranceSlide('shape1', {
 				nodeType: 'mouseOver',
@@ -1170,7 +1186,11 @@ describe('pptxNativeAnimationService', () => {
 			expect(toggles[0].triggerShapeId).toBe('video');
 
 			// The only main-sequence effect is the auto-started playback command.
-			const mainSeqAnims = result!.filter((a) => a.trigger === 'onClick');
+			// Its `nodeType="afterEffect"` (PowerPoint's "Start: After Previous")
+			// means it plays automatically once the sequence begins, not on a
+			// click - it must not collide with the interactive `onShapeClick`
+			// trigger asserted above.
+			const mainSeqAnims = result!.filter((a) => a.trigger === 'afterPrevious');
 			expect(mainSeqAnims).toHaveLength(1);
 			expect(mainSeqAnims[0].commandString).toBe('playFrom(0.0)');
 		});
