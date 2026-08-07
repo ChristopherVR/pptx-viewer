@@ -1,12 +1,44 @@
 import type { MediaCaptionTrack, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 
-import { mediaPlaybackAttributes, registerPersistentAudio } from '../internal/shared';
+import {
+	mediaFallbackVisual,
+	mediaPlaybackAttributes,
+	mediaSurfaceOf,
+	registerPersistentAudio,
+} from '../internal/shared';
+import type { MediaFallbackVisual, MediaSurface } from '../internal/shared';
 
 /**
  * Pure helpers for {@link MediaRendererComponent}, mirroring React's
  * `media-render.tsx` / `media-persistent-audio.tsx`. Kept TestBed-free so the
  * source resolution + media-fragment maths can be unit-tested directly.
  */
+
+/** Which surface {@link MediaRendererComponent} is painting on. */
+export function mediaSurfaceFor(interactive: boolean, presenting: boolean): MediaSurface {
+	return mediaSurfaceOf({ interactive, presenting });
+}
+
+/**
+ * What the template paints when no `<video>`/`<audio>` can be mounted.
+ *
+ * A still of a slide - the slide-transition overlay, the presenter console's
+ * panes, the thumbnail rail - gets the poster frame and nothing else: the play
+ * badge and the typed placeholder box are authoring chrome, and issue #147 is
+ * exactly that chrome riding along inside a morph. Factored out of the template
+ * so its `@if`s can be asserted without a TestBed, as this package does
+ * elsewhere (see `action-settings-panel.component.test.ts`).
+ */
+export function mediaFallbackFor(
+	el: PptxElement,
+	hasPoster: boolean,
+	surface: MediaSurface,
+): MediaFallbackVisual {
+	return mediaFallbackVisual(surface, {
+		hasPoster,
+		missing: asMediaElement(el)?.mediaMissing === true,
+	});
+}
 
 /** Narrow a generic element to `MediaPptxElement`, or `undefined`. */
 export function asMediaElement(el: PptxElement): MediaPptxElement | undefined {

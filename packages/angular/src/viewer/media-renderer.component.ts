@@ -13,10 +13,12 @@ import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
 import {
+	MEDIA_PLAY_BADGE_POINTS,
 	applyMediaPlaybackAttributes,
 	mediaTransportVisible,
 	startMediaAutoplay,
 } from '../internal/shared';
+import type { MediaFallbackVisual, MediaSurface } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
 import { ColorChangedImageComponent } from './color-changed-image.component';
@@ -25,6 +27,8 @@ import type { StyleMap } from './element-style';
 import {
 	asMediaElement,
 	buildTrimFragment,
+	mediaFallbackFor,
+	mediaSurfaceFor,
 	registerCrossSlideAudio,
 	resolveCaptionTracks,
 	resolveMediaSrc,
@@ -107,19 +111,40 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 						}
 					</video>
 				}
-			} @else if (poster(); as posterSrc) {
+			} @else if (fallback().poster && poster(); as posterSrc) {
 				@if (clrChangeParams(); as cc) {
 					<pptx-color-changed-image
 						[src]="posterSrc"
 						[clrChange]="cc"
 						alt=""
-						imgClass="pptx-ng-img"
+						[imgClass]="fallback().dimPoster ? 'pptx-ng-img pptx-ng-media-dim' : 'pptx-ng-img'"
 					/>
 				} @else {
-					<img [src]="posterSrc" alt="" class="pptx-ng-img" />
+					<img
+						[src]="posterSrc"
+						alt=""
+						class="pptx-ng-img"
+						[class.pptx-ng-media-dim]="fallback().dimPoster"
+					/>
 				}
-			} @else {
-				<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
+				<!-- Authoring-canvas chrome only; data-pptx-media-chrome is the neutral
+				     marker e2e/media-transition-chrome.spec.ts asserts the absence of. -->
+				@if (fallback().badge) {
+					<svg
+						data-pptx-media-chrome="play"
+						class="pptx-ng-media-badge"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+					>
+						<polygon [attr.points]="playBadgePoints" />
+					</svg>
+				}
+			} @else if (fallback().placeholder) {
+				<div class="pptx-ng-placeholder" data-pptx-media-chrome="placeholder">
+					{{ placeholderLabel() }}
+				</div>
 			}
 		</div>
 	`,
@@ -146,6 +171,21 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 				height: 100%;
 				object-fit: contain;
 				display: block;
+			}
+			/* A poster standing in for media the package could not resolve. */
+			.pptx-ng-media-dim {
+				opacity: 0.5;
+			}
+			.pptx-ng-media-badge {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				width: 48px;
+				height: 48px;
+				transform: translate(-50%, -50%);
+				color: rgba(255, 255, 255, 0.8);
+				filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+				pointer-events: none;
 			}
 		`,
 	],
@@ -224,12 +264,33 @@ export class MediaRendererComponent {
 	 * deliberate and is the only thing the shared rule leaves to the binding.
 	 */
 	readonly showControls = computed<boolean>(() =>
-		mediaTransportVisible({
-			presenting: this.presenting(),
-			preview: !this.interactive() && !this.presenting(),
-			canvasTransport: false,
-		}),
+		mediaTransportVisible({ ...this.surface(), canvasTransport: false }),
 	);
+
+	/**
+	 * Which surface this renderer is painting on: the live show stage, a STILL of
+	 * a slide (the transition overlay, the presenter console's panes, the
+	 * thumbnail rail), or the authoring canvas.
+	 */
+	readonly surface = computed<MediaSurface>(() =>
+		mediaSurfaceFor(this.interactive(), this.presenting()),
+	);
+
+	/**
+	 * What to paint when no `<video>`/`<audio>` can be mounted.
+	 *
+	 * A still of a slide - the slide-transition overlay, the presenter console's
+	 * panes, the thumbnail rail - gets the poster frame and nothing else: the
+	 * play badge and the typed placeholder box are authoring chrome, and issue
+	 * #147 is exactly that chrome riding along inside a morph. Shared, so the
+	 * five bindings cannot drift on it.
+	 */
+	readonly fallback = computed<MediaFallbackVisual>(() =>
+		mediaFallbackFor(this.element(), Boolean(this.poster()), this.surface()),
+	);
+
+	/** The play triangle, as a shared `<polygon points>` in a 24x24 viewBox. */
+	readonly playBadgePoints = MEDIA_PLAY_BADGE_POINTS;
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),

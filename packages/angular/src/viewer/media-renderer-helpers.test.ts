@@ -9,6 +9,8 @@ import { componentSource } from './component-source.test-support';
 import {
 	asMediaElement,
 	buildTrimFragment,
+	mediaFallbackFor,
+	mediaSurfaceFor,
 	registerCrossSlideAudio,
 	resolveCaptionTracks,
 	resolveMediaSrc,
@@ -189,7 +191,59 @@ describe('the media transport during a show', () => {
 			expect(binding).toBe('showControls()');
 		}
 		// ...and the computed behind it is the shared predicate, not a local guess.
-		expect(source).toContain('mediaTransportVisible({');
-		expect(source).toContain('preview: !this.interactive() && !this.presenting(),');
+		expect(source).toContain(
+			'mediaTransportVisible({ ...this.surface(), canvasTransport: false })',
+		);
+		expect(source).toContain('mediaSurfaceFor(this.interactive(), this.presenting())');
+	});
+});
+
+/**
+ * Issue #147: a slide-transition overlay is a STILL of the outgoing slide, so
+ * media chrome painted there rides along inside the transition - the reporter
+ * caught a play triangle drifting through a morph out of a background video.
+ * These are the template's `@if`s, factored out so they can be asserted without
+ * a TestBed (this package has none, see `vitest.config.ts`).
+ */
+describe('mediaFallbackFor', () => {
+	const still = mediaSurfaceFor(false, false);
+	const show = mediaSurfaceFor(false, true);
+	const canvas = mediaSurfaceFor(true, false);
+
+	it('paints the poster frame and no chrome on a still of a slide', () => {
+		expect(mediaFallbackFor(mediaEl(), true, still)).toStrictEqual({
+			poster: true,
+			dimPoster: false,
+			badge: false,
+			placeholder: false,
+		});
+	});
+
+	it('paints no placeholder box for unresolvable media on a still', () => {
+		expect(mediaFallbackFor(mediaEl(), false, still).placeholder).toBeFalsy();
+	});
+
+	it('paints no chrome during a running show either', () => {
+		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), true, show).badge).toBeFalsy();
+	});
+
+	it('keeps the play badge and the placeholder box on the authoring canvas', () => {
+		expect(mediaFallbackFor(mediaEl(), true, canvas).badge).toBeTruthy();
+		expect(mediaFallbackFor(mediaEl(), false, canvas).placeholder).toBeTruthy();
+	});
+
+	it('dims a poster standing in for missing media, on the canvas only', () => {
+		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), true, canvas).dimPoster).toBeTruthy();
+		expect(mediaFallbackFor(mediaEl({ mediaMissing: true }), true, still).dimPoster).toBeFalsy();
+	});
+
+	it('is what the template branches on, not a locally re-derived rule', () => {
+		const source = componentSource(
+			dirname(fileURLToPath(import.meta.url)),
+			'media-renderer.component.ts',
+		);
+		expect(source).toContain('@else if (fallback().poster && poster(); as posterSrc)');
+		expect(source).toContain('@if (fallback().badge)');
+		expect(source).toContain('@else if (fallback().placeholder)');
 	});
 });
