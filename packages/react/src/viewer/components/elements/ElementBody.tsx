@@ -163,6 +163,9 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 				preview: isStaticSurface === true,
 				canvasTransport: true,
 			}),
+			// ...and never the play badge / placeholder box either: a still is
+			// slide content, and the transition overlay paints one (issue #147).
+			preview: isStaticSurface === true,
 			onPlayStateChange: handleMediaPlayStateChange,
 		});
 	}
