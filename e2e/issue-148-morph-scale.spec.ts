@@ -151,10 +151,21 @@ async function clickExploreAndFreezeMorph(page: Page): Promise<void> {
 	});
 }
 
-/** Put every running animation at the same fraction of its own duration. */
+/**
+ * Put every animation at the same fraction of its own duration, and hold it
+ * there.
+ *
+ * The pause is repeated on every scrub rather than done once after the click,
+ * because a binding can attach an animation a frame or two AFTER the arriving
+ * slide is in the DOM. One that appeared late was never paused, so setting its
+ * `currentTime` only nudged an animation that was still playing, and the very
+ * next measurement read it wherever real time had carried it - a flake that
+ * failed the 0% sample on whichever binding happened to be slowest that run.
+ */
 async function scrubTo(page: Page, fraction: number): Promise<void> {
 	await page.evaluate((f) => {
 		for (const animation of document.getAnimations()) {
+			animation.pause();
 			const duration = animation.effect?.getTiming().duration;
 			animation.currentTime = typeof duration === 'number' ? duration * f : 0;
 		}
