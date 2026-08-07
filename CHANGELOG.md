@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-vue-viewer@2.17.0, pptx-angular-viewer@2.17.0, pptx-vanilla-viewer@1.18.0, pptx-svelte-viewer@2.17.0_
+
+### Features
+
+- Navigate a running slide show on the wheel in every binding (by @ChristopherVR) ([91a19e9](https://github.com/ChristopherVR/pptx-viewer/commit/91a19e96df9d19862b92c3f89ca55acbfbde3111))
+
+### Testing
+
+- **e2e:** Clear the tab session inside the shared loadDeck too (by @ChristopherVR) ([862020f](https://github.com/ChristopherVR/pptx-viewer/commit/862020f7737ee469f514ba573bff4905bff4e1c9))
+
+## 2026-08-07
+
 _Releases: pptx-react-viewer@2.16.0, pptx-vue-viewer@2.16.0, pptx-angular-viewer@2.16.0, pptx-vanilla-viewer@1.17.0, pptx-svelte-viewer@2.16.0_
 
 ### Features
