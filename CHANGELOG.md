@@ -10,6 +10,37 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-react-viewer@2.16.1, pptx-vue-viewer@2.17.1, pptx-angular-viewer@2.17.1, pptx-vanilla-viewer@1.18.1, pptx-svelte-viewer@2.17.1_
+
+### Bug Fixes
+
+- **shared:** Morph a picture's scale, which OOXML stores as a source crop (by @ChristopherVR) ([e2743c7](https://github.com/ChristopherVR/pptx-viewer/commit/e2743c7509090272f4d7bed6df506402de8f6a91))
+- **shared:** A still of a slide paints no media chrome (by @ChristopherVR) ([d99e6fd](https://github.com/ChristopherVR/pptx-viewer/commit/d99e6fda7de360e1b1c3f16c578119f8ce5b5d5a))
+- **react:** Drop the play badge from a slide-transition ghost (by @ChristopherVR) ([496f16d](https://github.com/ChristopherVR/pptx-viewer/commit/496f16dd34e2cf0fd58aed14fe7cce3b66707d2b))
+- **vue:** Route the media fallback through the shared surface rule (by @ChristopherVR) ([9eec996](https://github.com/ChristopherVR/pptx-viewer/commit/9eec9969af543a1e66c35cfb2ced38b0821cac5a))
+- **angular:** Route the media fallback through the shared surface rule (by @ChristopherVR) ([7a97cea](https://github.com/ChristopherVR/pptx-viewer/commit/7a97cea6c5bb8e742ed16bc8a7c883595564bb71))
+- **svelte:** Route the media fallback through the shared surface rule (by @ChristopherVR) ([f6b3b8d](https://github.com/ChristopherVR/pptx-viewer/commit/f6b3b8d91e409d30388c187c7fc6cad1d011f727))
+- **vanilla:** Route the media fallback through the shared surface rule (by @ChristopherVR) ([5dbdd61](https://github.com/ChristopherVR/pptx-viewer/commit/5dbdd616c85182a0d35f8628bb231cea87c8088c))
+- **shared:** Measure each run's PowerPoint width instead of guessing one (by @ChristopherVR) ([920d1f3](https://github.com/ChristopherVR/pptx-viewer/commit/920d1f38129886f834fcfe42681339e8251f6814))
+- **shared:** A media fallback says WHICH badge, not just "a badge" (by @ChristopherVR) ([1cbe78f](https://github.com/ChristopherVR/pptx-viewer/commit/1cbe78f85985ca87a834380932d845303250606d))
+- **react:** Translate the media fallback label, and share its icons (by @ChristopherVR) ([549e169](https://github.com/ChristopherVR/pptx-viewer/commit/549e169c0c5b8bbb30e437629facd8f442f6d65a))
+- **vue:** Mark missing media as not found, not as playable (by @ChristopherVR) ([1931659](https://github.com/ChristopherVR/pptx-viewer/commit/1931659c14d28a17424dbccd513afb92c4fa9cdd))
+- **angular:** Mark missing media as not found, not as playable (by @ChristopherVR) ([b674f0f](https://github.com/ChristopherVR/pptx-viewer/commit/b674f0f7f764aee3ad7e879232b232bd3e437172))
+- **svelte:** Mark missing media as not found, not as playable (by @ChristopherVR) ([03e21b0](https://github.com/ChristopherVR/pptx-viewer/commit/03e21b0f413cb1e028b9075eeb43a740f5c19053))
+- **vanilla:** Mark missing media as not found, not as playable (by @ChristopherVR) ([73df6cc](https://github.com/ChristopherVR/pptx-viewer/commit/73df6cc626dab7b85e3842e406fa2e8c189d8eec))
+
+### Testing
+
+- **e2e:** Assert no media chrome rides along in a transition (by @ChristopherVR) ([8c35c45](https://github.com/ChristopherVR/pptx-viewer/commit/8c35c45db2bfdf4e185867c4a3922c70586d5b16))
+- **e2e:** Re-pause on every morph scrub, not just once after the click (by @ChristopherVR) ([bb619c5](https://github.com/ChristopherVR/pptx-viewer/commit/bb619c574fba32ebb6ba233b16d37e8e9090cb89))
+- **e2e:** Follow the play badge from a polygon to a shared path (by @ChristopherVR) ([2e410f7](https://github.com/ChristopherVR/pptx-viewer/commit/2e410f72f24006a5cd2868c00bab1d0686e84c92))
+
+### Styling
+
+- **shared:** Escape the measurement cache separator (by @ChristopherVR) ([944b312](https://github.com/ChristopherVR/pptx-viewer/commit/944b312abee48c351b84e39c794027a18ec2d758))
+
+## 2026-08-07
+
 _Releases: pptx-vue-viewer@2.17.0, pptx-angular-viewer@2.17.0, pptx-vanilla-viewer@1.18.0, pptx-svelte-viewer@2.17.0_
 
 ### Features
