@@ -148,19 +148,29 @@ export interface MediaFallbackInput {
 	missing?: boolean;
 }
 
+/**
+ * What the deck said a media element is. Mirrors core's `PptxMediaType`
+ * (including its `unknown`) without importing it, so this module stays free of
+ * a core dependency; `unknown` gets the generic icon and label.
+ */
+export type MediaKind = 'video' | 'audio' | 'unknown';
+
+/** The centred affordance drawn over a poster frame. */
+export type MediaFallbackBadge = 'none' | 'play' | 'missing';
+
+/** The box drawn when there is not even a poster frame to paint. */
+export type MediaFallbackPlaceholder = 'none' | 'typed' | 'missing';
+
 /** The layers a media element paints when no playable source is available. */
 export interface MediaFallbackVisual {
 	/** Paint the poster frame. Only ever true when the element has one. */
 	poster: boolean;
 	/** Dim the poster, signalling that the media behind it is unavailable. */
 	dimPoster: boolean;
-	/**
-	 * Paint the centred affordance over the poster: a play badge, or the
-	 * media-not-found mark + label when {@link MediaFallbackInput.missing}.
-	 */
-	badge: boolean;
-	/** Paint the typed placeholder box ("Video" / "Audio") instead of a poster. */
-	placeholder: boolean;
+	/** Which affordance to centre over the poster, if any. */
+	badge: MediaFallbackBadge;
+	/** Which box to paint instead of a poster, if any. */
+	placeholder: MediaFallbackPlaceholder;
 }
 
 /**
@@ -179,6 +189,11 @@ export interface MediaFallbackVisual {
  * The rule: a still of a slide - and the show itself - paints slide CONTENT and
  * nothing else. Only the authoring canvas adds the affordance that says "this
  * picture is a video you cannot play here".
+ *
+ * `badge` and `placeholder` are unions rather than booleans on purpose. As
+ * booleans, four bindings read "paint a badge" and drew a PLAY triangle over
+ * media the package had failed to find - the opposite of what React said in the
+ * same spot. A union cannot be half-read.
  */
 export function mediaFallbackVisual(
 	surface: MediaSurface,
@@ -186,33 +201,99 @@ export function mediaFallbackVisual(
 ): MediaFallbackVisual {
 	const contentOnly = surface.presenting || surface.preview;
 	if (contentOnly) {
+		return { poster: input.hasPoster, dimPoster: false, badge: 'none', placeholder: 'none' };
+	}
+	const missing = input.missing === true;
+	// The badge is an overlay ON a poster; with no poster the placeholder box
+	// carries the same icon itself, so exactly one of the two is ever set.
+	if (input.hasPoster) {
 		return {
-			poster: input.hasPoster,
-			dimPoster: false,
-			badge: false,
-			placeholder: false,
+			poster: true,
+			dimPoster: missing,
+			badge: missing ? 'missing' : 'play',
+			placeholder: 'none',
 		};
 	}
 	return {
-		poster: input.hasPoster,
-		dimPoster: input.hasPoster && input.missing === true,
-		badge: true,
-		placeholder: !input.hasPoster,
+		poster: false,
+		dimPoster: false,
+		badge: 'none',
+		placeholder: missing ? 'missing' : 'typed',
 	};
 }
 
 /**
- * The play triangle every binding draws for {@link MediaFallbackVisual.badge},
- * as an SVG `<polygon points>` in a 24x24 `viewBox`.
+ * The icons the fallback draws, as SVG path `d` strings in a 24x24 `viewBox`,
+ * stroked with `currentColor` over `fill: none`.
  *
- * Shared so the five badges cannot drift into five slightly different triangles;
- * each binding still owns the wrapper markup its template system prefers.
+ * Paths rather than each binding's own `<circle>` / `<polygon>` / `<line>` mix:
+ * one array renders identically through JSX, a Vue/Svelte `for`, an Angular
+ * `@for` and a DOM loop, so the five icons cannot drift apart.
  */
-export const MEDIA_PLAY_BADGE_POINTS = '5 3 19 12 5 21 5 3';
+export const MEDIA_FALLBACK_ICONS: Readonly<
+	Record<'play' | 'missing' | 'audio', readonly string[]>
+> = {
+	play: ['M5 3 L19 12 L5 21 Z'],
+	missing: ['M12 2 a10 10 0 1 0 0 20 a10 10 0 1 0 0-20', 'M4 4 L20 20'],
+	audio: [
+		'M9 18V5l12-2v13',
+		'M6 15 a3 3 0 1 0 0 6 a3 3 0 1 0 0-6',
+		'M18 13 a3 3 0 1 0 0 6 a3 3 0 1 0 0-6',
+	],
+};
 
 /**
- * Neutral DOM marker on the play badge / typed placeholder, so a
- * framework-neutral e2e can assert that no binding paints media chrome onto a
- * transition overlay (`e2e/media-transition-chrome.spec.ts`).
+ * The icon for a resolved {@link MediaFallbackVisual}, or `[]` when the surface
+ * asks for none. An untyped placeholder gets no icon, as React has always done:
+ * the deck never said whether it is a clip or a track.
  */
+export function mediaFallbackIcon(
+	visual: MediaFallbackVisual,
+	mediaType?: MediaKind,
+): readonly string[] {
+	if (visual.badge === 'missing' || visual.placeholder === 'missing') {
+		return MEDIA_FALLBACK_ICONS.missing;
+	}
+	if (visual.badge === 'play') {
+		return MEDIA_FALLBACK_ICONS.play;
+	}
+	if (visual.placeholder === 'typed') {
+		if (mediaType === 'audio') {
+			return MEDIA_FALLBACK_ICONS.audio;
+		}
+		if (mediaType === 'video') {
+			return MEDIA_FALLBACK_ICONS.play;
+		}
+	}
+	return [];
+}
+
+/**
+ * The i18n key labelling a resolved {@link MediaFallbackVisual}, or `undefined`
+ * when it carries no label (the play badge is a bare triangle).
+ *
+ * Shared because the five disagreed: React hard-coded the English words "Video"
+ * and "Audio" - untranslated, in a package that ships four locales - while the
+ * other four labelled every unplayable element the same flat "Media", whatever
+ * the deck said it was.
+ */
+export function mediaFallbackLabelKey(
+	visual: MediaFallbackVisual,
+	mediaType?: MediaKind,
+): string | undefined {
+	if (visual.badge === 'missing' || visual.placeholder === 'missing') {
+		return 'pptx.media.notFound';
+	}
+	if (visual.placeholder !== 'typed') {
+		return undefined;
+	}
+	if (mediaType === 'video') {
+		return 'pptx.media.videoClip';
+	}
+	if (mediaType === 'audio') {
+		return 'pptx.media.audioClip';
+	}
+	return 'pptx.elementType.media';
+}
+
 export const MEDIA_CHROME_ATTRIBUTE = 'data-pptx-media-chrome';

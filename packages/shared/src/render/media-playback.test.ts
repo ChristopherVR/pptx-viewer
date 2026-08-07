@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	MEDIA_FALLBACK_ICONS,
 	applyMediaPlaybackAttributes,
+	mediaFallbackIcon,
+	mediaFallbackLabelKey,
 	mediaFallbackVisual,
 	mediaPlaybackAttributes,
 	mediaSurfaceOf,
@@ -178,24 +181,23 @@ describe('mediaFallbackVisual', () => {
 		expect(mediaFallbackVisual(still, { hasPoster: true })).toStrictEqual({
 			poster: true,
 			dimPoster: false,
-			badge: false,
-			placeholder: false,
+			badge: 'none',
+			placeholder: 'none',
 		});
 	});
 
 	it('paints no chrome on a still whose media is missing outright', () => {
 		const visual = mediaFallbackVisual(still, { hasPoster: false, missing: true });
-		expect(visual.badge).toBeFalsy();
-		expect(visual.placeholder).toBeFalsy();
+		expect(visual.badge).toBe('none');
+		expect(visual.placeholder).toBe('none');
 	});
 
 	it('paints no chrome during a running show either', () => {
-		const visual = mediaFallbackVisual(show, { hasPoster: true, missing: true });
-		expect(visual).toStrictEqual({
+		expect(mediaFallbackVisual(show, { hasPoster: true, missing: true })).toStrictEqual({
 			poster: true,
 			dimPoster: false,
-			badge: false,
-			placeholder: false,
+			badge: 'none',
+			placeholder: 'none',
 		});
 	});
 
@@ -203,8 +205,19 @@ describe('mediaFallbackVisual', () => {
 		expect(mediaFallbackVisual(canvas, { hasPoster: true })).toStrictEqual({
 			poster: true,
 			dimPoster: false,
-			badge: true,
-			placeholder: false,
+			badge: 'play',
+			placeholder: 'none',
+		});
+	});
+
+	// A boolean `badge` was read as "paint a badge" by four bindings, which drew
+	// a PLAY triangle over media the package had failed to find.
+	it('asks for the not-found mark, never a play badge, over missing media', () => {
+		expect(mediaFallbackVisual(canvas, { hasPoster: true, missing: true })).toStrictEqual({
+			poster: true,
+			dimPoster: true,
+			badge: 'missing',
+			placeholder: 'none',
 		});
 	});
 
@@ -217,8 +230,79 @@ describe('mediaFallbackVisual', () => {
 		expect(mediaFallbackVisual(canvas, { hasPoster: false })).toStrictEqual({
 			poster: false,
 			dimPoster: false,
-			badge: true,
-			placeholder: true,
+			badge: 'none',
+			placeholder: 'typed',
 		});
+	});
+
+	it('falls back to the not-found box for missing media with no poster', () => {
+		expect(mediaFallbackVisual(canvas, { hasPoster: false, missing: true }).placeholder).toBe(
+			'missing',
+		);
+	});
+});
+
+describe('mediaFallbackIcon', () => {
+	const canvas = { presenting: false, preview: false };
+	const still = { presenting: false, preview: true };
+
+	it('draws the play triangle for a playable-looking fallback', () => {
+		const visual = mediaFallbackVisual(canvas, { hasPoster: true, mediaType: 'video' });
+		expect(mediaFallbackIcon(visual, 'video')).toStrictEqual(MEDIA_FALLBACK_ICONS.play);
+	});
+
+	it('draws the not-found mark whenever the media is missing', () => {
+		const overPoster = mediaFallbackVisual(canvas, { hasPoster: true, missing: true });
+		const box = mediaFallbackVisual(canvas, { hasPoster: false, missing: true });
+		expect(mediaFallbackIcon(overPoster, 'video')).toStrictEqual(MEDIA_FALLBACK_ICONS.missing);
+		expect(mediaFallbackIcon(box, 'audio')).toStrictEqual(MEDIA_FALLBACK_ICONS.missing);
+	});
+
+	it('draws the music note for an unplayable audio element', () => {
+		const visual = mediaFallbackVisual(canvas, { hasPoster: false, mediaType: 'audio' });
+		expect(mediaFallbackIcon(visual, 'audio')).toStrictEqual(MEDIA_FALLBACK_ICONS.audio);
+	});
+
+	it('draws nothing when the deck never said what the media is', () => {
+		const visual = mediaFallbackVisual(canvas, { hasPoster: false, mediaType: 'unknown' });
+		expect(mediaFallbackIcon(visual, 'unknown')).toStrictEqual([]);
+	});
+
+	it('draws nothing on a still of a slide', () => {
+		const visual = mediaFallbackVisual(still, { hasPoster: true, mediaType: 'video' });
+		expect(mediaFallbackIcon(visual, 'video')).toStrictEqual([]);
+	});
+});
+
+describe('mediaFallbackLabelKey', () => {
+	const canvas = { presenting: false, preview: false };
+	const still = { presenting: false, preview: true };
+
+	it('labels missing media the same way over a poster and in a box', () => {
+		expect(
+			mediaFallbackLabelKey(mediaFallbackVisual(canvas, { hasPoster: true, missing: true })),
+		).toBe('pptx.media.notFound');
+		expect(
+			mediaFallbackLabelKey(mediaFallbackVisual(canvas, { hasPoster: false, missing: true })),
+		).toBe('pptx.media.notFound');
+	});
+
+	it('names the clip type, rather than a flat "Media", in the typed box', () => {
+		const box = mediaFallbackVisual(canvas, { hasPoster: false });
+		expect(mediaFallbackLabelKey(box, 'video')).toBe('pptx.media.videoClip');
+		expect(mediaFallbackLabelKey(box, 'audio')).toBe('pptx.media.audioClip');
+		expect(mediaFallbackLabelKey(box, 'unknown')).toBe('pptx.elementType.media');
+	});
+
+	it('leaves the bare play badge unlabelled', () => {
+		expect(
+			mediaFallbackLabelKey(mediaFallbackVisual(canvas, { hasPoster: true }), 'video'),
+		).toBeUndefined();
+	});
+
+	it('labels nothing on a still of a slide', () => {
+		expect(
+			mediaFallbackLabelKey(mediaFallbackVisual(still, { hasPoster: true, missing: true })),
+		).toBeUndefined();
 	});
 });
