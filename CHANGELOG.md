@@ -10,6 +10,27 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-react-viewer@2.16.0, pptx-vue-viewer@2.16.0, pptx-angular-viewer@2.16.0, pptx-vanilla-viewer@1.17.0, pptx-svelte-viewer@2.16.0_
+
+### Features
+
+- **shared:** Map wheel gestures to PowerPoint's intents (by @ChristopherVR) ([1cc7797](https://github.com/ChristopherVR/pptx-viewer/commit/1cc779799cf5b6ffa94c39199c71b563e21afa82))
+
+### Refactor
+
+- Route four bindings through the shared geometry cascade (by @ChristopherVR) ([859ca12](https://github.com/ChristopherVR/pptx-viewer/commit/859ca12b37efcf98e7614b2c2109f3bf1d9c0f72))
+
+### Testing
+
+- **e2e:** Expect the real accept list on the landing file input (by @ChristopherVR) ([cdec7a6](https://github.com/ChristopherVR/pptx-viewer/commit/cdec7a668e06f04055febba7e015e850310cb266))
+- **e2e:** Forget the tab session before every deck-load navigation (by @ChristopherVR) ([29c8f7a](https://github.com/ChristopherVR/pptx-viewer/commit/29c8f7abc11902bddefba4d2fe30d352f5e3461f))
+
+### Build & CI
+
+- Shard the e2e matrix, and unstick three session-restore specs (by @ChristopherVR) ([0631c35](https://github.com/ChristopherVR/pptx-viewer/commit/0631c35a475daf42059a1b036df211050d2efea9))
+
+## 2026-08-07
+
 _Releases: pptx-react-viewer@2.15.3, pptx-vue-viewer@2.15.3, pptx-angular-viewer@2.15.3, pptx-vanilla-viewer@1.16.3, pptx-svelte-viewer@2.15.3_
 
 ### Bug Fixes
