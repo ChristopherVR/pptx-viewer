@@ -193,6 +193,12 @@ describe('shapeEffectOverlay stroke-only preset', () => {
 	});
 
 	it('leaves a closed preset to its CSS border', () => {
-		expect(markup(rule({ shapeType: 'rect', height: 100 }))).toBe('');
+		// A closed preset must not get a PAINTED stroke outline - its CSS border
+		// draws the edge. It does still get the transparent `pointer-events:stroke`
+		// hit band, because this fixture is unfilled and textless: a hollow frame,
+		// whose interior must let clicks through to whatever it is drawn over.
+		const html = markup(rule({ shapeType: 'rect', height: 100 }));
+		expect(html).not.toContain('stroke="#000000"');
+		expect(html).toContain('stroke="transparent"');
 	});
 });

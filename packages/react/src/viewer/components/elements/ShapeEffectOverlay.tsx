@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
+	buildHollowHitOutline,
 	buildStrokeOutline,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
@@ -88,7 +89,11 @@ export function ShapeEffectOverlay({
 	const overlay = getComputedEffectStyle(element).fillOverlay;
 	const softEdge = getSoftEdgeSvgFilter(element.shapeStyle, element.id);
 	const strokeOutline = buildStrokeOutline(element);
-	if (!overlay && !softEdge && !strokeOutline) {
+	// An unfilled, textless shape is a FRAME: its container is pointer-events:none
+	// so clicks fall through to what it is drawn over, and this transparent band
+	// opts its OUTLINE back into hit testing (same trick as connector-hit-target).
+	const hollowHit = buildHollowHitOutline(element);
+	if (!overlay && !softEdge && !strokeOutline && !hollowHit) {
 		return null;
 	}
 
@@ -148,6 +153,29 @@ export function ShapeEffectOverlay({
 							}
 						/>
 					))}
+				</svg>
+			) : null}
+			{hollowHit ? (
+				<svg
+					aria-hidden='true'
+					viewBox={strokeOutlineViewBox(element)}
+					preserveAspectRatio='none'
+					style={{
+						position: 'absolute',
+						inset: 0,
+						width: '100%',
+						height: '100%',
+						overflow: 'visible',
+						pointerEvents: 'none',
+					}}
+				>
+					<path
+						d={hollowHit.d}
+						fill='none'
+						stroke='transparent'
+						strokeWidth={hollowHit.strokeWidth}
+						style={{ pointerEvents: 'stroke' }}
+					/>
 				</svg>
 			) : null}
 		</>

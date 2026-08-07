@@ -20,6 +20,7 @@
  *               SVG path serialisation), `connector-reroute` (dynamic endpoint
  *               recalculation when connected shapes move + connection sites).
  */
+export * from './hollow-shape-hit-test';
 export * from './shape-geometry';
 export * from './shape-geometry-cascade';
 export * from './fill-style';

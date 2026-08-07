@@ -1,6 +1,7 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	getGroupChildParentFill,
+	isHollowShapeElement,
 	isElementActionable,
 	isElementRendered,
 	LINK_TOOLTIP_HOST_CLASS,
@@ -252,6 +253,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
 					cur,
 					effectiveCanInteract || isActionable ? '' : 'pointer-events-none',
+					// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
+					// outline only, so its interior must not swallow clicks meant for what it
+					// is drawn over. ShapeEffectOverlay paints a transparent
+					// pointer-events:stroke band that opts the outline back in.
+					isHollowShapeElement(el) ? 'pointer-events-none' : '',
 					isFullscreenMedia ? 'pointer-events-auto' : '',
 					selB,
 					// Shared class the tooltip's `:hover` rule keys off (see
