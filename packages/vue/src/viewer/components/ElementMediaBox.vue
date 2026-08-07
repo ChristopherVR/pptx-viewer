@@ -8,8 +8,11 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import {
+	MEDIA_PLAY_BADGE_POINTS,
 	applyMediaPlaybackAttributes,
+	mediaFallbackVisual,
 	mediaPlaybackAttributes,
+	mediaSurfaceOf,
 	mediaTransportVisible,
 	startMediaAutoplay,
 } from 'pptx-viewer-shared';
@@ -144,13 +147,35 @@ const shouldAutoPlay = computed(
  * Chrome's scrubber across those too: the presenter console painted a control
  * bar over a slide the speaker cannot play. The rule now comes from shared.
  */
-const showControls = computed(() =>
-	mediaTransportVisible({
+const surface = computed(() =>
+	mediaSurfaceOf({
+		interactive: props.interactive === true,
 		presenting: props.presenting === true,
-		preview: props.interactive !== true && props.presenting !== true,
-		canvasTransport: true,
 	}),
 );
+
+const showControls = computed(() =>
+	mediaTransportVisible({ ...surface.value, canvasTransport: true }),
+);
+
+/**
+ * What to paint when no `<video>`/`<audio>` can be mounted.
+ *
+ * A still of a slide - the slide-transition overlay, the presenter console's
+ * panes, the thumbnail rail - gets the poster frame and nothing else: the play
+ * badge and the typed placeholder box are authoring chrome, and issue #147 is
+ * exactly that chrome riding along inside a morph. The rule is shared so the
+ * five bindings cannot drift on it.
+ */
+const fallback = computed(() =>
+	mediaFallbackVisual(surface.value, {
+		hasPoster: Boolean(posterSrc.value),
+		missing: props.element.type === 'media' && props.element.mediaMissing === true,
+	}),
+);
+
+/** The play triangle, as a shared `<polygon points>` in a 24x24 viewBox. */
+const playBadgePoints = MEDIA_PLAY_BADGE_POINTS;
 </script>
 
 <template>
@@ -188,12 +213,54 @@ const showControls = computed(() =>
 			:autoplay="shouldAutoPlay"
 			:style="{ width: '100%', pointerEvents: interactive ? 'none' : 'auto' }"
 		/>
-		<img
-			v-else-if="imageSrc"
-			:src="imageSrc"
-			alt=""
-			style="width: 100%; height: 100%; object-fit: contain; display: block"
-		/>
-		<div v-else class="pptx-vue-placeholder">{{ t('pptx.elementType.media') }}</div>
+		<template v-else-if="fallback.poster && posterSrc">
+			<img
+				:src="posterSrc"
+				alt=""
+				:style="{
+					width: '100%',
+					height: '100%',
+					objectFit: 'contain',
+					display: 'block',
+					opacity: fallback.dimPoster ? 0.5 : undefined,
+				}"
+			/>
+			<!-- Authoring-canvas chrome only; `data-pptx-media-chrome` is the neutral
+			     marker `e2e/media-transition-chrome.spec.ts` asserts the absence of. -->
+			<svg
+				v-if="fallback.badge"
+				data-pptx-media-chrome="play"
+				class="pptx-vue-media-badge"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.5"
+			>
+				<polygon :points="playBadgePoints" />
+			</svg>
+		</template>
+		<div
+			v-else-if="fallback.placeholder"
+			class="pptx-vue-placeholder"
+			data-pptx-media-chrome="placeholder"
+		>
+			{{ t('pptx.elementType.media') }}
+		</div>
 	</div>
 </template>
+
+<style scoped>
+/* The host `.pptx-vue-media` is already absolutely positioned by
+   `getContainerStyle`, so the badge centres against the element's own box. */
+.pptx-vue-media-badge {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 48px;
+	height: 48px;
+	transform: translate(-50%, -50%);
+	color: rgba(255, 255, 255, 0.8);
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+	pointer-events: none;
+}
+</style>

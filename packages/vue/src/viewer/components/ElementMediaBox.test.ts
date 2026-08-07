@@ -147,3 +147,44 @@ describe('elementMediaBox cross-slide ("play across slides") audio', () => {
 		wrapper.unmount();
 	});
 });
+
+/**
+ * Issue #147: a slide-transition overlay is a STILL of the outgoing slide, so
+ * media chrome painted there rides along inside the transition - the reporter
+ * caught a play triangle drifting through a morph out of a background video.
+ */
+describe('elementMediaBox unplayable-media fallback', () => {
+	const POSTER = 'data:image/png;base64,AAAA';
+	const still = { interactive: false, presenting: false };
+
+	it('paints the poster frame with no play badge on a still', () => {
+		const wrapper = mountMedia(makeMedia({ mediaData: undefined, posterFrameData: POSTER }), still);
+		expect(wrapper.find('img').attributes('src')).toBe(POSTER);
+		expect(wrapper.find('[data-pptx-media-chrome]').exists()).toBeFalsy();
+	});
+
+	it('paints no labelled placeholder box on a still', () => {
+		const wrapper = mountMedia(makeMedia({ mediaData: undefined }), still);
+		expect(wrapper.find('[data-pptx-media-chrome]').exists()).toBeFalsy();
+		expect(wrapper.text()).toBe('');
+	});
+
+	it('paints none during a show either', () => {
+		const wrapper = mountMedia(makeMedia({ mediaData: undefined, posterFrameData: POSTER }), {
+			interactive: false,
+			presenting: true,
+		});
+		expect(wrapper.find('img').exists()).toBeTruthy();
+		expect(wrapper.find('[data-pptx-media-chrome]').exists()).toBeFalsy();
+	});
+
+	it('paints the play badge over the poster on the authoring canvas', () => {
+		const wrapper = mountMedia(makeMedia({ mediaData: undefined, posterFrameData: POSTER }));
+		expect(wrapper.find('[data-pptx-media-chrome="play"]').exists()).toBeTruthy();
+	});
+
+	it('falls back to the typed placeholder box on the authoring canvas', () => {
+		const wrapper = mountMedia(makeMedia({ mediaData: undefined }));
+		expect(wrapper.find('[data-pptx-media-chrome="placeholder"]').exists()).toBeTruthy();
+	});
+});
