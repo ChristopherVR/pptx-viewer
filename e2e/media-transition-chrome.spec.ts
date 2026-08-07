@@ -55,8 +55,8 @@ const TRANSITION_OVERLAY = '[data-pptx-transition-overlay]';
 /** Neutral marker every binding puts on media chrome (shared MEDIA_CHROME_ATTRIBUTE). */
 const MEDIA_CHROME = '[data-pptx-media-chrome]';
 
-/** The shared play triangle (`MEDIA_PLAY_BADGE_POINTS`), whatever wraps it. */
-const PLAY_BADGE_POINTS = '5 3 19 12 5 21 5 3';
+/** The shared play triangle (`MEDIA_FALLBACK_ICONS.play`), whatever wraps it. */
+const PLAY_BADGE_PATH = 'M5 3 L19 12 L5 21 Z';
 
 async function startShowOnVideoSlide(page: Page): Promise<void> {
 	// Forget any restored session first, or the deck reopens and the landing
@@ -123,7 +123,7 @@ test.describe('issue #147 - media chrome must not ride along in a transition', (
 				`media chrome was painted at ${fraction * 100}% of the morph`,
 			).toBe(0);
 			expect(
-				await page.locator(`svg polygon[points="${PLAY_BADGE_POINTS}"]`).count(),
+				await page.locator(`svg path[d="${PLAY_BADGE_PATH}"]`).count(),
 				`a play triangle was painted at ${fraction * 100}% of the morph`,
 			).toBe(0);
 
