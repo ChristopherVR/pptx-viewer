@@ -30,7 +30,7 @@ import {
 	buildPatternFillCss,
 } from './color';
 import { getEffectDagFilter } from './effect-dag-filters';
-import { getResolvedShapeClipPath } from './resolved-shape-clip-path';
+import { getResolvedShapeClipPath, isIdentityRectClip } from './resolved-shape-clip-path';
 import { getRoundRectRadiusPx } from './shape-round-rect';
 import { getShapeType } from './shape-types';
 import { apply3dEffects } from './shape-visual-3d';
@@ -113,7 +113,9 @@ export function getShapeVisualStyle(
 		return {};
 	}
 	const normalizedShapeType = getShapeType(element.shapeType);
-	const clipPath = getResolvedShapeClipPath(element);
+	// A rect preset's clip is its own box: skip it so overflowing text spills
+	// visibly (as PowerPoint does) instead of being sliced.
+	const clipPath = isIdentityRectClip(element) ? undefined : getResolvedShapeClipPath(element);
 	// Custom-geometry shapes (freeforms) are painted by `renderVectorShape` as an
 	// SVG `<path>` that already carries the fill and stroke. Painting the fill a
 	// second time as a `backgroundColor`/`backgroundImage` on this rectangular

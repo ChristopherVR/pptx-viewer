@@ -217,3 +217,34 @@ export function getResolvedShapeClipPath(
 	const adjustments = (element as { shapeAdjustments?: Record<string, number> }).shapeAdjustments;
 	return getResolvedShapeClipPathFor(shapeType, w, h, adjustments);
 }
+
+/**
+ * Preset geometries whose outline is exactly the element's bounding box.
+ *
+ * Evaluating all 188 presets shows only these two return the unmodified
+ * rectangle, so a CSS `clip-path` for them paints identically and serves only
+ * to hard-clip overflowing children. PowerPoint never clips a shape's TEXT to
+ * its geometry - an overflowing body spills visibly - so stamping this identity
+ * clip on the shape container (which also holds the text layer) slices the
+ * first and last lines of any overflowing text. With `anchor="ctr"` the damage
+ * is symmetric: the top line is cut through the glyphs and the final character
+ * is cut off (issue #132, HR deck slide 26).
+ */
+const IDENTITY_RECT_PRESETS = new Set(['rect', 'flowchartprocess']);
+
+/**
+ * Whether `element`'s resolved clip-path would be its own bounding rectangle,
+ * i.e. a clip that paints identically but suppresses overflow. Custom-geometry
+ * freeforms are never identity clips: their `pathData` outline is the point.
+ *
+ * @param element The element whose clip-path is being resolved.
+ * @returns `true` when the clip can be skipped so overflow stays visible.
+ */
+export function isIdentityRectClip(element: PptxElement): boolean {
+	const custom = element as { pathData?: string; pathWidth?: number; pathHeight?: number };
+	if (custom.pathData && custom.pathWidth && custom.pathHeight) {
+		return false;
+	}
+	const shapeType = (element as { shapeType?: string }).shapeType;
+	return shapeType !== undefined && IDENTITY_RECT_PRESETS.has(shapeType.toLowerCase());
+}

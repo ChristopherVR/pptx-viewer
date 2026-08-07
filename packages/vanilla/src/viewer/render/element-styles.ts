@@ -18,6 +18,7 @@ import {
 	suppressesCssBorder,
 	getCssBorderDashStyle,
 	getResolvedShapeClipPath,
+	isIdentityRectClip,
 	px,
 } from 'pptx-viewer-shared';
 
@@ -193,7 +194,9 @@ export function getShapeFillStrokeStyle(
 		return style;
 	}
 
-	const clipPath = getResolvedShapeClipPath(el);
+	// A rect preset's clip is its own box: skip it so overflowing text spills
+	// visibly (as PowerPoint does) instead of being sliced.
+	const clipPath = isIdentityRectClip(el) ? undefined : getResolvedShapeClipPath(el);
 	if (clipPath) {
 		style['clipPath'] = clipPath;
 		return style;

@@ -8,4 +8,8 @@
  * React viewer's clipping pipeline already consumes, so existing imports keep
  * working without a local duplicate.
  */
-export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from 'pptx-viewer-shared';
+export {
+	getResolvedShapeClipPath,
+	getResolvedShapeClipPathFor,
+	isIdentityRectClip,
+} from 'pptx-viewer-shared';

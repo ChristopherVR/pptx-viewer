@@ -17,7 +17,7 @@ import {
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
 import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
-import { getResolvedShapeClipPath } from './shape-geometry';
+import { getResolvedShapeClipPath, isIdentityRectClip } from './shape-geometry';
 import { cssObjectToStyleMap } from './table-renderer-helpers';
 
 /**
@@ -198,7 +198,9 @@ export function getShapeFillStrokeStyle(
 		return style;
 	}
 
-	const clipPath = getResolvedShapeClipPath(el);
+	// A rect preset's clip is its own box: skip it so overflowing text spills
+	// visibly (as PowerPoint does) instead of being sliced.
+	const clipPath = isIdentityRectClip(el) ? undefined : getResolvedShapeClipPath(el);
 	if (clipPath) {
 		style['clip-path'] = clipPath;
 	}
