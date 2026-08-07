@@ -185,6 +185,19 @@ describe('elementMediaBox unplayable-media fallback', () => {
 
 	it('falls back to the typed placeholder box on the authoring canvas', () => {
 		const wrapper = mountMedia(makeMedia({ mediaData: undefined }));
-		expect(wrapper.find('[data-pptx-media-chrome="placeholder"]').exists()).toBeTruthy();
+		expect(wrapper.find('[data-pptx-media-chrome="typed"]').exists()).toBeTruthy();
+		// The clip type, not the flat "Media" every unplayable element used to get.
+		expect(wrapper.text()).toBe('Video clip');
+	});
+
+	// Reading a boolean `badge` as "paint a badge" drew a PLAY triangle over
+	// media the package had failed to find - the opposite of what React said.
+	it('marks missing media as not found, never with a play badge', () => {
+		const wrapper = mountMedia(
+			makeMedia({ mediaData: undefined, posterFrameData: POSTER, mediaMissing: true }),
+		);
+		expect(wrapper.find('[data-pptx-media-chrome="play"]').exists()).toBeFalsy();
+		expect(wrapper.find('[data-pptx-media-chrome="missing"]').exists()).toBeTruthy();
+		expect(wrapper.text()).toBe('Media not found');
 	});
 });

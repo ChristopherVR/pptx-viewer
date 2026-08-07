@@ -8,8 +8,9 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import {
-	MEDIA_PLAY_BADGE_POINTS,
 	applyMediaPlaybackAttributes,
+	mediaFallbackIcon,
+	mediaFallbackLabelKey,
 	mediaFallbackVisual,
 	mediaPlaybackAttributes,
 	mediaSurfaceOf,
@@ -174,8 +175,9 @@ const fallback = computed(() =>
 	}),
 );
 
-/** The play triangle, as a shared `<polygon points>` in a 24x24 viewBox. */
-const playBadgePoints = MEDIA_PLAY_BADGE_POINTS;
+/** The shared icon paths and label key for whatever the fallback resolved to. */
+const fallbackIcon = computed(() => mediaFallbackIcon(fallback.value, mediaKind.value));
+const fallbackLabelKey = computed(() => mediaFallbackLabelKey(fallback.value, mediaKind.value));
 </script>
 
 <template>
@@ -227,24 +229,35 @@ const playBadgePoints = MEDIA_PLAY_BADGE_POINTS;
 			/>
 			<!-- Authoring-canvas chrome only; `data-pptx-media-chrome` is the neutral
 			     marker `e2e/media-transition-chrome.spec.ts` asserts the absence of. -->
-			<svg
-				v-if="fallback.badge"
-				data-pptx-media-chrome="play"
+			<div
+				v-if="fallback.badge !== 'none'"
+				:data-pptx-media-chrome="fallback.badge"
 				class="pptx-vue-media-badge"
+				:class="{ 'pptx-vue-media-badge-missing': fallback.badge === 'missing' }"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+					<path v-for="d in fallbackIcon" :key="d" :d="d" />
+				</svg>
+				<span v-if="fallbackLabelKey && fallback.badge === 'missing'">{{
+					t(fallbackLabelKey)
+				}}</span>
+			</div>
+		</template>
+		<div
+			v-else-if="fallback.placeholder !== 'none'"
+			class="pptx-vue-placeholder pptx-vue-media-placeholder"
+			:data-pptx-media-chrome="fallback.placeholder"
+		>
+			<svg
+				v-if="fallbackIcon.length > 0"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
 				stroke-width="1.5"
 			>
-				<polygon :points="playBadgePoints" />
+				<path v-for="d in fallbackIcon" :key="d" :d="d" />
 			</svg>
-		</template>
-		<div
-			v-else-if="fallback.placeholder"
-			class="pptx-vue-placeholder"
-			data-pptx-media-chrome="placeholder"
-		>
-			{{ t('pptx.elementType.media') }}
+			<span v-if="fallbackLabelKey">{{ t(fallbackLabelKey) }}</span>
 		</div>
 	</div>
 </template>
@@ -254,13 +267,40 @@ const playBadgePoints = MEDIA_PLAY_BADGE_POINTS;
    `getContainerStyle`, so the badge centres against the element's own box. */
 .pptx-vue-media-badge {
 	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 48px;
-	height: 48px;
-	transform: translate(-50%, -50%);
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
 	color: rgba(255, 255, 255, 0.8);
 	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 	pointer-events: none;
+	font-size: 10px;
+}
+
+.pptx-vue-media-badge svg {
+	width: 48px;
+	height: 48px;
+}
+
+.pptx-vue-media-badge-missing {
+	color: rgba(255, 255, 255, 0.6);
+}
+
+.pptx-vue-media-badge-missing svg {
+	width: 32px;
+	height: 32px;
+}
+
+.pptx-vue-media-placeholder {
+	flex-direction: column;
+	gap: 4px;
+	font-size: 10px;
+}
+
+.pptx-vue-media-placeholder svg {
+	width: 32px;
+	height: 32px;
 }
 </style>
