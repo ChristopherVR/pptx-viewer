@@ -10,6 +10,19 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-viewer-core@2.3.2, pptx-react-viewer@2.15.2, pptx-vue-viewer@2.15.2, pptx-angular-viewer@2.15.2, pptx-vanilla-viewer@1.16.2, pptx-svelte-viewer@2.15.2_
+
+### Bug Fixes
+
+- **core:** Measure parallelogram skew against the short side, not the width (by @ChristopherVR) ([fea647f](https://github.com/ChristopherVR/pptx-viewer/commit/fea647f94633e6e919a1c59bda7a71cda8b1b677))
+- **core:** Bulge the teardrop preset's point outwards, not inwards (by @ChristopherVR) ([0b23bc4](https://github.com/ChristopherVR/pptx-viewer/commit/0b23bc4b6ecde5f82f7cebb0601859edbf1ab399))
+- **react:** Stop clipping connectors out of slide thumbnails (by @ChristopherVR) ([3005067](https://github.com/ChristopherVR/pptx-viewer/commit/3005067c96b1e752bf5980f17fdd914bece64ed6))
+- **react:** Actually attach the canvas wheel listener (by @ChristopherVR) ([7e37f57](https://github.com/ChristopherVR/pptx-viewer/commit/7e37f57171b520c445cb5f916d79c69cfef8755f))
+- Render ellipses as ellipses, not pills (by @ChristopherVR) ([b6d2598](https://github.com/ChristopherVR/pptx-viewer/commit/b6d2598fb58f8fc81fbef463c728d87a78c129b4))
+- Stop slicing overflowing text with an identity rect clip-path (by @ChristopherVR) ([7393111](https://github.com/ChristopherVR/pptx-viewer/commit/73931118e9e29bf16d1ffccb6f01d68a02091463))
+
+## 2026-08-07
+
 _Releases: pptx-viewer-core@2.3.1, pptx-react-viewer@2.15.1, pptx-vue-viewer@2.15.1, pptx-angular-viewer@2.15.1, pptx-vanilla-viewer@1.16.1, pptx-svelte-viewer@2.15.1_
 
 ### Bug Fixes
