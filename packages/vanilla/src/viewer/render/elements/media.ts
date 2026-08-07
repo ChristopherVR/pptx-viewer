@@ -1,10 +1,11 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
 import {
 	MEDIA_CHROME_ATTRIBUTE,
-	MEDIA_PLAY_BADGE_POINTS,
 	applyMediaPlaybackAttributes,
 	getContainerStyle,
 	getImageSrc,
+	mediaFallbackIcon,
+	mediaFallbackLabelKey,
 	mediaFallbackVisual,
 	mediaPlaybackAttributes,
 	mediaSurfaceOf,
@@ -166,6 +167,8 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		hasPoster: Boolean(posterSrc),
 		missing: element.mediaMissing === true,
 	});
+	const icon = mediaFallbackIcon(fallback, element.mediaType);
+	const labelKey = mediaFallbackLabelKey(fallback, element.mediaType);
 
 	if (fallback.poster && posterSrc) {
 		const img = createEl(doc, 'img', 'pptxv-media-poster', {
@@ -178,38 +181,54 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		img.src = posterSrc;
 		img.alt = '';
 		el.appendChild(img);
-		if (fallback.badge) {
-			el.appendChild(buildPlayBadge(doc));
+		if (fallback.badge !== 'none') {
+			const badge = createEl(doc, 'div', 'pptxv-media-badge');
+			if (fallback.badge === 'missing') {
+				badge.classList.add('pptxv-media-badge-missing');
+			}
+			badge.setAttribute(MEDIA_CHROME_ATTRIBUTE, fallback.badge);
+			badge.appendChild(buildIcon(doc, icon));
+			if (labelKey !== undefined && fallback.badge === 'missing') {
+				const text = createEl(doc, 'span');
+				text.textContent = context.t(labelKey);
+				badge.appendChild(text);
+			}
+			el.appendChild(badge);
 		}
 		return el;
 	}
 
-	if (fallback.placeholder) {
+	if (fallback.placeholder !== 'none') {
 		// Unavailable media: reuse the placeholder look for a graceful fallback box.
-		el.classList.add('pptxv-placeholder');
-		el.setAttribute(MEDIA_CHROME_ATTRIBUTE, 'placeholder');
-		const label = createEl(doc, 'div', 'pptxv-placeholder-label');
-		label.textContent = context.t('pptx.elementType.media');
-		el.appendChild(label);
+		el.classList.add('pptxv-placeholder', 'pptxv-media-placeholder');
+		el.setAttribute(MEDIA_CHROME_ATTRIBUTE, fallback.placeholder);
+		if (icon.length > 0) {
+			el.appendChild(buildIcon(doc, icon));
+		}
+		if (labelKey !== undefined) {
+			const label = createEl(doc, 'div', 'pptxv-placeholder-label');
+			label.textContent = context.t(labelKey);
+			el.appendChild(label);
+		}
 	}
 	return el;
 };
 
 /**
- * The centred play triangle painted over a poster frame on the authoring
- * canvas. `MEDIA_CHROME_ATTRIBUTE` is the neutral marker
- * `e2e/media-transition-chrome.spec.ts` asserts the absence of on a transition.
+ * The fallback's icon, drawn from the shared path list so this binding's play
+ * triangle / not-found mark / music note are the same geometry as the other
+ * four's.
  */
-function buildPlayBadge(doc: Document): SVGSVGElement {
+function buildIcon(doc: Document, paths: readonly string[]): SVGSVGElement {
 	const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	svg.setAttribute('viewBox', '0 0 24 24');
 	svg.setAttribute('fill', 'none');
 	svg.setAttribute('stroke', 'currentColor');
 	svg.setAttribute('stroke-width', '1.5');
-	svg.setAttribute(MEDIA_CHROME_ATTRIBUTE, 'play');
-	svg.setAttribute('class', 'pptxv-media-badge');
-	const polygon = doc.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-	polygon.setAttribute('points', MEDIA_PLAY_BADGE_POINTS);
-	svg.appendChild(polygon);
+	for (const d of paths) {
+		const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+		path.setAttribute('d', d);
+		svg.appendChild(path);
+	}
 	return svg;
 }

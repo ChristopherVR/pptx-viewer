@@ -114,7 +114,24 @@ describe('renderMediaElement', () => {
 		expect(node.querySelector('video')).toBeNull();
 		expect(node.querySelector('img')).toBeNull();
 		expect(node.classList.contains('pptxv-placeholder')).toBeTruthy();
-		expect(node.textContent).toContain('Media');
+		// The clip type, not the flat "Media" every unplayable element used to get.
+		expect(node.textContent).toContain('Video clip');
+		expect(node.getAttribute('data-pptx-media-chrome')).toBe('typed');
+	});
+
+	// Reading a boolean `badge` as "paint a badge" drew a PLAY triangle over
+	// media the package had failed to find - the opposite of what React said.
+	it('marks missing media as not found, never with a play badge', () => {
+		const node = renderMediaElement(
+			mediaElement({ mediaType: 'video', posterFrameData: PNG_DATA_URL, mediaMissing: true }),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		expect(node.querySelector('[data-pptx-media-chrome="play"]')).toBeNull();
+		expect(node.querySelector('[data-pptx-media-chrome="missing"]')?.textContent).toContain(
+			'Media not found',
+		);
+		expect(node.querySelector('img')?.style.opacity).toBe('0.5');
 	});
 
 	// Issue #147: a slide-transition overlay is a STILL of the outgoing slide, so

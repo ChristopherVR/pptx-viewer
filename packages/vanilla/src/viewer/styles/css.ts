@@ -596,17 +596,39 @@ const CHROME_CSS = `
 	border-radius: 4px;
 }
 
-/* ── Media play badge (authoring canvas only, see mediaFallbackVisual) ── */
+/* ── Media fallback chrome (authoring canvas only, see mediaFallbackVisual) ── */
 .pptxv-media-badge {
 	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 48px;
-	height: 48px;
-	transform: translate(-50%, -50%);
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	font-size: 11px;
 	color: rgb(255 255 255 / 0.8);
 	filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
 	pointer-events: none;
+}
+.pptxv-media-badge svg {
+	width: 48px;
+	height: 48px;
+}
+.pptxv-media-badge-missing {
+	color: rgb(255 255 255 / 0.6);
+}
+.pptxv-media-badge-missing svg {
+	width: 32px;
+	height: 32px;
+}
+.pptxv-media-placeholder {
+	flex-direction: column;
+	gap: 4px;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-media-placeholder svg {
+	width: 32px;
+	height: 32px;
 }
 
 /* ── Overlays ────────────────────────────────────────────────────────── */
