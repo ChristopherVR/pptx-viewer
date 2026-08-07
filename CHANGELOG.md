@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-08-07
 
+_Releases: pptx-react-viewer@2.15.0, pptx-vue-viewer@2.15.0, pptx-angular-viewer@2.15.0, pptx-vanilla-viewer@1.16.0, pptx-svelte-viewer@2.15.0_
+
+### Features
+
+- **shared:** Remember the open deck so a refresh reopens it (by @ChristopherVR) ([abbe3bd](https://github.com/ChristopherVR/pptx-viewer/commit/abbe3bd15318dd2b7b470eb69b51468d5b9ed26a))
+
+### Bug Fixes
+
+- **demos:** Keep the open presentation across a refresh (by @ChristopherVR) ([d202f95](https://github.com/ChristopherVR/pptx-viewer/commit/d202f9598c36cf6927dbc2133a8c317d34c363c9))
+- **shared:** Make Set Up Slide Show's Manual advance mode actually work (by @ChristopherVR) ([c308423](https://github.com/ChristopherVR/pptx-viewer/commit/c3084238158b582b149fcc74903045f4145a0981))
+- **angular:** Resolve viewer-store-signal test import from vendored shared (by @ChristopherVR) ([e7aa0cc](https://github.com/ChristopherVR/pptx-viewer/commit/e7aa0cce1509b62b5326d39ecf81309ad330c48e))
+
+## 2026-08-07
+
 _Releases: pptx-viewer-core@2.3.0, pptx-react-viewer@2.14.0, pptx-vue-viewer@2.14.0, pptx-angular-viewer@2.14.0, pptx-vanilla-viewer@1.15.0, pptx-svelte-viewer@2.14.0, pptx-viewer-mcp@2.1.0, @christophervr/pptx-viewer@1.6.0_
 
 ### Features

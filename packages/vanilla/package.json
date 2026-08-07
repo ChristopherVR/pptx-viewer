@@ -1,6 +1,6 @@
 {
 	"name": "pptx-vanilla-viewer",
-	"version": "1.15.0",
+	"version": "1.16.0",
 	"description": "Zero-framework PowerPoint viewer and editor: render, edit, present, and export PPTX slides with plain DOM, no React/Vue/Angular required.",
 	"keywords": [
 		"javascript",
