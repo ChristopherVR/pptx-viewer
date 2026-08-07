@@ -180,6 +180,34 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
   porting or adding a feature, put the logic in shared **first**, then have each
   binding import it, do not reimplement it per framework. Treat a pure helper
   sitting inside `packages/{vue,react,angular}` as an extraction candidate.
+  - **The shape to aim for is a pure decision function.** Shared exports a
+    function returning a framework-neutral _descriptor_; the binding only maps
+    that descriptor onto its own style object / template. Existing examples:
+    `presentation-keymap` (`mapPresentationKey`), `connector-hit-target`,
+    `hollow-shape-hit-test`, `shape-geometry-cascade`. Following that shape, a
+    new branch reaches all five bindings at once.
+  - **"I am making the same edit in N bindings" is the extraction signal.** Not
+    a nuisance to push through: stop and extract. Small tails are the dangerous
+    ones, because each copy looks trivial in isolation and nobody diffs five
+    files that all look fine. The shape-geometry cascade was hand-ported five
+    times, and Angular silently drifted: it compared `shapeType` **raw**
+    (`=== 'ellipse'`) instead of via `getShapeType`, so `oval` - a preset in the
+    shape picker - and every capitalised spelling missed the branch, and it had
+    no connector/line/cylinder branch at all.
+  - **Normalise before you branch.** Compare against `getShapeType(...)`, never
+    a raw `shapeType` string: the normaliser folds aliases (`oval`->`ellipse`,
+    `can`->`cylinder`) and lowercases. A raw compare is the single most common
+    way a binding drifts.
+  - **A shared value can be clobbered downstream.** Setting a property in a
+    shared style map does not mean it survives: a binding may spread that map
+    and then override the very property (Svelte's `ElementRenderer` re-sets
+    `pointerEvents` from its own interactive flag). After adding a
+    behaviour-bearing style in shared, grep each binding for that property.
+  - **Per-binding unit tests passing does NOT mean the binding works.** All five
+    suites were green while Svelte was still visibly broken, because the defect
+    lived in template wiring no unit test covered. Load the deck in each demo
+    and verify the actual behaviour (see the demo-resolution table above; Angular
+    needs a build first).
 - **UI changes must reach all five bindings.** This is a merge requirement, not
   a nice-to-have: a user on Svelte is entitled to the feature set a user on
   React gets, and divergence between bindings is the most expensive debt in this
