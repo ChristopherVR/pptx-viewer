@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 /**
  * Slide-show behaviour every binding must share (issue #106).
  *
@@ -20,6 +22,9 @@ const deck = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import
 
 /** Load the fixture and start the slide show. */
 async function startShow(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();

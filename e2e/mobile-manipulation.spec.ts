@@ -34,6 +34,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect, devices } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 test.use({ ...devices['Pixel 7'] });
 
 // Every binding emits the selection and inline-editor hooks used here.
@@ -44,6 +46,9 @@ const fixturePath = resolve(
 const shotDir = fileURLToPath(new URL('../test-results/mobile-manipulation/', import.meta.url));
 
 async function open(page: Page): Promise<{ source: Locator; target: Locator; stage: Locator }> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	const source = page.locator('[data-pptx-element="true"]').filter({ hasText: 'SOURCE' });

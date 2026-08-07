@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
 import { summarizeDeck } from './support/pptx-integrity';
 import type { DeckSummary } from './support/pptx-integrity';
 
@@ -73,6 +74,9 @@ function collectErrors(page: Page): string[] {
 }
 
 async function loadFixture(page: Page, filename: string): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath(filename));
 	await slideRegion(page).first().waitFor({ timeout: 120_000 });

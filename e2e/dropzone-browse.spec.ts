@@ -22,6 +22,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const sampleDeckPath = resolve(
@@ -33,6 +35,9 @@ const browseButton = (page: Page): Locator => page.locator('[data-testid="browse
 const hintLabel = (page: Page): Locator => page.locator('label[for="file-input"]').first();
 
 async function gotoLanding(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await expect(dropzone(page)).toBeVisible();
 	await expect(page.locator('#file-input')).toBeAttached();

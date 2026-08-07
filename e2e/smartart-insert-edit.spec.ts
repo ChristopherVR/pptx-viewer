@@ -16,12 +16,17 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Load the sample deck and wait for the viewer to render at least one element. */
 async function loadDeck(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();

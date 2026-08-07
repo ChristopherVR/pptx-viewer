@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/format-painter.pptx', import.meta.url)),
 );
@@ -23,6 +25,9 @@ async function openFixture(page: Page): Promise<{
 	target: Locator;
 	canvas: Locator;
 }> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 
 	// The drop zone is the only thing rendered before any deck is loaded; it

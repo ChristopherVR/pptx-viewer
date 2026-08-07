@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { test, expect } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 /**
  * Ascender/descender clipping regression. Runs against every demo.
  *
@@ -35,6 +37,9 @@ const fixturePath = resolve(
 
 test.describe('text body clipping (ascender/descender crop)', () => {
 	test('normAutofit text box must not clip its own text ("Jumpy flags")', async ({ page }) => {
+		// Forget any restored session first, or the deck reopens and the landing
+		// dropzone (the only place #file-input exists) never mounts.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(fixturePath);
 		await page

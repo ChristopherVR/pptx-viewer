@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { test } from '@playwright/test';
 import type { Page, TestInfo } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const sampleDeck = resolve(root, '.github/assets/sample-deck.pptx');
 const outputDir = resolve(root, '.github/assets/packages');
@@ -16,6 +18,9 @@ if (!existsSync(outputDir)) {
 }
 
 async function loadDeck(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.waitForTimeout(650);
 	await page.locator('#file-input').setInputFiles(sampleDeck);

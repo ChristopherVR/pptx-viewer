@@ -38,6 +38,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/issue-132-gradient-fill.pptx', import.meta.url)),
 );
@@ -64,6 +66,9 @@ const LOAD_TIMEOUT_MS = 60_000;
 
 async function loadDeck(page: Page): Promise<void> {
 	await page.setViewportSize({ width: 1600, height: 1000 });
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[aria-label="Go to slide 29"]').first().waitFor({ timeout: LOAD_TIMEOUT_MS });

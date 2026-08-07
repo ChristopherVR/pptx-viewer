@@ -32,6 +32,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/solution-explorer.pptx', import.meta.url)),
 );
@@ -68,6 +70,9 @@ async function visibleSlideNumber(page: Page): Promise<number> {
 
 /** Load the deck, park on slide 3 (the first morph slide), start the show. */
 async function startShowOnWheel(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[aria-label="Go to slide 14"]').first().waitFor({ timeout: LOAD_TIMEOUT_MS });
@@ -174,6 +179,9 @@ test.describe('slide-show action clicks', () => {
 	});
 
 	test('a slide authored advClick="0" advTm still advances on its timer', async ({ page }) => {
+		// Forget any restored session first, or the deck reopens and the landing
+		// dropzone (the only place #file-input exists) never mounts.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(fixturePath);
 		await page

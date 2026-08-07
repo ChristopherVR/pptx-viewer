@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/absolute-path-rels.pptx', import.meta.url)),
 );
@@ -33,6 +35,9 @@ const fixturePath = resolve(
 const EXPECTED_SLIDE1_ELEMENTS = 11;
 
 async function openDeck(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	// Wait for the first slide element to appear

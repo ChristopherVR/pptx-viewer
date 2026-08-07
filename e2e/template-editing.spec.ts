@@ -47,6 +47,7 @@ import {
 	SLIDE_SHAPE_TEXT,
 } from './fixtures/generate-template-editing-fixture';
 import { savePptxViaBackstage } from './save-pptx';
+import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/template-editing.pptx', import.meta.url)),
@@ -78,6 +79,9 @@ function elementByText(page: Page, text: string): Locator {
 
 /** Load the fixture deck and wait for all three shapes to render. */
 async function openFixture(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[aria-roledescription="slide"]').first().waitFor();
@@ -294,6 +298,9 @@ test.describe('template / master element editing', () => {
 		await download.saveAs(savedPath);
 
 		// Reload the saved file into a fresh viewer instance.
+		// Forget any restored session first, or the deck reopens and the landing
+		// dropzone (the only place #file-input exists) never mounts.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(savedPath);
 		await page.locator('[aria-roledescription="slide"]').first().waitFor();

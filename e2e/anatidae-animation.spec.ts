@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 /**
  * Slide-show fidelity against a REAL PowerPoint deck (issue #106).
  *
@@ -39,6 +41,9 @@ const EFFECT_DURATION_MS = 400;
 
 /** Load the fixture into the demo and wait for the first slide to paint. */
 async function loadDeck(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[data-pptx-element="true"], [data-element-id]').first().waitFor();

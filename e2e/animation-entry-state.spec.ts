@@ -33,6 +33,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const deck = resolve(fileURLToPath(new URL('./fixtures/issue-132-hr-deck.pptx', import.meta.url)));
 
 /** The deck's slide transitions run 800ms (`p14:dur="800"`); the flash poll
@@ -43,6 +45,9 @@ const FLASH_POLL_TIMEOUT_MS = 600;
 
 /** Load the deck into the demo and wait for the first slide to paint. */
 async function loadDeck(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page

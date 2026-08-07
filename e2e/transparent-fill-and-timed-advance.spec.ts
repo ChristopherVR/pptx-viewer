@@ -30,6 +30,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/solution-explorer.pptx', import.meta.url)),
 );
@@ -48,6 +50,9 @@ const OVERLAY_RGB = [132, 226, 145] as const;
 
 async function loadDeck(page: Page): Promise<void> {
 	await page.setViewportSize({ width: 1600, height: 1000 });
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[aria-label="Go to slide 14"]').first().waitFor({ timeout: LOAD_TIMEOUT_MS });
@@ -232,6 +237,9 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 	 */
 	test('a morph departing layer does not paint a slide background', async ({ page }) => {
 		await page.setViewportSize({ width: 1920, height: 1080 });
+		// Forget any restored session first, or the deck reopens and the landing
+		// dropzone (the only place #file-input exists) never mounts.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(fixturePath);
 		await page

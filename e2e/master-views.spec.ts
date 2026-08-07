@@ -11,6 +11,7 @@ import {
 	NOTES_MASTER_BACKGROUND,
 	NOTES_MASTER_TEXT,
 } from './fixtures/generate-master-views-fixture';
+import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/master-views.pptx', import.meta.url)),
@@ -34,6 +35,9 @@ function masterTabs(page: Page): Locator {
 }
 
 async function openFixture(page: Page, path = fixturePath): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(path);
 	await page.locator('[aria-roledescription="slide"]').first().waitFor();

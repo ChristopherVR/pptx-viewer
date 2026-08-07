@@ -4,11 +4,16 @@ import { fileURLToPath } from 'node:url';
 
 import { test, expect, devices } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 test.use({ ...devices['Pixel 7'] });
 
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 
 test('entering presentation mode with a selection does not leak edit chrome', async ({ page }) => {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();

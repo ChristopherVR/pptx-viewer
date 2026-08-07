@@ -49,6 +49,7 @@ import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import { savePptxViaBackstage } from './save-pptx';
+import { resetTabSession } from './support/deck';
 
 const oleFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/ole-embed.pptx', import.meta.url)),
@@ -65,6 +66,9 @@ const inkFixturePath = resolve(
  * resolve their media - so every binding renders the real preview `<img>`.
  */
 async function openFixture(page: Page, fixturePath: string): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-element-id]').first().waitFor();
@@ -157,6 +161,9 @@ test.describe('ink annotations', () => {
 		const savedPath = resolve(outDir, `${test.info().project.name}-ink-reload.pptx`);
 		await download.saveAs(savedPath);
 
+		// Forget any restored session first, or the deck reopens and the landing
+		// dropzone (the only place #file-input exists) never mounts.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(savedPath);
 		const inkAfterReload = page.locator('[data-element-id]').first();

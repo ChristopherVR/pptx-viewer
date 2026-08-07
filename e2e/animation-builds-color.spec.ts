@@ -29,6 +29,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/animation-builds-color.pptx', import.meta.url)),
 );
@@ -88,6 +90,9 @@ async function enterPresentation(page: Page): Promise<void> {
 }
 
 async function openInPresentMode(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-element-id]').filter({ hasText: TITLE.chart }).first().waitFor();

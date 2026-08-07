@@ -24,6 +24,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 /** Real deck: 1280x720, slides 3-14 each carry a `p159:morph` transition. */
 const deck = resolve(fileURLToPath(new URL('./fixtures/solution-explorer.pptx', import.meta.url)));
 
@@ -62,6 +64,9 @@ async function startShowOnSlide(
 	file = deck,
 	slideCount = 14,
 ): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(file);
 	await page

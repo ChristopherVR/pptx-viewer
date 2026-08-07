@@ -51,6 +51,7 @@ import {
 	TRANSITIONS_ANIMATIONS_SLIDES as SLIDES,
 	TRANSITION_DURATION_MS,
 } from './fixtures/generate-transitions-animations-fixture';
+import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/transitions-animations.pptx', import.meta.url)),
@@ -127,6 +128,9 @@ async function primaryMatch(page: Page, locator: Locator, minAreaPx = 5000): Pro
 
 /** Load the fixture and enter presentation mode, landing on slide 1. */
 async function openInPresentMode(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-element-id]').filter({ hasText: SLIDES.first }).first().waitFor();

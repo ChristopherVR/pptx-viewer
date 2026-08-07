@@ -32,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { inspector } from './support/deck';
+import { inspector, resetTabSession } from './support/deck';
 
 /**
  * A deck whose first slide is a connector.
@@ -76,6 +76,9 @@ function endArrow(page: Page): Locator {
 
 async function loadFixture(page: Page): Promise<void> {
 	await page.setViewportSize({ width: 1500, height: 1000 });
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(FIXTURE);
 	await connectorOnCanvas(page).waitFor();

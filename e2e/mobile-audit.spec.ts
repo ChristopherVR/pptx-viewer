@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect, devices } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 test.use({ ...devices['Pixel 7'] });
 
 // Every binding emits the shared mobile chrome contract used by this spec.
@@ -25,6 +27,9 @@ const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx',
 const shotDir = fileURLToPath(new URL('../test-results/mobile-audit/', import.meta.url));
 
 async function load(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();

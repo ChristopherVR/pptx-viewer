@@ -29,6 +29,7 @@ import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 import { savePptxViaBackstage } from './save-pptx';
+import { resetTabSession } from './support/deck';
 import { validatePptxIntegrity } from './support/pptx-integrity';
 
 const gifFixturePath = resolve(
@@ -141,6 +142,9 @@ test.describe('save corruption reproduction', () => {
 	test('rect + 2 smartart + gif + table with cell edit saves a repair-free package', async ({
 		page,
 	}, testInfo) => {
+		// Forget any restored session first, or the deck reopens and the landing
+		// dropzone (the only place #file-input exists) never mounts.
+		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(deckFixturePath);
 

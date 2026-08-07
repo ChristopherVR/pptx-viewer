@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { test, expect, devices } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 // Pixel 7 reports touch, so the viewer's virtual-keyboard detection (which only
 // runs on touch devices) is active.
 test.use({ ...devices['Pixel 7'] });
@@ -13,6 +15,9 @@ const fixturePath = resolve(
 );
 
 test('notes editor stays mounted when the virtual keyboard opens', async ({ page }) => {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();

@@ -8,6 +8,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { CHART_SLIDES } from './fixtures/generate-chart-fixture';
 import type { ChartSlideSpec } from './fixtures/generate-chart-fixture';
+import { resetTabSession } from './support/deck';
 
 /**
  * Chart-rendering parity, run identically against every framework demo.
@@ -55,6 +56,9 @@ const screenshotDir = resolve(fileURLToPath(new URL('./__screenshots__', import.
  * binding emits on every element in both modes.
  */
 async function openGalleryInPresentMode(page: Page): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	// First chart slide's title anchor confirms the deck rendered.

@@ -48,7 +48,18 @@ export async function loadDeck(page: Page, fixturePath: string = SAMPLE_DECK): P
  * on the restore happening.
  */
 export async function resetTabSession(page: Page): Promise<void> {
-	await page.evaluate(() => sessionStorage.clear());
+	// Safe to call before ANY navigation: on `about:blank` (or any page that
+	// denies storage) touching `sessionStorage` throws a SecurityError, and a
+	// tab with no session has nothing to clear anyway. Swallowing that is what
+	// lets callers put this at the top of a load helper unconditionally, rather
+	// than having to know whether this is the first navigation or the second.
+	await page.evaluate(() => {
+		try {
+			sessionStorage.clear();
+		} catch {
+			/* no storage on this origin yet - nothing to forget */
+		}
+	});
 }
 
 /** As {@link loadDeck}, but against an explicit URL (cross-binding harness). */

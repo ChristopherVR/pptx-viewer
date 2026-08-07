@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const sampleDeckPath = resolve(
@@ -27,6 +29,9 @@ const formatPainterPath = resolve(
 
 /** Load a fixture deck and wait for the main canvas to render. */
 async function loadDeck(page: Page, fixturePath: string): Promise<void> {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[aria-roledescription="slide"]').first().waitFor();

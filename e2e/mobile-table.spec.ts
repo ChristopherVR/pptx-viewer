@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect, devices } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { resetTabSession } from './support/deck';
+
 test.use({ ...devices['Pixel 7'] });
 
 // Every binding supports table-cell touch editing: a double-tap
@@ -71,6 +73,9 @@ async function navigateToPlans(page: Page): Promise<void> {
 }
 
 test('double-tapping a table cell opens an editor and accepts input', async ({ page }) => {
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
@@ -109,6 +114,9 @@ test('committing a cell edit by tapping away keeps the typed value', async ({ pa
 	// table element. The cell <input> must stop pointerdown propagation, else
 	// tapping away (or repositioning the caret) stole focus and DISCARDED the
 	// edit before it was kept ("table cells lose their value" on mobile).
+	// Forget any restored session first, or the deck reopens and the landing
+	// dropzone (the only place #file-input exists) never mounts.
+	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
