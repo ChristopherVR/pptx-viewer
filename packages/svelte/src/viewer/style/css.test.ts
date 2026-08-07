@@ -50,7 +50,7 @@ describe('element styles (shared render helpers)', () => {
 			shapeType: 'ellipse',
 			shapeStyle: { fillColor: '#ff0000' },
 		} as PptxElement);
-		expect(style.borderRadius).toBe('9999px');
+		expect(style.borderRadius).toBe('50%');
 		expect(style.backgroundColor).toBe('#ff0000');
 	});
 

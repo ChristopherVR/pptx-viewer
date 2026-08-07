@@ -187,7 +187,9 @@ export function getShapeFillStrokeStyle(
 	}
 
 	if (normalizedShapeType === 'ellipse') {
-		style['borderRadius'] = '9999px';
+		// `50%`, not a huge px value: CSS clamps over-large radii uniformly, so
+		// `9999px` on a non-square box becomes a pill with flat long edges.
+		style['borderRadius'] = '50%';
 		return style;
 	}
 

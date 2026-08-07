@@ -191,17 +191,17 @@ describe('getImageMaskStyle', () => {
 		expect(result!.borderRadius).toBeGreaterThan(0);
 	});
 
-	it('returns "9999px" borderRadius for ellipse', () => {
+	it('returns a 50% borderRadius for ellipse (an ellipse, not a pill)', () => {
 		const element = makeElement({ shapeType: 'ellipse' });
 		const result = getImageMaskStyle(element);
 		expect(result).toBeDefined();
-		expect(result!.borderRadius).toBe('9999px');
+		expect(result!.borderRadius).toBe('50%');
 	});
 
-	it('returns "9999px" borderRadius for oval', () => {
+	it('returns a 50% borderRadius for oval (an ellipse, not a pill)', () => {
 		const element = makeElement({ shapeType: 'oval' });
 		const result = getImageMaskStyle(element);
-		expect(result).toStrictEqual({ borderRadius: '9999px' });
+		expect(result).toStrictEqual({ borderRadius: '50%' });
 	});
 
 	it('returns borderRadius for cylinder/can', () => {

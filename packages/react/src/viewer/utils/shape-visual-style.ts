@@ -432,7 +432,11 @@ export function getShapeVisualStyle(
 	if (normalizedShapeType === 'ellipse') {
 		return {
 			...base,
-			borderRadius: '9999px',
+			// `50%`, not a huge px value: CSS clamps over-large radii by scaling
+			// them all down uniformly, so `9999px` on a non-square box collapses to
+			// half the SHORT side on every corner - a pill with flat long edges,
+			// not an ellipse. `50%` resolves per-axis and inscribes correctly.
+			borderRadius: '50%',
 		};
 	}
 

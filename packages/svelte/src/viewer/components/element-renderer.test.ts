@@ -69,7 +69,7 @@ describe('elementRenderer dispatch', () => {
 		const root = target.querySelector<HTMLElement>('[data-element-id="e1"]');
 		const style = root?.getAttribute('style') ?? '';
 		expect(style).toContain('background-color: #336699');
-		expect(style).toContain('border-radius: 9999px');
+		expect(style).toContain('border-radius: 50%');
 	});
 
 	it('renders an image element as an <img> with its source', () => {

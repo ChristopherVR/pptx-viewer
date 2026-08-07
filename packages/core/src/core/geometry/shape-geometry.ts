@@ -289,7 +289,9 @@ export function getImageMaskStyle(element: PptxElementWithShapeStyle): ImageMask
 	}
 
 	if (normalized === 'ellipse' || normalized === 'oval') {
-		return { borderRadius: '9999px' };
+		// `50%`, not a huge px value: CSS clamps over-large radii uniformly, so
+		// `9999px` on a non-square box crops the image to a pill, not an ellipse.
+		return { borderRadius: '50%' };
 	}
 	if (normalized === 'can' || normalized === 'cylinder') {
 		return { borderRadius: '48% / 12%' };

@@ -53,9 +53,9 @@ describe('getShapeFillStrokeStyle', () => {
 		expect(dashed.border).toBe('1px dashed #000');
 	});
 
-	it('rounds ellipse geometry with a pill radius', () => {
+	it('rounds ellipse geometry with a per-axis 50% radius', () => {
 		const style = getShapeFillStrokeStyle(shape({ shapeType: 'ellipse' }));
-		expect(style.borderRadius).toBe('9999px');
+		expect(style.borderRadius).toBe('50%');
 		expect(style.clipPath).toBeUndefined();
 	});
 
