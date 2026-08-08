@@ -159,12 +159,15 @@ test.describe('issue #131 - solution-explorer deck fidelity', () => {
 		// the child geometry only, so the heading stays 12pt = 16px; scaling the
 		// font too rendered it at ~12.7px.
 		const sizes = await page.evaluate(() => {
+			// The INNERMOST element carrying the heading, not a childless one: each
+			// word is its own span (PowerPoint metric tracking, #149), so no leaf
+			// holds the whole phrase. font-size inherits into those spans.
+			const matches = [...document.querySelectorAll<HTMLElement>('*')].filter((node) =>
+				(node.textContent ?? '').includes('Secure Data Movement'),
+			);
 			const out: number[] = [];
-			for (const node of document.querySelectorAll<HTMLElement>('*')) {
-				if (node.children.length > 0) {
-					continue;
-				}
-				if (!(node.textContent ?? '').includes('Secure Data Movement')) {
+			for (const node of matches) {
+				if (matches.some((other) => other !== node && node.contains(other))) {
 					continue;
 				}
 				const box = node.getBoundingClientRect();

@@ -12,7 +12,7 @@ import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
 import { resolveUnderlineDecorationStyle } from './text-decoration';
 import type { RunFontSpec } from './text-metric-tracking';
-import { resolveMetricTrackingPx } from './text-metric-tracking';
+import { resolveMetricTrackingPx, splitRunForMetrics } from './text-metric-tracking';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -21,6 +21,57 @@ export type RunStyle = Record<string, string | number>;
 const PX_PER_POINT = 96 / 72;
 /** Super/subscript glyphs render at ~65% of the run font size (matches React). */
 const BASELINE_FONT_SCALE = 0.65;
+
+/**
+ * The authored `a:rPr/@spc` character spacing in CSS px (hundredths of a point).
+ * The measured PowerPoint metric compensation layers on top of this, so callers
+ * that re-derive a per-piece `letter-spacing` need the authored part on its own.
+ */
+export function authoredLetterSpacingPx(style: TextSegment['style']): number {
+	const spc = style?.characterSpacing;
+	return typeof spc === 'number' && spc !== 0 ? (spc / 100) * PX_PER_POINT : 0;
+}
+
+/** `letter-spacing` for a run piece: authored spacing plus its own tracking. */
+export function pieceLetterSpacing(authoredPx: number, tracking: number): string | undefined {
+	const spacing = authoredPx + tracking;
+	return spacing === 0 ? undefined : `${spacing}px`;
+}
+
+/**
+ * Split one styled run into the per-word / per-gap runs that make a LINE
+ * measure what PowerPoint measured (see `splitRunForMetrics`).
+ *
+ * Every binding that renders one span per run gets exact wrapping by emitting
+ * these instead of the single run, so this is the one place the "which pieces,
+ * what spacing" decision lives: shared's `buildParagraphs` covers Vue, Svelte
+ * and Vanilla, Angular's own paragraph builder calls it directly, and React
+ * splits inside its span.
+ *
+ * Returns a single entry (the run unchanged) when there is nothing to split,
+ * which is the common case for short labels and one-word runs.
+ */
+export function splitStyledRun(
+	text: string,
+	style: RunStyle,
+	font: RunFontSpec,
+	authoredPx: number,
+): Array<{ text: string; style: RunStyle }> {
+	const pieces = splitRunForMetrics(text, font);
+	if (pieces.length <= 1) {
+		return [{ text, style }];
+	}
+	return pieces.map((piece) => {
+		const spacing = pieceLetterSpacing(authoredPx, piece.tracking);
+		const pieceStyle: RunStyle = { ...style };
+		if (spacing === undefined) {
+			delete pieceStyle.letterSpacing;
+		} else {
+			pieceStyle.letterSpacing = spacing;
+		}
+		return { text: piece.text, style: pieceStyle };
+	});
+}
 
 /**
  * Combine the authored `a:rPr/@spc` character spacing with the measured
@@ -37,12 +88,7 @@ function resolveLetterSpacing(
 	text: string,
 	font: RunFontSpec,
 ): string | undefined {
-	const authored =
-		typeof s.characterSpacing === 'number' && s.characterSpacing !== 0
-			? (s.characterSpacing / 100) * PX_PER_POINT
-			: 0;
-	const spacing = authored + resolveMetricTrackingPx(text, font);
-	return spacing === 0 ? undefined : `${spacing}px`;
+	return pieceLetterSpacing(authoredLetterSpacingPx(s), resolveMetricTrackingPx(text, font));
 }
 
 /**
@@ -165,20 +211,38 @@ export function segmentStyleToCss(
 	if (deco.length > 0) {
 		style.textDecoration = deco.join(' ');
 	}
-	// The font the run will actually paint with: its own declarations where it
-	// made them, the body's where it did not. Bold and italic are always the
-	// run's own (both are declared unconditionally just above).
-	const runFont: RunFontSpec = {
-		fontFamily: (style.fontFamily as string | undefined) ?? context.blockFont?.fontFamily,
+	applyExtraRunProps(
+		style,
+		s,
+		context.text ?? seg.text ?? '',
+		resolveRunFont(style, s, context.blockFont),
+	);
+	return style;
+}
+
+/**
+ * The font a run will actually paint with: its own declarations where it made
+ * them, the text body's where it did not. Bold and italic are always the run's
+ * own, because {@link segmentStyleToCss} declares both unconditionally.
+ *
+ * Exported so a caller that re-measures pieces of a run (see
+ * `splitRunForMetrics`) resolves the font exactly the way the run style did,
+ * rather than keeping a second copy of the fallback rules.
+ */
+export function resolveRunFont(
+	style: RunStyle,
+	s: NonNullable<TextSegment['style']>,
+	blockFont?: RunFontSpec,
+): RunFontSpec {
+	return {
+		fontFamily: (style.fontFamily as string | undefined) ?? blockFont?.fontFamily,
 		fontSizePx:
 			typeof style.fontSize === 'string'
 				? Number.parseFloat(style.fontSize)
-				: context.blockFont?.fontSizePx,
+				: blockFont?.fontSizePx,
 		bold: Boolean(s.bold),
 		italic: Boolean(s.italic),
 	};
-	applyExtraRunProps(style, s, context.text ?? seg.text ?? '', runFont);
-	return style;
 }
 
 /**

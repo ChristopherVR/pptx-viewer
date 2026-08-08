@@ -56,12 +56,12 @@ test.describe('text body clipping (ascender/descender crop)', () => {
 				throw new Error('no slide element containing "Jumpy flags"');
 			}
 
-			// Deepest node that directly owns the "Jumpy flags" text.
+			// Deepest node that still carries the whole "Jumpy flags" phrase. Not
+			// "owns it as a text node": each word is its own span (PowerPoint
+			// metric tracking, #149), so the phrase spans several text nodes.
 			let textOwner: HTMLElement = host;
 			for (const node of host.querySelectorAll('*')) {
-				const ownsText = [...node.childNodes].some(
-					(c) => c.nodeType === Node.TEXT_NODE && c.textContent?.includes('Jumpy flags'),
-				);
+				const ownsText = (node.textContent ?? '').includes('Jumpy flags');
 				if (ownsText) {
 					textOwner = node as HTMLElement;
 				}

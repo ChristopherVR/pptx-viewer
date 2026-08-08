@@ -236,23 +236,31 @@ export async function measureTextRuns(page: Page): Promise<ElementRunMetrics[]> 
 }
 
 /**
- * The visual lines of the text body containing `needle`, measured on the
- * LARGEST rendered copy so a slide-rail thumbnail can never win the match.
+ * The visual lines of the text body containing `needle`.
  *
- * Where the text broke is not in the DOM: a paragraph is one text node whatever
- * the browser did with it. So each character's client rect is taken and a new
- * line is started whenever the baseline steps down. That works identically in
- * all five bindings, which is the point: nothing here knows which one it is
- * looking at.
+ * Two filters, and both are load-bearing. The element must be the INNERMOST one
+ * carrying the text: a grouped shape's wrapper also matches the needle, and
+ * measuring that reads every sibling shape in the group as part of the same
+ * paragraph. Among those innermost matches, the LARGEST wins, because the slide
+ * rail renders the same element id again at thumbnail scale.
+ *
+ * Where the text broke is not in the DOM: a paragraph stays one text node
+ * whatever the browser did with it, and per-word spans do not sit one-per-line
+ * either. So each character's client rect is taken and a new line starts
+ * whenever the baseline steps down. That works identically in all five
+ * bindings, which is the point: nothing here knows which one it is looking at.
  */
 export async function visualLines(page: Page, needle: string): Promise<string[]> {
 	return page.evaluate((marker) => {
+		const matches = [...document.querySelectorAll<HTMLElement>('[data-element-id]')].filter(
+			(node) => (node.textContent ?? '').includes(marker),
+		);
+		const innermost = matches.filter(
+			(node) => !matches.some((other) => other !== node && node.contains(other)),
+		);
 		let host: HTMLElement | undefined;
-		let bestArea = 0;
-		for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
-			if (!(node.textContent ?? '').includes(marker)) {
-				continue;
-			}
+		let bestArea = -1;
+		for (const node of innermost) {
 			const box = node.getBoundingClientRect();
 			if (box.width * box.height > bestArea) {
 				bestArea = box.width * box.height;

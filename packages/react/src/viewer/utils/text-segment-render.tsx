@@ -1,6 +1,10 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
-import { resolveAutoFitFontScale, resolveMetricTrackingPx } from 'pptx-viewer-shared';
+import {
+	pieceLetterSpacing,
+	resolveAutoFitFontScale,
+	resolveMetricTrackingPx,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
@@ -197,15 +201,20 @@ export function renderSingleSegment(
 	// breaks this run's lines where PowerPoint breaks them. Derived from the
 	// run's own characters: the disagreement between PowerPoint's 1/8-point
 	// advance grid and the browser's fractional advances runs in BOTH directions,
-	// so a flat constant wraps some strings early (issue #149).
-	const metricTracking = resolveMetricTrackingPx(textValue, {
+	// so a flat constant wraps some strings early (issue #149). The run-level
+	// value below is the fallback; `metricContext` gives each word its own, which
+	// is what makes a LINE exact rather than just the whole run.
+	const metricFont = {
 		fontFamily: baseFontFamily,
 		fontSizePx: baseFontSize * baselineFontScale,
 		bold: Boolean(segmentStyle.bold),
 		italic: Boolean(segmentStyle.italic),
-	});
-	const totalLetterSpacing = authoredLetterSpacing + metricTracking;
-	const letterSpacing = totalLetterSpacing === 0 ? undefined : `${totalLetterSpacing}px`;
+	};
+	const metricContext = { font: metricFont, authoredPx: authoredLetterSpacing };
+	const letterSpacing = pieceLetterSpacing(
+		authoredLetterSpacing,
+		resolveMetricTrackingPx(textValue, metricFont),
+	);
 
 	const spanStyle: React.CSSProperties = {
 		color: resolvedSegmentColor,
@@ -332,6 +341,7 @@ export function renderSingleSegment(
 			Boolean(segmentStyle.bold),
 			Boolean(segmentStyle.italic),
 		),
+		metricContext,
 	);
 
 	let innerContent: React.ReactNode;

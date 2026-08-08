@@ -2,7 +2,7 @@ import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxTableData, ShapeStyle, TextSegment } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 
 import {
 	buildRunEffectStyle,
@@ -11,10 +11,15 @@ import {
 	getOverflowSegments,
 	isElementHidden,
 	textBuildSpanStyle,
+	authoredLetterSpacingPx,
+	DEFAULT_FONT_FAMILY,
+	DEFAULT_TEXT_FONT_SIZE,
 	resolveAutoFitFontScale,
 	resolveParagraphIndent,
+	resolveRunFont,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
+	splitStyledRun,
 	buildHollowHitOutline,
 	strokeOutlineViewBox,
 	substituteFieldText,
@@ -24,6 +29,7 @@ import type {
 	FieldSubstitutionContext,
 	FillOverlayCss,
 	PictureBulletMarker,
+	RunFontSpec,
 	TextBuildSpec,
 } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
@@ -77,8 +83,13 @@ import { ZoomRendererComponent } from './zoom-renderer.component';
  * `sz` overrides the (already scaled) body font-size, so without it a
  * shrink-to-fit title painted at full size.
  */
-function runStyleFromSegment(seg: TextSegment, fontScale = 1): StyleMap {
-	const style = segmentStyleToCss(seg, fontScale);
+function runStyleFromSegment(
+	seg: TextSegment,
+	fontScale = 1,
+	blockFont?: RunFontSpec,
+	text?: string,
+): StyleMap {
+	const style = segmentStyleToCss(seg, fontScale, { text, blockFont });
 	const s = seg.style;
 	if (s) {
 		const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
@@ -495,6 +506,15 @@ export class ElementRendererComponent {
 		// run's own `sz` overrides the (already scaled) body font-size. Mirrors
 		// shared `buildParagraphs` and React's `renderSingleSegment`.
 		const fontScale = resolveAutoFitFontScale(el.textStyle);
+		// What a run that declares no font of its own inherits from the text body,
+		// used only to measure it for the PowerPoint metric tracking. Mirrors
+		// shared `buildParagraphs`.
+		const blockFont: RunFontSpec = {
+			fontFamily: el.textStyle?.fontFamily
+				? getSubstituteFontFamily(el.textStyle.fontFamily)
+				: DEFAULT_FONT_FAMILY,
+			fontSizePx: (el.textStyle?.fontSize || DEFAULT_TEXT_FONT_SIZE) * fontScale,
+		};
 		const paragraphIndents = el.paragraphIndents;
 		const out: Paragraph[] = [{ runs: [], bulletStyle: {}, indentPx: 0 }];
 		let paraStarted = false;
@@ -615,12 +635,25 @@ export class ElementRendererComponent {
 				: rawText;
 			if (text) {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
-				current.runs.push({
+				const style = runStyleFromSegment(seg, fontScale, blockFont, text);
+				// One run per word (and per gap), each carrying its own PowerPoint
+				// metric tracking, so a LINE measures what PowerPoint measured and
+				// breaks where PowerPoint breaks (#149). Shared decides the split;
+				// this builder is hand-ported from `buildParagraphs` and would
+				// otherwise silently keep the old whole-run behaviour.
+				for (const piece of splitStyledRun(
 					text,
-					style: runStyleFromSegment(seg, fontScale),
-					href,
-					tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
-				});
+					style,
+					resolveRunFont(style, seg.style ?? {}, blockFont),
+					authoredLetterSpacingPx(seg.style),
+				)) {
+					current.runs.push({
+						text: piece.text,
+						style: piece.style,
+						href,
+						tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
+					});
+				}
 			}
 		}
 		// A paragraph that already matches the body default needs no re-basing.

@@ -9,9 +9,9 @@
  * the accumulated disagreement over a line is what decides a knife-edge wrap.
  *
  * Ground truth (PowerPoint COM `TextRange.BoundWidth` over the issue #131 /
- * #149 deck): summing `round(advance * 6) / 6` per character reproduced all 78
- * advance-exact measured lines to under 0.001 px, while the browser's own
- * measurement of the same strings ran anywhere from 1.07% narrow to 0.28% wide.
+ * #149 deck): summing `round(advance * 6) / 6` reproduced all 78 advance-exact
+ * measured lines to under 0.001 px, while the browser's own measurement of the
+ * same strings ran anywhere from 1.07% narrow to 0.28% wide.
  *
  * That spread is the point. The first attempt at this (issue #131) applied a
  * flat 0.003em to every run, which is roughly the middle of the range: it
@@ -22,9 +22,15 @@
  * correction has to be derived from the actual characters.
  *
  * So: measure the run, compute the width PowerPoint would have measured, and
- * emit the letter-spacing that closes the gap. Measured end to end in Chromium
- * (rendered span vs COM ground truth) this leaves a mean error of 0.04 px and a
- * worst case of 0.37 px, against 0.51 px / 2.06 px uncompensated.
+ * emit the letter-spacing that closes the gap. Two details decide whether that
+ * works or does damage, and both are documented where they are made -
+ * `advancesOf` (advances come from prefix differences, never from measuring a
+ * character alone) and the clamp in `resolveMetricTrackingPx`.
+ *
+ * Measured end to end in Chromium, rendered span against COM ground truth: mean
+ * error 0.026 px, worst 0.40 px, against 0.53 px / 2.05 px uncompensated. On
+ * shaped scripts the correction moves the text by 0.00% (Arabic, CJK) to 0.08%
+ * (Devanagari), i.e. nothing visible.
  */
 
 import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
@@ -45,11 +51,17 @@ export interface RunFontSpec {
  */
 const ADVANCE_STEPS_PER_PX = 6;
 
+/**
+ * The most the correction can legitimately be: half a grid step. See
+ * {@link resolveMetricTrackingPx} for why anything beyond this is a different
+ * problem wearing a rounding error's clothes.
+ */
+const MAX_TRACKING_PX_PER_CHAR = 1 / (2 * ADVANCE_STEPS_PER_PX);
+
 /** Bound the caches so a long editing session cannot grow them without limit. */
 const MAX_CACHE_ENTRIES = 20000;
 
 let measureContext: CanvasRenderingContext2D | null | undefined;
-let advanceCache = new Map<string, number>();
 let trackingCache = new Map<string, number>();
 let fontsHookInstalled = false;
 
@@ -64,7 +76,6 @@ function installFontLoadHook(): void {
 	}
 	fontsHookInstalled = true;
 	document.fonts?.addEventListener?.('loadingdone', () => {
-		advanceCache = new Map();
 		trackingCache = new Map();
 	});
 }
@@ -89,19 +100,43 @@ function toCanvasFont(font: RunFontSpec): string {
 	return `${font.italic ? 'italic ' : ''}${font.bold ? 'bold ' : ''}${size}px ${family}`;
 }
 
-function advanceOf(ctx: CanvasRenderingContext2D, canvasFont: string, char: string): number {
-	const key = `${canvasFont}\u0000${char}`;
-	const cached = advanceCache.get(key);
-	if (cached !== undefined) {
-		return cached;
-	}
+/**
+ * Per-character advances measured as PREFIX DIFFERENCES, never by measuring a
+ * character on its own.
+ *
+ * This is the difference between a model that works and one that mangles half
+ * the world's scripts. A character's advance depends on its neighbours: Arabic
+ * letters join, so an isolated glyph measures ~37% wider than the same letter
+ * inside a word; Devanagari forms conjuncts (~66%); an emoji ZWJ sequence is
+ * one glyph built from several code points (~33%); and even Latin kerns - the
+ * isolated characters of "AVATAR Wave To Yak" add up 5.3% wider than the string
+ * itself. Summing isolated advances would hand the grid model a difference that
+ * is not a rounding error at all, and letter-spacing would then stretch the run
+ * to "correct" it: visibly wrong text, and a worse wrap than the one this set
+ * out to fix.
+ *
+ * Differencing prefixes cannot fail that way. The advances telescope, so they
+ * sum to exactly the width the browser will paint, whatever the shaping did.
+ * Only their DISTRIBUTION across a ligature or cluster is approximate, and the
+ * grid correction stays bounded by half a step per character either way.
+ */
+function advancesOf(ctx: CanvasRenderingContext2D, canvasFont: string, chars: string[]): number[] {
 	ctx.font = canvasFont;
-	const width = ctx.measureText(char).width;
-	if (advanceCache.size >= MAX_CACHE_ENTRIES) {
-		advanceCache = new Map();
+	// PowerPoint's own advances are UNKERNED unless `a:rPr/@kern` turns kerning
+	// on, and this deck's ground truth confirms it: measured with kerning the
+	// grid model reproduced 66 of 78 COM-measured lines, without it all 78,
+	// exactly. Chrome kerns 12 of those lines by 0.17-1.55 px.
+	ctx.fontKerning = 'none';
+	const advances: number[] = [];
+	let previous = 0;
+	let prefix = '';
+	for (const char of chars) {
+		prefix += char;
+		const width = ctx.measureText(prefix).width;
+		advances.push(width - previous);
+		previous = width;
 	}
-	advanceCache.set(key, width);
-	return width;
+	return advances;
 }
 
 /**
@@ -114,10 +149,15 @@ function advanceOf(ctx: CanvasRenderingContext2D, canvasFont: string, char: stri
  * inline box the line breaker sees. Being wrong about that convention would
  * cost one unit of tracking (~0.04 px), well inside the tolerance here.
  *
- * The result needs no sanity clamp: snapping to a grid moves a glyph by at most
- * half a step, so the tracking can never exceed 1/12 px per character however
- * odd the font is. That is imperceptible by construction, which is the whole
- * reason this can be done with `letter-spacing` at all.
+ * The result is clamped to half a grid step per character, and that bound is
+ * the model's own definition rather than a magic number: snapping an advance to
+ * the grid can move it by at most half a step, so a correction larger than that
+ * is not describing rounding at all. It means the browser and PowerPoint
+ * disagree for some other reason - kerning the run enables and PowerPoint does
+ * not, a font that never loaded - and uniform letter-spacing is the wrong tool
+ * for those. Clamping keeps the correction imperceptible (at most 0.083 px per
+ * glyph) instead of visibly stretching the text to chase a difference it cannot
+ * legitimately close.
  */
 export function resolveMetricTrackingPx(text: string, font: RunFontSpec): number {
 	if (!text) {
@@ -134,22 +174,87 @@ export function resolveMetricTrackingPx(text: string, font: RunFontSpec): number
 		return 0;
 	}
 	const chars = [...text];
-	ctx.font = canvasFont;
+	let powerPoint = 0;
+	for (const advance of advancesOf(ctx, canvasFont, chars)) {
+		powerPoint += Math.round(advance * ADVANCE_STEPS_PER_PX);
+	}
+	// ...against the width the browser will actually PAINT, which is kerned.
+	ctx.fontKerning = 'auto';
 	const natural = ctx.measureText(text).width;
 	if (!(natural > 0)) {
 		return 0;
 	}
-	let powerPoint = 0;
-	for (const char of chars) {
-		powerPoint += Math.round(advanceOf(ctx, canvasFont, char) * ADVANCE_STEPS_PER_PX);
-	}
 	powerPoint /= ADVANCE_STEPS_PER_PX;
-	const tracking = (powerPoint - natural) / chars.length;
+	const limit = MAX_TRACKING_PX_PER_CHAR;
+	const raw = (powerPoint - natural) / chars.length;
+	const tracking = Math.min(limit, Math.max(-limit, raw));
 	if (trackingCache.size >= MAX_CACHE_ENTRIES) {
 		trackingCache = new Map();
 	}
 	trackingCache.set(key, tracking);
 	return tracking;
+}
+
+/** A stretch of a run that carries its own tracking. */
+export interface MetricRunPiece {
+	text: string;
+	/** letter-spacing in CSS px that renders `text` at PowerPoint's width. */
+	tracking: number;
+}
+
+/**
+ * True where the browser may break a line: between whitespace and a word, and
+ * after a hyphen. Deliberately conservative - a boundary we miss costs
+ * accuracy, a boundary we invent costs nothing, since pieces are laid out
+ * contiguously either way.
+ */
+function isBreakBoundary(previous: string, next: string): boolean {
+	const previousSpace = /\s/u.test(previous);
+	const nextSpace = /\s/u.test(next);
+	if (previousSpace !== nextSpace) {
+		return true;
+	}
+	return previous === '-' && next !== '-' && !nextSpace;
+}
+
+/**
+ * Cut a run at every line-break opportunity so each piece can carry its own
+ * tracking.
+ *
+ * One tracking for a whole run makes the RUN measure exactly, but a line is a
+ * prefix of it, and the rounding error is not spread evenly through the text -
+ * so a line can still come out up to ~0.95 px off, which is enough to move a
+ * break (issue #149, slide 5: "operational" fitted on a line PowerPoint had
+ * already closed). Give every word its own tracking and every whitespace gap
+ * its own, and any line the browser assembles out of whole pieces measures
+ * exactly what PowerPoint measured, because advances simply add up.
+ *
+ * A break INSIDE a piece (mid-word, or between CJK characters, which have no
+ * spaces to cut at) falls back to that piece's average - i.e. to the run-level
+ * behaviour, never worse.
+ *
+ * Returns a single piece when the run has no interior boundary, which keeps the
+ * common case (a short label, a one-word run) at exactly one span.
+ */
+export function splitRunForMetrics(text: string, font: RunFontSpec): MetricRunPiece[] {
+	const chars = [...text];
+	if (chars.length < 2 || !getMeasureContext()) {
+		return [{ text, tracking: resolveMetricTrackingPx(text, font) }];
+	}
+	const pieces: string[] = [];
+	let current = chars[0];
+	for (let i = 1; i < chars.length; i++) {
+		if (isBreakBoundary(chars[i - 1], chars[i])) {
+			pieces.push(current);
+			current = '';
+		}
+		current += chars[i];
+	}
+	pieces.push(current);
+	if (pieces.length === 1) {
+		return [{ text, tracking: resolveMetricTrackingPx(text, font) }];
+	}
+	return pieces.map((piece) => ({ text: piece, tracking: resolveMetricTrackingPx(piece, font) }));
 }
 
 /**
@@ -164,7 +269,6 @@ export function resolveMetricTracking(text: string, font: RunFontSpec): string |
 
 /** Test hook: forget every measurement (also used by the font-load listener). */
 export function resetMetricTrackingCache(): void {
-	advanceCache = new Map();
 	trackingCache = new Map();
 	measureContext = undefined;
 }

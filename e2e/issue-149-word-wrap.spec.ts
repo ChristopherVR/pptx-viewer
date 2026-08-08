@@ -45,6 +45,8 @@ const fixturePath = resolve(
 const SLIDE = {
 	/** Carries the "Explore solution" button and a "Secure Data Movement" label. */
 	callToAction: 3,
+	/** Carries the three-line challenge caption that needs per-WORD exactness. */
+	challengeCaption: 5,
 	/** Carries the narrow "Secure Data Movement" header chip. */
 	headerChip: 12,
 	/** Carries the bulleted panel whose first bullet breaks knife-edge. */
@@ -96,6 +98,27 @@ test.describe('issue #149 - word wrap matches PowerPoint in both directions', ()
 		const lines = await visualLines(page, 'Secure Data Movement');
 		expect(lines, 'the chip is one line, as PowerPoint draws it').toContain('Secure Data Movement');
 		expect(lines, 'the chip did not break after "Data"').not.toContain('Secure Data');
+	});
+
+	test('a mid-paragraph line breaks where PowerPoint breaks it, not a word later', async ({
+		page,
+	}) => {
+		await loadDeck(page);
+		await gotoSlide(page, SLIDE.challengeCaption);
+
+		// One tracking for a whole run makes the RUN exact, but a line is a
+		// PREFIX of it and the rounding error is not spread evenly through the
+		// text - here that left line 2 up to 0.35px narrow, enough to pull
+		// "operational" up onto a line PowerPoint had already closed (the column
+		// is 195.57px against PowerPoint's 195.83px for that line plus the word:
+		// 0.26px of margin). Each word carrying its own tracking is what makes a
+		// LINE exact rather than just the run.
+		const lines = await visualLines(page, 'Challenge: Integration');
+		expect(lines.slice(0, 3), 'three lines, broken where PowerPoint breaks them').toEqual([
+			'Challenge: Integration of cyber and',
+			'electronic warfare effects within',
+			'operational planning and execution loops.',
+		]);
 	});
 
 	test('a knife-edge bullet still breaks where PowerPoint breaks it', async ({ page }) => {

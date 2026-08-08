@@ -1,5 +1,11 @@
 import type { BulletInfo } from 'pptx-viewer-core';
-import { resolvePictureBullet, sanitizeMathMl } from 'pptx-viewer-shared';
+import type { RunFontSpec } from 'pptx-viewer-shared';
+import {
+	pieceLetterSpacing,
+	resolvePictureBullet,
+	sanitizeMathMl,
+	splitRunForMetrics,
+} from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -70,6 +76,50 @@ export function renderScriptAwareText(
 	});
 }
 
+/** What a caller needs to give a run's pieces their own metric tracking. */
+export interface MetricTextContext {
+	/** The font the run paints with, for measuring each piece. */
+	font: RunFontSpec;
+	/** Authored `a:rPr/@spc` in px; each piece's tracking layers on top. */
+	authoredPx: number;
+}
+
+/**
+ * Wrap each word (and each whitespace gap) of `text` in its own span carrying
+ * the tracking that renders it at PowerPoint's width, so a line assembled out
+ * of whole pieces measures exactly what PowerPoint measured (issue #149).
+ *
+ * The four shared-builder bindings get this by emitting sibling runs; React
+ * builds its own spans, so it splits here, at the one place plain run text
+ * becomes nodes. `inner` keeps whatever the caller was already doing with the
+ * text (script-aware fonts) intact inside each piece.
+ *
+ * With no metric context, or nothing to split, this is the caller's own
+ * rendering unchanged - one text node, no extra DOM.
+ */
+export function renderMetricPieces(
+	text: string,
+	metric: MetricTextContext | undefined,
+	keyPrefix: string,
+	inner: (text: string, key: string) => React.ReactNode,
+): React.ReactNode {
+	if (!metric || !text) {
+		return inner(text, keyPrefix);
+	}
+	const pieces = splitRunForMetrics(text, metric.font);
+	if (pieces.length <= 1) {
+		return inner(text, keyPrefix);
+	}
+	return pieces.map((piece, i) => (
+		<span
+			key={`${keyPrefix}-w${i}`}
+			style={{ letterSpacing: pieceLetterSpacing(metric.authoredPx, piece.tracking) }}
+		>
+			{inner(piece.text, `${keyPrefix}-w${i}`)}
+		</span>
+	));
+}
+
 /**
  * Render the inner content of a text segment span, handling both the
  * no-highlight fast path and the find-highlight split path.
@@ -85,6 +135,8 @@ export function renderSegmentContent(
 	findHighlights: ElementFindHighlights | undefined,
 	/** When present, `\t` is laid out with real tab stops (align + leaders). */
 	tabContext?: TabRenderContext,
+	/** When present, each word gets the tracking PowerPoint measured it at. */
+	metric?: MetricTextContext,
 ): React.ReactNode {
 	const segHl = findHighlights?.get(segmentIndex);
 	if (!segHl || segHl.length === 0) {
@@ -92,7 +144,9 @@ export function renderSegmentContent(
 		return lines.map((line: string, lineIndex: number) => {
 			const lineKey = `${elementId}-seg-${segmentIndex}-line-${lineIndex}`;
 			const renderPiece = (text: string, key: string): React.ReactNode =>
-				renderScriptAwareText(text, needsScriptFonts, scriptFonts, baseFontFamily, key);
+				renderMetricPieces(text, metric, key, (pieceText, pieceKey) =>
+					renderScriptAwareText(pieceText, needsScriptFonts, scriptFonts, baseFontFamily, pieceKey),
+				);
 			return (
 				<React.Fragment key={lineKey}>
 					{tabContext && line.includes('\t')
@@ -134,36 +188,27 @@ export function renderSegmentContent(
 			isCurrent: false,
 		});
 	}
-	return chunks.map((chunk, ci) =>
-		chunk.highlighted ? (
+	const renderChunk = (text: string, key: string): React.ReactNode =>
+		renderMetricPieces(text, metric, key, (pieceText, pieceKey) =>
+			renderScriptAwareText(pieceText, needsScriptFonts, scriptFonts, baseFontFamily, pieceKey),
+		);
+	return chunks.map((chunk, ci) => {
+		const chunkKey = `${elementId}-seg-${segmentIndex}-hl-${ci}`;
+		return chunk.highlighted ? (
 			<mark
-				key={`${elementId}-seg-${segmentIndex}-hl-${ci}`}
+				key={chunkKey}
 				style={{
 					backgroundColor: chunk.isCurrent ? '#f97316' : '#facc15',
 					color: 'inherit',
 					borderRadius: 2,
 				}}
 			>
-				{renderScriptAwareText(
-					chunk.text,
-					needsScriptFonts,
-					scriptFonts,
-					baseFontFamily,
-					`${elementId}-seg-${segmentIndex}-hl-${ci}`,
-				)}
+				{renderChunk(chunk.text, chunkKey)}
 			</mark>
 		) : (
-			<React.Fragment key={`${elementId}-seg-${segmentIndex}-hl-${ci}`}>
-				{renderScriptAwareText(
-					chunk.text,
-					needsScriptFonts,
-					scriptFonts,
-					baseFontFamily,
-					`${elementId}-seg-${segmentIndex}-hl-${ci}`,
-				)}
-			</React.Fragment>
-		),
-	);
+			<React.Fragment key={chunkKey}>{renderChunk(chunk.text, chunkKey)}</React.Fragment>
+		);
+	});
 }
 
 /**

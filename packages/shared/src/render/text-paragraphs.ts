@@ -21,7 +21,13 @@ import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import { buildRunEffectStyle } from './text-run-effects';
 import type { RunStyle } from './text-run-style';
-import { applyUnderlineVariant, segmentStyleToCss } from './text-run-style';
+import {
+	applyUnderlineVariant,
+	authoredLetterSpacingPx,
+	resolveRunFont,
+	segmentStyleToCss,
+	splitStyledRun,
+} from './text-run-style';
 import { proportionalLineHeight, resolveAutoFitFontScale } from './text-style-helpers';
 
 // Re-exported so existing `pptx-viewer-shared` / `./text-paragraphs` import
@@ -214,7 +220,20 @@ export function buildParagraphs(
 				if (seg.style) {
 					Object.assign(style, buildRunEffectStyle(seg.style));
 				}
-				runs.push({ text, style });
+				// Each word and each gap carries its own PowerPoint metric tracking,
+				// so a line the browser assembles out of them measures exactly what
+				// PowerPoint measured and breaks where PowerPoint breaks (#149).
+				// Emitting them as sibling RUNS rather than nested spans is what
+				// gets this to Vue/Svelte/Vanilla with no binding change: they
+				// already render one span per run.
+				runs.push(
+					...splitStyledRun(
+						text,
+						style,
+						resolveRunFont(style, seg.style ?? {}, blockFont),
+						authoredLetterSpacingPx(seg.style),
+					),
+				);
 			}
 		}
 

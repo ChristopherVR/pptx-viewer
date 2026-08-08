@@ -152,12 +152,16 @@ test.describe('issue #130 - solution-explorer deck fidelity', () => {
 		// `textContent` is never just the button label. The area floor skips the
 		// same run inside a slide-rail thumbnail.
 		const colours = await page.evaluate(() => {
+			// The INNERMOST element whose text is the label, not a childless one:
+			// each word is its own span (PowerPoint metric tracking, #149), so no
+			// leaf owns the whole phrase. Colour inherits into those spans, which
+			// is what this asserts.
+			const matches = [...document.querySelectorAll<HTMLElement>('[data-element-id] *')].filter(
+				(node) => (node.textContent ?? '').trim() === 'Explore solution',
+			);
 			const out: string[] = [];
-			for (const node of document.querySelectorAll<HTMLElement>('[data-element-id] *')) {
-				if (node.children.length > 0) {
-					continue;
-				}
-				if ((node.textContent ?? '').trim() !== 'Explore solution') {
+			for (const node of matches) {
+				if (matches.some((other) => other !== node && node.contains(other))) {
 					continue;
 				}
 				const box = node.getBoundingClientRect();
