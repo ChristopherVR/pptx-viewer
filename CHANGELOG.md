@@ -8,6 +8,16 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-08
+
+_Releases: pptx-react-viewer@2.16.2, pptx-vue-viewer@2.17.2, pptx-angular-viewer@2.17.2, pptx-vanilla-viewer@1.18.2, pptx-svelte-viewer@2.17.2_
+
+### Bug Fixes
+
+- Dissolve a morph's arriving shapes over the ghost that hid them (by @ChristopherVR) ([89536a3](https://github.com/ChristopherVR/pptx-viewer/commit/89536a36c3e38c3bc8b1219f702dee39e1526fcb))
+- Dissolve a morph's centre panel the way PowerPoint measurably does (by @ChristopherVR) ([8c03a9a](https://github.com/ChristopherVR/pptx-viewer/commit/8c03a9a4db720dc4c6883ecd5778749e9148f3af))
+- **shared:** Measure per word, and never measure a glyph in isolation (by @ChristopherVR) ([a92004b](https://github.com/ChristopherVR/pptx-viewer/commit/a92004bd554a66e5a0812d5bd20b3df1fff94379))
+
 ## 2026-08-07
 
 _Releases: pptx-react-viewer@2.16.1, pptx-vue-viewer@2.17.1, pptx-angular-viewer@2.17.1, pptx-vanilla-viewer@1.18.1, pptx-svelte-viewer@2.17.1_
