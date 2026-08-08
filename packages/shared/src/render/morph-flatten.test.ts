@@ -53,13 +53,62 @@ describe('flattenMorphElements', () => {
 				el({ id: 'button', name: 'Rectangle 4', x: 73, y: 189, width: 124, height: 31 }),
 			]),
 		];
-		const counterpart = [circle('b', [el({ id: 'other', name: '!!Content' })])];
+		const counterpart = [
+			circle('b', [
+				el({ id: 'other', name: '!!Content', x: 0, y: 0, width: 270, height: 270 }),
+				el({ id: 'other-button', name: 'Rectangle 4', x: 73, y: 189, width: 124, height: 31 }),
+			]),
+		];
 		expect(needsMorphFlattening(elements)).toBeTruthy();
 		const flat = flattenMorphElements(elements, counterpart);
 		expect(flat.map((e) => e.id)).toStrictEqual(['content', 'button']);
 		// Absolute = group origin + child offset.
 		expect(flat[0]).toMatchObject({ x: 505, y: 225, width: 270, height: 270 });
 		expect(flat[1]).toMatchObject({ x: 578, y: 414, width: 124, height: 31 });
+	});
+
+	it('keeps a paired group whole when it does not hold the same cast', () => {
+		// The hub slide's `!!Circle` is the disc plus "Select Challenge"; a topic
+		// slide's is the disc plus a button and three paragraphs. PowerPoint
+		// dissolves one whole panel into the other: exported at 62.5fps with
+		// `CreateVideo`, every frame of that morph is a clean linear blend of the
+		// two end states. Decomposing instead leaves one departure and four
+		// arrivals, which fade out by 23% and in from 42% and so leave the middle
+		// of the transition empty (issue #146).
+		const hub = [circle('a', [el({ id: 'disc', name: '!!Content' }), el({ id: 'select' })])];
+		const topic = [
+			circle('b', [
+				el({ id: 'b-disc', name: '!!Content' }),
+				el({ id: 'b-button' }),
+				el({ id: 'b-title' }),
+				el({ id: 'b-body' }),
+				el({ id: 'b-challenge' }),
+			]),
+		];
+
+		expect(flattenMorphElements(hub, topic).map((e) => e.id)).toStrictEqual(['a-circle']);
+		expect(flattenMorphElements(topic, hub).map((e) => e.id)).toStrictEqual(['b-circle']);
+	});
+
+	it('decomposes a paired group whose children merely moved or were restyled', () => {
+		// Topic to topic: the same cast, same boxes, different words. They
+		// correspond, so each child carries its own morph.
+		const a = [
+			circle('a', [
+				el({ id: 'a-disc', name: '!!Content', width: 270, height: 270 }),
+				el({ id: 'a-body', name: 'TextBox 11', x: 41, y: 95, width: 193, height: 36 }),
+			]),
+		];
+		const b = [
+			circle('b', [
+				el({ id: 'b-disc', name: '!!Content', width: 270, height: 270 }),
+				// A different name and a different box, but plainly the same
+				// paragraph: overlap decides it.
+				el({ id: 'b-body', name: 'TextBox 6', x: 52, y: 95, width: 172, height: 36 }),
+			]),
+		];
+
+		expect(flattenMorphElements(a, b).map((e) => e.id)).toStrictEqual(['a-disc', 'a-body']);
 	});
 
 	it('keeps a group whole when the counterpart has no group to pair it with', () => {
@@ -78,18 +127,21 @@ describe('flattenMorphElements', () => {
 		const elements = [
 			group({ id: 'a-g', name: 'Centre', x: 10, y: 20 }, [el({ id: 'a-c', name: '!!X' })]),
 		];
+		const twinChild = [el({ id: 'b-c', name: '!!X' })];
 		expect(
-			flattenMorphElements(elements, [group({ id: 'b-g', name: 'Centre' }, [])]).map((e) => e.id),
+			flattenMorphElements(elements, [group({ id: 'b-g', name: 'Centre' }, twinChild)]).map(
+				(e) => e.id,
+			),
 		).toStrictEqual(['a-c']);
 		expect(
 			flattenMorphElements(elements, [
-				group({ id: 'b-g', name: 'Elsewhere', x: 10, y: 20 }, []),
+				group({ id: 'b-g', name: 'Elsewhere', x: 10, y: 20 }, twinChild),
 			]).map((e) => e.id),
 		).toStrictEqual(['a-c']);
 		// Neither name nor box agrees: one object.
 		expect(
 			flattenMorphElements(elements, [
-				group({ id: 'b-g', name: 'Elsewhere', x: 900, y: 900 }, []),
+				group({ id: 'b-g', name: 'Elsewhere', x: 900, y: 900 }, twinChild),
 			]).map((e) => e.id),
 		).toStrictEqual(['a-g']);
 	});
@@ -125,7 +177,9 @@ describe('flattenMorphElements', () => {
 			]),
 		];
 		const counterpart = [
-			group({ id: 'b-outer', x: 100, y: 100 }, [el({ id: 'b-flat', name: '!!Deep', x: 900 })]),
+			group({ id: 'b-outer', x: 100, y: 100 }, [
+				el({ id: 'b-flat', name: '!!Deep', x: 10, y: 10 }),
+			]),
 		];
 		const flat = flattenMorphElements(elements, counterpart);
 		expect(flat.map((e) => e.id)).toStrictEqual(['inner']);
@@ -145,7 +199,9 @@ describe('flattenMorphElements', () => {
 	it('does not mutate the input elements', () => {
 		const child = el({ id: 'c', name: '!!X', x: 1, y: 2 });
 		const elements = [group({ id: 'g', x: 50, y: 60 }, [child])];
-		flattenMorphElements(elements, [group({ id: 'b', x: 50, y: 60 }, [])]);
+		flattenMorphElements(elements, [
+			group({ id: 'b', x: 50, y: 60 }, [el({ id: 'b-c', name: '!!X', x: 1, y: 2 })]),
+		]);
 		expect(child.x).toBe(1);
 		expect(child.y).toBe(2);
 	});

@@ -94,6 +94,21 @@ export interface SvgPathCommand {
 export const MORPH_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
 /**
+ * The curve a matched pair DISSOLVES on, which is not the curve it travels on.
+ *
+ * Measured, not guessed: the issue #131 deck's hub-to-topic morph was exported
+ * through PowerPoint's own `CreateVideo` and every one of the 59 frames of the
+ * arriving title fitted to a blend of the first and last frame (residual under
+ * 1/255, so the dissolve really is a plain linear blend). The alpha runs 0.035
+ * at 7% of the duration, 0.232 at 20%, 0.477 at 34%, 0.684 at 47%, 0.888 at 68%
+ * and 0.988 at 88%: an ease that leans in gently and then decelerates hard.
+ * This curve tracks those samples to an RMS of 0.004 and never differs by more
+ * than 0.009. {@link MORPH_EASING}, which the ghost used to fade on, sits at
+ * 0.5 where PowerPoint is already at 0.73 (issue #146).
+ */
+export const MORPH_CROSSFADE_EASING = 'cubic-bezier(0.2, 0, 0.4, 1)';
+
+/**
  * When an unmatched OUTGOING shape has finished dissolving, as a percentage of
  * the morph's duration, and when it starts.
  *

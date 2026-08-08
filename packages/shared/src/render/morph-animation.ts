@@ -29,6 +29,7 @@ import { tokenizeText } from './morph-text';
 import { buildTokenMorphAnimations, diffTokens } from './morph-text-tokens';
 import type { MorphAnimationStyle, MorphMode, MorphPair } from './morph-types';
 import {
+	MORPH_CROSSFADE_EASING,
 	MORPH_EASING,
 	MORPH_FADE_IN_EASING,
 	MORPH_FADE_IN_START_PERCENT,
@@ -279,11 +280,20 @@ export function resolveMorphGhostIds(
  * box over `noFill` has nothing to hollow out, and pinning it means the new
  * wording is at full strength from frame 1 while the old dissolves off it,
  * which reads as the new text simply appearing rather than cross-dissolving.
+ *
+ * A GROUP owns no fill of its own, so the question has to be asked of its
+ * children: the wheel deck's centre panel is a group around an opaque disc, and
+ * fading it in while its ghost faded out turned the disc translucent for the
+ * middle of every hub-to-topic morph.
  */
 function crossfadeIncomingMayFadeIn(element: PptxElement): boolean {
 	const image = element as { imagePath?: string; svgPath?: string };
 	if (image.imagePath || image.svgPath) {
 		return false;
+	}
+	const children = (element as { children?: PptxElement[] }).children;
+	if (children?.length) {
+		return children.every((child) => crossfadeIncomingMayFadeIn(child));
 	}
 	if (!hasShapeProperties(element)) {
 		return true;
@@ -396,15 +406,19 @@ export function generateMorphAnimations(
 			morphPairNeedsCrossfade(fromElement, toElement) &&
 			crossfadeIncomingMayFadeIn(toElement);
 
-		// Build from/to property blocks
+		// Build from/to property blocks. A half that dissolves IN keeps its opacity
+		// out of this block and rides a second animation, so the journey and the
+		// dissolve can follow their own measured curves (see the ghost half).
 		const fromProps: string[] = [
 			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${fromRot}deg)${flips};`,
-			`\t\topacity: ${inert ? 0 : crossfadesIn ? 0 : fromOpacity};`,
 		];
 		const toProps: string[] = [
 			`\t\ttransform: translate(0, 0) scale(1, 1) rotate(${toRot}deg)${flips};`,
-			`\t\topacity: ${inert ? 0 : toOpacity};`,
 		];
+		if (!crossfadesIn) {
+			fromProps.push(`\t\topacity: ${inert ? 0 : fromOpacity};`);
+			toProps.push(`\t\topacity: ${inert ? 0 : toOpacity};`);
+		}
 
 		// Fill color interpolation
 		const colorInterp = buildColorInterpolationProps(fromElement, toElement);
@@ -428,11 +442,25 @@ ${fromProps.join('\n')}
 \tto {
 ${toProps.join('\n')}
 \t}
-}`;
+}${
+			crossfadesIn
+				? `
+@keyframes ${safeName}-fade {
+\tfrom {
+\t\topacity: 0;
+\t}
+\tto {
+\t\topacity: ${toOpacity};
+\t}
+}`
+				: ''
+		}`;
 
 		animations.push({
 			elementId: toElement.id,
-			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
+			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards${
+				crossfadesIn ? `, ${safeName}-fade ${durationMs}ms ${MORPH_CROSSFADE_EASING} forwards` : ''
+			}`,
 			keyframes,
 		});
 	}
@@ -496,22 +524,44 @@ export function generateMorphGhostAnimations(
 		const flips = `${fromElement.flipHorizontal ? ' scaleX(-1)' : ''}${
 			fromElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
+		// A dissolve and a journey are two different curves, so when the ghost does
+		// both they ride two animations: the transform keeps {@link MORPH_EASING},
+		// which its live counterpart also travels on (a single easing for both
+		// halves is what keeps them on the same path), and the opacity gets the
+		// measured {@link MORPH_CROSSFADE_EASING}.
+		const opacity = fromElement.opacity ?? 1;
 		const keyframes = `
 @keyframes ${safeName} {
 \tfrom {
 \t\ttransform-origin: center;
-\t\ttransform: translate(0, 0) scale(1, 1) rotate(${fromRot}deg)${flips};
-\t\topacity: ${fromElement.opacity ?? 1};
+\t\ttransform: translate(0, 0) scale(1, 1) rotate(${fromRot}deg)${flips};${
+			fadesOut ? '' : `\n\t\topacity: ${opacity};`
+		}
 \t}
 \tto {
 \t\ttransform-origin: center;
-\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${toRot}deg)${flips};
-\t\topacity: ${fadesOut ? 0 : (fromElement.opacity ?? 1)};
+\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${toRot}deg)${flips};${
+			fadesOut ? '' : `\n\t\topacity: ${opacity};`
+		}
 \t}
-}`;
+}${
+			fadesOut
+				? `
+@keyframes ${safeName}-fade {
+\tfrom {
+\t\topacity: ${opacity};
+\t}
+\tto {
+\t\topacity: 0;
+\t}
+}`
+				: ''
+		}`;
 		animations.push({
 			elementId: fromElement.id,
-			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
+			animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards${
+				fadesOut ? `, ${safeName}-fade ${durationMs}ms ${MORPH_CROSSFADE_EASING} forwards` : ''
+			}`,
 			keyframes,
 		});
 	}

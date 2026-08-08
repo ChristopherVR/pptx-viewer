@@ -158,12 +158,14 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
  * resolves to an OPAQUE fill, which would cover everything below it with a flat
  * slab for the whole transition.
  *
- * A kept shape's ANCESTORS are spared too. The plan's lists are flattened, so a
- * group's children can be named individually while the group itself is not, and
- * dropping the group would take the very shapes this layer exists to paint with
- * it. The group also has to stay for them to land in the right place: their
- * keyframes are computed in slide space, which only agrees with the DOM because
- * the children are absolutely positioned inside the group's own box.
+ * A kept shape's whole FAMILY is spared: its ancestors, and everything inside
+ * it. The plan names elements at whatever level the morph matched them, so an
+ * id can be a group's child (the group has to stay, or the shape this layer
+ * exists to paint goes with it, and its keyframes are computed in slide space,
+ * which only agrees with the DOM because children are absolutely positioned
+ * inside the group's own box) or the group ITSELF (its children have to stay,
+ * or the layer paints an empty box - which is what the wheel deck's centre
+ * panel became the moment a whole group started dissolving as one object).
  */
 function keepOnlyElements(stage: HTMLElement, ids: readonly string[]): HTMLElement {
 	stage.style.background = 'none';
@@ -178,6 +180,9 @@ function keepOnlyElements(stage: HTMLElement, ids: readonly string[]): HTMLEleme
 		for (let ancestor: Element | null = node; ancestor && ancestor !== stage;) {
 			spared.add(ancestor);
 			ancestor = ancestor.parentElement;
+		}
+		for (const inside of node.querySelectorAll('[data-element-id]')) {
+			spared.add(inside);
 		}
 	}
 	for (const node of [...stage.querySelectorAll<HTMLElement>('[data-element-id]')]) {

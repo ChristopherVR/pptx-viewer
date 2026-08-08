@@ -137,6 +137,60 @@ describe('buildMorphTransitionPlan', () => {
 		expect(plan?.keyframesCss.match(/@keyframes/gu) ?? []).toHaveLength(handedOut);
 	});
 
+	it('dissolves a repopulated group into its counterpart, on the measured curve', () => {
+		// The hub slide's centre panel is a disc plus one line; the topic slide's
+		// is the same disc plus a button and three paragraphs. PowerPoint dissolves
+		// one whole panel into the other (see `morph-flatten`), so the two groups
+		// pair and the OUTGOING half carries the fade. The incoming half must not
+		// fade too: the panel is built around an opaque disc, and fading both
+		// halves turns it translucent through the middle of the morph.
+		const disc = (id: string): PptxElement =>
+			({
+				id,
+				name: '!!Content',
+				type: 'shape',
+				x: 0,
+				y: 0,
+				width: 270,
+				height: 270,
+				shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+			}) as PptxElement;
+		const panel = (id: string, children: PptxElement[]): PptxElement =>
+			({
+				id,
+				name: '!!Circle',
+				type: 'group',
+				x: 505,
+				y: 225,
+				width: 270,
+				height: 270,
+				children,
+			}) as unknown as PptxElement;
+		const from = slide('a', [
+			panel('a-panel', [disc('a-disc'), shape('a-select', 'TextBox 5', 28, 121)]),
+		]);
+		const to = slide('b', [
+			panel('b-panel', [
+				disc('b-disc'),
+				shape('b-button', 'Rectangle 4', 73, 189),
+				shape('b-title', 'TextBox 9', 28, 61),
+				shape('b-body', 'TextBox 11', 41, 95),
+				shape('b-challenge', 'TextBox 13', 31, 136),
+			]),
+		]);
+
+		const plan = buildMorphTransitionPlan(from, to, 1000);
+
+		// One object each side, not one departure and four arrivals.
+		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-panel']);
+		expect(plan?.overlayIncomingElements).toStrictEqual([]);
+		expect(plan?.outgoingAnimations.get('a-panel')).toContain('cubic-bezier(0.2, 0, 0.4, 1)');
+		// The live half holds its own opacity: no second fade to dip through.
+		expect(plan?.incomingAnimations.get('b-panel') ?? '').not.toContain(
+			'cubic-bezier(0.2, 0, 0.4, 1)',
+		);
+	});
+
 	describe('an arrival a ghost would hide (issue #146)', () => {
 		/** An unchanged, opaque disc with new wording arriving inside it. */
 		function discAndWording(): { from: PptxSlide; to: PptxSlide } {

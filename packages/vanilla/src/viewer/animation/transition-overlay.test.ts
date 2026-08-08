@@ -241,6 +241,107 @@ describe('playTransitionOverlay', () => {
 		cancel();
 	});
 
+	// Regression: the plan names elements at whatever level the morph matched
+	// them, so a ghost can be a whole GROUP (the wheel deck's centre panel
+	// dissolves as one object). Sparing only the named node and its ancestors
+	// stripped that group's children and the departing layer painted an empty
+	// box, so the old panel simply never appeared.
+	it('keeps the contents of a ghost that is itself a group', () => {
+		// A group whose cast changed dissolves as ONE object, so the plan names the
+		// group and the snapshot has to keep everything inside it.
+		const panel = (id: string, children: unknown[]): unknown => ({
+			id,
+			type: 'group',
+			name: '!!Circle',
+			x: 505,
+			y: 225,
+			width: 270,
+			height: 270,
+			children,
+		});
+		const disc = (id: string): unknown => ({
+			id,
+			type: 'shape',
+			name: '!!Content',
+			x: 0,
+			y: 0,
+			width: 270,
+			height: 270,
+			shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+		});
+		const outgoingSlide = {
+			id: 'out',
+			elements: [
+				panel('out-group', [
+					disc('out-disc'),
+					{
+						id: 'out-line',
+						type: 'text',
+						x: 28,
+						y: 121,
+						width: 214,
+						height: 28,
+						text: 'Select Challenge',
+					},
+				]),
+			],
+		} as unknown as PptxSlide;
+		const incomingSlide = {
+			id: 'in',
+			elements: [
+				panel('in-group', [
+					disc('in-disc'),
+					{
+						id: 'in-a',
+						type: 'text',
+						x: 28,
+						y: 61,
+						width: 214,
+						height: 29,
+						text: 'Multi-Domain Fusion',
+					},
+					{
+						id: 'in-b',
+						type: 'text',
+						x: 41,
+						y: 95,
+						width: 193,
+						height: 36,
+						text: 'Combining data',
+					},
+				]),
+			],
+		} as unknown as PptxSlide;
+
+		const outgoing = doc.createElement('div');
+		outgoing.className = 'pptxv-stage';
+		const groupNode = doc.createElement('div');
+		groupNode.dataset.elementId = 'out-group';
+		const childNode = doc.createElement('div');
+		childNode.dataset.elementId = 'out-disc';
+		groupNode.appendChild(childNode);
+		const strayNode = doc.createElement('div');
+		strayNode.dataset.elementId = 'out-stray';
+		outgoing.append(groupNode, strayNode);
+
+		const cancel = playTransitionOverlay({
+			doc,
+			stageWrap,
+			outgoing,
+			incoming: buildStage(doc, ['in-group']),
+			transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			outgoingSlide,
+			incomingSlide,
+			onDone: vi.fn(),
+		});
+
+		expect(outgoing.querySelector('[data-element-id="out-group"]')).not.toBeNull();
+		expect(outgoing.querySelector('[data-element-id="out-disc"]')).not.toBeNull();
+		// Anything the plan did not name still goes.
+		expect(outgoing.querySelector('[data-element-id="out-stray"]')).toBeNull();
+		cancel();
+	});
+
 	it('keeps the slide background on a non-morph transition snapshot', () => {
 		const { outgoing, incoming, cancel } = play({
 			type: 'fade',

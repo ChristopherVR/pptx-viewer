@@ -114,14 +114,83 @@ function correspondingGroup(
 	});
 }
 
+/** Fraction of the union two boxes must share to read as the same object. */
+const CHILD_OVERLAP_RATIO = 0.5;
+
+/** Intersection over union of two element boxes. */
+function boxOverlapRatio(a: PptxElement, b: PptxElement): number {
+	const left = Math.max(a.x, b.x);
+	const top = Math.max(a.y, b.y);
+	const right = Math.min(a.x + a.width, b.x + b.width);
+	const bottom = Math.min(a.y + a.height, b.y + b.height);
+	if (right <= left || bottom <= top) {
+		return 0;
+	}
+	const intersection = (right - left) * (bottom - top);
+	const union = a.width * a.height + b.width * b.height - intersection;
+	return union > 0 ? intersection / union : 0;
+}
+
+/** Whether two group children read as the same object, restyled or nudged. */
+function childrenPair(a: PptxElement, b: PptxElement): boolean {
+	const morphName = getElementMorphName(a);
+	if (morphName !== undefined && getElementMorphName(b) === morphName) {
+		return true;
+	}
+	if (a.name && a.name === b.name) {
+		return true;
+	}
+	return boxOverlapRatio(a, b) >= CHILD_OVERLAP_RATIO;
+}
+
+/**
+ * Whether two paired groups hold the SAME cast of objects, one for one.
+ *
+ * This is what decides between animating a group's contents individually and
+ * dissolving the whole group into its counterpart, and PowerPoint draws the
+ * line in the same place. Measured on the issue #131 deck by exporting the real
+ * transitions to video (`CreateVideo`, 62.5fps) and fitting every frame of the
+ * centre panel to a blend of the first and last:
+ *
+ *   - hub -> topic (`!!Circle` = disc + "Select Challenge", against disc +
+ *     button + three paragraphs): every frame is a clean linear blend of the
+ *     two end states, residual < 1/255, with the arriving title AND the
+ *     departing wording both following the same curve. That is one object
+ *     dissolving into another, not four shapes appearing and one leaving:
+ *     unmatched shapes hold, then fade out by 23% and in from 42%, which would
+ *     leave the middle of the transition empty (issue #146).
+ *   - topic -> topic (five children against five, same boxes): also a clean
+ *     blend, so decomposing there is harmless - each child simply crossfades
+ *     into its own counterpart.
+ *
+ * So a group is decomposed only when its children line up; a group that gained
+ * or lost content dissolves as a whole.
+ */
+function childrenCorrespond(a: readonly PptxElement[], b: readonly PptxElement[]): boolean {
+	if (a.length !== b.length || a.length === 0) {
+		return false;
+	}
+	const unclaimed = b.map((child) => child);
+	for (const child of a) {
+		const index = unclaimed.findIndex((candidate) => childrenPair(child, candidate));
+		if (index < 0) {
+			return false;
+		}
+		unclaimed.splice(index, 1);
+	}
+	return true;
+}
+
 /**
  * The elements of `elements` that a morph should treat as individual units,
  * given the `counterpart` slide's elements at the same level of the tree.
  *
  * A group is replaced by its children (in document order, recursively, in
- * absolute coordinates) when it holds a `!!`-named descendant AND `counterpart`
- * holds a group it would pair with; everything else is passed through
- * untouched. See the module comment for why both conditions are required.
+ * absolute coordinates) when it holds a `!!`-named descendant, `counterpart`
+ * holds a group it would pair with, AND the two groups hold the same cast of
+ * objects; everything else is passed through untouched. See the module comment
+ * for why the first two are required and {@link childrenCorrespond} for the
+ * third.
  */
 export function flattenMorphElements(
 	elements: readonly PptxElement[],
@@ -135,7 +204,7 @@ export function flattenMorphElements(
 		if (children && containsMorphNamedDescendant(element)) {
 			const twin = correspondingGroup(element, counterpart);
 			const twinChildren = twin ? (groupChildren(twin) ?? []) : undefined;
-			if (twinChildren) {
+			if (twinChildren && childrenCorrespond(children, twinChildren)) {
 				out.push(
 					...flattenMorphElements(children, twinChildren, offsetX + element.x, offsetY + element.y),
 				);
