@@ -1027,3 +1027,102 @@ describe('proximity matching of text elements', () => {
 		).toHaveLength(1);
 	});
 });
+
+// ==========================================================================
+// Group-cast correspondence (issue #160)
+// ==========================================================================
+
+describe('children of two corresponding groups', () => {
+	/** A topic slide's centre panel: disc, button, title, body. */
+	const panel = (prefix: string, title: string, bodyWidth: number): PptxElement =>
+		makeElement({
+			id: `${prefix}-circle`,
+			type: 'group',
+			name: '!!Circle',
+			x: 505,
+			y: 225,
+			width: 270,
+			height: 270,
+			children: [
+				makeElement({
+					id: `${prefix}-disc`,
+					type: 'shape',
+					name: '!!Content',
+					width: 270,
+					height: 270,
+				}),
+				makeElement({
+					id: `${prefix}-button`,
+					type: 'shape',
+					name: 'Rectangle 4',
+					x: 73,
+					y: 189,
+					width: 124,
+					height: 31,
+					text: 'Explore solution',
+				}),
+				makeElement({
+					id: `${prefix}-title`,
+					type: 'text',
+					name: 'TextBox 5',
+					x: 28,
+					y: 60,
+					width: 214,
+					height: 29,
+					text: title,
+				}),
+				makeElement({
+					id: `${prefix}-body`,
+					type: 'text',
+					name: 'TextBox 6',
+					x: 52,
+					y: 95,
+					width: bodyWidth,
+					height: 36,
+					text: `${title} in one line`,
+				}),
+			],
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+
+	it('pairs re-worded text boxes the proximity pass would refuse', () => {
+		// Taking the two panels apart is itself a statement that these four
+		// shapes are those four shapes; the flat list has lost that, and pass 3
+		// vetoes "same place, different words". Left unpaired, the old wording
+		// was gone by 23% and the new one only began at 42%, so the middle of
+		// every topic-to-topic morph was an empty panel (issue #160).
+		const result = matchMorphElementsFull(
+			makeSlide([panel('a', 'Cyber and EM Spectrum', 172)]),
+			makeSlide([panel('b', 'AI Decision Advantage', 193)]),
+		);
+		expect(result.unmatchedFrom).toHaveLength(0);
+		expect(result.unmatchedTo).toHaveLength(0);
+		const paired = Object.fromEntries(
+			result.pairs.map((pair) => [pair.fromElement.id, pair.toElement.id]),
+		);
+		expect(paired['a-title']).toBe('b-title');
+		expect(paired['a-body']).toBe('b-body');
+	});
+
+	it('does not pair across two panels holding different casts', () => {
+		// The hub's panel gained content on the way to a topic slide, so the two
+		// stay whole and dissolve as single objects.
+		const hub = makeElement({
+			id: 'hub-circle',
+			type: 'group',
+			name: '!!Circle',
+			x: 505,
+			y: 225,
+			width: 270,
+			height: 270,
+			children: [
+				makeElement({ id: 'hub-disc', type: 'shape', name: '!!Content' }),
+				makeElement({ id: 'hub-select', type: 'text', text: 'Select Challenge' }),
+			],
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+		const result = matchMorphElementsFull(
+			makeSlide([hub]),
+			makeSlide([panel('b', 'AI Decision Advantage', 193)]),
+		);
+		expect(result.pairs.map((pair) => pair.fromElement.id)).toStrictEqual(['hub-circle']);
+	});
+});

@@ -124,15 +124,28 @@ export function buildMorphMergedOrder(
  * #131's overview-to-topic hop dissolves the whole centre out and the arriving
  * group in, exactly that way.
  *
- * Only shapes with NO counterpart qualify. A matched pair already dissolves
- * against its own ghost, which is the whole point of the crossfade; lifting its
- * incoming half above that ghost would turn the dissolve back into a cut.
+ * A matched pair qualifies only when its incoming half DISSOLVES IN, which the
+ * caller states in `dissolvingInIds`. A half that is pinned at full strength
+ * (anything painting a body, which would go see-through if both halves faded)
+ * has to stay under its own ghost, or its dissolve becomes a cut. A half that
+ * fades in may be lifted: it then dissolves over its ghost instead of under it,
+ * which differs only where the two shapes' own ink overlaps.
+ *
+ * This is not a corner case. The wheel deck's centre panel keeps an unchanged
+ * opaque disc, and the wording inside it is a matched pair once the panels'
+ * casts line up (issue #160), so without this the new wording dissolved in
+ * behind that disc's ghost and only appeared when the overlay came down: the
+ * same defect issue #146 fixed for the unmatched case, reached by a different
+ * road.
  *
  * @param outgoing - The outgoing slide's elements, flattened, in document order.
  * @param incoming - The incoming slide's elements, flattened, in document order.
  * @param pairs - The matched pairs.
  * @param holdingGhostIds - The outgoing ids the overlay paints AND keeps opaque
  *   for the whole morph (a painted pair whose appearance did not change).
+ * @param dissolvingInIds - Incoming ids of matched pairs whose incoming half
+ *   fades in (see `morphPairIncomingFadesIn`). Defaults to none, the behaviour
+ *   before matched pairs could be lifted.
  * @returns The ids of the incoming elements to lift, a subset of `incoming`.
  */
 export function resolveMorphOverlayArrivals(
@@ -140,6 +153,7 @@ export function resolveMorphOverlayArrivals(
 	incoming: readonly PptxElement[],
 	pairs: readonly MorphPair[],
 	holdingGhostIds: ReadonlySet<string>,
+	dissolvingInIds: ReadonlySet<string> = new Set(),
 ): Set<string> {
 	const rank = buildMorphMergedOrder(outgoing, incoming, pairs);
 	const matched = new Set(pairs.map((pair) => pair.toElement.id));
@@ -153,7 +167,7 @@ export function resolveMorphOverlayArrivals(
 
 	const lifted = new Set<string>();
 	for (const element of incoming) {
-		if (matched.has(element.id)) {
+		if (matched.has(element.id) && !dissolvingInIds.has(element.id)) {
 			continue;
 		}
 		const mine = rank.get(element.id) ?? 0;

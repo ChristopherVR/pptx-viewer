@@ -477,6 +477,9 @@ export * from './morph-flatten';
 // arriving shapes it would otherwise hide behind a ghost.
 export * from './morph-overlay-order';
 export * from './morph-text';
+// "Same slot, new wording": the pair PowerPoint dissolves where it stands
+// instead of interpolating a box it only re-fitted around the new text.
+export * from './morph-text-slot';
 // Intelligent token-level text morph: LCS diff (shared/added/removed) + per-
 // token slide/fade keyframe building, consumed by `morph-animation`.
 export * from './morph-text-tokens';

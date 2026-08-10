@@ -10,7 +10,7 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { flattenMorphElements } from './morph-flatten';
+import { flattenMorphElements, morphGroupChildPairs } from './morph-flatten';
 import { getElementMorphName } from './morph-name';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
@@ -145,6 +145,7 @@ export function getElementCreationId(element: PptxElement): string | undefined {
  * Matching passes (in priority order):
  *   1. Explicit !! naming convention (element name from cNvPr/@name, or text content)
  *   2a. `a16:creationId` GUID (PowerPoint's own cross-slide shape identity)
+ *   2c. The child correspondence that let two groups be decomposed
  *   2b. Native shape id from `p:cNvPr/@id` (only when creationIds are absent)
  *   3. Type + proximity + size matching (same type within 300px, similar box)
  *
@@ -232,6 +233,35 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 				usedTo.add(toEl.id);
 				break;
 			}
+		}
+	}
+
+	// Pass 2c: honour the correspondence that let two groups be decomposed.
+	//
+	// A group is only taken apart once its children have been shown to line up
+	// one for one with the twin group's (see `morph-flatten`), so that pairing is
+	// already established evidence by the time the flat list reaches this
+	// function - and it is evidence the passes below cannot reconstruct, because
+	// flattening threw the grouping away. Without it the wheel deck's three
+	// centre text boxes fell through to pass 3, which refuses two text boxes that
+	// sit in the same place and say different things, and every topic-to-topic
+	// morph played them as an unmatched pair: gone by 23%, back from 42%, with an
+	// empty panel in between (issue #160).
+	const groupChildPairs = morphGroupChildPairs(fromSlide.elements, toSlide.elements);
+	if (groupChildPairs.size > 0) {
+		const toById = new Map(toElements.map((el) => [el.id, el]));
+		for (const fromEl of fromElements) {
+			if (usedFrom.has(fromEl.id)) {
+				continue;
+			}
+			const toId = groupChildPairs.get(fromEl.id);
+			const toEl = toId === undefined ? undefined : toById.get(toId);
+			if (!toEl || usedTo.has(toEl.id) || fromEl.type !== toEl.type) {
+				continue;
+			}
+			pairs.push({ fromElement: fromEl, toElement: toEl });
+			usedFrom.add(fromEl.id);
+			usedTo.add(toEl.id);
 		}
 	}
 

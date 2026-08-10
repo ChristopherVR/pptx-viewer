@@ -19,6 +19,7 @@ import { matchMorphElements, matchMorphElementsFull, getElementMorphName } from 
 import { parseSvgPath, serializeSvgPath, equalizePaths, interpolatePaths } from './morph-svg-path';
 import { tokenizeText, matchTextTokens } from './morph-text';
 import {
+	MORPH_CROSSFADE_EASING,
 	MORPH_EASING,
 	MORPH_FADE_IN_EASING,
 	MORPH_FADE_IN_START_PERCENT,
@@ -1705,5 +1706,81 @@ describe('morph crossfade fade-in (issue #131 follow-up)', () => {
 			500,
 		);
 		expect(anims[0].keyframes).not.toContain('opacity: 0;');
+	});
+});
+
+describe('replaced wording in the same slot (issue #160)', () => {
+	/** A centre-panel paragraph, re-fitted around its own wording. */
+	const paragraph = (id: string, text: string, box: Partial<PptxElement>) =>
+		makeElement({
+			id,
+			type: 'text',
+			x: 536,
+			y: 361,
+			width: 215,
+			height: 44,
+			text,
+			shapeStyle: { fillMode: 'none' },
+			...box,
+		} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+
+	const refitted: MorphPair = {
+		fromElement: paragraph('a', 'Challenge: Integration of cyber', {}),
+		toElement: paragraph('b', 'Challenge: Decision advantage', { y: 360, height: 32 }),
+	};
+
+	it('dissolves both halves where they stand, without stretching the type', () => {
+		// PowerPoint re-lays the wording out inside whatever box now fits it; it
+		// never scales the glyphs. Interpolating the box squeezed this paragraph
+		// by the 27% its own height changed.
+		const [incoming] = generateMorphAnimations([refitted], 1000);
+		const [ghost] = generateMorphGhostAnimations([refitted], 1000, 0);
+		for (const keyframes of [incoming.keyframes, ghost.keyframes]) {
+			expect(keyframes).toContain('scale(1, 1)');
+			expect(keyframes).not.toMatch(/translate\((?!0)/u);
+		}
+	});
+
+	it('gives the two halves complementary opacity on the same curve', () => {
+		// The whole point of the pair: PowerPoint's own render of this transition
+		// is a blend of the two end states whose weights sum to 1.000 throughout.
+		const [incoming] = generateMorphAnimations([refitted], 1000);
+		const [ghost] = generateMorphGhostAnimations([refitted], 1000, 0);
+		expect(incoming.animation).toContain(MORPH_CROSSFADE_EASING);
+		expect(ghost.animation).toContain(MORPH_CROSSFADE_EASING);
+		expect(incoming.keyframes).toMatch(/-fade \{\s*from \{\s*opacity: 0;/u);
+		expect(ghost.keyframes).toMatch(/-fade \{\s*from \{\s*opacity: 1;/u);
+	});
+
+	it('still interpolates a text box that genuinely moved', () => {
+		// Measured: a text box whose wording changed AND which moved 460px travels
+		// the whole way while its glyphs cross-dissolve.
+		const moved: MorphPair = {
+			fromElement: paragraph('a', 'AAAA BBBB', { x: 100, y: 80 }),
+			toElement: paragraph('b', 'CCCC DDDD', { x: 560, y: 400 }),
+		};
+		const [incoming] = generateMorphAnimations([moved], 1000);
+		expect(incoming.keyframes).toContain('translate(-460px, -320px)');
+	});
+
+	it('leaves a shape with a body alone', () => {
+		// Only a bare text box is a container PowerPoint re-fits; a rounded
+		// rectangle that resizes really does change size on screen.
+		const chip = (id: string, text: string, width: number) =>
+			makeElement({
+				id,
+				type: 'shape',
+				x: 0,
+				y: 0,
+				width,
+				height: 40,
+				text,
+				shapeStyle: { fillMode: 'solid', fillColor: '#ff0000' },
+			} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+		const [incoming] = generateMorphAnimations(
+			[{ fromElement: chip('a', 'Before', 100), toElement: chip('b', 'After', 200) }],
+			1000,
+		);
+		expect(incoming.keyframes).toContain('scale(0.5, 1)');
 	});
 });

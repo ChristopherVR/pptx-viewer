@@ -150,7 +150,9 @@ describe('resolveMorphOverlayArrivals', () => {
 		expect([...lifted]).toStrictEqual([]);
 	});
 
-	it('never lifts a matched pair, which dissolves against its own ghost', () => {
+	it('never lifts a matched pair that is pinned at full strength', () => {
+		// Anything painting a body keeps its opacity so the crossfade does not
+		// hollow it out. Lifted above its own ghost it would simply cut.
 		const disc = { from: box('a-disc', 0, 0, 300, 300), to: box('b-disc', 0, 0, 300, 300) };
 		const chip = { from: box('a-chip', 20, 20, 80, 20), to: box('b-chip', 20, 20, 80, 20) };
 
@@ -159,6 +161,39 @@ describe('resolveMorphOverlayArrivals', () => {
 			[disc.to, chip.to],
 			[pair(disc.from, disc.to), pair(chip.from, chip.to)],
 			new Set(['a-disc', 'a-chip']),
+		);
+
+		expect([...lifted]).toStrictEqual([]);
+	});
+
+	it('lifts a matched pair whose incoming half dissolves in under a holding ghost', () => {
+		// The wheel deck's centre wording, once the two panels' casts line up and
+		// it pairs: it is a text box on `noFill`, so its incoming half fades in -
+		// and it does so INSIDE an unchanged opaque disc whose ghost the overlay
+		// paints for the whole morph, where nobody would ever see it (issue #160).
+		const disc = { from: box('a-disc', 0, 0, 300, 300), to: box('b-disc', 0, 0, 300, 300) };
+		const title = { from: box('a-title', 20, 20, 200, 30), to: box('b-title', 20, 20, 200, 30) };
+
+		const lifted = resolveMorphOverlayArrivals(
+			[disc.from, title.from],
+			[disc.to, title.to],
+			[pair(disc.from, disc.to), pair(title.from, title.to)],
+			new Set(['a-disc']),
+			new Set(['b-title']),
+		);
+
+		expect([...lifted]).toStrictEqual(['b-title']);
+	});
+
+	it('leaves a dissolving-in pair on the stage when no holding ghost covers it', () => {
+		const title = { from: box('a-title', 20, 20, 200, 30), to: box('b-title', 20, 20, 200, 30) };
+
+		const lifted = resolveMorphOverlayArrivals(
+			[title.from],
+			[title.to],
+			[pair(title.from, title.to)],
+			new Set(),
+			new Set(['b-title']),
 		);
 
 		expect([...lifted]).toStrictEqual([]);

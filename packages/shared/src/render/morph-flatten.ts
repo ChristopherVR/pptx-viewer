@@ -117,8 +117,13 @@ function correspondingGroup(
 /** Fraction of the union two boxes must share to read as the same object. */
 const CHILD_OVERLAP_RATIO = 0.5;
 
-/** Intersection over union of two element boxes. */
-function boxOverlapRatio(a: PptxElement, b: PptxElement): number {
+/**
+ * Intersection over union of two element boxes.
+ *
+ * Exported because the same "these two occupy the same slot" question decides
+ * whether a replaced text box dissolves in place or travels (`morph-text-slot`).
+ */
+export function boxOverlapRatio(a: PptxElement, b: PptxElement): number {
 	const left = Math.max(a.x, b.x);
 	const top = Math.max(a.y, b.y);
 	const right = Math.min(a.x + a.width, b.x + b.width);
@@ -165,20 +170,29 @@ function childrenPair(a: PptxElement, b: PptxElement): boolean {
  *
  * So a group is decomposed only when its children line up; a group that gained
  * or lost content dissolves as a whole.
+ *
+ * Returns the one-for-one correspondence itself, not just a yes/no, because
+ * that IS the pairing the matcher then has to honour: see
+ * {@link morphGroupChildPairs}.
  */
-function childrenCorrespond(a: readonly PptxElement[], b: readonly PptxElement[]): boolean {
+function correspondingChildren(
+	a: readonly PptxElement[],
+	b: readonly PptxElement[],
+): Array<[PptxElement, PptxElement]> | undefined {
 	if (a.length !== b.length || a.length === 0) {
-		return false;
+		return undefined;
 	}
 	const unclaimed = b.map((child) => child);
+	const paired: Array<[PptxElement, PptxElement]> = [];
 	for (const child of a) {
 		const index = unclaimed.findIndex((candidate) => childrenPair(child, candidate));
 		if (index < 0) {
-			return false;
+			return undefined;
 		}
+		paired.push([child, unclaimed[index]]);
 		unclaimed.splice(index, 1);
 	}
-	return true;
+	return paired;
 }
 
 /**
@@ -204,7 +218,7 @@ export function flattenMorphElements(
 		if (children && containsMorphNamedDescendant(element)) {
 			const twin = correspondingGroup(element, counterpart);
 			const twinChildren = twin ? (groupChildren(twin) ?? []) : undefined;
-			if (twinChildren && childrenCorrespond(children, twinChildren)) {
+			if (twinChildren && correspondingChildren(children, twinChildren)) {
 				out.push(
 					...flattenMorphElements(children, twinChildren, offsetX + element.x, offsetY + element.y),
 				);
@@ -214,6 +228,64 @@ export function flattenMorphElements(
 		out.push(toAbsolute(element, offsetX, offsetY));
 	}
 	return out;
+}
+
+/**
+ * The pairs {@link flattenMorphElements} implied when it took two groups apart,
+ * as `outgoing element id -> incoming element id`.
+ *
+ * A group is only decomposed once its children have been shown to line up one
+ * for one (see {@link correspondingChildren}), which is a statement that these
+ * five shapes ARE those five shapes. The matcher has to be told, because it
+ * cannot see it: the flat list it works on has lost the grouping, and its
+ * general passes deliberately refuse to pair two text boxes that sit in the same
+ * place but say different things ("same place, different words" is normally a
+ * rebuilt panel, not one object that moved).
+ *
+ * That refusal is exactly wrong here. The wheel deck's topic slides each hold
+ * the same panel with the challenge's own wording, so every topic-to-topic morph
+ * left its three text boxes unpaired: the old wording faded out inside the first
+ * quarter, the new one only began at 42%, and the middle of the transition was
+ * empty. PowerPoint crossfades them - measured on its own render of slides 5->6
+ * (`CreateVideo`, 62.5fps), where every frame of that panel is a blend of the
+ * two end states whose weights sum to 1.000 for the whole transition (issue
+ * #160).
+ *
+ * @param elements - The outgoing slide's top-level elements.
+ * @param counterpart - The incoming slide's top-level elements.
+ * @returns Outgoing id -> incoming id for every corresponded child, recursively.
+ */
+export function morphGroupChildPairs(
+	elements: readonly PptxElement[],
+	counterpart: readonly PptxElement[],
+): Map<string, string> {
+	const pairs = new Map<string, string>();
+	collectGroupChildPairs(elements, counterpart, pairs);
+	return pairs;
+}
+
+/** Walk both trees the way {@link flattenMorphElements} does, recording pairs. */
+function collectGroupChildPairs(
+	elements: readonly PptxElement[],
+	counterpart: readonly PptxElement[],
+	into: Map<string, string>,
+): void {
+	for (const element of elements) {
+		const children = groupChildren(element);
+		if (!children || !containsMorphNamedDescendant(element)) {
+			continue;
+		}
+		const twin = correspondingGroup(element, counterpart);
+		const twinChildren = twin ? (groupChildren(twin) ?? []) : undefined;
+		const corresponded = twinChildren ? correspondingChildren(children, twinChildren) : undefined;
+		if (!corresponded) {
+			continue;
+		}
+		for (const [child, twinChild] of corresponded) {
+			into.set(child.id, twinChild.id);
+		}
+		collectGroupChildPairs(children, twinChildren ?? [], into);
+	}
 }
 
 /**

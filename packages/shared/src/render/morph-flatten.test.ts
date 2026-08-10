@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { flattenMorphElements, needsMorphFlattening } from './morph-flatten';
+import { flattenMorphElements, morphGroupChildPairs, needsMorphFlattening } from './morph-flatten';
 
 function el(overrides: Partial<PptxElement> & { id: string }): PptxElement {
 	return {
@@ -210,5 +210,91 @@ describe('flattenMorphElements', () => {
 		const elements = [group({ id: 'g' }, [])];
 		expect(needsMorphFlattening(elements)).toBeFalsy();
 		expect(flattenMorphElements(elements, []).map((e) => e.id)).toStrictEqual(['g']);
+	});
+});
+
+describe('morphGroupChildPairs', () => {
+	/** The centre panel of a topic slide: disc, button, title, body. */
+	const panel = (prefix: string, title: string, bodyWidth: number): PptxElement =>
+		circle(prefix, [
+			el({ id: `${prefix}-disc`, name: '!!Content', width: 270, height: 270 }),
+			el({ id: `${prefix}-button`, name: 'Rectangle 4', x: 73, y: 189, width: 124, height: 31 }),
+			el({
+				id: `${prefix}-title`,
+				type: 'text',
+				name: 'TextBox 5',
+				x: 28,
+				y: 60,
+				width: 214,
+				height: 29,
+				text: title,
+			} as Partial<PptxElement> & { id: string }),
+			el({
+				id: `${prefix}-body`,
+				type: 'text',
+				name: 'TextBox 6',
+				x: 52,
+				y: 95,
+				width: bodyWidth,
+				height: 36,
+				text: `${title} body`,
+			} as Partial<PptxElement> & { id: string }),
+		]);
+
+	it('pairs the children of two groups it decomposed', () => {
+		// The pairing that justified taking the groups apart is evidence the
+		// matcher cannot rebuild from the flat list, and without it the two
+		// re-worded text boxes fall through to the proximity pass, which refuses
+		// "same place, different words" (issue #160).
+		const pairs = morphGroupChildPairs(
+			[panel('a', 'Cyber and EM Spectrum', 172)],
+			[panel('b', 'AI Decision Advantage', 193)],
+		);
+		expect(Object.fromEntries(pairs)).toStrictEqual({
+			'a-disc': 'b-disc',
+			'a-button': 'b-button',
+			'a-title': 'b-title',
+			'a-body': 'b-body',
+		});
+	});
+
+	it('reports nothing for groups it would not decompose', () => {
+		const hub = [circle('a', [el({ id: 'disc', name: '!!Content' }), el({ id: 'select' })])];
+		const topic = [
+			circle('b', [
+				el({ id: 'b-disc', name: '!!Content' }),
+				el({ id: 'b-button' }),
+				el({ id: 'b-title' }),
+			]),
+		];
+		expect(morphGroupChildPairs(hub, topic).size).toBe(0);
+		expect(morphGroupChildPairs([el({ id: 'plain' })], [el({ id: 'other' })]).size).toBe(0);
+	});
+
+	it('descends into nested groups that also correspond', () => {
+		// A nested group is only taken apart on the same terms as a top-level one:
+		// it has to hold a `!!`-named descendant of its own.
+		const nest = (prefix: string, words: string): PptxElement =>
+			circle(prefix, [
+				el({ id: `${prefix}-disc`, name: '!!Content', width: 270, height: 270 }),
+				group({ id: `${prefix}-inner`, name: 'Group 3', x: 28, y: 60, width: 214, height: 119 }, [
+					el({ id: `${prefix}-mark`, name: '!!Mark', width: 20, height: 20 }),
+					el({
+						id: `${prefix}-line`,
+						type: 'text',
+						name: 'TextBox 5',
+						y: 30,
+						width: 214,
+						height: 29,
+						text: words,
+					} as Partial<PptxElement> & { id: string }),
+				]),
+			]);
+		const pairs = morphGroupChildPairs(
+			[nest('a', 'Open Integration')],
+			[nest('b', 'Tactical Edge')],
+		);
+		expect(pairs.get('a-inner')).toBe('b-inner');
+		expect(pairs.get('a-line')).toBe('b-line');
 	});
 });

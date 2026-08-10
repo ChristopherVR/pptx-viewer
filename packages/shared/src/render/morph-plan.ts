@@ -36,7 +36,11 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { generateFullMorphTransition, morphPairNeedsCrossfade } from './morph-animation';
+import {
+	generateFullMorphTransition,
+	morphPairIncomingFadesIn,
+	morphPairNeedsCrossfade,
+} from './morph-animation';
 import { flattenMorphElements } from './morph-flatten';
 import { matchMorphElementsFull } from './morph-matching';
 import { resolveMorphOverlayArrivals } from './morph-overlay-order';
@@ -244,11 +248,28 @@ export function buildMorphTransitionPlan(
 			)
 			.map((candidate) => candidate.fromElement.id),
 	);
+	// A matched pair's incoming half can be hidden by a holding ghost just as
+	// easily as an arrival can - the wheel deck dissolves its centre wording
+	// inside an unchanged opaque disc (issue #160) - but only one that DISSOLVES
+	// IN may be lifted over its own ghost. One pinned at full strength has to
+	// stay underneath it, or the crossfade becomes a cut.
+	const dissolvingInIds = new Set(
+		match.pairs
+			.filter((candidate) =>
+				morphPairIncomingFadesIn(
+					candidate.fromElement,
+					candidate.toElement,
+					outgoingAnimations.has(candidate.fromElement.id),
+				),
+			)
+			.map((candidate) => candidate.toElement.id),
+	);
 	const lifted = resolveMorphOverlayArrivals(
 		flattenedOutgoing,
 		flattenedIncoming,
 		match.pairs,
 		holdingGhostIds,
+		dissolvingInIds,
 	);
 	const overlayIncomingAnimations = new Map<string, string>();
 	for (const id of lifted) {

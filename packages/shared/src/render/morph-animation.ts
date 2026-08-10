@@ -26,6 +26,7 @@ import { matchMorphElementsFull } from './morph-matching';
 import type { MorphBox } from './morph-overlay-order';
 import { boxesOverlap, travelledBox } from './morph-overlay-order';
 import { tokenizeText } from './morph-text';
+import { morphTextReplacedInSlot } from './morph-text-slot';
 import { buildTokenMorphAnimations, diffTokens } from './morph-text-tokens';
 import type { MorphAnimationStyle, MorphMode, MorphPair } from './morph-types';
 import {
@@ -286,6 +287,31 @@ export function resolveMorphGhostIds(
  * fading it in while its ghost faded out turned the disc translucent for the
  * middle of every hub-to-topic morph.
  */
+/**
+ * Whether a matched pair's INCOMING half dissolves in rather than being painted
+ * at full strength from the first frame.
+ *
+ * Exported because the overlay has to know: a half that dissolves in can be
+ * lifted above a ghost that would otherwise hide it, and a half that is pinned
+ * cannot (lifting that one turns its dissolve into a cut). See
+ * `resolveMorphOverlayArrivals`.
+ *
+ * @param fromElement - The outgoing half of the pair.
+ * @param toElement - The incoming half.
+ * @param ghosted - Whether the overlay paints this pair's ghost at all.
+ */
+export function morphPairIncomingFadesIn(
+	fromElement: PptxElement,
+	toElement: PptxElement,
+	ghosted = true,
+): boolean {
+	return (
+		!(ghosted && isInertMorphPair(fromElement, toElement)) &&
+		morphPairNeedsCrossfade(fromElement, toElement) &&
+		crossfadeIncomingMayFadeIn(toElement)
+	);
+}
+
 function crossfadeIncomingMayFadeIn(element: PptxElement): boolean {
 	const image = element as { imagePath?: string; svgPath?: string };
 	if (image.imagePath || image.svgPath) {
@@ -362,10 +388,20 @@ export function generateMorphAnimations(
 		// scale/rotate pivot on the element's own centre (`transform-origin:
 		// center`), so a top-left delta would land a resized pair off by half
 		// the size difference.
-		const dx = fromElement.x + fromElement.width / 2 - (toElement.x + toElement.width / 2);
-		const dy = fromElement.y + fromElement.height / 2 - (toElement.y + toElement.height / 2);
-		const sx = Math.max(fromElement.width, 1) / Math.max(toElement.width, 1);
-		const sy = Math.max(fromElement.height, 1) / Math.max(toElement.height, 1);
+		//
+		// A text box that only changed its WORDS stays where it is: its box is a
+		// container PowerPoint re-fits around the new wording, not a shape that
+		// moved, and interpolating it would stretch the type by however much the
+		// text changed length. See {@link morphTextReplacedInSlot}.
+		const inSlot = morphTextReplacedInSlot(fromElement, toElement);
+		const dx = inSlot
+			? 0
+			: fromElement.x + fromElement.width / 2 - (toElement.x + toElement.width / 2);
+		const dy = inSlot
+			? 0
+			: fromElement.y + fromElement.height / 2 - (toElement.y + toElement.height / 2);
+		const sx = inSlot ? 1 : Math.max(fromElement.width, 1) / Math.max(toElement.width, 1);
+		const sy = inSlot ? 1 : Math.max(fromElement.height, 1) / Math.max(toElement.height, 1);
 		const fromOpacity = fromElement.opacity ?? 1;
 		const toOpacity = toElement.opacity ?? 1;
 
@@ -382,7 +418,7 @@ export function generateMorphAnimations(
 		// authored rotation over the shorter arc; the `to` frame must keep the
 		// authored value so the element lands exactly on its static transform.
 		const toRot = toElement.rotation ?? 0;
-		const fromRot = shortestRotationTarget(toRot, fromElement.rotation ?? 0);
+		const fromRot = inSlot ? toRot : shortestRotationTarget(toRot, fromElement.rotation ?? 0);
 		const flips = `${toElement.flipHorizontal ? ' scaleX(-1)' : ''}${
 			toElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
@@ -401,10 +437,7 @@ export function generateMorphAnimations(
 		// A restyled pair dissolves via its outgoing GHOST, which fades 1 -> 0 in
 		// the overlay above this element. Only a body-less element (a text box on
 		// `noFill`) may fade IN underneath it - see `crossfadeIncomingMayFadeIn`.
-		const crossfadesIn =
-			!inert &&
-			morphPairNeedsCrossfade(fromElement, toElement) &&
-			crossfadeIncomingMayFadeIn(toElement);
+		const crossfadesIn = morphPairIncomingFadesIn(fromElement, toElement, ghosted);
 
 		// Build from/to property blocks. A half that dissolves IN keeps its opacity
 		// out of this block and rides a second animation, so the journey and the
@@ -513,14 +546,22 @@ export function generateMorphGhostAnimations(
 		}
 		const fadesOut = morphPairNeedsCrossfade(fromElement, toElement);
 		const safeName = `pptx-morph-ghost-${startIndex + index}-${fromElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
-		const dx = toElement.x + toElement.width / 2 - (fromElement.x + fromElement.width / 2);
-		const dy = toElement.y + toElement.height / 2 - (fromElement.y + fromElement.height / 2);
-		const sx = Math.max(toElement.width, 1) / Math.max(fromElement.width, 1);
-		const sy = Math.max(toElement.height, 1) / Math.max(fromElement.height, 1);
+		// Mirror of the incoming half: a text box that only changed its wording
+		// dissolves where it stands, so its ghost must not travel either or the
+		// two halves would cross-dissolve out of register.
+		const inSlot = morphTextReplacedInSlot(fromElement, toElement);
+		const dx = inSlot
+			? 0
+			: toElement.x + toElement.width / 2 - (fromElement.x + fromElement.width / 2);
+		const dy = inSlot
+			? 0
+			: toElement.y + toElement.height / 2 - (fromElement.y + fromElement.height / 2);
+		const sx = inSlot ? 1 : Math.max(toElement.width, 1) / Math.max(fromElement.width, 1);
+		const sy = inSlot ? 1 : Math.max(toElement.height, 1) / Math.max(fromElement.height, 1);
 		// The ghost starts on its own authored rotation, so the SHORTEST-arc
 		// adjustment goes on the target angle here (mirror of the incoming half).
 		const fromRot = fromElement.rotation ?? 0;
-		const toRot = shortestRotationTarget(fromRot, toElement.rotation ?? 0);
+		const toRot = inSlot ? fromRot : shortestRotationTarget(fromRot, toElement.rotation ?? 0);
 		const flips = `${fromElement.flipHorizontal ? ' scaleX(-1)' : ''}${
 			fromElement.flipVertical ? ' scaleY(-1)' : ''
 		}`;
