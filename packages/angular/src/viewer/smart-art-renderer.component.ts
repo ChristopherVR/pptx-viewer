@@ -19,6 +19,7 @@ import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 
 import {
 	buildSmartArtA11y,
+	centeredSvgTextLines,
 	computeInlineEditorRect,
 	computeSmartArtLayout,
 	flattenNodes,
@@ -51,12 +52,7 @@ import {
 	nodeIdFromKey,
 } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
-import {
-	computeTextLines,
-	narrowToCircle,
-	narrowToPolygon,
-	narrowToRect,
-} from './smart-art-renderer-helpers';
+import { narrowToCircle, narrowToPolygon, narrowToRect } from './smart-art-renderer-helpers';
 
 /**
  * SmartArtRendererComponent: Angular SmartArt renderer.
@@ -328,7 +324,7 @@ export class SmartArtRendererComponent {
 	protected readonly asCircle = narrowToCircle;
 	protected readonly asPolygon = narrowToPolygon;
 	protected readonly asRect = narrowToRect;
-	protected readonly textLines = computeTextLines;
+	protected readonly textLines = centeredSvgTextLines;
 
 	// ── Inline node-text editing ───────────────────────────────────────────
 

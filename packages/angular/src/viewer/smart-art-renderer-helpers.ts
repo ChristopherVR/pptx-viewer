@@ -25,25 +25,3 @@ export function narrowToPolygon(node: RenderedNode): RenderedPolygonNode | undef
 export function narrowToRect(node: RenderedNode): RenderedRectNode | undefined {
 	return node.kind === 'rect' ? node : undefined;
 }
-
-/**
- * Split node text on newlines and compute per-line y offsets (in SVG px)
- * that centre the block around the node centre y (offset 0). Single-line
- * text produces one entry with offsetY=0, preserving the existing
- * dominant-baseline="central" behaviour exactly.
- */
-export function computeTextLines(
-	text: string,
-	fontSize: number,
-): Array<{ text: string; offsetY: number }> {
-	const raw = (text ?? '').split('\n').filter((l) => l.length > 0);
-	if (raw.length === 0) {
-		return [{ text: '', offsetY: 0 }];
-	}
-	const lh = fontSize * 1.2;
-	const totalH = raw.length * lh;
-	return raw.map((line, i) => ({
-		text: line,
-		offsetY: -totalH / 2 + lh / 2 + i * lh,
-	}));
-}

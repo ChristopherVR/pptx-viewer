@@ -1,7 +1,7 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { resolveParagraphSpacing } from './text-paragraph-spacing';
+import { resolveParagraphSpacing } from './text-paragraphs';
 
 const base = {
 	isFirst: false,
@@ -10,14 +10,31 @@ const base = {
 };
 
 describe('resolveParagraphSpacing', () => {
+	it('returns nothing when neither the paragraph nor the body sets spacing', () => {
+		expect(resolveParagraphSpacing({ ...base, paraProps: undefined })).toStrictEqual({});
+		expect(
+			resolveParagraphSpacing({ ...base, paraProps: undefined, bodyStyle: undefined }),
+		).toStrictEqual({});
+	});
+
+	it('expresses exact spcPts line spacing in px', () => {
+		const out = resolveParagraphSpacing({
+			...base,
+			paraProps: { lineSpacingExactPt: 18 } as TextStyle,
+		});
+		// 18pt at 96dpi. Equivalent to the "18pt" some bindings emitted before,
+		// but one unit for all five.
+		expect(out.lineHeight).toBe('24px');
+	});
+
 	it('applies per-paragraph before/after margins from paraProps', () => {
 		const result = resolveParagraphSpacing({
 			...base,
 			paraProps: { paragraphSpacingBefore: 12, paragraphSpacingAfter: 8 } as TextStyle,
 			bodyStyle: undefined,
 		});
-		expect(result.marginTop).toBe(12);
-		expect(result.marginBottom).toBe(8);
+		expect(result.spaceBeforePx).toBe(12);
+		expect(result.spaceAfterPx).toBe(8);
 	});
 
 	it('falls back to body-level spacing when the paragraph has none', () => {
@@ -26,8 +43,8 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: undefined,
 			bodyStyle: { paragraphSpacingBefore: 5, paragraphSpacingAfter: 7 } as TextStyle,
 		});
-		expect(result.marginTop).toBe(5);
-		expect(result.marginBottom).toBe(7);
+		expect(result.spaceBeforePx).toBe(5);
+		expect(result.spaceAfterPx).toBe(7);
 	});
 
 	it('prefers paragraph spacing over the body fallback', () => {
@@ -36,7 +53,7 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { paragraphSpacingBefore: 20 } as TextStyle,
 			bodyStyle: { paragraphSpacingBefore: 5 } as TextStyle,
 		});
-		expect(result.marginTop).toBe(20);
+		expect(result.spaceBeforePx).toBe(20);
 	});
 
 	it('maps a line-spacing multiplier to a unitless line-height', () => {
@@ -76,8 +93,8 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { paragraphSpacingBefore: 12, paragraphSpacingAfter: 8 } as TextStyle,
 			bodyStyle: undefined,
 		});
-		expect(result.marginTop).toBeUndefined();
-		expect(result.marginBottom).toBe(8);
+		expect(result.spaceBeforePx).toBeUndefined();
+		expect(result.spaceAfterPx).toBe(8);
 	});
 
 	it('suppresses last-paragraph bottom spacing when spaceFirstLast is false', () => {
@@ -88,8 +105,8 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { paragraphSpacingBefore: 12, paragraphSpacingAfter: 8 } as TextStyle,
 			bodyStyle: undefined,
 		});
-		expect(result.marginTop).toBe(12);
-		expect(result.marginBottom).toBeUndefined();
+		expect(result.spaceBeforePx).toBe(12);
+		expect(result.spaceAfterPx).toBeUndefined();
 	});
 
 	it('applies first/last edge spacing when spaceFirstLast is true', () => {
@@ -101,8 +118,8 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { paragraphSpacingBefore: 12, paragraphSpacingAfter: 8 } as TextStyle,
 			bodyStyle: undefined,
 		});
-		expect(result.marginTop).toBe(12);
-		expect(result.marginBottom).toBe(8);
+		expect(result.spaceBeforePx).toBe(12);
+		expect(result.spaceAfterPx).toBe(8);
 	});
 
 	it('ignores zero / negative spacing values', () => {
@@ -111,7 +128,7 @@ describe('resolveParagraphSpacing', () => {
 			paraProps: { paragraphSpacingBefore: 0, paragraphSpacingAfter: -4 } as TextStyle,
 			bodyStyle: undefined,
 		});
-		expect(result.marginTop).toBeUndefined();
-		expect(result.marginBottom).toBeUndefined();
+		expect(result.spaceBeforePx).toBeUndefined();
+		expect(result.spaceAfterPx).toBeUndefined();
 	});
 });

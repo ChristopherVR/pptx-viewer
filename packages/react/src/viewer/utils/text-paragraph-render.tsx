@@ -4,6 +4,7 @@ import {
 	resolveCssTextAlign,
 	resolveParagraphAlign,
 	resolveParagraphRtl,
+	resolveParagraphSpacing,
 	resolveParagraphStrutFontSize,
 } from 'pptx-viewer-shared';
 import React from 'react';
@@ -13,7 +14,6 @@ import { getKinsokuLineBreakStyles } from './kinsoku-styles';
 import { wrapWithTextBuildAnimation } from './text-animation';
 import type { ParagraphEntry } from './text-animation';
 import type { FieldSubstitutionContext } from './text-field-substitution';
-import { resolveParagraphSpacing } from './text-paragraph-spacing';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { renderSingleSegment } from './text-segment-render';
 
@@ -199,8 +199,8 @@ export function renderTextSegments(
 		);
 
 		const hasParaSpacing =
-			spacing.marginTop !== undefined ||
-			spacing.marginBottom !== undefined ||
+			spacing.spaceBeforePx !== undefined ||
+			spacing.spaceAfterPx !== undefined ||
 			spacing.lineHeight !== undefined;
 
 		const paraStyle: React.CSSProperties = {
@@ -209,11 +209,11 @@ export function renderTextSegments(
 		if (strutFontSize !== undefined) {
 			paraStyle.fontSize = strutFontSize;
 		}
-		if (spacing.marginTop !== undefined) {
-			paraStyle.marginTop = spacing.marginTop;
+		if (spacing.spaceBeforePx !== undefined) {
+			paraStyle.marginTop = spacing.spaceBeforePx;
 		}
-		if (spacing.marginBottom !== undefined) {
-			paraStyle.marginBottom = spacing.marginBottom;
+		if (spacing.spaceAfterPx !== undefined) {
+			paraStyle.marginBottom = spacing.spaceAfterPx;
 		}
 		if (spacing.lineHeight !== undefined) {
 			paraStyle.lineHeight = spacing.lineHeight;

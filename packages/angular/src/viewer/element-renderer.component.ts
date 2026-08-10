@@ -16,6 +16,7 @@ import {
 	DEFAULT_TEXT_FONT_SIZE,
 	resolveAutoFitFontScale,
 	resolveParagraphIndent,
+	resolveParagraphSpacing,
 	resolveRunFont,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
@@ -63,7 +64,6 @@ import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
 import { showsTemplateAffordance } from './template-mode';
 import { resolveAngularParagraphBullet } from './text-bullets';
-import { resolveParagraphSpacing } from './text-paragraph-spacing';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
 import { ZoomRendererComponent } from './zoom-renderer.component';
@@ -533,6 +533,11 @@ export class ElementRendererComponent {
 		const paragraphIndents = el.paragraphIndents;
 		const out: Paragraph[] = [{ runs: [], bulletStyle: {}, indentPx: 0 }];
 		let paraStarted = false;
+		// `a:bodyPr/@spcFirstLastPara`; the shared resolver owns what it means.
+		const spaceFirstLast = el.textStyle?.spaceFirstLastParagraph !== false;
+		// Paragraphs are built in one forward pass, so the last one's own props are
+		// kept to re-resolve its spacing once the end of the body is known.
+		let lastParagraphProps: TextSegment['paragraphProperties'];
 		for (const seg of segments) {
 			// A bare `"\n"` segment is the slide-LOAD path's paragraph separator;
 			// `isParagraphBreak` is only set by the edit remap. Matching on the
@@ -553,7 +558,12 @@ export class ElementRendererComponent {
 					if (typeof endParaSize === 'number' && endParaSize > 0) {
 						closing.strutFontSizePx = endParaSize;
 					}
-					const endSpacing = resolveParagraphSpacing(seg.paragraphProperties);
+					const endSpacing = resolveParagraphSpacing({
+						paraProps: seg.paragraphProperties,
+						bodyStyle: el.textStyle,
+						isFirst: out.length === 1,
+						spaceFirstLast,
+					});
 					if (endSpacing.lineHeight !== undefined) {
 						closing.lineHeight = endSpacing.lineHeight;
 					}
@@ -578,9 +588,16 @@ export class ElementRendererComponent {
 				);
 				current.indentPx = indent.marginLeftPx ?? 0;
 				current.textIndentPx = indent.textIndentPx;
-				// Per-paragraph line-height / space-before / space-after from this
-				// paragraph's own `a:pPr` (#69), mirroring shared `buildParagraphs`.
-				const spacing = resolveParagraphSpacing(seg.paragraphProperties);
+				// Per-paragraph line-height / space-before / space-after, resolved by
+				// the shared resolver `buildParagraphs` uses (body-level inheritance
+				// and the first/last edge rule included).
+				lastParagraphProps = seg.paragraphProperties;
+				const spacing = resolveParagraphSpacing({
+					paraProps: seg.paragraphProperties,
+					bodyStyle: el.textStyle,
+					isFirst: out.length === 1,
+					spaceFirstLast,
+				});
 				if (spacing.lineHeight !== undefined) {
 					current.lineHeight = spacing.lineHeight;
 				}
@@ -697,12 +714,27 @@ export class ElementRendererComponent {
 		if (lastContent < 0) {
 			return out.length === 1 ? out : [];
 		}
-		return out.slice(0, lastContent + 1).map((p) => {
+		const kept = out.slice(0, lastContent + 1).map((p) => {
 			if (!hasContent(p)) {
 				p.isEmpty = true;
 			}
 			return p;
 		});
+		// The last paragraph's after-spacing depends on it BEING last, which is only
+		// known now that the body has ended. Re-resolving through the same shared
+		// resolver keeps the edge rule in one place.
+		const finalParagraph = kept[kept.length - 1];
+		if (finalParagraph) {
+			const finalSpacing = resolveParagraphSpacing({
+				paraProps: lastParagraphProps,
+				bodyStyle: el.textStyle,
+				isFirst: kept.length === 1,
+				isLast: true,
+				spaceFirstLast,
+			});
+			finalParagraph.spaceAfterPx = finalSpacing.spaceAfterPx;
+		}
+		return kept;
 	});
 
 	readonly hasText = computed(() =>
