@@ -18,6 +18,7 @@ import { buildAngularImageRenderView } from './image-renderer-helpers';
 		<div
 			class="pptx-ng-element pptx-ng-image"
 			[ngStyle]="containerStyle()"
+			[style.pointer-events]="rootPointerEvents()"
 			[attr.data-element-id]="element().id"
 			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
@@ -63,6 +64,15 @@ export class ImageRendererComponent {
 	readonly interactive = input<boolean>(false);
 	/** Keep the data-pptx-element marker on interaction-locked template elements. */
 	readonly marked = input<boolean>(false);
+
+	/**
+	 * `pointer-events: none` while not interactive, mirroring React's
+	 * `pointer-events-none` class. {@link marked} keeps the element findable via
+	 * `data-pptx-element` even while locked (e.g. a template/master picture with
+	 * `editTemplateMode` off); this is what actually stops it from being clicked
+	 * or dragged.
+	 */
+	readonly rootPointerEvents = computed<'none' | null>(() => (this.interactive() ? null : 'none'));
 
 	private readonly sanitizer = inject(DomSanitizer);
 

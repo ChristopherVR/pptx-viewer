@@ -261,6 +261,21 @@ export class ElementRendererComponent {
 	readonly elementMarked = computed(() => this.interactive() || this.marked());
 
 	/**
+	 * `pointer-events: none` while this render is not interactive, mirroring
+	 * React's `pointer-events-none` Tailwind class on the same condition. This is
+	 * the piece `editTemplateMode` actually depends on: {@link marked} keeps the
+	 * `data-pptx-element` contract attribute on a locked template (master/layout)
+	 * element so it stays findable as a rendered slide element, but the attribute
+	 * alone never stopped clicks/drags from reaching it. Without this, a
+	 * layout/master shape stayed fully clickable with `editTemplateMode` off:
+	 * nothing on its DOM node reflected the lock, only the stage's pointerdown
+	 * handler's id-based gate did, which kept selection/drag from acting on it
+	 * but left the element itself indistinguishable from an interactive one to
+	 * anything reading its computed style (e.g. `e2e/template-editing.spec.ts`).
+	 */
+	readonly rootPointerEvents = computed<'none' | null>(() => (this.interactive() ? null : 'none'));
+
+	/**
 	 * True only on the live presentation stage; threaded to the media renderer so
 	 * a slide's media autoplays when the slide becomes active (and to group
 	 * children so nested media autoplays too). False everywhere else.
