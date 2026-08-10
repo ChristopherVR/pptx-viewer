@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.17.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.17.3) - 2026-08-10
+
+### Dependencies
+
+- **deps:** Update dompurify requirement from ^3.4.12 to ^3.4.13 ([#151](https://github.com/ChristopherVR/pptx-viewer/issues/151)) (by @dependabot[bot]) ([7b975ff](https://github.com/ChristopherVR/pptx-viewer/commit/7b975ff73403916341fd8a6192fb6fd6c88fdc17))
+- **deps:** Update yjs requirement from ^13.6.31 to ^13.6.32 ([#152](https://github.com/ChristopherVR/pptx-viewer/issues/152)) (by @dependabot[bot]) ([456fdb8](https://github.com/ChristopherVR/pptx-viewer/commit/456fdb8493487ab3e346714755239a90698f6b4d))
+- **deps:** Bump @ai-sdk/vue from 4.0.58 to 4.0.56 ([#154](https://github.com/ChristopherVR/pptx-viewer/issues/154)) (by @dependabot[bot]) ([684248e](https://github.com/ChristopherVR/pptx-viewer/commit/684248efdd237f2236da6e8bb6cc1b5531992d47))
+- **deps:** Update vue-tsc requirement from ^3.3.8 to ^3.3.9 ([#159](https://github.com/ChristopherVR/pptx-viewer/issues/159)) (by @dependabot[bot]) ([665ef13](https://github.com/ChristopherVR/pptx-viewer/commit/665ef139ab96a1c84815343c84bb53912b1b21d2))
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#150](https://github.com/ChristopherVR/pptx-viewer/issues/150)) (by @dependabot[bot]) ([ab75bf1](https://github.com/ChristopherVR/pptx-viewer/commit/ab75bf10a96bb2a0da6e963a5b6b8634e4f73d5b))
+
 ## [2.17.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.17.2) - 2026-08-08
 
 ## [2.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.17.1) - 2026-08-07

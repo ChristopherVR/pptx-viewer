@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.17.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.3) - 2026-08-10
+
+### Dependencies
+
+- **deps:** Update dompurify requirement from ^3.4.12 to ^3.4.13 ([#151](https://github.com/ChristopherVR/pptx-viewer/issues/151)) (by @dependabot[bot]) ([7b975ff](https://github.com/ChristopherVR/pptx-viewer/commit/7b975ff73403916341fd8a6192fb6fd6c88fdc17))
+- **deps:** Update yjs requirement from ^13.6.31 to ^13.6.32 ([#152](https://github.com/ChristopherVR/pptx-viewer/issues/152)) (by @dependabot[bot]) ([456fdb8](https://github.com/ChristopherVR/pptx-viewer/commit/456fdb8493487ab3e346714755239a90698f6b4d))
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#150](https://github.com/ChristopherVR/pptx-viewer/issues/150)) (by @dependabot[bot]) ([ab75bf1](https://github.com/ChristopherVR/pptx-viewer/commit/ab75bf10a96bb2a0da6e963a5b6b8634e4f73d5b))
+
 ## [2.17.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.2) - 2026-08-08
 
 ## [2.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.1) - 2026-08-07

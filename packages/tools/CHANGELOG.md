@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.1) - 2026-08-10
+
+### Dependencies
+
+- **deps:** Update yjs requirement from ^13.6.31 to ^13.6.32 ([#152](https://github.com/ChristopherVR/pptx-viewer/issues/152)) (by @dependabot[bot]) ([456fdb8](https://github.com/ChristopherVR/pptx-viewer/commit/456fdb8493487ab3e346714755239a90698f6b4d))
+- **deps:** Update @modelcontextprotocol/sdk requirement ([#153](https://github.com/ChristopherVR/pptx-viewer/issues/153)) (by @dependabot[bot]) ([974413f](https://github.com/ChristopherVR/pptx-viewer/commit/974413f162851d16dc1816ce6d94d3d80a5ff817))
+
 ## [2.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.0) - 2026-08-07
 
 ### Features

@@ -8,6 +8,40 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-10
+
+_Releases: pptx-viewer-core@2.3.3, pptx-react-viewer@2.16.3, pptx-vue-viewer@2.17.3, pptx-angular-viewer@2.17.3, pptx-vanilla-viewer@1.18.3, pptx-svelte-viewer@2.17.3, pptx-viewer-mcp@2.1.1_
+
+### Bug Fixes
+
+- **vanilla:** Give the master background swatch its real accessible name (by @ChristopherVR) ([6b5a988](https://github.com/ChristopherVR/pptx-viewer/commit/6b5a9888e0b2b9ead8904564aac74b863ccb9c00))
+- **i18n:** Translate the master background swatch's accessible name (by @ChristopherVR) ([1fb6c2e](https://github.com/ChristopherVR/pptx-viewer/commit/1fb6c2e37ef1317fe6404b9cca03b62909853215))
+- **angular:** Gate template element pointer-events on editTemplateMode (by @ChristopherVR) ([6ff0deb](https://github.com/ChristopherVR/pptx-viewer/commit/6ff0deb707bc90415eefc49a76f04e44dd49f147))
+- **angular:** Clip the show overlay so the phone toolbar can be reached (by @ChristopherVR) ([7d4d743](https://github.com/ChristopherVR/pptx-viewer/commit/7d4d743aecb8e9a4376e59e54523159406b5a499))
+- **svelte:** Pre-bundle the AI panel's lazy deps so the toggle click isn't lost (by @ChristopherVR) ([4a50700](https://github.com/ChristopherVR/pptx-viewer/commit/4a507002a0b86dc34305351bb354917b62ec62dc))
+- **vue:** Gate template element pointer-events on editTemplateMode (by @ChristopherVR) ([a3b4928](https://github.com/ChristopherVR/pptx-viewer/commit/a3b492823470c22f2499ccd204e4a7031a88d91e))
+- **react:** Don't let a resize/drag's trailing click open the text editor (by @ChristopherVR) ([1c61788](https://github.com/ChristopherVR/pptx-viewer/commit/1c61788385b2ffeb0d71cd3c2c1c54e053fbde79))
+
+### Testing
+
+- **e2e:** Widen the cross-binding deck-load timeout under concurrency (by @ChristopherVR) ([c9ee690](https://github.com/ChristopherVR/pptx-viewer/commit/c9ee690ee97158ee23180c13ee147e0e00a9baa4))
+
+### Dependencies
+
+- **deps:** Update dompurify requirement from ^3.4.12 to ^3.4.13 ([#151](https://github.com/ChristopherVR/pptx-viewer/issues/151)) (by @dependabot[bot]) ([7b975ff](https://github.com/ChristopherVR/pptx-viewer/commit/7b975ff73403916341fd8a6192fb6fd6c88fdc17))
+- **deps:** Update yjs requirement from ^13.6.31 to ^13.6.32 ([#152](https://github.com/ChristopherVR/pptx-viewer/issues/152)) (by @dependabot[bot]) ([456fdb8](https://github.com/ChristopherVR/pptx-viewer/commit/456fdb8493487ab3e346714755239a90698f6b4d))
+- **deps:** Update @modelcontextprotocol/sdk requirement ([#153](https://github.com/ChristopherVR/pptx-viewer/issues/153)) (by @dependabot[bot]) ([974413f](https://github.com/ChristopherVR/pptx-viewer/commit/974413f162851d16dc1816ce6d94d3d80a5ff817))
+- **deps:** Bump @ai-sdk/vue from 4.0.58 to 4.0.56 ([#154](https://github.com/ChristopherVR/pptx-viewer/issues/154)) (by @dependabot[bot]) ([684248e](https://github.com/ChristopherVR/pptx-viewer/commit/684248efdd237f2236da6e8bb6cc1b5531992d47))
+- **deps:** Bump @ai-sdk/react from 4.0.61 to 4.0.59 ([#155](https://github.com/ChristopherVR/pptx-viewer/issues/155)) (by @dependabot[bot]) ([e1d0140](https://github.com/ChristopherVR/pptx-viewer/commit/e1d0140efc316b4266032eb5687714d6af4900c2))
+- **deps:** Update @react-three/drei requirement ([#156](https://github.com/ChristopherVR/pptx-viewer/issues/156)) (by @dependabot[bot]) ([3cf2e16](https://github.com/ChristopherVR/pptx-viewer/commit/3cf2e16d38faf9a7f6445bd8215771dfef4e1515))
+- **deps:** Bump lucide-react from 1.31.0 to 1.29.0 ([#158](https://github.com/ChristopherVR/pptx-viewer/issues/158)) (by @dependabot[bot]) ([e1556e1](https://github.com/ChristopherVR/pptx-viewer/commit/e1556e18c009bebaec0b21d0b22904e99b891c67))
+- **deps:** Update vue-tsc requirement from ^3.3.8 to ^3.3.9 ([#159](https://github.com/ChristopherVR/pptx-viewer/issues/159)) (by @dependabot[bot]) ([665ef13](https://github.com/ChristopherVR/pptx-viewer/commit/665ef139ab96a1c84815343c84bb53912b1b21d2))
+
+### Chores
+
+- **deps-dev:** Update @playwright/test requirement ([#157](https://github.com/ChristopherVR/pptx-viewer/issues/157)) (by @dependabot[bot]) ([d8be437](https://github.com/ChristopherVR/pptx-viewer/commit/d8be437d559f8c5eab427f02645c6b2dfcb60cb6))
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#150](https://github.com/ChristopherVR/pptx-viewer/issues/150)) (by @dependabot[bot]) ([ab75bf1](https://github.com/ChristopherVR/pptx-viewer/commit/ab75bf10a96bb2a0da6e963a5b6b8634e4f73d5b))
+
 ## 2026-08-08
 
 _Releases: pptx-react-viewer@2.16.2, pptx-vue-viewer@2.17.2, pptx-angular-viewer@2.17.2, pptx-vanilla-viewer@1.18.2, pptx-svelte-viewer@2.17.2_
