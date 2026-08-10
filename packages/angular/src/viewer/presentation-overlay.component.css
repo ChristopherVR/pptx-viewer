@@ -6,6 +6,21 @@
 	background: #000;
 	cursor: pointer;
 	user-select: none;
+	/*
+	 * Matches Vue's `.pptx-vue-presentation` (and React's fixed show wrapper):
+	 * the show toolbar's 17-slot strip is wider than a phone viewport and is
+	 * centred with `left: 50%; transform: translateX(-50%)` (see
+	 * `PRESENT_TOOLBAR_CLASSES.wrapper` in pptx-viewer-shared), so on a phone
+	 * it overflows both edges. Without a clipping ancestor here, an
+	 * off-screen control (e.g. "Presenter View", one of the last slots before
+	 * "End") had NO scrollable ancestor at all: this host and
+	 * `.pptx-ng-presentation-root` were both `overflow: visible`, so nothing
+	 * could bring it into the viewport - not focus scrolling, and not
+	 * Playwright's `scrollIntoViewIfNeeded`, which is why only Angular failed
+	 * `presenter-view-parity.spec.ts`'s phone case while the other four
+	 * bindings (whose fullscreen root already clips) passed.
+	 */
+	overflow: hidden;
 }
 
 .pptx-ng-presentation-root {
@@ -13,6 +28,7 @@
 	inset: 0;
 	/* Allow vertical scrolling/pinch but let us interpret horizontal swipes. */
 	touch-action: pan-y;
+	overflow: hidden;
 }
 
 .pptx-ng-presentation-close:hover,
