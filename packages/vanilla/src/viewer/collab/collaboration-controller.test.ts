@@ -44,25 +44,24 @@ vi.mock(
 );
 
 vi.mock(import('./collaboration-provider'), () => ({
-	createCollabProvider: vi.fn(
-		(): Promise<CollabProviderHandle> =>
-			Promise.resolve({
-				awareness: {
-					clientID: 1,
-					setLocalStateField: () => {},
-					getStates: () => new Map(),
-					on: () => {},
-				},
-				onStatus: (cb: (connected: boolean) => void) => {
-					capturedStatus = cb;
-				},
-				connectedNow: true,
-				onSynced: (cb: () => void) => {
-					capturedSynced = cb;
-				},
-				syncedNow: false,
-				destroy: providerDestroy,
-			}),
+	createCollabProvider: vi.fn((): Promise<CollabProviderHandle> =>
+		Promise.resolve({
+			awareness: {
+				clientID: 1,
+				setLocalStateField: () => {},
+				getStates: () => new Map(),
+				on: () => {},
+			},
+			onStatus: (cb: (connected: boolean) => void) => {
+				capturedStatus = cb;
+			},
+			connectedNow: true,
+			onSynced: (cb: () => void) => {
+				capturedSynced = cb;
+			},
+			syncedNow: false,
+			destroy: providerDestroy,
+		}),
 	),
 }));
 

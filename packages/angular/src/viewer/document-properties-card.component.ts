@@ -128,17 +128,19 @@ export class DocumentPropertiesCardComponent {
 
 	protected onCoreChange(event: Event, key: 'title' | 'creator'): void {
 		const value = (event.target as HTMLInputElement).value;
-		this.loader.coreProperties.update(
-			(current): PptxCoreProperties => ({ ...(current ?? {}), [key]: value }),
-		);
+		this.loader.coreProperties.update((current): PptxCoreProperties => ({
+			...(current ?? {}),
+			[key]: value,
+		}));
 		this.markDirty();
 	}
 
 	protected onAppChange(event: Event, key: 'company' | 'application'): void {
 		const value = (event.target as HTMLInputElement).value;
-		this.loader.appProperties.update(
-			(current): PptxAppProperties => ({ ...(current ?? {}), [key]: value }),
-		);
+		this.loader.appProperties.update((current): PptxAppProperties => ({
+			...(current ?? {}),
+			[key]: value,
+		}));
 		this.markDirty();
 	}
 

@@ -346,8 +346,8 @@ export function setSeriesName(
 	if (!chartData) {
 		return element;
 	}
-	const series = chartData.series.map(
-		(s, i): PptxChartSeries => (i === seriesIndex ? { ...s, name } : s),
+	const series = chartData.series.map((s, i): PptxChartSeries =>
+		i === seriesIndex ? { ...s, name } : s,
 	);
 	return { ...element, chartData: { ...chartData, series } };
 }
@@ -414,8 +414,8 @@ export function setSeriesColor(
 		return element;
 	}
 	const normalized = color ? normalizeHex(color) : undefined;
-	const series = chartData.series.map(
-		(s, i): PptxChartSeries => (i === seriesIndex ? { ...s, color: normalized } : s),
+	const series = chartData.series.map((s, i): PptxChartSeries =>
+		i === seriesIndex ? { ...s, color: normalized } : s,
 	);
 	return { ...element, chartData: { ...chartData, series } };
 }

@@ -177,29 +177,26 @@ export function newTableElement(
 
 	const tableRows: PptxTableRow[] = Array.from({ length: rows }, (_, rowIdx): PptxTableRow => {
 		const isHeader = rowIdx === 0;
-		const cells: PptxTableCell[] = Array.from(
-			{ length: cols },
-			(__, colIdx): PptxTableCell => ({
-				text: isHeader ? `Header ${colIdx + 1}` : '',
-				style: {
-					borderTopWidth: 1,
-					borderBottomWidth: 1,
-					borderLeftWidth: 1,
-					borderRightWidth: 1,
-					borderTopColor: '#cccccc',
-					borderBottomColor: '#cccccc',
-					borderLeftColor: '#cccccc',
-					borderRightColor: '#cccccc',
-					...(isHeader
-						? {
-								bold: true,
-								backgroundColor: '#2563eb',
-								color: '#ffffff',
-							}
-						: {}),
-				},
-			}),
-		);
+		const cells: PptxTableCell[] = Array.from({ length: cols }, (__, colIdx): PptxTableCell => ({
+			text: isHeader ? `Header ${colIdx + 1}` : '',
+			style: {
+				borderTopWidth: 1,
+				borderBottomWidth: 1,
+				borderLeftWidth: 1,
+				borderRightWidth: 1,
+				borderTopColor: '#cccccc',
+				borderBottomColor: '#cccccc',
+				borderLeftColor: '#cccccc',
+				borderRightColor: '#cccccc',
+				...(isHeader
+					? {
+							bold: true,
+							backgroundColor: '#2563eb',
+							color: '#ffffff',
+						}
+					: {}),
+			},
+		}));
 		return { cells, height: isHeader ? 40 : 36 };
 	});
 

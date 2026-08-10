@@ -75,8 +75,8 @@ export function replaceActiveElements(
 		};
 	}
 	return {
-		slides: state.slides.map(
-			(item, index): PptxSlide => (index === state.currentSlide ? { ...item, elements } : item),
+		slides: state.slides.map((item, index): PptxSlide =>
+			index === state.currentSlide ? { ...item, elements } : item,
 		),
 	};
 }
