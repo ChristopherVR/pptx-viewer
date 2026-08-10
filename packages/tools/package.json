@@ -80,10 +80,10 @@
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependenciesMeta": {
 		"yjs": {

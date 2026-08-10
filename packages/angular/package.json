@@ -80,7 +80,7 @@
 		"vitest": "^4.1.10",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31",
+		"yjs": "^13.6.32",
 		"zone.js": "^0.16.2"
 	},
 	"peerDependencies": {
@@ -92,7 +92,7 @@
 		"three": "^0.185.1",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependenciesMeta": {
 		"ai": {

@@ -19,7 +19,7 @@
 		"pptx-viewer-locales": "workspace:*",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"devDependencies": {
 		"@tailwindcss/vite": "^4.3.3",

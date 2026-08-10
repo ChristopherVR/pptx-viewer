@@ -19,7 +19,7 @@
 		"svelte": "^5.56.6",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
