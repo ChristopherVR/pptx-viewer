@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-10
 
+_Releases: pptx-react-viewer@2.16.4, pptx-vue-viewer@2.17.4, pptx-angular-viewer@2.17.4, pptx-vanilla-viewer@1.18.4, pptx-svelte-viewer@2.17.4_
+
+### Bug Fixes
+
+- **shared:** Crossfade morph wording instead of fading it out then in (by @ChristopherVR) ([50984f1](https://github.com/ChristopherVR/pptx-viewer/commit/50984f141acc601d35aad19883b6fb1f8e0b79c2))
+
+## 2026-08-10
+
 _Releases: pptx-viewer-core@2.3.3, pptx-react-viewer@2.16.3, pptx-vue-viewer@2.17.3, pptx-angular-viewer@2.17.3, pptx-vanilla-viewer@1.18.3, pptx-svelte-viewer@2.17.3, pptx-viewer-mcp@2.1.1_
 
 ### Bug Fixes
