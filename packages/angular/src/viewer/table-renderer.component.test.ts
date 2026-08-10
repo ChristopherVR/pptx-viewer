@@ -51,16 +51,14 @@ function tableElement(
 		tableData: {
 			rows: rows.map((r) => ({
 				height: r.height,
-				cells: r.cells.map(
-					(c): PptxTableCell => ({
-						text: c.text ?? '',
-						style: c.style,
-						gridSpan: c.gridSpan,
-						rowSpan: c.rowSpan,
-						hMerge: c.hMerge,
-						vMerge: c.vMerge,
-					}),
-				),
+				cells: r.cells.map((c): PptxTableCell => ({
+					text: c.text ?? '',
+					style: c.style,
+					gridSpan: c.gridSpan,
+					rowSpan: c.rowSpan,
+					hMerge: c.hMerge,
+					vMerge: c.vMerge,
+				})),
 			})),
 			columnWidths: columnWidths ?? [],
 		},

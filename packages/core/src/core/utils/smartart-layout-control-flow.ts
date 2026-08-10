@@ -86,9 +86,10 @@ export function parseSmartArtControlFlow(
 	node: XmlObject,
 	localName: LocalName,
 ): Pick<PptxSmartArtLayoutNode, 'forEach' | 'choose'> {
-	const forEach = children(node, 'forEach', localName).map(
-		(entry): PptxSmartArtForEach => ({ ...parseIterator(entry), rawXml: entry }),
-	);
+	const forEach = children(node, 'forEach', localName).map((entry): PptxSmartArtForEach => ({
+		...parseIterator(entry),
+		rawXml: entry,
+	}));
 	const choose = children(node, 'choose', localName).map((entry): PptxSmartArtChoose => {
 		const otherwiseNode = children(entry, 'else', localName)[0];
 		return {

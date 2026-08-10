@@ -286,17 +286,13 @@ function remapCellStyleColors(
 function remapTableColors(tableData: PptxTableData, remap: Map<string, string>): PptxTableData {
 	return {
 		...tableData,
-		rows: tableData.rows.map(
-			(row: PptxTableRow): PptxTableRow => ({
-				...row,
-				cells: row.cells.map(
-					(cell: PptxTableCell): PptxTableCell => ({
-						...cell,
-						style: remapCellStyleColors(cell.style, remap),
-					}),
-				),
-			}),
-		),
+		rows: tableData.rows.map((row: PptxTableRow): PptxTableRow => ({
+			...row,
+			cells: row.cells.map((cell: PptxTableCell): PptxTableCell => ({
+				...cell,
+				style: remapCellStyleColors(cell.style, remap),
+			})),
+		})),
 	};
 }
 

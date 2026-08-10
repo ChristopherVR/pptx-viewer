@@ -438,22 +438,20 @@ export function createTableElement(input: TableInput, options?: TableOptions): T
 
 	const rows: PptxTableRow[] = input.rows.map((rowInput) => ({
 		height: rowInput.height ?? rowHeight,
-		cells: rowInput.cells.map(
-			(cellInput): PptxTableCell => ({
-				text: cellInput.text,
-				gridSpan: cellInput.gridSpan,
-				rowSpan: cellInput.rowSpan,
-				style: cellInput.style
-					? {
-							fontSize: cellInput.style.fontSize,
-							bold: cellInput.style.bold,
-							italic: cellInput.style.italic,
-							color: cellInput.style.color,
-							align: cellInput.style.alignment,
-						}
-					: undefined,
-			}),
-		),
+		cells: rowInput.cells.map((cellInput): PptxTableCell => ({
+			text: cellInput.text,
+			gridSpan: cellInput.gridSpan,
+			rowSpan: cellInput.rowSpan,
+			style: cellInput.style
+				? {
+						fontSize: cellInput.style.fontSize,
+						bold: cellInput.style.bold,
+						italic: cellInput.style.italic,
+						color: cellInput.style.color,
+						align: cellInput.style.alignment,
+					}
+				: undefined,
+		})),
 	}));
 
 	const tableData: PptxTableData = {
