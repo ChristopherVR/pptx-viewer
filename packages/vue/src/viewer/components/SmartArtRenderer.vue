@@ -10,10 +10,13 @@ import type {
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArtA11y,
+	centeredSvgTextLines,
+	computeDrawingViewBox,
+	projectDrawingShapes,
 	revealedSmartArtNodeCount,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
-import type { ElementAnimationState } from 'pptx-viewer-shared';
+import type { ElementAnimationState, RenderedShape } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -113,30 +116,9 @@ function styleStroke(style: SmartArtStyle): number {
 	return 0;
 }
 
-function truncate(text: string, max: number): string {
-	if (text.length <= max) {
-		return text;
-	}
-	return `${text.slice(0, max - 1)}…`;
-}
-
-/**
- * Split node text on `\n` and compute per-line y offsets (in SVG px) that
- * centre the block around the node centre y (offset 0). Single-line text
- * produces one entry with y=0, preserving the existing
- * `dominant-baseline="central"` behaviour exactly.
- */
+/** Centred label lines for the fallback layout path; geometry comes from shared. */
 function textLines(text: string, fontSize: number): Array<{ text: string; y: number }> {
-	const raw = (text ?? '').split('\n').filter((l) => l.length > 0);
-	if (raw.length === 0) {
-		return [{ text: '', y: 0 }];
-	}
-	const lh = fontSize * 1.2;
-	const totalH = raw.length * lh;
-	return raw.map((line, i) => ({
-		text: line,
-		y: -totalH / 2 + lh / 2 + i * lh,
-	}));
+	return centeredSvgTextLines(text ?? '', fontSize);
 }
 
 // ── Resolved SmartArt data ───────────────────────────────────────────────────
@@ -267,108 +249,37 @@ const revealedShapeList = computed<PptxSmartArtDrawingShape[]>(() => {
 	return drawingShapes.value.slice(0, count);
 });
 
-interface RenderedShape {
-	key: string;
-	/** Source SmartArt node id for inline editing, when this shape carries text. */
-	nodeId?: string;
-	isEllipse: boolean;
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	rx: number;
-	cx: number;
-	cy: number;
-	fill: string;
-	stroke: string;
-	strokeWidth: number;
-	transform?: string;
-	text?: string;
-	textX: number;
-	textY: number;
-	fontColor: string;
-	fontSize: number;
-}
+/** Shape descriptor plus the source node id used for inline editing. */
+type EditableShape = RenderedShape & { nodeId?: string };
 
-const drawingViewBox = computed(() => {
-	const shapes = drawingShapes.value;
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	for (const s of shapes) {
-		if (s.x < minX) {
-			minX = s.x;
-		}
-		if (s.y < minY) {
-			minY = s.y;
-		}
-		if (s.x + s.width > maxX) {
-			maxX = s.x + s.width;
-		}
-		if (s.y + s.height > maxY) {
-			maxY = s.y + s.height;
-		}
-	}
-	if (!Number.isFinite(minX)) {
-		minX = 0;
-		minY = 0;
-		maxX = 1;
-		maxY = 1;
-	}
-	return {
-		minX,
-		minY,
-		width: maxX - minX || 1,
-		height: maxY - minY || 1,
-	};
-});
+const drawingViewBox = computed(() => computeDrawingViewBox(drawingShapes.value));
 
-const renderedShapes = computed<RenderedShape[]>(() => {
-	const shapes = revealedShapeList.value;
-	const { minX, minY } = drawingViewBox.value;
-	const sw = styleStroke(style.value);
-	const pal = palette.value;
+const renderedShapes = computed<EditableShape[]>(() => {
 	// Text-bearing shapes map positionally to text-bearing source nodes so a
 	// double-click on a labelled shape targets the right node id.
 	const textIds = textNodeIdsInRenderOrder(nodes.value);
 	let textShapeIndex = 0;
 
-	return shapes.map((shape, i): RenderedShape => {
-		const fill = shape.fillColor ?? colour(i, pal);
-		const relX = shape.x - minX;
-		const relY = shape.y - minY;
-		const isEllipse = shape.shapeType === 'ellipse';
-		const rx = shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
-		const cx = relX + shape.width / 2;
-		const cy = relY + shape.height / 2;
-		const stroke = shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none');
-		const transform = shape.rotation ? `rotate(${shape.rotation} ${cx} ${cy})` : undefined;
-		const nodeId = shape.text ? textIds[textShapeIndex++] : undefined;
-
-		return {
-			key: `${props.element.id}-dsp-${shape.id}-${i}`,
-			nodeId,
-			isEllipse,
-			x: relX,
-			y: relY,
-			width: shape.width,
-			height: shape.height,
-			rx,
-			cx,
-			cy,
-			fill,
-			stroke,
-			strokeWidth: shape.strokeWidth ?? sw,
-			transform,
-			text: shape.text ? truncate(shape.text, 30) : undefined,
-			textX: cx,
-			textY: cy,
-			fontColor: shape.fontColor ?? 'white',
-			fontSize: shape.fontSize ?? Math.max(8, Math.min(14, shape.height * 0.2)),
-		};
-	});
+	return projectDrawingShapes(
+		props.element.id,
+		revealedShapeList.value,
+		drawingViewBox.value,
+		palette.value,
+		style.value,
+	).map((shape, i) => ({
+		...shape,
+		nodeId: revealedShapeList.value[i]?.text ? textIds[textShapeIndex++] : undefined,
+	}));
 });
+
+/**
+ * Seed text for an inline edit. The rendered lines are a wrapped view of the
+ * authored string, so they are joined back with spaces rather than newlines to
+ * avoid writing the wrap points into the node.
+ */
+function shapeEditText(shape: EditableShape): string {
+	return shape.textLines.map((line) => line.text).join(' ');
+}
 
 const shadowFilter = computed(() => styleShadow(style.value));
 
@@ -557,12 +468,22 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					:role="nodeLabel(shape.nodeId) ? 'img' : undefined"
 					:aria-label="nodeLabel(shape.nodeId)"
 					:style="shadowFilter ? { filter: shadowFilter } : undefined"
-					@dblclick="beginEdit(shape.nodeId, shape.text ?? '', $event)"
-					@keydown.enter.prevent="beginEdit(shape.nodeId, shape.text ?? '', $event)"
+					@dblclick="beginEdit(shape.nodeId, shapeEditText(shape), $event)"
+					@keydown.enter.prevent="beginEdit(shape.nodeId, shapeEditText(shape), $event)"
 				>
 					<title v-if="nodeLabel(shape.nodeId)">{{ nodeLabel(shape.nodeId) }}</title>
+					<image
+						v-if="shape.imageUrl"
+						:x="shape.x"
+						:y="shape.y"
+						:width="shape.width"
+						:height="shape.height"
+						:href="shape.imageUrl"
+						preserveAspectRatio="xMidYMid meet"
+						:transform="shape.transform"
+					/>
 					<ellipse
-						v-if="shape.isEllipse"
+						v-else-if="shape.isEllipse"
 						:cx="shape.cx"
 						:cy="shape.cy"
 						:rx="shape.width / 2"
@@ -585,19 +506,14 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						:transform="shape.transform"
 					/>
 					<text
-						v-if="shape.text"
+						v-if="shape.textLines.length > 0"
 						:x="shape.textX"
 						text-anchor="middle"
 						dominant-baseline="central"
 						:fill="shape.fontColor"
 						:font-size="shape.fontSize"
 					>
-						<tspan
-							v-for="(line, li) in textLines(shape.text, shape.fontSize)"
-							:key="li"
-							:x="shape.textX"
-							:y="shape.textY + line.y"
-						>
+						<tspan v-for="(line, li) in shape.textLines" :key="li" :x="shape.textX" :y="line.y">
 							{{ line.text }}
 						</tspan>
 					</text>

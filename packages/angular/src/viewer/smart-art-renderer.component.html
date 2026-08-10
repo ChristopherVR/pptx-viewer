@@ -24,7 +24,17 @@
 					[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
 					[class.pptx-ng-smartart-node--editable]="canEditNodes() && !!drawingShapeNodeIds()[i]"
 				>
-					@if (shape.isEllipse) {
+					@if (shape.imageUrl) {
+						<image
+							[attr.x]="shape.x"
+							[attr.y]="shape.y"
+							[attr.width]="shape.width"
+							[attr.height]="shape.height"
+							[attr.href]="shape.imageUrl"
+							preserveAspectRatio="xMidYMid meet"
+							[attr.transform]="shape.transform ?? null"
+						/>
+					} @else if (shape.isEllipse) {
 						<ellipse
 							[attr.cx]="shape.cx"
 							[attr.cy]="shape.cy"
@@ -48,7 +58,7 @@
 							[attr.transform]="shape.transform ?? null"
 						/>
 					}
-					@if (shape.text) {
+					@if (shape.textLines.length > 0) {
 						<text
 							[attr.x]="shape.textX"
 							text-anchor="middle"
@@ -56,8 +66,8 @@
 							[attr.fill]="shape.fontColor"
 							[attr.font-size]="shape.fontSize"
 						>
-							@for (line of textLines(shape.text, shape.fontSize); track $index) {
-								<tspan [attr.x]="shape.textX" [attr.y]="shape.textY + line.offsetY">
+							@for (line of shape.textLines; track $index) {
+								<tspan [attr.x]="shape.textX" [attr.y]="line.y">
 									{{ line.text }}
 								</tspan>
 							}

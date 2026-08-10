@@ -201,6 +201,25 @@ describe('getTableCellBandStyle', () => {
 		expect(style!.backgroundColor).toBe('#4472C4');
 	});
 
+	it('keeps an authored transparent header readable', () => {
+		const tableStyleMap = {
+			'{NO-FILL-HEADER}': {
+				firstRowFill: { noFill: true },
+			},
+		};
+		const el = makeTableElement({
+			firstRowHeader: true,
+			tableStyleId: '{NO-FILL-HEADER}',
+		});
+		const style = getTableCellBandStyle(el, 0, 0, 3, 3, {
+			tableStyleMap: tableStyleMap as unknown as ParsedTableStyleMap,
+		});
+
+		expect(style).toBeDefined();
+		expect(style!.backgroundColor).toBe('transparent');
+		expect(style!.color).toBeUndefined();
+	});
+
 	// ── a:fontRef@idx font resolution (fix 1c) ──────────────────
 	it('resolves fontRef@idx="minor" to the theme body font', () => {
 		const tableStyleMap: ParsedTableStyleMap = {

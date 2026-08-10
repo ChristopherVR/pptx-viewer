@@ -378,6 +378,25 @@ describe('getTableCellBandStyle - section fill types (issue #95)', () => {
 		expect(css?.backgroundColor).toBe('#FFFFFF');
 	});
 
+	it('keeps an authored transparent header readable', () => {
+		const map = mapWith({ firstRowFill: { schemeColor: '', noFill: true } });
+		const css = getTableCellBandStyle(tableWith({ firstRowHeader: true }), 0, 0, 3, 2, {
+			tableStyleMap: map,
+		});
+
+		expect(css?.backgroundColor).toBe('transparent');
+		expect(css?.color).toBeUndefined();
+	});
+
+	it('still paints the fallback header band when no fill is authored', () => {
+		const css = getTableCellBandStyle(tableWith({ firstRowHeader: true }), 0, 0, 3, 2, {
+			tableStyleMap: mapWith({}),
+		});
+
+		expect(css?.backgroundColor).toBe('rgba(68, 114, 196, 0.85)');
+		expect(css?.color).toBe('#ffffff');
+	});
+
 	it('renders a:noFill as a transparent background', () => {
 		const map = mapWith({ wholeTblFill: { schemeColor: '', noFill: true } });
 		const css = getTableCellBandStyle(tableWith({}), 1, 1, 3, 2, { tableStyleMap: map });

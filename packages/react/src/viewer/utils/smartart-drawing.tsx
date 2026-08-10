@@ -1,11 +1,13 @@
 import type { PptxElement, PptxSmartArtDrawingShape, SmartArtStyle } from 'pptx-viewer-core';
+import { computeDrawingViewBox, projectDrawingShapes, styleShadowFilter } from 'pptx-viewer-shared';
 import React from 'react';
-
-import { colour, styleShadow, styleStroke, truncate } from './smartart-helpers';
 
 /**
  * Render pre-computed drawing shapes from `ppt/diagrams/drawing*.xml`.
  * These are the shapes as computed by PowerPoint's layout engine.
+ *
+ * All of the geometry, fill, label wrapping and contrast decisions come from the
+ * shared projection, so this function is only the JSX for one descriptor.
  */
 export function renderDrawingShapes(
 	element: PptxElement,
@@ -13,93 +15,70 @@ export function renderDrawingShapes(
 	style: SmartArtStyle,
 	palette: string[],
 ): React.ReactNode {
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	for (const s of shapes) {
-		if (s.x < minX) {
-			minX = s.x;
-		}
-		if (s.y < minY) {
-			minY = s.y;
-		}
-		if (s.x + s.width > maxX) {
-			maxX = s.x + s.width;
-		}
-		if (s.y + s.height > maxY) {
-			maxY = s.y + s.height;
-		}
-	}
-
-	const drawingW = maxX - minX || 1;
-	const drawingH = maxY - minY || 1;
-	const shadow = styleShadow(style);
-	const sw = styleStroke(style);
+	const viewBox = computeDrawingViewBox(shapes);
+	const rendered = projectDrawingShapes(element.id, shapes, viewBox, palette, style);
+	const shadow = styleShadowFilter(style);
 
 	return (
 		<svg
-			viewBox={`0 0 ${drawingW} ${drawingH}`}
+			viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
 			className='w-full h-full pointer-events-none'
 			preserveAspectRatio='xMidYMid meet'
 		>
-			{shapes.map((shape, i) => {
-				const fill = shape.fillColor ?? colour(i, palette);
-				const relX = shape.x - minX;
-				const relY = shape.y - minY;
-				const rx = shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
-				const isEllipse = shape.shapeType === 'ellipse';
-
-				return (
-					<g key={`${element.id}-dsp-${shape.id}-${i}`} style={{ filter: shadow }}>
-						{isEllipse ? (
-							<ellipse
-								cx={relX + shape.width / 2}
-								cy={relY + shape.height / 2}
-								rx={shape.width / 2}
-								ry={shape.height / 2}
-								fill={fill}
-								stroke={shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
-								strokeWidth={shape.strokeWidth ?? sw}
-								transform={
-									shape.rotation
-										? `rotate(${shape.rotation} ${relX + shape.width / 2} ${relY + shape.height / 2})`
-										: undefined
-								}
-							/>
-						) : (
-							<rect
-								x={relX}
-								y={relY}
-								width={shape.width}
-								height={shape.height}
-								rx={rx}
-								fill={fill}
-								stroke={shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
-								strokeWidth={shape.strokeWidth ?? sw}
-								transform={
-									shape.rotation
-										? `rotate(${shape.rotation} ${relX + shape.width / 2} ${relY + shape.height / 2})`
-										: undefined
-								}
-							/>
-						)}
-						{shape.text ? (
-							<text
-								x={relX + shape.width / 2}
-								y={relY + shape.height / 2}
-								textAnchor='middle'
-								dominantBaseline='central'
-								fill={shape.fontColor ?? 'white'}
-								fontSize={shape.fontSize ?? Math.max(8, Math.min(14, shape.height * 0.2))}
-								className='pointer-events-none'
-							>
-								{truncate(shape.text, 30)}
-							</text>
-						) : null}
-					</g>
-				);
-			})}
+			{rendered.map((shape) => (
+				<g key={shape.key} style={{ filter: shadow }}>
+					{shape.imageUrl ? (
+						<image
+							x={shape.x}
+							y={shape.y}
+							width={shape.width}
+							height={shape.height}
+							href={shape.imageUrl}
+							preserveAspectRatio='xMidYMid meet'
+							transform={shape.transform}
+						/>
+					) : shape.isEllipse ? (
+						<ellipse
+							cx={shape.cx}
+							cy={shape.cy}
+							rx={shape.width / 2}
+							ry={shape.height / 2}
+							fill={shape.fill}
+							stroke={shape.stroke}
+							strokeWidth={shape.strokeWidth}
+							transform={shape.transform}
+						/>
+					) : (
+						<rect
+							x={shape.x}
+							y={shape.y}
+							width={shape.width}
+							height={shape.height}
+							rx={shape.rx}
+							fill={shape.fill}
+							stroke={shape.stroke}
+							strokeWidth={shape.strokeWidth}
+							transform={shape.transform}
+						/>
+					)}
+					{shape.textLines.length > 0 ? (
+						<text
+							x={shape.textX}
+							textAnchor='middle'
+							dominantBaseline='central'
+							fill={shape.fontColor}
+							fontSize={shape.fontSize}
+							className='pointer-events-none'
+						>
+							{shape.textLines.map((line, lineIndex) => (
+								<tspan key={`${shape.key}-line-${lineIndex}`} x={shape.textX} y={line.y}>
+									{line.text}
+								</tspan>
+							))}
+						</text>
+					) : null}
+				</g>
+			))}
 		</svg>
 	);
 }

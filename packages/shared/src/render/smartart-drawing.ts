@@ -8,8 +8,8 @@
  * independent of the SVG-fallback layout engine (`computeSmartArtLayout` in
  * `smartart-layout`), which only runs when no drawing shapes exist.
  *
- * Pure TypeScript (no framework imports). Style helpers (`truncate`,
- * `styleStroke`, `styleShadow`) are reused from `smartart-layout-helpers`.
+ * Pure TypeScript (no framework imports). Style helpers (`styleStroke`,
+ * `styleShadow`) are reused from `smartart-layout-helpers`.
  */
 
 import type {
@@ -20,8 +20,11 @@ import type {
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 
+import { contrastTextColor } from './color-contrast';
 import type { CssStyleMap } from './element-style-transform';
-import { styleShadow, styleStroke, truncate } from './smartart-layout-helpers';
+import { styleShadow, styleStroke } from './smartart-layout-helpers';
+import type { SvgTextLine } from './svg-text-lines';
+import { centeredSvgTextLines } from './svg-text-lines';
 
 /** Built-in named colour palettes (mirrors the Vue/React `PALETTES`). */
 export const PALETTES: Record<SmartArtColorScheme, string[]> = {
@@ -90,15 +93,88 @@ export interface RenderedShape {
 	rx: number;
 	cx: number;
 	cy: number;
+	/** Paint for the body, or `'none'` when the shape declares `a:noFill`. */
 	fill: string;
 	stroke: string;
 	strokeWidth: number;
 	transform: string | undefined;
-	text: string | undefined;
+	/**
+	 * Picture fill to draw in place of the body, when the cached shape carries a
+	 * resolved `a:blipFill`. SmartArt icon layouts are built from these, and a
+	 * renderer that only paints `fill` turns each icon into a coloured box.
+	 */
+	imageUrl: string | undefined;
+	/**
+	 * The shape's authored text, wrapped to its own width and vertically centred
+	 * on {@link textY}. Cached SmartArt text is real sentence content, so it is
+	 * wrapped rather than cut: dropping the tail of a sentence loses information
+	 * the deck was written to carry. Each entry is ready to place as one
+	 * `<tspan>` at `textX` / its own `y`.
+	 */
+	textLines: SvgTextLine[];
 	textX: number;
 	textY: number;
 	fontColor: string;
 	fontSize: number;
+}
+
+/**
+ * Fraction of a shape's width its label may occupy. DiagramML shapes carry the
+ * usual text insets, and wrapping to the full box would let text sit on the
+ * outline.
+ */
+const TEXT_WIDTH_FRACTION = 0.82;
+
+/**
+ * The fill of the nearest shape painted beneath `shape`'s centre.
+ *
+ * SmartArt layouts commonly stack an unfilled shape over a painted one to hold
+ * the label, so what the label has to be readable against is that lower shape,
+ * not the transparency of its own box. Shapes are in paint order, so the search
+ * runs backwards from the label and takes the first painted hit.
+ */
+function underlyingFill(
+	shape: PptxSmartArtDrawingShape,
+	shapes: PptxSmartArtDrawingShape[],
+	index: number,
+): string | undefined {
+	const centerX = shape.x + shape.width / 2;
+	const centerY = shape.y + shape.height / 2;
+	for (let below = index - 1; below >= 0; below--) {
+		const candidate = shapes[below];
+		if (!candidate || candidate.fillNone || !candidate.fillColor) {
+			continue;
+		}
+		if (
+			centerX >= candidate.x &&
+			centerX <= candidate.x + candidate.width &&
+			centerY >= candidate.y &&
+			centerY <= candidate.y + candidate.height
+		) {
+			return candidate.fillColor;
+		}
+	}
+	return undefined;
+}
+
+/**
+ * Pick a label colour for a cached shape whose runs declare none.
+ *
+ * PowerPoint leaves the colour implicit far more often than not, and resolves it
+ * against the shape's own fill. Defaulting to white instead makes every label on
+ * a light content panel invisible.
+ */
+export function drawingShapeLabelColor(
+	shape: PptxSmartArtDrawingShape,
+	shapes: PptxSmartArtDrawingShape[],
+	index: number,
+	resolvedFill: string,
+): string {
+	const basis =
+		resolvedFill === 'none' || resolvedFill.startsWith('url(')
+			? underlyingFill(shape, shapes, index)
+			: resolvedFill;
+	return basis ? contrastTextColor(basis) : '#1a1a1a';
 }
 
 /** SVG `viewBox` bounding-box derived from all drawing shapes. */
@@ -155,7 +231,7 @@ export function projectDrawingShapes(
 	const sw = styleStroke(style);
 
 	return shapes.map((shape, i): RenderedShape => {
-		const fill = shape.fillColor ?? paletteColour(i, palette);
+		const fill = shape.fillNone ? 'none' : (shape.fillColor ?? paletteColour(i, palette));
 		const relX = shape.x - minX;
 		const relY = shape.y - minY;
 		const isEllipse = shape.shapeType === 'ellipse';
@@ -165,6 +241,7 @@ export function projectDrawingShapes(
 		const stroke = shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none');
 		const transform =
 			shape.rotation !== undefined ? `rotate(${shape.rotation} ${cx} ${cy})` : undefined;
+		const fontSize = shape.fontSize ?? Math.max(8, Math.min(14, shape.height * 0.2));
 
 		return {
 			key: `${elementId}-dsp-${shape.id}-${i}`,
@@ -180,11 +257,17 @@ export function projectDrawingShapes(
 			stroke,
 			strokeWidth: shape.strokeWidth ?? sw,
 			transform,
-			text: shape.text ? truncate(shape.text, 30) : undefined,
+			imageUrl: shape.fillImageUrl,
+			textLines: shape.text
+				? centeredSvgTextLines(shape.text, fontSize, {
+						maxWidth: shape.width * TEXT_WIDTH_FRACTION,
+						centerY: cy,
+					})
+				: [],
 			textX: cx,
 			textY: cy,
-			fontColor: shape.fontColor ?? 'white',
-			fontSize: shape.fontSize ?? Math.max(8, Math.min(14, shape.height * 0.2)),
+			fontColor: shape.fontColor ?? drawingShapeLabelColor(shape, shapes, i, fill),
+			fontSize,
 		};
 	});
 }

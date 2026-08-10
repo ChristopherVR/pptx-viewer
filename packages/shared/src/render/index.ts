@@ -559,10 +559,18 @@ export {
 	resolvePalette,
 	buildChromeStyle,
 	computeDrawingViewBox,
+	drawingShapeLabelColor,
 	projectDrawingShapes,
 	styleShadowFilter,
 } from './smartart-drawing';
 export type { RenderedShape, DrawingViewBox } from './smartart-drawing';
+// Centred multi-line SVG label layout (SmartArt nodes and cached shapes): each
+// binding places one `<tspan>` per returned line and owns nothing else.
+export { centeredSvgTextLines } from './svg-text-lines';
+export type { SvgTextLine, CenteredSvgTextOptions } from './svg-text-lines';
+// Word wrapping for targets with no text-measurement API (PDF streams, SVG).
+export { wrapTextByEstimatedWidth } from './text-wrap-estimate';
+export type { EstimatedWrapOptions } from './text-wrap-estimate';
 // Inspector panel: shapeStyle/textStyle value readers + shallow-merge patch
 // builders (fill/stroke/colour/font-size/bold/italic/underline).
 export * from './inspector-helpers';

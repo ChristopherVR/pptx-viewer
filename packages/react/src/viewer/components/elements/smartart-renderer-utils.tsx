@@ -1,5 +1,12 @@
 import type { PptxSmartArtChrome } from 'pptx-viewer-core';
+import { centeredSvgTextLines } from 'pptx-viewer-shared';
 import React from 'react';
+
+/**
+ * Fraction of a shape's width its label may occupy, leaving the text inset
+ * DiagramML shapes carry. Matches the shared cached-shape projection.
+ */
+const LABEL_WIDTH_FRACTION = 0.82;
 
 // ── Inline-edit node tagging ──────────────────────────────────────────────────
 
@@ -168,6 +175,12 @@ export interface SmartArtNodeTextProps {
 	 *   single line.
 	 */
 	anchor?: 'top' | 'middle' | 'bottom';
+	/**
+	 * Width available for the label. When given, long text is word-wrapped to fit
+	 * instead of running past the shape; when omitted only `
+` splits the label.
+	 */
+	maxWidth?: number;
 }
 
 /**
@@ -192,8 +205,14 @@ export function SmartArtNodeText({
 	fontStyle,
 	className,
 	anchor = 'middle',
+	maxWidth,
 }: SmartArtNodeTextProps): React.ReactElement {
-	const lines = text.split('\n').filter((l) => l.length > 0);
+	const lines =
+		maxWidth !== undefined
+			? centeredSvgTextLines(text, fontSize, { maxWidth: maxWidth * LABEL_WIDTH_FRACTION }).map(
+					(line) => line.text,
+				)
+			: text.split('\n').filter((l) => l.length > 0);
 	const lineHeight = fontSize * 1.2;
 
 	let startY: number;

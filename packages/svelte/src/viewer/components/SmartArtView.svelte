@@ -133,7 +133,17 @@
 							onmouseenter={(event) => showStyle(event, shape.nodeId)}
 						>
 							{#if shape.ariaLabel}<title>{shape.ariaLabel}</title>{/if}
-							{#if shape.isEllipse}
+							{#if shape.imageUrl}
+								<image
+									x={shape.x}
+									y={shape.y}
+									width={shape.width}
+									height={shape.height}
+									href={shape.imageUrl}
+									preserveAspectRatio="xMidYMid meet"
+									transform={shape.transform}
+								/>
+							{:else if shape.isEllipse}
 								<ellipse
 									cx={shape.cx}
 									cy={shape.cy}
@@ -157,8 +167,18 @@
 									transform={shape.transform}
 								/>
 							{/if}
-							{#if shape.text}
-								{@render centeredText(shape.text, shape.textX, shape.textY, shape.fontColor, shape.fontSize)}
+							{#if shape.textLines.length > 0}
+								<text
+									x={shape.textX}
+									text-anchor="middle"
+									dominant-baseline="central"
+									fill={shape.fontColor}
+									font-size={shape.fontSize}
+								>
+									{#each shape.textLines as line, i (i)}
+										<tspan x={shape.textX} y={line.y}>{line.text}</tspan>
+									{/each}
+								</text>
 							{/if}
 						</g>
 					{/each}

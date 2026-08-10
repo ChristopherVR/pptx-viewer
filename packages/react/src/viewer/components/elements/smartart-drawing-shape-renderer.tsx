@@ -1,8 +1,8 @@
 import type { PptxSmartArtDrawingShape, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
-import { resolveDrawingShapeNodeId } from 'pptx-viewer-shared';
+import { drawingShapeLabelColor, resolveDrawingShapeNodeId } from 'pptx-viewer-shared';
 import React from 'react';
 
-import { colour, styleShadow, styleStroke, truncate } from '../../utils/smartart-helpers';
+import { colour, styleShadow, styleStroke } from '../../utils/smartart-helpers';
 import {
 	fitFontSize,
 	chevronPoints,
@@ -141,12 +141,15 @@ export function DrawingShapeRenderer({
 		>
 			{shapes.map((shape, i) => {
 				const gradient = drawingShapeGradientDef(`${elementId}-dspgrad-${shape.id}-${i}`, shape);
-				// Precedence: gradient -> pattern foreground -> solid/palette.
-				const fill =
-					gradient?.ref ??
-					shape.fillPatternForegroundColor ??
-					shape.fillColor ??
-					colour(i, palette);
+				// Precedence: no-fill -> gradient -> pattern foreground -> solid/palette.
+				// `a:noFill` is authored transparency, so it outranks every source of
+				// colour: these shapes are stacked over painted ones to carry a label.
+				const fill = shape.fillNone
+					? 'none'
+					: (gradient?.ref ??
+						shape.fillPatternForegroundColor ??
+						shape.fillColor ??
+						colour(i, palette));
 				const relX = shape.x - minX;
 				const relY = shape.y - minY;
 				const rx = shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
@@ -170,7 +173,17 @@ export function DrawingShapeRenderer({
 					<g key={`${elementId}-dsp-${shape.id}-${i}`} {...groupProps}>
 						{nodeLabel ? <title>{nodeLabel}</title> : null}
 						{gradient ? <defs>{gradient.def}</defs> : null}
-						{isEllipse ? (
+						{shape.fillImageUrl ? (
+							<image
+								x={relX}
+								y={relY}
+								width={shape.width}
+								height={shape.height}
+								href={shape.fillImageUrl}
+								preserveAspectRatio='xMidYMid meet'
+								transform={rotation}
+							/>
+						) : isEllipse ? (
 							<ellipse
 								cx={relX + shape.width / 2}
 								cy={relY + shape.height / 2}
@@ -206,8 +219,9 @@ export function DrawingShapeRenderer({
 							<SmartArtNodeText
 								x={relX + shape.width / 2}
 								y={relY + shape.height / 2}
-								text={truncate(shape.text, 40)}
-								fill={shape.fontColor ?? 'white'}
+								text={shape.text}
+								maxWidth={shape.width}
+								fill={shape.fontColor ?? drawingShapeLabelColor(shape, shapes, i, fill)}
 								fontSize={fontSize}
 								className='pointer-events-none'
 							/>

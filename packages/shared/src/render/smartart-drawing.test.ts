@@ -251,25 +251,96 @@ describe('projectDrawingShapes', () => {
 		expect(r.transform).toBeUndefined();
 	});
 
-	it('truncates long text to 30 chars and leaves short text alone', () => {
-		const long = 'x'.repeat(60);
-		const [r] = projectDrawingShapes(ID, [shape({ text: long })], VB, DEFAULT_PALETTE, 'flat');
-		expect(r.text).toBeDefined();
-		expect(r.text!).toHaveLength(30);
-		const [s] = projectDrawingShapes(ID, [shape({ text: 'short' })], VB, DEFAULT_PALETTE, 'flat');
-		expect(s.text).toBe('short');
+	it('wraps a long label instead of cutting it', () => {
+		const sentence = 'Located in urban areas, far from the rural villages it serves';
+		const [r] = projectDrawingShapes(
+			ID,
+			[shape({ width: 120, text: sentence })],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+
+		expect(r.textLines.length).toBeGreaterThan(1);
+		expect(r.textLines.map((line) => line.text).join(' ')).toBe(sentence);
 	});
 
-	it('leaves text undefined when the shape has none', () => {
+	it('keeps a short label on one line, centred on the shape', () => {
+		const [r] = projectDrawingShapes(ID, [shape({ text: 'short' })], VB, DEFAULT_PALETTE, 'flat');
+
+		expect(r.textLines).toHaveLength(1);
+		expect(r.textLines[0]!.text).toBe('short');
+		expect(r.textLines[0]!.y).toBeCloseTo(r.textY, 5);
+	});
+
+	it('stacks wrapped lines around the shape centre', () => {
+		const [r] = projectDrawingShapes(
+			ID,
+			[shape({ width: 60, text: 'alpha beta gamma delta epsilon' })],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+		const offsets = r.textLines.map((line) => line.y - r.textY);
+
+		expect(offsets[0]!).toBeLessThan(0);
+		expect(offsets.at(-1)!).toBeGreaterThan(0);
+		expect(offsets.reduce((sum, offset) => sum + offset, 0)).toBeCloseTo(0, 5);
+	});
+
+	it('emits no lines when the shape has no text', () => {
 		const [r] = projectDrawingShapes(ID, [shape()], VB, DEFAULT_PALETTE, 'flat');
-		expect(r.text).toBeUndefined();
+		expect(r.textLines).toStrictEqual([]);
 	});
 
-	it('defaults font colour to white and clamps a derived font size', () => {
-		const [r] = projectDrawingShapes(ID, [shape({ height: 1000 })], VB, DEFAULT_PALETTE, 'flat');
-		expect(r.fontColor).toBe('white');
+	it('derives a readable font colour from the fill and clamps the font size', () => {
+		const [onDark] = projectDrawingShapes(
+			ID,
+			[shape({ height: 1000, fillColor: '#1f3864' })],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+		const [onLight] = projectDrawingShapes(
+			ID,
+			[shape({ height: 1000, fillColor: '#ffffff' })],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+
+		expect(onDark.fontColor).toBe('#ffffff');
+		expect(onLight.fontColor).toBe('#1a1a1a');
 		// height * 0.2 = 200, clamped to the 14px ceiling
-		expect(r.fontSize).toBe(14);
+		expect(onDark.fontSize).toBe(14);
+	});
+
+	it('leaves an a:noFill shape unpainted and reads contrast from the shape below', () => {
+		const [panel, label] = projectDrawingShapes(
+			ID,
+			[
+				shape({ x: 0, y: 0, width: 200, height: 100, fillColor: '#1f3864' }),
+				shape({ x: 10, y: 10, width: 180, height: 80, fillNone: true, text: 'Heading' }),
+			],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+
+		expect(panel!.fill).toBe('#1f3864');
+		expect(label!.fill).toBe('none');
+		expect(label!.fontColor).toBe('#ffffff');
+	});
+
+	it('carries a resolved picture fill through to the renderer', () => {
+		const [r] = projectDrawingShapes(
+			ID,
+			[shape({ fillImageUrl: 'data:image/png;base64,AAA' })],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+		expect(r.imageUrl).toBe('data:image/png;base64,AAA');
 	});
 
 	it('floors a derived font size at 8px for tiny shapes', () => {

@@ -5,8 +5,11 @@ import type {
 	PptxSmartArtDrawingShape,
 	SmartArtPptxElement,
 } from 'pptx-viewer-core';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
+import { DrawingShapeRenderer } from './smartart-drawing-shape-renderer';
 import { fitFontSize, chevronPoints } from './SmartArtRenderer';
 
 // ---------------------------------------------------------------------------
@@ -227,6 +230,52 @@ describe('smartArt element structure', () => {
 // ---------------------------------------------------------------------------
 // Drawing shape bounds computation
 // ---------------------------------------------------------------------------
+
+describe('cached drawing shape rendering', () => {
+	function markup(shapes: PptxSmartArtDrawingShape[]): string {
+		return renderToStaticMarkup(
+			React.createElement(DrawingShapeRenderer, {
+				elementId: 'smartart-1',
+				shapes,
+				style: 'flat',
+				palette: ['#4F81BD'],
+			}),
+		);
+	}
+
+	it('keeps the whole label and derives a readable colour', () => {
+		const sentence = 'Located in urban areas, far from the rural villages it serves.';
+		const html = markup([
+			makeDrawingShape({ fillColor: '#FFFFFF', fontColor: undefined, text: sentence }),
+		]);
+
+		expect(html).toContain('fill="#1a1a1a"');
+		expect(html).not.toContain('…');
+		for (const word of sentence.split(' ')) {
+			expect(html).toContain(word);
+		}
+	});
+
+	it('leaves an a:noFill shape unpainted', () => {
+		const html = markup([
+			makeDrawingShape({ fillColor: undefined, fillNone: true, text: undefined }),
+		]);
+		expect(html).toContain('fill="none"');
+	});
+
+	it('paints a resolved picture fill as an image', () => {
+		const html = markup([
+			makeDrawingShape({
+				text: undefined,
+				fillColor: undefined,
+				fillImageUrl: 'data:image/svg+xml;base64,PHN2Zy8+',
+			}),
+		]);
+
+		expect(html).toContain('<image');
+		expect(html).toContain('data:image/svg+xml;base64,PHN2Zy8+');
+	});
+});
 
 describe('drawing shape bounds', () => {
 	it('computes correct bounding box for single shape', () => {

@@ -1,35 +1,19 @@
+import { centeredSvgTextLines } from 'pptx-viewer-shared';
+import type { SvgTextLine } from 'pptx-viewer-shared';
+
 import { createSvgEl } from '../dom';
 
 /**
- * Small SVG text helpers shared by the SmartArt drawing-shapes and fallback
- * layout paths. Ports of the `textLines` helper embedded in Vue's
- * `SmartArtRenderer.vue` (kept binding-local there too; each binding only owns
- * the DOM assembly, the geometry itself comes from `pptx-viewer-shared`).
+ * DOM assembly for the SmartArt drawing-shapes and fallback layout paths. The
+ * line geometry itself comes from `pptx-viewer-shared`; this file only turns it
+ * into elements.
  */
 
-/** One rendered line of a multi-line SVG label; `y` is an offset from the node centre. */
-export interface SvgTextLine {
-	text: string;
-	y: number;
-}
+export type { SvgTextLine };
 
-/**
- * Split node text on `\n` and compute per-line y offsets (in SVG px) that
- * centre the block around the node centre y (offset 0). Single-line text
- * produces one entry with y=0, preserving `dominant-baseline="central"`
- * behaviour exactly (mirrors Vue's `textLines`).
- */
+/** Split a label on newlines and centre the block on the node centre (offset 0). */
 export function svgTextLines(text: string, fontSize: number): SvgTextLine[] {
-	const raw = text.split('\n').filter((l) => l.length > 0);
-	if (raw.length === 0) {
-		return [{ text: '', y: 0 }];
-	}
-	const lh = fontSize * 1.2;
-	const totalH = raw.length * lh;
-	return raw.map((line, i) => ({
-		text: line,
-		y: -totalH / 2 + lh / 2 + i * lh,
-	}));
+	return centeredSvgTextLines(text, fontSize);
 }
 
 /** Options for {@link appendCenteredSvgText}. */
@@ -51,6 +35,37 @@ export function appendCenteredSvgText(
 	parent: SVGElement,
 	options: CenteredSvgTextOptions,
 ): void {
+	appendSvgTextLines(doc, parent, {
+		lines: svgTextLines(options.text, options.fontSize).map((line) => ({
+			text: line.text,
+			y: options.y + line.y,
+		})),
+		x: options.x,
+		fill: options.fill,
+		fontSize: options.fontSize,
+	});
+}
+
+/** Options for {@link appendSvgTextLines}. */
+export interface SvgTextLinesOptions {
+	/** Lines to draw, each already carrying its own baseline. */
+	lines: SvgTextLine[];
+	/** Centre x of the block (text anchor). */
+	x: number;
+	fill: string;
+	fontSize: number;
+}
+
+/**
+ * Append a `<text>` built from already-positioned lines. Shapes whose label
+ * geometry was resolved upstream (the cached drawing-shape path) come in this
+ * way, so nothing here recomputes it.
+ */
+export function appendSvgTextLines(
+	doc: Document,
+	parent: SVGElement,
+	options: SvgTextLinesOptions,
+): void {
 	const textEl = createSvgEl(doc, 'text', {
 		x: options.x,
 		'text-anchor': 'middle',
@@ -58,8 +73,8 @@ export function appendCenteredSvgText(
 		fill: options.fill,
 		'font-size': options.fontSize,
 	});
-	for (const line of svgTextLines(options.text, options.fontSize)) {
-		const tspan = createSvgEl(doc, 'tspan', { x: options.x, y: options.y + line.y });
+	for (const line of options.lines) {
+		const tspan = createSvgEl(doc, 'tspan', { x: options.x, y: line.y });
 		tspan.textContent = line.text;
 		textEl.appendChild(tspan);
 	}

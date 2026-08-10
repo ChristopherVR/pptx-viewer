@@ -17,7 +17,7 @@ import type { ElementRenderer } from '../types';
 import { renderSmartArt3DElement } from './smartart-3d';
 import { enableSmartArtEditing } from './smartart-editable';
 import { buildSmartArtFallbackSvg } from './smartart-fallback';
-import { appendCenteredSvgText, SMARTART_SVG_STYLE } from './smartart-svg';
+import { appendSvgTextLines, SMARTART_SVG_STYLE } from './smartart-svg';
 
 /**
  * Renderer for `smartArt` elements. Dispatches to the opt-in Three.js
@@ -195,7 +195,18 @@ function buildDrawingShapesSvg(
 		if (shadow) {
 			g.style.filter = shadow;
 		}
-		if (shape.isEllipse) {
+		if (shape.imageUrl) {
+			const image = createSvgEl(doc, 'image', {
+				x: shape.x,
+				y: shape.y,
+				width: shape.width,
+				height: shape.height,
+				preserveAspectRatio: 'xMidYMid meet',
+				transform: shape.transform,
+			});
+			image.setAttribute('href', shape.imageUrl);
+			g.appendChild(image);
+		} else if (shape.isEllipse) {
 			g.appendChild(
 				createSvgEl(doc, 'ellipse', {
 					cx: shape.cx,
@@ -223,11 +234,10 @@ function buildDrawingShapesSvg(
 				}),
 			);
 		}
-		if (shape.text) {
-			appendCenteredSvgText(doc, g, {
-				text: shape.text,
+		if (shape.textLines.length > 0) {
+			appendSvgTextLines(doc, g, {
+				lines: shape.textLines,
 				x: shape.textX,
-				y: shape.textY,
 				fill: shape.fontColor,
 				fontSize: shape.fontSize,
 			});

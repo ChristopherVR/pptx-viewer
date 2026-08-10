@@ -185,11 +185,14 @@ describe('projectDrawingShapes', () => {
 		expect(rendered.y).toBe(0);
 	});
 
-	it('truncates text to 30 characters', () => {
-		const shapes: PptxSmartArtDrawingShape[] = [shape({ id: 's1', text: 'A'.repeat(35) })];
+	it('keeps a long label whole, wrapped across lines', () => {
+		const sentence = 'a long authored sentence that will not fit on one line of the shape';
+		const shapes: PptxSmartArtDrawingShape[] = [shape({ id: 's1', text: sentence })];
 		const vb = computeDrawingViewBox(shapes);
 		const [rendered] = projectDrawingShapes('el1', shapes, vb, DEFAULT_PALETTE, 'flat');
-		expect(rendered.text).toBe(`${'A'.repeat(29)}…`);
+
+		expect(rendered.textLines.length).toBeGreaterThan(1);
+		expect(rendered.textLines.map((line) => line.text).join(' ')).toBe(sentence);
 	});
 
 	it('uses the shape fillColor when present, otherwise the palette', () => {

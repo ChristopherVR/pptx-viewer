@@ -557,7 +557,12 @@ export function getTableCellBandStyle(
 	if (tableData.firstRowHeader && rowIndex === 0) {
 		style.fontWeight = 700;
 		applyStyleFill(styleEntry?.firstRowFill, colorScheme, style, 'rgba(68, 114, 196, 0.85)');
-		style.color = '#ffffff';
+		// White header text belongs with a painted header band. `a:noFill` is an
+		// authored transparent header, and forcing white on it leaves the header
+		// row's text invisible against the slide.
+		if (!styleEntry?.firstRowFill?.noFill) {
+			style.color = '#ffffff';
+		}
 		applyStyleText(styleEntry?.firstRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}

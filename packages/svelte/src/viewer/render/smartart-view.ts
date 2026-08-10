@@ -5,10 +5,12 @@ import type {
 	RenderedShape,
 	SmartArtLayoutResult,
 	SmartArtNodeA11y,
+	SvgTextLine,
 } from 'pptx-viewer-shared';
 import {
 	buildChromeStyle,
 	buildSmartArtA11y,
+	centeredSvgTextLines,
 	computeDrawingViewBox,
 	computeSmartArtLayout,
 	projectDrawingShapes,
@@ -158,26 +160,9 @@ export function buildSmartArtView(
 }
 
 /** One rendered line of a multi-line SVG label; `y` offsets the node centre. */
-export interface SvgTextLine {
-	text: string;
-	y: number;
-}
+export type { SvgTextLine };
 
-/**
- * Split node text on `\n` and compute per-line y offsets (in SVG px) that
- * centre the block around the node centre y (offset 0). Single-line text
- * produces one entry with y=0, preserving `dominant-baseline="central"`
- * behaviour exactly (mirrors Vue's / vanilla's `textLines`).
- */
+/** Split a label on newlines and centre the block on the node centre (offset 0). */
 export function svgTextLines(text: string, fontSize: number): SvgTextLine[] {
-	const raw = text.split('\n').filter((l) => l.length > 0);
-	if (raw.length === 0) {
-		return [{ text: '', y: 0 }];
-	}
-	const lh = fontSize * 1.2;
-	const totalH = raw.length * lh;
-	return raw.map((line, i) => ({
-		text: line,
-		y: -totalH / 2 + lh / 2 + i * lh,
-	}));
+	return centeredSvgTextLines(text, fontSize);
 }

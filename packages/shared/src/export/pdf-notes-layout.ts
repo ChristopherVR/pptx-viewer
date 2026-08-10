@@ -7,6 +7,8 @@
  * The binding owns canvas→JPEG conversion and the final `Blob`/object-URL.
  */
 
+import { wrapTextByEstimatedWidth } from '../render/text-wrap-estimate';
+
 /* ------------------------------------------------------------------ */
 /*  Layout constants (US Letter portrait, 8.5" x 11")                 */
 /* ------------------------------------------------------------------ */
@@ -119,51 +121,11 @@ export function calculateNotesPageLayout(
 /**
  * Wrap a text string into lines that fit within a given width at a given font
  * size, using approximate Helvetica character widths (acceptable for plain
- * speaker notes).
+ * speaker notes). Blank authored paragraphs keep their vertical gap so the
+ * printed notes match how the author spaced them.
  */
 export function wrapNotesText(text: string, maxWidth: number, fontSize: number): string[] {
-	if (!text || text.trim().length === 0) {
-		return [];
-	}
-
-	// Approximate average character width as 0.5 x fontSize for Helvetica
-	const avgCharWidth = fontSize * 0.5;
-	const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
-
-	if (maxCharsPerLine <= 0) {
-		return [];
-	}
-
-	const lines: string[] = [];
-	// Split on explicit newlines first
-	const paragraphs = text.split(/\r?\n/u);
-
-	for (const paragraph of paragraphs) {
-		if (paragraph.trim().length === 0) {
-			lines.push('');
-			continue;
-		}
-
-		const words = paragraph.split(/\s+/u);
-		let currentLine = '';
-
-		for (const word of words) {
-			if (currentLine.length === 0) {
-				currentLine = word;
-			} else if (currentLine.length + 1 + word.length <= maxCharsPerLine) {
-				currentLine += ` ${word}`;
-			} else {
-				lines.push(currentLine);
-				currentLine = word;
-			}
-		}
-
-		if (currentLine.length > 0) {
-			lines.push(currentLine);
-		}
-	}
-
-	return lines;
+	return wrapTextByEstimatedWidth(text, maxWidth, fontSize, { keepBlankLines: true });
 }
 
 /**
