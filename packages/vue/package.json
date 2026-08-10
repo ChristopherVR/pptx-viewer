@@ -74,7 +74,7 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
-		"dompurify": "^3.4.12",
+		"dompurify": "^3.4.13",
 		"html2canvas-pro": "^2.3.2",
 		"jspdf": "^4.2.1",
 		"lucide-vue-next": "^1.0.0",
@@ -82,7 +82,7 @@
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
-		"@ai-sdk/vue": "^4.0.31",
+		"@ai-sdk/vue": "^4.0.56",
 		"@rollup/plugin-terser": "^1.0.0",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/dompurify": "^3.2.0",
@@ -101,13 +101,13 @@
 		"vite": "^8.2.0",
 		"vite-plugin-dts": "^5.0.3",
 		"vitest": "^4.1.10",
-		"vue-tsc": "^3.3.7",
+		"vue-tsc": "^3.3.9",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
-		"@ai-sdk/vue": "^4.0.31",
+		"@ai-sdk/vue": "^4.0.56",
 		"ai": ">=6 <8",
 		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
@@ -130,6 +130,6 @@
 		"three": "^0.185.1",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	}
 }

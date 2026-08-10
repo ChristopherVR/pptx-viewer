@@ -69,7 +69,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.29.0",
+		"@modelcontextprotocol/sdk": "^1.30.0",
 		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "^2.0.0",
@@ -80,10 +80,10 @@
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependenciesMeta": {
 		"yjs": {

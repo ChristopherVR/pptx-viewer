@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.12",
-		"@ai-sdk/vue": "^4.0.31",
+		"@ai-sdk/vue": "^4.0.56",
 		"ai": "^7.0.44",
 		"fast-xml-parser": "^5.10.1",
 		"jspdf": "^4.2.1",
@@ -28,6 +28,6 @@
 		"tailwindcss": "^4.3.3",
 		"typescript": "6.0.3",
 		"vite": "^8.2.0",
-		"vue-tsc": "^3.3.7"
+		"vue-tsc": "^3.3.9"
 	}
 }
