@@ -37,3 +37,61 @@ describe('useElementInsertion fields', () => {
 		expect(selectedElementIds.value).toStrictEqual([element?.id]);
 	});
 });
+
+describe('useElementInsertion.applyLayoutToActiveSlide', () => {
+	function useHarness(handlerImpl: unknown) {
+		const slides = ref([
+			{ id: 'slide-1', elements: [] } as PptxSlide,
+			{ id: 'slide-2', elements: [] } as PptxSlide,
+		]);
+		const pushHistory = vi.fn();
+		const insertion = useElementInsertion({
+			canvasSize: ref({ width: 960, height: 540 }),
+			ops: { addElement: vi.fn() } as unknown as EditorOperations,
+			selectedElementIds: ref<string[]>([]),
+			slides,
+			activeSlideIndex: ref(1),
+			pushHistory,
+			handler: shallowRef(handlerImpl as never),
+		});
+		return { insertion, slides, pushHistory };
+	}
+
+	it('replaces the active slide with the re-mapped one', async () => {
+		const remapped = {
+			id: 'slide-2',
+			elements: [],
+			layoutPath: 'ppt/slideLayouts/slideLayout3.xml',
+		} as unknown as PptxSlide;
+		const applyLayoutToSlide = vi.fn().mockResolvedValue(remapped);
+		const { insertion, slides, pushHistory } = useHarness({ applyLayoutToSlide });
+
+		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout3.xml');
+
+		expect(applyLayoutToSlide).toHaveBeenCalledWith(1, 'ppt/slideLayouts/slideLayout3.xml', [
+			expect.objectContaining({ id: 'slide-1' }),
+			expect.objectContaining({ id: 'slide-2' }),
+		]);
+		expect(slides.value).toHaveLength(2);
+		// Vue's deep reactivity proxies the stored slide, so compare by value.
+		expect(slides.value[1]).toStrictEqual(remapped);
+		expect(pushHistory).toHaveBeenCalledOnce();
+	});
+
+	it('leaves the deck and history alone when the core call fails', async () => {
+		const applyLayoutToSlide = vi.fn().mockRejectedValue(new Error('missing layout'));
+		const { insertion, slides, pushHistory } = useHarness({ applyLayoutToSlide });
+		const before = slides.value;
+
+		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout9.xml');
+
+		expect(slides.value).toStrictEqual(before);
+		expect(pushHistory).not.toHaveBeenCalled();
+	});
+
+	it('does nothing before a deck is loaded', async () => {
+		const { insertion, pushHistory } = useHarness(null);
+		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout3.xml');
+		expect(pushHistory).not.toHaveBeenCalled();
+	});
+});

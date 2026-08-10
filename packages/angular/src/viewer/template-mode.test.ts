@@ -7,6 +7,7 @@ import {
 	isElementInteractive,
 	partitionSlides,
 	showsTemplateAffordance,
+	slidesWithReappliedLayout,
 } from './template-mode';
 
 function element(id: string): PptxElement {
@@ -239,5 +240,50 @@ describe('editorStateService editTemplateMode', () => {
 		expect(svc.editTemplateMode()).toBeFalsy();
 		expect(svc.templateElementsBySlideId()['s1'][0].x).toBe(77);
 		expect(svc.templateElementsBySlideId()['s1'][0].y).toBe(88);
+	});
+});
+
+describe('slidesWithReappliedLayout', () => {
+	it('replaces the slide and swaps its inherited artwork', () => {
+		const deck = [
+			{ id: 's1', rId: 's1', slideNumber: 1, elements: [] } as PptxSlide,
+			{ id: 's2', rId: 's2', slideNumber: 2, elements: [] } as PptxSlide,
+		];
+		const store = { s2: [{ id: 'layout-old', type: 'shape' } as PptxElement] };
+		const remapped = {
+			id: 's2',
+			rId: 's2',
+			slideNumber: 2,
+			layoutPath: 'ppt/slideLayouts/slideLayout3.xml',
+			elements: [
+				{ id: 'layout-new', type: 'shape' } as PptxElement,
+				{ id: 'own', type: 'shape' } as PptxElement,
+			],
+		} as PptxSlide;
+
+		const folded = slidesWithReappliedLayout(deck, 1, remapped, store);
+
+		expect(folded).not.toBeNull();
+		expect(folded!.slides[0]).toBe(deck[0]);
+		expect(folded!.slides[1]!.layoutPath).toBe('ppt/slideLayouts/slideLayout3.xml');
+		// The deck keeps only the slide's own elements ...
+		expect(folded!.slides[1]!.elements.map((el) => el.id)).toStrictEqual(['own']);
+		// ... and the previous layout's artwork is replaced, not merged.
+		expect(folded!.templateElementsBySlideId.s2!.map((el) => el.id)).toStrictEqual(['layout-new']);
+	});
+
+	it('clears the store entry when the new layout inherits nothing', () => {
+		const deck = [{ id: 's1', rId: 's1', slideNumber: 1, elements: [] } as PptxSlide];
+		const store = { s1: [{ id: 'layout-old', type: 'shape' } as PptxElement] };
+		const remapped = { id: 's1', rId: 's1', slideNumber: 1, elements: [] } as PptxSlide;
+
+		const folded = slidesWithReappliedLayout(deck, 0, remapped, store);
+
+		expect(folded!.templateElementsBySlideId.s1).toStrictEqual([]);
+	});
+
+	it('returns null for an index outside the deck', () => {
+		const remapped = { id: 's9', rId: 's9', slideNumber: 1, elements: [] } as PptxSlide;
+		expect(slidesWithReappliedLayout([], 0, remapped, {})).toBeNull();
 	});
 });

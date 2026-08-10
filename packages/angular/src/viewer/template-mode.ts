@@ -54,6 +54,44 @@ export function partitionSlides(slides: readonly PptxSlide[]): PartitionedSlides
 }
 
 /**
+ * Fold a slide that core has re-mapped onto a new layout back into the editor's
+ * two stores.
+ *
+ * `applyLayoutToSlide` returns the slide with the TARGET layout's inherited
+ * artwork merged in, because that is how core delivers every slide. This editor
+ * keeps that artwork in its own store, so the result has to be partitioned again
+ * on the way in: the deck takes the slide's own elements, and the store's entry
+ * for that slide is REPLACED (not merged) so the previous layout's decoration
+ * stops being painted.
+ *
+ * @param slides - The current template-free deck.
+ * @param index - Index of the slide that was re-mapped.
+ * @param remapped - The slide as core returned it.
+ * @param templateElementsBySlideId - The current template store.
+ * @returns The updated deck and store, or `null` when `index` is out of range.
+ */
+export function slidesWithReappliedLayout(
+	slides: readonly PptxSlide[],
+	index: number,
+	remapped: PptxSlide,
+	templateElementsBySlideId: TemplateElementsBySlideId,
+): PartitionedSlides | null {
+	if (index < 0 || index >= slides.length) {
+		return null;
+	}
+	const partitioned = partitionSlides([remapped]);
+	const nextSlides = [...slides];
+	nextSlides[index] = partitioned.slides[0]!;
+	return {
+		slides: nextSlides,
+		templateElementsBySlideId: {
+			...templateElementsBySlideId,
+			[remapped.id]: partitioned.templateElementsBySlideId[remapped.id] ?? [],
+		},
+	};
+}
+
+/**
  * Re-merge the separated template store back into the deck for serialization.
  *
  * Each slide's `elements` become `[...template, ...own]` so template elements sit

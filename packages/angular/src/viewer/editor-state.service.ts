@@ -44,7 +44,7 @@ import {
 } from './element-operations';
 import { groupElements, ungroupElements } from './group-ops';
 import { LoadContentService } from './load-content.service';
-import { partitionSlides } from './template-mode';
+import { partitionSlides, slidesWithReappliedLayout } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
 
 /** Default nudge distance (px) for arrow-key moves. */
@@ -635,6 +635,46 @@ export class EditorStateService {
 		next.splice(Math.min(afterIndex + 1, next.length), 0, blank);
 		this.slides.set(this.renumber(next));
 		this.selectedIds.set([]);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/**
+	 * Re-map the slide at `index` onto `layoutPath`, keeping its content.
+	 *
+	 * Core moves the slide's placeholders onto the target layout's geometry and
+	 * rewrites the layout relationship, so this replaces one slide rather than
+	 * adding one. Does nothing without a loaded deck, since the operation reads
+	 * the target layout out of the package.
+	 *
+	 * @param index - Index of the slide to re-map.
+	 * @param layoutPath - Package path of the target layout.
+	 */
+	async applyLayout(index: number, layoutPath: string): Promise<void> {
+		const handler = this.loader?.getHandler();
+		const slides = this.slides();
+		const target = slides[index];
+		if (!handler || !target) {
+			return;
+		}
+		const updated = await handler
+			.applyLayoutToSlide(index, layoutPath, [...slides])
+			.catch(() => null);
+		if (!updated || this.slides()[index]?.id !== target.id) {
+			return;
+		}
+		const folded = slidesWithReappliedLayout(
+			this.slides(),
+			index,
+			updated,
+			this.templateElementsBySlideId(),
+		);
+		if (!folded) {
+			return;
+		}
+		this.history.record(this.captureSnapshot(), this.t('pptx.master.layout'));
+		this.slides.set(folded.slides);
+		this.templateElementsBySlideId.set(folded.templateElementsBySlideId);
 		this.dirty.set(true);
 		this.syncHistory();
 	}

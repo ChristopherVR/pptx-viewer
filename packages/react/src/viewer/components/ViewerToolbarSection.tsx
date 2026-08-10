@@ -141,6 +141,8 @@ export interface ViewerToolbarSectionProps {
 	propertyHandlers: PropertyHandlersResult;
 	dialogs: ViewerDialogsResult;
 	slideOps: SlideManagementHandlers;
+	/** Re-map the active slide onto another of its master's layouts. */
+	onApplyLayout?: (path: string) => void;
 	ops: ElementOperations;
 	onSetMode: (mode: ViewerMode) => void;
 	onEnterPresenterView: () => void;
@@ -188,6 +190,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		propertyHandlers,
 		dialogs,
 		slideOps,
+		onApplyLayout,
 		ops,
 		onSetMode,
 		onEnterPresenterView,
@@ -578,6 +581,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSetOverflowMenuOpen={s.setIsOverflowMenuOpen}
 				layoutOptions={scopedLayoutOptions}
 				onInsertSlideFromLayout={slideOps.handleInsertSlideFromLayout}
+				onApplyLayout={onApplyLayout}
 				onInsertSlideFromTemplate={slideOps.handleInsertSlideFromTemplate}
 				templateScheme={templateSchemeFromTheme(s.theme?.colorScheme)}
 				customShows={s.customShows}

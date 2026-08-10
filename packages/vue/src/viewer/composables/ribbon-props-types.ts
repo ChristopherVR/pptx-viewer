@@ -161,6 +161,7 @@ export interface UseRibbonPropsActionsInput {
 	ribbonUpdateTextStyle: RibbonProps['onUpdateTextStyle'];
 	ribbonUpdateTextCase: RibbonProps['onTransformTextCase'];
 	insertSlideFromLayout: (layoutPath: string, layoutName?: string) => Promise<void>;
+	applyLayoutToActiveSlide: (layoutPath: string) => Promise<void>;
 	insertSlideFromTemplate: (templateId: SlideTemplateId) => void;
 	onRenameActiveCustomShow: () => void;
 	onDeleteActiveCustomShow: () => void;

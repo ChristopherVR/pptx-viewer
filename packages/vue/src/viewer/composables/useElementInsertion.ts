@@ -38,6 +38,8 @@ export interface UseElementInsertionResult {
 	onMediaFileSelected: (e: Event) => void;
 	addActionButton: (shapeType: string) => void;
 	insertSlideFromLayout: (layoutPath: string, layoutName?: string) => Promise<void>;
+	/** Re-map the active slide onto another layout of its master. */
+	applyLayoutToActiveSlide: (layoutPath: string) => Promise<void>;
 }
 
 /**
@@ -230,6 +232,30 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 	 * walks the layout XML to populate background/placeholders (mirrors React's
 	 * `handleInsertSlideFromLayout`).
 	 */
+	/**
+	 * Re-map the ACTIVE slide onto `layoutPath`, keeping its content.
+	 *
+	 * The core call returns the slide with its placeholders moved onto the target
+	 * layout's geometry and the layout relationship rewritten; unlike
+	 * {@link insertSlideFromLayout} nothing is added to the deck.
+	 */
+	async function applyLayoutToActiveSlide(layoutPath: string): Promise<void> {
+		const h = handler.value;
+		const index = activeSlideIndex.value;
+		const target = slides.value[index];
+		if (!h || !target) {
+			return;
+		}
+		const updated = await h.applyLayoutToSlide(index, layoutPath, slides.value).catch(() => null);
+		if (!updated || slides.value[index]?.id !== target.id) {
+			return;
+		}
+		pushHistory();
+		const next = slides.value.slice();
+		next[index] = updated;
+		slides.value = next;
+	}
+
 	async function insertSlideFromLayout(layoutPath: string, layoutName?: string): Promise<void> {
 		const insertAt = activeSlideIndex.value + 1;
 		pushHistory();
@@ -274,5 +300,6 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		onMediaFileSelected,
 		addActionButton,
 		insertSlideFromLayout,
+		applyLayoutToActiveSlide,
 	};
 }

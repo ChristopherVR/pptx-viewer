@@ -169,14 +169,40 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 						<svg lucideLayoutTemplate class="h-4 w-4"></svg>
 						{{ 'pptx.home.slideTemplates' | translate }}
 					</button>
-					<button
-						type="button"
-						class="pptx-rb-gb whitespace-nowrap"
-						[title]="'pptx.master.layout' | translate"
-						(click)="applyLayout.emit('blank')"
-					>
-						<svg lucideLayoutGrid class="h-4 w-4"></svg> {{ 'pptx.master.layout' | translate }}
-					</button>
+					<!--
+						Layout re-maps the ACTIVE slide onto another layout of its master,
+						keeping its content: that is what PowerPoint's Home > Layout does,
+						and it is a different operation from the New Slide chevron above,
+						which inserts a slide that inherits from the layout picked.
+					-->
+					<div class="group relative">
+						<button
+							type="button"
+							class="pptx-rb-gb whitespace-nowrap"
+							[disabled]="!canEdit() || layoutOptions().length === 0"
+							[title]="'pptx.master.layout' | translate"
+						>
+							<svg lucideLayoutGrid class="h-4 w-4"></svg> {{ 'pptx.master.layout' | translate }}
+						</button>
+						@if (layoutOptions().length > 0) {
+							<div
+								class="absolute left-0 top-full z-50 hidden max-h-60 w-48 overflow-y-auto pt-1 group-hover:block"
+							>
+								<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
+									@for (option of layoutOptions(); track option.path) {
+										<button
+											type="button"
+											class="flex w-full items-center px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted"
+											[disabled]="!canEdit()"
+											(click)="onApplyLayout(option.path)"
+										>
+											{{ option.name }}
+										</button>
+									}
+								</div>
+							</div>
+						}
+					</div>
 					<button
 						type="button"
 						class="pptx-rb-gb whitespace-nowrap"
@@ -243,7 +269,7 @@ export class RibbonHomeSectionComponent {
 	protected readonly editor = inject(EditorStateService);
 	private readonly loader = inject(LoadContentService);
 
-	/** Layouts offered by the New Slide split button (empty for a layout-less deck). */
+	/** Layouts offered by the New Slide split button and the Layout menu. */
 	protected readonly layoutOptions = computed(() => layoutOptionsFrom(this.loader.slideMasters()));
 
 	readonly slideIndex = input<number>(0);
@@ -256,8 +282,18 @@ export class RibbonHomeSectionComponent {
 	readonly findReplace = output<void>();
 	/** "Slide Templates" in the Slides group; the host opens the gallery dialog. */
 	readonly openTemplateGallery = output<void>();
+	/** Emitted with the layout the user picked, after it has been applied. */
 	readonly applyLayout = output<string>();
 	readonly resetSlide = output<void>();
+
+	/**
+	 * Re-map the active slide onto `layoutPath`. The operation is self-contained,
+	 * so the output is a notification rather than the thing that performs it.
+	 */
+	protected onApplyLayout(layoutPath: string): void {
+		void this.editor.applyLayout(this.slideIndex(), layoutPath);
+		this.applyLayout.emit(layoutPath);
+	}
 
 	protected copy(): void {
 		this.editor.copySelected(this.slideIndex());

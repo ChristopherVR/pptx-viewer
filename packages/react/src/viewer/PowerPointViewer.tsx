@@ -80,6 +80,7 @@ import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
 import { useEditorOperations } from './hooks/useEditorOperations';
 import { useIsMobile } from './hooks/useIsMobile';
+import { useLayoutSwitching } from './hooks/useLayoutSwitching';
 import { usePresentationSetup } from './hooks/usePresentationSetup';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
@@ -658,6 +659,24 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onSlideCountChange,
 		});
 
+		// ── Layout switching (Home > Layout) ────────────────────────
+		// Backs the Layout dropdown's entries, which re-map the active slide onto
+		// another of its master's layouts.
+		const handleTemplateElementsChanged = useCallback(
+			(slideId: string, elements: PptxElement[]) => {
+				state.setTemplateElementsBySlideId((prev) => ({ ...prev, [slideId]: elements }));
+			},
+			[state],
+		);
+		const layoutSwitching = useLayoutSwitching({
+			handler: handlerRef.current,
+			slides,
+			activeSlideIndex,
+			ops: editorOps.ops,
+			history,
+			onTemplateElementsChanged: handleTemplateElementsChanged,
+		});
+
 		// ── AI assistant bridge ─────────────────────────────────────
 		// Built unconditionally (cheap, type-only SDK deps) but only consumed
 		// when the host passes the `ai` prop. Its three write choke points route
@@ -769,6 +788,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									propertyHandlers={propertyHandlers}
 									dialogs={dialogs}
 									slideOps={editorOps.slideOps}
+									onApplyLayout={(path) => void layoutSwitching.applyLayout(path)}
 									ops={editorOps.ops}
 									onSetMode={handleSetMode}
 									onEnterPresenterView={handleEnterPresenterView}

@@ -267,6 +267,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		ribbonUpdateTextStyle: o.ribbonActions.ribbonUpdateTextStyle,
 		ribbonUpdateTextCase: o.ribbonActions.ribbonUpdateTextCase,
 		insertSlideFromLayout: o.insertion.insertSlideFromLayout,
+		applyLayoutToActiveSlide: o.insertion.applyLayoutToActiveSlide,
 		insertSlideFromTemplate: o.templateInsertion.insertSlideFromTemplate,
 		onRenameActiveCustomShow: o.customShows.onRenameActiveCustomShow,
 		onDeleteActiveCustomShow: o.customShows.onDeleteActiveCustomShow,

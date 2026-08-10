@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxLayoutOption, PptxHandler } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxLayoutOption, PptxHandler } from 'pptx-viewer-core';
 /**
  * useLayoutSwitching -- Hook for switching an existing slide's layout.
  *
@@ -24,6 +24,14 @@ export interface UseLayoutSwitchingInput {
 	ops: ElementOperations;
 	/** Editor history for marking dirty state. */
 	history: EditorHistoryResult;
+	/**
+	 * Called with the slide's refreshed layout / master artwork after a switch.
+	 *
+	 * The viewer keeps that artwork outside `slide.elements`, so nothing else
+	 * would notice the relationship change and the canvas would keep painting the
+	 * previous layout until the file was reopened.
+	 */
+	onTemplateElementsChanged?: (slideId: string, elements: PptxElement[]) => void;
 }
 
 /**
@@ -58,7 +66,7 @@ export interface LayoutSwitchingResult {
  * ```
  */
 export function useLayoutSwitching(input: UseLayoutSwitchingInput): LayoutSwitchingResult {
-	const { handler, slides, activeSlideIndex, ops, history } = input;
+	const { handler, slides, activeSlideIndex, ops, history, onTemplateElementsChanged } = input;
 
 	const [availableLayouts, setAvailableLayouts] = useState<PptxLayoutOption[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -103,12 +111,18 @@ export function useLayoutSwitching(input: UseLayoutSwitchingInput): LayoutSwitch
 					next[activeSlideIndex] = updated;
 					return next;
 				});
+				if (onTemplateElementsChanged) {
+					onTemplateElementsChanged(
+						updated.id,
+						await handler.getTemplateElementsForSlide(updated.id),
+					);
+				}
 				history.markDirty();
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[handler, activeSlideIndex, ops, history],
+		[handler, activeSlideIndex, ops, history, onTemplateElementsChanged],
 	);
 
 	return {
