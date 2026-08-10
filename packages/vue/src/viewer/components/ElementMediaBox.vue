@@ -178,12 +178,24 @@ const fallback = computed(() =>
 /** The shared icon paths and label key for whatever the fallback resolved to. */
 const fallbackIcon = computed(() => mediaFallbackIcon(fallback.value, mediaKind.value));
 const fallbackLabelKey = computed(() => mediaFallbackLabelKey(fallback.value, mediaKind.value));
+
+/**
+ * `pointer-events: none` on the root while not interactive, mirroring React's
+ * `pointer-events-none` class / Angular's `rootPointerEvents`. `marked` keeps
+ * the element findable via `data-pptx-element` even while locked (e.g. a
+ * template/master video with `editTemplateMode` off); this is what actually
+ * stops the box from being clicked or dragged. `null` while interactive so
+ * the style-array merge leaves any pre-existing `pointerEvents` untouched.
+ */
+const rootPointerEvents = computed<CSSProperties | null>(() =>
+	props.interactive ? null : { pointerEvents: 'none' },
+);
 </script>
 
 <template>
 	<div
 		class="pptx-vue-element pptx-vue-media"
-		:style="containerStyle"
+		:style="[containerStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>

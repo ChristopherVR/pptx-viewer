@@ -84,6 +84,19 @@ const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
 
+/**
+ * `pointer-events: none` on the root while not interactive, mirroring
+ * React's `pointer-events-none` class / Angular's `rootPointerEvents`.
+ * `marked` keeps the element findable via `data-pptx-element` even while
+ * locked (e.g. a template/master table with `editTemplateMode` off); this is
+ * what actually stops it from being clicked, dragged, or cell-edited. `null`
+ * while interactive so the style-array merge leaves any pre-existing
+ * `pointerEvents` untouched.
+ */
+const rootPointerEvents = computed<CSSProperties | null>(() =>
+	props.interactive ? null : { pointerEvents: 'none' },
+);
+
 // Viewer-root-provided theme context (colour scheme / table-style map), used as
 // a fallback for band/header colour resolution when the props are not supplied.
 const injectedTableTheme = injectTableTheme();
@@ -445,7 +458,7 @@ onBeforeUnmount(() => {
 	<div
 		v-if="tableData"
 		class="pptx-vue-element pptx-vue-table"
-		:style="containerStyle"
+		:style="[containerStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>

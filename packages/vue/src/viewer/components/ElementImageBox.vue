@@ -55,12 +55,24 @@ const clrChange = computed<ClrChangeEffect | undefined>(() => {
 // Recoloured source (offscreen-canvas pixel swap); falls back to the original
 // `imageSrc` while processing, on failure, or when no clrChange is present.
 const { displaySrc } = useColorChangeImage({ src: imageSrc, clrChange });
+
+/**
+ * `pointer-events: none` while not interactive, mirroring React's
+ * `pointer-events-none` class / Angular's `rootPointerEvents`. `marked` keeps
+ * the element findable via `data-pptx-element` even while locked (e.g. a
+ * template/master picture with `editTemplateMode` off); this is what actually
+ * stops it from being clicked or dragged. `null` while interactive so the
+ * style-array merge leaves any pre-existing `pointerEvents` untouched.
+ */
+const rootPointerEvents = computed<CSSProperties | null>(() =>
+	props.interactive ? null : { pointerEvents: 'none' },
+);
 </script>
 
 <template>
 	<div
 		class="pptx-vue-element pptx-vue-image"
-		:style="containerStyle"
+		:style="[containerStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>

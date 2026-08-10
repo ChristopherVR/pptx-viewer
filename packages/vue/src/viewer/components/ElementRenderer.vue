@@ -220,6 +220,26 @@ const elementMarker = computed<'true' | undefined>(() =>
 	props.interactive || props.marked ? 'true' : undefined,
 );
 
+/**
+ * `pointer-events: none` on the root while this render is not interactive,
+ * mirroring React's `pointer-events-none` Tailwind class and Angular's
+ * `rootPointerEvents` computed (see `element-renderer.component.ts`) on the
+ * same condition. `elementMarker` keeps the `data-pptx-element` contract
+ * attribute on a locked template (master/layout) element so it stays
+ * findable as a rendered slide element, but the attribute alone never
+ * stopped clicks/drags from reaching it: without this, a layout/master
+ * shape stayed fully clickable with `editTemplateMode` off, because nothing
+ * on its DOM node reflected the stage's id-based lock.
+ *
+ * `null` while interactive (rather than clearing `pointerEvents` explicitly)
+ * so the style-array merge below leaves an already-set `pointerEvents` (e.g.
+ * the hollow-shape outline-only hit-test in `getShapeFillStrokeStyle`)
+ * untouched instead of clobbering it.
+ */
+const rootPointerEvents = computed<CSSProperties | null>(() =>
+	props.interactive ? null : { pointerEvents: 'none' },
+);
+
 /*
  * The on-canvas action affordances (amber "has action" badge + hover link
  * tooltip) used to be rendered here, but only for the text / shape branch: this
@@ -250,7 +270,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		v-else-if="element.type === 'group'"
 		class="pptx-vue-element pptx-vue-group"
 		:class="templateClass"
-		:style="containerStyle"
+		:style="[containerStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
 	>
@@ -389,7 +409,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		v-else-if="isShapeLike"
 		class="pptx-vue-element pptx-vue-shape"
 		:class="templateClass"
-		:style="shapeDivStyle"
+		:style="[shapeDivStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
 	>
@@ -414,7 +434,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 		v-else
 		class="pptx-vue-element pptx-vue-unsupported"
 		:class="templateClass"
-		:style="containerStyle"
+		:style="[containerStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
 	>

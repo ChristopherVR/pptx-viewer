@@ -191,6 +191,21 @@ const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
 
+/**
+ * `pointer-events: none` on the root while not interactive, mirroring
+ * React's `pointer-events-none` class / Angular's `rootPointerEvents`. The
+ * inner `.pptx-vue-smartart-svg` is already `pointer-events: none` by default
+ * CSS (with editable node groups opting back in via
+ * `.pptx-vue-smartart-editable`), but nothing previously gated the OUTER
+ * `pptx-vue-smartart` box itself, so its background/chrome area stayed
+ * clickable even while `marked` locked the element (e.g. a template/master
+ * diagram with `editTemplateMode` off). `null` while interactive so the
+ * style-array merge leaves any pre-existing `pointerEvents` untouched.
+ */
+const rootPointerEvents = computed<CSSProperties | null>(() =>
+	props.interactive ? null : { pointerEvents: 'none' },
+);
+
 const chromeStyle = computed<CSSProperties>(() => {
 	const c = chrome.value;
 	const s: CSSProperties = { width: '100%', height: '100%' };
@@ -505,7 +520,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 <template>
 	<div
 		class="pptx-vue-element pptx-vue-smartart"
-		:style="containerStyle"
+		:style="[containerStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="props.interactive || props.marked ? 'true' : undefined"
 		aria-roledescription="diagram"
