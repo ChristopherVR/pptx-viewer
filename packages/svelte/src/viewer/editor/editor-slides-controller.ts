@@ -1,5 +1,6 @@
 import { cloneElement } from 'pptx-viewer-core';
 import type { PptxLayoutOption } from 'pptx-viewer-core';
+import { partitionTemplateElements } from 'pptx-viewer-shared';
 import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-shared';
 
 import {
@@ -125,9 +126,18 @@ export class EditorSlidesController {
 		}
 		const index = this.#editor.currentSlideIndex;
 		const updated = await handler.applyLayoutToSlide(index, layoutPath, this.#editor.slides);
+		// Core returns the slide with the TARGET layout's inherited artwork merged
+		// in, which this editor holds in its own store; partitioning the result
+		// again is what swaps that artwork over instead of leaving the previous
+		// layout's decoration on screen.
+		const partition = partitionTemplateElements([updated]);
 		this.#editor.commitSlides(
-			this.#editor.slides.map((slide, i) => (i === index ? updated : slide)),
+			this.#editor.slides.map((slide, i) => (i === index ? partition.slides[0]! : slide)),
 		);
+		this.#editor.templateElementsBySlideId = {
+			...this.#editor.templateElementsBySlideId,
+			[updated.id]: partition.templateElementsBySlideId[updated.id] ?? [],
+		};
 		return index;
 	}
 

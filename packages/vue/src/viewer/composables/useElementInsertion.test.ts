@@ -57,6 +57,43 @@ describe('useElementInsertion.applyLayoutToActiveSlide', () => {
 		return { insertion, slides, pushHistory };
 	}
 
+	it('swaps the inherited layout artwork over to the new layout', async () => {
+		const remapped = {
+			id: 'slide-2',
+			elements: [
+				{ id: 'layout-new', type: 'shape' } as PptxElement,
+				{ id: 'own', type: 'shape' } as PptxElement,
+			],
+			layoutPath: 'ppt/slideLayouts/slideLayout3.xml',
+		} as unknown as PptxSlide;
+		const templateElementsBySlideId = ref({
+			'slide-2': [{ id: 'layout-old', type: 'shape' } as PptxElement],
+		});
+		const slides = ref([
+			{ id: 'slide-1', elements: [] } as PptxSlide,
+			{ id: 'slide-2', elements: [] } as PptxSlide,
+		]);
+		const insertion = useElementInsertion({
+			canvasSize: ref({ width: 960, height: 540 }),
+			ops: { addElement: vi.fn() } as unknown as EditorOperations,
+			selectedElementIds: ref<string[]>([]),
+			slides,
+			activeSlideIndex: ref(1),
+			pushHistory: vi.fn(),
+			handler: shallowRef({ applyLayoutToSlide: vi.fn().mockResolvedValue(remapped) } as never),
+			templateElementsBySlideId,
+		});
+
+		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout3.xml');
+
+		// The deck keeps only the slide's own elements ...
+		expect(slides.value[1]!.elements.map((el) => el.id)).toStrictEqual(['own']);
+		// ... and the previous layout's artwork is replaced, not merged.
+		expect(templateElementsBySlideId.value['slide-2']!.map((el) => el.id)).toStrictEqual([
+			'layout-new',
+		]);
+	});
+
 	it('replaces the active slide with the re-mapped one', async () => {
 		const remapped = {
 			id: 'slide-2',

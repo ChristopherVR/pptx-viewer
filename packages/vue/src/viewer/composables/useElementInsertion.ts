@@ -12,6 +12,8 @@ import type { Ref, ShallowRef } from 'vue';
 
 import type { ShapePreset } from '../components/EditorToolbar.vue';
 import { buildActionButtonElement } from './action-buttons';
+import { partitionTemplateElements } from './template-editing';
+import type { TemplateElementMap } from './template-editing';
 import type { EditorOperations } from './useEditorOperations';
 
 export interface UseElementInsertionInput {
@@ -22,6 +24,12 @@ export interface UseElementInsertionInput {
 	activeSlideIndex: Ref<number>;
 	pushHistory: () => void;
 	handler: ShallowRef<PptxHandler | null>;
+	/**
+	 * The per-slide store of inherited layout / master artwork, refreshed when a
+	 * slide is re-mapped onto a different layout. Optional so callers that never
+	 * switch layouts (tests, read-only hosts) need not thread it through.
+	 */
+	templateElementsBySlideId?: Ref<TemplateElementMap>;
 }
 
 export interface UseElementInsertionResult {
@@ -51,8 +59,16 @@ export interface UseElementInsertionResult {
  * and selected. Extracted verbatim from `PowerPointViewer.vue`.
  */
 export function useElementInsertion(input: UseElementInsertionInput): UseElementInsertionResult {
-	const { canvasSize, ops, selectedElementIds, slides, activeSlideIndex, pushHistory, handler } =
-		input;
+	const {
+		canvasSize,
+		ops,
+		selectedElementIds,
+		slides,
+		activeSlideIndex,
+		pushHistory,
+		handler,
+		templateElementsBySlideId,
+	} = input;
 
 	/** Centre a newly-created element (default box) on the slide. */
 	function centreNewElement(el: PptxElement, width: number, height: number): void {
@@ -251,9 +267,20 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 			return;
 		}
 		pushHistory();
+		// Core returns the slide with the TARGET layout's inherited artwork merged
+		// in; this editor holds that artwork in its own store, so the result is
+		// partitioned again and the store entry REPLACED. Without that the canvas
+		// keeps painting the previous layout's decoration.
+		const partitioned = partitionTemplateElements([updated]);
 		const next = slides.value.slice();
-		next[index] = updated;
+		next[index] = partitioned.slides[0]!;
 		slides.value = next;
+		if (templateElementsBySlideId) {
+			templateElementsBySlideId.value = {
+				...templateElementsBySlideId.value,
+				[updated.id]: partitioned.templateElementsBySlideId[updated.id] ?? [],
+			};
+		}
 	}
 
 	async function insertSlideFromLayout(layoutPath: string, layoutName?: string): Promise<void> {

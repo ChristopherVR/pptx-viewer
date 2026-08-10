@@ -426,6 +426,7 @@ const insertion = useElementInsertion({
 	activeSlideIndex,
 	pushHistory: history.pushHistory,
 	handler,
+	templateElementsBySlideId,
 });
 // The two hidden `<input type="file">` pickers bind by string ref, so their
 // refs must be top-level bindings in this SFC.

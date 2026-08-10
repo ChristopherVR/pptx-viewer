@@ -4,6 +4,7 @@ import {
 	buildSlideTemplateSlide,
 	createBlankSlide,
 	makeSlideId,
+	partitionTemplateElements,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
@@ -70,9 +71,20 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 				const current = store.get();
 				if (current.slides[index]?.id === expectedId) {
 					ops.pushHistory();
+					// Core returns the slide with the TARGET layout's inherited artwork
+					// merged in, which this viewer holds in its own store; partitioning
+					// the result again swaps that artwork over instead of leaving the
+					// previous layout's decoration on screen.
+					const partition = partitionTemplateElements([updated]);
 					const slides = [...current.slides];
-					slides[index] = updated;
-					store.set({ slides });
+					slides[index] = partition.slides[0]!;
+					store.set({
+						slides,
+						templateElementsBySlideId: {
+							...current.templateElementsBySlideId,
+							[updated.id]: partition.templateElementsBySlideId[updated.id] ?? [],
+						},
+					});
 					ops.commitChange();
 				}
 				return undefined;
