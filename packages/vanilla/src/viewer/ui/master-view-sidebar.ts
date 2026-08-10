@@ -55,9 +55,7 @@ function addBackgroundCard(
 	const input = createEl(doc, 'input', 'pptxv-master-background');
 	input.type = 'color';
 	input.value = /^#[\da-f]{6}$/i.test(color) ? color : '#ffffff';
-	// Matches the literal (untranslated) accessible name used by every other
-	// binding's notes/handout master background swatch (react/vue/angular/svelte).
-	input.setAttribute('aria-label', 'Master background color');
+	input.setAttribute('aria-label', t('pptx.master.backgroundColorLabel'));
 	input.addEventListener('input', () => onChange(input.value));
 	card.append(label, input);
 	parent.appendChild(card);

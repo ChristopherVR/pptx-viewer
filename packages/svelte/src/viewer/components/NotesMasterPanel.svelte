@@ -17,7 +17,7 @@
 {#if notesMaster}
 	<section class="panel" data-testid="notes-master-panel">
 		<div class="label">{t('pptx.master.notesMasterBackground')}</div>
-		<input type="color" class="swatch" aria-label="Master background color" value={notesMaster.backgroundColor ?? '#ffffff'} oninput={(event) => onchange(event.currentTarget.value)} />
+		<input type="color" class="swatch" aria-label={t('pptx.master.backgroundColorLabel')} value={notesMaster.backgroundColor ?? '#ffffff'} oninput={(event) => onchange(event.currentTarget.value)} />
 		<div class="label">{t('pptx.master.notesMasterPlaceholders')}</div>
 		{#each notesMaster.placeholders ?? [] as placeholder (`${placeholder.type}-${placeholder.idx ?? 'default'}`)}
 			<div class="placeholder"><i></i>{t(labels[placeholder.type] ?? placeholder.type)}</div>

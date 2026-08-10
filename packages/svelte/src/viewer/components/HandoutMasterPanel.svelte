@@ -21,7 +21,7 @@
 			{/each}
 		</div>
 		<div class="label">{t('pptx.master.handoutBackground')}</div>
-		<input type="color" class="swatch" aria-label="Master background color" value={handoutMaster.backgroundColor ?? '#ffffff'} oninput={(event) => onbackgroundchange(event.currentTarget.value)} />
+		<input type="color" class="swatch" aria-label={t('pptx.master.backgroundColorLabel')} value={handoutMaster.backgroundColor ?? '#ffffff'} oninput={(event) => onbackgroundchange(event.currentTarget.value)} />
 	</section>
 {:else}<p class="empty">{t('pptx.master.noHandoutMaster')}</p>{/if}
 

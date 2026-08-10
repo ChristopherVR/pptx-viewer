@@ -61,7 +61,7 @@ const placeholderLabels = computed<PlaceholderLabel[]>(() => {
 			<div class="pptx-vue-notes-master-panel__heading">{{ t('pptx.notesMaster.background') }}</div>
 			<input
 				type="color"
-				aria-label="Master background color"
+				:aria-label="t('pptx.master.backgroundColorLabel')"
 				class="pptx-vue-notes-master-panel__swatch"
 				data-testid="notes-master-bg-swatch"
 				:value="notesMaster.backgroundColor ?? '#ffffff'"

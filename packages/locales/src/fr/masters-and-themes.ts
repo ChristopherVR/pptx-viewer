@@ -51,6 +51,7 @@ export const translations = {
 	'pptx.slideBackground.backgroundPreview': 'Aperçu en arrière-plan',
 	'pptx.slideBackground.removeBackgroundImage': "Supprimer l'image d'arrière-plan",
 	'pptx.slideBackground.clearBackground': "Effacer l'arrière-plan",
+	'pptx.master.backgroundColorLabel': "Couleur d'arrière-plan du modèle",
 	'pptx.master.collapseMasterPane': 'Réduire le volet',
 	'pptx.master.handoutBackground': 'Arrière-plan',
 	'pptx.master.handoutMasterTitle': 'Masque du document',

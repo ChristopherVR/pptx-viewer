@@ -61,7 +61,7 @@ export function NotesMasterPanel({
 				</div>
 				<input
 					type='color'
-					aria-label='Master background color'
+					aria-label={t('pptx.master.backgroundColorLabel')}
 					className='w-full h-8 rounded border border-border'
 					value={notesMaster.backgroundColor ?? '#ffffff'}
 					onChange={(event) => onBackgroundChange(event.target.value)}

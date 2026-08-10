@@ -65,7 +65,7 @@ const HANDOUT_COUNTS = [1, 2, 3, 4, 6, 9] as const;
 		<ng-template #backgroundEditor let-color="color">
 			<label class="background-editor">
 				<span>{{ 'pptx.master.notesMasterBackground' | translate }}</span>
-				<input type="color" aria-label="Master background color" [value]="color" (input)="backgroundChange.emit($any($event.target).value)" />
+				<input type="color" [attr.aria-label]="'pptx.master.backgroundColorLabel' | translate" [value]="color" (input)="backgroundChange.emit($any($event.target).value)" />
 			</label>
 		</ng-template>
 	`,

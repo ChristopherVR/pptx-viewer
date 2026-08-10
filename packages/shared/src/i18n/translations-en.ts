@@ -1156,6 +1156,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.inspector.unlock': 'Unlock',
 
 	// Slide master / handout master / notes master
+	'pptx.master.backgroundColorLabel': 'Master background color',
 	'pptx.master.collapseMasterPane': 'Collapse pane',
 	'pptx.master.handoutBackground': 'Background',
 	'pptx.master.handoutMasterTitle': 'Handout Master',

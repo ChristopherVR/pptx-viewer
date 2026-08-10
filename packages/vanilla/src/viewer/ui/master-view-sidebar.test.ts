@@ -38,9 +38,9 @@ describe('master view sidebar', () => {
 		expect(tabs[1]?.getAttribute('aria-selected')).toBe('true');
 		expect(sidebar.el.textContent).toContain('Body');
 		expect(sidebar.el.textContent).toContain('Slide Image');
-		// The aria-label is the literal accessible name shared by every binding's
-		// notes/handout master background swatch (react/vue/angular/svelte), not
-		// the translated card label.
+		// The aria-label is the translated pptx.master.backgroundColorLabel key
+		// (English resolves to this literal string), distinct from the card's
+		// visible pptx.master.notesMasterBackground heading.
 		const background = sidebar.el.querySelector<HTMLInputElement>(
 			'input[aria-label="Master background color"]',
 		);

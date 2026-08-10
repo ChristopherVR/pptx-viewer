@@ -64,7 +64,7 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 			</div>
 			<input
 				type="color"
-				aria-label="Master background color"
+				:aria-label="t('pptx.master.backgroundColorLabel')"
 				class="pptx-vue-handout-master-panel__swatch"
 				data-testid="handout-master-bg-swatch"
 				:value="handoutMaster.backgroundColor ?? '#ffffff'"
