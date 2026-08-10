@@ -72,7 +72,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"dompurify": "^3.4.12",
+		"dompurify": "^3.4.13",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
