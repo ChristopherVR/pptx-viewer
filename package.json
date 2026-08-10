@@ -97,7 +97,7 @@
 		"typescript": "^6.0.3",
 		"unrun": "^0.3.1",
 		"y-protocols": "^1.0.7",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"optionalDependencies": {
 		"@react-three/drei": "^10.7.7",

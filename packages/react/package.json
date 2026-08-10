@@ -96,7 +96,7 @@
 		"vitest": "^4.1.10",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
 		"@ai-sdk/react": "^4.0.40",
@@ -124,6 +124,6 @@
 		"three": "^0.185.1",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.32"
 	}
 }
