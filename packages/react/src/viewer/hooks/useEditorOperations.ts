@@ -166,6 +166,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		resizeStateRef: state.resizeStateRef,
 		shapeAdjustmentDragStateRef: state.shapeAdjustmentDragStateRef,
 		marqueeStateRef: state.marqueeStateRef,
+		justInteractedRef: state.justInteractedRef,
 		setInlineEditingElementId: state.setInlineEditingElementId,
 		setInlineEditingText: state.setInlineEditingText,
 		setContextMenuState: state.setContextMenuState,

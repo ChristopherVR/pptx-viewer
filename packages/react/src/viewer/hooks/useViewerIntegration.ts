@@ -140,6 +140,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		resizeStateRef: state.resizeStateRef,
 		shapeAdjustmentDragStateRef: state.shapeAdjustmentDragStateRef,
 		marqueeStateRef: state.marqueeStateRef,
+		justInteractedRef: state.justInteractedRef,
 		editTemplateMode: state.editTemplateMode,
 		snapToGrid: state.snapToGrid,
 		snapToShape: state.snapToShape,

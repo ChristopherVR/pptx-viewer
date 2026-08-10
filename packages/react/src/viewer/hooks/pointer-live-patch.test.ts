@@ -62,6 +62,7 @@ function makeInput(
 		resizeStateRef: { current: null },
 		shapeAdjustmentDragStateRef: { current: null },
 		marqueeStateRef: { current: null },
+		justInteractedRef: { current: false },
 		editTemplateMode: false,
 		snapToGrid: false,
 		snapToShape: false,

@@ -94,6 +94,21 @@ export interface ViewerCoreState {
 	marqueeStateRef: React.MutableRefObject<MarqueeSelectionState | null>;
 	/** Whether the user is currently performing a freeform drawing stroke. */
 	isDrawingRef: React.MutableRefObject<boolean>;
+	/**
+	 * Set right after a drag/resize/adjustment gesture that actually moved the
+	 * element commits, and consumed by the next element click.
+	 *
+	 * A gesture that repositions an already-selected element (e.g. dragging its
+	 * body, or pulling an SE resize handle that visually tracks the pointer 1:1)
+	 * ends with the pointer back over the same DOM node it went down on, so the
+	 * browser still fires a native `click` there after `pointerup`. Without this
+	 * guard that click satisfies the "clicked an already-selected element again"
+	 * rule and silently opens the inline text editor, whose very next blur
+	 * rebuilds `textSegments` from plain text (dropping OOXML round-trip-only
+	 * fields like `endParaRunProperties`) and pushes a spurious extra undo step
+	 * that made a single Ctrl+Z look like it did nothing.
+	 */
+	justInteractedRef: React.MutableRefObject<boolean>;
 
 	// ── Collaboration ─────────────────────────────────────────────────
 

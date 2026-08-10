@@ -38,6 +38,13 @@ export interface UseCanvasInteractionsInput {
 	resizeStateRef: React.MutableRefObject<ResizeState | null>;
 	shapeAdjustmentDragStateRef: React.MutableRefObject<ShapeAdjustmentDragState | null>;
 	marqueeStateRef: React.MutableRefObject<MarqueeSelectionState | null>;
+	/**
+	 * Set by `processPointerUp` when a drag/resize/adjustment gesture just moved
+	 * the element; consumed here to tell that gesture's trailing click apart from
+	 * a genuine second click on an already-selected element. See
+	 * `ViewerCoreState.justInteractedRef`.
+	 */
+	justInteractedRef: React.MutableRefObject<boolean>;
 	setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>>;
 	setInlineEditingText: React.Dispatch<React.SetStateAction<string>>;
 	setContextMenuState: React.Dispatch<React.SetStateAction<ElementContextMenuState | null>>;
@@ -96,6 +103,7 @@ export function useCanvasInteractions(
 		resizeStateRef,
 		shapeAdjustmentDragStateRef,
 		marqueeStateRef,
+		justInteractedRef,
 		setInlineEditingElementId,
 		setInlineEditingText,
 		setContextMenuState,
@@ -182,8 +190,19 @@ export function useCanvasInteractions(
 			// this mouseDown+click sequence. If justSelectedRef is true, this click
 			// was the initial selection click - skip inline editing so resize handles
 			// remain visible.
-			if (justSelectedRef.current) {
+			//
+			// justInteractedRef guards a second case: a drag/resize/adjustment
+			// gesture that just moved this element ends with the pointer back over
+			// the same DOM node it went down on (a dragged shape keeps the same
+			// point under the cursor; an SE handle tracks the pointer 1:1), so the
+			// browser still fires this `click` even though nothing was "clicked" by
+			// the user's intent. Without this guard that click reads as "clicked an
+			// already-selected element again" and opens the inline editor, whose
+			// blur then rebuilds textSegments from plain text and drops OOXML
+			// round-trip-only fields - and pushes a spurious extra undo entry.
+			if (justSelectedRef.current || justInteractedRef.current) {
 				justSelectedRef.current = false;
+				justInteractedRef.current = false;
 			} else {
 				const el = elementLookup.get(elementId);
 				if (el && hasTextProperties(el) && !el.locks?.noTextEdit) {

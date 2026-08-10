@@ -23,6 +23,13 @@ export interface UsePointerHandlersInput {
 	resizeStateRef: React.MutableRefObject<ResizeState | null>;
 	shapeAdjustmentDragStateRef: React.MutableRefObject<ShapeAdjustmentDragState | null>;
 	marqueeStateRef: React.MutableRefObject<MarqueeSelectionState | null>;
+	/**
+	 * Set on pointer-up when a drag/resize/adjustment gesture actually moved the
+	 * element, so the click handler can tell a genuine "click an already-selected
+	 * element to edit it" apart from the trailing click a completed gesture
+	 * leaves behind. See {@link import('./viewer-core-state-types').ViewerCoreState.justInteractedRef}.
+	 */
+	justInteractedRef: React.MutableRefObject<boolean>;
 	/** When true, pointer commits target the per-slide template store. */
 	editTemplateMode: boolean;
 	snapToGrid: boolean;

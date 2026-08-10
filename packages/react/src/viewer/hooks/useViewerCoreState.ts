@@ -88,6 +88,8 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const shapeAdjustmentDragStateRef = useRef<ShapeAdjustmentDragState | null>(null);
 	const marqueeStateRef = useRef<MarqueeSelectionState | null>(null);
 	const isDrawingRef = useRef(false);
+	/** See {@link ViewerCoreState.justInteractedRef}. */
+	const justInteractedRef = useRef(false);
 
 	// ── Collaboration live-patch channel ──────────────────────────────
 	// Interim Y.Doc writes for in-flight gestures/edits. Created once per
@@ -214,6 +216,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		shapeAdjustmentDragStateRef,
 		marqueeStateRef,
 		isDrawingRef,
+		justInteractedRef,
 		livePatcher,
 		mode,
 		setMode,

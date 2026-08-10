@@ -38,6 +38,7 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 		dragStateRef,
 		resizeStateRef,
 		shapeAdjustmentDragStateRef,
+		justInteractedRef,
 		setMarqueeSelectionState,
 		setSnapLines,
 		setTemplateElementsBySlideId,
@@ -109,6 +110,15 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 	}
 
 	const wasMoved = drag?.moved || rs?.moved || adj?.moved;
+
+	// A gesture that moved the element leaves the pointer back over the same DOM
+	// node it went down on (a dragged shape keeps the same point under the
+	// cursor; an SE handle tracks the pointer 1:1), so the browser still fires a
+	// trailing `click` there. Flag it so the click handler does not mistake that
+	// click for the user re-clicking an already-selected element to edit it.
+	if (wasMoved) {
+		justInteractedRef.current = true;
+	}
 
 	// Push the last interim frame out now so peers land on the final geometry
 	// without waiting for the throttle window. The state commit above reconciles
