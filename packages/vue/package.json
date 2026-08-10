@@ -82,7 +82,7 @@
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
-		"@ai-sdk/vue": "^4.0.31",
+		"@ai-sdk/vue": "^4.0.56",
 		"@rollup/plugin-terser": "^1.0.0",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/dompurify": "^3.2.0",
@@ -107,7 +107,7 @@
 		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
-		"@ai-sdk/vue": "^4.0.31",
+		"@ai-sdk/vue": "^4.0.56",
 		"ai": ">=6 <8",
 		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
