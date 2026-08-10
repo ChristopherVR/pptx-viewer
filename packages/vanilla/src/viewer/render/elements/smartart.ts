@@ -17,7 +17,7 @@ import type { ElementRenderer } from '../types';
 import { renderSmartArt3DElement } from './smartart-3d';
 import { enableSmartArtEditing } from './smartart-editable';
 import { buildSmartArtFallbackSvg } from './smartart-fallback';
-import { appendSvgTextLines, SMARTART_SVG_STYLE } from './smartart-svg';
+import { appendSvgTextLines, buildSvgGradientDefs, SMARTART_SVG_STYLE } from './smartart-svg';
 
 /**
  * Renderer for `smartArt` elements. Dispatches to the opt-in Three.js
@@ -195,7 +195,10 @@ function buildDrawingShapesSvg(
 		if (shadow) {
 			g.style.filter = shadow;
 		}
-		if (shape.imageUrl) {
+		if (shape.gradient) {
+			g.appendChild(buildSvgGradientDefs(doc, shape.gradient));
+		}
+		if (shape.kind === 'image') {
 			const image = createSvgEl(doc, 'image', {
 				x: shape.x,
 				y: shape.y,
@@ -204,15 +207,25 @@ function buildDrawingShapesSvg(
 				preserveAspectRatio: 'xMidYMid meet',
 				transform: shape.transform,
 			});
-			image.setAttribute('href', shape.imageUrl);
+			image.setAttribute('href', shape.imageUrl ?? '');
 			g.appendChild(image);
-		} else if (shape.isEllipse) {
+		} else if (shape.kind === 'ellipse') {
 			g.appendChild(
 				createSvgEl(doc, 'ellipse', {
 					cx: shape.cx,
 					cy: shape.cy,
 					rx: shape.width / 2,
 					ry: shape.height / 2,
+					fill: shape.fill,
+					stroke: shape.stroke,
+					'stroke-width': shape.strokeWidth,
+					transform: shape.transform,
+				}),
+			);
+		} else if (shape.kind === 'polygon') {
+			g.appendChild(
+				createSvgEl(doc, 'polygon', {
+					points: shape.points,
 					fill: shape.fill,
 					stroke: shape.stroke,
 					'stroke-width': shape.strokeWidth,

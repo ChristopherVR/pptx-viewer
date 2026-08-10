@@ -24,7 +24,43 @@
 					[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
 					[class.pptx-ng-smartart-node--editable]="canEditNodes() && !!drawingShapeNodeIds()[i]"
 				>
-					@if (shape.imageUrl) {
+					@if (shape.gradient) {
+						<defs>
+							@if (shape.gradient!.kind === 'radial') {
+								<radialGradient
+									[attr.id]="shape.gradient!.id"
+									[attr.cx]="shape.gradient!.cx"
+									[attr.cy]="shape.gradient!.cy"
+									[attr.r]="shape.gradient!.r"
+								>
+									@for (stop of shape.gradient!.stops; track $index) {
+										<stop
+											[attr.offset]="stop.offset"
+											[attr.stop-color]="stop.color"
+											[attr.stop-opacity]="stop.opacity ?? null"
+										/>
+									}
+								</radialGradient>
+							} @else {
+								<linearGradient
+									[attr.id]="shape.gradient!.id"
+									[attr.x1]="shape.gradient!.x1"
+									[attr.y1]="shape.gradient!.y1"
+									[attr.x2]="shape.gradient!.x2"
+									[attr.y2]="shape.gradient!.y2"
+								>
+									@for (stop of shape.gradient!.stops; track $index) {
+										<stop
+											[attr.offset]="stop.offset"
+											[attr.stop-color]="stop.color"
+											[attr.stop-opacity]="stop.opacity ?? null"
+										/>
+									}
+								</linearGradient>
+							}
+						</defs>
+					}
+					@if (shape.kind === 'image') {
 						<image
 							[attr.x]="shape.x"
 							[attr.y]="shape.y"
@@ -34,12 +70,20 @@
 							preserveAspectRatio="xMidYMid meet"
 							[attr.transform]="shape.transform ?? null"
 						/>
-					} @else if (shape.isEllipse) {
+					} @else if (shape.kind === 'ellipse') {
 						<ellipse
 							[attr.cx]="shape.cx"
 							[attr.cy]="shape.cy"
 							[attr.rx]="shape.width / 2"
 							[attr.ry]="shape.height / 2"
+							[attr.fill]="shape.fill"
+							[attr.stroke]="shape.stroke"
+							[attr.stroke-width]="shape.strokeWidth"
+							[attr.transform]="shape.transform ?? null"
+						/>
+					} @else if (shape.kind === 'polygon') {
+						<polygon
+							[attr.points]="shape.points"
 							[attr.fill]="shape.fill"
 							[attr.stroke]="shape.stroke"
 							[attr.stroke-width]="shape.strokeWidth"

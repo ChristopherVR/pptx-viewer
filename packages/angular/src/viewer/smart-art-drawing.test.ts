@@ -172,7 +172,7 @@ describe('projectDrawingShapes', () => {
 		const shapes: PptxSmartArtDrawingShape[] = [shape({ id: 's1', shapeType: 'ellipse' })];
 		const vb = computeDrawingViewBox(shapes);
 		const [rendered] = projectDrawingShapes('el1', shapes, vb, DEFAULT_PALETTE, 'flat');
-		expect(rendered.isEllipse).toBeTruthy();
+		expect(rendered.kind).toBe('ellipse');
 	});
 
 	it('rebases positions relative to the viewBox minX/minY', () => {

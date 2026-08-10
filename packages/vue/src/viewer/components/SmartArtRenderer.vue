@@ -430,8 +430,41 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					@keydown.enter.prevent="beginEdit(shape.nodeId, shapeEditText(shape), $event)"
 				>
 					<title v-if="nodeLabel(shape.nodeId)">{{ nodeLabel(shape.nodeId) }}</title>
+					<defs v-if="shape.gradient">
+						<radialGradient
+							v-if="shape.gradient.kind === 'radial'"
+							:id="shape.gradient.id"
+							:cx="shape.gradient.cx"
+							:cy="shape.gradient.cy"
+							:r="shape.gradient.r"
+						>
+							<stop
+								v-for="(stop, si) in shape.gradient.stops"
+								:key="si"
+								:offset="stop.offset"
+								:stop-color="stop.color"
+								:stop-opacity="stop.opacity"
+							/>
+						</radialGradient>
+						<linearGradient
+							v-else
+							:id="shape.gradient.id"
+							:x1="shape.gradient.x1"
+							:y1="shape.gradient.y1"
+							:x2="shape.gradient.x2"
+							:y2="shape.gradient.y2"
+						>
+							<stop
+								v-for="(stop, si) in shape.gradient.stops"
+								:key="si"
+								:offset="stop.offset"
+								:stop-color="stop.color"
+								:stop-opacity="stop.opacity"
+							/>
+						</linearGradient>
+					</defs>
 					<image
-						v-if="shape.imageUrl"
+						v-if="shape.kind === 'image'"
 						:x="shape.x"
 						:y="shape.y"
 						:width="shape.width"
@@ -441,11 +474,19 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						:transform="shape.transform"
 					/>
 					<ellipse
-						v-else-if="shape.isEllipse"
+						v-else-if="shape.kind === 'ellipse'"
 						:cx="shape.cx"
 						:cy="shape.cy"
 						:rx="shape.width / 2"
 						:ry="shape.height / 2"
+						:fill="shape.fill"
+						:stroke="shape.stroke"
+						:stroke-width="shape.strokeWidth"
+						:transform="shape.transform"
+					/>
+					<polygon
+						v-else-if="shape.kind === 'polygon'"
+						:points="shape.points"
 						:fill="shape.fill"
 						:stroke="shape.stroke"
 						:stroke-width="shape.strokeWidth"

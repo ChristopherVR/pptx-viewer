@@ -172,25 +172,88 @@ describe('projectDrawingShapes', () => {
 		expect(r.key).toBe('el1-dsp-abc-0');
 	});
 
-	it('marks ellipses and round-rects', () => {
-		const [ell, round, rect] = projectDrawingShapes(
+	it('picks the primitive that paints each preset, through the alias normaliser', () => {
+		const [ell, oval, round, rect, chevron, homePlate, picture] = projectDrawingShapes(
 			ID,
 			[
 				shape({ id: 'e', shapeType: 'ellipse' }),
+				// `oval` is the spelling the shape picker inserts.
+				shape({ id: 'o', shapeType: 'oval' }),
 				shape({ id: 'r', shapeType: 'roundRect', width: 100, height: 50 }),
 				shape({ id: 'p', shapeType: 'rect' }),
+				shape({ id: 'c', shapeType: 'chevron' }),
+				shape({ id: 'h', shapeType: 'homePlate' }),
+				shape({ id: 'i', fillImageUrl: 'data:image/png;base64,AAA' }),
 			],
 			VB,
 			DEFAULT_PALETTE,
 			'flat',
 		);
-		expect(ell.isEllipse).toBeTruthy();
+
+		expect(ell.kind).toBe('ellipse');
+		expect(oval.kind).toBe('ellipse');
 		expect(ell.rx).toBe(0);
-		expect(round.isEllipse).toBeFalsy();
+		expect(round.kind).toBe('rect');
 		// rx = min(width, height) * 0.1 = 50 * 0.1
 		expect(round.rx).toBe(5);
-		expect(rect.isEllipse).toBeFalsy();
+		expect(rect.kind).toBe('rect');
 		expect(rect.rx).toBe(0);
+		expect(chevron.kind).toBe('polygon');
+		expect(chevron.points).toBeTruthy();
+		expect(homePlate.kind).toBe('polygon');
+		// A resolved picture fill paints the body instead of any colour.
+		expect(picture.kind).toBe('image');
+	});
+
+	it('resolves a gradient fill to a paint server the binding can emit', () => {
+		const [linear, radial] = projectDrawingShapes(
+			ID,
+			[
+				shape({
+					id: 'g1',
+					fillGradientStops: [
+						{ color: '#ffffff', position: 0 },
+						{ color: '#156082', position: 100, opacity: 0.5 },
+					],
+					fillGradientType: 'linear',
+					fillGradientAngle: 90,
+				}),
+				shape({
+					id: 'g2',
+					fillGradientStops: [
+						{ color: '#000000', position: 0 },
+						{ color: '#ffffff', position: 100 },
+					],
+					fillGradientType: 'radial',
+				}),
+			],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+
+		expect(linear.gradient?.kind).toBe('linear');
+		expect(linear.fill).toBe(`url(#${linear.gradient!.id})`);
+		expect(linear.gradient!.stops).toStrictEqual([
+			{ offset: '0%', color: '#ffffff' },
+			{ offset: '100%', color: '#156082', opacity: 0.5 },
+		]);
+		// A 90 degree axis runs top to bottom.
+		expect(linear.gradient!.y1).toBe('0%');
+		expect(linear.gradient!.y2).toBe('100%');
+		expect(radial.gradient?.kind).toBe('radial');
+		expect(radial.gradient!.r).toBe('50%');
+	});
+
+	it('uses a pattern fill foreground as the flat stand-in', () => {
+		const [r] = projectDrawingShapes(
+			ID,
+			[shape({ fillColor: '#111111', fillPatternForegroundColor: '#abcdef' })],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+		expect(r.fill).toBe('#abcdef');
 	});
 
 	it('falls back to palette colour, cycling by index, when no fillColor', () => {

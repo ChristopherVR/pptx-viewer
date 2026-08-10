@@ -2,6 +2,8 @@ import type { PptxElement, PptxSmartArtDrawingShape, SmartArtStyle } from 'pptx-
 import { computeDrawingViewBox, projectDrawingShapes, styleShadowFilter } from 'pptx-viewer-shared';
 import React from 'react';
 
+import { SmartArtGradient } from '../components/elements/smartart-renderer-utils';
+
 /**
  * Render pre-computed drawing shapes from `ppt/diagrams/drawing*.xml`.
  * These are the shapes as computed by PowerPoint's layout engine.
@@ -27,7 +29,12 @@ export function renderDrawingShapes(
 		>
 			{rendered.map((shape) => (
 				<g key={shape.key} style={{ filter: shadow }}>
-					{shape.imageUrl ? (
+					{shape.gradient ? (
+						<defs>
+							<SmartArtGradient gradient={shape.gradient} />
+						</defs>
+					) : null}
+					{shape.kind === 'image' ? (
 						<image
 							x={shape.x}
 							y={shape.y}
@@ -37,12 +44,20 @@ export function renderDrawingShapes(
 							preserveAspectRatio='xMidYMid meet'
 							transform={shape.transform}
 						/>
-					) : shape.isEllipse ? (
+					) : shape.kind === 'ellipse' ? (
 						<ellipse
 							cx={shape.cx}
 							cy={shape.cy}
 							rx={shape.width / 2}
 							ry={shape.height / 2}
+							fill={shape.fill}
+							stroke={shape.stroke}
+							strokeWidth={shape.strokeWidth}
+							transform={shape.transform}
+						/>
+					) : shape.kind === 'polygon' ? (
+						<polygon
+							points={shape.points}
 							fill={shape.fill}
 							stroke={shape.stroke}
 							strokeWidth={shape.strokeWidth}

@@ -1,5 +1,5 @@
 import { centeredSvgTextLines } from 'pptx-viewer-shared';
-import type { SvgTextLine } from 'pptx-viewer-shared';
+import type { RenderedGradient, SvgTextLine } from 'pptx-viewer-shared';
 
 import { createSvgEl } from '../dom';
 
@@ -79,6 +79,42 @@ export function appendSvgTextLines(
 		textEl.appendChild(tspan);
 	}
 	parent.appendChild(textEl);
+}
+
+/**
+ * Build the `<defs>` element holding a cached shape's gradient paint server.
+ *
+ * Everything about the gradient (kind, axis endpoints from the OOXML angle,
+ * stops) is resolved by the shared projection; this only creates the nodes.
+ */
+export function buildSvgGradientDefs(doc: Document, gradient: RenderedGradient): SVGElement {
+	const defs = createSvgEl(doc, 'defs');
+	const server =
+		gradient.kind === 'radial'
+			? createSvgEl(doc, 'radialGradient', {
+					id: gradient.id,
+					cx: gradient.cx,
+					cy: gradient.cy,
+					r: gradient.r,
+				})
+			: createSvgEl(doc, 'linearGradient', {
+					id: gradient.id,
+					x1: gradient.x1,
+					y1: gradient.y1,
+					x2: gradient.x2,
+					y2: gradient.y2,
+				});
+	for (const stop of gradient.stops) {
+		server.appendChild(
+			createSvgEl(doc, 'stop', {
+				offset: stop.offset,
+				'stop-color': stop.color,
+				'stop-opacity': stop.opacity,
+			}),
+		);
+	}
+	defs.appendChild(server);
+	return defs;
 }
 
 /** Inline style applied to every SmartArt SVG so it fills the element box. */

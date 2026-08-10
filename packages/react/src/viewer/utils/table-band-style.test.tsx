@@ -61,8 +61,8 @@ describe('getTableCellBandStyle', () => {
 		const style = getTableCellBandStyle(el, 2, 0, 3, 3);
 		expect(style).toBeDefined();
 		expect(style!.fontWeight).toBe(700);
-		expect(style!.borderTopWidth).toBe(2);
-		expect(style!.borderTopStyle).toBe('solid');
+		// The shared resolver writes the rule as a `border-top` shorthand.
+		expect(String(style!.borderTop)).toMatch(/^2px solid /u);
 	});
 
 	it('does not apply last row emphasis to non-last rows', () => {

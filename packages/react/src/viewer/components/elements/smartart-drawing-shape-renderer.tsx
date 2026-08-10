@@ -1,11 +1,15 @@
 import type { PptxSmartArtDrawingShape, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
-import { drawingShapeLabelColor, resolveDrawingShapeNodeId } from 'pptx-viewer-shared';
+import {
+	computeDrawingViewBox,
+	projectDrawingShapes,
+	resolveDrawingShapeNodeId,
+	styleShadowFilter,
+} from 'pptx-viewer-shared';
+import type { RenderedShape } from 'pptx-viewer-shared';
 import React from 'react';
 
-import { colour, styleShadow, styleStroke } from '../../utils/smartart-helpers';
 import {
-	fitFontSize,
-	chevronPoints,
+	SmartArtGradient,
 	smartArtNodeGroupProps,
 	SmartArtNodeText,
 } from './smartart-renderer-utils';
@@ -35,70 +39,71 @@ interface DrawingShapeRendererProps {
 	nodeLabels?: Map<string, string>;
 }
 
-// ── Fill helpers ──────────────────────────────────────────────────────────────
-
-/**
- * Build an SVG gradient `<def>` for a cached drawing shape that carries a
- * gradient fill, plus the `fill` reference (`url(#id)`) to paint it with.
- * Returns `null` when the shape has no gradient stops.
- */
-function drawingShapeGradientDef(
-	id: string,
-	shape: PptxSmartArtDrawingShape,
-): { def: React.ReactElement; ref: string } | null {
-	const stops = shape.fillGradientStops;
-	if (!stops || stops.length === 0) {
-		return null;
+/** The body primitive for one projected shape. */
+function shapeBody(shape: RenderedShape): React.ReactElement {
+	switch (shape.kind) {
+		case 'image':
+			return (
+				<image
+					x={shape.x}
+					y={shape.y}
+					width={shape.width}
+					height={shape.height}
+					href={shape.imageUrl}
+					preserveAspectRatio='xMidYMid meet'
+					transform={shape.transform}
+				/>
+			);
+		case 'ellipse':
+			return (
+				<ellipse
+					cx={shape.cx}
+					cy={shape.cy}
+					rx={shape.width / 2}
+					ry={shape.height / 2}
+					fill={shape.fill}
+					stroke={shape.stroke}
+					strokeWidth={shape.strokeWidth}
+					transform={shape.transform}
+				/>
+			);
+		case 'polygon':
+			return (
+				<polygon
+					points={shape.points}
+					fill={shape.fill}
+					stroke={shape.stroke}
+					strokeWidth={shape.strokeWidth}
+					transform={shape.transform}
+				/>
+			);
+		default:
+			return (
+				<rect
+					x={shape.x}
+					y={shape.y}
+					width={shape.width}
+					height={shape.height}
+					rx={shape.rx}
+					fill={shape.fill}
+					stroke={shape.stroke}
+					strokeWidth={shape.strokeWidth}
+					transform={shape.transform}
+				/>
+			);
 	}
-	const stopEls = stops.map((s, i) => (
-		<stop
-			key={`${id}-s${i}`}
-			offset={`${Math.max(0, Math.min(100, s.position))}%`}
-			stopColor={s.color}
-			{...(s.opacity !== undefined ? { stopOpacity: s.opacity } : {})}
-		/>
-	));
-	if (shape.fillGradientType === 'radial') {
-		return {
-			ref: `url(#${id})`,
-			def: (
-				<radialGradient id={id} key={id} cx='50%' cy='50%' r='50%'>
-					{stopEls}
-				</radialGradient>
-			),
-		};
-	}
-	// OOXML angle is clockwise from the +x axis with y pointing down, which
-	// matches the SVG coordinate system, so sin/cos map directly.
-	const rad = ((shape.fillGradientAngle ?? 0) * Math.PI) / 180;
-	const dx = Math.cos(rad) / 2;
-	const dy = Math.sin(rad) / 2;
-	return {
-		ref: `url(#${id})`,
-		def: (
-			<linearGradient
-				id={id}
-				key={id}
-				x1={`${(0.5 - dx) * 100}%`}
-				y1={`${(0.5 - dy) * 100}%`}
-				x2={`${(0.5 + dx) * 100}%`}
-				y2={`${(0.5 + dy) * 100}%`}
-			>
-				{stopEls}
-			</linearGradient>
-		),
-	};
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
 /**
- * Renders pre-computed drawing shapes that come directly from PowerPoint's
- * layout engine output.
+ * Render the shapes PowerPoint's own layout engine already computed
+ * (`ppt/diagrams/drawing*.xml`).
  *
- * Each shape is positioned within an SVG viewBox derived from the bounding
- * box of all shapes. Supports ellipses, chevrons/homePlates, and rounded
- * rectangles, with optional rotation, stroke, shadow, and text labels.
+ * Every decision (viewBox, fills including gradients and authored transparency,
+ * primitive choice, label wrapping and contrast) comes from the shared
+ * projection, so this component is the JSX for one descriptor plus React's
+ * inline-edit / accessibility tagging.
  */
 export function DrawingShapeRenderer({
 	elementId,
@@ -108,121 +113,40 @@ export function DrawingShapeRenderer({
 	nodes,
 	nodeLabels,
 }: DrawingShapeRendererProps): React.ReactElement {
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	for (const s of shapes) {
-		if (s.x < minX) {
-			minX = s.x;
-		}
-		if (s.y < minY) {
-			minY = s.y;
-		}
-		if (s.x + s.width > maxX) {
-			maxX = s.x + s.width;
-		}
-		if (s.y + s.height > maxY) {
-			maxY = s.y + s.height;
-		}
-	}
-
-	const drawingW = maxX - minX || 1;
-	const drawingH = maxY - minY || 1;
-	const shadow = styleShadow(style);
-	const sw = styleStroke(style);
+	const viewBox = computeDrawingViewBox(shapes);
+	const rendered = projectDrawingShapes(elementId, shapes, viewBox, palette, style);
+	const shadow = styleShadowFilter(style);
 
 	return (
 		<svg
-			viewBox={`0 0 ${drawingW} ${drawingH}`}
+			viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
 			className='w-full h-full pointer-events-none'
 			preserveAspectRatio='xMidYMid meet'
 			data-testid='smartart-drawing-shapes'
 		>
-			{shapes.map((shape, i) => {
-				const gradient = drawingShapeGradientDef(`${elementId}-dspgrad-${shape.id}-${i}`, shape);
-				// Precedence: no-fill -> gradient -> pattern foreground -> solid/palette.
-				// `a:noFill` is authored transparency, so it outranks every source of
-				// colour: these shapes are stacked over painted ones to carry a label.
-				const fill = shape.fillNone
-					? 'none'
-					: (gradient?.ref ??
-						shape.fillPatternForegroundColor ??
-						shape.fillColor ??
-						colour(i, palette));
-				const relX = shape.x - minX;
-				const relY = shape.y - minY;
-				const rx = shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
-				const isEllipse = shape.shapeType === 'ellipse';
-				const isChevron = shape.shapeType === 'chevron' || shape.shapeType === 'homePlate';
-				const rotation = shape.rotation
-					? `rotate(${shape.rotation} ${relX + shape.width / 2} ${relY + shape.height / 2})`
-					: undefined;
-				const strokeCol = shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none');
-				const strokeW = shape.strokeWidth ?? sw;
-				const fontSize =
-					shape.fontSize ?? fitFontSize(shape.text ?? '', shape.width * 0.85, shape.height, 14);
-
-				const nodeId = nodes ? resolveDrawingShapeNodeId(shape, i, shapes, nodes) : undefined;
+			{rendered.map((shape, i) => {
+				const nodeId = nodes ? resolveDrawingShapeNodeId(shapes[i]!, i, shapes, nodes) : undefined;
 				const nodeLabel = nodeId ? nodeLabels?.get(nodeId) : undefined;
 				const groupProps = nodeId
 					? smartArtNodeGroupProps(nodeId, shadow, nodeLabel)
 					: { style: { filter: shadow } };
 
 				return (
-					<g key={`${elementId}-dsp-${shape.id}-${i}`} {...groupProps}>
+					<g key={shape.key} {...groupProps}>
 						{nodeLabel ? <title>{nodeLabel}</title> : null}
-						{gradient ? <defs>{gradient.def}</defs> : null}
-						{shape.fillImageUrl ? (
-							<image
-								x={relX}
-								y={relY}
-								width={shape.width}
-								height={shape.height}
-								href={shape.fillImageUrl}
-								preserveAspectRatio='xMidYMid meet'
-								transform={rotation}
-							/>
-						) : isEllipse ? (
-							<ellipse
-								cx={relX + shape.width / 2}
-								cy={relY + shape.height / 2}
-								rx={shape.width / 2}
-								ry={shape.height / 2}
-								fill={fill}
-								stroke={strokeCol}
-								strokeWidth={strokeW}
-								transform={rotation}
-							/>
-						) : isChevron ? (
-							<polygon
-								points={chevronPoints(relX, relY, shape.width, shape.height)}
-								fill={fill}
-								stroke={strokeCol}
-								strokeWidth={strokeW}
-								transform={rotation}
-							/>
-						) : (
-							<rect
-								x={relX}
-								y={relY}
-								width={shape.width}
-								height={shape.height}
-								rx={rx}
-								fill={fill}
-								stroke={strokeCol}
-								strokeWidth={strokeW}
-								transform={rotation}
-							/>
-						)}
-						{shape.text ? (
+						{shape.gradient ? (
+							<defs>
+								<SmartArtGradient gradient={shape.gradient} />
+							</defs>
+						) : null}
+						{shapeBody(shape)}
+						{shape.textLines.length > 0 ? (
 							<SmartArtNodeText
-								x={relX + shape.width / 2}
-								y={relY + shape.height / 2}
-								text={shape.text}
-								maxWidth={shape.width}
-								fill={shape.fontColor ?? drawingShapeLabelColor(shape, shapes, i, fill)}
-								fontSize={fontSize}
+								x={shape.textX}
+								y={shape.textY}
+								lines={shape.textLines}
+								fill={shape.fontColor}
+								fontSize={shape.fontSize}
 								className='pointer-events-none'
 							/>
 						) : null}

@@ -133,7 +133,43 @@
 							onmouseenter={(event) => showStyle(event, shape.nodeId)}
 						>
 							{#if shape.ariaLabel}<title>{shape.ariaLabel}</title>{/if}
-							{#if shape.imageUrl}
+							{#if shape.gradient}
+								<defs>
+									{#if shape.gradient.kind === 'radial'}
+										<radialGradient
+											id={shape.gradient.id}
+											cx={shape.gradient.cx}
+											cy={shape.gradient.cy}
+											r={shape.gradient.r}
+										>
+											{#each shape.gradient.stops as stop, si (si)}
+												<stop
+													offset={stop.offset}
+													stop-color={stop.color}
+													stop-opacity={stop.opacity}
+												/>
+											{/each}
+										</radialGradient>
+									{:else}
+										<linearGradient
+											id={shape.gradient.id}
+											x1={shape.gradient.x1}
+											y1={shape.gradient.y1}
+											x2={shape.gradient.x2}
+											y2={shape.gradient.y2}
+										>
+											{#each shape.gradient.stops as stop, si (si)}
+												<stop
+													offset={stop.offset}
+													stop-color={stop.color}
+													stop-opacity={stop.opacity}
+												/>
+											{/each}
+										</linearGradient>
+									{/if}
+								</defs>
+							{/if}
+							{#if shape.kind === 'image'}
 								<image
 									x={shape.x}
 									y={shape.y}
@@ -143,12 +179,20 @@
 									preserveAspectRatio="xMidYMid meet"
 									transform={shape.transform}
 								/>
-							{:else if shape.isEllipse}
+							{:else if shape.kind === 'ellipse'}
 								<ellipse
 									cx={shape.cx}
 									cy={shape.cy}
 									rx={shape.width / 2}
 									ry={shape.height / 2}
+									fill={shape.fill}
+									stroke={shape.stroke}
+									stroke-width={shape.strokeWidth}
+									transform={shape.transform}
+								/>
+							{:else if shape.kind === 'polygon'}
+								<polygon
+									points={shape.points}
 									fill={shape.fill}
 									stroke={shape.stroke}
 									stroke-width={shape.strokeWidth}

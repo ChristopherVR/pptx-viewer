@@ -1,5 +1,6 @@
 import type { PptxSmartArtChrome } from 'pptx-viewer-core';
 import { centeredSvgTextLines } from 'pptx-viewer-shared';
+import type { RenderedGradient, SvgTextLine } from 'pptx-viewer-shared';
 import React from 'react';
 
 /**
@@ -56,57 +57,9 @@ export function smartArtNodeGroupProps(
 
 // ── Font sizing ─────────────────────────────────────────────────────────────
 
-/**
- * Compute the largest font size that will fit `text` within a bounding box
- * defined by `maxWidth` x `maxHeight`, capped at `baseSize`.
- *
- * The heuristic assumes each character is roughly 0.6x the font size in width.
- * The returned value is clamped to a minimum of 6 px to remain legible.
- *
- * @param text      - The string to measure.
- * @param maxWidth  - Available horizontal space in pixels.
- * @param maxHeight - Available vertical space in pixels.
- * @param baseSize  - Maximum (ideal) font size in pixels.
- * @returns The computed font size in pixels (>= 6).
- */
-export function fitFontSize(
-	text: string,
-	maxWidth: number,
-	maxHeight: number,
-	baseSize: number,
-): number {
-	// Approximate: each character is ~0.6x the font size in width
-	const charWidthRatio = 0.6;
-	const maxByWidth = maxWidth / (text.length * charWidthRatio);
-	const maxByHeight = maxHeight * 0.5;
-	return Math.max(6, Math.min(baseSize, maxByWidth, maxByHeight));
-}
-
-// ── SVG shape helpers ───────────────────────────────────────────────────────
-
-/**
- * Generate SVG polygon `points` for a chevron / arrow shape inscribed in the
- * bounding box starting at (`x`, `y`) with size `w` x `h`.
- *
- * The chevron has a notch on the left side and an arrow tip on the right.
- *
- * @param x - Left edge x coordinate.
- * @param y - Top edge y coordinate.
- * @param w - Width of the bounding box.
- * @param h - Height of the bounding box.
- * @returns A space-separated list of "x,y" coordinate pairs.
- */
-export function chevronPoints(x: number, y: number, w: number, h: number): string {
-	const depth = Math.min(w * 0.2, h * 0.4);
-	return [
-		`${x},${y}`,
-		`${x + w - depth},${y}`,
-		`${x + w},${y + h / 2}`,
-		`${x + w - depth},${y + h}`,
-		`${x},${y + h}`,
-		`${x + depth},${y + h / 2}`,
-	].join(' ');
-}
+// `fitFontSize` and `chevronPoints` are shared geometry; re-exported here so
+// the historical React import surface is unchanged.
+export { chevronPoints, fitFontSize } from 'pptx-viewer-shared';
 
 /**
  * Generate an SVG path string for a gear shape with teeth.
@@ -142,12 +95,62 @@ export function gearPath(
 	return segments.join(' ');
 }
 
+// ── Gradient paint server ───────────────────────────────────────────────────
+
+/** Props for {@link SmartArtGradient}. */
+export interface SmartArtGradientProps {
+	/** The gradient as resolved by the shared cached-shape projection. */
+	gradient: RenderedGradient;
+}
+
+/**
+ * The SVG paint server for a cached shape's gradient fill.
+ *
+ * Place it inside a `<defs>`; the shape's `fill` already references it by id.
+ * Every value comes from the shared projection, including the axis endpoints
+ * converted from the OOXML angle.
+ */
+export function SmartArtGradient({ gradient }: SmartArtGradientProps): React.ReactElement {
+	const stops = gradient.stops.map((stop, i) => (
+		<stop
+			key={`${gradient.id}-s${i}`}
+			offset={stop.offset}
+			stopColor={stop.color}
+			{...(stop.opacity !== undefined ? { stopOpacity: stop.opacity } : {})}
+		/>
+	));
+	return gradient.kind === 'radial' ? (
+		<radialGradient id={gradient.id} cx={gradient.cx} cy={gradient.cy} r={gradient.r}>
+			{stops}
+		</radialGradient>
+	) : (
+		<linearGradient
+			id={gradient.id}
+			x1={gradient.x1}
+			y1={gradient.y1}
+			x2={gradient.x2}
+			y2={gradient.y2}
+		>
+			{stops}
+		</linearGradient>
+	);
+}
+
 // ── Multi-line SVG node text ─────────────────────────────────────────────────
 
 /** Props for {@link SmartArtNodeText}. */
 export interface SmartArtNodeTextProps {
-	/** Node text content; split on `\n` for multi-line rendering. */
-	text: string;
+	/**
+	 * Node text content; split on `\n` for multi-line rendering. Omitted when
+	 * {@link lines} already carries the resolved layout.
+	 */
+	text?: string;
+	/**
+	 * Lines whose wrapping and baselines were resolved upstream (the shared
+	 * cached-shape projection). When given, nothing here re-measures: the
+	 * component places one `<tspan>` per entry at its own `y`.
+	 */
+	lines?: SvgTextLine[];
 	/** X coordinate of the text block centre. */
 	x: number;
 	/** Y coordinate of the text block centre. */
@@ -177,8 +180,8 @@ export interface SmartArtNodeTextProps {
 	anchor?: 'top' | 'middle' | 'bottom';
 	/**
 	 * Width available for the label. When given, long text is word-wrapped to fit
-	 * instead of running past the shape; when omitted only `
-` splits the label.
+	 * instead of running past the shape; when omitted only authored line breaks
+	 * split it.
 	 */
 	maxWidth?: number;
 }
@@ -197,6 +200,7 @@ export interface SmartArtNodeTextProps {
  */
 export function SmartArtNodeText({
 	text,
+	lines: positionedLines,
 	x,
 	y,
 	fill,
@@ -207,12 +211,33 @@ export function SmartArtNodeText({
 	anchor = 'middle',
 	maxWidth,
 }: SmartArtNodeTextProps): React.ReactElement {
+	if (positionedLines) {
+		return (
+			<text
+				x={x}
+				textAnchor='middle'
+				dominantBaseline='central'
+				fill={fill}
+				fontSize={fontSize}
+				fontWeight={fontWeight}
+				fontStyle={fontStyle}
+				className={className}
+			>
+				{positionedLines.map((line, i) => (
+					<tspan key={i} x={x} y={line.y}>
+						{line.text}
+					</tspan>
+				))}
+			</text>
+		);
+	}
+	const source = text ?? '';
 	const lines =
 		maxWidth !== undefined
-			? centeredSvgTextLines(text, fontSize, { maxWidth: maxWidth * LABEL_WIDTH_FRACTION }).map(
+			? centeredSvgTextLines(source, fontSize, { maxWidth: maxWidth * LABEL_WIDTH_FRACTION }).map(
 					(line) => line.text,
 				)
-			: text.split('\n').filter((l) => l.length > 0);
+			: source.split('\n').filter((l) => l.length > 0);
 	const lineHeight = fontSize * 1.2;
 
 	let startY: number;

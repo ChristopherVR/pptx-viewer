@@ -101,6 +101,28 @@ export function fitFontSize(
 	return Math.max(6, Math.min(baseSize, maxByWidth, maxByHeight));
 }
 
+/**
+ * SVG polygon `points` for a chevron / arrow inscribed in the box at (`x`, `y`)
+ * sized `w` x `h`: a notch on the left edge and a tip on the right.
+ *
+ * @param x - Left edge.
+ * @param y - Top edge.
+ * @param w - Box width.
+ * @param h - Box height.
+ * @returns Space-separated `"x,y"` pairs.
+ */
+export function chevronPoints(x: number, y: number, w: number, h: number): string {
+	const depth = Math.min(w * 0.2, h * 0.4);
+	return [
+		`${x},${y}`,
+		`${x + w - depth},${y}`,
+		`${x + w},${y + h / 2}`,
+		`${x + w - depth},${y + h}`,
+		`${x},${y + h}`,
+		`${x + depth},${y + h / 2}`,
+	].join(' ');
+}
+
 /** Outline-stroke colour for a node given its computed stroke width. */
 export function strokeFor(sw: number): string {
 	return sw > 0 ? 'rgba(255,255,255,0.3)' : 'none';

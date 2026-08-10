@@ -12,6 +12,7 @@
  * `styleShadow`) are reused from `smartart-layout-helpers`.
  */
 
+import { getShapeType } from 'pptx-viewer-core';
 import type {
 	PptxSmartArtChrome,
 	PptxSmartArtData,
@@ -22,7 +23,7 @@ import type {
 
 import { contrastTextColor } from './color-contrast';
 import type { CssStyleMap } from './element-style-transform';
-import { styleShadow, styleStroke } from './smartart-layout-helpers';
+import { chevronPoints, styleShadow, styleStroke } from './smartart-layout-helpers';
 import type { SvgTextLine } from './svg-text-lines';
 import { centeredSvgTextLines } from './svg-text-lines';
 
@@ -81,11 +82,57 @@ export function buildChromeStyle(chrome: PptxSmartArtChrome | undefined): CssSty
 	return s;
 }
 
+/**
+ * Which SVG primitive paints a cached shape's body. One discriminant rather than
+ * a set of booleans, so a binding's template is a single switch and adding a
+ * primitive cannot leave four bindings behind.
+ */
+export type RenderedShapeKind = 'image' | 'ellipse' | 'polygon' | 'rect';
+
+/** One stop of a cached shape's gradient fill, ready to place as an SVG `<stop>`. */
+export interface RenderedGradientStop {
+	/** Percentage offset, e.g. `"37%"`. */
+	offset: string;
+	color: string;
+	opacity?: number;
+}
+
+/**
+ * A gradient paint server for a cached shape, in SVG terms.
+ *
+ * The OOXML angle is already converted to the axis endpoints here, because a
+ * gradient is not expressible as a plain `fill` string: the binding has to emit
+ * a `<defs>` entry and reference it. Keeping the geometry on this side means the
+ * conversion happens once instead of once per binding.
+ */
+export interface RenderedGradient {
+	/** Element id to emit and reference; unique within the diagram. */
+	id: string;
+	kind: 'linear' | 'radial';
+	/** Axis endpoints as percentages (`kind === 'linear'`). */
+	x1?: string;
+	y1?: string;
+	x2?: string;
+	y2?: string;
+	/** Centre and radius as percentages (`kind === 'radial'`). */
+	cx?: string;
+	cy?: string;
+	r?: string;
+	stops: RenderedGradientStop[];
+}
+
 /** Projected view-model for a single pre-computed drawing shape. */
 export interface RenderedShape {
 	key: string;
-	/** True → render `<ellipse>`, false → render `<rect>`. */
-	isEllipse: boolean;
+	/** Which primitive paints the body; see {@link RenderedShapeKind}. */
+	kind: RenderedShapeKind;
+	/** `points` for the polygon body, set when `kind === 'polygon'`. */
+	points?: string;
+	/**
+	 * Gradient to emit in `<defs>` and reference from {@link fill}, when the
+	 * cached shape carries `a:gradFill`.
+	 */
+	gradient?: RenderedGradient;
 	x: number;
 	y: number;
 	width: number;
@@ -217,6 +264,58 @@ export function computeDrawingViewBox(shapes: PptxSmartArtDrawingShape[]): Drawi
 }
 
 /**
+ * Build the SVG gradient for a cached shape's `a:gradFill`, or `undefined` when
+ * it has none.
+ *
+ * The OOXML angle is clockwise from +x with y pointing down, which is also the
+ * SVG convention, so sin/cos map straight onto the axis endpoints.
+ */
+function resolveGradient(
+	shape: PptxSmartArtDrawingShape,
+	id: string,
+): RenderedGradient | undefined {
+	const stops = shape.fillGradientStops;
+	if (!stops || stops.length === 0) {
+		return undefined;
+	}
+	const mapped: RenderedGradientStop[] = stops.map((stop) => ({
+		offset: `${Math.max(0, Math.min(100, stop.position))}%`,
+		color: stop.color,
+		...(stop.opacity !== undefined ? { opacity: stop.opacity } : {}),
+	}));
+	if (shape.fillGradientType === 'radial') {
+		return { id, kind: 'radial', cx: '50%', cy: '50%', r: '50%', stops: mapped };
+	}
+	const radians = ((shape.fillGradientAngle ?? 0) * Math.PI) / 180;
+	const dx = Math.cos(radians) / 2;
+	const dy = Math.sin(radians) / 2;
+	return {
+		id,
+		kind: 'linear',
+		x1: `${(0.5 - dx) * 100}%`,
+		y1: `${(0.5 - dy) * 100}%`,
+		x2: `${(0.5 + dx) * 100}%`,
+		y2: `${(0.5 + dy) * 100}%`,
+		stops: mapped,
+	};
+}
+
+/** Which primitive paints this shape's body, from its preset type. */
+function resolveShapeKind(shape: PptxSmartArtDrawingShape, hasImage: boolean): RenderedShapeKind {
+	if (hasImage) {
+		return 'image';
+	}
+	// `getShapeType` folds the aliases it knows (oval -> ellipse, can -> cylinder)
+	// but has no vocabulary for the arrow presets SmartArt process layouts use, so
+	// those are matched on the normalised raw type.
+	const normalized = (shape.shapeType ?? '').trim().toLowerCase();
+	if (normalized === 'chevron' || normalized === 'homeplate') {
+		return 'polygon';
+	}
+	return getShapeType(shape.shapeType) === 'ellipse' ? 'ellipse' : 'rect';
+}
+
+/**
  * Project raw `PptxSmartArtDrawingShape`s into `RenderedShape` view-models,
  * rebasing positions relative to the viewBox origin.
  */
@@ -231,11 +330,21 @@ export function projectDrawingShapes(
 	const sw = styleStroke(style);
 
 	return shapes.map((shape, i): RenderedShape => {
-		const fill = shape.fillNone ? 'none' : (shape.fillColor ?? paletteColour(i, palette));
+		const gradient = shape.fillNone
+			? undefined
+			: resolveGradient(shape, `${elementId}-dspgrad-${shape.id}-${i}`);
+		// Precedence: authored transparency, then gradient, then a pattern's
+		// foreground (the closest flat stand-in for one), then solid, then palette.
+		const fill = shape.fillNone
+			? 'none'
+			: gradient
+				? `url(#${gradient.id})`
+				: (shape.fillPatternForegroundColor ?? shape.fillColor ?? paletteColour(i, palette));
 		const relX = shape.x - minX;
 		const relY = shape.y - minY;
-		const isEllipse = shape.shapeType === 'ellipse';
-		const rx = shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
+		const kind = resolveShapeKind(shape, Boolean(shape.fillImageUrl));
+		const rx =
+			getShapeType(shape.shapeType) === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
 		const cx = relX + shape.width / 2;
 		const cy = relY + shape.height / 2;
 		const stroke = shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none');
@@ -245,7 +354,11 @@ export function projectDrawingShapes(
 
 		return {
 			key: `${elementId}-dsp-${shape.id}-${i}`,
-			isEllipse,
+			kind,
+			...(kind === 'polygon'
+				? { points: chevronPoints(relX, relY, shape.width, shape.height) }
+				: {}),
+			...(gradient ? { gradient } : {}),
 			x: relX,
 			y: relY,
 			width: shape.width,

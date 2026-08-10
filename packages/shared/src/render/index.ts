@@ -563,7 +563,13 @@ export {
 	projectDrawingShapes,
 	styleShadowFilter,
 } from './smartart-drawing';
-export type { RenderedShape, DrawingViewBox } from './smartart-drawing';
+export type {
+	RenderedShape,
+	RenderedShapeKind,
+	RenderedGradient,
+	RenderedGradientStop,
+	DrawingViewBox,
+} from './smartart-drawing';
 // Centred multi-line SVG label layout (SmartArt nodes and cached shapes): each
 // binding places one `<tspan>` per returned line and owns nothing else.
 export { centeredSvgTextLines } from './svg-text-lines';
