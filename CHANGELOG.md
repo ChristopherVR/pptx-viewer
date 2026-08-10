@@ -10,6 +10,15 @@ dated sections beneath it are generated from
 
 ## 2026-08-10
 
+_Releases: pptx-viewer-core@2.3.4, pptx-react-viewer@2.16.5, pptx-vue-viewer@2.17.5, pptx-angular-viewer@2.17.5, pptx-vanilla-viewer@1.18.5, pptx-svelte-viewer@2.17.5_
+
+### Bug Fixes
+
+- **core:** Read placeholder, list and percentage values as authored (by @ChristopherVR) ([dc2d679](https://github.com/ChristopherVR/pptx-viewer/commit/dc2d679d48d3be854743d3a09bd2e20c5dc5331f))
+- **shared:** Paint an inert morph ghost statically so it stops jittering (by @ChristopherVR) ([ce3be84](https://github.com/ChristopherVR/pptx-viewer/commit/ce3be8487d3530425afb3b455e1671b6c54ae61c))
+
+## 2026-08-10
+
 _Releases: pptx-react-viewer@2.16.4, pptx-vue-viewer@2.17.4, pptx-angular-viewer@2.17.4, pptx-vanilla-viewer@1.18.4, pptx-svelte-viewer@2.17.4_
 
 ### Bug Fixes
