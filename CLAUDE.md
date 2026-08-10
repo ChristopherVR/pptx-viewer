@@ -2,6 +2,68 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## READ FIRST: the two rules that govern every UI change
+
+This repo ships **five** UI bindings (react, vue, angular, svelte, vanilla) over
+one framework-agnostic core. Almost every expensive bug in its history came from
+breaking one of these two rules. They are not aspirational; they are the
+definition of "done" for any work that touches a binding.
+
+### Rule 1: a fix or feature in one binding must reach all five
+
+**Never finish a UI change in a single binding.** If you fix a bug in React, the
+same bug is almost certainly present in vue, angular, svelte and vanilla, because
+the bindings are ports of each other. Fixing one and stopping is how divergence
+gets created, and divergence is the most expensive debt in this repo.
+
+The required loop for **every** UI bug fix:
+
+1. **Diagnose the root cause**, not the symptom. Ask "where does this behaviour
+   actually come from?" If the answer is a shared module, one edit fixes all
+   five. If the answer is per-binding code, the bug exists five times.
+2. **Grep the other four bindings for the same pattern** before declaring the
+   fix scoped. Search for the property, class name, helper, or condition you just
+   changed across `packages/{react,vue,angular,svelte,vanilla}`.
+3. **Fix every affected binding in the same change.** Do not defer four of them
+   to "a follow-up"; the follow-up never happens and the drift becomes permanent.
+4. **Add a regression test per binding**, plus a framework-neutral spec in `e2e/`
+   when the behaviour is observable in a demo.
+5. **Verify in the running demos**, not just the unit suites. All five suites
+   have been green while a binding was visibly broken, because the defect lived
+   in template wiring no unit test covered. See the demo-resolution table below
+   (angular needs a build first).
+6. **If one binding is genuinely blocked, say so explicitly** and file a tracking
+   issue. Silently fixing one binding is the failure mode.
+
+Assume a UI bug is structural until proven otherwise. "Genuinely
+framework-specific" means Angular change detection, Svelte 5 runes, React effect
+ordering, and the like. A wrong colour, a mis-clipped shape, an off-by-one drag
+handle, or a dialog that will not open is almost never framework-specific.
+
+### Rule 2: take every opportunity to extract logic into `pptx-viewer-shared`
+
+When you touch logic in a binding, **ask whether it belongs in
+`packages/shared/src/render/` instead**, and move it there if it does. This is
+not a cleanup task to schedule later; it is how the parity rule above is made
+cheap. Logic that lives in shared is fixed once for all five bindings, and never
+drifts.
+
+Extraction triggers, any one of which means stop and extract:
+
+- You are about to make the same edit in more than one binding.
+- You are porting a fix from one binding to the others.
+- You find a pure helper (no framework imports) sitting inside
+  `packages/{react,vue,angular,svelte,vanilla}`.
+- You are writing new logic for a feature that all five bindings will need.
+
+The target shape is a **pure decision function**: shared exports a function that
+returns a framework-neutral descriptor, and the binding does nothing but map that
+descriptor onto its own style object or template. Following that shape, a new
+branch reaches all five bindings at once.
+
+Both rules are expanded, with the concrete failures that motivated them, under
+[Key Conventions](#key-conventions).
+
 ## Build & Development Commands
 
 ```bash
@@ -170,7 +232,8 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
   or non-trivial computation is a smell; that logic belongs in a composable or a
   shared module, leaving the SFC as thin presentation. Prefer many small,
   single-purpose files over one large one.
-- **Share framework-agnostic logic; default to `pptx-viewer-shared`.** The vast
+- **Share framework-agnostic logic; default to `pptx-viewer-shared`.**
+  (Rule 2 above; the extraction triggers are listed there.) The vast
   majority of each binding's code (React/Vue/Angular) is _not_ framework-specific:
   geometry, style/colour/gradient resolution, text/paragraph/bullet building,
   chart/axis maths, connector routing, animation, OMML/LaTeX, export data, etc.
@@ -208,7 +271,8 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
     lived in template wiring no unit test covered. Load the deck in each demo
     and verify the actual behaviour (see the demo-resolution table above; Angular
     needs a build first).
-- **UI changes must reach all five bindings.** This is a merge requirement, not
+- **UI changes must reach all five bindings.** (Rule 1 above; the required
+  bug-fix loop is listed there.) This is a merge requirement, not
   a nice-to-have: a user on Svelte is entitled to the feature set a user on
   React gets, and divergence between bindings is the most expensive debt in this
   repo.
@@ -224,6 +288,11 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
     add a regression test to each. If one is genuinely blocked, say so
     explicitly and file a tracking issue: silently fixing one binding is what
     causes the drift.
+  - **Prefer fixing a UI bug in shared over fixing it five times.** When the
+    buggy behaviour is decided by logic that could live in
+    `packages/shared/src/render/`, move it there as part of the fix so the
+    correction lands once and cannot drift again. A bug you are about to patch
+    in more than one binding is the strongest possible extraction signal.
   - "Genuinely framework-specific" means Angular change detection, Svelte 5
     runes, React effect ordering, and the like. A wrong colour, a mis-clipped
     shape, an off-by-one drag handle, or a dialog that does not open is almost
