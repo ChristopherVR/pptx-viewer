@@ -96,6 +96,13 @@ describe('buildMorphTransitionPlan', () => {
 
 		expect(plan?.outgoingElements.map((e) => e.id)).toStrictEqual(['a-0', 'a-1']);
 		expect(plan?.outgoingAnimations.get('a-0')).toContain('pptx-morph-ghost-');
+		// `a-1` is inert. It is painted (it must cover the dissolving backdrop)
+		// but carries NO animation: one that ran from itself to itself would put
+		// it on its own compositing layer, whose raster the browser snaps to
+		// whole device pixels, moving a shape that is not supposed to move at
+		// all (issue #161).
+		expect(plan?.outgoingAnimations.has('a-1')).toBeFalsy();
+		expect(plan?.keyframesCss).not.toContain('a1');
 	});
 
 	it('glides a restyled outgoing half onto its counterpart', () => {

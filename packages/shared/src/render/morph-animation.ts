@@ -544,6 +544,22 @@ export function generateMorphGhostAnimations(
 		if (ghostIds && !ghostIds.has(fromElement.id)) {
 			continue;
 		}
+		// An INERT pair's ghost is a pixel-identical copy of what the live stage
+		// already draws, painted only so a dissolving backdrop below it is not
+		// seen through it. Its keyframes would run from itself to itself, which
+		// changes nothing over time - but a running animation is not free: the
+		// browser gives the shape its own compositing layer and rasterises that
+		// layer on whole device pixels, so a box at a fractional position or size
+		// is painted up to a pixel smaller and offset for the whole morph, then
+		// snaps back the moment the overlay comes down. That is issue #161's
+		// "micro-movements": the centre panel's button measured 1.2px narrower
+		// and 1px shorter while the morph ran. Painting the ghost statically is
+		// both faithful and cheaper; the plan still lists it in
+		// `outgoingElements`, which is derived from the ghost set rather than
+		// from this map.
+		if (isInertMorphPair(fromElement, toElement)) {
+			continue;
+		}
 		const fadesOut = morphPairNeedsCrossfade(fromElement, toElement);
 		const safeName = `pptx-morph-ghost-${startIndex + index}-${fromElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
 		// Mirror of the incoming half: a text box that only changed its wording

@@ -1624,12 +1624,27 @@ describe('morph inert pairs (issue #131 follow-up)', () => {
 		expect(frames).not.toContain('opacity: 1;');
 	});
 
-	it('still paints the inert ghost, which the overlay needs for z-order', () => {
-		// It cannot simply be dropped: the overlay is one flat layer above the
-		// stage, and a fading full-slide backdrop ghost would veil anything left
-		// out of it.
+	it('gives the inert ghost no animation at all (issue #161)', () => {
+		// Its keyframes would run from itself to itself: nothing changes over
+		// time, but a running animation puts the shape on its own compositing
+		// layer, and the browser snaps that layer's raster to whole device
+		// pixels. A ghost at a fractional position/size is then painted up to a
+		// pixel smaller and offset for the whole morph and snaps back when the
+		// overlay is torn down - the reporter's "micro-movements".
+		//
+		// The ghost is still PAINTED (see morph-plan: `outgoingElements` comes
+		// from the ghost set, not from this map); it is simply static.
 		const ghosts = generateMorphGhostAnimations(
 			[{ fromElement: still('a'), toElement: still('b') }],
+			500,
+			0,
+		);
+		expect(ghosts).toHaveLength(0);
+	});
+
+	it('still animates a ghost whose pair is NOT inert', () => {
+		const ghosts = generateMorphGhostAnimations(
+			[{ fromElement: still('a'), toElement: still('b', { x: 240 }) }],
 			500,
 			0,
 		);

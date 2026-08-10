@@ -40,6 +40,7 @@ import {
 	generateFullMorphTransition,
 	morphPairIncomingFadesIn,
 	morphPairNeedsCrossfade,
+	resolveMorphGhostIds,
 } from './morph-animation';
 import { flattenMorphElements } from './morph-flatten';
 import { matchMorphElementsFull } from './morph-matching';
@@ -115,10 +116,16 @@ export interface MorphTransitionPlan {
 	overlayIncomingElements: PptxElement[];
 	/**
 	 * The outgoing slide's elements, in document order, for the binding to
-	 * render in its transition overlay for the duration of the morph. Each one
-	 * carries an entry in {@link MorphTransitionPlan.outgoingAnimations}: it
-	 * either fades out in place (no counterpart) or glides onto its counterpart,
-	 * dissolving into it when the appearance changed.
+	 * render in its transition overlay for the duration of the morph. Most carry
+	 * an entry in {@link MorphTransitionPlan.outgoingAnimations}: they either
+	 * fade out in place (no counterpart) or glide onto a counterpart, dissolving
+	 * into it when the appearance changed.
+	 *
+	 * A ghost standing in for an INERT pair deliberately has no entry there and
+	 * is painted statically. Its keyframes would run from itself to itself, and
+	 * a running animation would put it on its own compositing layer, whose
+	 * raster the browser snaps to whole device pixels - visibly shifting a shape
+	 * that is not supposed to move at all (issue #161).
 	 *
 	 * This is a SUBSET of the outgoing slide: a shape the live stage already
 	 * draws identically is left out, because the overlay is opaque above it and
@@ -193,6 +200,7 @@ export function buildMorphTransitionPlan(
 	// - and leave the group itself without an animation.
 	const flattenedOutgoing = flattenMorphElements(fromSlide.elements, toSlide.elements);
 	const outgoingIds = new Set(flattenedOutgoing.map((element) => element.id));
+	const ghostIds = resolveMorphGhostIds(flattenedOutgoing, match.pairs);
 
 	const incomingAnimations = new Map<string, string>();
 	const outgoingAnimations = new Map<string, string>();
@@ -217,15 +225,18 @@ export function buildMorphTransitionPlan(
 		target.set(animation.elementId, animation.animation);
 	}
 
-	// An outgoing shape with no animation is one whose ghost the engine dropped
-	// as redundant: its live counterpart draws the same thing along the same
-	// path, so painting it again in the overlay would only hide what is arriving
-	// beneath it (issue #144 - the detail slide's callouts never appeared until
-	// the overlay came down). Deriving the list from the animations keeps this
-	// decision in one place, `resolveMorphGhostIds`.
-	const outgoingElements = flattenedOutgoing.filter((element) =>
-		outgoingAnimations.has(element.id),
-	);
+	// Which outgoing shapes the overlay paints is `resolveMorphGhostIds`' call
+	// and nothing else's: a shape whose ghost it drops draws the same thing on
+	// the live stage along the same path, and painting it again in the overlay
+	// would only hide what is arriving beneath it (issue #144 - the detail
+	// slide's callouts never appeared until the overlay came down).
+	//
+	// Painted is NOT the same question as animated. A ghost standing in for an
+	// inert pair is deliberately given no animation, because a running one would
+	// put it on its own compositing layer and shift its raster by up to a pixel
+	// for the duration (issue #161); it still has to be painted, so this asks
+	// the ghost set directly rather than reading it off the animation map.
+	const outgoingElements = flattenedOutgoing.filter((element) => ghostIds.has(element.id));
 
 	// Everything the overlay paints hides whatever the live stage is doing
 	// underneath, which is wrong for a shape that ARRIVES on top of a ghost:
@@ -243,7 +254,7 @@ export function buildMorphTransitionPlan(
 		match.pairs
 			.filter(
 				(candidate) =>
-					outgoingAnimations.has(candidate.fromElement.id) &&
+					ghostIds.has(candidate.fromElement.id) &&
 					!morphPairNeedsCrossfade(candidate.fromElement, candidate.toElement),
 			)
 			.map((candidate) => candidate.fromElement.id),
@@ -259,7 +270,7 @@ export function buildMorphTransitionPlan(
 				morphPairIncomingFadesIn(
 					candidate.fromElement,
 					candidate.toElement,
-					outgoingAnimations.has(candidate.fromElement.id),
+					ghostIds.has(candidate.fromElement.id),
 				),
 			)
 			.map((candidate) => candidate.toElement.id),
