@@ -70,21 +70,40 @@ export async function resetTabSession(page: Page): Promise<void> {
 	});
 }
 
-/** As {@link loadDeck}, but against an explicit URL (cross-binding harness). */
+/**
+ * As {@link loadDeck}, but against an explicit URL (cross-binding harness).
+ *
+ * `acrossFrameworks` is this function's only caller, and it opens every
+ * framework's page and loads its deck CONCURRENTLY - up to five real PPTX
+ * parses racing for the same CPU, against five separate dev servers that are
+ * themselves competing for it. Measured locally: `solution-explorer.pptx`
+ * (the ~4.9 MB real-world fixture several cross-binding specs use) loads in
+ * ~2.1s solo but ~6.5s when five loads run at once on one otherwise-idle
+ * machine; a CI runner is typically weaker and may also be running a second
+ * test file in the other worker, so the plain 10s action timeout
+ * (`playwright.config.ts`'s `use.actionTimeout`, sized for the hundreds of
+ * single-page, single-deck call sites through {@link loadDeck}) is too tight
+ * a margin specifically for this concurrent path. `uploadDeck`'s own waits
+ * get a wider, explicit timeout here rather than raising the global one, so
+ * the single-page suite keeps its tight failure signal.
+ */
 export async function loadDeckAt(page: Page, url: string, fixturePath: string): Promise<void> {
 	await page.goto(url);
-	await uploadDeck(page, fixturePath);
+	await uploadDeck(page, fixturePath, CONCURRENT_LOAD_TIMEOUT_MS);
 }
 
-async function uploadDeck(page: Page, fixturePath: string): Promise<void> {
+/** Generous timeout for {@link loadDeckAt}'s waits; see its doc comment. */
+const CONCURRENT_LOAD_TIMEOUT_MS = 30_000;
+
+async function uploadDeck(page: Page, fixturePath: string, timeout?: number): Promise<void> {
 	await page.locator('#file-input').setInputFiles(fixturePath);
-	await slideStage(page).waitFor();
+	await slideStage(page).waitFor({ timeout });
 	// Waits on `data-element-id`, not on `data-pptx-element="true"`. Two bindings
 	// omit the element marker on graphic-frame types (charts, tables), so a deck
 	// whose first slide is only a frame never satisfies a marker-based wait there
 	// and the load times out for a reason that has nothing to do with loading.
-	await page.locator('[data-pptx-viewport] [data-element-id]').first().waitFor();
-	await page.waitForFunction(() => document.fonts.status === 'loaded');
+	await page.locator('[data-pptx-viewport] [data-element-id]').first().waitFor({ timeout });
+	await page.waitForFunction(() => document.fonts.status === 'loaded', undefined, { timeout });
 }
 
 /**
