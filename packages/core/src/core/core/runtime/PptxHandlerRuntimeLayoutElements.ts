@@ -1,4 +1,5 @@
 import { XmlObject, PptxElement } from '../../types';
+import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeAuxiliaryMasterElements';
@@ -54,7 +55,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.layoutXmlMap.set(layoutPath, layoutXmlObj as XmlObject);
 
 			// Load layout relationships
-			const layoutRelsPath = `${layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/')}.rels`;
+			const layoutRelsPath = partRelsPath(layoutPath);
 			await this.loadSlideRelationships(layoutPath, layoutRelsPath);
 
 			// Apply layout-level colour map override while parsing its elements

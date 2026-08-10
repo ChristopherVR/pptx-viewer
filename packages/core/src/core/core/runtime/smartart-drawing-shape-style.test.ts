@@ -54,10 +54,19 @@ function parseColor(node: XmlObject | undefined): string | undefined {
 	return val ? `#${val}` : undefined;
 }
 
+/** Presence check that tolerates valueless elements such as `a:noFill`. */
+function hasChild(node: XmlObject | undefined, name: string): boolean {
+	if (!node) {
+		return false;
+	}
+	return Object.keys(node).some((key) => !key.startsWith('@_') && local(key) === name);
+}
+
 /** Deps wired to mirror the real gradient/shadow codec semantics closely enough
  * to prove `gradFill` / `pattFill` / `blipFill` route onto the model. */
 const deps: DrawingShapeStyleDeps = {
 	getChild,
+	hasChild,
 	getChildren,
 	parseColor,
 	extractGradientStops: (gradFill) =>
@@ -74,6 +83,33 @@ const deps: DrawingShapeStyleDeps = {
 };
 
 describe('extractDrawingShapeFill', () => {
+	it('flags a:noFill so the shape stays unpainted', () => {
+		const result = extractDrawingShapeFill({ 'a:noFill': '' } as unknown as XmlObject, deps);
+
+		expect(result.fillNone).toBeTruthy();
+		expect(result.fillColor).toBeUndefined();
+	});
+
+	it('keeps the shadow of an unfilled shape', () => {
+		const spPr = {
+			'a:noFill': '',
+			'a:effectLst': { 'a:outerShdw': { 'a:srgbClr': { '@_val': '333333' } } },
+		} as unknown as XmlObject;
+		const result = extractDrawingShapeFill(spPr, deps);
+
+		expect(result.fillNone).toBeTruthy();
+		expect(result.hasShadow).toBeTruthy();
+		expect(result.shadowColor).toBe('#333333');
+	});
+
+	it('does not treat a shape with a resolvable fill as unfilled', () => {
+		const spPr: XmlObject = { 'a:solidFill': { 'a:srgbClr': { '@_val': '156082' } } };
+		const result = extractDrawingShapeFill(spPr, deps);
+
+		expect(result.fillNone).toBeUndefined();
+		expect(result.fillColor).toBe('#156082');
+	});
+
 	it('parses a gradient fill onto the drawing-shape model (issue #73)', () => {
 		const spPr: XmlObject = {
 			'a:gradFill': {

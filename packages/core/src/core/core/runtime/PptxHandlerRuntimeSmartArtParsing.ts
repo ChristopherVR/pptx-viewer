@@ -303,6 +303,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private drawingShapeStyleDeps(): DrawingShapeStyleDeps {
 		return {
 			getChild: (node, local) => this.xmlLookupService.getChildByLocalName(node, local),
+			hasChild: (node, local) => this.xmlLookupService.hasChildByLocalName(node, local),
 			getChildren: (node, local) => this.xmlLookupService.getChildrenArrayByLocalName(node, local),
 			parseColor: (node) => this.parseColor(node),
 			extractGradientStops: (gradFill) => this.extractGradientStops(gradFill),

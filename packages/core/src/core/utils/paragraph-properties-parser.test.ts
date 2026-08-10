@@ -12,6 +12,7 @@ import type { XmlObject } from '../types';
 import {
 	parseAlignmentAttr,
 	parseParagraphSpacingPx,
+	parseBulletSizePercent,
 	parseLineSpacingMultiplier,
 	parseLineSpacingExactPt,
 	parseParagraphMargins,
@@ -244,6 +245,32 @@ describe('parseLineSpacingMultiplier', () => {
 		};
 		// 1000000 / 100000 = 10, clamped to 5
 		expect(parseLineSpacingMultiplier(node)).toBeCloseTo(5, 5);
+	});
+
+	it('reads a strict-conformance literal percentage', () => {
+		const node: XmlObject = {
+			'a:spcPct': { '@_val': '90%' },
+		};
+		expect(parseLineSpacingMultiplier(node)).toBeCloseTo(0.9, 5);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseBulletSizePercent - a:buSzPct
+// ---------------------------------------------------------------------------
+
+describe('parseBulletSizePercent', () => {
+	it('reads the transitional form as a percentage of the run size', () => {
+		expect(parseBulletSizePercent({ '@_val': '25000' })).toBeCloseTo(25, 5);
+	});
+
+	it('reads the strict literal form as the same percentage', () => {
+		expect(parseBulletSizePercent({ '@_val': '25%' })).toBeCloseTo(25, 5);
+	});
+
+	it('returns undefined when the level declares no bullet size', () => {
+		expect(parseBulletSizePercent(undefined)).toBeUndefined();
+		expect(parseBulletSizePercent({})).toBeUndefined();
 	});
 });
 

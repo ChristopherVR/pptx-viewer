@@ -22,6 +22,8 @@ export interface DrawingShapeGradientStop {
 
 /** Fill / effect fields resolved from a cached drawing shape's `spPr`. */
 export interface DrawingShapeFill {
+	/** The shape declares `a:noFill` and must not be painted at all. */
+	fillNone?: boolean;
 	fillColor?: string;
 	fillGradientStops?: DrawingShapeGradientStop[];
 	fillGradientType?: 'linear' | 'radial';
@@ -37,6 +39,7 @@ export interface DrawingShapeFill {
 /** Injected accessors so these helpers stay free of runtime coupling. */
 export interface DrawingShapeStyleDeps {
 	getChild(node: XmlObject | undefined, local: string): XmlObject | undefined;
+	hasChild(node: XmlObject | undefined, local: string): boolean;
 	getChildren(node: XmlObject | undefined, local: string): XmlObject[];
 	parseColor(node: XmlObject | undefined): string | undefined;
 	extractGradientStops(gradFill: XmlObject): DrawingShapeGradientStop[];
@@ -53,12 +56,27 @@ export interface DrawingShapeStyleDeps {
  * wins. `a:blipFill` cannot be resolved to image bytes here (the drawing part's
  * relationships live outside this module); its `r:embed` id is captured for the
  * caller to resolve.
+ *
+ * `a:noFill` is a fill in its own right, not the absence of one: SmartArt
+ * layouts stack an unfilled shape over a painted one to hold the label, so a
+ * renderer that treats "no colour resolved" as "use the palette" hides whatever
+ * the layout put underneath.
  */
 export function extractDrawingShapeFill(
 	spPr: XmlObject,
 	deps: DrawingShapeStyleDeps,
 ): DrawingShapeFill {
 	const result: DrawingShapeFill = {};
+
+	if (deps.hasChild(spPr, 'noFill')) {
+		result.fillNone = true;
+		const noFillShadowColor = deps.extractShadowColor(spPr);
+		if (noFillShadowColor) {
+			result.hasShadow = true;
+			result.shadowColor = noFillShadowColor;
+		}
+		return result;
+	}
 
 	const solidFill = deps.getChild(spPr, 'solidFill');
 	if (solidFill) {

@@ -1,3 +1,4 @@
+import { parseOoxmlPercent } from '../../color';
 import { XmlObject, TextStyle, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeImageFill';
 
@@ -55,19 +56,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (Number.isFinite(spacingPointsRaw)) {
 			return this.pointsToPixels(spacingPointsRaw / 100);
 		}
-		// Percentage spacing (`a:spcPct`) is relative to the line's font size
-		// (100000 = 100%). It needs a size basis to resolve to pixels; without one
-		// we can't produce a meaningful value, so fall through to undefined.
-		const spacingPercentRaw = Number.parseInt(
-			String((spacingNode['a:spcPct'] as XmlObject | undefined)?.['@_val'] || ''),
-			10,
+		// Percentage spacing (`a:spcPct`) is relative to the line's font size. It
+		// needs a size basis to resolve to pixels; without one we can't produce a
+		// meaningful value, so fall through to undefined.
+		const spacingFraction = parseOoxmlPercent(
+			(spacingNode['a:spcPct'] as XmlObject | undefined)?.['@_val'],
 		);
 		if (
-			Number.isFinite(spacingPercentRaw) &&
+			spacingFraction !== undefined &&
 			typeof basisFontSizePx === 'number' &&
 			basisFontSizePx > 0
 		) {
-			return (spacingPercentRaw / 100000) * basisFontSizePx;
+			return spacingFraction * basisFontSizePx;
 		}
 		return undefined;
 	}
@@ -76,12 +76,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!lineSpacingNode) {
 			return undefined;
 		}
-		const spacingPercentRaw = Number.parseInt(
-			String((lineSpacingNode['a:spcPct'] as XmlObject | undefined)?.['@_val'] || ''),
-			10,
+		const spacingFraction = parseOoxmlPercent(
+			(lineSpacingNode['a:spcPct'] as XmlObject | undefined)?.['@_val'],
 		);
-		if (Number.isFinite(spacingPercentRaw)) {
-			return Math.max(0.1, Math.min(5, spacingPercentRaw / 100000));
+		if (spacingFraction !== undefined) {
+			return Math.max(0.1, Math.min(5, spacingFraction));
 		}
 		return undefined;
 	}
@@ -105,6 +104,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Resolve an inherited level colour against the colour map that is active
+	 * now, rather than the one that was active when the level was cached.
+	 *
+	 * Layout and master text styles are cached once per part; slides are parsed
+	 * afterwards, each with its own `p:clrMapOvr`. Re-reading the authored
+	 * choice is what makes `tx1` come out white on a slide that maps it to the
+	 * light slot and black on one that does not.
+	 *
+	 * @param levelStyle - The inherited level style.
+	 * @returns The colour to inherit, or `undefined` when the level sets none.
+	 */
+	protected resolveLevelStyleColor(levelStyle: PlaceholderTextLevelStyle): string | undefined {
+		if (levelStyle.colorChoiceXml) {
+			const remapped = this.parseColor(levelStyle.colorChoiceXml);
+			if (remapped) {
+				return remapped;
+			}
+		}
+		return levelStyle.color;
+	}
+
+	/**
 	 * Apply level-specific {@link PlaceholderTextLevelStyle} properties to a
 	 * {@link TextStyle} as fallback values for paragraph-level fields.
 	 */
@@ -124,8 +145,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (textStyle.italic === undefined && levelStyle.italic !== undefined) {
 			textStyle.italic = levelStyle.italic;
 		}
-		if (textStyle.color === undefined && levelStyle.color !== undefined) {
-			textStyle.color = levelStyle.color;
+		if (textStyle.color === undefined) {
+			const inheritedColor = this.resolveLevelStyleColor(levelStyle);
+			if (inheritedColor !== undefined) {
+				textStyle.color = inheritedColor;
+			}
 		}
 		if (textStyle.paragraphMarginLeft === undefined && levelStyle.marginLeft !== undefined) {
 			textStyle.paragraphMarginLeft = levelStyle.marginLeft;

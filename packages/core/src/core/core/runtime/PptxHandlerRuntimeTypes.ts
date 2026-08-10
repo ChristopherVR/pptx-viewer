@@ -13,6 +13,7 @@ import type {
 	PlaceholderDefaults,
 	PlaceholderTextLevelStyle,
 } from '../../types';
+import type { AutoNumberSequence } from './auto-number-sequence';
 
 /**
  * Identifies a placeholder shape inside a slide layout or master.
@@ -93,6 +94,12 @@ export interface ShapeTextParsingContext {
 	readonly styleFontRefColor: string | undefined;
 	/** Latin typeface resolved from `<p:style><a:fontRef>`, same precedence as {@link styleFontRefColor}. */
 	readonly styleFontRefTypeface: string | undefined;
+	/**
+	 * Running `a:buAutoNum` ordinals for this text body, advanced as its
+	 * paragraphs are walked in document order. Numbered paragraphs count from
+	 * the start of their own list, not from the top of the text body.
+	 */
+	readonly autoNumbering: AutoNumberSequence;
 }
 
 /**

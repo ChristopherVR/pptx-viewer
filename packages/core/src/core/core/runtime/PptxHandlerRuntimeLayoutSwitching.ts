@@ -1,5 +1,6 @@
 import { EMU_PER_PX } from '../../constants';
 import { XmlObject, PptxElement } from '../../types';
+import { placeholderStyleFamily } from '../../utils/placeholder-style-family';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextEditing';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
@@ -118,15 +119,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Build a matching key for a placeholder. Placeholders match primarily
-	 * by type. When both have an idx, the idx must also match.
+	 * by the style family they belong to (so a `ctrTitle` slide placeholder can
+	 * take the target layout's `title` slot, and `obj` can take `body`'s). When
+	 * both carry an idx, the idx must also match.
 	 */
 	protected buildPlaceholderMatchKey(phInfo: PlaceholderInfo): string {
-		// Normalise missing type to "body" (the OOXML default)
-		const type = phInfo.type || 'body';
-		if (phInfo.idx !== undefined) {
-			return `${type}:${phInfo.idx}`;
-		}
-		return type;
+		const family = placeholderStyleFamily(phInfo.type);
+		return phInfo.idx !== undefined ? `${family}:${phInfo.idx}` : family;
 	}
 
 	// ── Core layout switching logic ─────────────────────────────────────
@@ -182,12 +181,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const matchKey = this.buildPlaceholderMatchKey(phInfo);
 			const layoutPh = layoutPhMap.get(matchKey);
 
-			// Fall back to matching by type only (ignoring idx) for common
-			// placeholder types like title/ctrTitle/subTitle/body
+			// Fall back to the first free placeholder of the same family, ignoring
+			// idx. Layouts from different families number their placeholders
+			// independently, so the target layout's body slot is usually idx 1
+			// where the source deck's was idx 14.
 			let resolvedLayoutPh = layoutPh;
-			if (!resolvedLayoutPh && phInfo.type) {
+			if (!resolvedLayoutPh) {
+				const family = placeholderStyleFamily(phInfo.type);
 				for (const [, lp] of layoutPhMap.entries()) {
-					if (!lp.matched && lp.phInfo.type === phInfo.type) {
+					if (!lp.matched && placeholderStyleFamily(lp.phInfo.type) === family) {
 						resolvedLayoutPh = lp;
 						break;
 					}

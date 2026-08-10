@@ -1,4 +1,10 @@
 import { describe, it, expect } from 'vitest';
+
+import {
+	breakAutoNumberRun,
+	createAutoNumberSequence,
+	nextAutoNumber,
+} from './auto-number-sequence';
 // Since collectShapeParagraphContent is a protected method on a deeply
 // chained mixin with many dependencies, we test the self-contained
 // content extraction logic used within it.
@@ -159,15 +165,17 @@ function collectParagraphTextParts(
 }
 
 // --- Extracted: bullet text formatting ---
+// The ordinal is supplied by the caller because it belongs to the list the
+// paragraph sits in, not to the paragraph's position in the text body; the
+// production walk resolves it through `auto-number-sequence`.
 function formatBulletText(
 	bulletInfo: {
 		char?: string;
 		autoNumType?: string;
-		autoNumStartAt?: number;
 		imageRelId?: string;
 		none?: boolean;
 	},
-	pIdx: number,
+	ordinal: number,
 ): string | null {
 	if (!bulletInfo || bulletInfo.none) {
 		return null;
@@ -177,9 +185,8 @@ function formatBulletText(
 		return `${bulletInfo.char} `;
 	}
 	if (bulletInfo.autoNumType) {
-		const startAt = bulletInfo.autoNumStartAt ?? 1;
 		// Simplified: just return arabic format for testing
-		return `${startAt + pIdx}. `;
+		return `${ordinal}. `;
 	}
 	if (bulletInfo.imageRelId) {
 		return '\u{1F4CE} ';
@@ -453,38 +460,42 @@ describe('collectParagraphTextParts', () => {
 // ---------------------------------------------------------------------------
 describe('formatBulletText', () => {
 	it('should return null for null bulletInfo', () => {
-		expect(formatBulletText(null as unknown as { none?: boolean }, 0)).toBeNull();
+		expect(formatBulletText(null as unknown as { none?: boolean }, 1)).toBeNull();
 	});
 
 	it('should return null when bullet is explicitly none', () => {
-		expect(formatBulletText({ none: true }, 0)).toBeNull();
+		expect(formatBulletText({ none: true }, 1)).toBeNull();
 	});
 
 	it('should format char bullet', () => {
-		expect(formatBulletText({ char: '\u2022' }, 0)).toBe('\u2022 ');
+		expect(formatBulletText({ char: '\u2022' }, 1)).toBe('\u2022 ');
 	});
 
 	it('should format char bullet with custom character', () => {
-		expect(formatBulletText({ char: '-' }, 0)).toBe('- ');
+		expect(formatBulletText({ char: '-' }, 1)).toBe('- ');
 	});
 
 	it('should format auto-number bullet', () => {
-		expect(formatBulletText({ autoNumType: 'arabicPeriod', autoNumStartAt: 1 }, 0)).toBe('1. ');
-	});
-
-	it('should format auto-number bullet with paragraph index offset', () => {
-		expect(formatBulletText({ autoNumType: 'arabicPeriod', autoNumStartAt: 1 }, 2)).toBe('3. ');
-	});
-
-	it('should format auto-number bullet with default startAt', () => {
-		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, 0)).toBe('1. ');
+		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, 1)).toBe('1. ');
 	});
 
 	it('should format image bullet as paper clip', () => {
-		expect(formatBulletText({ imageRelId: 'rId5' }, 0)).toBe('\u{1F4CE} ');
+		expect(formatBulletText({ imageRelId: 'rId5' }, 1)).toBe('\u{1F4CE} ');
 	});
 
 	it('should default to bullet character when no specific type', () => {
-		expect(formatBulletText({}, 0)).toBe('\u2022 ');
+		expect(formatBulletText({}, 1)).toBe('\u2022 ');
+	});
+
+	it('numbers a list from its own start, not from the top of the text body', () => {
+		const sequence = createAutoNumberSequence();
+		// A title and an intro sentence precede the list.
+		breakAutoNumberRun(sequence, 0);
+		breakAutoNumberRun(sequence, 0);
+		const first = nextAutoNumber(sequence, 0, 'arabicPeriod', 1);
+		const second = nextAutoNumber(sequence, 0, 'arabicPeriod', 1);
+
+		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, first)).toBe('1. ');
+		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, second)).toBe('2. ');
 	});
 });

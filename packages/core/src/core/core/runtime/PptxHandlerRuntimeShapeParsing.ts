@@ -1,5 +1,6 @@
 import { PptxElement, XmlObject, TextSegment, TextStyle } from '../../types';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
+import { createAutoNumberSequence } from './auto-number-sequence';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParagraphContentParsing';
 import type { ShapeTextParsingContext } from './PptxHandlerRuntimeTypes';
 
@@ -202,6 +203,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					effectiveLevelStyles,
 					styleFontRefColor,
 					styleFontRefTypeface,
+					autoNumbering: createAutoNumberSequence(),
 				};
 
 				paras.forEach((p: XmlObject, pIdx: number) => {

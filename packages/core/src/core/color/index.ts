@@ -11,6 +11,7 @@ export {
 	normalizeHexColor,
 	hexToRgbChannels,
 	colorWithOpacity,
+	parseOoxmlPercent,
 	parseDrawingPercent,
 	parseDrawingFraction,
 	parseDrawingHueDegrees,

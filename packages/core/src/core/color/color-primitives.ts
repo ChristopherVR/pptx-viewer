@@ -89,23 +89,53 @@ export function colorWithOpacity(color: string, opacity: number | undefined): st
 // ---------------------------------------------------------------------------
 
 /**
- * Parse an OOXML percentage value and return it as a normalised
- * fraction in [0, 1]. OOXML encodes percentages as integer
- * thousandths (e.g. `100000` = 100%, `50000` = 50%).
+ * Divisor that turns a percentage magnitude into a 0-1 fraction, chosen from
+ * the notation the attribute is written in.
  *
- * The result is clamped to [0, 1] — use {@link parseDrawingFraction}
+ * `ST_Percentage` has two lexical forms and PowerPoint reads both. Transitional
+ * parts spell 90% as `90000` (thousandths of a percent); strict parts spell the
+ * same value `90%`. Scaling a strict literal by the transitional divisor is off
+ * by a factor of 1000, which is the difference between 90% line spacing and the
+ * lower clamp of the range.
+ *
+ * @param text - Trimmed raw attribute text.
+ * @returns `100` for the literal form, `100000` for the thousandths form.
+ */
+function percentDivisorFor(text: string): 100 | 100000 {
+	return text.endsWith('%') ? 100 : 100000;
+}
+
+/**
+ * Parse an OOXML percentage value in either lexical form and return it as an
+ * unclamped fraction, without assuming a scale from the caller's context.
+ *
+ * @param value - Raw attribute value from XML (string or number).
+ * @returns Fraction (1 = 100%), or `undefined` if unparseable.
+ */
+export function parseOoxmlPercent(value: unknown): number | undefined {
+	const text = String(value ?? '').trim();
+	const divisor = percentDivisorFor(text);
+	const magnitude = Number.parseFloat(divisor === 100 ? text.slice(0, -1) : text);
+	if (!Number.isFinite(magnitude)) {
+		return undefined;
+	}
+	return magnitude / divisor;
+}
+
+/**
+ * Parse an OOXML percentage value and return it as a normalised
+ * fraction in [0, 1]. Both the transitional thousandths form (`50000`)
+ * and the strict literal form (`50%`) are accepted.
+ *
+ * The result is clamped to [0, 1]; use {@link parseDrawingFraction}
  * when unclamped values are needed (e.g. `lumMod` > 100%).
  *
  * @param value - Raw attribute value from XML (string or number).
  * @returns Normalised fraction in [0, 1], or `undefined` if unparseable.
  */
 export function parseDrawingPercent(value: unknown): number | undefined {
-	const parsed = Number.parseFloat(String(value ?? '').trim());
-	if (!Number.isFinite(parsed)) {
-		return undefined;
-	}
-	// Divide by 100 000 to convert OOXML thousandths to a 0-1 fraction
-	return clampUnitInterval(parsed / 100000);
+	const parsed = parseOoxmlPercent(value);
+	return parsed === undefined ? undefined : clampUnitInterval(parsed);
 }
 
 // ---------------------------------------------------------------------------
@@ -287,7 +317,7 @@ export function hslToRgb(h: number, s: number, l: number): { r: number; g: numbe
 // ---------------------------------------------------------------------------
 
 /**
- * Parse an OOXML percentage value as a fraction (val / 100 000).
+ * Parse an OOXML percentage value as a fraction.
  * Unlike {@link parseDrawingPercent}, this does **not** clamp to [0, 1],
  * allowing mod values above 100 % and negative offset values.
  *
@@ -298,12 +328,7 @@ export function hslToRgb(h: number, s: number, l: number): { r: number; g: numbe
  * @returns Unclamped fraction, or `undefined` if unparseable.
  */
 export function parseDrawingFraction(value: unknown): number | undefined {
-	const parsed = Number.parseFloat(String(value ?? '').trim());
-	if (!Number.isFinite(parsed)) {
-		return undefined;
-	}
-	// Divide by 100 000 to convert OOXML thousandths to a decimal fraction
-	return parsed / 100000;
+	return parseOoxmlPercent(value);
 }
 
 /**

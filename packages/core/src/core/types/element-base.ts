@@ -167,6 +167,17 @@ export interface PlaceholderTextLevelStyle {
 	bold?: boolean;
 	italic?: boolean;
 	color?: string;
+	/**
+	 * The `a:defRPr/a:solidFill` node this level's {@link color} came from.
+	 *
+	 * Master and layout text styles are parsed and cached before any slide is,
+	 * so a scheme alias such as `tx1` was resolved through the map that was
+	 * active then. A slide carrying `p:clrMapOvr` routes the same alias
+	 * somewhere else, so the alias has to be resolved again against the slide
+	 * that is inheriting it; {@link color} is only the reading taken at parse
+	 * time. Absent when the level declares no colour, or declares a literal one.
+	 */
+	colorChoiceXml?: XmlObject;
 	bulletChar?: string;
 	bulletAutoNumType?: string;
 	bulletFontFamily?: string;

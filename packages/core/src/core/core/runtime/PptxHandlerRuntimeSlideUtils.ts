@@ -1,4 +1,5 @@
 import { XmlObject, TextSegment, PptxElement } from '../../types';
+import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeBackgroundParsing';
 
@@ -136,7 +137,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		// Ensure the layout's `.rels` are loaded so we can resolve the master.
 		if (!this.slideRelsMap.has(layoutPath)) {
-			const layoutRelsPath = `${layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/')}.rels`;
+			const layoutRelsPath = partRelsPath(layoutPath);
 			try {
 				await this.loadSlideRelationships(layoutPath, layoutRelsPath);
 			} catch {

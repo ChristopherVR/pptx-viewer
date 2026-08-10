@@ -210,6 +210,12 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	skewX?: number;
 	/** Skew along the Y axis in degrees. */
 	skewY?: number;
+	/**
+	 * The cached shape declares `a:noFill`. Renderers must leave it unpainted
+	 * rather than substituting a palette colour, because these shapes usually sit
+	 * on top of a painted shape whose fill has to stay visible.
+	 */
+	fillNone?: boolean;
 	/** Solid fill colour (hex). */
 	fillColor?: string;
 	/**

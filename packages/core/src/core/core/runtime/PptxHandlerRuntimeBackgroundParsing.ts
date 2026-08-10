@@ -1,4 +1,5 @@
 import type { PptxSlideBackgroundPattern, XmlObject } from '../../types';
+import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeColorAndEffects';
@@ -321,7 +322,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				try {
 					const masterXmlObj = await this.resolveCachedMasterXml(masterPath);
 					if (masterXmlObj) {
-						const masterRelsPath = `${masterPath.replace('slideMasters/', 'slideMasters/_rels/')}.rels`;
+						const masterRelsPath = partRelsPath(masterPath);
 						await this.loadSlideRelationships(masterPath, masterRelsPath);
 
 						return this.extractBackgroundImage(masterXmlObj, masterPath, 'p:sldMaster');
@@ -354,7 +355,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const layoutXmlObj = await this.resolveCachedLayoutXml(layoutPath);
 					if (layoutXmlObj) {
 						// We need to load layout rels to resolve images
-						const layoutRelsPath = `${layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/')}.rels`;
+						const layoutRelsPath = partRelsPath(layoutPath);
 						await this.loadSlideRelationships(layoutPath, layoutRelsPath);
 
 						const bg = this.extractBackgroundImage(layoutXmlObj, layoutPath, 'p:sldLayout');

@@ -4,6 +4,7 @@ export interface IPptxXmlLookupService {
 	getChildByLocalName(parent: XmlObject | undefined, localName: string): XmlObject | undefined;
 	getChildrenArrayByLocalName(parent: XmlObject | undefined, localName: string): XmlObject[];
 	getScalarChildByLocalName(parent: XmlObject | undefined, localName: string): string | undefined;
+	hasChildByLocalName(parent: XmlObject | undefined, localName: string): boolean;
 }
 
 export class PptxXmlLookupService implements IPptxXmlLookupService {
@@ -77,6 +78,26 @@ export class PptxXmlLookupService implements IPptxXmlLookupService {
 			}
 		}
 		return undefined;
+	}
+
+	/**
+	 * Report whether `parent` declares a child with this local name, regardless
+	 * of what the child parsed to.
+	 *
+	 * Valueless elements such as `a:noFill` or `a:buNone` carry their whole
+	 * meaning in being present, and the parser represents them as an empty
+	 * string rather than an object, so the child accessors above return
+	 * `undefined` for them. Presence has to be asked for directly.
+	 */
+	public hasChildByLocalName(parent: XmlObject | undefined, localName: string): boolean {
+		if (!parent) {
+			return false;
+		}
+		if (Object.hasOwn(parent, localName)) {
+			return true;
+		}
+		const suffix = `:${localName}`;
+		return Object.keys(parent).some((key) => key.endsWith(suffix));
 	}
 
 	private toXmlArray(value: unknown): XmlObject[] {

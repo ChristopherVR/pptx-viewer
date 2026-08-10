@@ -5,6 +5,7 @@ import {
 	normalizeHexColor,
 	hexToRgbChannels,
 	colorWithOpacity,
+	parseOoxmlPercent,
 	parseDrawingPercent,
 	parseDrawingFraction,
 	parseDrawingHueDegrees,
@@ -161,6 +162,54 @@ describe('parseDrawingPercent', () => {
 
 	it('handles numeric input (not just strings)', () => {
 		expect(parseDrawingPercent(75000)).toBe(0.75);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseOoxmlPercent (strict + transitional lexical forms)
+// ---------------------------------------------------------------------------
+
+describe('parseOoxmlPercent', () => {
+	it('reads the transitional thousandths-of-a-percent form', () => {
+		expect(parseOoxmlPercent('90000')).toBeCloseTo(0.9, 10);
+		expect(parseOoxmlPercent(150000)).toBeCloseTo(1.5, 10);
+	});
+
+	it('reads the strict literal percentage form', () => {
+		expect(parseOoxmlPercent('90%')).toBeCloseTo(0.9, 10);
+		expect(parseOoxmlPercent('150%')).toBeCloseTo(1.5, 10);
+	});
+
+	it('keeps the fractional part of a strict literal', () => {
+		expect(parseOoxmlPercent('12.5%')).toBeCloseTo(0.125, 10);
+	});
+
+	it('keeps the sign of an offset value in both forms', () => {
+		expect(parseOoxmlPercent('-40000')).toBeCloseTo(-0.4, 10);
+		expect(parseOoxmlPercent('-40%')).toBeCloseTo(-0.4, 10);
+	});
+
+	it('returns undefined when there is no number to read', () => {
+		expect(parseOoxmlPercent('%')).toBeUndefined();
+		expect(parseOoxmlPercent('none')).toBeUndefined();
+		expect(parseOoxmlPercent(undefined)).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseDrawingPercent / parseDrawingFraction: strict form
+// ---------------------------------------------------------------------------
+
+describe('drawing percent parsers on strict-conformance values', () => {
+	it('clamps a strict literal the same way as a transitional value', () => {
+		expect(parseDrawingPercent('50%')).toBe(0.5);
+		expect(parseDrawingPercent('200%')).toBe(1);
+		expect(parseDrawingPercent('-50%')).toBe(0);
+	});
+
+	it('leaves a strict literal unclamped for mod/off transforms', () => {
+		expect(parseDrawingFraction('120%')).toBeCloseTo(1.2, 10);
+		expect(parseDrawingFraction('-10%')).toBeCloseTo(-0.1, 10);
 	});
 });
 

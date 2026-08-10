@@ -174,4 +174,33 @@ describe('pptxXmlLookupService', () => {
 			expect(service.getScalarChildByLocalName(parent, 'count')).toBe('0');
 		});
 	});
+
+	describe('hasChildByLocalName', () => {
+		it('finds a valueless element the child accessors cannot return', () => {
+			const parent = { 'a:noFill': '' } as unknown as XmlObject;
+
+			expect(service.getChildByLocalName(parent, 'noFill')).toBeUndefined();
+			expect(service.hasChildByLocalName(parent, 'noFill')).toBeTruthy();
+		});
+
+		it('finds an unprefixed valueless element', () => {
+			const parent = { noFill: '' } as unknown as XmlObject;
+			expect(service.hasChildByLocalName(parent, 'noFill')).toBeTruthy();
+		});
+
+		it('finds an element that did parse to an object', () => {
+			const parent: XmlObject = { 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } } };
+			expect(service.hasChildByLocalName(parent, 'solidFill')).toBeTruthy();
+		});
+
+		it('does not confuse an attribute for a child element', () => {
+			const parent: XmlObject = { '@_noFill': '1' };
+			expect(service.hasChildByLocalName(parent, 'noFill')).toBeFalsy();
+		});
+
+		it('returns false for a missing child or missing parent', () => {
+			expect(service.hasChildByLocalName({ 'a:solidFill': {} }, 'noFill')).toBeFalsy();
+			expect(service.hasChildByLocalName(undefined, 'noFill')).toBeFalsy();
+		});
+	});
 });

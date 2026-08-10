@@ -7,6 +7,7 @@ import {
 	PptxTextStyleLevels,
 	PptxHeaderFooterFlags,
 } from '../../types';
+import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderDefaults';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
@@ -213,7 +214,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.masterXmlMap.set(masterPath, masterXmlObj as XmlObject);
 
 			// Load master relationships
-			const masterRelsPath = `${masterPath.replace('slideMasters/', 'slideMasters/_rels/')}.rels`;
+			const masterRelsPath = partRelsPath(masterPath);
 			await this.loadSlideRelationships(masterPath, masterRelsPath);
 
 			const spTree = masterXmlObj['p:sldMaster']?.['p:cSld']?.['p:spTree'];

@@ -1,4 +1,5 @@
 import { XmlObject, PlaceholderTextLevelStyle } from '../../types';
+import { parseBulletSizePercent } from '../../utils/paragraph-properties-parser';
 import { xmlHasChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideUtils';
 
@@ -104,12 +105,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.bulletFontFamily = String(buFont['@_typeface']);
 		}
 
-		const buSzPct = levelProps['a:buSzPct'] as XmlObject | undefined;
-		if (buSzPct?.['@_val'] !== undefined) {
-			const pctRaw = Number.parseInt(String(buSzPct['@_val']), 10);
-			if (Number.isFinite(pctRaw)) {
-				style.bulletSizePercent = pctRaw / 1000;
-			}
+		const bulletSizePercent = parseBulletSizePercent(
+			levelProps['a:buSzPct'] as XmlObject | undefined,
+		);
+		if (bulletSizePercent !== undefined) {
+			style.bulletSizePercent = bulletSizePercent;
 		}
 
 		// Bullet colour. Route through `parseColor` so themed choices
@@ -154,9 +154,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				style.italic = defRPr['@_i'] === '1';
 			}
 
-			const color = this.parseColor(defRPr['a:solidFill'] as XmlObject | undefined);
+			const solidFill = defRPr['a:solidFill'] as XmlObject | undefined;
+			const color = this.parseColor(solidFill);
 			if (color) {
 				style.color = color;
+			}
+			if (solidFill) {
+				// Keep the authored choice: this level may be inherited by a slide
+				// whose `p:clrMapOvr` routes the alias elsewhere, and only the
+				// original node can be resolved against that slide's map.
+				style.colorChoiceXml = solidFill;
 			}
 
 			const latin = defRPr['a:latin'] as XmlObject | undefined;

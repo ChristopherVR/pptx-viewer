@@ -1,4 +1,5 @@
 import { XmlObject, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../../types';
+import { placeholderStyleFamily } from '../../utils/placeholder-style-family';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSummaryZoomParsing';
 import type { PlaceholderInfo, PlaceholderLookupContext } from './PptxHandlerRuntimeTypes';
@@ -163,16 +164,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Build a cache-map key for a placeholder.  Prefers `idx` when present,
-	 * otherwise falls back to `type`.
+	 * Build a cache-map key for a placeholder, combining the style family it
+	 * inherits from with `idx` when the reference carries one.
+	 *
+	 * Keying on the family rather than the raw attribute is what lets a slide's
+	 * `<p:ph idx="14"/>` find the layout's `type="obj" idx="14"` entry instead of
+	 * falling through to the master and losing the layout's own values.
 	 */
 	protected buildPlaceholderDefaultsKey(phInfo: PlaceholderInfo): string {
-		const normalizedType =
-			phInfo.type === 'ctrtitle' ? 'title' : phInfo.type === 'subtitle' ? 'body' : phInfo.type;
-		if (phInfo.idx !== undefined) {
-			return normalizedType ? `${normalizedType}_${phInfo.idx}` : `_${phInfo.idx}`;
-		}
-		return normalizedType ?? 'body';
+		const family = placeholderStyleFamily(phInfo.type);
+		return phInfo.idx !== undefined ? `${family}_${phInfo.idx}` : family;
 	}
 
 	/**
@@ -197,13 +198,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const masterPath = this.resolveMasterPathForLayout(layoutPath);
 		const masterMap = masterPath ? this.masterPlaceholderDefaultsCache.get(masterPath) : undefined;
 		const masterDefaults = masterMap?.get(phKey);
-		const normalizedType = this.buildPlaceholderDefaultsKey(phInfo).split('_')[0];
+		const normalizedType = placeholderStyleFamily(phInfo.type);
 		const masterTextStyleType =
-			phInfo.type === 'title' || phInfo.type === 'ctrtitle'
-				? 'title'
-				: phInfo.type === 'body' || phInfo.type === 'obj' || phInfo.type === 'subtitle'
-					? 'body'
-					: 'other';
+			normalizedType === 'title' ? 'title' : normalizedType === 'body' ? 'body' : 'other';
 		const masterTextStyles = masterPath ? this.masterTxStylesCache.get(masterPath) : undefined;
 		const masterTextLevels =
 			masterTextStyleType === 'title'

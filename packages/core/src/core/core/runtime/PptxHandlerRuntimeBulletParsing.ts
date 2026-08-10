@@ -1,6 +1,7 @@
 import { BulletInfo, XmlObject } from '../../types';
 import type { PlaceholderTextLevelStyle } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { parseBulletSizePercent } from '../../utils/paragraph-properties-parser';
 import { xmlChild, xmlHasChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextDefaults';
 
@@ -94,14 +95,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const fontFamily = buFont?.['@_typeface'] ? String(buFont['@_typeface']) : undefined;
 		const fontInherit = resolvedBulletProps['a:buFontTx'] !== undefined;
 
-		const buSzPct = resolvedBulletProps['a:buSzPct'] as XmlObject | undefined;
-		let sizePercent: number | undefined;
-		if (buSzPct?.['@_val'] !== undefined) {
-			const pctRaw = Number.parseInt(String(buSzPct['@_val']), 10);
-			if (Number.isFinite(pctRaw)) {
-				sizePercent = pctRaw / 1000;
-			}
-		}
+		const sizePercent = parseBulletSizePercent(
+			resolvedBulletProps['a:buSzPct'] as XmlObject | undefined,
+		);
 
 		const buSzPts = resolvedBulletProps['a:buSzPts'] as XmlObject | undefined;
 		let sizePts: number | undefined;

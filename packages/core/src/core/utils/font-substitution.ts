@@ -42,7 +42,15 @@
  * CSS generic family keyword as the ultimate fallback.
  */
 export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
-	// Microsoft Office default fonts
+	// Microsoft Office default fonts. The Aptos family became the Office
+	// default and its metrics were drawn to sit close to Calibri, so falling
+	// back through Calibri keeps authored line counts; the generic sans-serif
+	// chain is wider and re-wraps one-line titles.
+	Aptos: ['Calibri', 'Carlito', 'Liberation Sans', 'Arial', 'sans-serif'],
+	'Aptos Display': ['Calibri Light', 'Calibri', 'Carlito', 'Arial', 'sans-serif'],
+	'Aptos Narrow': ['Calibri', 'Liberation Sans Narrow', 'Arial', 'sans-serif'],
+	'Aptos Serif': ['Cambria', 'Caladea', 'Liberation Serif', 'Times New Roman', 'serif'],
+	'Aptos Mono': ['Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
 	Calibri: ['Carlito', 'Liberation Sans', 'Arial', 'sans-serif'],
 	'Calibri Light': ['Carlito', 'Liberation Sans', 'Arial', 'sans-serif'],
 	Cambria: ['Caladea', 'Liberation Serif', 'Times New Roman', 'serif'],

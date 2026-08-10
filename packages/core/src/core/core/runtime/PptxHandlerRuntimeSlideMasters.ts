@@ -333,6 +333,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.layoutXmlMap.set(layoutPath, data);
 			}
 
+			// A layout's own relationship part is what ties it back to its master.
+			// Loading it here covers the layouts no slide currently uses, so a
+			// layout gallery can offer every layout of the active master rather
+			// than only the ones the deck happens to have visited.
+			if (!this.slideRelsMap.has(layoutPath)) {
+				await this.loadPartRelationships(layoutPath);
+			}
+
 			const layout: PptxSlideLayout = { path: layoutPath };
 
 			// Name from p:cSld/@name

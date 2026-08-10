@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
+import { placeholderStyleFamily } from '../../utils/placeholder-style-family';
+
 // ---------------------------------------------------------------------------
 // Extracted logic from PptxHandlerRuntimePlaceholderLookup and
 // PptxHandlerRuntimeElementParsing (protected methods)
@@ -143,13 +145,12 @@ function readFlipState(xfrm: XmlObject | undefined): {
 }
 
 /**
- * Extracted from buildPlaceholderDefaultsKey
+ * Extracted from buildPlaceholderDefaultsKey. The family normalisation itself
+ * is the real production helper, not a copy of it.
  */
 function buildPlaceholderDefaultsKey(phInfo: PlaceholderInfo): string {
-	if (phInfo.idx !== undefined) {
-		return phInfo.type ? `${phInfo.type}_${phInfo.idx}` : `_${phInfo.idx}`;
-	}
-	return phInfo.type ?? 'body';
+	const family = placeholderStyleFamily(phInfo.type);
+	return phInfo.idx !== undefined ? `${family}_${phInfo.idx}` : family;
 }
 
 // ---------------------------------------------------------------------------
@@ -411,8 +412,8 @@ describe('buildPlaceholderDefaultsKey', () => {
 		expect(buildPlaceholderDefaultsKey({ type: 'body', idx: '1' })).toBe('body_1');
 	});
 
-	it('should return _idx when only idx is present', () => {
-		expect(buildPlaceholderDefaultsKey({ idx: '3' })).toBe('_3');
+	it('applies the default type when only idx is present', () => {
+		expect(buildPlaceholderDefaultsKey({ idx: '3' })).toBe('body_3');
 	});
 
 	it('should return type when only type is present', () => {
@@ -423,12 +424,23 @@ describe('buildPlaceholderDefaultsKey', () => {
 		expect(buildPlaceholderDefaultsKey({})).toBe('body');
 	});
 
-	it('should handle ctrtitle type', () => {
-		expect(buildPlaceholderDefaultsKey({ type: 'ctrtitle' })).toBe('ctrtitle');
+	it('folds ctrtitle onto the title family', () => {
+		expect(buildPlaceholderDefaultsKey({ type: 'ctrtitle' })).toBe('title');
 	});
 
 	it('should use idx key format for type with idx 0', () => {
 		expect(buildPlaceholderDefaultsKey({ type: 'body', idx: '0' })).toBe('body_0');
+	});
+
+	it('gives one identity to a placeholder the parts spell differently', () => {
+		// A slide referencing `<p:ph idx="14"/>` and the layout entry declaring
+		// `type="obj" idx="14"` are the same placeholder.
+		expect(buildPlaceholderDefaultsKey({ idx: '14' })).toBe(
+			buildPlaceholderDefaultsKey({ type: 'obj', idx: '14' }),
+		);
+		expect(buildPlaceholderDefaultsKey({ type: 'subtitle', idx: '1' })).toBe(
+			buildPlaceholderDefaultsKey({ type: 'body', idx: '1' }),
+		);
 	});
 });
 

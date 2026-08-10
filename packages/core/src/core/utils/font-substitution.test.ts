@@ -203,6 +203,21 @@ describe('getPanoseWeight', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSubstituteFontFamily', () => {
+	it('falls back through Calibri for the Aptos family', () => {
+		expect(getSubstituteFontFamily('Aptos')).toBe(
+			'"Aptos", "Calibri", "Carlito", "Liberation Sans", "Arial", sans-serif',
+		);
+		expect(getSubstituteFontFamily('Aptos Display')).toBe(
+			'"Aptos Display", "Calibri Light", "Calibri", "Carlito", "Arial", sans-serif',
+		);
+	});
+
+	it('keeps the serif and mono Aptos faces in their own genre', () => {
+		expect(getSubstituteFontFamily('Aptos Serif')).toContain('serif');
+		expect(getSubstituteFontFamily('Aptos Serif')).toContain('"Cambria"');
+		expect(getSubstituteFontFamily('Aptos Mono')).toContain('monospace');
+	});
+
 	it('returns direct substitution chain for Calibri', () => {
 		const result = getSubstituteFontFamily('Calibri');
 		expect(result).toBe('"Calibri", "Carlito", "Liberation Sans", "Arial", sans-serif');

@@ -1,5 +1,7 @@
 import { XmlObject, TextSegment, TextStyle } from '../../types';
 import { xmlText } from '../../utils';
+import { parseParagraphLevel } from '../../utils/paragraph-properties-parser';
+import { breakAutoNumberRun, nextAutoNumber } from './auto-number-sequence';
 import { paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
@@ -53,13 +55,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			ctx.slidePath,
 			ctx.effectiveLevelStyles,
 		);
+		const paragraphLevel = parseParagraphLevel(p['a:pPr'] as XmlObject | undefined);
+		const autoNumScheme =
+			paragraphBulletInfo && !paragraphBulletInfo.none && !paragraphBulletInfo.char
+				? paragraphBulletInfo.autoNumType
+				: undefined;
+		// Anything that is not a continuation of the list running at this level
+		// ends that list, so the next numbered paragraph counts from its own
+		// `startAt` again rather than from the top of the text body.
+		let autoNumOrdinal: number | undefined;
+		if (autoNumScheme) {
+			autoNumOrdinal = nextAutoNumber(
+				ctx.autoNumbering,
+				paragraphLevel,
+				autoNumScheme,
+				paragraphBulletInfo?.autoNumStartAt ?? 1,
+			);
+		} else {
+			breakAutoNumberRun(ctx.autoNumbering, paragraphLevel);
+		}
+
 		if (paragraphBulletInfo && !paragraphBulletInfo.none) {
 			let bulletText: string;
 			if (paragraphBulletInfo.char) {
 				bulletText = `${paragraphBulletInfo.char} `;
-			} else if (paragraphBulletInfo.autoNumType) {
-				const startAt = paragraphBulletInfo.autoNumStartAt ?? 1;
-				bulletText = this.formatAutoNumber(paragraphBulletInfo.autoNumType, startAt + pIdx);
+			} else if (autoNumScheme && autoNumOrdinal !== undefined) {
+				bulletText = this.formatAutoNumber(autoNumScheme, autoNumOrdinal);
 			} else if (paragraphBulletInfo.imageRelId) {
 				bulletText = '\u{1F4CE} ';
 			} else {

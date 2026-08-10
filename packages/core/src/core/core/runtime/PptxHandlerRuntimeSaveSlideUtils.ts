@@ -67,35 +67,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	protected async loadSlideRelationships(slidePath: string, relsPath: string): Promise<void> {
-		const relsXml = await this.zip.file(relsPath)?.async('string');
-		if (!relsXml) {
-			return;
-		}
-
-		const relsData = this.parser.parse(relsXml);
-		const relsMap = new Map<string, string>();
-		const externalIds = new Set<string>();
-
-		if (relsData?.Relationships?.Relationship) {
-			const rels = Array.isArray(relsData.Relationships.Relationship)
-				? relsData.Relationships.Relationship
-				: [relsData.Relationships.Relationship];
-
-			rels.forEach((r: XmlObject) => {
-				if (r['@_Id'] && r['@_Target']) {
-					const relId = String(r['@_Id']);
-					relsMap.set(relId, String(r['@_Target']));
-					if (String(r['@_TargetMode'] || '').toLowerCase() === 'external') {
-						externalIds.add(relId);
-					}
-				}
-			});
-		}
-
-		this.slideRelsMap.set(slidePath, relsMap);
-		if (externalIds.size > 0) {
-			this.externalRelsMap.set(slidePath, externalIds);
-		}
+		await this.loadPartRelationships(slidePath, relsPath);
 	}
 
 	protected async reconcilePresentationSlidesForSave(params: {

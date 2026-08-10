@@ -44,6 +44,7 @@ import type {
 } from '../../types';
 import { SignatureDetectionResult, normalizeStrictXml, detectStrictConformance } from '../../utils';
 import type { AlternateContentBlock } from '../../utils';
+import { partRelsPath } from '../../utils/part-rels-path';
 import type {
 	IPptxColorStyleCodec,
 	IPptxCommentAuthorsXmlFactory,
@@ -539,6 +540,49 @@ export class PptxHandlerRuntime {
 					return Reflect.get(target, prop, receiver);
 				},
 			});
+		}
+	}
+
+	/**
+	 * Read a package part's relationship file into {@link slideRelsMap} and
+	 * {@link externalRelsMap}, keyed by the part's own path.
+	 *
+	 * Lives at the root of the chain because relationships are needed by parts
+	 * loaded at very different times (slides, layouts, masters, notes) and by
+	 * mixins on both sides of the chain. A missing or empty `.rels` file is not
+	 * an error: plenty of parts have no relationships.
+	 *
+	 * @param partPath - The part whose relationships these are.
+	 * @param relsPath - Path of the `.rels` part; derived from `partPath` when omitted.
+	 */
+	protected async loadPartRelationships(partPath: string, relsPath?: string): Promise<void> {
+		const relsXml = await this.zip.file(relsPath ?? partRelsPath(partPath))?.async('string');
+		if (!relsXml) {
+			return;
+		}
+
+		const relsData = this.parser.parse(relsXml) as XmlObject | undefined;
+		const relationships = relsData?.['Relationships'] as XmlObject | undefined;
+		const raw = relationships?.['Relationship'];
+		const entries = (Array.isArray(raw) ? raw : raw ? [raw] : []) as XmlObject[];
+
+		const targets = new Map<string, string>();
+		const externalIds = new Set<string>();
+		for (const entry of entries) {
+			const id = entry['@_Id'];
+			const target = entry['@_Target'];
+			if (!id || !target) {
+				continue;
+			}
+			targets.set(String(id), String(target));
+			if (String(entry['@_TargetMode'] ?? '').toLowerCase() === 'external') {
+				externalIds.add(String(id));
+			}
+		}
+
+		this.slideRelsMap.set(partPath, targets);
+		if (externalIds.size > 0) {
+			this.externalRelsMap.set(partPath, externalIds);
 		}
 	}
 
