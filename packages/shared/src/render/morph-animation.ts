@@ -16,7 +16,10 @@ import { hasTextProperties, hasShapeProperties } from 'pptx-viewer-core';
 
 import { parseHexColor, lerpColor } from './morph-color';
 import { flattenMorphElements } from './morph-flatten';
-import { generateGeometryMorphAnimation } from './morph-geometry-keyframes';
+import {
+	generateGeometryMorphAnimation,
+	serializeShapeAdjustments,
+} from './morph-geometry-keyframes';
 import {
 	generateImageCropGhostAnimations,
 	generateImageCropMorphAnimations,
@@ -148,6 +151,14 @@ function appearanceSignature(element: PptxElement, depth = 0): string {
 		const style = element.shapeStyle;
 		parts.push(
 			(element as { shapeType?: string }).shapeType ?? '',
+			// An adjustment handle that moved repaints the outline just as surely as
+			// a different preset does, and `shouldGeometryMorph` already treats the
+			// two the same. Leaving it out let a rounded rectangle whose corner
+			// radius changed read as INERT: its ghost was painted statically at the
+			// old outline (issue #161) while the live half, held invisible beneath
+			// it, tweened its `clip-path` where nobody could see it, and the new
+			// outline appeared in one frame when the overlay came down.
+			serializeShapeAdjustments(element),
 			style?.fillMode ?? '',
 			style?.fillColor ?? '',
 			style?.fillGradient ?? '',

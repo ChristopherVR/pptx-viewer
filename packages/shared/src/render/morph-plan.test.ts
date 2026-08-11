@@ -133,6 +133,28 @@ describe('buildMorphTransitionPlan', () => {
 		expect(plan?.outgoingElements).toStrictEqual([]);
 	});
 
+	it('keeps a pair travelling when its outline is tweened too', () => {
+		// A shape-type change emits a baked `clip-path` tween keyed on the SAME
+		// incoming id as the pair's own `transform` journey. Both have to survive:
+		// while the map overwrote instead of composing, whichever was generated
+		// first was dropped, so a shape gliding across the slide stopped
+		// travelling and sat at its destination re-cutting its own outline while
+		// its ghost flew the path alone.
+		const preset = (id: string, shapeType: string, x: number): PptxElement =>
+			({ ...shape(id, 'Badge', x, 0), shapeType }) as PptxElement;
+		const from = slide('a', [preset('a-1', 'triangle', 0)]);
+		const to = slide('b', [preset('b-1', 'hexagon', 200)]);
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+		const incoming = plan?.incomingAnimations.get('b-1') ?? '';
+
+		expect(incoming).toContain('pptx-morph-0-b1 ');
+		expect(incoming).toContain('pptx-morph-geo-0-b1 ');
+		// The journey itself, not just its name.
+		expect(plan?.keyframesCss).toContain('translate(-200px, 0px)');
+		expect(plan?.keyframesCss).toContain('clip-path: path(');
+	});
+
 	it('emits one keyframes block per animation it hands out', () => {
 		const from = slide('a', [shape('a-1', 'Title', 0, 0), shape('a-2', 'Leaving', 10, 10)]);
 		const to = slide('b', [shape('b-1', 'Title', 50, 50), shape('b-2', 'Arriving', 20, 20)]);

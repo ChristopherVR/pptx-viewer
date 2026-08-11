@@ -222,7 +222,24 @@ export function buildMorphTransitionPlan(
 				: isOutgoing
 					? outgoingAnimations
 					: incomingAnimations;
-		target.set(animation.elementId, animation.animation);
+		// One element can be driven by SEVERAL animations at once, so they are
+		// composed into the shorthand's comma-separated list rather than
+		// overwriting each other. A pair whose shape type or adjustment values
+		// changed gets both its journey (`transform`, from
+		// `generateMorphAnimations`) and its outline tween (`clip-path`, from
+		// `generateGeometryMorphAnimation`), keyed on the same incoming id; a
+		// plain `set` dropped whichever was generated first, so a rect gliding
+		// into a distant ellipse stopped travelling altogether and sat at its
+		// destination re-cutting its own outline while its ghost flew over.
+		//
+		// Composing is only correct because the animations here touch DISJOINT
+		// properties. Anything that would fight over one property has to keep
+		// using its own channel, the way the `a:srcRect` crop does above.
+		const existing = target.get(animation.elementId);
+		target.set(
+			animation.elementId,
+			existing === undefined ? animation.animation : `${existing}, ${animation.animation}`,
+		);
 	}
 
 	// Which outgoing shapes the overlay paints is `resolveMorphGhostIds`' call

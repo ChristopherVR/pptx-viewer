@@ -20,6 +20,29 @@ import { MORPH_EASING } from './morph-types';
 export const GEOMETRY_MORPH_STEPS = 8;
 
 /**
+ * An element's shape adjustments as a stable string, key order and all.
+ *
+ * Sorted rather than serialised in insertion order, because two decks can write
+ * the same handles in a different order and every question asked of this string
+ * ("did the outline change?") is only meaningful when equal outlines produce
+ * equal strings.
+ *
+ * Exported because the same question decides whether a pair is INERT: an
+ * adjustment handle that moved repaints the outline just as surely as a
+ * different preset does, so `appearanceSignature` reads it too.
+ */
+export function serializeShapeAdjustments(element: PptxElement): string {
+	const adjustments = (element as { shapeAdjustments?: Record<string, number> }).shapeAdjustments;
+	if (!adjustments) {
+		return '';
+	}
+	return Object.keys(adjustments)
+		.sort()
+		.map((key) => `${key}:${adjustments[key]}`)
+		.join(',');
+}
+
+/**
  * Decide whether a matched pair warrants geometry morphing rather than a plain
  * crossfade. True when both elements carry a shape type and those types differ
  * (or their adjustment outlines differ), since same-type same-adjustment shapes
@@ -37,13 +60,7 @@ export function shouldGeometryMorph(pair: MorphPair): boolean {
 	if (fromType.toLowerCase() !== toType.toLowerCase()) {
 		return true;
 	}
-	const fromAdj = JSON.stringify(
-		(pair.fromElement as { shapeAdjustments?: Record<string, number> }).shapeAdjustments ?? {},
-	);
-	const toAdj = JSON.stringify(
-		(pair.toElement as { shapeAdjustments?: Record<string, number> }).shapeAdjustments ?? {},
-	);
-	return fromAdj !== toAdj;
+	return serializeShapeAdjustments(pair.fromElement) !== serializeShapeAdjustments(pair.toElement);
 }
 
 /** Build the per-stop `clip-path` keyframe body for an outline morph. */

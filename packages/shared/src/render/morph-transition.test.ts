@@ -1539,6 +1539,43 @@ describe('morphPairNeedsCrossfade', () => {
 		expect(morphPairNeedsCrossfade(from, to)).toBeTruthy();
 	});
 
+	it('is true when only an adjustment handle moved', () => {
+		// `shouldGeometryMorph` already treats a moved handle as an outline change
+		// and emits a `clip-path` tween for it. If the appearance compared EQUAL
+		// the pair also read as inert, and an inert pair's ghost is painted
+		// statically (issue #161) while the live half is held invisible beneath
+		// it: the tween ran where nobody could see it and the new outline appeared
+		// in one frame when the overlay came down.
+		const rounded = (id: string, adj: number): PptxElement =>
+			makeElement({
+				id,
+				type: 'shape',
+				shapeType: 'roundRect',
+				shapeAdjustments: { adj },
+			} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+
+		expect(morphPairNeedsCrossfade(rounded('a', 16667), rounded('b', 40000))).toBeTruthy();
+		expect(isInertMorphPair(rounded('a', 16667), rounded('b', 40000))).toBeFalsy();
+		expect(isInertMorphPair(rounded('a', 16667), rounded('b', 16667))).toBeTruthy();
+	});
+
+	it('ignores the order two decks wrote the same handles in', () => {
+		const handles = (id: string, adjustments: Record<string, number>): PptxElement =>
+			makeElement({
+				id,
+				type: 'shape',
+				shapeType: 'roundRect',
+				shapeAdjustments: adjustments,
+			} as Partial<PptxElement> & { id: string; type: PptxElement['type'] });
+
+		expect(
+			morphPairNeedsCrossfade(
+				handles('a', { adj1: 1, adj2: 2 }),
+				handles('b', { adj2: 2, adj1: 1 }),
+			),
+		).toBeFalsy();
+	});
+
 	it('looks inside a group, whose own properties paint nothing (issue #131)', () => {
 		// The reporter's deck keeps each slide's centre copy in a group. Comparing
 		// only the group itself made every pair look unchanged, so its ghost stayed
