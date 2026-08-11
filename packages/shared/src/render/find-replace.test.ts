@@ -1,8 +1,8 @@
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { findInSlides, applyFindReplacements } from './useFindReplace';
-import type { FindResult } from './useFindReplace';
+import { applyFindReplacements, findInSlides } from './find-replace';
+import type { FindResult } from './find-replace';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -48,17 +48,17 @@ function makeSlide(id: string, elements: PptxElement[]): PptxSlide {
 describe('findInSlides', () => {
 	it('returns empty array for empty query', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'hello' }])])];
-		expect(findInSlides(slides, '', false)).toStrictEqual([]);
+		expect(findInSlides(slides, '')).toStrictEqual([]);
 	});
 
 	it('returns empty array when no slides have elements', () => {
 		const slides = [makeSlide('s1', [])];
-		expect(findInSlides(slides, 'hello', false)).toStrictEqual([]);
+		expect(findInSlides(slides, 'hello')).toStrictEqual([]);
 	});
 
 	it('finds a simple match in a single segment', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'hello world' }])])];
-		const results = findInSlides(slides, 'world', false);
+		const results = findInSlides(slides, 'world');
 		expect(results).toHaveLength(1);
 		expect(results[0]).toMatchObject({
 			slideIndex: 0,
@@ -71,7 +71,7 @@ describe('findInSlides', () => {
 
 	it('finds multiple matches in the same segment', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'abcabcabc' }])])];
-		const results = findInSlides(slides, 'abc', false);
+		const results = findInSlides(slides, 'abc');
 		expect(results).toHaveLength(3);
 		expect(results[0].startOffset).toBe(0);
 		expect(results[1].startOffset).toBe(3);
@@ -80,7 +80,7 @@ describe('findInSlides', () => {
 
 	it('finds overlapping matches', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'aaaa' }])])];
-		const results = findInSlides(slides, 'aa', false);
+		const results = findInSlides(slides, 'aa');
 		// "aa" at 0, "aa" at 1, "aa" at 2
 		expect(results).toHaveLength(3);
 		expect(results[0].startOffset).toBe(0);
@@ -90,22 +90,22 @@ describe('findInSlides', () => {
 
 	it('searches case-insensitively by default', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'Hello WORLD' }])])];
-		const results = findInSlides(slides, 'hello', false);
+		const results = findInSlides(slides, 'hello');
 		expect(results).toHaveLength(1);
 		expect(results[0].startOffset).toBe(0);
 	});
 
 	it('searches case-sensitively when matchCase is true', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'Hello WORLD' }])])];
-		expect(findInSlides(slides, 'hello', true)).toHaveLength(0);
-		expect(findInSlides(slides, 'Hello', true)).toHaveLength(1);
+		expect(findInSlides(slides, 'hello', { matchCase: true })).toHaveLength(0);
+		expect(findInSlides(slides, 'Hello', { matchCase: true })).toHaveLength(1);
 	});
 
 	it('searches across multiple segments of the same element', () => {
 		const slides = [
 			makeSlide('s1', [makeTextElement('el1', [{ text: 'foo' }, { text: 'bar foo' }])]),
 		];
-		const results = findInSlides(slides, 'foo', false);
+		const results = findInSlides(slides, 'foo');
 		expect(results).toHaveLength(2);
 		expect(results[0].segmentIndex).toBe(0);
 		expect(results[1].segmentIndex).toBe(1);
@@ -116,7 +116,7 @@ describe('findInSlides', () => {
 			makeSlide('s1', [makeTextElement('el1', [{ text: 'hello' }])]),
 			makeSlide('s2', [makeTextElement('el2', [{ text: 'hello again' }])]),
 		];
-		const results = findInSlides(slides, 'hello', false);
+		const results = findInSlides(slides, 'hello');
 		expect(results).toHaveLength(2);
 		expect(results[0].slideIndex).toBe(0);
 		expect(results[1].slideIndex).toBe(1);
@@ -124,7 +124,7 @@ describe('findInSlides', () => {
 
 	it('skips non-text elements (image, table, etc.)', () => {
 		const slides = [makeSlide('s1', [makeImageElement('img1')])];
-		const results = findInSlides(slides, 'image', false);
+		const results = findInSlides(slides, 'image');
 		expect(results).toStrictEqual([]);
 	});
 
@@ -139,17 +139,17 @@ describe('findInSlides', () => {
 			textSegments: [],
 		} as unknown as PptxElement;
 		const slides = [makeSlide('s1', [el])];
-		expect(findInSlides(slides, 'test', false)).toStrictEqual([]);
+		expect(findInSlides(slides, 'test')).toStrictEqual([]);
 	});
 
 	it('handles segments with empty text', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: '' }])])];
-		expect(findInSlides(slides, 'test', false)).toStrictEqual([]);
+		expect(findInSlides(slides, 'test')).toStrictEqual([]);
 	});
 
 	it('records correct length from original query', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'HELLO world' }])])];
-		const results = findInSlides(slides, 'hello', false);
+		const results = findInSlides(slides, 'hello');
 		expect(results[0]).toHaveLength(5);
 	});
 });
@@ -161,7 +161,7 @@ describe('findInSlides', () => {
 describe('applyFindReplacements', () => {
 	it('returns original slides when toReplace is empty', () => {
 		const slides = [makeSlide('s1', [makeTextElement('el1', [{ text: 'hello' }])])];
-		expect(applyFindReplacements(slides, [], 'world')).toBe(slides);
+		expect(applyFindReplacements(slides, [], 'world').slides).toBe(slides);
 	});
 
 	it('replaces a single match', () => {
@@ -173,7 +173,7 @@ describe('applyFindReplacements', () => {
 			startOffset: 6,
 			length: 5,
 		};
-		const result = applyFindReplacements(slides, [match], 'earth');
+		const result = applyFindReplacements(slides, [match], 'earth').slides;
 		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
 			.textSegments[0];
 		expect(seg.text).toBe('hello earth');
@@ -187,7 +187,7 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 0, startOffset: 0, length: 3 },
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 1, startOffset: 0, length: 3 },
 		];
-		const result = applyFindReplacements(slides, matches, 'qux');
+		const result = applyFindReplacements(slides, matches, 'qux').slides;
 		const segs = (result[0].elements[0] as { textSegments: Array<{ text: string }> }).textSegments;
 		expect(segs[0].text).toBe('qux bar');
 		expect(segs[1].text).toBe('qux baz');
@@ -202,7 +202,7 @@ describe('applyFindReplacements', () => {
 			startOffset: 0,
 			length: 3,
 		};
-		const result = applyFindReplacements(slides, [match], 'longer-replacement');
+		const result = applyFindReplacements(slides, [match], 'longer-replacement').slides;
 		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
 			.textSegments[0];
 		expect(seg.text).toBe('longer-replacement');
@@ -217,7 +217,7 @@ describe('applyFindReplacements', () => {
 			startOffset: 5,
 			length: 6,
 		};
-		const result = applyFindReplacements(slides, [match], '');
+		const result = applyFindReplacements(slides, [match], '').slides;
 		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
 			.textSegments[0];
 		expect(seg.text).toBe('hello');
@@ -230,7 +230,7 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 0, startOffset: 4, length: 3 },
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 0, startOffset: 8, length: 3 },
 		];
-		const result = applyFindReplacements(slides, matches, 'bar');
+		const result = applyFindReplacements(slides, matches, 'bar').slides;
 		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
 			.textSegments[0];
 		expect(seg.text).toBe('bar bar bar');
@@ -247,7 +247,7 @@ describe('applyFindReplacements', () => {
 			startOffset: 0,
 			length: 5,
 		};
-		const result = applyFindReplacements(slides, [match], 'earth');
+		const result = applyFindReplacements(slides, [match], 'earth').slides;
 		const el = result[0].elements[0] as { text: string };
 		expect(el.text).toBe('hello earth');
 	});
@@ -261,7 +261,9 @@ describe('applyFindReplacements', () => {
 			startOffset: 0,
 			length: 5,
 		};
-		applyFindReplacements(slides, [match], 'bye');
+		// The input must not be mutated: keep the result, assert the source is intact.
+		const replaced = applyFindReplacements(slides, [match], 'bye');
+		expect(replaced.slides).not.toBe(slides);
 		const seg = (slides[0].elements[0] as { textSegments: Array<{ text: string }> })
 			.textSegments[0];
 		expect(seg.text).toBe('hello');
@@ -276,7 +278,7 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 0, startOffset: 0, length: 3 },
 			{ slideIndex: 1, elementId: 'el2', segmentIndex: 0, startOffset: 0, length: 3 },
 		];
-		const result = applyFindReplacements(slides, matches, 'dog');
+		const result = applyFindReplacements(slides, matches, 'dog').slides;
 		expect(
 			(result[0].elements[0] as { textSegments: Array<{ text: string }> }).textSegments[0].text,
 		).toBe('dog');

@@ -1,15 +1,11 @@
-import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import type { PptxSlide } from 'pptx-viewer-core';
+import { applyFindReplacements, findInSlides } from 'pptx-viewer-shared';
+import type { FindResult } from 'pptx-viewer-shared';
 import { useState, useCallback, useEffect } from 'react';
 
-export interface FindResult {
-	slideIndex: number;
-	elementId: string;
-	segmentIndex: number;
-	startOffset: number;
-	length: number;
-}
-
+// The match descriptor and the search / replace implementations are shared with
+// the other bindings; this hook is the React state around them.
+export type { FindResult } from 'pptx-viewer-shared';
 interface UseFindReplaceInput {
 	slides: PptxSlide[];
 	mode: string;
@@ -40,116 +36,6 @@ interface UseFindReplaceResult {
 // Pure helper functions (exported for testing)
 // ---------------------------------------------------------------------------
 
-/** Search across all slides for text matching the query. */
-export function findInSlides(
-	slides: PptxSlide[],
-	findQuery: string,
-	findMatchCase: boolean,
-): FindResult[] {
-	if (!findQuery) {
-		return [];
-	}
-
-	const results: FindResult[] = [];
-	const normalised = findMatchCase ? findQuery : findQuery.toLowerCase();
-
-	slides.forEach((slide, slideIndex) => {
-		for (const element of slide.elements || []) {
-			if (!hasTextProperties(element)) {
-				continue;
-			}
-			const segments = element.textSegments ?? [];
-			segments.forEach((seg, segIndex) => {
-				const text = findMatchCase ? seg.text : (seg.text || '').toLowerCase();
-				let offset = 0;
-				while (offset < text.length) {
-					const pos = text.indexOf(normalised, offset);
-					if (pos === -1) {
-						break;
-					}
-					results.push({
-						slideIndex,
-						elementId: element.id,
-						segmentIndex: segIndex,
-						startOffset: pos,
-						length: findQuery.length,
-					});
-					offset = pos + 1;
-				}
-			});
-		}
-	});
-
-	return results;
-}
-
-/** Apply find-replace substitutions to slides immutably. Returns the original array if nothing to replace. */
-export function applyFindReplacements(
-	slides: PptxSlide[],
-	toReplace: FindResult[],
-	replaceQuery: string,
-): PptxSlide[] {
-	if (toReplace.length === 0) {
-		return slides;
-	}
-
-	const nextSlides = [...slides];
-
-	// Group replacements by slide + element + segment
-	const grouped = new Map<string, FindResult[]>();
-	for (const match of toReplace) {
-		const key = `${match.slideIndex}::${match.elementId}::${match.segmentIndex}`;
-		if (!grouped.has(key)) {
-			grouped.set(key, []);
-		}
-		grouped.get(key)!.push(match);
-	}
-
-	for (const [, matches] of grouped) {
-		// Sort by startOffset descending so replacements don't shift indexes
-		const sorted = [...matches].sort((a, b) => b.startOffset - a.startOffset);
-		for (const match of sorted) {
-			const slide = nextSlides[match.slideIndex];
-			if (!slide) {
-				continue;
-			}
-			const elIdx = (slide.elements || []).findIndex((e) => e.id === match.elementId);
-			if (elIdx === -1) {
-				continue;
-			}
-			const element = slide.elements[elIdx];
-			if (!hasTextProperties(element)) {
-				continue;
-			}
-
-			const segments = [...(element.textSegments ?? [])];
-			const seg = segments[match.segmentIndex];
-			if (!seg) {
-				continue;
-			}
-
-			const before = seg.text.slice(0, match.startOffset);
-			const after = seg.text.slice(match.startOffset + match.length);
-			segments[match.segmentIndex] = {
-				...seg,
-				text: before + replaceQuery + after,
-			};
-
-			const nextElements = [...slide.elements];
-			nextElements[elIdx] = {
-				...element,
-				text: segments.map((s) => s.text).join(''),
-				textSegments: segments,
-			} as PptxElement;
-			nextSlides[match.slideIndex] = {
-				...slide,
-				elements: nextElements,
-			};
-		}
-	}
-	return nextSlides;
-}
-
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -171,7 +57,7 @@ export function useFindReplace({
 
 	// ── Search ────────────────────────────────────────────────────────────
 	const performFind = useCallback(() => {
-		const results = findInSlides(slides, findQuery, findMatchCase);
+		const results = findInSlides(slides, findQuery, { matchCase: findMatchCase });
 
 		if (!findQuery) {
 			setFindResults([]);
@@ -213,7 +99,10 @@ export function useFindReplace({
 				return;
 			}
 
-			onUpdateSlides((prevSlides) => applyFindReplacements(prevSlides, toReplace, replaceQuery));
+			onUpdateSlides(
+				(prevSlides) =>
+					applyFindReplacements(prevSlides, toReplace, replaceQuery).slides as PptxSlide[],
+			);
 
 			onMarkDirty();
 		},
