@@ -10,6 +10,15 @@ dated sections beneath it are generated from
 
 ## 2026-08-11
 
+_Releases: pptx-react-viewer@2.16.8, pptx-vue-viewer@2.17.8, pptx-angular-viewer@2.17.8, pptx-vanilla-viewer@1.18.8, pptx-svelte-viewer@2.17.8_
+
+### Bug Fixes
+
+- **shared:** Stop Vue and Angular writing an inline pointer-events lock during a show (by @ChristopherVR) ([4cb649a](https://github.com/ChristopherVR/pptx-viewer/commit/4cb649a53f5903557ef2f93c190fe6ddd538599e))
+- **svelte:** Stop the show stage writing an inline pointer-events unlock (by @ChristopherVR) ([6f0a9f4](https://github.com/ChristopherVR/pptx-viewer/commit/6f0a9f4c33879543311e783f51d5fb595e5a150d))
+
+## 2026-08-11
+
 _Releases: pptx-react-viewer@2.16.7, pptx-vue-viewer@2.17.7, pptx-angular-viewer@2.17.7, pptx-vanilla-viewer@1.18.7, pptx-svelte-viewer@2.17.7_
 
 ### Bug Fixes
