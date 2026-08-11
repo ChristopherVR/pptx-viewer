@@ -1,6 +1,10 @@
 import type { PptxComment } from 'pptx-viewer-core';
+// Comment id minting is shared with the other bindings.
+import { generateCommentId } from 'pptx-viewer-shared';
 import { computed, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
+
+export { generateCommentId };
 
 /**
  * `useComments`: Vue composable backing the comments panel/editor.
@@ -64,16 +68,6 @@ export interface UseCommentsResult {
 	 *   the parent is not found.
 	 */
 	replyToComment: (parentId: string, text: string) => PptxComment[] | null;
-}
-
-/** Generate a stable, collision-resistant comment id. */
-export function generateCommentId(): string {
-	if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-		return `comment-${crypto.randomUUID()}`;
-	}
-	// Fallback for environments without `crypto.randomUUID`.
-	const rand = Math.random().toString(36).slice(2);
-	return `comment-${Date.now().toString(36)}-${rand}`;
 }
 
 export function useComments(options: UseCommentsOptions): UseCommentsResult {
