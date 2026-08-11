@@ -10,6 +10,19 @@ dated sections beneath it are generated from
 
 ## 2026-08-10
 
+_Releases: pptx-react-viewer@2.16.6, pptx-vue-viewer@2.17.6, pptx-angular-viewer@2.17.6, pptx-vanilla-viewer@1.18.6, pptx-svelte-viewer@2.17.6_
+
+### Bug Fixes
+
+- **shared:** Render cached SmartArt shapes and transparent table headers as authored (by @ChristopherVR) ([24ec6b4](https://github.com/ChristopherVR/pptx-viewer/commit/24ec6b4f2079b55f02aa5559bfa3c3f1eae67652))
+- **react:** Connect the Home tab's Layout control to the slide it acts on (by @ChristopherVR) ([6cb76bb](https://github.com/ChristopherVR/pptx-viewer/commit/6cb76bb27caaf486c280f432f9476f2365eb46ca))
+
+### Chores
+
+- Updated CLAUDE guidelines (by @ChristopherVR) ([b8dea58](https://github.com/ChristopherVR/pptx-viewer/commit/b8dea5811d2940369f60f6786081f86ae3035bc7))
+
+## 2026-08-10
+
 _Releases: pptx-viewer-core@2.3.4, pptx-react-viewer@2.16.5, pptx-vue-viewer@2.17.5, pptx-angular-viewer@2.17.5, pptx-vanilla-viewer@1.18.5, pptx-svelte-viewer@2.17.5_
 
 ### Bug Fixes
