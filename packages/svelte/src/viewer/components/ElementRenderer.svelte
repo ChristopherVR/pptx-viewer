@@ -7,9 +7,9 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, isElementHidden, isHollowShapeElement, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isTemplateElement } from 'pptx-viewer-shared';
 
-	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
+	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
 	import { getSlideElementsGetter } from '../state/slide-elements';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
@@ -54,11 +54,29 @@
 	 * invisible to anything that enumerates or hit-tests elements by the marker).
 	 */
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
-	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
-	// outline only, so its interior must not swallow clicks meant for what it is
-	// drawn over. ShapeEffectOverlay paints a transparent pointer-events:stroke
-	// band that opts the outline back in.
-	const isHollowShape = $derived(isHollowShapeElement(element));
+	/**
+	 * The inline pointer-events value for this element's own box, or `undefined`
+	 * for "write nothing and let the stylesheet decide".
+	 *
+	 * Off-stage the inline value is the only thing that tells a locked template
+	 * node it is locked. During a show it must stay absent in BOTH directions:
+	 * `render/presentation-hit-test` makes the whole stage transparent and then
+	 * re-enables only what owns its own click, and an inline value of either
+	 * `none` or `auto` outranks that stylesheet. Writing `auto` here (what this
+	 * branch used to do, since the show stage renders interactive) left every
+	 * piece of scenery clickable, so a shape drawn over an Action Setting could
+	 * swallow the click meant for it.
+	 */
+	const rootPointerEvents = $derived(inlineElementPointerEvents({ interactive: elementInteractive, presenting }));
+	/**
+	 * The same decision as a style map, so a box can MERGE it instead of spreading
+	 * a key over its base map. `getShapeBoxStyle` already writes `none` for an
+	 * unfilled, textless FRAME shape (PowerPoint hit-tests one on its outline only,
+	 * and `ShapeEffectOverlay` paints the transparent `pointer-events: stroke` band
+	 * that opts the outline back in), and `{ ...base, pointerEvents: undefined }`
+	 * would drop that declaration rather than leave it alone.
+	 */
+	const rootPointerEventsStyle = $derived(rootPointerEvents ? { pointerEvents: rootPointerEvents } : undefined);
 	/**
 	 * Whether THIS element's root carries `data-pptx-element="true"`. Wider than
 	 * `elementInteractive`: an interaction-locked template (master/layout)
@@ -146,7 +164,7 @@
 	<!-- Group: recurse into children. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-group"
-		style={styleToString({ ...getContainerStyle(element, zIndex), pointerEvents: elementInteractive ? 'auto' : 'none' })}
+		style={styleToString(mergeStyles(getContainerStyle(element, zIndex), rootPointerEventsStyle))}
 		data-element-id={element.id}
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
@@ -184,7 +202,7 @@
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-shape"
-		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill, animationState?.animatesFill, animationState?.animatesStroke), pointerEvents: elementInteractive && !isHollowShape ? 'auto' : 'none' })}
+		style={styleToString(mergeStyles(getShapeBoxStyle(element, zIndex, parentGroupFill, animationState?.animatesFill, animationState?.animatesStroke), rootPointerEventsStyle))}
 		data-element-id={element.id}
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
