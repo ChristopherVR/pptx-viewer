@@ -13,7 +13,6 @@ export * from './geometry';
 export * from './xml';
 export * from './table';
 export * from './chart';
-export * from './smartart';
 export * from './media';
 export * from './animation';
 export * from './pdf-builder';

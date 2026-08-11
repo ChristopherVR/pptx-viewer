@@ -11,14 +11,8 @@ import { downloadBlob as sharedDownloadBlob, sanitizeDownloadFilename } from 'pp
 
 export { sanitizeDownloadFilename };
 
-export function escapeHtml(value: string): string {
-	return value
-		.replace(/&/gu, '&amp;')
-		.replace(/</gu, '&lt;')
-		.replace(/>/gu, '&gt;')
-		.replace(/"/gu, '&quot;')
-		.replace(/'/gu, '&#39;');
-}
+// HTML entity escaping is shared (see `export/print-document`).
+export { escapeHtml } from 'pptx-viewer-shared';
 
 export function safePrompt(message: string, defaultValue?: string): string | null {
 	try {

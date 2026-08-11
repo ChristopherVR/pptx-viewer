@@ -1,9 +1,17 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
-import { buildImageBiLevelTable, buildImageLuminanceTransfer } from 'pptx-viewer-shared';
+// `getImageAlphaFilterId` is shared so every binding references the same
+// `<filter>` name.
+import {
+	buildImageBiLevelTable,
+	buildImageLuminanceTransfer,
+	getImageAlphaFilterId,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import { normalizeHexColor, colorWithOpacity } from './color';
+
+export { getImageAlphaFilterId };
 
 // ── Duotone SVG filter helpers ──────────────────────────────────────────
 
@@ -167,11 +175,6 @@ export function mapDagBlendModeToCss(
 }
 
 // ── Image alpha primitives & advanced colour effects ───────────────────
-
-/** Generate a stable filter ID for the alpha-primitives filter on an element. */
-export function getImageAlphaFilterId(elementId: string): string {
-	return `imgalpha-${elementId}`;
-}
 
 /**
  * Returns true when the element has any blip-side alpha primitive or other

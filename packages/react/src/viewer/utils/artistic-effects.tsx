@@ -10,7 +10,12 @@
  * @module artistic-effects
  */
 
+// The filter id and the "does this preset need an SVG filter" predicate are
+// shared with the other bindings.
+import { getArtisticFilterId, needsSvgArtisticFilter } from 'pptx-viewer-shared';
 import React from 'react';
+
+export { getArtisticFilterId, needsSvgArtisticFilter };
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -26,57 +31,9 @@ export interface ArtisticEffectDescriptor {
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
-/**
- * Set of artistic effect names that require SVG filter definitions.
- * All others use CSS-only filters.
- */
-const SVG_FILTER_EFFECTS = new Set([
-	'artisticFilmGrain',
-	'filmGrain',
-	'artisticCutout',
-	'cutout',
-	'artisticCement',
-	'cement',
-	'artisticTexturizer',
-	'texturizer',
-	'artisticCrisscrossEtching',
-	'crisscrossEtching',
-	'artisticMosaic',
-	'artisticMosaicBubbles',
-	'mosaicBubbles',
-	'mosaic',
-	'artisticGlowEdges',
-	'glowEdges',
-	'glow_edges',
-	'artisticChalkSketch',
-	'chalkSketch',
-	'chalk',
-	'artisticPencilSketch',
-	'pencilSketch',
-	'artisticPencilGrayscale',
-	'pencilGrayscale',
-	'grayPencil',
-]);
-
 // ── Filter ID generation ──────────────────────────────────────────────────
 
-/** Generate a stable, unique SVG filter ID for an artistic effect on an element. */
-export function getArtisticFilterId(elementId: string): string {
-	return `artistic-fx-${elementId}`;
-}
-
 // ── Query whether an effect needs SVG ─────────────────────────────────────
-
-/**
- * Check whether the given artistic effect name requires an inline SVG
- * `<filter>` definition (as opposed to pure CSS filters).
- */
-export function needsSvgArtisticFilter(effectName: string | undefined): boolean {
-	if (!effectName) {
-		return false;
-	}
-	return SVG_FILTER_EFFECTS.has(effectName);
-}
 
 // ── SVG filter renderer ───────────────────────────────────────────────────
 
