@@ -1815,6 +1815,33 @@ describe('replaced wording in the same slot (issue #160)', () => {
 		expect(incoming.keyframes).toContain('translate(-460px, -320px)');
 	});
 
+	it('dissolves a paragraph that re-fitted far enough to clear half its box (issue #161)', () => {
+		// The wheel deck's "Challenge" line, in px: its box shifts 17.75px up a
+		// 55px-tall box and narrows, which drops the box overlap to 0.487. At the
+		// old 0.5 slot threshold it fell through to interpolation and stretched its
+		// glyphs by the 1.56% its width changed - the reporter's "text moving".
+		const challenge: MorphPair = {
+			fromElement: paragraph('a', 'Challenge: Pan-DLOD solutions, avoiding vendor lock-in', {
+				x: 494.24,
+				y: 365.6,
+				width: 290.2,
+				height: 55.11,
+			}),
+			toElement: paragraph('b', 'Challenge: Resilient, deployable compute and analytics', {
+				x: 503.67,
+				y: 347.85,
+				width: 271.32,
+				height: 55.11,
+			}),
+		};
+		const [incoming] = generateMorphAnimations([challenge], 1000);
+		const [ghost] = generateMorphGhostAnimations([challenge], 1000, 0);
+		for (const keyframes of [incoming.keyframes, ghost.keyframes]) {
+			expect(keyframes).toContain('scale(1, 1)');
+			expect(keyframes).not.toMatch(/translate\((?!0)/u);
+		}
+	});
+
 	it('leaves a shape with a body alone', () => {
 		// Only a bare text box is a container PowerPoint re-fits; a rounded
 		// rectangle that resizes really does change size on screen.

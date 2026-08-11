@@ -10,10 +10,18 @@ import { boxOverlapRatio } from './morph-flatten';
 
 /**
  * Fraction of the union the two boxes must share to count as the same slot.
- * The same threshold `morph-flatten` uses to decide two group children are the
- * same object, and for the same reason.
+ *
+ * A paragraph PowerPoint re-fits around its own wording can move a fair way as
+ * the panel reflows: on the wheel deck's slide 7 -> 8 the "Challenge" line's box
+ * shifts 17.75px up a 55px-tall box and its width changes, which drops the
+ * overlap to 0.487 - just under the 0.5 that `morph-flatten` uses for group
+ * children. It is still the same paragraph dissolving in place, so it was
+ * stretching its glyphs by the 1.56% its box width changed (issue #161's "text
+ * moving") instead of dissolving. A genuine relocation (measured: a text box
+ * that moved 460px) shares no box at all and scores ~0, so 0.4 keeps that
+ * interpolating while catching a re-fit this size.
  */
-const SAME_SLOT_OVERLAP = 0.5;
+const SAME_SLOT_OVERLAP = 0.4;
 
 /** An element's own words, whitespace-normalised. */
 function ownText(element: PptxElement): string {
