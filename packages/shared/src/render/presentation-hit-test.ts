@@ -44,3 +44,37 @@ export const PRESENTATION_HIT_TEST_CSS = `
 	pointer-events: auto;
 }
 `;
+
+/** Inputs for {@link inlineElementPointerEvents}. */
+export interface InlinePointerEventsOptions {
+	/** Whether this element may be selected / dragged on the editing canvas. */
+	interactive: boolean;
+	/** Whether the stage painting it is a running slide show. */
+	presenting: boolean;
+}
+
+/**
+ * The inline `pointer-events` an element renderer may write, if any.
+ *
+ * Off the show stage a locked element (an inherited master / layout shape with
+ * template editing off) has to be pointer-transparent, and a binding says so
+ * inline because nothing else knows the lock.
+ *
+ * During a show it must NOT: {@link PRESENTATION_HIT_TEST_CSS} owns the rule
+ * there, and it works by re-enabling actionable shapes that sit inside inert
+ * ones. An inline `none` on the element outranks any stylesheet, so writing one
+ * makes every Action Setting on the slide unclickable and the show advances
+ * instead of following the link. That is not a hypothetical: it is why the
+ * wheel-of-slices deck could not be navigated in the bindings that wrote it.
+ *
+ * @returns `'none'` when the binding should write it, `undefined` to leave the
+ *   property alone and let the cascade decide.
+ */
+export function inlineElementPointerEvents(
+	options: InlinePointerEventsOptions,
+): 'none' | undefined {
+	if (options.presenting) {
+		return undefined;
+	}
+	return options.interactive ? undefined : 'none';
+}

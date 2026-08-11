@@ -15,6 +15,7 @@ import {
 	DEFAULT_FONT_FAMILY,
 	DEFAULT_TEXT_FONT_SIZE,
 	resolveAutoFitFontScale,
+	inlineElementPointerEvents,
 	resolveParagraphIndent,
 	resolveParagraphSpacing,
 	resolveRunFont,
@@ -273,7 +274,13 @@ export class ElementRendererComponent {
 	 * but left the element itself indistinguishable from an interactive one to
 	 * anything reading its computed style (e.g. `e2e/template-editing.spec.ts`).
 	 */
-	readonly rootPointerEvents = computed<'none' | null>(() => (this.interactive() ? null : 'none'));
+	readonly rootPointerEvents = computed<'none' | null>(
+		() =>
+			inlineElementPointerEvents({
+				interactive: this.interactive(),
+				presenting: this.presenting(),
+			}) ?? null,
+	);
 
 	/**
 	 * True only on the live presentation stage; threaded to the media renderer so

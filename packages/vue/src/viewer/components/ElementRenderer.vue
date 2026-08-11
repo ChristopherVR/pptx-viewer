@@ -7,6 +7,7 @@ import {
 	getGroupChildParentFill,
 	getOverflowSegments,
 	hasTextWarp,
+	inlineElementPointerEvents,
 	isElementRendered,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -235,10 +236,21 @@ const elementMarker = computed<'true' | undefined>(() =>
  * so the style-array merge below leaves an already-set `pointerEvents` (e.g.
  * the hollow-shape outline-only hit-test in `getShapeFillStrokeStyle`)
  * untouched instead of clobbering it.
+ *
+ * On a RUNNING SHOW the value is `null` too, whatever `interactive` says: the
+ * rule there is `PRESENTATION_HIT_TEST_CSS`, which re-enables action shapes
+ * nested inside inert ones, and an inline `none` here outranks that stylesheet.
+ * Writing it made every on-slide Action Setting unclickable, so the show
+ * advanced instead of following the link. `inlineElementPointerEvents` owns the
+ * distinction for all five bindings.
  */
-const rootPointerEvents = computed<CSSProperties | null>(() =>
-	props.interactive ? null : { pointerEvents: 'none' },
-);
+const rootPointerEvents = computed<CSSProperties | null>(() => {
+	const value = inlineElementPointerEvents({
+		interactive: props.interactive === true,
+		presenting: props.presenting === true,
+	});
+	return value ? { pointerEvents: value } : null;
+});
 
 /*
  * The on-canvas action affordances (amber "has action" badge + hover link
