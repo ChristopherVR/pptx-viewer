@@ -58,7 +58,7 @@ const MEDIA_CHROME = '[data-pptx-media-chrome]';
 /** The shared play triangle (`MEDIA_FALLBACK_ICONS.play`), whatever wraps it. */
 const PLAY_BADGE_PATH = 'M5 3 L19 12 L5 21 Z';
 
-async function startShowOnVideoSlide(page: Page): Promise<void> {
+async function loadDeck(page: Page): Promise<void> {
 	// Forget any restored session first, or the deck reopens and the landing
 	// dropzone (the only place #file-input exists) never mounts.
 	await resetTabSession(page);
@@ -66,6 +66,16 @@ async function startShowOnVideoSlide(page: Page): Promise<void> {
 	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[aria-label="Go to slide 14"]').first().waitFor({ timeout: LOAD_TIMEOUT_MS });
 	await page.waitForTimeout(1200);
+}
+
+/**
+ * Enter the show on the video slide, assuming the deck is already loaded. Kept
+ * separate from {@link loadDeck} so a test that samples the morph at several
+ * fractions can re-enter the show without re-parsing the 5 MB deck each time:
+ * doing the full load four times over ran Angular (the slowest binding, served
+ * from `dist`) past the 60 s test timeout on CI.
+ */
+async function presentVideoSlide(page: Page): Promise<void> {
 	await page.locator(`[aria-label="Go to slide ${VIDEO_SLIDE}"]`).first().click();
 	await page.waitForTimeout(900);
 	await page
@@ -73,6 +83,11 @@ async function startShowOnVideoSlide(page: Page): Promise<void> {
 		.first()
 		.click();
 	await page.waitForTimeout(2000);
+}
+
+async function startShowOnVideoSlide(page: Page): Promise<void> {
+	await loadDeck(page);
+	await presentVideoSlide(page);
 }
 
 /**
@@ -127,10 +142,12 @@ test.describe('issue #147 - media chrome must not ride along in a transition', (
 				`a play triangle was painted at ${fraction * 100}% of the morph`,
 			).toBe(0);
 
-			// Re-enter the show on the video slide for the next sample.
+			// Re-enter the show on the video slide for the next sample. The deck is
+			// already loaded, so only re-present it - re-parsing it each iteration
+			// timed Angular out on CI.
 			await page.keyboard.press('Escape');
 			await page.waitForTimeout(500);
-			await startShowOnVideoSlide(page);
+			await presentVideoSlide(page);
 		}
 	});
 
