@@ -8,6 +8,23 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-11
+
+_Releases: pptx-react-viewer@2.16.7, pptx-vue-viewer@2.17.7, pptx-angular-viewer@2.17.7, pptx-vanilla-viewer@1.18.7, pptx-svelte-viewer@2.17.7_
+
+### Bug Fixes
+
+- **vue:** Swap inherited layout artwork when a slide's layout changes (by @ChristopherVR) ([1e927ce](https://github.com/ChristopherVR/pptx-viewer/commit/1e927ce2f079c1e84659791fa62f47b9e2e0ad45))
+
+### Refactor
+
+- **shared:** One paragraph-spacing resolver, and delete four more binding copies (by @ChristopherVR) ([65f8268](https://github.com/ChristopherVR/pptx-viewer/commit/65f8268df08021c1985dc86d93d3338c96b792c8))
+- **shared:** Give the cached-SmartArt projection the whole decision, and React's table styling too (by @ChristopherVR) ([411148f](https://github.com/ChristopherVR/pptx-viewer/commit/411148f44630a65b1cd6e90a2954a53a24f110a5))
+- **react:** Re-export the SmartArt and template helpers instead of copying them (by @ChristopherVR) ([32d91bc](https://github.com/ChristopherVR/pptx-viewer/commit/32d91bcf0aa7ef78db9f181677f6f295d383766d))
+- **react:** Delete the unreachable SmartArt renderer tree and shim seven more copies (by @ChristopherVR) ([02dddb6](https://github.com/ChristopherVR/pptx-viewer/commit/02dddb65543c7db4bde1a08d30d3d64fffa87440))
+- **shared:** Move find/replace and per-cell table CSS off their React copies (by @ChristopherVR) ([5b81728](https://github.com/ChristopherVR/pptx-viewer/commit/5b81728891f3e8cea1c2def2aed2d8b23e338081))
+- **vue:** Take the comment id from shared (by @ChristopherVR) ([b8d2950](https://github.com/ChristopherVR/pptx-viewer/commit/b8d2950edc73e5ac6691a0164825d9f2ff58ac39))
+
 ## 2026-08-10
 
 _Releases: pptx-react-viewer@2.16.6, pptx-vue-viewer@2.17.6, pptx-angular-viewer@2.17.6, pptx-vanilla-viewer@1.18.6, pptx-svelte-viewer@2.17.6_
