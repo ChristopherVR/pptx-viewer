@@ -10,6 +10,19 @@ dated sections beneath it are generated from
 
 ## 2026-08-11
 
+_Releases: pptx-react-viewer@2.16.9, pptx-vue-viewer@2.17.9, pptx-angular-viewer@2.17.9, pptx-vanilla-viewer@1.18.9, pptx-svelte-viewer@2.17.9_
+
+### Bug Fixes
+
+- **shared:** Keep a morph pair travelling when its outline is tweened too (by @ChristopherVR) ([0316cf7](https://github.com/ChristopherVR/pptx-viewer/commit/0316cf7b058bc49b247250d9e188822fdd4ef11f))
+- **shared:** Dissolve a re-fitted morph paragraph in place instead of stretching it (by @ChristopherVR) ([975c6f6](https://github.com/ChristopherVR/pptx-viewer/commit/975c6f600a836081ec0f30c99fffb9aabbaaa598))
+
+### Testing
+
+- **e2e:** Stop reloading the video deck on every media-transition sample (by @ChristopherVR) ([0ac3a80](https://github.com/ChristopherVR/pptx-viewer/commit/0ac3a80f0d23400ebd6631e9adc3c5154a914143))
+
+## 2026-08-11
+
 _Releases: pptx-react-viewer@2.16.8, pptx-vue-viewer@2.17.8, pptx-angular-viewer@2.17.8, pptx-vanilla-viewer@1.18.8, pptx-svelte-viewer@2.17.8_
 
 ### Bug Fixes
