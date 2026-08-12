@@ -302,7 +302,7 @@
     },
     "packages/react": {
       "name": "pptx-react-viewer",
-      "version": "2.16.9",
+      "version": "2.16.10",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.13",

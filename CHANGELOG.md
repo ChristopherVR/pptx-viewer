@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-12
+
+_Releases: pptx-react-viewer@2.16.10_
+
+### Bug Fixes
+
+- **react:** Stop the transition overlay shrinking away from the live slide (by @ChristopherVR) ([ec58f39](https://github.com/ChristopherVR/pptx-viewer/commit/ec58f39cc7c7407ee2d7af641287145f5950bf10))
+
 ## 2026-08-11
 
 _Releases: pptx-react-viewer@2.16.9, pptx-vue-viewer@2.17.9, pptx-angular-viewer@2.17.9, pptx-vanilla-viewer@1.18.9, pptx-svelte-viewer@2.17.9_
