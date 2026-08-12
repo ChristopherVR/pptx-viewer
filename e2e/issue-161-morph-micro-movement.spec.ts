@@ -92,11 +92,29 @@ async function startShowOnTopicSlide(page: Page): Promise<void> {
 		.getByRole('button', { name: /^present$|slide show/iu })
 		.first()
 		.click();
-	await page.waitForTimeout(2000);
+	// Wait for the show to actually be up, rather than for a fixed 2s: this deck
+	// is 5 MB and every test in this file starts here, so on a loaded machine a
+	// timeout that is usually generous turns into a run where the wedge "is not
+	// on screen" yet and the measurement never happens.
+	await page.locator(SHOW_STAGE).first().waitFor({ timeout: LOAD_TIMEOUT_MS });
+	// The wedge by its painted BOX, not by Playwright's visibility: it is an
+	// `<svg>`-clipped shape whose container reports itself hidden in some
+	// bindings, and every test here reads it through `getBoundingClientRect`
+	// anyway.
+	await page.waitForFunction(
+		([stage, id]) => {
+			const rect = document
+				.querySelector(`${stage} [data-element-id="${id}"]`)
+				?.getBoundingClientRect();
+			return Boolean(rect && rect.width > 0 && rect.height > 0);
+		},
+		[SHOW_STAGE, NEXT_TOPIC_WEDGE] as const,
+		{ timeout: LOAD_TIMEOUT_MS },
+	);
 	// Park the pointer off the wheel: a hovered wedge repaints, and every frame
 	// this spec compares has to differ only in what the morph did.
 	await page.mouse.move(4, 4);
-	await page.waitForTimeout(400);
+	await page.waitForTimeout(600);
 }
 
 /**
@@ -256,6 +274,108 @@ async function clipOf(
 	};
 }
 
+/** The running show's slide box, as a screenshot clip. */
+async function stageClip(page: Page): Promise<{
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}> {
+	const box = await page.locator(SHOW_STAGE).first().boundingBox();
+	expect(box, 'the show stage must be on screen').not.toBeNull();
+	return {
+		x: Math.ceil(box!.x),
+		y: Math.ceil(box!.y),
+		// Trim a pixel off each side so the letterbox seam is never in frame, and
+		// keep clear of the show's own control bar along the bottom.
+		width: Math.floor(box!.width) - 2,
+		height: Math.floor(box!.height * 0.8),
+	};
+}
+
+/**
+ * How far `moved` is displaced horizontally from `reference`, in pixels.
+ *
+ * Compares column-luminance profiles rather than pixels: a displaced LAYER
+ * shifts every column at once, so the shift that maximises the correlation of
+ * the two profiles is the displacement, and it stays readable even though the
+ * two frames also differ in what has begun to dissolve.
+ */
+async function horizontalOffsetBetween(
+	scratch: Page,
+	reference: Buffer,
+	moved: Buffer,
+): Promise<number> {
+	return scratch.evaluate(
+		async ([referenceBase64, movedBase64]) => {
+			const profileOf = async (base64: string): Promise<Float64Array> => {
+				const image = await new Promise<HTMLImageElement>((res, rej) => {
+					const img = new Image();
+					img.onload = () => {
+						res(img);
+					};
+					img.onerror = rej;
+					img.src = `data:image/png;base64,${base64}`;
+				});
+				const canvas = document.createElement('canvas');
+				canvas.width = image.naturalWidth;
+				canvas.height = image.naturalHeight;
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				if (!ctx) {
+					throw new Error('no 2d canvas context');
+				}
+				ctx.drawImage(image, 0, 0);
+				const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+				const profile = new Float64Array(width);
+				for (let x = 0; x < width; x++) {
+					let sum = 0;
+					for (let y = 0; y < height; y++) {
+						const i = (y * width + x) * 4;
+						sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+					}
+					profile[x] = sum / height;
+				}
+				// Centre and normalise, so the comparison is of SHAPE and a frame that
+				// is uniformly dimmer (a dissolve in progress) still correlates.
+				let mean = 0;
+				for (const value of profile) {
+					mean += value;
+				}
+				mean /= profile.length;
+				let norm = 0;
+				for (let x = 0; x < profile.length; x++) {
+					profile[x] -= mean;
+					norm += profile[x] * profile[x];
+				}
+				norm = Math.sqrt(norm) || 1;
+				for (let x = 0; x < profile.length; x++) {
+					profile[x] /= norm;
+				}
+				return profile;
+			};
+			const a = await profileOf(referenceBase64);
+			const b = await profileOf(movedBase64);
+			let best = 0;
+			let bestScore = -Infinity;
+			for (let shift = -150; shift <= 150; shift++) {
+				let score = 0;
+				for (let x = 0; x < a.length; x++) {
+					const j = x + shift;
+					if (j >= 0 && j < b.length) {
+						score += a[x] * b[j];
+					}
+				}
+				if (score > bestScore) {
+					bestScore = score;
+					best = shift;
+				}
+			}
+			return best;
+		},
+		[reference.toString('base64'), moved.toString('base64')] as const,
+	);
+}
+
 /**
  * Where a filled shape's four edges fall inside a crop, to a fraction of a
  * pixel.
@@ -362,43 +482,102 @@ test.describe('issue #161 - an unchanged shape does not drift during a morph', (
 	}
 
 	test("the button's edges hold their sub-pixel position through the morph", async ({ page }) => {
-		// The button is the shape to measure this on: a saturated fill on the
-		// panel's flat dark disc, so its boundary is a clean luminance step that
-		// resolves to a fraction of a pixel. (The disc itself is measured only by
-		// the animation test above - it fills its own crop, so there is no
-		// surround to read an edge against.)
-		await startShowOnTopicSlide(page);
-		const clip = await clipOf(page, BUTTON.out);
-		const settled = await page.screenshot({ clip });
-
-		await clickWedgeAndFreezeMorph(page);
-
-		const frames: Buffer[] = [];
-		for (const fraction of [0, 0.5, 1]) {
-			await scrubTo(page, fraction);
-			frames.push(await page.screenshot({ clip }));
-		}
-
-		const scratch = await page.context().newPage();
-		const reference = await edgesOf(scratch, settled);
-		const measured = await Promise.all(frames.map((png) => edgesOf(scratch, png)));
-		await scratch.close();
-
-		// The crop must actually contain an edge, or every comparison below is
-		// vacuous.
-		for (const value of reference) {
-			expect(Number.isFinite(value), 'the button must show an edge to measure').toBeTruthy();
-		}
-		// The defect measured 1.17px (React) to 1.55px (Vue) on this shape. What
-		// is left is a static sub-quarter-pixel difference between where the
-		// overlay's slide box and the stage's own land (0.00px on React, 0.26px on
-		// the other four); it does not vary with the morph's progress, so it is
-		// not something a viewer sees move.
-		for (const [index, fraction] of [0, 0.5, 1].entries()) {
-			expect(
-				worstShift(reference, measured[index]),
-				`the button must not move or resize at ${fraction * 100}% of the morph`,
-			).toBeLessThan(0.5);
-		}
+		await expectTheButtonHoldsItsEdges(page);
 	});
 });
+
+/**
+ * The overlay has to land ON the live slide, at every show size.
+ *
+ * The overlay's slide box is laid out at the deck's own canvas size (1280px
+ * here) and only then scaled to the stage. Centre it with flexbox and it is a
+ * flex ITEM, so a show surface NARROWER than 1280px squeezes the box itself
+ * before the scale is applied, and the whole outgoing slide is painted up to
+ * 77px to the side of the incoming one for the length of every transition. The
+ * per-shape measurement above cannot see that: it crops around where the shape
+ * belongs, and a layer displaced that far simply is not in the crop.
+ *
+ * A narrow surface is ordinary, not exotic: a windowed show, or a Windows
+ * display scaled past 125%, which is how this deck was being watched.
+ *
+ * The first frame of a morph is the outgoing slide unchanged - every ghost sits
+ * at its own start state and nothing has faded yet - so it must match the
+ * settled slide it started from. Comparing whole frames (rather than one shape)
+ * is what catches a displaced LAYER, and reading the offset by correlation
+ * rather than a pixel count says how far it moved.
+ */
+test.describe('issue #161 - the transition overlay lands on the live slide', () => {
+	for (const viewport of [
+		{ width: 1100, height: 620 },
+		{ width: 1024, height: 768 },
+	]) {
+		test.describe(`at ${viewport.width}x${viewport.height}`, () => {
+			test.use({ viewport });
+
+			test('the morph opens on the slide it started from', async ({ page }) => {
+				await startShowOnTopicSlide(page);
+				const clip = await stageClip(page);
+				const settled = await page.screenshot({ clip });
+
+				await clickWedgeAndFreezeMorph(page);
+				await scrubTo(page, 0);
+				const opening = await page.screenshot({ clip });
+
+				const scratch = await page.context().newPage();
+				const offset = await horizontalOffsetBetween(scratch, settled, opening);
+				await scratch.close();
+
+				expect(
+					Math.abs(offset),
+					'the overlay must paint the outgoing slide where the stage was painting it',
+				).toBeLessThan(1);
+			});
+		});
+	}
+});
+
+/**
+ * Measure the button's four painted edges on the settled slide, then again at
+ * three points of a frozen morph, and assert they have not moved.
+ *
+ * The button is the shape to measure this on: a saturated fill on the panel's
+ * flat dark disc, so its boundary is a clean luminance step that resolves to a
+ * fraction of a pixel. (The disc itself is measured only by the animation test
+ * above - it fills its own crop, so there is no surround to read an edge
+ * against.)
+ */
+async function expectTheButtonHoldsItsEdges(page: Page): Promise<void> {
+	await startShowOnTopicSlide(page);
+	const clip = await clipOf(page, BUTTON.out);
+	const settled = await page.screenshot({ clip });
+
+	await clickWedgeAndFreezeMorph(page);
+
+	const frames: Buffer[] = [];
+	for (const fraction of [0, 0.5, 1]) {
+		await scrubTo(page, fraction);
+		frames.push(await page.screenshot({ clip }));
+	}
+
+	const scratch = await page.context().newPage();
+	const reference = await edgesOf(scratch, settled);
+	const measured = await Promise.all(frames.map((png) => edgesOf(scratch, png)));
+	await scratch.close();
+
+	// The crop must actually contain an edge, or every comparison below is
+	// vacuous.
+	for (const value of reference) {
+		expect(Number.isFinite(value), 'the button must show an edge to measure').toBeTruthy();
+	}
+	// The defect measured 1.17px (React) to 1.55px (Vue) on this shape. What
+	// is left is a static sub-quarter-pixel difference between where the
+	// overlay's slide box and the stage's own land (0.00px on React, 0.26px on
+	// the other four); it does not vary with the morph's progress, so it is
+	// not something a viewer sees move.
+	for (const [index, fraction] of [0, 0.5, 1].entries()) {
+		expect(
+			worstShift(reference, measured[index]),
+			`the button must not move or resize at ${fraction * 100}% of the morph`,
+		).toBeLessThan(0.5);
+	}
+}

@@ -128,7 +128,38 @@ describe('presentationTransitionOverlay', () => {
 			/>,
 		);
 		// The sized slide box, not some nested element transform.
-		expect(html).toContain('width:960px;height:540px;transform:scale(1.75)');
+		expect(html).toContain('width:960px;height:540px;flex-shrink:0;transform:scale(1.75)');
+	});
+
+	// Regression (issue #161): the slide box is centred with flexbox, so it is a
+	// flex ITEM and shrinks to a container narrower than the deck's own canvas -
+	// BEFORE the stage scale is applied. On a show surface narrower than the
+	// canvas (a windowed show, or a display scaled past 125%) that painted the
+	// whole outgoing slide up to 77px to the side of the incoming one for the
+	// length of every transition, because the stage below positions its own
+	// slide box absolutely and never shrinks.
+	it.each([
+		['a plain transition', undefined],
+		['a morph', 'morph'],
+	])('holds the outgoing slide box at the canvas width during %s', (_name, kind) => {
+		const plan =
+			kind === 'morph'
+				? buildMorphTransitionPlan(makeSlide(), { ...makeSlide(), id: 'incoming-slide' }, 800)
+				: undefined;
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={makeSlide()}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={fade}
+				durationMs={600}
+				scale={0.5}
+				morphPlan={plan}
+				incomingSlide={{ ...makeSlide(), id: 'incoming-slide' }}
+				onComplete={vi.fn()}
+			/>,
+		);
+		expect(html).toContain('width:960px;height:540px;flex-shrink:0');
 	});
 
 	it('animates a ghost picture source crop on its <img>, not on the frame', () => {
@@ -244,6 +275,6 @@ describe('presentationTransitionOverlay', () => {
 				onComplete={vi.fn()}
 			/>,
 		);
-		expect(html).toContain('width:960px;height:540px;transform:scale(1)');
+		expect(html).toContain('width:960px;height:540px;flex-shrink:0;transform:scale(1)');
 	});
 });

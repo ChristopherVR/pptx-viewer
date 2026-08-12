@@ -208,6 +208,15 @@ export function PresentationTransitionOverlay({
 						style={{
 							width: canvasSize.width,
 							height: canvasSize.height,
+							// The slide box is a flex ITEM, so it shrinks to the container
+							// unless told not to. A show surface narrower than the deck's own
+							// canvas (a windowed show, or a display scaled past 100%) squeezed
+							// the unscaled 1280px box down to the container width and only
+							// then scaled it, landing the whole outgoing slide up to ~77px to
+							// the right of the live one for the length of the morph (issue
+							// #161). The stage below positions its slide box absolutely and is
+							// unaffected, so the two layers disagreed.
+							flexShrink: 0,
 							transform: `scale(${scale})`,
 							transformOrigin: 'center',
 							position: 'relative',
@@ -280,6 +289,10 @@ export function PresentationTransitionOverlay({
 					style={{
 						width: canvasSize.width,
 						height: canvasSize.height,
+						// See the morph layer above: a flex item shrinks to its container,
+						// which offsets the whole outgoing slide on a show surface narrower
+						// than the deck's canvas.
+						flexShrink: 0,
 						transform: `scale(${scale})`,
 						transformOrigin: 'center',
 					}}
