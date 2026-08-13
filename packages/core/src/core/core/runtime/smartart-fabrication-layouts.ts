@@ -5,7 +5,7 @@
  * part supplies the precise node geometry PowerPoint displays.
  */
 import type { PptxSmartArtData, SmartArtLayout } from '../../types';
-import { XML_PROLOG, DGM_XMLNS } from './smartart-fabrication-data';
+import { XML_PROLOG, DGM_XMLNS, xmlEscape } from './smartart-fabrication-data';
 import { HIERARCHY_LAYOUT_DEF_BODY } from './smartart-fabrication-hierarchy';
 
 export type FabricatedLayoutFamily =
@@ -251,8 +251,8 @@ export function buildFabricatedLayoutDefXml(
 						shapeType,
 					);
 	return (
-		`${XML_PROLOG}\r\n<dgm:layoutDef ${DGM_XMLNS} uniqueId="${fabricatedLayoutUniqueId(family, layoutIdentity)}">` +
-		`<dgm:title val="${layoutTitle(layoutIdentity, family)}"/><dgm:desc val=""/>` +
+		`${XML_PROLOG}\r\n<dgm:layoutDef ${DGM_XMLNS} uniqueId="${xmlEscape(fabricatedLayoutUniqueId(family, layoutIdentity))}">` +
+		`<dgm:title val="${xmlEscape(layoutTitle(layoutIdentity, family))}"/><dgm:desc val=""/>` +
 		`<dgm:catLst><dgm:cat type="${FAMILY_CATEGORY[family]}" pri="1000"/></dgm:catLst>${
 			body
 		}</dgm:layoutDef>`

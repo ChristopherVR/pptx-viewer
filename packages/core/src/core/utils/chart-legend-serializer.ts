@@ -12,8 +12,10 @@
  */
 
 import type { PptxChartLegendEntry, XmlObject } from '../types';
-
 /** Resolve a possibly-prefixed XML key to its local name (e.g. `c:legend` -> `legend`). */
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
+
 type GetLocalName = (key: string) => string;
 
 /** The legend-relevant subset of `PptxChartStyle`. */
@@ -89,7 +91,11 @@ export function parseChartLegendEntries(
 	});
 }
 
-function buildTextProperties(entry: PptxChartLegendEntry): XmlObject | undefined {
+function buildTextProperties(
+	entry: PptxChartLegendEntry,
+	authoredDefRPr: XmlObject | undefined,
+	resolveColor?: ResolveChartColor,
+): XmlObject | undefined {
 	const style = entry.textStyle;
 	if (!style || Object.keys(style).length === 0) {
 		return undefined;
@@ -105,7 +111,8 @@ function buildTextProperties(entry: PptxChartLegendEntry): XmlObject | undefined
 		rPr['@_i'] = style.italic ? '1' : '0';
 	}
 	if (style.color) {
-		rPr['a:solidFill'] = { 'a:srgbClr': { '@_val': style.color.replace(/^#/u, '') } };
+		rPr['a:solidFill'] = authoredDefRPr?.['a:solidFill'];
+		writeChartColorChoice(rPr, 'a:solidFill', style.color, resolveColor);
 	}
 	if (style.fontFamily) {
 		rPr['a:latin'] = { '@_typeface': style.fontFamily };
@@ -134,10 +141,23 @@ function setEntryChoice(
 	}
 }
 
+/** The authored `a:defRPr` inside a legend entry's `c:txPr`, when it has one. */
+function authoredEntryDefRPr(
+	node: XmlObject,
+	txPrKey: string | undefined,
+	getLocalName: GetLocalName,
+): XmlObject | undefined {
+	const txPr = txPrKey ? (node[txPrKey] as XmlObject | undefined) : undefined;
+	const paragraph = txPr ? child(txPr, 'p', getLocalName) : undefined;
+	const pPr = paragraph ? child(paragraph, 'pPr', getLocalName) : undefined;
+	return pPr ? child(pPr, 'defRPr', getLocalName) : undefined;
+}
+
 function applyLegendEntries(
 	legend: XmlObject,
 	entries: PptxChartLegendEntry[] | undefined,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	if (!entries) {
 		return;
@@ -157,7 +177,11 @@ function applyLegendEntries(
 		}
 		const deleteKey = Object.keys(node).find((candidate) => getLocalName(candidate) === 'delete');
 		const txPrKey = Object.keys(node).find((candidate) => getLocalName(candidate) === 'txPr');
-		const txPr = buildTextProperties(entry);
+		const txPr = buildTextProperties(
+			entry,
+			authoredEntryDefRPr(node, txPrKey, getLocalName),
+			resolveColor,
+		);
 		if (txPr) {
 			if (deleteKey) {
 				delete node[deleteKey];
@@ -236,6 +260,7 @@ export function applyChartLegendToXml(
 	chartRoot: XmlObject,
 	style: ChartLegendStyle,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const existingKey = Object.keys(chartRoot).find((k) => getLocalName(k) === 'legend');
 
@@ -264,7 +289,7 @@ export function applyChartLegendToXml(
 			getLocalName,
 		);
 		const created = chartRoot['c:legend'] as XmlObject;
-		applyLegendEntries(created, style.legendEntries, getLocalName);
+		applyLegendEntries(created, style.legendEntries, getLocalName, resolveColor);
 		return;
 	}
 
@@ -284,5 +309,5 @@ export function applyChartLegendToXml(
 			);
 		}
 	}
-	applyLegendEntries(legendNode, style.legendEntries, getLocalName);
+	applyLegendEntries(legendNode, style.legendEntries, getLocalName, resolveColor);
 }

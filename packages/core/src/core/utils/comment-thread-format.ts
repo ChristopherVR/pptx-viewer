@@ -13,9 +13,14 @@ import type { PptxComment } from '../types';
 
 const GUID_PATTERN = /^\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}$/iu;
 
-/** Whether the legacy vocabulary is incapable of round-tripping this comment. */
+/**
+ * Whether the legacy vocabulary is incapable of round-tripping this comment.
+ *
+ * Replies are one such feature; `@`-mentions are the other, because legacy
+ * `CT_Comment` has nowhere to record a mention's person id or its span.
+ */
 export function commentRequiresModernFormat(comment: PptxComment): boolean {
-	return (comment.replies?.length ?? 0) > 0;
+	return (comment.replies?.length ?? 0) > 0 || (comment.mentions?.length ?? 0) > 0;
 }
 
 /** Whether this comment belongs in the modern (`p188`) threaded-comment part. */

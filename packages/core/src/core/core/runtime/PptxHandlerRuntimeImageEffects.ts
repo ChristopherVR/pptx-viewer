@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxImageEffects, MediaBookmark } from '../../types';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
+import { parseA14ImageExtension } from './image-a14-effects';
 import { parseImageAlphaEffects } from './image-alpha-effects';
 import { parseImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStylesAndActions';
@@ -190,32 +191,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// Artistic effects from extension list
+		// Artistic effects / background removal from the a14 blip extension.
+		// Everything the extension carries is edit-time metadata: PowerPoint bakes
+		// the result into the bitmap the main a:blip points at, so the effects are
+		// modelled but flagged as pre-rendered (see image-a14-effects.ts).
 		const extLst = xmlChild(blip, 'a:extLst');
 		if (extLst) {
-			const exts = this.ensureArray(extLst['a:ext']);
-			for (const ext of exts) {
-				const uri = xmlAttr(ext, 'uri') || '';
-				if (uri === '{BEBA8EAE-BF5A-486C-A8C5-ECC9F3942E4B}') {
-					const imgEffect = xmlChild(ext, 'a14:imgEffect') || xmlChild(ext, 'a14:imgLayer');
-					if (imgEffect) {
-						// Find the actual effect child (e.g. a14:artisticBlur, a14:artisticPencilGrayscale, etc.)
-						const keys = Object.keys(imgEffect).filter((k) => k.startsWith('a14:artistic'));
-						if (keys.length > 0) {
-							const effectName = keys[0].replace('a14:', '');
-							effects.artisticEffect = effectName;
-							hasAny = true;
-							// Try to extract radius/amount
-							const effectNode = imgEffect[keys[0]] as XmlObject | undefined;
-							if (effectNode) {
-								const rad =
-									effectNode['@_radius'] ?? effectNode['@_amount'] ?? effectNode['@_pressure'];
-								if (rad !== null) {
-									effects.artisticRadius = parseInt(String(rad)) || 0;
-								}
-							}
-						}
+			const a14 = parseA14ImageExtension(this.ensureArray(extLst['a:ext']));
+			if (a14) {
+				if (a14.artisticEffect !== undefined) {
+					effects.artisticEffect = a14.artisticEffect;
+					effects.artisticPrerenderedEffect = a14.artisticEffect;
+					if (a14.artisticRadius !== undefined) {
+						effects.artisticRadius = a14.artisticRadius;
 					}
+					if (a14.artisticParams) {
+						effects.artisticParams = a14.artisticParams;
+					}
+					hasAny = true;
+				}
+				if (a14.backgroundRemoval) {
+					effects.backgroundRemoval = a14.backgroundRemoval;
+					hasAny = true;
+				}
+				if (a14.originalImageRelId !== undefined) {
+					effects.originalImageRelId = a14.originalImageRelId;
+					hasAny = true;
 				}
 			}
 		}

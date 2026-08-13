@@ -1,3 +1,4 @@
+import { XMLValidator } from 'fast-xml-parser';
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
@@ -534,6 +535,35 @@ describe('repairPptx', () => {
 		const ct = await repairedZip.file('[Content_Types].xml')!.async('string');
 		expect(ct).toContain('slide1.xml');
 		expect(ct).toContain('presentationml.slide+xml');
+	});
+
+	it('keeps an external hyperlink target well-formed when it rebuilds a rels part', async () => {
+		// The parser decodes entities on read, so `a=1&amp;b=2` comes back as
+		// `a=1&b=2`. Re-emitting it raw produced a `.rels` part that is not
+		// well-formed XML, and PowerPoint refuses the whole package.
+		const zip = new JSZip();
+		zip.file('[Content_Types].xml', CONTENT_TYPES_XML);
+		zip.file('_rels/.rels', ROOT_RELS_XML);
+		zip.file('ppt/presentation.xml', PRESENTATION_XML);
+		zip.file('ppt/theme/theme1.xml', THEME_XML);
+		zip.file('ppt/slides/slide1.xml', SLIDE_XML);
+		zip.file(
+			'ppt/slides/_rels/slide1.xml.rels',
+			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com/?a=1&amp;b=2&amp;c=&quot;3&quot;" TargetMode="External"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/gone.png"/>
+</Relationships>`,
+		);
+		const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+		const { repaired } = await repairPptx(buf);
+		const repairedZip = await JSZip.loadAsync(repaired);
+		const rels = await repairedZip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');
+
+		expect(XMLValidator.validate(rels)).toBeTruthy();
+		expect(rels).toContain('a=1&amp;b=2');
+		expect(rels).not.toContain('a=1&b=2');
 	});
 
 	// ---- 2. Remove dangling relationships -----------------------------------

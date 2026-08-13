@@ -11,6 +11,8 @@
  */
 
 import type { PptxChartTrendline, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
 import { buildTrendlineLabel } from './chart-trendline-label';
 
 type GetLocalName = (key: string) => string;
@@ -34,10 +36,6 @@ function ensureArray<T>(v: T | T[] | undefined): T[] {
 		return [];
 	}
 	return Array.isArray(v) ? v : [v];
-}
-
-function hex(color: string): string {
-	return color.replace(/^#/u, '').toUpperCase();
 }
 
 function assertFinite(value: number | undefined, name: string): void {
@@ -66,6 +64,7 @@ function buildSpPr(
 	existing: XmlObject | undefined,
 	color: string | undefined,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject | undefined {
 	if (!color) {
 		return existing;
@@ -80,7 +79,7 @@ function buildSpPr(
 	if (noFillKey) {
 		delete ln[noFillKey];
 	}
-	ln[fillKey] = { 'a:srgbClr': { '@_val': hex(color) } };
+	writeChartColorChoice(ln, fillKey, color, resolveColor);
 	spPr[lnKey] = ln;
 	return spPr;
 }
@@ -90,6 +89,7 @@ function buildTrendline(
 	existing: XmlObject | undefined,
 	t: PptxChartTrendline,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject {
 	validateTrendline(t);
 	const node: XmlObject = {};
@@ -104,6 +104,7 @@ function buildTrendline(
 		existing ? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject) : undefined,
 		t.color,
 		getLocalName,
+		resolveColor,
 	);
 	if (spPr) {
 		node['c:spPr'] = spPr;
@@ -161,11 +162,14 @@ export function applySeriesTrendlinesToXml(
 	seriesNode: XmlObject,
 	trendlines: PptxChartTrendline[],
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const existingKey = findKey(seriesNode, 'trendline', getLocalName);
 	const existingNodes = (existingKey ? ensureArray(seriesNode[existingKey]) : []) as XmlObject[];
 
-	const built = trendlines.map((t, i) => buildTrendline(existingNodes[i], t, getLocalName));
+	const built = trendlines.map((t, i) =>
+		buildTrendline(existingNodes[i], t, getLocalName, resolveColor),
+	);
 
 	// Remove the existing key; we will re-insert in the correct position.
 	if (existingKey) {

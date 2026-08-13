@@ -77,7 +77,7 @@ describe('createParagraphsFromTextContent: paragraph direction is not flattened 
 		}
 	});
 
-	it('does not flatten rtl onto the backfilled empty run of a blank paragraph', () => {
+	it('does not flatten rtl onto the empty run of a blank paragraph', () => {
 		const [paragraph] = runtime.build('', { rtl: true } as TextStyle, [segment('')]);
 		expect((paragraph['a:pPr'] as XmlObject)['@_rtl']).toBe('1');
 		for (const rPr of runProperties(paragraph)) {
@@ -110,5 +110,61 @@ describe('createParagraphsFromTextContent: paragraph direction is not flattened 
 		for (const rPr of runProperties(paragraph)) {
 			expect(rPr['a:rtl']).toBeUndefined();
 		}
+	});
+});
+
+/**
+ * A blank line is `<a:p><a:pPr/><a:endParaRPr/></a:p>`: PowerPoint sizes it
+ * from `a:endParaRPr`, and authors no run at all (§21.1.2.2.7). The writer
+ * used to backfill `<a:r><a:rPr/><a:t/></a:r>` into any paragraph that ended
+ * up with no runs, inventing a run the source never had and handing it a
+ * resolved `a:rPr` to carry.
+ */
+describe('createParagraphsFromTextContent: a runless paragraph stays runless', () => {
+	const runtime = new ParagraphRuntime();
+	const segment = (text: string, style?: TextStyle): TextSegment =>
+		({ text, style }) as TextSegment;
+
+	it('writes no a:r for a blank paragraph between two others', () => {
+		// The parse emits one "\n" separator per paragraph boundary, so a blank
+		// middle paragraph arrives as two consecutive separators and contributes
+		// no content of its own.
+		const paragraphs = runtime.build('a\n\nb', undefined, [
+			segment('a'),
+			segment('\n'),
+			segment('\n'),
+			segment('b'),
+		]);
+		expect(paragraphs).toHaveLength(3);
+		expect('a:r' in paragraphs[1]).toBeFalsy();
+		// The blank line keeps its size: `a:endParaRPr` is still emitted.
+		expect(paragraphs[1]['a:endParaRPr']).toBeDefined();
+		// The paragraphs that do have text keep their runs.
+		expect(paragraphs[0]['a:r']).toBeDefined();
+		expect(paragraphs[2]['a:r']).toBeDefined();
+	});
+
+	it('keeps the parsed endParaRPr on the blank paragraph it belongs to', () => {
+		const blank = segment('\n');
+		(blank as { endParaRunProperties?: Record<string, unknown> }).endParaRunProperties = {
+			'@_lang': 'zh-CN',
+			'@_sz': '1000',
+		};
+		const paragraphs = runtime.build('a\n\nb', undefined, [
+			segment('a'),
+			segment('\n'),
+			blank,
+			segment('b'),
+		]);
+		expect('a:r' in paragraphs[1]).toBeFalsy();
+		expect((paragraphs[1]['a:endParaRPr'] as XmlObject)['@_sz']).toBe('1000');
+	});
+
+	it('still writes the run of a paragraph whose only content is an empty run', () => {
+		// PowerPoint really does author `<a:r><a:rPr/><a:t/></a:r>`: 40 of the 84
+		// runs in `36_Slides_Extra_Large_*.pptx` are exactly that. A segment is
+		// present, so the paragraph is not runless and the run must survive.
+		const [paragraph] = runtime.build('', undefined, [segment('')]);
+		expect(paragraph['a:r']).toBeDefined();
 	});
 });

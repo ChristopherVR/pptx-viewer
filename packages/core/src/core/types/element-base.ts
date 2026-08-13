@@ -53,6 +53,15 @@ export interface PptxElementBase {
 	shapeId?: string;
 	/** Element name from `cNvPr/@name`. Used for morph transition matching via the `!!` naming convention. */
 	name?: string;
+	/**
+	 * `p:nvSpPr/p:nvPr/p:ph/@type` (lower-cased) when the shape is a placeholder:
+	 * `title`, `ctrtitle`, `body`, `subtitle`, `ftr`, `dt`, `sldnum`, ...
+	 *
+	 * Captured on load so consumers can tell a footer placeholder from a text box
+	 * without re-walking `rawXml`. Absent on non-placeholder shapes and on
+	 * SDK-created elements.
+	 */
+	placeholderType?: string;
 	x: number;
 	y: number;
 	width: number;
@@ -111,6 +120,19 @@ export interface PptxTextProperties {
 	paragraphIndents?: Array<{ marginLeft?: number; indent?: number }>;
 	/** Placeholder prompt text inherited from layout/master (e.g. "Click to add title"). Shown as a greyed-out hint when the shape has no user-entered text. */
 	promptText?: string;
+	/**
+	 * The string {@link text} was INHERITED from, when this is a header / footer /
+	 * date / slide-number placeholder whose own body the file leaves empty.
+	 *
+	 * PowerPoint keeps the footer string on the slide master and writes each
+	 * slide's copy of the `ftr` placeholder empty, so the empty body means
+	 * "render the master's footer here". Rendering needs the resolved string, but
+	 * SAVING it into the slide would pin that slide to today's master text and
+	 * silently detach it from the Header & Footer dialog. The save writer
+	 * therefore leaves the authored empty body alone while `text` still equals
+	 * this value, and writes a genuine per-slide override once it does not.
+	 */
+	inheritedPlaceholderText?: string;
 	/** Linked text box chain ID from `a:bodyPr > a:linkedTxbx/@id` or `a:txbx > a:linkedTxbx/@id`. Text overflows from one linked frame to the next. */
 	linkedTxbxId?: number;
 	/** Sequence number within a linked text box chain (0-based). */

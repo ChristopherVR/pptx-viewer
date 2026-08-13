@@ -1,6 +1,7 @@
 import { XmlObject, TextSegment, TextStyle } from '../../types';
 import { xmlText } from '../../utils';
 import { parseParagraphLevel } from '../../utils/paragraph-properties-parser';
+import { xmlHasChild } from '../../utils/xml-access';
 import { breakAutoNumberRun, nextAutoNumber } from './auto-number-sequence';
 import { paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
@@ -42,6 +43,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				seedStyle = { ...style };
 			}
 		};
+
+		// Every run style below is `{...inherited, ...authored}`. Recording the
+		// two halves alongside the flat result is what lets the writer emit a
+		// sparse `a:rPr` again instead of baking the whole resolved cascade into
+		// the run (see `authored-run-style.ts`). Both are stored by REFERENCE:
+		// the baseline is this paragraph's single `mergedDefaultRunStyle`, so
+		// the split costs two pointers per run, not two objects. A run with no
+		// `a:rPr` of its own gets an EMPTY authored half, which is the whole
+		// point: it authored nothing and must round-trip as `<a:rPr lang=".."/>`.
+		const withAuthoredSplit = (authored: TextStyle): TextStyle =>
+			({
+				...mergedDefaultRunStyle,
+				...authored,
+				authoredRunStyle: authored,
+				inheritedRunStyle: mergedDefaultRunStyle,
+			}) as TextStyle;
 
 		// Bullet info
 		const isBodyPlaceholder =
@@ -136,14 +153,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				style: bulletStyle,
 				bulletInfo: paragraphBulletInfo,
 			});
-			maybeSeed(mergedDefaultRunStyle);
+			// The marker itself authored no `a:rPr`, and this is also what seeds
+			// `element.textStyle` on a bulleted shape, which the writer falls back
+			// to for any run it rebuilds from the flat text. Seeding it WITHOUT
+			// the authored split would have re-flattened the whole cascade for
+			// exactly the decks that need it most (every bulleted body).
+			maybeSeed(withAuthoredSplit({}));
 		}
 
 		const appendRun = (runText: string, runProps: XmlObject | undefined) => {
-			const runStyle = {
-				...mergedDefaultRunStyle,
-				...this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
-			} as TextStyle;
+			const runStyle = withAuthoredSplit(
+				this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
+			);
 			// #83: annotate a per-script fallback face when the run's text is
 			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
 			// `<a:font script=...>` override. Rendering hint only — never
@@ -191,14 +212,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return;
 			}
 			const fieldText = xmlText(field['a:t']) ?? '';
-			const fieldRunStyle = {
-				...mergedDefaultRunStyle,
-				...this.extractTextRunStyle(
+			const fieldRunStyle = withAuthoredSplit(
+				this.extractTextRunStyle(
 					field['a:rPr'] as XmlObject | undefined,
 					paraAlign,
 					ctx.slideRelationshipMap,
 				),
-			} as TextStyle;
+			);
 			const fldType = String(field['@_type'] || '').trim() || undefined;
 			const uuidAttr = String(field['@_uuid'] || '').trim();
 			const idAttr = String(field['@_id'] || '').trim();
@@ -319,10 +339,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				case 'a:br': {
 					const brNode = (item ?? {}) as XmlObject;
 					const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
-					const brStyle = {
-						...mergedDefaultRunStyle,
-						...this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
-					} as TextStyle;
+					const brStyle = withAuthoredSplit(
+						this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
+					);
 					parts.push('\n');
 					const brSegment: TextSegment = {
 						text: '\n',
@@ -340,7 +359,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		if (pIdx < paraCount - 1) {
-			const separatorStyle = { ...mergedDefaultRunStyle } as TextStyle;
+			// The paragraph terminator authored no `a:rPr` of its own, so it takes
+			// an EMPTY authored half. Without it, the empty run the writer
+			// backfills for a blank paragraph came out carrying the whole
+			// resolved cascade (`sz`, `a:solidFill`, `a:latin`): on
+			// `issue-132-hr-deck.pptx` slide 1 that was 38 runs' worth of
+			// flattening on a slide whose source declared 7 `a:rPr` in total.
+			const separatorStyle = withAuthoredSplit({}) as TextStyle;
 			// An EMPTY paragraph's line box takes its size from `a:endParaRPr sz`
 			// (PowerPoint sizes the blank line the way it would size a caret on
 			// it). The paragraph has no run to carry that size, so stamp it on
@@ -372,7 +397,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// empty run for an empty paragraph either way) and no text to the
 			// element, and it takes the blank line's size from `a:endParaRPr sz`
 			// exactly as the separator above does.
-			const emptyParagraphStyle = { ...mergedDefaultRunStyle } as TextStyle;
+			const emptyParagraphStyle = withAuthoredSplit({}) as TextStyle;
 			const endParaSz = (p['a:endParaRPr'] as XmlObject | undefined)?.['@_sz'];
 			const endParaPoints = endParaSz !== undefined ? parseInt(String(endParaSz)) / 100 : NaN;
 			if (Number.isFinite(endParaPoints) && endParaPoints > 0) {
@@ -387,6 +412,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const firstSegmentIndex = segments.length === 0 ? -1 : 0;
 		if (firstSegmentIndex >= 0) {
 			const pPrRaw = p['a:pPr'] as XmlObject | undefined;
+			// A paragraph that explicitly suppressed its bullet produces no marker
+			// segment, so nothing carried `bulletInfo` and the writer had no way to
+			// know: `a:buNone` was dropped on save and the paragraph inherited a
+			// bullet back from the list style, painting markers where the author
+			// had removed them (56 lost on the Arabic RTL corpus deck alone).
+			//
+			// Only the paragraph's OWN `a:buNone` counts. `resolveParagraphBulletInfo`
+			// also reports `none` when the suppression is INHERITED from a layout or
+			// master list style, and writing that back onto the slide paragraph would
+			// add markup the author never authored.
+			if (xmlHasChild(pPrRaw, 'a:buNone') && segments[firstSegmentIndex].bulletInfo === undefined) {
+				segments[firstSegmentIndex].bulletInfo = { none: true };
+			}
 			const lvlRaw = pPrRaw?.['@_lvl'];
 			if (lvlRaw !== undefined) {
 				const lvlParsed = Number.parseInt(String(lvlRaw), 10);

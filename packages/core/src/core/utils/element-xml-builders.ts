@@ -7,6 +7,7 @@ import { normalizeHexColor } from '../color/color-primitives';
 import { EMU_PER_PX, DEFAULT_STROKE_COLOR } from '../constants';
 import type { PptxElementWithText, ConnectorPptxElement, XmlObject } from '../types';
 import { applyDrawingLineDash } from './drawing-line-dash';
+import { createDrawingObjectId } from './element-utils';
 import { normalizeStrokeDashType } from './stroke-utils';
 
 // ---------------------------------------------------------------------------
@@ -33,11 +34,12 @@ export function createTemplateShapeRawXml(element: PptxElementWithText): XmlObje
 					})),
 				}
 			: {};
+	const objectId = createDrawingObjectId();
 	return {
 		'p:nvSpPr': {
 			'p:cNvPr': {
-				'@_id': String(Math.floor(Math.random() * 10000) + 1000),
-				'@_name': `${name} ${Math.floor(Math.random() * 100)}`,
+				'@_id': String(objectId),
+				'@_name': `${name} ${objectId}`,
 			},
 			'p:cNvSpPr': {
 				'@_txBox': isTextBox ? '1' : '0',
@@ -119,11 +121,12 @@ export function createTemplateConnectorRawXml(element: ConnectorPptxElement): Xm
 		};
 	}
 
+	const objectId = createDrawingObjectId();
 	return {
 		'p:nvCxnSpPr': {
 			'p:cNvPr': {
-				'@_id': String(Math.floor(Math.random() * 10000) + 1000),
-				'@_name': `Connector ${Math.floor(Math.random() * 100)}`,
+				'@_id': String(objectId),
+				'@_name': `Connector ${objectId}`,
 			},
 			'p:cNvCxnSpPr': {},
 			'p:nvPr': {},

@@ -8,6 +8,7 @@ import {
 	shouldRenderFallbackLabel,
 	getElementTextContent,
 	createUniformTextSegments,
+	createDrawingObjectId,
 	createEditorId,
 	createArrayBufferCopy,
 	ensureArrayValue,
@@ -331,6 +332,37 @@ describe('createEditorId', () => {
 			ids.add(createEditorId('el'));
 		}
 		expect(ids.size).toBe(5000);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// createDrawingObjectId
+// ---------------------------------------------------------------------------
+
+describe('createDrawingObjectId', () => {
+	// The predecessor was `Math.floor(Math.random() * 10000) + 1000`: 9,000
+	// values, so a deck gaining a few hundred shapes collided as a matter of
+	// course. The slide writer's `validateAndDeduplicateIds` repaired the
+	// duplicate by RENUMBERING a shape, which leaves any animation's
+	// `p:spTgt/@spid` pointing at the number the shape no longer has.
+	it('never repeats across a burst minted in one tick', () => {
+		const ids = new Set<number>();
+		for (let index = 0; index < 5000; index++) {
+			ids.add(createDrawingObjectId());
+		}
+		expect(ids.size).toBe(5000);
+	});
+
+	it('mints positive integers inside ST_DrawingElementId', () => {
+		const id = createDrawingObjectId();
+		expect(Number.isInteger(id)).toBeTruthy();
+		expect(id).toBeGreaterThan(0);
+		expect(id).toBeLessThanOrEqual(4294967295);
+	});
+
+	it('increases strictly, so a later shape never reuses an earlier id', () => {
+		const first = createDrawingObjectId();
+		expect(createDrawingObjectId()).toBeGreaterThan(first);
 	});
 });
 

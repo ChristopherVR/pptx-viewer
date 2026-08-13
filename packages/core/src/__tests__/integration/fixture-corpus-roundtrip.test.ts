@@ -62,7 +62,7 @@ const TIMEOUT = 120_000;
  */
 describe('fixture corpus: the manifest and the tree agree', () => {
 	for (const dir of ['e2e', 'corpus'] as const) {
-		it(`every .pptx in ${dir} is declared, and every declaration exists`, () => {
+		it(`every .pptx / .ppt in ${dir} is declared, and every declaration exists`, () => {
 			expect(listFixturesOnDisk(dir)).toStrictEqual(manifestFor(dir).map((e) => e.file));
 		});
 	}
@@ -100,6 +100,34 @@ describe('fixture corpus: an encrypted package is rejected, not mis-parsed', () 
 				// The validator must say WHY rather than crash or pass it.
 				const errors = await validationErrors(readFixture(entry));
 				expect(errors.map((e) => e.code)).toContain('INVALID_ZIP');
+			},
+			TIMEOUT,
+		);
+	}
+});
+
+/**
+ * Legacy binary `.ppt` cannot go through the load -> save -> reload comparison
+ * (it loads as a compound file and saves as an OpenXML package, deliberately),
+ * so what this asserts is the claim the product now makes on its behalf: the
+ * same `PptxHandler.load()` opens it, and it saves as a real `.pptx`. The
+ * fidelity comparison against the `.pptx` twin lives in `ppt-import.test.ts`.
+ */
+describe('fixture corpus: a legacy .ppt imports and saves as .pptx', () => {
+	for (const entry of FIXTURE_MANIFEST.filter((e) => e.status === 'legacy-ppt')) {
+		it(
+			`${entry.file} opens through the ordinary load path`,
+			async () => {
+				const { PptxHandler } = await import('../../core/PptxHandler');
+				const handler = new PptxHandler();
+				const data = await handler.load(readFixture(entry));
+				expect(data.slides.length).toBeGreaterThan(0);
+
+				// We never write the binary format back. The saved bytes must be a
+				// ZIP (PK\x03\x04), which is what makes re-extensioning the save
+				// name to `.pptx` the honest thing to do rather than a cosmetic one.
+				const saved = await handler.save(data.slides);
+				expect([saved[0], saved[1], saved[2], saved[3]]).toStrictEqual([0x50, 0x4b, 0x03, 0x04]);
 			},
 			TIMEOUT,
 		);

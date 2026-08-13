@@ -5,6 +5,7 @@
  * @module pptx-types/metadata
  */
 
+import type { PptxCommentMention } from './comment-mentions';
 import type { XmlObject } from './common';
 
 // ==========================================================================
@@ -56,6 +57,8 @@ export interface PptxComment {
 	title?: string;
 	/** Modern threaded comment support (p15:threadingInfo). */
 	threadId?: string;
+	/** `@`-mentions, indexed into `text` (see {@link PptxCommentMention}). */
+	mentions?: PptxCommentMention[];
 	/** Replies to this comment (for modern threaded comments). */
 	replies?: PptxComment[];
 	/** ID of the element this comment is associated with (if any). */

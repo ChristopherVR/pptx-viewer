@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
 import { EMU_PER_PX } from '../constants';
-import type { PptxElementWithText, ConnectorPptxElement, XmlObject } from '../types';
+import { createTableGraphicFrameRawXml } from '../core/runtime/table-create-xml';
+import type { PptxElement, PptxElementWithText, ConnectorPptxElement, XmlObject } from '../types';
 import { createTemplateShapeRawXml, createTemplateConnectorRawXml } from './element-xml-builders';
 
 // ---------------------------------------------------------------------------
@@ -159,5 +160,63 @@ describe('createTemplateConnectorRawXml', () => {
 		const ln = (xml['p:spPr'] as XmlObject)['a:ln'] as XmlObject;
 		expect(ln['a:tailEnd']).toBeDefined();
 		expect((ln['a:tailEnd'] as XmlObject)['@_type']).toBe('stealth');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// p:cNvPr/@id minting
+// ---------------------------------------------------------------------------
+
+/**
+ * Every builder that emits a `p:cNvPr` shares ONE monotonic counter.
+ *
+ * The three used to draw independently from `Math.random() * 10000 + 1000`,
+ * i.e. 9,000 possible values. Inserting a few hundred objects therefore
+ * produced duplicate ids as a matter of course. The slide writer's
+ * `validateAndDeduplicateIds` did notice, but it repairs a clash by RENUMBERING
+ * one of the two shapes, and an animation's `p:spTgt/@spid` still names the
+ * number that shape no longer has, so the "repair" quietly detached the
+ * animation from its target. Not colliding in the first place is the fix.
+ */
+describe('cNvPr id minting', () => {
+	const box = {
+		type: 'shape',
+		id: 's1',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 100,
+		shapeType: 'rect',
+		text: '',
+	} as PptxElementWithText;
+
+	function cNvPrOf(node: XmlObject, container: string): XmlObject {
+		return (node[container] as XmlObject)['p:cNvPr'] as XmlObject;
+	}
+
+	function idOf(node: XmlObject, container: string): string {
+		return String(cNvPrOf(node, container)['@_id']);
+	}
+
+	it('hands out a distinct id to every object built in one tick', () => {
+		const ids: string[] = [];
+		for (let index = 0; index < 600; index++) {
+			ids.push(idOf(createTemplateShapeRawXml(box), 'p:nvSpPr'));
+			ids.push(
+				idOf(createTemplateConnectorRawXml(box as unknown as ConnectorPptxElement), 'p:nvCxnSpPr'),
+			);
+			ids.push(
+				idOf(
+					createTableGraphicFrameRawXml(box as unknown as PptxElement, 2, 2),
+					'p:nvGraphicFramePr',
+				),
+			);
+		}
+		expect(new Set(ids).size).toBe(ids.length);
+	});
+
+	it('names the object after its own id, so the name cannot collide either', () => {
+		const cNvPr = cNvPrOf(createTemplateShapeRawXml(box), 'p:nvSpPr');
+		expect(String(cNvPr['@_name'])).toBe(`Rectangle ${String(cNvPr['@_id'])}`);
 	});
 });

@@ -22,18 +22,19 @@ There is no UI here: this is the engine on its own. Use it directly when you nee
 npm install pptx-viewer-core
 ```
 
-> That's it, nothing else to install. All runtime dependencies are pulled in automatically by your package manager. Password protection and digital signatures need a few extra packages (`node-forge`, `xml-crypto`, `@xmldom/xmldom`), but only if you actually use those features.
+> That's it, nothing else to install. All runtime dependencies are pulled in automatically by your package manager. Password protection needs nothing extra (it runs on the Web Crypto API). Only Node-side digital-signature signing/verification pulls in a few more packages (`node-forge`, `xml-crypto`, `@xmldom/xmldom`), and only if you actually use it.
 
 ## What it does
 
-| Capability  | Description                                                                                                                                      |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Read**    | Open a `.pptx` and pull out slides, text, shapes, images, charts, tables, SmartArt, themes, comments, animations, transitions, and document info |
-| **Edit**    | Change the data in memory: add, remove, or reorder slides; insert elements; edit text; restyle; switch themes                                    |
-| **Save**    | Write the changed data back to a valid `.pptx`, leaving everything you did not touch untouched                                                   |
-| **Convert** | Turn a deck into Markdown, optionally pulling the images out alongside it                                                                        |
-| **Export**  | Save individual slides as their own standalone `.pptx` files                                                                                     |
-| **Protect** | Open and save password-protected files (AES-128/256 encryption)                                                                                  |
+| Capability  | Description                                                                                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Read**    | Open a `.pptx` and pull out slides, text, shapes, images, charts, tables, SmartArt, themes, comments, animations, transitions, and document info                        |
+| **Import**  | Open a legacy binary `.ppt` (PowerPoint 97-2003) too: `load()` detects the compound file and converts it, so you get the same `PptxData`. Saving always writes `.pptx`. |
+| **Edit**    | Change the data in memory: add, remove, or reorder slides; insert elements; edit text; restyle; switch themes                                                           |
+| **Save**    | Write the changed data back to a valid `.pptx`, leaving everything you did not touch untouched                                                                          |
+| **Convert** | Turn a deck into Markdown, optionally pulling the images out alongside it                                                                                               |
+| **Split**   | Save any subset of slides as its own standalone `.pptx` by passing just those slides to `save()`                                                                        |
+| **Protect** | Open and save password-protected files (AES-128/256 encryption)                                                                                                         |
 
 Positions and sizes use PowerPoint's own internal unit, the EMU (English Metric Unit): 1 inch = 914,400 EMU, 1 point = 12,700 EMU, and 1 pixel = 9,525 EMU at 96 DPI. You rarely deal with the raw numbers: helpers (`inches`, `cm`, `mm`, `pt`) let you work in familiar units instead.
 
@@ -49,9 +50,7 @@ const handler = new PptxHandler();
 const buffer = await fetch('presentation.pptx').then((r) => r.arrayBuffer());
 const data = await handler.load(buffer);
 
-console.log(
-	`${data.slides.length} slides, canvas ${data.canvasSize.width}×${data.canvasSize.height}`,
-);
+console.log(`${data.slides.length} slides, canvas ${data.width}x${data.height}`);
 
 // 2. Change a slide
 data.slides[0].elements[0].text = 'Updated title';
@@ -59,8 +58,8 @@ data.slides[0].elements[0].text = 'Updated title';
 // 3. Save it back to .pptx bytes
 const outputBytes = await handler.save(data.slides); // => Uint8Array
 
-// 4. Or pull out just a few slides as separate files
-const exports = await handler.exportSlides(data.slides, { slideIndexes: [0, 2] }); // => Map<number, Uint8Array>
+// 4. Or write just a few slides out as their own deck
+const excerpt = await handler.save([data.slides[0]!, data.slides[2]!]); // => Uint8Array
 ```
 
 `load()` gives you a `PptxData` object: a plain, fully typed description of the presentation. Read from it, change it, and pass its `slides` back to `save()` to get a valid `.pptx` file as bytes.
@@ -137,30 +136,31 @@ To write files to disk, pass a `FileSystemAdapter` (an object with `writeFile`, 
 
 `PptxHandler` is the one class you use to open, change, and save files. Its main methods:
 
-| Method                     | Signature                                               | What it does                                           |
-| -------------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
-| `load`                     | `(data, options?) => Promise<PptxData>`                 | Open a `.pptx` and return the structured data          |
-| `save`                     | `(slides, options?) => Promise<Uint8Array>`             | Write slides back to `.pptx` bytes                     |
-| `exportSlides`             | `(slides, options) => Promise<Map<number, Uint8Array>>` | Save chosen slides as standalone files                 |
-| `getImageData`             | `(path) => Promise<string \| undefined>`                | Get an embedded image as a base64 data URL             |
-| `getMediaArrayBuffer`      | `(path) => Promise<ArrayBuffer \| undefined>`           | Get the raw bytes of an embedded media file            |
-| `getLayoutOptions`         | `() => PptxLayoutOption[]`                              | List the slide layouts available                       |
-| `getCompatibilityWarnings` | `() => PptxCompatibilityWarning[]`                      | List features in the file that are not fully supported |
-| `applyTheme`               | `(colors, fonts, name?) => Promise<void>`               | Apply a complete theme                                 |
-| `setPresentationTheme`     | `(path, applyToAll?) => Promise<void>`                  | Load a `.thmx` theme file                              |
+| Method                     | Signature                                               | What it does                                                                                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `load`                     | `(data, options?) => Promise<PptxData>`                 | Open a `.pptx` and return the structured data                                                                                                                                                                                                                            |
+| `save`                     | `(slides, options?) => Promise<Uint8Array>`             | Write slides back to `.pptx` bytes                                                                                                                                                                                                                                       |
+| `exportSlides`             | `(slides, options) => Promise<Map<number, Uint8Array>>` | Backend hook, not a working exporter: the default runtime has no rendering backend, so it reports an `EXPORT_BACKEND_UNAVAILABLE` warning and returns empty buffers. Use `SvgExporter` for headless per-slide output, or a viewer binding's export pipeline in a browser |
+| `getImageData`             | `(path) => Promise<string \| undefined>`                | Get an embedded image as a base64 data URL                                                                                                                                                                                                                               |
+| `getMediaArrayBuffer`      | `(path) => Promise<ArrayBuffer \| undefined>`           | Get the raw bytes of an embedded media file                                                                                                                                                                                                                              |
+| `getLayoutOptions`         | `() => PptxLayoutOption[]`                              | List the slide layouts available                                                                                                                                                                                                                                         |
+| `getCompatibilityWarnings` | `() => PptxCompatibilityWarning[]`                      | List features in the file that are not fully supported                                                                                                                                                                                                                   |
+| `applyTheme`               | `(colors, fonts, name?) => Promise<void>`               | Apply a complete theme                                                                                                                                                                                                                                                   |
+| `setPresentationTheme`     | `(path, applyToAll?) => Promise<void>`                  | Load a `.thmx` theme file                                                                                                                                                                                                                                                |
 
-The `PptxData` you get from `load()` exposes `slides`, `canvasSize`, `theme`, `slideMasters`, `slideLayouts`, `sections`, `coreProperties`, `embeddedFonts`, and more. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete `PptxHandler`, chart/SmartArt, and theme APIs.
+The `PptxData` you get from `load()` exposes `slides`, `width` / `height` (and the exact `widthEmu` / `heightEmu`), `theme`, `slideMasters`, `slideLayouts`, `sections`, `coreProperties`, `embeddedFonts`, and more. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete `PptxHandler`, chart/SmartArt, and theme APIs.
 
 ## What's supported
 
 | Category          | Details                                                                                                                                             |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Element types** | 16: text, shape, connector, image, picture, table, chart, smartArt, ole, media, group, ink, contentPart, zoom, model3d, unknown                     |
-| **Preset shapes** | 187+ PowerPoint shapes, including ones with adjustable handles                                                                                      |
+| **Preset shapes** | All 187 `ST_ShapeType` presets (the complete ECMA-376 enumeration), including the ones with adjustable handles                                      |
 | **Chart types**   | 23, including waterfall, funnel, treemap, sunburst, box-whisker, region-map, and combo charts; with trendlines, error bars, and embedded Excel data |
-| **Transitions**   | 46 types (including morph, vortex, ripple, and shred)                                                                                               |
-| **Animations**    | 40+ presets, including colour animation, motion paths, and text that builds in by word, letter, or paragraph                                        |
-| **SmartArt**      | 14 layout families, broken into editable shapes with a live reflow engine for structural edits                                                      |
+| **Transitions**   | 57 types (including morph, vortex, ripple, and shred)                                                                                               |
+| **Animations**    | 39 editor presets and 26 motion paths, including colour animation and text that builds in by word, letter, or paragraph                             |
+| **SmartArt**      | 14 layout types resolved from 35 named presets, broken into editable shapes with a live reflow engine for structural edits                          |
+| **Table styles**  | 74 built-in PowerPoint gallery styles resolved against the deck's own theme, plus any style the deck itself defines                                 |
 | **Fills**         | Solid, gradient (linear, radial, path), image, and 56 patterns                                                                                      |
 | **Themes**        | 8 built-in presets, switchable at runtime, with layout and placeholder remapping                                                                    |
 | **Security**      | AES-128/256 encryption and decryption, modify-password (SHA), and detection of digital signatures                                                   |
@@ -173,7 +173,7 @@ You only ever work with one class, `PptxHandler`, and one data object, `PptxData
 A few things worth knowing as you use it:
 
 - **Every element has a `type` field** (`text`, `shape`, `image`, `chart`, `table`, and so on). Check it before reading element-specific properties, for example `if (element.type === 'image')`. TypeScript then knows exactly which fields exist.
-- **Shapes are drawn from a built-in catalogue** of 187+ PowerPoint shapes, so curves, arrows, and callouts come out with the right outlines.
+- **Shapes are drawn from a built-in catalogue** covering all 187 PowerPoint preset shapes, so curves, arrows, and callouts come out with the right outlines.
 - **Colours follow PowerPoint's theme rules**, so a colour defined as "accent 1, but 20% lighter" resolves to the correct final value for the active theme.
 
 Under the hood the engine is split into many small, focused modules. If you want the full load and save pipeline, the complete type system, and a module-by-module map, see the [full documentation](https://christophervr.github.io/pptx-viewer/).
@@ -181,7 +181,7 @@ Under the hood the engine is split into many small, focused modules. If you want
 ## Limitations
 
 - **OLE objects** (embedded Word docs, spreadsheets, and similar) cannot be edited in place: you get their preview image and can extract/download the embedded payload, but not edit its contents.
-- **SmartArt** is broken into editable shapes. It uses PowerPoint's own pre-computed shape geometry when present; after structural edits (add/remove/reorder/promote/demote nodes) a live reflow engine rebuilds the shapes, with an algorithmic fallback covering 14 layout families for diagrams PowerPoint never rendered.
+- **SmartArt** is broken into editable shapes. It uses PowerPoint's own pre-computed shape geometry when present; after structural edits (add/remove/reorder/promote/demote nodes) a live reflow engine rebuilds the shapes, with an algorithmic fallback covering 13 layout families for diagrams PowerPoint never rendered.
 - **Chart editing** covers data, categories, and chart type, plus legend, axes (scale, format, titles, gridlines, log/display units), data labels, trendlines, error bars, and per-series/per-point markers and fills. A handful of rarely-used chart properties remain read-only for display.
 - **Strict-format files** (ISO/IEC 29500 Strict) are converted to the more common Transitional form when opened and converted back when saved.
 

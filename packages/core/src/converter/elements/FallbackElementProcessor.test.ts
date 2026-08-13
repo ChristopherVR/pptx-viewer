@@ -29,8 +29,8 @@ function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProce
 describe('fallbackElementProcessor', () => {
 	const processor = new FallbackElementProcessor();
 
-	it('reports supported types as zoom, contentPart, unknown', () => {
-		expect(processor.supportedTypes).toStrictEqual(['zoom', 'contentPart', 'unknown']);
+	it('reports supported types as zoom, contentPart, model3d, unknown', () => {
+		expect(processor.supportedTypes).toStrictEqual(['zoom', 'contentPart', 'model3d', 'unknown']);
 	});
 
 	it('returns null for unsupported element type', async () => {
@@ -266,5 +266,58 @@ describe('fallbackElementProcessor', () => {
 			const result = await processor.process(el, makeCtx());
 			expect(result).toBe('*[Unsupported Element]*');
 		});
+	});
+});
+
+describe('fallbackElementProcessor model3d', () => {
+	const processor = new FallbackElementProcessor();
+
+	/**
+	 * The registry drops any element type no processor claims: `getProcessor`
+	 * returns null and `processElement` returns null, with no warning. `model3d`
+	 * was in that hole, so a slide carrying a 3D model converted to markdown
+	 * that simply did not mention it.
+	 */
+	it('is claimed at all, so a 3D model is not silently dropped', () => {
+		expect(processor.supportedTypes).toContain('model3d');
+	});
+
+	it('emits the poster frame plus a marker when the model has one', async () => {
+		const saveImage = vi.fn(async () => './media/slide1-model3d-001.png');
+		const el = {
+			type: 'model3d',
+			id: 'm3d_1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			posterImage: 'data:image/png;base64,AAAA',
+			altText: 'A red chair',
+		} as unknown as PptxElement;
+
+		const result = await processor.process(
+			el,
+			makeCtx({ mediaContext: { saveImage } as unknown as MediaContext }),
+		);
+
+		expect(saveImage).toHaveBeenCalledWith('data:image/png;base64,AAAA', 'slide1-model3d');
+		expect(result).toContain('![A red chair](./media/slide1-model3d-001.png)');
+		expect(result).toContain('*[3D Model]*');
+	});
+
+	it('falls back to the model path when there is no poster', async () => {
+		const el = {
+			type: 'model3d',
+			id: 'm3d_2',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			modelPath: 'ppt/media/model1.glb',
+		} as unknown as PptxElement;
+
+		await expect(processor.process(el, makeCtx())).resolves.toBe(
+			'*[3D Model: ppt/media/model1.glb]*',
+		);
 	});
 });

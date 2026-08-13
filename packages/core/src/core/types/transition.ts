@@ -70,6 +70,7 @@ export type PptxTransitionType =
 	| 'cube'
 	| 'flip'
 	| 'rotate'
+	| 'box'
 	| 'orbit'
 	| 'fallOver'
 	| 'drape'

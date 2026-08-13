@@ -32,6 +32,7 @@ export {
 	getElementTextContent,
 	createUniformTextSegments,
 	createEditorId,
+	createDrawingObjectId,
 	createArrayBufferCopy,
 	ensureArrayValue,
 	formatCommentTimestamp,
@@ -69,6 +70,9 @@ export {
 
 export { parseDataUrlToBytes, fetchUrlToBytes } from './data-url-utils';
 export { buildInkMlContent, parseInkMlContent } from './inkml-content-part';
+export type { ParsedInkMlContent } from './inkml-content-part';
+export { inkBounds, inkLengthToPx, inkPointMapper } from './inkml-ink-space';
+export type { InkBounds, InkTargetBox } from './inkml-ink-space';
 
 export { stripParentDirSegments } from './strip-parent-dir-segments';
 
@@ -219,7 +223,13 @@ export { normalizePartPath, resolveReferenceUriToPart } from './signature-refere
 
 export { computeDigestBase64 as computeDigestBase64WebCrypto } from './signature-digest';
 
-export { decodeXmlEntities } from './xml-entities';
+export { decodeXmlEntities, encodeXmlAttributeValue, encodeXmlTextValue } from './xml-entities';
+
+export {
+	preservesSpreadsheetXmlWhitespace,
+	preservesXmlWhitespace,
+	WHITESPACE_PRESERVING_TAGS,
+} from './xml-whitespace';
 
 export { computeDetailStatus, computeVerificationStatus } from './signature-inspection-status';
 
@@ -306,6 +316,11 @@ export { parseActiveXControlsFromSlide } from './activex-parser';
 export { applyActiveXControlsToSlide, buildActiveXControlNode } from './activex-serializer';
 
 export { parseKinsoku, applyKinsokuToXml } from './kinsoku-parser';
+
+export {
+	isHeaderFooterPlaceholder,
+	inheritedPlaceholderFieldType,
+} from './header-footer-placeholder';
 
 export { parseBodyPrBooleanAttrs, writeBodyPrBooleanAttrs } from './body-properties-parser';
 

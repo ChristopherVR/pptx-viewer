@@ -22,8 +22,10 @@ describe('fallbackElementProcessor', () => {
 
 	// ── Supported types ─────────────────────────────────────────────
 
-	it('should report supportedTypes as ["zoom", "contentPart", "unknown"]', () => {
-		expect(processor.supportedTypes).toStrictEqual(['zoom', 'contentPart', 'unknown']);
+	it('should report supportedTypes as ["zoom", "contentPart", "model3d", "unknown"]', () => {
+		// `model3d` joined the list because the registry silently DROPS any type
+		// no processor claims, so a 3D model converted to nothing at all.
+		expect(processor.supportedTypes).toStrictEqual(['zoom', 'contentPart', 'model3d', 'unknown']);
 	});
 
 	// ── Non-supported type ──────────────────────────────────────────

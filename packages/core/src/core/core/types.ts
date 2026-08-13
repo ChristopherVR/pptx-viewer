@@ -25,6 +25,7 @@ import type {
 	PptxSlide,
 	PptxSlideLayout,
 	PptxSlideMaster,
+	PptxSlideSize,
 	PptxSmartArtData,
 	PptxTagCollection,
 	PptxThemeColorScheme,
@@ -128,6 +129,19 @@ export interface PptxHandlerSaveOptions {
 	customerData?: PptxCustomerData[];
 	/** Photo album metadata to save back to `p:photoAlbum`. */
 	photoAlbum?: PptxPhotoAlbum;
+	/**
+	 * Slide dimensions to write back to `p:sldSz`.
+	 *
+	 * Omitting the option preserves the load-time dimensions verbatim, which
+	 * is why an edit made through a viewer's Slide Size control has to reach
+	 * the save call: nothing else in the pipeline can observe it.
+	 *
+	 * PowerPoint derives `Presentation.PageSetup.SlideSize` from `@cx`/`@cy`
+	 * alone (verified by COM: an A4-typed `p:sldSz` carrying 4:3 dimensions
+	 * still reports `ppSlideSizeCustom`), so `type` is written for fidelity
+	 * but the dimensions are what actually decide the reported preset.
+	 */
+	slideSize?: PptxSlideSize;
 	/** East Asian line-break settings to save back to `p:kinsoku`. */
 	kinsoku?: PptxKinsoku | null;
 	/** Write-protection verifier. Set to `null` to remove, `undefined` to preserve existing. */

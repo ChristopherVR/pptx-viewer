@@ -6,6 +6,11 @@
  */
 import type { XmlObject } from '../types';
 import { isAlternateContentChoiceSupported } from '../utils/mc-capabilities';
+import {
+	prismFamilyFlags,
+	prismFamilyTypeForFlags,
+	prismFamilyTypeOfNode,
+} from './p14-prism-family';
 import { P14_TRANSITION_TYPES } from './p14-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 import { PptxXmlLookupService } from './PptxXmlLookupService';
@@ -97,14 +102,37 @@ export function findEnvelopeChildByLocalName(
 /**
  * Key of a preserved direct child whose local name is the given p14
  * transition type (e.g. `p14:reveal` for type `reveal`), if present.
+ *
+ * Cube/Rotate/Box/Orbit all share the `p14:prism` element, so a name match
+ * alone would keep a preserved Orbit verbatim while the model says Cube. For
+ * those four the flags have to agree as well, otherwise the child is treated as
+ * stale and rebuilt from the type.
  */
 export function preservedP14ChildKey(
 	node: XmlObject,
 	transitionType: string,
 	getXmlLocalName: (xmlKey: string) => string,
 ): string | undefined {
-	for (const key of Object.keys(node)) {
-		if (!key.startsWith('@_') && getXmlLocalName(key) === transitionType) {
+	const prismFlags = prismFamilyFlags(transitionType);
+	for (const [key, value] of Object.entries(node)) {
+		if (key.startsWith('@_')) {
+			continue;
+		}
+		const localName = getXmlLocalName(key);
+		if (prismFlags) {
+			if (localName !== 'prism') {
+				continue;
+			}
+			const child =
+				value && typeof value === 'object' && !Array.isArray(value)
+					? (value as XmlObject)
+					: undefined;
+			if (prismFamilyTypeOfNode(child) === prismFamilyTypeForFlags(prismFlags)) {
+				return key;
+			}
+			continue;
+		}
+		if (localName === transitionType) {
 			return key;
 		}
 	}

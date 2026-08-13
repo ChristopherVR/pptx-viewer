@@ -7,7 +7,7 @@
  * saved diagram respects the hosting deck's theme.
  */
 import type { SmartArtColorScheme } from '../../types';
-import { XML_PROLOG, DGM_XMLNS } from './smartart-fabrication-data';
+import { XML_PROLOG, DGM_XMLNS, xmlEscape } from './smartart-fabrication-data';
 
 export const FABRICATED_QUICKSTYLE_UNIQUE_ID = 'urn:pptx-viewer/quickstyle/simple';
 
@@ -84,9 +84,9 @@ function colorsLabelXml(name: string, accents: string[]): string {
 export function buildFabricatedColorsXml(scheme: SmartArtColorScheme | undefined): string {
 	const accents = SCHEME_FILL_ACCENTS[scheme ?? 'colorful1'] ?? SCHEME_FILL_ACCENTS.colorful1;
 	return (
-		`${XML_PROLOG}\r\n<dgm:colorsDef ${DGM_XMLNS} uniqueId="${fabricatedColorsUniqueId(scheme)}">` +
+		`${XML_PROLOG}\r\n<dgm:colorsDef ${DGM_XMLNS} uniqueId="${xmlEscape(fabricatedColorsUniqueId(scheme))}">` +
 		`<dgm:title val=""/><dgm:desc val=""/>` +
-		`<dgm:catLst><dgm:cat type="${fabricatedColorsCategory(scheme)}" pri="10200"/></dgm:catLst>${STYLE_LABEL_NAMES.map(
+		`<dgm:catLst><dgm:cat type="${xmlEscape(fabricatedColorsCategory(scheme))}" pri="10200"/></dgm:catLst>${STYLE_LABEL_NAMES.map(
 			(name) => colorsLabelXml(name, accents),
 		).join('')}</dgm:colorsDef>`
 	);

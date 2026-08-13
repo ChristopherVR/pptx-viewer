@@ -12,6 +12,8 @@
  */
 
 import type { PptxChartDataPoint, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
 import { buildChartMarkerXml } from './chart-marker-serializer';
 
 type GetLocalName = (key: string) => string;
@@ -35,10 +37,6 @@ function findKey(obj: XmlObject, local: string, getLocalName: GetLocalName): str
 	return Object.keys(obj).find((k) => getLocalName(k) === local);
 }
 
-function hex(color: string): string {
-	return color.replace(/^#/u, '').toUpperCase();
-}
-
 function ensureArray<T>(v: T | T[] | undefined): T[] {
 	if (v === undefined) {
 		return [];
@@ -51,6 +49,7 @@ function buildDptSpPr(
 	existing: XmlObject | undefined,
 	dp: PptxChartDataPoint,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject | undefined {
 	const props = dp.spPr;
 	if (!props || !props.fillColor) {
@@ -62,7 +61,7 @@ function buildDptSpPr(
 	if (noFillKey) {
 		delete spPr[noFillKey];
 	}
-	spPr[fillKey] = { 'a:srgbClr': { '@_val': hex(props.fillColor) } };
+	writeChartColorChoice(spPr, fillKey, props.fillColor, resolveColor);
 	return spPr;
 }
 
@@ -86,6 +85,7 @@ function buildDataPoint(
 	existing: XmlObject | undefined,
 	dp: PptxChartDataPoint,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject {
 	assertDataPoint(dp);
 	const node: XmlObject = {};
@@ -97,7 +97,7 @@ function buildDataPoint(
 		? (existing[findKey(existing, 'marker', getLocalName) ?? ''] as XmlObject | undefined)
 		: undefined;
 	if (dp.marker) {
-		node['c:marker'] = buildChartMarkerXml(existingMarker, dp.marker, getLocalName);
+		node['c:marker'] = buildChartMarkerXml(existingMarker, dp.marker, getLocalName, resolveColor);
 	} else if (existingMarker) {
 		node['c:marker'] = existingMarker;
 	}
@@ -115,7 +115,7 @@ function buildDataPoint(
 	const existingSpPr = existing
 		? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject | undefined)
 		: undefined;
-	const spPr = buildDptSpPr(existingSpPr, dp, getLocalName);
+	const spPr = buildDptSpPr(existingSpPr, dp, getLocalName, resolveColor);
 	if (spPr) {
 		node['c:spPr'] = spPr;
 	}
@@ -143,6 +143,7 @@ export function applySeriesDataPointsToXml(
 	seriesNode: XmlObject,
 	dataPoints: PptxChartDataPoint[] | undefined,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const existingKey = findKey(seriesNode, 'dPt', getLocalName);
 	const existingNodes = (existingKey ? ensureArray(seriesNode[existingKey]) : []) as XmlObject[];
@@ -158,7 +159,9 @@ export function applySeriesDataPointsToXml(
 	}
 
 	const points = dataPoints ?? [];
-	const built = points.map((dp) => buildDataPoint(byIdx.get(dp.idx), dp, getLocalName));
+	const built = points.map((dp) =>
+		buildDataPoint(byIdx.get(dp.idx), dp, getLocalName, resolveColor),
+	);
 
 	if (existingKey) {
 		delete seriesNode[existingKey];

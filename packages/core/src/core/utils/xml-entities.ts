@@ -46,6 +46,49 @@ export function decodeXmlEntities(value: unknown): unknown {
 		.replace(/&amp;/gu, '&');
 }
 
+/**
+ * Encode `value` for use as ELEMENT TEXT.
+ *
+ * This reproduces fast-xml-parser's own default `entities` list (`&` first, then
+ * `>`, `<`, `'`, `"`) so switching the builder to `processEntities: false` is
+ * byte-for-byte neutral for text nodes, and adds `\r`. A literal carriage return
+ * in content is destroyed by XML line-ending normalisation (the reader rewrites
+ * `\r\n` and `\r` to `\n` before parsing), so it is the one character that has
+ * to be written as a numeric reference to survive a round trip.
+ */
+export function encodeXmlTextValue(value: string): string {
+	return value
+		.replace(/&/gu, '&amp;')
+		.replace(/>/gu, '&gt;')
+		.replace(/</gu, '&lt;')
+		.replace(/'/gu, '&apos;')
+		.replace(/"/gu, '&quot;')
+		.replace(/\r/gu, '&#xD;');
+}
+
+/**
+ * Encode `value` for use as an ATTRIBUTE value.
+ *
+ * `"` and `'` are deliberately NOT handled here: fast-xml-parser escapes the
+ * quote delimiters itself, unconditionally, immediately after this processor
+ * runs, so doing it twice would emit `&amp;quot;`.
+ *
+ * Tab, line feed and carriage return MUST be numeric references. XML attribute
+ * -value normalisation (spec 3.3.3) replaces every literal whitespace character
+ * in an attribute with a space on read-back, so writing a raw `\n` inside
+ * `descr="…"` silently turns the alt text's line breaks into spaces. Only the
+ * `&#xA;` form survives.
+ */
+export function encodeXmlAttributeValue(value: string): string {
+	return value
+		.replace(/&/gu, '&amp;')
+		.replace(/>/gu, '&gt;')
+		.replace(/</gu, '&lt;')
+		.replace(/\r/gu, '&#xD;')
+		.replace(/\n/gu, '&#xA;')
+		.replace(/\t/gu, '&#x9;');
+}
+
 /** Convert a code point to a string, leaving out-of-range values untouched. */
 function codePointToString(codePoint: number): string {
 	if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {

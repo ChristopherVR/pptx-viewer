@@ -32,6 +32,7 @@ export * from './transition';
 export * from './animation';
 export * from './media';
 export * from './actions';
+export * from './comment-mentions';
 export * from './metadata';
 export * from './element-base';
 export * from './elements';

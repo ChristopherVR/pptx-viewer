@@ -11,8 +11,16 @@
  */
 
 import type { PptxChartShapeProps, XmlObject } from '../types';
+import { serializeColorChoice } from './color-xml-preservation';
 
 type GetLocalName = (key: string) => string;
+
+/**
+ * Resolve an authored colour-choice node to its hex value. Optional: without
+ * it the writer cannot tell an authored `a:schemeClr` from an edited colour
+ * and falls back to replacing it, which is the pre-existing behaviour.
+ */
+type ResolveColor = (node: XmlObject) => string | undefined;
 
 /** CT_*Ax children that follow `c:majorGridlines` in schema order. */
 const AFTER_MAJOR = new Set([
@@ -98,6 +106,7 @@ export function applyChartAxisGridlinesToXml(
 		minorGridlinesSpPr?: PptxChartShapeProps;
 	},
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveColor,
 ): void {
 	applyOne(
 		axisNode,
@@ -115,8 +124,20 @@ export function applyChartAxisGridlinesToXml(
 		AFTER_MINOR,
 		getLocalName,
 	);
-	applyGridlineStyle(axisNode, 'majorGridlines', opts.majorGridlinesSpPr, getLocalName);
-	applyGridlineStyle(axisNode, 'minorGridlines', opts.minorGridlinesSpPr, getLocalName);
+	applyGridlineStyle(
+		axisNode,
+		'majorGridlines',
+		opts.majorGridlinesSpPr,
+		getLocalName,
+		resolveColor,
+	);
+	applyGridlineStyle(
+		axisNode,
+		'minorGridlines',
+		opts.minorGridlinesSpPr,
+		getLocalName,
+		resolveColor,
+	);
 }
 
 function hex(color: string): string {
@@ -128,6 +149,7 @@ function buildGridlineSpPr(
 	existing: XmlObject | undefined,
 	style: PptxChartShapeProps,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveColor,
 ): XmlObject {
 	const spPr: XmlObject = existing ? { ...existing } : {};
 	const lnKey = findKey(spPr, 'ln', getLocalName) ?? 'a:ln';
@@ -142,7 +164,17 @@ function buildGridlineSpPr(
 		if (noFillKey) {
 			delete ln[noFillKey];
 		}
-		ln[fillKey] = { 'a:srgbClr': { '@_val': hex(style.strokeColor) } };
+		// `strokeColor` is a RESOLVED hex, so writing it back unconditionally
+		// turned an authored `<a:schemeClr val="tx1"><a:lumMod val="15000"/>`
+		// gridline into a literal on every save. The authored node is still here
+		// (the chart part is mutated in place), so it is kept whenever it still
+		// resolves to the same colour.
+		const authoredFill = ln[fillKey] as XmlObject | undefined;
+		ln[fillKey] = serializeColorChoice(
+			authoredFill,
+			authoredFill && resolveColor ? resolveColor(authoredFill) : undefined,
+			hex(style.strokeColor),
+		);
 	}
 	if (style.strokeDashStyle) {
 		const dashKey = findKey(ln, 'prstDash', getLocalName) ?? 'a:prstDash';
@@ -162,6 +194,7 @@ function applyGridlineStyle(
 	local: string,
 	style: PptxChartShapeProps | undefined,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveColor,
 ): void {
 	if (!style) {
 		return;
@@ -172,6 +205,11 @@ function applyGridlineStyle(
 	}
 	const grid: XmlObject = { ...((axisNode[gridKey] as XmlObject | undefined) ?? {}) };
 	const spPrKey = findKey(grid, 'spPr', getLocalName) ?? 'c:spPr';
-	grid[spPrKey] = buildGridlineSpPr(grid[spPrKey] as XmlObject | undefined, style, getLocalName);
+	grid[spPrKey] = buildGridlineSpPr(
+		grid[spPrKey] as XmlObject | undefined,
+		style,
+		getLocalName,
+		resolveColor,
+	);
 	axisNode[gridKey] = grid;
 }

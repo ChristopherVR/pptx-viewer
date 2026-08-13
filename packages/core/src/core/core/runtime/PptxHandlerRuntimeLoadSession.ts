@@ -7,6 +7,7 @@ import { mimeTypeForOleFile } from '../../utils/ole-utils';
 import { detectDigitalSignatures } from '../../utils/signature-detection';
 import type { PptxHandlerLoadOptions } from '../types';
 import { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } from '../types';
+import { rememberSlideBackgroundOrigin } from './authored-slide-background';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeEmbeddedFonts';
 
 /**
@@ -53,7 +54,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			throw new Error('Invalid PPTX binary: file is empty or truncated.');
 		}
 		if (!this.isZipContainer(data)) {
-			throw new Error('Invalid PPTX binary: not a ZIP/OpenXML file. Legacy .ppt is not supported.');
+			// This branch used to claim "Legacy .ppt is not supported", which has
+			// been false since `core/ppt/` landed: `PptxHandlerCore.load()` sniffs
+			// the OLE compound-file signature FIRST and routes a legacy binary
+			// .ppt (and an encrypted OOXML package) away from here entirely, so a
+			// .ppt can no longer reach this line. What does reach it is input that
+			// is neither a ZIP nor an OLE compound file: a truncated or corrupt
+			// download, or some other file type handed to the loader by mistake.
+			// Telling that user to "convert from .ppt first" sent them chasing the
+			// wrong problem.
+			throw new Error(
+				'Invalid PPTX binary: not a ZIP/OpenXML package. The file is neither an OpenXML ' +
+					'archive nor an OLE compound file (which is how legacy .ppt and encrypted ' +
+					'presentations arrive), so it is most likely corrupt, truncated, or not a ' +
+					'presentation at all.',
+			);
 		}
 
 		try {
@@ -99,6 +114,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.slideRelsMap.clear();
 		this.externalRelsMap.clear();
 		this.slideMap.clear();
+		this.savedSlideFingerprints.clear();
 		this.layoutCache.clear();
 		this.masterCache.clear();
 		this.layoutXmlMap.clear();
@@ -442,6 +458,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			extractBackgroundImage: (slideXml, slidePath) =>
 				this.extractBackgroundImage(slideXml, slidePath),
 			getLayoutBackgroundImage: (slidePath) => this.getLayoutBackgroundImage(slidePath),
+			rememberSlideBackgroundOrigin: (slidePath, origin) =>
+				rememberSlideBackgroundOrigin(this, slidePath, origin),
 			extractSlideNotes: (slidePath) => this.extractSlideNotes(slidePath),
 			extractSlideComments: (slidePath) => this.extractSlideComments(slidePath),
 			extractModernSlideComments: (slidePath) => this.extractModernSlideComments(slidePath),

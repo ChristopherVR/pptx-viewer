@@ -159,18 +159,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// first segment (dropping its per-paragraph pPr / level).
 		let capturedParagraphMeta = false;
 		const pushParagraph = (): void => {
-			if (currentRuns.length === 0) {
-				currentRuns.push(createRun('', runScopedTextStyle));
-			}
-			paragraphs.push(
-				createParagraph(
-					currentRuns,
-					currentBulletInfo,
-					currentLevel,
-					currentEndParaRunProperties,
-					currentParagraphProperties,
-				),
+			const paragraph = createParagraph(
+				currentRuns,
+				currentBulletInfo,
+				currentLevel,
+				currentEndParaRunProperties,
+				currentParagraphProperties,
 			);
+			if (currentRuns.length === 0) {
+				// A paragraph with no content is `<a:p><a:pPr/><a:endParaRPr/></a:p>`,
+				// exactly as PowerPoint writes a blank line: the line's size, weight
+				// and colour live in `a:endParaRPr` (§21.1.2.2.7), which
+				// `assembleParagraphXml` has already re-emitted above. This used to
+				// backfill `<a:r><a:rPr/><a:t/></a:r>` instead, inventing a run the
+				// source never had and giving it a full resolved `a:rPr` to carry:
+				// measured on `issue-132-hr-deck.pptx` slide 1, a deck with 7
+				// authored runs came back with 45. `assembleParagraphXml` writes an
+				// `a:r` key for whatever it is handed, so the empty slot it leaves
+				// behind goes with it.
+				delete paragraph['a:r'];
+			}
+			paragraphs.push(paragraph);
 			currentRuns = [];
 			currentBulletInfo = undefined;
 			currentLevel = undefined;
@@ -254,9 +263,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// opened; the next load read those back as segments, which emitted
 				// their own empty runs, so the run count grew by one per paragraph
 				// on every save forever. Only a split product that carries text
-				// deserves a run. A paragraph left with none still gets the single
-				// empty run that `pushParagraph` backfills, so genuinely blank
-				// lines keep their `endParaRPr`-sized placeholder.
+				// deserves a run. A paragraph left with none is written runless,
+				// which is how PowerPoint writes a blank line; its size still comes
+				// from the `a:endParaRPr` that `pushParagraph` re-emits.
 				const isSplitProduct = lineParts.length > 1;
 
 				lineParts.forEach((linePart, lineIndex) => {

@@ -1,9 +1,11 @@
 import { XmlObject, PptxSlide } from '../../types';
+import type { PptxHeaderFooter, PptxSlideSize } from '../../types';
 import type { OoxmlConformanceClass } from '../../utils';
 import { persistModernCommentPackage } from '../../utils/modern-comment-package';
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
+import { applyHeaderFooterToMaster } from './header-footer-parts';
 import { slidesPerPageToPrintOutput } from './pptx-print-properties';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveHandoutInfrastructure';
 
@@ -142,6 +144,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// §19.3.1.40.)
 		this.applySlideMasterChanges(options?.slideMasters);
 		this.applySlideLayoutChanges(options?.slideLayouts);
+		// Header & Footer. Runs AFTER the per-master writer so an explicit
+		// `slideMasters[n].headerFooter` stays the more specific instruction
+		// only where the dialog said nothing.
+		this.applyPresentationHeaderFooter(options?.headerFooter);
 		// Slide Master view shape-tree edits. Rewrites only the parts whose
 		// element list differs from the one parsed at load, so an untouched
 		// master keeps its verbatim passthrough below.
@@ -174,7 +180,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// because it modifies p:embeddedFontLst on presentationData)
 		await this.applyEmbeddedFontPreservation(options?.embeddedFonts, options?.embeddedFontList);
 
-		// Presentation save
+		// Presentation save.
+		//
+		// A slide-size edit is adopted into the runtime state BEFORE the
+		// builder runs, so a second save of the same handler (and every
+		// EMU-derived consumer such as the layout previews) sees the new
+		// dimensions rather than the ones the file was loaded with.
+		if (options?.slideSize) {
+			this.adoptSlideSize(options.slideSize);
+		}
 		if (this.presentationData) {
 			this.presentationSaveBuilder.applySaveOptions({
 				presentationData: this.presentationData,
@@ -186,6 +200,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					photoAlbum: options?.photoAlbum,
 					kinsoku: options?.kinsoku,
 					modifyVerifier: options?.modifyVerifier,
+					slideSize: options?.slideSize,
 				},
 				rawSlideWidthEmu: this.rawSlideWidthEmu,
 				rawSlideHeightEmu: this.rawSlideHeightEmu,
@@ -308,6 +323,47 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			compression: 'DEFLATE',
 			compressionOptions: { level: 6 },
 		});
+	}
+
+	/**
+	 * Apply the Header & Footer dialog's state to every slide master.
+	 *
+	 * `p:hf` is not a legal child of `p:presentation`, so the option used to
+	 * be dropped on the floor and the dialog was decorative. "Apply to All"
+	 * means the slide masters, which is where PowerPoint keeps both the flags
+	 * and the footer/date text.
+	 */
+	private applyPresentationHeaderFooter(headerFooter: PptxHeaderFooter | undefined): void {
+		if (!headerFooter || Object.keys(headerFooter).length === 0) {
+			return;
+		}
+		for (const [masterPath, masterXmlObj] of this.masterXmlMap.entries()) {
+			const root = masterXmlObj['p:sldMaster'];
+			if (typeof root !== 'object' || root === null) {
+				continue;
+			}
+			applyHeaderFooterToMaster(root as XmlObject, headerFooter);
+			this.masterXmlMap.set(masterPath, masterXmlObj);
+		}
+	}
+
+	/**
+	 * Adopt a requested `p:sldSz` into the runtime's load-time state.
+	 *
+	 * `rawSlideWidthEmu` / `rawSlideHeightEmu` / `rawSlideSizeType` used to be
+	 * write-once-at-load, which is why a Slide Size edit could never reach the
+	 * file: the builder wrote the load-time values straight back.
+	 */
+	private adoptSlideSize(slideSize: PptxSlideSize): void {
+		if (slideSize.widthEmu !== undefined && slideSize.widthEmu > 0) {
+			this.rawSlideWidthEmu = slideSize.widthEmu;
+		}
+		if (slideSize.heightEmu !== undefined && slideSize.heightEmu > 0) {
+			this.rawSlideHeightEmu = slideSize.heightEmu;
+		}
+		if (slideSize.type !== undefined) {
+			this.rawSlideSizeType = slideSize.type.length > 0 ? slideSize.type : undefined;
+		}
 	}
 
 	/**

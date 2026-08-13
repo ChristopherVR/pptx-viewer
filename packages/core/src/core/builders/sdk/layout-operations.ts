@@ -11,6 +11,7 @@
 
 import JSZip from 'jszip';
 
+import { escAttr } from '../../ppt/pptx/xml-utils';
 import { PptxHandler } from '../../PptxHandler';
 import type { PptxData, PptxLayoutOption } from '../../types/presentation';
 
@@ -108,13 +109,13 @@ function placeholderSpXml(ph: PlaceholderDefinition, shapeId: number): string {
 	const cx = pxToEmu(ph.width);
 	const cy = pxToEmu(ph.height);
 
-	const idxAttr = ph.idx !== undefined ? ` idx="${ph.idx}"` : '';
+	const idxAttr = ph.idx !== undefined ? ` idx="${Math.max(0, Math.round(ph.idx))}"` : '';
 
 	return `      <p:sp>
         <p:nvSpPr>
-          <p:cNvPr id="${shapeId}" name="${name}"/>
+          <p:cNvPr id="${shapeId}" name="${escAttr(name)}"/>
           <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="${ph.type}"${idxAttr}/></p:nvPr>
+          <p:nvPr><p:ph type="${escAttr(ph.type)}"${idxAttr}/></p:nvPr>
         </p:nvSpPr>
         <p:spPr>
           <a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
@@ -125,6 +126,25 @@ function placeholderSpXml(ph: PlaceholderDefinition, shapeId: number): string {
           <a:p><a:endParaRPr lang="en-US"/></a:p>
         </p:txBody>
       </p:sp>`;
+}
+
+/**
+ * Normalise a caller-supplied colour to the six-digit uppercase hex form
+ * `a:srgbClr/@val` requires, or `undefined` when it is not a usable RGB colour.
+ * Three-digit shorthand (`#ABC`) is expanded; anything else is rejected.
+ */
+function normalizeSrgbHex(color: string | undefined): string | undefined {
+	if (!color) {
+		return undefined;
+	}
+	const raw = color.trim().replace(/^#/, '').toUpperCase();
+	if (/^[0-9A-F]{6}$/.test(raw)) {
+		return raw;
+	}
+	if (/^[0-9A-F]{3}$/.test(raw)) {
+		return raw.replace(/./g, (ch) => ch + ch);
+	}
+	return undefined;
 }
 
 /**
@@ -139,10 +159,13 @@ export function generateLayoutXml(definition: LayoutDefinition): string {
 		.map((ph, i) => placeholderSpXml(ph, i + 2)) // shapeId starts at 2 (1 is the group)
 		.join('\n');
 
-	// Background XML
+	// Background XML. `a:srgbClr/@val` is ST_HexColorRGB: exactly six hex digits.
+	// Anything else is rejected by PowerPoint's loader, so an unusable value
+	// falls back to the master background (the same result as omitting the
+	// option) rather than being escaped into a well-formed but invalid package.
 	let bgXml = '';
-	if (definition.backgroundColor) {
-		const hex = definition.backgroundColor.replace(/^#/, '').toUpperCase();
+	const hex = normalizeSrgbHex(definition.backgroundColor);
+	if (hex) {
 		bgXml = `    <p:bg><p:bgPr><a:solidFill><a:srgbClr val="${hex}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>\n`;
 	}
 
@@ -150,8 +173,8 @@ export function generateLayoutXml(definition: LayoutDefinition): string {
 <p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-  type="${layoutType}" preserve="1">
-  <p:cSld name="${definition.name}">
+  type="${escAttr(layoutType)}" preserve="1">
+  <p:cSld name="${escAttr(definition.name)}">
 ${bgXml}    <p:spTree>
       <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
       <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>

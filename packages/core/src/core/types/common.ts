@@ -175,35 +175,6 @@ export interface XmlObject {
 }
 
 /**
- * Discriminant values for the `type` field on {@link PptxElement}.
- *
- * Narrow on this type to access variant-specific properties.
- *
- * @example
- * ```ts
- * function isImage(el: PptxElement): el is ImagePptxElement {
- *   return el.type === "image";
- * }
- * // => type guard narrowing PptxElement to ImagePptxElement
- * ```
- */
-export type PptxElementType =
-	| 'text'
-	| 'shape'
-	| 'connector'
-	| 'image'
-	| 'picture'
-	| 'chart'
-	| 'table'
-	| 'smartArt'
-	| 'ole'
-	| 'media'
-	| 'group'
-	| 'ink'
-	| 'zoom'
-	| 'unknown';
-
-/**
  * Shape lock attributes from `p:cNvSpPr / a:spLocks`.
  *
  * When a flag is `true` the corresponding user interaction is disabled

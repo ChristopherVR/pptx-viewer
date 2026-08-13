@@ -406,4 +406,21 @@ export interface ShapeStyle {
 	fontRefIdx?: string;
 	/** Raw XML colour child of `<a:fontRef>`. */
 	fontRefColorXml?: XmlObject;
+
+	/**
+	 * The fill `<a:fillRef>` resolved to, recorded ONLY when the shape's own
+	 * `spPr` authored no fill at all, so the reference is what paints it.
+	 *
+	 * Its absence therefore means "the fill is the shape's own", and its
+	 * presence plus an unchanged flat fill means "still purely inherited": see
+	 * `authored-shape-style.ts`, the shape-scope twin of `TextStyle`'s
+	 * `inheritedRunStyle`.
+	 */
+	inheritedFillStyle?: ShapeStyle;
+	/**
+	 * The outline `<a:lnRef>` resolved to, recorded before `spPr/a:ln` was
+	 * layered on top. A property that still equals this baseline was never
+	 * authored on the shape and must not be written back as if it were.
+	 */
+	inheritedLineStyle?: ShapeStyle;
 }

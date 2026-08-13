@@ -1,4 +1,5 @@
 import { XmlObject, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../../types';
+import { isHeaderFooterPlaceholder } from '../../utils/header-footer-placeholder';
 import { placeholderStyleFamily } from '../../utils/placeholder-style-family';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSummaryZoomParsing';
@@ -34,6 +35,42 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return undefined;
 	}
 
+	/**
+	 * Find the header / footer / date / slide-number placeholder in `spTree` by
+	 * TYPE alone, ignoring `idx`.
+	 *
+	 * Those four are singletons per part, and PowerPoint does not keep their
+	 * `@idx` aligned down the chain: it numbers them 10 / 11 / 12 on a layout and
+	 * 2 / 3 / 4 on the master of the very decks it authors. Matching on idx
+	 * therefore resolves nothing above the layout, which left every slide's
+	 * `dt` / `sldNum` placeholder with no transform at all (parsed at 0x0 pixels,
+	 * so invisible) and dropped the empty `ftr` shape outright.
+	 *
+	 * Used only as a FALLBACK, after {@link findPlaceholderInShapeTree} has
+	 * failed, so an exact idx match still wins wherever a deck provides one.
+	 */
+	protected findSingletonPlaceholderInShapeTree(
+		spTree: XmlObject | undefined,
+		expected: PlaceholderInfo | null,
+	): PlaceholderLookupContext | undefined {
+		const type = expected?.type;
+		if (!spTree || !isHeaderFooterPlaceholder(type)) {
+			return undefined;
+		}
+
+		for (const shape of this.ensureArray(spTree['p:sp']) as XmlObject[]) {
+			if (this.extractPlaceholderInfo(xmlPath(shape, 'p:nvSpPr', 'p:nvPr'))?.type === type) {
+				return { shape };
+			}
+		}
+		for (const picture of this.ensureArray(spTree['p:pic']) as XmlObject[]) {
+			if (this.extractPlaceholderInfo(xmlPath(picture, 'p:nvPicPr', 'p:nvPr'))?.type === type) {
+				return { picture };
+			}
+		}
+		return undefined;
+	}
+
 	protected findPlaceholderContext(
 		slidePath: string,
 		expected: PlaceholderInfo | null,
@@ -44,18 +81,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const layoutXmlObj = this.layoutXmlMap.get(layoutPath);
-		const layoutContext = this.findPlaceholderInShapeTree(
-			xmlPath(layoutXmlObj, 'p:sldLayout', 'p:cSld', 'p:spTree'),
-			expected,
-		);
+		const layoutSpTree = xmlPath(layoutXmlObj, 'p:sldLayout', 'p:cSld', 'p:spTree');
+		const layoutContext =
+			this.findPlaceholderInShapeTree(layoutSpTree, expected) ??
+			this.findSingletonPlaceholderInShapeTree(layoutSpTree, expected);
 
 		const masterPath = this.resolveMasterPathForLayout(layoutPath);
-		const masterContext = masterPath
-			? this.findPlaceholderInShapeTree(
-					xmlPath(this.masterXmlMap.get(masterPath), 'p:sldMaster', 'p:cSld', 'p:spTree'),
-					expected,
-				)
+		const masterSpTree = masterPath
+			? xmlPath(this.masterXmlMap.get(masterPath), 'p:sldMaster', 'p:cSld', 'p:spTree')
 			: undefined;
+		const masterContext =
+			this.findPlaceholderInShapeTree(masterSpTree, expected) ??
+			this.findSingletonPlaceholderInShapeTree(masterSpTree, expected);
 
 		if (!layoutContext) {
 			return masterContext;

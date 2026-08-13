@@ -20,6 +20,7 @@ import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveContentPartInk';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
+import { collapseOrderedXmlChildren, replaceXmlNodeContents } from './template-group-node';
 
 export type { SaveSlideContext };
 
@@ -258,6 +259,49 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return elementId.startsWith('layout-') || elementId.startsWith('master-');
 	}
 
+	/**
+	 * Whether this element is an inherited layout/master shape that the slide is
+	 * only painting, and so has to be written back to the template part instead
+	 * of into the slide's own `p:spTree`.
+	 *
+	 * The id prefix alone is NOT enough. A template group's children derive
+	 * their ids from the group's own base id, which already begins `layout-` /
+	 * `master-`, so `isTemplateElementId` is true for every descendant as well.
+	 * Routing a descendant through the template writer would lift it out of its
+	 * `<p:grpSp>` and append it to the layout's shape tree as a top-level
+	 * sibling. Only an element the caller listed on the slide is a candidate;
+	 * a group child is reached through its parent instead.
+	 */
+	protected isOwnTemplateElement(el: PptxElement, ctx: SaveSlideContext): boolean {
+		return this.isTemplateElementId(el.id) && ctx.slide.elements.includes(el);
+	}
+
+	/**
+	 * Write an edited layout/master group back into the part it came from.
+	 *
+	 * `buildGroupShapeXml` returns a NEW node, while every other element type
+	 * reaches the template writer as its own `rawXml` patched in place. The
+	 * rebuilt group is therefore folded back into that same node before it is
+	 * attached, so `ensureTemplateShapeAttached` recognises it as the shape
+	 * already in the tree rather than appending a duplicate `<p:grpSp>`. A
+	 * group with no `rawXml` (one the user created inside the master view) has
+	 * nothing to fold into and is appended.
+	 */
+	private attachTemplateGroupShape(
+		el: GroupPptxElement,
+		grpXml: XmlObject,
+		ctx: SaveSlideContext,
+	): void {
+		const templateSpTree = this.getTemplateSpTree(ctx.slide.id, el.id);
+		if (!templateSpTree) {
+			return;
+		}
+		collapseOrderedXmlChildren(grpXml);
+		const raw = el.rawXml as XmlObject | undefined;
+		const attached = raw ? replaceXmlNodeContents(raw, grpXml) : grpXml;
+		el.rawXml = this.ensureTemplateShapeAttached(templateSpTree, 'group', attached);
+	}
+
 	/** Non-visual property containers that hold a `p:cNvPr`. */
 	private static readonly NV_CONTAINERS = [
 		'p:nvSpPr',
@@ -366,23 +410,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Group elements
 		if (el.type === 'group') {
-			// A `p:grpSp` inherited from this slide's layout or master belongs to
-			// that part, which the save pipeline flushes verbatim from
-			// `layoutXmlMap` / `masterXmlMap`. This branch returned before the
-			// template check further down ever ran, so every such group was
-			// copied into EVERY slide's own `p:spTree`: on
-			// `e2e/fixtures/absolute-path-rels.pptx` (the only deck in the corpus
-			// with a layout-level group) the deck grew from 82 to 106 shapes on a
-			// no-edit round-trip. Rendering a layout group on a slide and writing
-			// it into that slide are different requirements; only the first is
-			// wanted.
-			if (this.isTemplateElementId(el.id)) {
+			const grpXml = this.buildGroupShapeXml(el as GroupPptxElement, ctx);
+			if (!grpXml) {
 				return;
 			}
-			const grpXml = this.buildGroupShapeXml(el as GroupPptxElement, ctx);
-			if (grpXml) {
-				collectors.groups.push(grpXml);
+			// Locks are the one part of a group's non-visual properties the model
+			// owns; everything else on `p:nvGrpSpPr` is carried over verbatim by
+			// `buildGroupNonVisualXml`.
+			this.serializeShapeLocks(grpXml, el);
+			// A `p:grpSp` inherited from this slide's layout or master belongs to
+			// that part, which the save pipeline flushes verbatim from
+			// `layoutXmlMap` / `masterXmlMap`. Pushing it into `collectors.groups`
+			// copied it into EVERY slide's own `p:spTree`: on
+			// `e2e/fixtures/absolute-path-rels.pptx` (the only deck in the corpus
+			// with a layout-level group) the deck grew from 82 to 106 shapes on a
+			// no-edit round-trip. It goes back to the part it came from instead,
+			// exactly as every other element type does further down.
+			if (this.isOwnTemplateElement(el, ctx)) {
+				this.attachTemplateGroupShape(el as GroupPptxElement, grpXml, ctx);
+				return;
 			}
+			collectors.groups.push(grpXml);
 			return;
 		}
 
@@ -566,7 +614,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.applyNameToCnvPr(shape, el);
 
 		// Template elements
-		if (this.isTemplateElementId(el.id)) {
+		if (this.isOwnTemplateElement(el, ctx)) {
 			const templateSpTree = this.getTemplateSpTree(ctx.slide.id, el.id);
 			if (templateSpTree) {
 				el.rawXml = this.ensureTemplateShapeAttached(templateSpTree, el.type, shape);

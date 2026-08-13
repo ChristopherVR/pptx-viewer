@@ -1,74 +1,39 @@
 import type { InkPptxElement, XmlObject } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveOleEmbedding';
 
-const INK_GRAPHIC_DATA_URI = 'http://schemas.microsoft.com/office/drawing/2010/ink';
-const INK_NAMESPACE = 'http://schemas.microsoft.com/office/drawing/2010/ink';
-
-function pathToTrace(path: string): string {
-	const points: string[] = [];
-	for (const match of path.matchAll(/[ML]\s*(?<x>[\d.eE+-]+)[,\s]+(?<y>[\d.eE+-]+)/giu)) {
-		const x = Number(match.groups?.x);
-		const y = Number(match.groups?.y);
-		if (Number.isFinite(x) && Number.isFinite(y)) {
-			points.push(`${x},${y}`);
-		}
-	}
-	return points.join(' ');
-}
-
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	/** Build editable Office 2010 ink plus a custGeom fallback for older consumers. */
+	/**
+	 * Serialize ink the editor's Draw tool authored (an ink element with no
+	 * `rawXml`) as the `custGeom` freeform stroke shape PowerPoint accepts.
+	 *
+	 * It used to build a `p:graphicFrame` whose `a:graphicData` held an
+	 * `mc:AlternateContent` with an `<aink:ink>` Choice and this same shape as
+	 * the Fallback. **PowerPoint refuses to open a deck containing that frame**:
+	 * "The file or directory is corrupted and unreadable (0x80070570)". Every
+	 * deck a user drew on was unopenable, in all five bindings.
+	 *
+	 * Measured by bisecting one authored stroke through COM:
+	 *
+	 * | slide1.xml contains                              | PowerPoint |
+	 * | ------------------------------------------------ | ---------- |
+	 * | no ink at all (control)                          | opens      |
+	 * | this `custGeom` `p:sp` alone                     | opens      |
+	 * | the frame, `aink` Choice only (no Fallback)      | refuses    |
+	 * | the frame, bare `<aink:ink>` (no MCE wrapper)    | refuses    |
+	 *
+	 * So the `mc:AlternateContent` wrapper was not the problem and the fallback
+	 * shape was never the problem: the `.../2010/ink` graphic-data payload is.
+	 * `aink:ink` is not markup PowerPoint reads there. Its own pen writes ink as
+	 * a `p:contentPart` referencing an InkML part instead, which this codebase
+	 * parses and re-serializes for `contentPart` elements
+	 * (`PptxHandlerRuntimeSaveContentPartInk`); routing authored strokes through
+	 * that path too, so they survive as editable ink rather than as a freeform
+	 * shape, is the remaining work.
+	 *
+	 * Ink LOADED from a real file never reaches here: it carries its original
+	 * markup on `rawXml` and is passed through verbatim by the element writer.
+	 */
 	protected createInkGraphicFrameXml(el: InkPptxElement): XmlObject {
-		const emu = PptxHandlerRuntime.EMU_PER_PX;
-		const x = String(Math.round(el.x * emu));
-		const y = String(Math.round(el.y * emu));
-		const width = String(Math.round(Math.max(el.width, 1) * emu));
-		const height = String(Math.round(Math.max(el.height, 1) * emu));
-		const traces = el.inkPaths
-			.map((path, index): XmlObject | undefined => {
-				const text = pathToTrace(path);
-				if (!text) {
-					return undefined;
-				}
-				return {
-					'@_brushColor': (el.inkColors?.[index] ?? '#000000').replace('#', ''),
-					'@_brushSize': String(el.inkWidths?.[index] ?? 2),
-					'#text': text,
-				};
-			})
-			.filter((trace): trace is XmlObject => Boolean(trace));
-		const fallbackShape = this.createInkShapeXml(el);
-
-		return {
-			'p:nvGraphicFramePr': {
-				'p:cNvPr': { '@_id': '0', '@_name': el.name || el.id },
-				'p:cNvGraphicFramePr': {},
-				'p:nvPr': {},
-			},
-			'p:xfrm': {
-				'a:off': { '@_x': x, '@_y': y },
-				'a:ext': { '@_cx': width, '@_cy': height },
-			},
-			'a:graphic': {
-				'a:graphicData': {
-					'@_uri': INK_GRAPHIC_DATA_URI,
-					'mc:AlternateContent': {
-						'@_xmlns:mc': 'http://schemas.openxmlformats.org/markup-compatibility/2006',
-						'mc:Choice': {
-							'@_Requires': 'aink',
-							'@_xmlns:aink': INK_NAMESPACE,
-							'aink:ink': {
-								'aink:inkBrush': {
-									'@_brushColor': (el.inkColors?.[0] ?? '#000000').replace('#', ''),
-									'@_brushSize': String(el.inkWidths?.[0] ?? 2),
-								},
-								'aink:trace': traces,
-							},
-						},
-						'mc:Fallback': { 'p:sp': fallbackShape },
-					},
-				},
-			},
-		};
+		return this.createInkShapeXml(el);
 	}
 }

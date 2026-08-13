@@ -29,6 +29,55 @@ export * from './effect-dag';
  * // => { brightness: 20, contrast: -10, grayscale: true } satisfies PptxImageEffects
  * ```
  */
+/**
+ * One `a14:foregroundMark` / `a14:backgroundMark` polyline hint recorded while
+ * the user painted over the picture in PowerPoint's "Remove Background" mode.
+ * Coordinates are 0..1 fractions of the image.
+ */
+export interface PptxBackgroundRemovalMark {
+	x1: number;
+	y1: number;
+	x2: number;
+	y2: number;
+}
+
+/**
+ * PowerPoint "Remove Background" state (`a14:backgroundRemoval`).
+ *
+ * The four edges are the RETAINED rectangle as 0..1 fractions of the image
+ * (OOXML stores them as per-100000 relative units), and the mark lists are the
+ * segmentation hints the user painted.
+ *
+ * **This is edit-time metadata, not a render instruction.** PowerPoint bakes the
+ * removal into the bitmap referenced by the main `a:blip/@r:embed` and keeps the
+ * pristine original in `a14:imgLayer/@r:embed`. Verified against PowerPoint COM:
+ * a slide exported with and without this element is byte-identical. A renderer
+ * that clips to the retained rectangle would clip an image whose background has
+ * already been removed.
+ *
+ * @example
+ * ```ts
+ * const removal: PptxBackgroundRemoval = { top: 0.12, bottom: 0.88, left: 0.07, right: 0.93 };
+ * // => retains the middle of the image; the marks list stays empty
+ * ```
+ */
+export interface PptxBackgroundRemoval {
+	/** Top edge of the retained rectangle (0..1 fraction of the image height). */
+	top: number;
+	/** Bottom edge of the retained rectangle (0..1 fraction of the image height). */
+	bottom: number;
+	/** Left edge of the retained rectangle (0..1 fraction of the image width). */
+	left: number;
+	/** Right edge of the retained rectangle (0..1 fraction of the image width). */
+	right: number;
+	/** Strokes marking regions the user forced to be foreground. */
+	foregroundMarks?: PptxBackgroundRemovalMark[];
+	/** Strokes marking regions the user forced to be background. */
+	backgroundMarks?: PptxBackgroundRemovalMark[];
+	/** Original effect XML, retained for lossless re-emission. */
+	rawXml?: XmlObject;
+}
+
 export interface PptxImageEffects {
 	/** Brightness adjustment (-100 to 100). */
 	brightness?: number;
@@ -49,8 +98,38 @@ export interface PptxImageEffects {
 	colorWash?: { color: string; opacity: number };
 	/** Artistic effect name (blur, pencilGrayscale, paintStrokes, etc.). */
 	artisticEffect?: string;
-	/** Artistic effect radius/amount. */
+	/** Artistic effect radius/amount, normalised to 0..100. */
 	artisticRadius?: number;
+	/**
+	 * Every numeric attribute of the source `a14:artistic*` element, raw and
+	 * un-normalised (`trans`, `pencilSize`, `crackSpacing`, …). The attribute set
+	 * differs per effect, so this is the lossless companion to the single
+	 * {@link PptxImageEffects.artisticRadius} number.
+	 */
+	artisticParams?: Record<string, number>;
+	/**
+	 * Name of the artistic effect ALREADY baked into the image data, which a
+	 * renderer must not apply a second time. Set from the `a14` blip extension,
+	 * which PowerPoint writes alongside a pre-rendered bitmap (see
+	 * {@link PptxBackgroundRemoval}), and normally equal to
+	 * {@link PptxImageEffects.artisticEffect}.
+	 *
+	 * It records the NAME rather than a boolean so that picking a different
+	 * effect in this library's inspector (which patches `artisticEffect` alone)
+	 * still renders: the two names then differ.
+	 */
+	artisticPrerenderedEffect?: string;
+	/**
+	 * PowerPoint "Remove Background" state (`a14:backgroundRemoval`). Edit-time
+	 * metadata: the removal is already baked into the image data.
+	 */
+	backgroundRemoval?: PptxBackgroundRemoval;
+	/**
+	 * `a14:imgLayer/@r:embed` — relationship id of the PRISTINE original image
+	 * the baked effects were derived from (PowerPoint stores it as an HD Photo
+	 * `.wdp` part, which browsers cannot decode).
+	 */
+	originalImageRelId?: string;
 	/** Alpha modulation fixed: non-negative percentage (100 means unchanged opacity). */
 	alphaModFix?: number;
 	/** Original alpha modulation fixed node, including foreign attributes. */

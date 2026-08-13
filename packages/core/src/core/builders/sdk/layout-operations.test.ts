@@ -1,3 +1,4 @@
+import { XMLValidator } from 'fast-xml-parser';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { PptxHandler } from '../../PptxHandler';
@@ -104,6 +105,48 @@ describe('layout-operations', () => {
 			});
 			expect(xml).toContain('val="AABBCC"');
 			expect(xml).not.toContain('val="#AABBCC"');
+		});
+
+		it('omits a background whose colour is not a hex RGB triple', () => {
+			// PowerPoint rejects a package outright when `a:srgbClr/@val` is not
+			// ST_HexColorRGB, so an unusable value has to fall back to the master
+			// background rather than be escaped into a well-formed but invalid part.
+			const xml = generateLayoutXml({ name: 'Bad BG', backgroundColor: 'rebeccapurple' });
+			expect(xml).not.toContain('<p:bg>');
+		});
+
+		it('expands three-digit shorthand background colours', () => {
+			const xml = generateLayoutXml({ name: 'Short BG', backgroundColor: '#ABC' });
+			expect(xml).toContain('val="AABBCC"');
+		});
+
+		it('escapes a layout name containing XML metacharacters', () => {
+			// Interpolating the name raw emitted `<p:cSld name="R&D <Team> "quoted"">`,
+			// which is not well-formed XML at all: PowerPoint refused the package
+			// with ERROR_FILE_CORRUPT (0x80070570).
+			const xml = generateLayoutXml({ name: 'R&D <Team> "quoted"' });
+			expect(xml).toContain('name="R&amp;D &lt;Team&gt; &quot;quoted&quot;"');
+			expect(XMLValidator.validate(xml)).toBeTruthy();
+		});
+
+		it('escapes a placeholder name and type containing XML metacharacters', () => {
+			const xml = generateLayoutXml({
+				name: 'Safe',
+				type: 'obj" bogus="1',
+				placeholders: [{ type: 'title', x: 0, y: 0, width: 10, height: 10, name: 'A & <B>' }],
+			});
+			expect(xml).toContain('name="A &amp; &lt;B&gt;"');
+			expect(xml).toContain('type="obj&quot; bogus=&quot;1"');
+			expect(XMLValidator.validate(xml)).toBeTruthy();
+		});
+
+		it('keeps every generated layout part well-formed for a hostile definition', () => {
+			const xml = generateLayoutXml({
+				name: 'R&D <Team> "quoted"',
+				backgroundColor: '#F5F5F5',
+				placeholders: [{ type: 'title', x: 1, y: 2, width: 3, height: 4, idx: 1, name: '<&">' }],
+			});
+			expect(XMLValidator.validate(xml)).toBeTruthy();
 		});
 
 		it('includes clrMapOvr element', () => {

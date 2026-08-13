@@ -634,24 +634,38 @@ export class PptxHandlerCore {
 	}
 
 	/**
-	 * Export selected slides as individual PPTX files.
+	 * Export selected slides to a vector or raster format, keyed by slide index.
 	 *
-	 * Each entry in the returned map is keyed by slide index and contains a
-	 * standalone `Uint8Array` PPTX with only that slide.
+	 * **This does not produce PPTX files.** The previous version of this comment
+	 * said each entry was "a standalone PPTX with only that slide", named the
+	 * option `slideIndexes` (the real field is `slideIndices`), and wrote the
+	 * bytes to `slide_N.pptx`. None of that was ever true: the runtime has
+	 * always taken a `format` of `svg` / `png` / `pdf`. Per-slide PPTX
+	 * extraction is a different operation and is not implemented here.
+	 *
+	 * Only `svg` works without a host-supplied backend, and it works fully:
+	 * the headless {@link SvgExporter} renders it with no DOM. `png` and `pdf`
+	 * THROW, because this package carries no rasteriser; use a viewer binding's
+	 * browser export pipeline, or override `exportSlides` on the runtime with
+	 * your own backend.
 	 *
 	 * @param slides  - Full slide array.
-	 * @param options - Export options (slide indexes, format, etc.).
-	 * @returns A `Map<slideIndex, Uint8Array>` of exported files.
+	 * @param options - Export options (`format`, `slideIndices`, `width`, ...).
+	 * @returns A `Map<slideIndex, Uint8Array>` of exported files. Hidden slides
+	 *   are omitted unless `options.includeHidden` is set, so the map can be
+	 *   smaller than `options.slideIndices`.
+	 * @throws {Error} when `options.format` is `png` or `pdf`.
 	 *
 	 * @example
 	 * ```ts
 	 * const exports = await handler.exportSlides(data.slides, {
-	 *   slideIndexes: [0, 2],
+	 *   format: 'svg',
+	 *   slideIndices: [0, 2],
 	 * });
 	 * for (const [idx, bytes] of exports) {
-	 *   await fs.writeFile(`slide_${idx}.pptx`, Buffer.from(bytes));
+	 *   await fs.writeFile(`slide_${idx}.svg`, Buffer.from(bytes));
 	 * }
-	 * // => Map<number, Uint8Array> — one standalone .pptx per exported slide
+	 * // => Map<number, Uint8Array>: one SVG document per exported slide
 	 * ```
 	 */
 	public async exportSlides(

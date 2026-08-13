@@ -2,6 +2,8 @@ import type JSZip from 'jszip';
 
 import type { PptxSlide, XmlObject } from '../../types';
 import { BLIP_FILL_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
+import type { AuthoredSlideBackground } from '../runtime/authored-slide-background';
+import { slideBackgroundIsPurelyInherited } from '../runtime/authored-slide-background';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
 import type { IPptxSlideRelationshipRegistry } from './PptxSlideRelationshipRegistry';
 
@@ -22,6 +24,13 @@ export interface PptxSlideBackgroundBuilderInput {
 	resolveImageToBytes: (url: string) => Promise<{ bytes: Uint8Array; extension: string } | null>;
 	/** Optional sink for a "could not embed background" compatibility warning. */
 	reportUnsupportedBackground?: (imageUrl: string) => void;
+	/**
+	 * What the loader recorded about this slide's `<p:bg>`: whether the slide
+	 * authored one at all, and what the inheritance chain resolved to. Omitted
+	 * for slides this handler never parsed (SDK-built decks), where the flat
+	 * values on the model are the only description available.
+	 */
+	authoredBackground?: AuthoredSlideBackground | undefined;
 }
 
 export interface IPptxSlideBackgroundBuilder {
@@ -42,6 +51,17 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 			typeof init.slide.backgroundGradient === 'string' && init.slide.backgroundGradient.length > 0;
 
 		const cSld = (init.slideNode['p:cSld'] || {}) as XmlObject;
+
+		// A slide that authored no `<p:bg>` is SHOWING its layout's or master's,
+		// and the loader put that resolved value on the model so something could
+		// be painted. Writing it back would emit a slide-level background, which
+		// outranks both: on a plain deck every slide gained
+		// `<p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/>…` on the first
+		// save, and the themed or picture background it was inheriting was gone
+		// for good. Leave the part exactly as authored instead.
+		if (slideBackgroundIsPurelyInherited(init.authoredBackground, init.slide)) {
+			return;
+		}
 
 		if (!(hasBackgroundColor || hasBackgroundImage || hasBackgroundGradient)) {
 			delete cSld['p:bg'];

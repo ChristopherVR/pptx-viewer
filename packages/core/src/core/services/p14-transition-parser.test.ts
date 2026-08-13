@@ -89,10 +89,13 @@ describe('p14_TRANSITION_TYPES', () => {
 		expect(P14_TRANSITION_TYPES.has('wheelReverse')).toBeTruthy();
 	});
 
-	it('contains the 3D p14 transitions cube, flip, rotate, orbit', () => {
+	it('contains the 3D p14 transitions cube, flip, rotate, box, orbit', () => {
 		expect(P14_TRANSITION_TYPES.has('cube')).toBeTruthy();
 		expect(P14_TRANSITION_TYPES.has('flip')).toBeTruthy();
 		expect(P14_TRANSITION_TYPES.has('rotate')).toBeTruthy();
+		// `box` has no element of its own (it is `<p14:prism isInverted="1"/>`),
+		// but it must serialize through the p14 path like the rest of the family.
+		expect(P14_TRANSITION_TYPES.has('box')).toBeTruthy();
 		expect(P14_TRANSITION_TYPES.has('orbit')).toBeTruthy();
 	});
 
@@ -102,8 +105,8 @@ describe('p14_TRANSITION_TYPES', () => {
 		expect(P14_TRANSITION_TYPES.has('wipe')).toBeFalsy();
 	});
 
-	it('has 22 entries (18 original + cube/flip/rotate/orbit)', () => {
-		expect(P14_TRANSITION_TYPES.size).toBe(22);
+	it('has 23 entries (18 original + cube/flip/rotate/box/orbit)', () => {
+		expect(P14_TRANSITION_TYPES.size).toBe(23);
 	});
 });
 

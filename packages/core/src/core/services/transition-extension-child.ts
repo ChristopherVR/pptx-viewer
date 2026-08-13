@@ -17,6 +17,7 @@
  * @module services/transition-extension-child
  */
 import type { PptxMorphOption, XmlObject } from '../types';
+import { prismFamilyFlags } from './p14-prism-family';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 
 const P14_NAMESPACE_URI = 'http://schemas.microsoft.com/office/powerpoint/2010/main';
@@ -99,36 +100,27 @@ const P14_REQUIRED_LEFT_RIGHT: ReadonlySet<string> = new Set([
 	'switch',
 ]);
 
-/**
- * Types the picker offers that have no p14 element of their own.
- *
- * PowerPoint writes Cube, Box, Rotate and Orbit as one element, `p14:prism`,
- * distinguished by two flags: the probe of `PpEntryEffect` 3914-3929 returns
- * sixteen `p14:prism` variants in four consecutive families of four
- * directions, which the enum orders Cube (3914), Box (3918), Rotate (3922),
- * Orbit (3926). Emitting `<p14:cube/>` instead left PowerPoint with no
- * transition at all. The family-to-flag assignment is inferred from that
- * ordering rather than measured directly, so a mis-assignment would show the
- * neighbouring 3-D effect - still a real transition, which is the point.
- */
-const P14_PRISM_ALIASES: Readonly<Record<string, { isContent?: boolean; isInverted?: boolean }>> = {
-	cube: {},
-	rotate: { isInverted: true },
-	orbit: { isContent: true, isInverted: true },
-};
-
 /** `<p14:ferris dir="l"/>`, `<p14:reveal dir="r"/>`, ... for an Office 2010 transition. */
 export function buildP14DirectChild(
 	transitionType: string,
 	details: { direction?: string; orient?: string; pattern?: string; spokes?: number },
 	context: ExtensionChildContext,
 ): ExtensionChild {
-	const prismAlias = P14_PRISM_ALIASES[transitionType];
-	const elementName = prismAlias ? 'prism' : transitionType;
+	// Cube, Rotate, Box and Orbit are all `<p14:prism/>`; only the flags differ.
+	// Emitting `<p14:cube/>` instead left PowerPoint with no transition at all.
+	const prismFlags = prismFamilyFlags(transitionType);
+	const elementName = prismFlags ? 'prism' : transitionType;
 	const node: XmlObject = {
 		'@_xmlns:p14': P14_NAMESPACE_URI,
 		...inheritedAttributes(findInExtensions(context, elementName)),
 	};
+	if (prismFlags) {
+		// The inherited copy carries the flags of whichever family member the
+		// deck used to hold. They select the effect, so keeping a stale pair
+		// would silently rewrite the type the caller asked for.
+		delete node['@_isContent'];
+		delete node['@_isInverted'];
+	}
 	const direction = String(details.direction ?? '').trim();
 	if (P14_REQUIRED_LEFT_RIGHT.has(elementName)) {
 		node['@_dir'] = direction === 'r' ? 'r' : 'l';
@@ -145,10 +137,10 @@ export function buildP14DirectChild(
 		// PowerPoint always states the spoke count on this element.
 		node['@_spokes'] = String(details.spokes && details.spokes > 0 ? details.spokes : 1);
 	}
-	if (prismAlias?.isContent) {
+	if (prismFlags?.isContent) {
 		node['@_isContent'] = '1';
 	}
-	if (prismAlias?.isInverted) {
+	if (prismFlags?.isInverted) {
 		node['@_isInverted'] = '1';
 	}
 	return { key: `p14:${elementName}`, node };

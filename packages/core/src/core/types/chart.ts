@@ -213,6 +213,19 @@ export type PptxChartMarkerSymbol =
 	| 'x'
 	| 'auto';
 
+/**
+ * `ST_ScatterStyle` (ECMA-376 §21.2.3.40): how a scatter chart joins its points.
+ * `line`/`lineMarker` connect them with straight segments, `smooth`/
+ * `smoothMarker` with a bezier, `marker`/`none` not at all.
+ */
+export type PptxChartScatterStyle =
+	| 'none'
+	| 'line'
+	| 'lineMarker'
+	| 'marker'
+	| 'smooth'
+	| 'smoothMarker';
+
 /** Shape properties extracted from c:spPr for chart formatting. */
 export interface PptxChartShapeProps {
 	fillColor?: string;
@@ -456,6 +469,42 @@ export interface PptxChartTreemapOptions {
 export interface PptxChartSeries {
 	name: string;
 	values: number[];
+	/**
+	 * Per-series x values from `c:ser/c:xVal` (scatter and bubble series only).
+	 *
+	 * Every `CT_ScatterSer` / `CT_BubbleSer` carries its OWN `c:xVal`, so two
+	 * series in one scatter chart routinely plot against different x ranges (the
+	 * normal case for measurement data). Reading the x values off the first
+	 * series and reusing them everywhere plotted every series against series 1's
+	 * x axis. Absent for category-axis chart kinds, where
+	 * {@link PptxChartData.categories} is the x axis.
+	 */
+	xValues?: number[];
+	/**
+	 * Per-series bubble sizes from `c:ser/c:bubbleSize` (bubble series only),
+	 * aligned index-for-index with {@link values}.
+	 *
+	 * `CT_BubbleSer` carries x, y AND size, so a one-series bubble chart is fully
+	 * specified. Absent when the source omits `c:bubbleSize`.
+	 */
+	bubbleSizes?: number[];
+	/**
+	 * Series-level data-label content flags from `c:ser/c:dLbls`.
+	 *
+	 * PowerPoint writes the flags a user picks in "Format Data Labels" onto the
+	 * SERIES, and leaves the chart-type-level `c:dLbls` all-zero, so reading only
+	 * the chart-level group reports "show nothing" for a chart that visibly shows
+	 * percentages. These override {@link PptxChartStyle.dataLabels}.
+	 */
+	dataLabelOptions?: PptxChartDataLabelOptions;
+	/**
+	 * Whether the series line is explicitly suppressed
+	 * (`c:ser/c:spPr/a:ln/a:noFill`). Line-drawn kinds (line, scatter, radar)
+	 * use this to decide whether to draw a connecting line at all; a marker-only
+	 * scatter is authored as `scatterStyle="lineMarker"` PLUS this flag, never by
+	 * changing the scatter style.
+	 */
+	lineNoFill?: boolean;
 	/**
 	 * Blank-value mask aligned index-for-index with {@link values}: `true` marks
 	 * a category whose numeric cache point (`c:numCache/c:pt`) was absent or
@@ -810,6 +859,17 @@ export interface PptxChartData {
 	 * default), so only horizontal bar charts need to carry the field.
 	 */
 	barDirection?: PptxChartBarDirection;
+	/**
+	 * Scatter presentation mode (`c:scatterChart/c:scatterStyle/@val`).
+	 *
+	 * `lineMarker` (PowerPoint's own default for every scatter it writes) and
+	 * `smoothMarker` draw a connecting line; `marker` and `none` do not. Whether
+	 * the MARKERS appear is decided separately by `c:marker/c:symbol`, and
+	 * whether the LINE appears is further gated by
+	 * {@link PptxChartSeries.lineNoFill} - PowerPoint expresses "markers only" as
+	 * `lineMarker` plus an `a:ln/a:noFill`, not as `marker`.
+	 */
+	scatterStyle?: PptxChartScatterStyle;
 	/**
 	 * Bar/column gap between category clusters as a percentage of bar width
 	 * (`c:gapWidth/@val`, 0 through 500). Absent uses the renderer default.

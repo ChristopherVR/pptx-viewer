@@ -19,7 +19,17 @@ import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder
 import { PptxHandler } from '../../core/PptxHandler';
 import type { PptxData, PptxElement } from '../../core/types';
 
-const MASTER_CLR_MAPPING = '<p:clrMapOvr><a:masterClrMapping></a:masterClrMapping></p:clrMapOvr>';
+/**
+ * Whatever `p:clrMapOvr` the seed happens to carry, matched by SHAPE rather
+ * than by an exact string. The literal
+ * `<p:clrMapOvr><a:masterClrMapping></a:masterClrMapping></p:clrMapOvr>` used
+ * to be safe because every save re-serialized every slide through our own
+ * writer; now that an unmodified slide passes through verbatim, the seed keeps
+ * the SDK template's self-closing `<a:masterClrMapping/>` and a literal
+ * `replace` matched nothing AT ALL, leaving both slides on the master map and
+ * turning this test green-for-the-wrong-reason territory into a hard failure.
+ */
+const MASTER_CLR_MAPPING = /<p:clrMapOvr>[\s\S]*?<\/p:clrMapOvr>/u;
 
 /** Route `tx1` to the light slot and `bg1` to the dark one, as a dark slide does. */
 const INVERTED_CLR_MAPPING =
@@ -58,10 +68,18 @@ async function buildDeckWithInvertedSecondSlide(): Promise<ArrayBuffer> {
 			'</p:spTree>',
 			`${bodyPlaceholderXml(index === 0 ? 'MAPPED' : 'OVERRIDDEN')}</p:spTree>`,
 		);
-		zip.file(
-			path,
-			index === 0 ? withBody : withBody.replace(MASTER_CLR_MAPPING, INVERTED_CLR_MAPPING),
-		);
+		if (index === 0) {
+			zip.file(path, withBody);
+			continue;
+		}
+		const inverted = withBody.replace(MASTER_CLR_MAPPING, INVERTED_CLR_MAPPING);
+		if (inverted === withBody) {
+			throw new Error(
+				`Fixture build failed: no <p:clrMapOvr> to invert in ${path}. ` +
+					'Without it both slides share the master map and the test proves nothing.',
+			);
+		}
+		zip.file(path, inverted);
 	}
 
 	const out = await zip.generateAsync({ type: 'uint8array' });

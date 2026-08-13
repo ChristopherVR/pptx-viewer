@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
+import { PptxHandler } from '../../PptxHandler';
+
 // ---------------------------------------------------------------------------
 // Extracted logic from PptxHandlerRuntimeLoadSession (protected methods)
 // ---------------------------------------------------------------------------
@@ -42,25 +44,6 @@ function matchCustomXmlItem(path: string): { itemId: string } | null {
  */
 function isSignaturePart(path: string): boolean {
 	return path.includes('_xmlsignatures/');
-}
-
-/**
- * Simulates the validation logic from initializeLoadSession.
- */
-function validateLoadInput(data: ArrayBuffer): { valid: true } | { valid: false; error: string } {
-	if (data.byteLength < 4) {
-		return {
-			valid: false,
-			error: 'Invalid PPTX binary: file is empty or truncated.',
-		};
-	}
-	if (!isZipContainer(data)) {
-		return {
-			valid: false,
-			error: 'Invalid PPTX binary: not a ZIP/OpenXML file. Legacy .ppt is not supported.',
-		};
-	}
-	return { valid: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -196,52 +179,59 @@ describe('isSignaturePart', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests: validateLoadInput
+// Tests: the real container guard, through the real public entry point
 // ---------------------------------------------------------------------------
-describe('validateLoadInput', () => {
-	it('should reject empty buffer', () => {
-		const result = validateLoadInput(new ArrayBuffer(0));
-		expect(result.valid).toBeFalsy();
-		if (!result.valid) {
-			expect(result.error).toContain('empty or truncated');
+/**
+ * These drive `PptxHandler.load()` rather than a local copy of the guard,
+ * because the message this guard produces was WRONG for years and a
+ * reimplementation could never have caught it: it told every user of a corrupt
+ * file that "Legacy .ppt is not supported", long after `core/ppt/` made legacy
+ * binary .ppt load fine. The old copy even used the OLE magic bytes as its
+ * "non-ZIP" sample, which is precisely the input that never reaches this guard.
+ */
+describe('the non-ZIP container guard', () => {
+	// `PptxHandler` is imported STATICALLY at the top of this file, not lazily
+	// here: core's module graph is large enough that a dynamic import inside a
+	// hook times out on a loaded machine, and paying for it at collection is
+	// both cheaper and not subject to a per-test clock.
+	const load = async (bytes: number[]): Promise<string> => {
+		try {
+			await new PptxHandler().load(new Uint8Array(bytes).buffer as ArrayBuffer);
+		} catch (error) {
+			return error instanceof Error ? error.message : String(error);
 		}
-	});
+		throw new Error('expected load() to reject');
+	};
 
-	it('should reject buffer smaller than 4 bytes', () => {
-		const result = validateLoadInput(new Uint8Array([0x50]).buffer);
-		expect(result.valid).toBeFalsy();
-		if (!result.valid) {
-			expect(result.error).toContain('empty or truncated');
-		}
-	});
+	it('rejects an empty or sub-header buffer as truncated', async () => {
+		await expect(load([])).resolves.toContain('empty or truncated');
+		await expect(load([0x50])).resolves.toContain('empty or truncated');
+	}, 30_000);
 
-	it('should reject non-ZIP data', () => {
-		const buf = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0]).buffer;
-		const result = validateLoadInput(buf);
-		expect(result.valid).toBeFalsy();
-		if (!result.valid) {
-			expect(result.error).toContain('not a ZIP/OpenXML file');
-			expect(result.error).toContain('Legacy .ppt');
-		}
-	});
+	it('rejects bytes that are neither ZIP nor OLE, without blaming .ppt', async () => {
+		const message = await load([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+		expect(message).toContain('not a ZIP/OpenXML package');
+		expect(message).toMatch(/corrupt, truncated, or not a presentation/u);
+		expect(message).not.toMatch(/Legacy \.ppt is not supported/u);
+	}, 30_000);
 
-	it('should accept valid ZIP data', () => {
-		const buf = new Uint8Array([0x50, 0x4b, 0x03, 0x04]).buffer;
-		const result = validateLoadInput(buf);
-		expect(result.valid).toBeTruthy();
-	});
+	/**
+	 * An OLE compound file is routed away from this guard entirely by
+	 * `PptxHandlerCore.load()`: it is how BOTH a legacy binary .ppt and an
+	 * encrypted OOXML package arrive. So it must never produce the non-ZIP
+	 * message, whatever else it fails with.
+	 */
+	it('never reports an OLE compound file as "not a ZIP"', async () => {
+		const message = await load([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+		expect(message).not.toContain('not a ZIP/OpenXML package');
+	}, 30_000);
 
-	it('should accept valid empty ZIP archive', () => {
-		const buf = new Uint8Array([0x50, 0x4b, 0x05, 0x06]).buffer;
-		const result = validateLoadInput(buf);
-		expect(result.valid).toBeTruthy();
-	});
-
-	it('should reject exactly 4 bytes that are not ZIP', () => {
-		const buf = new Uint8Array([0x00, 0x00, 0x00, 0x00]).buffer;
-		const result = validateLoadInput(buf);
-		expect(result.valid).toBeFalsy();
-	});
+	it('gets past the guard for real ZIP magic', async () => {
+		// A bare local-file header is a valid container and a broken package, so
+		// the failure has to come from further down the pipeline, not this guard.
+		const message = await load([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00]);
+		expect(message).not.toContain('not a ZIP/OpenXML package');
+	}, 30_000);
 });
 
 // ---------------------------------------------------------------------------

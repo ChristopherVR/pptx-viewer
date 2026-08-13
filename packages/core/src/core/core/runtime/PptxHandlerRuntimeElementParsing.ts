@@ -48,7 +48,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			let inkStrokes: ContentPartPptxElement['inkStrokes'] = [];
 			let inkPartPath: string | undefined;
 			let inkPartRawXml: XmlObject | undefined;
-			const xfrm = contentPart['p:xfrm'] as XmlObject | undefined;
+			// PowerPoint qualifies EVERY child of a real `p:contentPart` with the
+			// 2010 `p14` prefix, so reading `p:xfrm` alone sent every genuine ink
+			// annotation to the hardcoded 0,0,120x80 default below.
+			const xfrm = (contentPart['p14:xfrm'] ?? contentPart['p:xfrm']) as XmlObject | undefined;
 			const off = xfrm?.['a:off'] as XmlObject | undefined;
 			const ext = xfrm?.['a:ext'] as XmlObject | undefined;
 
@@ -73,12 +76,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const inkXml = await this.zip.file(inkPartPath)?.async('string');
 					if (inkXml) {
 						const inkData = this.parser.parse(inkXml) as XmlObject;
-						const parsed = parseInkMlContent(inkData);
+						const parsed = parseInkMlContent(inkData, { width, height });
 						inkStrokes = parsed.strokes;
 						inkPartRawXml = parsed.rawXml;
 					}
 				}
 			}
+
+			const nvPr = (contentPart['p14:nvContentPartPr'] ?? contentPart['p:nvContentPartPr']) as
+				| XmlObject
+				| undefined;
+			const cNvPr = (nvPr?.['p14:cNvPr'] ?? nvPr?.['p:cNvPr']) as XmlObject | undefined;
+			const shapeId = cNvPr?.['@_id'] === undefined ? undefined : String(cNvPr['@_id']);
+			const name = cNvPr?.['@_name'] === undefined ? undefined : String(cNvPr['@_name']);
 
 			return {
 				id,
@@ -87,6 +97,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				y,
 				width,
 				height,
+				shapeId,
+				name,
 				inkStrokes: inkStrokes.length > 0 ? inkStrokes : undefined,
 				inkPartPath,
 				inkPartRawXml,

@@ -46,6 +46,33 @@ const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> =
 		'bmk',
 		'hiddenFill',
 		'hiddenLine',
+		// Ink. PowerPoint writes every inked stroke as
+		// `mc:Choice Requires="p14"` wrapping a `p:contentPart r:id` whose
+		// CHILDREN are all p14-qualified, with a rasterized `mc:Fallback`
+		// beside it. Verified against PowerPoint's own SaveAs output:
+		//
+		//   <mc:AlternateContent xmlns:mc="..." xmlns:p14="...">
+		//     <mc:Choice Requires="p14">
+		//       <p:contentPart p14:bwMode="auto" r:id="rId2">
+		//         <p14:nvContentPartPr>
+		//           <p14:cNvPr id="7" name="Ink 6"/>
+		//           <p14:cNvContentPartPr/><p14:nvPr/>
+		//         </p14:nvContentPartPr>
+		//         <p14:xfrm><a:off .../><a:ext .../></p14:xfrm>
+		//       </p:contentPart>
+		//     </mc:Choice>
+		//     <mc:Fallback>...</mc:Fallback>
+		//   </mc:AlternateContent>
+		//
+		// Without these five local names the Choice was rejected, the raster
+		// Fallback was taken, and the InkML decoder - which works - never once
+		// saw a stroke from a real deck.
+		'contentPart',
+		'nvContentPartPr',
+		'cNvContentPartPr',
+		'cNvPr',
+		'nvPr',
+		'xfrm',
 	]),
 	// PowerPoint 2013+ writes its preset transitions (Origami, Fracture, Peel
 	// Off, Page Curl, ...) as `<p15:prstTrans prst="...">`, either inside an

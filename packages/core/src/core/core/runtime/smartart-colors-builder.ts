@@ -1,5 +1,6 @@
 import type { XmlObject } from '../../types';
 import type { PptxSmartArtColorTransform } from '../../types/smart-art';
+import { colorsEqual } from '../../utils/color-xml-preservation';
 import {
 	applySmartArtColorStyleLabels,
 	applySmartArtDefinitionMetadata,
@@ -7,6 +8,12 @@ import {
 
 /** Resolve the local (prefix-stripped) name of an XML key. */
 type LocalNameResolver = (key: string) => string;
+
+/**
+ * Resolve an authored colour-choice node (`{'a:schemeClr': {...}}`) to its hex
+ * value, so an unedited themed colour can be recognised and left alone.
+ */
+export type SmartArtColorResolver = (node: XmlObject) => string | undefined;
 
 /** Treat a value as an XmlObject, or undefined when it is not one. */
 function asObject(value: unknown): XmlObject | undefined {
@@ -53,12 +60,26 @@ const COLOR_LOCAL_NAMES: ReadonlySet<string> = new Set([
  * attributes and any trailing colours beyond the first.
  *
  * The in-memory colour is an already-resolved hex (the loader resolved any
- * `schemeClr` through the theme map), so the first colour element is replaced
- * with an explicit `a:srgbClr` regardless of its original element type, and the
- * old colour key is removed when it differs. When the list has no colour child
- * at all, a single `a:srgbClr` is inserted.
+ * `schemeClr` through the theme map), so writing it back unconditionally
+ * severed the diagram from the theme: a plain load -> save of
+ * `smartart-chart-table-mix.pptx` turned `a:schemeClr` into `a:srgbClr` in
+ * `ppt/diagrams/colors*.xml` for diagrams nobody had edited. `resolveColor`
+ * closes that: the authored node is still in the part being merged, so when it
+ * still resolves to the hex the model holds there is no edit to write and the
+ * node is left exactly as authored. Without a resolver (callers that have no
+ * theme to resolve against) the old replace-always behaviour stands.
+ *
+ * When the colour HAS changed, the first colour element is replaced with an
+ * explicit `a:srgbClr` regardless of its original element type and the old
+ * colour key is removed. When the list has no colour child at all, a single
+ * `a:srgbClr` is inserted.
  */
-function applyColorToList(list: XmlObject, value: string, getLocalName: LocalNameResolver): void {
+function applyColorToList(
+	list: XmlObject,
+	value: string,
+	getLocalName: LocalNameResolver,
+	resolveColor?: SmartArtColorResolver,
+): void {
 	const colorKey = Object.keys(list).find((k) => COLOR_LOCAL_NAMES.has(getLocalName(k)));
 	const srgb: XmlObject = { '@_val': hex(value) };
 
@@ -69,6 +90,13 @@ function applyColorToList(list: XmlObject, value: string, getLocalName: LocalNam
 
 	// Keep any trailing colour stops beyond the first.
 	const existing = list[colorKey];
+	if (resolveColor) {
+		const authored = asObject(Array.isArray(existing) ? existing[0] : existing);
+		const authoredHex = authored ? resolveColor({ [colorKey]: authored } as XmlObject) : undefined;
+		if (authoredHex && colorsEqual(authoredHex, value)) {
+			return;
+		}
+	}
 	const rest = Array.isArray(existing)
 		? existing.slice(1).filter((entry): entry is XmlObject => Boolean(asObject(entry)))
 		: [];
@@ -100,6 +128,7 @@ export function applySmartArtColorTransform(
 	colorsDef: XmlObject,
 	transform: PptxSmartArtColorTransform | undefined,
 	getLocalName: LocalNameResolver,
+	resolveColor?: SmartArtColorResolver,
 ): boolean {
 	if (!transform) {
 		return false;
@@ -126,7 +155,7 @@ export function applySmartArtColorTransform(
 			const value = transform.fillColors[fillIndex++];
 			const list = asObject(label[fillKey]);
 			if (list && value) {
-				applyColorToList(list, value, getLocalName);
+				applyColorToList(list, value, getLocalName, resolveColor);
 				mutated = true;
 			}
 		}
@@ -136,7 +165,7 @@ export function applySmartArtColorTransform(
 			const value = transform.lineColors[lineIndex++];
 			const list = asObject(label[lineKey]);
 			if (list && value) {
-				applyColorToList(list, value, getLocalName);
+				applyColorToList(list, value, getLocalName, resolveColor);
 				mutated = true;
 			}
 		}

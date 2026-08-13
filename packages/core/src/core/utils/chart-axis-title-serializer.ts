@@ -12,6 +12,8 @@
  */
 
 import type { XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
 
 type GetLocalName = (key: string) => string;
 
@@ -149,12 +151,18 @@ export interface ChartAxisTitleStyle {
 	fontColor?: string;
 }
 
-function hex(color: string): string {
-	return color.replace(/^#/u, '').toUpperCase();
-}
-
-/** Build the `a:defRPr` run-properties carrying the modeled font styling. */
-function buildDefRPr(style: ChartAxisTitleStyle): XmlObject {
+/**
+ * Build the `a:defRPr` run-properties carrying the modeled font styling.
+ *
+ * `existing` is the authored `a:defRPr` this one is merged over, so an
+ * unedited themed `a:solidFill` can be re-emitted as authored instead of
+ * flattened to the hex the parse resolved it to.
+ */
+function buildDefRPr(
+	style: ChartAxisTitleStyle,
+	existing: XmlObject,
+	resolveColor?: ResolveChartColor,
+): XmlObject {
 	const rPr: XmlObject = {};
 	if (style.fontSize !== undefined) {
 		// OOXML font size is in hundredths of a point.
@@ -164,7 +172,8 @@ function buildDefRPr(style: ChartAxisTitleStyle): XmlObject {
 		rPr['@_b'] = style.fontBold ? '1' : '0';
 	}
 	if (style.fontColor) {
-		rPr['a:solidFill'] = { 'a:srgbClr': { '@_val': hex(style.fontColor) } };
+		rPr['a:solidFill'] = existing['a:solidFill'];
+		writeChartColorChoice(rPr, 'a:solidFill', style.fontColor, resolveColor);
 	}
 	if (style.fontFamily) {
 		rPr['a:latin'] = { '@_typeface': style.fontFamily };
@@ -182,6 +191,7 @@ export function applyChartAxisTitleStyleToXml(
 	axisNode: XmlObject,
 	style: ChartAxisTitleStyle,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const hasAny =
 		style.fontFamily !== undefined ||
@@ -216,7 +226,7 @@ export function applyChartAxisTitleStyleToXml(
 	const pPr: XmlObject = { ...((para[pPrKey] as XmlObject | undefined) ?? {}) };
 	const defRPrKey = findKey(pPr, 'defRPr', getLocalName) ?? 'a:defRPr';
 	const existingDefRPr = (pPr[defRPrKey] as XmlObject | undefined) ?? {};
-	pPr[defRPrKey] = { ...existingDefRPr, ...buildDefRPr(style) };
+	pPr[defRPrKey] = { ...existingDefRPr, ...buildDefRPr(style, existingDefRPr, resolveColor) };
 	para[pPrKey] = pPr;
 	txPr[pKey] = para;
 

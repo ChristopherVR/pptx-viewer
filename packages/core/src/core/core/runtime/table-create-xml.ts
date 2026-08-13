@@ -16,6 +16,7 @@ import {
 	MIN_TABLE_DIMENSION,
 } from '../../constants';
 import type { PptxElement, TextStyle, XmlObject } from '../../types';
+import { createDrawingObjectId } from '../../utils/element-utils';
 
 /**
  * Build the XML object for a single table cell (`<a:tc>`) containing the
@@ -89,14 +90,13 @@ export function createTableGraphicFrameRawXml(
 		1,
 		Math.round((Math.max(element.height, MIN_ELEMENT_SIZE) * EMU_PER_PX) / safeRows),
 	);
-	const objectId = Math.floor(Math.random() * 10000) + 1000;
-	const objectLabel = Math.floor(Math.random() * 100);
+	const objectId = createDrawingObjectId();
 
 	return {
 		'p:nvGraphicFramePr': {
 			'p:cNvPr': {
 				'@_id': String(objectId),
-				'@_name': `Table ${objectLabel}`,
+				'@_name': `Table ${objectId}`,
 			},
 			'p:cNvGraphicFramePr': {
 				'a:graphicFrameLocks': {

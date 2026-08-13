@@ -378,7 +378,7 @@ describe('pptxHandler Integration', () => {
 	// export
 	// -----------------------------------------------------------------------
 	describe('export', () => {
-		it('should return a map with requested slide indices from exportSlides', async () => {
+		it('should return real SVG bytes from exportSlides, not an empty placeholder', async () => {
 			const { handler, data, createSlide } = await createAndLoad();
 
 			data.slides.push(
@@ -390,7 +390,7 @@ describe('pptxHandler Integration', () => {
 			await handler.save(data.slides);
 
 			const exported = await handler.exportSlides(data.slides, {
-				format: 'png',
+				format: 'svg',
 				slideIndices: [0, 1],
 			});
 
@@ -400,9 +400,13 @@ describe('pptxHandler Integration', () => {
 			expect(exported.has(0)).toBeTruthy();
 			expect(exported.has(1)).toBeTruthy();
 
-			// Each entry is a Uint8Array (may be empty when no export backend is configured)
+			// The bytes have to be a real document. This assertion is the point of
+			// the test: exportSlides used to hand back `new Uint8Array()` for every
+			// format, so a caller wrote zero-byte files and found out much later.
 			const slide0Bytes = exported.get(0);
 			expect(slide0Bytes).toBeInstanceOf(Uint8Array);
+			expect(slide0Bytes!.length).toBeGreaterThan(0);
+			expect(new TextDecoder().decode(slide0Bytes)).toContain('<svg');
 		});
 
 		it('should skip out-of-range slide indices during export', async () => {
@@ -417,7 +421,7 @@ describe('pptxHandler Integration', () => {
 			await handler.save(data.slides);
 
 			const exported = await handler.exportSlides(data.slides, {
-				format: 'png',
+				format: 'svg',
 				slideIndices: [0, 5, 10],
 			});
 
@@ -426,6 +430,21 @@ describe('pptxHandler Integration', () => {
 			expect(exported.has(0)).toBeTruthy();
 			expect(exported.has(5)).toBeFalsy();
 		});
+
+		it.each(['png', 'pdf'] as const)(
+			'should throw rather than return empty bytes for %s',
+			async (format) => {
+				const { handler, data, createSlide } = await createAndLoad();
+				data.slides.push(
+					createSlide('Blank').addText('A', { x: 0, y: 0, width: 100, height: 20 }).build(),
+				);
+				await handler.save(data.slides);
+
+				await expect(handler.exportSlides(data.slides, { format })).rejects.toThrow(
+					/rendering backend/u,
+				);
+			},
+		);
 	});
 
 	// -----------------------------------------------------------------------

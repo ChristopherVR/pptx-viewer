@@ -17,6 +17,11 @@ import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation'
 import { safeResolveZipPath } from '../../utils/safe-path';
 import { writeTagCollections } from '../../utils/tag-package';
 import type { PptxSaveFormat } from '../types';
+import {
+	masterPartBackgroundEdited,
+	masterPartLoadedBackground,
+} from './master-part-background-cache';
+import { applyBackgroundColorToCSld } from './master-save-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
 import {
@@ -268,8 +273,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'colorsDef',
 			'colours',
 			(colorsDef) =>
-				applySmartArtColorTransform(colorsDef, transform, (k) =>
-					this.compatibilityService.getXmlLocalName(k),
+				applySmartArtColorTransform(
+					colorsDef,
+					transform,
+					(k) => this.compatibilityService.getXmlLocalName(k),
+					(node) => this.parseColor(node),
 				),
 		);
 	}
@@ -345,9 +353,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Apply notes master background colour changes to `notesMaster1.xml`.
+	 *
+	 * Two hand-rolled copies of the `<p:bg>` writer used to live here and in
+	 * {@link applyHandoutMasterChanges}, each unconditionally flattening
+	 * whatever `<p:bg>` the part carried into a literal solid fill whenever the
+	 * model held a colour, which it always does after a load. Both now go
+	 * through {@link applyBackgroundColorToCSld} with the loaded colour, so an
+	 * untouched part is not rewritten at all.
 	 */
 	protected async applyNotesMasterChanges(notesMaster: PptxNotesMaster | undefined): Promise<void> {
 		if (!notesMaster) {
+			return;
+		}
+		if (!masterPartBackgroundEdited(this, notesMaster)) {
 			return;
 		}
 		const file = this.zip.file(notesMaster.path);
@@ -364,17 +382,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const cSld = (root['p:cSld'] || {}) as XmlObject;
-
-			// Update background colour
-			if (notesMaster.backgroundColor) {
-				const hex = notesMaster.backgroundColor.replace('#', '');
-				cSld['p:bg'] = {
-					'p:bgPr': {
-						'a:solidFill': { 'a:srgbClr': { '@_val': hex } },
-						'a:effectLst': {},
-					},
-				};
-			}
+			applyBackgroundColorToCSld(
+				cSld,
+				notesMaster.backgroundColor,
+				masterPartLoadedBackground(this, notesMaster.path),
+			);
 
 			root['p:cSld'] = cSld;
 			data['p:notesMaster'] = root;
@@ -394,6 +406,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!handoutMaster) {
 			return;
 		}
+		if (!masterPartBackgroundEdited(this, handoutMaster)) {
+			return;
+		}
 		const file = this.zip.file(handoutMaster.path);
 		if (!file) {
 			return;
@@ -408,17 +423,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const cSld = (root['p:cSld'] || {}) as XmlObject;
-
-			// Update background colour
-			if (handoutMaster.backgroundColor) {
-				const hex = handoutMaster.backgroundColor.replace('#', '');
-				cSld['p:bg'] = {
-					'p:bgPr': {
-						'a:solidFill': { 'a:srgbClr': { '@_val': hex } },
-						'a:effectLst': {},
-					},
-				};
-			}
+			applyBackgroundColorToCSld(
+				cSld,
+				handoutMaster.backgroundColor,
+				masterPartLoadedBackground(this, handoutMaster.path),
+			);
 
 			root['p:cSld'] = cSld;
 			data['p:handoutMaster'] = root;

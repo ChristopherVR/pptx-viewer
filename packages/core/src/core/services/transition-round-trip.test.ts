@@ -337,14 +337,23 @@ describe('pptxSlideTransitionService round-trip', () => {
 		}
 	});
 
-	// Cube, Rotate and Orbit have no element of their own: PowerPoint writes all
-	// of them as `p14:prism`, told apart by `isContent` / `isInverted`. Emitting
+	// Cube, Rotate, Box and Orbit have no element of their own: PowerPoint writes
+	// all four as `p14:prism`, told apart by `isContent` / `isInverted`. Emitting
 	// `<p14:cube/>` left PowerPoint showing no transition.
-	it.each([
+	//
+	// The flag table is MEASURED (PowerPoint authored `PpEntryEffect` 3910-3931
+	// through COM; effect names read off the PowerPoint type library), not
+	// inferred from the numbering: see `p14-prism-family`. The enum runs
+	// Cube 3914 / Rotate 3918 / Box 3922 / Orbit 3926, so the earlier assumed
+	// Cube/Box/Rotate/Orbit ordering saved every `rotate` as PowerPoint's Box.
+	const PRISM_FAMILY = [
 		['cube', undefined, undefined],
-		['rotate', undefined, '1'],
+		['rotate', '1', undefined],
+		['box', undefined, '1'],
 		['orbit', '1', '1'],
-	] as const)('serializes %s as a p14:prism variant', (name, isContent, isInverted) => {
+	] as const;
+
+	it.each(PRISM_FAMILY)('serializes %s as a p14:prism variant', (name, isContent, isInverted) => {
 		const xml = service.buildSlideTransitionXml({ type: name, direction: 'r' });
 		expect(xml![`p14:${name}`]).toBeUndefined();
 		expect(xml!['p:extLst']).toBeUndefined();
@@ -352,6 +361,53 @@ describe('pptxSlideTransitionService round-trip', () => {
 		expect(prism['@_dir']).toBe('r');
 		expect(prism['@_isContent']).toBe(isContent);
 		expect(prism['@_isInverted']).toBe(isInverted);
+	});
+
+	// The flags ARE the identity. Dropping them on read collapsed all four onto
+	// the generic `prism` type, so a user who picked Cube reopened the deck to
+	// something else and the next save wrote a different transition again.
+	it.each(PRISM_FAMILY)('reloads a written %s as itself, not as prism', (name) => {
+		const written = service.buildSlideTransitionXml({ type: name, direction: 'r' });
+		const reparsed = service.parseSlideTransition({
+			'p:sld': { 'p:transition': written as XmlObject },
+		});
+		expect(reparsed!.type).toBe(name);
+		expect(reparsed!.direction).toBe('r');
+	});
+
+	// A bare `<p14:prism/>` IS PowerPoint's Cube (EntryEffect 3914), so the
+	// legacy generic token still writes it and still round-trips to a real type.
+	it('writes the legacy prism token as the bare (Cube) element', () => {
+		const xml = service.buildSlideTransitionXml({ type: 'prism', direction: 'u' });
+		const prism = xml!['p14:prism'] as XmlObject;
+		expect(prism['@_isContent']).toBeUndefined();
+		expect(prism['@_isInverted']).toBeUndefined();
+		expect(
+			service.parseSlideTransition({ 'p:sld': { 'p:transition': xml as XmlObject } })!.type,
+		).toBe('cube');
+	});
+
+	// Re-typing a prism-family slide must not leave the previous member's flags
+	// on the element: they, not the element name, select the effect.
+	it('does not inherit a stale prism flag pair when the type changes', () => {
+		const orbit = service.buildSlideTransitionXml({ type: 'orbit', direction: 'l' });
+		const retyped = service.buildSlideTransitionXml({
+			type: 'cube',
+			direction: 'l',
+			rawTransition: orbit,
+			rawExtLst: {
+				'p:ext': {
+					'@_uri': '{CE6CE671-F284-4235-B8B7-4F3F06D5A82C}',
+					'p14:prism': { '@_isContent': '1', '@_isInverted': '1' },
+				},
+			},
+		});
+		const prism = retyped!['p14:prism'] as XmlObject;
+		expect(prism['@_isContent']).toBeUndefined();
+		expect(prism['@_isInverted']).toBeUndefined();
+		expect(
+			service.parseSlideTransition({ 'p:sld': { 'p:transition': retyped as XmlObject } })!.type,
+		).toBe('cube');
 	});
 
 	// -----------------------------------------------------------------------

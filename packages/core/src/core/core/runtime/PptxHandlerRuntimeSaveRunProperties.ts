@@ -1,5 +1,6 @@
 import { XmlObject, TextStyle } from '../../types';
 import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { createRunStyleGate } from './authored-run-style';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSlideUtils';
 import { buildTextRunEffectListXml } from './text-run-effect-xml-builder';
 
@@ -72,42 +73,57 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return runProps;
 		}
 
-		if (typeof style.fontSize === 'number' && Number.isFinite(style.fontSize)) {
+		// `a:rPr` is a sparse override of the layout/master/theme cascade, not a
+		// description of the run. `owns(...)` is what keeps it sparse: it passes
+		// a property the run itself authored or that has since been EDITED, and
+		// blocks one the flat style merely inherited. Styles with no recorded
+		// baseline (SDK-built text, synthetic test styles) pass everything, so
+		// nothing that never came from a deck changes shape. See
+		// `authored-run-style.ts`.
+		const owns = createRunStyleGate(style);
+
+		if (typeof style.fontSize === 'number' && Number.isFinite(style.fontSize) && owns('fontSize')) {
 			runProps['@_sz'] = String(Math.round(style.fontSize * (72 / 96) * 100));
 		}
-		if (style.bold !== undefined) {
+		if (style.bold !== undefined && owns('bold')) {
 			runProps['@_b'] = style.bold ? '1' : '0';
 		}
-		if (style.italic !== undefined) {
+		if (style.italic !== undefined && owns('italic')) {
 			runProps['@_i'] = style.italic ? '1' : '0';
 		}
-		if (style.underline) {
+		const ownsUnderline = owns('underline', 'underlineStyle', 'underlineExplicitNone');
+		if (style.underline && ownsUnderline) {
 			runProps['@_u'] = style.underlineStyle || 'sng';
-		} else if (style.underlineExplicitNone) {
+		} else if (style.underlineExplicitNone && ownsUnderline) {
 			// Re-emit an explicitly authored `u="none"` suppression rather than
 			// collapsing it to inherit (which would let an inherited underline
 			// bleed through).
 			runProps['@_u'] = 'none';
 		}
-		if (style.strikethrough !== undefined) {
+		if (style.strikethrough !== undefined && owns('strikethrough', 'strikeType')) {
 			runProps['@_strike'] = style.strikethrough ? style.strikeType || 'sngStrike' : 'noStrike';
 		}
 		// Superscript / subscript baseline
-		if (typeof style.baseline === 'number' && style.baseline !== 0) {
+		if (typeof style.baseline === 'number' && style.baseline !== 0 && owns('baseline')) {
 			runProps['@_baseline'] = String(style.baseline);
 		}
 		// Character spacing
-		if (typeof style.characterSpacing === 'number' && style.characterSpacing !== 0) {
+		if (
+			typeof style.characterSpacing === 'number' &&
+			style.characterSpacing !== 0 &&
+			owns('characterSpacing')
+		) {
 			runProps['@_spc'] = String(style.characterSpacing);
 		}
 		// Kerning
-		if (typeof style.kerning === 'number' && style.kerning !== 0) {
+		if (typeof style.kerning === 'number' && style.kerning !== 0 && owns('kerning')) {
 			runProps['@_kern'] = String(style.kerning);
 		}
 		// Text caps
-		if (style.textCaps && style.textCaps !== 'none') {
+		const ownsCaps = owns('textCaps', 'textCapsExplicitNone');
+		if (style.textCaps && style.textCaps !== 'none' && ownsCaps) {
 			runProps['@_cap'] = style.textCaps;
-		} else if (style.textCapsExplicitNone) {
+		} else if (style.textCapsExplicitNone && ownsCaps) {
 			// Re-emit an explicitly authored `cap="none"` rather than dropping it
 			// to inherit (which would let an inherited caps style bleed through).
 			runProps['@_cap'] = 'none';
@@ -125,32 +141,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// keeping a bug alive than the bug itself, so it is corrected rather
 		// than deleted.
 		// Run metadata
-		if (style.kumimoji !== undefined) {
+		if (style.kumimoji !== undefined && owns('kumimoji')) {
 			runProps['@_kumimoji'] = style.kumimoji ? '1' : '0';
 		}
-		if (style.normalizeHeight !== undefined) {
+		if (style.normalizeHeight !== undefined && owns('normalizeHeight')) {
 			runProps['@_normalizeH'] = style.normalizeHeight ? '1' : '0';
 		}
-		if (style.noProof !== undefined) {
+		if (style.noProof !== undefined && owns('noProof')) {
 			runProps['@_noProof'] = style.noProof ? '1' : '0';
 		}
 		if (style.dirty !== undefined) {
 			runProps['@_dirty'] = style.dirty ? '1' : '0';
 		}
-		if (style.spellingError !== undefined) {
+		if (style.spellingError !== undefined && owns('spellingError')) {
 			runProps['@_err'] = style.spellingError ? '1' : '0';
 		}
-		if (style.smartTagClean !== undefined) {
+		if (style.smartTagClean !== undefined && owns('smartTagClean')) {
 			runProps['@_smtClean'] = style.smartTagClean ? '1' : '0';
 		}
-		if (style.bookmark) {
+		if (style.bookmark && owns('bookmark')) {
 			runProps['@_bmk'] = style.bookmark;
 		}
 		// Alternative language and SmartTag id (CT_TextCharacterProperties).
-		if (style.altLanguage) {
+		if (style.altLanguage && owns('altLanguage')) {
 			runProps['@_altLang'] = style.altLanguage;
 		}
-		if (typeof style.smartTagId === 'number' && Number.isFinite(style.smartTagId)) {
+		if (
+			typeof style.smartTagId === 'number' &&
+			Number.isFinite(style.smartTagId) &&
+			owns('smartTagId')
+		) {
 			runProps['@_smtId'] = String(style.smartTagId);
 		}
 		// OOXML CT_TextCharacterProperties child element order (fast-xml-parser
@@ -163,7 +183,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		//   hlinkClick, hlinkMouseOver, rtl, extLst.
 
 		// 1. a:ln (text outline)
-		if (style.textOutlineWidth || style.textOutlineColor) {
+		if (
+			(style.textOutlineWidth || style.textOutlineColor) &&
+			owns('textOutlineWidth', 'textOutlineColor')
+		) {
 			const lnObj: XmlObject = {};
 			if (typeof style.textOutlineWidth === 'number' && style.textOutlineWidth > 0) {
 				lnObj['@_w'] = String(Math.round(style.textOutlineWidth * PptxHandlerRuntime.EMU_PER_PX));
@@ -190,16 +213,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// first therefore rewrote EVERY hollow run as `<a:solidFill>` of the
 		// inherited colour, so the effect was lost permanently on the first
 		// round-trip and could never be recovered from the saved file.
-		if (style.textFillNone) {
+		//
+		// The whole choice is gated as ONE unit because it is one XML slot: a run
+		// that authored no fill at all takes the theme/master colour through
+		// inheritance, and re-emitting that as a literal `<a:srgbClr/>` is what
+		// stopped re-themed decks from restyling their text. `colorXml` alone
+		// could not save it: an inherited colour has no preserved node, so
+		// `serializeColorChoice` had nothing to fall back on and wrote the hex.
+		const ownsFill = owns(
+			'textFillNone',
+			'color',
+			'textFillGradientStops',
+			'textFillGradientType',
+			'textFillPattern',
+		);
+		if (ownsFill && style.textFillNone) {
 			runProps['a:noFill'] = {};
-		} else if (style.color) {
+		} else if (ownsFill && style.color) {
 			const resolvedOriginalColor = style.colorXml ? this.parseColor(style.colorXml) : undefined;
 			runProps['a:solidFill'] = serializeColorChoice(
 				style.colorXml,
 				resolvedOriginalColor,
 				style.color,
 			);
-		} else if (style.textFillGradientStops && style.textFillGradientStops.length > 0) {
+		} else if (ownsFill && style.textFillGradientStops && style.textFillGradientStops.length > 0) {
 			const gradStops = style.textFillGradientStops
 				.filter((stop) => Boolean(stop?.color))
 				.map((stop) => {
@@ -242,7 +279,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				runProps['a:gradFill'] = gradFillXml;
 			}
-		} else if (style.textFillPattern) {
+		} else if (ownsFill && style.textFillPattern) {
 			const pattFill: XmlObject = { '@_prst': style.textFillPattern };
 			if (style.textFillPatternForeground) {
 				pattFill['a:fgClr'] = {
@@ -279,7 +316,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// 4. a:highlight — re-emit the preserved colour-choice verbatim (keeping
 		// a themed `a:schemeClr` highlight themed) when the resolved hex still
 		// matches; otherwise fall back to a canonical srgbClr.
-		if (style.highlightColor) {
+		if (style.highlightColor && owns('highlightColor')) {
 			const resolvedHighlight = style.highlightColorXml
 				? this.parseColor(style.highlightColorXml)
 				: undefined;
@@ -293,16 +330,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// 5a. a:uLnTx / a:uLn (underline line — follows-text marker or explicit
 		// line styling). #85: previously the parsed uLn line props were dropped
 		// and never re-emitted.
-		if (style.underlineLineFollowsText) {
+		if (style.underlineLineFollowsText && owns('underlineLineFollowsText')) {
 			runProps['a:uLnTx'] = {};
-		} else if (style.underlineLine) {
+		} else if (style.underlineLine && owns('underlineLine')) {
 			runProps['a:uLn'] = buildUnderlineLineXml(style.underlineLine);
 		}
 
 		// 5b. a:uFillTx / a:uFill (underline fill — follows-text marker or colour)
-		if (style.underlineFillFollowsText) {
+		if (style.underlineFillFollowsText && owns('underlineFillFollowsText')) {
 			runProps['a:uFillTx'] = {};
-		} else if (style.underline && style.underlineColor) {
+		} else if (style.underline && style.underlineColor && owns('underlineColor')) {
 			runProps['a:uFill'] = {
 				'a:solidFill': {
 					'a:srgbClr': {
@@ -314,12 +351,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// 6. typefaces: latin, ea, cs, sym (CT_TextFont — typeface plus
 		// optional @panose, @pitchFamily, @charset metadata).
-		// #84: Prefer the preserved theme token (`+mn-lt`) over the flattened
-		// concrete face, and only emit `a:ea` / `a:cs` when the source actually
-		// carried them. Synthesizing `a:ea = a:cs = latinFont` (the old
-		// behaviour) forces CJK / complex-script glyphs onto the Latin face.
+		// #84 closed the SYNTHESIS half of this: the writer no longer copies the
+		// Latin face into `a:ea` / `a:cs`, and it prefers a preserved theme token
+		// (`+mn-lt`) over the concrete face. That fix is intact, but it was only
+		// half the defect: `style.eastAsiaFont` is populated by INHERITANCE as
+		// well as by authoring, so a CJK deck whose runs carried no `a:ea` still
+		// round-tripped 0 -> 19 of them, resolved off the theme's `a:ea` and
+		// therefore no longer following it. `owns(...)` closes that half.
 		const latinFace = style.latinFontThemeToken ?? style.fontFamily;
-		if (latinFace) {
+		if (latinFace && owns('fontFamily', 'latinFontThemeToken')) {
 			runProps['a:latin'] = applyFontMetadata(
 				{ '@_typeface': latinFace },
 				style.latinFontPanose,
@@ -328,7 +368,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 		const eastAsiaFace = style.eastAsiaFontThemeToken ?? style.eastAsiaFont;
-		if (eastAsiaFace) {
+		if (eastAsiaFace && owns('eastAsiaFont', 'eastAsiaFontThemeToken')) {
 			runProps['a:ea'] = applyFontMetadata(
 				{ '@_typeface': eastAsiaFace },
 				style.eastAsiaFontPanose,
@@ -337,7 +377,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 		const complexScriptFace = style.complexScriptFontThemeToken ?? style.complexScriptFont;
-		if (complexScriptFace) {
+		if (complexScriptFace && owns('complexScriptFont', 'complexScriptFontThemeToken')) {
 			runProps['a:cs'] = applyFontMetadata(
 				{ '@_typeface': complexScriptFace },
 				style.complexScriptFontPanose,
@@ -345,7 +385,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				style.complexScriptFontCharset,
 			);
 		}
-		if (style.symbolFont) {
+		if (style.symbolFont && owns('symbolFont')) {
 			runProps['a:sym'] = applyFontMetadata(
 				{ '@_typeface': style.symbolFont },
 				style.symbolFontPanose,
@@ -413,7 +453,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// the `@rtl` attribute that CT_TextParagraphProperties declares). It has
 		// to be assigned after `a:hlinkMouseOver` because fast-xml-parser
 		// serialises keys in insertion order.
-		if (style.rtl !== undefined) {
+		if (style.rtl !== undefined && owns('rtl')) {
 			runProps['a:rtl'] = { '@_val': style.rtl ? '1' : '0' };
 		}
 

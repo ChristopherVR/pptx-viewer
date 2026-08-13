@@ -7,6 +7,7 @@
 import type { XMLParser } from 'fast-xml-parser';
 import type JSZip from 'jszip';
 
+import type { AuthoredSlideBackground } from '../core/runtime/authored-slide-background';
 import type {
 	PptxActiveXControl,
 	PptxChartData,
@@ -134,6 +135,12 @@ export interface PptxSlideLoaderParams {
 	extractBackgroundImage: (slideXml: XmlObject, slidePath: string) => Promise<string | undefined>;
 	/** Get background image from the slide's layout (fallback). */
 	getLayoutBackgroundImage: (slidePath: string) => Promise<string | undefined>;
+	/**
+	 * Record whether this slide authored its own `<p:bg>` and what the
+	 * inheritance chain resolved to, so the save writer can tell a background
+	 * the user chose from one the loader flattened for painting.
+	 */
+	rememberSlideBackgroundOrigin: (slidePath: string, origin: AuthoredSlideBackground) => void;
 	/** Extract speaker notes text and rich segments from a slide. */
 	extractSlideNotes: (slidePath: string) => Promise<PptxSlideNotesResult>;
 	/** Extract legacy (pre-Office 2021) comments from a slide. */

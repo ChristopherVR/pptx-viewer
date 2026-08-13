@@ -2,6 +2,8 @@ import type { ShapeStyle, XmlObject } from '../../types';
 import { serializeColorChoice } from '../../utils/color-xml-preservation';
 import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
+import type { ShapeStyleGate } from './authored-shape-style';
+import { createLineStyleGate, fillIsPurelyStyleMatrix } from './authored-shape-style';
 import { setFillChoice } from './fill-choice-group';
 import { fillMatchesInheritedGroupFill } from './save-group-fill';
 import { writeLineFill } from './save-line-fill';
@@ -122,6 +124,16 @@ export function writeShapeFill(
 		return;
 	}
 
+	if (fillIsPurelyStyleMatrix(shapeStyle)) {
+		// The shape authored no fill: `<p:style><a:fillRef>` paints it, and the
+		// fill the load pass resolved out of the theme's format scheme is
+		// unchanged. An `spPr` fill OUTRANKS `a:fillRef`, so writing that
+		// resolved colour back would pin the shape to today's theme colour and
+		// stop Recolor / Reset / a theme change from moving it ever again.
+		// `applyShapeStyleRefs` re-emits the reference itself.
+		return;
+	}
+
 	if (requestedFillMode === 'none' || shapeStyle.fillColor === 'transparent') {
 		setFillChoice(spPr, 'a:noFill', {});
 		return;
@@ -213,8 +225,8 @@ function writeLineArrows(spPr: XmlObject, shapeStyle: ShapeStyle): void {
 }
 
 /** Write the `a:ln` join child (`a:round` / `a:bevel` / `a:miter`). */
-function writeLineJoin(spPr: XmlObject, shapeStyle: ShapeStyle): void {
-	if (shapeStyle.lineJoin === undefined) {
+function writeLineJoin(spPr: XmlObject, shapeStyle: ShapeStyle, owns: ShapeStyleGate): void {
+	if (shapeStyle.lineJoin === undefined || !owns('lineJoin', 'miterLimit')) {
 		return;
 	}
 	const lineNode = ensureLineNode(spPr);
@@ -247,29 +259,44 @@ export function writeShapeStroke(
 	shapeStyle: ShapeStyle,
 	ctx: ShapeFillStrokeContext,
 ): void {
+	// Everything below is gated on ownership: a property that still holds what
+	// `<p:style><a:lnRef>` resolved to was never authored on this shape, and
+	// writing it into `spPr/a:ln` would freeze the theme's line style onto it.
+	// Shapes with no `a:lnRef` (and SDK-built ones) have no baseline, so the
+	// gate is open and every branch behaves exactly as it always did.
+	const owns = createLineStyleGate(shapeStyle);
 	if (
-		shapeStyle.strokeColor !== undefined ||
-		shapeStyle.strokeFillMode === 'gradient' ||
-		shapeStyle.strokeFillMode === 'pattern'
+		(shapeStyle.strokeColor !== undefined ||
+			shapeStyle.strokeFillMode === 'gradient' ||
+			shapeStyle.strokeFillMode === 'pattern') &&
+		// The width travels with the paint: `writeLineFill` turns a zero width
+		// into `a:noFill`, so the two cannot be decided apart.
+		owns('strokeColor', 'strokeOpacity', 'strokeFillMode', 'strokeWidth')
 	) {
 		const lineNode = ensureLineNode(spPr);
-		lineNode['@_w'] = String(Math.round((shapeStyle.strokeWidth || 1) * ctx.emuPerPx));
+		if (shapeStyle.strokeWidth !== 0) {
+			// A zero width is how `<a:ln><a:noFill/></a:ln>` parses. The `|| 1`
+			// fallback below would turn it into `w="9525"`, inventing a 0.75pt
+			// outline that reappears the moment the user re-enables the line.
+			lineNode['@_w'] = String(Math.round((shapeStyle.strokeWidth || 1) * ctx.emuPerPx));
+		}
 		writeLineFill(lineNode, shapeStyle, ctx.parseColor);
 	}
-	if (shapeStyle.strokeDash !== undefined) {
+	if (shapeStyle.strokeDash !== undefined && owns('strokeDash')) {
 		applyDrawingLineDash(ensureLineNode(spPr), shapeStyle);
 	}
 
 	writeLineArrows(spPr, shapeStyle);
-	writeLineJoin(spPr, shapeStyle);
+	writeLineJoin(spPr, shapeStyle, owns);
 
-	if (shapeStyle.lineCap !== undefined) {
+	if (shapeStyle.lineCap !== undefined && owns('lineCap')) {
 		ensureLineNode(spPr)['@_cap'] = shapeStyle.lineCap;
 	}
-	if (shapeStyle.compoundLine !== undefined) {
+	if (shapeStyle.compoundLine !== undefined && owns('compoundLine')) {
 		ensureLineNode(spPr)['@_cmpd'] = shapeStyle.compoundLine;
 	}
-	// Line alignment (a:ln/@algn)
+	// Line alignment (a:ln/@algn). `a:lnRef` never resolves one, so an
+	// alignment on the flat style is always the shape's own.
 	if (shapeStyle.lineAlignment !== undefined) {
 		ensureLineNode(spPr)['@_algn'] = shapeStyle.lineAlignment;
 	}

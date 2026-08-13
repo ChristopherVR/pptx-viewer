@@ -389,22 +389,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const xmlPaths: XmlObject[] = el.inkPaths.map((svgPath) => {
 			const moveToList: XmlObject[] = [];
 			const lnToList: XmlObject[] = [];
-			const tokens = svgPath.match(/[ML]\s*[\d.eE+-]+\s+[\d.eE+-]+/gu);
-			if (tokens) {
-				for (const token of tokens) {
-					const parts = token.trim().split(/\s+/u);
-					const cmd = parts[0];
-					const x = parseFloat(parts[1]);
-					const y = parseFloat(parts[2]);
-					const pt = {
-						'@_x': String(Math.round(x * EMU)),
-						'@_y': String(Math.round(y * EMU)),
-					};
-					if (cmd === 'M') {
-						moveToList.push({ 'a:pt': pt });
-					} else if (cmd === 'L') {
-						lnToList.push({ 'a:pt': pt });
-					}
+			// SVG separates a coordinate pair with whitespace OR a comma, and both
+			// forms reach here: the Draw tool writes `M x y`, while an SDK caller
+			// (and `pathToTrace` in the ink writer, which always accepted both)
+			// writes `M0,0 L50,25`. Requiring whitespace silently matched nothing
+			// on the comma form, so the stroke was emitted as an EMPTY `a:path`
+			// and the ink vanished from the saved shape.
+			const tokens = svgPath.matchAll(/(?<cmd>[ML])\s*(?<x>[\d.eE+-]+)[,\s]+(?<y>[\d.eE+-]+)/giu);
+			for (const token of tokens) {
+				const x = parseFloat(String(token.groups?.x));
+				const y = parseFloat(String(token.groups?.y));
+				if (!Number.isFinite(x) || !Number.isFinite(y)) {
+					continue;
+				}
+				const pt = {
+					'@_x': String(Math.round(x * EMU)),
+					'@_y': String(Math.round(y * EMU)),
+				};
+				if (token.groups?.cmd?.toUpperCase() === 'M') {
+					moveToList.push({ 'a:pt': pt });
+				} else {
+					lnToList.push({ 'a:pt': pt });
 				}
 			}
 

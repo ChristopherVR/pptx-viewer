@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { decodeXmlEntities } from './xml-entities';
+import { decodeXmlEntities, encodeXmlAttributeValue, encodeXmlTextValue } from './xml-entities';
 
 describe('decodeXmlEntities', () => {
 	it('decodes the five predefined XML entities', () => {
@@ -36,5 +36,46 @@ describe('decodeXmlEntities', () => {
 
 	it('drops out-of-range numeric references rather than throwing', () => {
 		expect(decodeXmlEntities('&#x110000;')).toBe('');
+	});
+});
+
+describe('encodeXmlTextValue', () => {
+	it('escapes exactly the characters fast-xml-parser escaped by default', () => {
+		expect(encodeXmlTextValue('Tom & Jerry')).toBe('Tom &amp; Jerry');
+		expect(encodeXmlTextValue('a < b > c')).toBe('a &lt; b &gt; c');
+		expect(encodeXmlTextValue(`it's "so"`)).toBe('it&apos;s &quot;so&quot;');
+	});
+
+	it('escapes an ampersand once, not twice', () => {
+		expect(encodeXmlTextValue('a&b')).toBe('a&amp;b');
+		expect(decodeXmlEntities(encodeXmlTextValue('a&b'))).toBe('a&b');
+	});
+
+	it('writes a carriage return as a numeric reference', () => {
+		// XML line-ending normalisation rewrites a literal `\r` to `\n` before the
+		// parser ever sees it, so only `&#xD;` survives a round trip.
+		expect(encodeXmlTextValue('a\r\nb')).toBe('a&#xD;\nb');
+	});
+});
+
+describe('encodeXmlAttributeValue', () => {
+	it('escapes the markup characters but leaves the quote delimiters alone', () => {
+		// fast-xml-parser escapes `"` and `'` itself, immediately after this
+		// processor runs; doing it here too would emit `&amp;quot;`.
+		expect(encodeXmlAttributeValue('R&D <x>')).toBe('R&amp;D &lt;x&gt;');
+		expect(encodeXmlAttributeValue(`say "hi" it's`)).toBe(`say "hi" it's`);
+	});
+
+	it('writes tab, line feed and carriage return as numeric references', () => {
+		// Attribute-value normalisation (XML 1.0 3.3.3) turns a literal one into a
+		// space on read-back, which silently flattens multi-line alt text.
+		expect(encodeXmlAttributeValue('one\ntwo')).toBe('one&#xA;two');
+		expect(encodeXmlAttributeValue('a\tb')).toBe('a&#x9;b');
+		expect(encodeXmlAttributeValue('a\rb')).toBe('a&#xD;b');
+	});
+
+	it('is the exact inverse of decodeXmlEntities for a query string', () => {
+		const url = 'https://example.com/search?a=1&b=2&c=3';
+		expect(decodeXmlEntities(encodeXmlAttributeValue(url))).toBe(url);
 	});
 });

@@ -3,6 +3,7 @@
  * stored in the `p:extLst` within a `p:transition` node.
  */
 import type { PptxSplitOrientation, PptxTransitionType, XmlObject } from '../types';
+import { prismFamilyTypeOfNode } from './p14-prism-family';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 
 /** Office 2010 (p14 namespace) transition type names. */
@@ -29,6 +30,10 @@ export const P14_TRANSITION_TYPES: ReadonlySet<string> = new Set([
 	'flip',
 	'rotate',
 	'orbit',
+	// `box` has no p14 element of its own (it is a `p14:prism` flag combination,
+	// see `p14-prism-family`), but the set doubles as "types that serialize
+	// through the p14 path", so leaving it out would write `<p:box/>`.
+	'box',
 ]);
 
 export interface P14ParseResult {
@@ -40,13 +45,20 @@ export interface P14ParseResult {
 
 /** Read the `@dir` / `@orient` / `@pattern` details off a p14 transition element. */
 function readP14Details(localName: string, value: unknown): P14ParseResult {
-	const type = localName as PptxTransitionType;
+	const detail =
+		value && typeof value === 'object' && !Array.isArray(value) ? (value as XmlObject) : undefined;
+	// Cube, Rotate, Box and Orbit share one element and are told apart by its
+	// `isContent`/`isInverted` flags. Ignoring them collapsed all four onto the
+	// generic `prism` type, so a Rotate reopened as something else and the next
+	// save wrote Cube.
+	const type = (
+		localName === 'prism' ? prismFamilyTypeOfNode(detail) : localName
+	) as PptxTransitionType;
 	let direction: string | undefined;
 	let orient: PptxSplitOrientation | undefined;
 	let pattern: string | undefined;
 
-	if (value && typeof value === 'object' && !Array.isArray(value)) {
-		const detail = value as XmlObject;
+	if (detail) {
 		const rawDir = String(detail['@_dir'] || '').trim();
 		if (rawDir.length > 0) {
 			direction = rawDir;

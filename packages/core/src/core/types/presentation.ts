@@ -141,6 +141,18 @@ export interface PptxSlideBackgroundPattern {
 export interface PptxSlide {
 	id: string;
 	rId: string; // Relationship ID
+	/**
+	 * `p:sldIdLst/p:sldId/@id` (ST_SlideId, 256..2147483647): the numeric key
+	 * that sections (`p14:sldIdLst/p14:sldId/@id`) and section/summary zooms
+	 * name slides by.
+	 *
+	 * It lives in `presentation.xml`, NOT in the slide part, so it cannot be
+	 * recovered from `rawXml`. Without it on the model, code that writes a
+	 * section's membership has nothing correct to write and falls back to the
+	 * slide NUMBER, which is 1-based and therefore never matches a real deck's
+	 * ids: the section reloads with no slides in it.
+	 */
+	slideId?: string;
 	sourceSlideId?: string; // Optional source slide path when creating new slides
 	/** Optional author-supplied slide name (set via `SlideBuilder.setName`). */
 	name?: string;
@@ -344,6 +356,27 @@ export interface PptxPresentationProperties {
 	penColor?: string;
 	/** Kiosk auto-restart interval in milliseconds (from `p:kiosk/@restart`). Only meaningful when showType is "kiosk". */
 	kioskRestartTime?: number;
+}
+
+/**
+ * Slide dimensions from `p:sldSz` (CT_SlideSize, ECMA-376 §19.2.1.39).
+ *
+ * @example
+ * ```ts
+ * const size: PptxSlideSize = { widthEmu: 9144000, heightEmu: 6858000, type: 'screen4x3' };
+ * // => satisfies PptxSlideSize
+ * ```
+ */
+export interface PptxSlideSize {
+	/** `@cx` in EMU. Omitted or non-positive values leave the loaded width alone. */
+	widthEmu?: number;
+	/** `@cy` in EMU. Omitted or non-positive values leave the loaded height alone. */
+	heightEmu?: number;
+	/**
+	 * `@type` (ST_SlideSizeType). The schema default is `custom`, which is
+	 * why PowerPoint omits the attribute for a non-preset size.
+	 */
+	type?: string;
 }
 
 /**

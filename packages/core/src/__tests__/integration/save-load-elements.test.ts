@@ -1012,7 +1012,13 @@ describe('saved slide XML conforms to schema order', () => {
 // ===========================================================================
 
 describe('ink element round-trip', () => {
-	it('ink stroke reloads as typed ink with its editable trace', async () => {
+	// This used to assert the stroke reloaded as `type: 'ink'`, which it did
+	// only because the writer wrapped it in a `p:graphicFrame` carrying
+	// `<aink:ink>`. PowerPoint refuses to open a deck containing that frame
+	// (0x80070570, bisected through COM), so authored ink is now written as the
+	// `custGeom` stroke shape instead. The geometry and stroke survive; the
+	// typed ink identity does not, which docs/guide/limitations.md documents.
+	it('an authored ink stroke reloads as a custom-geometry stroked shape', async () => {
 		const { handler, data, createSlide } = await createBlank();
 		const ink: InkPptxElement = {
 			id: 'ink-test-1',
@@ -1031,11 +1037,13 @@ describe('ink element round-trip', () => {
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
 
-		const reloadedInk = reloaded.slides[0].elements.find(
-			(element): element is InkPptxElement => element.type === 'ink',
+		const stroke = reloaded.slides[0].elements.find(
+			(element) => element.type === 'shape' && element.shapeType === 'custom',
 		);
-		expect(reloadedInk?.inkPaths).toStrictEqual(['M0,0 L60,40 L120,80']);
-		expect(reloadedInk?.inkColors).toStrictEqual(ink.inkColors);
-		expect(reloadedInk?.inkWidths).toStrictEqual(ink.inkWidths);
+		expect(stroke, 'the drawn stroke did not survive the round-trip').toBeDefined();
+		expect(stroke!.shapeStyle?.strokeColor?.toUpperCase()).toBe('#FF0000');
+		expect(stroke!.shapeStyle?.strokeWidth).toBe(3);
+		// No `aink:` markup is written any more, so nothing reloads as typed ink.
+		expect(reloaded.slides[0].elements.some((element) => element.type === 'ink')).toBeFalsy();
 	});
 });

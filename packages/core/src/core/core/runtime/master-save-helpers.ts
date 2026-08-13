@@ -45,16 +45,39 @@ export function applyHeaderFooterFlagsToNode(
 }
 
 /**
- * Apply a typed background colour to a `<p:cSld>` node in place. When
- * `backgroundColor` is undefined the existing background (if any) is left
- * alone — callers signal "remove" by passing an empty string, which clears
- * the `<p:bg>` child.
+ * Apply a *chosen* background colour to a `<p:cSld>` node in place.
+ *
+ * `<p:bg>` has two mutually exclusive shapes (§19.3.1.1, CT_Background):
+ * `<p:bgPr>` is a literal fill, `<p:bgRef idx="…">` points into the theme's
+ * `<a:bgFillStyleLst>` so the part follows its theme. Replacing the second
+ * with the first is destructive, and it is exactly what a caller that cannot
+ * tell "the loader flattened a `bgRef` to paint it" from "the user picked a
+ * colour" will do on every save.
+ *
+ * Which is why `loadedBackgroundColor` exists: pass what the loader resolved
+ * for this part and an unchanged colour is a no-op, leaving a `bgRef` (or a
+ * gradient, or a picture fill) exactly as authored.
+ *
+ * When the colour *has* changed, overwriting `bgRef` is correct, because that
+ * is what PowerPoint itself writes. Verified by COM: setting
+ * `CustomLayouts(1).Background.Fill.Solid()` on a stock deck whose master
+ * carried `<p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef>` emits
+ * `<p:bg><p:bgPr><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>
+ * <a:effectLst/></p:bgPr></p:bg>` and drops the reference, on the layout and
+ * on the master alike. Untouched layouts keep no `<p:bg>` at all.
+ *
+ * `undefined` means "not specified, leave it alone"; the empty string means
+ * "remove", which clears `<p:bg>` and restores inheritance from the master.
  */
 export function applyBackgroundColorToCSld(
 	cSld: XmlObject,
 	backgroundColor: string | undefined,
+	loadedBackgroundColor?: string | undefined,
 ): void {
 	if (backgroundColor === undefined) {
+		return;
+	}
+	if (!backgroundColorChanged(backgroundColor, loadedBackgroundColor)) {
 		return;
 	}
 	if (backgroundColor === '') {
@@ -68,6 +91,25 @@ export function applyBackgroundColorToCSld(
 			'a:effectLst': {},
 		},
 	};
+}
+
+/**
+ * True when the requested colour differs from the loaded one. Comparison
+ * ignores `#` and case, because a colour input hands back `#ffffff` for the
+ * `FFFFFF` the parser produced and that is not an edit.
+ *
+ * An omitted `loadedBackgroundColor` means the caller has no record, so the
+ * request is taken at face value and the existing behaviour is preserved.
+ */
+function backgroundColorChanged(
+	backgroundColor: string,
+	loadedBackgroundColor: string | undefined,
+): boolean {
+	if (loadedBackgroundColor === undefined) {
+		return true;
+	}
+	const normalise = (value: string): string => value.trim().replace(/^#/, '').toUpperCase();
+	return normalise(backgroundColor) !== normalise(loadedBackgroundColor);
 }
 
 /**

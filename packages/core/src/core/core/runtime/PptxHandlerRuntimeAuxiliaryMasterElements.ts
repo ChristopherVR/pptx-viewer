@@ -26,6 +26,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { rememberAuxiliaryMasterUnparsedNodes } from './auxiliary-master-node-cache';
+import { rememberMasterPartBackground } from './master-part-background-cache';
 import { rememberMasterPartElementSignature } from './master-part-element-signature';
 import { masterPartIdPrefix } from './master-part-tags';
 import type { MasterPartRootTag } from './master-part-tags';
@@ -36,6 +37,11 @@ export interface MasterPartElementHost {
 	path: string;
 	elements?: PptxElement[];
 	backgroundImage?: string;
+	/**
+	 * Already resolved by the master/layout parser. Read here only so the save
+	 * side can tell a chosen colour from a flattened `p:bgRef`.
+	 */
+	backgroundColor?: string;
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -48,6 +54,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 		const partPath = part.path;
+		// Before anything can bail: the save side needs to know which colour the
+		// loader resolved for this part, so a `p:bgRef` that was merely painted
+		// is not mistaken for a colour the user picked. See
+		// {@link module:master-part-background-cache}.
+		rememberMasterPartBackground(this, partPath, part.backgroundColor);
 		const xml = await this.zip.file(partPath)?.async('string');
 		if (!xml) {
 			return;

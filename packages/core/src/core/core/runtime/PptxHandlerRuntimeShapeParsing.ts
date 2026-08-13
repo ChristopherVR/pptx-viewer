@@ -1,7 +1,12 @@
 import { PptxElement, XmlObject, TextSegment, TextStyle } from '../../types';
+import {
+	inheritedPlaceholderFieldType,
+	isHeaderFooterPlaceholder,
+} from '../../utils/header-footer-placeholder';
 import { textBodyHasContent } from '../../utils/text-body-has-content';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { createAutoNumberSequence } from './auto-number-sequence';
+import { captureResolvedParagraphGeometry } from './element-paragraph-geometry';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParagraphContentParsing';
 import type { ShapeTextParsingContext } from './PptxHandlerRuntimeTypes';
 
@@ -121,8 +126,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 
 			// ── Text body ────────────────────────────────────────────
-			const txBody = shape['p:txBody'] || inheritedPlaceholder?.shape?.['p:txBody'];
+			const ownTxBody = shape['p:txBody'] as XmlObject | undefined;
 			const inheritedTxBody = inheritedPlaceholder?.shape?.['p:txBody'] as XmlObject | undefined;
+			// PowerPoint keeps the footer / header / date / slide-number STRING on
+			// the slide master and writes each slide's copy of the placeholder with
+			// an EMPTY body so it inherits (verified through COM, see
+			// `header-footer-parts.ts`). That empty body is an instruction to render
+			// the master's string here, not an empty footer, so it must not win over
+			// the ancestor's. Restricted to those four types on purpose: an empty
+			// `title` / `body` placeholder inherits PROMPT text ("Click to edit
+			// Master title style"), which is chrome and must never render as content.
+			const inheritsPlaceholderText =
+				isHeaderFooterPlaceholder(placeholderInfo?.type) &&
+				!textBodyHasContent(ownTxBody) &&
+				textBodyHasContent(inheritedTxBody);
+			const txBody = inheritsPlaceholderText ? inheritedTxBody : ownTxBody || inheritedTxBody;
 			this.compatibilityService.inspectShapeCompatibility(
 				effectiveSpPr,
 				txBody as XmlObject | undefined,
@@ -231,6 +249,33 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				});
 				text = textParts.join('');
+				// The element-scope paragraph geometry above is RESOLVED: it comes
+				// from the shape's `a:lstStyle`, the layout placeholder, the master
+				// and the first paragraph's own `a:pPr`, first-wins. Recording it
+				// here is what later lets the writer tell an inherited value (leave
+				// it out, so the deck stays layout-driven) from one the user has
+				// since edited (write it, once, into `a:lstStyle/a:lvl1pPr`). The
+				// element-level text panels patch `element.textStyle` and nothing
+				// else, so without this snapshot the two are indistinguishable.
+				captureResolvedParagraphGeometry(textStyle);
+			}
+
+			// A footer / header string inherited from the master is a LIVE value:
+			// the Header & Footer dialog owns it, so tagging the inherited runs as
+			// field runs lets the shared field substitution resolve them from
+			// `PptxHeaderFooter` and repaint every binding's canvas the moment the
+			// dialog changes, instead of freezing the string captured at load.
+			// `dt` / `sldNum` masters carry a real `a:fld`, which already parsed
+			// with its own type, so `inheritedPlaceholderFieldType` skips them.
+			const inheritedFieldType = inheritsPlaceholderText
+				? inheritedPlaceholderFieldType(placeholderInfo?.type)
+				: undefined;
+			if (inheritedFieldType) {
+				for (const segment of textSegments) {
+					if (segment.fieldType === undefined && segment.text.length > 0) {
+						segment.fieldType = inheritedFieldType;
+					}
+				}
 			}
 
 			// Extract shape style + determine element type
@@ -299,6 +344,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const commonProps = {
 				id,
 				name: elementName || undefined,
+				placeholderType: placeholderInfo?.type,
+				inheritedPlaceholderText: inheritsPlaceholderText ? text : undefined,
 				x,
 				y,
 				width,

@@ -1,5 +1,10 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import {
+	captureStyleBaseline,
+	STYLE_MATRIX_FILL_KEYS,
+	STYLE_MATRIX_LINE_KEYS,
+} from '../runtime/authored-shape-style';
 import { drawingChild, hasDrawingChild } from './drawing-fill-xml';
 import { extractGradientTileRect } from './PptxGradientStyleCodec';
 import { applyScene3dStyle, applyShape3dStyle } from './shape-style-3d-helpers';
@@ -143,6 +148,12 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			style.fillMode = 'group';
 		} else if (styleNode?.['a:fillRef']) {
 			this.context.resolveThemeFillRef(styleNode['a:fillRef'] as XmlObject, style);
+			// Reached only when `spPr` declared NO fill of its own, so the
+			// reference is what paints this shape. Record what it resolved to:
+			// the save path writes a concrete fill only once the flat style
+			// stops agreeing with this, because an `spPr` fill outranks
+			// `a:fillRef` and would cut the shape off from the theme.
+			style.inheritedFillStyle = captureStyleBaseline(style, STYLE_MATRIX_FILL_KEYS);
 		}
 
 		const lineNode = shapeProps['a:ln'] as XmlObject | undefined;
@@ -160,6 +171,10 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 		// since it returns early after clearing the stroke outright.
 		if (styleNode?.['a:lnRef']) {
 			this.context.resolveThemeLineRef(styleNode['a:lnRef'] as XmlObject, style);
+			// Snapshot the reference's contribution BEFORE `a:ln` overrides part
+			// of it below, so the writer can tell an authored outline property
+			// from one the theme's line style handed down.
+			style.inheritedLineStyle = captureStyleBaseline(style, STYLE_MATRIX_LINE_KEYS);
 		}
 		if (lineNode) {
 			// `applyLineProperties` returns true for `<a:ln><a:noFill/></a:ln>`,

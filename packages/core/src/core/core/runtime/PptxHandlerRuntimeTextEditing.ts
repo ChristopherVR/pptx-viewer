@@ -48,6 +48,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				),
 			} as TextStyle;
 
+			// Same authored-versus-resolved split the main paragraph parser
+			// records: this rewrite path feeds `createRunPropertiesFromTextStyle`
+			// too, so without it every run it produced came back with the whole
+			// inherited cascade baked into its `a:rPr`.
+			const withAuthoredSplit = (authored: TextStyle): TextStyle =>
+				({
+					...paragraphDefaultStyle,
+					...authored,
+					authoredRunStyle: authored,
+					inheritedRunStyle: paragraphDefaultStyle,
+				}) as TextStyle;
+
 			const appendRunSegment = (value: unknown, runProperties: XmlObject | undefined): void => {
 				if (value === undefined || value === null) {
 					return;
@@ -56,10 +68,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (runText.length === 0) {
 					return;
 				}
-				const runStyle = {
-					...paragraphDefaultStyle,
-					...this.extractTextRunStyle(runProperties, paragraphAlign, relationshipMap),
-				} as TextStyle;
+				const runStyle = withAuthoredSplit(
+					this.extractTextRunStyle(runProperties, paragraphAlign, relationshipMap),
+				);
 				segments.push({
 					text: runText,
 					style: runStyle,
@@ -90,10 +101,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (value === undefined || value.length === 0) {
 					return;
 				}
-				const runStyle = {
-					...paragraphDefaultStyle,
-					...this.extractTextRunStyle(fieldRunProps, paragraphAlign, relationshipMap),
-				} as TextStyle;
+				const runStyle = withAuthoredSplit(
+					this.extractTextRunStyle(fieldRunProps, paragraphAlign, relationshipMap),
+				);
 				const fieldType = String(field['@_type'] || '').trim() || undefined;
 				const fieldGuid = String(field['@_id'] || '').trim() || undefined;
 				segments.push({

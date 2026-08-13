@@ -46,6 +46,7 @@ import { applyChartProtection } from '../../utils/chart-protection';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
+import { serializeColorChoice } from '../../utils/color-xml-preservation';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
@@ -358,6 +359,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// Update series colour. Create `c:spPr`/`a:solidFill` when the
 					// loaded series has none so an inspector-edited colour always
 					// round-trips, not just when an original fill was present.
+					//
+					// `PptxChartSeries.color` is a RESOLVED hex: the parse ran the
+					// authored `<a:schemeClr val="accent1"><a:lumMod val="60000"/>`
+					// through the theme and kept only the answer. Writing that
+					// answer back unconditionally severed every themed series from
+					// its theme on every save, for charts nobody had touched -
+					// measured on `issue-132-hr-deck.pptx` as `a:schemeClr 12 -> 5`
+					// with `accent5` lost outright. The chart part is re-parsed
+					// from the archive and mutated in place, so the authored node
+					// is still right here to compare against: when it resolves to
+					// the colour the model holds, nothing was edited and it is left
+					// exactly as authored.
 					if (seriesData.color) {
 						const hex = seriesData.color.replace('#', '');
 						const spPr = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr') as
@@ -368,7 +381,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								Object.keys(spPr).find(
 									(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
 								) ?? 'a:solidFill';
-							spPr[solidFillKey] = { 'a:srgbClr': { '@_val': hex } };
+							const authoredFill = spPr[solidFillKey] as XmlObject | undefined;
+							spPr[solidFillKey] = serializeColorChoice(
+								authoredFill,
+								authoredFill ? this.parseColor(authoredFill) : undefined,
+								hex,
+							);
 						} else {
 							const spPrKey =
 								Object.keys(seriesNode).find(
@@ -382,29 +400,41 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 					// Trendlines (per-series). Undefined = no edit / passthrough.
 					if (seriesData.trendlines !== undefined) {
-						applySeriesTrendlinesToXml(seriesNode, seriesData.trendlines, (key) =>
-							this.compatibilityService.getXmlLocalName(key),
+						applySeriesTrendlinesToXml(
+							seriesNode,
+							seriesData.trendlines,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
 						);
 					}
 
 					// Error bars (per-series). Undefined = no edit / passthrough.
 					if (seriesData.errBars !== undefined) {
-						applySeriesErrBarsToXml(seriesNode, seriesData.errBars, (key) =>
-							this.compatibilityService.getXmlLocalName(key),
+						applySeriesErrBarsToXml(
+							seriesNode,
+							seriesData.errBars,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
 						);
 					}
 
 					// Marker (per-series, line/scatter/bubble/radar). Undefined = passthrough.
 					if (seriesData.marker !== undefined) {
-						applySeriesMarkerToXml(seriesNode, seriesData.marker, (key) =>
-							this.compatibilityService.getXmlLocalName(key),
+						applySeriesMarkerToXml(
+							seriesNode,
+							seriesData.marker,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
 						);
 					}
 
 					// Per-data-point overrides (c:dPt). Undefined = passthrough.
 					if (seriesData.dataPoints !== undefined) {
-						applySeriesDataPointsToXml(seriesNode, seriesData.dataPoints, (key) =>
-							this.compatibilityService.getXmlLocalName(key),
+						applySeriesDataPointsToXml(
+							seriesNode,
+							seriesData.dataPoints,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
 						);
 					}
 
@@ -542,8 +572,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						chartData.chartType === 'stock' ||
 						chartData.chartType === 'combo')
 				) {
-					applyChartUpDownBars(chartTypeContainer, chartData.upDownBars, (key) =>
-						this.compatibilityService.getXmlLocalName(key),
+					applyChartUpDownBars(
+						chartTypeContainer,
+						chartData.upDownBars,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+						(node) => this.parseColor(node),
 					);
 				}
 
@@ -565,8 +598,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// ── Legend round-trip (c:legend / c:legendPos) ────────────
 				if (chartData.style) {
-					applyChartLegendToXml(chartRoot, chartData.style, (key) =>
-						this.compatibilityService.getXmlLocalName(key),
+					applyChartLegendToXml(
+						chartRoot,
+						chartData.style,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+						(node) => this.parseColor(node),
 					);
 				}
 
@@ -683,17 +719,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 									fontColor: matchingAxis.fontColor,
 								},
 								(key) => this.compatibilityService.getXmlLocalName(key),
+								(node) => this.parseColor(node),
 							);
 
 							// Major/minor gridlines (undefined = no edit)
-							applyChartAxisGridlinesToXml(axisNode, matchingAxis, (key) =>
-								this.compatibilityService.getXmlLocalName(key),
+							applyChartAxisGridlinesToXml(
+								axisNode,
+								matchingAxis,
+								(key) => this.compatibilityService.getXmlLocalName(key),
+								(node) => this.parseColor(node),
 							);
 
 							// Display units (value/date axes only; reconciled from the model)
 							if (axisTypeName === 'valAx' || axisTypeName === 'dateAx') {
-								applyChartAxisDisplayUnitsToXml(axisNode, matchingAxis, (key) =>
-									this.compatibilityService.getXmlLocalName(key),
+								applyChartAxisDisplayUnitsToXml(
+									axisNode,
+									matchingAxis,
+									(key) => this.compatibilityService.getXmlLocalName(key),
+									(node) => this.parseColor(node),
 								);
 							}
 						}

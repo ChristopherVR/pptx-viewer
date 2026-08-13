@@ -1,9 +1,16 @@
 import { XmlObject } from '../../types';
-import type { PptxElementWithText } from '../../types';
+import type { PptxElementWithText, TextStyle } from '../../types';
 import { writeBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
 import { applyTextBodyScene3d } from '../../utils/text-body-scene3d';
+import {
+	applyElementParagraphGeometryToListStyle,
+	elementParagraphGeometryEdits,
+	hasElementParagraphGeometry,
+	withoutElementParagraphGeometry,
+} from './element-paragraph-geometry';
 import { preserveParagraphScopedState } from './paragraph-scoped-segment-state';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveEffectsWriter';
+import { buildParagraphPropertiesXml } from './PptxHandlerRuntimeSaveParagraphHelpers';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -24,6 +31,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const hasEditableTextContent =
 			typeof el.text === 'string' || (el.textSegments?.length ?? 0) > 0;
 		if (!hasEditableTextContent) {
+			return;
+		}
+
+		// A footer / header / date / slide-number placeholder whose text the loader
+		// INHERITED from the slide master must go back out the way PowerPoint
+		// writes it: an empty body on the slide, so the string keeps coming from
+		// the master and the Header & Footer dialog keeps owning it. Re-emitting
+		// the resolved string would pin this slide to the text the master happened
+		// to hold at load. An edit changes `el.text`, so the equality check still
+		// lets a genuine per-slide override through to the writer below.
+		if (
+			el.inheritedPlaceholderText !== undefined &&
+			el.text === el.inheritedPlaceholderText &&
+			el.rawXml !== undefined
+		) {
 			return;
 		}
 
@@ -167,10 +189,47 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		txBody['a:bodyPr'] = bodyPr;
 		txBody['a:p'] = this.createParagraphsFromTextContent(
 			textValueForSave,
-			el.textStyle,
+			this.routeElementParagraphGeometry(txBody, el.textStyle),
 			textSegmentsForSave,
 			resolveHyperlinkRelationshipId,
 		);
+	}
+
+	/**
+	 * Move the element-scope paragraph geometry out of every `a:pPr` and into
+	 * the text body's `a:lstStyle > a:lvl1pPr`, returning the element style with
+	 * that geometry removed so the paragraph writer no longer broadcasts it.
+	 *
+	 * See `element-paragraph-geometry.ts` for why the `a:lstStyle` slot is the
+	 * one that makes the "authored versus resolved" question answerable at all.
+	 */
+	private routeElementParagraphGeometry(
+		txBody: XmlObject,
+		textStyle: TextStyle | undefined,
+	): TextStyle | undefined {
+		const edits = elementParagraphGeometryEdits(textStyle);
+		if (edits === undefined) {
+			// No load-time snapshot: this text was not parsed from a deck, so the
+			// element style is its only description and the paragraph writer must
+			// keep writing it out. Nothing changes for SDK-built decks.
+			return textStyle;
+		}
+		if (hasElementParagraphGeometry(edits)) {
+			applyElementParagraphGeometryToListStyle(
+				txBody,
+				buildParagraphPropertiesXml(edits, this.textAlignToDrawingValue(edits.align), undefined, {
+					spacingBefore: this.createParagraphSpacingXmlFromPx(edits.paragraphSpacingBefore),
+					spacingAfter: this.createParagraphSpacingXmlFromPx(edits.paragraphSpacingAfter),
+					lineSpacing: this.createLineSpacingXmlFromMultiplier(edits.lineSpacing),
+					lineSpacingExactPt: edits.lineSpacingExactPt,
+				}),
+			);
+		}
+		// Everything else the element style says about paragraphs came out of the
+		// cascade, so it is dropped rather than stamped onto every `a:pPr`: the
+		// paragraphs that authored geometry still emit their own, and the rest go
+		// back to inheriting it.
+		return withoutElementParagraphGeometry(textStyle);
 	}
 
 	/** Apply auto-fit mode settings to bodyPr. */

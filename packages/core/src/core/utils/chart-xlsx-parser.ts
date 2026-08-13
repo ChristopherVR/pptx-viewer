@@ -14,6 +14,7 @@ import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
 
 import type { PptxEmbeddedWorkbookData } from '../types';
+import { preservesSpreadsheetXmlWhitespace } from './xml-whitespace';
 
 /** Represents a single parsed cell from the worksheet. */
 interface ParsedCell {
@@ -275,7 +276,16 @@ export async function parseEmbeddedXlsx(
 			ignoreAttributes: false,
 			attributeNamePrefix: '@_',
 			removeNSPrefix: false,
-			trimValues: true,
+			// SpreadsheetML `<t>` is the one place in an OOXML package where
+			// `xml:space="preserve"` genuinely shows up: Excel stamps it on a
+			// shared string whose text has boundary whitespace, so a category
+			// label of `"Q1 "` or a deliberately blank `" "` is data. Trimming
+			// every text node destroyed those. Numbers, formulas and cell
+			// references keep the old trimmed behaviour, so indentation in a
+			// pretty-printed sheet still cannot become content.
+			trimValues: false,
+			tagValueProcessor: (tagName: string, tagValue: string) =>
+				preservesSpreadsheetXmlWhitespace(tagName) ? tagValue : tagValue.trim(),
 		});
 		let date1904 = false;
 		const workbookFile = xlsxZip.file('xl/workbook.xml');

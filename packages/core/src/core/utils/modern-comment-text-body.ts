@@ -10,9 +10,9 @@ import type { XmlObject } from '../types';
  * unchanged lines are re-emitted verbatim, and a changed line keeps its runs
  * with only the differing middle rewritten.
  *
- * Mention metadata (`p188:mentionLst`) is not modelled; it survives because the
- * serializer copies unknown `p188:cm` children through. Mention offsets are NOT
- * re-based when an edit shifts them, which is a known follow-up.
+ * Mention metadata (`p188:mentionLst`) IS modelled, in
+ * `modern-comment-mentions.ts`: this module keeps the runs an offset points
+ * into stable, and the serializer re-bases the offsets themselves.
  */
 
 const localName = (key: string): string => key.split(':').pop() || key;

@@ -1,4 +1,6 @@
 import type { PptxChartShapeProps, PptxChartUpDownBars, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { chartColorChoiceValue } from './chart-color-choice';
 import { chartPercentUnionValue } from './chart-percent-union-value';
 import { parseShapeProps } from './chart-series-detail-parser';
 
@@ -61,7 +63,6 @@ export function parseChartUpDownBars(
 
 const findKey = (node: XmlObject, name: string, localName: LocalName) =>
 	Object.keys(node).find((key) => localName(key) === name);
-const hex = (value: string) => value.replace(/^#/u, '').toUpperCase();
 
 function setDrawingChild(
 	node: XmlObject,
@@ -94,6 +95,7 @@ function applyShapeProps(
 	existing: XmlObject | undefined,
 	style: PptxChartShapeProps,
 	localName: LocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject {
 	const spPr: XmlObject = { ...(existing ?? {}) };
 	if (style.fillColor) {
@@ -104,7 +106,11 @@ function applyShapeProps(
 		setDrawingChild(
 			spPr,
 			'solidFill',
-			{ 'a:srgbClr': { '@_val': hex(style.fillColor) } },
+			chartColorChoiceValue(
+				spPr[findKey(spPr, 'solidFill', localName) ?? ''] as XmlObject | undefined,
+				style.fillColor,
+				resolveColor,
+			),
 			[
 				'xfrm',
 				'prstGeom',
@@ -138,7 +144,11 @@ function applyShapeProps(
 			setDrawingChild(
 				line,
 				'solidFill',
-				{ 'a:srgbClr': { '@_val': hex(style.strokeColor) } },
+				chartColorChoiceValue(
+					line[findKey(line, 'solidFill', localName) ?? ''] as XmlObject | undefined,
+					style.strokeColor,
+					resolveColor,
+				),
 				[
 					'noFill',
 					'solidFill',
@@ -235,6 +245,7 @@ export function applyChartUpDownBars(
 	chartContainer: XmlObject,
 	options: PptxChartUpDownBars | null | undefined,
 	localName: LocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	if (options === undefined) {
 		return;
@@ -269,7 +280,12 @@ export function applyChartUpDownBars(
 			...((existingBar ? node[existingBar] : undefined) as XmlObject | undefined),
 		};
 		const spPrKey = findKey(bar, 'spPr', localName) ?? 'c:spPr';
-		bar[spPrKey] = applyShapeProps(bar[spPrKey] as XmlObject | undefined, style, localName);
+		bar[spPrKey] = applyShapeProps(
+			bar[spPrKey] as XmlObject | undefined,
+			style,
+			localName,
+			resolveColor,
+		);
 		setOrdered(node, name, bar, ['gapWidth', 'upBars', 'downBars', 'extLst'], localName);
 	}
 	setOrdered(chartContainer, 'upDownBars', node, CONTAINER_ORDER, localName);

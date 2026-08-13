@@ -11,6 +11,7 @@
 import type { XMLParser } from 'fast-xml-parser';
 import type JSZip from 'jszip';
 
+import { escAttr } from '../ppt/pptx/xml-utils';
 import {
 	createParser,
 	normalisePath,
@@ -167,7 +168,10 @@ function removeDanglingRels(
 
 	// Rebuild the XML
 	const relEntries = keptRels
-		.map((r) => `  <Relationship Id="${r.id}" Type="${r.type}" Target="${r.target}"/>`)
+		.map(
+			(r) =>
+				`  <Relationship Id="${escAttr(r.id)}" Type="${escAttr(r.type)}" Target="${escAttr(r.target)}"/>`,
+		)
 		.join('\n');
 
 	const rebuilt = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -233,7 +237,10 @@ async function addMissingRelationships(
 		});
 
 		const relEntries = rels
-			.map((r) => `  <Relationship Id="${r.id}" Type="${r.type}" Target="${r.target}"/>`)
+			.map(
+				(r) =>
+					`  <Relationship Id="${escAttr(r.id)}" Type="${escAttr(r.type)}" Target="${escAttr(r.target)}"/>`,
+			)
 			.join('\n');
 		const rebuilt = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">

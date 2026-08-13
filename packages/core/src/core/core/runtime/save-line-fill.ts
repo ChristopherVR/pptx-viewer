@@ -1,6 +1,53 @@
 import type { ShapeStyle, XmlObject } from '../../types';
 import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import type { FillChoiceElement } from './fill-choice-group';
 import { setFillChoice } from './fill-choice-group';
+
+/**
+ * `CT_LineProperties` children that FOLLOW the fill choice group
+ * (ECMA-376 §20.1.2.2.24): the dash group, the join group, the two line ends
+ * and `extLst`.
+ */
+const AFTER_LINE_FILL = new Set([
+	'prstDash',
+	'custDash',
+	'round',
+	'bevel',
+	'miter',
+	'headEnd',
+	'tailEnd',
+	'extLst',
+]);
+
+const localName = (key: string): string => key.replace(/^@_/u, '').split(':').at(-1) ?? key;
+
+/**
+ * Write the one fill child of an `a:ln` IN SCHEMA POSITION.
+ *
+ * `setFillChoice` deletes the old member and assigns the new one, which puts
+ * it last in key order, and fast-xml-parser serialises in key order. On a
+ * preserved `<a:ln><a:noFill/><a:prstDash val="dash"/></a:ln>` that produced
+ * `prstDash` before `noFill`: a sequence violation PowerPoint answers by
+ * discarding the whole `a:ln`, so the shape fell back to its `<a:lnRef>` and
+ * drew a themed outline where the author had asked for none. (Confirmed
+ * through COM: `Shape.Line.Visible` flipped from 0 to -1.) The dash writer
+ * already places itself this way; this is the same courtesy for the fill.
+ */
+function setOrderedLineFill(lineNode: XmlObject, name: FillChoiceElement, value: XmlObject): void {
+	setFillChoice(lineNode, name, value);
+	const entries = Object.entries(lineNode).filter(([key]) => key !== name);
+	const at = entries.findIndex(([key]) => AFTER_LINE_FILL.has(localName(key)));
+	if (at < 0) {
+		return;
+	}
+	entries.splice(at, 0, [name, value]);
+	for (const key of Object.keys(lineNode)) {
+		delete lineNode[key];
+	}
+	for (const [key, entryValue] of entries) {
+		lineNode[key] = entryValue;
+	}
+}
 
 /**
  * Emit the single fill child of an `<a:ln>` node.
@@ -34,24 +81,24 @@ export function writeLineFill(
 	parseColor: (colorNode: XmlObject | undefined) => string | undefined,
 ): void {
 	if (shapeStyle.strokeColor === 'transparent' || shapeStyle.strokeWidth === 0) {
-		setFillChoice(lineNode, 'a:noFill', {});
+		setOrderedLineFill(lineNode, 'a:noFill', {});
 		return;
 	}
 
 	if (shapeStyle.strokeFillMode === 'gradient' && shapeStyle.strokeGradientXml) {
-		setFillChoice(lineNode, 'a:gradFill', shapeStyle.strokeGradientXml);
+		setOrderedLineFill(lineNode, 'a:gradFill', shapeStyle.strokeGradientXml);
 		return;
 	}
 
 	if (shapeStyle.strokeFillMode === 'pattern' && shapeStyle.strokePatternXml) {
-		setFillChoice(lineNode, 'a:pattFill', shapeStyle.strokePatternXml);
+		setOrderedLineFill(lineNode, 'a:pattFill', shapeStyle.strokePatternXml);
 		return;
 	}
 
 	const resolvedStrokeOriginal = shapeStyle.strokeColorXml
 		? parseColor(shapeStyle.strokeColorXml)
 		: undefined;
-	setFillChoice(
+	setOrderedLineFill(
 		lineNode,
 		'a:solidFill',
 		serializeColorChoice(

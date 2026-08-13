@@ -177,15 +177,19 @@ export function buildImageEffectsFilter(
 
 	if (effects.colorWash) {
 		// Overlay flood at fixed opacity blended with `in`.
+		//
+		// The colour is re-emitted from the PARSED channels rather than from the
+		// raw deck string: `colorWash.color` is untrusted `string`, and pasting it
+		// into the attribute unescaped let a `"` in a deck close `flood-color=`
+		// and produce an SVG that is not well-formed.
 		const c = parseHexRgb(effects.colorWash.color);
 		const o = clamp((effects.colorWash.opacity ?? 50) / 100, 0, 1);
+		const floodColor = `rgb(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)})`;
 		primitives.push(
-			`<feFlood flood-color="${effects.colorWash.color}" flood-opacity="${fmt(o)}" result="wash"/>` +
+			`<feFlood flood-color="${floodColor}" flood-opacity="${fmt(o)}" result="wash"/>` +
 				`<feComposite in="wash" in2="${inputRef}" operator="in" result="washmasked"/>` +
 				`<feBlend in="washmasked" in2="${inputRef}" mode="normal" result="washed"/>`,
 		);
-		// Mark the actual reference c for downstream callers (no-op suppress).
-		void c;
 		inputRef = 'washed';
 	}
 

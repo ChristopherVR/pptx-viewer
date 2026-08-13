@@ -15,7 +15,7 @@
  */
 
 import { XmlObject } from '../../types';
-import type { PptxChartData, PptxChartType } from '../../types';
+import type { PptxChartData, PptxChartScatterStyle, PptxChartType } from '../../types';
 import {
 	parseSeriesTrendlines,
 	parseSeriesErrBars,
@@ -27,6 +27,7 @@ import { extractSeriesNumbersWithBlanks } from '../../utils/chart-blank-values';
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
+import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
@@ -41,6 +42,16 @@ import {
 } from '../../utils/chart-series-detail-parser';
 import { parseChartUpDownBars } from '../../utils/chart-up-down-bars';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartColorStyle';
+
+/** `ST_ScatterStyle` tokens, used to reject anything else in `c:scatterStyle/@val`. */
+const SCATTER_STYLES = new Set<PptxChartScatterStyle>([
+	'none',
+	'line',
+	'lineMarker',
+	'marker',
+	'smooth',
+	'smoothMarker',
+]);
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -167,6 +178,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const barGapWidth = this.parseChartNumberVal(seriesContainer, 'gapWidth');
 		const barOverlap = this.parseChartNumberVal(seriesContainer, 'overlap');
 
+		// Scatter presentation mode (c:scatterStyle). PowerPoint writes it on every
+		// scatter chart it authors and defaults it to `lineMarker`, so a missing
+		// element only happens on hand-written XML.
+		const scatterStyleNode = this.xmlLookupService.getChildByLocalName(
+			seriesContainer,
+			'scatterStyle',
+		);
+		const scatterStyleRaw = String(scatterStyleNode?.['@_val'] ?? '').trim();
+		const scatterStyle = SCATTER_STYLES.has(scatterStyleRaw as PptxChartScatterStyle)
+			? (scatterStyleRaw as PptxChartScatterStyle)
+			: undefined;
+
 		// Bar direction (c:barDir): "bar" is a horizontal bar chart, "col" (or an
 		// absent element) a vertical column chart.
 		let barDirection: PptxChartData['barDirection'];
@@ -286,6 +309,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(barGapWidth !== undefined ? { barGapWidth } : {}),
 			...(barOverlap !== undefined ? { barOverlap } : {}),
 			...(barDirection !== undefined ? { barDirection } : {}),
+			...(scatterStyle !== undefined ? { scatterStyle } : {}),
 			chartPartPath,
 			chartRelationshipId,
 			...(dataTable ? { dataTable } : {}),
@@ -359,15 +383,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Use the first series with categories found across all containers.
+			// `extractChartCategoryValues` expands the sparse cache by `@idx` and
+			// `c:ptCount`, keeping blanks as empty strings, so the category array
+			// stays the same length as the (already index-expanded) value array.
 			if (categories.length === 0) {
 				const catNode = this.xmlLookupService.getChildByLocalName(seriesList[0], 'cat');
-				const fromCat = this.extractChartPointValues(catNode, false);
-				const fromNumericCat = fromCat.length ? [] : this.extractChartPointValues(catNode, true);
+				const fromCat = this.extractChartCategoryValues(catNode, false);
+				const fromNumericCat = fromCat.length ? [] : this.extractChartCategoryValues(catNode, true);
 				categories = fromCat.length
 					? fromCat
 					: fromNumericCat.length
 						? fromNumericCat
-						: this.extractChartPointValues(
+						: this.extractChartCategoryValues(
 								this.xmlLookupService.getChildByLocalName(seriesList[0], 'xVal'),
 								false,
 							);
@@ -536,6 +563,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Parse series-level explosion (c:explosion for pie)
 			const explosion = parseSeriesExplosion(seriesNode, this.xmlLookupService);
 
+			// Per-series x values (c:xVal) and bubble sizes (c:bubbleSize). Both are
+			// declared PER SERIES by CT_ScatterSer / CT_BubbleSer, so neither can be
+			// taken off the first series or guessed from the series count.
+			const xValues = extractSeriesNumbersWithBlanks(
+				this.xmlLookupService.getChildByLocalName(seriesNode, 'xVal'),
+				this.xmlLookupService,
+			).map((value) => value ?? Number.NaN);
+			const bubbleSizes = extractSeriesNumbersWithBlanks(
+				this.xmlLookupService.getChildByLocalName(seriesNode, 'bubbleSize'),
+				this.xmlLookupService,
+			).map((value) => value ?? 0);
+
+			// Series-level c:dLbls content flags. PowerPoint writes the user's
+			// choices here and leaves the chart-type-level group all-zero, so this
+			// is the group that decides whether a pie shows percentages.
+			const seriesDataLabelGroup = this.xmlLookupService.getChildByLocalName(seriesNode, 'dLbls');
+			const dataLabelOptions = seriesDataLabelGroup
+				? parseChartDataLabelOptions(seriesDataLabelGroup, this.xmlLookupService)
+				: undefined;
+
+			// `c:ser/c:spPr/a:ln/a:noFill`: how PowerPoint expresses a marker-only
+			// scatter or a line series drawn without its line.
+			const seriesLine = this.xmlLookupService.getChildByLocalName(seriesShapeProperties, 'ln');
+			const lineNoFill = seriesLine
+				? Object.keys(seriesLine).some(
+						(key) => this.compatibilityService.getXmlLocalName(key) === 'noFill',
+					)
+				: false;
+
 			// Parse bezier smoothing flag (c:smooth for line/scatter series).
 			const smoothNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'smooth');
 			const smooth = smoothNode
@@ -553,6 +609,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
 				...(blanks ? { blanks } : {}),
+				...(xValues.length > 0 ? { xValues } : {}),
+				...(bubbleSizes.length > 0 ? { bubbleSizes } : {}),
+				...(dataLabelOptions && Object.keys(dataLabelOptions).length > 0
+					? { dataLabelOptions }
+					: {}),
+				...(lineNoFill ? { lineNoFill } : {}),
 				...(seriesNumberFormat ? { numberFormat: seriesNumberFormat } : {}),
 				color: seriesColor,
 				...(trendlines.length > 0 ? { trendlines } : {}),

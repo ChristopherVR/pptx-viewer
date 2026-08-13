@@ -12,6 +12,7 @@
 
 import JSZip from 'jszip';
 
+import { escAttr, escText } from '../../ppt/pptx/xml-utils';
 import { PptxHandler } from '../../PptxHandler';
 import type { PptxData } from '../../types/presentation';
 import { SlideBuilder } from './SlideBuilder';
@@ -60,8 +61,41 @@ export interface PresentationBuilderResult {
 // XML template helpers
 // ---------------------------------------------------------------------------
 
-function hexToRgb(hex: string): string {
-	return hex.replace(/^#/, '').toUpperCase();
+/**
+ * Normalise a caller-supplied colour to the six-digit uppercase hex form
+ * `a:srgbClr/@val` requires (ST_HexColorRGB), or `undefined` when it is not a
+ * usable RGB colour. Three-digit shorthand (`#ABC`) is expanded.
+ */
+function normalizeSrgbHex(color: string | undefined): string | undefined {
+	if (!color) {
+		return undefined;
+	}
+	const raw = color.trim().replace(/^#/, '').toUpperCase();
+	if (/^[0-9A-F]{6}$/.test(raw)) {
+		return raw;
+	}
+	if (/^[0-9A-F]{3}$/.test(raw)) {
+		return raw.replace(/./g, (ch) => ch + ch);
+	}
+	return undefined;
+}
+
+/**
+ * Resolve the theme palette to twelve valid hex values.
+ *
+ * A caller-supplied colour that is not a hex RGB triple cannot be escaped into
+ * validity: PowerPoint rejects the package outright rather than ignoring the
+ * attribute, so an unusable override falls back to the Office default for that
+ * slot.
+ */
+function resolveThemeColors(
+	overrides?: Record<string, string | undefined>,
+): Record<string, string> {
+	const resolved: Record<string, string> = {};
+	for (const [key, fallback] of Object.entries(DEFAULT_COLORS)) {
+		resolved[key] = normalizeSrgbHex(overrides?.[key]) ?? normalizeSrgbHex(fallback) ?? '000000';
+	}
+	return resolved;
 }
 
 function isoNow(): string {
@@ -250,8 +284,8 @@ function slideLayoutXml(name: string, layoutType: string): string {
 <p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-  type="${layoutType}" preserve="1">
-  <p:cSld name="${name}">
+  type="${escAttr(layoutType)}" preserve="1">
+  <p:cSld name="${escAttr(name)}">
     <p:spTree>
       <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
       <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
@@ -296,28 +330,29 @@ function themeXml(
 	majorFont: string,
 	minorFont: string,
 ): string {
+	const name = escAttr(themeName);
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="${themeName}">
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="${name}">
   <a:themeElements>
-    <a:clrScheme name="${themeName}">
-      <a:dk1><a:srgbClr val="${hexToRgb(colors.dk1)}"/></a:dk1>
-      <a:lt1><a:srgbClr val="${hexToRgb(colors.lt1)}"/></a:lt1>
-      <a:dk2><a:srgbClr val="${hexToRgb(colors.dk2)}"/></a:dk2>
-      <a:lt2><a:srgbClr val="${hexToRgb(colors.lt2)}"/></a:lt2>
-      <a:accent1><a:srgbClr val="${hexToRgb(colors.accent1)}"/></a:accent1>
-      <a:accent2><a:srgbClr val="${hexToRgb(colors.accent2)}"/></a:accent2>
-      <a:accent3><a:srgbClr val="${hexToRgb(colors.accent3)}"/></a:accent3>
-      <a:accent4><a:srgbClr val="${hexToRgb(colors.accent4)}"/></a:accent4>
-      <a:accent5><a:srgbClr val="${hexToRgb(colors.accent5)}"/></a:accent5>
-      <a:accent6><a:srgbClr val="${hexToRgb(colors.accent6)}"/></a:accent6>
-      <a:hlink><a:srgbClr val="${hexToRgb(colors.hlink)}"/></a:hlink>
-      <a:folHlink><a:srgbClr val="${hexToRgb(colors.folHlink)}"/></a:folHlink>
+    <a:clrScheme name="${name}">
+      <a:dk1><a:srgbClr val="${colors.dk1}"/></a:dk1>
+      <a:lt1><a:srgbClr val="${colors.lt1}"/></a:lt1>
+      <a:dk2><a:srgbClr val="${colors.dk2}"/></a:dk2>
+      <a:lt2><a:srgbClr val="${colors.lt2}"/></a:lt2>
+      <a:accent1><a:srgbClr val="${colors.accent1}"/></a:accent1>
+      <a:accent2><a:srgbClr val="${colors.accent2}"/></a:accent2>
+      <a:accent3><a:srgbClr val="${colors.accent3}"/></a:accent3>
+      <a:accent4><a:srgbClr val="${colors.accent4}"/></a:accent4>
+      <a:accent5><a:srgbClr val="${colors.accent5}"/></a:accent5>
+      <a:accent6><a:srgbClr val="${colors.accent6}"/></a:accent6>
+      <a:hlink><a:srgbClr val="${colors.hlink}"/></a:hlink>
+      <a:folHlink><a:srgbClr val="${colors.folHlink}"/></a:folHlink>
     </a:clrScheme>
-    <a:fontScheme name="${themeName}">
-      <a:majorFont><a:latin typeface="${majorFont}"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>
-      <a:minorFont><a:latin typeface="${minorFont}"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>
+    <a:fontScheme name="${name}">
+      <a:majorFont><a:latin typeface="${escAttr(majorFont)}"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>
+      <a:minorFont><a:latin typeface="${escAttr(minorFont)}"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>
     </a:fontScheme>
-    <a:fmtScheme name="${themeName}">
+    <a:fmtScheme name="${name}">
       <a:fillStyleLst>
         <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
         <a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:lumMod val="110000"/><a:satMod val="105000"/><a:tint val="67000"/></a:schemeClr></a:gs><a:gs pos="50000"><a:schemeClr val="phClr"><a:lumMod val="105000"/><a:satMod val="103000"/><a:tint val="73000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:lumMod val="105000"/><a:satMod val="109000"/><a:tint val="81000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill>
@@ -369,15 +404,17 @@ function tableStylesXml(): string {
 
 function corePropsXml(title?: string, creator?: string): string {
 	const now = isoNow();
+	const titleText = escText(title ?? '');
+	const creatorText = escText(creator ?? 'pptx-viewer-sdk');
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
   xmlns:dc="http://purl.org/dc/elements/1.1/"
   xmlns:dcterms="http://purl.org/dc/terms/"
   xmlns:dcmitype="http://purl.org/dc/dcmitype/"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>${title ?? ''}</dc:title>
-  <dc:creator>${creator ?? 'pptx-viewer-sdk'}</dc:creator>
-  <cp:lastModifiedBy>${creator ?? 'pptx-viewer-sdk'}</cp:lastModifiedBy>
+  <dc:title>${titleText}</dc:title>
+  <dc:creator>${creatorText}</dc:creator>
+  <cp:lastModifiedBy>${creatorText}</cp:lastModifiedBy>
   <cp:revision>1</cp:revision>
   <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
   <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
@@ -417,7 +454,7 @@ export async function buildBlankPresentationArchive(
 	const width = options?.width ?? DEFAULT_WIDTH;
 	const height = options?.height ?? DEFAULT_HEIGHT;
 	const themeName = options?.theme?.name ?? 'Office Theme';
-	const colors = { ...DEFAULT_COLORS, ...options?.theme?.colors };
+	const colors = resolveThemeColors(options?.theme?.colors);
 	const majorFont = options?.theme?.fonts?.majorFont ?? DEFAULT_MAJOR_FONT;
 	const minorFont = options?.theme?.fonts?.minorFont ?? DEFAULT_MINOR_FONT;
 	const layoutCount = STANDARD_LAYOUTS.length;

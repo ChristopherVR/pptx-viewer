@@ -11,6 +11,8 @@
  */
 
 import type { PptxChartMarker, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
 
 type GetLocalName = (key: string) => string;
 
@@ -32,10 +34,6 @@ const AFTER_MARKER = new Set([
 
 function findKey(obj: XmlObject, local: string, getLocalName: GetLocalName): string | undefined {
 	return Object.keys(obj).find((k) => getLocalName(k) === local);
-}
-
-function hex(color: string): string {
-	return color.replace(/^#/u, '').toUpperCase();
 }
 
 function insertOrdered(
@@ -62,6 +60,7 @@ function buildMarkerSpPr(
 	existing: XmlObject | undefined,
 	marker: PptxChartMarker,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject | undefined {
 	const props = marker.spPr;
 	if (!props) {
@@ -74,13 +73,13 @@ function buildMarkerSpPr(
 		if (noFillKey) {
 			delete spPr[noFillKey];
 		}
-		spPr[fillKey] = { 'a:srgbClr': { '@_val': hex(props.fillColor) } };
+		writeChartColorChoice(spPr, fillKey, props.fillColor, resolveColor);
 	}
 	if (props.strokeColor) {
 		const lnKey = findKey(spPr, 'ln', getLocalName) ?? 'a:ln';
 		const ln: XmlObject = { ...((spPr[lnKey] as XmlObject | undefined) ?? {}) };
 		const lnFillKey = findKey(ln, 'solidFill', getLocalName) ?? 'a:solidFill';
-		ln[lnFillKey] = { 'a:srgbClr': { '@_val': hex(props.strokeColor) } };
+		writeChartColorChoice(ln, lnFillKey, props.strokeColor, resolveColor);
 		spPr[lnKey] = ln;
 	}
 	return spPr;
@@ -91,6 +90,7 @@ export function buildChartMarkerXml(
 	existing: XmlObject | undefined,
 	marker: PptxChartMarker,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject {
 	if (!Number.isInteger(marker.size ?? 5) || (marker.size ?? 5) < 2 || (marker.size ?? 5) > 72) {
 		throw new RangeError('marker size must be an integer from 2 through 72');
@@ -103,7 +103,7 @@ export function buildChartMarkerXml(
 	const existingSpPr = existing
 		? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject | undefined)
 		: undefined;
-	const spPr = buildMarkerSpPr(existingSpPr, marker, getLocalName);
+	const spPr = buildMarkerSpPr(existingSpPr, marker, getLocalName, resolveColor);
 	if (spPr) {
 		node['c:spPr'] = spPr;
 	}
@@ -128,6 +128,7 @@ export function applySeriesMarkerToXml(
 	seriesNode: XmlObject,
 	marker: PptxChartMarker | null | undefined,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const existingKey = findKey(seriesNode, 'marker', getLocalName);
 	if (!marker) {
@@ -137,7 +138,7 @@ export function applySeriesMarkerToXml(
 		return;
 	}
 	const existing = existingKey ? (seriesNode[existingKey] as XmlObject) : undefined;
-	const built = buildChartMarkerXml(existing, marker, getLocalName);
+	const built = buildChartMarkerXml(existing, marker, getLocalName, resolveColor);
 	if (existingKey) {
 		seriesNode[existingKey] = built;
 		return;

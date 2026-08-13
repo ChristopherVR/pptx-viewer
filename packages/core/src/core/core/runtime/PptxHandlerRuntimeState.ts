@@ -92,6 +92,17 @@ export class PptxHandlerRuntime {
 	/** Cached slide XML objects keyed by slide archive path (e.g. "ppt/slides/slide1.xml"). */
 	protected slideMap: Map<string, XmlObject> = new Map();
 
+	/**
+	 * Content fingerprint of each slide as it currently stands in the ZIP,
+	 * keyed by slide archive path. Seeded at the end of `load()` and refreshed
+	 * whenever a slide part is rewritten during `save()`. A slide whose
+	 * fingerprint still matches serializes to the bytes already in the archive,
+	 * so the save pipeline leaves that part alone.
+	 *
+	 * @see fingerprintSlide in `./slide-fingerprint`
+	 */
+	protected savedSlideFingerprints: Map<string, string> = new Map();
+
 	/** Per-slide relationship maps: slide path -> (rId -> target path). */
 	protected slideRelsMap: Map<string, Map<string, string>> = new Map();
 

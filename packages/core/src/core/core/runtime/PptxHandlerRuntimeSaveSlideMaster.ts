@@ -29,6 +29,7 @@
 import { XmlObject } from '../../types';
 import type { PptxSlideMaster } from '../../types';
 import { COLOR_MAP_ALIAS_KEYS, DEFAULT_COLOR_MAP } from '../../utils/theme-override-utils';
+import { masterPartLoadedBackground } from './master-part-background-cache';
 import { applyHeaderFooterFlagsToNode, applyBackgroundColorToCSld } from './master-save-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTheme';
 
@@ -61,9 +62,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 
-		// `<p:cSld>` — background colour and optional name attribute.
+		// `<p:cSld>`: background colour and optional name attribute. The loaded
+		// colour goes with it so a `p:bgRef` the loader merely flattened for
+		// painting is not overwritten with a literal fill on every save.
 		const cSld = (root['p:cSld'] || {}) as XmlObject;
-		applyBackgroundColorToCSld(cSld, master.backgroundColor);
+		applyBackgroundColorToCSld(
+			cSld,
+			master.backgroundColor,
+			masterPartLoadedBackground(this, master.path),
+		);
 		if (master.name !== undefined) {
 			const trimmed = master.name.trim();
 			if (trimmed.length > 0) {

@@ -1,75 +1,47 @@
+/**
+ * Tests for the element-action / bucket-key / lock writers.
+ *
+ * These used to be run against private COPIES of the three functions pasted
+ * into this file. That is why `getTreeBucketKeyForElementType('group')` was
+ * asserted to be `'p:sp'` for as long as it was: the assertion pinned the copy,
+ * the copy matched the source, and nothing pinned the source to
+ * `CT_GroupShape`. The real methods are protected and depend on the whole mixin
+ * chain, so they are reached the way `PptxHandlerRuntimeSaveViewProperties.test`
+ * reaches its own: by instantiating the concrete runtime and casting to a
+ * structural view of the members under test.
+ */
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject, PptxAction, PptxElement } from '../../types';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
-// Extracted logic from PptxHandlerRuntimeElementActions for unit testing.
-
-function getTreeBucketKeyForElementType(type: PptxElement['type']): string {
-	if (type === 'picture' || type === 'image') {
-		return 'p:pic';
-	}
-	if (type === 'connector') {
-		return 'p:cxnSp';
-	}
-	if (
-		type === 'table' ||
-		type === 'chart' ||
-		type === 'smartArt' ||
-		type === 'ole' ||
-		type === 'media'
-	) {
-		return 'p:graphicFrame';
-	}
-	return 'p:sp';
+interface RuntimeWithProtected {
+	getTreeBucketKeyForElementType(type: PptxElement['type']): string;
+	getCnvPrNode(shape: XmlObject, key: string): XmlObject | undefined;
+	serializeShapeLocks(shape: XmlObject, el: PptxElement): void;
+	serializeSingleAction(
+		cNvPr: XmlObject,
+		nodeName: string,
+		action: PptxAction | undefined,
+		resolveHyperlinkRelationshipId: (target: string) => string | undefined,
+	): void;
 }
 
-function getCnvPrNode(shape: XmlObject, key: string): XmlObject | undefined {
-	if (key === 'p:pic') {
-		return shape?.['p:nvPicPr']?.['p:cNvPr'] as XmlObject | undefined;
-	}
-	if (key === 'p:cxnSp') {
-		return shape?.['p:nvCxnSpPr']?.['p:cNvPr'] as XmlObject | undefined;
-	}
-	if (key === 'p:graphicFrame') {
-		return shape?.['p:nvGraphicFramePr']?.['p:cNvPr'] as XmlObject | undefined;
-	}
-	return shape?.['p:nvSpPr']?.['p:cNvPr'] as XmlObject | undefined;
-}
+const runtime = new PptxHandlerRuntime() as unknown as RuntimeWithProtected;
 
-function serializeSingleAction(
+const getTreeBucketKeyForElementType = (type: PptxElement['type']) =>
+	runtime.getTreeBucketKeyForElementType(type);
+const getCnvPrNode = (shape: XmlObject, key: string) => runtime.getCnvPrNode(shape, key);
+const serializeSingleAction = (
 	cNvPr: XmlObject,
 	nodeName: string,
 	action: PptxAction | undefined,
-	resolveHyperlinkRelationshipId: (target: string) => string | undefined,
-): void {
-	if (!action) {
-		delete cNvPr[nodeName];
-		return;
-	}
-	const node: XmlObject = {};
-	let rId = action.rId;
-	if (!rId && action.url) {
-		rId = resolveHyperlinkRelationshipId(action.url) ?? undefined;
-	}
-	if (rId) {
-		node['@_r:id'] = rId;
-	}
-	if (action.action) {
-		node['@_action'] = action.action;
-	}
-	if (action.tooltip) {
-		node['@_tooltip'] = action.tooltip;
-	}
-	if (action.highlightClick) {
-		node['@_highlightClick'] = '1';
-	}
-	const soundRId = action.soundRId;
-	if (soundRId) {
-		node['a:snd'] = {
-			'@_r:embed': soundRId,
-		};
-	}
-	cNvPr[nodeName] = node;
+	resolve: (target: string) => string | undefined,
+) => runtime.serializeSingleAction(cNvPr, nodeName, action, resolve);
+
+/** A minimal element carrying only what the lock writer reads. */
+function elementWithLocks(type: PptxElement['type'], locks: PptxElement['locks']): PptxElement {
+	return { id: 'e1', type, x: 0, y: 0, width: 10, height: 10, locks } as PptxElement;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,8 +88,12 @@ describe('getTreeBucketKeyForElementType', () => {
 		expect(getTreeBucketKeyForElementType('shape')).toBe('p:sp');
 	});
 
-	it('should return "p:sp" for "group"', () => {
-		expect(getTreeBucketKeyForElementType('group')).toBe('p:sp');
+	// A group is `<p:grpSp>` in `CT_GroupShape`, not `<p:sp>`. This assertion
+	// used to read `'p:sp'`, which is what let the template writer look for an
+	// inherited group in the wrong bucket and the lock writer look for a
+	// `p:nvSpPr` a group does not have.
+	it('should return "p:grpSp" for "group"', () => {
+		expect(getTreeBucketKeyForElementType('group')).toBe('p:grpSp');
 	});
 });
 
@@ -157,11 +133,97 @@ describe('getCnvPrNode', () => {
 		expect(getCnvPrNode(shape, 'p:graphicFrame')).toBe(cNvPr);
 	});
 
+	it('should resolve p:cNvPr from p:nvGrpSpPr for p:grpSp key', () => {
+		const cNvPr: XmlObject = { '@_id': '5', '@_name': 'Group 1' };
+		const shape: XmlObject = {
+			'p:nvGrpSpPr': { 'p:cNvPr': cNvPr },
+		};
+		expect(getCnvPrNode(shape, 'p:grpSp')).toBe(cNvPr);
+	});
+
 	it('should return undefined when the nv wrapper is missing', () => {
 		expect(getCnvPrNode({}, 'p:sp')).toBeUndefined();
 		expect(getCnvPrNode({}, 'p:pic')).toBeUndefined();
 		expect(getCnvPrNode({}, 'p:cxnSp')).toBeUndefined();
 		expect(getCnvPrNode({}, 'p:graphicFrame')).toBeUndefined();
+		expect(getCnvPrNode({}, 'p:grpSp')).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// serializeShapeLocks
+// ---------------------------------------------------------------------------
+describe('serializeShapeLocks', () => {
+	it('writes a:spLocks onto p:cNvSpPr for a shape', () => {
+		const cNvSpPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvSpPr': { 'p:cNvSpPr': cNvSpPr } };
+		runtime.serializeShapeLocks(
+			shape,
+			elementWithLocks('shape', { noMove: true, noResize: false }),
+		);
+		expect(cNvSpPr['a:spLocks']).toStrictEqual({ '@_noMove': '1', '@_noResize': '0' });
+	});
+
+	it('writes a:grpSpLocks onto p:cNvGrpSpPr for a group', () => {
+		const cNvGrpSpPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvGrpSpPr': { 'p:cNvGrpSpPr': cNvGrpSpPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('group', { noMove: true, noSelect: true }));
+		expect(cNvGrpSpPr['a:grpSpLocks']).toStrictEqual({ '@_noMove': '1', '@_noSelect': '1' });
+	});
+
+	it('keeps a:grpSpLocks/@noUngrp, which CT_GroupLocking has and the model does not', () => {
+		const cNvGrpSpPr: XmlObject = { 'a:grpSpLocks': { '@_noUngrp': '1', '@_noMove': '1' } };
+		const shape: XmlObject = { 'p:nvGrpSpPr': { 'p:cNvGrpSpPr': cNvGrpSpPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('group', { noMove: false }));
+		expect(cNvGrpSpPr['a:grpSpLocks']).toStrictEqual({ '@_noUngrp': '1', '@_noMove': '0' });
+	});
+
+	it('does not write noTextEdit onto a:grpSpLocks (not in CT_GroupLocking)', () => {
+		const cNvGrpSpPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvGrpSpPr': { 'p:cNvGrpSpPr': cNvGrpSpPr } };
+		runtime.serializeShapeLocks(
+			shape,
+			elementWithLocks('group', { noTextEdit: true, noEditPoints: true, noMove: true }),
+		);
+		expect(cNvGrpSpPr['a:grpSpLocks']).toStrictEqual({ '@_noMove': '1' });
+	});
+
+	it('does not write noTextEdit onto a:picLocks (not in CT_PictureLocking)', () => {
+		const cNvPicPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPicPr': cNvPicPr } };
+		runtime.serializeShapeLocks(
+			shape,
+			elementWithLocks('image', { noTextEdit: true, noChangeAspect: true }),
+		);
+		expect(cNvPicPr['a:picLocks']).toStrictEqual({ '@_noChangeAspect': '1' });
+	});
+
+	it('does not write noTextEdit onto a:cxnSpLocks (not in CT_ConnectorLocking)', () => {
+		const cNvCxnSpPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvCxnSpPr': { 'p:cNvCxnSpPr': cNvCxnSpPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('connector', { noTextEdit: true }));
+		expect(cNvCxnSpPr['a:cxnSpLocks']).toBeUndefined();
+	});
+
+	it('keeps a:picLocks/@noCrop when another lock on the same node is edited', () => {
+		const cNvPicPr: XmlObject = { 'a:picLocks': { '@_noCrop': '1' } };
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPicPr': cNvPicPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('image', { noMove: true }));
+		expect(cNvPicPr['a:picLocks']).toStrictEqual({ '@_noCrop': '1', '@_noMove': '1' });
+	});
+
+	it('removes the lock node when nothing is left on it', () => {
+		const cNvSpPr: XmlObject = { 'a:spLocks': { '@_noMove': '1' } };
+		const shape: XmlObject = { 'p:nvSpPr': { 'p:cNvSpPr': cNvSpPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('shape', undefined));
+		expect(cNvSpPr['a:spLocks']).toBeUndefined();
+	});
+
+	it('leaves a graphic frame alone: a:graphicFrameLocks is not modelled', () => {
+		const cNvFramePr: XmlObject = { 'a:graphicFrameLocks': { '@_noGrp': '1' } };
+		const shape: XmlObject = { 'p:nvGraphicFramePr': { 'p:cNvGraphicFramePr': cNvFramePr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('table', undefined));
+		expect(cNvFramePr['a:graphicFrameLocks']).toStrictEqual({ '@_noGrp': '1' });
 	});
 });
 

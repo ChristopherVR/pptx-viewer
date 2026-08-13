@@ -4,6 +4,8 @@ import type {
 	PptxChartShapeProps,
 	XmlObject,
 } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
 import { applyChartManualLayout, parseChartManualLayout } from './chart-layout';
 import { parseShapeProps } from './chart-series-detail-parser';
 
@@ -115,15 +117,19 @@ export function parseChartAxisDisplayUnits(
 	target.displayUnitsLabel = label;
 }
 
-function applyShapeProps(existing: XmlObject | undefined, style: PptxChartShapeProps): XmlObject {
+function applyShapeProps(
+	existing: XmlObject | undefined,
+	style: PptxChartShapeProps,
+	resolveColor?: ResolveChartColor,
+): XmlObject {
 	const result: XmlObject = { ...(existing ?? {}) };
 	if (style.fillColor) {
-		result['a:solidFill'] = { 'a:srgbClr': { '@_val': style.fillColor.replace(/^#/u, '') } };
+		writeChartColorChoice(result, 'a:solidFill', style.fillColor, resolveColor);
 	}
 	if (style.strokeColor || style.strokeWidth !== undefined || style.strokeDashStyle) {
 		const line: XmlObject = { ...((result['a:ln'] as XmlObject | undefined) ?? {}) };
 		if (style.strokeColor) {
-			line['a:solidFill'] = { 'a:srgbClr': { '@_val': style.strokeColor.replace(/^#/u, '') } };
+			writeChartColorChoice(line, 'a:solidFill', style.strokeColor, resolveColor);
 		}
 		if (style.strokeWidth !== undefined) {
 			line['@_w'] = String(Math.round(style.strokeWidth * 12700));
@@ -140,6 +146,7 @@ function applyLabel(
 	node: XmlObject,
 	edit: string | PptxChartDisplayUnitsLabel | null | undefined,
 	localName: LocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	if (edit === undefined) {
 		return;
@@ -175,7 +182,11 @@ function applyLabel(
 			setOrdered(
 				label,
 				'spPr',
-				applyShapeProps(spPrKey ? (label[spPrKey] as XmlObject) : undefined, labelEdit.spPr),
+				applyShapeProps(
+					spPrKey ? (label[spPrKey] as XmlObject) : undefined,
+					labelEdit.spPr,
+					resolveColor,
+				),
 				['layout', 'tx', 'spPr', 'txPr'],
 				localName,
 			);
@@ -195,6 +206,7 @@ export function applyChartAxisDisplayUnitsToXml(
 	axisNode: XmlObject,
 	axis: Pick<PptxChartAxisFormatting, 'displayUnits' | 'displayUnitsValue' | 'displayUnitsLabel'>,
 	localName: LocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const existingKey = findKey(axisNode, 'dispUnits', localName);
 	if (!axis.displayUnits) {
@@ -236,6 +248,6 @@ export function applyChartAxisDisplayUnitsToXml(
 			localName,
 		);
 	}
-	applyLabel(node, axis.displayUnitsLabel, localName);
+	applyLabel(node, axis.displayUnitsLabel, localName, resolveColor);
 	setOrdered(axisNode, 'dispUnits', node, ['dispUnits', 'extLst'], localName);
 }

@@ -2,6 +2,7 @@ import { XmlObject, PptxElement } from '../../types';
 import type { PptxAction, PptxShapeLocks } from '../../types';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStyles';
+import { buildShapeLockNode, SHAPE_LOCK_CONTAINERS } from './shape-lock-containers';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -44,12 +45,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		cNvPr[nodeName] = node;
 	}
 
+	/**
+	 * The `p:spTree` child tag an element of this type is written under.
+	 *
+	 * `CT_GroupShape` gives a group its own `<p:grpSp>` slot, so a group is NOT
+	 * a `<p:sp>`. Reporting one made every consumer of this key wrong for
+	 * groups at once: the template writer looked for an inherited group in the
+	 * `p:sp` bucket, never matched, and appended the whole `<p:grpSp>` there as
+	 * a sibling shape, and the lock/action writers looked for a `p:nvSpPr` a
+	 * group does not have.
+	 */
 	protected getTreeBucketKeyForElementType(type: PptxElement['type']): string {
 		if (type === 'picture' || type === 'image') {
 			return 'p:pic';
 		}
 		if (type === 'connector') {
 			return 'p:cxnSp';
+		}
+		if (type === 'group') {
+			return 'p:grpSp';
 		}
 		if (
 			type === 'table' ||
@@ -72,6 +86,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (key === 'p:graphicFrame') {
 			return xmlPath(shape, 'p:nvGraphicFramePr', 'p:cNvPr');
+		}
+		if (key === 'p:grpSp') {
+			return xmlPath(shape, 'p:nvGrpSpPr', 'p:cNvPr');
 		}
 		return xmlPath(shape, 'p:nvSpPr', 'p:cNvPr');
 	}
@@ -104,68 +121,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Serialize shape lock attributes from an element back into the XML.
 	 *
-	 * Writes `a:spLocks` (shapes), `a:picLocks` (pictures), or `a:cxnSpLocks`
-	 * (connectors) onto the appropriate `p:cNvXxxPr` container.
+	 * Writes `a:spLocks` (shapes), `a:picLocks` (pictures), `a:cxnSpLocks`
+	 * (connectors) or `a:grpSpLocks` (groups) onto that family's own
+	 * `p:cNvXxxPr` container, restricted to the attributes that container's
+	 * type declares. See {@link module:shape-lock-containers} for why the four
+	 * are not interchangeable, and for the one family
+	 * (`a:graphicFrameLocks`) deliberately left out.
 	 */
 	protected serializeShapeLocks(shape: XmlObject, el: PptxElement): void {
-		const locks: PptxShapeLocks | undefined =
-			'locks' in el ? (el.locks as PptxShapeLocks | undefined) : undefined;
-
-		const key = this.getTreeBucketKeyForElementType(el.type);
-
-		// Resolve the cNv*Pr container and the lock tag name.
-		let container: XmlObject | undefined;
-		let lockTag: string;
-		if (key === 'p:pic') {
-			container = xmlPath(shape, 'p:nvPicPr', 'p:cNvPicPr');
-			lockTag = 'a:picLocks';
-		} else if (key === 'p:cxnSp') {
-			container = xmlPath(shape, 'p:nvCxnSpPr', 'p:cNvCxnSpPr');
-			lockTag = 'a:cxnSpLocks';
-		} else if (key === 'p:sp') {
-			container = xmlPath(shape, 'p:nvSpPr', 'p:cNvSpPr');
-			lockTag = 'a:spLocks';
-		} else {
-			// graphic frames / other — no lock serialization
+		const spec = SHAPE_LOCK_CONTAINERS[this.getTreeBucketKeyForElementType(el.type)];
+		if (!spec) {
 			return;
 		}
-
+		const container = xmlPath(shape, spec.nvKey, spec.cNvKey);
 		if (!container) {
 			return;
 		}
 
-		if (!locks) {
-			// No locks on the element — remove any existing lock node
-			delete container[lockTag];
-			return;
-		}
-
-		const lockAttrs: XmlObject = {};
-		const mapping: Array<[keyof PptxShapeLocks, string]> = [
-			['noGrouping', '@_noGrp'],
-			['noRotation', '@_noRot'],
-			['noMove', '@_noMove'],
-			['noResize', '@_noResize'],
-			['noTextEdit', '@_noTextEdit'],
-			['noSelect', '@_noSelect'],
-			['noChangeAspect', '@_noChangeAspect'],
-			['noEditPoints', '@_noEditPoints'],
-			['noAdjustHandles', '@_noAdjustHandles'],
-			['noChangeArrowheads', '@_noChangeArrowheads'],
-			['noChangeShapeType', '@_noChangeShapeType'],
-		];
-		let hasAny = false;
-		for (const [prop, attr] of mapping) {
-			if (locks[prop] !== undefined) {
-				lockAttrs[attr] = locks[prop] ? '1' : '0';
-				hasAny = true;
-			}
-		}
-
-		if (hasAny) {
-			container[lockTag] = lockAttrs;
+		const locks: PptxShapeLocks | undefined =
+			'locks' in el ? (el.locks as PptxShapeLocks | undefined) : undefined;
+		const next = buildShapeLockNode(locks, spec, container[spec.lockTag] as XmlObject | undefined);
+		if (next) {
+			container[spec.lockTag] = next;
 		} else {
-			delete container[lockTag];
+			delete container[spec.lockTag];
 		}
 	}
 }

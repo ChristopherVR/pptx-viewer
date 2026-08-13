@@ -236,6 +236,44 @@ describe('template element editing round-trip', () => {
 		expect(reLayoutEl.y).toBeCloseTo(666, 0);
 	});
 
+	/**
+	 * The same edit, made after the layout gallery has been opened.
+	 *
+	 * `getLayoutPreviews` drops the layout ELEMENT cache so the part is re-read
+	 * with image decoding on, and that second read used to REPLACE the cached
+	 * part XML in `layoutXmlMap`. The elements already handed to the viewer kept
+	 * `rawXml` nodes belonging to the first parse, while the save writer patches
+	 * an inherited element's `rawXml` node in place and then looks for it in the
+	 * cached tree: it found the twin from the second parse instead, matched it on
+	 * `p:cNvPr` identity, and returned that untouched node, so the edit vanished
+	 * without a warning. Vanilla and Angular warm the gallery as part of their
+	 * ribbon setup, which is why EVERY inherited-template edit was dropped there
+	 * while React (which fetches previews on demand) persisted them.
+	 */
+	it('persists a template edit made after the layout gallery was opened', async () => {
+		const buffer = await buildDeckWithTemplateShapes();
+		const handler = new PptxHandler();
+		const data = await handler.load(buffer);
+		const slide = data.slides[0];
+		const layoutEl = slide.elements.find((e) => e.id.startsWith('layout-'))!;
+
+		await handler.getLayoutPreviews();
+
+		layoutEl.x = 777;
+		if ('text' in layoutEl) {
+			layoutEl.text = 'LAYOUT-AFTER-PREVIEW';
+		}
+		const saved = await handler.save(data.slides);
+
+		const layoutXml = await loadSavedPart(saved, LAYOUT_PATH);
+		const layoutTree = (
+			(parser.parse(layoutXml!)['p:sldLayout'] as XmlObject)['p:cSld'] as XmlObject
+		)['p:spTree'] as XmlObject;
+		const savedLayoutSp = findSpByName(layoutTree, 'LayoutLogo');
+		expect(spText(savedLayoutSp)).toBe('LAYOUT-AFTER-PREVIEW');
+		expect(spOffsetX(savedLayoutSp)).not.toBe('100000');
+	});
+
 	it('does not disturb slide-authored content or unmutated template parts', async () => {
 		const buffer = await buildDeckWithTemplateShapes();
 		const handler = new PptxHandler();

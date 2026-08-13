@@ -77,3 +77,42 @@ describe('writeLineFill (issue #87 — single line fill on save)', () => {
 		expect(lineNode['a:solidFill']).toBeUndefined();
 	});
 });
+
+/**
+ * `CT_LineProperties` (§20.1.2.2.24) is a SEQUENCE: the fill choice comes
+ * first, then the dash group, the join, the two ends and `extLst`. Assigning
+ * the fill onto a preserved `a:ln` put it last in key order, and
+ * fast-xml-parser serialises in key order, so a round-tripped
+ * `<a:ln><a:noFill/><a:prstDash val="dash"/></a:ln>` came back inverted.
+ *
+ * PowerPoint answers that by discarding the whole `a:ln`, which sends the
+ * shape back to its `<a:lnRef>`: measured through COM on
+ * `issue-132-hr-deck.pptx` slides 5 and 6, four shapes the author had left
+ * outline-less came back with `Shape.Line.Visible = -1` and a themed border.
+ */
+describe('writeLineFill - CT_LineProperties child order', () => {
+	const orderOf = (node: XmlObject): string[] =>
+		Object.keys(node).filter((k) => !k.startsWith('@_'));
+
+	it('keeps the fill ahead of an authored a:prstDash', () => {
+		const lineNode: XmlObject = { 'a:noFill': '', 'a:prstDash': { '@_val': 'dash' } };
+		writeLineFill(lineNode, { strokeColor: 'transparent' }, parseColor);
+		expect(orderOf(lineNode)).toStrictEqual(['a:noFill', 'a:prstDash']);
+	});
+
+	it('keeps the fill ahead of the join and the line ends', () => {
+		const lineNode: XmlObject = {
+			'a:miter': { '@_lim': '800000' },
+			'a:headEnd': { '@_type': 'none' },
+			'a:tailEnd': { '@_type': 'triangle' },
+		};
+		writeLineFill(lineNode, { strokeFillMode: 'solid', strokeColor: '#333333' }, parseColor);
+		expect(orderOf(lineNode)).toStrictEqual(['a:solidFill', 'a:miter', 'a:headEnd', 'a:tailEnd']);
+	});
+
+	it('appends the fill when nothing follows it', () => {
+		const lineNode: XmlObject = {};
+		writeLineFill(lineNode, { strokeFillMode: 'solid', strokeColor: '#333333' }, parseColor);
+		expect(orderOf(lineNode)).toStrictEqual(['a:solidFill']);
+	});
+});

@@ -43,6 +43,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	id: 'scalar',
 	shapeId: 'scalar',
 	name: 'scalar',
+	placeholderType: 'scalar',
 	x: 'scalar',
 	y: 'scalar',
 	width: 'scalar',
@@ -67,6 +68,15 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	textSegments: 'text',
 	paragraphIndents: 'complex',
 	promptText: 'scalar',
+	// Resolved at load from the slide master, not authored on the slide - but it
+	// must still travel, because it is the PAIR of `text` that the save writer
+	// compares to tell "still inherited" from "edited on this slide". A peer that
+	// received `text` without it would see an edit where there is none and write
+	// the master's footer into the slide, detaching it from the Header & Footer
+	// dialog. Both peers recompute the same value from the same deck, so the two
+	// only ever disagree if one of them edited the text, which is the case this
+	// pairing is there to detect.
+	inheritedPlaceholderText: 'scalar',
 	linkedTxbxId: 'scalar',
 	linkedTxbxSeq: 'scalar',
 	// PptxShapeProperties
@@ -188,6 +198,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 export const SLIDE_FIELD_KIND: Record<keyof PptxSlide, CollabFieldKind> = {
 	id: 'scalar',
 	rId: 'scalar',
+	slideId: 'scalar',
 	sourceSlideId: 'scalar',
 	name: 'scalar',
 	layoutPath: 'scalar',

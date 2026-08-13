@@ -20,7 +20,8 @@
  */
 
 import { XmlObject } from '../../types';
-import type { PptxSlideLayout } from '../../types';
+import type { PptxSlideLayout, PptxSlideMaster } from '../../types';
+import { masterPartLoadedBackground } from './master-part-background-cache';
 import {
 	applyBackgroundColorToCSld,
 	applyClrMapOverrideToLayoutRoot,
@@ -34,7 +35,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * to each layout's cached XmlObject. Called by the save pipeline before
 	 * the layoutXmlMap entries are flushed to the ZIP.
 	 */
-	protected applySlideLayoutChanges(layouts: PptxSlideLayout[] | undefined): void {
+	protected applySlideLayoutChanges(layouts: readonly PptxSlideLayout[] | undefined): void {
 		if (!layouts || layouts.length === 0) {
 			return;
 		}
@@ -44,6 +45,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			} catch (e) {
 				console.warn(`Failed to apply slide layout changes for ${layout.path}:`, e);
 			}
+		}
+	}
+
+	/**
+	 * Masters carry their layouts, so the layout writer has to run over the
+	 * nested ones too.
+	 *
+	 * `save({ slideMasters })` is what every binding passes: the Slide Master
+	 * view edits `slideMasters[i].layouts[j]`, and no binding has ever passed
+	 * the separate `slideLayouts` option. Layout-level edits (background,
+	 * `@name`, `@preserve`, `clrMapOverride`, header/footer flags) therefore
+	 * reached no writer at all and were dropped on save, while the sibling
+	 * shape-tree writer had already learned to descend
+	 * ({@link PptxHandlerRuntimeSaveMasterElements.applySlideMasterElementChanges}).
+	 */
+	protected override applySlideMasterChanges(masters: PptxSlideMaster[] | undefined): void {
+		super.applySlideMasterChanges(masters);
+		for (const master of masters ?? []) {
+			this.applySlideLayoutChanges(master.layouts);
 		}
 	}
 
@@ -76,9 +96,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			root['@_showMasterPhAnim'] = layout.showMasterPhAnim ? '1' : '0';
 		}
 
-		// `<p:cSld>` — background colour and `@name`.
+		// `<p:cSld>`: background colour and `@name`. A layout that inherits its
+		// background carries no `p:bg` at all, which is what the loaded record
+		// says, so an untouched layout is left without one.
 		const cSld = (root['p:cSld'] || {}) as XmlObject;
-		applyBackgroundColorToCSld(cSld, layout.backgroundColor);
+		applyBackgroundColorToCSld(
+			cSld,
+			layout.backgroundColor,
+			masterPartLoadedBackground(this, layout.path),
+		);
 		if (layout.name !== undefined) {
 			const trimmed = layout.name.trim();
 			if (trimmed.length > 0) {

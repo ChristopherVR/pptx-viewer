@@ -6,9 +6,15 @@ import type {
 } from '../types';
 import { MODERN_COMMENT_NAMESPACE } from './modern-comment-constants';
 import { modernCommentCreated, modernCommentStatus } from './modern-comment-fields';
-import { applyModernCommentText } from './modern-comment-text-body';
+import {
+	applyCommentMentions,
+	readCommentMentions,
+	rebaseCommentMentions,
+} from './modern-comment-mentions';
+import { applyModernCommentText, flattenBodyText } from './modern-comment-text-body';
 
 export * from './modern-comment-constants';
+export * from './modern-comment-mentions';
 
 const localName = (key: string): string => key.split(':').pop() || key;
 
@@ -114,6 +120,7 @@ const parseComment = (
 		complete: optionalNumber(node['@_complete']),
 		priority: optionalNumber(node['@_priority']),
 		title: String(node['@_title'] || '').trim() || undefined,
+		mentions: readCommentMentions(node, authorName),
 		replies: replies.length > 0 ? replies : undefined,
 		rawXml: node,
 	};
@@ -200,7 +207,13 @@ const buildComment = (
 			node[`@_${attribute}`] = String(value);
 		}
 	}
+	// A mention list the reader did not understand is copied through verbatim;
+	// one the model owns is rewritten from the (re-based) model instead.
+	const ownsMentions = (comment.mentions?.length ?? 0) > 0;
 	const excluded = new Set(['pos', 'replyLst', 'txBody', 'extLst']);
+	if (ownsMentions) {
+		excluded.add('mentionLst');
+	}
 	Object.assign(node, rawChildrenExcept(raw, excluded));
 	const hasAnchor = Object.keys(node).some((key) =>
 		[
@@ -235,8 +248,13 @@ const buildComment = (
 	// Splice the (possibly edited) text into the original body rather than
 	// swapping the whole `txBody`: a whole-body swap destroyed run properties
 	// and the run boundaries an `@`-mention is indexed against on every edit.
-	node['p188:txBody'] = applyModernCommentText(child(raw, 'txBody'), comment.text);
-	const extension = child(raw, 'extLst');
+	const originalBody = child(raw, 'txBody');
+	node['p188:txBody'] = applyModernCommentText(originalBody, comment.text);
+	// `startIndex`/`length` index the flattened body text, so an edit that
+	// shifted characters must move every mention that survived it.
+	const originalText = originalBody ? flattenBodyText(originalBody).join('\n') : comment.text;
+	const mentions = rebaseCommentMentions(comment.mentions, originalText, comment.text);
+	const extension = applyCommentMentions(node, mentions, child(raw, 'extLst'), ownsMentions);
 	if (extension) {
 		node['p188:extLst'] = extension;
 	}

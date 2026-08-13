@@ -127,6 +127,80 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.filter((value) => value.length > 0);
 	}
 
+	/**
+	 * Extract a CATEGORY label list, expanded to its declared length.
+	 *
+	 * `c:strCache`/`c:numCache` is SPARSE and keyed by `@idx`: a blank category
+	 * is simply a missing `c:pt`, and `c:ptCount` gives the true length. A single
+	 * empty spacer cell in the source workbook therefore produces a cache with,
+	 * say, `ptCount="5"` and no `idx="2"`.
+	 *
+	 * {@link extractChartPointValues} collapses that to a DENSE four-entry list,
+	 * which is right for series names and error-bar arrays but wrong here: the
+	 * value cache next to it is expanded by index
+	 * (`extractSeriesNumbersWithBlanks`), so the categories came out shorter than
+	 * the values. Render sizes the category axis from this array, so every point
+	 * past the shortened list went unplotted and the surviving labels sat under
+	 * the wrong bars - silently wrong numbers, not a visual glitch.
+	 *
+	 * Blank slots are kept as empty strings so index alignment survives.
+	 */
+	protected extractChartCategoryValues(
+		categoryContainer: XmlObject | undefined,
+		preferNumeric: boolean,
+	): string[] {
+		if (!categoryContainer) {
+			return [];
+		}
+		const refName = preferNumeric ? 'numRef' : 'strRef';
+		const literalName = preferNumeric ? 'numLit' : 'strLit';
+		const cacheName = preferNumeric ? 'numCache' : 'strCache';
+
+		const referenceNode =
+			this.xmlLookupService.getChildByLocalName(categoryContainer, refName) ||
+			this.xmlLookupService.getChildByLocalName(categoryContainer, literalName);
+		const cacheNode =
+			this.xmlLookupService.getChildByLocalName(referenceNode, cacheName) || referenceNode;
+		const points = this.xmlLookupService.getChildrenArrayByLocalName(cacheNode, 'pt');
+		if (points.length === 0) {
+			return [];
+		}
+
+		const byIndex = new Map<number, string>();
+		let maxIndex = -1;
+		for (const point of points) {
+			const index = Number.parseInt(String(point?.['@_idx'] ?? '0'), 10);
+			if (!Number.isFinite(index) || index < 0) {
+				continue;
+			}
+			const value = String(
+				this.xmlLookupService.getScalarChildByLocalName(point, 'v') || '',
+			).trim();
+			if (value.length > 0) {
+				byIndex.set(index, value);
+			}
+			if (index > maxIndex) {
+				maxIndex = index;
+			}
+		}
+		if (byIndex.size === 0) {
+			return [];
+		}
+
+		const declaredCount = Number.parseInt(
+			String(this.xmlLookupService.getChildByLocalName(cacheNode, 'ptCount')?.['@_val'] ?? ''),
+			10,
+		);
+		const length =
+			Number.isFinite(declaredCount) && declaredCount > maxIndex + 1 ? declaredCount : maxIndex + 1;
+
+		const result: string[] = [];
+		for (let index = 0; index < length; index++) {
+			result.push(byIndex.get(index) ?? '');
+		}
+		return result;
+	}
+
 	protected extractChartSeriesName(seriesNode: XmlObject): string {
 		const textNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'tx');
 		const directText = String(

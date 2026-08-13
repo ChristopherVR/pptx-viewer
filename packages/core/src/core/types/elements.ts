@@ -518,7 +518,7 @@ export interface UnknownPptxElement extends PptxElementBase {
 /**
  * A single element on a PPTX slide.
  *
- * This is a **discriminated union** — narrow on `element.type` to access
+ * This is a **discriminated union**: narrow on `element.type` to access
  * variant-specific properties like `imageData` (image/picture), `pathData`
  * (shape), or `textSegments` (text/shape).
  */
@@ -539,6 +539,29 @@ export type PptxElement =
 	| ZoomPptxElement
 	| Model3DPptxElement
 	| UnknownPptxElement;
+
+/**
+ * Discriminant values for the `type` field on {@link PptxElement}.
+ *
+ * DERIVED from the union on purpose. This alias used to be a hand-written list
+ * of string literals living in `types/common.ts`, and it drifted: two element
+ * types (`contentPart` and `model3d`) were added to {@link PptxElement} without
+ * being added to the list, so every consumer that keyed a registry or a switch
+ * off the alias was silently blind to ink content parts and 3D models while
+ * still type-checking. Deriving it makes that class of drift impossible, at the
+ * cost of nothing: the resolved type is identical.
+ *
+ * Narrow on this type to access variant-specific properties.
+ *
+ * @example
+ * ```ts
+ * function isImage(el: PptxElement): el is ImagePptxElement {
+ *   return el.type === "image";
+ * }
+ * // => type guard narrowing PptxElement to ImagePptxElement
+ * ```
+ */
+export type PptxElementType = PptxElement['type'];
 
 // ==========================================================================
 // Utility type aliases (for function signatures that accept subsets)

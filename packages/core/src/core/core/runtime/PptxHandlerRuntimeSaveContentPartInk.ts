@@ -1,5 +1,10 @@
-import type { ContentPartPptxElement, InkPptxElement, XmlObject } from '../../types';
-import { buildInkMlContent } from '../../utils';
+import type {
+	ContentPartInkStroke,
+	ContentPartPptxElement,
+	InkPptxElement,
+	XmlObject,
+} from '../../types';
+import { buildInkMlContent, parseInkMlContent } from '../../utils';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveModel3D';
 
@@ -7,6 +12,26 @@ const CUSTOM_XML_RELATIONSHIP_TYPE =
 	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml';
 const A14_NAMESPACE = 'http://schemas.microsoft.com/office/drawing/2010/main';
 const MC_NAMESPACE = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
+
+/** Structural comparison of two decoded stroke lists (paths, colour, geometry). */
+function strokeListsEqual(
+	left: readonly ContentPartInkStroke[],
+	right: readonly ContentPartInkStroke[],
+): boolean {
+	if (left.length !== right.length) {
+		return false;
+	}
+	return left.every((stroke, index) => {
+		const other = right[index];
+		return (
+			stroke.path === other.path &&
+			stroke.color === other.color &&
+			stroke.width === other.width &&
+			stroke.opacity === other.opacity &&
+			(stroke.pressures ?? []).length === (other.pressures ?? []).length
+		);
+	});
+}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private readonly newContentPartFallbackByXml = new Map<XmlObject, XmlObject>();
@@ -36,10 +61,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			CUSTOM_XML_RELATIONSHIP_TYPE,
 			inkPath.replace(/^ppt\//u, '../'),
 		);
-		const inkData = buildInkMlContent(el.inkStrokes, el.inkPartRawXml);
-		this.zip.file(inkPath, this.builder.build(inkData));
+		// A loaded PowerPoint ink part must survive an untouched save byte for
+		// byte. `buildInkMlContent` rebuilds every brush and trace from the model
+		// in the library's own authored dialect, which would throw away
+		// PowerPoint's difference-encoded traces, its `definitions` block and its
+		// brush units on a save that changed nothing about the ink. Only rewrite
+		// when the strokes actually differ from what the part decodes to.
+		if (!this.inkPartMatchesStrokes(el)) {
+			const inkData = buildInkMlContent(el.inkStrokes, el.inkPartRawXml);
+			this.zip.file(inkPath, this.builder.build(inkData));
+			el.inkPartRawXml = inkData;
+		}
 		el.inkPartPath = inkPath;
-		el.inkPartRawXml = inkData;
 
 		if (!shape) {
 			shape = this.buildContentPartXml(el, relationshipId);
@@ -80,6 +113,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		delete spTree['p:contentPart'];
 		const existing = this.ensureArray(spTree['mc:AlternateContent']) as XmlObject[];
 		spTree['mc:AlternateContent'] = [...existing, ...envelopes];
+	}
+
+	/** True when the loaded ink part still decodes to exactly the model strokes. */
+	private inkPartMatchesStrokes(el: ContentPartPptxElement): boolean {
+		if (!el.inkPartRawXml || !el.inkStrokes?.length) {
+			return false;
+		}
+		const decoded = parseInkMlContent(el.inkPartRawXml, {
+			width: el.width,
+			height: el.height,
+		}).strokes;
+		return strokeListsEqual(decoded, el.inkStrokes);
 	}
 
 	private inkPathForRelationship(

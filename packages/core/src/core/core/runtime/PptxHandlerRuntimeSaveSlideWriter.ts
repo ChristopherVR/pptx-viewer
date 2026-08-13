@@ -9,8 +9,10 @@ import { buildClrMapOverrideXml } from '../../utils/theme-override-utils';
 import { PptxSlideRelationshipRegistry, PptxShapeIdValidator } from '../builders';
 import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
 import type { PptxSaveConstants } from '../factories';
+import { slideBackgroundOrigin } from './authored-slide-background';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementWriter';
 import type { SlideShapeCollectors, SaveSlideContext } from './PptxHandlerRuntimeSaveElementWriter';
+import { fingerprintSlide, slideMatchesFingerprint } from './slide-fingerprint';
 import { buildOrderedSlideXml, SpTreeChildOrderTracker } from './slide-save-xml-order';
 import { reconcileSlideTransition } from './slide-transition-reconcile';
 import {
@@ -70,6 +72,44 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Can this slide keep the bytes already in the archive?
+	 *
+	 * Re-serializing a slide is not free of consequence: the shape tree is
+	 * rebuilt from the typed model, so inherited run properties get flattened
+	 * into the runs, `mc:AlternateContent` envelopes are re-wrapped, and shape
+	 * ids can be renumbered. Doing that to a slide the user never touched is
+	 * pure loss, and it used to happen to every slide of every deck on every
+	 * save because the `isDirty === false` guard below was never reachable.
+	 *
+	 * The eligibility rules, in the order they can bite:
+	 *
+	 * 1. `isDirty === true` is an explicit announcement from a mutation path
+	 *    that does not go through the typed model (`applyLayoutToSlide`,
+	 *    `merge-operations`), and always wins.
+	 * 2. There has to BE something in the archive to keep. A slide created this
+	 *    session has no cached XML and no ZIP entry, so it must be written.
+	 * 3. Comment-bearing slides are always written. The save session prunes
+	 *    every comment part that no slide claimed during this pass, so a
+	 *    skipped slide would have its comment part deleted from under it and
+	 *    `ppt/commentAuthors.xml` stripped. Everything else the session
+	 *    collects (media paths, ink paths, slide numbers) is seeded from the
+	 *    ZIP itself and only ever added to, so skipping is safe there.
+	 * 4. Otherwise the fingerprint decides: unchanged model, unchanged bytes.
+	 */
+	private canSkipSlideSave(slide: PptxSlide): boolean {
+		if (slide.isDirty === true) {
+			return false;
+		}
+		if (!this.slideMap.has(slide.id) || !this.zip.file(slide.id)) {
+			return false;
+		}
+		if ((slide.comments?.length ?? 0) > 0 || slide.modernCommentPart !== undefined) {
+			return false;
+		}
+		return slide.isDirty === false || slideMatchesFingerprint(this.savedSlideFingerprints, slide);
+	}
+
+	/**
 	 * Process a single slide during save: update slide XML, process elements,
 	 * rebuild shape tree, and persist relationships.
 	 */
@@ -79,7 +119,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		constants: PptxSaveConstants,
 	): Promise<void> {
 		// Skip re-serialization of unmodified slides to prevent spurious diffs
-		if (slide.isDirty === false) {
+		if (this.canSkipSlideSave(slide)) {
 			return;
 		}
 
@@ -186,6 +226,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			saveState: saveSession,
 			relationshipRegistry: slideRelationshipRegistry,
 			slideImageRelationshipType: constants.slideImageRelationshipType,
+			authoredBackground: slideBackgroundOrigin(this, slide.id),
 			resolveImageToBytes: (url) => this.resolveMediaToBytes(url),
 			reportUnsupportedBackground: (imageUrl) =>
 				this.compatibilityService.reportWarning({
@@ -386,6 +427,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}),
 			),
 		);
+		// The archive now holds THIS model. Fingerprinting here rather than at
+		// the end of `save()` keeps the baseline pinned to the state that
+		// actually produced the bytes: anything mutated afterwards is a genuine
+		// difference and must be rewritten on the next save.
+		this.savedSlideFingerprints.set(slide.id, fingerprintSlide(slide));
 	}
 
 	/**

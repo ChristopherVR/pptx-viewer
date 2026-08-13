@@ -52,6 +52,60 @@ import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from './three-d';
 export interface TextStyle {
 	/** Original `a:rPr` XML retained by projections that share the shape-text model. */
 	runPropertiesXml?: XmlObject;
+	/**
+	 * The properties this run's OWN `a:rPr` authored, and nothing else.
+	 *
+	 * A run style is assembled as
+	 * `{...inheritedRunStyle, ...authoredRunStyle}`, so the flat style is a
+	 * fully RESOLVED view: it cannot say whether `fontSize: 60` came from the
+	 * run, from the shape's `a:lstStyle`, from the layout placeholder, from the
+	 * master `p:txStyles` or from the theme. Omission is meaningful in OOXML
+	 * (§21.1.2.3), so a writer that re-emits the resolved view converts every
+	 * inherited value into an authored one and the deck stops being
+	 * theme-driven after one save.
+	 *
+	 * This is the run-scope twin of {@link TextSegment.paragraphProperties},
+	 * which is parsed strictly from the paragraph's own `a:pPr` for the same
+	 * reason. Present only for runs that came from a parsed deck; absent for
+	 * SDK-built text, where the flat style IS the only description and must be
+	 * written out in full.
+	 */
+	authoredRunStyle?: TextStyle;
+	/**
+	 * The resolved inheritance baseline {@link authoredRunStyle} was layered
+	 * on top of (shape `a:lstStyle` -> placeholder -> layout -> master
+	 * `p:txStyles` -> theme -> `p:defaultTextStyle`).
+	 *
+	 * Kept alongside the authored half because the two answer different
+	 * questions. The authored half says "the source pinned this"; the baseline
+	 * says "this value is what inheritance already produces", which is how an
+	 * EDIT is told apart from an inherited value: an editor mutates the flat
+	 * style without knowing about either field, so a property that now differs
+	 * from the baseline was either authored or edited and must be written,
+	 * while one that still matches can be left to inherit.
+	 *
+	 * Holds a reference to the per-paragraph baseline object rather than a
+	 * copy, so carrying it costs one pointer per run.
+	 */
+	inheritedRunStyle?: TextStyle;
+	/**
+	 * Snapshot of the ELEMENT-scope paragraph geometry (alignment, margins,
+	 * indent, line and paragraph spacing, tab stops, rtl, line-break flags) as
+	 * the load pipeline resolved it.
+	 *
+	 * Present only on an `element.textStyle` that came from a parsed deck, and
+	 * populated only with the geometry keys. It exists so the save path can
+	 * answer one question it otherwise cannot: has the user CHANGED the body's
+	 * alignment or indent, or is the value simply what the shape's
+	 * `a:lstStyle`, its layout placeholder and the master already produce?
+	 * Element-level text panels (`textAdvancedPatch`, `alignPatch` and friends
+	 * in `pptx-viewer-shared`) write `element.textStyle` and never touch
+	 * `segment.paragraphProperties`, so a diff against this snapshot is the
+	 * only way to tell an edit from an inheritance artefact.
+	 *
+	 * @see element-paragraph-geometry.ts
+	 */
+	resolvedParagraphGeometry?: TextStyle;
 	fontFamily?: string;
 	fontSize?: number; // in points
 	/** When true, renderer should shrink text to fit the shape bounds. */

@@ -45,3 +45,51 @@ describe('runtime dependency factory XML builder', () => {
 		expect(xml).toContain('name=""');
 	});
 });
+
+describe('runtime dependency factory XML attribute entities', () => {
+	const source =
+		'<p:sld>' +
+		'<p:cNvPr id="2" name="R&amp;D &quot;Team&quot;" descr="line one&#xA;line two"/>' +
+		'<a:hlinkClick tgt="https://example.com/s?a=1&amp;b=2&amp;c=3"/>' +
+		'<a:buChar char="&#x2022;"/>' +
+		'</p:sld>';
+
+	type Sld = Record<string, Record<string, Record<string, string>>>;
+
+	it('decodes entities in attribute values into the model', () => {
+		const parsed = factory.createParser().parse(source) as Sld;
+		const shape = parsed['p:sld']['p:cNvPr'];
+		expect(shape['@_name']).toBe('R&D "Team"');
+		expect(shape['@_descr']).toBe('line one\nline two');
+		expect(parsed['p:sld']['a:hlinkClick']['@_tgt']).toBe('https://example.com/s?a=1&b=2&c=3');
+		expect(parsed['p:sld']['a:buChar']['@_char']).toBe('•');
+	});
+
+	it('re-encodes attribute values symmetrically, without compounding over five saves', () => {
+		const parser = factory.createParser();
+		const builder = factory.createBuilder();
+
+		let xml = source;
+		for (let i = 0; i < 5; i++) {
+			xml = builder.build(parser.parse(xml));
+			expect(xml).not.toContain('&amp;amp;');
+			expect(xml).toContain('name="R&amp;D &quot;Team&quot;"');
+			expect(xml).toContain('tgt="https://example.com/s?a=1&amp;b=2&amp;c=3"');
+			// A raw newline inside an attribute is normalised to a space on the next
+			// load, so alt-text line breaks only survive as `&#xA;`.
+			expect(xml).toContain('descr="line one&#xA;line two"');
+		}
+
+		const model = parser.parse(xml) as Sld;
+		expect(model['p:sld']['p:cNvPr']['@_name']).toBe('R&D "Team"');
+		expect(model['p:sld']['p:cNvPr']['@_descr']).toBe('line one\nline two');
+		expect(model['p:sld']['a:hlinkClick']['@_tgt']).toBe('https://example.com/s?a=1&b=2&c=3');
+	});
+
+	it('leaves element text encoding byte-for-byte as fast-xml-parser produced it', () => {
+		const xml = factory.createBuilder().build({
+			'a:t': `Tom & Jerry <b> it's "so"`,
+		});
+		expect(xml).toBe('<a:t>Tom &amp; Jerry &lt;b&gt; it&apos;s &quot;so&quot;</a:t>');
+	});
+});

@@ -28,14 +28,23 @@ export function resolveChannelOrder(root: XmlObject): ChannelOrder {
 /**
  * Decode a raw InkML trace string into per-point channel values.
  *
- * Points are comma-separated; the channel values within a point are
- * whitespace-separated and positionally map to `channelOrder`. InkML also
- * permits value prefixes that switch a channel into a difference encoding:
- * `!` explicit (absolute), `'` single difference (delta from the previous
- * point), `"` second difference (delta of the delta). The mode is sticky per
- * channel until another prefix appears. Absolute traces (the common Office
- * case, no prefixes) decode exactly; difference forms are reconstructed by
- * accumulation, and the second-difference case is a best-effort approximation.
+ * Points are comma-separated; the channel values within a point map
+ * positionally to `channelOrder`. InkML permits value prefixes that switch a
+ * channel into a difference encoding: `!` explicit (absolute), `'` single
+ * difference (delta from the previous point), `"` second difference (delta of
+ * the delta). The mode is sticky per channel until another prefix appears.
+ *
+ * The values are NOT reliably whitespace-separated, which is the trap here.
+ * PowerPoint emits its traces in the compact form, where the sign doubles as
+ * the separator and the prefix binds tight to its number. This is verbatim
+ * PowerPoint SaveAs output for a three-point stroke:
+ *
+ *     100 200,'40'46,"0"-5,0-10
+ *
+ * A whitespace split reads `'40'46` and `0-10` as ONE token each and drops
+ * every point after the first, which is exactly what used to happen: a real
+ * inked slide decoded to a single point and rendered nothing. Values are
+ * therefore scanned, not split.
  */
 export function decodeTracePoints(text: string, channelOrder: ChannelOrder): number[][] {
 	const points: number[][] = [];
@@ -43,10 +52,7 @@ export function decodeTracePoints(text: string, channelOrder: ChannelOrder): num
 	const lastValue: number[] = channelOrder.map(() => 0);
 	const lastVelocity: number[] = channelOrder.map(() => 0);
 	for (const rawPoint of text.split(',')) {
-		const tokens = rawPoint
-			.trim()
-			.split(/\s+/u)
-			.filter((token) => token.length > 0);
+		const tokens = scanValueTokens(rawPoint);
 		if (tokens.length === 0) {
 			continue;
 		}
@@ -73,6 +79,24 @@ type DiffMode = 'explicit' | 'single' | 'double';
 interface ParsedToken {
 	value: number;
 	mode: DiffMode;
+}
+
+/**
+ * One optional InkML encoding prefix followed by one signed decimal number.
+ * Anchored on the number so that `0-10` yields two values and `'40'46` keeps
+ * each prefix attached to the value it qualifies.
+ */
+const VALUE_TOKEN = /([!'"])?\s*(-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/gu;
+
+/** Scan one comma-delimited point into its channel value tokens. */
+function scanValueTokens(rawPoint: string): string[] {
+	const tokens: string[] = [];
+	VALUE_TOKEN.lastIndex = 0;
+	let match: RegExpExecArray | null;
+	while ((match = VALUE_TOKEN.exec(rawPoint)) !== null) {
+		tokens.push(`${match[1] ?? ''}${match[2]}`);
+	}
+	return tokens;
 }
 
 /** Parse one whitespace-delimited channel token, honouring InkML mode prefixes. */
@@ -185,6 +209,45 @@ export function nsAttr(obj: XmlObject, localName: string): unknown {
 function localNameOf(key: string): string {
 	const colon = key.indexOf(':');
 	return colon >= 0 ? key.slice(colon + 1) : key;
+}
+
+/**
+ * Every descendant with the given local name, in document order, ignoring
+ * namespace prefixes and nesting depth.
+ *
+ * `<trace>` and `<brush>` are NOT reliably direct children of `<ink>`:
+ * PowerPoint puts its brushes inside `<inkml:definitions>` and a trace may sit
+ * inside an `<inkml:traceGroup>`. A direct-child lookup therefore saw no
+ * brushes at all on a real deck, so every stroke fell back to a 1 px black
+ * default, and any grouped trace was dropped outright.
+ */
+export function collectByLocalName(node: XmlObject, localName: string): XmlObject[] {
+	const found: XmlObject[] = [];
+	const visit = (current: unknown): void => {
+		if (!current || typeof current !== 'object') {
+			return;
+		}
+		if (Array.isArray(current)) {
+			for (const item of current) {
+				visit(item);
+			}
+			return;
+		}
+		for (const [key, value] of Object.entries(current as XmlObject)) {
+			if (key.startsWith('@_') || key === '#text') {
+				continue;
+			}
+			if (localNameOf(key) === localName) {
+				for (const item of ensureArray(value)) {
+					found.push(item);
+				}
+				continue;
+			}
+			visit(value);
+		}
+	};
+	visit(node);
+	return found;
 }
 
 /** Depth-first search for the first descendant element with the given local name. */

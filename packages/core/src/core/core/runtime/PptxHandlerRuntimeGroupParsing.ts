@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement, hasShapeProperties } from '../../types';
 import type { GroupPptxElement } from '../../types';
+import { xmlPath } from '../../utils/xml-access';
 import { findGroupXmlOffset } from './group-child-order';
 import type { GroupTransform } from './group-shape-geometry';
 import {
@@ -9,6 +10,7 @@ import {
 	transformGroupChild,
 } from './group-shape-geometry';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSpTreeParsing';
+import { parseShapeLockNode, SHAPE_LOCK_CONTAINERS } from './shape-lock-containers';
 
 /** The resolved fill a group hands down to children whose fill is `a:grpFill`. */
 type GroupFillStyle = NonNullable<GroupPptxElement['groupFill']>;
@@ -267,6 +269,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Extract element name from cNvPr/@name (used for morph !! matching)
 		const grpElementName = grpCNvPr?.['@_name'] ? String(grpCNvPr['@_name']).trim() : undefined;
 
+		// `a:grpSpLocks` hangs off `p:cNvGrpSpPr`, not `p:grpSpPr`. Reading it is
+		// what makes the save side safe: the writer treats a missing
+		// `element.locks` as "the user cleared the locks" and deletes the node,
+		// so a lock that is never parsed would be erased on the first save.
+		const grpLocks = parseShapeLockNode(
+			xmlPath(group, 'p:nvGrpSpPr', 'p:cNvGrpSpPr', 'a:grpSpLocks'),
+			SHAPE_LOCK_CONTAINERS['p:grpSp'],
+		);
+
 		const groupElement: GroupPptxElement = {
 			type: 'group',
 			id: baseId,
@@ -286,6 +297,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			actionClick: grpActionClick,
 			actionHover: grpActionHover,
 			groupFill: hasGroupFill ? grpFillStyle : undefined,
+			locks: grpLocks,
 		};
 
 		return groupElement;

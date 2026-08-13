@@ -404,8 +404,10 @@ describe('inkElementProcessor', () => {
 describe('fallbackElementProcessor', () => {
 	const processor = new FallbackElementProcessor();
 
-	it('should report supportedTypes as ["zoom", "contentPart", "unknown"]', () => {
-		expect(processor.supportedTypes).toStrictEqual(['zoom', 'contentPart', 'unknown']);
+	it('should report supportedTypes as ["zoom", "contentPart", "model3d", "unknown"]', () => {
+		// `model3d` joined the list because the registry silently DROPS any type
+		// no processor claims, so a 3D model converted to nothing at all.
+		expect(processor.supportedTypes).toStrictEqual(['zoom', 'contentPart', 'model3d', 'unknown']);
 	});
 
 	it('should render slide zoom with target slide number', async () => {

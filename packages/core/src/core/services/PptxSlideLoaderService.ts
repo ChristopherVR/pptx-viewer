@@ -222,6 +222,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				showMasterShapes === false ? [...slideElements] : [...layoutElements, ...slideElements];
 			const ownBackgroundColor = params.extractBackgroundColor(slideXmlObj);
 			const ownBackgroundGradient = params.extractBackgroundGradient(slideXmlObj);
+			let ownBackgroundImage: string | undefined;
 			const [
 				backgroundColor,
 				backgroundGradient,
@@ -238,14 +239,30 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 					? Promise.resolve(ownBackgroundGradient)
 					: params.getLayoutBackgroundGradient(path),
 				(async () => {
-					const ownBackgroundImage = await params.extractBackgroundImage(slideXmlObj, path);
-					return ownBackgroundImage || params.getLayoutBackgroundImage(path);
+					const own = await params.extractBackgroundImage(slideXmlObj, path);
+					// Kept, not just consumed: whether the image was the slide's own
+					// is half the "did this slide author a background" question.
+					ownBackgroundImage = own;
+					return own || params.getLayoutBackgroundImage(path);
 				})(),
 				params.extractSlideNotes(path),
 				params.extractSlideComments(path),
 				params.extractModernSlideComments(path),
 				params.parseSlideCustomerData(slideXmlObj, path),
 			]);
+
+			// Everything above resolved through the inheritance chain, because a
+			// renderer needs one paintable value. The save writer needs the other
+			// half of the story: whether the slide authored any of it, or is just
+			// showing what its layout and master provide. Without this record it
+			// wrote the resolved colour back as a slide-level `p:bg`, which
+			// outranks both and pinned every slide to flat white.
+			params.rememberSlideBackgroundOrigin(path, {
+				authored: Boolean(ownBackgroundColor || ownBackgroundGradient || ownBackgroundImage),
+				color: backgroundColor,
+				gradient: backgroundGradient || undefined,
+				image: backgroundImage,
+			});
 
 			// Merge modern and legacy comments; prefer separate lists when both exist
 			const comments =
@@ -299,6 +316,11 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			return {
 				id: path,
 				rId,
+				// `p:sldIdLst/p:sldId/@id`, the numeric key sections and section
+				// zooms name slides by. It is NOT derivable from the slide part
+				// (`p:sld` carries no id), so anything that has to write a
+				// section's membership needs it carried on the model.
+				slideId: slideId || undefined,
 				slideNumber: slideIndex + 1,
 				// The slide -> slideLayout relationship, kept on the loaded model so
 				// the editor can mark the active entry in the layout gallery and

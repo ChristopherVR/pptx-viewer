@@ -26,7 +26,12 @@ import type {
 	IPptxTemplateBackgroundService,
 	IPptxXmlLookupService,
 } from '../../services';
-import { decodeXmlEntities } from '../../utils/xml-entities';
+import {
+	decodeXmlEntities,
+	encodeXmlAttributeValue,
+	encodeXmlTextValue,
+} from '../../utils/xml-entities';
+import { preservesXmlWhitespace } from '../../utils/xml-whitespace';
 import { annotateOmmlSiblingOrder } from '../runtime/omml-sibling-order';
 import { annotateParagraphSiblingOrder } from '../runtime/paragraph-sibling-order';
 import { annotateSmartArtTextOrder } from '../runtime/smartart-text-order';
@@ -78,18 +83,22 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// More generally, OOXML element text is always an untyped string;
 			// downstream callers coerce where needed.
 			parseTagValue: false,
-			// `<a:t>` run text must survive verbatim. PowerPoint frequently
-			// splits a sentence across many runs (spell-check, autocorrect),
-			// and a word boundary often ends up as its own run whose `<a:t>`
-			// is a single space, e.g. `<a:r><a:t> </a:t></a:r>`.
-			// fast-xml-parser's default `trimValues: true` trims that
-			// whitespace-only text node down to `""`, silently dropping the
-			// space and gluing the surrounding words together
-			// ("so we immediately start" -> "soweimmediatelystart"). Turn
-			// trimming off globally and re-apply it ourselves in
-			// tagValueProcessor for every tag except `a:t`, so non-text
-			// values (docProps, counters, etc.) keep their old trimmed
-			// behaviour and no whitespace-only text node is lost.
+			// Element text whose schema type is a STRING must survive verbatim.
+			// `<a:t>` is the loudest case: PowerPoint frequently splits a
+			// sentence across many runs (spell-check, autocorrect), and a word
+			// boundary often ends up as its own run whose `<a:t>` is a single
+			// space, e.g. `<a:r><a:t> </a:t></a:r>`. fast-xml-parser's default
+			// `trimValues: true` trims that whitespace-only text node down to
+			// `""`, silently dropping the space and gluing the surrounding
+			// words together ("so we immediately start" ->
+			// "soweimmediatelystart"). It is not the only case: see
+			// utils/xml-whitespace for the full set and the reasoning.
+			// Trimming cannot just be turned off wholesale, because with it off
+			// the indentation of a pretty-printed part becomes a `#text` node on
+			// every container; trimming to `""` is what makes fast-xml-parser
+			// drop that node again. So turn it off globally and re-apply it in
+			// tagValueProcessor for every tag OUTSIDE that set, which keeps
+			// numeric / enum values clean and loses no string content.
 			trimValues: false,
 			// Security hardening (Load M3): explicitly disable XML entity
 			// processing. PPTX XML never uses DOCTYPE / DTDs, so allowing
@@ -107,8 +116,25 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// the builder re-encodes them symmetrically on save.
 			tagValueProcessor: (tagName: string, tagValue: string) => {
 				const decoded = decodeXmlEntities(tagValue);
-				return tagName === 'a:t' ? decoded : decoded.trim();
+				return preservesXmlWhitespace(tagName) ? decoded : decoded.trim();
 			},
+			// ATTRIBUTE values need exactly the same treatment, and until this
+			// existed they got none: `processEntities: false` left every reference
+			// encoded, so `name="R&amp;D"` reached the model as the five literal
+			// characters `&amp;`, and the builder (whose own `processEntities`
+			// defaults to TRUE) then re-escaped that leading `&` on save. That is
+			// unbounded COMPOUNDING, not a one-off: every save adds another `amp;`,
+			// so an `a:hlinkClick` target of `?a=1&amp;b=2` becomes
+			// `?a=1&amp;amp;b=2`, then `&amp;amp;amp;`, and the URL the user follows
+			// drifts further from the real one on each round trip. Sixteen committed
+			// fixtures already carry `char="&amp;#x2022;"` where PresentationBuilder
+			// wrote `&#x2022;`, and text-features.pptx has been through it twice
+			// (`&amp;amp;#x2022;`). Attribute values also feed the Selection Pane
+			// (`p:cNvPr/@name`), alt text (`@descr`) and layout names
+			// (`p:cSld/@name`), which are read from the MODEL, so under-decoding is
+			// user-visible even without a save.
+			attributeValueProcessor: (_attrName: string, attrValue: string) =>
+				decodeXmlEntities(attrValue),
 		});
 		const parse = parser.parse.bind(parser);
 		parser.parse = ((xml: string, validationOption?: boolean | object) => {
@@ -164,6 +190,24 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// pre-compression part size. Emitting compact XML is both faster and
 			// smaller with no fidelity loss. See packages/core/scripts/perf-large.ts.
 			format: false,
+			// fast-xml-parser's built-in encoder runs ONE regex list over both text
+			// nodes and attribute values, so it cannot express the two rules that
+			// actually differ between the two positions:
+			//   * an attribute's quote delimiters are escaped separately, AFTER this
+			//     processor, so the shared list would double-escape them;
+			//   * tab / LF / CR are legal literals in text but are collapsed to a
+			//     space by attribute-value normalisation (XML 1.0 3.3.3), so inside
+			//     an attribute they MUST be numeric references. Writing a raw `\n`
+			//     into `descr="…"` quietly turns every line break in the alt text
+			//     into a space on the next load.
+			// Take the encoding over instead: `encodeXmlTextValue` reproduces the
+			// built-in list exactly (so text output is byte-for-byte unchanged) plus
+			// `\r`, and `encodeXmlAttributeValue` applies the attribute rules.
+			processEntities: false,
+			tagValueProcessor: (_tagName: string, tagValue: unknown) =>
+				encodeXmlTextValue(String(tagValue)),
+			attributeValueProcessor: (_attrName: string, attrValue: unknown) =>
+				encodeXmlAttributeValue(String(attrValue)),
 		});
 		const build = builder.build.bind(builder);
 		builder.build = ((value: unknown) =>

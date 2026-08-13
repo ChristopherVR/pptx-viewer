@@ -69,7 +69,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return [];
 			}
 
-			const layoutXmlObj = this.parser.parse(layoutXmlStr);
+			// Reuse the parse already cached for this part rather than replacing
+			// it. This function runs a second time for a layout whose artwork is
+			// already on a slide (`getLayoutPreview` drops the ELEMENT cache to
+			// re-read the part with image decoding on), and a fresh parse used to
+			// take over `layoutXmlMap` while the elements handed to the viewer kept
+			// `rawXml` nodes belonging to the first parse. The save writer routes
+			// an inherited layout/master edit back by patching that `rawXml` node
+			// IN PLACE, so pointing the map at a different tree made every template
+			// edit a silent no-op: `ensureTemplateShapeAttached` matched the twin
+			// node in the new tree by `p:cNvPr` identity and returned it, throwing
+			// the patched one away. One parse per part per handler keeps the
+			// element -> part-XML link the writer depends on.
+			const layoutXmlObj = this.layoutXmlMap.get(layoutPath) ?? this.parser.parse(layoutXmlStr);
 			this.layoutXmlMap.set(layoutPath, layoutXmlObj as XmlObject);
 
 			// Load layout relationships

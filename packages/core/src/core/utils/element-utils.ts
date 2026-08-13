@@ -188,6 +188,42 @@ export function createEditorId(prefix: string): string {
 	return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * First `p:cNvPr/@id` handed out by {@link createDrawingObjectId}.
+ *
+ * Authoring tools number drawing objects from 1 upwards, so real decks occupy
+ * the low range. Starting well above it keeps freshly minted ids clear of the
+ * ids already in the package without having to read them.
+ */
+const DRAWING_OBJECT_ID_BASE = 100_000;
+
+let nextDrawingObjectId = DRAWING_OBJECT_ID_BASE;
+
+/**
+ * Mint a fresh `p:cNvPr/@id` for a newly created shape, connector, picture or
+ * graphic frame.
+ *
+ * The id must be unique within a slide's `p:spTree`. This used to be
+ * `Math.floor(Math.random() * 10000) + 1000`: 9,000 possible values, so a deck
+ * gaining a few dozen new shapes collided routinely (the birthday bound puts an
+ * even chance of a clash at about 112 shapes). `validateAndDeduplicateIds`
+ * caught the collision on the way out, but its repair RENUMBERS one of the two
+ * shapes, and an animation's `p:spTgt/@spid` still points at the old number, so
+ * the fix silently detached the animation from its target.
+ *
+ * A monotonic counter cannot collide with itself at all, which removes the
+ * renumbering rather than relying on it. The counter is per module instance,
+ * i.e. per loaded viewer, which is the scope in which new shapes are created.
+ *
+ * @returns A strictly increasing integer id, safely inside `ST_DrawingElementId`
+ *   (`xsd:unsignedInt`): 2 billion mints in one session would be needed to
+ *   approach the limit.
+ */
+export function createDrawingObjectId(): number {
+	nextDrawingObjectId += 1;
+	return nextDrawingObjectId;
+}
+
 // ---------------------------------------------------------------------------
 // Buffer copy
 // ---------------------------------------------------------------------------
