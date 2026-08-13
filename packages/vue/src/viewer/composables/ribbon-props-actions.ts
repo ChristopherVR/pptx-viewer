@@ -168,6 +168,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onInsertSlideFromLayout: (path: string, name?: string) =>
 			void input.insertSlideFromLayout(path, name),
 		onApplyLayout: (path: string) => void input.applyLayoutToActiveSlide(path),
+		loadLayoutPreviews: input.loadLayoutPreviews,
 		onInsertSlideFromTemplate: input.insertSlideFromTemplate,
 		onSetActiveCustomShowId: (id: string | null) => {
 			input.activeCustomShowId.value = id;

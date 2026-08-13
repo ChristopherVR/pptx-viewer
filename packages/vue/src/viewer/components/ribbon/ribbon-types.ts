@@ -160,6 +160,16 @@ export interface RibbonProps {
 	snapToShape: boolean;
 	isOverflowMenuOpen: boolean;
 	layoutOptions: LayoutOption[];
+	/** `layoutPath` of the active slide, marking the current gallery tile. */
+	currentLayoutPath?: string;
+	/** Builds the New Slide / Layout gallery artwork on first menu open. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 	customShows: PptxCustomShow[];
 	activeCustomShowId: string | null;
 	isCurrentSlideInActiveShow: boolean;

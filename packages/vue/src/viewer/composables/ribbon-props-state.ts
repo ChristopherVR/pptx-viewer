@@ -43,6 +43,13 @@ export function buildRibbonPropsState(input: UseRibbonPropsInput) {
 		snapToShape: input.snapToShape.value,
 		isOverflowMenuOpen: input.overflowOpen.value,
 		layoutOptions: input.layoutOptions.value,
+		currentLayoutPath: input.activeSlide.value?.layoutPath,
+		themeFonts: {
+			heading: input.theme.value?.fontScheme?.majorFont?.latin,
+			body: input.theme.value?.fontScheme?.minorFont?.latin,
+		},
+		embeddedFontFamilies: input.embeddedFontFamilies.value,
+		customFontFamilies: input.customFontFamilies.value,
 		templateScheme: templateSchemeFromTheme(input.theme.value?.colorScheme),
 		customShows: input.customShows.value,
 		activeCustomShowId: input.activeCustomShowId.value,

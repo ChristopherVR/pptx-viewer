@@ -3,6 +3,7 @@ import type {
 	PptxCustomShow,
 	PptxElement,
 	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSlide,
