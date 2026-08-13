@@ -66,7 +66,7 @@ export interface ViewerOptionsSection {
 	/** Optional explanatory paragraph under the section title. */
 	descriptionKey?: string;
 	/** Marks a bespoke block a binding renders itself (e.g. the theme picker). */
-	special?: 'themePicker' | 'clearCache' | 'shortcutReference';
+	special?: 'themePicker' | 'clearCache' | 'shortcutReference' | 'customFonts';
 	controls: readonly ViewerOptionsControl[];
 }
 

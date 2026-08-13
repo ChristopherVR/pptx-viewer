@@ -12,7 +12,16 @@ describe('font preset lists', () => {
 	it('offers the classic office font families', () => {
 		expect(COMMON_FONT_FAMILIES).toContain('Arial');
 		expect(COMMON_FONT_FAMILIES).toContain('Segoe UI');
-		expect(COMMON_FONT_FAMILIES).toHaveLength(13);
+		// Aptos replaced Calibri as the default Office theme font, so both must
+		// be offered for decks authored either side of that change.
+		expect(COMMON_FONT_FAMILIES).toContain('Aptos');
+		expect(COMMON_FONT_FAMILIES).toContain('Calibri');
+	});
+
+	it('lists font families alphabetically and without duplicates', () => {
+		const sorted = [...COMMON_FONT_FAMILIES].sort((a, b) => a.localeCompare(b));
+		expect([...COMMON_FONT_FAMILIES]).toStrictEqual(sorted);
+		expect(new Set(COMMON_FONT_FAMILIES).size).toBe(COMMON_FONT_FAMILIES.length);
 	});
 
 	it('offers the standard size ramp in ascending order', () => {

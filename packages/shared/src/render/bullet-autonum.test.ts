@@ -1,3 +1,4 @@
+import { TEXT_AUTONUMBER_SCHEMES, formatAutoNumberMarker } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { alphaLabel, formatAutoNumber, romanNumeral } from './bullet-autonum';
@@ -51,5 +52,33 @@ describe('formatAutoNumber', () => {
 	it('falls back to "<n>." for unknown / undefined schemes', () => {
 		expect(formatAutoNumber('unknownScheme', 7)).toBe('7.');
 		expect(formatAutoNumber(undefined, 3)).toBe('3.');
+	});
+});
+
+describe('single implementation shared with the load path', () => {
+	it('is literally the function core stamps the marker segment with', () => {
+		// Two independent tables is what produced the double marker: core wrote
+		// "1." for `ea1ChsPeriod` while this module wrote "一.", and the
+		// paragraph builder drops the parsed marker segment only when the two
+		// strings agree.
+		expect(formatAutoNumber).toBe(formatAutoNumberMarker);
+	});
+
+	it('agrees with the load path on every ST_TextAutonumberScheme value', () => {
+		for (const scheme of TEXT_AUTONUMBER_SCHEMES) {
+			for (const n of [1, 2, 11, 27]) {
+				expect(formatAutoNumber(scheme, n)).toBe(formatAutoNumberMarker(scheme, n));
+			}
+		}
+	});
+
+	it('renders the non-Latin families in their own script', () => {
+		expect(formatAutoNumber('ea1ChsPeriod', 1)).toBe('一.');
+		expect(formatAutoNumber('thaiNumPeriod', 1)).toBe('๑.');
+		expect(formatAutoNumber('hindiAlphaPeriod', 1)).toBe('अ.');
+		expect(formatAutoNumber('hebrew2Minus', 15)).toBe('טו-');
+		// Neither formatter covered the two Arabic minus schemes before.
+		expect(formatAutoNumber('arabic1Minus', 1)).toBe('ا-');
+		expect(formatAutoNumber('arabic2Minus', 3)).toBe('ج-');
 	});
 });

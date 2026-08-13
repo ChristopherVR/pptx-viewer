@@ -1038,3 +1038,72 @@ describe('getShapeConnectionSites (issue #93)', () => {
 		expect(r.height).toBe(300); // |700-400|
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Id spelling: `a:stCxn/@id` is the OOXML cNvPr id, not the model element id
+// ---------------------------------------------------------------------------
+
+describe('connector endpoints referenced by their OOXML id', () => {
+	/**
+	 * A connector parsed from a real `.pptx` stores `a:stCxn/@id` verbatim (the
+	 * target shape's `p:cNvPr/@id`, e.g. "2"), while the element it points at
+	 * carries a synthetic part-scoped `id` and keeps the raw id on `shapeId`.
+	 * A lookup keyed only on the model id therefore matched nothing, so a
+	 * connector authored in PowerPoint never followed its shape in any binding,
+	 * including the one that called this function.
+	 */
+	function parsedShape(
+		id: string,
+		shapeId: string,
+		x: number,
+		y: number,
+		width: number,
+		height: number,
+	): PptxElement {
+		return { id, shapeId, type: 'shape', x, y, width, height } as PptxElement;
+	}
+
+	it('reroutes a connector whose stCxn/@id is the raw cNvPr id', () => {
+		const elements = [
+			parsedShape('ppt/slides/slide1.xml-shape-0', '2', 200, 0, 100, 100),
+			parsedShape('ppt/slides/slide1.xml-shape-1', '3', 0, 300, 100, 100),
+			// Endpoints spelled the OOXML way, as the parser produces them.
+			makeConnector('ppt/slides/slide1.xml-conn-0', 0, 0, 10, 10, '2', 2, '3', 0),
+		];
+
+		const rerouted = rerouteConnectorsForMovedElements(
+			elements,
+			new Set(['ppt/slides/slide1.xml-shape-0']),
+		);
+
+		expect(rerouted).toHaveLength(1);
+		// start = shape "2" bottom-center (250, 100); end = shape "3" top-center (50, 300).
+		expect(rerouted[0]).toMatchObject({
+			id: 'ppt/slides/slide1.xml-conn-0',
+			x: 50,
+			y: 100,
+			width: 200,
+			height: 200,
+		});
+	});
+
+	it('still reroutes when the moved id set itself uses the raw id', () => {
+		const elements = [
+			parsedShape('ppt/slides/slide1.xml-shape-0', '2', 200, 0, 100, 100),
+			makeConnector('ppt/slides/slide1.xml-conn-0', 0, 0, 10, 10, '2', 2),
+		];
+		expect(rerouteConnectorsForMovedElements(elements, new Set(['2']))).toHaveLength(1);
+	});
+
+	it('keeps preferring the model id when a raw id collides with one', () => {
+		// A deck whose shape "A" happens to carry the raw id of shape "B".
+		const collide = parsedShape('A', 'B', 0, 0, 100, 100);
+		const real = parsedShape('B', '9', 500, 500, 100, 100);
+		const elements = [collide, real, makeConnector('c', 0, 0, 10, 10, 'B', 0)];
+		const rerouted = rerouteConnectorsForMovedElements(elements, new Set(['B']));
+		// The connector's free end stays at (10, 10), so the box height reports
+		// which shape the start resolved to: 490 for "B" at y=500, 10 for "A" at
+		// y=0. The model id must win.
+		expect(rerouted[0].height).toBe(490);
+	});
+});

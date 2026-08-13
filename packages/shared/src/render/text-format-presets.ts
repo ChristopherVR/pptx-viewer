@@ -12,20 +12,59 @@
  */
 import type { ChangeCaseMode } from './text-case-transform';
 
-/** Font families offered by the Home-tab font dropdown. */
+/**
+ * Font families offered by the Home-tab font dropdown, alphabetically.
+ *
+ * Covers the families PowerPoint's own list leads with (the Office UI faces,
+ * the Aptos family that replaced Calibri as the default theme font, and the
+ * classic Windows/Mac core fonts) plus the handful of web faces decks
+ * routinely arrive with. Entries the host cannot resolve simply fall back
+ * through the CSS font stack, so listing a family costs nothing but gives the
+ * user a name to pick when the deck already references it.
+ */
 export const COMMON_FONT_FAMILIES: readonly string[] = [
+	'Abadi',
+	'Aptos',
+	'Aptos Display',
 	'Arial',
+	'Arial Black',
+	'Arial Narrow',
+	'Bahnschrift',
+	'Book Antiqua',
+	'Bookman Old Style',
 	'Calibri',
+	'Calibri Light',
 	'Cambria',
+	'Candara',
+	'Century Gothic',
 	'Comic Sans MS',
+	'Consolas',
+	'Corbel',
 	'Courier New',
+	'Franklin Gothic Book',
+	'Franklin Gothic Medium',
+	'Garamond',
 	'Georgia',
+	'Gill Sans MT',
 	'Helvetica',
 	'Impact',
+	'Inter',
+	'Lucida Console',
+	'Lucida Sans Unicode',
+	'Microsoft Sans Serif',
+	'Montserrat',
+	'Noto Sans',
+	'Open Sans',
+	'Palatino Linotype',
+	'Poppins',
+	'Roboto',
+	'Rockwell',
 	'Segoe UI',
+	'Source Sans Pro',
 	'Tahoma',
 	'Times New Roman',
 	'Trebuchet MS',
+	'Tw Cen MT',
 	'Verdana',
 ];
 

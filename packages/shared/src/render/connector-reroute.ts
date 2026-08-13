@@ -104,6 +104,49 @@ export interface ConnectorConnectionRef {
 }
 
 /**
+ * Index the slide's elements by every id a connector may reference them with.
+ *
+ * `a:stCxn/@id` is the OOXML `p:cNvPr/@id` of the target shape ("2"), which the
+ * parser keeps on the element as `shapeId`; the element's own `id` is a
+ * synthetic part-scoped key ("ppt/slides/slide1.xml-shape-0"). A connector the
+ * USER draws in the viewer instead stores the model id, because that is what
+ * the canvas has in hand. Both spellings therefore occur in one deck, and a
+ * lookup that honoured only the model id silently skipped every connector that
+ * came out of a real `.pptx` - which is why "connectors follow their shape"
+ * looked implemented while never firing on an authored deck.
+ *
+ * Model ids are written last so they win any collision with a raw id.
+ */
+export function buildConnectorElementLookup(elements: PptxElement[]): Map<string, PptxElement> {
+	const map = new Map<string, PptxElement>();
+	for (const el of elements) {
+		if (el.shapeId) {
+			map.set(el.shapeId, el);
+		}
+	}
+	for (const el of elements) {
+		map.set(el.id, el);
+	}
+	return map;
+}
+
+/** True when `ref` points at an element that is in `movedElementIds`. */
+function isConnectionAffected(
+	ref: ConnectorConnectionRef | undefined,
+	elementMap: Map<string, PptxElement>,
+	movedElementIds: Set<string>,
+): boolean {
+	if (!ref?.shapeId) {
+		return false;
+	}
+	if (movedElementIds.has(ref.shapeId)) {
+		return true;
+	}
+	const target = elementMap.get(ref.shapeId);
+	return target !== undefined && movedElementIds.has(target.id);
+}
+
+/**
  * Find all connectors on the slide that reference any of the given element IDs
  * via `connectorStartConnection`/`connectorEndConnection`, and recalculate
  * their positions based on the current shape positions.
@@ -120,10 +163,7 @@ export function rerouteConnectorsForMovedElements(
 		return [];
 	}
 
-	const elementMap = new Map<string, PptxElement>();
-	for (const el of elements) {
-		elementMap.set(el.id, el);
-	}
+	const elementMap = buildConnectorElementLookup(elements);
 
 	const rerouted: ReroutedConnector[] = [];
 
@@ -145,8 +185,8 @@ export function rerouteConnectorsForMovedElements(
 		const startConn = ss.connectorStartConnection;
 		const endConn = ss.connectorEndConnection;
 
-		const startAffected = startConn?.shapeId && movedElementIds.has(startConn.shapeId);
-		const endAffected = endConn?.shapeId && movedElementIds.has(endConn.shapeId);
+		const startAffected = isConnectionAffected(startConn, elementMap, movedElementIds);
+		const endAffected = isConnectionAffected(endConn, elementMap, movedElementIds);
 		if (!startAffected && !endAffected) {
 			continue;
 		}

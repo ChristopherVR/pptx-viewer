@@ -28,7 +28,7 @@
  */
 
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import { isImageLikeElement } from 'pptx-viewer-core';
+import { getShapeType, isImageLikeElement } from 'pptx-viewer-core';
 
 // ── Low-level colour helpers (ported from React color-core.ts) ─────────────
 
@@ -927,14 +927,33 @@ export function getComputedEffectStyle(
 		return result;
 	}
 
+	// A connector paints its own `a:ln` effects onto the stroked SVG path (an
+	// `feDropShadow` / `drop-shadow` on the line itself), so adding them to the
+	// container as well would shadow the bounding RECTANGLE on top of the line.
+	const paintsLineEffectsItself =
+		element.type === 'connector' ||
+		getShapeType('shapeType' in element ? element.shapeType : undefined) === 'connector';
+
 	const boxShadow = getBoxShadowCss(style, { includeGlow: options.includeGlowBoxShadow });
-	if (boxShadow) {
-		result.boxShadow = boxShadow;
+	// The line-level shadow (`a:ln/a:effectLst/a:outerShdw`) is part of the same
+	// box-shadow channel. Only React applied it to a shape container; folding it
+	// in here is what carries it to the other four bindings.
+	const lineShadow = paintsLineEffectsItself ? undefined : getLineShadowCss(style);
+	const shadowParts = [boxShadow, lineShadow].filter(
+		(part): part is string => part !== undefined && part !== '',
+	);
+	if (shadowParts.length > 0) {
+		result.boxShadow = shadowParts.join(', ');
 	}
 
 	const filter = getEffectFilterCss(style, element.id);
-	if (filter) {
-		result.filter = filter;
+	// As above for `a:ln/a:effectLst/a:glow`, which is a `drop-shadow` filter.
+	const lineGlow = paintsLineEffectsItself ? undefined : getLineGlowFilterCss(style);
+	const filterParts = [filter, lineGlow].filter(
+		(part): part is string => part !== undefined && part !== '',
+	);
+	if (filterParts.length > 0) {
+		result.filter = filterParts.join(' ');
 	}
 
 	const reflection = getReflectionCss(style, element.height);

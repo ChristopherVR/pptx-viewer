@@ -4,6 +4,7 @@
  * just an editor-private extension. Without the second half, PowerPoint would
  * open the deck with no animation at all.
  */
+import JSZip from 'jszip';
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
@@ -16,6 +17,22 @@ async function saveAndReload(handler: PptxHandler, slides: PptxSlide[]) {
 	const reloaded = new PptxHandler();
 	const data = await reloaded.load(bytes.buffer as ArrayBuffer);
 	return { data, bytes };
+}
+
+/**
+ * Read a part out of the saved package.
+ *
+ * Saved decks are DEFLATE-compressed, so scanning the raw bytes as text finds
+ * nothing even when the markup is present. Always inflate the part and assert
+ * on its XML.
+ */
+async function readPart(bytes: Uint8Array, path: string): Promise<string> {
+	const zip = await JSZip.loadAsync(bytes);
+	const part = zip.file(path);
+	if (!part) {
+		throw new Error(`part not found in saved package: ${path}`);
+	}
+	return part.async('string');
 }
 
 describe('motion path save/reload round trip', () => {
@@ -38,7 +55,8 @@ describe('motion path save/reload round trip', () => {
 		// viewer's own slide-show engine) plays the motion after a reload.
 		const native = reloaded.slides[0].nativeAnimations ?? [];
 		expect(native.some((animation) => animation.motionPath === expected)).toBeTruthy();
-		expect(new TextDecoder().decode(bytes).includes('animMotion')).toBeTruthy();
+		const slideXml = await readPart(bytes, 'ppt/slides/slide1.xml');
+		expect(slideXml).toContain('animMotion');
 	});
 
 	it('preserves the timing fields the panel edits alongside the path', async () => {

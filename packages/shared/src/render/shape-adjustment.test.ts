@@ -6,6 +6,7 @@ import {
 	getRoundRectAdjustmentValue,
 	getRoundRectRadiusPx,
 	getDraggedShapeAdjustmentValue,
+	getShapeAdjustmentHandleDescriptor,
 	SHAPE_ADJUSTMENT_MAX,
 	SHAPE_ADJUSTMENT_MIN,
 	DEFAULT_ROUND_RECT_ADJUSTMENT,
@@ -190,5 +191,31 @@ describe('getDraggedShapeAdjustmentValue', () => {
 		const state = makeDragState({ startWidth: 1, startHeight: 1 });
 		const result = getDraggedShapeAdjustmentValue(state, 5);
 		expect(Number.isFinite(result)).toBeTruthy();
+	});
+
+	// The bug this guards: the branch compared `state.shapeType` RAW against the
+	// all-lowercase `'roundrect'`, while a deck spells the preset `roundRect`
+	// and every binding passes that spelling straight through from the element.
+	// So the drag always fell into the "not adjustable" arm and returned the
+	// start value: the amber handle rendered, tracked the pointer, and changed
+	// nothing. The fixture above hid it by using the lowercase spelling, which
+	// no real deck produces.
+	it('accepts the OOXML spelling `roundRect`, not just an already-lowercased one', () => {
+		const state = makeDragState({ shapeType: 'roundRect', startAdjustment: 16667 });
+		expect(getDraggedShapeAdjustmentValue(state, 40)).toBeGreaterThan(16667);
+	});
+
+	it('offers the handle for the OOXML spelling too', () => {
+		const element = {
+			id: 'r1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 220,
+			height: 110,
+			shapeType: 'roundRect',
+			shapeAdjustments: { adj: 16667 },
+		} as unknown as PptxElementWithShapeStyle;
+		expect(getShapeAdjustmentHandleDescriptor(element)).not.toBeNull();
 	});
 });

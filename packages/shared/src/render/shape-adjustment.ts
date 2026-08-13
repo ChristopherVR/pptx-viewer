@@ -6,7 +6,9 @@
  * each binding consumes one copy rather than re-declaring them.
  */
 import type { PptxElement, PptxElementWithShapeStyle } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { getShapeType, hasShapeProperties } from 'pptx-viewer-core';
+
+import { canInteractWithElement } from './element-locks';
 
 // Scalar constants (mirrors the React `viewer/constants/scalar.ts` values).
 const MIN_ELEMENT_SIZE = 12;
@@ -60,7 +62,11 @@ export function getRoundRectRadiusPx(element: PptxElementWithShapeStyle): number
 
 /**
  * The adjustment handle descriptor for `element`, or `null` when the element
- * type has no adjustable parameter (only round-rects are handled today).
+ * type has no adjustable parameter (only round-rects are handled today) or its
+ * `a:spLocks/@noAdjustHandles` forbids the affordance.
+ *
+ * The lock check lives HERE rather than at each binding's overlay, so a locked
+ * shape hides its amber diamond in all five without five separate guards.
  */
 export function getShapeAdjustmentHandleDescriptor(
 	element: PptxElement,
@@ -68,8 +74,12 @@ export function getShapeAdjustmentHandleDescriptor(
 	if (!hasShapeProperties(element)) {
 		return null;
 	}
-	const normalizedShapeType = String(element.shapeType || '').toLowerCase();
-	if (normalizedShapeType !== 'roundrect') {
+	if (!canInteractWithElement(element, 'adjustHandle')) {
+		return null;
+	}
+	// Same normaliser as the drag below, so the handle cannot appear for a
+	// spelling the drag then refuses to act on.
+	if (getShapeType(element.shapeType) !== 'roundRect') {
 		return null;
 	}
 
@@ -93,7 +103,11 @@ export function getDraggedShapeAdjustmentValue(
 	state: ShapeAdjustmentDragState,
 	deltaX: number,
 ): number {
-	if (state.shapeType !== 'roundrect') {
+	// Normalised before the compare, never raw. `shapeType` arrives exactly as
+	// the deck spells it (`roundRect`), so the old raw `!== 'roundrect'` matched
+	// nothing and every drag returned the START value: the handle rendered, moved
+	// with the pointer, and changed the shape not at all.
+	if (getShapeType(state.shapeType) !== 'roundRect') {
 		return state.startAdjustment;
 	}
 	const minDimension = Math.max(

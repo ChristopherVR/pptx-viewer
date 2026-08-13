@@ -1,7 +1,7 @@
 import type { TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { applyUnderlineVariant, segmentStyleToCss } from './text-run-style';
+import { applyUnderlineVariant, hollowTextFillStyle, segmentStyleToCss } from './text-run-style';
 
 function seg(style: NonNullable<TextSegment['style']>): TextSegment {
 	return { text: 'x', style };
@@ -98,6 +98,53 @@ describe('segmentStyleToCss run properties', () => {
 		expect(emphasised.fontWeight).toBe('bold');
 		expect(emphasised.fontStyle).toBe('italic');
 	});
+
+	describe('hollow / outline-only text (a:rPr > a:noFill)', () => {
+		it('leaves the glyph interior unpainted', () => {
+			const hollow = segmentStyleToCss(seg({ textFillNone: true }));
+			expect(hollow.WebkitTextFillColor).toBe('transparent');
+			// `color` is the fallback for an engine without the prefixed property.
+			expect(hollow.color).toBe('transparent');
+		});
+
+		// THE regression. `textFillNone` never arrives on its own: the parsed run
+		// style merges the resolved theme / placeholder / master cascade under the
+		// run's own properties, so the inherited colour always fills the slot
+		// `<a:noFill/>` deliberately left empty. Reading `color` alone (which is
+		// all this builder did) therefore painted every hollow WordArt run solid.
+		it('beats the inherited colour that always accompanies it', () => {
+			const hollow = segmentStyleToCss(seg({ textFillNone: true, color: '#FF0000' }));
+			expect(hollow.color).toBe('transparent');
+			expect(hollow.WebkitTextFillColor).toBe('transparent');
+		});
+
+		it('keeps painting an ordinary filled run', () => {
+			const solid = segmentStyleToCss(seg({ color: '#FF0000' }));
+			expect(solid.color).toBe('#FF0000');
+			expect(solid.WebkitTextFillColor).toBeUndefined();
+		});
+
+		// The outline is the whole point of hollow text, and the stroke defaults to
+		// `currentColor` - which the transparent fill above would otherwise take
+		// with it, leaving an invisible run instead of an outlined one.
+		it('pins a currentColor outline to the resolved colour before going hollow', () => {
+			const outlined = segmentStyleToCss(
+				seg({ textFillNone: true, color: '#0000FF', textOutlineWidth: 2 }),
+			);
+			expect(outlined.WebkitTextStroke).toBe('2px #0000FF');
+
+			// An explicitly authored outline colour is left exactly as authored.
+			const authored = segmentStyleToCss(
+				seg({
+					textFillNone: true,
+					color: '#0000FF',
+					textOutlineWidth: 2,
+					textOutlineColor: '#00FF00',
+				}),
+			);
+			expect(authored.WebkitTextStroke).toBe('2px #00FF00');
+		});
+	});
 });
 
 describe('applyUnderlineVariant', () => {
@@ -105,5 +152,49 @@ describe('applyUnderlineVariant', () => {
 		const style: Record<string, string | number> = {};
 		applyUnderlineVariant(style, seg({ underline: true, underlineStyle: 'wavy' }));
 		expect(style.textDecorationStyle).toBe('wavy');
+	});
+});
+
+/**
+ * The hollow-text decision as its own export, because React's `text-segment-
+ * render` builds its run style independently and has to merge the identical
+ * object rather than grow a parallel branch (it had none at all, and painted
+ * the inherited colour where the other four painted an outline).
+ */
+describe('hollowTextFillStyle', () => {
+	it('is nothing for a run that is not hollow', () => {
+		expect(hollowTextFillStyle({}, { color: '#ff0000' })).toBeUndefined();
+		expect(hollowTextFillStyle({ textFillNone: false })).toBeUndefined();
+	});
+
+	it('clears the fill both ways: -webkit-text-fill-color and the color fallback', () => {
+		expect(hollowTextFillStyle({ textFillNone: true })).toStrictEqual({
+			color: 'transparent',
+			WebkitTextFillColor: 'transparent',
+		});
+	});
+
+	it('pins a currentColor outline to the resolved colour before clearing it', () => {
+		// Without this the fallback turns the STROKE transparent too and the
+		// letterform disappears instead of being outlined.
+		expect(
+			hollowTextFillStyle(
+				{ textFillNone: true, textOutlineWidth: 2 },
+				{ color: '#0000ff', textStroke: '2px currentColor' },
+			),
+		).toStrictEqual({
+			color: 'transparent',
+			WebkitTextFillColor: 'transparent',
+			WebkitTextStroke: '2px #0000ff',
+		});
+	});
+
+	it('leaves an outline that declared its own colour alone', () => {
+		expect(
+			hollowTextFillStyle(
+				{ textFillNone: true, textOutlineWidth: 2, textOutlineColor: '#c00000' },
+				{ color: '#0000ff', textStroke: '2px #c00000' },
+			).WebkitTextStroke,
+		).toBeUndefined();
 	});
 });

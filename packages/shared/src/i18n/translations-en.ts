@@ -398,6 +398,19 @@ export const translationsEn: Record<string, string> = {
 	'pptx.field.header': 'Header',
 	'pptx.field.footer': 'Footer',
 
+	// Home-tab font dropdown groups
+	'pptx.font.group.theme': 'Theme fonts',
+	'pptx.font.group.embedded': 'Embedded in this presentation',
+	'pptx.font.group.custom': 'Added this session',
+	'pptx.font.group.all': 'All fonts',
+	'pptx.font.role.heading': 'Headings',
+	'pptx.font.role.body': 'Body',
+
+	// New Slide / Layout gallery
+	'pptx.layoutGallery.current': 'Current layout',
+	'pptx.layoutGallery.loading': 'Loading layouts',
+	'pptx.layoutGallery.empty': 'No layouts available',
+
 	// Masters
 	'pptx.master.master': 'Master',
 	'pptx.master.layout': 'Layout',
@@ -2930,6 +2943,17 @@ export const translationsEn: Record<string, string> = {
 	'pptx.options.general.userName': 'User name',
 	'pptx.options.general.userInitials': 'Initials',
 	'pptx.options.general.appearance': 'Viewer theme',
+	'pptx.options.general.fonts': 'Fonts',
+	'pptx.options.general.fontsDescription':
+		'Presentations sometimes use fonts your device does not have installed, and the viewer substitutes the closest available face. Adding the font file makes the deck render with the font it was written in.',
+	'pptx.options.general.enableCustomFonts': 'Let me add font files to this session',
+	'pptx.options.general.enableCustomFontsInfo':
+		'Added fonts are used for rendering and appear in the Home tab font list. They are held in memory only, are never uploaded or saved into the presentation, and are discarded when you reload the page.',
+	'pptx.options.general.addFontFile': 'Add font file',
+	'pptx.options.general.customFontsAdded': 'Fonts added this session',
+	'pptx.options.general.customFontsEmpty': 'No fonts added yet.',
+	'pptx.options.general.customFontsDisabled': 'Turn the setting above on to add a font file.',
+	'pptx.options.general.customFontError': 'That file could not be read as a font.',
 	'pptx.options.general.startup': 'Start up options',
 	'pptx.options.general.showStartScreen': 'Show the Start screen when this application starts',
 	'pptx.options.proofing.label': 'Proofing',

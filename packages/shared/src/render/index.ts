@@ -34,6 +34,12 @@ export * from './svg-gradient-paint';
 export * from './stroke-outline';
 export * from './stroke-only-preset';
 export * from './stroke-paint';
+// The whole `a:ln` -> CSS decision (border width/style/colour, compound lines,
+// line join / cap / miter limit) as one descriptor, so no binding re-derives it.
+export * from './stroke-style';
+// `a:blipFill/a:tile`: scale, offset, alignment and mirror-flip of a tiled
+// picture, which four of five bindings used to render as one stretched copy.
+export * from './image-tiling';
 // `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
 export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
@@ -304,6 +310,11 @@ export * from './clone';
 export * from './element';
 export * from './element-align';
 export * from './element-interaction';
+// `a:spLocks` enforcement: one predicate deciding whether a select / move /
+// resize / rotate / text-edit / adjust gesture may proceed on an element, so a
+// locked shape behaves the same in all five bindings (it used to be honoured in
+// React alone, while Vue and Angular shipped a Lock button that locked nothing).
+export * from './element-locks';
 export * from './selection-transform';
 // Element CSS-style builders: absolute container style (position/transform/
 // opacity/z-index) + displayable image-source resolution, shared by every
@@ -407,6 +418,15 @@ export * from './text-case-transform';
 export * from './linked-text-box-overflow';
 export * from './connector-router';
 export * from './connector-reroute';
+// Authoring the other half of the same contract: what a drag between two
+// connection sites should produce (`a:stCxn`/`a:endCxn` bindings, span-chosen
+// preset), resolved through the SAME site list the reroute uses so a new
+// connector cannot be drawn to a point the first shape move disagrees with.
+export * from './connector-authoring';
+// Pointer-anchored overlay placement (context menus): clamp against BOTH edges,
+// not just the low one. Svelte clamped only the low edge, so a menu opened near
+// the bottom of the window rendered below the fold and could not be clicked.
+export * from './flyout-position';
 export * from './connector-style';
 // Connector SVG-geometry builder: from a connector `PptxElement`, derive stroke
 // style, flip-adjusted endpoints, bent/curved path data (with optional A*
@@ -510,6 +530,12 @@ export * from './slide-transition-css';
 // the orientation-vs-direction rule, and the arrow-grid tables.
 export * from './slide-transition-options';
 export * from './slide-transition-edits';
+// Ribbon-side decision functions: what a Transitions-tab commit writes, what
+// the Slide Show tab's Options checkboxes mean, and the three Home commands
+// (Reset / Shape Fill / Shape Outline) that shipped inert in two bindings.
+export * from './ribbon-transitions';
+export * from './ribbon-slide-show-options';
+export * from './ribbon-home-commands';
 export * from './p14-transition-keyframes';
 export * from './p14-transition-css';
 // SmartArt SVG-fallback layout engine — pure node geometry/positioning for the
@@ -845,6 +871,18 @@ export * from './shape-preset-catalog';
 // Home-tab text formatting presets: font family/size dropdown lists,
 // character/line-spacing presets, and the change-case options + transforms.
 export * from './text-format-presets';
+// Home-tab font dropdown grouping (theme / embedded / custom / all) and the
+// theme-aware default family shown when the selection overrides nothing.
+export * from './font-catalog';
+// Opt-in custom font registration for File > Options: filename -> family and
+// weight/style axes, plus the FontFace hand-off.
+export * from './custom-fonts';
+// New Slide / Layout gallery thumbnail geometry: fit scale, inner surface
+// size, and placeholder outlines with scale-compensated border widths.
+export * from './layout-preview';
+// Which layouts the New Slide / Layout menus offer: master scoping and
+// duplicate-name collapsing, plus the active-entry test.
+export * from './layout-gallery';
 // Canonical "Office Standard Colors" 10-swatch catalogue for font-colour /
 // highlight-colour (and future fill/line-colour) pickers, shared by every
 // binding instead of each hardcoding its own copy.
@@ -869,6 +907,9 @@ export * from './document-statistics';
 export * from './used-fonts';
 export * from './font-availability';
 export * from './password-protection';
+// One decision for all five bindings: a captured password means the deck is
+// serialised through `saveEncrypted` (OLE2 container), never `save` (ZIP).
+export * from './deck-save-encryption';
 export * from './viewer-preferences';
 export * from './presentation-setup';
 // PowerPoint's precedence for a click during a running show: an on-slide

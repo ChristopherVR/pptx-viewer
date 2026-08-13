@@ -56,6 +56,20 @@ export const GENERAL_TAB: ViewerOptionsTabDefinition = {
 			controls: [],
 		},
 		{
+			id: 'fonts',
+			titleKey: 'pptx.options.general.fonts',
+			descriptionKey: 'pptx.options.general.fontsDescription',
+			// The upload control itself is a bespoke block: it needs a file
+			// picker, a list of what the session has registered, and an error
+			// line, none of which the declarative control kinds cover.
+			special: 'customFonts',
+			controls: [
+				toggle('general', 'enableCustomFontUpload', 'pptx.options.general.enableCustomFonts', {
+					infoKey: 'pptx.options.general.enableCustomFontsInfo',
+				}),
+			],
+		},
+		{
 			id: 'startup',
 			titleKey: 'pptx.options.general.startup',
 			controls: [toggle('general', 'showStartScreen', 'pptx.options.general.showStartScreen')],

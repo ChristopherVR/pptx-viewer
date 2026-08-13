@@ -30,6 +30,15 @@ export interface ViewerGeneralOptions {
 	userName: string;
 	userInitials: string;
 	showStartScreen: boolean;
+	/**
+	 * Lets the user hand a local font file to the viewer so decks authored
+	 * with a font the browser lacks render with the real face.
+	 *
+	 * Off by default. The registration reads a file the user picks and adds it
+	 * to the page's font set for the session, which is a capability a host
+	 * embedding the viewer should opt into rather than inherit.
+	 */
+	enableCustomFontUpload: boolean;
 }
 
 export interface ViewerProofingOptions {
@@ -140,6 +149,7 @@ export const DEFAULT_VIEWER_OPTIONS: ViewerOptions = {
 		userName: '',
 		userInitials: '',
 		showStartScreen: true,
+		enableCustomFontUpload: false,
 	},
 	proofing: {
 		autoCorrectTwoInitialCapitals: true,
