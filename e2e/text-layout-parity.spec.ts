@@ -130,6 +130,69 @@ test.describe('cross-binding text layout', () => {
 		expectRunParity(results);
 	});
 
+	test('a hyperlink and an inline equation reach the DOM in every binding', async ({
+		browser,
+	}, testInfo) => {
+		// Shared's `ParagraphRun` modelled neither, so `buildParagraphs` returned
+		// `{ text, style }` and Vue, Svelte and Vanilla silently DROPPED the link
+		// (it painted as prose) while an inline `m:oMath` took the whole element
+		// down the standalone equation renderer, losing the sentence around it.
+		// Only Angular rendered both, via a text-prefix walk over shared's output.
+		// Run parity alone cannot see either bug: the dropped link still paints
+		// its characters. So this asserts the ELEMENTS, not the metrics.
+		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
+			await loadDeckAt(page, origin, TEXT_LAYOUT);
+			await slideStage(page).waitFor();
+			await page.waitForTimeout(600);
+			return page.evaluate(() => {
+				const viewport = document.querySelector('[data-pptx-viewport]');
+				// Four bindings render a real `<a href>`; React renders a
+				// `role="link"` span so it can route an internal `ppaction://` jump
+				// through its own handler. Either satisfies "the reader gets a link".
+				const anchors = [...(viewport?.querySelectorAll('a[href]') ?? [])].filter((a) =>
+					(a.textContent ?? '').includes('docs'),
+				);
+				const roleLinks = [...(viewport?.querySelectorAll('[role="link"]') ?? [])].filter((a) =>
+					(a.textContent ?? '').includes('the docs'),
+				);
+				const text = (viewport?.textContent ?? '').replace(/\s+/gu, ' ');
+				return {
+					hrefs: anchors.map((a) => a.getAttribute('href')),
+					linkCount: anchors.length + roleLinks.length,
+					hasMathMl: (viewport?.querySelectorAll('math').length ?? 0) > 0,
+					// The prose either side of the inline equation must survive.
+					keepsMathsProse: text.includes('Given') && text.includes('holds'),
+					keepsLinkText: text.includes('the docs'),
+				};
+			});
+		});
+
+		expect(
+			results
+				.flatMap((result) => {
+					const issues: string[] = [];
+					const seen = result.value;
+					if (seen.linkCount === 0) {
+						issues.push('the hyperlinked run reached the DOM as ordinary text, not as a link');
+					}
+					if (seen.hrefs.some((href) => href !== 'https://example.com/docs')) {
+						issues.push(`wrong href: ${JSON.stringify(seen.hrefs)}`);
+					}
+					if (!seen.keepsLinkText) {
+						issues.push('the linked run text is missing');
+					}
+					if (!seen.hasMathMl) {
+						issues.push('no <math> for the inline equation');
+					}
+					if (!seen.keepsMathsProse) {
+						issues.push('the prose either side of the inline equation was dropped');
+					}
+					return issues.map((issue) => `${result.framework.name}: ${issue}`);
+				})
+				.join('\n'),
+		).toBe('');
+	});
+
 	test('an authored blank paragraph and its bullets survive as the same runs', async ({
 		browser,
 	}, testInfo) => {

@@ -55,6 +55,10 @@ export const translations = {
 	'pptx.fonts.embedDescription':
 		'Incruste las fuentes utilizadas en esta presentación para que se muestren correctamente en otros dispositivos.',
 	'pptx.fonts.embedFonts': 'Incrustar fuentes',
+	'pptx.fonts.embedKeepsExisting':
+		'Si lo desactiva, se eliminarán los datos de fuentes incrustadas al guardar.',
+	'pptx.fonts.embedUnavailable':
+		'Esta presentación no contiene datos de fuentes incrustadas y los archivos de fuentes no se pueden leer desde su sistema, por lo que no hay nada que incrustar.',
 	'pptx.fonts.embedded': 'Incorporado',
 	'pptx.fonts.enableEmbedding': 'Habilitar incrustación de fuentes',
 	'pptx.fonts.missingWarning':

@@ -11,13 +11,36 @@ import {
 	NOTES_MASTER_BACKGROUND,
 	NOTES_MASTER_TEXT,
 } from './fixtures/generate-master-views-fixture';
+import { LAYOUT_SHAPE_TEXT, MASTER_SHAPE_TEXT } from './fixtures/generate-template-editing-fixture';
 import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/master-views.pptx', import.meta.url)),
 );
+/**
+ * A deck whose slide master and slide layout each carry a real decorative
+ * shape. `master-views.pptx` is built by `PptxHandler.createBlank`, whose
+ * generated master and layouts have empty shape trees, so it cannot show
+ * whether the Slides tab paints anything.
+ */
+const templateFixturePath = resolve(
+	fileURLToPath(new URL('./fixtures/template-editing.pptx', import.meta.url)),
+);
 const outputDir = fileURLToPath(new URL('../test-results/master-views/', import.meta.url));
 const UPDATED_NOTES_BACKGROUND = '#1a73e8';
+
+/**
+ * A shape painted from a slide master's or layout's OWN shape tree.
+ *
+ * The id namespace is the cross-binding contract here, and it is what makes
+ * this assertion meaningful: the same artwork also reaches the ordinary slide
+ * canvas as an inherited copy under `master-` / `layout-` ids, so matching on
+ * the visible text alone would pass against the deck behind the master view.
+ * `slide-master-` / `slide-layout-` ids exist only on a part's own tree.
+ */
+function masterPartShape(page: Page, prefix: 'slide-master-' | 'slide-layout-'): Locator {
+	return page.locator(`[data-element-id^="${prefix}"]`);
+}
 
 function toolbar(page: Page): Locator {
 	return page.getByRole('toolbar', { name: 'Presentation toolbar' });
@@ -81,6 +104,42 @@ async function saveDeck(page: Page, projectName: string): Promise<string> {
 	await download.saveAs(savedPath);
 	return savedPath;
 }
+
+test.describe('slide master tab parity', () => {
+	/**
+	 * View > Slide Master was a blank page on every real deck in all five
+	 * bindings: `PptxSlideMaster.elements` / `PptxSlideLayout.elements` were
+	 * declared, read by all five master views, and never populated by the
+	 * loader. This spec missed it for the same reason it survived so long -
+	 * every content assertion was on the Notes and Handout tabs, which are the
+	 * two parts that did get their shape trees parsed.
+	 */
+	test('paints the slide master and layout shape trees', async ({ page }, testInfo) => {
+		await openFixture(page, templateFixturePath);
+		await enterMasterView(page);
+
+		// The Slides tab opens on the master itself, so its own artwork paints.
+		await expect(masterPartShape(page, 'slide-master-').first()).toBeVisible();
+		await expect(
+			masterPartShape(page, 'slide-master-').filter({ hasText: MASTER_SHAPE_TEXT }).first(),
+		).toBeVisible();
+
+		// Every layout's tree is parsed too, and the rail previews them.
+		await expect(
+			masterPartShape(page, 'slide-layout-').filter({ hasText: LAYOUT_SHAPE_TEXT }).first(),
+		).toHaveCount(1);
+
+		// And it survives a real save -> reload, so the shape tree is not being
+		// rebuilt into something the loader can no longer see.
+		await closeMasterView(page);
+		const savedPath = await saveDeck(page, `${testInfo.project.name}-slides-tab`);
+		await openFixture(page, savedPath);
+		await enterMasterView(page);
+		await expect(
+			masterPartShape(page, 'slide-master-').filter({ hasText: MASTER_SHAPE_TEXT }).first(),
+		).toBeVisible();
+	});
+});
 
 test.describe('notes and handout master parity', () => {
 	test('navigates, edits, saves, and reloads master properties', async ({ page }, testInfo) => {

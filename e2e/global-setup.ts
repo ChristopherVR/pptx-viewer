@@ -8,18 +8,24 @@ import { generateMasterViewsFixture } from './fixtures/generate-master-views-fix
 import { generateMorphShapeSwapFixture } from './fixtures/generate-morph-shape-swap-fixture';
 import { generateInkFixture, generateOleFixture } from './fixtures/generate-ole-ink-fixtures';
 import { generateFixture as generateTemplateEditingFixture } from './fixtures/generate-template-editing-fixture';
+import {
+	generateTemplateGroupFixture,
+	generateTemplateMceFixture,
+} from './fixtures/generate-template-group-fixture';
 import { generateTextLayoutFixture } from './fixtures/generate-text-layout-fixture';
 import { generateFixture as generateTransitionsAnimationsFixture } from './fixtures/generate-transitions-animations-fixture';
 
 export default async function globalSetup() {
 	// Before anything else: a stale dist means the run tests code that is not on
 	// disk, and can report a spurious PASS. Fail with the build command instead.
-	assertDistFreshness();
+	await assertDistFreshness();
 	await generateFixture();
 	await generateChartFixture();
 	await generateFieldSubstitutionFixture();
 	await generateTransitionsAnimationsFixture();
 	await generateTemplateEditingFixture();
+	await generateTemplateGroupFixture();
+	await generateTemplateMceFixture();
 	await generateMasterViewsFixture();
 	await generateOleFixture();
 	await generateInkFixture();

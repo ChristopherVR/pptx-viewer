@@ -12,6 +12,11 @@
  *  3. `UnstyledText`   no `sz`, no `a:latin` - the default-font fallback.
  *  4. `RunsAndBlanks`  two runs, an authored blank paragraph, a bullet.
  *  5. `LooseSpacing`   `a:lnSpc/a:spcPct` - an explicit 150% line height.
+ *  6. `LinkedAndMaths` an `a:hlinkClick` run and an inline `m:oMath`, both of
+ *     which shared's `ParagraphRun` did not model: Vue, Svelte and Vanilla
+ *     dropped the LINK entirely (it rendered as prose) and dropped the EQUATION
+ *     with the sentence around it (the whole element was handed to the
+ *     standalone equation renderer).
  *
  * The text bodies are hand-authored OOXML rather than SDK-built, because the
  * builder has no surface for `normAutofit`, `wrap="none"` or a run with no
@@ -38,7 +43,14 @@ export const TEXT_LAYOUT_SHAPES = {
 	unstyled: 'Unstyled paragraph with no authored size or typeface',
 	runs: 'Alpha ',
 	spacing: 'Loose spacing paragraph wrapping over more than a single line here',
+	linked: 'the docs',
+	maths: 'Given ',
 } as const;
+
+/** The `a:hlinkClick` target of the `LinkedAndMaths` shape's linked run. */
+export const HYPERLINK_TARGET = 'https://example.com/docs';
+/** Relationship id the hyperlink is authored against in `slide1.xml.rels`. */
+const HYPERLINK_RID = 'rIdHlink1';
 
 /** The authored `fontScale`, as a fraction. React is the only binding applying it. */
 export const AUTOFIT_FONT_SCALE = 0.7;
@@ -130,6 +142,29 @@ const SHAPES: ShapeSpec[] = [
 			`${run('Bulleted item', 1800)}</a:p>`,
 	},
 	{
+		name: 'LinkedAndMaths',
+		x: 457200,
+		y: 4754880,
+		cx: 5486400,
+		cy: 1097280,
+		bodyPr: '<a:bodyPr wrap="square"><a:noAutofit/></a:bodyPr>',
+		// Paragraph 1: prose, a hyperlinked run, more prose. The link must reach
+		// the DOM as a real anchor in every binding.
+		// Paragraph 2: prose, an inline `m:oMath`, more prose. The maths must land
+		// BETWEEN the two runs, and the prose must survive.
+		paragraphs:
+			`<a:p>${run('See ', 1400)}` +
+			`<a:r><a:rPr lang="en-US" sz="1400" dirty="0">` +
+			`<a:hlinkClick xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ` +
+			`r:id="${HYPERLINK_RID}" tooltip="Documentation"/>` +
+			`<a:latin typeface="Arial"/></a:rPr><a:t>${TEXT_LAYOUT_SHAPES.linked}</a:t></a:r>` +
+			`${run(' for more', 1400)}</a:p>` +
+			`<a:p>${run(TEXT_LAYOUT_SHAPES.maths, 1400)}` +
+			'<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">' +
+			'<m:r><m:t>x</m:t></m:r></m:oMath>' +
+			`${run(' holds', 1400)}</a:p>`,
+	},
+	{
 		name: 'LooseSpacing',
 		x: 5715000,
 		y: 3017520,
@@ -162,6 +197,20 @@ export async function generateTextLayoutFixture(): Promise<string> {
 	data.slides.push(createSlide('Blank').build());
 	const zip = await JSZip.loadAsync(await handler.save(data.slides));
 	zip.file('ppt/slides/slide1.xml', slideXml());
+	// The hyperlink run targets a relationship, so the part has to declare it.
+	// Appended to whatever the SDK wrote (the layout relationship) rather than
+	// replacing it, or the slide loses its layout.
+	const relsPath = 'ppt/slides/_rels/slide1.xml.rels';
+	const rels = (await zip.file(relsPath)?.async('string')) ?? '';
+	zip.file(
+		relsPath,
+		rels.replace(
+			'</Relationships>',
+			`<Relationship Id="${HYPERLINK_RID}" ` +
+				'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" ' +
+				`Target="${HYPERLINK_TARGET}" TargetMode="External"/></Relationships>`,
+		),
+	);
 
 	const outPath = resolve(__dirname, 'text-layout.pptx');
 	mkdirSync(dirname(outPath), { recursive: true });

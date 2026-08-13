@@ -55,6 +55,10 @@ export const translations = {
 	'pptx.fonts.embedDescription':
 		"Intégrez les polices utilisées dans cette présentation afin qu'elles s'affichent correctement sur d'autres appareils.",
 	'pptx.fonts.embedFonts': 'Intégrer les polices',
+	'pptx.fonts.embedKeepsExisting':
+		"Si vous désactivez cette option, les données de polices intégrées seront supprimées lors de l'enregistrement.",
+	'pptx.fonts.embedUnavailable':
+		"Cette présentation ne contient aucune donnée de police intégrée, et les fichiers de polices ne peuvent pas être lus depuis votre système : il n'y a donc rien à intégrer.",
 	'pptx.fonts.embedded': 'Intégré',
 	'pptx.fonts.enableEmbedding': "Activer l'intégration des polices",
 	'pptx.fonts.missingWarning':

@@ -55,6 +55,10 @@ export const translations = {
 	'pptx.fonts.embedDescription':
 		'Betten Sie in dieser Präsentation verwendete Schriftarten ein, damit sie auf anderen Geräten korrekt angezeigt werden.',
 	'pptx.fonts.embedFonts': 'Schriftarten einbetten',
+	'pptx.fonts.embedKeepsExisting':
+		'Wenn Sie dies deaktivieren, werden die eingebetteten Schriftdaten beim Speichern entfernt.',
+	'pptx.fonts.embedUnavailable':
+		'Diese Präsentation enthält keine eingebetteten Schriftdaten, und Schriftdateien können nicht von Ihrem System gelesen werden. Es gibt also nichts einzubetten.',
 	'pptx.fonts.embedded': 'Eingebettet',
 	'pptx.fonts.enableEmbedding': 'Aktivieren Sie die Schriftarteinbettung',
 	'pptx.fonts.missingWarning':

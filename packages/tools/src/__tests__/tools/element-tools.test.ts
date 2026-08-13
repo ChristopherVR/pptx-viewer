@@ -1,4 +1,4 @@
-import type { PptxData } from 'pptx-viewer-core';
+import type { PptxData, PptxElement } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -377,6 +377,180 @@ describe('ungroupElements', () => {
 		expect(() => ungroupElements(ctx(), { slideIndex: 0, groupElementId: 'el-0' })).toThrow(
 			'not a group',
 		);
+	});
+});
+
+// ── group / ungroup: parity with the viewer bindings ─────────────────────────
+
+/**
+ * These tools hand-rolled group and ungroup, so they drifted from the version
+ * every viewer binding runs (`pptx-viewer-core`'s `group-ops`, re-exported by
+ * `pptx-viewer-shared`). Both now call it, and these guard the behaviours that
+ * had gone missing. They matter more here than anywhere else: the MCP tools are
+ * how the AI panel edits a deck, so a silent restack lands without a click.
+ */
+describe('groupElements / ungroupElements match the shared group-ops behaviour', () => {
+	/** A slide with a decoy in front of, between and behind the grouped pair. */
+	function stackedCtx(): ToolContext {
+		const data = makeTestPresentation();
+		const slide = data.slides[0];
+		const decoy = (id: string) => ({
+			id,
+			type: 'shape' as const,
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+		});
+		slide.elements = [
+			decoy('back'),
+			slide.elements[0],
+			decoy('mid'),
+			slide.elements[1],
+			decoy('front'),
+		];
+		return { pptxData: data };
+	}
+
+	it('puts the new group where the grouped elements stood, not on top', () => {
+		const c = stackedCtx();
+		const { result } = groupElements(c, { slideIndex: 0, elementIds: ['el-0', 'el-1'] });
+
+		// `push` used to send the group to the end of the array, which paints it
+		// over everything that was in front of the selection.
+		expect(c.pptxData.slides[0].elements.map((e) => e.id)).toStrictEqual([
+			'back',
+			result.groupId,
+			'mid',
+			'front',
+		]);
+	});
+
+	it('splices the promoted children back into the group slot on ungroup', () => {
+		const c = stackedCtx();
+		const grouped = groupElements(c, { slideIndex: 0, elementIds: ['el-0', 'el-1'] });
+		const ungrouped = ungroupElements(c, {
+			slideIndex: 0,
+			groupElementId: grouped.result.groupId,
+		});
+
+		expect(c.pptxData.slides[0].elements.map((e) => e.id)).toStrictEqual([
+			'back',
+			...ungrouped.result.restoredIds,
+			'mid',
+			'front',
+		]);
+	});
+
+	it('restores promoted children to their slide-absolute coordinates', () => {
+		const c = ctx();
+		const before = c.pptxData.slides[0].elements.map((e) => `${e.id}@${e.x},${e.y}`);
+		const grouped = groupElements(c, { slideIndex: 0, elementIds: ['el-0', 'el-1'] });
+		ungroupElements(c, { slideIndex: 0, groupElementId: grouped.result.groupId });
+
+		expect(c.pptxData.slides[0].elements.map((e) => `${e.id}@${e.x},${e.y}`)).toStrictEqual(before);
+	});
+
+	// Edits route by id prefix (`master-` / `layout-` = the template store), so a
+	// promoted nested group whose descendants kept plain ids has its inside
+	// edited into the slide store and dropped on save. Only the top level was
+	// ever renamed, which was invisible while a group could hold only leaves.
+	it('re-ids a promoted nested group descendant that routes to the wrong store', () => {
+		const data = makeTestPresentation();
+		data.slides[0].elements = [
+			{
+				id: 'master-grp',
+				type: 'group',
+				x: 100,
+				y: 50,
+				width: 200,
+				height: 200,
+				children: [
+					{
+						id: 'master-inner',
+						type: 'group',
+						x: 5,
+						y: 5,
+						width: 50,
+						height: 50,
+						children: [{ id: 'plain-leaf', type: 'shape', x: 1, y: 2, width: 10, height: 10 }],
+					},
+				],
+			},
+		];
+		const c: ToolContext = { pptxData: data };
+
+		const { result } = ungroupElements(c, { slideIndex: 0, groupElementId: 'master-grp' });
+
+		const promoted = c.pptxData.slides[0].elements[0];
+		expect(result.restoredIds[0]).toMatch(/^master-/);
+		if (promoted.type !== 'group') {
+			throw new Error('expected the nested group to be promoted');
+		}
+		expect(promoted.children[0].id).toMatch(/^master-/);
+	});
+
+	it('deep-clones a promoted child so the source group is not aliased', () => {
+		const data = makeTestPresentation();
+		const source: PptxElement = {
+			id: 'grp',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			children: [
+				{
+					id: 'child',
+					type: 'shape',
+					x: 1,
+					y: 2,
+					width: 10,
+					height: 10,
+					shapeStyle: { fillColor: '#ff0000' },
+				},
+			],
+		};
+		data.slides[0].elements = [source];
+		const c: ToolContext = { pptxData: data };
+
+		ungroupElements(c, { slideIndex: 0, groupElementId: 'grp' });
+		const promoted = c.pptxData.slides[0].elements[0];
+		if (promoted.type !== 'shape') {
+			throw new Error('expected the child to be promoted');
+		}
+		promoted.shapeStyle!.fillColor = '#00ff00';
+
+		if (source.type !== 'group' || source.children[0].type !== 'shape') {
+			throw new Error('unexpected source shape');
+		}
+		expect(source.children[0].shapeStyle?.fillColor).toBe('#ff0000');
+	});
+
+	// Element ids are written back out as `p:cNvPr/@id`, so duplicating a group
+	// while re-iding only the ROOT left two shapes answering to the same id: an
+	// animation's `p:spTgt/@spid` then names both.
+	it('re-ids every descendant when cloning a group', () => {
+		const data = makeTestPresentation();
+		data.slides[0].elements = [
+			{
+				id: 'grp',
+				type: 'group',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 100,
+				children: [{ id: 'child', type: 'shape', x: 1, y: 2, width: 10, height: 10 }],
+			},
+		];
+		const c: ToolContext = { pptxData: data };
+
+		const { result } = cloneElement(c, { slideIndex: 0, elementId: 'grp' });
+		const clone = c.pptxData.slides[0].elements.find((e) => e.id === result.clonedIds[0]);
+		if (clone?.type !== 'group') {
+			throw new Error('expected a cloned group');
+		}
+		expect(clone.children[0].id).not.toBe('child');
 	});
 });
 
