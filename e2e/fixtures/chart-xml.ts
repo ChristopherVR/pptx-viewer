@@ -78,6 +78,7 @@ function chartTitle(title: string): string {
 
 const CAT_AX_ID = 111111111;
 const VAL_AX_ID = 222222222;
+const SER_AX_ID = 333333333;
 
 function catValAxes(): string {
 	return (
@@ -206,6 +207,69 @@ export function buildBubbleChartXml(input: ChartXmlInput): string {
 		.join('');
 	const body = `<c:bubbleChart>${sers}<c:axId val="${CAT_AX_ID}"/><c:axId val="${VAL_AX_ID}"/></c:bubbleChart>`;
 	return wrapClassic(input, body + valValAxes());
+}
+
+/**
+ * Combo chart: `c:barChart` + `c:lineChart` in ONE `c:plotArea`, sharing the
+ * category/value axis pair. `detectChartType` returns `combo` precisely because
+ * two chart elements matched, so the fixture has to put both in the plot area
+ * rather than declare a type token.
+ */
+export function buildComboChartXml(input: ChartXmlInput): string {
+	const bar = input.series.slice(0, 1);
+	const lines = input.series.slice(1);
+	const serXml = (s: ChartXmlSeries, i: number, line: boolean): string =>
+		`<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${txCache(s.name)}${
+			line
+				? `<c:spPr><a:ln><a:solidFill><a:srgbClr val="${s.colorHex}"/></a:solidFill></a:ln></c:spPr>`
+				: seriesFill(s.colorHex)
+		}<c:cat>${strCache(input.categories)}</c:cat><c:val>${numCache(s.values)}</c:val></c:ser>`;
+	const body =
+		`<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/>` +
+		`${bar.map((s, i) => serXml(s, i, false)).join('')}` +
+		`<c:gapWidth val="150"/><c:overlap val="-27"/>` +
+		`<c:axId val="${CAT_AX_ID}"/><c:axId val="${VAL_AX_ID}"/></c:barChart>` +
+		`<c:lineChart><c:grouping val="standard"/>` +
+		`${lines.map((s, i) => serXml(s, i + 1, true)).join('')}` +
+		`<c:marker val="1"/>` +
+		`<c:axId val="${CAT_AX_ID}"/><c:axId val="${VAL_AX_ID}"/></c:lineChart>`;
+	return wrapClassic(input, body + catValAxes());
+}
+
+/**
+ * Stock chart (OHLC). The four series are positional, not named: PowerPoint
+ * writes Open / High / Low / Close in that order and every renderer reads them
+ * by slot, so the fixture must supply four series in that order.
+ */
+export function buildStockChartXml(input: ChartXmlInput): string {
+	const sers = input.series
+		.map(
+			(s, i) =>
+				`<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${txCache(s.name)}` +
+				`<c:spPr><a:ln><a:noFill/></a:ln></c:spPr>` +
+				`<c:cat>${strCache(input.categories)}</c:cat>` +
+				`<c:val>${numCache(s.values)}</c:val></c:ser>`,
+		)
+		.join('');
+	const body =
+		`<c:stockChart>${sers}<c:hiLowLines/><c:upDownBars><c:gapWidth val="150"/></c:upDownBars>` +
+		`<c:axId val="${CAT_AX_ID}"/><c:axId val="${VAL_AX_ID}"/></c:stockChart>`;
+	return wrapClassic(input, body + catValAxes());
+}
+
+/** Surface (wireframe/contour) chart: a series-by-category value grid. */
+export function buildSurfaceChartXml(input: ChartXmlInput): string {
+	const body =
+		`<c:surfaceChart><c:wireframe val="0"/>${catValSeries(input)}` +
+		`<c:axId val="${CAT_AX_ID}"/><c:axId val="${VAL_AX_ID}"/><c:axId val="${SER_AX_ID}"/></c:surfaceChart>`;
+	return wrapClassic(input, body + catValAxes() + serAx());
+}
+
+function serAx(): string {
+	return (
+		`<c:serAx><c:axId val="${SER_AX_ID}"/><c:scaling><c:orientation val="minMax"/></c:scaling>` +
+		`<c:delete val="0"/><c:axPos val="b"/><c:crossAx val="${VAL_AX_ID}"/></c:serAx>`
+	);
 }
 
 function valValAxes(): string {

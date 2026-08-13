@@ -17,7 +17,43 @@
  *
  * @module e2e/support/slide-text
  */
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
+
+/**
+ * Tags whose text is code or markup, never anything a reader sees on the slide.
+ * `<style>`/`<script>` are real children of a stage in several bindings;
+ * `<template>`/`<noscript>` hold text that is never painted at all.
+ */
+const CODE_TAGS = ['STYLE', 'SCRIPT', 'TEMPLATE', 'NOSCRIPT'];
+
+/**
+ * The text a reader would see inside `locator`, collapsed to single spaces.
+ *
+ * Use this anywhere a whole STAGE is scraped, in the editor as well as in the
+ * show. The editing stage happens to carry no `<style>` child in any binding
+ * today, so a raw `textContent` there is correct by luck rather than by
+ * construction: the moment a binding injects a stylesheet that has to select on
+ * the `data-element-id`s it renders (which is exactly why the show stage
+ * already carries one), every whole-stage read starts returning CSS.
+ */
+export async function visibleTextIn(locator: Locator): Promise<string> {
+	return locator.evaluate((root, codeTags) => {
+		const skip = new Set(codeTags);
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+			acceptNode: (node) => {
+				const parent = node.parentElement;
+				return parent && skip.has(parent.tagName)
+					? NodeFilter.FILTER_REJECT
+					: NodeFilter.FILTER_ACCEPT;
+			},
+		});
+		let text = '';
+		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+			text += node.textContent ?? '';
+		}
+		return text.replace(/\s+/gu, ' ').trim();
+	}, CODE_TAGS);
+}
 
 /**
  * The running show's stage text, as a binding-neutral "which slide is showing"
@@ -35,29 +71,35 @@ import type { Page } from '@playwright/test';
  * @param limit - How many characters of the collapsed text to return.
  */
 export async function presentingStageText(page: Page, limit = 40): Promise<string> {
-	return page.evaluate((max) => {
-		// Stylesheets and scripts are children of the stage, not content on the
-		// slide; `<template>` and `<noscript>` hold text that is never painted.
-		const CODE_TAGS = new Set(['STYLE', 'SCRIPT', 'TEMPLATE', 'NOSCRIPT']);
-		const widthOf = (node: Element): number => node.getBoundingClientRect().width;
-		const stage = [...document.querySelectorAll('[data-pptx-presenting]')]
-			.filter((node) => widthOf(node) > 200)
-			.sort((a, b) => widthOf(b) - widthOf(a))[0];
-		if (!stage) {
-			return '';
-		}
-		const walker = document.createTreeWalker(stage, NodeFilter.SHOW_TEXT, {
-			acceptNode: (node) => {
-				const parent = node.parentElement;
-				return parent && CODE_TAGS.has(parent.tagName)
-					? NodeFilter.FILTER_REJECT
-					: NodeFilter.FILTER_ACCEPT;
-			},
-		});
-		let text = '';
-		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-			text += node.textContent ?? '';
-		}
-		return text.replace(/\s+/gu, ' ').trim().slice(0, max);
-	}, limit);
+	return page.evaluate(
+		([max, codeTags]) => {
+			// Stylesheets and scripts are children of the stage, not content on the
+			// slide; `<template>` and `<noscript>` hold text that is never painted.
+			const skip = new Set(codeTags as string[]);
+			const widthOf = (node: Element): number => node.getBoundingClientRect().width;
+			const stage = [...document.querySelectorAll('[data-pptx-presenting]')]
+				.filter((node) => widthOf(node) > 200)
+				.sort((a, b) => widthOf(b) - widthOf(a))[0];
+			if (!stage) {
+				return '';
+			}
+			const walker = document.createTreeWalker(stage, NodeFilter.SHOW_TEXT, {
+				acceptNode: (node) => {
+					const parent = node.parentElement;
+					return parent && skip.has(parent.tagName)
+						? NodeFilter.FILTER_REJECT
+						: NodeFilter.FILTER_ACCEPT;
+				},
+			});
+			let text = '';
+			for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+				text += node.textContent ?? '';
+			}
+			return text
+				.replace(/\s+/gu, ' ')
+				.trim()
+				.slice(0, max as number);
+		},
+		[limit, CODE_TAGS] as const,
+	);
 }

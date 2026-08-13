@@ -31,13 +31,16 @@ import type { Page } from '@playwright/test';
 import { loadDeck, openRibbonTab, SAMPLE_DECK, slideElements } from './support/deck';
 
 test.use({ viewport: { width: 1600, height: 950 } });
-// React and Angular poll on the shared 120s AutoRecover cadence, so waiting for
-// a real snapshot is genuinely slow. Vue, Svelte and Vanilla debounce in ~2s.
-test.describe.configure({ timeout: 300_000 });
+// All five demo apps now pass an explicit `autosaveIntervalMs` of 2s, which is a
+// host policy that outranks the two-minute File > Options AutoRecover cadence
+// the viewer otherwise follows, so a real snapshot arrives in seconds whichever
+// engine shape the binding uses (React and Angular poll, the other three
+// debounce with a one-interval ceiling).
+test.describe.configure({ timeout: 180_000 });
 
 const PASSWORD = 'e2e-Secret!9';
-/** Comfortably past the shared 120s AutoRecover cadence. */
-const SNAPSHOT_TIMEOUT_MS = 150_000;
+/** Comfortably past the demos' 2s cadence, with room for a cold first parse. */
+const SNAPSHOT_TIMEOUT_MS = 60_000;
 
 /** First bytes of a stored snapshot, enough to identify the container. */
 interface StoredSnapshot {
@@ -194,12 +197,9 @@ test.describe('autosave recovery vs password protection', () => {
 		// Behaviour-gated, not name-gated (the neutrality checker forbids
 		// branching on the project, and rightly so): a binding whose editor never
 		// raises the dirty flag never reaches `saveAutosaveSnapshot` at all, so
-		// there is nothing here to say about encryption. Measured on React, where
-		// `state.isDirty` is only set by a few master-view and document-property
-		// paths - not by element edits, New Slide, or notes - so `useAutosave`
-		// short-circuits and crash recovery never runs. That is a SEPARATE bug
+		// there is nothing here to say about encryption. That is a SEPARATE bug
 		// from the one this spec pins; when it is fixed the skip disappears on
-		// its own and React starts being asserted like the other four.
+		// its own and that binding starts being asserted like the others.
 		test.skip(
 			snapshot === null,
 			'this binding never wrote a recovery snapshot after an edit (its editor does not raise the dirty flag)',

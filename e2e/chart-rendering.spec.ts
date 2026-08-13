@@ -76,9 +76,13 @@ async function openGalleryInPresentMode(page: Page): Promise<void> {
 }
 
 /** Advance to the next slide via the shared presentation keyboard contract. */
-async function nextSlide(page: Page): Promise<void> {
+async function nextSlide(page: Page, next: ChartSlideSpec): Promise<void> {
 	await page.keyboard.press('PageDown');
-	await page.waitForTimeout(500);
+	// Wait for the slide we asked for rather than a flat delay: the gallery is
+	// long enough that stepping to the last kinds took more presses than a fixed
+	// 500ms each could absorb, and the run then failed on NAVIGATION while
+	// looking like a rendering defect.
+	await titleAnchor(page, next).waitFor({ timeout: 15_000 });
 }
 
 /** The title anchor shape for a slide (the `data-element-id` bearing its title). */
@@ -204,6 +208,43 @@ function expectedPrimitives(slide: ChartSlideSpec): PrimitiveExpectation[] {
 			return [{ kind: 'path', min: categories, why: `one arc per leaf category (${categories})` }];
 		case 'histogram':
 			return [{ kind: 'rect', min: categories, why: `one bin bar per category (${categories})` }];
+		case 'combo':
+			return [
+				{ kind: 'rect', min: categories, why: `one bar per category (${categories})` },
+				{
+					kind: 'polyline',
+					min: series - 1,
+					why: `every series after the first is a line (${series - 1})`,
+				},
+				{
+					kind: 'circle',
+					min: (series - 1) * categories,
+					why: `a marker on every line point (${(series - 1) * categories})`,
+				},
+			];
+		case 'stock':
+			return [
+				{ kind: 'rect', min: categories, why: `one candle body per category (${categories})` },
+				{ kind: 'line', min: categories, why: `a high-low wick per category (${categories})` },
+			];
+		case 'surface':
+			return [
+				{
+					kind: 'polygon',
+					min: (series - 1) * (categories - 1),
+					why: `an isometric facet per grid cell (${(series - 1) * (categories - 1)})`,
+				},
+			];
+		case 'waterfall':
+			return [{ kind: 'rect', min: categories, why: `one step bar per category (${categories})` }];
+		case 'treemap':
+			return [{ kind: 'rect', min: categories, why: `one leaf cell per category (${categories})` }];
+		case 'regionMap':
+			return [
+				// The choropleth paints the whole simplified world outline, matched
+				// or not, so the bound is the region table rather than the data.
+				{ kind: 'path', min: 20, why: 'the simplified world region outlines' },
+			];
 		case 'boxWhisker':
 			return [
 				// Measured on the shared engine: 9 rects (boxes + plot chrome). The
@@ -229,7 +270,7 @@ test.describe('chart rendering (cross-framework parity)', () => {
 			const framework = testInfo.project.name;
 			await openGalleryInPresentMode(page);
 			for (let step = 0; step < i; step++) {
-				await nextSlide(page);
+				await nextSlide(page, CHART_SLIDES[step + 1]);
 			}
 
 			// Confirm navigation landed on the intended slide: its unique title
@@ -249,6 +290,16 @@ test.describe('chart rendering (cross-framework parity)', () => {
 			}
 			// A real chart also paints its title plus axis/category/legend text.
 			expect(counts.text, `${slide.key}: labels`).toBeGreaterThan(1);
+
+			// A choropleth patch carries no label of its own, so the shared
+			// descriptor's per-region `title` is BOTH its hover tooltip and its
+			// accessible name. Three bindings projected every other field of the
+			// path and dropped that one, which left a region map announcing
+			// nothing at all to a screen reader.
+			if (slide.chartType === 'regionMap') {
+				const titled = await el.locator('path > title').count();
+				expect(titled, `${slide.key}: every region path names itself`).toBeGreaterThan(1);
+			}
 			await expect(el, `${slide.key}: real chart, not placeholder`).toContainText(slide.title);
 
 			// (b) VISUAL - screenshot the chart element per framework + type.

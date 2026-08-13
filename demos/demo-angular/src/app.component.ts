@@ -76,6 +76,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					[canEdit]="true"
 					[fileName]="fileName()"
 					[filePath]="fileName() || undefined"
+					[autosaveIntervalMs]="2000"
 					[smartArt3D]="smartArt3D"
 					[authorName]="autoName"
 					[shareDefaults]="{ roomId: autoRoomId, userName: autoName, serverUrl: defaultServerUrl }"

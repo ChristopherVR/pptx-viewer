@@ -32,6 +32,33 @@ The viewer's built-in autosave timer periodically serializes the document to Ind
 `filePath`. Without a stable `filePath` across reloads, recovery has no key to look up.
 :::
 
+## Autosave {#autosave-policy}
+
+| Input                | Type                   | Default                | Description                                                                  |
+| -------------------- | ---------------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| `autosave`           | `boolean \| undefined` | `true`                 | Recovery autosave. A policy ceiling over the title-bar toggle; see below.    |
+| `autosaveIntervalMs` | `number \| undefined`  | File > Options cadence | Recovery cadence. An explicit value outranks the user's AutoRecover setting. |
+
+The rule is the same in **all five bindings** and lives in one shared decision function,
+`resolveAutosaveActivation`:
+
+> **The `autosave` input is a policy ceiling. The title-bar AutoSave toggle is the user's preference
+> inside it.**
+
+| `autosave` | What runs                                                       | The toggle                    |
+| ---------- | --------------------------------------------------------------- | ----------------------------- |
+| omitted    | Autosave runs; the user's toggle decides, defaulting to **on**. | Works.                        |
+| `true`     | Same as omitted: the host permits it, the user decides.         | Works.                        |
+| `false`    | Autosave is off, and no recovery prompt is offered on load.     | **Inert** (it must not move). |
+
+A preference can never exceed a policy, which is why `autosave="false"` also takes the switch away.
+`canEdit` and a `filePath` key remain hard requirements either way, and an explicit
+`autosaveIntervalMs` outranks the user's **File > Options > Save > "Save AutoRecover information
+every N minutes"** cadence (two minutes by default).
+
+When a deck finishes loading and a snapshot newer than 24 hours exists for the same `filePath`, the
+viewer raises a **"Recover unsaved changes?"** dialog offering Restore or Discard.
+
 ## Editing
 
 | Input     | Type      | Default | Description                                                                                                                   |

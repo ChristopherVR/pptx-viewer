@@ -44,11 +44,14 @@ import {
 	buildAreaChartXml,
 	buildBarChartXml,
 	buildBubbleChartXml,
+	buildComboChartXml,
 	buildCxChartXml,
 	buildLineChartXml,
 	buildPieChartXml,
 	buildRadarChartXml,
 	buildScatterChartXml,
+	buildStockChartXml,
+	buildSurfaceChartXml,
 } from './chart-xml';
 import type { ChartXmlInput, ChartXmlSeries } from './chart-xml';
 import { writeFixtureDeterministic } from './write-fixture';
@@ -82,6 +85,12 @@ export interface ChartSlideSpec {
 	chartType: PptxChartType;
 	seriesCount: number;
 	categoryCount: number;
+	/**
+	 * Category labels for this slide, when the generic quarter labels will not
+	 * do. The region map has to name real countries or nothing on the choropleth
+	 * matches and every binding falls through to the unmatched-region table.
+	 */
+	categories?: readonly string[];
 }
 
 export const CHART_SLIDES: readonly ChartSlideSpec[] = [
@@ -129,12 +138,52 @@ export const CHART_SLIDES: readonly ChartSlideSpec[] = [
 		seriesCount: 3,
 		categoryCount: 4,
 	},
+	// ── The six kinds React and Vue used to hand-roll ────────────────────────
+	// They were absent from this gallery, which is why `chart-svg-parity.spec.ts`
+	// stayed green while two bindings painted a different chart from the other
+	// three: the spec compares bindings against each other, so a kind that is
+	// not in the corpus cannot be compared at all.
+	{ key: 'combo', title: 'Combo', chartType: 'combo', seriesCount: 3, categoryCount: 4 },
+	{ key: 'stock', title: 'Stock', chartType: 'stock', seriesCount: 4, categoryCount: 4 },
+	{ key: 'surface', title: 'Surface', chartType: 'surface', seriesCount: 3, categoryCount: 4 },
+	{
+		key: 'waterfall',
+		title: 'Waterfall',
+		chartType: 'waterfall',
+		seriesCount: 1,
+		categoryCount: 4,
+	},
+	{ key: 'treemap', title: 'Treemap', chartType: 'treemap', seriesCount: 1, categoryCount: 4 },
+	{
+		key: 'region-map',
+		title: 'Region Map',
+		chartType: 'regionMap',
+		seriesCount: 1,
+		categoryCount: 4,
+		categories: ['United States', 'Germany', 'China', 'Brazil'],
+	},
 ];
 
+/**
+ * OHLC values for the stock slide, in PowerPoint's positional order
+ * (Open / High / Low / Close). The shared engine reads the four series BY SLOT,
+ * so the fixture cannot reuse the generic value bank: `low` has to actually be
+ * the lowest of the four or every candle renders inside-out.
+ */
+const STOCK_VALUE_BANK: readonly number[][] = [
+	[42, 58, 55, 66], // Open
+	[50, 65, 62, 74], // High
+	[38, 52, 51, 61], // Low
+	[47, 61, 53, 71], // Close
+];
+const STOCK_SERIES_NAMES = ['Open', 'High', 'Low', 'Close'] as const;
+
 function seriesFor(slide: ChartSlideSpec): ChartXmlSeries[] {
+	const bank = slide.key === 'stock' ? STOCK_VALUE_BANK : VALUE_BANK;
+	const names = slide.key === 'stock' ? STOCK_SERIES_NAMES : SERIES_NAMES;
 	return Array.from({ length: slide.seriesCount }, (_, i) => ({
-		name: SERIES_NAMES[i] ?? `Series ${i + 1}`,
-		values: [...(VALUE_BANK[i] ?? VALUE_BANK[0])],
+		name: names[i] ?? `Series ${i + 1}`,
+		values: [...(bank[i] ?? bank[0])],
 		colorHex: PALETTE[i % PALETTE.length],
 	}));
 }
@@ -143,7 +192,7 @@ function seriesFor(slide: ChartSlideSpec): ChartXmlSeries[] {
 function chartXmlFor(slide: ChartSlideSpec): string {
 	const input: ChartXmlInput = {
 		title: slide.title,
-		categories: [...CATEGORIES],
+		categories: [...(slide.categories ?? CATEGORIES)],
 		series: seriesFor(slide),
 	};
 	switch (slide.key) {
@@ -175,6 +224,18 @@ function chartXmlFor(slide: ChartSlideSpec): string {
 			return buildCxChartXml(input, 'histogram');
 		case 'box-whisker':
 			return buildCxChartXml(input, 'boxWhisker');
+		case 'combo':
+			return buildComboChartXml(input);
+		case 'stock':
+			return buildStockChartXml(input);
+		case 'surface':
+			return buildSurfaceChartXml(input);
+		case 'waterfall':
+			return buildCxChartXml(input, 'waterfall');
+		case 'treemap':
+			return buildCxChartXml(input, 'treemap');
+		case 'region-map':
+			return buildCxChartXml(input, 'regionMap');
 		default:
 			return buildBarChartXml(input, 'clustered');
 	}
@@ -217,7 +278,15 @@ const CHART_BINDINGS = {
 } as const;
 
 /** The chart-slide keys whose part is authored by `buildCxChartXml`. */
-const CHARTEX_KEYS = new Set(['funnel', 'sunburst', 'histogram', 'box-whisker']);
+const CHARTEX_KEYS = new Set([
+	'funnel',
+	'sunburst',
+	'histogram',
+	'box-whisker',
+	'waterfall',
+	'treemap',
+	'region-map',
+]);
 
 function bindingFor(slide: ChartSlideSpec): (typeof CHART_BINDINGS)[keyof typeof CHART_BINDINGS] {
 	return CHARTEX_KEYS.has(slide.key) ? CHART_BINDINGS.chartex : CHART_BINDINGS.classic;

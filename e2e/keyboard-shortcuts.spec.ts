@@ -252,19 +252,13 @@ test.describe('editor keyboard shortcuts', () => {
  * is now the one map behind all five.
  */
 test.describe('slide-sorter keyboard shortcuts', () => {
-	test('Escape closes the slide sorter', async ({ page }, testInfo) => {
-		// React is knowingly excluded, not silently passed: its sorter registers the
-		// same window listener (verified live: the effect runs, the listener is
-		// attached) and the key press reaches `window`, yet the handler is never
-		// invoked for Escape, so the overlay stays up. That predates the shared
-		// keymap - the hand-written handler it replaced had exactly the same
-		// Escape branch - and the cause is somewhere in React's own listener
-		// ordering, not in the keymap. Tracked separately so the defect stays
-		// visible instead of being smeared over the four bindings that are correct.
-		test.fixme(
-			testInfo.project.name === 'react',
-			'React sorter: the window keydown listener is attached but never fires for Escape',
-		);
+	test('Escape closes the slide sorter', async ({ page }) => {
+		// React was excluded here until its cause was found, and the cause was not
+		// the keymap: its sorter re-registered the window listener on every render,
+		// and the editor's own (earlier-registered) Escape handler re-rendered the
+		// viewer mid-dispatch, so the cleanup removed the sorter's listener before
+		// the event reached it and the replacement - added during dispatch - never
+		// saw it. The listener identity is stable now, as in the editor's hook.
 		await loadDeck(page, SAMPLE_DECK);
 		await openSlideSorter(page);
 
@@ -293,6 +287,85 @@ test.describe('slide-sorter keyboard shortcuts', () => {
 		await expect(
 			thumbnail(page, 8),
 			'Ctrl+D in the sorter must add exactly one slide to the deck',
+		).toBeVisible();
+	});
+});
+
+/**
+ * The slide show has its own keymap, and two of its chords were resolved by the
+ * shared map and then thrown away.
+ *
+ * `mapPresentationKey` has answered Ctrl+H with `toggleChrome` and Ctrl+S with
+ * `showAllSlides` since it was written; only React and Vue ever dispatched
+ * them. In Angular, Svelte and Vanilla the key was consumed - the handler
+ * `preventDefault()`s everything the map claims - and then dropped, which is
+ * strictly worse than not binding it: the presenter got no navigator AND no
+ * browser default. Both are asserted on what the show DOES, not on whether a
+ * callback fired.
+ */
+test.describe('slide-show keyboard shortcuts', () => {
+	/** Load the deck and start the show, then let the chrome auto-hide settle. */
+	async function startShow(page: Page): Promise<void> {
+		await loadDeck(page, SAMPLE_DECK);
+		await page
+			.getByRole('button', { name: /^present$|slide show/iu })
+			.first()
+			.click();
+		// The click itself reveals the auto-hiding show chrome; the bar hides
+		// again three seconds after the last pointer movement, and a keyboard
+		// press does not move the pointer. Waiting past that is what makes
+		// "Ctrl+H revealed it" a measurement rather than a coincidence.
+		await page.waitForTimeout(4000);
+	}
+
+	/**
+	 * The show toolbar's rendered opacity, i.e. whether the chrome is up.
+	 *
+	 * A missing bar throws rather than reporting 0: "faded out" and "not there at
+	 * all" would otherwise both satisfy the pre-condition below, and the test
+	 * would go on to blame Ctrl+H for a show that never started.
+	 */
+	async function chromeOpacity(page: Page): Promise<number> {
+		return page.evaluate(() => {
+			const bar = document.querySelector('[data-pptx-present-toolbar]');
+			if (!bar) {
+				throw new Error('the running show renders no [data-pptx-present-toolbar]');
+			}
+			// The fade lives on the bar or on its positioned wrapper, depending on
+			// the binding, so the lower of the two is what the presenter sees.
+			const own = Number(getComputedStyle(bar).opacity);
+			const parent = bar.parentElement ? Number(getComputedStyle(bar.parentElement).opacity) : 1;
+			return Math.min(own, parent);
+		});
+	}
+
+	test('Ctrl+H reveals the show chrome PowerPoint hides on that key', async ({ page }) => {
+		await startShow(page);
+		expect(
+			await chromeOpacity(page),
+			'the show toolbar must exist and be faded out before the shortcut is measured',
+		).toBeLessThan(0.5);
+
+		await pressShortcut(page, 'ControlOrMeta+h', 700);
+
+		expect(
+			await chromeOpacity(page),
+			'Ctrl+H must flip the show chrome. Three bindings resolved the action and dropped it, ' +
+				'so the key was swallowed and nothing on screen changed',
+		).toBeGreaterThan(0.5);
+	});
+
+	test('Ctrl+S opens the See All Slides navigator', async ({ page }) => {
+		await startShow(page);
+		const navigator = page.getByRole('heading', { name: /see all slides/iu }).first();
+		await expect(navigator, 'the navigator must not already be up').toBeHidden();
+
+		await pressShortcut(page, 'ControlOrMeta+s', 900);
+
+		await expect(
+			navigator,
+			'Ctrl+S is PowerPoint\'s "See All Slides"; three bindings ate the key and one opened ' +
+				'the presenter console without the grid the shortcut is named after',
 		).toBeVisible();
 	});
 });

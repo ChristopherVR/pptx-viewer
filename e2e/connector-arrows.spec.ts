@@ -103,15 +103,27 @@ async function clickConnectorLine(page: Page): Promise<string> {
 }
 
 /**
- * One arrowhead dropdown, addressed the way a screen-reader user would.
- *
- * By ROLE + accessible name, not `getByLabel`: every binding wraps the select
- * in its label, so the label's own text content also carries the option text,
- * and an exact `getByLabel` matches nothing anywhere. The accessible name is
- * the contract this spec exists to pin, so compute it properly.
+ * One arrowhead dropdown, addressed the way a screen-reader user would: by ROLE
+ * plus accessible name, which is the contract this spec exists to pin.
  */
 function control(page: Page, caption: (typeof CONTROLS)[number]) {
 	return inspector(page).getByRole('combobox', { name: caption, exact: true });
+}
+
+/**
+ * The same dropdown, addressed by LABEL text.
+ *
+ * This used to match nothing in any binding. Each wrapped its `<select>` inside
+ * the `<label>` and left the naming to the wrapper, and Playwright's label
+ * engine reads the label element's whole text content: with the options nested
+ * inside it, the "label" of the Start Arrow picker was "Start Arrow None Arrow
+ * Stealth Diamond Oval Triangle". The same defect once made a show-mode spec
+ * match a transition picker (whose options include "Rotate") when it was
+ * looking for a rotate handle. Every wrapped control now names itself, so an
+ * exact label lookup resolves it, and a lookup for an OPTION word does not.
+ */
+function controlByLabel(page: Page, caption: (typeof CONTROLS)[number]) {
+	return inspector(page).getByLabel(caption, { exact: true });
 }
 
 test.describe('connector arrowheads', () => {
@@ -134,6 +146,21 @@ test.describe('connector arrowheads', () => {
 		for (const caption of CONTROLS) {
 			await expect(control(page, caption), caption).toHaveCount(1);
 		}
+	});
+
+	test('every control names itself instead of borrowing its option list', async ({ page }) => {
+		await loadFixture(page);
+		await clickConnectorLine(page);
+
+		for (const caption of CONTROLS) {
+			// Resolvable by its caption alone...
+			await expect(controlByLabel(page, caption), caption).toHaveCount(1);
+		}
+
+		// ...and NOT by the text of an option inside it. 'Stealth' is an arrowhead
+		// type on the Start/End Arrow pickers; before the fix a label lookup for it
+		// matched both of them, because the option text was part of the label.
+		await expect(inspector(page).getByLabel('Stealth', { exact: true })).toHaveCount(0);
 	});
 
 	test('each control shows the schema default when the connector is silent', async ({ page }) => {

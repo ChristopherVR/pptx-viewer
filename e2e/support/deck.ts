@@ -68,6 +68,41 @@ export async function resetTabSession(page: Page): Promise<void> {
 			/* no storage on this origin yet - nothing to forget */
 		}
 	});
+	await clearAutosaveSnapshots(page);
+}
+
+/**
+ * Drop the shared crash-recovery snapshots (`pptx-viewer-autosave`).
+ *
+ * Part of {@link resetTabSession} because it is the same promise: the next
+ * navigation behaves as if this tab had never opened a deck. A recovery
+ * snapshot the tab wrote moments ago is exactly "what this tab left behind",
+ * and since the viewer now OFFERS one back (a modal "Recover unsaved changes?"
+ * dialog), leaving it in place means any spec that loads a deck twice inherits a
+ * modal from its own earlier run and cannot click anything underneath it.
+ * Measured: `present-action-click`'s double-show test failed on react, vue and
+ * svelte with `<div data-pptx-autosave-recovery> intercepts pointer events`.
+ *
+ * A spec that wants to ASSERT recovery must therefore drive its own reopen
+ * rather than going through {@link loadDeck}, the same way `session-restore`
+ * drives its own `goto` + upload. See `autosave-recovery-prompt.spec.ts`.
+ */
+export async function clearAutosaveSnapshots(page: Page): Promise<void> {
+	await page.evaluate(async () => {
+		try {
+			await new Promise<void>((done) => {
+				const request = indexedDB.deleteDatabase('pptx-viewer-autosave');
+				request.onsuccess = () => done();
+				request.onerror = () => done();
+				// A live connection blocks the delete; the store opens and closes per
+				// operation, so this is belt and braces rather than a real path.
+				request.onblocked = () => done();
+				setTimeout(done, 1000);
+			});
+		} catch {
+			/* no storage on this origin yet - nothing to forget */
+		}
+	});
 }
 
 /**

@@ -171,3 +171,80 @@ test.describe('chart series-data fidelity', () => {
 		}
 	});
 });
+
+/**
+ * Mark interaction on the six kinds React and Vue used to hand-roll.
+ *
+ * `chart-gallery.pptx` is the corpus here rather than `chart-data-fidelity.pptx`
+ * because those six kinds live in the gallery, and until this change the gallery
+ * did not carry them at all: `chart-svg-parity.spec.ts` compares bindings
+ * against each other, so a kind missing from the corpus could not be compared,
+ * which is exactly how two bindings painting a different chart from the other
+ * three went unnoticed.
+ *
+ * What is asserted is the user-visible consequence, not the markup: every
+ * binding must tag the data marks (`data-chart-part`) and must highlight the
+ * one that was clicked (the shared `pptx-chart-part-selected` class). React and
+ * Vue emitted no `data-chart-part` at all for these kinds, so selection and
+ * drag-to-value silently did nothing in two of the five viewers.
+ */
+const MARKED_KINDS = [
+	{ key: 'combo', slide: 15 },
+	{ key: 'stock', slide: 16 },
+	{ key: 'surface', slide: 17 },
+	{ key: 'waterfall', slide: 18 },
+	{ key: 'treemap', slide: 19 },
+	{ key: 'region-map', slide: 20 },
+] as const;
+
+const galleryPath = resolve(
+	fileURLToPath(new URL('./fixtures/chart-gallery.pptx', import.meta.url)),
+);
+
+test.describe('chart mark interaction on the advanced kinds', () => {
+	test('every binding tags and highlights marks on combo, stock, surface, waterfall, treemap and region map', async ({
+		browser,
+	}, testInfo) => {
+		test.slow();
+
+		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
+			await resetTabSession(page);
+			await loadDeckAt(page, origin, galleryPath);
+
+			const perKind: Record<string, { marks: number; selected: number }> = {};
+			for (const { key, slide } of MARKED_KINDS) {
+				await gotoSlide(page, slide);
+				const marks = page.locator(
+					'[data-pptx-viewport] [data-element-id] svg [data-chart-part="dataPoint"]',
+				);
+				const count = await marks.count();
+				let selected = 0;
+				if (count > 0) {
+					const box = await marks.first().boundingBox();
+					if (box) {
+						const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+						// Two presses: three bindings arm the marks only once the chart
+						// itself is selected, so the first click lands on the chart root.
+						await page.mouse.click(at.x, at.y);
+						await page.waitForTimeout(250);
+						await page.mouse.click(at.x, at.y);
+						await page.waitForTimeout(350);
+						selected = await page.locator('[data-pptx-viewport] .pptx-chart-part-selected').count();
+					}
+				}
+				perKind[key] = { marks: count, selected };
+			}
+			return perKind;
+		});
+
+		for (const { framework, value } of results) {
+			for (const { key } of MARKED_KINDS) {
+				const where = `[${framework.name}] ${key}`;
+				expect(value[key].marks, `${where}: no selectable data marks`).toBeGreaterThan(0);
+				expect(value[key].selected, `${where}: clicking a mark selected nothing`).toBeGreaterThan(
+					0,
+				);
+			}
+		}
+	});
+});

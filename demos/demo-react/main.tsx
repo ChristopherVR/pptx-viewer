@@ -23,6 +23,7 @@ import {
 	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
+import { markAutosaveSnapshotConsumed } from '../../packages/shared/src/render/autosave-recovery';
 import {
 	getAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -761,6 +762,9 @@ function App() {
 		try {
 			const snapshot = await getAutosaveSnapshot(recoveryOffer.filePath);
 			if (snapshot) {
+				// The host is taking delivery of this snapshot, so the viewer must not
+				// then offer to "recover" the bytes it is about to be handed.
+				markAutosaveSnapshotConsumed(snapshot.timestamp);
 				setContent(snapshot.data);
 				setFileName(snapshot.key);
 				try {
@@ -891,11 +895,15 @@ function App() {
 	if (content) {
 		return (
 			<main className='h-[100dvh] w-screen'>
+				{/* `autosaveIntervalMs`: a demo wants snappy crash recovery, and an
+				    explicit interval is a host policy that outranks the File > Options
+				    AutoRecover cadence the viewer otherwise follows (2 minutes). */}
 				<PowerPointViewer
 					content={content}
 					fileName={fileName}
 					filePath={fileName}
 					canEdit
+					autosaveIntervalMs={2000}
 					smartArt3D={smartArt3D}
 					authorName={collaborationConfig?.userName ?? autoName}
 					collaboration={collaborationConfig ?? undefined}

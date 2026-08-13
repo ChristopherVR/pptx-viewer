@@ -146,6 +146,9 @@ function openViewer(
 		messages: viewerMessages,
 		editable: true,
 		autosave: true,
+		// A demo wants snappy crash recovery, and an explicit interval is a host
+		// policy that outranks the File > Options AutoRecover cadence.
+		autosaveIntervalMs: 2000,
 		collaboration,
 		smartArt3D,
 		ai: buildViewerAiConfig(),

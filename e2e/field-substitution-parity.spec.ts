@@ -28,14 +28,25 @@ import {
 } from './fixtures/generate-field-substitution-fixture';
 import { fixture, loadDeckAt, slideStage, thumbnail } from './support/deck';
 import { acrossFrameworks, formatDiff } from './support/parity';
+import { visibleTextIn } from './support/slide-text';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const DECK = fixture('field-substitution.pptx');
 
-/** Collapsed text of the main-canvas stage. */
+/**
+ * Collapsed text of the main-canvas stage, read the way a reader sees it.
+ *
+ * A whole-stage `textContent` also returns the contents of any `<style>` the
+ * stage renders as a real child. Today no binding puts one in the EDITING
+ * stage (the show stage already has two), so a raw read is correct here only
+ * by accident, and this assertion is `text.includes(number)` against a deck
+ * whose literal runs contain no digits - a stray `#pptx-order-3` or a
+ * `translate3d(0,0,0)` inside injected CSS would satisfy it and hide the very
+ * defect the spec exists to catch.
+ */
 async function stageText(page: import('@playwright/test').Page): Promise<string> {
-	return slideStage(page).evaluate((node) => (node.textContent ?? '').replace(/\s+/gu, ' ').trim());
+	return visibleTextIn(slideStage(page));
 }
 
 /**

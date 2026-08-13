@@ -73,11 +73,43 @@ Similarly, a user-picked language always wins over the `locale` prop for the ses
 
 See [Getting Started > Autosave](/svelte/getting-started#autosave) for the full flow.
 
-| Prop                 | Type      | Default | Description                                                                                   |
-| -------------------- | --------- | ------- | --------------------------------------------------------------------------------------------- |
-| `autosave`           | `boolean` | `false` | Enable debounced crash-recovery autosave to the shared IndexedDB store (requires `filePath`). |
-| `filePath`           | `string`  | -       | IndexedDB record key (typically the open file's name/path). Autosave is inert without one.    |
-| `autosaveIntervalMs` | `number`  | `2000`  | Autosave debounce window in milliseconds.                                                     |
+| Prop                 | Type      | Default                | Description                                                                                                                   |
+| -------------------- | --------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `autosave`           | `boolean` | `true`                 | Recovery autosave to the shared IndexedDB store (requires `filePath`). A policy ceiling over the title-bar toggle; see below. |
+| `filePath`           | `string`  | -                      | IndexedDB record key (typically the open file's name/path). Autosave is inert without one.                                    |
+| `autosaveIntervalMs` | `number`  | File > Options cadence | Debounce window (ms). An explicit value outranks the user's AutoRecover setting.                                              |
+
+### Who decides: the `autosave` prop or the AutoSave toggle? {#autosave-policy}
+
+The rule is the same in **all five bindings** and lives in one shared decision function,
+`resolveAutosaveActivation`:
+
+> **The `autosave` prop is a policy ceiling. The title-bar AutoSave toggle is the user's preference
+> inside it.**
+
+| `autosave` | What runs                                                       | The toggle                    |
+| ---------- | --------------------------------------------------------------- | ----------------------------- |
+| omitted    | Autosave runs; the user's toggle decides, defaulting to **on**. | Works.                        |
+| `true`     | Same as omitted: the host permits it, the user decides.         | Works.                        |
+| `false`    | Autosave is off, and no recovery prompt is offered on load.     | **Inert** (it must not move). |
+
+A preference can never exceed a policy, which is why `autosave: false` also takes the switch away: a
+control that silently does nothing is worse than no control. `canEdit`/`editable` and a `filePath`
+key remain hard requirements either way.
+
+The same rule governs the cadence: an explicit `autosaveIntervalMs` is a host policy honoured as
+given, and omitting it follows the user's **File > Options > Save > "Save AutoRecover information
+every N minutes"** (two minutes by default).
+
+The default is `true` because crash recovery that is off by default is crash recovery nobody has.
+
+### Recovering a snapshot
+
+When a deck finishes loading and a snapshot newer than 24 hours exists for the same key, the viewer
+raises a **"Recover unsaved changes?"** dialog offering Restore or Discard. Restore loads the
+snapshot's bytes; Discard deletes it. It is deliberately not raised for a snapshot this tab has
+already taken delivery of (for example when the host itself restored it through
+`restoreSessionDeck`).
 
 ## Collaboration
 

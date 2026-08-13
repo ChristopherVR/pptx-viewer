@@ -513,6 +513,7 @@ function onZoneClick(e: MouseEvent): void {
 			:content="content"
 			:file-name="fileName"
 			autosave
+			:autosave-interval-ms="2000"
 			can-edit
 			:smartArt3D="smartArt3D"
 			:ai="aiConfig"
