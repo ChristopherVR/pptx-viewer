@@ -80,7 +80,10 @@ describe('selectionPane rename', () => {
 		await input.setValue('   ');
 		await input.trigger('blur');
 
-		expect(wrapper.emitted('rename')?.[0]).toStrictEqual([{ id: 'sp_1', name: undefined }]);
+		// An explicit `''`, NOT `undefined`. The save writer reads `undefined` as
+		// "the model has no opinion" and leaves `cNvPr/@name` alone, so
+		// committing it made clearing a name a no-op that the file never saw.
+		expect(wrapper.emitted('rename')?.[0]).toStrictEqual([{ id: 'sp_1', name: '' }]);
 	});
 
 	it('does not persist the fallback label on an unedited commit', async () => {

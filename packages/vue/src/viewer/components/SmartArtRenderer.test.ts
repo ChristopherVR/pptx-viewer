@@ -413,3 +413,53 @@ describe('smartArtRenderer accessibility', () => {
 		expect(wrapper.get('.pptx-vue-smartart-chrome').attributes('role')).toBeUndefined();
 	});
 });
+
+/**
+ * The shared layout descriptor's OPTIONAL paint / placement fields. This
+ * template used to hardcode `fill="white"` and anchor circle labels on
+ * `cx`/`cy`, so a target caption sat on the bullseye instead of beside it and a
+ * timeline caption sat on its dot instead of above / below the axis.
+ */
+describe('smartArtRenderer fallback label + connector paint', () => {
+	const three = [node('n1', 'One'), node('n2', 'Two'), node('n3', 'Three')];
+
+	function mountFallback(resolvedLayoutType: 'target' | 'timeline' | 'gear') {
+		return mount(SmartArtRenderer, {
+			props: { element: smartArt({ nodes: three, resolvedLayoutType }), zIndex: 0 },
+		});
+	}
+
+	it('parks a target leader caption beside the ring in the node colour', () => {
+		const label = mountFallback('target').findAll('svg text')[0]!;
+		// Not the circle centre (cx = 160): the descriptor's textX / textAnchor.
+		expect(label.attributes('x')).toBe('310');
+		expect(label.attributes('text-anchor')).toBe('start');
+		expect(label.attributes('fill')).toBe('#3b82f6');
+		expect(label.find('tspan').attributes('y')).toBe('13');
+	});
+
+	it('stacks timeline captions above and below the axis', () => {
+		const labels = mountFallback('timeline').findAll('svg text');
+		// First caption sits ABOVE its dot: last baseline on textY.
+		expect(labels[0]!.attributes('dominant-baseline')).toBe('auto');
+		expect(labels[0]!.find('tspan').attributes('y')).toBe('110');
+		// Second alternates BELOW: first line's top on textY.
+		expect(labels[1]!.attributes('dominant-baseline')).toBe('hanging');
+		expect(labels[1]!.find('tspan').attributes('y')).toBe('190');
+	});
+
+	it('applies the node text style (gear hubs are bold)', () => {
+		expect(mountFallback('gear').findAll('svg text')[0]!.attributes('font-weight')).toBe('700');
+	});
+
+	it('paints timeline stems in their own node colour, not the default grey', () => {
+		const paths = mountFallback('timeline').findAll('svg path');
+		// The axis keeps the descriptor's own 2px full-opacity stroke...
+		expect(paths[0]!.attributes('stroke')).toBe('#94a3b8');
+		expect(paths[0]!.attributes('stroke-width')).toBe('2');
+		expect(paths[0]!.attributes('opacity')).toBe('1');
+		// ...and each stem is drawn in its node's colour.
+		expect(paths[1]!.attributes('stroke')).toBe('#3b82f6');
+		expect(paths[1]!.attributes('stroke-width')).toBe('1');
+	});
+});

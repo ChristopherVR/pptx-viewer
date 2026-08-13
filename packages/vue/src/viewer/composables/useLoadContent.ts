@@ -26,7 +26,7 @@ import type {
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError, parseSignatureXml } from 'pptx-viewer-core';
 import type { DeckSaveIntent, DeckSavePurpose } from 'pptx-viewer-shared';
-import { saveDeckWithPassword } from 'pptx-viewer-shared';
+import { embeddedFontSaveOptions, saveDeckWithPassword } from 'pptx-viewer-shared';
 import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 
@@ -172,6 +172,15 @@ export interface UseLoadContentOptions {
 	 * secret is always the current one, no matter when the dialog set it.
 	 */
 	getSaveIntent?: () => DeckSaveIntent;
+	/**
+	 * The File > Fonts "Embed fonts in the file" toggle, read at save time.
+	 * `false` strips `p:embeddedFontLst`, the `/font` relationships and the
+	 * `.fntdata` parts; the default (omitted, or `true`) keeps whatever the deck
+	 * arrived with. A getter, not a value, for the same reason as
+	 * {@link getSaveIntent}: the composable is created before the panel that
+	 * owns the flag, and the answer must be the current one.
+	 */
+	getEmbedFonts?: () => boolean;
 }
 
 export function useLoadContent(
@@ -464,6 +473,9 @@ export function useLoadContent(
 				handoutMaster: handoutMaster.value,
 				tags: tagCollections.value.length > 0 ? tagCollections.value : undefined,
 				outputFormat: format,
+				// The Fonts panel's toggle used to move and change nothing; it now
+				// decides whether the deck's embedded font data survives the save.
+				...embeddedFontSaveOptions(options?.getEmbedFonts?.() ?? true),
 			},
 			{ ...options?.getSaveIntent?.(), purpose },
 		);

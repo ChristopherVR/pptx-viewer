@@ -20,6 +20,12 @@ const DEFAULT_AUTOSAVE_INTERVAL_MS = 2000;
 
 export interface UseAutosaveWiringOptions {
 	slides: ShallowRef<PptxSlide[]>;
+	/**
+	 * The per-slide master/layout (template) element store. Edit-template mode
+	 * rebuilds this and NOT `slides`, so without it those edits are never
+	 * autosaved. See `UseAutosaveOptions.templateElements`.
+	 */
+	templateElements?: Ref<unknown>;
 	/** True while the load pipeline is running; used to clear the dirty flag after a load. */
 	loading: Ref<boolean>;
 	canEdit: () => boolean;
@@ -77,6 +83,7 @@ export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosav
 
 	const autosave = useAutosave({
 		slides: options.slides,
+		...(options.templateElements ? { templateElements: options.templateElements } : {}),
 		enabled: autosaveActive,
 		// A computed, not a snapshot: `useAutosave` re-reads it each time the timer
 		// is armed, so a host changing the AutoRecover cadence (File > Options >

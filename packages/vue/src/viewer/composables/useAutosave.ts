@@ -31,6 +31,19 @@ export interface UseAutosaveOptions {
 	 * edit, no `deep` needed.
 	 */
 	slides: Ref<PptxSlide[]>;
+	/**
+	 * The separate per-slide store of master/layout (template) elements.
+	 *
+	 * An edit made in edit-template mode rebuilds ONLY this map: it never
+	 * reassigns `slides`, because a template element does not live in
+	 * `slide.elements`. Watching `slides` alone therefore missed every
+	 * template-mode edit, and a user editing a master or layout got no crash
+	 * recovery at all. Svelte never had the bug because its equivalent effect
+	 * reads a value that already folds the template map in; watching the map
+	 * here reaches the same shape, and covers any FUTURE template mutation path
+	 * without that path having to remember to announce itself.
+	 */
+	templateElements?: Ref<unknown>;
 	/** Master on/off switch. When falsy the debounce timer never fires. */
 	enabled?: Ref<boolean> | boolean;
 	/**
@@ -78,7 +91,7 @@ const defaultTimers: AutosaveTimerApi = {
  * any pending debounce. The timer is torn down on scope dispose.
  */
 export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
-	const { slides, enabled = true, intervalMs, onSave } = options;
+	const { slides, templateElements, enabled = true, intervalMs, onSave } = options;
 	const timers = options.timers ?? defaultTimers;
 
 	const status = ref<AutosaveStatus>('idle');
@@ -138,12 +151,16 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 		}, toValue(intervalMs));
 	};
 
-	// Fires only on actual reassignments of `slides` (not on setup, since
-	// `immediate` is omitted), so each edit marks the document dirty and
-	// arms the debounce. The host is responsible for not re-priming `slides`
+	// Fires only on actual reassignments of the watched stores (not on setup,
+	// since `immediate` is omitted), so each edit marks the document dirty and
+	// arms the debounce. The host is responsible for not re-priming them
 	// with the freshly-loaded document in a way that should trigger a save.
+	//
+	// Both stores are watched because an edit lands in exactly one of them: a
+	// normal edit rebuilds `slides`, a template-mode edit rebuilds the template
+	// map. Both are reassigned immutably, so a shallow watch is enough.
 	watch(
-		slides,
+		templateElements ? [slides, templateElements] : [slides],
 		() => {
 			isDirty.value = true;
 			if (isEnabled()) {

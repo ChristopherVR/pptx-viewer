@@ -9,6 +9,7 @@ import {
 	hasTextWarp,
 	inlineElementPointerEvents,
 	isElementRendered,
+	isEquationOnlyText,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -112,9 +113,14 @@ const shapeStyle = computed<CSSProperties>(() =>
 		animationState.value?.animatesStroke,
 	),
 );
-/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
+/**
+ * The fill handed to this group's `a:grpFill` children (undefined for
+ * non-groups): its own, or - when it has none of its own - whatever this group
+ * inherited, because `a:grpFill` resolves against the nearest ANCESTOR with a
+ * fill rather than the immediate parent.
+ */
 const childParentGroupFill = computed<ShapeStyle | undefined>(() =>
-	getGroupChildParentFill(props.element),
+	getGroupChildParentFill(props.element, props.parentGroupFill),
 );
 /**
  * Merge container + shape styles for the shape box. The shape style may carry a
@@ -171,13 +177,14 @@ const isImageLike = computed(
 );
 
 /**
- * Whether this element carries math equation segments (OMML). Equation text
- * boxes delegate wholesale to `EquationRenderer` (which self-positions).
+ * Whether this element is a pure equation box (OMML and nothing else). Those
+ * delegate wholesale to `EquationRenderer`, which self-positions and centres
+ * the maths. A body that MIXES prose with an inline `m:oMath` goes down the
+ * ordinary paragraph path instead, where shared emits the equation as a run in
+ * its authored position: sending it here dropped every word around it.
  */
 const hasEquation = computed(
-	() =>
-		hasTextProperties(props.element) &&
-		(props.element.textSegments ?? []).some((s) => s.equationXml),
+	() => hasTextProperties(props.element) && isEquationOnlyText(props.element.textSegments),
 );
 
 /** Whether this element's text is warped (WordArt / `prstTxWarp`). */

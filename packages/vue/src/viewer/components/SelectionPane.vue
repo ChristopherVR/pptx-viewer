@@ -2,7 +2,7 @@
 import { Eye, EyeOff, GripVertical } from 'lucide-vue-next';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
+import { resolveSelectionPaneRename, restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 	select: [id: string];
 	'toggle-visibility': [id: string];
 	reorder: [payload: { from: number; to: number }];
-	rename: [payload: { id: string; name: string | undefined }];
+	rename: [payload: { id: string; name: string }];
 	close: [];
 }>();
 
@@ -103,13 +103,15 @@ function commitRename(element: PptxElement): void {
 	// re-enters here. With `editingId` already null that re-entry is a no-op.
 	editingId.value = null;
 	releaseRenameFocus();
-	const trimmed = editDraft.value.trim();
-	// Unedited commit: keep whatever the element had (in particular, do not
-	// persist a "Shape 3"-style fallback label as a real name).
-	if (trimmed === editSeed.trim()) {
+	// Shared decision: `null` for an unedited commit (so a fallback display
+	// label is never persisted as a real name), otherwise the name to write -
+	// including `''` for a cleared box, which is the only value the save writer
+	// reads as a clear.
+	const commit = resolveSelectionPaneRename(editSeed, editDraft.value);
+	if (!commit) {
 		return;
 	}
-	emit('rename', { id: element.id, name: trimmed.length > 0 ? trimmed : undefined });
+	emit('rename', { id: element.id, name: commit.name });
 }
 
 /** Escape: drop the draft without emitting (clearing first disarms blur). */

@@ -10,6 +10,8 @@ import type { ElementAnimationState, RenderParagraph } from 'pptx-viewer-shared'
 import { computed } from 'vue';
 import type { CSSProperties } from 'vue';
 
+import SlideTextRun from './SlideTextRun.vue';
+
 /** A run whose text is exactly a newline is a hard line break, not content. */
 const NEWLINE_RUN = '\n';
 
@@ -53,6 +55,10 @@ const specs = computed(() =>
  */
 function paraStyle(para: RenderParagraph): CSSProperties {
 	return {
+		// This paragraph's own `text-align` / BiDi `direction` / kinsoku rules,
+		// when it overrides the body's. Spread first so the explicit geometry
+		// below always wins.
+		...(para.paragraphStyle as CSSProperties | undefined),
 		marginTop: para.spaceBeforePx !== undefined ? `${para.spaceBeforePx}px` : 0,
 		marginRight: 0,
 		marginBottom: para.spaceAfterPx !== undefined ? `${para.spaceAfterPx}px` : 0,
@@ -100,7 +106,7 @@ function paraStyle(para: RenderParagraph): CSSProperties {
 				>
 					<template v-for="(run, ri) in para.runs" :key="ri">
 						<br v-if="run.text === '\n'" />
-						<span v-else :style="run.style">{{ run.text }}</span>
+						<SlideTextRun v-else :run="run" />
 					</template>
 				</span>
 				<span
@@ -114,7 +120,7 @@ function paraStyle(para: RenderParagraph): CSSProperties {
 			</template>
 			<template v-for="(run, ri) in para.runs" v-else :key="ri">
 				<br v-if="run.text === '\n'" />
-				<span v-else :style="run.style">{{ run.text }}</span>
+				<SlideTextRun v-else :run="run" />
 			</template>
 			<!-- An authored blank line has no runs, so without this the <p>
 			     collapses to zero height and the gap a deck puts between a

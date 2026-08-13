@@ -9,6 +9,7 @@
  * dozen individual props.
  */
 import type { PptxHandoutMaster, PptxNotesMaster, PptxSlideMaster } from 'pptx-viewer-core';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { UseMasterViewWiringResult } from '../composables/useMasterViewWiring';
@@ -16,6 +17,8 @@ import type { CanvasSize } from '../types';
 import HandoutMasterCanvas from './HandoutMasterCanvas.vue';
 import MasterViewSidebar from './MasterViewSidebar.vue';
 import NotesMasterCanvas from './NotesMasterCanvas.vue';
+import type { TransformPayload } from './selection-overlay-geometry';
+import SelectionOverlay from './SelectionOverlay.vue';
 import SlideStage from './SlideStage.vue';
 
 const props = defineProps<{
@@ -25,9 +28,38 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
+	/** Editing affordances are offered only on an editable deck. */
+	canEdit?: boolean;
 }>();
 
 const { t } = useI18n();
+
+/** The master stage is rendered at a fixed scale; the overlay must match it. */
+const MASTER_STAGE_SCALE = 0.75;
+
+/**
+ * Selection is local to the overlay: the master parts are not in `slides`, so
+ * the deck-wide selection state would resolve every id to nothing.
+ */
+const selectedIds = ref<string[]>([]);
+
+function onStagePointerDown(event: PointerEvent): void {
+	const target = event.target as HTMLElement | null;
+	const node = target?.closest?.('[data-element-id]') ?? null;
+	const id = node?.getAttribute('data-element-id') ?? null;
+	selectedIds.value = id ? [id] : [];
+}
+
+/** A drag / resize / rotate on a master or layout shape. */
+function onTransform(payload: TransformPayload): void {
+	props.state.onMasterViewElementUpdate(payload.id, {
+		x: payload.x,
+		y: payload.y,
+		width: payload.width,
+		height: payload.height,
+		rotation: payload.rotation,
+	});
+}
 
 /** The canvas' accessible name follows whichever master the tab is showing. */
 function canvasLabel(): string {
@@ -78,13 +110,31 @@ function canvasLabel(): string {
 				:canvas-size="canvasSize"
 				:slides-per-page="handoutMaster?.slidesPerPage ?? state.handoutSlidesPerPage.value"
 			/>
-			<SlideStage
+			<div
 				v-else-if="state.activeMasterViewSlide.value"
-				:slide="state.activeMasterViewSlide.value"
-				:canvas-size="canvasSize"
-				:media-data-urls="mediaDataUrls"
-				:scale="0.75"
-			/>
+				class="pptx-vue-master-stage"
+				:style="{
+					width: `${canvasSize.width * MASTER_STAGE_SCALE}px`,
+					height: `${canvasSize.height * MASTER_STAGE_SCALE}px`,
+				}"
+				@pointerdown="onStagePointerDown"
+			>
+				<SlideStage
+					:slide="state.activeMasterViewSlide.value"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:scale="MASTER_STAGE_SCALE"
+					:interactive="canEdit"
+				/>
+				<SelectionOverlay
+					v-if="canEdit"
+					:elements="state.activeMasterViewElements.value"
+					:selected-ids="selectedIds"
+					:zoom="MASTER_STAGE_SCALE"
+					@transform="onTransform"
+					@transform-end="onTransform"
+				/>
+			</div>
 		</main>
 	</div>
 </template>
@@ -102,6 +152,15 @@ function canvasLabel(): string {
 	display: flex;
 	justify-content: flex-start;
 	background: rgba(0, 0, 0, 0.45);
+}
+
+/*
+ * The selection overlay positions its handles in scaled slide space, so it has
+ * to share an origin with the stage it decorates.
+ */
+.pptx-vue-master-stage {
+	position: relative;
+	flex: none;
 }
 
 .pptx-vue-master-canvas {

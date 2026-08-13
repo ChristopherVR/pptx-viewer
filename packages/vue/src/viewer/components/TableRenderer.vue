@@ -19,6 +19,7 @@ import {
 	DEFAULT_FONT_FAMILY,
 	getCellDiagonalBorders,
 	getTableCellBandStyle,
+	tableContainerCss,
 } from 'pptx-viewer-shared';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
@@ -111,6 +112,15 @@ const tableData = computed<PptxTableData | undefined>(() => {
 	return td && td.rows.length > 0 ? td : undefined;
 });
 
+/**
+ * `<table>`-level style: the shared default font stack (load-bearing - an
+ * unstyled cell would otherwise inherit the HOST chrome's font) plus
+ * `a:tblPr@rtl`, which mirrors the column order for right-to-left decks.
+ */
+const tableRootStyle = computed<CSSProperties>(() => ({
+	fontFamily: DEFAULT_FONT_FAMILY,
+	...(tableContainerCss(tableData.value) as CSSProperties),
+}));
 const rowCount = computed(() => tableData.value?.rows.length ?? 0);
 const columnCount = computed(() => tableData.value?.columnWidths.length ?? 0);
 
@@ -472,7 +482,7 @@ onBeforeUnmount(() => {
 			     inherits the HOST chrome's font, so the same table measured a
 			     different stack in every binding's demo. All five bindings declare
 			     the same shared default on the table root. -->
-			<table class="pptx-vue-table__grid" :style="{ fontFamily: DEFAULT_FONT_FAMILY }">
+			<table class="pptx-vue-table__grid" :style="tableRootStyle">
 				<colgroup v-if="columnPercentages.length > 0">
 					<col
 						v-for="(width, ci) in columnPercentages"

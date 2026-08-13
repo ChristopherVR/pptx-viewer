@@ -11,12 +11,24 @@ import ModalDialog from './ModalDialog.vue';
  * of the React `FontEmbeddingPanel.tsx`. Availability is detected with the
  * browser `document.fonts` API when the dialog opens.
  */
-const props = defineProps<{
-	open: boolean;
-	embedFontsEnabled: boolean;
-	usedFontFamilies: string[];
-	embeddedFonts: string[];
-}>();
+const props = withDefaults(
+	defineProps<{
+		open: boolean;
+		embedFontsEnabled: boolean;
+		usedFontFamilies: string[];
+		embeddedFonts: string[];
+		/**
+		 * False when the deck embeds nothing, in which case the switch is inert
+		 * and says why. The viewer can keep or strip embedded font data on save,
+		 * but it cannot manufacture it: a browser will not hand over the bytes of
+		 * an installed system face.
+		 */
+		canEmbedFonts?: boolean;
+		/** i18n key for the explanation shown when `canEmbedFonts` is false. */
+		embedUnavailableKey?: string;
+	}>(),
+	{ canEmbedFonts: true, embedUnavailableKey: undefined },
+);
 
 const emit = defineEmits<{
 	toggleEmbedFonts: [enabled: boolean];
@@ -64,12 +76,16 @@ const missingCount = computed(
 				{{ t('pptx.fontEmbedding.description') }}
 			</p>
 
-			<label class="flex cursor-pointer items-center gap-3">
+			<label
+				class="flex items-center gap-3"
+				:class="props.canEmbedFonts ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'"
+			>
 				<div class="relative">
 					<input
 						type="checkbox"
 						class="sr-only"
 						:checked="props.embedFontsEnabled"
+						:disabled="!props.canEmbedFonts"
 						@change="emit('toggleEmbedFonts', ($event.target as HTMLInputElement).checked)"
 					/>
 					<div
@@ -83,6 +99,19 @@ const missingCount = computed(
 				</div>
 				<span class="text-xs text-foreground">{{ t('pptx.fontEmbedding.embedInFile') }}</span>
 			</label>
+			<!--
+				The switch used to move and change nothing at all. It now decides
+				whether save keeps the deck's embedded font data, so it has to say
+				which of those two things it is doing - and admit when it can do
+				neither.
+			-->
+			<p class="text-[11px] text-muted-foreground">
+				{{
+					props.canEmbedFonts
+						? t('pptx.fonts.embedKeepsExisting')
+						: t(props.embedUnavailableKey ?? 'pptx.fonts.embedUnavailable')
+				}}
+			</p>
 
 			<div class="space-y-1">
 				<h3 class="text-xs font-medium text-foreground">

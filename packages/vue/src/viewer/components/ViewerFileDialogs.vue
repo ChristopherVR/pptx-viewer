@@ -61,7 +61,14 @@ defineProps<{
 	availableThemes?: ThemeCatalogEntry[];
 	availableLocales: LocaleCatalogEntry[];
 	aiEnabled: boolean;
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 	onClearCache: () => void;
+}>();
+
+const emit = defineEmits<{
+	/** A font file was registered; the ribbon adds the family to its list. */
+	(e: 'customFontRegistered', family: string): void;
 }>();
 </script>
 
@@ -128,7 +135,9 @@ defineProps<{
 		:available-themes="availableThemes"
 		:available-locales="availableLocales"
 		:ai-enabled="aiEnabled"
+		:custom-font-families="customFontFamilies"
 		@close="onCloseSettings"
+		@custom-font-registered="(family: string) => emit('customFontRegistered', family)"
 	/>
 
 	<!-- Header & footer -->

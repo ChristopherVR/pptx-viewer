@@ -16,7 +16,7 @@ export interface UseSelectionPaneWiringResult {
 	onSelectionPaneSelect: (id: string) => void;
 	onSelectionPaneToggleVisibility: (id: string) => void;
 	onSelectionPaneReorder: (payload: { from: number; to: number }) => void;
-	onSelectionPaneRename: (payload: { id: string; name: string | undefined }) => void;
+	onSelectionPaneRename: (payload: { id: string; name: string }) => void;
 }
 
 /**
@@ -47,10 +47,12 @@ export function useSelectionPaneWiring(
 	}
 	/**
 	 * Rename (double-click in the pane): routed through the history-integrated
-	 * `updateElement` so a rename undoes/redoes like any other edit. An
-	 * `undefined` name clears the element's name back to the fallback label.
+	 * `updateElement` so a rename undoes/redoes like any other edit. The name is
+	 * never `undefined`: the save writer reads that as "the model has no
+	 * opinion" and leaves `cNvPr/@name` alone, so a cleared box arrives here as
+	 * `''` instead (see `resolveSelectionPaneRename` in shared).
 	 */
-	function onSelectionPaneRename(payload: { id: string; name: string | undefined }): void {
+	function onSelectionPaneRename(payload: { id: string; name: string }): void {
 		if (findActiveElement(payload.id)) {
 			ops.updateElement(payload.id, { name: payload.name } as Partial<PptxElement>);
 		}

@@ -76,6 +76,8 @@ defineProps<{
 		:embed-fonts-enabled="fontEmbedding.embedFontsEnabled.value"
 		:used-font-families="fontEmbedding.usedFontFamilies.value"
 		:embedded-fonts="fontEmbedding.embeddedFontNames.value"
+		:can-embed-fonts="fontEmbedding.fontEmbedding.value.interactive"
+		:embed-unavailable-key="fontEmbedding.fontEmbedding.value.disabledReasonKey"
 		@toggle-embed-fonts="fontEmbedding.embedFontsEnabled.value = $event"
 		@close="fontEmbedding.showFontEmbedding.value = false"
 	/>

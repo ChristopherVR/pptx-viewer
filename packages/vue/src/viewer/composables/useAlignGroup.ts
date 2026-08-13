@@ -4,6 +4,7 @@ import {
 	alignElements,
 	distributeElements,
 	groupElements,
+	isTemplateElementId,
 	ungroupElements,
 } from 'pptx-viewer-shared';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
@@ -92,9 +93,13 @@ export function useAlignGroup(input: UseAlignGroupInput) {
 		if (!g || g.type !== 'group' || !slide) {
 			return;
 		}
-		// Keep the existing child ids (pass them through as the new ids).
+		// Keep the existing child ids (pass them through as the new ids). The
+		// shared op still re-ids a promoted NESTED group's descendants when they
+		// route to the other (template vs slide) store, which no binding did.
 		const childIds = (g.children ?? []).map((c) => c.id);
-		const { elements, childIds: appliedIds } = ungroupElements(slide.elements, g.id, childIds);
+		const { elements, childIds: appliedIds } = ungroupElements(slide.elements, g.id, childIds, {
+			intoTemplate: isTemplateElementId(g.id),
+		});
 		pushHistory();
 		const nextSlides = slides.value.slice();
 		nextSlides[index] = { ...slide, elements };

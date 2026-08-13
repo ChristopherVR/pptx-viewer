@@ -9,15 +9,21 @@ import type {
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArtA11y,
-	centeredSvgTextLines,
 	computeDrawingViewBox,
 	projectDrawingShapes,
 	resolvePalette,
 	revealedSmartArtNodeCount,
 	shouldCommitSmartArtNodeText,
+	smartArtConnectorPaint,
+	smartArtNodeLabel,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
-import type { ElementAnimationState, RenderedShape } from 'pptx-viewer-shared';
+import type {
+	ElementAnimationState,
+	RenderedShape,
+	SmartArtConnectorPaint,
+	SmartArtNodeLabel,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -81,13 +87,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-
-// ── Palette / style helpers (ported from smartart-helpers.tsx) ───────────────
-
-/** Centred label lines for the fallback layout path; geometry comes from shared. */
-function textLines(text: string, fontSize: number): Array<{ text: string; y: number }> {
-	return centeredSvgTextLines(text ?? '', fontSize);
-}
 
 // ── Resolved SmartArt data ───────────────────────────────────────────────────
 
@@ -265,6 +264,23 @@ const fallbackLayout = computed<ComputedLayout | undefined>(() => {
 	);
 });
 
+// ── Fallback-layout label / connector paint ──────────────────────────────────
+//
+// The layout descriptor's optional fields (per-node font colour / weight /
+// style, off-centre label anchors for target leaders, gear legend rows and
+// timeline captions, and per-connector stroke) are resolved by the shared
+// decision functions below. The template binds the result and computes nothing.
+
+/** Resolved connector paint, index-aligned with `fallbackLayout.connectors`. */
+const fallbackConnectors = computed<SmartArtConnectorPaint[]>(() =>
+	(fallbackLayout.value?.connectors ?? []).map((conn) => smartArtConnectorPaint(conn)),
+);
+
+/** Resolved label descriptors, index-aligned with `fallbackLayout.nodes`. */
+const fallbackLabels = computed<SmartArtNodeLabel[]>(() =>
+	(fallbackLayout.value?.nodes ?? []).map((node) => smartArtNodeLabel(node)),
+);
+
 const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.value);
 
 // ── Inline on-canvas node text editing ───────────────────────────────────────
@@ -277,9 +293,13 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 const nodeEdit = injectSmartArtNodeEdit();
 const editable = computed(() => Boolean(nodeEdit?.canEdit()));
 
-/** Source node ids in fallback render order (index-aligned with layout nodes). */
+/**
+ * Source node ids in fallback render order (index-aligned with layout nodes).
+ * Flattened over the REVEALED prefix, since that is what the layout engine was
+ * handed: a staged diagram build otherwise mapped ids past the reveal point.
+ */
 const fallbackNodeIds = computed<string[]>(() =>
-	fallbackLayout.value ? nodeIdsInRenderOrder(nodes.value) : [],
+	fallbackLayout.value ? nodeIdsInRenderOrder(revealedNodes.value) : [],
 );
 
 const edit = useSmartArtInlineEditState();
@@ -530,13 +550,14 @@ function onEditorKeydown(event: KeyboardEvent): void {
 			>
 				<!-- Connectors (render first so they appear behind nodes) -->
 				<path
-					v-for="conn in fallbackLayout.connectors"
+					v-for="(conn, ci) in fallbackLayout.connectors"
 					:key="conn.key"
-					:d="conn.d"
+					:d="fallbackConnectors[ci]!.d"
 					fill="none"
-					stroke="#94a3b8"
-					stroke-width="1.5"
-					opacity="0.5"
+					:stroke="fallbackConnectors[ci]!.stroke"
+					:stroke-width="fallbackConnectors[ci]!.strokeWidth"
+					:opacity="fallbackConnectors[ci]!.opacity"
+					:stroke-dasharray="fallbackConnectors[ci]!.dash"
 				/>
 				<!-- Rendered nodes -->
 				<g
@@ -553,90 +574,64 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					@keydown.enter.prevent="beginEdit(fallbackNodeIds[i], node.text, $event)"
 				>
 					<title v-if="nodeLabel(fallbackNodeIds[i])">{{ nodeLabel(fallbackNodeIds[i]) }}</title>
-					<!-- Circle nodes (cycle, radial, venn, target) -->
-					<template v-if="node.kind === 'circle'">
-						<circle
-							:cx="(node as RenderedCircleNode).cx"
-							:cy="(node as RenderedCircleNode).cy"
-							:r="(node as RenderedCircleNode).r"
-							:fill="node.fill"
-							:stroke="node.stroke"
-							:stroke-width="node.strokeWidth"
-							:opacity="node.opacity"
-						/>
-						<text
-							:x="(node as RenderedCircleNode).cx"
-							text-anchor="middle"
-							dominant-baseline="central"
-							fill="white"
-							:font-size="node.fontSize"
-						>
-							<tspan
-								v-for="(line, li) in textLines(node.text, node.fontSize)"
-								:key="li"
-								:x="(node as RenderedCircleNode).cx"
-								:y="(node as RenderedCircleNode).cy + line.y"
-							>
-								{{ line.text }}
-							</tspan>
-						</text>
-					</template>
+					<!-- Circle nodes (cycle, radial, venn, target, gear, timeline) -->
+					<circle
+						v-if="node.kind === 'circle'"
+						:cx="(node as RenderedCircleNode).cx"
+						:cy="(node as RenderedCircleNode).cy"
+						:r="(node as RenderedCircleNode).r"
+						:fill="node.fill"
+						:stroke="node.stroke"
+						:stroke-width="node.strokeWidth"
+						:opacity="node.opacity"
+					/>
 					<!-- Polygon nodes (process, pyramid, funnel) -->
-					<template v-else-if="node.kind === 'polygon'">
-						<polygon
-							:points="(node as RenderedPolygonNode).points"
-							:fill="node.fill"
-							:stroke="node.stroke"
-							:stroke-width="node.strokeWidth"
-							:opacity="node.opacity"
-						/>
-						<text
-							:x="(node as RenderedPolygonNode).textX"
-							text-anchor="middle"
-							dominant-baseline="central"
-							fill="white"
-							:font-size="node.fontSize"
-						>
-							<tspan
-								v-for="(line, li) in textLines(node.text, node.fontSize)"
-								:key="li"
-								:x="(node as RenderedPolygonNode).textX"
-								:y="(node as RenderedPolygonNode).textY + line.y"
-							>
-								{{ line.text }}
-							</tspan>
-						</text>
-					</template>
+					<polygon
+						v-else-if="node.kind === 'polygon'"
+						:points="(node as RenderedPolygonNode).points"
+						:fill="node.fill"
+						:stroke="node.stroke"
+						:stroke-width="node.strokeWidth"
+						:opacity="node.opacity"
+					/>
 					<!-- Rect nodes (list, matrix, hierarchy) -->
-					<template v-else>
-						<rect
-							:x="(node as RenderedRectNode).x"
-							:y="(node as RenderedRectNode).y"
-							:width="(node as RenderedRectNode).width"
-							:height="(node as RenderedRectNode).height"
-							:rx="(node as RenderedRectNode).rx"
-							:fill="node.fill"
-							:stroke="node.stroke"
-							:stroke-width="node.strokeWidth"
-							:opacity="node.opacity"
-						/>
-						<text
-							:x="(node as RenderedRectNode).textX"
-							text-anchor="middle"
-							dominant-baseline="central"
-							fill="white"
-							:font-size="node.fontSize"
+					<rect
+						v-else
+						:x="(node as RenderedRectNode).x"
+						:y="(node as RenderedRectNode).y"
+						:width="(node as RenderedRectNode).width"
+						:height="(node as RenderedRectNode).height"
+						:rx="(node as RenderedRectNode).rx"
+						:fill="node.fill"
+						:stroke="node.stroke"
+						:stroke-width="node.strokeWidth"
+						:opacity="node.opacity"
+					/>
+					<!--
+						Label: placement, colour, weight and baseline all arrive decided
+						from shared, so an off-centre caption (target leader, gear legend
+						row, timeline caption above / below the axis) lands beside its
+						node rather than on top of it.
+					-->
+					<text
+						v-if="fallbackLabels[i]!.visible"
+						:x="fallbackLabels[i]!.x"
+						:text-anchor="fallbackLabels[i]!.textAnchor"
+						:dominant-baseline="fallbackLabels[i]!.dominantBaseline"
+						:fill="fallbackLabels[i]!.fill"
+						:font-size="fallbackLabels[i]!.fontSize"
+						:font-weight="fallbackLabels[i]!.fontWeight"
+						:font-style="fallbackLabels[i]!.fontStyle"
+					>
+						<tspan
+							v-for="(line, li) in fallbackLabels[i]!.lines"
+							:key="li"
+							:x="fallbackLabels[i]!.x"
+							:y="line.y"
 						>
-							<tspan
-								v-for="(line, li) in textLines(node.text, node.fontSize)"
-								:key="li"
-								:x="(node as RenderedRectNode).textX"
-								:y="(node as RenderedRectNode).textY + line.y"
-							>
-								{{ line.text }}
-							</tspan>
-						</text>
-					</template>
+							{{ line.text }}
+						</tspan>
+					</text>
 				</g>
 			</svg>
 

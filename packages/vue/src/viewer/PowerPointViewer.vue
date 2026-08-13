@@ -176,6 +176,10 @@ const deck = useLoadContent(() => activeContent.value, {
 		password: password.presentationPassword.value,
 		passwordProtected: password.isPasswordProtected.value,
 	}),
+	// File > Fonts. `fontEmbedding` is declared further down (it needs the
+	// loaded deck's embedded fonts), so this getter reads it lazily at save
+	// time, exactly like `getSaveIntent` reads the password.
+	getEmbedFonts: () => fontEmbedding.embedFontsEnabled.value,
 });
 const {
 	slides,
@@ -620,6 +624,8 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 // -- Autosave ----------------------------------------------------------
 const { autosave, autosaveEnabled, toggleAutosave, autosaveDisabledReason } = useAutosaveWiring({
 	slides,
+	// Edit-template mode rebuilds only this map, never `slides`.
+	templateElements: templateElementsBySlideId,
 	loading,
 	canEdit: () => props.canEdit,
 	autosaveEnabledByHost: () => props.autosave ?? false,
@@ -1399,7 +1405,9 @@ defineExpose<PowerPointViewerExpose>(
 			/>
 
 			<ViewerFileDialogs
+				:custom-font-families="customFontFamilies"
 				:slides="slides"
+				@custom-font-registered="handleCustomFontRegistered"
 				:active-slide-index="activeSlideIndex"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
@@ -1436,6 +1444,7 @@ defineExpose<PowerPointViewerExpose>(
 				:media-data-urls="mediaDataUrls"
 				:notes-master="notesMaster"
 				:handout-master="handoutMaster"
+				:can-edit="canEdit"
 			/>
 
 			<ViewerDeckDialogs
