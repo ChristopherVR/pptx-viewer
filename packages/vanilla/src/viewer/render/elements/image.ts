@@ -5,6 +5,7 @@ import {
 	getImageFitStyle,
 	getImageOverflow,
 	getImageSrc,
+	getImageTilingStyle,
 	resolveColorChangedImageSource,
 } from 'pptx-viewer-shared';
 
@@ -46,6 +47,22 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		defs.appendChild(filter);
 		svg.appendChild(defs);
 		el.appendChild(svg);
+	}
+
+	// `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express -
+	// the picture is painted as a repeating background layer instead. Without
+	// this the tile renders as one stretched copy.
+	const tiling = getImageTilingStyle(element);
+	if (tiling) {
+		const tile = createEl(doc, 'div', 'pptxv-image-tile', tiling);
+		if (fx.filter) {
+			tile.style.filter = fx.filter;
+		}
+		if (fx.opacity !== undefined) {
+			tile.style.opacity = String(fx.opacity);
+		}
+		el.appendChild(tile);
+		return el;
 	}
 
 	const img = createEl(doc, 'img', undefined, {

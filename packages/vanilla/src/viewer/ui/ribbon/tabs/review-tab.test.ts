@@ -122,6 +122,8 @@ describe('createRecordTab', () => {
 			toggleSubtitles: vi.fn(),
 			openSubtitleSettings: vi.fn(),
 			toggleHideSlide: vi.fn(),
+			showOptions: () => ({}),
+			updateShowOptions: vi.fn(),
 		});
 		for (const label of [
 			t('pptx.record.cameo'),

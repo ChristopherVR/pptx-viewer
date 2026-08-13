@@ -1,27 +1,21 @@
-import type { InteractionBox, SelectionTransformBox } from 'pptx-viewer-shared';
-import {
-	computeMarqueeHitIds,
-	isAdditiveSelectionPress,
-	isElementIdInteractive,
-	mergeAdditiveSelection,
-	moveSelection,
-	resizeSelection,
-	selectionBounds,
-} from 'pptx-viewer-shared';
+import { isAdditiveSelectionPress } from 'pptx-viewer-shared';
 
-import { findActiveElement, getActiveElements } from './editor-active-elements';
-import { createGestureController } from './editor-gestures';
+import { findActiveElement } from './editor-active-elements';
 import {
-	handleSpecialPointerAction,
-	snapSiblings,
-	snapToGrid,
-} from './editor-pointer-special-actions';
+	canBeginMoveGesture,
+	isElementIdSelectable,
+	selectionInteractivity,
+} from './editor-lock-gates';
+import { createMarqueeController } from './editor-marquee';
+import { handleSpecialPointerAction } from './editor-pointer-special-actions';
 import type { StageInteractions, StageInteractionsDeps } from './editor-stage-interaction-types';
 import { resolveStagePoint } from './editor-stage-point';
+import { createTransformGestures } from './editor-transform-gestures';
 import { createElementDoubleTapRecognizer } from './element-double-tap';
 import { resolveTopLevelElementId } from './element-hit';
 import type { InlineEditorSession } from './inline-text-editor';
 import { canInlineEditElement, openInlineEditor } from './inline-text-editor';
+import { createShapeAdjustGesture } from './shape-adjust-gesture';
 import { handleStructuredDblClick } from './structured-dblclick';
 import type { TableCellEditorSession } from './table-cell-editor';
 import { bindTableTouchEditor } from './table-touch-editor';
@@ -39,115 +33,25 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		onOpen: (session) => (tableInline = session),
 		onEditEquation: deps.onEditEquation,
 	});
-	let gestureBoxes: SelectionTransformBox[] = [];
-	let gestureBounds: InteractionBox | null = null;
-	let gestureKind: 'move' | 'resize' | 'rotate' = 'move';
-	let marquee: {
-		pointerId: number;
-		startX: number;
-		startY: number;
-		additive: boolean;
-		el: HTMLElement;
-	} | null = null;
-
-	const elementBox = (id: string): InteractionBox | undefined => {
-		const state = store.get();
-		const selected = getActiveElements(state).filter((el) =>
-			state.selectedElementIds.includes(el.id),
-		);
-		if (selected.length > 1 && state.selectedElementIds.includes(id)) {
-			return selectionBounds(selected) ?? undefined;
-		}
-		const el = findActiveElement(state, id);
-		return el
-			? { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 }
-			: undefined;
-	};
-
-	const gestures = createGestureController({
+	const gestures = createTransformGestures({
+		store,
+		ops,
 		getScale: deps.getScale,
-		getElementBox: elementBox,
-		getSiblings: () => snapSiblings(store.get()),
-		getStageOrigin() {
-			const rect = deps.getOverlay()?.root.getBoundingClientRect();
-			return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
-		},
-		onStart(_id, kind) {
-			const state = store.get();
-			gestureKind = kind;
-			gestureBoxes = getActiveElements(state)
-				.filter((el) => state.selectedElementIds.includes(el.id))
-				.map(({ id, x, y, width, height, rotation }) => ({ id, x, y, width, height, rotation }));
-			gestureBounds = selectionBounds(gestureBoxes);
-			ops.pushHistory();
-			store.set({ interactionActive: true });
-		},
-		onPreview(transform, lines) {
-			transform = snapToGrid(transform, store.get().snapToGrid);
-			if (gestureBoxes.length > 1 && gestureBounds && gestureKind !== 'rotate') {
-				const next =
-					gestureKind === 'move'
-						? moveSelection(
-								gestureBoxes,
-								transform.x - gestureBounds.x,
-								transform.y - gestureBounds.y,
-							)
-						: resizeSelection(gestureBoxes, gestureBounds, transform);
-				for (const box of next) {
-					ops.patchGeometry(box.id, { ...box, rotation: box.rotation ?? 0 });
-				}
-			} else {
-				ops.patchGeometry(transform.id, transform);
-			}
-			deps.getOverlay()?.setSnapLines(lines, deps.getScale());
-		},
-		onEnd(transform, moved, id) {
-			deps.getOverlay()?.setSnapLines([], 1);
-			if (transform && gestureBoxes.length <= 1) {
-				ops.patchGeometry(id, transform);
-			}
-			store.set({ interactionActive: false });
-			if (moved) {
-				ops.commitChange();
-			}
-		},
+		getOverlay: deps.getOverlay,
 	});
+
+	const adjustGesture = createShapeAdjustGesture({ store, ops, getScale: deps.getScale });
 
 	const stagePoint = (event: PointerEvent) =>
 		resolveStagePoint(deps.getOverlay()?.root, deps.getScale(), event);
-	const finishMarquee = (event: PointerEvent): void => {
-		if (!marquee || event.pointerId !== marquee.pointerId) {
-			return;
-		}
-		const point = stagePoint(event);
-		const state = store.get();
-		const hits = point
-			? computeMarqueeHitIds(
-					{ startX: marquee.startX, startY: marquee.startY, currentX: point.x, currentY: point.y },
-					getActiveElements(state),
-				)
-			: [];
-		const ids = marquee.additive ? mergeAdditiveSelection(state.selectedElementIds, hits) : hits;
-		marquee.el.remove();
-		marquee = null;
-		window.removeEventListener('pointermove', updateMarquee);
-		window.removeEventListener('pointerup', finishMarquee);
-		window.removeEventListener('pointercancel', finishMarquee);
-		ops.select(ids.at(-1) ?? null, ids);
-	};
-	const updateMarquee = (event: PointerEvent): void => {
-		if (!marquee || event.pointerId !== marquee.pointerId) {
-			return;
-		}
-		const point = stagePoint(event);
-		if (!point) {
-			return;
-		}
-		marquee.el.style.left = `${Math.min(marquee.startX, point.x) * deps.getScale()}px`;
-		marquee.el.style.top = `${Math.min(marquee.startY, point.y) * deps.getScale()}px`;
-		marquee.el.style.width = `${Math.abs(point.x - marquee.startX) * deps.getScale()}px`;
-		marquee.el.style.height = `${Math.abs(point.y - marquee.startY) * deps.getScale()}px`;
-	};
+	const marquee = createMarqueeController({
+		doc,
+		store,
+		ops,
+		getScale: deps.getScale,
+		getOverlayRoot: () => deps.getOverlay()?.root ?? null,
+		stagePoint,
+	});
 
 	// Touch/pen double-tap → inline/structured editing (native dblclick is
 	// unreliable on touch; table cells are already handled at document capture
@@ -213,7 +117,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			tableInline = structured.tableSession;
 			return;
 		}
-		if (id && isElementIdInteractive(id, state.editTemplateMode)) {
+		if (id && isElementIdSelectable(state, id)) {
 			enterInlineEdit(id);
 		}
 	};
@@ -248,13 +152,16 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			if (state.formatPainterSourceId) {
-				if (id && isElementIdInteractive(id, state.editTemplateMode)) {
+				// A locked shape does not take a format-painter drop either.
+				if (id && isElementIdSelectable(state, id)) {
 					ops.applyFormatPainter(state.formatPainterSourceId, id);
 				}
 				store.set({ formatPainterSourceId: null });
 				return;
 			}
-			const interactive = id !== null && isElementIdInteractive(id, state.editTemplateMode);
+			// `noSelect` (a:spLocks) makes the press behave as if it landed on empty
+			// canvas: an unselectable shape is not a hit, so it starts a marquee.
+			const interactive = id !== null && isElementIdSelectable(state, id);
 			if (
 				isElementDoubleTap(
 					event.pointerType,
@@ -270,24 +177,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			if (!interactive) {
-				const point = stagePoint(event);
-				const overlay = deps.getOverlay();
-				if (!point || !overlay) {
-					return;
-				}
-				const el = doc.createElement('div');
-				el.className = 'pptxv-marquee';
-				overlay.root.appendChild(el);
-				marquee = {
-					pointerId: event.pointerId,
-					startX: point.x,
-					startY: point.y,
-					additive: isAdditiveSelectionPress(event),
-					el,
-				};
-				window.addEventListener('pointermove', updateMarquee);
-				window.addEventListener('pointerup', finishMarquee);
-				window.addEventListener('pointercancel', finishMarquee);
+				marquee.begin(event);
 				return;
 			}
 			if (isAdditiveSelectionPress(event)) {
@@ -300,7 +190,11 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			if (state.selectedElementId !== id || state.selectedElementIds.length !== 1) {
 				ops.select(id, [id]);
 			}
-			gestures.begin('move', id, event);
+			// A `noMove` shape stays SELECTABLE (so it can be unlocked from the
+			// inspector) but must never arm the drag.
+			if (canBeginMoveGesture(store.get(), id)) {
+				gestures.begin('move', id, event);
+			}
 		},
 		onStagePointerMove(event) {
 			if (!deps.onCursorMove) {
@@ -322,21 +216,23 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			activateDoubleClick(event, id);
 		},
 		beginHandleGesture(kind, event, handle) {
-			const id = store.get().selectedElementId;
-			if (id) {
-				gestures.begin(kind, id, event, handle);
+			const state = store.get();
+			const id = state.selectedElementId;
+			const allowed = selectionInteractivity(state);
+			if (!id || (kind === 'resize' ? !allowed.resizable : !allowed.rotatable)) {
+				return;
 			}
+			gestures.begin(kind, id, event, handle);
 		},
+		beginAdjustGesture: (event) => adjustGesture.begin(event),
 		closeInline,
 		inlineActive: () => inline !== null || tableInline !== null,
 		dispose() {
 			closeInline(false);
 			disposeTableTouch();
 			gestures.dispose();
-			marquee?.el.remove();
-			window.removeEventListener('pointermove', updateMarquee);
-			window.removeEventListener('pointerup', finishMarquee);
-			window.removeEventListener('pointercancel', finishMarquee);
+			adjustGesture.dispose();
+			marquee.dispose();
 		},
 	};
 }

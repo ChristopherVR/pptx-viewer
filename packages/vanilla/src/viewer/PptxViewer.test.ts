@@ -196,4 +196,22 @@ describe('createPptxViewer', () => {
 		expect(document.querySelector<HTMLElement>('.pptxv-modal-backdrop')?.hidden).toBeFalsy();
 		expect(document.querySelector('.pptxv-modal-panel[aria-label="Share"]')).toBeTruthy();
 	});
+
+	it('unticking the Slide Show tab Use Timings option puts the deck into manual advance', () => {
+		const { container, viewer } = mount({ editable: true });
+		const concrete = viewer as PptxViewer;
+		const useTimings = container.querySelector<HTMLInputElement>(
+			'.pptxv-show-options input[aria-label="Using timings, if present"]',
+		);
+		// Defaults to on, the way PowerPoint does, and reads the deck rather than
+		// claiming to be on regardless.
+		expect(useTimings?.checked).toBeTruthy();
+		expect(useTimings?.disabled).toBeFalsy();
+
+		useTimings!.checked = false;
+		useTimings?.dispatchEvent(new Event('change'));
+		// `presentation-auto-advance` reads exactly this field, so the checkbox
+		// now really does stop the show advancing on its own.
+		expect(concrete.store.get().presentationProperties.advanceMode).toBe('manual');
+	});
 });

@@ -56,8 +56,10 @@ describe('file info dialogs', () => {
 		const inputs = protection.querySelectorAll<HTMLInputElement>('input');
 		inputs[0].value = 'Safe123!';
 		inputs[1].value = 'Safe123!';
+		// "Set Password" (`pptx.security.setPassword`), the label all five bindings
+		// now share; it used to be a generic "Save" here.
 		const save = Array.from(protection.querySelectorAll('button')).find(
-			(button) => button.textContent === 'Save',
+			(button) => button.textContent === 'Set Password',
 		)!;
 		save.click();
 		expect(onSet).toHaveBeenCalledWith('Safe123!');

@@ -1,3 +1,4 @@
+import { EMPTY_RIBBON_TRANSITION_DRAFT } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -45,6 +46,8 @@ function buildHandlers(): RibbonHandlers {
 			openOutlineView: vi.fn(),
 			openComments: vi.fn(),
 			openHyperlink: vi.fn(),
+			toggleInspector: vi.fn(),
+			clearSelection: vi.fn(),
 			toggleViewOption: vi.fn(),
 			addGuide: vi.fn(),
 			activateEyedropper: vi.fn(),
@@ -85,11 +88,17 @@ function buildHandlers(): RibbonHandlers {
 			toggleSubtitles: vi.fn(),
 			openSubtitleSettings: vi.fn(),
 			toggleHideSlide: vi.fn(),
+			showOptions: () => ({}),
+			updateShowOptions: vi.fn(),
 		},
 		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),
 		findReplace: fakeActions<FindReplaceActions>(),
 		design: { setTheme: vi.fn(), applyPresentationTheme: vi.fn() },
+		transitions: {
+			readDraft: () => ({ ...EMPTY_RIBBON_TRANSITION_DRAFT }),
+			applyDraft: vi.fn(),
+		},
 		draw: { setTool: vi.fn(), setColor: vi.fn(), setWidth: vi.fn() },
 	};
 }
@@ -187,6 +196,27 @@ describe('createRibbon', () => {
 			.find((button) => button.textContent === t('pptx.review.language'))
 			?.click();
 		expect(handlers.nav.openSettings).toHaveBeenCalledWith('general');
+	});
+
+	it('routes Design > Slide Size to the inspector card, not Document Properties', () => {
+		const t = createTranslator();
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, t, handlers);
+		ribbon.el
+			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.ribbon.slideSize')}"]`)
+			?.click();
+		// The only slide-size control is the inspector deck panel's SLIDE SIZE
+		// card, and that panel only renders with nothing selected.
+		expect(handlers.nav.clearSelection).toHaveBeenCalledOnce();
+		expect(handlers.nav.toggleInspector).toHaveBeenCalledOnce();
+		expect(handlers.file.openDocumentProperties).not.toHaveBeenCalled();
+
+		// Already open: opening it again would close it.
+		ribbon.setInspectorOpen(true);
+		ribbon.el
+			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.ribbon.slideSize')}"]`)
+			?.click();
+		expect(handlers.nav.toggleInspector).toHaveBeenCalledOnce();
 	});
 
 	it('setEditState hides the primary row and tab bar when not editable', () => {

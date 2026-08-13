@@ -1,6 +1,11 @@
 import type { PptxHandler } from 'pptx-viewer-core';
-import type { AutosaveRecord } from 'pptx-viewer-shared';
-import { getAutosaveSnapshot, saveAutosaveSnapshot } from 'pptx-viewer-shared';
+import type { AutosaveRecord, DeckSaveIntent } from 'pptx-viewer-shared';
+import {
+	getAutosaveSnapshot,
+	recoverySnapshotIntent,
+	saveAutosaveSnapshot,
+	saveDeckWithPassword,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 
@@ -9,11 +14,17 @@ import type { Store, ViewerState } from '../state';
  * recovery store (`pptx-viewer-shared/autosave-store`).
  *
  * Semantics mirror the React/Vue bindings: a local edit marks the document
- * dirty; a debounce timer then re-serializes the deck through
- * `PptxHandler.save` and persists it under `filePath` via
+ * dirty; a debounce timer then re-serializes the deck through the shared
+ * `saveDeckWithPassword` and persists it under `filePath` via
  * `saveAutosaveSnapshot` (evicting the oldest record on quota exhaustion). The
  * recovery blob is a crash-safety net only; it never clears the editor's dirty
  * flag or stands in for the user's real Save.
+ *
+ * The snapshot is written with `recoverySnapshotIntent`, so it is a plain ZIP
+ * even when the deck is password protected: `getAutosaveSnapshot` hands the
+ * bytes back with no password, and an encrypted package would simply refuse to
+ * open (see `deck-save-encryption` in `pptx-viewer-shared` for the reasoning
+ * and the cleartext-at-rest tradeoff it accepts).
  *
  * On construction it probes `getAutosaveSnapshot(filePath)` and, when a snapshot
  * from a previous session exists, offers it back through `onRecovery` so the
@@ -29,6 +40,13 @@ export interface AutosaveControllerDeps {
 	filePath: string;
 	/** Debounce window (ms) between the last edit and the persisted snapshot. */
 	intervalMs: number;
+	/**
+	 * The Protect-Presentation state, forwarded to the shared save decision.
+	 * Deliberately inert here: a recovery snapshot is written in the clear
+	 * whatever it says. It is threaded through so this path runs the same one
+	 * decision function as every real save instead of side-stepping it.
+	 */
+	getSaveIntent?: () => DeckSaveIntent;
 	/** Surface status transitions (toolbar indicator + optional host callback). */
 	onStatus?: (status: AutosaveStatus) => void;
 	/** Offered any recovery snapshot found for `filePath` on construction. */
@@ -79,7 +97,12 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 		saving = true;
 		setStatus('saving');
 		try {
-			const bytes = await handler.save(store.get().slides);
+			const bytes = await saveDeckWithPassword(
+				handler,
+				store.get().slides,
+				undefined,
+				recoverySnapshotIntent(deps.getSaveIntent?.()),
+			);
 			await saveAutosaveSnapshot(deps.filePath, bytes);
 			if (!disposed && enabled) {
 				setStatus('saved');

@@ -1,6 +1,11 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { getInlineEditorSelection, placeCaretAtEnd, remapTextToSegments } from 'pptx-viewer-shared';
+import {
+	canInteractWithElement,
+	getInlineEditorSelection,
+	placeCaretAtEnd,
+	remapTextToSegments,
+} from 'pptx-viewer-shared';
 import type { InlineTextSelection } from 'pptx-viewer-shared';
 
 import { createEl } from '../render';
@@ -20,7 +25,9 @@ import type { OverlayBox } from './selection-overlay';
  * the OMML (`textSegments[].equationXml`). Mirrors the Vue/React/Angular guard.
  */
 export function canInlineEditElement(element: PptxElement | undefined): boolean {
-	if (!element || !hasTextProperties(element) || element.locks?.noTextEdit) {
+	// The lock composition (`noSelect` subsumes `noTextEdit`) is decided once, in
+	// shared, so this never drifts from the gates on the stage.
+	if (!element || !hasTextProperties(element) || !canInteractWithElement(element, 'textEdit')) {
 		return false;
 	}
 	return !element.textSegments?.some((seg) => seg.equationXml);

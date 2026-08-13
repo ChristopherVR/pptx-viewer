@@ -78,6 +78,10 @@ function withPreview(doc: Document, button: ButtonHandle, background: string): H
  * (`THEME_PRESETS`); "Edit Theme" swaps the *viewer chrome* palette, which is
  * the only theme-editing affordance this binding has (React's own tooltip
  * admits its theme editor is not ported either).
+ *
+ * `onOpenSlideSize` reveals the inspector's SLIDE SIZE card (see `ribbon.ts`),
+ * the binding's only slide-size control. It used to open the Document
+ * Properties dialog, which has no slide-size field at all.
  */
 export function createDesignTab(
 	doc: Document,

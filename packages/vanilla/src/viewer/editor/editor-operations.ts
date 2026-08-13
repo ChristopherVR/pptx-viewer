@@ -22,6 +22,7 @@ import {
 	cloneTemplateElementsBySlideId,
 	copyFormatFromElement,
 	EditorHistory,
+	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -394,7 +395,11 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 				throw new Error('No presentation is loaded.');
 			}
 			const state = store.get();
-			const bytes = await handler.save(
+			// File > Info > Protect Presentation: the shared decision routes a
+			// protected deck through `saveEncrypted`, so the downloaded file is an
+			// encrypted OLE2 container rather than a plain ZIP.
+			const bytes = await saveDeckWithPassword(
+				handler,
 				buildSaveSlides(state.slides, state.templateElementsBySlideId),
 				{
 					sections: state.sections.length > 0 ? state.sections : undefined,
@@ -409,6 +414,10 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,
 					outputFormat: format,
+				},
+				{
+					password: state.presentationPassword,
+					passwordProtected: state.presentationPassword !== null,
 				},
 			);
 			store.set({ dirty: false });

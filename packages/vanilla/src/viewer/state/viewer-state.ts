@@ -71,6 +71,15 @@ export interface ViewerState {
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
 	isPasswordProtected: boolean;
+	/**
+	 * The File > Info > Protect Presentation secret, or null when the deck saves
+	 * in the clear. Read by the save path and handed to the shared
+	 * `planDeckSave`, which routes a protected save through `saveEncrypted` so
+	 * the produced file is an encrypted OLE2 container, not a plain ZIP.
+	 * Deliberately separate from {@link isPasswordProtected}, which the LOAD
+	 * pipeline also sets for a deck that merely arrived protected.
+	 */
+	presentationPassword: string | null;
 	/** Inherited layout/master elements, separated so interaction can be gated. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Parsed slide masters and layouts used by the dedicated master canvas. */
@@ -203,6 +212,7 @@ export function createInitialViewerState(): ViewerState {
 		hasDigitalSignatures: false,
 		digitalSignatureCount: 0,
 		isPasswordProtected: false,
+		presentationPassword: null,
 		templateElementsBySlideId: {},
 		slideMasters: [],
 		themeOptions: [],

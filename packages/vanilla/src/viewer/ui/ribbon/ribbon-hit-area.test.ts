@@ -1,3 +1,4 @@
+import { EMPTY_RIBBON_TRANSITION_DRAFT } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -65,6 +66,10 @@ function buildHandlers(): RibbonHandlers {
 		edit: fakeActions<EditActions>(),
 		findReplace: fakeActions<FindReplaceActions>(),
 		design: fakeActions<RibbonHandlers['design']>(),
+		transitions: {
+			readDraft: () => ({ ...EMPTY_RIBBON_TRANSITION_DRAFT }),
+			applyDraft: vi.fn(),
+		},
 		draw: fakeActions<RibbonHandlers['draw']>(),
 	};
 }

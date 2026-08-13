@@ -28,11 +28,13 @@ import { createEditActions } from './editor-edit-ops';
 import type { FindReplaceActions } from './editor-find-replace-actions';
 import { createFindReplaceActions } from './editor-find-replace-actions';
 import { createEditorKeydownHandler } from './editor-keyboard';
+import { selectionInteractivity } from './editor-lock-gates';
 import { createEditorOps } from './editor-operations';
 import { createStageInteractions } from './editor-stage-interactions';
 import { createMotionPathController } from './motion-path-controller';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
+import { selectedAdjustmentDescriptor } from './shape-adjust-gesture';
 
 export interface EditorControllerDeps {
 	doc: Document;
@@ -197,6 +199,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 					)
 				: [];
 		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
+		// The chrome must only offer what the selection's `a:spLocks` allow: a
+		// `noResize` shape shows no resize handles, a `noRotation` one no knob.
+		const allowed = selectionInteractivity(state);
+		overlay.setHandleVisibility({ resizable: allowed.resizable, rotatable: allowed.rotatable });
+		overlay.setAdjustHandle(selectedAdjustmentDescriptor(state), deps.getScale());
 		// View > Guides hides the overlay, never the model: `state.guides` stays
 		// whole so snapping and saving still see every guide.
 		syncAlignmentGuides(doc, overlay.root, state.showGuides ? state.guides : [], deps.getScale());
@@ -311,6 +318,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				},
 				onRotatePointerDown(event) {
 					interactions.beginHandleGesture('rotate', event);
+				},
+				onAdjustPointerDown(event) {
+					interactions.beginAdjustGesture(event);
 				},
 			});
 			motionPath.attach();

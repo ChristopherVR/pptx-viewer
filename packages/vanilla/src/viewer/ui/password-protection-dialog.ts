@@ -53,7 +53,11 @@ export function openPasswordProtectionDialog(
 	cancel.addEventListener('click', shell.close);
 	const save = createEl(doc, 'button', 'is-primary');
 	save.type = 'button';
-	save.textContent = t('pptx.common.save');
+	// `pptx.security.*`, the same keys the other four bindings use: a generic
+	// "Save" here made the submit control read differently per binding.
+	save.textContent = t(
+		options.protected ? 'pptx.security.updatePassword' : 'pptx.security.setPassword',
+	);
 	save.addEventListener('click', () => {
 		const validation = validatePasswordPair(password.input.value, confirmation.input.value);
 		if (validation) {

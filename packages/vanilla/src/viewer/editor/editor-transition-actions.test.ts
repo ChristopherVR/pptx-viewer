@@ -90,6 +90,104 @@ describe('createTransitionActions', () => {
 		expect(store.get().slides[0].transition?.durationMs).toBe(124);
 	});
 
+	it('applyTransitionDraft writes the whole ribbon draft onto the active slide', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [buildSlide('a'), buildSlide('b')],
+			currentSlide: 0,
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createTransitionActions({ store, ops });
+
+		actions.applyTransitionDraft(
+			{
+				type: 'push',
+				durationSec: 1.25,
+				advanceOnClick: false,
+				advanceAfter: true,
+				advanceAfterText: '00:03.00',
+			},
+			false,
+		);
+
+		expect(store.get().slides[0].transition).toMatchObject({
+			type: 'push',
+			durationMs: 1250,
+			advanceOnClick: false,
+			advanceAfterMs: 3000,
+		});
+		expect(store.get().slides[1].transition).toBeUndefined();
+		ops.undo();
+		expect(store.get().slides[0].transition).toBeUndefined();
+	});
+
+	it('applyTransitionDraft clears a timed advance when the After box is unticked', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a'),
+					transition: { type: 'fade', advanceAfterMs: 4000 } satisfies PptxSlideTransition,
+				},
+			],
+			currentSlide: 0,
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createTransitionActions({ store, ops });
+
+		actions.applyTransitionDraft(
+			{
+				type: 'fade',
+				durationSec: 0.7,
+				advanceOnClick: true,
+				advanceAfter: false,
+				advanceAfterText: '00:00.00',
+			},
+			false,
+		);
+
+		expect(store.get().slides[0].transition?.advanceAfterMs).toBeUndefined();
+	});
+
+	it('applyTransitionDraft copies the active slide transition to every slide on Apply to All', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				buildSlide('a'),
+				{
+					...buildSlide('b'),
+					transition: { type: 'push', direction: 'l' } satisfies PptxSlideTransition,
+				},
+				buildSlide('c'),
+			],
+			currentSlide: 1,
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createTransitionActions({ store, ops });
+
+		actions.applyTransitionDraft(
+			{
+				type: 'wipe',
+				durationSec: 0.5,
+				advanceOnClick: true,
+				advanceAfter: false,
+				advanceAfterText: '00:00.00',
+			},
+			true,
+		);
+
+		for (const slide of store.get().slides) {
+			// The active slide's own direction rides along, which is what
+			// PowerPoint's Apply To All does.
+			expect(slide.transition).toMatchObject({ type: 'wipe', durationMs: 500, direction: 'l' });
+		}
+		// One object per slide, or a later per-slide edit would leak across the deck.
+		expect(store.get().slides[0].transition).not.toBe(store.get().slides[2].transition);
+	});
+
 	it('is a no-op when the viewer is not editable', () => {
 		const store = createStore({
 			...createInitialViewerState(),

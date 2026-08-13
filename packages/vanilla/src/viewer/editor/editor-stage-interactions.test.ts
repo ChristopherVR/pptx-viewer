@@ -75,6 +75,7 @@ function setup() {
 	const overlay = createSelectionOverlay(document, createTranslator(), {
 		onHandlePointerDown: vi.fn(),
 		onRotatePointerDown: vi.fn(),
+		onAdjustPointerDown: vi.fn(),
 	});
 	overlay.mount(wrap);
 

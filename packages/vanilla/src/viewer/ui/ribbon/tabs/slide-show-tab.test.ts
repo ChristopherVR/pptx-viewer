@@ -1,3 +1,4 @@
+import type { PptxPresentationProperties } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../../i18n';
@@ -16,8 +17,23 @@ function makeHandlers(over: Partial<RibbonSlideShowHandlers> = {}): RibbonSlideS
 		toggleSubtitles: vi.fn(),
 		openSubtitleSettings: vi.fn(),
 		toggleHideSlide: vi.fn(),
+		showOptions: () => ({}),
+		updateShowOptions: vi.fn(),
 		...over,
 	};
+}
+
+/** A handler bag backed by a mutable deck, like the store the ribbon reads. */
+function withDeck(properties: PptxPresentationProperties): {
+	handlers: RibbonSlideShowHandlers;
+	properties: PptxPresentationProperties;
+} {
+	const deck: PptxPresentationProperties = { ...properties };
+	const handlers = makeHandlers({
+		showOptions: () => deck,
+		updateShowOptions: (patch) => Object.assign(deck, patch),
+	});
+	return { handlers, properties: deck };
 }
 
 function control(tab: { el: HTMLElement }, label: string): HTMLElement {
@@ -74,19 +90,65 @@ describe('createSlideShowTab', () => {
 		expect(startRehearsal).toHaveBeenCalledOnce();
 	});
 
-	it('offers the show options as toggles, with Keep Updated unavailable', () => {
+	it('disables the options the shared descriptor list marks unsupported', () => {
 		const t = createTranslator();
 		const tab = createSlideShowTab(document, t, makeHandlers());
-		expect(
-			(control(tab, t('pptx.slideShow.keepUpdated')) as HTMLInputElement).disabled,
-		).toBeTruthy();
-		for (const label of [
-			t('pptx.slideShow.useTimings'),
-			t('pptx.slideShow.playNarrations'),
-			t('pptx.slideShow.mediaControls'),
-		]) {
+		// Keep Slides Updated and Show Media Controls have no backing state in any
+		// binding, so they render disabled rather than toggling and doing nothing.
+		for (const label of [t('pptx.slideShow.keepUpdated'), t('pptx.slideShow.mediaControls')]) {
+			const input = control(tab, label) as HTMLInputElement;
+			expect(input.disabled).toBeTruthy();
+			expect(input.checked).toBeFalsy();
+		}
+		for (const label of [t('pptx.slideShow.useTimings'), t('pptx.slideShow.playNarrations')]) {
 			expect((control(tab, label) as HTMLInputElement).disabled).toBeFalsy();
 		}
+	});
+
+	it('reads the supported options off the deck instead of assuming they are on', () => {
+		const t = createTranslator();
+		const { handlers } = withDeck({ advanceMode: 'manual', showWithNarration: false });
+		const tab = createSlideShowTab(document, t, handlers);
+		expect((control(tab, t('pptx.slideShow.useTimings')) as HTMLInputElement).checked).toBeFalsy();
+		expect(
+			(control(tab, t('pptx.slideShow.playNarrations')) as HTMLInputElement).checked,
+		).toBeFalsy();
+	});
+
+	it('unticking Use Timings puts the deck into manual advance', () => {
+		const t = createTranslator();
+		const { handlers, properties } = withDeck({});
+		const tab = createSlideShowTab(document, t, handlers);
+		const input = control(tab, t('pptx.slideShow.useTimings')) as HTMLInputElement;
+		expect(input.checked).toBeTruthy();
+		input.checked = false;
+		input.dispatchEvent(new Event('change'));
+		expect(properties.advanceMode).toBe('manual');
+
+		input.checked = true;
+		input.dispatchEvent(new Event('change'));
+		expect(properties.advanceMode).toBe('useTimings');
+	});
+
+	it('unticking Play Narrations turns the deck narration flag off', () => {
+		const t = createTranslator();
+		const { handlers, properties } = withDeck({});
+		const tab = createSlideShowTab(document, t, handlers);
+		const input = control(tab, t('pptx.slideShow.playNarrations')) as HTMLInputElement;
+		input.checked = false;
+		input.dispatchEvent(new Event('change'));
+		expect(properties).toStrictEqual({ showWithNarration: false });
+	});
+
+	it('syncOptions re-reads the deck after the Set Up Show dialog changes it', () => {
+		const t = createTranslator();
+		const { handlers, properties } = withDeck({});
+		const tab = createSlideShowTab(document, t, handlers);
+		const input = control(tab, t('pptx.slideShow.useTimings')) as HTMLInputElement;
+		expect(input.checked).toBeTruthy();
+		properties.advanceMode = 'manual';
+		tab.syncOptions();
+		expect(input.checked).toBeFalsy();
 	});
 
 	it('keeps Custom Shows usable, because this binding actually implements it', () => {

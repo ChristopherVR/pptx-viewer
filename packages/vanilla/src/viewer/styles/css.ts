@@ -431,11 +431,31 @@ const CHROME_CSS = `
 	touch-action: none;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
+/* PowerPoint's shape-adjustment handle: the amber diamond that reshapes a
+   preset (a:avLst) instead of resizing its box. Rotated 45deg rather than
+   drawn as a path so it scales with the coarse-pointer bump below. */
+.pptxv-adjust-handle {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	padding: 0;
+	border: 1px solid #b45309;
+	border-radius: 1px;
+	background: #fbbf24;
+	transform: rotate(45deg);
+	cursor: ew-resize;
+	pointer-events: auto;
+	/* The handle must own its touch gesture (no scroll/zoom stealing). */
+	touch-action: none;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
 /* On coarse (touch) pointers a 10px handle is far too small to grab reliably;
-   grow the resize/rotate hit targets to a finger-friendly size. */
+   grow the resize/rotate/adjust hit targets to a finger-friendly size. */
 @media (pointer: coarse) {
 	.pptxv-sel-handle { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
 	.pptxv-rotate-knob { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
+	.pptxv-adjust-handle { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
 }
 .pptxv-snap-layer {
 	position: absolute;

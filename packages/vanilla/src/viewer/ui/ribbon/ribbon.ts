@@ -132,19 +132,27 @@ export function createRibbon(
 				() => handlers.nav.openHyperlink(),
 			);
 	const drawTab: DrawTab | null = hidden('draw') ? null : createDrawTab(doc, t, handlers.draw);
+	let inspectorOpen = false;
+	const openInspector = (): void => handlers.nav.toggleInspector?.();
+	/**
+	 * Design > Slide Size. The only slide-size control this binding has is the
+	 * inspector's SLIDE SIZE card (`inspector/deck-panel.ts`), and the deck panel
+	 * only renders with nothing selected, so reach it by dropping the selection
+	 * and opening the inspector. It used to open Document Properties, a dialog
+	 * with no slide-size control in it at all.
+	 */
+	const openSlideSize = (): void => {
+		handlers.nav.clearSelection?.();
+		if (!inspectorOpen) {
+			openInspector();
+		}
+	};
 	const designTab: DesignTab | null = hidden('design')
 		? null
-		: createDesignTab(
-				doc,
-				t,
-				handlers.design,
-				() => formatBackgroundPanel.toggle(),
-				() => handlers.file.openDocumentProperties(),
-			);
-	const openInspector = (): void => handlers.nav.toggleInspector?.();
+		: createDesignTab(doc, t, handlers.design, () => formatBackgroundPanel.toggle(), openSlideSize);
 	const transitionsTab: TransitionsTab | null = hidden('transitions')
 		? null
-		: createTransitionsTab(doc, t, handlers.edit, openInspector);
+		: createTransitionsTab(doc, t, handlers.transitions, openInspector);
 	const animationsTab: AnimationsTab | null = hidden('animations')
 		? null
 		: createAnimationsTab(doc, t, handlers.edit, openInspector);
@@ -257,6 +265,12 @@ export function createRibbon(
 			formatBackgroundPanel.setEditable(editable);
 			designTab?.setEditable(editable);
 			transitionsTab?.setEditable(editable);
+			// `setEditable` runs on every store change (see `editing-chrome-sync`),
+			// which is what keeps these two tabs reading the deck: the Transitions
+			// draft follows the active slide, and the Slide Show Options checkboxes
+			// follow the show settings even when the Set Up dialog changed them.
+			transitionsTab?.sync();
+			slideShowTab?.syncOptions();
 			syncHome();
 			syncAnimations();
 		},
@@ -266,7 +280,10 @@ export function createRibbon(
 		setHasMacros: (hasMacros) => fileTab?.setHasMacros(hasMacros),
 		setSubtitlesVisible: (visible) => slideShowTab?.setSubtitlesVisible(visible),
 		setHideSlideActive: (active) => slideShowTab?.setHideSlideActive(active),
-		setInspectorOpen: (open) => primary.setInspectorOpen(open),
+		setInspectorOpen: (open) => {
+			inspectorOpen = open;
+			primary.setInspectorOpen(open);
+		},
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		setHiddenOptionTabs,
 		applyScreenTips: (tip) => tabBar.applyScreenTips(tip),

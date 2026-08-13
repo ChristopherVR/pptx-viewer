@@ -29,6 +29,8 @@ export interface StageInteractions {
 	onStagePointerMove(event: PointerEvent): void;
 	onStageDblClick(event: MouseEvent): void;
 	beginHandleGesture(kind: 'resize' | 'rotate', event: PointerEvent, handle?: ResizeHandleId): void;
+	/** Begin dragging the amber shape-adjustment (`a:avLst`) diamond. */
+	beginAdjustGesture(event: PointerEvent): void;
 	closeInline(commit: boolean): void;
 	inlineActive(): boolean;
 	dispose(): void;

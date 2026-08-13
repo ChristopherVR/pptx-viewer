@@ -1,5 +1,5 @@
 import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
-import { toggleBlackboard } from 'pptx-viewer-shared';
+import { readRibbonTransitionDraft, toggleBlackboard } from 'pptx-viewer-shared';
 import type {
 	PresentationPointerState,
 	PresentationPointerTool,
@@ -537,6 +537,14 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		toggleInspector: () => host.store.set({ inspectorOpen: !host.store.get().inspectorOpen }),
 		selectElement: (id) => host.selectElements([id]),
+		clearSelection: () => host.selectElements([]),
+		// Plain store reads: the ribbon builds (and first reads) before the editor
+		// controller exists, so these cannot go through `getEditActions`.
+		readTransitionDraft: () => {
+			const state = host.store.get();
+			return readRibbonTransitionDraft(state.slides[state.currentSlide]);
+		},
+		presentationProperties: () => host.store.get().presentationProperties,
 		save: () => void host.downloadPptx(),
 		downloadAs: (format) => host.downloadAs(format),
 		packageForSharing: () => host.packageForSharing(),

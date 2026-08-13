@@ -15,6 +15,7 @@
  */
 import {
 	buildContextMenuEntries,
+	clampFlyoutPosition,
 	isElementIdInteractive,
 	resolveContextMenuElementId,
 } from 'pptx-viewer-shared';
@@ -54,14 +55,26 @@ export interface ElementContextMenu {
 	destroy(): void;
 }
 
-/** Keep the menu inside the window: at the right/bottom edge it flips back inwards. */
+/**
+ * Keep the menu inside the window: at the right/bottom edge it flips back
+ * inwards. The clamp itself is shared (`clampFlyoutPosition`), because Vanilla
+ * was the only binding that had a correct two-sided version of it and Svelte
+ * shipped a one-sided copy that put its menu below the fold.
+ */
 function positionMenu(menu: HTMLElement, doc: Document, x: number, y: number): void {
 	const view = doc.defaultView;
 	const box = menu.getBoundingClientRect();
-	const width = view?.innerWidth ?? box.right;
-	const height = view?.innerHeight ?? box.bottom;
-	menu.style.left = `${Math.max(4, Math.min(x, width - box.width - 4))}px`;
-	menu.style.top = `${Math.max(4, Math.min(y, height - box.height - 4))}px`;
+	const { left, top } = clampFlyoutPosition({
+		x,
+		y,
+		width: box.width,
+		height: box.height,
+		viewportWidth: view?.innerWidth ?? box.right,
+		viewportHeight: view?.innerHeight ?? box.bottom,
+		margin: 4,
+	});
+	menu.style.left = `${left}px`;
+	menu.style.top = `${top}px`;
 }
 
 /** Attach the element context menu to the editing canvas. */

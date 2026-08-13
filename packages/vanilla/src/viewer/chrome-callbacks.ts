@@ -1,5 +1,5 @@
-import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
-import type { ViewerTheme } from 'pptx-viewer-shared';
+import type { PptxPresentationProperties, PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
+import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
@@ -64,6 +64,8 @@ export interface ChromeCallbackDeps {
 	toggleInspector(): void;
 	/** Select a single element by id (inspector Elements tab). */
 	selectElement(id: string): void;
+	/** Drop the current selection (Design > Slide Size opens the deck panel). */
+	clearSelection(): void;
 	goToSlide(index: number): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
@@ -78,6 +80,15 @@ export interface ChromeCallbackDeps {
 	createPresentation(templateId: string): void;
 	/** Lazily resolve the editor's edit actions (editor is built after chrome). */
 	getEditActions(): EditActions;
+	/**
+	 * Store reads the ribbon needs WHILE IT IS BEING BUILT, which is before the
+	 * editor exists: the Transitions tab seeds its draft from the active slide
+	 * and the Slide Show tab's Options checkboxes from the deck's show settings.
+	 * Routing them through `getEditActions` would dereference an editor that is
+	 * not there yet.
+	 */
+	readTransitionDraft(): RibbonTransitionDraft;
+	presentationProperties(): PptxPresentationProperties;
 	/** Lazily resolve the editor's find/replace actions (same timing as edit actions). */
 	getFindReplaceActions(): FindReplaceActions;
 	/** Swap the viewer chrome's `ViewerTheme` (Design tab theme gallery). */
@@ -125,6 +136,7 @@ export function buildChromeCallbacks(
 			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
 			toggleMasterView: () => deps.toggleMasterNavigation(),
 			toggleInspector: () => deps.toggleInspector(),
+			clearSelection: () => deps.clearSelection(),
 			toggleViewOption: (option) => deps.getEditActions().toggleViewOption(option),
 			addGuide: (axis) => deps.getEditActions().addGuide(axis),
 			activateEyedropper: () => deps.getEditActions().activateEyedropper(),
@@ -169,6 +181,11 @@ export function buildChromeCallbacks(
 			openCustomShows: () => deps.openCustomShows(),
 			toggleSubtitles: () => deps.toggleSubtitles(),
 			openSubtitleSettings: () => deps.openSetUpSlideShow(),
+			// The Options cluster writes the deck's show settings through the same
+			// deck action the Set Up Show dialog and the inspector's PRESENTATION
+			// card use, so all three surfaces agree.
+			showOptions: () => deps.presentationProperties(),
+			updateShowOptions: (patch) => deps.getEditActions().updatePresentationSettings(patch),
 		},
 		// Every editing action delegates to the (lazily-resolved) editor edit
 		// actions, so a click after mount always hits the live editor instance.
@@ -188,6 +205,11 @@ export function buildChromeCallbacks(
 		design: {
 			setTheme: (theme) => deps.setTheme(theme),
 			applyPresentationTheme: (presetId) => deps.applyPresentationTheme(presetId),
+		},
+		transitions: {
+			readDraft: () => deps.readTransitionDraft(),
+			applyDraft: (draft, applyToAll) =>
+				deps.getEditActions().applyTransitionDraft(draft, applyToAll),
 		},
 		draw: {
 			setTool: (tool) => deps.setDrawTool(tool),

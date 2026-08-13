@@ -1,5 +1,10 @@
-import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { isActionHidden } from 'pptx-viewer-shared';
+import type { SlideShowOptionDescriptor, ToolbarActionId } from 'pptx-viewer-shared';
+import {
+	isActionHidden,
+	readSlideShowOption,
+	slideShowOptionChange,
+	SLIDE_SHOW_OPTIONS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -11,33 +16,64 @@ export interface SlideShowTab {
 	setSubtitlesVisible(visible: boolean): void;
 	/** Reflect the active slide's `hidden` flag on the Hide Slide toggle. */
 	setHideSlideActive(active: boolean): void;
+	/** Re-read the Options checkboxes from the deck's show settings. */
+	syncOptions(): void;
 }
 
-/** A show option rendered as a labelled checkbox, mirroring React's `RibbonToggle`. */
+/** One Options checkbox plus the shared descriptor that decided how it behaves. */
+interface OptionToggle {
+	el: HTMLLabelElement;
+	descriptor: SlideShowOptionDescriptor;
+	input: HTMLInputElement;
+}
+
+/**
+ * A show option rendered as a labelled checkbox, mirroring React's
+ * `RibbonToggle`.
+ *
+ * The shared `SLIDE_SHOW_OPTIONS` descriptor decides everything: an
+ * `unsupported` entry (Keep Slides Updated, Show Media Controls) renders
+ * disabled and unchecked because no binding has any state behind it, and the
+ * other two read and write the deck's real `p:showPr` flags. These checkboxes
+ * previously had no change listener at all, so all four were inert and "Use
+ * Timings" claimed to be on whether or not the deck said so.
+ */
 function optionToggle(
 	doc: Document,
-	label: string,
-	checked: boolean,
-	disabled: boolean,
-): HTMLLabelElement {
+	t: Translator,
+	descriptor: SlideShowOptionDescriptor,
+	handlers: Pick<RibbonSlideShowHandlers, 'showOptions' | 'updateShowOptions'>,
+): OptionToggle {
+	const label = t(descriptor.labelKey);
 	const el = createEl(doc, 'label', 'pptxv-show-option');
 	const input = doc.createElement('input');
 	input.type = 'checkbox';
-	input.checked = checked;
-	input.disabled = disabled;
+	input.disabled = descriptor.unsupported;
 	input.setAttribute('aria-label', label);
+	if (!descriptor.unsupported) {
+		input.addEventListener('change', () => {
+			const change = slideShowOptionChange(descriptor.id, input.checked);
+			if (change) {
+				handlers.updateShowOptions(change);
+			}
+		});
+	}
 	el.append(input, doc.createTextNode(label));
-	return el;
+	return { el, descriptor, input };
 }
 
 /**
  * The Slide Show ribbon tab: Start, Present, Set Up and Options, matching
  * React's `SlideShowSection`.
  *
- * The commands with no implementation in any binding (Rehearse with Coach,
- * Hide Slide, Keep Slides Updated) ship disabled rather than absent, so the
- * tab reads the same everywhere and a user is never told a feature is missing
- * in one binding only. Custom Shows is the one deliberate divergence: React
+ * The commands with no implementation in any binding (Rehearse with Coach, and
+ * the two Options entries the shared descriptor list marks `unsupported`) ship
+ * disabled rather than absent, so the tab reads the same everywhere and a user
+ * is never told a feature is missing in one binding only. The Options cluster
+ * itself is rendered from the shared `SLIDE_SHOW_OPTIONS` and reads/writes the
+ * deck's real show settings, so unticking Use Timings actually stops the
+ * auto-advance (`presentation-auto-advance.ts` reads `advanceMode`).
+ * Custom Shows is the one deliberate divergence: React
  * disables it, this binding has a working dialog for it, and disabling a
  * feature that works to match a placeholder would be the wrong trade.
  */
@@ -129,12 +165,20 @@ export function createSlideShowTab(
 	});
 
 	const options = createEl(doc, 'div', 'pptxv-show-options');
-	options.append(
-		optionToggle(doc, t('pptx.slideShow.keepUpdated'), false, true),
-		optionToggle(doc, t('pptx.slideShow.useTimings'), true, false),
-		optionToggle(doc, t('pptx.slideShow.playNarrations'), true, false),
-		optionToggle(doc, t('pptx.slideShow.mediaControls'), true, false),
+	const optionToggles = SLIDE_SHOW_OPTIONS.map((descriptor) =>
+		optionToggle(doc, t, descriptor, handlers),
 	);
+	options.append(...optionToggles.map((toggle) => toggle.el));
+	/** Pull the two supported flags back off the deck (shared `readSlideShowOption`). */
+	const syncOptions = (): void => {
+		const properties = handlers.showOptions();
+		for (const toggle of optionToggles) {
+			toggle.input.checked = toggle.descriptor.unsupported
+				? false
+				: readSlideShowOption(properties, toggle.descriptor.id);
+		}
+	};
+	syncOptions();
 
 	el.append(
 		fromBeginning.btn,
@@ -153,6 +197,7 @@ export function createSlideShowTab(
 	);
 	return {
 		el,
+		syncOptions,
 		setSubtitlesVisible: (visible) => subtitles.setActive(visible),
 		setHideSlideActive: (active) => {
 			hideSlide.setActive(active);

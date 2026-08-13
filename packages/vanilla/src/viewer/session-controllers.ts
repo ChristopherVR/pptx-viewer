@@ -97,6 +97,12 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		getHandler: deps.getHandler,
 		filePath: options.autosaveFilePath ?? DEFAULT_AUTOSAVE_FILE_PATH,
 		intervalMs: options.autosaveIntervalMs ?? DEFAULT_AUTOSAVE_INTERVAL_MS,
+		// Threaded through only so the snapshot uses the shared save decision;
+		// a recovery snapshot stays plaintext whatever the protection state is.
+		getSaveIntent: () => ({
+			password: deps.store.get().presentationPassword,
+			passwordProtected: deps.store.get().isPasswordProtected,
+		}),
 		onStatus: (status) => {
 			deps
 				.getChrome()

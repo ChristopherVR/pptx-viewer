@@ -1,4 +1,4 @@
-import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
+import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor, SnapLine } from 'pptx-viewer-shared';
 import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -28,6 +28,18 @@ export interface OverlayBox {
 export interface SelectionOverlayHooks {
 	onHandlePointerDown(handle: ResizeHandleId, event: PointerEvent): void;
 	onRotatePointerDown(event: PointerEvent): void;
+	/** Pointerdown on the amber `a:avLst` adjustment diamond. */
+	onAdjustPointerDown(event: PointerEvent): void;
+}
+
+/**
+ * Which selection chrome the current selection's `a:spLocks` still allow. A
+ * pinned (`noMove`) shape keeps its handles; a `noResize` one must not show the
+ * eight it cannot use, or the affordance lies about what will happen.
+ */
+export interface SelectionHandleVisibility {
+	resizable: boolean;
+	rotatable: boolean;
 }
 
 export interface SelectionOverlay {
@@ -37,6 +49,10 @@ export interface SelectionOverlay {
 	mount(host: HTMLElement): void;
 	/** Position the selection box (element px + stage scale), or hide it. */
 	setBox(box: OverlayBox | null, scale: number): void;
+	/** Show/hide the resize handles and rotate knob per the selection's locks. */
+	setHandleVisibility(visibility: SelectionHandleVisibility): void;
+	/** Place (or hide) the amber shape-adjustment diamond, in element px. */
+	setAdjustHandle(descriptor: ShapeAdjustmentHandleDescriptor | null, scale: number): void;
 	/** Render transient snap-alignment lines (element px + stage scale). */
 	setSnapLines(lines: readonly SnapLine[], scale: number): void;
 	/** Hide the selection chrome while the inline text editor is open. */
@@ -74,6 +90,7 @@ export function createSelectionOverlay(
 	knob.addEventListener('pointerdown', (event) => hooks.onRotatePointerDown(event));
 	box.appendChild(knob);
 
+	const resizeHandles: HTMLElement[] = [];
 	for (const handle of RESIZE_HANDLES) {
 		const { fx, fy } = RESIZE_HANDLE_GEOMETRY[handle];
 		const btn = createEl(doc, 'button', 'pptxv-sel-handle', {
@@ -87,7 +104,18 @@ export function createSelectionOverlay(
 		btn.setAttribute('aria-label', t('pptx.selectionOverlay.resize', { handle }));
 		btn.addEventListener('pointerdown', (event) => hooks.onHandlePointerDown(handle, event));
 		box.appendChild(btn);
+		resizeHandles.push(btn);
 	}
+
+	// PowerPoint's amber adjustment diamond (`a:avLst`). Hidden until a shape
+	// with an adjustable preset is the sole selection; shared decides both.
+	const adjust = createEl(doc, 'button', 'pptxv-adjust-handle');
+	adjust.type = 'button';
+	adjust.hidden = true;
+	adjust.setAttribute('data-pptx-compact', '');
+	adjust.setAttribute('aria-label', t('pptx.selectionOverlay.adjust'));
+	adjust.addEventListener('pointerdown', (event) => hooks.onAdjustPointerDown(event));
+	box.appendChild(adjust);
 
 	const linesLayer = createEl(doc, 'div', 'pptxv-snap-layer');
 	root.appendChild(linesLayer);
@@ -119,6 +147,25 @@ export function createSelectionOverlay(
 			// on mobile, where React's has shrunk below 1px.
 			box.style.borderWidth = `${scale}px`;
 			box.style.transform = nextBox.rotation ? `rotate(${nextBox.rotation}deg)` : 'none';
+		},
+		setHandleVisibility({ resizable, rotatable }) {
+			for (const handle of resizeHandles) {
+				handle.hidden = !resizable;
+			}
+			stem.hidden = !rotatable;
+			knob.hidden = !rotatable;
+		},
+		setAdjustHandle(descriptor, scale) {
+			adjust.hidden = descriptor === null;
+			if (!descriptor) {
+				return;
+			}
+			// `left`/`top` are element-local px from the element top-left, and the
+			// diamond is a child of the box (already placed at `x * scale`), so the
+			// offsets only need the same scale applied.
+			adjust.style.left = `${descriptor.left * scale}px`;
+			adjust.style.top = `${descriptor.top * scale}px`;
+			adjust.style.cursor = descriptor.cursor;
 		},
 		setSnapLines(lines, scale) {
 			linesLayer.replaceChildren();

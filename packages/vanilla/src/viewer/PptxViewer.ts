@@ -809,11 +809,13 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	openPasswordProtection(): void {
 		openPasswordProtectionDialog(this.doc, this.t, {
 			protected: this.store.get().isPasswordProtected,
-			onSet: () => {
-				this.store.set({ isPasswordProtected: true });
+			// The secret is kept, not just the badge: the save path reads it and
+			// serialises through `saveEncrypted` (shared `planDeckSave`).
+			onSet: (password) => {
+				this.store.set({ isPasswordProtected: true, presentationPassword: password });
 			},
 			onRemove: () => {
-				this.store.set({ isPasswordProtected: false });
+				this.store.set({ isPasswordProtected: false, presentationPassword: null });
 			},
 		});
 	}

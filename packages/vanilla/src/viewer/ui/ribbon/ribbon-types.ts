@@ -1,5 +1,5 @@
-import type { PptxElementAnimation } from 'pptx-viewer-core';
-import type { ViewerTheme } from 'pptx-viewer-shared';
+import type { PptxElementAnimation, PptxPresentationProperties } from 'pptx-viewer-core';
+import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
 import type { FindReplaceActions } from '../../editor/editor-find-replace-actions';
@@ -47,6 +47,12 @@ export interface RibbonNavHandlers {
 	toggleMasterView?(): void;
 	/** Show/hide the right-hand property inspector (React's panel toggle). */
 	toggleInspector?(): void;
+	/**
+	 * Drop the current selection. Design > Slide Size needs it: the slide-size
+	 * fields live on the inspector's DECK panel, which only renders when nothing
+	 * is selected.
+	 */
+	clearSelection?(): void;
 	toggleViewOption(
 		option: 'showGrid' | 'showRulers' | 'showGuides' | 'snapToGrid' | 'snapToShape',
 	): void;
@@ -104,6 +110,35 @@ export interface RibbonSlideShowHandlers {
 	openCustomShows(): void;
 	toggleSubtitles(): void;
 	openSubtitleSettings(): void;
+	/**
+	 * The deck's show settings, for the Options cluster's checkbox state (shared
+	 * `readSlideShowOption` turns them into ticks).
+	 */
+	showOptions(): PptxPresentationProperties;
+	/**
+	 * Commit an Options-cluster change onto the deck's show settings. Routes to
+	 * the same history-integrated `updatePresentationProperties` path the Set Up
+	 * Show dialog uses, so unticking Use Timings really does stop the show
+	 * auto-advancing.
+	 */
+	updateShowOptions(patch: Partial<PptxPresentationProperties>): void;
+}
+
+/**
+ * Transitions tab handlers, expressed in the shared `ribbon-transitions`
+ * vocabulary: what the controls should show for the active slide, and what a
+ * change to any of them commits.
+ *
+ * The read is deliberately NOT an `EditActions` method: the ribbon is built
+ * before the editor controller exists (see `createLazyActions`), and the tab
+ * reads its initial state while it is being constructed. Reading the store
+ * directly is the only thing available that early.
+ */
+export interface RibbonTransitionHandlers {
+	/** The draft the tab's controls should show for the ACTIVE slide. */
+	readDraft(): RibbonTransitionDraft;
+	/** Commit the tab's whole draft, onto the active slide or every slide. */
+	applyDraft(draft: RibbonTransitionDraft, applyToAll: boolean): void;
 }
 
 /**
@@ -163,6 +198,8 @@ export interface RibbonHandlers {
 	findReplace: FindReplaceActions;
 	/** Design tab's viewer-chrome theme swap (Format Background routes through `edit`). */
 	design: RibbonDesignHandlers;
+	/** Transitions tab's draft read/commit pair. */
+	transitions: RibbonTransitionHandlers;
 	/** Draw tab's tool/colour/width switches (the stroke commit itself routes through `edit`). */
 	draw: RibbonDrawHandlers;
 }
