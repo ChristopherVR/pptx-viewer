@@ -16,7 +16,7 @@ import {
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStyleContext } from '../internal/shared';
-import { DEFAULT_FONT_FAMILY } from '../internal/shared';
+import { DEFAULT_FONT_FAMILY, tableContainerCss } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { LoadContentService } from './load-content.service';
 import { buildColStyles, buildTableViewModel } from './table-renderer-helpers';
@@ -96,6 +96,17 @@ export class TableRendererComponent {
 
 	/** The mounted `<input>` for the active cell edit, if any. */
 	private readonly cellInput = viewChild<ElementRef<HTMLInputElement>>('cellInput');
+
+	/**
+	 * `<table>`-level style beyond the font stack: `a:tblPr@rtl` mirrors the
+	 * column order for right-to-left decks. Decided in shared so all five
+	 * bindings honour the flag identically.
+	 */
+	readonly tableRootStyle = computed<StyleMap>(() => {
+		const el = this.element();
+		const data = el.type === 'table' ? el.tableData : undefined;
+		return tableContainerCss(data) as StyleMap;
+	});
 
 	/** Pre-computed `<col>` styles for the colgroup. */
 	readonly colStyles = computed<StyleMap[]>(() => buildColStyles(this.element()));

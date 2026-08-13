@@ -128,21 +128,28 @@
 			preserveAspectRatio="xMidYMid meet"
 			[attr.data-layout-family]="layout().family"
 		>
-			@for (conn of layout().connectors; track conn.key) {
-				<path [attr.d]="conn.d" fill="none" stroke="#94a3b8" stroke-width="1.5" opacity="0.5" />
+			@for (conn of layout().connectors; track conn.key; let ci = $index) {
+				<path
+					[attr.d]="layoutConnectors()[ci]!.d"
+					fill="none"
+					[attr.stroke]="layoutConnectors()[ci]!.stroke"
+					[attr.stroke-width]="layoutConnectors()[ci]!.strokeWidth"
+					[attr.opacity]="layoutConnectors()[ci]!.opacity"
+					[attr.stroke-dasharray]="layoutConnectors()[ci]!.dash ?? null"
+				/>
 			}
-			@for (node of layout().nodes; track node.key) {
+			@for (node of layout().nodes; track node.key; let ni = $index) {
 				<g
 					[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
 					[class.pptx-ng-smartart-node--editable]="canEditNodes()"
 					[attr.tabindex]="canEditNodes() ? 0 : null"
 					[attr.role]="canEditNodes() ? 'button' : 'img'"
-					[attr.aria-label]="nodeAriaLabel(node) ?? node.text"
-					[attr.data-smartart-node-id]="nodeKeyId(node)"
-					(dblclick)="onNodeDblClick($event, node)"
-					(keydown)="onNodeKeydown($event, node)"
+					[attr.aria-label]="nodeAriaLabel(ni) ?? node.text"
+					[attr.data-smartart-node-id]="nodeIdAt(ni)"
+					(dblclick)="onNodeDblClick($event, node, ni)"
+					(keydown)="onNodeKeydown($event, node, ni)"
 				>
-					@if (nodeAriaLabel(node); as title) {
+					@if (nodeAriaLabel(ni); as title) {
 						<title>{{ title }}</title>
 					}
 					@if (asCircle(node); as c) {
@@ -155,17 +162,6 @@
 							[attr.stroke-width]="c.strokeWidth"
 							[attr.opacity]="c.opacity"
 						/>
-						<text
-							[attr.x]="c.cx"
-							text-anchor="middle"
-							dominant-baseline="central"
-							fill="white"
-							[attr.font-size]="c.fontSize"
-						>
-							@for (line of textLines(c.text, c.fontSize); track $index) {
-								<tspan [attr.x]="c.cx" [attr.y]="c.cy + line.y">{{ line.text }}</tspan>
-							}
-						</text>
 					} @else if (asPolygon(node); as p) {
 						<polygon
 							[attr.points]="p.points"
@@ -174,19 +170,6 @@
 							[attr.stroke-width]="p.strokeWidth"
 							[attr.opacity]="p.opacity"
 						/>
-						<text
-							[attr.x]="p.textX"
-							text-anchor="middle"
-							dominant-baseline="central"
-							fill="white"
-							[attr.font-size]="p.fontSize"
-						>
-							@for (line of textLines(p.text, p.fontSize); track $index) {
-								<tspan [attr.x]="p.textX" [attr.y]="p.textY + line.y">
-									{{ line.text }}
-								</tspan>
-							}
-						</text>
 					} @else if (asRect(node); as r) {
 						<rect
 							[attr.x]="r.x"
@@ -199,15 +182,25 @@
 							[attr.stroke-width]="r.strokeWidth"
 							[attr.opacity]="r.opacity"
 						/>
+					}
+					<!--
+						Node label. Placement, colour, weight and baseline arrive
+						already decided from the shared `smartArtNodeLabel`, so an
+						off-centre caption (target leader, gear legend row, timeline
+						caption above / below the axis) lands beside its node.
+					-->
+					@if (layoutLabels()[ni]!.visible) {
 						<text
-							[attr.x]="r.textX"
-							text-anchor="middle"
-							dominant-baseline="central"
-							fill="white"
-							[attr.font-size]="r.fontSize"
+							[attr.x]="layoutLabels()[ni]!.x"
+							[attr.text-anchor]="layoutLabels()[ni]!.textAnchor"
+							[attr.dominant-baseline]="layoutLabels()[ni]!.dominantBaseline"
+							[attr.fill]="layoutLabels()[ni]!.fill"
+							[attr.font-size]="layoutLabels()[ni]!.fontSize"
+							[attr.font-weight]="layoutLabels()[ni]!.fontWeight ?? null"
+							[attr.font-style]="layoutLabels()[ni]!.fontStyle ?? null"
 						>
-							@for (line of textLines(r.text, r.fontSize); track $index) {
-								<tspan [attr.x]="r.textX" [attr.y]="r.textY + line.y">
+							@for (line of layoutLabels()[ni]!.lines; track $index) {
+								<tspan [attr.x]="layoutLabels()[ni]!.x" [attr.y]="line.y">
 									{{ line.text }}
 								</tspan>
 							}

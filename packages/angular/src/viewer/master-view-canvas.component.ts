@@ -8,11 +8,13 @@ import type {
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
 
-import type { CanvasSize } from '../internal/shared';
-import { DEFAULT_MASTER_PAGE_SIZE } from '../internal/shared';
+import type { CanvasSize, MasterViewDocument, MasterViewTarget } from '../internal/shared';
+import {
+	DEFAULT_MASTER_PAGE_SIZE,
+	masterViewPseudoSlide,
+	updateMasterViewElement,
+} from '../internal/shared';
 import { SlideCanvasComponent } from './slide-canvas.component';
-
-type MasterPart = PptxNotesMaster | PptxHandoutMaster;
 
 /** Editable Angular canvas for slide, notes, and handout master parts. */
 @Component({
@@ -79,6 +81,8 @@ export class MasterViewCanvasComponent {
 
 	readonly notesMasterChange = output<PptxNotesMaster>();
 	readonly handoutMasterChange = output<PptxHandoutMaster>();
+	/** Slide-master / layout shape-tree edits made on the Slides tab. */
+	readonly slideMastersChange = output<PptxSlideMaster[]>();
 
 	protected readonly selectedIds = signal<readonly string[]>([]);
 	protected readonly editingId = signal<string | null>(null);
@@ -96,30 +100,22 @@ export class MasterViewCanvasComponent {
 				? 'Handout Master'
 				: 'Slide Master',
 	);
-	protected readonly pseudoSlide = computed<PptxSlide | undefined>(() => {
-		if (this.tab() === 'notes') {
-			return this.partAsSlide(this.notesMaster());
-		}
-		if (this.tab() === 'handout') {
-			return this.partAsSlide(this.handoutMaster());
-		}
-		const master = this.slideMasters()[this.activeMasterIndex()];
-		if (!master) {
-			return undefined;
-		}
-		const layoutIndex = this.activeLayoutIndex();
-		const layout = layoutIndex === null ? undefined : master.layouts?.[layoutIndex];
-		return {
-			id: layout?.path ?? master.path,
-			rId: '',
-			slideNumber: 0,
-			elements: layout
-				? [...(master.elements ?? []), ...(layout.elements ?? [])]
-				: (master.elements ?? []),
-			backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
-			backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
-		};
-	});
+	/** The document + target shape the shared master-view rules operate on. */
+	private readonly masterViewDocument = computed<MasterViewDocument>(() => ({
+		slideMasters: this.slideMasters(),
+		notesMaster: this.notesMaster(),
+		handoutMaster: this.handoutMaster(),
+	}));
+
+	private readonly masterViewTarget = computed<MasterViewTarget>(() => ({
+		tab: this.tab(),
+		masterIndex: this.activeMasterIndex(),
+		layoutIndex: this.activeLayoutIndex(),
+	}));
+
+	protected readonly pseudoSlide = computed<PptxSlide | undefined>(() =>
+		masterViewPseudoSlide(this.masterViewDocument(), this.masterViewTarget()),
+	);
 
 	protected selectElement(event: { id: string; additive: boolean }): void {
 		if (event.additive) {
@@ -135,42 +131,40 @@ export class MasterViewCanvasComponent {
 		id: string;
 		box: { x?: number; y?: number; width?: number; height?: number; rotation?: number };
 	}): void {
-		this.updateAuxiliaryElement(event.id, event.box);
+		this.updateMasterElement(event.id, event.box);
 	}
 
 	protected commitText(event: { id: string; text: string }): void {
-		this.updateAuxiliaryElement(event.id, { text: event.text, textSegments: [] });
+		this.updateMasterElement(event.id, { text: event.text, textSegments: [] });
 		this.editingId.set(null);
 	}
 
-	private updateAuxiliaryElement(id: string, patch: Partial<PptxElement>): void {
-		const part = this.tab() === 'notes' ? this.notesMaster() : this.handoutMaster();
-		if (!part || this.tab() === 'slides') {
+	/**
+	 * Route one element edit back to the part that owns it.
+	 *
+	 * This used to bail outright on the Slides tab, so every drag, rotate and
+	 * text commit made on a slide master or layout was silently discarded.
+	 * The routing decision now lives in `pptx-viewer-shared`, which also knows
+	 * that a layout canvas paints its master's artwork too.
+	 */
+	private updateMasterElement(id: string, patch: Partial<PptxElement>): void {
+		const write = updateMasterViewElement(
+			this.masterViewDocument(),
+			this.masterViewTarget(),
+			id,
+			patch,
+		);
+		if (!write) {
 			return;
 		}
-		const next = {
-			...part,
-			elements: (part.elements ?? []).map((element) =>
-				element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
-			),
-		};
-		if (this.tab() === 'notes') {
-			this.notesMasterChange.emit(next as PptxNotesMaster);
-		} else {
-			this.handoutMasterChange.emit(next as PptxHandoutMaster);
+		if (write.slideMasters) {
+			this.slideMastersChange.emit(write.slideMasters);
 		}
-	}
-
-	private partAsSlide(part: MasterPart | undefined): PptxSlide | undefined {
-		return part
-			? {
-					id: part.path,
-					rId: '',
-					slideNumber: 0,
-					elements: part.elements ?? [],
-					backgroundColor: part.backgroundColor,
-					backgroundImage: part.backgroundImage,
-				}
-			: undefined;
+		if (write.notesMaster) {
+			this.notesMasterChange.emit(write.notesMaster);
+		}
+		if (write.handoutMaster) {
+			this.handoutMasterChange.emit(write.handoutMaster);
+		}
 	}
 }

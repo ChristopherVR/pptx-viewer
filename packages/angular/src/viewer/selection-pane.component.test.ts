@@ -37,9 +37,14 @@ describe('renameCommitName', () => {
 		expect(renameCommitName('Old', '  New Name  ')).toStrictEqual({ name: 'New Name' });
 	});
 
-	it('clears the name when the input is emptied', () => {
-		expect(renameCommitName('Old', '')).toStrictEqual({ name: undefined });
-		expect(renameCommitName('Old', '   ')).toStrictEqual({ name: undefined });
+	it('clears the name with an explicit empty string when the input is emptied', () => {
+		// NOT `undefined`. The save writer (`applyNameToCnvPr`) reads `undefined`
+		// as "the model has no opinion" and leaves `cNvPr/@name` alone, so
+		// committing it made clearing a name a complete no-op. `@name` is
+		// REQUIRED on `CT_NonVisualDrawingProps`, so `''` is what writes
+		// `name=""`.
+		expect(renameCommitName('Old', '')).toStrictEqual({ name: '' });
+		expect(renameCommitName('Old', '   ')).toStrictEqual({ name: '' });
 	});
 
 	it('treats an unedited commit as a no-op, so an id seed is never persisted', () => {

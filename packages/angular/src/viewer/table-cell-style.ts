@@ -17,7 +17,11 @@ import type { PptxTableCell, PptxTableCellStyle, PptxTableRow } from 'pptx-viewe
 // The OOXML-dash → CSS-border-style map is framework-agnostic and lives in
 // `pptx-viewer-shared`; re-exported here so this module's public surface
 // (and colocated tests) keep importing `ooxmlDashToCssBorderStyle` unchanged.
-import { cellStyleToCss, ooxmlDashToCssBorderStyle } from '../internal/shared';
+import {
+	cellRunStyle as cellRunCss,
+	cellStyleToCss,
+	ooxmlDashToCssBorderStyle,
+} from '../internal/shared';
 import type { StyleMap } from './element-style';
 
 export { ooxmlDashToCssBorderStyle };
@@ -144,23 +148,55 @@ export function cellRunStyle(style: PptxTableCellStyle | undefined): StyleMap {
 	if (style.underline) {
 		map['text-decoration'] = 'underline';
 	}
+	if (style.fontFamily) {
+		map['font-family'] = style.fontFamily;
+	}
 	return map;
 }
 
 /**
  * Build a list of `CellParagraph` arrays from a `PptxTableCell`.
  *
- * Splits `cell.text` on `\n` (the parser joins paragraphs with newlines) so each
- * paragraph becomes one styled run. Returns an empty array when the cell is
- * completely empty AND unstyled, signalling the template to fall back to the
- * non-breaking-space placeholder (which keeps the row height).
+ * Prefers `cell.textRuns`, the per-run model core parses out of the cell's
+ * `a:txBody`: a cell reading "Revenue **grew 42%**" is two runs with different
+ * weight, size, colour and typeface, and `cell.text` + the single cell-level
+ * `cell.style` cannot express that. Paragraph markers close the current
+ * paragraph; line-break markers become a `<br>` inside it.
+ *
+ * Falls back to splitting the flat `cell.text` on `\n` for cells the parser
+ * produced no runs for (an empty cell, or a programmatically built table).
+ * Returns an empty array when the cell is completely empty AND unstyled,
+ * signalling the template to fall back to the non-breaking-space placeholder
+ * (which keeps the row height).
  */
 export function buildCellParagraphs(cell: PptxTableCell): CellParagraph[] {
-	const runStyle = cellRunStyle(cell.style);
+	const cellStyle = cellRunStyle(cell.style);
+	const runs = cell.textRuns;
+	if (runs && runs.length > 0) {
+		const paragraphs: CellParagraph[] = [[]];
+		for (const run of runs) {
+			if (run.isParagraphBreak) {
+				paragraphs.push([]);
+				continue;
+			}
+			const current = paragraphs[paragraphs.length - 1];
+			if (run.isLineBreak) {
+				current.push({ text: '', style: {}, isLineBreak: true });
+				continue;
+			}
+			// The cell-level style is the base (alignment-independent font
+			// defaults); the run's own properties win over it.
+			current.push({
+				text: run.text,
+				style: { ...cellStyle, ...cssObjectToStyleMap(cellRunCss(run)) },
+			});
+		}
+		return paragraphs;
+	}
 	const text = cell.text ?? '';
-	if (!text && Object.keys(runStyle).length === 0) {
+	if (!text && Object.keys(cellStyle).length === 0) {
 		return [];
 	}
 	const lines = text.split('\n');
-	return lines.map((line): CellParagraph => [{ text: line, style: runStyle }]);
+	return lines.map((line): CellParagraph => [{ text: line, style: cellStyle }]);
 }

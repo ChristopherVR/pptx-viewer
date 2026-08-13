@@ -130,6 +130,8 @@ export function clampOptionNumber(raw: string, min: number, max: number): number
 					}
 					@if (section.special === 'themePicker') {
 						<ng-content select="[themePicker]" />
+					} @else if (section.special === 'customFonts') {
+						<ng-content select="[customFonts]" />
 					} @else if (section.special === 'clearCache') {
 						<p class="pptx-ng-options-note">
 							{{ 'pptx.options.save.clearCacheDescription' | translate }}

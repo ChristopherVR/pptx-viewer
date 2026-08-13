@@ -7,7 +7,11 @@
 	<div class="pptx-ng-table-wrapper">
 		<!-- Load-bearing family: an unstyled cell otherwise inherits the HOST
 		     chrome's font; all five bindings declare the same shared default. -->
-		<table class="pptx-ng-table" [style.font-family]="defaultTableFontFamily">
+		<table
+			class="pptx-ng-table"
+			[style.font-family]="defaultTableFontFamily"
+			[ngStyle]="tableRootStyle()"
+		>
 			@if (colStyles().length > 0) {
 				<colgroup>
 					@for (colStyle of colStyles(); track $index) {

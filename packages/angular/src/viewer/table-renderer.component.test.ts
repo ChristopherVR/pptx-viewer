@@ -584,6 +584,46 @@ describe('buildCellParagraphs', () => {
 		expect(paras[0][0].style['color']).toBe('#0000FF');
 	});
 
+	it('renders each parsed run as its own styled run', () => {
+		// Angular had the CellTextRun type and the per-run template branch, but
+		// its builder split `cell.text` and stamped ONE cell-level style over the
+		// whole cell, so a mixed-format cell came out uniform in the demo while
+		// the other four bindings painted it correctly.
+		const cell: PptxTableCell = {
+			text: 'Revenue grew 42%',
+			textRuns: [
+				{ text: 'Revenue ', fontSize: 12, fontFamily: 'Arial' },
+				{ text: 'grew 42%', bold: true, fontSize: 24, color: '#C00000', fontFamily: 'Georgia' },
+			],
+		};
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(1);
+		expect(paras[0]).toHaveLength(2);
+		expect(paras[0][0].text).toBe('Revenue ');
+		expect(paras[0][0].style['font-weight']).toBeUndefined();
+		expect(paras[0][0].style['font-family']).toBe('Arial');
+		expect(paras[0][1].style['font-weight']).toBe('bold');
+		expect(paras[0][1].style['color']).toBe('#C00000');
+		expect(paras[0][1].style['font-family']).toBe('Georgia');
+		expect(paras[0][1].style['font-size']).toBe('24pt');
+	});
+
+	it('splits runs into paragraphs and keeps soft line breaks', () => {
+		const cell: PptxTableCell = {
+			text: 'a\nb',
+			textRuns: [
+				{ text: 'a' },
+				{ text: '', isLineBreak: true },
+				{ text: '', isParagraphBreak: true },
+				{ text: 'b' },
+			],
+		};
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(2);
+		expect(paras[0][1].isLineBreak).toBeTruthy();
+		expect(paras[1][0].text).toBe('b');
+	});
+
 	it('cell with paragraph break (newline in text) produces two paragraphs', () => {
 		// The core parser joins paragraphs with \n in extractTableCellText.
 		const cell: PptxTableCell = { text: 'Line 1\nLine 2' };

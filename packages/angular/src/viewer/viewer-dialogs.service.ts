@@ -14,10 +14,12 @@
  * so the ribbon host and the dialog container share the same instance.
  */
 
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
 
+import { describeFontEmbedding } from '../internal/shared';
 import type { CompareResult } from '../internal/shared';
+import { LoadContentService } from './load-content.service';
 
 @Injectable()
 export class ViewerDialogsService {
@@ -56,8 +58,31 @@ export class ViewerDialogsService {
 	// ── Font embedding ─────────────────────────────────────────────────────
 	/** Font-embedding panel visibility. */
 	readonly showFontEmbedding = signal(false);
-	/** Whether embedding used fonts on save is enabled. */
-	readonly embedFontsEnabled = signal(false);
+	/**
+	 * The deck this viewer loaded, when one is provided alongside this service
+	 * (it always is on the viewer host). Optional so the isolated service tests
+	 * and stubbed injectors keep working.
+	 */
+	private readonly loader = inject(LoadContentService, { optional: true });
+	/**
+	 * Whether the save keeps the deck's embedded font data.
+	 *
+	 * Deliberately the loader's OWN signal rather than a copy: the flag is read
+	 * by `LoadContentService.saveSlides`, and it is seeded there from the loaded
+	 * deck, so a second source of truth here would let the panel and the save
+	 * path disagree. Previously this was a standalone `signal(false)` that
+	 * nothing ever read; wiring THAT to save would have stripped the embedded
+	 * fonts of every deck that had them.
+	 */
+	readonly embedFontsEnabled = this.loader?.embedFonts ?? signal(true);
+	/**
+	 * Whether the toggle accepts input, plus the reason when it does not: the
+	 * viewer can keep or strip embedded font data, but cannot manufacture it for
+	 * a deck that embeds nothing.
+	 */
+	readonly fontEmbedding = computed(
+		() => this.loader?.fontEmbedding() ?? describeFontEmbedding([]),
+	);
 
 	// ── Version history ────────────────────────────────────────────────────
 	/** Version-history side panel visibility. */

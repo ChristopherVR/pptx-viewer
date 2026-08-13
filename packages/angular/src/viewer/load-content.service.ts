@@ -31,6 +31,8 @@ import {
 	DEFAULT_CANVAS_WIDTH,
 	collectImagePaths,
 	collectMediaElements,
+	describeFontEmbedding,
+	embeddedFontSaveOptions,
 	saveDeckWithPassword,
 } from '../internal/shared';
 import type { CanvasSize, DeckSaveIntent } from '../internal/shared';
@@ -86,6 +88,26 @@ export class LoadContentService {
 	readonly mediaDataUrls = signal<Map<string, string>>(new Map());
 	/** Embedded font data (name + binary) extracted from the presentation. */
 	readonly embeddedFonts = signal<PptxEmbeddedFont[]>([]);
+	/**
+	 * Shared decision behind File > Fonts > "Embed fonts in the file": whether
+	 * the toggle accepts input at all, and which position describes the deck
+	 * that is loaded. Surfaced by {@link ViewerDialogsService} to the panel.
+	 */
+	readonly fontEmbedding = computed(() =>
+		describeFontEmbedding(this.embeddedFonts().map((font) => font.name)),
+	);
+	/**
+	 * The toggle's live position, read by {@link saveSlides}. `false` strips
+	 * `p:embeddedFontLst`, the `/font` relationships and the `.fntdata` parts;
+	 * `true` keeps whatever the deck arrived with (core's default).
+	 *
+	 * It lives here, next to the fonts it decides the fate of, rather than in
+	 * the dialogs service, so the value save reads is seeded by the LOAD and
+	 * cannot depend on whether the Fonts panel was ever rendered. Seeded in
+	 * {@link load}; the initial `true` covers "no deck yet", where there is
+	 * nothing to strip.
+	 */
+	readonly embedFonts = signal(true);
 	/** Core document properties from `docProps/core.xml`. */
 	readonly coreProperties = signal<PptxCoreProperties | undefined>(undefined);
 	/** Extended application properties from `docProps/app.xml`. */
@@ -192,6 +214,9 @@ export class LoadContentService {
 				customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
 				tags: tags.length > 0 ? tags.map((col) => ({ ...col, tags: [...col.tags] })) : undefined,
 				outputFormat,
+				// The Fonts panel's toggle used to move and change nothing; it now
+				// decides whether the deck's embedded font data survives the save.
+				...embeddedFontSaveOptions(this.embedFonts()),
 			},
 			password,
 		);
@@ -358,6 +383,11 @@ export class LoadContentService {
 			this.presentationProperties.set(parsed.presentationProperties ?? {});
 			this.hasMacros.set(parsed.hasMacros ?? false);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
+			// Re-seed the Fonts toggle for THIS deck: it has to start in the
+			// position that describes what save would do right now (ON when the
+			// deck carries embedded fonts, because core re-embeds them), and the
+			// previous deck's answer says nothing about this one.
+			this.embedFonts.set(this.fontEmbedding().initialEnabled);
 			this.coreProperties.set(parsed.coreProperties);
 			this.appProperties.set(parsed.appProperties);
 			this.themeOptions.set(parsed.themeOptions ?? []);

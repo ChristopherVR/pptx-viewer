@@ -19,10 +19,10 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import { elementIcon, elementLabel, renameCommitName } from './selection-pane-helpers';
 
-/** Payload of `renameElement`: `undefined` clears the element's name. */
+/** Payload of `renameElement`: an empty `name` clears the element's name. */
 export interface SelectionPaneRename {
 	id: string;
-	name: string | undefined;
+	name: string;
 }
 
 @Component({
@@ -143,7 +143,7 @@ export class SelectionPaneComponent {
 	readonly sendBackward = output<string>();
 	/** Emits the id of the element whose hidden flag should be toggled. */
 	readonly toggleHidden = output<string>();
-	/** Emits the rename commit; `name: undefined` clears the element's name. */
+	/** Emits the rename commit; an empty `name` clears the element's name. */
 	readonly renameElement = output<SelectionPaneRename>();
 
 	/** Elements reversed so the topmost (last in array) appears first in the list. */

@@ -8,8 +8,10 @@
  *
  *  1. the drift the copy had (a bullet on a paragraph with no visible text) is
  *     gone, because the rule lives in shared;
- *  2. the two things this binding renders that shared's `ParagraphRun` does not
- *     model (a run hyperlink, an inline equation) still reach the template.
+ *  2. the two things this binding renders that shared's `ParagraphRun` did not
+ *     used to model (a run hyperlink, an inline equation) still reach the
+ *     template now that they come off the shared run instead of the segment
+ *     walk this module used to run over shared's output.
  */
 import type { PptxElement, PptxElementWithText, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
@@ -173,15 +175,16 @@ describe('buildAngularParagraphs - inline equations', () => {
 		expect(para.runs.find((run) => run.equationXml)?.equationNumber).toBe('(1)');
 	});
 
-	it('keeps a TRAILING equation paragraph, which shared trims as blank', () => {
+	it('keeps a TRAILING equation paragraph', () => {
 		const element = textElement([
 			{ text: 'Intro', style: { fontSize: 16 } },
 			BREAK,
 			{ text: '', style: {}, equationXml: omml },
 		]);
-		// Shared drops the trailing paragraph (no runs, no bullet); this binding
-		// renders equations ONLY as paragraph runs, so it has to survive here.
-		expect(buildParagraphs(element)).toHaveLength(1);
+		// Shared used to trim this paragraph as blank (an equation segment has no
+		// text, so it produced no runs) and this binding re-added it. The equation
+		// is a real run now, so shared keeps it and all five bindings agree.
+		expect(buildParagraphs(element)).toHaveLength(2);
 		const paragraphs = buildAngularParagraphs(element);
 		expect(paragraphs).toHaveLength(2);
 		expect(paragraphs[1].runs[0].equationXml).toStrictEqual(omml);

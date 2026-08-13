@@ -43,12 +43,13 @@ import { ModalDialogComponent } from './modal-dialog.component';
 					{{ 'pptx.fontEmbedding.description' | translate }}
 				</p>
 
-				<label class="pptx-ng-fonts-toggle">
+				<label class="pptx-ng-fonts-toggle" [class.is-disabled]="!canEmbedFonts()">
 					<span class="pptx-ng-fonts-switch" [class.is-on]="embedFontsEnabled()">
 						<input
 							type="checkbox"
 							class="pptx-ng-fonts-switch-input"
 							[checked]="embedFontsEnabled()"
+							[disabled]="!canEmbedFonts()"
 							(change)="onToggle($event)"
 						/>
 						<span class="pptx-ng-fonts-switch-knob" [class.is-on]="embedFontsEnabled()"></span>
@@ -57,6 +58,13 @@ import { ModalDialogComponent } from './modal-dialog.component';
 						'pptx.fontEmbedding.embedWhenSaving' | translate
 					}}</span>
 				</label>
+				<!--
+					The switch used to move and change nothing at all. It now decides
+					whether save keeps the deck's embedded font data, so it has to say
+					which of those two things it is doing - and admit when it can do
+					neither.
+				-->
+				<p class="pptx-ng-fonts-note">{{ toggleNoteKey() | translate }}</p>
 
 				<pptx-font-embedding-list
 					[usedFontFamilies]="usedFontFamilies()"
@@ -129,9 +137,19 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			.pptx-ng-fonts-switch-knob.is-on {
 				transform: translateX(1rem);
 			}
+			.pptx-ng-fonts-toggle.is-disabled {
+				cursor: not-allowed;
+				opacity: 0.6;
+			}
 			.pptx-ng-fonts-toggle-label {
 				font-size: 0.75rem;
 				color: var(--pptx-foreground, #f3f4f6);
+			}
+			.pptx-ng-fonts-note {
+				margin: -0.5rem 0 0;
+				font-size: 0.6875rem;
+				line-height: 1.5;
+				color: var(--pptx-muted-foreground, #9ca3af);
 			}
 			.pptx-ng-fonts-done {
 				padding: 0.375rem 0.75rem;
@@ -162,6 +180,17 @@ export class FontEmbeddingPanelComponent {
 	/** Font families already embedded in the file. */
 	readonly embeddedFonts = input<string[]>([]);
 
+	/**
+	 * False when the deck embeds nothing, in which case the switch is inert and
+	 * says why. The viewer can keep or strip embedded font data on save, but it
+	 * cannot manufacture it: a browser will not hand over the bytes of an
+	 * installed system face.
+	 */
+	readonly canEmbedFonts = input<boolean>(true);
+
+	/** i18n key for the explanation shown when `canEmbedFonts` is false. */
+	readonly embedUnavailableKey = input<string | undefined>(undefined);
+
 	/** Fired when the dialog is dismissed. */
 	readonly close = output<void>();
 
@@ -179,6 +208,13 @@ export class FontEmbeddingPanelComponent {
 
 	/** Set view of {@link embeddedFonts} for fast membership checks. */
 	readonly embeddedSet = computed(() => new Set(this.embeddedFonts()));
+
+	/** Line of copy under the switch: what it does, or why it cannot. */
+	readonly toggleNoteKey = computed(() =>
+		this.canEmbedFonts()
+			? 'pptx.fonts.embedKeepsExisting'
+			: (this.embedUnavailableKey() ?? 'pptx.fonts.embedUnavailable'),
+	);
 
 	/** How many used families failed to resolve in the browser. */
 	readonly missingCount = computed(() => {

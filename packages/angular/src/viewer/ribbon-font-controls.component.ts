@@ -16,8 +16,14 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import {
+	buildFontCatalog,
+	resolveDefaultFontFamily,
+} from '../internal/shared-src/render/font-catalog';
 import type { ChangeCaseMode } from '../internal/shared-src/render/text-case-transform';
+import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
+import { LoadContentService } from './load-content.service';
 import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
 import {
 	isTextElement,
@@ -26,17 +32,6 @@ import {
 	transformSelectedTextCase,
 } from './ribbon-text-helpers';
 
-/** Font families offered in the Home tab (mirrors React). */
-const FONT_FAMILIES = [
-	'Segoe UI',
-	'Arial',
-	'Calibri',
-	'Times New Roman',
-	'Georgia',
-	'Courier New',
-	'Verdana',
-	'Tahoma',
-];
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 54, 66, 80, 96];
 /** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
 const FONT_COLOR_PRESETS = [
@@ -105,8 +100,19 @@ const CHANGE_CASE_OPTIONS = [
 				[attr.aria-label]="'pptx.ribbon.fontFamily' | translate"
 				(change)="setFontFamily($event)"
 			>
-				@for (f of fontFamilies; track f) {
-					<option [value]="f" [selected]="f === curFontFamily()">{{ f }}</option>
+				@for (group of fontGroups(); track group.id) {
+					<optgroup [label]="group.labelKey | translate">
+						@for (entry of group.entries; track entry.family) {
+							<option [value]="entry.family" [selected]="entry.family === curFontFamily()">
+								{{ entry.family
+								}}{{
+									entry.themeRole
+										? ' (' + ('pptx.font.role.' + entry.themeRole | translate) + ')'
+										: ''
+								}}
+							</option>
+						}
+					</optgroup>
 				}
 			</select>
 			<select
@@ -289,7 +295,33 @@ export class RibbonFontControlsComponent {
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
 
-	protected readonly fontFamilies = FONT_FAMILIES;
+	private readonly loader = inject(LoadContentService, { optional: true });
+	private readonly customFonts = inject(CustomFontsService, { optional: true });
+
+	/**
+	 * Theme major/minor latin faces. Read from DI rather than taken as inputs
+	 * because this component renders in two different ribbon hosts, and both
+	 * would otherwise have to thread the same three values down.
+	 */
+	protected readonly themeFonts = computed(() => ({
+		heading: this.loader?.theme()?.fontScheme?.majorFont?.latin,
+		body: this.loader?.theme()?.fontScheme?.minorFont?.latin,
+	}));
+
+	/**
+	 * The dropdown's contents, grouped the way PowerPoint groups them.
+	 *
+	 * This component used to carry its own eight-entry family list, so Angular
+	 * offered a different set of fonts from the other four bindings. The
+	 * grouping and de-duplication now come from `pptx-viewer-shared`.
+	 */
+	protected readonly fontGroups = computed(() =>
+		buildFontCatalog({
+			themeFonts: this.themeFonts(),
+			embeddedFonts: (this.loader?.embeddedFonts() ?? []).map((font) => font.name),
+			customFonts: this.customFonts?.registeredFamilies() ?? [],
+		}),
+	);
 	protected readonly fontSizes = FONT_SIZES;
 	protected readonly fontColorPresets = FONT_COLOR_PRESETS;
 	protected readonly highlightColorPresets = HIGHLIGHT_COLOR_PRESETS;
@@ -304,7 +336,13 @@ export class RibbonFontControlsComponent {
 	protected readonly curStyle = computed(() => textStyleOf(this.selectedElement()));
 
 	protected curFontFamily(): string {
-		return this.curStyle()?.fontFamily ?? 'Segoe UI';
+		return (
+			this.curStyle()?.fontFamily ??
+			resolveDefaultFontFamily(
+				(this.selectedElement() as { placeholderType?: string } | null)?.placeholderType,
+				this.themeFonts(),
+			)
+		);
 	}
 	protected curFontSize(): number {
 		// Mirror React's HomeSection default (24) shown when nothing is selected.

@@ -7,6 +7,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildTextBody3DSceneStyle,
 	buildTextBuildSpec,
+	getGroupChildParentFill,
 	getOverflowSegments,
 	isElementHidden,
 	textBuildSpanStyle,
@@ -391,15 +392,19 @@ export class ElementRendererComponent {
 	});
 
 	/**
-	 * This group's own fill, handed to `a:grpFill` children as their
-	 * `parentGroupFill`. Undefined for non-group elements. Mirrors the shared
-	 * `getGroupChildParentFill` helper (inlined here so the Angular binding does
-	 * not depend on a shared symbol that is only vendored at build time).
+	 * The fill handed to this group's `a:grpFill` children as their
+	 * `parentGroupFill`; undefined for non-group elements.
+	 *
+	 * The shared helper, not a hand-inlined copy: the inlined one returned this
+	 * group's own fill only, and `a:grpFill` resolves against the nearest
+	 * ANCESTOR that has a fill, so a shape inside a fill-less nested group came
+	 * out transparent. (The old copy justified itself with "shared is only
+	 * vendored at build time", but this component already imports a dozen shared
+	 * symbols from the vendored barrel.)
 	 */
-	readonly childParentGroupFill = computed<ShapeStyle | undefined>(() => {
-		const el = this.element();
-		return el.type === 'group' ? el.groupFill : undefined;
-	});
+	readonly childParentGroupFill = computed<ShapeStyle | undefined>(() =>
+		getGroupChildParentFill(this.element(), this.parentGroupFill()),
+	);
 
 	readonly isShapeLike = computed(
 		() => this.element().type === 'text' || this.element().type === 'shape',

@@ -23,6 +23,7 @@ import type {
 	PptxHandoutMaster,
 	PptxNotesMaster,
 	PptxSlide,
+	PptxSlideMaster,
 	PptxTheme,
 } from 'pptx-viewer-core';
 
@@ -704,6 +705,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[editable]="canEdit()"
 						(notesMasterChange)="updateNotesMaster($event)"
 						(handoutMasterChange)="updateHandoutMaster($event)"
+						(slideMastersChange)="updateSlideMasters($event)"
 					/>
 				</div>
 			}
@@ -2054,6 +2056,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		if (current) {
 			this.updateHandoutMaster({ ...current, slidesPerPage });
 		}
+	}
+
+	/** Shape-tree edits made on the Slide Master view's Slides tab. */
+	protected updateSlideMasters(masters: PptxSlideMaster[]): void {
+		this.loader.slideMasters.set(masters);
+		this.editor.dirty.set(true);
 	}
 
 	protected updateNotesMaster(master: PptxNotesMaster): void {

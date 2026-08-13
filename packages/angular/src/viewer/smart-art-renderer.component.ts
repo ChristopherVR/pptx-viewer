@@ -19,7 +19,6 @@ import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 
 import {
 	buildSmartArtA11y,
-	centeredSvgTextLines,
 	computeInlineEditorRect,
 	computeSmartArtLayout,
 	flattenNodes,
@@ -32,7 +31,9 @@ import type {
 	InlineEditRect,
 	RenderedNode,
 	SmartArtA11y,
+	SmartArtConnectorPaint,
 	SmartArtLayoutResult,
+	SmartArtNodeLabel,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import type { StyleMap } from './element-style';
@@ -45,14 +46,15 @@ import {
 	styleShadowFilter,
 } from './smart-art-drawing';
 import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
-import {
-	beginNodeEdit,
-	commitNodeText,
-	findOwningSlideIndex,
-	nodeIdFromKey,
-} from './smart-art-inline-edit';
+import { beginNodeEdit, commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
-import { narrowToCircle, narrowToPolygon, narrowToRect } from './smart-art-renderer-helpers';
+import {
+	layoutConnectorPaints,
+	layoutNodeLabels,
+	narrowToCircle,
+	narrowToPolygon,
+	narrowToRect,
+} from './smart-art-renderer-helpers';
 
 /**
  * SmartArtRendererComponent: Angular SmartArt renderer.
@@ -272,6 +274,24 @@ export class SmartArtRendererComponent {
 
 	readonly hasLayout = computed(() => this.layout().nodes.length > 0);
 
+	// ── Fallback-layout label / connector paint (shared decisions) ──────────
+	//
+	// `RenderedNode` / `RenderedConnector` carry OPTIONAL paint and placement
+	// fields (per-node font colour / weight / style, off-centre label anchors,
+	// per-connector stroke / width / opacity / dash). This template used to
+	// hardcode `fill="white"` and park circle labels on `cx`/`cy`, so target
+	// leader captions, gear legend rows and timeline captions all sat on the
+	// node centre. Both descriptors below are resolved once per layout by the
+	// shared decision functions; the template binds them and computes nothing.
+
+	/** Label descriptors, index-aligned with `layout().nodes`. */
+	readonly layoutLabels = computed<SmartArtNodeLabel[]>(() => layoutNodeLabels(this.layout()));
+
+	/** Connector paint, index-aligned with `layout().connectors`. */
+	readonly layoutConnectors = computed<SmartArtConnectorPaint[]>(() =>
+		layoutConnectorPaints(this.layout()),
+	);
+
 	// ── Accessibility view-model (shared) ───────────────────────────────────
 
 	/**
@@ -294,17 +314,32 @@ export class SmartArtRendererComponent {
 	});
 
 	/**
-	 * Parsed data-model node id for a rendered node (or `null` when the key does
-	 * not map to one). Exposed as a method so the template can use it: Angular
-	 * AOT templates can only call component members, not imported functions.
+	 * Source node ids in fallback render order, index-aligned with
+	 * `layout().nodes`. The layout engine walks the node tree depth-first, so
+	 * flattening it is the mapping every binding uses.
+	 *
+	 * This component used to parse the id back out of the rendered node's `key`
+	 * instead, which broke on any family whose key carries an extra segment: the
+	 * gear legend's `<id>-gear-extra-<nodeId>-<i>` resolved to `extra-<nodeId>`,
+	 * so its `data-smartart-node-id` did not match any model node and an inline
+	 * edit on a legend row committed nowhere.
 	 */
-	nodeKeyId(node: RenderedNode): string | null {
-		return nodeIdFromKey(node.key, this.element().id);
+	readonly layoutNodeIds = computed<(string | undefined)[]>(() =>
+		flattenNodes(this.revealedNodes()).map((node) => node.id),
+	);
+
+	/**
+	 * Data-model node id for the rendered node at `index` (or `null`). Exposed
+	 * as a method so the template can use it: Angular AOT templates can only
+	 * call component members, not imported functions.
+	 */
+	nodeIdAt(index: number): string | null {
+		return this.layoutNodeIds()[index] ?? null;
 	}
 
-	/** Resolve the accessibility label for a rendered node (by parsed node id). */
-	nodeAriaLabel(node: RenderedNode): string | null {
-		const nodeId = this.nodeKeyId(node);
+	/** Resolve the accessibility label for the rendered node at `index`. */
+	nodeAriaLabel(index: number): string | null {
+		const nodeId = this.nodeIdAt(index);
 		if (nodeId === null) {
 			return null;
 		}
@@ -324,27 +359,26 @@ export class SmartArtRendererComponent {
 	protected readonly asCircle = narrowToCircle;
 	protected readonly asPolygon = narrowToPolygon;
 	protected readonly asRect = narrowToRect;
-	protected readonly textLines = centeredSvgTextLines;
 
 	// ── Inline node-text editing ───────────────────────────────────────────
 
 	/** Double-click a node enters inline edit mode (when editable). */
-	onNodeDblClick(event: Event, node: RenderedNode): void {
+	onNodeDblClick(event: Event, node: RenderedNode, index: number): void {
 		if (!this.canEditNodes()) {
 			return;
 		}
 		event.stopPropagation();
-		this.enterEdit(node);
+		this.enterEdit(node, index);
 	}
 
 	/** Enter / F2 on a focused node enters inline edit mode (when editable). */
-	onNodeKeydown(event: KeyboardEvent, node: RenderedNode): void {
+	onNodeKeydown(event: KeyboardEvent, node: RenderedNode, index: number): void {
 		if (!this.canEditNodes() || (event.key !== 'Enter' && event.key !== 'F2')) {
 			return;
 		}
 		event.preventDefault();
 		event.stopPropagation();
-		this.enterEdit(node);
+		this.enterEdit(node, index);
 	}
 
 	/** Commit the current edit (called on blur). */
@@ -378,18 +412,18 @@ export class SmartArtRendererComponent {
 	}
 
 	/** Resolve the node id + geometry and open the editor seeded with full text. */
-	private enterEdit(node: RenderedNode): void {
+	private enterEdit(node: RenderedNode, index: number): void {
 		this.editSettled = false;
-		const elementId = this.element().id;
-		const seed = beginNodeEdit(node, elementId, this.rawNodeText(node));
+		const nodeId = this.nodeIdAt(index);
+		const seed = beginNodeEdit(node, this.element().id, this.rawNodeText(node, index), nodeId);
 		if (seed) {
 			this.editState.set(seed);
 		}
 	}
 
 	/** The node's full (untruncated) data-model text, falling back to rendered text. */
-	private rawNodeText(node: RenderedNode): string {
-		const nodeId = this.nodeKeyId(node);
+	private rawNodeText(node: RenderedNode, index: number): string {
+		const nodeId = this.nodeIdAt(index);
 		if (nodeId === null) {
 			return node.text;
 		}

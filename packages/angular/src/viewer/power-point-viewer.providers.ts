@@ -26,6 +26,7 @@ import { AiPanelStore } from './ai/ai-panel-store';
 import { AutosaveService } from './autosave.service';
 import { ChartPartSelectionService } from './chart-part-selection.service';
 import { CollaborationService } from './collaboration.service';
+import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { ExportService } from './export.service';
@@ -71,6 +72,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	TableSelectionService,
 	EmbeddedFontsService,
 	CollaborationService,
+	CustomFontsService,
 	AccessibilityService,
 	AutosaveService,
 	PrintService,

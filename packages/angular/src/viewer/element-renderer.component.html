@@ -330,6 +330,7 @@
 					@for (para of paragraphs(); track $index) {
 						<p
 							class="pptx-ng-para"
+							[ngStyle]="para.paragraphStyle ?? null"
 							[style.padding-left.px]="para.indentPx"
 							[style.text-indent.px]="para.textIndentPx ?? null"
 							[style.line-height]="para.lineHeight ?? null"

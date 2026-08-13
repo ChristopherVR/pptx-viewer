@@ -30,6 +30,7 @@ import type { ThemeCatalogEntry } from '../internal/shared';
 import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
 import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
 import { ComparePanelComponent } from './compare-panel.component';
+import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { EncryptedFileDialogComponent } from './encrypted-file-dialog.component';
@@ -121,6 +122,8 @@ import { ViewerOptionsService } from './viewer-options.service';
 			[embedFontsEnabled]="svc.embedFontsEnabled()"
 			[usedFontFamilies]="usedFontFamilies()"
 			[embeddedFonts]="embeddedFamilies()"
+			[canEmbedFonts]="svc.fontEmbedding().interactive"
+			[embedUnavailableKey]="svc.fontEmbedding().disabledReasonKey"
 			(toggleEmbedFonts)="svc.embedFontsEnabled.set($event)"
 			(close)="svc.showFontEmbedding.set(false)"
 		/>
@@ -142,6 +145,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 			[localeCode]="localeCode()"
 			[availableLocales]="availableLocales()"
 			[aiExportVisible]="aiExportVisible()"
+			[customFontFamilies]="customFonts.registeredFamilies()"
 			(optionChange)="viewerOpts.setValue($event.group, $event.key, $event.value)"
 			(restoreOptions)="viewerOpts.restore($event)"
 			(ribbonTabHiddenChange)="viewerOpts.setRibbonTabHidden($event.tabId, $event.hidden)"
@@ -150,6 +154,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 			(clearCache)="onClearOptionsCache()"
 			(themeKeySelect)="themeKeySelect.emit($event)"
 			(localeSelect)="localeSelect.emit($event)"
+			(customFontRegistered)="customFonts.register($event)"
 			(close)="svc.showSettings.set(false)"
 		/>
 
@@ -200,6 +205,7 @@ export class ViewerExtraDialogsComponent {
 	readonly localeSelect = output<string>();
 
 	protected readonly svc = inject(ViewerDialogsService);
+	protected readonly customFonts = inject(CustomFontsService);
 	protected readonly viewerOpts = inject(ViewerOptionsService);
 	protected readonly compare = inject(ViewerCompareService);
 	protected readonly editor = inject(EditorStateService);

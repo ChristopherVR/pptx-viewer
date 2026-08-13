@@ -23,6 +23,7 @@ import {
 	groupSlidesBySection,
 	isTemplateElement,
 	isTemplateElementId,
+	makeCloneId,
 	rerouteConnectorsForMovedElements,
 	templateSchemeFromTheme,
 } from '../internal/shared';
@@ -588,8 +589,16 @@ export class EditorStateService {
 		if (!group || group.type !== 'group') {
 			return;
 		}
-		const childIds = (group.children ?? []).map(() => this.newId());
-		const { elements, childIds: used } = ungroupElements(slide.elements, ids[0], childIds);
+		// A template group's children must keep a template id prefix or later
+		// edits route to the slide store and are lost on save; the shared op
+		// applies the same rule to a promoted NESTED group's descendants.
+		const intoTemplate = isTemplateElementId(group.id);
+		const childIds = (group.children ?? []).map((child) =>
+			intoTemplate ? makeCloneId(true, child.id || group.id) : this.newId(),
+		);
+		const { elements, childIds: used } = ungroupElements(slide.elements, ids[0], childIds, {
+			intoTemplate,
+		});
 		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.ungroup'));
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
 		this.selectedIds.set(used);

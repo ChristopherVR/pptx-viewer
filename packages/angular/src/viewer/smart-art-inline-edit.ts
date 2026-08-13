@@ -142,8 +142,14 @@ export function beginNodeEdit(
 	node: RenderedNode,
 	elementId: string,
 	rawText?: string,
+	resolvedNodeId?: string | null,
 ): InlineEditState | null {
-	const nodeId = nodeIdFromKey(node.key, elementId);
+	// Prefer the caller's index-aligned id when it has one: rendered nodes are
+	// index-aligned with the flattened source nodes, which is how every other
+	// binding maps a rendered shape back to a model node. Key parsing is only a
+	// fallback, and it cannot cope with a family whose key carries an extra
+	// segment (the gear legend's `-gear-extra-<id>-<i>` yields `extra-<id>`).
+	const nodeId = resolvedNodeId ?? nodeIdFromKey(node.key, elementId);
 	if (nodeId === null) {
 		return null;
 	}

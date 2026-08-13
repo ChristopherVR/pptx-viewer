@@ -5,7 +5,16 @@
  * {@link RibbonFontControlsComponent} / {@link RibbonParagraphControlsComponent}.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	effect,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import {
 	LucideChevronDown,
 	LucideClipboardPaste,
@@ -19,12 +28,13 @@ import {
 	LucideScissors,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
 import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
+import { RibbonLayoutGalleryComponent } from './ribbon-layout-gallery.component';
 import { layoutOptionsFrom } from './ribbon-layout-options';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
 
@@ -36,6 +46,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 	imports: [
 		NgClass,
 		TranslatePipe,
+		RibbonLayoutGalleryComponent,
 		LucidePlus,
 		LucideChevronDown,
 		LucideClipboardPaste,
@@ -135,21 +146,13 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 						>
 							<svg lucideChevronDown class="h-3 w-3"></svg>
 						</button>
-						<div
-							class="absolute left-0 top-full z-50 hidden max-h-60 w-48 overflow-y-auto pt-1 group-hover:block"
-						>
-							<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
-								@for (option of layoutOptions(); track option.path) {
-									<button
-										type="button"
-										class="flex w-full items-center px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted"
-										[disabled]="!canEdit()"
-										(click)="editor.addSlide(slideIndex(), option.path)"
-									>
-										{{ option.name }}
-									</button>
-								}
-							</div>
+						<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+							<pptx-ribbon-layout-gallery
+								[layoutOptions]="layoutOptions()"
+								[previews]="layoutPreviews()"
+								[disabled]="!canEdit()"
+								(select)="editor.addSlide(slideIndex(), $event.path)"
+							></pptx-ribbon-layout-gallery>
 						</div>
 					</div>
 				}
@@ -185,21 +188,14 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 							<svg lucideLayoutGrid class="h-4 w-4"></svg> {{ 'pptx.master.layout' | translate }}
 						</button>
 						@if (layoutOptions().length > 0) {
-							<div
-								class="absolute left-0 top-full z-50 hidden max-h-60 w-48 overflow-y-auto pt-1 group-hover:block"
-							>
-								<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
-									@for (option of layoutOptions(); track option.path) {
-										<button
-											type="button"
-											class="flex w-full items-center px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted"
-											[disabled]="!canEdit()"
-											(click)="onApplyLayout(option.path)"
-										>
-											{{ option.name }}
-										</button>
-									}
-								</div>
+							<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+								<pptx-ribbon-layout-gallery
+									[layoutOptions]="layoutOptions()"
+									[previews]="layoutPreviews()"
+									[currentLayoutPath]="currentLayoutPath()"
+									[disabled]="!canEdit()"
+									(select)="onApplyLayout($event.path)"
+								></pptx-ribbon-layout-gallery>
 							</div>
 						}
 					</div>
@@ -271,6 +267,41 @@ export class RibbonHomeSectionComponent {
 
 	/** Layouts offered by the New Slide split button and the Layout menu. */
 	protected readonly layoutOptions = computed(() => layoutOptionsFrom(this.loader.slideMasters()));
+
+	/** `layoutPath` of the active slide, marking the current gallery tile. */
+	protected readonly currentLayoutPath = computed(
+		() => this.editor.slides()[this.slideIndex()]?.layoutPath,
+	);
+
+	/**
+	 * Layout artwork for the gallery thumbnails, keyed by layout path.
+	 *
+	 * Parsing every layout part is only worth doing once a gallery is opened,
+	 * so this stays empty until {@link loadLayoutPreviews} runs. Core memoises
+	 * the parse, so reopening a menu costs nothing.
+	 */
+	protected readonly layoutPreviews = signal<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+
+	constructor() {
+		// The menus open on hover with no event to hang a lazy load off, so the
+		// fetch is kicked off once a deck is present. It is still deferred out of
+		// the load pipeline, which is what the cost actually mattered for.
+		effect(() => {
+			const handler = this.loader.getHandler();
+			if (!handler || this.layoutPreviews().size > 0) {
+				return;
+			}
+			void handler
+				.getLayoutPreviews()
+				.then((previews) => {
+					this.layoutPreviews.set(new Map(previews.map((preview) => [preview.path, preview])));
+					return undefined;
+				})
+				// A layout that will not parse costs the user a name-only tile,
+				// not a broken menu.
+				.catch(() => undefined);
+		});
+	}
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);

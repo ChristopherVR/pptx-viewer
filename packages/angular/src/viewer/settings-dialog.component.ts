@@ -45,6 +45,7 @@ import { OptionsQuickAccessPaneComponent } from './options-quick-access-pane.com
 import { OptionsRibbonPaneComponent } from './options-ribbon-pane.component';
 import type { RibbonTabHiddenChange } from './options-ribbon-pane.component';
 import { SettingsAppearanceTabComponent } from './settings-appearance-tab.component';
+import { SettingsCustomFontsComponent } from './settings-custom-fonts.component';
 import { SettingsLanguageTabComponent } from './settings-language-tab.component';
 
 export type { ViewerSettings } from '../internal/shared';
@@ -69,6 +70,7 @@ export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefin
 		OptionsQuickAccessPaneComponent,
 		OptionsAddInsPaneComponent,
 		SettingsAppearanceTabComponent,
+		SettingsCustomFontsComponent,
 		SettingsLanguageTabComponent,
 		AiSettingsSectionComponent,
 	],
@@ -176,6 +178,13 @@ export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefin
 												(select)="themeKeySelect.emit($event)"
 											/>
 										</div>
+										<div customFonts>
+											<pptx-settings-custom-fonts
+												[enabled]="options().general.enableCustomFontUpload"
+												[families]="customFontFamilies()"
+												(registered)="customFontRegistered.emit($event)"
+											/>
+										</div>
 										@if (activeTab().custom === 'quickAccess') {
 											<pptx-options-quick-access-pane
 												[options]="options()"
@@ -238,6 +247,10 @@ export class SettingsDialogComponent {
 	readonly resetOptions = output<ViewerOptionsGroupId | undefined>();
 	readonly clearCache = output<void>();
 	readonly themeKeySelect = output<string>();
+	/** Families registered this session via the Fonts section. */
+	readonly customFontFamilies = input<readonly string[]>([]);
+	/** A font file was registered; the ribbon adds the family to its list. */
+	readonly customFontRegistered = output<string>();
 	readonly localeSelect = output<string>();
 	readonly close = output<void>();
 

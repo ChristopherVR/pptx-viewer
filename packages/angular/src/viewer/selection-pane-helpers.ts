@@ -5,6 +5,7 @@
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
+import { resolveSelectionPaneRename } from 'pptx-viewer-shared';
 
 /** Unicode icon by element type (no Lucide dependency in Angular). */
 const ELEMENT_TYPE_ICONS: Record<string, string> = {
@@ -35,27 +36,15 @@ export function elementLabel(el: PptxElement): string {
 }
 
 /**
- * Decide what a rename commit means, mirroring React's `SelectionPane`:
+ * Decide what a rename commit means.
  *
- * - An unedited commit (the trimmed value equals the trimmed seed the input
- *   was opened with) is a no-op, so a fallback label (the element id) is
- *   never persisted as a real name. Returns `null`.
- * - An emptied value drops the model's name back to `undefined`, which clears
- *   the label this pane shows. It does NOT clear `cNvPr/@name` in the file:
- *   `undefined` means "the model has no opinion, leave the markup alone" to
- *   the save writer (`applyNameToCnvPr`), because chart / SmartArt / graphic
- *   frames parse without a `name` while their markup carries a real one, and
- *   blanking on `undefined` would wipe those on a plain round-trip. `@name` is
- *   REQUIRED on `CT_NonVisualDrawingProps` (ECMA-376 S20.1.2.2.8), so it can
- *   never be dropped; an explicit `''` is what writes `name=""`. React, Vue,
- *   Svelte and Vanilla all commit `undefined` here too, so this is shared
- *   behaviour rather than a divergence.
- * - Anything else commits the trimmed value.
+ * Thin re-export of the shared decision function so every binding answers this
+ * identically; Angular used to carry its own copy, which is exactly how the
+ * five drifted onto the same wrong answer for the empty case. Kept exported
+ * under this name because the component and its tests import it from here.
+ *
+ * @see resolveSelectionPaneRename
  */
-export function renameCommitName(seed: string, value: string): { name: string | undefined } | null {
-	const trimmed = value.trim();
-	if (trimmed === seed.trim()) {
-		return null;
-	}
-	return { name: trimmed.length > 0 ? trimmed : undefined };
+export function renameCommitName(seed: string, value: string): { name: string } | null {
+	return resolveSelectionPaneRename(seed, value);
 }
