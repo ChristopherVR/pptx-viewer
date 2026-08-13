@@ -1,6 +1,10 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import { EncryptedFileError } from 'pptx-viewer-core';
-import { describeFontEmbedding, partitionTemplateElements } from 'pptx-viewer-shared';
+import {
+	describeFontEmbedding,
+	partitionTemplateElements,
+	resolveAuthoredCustomShowId,
+} from 'pptx-viewer-shared';
 
 import type { EditorController } from './editor';
 import type { Translator } from './i18n';
@@ -84,7 +88,14 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				customShows: loaded.customShows,
 				// Custom-show ids belong to the document that defined them, so the
 				// previous deck's active show must not survive into this one.
-				activeCustomShowId: null,
+				//
+				// `p:showPr/p:custShow/@id` is authored intent: a deck saved with
+				// "Set Up Slide Show > Custom show" plays that subset. It was parsed
+				// and then ignored, so the radio was decorative and an authored deck
+				// played in full. Seeded per load, so a manual pick made afterwards
+				// still wins for the rest of the session.
+				activeCustomShowId:
+					resolveAuthoredCustomShowId(loaded.presentationProperties, loaded.customShows) ?? null,
 				embeddedFonts: loaded.embeddedFonts,
 				// The File > Fonts toggle describes what save would write for THIS
 				// deck, so it is reseeded per load: on when the deck carries embedded
@@ -105,6 +116,8 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				handoutSlidesPerPage: loaded.handoutMaster?.slidesPerPage ?? 4,
 				masterViewTarget: null,
 				canvasSize: loaded.canvasSize,
+				// The EMU `p:sldSz`, which is the only form a save can persist.
+				slideSize: loaded.slideSize,
 				mediaDataUrls: loaded.mediaDataUrls,
 				colorScheme: loaded.colorScheme,
 				fontScheme: loaded.fontScheme,

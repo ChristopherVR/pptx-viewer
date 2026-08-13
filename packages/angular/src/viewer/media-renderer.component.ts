@@ -76,7 +76,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 			class="pptx-ng-element pptx-ng-media"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
 			@if (mediaSrc(); as src) {
@@ -236,6 +236,19 @@ export class MediaRendererComponent {
 	readonly interactive = input<boolean>(true);
 	/** Keep the data-pptx-element marker on interaction-locked template elements. */
 	readonly marked = input<boolean>(false);
+	/**
+	 * When true (default), the rendered node carries `data-element-id`. The
+	 * miniature surfaces that paint every slide at once turn it off so one
+	 * element id resolves to exactly one node in the document; see
+	 * `ElementRendererComponent.exposeElementId`.
+	 */
+	readonly exposeElementId = input<boolean>(true);
+
+	/** `data-element-id` for this element, or null on a miniature surface. */
+	readonly elementIdAttr = computed<string | null>(() =>
+		this.exposeElementId() ? this.element().id : null,
+	);
+
 	/**
 	 * `pointer-events: none` while not interactive, mirroring React's
 	 * `pointer-events-none` class. {@link marked} keeps the element findable via

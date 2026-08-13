@@ -35,6 +35,7 @@ import {
 	readStoredViewerPrefs,
 	recoverySnapshotIntent,
 	resolveThemeCatalogEntry,
+	setMasterViewBackgroundColor,
 	setMotionPath,
 	shouldAutoFollowBroadcaster,
 	templateSchemeFromTheme,
@@ -257,7 +258,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
 						[hiddenActions]="hiddenActions()"
 						[quickAccess]="viewerOpts.options().quickAccess"
-						(toggleAutosave)="autosaveEnabled.update(v => !v)"
+						(toggleAutosave)="autosaveEnabled.update((v) => !v)"
 						(save)="fileIO.saveAsPptx()"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
@@ -266,108 +267,108 @@ import { ZoomTargetService } from './zoom-target.service';
 						(commandSearch)="handleCommandSearch($event)"
 					/>
 					<pptx-ribbon
-					[slideIndex]="activeSlideIndex()"
-					[slideCount]="slideCount()"
-					[canEdit]="canEdit()"
-					[selectedElement]="selectedElement()"
-					[hiddenActions]="hiddenActions()"
-					[zoomPercent]="zoomSvc.zoomPercent()"
-					[formatPainterActive]="formatPainter.active()"
-					[canActivateFormatPainter]="formatPainter.canActivate()"
-					[exporting]="xport.exporting()"
-					[hasMacros]="loader.hasMacros()"
-					[sidebarCollapsed]="slidesPanelCollapsed()"
-					[inspectorOpen]="inspectorPanel.inspectorPaneOpen()"
-					[commentsOpen]="inspectorPanel.activePanel() === 'comments'"
-					[commentCount]="activeComments().length"
-					[findOpen]="findReplace.showFind() || findReplace.showFindReplace()"
-					[collabConnected]="collab.connected()"
-					[connectedCount]="collab.connectedCount()"
-					[spellCheckEnabled]="spellCheck()"
-					[showSubtitles]="presentationMode.subtitlesVisible()"
-					(toggleSidebar)="slidesPanelCollapsed.update(v => !v)"
-					(prev)="goPrev()"
-					(next)="goNext()"
-					(zoomIn)="zoomSvc.zoomIn()"
-					(zoomOut)="zoomSvc.zoomOut()"
-					(zoomReset)="zoomSvc.zoomReset()"
-					(find)="findReplace.showFind.set(true)"
-					(present)="presentationMode.present()"
-					(presentFromBeginning)="presentationMode.presentFromBeginning()"
-					(presenter)="presentationMode.presentPresenter()"
-					(record)="presentationMode.startRehearsalFromCurrent()"
-					(recordFromBeginning)="presentationMode.startRehearsalFromBeginning()"
-					(recordFromCurrent)="presentationMode.startRehearsalFromCurrent()"
-					(spellCheckChange)="spellCheck.set($event)"
-					(rehearseTimings)="presentationMode.startRehearsalFromCurrent()"
-					(toggleSubtitles)="presentationMode.toggleSubtitles()"
-					(openSubtitleSettings)="presentationMode.toggleSubtitles()"
-					(share)="session.showShare.set(true)"
-					(broadcast)="session.showBroadcast.set(true)"
-					(openFile)="fileIO.openFile()"
-					(openRecentFile)="onOpenRecentFile($event)"
-					(createPresentation)="onCreatePresentation($event)"
-					(save)="fileIO.saveAsPptx()"
-					(savePpsx)="fileIO.saveAsPpsx()"
-					(savePptm)="fileIO.saveAsPptm()"
-					(packageForSharing)="fileIO.packageForSharing()"
-					(info)="docProperties.showProperties.set(true)"
-					(print)="print.openDialog()"
-					(comments)="inspectorPanel.togglePanel('comments')"
-					(signatures)="inspectorPanel.togglePanel('signatures')"
-					(a11y)="inspectorPanel.togglePanel('accessibility')"
-					(link)="docProperties.showHyperlink.set(true)"
-					(openSorter)="showSorter.set(true)"
-					(openReadingView)="showReadingView.set(true)"
-					(openOutlineView)="showOutlineView.set(true)"
-					(toggleNotes)="mobileSheetSvc.toggleNotes()"
-					(toggleFormatPainter)="formatPainter.toggle()"
-					(exportPng)="xport.exportPng()"
-					(exportPdf)="xport.exportPdf()"
-					(exportGif)="xport.exportGif()"
-					(exportVideo)="xport.exportVideo()"
-					(exportJson)="fileIO.exportJson(fileName())"
-					(copySlideAsImage)="xport.copySlideAsImage()"
-					(replace)="findReplace.openFindReplace()"
-					(toggleInspector)="inspectorPanel.toggleFormatPanel()"
-					(drawToolChange)="onDrawToolChange($event)"
-					[showGrid]="showGrid()"
-					[showRulers]="showRulers()"
-					[showGuides]="showGuides()"
-					[snapToGrid]="snapToGrid()"
-					[snapToShape]="snapToShape()"
-					[eyedropperActive]="formatPainter.eyedropperActive()"
-					(toggleGrid)="showGrid.update(v => !v)"
-					(toggleRulers)="showRulers.update(v => !v)"
-					(toggleGuides)="showGuides.update(v => !v)"
-					(toggleSnapToGrid)="snapToGrid.update(v => !v)"
-					(toggleSnapToShape)="snapToShape.update(v => !v)"
-					(addGuide)="addGuide($event)"
-					(zoomToFit)="zoomSvc.zoomReset()"
-					(toggleEyedropper)="formatPainter.toggleEyedropper()"
-					[themeGalleryOpen]="themeGallery.showThemeGallery()"
-					(toggleThemeGallery)="onBrowseThemes()"
-					(editTheme)="onEditTheme()"
-					(openSlideSize)="onOpenSlideSize()"
-					(toggleSelectionPane)="inspectorPanel.togglePanel('selection')"
-					(openCustomShows)="customShowsCtl.showDialog.set(true)"
-					(openSmartArtDialog)="showSmartArtInsert.set(true)"
-					(openTemplateGallery)="showTemplateGallery.set(true)"
-					(openEquationDialog)="dialogs.openEquationInsert()"
-					(openMasterView)="openMasterView()"
-					(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
-					[activeSlideHidden]="!!displaySlides()[activeSlideIndex()]?.hidden"
-					(toggleHideSlide)="toggleHideSlides([activeSlideIndex()])"
-					(openCompare)="onOpenCompare()"
-					(openPassword)="dialogs.showPassword.set(true)"
-					(openFontEmbedding)="dialogs.showFontEmbedding.set(true)"
-					(openVersionHistory)="dialogs.showVersionHistory.set(true)"
-					(openShortcuts)="dialogs.showShortcuts.set(true)"
-					(openSettings)="dialogs.showSettings.set(true)"
-					[accountAuth]="accountAuth()"
-					[aiEnabled]="aiEnabled()"
-					[aiPanelOpen]="aiPanelOpen()"
-					(toggleAiPanel)="aiPanelOpen.update(v => !v)"
+						[slideIndex]="activeSlideIndex()"
+						[slideCount]="slideCount()"
+						[canEdit]="canEdit()"
+						[selectedElement]="selectedElement()"
+						[hiddenActions]="hiddenActions()"
+						[zoomPercent]="zoomSvc.zoomPercent()"
+						[formatPainterActive]="formatPainter.active()"
+						[canActivateFormatPainter]="formatPainter.canActivate()"
+						[exporting]="xport.exporting()"
+						[hasMacros]="loader.hasMacros()"
+						[sidebarCollapsed]="slidesPanelCollapsed()"
+						[inspectorOpen]="inspectorPanel.inspectorPaneOpen()"
+						[commentsOpen]="inspectorPanel.activePanel() === 'comments'"
+						[commentCount]="activeComments().length"
+						[findOpen]="findReplace.showFind() || findReplace.showFindReplace()"
+						[collabConnected]="collab.connected()"
+						[connectedCount]="collab.connectedCount()"
+						[spellCheckEnabled]="spellCheck()"
+						[showSubtitles]="presentationMode.subtitlesVisible()"
+						(toggleSidebar)="slidesPanelCollapsed.update((v) => !v)"
+						(prev)="goPrev()"
+						(next)="goNext()"
+						(zoomIn)="zoomSvc.zoomIn()"
+						(zoomOut)="zoomSvc.zoomOut()"
+						(zoomReset)="zoomSvc.zoomReset()"
+						(find)="findReplace.showFind.set(true)"
+						(present)="presentationMode.present()"
+						(presentFromBeginning)="presentationMode.presentFromBeginning()"
+						(presenter)="presentationMode.presentPresenter()"
+						(record)="presentationMode.startRehearsalFromCurrent()"
+						(recordFromBeginning)="presentationMode.startRehearsalFromBeginning()"
+						(recordFromCurrent)="presentationMode.startRehearsalFromCurrent()"
+						(spellCheckChange)="spellCheck.set($event)"
+						(rehearseTimings)="presentationMode.startRehearsalFromCurrent()"
+						(toggleSubtitles)="presentationMode.toggleSubtitles()"
+						(openSubtitleSettings)="presentationMode.toggleSubtitles()"
+						(share)="session.showShare.set(true)"
+						(broadcast)="session.showBroadcast.set(true)"
+						(openFile)="fileIO.openFile()"
+						(openRecentFile)="onOpenRecentFile($event)"
+						(createPresentation)="onCreatePresentation($event)"
+						(save)="fileIO.saveAsPptx()"
+						(savePpsx)="fileIO.saveAsPpsx()"
+						(savePptm)="fileIO.saveAsPptm()"
+						(packageForSharing)="fileIO.packageForSharing()"
+						(info)="docProperties.showProperties.set(true)"
+						(print)="print.openDialog()"
+						(comments)="inspectorPanel.togglePanel('comments')"
+						(signatures)="inspectorPanel.togglePanel('signatures')"
+						(a11y)="inspectorPanel.togglePanel('accessibility')"
+						(link)="docProperties.showHyperlink.set(true)"
+						(openSorter)="showSorter.set(true)"
+						(openReadingView)="showReadingView.set(true)"
+						(openOutlineView)="showOutlineView.set(true)"
+						(toggleNotes)="mobileSheetSvc.toggleNotes()"
+						(toggleFormatPainter)="formatPainter.toggle()"
+						(exportPng)="xport.exportPng()"
+						(exportPdf)="xport.exportPdf()"
+						(exportGif)="xport.exportGif()"
+						(exportVideo)="xport.exportVideo()"
+						(exportJson)="fileIO.exportJson(fileName())"
+						(copySlideAsImage)="xport.copySlideAsImage()"
+						(replace)="findReplace.openFindReplace()"
+						(toggleInspector)="inspectorPanel.toggleFormatPanel()"
+						(drawToolChange)="onDrawToolChange($event)"
+						[showGrid]="showGrid()"
+						[showRulers]="showRulers()"
+						[showGuides]="showGuides()"
+						[snapToGrid]="snapToGrid()"
+						[snapToShape]="snapToShape()"
+						[eyedropperActive]="formatPainter.eyedropperActive()"
+						(toggleGrid)="showGrid.update((v) => !v)"
+						(toggleRulers)="showRulers.update((v) => !v)"
+						(toggleGuides)="showGuides.update((v) => !v)"
+						(toggleSnapToGrid)="snapToGrid.update((v) => !v)"
+						(toggleSnapToShape)="snapToShape.update((v) => !v)"
+						(addGuide)="addGuide($event)"
+						(zoomToFit)="zoomSvc.zoomReset()"
+						(toggleEyedropper)="formatPainter.toggleEyedropper()"
+						[themeGalleryOpen]="themeGallery.showThemeGallery()"
+						(toggleThemeGallery)="onBrowseThemes()"
+						(editTheme)="onEditTheme()"
+						(openSlideSize)="onOpenSlideSize()"
+						(toggleSelectionPane)="inspectorPanel.togglePanel('selection')"
+						(openCustomShows)="customShowsCtl.showDialog.set(true)"
+						(openSmartArtDialog)="showSmartArtInsert.set(true)"
+						(openTemplateGallery)="showTemplateGallery.set(true)"
+						(openEquationDialog)="dialogs.openEquationInsert()"
+						(openMasterView)="openMasterView()"
+						(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
+						[activeSlideHidden]="!!displaySlides()[activeSlideIndex()]?.hidden"
+						(toggleHideSlide)="toggleHideSlides([activeSlideIndex()])"
+						(openCompare)="onOpenCompare()"
+						(openPassword)="dialogs.showPassword.set(true)"
+						(openFontEmbedding)="dialogs.showFontEmbedding.set(true)"
+						(openVersionHistory)="dialogs.showVersionHistory.set(true)"
+						(openShortcuts)="dialogs.showShortcuts.set(true)"
+						(openSettings)="dialogs.showSettings.set(true)"
+						[accountAuth]="accountAuth()"
+						[aiEnabled]="aiEnabled()"
+						[aiPanelOpen]="aiPanelOpen()"
+						(toggleAiPanel)="aiPanelOpen.update((v) => !v)"
 					/>
 				}
 
@@ -381,8 +382,12 @@ import { ZoomTargetService } from './zoom-target.service';
 						[aiEnabled]="aiEnabled()"
 						[aiPanelOpen]="aiPanelOpen()"
 						[hiddenActions]="hiddenActions()"
-						(toggleMenu)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'menu' ? null : 'menu')"
-						(toggleAiPanel)="aiPanelOpen.update(v => !v)"
+						(toggleMenu)="
+							mobileSheetSvc.mobileSheet.set(
+								mobileSheetSvc.mobileSheet() === 'menu' ? null : 'menu'
+							)
+						"
+						(toggleAiPanel)="aiPanelOpen.update((v) => !v)"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
 						(share)="session.showShare.set(true)"
@@ -447,12 +452,10 @@ import { ZoomTargetService } from './zoom-target.service';
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
 							(transformEnd)="editor.rerouteConnectors(activeSlideIndex(), $event.ids)"
 							(adjustUpdate)="
-								editor.applyShapeAdjustment(
-									activeSlideIndex(),
-									$event.id,
-									$event.key,
-									$event.value
-								)
+								editor.applyShapeAdjustments(activeSlideIndex(), $event.id, $event.adjustments)
+							"
+							(connectorEndpointUpdate)="
+								editor.applyConnectorEndpoint(activeSlideIndex(), $event.id, $event.element)
 							"
 							(rotateUpdate)="
 								editor.applyTransform(activeSlideIndex(), $event.id, { rotation: $event.rotation })
@@ -548,9 +551,13 @@ import { ZoomTargetService } from './zoom-target.service';
 							class="pptx-ng-inspector-host"
 							[attr.aria-label]="inspectorPanel.inspectorLabel() | translate"
 							[style.transform]="
-								inspectorPanel.inspectorDrag.dragY() > 0 ? 'translateY(' + inspectorPanel.inspectorDrag.dragY() + 'px)' : null
+								inspectorPanel.inspectorDrag.dragY() > 0
+									? 'translateY(' + inspectorPanel.inspectorDrag.dragY() + 'px)'
+									: null
 							"
-							[style.transition]="inspectorPanel.inspectorDrag.dragging() ? 'none' : 'transform 150ms ease-out'"
+							[style.transition]="
+								inspectorPanel.inspectorDrag.dragging() ? 'none' : 'transform 150ms ease-out'
+							"
 						>
 							<!-- Swipe-down-to-dismiss grab handle (mobile only; hidden on desktop). -->
 							<div
@@ -677,7 +684,11 @@ import { ZoomTargetService } from './zoom-target.service';
 			}
 
 			@if (showMasterView()) {
-				<div class="pptx-ng-master-overlay" role="dialog" [attr.aria-label]="'pptx.view.masterViews' | translate">
+				<div
+					class="pptx-ng-master-overlay"
+					role="dialog"
+					[attr.aria-label]="'pptx.view.masterViews' | translate"
+				>
 					<pptx-master-view-sidebar
 						[tab]="masterViewTab()"
 						[slideMasters]="loader.slideMasters()"
@@ -686,9 +697,12 @@ import { ZoomTargetService } from './zoom-target.service';
 						[activeMasterIndex]="activeMasterIndex()"
 						[activeLayoutIndex]="activeLayoutIndex()"
 						[handoutSlidesPerPage]="loader.handoutMaster()?.slidesPerPage ?? 4"
+						[editable]="canEdit()"
 						(tabChange)="selectMasterTab($event)"
 						(selectMaster)="activeMasterIndex.set($event); activeLayoutIndex.set(null)"
-						(selectLayout)="activeMasterIndex.set($event.masterIndex); activeLayoutIndex.set($event.layoutIndex)"
+						(selectLayout)="
+							activeMasterIndex.set($event.masterIndex); activeLayoutIndex.set($event.layoutIndex)
+						"
 						(slidesPerPageChange)="setHandoutSlidesPerPage($event)"
 						(backgroundChange)="setMasterBackground($event)"
 						(close)="closeMasterView()"
@@ -716,8 +730,11 @@ import { ZoomTargetService } from './zoom-target.service';
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[activeIndex]="activeSlideIndex()"
+					[canEdit]="canEdit()"
 					(select)="goTo($event); showSorter.set(false)"
 					(closed)="showSorter.set(false)"
+					(deleteSlide)="editor.deleteSlide($event)"
+					(duplicateSlide)="editor.duplicateSlide($event)"
 				/>
 			}
 
@@ -758,6 +775,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="customShowsCtl.presentationStartIndex()"
+					[activeCustomShow]="customShowsCtl.activeCustomShow()"
 					[showWithAnimation]="loader.presentationProperties().showWithAnimation"
 					[useTimings]="loader.presentationProperties().advanceMode !== 'manual'"
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
@@ -795,6 +813,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					<pptx-mobile-presenter-view
 						[slides]="loader.slides()"
 						[currentSlideIndex]="activeSlideIndex()"
+						[activeCustomShow]="customShowsCtl.activeCustomShow()"
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
 						[presentationStartTime]="presentationMode.presenterStartTime()"
@@ -805,6 +824,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					<pptx-presenter-view
 						[slides]="loader.slides()"
 						[currentSlideIndex]="activeSlideIndex()"
+						[activeCustomShow]="customShowsCtl.activeCustomShow()"
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
 						[presentationStartTime]="presentationMode.presenterStartTime()"
@@ -858,7 +878,9 @@ import { ZoomTargetService } from './zoom-target.service';
 				[activeName]="themeGallery.activeThemeName()"
 				[theme]="loader.theme()"
 				(applyTheme)="themeGallery.applyThemePreset($event)"
-				(applyCustomTheme)="themeGallery.applyCustomTheme($event.colorScheme, $event.fontScheme, $event.name)"
+				(applyCustomTheme)="
+					themeGallery.applyCustomTheme($event.colorScheme, $event.fontScheme, $event.name)
+				"
 				(close)="themeGallery.showThemeGallery.set(false)"
 			/>
 
@@ -1013,8 +1035,14 @@ import { ZoomTargetService } from './zoom-target.service';
 				@if (mobileSheetSvc.showNotes()) {
 					<div
 						class="pptx-ng-mobile-notes-sheet"
-						[style.transform]="mobileSheetSvc.notesDrag.dragY() > 0 ? 'translateY(' + mobileSheetSvc.notesDrag.dragY() + 'px)' : null"
-						[style.transition]="mobileSheetSvc.notesDrag.dragging() ? 'none' : 'transform 150ms ease-out'"
+						[style.transform]="
+							mobileSheetSvc.notesDrag.dragY() > 0
+								? 'translateY(' + mobileSheetSvc.notesDrag.dragY() + 'px)'
+								: null
+						"
+						[style.transition]="
+							mobileSheetSvc.notesDrag.dragging() ? 'none' : 'transform 150ms ease-out'
+						"
 					>
 						<!-- Swipe-down-to-dismiss grab handle (kept in-flow so the keyboard
 						     can't push the textarea out of reach). -->
@@ -1046,7 +1074,11 @@ import { ZoomTargetService } from './zoom-target.service';
 					[slideCount]="slideCount()"
 					[commentCount]="activeComments().length"
 					[activeSheet]="mobileBarSheet()"
-					(openSlides)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'slides' ? null : 'slides')"
+					(openSlides)="
+						mobileSheetSvc.mobileSheet.set(
+							mobileSheetSvc.mobileSheet() === 'slides' ? null : 'slides'
+						)
+					"
 					(insert)="mobileSheetSvc.onMobileInsert()"
 					(openFormat)="onMobileFormat()"
 					(openComments)="inspectorPanel.togglePanel('comments')"
@@ -1613,6 +1645,10 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			untracked(() => {
 				this.editor.setSlides(slides, this.loader.sections());
 				this.activeSlideIndex.set(0);
+				// Adopt `p:showPr/p:custShow/@id`: a deck authored to open into a
+				// named custom show must actually play it. A manual pick made later
+				// overwrites this and wins until the next deck loads.
+				this.customShowsCtl.seedFromDeck();
 				// A load that lands mid-session must not clobber remotely synced
 				// slides: when the shared doc already holds the room's content, a
 				// late joiner's bootstrap deck (parsed slower than the doc sync)
@@ -1821,6 +1857,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			canEdit: () => this.canEdit(),
 			presenting: () => this.presentationMode.presenting(),
 			activeSlideIndex: () => this.activeSlideIndex(),
+			// An armed Draw-tab tool owns the keyboard, exactly as it does in the
+			// other four bindings: the shared keymap stands down while one is up.
+			isDrawing: () => this.activeDrawTool() !== 'select',
 			// With nothing selected the horizontal arrows page the deck, which is
 			// what the other four bindings do and what a reader expects.
 			goPrev: () => this.goPrev(),
@@ -1954,6 +1993,17 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			serialize: () => this.serializeForAutosave(),
 			// Options > Save > "Save AutoRecover information every N minutes".
 			intervalSeconds: () => this.viewerOpts.autosaveIntervalSeconds(),
+			// Everything `serializeForAutosave` reads that changes by
+			// REASSIGNMENT, so a tick that finds all of them unchanged can skip
+			// re-serializing a deck it has already snapshotted.
+			changeSources: () => [
+				this.editor.slides(),
+				this.editor.templateElementsBySlideId(),
+				this.editor.sections(),
+				this.canEdit(),
+				this.dialogs.presentationPassword(),
+				this.dialogs.isPasswordProtected(),
+			],
 		});
 	}
 
@@ -2014,41 +2064,40 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		this.editor.clearSelection();
 	}
 
+	/**
+	 * Format Background for whichever master-view part is selected.
+	 *
+	 * This used to be a hand-rolled tab/layout walk; the routing decision now
+	 * lives in `pptx-viewer-shared` alongside the element write path, so the
+	 * five bindings cannot disagree about which part a colour lands on.
+	 */
 	protected setMasterBackground(backgroundColor: string): void {
-		if (this.masterViewTab() === 'notes') {
-			const current = this.loader.notesMaster();
-			if (current) {
-				this.updateNotesMaster({ ...current, backgroundColor });
-			}
+		const write = setMasterViewBackgroundColor(
+			{
+				slideMasters: this.loader.slideMasters(),
+				notesMaster: this.loader.notesMaster(),
+				handoutMaster: this.loader.handoutMaster(),
+			},
+			{
+				tab: this.masterViewTab(),
+				masterIndex: this.activeMasterIndex(),
+				layoutIndex: this.activeLayoutIndex(),
+			},
+			backgroundColor,
+		);
+		if (!write) {
 			return;
 		}
-		if (this.masterViewTab() === 'handout') {
-			const current = this.loader.handoutMaster();
-			if (current) {
-				this.updateHandoutMaster({ ...current, backgroundColor });
-			}
-			return;
+		if (write.notesMaster) {
+			this.updateNotesMaster(write.notesMaster);
 		}
-		const masters = [...this.loader.slideMasters()];
-		const index = this.activeMasterIndex();
-		const current = masters[index];
-		if (!current) {
-			return;
+		if (write.handoutMaster) {
+			this.updateHandoutMaster(write.handoutMaster);
 		}
-		const layoutIndex = this.activeLayoutIndex();
-		if (layoutIndex === null) {
-			masters[index] = { ...current, backgroundColor };
-		} else {
-			const layouts = [...(current.layouts ?? [])];
-			const layout = layouts[layoutIndex];
-			if (!layout) {
-				return;
-			}
-			layouts[layoutIndex] = { ...layout, backgroundColor };
-			masters[index] = { ...current, layouts };
+		if (write.slideMasters) {
+			this.loader.slideMasters.set(write.slideMasters);
+			this.editor.dirty.set(true);
 		}
-		this.loader.slideMasters.set(masters);
-		this.editor.dirty.set(true);
 	}
 
 	protected setHandoutSlidesPerPage(slidesPerPage: number): void {

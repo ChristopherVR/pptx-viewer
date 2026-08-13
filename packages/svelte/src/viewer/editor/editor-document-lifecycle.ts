@@ -202,6 +202,8 @@ export async function saveEditorState(
 		state.saveIntent(),
 		// File ▸ Fonts: off strips the deck's embedded font data from the output.
 		state.embedFonts,
+		// Design ▸ Slide Size: the ONLY way an edited `p:sldSz` reaches the file.
+		state.getSlideSize(),
 	);
 	state.dirty = false;
 	return bytes;

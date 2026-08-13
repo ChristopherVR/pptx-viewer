@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
+import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor, SnapLine } from 'pptx-viewer-shared';
 
 import type { ContextMenuCellTarget } from '../editor/context-menu-dispatch';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -43,7 +43,7 @@ export interface SelectionOverlayProps {
 	onhandlepointerdown: (handle: ResizeHandleId, event: PointerEvent) => void;
 	onrotatepointerdown: (event: PointerEvent) => void;
 	/** Pointer-down on the amber shape-adjustment diamond. */
-	onadjustpointerdown?: (event: PointerEvent) => void;
+	onadjustpointerdown?: (event: PointerEvent, descriptor: ShapeAdjustmentHandleDescriptor) => void;
 }
 
 /** Props for the inline (double-click) text editing surface. */

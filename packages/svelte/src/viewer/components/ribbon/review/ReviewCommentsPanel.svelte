@@ -13,6 +13,7 @@
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
+	import CommentBody from '../../CommentBody.svelte';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
@@ -108,13 +109,13 @@
 						<strong>{comment.author ?? t('pptx.comments.unknownAuthor')}</strong>
 						{#if comment.resolved}<span>{t('pptx.comments.resolved')}</span>{/if}
 					</div>
-					<p>{comment.text}</p>
+					<p><CommentBody text={comment.text} mentions={comment.mentions} /></p>
 					{#if comment.replies && comment.replies.length > 0}
 						<div class="pptx-svelte-comment-replies">
 							{#each comment.replies as reply (reply.id)}
 								<div class="pptx-svelte-comment-reply">
 									<strong>{reply.author ?? t('pptx.comments.unknownAuthor')}</strong>
-									<p>{reply.text}</p>
+									<p><CommentBody text={reply.text} mentions={reply.mentions} /></p>
 								</div>
 							{/each}
 						</div>

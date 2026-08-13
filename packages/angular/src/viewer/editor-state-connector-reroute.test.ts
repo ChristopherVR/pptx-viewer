@@ -171,6 +171,11 @@ describe('canvas -> editor wiring', () => {
 		expect(viewer).toContain(
 			'(transformEnd)="editor.rerouteConnectors(activeSlideIndex(), $event.ids)"',
 		);
-		expect(viewer).toContain('editor.applyShapeAdjustment(');
+		expect(viewer).toContain(
+			'editor.applyShapeAdjustments(activeSlideIndex(), $event.id, $event.adjustments)',
+		);
+		// The endpoint gesture commits the WHOLE rebuilt connector, because a
+		// detached end has had its binding key deleted and a merge would keep it.
+		expect(viewer).toContain('editor.applyConnectorEndpoint(');
 	});
 });

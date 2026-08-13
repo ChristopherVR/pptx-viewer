@@ -11,7 +11,7 @@ import { createInitialViewerState, createStore } from '../state';
 import { createEditorOps } from './editor-operations';
 import { createStageInteractions } from './editor-stage-interactions';
 import { createSelectionOverlay } from './selection-overlay';
-import { createShapeAdjustGesture, selectedAdjustmentDescriptor } from './shape-adjust-gesture';
+import { createShapeAdjustGesture, selectedAdjustmentDescriptors } from './shape-adjust-gesture';
 
 function shape(id: string, shapeType: string, locks?: PptxShapeLocks): PptxElement {
 	return {
@@ -64,33 +64,45 @@ function setup(elements: PptxElement[], selectedId = elements[0]?.id) {
 	return { store, ops, elementById };
 }
 
-describe('shape adjustment descriptor', () => {
-	it('is null for a plain rect and non-null for a roundRect', () => {
+describe('shape adjustment descriptors', () => {
+	it('is empty for a plain rect and non-empty for a roundRect', () => {
 		const rect = setup([shape('r', 'rect')]);
-		expect(selectedAdjustmentDescriptor(rect.store.get())).toBeNull();
+		expect(selectedAdjustmentDescriptors(rect.store.get())).toStrictEqual([]);
 
 		const round = setup([shape('r', 'roundRect')]);
-		const descriptor = selectedAdjustmentDescriptor(round.store.get());
-		expect(descriptor).not.toBeNull();
+		const [descriptor, ...rest] = selectedAdjustmentDescriptors(round.store.get());
+		expect(rest).toHaveLength(0);
 		expect(descriptor).toMatchObject({ key: 'adj', cursor: 'ew-resize' });
 		// Element-LOCAL px offsets from the element's top-left, not slide coords.
-		expect(descriptor!.left).toBeGreaterThan(0);
-		expect(descriptor!.left).toBeLessThan(200);
+		expect(descriptor.left).toBeGreaterThan(0);
+		expect(descriptor.left).toBeLessThan(200);
+		// Guide space, not a 0-1 fraction: a 200x100 roundRect at the default
+		// 16667 puts the handle ss * 16667 / 100000 = 16.667 px along the top.
+		expect(descriptor.value).toBe(16667);
+		expect(descriptor.left).toBeCloseTo(16.667, 3);
 	});
 
-	it('is null when a:spLocks forbids the adjust handle', () => {
+	it('offers one descriptor per adjustable parameter', () => {
+		const arrow = setup([shape('a', 'rightArrow')]);
+		expect(selectedAdjustmentDescriptors(arrow.store.get()).map((d) => d.key)).toStrictEqual([
+			'adj1',
+			'adj2',
+		]);
+	});
+
+	it('is empty when a:spLocks forbids the adjust handle', () => {
 		const locked = setup([shape('r', 'roundRect', { noAdjustHandles: true })]);
-		expect(selectedAdjustmentDescriptor(locked.store.get())).toBeNull();
+		expect(selectedAdjustmentDescriptors(locked.store.get())).toStrictEqual([]);
 	});
 
-	it('is null for a multi-selection and while presenting', () => {
+	it('is empty for a multi-selection and while presenting', () => {
 		const multi = setup([shape('a', 'roundRect'), shape('b', 'roundRect')]);
 		multi.store.set({ selectedElementIds: ['a', 'b'] });
-		expect(selectedAdjustmentDescriptor(multi.store.get())).toBeNull();
+		expect(selectedAdjustmentDescriptors(multi.store.get())).toStrictEqual([]);
 
 		const presenting = setup([shape('a', 'roundRect')]);
 		presenting.store.set({ presenting: true });
-		expect(selectedAdjustmentDescriptor(presenting.store.get())).toBeNull();
+		expect(selectedAdjustmentDescriptors(presenting.store.get())).toStrictEqual([]);
 	});
 });
 
@@ -98,9 +110,10 @@ describe('shape adjustment drag', () => {
 	it('writes shapeAdjustments.adj and commits one undoable step', () => {
 		const { store, ops, elementById } = setup([shape('r', 'roundRect')]);
 		const gesture = createShapeAdjustGesture({ store, ops, getScale: () => 1 });
-		const before = selectedAdjustmentDescriptor(store.get())!.value;
+		const [descriptor] = selectedAdjustmentDescriptors(store.get());
+		const before = descriptor.value;
 
-		gesture.begin(pointerEvent(100));
+		gesture.begin(pointerEvent(100), descriptor);
 		dispatchWindowPointer('pointermove', 160);
 		dispatchWindowPointer('pointerup', 160);
 
@@ -122,7 +135,7 @@ describe('shape adjustment drag', () => {
 	it('ignores a press inside the dead zone (a click, not a drag)', () => {
 		const { store, ops, elementById } = setup([shape('r', 'roundRect')]);
 		const gesture = createShapeAdjustGesture({ store, ops, getScale: () => 1 });
-		gesture.begin(pointerEvent(100));
+		gesture.begin(pointerEvent(100), selectedAdjustmentDescriptors(store.get())[0]);
 		dispatchWindowPointer('pointermove', 101);
 		dispatchWindowPointer('pointerup', 101);
 		const element = elementById('r');
@@ -135,7 +148,9 @@ describe('shape adjustment drag', () => {
 	it('never starts on a shape with no adjustable parameter', () => {
 		const { store, ops, elementById } = setup([shape('r', 'rect')]);
 		const gesture = createShapeAdjustGesture({ store, ops, getScale: () => 1 });
-		gesture.begin(pointerEvent(100));
+		// A plain rect offers no descriptor at all, so there is nothing to grab.
+		expect(selectedAdjustmentDescriptors(store.get())).toStrictEqual([]);
+		gesture.begin(pointerEvent(100), selectedAdjustmentDescriptors(store.get())[0]);
 		expect(gesture.isActive()).toBeFalsy();
 		dispatchWindowPointer('pointermove', 160);
 		dispatchWindowPointer('pointerup', 160);
@@ -160,27 +175,43 @@ describe('selection overlay adjust handle', () => {
 
 	it('exposes the "Adjust shape" control the parity contract expects', () => {
 		const { overlay } = buildOverlay();
+		const { store } = setup([shape('r', 'roundRect')]);
+		// Nothing is drawn until a shape with an adjustable preset is selected.
+		expect(overlay.root.querySelector('[aria-label="Adjust shape"]')).toBeNull();
+
+		overlay.setAdjustHandles(selectedAdjustmentDescriptors(store.get()), 1);
 		const handle = overlay.root.querySelector<HTMLElement>('[aria-label="Adjust shape"]');
 		expect(handle).not.toBeNull();
 		expect(handle?.classList.contains('pptxv-adjust-handle')).toBeTruthy();
 		expect(handle?.tagName).toBe('BUTTON');
-		// Hidden until a shape with an adjustable preset is the sole selection.
-		expect(handle?.hidden).toBeTruthy();
+		expect(handle?.hidden).toBeFalsy();
 	});
 
 	it('places the diamond at the descriptor offset scaled to the stage', () => {
 		const { overlay } = buildOverlay();
 		const { store } = setup([shape('r', 'roundRect')]);
-		const descriptor = selectedAdjustmentDescriptor(store.get())!;
+		const [descriptor] = selectedAdjustmentDescriptors(store.get());
 
-		overlay.setAdjustHandle(descriptor, 2);
+		overlay.setAdjustHandles([descriptor], 2);
 		const handle = overlay.root.querySelector<HTMLElement>('.pptxv-adjust-handle');
 		expect(handle?.hidden).toBeFalsy();
 		expect(handle?.style.left).toBe(`${descriptor.left * 2}px`);
 		expect(handle?.style.top).toBe(`${descriptor.top * 2}px`);
 
-		overlay.setAdjustHandle(null, 2);
+		overlay.setAdjustHandles([], 2);
 		expect(handle?.hidden).toBeTruthy();
+	});
+
+	// PowerPoint offers one diamond per `a:avLst` guide; the overlay used to own
+	// exactly one button, so every guide after the first was unreachable.
+	it('draws one diamond per adjustable parameter', () => {
+		const { overlay } = buildOverlay();
+		const { store } = setup([shape('a', 'rightArrow')]);
+		overlay.setAdjustHandles(selectedAdjustmentDescriptors(store.get()), 1);
+		const keys = [...overlay.root.querySelectorAll<HTMLElement>('.pptxv-adjust-handle')]
+			.filter((el) => !el.hidden)
+			.map((el) => el.dataset.pptxAdjustKey);
+		expect(keys).toStrictEqual(['adj1', 'adj2']);
 	});
 
 	it('routes a pointerdown on the diamond into the stage adjust gesture', () => {
@@ -203,10 +234,11 @@ describe('selection overlay adjust handle', () => {
 		overlayRef = createSelectionOverlay(document, createTranslator(), {
 			onHandlePointerDown: vi.fn(),
 			onRotatePointerDown: vi.fn(),
-			onAdjustPointerDown: (event) => interactions.beginAdjustGesture(event),
+			onAdjustPointerDown: (event, descriptor) =>
+				interactions.beginAdjustGesture(event, descriptor),
 		});
 		overlayRef.mount(wrap);
-		overlayRef.setAdjustHandle(selectedAdjustmentDescriptor(store.get()), 1);
+		overlayRef.setAdjustHandles(selectedAdjustmentDescriptors(store.get()), 1);
 
 		const handle = overlayRef.root.querySelector<HTMLElement>('.pptxv-adjust-handle');
 		handle?.dispatchEvent(

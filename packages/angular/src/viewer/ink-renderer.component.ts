@@ -42,7 +42,7 @@ import type { InkStroke } from './ink-renderer-helpers';
 		<div
 			class="pptx-ng-element pptx-ng-ink"
 			[ngStyle]="containerStyle()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
 			@if (strokes().length > 0) {
@@ -106,6 +106,19 @@ export class InkRendererComponent {
 	 * hit-testing slide elements by the marker skips it.
 	 */
 	readonly markElement = input<boolean>(false);
+	/**
+	 * When true (default), the rendered node carries `data-element-id`. The
+	 * miniature surfaces that paint every slide at once turn it off so one
+	 * element id resolves to exactly one node in the document; see
+	 * `ElementRendererComponent.exposeElementId`.
+	 */
+	readonly exposeElementId = input<boolean>(true);
+
+	/** `data-element-id` for this element, or null on a miniature surface. */
+	readonly elementIdAttr = computed<string | null>(() =>
+		this.exposeElementId() ? this.element().id : null,
+	);
+
 	readonly replayKeyframes = INK_REPLAY_KEYFRAMES;
 
 	readonly containerStyle = computed<StyleMap>(() =>

@@ -7,6 +7,7 @@
 	 * (attached to the stage holder + viewer root); this component is purely the
 	 * visual overlay so it can be a thin, presentation-only sibling of the stage.
 	 */
+	import ConnectorEndpointOverlay from './ConnectorEndpointOverlay.svelte';
 	import InlineTextEditor from './InlineTextEditor.svelte';
 	import SelectionOverlay from './SelectionOverlay.svelte';
 	import type { EditorLayerProps } from './props';
@@ -39,6 +40,18 @@
 	onrotatepointerdown={controller.onRotatePointerDown}
 	onadjustpointerdown={controller.onAdjustPointerDown}
 />
+
+<!-- Connector endpoint authoring: drag an end onto a shape's connection point
+     to bind it (`a:stCxn` / `a:endCxn`), or off one to detach. -->
+{#if controller.selectedConnector}
+	<ConnectorEndpointOverlay
+		connector={controller.selectedConnector}
+		elements={controller.activeElements}
+		{scale}
+		drag={controller.connectorEndpointDrag}
+		onendpointpointerdown={controller.onConnectorEndpointPointerDown}
+	/>
+{/if}
 
 {#if editingElement && editingBox && controller.editingId}
 	<InlineTextEditor

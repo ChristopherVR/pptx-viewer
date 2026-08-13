@@ -27,6 +27,7 @@ import {
 	nextVisibleIndex,
 	prevVisibleIndex,
 } from './presentation-overlay-helpers';
+import type { ActiveShow } from './presentation-overlay-helpers';
 
 /** Where a navigation request wants to go. */
 export type ShowDirection = 'next' | 'prev' | 'first' | 'last';
@@ -43,6 +44,13 @@ export interface ActiveSlideTransition {
 /** Everything the navigator needs from its host component. */
 export interface ShowNavigatorDeps {
 	slides: () => readonly PptxSlide[];
+	/**
+	 * The running custom show, when one is active. `slides()` is always the whole
+	 * deck: the subset is a navigation rule, not a different slide array, so that
+	 * a hidden slide inside the show is still skipped and the editor's index
+	 * space never has to be translated.
+	 */
+	activeCustomShow?: () => ActiveShow;
 	/** The slide at the CURRENT index (a computed over `currentIndex`). */
 	currentSlide: () => PptxSlide | undefined;
 	showWithAnimation: () => boolean | undefined;
@@ -176,26 +184,27 @@ export class PresentationShowNavigator {
 		}
 
 		const current = this.currentIndex();
+		const activeShow = this.deps.activeCustomShow?.();
 		let next: number;
 
 		switch (direction) {
 			case 'next':
-				next = nextVisibleIndex(current, slides);
+				next = nextVisibleIndex(current, slides, activeShow);
 				break;
 			case 'prev':
-				next = prevVisibleIndex(current, slides);
+				next = prevVisibleIndex(current, slides, activeShow);
 				break;
 			case 'first':
 				// Home goes to the START OF THE SHOW, which is not slide 1 when the
 				// author hid it. Clamped anyway so an empty order cannot produce -1.
-				next = clampIndex(firstVisibleIndex(slides), count);
+				next = clampIndex(firstVisibleIndex(slides, activeShow), count);
 				break;
 			case 'last':
-				next = clampIndex(lastVisibleIndex(slides), count);
+				next = clampIndex(lastVisibleIndex(slides, activeShow), count);
 				break;
 		}
 
-		if (direction === 'next' && !hasVisibleSlideAfter(current, slides)) {
+		if (direction === 'next' && !hasVisibleSlideAfter(current, slides, activeShow)) {
 			// Nothing further to advance to. `nextVisibleIndex` would wrap back to
 			// the first slide and loop for ever; PowerPoint only loops when "Loop
 			// continuously until Esc" is set, so end the show instead.

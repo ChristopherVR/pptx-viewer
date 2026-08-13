@@ -22,7 +22,6 @@
 
 import { inject, Injectable, signal } from '@angular/core';
 
-import { LoadContentService } from './load-content.service';
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 import { endShowMediaCleanup } from './presentation-overlay-helpers';
 import { PresenterWindowService } from './presenter-window.service';
@@ -57,7 +56,6 @@ export function resolveRehearsalStartIndex(
 
 @Injectable()
 export class ViewerPresentationModeService {
-	private readonly loader = inject(LoadContentService);
 	private readonly presenterWindow = inject(PresenterWindowService);
 	private readonly customShowsCtl = inject(ViewerCustomShowsService);
 
@@ -104,6 +102,11 @@ export class ViewerPresentationModeService {
 			// "Adjust shape" handles) leaks over the slideshow.
 			host.clearSelection();
 			host.clearEditing();
+			// A custom show opens on its OWN first slide. Seeded here, once, rather
+			// than derived by the overlay's `startIndex` input: that input is live,
+			// and a value permanently pinned to the show's first slide re-adopted
+			// itself over every advance the show made.
+			host.setActiveSlideIndex(this.customShowsCtl.showEntryIndex());
 			this.presenting.set(true);
 		}
 	}
@@ -153,24 +156,26 @@ export class ViewerPresentationModeService {
 	}
 
 	/**
-	 * Map a presentation-overlay index back to the full-deck `activeSlideIndex`.
-	 * The overlay's index is relative to the (possibly custom-show-filtered)
-	 * presentation slides, so resolve by slide id to keep the editor selection
-	 * correct when the show closes.
+	 * Adopt a presentation-overlay index as the editor's `activeSlideIndex`.
+	 *
+	 * No remap is needed (and none may be done): the overlay is handed the WHOLE
+	 * live deck and applies custom-show membership as a navigation rule, so its
+	 * index is already a deck index. The id-lookup this used to perform existed
+	 * only because Angular pre-filtered the slide array to the show's members,
+	 * and it resolved against the PRISTINE loaded deck, so it mislanded whenever
+	 * the session had inserted or deleted a slide.
 	 */
 	onPresentationIndexChange(index: number): void {
 		const host = this.requireHost();
-		const target = this.customShowsCtl.presentationSlides()[index];
-		if (!target) {
+		if (index < 0 || index >= this.customShowsCtl.presentationSlides().length) {
 			return;
 		}
-		const fullIndex = this.loader.slides().findIndex((s) => s.id === target.id);
-		if (this.rehearsing() && fullIndex !== host.activeSlideIndex()) {
+		if (this.rehearsing() && index !== host.activeSlideIndex()) {
 			this.recordCurrentSlide();
 			this.slideStartedAt.set(Date.now());
 			this.pausedOnSlideMs = 0;
 		}
-		host.setActiveSlideIndex(fullIndex >= 0 ? fullIndex : index);
+		host.setActiveSlideIndex(index);
 	}
 
 	toggleRehearsalPause(): void {

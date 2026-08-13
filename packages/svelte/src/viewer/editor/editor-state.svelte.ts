@@ -11,6 +11,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxSlideSize,
 	PptxTheme,
 	PptxPresentationProperties,
 	PptxCustomShow,
@@ -65,6 +66,13 @@ import { TableCellSelection } from './table-cell-selection.svelte';
 export interface EditorStateDeps {
 	getCurrent(): number;
 	getHandler(): PptxHandler | null;
+	/**
+	 * The `p:sldSz` a save should write, resolved from the viewer's EMU slide
+	 * size and its pixel canvas by the shared `resolveSlideSizeSelection`.
+	 * Optional so out-of-tree mounts (and the unit tests) can omit it, in which
+	 * case core re-emits the load-time dimensions verbatim.
+	 */
+	getSlideSize?: () => PptxSlideSize | undefined;
 	onChange?: () => void;
 }
 
@@ -210,6 +218,16 @@ export class EditorState {
 	 *  Slides group for layout switching (`applyLayoutToSlide`). */
 	getHandler(): PptxHandler | null {
 		return this.#deps.getHandler();
+	}
+
+	/**
+	 * The `p:sldSz` the next save should write, or undefined to leave the
+	 * load-time dimensions alone. Slide size lives on the loader (it is not
+	 * content the undo stack owns), so it reaches the save through this dep the
+	 * same way the handler does.
+	 */
+	getSlideSize(): PptxSlideSize | undefined {
+		return this.#deps.getSlideSize?.();
 	}
 
 	/** Adopt a freshly loaded deck as the working document (see `loadEditorDocument`). */

@@ -12,11 +12,12 @@ import { applyStyleMap, createEl } from '../dom';
 const NEWLINE_RUN = '\n';
 
 /**
- * One rendered run. Normally a `<span>`, but the shared model marks two kinds
- * that need a different element: a HYPERLINK run (an `<a href>`) and an inline
- * EQUATION run (MathML, whose text is empty). Both used to be dropped here -
- * `buildParagraphs` returned `{ text, style }` only, so a linked run rendered
- * as ordinary text and an inline `m:oMath` as nothing at all.
+ * One rendered run. Normally a `<span>`, but the shared model marks three kinds
+ * that need a different element: a HYPERLINK run (an `<a href>`), an inline
+ * EQUATION run (MathML, whose text is empty), and a RUBY run (a phonetic guide
+ * over the base text). All three used to be dropped here - `buildParagraphs`
+ * returned `{ text, style }` only, so a linked run rendered as ordinary text, an
+ * inline `m:oMath` as nothing at all, and a furigana reading vanished.
  */
 function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
 	if (run.equation) {
@@ -50,6 +51,24 @@ function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
 		}
 		link.textContent = run.text;
 		return link;
+	}
+	// `a:ruby`: the phonetic guide sits above its base text. The `<rp>`
+	// parentheses are what a browser without ruby support falls back to.
+	if (run.ruby) {
+		const ruby = doc.createElement('ruby');
+		applyStyleMap(ruby, run.style);
+		ruby.appendChild(doc.createTextNode(run.text));
+		const openParen = doc.createElement('rp');
+		openParen.textContent = '(';
+		ruby.appendChild(openParen);
+		const annotation = doc.createElement('rt');
+		applyStyleMap(annotation, run.ruby.style);
+		annotation.textContent = run.ruby.text;
+		ruby.appendChild(annotation);
+		const closeParen = doc.createElement('rp');
+		closeParen.textContent = ')';
+		ruby.appendChild(closeParen);
+		return ruby;
 	}
 	const span = createEl(doc, 'span');
 	applyStyleMap(span, run.style);

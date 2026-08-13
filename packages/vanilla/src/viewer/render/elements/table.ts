@@ -4,16 +4,15 @@ import type {
 	CssStyleMap,
 	DiagonalBorderInfo,
 	TableCellCss,
+	TableStyleContext,
 } from 'pptx-viewer-shared';
 import {
 	cellPatternFillCss,
 	cellRunStyle,
-	cellStyleToCss,
 	DEFAULT_FONT_FAMILY,
-	DEFAULT_TEXT_COLOR,
 	getCellDiagonalBorders,
 	getContainerStyle,
-	getTableCellBandStyle,
+	tableCellCss,
 	tableContainerCss,
 } from 'pptx-viewer-shared';
 
@@ -27,9 +26,9 @@ import type { ElementRenderer } from '../types';
  *
  * Covered: `<colgroup>` proportional column widths, per-row heights,
  * rowspan/colspan (cells absorbed by an `hMerge`/`vMerge` are skipped),
- * banded-row / header-row / first-last emphasis via the shared
- * `getTableCellBandStyle`, per-cell fills / borders / alignment / text
- * effects via `cellStyleToCss`, tiled-SVG pattern fills via
+ * banded-row / header-row / first-last emphasis plus per-cell fills / borders /
+ * alignment / text effects, all through the shared `tableCellCss`
+ * cascade, tiled-SVG pattern fills via
  * `cellPatternFillCss`, diagonal cell borders as an SVG overlay, and rich
  * per-run cell text (`CellTextRun[]`) via `cellRunStyle`.
  *
@@ -131,7 +130,7 @@ function renderCell(
 	cellIndex: number,
 	rowCount: number,
 	columnCount: number,
-	styleContext: Parameters<typeof getTableCellBandStyle>[5],
+	styleContext: TableStyleContext | undefined,
 ): HTMLTableCellElement {
 	const td = doc.createElement('td');
 	td.className = 'pptxv-table-cell';
@@ -144,23 +143,16 @@ function renderCell(
 		td.rowSpan = cell.rowSpan;
 	}
 
-	// Band/header emphasis is the lower-priority layer beneath the explicit
-	// cell style (mirrors the React/Vue layering).
-	const bandStyle = getTableCellBandStyle(
+	// Band beneath the explicit cell style, then the dark-text floor for a cell
+	// nothing gave a colour (it would otherwise inherit the host page's near-white
+	// chrome `foreground` and vanish on a light table). All three layers are
+	// decided once, in shared, so the five bindings cannot drift apart again.
+	const style: TableCellCss = tableCellCss(
 		tableData,
-		rowIndex,
-		cellIndex,
-		rowCount,
-		columnCount,
+		cell,
+		{ rowIndex, cellIndex, rowCount, columnCount },
 		styleContext,
 	);
-	const style: TableCellCss = { ...bandStyle, ...cellStyleToCss(cell.style) };
-	// Default body-cell text to the dark slide-text colour when nothing (cell
-	// style, band/header emphasis, or per-run colour) sets one, so cells stay
-	// legible on light tables regardless of the host page's inherited colour.
-	if (style.color === undefined) {
-		style.color = DEFAULT_TEXT_COLOR;
-	}
 
 	// Pattern fill replaces the flat backgroundColor with a tiled SVG image
 	// plus the solid background colour behind it.

@@ -195,6 +195,7 @@ export function createEditorKeydown(host: EditorControllerHost): (event: Keyboar
 		},
 		toggleShortcuts: () => deps.toggleShortcuts?.(),
 		closeShortcuts: () => deps.closeShortcuts?.() ?? false,
+		toggleFind: () => deps.toggleFind?.(),
 	});
 }
 

@@ -1,9 +1,9 @@
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
-import { makeNumberField } from '../controls';
 import type { DeckCard } from './deck-card-helpers';
 import { makeDeckButton, makeRow, makeSection } from './deck-card-helpers';
 import { createDeckPresentationCard } from './deck-presentation-card';
+import { createSlideSizeCard } from './deck-slide-size-card';
 import { createThemeCard, createThemeOverrideCard } from './deck-theme-cards';
 import { createSlideTransitionCard } from './slide-transition-card';
 import { createTagsCard } from './tags-card';
@@ -24,42 +24,9 @@ export type DeckPanelHandlers = Pick<
 	| 'applyThemeEdit'
 	| 'updateActiveSlide'
 	| 'updateCanvasSize'
+	| 'updateSlideSize'
 	| 'updateTagCollections'
 >;
-
-/** The editable SLIDE SIZE card (W/H numeric fields, React's `SlideSizeCard`). */
-function createSlideSizeCard(
-	doc: Document,
-	t: Translator,
-	handlers: Pick<InspectorHandlers, 'updateCanvasSize'>,
-): DeckCard {
-	const { el, body } = makeSection(doc, t('pptx.slideSize.title'));
-	const grid = createEl(doc, 'div', 'pptxv-inspector-grid');
-	body.appendChild(grid);
-	let size = { width: 0, height: 0 };
-	// React's `SlideSizeCard` labels the fields with the bare letters "W"/"H".
-	const wField = makeNumberField(doc, {
-		label: 'W',
-		min: 1,
-		onCommit: (value) => handlers.updateCanvasSize({ width: value, height: size.height }),
-	});
-	const hField = makeNumberField(doc, {
-		label: 'H',
-		min: 1,
-		onCommit: (value) => handlers.updateCanvasSize({ width: size.width, height: value }),
-	});
-	grid.append(wField.el, hField.el);
-	return {
-		el,
-		update(state) {
-			size = state.canvasSize;
-			wField.setValue(state.canvasSize.width);
-			hField.setValue(state.canvasSize.height);
-			wField.setDisabled(!state.editable);
-			hField.setDisabled(!state.editable);
-		},
-	};
-}
 
 /** The read-only NOTES & HANDOUT card (React's `NotesHandoutCard`). */
 function createNotesHandoutCard(doc: Document, t: Translator): DeckCard {

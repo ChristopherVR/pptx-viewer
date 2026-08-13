@@ -65,6 +65,21 @@
 	function setPropertiesOpen(open: boolean): void {
 		propertiesOpen = open;
 	}
+
+	/**
+	 * Design > Slide Size. The only slide-size control this binding has is the
+	 * inspector's SLIDE SIZE card, which the Properties tab renders when nothing
+	 * is selected, so drop the selection and open the pane there. It used to open
+	 * the Document Properties dialog, which has no slide-size control in it at
+	 * all - the same mis-wiring Angular and Vanilla carried.
+	 */
+	function openSlideSize(): void {
+		props.editor.selection.clear();
+		props.chromeUi?.setInspectorTab('properties');
+		if (props.chromeUi && !props.chromeUi.inspectorOpen) {
+			props.chromeUi.toggleInspector();
+		}
+	}
 </script>
 
 <div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
@@ -137,7 +152,7 @@
 				editor={props.editor}
 				theme={props.theme}
 				onsettheme={props.onsettheme}
-				onslidesize={() => setPropertiesOpen(true)}
+				onslidesize={openSlideSize}
 			/>
 		{:else if activeTab === 'transitions'}
 			<TransitionsTab editor={props.editor} chromeUi={props.chromeUi} />

@@ -23,6 +23,7 @@ import {
 	copyFormatFromElement,
 	EditorHistory,
 	embeddedFontSaveOptions,
+	resolveSlideSizeSelection,
 	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
 
@@ -415,6 +416,16 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,
 					outputFormat: format,
+					// Design > Slide Size. Omitting the option makes core re-emit the
+					// load-time `p:sldSz` verbatim, so a preset or orientation pick made
+					// in the inspector never reached the written file. The EMU state
+					// wins wherever it still agrees with the pixel canvas (a pixel
+					// round-trip would cost Ledger its preset identity); once the raw
+					// W/H inputs disagree, the pixels win.
+					slideSize: resolveSlideSizeSelection({
+						current: state.slideSize,
+						canvas: state.canvasSize,
+					}).size,
 					// File > Fonts > "Embed fonts in the file": off strips the deck's
 					// embedded font data from the written package. The toggle reached
 					// no save call at all before this, so it changed nothing.

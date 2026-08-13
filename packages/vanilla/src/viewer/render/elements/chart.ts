@@ -11,6 +11,7 @@ import {
 import type { Translator } from '../../i18n';
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
+import { attachChartEditing } from './chart-editable';
 import { renderChartViewModelSvg } from './chart-svg';
 
 /**
@@ -65,14 +66,6 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
 		return container;
 	}
 
-	// Thread the resolved palette into the shared engine (non-destructively)
-	// so `seriesColor` / `paletteColor` produce the binding's colours.
-	const themedElement = {
-		...element,
-		chartData: { ...chartData, colorPalette: resolveChartPalette(chartData) },
-	};
-	const vm = buildChartViewModel(themedElement);
-
 	// Square chart kinds stay circular regardless of the element's aspect;
 	// cartesian charts stretch to fill the element box.
 	const preserveAspectRatio: 'none' | 'xMidYMid meet' =
@@ -80,7 +73,27 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
 			? 'xMidYMid meet'
 			: 'none';
 
-	container.appendChild(renderChartViewModelSvg(doc, vm, preserveAspectRatio));
+	/**
+	 * Project `data` into the container, replacing any SVG already there.
+	 *
+	 * Reused as the repaint hook for on-canvas value dragging: the drag previews
+	 * locally (no editor round trip per pointermove) and commits once on release.
+	 */
+	const paint = (data: PptxChartData): void => {
+		// Thread the resolved palette into the shared engine (non-destructively)
+		// so `seriesColor` / `paletteColor` produce the binding's colours.
+		const themedElement = {
+			...element,
+			chartData: { ...data, colorPalette: resolveChartPalette(data) },
+		};
+		container.querySelector('svg')?.remove();
+		container.appendChild(
+			renderChartViewModelSvg(doc, buildChartViewModel(themedElement), preserveAspectRatio),
+		);
+	};
+
+	paint(chartData);
+	attachChartEditing(container, element, context, paint);
 	return container;
 };
 

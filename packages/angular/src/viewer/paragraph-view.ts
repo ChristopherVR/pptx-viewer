@@ -36,6 +36,10 @@ export interface TextRun {
 	equationXml?: Record<string, unknown>;
 	/** Optional equation number for numbered equations. */
 	equationNumber?: string;
+	/** `a:ruby` phonetic guide (furigana / pinyin) rendered above this run. */
+	rubyText?: string;
+	/** `[ngStyle]` map for the `<rt>` annotation (size / family / alignment). */
+	rubyStyle?: StyleMap;
 }
 
 /** A rendered paragraph: runs plus bullet + indent + spacing metadata. */
@@ -98,6 +102,12 @@ export function buildAngularParagraphs(
 			if (run.equation) {
 				out.equationXml = run.equation.xml;
 				out.equationNumber = run.equation.number;
+			}
+			// `a:ruby`: the phonetic guide. Rendered nowhere but React until wave 4,
+			// because `buildParagraphs` never carried it.
+			if (run.ruby) {
+				out.rubyText = run.ruby.text;
+				out.rubyStyle = run.ruby.style;
 			}
 			return out;
 		}),

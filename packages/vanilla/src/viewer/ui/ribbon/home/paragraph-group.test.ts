@@ -84,7 +84,36 @@ describe('createEditingGroup', () => {
 		const selectAll = vi.fn();
 		const group = createEditingGroup(document, t, { toggleFindReplace: vi.fn(), selectAll });
 		group.update({ editable: true });
-		group.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-item')?.click();
+		trigger(group.el, t('pptx.ribbon.tool.select')).click();
+		selectAllItem(group.el, t('pptx.editing.selectAll')).click();
 		expect(selectAll).toHaveBeenCalledOnce();
 	});
+
+	it('names the Select All command itself, as a button like the other bindings', () => {
+		const t = createTranslator();
+		const group = createEditingGroup(document, t, {
+			toggleFindReplace: vi.fn(),
+			selectAll: vi.fn(),
+		});
+		const item = selectAllItem(group.el, t('pptx.editing.selectAll'));
+		// It used to be a `role="option"` inside a listbox, so the one command in
+		// the menu could not be reached by role+name the way React's, Vue's and
+		// Angular's can - which is why the cross-binding effects spec skipped this
+		// binding outright.
+		expect(item.tagName).toBe('BUTTON');
+		expect(item.getAttribute('role')).toBeNull();
+		// Hidden until the trigger opens it, so it stays out of the tab inventory.
+		expect(item.closest('[hidden]')).not.toBeNull();
+	});
 });
+
+/** The "Select All" command inside the Select menu, by its visible label. */
+function selectAllItem(root: HTMLElement, label: string): HTMLButtonElement {
+	const item = [...root.querySelectorAll<HTMLButtonElement>('button')].find(
+		(node) => node.textContent?.trim() === label,
+	);
+	if (!item) {
+		throw new Error(`no "${label}" command in the Select menu`);
+	}
+	return item;
+}

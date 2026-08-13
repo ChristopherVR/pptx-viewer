@@ -13,12 +13,19 @@
 	 * Advance Slide boxes take effect on their own rather than waiting for the
 	 * next preset click (which is how they used to reach nothing at all).
 	 *
-	 * Preview replays the draft on the live stage by re-committing it, which is
-	 * one better than React (whose Preview button has no handler at all).
+	 * Preview REPLAYS the transition on the editing stage through the shared
+	 * `playSlideTransitionPreview`, without writing to the deck: re-committing
+	 * the values the slide already had (what this and two other bindings used to
+	 * do) is a no-op the user cannot see.
 	 */
 	import type { PptxTransitionType } from 'pptx-viewer-core';
 	import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
-	import { EMPTY_RIBBON_TRANSITION_DRAFT, readRibbonTransitionDraft } from 'pptx-viewer-shared';
+	import {
+		applyRibbonTransitionDraft,
+		EMPTY_RIBBON_TRANSITION_DRAFT,
+		playSlideTransitionPreview,
+		readRibbonTransitionDraft,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -28,8 +35,6 @@
 	const { editor, chromeUi }: { editor: EditorState; chromeUi?: ChromeUiState } = $props();
 	const t = useTranslator();
 
-	// eslint-disable-next-line prefer-const
-	let applyToAll = $state(false);
 	let draft = $state<RibbonTransitionDraft>({ ...EMPTY_RIBBON_TRANSITION_DRAFT });
 
 	// Seeded by the effect below (not at init, which would only ever capture the
@@ -55,15 +60,25 @@
 	/** Fold a control's change into the draft and commit the whole draft. */
 	function commit(change: Partial<RibbonTransitionDraft>): void {
 		draft = { ...draft, ...change };
-		editor.transitionOps.applyRibbonDraft(draft, applyToAll);
+		editor.transitionOps.applyRibbonDraft(draft, false);
 	}
 
-	/** Ticking Apply to All pushes what the tab currently says onto every slide. */
-	function setApplyToAll(next: boolean): void {
-		applyToAll = next;
-		if (next) {
-			editor.transitionOps.applyRibbonDraft(draft, true);
-		}
+	/**
+	 * PowerPoint's "Apply To All" is a BUTTON that pushes the current timing onto
+	 * every slide when pressed, not the arming checkbox this binding used to
+	 * render (which made the same preset click mean two different things).
+	 */
+	function applyToAll(): void {
+		editor.transitionOps.applyRibbonDraft(draft, true);
+	}
+
+	/** Replay the active slide's transition on the stage. Never writes. */
+	function preview(): void {
+		const slide = editor.slides[editor.currentSlideIndex];
+		playSlideTransitionPreview(
+			slide?.transition ?? applyRibbonTransitionDraft(undefined, draft),
+			document,
+		);
 	}
 </script>
 
@@ -72,7 +87,7 @@
 		type="button"
 		class="pptx-svelte-transitionstab-pill"
 		title={t('pptx.ribbon.previewTransition')}
-		onclick={() => commit({})}
+		onclick={preview}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 3 9 5-9 5z" fill="currentColor" /></svg>
 		{t('pptx.ribbon.preview')}
@@ -117,15 +132,16 @@
 		</select>
 	</label>
 
-	<label class="pptx-svelte-transitionstab-field">
-		<input
-			type="checkbox"
-			disabled={!editor.editable}
-			checked={applyToAll}
-			onchange={(e) => setApplyToAll(e.currentTarget.checked)}
-		/>
+	<button
+		type="button"
+		class="pptx-svelte-transitionstab-pill"
+		disabled={!editor.editable}
+		title={t('pptx.ribbon.applyTransitionToAll')}
+		onclick={applyToAll}
+	>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="6" y="6" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M3 10H2.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
 		{t('pptx.headerFooter.applyToAll')}
-	</label>
+	</button>
 
 	<div class="pptx-svelte-transitionstab-advance">
 		<span class="pptx-svelte-transitionstab-advance-title">{t('pptx.ribbon.advanceSlide')}</span>

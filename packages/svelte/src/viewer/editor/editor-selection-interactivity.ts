@@ -1,6 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
-import { canInteractWithElement, getShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
+import { canInteractWithElement, getShapeAdjustmentHandleDescriptors } from 'pptx-viewer-shared';
 
 /**
  * What the selection overlay is allowed to offer, given the authored
@@ -23,12 +23,17 @@ export interface SelectionInteractivity {
 	resizable: boolean;
 	/** Draw (and honour) the rotate stem + knob. */
 	rotatable: boolean;
-	/** The amber adjustment diamond, or null when there is none to draw. */
-	adjust: ShapeAdjustmentHandleDescriptor | null;
+	/**
+	 * The amber adjustment diamonds, one per `a:avLst` guide. Empty when there
+	 * is none to draw; PowerPoint shows several on most presets (`quadArrow`
+	 * three, `callout3` four), and offering only the first left the rest
+	 * unreachable.
+	 */
+	adjust: ShapeAdjustmentHandleDescriptor[];
 }
 
 /** Nothing selected: no handles, no knob, no diamond. */
-const NO_SELECTION: SelectionInteractivity = { resizable: false, rotatable: false, adjust: null };
+const NO_SELECTION: SelectionInteractivity = { resizable: false, rotatable: false, adjust: [] };
 
 /**
  * What an unlocked, non-adjustable selection resolves to. The overlay's prop
@@ -37,7 +42,7 @@ const NO_SELECTION: SelectionInteractivity = { resizable: false, rotatable: fals
 export const DEFAULT_SELECTION_INTERACTIVITY: SelectionInteractivity = {
 	resizable: true,
 	rotatable: true,
-	adjust: null,
+	adjust: [],
 };
 
 /**
@@ -56,7 +61,7 @@ export function selectionInteractivity(elements: readonly PptxElement[]): Select
 	return {
 		resizable: elements.every((element) => canInteractWithElement(element, 'resize')),
 		rotatable: elements.every((element) => canInteractWithElement(element, 'rotate')),
-		adjust: elements.length === 1 ? getShapeAdjustmentHandleDescriptor(elements[0]) : null,
+		adjust: elements.length === 1 ? getShapeAdjustmentHandleDescriptors(elements[0]) : [],
 	};
 }
 

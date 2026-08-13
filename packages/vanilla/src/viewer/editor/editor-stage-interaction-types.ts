@@ -1,4 +1,4 @@
-import type { ResizeHandleId } from 'pptx-viewer-shared';
+import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { EditorOps } from './editor-operations';
@@ -30,7 +30,7 @@ export interface StageInteractions {
 	onStageDblClick(event: MouseEvent): void;
 	beginHandleGesture(kind: 'resize' | 'rotate', event: PointerEvent, handle?: ResizeHandleId): void;
 	/** Begin dragging the amber shape-adjustment (`a:avLst`) diamond. */
-	beginAdjustGesture(event: PointerEvent): void;
+	beginAdjustGesture(event: PointerEvent, descriptor: ShapeAdjustmentHandleDescriptor): void;
 	closeInline(commit: boolean): void;
 	inlineActive(): boolean;
 	dispose(): void;

@@ -32,6 +32,17 @@ function pointer(type: string, clientX: number): PointerEvent {
 	return new PointerEvent(type, { clientX, clientY: 0, pointerId: 1, bubbles: true });
 }
 
+/**
+ * The FIRST adjustment diamond of the selection, which is what the overlay
+ * would hand the controller when the user grabs it. A preset has one per
+ * `a:avLst` guide, so the gesture takes the descriptor rather than looking one
+ * up: dragging a `quadArrow`'s second diamond must not move its first guide.
+ */
+function firstHandle(controller: EditorController) {
+	const [descriptor] = controller.interactivity.adjust;
+	return descriptor;
+}
+
 function setup(element: PptxElement): {
 	editor: EditorState;
 	controller: EditorController;
@@ -73,7 +84,7 @@ describe('shape adjustment drag', () => {
 		const { editor, controller, dispose } = setup(roundRect());
 		expect(adjustmentsOf(editor)).toBeUndefined();
 
-		controller.onAdjustPointerDown(pointer('pointerdown', 140));
+		controller.onAdjustPointerDown(pointer('pointerdown', 140), firstHandle(controller));
 		window.dispatchEvent(pointer('pointermove', 180));
 		window.dispatchEvent(pointer('pointerup', 180));
 
@@ -87,7 +98,7 @@ describe('shape adjustment drag', () => {
 
 	it('leaves the element box untouched (an adjustment is not a resize)', () => {
 		const { editor, controller, dispose } = setup(roundRect());
-		controller.onAdjustPointerDown(pointer('pointerdown', 140));
+		controller.onAdjustPointerDown(pointer('pointerdown', 140), firstHandle(controller));
 		window.dispatchEvent(pointer('pointermove', 180));
 		window.dispatchEvent(pointer('pointerup', 180));
 
@@ -100,7 +111,7 @@ describe('shape adjustment drag', () => {
 
 	it('is one undo step, and undo restores the original adjustment', () => {
 		const { editor, controller, dispose } = setup(roundRect());
-		controller.onAdjustPointerDown(pointer('pointerdown', 140));
+		controller.onAdjustPointerDown(pointer('pointerdown', 140), firstHandle(controller));
 		window.dispatchEvent(pointer('pointermove', 170));
 		window.dispatchEvent(pointer('pointermove', 200));
 		window.dispatchEvent(pointer('pointerup', 200));
@@ -114,7 +125,7 @@ describe('shape adjustment drag', () => {
 
 	it('a tap inside the dead zone changes nothing', () => {
 		const { editor, controller, dispose } = setup(roundRect());
-		controller.onAdjustPointerDown(pointer('pointerdown', 140));
+		controller.onAdjustPointerDown(pointer('pointerdown', 140), firstHandle(controller));
 		window.dispatchEvent(pointer('pointermove', 141));
 		window.dispatchEvent(pointer('pointerup', 141));
 		expect(adjustmentsOf(editor)).toBeUndefined();
@@ -125,8 +136,8 @@ describe('shape adjustment drag', () => {
 	it('offers no gesture on a plain rect', () => {
 		const rect = { ...roundRect(), shapeType: 'rect' } as PptxElement;
 		const { editor, controller, dispose } = setup(rect);
-		expect(controller.interactivity.adjust).toBeNull();
-		controller.onAdjustPointerDown(pointer('pointerdown', 140));
+		expect(controller.interactivity.adjust).toStrictEqual([]);
+		controller.onAdjustPointerDown(pointer('pointerdown', 140), firstHandle(controller));
 		window.dispatchEvent(pointer('pointermove', 180));
 		window.dispatchEvent(pointer('pointerup', 180));
 		expect(adjustmentsOf(editor)).toBeUndefined();
@@ -136,7 +147,7 @@ describe('shape adjustment drag', () => {
 	it('offers no gesture when a:spLocks forbids adjust handles', () => {
 		const locked = { ...roundRect(), locks: { noAdjustHandles: true } } as PptxElement;
 		const { controller, dispose } = setup(locked);
-		expect(controller.interactivity.adjust).toBeNull();
+		expect(controller.interactivity.adjust).toStrictEqual([]);
 		dispose();
 	});
 });

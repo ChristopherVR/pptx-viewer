@@ -5,6 +5,7 @@ import {
 	applyRehearsalTimings,
 	compareSlides,
 	openPptxFile,
+	resolveAuthoredCustomShowId,
 } from 'pptx-viewer-shared';
 import type {
 	ThemeCatalogEntry,
@@ -134,7 +135,17 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 				host.t,
 				current.presentationProperties,
 				current.slides.length,
-				(value) => host.editor.updatePresentationProperties(value),
+				(value) => {
+					host.editor.updatePresentationProperties(value);
+					// "Custom show" is a playback choice as well as an edit: without
+					// this the radio wrote `showSlidesMode` and nothing ever read it
+					// back, so picking a show changed nothing about what presented.
+					host.store.set({
+						activeCustomShowId:
+							resolveAuthoredCustomShowId(value, host.store.get().customShows) ?? null,
+					});
+				},
+				current.customShows,
 			);
 		},
 		openHeaderFooter() {
@@ -265,6 +276,9 @@ function openSorter(host: ParityWorkflowHost): void {
 	openSlideSorterOverlay(host.doc, host.root(), host.t, {
 		slides: current.slides,
 		current: current.currentSlide,
+		// Gates the sorter's Delete / Ctrl+D on the host being editable, the same
+		// way the ribbon's slide commands are.
+		canEdit: current.editable,
 		onSelect: host.goToSlide,
 		onReorder: (from, to) => reorderSlides(host, from, to),
 		onDelete: (index) => host.editor.commitSlides(current.slides.filter((_, i) => i !== index)),

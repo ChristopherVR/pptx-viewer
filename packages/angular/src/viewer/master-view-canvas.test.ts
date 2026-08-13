@@ -15,7 +15,13 @@
 import type { PptxElement, PptxSlideMaster } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { masterViewPseudoSlide, updateMasterViewElement } from '../internal/shared';
+import {
+	deleteMasterViewElements,
+	masterViewBackgroundColor,
+	masterViewPseudoSlide,
+	setMasterViewBackgroundColor,
+	updateMasterViewElement,
+} from '../internal/shared';
 import type { MasterViewDocument } from '../internal/shared';
 
 const MASTER_PATH = 'ppt/slideMasters/slideMaster1.xml';
@@ -96,5 +102,61 @@ describe('master view canvas routing', () => {
 		);
 		expect(write?.notesMaster?.elements?.[0].x).toBe(5);
 		expect(write?.slideMasters).toBeUndefined();
+	});
+});
+
+/**
+ * Delete was the remaining gap: the canvas kept its selection locally and the
+ * only keyboard handler was the deck-wide one, whose `delete` case indexes
+ * into `slides`. Pressing Delete over a master shape therefore did nothing, or
+ * removed something on the slide behind the overlay. The canvas now owns the
+ * key and routes it through the shared rule the other four bindings use.
+ */
+describe('master view canvas delete', () => {
+	it('removes a master shape', () => {
+		const write = deleteMasterViewElements(
+			document(),
+			{ tab: 'slides', masterIndex: 0, layoutIndex: null },
+			['slide-master-slideMaster1-shape-0'],
+		);
+		expect(write?.slideMasters?.[0].elements).toStrictEqual([]);
+	});
+
+	it('removes a layout shape without touching its master', () => {
+		const write = deleteMasterViewElements(
+			document(),
+			{ tab: 'slides', masterIndex: 0, layoutIndex: 0 },
+			['slide-layout-slideLayout1-shape-0'],
+		);
+		expect(write?.slideMasters?.[0].layouts?.[0].elements).toStrictEqual([]);
+		expect(write?.slideMasters?.[0].elements).toHaveLength(1);
+	});
+
+	it('is a no-op with nothing selected', () => {
+		expect(
+			deleteMasterViewElements(
+				document(),
+				{ tab: 'slides', masterIndex: 0, layoutIndex: null },
+				[],
+			),
+		).toBeNull();
+	});
+});
+
+describe('master view background routing', () => {
+	it('reads the selected layout, falling back to its master', () => {
+		expect(
+			masterViewBackgroundColor(document(), { tab: 'slides', masterIndex: 0, layoutIndex: 0 }),
+		).toBe('#111111');
+	});
+
+	it('writes onto the selected layout rather than its master', () => {
+		const write = setMasterViewBackgroundColor(
+			document(),
+			{ tab: 'slides', masterIndex: 0, layoutIndex: 0 },
+			'#123456',
+		);
+		expect(write?.slideMasters?.[0].layouts?.[0].backgroundColor).toBe('#123456');
+		expect(write?.slideMasters?.[0].backgroundColor).toBe('#111111');
 	});
 });

@@ -14,12 +14,11 @@
 import type { PptxElement, PptxTableCell, TablePptxElement } from 'pptx-viewer-core';
 
 import type { DiagonalBorderInfo, TableStyleContext } from '../internal/shared';
-import { getCellDiagonalBorders, getTableCellBandStyle } from '../internal/shared';
+import { getCellDiagonalBorders, tableCellCss } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import type { CellParagraph } from './table-cell-style';
 import {
 	buildCellParagraphs,
-	cellStyleToStyleMap,
 	columnWidthStyle,
 	cssObjectToStyleMap,
 	rowStyle,
@@ -104,23 +103,25 @@ export function buildTableViewModel(
 					cell.gridSpan !== undefined && cell.gridSpan > 1 ? cell.gridSpan : undefined;
 				const rowSpan = cell.rowSpan !== undefined && cell.rowSpan > 1 ? cell.rowSpan : undefined;
 
-				// Banding is a lower-priority layer beneath the explicit cell style.
-				const band = getTableCellBandStyle(
-					tableData,
-					rowIndex,
-					colIndex,
-					rowCount,
-					columnCount,
-					styleCtx,
-				);
+				// Band beneath the explicit cell style, then the text-colour floor.
+				// The floor is why this goes through shared rather than composing the
+				// two layers here: Angular was the one binding without it, so a cell
+				// with no authored colour inherited the viewer chrome's `foreground`
+				// (#f0efec on the dark preset) and painted near-white on a light cell.
 				const tdStyle: StyleMap = {
 					'padding-left': '4px',
 					'padding-right': '4px',
 					'padding-top': '2px',
 					'padding-bottom': '2px',
 					'vertical-align': 'top',
-					...(band ? cssObjectToStyleMap(band) : {}),
-					...cellStyleToStyleMap(cell.style),
+					...cssObjectToStyleMap(
+						tableCellCss(
+							tableData,
+							cell,
+							{ rowIndex, cellIndex: colIndex, rowCount, columnCount },
+							styleCtx,
+						),
+					),
 				};
 
 				return {

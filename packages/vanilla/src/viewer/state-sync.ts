@@ -41,7 +41,14 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				state.handoutMaster !== previous.handoutMaster ||
 				state.masterViewTarget !== previous.masterViewTarget ||
 				state.masterViewTab !== previous.masterViewTab ||
-				state.handoutSlidesPerPage !== previous.handoutSlidesPerPage) &&
+				state.handoutSlidesPerPage !== previous.handoutSlidesPerPage ||
+				// The Header & Footer dialog and the document-property editors feed
+				// the FIELD-SUBSTITUTION context, not the slide model, so nothing in
+				// `slides` changes when the user sets a footer. Without these two the
+				// canvas kept painting the string it was loaded with until some other
+				// edit happened to force a repaint.
+				state.headerFooter !== previous.headerFooter ||
+				state.customProperties !== previous.customProperties) &&
 				!state.interactionActive) ||
 			(previous.interactionActive && !state.interactionActive)
 		) {
@@ -60,7 +67,9 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.handoutMaster !== previous.handoutMaster ||
 			state.masterViewTarget !== previous.masterViewTarget ||
 			state.masterViewTab !== previous.masterViewTab ||
-			state.handoutSlidesPerPage !== previous.handoutSlidesPerPage
+			state.handoutSlidesPerPage !== previous.handoutSlidesPerPage ||
+			state.headerFooter !== previous.headerFooter ||
+			state.customProperties !== previous.customProperties
 		) {
 			renderer.renderStage();
 		}

@@ -137,3 +137,38 @@ describe('renderTextBlock picture bullets', () => {
 		expect(fallback?.getAttribute('aria-label')).toBe('Bullet');
 	});
 });
+
+// `a:ruby` reached React alone: shared's `ParagraphRun` did not model the
+// annotation, so `buildParagraphs` never carried it and the phonetic guide
+// vanished here (the base text still painted, which is why nothing looked
+// broken).
+describe('renderTextBlock ruby annotations', () => {
+	it('renders the phonetic guide above its base text', () => {
+		const block = renderTextBlock(
+			document,
+			[
+				paragraph({
+					runs: [
+						{
+							text: '漢字',
+							style: {},
+							ruby: { text: 'かんじ', style: { fontSize: '10px', textAlign: 'center' } },
+						},
+					],
+				}),
+			],
+			{},
+		);
+		const ruby = block.querySelector('ruby');
+		expect(ruby?.querySelector('rt')?.textContent).toBe('かんじ');
+		expect(ruby?.querySelector('rt')?.style.fontSize).toBe('10px');
+		// The `<rp>` parentheses are what a browser without ruby support shows.
+		expect(block.querySelectorAll('rp')).toHaveLength(2);
+		expect(ruby?.textContent).toContain('漢字');
+	});
+
+	it('leaves an ordinary run as a plain span', () => {
+		const block = renderTextBlock(document, [paragraph({})], {});
+		expect(block.querySelector('ruby')).toBeNull();
+	});
+});

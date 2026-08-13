@@ -401,6 +401,42 @@ pptx-element-renderer {
 	z-index: 10001;
 }
 
+/* Connector endpoint authoring: the two handles on a selected connector, and
+   the candidate connection sites revealed while one is being dragged. A bound
+   end is filled, a loose one hollow, so "is this connector actually attached?"
+   is answerable at a glance. */
+.pptx-ng-connector-endpoint {
+	position: absolute;
+	box-sizing: border-box;
+	padding: 0;
+	border-radius: 9999px;
+	border: 2px solid #fff;
+	background: #fff;
+	box-shadow: 0 0 0 1px #16a34a;
+	cursor: crosshair;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 10002;
+}
+
+.pptx-ng-connector-endpoint.is-attached {
+	background: #16a34a;
+}
+
+.pptx-ng-connection-site {
+	position: absolute;
+	box-sizing: border-box;
+	border-radius: 9999px;
+	border: 2px solid #3b82f6;
+	background: rgba(96, 165, 250, 0.6);
+	pointer-events: none;
+	z-index: 10001;
+}
+
+.pptx-ng-connection-site.is-snapped {
+	background: #3b82f6;
+}
+
 .pptx-ng-inspector-host {
 	flex: 0 0 288px;
 	width: 288px;

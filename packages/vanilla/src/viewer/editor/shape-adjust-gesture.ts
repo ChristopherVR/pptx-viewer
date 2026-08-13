@@ -1,9 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import type { ShapeAdjustmentDragState } from 'pptx-viewer-shared';
+import type { ShapeAdjustmentDragState, ShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
 import {
-	getDraggedShapeAdjustmentValue,
-	getShapeAdjustmentHandleDescriptor,
+	beginShapeAdjustment,
+	getDraggedShapeAdjustments,
+	getShapeAdjustmentHandleDescriptors,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -36,34 +37,39 @@ export interface ShapeAdjustGestureDeps {
 }
 
 export interface ShapeAdjustGesture {
-	/** Begin from a pointerdown on the overlay's adjust handle. */
-	begin(event: PointerEvent): void;
+	/** Begin from a pointerdown on ONE of the overlay's adjust handles. */
+	begin(event: PointerEvent, descriptor: ShapeAdjustmentHandleDescriptor): void;
 	isActive(): boolean;
 	dispose(): void;
 }
 
-/** The descriptor for the single selected element, or null when there is none. */
-export function selectedAdjustmentDescriptor(
+/**
+ * Every adjustment handle the single selection offers, empty when there is
+ * none. PowerPoint shows one amber diamond per `a:avLst` guide and presets
+ * routinely have several (`quadArrow` three, `callout3` four); this used to
+ * return one, so the rest were unreachable.
+ */
+export function selectedAdjustmentDescriptors(
 	state: ViewerState,
-): ReturnType<typeof getShapeAdjustmentHandleDescriptor> {
+): ShapeAdjustmentHandleDescriptor[] {
 	if (!state.editable || state.presenting || state.selectedElementIds.length !== 1) {
-		return null;
+		return [];
 	}
 	const element = state.selectedElementId
 		? findActiveElement(state, state.selectedElementId)
 		: undefined;
-	return element ? getShapeAdjustmentHandleDescriptor(element) : null;
+	return element ? getShapeAdjustmentHandleDescriptors(element) : [];
 }
 
 export function createShapeAdjustGesture(deps: ShapeAdjustGestureDeps): ShapeAdjustGesture {
 	const { store, ops } = deps;
 	let drag: ShapeAdjustmentDragState | null = null;
 
-	const writeAdjustment = (value: number): void => {
+	const writeAdjustment = (adjustments: Record<string, number>): void => {
 		if (!drag) {
 			return;
 		}
-		const { elementId, key } = drag;
+		const { elementId } = drag;
 		const state = store.get();
 		const elements = getActiveElements(state);
 		store.set(
@@ -71,7 +77,7 @@ export function createShapeAdjustGesture(deps: ShapeAdjustGestureDeps): ShapeAdj
 				state,
 				elements.map((element): PptxElement =>
 					element.id === elementId && hasShapeProperties(element)
-						? { ...element, shapeAdjustments: { ...element.shapeAdjustments, [key]: value } }
+						? { ...element, shapeAdjustments: { ...element.shapeAdjustments, ...adjustments } }
 						: element,
 				),
 			),
@@ -89,19 +95,25 @@ export function createShapeAdjustGesture(deps: ShapeAdjustGestureDeps): ShapeAdj
 			return;
 		}
 		const scale = deps.getScale();
+		const divisor = scale > 0 ? scale : 1;
 		// The overlay is unscaled screen space, so the pointer delta has to be
 		// brought back into element px before shared compares it to the element's
-		// own width/height.
-		const deltaX = (event.clientX - drag.startClientX) / (scale > 0 ? scale : 1);
+		// own width/height. BOTH axes: only a round-rect's diamond travels
+		// horizontally, and feeding 0 for dy pinned every other preset's handle.
+		const deltaX = (event.clientX - drag.startClientX) / divisor;
+		const deltaY = (event.clientY - drag.startClientY) / divisor;
 		if (!drag.moved) {
-			if (Math.abs(event.clientX - drag.startClientX) <= DRAG_DEAD_ZONE_PX) {
+			if (
+				Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY) <=
+				DRAG_DEAD_ZONE_PX
+			) {
 				return;
 			}
 			drag.moved = true;
 			ops.pushHistory();
 			store.set({ interactionActive: true });
 		}
-		writeAdjustment(getDraggedShapeAdjustmentValue(drag, deltaX));
+		writeAdjustment(getDraggedShapeAdjustments(drag, deltaX, deltaY));
 	}
 
 	function onEnd(): void {
@@ -115,27 +127,19 @@ export function createShapeAdjustGesture(deps: ShapeAdjustGestureDeps): ShapeAdj
 	}
 
 	return {
-		begin(event) {
+		begin(event, descriptor) {
 			const state = store.get();
 			const id = state.selectedElementId;
 			const element = id ? findActiveElement(state, id) : undefined;
-			const descriptor = selectedAdjustmentDescriptor(state);
 			if (!id || !element || !descriptor || !hasShapeProperties(element)) {
 				return;
 			}
 			event.preventDefault();
 			event.stopPropagation();
-			drag = {
-				elementId: id,
-				key: descriptor.key,
-				shapeType: String(element.shapeType ?? '').toLowerCase(),
-				startClientX: event.clientX,
-				startClientY: event.clientY,
-				startAdjustment: descriptor.value,
-				startWidth: element.width,
-				startHeight: element.height,
-				moved: false,
-			};
+			// Shared builds the state so the captured SOLVER (this handle's
+			// measured px-per-guide-unit scale) and the element's other
+			// adjustments travel with the gesture; a hand-built one dropped both.
+			drag = beginShapeAdjustment(element, descriptor, event.clientX, event.clientY);
 			window.addEventListener('pointermove', onMove);
 			window.addEventListener('pointerup', onEnd);
 			window.addEventListener('pointercancel', onEnd);

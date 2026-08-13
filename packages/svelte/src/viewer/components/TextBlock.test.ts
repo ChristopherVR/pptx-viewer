@@ -34,6 +34,36 @@ function paragraph(overrides: Partial<RenderParagraph>): RenderParagraph {
 	};
 }
 
+// `a:ruby` reached React alone: shared's `ParagraphRun` did not model the
+// annotation, so `buildParagraphs` never carried it and the phonetic guide
+// vanished here (the base text still painted, which is why nothing looked
+// broken).
+describe('textBlock ruby annotations', () => {
+	it('renders the phonetic guide above its base text', () => {
+		const target = render(
+			paragraph({
+				runs: [
+					{
+						text: '漢字',
+						style: {},
+						ruby: { text: 'かんじ', style: { fontSize: '10px', textAlign: 'center' } },
+					},
+				],
+			}),
+		);
+		const ruby = target.querySelector('ruby');
+		expect(ruby?.querySelector('rt')?.textContent).toBe('かんじ');
+		expect(ruby?.querySelector('rt')?.getAttribute('style')).toContain('font-size: 10px');
+		// The `<rp>` parentheses are what a browser without ruby support shows.
+		expect(target.querySelectorAll('rp')).toHaveLength(2);
+		expect(ruby?.textContent).toContain('漢字');
+	});
+
+	it('leaves an ordinary run as a plain span', () => {
+		expect(render(paragraph({})).querySelector('ruby')).toBeNull();
+	});
+});
+
 describe('textBlock picture bullets', () => {
 	it('renders the resolved image with accessible sizing metadata', () => {
 		const target = render(

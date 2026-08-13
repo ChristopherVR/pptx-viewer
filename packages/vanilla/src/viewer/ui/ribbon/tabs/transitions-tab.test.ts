@@ -1,5 +1,5 @@
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
-import { EMPTY_RIBBON_TRANSITION_DRAFT } from 'pptx-viewer-shared';
+import { EMPTY_RIBBON_TRANSITION_DRAFT, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -124,13 +124,41 @@ describe('createTransitionsTab', () => {
 		);
 	});
 
-	it('passes Apply to All through to the commit', () => {
+	it('apply to All is a BUTTON that commits to every slide at once', () => {
 		const t = createTranslator();
 		const handlers = makeHandlers();
 		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		(named(tab, t('pptx.headerFooter.applyToAll'))[0] as HTMLInputElement).checked = true;
+		const applyToAll = named(tab, t('pptx.headerFooter.applyToAll'))[0];
+		// PowerPoint's control is a button, not the arming checkbox this binding
+		// used to render (which made a picked preset reach one slide or all of
+		// them depending on a toggle no other binding had).
+		expect(applyToAll.tagName).toBe('BUTTON');
+
 		tab.el.querySelector<HTMLButtonElement>('.pptxv-transition-gallery button')?.click();
-		expect(handlers.applyDraft).toHaveBeenCalledWith(expect.anything(), true);
+		expect(handlers.applyDraft).toHaveBeenLastCalledWith(expect.anything(), false);
+
+		(applyToAll as HTMLButtonElement).click();
+		expect(handlers.applyDraft).toHaveBeenLastCalledWith(expect.anything(), true);
+	});
+
+	it('preview replays the transition on the stage instead of doing nothing', () => {
+		const t = createTranslator();
+		const handlers = makeHandlers({
+			...EMPTY_RIBBON_TRANSITION_DRAFT,
+			type: 'push',
+			durationSec: 0.8,
+		});
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const stage = document.createElement('div');
+		stage.setAttribute('aria-roledescription', 'slide');
+		document.body.appendChild(stage);
+
+		(named(tab, t('pptx.ribbon.preview'))[0] as HTMLButtonElement).click();
+
+		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('push');
+		// A preview must never write to the deck.
+		expect(handlers.applyDraft).not.toHaveBeenCalled();
+		stage.remove();
 	});
 
 	it('re-seeds every control from the active slide on sync', () => {

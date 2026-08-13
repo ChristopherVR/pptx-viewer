@@ -30,6 +30,7 @@
 		ontablecellcommit,
 		onsmartartnodecommit,
 		onsmartartnodefill,
+		onchartpointcommit,
 		comments = [],
 		oncommentmarkerclick,
 		onstageholder,
@@ -106,6 +107,7 @@
 		{ontablecellcommit}
 		{onsmartartnodecommit}
 		{onsmartartnodefill}
+		{onchartpointcommit}
 		{comments}
 		{oncommentmarkerclick}
 	/>

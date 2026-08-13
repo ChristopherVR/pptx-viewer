@@ -1,3 +1,4 @@
+import { TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -52,13 +53,22 @@ function label(target: HTMLElement, caption: string): HTMLLabelElement | undefin
 	);
 }
 
+function button(target: HTMLElement, caption: string): HTMLButtonElement | undefined {
+	return [...target.querySelectorAll<HTMLButtonElement>('button')].find(
+		(node) => node.textContent?.trim() === caption,
+	);
+}
+
 describe('transitionsTab', () => {
 	it('offers the timing and advance controls React does', () => {
 		const target = mountTab(makeEditor());
 
 		expect(label(target, 'Duration')?.querySelector('input')).toBeTruthy();
 		expect(label(target, 'Sound')?.querySelector('select')).toBeTruthy();
-		expect(label(target, 'Apply to All')?.querySelector('input')).toBeTruthy();
+		// A BUTTON, like PowerPoint's and like the other four bindings': this used
+		// to be an arming checkbox with no counterpart in the product.
+		expect(button(target, 'Apply to All')).toBeTruthy();
+		expect(label(target, 'Apply to All')).toBeUndefined();
 		expect(label(target, 'On Mouse Click')?.querySelector('input')).toBeTruthy();
 		// "After" wraps both a checkbox and the seconds box, as React's does.
 		expect(label(target, 'After')?.querySelectorAll('input')).toHaveLength(2);
@@ -78,19 +88,24 @@ describe('transitionsTab', () => {
 		expect((seconds as HTMLInputElement).disabled).toBeFalsy();
 	});
 
-	it('replays the slide transition from Preview', () => {
+	it('replays the slide transition on the stage from Preview', () => {
 		const editor = makeEditor();
 		const target = mountTab(editor);
+		const stage = document.createElement('div');
+		stage.setAttribute('aria-roledescription', 'slide');
+		document.body.appendChild(stage);
 
-		const buttons = [...target.querySelectorAll<HTMLButtonElement>('button')];
-		buttons.find((button) => button.textContent?.trim() === 'Fade')?.click();
+		button(target, 'Fade')?.click();
 		flushSync();
 		expect(editor.slides[0]?.transition?.type).toBe('fade');
 
-		// Preview re-applies rather than clearing: the slide keeps its transition.
-		buttons.find((button) => button.textContent?.trim() === 'Preview')?.click();
+		button(target, 'Preview')?.click();
 		flushSync();
+		// The stage is marked for the length of the replay, and the deck is left
+		// exactly as it was: a preview is not an edit.
+		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('fade');
 		expect(editor.slides[0]?.transition?.type).toBe('fade');
+		stage.remove();
 	});
 
 	it('writes the picked preset and the tab duration onto the slide', () => {
@@ -98,7 +113,7 @@ describe('transitionsTab', () => {
 		const target = mountTab(editor);
 
 		[...target.querySelectorAll<HTMLButtonElement>('button')]
-			.find((button) => button.textContent?.trim() === 'Push')
+			.find((candidate) => candidate.textContent?.trim() === 'Push')
 			?.click();
 		flushSync();
 		expect(editor.slides[0]?.transition?.type).toBe('push');
@@ -135,17 +150,17 @@ describe('transitionsTab', () => {
 		expect(editor.slides[0]?.transition?.advanceAfterMs).toBeUndefined();
 	});
 
-	it('applies the tab to every slide when Apply to All is ticked', () => {
+	it('applies the tab to every slide when Apply to All is pressed', () => {
 		const editor = makeEditor(3);
 		const target = mountTab(editor);
 
-		[...target.querySelectorAll<HTMLButtonElement>('button')]
-			.find((button) => button.textContent?.trim() === 'Wipe')
-			?.click();
+		button(target, 'Wipe')?.click();
 		flushSync();
-		const applyToAll = label(target, 'Apply to All')?.querySelector('input');
-		applyToAll!.checked = true;
-		fire(applyToAll!, 'change');
+		// Picking a preset touches the ACTIVE slide only.
+		expect(editor.slides[1]?.transition).toBeUndefined();
+
+		button(target, 'Apply to All')?.click();
+		flushSync();
 
 		for (const slide of editor.slides) {
 			expect(slide.transition).toMatchObject({ type: 'wipe', durationMs: 700 });
@@ -186,7 +201,7 @@ describe('transitionsTab', () => {
 		const target = mountTab(makeEditor(), chromeUi);
 
 		[...target.querySelectorAll<HTMLButtonElement>('button')]
-			.find((button) => button.textContent?.trim() === 'Inspector')
+			.find((candidate) => candidate.textContent?.trim() === 'Inspector')
 			?.click();
 		flushSync();
 

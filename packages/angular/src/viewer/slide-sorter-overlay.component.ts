@@ -14,6 +14,8 @@ import {
 	HIDDEN_SLIDE_LABEL_KEY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	hiddenSlideCue,
+	isEditorTextInputTarget,
+	mapSlideSorterKey,
 } from '../internal/shared';
 import type { CanvasSize, HiddenSlideCue } from '../internal/shared';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -67,11 +69,20 @@ export class SlideSorterOverlayComponent {
 	/** Zero-based index of the currently active slide (highlighted in blue). */
 	readonly activeIndex = input<number>(0);
 
+	/** Whether the host allows edits; gates the deck-writing shortcuts. */
+	readonly canEdit = input<boolean>(false);
+
 	/** Emits the zero-based index of the thumbnail the user clicked. */
 	readonly select = output<number>();
 
 	/** Emits when the user closes the overlay (✕ button or Escape key). */
 	readonly closed = output<void>();
+
+	/** Delete the active slide (Delete / Backspace). */
+	readonly deleteSlide = output<number>();
+
+	/** Duplicate the active slide (Ctrl/Cmd+D). */
+	readonly duplicateSlide = output<number>();
 
 	// -------------------------------------------------------------------------
 	// Derived display values
@@ -100,12 +111,34 @@ export class SlideSorterOverlayComponent {
 	// Event handlers
 	// -------------------------------------------------------------------------
 
-	/** Keyboard handler: Escape closes the overlay. */
+	/**
+	 * Keyboard handler, resolved by the shared sorter keymap.
+	 *
+	 * This used to test for `Escape` and nothing else, so the sorter's Delete and
+	 * Ctrl+D were dead in Angular alone. Only the commands this overlay can
+	 * perform are dispatched: there is no slide clipboard, no multi-selection and
+	 * no thumbnail zoom here, so those chords are left to the host instead of
+	 * being swallowed by a branch that would do nothing.
+	 */
 	@HostListener('document:keydown', ['$event'])
 	onKeydown(event: KeyboardEvent): void {
-		if (event.key === 'Escape') {
+		const { action } = mapSlideSorterKey(event, {
+			canEdit: this.canEdit(),
+			isTextInputTarget: isEditorTextInputTarget(event.target),
+		});
+		if (action === 'close') {
 			event.preventDefault();
 			this.closed.emit();
+			return;
+		}
+		if (action === 'delete') {
+			event.preventDefault();
+			this.deleteSlide.emit(this.activeIndex());
+			return;
+		}
+		if (action === 'duplicate') {
+			event.preventDefault();
+			this.duplicateSlide.emit(this.activeIndex());
 		}
 	}
 

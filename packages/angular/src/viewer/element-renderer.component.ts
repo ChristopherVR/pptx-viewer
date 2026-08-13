@@ -25,6 +25,7 @@ import { AnimationPlaybackService } from './animation-playback.service';
 import { ChartElementViewComponent } from './chart-element-view.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
+import { ContentPartRendererComponent } from './content-part-renderer.component';
 import {
 	getEffectFillOverlay,
 	getStrokeOutline,
@@ -89,6 +90,7 @@ import { ZoomRendererComponent } from './zoom-renderer.component';
 		SmartArtRendererComponent,
 		SmartArt3DRendererComponent,
 		InkRendererComponent,
+		ContentPartRendererComponent,
 		MediaRendererComponent,
 		OleRendererComponent,
 		Model3DRendererComponent,
@@ -147,6 +149,31 @@ export class ElementRendererComponent {
 	 * element contract", not "editable right now"), matching the other bindings.
 	 */
 	readonly marked = input<boolean>(false);
+
+	/**
+	 * When true (default), the rendered node carries `data-element-id`.
+	 *
+	 * Turned OFF by the miniature surfaces that paint EVERY slide at once
+	 * (thumbnail rail, mobile slide sheet, slide sorter, presenter navigator,
+	 * layout gallery, diff strip). Those put one node per element per slide into
+	 * the document, so the id of an element on slide 1 was addressable while
+	 * slide 3 was on screen, and every framework-neutral `[data-element-id]`
+	 * query resolved the wrong slide. React solved the same hazard by giving
+	 * thumbnails a separate `StaticElementRenderer` that stamps no id at all
+	 * ("exposing their ids there would put two nodes with the same id in the
+	 * document"); this input is Angular's equivalent, since it reuses the live
+	 * renderer for its miniatures.
+	 *
+	 * Distinct from {@link interactive}: the presentation stage is not
+	 * interactive but MUST keep its ids, because the morph engine's generated
+	 * keyframe CSS selects on them.
+	 */
+	readonly exposeElementId = input<boolean>(true);
+
+	/** `data-element-id` for this element, or null on a miniature surface. */
+	readonly elementIdAttr = computed<string | null>(() =>
+		this.exposeElementId() ? this.element().id : null,
+	);
 
 	/** Whether this element's root carries `data-pptx-element="true"`. */
 	readonly elementMarked = computed(() => this.interactive() || this.marked());

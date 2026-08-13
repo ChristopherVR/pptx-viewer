@@ -331,6 +331,8 @@ const CHROME_CSS = `
 	text-align: left;
 	cursor: pointer;
 }
+/* React's SectionBlock paints the same 10px p15:sectionPr/@clr dot. */
+.pptxv-thumb-section-color { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; }
 .pptxv-thumb-section-actions { display: flex; gap: 1px; }
 .pptxv-thumb-section-actions button {
 	width: 18px;
@@ -456,6 +458,48 @@ const CHROME_CSS = `
 	.pptxv-sel-handle { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
 	.pptxv-rotate-knob { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
 	.pptxv-adjust-handle { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+}
+/* Connector endpoint authoring: the two handles on a selected connector, and
+   the candidate connection sites revealed while one is being dragged. A bound
+   end is filled, a loose one hollow, so "is this connector actually attached?"
+   is answerable at a glance. */
+.pptxv-connector-endpoints {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 6;
+}
+.pptxv-connector-endpoint {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	padding: 0;
+	border: 2px solid #fff;
+	border-radius: 9999px;
+	background: #fff;
+	box-shadow: 0 0 0 1px #16a34a;
+	cursor: crosshair;
+	pointer-events: auto;
+	touch-action: none;
+}
+.pptxv-connector-endpoint.is-attached {
+	background: #16a34a;
+}
+.pptxv-connection-site {
+	position: absolute;
+	width: 8px;
+	height: 8px;
+	margin: -4px 0 0 -4px;
+	border: 2px solid #3b82f6;
+	border-radius: 9999px;
+	background: rgb(96 165 250 / 0.6);
+}
+.pptxv-connection-site.is-snapped {
+	background: #3b82f6;
+}
+@media (pointer: coarse) {
+	.pptxv-connector-endpoint { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
 }
 .pptxv-snap-layer {
 	position: absolute;

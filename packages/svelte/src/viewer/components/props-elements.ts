@@ -1,4 +1,4 @@
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxChartData, PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import type { ElementAnimationState, RenderParagraph } from 'pptx-viewer-shared';
 
 /**
@@ -65,6 +65,13 @@ export interface ElementRendererProps {
 	) => void;
 	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
+	/**
+	 * Commit a chart data point dragged on the canvas, with the whole updated
+	 * `chartData`. Fired ONCE on pointer release (the drag is a local preview),
+	 * so one drag is one undo step. Absent outside the editable canvas, which
+	 * is what makes the chart marks inert on thumbnails and in presentation.
+	 */
+	onchartpointcommit?: (elementId: string, chartData: PptxChartData) => void;
 }
 
 export interface TextBlockProps {

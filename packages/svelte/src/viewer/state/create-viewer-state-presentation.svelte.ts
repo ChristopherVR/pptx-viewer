@@ -128,6 +128,11 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			presenterSession.updateSnapshot({
 				blackout: presenterSession.snapshot.blackout === value ? 'none' : value,
 			}),
+		// PowerPoint's bare `J`. The same flag the ribbon's Subtitles command
+		// writes, so the key and the menu entry cannot disagree.
+		toggleSubtitles: () => {
+			parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled;
+		},
 	});
 
 	return { presentation, ...handlers };

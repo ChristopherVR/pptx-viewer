@@ -1,6 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ShapeAdjustmentDragState, ShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
-import { getDraggedShapeAdjustmentValue } from 'pptx-viewer-shared';
+import { beginShapeAdjustment, getDraggedShapeAdjustments } from 'pptx-viewer-shared';
 
 /**
  * Pointer driver for PowerPoint's amber shape-adjustment diamond (the handle
@@ -12,7 +12,7 @@ import { getDraggedShapeAdjustmentValue } from 'pptx-viewer-shared';
  * offered it.
  *
  * The value math is the shared `shape-adjustment` model
- * (`getDraggedShapeAdjustmentValue`); this module owns only the pointer
+ * (`getDraggedShapeAdjustments`); this module owns only the pointer
  * lifecycle (dead zone, window listeners, cancel), mirroring `editor-gestures`.
  * The drag writes `shapeAdjustments[key]` as an ELEMENT PATCH: an adjustment is
  * a geometry parameter, not a resize, so the element's box must not move.
@@ -44,27 +44,19 @@ export interface AdjustGestureController {
 	dispose(): void;
 }
 
-/** Capture what the shared value math needs, at the moment the drag starts. */
+/**
+ * Capture what the shared value math needs, at the moment the drag starts.
+ *
+ * Delegated to shared rather than hand-built, so the captured SOLVER (this
+ * handle's measured px-per-guide-unit scale) and the element's other
+ * adjustments travel with the gesture; a hand-built state dropped both.
+ */
 function dragStateOf(
 	element: PptxElement,
 	descriptor: ShapeAdjustmentHandleDescriptor,
 	event: PointerEvent,
 ): ShapeAdjustmentDragState {
-	const shapeType = 'shapeType' in element ? String(element.shapeType ?? '') : '';
-	return {
-		elementId: element.id,
-		key: descriptor.key,
-		// The shared math compares against the NORMALISED name, so a deck
-		// spelling it `roundRect` must not miss the branch (comparing the raw
-		// string is the classic way a binding drifts).
-		shapeType: shapeType.toLowerCase(),
-		startClientX: event.clientX,
-		startClientY: event.clientY,
-		startAdjustment: descriptor.value,
-		startWidth: element.width,
-		startHeight: element.height,
-		moved: false,
-	};
+	return beginShapeAdjustment(element, descriptor, event.clientX, event.clientY);
 }
 
 /** `element` with `adjustments` merged over its existing `a:avLst` values. */
@@ -84,17 +76,24 @@ export function createAdjustGestureController(deps: AdjustGestureDeps): AdjustGe
 		if (!state || event.pointerId !== state.pointerId) {
 			return;
 		}
-		const screenDelta = event.clientX - state.startClientX;
+		const screenDeltaX = event.clientX - state.startClientX;
+		// BOTH axes: only a round-rect's diamond travels horizontally. An arrow's
+		// shaft thickness, a callout's leader line and a pie wedge's sweep all
+		// need the vertical component, and feeding 0 pinned them to their start.
+		const screenDeltaY = event.clientY - state.startClientY;
 		if (!state.moved) {
-			if (Math.abs(screenDelta) <= ADJUST_DEAD_ZONE_PX) {
+			if (Math.hypot(screenDeltaX, screenDeltaY) <= ADJUST_DEAD_ZONE_PX) {
 				return;
 			}
 			state.moved = true;
 			deps.onStart();
 		}
 		// `startWidth`/`startHeight` are element px, so the delta must be too.
-		const value = getDraggedShapeAdjustmentValue(state, screenDelta / (deps.getScale() || 1));
-		deps.onPreview(state.elementId, { [state.key]: value });
+		const scale = deps.getScale() || 1;
+		deps.onPreview(
+			state.elementId,
+			getDraggedShapeAdjustments(state, screenDeltaX / scale, screenDeltaY / scale),
+		);
 	}
 
 	function onPointerUp(event: PointerEvent): void {

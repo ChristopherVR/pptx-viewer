@@ -59,6 +59,12 @@ export interface Ribbon {
 	setHideSlideActive(active: boolean): void;
 	/** Reflect the inspector panel's open state on the quick-access toggle. */
 	setInspectorOpen(open: boolean): void;
+	/**
+	 * Show or hide the docked Find & Replace panel. Same action as Home >
+	 * Editing > Find; exposed so the editor keymap can drive Ctrl/Cmd+F, which
+	 * this binding had no shortcut for at all.
+	 */
+	toggleFindReplace(): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
 	/**
 	 * Hide ribbon tabs unticked in Options > Customize Ribbon. The File tab
@@ -289,6 +295,7 @@ export function createRibbon(
 			inspectorOpen = open;
 			primary.setInspectorOpen(open);
 		},
+		toggleFindReplace: () => findReplace.toggle(),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		setHiddenOptionTabs,
 		applyScreenTips: (tip) => tabBar.applyScreenTips(tip),

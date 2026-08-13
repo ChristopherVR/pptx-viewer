@@ -45,7 +45,12 @@ describe('element contract ownership', () => {
 
 	it.each(CONTRACT_OWNERS)('%s stamps the id and the marker on the box it draws', (file) => {
 		const text = source(file);
-		expect(text).toContain('[attr.data-element-id]="element().id"');
+		// Either the id directly, or through `elementIdAttr()`, which is the same
+		// id gated on `exposeElementId`. The miniature surfaces (thumbnail rail,
+		// sorter, presenter navigator, galleries) paint EVERY slide at once and
+		// turn that gate off, so an element id resolves to exactly one node in
+		// the document; contract ownership on the box itself is unchanged.
+		expect(text).toMatch(/\[attr\.data-element-id\]="(element\(\)\.id|elementIdAttr\(\))"/u);
 		expect(text).toContain('data-pptx-element');
 	});
 

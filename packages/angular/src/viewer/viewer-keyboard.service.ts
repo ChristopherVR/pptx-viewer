@@ -20,6 +20,7 @@ import { inject, Injectable } from '@angular/core';
 import { isEditorTextInputTarget, mapEditorKey } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 
 /** Live host accessors the shortcut handler consults. */
@@ -27,6 +28,13 @@ interface KeyboardHost {
 	readonly canEdit: () => boolean;
 	readonly presenting: () => boolean;
 	readonly activeSlideIndex: () => number;
+	/**
+	 * A Draw-tab tool other than the selection arrow is armed. The shared keymap
+	 * stands its whole editing set down while one is, so a pen stroke is not also
+	 * a Delete: every other binding passes this flag and Angular did not, which
+	 * left Delete, Ctrl+D and the arrow nudges live over an armed pen.
+	 */
+	readonly isDrawing?: () => boolean;
 	/** Go back one slide (the arrows page the deck when nothing is selected). */
 	readonly goPrev?: () => void;
 	/** Go forward one slide. */
@@ -38,6 +46,7 @@ export class ViewerKeyboardService {
 	private readonly editor = inject(EditorStateService);
 	private readonly dialogs = inject(ViewerDialogsService);
 	private readonly formatPainter = inject(ViewerFormatPainterService);
+	private readonly findReplace = inject(ViewerFindReplaceService);
 
 	private host: KeyboardHost | null = null;
 
@@ -55,6 +64,7 @@ export class ViewerKeyboardService {
 			canEdit: host.canEdit(),
 			isPresenting: host.presenting(),
 			hasSelection: this.editor.hasSelection(),
+			isDrawing: host.isDrawing?.() ?? false,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
 		});
 		if (action === null) {
@@ -69,6 +79,9 @@ export class ViewerKeyboardService {
 				break;
 			case 'toggleShortcuts':
 				this.dialogs.showShortcuts.set(!this.dialogs.showShortcuts());
+				break;
+			case 'find':
+				this.toggleFind();
 				break;
 			case 'undo':
 				this.editor.undo();
@@ -112,6 +125,24 @@ export class ViewerKeyboardService {
 			default:
 				break;
 		}
+	}
+
+	/**
+	 * Ctrl/Cmd+F toggles the find bar. Angular has shipped the bar since the
+	 * find-replace port but had no shortcut for it at all, because the chord was
+	 * hand-wired in React and Vue instead of living in the shared keymap.
+	 *
+	 * The full find-and-replace bar counts as "open" for the toggle: pressing the
+	 * chord while it is up closes it rather than swapping it for the smaller find
+	 * bar, which is what every other binding's single-panel toggle does.
+	 */
+	private toggleFind(): void {
+		if (this.findReplace.showFind() || this.findReplace.showFindReplace()) {
+			this.findReplace.showFind.set(false);
+			this.findReplace.showFindReplace.set(false);
+			return;
+		}
+		this.findReplace.showFind.set(true);
 	}
 
 	/**

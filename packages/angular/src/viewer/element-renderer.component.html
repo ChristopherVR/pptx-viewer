@@ -21,6 +21,7 @@
 			[canvasHeight]="canvasHeight()"
 			[interactive]="interactive()"
 			[marked]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
 			[animationState]="animationState()"
 		/>
 	}
@@ -38,6 +39,21 @@
 			[mediaDataUrls]="mediaDataUrls()"
 			[replay]="presenting()"
 			[markElement]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
+		/>
+	}
+	@case (element().type === 'contentPart') {
+		<!--
+			Real PowerPoint ink. Same positioning contract as pptx-ink-renderer
+			above: the renderer's own root is absolutely positioned, so it takes
+			the neutral element marker as an input rather than being wrapped.
+		-->
+		<pptx-content-part-renderer
+			[element]="element()"
+			[zIndex]="zIndex()"
+			[replay]="presenting()"
+			[markElement]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
 		/>
 	}
 	@case (element().type === 'zoom') {
@@ -54,6 +70,7 @@
 			[zIndex]="zIndex()"
 			[mediaDataUrls]="mediaDataUrls()"
 			[markElement]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
 		/>
 	}
 	@case (element().type === 'smartArt' && smartArt3D()) {
@@ -69,7 +86,7 @@
 			class="pptx-ng-element pptx-ng-smartart"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-smart-art-renderer
@@ -84,7 +101,7 @@
 			class="pptx-ng-element pptx-ng-ole"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-ole-renderer [element]="element()" />
@@ -95,7 +112,7 @@
 			class="pptx-ng-element pptx-ng-chart"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-chart-element-view
@@ -110,7 +127,7 @@
 			class="pptx-ng-element pptx-ng-table"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<pptx-table-renderer
@@ -126,7 +143,7 @@
 			class="pptx-ng-element pptx-ng-group"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			@for (child of children(); track child.id) {
@@ -136,6 +153,7 @@
 					[zIndex]="$index"
 					[interactive]="interactive()"
 					[marked]="marked()"
+					[exposeElementId]="exposeElementId()"
 					[presenting]="presenting()"
 					[fieldContext]="fieldContext()"
 					[slideElements]="slideElements()"
@@ -151,6 +169,7 @@
 			[zIndex]="zIndex()"
 			[interactive]="interactive()"
 			[marked]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
 		/>
 	}
 	@case (element().type === 'media') {
@@ -160,6 +179,7 @@
 			[zIndex]="zIndex()"
 			[interactive]="interactive()"
 			[marked]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
 			[presenting]="presenting()"
 			[placeholderLabel]="placeholderLabel()"
 		/>
@@ -169,7 +189,7 @@
 			class="pptx-ng-element pptx-ng-shape"
 			[ngStyle]="shapeContainerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			@if (fillOverlay(); as ov) {
@@ -397,6 +417,14 @@
 											[ngStyle]="run.style"
 											>{{ run.text }}</a
 										>
+									} @else if (run.rubyText) {
+										<!-- `a:ruby`: the phonetic guide sits above its base
+										     text; the <rp> parentheses are the fallback for a
+										     browser without ruby support. -->
+										<ruby [ngStyle]="run.style"
+											>{{ run.text }}<rp>(</rp><rt [ngStyle]="run.rubyStyle">{{ run.rubyText }}</rt
+											><rp>)</rp></ruby
+										>
 									} @else {
 										<span [ngStyle]="run.style">{{ run.text }}</span>
 									}
@@ -419,7 +447,7 @@
 			class="pptx-ng-element pptx-ng-unsupported"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
 			<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>

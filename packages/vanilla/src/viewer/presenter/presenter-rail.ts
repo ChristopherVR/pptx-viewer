@@ -13,6 +13,7 @@ import {
 	presenterNextDisabled,
 	presenterPrevDisabled,
 } from 'pptx-viewer-shared';
+import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createIcon } from '../ui/icons';
@@ -41,6 +42,12 @@ export interface PresenterRailOptions {
 	previewScale: () => number;
 	/** Deck dimensions, so the preview host can claim its real layout box. */
 	canvas: () => PresenterCanvasSize;
+	/**
+	 * The custom show playback is restricted to, so the preview names the slide
+	 * the next forward press actually reaches. Without it a running custom show
+	 * previewed the next DECK slide instead of the next SHOW one.
+	 */
+	getActiveCustomShow?: () => ShowOrderCustomShow | null | undefined;
 	move: (direction: 1 | -1) => void;
 }
 
@@ -215,7 +222,7 @@ export function buildPresenterRail(options: PresenterRailOptions): PresenterRail
 		nextBody.replaceChildren();
 		// Hidden slides and custom-show membership are the show order's business,
 		// not `current + 1`: the preview must show what Next will actually reach.
-		const upcoming = nextPresentedSlide(slides, current);
+		const upcoming = nextPresentedSlide(slides, current, options.getActiveCustomShow?.());
 		if (upcoming) {
 			const scale = options.previewScale();
 			nextBody.append(options.renderSlide(upcoming, scale));

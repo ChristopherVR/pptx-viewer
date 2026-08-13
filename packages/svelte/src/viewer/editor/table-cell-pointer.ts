@@ -1,3 +1,5 @@
+import { tableCellPointerIntent } from 'pptx-viewer-shared';
+
 import { readTableCellTarget } from './context-menu-dispatch';
 import type { EditorState } from './editor-state.svelte';
 
@@ -11,6 +13,11 @@ import type { EditorState } from './editor-state.svelte';
  * attributes `TableView` already stamps, which is also how the context menu
  * finds its target: merge-absorbed cells are not rendered, so a cell's DOM
  * position is not its model position and the attributes are the only truth.
+ *
+ * The RULE itself (extend / anchor / clear) is `tableCellPointerIntent` in
+ * `pptx-viewer-shared`; this module only supplies the facts and applies the
+ * verdict to the Svelte editor state. Vue was missing the same rule entirely,
+ * which is why block merge was unreachable there.
  *
  * @module editor/table-cell-pointer
  */
@@ -31,16 +38,23 @@ export function applyTableCellPointer(
 ): boolean {
 	const cell = readTableCellTarget(target);
 	const element = editor.elementById(elementId);
-	if (!cell || element?.type !== 'table' || !element.tableData) {
+	const tableData = element?.type === 'table' ? element.tableData : undefined;
+	const intent = tableCellPointerIntent({
+		isTableCell: Boolean(cell && tableData),
+		shiftKey,
+		elementSelected: editor.selection.has(elementId),
+		rangeOnSameElement: editor.tableCells.elementId === elementId,
+	});
+	if (!cell || !tableData || intent === 'clear') {
 		// Any click that is not inside a table cell abandons the range; a
 		// selection the user can no longer see must not keep arming Merge Cells.
 		editor.tableCells.clear();
 		return false;
 	}
-	if (shiftKey && editor.selection.has(elementId) && editor.tableCells.elementId === elementId) {
-		editor.tableCells.extend(elementId, cell, element.tableData);
+	if (intent === 'extend') {
+		editor.tableCells.extend(elementId, cell, tableData);
 		return true;
 	}
-	editor.tableCells.begin(elementId, cell, element.tableData);
+	editor.tableCells.begin(elementId, cell, tableData);
 	return false;
 }

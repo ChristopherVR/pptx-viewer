@@ -20,7 +20,7 @@ import type {
 	PptxThemeOption,
 } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
 	collectImagePaths,
 	collectMediaElements,
@@ -55,6 +55,11 @@ export interface LoadedPresentation {
 	isPasswordProtected: boolean;
 	/** Slide canvas size in CSS px. */
 	canvasSize: CanvasSize;
+	/**
+	 * `p:sldSz` verbatim, in EMU. Kept even when it matches no preset so a save
+	 * re-emits the authored dimensions rather than a lossy pixel round-trip.
+	 */
+	slideSize?: SlideSizeEmu;
 	/** Archive-path to displayable URL map for media + poster frames. */
 	mediaDataUrls: Map<string, string>;
 	/** Presentation theme colours used by scheme-based rendering. */
@@ -116,6 +121,17 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			notesMaster: parsed.notesMaster,
 			handoutMaster: parsed.handoutMaster,
 			hasMacros: parsed.hasMacros ?? false,
+			slideSize:
+				typeof parsed.widthEmu === 'number' &&
+				typeof parsed.heightEmu === 'number' &&
+				parsed.widthEmu > 0 &&
+				parsed.heightEmu > 0
+					? {
+							widthEmu: parsed.widthEmu,
+							heightEmu: parsed.heightEmu,
+							type: parsed.slideSizeType ?? '',
+						}
+					: undefined,
 			notesCanvasSize:
 				typeof parsed.notesWidthEmu === 'number' &&
 				typeof parsed.notesHeightEmu === 'number' &&

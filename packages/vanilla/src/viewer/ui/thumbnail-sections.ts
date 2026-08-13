@@ -35,6 +35,14 @@ export function renderThumbnailSections(options: SectionRendererOptions): HTMLEl
 			section.dataset.sectionId = group.section.id;
 			toggle.addEventListener('click', () => actions?.toggle(group.section!.id));
 		}
+		// `p15:sectionPr/@clr`: parsed and round-tripped by core, but shown by
+		// React alone until this. The dot leads the header, as React's does.
+		if (group.section?.color) {
+			const swatch = createEl(doc, 'span', 'pptxv-thumb-section-color');
+			swatch.dataset.pptxSectionColor = group.section.color;
+			swatch.style.background = group.section.color;
+			header.appendChild(swatch);
+		}
 		header.appendChild(toggle);
 		if (group.section && actions) {
 			const controls = createEl(doc, 'span', 'pptxv-thumb-section-actions');

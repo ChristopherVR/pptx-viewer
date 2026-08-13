@@ -254,6 +254,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 					});
 				}
 			},
+			onChartPointChange: (element, chartData) => {
+				if (element.type !== 'chart') {
+					return;
+				}
+				this.editor?.applyElementPatch(element.id, { chartData });
+			},
 			onStageRendered: () => {
 				this.editor?.onStageRendered();
 				// The stage wrap's children are replaced on every stage render, so
@@ -997,6 +1003,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getCurrent: () => this.getCurrentSlide(),
 			getElapsedMs: () => this.presenterSnapshot.elapsedMs ?? 0,
 			canvasSize: () => this.store.get().canvasSize,
+			// Resolved on every read so a show selected (or deleted) mid session is
+			// honoured; the same rule `viewer-controls`' `showOrder` uses.
+			getActiveCustomShow: () => {
+				const state = this.store.get();
+				return state.activeCustomShowId
+					? (state.customShows.find(({ id }) => id === state.activeCustomShowId) ?? null)
+					: null;
+			},
 			renderSlide: (slide, scale) => this.renderer.renderSlideNode(slide, scale),
 			navigate: (index) => this.goToSlide(index),
 			move: (direction) => (direction === 1 ? this.controls.next() : this.controls.prev()),

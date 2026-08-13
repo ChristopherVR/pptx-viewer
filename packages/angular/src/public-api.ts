@@ -38,3 +38,20 @@ export type {
 // package root. See `docs/angular/services.md` and
 // `docs/angular/services-reference.md`.
 export * from './internals';
+
+// ── Openable-file allow list ───────────────────────────────────────────
+// The one answer to "can the viewer open this file?", so a host's drop target
+// and its `<input accept>` cannot disagree with the loader. Hand-rolled lists
+// drift: every demo in this repo shipped `.pptx,.ppt,.json`, which refused a
+// `.pptm` on drop that File > Open inside the viewer accepted without
+// complaint. Re-exported here so a host never has to reach into
+// `pptx-viewer-shared` (an internal, unpublished package) to get them.
+export {
+	PPTX_OPEN_ACCEPT,
+	PRESENTATION_OPEN_EXTENSIONS,
+	isSupportedPresentationFile,
+	isLegacyBinaryPresentation,
+	presentationBaseName,
+	savedPresentationFileName,
+} from './internal/shared';
+export type { SavedPresentationFormat } from './internal/shared';

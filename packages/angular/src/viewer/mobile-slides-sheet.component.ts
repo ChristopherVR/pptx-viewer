@@ -83,6 +83,7 @@ const THUMB_W = 160;
 								[editable]="false"
 								[autoFit]="false"
 								[interactive]="false"
+								[exposeElementIds]="false"
 							/>
 						</div>
 

@@ -30,6 +30,8 @@ export interface ViewportHandlersDeps {
 	toggleInkMarkup?(): void;
 	/** Blank the screen black or white (B / W, or `.` / `,`). */
 	toggleBlank?(value: 'black' | 'white'): void;
+	/** Show or hide live captions (PowerPoint's bare `J`). */
+	toggleSubtitles?(): void;
 }
 
 export interface ViewportHandlers {
@@ -112,6 +114,9 @@ function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolea
 			return true;
 		case 'toggleWhiteScreen':
 			deps.toggleBlank?.('white');
+			return true;
+		case 'toggleSubtitles':
+			deps.toggleSubtitles?.();
 			return true;
 		default:
 			return true;

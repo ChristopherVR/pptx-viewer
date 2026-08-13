@@ -85,13 +85,17 @@ export function createFindReplacePanel(
 	});
 
 	queryInput.addEventListener('input', runFind);
+	// Deliberately NOT a blanket `stopPropagation()`. The shared `mapEditorKey`
+	// already gates on `isEditorTextInputTarget`, and it places `find` and
+	// `Escape` ABOVE those gates on purpose, so swallowing every keydown here
+	// stopped Ctrl+F toggling the panel closed the way it does in the other
+	// four bindings. Only keys the panel itself consumes are stopped.
 	queryInput.addEventListener('keydown', (event) => {
-		event.stopPropagation();
 		if (event.key === 'Escape') {
+			event.stopPropagation();
 			setOpen(false);
 		}
 	});
-	replaceInput.addEventListener('keydown', (event) => event.stopPropagation());
 
 	const row = createEl(doc, 'div', 'pptxv-findreplace-row');
 	row.append(

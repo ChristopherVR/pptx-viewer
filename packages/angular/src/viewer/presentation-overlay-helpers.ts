@@ -6,7 +6,6 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CanvasSize } from '../internal/shared';
 import {
 	attachPresentationVisibilityPause,
 	firstShowSlideIndex,
@@ -19,6 +18,17 @@ import {
 	resolveShowSlideIndexes,
 	stopAllPersistentAudio,
 } from '../internal/shared';
+import type { CanvasSize, ShowOrderCustomShow } from '../internal/shared';
+
+/**
+ * The running custom show, when one is active. Every navigation helper below
+ * takes it and forwards it to `resolveShowSlideIndexes`, because "which slide
+ * comes next" is one rule (membership AND hidden slides), not two: Angular used
+ * to pre-filter the slide array to the show's membership and then ask the
+ * shared rule about the filtered array, which is how a hidden slide inside a
+ * custom show still got presented.
+ */
+export type ActiveShow = ShowOrderCustomShow | null | undefined;
 
 /**
  * Whether a click/tap/swipe advance must be swallowed instead of moving to the
@@ -115,11 +125,15 @@ export function clampIndex(index: number, count: number): number {
  * slides. Kept as a named export because the overlay's tests and the navigator
  * read better in terms of "next visible slide" than raw index lists.
  */
-export function nextVisibleIndex(current: number, slides: readonly PptxSlide[]): number {
+export function nextVisibleIndex(
+	current: number,
+	slides: readonly PptxSlide[],
+	activeShow?: ActiveShow,
+): number {
 	if (slides.length === 0) {
 		return 0;
 	}
-	const order = resolveShowSlideIndexes(slides);
+	const order = resolveShowSlideIndexes(slides, activeShow);
 	return nextShowSlideIndex(current, order, { loop: true }) ?? current;
 }
 
@@ -128,11 +142,15 @@ export function nextVisibleIndex(current: number, slides: readonly PptxSlide[]):
  * Returns `current` when no earlier visible slide exists: PowerPoint never
  * wraps backward off the first slide.
  */
-export function prevVisibleIndex(current: number, slides: readonly PptxSlide[]): number {
+export function prevVisibleIndex(
+	current: number,
+	slides: readonly PptxSlide[],
+	activeShow?: ActiveShow,
+): number {
 	if (slides.length === 0) {
 		return 0;
 	}
-	const order = resolveShowSlideIndexes(slides);
+	const order = resolveShowSlideIndexes(slides, activeShow);
 	return previousShowSlideIndex(current, order) ?? current;
 }
 
@@ -157,18 +175,22 @@ export function fitZoom(canvasW: number, canvasH: number, vw: number, vh: number
  * the last slide ends the show. Callers use this to tell "there is a next
  * slide" from "we just wrapped".
  */
-export function hasVisibleSlideAfter(current: number, slides: readonly PptxSlide[]): boolean {
-	return hasShowSlideAfter(current, resolveShowSlideIndexes(slides));
+export function hasVisibleSlideAfter(
+	current: number,
+	slides: readonly PptxSlide[],
+	activeShow?: ActiveShow,
+): boolean {
+	return hasShowSlideAfter(current, resolveShowSlideIndexes(slides, activeShow));
 }
 
 /** The show's first visible slide (Home), or 0 for an empty deck. */
-export function firstVisibleIndex(slides: readonly PptxSlide[]): number {
-	return firstShowSlideIndex(resolveShowSlideIndexes(slides)) ?? 0;
+export function firstVisibleIndex(slides: readonly PptxSlide[], activeShow?: ActiveShow): number {
+	return firstShowSlideIndex(resolveShowSlideIndexes(slides, activeShow)) ?? 0;
 }
 
 /** The show's last visible slide (End), or 0 for an empty deck. */
-export function lastVisibleIndex(slides: readonly PptxSlide[]): number {
-	return lastShowSlideIndex(resolveShowSlideIndexes(slides)) ?? 0;
+export function lastVisibleIndex(slides: readonly PptxSlide[], activeShow?: ActiveShow): number {
+	return lastShowSlideIndex(resolveShowSlideIndexes(slides, activeShow)) ?? 0;
 }
 
 /**

@@ -27,6 +27,7 @@ import type {
 	AnimationGroup,
 	GradientState,
 	InlineTextSelection,
+	SlideSizeEmu,
 	TextAdvancedChanges,
 } from 'pptx-viewer-shared';
 
@@ -58,8 +59,13 @@ export interface InspectorHandlers {
 	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
-	/** Resize the slide canvas (SLIDE SIZE card). */
+	/** Resize the slide canvas (the SLIDE SIZE card's raw W/H inputs). */
 	updateCanvasSize(size: { width: number; height: number }): void;
+	/**
+	 * Adopt an EMU slide size (SLIDE SIZE preset dropdown / orientation toggle).
+	 * Writes both the EMU state and the pixel canvas.
+	 */
+	updateSlideSize(size: SlideSizeEmu): void;
 	/** Add a comment on the current slide (Comments tab). */
 	addComment(text: string): void;
 	/** Append a reply under a top-level comment (Comments tab reply form). */
@@ -241,6 +247,8 @@ export interface InspectorDeckState {
 	slideCount: number;
 	currentSlide: number;
 	canvasSize: { width: number; height: number };
+	/** The deck's `p:sldSz` in EMU, which is what a save persists. */
+	slideSize: SlideSizeEmu | undefined;
 	elements: readonly PptxElement[];
 	selectedIds: readonly string[];
 	/** Primary selected element id (docked Animation panel target), if any. */

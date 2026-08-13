@@ -10,6 +10,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxSlideSize,
 	PptxPresentationProperties,
 	PptxCustomShow,
 	PptxTagCollection,
@@ -71,6 +72,10 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
  * `.fntdata` parts, while `true` (core's default) re-embeds losslessly. Before
  * this the toggle lived in `Ribbon.svelte`'s local `$state` and reached no save
  * call at all, so the switch moved and the bytes were identical either way.
+ *
+ * `slideSize` carries Design > Slide Size the same way: omitting the option
+ * makes core re-emit the load-time `p:sldSz` verbatim, so a preset or
+ * orientation change made in the inspector never reached the written file.
  */
 export async function saveEditorDocument(
 	handler: PptxHandler,
@@ -78,9 +83,12 @@ export async function saveEditorDocument(
 	format: PptxSaveFormat = 'pptx',
 	saveIntent?: DeckSaveIntent | string | null,
 	embedFonts = true,
+	slideSize?: PptxSlideSize,
 ): Promise<Uint8Array> {
 	const metadata = {
 		...embeddedFontSaveOptions(embedFonts),
+		// Omitted when unknown so a deck that never loaded a size is not given one.
+		...(slideSize ? { slideSize } : {}),
 		...(snapshot.sections.length > 0 ? { sections: snapshot.sections } : {}),
 		...(Object.keys(snapshot.headerFooter).length > 0
 			? { headerFooter: snapshot.headerFooter }

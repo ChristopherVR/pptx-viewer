@@ -30,6 +30,17 @@
 								(click)="item.section && editor.sectionOps.toggle(item.section.id)"
 							>
 								<span>{{ item.section?.collapsed ? '▸' : '▾' }}</span>
+								<!--
+									Section highlight colour (p15:sectionPr/@clr). Core parses and
+									round-trips it; only React was drawing it.
+								-->
+								@if (item.section?.color; as sectionColor) {
+									<span
+										class="pptx-ng-section-swatch"
+										data-pptx-section-color
+										[style.background-color]="sectionColor"
+									></span>
+								}
 								<strong>{{
 									item.section?.name ?? ('pptx.slides.ungroupedSlides' | translate)
 								}}</strong>
@@ -109,6 +120,7 @@
 										[editable]="false"
 										[autoFit]="false"
 										[interactive]="false"
+										[exposeElementIds]="false"
 										[style.opacity]="hidden.hidden ? dimOpacity : null"
 									/>
 									@if (hidden.hidden) {

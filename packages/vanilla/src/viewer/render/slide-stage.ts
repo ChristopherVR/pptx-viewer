@@ -1,5 +1,6 @@
 import type {
 	ParsedTableStyleMap,
+	PptxChartData,
 	PptxElement,
 	PptxSlide,
 	PptxThemeColorScheme,
@@ -53,6 +54,8 @@ export interface SlideStageOptions {
 	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
 	onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
 	onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
+	/** See `ElementRenderContext.onChartPointChange`. */
+	readonly onChartPointChange?: (element: PptxElement, chartData: PptxChartData) => void;
 	/**
 	 * True only for the main (interactive) canvas, never the thumbnail rail.
 	 * Marks every rendered element (recursively, including group children) with
@@ -136,6 +139,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		interactive,
 		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,
 		onSmartArtNodeFillChange: options.onSmartArtNodeFillChange,
+		onChartPointChange: options.onChartPointChange,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
 			// Hidden via the Selection Pane: build no node at all, exactly as

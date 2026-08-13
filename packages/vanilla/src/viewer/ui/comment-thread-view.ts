@@ -2,6 +2,7 @@ import type { PptxComment } from 'pptx-viewer-core';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { renderCommentBody } from './comment-body';
 
 /**
  * The threaded comment list: nested replies, edit-in-place, reply, resolve and
@@ -201,7 +202,7 @@ export function createCommentThreadView(
 			row.appendChild(renderEditForm(comment));
 		} else {
 			const text = createEl(doc, 'p', 'pptxv-inspector-comment-text');
-			text.textContent = comment.text;
+			renderCommentBody(text, comment.text, comment.mentions);
 			row.appendChild(text);
 			if (rowEditable) {
 				row.appendChild(renderActions(comment, depth));

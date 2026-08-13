@@ -2,8 +2,22 @@
  * viewer-custom-shows.service.ts: Viewer-scoped state + logic for user-defined
  * custom shows (named, ordered slide subsets) and the presentation-mode slide
  * resolution that depends on them. Owns the custom-shows dialog visibility, the
- * list of shows, the active-show id, and derives the slides/start-index the
- * presentation overlay renders.
+ * active-show id, and derives the slides/start-index the presentation overlay
+ * renders.
+ *
+ * The SHOWS themselves are not owned here: they live on
+ * {@link LoadContentService.customShows} in the package's own key space, which
+ * is what makes them both seeded from the loaded deck and carried through save.
+ * This service is the editing surface over that list, translating between the
+ * package's relationship ids and the dialog's slide ids (see
+ * `custom-shows-deck.ts`, and note that writing a slide's archive path into
+ * `p:sld/@r:id` produces a package PowerPoint refuses to open).
+ *
+ * The subset a running show visits is likewise NOT computed here: the overlay
+ * gets the whole deck plus {@link activeCustomShow}, and the shared
+ * `resolveShowSlideIndexes` rule decides which slides it visits. Hand-rolling
+ * that subset locally is how Angular ended up ignoring hidden slides inside a
+ * custom show.
  *
  * Extracted from {@link PowerPointViewerComponent}: the component binds the live
  * active-slide-index accessor via {@link bind} (used to start a normal show at
@@ -16,8 +30,18 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 
-import { createCustomShow } from './custom-shows-helpers';
-import type { CustomShow } from './custom-shows-helpers';
+import {
+	firstShowSlideIndex,
+	generateCustomShowId,
+	resolveAuthoredCustomShowId,
+	resolveShowSlideIndexes,
+} from '../internal/shared';
+import type { CustomShow, ShowOrderCustomShow } from '../internal/shared';
+import {
+	activeCustomShowMembership,
+	customShowsFromDeck,
+	customShowsToDeck,
+} from './custom-shows-deck';
 import { LoadContentService } from './load-content.service';
 
 @Injectable()
@@ -26,8 +50,6 @@ export class ViewerCustomShowsService {
 
 	/** Whether the custom-shows dialog is open. */
 	readonly showDialog = signal(false);
-	/** The list of user-defined custom shows for this session. */
-	readonly shows = signal<readonly CustomShow[]>([]);
 	/** The id of the currently active custom show, or null. */
 	readonly activeId = signal<string | null>(null);
 
@@ -52,59 +74,103 @@ export class ViewerCustomShowsService {
 		this.liveSlides = accessors.liveSlides;
 	}
 
-	/** Custom shows mapped to the core shape consumed by set-up-slide-show. */
+	/** The deck's shows in the dialog's key space (slide ids, not relationship ids). */
+	readonly shows = computed<readonly CustomShow[]>(() =>
+		customShowsFromDeck(this.loader.customShows(), this.liveSlides()),
+	);
+
+	/** Custom shows in the core shape consumed by set-up-slide-show and by save. */
 	readonly pptxCustomShows = computed<PptxCustomShow[]>(() =>
-		this.shows().map((show) => ({
-			id: show.id,
-			name: show.name,
-			slideRIds: [...show.slideIds],
-		})),
+		this.loader.customShows().map((show) => ({ ...show, slideRIds: [...show.slideRIds] })),
 	);
 
-	/** Slides shown in presentation mode: the active custom show, else the full (live) deck. */
-	readonly presentationSlides = computed<PptxSlide[]>(
-		() => this.resolveActiveShowSlides() ?? [...this.liveSlides()],
+	/**
+	 * The running show's membership for the shared show-order rule, or `null`
+	 * when the whole deck is playing.
+	 */
+	readonly activeCustomShow = computed<ShowOrderCustomShow | null>(() =>
+		activeCustomShowMembership(this.loader.customShows(), this.activeId()),
 	);
 
-	/** Start index into {@link presentationSlides}: first slide of a custom show, else the active slide. */
-	readonly presentationStartIndex = computed<number>(() =>
-		this.resolveActiveShowSlides() ? 0 : this.activeSlideIndex(),
-	);
+	/**
+	 * Slides handed to the presentation overlay: always the whole (live) deck.
+	 * The custom-show subset is applied by the shared show-order rule, which the
+	 * overlay runs against {@link activeCustomShow}.
+	 */
+	readonly presentationSlides = computed<PptxSlide[]>(() => [...this.liveSlides()]);
+
+	/**
+	 * Start index into {@link presentationSlides}: always the editor's active
+	 * slide, which the show itself keeps up to date through `indexChange`.
+	 *
+	 * It must NOT be pinned to the custom show's first slide. `startIndex` is a
+	 * live input, not a constructor argument: the overlay re-adopts it whenever
+	 * it changes, and an audience display mirrors the presenter through it. While
+	 * this returned the show's first slide it never changed, so the overlay's
+	 * "adopt a host-pushed index" effect - which re-runs on the overlay's OWN
+	 * index too - snapped every advance straight back to slide 1, and Angular
+	 * alone could not leave the first slide of a custom show.
+	 *
+	 * Where a custom show STARTS is a one-shot seed instead, taken as the show
+	 * opens; see {@link showEntryIndex}.
+	 */
+	readonly presentationStartIndex = computed<number>(() => this.activeSlideIndex());
+
+	/**
+	 * The slide a show should OPEN on: the first slide the active custom show
+	 * visits, else the active slide. Read once, when the show starts.
+	 */
+	showEntryIndex(): number {
+		const show = this.activeCustomShow();
+		if (!show) {
+			return this.activeSlideIndex();
+		}
+		return firstShowSlideIndex(resolveShowSlideIndexes(this.liveSlides(), show)) ?? 0;
+	}
+
+	/**
+	 * Adopt the loaded deck's authored show selection.
+	 *
+	 * `p:showPr/p:custShow/@id` is PowerPoint's "Set Up Slide Show > Custom show"
+	 * radio, and it is authored intent. Every binding parsed it and then played
+	 * the whole deck anyway. Called once per load; a manual pick made afterwards
+	 * simply overwrites {@link activeId} and wins until the next deck arrives.
+	 */
+	seedFromDeck(): void {
+		this.activeId.set(
+			resolveAuthoredCustomShowId(
+				this.loader.presentationProperties(),
+				this.loader.customShows(),
+			) ?? null,
+		);
+	}
 
 	onCreate(show: { name: string; slideIds: string[] }): void {
-		this.shows.update((list) => [...list, createCustomShow(show.name, show.slideIds)]);
+		const created: CustomShow = {
+			id: generateCustomShowId(),
+			name: show.name.trim(),
+			slideIds: [...show.slideIds],
+		};
+		this.commit([...this.shows(), created]);
 	}
 
 	onRemove(id: string): void {
-		this.shows.update((list) => list.filter((s) => s.id !== id));
+		this.commit(this.shows().filter((s) => s.id !== id));
 		if (this.activeId() === id) {
 			this.activeId.set(null);
 		}
 	}
 
 	onUpdate(show: { id: string; name: string; slideIds: string[] }): void {
-		this.shows.update((list) =>
-			list.map((s) => (s.id === show.id ? { ...s, name: show.name, slideIds: show.slideIds } : s)),
+		this.commit(
+			this.shows().map((s) =>
+				s.id === show.id ? { ...s, name: show.name, slideIds: show.slideIds } : s,
+			),
 		);
 	}
 
-	/**
-	 * The active custom show's slides, in its defined order, or null when no show
-	 * is active (or it resolves to nothing). Used to filter the presentation.
-	 */
-	private resolveActiveShowSlides(): PptxSlide[] | null {
-		const id = this.activeId();
-		if (!id) {
-			return null;
-		}
-		const show = this.shows().find((s) => s.id === id);
-		if (!show || show.slideIds.length === 0) {
-			return null;
-		}
-		const byId = new Map(this.liveSlides().map((s) => [s.id, s]));
-		const picked = show.slideIds
-			.map((sid) => byId.get(sid))
-			.filter((s): s is PptxSlide => s !== undefined);
-		return picked.length > 0 ? picked : null;
+	/** Write an edited list back into the deck's key space (relationship ids). */
+	private commit(shows: readonly CustomShow[]): void {
+		this.loader.customShows.set(customShowsToDeck(shows, this.liveSlides()));
 	}
 }

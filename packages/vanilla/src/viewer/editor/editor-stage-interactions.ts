@@ -224,7 +224,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			}
 			gestures.begin(kind, id, event, handle);
 		},
-		beginAdjustGesture: (event) => adjustGesture.begin(event),
+		beginAdjustGesture: (event, descriptor) => adjustGesture.begin(event, descriptor),
 		closeInline,
 		inlineActive: () => inline !== null || tableInline !== null,
 		dispose() {

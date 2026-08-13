@@ -6,10 +6,11 @@
  * element whose pointerdown just resized from the south-east corner: a decoy
  * that neither appeared where an adjustment handle belongs nor adjusted
  * anything. React, Vue, Svelte and Vanilla all consume
- * `getShapeAdjustmentHandleDescriptor` instead, which answers `null` for any
- * geometry with no adjustable parameter (and for a shape whose
- * `a:spLocks/@noAdjustHandles` is set), so the handle only exists where
- * PowerPoint puts one.
+ * `getShapeAdjustmentHandleDescriptors` instead, which answers an EMPTY list
+ * for any geometry with no adjustable parameter (and for a shape whose
+ * `a:spLocks/@noAdjustHandles` is set), so a handle only exists where
+ * PowerPoint puts one, and a preset with several adjustable parameters gets
+ * one diamond for each.
  *
  * This module is the thin descriptor -> stage-box mapping, kept out of
  * `slide-canvas.component.ts` so the component stays view wiring and the maths
@@ -20,13 +21,14 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
 import {
-	getDraggedShapeAdjustmentValue,
-	getShapeAdjustmentHandleDescriptor,
+	beginShapeAdjustment,
+	getDraggedShapeAdjustments,
+	getShapeAdjustmentHandleDescriptors,
 } from '../internal/shared';
-import type { ShapeAdjustmentDragState } from '../internal/shared';
+import type { ShapeAdjustmentDragState, ShapeAdjustmentHandleDescriptor } from '../internal/shared';
 import type { Box } from './drag-resize';
 
-/** The adjustment handle's render box in STAGE (unscaled slide) coordinates. */
+/** One adjustment handle's render box in STAGE (unscaled slide) coordinates. */
 export interface AdjustHandleBox {
 	/** The `a:avLst` guide name the drag writes (`shapeAdjustments[key]`). */
 	key: string;
@@ -34,12 +36,14 @@ export interface AdjustHandleBox {
 	top: number;
 	size: number;
 	cursor: string;
-	/** The element's current adjustment value (0..50000), seeding a drag. */
+	/** The element's current adjustment value (guide units), seeding a drag. */
 	value: number;
+	/** The descriptor this box came from; the drag needs its solver. */
+	descriptor: ShapeAdjustmentHandleDescriptor;
 }
 
 /**
- * The adjustment handle box for the single selection, or null when the element
+ * Every adjustment handle box for the single selection, empty when the element
  * has no adjustable parameter, is locked against adjusting, or nothing is
  * selected / the canvas is not editable.
  *
@@ -50,38 +54,35 @@ export interface AdjustHandleBox {
  * effective scale so it stays a constant number of SCREEN pixels, exactly like
  * the resize and rotate handles beside it.
  */
-export function computeAdjustHandle(
+export function computeAdjustHandles(
 	element: PptxElement | null | undefined,
 	box: (Box & { id: string }) | null,
 	editable: boolean,
 	handleScreenPx: number,
 	zoom: number,
-): AdjustHandleBox | null {
+): AdjustHandleBox[] {
 	if (!editable || !element || !box) {
-		return null;
-	}
-	const descriptor = getShapeAdjustmentHandleDescriptor(element);
-	if (!descriptor) {
-		return null;
+		return [];
 	}
 	const size = handleScreenPx / (zoom || 1);
-	return {
+	return getShapeAdjustmentHandleDescriptors(element).map((descriptor) => ({
 		key: descriptor.key,
 		left: box.x + descriptor.left - size / 2,
 		top: box.y + descriptor.top - size / 2,
 		size,
 		cursor: descriptor.cursor,
 		value: descriptor.value,
-	};
+		descriptor,
+	}));
 }
 
 /**
- * Capture the drag state for an adjustment gesture starting on `element`.
+ * Capture the drag state for an adjustment gesture starting on `handle`.
  *
- * `shapeType` is lower-cased here because
- * {@link getDraggedShapeAdjustmentValue} compares it to the normalised preset
- * name; a raw `'roundRect'` would silently return the start value and the drag
- * would do nothing.
+ * Delegates to shared so the captured SOLVER (the measured px-per-guide-unit
+ * scale of this particular handle) travels with the gesture; a hand-built state
+ * would drop it and the drag would fall back to round-rect maths for every
+ * preset.
  */
 export function beginShapeAdjustmentDrag(
 	element: PptxElement,
@@ -89,32 +90,27 @@ export function beginShapeAdjustmentDrag(
 	clientX: number,
 	clientY: number,
 ): ShapeAdjustmentDragState {
-	const shaped = element as PptxElement & { shapeType?: string };
-	return {
-		elementId: element.id,
-		key: handle.key,
-		shapeType: String(shaped.shapeType ?? '').toLowerCase(),
-		startClientX: clientX,
-		startClientY: clientY,
-		startAdjustment: handle.value,
-		startWidth: element.width,
-		startHeight: element.height,
-		moved: false,
-	};
+	return beginShapeAdjustment(element, handle.descriptor, clientX, clientY);
 }
 
 /**
- * The adjustment value for the pointer's current screen position.
+ * The `shapeAdjustments` map for the pointer's current screen position.
  *
- * The horizontal travel is converted from screen pixels into SLIDE pixels
- * first, because the shared solver measures the delta against the element's own
- * (unscaled) box; feeding it raw screen pixels would make the corner radius
- * track the zoom level.
+ * Travel is converted from screen pixels into SLIDE pixels first, because the
+ * shared solver measures the delta against the element's own (unscaled) box;
+ * feeding it raw screen pixels would make the adjustment track the zoom level.
+ * BOTH axes are passed: only a round-rect's handle travels horizontally.
  */
-export function draggedAdjustmentValue(
+export function draggedAdjustments(
 	state: ShapeAdjustmentDragState,
 	clientX: number,
+	clientY: number,
 	zoom: number,
-): number {
-	return getDraggedShapeAdjustmentValue(state, (clientX - state.startClientX) / (zoom || 1));
+): Record<string, number> {
+	const scale = zoom || 1;
+	return getDraggedShapeAdjustments(
+		state,
+		(clientX - state.startClientX) / scale,
+		(clientY - state.startClientY) / scale,
+	);
 }

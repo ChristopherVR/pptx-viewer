@@ -35,6 +35,7 @@ import type { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import { nextPresentedSlide, notesSegmentsToSpans } from '../internal/shared';
+import type { ShowOrderCustomShow } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { cssObjectToStyleMap } from './table-renderer-helpers';
 
@@ -93,9 +94,17 @@ export function currentSlideAt(slides: readonly PptxSlide[], index: number): Ppt
  * next-slide preview agree with the show itself: it skips hidden slides and
  * honours custom-show membership, neither of which a naive `slides[index + 1]`
  * can do.
+ *
+ * `activeCustomShow` is the half Angular was dropping. While "Reverse" is
+ * playing, the slide after slide 3 is slide 2, and a console that previewed
+ * slide 4 had the presenter rehearsing a segue the room never sees.
  */
-export function nextSlideAfter(slides: readonly PptxSlide[], index: number): PptxSlide | undefined {
-	return nextPresentedSlide(slides, index);
+export function nextSlideAfter(
+	slides: readonly PptxSlide[],
+	index: number,
+	activeCustomShow?: ShowOrderCustomShow | null,
+): PptxSlide | undefined {
+	return nextPresentedSlide(slides, index, activeCustomShow);
 }
 
 /** "Slide 3 of 12" style label for the current position. */

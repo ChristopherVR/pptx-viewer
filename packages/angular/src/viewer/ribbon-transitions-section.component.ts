@@ -32,6 +32,7 @@ import type { PptxTransitionType } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from '../internal/shared';
 import {
 	applyRibbonTransitionDraft,
+	playSlideTransitionPreview,
 	readRibbonTransitionDraft,
 	RIBBON_TRANSITION_PRESETS,
 	ribbonTransitionTargets,
@@ -45,12 +46,17 @@ import { EditorStateService } from './editor-state.service';
 	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe, LucidePlay, LucidePanelRight],
 	template: `
-		<!-- Preview (fires existing presentation present path; no separate preview API yet) -->
+		<!--
+			Preview REPLAYS the transition on the editing stage (shared
+			playSlideTransitionPreview) and writes nothing. It used to emit "present",
+			i.e. it started the whole slide show: a different action under the same
+			name, in one binding out of five.
+		-->
 		<button
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.ribbon.previewTransition' | translate"
-			(click)="present.emit()"
+			(click)="preview()"
 		>
 			<svg lucidePlay class="h-4 w-4"></svg> {{ 'pptx.ribbon.preview' | translate }}
 		</button>
@@ -164,7 +170,6 @@ export class RibbonTransitionsSectionComponent {
 
 	readonly slideIndex = input<number>(0);
 
-	readonly present = output<void>();
 	readonly toggleInspector = output<void>();
 
 	protected readonly transitionPresets = RIBBON_TRANSITION_PRESETS;
@@ -193,6 +198,11 @@ export class RibbonTransitionsSectionComponent {
 		// missing slide, so an empty deck needs no special case here.
 		return readRibbonTransitionDraft(slides[index]);
 	});
+
+	/** Replay the active slide's transition on the stage. Never writes. */
+	protected preview(): void {
+		playSlideTransitionPreview(this.editor.slides()[this.slideIndex()]?.transition, document);
+	}
 
 	/** Apply the chosen preset to the active slide. */
 	protected setTransition(type: PptxTransitionType): void {

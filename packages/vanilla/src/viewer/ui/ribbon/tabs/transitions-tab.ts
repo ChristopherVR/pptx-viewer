@@ -1,5 +1,10 @@
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
-import { EMPTY_RIBBON_TRANSITION_DRAFT, RIBBON_TRANSITION_PRESETS } from 'pptx-viewer-shared';
+import {
+	applyRibbonTransitionDraft,
+	EMPTY_RIBBON_TRANSITION_DRAFT,
+	playSlideTransitionPreview,
+	RIBBON_TRANSITION_PRESETS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -52,25 +57,32 @@ export function createTransitionsTab(
 
 	let draft: RibbonTransitionDraft = handlers.readDraft() ?? { ...EMPTY_RIBBON_TRANSITION_DRAFT };
 
-	// Preview carries no handler, matching React: this binding only plays a
-	// transition from the presentation-playback path (see
-	// `animation/transition-overlay.ts`), which the editing stage never runs, so
-	// there is nothing for the button to replay while the deck is being edited.
+	// Preview REPLAYS the transition on the editing stage through the shared
+	// `playSlideTransitionPreview`, which is now what the button means in every
+	// binding. It used to carry an empty handler here (and a re-commit of the
+	// values the slide already had elsewhere), so no binding's Preview showed
+	// the user anything at all.
 	const preview = makeButton(doc, {
 		label: t('pptx.ribbon.preview'),
 		icon: 'play',
 		textLabel: t('pptx.ribbon.preview'),
-		onClick: () => {},
+		onClick: () => playSlideTransitionPreview(applyRibbonTransitionDraft(undefined, draft), doc),
 	});
 	preview.btn.title = t('pptx.ribbon.previewTransition');
 	el.appendChild(preview.btn);
 
-	const applyToAllLabel = createEl(doc, 'label', 'pptxv-transition-apply-all');
-	const applyToAll = doc.createElement('input');
-	applyToAll.type = 'checkbox';
-	applyToAll.setAttribute('aria-label', t('pptx.headerFooter.applyToAll'));
-	applyToAllLabel.title = t('pptx.ribbon.applyTransitionToAll');
-	applyToAllLabel.append(applyToAll, doc.createTextNode(t('pptx.headerFooter.applyToAll')));
+	// PowerPoint's "Apply To All" is a BUTTON: it pushes the current timing onto
+	// every slide the moment it is pressed. This binding (and Svelte) shipped it
+	// as a checkbox, an arming toggle with no counterpart in the product being
+	// copied, so the same control meant two different things depending on which
+	// binding you happened to be running.
+	const applyToAll = makeButton(doc, {
+		label: t('pptx.headerFooter.applyToAll'),
+		icon: 'copy',
+		textLabel: t('pptx.headerFooter.applyToAll'),
+		onClick: () => handlers.applyDraft(draft, true),
+	});
+	applyToAll.btn.title = t('pptx.ribbon.applyTransitionToAll');
 
 	/** Highlight the gallery entry the draft names (React's active pill). */
 	function paintGallery(): void {
@@ -83,7 +95,7 @@ export function createTransitionsTab(
 	const commit = (changes: Partial<RibbonTransitionDraft>): void => {
 		draft = { ...draft, ...changes };
 		paintGallery();
-		handlers.applyDraft(draft, applyToAll.checked);
+		handlers.applyDraft(draft, false);
 	};
 
 	const advance = createAdvanceGroup(doc, t, (value) => commit(value));
@@ -128,7 +140,7 @@ export function createTransitionsTab(
 	soundLabel.append(doc.createTextNode(t('pptx.ribbon.sound')), sound);
 	el.appendChild(soundLabel);
 
-	el.appendChild(applyToAllLabel);
+	el.appendChild(applyToAll.btn);
 	el.appendChild(advance.el);
 
 	const inspector = makeButton(doc, {
@@ -162,7 +174,7 @@ export function createTransitionsTab(
 				button.handle.setDisabled(!editable);
 			}
 			durationField.setDisabled(!editable);
-			applyToAll.disabled = !editable;
+			applyToAll.setDisabled(!editable);
 			advance.setDisabled(!editable);
 		},
 	};

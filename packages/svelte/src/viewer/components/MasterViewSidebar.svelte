@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { MasterViewTab } from 'pptx-viewer-core';
+	import { masterViewBackgroundColor } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -19,6 +20,17 @@
 	const thumbScale = $derived(THUMB_WIDTH / Math.max(1, canvasSize.width));
 	const target = $derived(editor.masterViewTarget);
 	const tab = $derived(target?.tab ?? 'slides');
+	/** Background of the master or layout the Slides tab has selected. */
+	const slidesBackground = $derived(
+		masterViewBackgroundColor(
+			{ slideMasters: editor.slideMasters },
+			{
+				tab: 'slides',
+				masterIndex: target?.masterIndex ?? 0,
+				layoutIndex: target?.layoutIndex ?? null,
+			},
+		),
+	);
 	const tabs: Array<{ key: MasterViewTab; label: string }> = [
 		{ key: 'slides', label: t('pptx.sections.slides') },
 		{ key: 'notes', label: t('pptx.notes.title') },
@@ -52,6 +64,23 @@
 	</div>
 	<div class="body" role="tabpanel">
 		{#if tab === 'slides'}
+			{#if editor.editable}
+				<!--
+					Format Background for the selected master or layout. PowerPoint
+					writes an explicit `p:bgPr` here, deliberately replacing a themed
+					`p:bgRef`; `masterOps.setBackgroundColor` picks the owning part.
+				-->
+				<section class="bg-card">
+					<span>{t('pptx.master.notesMasterBackground')}</span>
+					<input
+						type="color"
+						class="swatch"
+						aria-label={t('pptx.master.backgroundColorLabel')}
+						value={slidesBackground ?? '#ffffff'}
+						oninput={(event) => editor.masterOps.setBackgroundColor(event.currentTarget.value)}
+					/>
+				</section>
+			{/if}
 			{#each editor.slideMasters as master, masterIndex (master.path)}
 				<button
 					type="button"
@@ -103,6 +132,8 @@
 	.tabs button.active { border-bottom-color:#f59e0b; color:#f59e0b; }
 	.tabs button:focus-visible, header button:focus-visible, .master-item:focus-visible { outline:2px solid var(--pptx-ring,#6366f1); outline-offset:-2px; }
 	.body { flex:1; min-height:0; overflow-y:auto; padding:6px; }
+	.bg-card { display:flex; flex-direction:column; gap:6px; margin:0 0 8px; padding:8px; border:1px solid var(--pptx-border,#33334d); border-radius:6px; font:11px system-ui,sans-serif; color:var(--pptx-muted-foreground,#a5a5b5); }
+	.bg-card .swatch { width:100%; height:30px; border:1px solid var(--pptx-border,#33334d); border-radius:5px; background:transparent; cursor:pointer; }
 	.master-item { display:flex; width:100%; flex-direction:column; gap:5px; margin:0 0 8px; padding:5px; border:2px solid transparent; border-radius:6px; background:transparent; color:inherit; text-align:left; cursor:pointer; font:10px system-ui,sans-serif; }
 	.master-item.layout { width:calc(100% - 14px); margin-left:14px; }
 	.master-item:hover { background:var(--pptx-accent,#33334d); }

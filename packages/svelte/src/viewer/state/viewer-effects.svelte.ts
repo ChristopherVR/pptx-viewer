@@ -24,7 +24,8 @@ export interface ViewerEffectsDeps {
 	 * state, before the commit's effects flush. Collaboration re-adopts the
 	 * shared doc's slides here so a slow bootstrap load that lands mid-session
 	 * cannot clobber content already synced from the room (and the placeholder
-	 * deck is never published into the doc).
+	 * deck is never published into the doc); the per-load session seeding that
+	 * belongs to the new deck (the authored custom show) rides along.
 	 */
 	onContentApplied?(): void;
 }

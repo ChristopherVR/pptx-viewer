@@ -227,6 +227,7 @@ export function buildChromeCallbacks(
 		updateTagCollections: (next) => deps.getEditActions().updateTagCollections(next),
 		updateActiveSlide: (patch) => deps.getEditActions().updateActiveSlide(patch),
 		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
+		updateSlideSize: (size) => deps.getEditActions().updateSlideSize(size),
 		addComment: (text) => void deps.getEditActions().comments.addComment(text),
 		addCommentReply: (parentId, text) =>
 			void deps.getEditActions().comments.addCommentReply(parentId, text),

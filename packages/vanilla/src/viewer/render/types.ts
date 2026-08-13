@@ -1,5 +1,6 @@
 import type {
 	ParsedTableStyleMap,
+	PptxChartData,
 	PptxElement,
 	PptxSlide,
 	PptxThemeColorScheme,
@@ -82,6 +83,13 @@ export interface ElementRenderContext {
 	readonly interactive?: boolean;
 	readonly onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
 	readonly onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
+	/**
+	 * Commit a chart data point dragged on the canvas, with the whole updated
+	 * `chartData`. Called ONCE on pointer release (the drag itself is a local
+	 * preview), so one drag is one undo step. Absent on every non-authoring
+	 * surface, which is what keeps thumbnails and the show stage inert.
+	 */
+	readonly onChartPointChange?: (element: PptxElement, chartData: PptxChartData) => void;
 	/**
 	 * Per-element native-animation playback state, keyed by element id, present
 	 * only during a running presentation. Chart / SmartArt renderers read their

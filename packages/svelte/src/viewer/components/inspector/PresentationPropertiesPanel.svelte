@@ -95,8 +95,10 @@
 			<h4>{t('pptx.slideSize.title')}</h4>
 			<SlideSizeSection
 				canvasSize={effectiveCanvasSize}
+				slideSize={deck.slideSize}
 				{canEdit}
 				onupdate={(size) => deck.updateCanvasSize(size)}
+				onupdateslidesize={(size) => deck.updateSlideSize(size)}
 			/>
 		</div>
 	{/if}

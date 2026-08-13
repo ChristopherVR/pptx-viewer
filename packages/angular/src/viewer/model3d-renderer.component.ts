@@ -59,7 +59,7 @@ type MountFn = typeof MountModel3D;
 		<div
 			class="pptx-ng-element pptx-ng-model3d"
 			[ngStyle]="containerStyle()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
 			@if (showScene()) {
@@ -124,6 +124,18 @@ export class Model3DRendererComponent implements OnDestroy {
 	 * controls and defaults to `true` even on a thumbnail.
 	 */
 	readonly markElement = input<boolean>(false);
+	/**
+	 * When true (default), the rendered node carries `data-element-id`. The
+	 * miniature surfaces that paint every slide at once turn it off so one
+	 * element id resolves to exactly one node in the document; see
+	 * `ElementRendererComponent.exposeElementId`.
+	 */
+	readonly exposeElementId = input<boolean>(true);
+
+	/** `data-element-id` for this element, or null on a miniature surface. */
+	readonly elementIdAttr = computed<string | null>(() =>
+		this.exposeElementId() ? this.element().id : null,
+	);
 
 	private readonly sceneRef = viewChild<ElementRef<HTMLDivElement>>('scene');
 

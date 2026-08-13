@@ -1,14 +1,36 @@
 /**
  * slide-size-card.component.ts: SLIDE SIZE card of the default (no-selection)
- * inspector, mirroring React's `SlideSizeCard`: width/height (px) inputs over
- * the loader's `canvasSize` signal.
+ * inspector: PowerPoint's "Slide Size" preset list and Portrait/Landscape
+ * toggle over the raw width/height (px) inputs.
+ *
+ * Every decision here belongs to the shared `render/slide-size` module: which
+ * presets exist, which one a size matches, what a preset means in a given
+ * orientation, and which of the EMU size / the pixel canvas wins when the two
+ * disagree. This component only maps that descriptor onto controls.
+ *
+ * The EMU size is the persisted one and is deliberately not derived from the
+ * pixels: Ledger is 12179300 EMU = 1278.5px, and a round-trip through an
+ * integer pixel would cost the deck its `ppSlideSizeLedgerPaper` identity.
+ * `resolveSlideSizeSelection` encodes that rule, so both controls write the EMU
+ * size AND the canvas size, and the raw W/H inputs write only the canvas (which
+ * is exactly the "user typed a custom size" case the rule falls back for).
  */
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import {
+	SLIDE_SIZE_PRESETS,
+	slideSizeFromPreset,
+	slideSizeToCanvasPx,
+	withSlideSizeOrientation,
+} from '../internal/shared';
+import type { SlideSizeEmu, SlideSizeOrientation, SlideSizePreset } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import { LoadContentService } from './load-content.service';
+
+/** Sentinel `<option>` value for a size that matches no preset. */
+const CUSTOM_PRESET_VALUE = '';
 
 @Component({
 	selector: 'pptx-slide-size-card',
@@ -18,6 +40,55 @@ import { LoadContentService } from './load-content.service';
 	template: `
 		<section class="icard">
 			<h3 class="icard__heading">{{ 'pptx.slideSize.title' | translate }}</h3>
+			<label class="icard__col">
+				<span class="icard__label">{{ 'pptx.slideSize.presets' | translate }}</span>
+				<!--
+					Selection is marked per OPTION, not with a value binding on the select.
+					Angular applies an element's own property bindings before the @for
+					inside it has produced any options, so the value binding was assigned
+					against an empty list and silently fell back to option 0: a 16:9 deck
+					opened reading "On-screen Show (4:3)".
+				-->
+				<select
+					class="icard__select"
+					data-pptx-slide-size-preset
+					[disabled]="!canEdit()"
+					(change)="onPresetChange($event)"
+				>
+					@if (!selection().preset) {
+						<option [value]="CUSTOM_PRESET_VALUE" [selected]="true">
+							{{ 'pptx.slideSize.customSize' | translate }}
+						</option>
+					}
+					@for (preset of presets; track preset.labelKey) {
+						<option
+							[value]="preset.labelKey"
+							[selected]="preset.labelKey === selectedPresetValue()"
+						>
+							{{ 'pptx.slideSize.preset.' + preset.labelKey | translate }}
+						</option>
+					}
+				</select>
+			</label>
+			<div class="icard__col">
+				<span class="icard__label">{{ 'pptx.slideSize.orientation' | translate }}</span>
+				<div class="icard__row">
+					@for (option of orientations; track option) {
+						<button
+							type="button"
+							class="icard__btn"
+							data-pptx-slide-size-orientation
+							[attr.data-value]="option"
+							[class.icard__btn--on]="selection().orientation === option"
+							[attr.aria-pressed]="selection().orientation === option"
+							[disabled]="!canEdit()"
+							(click)="onOrientation(option)"
+						>
+							{{ 'pptx.slideSize.' + option | translate }}
+						</button>
+					}
+				</div>
+			</div>
 			<div class="icard__grid2">
 				<label class="icard__row">
 					<!-- Compact "W"/"H" labels, matching React's SlideSizeCard. -->
@@ -45,7 +116,16 @@ import { LoadContentService } from './load-content.service';
 			</div>
 		</section>
 	`,
-	styles: [INSPECTOR_CARD_STYLES],
+	styles: [
+		INSPECTOR_CARD_STYLES,
+		`
+			.icard__btn--on {
+				background: var(--pptx-inspector-accent, #2f6feb);
+				border-color: var(--pptx-inspector-accent, #2f6feb);
+				color: #fff;
+			}
+		`,
+	],
 })
 export class SlideSizeCardComponent {
 	/** Whether the inputs are enabled. */
@@ -54,7 +134,34 @@ export class SlideSizeCardComponent {
 	private readonly loader = inject(LoadContentService);
 	private readonly editor = inject(EditorStateService);
 
+	protected readonly CUSTOM_PRESET_VALUE = CUSTOM_PRESET_VALUE;
+	protected readonly presets = SLIDE_SIZE_PRESETS;
+	protected readonly orientations: readonly SlideSizeOrientation[] = ['landscape', 'portrait'];
+
 	protected readonly size = this.loader.canvasSize;
+	protected readonly selection = this.loader.slideSizeSelection;
+	protected readonly selectedPresetValue = computed(
+		() => this.selection().preset?.labelKey ?? CUSTOM_PRESET_VALUE,
+	);
+
+	protected onPresetChange(event: Event): void {
+		const labelKey = (event.target as HTMLSelectElement).value;
+		const preset: SlideSizePreset | undefined = SLIDE_SIZE_PRESETS.find(
+			(candidate) => candidate.labelKey === labelKey,
+		);
+		if (!preset) {
+			return;
+		}
+		this.apply(slideSizeFromPreset(preset, this.selection().orientation));
+	}
+
+	protected onOrientation(orientation: SlideSizeOrientation): void {
+		const current = this.selection();
+		if (current.orientation === orientation) {
+			return;
+		}
+		this.apply(withSlideSizeOrientation(current.size, orientation));
+	}
 
 	protected onChange(event: Event, dim: 'width' | 'height'): void {
 		const value = Number((event.target as HTMLInputElement).value);
@@ -62,6 +169,13 @@ export class SlideSizeCardComponent {
 			return;
 		}
 		this.loader.canvasSize.update((current) => ({ ...current, [dim]: value }));
+		this.editor.dirty.set(true);
+	}
+
+	/** Commit an EMU size and the canvas size it implies, together. */
+	private apply(next: SlideSizeEmu): void {
+		this.loader.slideSizeEmu.set(next);
+		this.loader.canvasSize.set(slideSizeToCanvasPx(next));
 		this.editor.dirty.set(true);
 	}
 }

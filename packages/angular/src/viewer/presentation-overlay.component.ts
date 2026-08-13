@@ -14,13 +14,14 @@ import {
 	input,
 	output,
 	signal,
+	untracked,
 	viewChild,
 } from '@angular/core';
 import { LucideChevronLeft, LucideChevronRight, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CanvasSize } from '../internal/shared';
+import type { CanvasSize, ShowOrderCustomShow } from '../internal/shared';
 import { annotationOverlayZIndex, mayLeaveSlideShow } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
@@ -110,6 +111,13 @@ export class PresentationOverlayComponent implements OnInit {
 	readonly canvasSize = input.required<CanvasSize>();
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly startIndex = input<number>(0);
+	/**
+	 * The running custom show, or null for the whole deck. `slides` stays the
+	 * FULL deck either way: membership is applied by the shared show-order rule
+	 * (see `presentation-overlay-helpers.ts`), so indexes remain deck indexes and
+	 * hidden slides inside a show are still skipped.
+	 */
+	readonly activeCustomShow = input<ShowOrderCustomShow | null>(null);
 	readonly showWithAnimation = input<boolean | undefined>(undefined);
 	/**
 	 * Whether authored slide timings (`p:transition/@advTm`) advance the show on
@@ -173,6 +181,7 @@ export class PresentationOverlayComponent implements OnInit {
 	 */
 	protected readonly navigator: PresentationShowNavigator = new PresentationShowNavigator({
 		slides: () => this.slides(),
+		activeCustomShow: () => this.activeCustomShow(),
 		currentSlide: () => this.currentSlide(),
 		showWithAnimation: () => this.showWithAnimation(),
 		playback: this.playback,
@@ -195,6 +204,10 @@ export class PresentationOverlayComponent implements OnInit {
 		annotations: this.annotations,
 		presenterWindow: this.presenterWindow,
 		toggleInkMarkup: () => this.inkMarkupVisible.update((visible) => !visible),
+		// PowerPoint's bare `J`. The host owns the preference, so the key emits the
+		// flipped value rather than mutating a local copy that would drift from the
+		// ribbon's own captions toggle.
+		toggleSubtitles: () => this.subtitlesChange.emit(!this.subtitlesVisible()),
 		requestClose: () => this.emitClosed(),
 	});
 
@@ -210,9 +223,19 @@ export class PresentationOverlayComponent implements OnInit {
 		}
 	});
 
-	/** Adopt an index the host pushed in (an audience display mirrors one). */
+	/**
+	 * Adopt an index the host PUSHED in (an audience display mirrors one).
+	 *
+	 * `startIndex` is this effect's only dependency, deliberately. `syncFromHost`
+	 * reads the navigator's own `currentIndex` to decide whether anything
+	 * changed, and tracking that read made the effect re-run on the show's own
+	 * advances: any host whose `startIndex` did not follow the show then re-armed
+	 * itself and yanked the slide straight back. That is exactly what a running
+	 * custom show used to do, and why Angular alone never left its first slide.
+	 */
 	private readonly syncExternalIndex = effect(() => {
-		this.navigator.syncFromHost(this.startIndex());
+		const requested = this.startIndex();
+		untracked(() => this.navigator.syncFromHost(requested));
 	});
 
 	/**

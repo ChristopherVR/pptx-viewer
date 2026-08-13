@@ -37,11 +37,13 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxComment } from 'pptx-viewer-core';
 import { formatCommentTimestamp } from 'pptx-viewer-core';
 
+import { CommentBodyComponent } from './comment-body.component';
+
 @Component({
 	selector: 'pptx-comments-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, CommentBodyComponent],
 	templateUrl: './comments-panel.component.html',
 	styleUrl: './comments-panel.component.css',
 })

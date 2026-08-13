@@ -20,8 +20,11 @@ import { TranslateService } from '@ngx-translate/core';
 import {
 	AUTOSAVE_DEFAULT_INTERVAL_SECONDS,
 	autosaveIntervalMs,
+	autosaveSnapshotMark,
 	saveAutosaveSnapshot,
+	shouldWriteAutosaveSnapshot,
 } from '../internal/shared';
+import type { AutosaveSnapshotMark } from '../internal/shared';
 
 /** Lifecycle status of the autosave engine (mirrors React's `AutosaveStatus`). */
 export type AutosaveStatus =
@@ -43,6 +46,16 @@ export interface AutosaveHost {
 	readonly serialize: () => Promise<Uint8Array | null>;
 	/** Autosave interval in seconds (defaults to {@link AUTOSAVE_DEFAULT_INTERVAL_SECONDS}). */
 	readonly intervalSeconds?: () => number;
+	/**
+	 * The values a snapshot is built from, read fresh on each tick.
+	 *
+	 * The dirty flag stays true from the first edit until the user performs a
+	 * real save, so on its own it made this timer re-serialize and rewrite an
+	 * identical deck every N seconds forever. Vue, Svelte and Vanilla never had
+	 * that problem because they debounce on the slides signal being reassigned;
+	 * this is the same trigger. Omit it and every tick writes, as before.
+	 */
+	readonly changeSources?: () => readonly unknown[];
 }
 
 @Injectable()
@@ -57,6 +70,7 @@ export class AutosaveService {
 	private host: AutosaveHost | null = null;
 	private timer: ReturnType<typeof setInterval> | null = null;
 	private saving = false;
+	private lastSnapshot: AutosaveSnapshotMark | undefined;
 
 	/**
 	 * Wire the host accessors (called once from the component constructor). An
@@ -85,7 +99,7 @@ export class AutosaveService {
 					this.status.set({ state: 'idle' });
 				}
 				this.timer = setInterval(() => {
-					void this.doAutosave();
+					void this.doAutosave({ polled: true });
 				}, autosaveIntervalMs(seconds));
 			},
 			{ injector: this.injector },
@@ -97,13 +111,30 @@ export class AutosaveService {
 		await this.doAutosave();
 	}
 
-	private async doAutosave(): Promise<void> {
+	/**
+	 * `polled` marks the interval tick, which may be skipped as redundant. An
+	 * explicit {@link triggerAutosave} is a request, not a poll, and always
+	 * writes.
+	 */
+	private async doAutosave(options?: { polled?: boolean }): Promise<void> {
 		const host = this.host;
 		if (!host) {
 			return;
 		}
 		const filePath = host.filePath();
-		if (!filePath || !host.isDirty() || this.saving) {
+		if (!filePath) {
+			return;
+		}
+		const sources = host.changeSources?.() ?? [];
+		if (
+			!shouldWriteAutosaveSnapshot({
+				filePath,
+				isDirty: host.isDirty(),
+				saving: this.saving,
+				sources: options?.polled === true ? sources : [],
+				lastSnapshot: this.lastSnapshot,
+			})
+		) {
 			return;
 		}
 
@@ -116,6 +147,9 @@ export class AutosaveService {
 				return;
 			}
 			await saveAutosaveSnapshot(filePath, data);
+			// Marked AFTER the write, from the sources read before it, so an edit
+			// made while serialising is not mistaken for one already captured.
+			this.lastSnapshot = autosaveSnapshotMark(filePath, sources);
 			this.status.set({ state: 'saved', timestamp: Date.now() });
 		} catch (err) {
 			this.status.set({

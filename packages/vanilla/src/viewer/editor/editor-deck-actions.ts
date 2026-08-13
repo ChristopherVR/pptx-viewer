@@ -8,6 +8,8 @@ import type {
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 import { applyThemeToData } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import { slideSizeToCanvasPx } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { updateSlide } from './editor-mutations';
@@ -35,8 +37,14 @@ export interface DeckActions {
 	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (inspector THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
-	/** Resize the slide canvas (inspector SLIDE SIZE card). */
+	/** Resize the slide canvas (the SLIDE SIZE card's raw W/H inputs). */
 	updateCanvasSize(size: { width: number; height: number }): void;
+	/**
+	 * Adopt an EMU slide size (a preset pick or an orientation flip). Writes the
+	 * EMU state AND the pixel canvas, so the stage resizes and the save keeps the
+	 * exact authored dimensions.
+	 */
+	updateSlideSize(size: SlideSizeEmu): void;
 }
 
 export interface DeckActionsDeps {
@@ -135,6 +143,20 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 					height: Math.max(1, Math.round(size.height)),
 				},
 			});
+			ops.commitChange();
+		},
+
+		updateSlideSize(size) {
+			if (!Number.isFinite(size.widthEmu) || !Number.isFinite(size.heightEmu)) {
+				return;
+			}
+			if (size.widthEmu <= 0 || size.heightEmu <= 0) {
+				return;
+			}
+			if (!store.get().editable) {
+				return;
+			}
+			store.set({ slideSize: { ...size }, canvasSize: slideSizeToCanvasPx(size) });
 			ops.commitChange();
 		},
 	};

@@ -5,7 +5,8 @@ import type {
 	PptxPresentationProperties,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
+import { resolveSlideSizeSelection, slideSizeToCanvasPx } from 'pptx-viewer-shared';
 import { getContext, setContext } from 'svelte';
 
 import { createEditorSnapshot, saveEditorDocument } from '../editor/editor-document-state';
@@ -30,10 +31,18 @@ export interface InspectorDeckActions {
 	readonly canvasSize: CanvasSize;
 	/** Notes page size in px, when the package declares one. */
 	readonly notesCanvasSize: CanvasSize | undefined;
+	/** The deck's `p:sldSz` in EMU, which is what a save persists. */
+	readonly slideSize: SlideSizeEmu | undefined;
 	/** Apply a packaged theme part by archive path (React's `handleApplyTheme`). */
 	applyThemeByPath(themePath: string, applyToAllMasters: boolean): void;
-	/** Resize the slide canvas (inspector SLIDE SIZE card). */
+	/** Resize the slide canvas (inspector SLIDE SIZE card's raw W/H inputs). */
 	updateCanvasSize(size: CanvasSize): void;
+	/**
+	 * Adopt an EMU slide size (a preset pick or an orientation flip). Writes the
+	 * EMU state AND the pixel canvas, so the stage resizes and the save keeps the
+	 * exact authored dimensions.
+	 */
+	updateSlideSize(size: SlideSizeEmu): void;
 	/** Patch deck-wide slide-show / print settings (PRESENTATION card). */
 	updatePresentationProperties(patch: Partial<PptxPresentationProperties>): void;
 	/** Patch document core properties (Title / Author / ...). */
@@ -65,10 +74,16 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 		if (!handler) {
 			return;
 		}
-		const bytes = await saveEditorDocument(handler, {
-			...createEditorSnapshot(editor),
-			slides: editor.renderedSlides,
-		});
+		const bytes = await saveEditorDocument(
+			handler,
+			{ ...createEditorSnapshot(editor), slides: editor.renderedSlides },
+			'pptx',
+			undefined,
+			editor.embedFonts,
+			// Without this the theme round-trip would reload the deck at its
+			// load-time `p:sldSz` and silently undo a slide-size pick.
+			resolveSlideSizeSelection({ current: loader.slideSize, canvas: loader.canvasSize }).size,
+		);
 		await loader.load(bytes);
 	}
 
@@ -81,6 +96,9 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 		},
 		get notesCanvasSize(): CanvasSize | undefined {
 			return loader.notesCanvasSize;
+		},
+		get slideSize(): SlideSizeEmu | undefined {
+			return loader.slideSize;
 		},
 		applyThemeByPath(themePath: string, applyToAllMasters: boolean): void {
 			const handler = loader.handler;
@@ -103,6 +121,17 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 				return;
 			}
 			loader.canvasSize = { width: Math.max(1, width), height: Math.max(1, height) };
+			editor.commitChange();
+		},
+		updateSlideSize(size: SlideSizeEmu): void {
+			if (!Number.isFinite(size.widthEmu) || !Number.isFinite(size.heightEmu)) {
+				return;
+			}
+			if (size.widthEmu <= 0 || size.heightEmu <= 0) {
+				return;
+			}
+			loader.slideSize = { ...size };
+			loader.canvasSize = slideSizeToCanvasPx(size);
 			editor.commitChange();
 		},
 		updatePresentationProperties(patch: Partial<PptxPresentationProperties>): void {

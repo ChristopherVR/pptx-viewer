@@ -125,7 +125,6 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 			@case ('transitions') {
 				<pptx-ribbon-transitions-section
 					[slideIndex]="slideIndex()"
-					(present)="present.emit()"
 					(toggleInspector)="toggleInspector.emit()"
 				/>
 			}

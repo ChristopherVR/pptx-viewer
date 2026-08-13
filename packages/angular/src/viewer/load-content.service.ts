@@ -7,6 +7,7 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxCustomShow,
 	PptxData,
 	PptxElement,
 	PptxEmbeddedFont,
@@ -33,9 +34,11 @@ import {
 	collectMediaElements,
 	describeFontEmbedding,
 	embeddedFontSaveOptions,
+	resolveSlideSizeSelection,
 	saveDeckWithPassword,
+	slideSizeToCanvasPx,
 } from '../internal/shared';
-import type { CanvasSize, DeckSaveIntent } from '../internal/shared';
+import type { CanvasSize, DeckSaveIntent, SlideSizeEmu } from '../internal/shared';
 
 /**
  * `LoadContentService`: Angular port of the React `useLoadContent` hook and
@@ -68,6 +71,35 @@ export class LoadContentService {
 		width: DEFAULT_CANVAS_WIDTH,
 		height: DEFAULT_CANVAS_HEIGHT,
 	});
+	/**
+	 * `p:sldSz` in EMU, seeded from the loaded deck and rewritten by the SLIDE
+	 * SIZE card's preset/orientation controls.
+	 *
+	 * It is deliberately NOT derived from {@link canvasSize}: the pixel size is
+	 * an integer, and Ledger (12179300 EMU = 1278.5px) loses its
+	 * `ppSlideSizeLedgerPaper` identity the moment it round-trips through one.
+	 * The shared `resolveSlideSizeSelection` decides which of the two wins; see
+	 * {@link slideSizeSelection}.
+	 */
+	readonly slideSizeEmu = signal<SlideSizeEmu | undefined>(undefined);
+	/**
+	 * The deck's custom shows (`p:custShow`), in the package's own key space
+	 * (`slideRIds` are RELATIONSHIP ids). Seeded on load and carried through
+	 * {@link saveSlides}; {@link ViewerCustomShowsService} is the editing surface
+	 * over it. Angular used to start this list empty and never write it back, so
+	 * the dialog opened blank on a deck with shows and lost anything created in
+	 * it.
+	 */
+	readonly customShows = signal<PptxCustomShow[]>([]);
+	/**
+	 * The shared Slide Size decision for the deck as it stands: the EMU size a
+	 * save must persist, the preset it matches (if any), its orientation and the
+	 * canvas size the stage should use. Read by the SLIDE SIZE inspector card and
+	 * by {@link saveSlides}.
+	 */
+	readonly slideSizeSelection = computed(() =>
+		resolveSlideSizeSelection({ current: this.slideSizeEmu(), canvas: this.canvasSize() }),
+	);
 	/** Resolved presentation theme. */
 	readonly theme = signal<PptxTheme | undefined>(undefined);
 	/** Resolved colour map for the presentation theme (scheme key → hex). */
@@ -196,6 +228,7 @@ export class LoadContentService {
 		}
 		const customProperties = this.customProperties();
 		const tags = this.tagCollections();
+		const customShows = this.customShows();
 		// Shared decision (see `deck-save-encryption` in `pptx-viewer-shared`): a
 		// password set in the protection dialog routes through `saveEncrypted`, so
 		// the produced file is a real encrypted OLE2 container.
@@ -209,6 +242,12 @@ export class LoadContentService {
 				notesMaster: this.notesMaster(),
 				handoutMaster: this.handoutMaster(),
 				sections: sections.length > 0 ? [...sections] : undefined,
+				// Without this the Custom Shows dialog was write-only: shows created
+				// in it never reached `p:custShowLst`, and a deck that arrived with
+				// shows lost them on save.
+				customShows: customShows.length > 0 ? customShows.map((show) => ({ ...show })) : undefined,
+				// The only route a slide-size edit has into the saved `p:sldSz`.
+				slideSize: this.slideSizeSelection().size,
 				coreProperties: this.coreProperties(),
 				appProperties: this.appProperties(),
 				customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
@@ -369,10 +408,31 @@ export class LoadContentService {
 			this.slides.set(nextSlides);
 			this.parsedData.set({ ...parsed, slides: nextSlides });
 			this.mediaDataUrls.set(nextMediaUrls);
-			this.canvasSize.set({
-				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
-				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
-			});
+			// `p:sldSz` in its authored EMU, which is the size a save round-trips.
+			// The px canvas is derived from it where the deck reported one, so the
+			// two agree and `resolveSlideSizeSelection` keeps the EMU (and with it
+			// the preset identity) rather than re-deriving it from integer pixels.
+			const slideSizeEmu: SlideSizeEmu | undefined =
+				typeof parsed.widthEmu === 'number' &&
+				typeof parsed.heightEmu === 'number' &&
+				parsed.widthEmu > 0 &&
+				parsed.heightEmu > 0
+					? {
+							widthEmu: parsed.widthEmu,
+							heightEmu: parsed.heightEmu,
+							type: parsed.slideSizeType ?? '',
+						}
+					: undefined;
+			this.slideSizeEmu.set(slideSizeEmu);
+			this.canvasSize.set(
+				slideSizeEmu
+					? slideSizeToCanvasPx(slideSizeEmu)
+					: {
+							width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
+							height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
+						},
+			);
+			this.customShows.set(parsed.customShows ?? []);
 			this.theme.set(parsed.theme);
 			this.themeColorMap.set(parsed.themeColorMap);
 			this.tableStyleMap.set(parsed.tableStyleMap);

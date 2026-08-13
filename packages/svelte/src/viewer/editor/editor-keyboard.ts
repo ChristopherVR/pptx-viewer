@@ -35,6 +35,13 @@ export interface EditorKeyboardDeps {
 	toggleShortcuts?(): void;
 	/** Close the cheat sheet on Escape; true when it was open (Escape consumed). */
 	closeShortcuts?(): boolean;
+	/**
+	 * Open or close the find bar (Ctrl/Cmd+F). Optional so a host driving this
+	 * handler without find chrome still compiles; when it is missing the chord
+	 * falls through to the browser, which is what this binding did before the
+	 * shortcut reached the shared keymap.
+	 */
+	toggleFind?(): void;
 }
 
 export function createEditorKeydownHandler(
@@ -65,6 +72,9 @@ export function createEditorKeydownHandler(
 				break;
 			case 'toggleShortcuts':
 				deps.toggleShortcuts?.();
+				break;
+			case 'find':
+				deps.toggleFind?.();
 				break;
 			case 'undo':
 				deps.undo();

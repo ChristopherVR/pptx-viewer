@@ -1,5 +1,5 @@
 import type { MasterViewTab, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
-import { masterViewPseudoSlide } from 'pptx-viewer-shared';
+import { masterViewBackgroundColor, masterViewPseudoSlide } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -20,6 +20,8 @@ export interface MasterViewSidebarOptions {
 	handoutPlaceholders?: readonly { type: string; idx?: string }[];
 	handoutMasterPresent: boolean;
 	handoutSlidesPerPage: number;
+	/** Editing affordances are offered only on an editable deck. */
+	editable?: boolean;
 	renderStage(slide: PptxSlide, scale: number): HTMLElement;
 	onSelect(masterIndex: number, layoutIndex: number | null): void;
 	onTabChange(tab: MasterViewTab): void;
@@ -103,6 +105,21 @@ function renderSlides(
 	body: HTMLElement,
 	o: MasterViewSidebarOptions,
 ): void {
+	// Format Background for the selected master or layout. PowerPoint writes an
+	// explicit `p:bgPr` here, deliberately replacing a themed `p:bgRef`; the
+	// shared rule decides which part the colour lands on.
+	if (o.editable) {
+		addBackgroundCard(
+			doc,
+			t,
+			body,
+			masterViewBackgroundColor(
+				{ slideMasters: o.masters },
+				{ tab: 'slides', masterIndex: o.active.masterIndex, layoutIndex: o.active.layoutIndex },
+			) ?? '#ffffff',
+			o.onMasterBackgroundColorChange,
+		);
+	}
 	const scale = THUMB_WIDTH / Math.max(o.canvasSize.width, 1);
 	for (const [masterIndex, master] of o.masters.entries()) {
 		const entries: Array<{ layoutIndex: number | null; label: string }> = [

@@ -46,4 +46,9 @@ export interface EditorControllerDeps {
 	toggleShortcuts?(): void;
 	/** Close the cheat sheet on Escape; true when it was open (Escape consumed). */
 	closeShortcuts?(): boolean;
+	/**
+	 * Open or close the find bar (Ctrl/Cmd+F). Like the cheat sheet, the panel is
+	 * shell-owned UI state, so the controller only signals the intent.
+	 */
+	toggleFind?(): void;
 }

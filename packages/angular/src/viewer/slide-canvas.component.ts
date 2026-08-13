@@ -30,12 +30,19 @@ import {
 	applyElementActionAffordances,
 	applyRenderedElementAccessibility,
 	canInteractWithElement,
+	collectConnectorSiteCandidates,
+	editorNudgeDelta,
+	findConnectorSiteNear,
+	getConnectorEndpointHandles,
 	isTemplateElement,
+	resolveConnectorEndpointUpdate,
+	withConnectorEndpointUpdate,
 	RULER_FONT_SIZE,
 	RULER_THICKNESS,
 } from '../internal/shared';
 import type {
 	CanvasSize,
+	ConnectorEndpointKind,
 	ElementInteraction,
 	RulerUnit,
 	ShapeAdjustmentDragState,
@@ -63,9 +70,10 @@ import {
 } from './selection-geometry';
 import {
 	beginShapeAdjustmentDrag,
-	computeAdjustHandle,
-	draggedAdjustmentValue,
+	computeAdjustHandles,
+	draggedAdjustments,
 } from './shape-adjust-handle';
+import type { AdjustHandleBox } from './shape-adjust-handle';
 import { getSlideBackgroundStyle } from './slide-background';
 import { affordanceElements, isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { SLIDE_CONTEXT } from './slide-context';
@@ -244,6 +252,18 @@ export class SlideCanvasComponent implements SlideContext {
 	 */
 	readonly interactive = input<boolean>(true);
 	/**
+	 * When true (default), this canvas's elements carry `data-element-id`.
+	 *
+	 * The miniature surfaces that paint EVERY slide at once (thumbnail rail,
+	 * mobile slide sheet, slide sorter, presenter navigator, layout gallery, diff
+	 * strip) pass `false`: they otherwise put one node per element PER SLIDE into
+	 * the document, so a `[data-element-id]` query resolved a slide that is not
+	 * on screen. It is deliberately separate from {@link interactive}, because
+	 * the presentation stage is not interactive and still needs its ids (the
+	 * morph engine generates keyframe CSS that selects on them).
+	 */
+	readonly exposeElementIds = input<boolean>(true);
+	/**
 	 * True only for the live presentation stage: slide-content media autoplays.
 	 * Left false for thumbnails, the sorter and the editor canvas so their media
 	 * stays quiet (the template layer never autoplays regardless).
@@ -324,7 +344,14 @@ export class SlideCanvasComponent implements SlideContext {
 	 * from {@link transformUpdate}: an adjustment changes the shape's geometry
 	 * parameter, never its box.
 	 */
-	readonly adjustUpdate = output<{ id: string; key: string; value: number }>();
+	readonly adjustUpdate = output<{ id: string; adjustments: Record<string, number> }>();
+
+	/**
+	 * Emitted when a connector endpoint drag lands: the whole rebuilt connector,
+	 * because a DETACHED end has had its `a:stCxn` / `a:endCxn` key deleted and a
+	 * merge of the surviving keys would leave the stale one behind.
+	 */
+	readonly connectorEndpointUpdate = output<{ id: string; element: PptxElement }>();
 	/** Emitted on right-click with the element under the cursor (or null). */
 	readonly contextMenu = output<{ id: string | null; x: number; y: number }>();
 	/** Emitted on double-click of a text-bearing element to begin inline edit. */
@@ -357,6 +384,13 @@ export class SlideCanvasComponent implements SlideContext {
 	private drag: DragState | null = null;
 	/** Live shape-adjustment gesture (amber diamond), or null when idle. */
 	private adjustDrag: ShapeAdjustmentDragState | null = null;
+
+	/** Live connector-endpoint gesture, in SLIDE px, or null when idle. */
+	protected readonly connectorEndpointDrag = signal<{
+		kind: ConnectorEndpointKind;
+		x: number;
+		y: number;
+	} | null>(null);
 	private editCancelled = false;
 	private marquee: {
 		startX: number;
@@ -595,15 +629,16 @@ export class SlideCanvasComponent implements SlideContext {
 	);
 
 	/**
-	 * Shape-adjustment-handle box (stage coords) for the single selection, or
-	 * null. Position, existence and cursor all come from the SHARED
-	 * `getShapeAdjustmentHandleDescriptor`, so the handle appears only for a
-	 * geometry that actually has an adjustable parameter (today: `roundRect`) and
-	 * sits exactly where the other four bindings put it. Selection-only +
-	 * editable-only, so it vanishes in presentation with the rest of the chrome.
+	 * Shape-adjustment-handle boxes (stage coords) for the single selection.
+	 * Position, existence and cursor all come from the SHARED
+	 * `getShapeAdjustmentHandleDescriptors`, so a handle appears only for a
+	 * geometry that actually has an adjustable parameter, there is ONE per
+	 * `a:avLst` guide, and each sits exactly where the other four bindings put
+	 * it. Selection-only + editable-only, so they vanish in presentation with
+	 * the rest of the chrome.
 	 */
-	readonly adjustHandle = computed(() =>
-		computeAdjustHandle(
+	readonly adjustHandles = computed(() =>
+		computeAdjustHandles(
 			this.singleSelectedElement(),
 			this.singleSelected(),
 			this.editable(),
@@ -611,6 +646,71 @@ export class SlideCanvasComponent implements SlideContext {
 			this.effectiveScale(),
 		),
 	);
+
+	/** The selected connector, when exactly one connector is selected. */
+	private readonly selectedConnector = computed<PptxElement | null>(() => {
+		const element = this.singleSelectedElement();
+		return element && element.type === 'connector' ? element : null;
+	});
+
+	/**
+	 * The two endpoint handles of the selected connector, in stage coords.
+	 *
+	 * Angular could DRAW a connector but never bind one: nothing in this binding
+	 * ever wrote `a:stCxn` / `a:endCxn`, so `connector-reroute` only ever fired
+	 * for connectors that arrived already bound from a `.pptx`.
+	 */
+	readonly connectorEndpoints = computed(() => {
+		const connector = this.selectedConnector();
+		if (!connector || !this.editable()) {
+			return [];
+		}
+		const size = HANDLE_SCREEN_PX / (this.effectiveScale() || 1);
+		const drag = this.connectorEndpointDrag();
+		return getConnectorEndpointHandles(connector).map((handle) => {
+			const live = drag?.kind === handle.kind ? drag : handle;
+			return { ...handle, left: live.x - size / 2, top: live.y - size / 2, size };
+		});
+	});
+
+	/** Candidate connection sites, resolved only while an end is in flight. */
+	readonly connectorSiteCandidates = computed(() => {
+		const connector = this.selectedConnector();
+		if (!connector || !this.connectorEndpointDrag()) {
+			return [];
+		}
+		const size = HANDLE_SCREEN_PX / (this.effectiveScale() || 1);
+		const drag = this.connectorEndpointDrag();
+		const candidates = collectConnectorSiteCandidates(
+			this.allElements().filter((element) => element.id !== connector.id),
+		);
+		const snapped = drag ? findConnectorSiteNear(candidates, drag.x, drag.y) : null;
+		return candidates.map((site) => ({
+			key: `${site.elementId}-${site.siteIndex}`,
+			left: site.x - size / 4,
+			top: site.y - size / 4,
+			size: size / 2,
+			snapped: snapped?.elementId === site.elementId && snapped.siteIndex === site.siteIndex,
+		}));
+	});
+
+	/** Begin dragging one end of the selected connector. */
+	onConnectorEndpointPointerDown(event: PointerEvent, kind: ConnectorEndpointKind): void {
+		event.preventDefault();
+		event.stopPropagation();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+		this.connectorEndpointDrag.set({ kind, ...this.stagePoint(event) });
+	}
+
+	/** Pointer position in SLIDE px (the stage carries the scale as a transform). */
+	private stagePoint(event: PointerEvent): { x: number; y: number } {
+		const rect = this.stageRef()?.nativeElement.getBoundingClientRect();
+		const scale = this.effectiveScale() || 1;
+		return {
+			x: (event.clientX - (rect?.left ?? 0)) / scale,
+			y: (event.clientY - (rect?.top ?? 0)) / scale,
+		};
+	}
 
 	/**
 	 * Resolve the id of the interactive element under a pointer target, or null.
@@ -913,19 +1013,32 @@ export class SlideCanvasComponent implements SlideContext {
 	 * through `getDraggedShapeAdjustmentValue` rather than the resize pipeline
 	 * this handle used to be wired to.
 	 */
-	onAdjustPointerDown(event: PointerEvent): void {
+	onAdjustPointerDown(event: PointerEvent, handle: AdjustHandleBox): void {
 		event.stopPropagation();
 		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
 		const el = this.singleSelectedElement();
-		const handle = this.adjustHandle();
-		if (!el || !handle) {
+		if (!el) {
 			return;
 		}
+		// The gesture acts on the diamond the user GRABBED, not on the element's
+		// first adjustable parameter: a `quadArrow` has three and they are not
+		// interchangeable.
 		this.adjustDrag = beginShapeAdjustmentDrag(el, handle, event.clientX, event.clientY);
 	}
 
+	/**
+	 * Keyboard resize from a focused handle.
+	 *
+	 * The step comes from the shared `editorNudgeDelta`, the same function the
+	 * arrow keys nudge with, because a hand-rolled copy of it here is how the two
+	 * gestures end up disagreeing: this one carried its own `shiftKey ? 10 : 1`
+	 * literal, so a change to the shared step (which has already been wrong once,
+	 * at 2/20 in two bindings) would have moved the nudge and left the keyboard
+	 * resize behind.
+	 */
 	onResizeHandleKeydown(event: KeyboardEvent, handle: ResizeHandle): void {
-		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+		const delta = editorNudgeDelta(event.key, event.shiftKey);
+		if (!delta) {
 			return;
 		}
 		event.preventDefault();
@@ -934,9 +1047,7 @@ export class SlideCanvasComponent implements SlideContext {
 		if (!box) {
 			return;
 		}
-		const step = event.shiftKey ? 10 : 1;
-		const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
-		const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+		const { dx, dy } = delta;
 		this.transformStart.emit({
 			id: box.id,
 			label: this.translate.instant('pptx.undoAction.resize'),
@@ -979,13 +1090,34 @@ export class SlideCanvasComponent implements SlideContext {
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
 
+		// ── CONNECTOR ENDPOINT ────────────────────────────────────────────────
+		// Resolved before the drag/resize pipeline: this gesture rebinds an end,
+		// it never moves the connector's box as a whole.
+		if (this.connectorEndpointDrag()) {
+			const current = this.connectorEndpointDrag();
+			if (current) {
+				this.connectorEndpointDrag.set({ ...current, ...this.stagePoint(event) });
+			}
+			return;
+		}
+		// ── END CONNECTOR ENDPOINT ────────────────────────────────────────────
+
 		// ── SHAPE ADJUSTMENT ──────────────────────────────────────────────────
 		// The amber diamond writes `shapeAdjustments[key]`, never a box, so it is
 		// resolved before (and independently of) the drag/resize pipeline.
 		const adjust = this.adjustDrag;
 		if (adjust) {
-			const value = draggedAdjustmentValue(adjust, event.clientX, this.effectiveScale());
-			if (!adjust.moved && Math.abs(event.clientX - adjust.startClientX) >= DRAG_THRESHOLD) {
+			const adjustments = draggedAdjustments(
+				adjust,
+				event.clientX,
+				event.clientY,
+				this.effectiveScale(),
+			);
+			const travelled = Math.hypot(
+				event.clientX - adjust.startClientX,
+				event.clientY - adjust.startClientY,
+			);
+			if (!adjust.moved && travelled >= DRAG_THRESHOLD) {
 				adjust.moved = true;
 				this.transformStart.emit({
 					id: adjust.elementId,
@@ -993,7 +1125,7 @@ export class SlideCanvasComponent implements SlideContext {
 				});
 			}
 			if (adjust.moved) {
-				this.adjustUpdate.emit({ id: adjust.elementId, key: adjust.key, value });
+				this.adjustUpdate.emit({ id: adjust.elementId, adjustments });
 			}
 			return;
 		}
@@ -1150,6 +1282,37 @@ export class SlideCanvasComponent implements SlideContext {
 			return;
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
+
+		// ── CONNECTOR ENDPOINT ────────────────────────────────────────────────
+		// The drop point is the last position `onPointerMove` recorded: this host
+		// listener takes no event, and re-deriving it from a stale pointer would
+		// be worse than reading the value the move branch already resolved.
+		const endpoint = this.connectorEndpointDrag();
+		const connector = this.selectedConnector();
+		if (endpoint) {
+			this.connectorEndpointDrag.set(null);
+			if (connector) {
+				const elements = this.allElements();
+				const target = findConnectorSiteNear(
+					collectConnectorSiteCandidates(elements.filter((element) => element.id !== connector.id)),
+					endpoint.x,
+					endpoint.y,
+				);
+				const update = resolveConnectorEndpointUpdate(
+					connector,
+					elements,
+					endpoint.kind,
+					endpoint,
+					target,
+				);
+				this.connectorEndpointUpdate.emit({
+					id: connector.id,
+					element: withConnectorEndpointUpdate(connector, update),
+				});
+			}
+			return;
+		}
+		// ── END CONNECTOR ENDPOINT ────────────────────────────────────────────
 
 		const marquee = this.marquee;
 		if (marquee) {

@@ -42,7 +42,7 @@
 		presenterNextDisabled,
 		presenterPrevDisabled,
 	} from 'pptx-viewer-shared';
-	import type { CanvasSize } from 'pptx-viewer-shared';
+	import type { CanvasSize, ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { styleToString } from '../style';
@@ -56,6 +56,7 @@
 		now,
 		elapsed,
 		notesSize,
+		activeCustomShow,
 		onmove,
 		onnotessize,
 	}: {
@@ -67,6 +68,12 @@
 		now: number;
 		elapsed: number;
 		notesSize: number;
+		/**
+		 * The custom show playback is restricted to, so the preview names the
+		 * slide the next forward press actually reaches. Without it a running
+		 * custom show previewed the next DECK slide instead of the next SHOW one.
+		 */
+		activeCustomShow?: ShowOrderCustomShow | null;
 		onmove: (direction: -1 | 1) => void;
 		onnotessize: (size: number) => void;
 	} = $props();
@@ -80,7 +87,7 @@
 	}
 
 	const slide = $derived(slides[current]);
-	const nextSlide = $derived(nextPresentedSlide(slides, current));
+	const nextSlide = $derived(nextPresentedSlide(slides, current, activeCustomShow));
 	const nextScale = $derived(
 		canvasSize.width > 0 ? PRESENTER_LAYOUT_METRICS.nextPreviewWidth / canvasSize.width : 1,
 	);

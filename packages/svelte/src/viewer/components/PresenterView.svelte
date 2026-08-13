@@ -34,7 +34,7 @@
 		stepPresenterZoom,
 		togglePresenterTimer,
 	} from 'pptx-viewer-shared';
-	import type { CanvasSize, PresentationSnapshot } from 'pptx-viewer-shared';
+	import type { CanvasSize, PresentationSnapshot, ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { isPresenterPointerTool } from './presenter-console-strip';
@@ -50,6 +50,7 @@
 		mediaDataUrls,
 		startedAt,
 		audienceOpen,
+		activeCustomShow,
 		onmove,
 		onaudience,
 		onswap,
@@ -64,6 +65,8 @@
 		mediaDataUrls: Map<string, string>;
 		startedAt: number;
 		audienceOpen: boolean;
+		/** The custom show playback is restricted to; drives the next-slide preview. */
+		activeCustomShow?: ShowOrderCustomShow | null;
 		/** Step the SHOW, so hidden slides are skipped (the host owns show order). */
 		onmove: (direction: -1 | 1) => void;
 		onaudience: () => void;
@@ -201,6 +204,7 @@
 			{now}
 			{elapsed}
 			{notesSize}
+			{activeCustomShow}
 			{onmove}
 			onnotessize={setNotesSize}
 		/>

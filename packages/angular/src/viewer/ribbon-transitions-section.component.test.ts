@@ -16,7 +16,7 @@ import { Injector, runInInjectionContext } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { RIBBON_TRANSITION_PRESETS } from '../internal/shared';
+import { RIBBON_TRANSITION_PRESETS, TRANSITION_PREVIEW_ATTR } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { RibbonTransitionsSectionComponent } from './ribbon-transitions-section.component';
 
@@ -28,6 +28,7 @@ interface TransitionsControls {
 	onAdvanceAfter: (event: Event) => void;
 	onAdvanceAfterText: (event: Event) => void;
 	applyToAll: () => void;
+	preview: () => void;
 	draft: () => {
 		type: string;
 		durationSec: number;
@@ -121,6 +122,22 @@ describe('transitions ribbon tab', () => {
 		for (const item of editor.slides()) {
 			expect(item.transition).toMatchObject({ type: 'cover', durationMs: 400 });
 		}
+	});
+
+	it('previews by replaying the transition on the stage, not by starting the show', () => {
+		const { editor, controls } = harness();
+		const stage = document.createElement('div');
+		stage.setAttribute('aria-roledescription', 'slide');
+		document.body.appendChild(stage);
+
+		controls.setTransition('push');
+		controls.preview();
+
+		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('push');
+		// A preview is not an edit, and it is not a slide show either: this button
+		// used to emit `present`, which put the whole deck into presentation mode.
+		expect(editor.slides()[0].transition).toMatchObject({ type: 'push' });
+		stage.remove();
 	});
 
 	it('seeds its controls from the slide rather than from component state', () => {

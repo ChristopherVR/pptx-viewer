@@ -14,10 +14,17 @@
 	import { createViewerState } from './create-viewer-state.svelte';
 	import type { ViewerStateBag } from './create-viewer-state-types';
 
-	const { onready }: { onready: (state: ViewerStateBag) => void } = $props();
+	const {
+		onready,
+		source,
+	}: {
+		onready: (state: ViewerStateBag) => void;
+		/** Optional deck bytes, so a test can exercise the real load pipeline. */
+		source?: Uint8Array | ArrayBuffer;
+	} = $props();
 
 	const state = createViewerState({
-		getSource: () => undefined,
+		getSource: () => source,
 		getAutosave: () => false,
 		getFilePath: () => undefined,
 		getInitialSlide: () => 0,

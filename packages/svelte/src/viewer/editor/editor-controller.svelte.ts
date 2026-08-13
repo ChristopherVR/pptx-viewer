@@ -1,9 +1,18 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
+import type {
+	ConnectorEndpointKind,
+	ResizeHandleId,
+	ShapeAdjustmentHandleDescriptor,
+	SnapLine,
+} from 'pptx-viewer-shared';
 import {
 	armEditorKeyboard,
+	collectConnectorSiteCandidates,
+	findConnectorSiteNear,
 	publishLiveInlineText,
+	resolveConnectorEndpointUpdate,
 	resolveContextMenuElementId,
+	withConnectorEndpointUpdate,
 } from 'pptx-viewer-shared';
 
 import { readTableCellTarget } from './context-menu-dispatch';
@@ -82,6 +91,11 @@ export class EditorController {
 	}
 
 	#currentElements(): PptxElement[] {
+		return this.#editor.activeElements;
+	}
+
+	/** The elements the pointer acts on (slide, or master/layout), for overlays. */
+	get activeElements(): PptxElement[] {
 		return this.#editor.activeElements;
 	}
 
@@ -250,7 +264,79 @@ export class EditorController {
 
 	onRotatePointerDown = (event: PointerEvent): void => this.#handles.onRotatePointerDown(event);
 
-	onAdjustPointerDown = (event: PointerEvent): void => this.#handles.onAdjustPointerDown(event);
+	onAdjustPointerDown = (event: PointerEvent, descriptor: ShapeAdjustmentHandleDescriptor): void =>
+		this.#handles.onAdjustPointerDown(event, descriptor);
+
+	// ── Connector endpoint authoring ─────────────────────────────────────────
+
+	/** Live connector-endpoint drag position in SLIDE px, or null when idle. */
+	connectorEndpointDrag = $state<{ kind: ConnectorEndpointKind; x: number; y: number } | null>(
+		null,
+	);
+
+	/** The selected connector, when exactly one connector is selected. */
+	get selectedConnector(): PptxElement | null {
+		if (!this.#editor.editable || this.#deps.getPresenting() || this.editingId !== null) {
+			return null;
+		}
+		const selected = this.#editor.selectedElements;
+		return selected.length === 1 && selected[0].type === 'connector' ? selected[0] : null;
+	}
+
+	/** Pointer position in SLIDE px (this overlay layer is unscaled). */
+	#stagePoint(event: PointerEvent): { x: number; y: number } {
+		const rect = this.#deps.getStageRoot()?.getBoundingClientRect();
+		const scale = this.#deps.getScale() || 1;
+		return {
+			x: (event.clientX - (rect?.left ?? 0)) / scale,
+			y: (event.clientY - (rect?.top ?? 0)) / scale,
+		};
+	}
+
+	onConnectorEndpointPointerDown = (kind: ConnectorEndpointKind, event: PointerEvent): void => {
+		if (!this.selectedConnector) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		this.connectorEndpointDrag = { kind, ...this.#stagePoint(event) };
+		const onMove = (moveEvent: PointerEvent): void => {
+			if (this.connectorEndpointDrag) {
+				this.connectorEndpointDrag = {
+					kind: this.connectorEndpointDrag.kind,
+					...this.#stagePoint(moveEvent),
+				};
+			}
+		};
+		const onUp = (upEvent: PointerEvent): void => {
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
+			window.removeEventListener('pointercancel', onUp);
+			const drag = this.connectorEndpointDrag;
+			this.connectorEndpointDrag = null;
+			const connector = this.selectedConnector;
+			if (!drag || !connector) {
+				return;
+			}
+			const point = this.#stagePoint(upEvent);
+			const elements = this.#currentElements();
+			const target = findConnectorSiteNear(
+				collectConnectorSiteCandidates(elements.filter((el) => el.id !== connector.id)),
+				point.x,
+				point.y,
+			);
+			const update = resolveConnectorEndpointUpdate(connector, elements, drag.kind, point, target);
+			const next = withConnectorEndpointUpdate(connector, update);
+			this.#editor.pushHistory();
+			this.#editor.replaceActiveElements(
+				elements.map((element) => (element.id === connector.id ? next : element)),
+			);
+			this.#editor.commitChange();
+		};
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+		window.addEventListener('pointercancel', onUp);
+	};
 
 	onKeyDown = (event: KeyboardEvent): void => {
 		this.#keydown(event);

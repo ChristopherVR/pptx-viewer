@@ -1,3 +1,5 @@
+import { resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
+
 import type { CollaborationController } from '../collab';
 import type { StageContextMenu } from '../components/props';
 import { EditorController } from '../editor/editor-controller.svelte';
@@ -97,6 +99,9 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 			parityUi.shortcutsOpen = false;
 			return true;
 		},
+		// `findReplace` is constructed just below; the closure only runs on a real
+		// key press, long after this function has returned.
+		toggleFind: () => findReplace.toggle(),
 	});
 
 	const findReplace = new FindReplaceState({
@@ -135,7 +140,15 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getOnload: () => options.onload,
 		getOnerror: () => options.onerror,
 		getOnslidechange: () => options.onslidechange,
-		onContentApplied: () => collab.adoptDocAfterLoad(),
+		onContentApplied: () => {
+			collab.adoptDocAfterLoad();
+			// `p:showPr/p:custShow/@id` is authored intent: a deck saved with "Set
+			// Up Slide Show > Custom show" plays that subset. It was parsed and
+			// then ignored, so the radio was decorative. Seeded per load, so a
+			// manual pick made afterwards still wins for the rest of the session.
+			parityUi.activeCustomShowId =
+				resolveAuthoredCustomShowId(loader.presentationProperties, loader.customShows) ?? null;
+		},
 	});
 
 	return {

@@ -72,6 +72,7 @@ interface LayoutTile {
 									[element]="element"
 									[zIndex]="i"
 									[interactive]="false"
+									[exposeElementId]="false"
 								></pptx-element-renderer>
 							}
 							<!--

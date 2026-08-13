@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	MasterViewTab,
@@ -7,6 +7,8 @@ import type {
 	PptxNotesMaster,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
+
+import { masterViewBackgroundColor } from '../internal/shared';
 
 const HANDOUT_COUNTS = [1, 2, 3, 4, 6, 9] as const;
 
@@ -31,6 +33,10 @@ const HANDOUT_COUNTS = [1, 2, 3, 4, 6, 9] as const;
 			</div>
 			<div class="body" role="tabpanel">
 				@if (tab() === 'slides') {
+					@if (editable()) {
+						<!-- Format Background for the selected master or layout. -->
+						<ng-container [ngTemplateOutlet]="backgroundEditor" [ngTemplateOutletContext]="{ color: slidesBackground() ?? '#ffffff' }" />
+					}
 					@for (master of slideMasters(); track master.path; let masterIndex = $index) {
 						<button type="button" class="master-item" [attr.aria-pressed]="activeMasterIndex() === masterIndex && activeLayoutIndex() === null" (click)="selectMaster.emit(masterIndex)">
 							{{ master.name || ('pptx.master.master' | translate) }}
@@ -174,6 +180,19 @@ export class MasterViewSidebarComponent {
 	readonly activeMasterIndex = input(0);
 	readonly activeLayoutIndex = input<number | null>(null);
 	readonly handoutSlidesPerPage = input(4);
+	readonly editable = input(false);
+
+	/** Background of the master or layout the Slides tab has selected. */
+	protected readonly slidesBackground = computed(() =>
+		masterViewBackgroundColor(
+			{ slideMasters: this.slideMasters() },
+			{
+				tab: 'slides',
+				masterIndex: this.activeMasterIndex(),
+				layoutIndex: this.activeLayoutIndex(),
+			},
+		),
+	);
 
 	readonly tabChange = output<MasterViewTab>();
 	readonly selectMaster = output<number>();

@@ -36,6 +36,7 @@
 					[canvasHeight]="canvasSize().height"
 					[interactive]="interactive() && editTemplateMode()"
 					[marked]="interactive()"
+					[exposeElementId]="exposeElementIds()"
 					[editable]="editable() && editTemplateMode()"
 					[fieldContext]="fieldContext()"
 					[slideElements]="allElements()"
@@ -53,6 +54,7 @@
 					[canvasWidth]="canvasSize().width"
 					[canvasHeight]="canvasSize().height"
 					[interactive]="interactive()"
+					[exposeElementId]="exposeElementIds()"
 					[presenting]="presenting()"
 					[editable]="editable()"
 					[fieldContext]="fieldContext()"
@@ -126,26 +128,65 @@
 					(keydown)="onRotateHandleKeydown($event)"
 				></button>
 			}
-			@if (adjustHandle(); as ah) {
-				<!--
-					Shape-adjustment affordance (amber diamond). Existence, position
-					and cursor all come from the SHARED
-					`getShapeAdjustmentHandleDescriptor`, so it appears only for a
-					geometry with an adjustable `a:avLst` parameter (today:
-					roundRect), sits where the other four bindings put it, and is
-					absent for a shape locked with `noAdjustHandles`. Dragging it
-					writes `shapeAdjustments[key]`; it does NOT resize the element.
-				-->
+			<!--
+				Shape-adjustment affordances (amber diamonds), ONE per `a:avLst`
+				guide. Existence, position and cursor all come from the SHARED
+				`getShapeAdjustmentHandleDescriptors`, so they appear only for a
+				geometry with an adjustable parameter, sit where the other four
+				bindings put them, and are absent for a shape locked with
+				`noAdjustHandles`. Dragging one writes `shapeAdjustments`; it does
+				NOT resize the element.
+			-->
+			@for (ah of adjustHandles(); track ah.key) {
 				<button
 					type="button"
 					class="pptx-ng-adjust-handle"
+					[attr.data-pptx-adjust-key]="ah.key"
 					[attr.aria-label]="'pptx.selectionOverlay.adjust' | translate"
 					[style.left.px]="ah.left"
 					[style.top.px]="ah.top"
 					[style.width.px]="ah.size"
 					[style.height.px]="ah.size"
 					[style.cursor]="ah.cursor"
-					(pointerdown)="onAdjustPointerDown($event)"
+					(pointerdown)="onAdjustPointerDown($event, ah)"
+				></button>
+			}
+			<!--
+				Connector endpoint authoring: drag an end onto a shape's connection
+				point to bind it (`a:stCxn` / `a:endCxn`), or off one to detach.
+				Candidate sites are revealed only while an end is in flight so they
+				never obscure the deck at rest.
+			-->
+			@for (site of connectorSiteCandidates(); track site.key) {
+				<div
+					class="pptx-ng-connection-site"
+					[class.is-snapped]="site.snapped"
+					data-pptx-connection-site
+					aria-hidden="true"
+					[style.left.px]="site.left"
+					[style.top.px]="site.top"
+					[style.width.px]="site.size"
+					[style.height.px]="site.size"
+				></div>
+			}
+			@for (ep of connectorEndpoints(); track ep.kind) {
+				<button
+					type="button"
+					class="pptx-ng-connector-endpoint"
+					[class.is-attached]="ep.attached"
+					[attr.data-pptx-connector-endpoint]="ep.kind"
+					[attr.data-pptx-connector-attached]="ep.attached"
+					[attr.aria-label]="
+						(ep.kind === 'start'
+							? 'pptx.canvas.connectorEndpointStart'
+							: 'pptx.canvas.connectorEndpointEnd'
+						) | translate
+					"
+					[style.left.px]="ep.left"
+					[style.top.px]="ep.top"
+					[style.width.px]="ep.size"
+					[style.height.px]="ep.size"
+					(pointerdown)="onConnectorEndpointPointerDown($event, ep.kind)"
 				></button>
 			}
 			@if (editingBox(); as eb) {

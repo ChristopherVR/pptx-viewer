@@ -11,15 +11,31 @@
 	 * a labelled placeholder box. All maths live in `render/chart-view.ts` +
 	 * `pptx-viewer-shared`; this SFC only emits SVG.
 	 */
+	import type { ChartPptxElement } from 'pptx-viewer-core';
 	import { applyChartBuildReveal } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildChartView, buildLegendItems, partAttrs } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
+	import { ChartDragController } from './chart-drag.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, animationState, interactive = false, marked = false }: ElementRendererProps = $props();
+	const { element, zIndex, animationState, interactive = false, marked = false, onchartpointcommit }: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/**
+	 * Direct on-canvas editing is live only on the editable canvas: the stage
+	 * passes `onchartpointcommit` there and nowhere else, so thumbnails and the
+	 * presentation surface keep inert charts.
+	 */
+	let rootEl = $state<HTMLElement | null>(null);
+	const editable = $derived(interactive && Boolean(onchartpointcommit) && element.type === 'chart');
+	const drag = new ChartDragController({
+		element: () => element as ChartPptxElement,
+		root: () => rootEl,
+		commit: (id, chartData) => onchartpointcommit?.(id, chartData),
+	});
+	$effect(() => () => drag.destroy());
 
 	/** Staged chart-build descriptor, when an active native animation reveals one. */
 	const chartBuild = $derived(
@@ -32,11 +48,14 @@
 	 * element unchanged. Mirrors Vue's / React's `revealedElement`.
 	 */
 	const revealedElement = $derived.by(() => {
-		if (element.type !== 'chart' || !chartBuild || !element.chartData) {
-			return element;
+		// `drag.rendered()` is the committed element until a value drag is in
+		// flight, when it carries the live preview instead.
+		const source = drag.rendered();
+		if (source.type !== 'chart' || !chartBuild || !source.chartData) {
+			return source;
 		}
-		const revealed = applyChartBuildReveal(element.chartData, chartBuild);
-		return revealed === element.chartData ? element : { ...element, chartData: revealed };
+		const revealed = applyChartBuildReveal(source.chartData, chartBuild);
+		return revealed === source.chartData ? source : { ...source, chartData: revealed };
 	});
 
 	const view = $derived(
@@ -44,10 +63,29 @@
 	);
 	const legendItems = $derived(view?.kind === 'chart' ? buildLegendItems(view.vm) : []);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+
+	// The projector re-creates every SVG mark whenever the chart changes, which
+	// drops DOM-only classes, so the selected-mark highlight is re-applied after
+	// each render rather than emitted as part of the markup.
+	$effect(() => {
+		void view;
+		void drag.selectedPart;
+		drag.syncHighlight();
+	});
 </script>
 
 {#if view}
-	<div class="pptx-svelte-element pptx-svelte-chart" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
+	<!-- svelte-ignore a11y_no_static_element_interactions -- the chart marks are the
+	     interactive surface; keyboard editing of a data point goes through the
+	     chart inspector, as it does in the other four bindings. -->
+	<div
+		bind:this={rootEl}
+		class={`pptx-svelte-element pptx-svelte-chart${editable ? ' pptx-chart-interactive' : ''}`}
+		style={containerStyle}
+		data-element-id={element.id}
+		data-pptx-element={interactive || marked ? 'true' : undefined}
+		onpointerdown={editable ? drag.onpointerdown : undefined}
+	>
 		{#if view.kind === 'chart'}
 			{@const vm = view.vm}
 			<svg
@@ -128,10 +166,26 @@
 		{:else}
 			<div class="pptx-svelte-placeholder pptx-svelte-chart-placeholder">{view.label}</div>
 		{/if}
+		{#if drag.label !== null}
+			<div class="pptx-svelte-chart-drag-badge">{drag.label}</div>
+		{/if}
 	</div>
 {/if}
 
 <style>
+	.pptx-svelte-chart-drag-badge {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		padding: 1px 6px;
+		border-radius: 4px;
+		background: #1e293b;
+		color: #f8fafc;
+		font-size: 10px;
+		line-height: 1.5;
+		pointer-events: none;
+	}
+
 	.pptx-svelte-chart-svg {
 		width: 100%;
 		height: 100%;

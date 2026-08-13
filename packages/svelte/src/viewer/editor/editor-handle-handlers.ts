@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ResizeHandleId } from 'pptx-viewer-shared';
+import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
 
 import type { AdjustGestureController } from './editor-adjust-gesture';
 import type { GestureController } from './editor-gestures';
@@ -44,7 +44,7 @@ export interface HandleGestureHost {
 export interface HandleHandlers {
 	onHandlePointerDown(handle: ResizeHandleId, event: PointerEvent): void;
 	onRotatePointerDown(event: PointerEvent): void;
-	onAdjustPointerDown(event: PointerEvent): void;
+	onAdjustPointerDown(event: PointerEvent, descriptor: ShapeAdjustmentHandleDescriptor): void;
 }
 
 export function createHandleHandlers(host: HandleGestureHost): HandleHandlers {
@@ -67,10 +67,15 @@ export function createHandleHandlers(host: HandleGestureHost): HandleHandlers {
 			}
 		},
 
-		/** Writes `shapeAdjustments`, never the element box. */
-		onAdjustPointerDown(event) {
+		/**
+		 * Writes `shapeAdjustments`, never the element box.
+		 *
+		 * The descriptor is the diamond the user GRABBED, passed through from the
+		 * overlay: a preset has one per `a:avLst` guide and they are not
+		 * interchangeable (a `quadArrow`'s three change different things).
+		 */
+		onAdjustPointerDown(event, descriptor) {
 			const element = host.getSelectedElement();
-			const descriptor = host.getInteractivity().adjust;
 			if (element && descriptor) {
 				host.adjust.begin(element, descriptor, event);
 			}

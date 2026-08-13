@@ -26,6 +26,7 @@ import type {
 	Guide,
 	RemoteCursor,
 	SanitizedPresence,
+	SlideSizeEmu,
 } from 'pptx-viewer-shared';
 import {
 	DEFAULT_CANVAS_HEIGHT,
@@ -113,6 +114,17 @@ export interface ViewerState {
 	masterViewTarget: { masterIndex: number; layoutIndex: number | null } | null;
 	/** Slide canvas size in CSS pixels. */
 	canvasSize: CanvasSize;
+	/**
+	 * The deck's `p:sldSz` in EMU, seeded from the parse and re-written by the
+	 * inspector's Slide Size preset / orientation controls.
+	 *
+	 * Held alongside {@link canvasSize} rather than derived from it because the
+	 * pixel size is lossy: Ledger is 12179300 EMU (1278.5px), so a round-trip
+	 * through an integer pixel would move it 6350 EMU and cost the deck its
+	 * `ppSlideSizeLedgerPaper` identity. `resolveSlideSizeSelection` decides
+	 * which of the two wins at save time.
+	 */
+	slideSize?: SlideSizeEmu;
 	/** Archive-path to displayable URL map for media + poster frames. */
 	mediaDataUrls: Map<string, string>;
 	/** Presentation theme colours used by scheme-based rendering. */
@@ -246,6 +258,7 @@ export function createInitialViewerState(): ViewerState {
 		handoutSlidesPerPage: 4,
 		masterViewTarget: null,
 		canvasSize: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
+		slideSize: undefined,
 		mediaDataUrls: new Map(),
 		colorScheme: undefined,
 		fontScheme: undefined,

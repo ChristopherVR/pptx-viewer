@@ -2,11 +2,12 @@
 	/**
 	 * TextRun: one rendered run of a paragraph.
 	 *
-	 * A run is normally a `<span>`, but the shared model marks two kinds that
-	 * need a different element around them: a HYPERLINK run (an `<a href>`) and
-	 * an inline EQUATION run (MathML, whose text is empty). Both used to be
-	 * dropped here - `buildParagraphs` returned `{ text, style }` only, so a
-	 * linked run rendered as ordinary text and an inline `m:oMath` as nothing.
+	 * A run is normally a `<span>`, but the shared model marks three kinds that
+	 * need a different element around them: a HYPERLINK run (an `<a href>`), an
+	 * inline EQUATION run (MathML, whose text is empty), and a RUBY run (a
+	 * phonetic guide over the base text). All three used to be dropped here -
+	 * `buildParagraphs` returned `{ text, style }` only, so a linked run rendered
+	 * as ordinary text, an inline `m:oMath` as nothing, and furigana vanished.
 	 */
 	import type { ParagraphRun } from 'pptx-viewer-shared';
 	import { runEquationMathMl } from 'pptx-viewer-shared';
@@ -32,6 +33,8 @@
 		rel="noopener noreferrer"
 		title={run.hyperlink.tooltip}
 		style={styleToString(run.style)}>{run.text}</a
+	>{:else if run.ruby}<ruby style={styleToString(run.style)}
+		>{run.text}<rp>(</rp><rt style={styleToString(run.ruby.style)}>{run.ruby.text}</rt><rp>)</rp></ruby
 	>{:else}<span style={styleToString(run.style)}>{run.text}</span>{/if}
 
 <style>

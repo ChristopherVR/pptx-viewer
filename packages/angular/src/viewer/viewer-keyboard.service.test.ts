@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { EditorStateService } from './editor-state.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 
@@ -42,6 +43,10 @@ interface Harness {
 	service: ViewerKeyboardService;
 	editor: ReturnType<typeof editorStub>;
 	showShortcuts: ReturnType<typeof signal<boolean>>;
+	/** The small find bar (Ctrl+F opens this one). */
+	showFind: ReturnType<typeof signal<boolean>>;
+	/** The full find-and-replace bar, reachable from Home > Editing > Replace. */
+	showFindReplace: ReturnType<typeof signal<boolean>>;
 	painterActive: ReturnType<typeof signal<boolean>>;
 	cancelPainter: ReturnType<typeof vi.fn>;
 	goPrev: ReturnType<typeof vi.fn>;
@@ -49,9 +54,18 @@ interface Harness {
 	press: (key: string, modifiers?: Partial<KeyboardEventInit>) => KeyboardEvent;
 }
 
-function harness(options: { hasSelection?: boolean; painterActive?: boolean } = {}): Harness {
+function harness(
+	options: {
+		hasSelection?: boolean;
+		painterActive?: boolean;
+		findOpen?: boolean;
+		findReplaceOpen?: boolean;
+	} = {},
+): Harness {
 	const editor = editorStub(options.hasSelection ?? true);
 	const showShortcuts = signal(false);
+	const showFind = signal(options.findOpen ?? false);
+	const showFindReplace = signal(options.findReplaceOpen ?? false);
 	const painterActive = signal(options.painterActive ?? false);
 	const cancelPainter = vi.fn();
 	const goPrev = vi.fn();
@@ -71,6 +85,10 @@ function harness(options: { hasSelection?: boolean; painterActive?: boolean } = 
 					cancel: cancelPainter,
 				} as unknown as ViewerFormatPainterService,
 			},
+			{
+				provide: ViewerFindReplaceService,
+				useValue: { showFind, showFindReplace } as unknown as ViewerFindReplaceService,
+			},
 			{ provide: ViewerKeyboardService, useClass: ViewerKeyboardService, deps: [] },
 		],
 	});
@@ -87,6 +105,8 @@ function harness(options: { hasSelection?: boolean; painterActive?: boolean } = 
 		service,
 		editor,
 		showShortcuts,
+		showFind,
+		showFindReplace,
 		painterActive,
 		cancelPainter,
 		goPrev,
@@ -167,5 +187,49 @@ describe('viewerKeyboardService: guards', () => {
 		const h = harness();
 		expect(h.press('d', { ctrlKey: true }).defaultPrevented).toBeTruthy();
 		expect(h.press('F7').defaultPrevented).toBeFalsy();
+	});
+});
+
+/**
+ * Ctrl+F. Angular has shipped a find bar since the find-replace port but had no
+ * shortcut for it at all: the chord was hand-wired in React and Vue instead of
+ * living in the shared keymap, so here it fell through to the browser's own
+ * find, which cannot see text inside the slide model.
+ */
+describe('viewerKeyboardService: find', () => {
+	it('opens the find bar on Ctrl+F', () => {
+		const h = harness();
+		const event = h.press('f', { ctrlKey: true });
+		expect(h.showFind()).toBeTruthy();
+		expect(event.defaultPrevented).toBeTruthy();
+	});
+
+	it('opens on Cmd+F too', () => {
+		const h = harness();
+		h.press('f', { metaKey: true });
+		expect(h.showFind()).toBeTruthy();
+	});
+
+	it('closes an open find bar rather than reopening it', () => {
+		const h = harness({ findOpen: true });
+		h.press('f', { ctrlKey: true });
+		expect(h.showFind()).toBeFalsy();
+	});
+
+	it('treats the full find-and-replace bar as open, and closes that too', () => {
+		// Angular is the only binding with two panels; without this branch the
+		// chord would swap the replace bar for the smaller find bar, where every
+		// other binding simply closes.
+		const h = harness({ findReplaceOpen: true });
+		h.press('f', { ctrlKey: true });
+		expect(h.showFindReplace()).toBeFalsy();
+		expect(h.showFind()).toBeFalsy();
+	});
+
+	it('leaves a bare "f" alone', () => {
+		const h = harness();
+		const event = h.press('f');
+		expect(h.showFind()).toBeFalsy();
+		expect(event.defaultPrevented).toBeFalsy();
 	});
 });

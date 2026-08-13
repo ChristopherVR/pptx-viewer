@@ -19,7 +19,7 @@ import { buildAngularImageRenderView } from './image-renderer-helpers';
 			class="pptx-ng-element pptx-ng-image"
 			[ngStyle]="containerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="element().id"
+			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
 			@for (filter of safeFilters(); track filter.id) {
@@ -68,6 +68,18 @@ export class ImageRendererComponent {
 	readonly interactive = input<boolean>(false);
 	/** Keep the data-pptx-element marker on interaction-locked template elements. */
 	readonly marked = input<boolean>(false);
+	/**
+	 * When true (default), the rendered node carries `data-element-id`. The
+	 * miniature surfaces that paint every slide at once turn it off so one
+	 * element id resolves to exactly one node in the document; see
+	 * `ElementRendererComponent.exposeElementId`.
+	 */
+	readonly exposeElementId = input<boolean>(true);
+
+	/** `data-element-id` for this element, or null on a miniature surface. */
+	readonly elementIdAttr = computed<string | null>(() =>
+		this.exposeElementId() ? this.element().id : null,
+	);
 
 	/**
 	 * `pointer-events: none` while not interactive, mirroring React's

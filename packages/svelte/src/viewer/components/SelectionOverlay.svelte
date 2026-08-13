@@ -30,10 +30,11 @@
 	// absent rather than present-but-inert.
 	const showResize = $derived(interactivity.resizable);
 	const showRotate = $derived(selectionCount === 1 && interactivity.rotatable);
-	// PowerPoint's amber adjustment diamond. `left` / `top` are ELEMENT-LOCAL px
-	// from the element's top-left, and this layer is unscaled, so both are
-	// multiplied by the stage scale to land on the box.
-	const adjust = $derived(selectionCount === 1 && !editing ? interactivity.adjust : null);
+	// PowerPoint's amber adjustment diamonds, ONE per `a:avLst` guide. `left` /
+	// `top` are ELEMENT-LOCAL px from the element's top-left and mark where the
+	// diamond's CENTRE belongs, so they are multiplied by the stage scale (this
+	// layer is unscaled) and centred by the handle's own negative margin.
+	const adjust = $derived(selectionCount === 1 && !editing ? interactivity.adjust : []);
 
 	// `border-width:${scale}px` scales the outline with the zoom so it tracks
 	// React's border/ring (which live inside React's scaled stage). Without it
@@ -71,15 +72,16 @@
 				data-pptx-compact
 				onpointerdown={onrotatepointerdown}
 			></button>{/if}
-			{#if adjust}<button
+			{#each adjust as descriptor (descriptor.key)}<button
 				type="button"
 				class="pptx-svelte-adjust-handle"
-				style={`left:${adjust.left * scale}px;top:${adjust.top * scale}px;cursor:${adjust.cursor}`}
+				style={`left:${descriptor.left * scale}px;top:${descriptor.top * scale}px;cursor:${descriptor.cursor}`}
 				data-pptx-adjust-handle
+				data-pptx-adjust-key={descriptor.key}
 				aria-label={t('pptx.selectionOverlay.adjust')}
 				data-pptx-compact
-				onpointerdown={onadjustpointerdown}
-			></button>{/if}
+				onpointerdown={(event) => onadjustpointerdown?.(event, descriptor)}
+			></button>{/each}
 			{#if showResize}{#each RESIZE_HANDLES as handle (handle)}
 				<button
 					type="button"

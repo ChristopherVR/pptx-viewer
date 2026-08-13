@@ -93,6 +93,9 @@
 		mediaDataUrls={loader.mediaDataUrls}
 		startedAt={vm.presenterStartedAt}
 		audienceOpen={presenterSession.audienceOpen}
+		activeCustomShow={parityUi.activeCustomShowId
+			? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
+			: null}
 		onmove={move}
 		onaudience={() =>
 			presenterSession.audienceOpen

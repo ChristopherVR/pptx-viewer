@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { DEFAULT_MASTER_PAGE_SIZE, masterViewPseudoSlide } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
@@ -37,6 +37,12 @@ export interface RenderControllerDeps {
 	onCommentMarkerClick?(commentId: string): void;
 	onSmartArtNodeTextChange?(element: PptxElement, nodeId: string, text: string): void;
 	onSmartArtNodeFillChange?(element: PptxElement, nodeId: string, fill: string): void;
+	/**
+	 * Commit a chart data point dragged on the canvas. Gated on `interactive`
+	 * below with the SmartArt hooks, so thumbnails, the presenter console and
+	 * export rasters never arm the chart marks.
+	 */
+	onChartPointChange?(element: PptxElement, chartData: PptxChartData): void;
 	/**
 	 * Invoked after every stage render (the stage host is rebuilt with
 	 * `replaceChildren`); the editor re-mounts its overlay layer here.
@@ -124,6 +130,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			onZoomClick: deps.onZoomClick,
 			onSmartArtNodeTextChange: interactive ? deps.onSmartArtNodeTextChange : undefined,
 			onSmartArtNodeFillChange: interactive ? deps.onSmartArtNodeFillChange : undefined,
+			onChartPointChange: interactive ? deps.onChartPointChange : undefined,
 			interactive,
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 			// Native-animation state + context capture only for the live presentation
@@ -306,6 +313,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				handoutPlaceholders: state.handoutMaster?.placeholders,
 				handoutMasterPresent: Boolean(state.handoutMaster),
 				handoutSlidesPerPage: state.handoutSlidesPerPage,
+				editable: state.editable,
 				renderStage: renderStageFor,
 				onSelect: (masterIndex, layoutIndex) => {
 					store.set({

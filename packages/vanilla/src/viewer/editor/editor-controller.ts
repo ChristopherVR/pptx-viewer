@@ -13,13 +13,20 @@ import type {
 	PptxSlide,
 	TextSegment,
 } from 'pptx-viewer-core';
-import { armEditorKeyboard, downloadBlob } from 'pptx-viewer-shared';
+import {
+	armEditorKeyboard,
+	downloadBlob,
+	presentationBaseName,
+	savedPresentationFileName,
+} from 'pptx-viewer-shared';
 
 import { buildSharingPackage } from '../export/package-sharing';
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { syncAlignmentGuides } from './alignment-guide-view';
+import { createConnectorEndpointOverlay } from './connector-endpoint-overlay';
+import type { ConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import { createEditingChromeSync } from './editing-chrome-sync';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import { selectionOverlayBox } from './editor-controller-overlay';
@@ -35,7 +42,7 @@ import { createStageInteractions } from './editor-stage-interactions';
 import { createMotionPathController } from './motion-path-controller';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
-import { selectedAdjustmentDescriptor } from './shape-adjust-gesture';
+import { selectedAdjustmentDescriptors } from './shape-adjust-gesture';
 
 export interface EditorControllerDeps {
 	doc: Document;
@@ -115,6 +122,7 @@ const PRESENTATION_MIME: Record<PptxSaveFormat, string> = {
 export function createEditorController(deps: EditorControllerDeps): EditorController {
 	const { doc, store } = deps;
 	let overlay: SelectionOverlay | null = null;
+	let connectorEndpoints: ConnectorEndpointOverlay | null = null;
 	let attachedWrap: HTMLElement | null = null;
 	let attachedRoot: HTMLElement | null = null;
 
@@ -236,7 +244,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		// `noResize` shape shows no resize handles, a `noRotation` one no knob.
 		const allowed = selectionInteractivity(state);
 		overlay.setHandleVisibility({ resizable: allowed.resizable, rotatable: allowed.rotatable });
-		overlay.setAdjustHandle(selectedAdjustmentDescriptor(state), deps.getScale());
+		overlay.setAdjustHandles(selectedAdjustmentDescriptors(state), deps.getScale());
+		connectorEndpoints?.sync();
 		// View > Guides hides the overlay, never the model: `state.guides` stays
 		// whole so snapping and saving still see every guide.
 		syncAlignmentGuides(doc, overlay.root, state.showGuides ? state.guides : [], deps.getScale());
@@ -268,6 +277,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			return true;
 		},
 		toggleShortcuts: () => deps.getChrome().shortcuts.toggle(),
+		// Same action as Home > Editing > Find. Null when the host disabled the
+		// ribbon, in which case there is no find panel to open and the chord
+		// correctly does nothing.
+		toggleFind: () => deps.getChrome().ribbon?.toggleFindReplace(),
 		closeShortcuts: () => {
 			const panel = deps.getChrome().shortcuts;
 			if (!panel.isOpen()) {
@@ -301,6 +314,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		attachedRoot = null;
 		overlay?.destroy();
 		overlay = null;
+		connectorEndpoints?.dispose();
+		connectorEndpoints = null;
 		motionPath.detach();
 	};
 
@@ -352,9 +367,21 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				onRotatePointerDown(event) {
 					interactions.beginHandleGesture('rotate', event);
 				},
-				onAdjustPointerDown(event) {
-					interactions.beginAdjustGesture(event);
+				onAdjustPointerDown(event, descriptor) {
+					interactions.beginAdjustGesture(event, descriptor);
 				},
+			});
+			connectorEndpoints = createConnectorEndpointOverlay({
+				doc,
+				store,
+				ops,
+				getScale: deps.getScale,
+				label: (kind) =>
+					deps.getTranslator()(
+						kind === 'start'
+							? 'pptx.canvas.connectorEndpointStart'
+							: 'pptx.canvas.connectorEndpointEnd',
+					),
 			});
 			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
@@ -364,6 +391,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			attachedWrap.addEventListener('dblclick', drawMode.onStageDblClick);
 			attachedRoot.addEventListener('keydown', onKeyDown);
 			overlay.mount(attachedWrap);
+			connectorEndpoints.mount(attachedWrap);
 			updateToolbar();
 			drawMode.syncCursor(attachedWrap);
 			syncOverlay();
@@ -372,6 +400,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		onStageRendered() {
 			if (overlay && attachedWrap) {
 				overlay.mount(attachedWrap);
+				connectorEndpoints?.mount(attachedWrap);
 				syncOverlay();
 			}
 		},
@@ -456,20 +485,23 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		updateHeaderFooter: (value) => ops.updateHeaderFooter(value),
 		updateCustomShows: (value) => ops.updateCustomShows(value),
 		save: (format) => ops.save(format),
-		async downloadAs(format, fileName = `presentation.${format}`) {
+		// Every name below goes through the shared save-name decision, so a host
+		// that passes the deck it opened (`report.ppt`) gets `report.pptx` back
+		// rather than a `.ppt` whose bytes are an OpenXML package.
+		async downloadAs(format, fileName) {
 			const bytes = await ops.save(format);
 			downloadBlob(
 				new Blob([bytes as unknown as BlobPart], { type: PRESENTATION_MIME[format] }),
-				fileName,
+				savedPresentationFileName(fileName, format),
 			);
 		},
-		async downloadPptx(fileName = 'presentation.pptx') {
+		async downloadPptx(fileName) {
 			await this.downloadAs('pptx', fileName);
 		},
-		async packageForSharing(fileName = 'presentation.pptx') {
+		async packageForSharing(fileName) {
 			const bytes = await ops.save('pptx');
-			const blob = await buildSharingPackage(bytes, fileName);
-			downloadBlob(blob, `${fileName.replace(/\.pptx$/iu, '')}-package.zip`);
+			const blob = await buildSharingPackage(bytes, savedPresentationFileName(fileName));
+			downloadBlob(blob, `${presentationBaseName(fileName)}-package.zip`);
 		},
 		destroy() {
 			unsubscribe();

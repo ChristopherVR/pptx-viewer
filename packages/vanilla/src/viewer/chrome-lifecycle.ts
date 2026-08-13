@@ -174,6 +174,10 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		eraseAnnotations: deps.erasePresentationAnnotations,
 		toggleInkMarkup: deps.togglePresentationInkMarkup,
 		toggleBlank: deps.togglePresentationBlank,
+		// PowerPoint's bare `J` during a show. The ribbon's Subtitles command
+		// writes the same presentation property, so the key and the button cannot
+		// disagree about whether captions are up.
+		toggleSubtitles: deps.toggleSubtitles,
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),

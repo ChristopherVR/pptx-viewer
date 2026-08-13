@@ -18,7 +18,7 @@ import type {
 	PptxThemeOption,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
 
 import { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-helpers';
@@ -62,6 +62,17 @@ export class PresentationLoader {
 		width: DEFAULT_CANVAS_WIDTH,
 		height: DEFAULT_CANVAS_HEIGHT,
 	});
+	/**
+	 * The deck's `p:sldSz` in EMU, seeded from the parse and re-written by the
+	 * inspector's Slide Size preset / orientation controls.
+	 *
+	 * Held alongside {@link canvasSize} rather than derived from it because the
+	 * pixel size is lossy: Ledger is 12179300 EMU (1278.5px), so a round-trip
+	 * through an integer pixel would move it 6350 EMU and cost the deck its
+	 * `ppSlideSizeLedgerPaper` identity. `resolveSlideSizeSelection` decides
+	 * which of the two wins at save time.
+	 */
+	slideSize = $state.raw<SlideSizeEmu | undefined>(undefined);
 	/** Archive-path -> displayable URL map for media + poster frames. */
 	mediaDataUrls = $state.raw<Map<string, string>>(new Map());
 	/** Presentation theme colours used to resolve scheme-based table styles. */
@@ -154,6 +165,19 @@ export class PresentationLoader {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
 			};
+			// `p:sldSz` verbatim. Kept even when it matches no preset, so a save
+			// re-emits the authored dimensions instead of a pixel round-trip.
+			this.slideSize =
+				typeof parsed.widthEmu === 'number' &&
+				typeof parsed.heightEmu === 'number' &&
+				parsed.widthEmu > 0 &&
+				parsed.heightEmu > 0
+					? {
+							widthEmu: parsed.widthEmu,
+							heightEmu: parsed.heightEmu,
+							type: parsed.slideSizeType ?? '',
+						}
+					: undefined;
 			this.loadCount += 1;
 		} catch (err) {
 			if (token === this.#renderToken) {

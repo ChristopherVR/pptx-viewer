@@ -101,6 +101,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			slideCount: state.slides.length,
 			currentSlide: state.currentSlide,
 			canvasSize: state.canvasSize,
+			slideSize: state.slideSize,
 			elements: activeSlide?.elements ?? [],
 			selectedIds: state.selectedElementIds,
 			selectedElementId: el?.id,

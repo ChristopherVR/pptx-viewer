@@ -6,7 +6,12 @@
  * compiler, which is not available in the plain vitest environment
  * (component/TestBed tests are a follow-up with @analogjs/vite-plugin-angular).
  */
-import type { PptxElement, PptxTableCell, PptxTableCellStyle } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxTableCell,
+	PptxTableCellStyle,
+	TablePptxElement,
+} from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -739,5 +744,67 @@ describe('buildTableViewModel - diagonal borders', () => {
 			fontScheme: { majorFont: { latin: 'Calibri Light' }, minorFont: { latin: 'Calibri' } },
 		});
 		expect(rows[0].cells[0].diagonal?.diagDownColor).toBe('#0000FF');
+	});
+});
+
+// ==========================================================================
+// buildTableViewModel: the default cell text colour
+// ==========================================================================
+
+/** Turn on a `tableData` banding flag and hand the element straight back. */
+function withTableFlag(el: PptxElement, flag: 'firstRowHeader' | 'bandedRows'): PptxElement {
+	const tableData = (el as TablePptxElement).tableData;
+	if (tableData) {
+		tableData[flag] = true;
+	}
+	return el;
+}
+
+describe('buildTableViewModel - default cell text colour', () => {
+	/**
+	 * Angular was the only binding that set no `color` on a cell nothing had
+	 * given one. The `<td>` then inherited the viewer CHROME's `foreground`
+	 * (`#f0efec` on the dark theme preset, i.e. `rgb(240, 239, 236)`), so a
+	 * table on a light fill rendered near-white text on a near-white cell while
+	 * React, Vue, Svelte and Vanilla all floored it at the dark slide-text
+	 * colour. That value is the host UI's own token and has nothing to do with
+	 * the deck: PowerPoint resolves an uncoloured cell through the table style's
+	 * `a:tcTxStyle` and ultimately `tx1`, which is dark.
+	 */
+	it('floors an unstyled cell at the dark slide-text colour', () => {
+		const rows = buildTableViewModel(tableElement([{ cells: [{ text: 'A' }] }], [1]));
+		expect(rows[0].cells[0].tdStyle['color']).toBe('#111827');
+	});
+
+	it('lets the header band set the colour instead of the floor', () => {
+		const rows = buildTableViewModel(
+			withTableFlag(
+				tableElement([{ cells: [{ text: 'H' }] }, { cells: [{ text: 'A' }] }], [1]),
+				'firstRowHeader',
+			),
+		);
+		expect(rows[0].cells[0].tdStyle['color']).toBe('#ffffff');
+	});
+
+	it('lets an explicit cell colour beat the floor', () => {
+		const rows = buildTableViewModel(
+			tableElement([{ cells: [{ text: 'A', style: { color: '#ff0000' } }] }], [1]),
+		);
+		expect(rows[0].cells[0].tdStyle['color']).toBe('#ff0000');
+	});
+
+	it('bands alternate body rows of a programmatic table', () => {
+		const rows = buildTableViewModel(
+			withTableFlag(
+				tableElement(
+					[{ cells: [{ text: 'A' }] }, { cells: [{ text: 'B' }] }, { cells: [{ text: 'C' }] }],
+					[1],
+				),
+				'bandedRows',
+			),
+		);
+		expect(rows[0].cells[0].tdStyle['background-color']).not.toBe(
+			rows[1].cells[0].tdStyle['background-color'],
+		);
 	});
 });

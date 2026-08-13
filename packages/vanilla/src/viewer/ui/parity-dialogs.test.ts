@@ -61,6 +61,35 @@ describe('remaining parity dialogs', () => {
 		);
 	});
 
+	/**
+	 * PowerPoint's "Show slides" group has THREE radios. This binding shipped
+	 * only All and From/To, so a deck could neither be authored to open into a
+	 * named show nor corrected once it was.
+	 */
+	it('offers the custom-show radio and saves the picked show', () => {
+		const onSave = vi.fn();
+		openSlideShowDialog(document, createTranslator(), {}, 6, onSave, [
+			{ id: '0', name: 'Short Show', slideRIds: ['rId2'] },
+			{ id: '1', name: 'Reverse', slideRIds: ['rId3'] },
+		]);
+		const radio = document.querySelector<HTMLInputElement>('[data-pptx-show-slides-custom]');
+		expect(radio).not.toBeNull();
+		radio!.checked = true;
+		radio!.dispatchEvent(new Event('change'));
+		const ok = Array.from(document.querySelectorAll('button')).find(
+			(button) => button.textContent === 'OK',
+		)!;
+		ok.click();
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ showSlidesMode: 'customShow', showSlidesCustomShowId: '0' }),
+		);
+	});
+
+	it('hides the custom-show radio for a deck that defines no shows', () => {
+		openSlideShowDialog(document, createTranslator(), {}, 6, vi.fn());
+		expect(document.querySelector('[data-pptx-show-slides-custom]')).toBeNull();
+	});
+
 	it('renders comparison results and accepts a changed slide', () => {
 		const result = compareSlides([slide('one', 'Before')], [slide('one', 'After')]);
 		const onAccept = vi.fn();

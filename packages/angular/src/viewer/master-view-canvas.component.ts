@@ -8,9 +8,15 @@ import type {
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
 
-import type { CanvasSize, MasterViewDocument, MasterViewTarget } from '../internal/shared';
+import type {
+	CanvasSize,
+	MasterViewDocument,
+	MasterViewTarget,
+	MasterViewWrite,
+} from '../internal/shared';
 import {
 	DEFAULT_MASTER_PAGE_SIZE,
+	deleteMasterViewElements,
 	masterViewPseudoSlide,
 	updateMasterViewElement,
 } from '../internal/shared';
@@ -23,7 +29,12 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [SlideCanvasComponent],
 	template: `
-		<main class="master-canvas" [attr.aria-label]="canvasLabel()">
+		<main
+			class="master-canvas"
+			[attr.aria-label]="canvasLabel()"
+			[attr.tabindex]="editable() ? 0 : null"
+			(keydown)="onKeyDown($event)"
+		>
 			@if (pseudoSlide(); as slide) {
 				<pptx-slide-canvas
 					[slide]="slide"
@@ -48,9 +59,28 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 	`,
 	styles: [
 		`
+			/*
+			 * The host element itself, not just the <main> inside it.
+			 *
+			 * A custom element defaults to display:inline, so this component was
+			 * shrink-to-fit inside the overlay's flex row while everything under
+			 * it declared flex:1 against that content-driven box. The canvas
+			 * measures its viewport to compute a fit scale, and the scaled stage
+			 * is the content that sizes the box, so the ResizeObserver fed itself:
+			 * the master view visibly collapsed on every tick (1232px -> 736 ->
+			 * 256 -> ...), which is why nothing on it could be clicked. The other
+			 * child of the overlay is fixed-width, so only this one loops.
+			 */
+			:host {
+				display: flex;
+				min-width: 0;
+				min-height: 0;
+				flex: 1;
+			}
 			.master-canvas {
 				display: flex;
 				min-width: 0;
+				min-height: 0;
 				flex: 1;
 				overflow: hidden;
 				background: var(--pptx-background, #11111b);
@@ -58,6 +88,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 			pptx-slide-canvas {
 				display: flex;
 				min-width: 0;
+				min-height: 0;
 				flex: 1;
 			}
 			.empty {
@@ -148,12 +179,39 @@ export class MasterViewCanvasComponent {
 	 * that a layout canvas paints its master's artwork too.
 	 */
 	private updateMasterElement(id: string, patch: Partial<PptxElement>): void {
-		const write = updateMasterViewElement(
-			this.masterViewDocument(),
-			this.masterViewTarget(),
-			id,
-			patch,
+		this.emitWrite(
+			updateMasterViewElement(this.masterViewDocument(), this.masterViewTarget(), id, patch),
 		);
+	}
+
+	/**
+	 * Delete the selected master/layout shapes.
+	 *
+	 * The canvas has to own this key: selection here is local to the component,
+	 * and the deck-wide handler resolves ids against `slides`, where a master
+	 * part's shapes do not exist. Pressing Delete over the master overlay used
+	 * to do nothing at all (or, with a slide element still selected behind the
+	 * overlay, delete the wrong thing).
+	 */
+	protected onKeyDown(event: KeyboardEvent): void {
+		if (!this.editable() || this.editingId() !== null || this.selectedIds().length === 0) {
+			return;
+		}
+		if (event.key !== 'Delete' && event.key !== 'Backspace') {
+			return;
+		}
+		event.preventDefault();
+		this.emitWrite(
+			deleteMasterViewElements(
+				this.masterViewDocument(),
+				this.masterViewTarget(),
+				this.selectedIds(),
+			),
+		);
+		this.selectedIds.set([]);
+	}
+
+	private emitWrite(write: MasterViewWrite | null): void {
 		if (!write) {
 			return;
 		}

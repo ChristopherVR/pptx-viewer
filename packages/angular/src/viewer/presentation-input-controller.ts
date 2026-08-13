@@ -45,6 +45,8 @@ export interface PresentationInputDeps {
 	presenterWindow: PresenterWindowService;
 	/** PowerPoint's Ctrl+M: hide ink markup without discarding the strokes. */
 	toggleInkMarkup: () => void;
+	/** PowerPoint's bare `J`: show or hide the live-caption bar. */
+	toggleSubtitles: () => void;
 	/** End the show; the component guards against double-closing. */
 	requestClose: () => void;
 }
@@ -121,6 +123,9 @@ export class PresentationInputController {
 				break;
 			case 'toggleInkMarkup':
 				this.deps.toggleInkMarkup();
+				break;
+			case 'toggleSubtitles':
+				this.deps.toggleSubtitles();
 				break;
 			case 'toggleBlackScreen':
 				this.toggleBlank('black');

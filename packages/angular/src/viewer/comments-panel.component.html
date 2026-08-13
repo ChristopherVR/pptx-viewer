@@ -22,7 +22,9 @@
 							<time class="pptx-ng-comments__time">{{ ts }}</time>
 						}
 					</div>
-					<p class="pptx-ng-comments__text">{{ comment.text }}</p>
+					<p class="pptx-ng-comments__text">
+						<pptx-comment-body [text]="comment.text" [mentions]="comment.mentions" />
+					</p>
 
 					<!-- Threaded replies, nested inside the parent card -->
 					@if (comment.replies && comment.replies.length > 0) {
@@ -37,7 +39,9 @@
 											<time class="pptx-ng-comments__time">{{ replyTs }}</time>
 										}
 									</div>
-									<p class="pptx-ng-comments__reply-text">{{ replyItem.text }}</p>
+									<p class="pptx-ng-comments__reply-text">
+										<pptx-comment-body [text]="replyItem.text" [mentions]="replyItem.mentions" />
+									</p>
 								</li>
 							}
 						</ul>

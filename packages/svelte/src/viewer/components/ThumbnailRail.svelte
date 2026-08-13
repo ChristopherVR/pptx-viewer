@@ -142,6 +142,9 @@
 				<header class="pptx-svelte-section-header">
 					<button type="button" class="pptx-svelte-section-toggle" onclick={() => group.section && onsectiontoggle?.(group.section.id)} aria-expanded={!group.section?.collapsed}>
 						<span class="pptx-svelte-section-caret" class:is-collapsed={group.section?.collapsed}><ChevronDown size={12} aria-hidden="true" /></span>
+						<!-- `p15:sectionPr/@clr`: parsed and round-tripped by core, but
+						     shown by React alone until this. -->
+						{#if group.section?.color}<span class="pptx-svelte-section-color" data-pptx-section-color={group.section.color} style={`background:${group.section.color}`}></span>{/if}
 						<strong>{group.section?.name ?? t('pptx.slides.ungroupedSlides')}</strong>
 						<small>{group.slides.length}</small>
 					</button>
@@ -248,6 +251,8 @@
 	.pptx-svelte-section-toggle { flex:1; display:flex; align-items:center; gap:5px; min-width:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
 	.pptx-svelte-section-toggle strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
 	.pptx-svelte-section-toggle small { margin-left:auto; font-size:9px; }
+	/* React's SectionBlock paints the same 10px `p15:sectionPr/@clr` dot. */
+	.pptx-svelte-section-color { display:inline-block; flex:none; width:10px; height:10px; border-radius:50%; }
 	/* React's SectionHeader rotates the same chevron -90deg when collapsed. */
 	.pptx-svelte-section-caret { display:inline-flex; flex:none; transition:transform .15s ease; }
 	.pptx-svelte-section-caret.is-collapsed { transform:rotate(-90deg); }

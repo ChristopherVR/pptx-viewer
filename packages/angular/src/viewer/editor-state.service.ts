@@ -445,6 +445,14 @@ export class EditorStateService {
 	 * one handle.
 	 */
 	applyShapeAdjustment(slideIndex: number, id: string, key: string, value: number): void {
+		this.applyShapeAdjustments(slideIndex, id, { [key]: value });
+	}
+
+	/**
+	 * Merge a whole `a:avLst` patch. A callout's single diamond drives two
+	 * guides, so the drag emits a MAP rather than one key/value pair.
+	 */
+	applyShapeAdjustments(slideIndex: number, id: string, adjustments: Record<string, number>): void {
 		const target = this.slides()[slideIndex];
 		if (!target) {
 			return;
@@ -457,7 +465,7 @@ export class EditorStateService {
 			return;
 		}
 		const patch = {
-			shapeAdjustments: { ...(current.shapeAdjustments ?? {}), [key]: value },
+			shapeAdjustments: { ...(current.shapeAdjustments ?? {}), ...adjustments },
 		} as Partial<PptxElement>;
 		if (isTemplateElementId(id)) {
 			this.writeTemplatesForSlide(
@@ -473,6 +481,31 @@ export class EditorStateService {
 					: slide,
 			),
 		);
+	}
+
+	/**
+	 * Commit a connector whose endpoint was re-bound (or unbound) on canvas.
+	 *
+	 * The WHOLE element is written, not a patch: a DETACHED end has had its
+	 * `a:stCxn` / `a:endCxn` key deleted, and merging only the surviving keys
+	 * would leave the stale binding behind and the connector would keep chasing
+	 * a shape it no longer touches. Takes a history entry, because unlike the
+	 * live drag branches this fires once, on release.
+	 */
+	applyConnectorEndpoint(slideIndex: number, id: string, element: PptxElement): void {
+		const target = this.slides()[slideIndex];
+		if (!target) {
+			return;
+		}
+		this.beginTransform(this.t('pptx.undoAction.edit'));
+		this.slides.set(
+			this.slides().map((slide, i) =>
+				i === slideIndex
+					? { ...slide, elements: slide.elements.map((el) => (el.id === id ? element : el)) }
+					: slide,
+			),
+		);
+		this.dirty.set(true);
 	}
 
 	// ── Undo / redo ──────────────────────────────────────────────────────────

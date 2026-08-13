@@ -12,7 +12,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import type { CanvasSize } from '../internal/shared';
+import type { CanvasSize, ShowOrderCustomShow } from '../internal/shared';
 import {
 	formatMobileElapsed,
 	mobileElapsedSince,
@@ -59,6 +59,12 @@ export class MobilePresenterViewComponent {
 
 	readonly slides = input.required<PptxSlide[]>();
 	readonly currentSlideIndex = input.required<number>();
+	/**
+	 * The running custom show, or null for the whole deck. The "next slide"
+	 * preview MUST honour it: while a show is playing, the slide the next
+	 * forward press lands on is the show's next member, not `index + 1`.
+	 */
+	readonly activeCustomShow = input<ShowOrderCustomShow | null>(null);
 	readonly canvasSize = input.required<CanvasSize>();
 	readonly templateElements = input<readonly PptxElement[]>([]);
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
@@ -94,7 +100,7 @@ export class MobilePresenterViewComponent {
 	);
 
 	protected readonly nextSlide = computed<PptxSlide | undefined>(() =>
-		nextSlideAfter(this.slides(), this.currentSlideIndex()),
+		nextSlideAfter(this.slides(), this.currentSlideIndex(), this.activeCustomShow()),
 	);
 
 	protected readonly currentPreviewSlide = computed<PptxSlide | undefined>(() =>

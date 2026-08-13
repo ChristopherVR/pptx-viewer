@@ -9,11 +9,9 @@ import type {
 import {
 	cellPatternFillCss,
 	cellRunStyle,
-	cellStyleToCss,
 	DEFAULT_FONT_FAMILY,
-	DEFAULT_TEXT_COLOR,
 	getCellDiagonalBorders,
-	getTableCellBandStyle,
+	tableCellCss,
 	tableContainerCss,
 } from 'pptx-viewer-shared';
 
@@ -118,23 +116,16 @@ function buildCellView(
 	columnCount: number,
 	context?: TableStyleContext,
 ): TableCellView {
-	// Band/header emphasis is the lower-priority layer beneath the explicit
-	// cell style (mirrors the React/Vue/vanilla layering).
-	const bandStyle = getTableCellBandStyle(
+	// Band beneath the explicit cell style, then the dark-text floor for a cell
+	// nothing gave a colour (it would otherwise inherit the host page's near-white
+	// chrome `foreground` and vanish on a light table). All three layers are
+	// decided once, in shared, so the five bindings cannot drift apart again.
+	const style: TableCellCss = tableCellCss(
 		tableData,
-		rowIndex,
-		cellIndex,
-		rowCount,
-		columnCount,
+		cell,
+		{ rowIndex, cellIndex, rowCount, columnCount },
 		context,
 	);
-	const style: TableCellCss = { ...bandStyle, ...cellStyleToCss(cell.style) };
-	// Default body-cell text to the dark slide-text colour when nothing (cell
-	// style, band/header emphasis, or per-run colour) sets one, so cells stay
-	// legible on light tables regardless of the host page's inherited colour.
-	if (style.color === undefined) {
-		style.color = DEFAULT_TEXT_COLOR;
-	}
 
 	// Pattern fill replaces the flat backgroundColor with a tiled SVG image
 	// plus the solid background colour behind it.

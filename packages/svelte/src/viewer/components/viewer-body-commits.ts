@@ -1,4 +1,5 @@
 import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
+import type { PptxChartData } from 'pptx-viewer-core';
 import { reflowSmartArtData, setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 
 import type { EditorState } from '../editor/editor-state.svelte';
@@ -23,6 +24,11 @@ export interface EditCommitHandlers {
 	commitTableCell(id: string, rowIndex: number, cellIndex: number, text: string): void;
 	commitSmartArtNode(id: string, nodeId: string, text: string): void;
 	commitSmartArtFill(id: string, nodeId: string, fill: string): void;
+	/**
+	 * Commit a data point dragged on the canvas. Called ONCE on pointer release
+	 * (the drag itself is a local preview), so one drag is one undo step.
+	 */
+	commitChartPoint(id: string, chartData: PptxChartData): void;
 }
 
 export function createEditCommits(editor: EditorState): EditCommitHandlers {
@@ -48,6 +54,14 @@ export function createEditCommits(editor: EditorState): EditCommitHandlers {
 			const next = updateSmartArtNodeText(element.smartArtData, nodeId, text);
 			const box = { width: element.width, height: element.height };
 			editor.applyElementPatch(id, { smartArtData: reflowSmartArtData(next, id, box) });
+		},
+
+		commitChartPoint(id, chartData) {
+			const element = editor.activeElements.find((candidate) => candidate.id === id);
+			if (element?.type !== 'chart') {
+				return;
+			}
+			editor.applyElementPatch(id, { chartData });
 		},
 
 		commitSmartArtFill(id, nodeId, fill) {

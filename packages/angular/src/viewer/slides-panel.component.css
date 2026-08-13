@@ -63,6 +63,15 @@
 	text-align: left;
 }
 
+/* p15:sectionPr/@clr indicator, mirroring React's SectionBlock dot. */
+.pptx-ng-section-swatch {
+	display: inline-block;
+	flex: 0 0 auto;
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 9999px;
+}
+
 .pptx-ng-section-toggle strong {
 	overflow: hidden;
 	text-overflow: ellipsis;

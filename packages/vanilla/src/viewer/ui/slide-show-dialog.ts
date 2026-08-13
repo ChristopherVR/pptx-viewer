@@ -1,15 +1,24 @@
-import type { PptxPresentationProperties } from 'pptx-viewer-core';
+import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { appendCheckRow, appendDialogButton, createParityDialogShell } from './parity-dialog-shell';
 
+/**
+ * PowerPoint's Set Up Show dialog.
+ *
+ * "Show slides" offers three radios, not two: All, From/To, and Custom show.
+ * The third was missing here entirely (the other four bindings all had it), so
+ * a deck authored to open into a named show could neither be created nor
+ * corrected from this binding.
+ */
 export function openSlideShowDialog(
 	doc: Document,
 	t: Translator,
 	properties: PptxPresentationProperties,
 	slideCount: number,
 	onSave: (next: PptxPresentationProperties) => void,
+	customShows: readonly PptxCustomShow[] = [],
 ): void {
 	const shell = createParityDialogShell(doc, t, t('pptx.slideShow.setUpTitle'));
 	const draft = { ...properties };
@@ -79,6 +88,37 @@ export function openSlideShowDialog(
 	selected.addEventListener('change', () => {
 		draft.showSlidesMode = 'range';
 	});
+	// `p:showPr/p:custShow/@id`. Offered only when the deck defines a show,
+	// exactly like the other four bindings, so the radio can never name nothing.
+	if (customShows.length > 0) {
+		const showRow = createEl(doc, 'label', 'pptxv-parity-range');
+		const showRadio = doc.createElement('input');
+		showRadio.type = 'radio';
+		showRadio.name = 'range';
+		showRadio.dataset.pptxShowSlidesCustom = 'true';
+		showRadio.checked = draft.showSlidesMode === 'customShow';
+		const picker = doc.createElement('select');
+		picker.setAttribute('aria-label', t('pptx.slideShow.customShow'));
+		for (const show of customShows) {
+			const option = doc.createElement('option');
+			option.value = show.id;
+			option.textContent = show.name;
+			picker.appendChild(option);
+		}
+		picker.value = draft.showSlidesCustomShowId ?? customShows[0].id;
+		const selectShow = (): void => {
+			draft.showSlidesMode = 'customShow';
+			draft.showSlidesCustomShowId = picker.value;
+		};
+		showRadio.addEventListener('change', selectShow);
+		picker.addEventListener('change', () => {
+			if (showRadio.checked) {
+				selectShow();
+			}
+		});
+		showRow.append(showRadio, doc.createTextNode(t('pptx.slideShow.customShow')), picker);
+		range.appendChild(showRow);
+	}
 	const advance = group(t('pptx.slideShow.advanceSlides'));
 	for (const [value, key] of [
 		['manual', 'pptx.slideShow.manually'],

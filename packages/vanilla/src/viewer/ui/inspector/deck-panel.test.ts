@@ -16,6 +16,7 @@ function makeHandlers() {
 		updateTagCollections: vi.fn<DeckPanelHandlers['updateTagCollections']>(),
 		updateActiveSlide: vi.fn<DeckPanelHandlers['updateActiveSlide']>(),
 		updateCanvasSize: vi.fn<DeckPanelHandlers['updateCanvasSize']>(),
+		updateSlideSize: vi.fn<DeckPanelHandlers['updateSlideSize']>(),
 	} satisfies DeckPanelHandlers;
 }
 
@@ -25,6 +26,7 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 		slideCount: 2,
 		currentSlide: 0,
 		canvasSize: { width: 960, height: 540 },
+		slideSize: { widthEmu: 9144000, heightEmu: 5143500, type: 'screen16x9' },
 		elements: [],
 		selectedIds: [],
 		comments: [],
@@ -47,6 +49,9 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 		...overrides,
 	};
 }
+
+/** Ledger: 12179300 x 9134475 EMU, the preset a pixel round-trip destroys. */
+const LEDGER = { widthEmu: 12179300, heightEmu: 9134475, type: 'ledger' };
 
 describe('deck panel (no-selection Properties tab)', () => {
 	it('renders the React section order: presentation, theme, theme editor, override, transition, size, notes, document, tags', () => {
@@ -109,6 +114,55 @@ describe('deck panel (no-selection Properties tab)', () => {
 		panel.update(makeDeckState({ editable: false }));
 		expect(inputs[0].disabled).toBeTruthy();
 		expect(inputs[1].disabled).toBeTruthy();
+	});
+
+	/**
+	 * PowerPoint sizes a slide by PRESET first and by raw dimensions second. The
+	 * card shipped with only the two pixel inputs, so the sixteen presets and the
+	 * Landscape/Portrait toggle were unreachable in this binding.
+	 */
+	it('offers the preset dropdown and the orientation toggle in EMU', () => {
+		const handlers = makeHandlers();
+		const panel = createDeckPanel(document, createTranslator(), handlers);
+		panel.update(makeDeckState({ slideSize: LEDGER, canvasSize: { width: 1279, height: 959 } }));
+
+		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[5];
+		const preset = sizeSection.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
+		expect(preset.value).toBe('ledger');
+
+		preset.value = 'a4';
+		preset.dispatchEvent(new Event('change'));
+		expect(handlers.updateSlideSize).toHaveBeenCalledWith({
+			widthEmu: 9906000,
+			heightEmu: 6858000,
+			type: 'A4',
+		});
+
+		const portrait = sizeSection.querySelector<HTMLButtonElement>(
+			'[data-pptx-slide-size-orientation="portrait"]',
+		)!;
+		expect(
+			sizeSection
+				.querySelector('[data-pptx-slide-size-orientation="landscape"]')!
+				.getAttribute('aria-pressed'),
+		).toBe('true');
+		portrait.click();
+		// Portrait swaps cx/cy and keeps the type, exactly as PowerPoint does.
+		expect(handlers.updateSlideSize).toHaveBeenLastCalledWith({
+			widthEmu: LEDGER.heightEmu,
+			heightEmu: LEDGER.widthEmu,
+			type: 'ledger',
+		});
+	});
+
+	it('falls back to a Custom entry for a size no preset matches', () => {
+		const panel = createDeckPanel(document, createTranslator(), makeHandlers());
+		panel.update(makeDeckState({ slideSize: undefined, canvasSize: { width: 800, height: 600 } }));
+
+		const preset = panel.el
+			.querySelectorAll('.pptxv-inspector-section')[5]
+			.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
+		expect(preset.value).toBe('__custom__');
 	});
 
 	it('edits presentation settings from the PRESENTATION card', () => {

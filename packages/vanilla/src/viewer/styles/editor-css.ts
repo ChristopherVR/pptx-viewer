@@ -168,6 +168,25 @@ export const EDITOR_CSS = `
 .pptxv-inspector-deck-btn:hover { background: var(--pptx-accent); }
 .pptxv-inspector-deck-btn:disabled { opacity: 0.5; cursor: default; }
 .pptxv-inspector-deck-btn-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+/* SLIDE SIZE card: the Landscape / Portrait segmented toggle. */
+.pptxv-slide-size-orientation { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 6px 0; }
+.pptxv-slide-size-orientation button {
+	padding: 5px 8px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: inherit;
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+.pptxv-slide-size-orientation button:hover:not(:disabled) { background: var(--pptx-accent); }
+.pptxv-slide-size-orientation button.is-active {
+	border-color: var(--pptx-primary);
+	background: var(--pptx-primary);
+	color: var(--pptx-primary-foreground, #fff);
+}
+.pptxv-slide-size-orientation button:disabled { opacity: 0.5; cursor: default; }
 .pptxv-inspector-theme-select { width: 100%; margin-bottom: 6px; }
 .pptxv-inspector-override-rows { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
 .pptxv-inspector-override-row { display: grid; grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr); align-items: center; gap: 6px; }
@@ -183,6 +202,7 @@ export const EDITOR_CSS = `
 .pptxv-inspector-comment.is-resolved { opacity: 0.6; }
 .pptxv-inspector-comment-meta { font-size: 11px; font-weight: 600; }
 .pptxv-inspector-comment-text { margin: 2px 0 4px; }
+.pptx-comment-mention { border-radius: 3px; padding: 0 2px; font-weight: 600; color: var(--pptx-primary, #6366f1); background: color-mix(in srgb, var(--pptx-primary, #6366f1) 15%, transparent); }
 .pptxv-inspector-comment-actions { display: flex; gap: 6px; }
 .pptxv-inspector-comment-action {
 	padding: 2px 6px;
@@ -401,4 +421,18 @@ export const EDITOR_CSS = `
 .pptxv-context-menu-item.is-danger { color: #d64545; }
 .pptxv-context-menu-item.is-danger:hover:not(:disabled) { background: #d6454518; color: #d64545; }
 .pptxv-context-menu-separator { height: 1px; margin: 4px 6px; background: var(--pptx-border, #e2e8f0); }
+
+/* Floating value readout shown while a chart data point is dragged on canvas. */
+.pptxv-chart-drag-badge {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: #1e293b;
+	color: #f8fafc;
+	font-size: 10px;
+	line-height: 1.5;
+	pointer-events: none;
+}
 `;

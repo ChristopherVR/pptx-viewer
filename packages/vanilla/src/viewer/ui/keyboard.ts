@@ -28,6 +28,8 @@ export interface KeyboardHandlers {
 	toggleInkMarkup?(): void;
 	/** Blank the screen black or white (B / W, or `.` / `,`). */
 	toggleBlank?(value: 'black' | 'white'): void;
+	/** Show or hide live captions (PowerPoint's bare `J`). */
+	toggleSubtitles?(): void;
 }
 
 /**
@@ -167,6 +169,9 @@ function handlePresentationKey(
 			return;
 		case 'toggleWhiteScreen':
 			handlers.toggleBlank?.('white');
+			return;
+		case 'toggleSubtitles':
+			handlers.toggleSubtitles?.();
 			break;
 		// A pending slide number and the context-menu key are consumed above so
 		// the browser does not act on them; nothing further to do.

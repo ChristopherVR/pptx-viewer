@@ -1,4 +1,4 @@
-import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
+import type { PptxChartData, PptxComment, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 /**
@@ -42,6 +42,8 @@ export interface SlideStageProps {
 	) => void;
 	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
+	/** See `ElementRendererProps.onchartpointcommit`. */
+	onchartpointcommit?: (elementId: string, chartData: PptxChartData) => void;
 	/**
 	 * Comments drawn as numbered marker dots INSIDE the stage (the
 	 * `aria-roledescription="slide"` region, the framework-neutral e2e hook).
@@ -72,6 +74,8 @@ export interface SlideCanvasProps {
 	) => void;
 	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
+	/** See `ElementRendererProps.onchartpointcommit`. */
+	onchartpointcommit?: (elementId: string, chartData: PptxChartData) => void;
 	/** Passed through to `SlideStage`; see {@link SlideStageProps.comments}. */
 	comments?: readonly PptxComment[];
 	/** Passed through to `SlideStage`; see {@link SlideStageProps.oncommentmarkerclick}. */
