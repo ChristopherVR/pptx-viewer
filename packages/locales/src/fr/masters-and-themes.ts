@@ -1,4 +1,13 @@
 export const translations = {
+	'pptx.font.group.theme': 'Polices du thème',
+	'pptx.font.group.embedded': 'Incorporées à cette présentation',
+	'pptx.font.group.custom': 'Ajoutées lors de cette session',
+	'pptx.font.group.all': 'Toutes les polices',
+	'pptx.font.role.heading': 'Titres',
+	'pptx.font.role.body': 'Corps',
+	'pptx.layoutGallery.current': 'Disposition actuelle',
+	'pptx.layoutGallery.loading': 'Chargement des dispositions',
+	'pptx.layoutGallery.empty': 'Aucune disposition disponible',
 	'pptx.master.master': 'Masque',
 	'pptx.master.layout': 'Disposition',
 	'pptx.master.noMasters': 'Aucun masque',

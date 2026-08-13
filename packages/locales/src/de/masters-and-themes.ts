@@ -1,4 +1,13 @@
 export const translations = {
+	'pptx.font.group.theme': 'Designschriftarten',
+	'pptx.font.group.embedded': 'In dieser Präsentation eingebettet',
+	'pptx.font.group.custom': 'In dieser Sitzung hinzugefügt',
+	'pptx.font.group.all': 'Alle Schriftarten',
+	'pptx.font.role.heading': 'Überschriften',
+	'pptx.font.role.body': 'Textkörper',
+	'pptx.layoutGallery.current': 'Aktuelles Layout',
+	'pptx.layoutGallery.loading': 'Layouts werden geladen',
+	'pptx.layoutGallery.empty': 'Keine Layouts verfügbar',
 	'pptx.master.master': 'Folienmaster',
 	'pptx.master.layout': 'Layout',
 	'pptx.master.noMasters': 'Keine Master',

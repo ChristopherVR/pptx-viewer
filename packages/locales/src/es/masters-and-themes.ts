@@ -1,4 +1,13 @@
 export const translations = {
+	'pptx.font.group.theme': 'Fuentes del tema',
+	'pptx.font.group.embedded': 'Incrustadas en esta presentación',
+	'pptx.font.group.custom': 'Añadidas en esta sesión',
+	'pptx.font.group.all': 'Todas las fuentes',
+	'pptx.font.role.heading': 'Títulos',
+	'pptx.font.role.body': 'Cuerpo',
+	'pptx.layoutGallery.current': 'Diseño actual',
+	'pptx.layoutGallery.loading': 'Cargando diseños',
+	'pptx.layoutGallery.empty': 'No hay diseños disponibles',
 	'pptx.master.master': 'Patrón',
 	'pptx.master.layout': 'Diseño',
 	'pptx.master.noMasters': 'Sin patrones',

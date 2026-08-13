@@ -25,6 +25,19 @@ export const translations = {
 	'pptx.options.general.userName': "Nom d'utilisateur",
 	'pptx.options.general.userInitials': 'Initiales',
 	'pptx.options.general.appearance': 'Thème de la visionneuse',
+	'pptx.options.general.fonts': 'Polices',
+	'pptx.options.general.fontsDescription':
+		"Les présentations utilisent parfois des polices qui ne sont pas installées sur votre appareil, et la visionneuse les remplace par la police disponible la plus proche. Ajouter le fichier de police permet d'afficher la présentation avec la police d'origine.",
+	'pptx.options.general.enableCustomFonts':
+		'M’autoriser à ajouter des fichiers de police à cette session',
+	'pptx.options.general.enableCustomFontsInfo':
+		'Les polices ajoutées servent au rendu et apparaissent dans la liste des polices de l’onglet Accueil. Elles ne sont conservées qu’en mémoire, ne sont jamais téléversées ni enregistrées dans la présentation, et sont supprimées au rechargement de la page.',
+	'pptx.options.general.addFontFile': 'Ajouter un fichier de police',
+	'pptx.options.general.customFontsAdded': 'Polices ajoutées lors de cette session',
+	'pptx.options.general.customFontsEmpty': 'Aucune police ajoutée pour le moment.',
+	'pptx.options.general.customFontsDisabled':
+		'Activez le paramètre ci-dessus pour ajouter un fichier de police.',
+	'pptx.options.general.customFontError': 'Ce fichier n’a pas pu être lu comme une police.',
 	'pptx.options.general.startup': 'Options de démarrage',
 	'pptx.options.general.showStartScreen':
 		"Afficher l'écran de démarrage au lancement de cette application",

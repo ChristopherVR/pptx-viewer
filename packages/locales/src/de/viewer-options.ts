@@ -23,6 +23,18 @@ export const translations = {
 	'pptx.options.general.userName': 'Benutzername',
 	'pptx.options.general.userInitials': 'Initialen',
 	'pptx.options.general.appearance': 'Viewer-Design',
+	'pptx.options.general.fonts': 'Schriftarten',
+	'pptx.options.general.fontsDescription':
+		'Präsentationen verwenden mitunter Schriftarten, die auf Ihrem Gerät nicht installiert sind; der Viewer ersetzt sie dann durch die nächstgelegene verfügbare Schrift. Wenn Sie die Schriftdatei hinzufügen, wird die Präsentation mit ihrer Originalschrift dargestellt.',
+	'pptx.options.general.enableCustomFonts': 'Schriftdateien in dieser Sitzung hinzufügen dürfen',
+	'pptx.options.general.enableCustomFontsInfo':
+		'Hinzugefügte Schriftarten werden für die Darstellung verwendet und erscheinen in der Schriftartenliste der Registerkarte Start. Sie werden nur im Arbeitsspeicher gehalten, niemals hochgeladen oder in der Präsentation gespeichert und beim Neuladen der Seite verworfen.',
+	'pptx.options.general.addFontFile': 'Schriftdatei hinzufügen',
+	'pptx.options.general.customFontsAdded': 'In dieser Sitzung hinzugefügte Schriftarten',
+	'pptx.options.general.customFontsEmpty': 'Noch keine Schriftarten hinzugefügt.',
+	'pptx.options.general.customFontsDisabled':
+		'Aktivieren Sie die obige Einstellung, um eine Schriftdatei hinzuzufügen.',
+	'pptx.options.general.customFontError': 'Diese Datei konnte nicht als Schriftart gelesen werden.',
 	'pptx.options.general.startup': 'Startoptionen',
 	'pptx.options.general.showStartScreen': 'Startbildschirm beim Start dieser Anwendung anzeigen',
 	'pptx.options.proofing.label': 'Dokumentprüfung',
