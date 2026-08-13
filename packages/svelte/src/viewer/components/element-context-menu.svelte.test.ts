@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ContextMenuCellTarget } from '../editor/context-menu-dispatch';
 import type { EditorState } from '../editor/editor-state.svelte';
+import { TableCellSelection } from '../editor/table-cell-selection.svelte';
 import ElementContextMenu from './ElementContextMenu.svelte';
 
 let cleanup: (() => void) | undefined;
@@ -17,10 +18,24 @@ interface EditorStub {
 	selectedElement?: PptxElement;
 	selectionIds?: string[];
 	hasClipboard?: boolean;
+	/** Cells of a canvas block range, as `[row, col]` pairs (arms Merge Cells). */
+	selectedCells?: Array<[number, number]>;
 }
 
 function createEditor(stub: EditorStub = {}): EditorState {
+	// The real `TableCellSelection`, not a hand-rolled shape: it is what decides
+	// whether the menu offers PowerPoint's block "Merge Cells", and a stub that
+	// omitted it would let the dispatch drift away from the model it consults.
+	const tableCells = new TableCellSelection();
+	if (stub.selectedElement && stub.selectedCells?.length) {
+		const data = (stub.selectedElement as { tableData: PptxTableData }).tableData;
+		const [firstRow, firstCol] = stub.selectedCells[0];
+		const [lastRow, lastCol] = stub.selectedCells[stub.selectedCells.length - 1];
+		tableCells.begin(stub.selectedElement.id, { rowIndex: firstRow, columnIndex: firstCol }, data);
+		tableCells.extend(stub.selectedElement.id, { rowIndex: lastRow, columnIndex: lastCol }, data);
+	}
 	return {
+		tableCells,
 		clipboardOps: {
 			copySelected: vi.fn(),
 			cutSelected: vi.fn(),
@@ -253,6 +268,37 @@ describe('elementContextMenu', () => {
 			{ tableData: PptxTableData },
 		];
 		expect(patch.tableData.rows[0].cells[0].gridSpan).toBe(2);
+	});
+
+	/**
+	 * PowerPoint's block "Merge Cells". Unreachable in this binding until the
+	 * cell-range model existed: the dispatch passed `hasMultiCellSelection` as a
+	 * hard-coded `false`, so the entry was never in the menu at all.
+	 */
+	it('offers Merge Cells once a block of cells is selected, and runs it', () => {
+		const withoutBlock = createEditor({ selectedElement: tableElement() });
+		expect(
+			labelsOf(mountMenu(withoutBlock, { cell: { rowIndex: 0, columnIndex: 0 } })),
+		).not.toContain('Merge Selected Cells');
+		cleanup?.();
+
+		const editor = createEditor({
+			selectedElement: tableElement(),
+			selectedCells: [
+				[0, 0],
+				[0, 1],
+			],
+		});
+		const target = mountMenu(editor, { cell: { rowIndex: 0, columnIndex: 0 } });
+		expect(labelsOf(target)).toContain('Merge Selected Cells');
+
+		clickLabel(target, 'Merge Selected Cells');
+		const [, patch] = vi.mocked(editor.applyElementPatch).mock.calls[0] as [
+			string,
+			{ tableData: PptxTableData },
+		];
+		expect(patch.tableData.rows[0].cells[0].gridSpan).toBe(2);
+		expect(patch.tableData.rows[0].cells[1].hMerge).toBeTruthy();
 	});
 
 	/** A cell that already spans can only be split, never merged again. */

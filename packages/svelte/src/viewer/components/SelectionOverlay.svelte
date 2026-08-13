@@ -16,13 +16,24 @@
 	import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
+	import { DEFAULT_SELECTION_INTERACTIVITY } from '../editor/editor-selection-interactivity';
 	import type { SelectionOverlayProps } from './props';
 
-	const { box, scale, snapLines, editing = false, selectionCount = 1, marquee = null, onhandlepointerdown, onrotatepointerdown }:
+	const { box, scale, snapLines, editing = false, selectionCount = 1, marquee = null, interactivity = DEFAULT_SELECTION_INTERACTIVITY, onhandlepointerdown, onrotatepointerdown, onadjustpointerdown }:
 		SelectionOverlayProps = $props();
 
 	const t = useTranslator();
 
+	// Lock verdicts arrive decided (see `editor-selection-interactivity`); this
+	// component only chooses what to paint. A `noResize` shape draws no resize
+	// handles and a `noRotation` one no rotate stem/knob, so the affordance is
+	// absent rather than present-but-inert.
+	const showResize = $derived(interactivity.resizable);
+	const showRotate = $derived(selectionCount === 1 && interactivity.rotatable);
+	// PowerPoint's amber adjustment diamond. `left` / `top` are ELEMENT-LOCAL px
+	// from the element's top-left, and this layer is unscaled, so both are
+	// multiplied by the stage scale to land on the box.
+	const adjust = $derived(selectionCount === 1 && !editing ? interactivity.adjust : null);
 
 	// `border-width:${scale}px` scales the outline with the zoom so it tracks
 	// React's border/ring (which live inside React's scaled stage). Without it
@@ -48,7 +59,7 @@
 >
 	{#if box && !editing}
 		<div class="pptx-svelte-sel-box" style={boxStyle}>
-			{#if selectionCount === 1}<div
+			{#if showRotate}<div
 				class="pptx-svelte-rotate-stem"
 				style={`height:${ROTATE_STEM_PX}px;top:${-ROTATE_STEM_PX}px`}
 			></div>
@@ -60,7 +71,16 @@
 				data-pptx-compact
 				onpointerdown={onrotatepointerdown}
 			></button>{/if}
-			{#each RESIZE_HANDLES as handle (handle)}
+			{#if adjust}<button
+				type="button"
+				class="pptx-svelte-adjust-handle"
+				style={`left:${adjust.left * scale}px;top:${adjust.top * scale}px;cursor:${adjust.cursor}`}
+				data-pptx-adjust-handle
+				aria-label={t('pptx.selectionOverlay.adjust')}
+				data-pptx-compact
+				onpointerdown={onadjustpointerdown}
+			></button>{/if}
+			{#if showResize}{#each RESIZE_HANDLES as handle (handle)}
 				<button
 					type="button"
 					class="pptx-svelte-sel-handle"
@@ -70,7 +90,7 @@
 					data-pptx-compact
 					onpointerdown={(event) => onhandlepointerdown(handle, event)}
 				></button>
-			{/each}
+			{/each}{/if}
 		</div>
 	{/if}
 	{#if marquee}
@@ -118,6 +138,23 @@
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	}
 
+	/* PowerPoint's shape-adjustment affordance: a small amber diamond, drawn by
+	   rotating a square 45deg so it needs no extra element or SVG. */
+	.pptx-svelte-adjust-handle {
+		position: absolute;
+		width: 10px;
+		height: 10px;
+		margin: -5px 0 0 -5px;
+		padding: 0;
+		border: 1px solid #b45309;
+		background: #f59e0b;
+		transform: rotate(45deg);
+		pointer-events: auto;
+		/* The handle must own its touch gesture (no scroll/zoom stealing). */
+		touch-action: none;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	}
+
 	.pptx-svelte-rotate-stem {
 		position: absolute;
 		left: 50%;
@@ -157,6 +194,12 @@
 			width: 24px;
 			height: 24px;
 			margin: -12px 0 0 -12px;
+		}
+
+		.pptx-svelte-adjust-handle {
+			width: 20px;
+			height: 20px;
+			margin: -10px 0 0 -10px;
 		}
 	}
 

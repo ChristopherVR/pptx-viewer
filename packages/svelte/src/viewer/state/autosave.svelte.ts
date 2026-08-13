@@ -6,7 +6,12 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
-import { saveAutosaveSnapshot } from 'pptx-viewer-shared';
+import type { DeckSaveIntent } from 'pptx-viewer-shared';
+import {
+	recoverySnapshotIntent,
+	saveAutosaveSnapshot,
+	saveDeckWithPassword,
+} from 'pptx-viewer-shared';
 
 /**
  * autosave.svelte.ts: debounced crash-recovery autosave for the Svelte viewer.
@@ -52,6 +57,14 @@ export interface AutosaveDeps {
 	getSections?: () => PptxSection[];
 	/** The live core handler used to serialize slides to `.pptx` bytes. */
 	getHandler: () => PptxHandler | null;
+	/**
+	 * The Protect-Presentation state, forwarded to the shared save decision.
+	 * Optional, and deliberately inert: a recovery snapshot is written in the
+	 * clear whatever it says (see `deck-save-encryption` in
+	 * `pptx-viewer-shared`). It is threaded through so the snapshot path uses
+	 * the same one decision function as every real save.
+	 */
+	getSaveIntent?: () => DeckSaveIntent;
 	/**
 	 * Monotonic load counter: a change means a fresh presentation was seeded (not
 	 * a user edit), so the watcher clears dirty instead of arming a save.
@@ -132,7 +145,15 @@ export class AutosaveController {
 		}, this.#deps.getIntervalMs());
 	}
 
-	/** Serialize the current slides to `.pptx` bytes, or null when unavailable. */
+	/**
+	 * Serialize the current slides to `.pptx` bytes, or null when unavailable.
+	 *
+	 * Routed through the shared `saveDeckWithPassword` with an explicit
+	 * `recoverySnapshotIntent` rather than calling `handler.save` directly. The
+	 * bytes are identical (a recovery snapshot is always a plain ZIP), but the
+	 * decision is now the same one every binding makes, so this cannot drift
+	 * into writing an encrypted snapshot that recovery could never reopen.
+	 */
 	async #serialize(): Promise<Uint8Array | null> {
 		const handler = this.#deps.getHandler();
 		if (!handler) {
@@ -143,16 +164,19 @@ export class AutosaveController {
 		const handoutMaster = this.#deps.getHandoutMaster?.();
 		const sections = this.#deps.getSections?.();
 		const hasMasters = Boolean(slideMasters?.length || notesMaster || handoutMaster);
-		return hasMasters
-			? handler.save(this.#deps.getSlides(), {
-					slideMasters,
-					notesMaster,
-					handoutMaster,
-					sections: sections?.length ? sections : undefined,
-				})
-			: handler.save(this.#deps.getSlides(), {
-					sections: sections?.length ? sections : undefined,
-				});
+		return saveDeckWithPassword(
+			handler,
+			this.#deps.getSlides(),
+			hasMasters
+				? {
+						slideMasters,
+						notesMaster,
+						handoutMaster,
+						sections: sections?.length ? sections : undefined,
+					}
+				: { sections: sections?.length ? sections : undefined },
+			recoverySnapshotIntent(this.#deps.getSaveIntent?.()),
+		);
 	}
 
 	/** Force an immediate save, bypassing the debounce window. */

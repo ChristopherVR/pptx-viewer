@@ -14,8 +14,8 @@ import type {
 	PptxCustomShow,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
-import type { TemplateElementMap } from 'pptx-viewer-shared';
-import { cloneTemplateElementsBySlideId } from 'pptx-viewer-shared';
+import type { DeckSaveIntent, TemplateElementMap } from 'pptx-viewer-shared';
+import { cloneTemplateElementsBySlideId, saveDeckWithPassword } from 'pptx-viewer-shared';
 
 import { cloneSlides } from './editor-mutations';
 
@@ -54,10 +54,19 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
 	};
 }
 
+/**
+ * Serialise a document snapshot to `.pptx` bytes.
+ *
+ * `saveIntent` carries the File > Info > Protect Presentation state: when it
+ * holds a password the deck goes through `saveEncrypted`, producing an OLE2
+ * compound file (`EncryptionInfo` + `EncryptedPackage`) instead of a plain ZIP.
+ * The choice is made by the shared `planDeckSave`, so all five bindings agree.
+ */
 export async function saveEditorDocument(
 	handler: PptxHandler,
 	snapshot: EditorSnapshot,
 	format: PptxSaveFormat = 'pptx',
+	saveIntent?: DeckSaveIntent | string | null,
 ): Promise<Uint8Array> {
 	const metadata = {
 		...(snapshot.sections.length > 0 ? { sections: snapshot.sections } : {}),
@@ -81,15 +90,25 @@ export async function saveEditorDocument(
 		snapshot.notesMaster !== undefined ||
 		snapshot.handoutMaster !== undefined;
 	return hasMasters
-		? handler.save(snapshot.slides, {
-				slideMasters: snapshot.slideMasters,
-				notesMaster: snapshot.notesMaster,
-				handoutMaster: snapshot.handoutMaster,
-				...metadata,
-				outputFormat: format,
-			})
-		: handler.save(snapshot.slides, {
-				...metadata,
-				outputFormat: format,
-			});
+		? saveDeckWithPassword(
+				handler,
+				snapshot.slides,
+				{
+					slideMasters: snapshot.slideMasters,
+					notesMaster: snapshot.notesMaster,
+					handoutMaster: snapshot.handoutMaster,
+					...metadata,
+					outputFormat: format,
+				},
+				saveIntent,
+			)
+		: saveDeckWithPassword(
+				handler,
+				snapshot.slides,
+				{
+					...metadata,
+					outputFormat: format,
+				},
+				saveIntent,
+			);
 }

@@ -42,7 +42,7 @@
 			<label><span>{t('pptx.security.confirmPassword')}</span><input type={visible ? 'text' : 'password'} bind:value={confirmation} oninput={() => (error = '')} /></label>
 			{#if error}<p class="error" role="alert">{error}</p>{/if}
 		</div>
-		<footer>{#if isProtected}<button type="button" class="remove" onclick={() => { onremove(); onclose(); }}>{t('pptx.security.removePassword')}</button>{/if}<span></span><button type="button" onclick={onclose}>{t('pptx.common.cancel')}</button><button type="button" class="primary" onclick={submit}>{t('pptx.common.save')}</button></footer>
+		<footer>{#if isProtected}<button type="button" class="remove" onclick={() => { onremove(); onclose(); }}>{t('pptx.security.removePassword')}</button>{/if}<span></span><button type="button" onclick={onclose}>{t('pptx.common.cancel')}</button><button type="button" class="primary" onclick={submit}>{t(isProtected ? 'pptx.security.updatePassword' : 'pptx.security.setPassword')}</button></footer>
 	</div>
 </div>
 

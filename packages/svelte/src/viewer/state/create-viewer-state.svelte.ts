@@ -21,6 +21,7 @@ import { PresentationLoader } from './presentation-loader.svelte';
 import { runQuickAccessCommand } from './quick-access-commands';
 import { provideRenderContext } from './render-context';
 import { provideSmartArt3D } from './smart-art-3d-context';
+import { provideTableCellSelection } from './table-cell-selection-context';
 import { ViewerState } from './viewer-state.svelte';
 
 /**
@@ -96,6 +97,11 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	});
 	// Deck-level inspector actions (Properties tab, no selection), via context.
 	provideInspectorDeck(createInspectorDeckActions({ loader, editor }));
+	// The canvas table-cell range, so `TableView` can ring the selected block.
+	// A getter, not a snapshot: the reads stay live against the runes state.
+	provideTableCellSelection((elementId, row, col) =>
+		editor.tableCells.contains(elementId, row, col),
+	);
 
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const collabCluster = useCollabCluster({ loader, viewer, editor, options, getEditable });

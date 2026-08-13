@@ -115,6 +115,9 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 		getHandoutMaster: () => editor.handoutMaster,
 		getSections: () => editor.sections,
 		getHandler: () => loader.handler,
+		// Threaded through only so the snapshot uses the shared save decision;
+		// a recovery snapshot stays plaintext whatever the protection state is.
+		getSaveIntent: () => editor.saveIntent(),
 		getLoadCount: () => loader.loadCount,
 		onSaved: (bytes) => options.onautosave?.(bytes),
 	});

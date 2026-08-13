@@ -1,6 +1,7 @@
-import { mount, unmount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { EditorState } from '../../../editor/editor-state.svelte';
 import SlideShowTab from './SlideShowTab.svelte';
 
 /**
@@ -35,6 +36,13 @@ function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 	});
 	cleanup = () => unmount(instance);
 	return target;
+}
+
+function makeEditor(): EditorState {
+	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+	editor.editable = true;
+	editor.setSlides([{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [] }]);
+	return editor;
 }
 
 function buttons(target: HTMLElement): Map<string, HTMLButtonElement> {
@@ -88,12 +96,44 @@ describe('slideShowTab', () => {
 		expect(onhideslide).toHaveBeenCalledOnce();
 	});
 
-	it('offers the playback option toggles', () => {
-		const target = mountTab();
-		expect(toggle(target, 'Keep Slides Updated')?.disabled).toBeTruthy();
+	it('offers the playback option toggles, parking the ones with no backing state', () => {
+		const target = mountTab({ editor: makeEditor() });
 		expect(toggle(target, 'Using timings, if present')?.checked).toBeTruthy();
+		expect(toggle(target, 'Using timings, if present')?.disabled).toBeFalsy();
 		expect(toggle(target, 'Play Narrations')?.checked).toBeTruthy();
-		expect(toggle(target, 'Show Media Controls')?.checked).toBeTruthy();
+		// Neither of these has anywhere to be stored, so they admit it rather
+		// than toggling and changing nothing.
+		expect(toggle(target, 'Keep Slides Updated')?.disabled).toBeTruthy();
+		expect(toggle(target, 'Keep Slides Updated')?.checked).toBeFalsy();
+		expect(toggle(target, 'Show Media Controls')?.disabled).toBeTruthy();
+		expect(toggle(target, 'Show Media Controls')?.checked).toBeFalsy();
+	});
+
+	it('commits Use Timings and Play Narrations onto the deck presentation properties', () => {
+		const editor = makeEditor();
+		const target = mountTab({ editor });
+
+		const timings = toggle(target, 'Using timings, if present')!;
+		timings.checked = false;
+		timings.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		expect(editor.presentationProperties.advanceMode).toBe('manual');
+		expect(toggle(target, 'Using timings, if present')?.checked).toBeFalsy();
+
+		const narrations = toggle(target, 'Play Narrations')!;
+		narrations.checked = false;
+		narrations.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		expect(editor.presentationProperties).toMatchObject({ showWithNarration: false });
+		// Use Timings must survive the second commit rather than being replaced.
+		expect(editor.presentationProperties.advanceMode).toBe('manual');
+	});
+
+	it('reads Use Timings back from the deck instead of assuming it is on', () => {
+		const editor = makeEditor();
+		editor.presentationMetadata.updatePresentationProperties({ advanceMode: 'manual' });
+		const target = mountTab({ editor });
+		expect(toggle(target, 'Using timings, if present')?.checked).toBeFalsy();
 	});
 
 	it('reflects and toggles the host subtitle flag', () => {

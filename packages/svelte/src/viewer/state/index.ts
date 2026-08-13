@@ -25,6 +25,8 @@ export { provideSmartArt3D, useSmartArt3D } from './smart-art-3d-context';
 export { getFieldContextGetter, provideFieldContext } from './field-context';
 export type { FieldContextGetter } from './field-context';
 export { getSlideElementsGetter, provideSlideElements } from './slide-elements';
+export { provideTableCellSelection, useTableCellSelection } from './table-cell-selection-context';
+export type { TableCellSelectionSource } from './table-cell-selection-context';
 export type { SlideElementsGetter } from './slide-elements';
 export { createViewerState } from './create-viewer-state.svelte';
 export type { CreateViewerStateOptions, ViewerStateBag } from './create-viewer-state-types';

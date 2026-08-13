@@ -78,7 +78,11 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		getActiveSlide: () => editor.renderedSlides[viewer.current],
 		getStageRoot: () => deps.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
 		// `p:showPr/@useTimings`: "manual" turns every slide's authored advTm off.
-		getUseTimings: () => loader.presentationProperties.advanceMode !== 'manual',
+		// Read from the EDITOR, not the loader: the loader holds the as-parsed
+		// snapshot, so a change made after load (the Slide Show tab's Use Timings
+		// box, or Set Up Slide Show's Advance Slides radios) would never reach
+		// playback. The editor's copy is seeded from the loader's on every load.
+		getUseTimings: () => editor.presentationProperties.advanceMode !== 'manual',
 	});
 
 	let wasPresenting = false;

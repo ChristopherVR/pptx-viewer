@@ -1,7 +1,8 @@
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
-import type { ContextMenuCommandId, ContextMenuEntry } from 'pptx-viewer-shared';
+import type { CellCoord, ContextMenuCommandId, ContextMenuEntry } from 'pptx-viewer-shared';
 import {
 	buildContextMenuEntries,
+	canMergeCells,
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
@@ -9,6 +10,7 @@ import {
 	deleteTableRow,
 	insertTableColumn,
 	insertTableRow,
+	mergeCells,
 } from 'pptx-viewer-shared';
 
 import type { EditorState } from './editor-state.svelte';
@@ -56,8 +58,10 @@ export interface ContextMenuDispatchDeps {
  * `data-*` attributes `TableView` stamps on every rendered `<td>`.
  *
  * The right-clicked cell is read back off the DOM rather than from a stored
- * cursor because this binding has no canvas cell-selection model: the cell the
- * pointer is over is both the most accurate target and the one the user means.
+ * cursor: merge-absorbed cells are not rendered, so a cell's DOM position is
+ * not its model position and only these attributes carry the truth. The block
+ * range the user marquee'd lives separately, on `EditorState.tableCells`, and
+ * targets only the block merge.
  */
 const CELL_ROW_ATTR = 'data-cell-row';
 const CELL_COLUMN_ATTR = 'data-cell-col';
@@ -97,15 +101,20 @@ function isMergedCell(tableData: PptxTableData, cell: ContextMenuCellTarget): bo
 export function buildEditorContextMenuEntries(deps: ContextMenuDispatchDeps): ContextMenuEntry[] {
 	const { editor, cell = null } = deps;
 	const tableData = selectedTableData(editor);
+	// The real cell range, not a hard-coded `false`. Svelte used to pass the
+	// literal, so PowerPoint's "Merge Cells" was unreachable in this binding and
+	// a block of cells could never be merged however the user selected it.
+	const selectedCells = editor.tableCells.cellsFor(editor.selectedElement?.id);
 	return buildContextMenuEntries({
 		elementType: editor.selectedElement?.type ?? null,
-		// Cells are targeted one at a time here (there is no canvas multi-cell
-		// marquee in this binding yet), so the block merge is never the offered
-		// merge; a single cell gets the two pairwise merges, or Split when it
-		// already spans.
+		// With a block selected the menu offers the block merge; with a single
+		// cell it offers the two pairwise merges, or Split when it already spans.
 		table:
 			tableData && cell
-				? { hasMultiCellSelection: false, isMergedCell: isMergedCell(tableData, cell) }
+				? {
+						hasMultiCellSelection: selectedCells.length > 1,
+						isMergedCell: isMergedCell(tableData, cell),
+					}
 				: null,
 		hasMultiSelection: editor.selection.ids.length >= 2,
 		aiEnabled: Boolean(deps.onAskAi ?? deps.onFixAi),
@@ -120,6 +129,7 @@ function computeTableCommand(
 	id: ContextMenuCommandId,
 	tableData: PptxTableData,
 	cell: ContextMenuCellTarget,
+	selectedCells: readonly CellCoord[] = [],
 ): PptxTableData | null {
 	const { rowIndex, columnIndex } = cell;
 	switch (id) {
@@ -151,9 +161,20 @@ function computeTableCommand(
 			const rows = computeSplitCell(tableData, rowIndex, columnIndex);
 			return rows ? { ...tableData, rows } : null;
 		}
+		case 'table-merge-selected': {
+			// The block merge over the canvas cell range. `canMergeCells` is the
+			// guard (it expands the rect over any spans it meets, so a range that
+			// only looks 1x1 because a merged cell fills it is still mergeable),
+			// and `mergeCells` produces the new model; neither is re-implemented
+			// here.
+			const cells = [...selectedCells];
+			if (!canMergeCells(cells, tableData)) {
+				return null;
+			}
+			const next = mergeCells(cells, tableData);
+			return next === tableData ? null : next;
+		}
 		default:
-			// 'table-merge-selected' only reaches here if a future multi-cell
-			// selection starts offering it; there is nothing to merge without one.
 			return null;
 	}
 }
@@ -166,9 +187,17 @@ function runTableCommand(id: ContextMenuCommandId, deps: ContextMenuDispatchDeps
 	if (!element || !tableData || !cell) {
 		return;
 	}
-	const next = computeTableCommand(id, tableData, cell);
+	const next = computeTableCommand(
+		id,
+		tableData,
+		cell,
+		deps.editor.tableCells.cellsFor(element.id),
+	);
 	if (next) {
 		deps.editor.applyElementPatch(element.id, { tableData: next } as Partial<PptxElement>);
+		// The merged block is one cell now, so the range that produced it no
+		// longer describes anything the user can see.
+		deps.editor.tableCells.clear();
 	}
 }
 

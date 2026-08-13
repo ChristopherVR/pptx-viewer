@@ -13,6 +13,7 @@
 	import { buildTableRows, columnWidthStyles } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import { useTableStyleContext } from '../state/render-context';
+	import { useTableCellSelection } from '../state/table-cell-selection-context';
 	import type { ElementRendererProps } from './props';
 
 	const { element, zIndex, interactive = false, marked = false, ontablecellcommit }: ElementRendererProps = $props();
@@ -24,6 +25,10 @@
 	const containerStyle = $derived(
 		styleToString({ ...getContainerStyle(element, zIndex), overflow: 'hidden' }),
 	);
+	// Which cells the canvas range covers. The range itself is decided by
+	// `editor/table-cell-selection`; this only paints it, because a block the
+	// user cannot see is a block they cannot knowingly merge.
+	const isCellSelected = useTableCellSelection();
 	let editingKey = $state<string | null>(null);
 	let draft = $state('');
 
@@ -99,7 +104,7 @@
 						     space to the table's text content, and this binding alone
 						     reported "Feature Starter Team" where the other four report
 						     "FeatureStarterTeam". -->
-						<td class="pptx-svelte-table-cell" data-cell-row={cell.rowIndex} data-cell-col={cell.cellIndex} colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>{#if cell.diagonals}
+						<td class="pptx-svelte-table-cell" class:is-cell-selected={isCellSelected(element.id, cell.rowIndex, cell.cellIndex)} data-cell-row={cell.rowIndex} data-cell-col={cell.cellIndex} data-cell-selected={isCellSelected(element.id, cell.rowIndex, cell.cellIndex) ? 'true' : undefined} colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>{#if cell.diagonals}
 									<!-- Diagonal cell borders as an absolutely positioned SVG overlay. -->
 									<svg
 										class="pptx-svelte-table-diag"
@@ -154,4 +159,12 @@
 		table-layout: fixed;
 	}
 	.pptx-svelte-table-cell input { box-sizing:border-box; width:100%; min-width:0; border:1px solid var(--pptx-primary,#6366f1); background:white; color:#111827; font:inherit; }
+	/* The selected block, ringed the way the other bindings ring theirs. An
+	   inset box-shadow rather than a border/outline: the cell's authored
+	   borders must stay exactly where they are, and a real border would move
+	   the text by a pixel as the range changes. */
+	.pptx-svelte-table-cell.is-cell-selected {
+		box-shadow: inset 0 0 0 2px var(--pptx-ring, #6366f1);
+		background-color: color-mix(in srgb, var(--pptx-ring, #6366f1) 16%, transparent);
+	}
 </style>

@@ -4,6 +4,7 @@ import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 import type { ContextMenuCellTarget } from '../editor/context-menu-dispatch';
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorMarqueeRect } from '../editor/editor-selection-gestures';
+import type { SelectionInteractivity } from '../editor/editor-selection-interactivity';
 import type { EditorState } from '../editor/editor-state.svelte';
 import type { OverlayBox } from '../editor/types';
 
@@ -28,8 +29,21 @@ export interface SelectionOverlayProps {
 	selectionCount?: number;
 	/** In-progress empty-canvas marquee rectangle. */
 	marquee?: EditorMarqueeRect | null;
+	/**
+	 * What the selection's authored `a:spLocks` still permit, plus the
+	 * shape-adjustment descriptor. The overlay is handed an `OverlayBox`, never
+	 * the element, so the element-level verdict is computed by the controller
+	 * (`EditorController.interactivity`) and passed down as this prop; the
+	 * component only maps it onto which chrome it draws.
+	 *
+	 * Defaults to fully interactive with no adjustment handle, which is what an
+	 * unlocked non-round-rect resolves to.
+	 */
+	interactivity?: SelectionInteractivity;
 	onhandlepointerdown: (handle: ResizeHandleId, event: PointerEvent) => void;
 	onrotatepointerdown: (event: PointerEvent) => void;
+	/** Pointer-down on the amber shape-adjustment diamond. */
+	onadjustpointerdown?: (event: PointerEvent) => void;
 }
 
 /** Props for the inline (double-click) text editing surface. */

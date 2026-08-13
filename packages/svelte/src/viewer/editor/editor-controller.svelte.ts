@@ -7,9 +7,11 @@ import {
 } from 'pptx-viewer-shared';
 
 import { readTableCellTarget } from './context-menu-dispatch';
+import type { AdjustGestureController } from './editor-adjust-gesture';
 import type { EditorControllerDeps } from './editor-controller-deps';
 import { selectionOverlayBox } from './editor-controller-geometry';
 import {
+	createAdjustGestures,
 	createEditorKeydown,
 	createInkGestures,
 	createSelectionGestures,
@@ -17,11 +19,16 @@ import {
 } from './editor-controller-wiring';
 import type { EditorControllerHost } from './editor-controller-wiring';
 import type { GestureController } from './editor-gestures';
+import { createHandleHandlers } from './editor-handle-handlers';
+import type { HandleHandlers } from './editor-handle-handlers';
 import type { InkGestureController } from './editor-ink-gesture';
 import type { EditorMarqueeRect } from './editor-selection-gestures';
+import { canMoveElement, selectionInteractivity } from './editor-selection-interactivity';
+import type { SelectionInteractivity } from './editor-selection-interactivity';
 import type { EditorState } from './editor-state.svelte';
 import { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';
 import { canInlineEditElement } from './inline-text';
+import { applyTableCellPointer } from './table-cell-pointer';
 
 export type { EditorControllerDeps } from './editor-controller-deps';
 
@@ -32,6 +39,8 @@ export class EditorController {
 	readonly #ink: InkGestureController;
 	readonly #keydown: (event: KeyboardEvent) => void;
 	readonly #selectionGestures;
+	readonly #adjust: AdjustGestureController;
+	readonly #handles: HandleHandlers;
 
 	snapLines = $state<readonly SnapLine[]>([]);
 	editingId = $state<string | null>(null);
@@ -60,6 +69,16 @@ export class EditorController {
 		this.#ink = createInkGestures(host);
 		this.#keydown = createEditorKeydown(host);
 		this.#selectionGestures = createSelectionGestures(host);
+		this.#adjust = createAdjustGestures(host);
+		this.#handles = createHandleHandlers({
+			getSelectedId: () => editor.selectedElementId,
+			getSelectedElement: () => editor.selectedElement,
+			getInteractivity: () => this.interactivity,
+			gestures: this.#gestures,
+			beginCollectiveTransform: (kind, event, handle) =>
+				this.#selectionGestures.beginTransform(kind, event, handle),
+			adjust: this.#adjust,
+		});
 	}
 
 	#currentElements(): PptxElement[] {
@@ -71,6 +90,15 @@ export class EditorController {
 			return null;
 		}
 		return selectionOverlayBox(this.#editor.selectedElements);
+	}
+
+	/**
+	 * Which selection chrome the authored `a:spLocks` still permit, plus the
+	 * shape-adjustment descriptor. The overlay only ever sees an `OverlayBox`,
+	 * so the element-level verdict is computed here and passed down as a prop.
+	 */
+	get interactivity(): SelectionInteractivity {
+		return selectionInteractivity(this.#editor.selectedElements);
 	}
 
 	get editing(): boolean {
@@ -123,6 +151,13 @@ export class EditorController {
 			this.#selectionGestures.beginMarquee(event);
 			return;
 		}
+		// A click in a table cell (re)anchors the cell range; a Shift-click inside
+		// the selected table stretches it and CONSUMES the event, so it never
+		// reaches the element-level Shift toggle below.
+		if (applyTableCellPointer(this.#editor, id, event.target, event.shiftKey)) {
+			event.preventDefault();
+			return;
+		}
 		if (event.shiftKey || event.ctrlKey || event.metaKey) {
 			this.#editor.selection.toggle(id);
 			return;
@@ -132,6 +167,11 @@ export class EditorController {
 		}
 		if (!this.#editor.selection.has(id)) {
 			this.#editor.select(id);
+		}
+		// A `noMove` element still SELECTS (so it can be unlocked from the
+		// inspector) but arms no drag, which is exactly PowerPoint's behaviour.
+		if (!canMoveElement(this.#editor.elementById(id))) {
+			return;
 		}
 		if (this.#selectionGestures.beginTransform('move', event)) {
 			return;
@@ -204,22 +244,13 @@ export class EditorController {
 		this.#deps.onContextMenu?.(event.clientX, event.clientY, readTableCellTarget(event.target));
 	};
 
-	onHandlePointerDown = (handle: ResizeHandleId, event: PointerEvent): void => {
-		const id = this.#editor.selectedElementId;
-		if (id) {
-			if (this.#selectionGestures.beginTransform('resize', event, handle)) {
-				return;
-			}
-			this.#gestures.begin('resize', id, event, handle);
-		}
-	};
+	// Resize handle / rotate knob / adjustment diamond: see `editor-handle-handlers`.
+	onHandlePointerDown = (handle: ResizeHandleId, event: PointerEvent): void =>
+		this.#handles.onHandlePointerDown(handle, event);
 
-	onRotatePointerDown = (event: PointerEvent): void => {
-		const id = this.#editor.selectedElementId;
-		if (id) {
-			this.#gestures.begin('rotate', id, event);
-		}
-	};
+	onRotatePointerDown = (event: PointerEvent): void => this.#handles.onRotatePointerDown(event);
+
+	onAdjustPointerDown = (event: PointerEvent): void => this.#handles.onAdjustPointerDown(event);
 
 	onKeyDown = (event: KeyboardEvent): void => {
 		this.#keydown(event);
@@ -264,5 +295,6 @@ export class EditorController {
 		this.#gestures.dispose();
 		this.#selectionGestures.dispose();
 		this.#ink.dispose();
+		this.#adjust.dispose();
 	}
 }

@@ -9,6 +9,7 @@
 	 * its own list, which is how it shipped with no Group, Ungroup, Add Comment,
 	 * Edit Hyperlink, and no table commands at all.
 	 */
+	import { clampFlyoutPosition } from 'pptx-viewer-shared';
 	import type { ContextMenuCommandId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -31,7 +32,26 @@
 	}: ElementContextMenuProps = $props();
 	const t = useTranslator();
 
-	const menuStyle = $derived(`left: ${Math.max(x, 8)}px; top: ${Math.max(y, 8)}px`);
+	// Measured on the node itself, so the clamp below knows how much room the
+	// menu actually needs. Zero until the first layout, which `clampFlyoutPosition`
+	// treats as "not measured yet" and falls back to clamping the anchor alone.
+	let menuWidth = $state(0);
+	let menuHeight = $state(0);
+	// Shared decides the placement. This used to be `Math.max(x, 8)` on each axis,
+	// which clamps only the LOW edge: a right-click low or far right on the canvas
+	// put the menu partly off screen, and its commands (Merge Selected Cells among
+	// them) rendered where no pointer could reach them.
+	const menuStyle = $derived.by(() => {
+		const { left, top } = clampFlyoutPosition({
+			x,
+			y,
+			width: menuWidth,
+			height: menuHeight,
+			viewportWidth: typeof window === 'undefined' ? 0 : window.innerWidth,
+			viewportHeight: typeof window === 'undefined' ? 0 : window.innerHeight,
+		});
+		return `left: ${left}px; top: ${top}px`;
+	});
 	const dispatch = $derived({
 		editor,
 		cell,
@@ -65,6 +85,8 @@
 	role="menu"
 	aria-label={t('pptx.contextMenu.ariaLabel')}
 	style={menuStyle}
+	bind:clientWidth={menuWidth}
+	bind:clientHeight={menuHeight}
 >
 	{#each entries as entry (entry.id)}
 		{#if entry.separatorBefore}<div class="pptx-svelte-context-separator" role="separator"></div>{/if}

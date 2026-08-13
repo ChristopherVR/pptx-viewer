@@ -8,18 +8,30 @@
 	 * row (`RibbonPrimaryRow` -> `oncustomshows`), so a second live entry point
 	 * on this tab would be a duplicate rather than a feature.
 	 *
-	 * The Options checkboxes are local playback preferences with no persisted
-	 * home yet; they hold their own state so the control behaves like a
-	 * checkbox rather than a decoration, which is one better than React (whose
-	 * copies are permanently `checked`) without changing what the tab offers.
+	 * The Options checkboxes are rendered from shared's `SLIDE_SHOW_OPTIONS`
+	 * descriptors: the two with real OOXML backing (`p:showPr/@useTimings`,
+	 * `@showNarration`) read and write `editor.presentationProperties` through
+	 * the same `updatePresentationProperties` path the Set Up Slide Show dialog
+	 * uses, so unticking Use Timings really stops timed auto-advance. The other
+	 * two have no backing state anywhere and render disabled rather than
+	 * pretending to toggle something.
 	 */
+	import type { SlideShowOptionDescriptor, SlideShowOptionId } from 'pptx-viewer-shared';
+	import {
+		SLIDE_SHOW_OPTIONS,
+		readSlideShowOption,
+		slideShowOptionChange,
+	} from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../../i18n/context';
+	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import RibbonCommand from '../RibbonCommand.svelte';
 	import RibbonCommandStack from '../RibbonCommandStack.svelte';
 	import RibbonGroup from '../RibbonGroup.svelte';
 	import RibbonToggle from '../RibbonToggle.svelte';
 
 	const {
+		editor,
 		onfrombeginning,
 		onfromcurrent,
 		onbroadcast,
@@ -32,6 +44,8 @@
 		activeSlideHidden = false,
 		subtitlesEnabled = false,
 	}: {
+		/** Owns the deck's presentation properties, which back the Options group. */
+		editor?: EditorState;
 		onfrombeginning: () => void;
 		onfromcurrent: () => void;
 		onbroadcast?: () => void;
@@ -51,12 +65,28 @@
 	} = $props();
 	const t = useTranslator();
 
-	// eslint-disable-next-line prefer-const
-	let useTimings = $state(true);
-	// eslint-disable-next-line prefer-const
-	let playNarrations = $state(true);
-	// eslint-disable-next-line prefer-const
-	let mediaControls = $state(true);
+	/** PowerPoint keeps Media Controls beside Subtitles, in the second stack. */
+	const optionStacks: readonly (readonly SlideShowOptionDescriptor[])[] = [
+		SLIDE_SHOW_OPTIONS.slice(0, 3),
+		SLIDE_SHOW_OPTIONS.slice(3),
+	];
+
+	function optionChecked(option: SlideShowOptionDescriptor): boolean {
+		return readSlideShowOption(editor?.presentationProperties, option.id);
+	}
+
+	function setOption(id: SlideShowOptionId, checked: boolean): void {
+		const change = slideShowOptionChange(id, checked);
+		if (!change || !editor) {
+			return;
+		}
+		// Same commit path as SetUpSlideShowDialog's Advance Slides radios: merged
+		// onto the current properties, because the setter replaces wholesale.
+		editor.presentationMetadata.updatePresentationProperties({
+			...editor.presentationProperties,
+			...change,
+		});
+	}
 </script>
 
 <div class="pptx-svelte-slideshowtab">
@@ -135,24 +165,24 @@
 
 	<RibbonGroup label={t('pptx.slideShow.options')}>
 		<RibbonCommandStack>
-			<RibbonToggle label={t('pptx.slideShow.keepUpdated')} checked={false} disabled />
-			<RibbonToggle
-				label={t('pptx.slideShow.useTimings')}
-				checked={useTimings}
-				onchange={(next) => (useTimings = next)}
-			/>
-			<RibbonToggle
-				label={t('pptx.slideShow.playNarrations')}
-				checked={playNarrations}
-				onchange={(next) => (playNarrations = next)}
-			/>
+			{#each optionStacks[0] as option (option.id)}
+				<RibbonToggle
+					label={t(option.labelKey)}
+					checked={optionChecked(option)}
+					disabled={option.unsupported || !editor?.editable}
+					onchange={(next) => setOption(option.id, next)}
+				/>
+			{/each}
 		</RibbonCommandStack>
 		<RibbonCommandStack>
-			<RibbonToggle
-				label={t('pptx.slideShow.mediaControls')}
-				checked={mediaControls}
-				onchange={(next) => (mediaControls = next)}
-			/>
+			{#each optionStacks[1] as option (option.id)}
+				<RibbonToggle
+					label={t(option.labelKey)}
+					checked={optionChecked(option)}
+					disabled={option.unsupported || !editor?.editable}
+					onchange={(next) => setOption(option.id, next)}
+				/>
+			{/each}
 			<RibbonToggle
 				label={t('pptx.slideShow.subtitles')}
 				title={t('pptx.slideShow.subtitlesTooltip')}

@@ -1,6 +1,6 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { remapTextToSegments } from 'pptx-viewer-shared';
+import { canInteractWithElement, remapTextToSegments } from 'pptx-viewer-shared';
 
 /**
  * Pure helpers for inline text editing. The editable surface itself is a
@@ -18,7 +18,11 @@ import { remapTextToSegments } from 'pptx-viewer-shared';
  * the OMML (`textSegments[].equationXml`). Mirrors the vanilla/Vue/React guard.
  */
 export function canInlineEditElement(element: PptxElement | undefined): boolean {
-	if (!element || !hasTextProperties(element) || element.locks?.noTextEdit) {
+	// The lock is asked of shared `canInteractWithElement`, not read off
+	// `locks.noTextEdit` by hand: `noSelect` subsumes `noTextEdit`, and folding
+	// that composition in one place is what stops the five bindings drifting
+	// over which flags imply which.
+	if (!element || !hasTextProperties(element) || !canInteractWithElement(element, 'textEdit')) {
 		return false;
 	}
 	return !element.textSegments?.some((seg) => seg.equationXml);

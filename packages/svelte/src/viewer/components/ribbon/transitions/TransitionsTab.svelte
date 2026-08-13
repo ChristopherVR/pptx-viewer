@@ -4,54 +4,65 @@
 	 * `TransitionsSection` control set (Preview / gallery / Timing / Advance
 	 * Slide / Inspector).
 	 *
-	 * Every preset click routes through `EditorState.transitionOps.applyTransition`,
-	 * which writes the exact `PptxSlide.transition` field the presentation-mode
-	 * playback state machine consumes (see
-	 * `presentation/presentation-controller.svelte.ts`), so a picked transition
-	 * plays back immediately in Present mode. Duration, sound and "Apply to All"
-	 * are modifiers applied on the *next* preset click rather than independently
-	 * committed, so typing a duration never spawns its own history entry.
+	 * The controls hold a `RibbonTransitionDraft` (shared's
+	 * `render/ribbon-transitions`), seeded from the active slide so the tab
+	 * cannot lie after a navigation, and EVERY control commits that whole draft
+	 * through `EditorState.transitionOps.applyRibbonDraft`. That writes the exact
+	 * `PptxSlide.transition` field the playback state machine consumes (see
+	 * `presentation/presentation-controller.svelte.ts`), so duration and the
+	 * Advance Slide boxes take effect on their own rather than waiting for the
+	 * next preset click (which is how they used to reach nothing at all).
 	 *
-	 * Preview replays the current slide's transition on the live stage by
-	 * re-applying it, which is one better than React (whose Preview button has
-	 * no handler at all) without changing what the tab offers. Sound and the
-	 * Advance Slide checkboxes are staged the same way the other modifiers are;
-	 * OOXML sound transitions are not in the save model yet, so the select is
-	 * limited to "[No Sound]", exactly as React's is.
+	 * Preview replays the draft on the live stage by re-committing it, which is
+	 * one better than React (whose Preview button has no handler at all).
 	 */
 	import type { PptxTransitionType } from 'pptx-viewer-core';
+	import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
+	import { EMPTY_RIBBON_TRANSITION_DRAFT, readRibbonTransitionDraft } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { ChromeUiState } from '../../../state/chrome-ui.svelte';
-	import { DEFAULT_TRANSITION_DURATION_SEC, TRANSITION_PRESETS } from './transition-presets';
+	import { TRANSITION_PRESETS } from './transition-presets';
 
 	const { editor, chromeUi }: { editor: EditorState; chromeUi?: ChromeUiState } = $props();
 	const t = useTranslator();
 
 	// eslint-disable-next-line prefer-const
-	let durationSec = $state(DEFAULT_TRANSITION_DURATION_SEC);
-	// eslint-disable-next-line prefer-const
 	let applyToAll = $state(false);
-	// eslint-disable-next-line prefer-const
-	let advanceOnClick = $state(true);
-	// eslint-disable-next-line prefer-const
-	let advanceAfter = $state(false);
-	// eslint-disable-next-line prefer-const
-	let advanceAfterSeconds = $state('00:00.00');
+	let draft = $state<RibbonTransitionDraft>({ ...EMPTY_RIBBON_TRANSITION_DRAFT });
+
+	// Seeded by the effect below (not at init, which would only ever capture the
+	// first `editor`), and re-seeded only when the ACTIVE SLIDE changes rather
+	// than after our own commits: a commit-triggered re-seed would untick "After"
+	// the moment it is ticked, since an armed-but-zero advance reads back as
+	// unarmed.
+	let seededKey: string | null = null;
+	$effect(() => {
+		const index = editor.currentSlideIndex;
+		const slide = editor.slides[index];
+		const key = `${index}:${slide?.id ?? ''}`;
+		if (key !== seededKey) {
+			seededKey = key;
+			draft = readRibbonTransitionDraft(slide);
+		}
+	});
 
 	const activeType = $derived<PptxTransitionType | undefined>(
 		editor.slides[editor.currentSlideIndex]?.transition?.type,
 	);
 
-	function applyPreset(type: PptxTransitionType): void {
-		editor.transitionOps.applyTransition(type, Math.round(durationSec * 1000), applyToAll);
+	/** Fold a control's change into the draft and commit the whole draft. */
+	function commit(change: Partial<RibbonTransitionDraft>): void {
+		draft = { ...draft, ...change };
+		editor.transitionOps.applyRibbonDraft(draft, applyToAll);
 	}
 
-	/** Re-apply the slide's own transition so the stage plays it once more. */
-	function preview(): void {
-		if (activeType) {
-			editor.transitionOps.applyTransition(activeType, Math.round(durationSec * 1000), false);
+	/** Ticking Apply to All pushes what the tab currently says onto every slide. */
+	function setApplyToAll(next: boolean): void {
+		applyToAll = next;
+		if (next) {
+			editor.transitionOps.applyRibbonDraft(draft, true);
 		}
 	}
 </script>
@@ -61,7 +72,7 @@
 		type="button"
 		class="pptx-svelte-transitionstab-pill"
 		title={t('pptx.ribbon.previewTransition')}
-		onclick={preview}
+		onclick={() => commit({})}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 3 9 5-9 5z" fill="currentColor" /></svg>
 		{t('pptx.ribbon.preview')}
@@ -75,7 +86,7 @@
 				class:pptx-svelte-transitionstab-active={activeType === preset.type}
 				aria-label={t(preset.labelKey)}
 				title={t(preset.labelKey)}
-				onclick={() => applyPreset(preset.type)}
+				onclick={() => commit({ type: preset.type })}
 			>
 				{t(preset.labelKey)}
 			</button>
@@ -91,38 +102,60 @@
 			step="0.25"
 			title={t('pptx.ribbon.transitionDurationTitle')}
 			disabled={!editor.editable}
-			value={durationSec}
-			oninput={(e) => (durationSec = Math.max(0, Number(e.currentTarget.value) || 0))}
+			value={draft.durationSec}
+			oninput={(e) => commit({ durationSec: Math.max(0, Number(e.currentTarget.value) || 0) })}
 		/>
 	</label>
 
+	<!-- Always disabled: no binding can author a transition sound (there is no
+	     `p:sndAc` write path in the save model), so an enabled select would be a
+	     control that cannot do anything. -->
 	<label class="pptx-svelte-transitionstab-field">
 		<span>{t('pptx.ribbon.sound')}</span>
-		<select disabled={!editor.editable}>
+		<select disabled>
 			<option value="none">{t('pptx.ribbon.soundNone')}</option>
 		</select>
 	</label>
 
 	<label class="pptx-svelte-transitionstab-field">
-		<input type="checkbox" disabled={!editor.editable} bind:checked={applyToAll} />
+		<input
+			type="checkbox"
+			disabled={!editor.editable}
+			checked={applyToAll}
+			onchange={(e) => setApplyToAll(e.currentTarget.checked)}
+		/>
 		{t('pptx.headerFooter.applyToAll')}
 	</label>
 
 	<div class="pptx-svelte-transitionstab-advance">
 		<span class="pptx-svelte-transitionstab-advance-title">{t('pptx.ribbon.advanceSlide')}</span>
 		<label class="pptx-svelte-transitionstab-field">
-			<input type="checkbox" bind:checked={advanceOnClick} />
+			<input
+				type="checkbox"
+				disabled={!editor.editable}
+				checked={draft.advanceOnClick}
+				onchange={(e) => commit({ advanceOnClick: e.currentTarget.checked })}
+			/>
 			{t('pptx.ribbon.onMouseClick')}
 		</label>
 		<label class="pptx-svelte-transitionstab-field">
-			<input type="checkbox" bind:checked={advanceAfter} />
+			<input
+				type="checkbox"
+				disabled={!editor.editable}
+				checked={draft.advanceAfter}
+				onchange={(e) => commit({ advanceAfter: e.currentTarget.checked })}
+			/>
 			<span>{t('pptx.ribbon.afterDuration')}</span>
+			<!-- Committed on `change`, not `input`: half-typed `mm:ss.hh` text would
+			     otherwise write a stream of nonsense advances (and history steps). -->
 			<input
 				type="text"
 				class="pptx-svelte-transitionstab-after"
 				title={t('pptx.ribbon.advanceAfterSeconds')}
-				disabled={!advanceAfter}
-				bind:value={advanceAfterSeconds}
+				disabled={!editor.editable || !draft.advanceAfter}
+				value={draft.advanceAfterText}
+				oninput={(e) => (draft = { ...draft, advanceAfterText: e.currentTarget.value })}
+				onchange={(e) => commit({ advanceAfterText: e.currentTarget.value })}
 			/>
 		</label>
 	</div>

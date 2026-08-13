@@ -10,6 +10,7 @@
 		getImageColorWashStyle,
 		getImageFitStyle,
 		getImageOverflow,
+		getImageTilingStyle,
 		resolveColorChangedImageSource,
 	} from 'pptx-viewer-shared';
 
@@ -46,6 +47,19 @@
 			});
 		}
 	});
+	// `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express,
+	// so the picture paints as a repeating background layer instead. `undefined`
+	// for a normal (untiled) picture, which keeps the `<img>` branch.
+	const tiling = $derived(getImageTilingStyle(element));
+	const tileStyle = $derived(
+		tiling
+			? styleToString({
+					...tiling,
+					...(imageFx.filter ? { filter: imageFx.filter } : {}),
+					...(imageFx.opacity !== undefined ? { opacity: imageFx.opacity } : {}),
+				})
+			: '',
+	);
 	const imgStyle = $derived(
 		styleToString({
 			...getImageFitStyle(element),
@@ -68,7 +82,9 @@
 			</defs>
 		</svg>
 	{/each}
-	{#if processedSrc}
+	{#if tiling}
+		<div class="pptx-svelte-image-tile" style={tileStyle}></div>
+	{:else if processedSrc}
 		<img src={processedSrc} alt="" style={imgStyle} />
 		{#if colorWash}
 			<div

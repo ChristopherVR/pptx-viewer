@@ -43,8 +43,6 @@
 	// eslint-disable-next-line prefer-const
 	let embedFontsEnabled = $state(false);
 	let passwordProtected = $state(false);
-	// eslint-disable-next-line prefer-const
-	let presentationPassword = $state<string | null>(null);
 	const usedFontFamilies = $derived(collectUsedFonts(props.editor.slides));
 	const slideCommentCount = $derived(props.slides[props.current]?.comments?.length ?? 0);
 	$effect(() => {
@@ -145,6 +143,7 @@
 			<AnimationsTab editor={props.editor} chromeUi={props.chromeUi} />
 		{:else if activeTab === 'slideShow'}
 			<SlideShowTab
+				editor={props.editor}
 				onfrombeginning={props.onfrombeginning}
 				onfromcurrent={props.onfromcurrent}
 				onpresenter={props.onpresenter}
@@ -194,7 +193,9 @@
 	<DigitalSignaturesDialog hasSignatures={props.hasDigitalSignatures} signatureCount={props.digitalSignatureCount} onclose={() => (signaturesOpen = false)} />
 {/if}
 {#if protectionOpen}
-	<PasswordProtectionDialog protected={passwordProtected} onset={(password) => { presentationPassword = password; passwordProtected = true; }} onremove={() => { presentationPassword = null; passwordProtected = false; }} onclose={() => (protectionOpen = false)} />
+	<!-- The secret lives on `EditorState`, not this component: the save path
+	     reads it there and routes a protected deck through `saveEncrypted`. -->
+	<PasswordProtectionDialog protected={passwordProtected} onset={(password) => { props.editor.setSavePassword(password); passwordProtected = true; }} onremove={() => { props.editor.clearSavePassword(); passwordProtected = false; }} onclose={() => (protectionOpen = false)} />
 {/if}
 {#if propertiesOpen}<DocumentPropertiesDialog editor={props.editor} onclose={() => setPropertiesOpen(false)} />{/if}
 

@@ -115,6 +115,19 @@ export {
 export type { ZOrderDirection } from './editor-zorder';
 export { reorderElement } from './editor-zorder';
 export { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';
+export type { AdjustGestureController, AdjustGestureDeps } from './editor-adjust-gesture';
+export { createAdjustGestureController, withShapeAdjustments } from './editor-adjust-gesture';
+export type { HandleGestureHost, HandleHandlers } from './editor-handle-handlers';
+export { createHandleHandlers } from './editor-handle-handlers';
+export type { SelectionInteractivity } from './editor-selection-interactivity';
+export {
+	canMoveElement,
+	DEFAULT_SELECTION_INTERACTIVITY,
+	selectionInteractivity,
+} from './editor-selection-interactivity';
+export type { TableCellPoint } from './table-cell-selection.svelte';
+export { TableCellSelection } from './table-cell-selection.svelte';
+export { applyTableCellPointer } from './table-cell-pointer';
 export type { InlineTextSurface } from './inline-text';
 export {
 	canInlineEditElement,

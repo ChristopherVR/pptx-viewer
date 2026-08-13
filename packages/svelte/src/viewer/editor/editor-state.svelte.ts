@@ -16,8 +16,12 @@ import type {
 	PptxTagCollection,
 	TextSegment,
 } from 'pptx-viewer-core';
-import type { ElementClipboardPayload, TemplateElementMap } from 'pptx-viewer-shared';
-import { isElementIdInteractive } from 'pptx-viewer-shared';
+import type {
+	DeckSaveIntent,
+	ElementClipboardPayload,
+	TemplateElementMap,
+} from 'pptx-viewer-shared';
+import { canInteractWithElement, isElementIdInteractive } from 'pptx-viewer-shared';
 
 import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
@@ -50,6 +54,7 @@ import { EditorSlidesController } from './editor-slides-controller';
 import { EditorTemplateController } from './editor-template-controller';
 import { EditorTransitionController } from './editor-transition-controller';
 import type { ZOrderDirection } from './editor-zorder';
+import { TableCellSelection } from './table-cell-selection.svelte';
 
 export interface EditorStateDeps {
 	getCurrent(): number;
@@ -76,11 +81,22 @@ export class EditorState {
 	tagCollections = $state.raw<PptxTagCollection[]>([]);
 	masterViewTarget = $state.raw<MasterViewTarget | null>(null);
 	readonly selection = new EditorSelection();
+	/** The block of table cells marquee'd inside the selected table, if any. */
+	readonly tableCells = new TableCellSelection();
 	editable = $state(false);
 	dirty = $state(false);
 	editTemplateMode = $state(false);
 	interactionActive = $state(false);
 	clipboard = $state.raw<ElementClipboardPayload | null>(null);
+	/**
+	 * File ▸ Info ▸ Protect Presentation state. Deliberately NOT part of
+	 * {@link EditorSnapshot}: the secret is session state, not document content,
+	 * so undo must never restore or clear it. {@link saveIntent} feeds it to the
+	 * shared `planDeckSave`, which routes a protected save through
+	 * `saveEncrypted` (an OLE2 container) instead of `save` (a plain ZIP).
+	 */
+	passwordProtected = $state(false);
+	savePassword = $state<string | null>(null);
 
 	/** Undo/redo stack; the `canUndo` / `canRedo` getters below mirror it. */
 	readonly history = new EditorHistoryState();
@@ -177,11 +193,34 @@ export class EditorState {
 	}
 
 	select(id: string | null): void {
-		this.selection.set(id && this.isElementInteractive(id) ? id : null);
+		const next = id && this.isElementInteractive(id) ? id : null;
+		this.selection.set(next);
+		// A different element (or nothing) is selected now, so any table cell
+		// range built on the previous one is stale. Fed the id we just set
+		// rather than re-reading `selection.primary`: the host's editable
+		// effect calls this AND writes the selection, so reading it back here
+		// closed a read-write cycle that tripped `effect_update_depth_exceeded`
+		// and took the whole viewer down.
+		this.tableCells.syncElement(next);
 	}
 
+	/** The element with `id` on the surface the pointer acts on, or undefined. */
+	elementById(id: string): PptxElement | undefined {
+		return this.activeElements.find((element) => element.id === id);
+	}
+
+	/**
+	 * May the pointer act on `id` at all? Two gates, both of which must pass:
+	 * the template rule (an inherited master/layout node is inert unless
+	 * edit-template mode is on) and the element's own authored `a:spLocks`. The
+	 * lock half was missing entirely, which is why a `noSelect` shape from a
+	 * real deck was as selectable and draggable as any other.
+	 */
 	isElementInteractive(id: string): boolean {
-		return isElementIdInteractive(id, this.editTemplateMode);
+		if (!isElementIdInteractive(id, this.editTemplateMode)) {
+			return false;
+		}
+		return canInteractWithElement(this.elementById(id), 'select');
 	}
 
 	setTemplateEditing(enabled: boolean): void {
@@ -190,6 +229,7 @@ export class EditorState {
 		}
 		this.editTemplateMode = enabled;
 		this.selection.clear();
+		this.tableCells.clear();
 	}
 
 	/** Apply the File > Options "maximum number of undos" value. */
@@ -239,6 +279,23 @@ export class EditorState {
 	/** A deep clone of the whole editable document (one undo entry, or save input). */
 	snapshot(): EditorSnapshot {
 		return createEditorSnapshot(this);
+	}
+
+	/** The Protect-Presentation state every save path hands to `planDeckSave`. */
+	saveIntent(): DeckSaveIntent {
+		return { password: this.savePassword, passwordProtected: this.passwordProtected };
+	}
+
+	/** File ▸ Info ▸ Protect Presentation: arm password encryption for saves. */
+	setSavePassword(password: string): void {
+		this.savePassword = password;
+		this.passwordProtected = true;
+	}
+
+	/** File ▸ Info ▸ Protect Presentation: back to saving in the clear. */
+	clearSavePassword(): void {
+		this.savePassword = null;
+		this.passwordProtected = false;
 	}
 
 	deleteSelected = (): void => this.elementOps.deleteSelected();

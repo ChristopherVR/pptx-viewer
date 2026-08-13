@@ -1,6 +1,13 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { SnapLine } from 'pptx-viewer-shared';
+import {
+	applyReroutedConnectors,
+	filterInteractableIds,
+	rerouteConnectorsForMovedElements,
+} from 'pptx-viewer-shared';
 
+import { createAdjustGestureController, withShapeAdjustments } from './editor-adjust-gesture';
+import type { AdjustGestureController } from './editor-adjust-gesture';
 import type { EditorControllerDeps } from './editor-controller-deps';
 import { elementInteractionBox, siblingBoxes } from './editor-controller-geometry';
 import { createGestureController } from './editor-gestures';
@@ -38,6 +45,31 @@ function stageOrigin(host: EditorControllerHost): { left: number; top: number } 
 	return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
 }
 
+/**
+ * Drag a shape and the connectors glued to it must follow, exactly as they do
+ * in PowerPoint. The endpoint math is the shared `connector-reroute` model (one
+ * copy for all five bindings); this only decides WHEN it runs: once, at gesture
+ * end, over the ids the gesture actually moved.
+ *
+ * Deliberately NOT `commitActiveElements` and deliberately no `pushHistory`:
+ * the gesture's own `onStart` already pushed one history entry, so recording a
+ * second here would make every drag of a connected shape take two undos.
+ */
+export function rerouteConnectorsAfterGesture(
+	host: EditorControllerHost,
+	movedIds: Set<string>,
+): void {
+	if (movedIds.size === 0) {
+		return;
+	}
+	const elements = host.currentElements();
+	const rerouted = rerouteConnectorsForMovedElements(elements, movedIds);
+	if (rerouted.length === 0) {
+		return;
+	}
+	host.editor.replaceActiveElements(applyReroutedConnectors(elements, rerouted));
+}
+
 /** Move / resize / rotate gestures, including snapping and history bracketing. */
 export function createTransformGestures(host: EditorControllerHost): GestureController {
 	const { editor, deps } = host;
@@ -62,6 +94,41 @@ export function createTransformGestures(host: EditorControllerHost): GestureCont
 			if (transform) {
 				editor.patchGeometry(id, transform);
 			}
+			editor.interactionActive = false;
+			if (moved) {
+				rerouteConnectorsAfterGesture(host, new Set([id]));
+				editor.commitChange();
+			}
+		},
+	});
+}
+
+/**
+ * The amber adjustment-diamond drag (round-rect corner radius).
+ *
+ * Bracketed exactly like the transform gestures: one `pushHistory` when the
+ * drag clears its dead zone, live frames straight onto the active elements
+ * (history-free, so a drag is not one undo step per frame), one `commitChange`
+ * at the end.
+ */
+export function createAdjustGestures(host: EditorControllerHost): AdjustGestureController {
+	const { editor, deps } = host;
+	return createAdjustGestureController({
+		getScale: () => deps.getScale(),
+		onStart: () => {
+			editor.pushHistory();
+			editor.interactionActive = true;
+		},
+		onPreview: (id, adjustments) => {
+			editor.replaceActiveElements(
+				host
+					.currentElements()
+					.map((element) =>
+						element.id === id ? withShapeAdjustments(element, adjustments) : element,
+					),
+			);
+		},
+		onEnd: (moved) => {
 			editor.interactionActive = false;
 			if (moved) {
 				editor.commitChange();
@@ -141,13 +208,20 @@ export function createSelectionGestures(
 		getStageRect: () => deps.getHolderEl()?.getBoundingClientRect(),
 		getElements: () => host.currentElements(),
 		getSelectedIds: () => editor.selection.ids,
+		getTransformIds: (interaction) =>
+			filterInteractableIds(
+				editor.selection.ids,
+				(id) => editor.elementById(id),
+				interaction === 'move' ? 'move' : 'resize',
+			),
 		onStart: () => {
 			editor.pushHistory();
 			editor.interactionActive = true;
 		},
 		onPatch: (id, patch) => editor.patchGeometry(id, patch),
-		onCommit: () => {
+		onCommit: (movedIds) => {
 			editor.interactionActive = false;
+			rerouteConnectorsAfterGesture(host, new Set(movedIds));
 			editor.commitChange();
 		},
 		onSelect: (ids) => editor.selection.setAll(ids),

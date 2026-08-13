@@ -34,8 +34,10 @@
 	editing={controller.editing}
 	selectionCount={controller.selectionCount}
 	marquee={controller.marquee}
+	interactivity={controller.interactivity}
 	onhandlepointerdown={controller.onHandlePointerDown}
 	onrotatepointerdown={controller.onRotatePointerDown}
+	onadjustpointerdown={controller.onAdjustPointerDown}
 />
 
 {#if editingElement && editingBox && controller.editingId}

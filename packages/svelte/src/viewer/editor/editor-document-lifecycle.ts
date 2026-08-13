@@ -198,6 +198,8 @@ export async function saveEditorState(
 		handler,
 		{ ...state.snapshot(), slides: state.renderedSlides },
 		format,
+		// File ▸ Info ▸ Protect Presentation: encrypts the output when set.
+		state.saveIntent(),
 	);
 	state.dirty = false;
 	return bytes;
