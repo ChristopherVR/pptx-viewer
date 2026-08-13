@@ -2,6 +2,7 @@ import { assertDistFreshness } from './dist-freshness';
 import { generateChartFixture } from './fixtures/generate-chart-fixture';
 import { generateFieldSubstitutionFixture } from './fixtures/generate-field-substitution-fixture';
 import { generateFixture } from './fixtures/generate-format-painter-fixture';
+import { generateLineFillFidelityFixture } from './fixtures/generate-line-fill-fidelity-fixture';
 import { generateLinkedTextBoxFixture } from './fixtures/generate-linked-textbox-fixture';
 import { generateMasterViewsFixture } from './fixtures/generate-master-views-fixture';
 import { generateMorphShapeSwapFixture } from './fixtures/generate-morph-shape-swap-fixture';
@@ -25,4 +26,5 @@ export default async function globalSetup() {
 	await generateTextLayoutFixture();
 	await generateLinkedTextBoxFixture();
 	await generateMorphShapeSwapFixture();
+	await generateLineFillFidelityFixture();
 }
