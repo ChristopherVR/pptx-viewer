@@ -29,6 +29,7 @@ function paragraph(overrides: Partial<RenderParagraph>): RenderParagraph {
 	return {
 		runs: [{ text: 'Picture item', style: {} }],
 		bulletStyle: {},
+		segmentIndices: [],
 		...overrides,
 	};
 }
@@ -96,5 +97,54 @@ describe('textBlock picture bullets', () => {
 		expect(target.querySelector('.pptx-svelte-bullet-image')).toBeNull();
 		expect(fallback?.textContent).toContain('•');
 		expect(fallback?.getAttribute('aria-label')).toBe('Bullet');
+	});
+});
+
+describe('textBlock hyperlink and inline equation runs', () => {
+	it('renders a hyperlinked run as a safe anchor', () => {
+		// Before `ParagraphRun` carried a hyperlink, this binding painted linked
+		// text as an ordinary span: the link was silently gone from the DOM.
+		const target = render(
+			paragraph({
+				runs: [
+					{ text: 'See ', style: {} },
+					{
+						text: 'the docs',
+						style: {},
+						hyperlink: { url: 'https://example.com', href: 'https://example.com', tooltip: 'Docs' },
+					},
+				],
+			}),
+		);
+		const link = target.querySelector<HTMLAnchorElement>('a.pptx-svelte-link');
+		expect(link?.getAttribute('href')).toBe('https://example.com');
+		expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+		expect(link?.getAttribute('title')).toBe('Docs');
+		expect(link?.textContent).toBe('the docs');
+		expect(target.querySelectorAll('a')).toHaveLength(1);
+	});
+
+	it('renders an inline equation run as MathML between the runs around it', () => {
+		const target = render(
+			paragraph({
+				runs: [
+					{ text: 'Given ', style: {} },
+					{
+						text: '',
+						style: {},
+						equation: { xml: { 'm:oMath': { 'm:r': { 'm:t': 'x' } } }, number: '1' },
+					},
+					{ text: ' holds', style: {} },
+				],
+			}),
+		);
+		expect(
+			target.querySelector('.pptx-svelte-inline-equation .pptx-svelte-equation')?.innerHTML,
+		).toContain('<mi>x</mi>');
+		expect(target.querySelector('.pptx-svelte-equation-number')?.textContent).toBe('(1)');
+		// The prose on either side survives, which the wholesale "delegate the
+		// whole element to EquationView" path destroyed.
+		expect(target.textContent).toContain('Given');
+		expect(target.textContent).toContain('holds');
 	});
 });

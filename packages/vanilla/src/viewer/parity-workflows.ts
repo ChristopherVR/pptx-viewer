@@ -43,6 +43,11 @@ export interface ParityWorkflowHost {
 	optionsStore: ViewerOptionsStore;
 	/** Options > Save > "Delete cached files". */
 	clearOptionsCache(): void;
+	/**
+	 * Record a font family the user registered from a local file
+	 * (File > Options > Fonts), so the Home tab's font list offers it.
+	 */
+	registerCustomFont(family: string): void;
 	/** Whether the host enabled the `ai` option (adds the Options > AI section). */
 	aiEnabled: boolean;
 	root(): HTMLElement;
@@ -115,6 +120,10 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 					catalog: localeState.catalog,
 					currentCode: localeState.code,
 					onSelect: (code) => host.setLocale(code),
+				},
+				customFonts: {
+					list: () => state().customFontFamilies,
+					register: (family) => host.registerCustomFont(family),
 				},
 			});
 		},

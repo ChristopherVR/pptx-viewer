@@ -9,6 +9,14 @@ export interface FontEmbeddingDialogOptions {
 	slides: readonly PptxSlide[];
 	embeddedFonts: readonly PptxEmbeddedFont[];
 	enabled: boolean;
+	/**
+	 * False when the deck embeds nothing, in which case the switch is inert and
+	 * says why: the viewer can keep or strip embedded font data on save, but it
+	 * cannot manufacture it from an installed system face.
+	 */
+	canEmbed?: boolean;
+	/** i18n key for the explanation shown when `canEmbed` is false. */
+	unavailableKey?: string;
 	onToggle(enabled: boolean): void;
 }
 
@@ -20,14 +28,23 @@ export function openFontEmbeddingDialog(
 	const shell = openFileInfoDialogShell(doc, t, t('pptx.fonts.embedFonts'));
 	const description = createEl(doc, 'p', 'pptxv-info-description');
 	description.textContent = t('pptx.fonts.embedDescription');
+	const canEmbed = options.canEmbed !== false;
 	const toggle = createEl(doc, 'label', 'pptxv-info-toggle');
 	const checkbox = createEl(doc, 'input');
 	checkbox.type = 'checkbox';
 	checkbox.checked = options.enabled;
+	checkbox.disabled = !canEmbed;
 	checkbox.addEventListener('change', () => options.onToggle(checkbox.checked));
 	const toggleLabel = createEl(doc, 'span');
 	toggleLabel.textContent = t('pptx.fonts.enableEmbedding');
 	toggle.append(checkbox, toggleLabel);
+	// The switch used to move and change nothing at all. It now decides whether
+	// save keeps the deck's embedded font data, so it has to say which of the two
+	// it is doing, and admit when it can do neither.
+	const note = createEl(doc, 'p', 'pptxv-info-status');
+	note.textContent = canEmbed
+		? t('pptx.fonts.embedKeepsExisting')
+		: t(options.unavailableKey ?? 'pptx.fonts.embedUnavailable');
 
 	const families = collectUsedFonts(options.slides);
 	const embedded = new Set(options.embeddedFonts.map((font) => font.name));
@@ -63,7 +80,7 @@ export function openFontEmbeddingDialog(
 		return undefined;
 	});
 
-	shell.body.append(description, toggle, heading, list);
+	shell.body.append(description, toggle, note, heading, list);
 	appendInfoDoneButton(doc, t, shell);
 	return shell.overlay;
 }

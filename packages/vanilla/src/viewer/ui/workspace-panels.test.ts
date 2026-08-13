@@ -178,6 +178,53 @@ describe('workspace parity panels', () => {
 		expect(label.textContent).toBe('Agenda');
 	});
 
+	it('clears a selection-pane name with an explicit empty string', () => {
+		// NOT `undefined`. The save writer (`applyNameToCnvPr`) reads `undefined`
+		// as "the model has no opinion" and leaves `cNvPr/@name` alone, so
+		// committing it made clearing a name a no-op the file never saw. `@name`
+		// is REQUIRED on `CT_NonVisualDrawingProps`, so `''` writes `name=""`.
+		const onRename = vi.fn();
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [element],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename,
+		});
+		const pane = document.querySelector<HTMLElement>('[data-pptx-selection-pane]')!;
+		const label = pane.querySelector<HTMLButtonElement>('[data-pptx-selection-name]')!;
+		label.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		const input = pane.querySelector<HTMLInputElement>('input[type="text"]')!;
+		input.value = '   ';
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		expect(onRename).toHaveBeenCalledWith('shape', '');
+		// The row falls back to the display label rather than showing nothing.
+		expect(label.textContent).not.toBe('');
+	});
+
+	it('does not commit an unedited selection-pane rename', () => {
+		const onRename = vi.fn();
+		openSelectionPane(document, document.body, createTranslator(), {
+			elements: [element],
+			selectedIds: [],
+			onSelect: vi.fn(),
+			onToggleHidden: vi.fn(),
+			onReorder: vi.fn(),
+			onRename,
+		});
+		const pane = document.querySelector<HTMLElement>('[data-pptx-selection-pane]')!;
+		pane
+			.querySelector<HTMLButtonElement>('[data-pptx-selection-name]')!
+			.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		pane
+			.querySelector<HTMLInputElement>('input[type="text"]')!
+			.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		expect(onRename).not.toHaveBeenCalled();
+	});
+
 	it('dispatches sorter and comment actions', () => {
 		const onDuplicate = vi.fn();
 		openSlideSorterOverlay(document, document.body, createTranslator(), {

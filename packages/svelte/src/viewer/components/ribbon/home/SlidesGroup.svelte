@@ -11,11 +11,12 @@
 	 * context menu). This binding has no such menu, so those two ops are
 	 * re-housed into the New Slide split button's dropdown rather than dropped.
 	 */
-	import type { PptxLayoutOption } from 'pptx-viewer-core';
+	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { anchoredPopup } from '../anchored-popup';
+	import LayoutGalleryMenu from './LayoutGalleryMenu.svelte';
 	import SlideTemplatesLauncher from './SlideTemplatesLauncher.svelte';
 
 	const { editor, onnavigate }: { editor: EditorState; onnavigate: (index: number) => void } =
@@ -24,6 +25,13 @@
 
 	let openMenu = $state<'new' | 'layout' | null>(null);
 	let layouts = $state<PptxLayoutOption[]>([]);
+	/**
+	 * Layout artwork for the thumbnails, fetched alongside the layout list.
+	 *
+	 * Parsing every layout part is only worth doing once the user opens the
+	 * menu; core memoises the result, so reopening it costs nothing.
+	 */
+	let previews = $state<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
 	// eslint-disable-next-line prefer-const
 	let newSplitEl: HTMLElement | undefined = $state();
 	// eslint-disable-next-line prefer-const
@@ -58,6 +66,7 @@
 			return;
 		}
 		layouts = await editor.slidesOps.availableLayouts();
+		previews = await editor.slidesOps.layoutPreviews();
 		openMenu = 'layout';
 	}
 </script>
@@ -117,14 +126,13 @@
 				<span>{t('pptx.master.layout')}</span>
 			</button>
 			{#if openMenu === 'layout'}
-				<div class="pptx-svelte-rgroup-pop" role="menu" use:anchoredPopup={{ anchor: layoutSplitEl }}>
-					{#if layouts.length === 0}
-						<span class="pptx-svelte-rgroup-pop-empty">{t('pptx.statusBar.noSlides')}</span>
-					{:else}
-						{#each layouts as layout (layout.path)}
-							<button type="button" role="menuitem" onclick={() => void runAsync(() => editor.slidesOps.applyLayout(layout.path))}>{layout.name}</button>
-						{/each}
-					{/if}
+				<div class="pptx-svelte-rgroup-pop pptx-svelte-rgroup-pop-wide" role="menu" use:anchoredPopup={{ anchor: layoutSplitEl }}>
+					<LayoutGalleryMenu
+						{layouts}
+						{previews}
+						currentLayoutPath={editor.slides[editor.currentSlideIndex]?.layoutPath}
+						onselect={(layout) => void runAsync(() => editor.slidesOps.applyLayout(layout.path))}
+					/>
 				</div>
 			{/if}
 		</div>
@@ -276,9 +284,12 @@
 		color: #fecaca !important;
 	}
 
-	.pptx-svelte-rgroup-pop-empty {
-		padding: 6px 10px;
-		color: var(--pptx-muted-foreground, #94a3b8);
-		font-size: 11px;
+	/* The gallery brings its own grid width and padding. */
+	.pptx-svelte-rgroup-pop-wide {
+		min-width: 0;
+		max-height: none;
+		overflow: visible;
+		padding: 0;
 	}
+
 </style>

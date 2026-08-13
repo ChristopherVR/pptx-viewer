@@ -1,6 +1,6 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import { EncryptedFileError } from 'pptx-viewer-core';
-import { partitionTemplateElements } from 'pptx-viewer-shared';
+import { describeFontEmbedding, partitionTemplateElements } from 'pptx-viewer-shared';
 
 import type { EditorController } from './editor';
 import type { Translator } from './i18n';
@@ -86,6 +86,11 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				// previous deck's active show must not survive into this one.
 				activeCustomShowId: null,
 				embeddedFonts: loaded.embeddedFonts,
+				// The File > Fonts toggle describes what save would write for THIS
+				// deck, so it is reseeded per load: on when the deck carries embedded
+				// fonts (save keeps them), off when there is nothing to keep.
+				embedFonts: describeFontEmbedding(loaded.embeddedFonts.map((font) => font.name))
+					.initialEnabled,
 				hasDigitalSignatures: loaded.hasDigitalSignatures,
 				digitalSignatureCount: loaded.digitalSignatureCount,
 				isPasswordProtected: loaded.isPasswordProtected,

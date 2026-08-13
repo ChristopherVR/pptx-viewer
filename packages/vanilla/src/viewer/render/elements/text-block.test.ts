@@ -7,6 +7,7 @@ function paragraph(overrides: Partial<RenderParagraph>): RenderParagraph {
 	return {
 		runs: [{ text: 'Picture item', style: {} }],
 		bulletStyle: {},
+		segmentIndices: [],
 		...overrides,
 	};
 }
@@ -53,6 +54,65 @@ describe('renderTextBlock picture bullets', () => {
 		// Unset space-before/after leave the base `margin: 0` shorthand (0px).
 		expect(p?.style.marginTop).toBe('0px');
 		expect(p?.style.marginBottom).toBe('0px');
+	});
+
+	it('renders a hyperlink run as a safe anchor', () => {
+		// Before `ParagraphRun` carried a hyperlink, this binding painted linked
+		// text as an ordinary span: the link was silently gone from the DOM.
+		const block = renderTextBlock(
+			document,
+			[
+				paragraph({
+					runs: [
+						{ text: 'Home', style: {} },
+						{
+							text: ' docs',
+							style: {},
+							hyperlink: {
+								url: 'https://example.com',
+								href: 'https://example.com',
+								tooltip: 'Docs',
+							},
+						},
+					],
+				}),
+			],
+			{},
+		);
+		const link = block.querySelector<HTMLAnchorElement>('a.pptxv-link');
+		expect(link?.getAttribute('href')).toBe('https://example.com');
+		expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+		expect(link?.getAttribute('title')).toBe('Docs');
+		expect(link?.textContent).toBe(' docs');
+		// The neighbouring plain run stays a span.
+		expect(block.querySelectorAll('a')).toHaveLength(1);
+	});
+
+	it('renders an inline equation run as MathML in its authored position', () => {
+		const block = renderTextBlock(
+			document,
+			[
+				paragraph({
+					runs: [
+						{ text: 'Given ', style: {} },
+						{
+							text: '',
+							style: {},
+							equation: { xml: { 'm:oMath': { 'm:r': { 'm:t': 'x' } } }, number: '1' },
+						},
+						{ text: ' holds', style: {} },
+					],
+				}),
+			],
+			{},
+		);
+		const math = block.querySelector('.pptxv-inline-equation .pptxv-equation-math');
+		expect(math?.innerHTML).toContain('<mi>x</mi>');
+		expect(block.querySelector('.pptxv-equation-number')?.textContent).toBe('(1)');
+		// In place: the prose on either side survives, which the wholesale
+		// "delegate the whole element to the equation renderer" path destroyed.
+		expect(block.textContent).toContain('Given ');
+		expect(block.textContent).toContain(' holds');
 	});
 
 	it('labels the glyph fallback when the image is unresolved', () => {

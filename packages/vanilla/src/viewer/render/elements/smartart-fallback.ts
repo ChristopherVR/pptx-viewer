@@ -1,17 +1,22 @@
+import { smartArtConnectorPaint, smartArtNodeLabel } from 'pptx-viewer-shared';
 import type { RenderedNode, SmartArtLayoutResult, SmartArtNodeA11y } from 'pptx-viewer-shared';
 
 import { createSvgEl } from '../dom';
-import { appendCenteredSvgText, SMARTART_SVG_STYLE } from './smartart-svg';
+import { appendSvgTextLines, SMARTART_SVG_STYLE } from './smartart-svg';
 
 /**
  * SVG assembly for the SmartArt fallback path (no pre-computed drawing
  * shapes): renders the geometry produced by the shared layout engine
- * (`computeSmartArtLayout`), mirroring the fallback `<svg>` branch of Vue's
- * `SmartArtRenderer.vue` (connectors behind nodes, rect / circle / polygon
- * nodes with centred white multi-line labels).
+ * (`computeSmartArtLayout`), mirroring the fallback `<svg>` branch of every
+ * other binding (connectors behind nodes, rect / circle / polygon nodes with
+ * multi-line labels).
+ *
+ * Label placement / colour and connector paint are decided by the shared
+ * `smartArtNodeLabel` / `smartArtConnectorPaint`, so the optional descriptor
+ * fields (target leader captions, gear legend rows, timeline captions above and
+ * below the axis, per-node font colour / weight / style, coloured stems) are
+ * honoured here exactly as they are in React.
  */
-
-const CONNECTOR_STROKE = '#94a3b8';
 
 /** Build the fallback layout `<svg>` for a computed SmartArt layout. */
 export function buildSmartArtFallbackSvg(
@@ -30,13 +35,15 @@ export function buildSmartArtFallbackSvg(
 
 	// Connectors render first so they appear behind nodes.
 	for (const conn of layout.connectors) {
+		const paint = smartArtConnectorPaint(conn);
 		svg.appendChild(
 			createSvgEl(doc, 'path', {
-				d: conn.d,
+				d: paint.d,
 				fill: 'none',
-				stroke: CONNECTOR_STROKE,
-				'stroke-width': 1.5,
-				opacity: 0.5,
+				stroke: paint.stroke,
+				'stroke-width': paint.strokeWidth,
+				opacity: paint.opacity,
+				'stroke-dasharray': paint.dash,
 			}),
 		);
 	}
@@ -79,22 +86,8 @@ function buildFallbackNode(
 	};
 	if (node.kind === 'circle') {
 		g.appendChild(createSvgEl(doc, 'circle', { cx: node.cx, cy: node.cy, r: node.r, ...paint }));
-		appendCenteredSvgText(doc, g, {
-			text: node.text,
-			x: node.cx,
-			y: node.cy,
-			fill: 'white',
-			fontSize: node.fontSize,
-		});
 	} else if (node.kind === 'polygon') {
 		g.appendChild(createSvgEl(doc, 'polygon', { points: node.points, ...paint }));
-		appendCenteredSvgText(doc, g, {
-			text: node.text,
-			x: node.textX,
-			y: node.textY,
-			fill: 'white',
-			fontSize: node.fontSize,
-		});
 	} else {
 		g.appendChild(
 			createSvgEl(doc, 'rect', {
@@ -106,12 +99,21 @@ function buildFallbackNode(
 				...paint,
 			}),
 		);
-		appendCenteredSvgText(doc, g, {
-			text: node.text,
-			x: node.textX,
-			y: node.textY,
-			fill: 'white',
-			fontSize: node.fontSize,
+	}
+
+	// Label placement / colour is decided by shared, including the optional
+	// off-centre anchors circle nodes use for target and timeline captions.
+	const label = smartArtNodeLabel(node);
+	if (label.visible) {
+		appendSvgTextLines(doc, g, {
+			lines: label.lines,
+			x: label.x,
+			fill: label.fill,
+			fontSize: label.fontSize,
+			textAnchor: label.textAnchor,
+			dominantBaseline: label.dominantBaseline,
+			fontWeight: label.fontWeight,
+			fontStyle: label.fontStyle,
 		});
 	}
 	return g;

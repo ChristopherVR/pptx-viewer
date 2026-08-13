@@ -27,6 +27,7 @@ import {
 	appendSwatchRow,
 	createParityDialogShell,
 } from './parity-dialog-shell';
+import { appendCustomFontsPane } from './settings-custom-fonts';
 
 /** File > Options > General appearance wiring: theme catalog + active key + selection sink. */
 export interface SettingsDialogThemeOptions {
@@ -56,6 +57,16 @@ export interface ViewerOptionsDialogDeps {
 	aiEnabled?: boolean;
 	/** Chat store the AI export reads from (defaults to the shared store). */
 	aiChatStore?: PptxAiChatStore;
+	/**
+	 * Session-scoped custom font registry backing the Fonts section.
+	 *
+	 * Optional so a host embedding the dialog on its own can leave the feature
+	 * out entirely; the pane then shows the list as empty.
+	 */
+	customFonts?: {
+		list(): readonly string[];
+		register(family: string): void;
+	};
 }
 
 /**
@@ -119,6 +130,13 @@ export function openSettingsDialog(
 			description.textContent = t('pptx.options.save.clearCacheDescription');
 			host.appendChild(description);
 			appendOptionsAction(doc, host, t('pptx.options.save.clearCacheNow'), deps.onClearCache);
+		} else if (section.special === 'customFonts') {
+			appendCustomFontsPane(doc, t, host, {
+				enabled: deps.store.getOptions().general.enableCustomFontUpload,
+				families: deps.customFonts?.list() ?? [],
+				onRegistered: (family) => deps.customFonts?.register(family),
+				onRefresh: renderPane,
+			});
 		} else if (section.special === 'shortcutReference') {
 			appendShortcutReference(doc, t, host);
 		}

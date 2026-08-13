@@ -6,6 +6,7 @@ import type {
 	PptxElement,
 	PptxHandler,
 	PptxHeaderFooter,
+	PptxLayoutPreview,
 	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSection,
@@ -138,10 +139,42 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	const editActions = createEditActions({ doc, store, ops, getHandler: deps.getHandler });
 	const findReplaceActions = createFindReplaceActions({ store, ops });
 
+	/**
+	 * Layout artwork for the New Slide / Layout gallery thumbnails.
+	 *
+	 * Fetched once a deck is present rather than during load, because parsing
+	 * every layout part (and decoding the pictures it references) is only worth
+	 * doing for a user who opens one of those menus. Core memoises the parse, so
+	 * the second sync after it resolves is free.
+	 */
+	let layoutPreviews: ReadonlyMap<string, PptxLayoutPreview> = new Map();
+	let layoutPreviewsPending = false;
+	function ensureLayoutPreviews(): ReadonlyMap<string, PptxLayoutPreview> {
+		const handler = deps.getHandler();
+		if (handler && !layoutPreviewsPending && layoutPreviews.size === 0) {
+			layoutPreviewsPending = true;
+			void handler
+				.getLayoutPreviews()
+				.then((previews) => {
+					layoutPreviews = new Map(previews.map((preview) => [preview.path, preview]));
+					syncEditingChrome();
+					return undefined;
+				})
+				// A layout that will not parse costs the user a name-only tile,
+				// not a broken menu.
+				.catch(() => undefined)
+				.finally(() => {
+					layoutPreviewsPending = false;
+				});
+		}
+		return layoutPreviews;
+	}
+
 	const syncEditingChrome = createEditingChromeSync({
 		store,
 		getChrome: deps.getChrome,
 		selectedElement: (state) => ops.selectedElement(state),
+		layoutPreviews: ensureLayoutPreviews,
 	});
 
 	const interactions = createStageInteractions({

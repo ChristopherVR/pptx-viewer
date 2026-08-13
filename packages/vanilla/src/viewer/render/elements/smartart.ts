@@ -4,6 +4,7 @@ import {
 	buildSmartArtA11y,
 	computeDrawingViewBox,
 	computeSmartArtLayout,
+	flattenNodes,
 	getContainerStyle,
 	projectDrawingShapes,
 	resolveDrawingShapeNodeId,
@@ -126,12 +127,16 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 			data.layoutDefinition,
 			data.presLayoutVars,
 		);
+		// Rendered nodes are index-aligned with the FLATTENED source nodes (the
+		// layout engine walks the tree depth-first), which is how every binding
+		// maps a rendered shape back to a model node id. Reading only the
+		// top-level array mis-mapped every child of a nested diagram.
 		chrome.appendChild(
 			buildSmartArtFallbackSvg(
 				doc,
 				layout,
 				buildSmartArtA11y(data).nodes,
-				nodes.map((node) => node.id),
+				flattenNodes(revealedNodes).map((node) => node.id),
 			),
 		);
 		enableSmartArtEditing(chrome, element, context);

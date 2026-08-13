@@ -9,6 +9,7 @@
 	import type { TextBlockProps } from './props';
 	import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
 	import type { RenderParagraph } from 'pptx-viewer-shared';
+	import TextRun from './TextRun.svelte';
 
 	const { paragraphs, textStyle, elementId, subElementAnimStates }: TextBlockProps = $props();
 
@@ -42,7 +43,11 @@
 	 * own spacing inherit the body-level `textStyle`.
 	 */
 	function paraStyle(para: RenderParagraph): string {
-		let css = `margin: 0 0 0 ${para.marginLeftPx ?? 0}px;`;
+		// This paragraph's own `text-align` / BiDi `direction` / kinsoku rules,
+		// when it overrides the body's. Emitted first so the explicit geometry
+		// below always wins.
+		let css = para.paragraphStyle ? styleToString(para.paragraphStyle) : '';
+		css += `margin: 0 0 0 ${para.marginLeftPx ?? 0}px;`;
 		if (para.spaceBeforePx !== undefined) {
 			css += `margin-top: ${para.spaceBeforePx}px;`;
 		}
@@ -80,16 +85,15 @@
 				>{/if}{#if specs[pi]}{#if specs[pi]!.granularity === 'paragraph'}<span
 						data-anim-id={specs[pi]!.animId}
 						style={styleToString(textBuildSpanStyle(specs[pi]!))}
-					>{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
-								style={styleToString(run.style)}>{run.text}</span
-							>{/if}{/each}</span
+					>{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<TextRun
+								{run}
+							/>{/if}{/each}</span
 					>{:else}{#each specs[pi]!.spans ?? [] as span, si (si)}<span
 							data-anim-id={span.animId}
 							style={styleToString({ ...(span.style ?? {}), ...textBuildSpanStyle(span) })}
 						>{span.text}</span
-					>{/each}{/if}{:else}{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
-						style={styleToString(run.style)}>{run.text}</span
-					>{/if}{/each}{/if}{#if para.isEmpty}<!-- An authored blank line has no runs, so
+					>{/each}{/if}{:else}{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br
+					/>{:else}<TextRun {run} />{/if}{/each}{/if}{#if para.isEmpty}<!-- An authored blank line has no runs, so
 			     without this the <p> collapses to zero height and the gap a deck puts
 			     between a heading and its bullet list disappears (issue #131). --><br
 				/>{/if}

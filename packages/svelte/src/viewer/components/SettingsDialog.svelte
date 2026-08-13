@@ -15,6 +15,7 @@
 	import type { ViewerOptionsState } from '../state/viewer-options.svelte';
 	import SettingsAiSection from './ai/SettingsAiSection.svelte';
 	import SettingsAppearanceTab from './SettingsAppearanceTab.svelte';
+	import SettingsCustomFontsSection from './SettingsCustomFontsSection.svelte';
 	import SettingsLanguageTab from './SettingsLanguageTab.svelte';
 	import OptionsAddInsPane from './settings/OptionsAddInsPane.svelte';
 	import OptionsPane from './settings/OptionsPane.svelte';
@@ -32,6 +33,8 @@
 		onsetlocale,
 		addinStatus,
 		aiEnabled = false,
+		customFontFamilies = [],
+		oncustomfont = () => {},
 	}: {
 		/** The shared File > Options state (store + behavior projections). */
 		optionsState: ViewerOptionsState;
@@ -45,6 +48,10 @@
 		addinStatus?: ViewerAddinStatus;
 		/** When true, an "AI" section is shown for exporting detailed chat logs. */
 		aiEnabled?: boolean;
+		/** Families registered this session via the Fonts section. */
+		customFontFamilies?: readonly string[];
+		/** A font file was registered; the ribbon adds the family to its list. */
+		oncustomfont?: (family: string) => void;
 	} = $props();
 
 	const t = useTranslator();
@@ -69,7 +76,11 @@
 		onclose();
 	}
 	function isSpecial(section: ViewerOptionsSection): boolean {
-		return section.special === 'themePicker' || section.special === 'clearCache';
+		return (
+			section.special === 'themePicker' ||
+			section.special === 'clearCache' ||
+			section.special === 'customFonts'
+		);
 	}
 </script>
 
@@ -112,6 +123,12 @@
 						{#snippet special(section)}
 							{#if section.special === 'themePicker'}
 								<SettingsAppearanceTab {themeKey} {themeCatalog} onselect={onsetthemekey} />
+							{:else if section.special === 'customFonts'}
+								<SettingsCustomFontsSection
+									enabled={options.general.enableCustomFontUpload}
+									families={customFontFamilies}
+									onregistered={oncustomfont}
+								/>
 							{:else if section.special === 'clearCache'}
 								<p class="hint">{t('pptx.options.save.clearCacheDescription')}</p>
 								<button type="button" class="ghost" onclick={() => void optionsState.clearCache()}>{t('pptx.options.save.clearCacheNow')}</button>

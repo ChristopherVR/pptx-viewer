@@ -142,7 +142,7 @@ export function createArrangeActions(deps: ArrangeActionsDeps): ArrangeActions {
 			const childIds = el.children.map((child) =>
 				state.editTemplateMode ? makeCloneId(true, child.id || el.id) : generateElementId(),
 			);
-			const result = ungroupSelection(elements, id, childIds);
+			const result = ungroupSelection(elements, id, childIds, state.editTemplateMode);
 			if (result.childIds.length === 0) {
 				return;
 			}

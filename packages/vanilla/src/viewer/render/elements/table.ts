@@ -14,6 +14,7 @@ import {
 	getCellDiagonalBorders,
 	getContainerStyle,
 	getTableCellBandStyle,
+	tableContainerCss,
 } from 'pptx-viewer-shared';
 
 import { applyStyleMap, createEl, createSvgEl } from '../dom';
@@ -59,6 +60,8 @@ export const renderTableElement: ElementRenderer = (element, zIndex, context) =>
 		// Load-bearing: an unstyled cell otherwise inherits the HOST chrome's
 		// font stack; all five bindings declare the same shared default here.
 		fontFamily: DEFAULT_FONT_FAMILY,
+		// `a:tblPr@rtl`: mirrors the column order for right-to-left decks.
+		...tableContainerCss(tableData),
 	});
 
 	appendColgroup(doc, table, tableData.columnWidths);

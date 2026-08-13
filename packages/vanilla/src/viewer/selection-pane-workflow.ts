@@ -85,8 +85,10 @@ export function createSelectionPaneWorkflow(
 						hidden: !activeSlide()?.elements.find((element) => element.id === id)?.hidden,
 					}),
 				// The history-integrated patch path, so a rename is undoable and marks
-				// the deck dirty like every other edit. An undefined name clears
-				// cNvPr/@name.
+				// the deck dirty like every other edit. The name is never `undefined`:
+				// the save writer reads that as "the model has no opinion" and leaves
+				// `cNvPr/@name` alone, so a cleared box arrives as `''` and is written
+				// as `name=""` (see `resolveSelectionPaneRename` in shared).
 				onRename: (id, name) => host.editor.applyElementPatch(id, { name }),
 				onReorder: (from, to) => {
 					const current = host.store.get();

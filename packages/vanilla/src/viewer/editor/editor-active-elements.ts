@@ -1,20 +1,36 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { masterViewElements, replaceMasterViewElements } from 'pptx-viewer-shared';
+import type { MasterViewDocument, MasterViewTarget } from 'pptx-viewer-shared';
 
 import type { ViewerState } from '../state';
 
+/** The document + target shape the shared master-view rules operate on. */
+function masterViewOf(state: ViewerState): {
+	document: MasterViewDocument;
+	target: MasterViewTarget;
+} | null {
+	if (!state.masterViewTarget) {
+		return null;
+	}
+	return {
+		document: {
+			slideMasters: state.slideMasters,
+			notesMaster: state.notesMaster,
+			handoutMaster: state.handoutMaster,
+		},
+		target: {
+			tab: state.masterViewTab,
+			masterIndex: state.masterViewTarget.masterIndex,
+			layoutIndex: state.masterViewTarget.layoutIndex,
+		},
+	};
+}
+
 /** Return the element collection currently targeted by editing operations. */
 export function getActiveElements(state: ViewerState): PptxElement[] {
-	if (state.masterViewTarget) {
-		if (state.masterViewTab === 'notes') {
-			return state.notesMaster?.elements ?? [];
-		}
-		if (state.masterViewTab === 'handout') {
-			return state.handoutMaster?.elements ?? [];
-		}
-		const master = state.slideMasters[state.masterViewTarget.masterIndex];
-		return state.masterViewTarget.layoutIndex === null
-			? (master?.elements ?? [])
-			: (master?.layouts?.[state.masterViewTarget.layoutIndex]?.elements ?? []);
+	const masterView = masterViewOf(state);
+	if (masterView) {
+		return masterViewElements(masterView.document, masterView.target);
 	}
 	const slide = state.slides[state.currentSlide];
 	if (!slide) {
@@ -35,32 +51,21 @@ export function replaceActiveElements(
 	| Pick<ViewerState, 'slideMasters'>
 	| Pick<ViewerState, 'notesMaster'>
 	| Pick<ViewerState, 'handoutMaster'> {
-	if (state.masterViewTarget) {
-		if (state.masterViewTab === 'notes') {
-			return { notesMaster: state.notesMaster ? { ...state.notesMaster, elements } : undefined };
+	const masterView = masterViewOf(state);
+	if (masterView) {
+		// A layout view paints its master's artwork behind its own, so the
+		// shared rule routes each element back to the part that owns it.
+		const write = replaceMasterViewElements(masterView.document, masterView.target, elements);
+		if (write?.slideMasters) {
+			return { slideMasters: write.slideMasters };
 		}
-		if (state.masterViewTab === 'handout') {
-			return {
-				handoutMaster: state.handoutMaster ? { ...state.handoutMaster, elements } : undefined,
-			};
+		if (write?.notesMaster) {
+			return { notesMaster: write.notesMaster };
 		}
-		const { masterIndex, layoutIndex } = state.masterViewTarget;
-		return {
-			slideMasters: state.slideMasters.map((master, index) => {
-				if (index !== masterIndex) {
-					return master;
-				}
-				if (layoutIndex === null) {
-					return { ...master, elements };
-				}
-				return {
-					...master,
-					layouts: master.layouts?.map((layout, layoutIndexValue) =>
-						layoutIndexValue === layoutIndex ? { ...layout, elements } : layout,
-					),
-				};
-			}),
-		};
+		if (write?.handoutMaster) {
+			return { handoutMaster: write.handoutMaster };
+		}
+		return { slideMasters: state.slideMasters };
 	}
 	const slide = state.slides[state.currentSlide];
 	if (!slide) {

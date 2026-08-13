@@ -1,5 +1,5 @@
 import { cloneElement } from 'pptx-viewer-core';
-import type { PptxLayoutOption } from 'pptx-viewer-core';
+import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 import { partitionTemplateElements } from 'pptx-viewer-shared';
 import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-shared';
 
@@ -113,6 +113,21 @@ export class EditorSlidesController {
 			return [];
 		}
 		return handler.getAvailableLayoutsForSlide(this.#editor.currentSlideIndex, this.#editor.slides);
+	}
+
+	/**
+	 * Artwork thumbnails for the New Slide / Layout galleries, keyed by path.
+	 *
+	 * A method rather than state: parsing every layout part is only worth doing
+	 * once a gallery is opened, and core memoises the result.
+	 */
+	async layoutPreviews(): Promise<ReadonlyMap<string, PptxLayoutPreview>> {
+		const handler = this.#editor.getHandler();
+		if (!handler) {
+			return new Map();
+		}
+		const previews = await handler.getLayoutPreviews();
+		return new Map(previews.map((preview) => [preview.path, preview]));
 	}
 
 	/** Re-map the current slide onto `layoutPath`. Returns its index, or null when not editable. */

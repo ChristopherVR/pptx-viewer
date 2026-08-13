@@ -42,6 +42,14 @@ export interface TextFormatState {
 	fontSize: number;
 	/** Effective font family, or undefined when unset. */
 	fontFamily: string | undefined;
+	/**
+	 * `p:ph/@type` of the selected element, when it is a placeholder.
+	 *
+	 * Lets the font box fall back to the theme's major font inside a title and
+	 * its minor font elsewhere, instead of a hardcoded family that misreported
+	 * every themed deck.
+	 */
+	placeholderType: string | undefined;
 	/** Effective text colour (hex), or undefined when unset. */
 	color: string | undefined;
 	/** Effective highlight colour (hex), or undefined when unset. */
@@ -90,6 +98,7 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 		hasTextShadow: Boolean(ts?.textShadowColor ?? firstRun?.textShadowColor),
 		fontSize: ts?.fontSize ?? firstRun?.fontSize ?? DEFAULT_FONT_SIZE,
 		fontFamily: ts?.fontFamily ?? firstRun?.fontFamily,
+		placeholderType: (el as { placeholderType?: string } | undefined)?.placeholderType,
 		color: ts?.color ?? firstRun?.color,
 		highlightColor: ts?.highlightColor ?? firstRun?.highlightColor,
 		characterSpacing: ts?.characterSpacing ?? firstRun?.characterSpacing ?? 0,

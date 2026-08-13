@@ -1,4 +1,4 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
@@ -38,6 +38,14 @@ export interface EditingChromeSyncDeps {
 	store: Store<ViewerState>;
 	getChrome(): ViewerChrome;
 	selectedElement(state: ViewerState): PptxElement | undefined;
+	/**
+	 * Layout artwork for the New Slide / Layout gallery thumbnails.
+	 *
+	 * A getter rather than part of `ViewerState`: the previews are derived from
+	 * the archive, not editable document content, and they arrive after the
+	 * first sync because parsing them is deferred until a deck is loaded.
+	 */
+	layoutPreviews?(): ReadonlyMap<string, PptxLayoutPreview>;
 }
 
 /** Build the `sync()` function that refreshes the ribbon + inspector. */
@@ -68,6 +76,14 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			selectedElementId: state.selectedElementId ?? undefined,
 			animations: state.slides[state.currentSlide]?.animations ?? [],
 			layouts: collectLayoutOptions(state),
+			layoutPreviews: deps.layoutPreviews?.(),
+			currentLayoutPath: state.slides[state.currentSlide]?.layoutPath,
+			themeFonts: {
+				heading: state.fontScheme?.majorFont?.latin,
+				body: state.fontScheme?.minorFont?.latin,
+			},
+			embeddedFontFamilies: state.embeddedFonts.map((font) => font.name),
+			customFontFamilies: state.customFontFamilies,
 		});
 		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
 

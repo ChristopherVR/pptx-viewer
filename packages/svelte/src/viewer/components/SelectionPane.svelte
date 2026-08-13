@@ -5,7 +5,11 @@
 	import SendToBack from '@lucide/svelte/icons/send-to-back';
 	import X from '@lucide/svelte/icons/x';
 	import type { PptxElement } from 'pptx-viewer-core';
-	import { isElementHidden, restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
+	import {
+		isElementHidden,
+		resolveSelectionPaneRename,
+		restoreEditorKeyboardFocus,
+	} from 'pptx-viewer-shared';
 	import type { EditorState } from '../editor/editor-state.svelte'; import { useTranslator } from '../../i18n/context';
 
 	const { editor, onclose }: { editor: EditorState; onclose: () => void } = $props(); const t = useTranslator();
@@ -24,10 +28,18 @@
 	let renamingId = $state<string | null>(null);
 	let renameValue = $state('');
 	let renameInput = $state<HTMLInputElement | null>(null);
+	/**
+	 * The value the input was seeded with. An unedited commit has to stay a
+	 * no-op, and that is only decidable against the seed: now that an emptied
+	 * box commits `''` (a real clear), double-clicking a nameless row and
+	 * clicking away would otherwise write `name=""` into the file.
+	 */
+	let renameSeed = '';
 
 	function beginRename(element: PptxElement): void {
 		renamingId = element.id;
 		renameValue = element.name ?? '';
+		renameSeed = renameValue;
 	}
 	/**
 	 * Give the keyboard back to the viewer root before the input goes away.
@@ -47,8 +59,12 @@
 		// handler through `onblur`; a null `renamingId` makes that a no-op.
 		renamingId = null;
 		releaseRenameFocus();
-		const name = renameValue.trim();
-		editor.applyElementPatch(id, { name: name.length > 0 ? name : undefined });
+		// Shared decision: `null` for an unedited commit, otherwise the name to
+		// write - including `''` for a cleared box, which is the only value the
+		// save writer reads as a clear (`undefined` means "no opinion" there).
+		const commit = resolveSelectionPaneRename(renameSeed, renameValue);
+		if (!commit) { return; }
+		editor.applyElementPatch(id, { name: commit.name });
 	}
 	function cancelRename(): void {
 		renamingId = null;

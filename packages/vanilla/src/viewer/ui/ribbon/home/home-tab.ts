@@ -1,9 +1,9 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
 import type { EditActions } from '../../../editor/editor-edit-ops';
 import { canFormatText, readTextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
-import { createEl } from '../../../render';
+import { createDefaultRegistry, createEl, renderSlideStage } from '../../../render';
 import type { LayoutOption } from '../ribbon-types';
 import type { ArrangeGroup } from './arrange-group';
 import { createArrangeGroup } from './arrange-group';
@@ -20,6 +20,9 @@ import { createParagraphGroup } from './paragraph-group';
 import type { SlidesGroup } from './slides-group';
 import { createSlidesGroup } from './slides-group';
 
+/** Cap on artwork drawn per thumbnail; layouts never legitimately exceed this. */
+const MAX_PREVIEW_ELEMENTS = 100;
+
 export interface HomeTabDeps {
 	edit: EditActions;
 	onToggleFindReplace(): void;
@@ -33,6 +36,16 @@ export interface HomeTabSyncState {
 	selectedCount: number;
 	formatPainterActive: boolean;
 	layouts: readonly LayoutOption[];
+	/** Artwork for the layout gallery thumbnails, keyed by layout path. */
+	layoutPreviews?: ReadonlyMap<string, PptxLayoutPreview>;
+	/** `layoutPath` of the active slide, marking the current gallery tile. */
+	currentLayoutPath?: string;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 }
 
 export interface HomeTab {
@@ -62,6 +75,24 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		resetSlide: edit.resetSlide,
 		addSection: () => edit.sections.addSection(t('pptx.sections.defaultName')),
 		getTemplateScheme: () => edit.getTemplateScheme(),
+		renderLayoutPreview: (preview, geometry) =>
+			renderSlideStage({
+				document: doc,
+				// The layout's artwork stands in for a slide so the element
+				// renderers resolve fills and colours exactly as on the canvas.
+				slide: {
+					id: `layout-preview-${preview.path}`,
+					rId: '',
+					slideNumber: 0,
+					elements: preview.elements.slice(0, MAX_PREVIEW_ELEMENTS),
+					backgroundColor: geometry.backgroundColor,
+				},
+				canvasSize: { width: geometry.surfaceWidth, height: geometry.surfaceHeight },
+				// Images in a layout preview arrive already decoded as data URLs.
+				mediaDataUrls: new Map<string, string>(),
+				registry: createDefaultRegistry(),
+				t,
+			}),
 	});
 	const font: FontGroup = createFontGroup(doc, t, {
 		toggleBold: edit.toggleBold,
@@ -132,13 +163,25 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			selectedCount,
 			formatPainterActive,
 			layouts,
+			layoutPreviews,
+			currentLayoutPath,
+			themeFonts,
+			embeddedFontFamilies,
+			customFontFamilies,
 		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
 			const hasSelection = selectedElement !== undefined;
 			clipboard.update({ hasSelection, hasClipboard, editable, formatPainterActive });
-			slides.update({ editable, slideCount, layouts });
-			font.update({ canFormat, editable, text });
+			slides.update({ editable, slideCount, layouts, layoutPreviews, currentLayoutPath });
+			font.update({
+				canFormat,
+				editable,
+				text,
+				themeFonts,
+				embeddedFontFamilies,
+				customFontFamilies,
+			});
 			paragraph.update({ canFormat, editable, text });
 			editing.update({ editable });
 			drawing.update({ editable, hasSelection });

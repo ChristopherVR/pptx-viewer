@@ -28,6 +28,7 @@ import {
 	PRESENTATION_CHANNEL_NAME,
 	PRESENTATION_MESSAGE_ORIGIN,
 	readStoredViewerPrefs,
+	reflowSmartArtData,
 	resolveAudienceScreenPlacement,
 	shouldCommitSmartArtNodeText,
 	stepPresenterZoom,
@@ -38,6 +39,7 @@ import {
 	createBlankSlide,
 	createBackstagePresentation,
 	DEFAULT_VIEWER_OPTIONS,
+	describeFontEmbedding,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
 	readBackstageRecentFile,
@@ -151,7 +153,6 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	 */
 	private readonly presenterShowGuard = createPresenterShowGuard();
 	private userFontsStyle: HTMLStyleElement | null = null;
-	private embedFontsEnabled = false;
 	private signatureWarningAcknowledged = false;
 	private detachSignatureWarning: (() => void) | null = null;
 	private annotations!: PresentationAnnotationsHost;
@@ -221,6 +222,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.editor?.getEditActions().sections.moveSection(sectionId, direction),
 			onZoomClick: (targetSlideIndex) => this.controls.goToSlide(targetSlideIndex),
 			onCommentMarkerClick: () => this.parityWorkflows.openComments(),
+			// Both on-canvas SmartArt commits reflow the cached drawing shapes when
+			// the edit cleared them, as React does: a node-style change clears
+			// them, and without the reflow the diagram silently dropped from
+			// PowerPoint's cached `dsp` geometry to the family approximation. The
+			// reflow is a no-op while the cached drawing survives (a text edit
+			// patches it in place), so the cached-drawing-wins order is unchanged.
 			onSmartArtNodeTextChange: (element, nodeId, text) => {
 				if (
 					element.type !== 'smartArt' ||
@@ -229,8 +236,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				) {
 					return;
 				}
+				const next = updateSmartArtNodeText(element.smartArtData, nodeId, text);
+				const box = { width: element.width, height: element.height };
 				this.editor?.applyElementPatch(element.id, {
-					smartArtData: updateSmartArtNodeText(element.smartArtData, nodeId, text),
+					smartArtData: reflowSmartArtData(next, element.id, box),
 				});
 			},
 			onSmartArtNodeFillChange: (element, nodeId, fill) => {
@@ -239,7 +248,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				}
 				const next = setSmartArtNodeStyle(element.smartArtData, nodeId, { fillColor: fill });
 				if (next !== element.smartArtData) {
-					this.editor?.applyElementPatch(element.id, { smartArtData: next });
+					const box = { width: element.width, height: element.height };
+					this.editor?.applyElementPatch(element.id, {
+						smartArtData: reflowSmartArtData(next, element.id, box),
+					});
 				}
 			},
 			onStageRendered: () => {
@@ -343,6 +355,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			editor: this.editor,
 			optionsStore: this.optionsController.optionsStore,
 			clearOptionsCache: () => this.clearOptionsCache(),
+			registerCustomFont: (family) => {
+				const current = this.store.get().customFontFamilies;
+				if (!current.includes(family)) {
+					this.store.set({ customFontFamilies: [...current, family] });
+				}
+			},
 			aiEnabled: options.ai !== undefined,
 			root: () => this.lifecycle.chrome.root,
 			setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
@@ -788,11 +806,17 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 
 	openFontEmbedding(): void {
 		const state = this.store.get();
+		// The toggle lives in the store, not on this instance: the save path reads
+		// it there and passes it to the shared `embeddedFontSaveOptions`, so
+		// turning it off genuinely strips the deck's embedded font data.
+		const descriptor = describeFontEmbedding(state.embeddedFonts.map((font) => font.name));
 		openFontEmbeddingDialog(this.doc, this.t, {
 			slides: state.slides,
 			embeddedFonts: state.embeddedFonts,
-			enabled: this.embedFontsEnabled,
-			onToggle: (enabled) => (this.embedFontsEnabled = enabled),
+			enabled: state.embedFonts,
+			canEmbed: descriptor.interactive,
+			unavailableKey: descriptor.disabledReasonKey,
+			onToggle: (enabled) => this.store.set({ embedFonts: enabled }),
 		});
 	}
 

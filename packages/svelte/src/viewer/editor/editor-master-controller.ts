@@ -5,6 +5,8 @@ import type {
 	PptxNotesMaster,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
+import { masterViewElements, replaceMasterViewElements } from 'pptx-viewer-shared';
+import type { MasterViewDocument } from 'pptx-viewer-shared';
 
 import type { EditorState } from './editor-state.svelte';
 
@@ -41,21 +43,18 @@ export class EditorMasterController {
 		this.editor.selection.clear();
 	}
 
+	/** The document shape the shared master-view rules operate on. */
+	private document(): MasterViewDocument {
+		return {
+			slideMasters: this.editor.slideMasters,
+			notesMaster: this.editor.notesMaster,
+			handoutMaster: this.editor.handoutMaster,
+		};
+	}
+
 	activeElements(): PptxElement[] | null {
 		const target = this.editor.masterViewTarget;
-		if (!target) {
-			return null;
-		}
-		if (target.tab === 'notes') {
-			return this.editor.notesMaster?.elements ?? [];
-		}
-		if (target.tab === 'handout') {
-			return this.editor.handoutMaster?.elements ?? [];
-		}
-		const master = this.editor.slideMasters[target.masterIndex];
-		return target.layoutIndex === null
-			? (master?.elements ?? [])
-			: (master?.layouts?.[target.layoutIndex]?.elements ?? []);
+		return target ? masterViewElements(this.document(), target) : null;
 	}
 
 	replace(elements: PptxElement[]): boolean {
@@ -63,34 +62,22 @@ export class EditorMasterController {
 		if (!target) {
 			return false;
 		}
-		if (target.tab === 'notes') {
-			if (!this.editor.notesMaster) {
-				return false;
-			}
-			this.editor.notesMaster = { ...this.editor.notesMaster, elements };
-			return true;
+		// A layout view paints its master's artwork too, so the shared rule
+		// routes each element back to the part that actually owns it rather
+		// than dropping the whole list into the selected layout.
+		const write = replaceMasterViewElements(this.document(), target, elements);
+		if (!write) {
+			return false;
 		}
-		if (target.tab === 'handout') {
-			if (!this.editor.handoutMaster) {
-				return false;
-			}
-			this.editor.handoutMaster = { ...this.editor.handoutMaster, elements };
-			return true;
+		if (write.slideMasters) {
+			this.editor.slideMasters = write.slideMasters;
 		}
-		this.editor.slideMasters = this.editor.slideMasters.map((master, masterIndex) => {
-			if (masterIndex !== target.masterIndex) {
-				return master;
-			}
-			if (target.layoutIndex === null) {
-				return { ...master, elements };
-			}
-			return {
-				...master,
-				layouts: master.layouts?.map((layout, layoutIndex) =>
-					layoutIndex === target.layoutIndex ? { ...layout, elements } : layout,
-				),
-			};
-		});
+		if (write.notesMaster) {
+			this.editor.notesMaster = write.notesMaster;
+		}
+		if (write.handoutMaster) {
+			this.editor.handoutMaster = write.handoutMaster;
+		}
 		return true;
 	}
 

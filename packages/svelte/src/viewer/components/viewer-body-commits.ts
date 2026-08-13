@@ -1,5 +1,5 @@
 import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
-import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+import { reflowSmartArtData, setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 
 import type { EditorState } from '../editor/editor-state.svelte';
 
@@ -12,6 +12,12 @@ import type { EditorState } from '../editor/editor-state.svelte';
  * module rather than an SFC: the SFC only needs to know that editing is active,
  * not how a SmartArt fill patch is shaped. Each reads `editor.activeElements`
  * at call time, so the returned closures stay correct as the deck changes.
+ *
+ * Both SmartArt commits run the result through `reflowSmartArtData`, as React
+ * does: a node-style change clears the cached `dsp` drawing, and without the
+ * reflow the diagram silently dropped to the family approximation. The cached
+ * drawing still wins whenever it survives the edit (a text edit patches it in
+ * place), so the precedence between the two render paths is unchanged.
  */
 export interface EditCommitHandlers {
 	commitTableCell(id: string, rowIndex: number, cellIndex: number, text: string): void;
@@ -40,7 +46,8 @@ export function createEditCommits(editor: EditorState): EditCommitHandlers {
 				return;
 			}
 			const next = updateSmartArtNodeText(element.smartArtData, nodeId, text);
-			editor.applyElementPatch(id, { smartArtData: next });
+			const box = { width: element.width, height: element.height };
+			editor.applyElementPatch(id, { smartArtData: reflowSmartArtData(next, id, box) });
 		},
 
 		commitSmartArtFill(id, nodeId, fill) {
@@ -50,7 +57,8 @@ export function createEditCommits(editor: EditorState): EditCommitHandlers {
 			}
 			const next = setSmartArtNodeStyle(element.smartArtData, nodeId, { fillColor: fill });
 			if (next !== element.smartArtData) {
-				editor.applyElementPatch(id, { smartArtData: next });
+				const box = { width: element.width, height: element.height };
+				editor.applyElementPatch(id, { smartArtData: reflowSmartArtData(next, id, box) });
 			}
 		},
 	};

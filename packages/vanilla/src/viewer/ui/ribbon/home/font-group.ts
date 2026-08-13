@@ -1,15 +1,17 @@
-import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import type { ChangeCaseMode, FontCatalogInput } from 'pptx-viewer-shared';
 import {
+	buildFontCatalog,
 	CHANGE_CASE_OPTIONS,
 	CHARACTER_SPACING_OPTIONS,
-	COMMON_FONT_FAMILIES,
 	COMMON_FONT_SIZES,
+	resolveDefaultFontFamily,
 } from 'pptx-viewer-shared';
 
 import type { TextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import type { DropdownItem } from '../../dropdown';
 import { makeDropdown } from '../../dropdown';
 import { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from '../../swatch-picker';
 
@@ -33,6 +35,12 @@ export interface FontGroupState {
 	canFormat: boolean;
 	editable: boolean;
 	text: TextFormatState;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 }
 
 export interface FontGroup {
@@ -41,6 +49,26 @@ export interface FontGroup {
 }
 
 const FONT_STEP = 2;
+
+/**
+ * Flatten the shared font catalogue into dropdown items, tagging the first
+ * entry of each group with its heading.
+ *
+ * The grouping and de-duplication decisions live in `pptx-viewer-shared` so
+ * every binding offers the same list; this only maps them onto the vanilla
+ * dropdown's item shape.
+ */
+function buildFontItems(t: Translator, input: FontCatalogInput): DropdownItem<string>[] {
+	return buildFontCatalog(input).flatMap((group) =>
+		group.entries.map((entry, index) => ({
+			label: entry.family,
+			value: entry.family,
+			style: { fontFamily: entry.family },
+			...(index === 0 ? { groupLabel: t(group.labelKey) } : {}),
+			...(entry.themeRole ? { hint: t(`pptx.font.role.${entry.themeRole}`) } : {}),
+		})),
+	);
+}
 
 /** The ribbon Home tab's Font group: family/size, character toggles, colours, spacing, case. */
 export function createFontGroup(
@@ -58,7 +86,7 @@ export function createFontGroup(
 	const fontFamily = makeDropdown(doc, {
 		triggerLabel: t('pptx.ribbon.fontFamily'),
 		triggerText: 'Segoe UI',
-		items: COMMON_FONT_FAMILIES.map((f) => ({ label: f, value: f, style: { fontFamily: f } })),
+		items: buildFontItems(t, {}),
 		onSelect: handlers.setFontFamily,
 	});
 	fontFamily.el.classList.add('pptxv-font-family-dd');
@@ -184,13 +212,24 @@ export function createFontGroup(
 
 	return {
 		el,
-		update({ canFormat, editable, text }) {
+		update({ canFormat, editable, text, themeFonts, embeddedFontFamilies, customFontFamilies }) {
+			// Regroup per deck: the theme fonts and the embedded set are not
+			// known until a presentation has loaded.
+			fontFamily.setItems(
+				buildFontItems(t, {
+					themeFonts,
+					embeddedFonts: embeddedFontFamilies,
+					customFonts: customFontFamilies,
+				}),
+			);
 			bold.setActive(text.bold);
 			italic.setActive(text.italic);
 			underline.setActive(text.underline);
 			strike.setActive(text.strikethrough);
 			shadow.setActive(text.hasTextShadow);
-			fontFamily.setTriggerText(text.fontFamily ?? 'Segoe UI');
+			fontFamily.setTriggerText(
+				text.fontFamily ?? resolveDefaultFontFamily(text.placeholderType, themeFonts),
+			);
 			fontFamily.setSelected(text.fontFamily);
 			fontSize.setTriggerText(String(text.fontSize));
 			fontSize.setSelected(text.fontSize);

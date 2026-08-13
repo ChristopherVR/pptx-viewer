@@ -1,4 +1,5 @@
 import type { MasterViewTab, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import { masterViewPseudoSlide } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -86,18 +87,14 @@ function addPlaceholderCard(
 	parent.appendChild(card);
 }
 
+/** The same pseudo-slide the master canvas paints, from the shared rule. */
 function slideFromMaster(master: PptxSlideMaster, layoutIndex: number | null): PptxSlide {
-	const layout = layoutIndex === null ? undefined : master.layouts?.[layoutIndex];
-	return {
-		id: layout?.path ?? master.path,
-		rId: '',
-		slideNumber: 0,
-		elements: layout
-			? [...(master.elements ?? []), ...(layout.elements ?? [])]
-			: (master.elements ?? []),
-		backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
-		backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
-	};
+	return (
+		masterViewPseudoSlide(
+			{ slideMasters: [master] },
+			{ tab: 'slides', masterIndex: 0, layoutIndex },
+		) ?? { id: master.path, rId: '', slideNumber: 0, elements: [] }
+	);
 }
 
 function renderSlides(

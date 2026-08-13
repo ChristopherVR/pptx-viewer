@@ -106,11 +106,18 @@ export function groupSelection(
 	return groupElements(elements, ids, groupId);
 }
 
-/** Ungroup the `group` element identified by `groupId` back into its children. */
+/**
+ * Ungroup the `group` element identified by `groupId` back into its children.
+ *
+ * `intoTemplate` decides which store the promoted subtree routes to: it renames
+ * the descendants of a promoted NESTED group whose ids sit on the other side,
+ * which nothing did while only the top level was renamed.
+ */
 export function ungroupSelection(
 	elements: readonly PptxElement[],
 	groupId: string,
 	childIds: readonly string[],
+	intoTemplate = false,
 ): { elements: PptxElement[]; childIds: string[] } {
-	return ungroupElements(elements, groupId, childIds);
+	return ungroupElements(elements, groupId, childIds, { intoTemplate });
 }

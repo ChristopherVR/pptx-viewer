@@ -9,6 +9,8 @@ import type {
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 	TextStyle,
+	PptxElement,
+	PptxSmartArtData,
 	PptxSmartArtNodeStyle,
 } from 'pptx-viewer-core';
 import {
@@ -31,6 +33,7 @@ import {
 	gradientStatePatch,
 	imageAdjustmentsPatch,
 	imageCropPatch,
+	reflowSmartArtData,
 	removeGradientStopPatch,
 	tableInspectorPatch,
 	textAdvancedPatch,
@@ -270,23 +273,15 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 
 		setSmartArtNodeText: (nodeId, text) =>
 			applyToSelected((el) =>
-				el.type === 'smartArt' && el.smartArtData
-					? { smartArtData: updateSmartArtNodeText(el.smartArtData, nodeId, text) }
-					: {},
+				smartArtPatch(el, (data) => updateSmartArtNodeText(data, nodeId, text)),
 			),
 		setSmartArtNodeStyle: (nodeId, patch) =>
 			applyToSelected((el) =>
-				el.type === 'smartArt' && el.smartArtData
-					? { smartArtData: setSmartArtNodeStyle(el.smartArtData, nodeId, patch) }
-					: {},
+				smartArtPatch(el, (data) => setSmartArtNodeStyle(data, nodeId, patch)),
 			),
 		mutateSmartArtNode: (nodeId, action) =>
-			applyToSelected((el) => {
-				if (el.type !== 'smartArt' || !el.smartArtData) {
-					return {};
-				}
-				const data = el.smartArtData;
-				const next =
+			applyToSelected((el) =>
+				smartArtPatch(el, (data) =>
 					action === 'add'
 						? addSmartArtNode(data, 'New item')
 						: action === 'addChild'
@@ -295,20 +290,36 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 								? removeSmartArtNode(data, nodeId)
 								: action === 'promote'
 									? promoteSmartArtNode(data, nodeId)
-									: demoteSmartArtNode(data, nodeId);
-				return { smartArtData: next };
-			}),
+									: demoteSmartArtNode(data, nodeId),
+				),
+			),
 		setSmartArtLayout: (layout) =>
-			applyToSelected((el) =>
-				el.type === 'smartArt' && el.smartArtData
-					? { smartArtData: switchSmartArtLayout(el.smartArtData, layout) }
-					: {},
-			),
+			applyToSelected((el) => smartArtPatch(el, (data) => switchSmartArtLayout(data, layout))),
 		setSmartArtColorScheme: (scheme) =>
-			applyToSelected((el) =>
-				el.type === 'smartArt' && el.smartArtData
-					? { smartArtData: { ...el.smartArtData, colorScheme: scheme } }
-					: {},
-			),
+			applyToSelected((el) => smartArtPatch(el, (data) => ({ ...data, colorScheme: scheme }))),
 	};
+}
+
+/**
+ * Apply a SmartArt data edit to a selected element and reflow the cached
+ * drawing shapes when the edit cleared them.
+ *
+ * Every edit routed through here can clear `drawingShapes` (add / remove /
+ * promote / demote / style / layout switch all do). Without the reflow the
+ * renderer dropped from PowerPoint's cached `dsp` geometry to the crude family
+ * approximation, which is what React has always avoided by calling
+ * `rebuildDrawingShapesIfCleared` at each commit. The reflow is a no-op while
+ * the cached drawing survives an edit (a text edit patches it in place), so the
+ * cached-drawing-wins precedence between the two render paths is unchanged.
+ */
+function smartArtPatch(
+	el: PptxElement,
+	edit: (data: PptxSmartArtData) => PptxSmartArtData,
+): Partial<PptxElement> {
+	if (el.type !== 'smartArt' || !el.smartArtData) {
+		return {};
+	}
+	const next = edit(el.smartArtData);
+	const box = { width: el.width, height: el.height };
+	return { smartArtData: reflowSmartArtData(next, el.id, box) };
 }

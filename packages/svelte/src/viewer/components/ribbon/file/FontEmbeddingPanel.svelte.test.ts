@@ -34,4 +34,27 @@ describe('font embedding panel', () => {
 		toggle.dispatchEvent(new Event('change', { bubbles: true }));
 		expect(ontoggle).toHaveBeenCalledWith(true);
 	});
+
+	it('makes the toggle inert, with a reason, for a deck that embeds nothing', async () => {
+		const target = document.createElement('div');
+		const instance = mount(FontEmbeddingPanel, {
+			target,
+			props: {
+				usedFontFamilies: ['Aptos'],
+				embeddedFonts: [],
+				enabled: false,
+				canEmbed: false,
+				unavailableKey: 'pptx.fonts.embedUnavailable',
+				ontoggle: vi.fn(),
+				onclose: vi.fn(),
+			},
+		});
+		cleanup = () => unmount(instance);
+		await Promise.resolve();
+		flushSync();
+
+		expect(target.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBeTruthy();
+		// The dictionary text, not the key: a missing entry would render the key.
+		expect(target.textContent).toContain('there is nothing to embed');
+	});
 });

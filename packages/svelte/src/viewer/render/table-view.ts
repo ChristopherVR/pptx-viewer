@@ -10,9 +10,11 @@ import {
 	cellPatternFillCss,
 	cellRunStyle,
 	cellStyleToCss,
+	DEFAULT_FONT_FAMILY,
 	DEFAULT_TEXT_COLOR,
 	getCellDiagonalBorders,
 	getTableCellBandStyle,
+	tableContainerCss,
 } from 'pptx-viewer-shared';
 
 import { styleToString } from '../style';
@@ -69,6 +71,15 @@ export interface TableRowView {
 	/** Inline `style` string carrying the row height, when one is set. */
 	style: string | undefined;
 	cells: TableCellView[];
+}
+
+/**
+ * Inline `style` for the `<table>` element itself: the shared default font
+ * stack (load-bearing, see the other bindings) plus `a:tblPr@rtl`, which
+ * mirrors the column order for right-to-left decks.
+ */
+export function tableRootStyle(tableData: PptxTableData | undefined): string {
+	return styleToString({ fontFamily: DEFAULT_FONT_FAMILY, ...tableContainerCss(tableData) });
 }
 
 /** Proportional `<col>` width strings for the table's `<colgroup>`. */

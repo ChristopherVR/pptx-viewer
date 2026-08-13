@@ -91,6 +91,15 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 					deps.loader.presentationProperties,
 					deps.loader.customShows,
 				);
+				// Seeded separately from setSlides for the same reason as the tag
+				// parts below: the Home tab's font dropdown leads with the deck's
+				// theme fonts and the families it embeds, neither of which is
+				// content the undo stack owns.
+				deps.editor.theme = deps.loader.presentationTheme;
+				// Also reseeds the File > Fonts "Embed fonts" toggle: a deck that
+				// arrives with embedded fonts keeps them on save, so the switch must
+				// start "on" or turning it off would be the only honest position.
+				deps.editor.adoptEmbeddedFontFamilies(deps.loader.embeddedFonts.map((font) => font.name));
 				// Seeded separately from setSlides (which clears them) so the
 				// parsed tag parts survive the load without becoming an undo step.
 				deps.editor.adoptTagCollections(deps.loader.tagCollections);

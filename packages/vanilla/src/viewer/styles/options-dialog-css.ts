@@ -21,6 +21,16 @@ export const OPTIONS_DIALOG_CSS = `
 .pptxv-options-section { margin: 0 0 16px; }
 .pptxv-options-section > h3 { margin: 0 0 4px; padding-bottom: 3px; border-bottom: 1px solid var(--pptx-border); color: var(--pptx-muted-foreground); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .pptxv-options-section-desc { margin: 0 0 8px; color: var(--pptx-muted-foreground); font-size: 11px; }
+/* File > Options > General > Fonts: families added from a local file. */
+.pptxv-options-font-list {
+	margin: 4px 0 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 12px;
+}
 .pptxv-options-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; padding: 2px 0; }
 .pptxv-options-row.is-indent { padding-left: 22px; }
 label.pptxv-options-row { cursor: pointer; }

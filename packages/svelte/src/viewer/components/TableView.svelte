@@ -8,9 +8,7 @@
 	 * pattern fills, diagonal borders (SVG overlay), and rich per-run text.
 	 * All style resolution lives in `render/table-view.ts` + shared helpers.
 	 */
-	import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
-
-	import { buildTableRows, columnWidthStyles } from '../render';
+	import { buildTableRows, columnWidthStyles, tableRootStyle } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import { useTableStyleContext } from '../state/render-context';
 	import { useTableCellSelection } from '../state/table-cell-selection-context';
@@ -22,6 +20,7 @@
 	const tableStyleContext = $derived(useTableStyleContext());
 	const rows = $derived(tableData ? buildTableRows(tableData, tableStyleContext) : []);
 	const colWidths = $derived(tableData ? columnWidthStyles(tableData) : []);
+	const tableStyle = $derived(tableRootStyle(tableData));
 	const containerStyle = $derived(
 		styleToString({ ...getContainerStyle(element, zIndex), overflow: 'hidden' }),
 	);
@@ -82,7 +81,7 @@
 	<div class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
 		<!-- Load-bearing family: an unstyled cell otherwise inherits the HOST
 		     chrome's font; all five bindings declare the same shared default. -->
-		<table class="pptx-svelte-table-grid" style="font-family: {DEFAULT_FONT_FAMILY}">
+		<table class="pptx-svelte-table-grid" style={tableStyle}>
 			{#if colWidths.length > 0}
 				<colgroup>
 					{#each colWidths as width, i (i)}

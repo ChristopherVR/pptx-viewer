@@ -117,7 +117,9 @@ export function ungroupOnSlide(
 	const childIds = group.children.map((child: PptxElement) => makeCloneId(fromTemplate, child.id));
 	let resultIds: string[] = [];
 	const next = mapSlideElements(slides, slideIndex, (elements) => {
-		const result = ungroupElements(elements, groupId, childIds);
+		// `intoTemplate` also governs a promoted NESTED group's descendants, which
+		// nothing re-ided while only the top level was renamed.
+		const result = ungroupElements(elements, groupId, childIds, { intoTemplate: fromTemplate });
 		resultIds = result.childIds;
 		return result.elements;
 	});

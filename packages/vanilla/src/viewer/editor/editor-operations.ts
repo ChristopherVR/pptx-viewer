@@ -22,6 +22,7 @@ import {
 	cloneTemplateElementsBySlideId,
 	copyFormatFromElement,
 	EditorHistory,
+	embeddedFontSaveOptions,
 	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
 
@@ -414,6 +415,10 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,
 					outputFormat: format,
+					// File > Fonts > "Embed fonts in the file": off strips the deck's
+					// embedded font data from the written package. The toggle reached
+					// no save call at all before this, so it changed nothing.
+					...embeddedFontSaveOptions(state.embedFonts),
 				},
 				{
 					password: state.presentationPassword,

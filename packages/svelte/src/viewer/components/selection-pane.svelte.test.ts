@@ -141,7 +141,22 @@ describe('svelte selection pane rename', () => {
 		setValue(input, '   ');
 		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		flushSync();
-		expect(editor.applyElementPatch).toHaveBeenCalledExactlyOnceWith('sp_1', { name: undefined });
+		// An explicit `''`, NOT `undefined`. The save writer reads `undefined` as
+		// "the model has no opinion" and leaves `cNvPr/@name` alone, so
+		// committing it made clearing a name a no-op that the file never saw.
+		expect(editor.applyElementPatch).toHaveBeenCalledExactlyOnceWith('sp_1', { name: '' });
+	});
+
+	it('does not write an empty name when a nameless row is committed untouched', () => {
+		// This binding seeds the input from `element.name ?? ''`, so without the
+		// seed comparison a double-click plus a click away on a nameless shape
+		// would now write `name=""` into a file the user never renamed.
+		const editor = createEditor([shape({ id: 'sp_1' })]);
+		const target = mountPane(editor);
+		const input = beginRename(target);
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		expect(editor.applyElementPatch).not.toHaveBeenCalled();
 	});
 
 	it('cancels the rename on Escape without touching the element', () => {

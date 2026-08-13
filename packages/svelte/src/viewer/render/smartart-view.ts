@@ -10,9 +10,9 @@ import type {
 import {
 	buildChromeStyle,
 	buildSmartArtA11y,
-	centeredSvgTextLines,
 	computeDrawingViewBox,
 	computeSmartArtLayout,
+	flattenNodes,
 	projectDrawingShapes,
 	resolveDrawingShapeNodeId,
 	resolvePalette,
@@ -31,9 +31,6 @@ import { styleToString } from '../style';
 
 /** Inline style applied to every SmartArt SVG so it fills the element box. */
 export const SMARTART_SVG_STYLE = 'width: 100%; height: 100%; pointer-events: none; display: block';
-
-/** Connector stroke for the fallback layout path. */
-export const SMARTART_CONNECTOR_STROKE = '#94a3b8';
 
 /** Resolved SmartArt view: drawing shapes, engine layout, or a placeholder. */
 export type SmartArtView =
@@ -142,16 +139,20 @@ export function buildSmartArtView(
 			data.layoutDefinition,
 			data.presLayoutVars,
 		);
-		const labels = buildSmartArtA11y(data).nodes;
+		// Rendered nodes are index-aligned with the FLATTENED source nodes (the
+		// layout engine walks the tree depth-first), so the id mapping has to
+		// flatten too: reading the top-level array mis-labelled every child of a
+		// nested diagram and handed the inline editor the wrong node id.
+		const labels = labelMap(buildSmartArtA11y(data).nodes);
+		const flatIds = flattenNodes([...revealedNodes]).map((node) => node.id);
 		return {
 			kind: 'layout',
 			layout: {
 				...layout,
-				nodes: layout.nodes.map((node, index) => ({
-					...node,
-					nodeId: nodes[index]?.id,
-					ariaLabel: labels[index]?.label,
-				})),
+				nodes: layout.nodes.map((node, index) => {
+					const nodeId = flatIds[index];
+					return { ...node, nodeId, ariaLabel: nodeId ? labels.get(nodeId) : undefined };
+				}),
 			},
 		};
 	}
@@ -159,10 +160,10 @@ export function buildSmartArtView(
 	return { kind: 'placeholder' };
 }
 
-/** One rendered line of a multi-line SVG label; `y` offsets the node centre. */
+/**
+ * One rendered line of a multi-line SVG label. The fallback layout path gets
+ * its lines (already positioned, with the anchor and baseline resolved) from
+ * the shared `smartArtNodeLabel`; the cached drawing-shape path gets them from
+ * `projectDrawingShapes`. Nothing here recomputes either.
+ */
 export type { SvgTextLine };
-
-/** Split a label on newlines and centre the block on the node centre (offset 0). */
-export function svgTextLines(text: string, fontSize: number): SvgTextLine[] {
-	return centeredSvgTextLines(text, fontSize);
-}

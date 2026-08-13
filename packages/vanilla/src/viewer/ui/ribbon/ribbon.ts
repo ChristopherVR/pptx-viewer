@@ -218,6 +218,11 @@ export function createRibbon(
 			slideCount: latestExtra.slideCount,
 			selectedCount: latestExtra.selectedCount ?? 0,
 			layouts: latestExtra.layouts ?? [],
+			layoutPreviews: latestExtra.layoutPreviews,
+			currentLayoutPath: latestExtra.currentLayoutPath,
+			themeFonts: latestExtra.themeFonts,
+			embeddedFontFamilies: latestExtra.embeddedFontFamilies,
+			customFontFamilies: latestExtra.customFontFamilies,
 		});
 	};
 	const syncAnimations = (): void => {

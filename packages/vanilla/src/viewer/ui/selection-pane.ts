@@ -1,6 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
+import { resolveSelectionPaneRename, restoreEditorKeyboardFocus } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -15,8 +15,8 @@ export interface SelectionPaneOptions extends SelectionPaneModel {
 	onSelect(id: string): void;
 	onToggleHidden(id: string): void;
 	onReorder(from: number, to: number): void;
-	/** Rename commit: a trimmed non-empty name, or `undefined` to clear it. */
-	onRename(id: string, name: string | undefined): void;
+	/** Rename commit: the trimmed name, or `''` to clear it. */
+	onRename(id: string, name: string): void;
 	/**
 	 * Live model feed. Without it the pane is a snapshot of the deck as it was
 	 * when it opened, which is how an undone rename kept showing the new name:
@@ -202,7 +202,6 @@ function startRename(
 			return;
 		}
 		done = true;
-		const trimmed = input.value.trim();
 		// Hand the keyboard back to the viewer root BEFORE the input leaves the
 		// document. Otherwise focus falls to `document.body`, outside the root
 		// this binding listens on, and the Ctrl+Z that undoes the rename is
@@ -210,13 +209,16 @@ function startRename(
 		restoreEditorKeyboardFocus(input);
 		input.remove();
 		name.hidden = false;
-		// An unedited commit keeps whatever the element had (the seed may be a
-		// fallback label, not a stored name).
-		if (!commit || trimmed === seed.trim()) {
+		// Shared decision: `null` for an unedited commit (the seed may be a
+		// fallback label, not a stored name), otherwise the name to write -
+		// including `''` for a cleared box, which is the only value the save
+		// writer reads as a clear.
+		const patch = commit ? resolveSelectionPaneRename(seed, input.value) : null;
+		if (!patch) {
 			return;
 		}
-		name.textContent = trimmed.length > 0 ? trimmed : fallbackName(element, index);
-		onRename(element.id, trimmed.length > 0 ? trimmed : undefined);
+		name.textContent = patch.name.length > 0 ? patch.name : fallbackName(element, index);
+		onRename(element.id, patch.name);
 	};
 	input.addEventListener('keydown', (event) => {
 		if (event.key === 'Enter') {

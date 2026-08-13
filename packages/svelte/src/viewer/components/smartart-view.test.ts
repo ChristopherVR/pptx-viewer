@@ -183,3 +183,63 @@ describe('smartArtView', () => {
 		expect(onsmartartnodecommit).toHaveBeenCalledWith('sa-1', 'n1', 'Changed');
 	});
 });
+
+/**
+ * The shared layout descriptor's OPTIONAL paint / placement fields. This SFC
+ * used to render every fallback label through a `centeredText` snippet fixed at
+ * `fill="white"`, `text-anchor="middle"` and the node centre, so a target
+ * caption sat on the bullseye and a timeline caption on its dot; connectors
+ * were likewise pinned to the grey default.
+ */
+describe('smartArtView fallback label + connector paint', () => {
+	function fallbackElement(resolvedLayoutType: 'target' | 'timeline' | 'gear'): PptxElement {
+		return {
+			type: 'smartArt',
+			id: 'sa-fb',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			smartArtData: {
+				nodes: [
+					{ id: 'n1', text: 'One' },
+					{ id: 'n2', text: 'Two' },
+					{ id: 'n3', text: 'Three' },
+				],
+				resolvedLayoutType,
+			},
+		} as PptxElement;
+	}
+
+	function labels(type: 'target' | 'timeline' | 'gear'): SVGTextElement[] {
+		return [...mountEl(fallbackElement(type)).querySelectorAll('svg text')];
+	}
+
+	it('parks a target leader caption beside the ring in the node colour', () => {
+		const label = labels('target')[0]!;
+		// Not the circle centre (cx = 160): the descriptor's textX / textAnchor.
+		expect(label.getAttribute('x')).toBe('310');
+		expect(label.getAttribute('text-anchor')).toBe('start');
+		expect(label.getAttribute('fill')).toBe('#3b82f6');
+		expect(label.querySelector('tspan')?.getAttribute('y')).toBe('13');
+	});
+
+	it('stacks timeline captions above and below the axis', () => {
+		const found = labels('timeline');
+		expect(found[0]!.getAttribute('dominant-baseline')).toBe('auto');
+		expect(found[0]!.querySelector('tspan')?.getAttribute('y')).toBe('110');
+		expect(found[1]!.getAttribute('dominant-baseline')).toBe('hanging');
+		expect(found[1]!.querySelector('tspan')?.getAttribute('y')).toBe('190');
+	});
+
+	it('applies the node text style (gear hubs are bold)', () => {
+		expect(labels('gear')[0]!.getAttribute('font-weight')).toBe('700');
+	});
+
+	it('paints timeline stems in their own node colour, not the default grey', () => {
+		const paths = [...mountEl(fallbackElement('timeline')).querySelectorAll('svg path')];
+		expect(paths[0]!.getAttribute('stroke-width')).toBe('2');
+		expect(paths[0]!.getAttribute('opacity')).toBe('1');
+		expect(paths[1]!.getAttribute('stroke')).toBe('#3b82f6');
+	});
+});

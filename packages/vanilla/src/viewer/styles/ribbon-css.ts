@@ -154,7 +154,61 @@ export const RIBBON_CSS = `
 .pptxv-slides-menu-host { position: relative; display: inline-flex; }
 /* Layout menus anchor to the left of their host (unlike the right-aligned
    primary-row menus, which the shared .pptxv-primary-menu rule right-aligns). */
-.pptxv-layout-menu { right: auto; left: 0; }
+.pptxv-layout-menu {
+	right: auto;
+	left: 0;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 8px;
+	width: 620px;
+	max-height: 520px;
+	overflow-y: auto;
+	padding: 12px;
+}
+.pptxv-layout-menu[hidden] { display: none; }
+.pptxv-layout-tile {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	border: 2px solid transparent;
+	border-radius: var(--pptx-radius, 6px);
+	background: transparent;
+	color: inherit;
+	padding: 4px;
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+.pptxv-layout-tile:hover { background: var(--pptx-accent); }
+.pptxv-layout-tile-current {
+	border-color: var(--pptx-primary, #2563eb);
+	background: color-mix(in srgb, var(--pptx-primary, #2563eb) 12%, transparent);
+}
+.pptxv-layout-tile-thumb {
+	position: relative;
+	flex: none;
+	overflow: hidden;
+	border: 1px solid var(--pptx-border);
+	border-radius: 2px;
+}
+/* The artwork is drawn at full slide size and the whole surface is scaled, so
+   element positions need no conversion. */
+.pptxv-layout-tile-surface { position: absolute; left: 0; top: 0; transform-origin: top left; }
+.pptxv-layout-tile-frame {
+	position: absolute;
+	border-style: dashed;
+	border-color: color-mix(in srgb, var(--pptx-muted-foreground) 70%, transparent);
+	background: color-mix(in srgb, var(--pptx-background) 20%, transparent);
+}
+.pptxv-layout-tile-name {
+	width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: center;
+}
 
 /* ── Select + commit picker (Insert > Shape / Chart) ──────────────────── */
 .pptxv-select-button { display: inline-flex; align-items: center; gap: 0; }
@@ -209,6 +263,22 @@ export const RIBBON_CSS = `
 	box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
 }
 .pptxv-dropdown-menu[hidden] { display: none; }
+/* Non-selectable heading starting a dropdown group (the font list's theme /
+   embedded / added-this-session / all sections). */
+.pptxv-dropdown-group {
+	padding: 6px 10px 2px;
+	color: var(--pptx-muted-foreground);
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.pptxv-dropdown-item-hint {
+	margin-left: auto;
+	padding-left: 8px;
+	color: var(--pptx-muted-foreground);
+	font-size: 10px;
+}
 .pptxv-dropdown-item {
 	display: block;
 	width: 100%;

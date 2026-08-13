@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { DEFAULT_MASTER_PAGE_SIZE } from 'pptx-viewer-shared';
+import { DEFAULT_MASTER_PAGE_SIZE, masterViewPseudoSlide } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
 import { createPresentationPlayback } from './animation';
@@ -171,22 +171,15 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		const chrome = deps.getChrome();
 		const state = store.get();
 		const target = state.masterViewTarget;
-		const master = target ? state.slideMasters[target.masterIndex] : undefined;
-		const layout =
-			target?.layoutIndex === null ? undefined : master?.layouts?.[target?.layoutIndex ?? -1];
 		const slide: PptxSlide | undefined = target
-			? master
-				? {
-						id: layout?.path ?? master.path,
-						rId: '',
-						slideNumber: 0,
-						elements: layout
-							? [...(master.elements ?? []), ...(layout.elements ?? [])]
-							: (master.elements ?? []),
-						backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
-						backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
-					}
-				: undefined
+			? masterViewPseudoSlide(
+					{ slideMasters: state.slideMasters },
+					{
+						tab: 'slides',
+						masterIndex: target.masterIndex,
+						layoutIndex: target.layoutIndex,
+					},
+				)
 			: state.slides[state.currentSlide];
 		const specialMaster = target && state.masterViewTab !== 'slides';
 		const pageSize = specialMaster

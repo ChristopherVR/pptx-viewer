@@ -11,6 +11,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTheme,
 	PptxPresentationProperties,
 	PptxCustomShow,
 	PptxTagCollection,
@@ -19,9 +20,14 @@ import type {
 import type {
 	DeckSaveIntent,
 	ElementClipboardPayload,
+	FontEmbeddingDescriptor,
 	TemplateElementMap,
 } from 'pptx-viewer-shared';
-import { canInteractWithElement, isElementIdInteractive } from 'pptx-viewer-shared';
+import {
+	canInteractWithElement,
+	describeFontEmbedding,
+	isElementIdInteractive,
+} from 'pptx-viewer-shared';
 
 import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
@@ -79,6 +85,34 @@ export class EditorState {
 	 * carried through the undo snapshot and re-emitted on save.
 	 */
 	tagCollections = $state.raw<PptxTagCollection[]>([]);
+	/**
+	 * The deck's active theme, kept here so the Home tab's font dropdown can
+	 * lead with the theme fonts. Set by the viewer once a deck is loaded;
+	 * deliberately outside {@link EditorSnapshot} because it is not content the
+	 * undo stack owns.
+	 */
+	theme = $state.raw<PptxTheme | undefined>(undefined);
+	/**
+	 * Families the deck embeds, offered as their own font-dropdown group. Write
+	 * through {@link adoptEmbeddedFontFamilies} so {@link embedFonts} is reseeded
+	 * with them.
+	 */
+	embeddedFontFamilies = $state.raw<readonly string[]>([]);
+	/**
+	 * File > Fonts > "Embed fonts in the file". Session state like
+	 * {@link savePassword}, not document content, so undo never restores it.
+	 * Seeded from the loaded deck (see {@link adoptEmbeddedFontFamilies}): a deck
+	 * that arrived with embedded fonts keeps them on save, so the switch has to
+	 * start "on" or turning it off would be the only way to describe what save
+	 * already does. Read by `saveEditorDocument`.
+	 */
+	embedFonts = $state(true);
+	/**
+	 * Families the user registered from a local font file this session
+	 * (File > Options > Fonts, off by default). Session state, never persisted:
+	 * the font binary is the user's, not ours to store.
+	 */
+	customFontFamilies = $state.raw<readonly string[]>([]);
 	masterViewTarget = $state.raw<MasterViewTarget | null>(null);
 	readonly selection = new EditorSelection();
 	/** The block of table cells marquee'd inside the selected table, if any. */
@@ -279,6 +313,22 @@ export class EditorState {
 	/** A deep clone of the whole editable document (one undo entry, or save input). */
 	snapshot(): EditorSnapshot {
 		return createEditorSnapshot(this);
+	}
+
+	/**
+	 * Adopt the families a freshly loaded deck embeds, and reseed
+	 * {@link embedFonts} to the position that describes the file save would write
+	 * right now. Deliberately not an undo step: the parsed font list is not a
+	 * user edit.
+	 */
+	adoptEmbeddedFontFamilies(families: readonly string[]): void {
+		this.embeddedFontFamilies = families;
+		this.embedFonts = describeFontEmbedding(families).initialEnabled;
+	}
+
+	/** How File > Fonts should render its toggle for the loaded deck. */
+	get fontEmbedding(): FontEmbeddingDescriptor {
+		return describeFontEmbedding(this.embeddedFontFamilies);
 	}
 
 	/** The Protect-Presentation state every save path hands to `planDeckSave`. */

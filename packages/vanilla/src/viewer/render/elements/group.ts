@@ -1,4 +1,4 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import type { ComputedFillStyle } from 'pptx-viewer-shared';
 import {
 	getContainerStyle,
@@ -34,10 +34,66 @@ function applyGroupChildFill(node: HTMLElement | SVGElement, fill: ComputedFillS
 }
 
 /**
+ * Index an already-rendered subtree by `data-element-id`.
+ *
+ * Every renderer sets `dataset.elementId` on its root node (the registry
+ * contract in `render/types.ts` requires it), so this recovers the node that
+ * belongs to a given descendant element without depending on child ORDER -
+ * `renderElement` returns `null` for a Selection-Pane-hidden element, so the
+ * DOM children of a group are not 1:1 with its `children` array.
+ */
+function indexRenderedNodes(root: HTMLElement | SVGElement): Map<string, HTMLElement | SVGElement> {
+	const byId = new Map<string, HTMLElement | SVGElement>();
+	for (const node of root.querySelectorAll<HTMLElement | SVGElement>('[data-element-id]')) {
+		const id = node.dataset.elementId;
+		if (id !== undefined && !byId.has(id)) {
+			byId.set(id, node);
+		}
+	}
+	return byId;
+}
+
+/**
+ * Paint the `a:grpFill` inheritance for one rendered group child and, when that
+ * child is itself a group, for everything inside it.
+ *
+ * The outermost group does the whole subtree because the fixed
+ * `renderElement(element, zIndex, context)` contract gives a nested group's own
+ * invocation no way to learn what its parent inherited: it would resolve
+ * against its own (absent) fill and paint the shapes inside it transparent.
+ * `a:grpFill` resolves against the nearest ANCESTOR that has a fill, which is
+ * what {@link getGroupChildParentFill} chains here.
+ */
+function paintInheritedFill(
+	node: HTMLElement | SVGElement,
+	element: PptxElement,
+	parentGroupFill: ShapeStyle | undefined,
+): void {
+	const inherited = resolveGroupChildFill(element, parentGroupFill);
+	if (inherited) {
+		applyGroupChildFill(node, inherited);
+	}
+	if (element.type !== 'group') {
+		return;
+	}
+	const childFill = getGroupChildParentFill(element, parentGroupFill);
+	if (!childFill) {
+		return;
+	}
+	const byId = indexRenderedNodes(node);
+	for (const grandchild of element.children) {
+		const grandchildNode = byId.get(grandchild.id);
+		if (grandchildNode) {
+			paintInheritedFill(grandchildNode, grandchild, childFill);
+		}
+	}
+}
+
+/**
  * Renderer for `group` elements: an absolutely positioned container that
  * recurses into `children` through the registry (so custom renderers apply
- * inside groups too). Children painted with `a:grpFill` inherit this group's
- * own fill.
+ * inside groups too). Children painted with `a:grpFill` inherit the fill of the
+ * nearest enclosing group that has one.
  */
 export const renderGroupElement: ElementRenderer = (element, zIndex, context) => {
 	const el = createEl(
@@ -53,10 +109,7 @@ export const renderGroupElement: ElementRenderer = (element, zIndex, context) =>
 		element.children.forEach((child: PptxElement, index) => {
 			const childEl = context.renderElement(child, index);
 			if (childEl) {
-				const inherited = resolveGroupChildFill(child, parentGroupFill);
-				if (inherited) {
-					applyGroupChildFill(childEl, inherited);
-				}
+				paintInheritedFill(childEl, child, parentGroupFill);
 				el.appendChild(childEl);
 			}
 		});

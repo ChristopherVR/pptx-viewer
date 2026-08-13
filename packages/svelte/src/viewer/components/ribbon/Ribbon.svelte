@@ -40,9 +40,11 @@
 	let signaturesOpen = $state(false);
 	// eslint-disable-next-line prefer-const
 	let protectionOpen = $state(false);
-	// eslint-disable-next-line prefer-const
-	let embedFontsEnabled = $state(false);
 	let passwordProtected = $state(false);
+	// File > Fonts: seeded from (and stored on) the editor, because the save path
+	// reads it there. Held locally this component could move the switch but not
+	// change a single byte of the saved file.
+	const fontEmbedding = $derived(props.editor.fontEmbedding);
 	const usedFontFamilies = $derived(collectUsedFonts(props.editor.slides));
 	const slideCommentCount = $derived(props.slides[props.current]?.comments?.length ?? 0);
 	$effect(() => {
@@ -187,7 +189,7 @@
 </div>
 
 {#if fontsOpen}
-	<FontEmbeddingPanel usedFontFamilies={usedFontFamilies} embeddedFonts={props.embeddedFontNames} enabled={embedFontsEnabled} ontoggle={(enabled) => (embedFontsEnabled = enabled)} onclose={() => (fontsOpen = false)} />
+	<FontEmbeddingPanel usedFontFamilies={usedFontFamilies} embeddedFonts={props.embeddedFontNames} enabled={props.editor.embedFonts} canEmbed={fontEmbedding.interactive} unavailableKey={fontEmbedding.disabledReasonKey} ontoggle={(enabled) => (props.editor.embedFonts = enabled)} onclose={() => (fontsOpen = false)} />
 {/if}
 {#if signaturesOpen}
 	<DigitalSignaturesDialog hasSignatures={props.hasDigitalSignatures} signatureCount={props.digitalSignatureCount} onclose={() => (signaturesOpen = false)} />

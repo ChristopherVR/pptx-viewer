@@ -16,13 +16,18 @@
 	import { useTranslator } from '../../i18n/context';
 	import {
 		buildSmartArtView,
-		SMARTART_CONNECTOR_STROKE,
 		SMARTART_SVG_STYLE,
 		smartArtAriaLabel,
 		smartArtChromeStyle,
-		svgTextLines,
 	} from '../render';
-	import { computeInlineEditorRect, findSmartArtNodeText, resolvePalette } from 'pptx-viewer-shared';
+	import {
+		computeInlineEditorRect,
+		findSmartArtNodeText,
+		resolvePalette,
+		smartArtConnectorPaint,
+		smartArtNodeLabel,
+	} from 'pptx-viewer-shared';
+	import type { RenderedNode } from 'pptx-viewer-shared';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
@@ -91,13 +96,29 @@
 	}
 </script>
 
-{#snippet centeredText(text: string, x: number, y: number, fill: string, fontSize: number)}
-	<!-- Centred, multi-line label: one <tspan> per line, block centred on y. -->
-	<text {x} text-anchor="middle" dominant-baseline="central" {fill} font-size={fontSize}>
-		{#each svgTextLines(text, fontSize) as line, i (i)}
-			<tspan {x} y={y + line.y}>{line.text}</tspan>
-		{/each}
-	</text>
+{#snippet nodeLabel(node: RenderedNode)}
+	<!--
+		Multi-line node label. Placement, colour, weight and baseline are all
+		decided by the shared `smartArtNodeLabel`, so off-centre captions (target
+		leaders, gear legend rows, timeline captions above / below the axis) land
+		where React puts them instead of on the node centre.
+	-->
+	{@const label = smartArtNodeLabel(node)}
+	{#if label.visible}
+		<text
+			x={label.x}
+			text-anchor={label.textAnchor}
+			dominant-baseline={label.dominantBaseline}
+			fill={label.fill}
+			font-size={label.fontSize}
+			font-weight={label.fontWeight}
+			font-style={label.fontStyle}
+		>
+			{#each label.lines as line, i (i)}
+				<tspan x={label.x} y={line.y}>{line.text}</tspan>
+			{/each}
+		</text>
+	{/if}
 {/snippet}
 
 {#if view}
@@ -237,7 +258,8 @@
 				>
 					<!-- Connectors render first so they appear behind nodes. -->
 					{#each view.layout.connectors as conn (conn.key)}
-						<path d={conn.d} fill="none" stroke={SMARTART_CONNECTOR_STROKE} stroke-width="1.5" opacity="0.5" />
+						{@const paint = smartArtConnectorPaint(conn)}
+						<path d={paint.d} fill="none" stroke={paint.stroke} stroke-width={paint.strokeWidth} opacity={paint.opacity} stroke-dasharray={paint.dash} />
 					{/each}
 					{#each view.layout.nodes as node (node.key)}
 						<g
@@ -251,14 +273,12 @@
 							{#if node.ariaLabel}<title>{node.ariaLabel}</title>{/if}
 							{#if node.kind === 'circle'}
 								<circle cx={node.cx} cy={node.cy} r={node.r} fill={node.fill} stroke={node.stroke} stroke-width={node.strokeWidth} opacity={node.opacity} />
-								{@render centeredText(node.text, node.cx, node.cy, 'white', node.fontSize)}
 							{:else if node.kind === 'polygon'}
 								<polygon points={node.points} fill={node.fill} stroke={node.stroke} stroke-width={node.strokeWidth} opacity={node.opacity} />
-								{@render centeredText(node.text, node.textX, node.textY, 'white', node.fontSize)}
 							{:else}
 								<rect x={node.x} y={node.y} width={node.width} height={node.height} rx={node.rx} fill={node.fill} stroke={node.stroke} stroke-width={node.strokeWidth} opacity={node.opacity} />
-								{@render centeredText(node.text, node.textX, node.textY, 'white', node.fontSize)}
 							{/if}
+							{@render nodeLabel(node)}
 						</g>
 					{/each}
 				</svg>

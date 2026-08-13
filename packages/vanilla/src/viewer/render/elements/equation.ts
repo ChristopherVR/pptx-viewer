@@ -1,17 +1,24 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { OmmlNode } from 'pptx-viewer-shared';
-import { convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
+import { convertOmmlToMathMl, isEquationOnlyText, sanitizeMathMl } from 'pptx-viewer-shared';
 
 import { createEl } from '../dom';
 import { getTextBlockStyle } from '../element-styles';
 import type { ElementRenderContext } from '../types';
 
-/** Render every OMML-bearing text segment as browser-native MathML. */
+/**
+ * Render a PURE equation box (OMML and nothing else) as browser-native MathML,
+ * centred in the shape.
+ *
+ * A body that MIXES prose with an inline `m:oMath` returns null and falls
+ * through to the ordinary paragraph path, where shared emits the equation as a
+ * run in its authored position. Coming here dropped every word around it.
+ */
 export function renderEquations(
 	element: Parameters<typeof hasTextProperties>[0],
 	context: ElementRenderContext,
 ): HTMLElement | null {
-	if (!hasTextProperties(element)) {
+	if (!hasTextProperties(element) || !isEquationOnlyText(element.textSegments)) {
 		return null;
 	}
 	const equations = (element.textSegments ?? []).filter((segment) => segment.equationXml);

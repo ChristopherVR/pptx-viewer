@@ -1,4 +1,8 @@
-import type { PptxElementAnimation, PptxPresentationProperties } from 'pptx-viewer-core';
+import type {
+	PptxElementAnimation,
+	PptxLayoutPreview,
+	PptxPresentationProperties,
+} from 'pptx-viewer-core';
 import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -236,4 +240,14 @@ export interface RibbonSelectionState {
 	animations?: readonly PptxElementAnimation[];
 	/** Available slide layouts for the Slides group's New Slide / Layout menus. */
 	layouts?: readonly LayoutOption[];
+	/** Artwork for the layout gallery thumbnails, keyed by layout path. */
+	layoutPreviews?: ReadonlyMap<string, PptxLayoutPreview>;
+	/** `layoutPath` of the active slide, marking the current gallery tile. */
+	currentLayoutPath?: string;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 }

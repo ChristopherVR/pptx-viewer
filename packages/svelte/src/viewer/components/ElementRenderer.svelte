@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
@@ -84,8 +84,12 @@
 	 * element carrying the contract), it only loses pointer interactivity.
 	 */
 	const elementMarked = $derived(interactive || marked);
-	/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
-	const childParentGroupFill = $derived(getGroupChildParentFill(element));
+	/**
+	 * The fill handed to this group's `a:grpFill` children (undefined for
+	 * non-groups): its own, or the one this group inherited when it has none,
+	 * since `a:grpFill` resolves against the nearest ANCESTOR with a fill.
+	 */
+	const childParentGroupFill = $derived(getGroupChildParentFill(element, parentGroupFill));
 
 	/**
 	 * Native-animation playback state for this element (present only during a
@@ -133,8 +137,15 @@
 	const hasText = $derived(
 		paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 	);
+	/**
+	 * A PURE equation box (OMML and nothing else) delegates wholesale to
+	 * `EquationView`, which centres the maths in the shape. A body that mixes
+	 * prose with an inline `m:oMath` renders through the paragraph path instead,
+	 * where shared emits the equation as a run in its authored position: sending
+	 * it here dropped every word around it.
+	 */
 	const hasEquation = $derived(
-		hasTextProperties(element) && (element.textSegments ?? []).some((segment) => segment.equationXml),
+		hasTextProperties(element) && isEquationOnlyText(element.textSegments),
 	);
 	const warpedText = $derived(hasTextWarp(element));
 	/** Selection Pane visibility; see the leading branch of the markup below. */

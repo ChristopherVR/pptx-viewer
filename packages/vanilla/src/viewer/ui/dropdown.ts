@@ -8,6 +8,15 @@ export interface DropdownItem<T> {
 	value: T;
 	/** Optional inline style applied to the item's label (e.g. `fontFamily`). */
 	style?: Partial<CSSStyleDeclaration>;
+	/**
+	 * Renders a non-selectable heading above this item, starting a group.
+	 *
+	 * Used by the Home tab's font dropdown, which PowerPoint splits into theme
+	 * fonts / embedded / added-this-session / all.
+	 */
+	groupLabel?: string;
+	/** Trailing hint shown after the label (e.g. the theme role "Headings"). */
+	hint?: string;
 }
 
 export interface DropdownOptions<T> {
@@ -25,6 +34,8 @@ export interface DropdownHandle<T> {
 	el: HTMLElement;
 	setDisabled(disabled: boolean): void;
 	setTriggerText(text: string): void;
+	/** Replace the whole item list (the font dropdown regroups per deck). */
+	setItems(items: ReadonlyArray<DropdownItem<T>>): void;
 	/** Highlight the item matching `value` (adds `is-selected`); pass `undefined` to clear. */
 	setSelected(value: T | undefined): void;
 	close(): void;
@@ -76,22 +87,40 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 		}
 	};
 
-	for (const item of options.items) {
-		const btn = createEl(doc, 'button', 'pptxv-dropdown-item');
-		btn.type = 'button';
-		btn.setAttribute('role', 'option');
-		btn.setAttribute('aria-selected', 'false');
-		btn.textContent = item.label;
-		if (item.style) {
-			Object.assign(btn.style, item.style);
+	const renderItems = (items: ReadonlyArray<DropdownItem<T>>): void => {
+		menu.replaceChildren();
+		itemButtons.clear();
+		for (const item of items) {
+			if (item.groupLabel) {
+				const heading = createEl(doc, 'div', 'pptxv-dropdown-group');
+				heading.setAttribute('role', 'presentation');
+				heading.textContent = item.groupLabel;
+				menu.appendChild(heading);
+			}
+			const btn = createEl(doc, 'button', 'pptxv-dropdown-item');
+			btn.type = 'button';
+			btn.setAttribute('role', 'option');
+			btn.setAttribute('aria-selected', 'false');
+			btn.textContent = item.label;
+			if (item.hint) {
+				const hint = createEl(doc, 'span', 'pptxv-dropdown-item-hint');
+				hint.textContent = item.hint;
+				btn.appendChild(hint);
+			}
+			if (item.style) {
+				Object.assign(btn.style, item.style);
+			}
+			btn.addEventListener('click', () => {
+				setOpen(false);
+				options.onSelect(item.value);
+			});
+			menu.appendChild(btn);
+			itemButtons.set(btn, item.value);
 		}
-		btn.addEventListener('click', () => {
-			setOpen(false);
-			options.onSelect(item.value);
-		});
-		menu.appendChild(btn);
-		itemButtons.set(btn, item.value);
-	}
+		applySelected();
+	};
+
+	renderItems(options.items);
 
 	trigger.addEventListener('click', (event) => {
 		event.stopPropagation();
@@ -117,6 +146,9 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 		setSelected(value) {
 			selected = value;
 			applySelected();
+		},
+		setItems(items) {
+			renderItems(items);
 		},
 		close: () => setOpen(false),
 	};

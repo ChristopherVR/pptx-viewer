@@ -1,10 +1,61 @@
-import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
-import type { CssStyleMap, ElementAnimationState, RenderParagraph } from 'pptx-viewer-shared';
+import { buildTextBuildSpec, runEquationMathMl, textBuildSpanStyle } from 'pptx-viewer-shared';
+import type {
+	CssStyleMap,
+	ElementAnimationState,
+	ParagraphRun,
+	RenderParagraph,
+} from 'pptx-viewer-shared';
 
 import { applyStyleMap, createEl } from '../dom';
 
 /** A run whose text is exactly a newline is a hard line break, not content. */
 const NEWLINE_RUN = '\n';
+
+/**
+ * One rendered run. Normally a `<span>`, but the shared model marks two kinds
+ * that need a different element: a HYPERLINK run (an `<a href>`) and an inline
+ * EQUATION run (MathML, whose text is empty). Both used to be dropped here -
+ * `buildParagraphs` returned `{ text, style }` only, so a linked run rendered
+ * as ordinary text and an inline `m:oMath` as nothing at all.
+ */
+function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
+	if (run.equation) {
+		const host = createEl(doc, 'span', 'pptxv-inline-equation', run.style);
+		const math = createEl(doc, 'span', 'pptxv-equation-math', {
+			display: 'inline-block',
+			verticalAlign: 'middle',
+			fontFamily: "'Cambria Math', 'STIX Two Math', serif",
+		});
+		math.innerHTML = runEquationMathMl(run.equation);
+		host.appendChild(math);
+		if (run.equation.number) {
+			const number = createEl(doc, 'span', 'pptxv-equation-number', {
+				whiteSpace: 'nowrap',
+				marginInlineStart: '0.5em',
+			});
+			number.textContent = `(${run.equation.number})`;
+			host.appendChild(number);
+		}
+		return host;
+	}
+	// An internal `ppaction://` jump resolves to no href (shared refuses to make
+	// an action look like a URL), so it renders as plain text as it always has.
+	if (run.hyperlink?.href) {
+		const link = createEl(doc, 'a', 'pptxv-link', run.style);
+		link.setAttribute('href', run.hyperlink.href);
+		link.setAttribute('target', '_blank');
+		link.setAttribute('rel', 'noopener noreferrer');
+		if (run.hyperlink.tooltip) {
+			link.setAttribute('title', run.hyperlink.tooltip);
+		}
+		link.textContent = run.text;
+		return link;
+	}
+	const span = createEl(doc, 'span');
+	applyStyleMap(span, run.style);
+	span.textContent = run.text;
+	return span;
+}
 
 /**
  * Render an element's rich text (paragraphs of styled runs with bullet
@@ -28,6 +79,10 @@ export function renderTextBlock(
 
 	for (const para of paragraphs) {
 		const paraStyle: CssStyleMap = {
+			// This paragraph's own `text-align` / BiDi `direction` / kinsoku rules,
+			// when it overrides the body's. Spread first so the explicit geometry
+			// below always wins.
+			...para.paragraphStyle,
 			margin: 0,
 			marginLeft: para.marginLeftPx !== undefined ? `${para.marginLeftPx}px` : 0,
 		};
@@ -123,10 +178,7 @@ export function renderTextBlock(
 				runHost.appendChild(doc.createElement('br'));
 				continue;
 			}
-			const span = createEl(doc, 'span');
-			applyStyleMap(span, run.style);
-			span.textContent = run.text;
-			runHost.appendChild(span);
+			runHost.appendChild(createRunNode(doc, run));
 		}
 
 		// An authored blank line has no runs, so without this the <p> collapses

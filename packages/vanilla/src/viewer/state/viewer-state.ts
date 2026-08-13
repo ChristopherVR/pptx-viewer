@@ -68,6 +68,18 @@ export interface ViewerState {
 	 */
 	activeCustomShowId: string | null;
 	embeddedFonts: PptxEmbeddedFont[];
+	/**
+	 * File > Fonts > "Embed fonts in the file". Read by the save path, which
+	 * hands it to the shared `embeddedFontSaveOptions`: off passes
+	 * `embeddedFontList: null` and strips `p:embeddedFontLst`, the `/font`
+	 * relationships and the `.fntdata` parts, while on leaves core's lossless
+	 * re-embed alone. Seeded per load from {@link embeddedFonts} (see
+	 * `describeFontEmbedding`), because a deck that arrived with embedded fonts
+	 * keeps them on save and the switch has to say so. It used to be a private
+	 * field on `PptxViewer` that nothing downstream read, so moving it produced a
+	 * byte-identical file.
+	 */
+	embedFonts: boolean;
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
 	isPasswordProtected: boolean;
@@ -109,6 +121,14 @@ export interface ViewerState {
 	fontScheme?: PptxThemeFontScheme;
 	/** The loaded theme's name (inspector THEME EDITOR card). */
 	themeName?: string;
+	/**
+	 * Families the user registered from a local font file this session
+	 * (File > Options > Fonts, off by default).
+	 *
+	 * Session state, never persisted and never written into the deck: the font
+	 * binary is the user's, not ours to store.
+	 */
+	customFontFamilies: string[];
 	/** Tag collections parsed from `ppt/tags/*.xml` (inspector TAGS card). */
 	tagCollections: PptxTagCollection[];
 	/** Parsed presentation table styles keyed by style id. */
@@ -209,6 +229,8 @@ export function createInitialViewerState(): ViewerState {
 		customShows: [],
 		activeCustomShowId: null,
 		embeddedFonts: [],
+		embedFonts: true,
+		customFontFamilies: [],
 		hasDigitalSignatures: false,
 		digitalSignatureCount: 0,
 		isPasswordProtected: false,

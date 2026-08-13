@@ -1,50 +1,15 @@
-import { centeredSvgTextLines } from 'pptx-viewer-shared';
 import type { RenderedGradient, SvgTextLine } from 'pptx-viewer-shared';
 
 import { createSvgEl } from '../dom';
 
 /**
  * DOM assembly for the SmartArt drawing-shapes and fallback layout paths. The
- * line geometry itself comes from `pptx-viewer-shared`; this file only turns it
- * into elements.
+ * line geometry itself comes from `pptx-viewer-shared` (`projectDrawingShapes`
+ * for the cached path, `smartArtNodeLabel` for the fallback layout); this file
+ * only turns it into elements.
  */
 
 export type { SvgTextLine };
-
-/** Split a label on newlines and centre the block on the node centre (offset 0). */
-export function svgTextLines(text: string, fontSize: number): SvgTextLine[] {
-	return centeredSvgTextLines(text, fontSize);
-}
-
-/** Options for {@link appendCenteredSvgText}. */
-export interface CenteredSvgTextOptions {
-	text: string;
-	/** Centre x of the node (text anchor). */
-	x: number;
-	/** Centre y of the node (lines are offset around it). */
-	y: number;
-	fill: string;
-	fontSize: number;
-}
-
-/**
- * Append a centred, multi-line `<text>` (one `<tspan>` per line) to `parent`.
- */
-export function appendCenteredSvgText(
-	doc: Document,
-	parent: SVGElement,
-	options: CenteredSvgTextOptions,
-): void {
-	appendSvgTextLines(doc, parent, {
-		lines: svgTextLines(options.text, options.fontSize).map((line) => ({
-			text: line.text,
-			y: options.y + line.y,
-		})),
-		x: options.x,
-		fill: options.fill,
-		fontSize: options.fontSize,
-	});
-}
 
 /** Options for {@link appendSvgTextLines}. */
 export interface SvgTextLinesOptions {
@@ -54,12 +19,21 @@ export interface SvgTextLinesOptions {
 	x: number;
 	fill: string;
 	fontSize: number;
+	/** SVG `text-anchor`. Defaults to `middle`. */
+	textAnchor?: 'start' | 'middle' | 'end';
+	/** SVG `dominant-baseline`. Defaults to `central`. */
+	dominantBaseline?: 'auto' | 'hanging' | 'central';
+	/** SVG `font-weight`. Omitted when unset. */
+	fontWeight?: number;
+	/** SVG `font-style`. Omitted when unset. */
+	fontStyle?: string;
 }
 
 /**
  * Append a `<text>` built from already-positioned lines. Shapes whose label
- * geometry was resolved upstream (the cached drawing-shape path) come in this
- * way, so nothing here recomputes it.
+ * geometry was resolved upstream (the cached drawing-shape path, or the shared
+ * `smartArtNodeLabel` decision function) come in this way, so nothing here
+ * recomputes it.
  */
 export function appendSvgTextLines(
 	doc: Document,
@@ -68,10 +42,12 @@ export function appendSvgTextLines(
 ): void {
 	const textEl = createSvgEl(doc, 'text', {
 		x: options.x,
-		'text-anchor': 'middle',
-		'dominant-baseline': 'central',
+		'text-anchor': options.textAnchor ?? 'middle',
+		'dominant-baseline': options.dominantBaseline ?? 'central',
 		fill: options.fill,
 		'font-size': options.fontSize,
+		'font-weight': options.fontWeight,
+		'font-style': options.fontStyle,
 	});
 	for (const line of options.lines) {
 		const tspan = createSvgEl(doc, 'tspan', { x: options.x, y: line.y });

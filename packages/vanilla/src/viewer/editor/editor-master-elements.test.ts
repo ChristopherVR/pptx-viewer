@@ -37,3 +37,43 @@ describe('notes and handout master active elements', () => {
 		});
 	});
 });
+
+describe('slide master and layout active elements', () => {
+	const masterShape = { ...element, id: 'slide-master-slideMaster1-shape-0' };
+	const layoutShape = { ...element, id: 'slide-layout-slideLayout1-shape-0' };
+	const baseState = {
+		...createInitialViewerState(),
+		masterViewTab: 'slides' as const,
+		slideMasters: [
+			{
+				path: 'ppt/slideMasters/slideMaster1.xml',
+				elements: [masterShape],
+				layouts: [{ path: 'ppt/slideLayouts/slideLayout1.xml', elements: [layoutShape] }],
+			},
+		],
+	};
+
+	it('edits the master itself when no layout is selected', () => {
+		const state = { ...baseState, masterViewTarget: { masterIndex: 0, layoutIndex: null } };
+		expect(getActiveElements(state)).toStrictEqual([masterShape]);
+		expect(replaceActiveElements(state, [{ ...masterShape, x: 42 }])).toStrictEqual({
+			slideMasters: [{ ...baseState.slideMasters[0], elements: [{ ...masterShape, x: 42 }] }],
+		});
+	});
+
+	it('paints the master behind a layout and routes each edit to its own part', () => {
+		const state = { ...baseState, masterViewTarget: { masterIndex: 0, layoutIndex: 0 } };
+		expect(getActiveElements(state)).toStrictEqual([masterShape, layoutShape]);
+		expect(replaceActiveElements(state, [masterShape, { ...layoutShape, x: 7 }])).toStrictEqual({
+			slideMasters: [
+				{
+					path: 'ppt/slideMasters/slideMaster1.xml',
+					elements: [masterShape],
+					layouts: [
+						{ path: 'ppt/slideLayouts/slideLayout1.xml', elements: [{ ...layoutShape, x: 7 }] },
+					],
+				},
+			],
+		});
+	});
+});

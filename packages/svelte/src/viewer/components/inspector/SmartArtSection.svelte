@@ -17,6 +17,7 @@
 		updateSmartArtNodeText,
 	} from 'pptx-viewer-core';
 	import {
+		reflowSmartArtData,
 		schemaLabel,
 		SMARTART_COLOR_SCHEME_LABEL_KEYS,
 		SMARTART_STYLE_LABEL_KEYS,
@@ -46,23 +47,31 @@
 
 	function setNodeText(nodeId: string, text: string): void {
 		if (data) {
-			editor.applyElementPatch(el.id, { smartArtData: updateSmartArtNodeText(data, nodeId, text) });
+			applyData(updateSmartArtNodeText(data, nodeId, text));
 		}
 	}
 
 	function setLayout(layout: SmartArtLayoutType): void {
 		if (data && layout !== data.resolvedLayoutType) {
-			editor.applyElementPatch(el.id, { smartArtData: switchSmartArtLayout(data, layout) });
+			applyData(switchSmartArtLayout(data, layout));
 		}
 	}
 
 	function setColorScheme(scheme: SmartArtColorScheme): void {
 		if (data) {
-			editor.applyElementPatch(el.id, { smartArtData: { ...data, colorScheme: scheme } });
+			applyData({ ...data, colorScheme: scheme });
 		}
 	}
+	/**
+	 * Single commit funnel, mirroring React's `applySmartArtData`. Every edit
+	 * here can clear the cached `dsp` drawing (add / remove / promote / demote /
+	 * reorder / style / layout switch all do), so each one is reflowed: without
+	 * it the diagram fell back to the crude family approximation. The reflow is
+	 * a no-op while the cached drawing survives, so it never overrides it.
+	 */
 	function applyData(next: NonNullable<typeof data>): void {
-		editor.applyElementPatch(el.id, { smartArtData: next });
+		const box = { width: el.width, height: el.height };
+		editor.applyElementPatch(el.id, { smartArtData: reflowSmartArtData(next, el.id, box) });
 	}
 	function setDiagramStyle(style: SmartArtStyle): void {
 		if (data) {

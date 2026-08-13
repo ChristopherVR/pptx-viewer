@@ -357,3 +357,66 @@ describe('createInspectorActions table', () => {
 		});
 	});
 });
+
+/**
+ * A structural SmartArt edit clears the cached `dsp` drawing shapes to `[]`.
+ * React has always followed such an edit with `rebuildDrawingShapesIfCleared`
+ * so the richer cached-shape render path stays active; this binding never did,
+ * leaving the diagram to fall back to the crude family approximation.
+ */
+function smartArtElement(): PptxElement {
+	return {
+		type: 'smartArt',
+		id: 'sa1',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 300,
+		smartArtData: {
+			nodes: [
+				{ id: 'n1', text: 'One' },
+				{ id: 'n2', text: 'Two' },
+			],
+			resolvedLayoutType: 'list',
+			// A cached PowerPoint drawing, as a real deck carries.
+			drawingShapes: [
+				{ id: 'dsp1', shapeType: 'roundRect', x: 0, y: 0, width: 100, height: 40, text: 'One' },
+				{ id: 'dsp2', shapeType: 'roundRect', x: 0, y: 50, width: 100, height: 40, text: 'Two' },
+			],
+		},
+	} as PptxElement;
+}
+
+function smartArtData(store: Store<ViewerState>) {
+	const el = selectedEl(store);
+	return el.type === 'smartArt' ? el.smartArtData : undefined;
+}
+
+describe('createInspectorActions smartArt reflow', () => {
+	it('rebuilds the cached drawing shapes a structural edit cleared', () => {
+		const { store, actions } = buildActions(smartArtElement());
+		actions.mutateSmartArtNode('n2', 'add');
+		const data = smartArtData(store)!;
+		expect(data.nodes).toHaveLength(3);
+		// Without the reflow this is the empty array the core op left behind.
+		expect(data.drawingShapes).toHaveLength(3);
+		expect(data.drawingShapes?.[0]?.id).toBe('reflow-list-n1');
+	});
+
+	it('rebuilds after a layout switch', () => {
+		const { store, actions } = buildActions(smartArtElement());
+		actions.setSmartArtLayout('cycle');
+		const shapes = smartArtData(store)?.drawingShapes ?? [];
+		expect(shapes).toHaveLength(2);
+		expect(shapes[0]?.id).toBe('reflow-cycle-n1');
+	});
+
+	it('leaves an intact cached drawing alone on a text edit', () => {
+		const { store, actions } = buildActions(smartArtElement());
+		actions.setSmartArtNodeText('n1', 'Uno');
+		const shapes = smartArtData(store)?.drawingShapes ?? [];
+		// The cached `dsp` drawing still wins: patched in place, never regenerated.
+		expect(shapes.map((s) => s.id)).toStrictEqual(['dsp1', 'dsp2']);
+		expect(shapes[0]?.text).toBe('Uno');
+	});
+});

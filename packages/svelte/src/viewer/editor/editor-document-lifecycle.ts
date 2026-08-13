@@ -200,6 +200,8 @@ export async function saveEditorState(
 		format,
 		// File ▸ Info ▸ Protect Presentation: encrypts the output when set.
 		state.saveIntent(),
+		// File ▸ Fonts: off strips the deck's embedded font data from the output.
+		state.embedFonts,
 	);
 	state.dirty = false;
 	return bytes;
