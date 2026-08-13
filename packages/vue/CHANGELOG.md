@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.20.0) - 2026-08-13
+
+### Features
+
+- **shared:** Take the last six chart kinds and the autosave policy (by @ChristopherVR) ([efe8438](https://github.com/ChristopherVR/pptx-viewer/commit/efe84381688dfb5f2a44a2990e76aa09b65e5fba))
+
+### Bug Fixes
+
+- **core:** Repair the XML plumbing four separate defects were hiding behind (by @ChristopherVR) ([8beb664](https://github.com/ChristopherVR/pptx-viewer/commit/8beb66410975d492118120515bbae6cd070ef792))
+- **bindings:** Stop read-only surfaces clobbering live state (by @ChristopherVR) ([e820984](https://github.com/ChristopherVR/pptx-viewer/commit/e8209842fad62819df1530944124f0bfc33e32ec))
+
 ## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.19.0) - 2026-08-13
 
 ### Bug Fixes

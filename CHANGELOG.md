@@ -10,6 +10,28 @@ dated sections beneath it are generated from
 
 ## 2026-08-13
 
+_Releases: pptx-viewer-core@2.3.7, pptx-react-viewer@2.19.0, pptx-vue-viewer@2.20.0, pptx-angular-viewer@2.18.0, pptx-vanilla-viewer@1.21.0, pptx-svelte-viewer@2.20.0_
+
+### Features
+
+- **shared:** Take the last six chart kinds and the autosave policy (by @ChristopherVR) ([efe8438](https://github.com/ChristopherVR/pptx-viewer/commit/efe84381688dfb5f2a44a2990e76aa09b65e5fba))
+
+### Bug Fixes
+
+- **core:** Repair the XML plumbing four separate defects were hiding behind (by @ChristopherVR) ([8beb664](https://github.com/ChristopherVR/pptx-viewer/commit/8beb66410975d492118120515bbae6cd070ef792))
+- **bindings:** Stop read-only surfaces clobbering live state (by @ChristopherVR) ([e820984](https://github.com/ChristopherVR/pptx-viewer/commit/e8209842fad62819df1530944124f0bfc33e32ec))
+- **ci:** Stop the hourly release writing an empty changelog section (by @ChristopherVR) ([d53c0fe](https://github.com/ChristopherVR/pptx-viewer/commit/d53c0feffa2c2d9c67dfc495cb8dbefdf23638ae))
+
+### Testing
+
+- **e2e:** Assert the behaviours wave 5 could not previously see (by @ChristopherVR) ([77672da](https://github.com/ChristopherVR/pptx-viewer/commit/77672da34c893aefdd4e0a858352d077861a8e92))
+
+### Chores
+
+- Make four source files searchable again (by @ChristopherVR) ([9f01520](https://github.com/ChristopherVR/pptx-viewer/commit/9f0152030fce9ded95c5e422833d6aa6d31b345e))
+
+## 2026-08-13
+
 _Releases: pptx-viewer-core@2.3.6, pptx-react-viewer@2.18.0, pptx-vue-viewer@2.19.0, pptx-vanilla-viewer@1.20.0, pptx-svelte-viewer@2.19.0_
 
 ### Features

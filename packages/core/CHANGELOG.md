@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.3.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.3.7) - 2026-08-13
+
+### Bug Fixes
+
+- **core:** Repair the XML plumbing four separate defects were hiding behind (by @ChristopherVR) ([8beb664](https://github.com/ChristopherVR/pptx-viewer/commit/8beb66410975d492118120515bbae6cd070ef792))
+
 ## [2.3.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.3.6) - 2026-08-13
 
 ### Bug Fixes

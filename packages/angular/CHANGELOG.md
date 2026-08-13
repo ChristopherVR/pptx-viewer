@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.0) - 2026-08-13
+
+### Features
+
+- **shared:** Own the decisions the bindings were each making themselves (by @ChristopherVR) ([5421272](https://github.com/ChristopherVR/pptx-viewer/commit/5421272a531536ab3b494e5df91068c98326e6ed))
+- **shared:** Model hyperlinks and equations, and own the group rules (by @ChristopherVR) ([a6bf4c1](https://github.com/ChristopherVR/pptx-viewer/commit/a6bf4c15ab3b49a44a2d24e2122ddbe3cdd3b8ed))
+- **shared:** Own the decisions the bindings were still making apart (by @ChristopherVR) ([2bee9c5](https://github.com/ChristopherVR/pptx-viewer/commit/2bee9c5c1ec731d3f7097983a0c9c739ce95f5a4))
+- **shared:** Take the last six chart kinds and the autosave policy (by @ChristopherVR) ([efe8438](https://github.com/ChristopherVR/pptx-viewer/commit/efe84381688dfb5f2a44a2990e76aa09b65e5fba))
+
+### Bug Fixes
+
+- **core:** Repair save-pipeline corruption found by the OpenXML parity audit (by @ChristopherVR) ([554006e](https://github.com/ChristopherVR/pptx-viewer/commit/554006e004b6212f5561eb19954bbcff17bbdf7f))
+- **core:** Close the round-trip defects the corpus harness exposed (by @ChristopherVR) ([2011c66](https://github.com/ChristopherVR/pptx-viewer/commit/2011c664049bfd580801529c3337ba65bd8d3f13))
+- **angular:** Bind the SmartArt descriptors and route master edits (by @ChristopherVR) ([3ccdef6](https://github.com/ChristopherVR/pptx-viewer/commit/3ccdef643aa73ec6619d258a0a31564540043bb0))
+- **core:** Stop save rewriting what the author never wrote (by @ChristopherVR) ([6fb2767](https://github.com/ChristopherVR/pptx-viewer/commit/6fb2767583de0e82747c3700e3311869dd693a1d))
+- **angular,svelte,vanilla:** Close the remaining binding gaps (by @ChristopherVR) ([a7c377c](https://github.com/ChristopherVR/pptx-viewer/commit/a7c377c9d40e174434e6d7801cfc72d0e871a37f))
+- **core:** Repair the XML plumbing four separate defects were hiding behind (by @ChristopherVR) ([8beb664](https://github.com/ChristopherVR/pptx-viewer/commit/8beb66410975d492118120515bbae6cd070ef792))
+- **bindings:** Stop read-only surfaces clobbering live state (by @ChristopherVR) ([e820984](https://github.com/ChristopherVR/pptx-viewer/commit/e8209842fad62819df1530944124f0bfc33e32ec))
+
+### Refactor
+
+- **angular:** Retire hand-ported logic and wire the missing renderers (by @ChristopherVR) ([d9e629e](https://github.com/ChristopherVR/pptx-viewer/commit/d9e629e283a5e8843139c88afb60b90523628f15))
+
 ## [2.17.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.17.9) - 2026-08-11
 
 ### Bug Fixes
