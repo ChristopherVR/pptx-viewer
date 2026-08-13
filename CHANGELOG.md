@@ -8,6 +8,49 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-13
+
+_Releases: pptx-viewer-core@2.3.5, pptx-react-viewer@2.17.0, pptx-vue-viewer@2.18.0, pptx-vanilla-viewer@1.19.0, pptx-svelte-viewer@2.18.0, pptx-viewer-mcp@2.1.2_
+
+### Features
+
+- **shared:** Own the decisions the bindings were each making themselves (by @ChristopherVR) ([5421272](https://github.com/ChristopherVR/pptx-viewer/commit/5421272a531536ab3b494e5df91068c98326e6ed))
+- **locales:** Add de/es/fr entries for the new options and master strings (by @ChristopherVR) ([63d0f2f](https://github.com/ChristopherVR/pptx-viewer/commit/63d0f2fdf0c3eb04a033535fc7710daa6e15daf9))
+- **shared:** Model hyperlinks and equations, and own the group rules (by @ChristopherVR) ([a6bf4c1](https://github.com/ChristopherVR/pptx-viewer/commit/a6bf4c15ab3b49a44a2d24e2122ddbe3cdd3b8ed))
+
+### Bug Fixes
+
+- **core:** Repair save-pipeline corruption found by the OpenXML parity audit (by @ChristopherVR) ([554006e](https://github.com/ChristopherVR/pptx-viewer/commit/554006e004b6212f5561eb19954bbcff17bbdf7f))
+- **vue:** Make the controls that render actually do something (by @ChristopherVR) ([11686f0](https://github.com/ChristopherVR/pptx-viewer/commit/11686f0d9bfbc1af4f0a0e82ab941ae89bd5ff7f))
+- **svelte:** Stop shadowing shared table ops and wire the missing gestures (by @ChristopherVR) ([c90fb3f](https://github.com/ChristopherVR/pptx-viewer/commit/c90fb3f1d468a3a89b5e76703167857d313f6474))
+- **vanilla:** Wire the save path, canvas gestures and image controls (by @ChristopherVR) ([2fde373](https://github.com/ChristopherVR/pptx-viewer/commit/2fde37322b34753c096d623b9ac8c029a7562a67))
+- **vue:** Thread the ribbon props the toolbar sections require (by @ChristopherVR) ([c86209e](https://github.com/ChristopherVR/pptx-viewer/commit/c86209ebc260db27d3448e3028734dea27dac8ff))
+- **vue:** Complete the custom-fonts wiring through the settings dialog (by @ChristopherVR) ([5e6d71a](https://github.com/ChristopherVR/pptx-viewer/commit/5e6d71a59eaa0305fbc797d5cb09b67620ecaa05))
+- **vue:** Drop a duplicated SettingsCustomFontsSection import (by @ChristopherVR) ([e136ad0](https://github.com/ChristopherVR/pptx-viewer/commit/e136ad078b9fbac487a8c8c0e43053c048c3f299))
+- **core:** Close the round-trip defects the corpus harness exposed (by @ChristopherVR) ([2011c66](https://github.com/ChristopherVR/pptx-viewer/commit/2011c664049bfd580801529c3337ba65bd8d3f13))
+- **angular:** Bind the SmartArt descriptors and route master edits (by @ChristopherVR) ([3ccdef6](https://github.com/ChristopherVR/pptx-viewer/commit/3ccdef643aa73ec6619d258a0a31564540043bb0))
+- **vue:** Autosave template edits and render SmartArt labels (by @ChristopherVR) ([1e45359](https://github.com/ChristopherVR/pptx-viewer/commit/1e453591b171c6e165b13502f7cf6325cb4e9d5e))
+- **svelte,vanilla:** Wire SmartArt reflow and the shared run rendering (by @ChristopherVR) ([37b7e45](https://github.com/ChristopherVR/pptx-viewer/commit/37b7e45ce926c7949099f919715595db7c779405))
+
+### Refactor
+
+- **react:** Consume shared rendering instead of private copies (by @ChristopherVR) ([1836ffc](https://github.com/ChristopherVR/pptx-viewer/commit/1836ffc5ce76f86cf19673e49ce8315dc0e01d94))
+- **angular:** Retire hand-ported logic and wire the missing renderers (by @ChristopherVR) ([d9e629e](https://github.com/ChristopherVR/pptx-viewer/commit/d9e629e283a5e8843139c88afb60b90523628f15))
+- **react:** Retire the last private render pipeline (by @ChristopherVR) ([0d2f368](https://github.com/ChristopherVR/pptx-viewer/commit/0d2f368258d55416dc7fa11a8c3ec6d2aebcc8ba))
+
+### Documentation
+
+- Correct the round-trip claims that were not true (by @ChristopherVR) ([ccfb60c](https://github.com/ChristopherVR/pptx-viewer/commit/ccfb60c33a76eceb99989b4c689b35e5ec7390b5))
+
+### Testing
+
+- **e2e:** Assert effect rather than presence across all five bindings (by @ChristopherVR) ([4f62676](https://github.com/ChristopherVR/pptx-viewer/commit/4f62676a57aaed7b62f8c936619c71cee7eb5828))
+- **e2e:** Add the corpus round-trip harness and a COM acceptance gate (by @ChristopherVR) ([edf6dd5](https://github.com/ChristopherVR/pptx-viewer/commit/edf6dd5f23d2644bae5ad290c9f755055537ae51))
+
+### Chores
+
+- Ignore per-package test-results and add the shape-3d fixture generator (by @ChristopherVR) ([ba98a81](https://github.com/ChristopherVR/pptx-viewer/commit/ba98a8152dab147fcf5d79ba35e94ec3387ac0cf))
+
 ## 2026-08-12
 
 _Releases: pptx-react-viewer@2.16.10_
