@@ -31,8 +31,9 @@ import {
 	DEFAULT_CANVAS_WIDTH,
 	collectImagePaths,
 	collectMediaElements,
+	saveDeckWithPassword,
 } from '../internal/shared';
-import type { CanvasSize } from '../internal/shared';
+import type { CanvasSize, DeckSaveIntent } from '../internal/shared';
 
 /**
  * `LoadContentService`: Angular port of the React `useLoadContent` hook and
@@ -134,9 +135,14 @@ export class LoadContentService {
 		});
 	}
 
-	/** Serialise the current (loaded) presentation back to `.pptx` bytes. */
-	async getContent(): Promise<Uint8Array> {
-		return this.saveSlides(this.slides());
+	/**
+	 * Serialise the current (loaded) presentation back to `.pptx` bytes.
+	 *
+	 * `password` carries the File > Info > Protect Presentation state; when set
+	 * the bytes are an encrypted OLE2 container rather than a plain ZIP.
+	 */
+	async getContent(password?: DeckSaveIntent | string | null): Promise<Uint8Array> {
+		return this.saveSlides(this.slides(), 'pptx', undefined, password);
 	}
 
 	/**
@@ -161,25 +167,34 @@ export class LoadContentService {
 		slides: readonly PptxSlide[],
 		outputFormat: PptxSaveFormat = 'pptx',
 		sections: readonly PptxSection[] = this.sections(),
+		password?: DeckSaveIntent | string | null,
 	): Promise<Uint8Array> {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
 		}
 		const customProperties = this.customProperties();
 		const tags = this.tagCollections();
-		return this.handler.save([...slides], {
-			headerFooter: this.headerFooter(),
-			presentationProperties: this.presentationProperties(),
-			slideMasters: this.slideMasters(),
-			notesMaster: this.notesMaster(),
-			handoutMaster: this.handoutMaster(),
-			sections: sections.length > 0 ? [...sections] : undefined,
-			coreProperties: this.coreProperties(),
-			appProperties: this.appProperties(),
-			customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
-			tags: tags.length > 0 ? tags.map((col) => ({ ...col, tags: [...col.tags] })) : undefined,
-			outputFormat,
-		});
+		// Shared decision (see `deck-save-encryption` in `pptx-viewer-shared`): a
+		// password set in the protection dialog routes through `saveEncrypted`, so
+		// the produced file is a real encrypted OLE2 container.
+		return saveDeckWithPassword(
+			this.handler,
+			[...slides],
+			{
+				headerFooter: this.headerFooter(),
+				presentationProperties: this.presentationProperties(),
+				slideMasters: this.slideMasters(),
+				notesMaster: this.notesMaster(),
+				handoutMaster: this.handoutMaster(),
+				sections: sections.length > 0 ? [...sections] : undefined,
+				coreProperties: this.coreProperties(),
+				appProperties: this.appProperties(),
+				customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
+				tags: tags.length > 0 ? tags.map((col) => ({ ...col, tags: [...col.tags] })) : undefined,
+				outputFormat,
+			},
+			password,
+		);
 	}
 
 	/** Parse the supplied `.pptx` bytes into the reactive signals. */

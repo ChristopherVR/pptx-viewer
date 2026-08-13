@@ -203,3 +203,125 @@ describe('getShapeFillStrokeStyle - geometry cascade parity', () => {
 		expect(style['border']).toBe('none');
 	});
 });
+
+/**
+ * Shape 3D (`a:spPr/a:scene3d` + `a:spPr/a:sp3d`) reaches the style map.
+ *
+ * This binding never called `getComputed3dStyle`, so every bevelled / extruded
+ * / camera-rotated shape rendered FLAT here and correct in the other four,
+ * while the Angular inspector still shipped the UI to author it.
+ */
+describe('getShapeFillStrokeStyle - shape 3D', () => {
+	it('applies the camera transform and perspective from a:scene3d', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: {
+					fillColor: '#3366CC',
+					fillMode: 'solid',
+					scene3d: { cameraPreset: 'isometricTopUp' },
+				},
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(String(style['transform'])).toContain('rotate');
+		expect(style['perspective']).toBeDefined();
+		expect(style['transform-style']).toBe('preserve-3d');
+	});
+
+	it('stacks the a:sp3d extrusion depth into box-shadow without losing the effect shadow', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: {
+					fillColor: '#3366CC',
+					fillMode: 'solid',
+					shadowColor: '#000000',
+					shadowBlur: 4,
+					shadowOffsetX: 2,
+					shadowOffsetY: 2,
+					shape3d: { extrusionHeight: 20, extrusionColor: '#224488' },
+				},
+			} as unknown as Partial<PptxElement>),
+		);
+		const shadow = String(style['box-shadow']);
+		// The drop shadow survives (it is first) and the extrusion is appended.
+		expect(shadow).toContain('2px 2px');
+		expect(shadow.split(',').length).toBeGreaterThan(1);
+	});
+
+	it('is a strict no-op for a shape with no 3D data', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({ shapeStyle: { fillColor: '#3366CC', fillMode: 'solid' } }),
+		);
+		expect(style['transform']).toBeUndefined();
+		expect(style['perspective']).toBeUndefined();
+		expect(style['transform-style']).toBeUndefined();
+	});
+});
+
+/**
+ * The whole outline (`a:ln`) now comes from shared `getComputedStrokeStyle`.
+ * Before that, `grep compoundLine packages/angular/src` returned nothing (a
+ * double / thickThin / thinThick / tri outline painted as one solid line here
+ * and as parallel strands everywhere else), and `strokeOpacity` /
+ * `a:miter/@lim` never reached the DOM either.
+ */
+describe('getShapeFillStrokeStyle - outline', () => {
+	it('paints a compound outline with border-style: double', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 8, compoundLine: 'dbl' },
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['border']).toBe('8px double #FF0000');
+	});
+
+	it('lets the compound type outrank the dash pattern', () => {
+		// The local `dot|sysDot ? dotted : dashed` ternary this replaced ignored
+		// `compoundLine` entirely, so a compound dashed line lost its strands.
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: {
+					strokeColor: '#FF0000',
+					strokeWidth: 8,
+					strokeDash: 'dash',
+					compoundLine: 'tri',
+				},
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(String(style['border'])).toContain(' double ');
+	});
+
+	it('applies strokeOpacity to the border colour', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 2, strokeOpacity: 0.5 },
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['border']).toBe('2px solid rgba(255, 0, 0, 0.5)');
+	});
+
+	it('emits the inherited SVG stroke properties, including a:miter/@lim', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: {
+					strokeColor: '#FF0000',
+					strokeWidth: 2,
+					lineJoin: 'miter',
+					miterLimit: 800000,
+					lineCap: 'rnd',
+				},
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['stroke-linejoin']).toBe('miter');
+		expect(style['stroke-linecap']).toBe('round');
+		expect(style['stroke-miterlimit']).toBe(8);
+	});
+
+	it('leaves a plain dashed line exactly as before', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 4, strokeDash: 'dash' },
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['border']).toBe('4px dashed #FF0000');
+	});
+});

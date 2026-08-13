@@ -5,6 +5,7 @@ import {
 	getComputedImageStyle,
 	getImageColorWashStyle,
 	getImageFitStyle,
+	getImageTilingStyle,
 	getResolvedShapeClipPathFor,
 } from '../internal/shared';
 import type { ImageSvgFilterDefinition } from '../internal/shared';
@@ -17,6 +18,12 @@ export interface AngularImageRenderView {
 	svgFilters: ImageSvgFilterDefinition[];
 	clrChange: ClrChangeParams | undefined;
 	colorWashStyle: StyleMap | undefined;
+	/**
+	 * `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express,
+	 * so the picture paints as a repeating background layer instead. Undefined
+	 * for an ordinary picture, which keeps the `<img>` branch.
+	 */
+	tilingStyle: StyleMap | undefined;
 }
 
 export function getImageCropShapeClipPath(element: PptxElement): string | undefined {
@@ -66,10 +73,25 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 			}
 		: undefined;
 
+	// A tiled picture (`a:blipFill/a:tile`, with its `@sx`/`@sy` scale,
+	// `@tx`/`@ty` offset, `@algn` anchor and `@flip` mirroring) is painted as a
+	// repeating background by every binding, because an `<img>` cannot repeat.
+	// Angular rendered it as ONE stretched copy until this branch existed.
+	const tiling = getImageTilingStyle(element);
+	const tilingStyle: StyleMap | undefined = tiling
+		? {
+				...(tiling as StyleMap),
+				...(computed.filter ? { filter: computed.filter } : {}),
+				...(computed.opacity !== undefined ? { opacity: computed.opacity } : {}),
+				...(cropShapeClipPath ? { 'clip-path': cropShapeClipPath } : {}),
+			}
+		: undefined;
+
 	return {
 		imageStyle,
 		svgFilters: computed.svgFilters,
 		clrChange: getClrChangeParams(element),
 		colorWashStyle,
+		tilingStyle,
 	};
 }

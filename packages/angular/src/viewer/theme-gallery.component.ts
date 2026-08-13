@@ -11,7 +11,7 @@
  * component is `OnPush` and purely presentational; all state lives in signals.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
 import { LucideCheck, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTheme, PptxThemePreset } from 'pptx-viewer-core';
@@ -155,6 +155,13 @@ export class ThemeGalleryComponent {
 	 */
 	readonly activeName = input<string | undefined>(undefined);
 	readonly theme = input<PptxTheme | undefined>(undefined);
+	/**
+	 * Which face the gallery opens on: the preset grid (false) or the theme
+	 * editor (true). Design > Edit Theme names the editor, so it opens straight
+	 * into it rather than making the user find the footer's customise button.
+	 * Only consulted as the overlay opens; the footer button still flips freely.
+	 */
+	readonly startCustomizing = input<boolean>(false);
 
 	/** Emitted when the user confirms a selection. */
 	readonly applyTheme = output<PptxThemePreset>();
@@ -167,6 +174,19 @@ export class ThemeGalleryComponent {
 	/** The currently highlighted (not yet applied) preset, or null. */
 	protected readonly selected = signal<PptxThemePreset | null>(null);
 	protected readonly customizing = signal(false);
+
+	constructor() {
+		// Seed the face the overlay shows whenever it opens, or whenever the host
+		// asks for a different one (Design > Edit Theme with the gallery already
+		// up). The footer's own toggle is not read here, so flipping back to the
+		// grid by hand is never undone.
+		effect(() => {
+			const customize = this.startCustomizing();
+			if (this.open()) {
+				this.customizing.set(customize);
+			}
+		});
+	}
 
 	protected selectPreset(preset: PptxThemePreset): void {
 		this.selected.set(preset);

@@ -32,6 +32,7 @@ import {
 	endAudienceDisplay,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	recoverySnapshotIntent,
 	resolveThemeCatalogEntry,
 	setMotionPath,
 	shouldAutoFollowBroadcaster,
@@ -42,9 +43,11 @@ import {
 } from '../internal/shared';
 import type {
 	AccountAuthConfig,
+	PowerPointViewerAPI,
 	SlideTemplateId,
 	ThemeCatalogEntry,
 	ToolbarActionId,
+	ViewerMode,
 	ViewerSettings,
 	ViewerTheme,
 } from '../internal/shared';
@@ -342,7 +345,9 @@ import { ZoomTargetService } from './zoom-target.service';
 					(zoomToFit)="zoomSvc.zoomReset()"
 					(toggleEyedropper)="formatPainter.toggleEyedropper()"
 					[themeGalleryOpen]="themeGallery.showThemeGallery()"
-					(toggleThemeGallery)="themeGallery.showThemeGallery.update(v => !v)"
+					(toggleThemeGallery)="onBrowseThemes()"
+					(editTheme)="onEditTheme()"
+					(openSlideSize)="onOpenSlideSize()"
 					(toggleSelectionPane)="inspectorPanel.togglePanel('selection')"
 					(openCustomShows)="customShowsCtl.showDialog.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
@@ -439,6 +444,15 @@ import { ZoomTargetService } from './zoom-target.service';
 							(marqueeSelect)="editor.select($event)"
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
+							(transformEnd)="editor.rerouteConnectors(activeSlideIndex(), $event.ids)"
+							(adjustUpdate)="
+								editor.applyShapeAdjustment(
+									activeSlideIndex(),
+									$event.id,
+									$event.key,
+									$event.value
+								)
+							"
 							(rotateUpdate)="
 								editor.applyTransform(activeSlideIndex(), $event.id, { rotation: $event.rotation })
 							"
@@ -838,6 +852,7 @@ import { ZoomTargetService } from './zoom-target.service';
 
 			<pptx-theme-gallery
 				[open]="themeGallery.showThemeGallery()"
+				[startCustomizing]="themeEditorRequested()"
 				[activeName]="themeGallery.activeThemeName()"
 				[theme]="loader.theme()"
 				(applyTheme)="themeGallery.applyThemePreset($event)"
@@ -1039,7 +1054,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		</div>
 	`,
 })
-export class PowerPointViewerComponent {
+export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
 	readonly content = input<Uint8Array | ArrayBuffer | null>(null);
 	/** Licensed fonts supplied by the host application. No fonts are bundled. */
@@ -1151,7 +1166,7 @@ export class PowerPointViewerComponent {
 	/** Fired when the user edits document properties in the Info dialog. */
 	readonly propertiesChange = output<Partial<PptxCoreProperties>>();
 	/** Fired when the viewer mode changes (preview, edit, present, master). */
-	readonly modeChange = output<string>();
+	readonly modeChange = output<ViewerMode>();
 	/** Fired when the zoom level changes. */
 	readonly zoomChange = output<number>();
 	/** Fired when element selection changes. */
@@ -1304,6 +1319,11 @@ export class PowerPointViewerComponent {
 
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
+	/**
+	 * Which face the theme gallery opens on: its preset grid, or the theme
+	 * editor that Design > Edit Theme names. Set by the two Design commands.
+	 */
+	protected readonly themeEditorRequested = signal(false);
 	/**
 	 * Reading View visibility: the deck at full window size with the editor
 	 * chrome cut back to a nav bar. Not the slide show (no fullscreen, no
@@ -1889,6 +1909,12 @@ export class PowerPointViewerComponent {
 			sections: () => this.editor.sections(),
 			templateElementsBySlideId: () => this.editor.templateElementsBySlideId(),
 			emitContentChange: (bytes) => this.contentChange.emit(bytes),
+			// File ▸ Info ▸ Protect Presentation: a password set here makes every
+			// save produce an encrypted OLE2 file (shared `planDeckSave`).
+			saveIntent: () => ({
+				password: this.dialogs.presentationPassword(),
+				passwordProtected: this.dialogs.isPasswordProtected(),
+			}),
 		});
 
 		// Hand the canvas-editing controller the accessors it alone needs from the
@@ -1935,6 +1961,35 @@ export class PowerPointViewerComponent {
 	 */
 	async getContent(): Promise<Uint8Array> {
 		return this.fileIO.getContent();
+	}
+
+	/**
+	 * Design > Browse Themes: toggle the gallery on its preset grid. Clearing
+	 * the editor request matters when the theme editor was the last face shown.
+	 */
+	protected onBrowseThemes(): void {
+		this.themeEditorRequested.set(false);
+		this.themeGallery.showThemeGallery.update((open) => !open);
+	}
+
+	/**
+	 * Design > Edit Theme: the real theme editor lives inside the gallery
+	 * overlay, so open the gallery already switched to it (it used to open the
+	 * Document Properties dialog, which has nothing to do with themes).
+	 */
+	protected onEditTheme(): void {
+		this.themeEditorRequested.set(true);
+		this.themeGallery.showThemeGallery.set(true);
+	}
+
+	/**
+	 * Design > Slide Size: the size control is the inspector's SLIDE SIZE card,
+	 * which the deck (no-selection) panel renders. Drop the element selection so
+	 * that panel is what the format pane shows, then make sure it is open.
+	 */
+	protected onOpenSlideSize(): void {
+		this.editor.clearSelection();
+		this.inspectorPanel.openFormatPanel();
 	}
 
 	protected openMasterView(): void {
@@ -2150,7 +2205,7 @@ export class PowerPointViewerComponent {
 	}
 
 	/** Get the current viewer mode. */
-	getMode(): string {
+	getMode(): ViewerMode {
 		if (this.presentationMode.presenting()) {
 			return 'present';
 		}
@@ -2160,7 +2215,7 @@ export class PowerPointViewerComponent {
 		return this.canEdit() ? 'edit' : 'preview';
 	}
 	/** Switch the viewer mode (e.g. 'edit', 'preview', 'present'). */
-	setMode(mode: string): void {
+	setMode(mode: ViewerMode): void {
 		if (mode === 'present') {
 			this.presentationMode.present();
 		} else if (mode === 'master') {
@@ -2377,9 +2432,10 @@ export class PowerPointViewerComponent {
 				break;
 			case 'design':
 				if (action === 'browseThemes') {
-					this.themeGallery.showThemeGallery.update((v) => !v);
+					this.onBrowseThemes();
 				} else if (action === 'slideSize') {
-					this.dialogs.showSetUpSlideShow.set(true);
+					// Was the Set Up Slide Show dialog, which has no size control.
+					this.onOpenSlideSize();
 				}
 				break;
 			case 'arrange':
@@ -2488,6 +2544,12 @@ export class PowerPointViewerComponent {
 	 * autosave engine skips the write. Distinct from {@link getContent}, this does
 	 * NOT emit `contentChange` (autosave is a background recovery write, not a
 	 * host-visible save).
+	 *
+	 * The `recoverySnapshotIntent` is load-bearing, not decoration: it keeps the
+	 * snapshot a plain ZIP even when the deck is password protected, because
+	 * recovery reopens it with no password. Angular used to get that right only
+	 * by omitting the argument, which is one refactor away from silently writing
+	 * an unrecoverable encrypted snapshot (the bug React and Vue shipped).
 	 */
 	private async serializeForAutosave(): Promise<Uint8Array | null> {
 		if (!this.canEdit()) {
@@ -2497,6 +2559,10 @@ export class PowerPointViewerComponent {
 			buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId()),
 			'pptx',
 			this.editor.sections(),
+			recoverySnapshotIntent({
+				password: this.dialogs.presentationPassword(),
+				passwordProtected: this.dialogs.isPasswordProtected(),
+			}),
 		);
 	}
 

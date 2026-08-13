@@ -7,6 +7,7 @@
 
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { canInteractWithElement } from '../internal/shared';
 import { resolveTopLevelElementId } from '../internal/shared-src/render/element-hit-test';
 import { handleAnchor, handleCursor, RESIZE_HANDLES } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
@@ -83,6 +84,28 @@ export function computeHandleBoxes(
 }
 
 /**
+ * Resize-handle boxes for the single selection, suppressed entirely when the
+ * element's authored `a:spLocks` forbids resizing.
+ *
+ * The lock question is asked HERE rather than in the component so the rule is
+ * unit-testable without Angular, and so the render gate and the pointer-down
+ * gate ({@link canInteractWithElement}) can never disagree: a handle the user
+ * cannot see is also a handle the pointer path refuses.
+ */
+export function computeResizeHandleBoxes(
+	element: PptxElement | null | undefined,
+	box: (Box & { id: string }) | null,
+	editable: boolean,
+	handleScreenPx: number,
+	zoom: number,
+): HandleBox[] {
+	if (!canInteractWithElement(element, 'resize')) {
+		return [];
+	}
+	return computeHandleBoxes(box, editable, handleScreenPx, zoom);
+}
+
+/**
  * A corner handle box (rotate or shape-adjust) offset above/outside the
  * single selection's box by `offsetPx` (screen pixels, scaled by zoom).
  */
@@ -104,6 +127,26 @@ export function computeCornerHandle(
 		return { left: box.x + box.width / 2 - size / 2, top: box.y - offset - size / 2, size };
 	}
 	return { left: box.x - offset - size / 2, top: box.y - offset - size / 2, size };
+}
+
+/**
+ * The rotate-knob box for the single selection, or null when the element's
+ * authored `a:spLocks/@noRotation` forbids the gesture. Companion to
+ * {@link computeResizeHandleBoxes}; see that function for why the lock check
+ * lives in this module.
+ */
+export function computeRotateHandleBox(
+	element: PptxElement | null | undefined,
+	box: (Box & { id: string }) | null,
+	editable: boolean,
+	handleScreenPx: number,
+	offsetPx: number,
+	zoom: number,
+): CornerHandleBox | null {
+	if (!canInteractWithElement(element, 'rotate')) {
+		return null;
+	}
+	return computeCornerHandle(box, editable, handleScreenPx, offsetPx, zoom, 'top-center');
 }
 
 /**

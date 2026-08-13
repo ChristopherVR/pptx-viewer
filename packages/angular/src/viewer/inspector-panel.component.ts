@@ -23,14 +23,18 @@ import type {
 	MediaPptxElement,
 	PptxElement,
 	PptxElementAnimation,
-	PptxShapeLocks,
 	PptxSmartArtData,
 	SmartArtPptxElement,
 	TablePptxElement,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
-import { rebuildDrawingShapesIfCleared, resolvePalette } from '../internal/shared';
+import {
+	elementLockTogglePatch,
+	isElementLocked,
+	rebuildDrawingShapesIfCleared,
+	resolvePalette,
+} from '../internal/shared';
 import { ActionSettingsPanelComponent } from './action-settings-panel.component';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { ChartDataEditorComponent } from './chart-data-editor.component';
@@ -797,10 +801,13 @@ export class InspectorPanelComponent {
 		};
 	});
 
-	/** Whether the element has lock flags preventing move/select. */
-	protected readonly isLocked = computed(
-		() => Boolean(this.el().locks?.noMove) || Boolean(this.el().locks?.noSelect),
-	);
+	/**
+	 * Whether the element carries a lock that stops a canvas gesture, resolved by
+	 * the SHARED predicate so all five bindings agree on what "locked" means
+	 * (previously a hand-rolled `noMove || noSelect` that omitted `noResize`, so a
+	 * resize-locked shape showed as unlocked while the canvas refused the drag).
+	 */
+	protected readonly isLocked = computed(() => isElementLocked(this.el()));
 
 	/** Whether the element supports shape-style (fill/stroke) editing. */
 	protected readonly hasShape = computed(() => hasShapeProperties(this.el()));
@@ -864,14 +871,9 @@ export class InspectorPanelComponent {
 		} as Partial<PptxElement>);
 	}
 
-	/** Toggle element lock (noMove + noResize + noSelect). */
+	/** Toggle element lock. Shared owns which flags that writes. */
 	protected onLockToggle(): void {
-		if (this.isLocked()) {
-			this.onPatch({ locks: undefined } as Partial<PptxElement>);
-		} else {
-			const locks: PptxShapeLocks = { noMove: true, noResize: true, noSelect: true };
-			this.onPatch({ locks } as Partial<PptxElement>);
-		}
+		this.onPatch({ locks: elementLockTogglePatch(!this.isLocked()) } as Partial<PptxElement>);
 	}
 
 	/** Commit a partial-element patch from an advanced sub-panel as one history entry. */

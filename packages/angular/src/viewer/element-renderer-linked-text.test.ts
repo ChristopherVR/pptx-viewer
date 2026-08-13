@@ -9,9 +9,9 @@
  * TestBed rendering is unavailable in this package (it needs
  * `@analogjs/vite-plugin-angular`; see `vitest.config.ts`), so the component is
  * not instantiated and reading the source is the only seam available for the
- * wiring half. That matters more than usual here: Angular does not call shared
- * `buildParagraphs`, it has its own inlined signal reimplementation, so this
- * binding can silently drift from the other four in a way no shared test sees.
+ * wiring half. The binding no longer has its own paragraph builder (it hands
+ * the resolved slice to shared `buildParagraphs` via `buildAngularParagraphs`),
+ * so what is left to pin here is that the slice reaches it at all.
  */
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,6 +82,15 @@ describe('elementRenderer linked text box wiring', () => {
 		expect(rendererSource).toContain(
 			'getOverflowSegments(el, this.slideElements()) ?? el.textSegments',
 		);
+	});
+
+	// The resolved slice has to be handed to the SHARED builder as its segment
+	// override; passing it anywhere else (or rebuilding paragraphs locally) is
+	// how this binding drifted from the other four before.
+	it('builds its paragraphs from shared buildParagraphs, not a local copy', () => {
+		expect(rendererSource).toContain('buildAngularParagraphs(el, this.fieldContext(), segments)');
+		expect(rendererSource).not.toContain('resolveParagraphSpacing');
+		expect(rendererSource).not.toContain('splitStyledRun');
 	});
 
 	it('accepts the sibling list the rule needs', () => {

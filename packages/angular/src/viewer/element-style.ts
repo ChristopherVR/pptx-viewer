@@ -5,12 +5,12 @@ import {
 	DEFAULT_STROKE_COLOR,
 	DEFAULT_TEXT_COLOR,
 	buildTextBlockStyle,
+	getComputed3dStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	getComputedStrokeStyle,
 	getCssBorderDashStyle,
-	paintedStrokeWidth,
 	resolveShapeGeometry,
-	suppressesCssBorder,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
 	px,
@@ -18,6 +18,7 @@ import {
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
 import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
+import { merge3dStyleMap } from './merge-3d';
 import { isHollowShapeElement } from './shape-geometry';
 import { cssObjectToStyleMap } from './table-renderer-helpers';
 
@@ -114,27 +115,38 @@ export function getShapeFillStrokeStyle(
 			}
 		}
 
-		// Stroke.
-		// A gradient outline is stroked as an SVG path by the renderer (a CSS border
-		// takes one colour only), so drop the border rather than drawing the
-		// averaged solid underneath it.
-		// `paintedStrokeWidth`: a width-only fill-less <a:ln> paints NO outline
-		// (PowerPoint ground truth; see shared stroke-paint).
-		const strokeWidth = suppressesCssBorder(el) ? 0 : paintedStrokeWidth(ss);
-		if (strokeWidth > 0) {
-			const dash =
-				ss.strokeDash && ss.strokeDash !== 'solid'
-					? ss.strokeDash === 'dot' || ss.strokeDash === 'sysDot'
-						? 'dotted'
-						: 'dashed'
-					: 'solid';
+		// Stroke: the WHOLE outline decision (`a:ln`) is shared's, so this binding
+		// only maps the descriptor onto its style map.
+		//
+		// The local two-liner this replaces resolved the dash with its own
+		// `dot|sysDot ? 'dotted' : 'dashed'` ternary, which ignored `a:ln/@cmpd`
+		// (`grep compoundLine packages/angular/src` returned nothing), and it read
+		// `strokeColor` raw, so `strokeOpacity` and `a:miter/@lim` never reached
+		// the DOM either. `getComputedStrokeStyle` also owns the two suppression
+		// rules that used to be spelled out here: a width-only fill-less `<a:ln>`
+		// paints no outline, and a gradient / pattern line (or an open preset) is
+		// painted by the stroke overlay instead of a CSS border.
+		const stroke = getComputedStrokeStyle(el);
+		if (stroke.borderWidth > 0) {
 			if (animatesStroke) {
-				// Keep the width / dash; leave the colour to the animated keyframes.
-				style['border-width'] = px(strokeWidth);
-				style['border-style'] = dash;
-			} else {
-				style['border'] = `${px(strokeWidth)} ${dash} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+				// Keep the width / style; leave the colour to the animated keyframes.
+				style['border-width'] = px(stroke.borderWidth);
+				style['border-style'] = stroke.borderStyle ?? 'solid';
+			} else if (stroke.border) {
+				style['border'] = stroke.border;
 			}
+		}
+		// Inherited SVG presentation properties: writing them on the shape
+		// container is what makes the freeform `<path>` and the stroke overlay
+		// honour them without either restating it (mirrors React).
+		if (stroke.strokeLinejoin) {
+			style['stroke-linejoin'] = stroke.strokeLinejoin;
+		}
+		if (stroke.strokeLinecap) {
+			style['stroke-linecap'] = stroke.strokeLinecap;
+		}
+		if (stroke.strokeMiterlimit !== undefined) {
+			style['stroke-miterlimit'] = stroke.strokeMiterlimit;
 		}
 	}
 
@@ -170,6 +182,15 @@ export function getShapeFillStrokeStyle(
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
 		style['opacity'] = elementOpacity * fx.opacity;
 	}
+
+	// Shape 3D (`a:spPr/a:scene3d` camera + `a:spPr/a:sp3d` extrusion / bevel /
+	// material), applied before the geometry cascade so every early return below
+	// carries it. `merge3dStyleMap` comma-joins the extrusion / bevel shadows
+	// onto the effect `box-shadow` set above instead of clobbering it, and
+	// APPENDS the 3D transform (the element's rotation / flip transform comes
+	// from `getContainerStyle` and is composed by the renderer, which must not
+	// let this one overwrite it).
+	merge3dStyleMap(style, getComputed3dStyle(el));
 
 	// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
 	// outline only, so its interior must not swallow clicks meant for what it is
@@ -210,10 +231,12 @@ export function getShapeFillStrokeStyle(
 		case 'lineEdge':
 			style['background-color'] = 'transparent';
 			style['border'] = 'none';
-			style['border-top'] =
-				`${px(geometry.strokeWidth)} ${getCssBorderDashStyle(el.shapeStyle?.strokeDash)} ${
-					el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR
-				}`;
+			// A `line` preset draws one edge, so the compound type decides its
+			// style here too (`border-style: double` paints the parallel strands).
+			style['border-top'] = `${px(geometry.strokeWidth)} ${getCssBorderDashStyle(
+				el.shapeStyle?.strokeDash,
+				el.shapeStyle?.compoundLine,
+			)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 			return style;
 		default:
 			return style;

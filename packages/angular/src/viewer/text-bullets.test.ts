@@ -1,7 +1,31 @@
-import type { TextSegment } from 'pptx-viewer-core';
+/**
+ * Bullet-marker projection, asserted through the paragraph view model the
+ * template actually renders.
+ *
+ * These cases used to exercise `resolveAngularParagraphBullet`, this binding's
+ * own projection of a resolved bullet. That went with the hand-ported paragraph
+ * builder; the same behaviours now come from shared `buildParagraphs`, so the
+ * tests were re-pointed at `buildAngularParagraphs` rather than deleted: they
+ * are the proof that retiring the copy kept every marker rule intact.
+ */
+import type { PptxElement, PptxElementWithText, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { resolveAngularParagraphBullet } from './text-bullets';
+import { buildAngularParagraphs } from './paragraph-view';
+
+/** A text element carrying one bulleted paragraph made of `segments`. */
+function textElement(segments: TextSegment[], fontSize?: number): PptxElement {
+	return {
+		type: 'text',
+		id: 'bullet',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 200,
+		...(fontSize ? { textStyle: { fontSize } } : {}),
+		textSegments: segments,
+	} as PptxElementWithText as PptxElement;
+}
 
 describe('angular picture bullet projection', () => {
 	it('projects a resolved image and DrawingML percentage size', () => {
@@ -14,9 +38,11 @@ describe('angular picture bullet projection', () => {
 				sizePercent: 150,
 			},
 		};
-		const bullet = resolveAngularParagraphBullet(segment, 16);
-		expect(bullet?.marker).toBeUndefined();
-		expect(bullet?.picture).toMatchObject({
+		const [para] = buildAngularParagraphs(
+			textElement([segment, { text: 'Item', style: { fontSize: 16 } }]),
+		);
+		expect(para.bulletMarker).toBeUndefined();
+		expect(para.bulletPicture).toMatchObject({
 			src: 'data:image/png;base64,iVBOR',
 			sizePx: 24,
 			accessibleLabel: 'Bullet',
@@ -31,7 +57,10 @@ describe('angular picture bullet projection', () => {
 			style: { fontFamily: 'Arial', fontSize: 18 },
 			bulletInfo: { char: '•' },
 		};
-		expect(resolveAngularParagraphBullet(segment, 18)?.style['font-family']).toBe(
+		const [para] = buildAngularParagraphs(
+			textElement([segment, { text: 'Item', style: { fontFamily: 'Arial', fontSize: 18 } }]),
+		);
+		expect(para.bulletStyle['fontFamily']).toBe(
 			'"Arial", "Liberation Sans", "Helvetica", sans-serif',
 		);
 	});
@@ -42,9 +71,11 @@ describe('angular picture bullet projection', () => {
 			style: { fontSize: 14 },
 			bulletInfo: { char: '§' },
 		};
-		const style = resolveAngularParagraphBullet(segment, 14)?.style;
-		expect(style?.['font-weight']).toBe(400);
-		expect(style?.['font-style']).toBe('normal');
+		const [para] = buildAngularParagraphs(
+			textElement([segment, { text: 'Item', style: { fontSize: 14 } }]),
+		);
+		expect(para.bulletStyle['fontWeight']).toBe(400);
+		expect(para.bulletStyle['fontStyle']).toBe('normal');
 	});
 
 	it('shrinks the marker with the body autofit font scale', () => {
@@ -53,14 +84,29 @@ describe('angular picture bullet projection', () => {
 			style: { fontSize: 20 },
 			bulletInfo: { char: '•' },
 		};
-		expect(resolveAngularParagraphBullet(segment, 20, 0.5)?.style['font-size']).toBe('10px');
+		const scaled = {
+			type: 'text',
+			id: 'scaled',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 200,
+			textStyle: { fontSize: 20, autoFitFontScale: 0.5 },
+			textSegments: [segment, { text: 'Item', style: { fontSize: 20 } }],
+		} as PptxElementWithText as PptxElement;
+		expect(buildAngularParagraphs(scaled)[0].bulletStyle['fontSize']).toBe('10px');
+
 		// An explicit `a:buSzPts` is absolute and is left where the deck put it.
 		const sized: TextSegment = {
 			text: '• ',
 			style: { fontSize: 20 },
 			bulletInfo: { char: '•', sizePts: 12 },
 		};
-		expect(resolveAngularParagraphBullet(sized, 20, 0.5)?.style['font-size']).toBe('12px');
+		const sizedElement = {
+			...(scaled as unknown as PptxElementWithText),
+			textSegments: [sized, { text: 'Item', style: { fontSize: 20 } }],
+		} as PptxElementWithText as PptxElement;
+		expect(buildAngularParagraphs(sizedElement)[0].bulletStyle['fontSize']).toBe('12px');
 	});
 
 	it('retains an accessible glyph fallback for unresolved raw picture XML', () => {
@@ -69,10 +115,10 @@ describe('angular picture bullet projection', () => {
 			style: {},
 			bulletInfo: { imageBlipFillXml: '<a:blipFill />' },
 		};
-		const bullet = resolveAngularParagraphBullet(segment, 16);
-		expect(bullet?.marker).toBe('•');
-		expect(bullet?.picture?.src).toBeUndefined();
-		expect(bullet?.picture).toMatchObject({
+		const [para] = buildAngularParagraphs(textElement([segment, { text: 'Item', style: {} }]));
+		expect(para.bulletMarker).toBe('•');
+		expect(para.bulletPicture?.src).toBeUndefined();
+		expect(para.bulletPicture).toMatchObject({
 			sizePx: 16,
 			accessibleLabel: 'Bullet',
 		});

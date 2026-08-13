@@ -17,10 +17,29 @@ import type { PptxTableCell, PptxTableCellStyle, PptxTableRow } from 'pptx-viewe
 // The OOXML-dash → CSS-border-style map is framework-agnostic and lives in
 // `pptx-viewer-shared`; re-exported here so this module's public surface
 // (and colocated tests) keep importing `ooxmlDashToCssBorderStyle` unchanged.
-import { ooxmlDashToCssBorderStyle } from '../internal/shared';
+import { cellStyleToCss, ooxmlDashToCssBorderStyle } from '../internal/shared';
 import type { StyleMap } from './element-style';
 
 export { ooxmlDashToCssBorderStyle };
+
+// ==========================================================================
+// camelCase CSS → kebab-case StyleMap
+// ==========================================================================
+
+/**
+ * Convert a shared `TableCellCss` object (camelCase keys, e.g. from
+ * `cellStyleToCss` or `getTableCellBandStyle`) into an `[ngStyle]`-compatible
+ * kebab-case {@link StyleMap}. Values are stringified so numbers (e.g.
+ * `fontWeight: 700`) apply correctly.
+ */
+export function cssObjectToStyleMap(css: Record<string, string | number>): StyleMap {
+	const map: StyleMap = {};
+	for (const [key, value] of Object.entries(css)) {
+		const kebab = key.replace(/[A-Z]/gu, (m) => `-${m.toLowerCase()}`);
+		map[kebab] = String(value);
+	}
+	return map;
+}
 
 // ==========================================================================
 // Rich-text cell paragraph / run types
@@ -41,145 +60,30 @@ export type CellParagraph = CellTextRun[];
 // ==========================================================================
 
 /**
- * Convert a `PptxTableCellStyle` object to an `[ngStyle]`-compatible map.
+ * Convert a `PptxTableCellStyle` to an `[ngStyle]`-compatible map.
  *
- * Viewer-first subset: fill (solid + gradient via prebuilt CSS string),
- * text styling, per-edge borders, cell margins, vertical alignment, and
- * vertical text direction. Mirrors `cellStyleToCss` in table-render-helpers.ts.
+ * A thin adapter over the shared `cellStyleToCss`, which React, Vue, Svelte
+ * and Vanilla all render tables from; only the key spelling (kebab-case, for
+ * this binding's `StyleMap`) differs, so nothing but the conversion lives
+ * here.
+ *
+ * This used to be a hand-ported copy of that function, and the copy had
+ * silently lost four of its features: preset PATTERN fills (a hatched cell
+ * painted a flat colour instead of the tile), `a:tcPr/@anchorCtr`
+ * block-centring, `a:tcPr/@horzOverflow="clip"`, and the `a:cell3D` bevel.
+ * All four render in the other four bindings and now render here too.
+ *
+ * One deliberate behaviour change comes with the swap: shared treats a ZERO
+ * cell margin as "nothing authored" (`if (style.marginLeft)`) where the copy
+ * tested `!== undefined`, so a cell authored `marL="0"` now keeps the
+ * renderer's default 4px padding instead of collapsing to 0. That is what the
+ * other four bindings already did.
  */
 export function cellStyleToStyleMap(style: PptxTableCellStyle | undefined): StyleMap {
 	if (!style) {
 		return {};
 	}
-	const map: StyleMap = {};
-
-	// --- Text formatting ---
-	if (style.fontSize) {
-		map['font-size'] = `${style.fontSize}px`;
-	}
-	if (style.bold) {
-		map['font-weight'] = 'bold';
-	}
-	if (style.italic) {
-		map['font-style'] = 'italic';
-	}
-	if (style.underline) {
-		map['text-decoration'] = 'underline';
-	}
-	if (style.color) {
-		map['color'] = style.color;
-	}
-
-	// --- Background fill: gradient (prebuilt CSS) → solid backgroundColor. ---
-	if (style.gradientFillCss) {
-		map['background'] = style.gradientFillCss;
-	} else if (style.backgroundColor) {
-		map['background-color'] = style.backgroundColor;
-	}
-
-	// --- Text alignment ---
-	if (style.align) {
-		map['text-align'] = style.align;
-	}
-	if (style.vAlign) {
-		map['vertical-align'] = style.vAlign;
-	}
-
-	// --- Vertical text direction (a:tcPr/@vert) ---
-	if (style.textDirection) {
-		switch (style.textDirection) {
-			case 'vert':
-			case 'eaVert':
-			case 'wordArtVert':
-			case 'wordArtVertRtl':
-				map['writing-mode'] = 'vertical-rl';
-				break;
-			case 'vert270':
-			case 'mongolianVert':
-				map['writing-mode'] = 'vertical-lr';
-				break;
-		}
-		if (map['writing-mode']) {
-			map['text-orientation'] = style.textDirection === 'wordArtVert' ? 'upright' : 'mixed';
-		}
-		if (style.textDirection === 'wordArtVertRtl') {
-			map['direction'] = 'rtl';
-		}
-	}
-
-	// --- Per-edge borders ---
-	type EdgeKey = 'border-top' | 'border-bottom' | 'border-left' | 'border-right';
-	const borderEdges: ReadonlyArray<{
-		cssProp: EdgeKey;
-		width: number | undefined;
-		color: string | undefined;
-		dash: string | undefined;
-	}> = [
-		{
-			cssProp: 'border-top',
-			width: style.borderTopWidth,
-			color: style.borderTopColor,
-			dash: style.borderTopDash,
-		},
-		{
-			cssProp: 'border-bottom',
-			width: style.borderBottomWidth,
-			color: style.borderBottomColor,
-			dash: style.borderBottomDash,
-		},
-		{
-			cssProp: 'border-left',
-			width: style.borderLeftWidth,
-			color: style.borderLeftColor,
-			dash: style.borderLeftDash,
-		},
-		{
-			cssProp: 'border-right',
-			width: style.borderRightWidth,
-			color: style.borderRightColor,
-			dash: style.borderRightDash,
-		},
-	];
-	for (const edge of borderEdges) {
-		if (edge.width !== undefined || edge.color !== undefined) {
-			const w = edge.width ?? 1;
-			const c = edge.color ?? style.borderColor ?? '#000000';
-			const s = ooxmlDashToCssBorderStyle(edge.dash);
-			map[edge.cssProp] = `${w}px ${s} ${c}`;
-		}
-	}
-
-	// --- Cell margins (mapped to padding on the <td>) ---
-	if (style.marginLeft !== undefined) {
-		map['padding-left'] = `${style.marginLeft}px`;
-	}
-	if (style.marginRight !== undefined) {
-		map['padding-right'] = `${style.marginRight}px`;
-	}
-	if (style.marginTop !== undefined) {
-		map['padding-top'] = `${style.marginTop}px`;
-	}
-	if (style.marginBottom !== undefined) {
-		map['padding-bottom'] = `${style.marginBottom}px`;
-	}
-
-	// --- Text shadow / glow ---
-	const shadowParts: string[] = [];
-	if (style.textShadowColor) {
-		const offX = style.textShadowOffsetX ?? 1;
-		const offY = style.textShadowOffsetY ?? 1;
-		const blur = style.textShadowBlur ?? 0;
-		shadowParts.push(`${offX}px ${offY}px ${blur}px ${style.textShadowColor}`);
-	}
-	if (style.textGlowColor) {
-		const radius = style.textGlowRadius ?? 2;
-		shadowParts.push(`0px 0px ${radius}px ${style.textGlowColor}`);
-	}
-	if (shadowParts.length > 0) {
-		map['text-shadow'] = shadowParts.join(', ');
-	}
-
-	return map;
+	return cssObjectToStyleMap(cellStyleToCss(style));
 }
 
 // ==========================================================================

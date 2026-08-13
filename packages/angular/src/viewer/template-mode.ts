@@ -19,7 +19,7 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { isTemplateElement } from '../internal/shared';
+import { canInteractWithElement, isTemplateElement } from '../internal/shared';
 
 /** Map of slide id -> the inherited template (master/layout) elements for it. */
 export type TemplateElementsBySlideId = Record<string, PptxElement[]>;
@@ -120,6 +120,11 @@ export function buildSaveSlides(
  * - Normal slide elements: follow `baseInteractive` unchanged.
  * - Template (master/layout) elements: interactive only when `baseInteractive`
  *   is set AND `editTemplateMode` is on.
+ * - An element whose authored `a:spLocks/@noSelect` is set is NEVER interactive:
+ *   PowerPoint treats a no-select shape as part of the backdrop, so it must not
+ *   answer a click hit-test nor be swept up by a marquee. Routing that through
+ *   the shared {@link canInteractWithElement} keeps the composition rule
+ *   (`noSelect` subsumes every other lock) in one place for all five bindings.
  */
 export function isElementInteractive(
 	element: PptxElement,
@@ -127,6 +132,9 @@ export function isElementInteractive(
 	editTemplateMode: boolean,
 ): boolean {
 	if (!baseInteractive) {
+		return false;
+	}
+	if (!canInteractWithElement(element, 'select')) {
 		return false;
 	}
 	return isTemplateElement(element) ? editTemplateMode : true;

@@ -29,11 +29,18 @@ import {
 	actionAffordanceLabels,
 	applyElementActionAffordances,
 	applyRenderedElementAccessibility,
+	canInteractWithElement,
 	isTemplateElement,
 	RULER_FONT_SIZE,
 	RULER_THICKNESS,
 } from '../internal/shared';
-import type { CanvasSize, RulerUnit, Tick } from '../internal/shared';
+import type {
+	CanvasSize,
+	ElementInteraction,
+	RulerUnit,
+	ShapeAdjustmentDragState,
+	Tick,
+} from '../internal/shared';
 import type { AiChangeBatch } from '../internal/shared-ai';
 import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
@@ -48,12 +55,17 @@ import { InkDrawingService } from './ink-drawing.service';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
 import {
-	computeCornerHandle,
-	computeHandleBoxes,
+	computeResizeHandleBoxes,
+	computeRotateHandleBox,
 	computeSelectionBoxes,
 	computeSingleSelected,
 	resolveInteractiveElementId,
 } from './selection-geometry';
+import {
+	beginShapeAdjustmentDrag,
+	computeAdjustHandle,
+	draggedAdjustmentValue,
+} from './shape-adjust-handle';
 import { getSlideBackgroundStyle } from './slide-background';
 import { affordanceElements, isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { SLIDE_CONTEXT } from './slide-context';
@@ -99,6 +111,13 @@ interface DragState {
 	startAngle?: number;
 	startRotation?: number;
 }
+
+/** Which lock governs each drag mode, for the mid-gesture lock re-check. */
+const DRAG_MODE_INTERACTION: Readonly<Record<DragState['mode'], ElementInteraction>> = {
+	move: 'move',
+	resize: 'resize',
+	rotate: 'rotate',
+};
 
 /** Best-effort plain text of a text-bearing element for inline editing. */
 function plainText(el: PptxElement): string {
@@ -292,6 +311,20 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly transformStart = output<{ id: string; label: string }>();
 	/** Emitted on each pointer move during a gesture with the new box. */
 	readonly transformUpdate = output<{ id: string; box: Box }>();
+	/**
+	 * Emitted once a drag/resize gesture RELEASES, carrying every element id the
+	 * gesture moved. The parent uses it to reroute the connectors bound to those
+	 * shapes; without it a connector kept pointing at where its shape used to be,
+	 * because the drag end simply discarded its state with no model write.
+	 */
+	readonly transformEnd = output<{ ids: readonly string[] }>();
+	/**
+	 * Emitted while the shape-adjustment (amber diamond) handle is dragged, with
+	 * the `a:avLst` guide name and its new 0..50000 value. Deliberately separate
+	 * from {@link transformUpdate}: an adjustment changes the shape's geometry
+	 * parameter, never its box.
+	 */
+	readonly adjustUpdate = output<{ id: string; key: string; value: number }>();
 	/** Emitted on right-click with the element under the cursor (or null). */
 	readonly contextMenu = output<{ id: string | null; x: number; y: number }>();
 	/** Emitted on double-click of a text-bearing element to begin inline edit. */
@@ -322,6 +355,8 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly tableChange = output<{ id: string; tableData: PptxTableData }>();
 
 	private drag: DragState | null = null;
+	/** Live shape-adjustment gesture (amber diamond), or null when idle. */
+	private adjustDrag: ShapeAdjustmentDragState | null = null;
 	private editCancelled = false;
 	private marquee: {
 		startX: number;
@@ -519,9 +554,24 @@ export class SlideCanvasComponent implements SlideContext {
 		computeSingleSelected(this.allElements(), this.selectedIds()),
 	);
 
-	/** Resize-handle render boxes (stage coords) for the single selection. */
+	/** Look an element up by id across the slide + template layers. */
+	private elementById(id: string): PptxElement | undefined {
+		return this.allElements().find((el) => el.id === id);
+	}
+
+	/** The single selected element itself (not just its box), or null. */
+	private readonly singleSelectedElement = computed<PptxElement | null>(() => {
+		const box = this.singleSelected();
+		return box ? (this.elementById(box.id) ?? null) : null;
+	});
+
+	/**
+	 * Resize-handle render boxes (stage coords) for the single selection. Empty
+	 * for an element whose authored `a:spLocks/@noResize` pins its size.
+	 */
 	readonly handleBoxes = computed(() =>
-		computeHandleBoxes(
+		computeResizeHandleBoxes(
+			this.singleSelectedElement(),
 			this.singleSelected(),
 			this.editable(),
 			HANDLE_SCREEN_PX,
@@ -529,32 +579,36 @@ export class SlideCanvasComponent implements SlideContext {
 		),
 	);
 
-	/** Rotation-handle box (stage coords) above the single selection, or null. */
+	/**
+	 * Rotation-handle box (stage coords) above the single selection, or null (also
+	 * null when `a:spLocks/@noRotation` is authored on the element).
+	 */
 	readonly rotateHandle = computed(() =>
-		computeCornerHandle(
+		computeRotateHandleBox(
+			this.singleSelectedElement(),
 			this.singleSelected(),
 			this.editable(),
 			HANDLE_SCREEN_PX,
 			24,
 			this.effectiveScale(),
-			'top-center',
 		),
 	);
 
 	/**
 	 * Shape-adjustment-handle box (stage coords) for the single selection, or
-	 * null. Sits just outside the top-left corner so it never collides with the
-	 * resize/rotate handles. Selection-only + editable-only, so it vanishes in
-	 * presentation alongside the rest of the edit chrome.
+	 * null. Position, existence and cursor all come from the SHARED
+	 * `getShapeAdjustmentHandleDescriptor`, so the handle appears only for a
+	 * geometry that actually has an adjustable parameter (today: `roundRect`) and
+	 * sits exactly where the other four bindings put it. Selection-only +
+	 * editable-only, so it vanishes in presentation with the rest of the chrome.
 	 */
 	readonly adjustHandle = computed(() =>
-		computeCornerHandle(
+		computeAdjustHandle(
+			this.singleSelectedElement(),
 			this.singleSelected(),
 			this.editable(),
 			HANDLE_SCREEN_PX,
-			16,
 			this.effectiveScale(),
-			'top-left',
 		),
 	);
 
@@ -605,7 +659,9 @@ export class SlideCanvasComponent implements SlideContext {
 			const now = event.timeStamp || Date.now();
 			if (this.lastTap && this.lastTap.id === id && now - this.lastTap.time < DOUBLE_TAP_MS) {
 				this.lastTap = null;
-				this.textEditStart.emit({ id });
+				if (this.canTextEdit(id)) {
+					this.textEditStart.emit({ id });
+				}
 				return;
 			}
 			this.lastTap = { id, time: now };
@@ -638,6 +694,11 @@ export class SlideCanvasComponent implements SlideContext {
 		}
 		const el = this.allElements().find((e) => e.id === id);
 		if (!el) {
+			return;
+		}
+		// A `noMove` shape may still be SELECTED (otherwise the user could never
+		// reach the inspector to unlock it) but must not arm a drag.
+		if (!canInteractWithElement(el, 'move')) {
 			return;
 		}
 		this.drag = {
@@ -686,12 +747,24 @@ export class SlideCanvasComponent implements SlideContext {
 		return { id: el.id, x: el.x, y: el.y, width: el.width, height: el.height, text: plainText(el) };
 	});
 
+	/**
+	 * May inline text editing begin on this element? Honours the authored
+	 * `a:spLocks/@noTextEdit`, which Angular ignored entirely while the other four
+	 * bindings enforced it: a locked caption opened an editable textarea here.
+	 */
+	private canTextEdit(id: string): boolean {
+		return canInteractWithElement(
+			this.allElements().find((el) => el.id === id),
+			'textEdit',
+		);
+	}
+
 	onDblClick(event: MouseEvent): void {
 		if (!this.editable()) {
 			return;
 		}
 		const id = this.interactiveElementIdAt(event.target);
-		if (id) {
+		if (id && this.canTextEdit(id)) {
 			event.preventDefault();
 			this.textEditStart.emit({ id });
 		}
@@ -790,7 +863,7 @@ export class SlideCanvasComponent implements SlideContext {
 		event.stopPropagation();
 		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
 		const box = this.singleSelected();
-		if (!box) {
+		if (!box || !canInteractWithElement(this.singleSelectedElement(), 'resize')) {
 			return;
 		}
 		this.drag = {
@@ -809,10 +882,10 @@ export class SlideCanvasComponent implements SlideContext {
 		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
 		const box = this.singleSelected();
 		const stage = this.stageRef()?.nativeElement;
-		if (!box || !stage) {
+		const el = this.singleSelectedElement();
+		if (!box || !stage || !canInteractWithElement(el, 'rotate')) {
 			return;
 		}
-		const el = this.allElements().find((e) => e.id === box.id);
 		const zoom = this.effectiveScale() || 1;
 		const rect = stage.getBoundingClientRect();
 		const centerX = box.x + box.width / 2;
@@ -832,6 +905,23 @@ export class SlideCanvasComponent implements SlideContext {
 			startAngle: Math.atan2(py - centerY, px - centerX),
 			startRotation: el?.rotation ?? 0,
 		};
+	}
+
+	/**
+	 * Begin a shape-adjustment gesture on the amber diamond. Captures the shared
+	 * {@link ShapeAdjustmentDragState} so every subsequent pointer move resolves
+	 * through `getDraggedShapeAdjustmentValue` rather than the resize pipeline
+	 * this handle used to be wired to.
+	 */
+	onAdjustPointerDown(event: PointerEvent): void {
+		event.stopPropagation();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+		const el = this.singleSelectedElement();
+		const handle = this.adjustHandle();
+		if (!el || !handle) {
+			return;
+		}
+		this.adjustDrag = beginShapeAdjustmentDrag(el, handle, event.clientX, event.clientY);
 	}
 
 	onResizeHandleKeydown(event: KeyboardEvent, handle: ResizeHandle): void {
@@ -889,6 +979,26 @@ export class SlideCanvasComponent implements SlideContext {
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
 
+		// ── SHAPE ADJUSTMENT ──────────────────────────────────────────────────
+		// The amber diamond writes `shapeAdjustments[key]`, never a box, so it is
+		// resolved before (and independently of) the drag/resize pipeline.
+		const adjust = this.adjustDrag;
+		if (adjust) {
+			const value = draggedAdjustmentValue(adjust, event.clientX, this.effectiveScale());
+			if (!adjust.moved && Math.abs(event.clientX - adjust.startClientX) >= DRAG_THRESHOLD) {
+				adjust.moved = true;
+				this.transformStart.emit({
+					id: adjust.elementId,
+					label: this.translate.instant('pptx.selectionOverlay.adjust'),
+				});
+			}
+			if (adjust.moved) {
+				this.adjustUpdate.emit({ id: adjust.elementId, key: adjust.key, value });
+			}
+			return;
+		}
+		// ── END SHAPE ADJUSTMENT ──────────────────────────────────────────────
+
 		const marquee = this.marquee;
 		if (marquee) {
 			const stage = this.stageRef()?.nativeElement;
@@ -918,6 +1028,13 @@ export class SlideCanvasComponent implements SlideContext {
 
 		const drag = this.drag;
 		if (!drag) {
+			return;
+		}
+		// Belt-and-braces lock gate: the pointer-down paths already refuse to arm a
+		// gesture a lock forbids, but a lock added mid-gesture (a collaborator, an
+		// AI edit) must not keep writing transforms for the rest of the drag.
+		if (!canInteractWithElement(this.elementById(drag.id), DRAG_MODE_INTERACTION[drag.mode])) {
+			this.drag = null;
 			return;
 		}
 		const zoom = this.effectiveScale() || 1;
@@ -1051,8 +1168,20 @@ export class SlideCanvasComponent implements SlideContext {
 			this.marquee = null;
 			this.marqueeRect.set(null);
 		}
+		if (this.adjustDrag) {
+			this.adjustDrag = null;
+			return;
+		}
+		const drag = this.drag;
 		this.drag = null;
 		this.snapGuides.set([]);
+		// A gesture that actually moved/resized a shape must let the parent reroute
+		// the connectors bound to it, otherwise every connector keeps pointing at
+		// where its shape used to be. Rotation leaves the box (and so every
+		// connection site's anchor) alone, so it is not worth a model write.
+		if (drag?.started && drag.mode !== 'rotate') {
+			this.transformEnd.emit({ ids: [drag.id] });
+		}
 	}
 
 	readonly wrapperStyle = computed<StyleMap>(() => {

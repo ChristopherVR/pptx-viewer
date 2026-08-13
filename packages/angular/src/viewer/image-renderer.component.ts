@@ -38,7 +38,11 @@ import { buildAngularImageRenderView } from './image-renderer-helpers';
 					</defs>
 				</svg>
 			}
-			@if (imageSrc(); as src) {
+			@if (view().tilingStyle; as tilingStyle) {
+				<!-- a:blipFill/a:tile is a repeating texture, painted as a background
+				     layer because an img element cannot repeat. -->
+				<div class="pptx-ng-image-tile" [ngStyle]="tilingStyle"></div>
+			} @else if (imageSrc(); as src) {
 				@if (view().clrChange; as clrChange) {
 					<pptx-color-changed-image
 						[src]="src"

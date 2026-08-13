@@ -116,7 +116,37 @@ describe('cellStyleToStyleMap', () => {
 		const map = cellStyleToStyleMap({ bold: true, italic: true, underline: true });
 		expect(map['font-weight']).toBe('bold');
 		expect(map['font-style']).toBe('italic');
-		expect(map['text-decoration']).toBe('underline');
+		// Shared emits the longhand `text-decoration-line` (which is what the
+		// other four bindings apply); the hand-ported copy this now delegates to
+		// emitted the shorthand.
+		expect(map['text-decoration-line']).toBe('underline');
+	});
+
+	// The four features the hand-ported copy had silently dropped. Each renders
+	// in the other four bindings via shared `cellStyleToCss`.
+	it('renders a preset pattern fill as a real tile, not a flat colour', () => {
+		const map = cellStyleToStyleMap({
+			fillMode: 'pattern',
+			patternFillPreset: 'ltHorz',
+			patternFillForeground: '#FF0000',
+			patternFillBackground: '#FFFFFF',
+		});
+		expect(map['background-image']).toContain('data:image/svg+xml');
+	});
+
+	it('centres the text block for anchorCtr', () => {
+		expect(cellStyleToStyleMap({ anchorCtr: true })['text-align']).toBe('center');
+		// An explicit paragraph alignment still wins.
+		expect(cellStyleToStyleMap({ anchorCtr: true, align: 'right' })['text-align']).toBe('right');
+	});
+
+	it('clips horizontal overflow', () => {
+		expect(cellStyleToStyleMap({ horzOverflow: 'clip' })['overflow-x']).toBe('hidden');
+	});
+
+	it('applies the a:cell3D bevel', () => {
+		const map = cellStyleToStyleMap({ cell3D: { bevelWidth: 6, bevelHeight: 6 } });
+		expect(map['box-shadow']).toContain('inset');
 	});
 
 	it('maps per-edge borders', () => {

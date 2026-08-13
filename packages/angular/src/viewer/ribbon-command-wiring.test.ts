@@ -1,8 +1,9 @@
-import { Injector, runInInjectionContext } from '@angular/core';
+import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { EditorStateService } from './editor-state.service';
+import { LoadContentService } from './load-content.service';
 import { canAuthorAnimation } from './ribbon-animations-section.component';
 import { RibbonContentComponent } from './ribbon-content.component';
 import { RibbonFileSectionComponent } from './ribbon-file-section.component';
@@ -198,8 +199,14 @@ describe('restored ribbon commands', () => {
 	});
 
 	it('opens the custom-show manager from the Slide Show tab', () => {
+		// The tab reads/writes the deck's presentation properties for its Options
+		// cluster (see ribbon-slideshow-section.component.test.ts), so the loader
+		// has to be reachable; DestroyRef is the only dependency it needs here.
+		const destroyRefStub: Pick<DestroyRef, 'onDestroy'> = { onDestroy: () => () => {} };
 		const section = runInInjectionContext(
-			Injector.create({ providers: [] }),
+			Injector.create({
+				providers: [{ provide: DestroyRef, useValue: destroyRefStub }, LoadContentService],
+			}),
 			() => new RibbonSlideshowSectionComponent(),
 		);
 		let opened = 0;

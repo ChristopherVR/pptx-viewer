@@ -108,3 +108,52 @@ describe('buildAngularImageRenderView', () => {
 		expect(view.colorWashStyle?.['clip-path']).toBe(view.imageStyle['clip-path']);
 	});
 });
+
+/**
+ * `a:blipFill/a:tile`: a repeating texture. Angular alone had no branch for it,
+ * so a tiled picture painted as one stretched copy here while React, Vue,
+ * Svelte and Vanilla repeated it through shared `getImageTilingStyle`.
+ */
+describe('buildAngularImageRenderView - tiled pictures', () => {
+	it('returns a repeating background layer instead of an <img> style', () => {
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				tileScaleX: 0.25,
+				tileScaleY: 0.25,
+				tileAlignment: 'tl',
+			} as Partial<PptxElement>),
+		);
+
+		expect(view.tilingStyle).toBeDefined();
+		expect(view.tilingStyle?.backgroundRepeat).toBe('repeat');
+		expect(view.tilingStyle?.backgroundSize).toBe('25% 25%');
+		expect(view.tilingStyle?.backgroundPosition).toBe('0% 0%');
+		expect(String(view.tilingStyle?.backgroundImage)).toContain('data:image/png;base64,AAAA');
+	});
+
+	it('anchors a centred tile grid at 50% 50%', () => {
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				tileScaleX: 0.25,
+				tileScaleY: 0.25,
+				tileAlignment: 'ctr',
+			} as Partial<PptxElement>),
+		);
+		expect(view.tilingStyle?.backgroundPosition).toBe('50% 50%');
+	});
+
+	it('carries the image effect filter and opacity onto the tile layer', () => {
+		const view = buildAngularImageRenderView(
+			image({ brightness: 20, alphaModFix: 40 }, {
+				tileScaleX: 0.5,
+				tileScaleY: 0.5,
+			} as Partial<PptxElement>),
+		);
+		expect(String(view.tilingStyle?.filter)).toContain('brightness(1.2)');
+		expect(view.tilingStyle?.opacity).toBe(0.4);
+	});
+
+	it('is undefined for an ordinary picture, which keeps the <img> branch', () => {
+		expect(buildAngularImageRenderView(image()).tilingStyle).toBeUndefined();
+	});
+});

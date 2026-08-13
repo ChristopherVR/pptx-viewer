@@ -18,10 +18,12 @@ import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-v
 import type { PptxElement, PptxHeaderFooter, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
 import {
+	applyReroutedConnectors,
 	buildSlideTemplateSlide,
 	groupSlidesBySection,
 	isTemplateElement,
 	isTemplateElementId,
+	rerouteConnectorsForMovedElements,
 	templateSchemeFromTheme,
 } from '../internal/shared';
 import type { SlideTemplateId } from '../internal/shared';
@@ -398,6 +400,75 @@ export class EditorStateService {
 							...slide,
 							elements: updateElementById(slide.elements, id, box as Partial<PptxElement>),
 						}
+					: slide,
+			),
+		);
+	}
+
+	/**
+	 * Recompute the endpoints of every connector bound to one of `movedIds` and
+	 * write them back, WITHOUT recording history.
+	 *
+	 * Called at the end of a drag/resize gesture, whose single history snapshot
+	 * was already taken by {@link beginTransform}; routing this through `commit()`
+	 * instead would push a second, spurious undo step so undoing a move would
+	 * take two presses. Both shared helpers no-op on empty input, and
+	 * `applyReroutedConnectors` returns the same array reference when there is
+	 * nothing to apply, so calling this unconditionally at every gesture end is
+	 * free.
+	 */
+	rerouteConnectors(slideIndex: number, movedIds: Iterable<string>): void {
+		const slides = this.slides();
+		const target = slides[slideIndex];
+		if (!target) {
+			return;
+		}
+		const elements = [...target.elements];
+		const rerouted = rerouteConnectorsForMovedElements(elements, new Set(movedIds));
+		if (rerouted.length === 0) {
+			return;
+		}
+		const next = applyReroutedConnectors(elements, rerouted);
+		this.slides.set(
+			slides.map((slide, i) => (i === slideIndex ? { ...slide, elements: next } : slide)),
+		);
+	}
+
+	/**
+	 * Set one `a:avLst` adjustment guide on an element during a live
+	 * shape-adjustment drag. Non-history for the same reason as
+	 * {@link applyTransform}: the gesture's snapshot was taken at its start.
+	 *
+	 * Merges into any existing `shapeAdjustments` rather than replacing the map,
+	 * so a multi-parameter geometry does not lose its other guides to a drag of
+	 * one handle.
+	 */
+	applyShapeAdjustment(slideIndex: number, id: string, key: string, value: number): void {
+		const target = this.slides()[slideIndex];
+		if (!target) {
+			return;
+		}
+		const source = isTemplateElementId(id) ? this.templatesForSlide(target.id) : target.elements;
+		const current = source.find((el) => el.id === id) as
+			| { shapeAdjustments?: Record<string, number> }
+			| undefined;
+		if (!current) {
+			return;
+		}
+		const patch = {
+			shapeAdjustments: { ...(current.shapeAdjustments ?? {}), [key]: value },
+		} as Partial<PptxElement>;
+		if (isTemplateElementId(id)) {
+			this.writeTemplatesForSlide(
+				target.id,
+				updateElementById(this.templatesForSlide(target.id), id, patch),
+			);
+			return;
+		}
+		this.slides.set(
+			this.slides().map((slide, i) =>
+				i === slideIndex
+					? { ...slide, elements: updateElementById(slide.elements, id, patch) }
 					: slide,
 			),
 		);

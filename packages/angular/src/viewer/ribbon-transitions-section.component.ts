@@ -1,36 +1,42 @@
 /**
  * ribbon-transitions-section.component.ts: the Transitions ribbon tab (preview,
- * preset gallery, duration, Apply to all, Inspector). Split out of
- * {@link RibbonComponent}; behaviour and markup are unchanged.
+ * preset gallery, duration, sound, Apply to all, Advance Slide, Inspector).
  *
- * The selected transition + duration are owned by the parent ribbon (so they
- * persist across tab switches) and passed in via inputs; edits are applied
- * straight to the shared {@link EditorStateService} and the new value is emitted
- * back so the parent keeps its signals in sync.
+ * Every control on this tab now commits through the ONE shared decision module
+ * (`render/ribbon-transitions`): the tab holds a single
+ * {@link RibbonTransitionDraft}, seeded from the active slide by
+ * `readRibbonTransitionDraft`, and each change re-commits the whole draft with
+ * `applyRibbonTransitionDraft`. Before that, the Advance Slide checkboxes and
+ * the seconds field wrote component-local signals nothing ever read, so a timed
+ * advance picked here never reached the deck (and never reached the saved
+ * `.pptx`), while the preset/duration commits hard-coded `advanceOnClick: true`
+ * and dropped whatever else the slide's `p:transition` carried.
+ *
+ * The draft is re-seeded whenever the active slide changes, so the tab reports
+ * the slide it is looking at rather than the last preset the user clicked.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import { LucidePanelRight, LucidePlay } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxSlide, PptxTransitionType } from 'pptx-viewer-core';
+import type { PptxTransitionType } from 'pptx-viewer-core';
 
+import type { RibbonTransitionDraft } from '../internal/shared';
+import {
+	applyRibbonTransitionDraft,
+	readRibbonTransitionDraft,
+	RIBBON_TRANSITION_PRESETS,
+	ribbonTransitionTargets,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
-
-/**
- * Transition presets shown in the Transitions ribbon tab (mirrors React
- * `TRANSITION_PRESETS` in `DesignTransitionsReviewSection.tsx`).
- */
-const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: string }> = [
-	{ value: 'none', labelKey: 'pptx.ribbon.transition.none' },
-	{ value: 'fade', labelKey: 'pptx.ribbon.transition.fade' },
-	{ value: 'push', labelKey: 'pptx.ribbon.transition.push' },
-	{ value: 'wipe', labelKey: 'pptx.ribbon.transition.wipe' },
-	{ value: 'split', labelKey: 'pptx.ribbon.transition.split' },
-	{ value: 'reveal', labelKey: 'pptx.ribbon.transition.reveal' },
-	{ value: 'cut', labelKey: 'pptx.ribbon.transition.cut' },
-	{ value: 'cover', labelKey: 'pptx.ribbon.transition.cover' },
-	{ value: 'uncover', labelKey: 'pptx.ribbon.transition.uncover' },
-];
 
 @Component({
 	selector: 'pptx-ribbon-transitions-section',
@@ -51,13 +57,13 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 		<span class="pptx-rb-sep"></span>
 		<!-- Preset gallery -->
 		<div class="inline-flex max-w-[420px] items-center gap-0.5 overflow-x-auto">
-			@for (t of transitionPresets; track t.value) {
+			@for (t of transitionPresets; track t.type) {
 				<button
 					type="button"
-					(click)="setTransition(t.value)"
+					(click)="setTransition(t.type)"
 					class="flex-shrink-0 rounded border px-2 py-1 text-[11px] leading-tight transition-colors"
 					[ngClass]="
-						selectedTransition() === t.value
+						draft().type === t.type
 							? 'border-primary bg-primary/10 font-medium text-primary'
 							: 'border-border bg-muted text-foreground hover:bg-accent'
 					"
@@ -76,7 +82,7 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 				min="0"
 				max="10"
 				step="0.1"
-				[value]="transitionDurationSec()"
+				[value]="draft().durationSec"
 				(change)="onDurationChange($event)"
 				class="pptx-rb-select w-16 text-center"
 				[title]="'pptx.ribbon.transitionDurationTitle' | translate"
@@ -84,10 +90,16 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			<span>s</span>
 		</label>
 		<span class="pptx-rb-sep"></span>
-		<!-- Sound -->
+		<!--
+			Sound. Rendered DISABLED on purpose: no binding authors a transition
+			sound (there is no picker, no media relationship writer and nothing in
+			the show path plays one), so an enabled select would be a control that
+			cannot work. It stays visible because the concept exists in the format
+			and a slide that already carries a sound keeps it through save.
+		-->
 		<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
 			<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
-			<select class="pptx-rb-select w-24">
+			<select class="pptx-rb-select w-24 disabled:opacity-50" disabled>
 				<option value="none">{{ 'pptx.ribbon.soundNone' | translate }}</option>
 			</select>
 		</label>
@@ -111,8 +123,8 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			<label class="inline-flex cursor-pointer items-center gap-1.5">
 				<input
 					type="checkbox"
-					[checked]="advanceOnClick()"
-					(change)="advanceOnClick.set($any($event.target).checked)"
+					[checked]="draft().advanceOnClick"
+					(change)="onAdvanceOnClick($event)"
 					class="accent-primary h-3 w-3"
 				/>
 				<span class="whitespace-nowrap">{{ 'pptx.ribbon.onMouseClick' | translate }}</span>
@@ -120,16 +132,16 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			<label class="inline-flex cursor-pointer items-center gap-1.5">
 				<input
 					type="checkbox"
-					[checked]="advanceAfter()"
-					(change)="advanceAfter.set($any($event.target).checked)"
+					[checked]="draft().advanceAfter"
+					(change)="onAdvanceAfter($event)"
 					class="accent-primary h-3 w-3"
 				/>
 				<span class="whitespace-nowrap">{{ 'pptx.ribbon.afterDuration' | translate }}</span>
 				<input
 					type="text"
-					[value]="advanceAfterSeconds()"
-					(input)="advanceAfterSeconds.set($any($event.target).value)"
-					[disabled]="!advanceAfter()"
+					[value]="draft().advanceAfterText"
+					(change)="onAdvanceAfterText($event)"
+					[disabled]="!draft().advanceAfter"
 					class="pptx-rb-select w-16 text-center disabled:opacity-50"
 					[title]="'pptx.ribbon.advanceAfterSeconds' | translate"
 				/>
@@ -151,52 +163,80 @@ export class RibbonTransitionsSectionComponent {
 	private readonly editor = inject(EditorStateService);
 
 	readonly slideIndex = input<number>(0);
-	readonly selectedTransition = input<PptxTransitionType>('none');
-	readonly transitionDurationSec = input<number>(0.5);
 
 	readonly present = output<void>();
 	readonly toggleInspector = output<void>();
-	readonly transitionChange = output<PptxTransitionType>();
-	readonly durationChange = output<number>();
 
-	protected readonly transitionPresets = TRANSITION_PRESETS;
-	protected readonly advanceOnClick = signal(true);
-	protected readonly advanceAfter = signal(false);
-	protected readonly advanceAfterSeconds = signal('00:00.00');
+	protected readonly transitionPresets = RIBBON_TRANSITION_PRESETS;
 
-	/** Apply the chosen transition to the active slide. */
+	/**
+	 * The draft the user is editing, tagged with the slide it belongs to. Null
+	 * until a control is touched, and abandoned as soon as the active slide
+	 * changes, which is what makes the tab re-read the new slide.
+	 */
+	private readonly edited = signal<{ index: number; draft: RibbonTransitionDraft } | null>(null);
+
+	/**
+	 * What the tab's controls say: the live draft for THIS slide, otherwise the
+	 * slide's own transition read back through shared. Keeping the untouched
+	 * case derived from the deck is what stops the tab reporting the last preset
+	 * the user clicked after they navigate away.
+	 */
+	protected readonly draft = computed<RibbonTransitionDraft>(() => {
+		const index = this.slideIndex();
+		const slides = this.editor.slides();
+		const edit = this.edited();
+		if (edit && edit.index === index) {
+			return edit.draft;
+		}
+		// `readRibbonTransitionDraft` answers EMPTY_RIBBON_TRANSITION_DRAFT for a
+		// missing slide, so an empty deck needs no special case here.
+		return readRibbonTransitionDraft(slides[index]);
+	});
+
+	/** Apply the chosen preset to the active slide. */
 	protected setTransition(type: PptxTransitionType): void {
-		this.transitionChange.emit(type);
-		const durationMs = Math.round(this.transitionDurationSec() * 1000);
-		this.editor.updateSlide(this.slideIndex(), {
-			transition: { type, durationMs, advanceOnClick: true },
-		} as Partial<PptxSlide>);
+		this.commit({ type });
 	}
 
 	protected onDurationChange(event: Event): void {
-		const sec = Number((event.target as HTMLInputElement).value);
-		if (Number.isFinite(sec) && sec >= 0) {
-			this.durationChange.emit(sec);
-			const durationMs = Math.round(sec * 1000);
-			this.editor.updateSlide(this.slideIndex(), {
-				transition: {
-					type: this.selectedTransition(),
-					durationMs,
-					advanceOnClick: true,
-				},
-			} as Partial<PptxSlide>);
+		const durationSec = Number((event.target as HTMLInputElement).value);
+		if (Number.isFinite(durationSec) && durationSec >= 0) {
+			this.commit({ durationSec });
 		}
 	}
 
-	/** Apply the current transition to every slide in the deck. */
+	protected onAdvanceOnClick(event: Event): void {
+		this.commit({ advanceOnClick: (event.target as HTMLInputElement).checked });
+	}
+
+	protected onAdvanceAfter(event: Event): void {
+		this.commit({ advanceAfter: (event.target as HTMLInputElement).checked });
+	}
+
+	protected onAdvanceAfterText(event: Event): void {
+		this.commit({ advanceAfterText: (event.target as HTMLInputElement).value });
+	}
+
+	/** Apply the current draft to every slide in the deck. */
 	protected applyToAll(): void {
-		const type = this.selectedTransition();
-		const durationMs = Math.round(this.transitionDurationSec() * 1000);
-		const count = this.editor.slides().length;
-		for (let i = 0; i < count; i++) {
-			this.editor.updateSlide(i, {
-				transition: { type, durationMs, advanceOnClick: true },
-			} as Partial<PptxSlide>);
+		this.commit({}, true);
+	}
+
+	/**
+	 * Merge a control's change into the draft and write the resulting transition
+	 * onto every targeted slide, preserving each slide's own direction / spokes /
+	 * sound / raw XML through the shared merge.
+	 */
+	private commit(patch: Partial<RibbonTransitionDraft>, applyToAll = false): void {
+		const index = this.slideIndex();
+		const next: RibbonTransitionDraft = { ...this.draft(), ...patch };
+		this.edited.set({ index, draft: next });
+		const slides = this.editor.slides();
+		for (const target of ribbonTransitionTargets(slides.length, index, applyToAll)) {
+			this.editor.updateSlide(target, {
+				transition: applyRibbonTransitionDraft(slides[target], next),
+			});
 		}
 	}
 }

@@ -217,8 +217,15 @@ export class ViewerCanvasEditingService {
 
 	/**
 	 * Commit a selection-pane inline rename through the history-integrated
-	 * update path. `name: undefined` clears the authored name (round-trips as a
-	 * dropped `cNvPr/@name` on save).
+	 * update path.
+	 *
+	 * `name: undefined` clears the name on the MODEL (so the pane falls back to
+	 * the element id) but leaves `cNvPr/@name` in the file untouched: the save
+	 * writer reads `undefined` as "no opinion" and skips the attribute, which is
+	 * what stops a plain round-trip from wiping the names of chart / SmartArt /
+	 * graphic frames that parse without one. `@name` is required on
+	 * `CT_NonVisualDrawingProps`, so it is never dropped; writing `''` is what
+	 * emits an empty `name=""`.
 	 */
 	onSelectionPaneRename(event: { id: string; name: string | undefined }): void {
 		this.editor.updateElement(this.requireHost().activeSlideIndex(), event.id, {

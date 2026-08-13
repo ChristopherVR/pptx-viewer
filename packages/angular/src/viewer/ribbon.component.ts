@@ -153,7 +153,6 @@ import type { RibbonTab } from './ribbon-types';
 					(recordFromCurrent)="recordFromCurrent.emit()"
 					(spellCheckChange)="setSpellCheck($event)"
 					(broadcast)="broadcast.emit()"
-					(info)="info.emit()"
 					(print)="print.emit()"
 					(comments)="comments.emit()"
 					(a11y)="a11y.emit()"
@@ -166,6 +165,8 @@ import type { RibbonTab } from './ribbon-types';
 					(toggleInspector)="toggleInspector.emit()"
 					(drawToolChange)="drawToolChange.emit($event)"
 					(toggleThemeGallery)="toggleThemeGallery.emit()"
+					(editTheme)="editTheme.emit()"
+					(openSlideSize)="openSlideSize.emit()"
 					(toggleGrid)="toggleGrid.emit()"
 					(toggleRulers)="toggleRulers.emit()"
 					(toggleGuides)="toggleGuides.emit()"
@@ -295,6 +296,16 @@ export class RibbonComponent {
 	readonly drawToolChange = output<DrawToolState>();
 	/** Emitted when the user clicks "Browse Themes" in the Design tab. */
 	readonly toggleThemeGallery = output<void>();
+	/**
+	 * Emitted when the user clicks "Edit Theme" in the Design tab. The host
+	 * opens the theme gallery straight in its theme-editor (customise) mode.
+	 */
+	readonly editTheme = output<void>();
+	/**
+	 * Emitted when the user clicks "Slide Size" in the Design tab. The host
+	 * surfaces the inspector's deck panel, which owns the slide-size card.
+	 */
+	readonly openSlideSize = output<void>();
 	/** Emitted when the user toggles the grid overlay in the View tab. */
 	readonly toggleGrid = output<void>();
 	/** Emitted when the user toggles rulers in the View tab. */

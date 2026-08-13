@@ -18,7 +18,7 @@
  */
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxElement, PptxTransitionType } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 
 import type { ToolbarActionId } from '../internal/shared';
 import { RibbonAnimationsSectionComponent } from './ribbon-animations-section.component';
@@ -117,17 +117,14 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 				<pptx-ribbon-design-section
 					[themeGalleryOpen]="themeGalleryOpen()"
 					(toggleThemeGallery)="toggleThemeGallery.emit()"
-					(info)="info.emit()"
+					(editTheme)="editTheme.emit()"
+					(openSlideSize)="openSlideSize.emit()"
 					(toggleInspector)="toggleInspector.emit()"
 				/>
 			}
 			@case ('transitions') {
 				<pptx-ribbon-transitions-section
 					[slideIndex]="slideIndex()"
-					[selectedTransition]="selectedTransition()"
-					[transitionDurationSec]="transitionDurationSec()"
-					(transitionChange)="selectedTransition.set($event)"
-					(durationChange)="transitionDurationSec.set($event)"
 					(present)="present.emit()"
 					(toggleInspector)="toggleInspector.emit()"
 				/>
@@ -192,7 +189,6 @@ export class RibbonContentSecondaryComponent {
 	readonly recordFromCurrent = output<void>();
 	readonly spellCheckChange = output<boolean>();
 	readonly broadcast = output<void>();
-	readonly info = output<void>();
 	readonly print = output<void>();
 	readonly comments = output<void>();
 	readonly a11y = output<void>();
@@ -206,6 +202,10 @@ export class RibbonContentSecondaryComponent {
 	readonly toggleInspector = output<void>();
 	readonly drawToolChange = output<DrawToolState>();
 	readonly toggleThemeGallery = output<void>();
+	/** Design > Edit Theme: open the theme gallery in its customise mode. */
+	readonly editTheme = output<void>();
+	/** Design > Slide Size: surface the inspector card that owns the size. */
+	readonly openSlideSize = output<void>();
 	readonly toggleGrid = output<void>();
 	readonly toggleRulers = output<void>();
 	readonly toggleGuides = output<void>();
@@ -224,11 +224,12 @@ export class RibbonContentSecondaryComponent {
 	readonly openSettings = output<void>();
 
 	// ── Tab-local state (owned here so it survives tab switches) ────────────────
+	// The Transitions tab keeps no state here any more: its draft is read back
+	// from the active slide's own `transition`, which survives a tab switch
+	// because it lives in the deck rather than in a component.
 	protected readonly activeTool = signal<DrawTool>('select');
 	protected readonly drawingColor = signal<string>('#000000');
 	protected readonly drawingWidth = signal<number>(3);
-	protected readonly selectedTransition = signal<PptxTransitionType>('none');
-	protected readonly transitionDurationSec = signal<number>(0.5);
 
 	/** Sync the draw-tool signals with a Draw-tab change and re-broadcast it. */
 	protected onDrawChange(state: DrawToolState): void {

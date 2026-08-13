@@ -128,23 +128,24 @@
 			}
 			@if (adjustHandle(); as ah) {
 				<!--
-					Shape-adjustment affordance (amber diamond). Mirrors React's
-					separate "Adjust shape" handle: a selection-only control that
-					appears for a selected element in editable mode and is gone in
-					presentation (the whole canvas is non-editable then). Dragging it
-					adjusts the shape via the same resize pipeline (SE corner),
-					keeping it a real, useful affordance rather than a decoy.
+					Shape-adjustment affordance (amber diamond). Existence, position
+					and cursor all come from the SHARED
+					`getShapeAdjustmentHandleDescriptor`, so it appears only for a
+					geometry with an adjustable `a:avLst` parameter (today:
+					roundRect), sits where the other four bindings put it, and is
+					absent for a shape locked with `noAdjustHandles`. Dragging it
+					writes `shapeAdjustments[key]`; it does NOT resize the element.
 				-->
 				<button
 					type="button"
 					class="pptx-ng-adjust-handle"
-					[attr.aria-label]="'pptx.canvas.adjustShape' | translate"
+					[attr.aria-label]="'pptx.selectionOverlay.adjust' | translate"
 					[style.left.px]="ah.left"
 					[style.top.px]="ah.top"
 					[style.width.px]="ah.size"
 					[style.height.px]="ah.size"
-					(pointerdown)="onHandlePointerDown($event, 'se')"
-					(keydown)="onResizeHandleKeydown($event, 'se')"
+					[style.cursor]="ah.cursor"
+					(pointerdown)="onAdjustPointerDown($event)"
 				></button>
 			}
 			@if (editingBox(); as eb) {

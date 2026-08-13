@@ -1,37 +1,23 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import type { PptxElement, PptxTableData, ShapeStyle, TextSegment } from 'pptx-viewer-core';
-import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
+import type { PptxElement, PptxTableData, ShapeStyle } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
-	buildRunEffectStyle,
 	buildTextBody3DSceneStyle,
 	buildTextBuildSpec,
 	getOverflowSegments,
 	isElementHidden,
 	textBuildSpanStyle,
-	authoredLetterSpacingPx,
-	DEFAULT_FONT_FAMILY,
-	DEFAULT_TEXT_FONT_SIZE,
-	resolveAutoFitFontScale,
 	inlineElementPointerEvents,
-	resolveParagraphIndent,
-	resolveParagraphSpacing,
-	resolveRunFont,
-	resolveUnderlineDecorationStyle,
-	segmentStyleToCss,
-	splitStyledRun,
 	buildHollowHitOutline,
 	strokeOutlineViewBox,
-	substituteFieldText,
 } from '../internal/shared';
 import type {
 	ElementAnimationState,
 	FieldSubstitutionContext,
 	FillOverlayCss,
-	PictureBulletMarker,
-	RunFontSpec,
 	TextBuildSpec,
 } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
@@ -52,119 +38,22 @@ import {
 } from './element-style';
 import type { StyleMap } from './element-style';
 import { EquationRendererComponent } from './equation-renderer.component';
-import { resolveHyperlinkHref } from './hyperlink';
 import { ImageRendererComponent } from './image-renderer.component';
 import { InkRendererComponent } from './ink-renderer.component';
 import { MediaRendererComponent } from './media-renderer.component';
 import { Model3DRendererComponent } from './model3d-renderer.component';
 import { OleRendererComponent } from './ole-renderer.component';
+import { buildAngularParagraphs } from './paragraph-view';
+import type { Paragraph } from './paragraph-view';
 import { SmartArt3DRendererComponent } from './smart-art-3d-renderer.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
 import { showsTemplateAffordance } from './template-mode';
-import { resolveAngularParagraphBullet } from './text-bullets';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
 import { ZoomRendererComponent } from './zoom-renderer.component';
-
-/**
- * Build a run's `[ngStyle]` map from a text segment, layering the underline /
- * double-strike *variant* decoration (`text-decoration-style` / `-thickness` /
- * `text-underline-offset`) on top of the shared `segmentStyleToCss` output.
- *
- * The shared helper only emits the boolean `text-decoration: underline`; this
- * mirrors React's segment renderer (`text-segment-render.tsx`), which applies
- * `resolveUnderlineDecorationStyle` over the boolean underline to make the 16
- * OOXML underline styles visually distinct. Kept additive in the Angular
- * renderer so the shared helper's contract stays stable for its other consumers.
- *
- * `fontScale` is the body's `a:normAutofit/@fontScale`: a run authoring its own
- * `sz` overrides the (already scaled) body font-size, so without it a
- * shrink-to-fit title painted at full size.
- */
-function runStyleFromSegment(
-	seg: TextSegment,
-	fontScale = 1,
-	blockFont?: RunFontSpec,
-	text?: string,
-): StyleMap {
-	const style = segmentStyleToCss(seg, fontScale, { text, blockFont });
-	const s = seg.style;
-	if (s) {
-		const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
-		const deco = resolveUnderlineDecorationStyle(
-			isDoubleStrike,
-			s.underline ? s.underlineStyle : undefined,
-		);
-		if (deco) {
-			if (deco.textDecorationStyle !== undefined) {
-				style['text-decoration-style'] = deco.textDecorationStyle;
-			}
-			if (deco.textDecorationThickness !== undefined) {
-				style['text-decoration-thickness'] = deco.textDecorationThickness;
-			}
-			if (deco.textUnderlineOffset !== undefined) {
-				style['text-underline-offset'] = deco.textUnderlineOffset;
-			}
-		}
-		// Per-run text effects (gradient/pattern fill, outer/inner shadow, 3D
-		// extrusion text-shadow, blur, HSL, alpha opacity, glow, reflection),
-		// mirroring React's per-run span style. No-op {} for plain runs.
-		Object.assign(style, buildRunEffectStyle(s));
-	}
-	return style;
-}
-
-interface TextRun {
-	text: string;
-	style: StyleMap;
-	/** Safe `href` when this run carries a renderable hyperlink. */
-	href?: string;
-	/** Hyperlink tooltip / title text. */
-	tooltip?: string;
-	/** Parsed OMML for an inline equation run (rendered as MathML). */
-	equationXml?: Record<string, unknown>;
-	/** Optional equation number for numbered equations. */
-	equationNumber?: string;
-}
-
-interface Paragraph {
-	runs: TextRun[];
-	/** Bullet / number marker text, when this paragraph is a list item. */
-	bulletMarker?: string;
-	/** Resolved picture marker, or metadata for its accessible glyph fallback. */
-	bulletPicture?: PictureBulletMarker;
-	/** `[ngStyle]` map for the bullet marker (colour / font). */
-	bulletStyle: StyleMap;
-	/** Left indent in px derived from the paragraph outline level. */
-	indentPx: number;
-	/** `text-indent` in px (first-line / hanging indent), when authored. */
-	textIndentPx?: number;
-	/**
-	 * True when the paragraph has no runs and no bullet: an authored blank line
-	 * (`<a:p><a:endParaRPr/></a:p>`), which PowerPoint gives a full line box.
-	 * The template renders a `<br>` for it so the gap survives (issue #131).
-	 */
-	isEmpty?: boolean;
-	/**
-	 * Per-paragraph `line-height` from this paragraph's own `a:lnSpc`: a unitless
-	 * multiplier (`a:spcPct`) or a `"<n>pt"` string (`a:spcPts`). Undefined when
-	 * the paragraph does not override the body-level line-height.
-	 */
-	lineHeight?: number | string;
-	/** `margin-top` in px from `a:spcBef` (space before), when overridden. */
-	spaceBeforePx?: number;
-	/** `margin-bottom` in px from `a:spcAft` (space after), when overridden. */
-	spaceAfterPx?: number;
-	/**
-	 * `font-size` in px set on the paragraph so its CSS line boxes are built
-	 * from its own runs rather than the text body default. Mirrors the shared
-	 * `RenderParagraph.strutFontSizePx`; see `resolveParagraphStrutFontSize`.
-	 */
-	strutFontSizePx?: number;
-}
 
 /**
  * ElementRendererComponent: Angular port of the React `ElementRenderer.tsx`
@@ -438,16 +327,25 @@ export class ElementRendererComponent {
 	}));
 	readonly shapeContainerStyle = computed<StyleMap>(() => {
 		const state = this.animationState();
-		return {
-			...getContainerStyle(this.element(), this.zIndex()),
-			...getShapeFillStrokeStyle(
-				this.element(),
-				this.parentGroupFill(),
-				state?.animatesFill,
-				state?.animatesStroke,
-			),
+		const container = getContainerStyle(this.element(), this.zIndex());
+		const shape = getShapeFillStrokeStyle(
+			this.element(),
+			this.parentGroupFill(),
+			state?.animatesFill,
+			state?.animatesStroke,
+		);
+		const merged: StyleMap = {
+			...container,
+			...shape,
 			...this.templateAffordanceStyle(),
 		};
+		// The shape style may carry a 3D `transform` (`a:spPr/a:scene3d` camera);
+		// COMPOSE it with the container's rotation / flip transform rather than
+		// letting the spread clobber it, exactly as the Vue binding does.
+		if (container['transform'] && shape['transform']) {
+			merged['transform'] = `${String(container['transform'])} ${String(shape['transform'])}`;
+		}
+		return merged;
 	});
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
 	/** Text-warp (WordArt) descriptor for the element, if any. */
@@ -473,12 +371,15 @@ export class ElementRendererComponent {
 		const base = this.textStyle();
 		const scene = this.scene3dStyle();
 		const merged: StyleMap = scene ? { ...base, ...scene } : { ...base };
+		// A text block can carry its own transform (vertical writing modes), so
+		// the scene transform is composed onto it rather than replacing it.
+		if (base['transform'] && scene?.transform) {
+			merged['transform'] = `${String(base['transform'])} ${String(scene.transform)}`;
+		}
 		const w = this.textWarp();
 		if (w?.strategy === 'css') {
-			const sceneTransform = scene?.transform;
-			merged.transform = sceneTransform
-				? `${w.cssTransform} ${String(sceneTransform)}`
-				: w.cssTransform;
+			const composed = merged['transform'];
+			merged['transform'] = composed ? `${w.cssTransform} ${String(composed)}` : w.cssTransform;
 			merged['transform-origin'] = w.cssTransformOrigin;
 		}
 		return merged;
@@ -519,229 +420,7 @@ export class ElementRendererComponent {
 		// the normal path. Everything downstream (autofit scale, paragraph indents,
 		// bullets) still reads the element itself, exactly as React does.
 		const segments = getOverflowSegments(el, this.slideElements()) ?? el.textSegments;
-		if (!segments || segments.length === 0) {
-			return el.text
-				? [{ runs: [{ text: el.text, style: {} }], bulletStyle: {}, indentPx: 0 }]
-				: [];
-		}
-		// `a:normAutofit/@fontScale`: applied to every authored run size, since a
-		// run's own `sz` overrides the (already scaled) body font-size. Mirrors
-		// shared `buildParagraphs` and React's `renderSingleSegment`.
-		const fontScale = resolveAutoFitFontScale(el.textStyle);
-		// What a run that declares no font of its own inherits from the text body,
-		// used only to measure it for the PowerPoint metric tracking. Mirrors
-		// shared `buildParagraphs`.
-		const blockFont: RunFontSpec = {
-			fontFamily: el.textStyle?.fontFamily
-				? getSubstituteFontFamily(el.textStyle.fontFamily)
-				: DEFAULT_FONT_FAMILY,
-			fontSizePx: (el.textStyle?.fontSize || DEFAULT_TEXT_FONT_SIZE) * fontScale,
-		};
-		const paragraphIndents = el.paragraphIndents;
-		const out: Paragraph[] = [{ runs: [], bulletStyle: {}, indentPx: 0 }];
-		let paraStarted = false;
-		// `a:bodyPr/@spcFirstLastPara`; the shared resolver owns what it means.
-		const spaceFirstLast = el.textStyle?.spaceFirstLastParagraph !== false;
-		// Paragraphs are built in one forward pass, so the last one's own props are
-		// kept to re-resolve its spacing once the end of the body is known.
-		let lastParagraphProps: TextSegment['paragraphProperties'];
-		for (const seg of segments) {
-			// A bare `"\n"` segment is the slide-LOAD path's paragraph separator;
-			// `isParagraphBreak` is only set by the edit remap. Matching on the
-			// former alone meant a freshly loaded deck arrived here as a single
-			// paragraph, so only its first line got a bullet and every authored
-			// blank line vanished (issue #131). Mirrors shared `buildParagraphs`.
-			if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
-				// An EMPTY paragraph (`paraStarted` still false) has no run to carry
-				// its authored size or spacing: both ride this TERMINATING separator,
-				// where core stamps the paragraph's `a:endParaRPr sz`. Read them off
-				// it, or the blank line lays out on the body default and the error
-				// accumulates down the panel (issue #131: Angular alone drifted
-				// ~7px by the last heading of slide 13). Mirrors shared
-				// `buildParagraphs`.
-				if (!paraStarted) {
-					const closing = out[out.length - 1];
-					const endParaSize = seg.style?.fontSize;
-					if (typeof endParaSize === 'number' && endParaSize > 0) {
-						closing.strutFontSizePx = endParaSize;
-					}
-					const endSpacing = resolveParagraphSpacing({
-						paraProps: seg.paragraphProperties,
-						bodyStyle: el.textStyle,
-						isFirst: out.length === 1,
-						spaceFirstLast,
-					});
-					if (endSpacing.lineHeight !== undefined) {
-						closing.lineHeight = endSpacing.lineHeight;
-					}
-					if (endSpacing.spaceBeforePx !== undefined) {
-						closing.spaceBeforePx = endSpacing.spaceBeforePx;
-					}
-					if (endSpacing.spaceAfterPx !== undefined) {
-						closing.spaceAfterPx = endSpacing.spaceAfterPx;
-					}
-				}
-				out.push({ runs: [], bulletStyle: {}, indentPx: 0 });
-				paraStarted = false;
-				continue;
-			}
-			const current = out[out.length - 1];
-			// The first segment of each paragraph carries its bullet + outline level.
-			if (!paraStarted) {
-				paraStarted = true;
-				const indent = resolveParagraphIndent(
-					paragraphIndents?.[out.length - 1],
-					seg.paragraphLevel,
-				);
-				current.indentPx = indent.marginLeftPx ?? 0;
-				current.textIndentPx = indent.textIndentPx;
-				// Per-paragraph line-height / space-before / space-after, resolved by
-				// the shared resolver `buildParagraphs` uses (body-level inheritance
-				// and the first/last edge rule included).
-				lastParagraphProps = seg.paragraphProperties;
-				const spacing = resolveParagraphSpacing({
-					paraProps: seg.paragraphProperties,
-					bodyStyle: el.textStyle,
-					isFirst: out.length === 1,
-					spaceFirstLast,
-				});
-				if (spacing.lineHeight !== undefined) {
-					current.lineHeight = spacing.lineHeight;
-				}
-				if (spacing.spaceBeforePx !== undefined) {
-					current.spaceBeforePx = spacing.spaceBeforePx;
-				}
-				if (spacing.spaceAfterPx !== undefined) {
-					current.spaceAfterPx = spacing.spaceAfterPx;
-				}
-				const baseFontSize = seg.style?.fontSize ?? el.textStyle?.fontSize ?? 16;
-				const bullet = resolveAngularParagraphBullet(seg, baseFontSize, fontScale);
-				if (bullet) {
-					current.bulletMarker = bullet.marker;
-					current.bulletPicture = bullet.picture;
-					Object.assign(current.bulletStyle, bullet.style);
-					// PowerPoint draws the marker at `marL + indent` and starts
-					// the text at `marL`, so the marker's box is exactly the
-					// hanging distance wide. Reserving it lines the runs up on
-					// the indent stop and removes the need for a spacer after
-					// the glyph. Mirrors shared `buildParagraphs`.
-					current.bulletStyle['display'] = 'inline-block';
-					// `text-indent` inherits, and an inline-block is a block
-					// container: without this reset the marker box applies the
-					// paragraph's negative first-line indent AGAIN internally and
-					// paints the glyph a full hang-width left of its own box
-					// (measured 27px outside the text inset). Mirrors shared
-					// `buildParagraphs`.
-					current.bulletStyle['text-indent'] = '0px';
-					if (indent.textIndentPx !== undefined && indent.textIndentPx < 0) {
-						current.bulletStyle['min-width'] = `${-indent.textIndentPx}px`;
-					} else {
-						current.bulletStyle['margin-inline-end'] = '0.35em';
-					}
-					// The slide-load path inserts a DEDICATED marker segment whose
-					// text is the precomputed glyph; the marker is rendered from
-					// `bulletMarker` above, so keeping the segment as a run painted
-					// the bullet twice. A run that merely carries `bulletInfo` but
-					// holds real content (the edit-remap path) is kept. Mirrors
-					// shared `buildParagraphs`.
-					if (seg.bulletInfo && bullet.marker && seg.text.trim() === bullet.marker.trim()) {
-						continue;
-					}
-				}
-			}
-			if (seg.equationXml) {
-				current.runs.push({
-					text: '',
-					style: runStyleFromSegment(seg, fontScale),
-					equationXml: seg.equationXml,
-					equationNumber: seg.equationNumber,
-				});
-				continue;
-			}
-			// Track the tallest non-bullet run so the paragraph's line box is
-			// built from its own text rather than the body default (a paragraph
-			// of small runs inside a larger-defaulting body otherwise lays out
-			// on too-tall lines and overflows the shape).
-			if (!seg.bulletInfo && typeof seg.style?.fontSize === 'number' && seg.style.fontSize > 0) {
-				current.strutFontSizePx = Math.max(current.strutFontSizePx ?? 0, seg.style.fontSize);
-			}
-			const rawText = seg.isLineBreak ? '\n' : seg.text;
-			// Resolve OOXML field runs (slide number, date/time, header/footer,
-			// slide title, docproperty) to their display text, mirroring React's
-			// per-run `substituteFieldText` in `text-segment-render`.
-			const text = seg.fieldType
-				? substituteFieldText(rawText, seg.fieldType, this.fieldContext())
-				: rawText;
-			if (text) {
-				const href = resolveHyperlinkHref(seg.style?.hyperlink);
-				const style = runStyleFromSegment(seg, fontScale, blockFont, text);
-				// One run per word (and per gap), each carrying its own PowerPoint
-				// metric tracking, so a LINE measures what PowerPoint measured and
-				// breaks where PowerPoint breaks (#149). Shared decides the split;
-				// this builder is hand-ported from `buildParagraphs` and would
-				// otherwise silently keep the old whole-run behaviour.
-				for (const piece of splitStyledRun(
-					text,
-					style,
-					resolveRunFont(style, seg.style ?? {}, blockFont),
-					authoredLetterSpacingPx(seg.style),
-				)) {
-					current.runs.push({
-						text: piece.text,
-						style: piece.style,
-						href,
-						tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
-					});
-				}
-			}
-		}
-		// A paragraph that already matches the body default needs no re-basing.
-		const bodyFontSize = el.textStyle?.fontSize;
-		for (const p of out) {
-			if (
-				p.strutFontSizePx !== undefined &&
-				typeof bodyFontSize === 'number' &&
-				Math.abs(p.strutFontSizePx - bodyFontSize) < 0.01
-			) {
-				p.strutFontSizePx = undefined;
-			}
-		}
-		// An authored blank line between two paragraphs is real vertical spacing
-		// and must survive; blank paragraphs AFTER the last content are dropped,
-		// since both the load and edit-remap paths leave a trailing separator
-		// behind. Mirrors shared `buildParagraphs`.
-		const hasContent = (p: Paragraph): boolean =>
-			p.runs.length > 0 || p.bulletMarker !== undefined || p.bulletPicture !== undefined;
-		let lastContent = -1;
-		for (let i = 0; i < out.length; i++) {
-			if (hasContent(out[i])) {
-				lastContent = i;
-			}
-		}
-		if (lastContent < 0) {
-			return out.length === 1 ? out : [];
-		}
-		const kept = out.slice(0, lastContent + 1).map((p) => {
-			if (!hasContent(p)) {
-				p.isEmpty = true;
-			}
-			return p;
-		});
-		// The last paragraph's after-spacing depends on it BEING last, which is only
-		// known now that the body has ended. Re-resolving through the same shared
-		// resolver keeps the edge rule in one place.
-		const finalParagraph = kept[kept.length - 1];
-		if (finalParagraph) {
-			const finalSpacing = resolveParagraphSpacing({
-				paraProps: lastParagraphProps,
-				bodyStyle: el.textStyle,
-				isFirst: kept.length === 1,
-				isLast: true,
-				spaceFirstLast,
-			});
-			finalParagraph.spaceAfterPx = finalSpacing.spaceAfterPx;
-		}
-		return kept;
+		return buildAngularParagraphs(el, this.fieldContext(), segments);
 	});
 
 	readonly hasText = computed(() =>

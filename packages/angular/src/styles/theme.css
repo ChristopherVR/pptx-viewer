@@ -53,6 +53,21 @@
  * instead of leaving them on the hardcoded dark fallbacks. When no theme is
  * supplied the `--pptx-*` vars are unset and the second fallback keeps the
  * default dark look unchanged.
+ *
+ * WHERE THIS BELONGS: shared `theme/css-vars.ts` already derives two of these
+ * fifteen (`inspector-active` from `primary`, `inspector-border` from `border`,
+ * see `DERIVED_COLOR_TOKENS`) and emits them INLINE on this same element, so
+ * for those two the theme's value wins over the rule below and the two
+ * derivations agree by construction. The remaining thirteen are derived here
+ * only because shared does not derive them yet; they are pure functions of base
+ * tokens (`card`, `card-foreground`, `border`, `muted`, `muted-foreground`,
+ * `accent`, `primary`, `foreground`, `destructive`) plus `color-mix`, i.e.
+ * exactly the shape `DERIVED_COLOR_TOKENS` models, and moving them there would
+ * give all five bindings the family and delete this block.
+ *
+ * That every entry stays a `var(--pptx-<base>, …)` of a base token (rather than
+ * growing hardcoded colours of its own) is what keeps the move mechanical, and
+ * is pinned by `theme-tokens.test.ts`.
  */
 .pptx-ng-viewer {
 	--pptx-inspector-bg: var(--pptx-card, #1e1e1e);

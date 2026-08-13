@@ -21,40 +21,25 @@ import {
 	buildCellParagraphs,
 	cellStyleToStyleMap,
 	columnWidthStyle,
+	cssObjectToStyleMap,
 	rowStyle,
 } from './table-cell-style';
 
 // Re-export the extracted style helpers so existing importers/tests are stable.
+// `cssObjectToStyleMap` now lives beside `cellStyleToStyleMap` (which is built
+// on it) so this module can keep importing from that one and not the reverse.
 export {
 	buildCellParagraphs,
 	cellRunStyle,
 	cellStyleToStyleMap,
 	cellTdStyle,
 	columnWidthStyle,
+	cssObjectToStyleMap,
 	ooxmlDashToCssBorderStyle,
 	rowStyle,
 } from './table-cell-style';
 export type { CellParagraph, CellTextRun } from './table-cell-style';
 export type { DiagonalBorderInfo };
-
-// ==========================================================================
-// camelCase CSS → kebab-case StyleMap
-// ==========================================================================
-
-/**
- * Convert a shared `TableCellCss` object (camelCase keys, e.g. from
- * {@link getTableCellBandStyle}) into an `[ngStyle]`-compatible kebab-case
- * {@link StyleMap}. Values are stringified so numbers (e.g. `fontWeight: 700`)
- * apply correctly.
- */
-export function cssObjectToStyleMap(css: Record<string, string | number>): StyleMap {
-	const map: StyleMap = {};
-	for (const [key, value] of Object.entries(css)) {
-		const kebab = key.replace(/[A-Z]/gu, (m) => `-${m.toLowerCase()}`);
-		map[kebab] = String(value);
-	}
-	return map;
-}
 
 // ==========================================================================
 // View-model types

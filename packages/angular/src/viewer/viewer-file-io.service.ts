@@ -19,6 +19,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { PptxSaveFormat, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
+import type { DeckSaveIntent } from '../internal/shared';
 import { downloadBlob, exportDeckJson, openPptxFile } from '../internal/shared';
 import { ExportService } from './export.service';
 import { LoadContentService } from './load-content.service';
@@ -35,6 +36,12 @@ interface FileIOHost {
 	readonly sections: () => readonly PptxSection[];
 	readonly templateElementsBySlideId: () => TemplateElementsBySlideId;
 	readonly emitContentChange: (bytes: Uint8Array) => void;
+	/**
+	 * File > Info > Protect Presentation state. When it carries a password every
+	 * save below serialises through `saveEncrypted`, so the downloaded file is an
+	 * encrypted OLE2 container instead of a plain ZIP.
+	 */
+	readonly saveIntent: () => DeckSaveIntent;
 }
 
 @Injectable()
@@ -83,13 +90,15 @@ export class ViewerFileIOService {
 	 */
 	async getContent(): Promise<Uint8Array> {
 		const host = this.requireHost();
+		const intent = host.saveIntent();
 		const data = host.canEdit()
 			? await this.loader.saveSlides(
 					buildSaveSlides(host.slides(), host.templateElementsBySlideId()),
 					'pptx',
 					host.sections(),
+					intent,
 				)
-			: await this.loader.getContent();
+			: await this.loader.getContent(intent);
 		// Mirror React's imperative handle: serialising the deck also notifies the
 		// host so listeners wired to (contentChange) receive the latest bytes.
 		host.emitContentChange(data);
@@ -103,10 +112,11 @@ export class ViewerFileIOService {
 	 */
 	async saveAs(format: PptxSaveFormat): Promise<void> {
 		const host = this.requireHost();
+		const intent = host.saveIntent();
 		const slides = buildSaveSlides(host.slides(), host.templateElementsBySlideId());
 		const bytes = host.canEdit()
-			? await this.loader.saveSlides(slides, format, host.sections())
-			: await this.loader.saveSlides(this.loader.slides(), format);
+			? await this.loader.saveSlides(slides, format, host.sections(), intent)
+			: await this.loader.saveSlides(this.loader.slides(), format, undefined, intent);
 		host.emitContentChange(bytes);
 		this.exportSvc.savePresentation(bytes, `presentation.${format}`, format);
 	}
@@ -137,7 +147,19 @@ export class ViewerFileIOService {
 		const slides = host.canEdit()
 			? buildSaveSlides(host.slides(), host.templateElementsBySlideId())
 			: this.loader.slides();
-		exportDeckJson({ ...data, slides: [...slides] }, sourceName);
+		// `parsedData()` is the deck AS LOADED, so spreading it alone re-exports
+		// the file's original show settings and silently drops every edit the
+		// Slide Show tab and the Set Up dialog have made since. The save path
+		// already reads the live signal; the JSON export has to as well, or
+		// "export the live deck" is only true of the slides.
+		exportDeckJson(
+			{
+				...data,
+				slides: [...slides],
+				presentationProperties: this.loader.presentationProperties(),
+			},
+			sourceName,
+		);
 	}
 
 	/** Bundle the presentation and its usage notes in a shareable ZIP archive. */
