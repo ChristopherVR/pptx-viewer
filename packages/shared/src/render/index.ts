@@ -53,6 +53,7 @@ export * from './drawing-color';
 export * from './unicode-script-detection';
 export * from './visual-effects';
 export * from './image-effects';
+export * from './image-background-removal';
 export * from './image-effect-filter-values';
 export * from './text-warp';
 export * from './omml-to-mathml';
@@ -83,6 +84,12 @@ export * from './slide-transition-label-keys';
 // Guarded add/remove/edit operations behind the chart inspector's data grid
 // (auto-naming, last-series/category protection, non-numeric cell rejection).
 export * from './chart-data-grid-ops';
+// What a data label SAYS: the c:showVal / c:showCatName / c:showSerName /
+// c:showPercent / c:separator cascade (per-point -> series -> chart-type).
+export * from './chart-data-label-text';
+// Direct on-canvas chart editing, framework-neutral half: the value-drag state
+// machine, the hit-target stylesheet and the selected-part highlight.
+export * from './chart-canvas-drag';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
 // `paletteColor` duplicate (with deliberately different signatures) the ones in
@@ -106,6 +113,7 @@ export {
 	computePieLayout,
 	computePieSlices,
 	computeScatterDots,
+	computeScatterXDomain,
 	computeBubbleRadius,
 	radarAngle,
 	computeRadarPoints,
@@ -131,6 +139,7 @@ export type {
 	LinePoint,
 	PieSliceGeometry,
 	ScatterDot,
+	ScatterXDomain,
 	RadarPoint,
 	SupportedChartKind,
 	PlotLayoutOptions,
@@ -275,6 +284,16 @@ export * from './table-style';
 // deck's `ppt/tableStyles.xml` by design, so without this catalogue every table
 // using a gallery style resolved to nothing and painted a hardcoded blue.
 export * from './table-style-builtins';
+// The three-layer `<td>` cascade (inherited base -> table-style band -> explicit
+// cell style -> text-colour floor). It was composed by hand in all five
+// bindings; React had lost the band layer on programmatic tables and Angular the
+// colour floor, so both are decided here now.
+export * from './table-cell-css';
+// Whether a canvas press extends the table CELL range or falls through to the
+// element selection. Vue let a Shift-click fall through, which toggled the table
+// out of the selection and wiped the range anchor, so block merge was
+// unreachable there however correct its range maths was.
+export * from './table-cell-pointer';
 export * from './table-merge';
 export * from './table-layout';
 // Immutable single-cell text edit (`setCellText`) for inline cell editing,
@@ -386,6 +405,13 @@ export * from './text-style-helpers';
 // colour, font declaration, decorations, insets, `wrap="none"` and autofit.
 // Replaced React's `getTextStyleForElement` plus four drifting copies of it.
 export * from './text-block-style';
+// The `a:bodyPr` LAYOUT decisions the block builder folds in: columns
+// (`@numCol`/`@spcCol`), `tab-size`, `@anchor` / `@anchorCtr`, the kinsoku
+// rules and `@vertOverflow`. All five used to reach React only.
+export * from './text-body-layout';
+// The preset / `a:custGeom` text rectangle (`a:rect`) as body padding, so text
+// in a chevron, callout or arrow sits inside the geometry rather than its box.
+export * from './text-body-rect';
 export * from './text-decoration';
 export * from './text-paragraph-style';
 export * from './text-field-substitution';
@@ -412,6 +438,9 @@ export * from './mathml-sanitize';
 // Per-run hyperlink + inline-equation descriptors carried on `ParagraphRun`,
 // so every binding renders a link and an inline `m:oMath` from the same model.
 export * from './text-run-meta';
+// `a:ruby` phonetic guides (furigana / pinyin) as a run field, so all five
+// bindings render the annotation React alone used to.
+export * from './text-run-ruby';
 export * from './text-paragraphs';
 export * from './paragraph-strut';
 export * from './morph-plan';
@@ -430,6 +459,9 @@ export * from './connector-reroute';
 // preset), resolved through the SAME site list the reroute uses so a new
 // connector cannot be drawn to a point the first shape move disagrees with.
 export * from './connector-authoring';
+// Attaching / detaching an existing connector's ends on canvas (the endpoint
+// handles PowerPoint shows on a selected connector).
+export * from './connector-endpoints';
 // Pointer-anchored overlay placement (context menus): clamp against BOTH edges,
 // not just the low one. Svelte clamped only the low edge, so a menu opened near
 // the bottom of the window rendered below the fold and could not be clicked.
@@ -447,6 +479,10 @@ export * from './connector-arrow-controls';
 export * from './format-painter';
 export * from './remap-text';
 export * from './shape-adjustment';
+export * from './shape-adjustment-handles';
+export * from './shape-adjustment-model';
+export * from './shape-adjustment-probe';
+export * from './shape-adjustment-solver';
 export * from './hyperlink-security';
 // Real-time collaboration presence: pure validators + sanitisers for inbound
 // Yjs awareness data (room id, username/colour/avatar, cursor clamping, stale
@@ -543,6 +579,9 @@ export * from './slide-transition-edits';
 export * from './ribbon-transitions';
 export * from './ribbon-slide-show-options';
 export * from './ribbon-home-commands';
+// Transitions > Preview: replays the slide's transition on the editing stage,
+// which is the one thing that button does in every binding.
+export * from './transition-preview';
 export * from './p14-transition-keyframes';
 export * from './p14-transition-css';
 // SmartArt SVG-fallback layout engine — pure node geometry/positioning for the
@@ -638,15 +677,23 @@ export * from './embedded-fonts';
 export * from './slide-search';
 // Custom shows: named slide-subset list type + immutable id/create helpers.
 export * from './custom-shows';
+// Design > Slide Size: the 16 ST_SlideSizeType presets with COM-confirmed EMU
+// dimensions, the orientation swap, and the pixel-canvas <-> EMU decision that
+// keeps a preset's exact dimensions through a save.
+export * from './slide-size';
 // Export-progress maths shared by every binding's export handlers: the
 // `(current, total)` slide cursor → 0-100 percentage mapping (single-phase and
 // two-phase capture+record), the "verb slide N of M" status label, and the
 // cooperative-cancellation `AbortError` helpers. The stateful modal + the
 // capture/encode loop that calls these stay in each binding.
 export * from './export-progress';
-// Native file-open picker — framework-agnostic `<input type=file>` helper +
-// default `.pptx/.ppsx/.pptm/.potx/.ppt` accept list, used by every binding's
-// File ▸ Open action to load another presentation.
+// Which files the viewer can OPEN (`.pptx/.ppsx/.pptm/.potx/.ppt/.json`, the
+// accept list and the matching drop-target predicate) and what a SAVED copy
+// should be called. Read is a superset of write, so a deck opened as `.ppt` is
+// offered back as `.pptx`. Imports nothing, so anything may depend on it.
+export * from './presentation-file-kinds';
+// Native file-open picker: framework-agnostic `<input type=file>` helper used
+// by every binding's File > Open action to load another presentation.
 export * from './open-file-picker';
 // Mobile-adapted presenter view: pure geometry (next-slide thumbnail scaling),
 // slide-counter / first-last labels, and elapsed-time formatting for the
@@ -745,6 +792,10 @@ export * from './outline-view-edit';
 // group, select-all, slide paging, help) as one shared mapping, so the five
 // bindings cannot disagree about what Ctrl+D or an arrow key does.
 export * from './editor-keymap';
+// Slide-sorter keyboard map: the sorter overlay is a second editing surface
+// with its own keys (slide clipboard, duplicate, delete, thumbnail zoom, and an
+// Escape that collapses a multi-selection before it closes).
+export * from './slide-sorter-keymap';
 // Focus repair for bindings whose canvas gesture preventDefault()s the click,
 // which would otherwise park focus on document.body and kill their keymap.
 export * from './editor-keyboard-focus';
@@ -818,6 +869,11 @@ export * from './ink-drawing';
 // (stroke-dashoffset reveal) animation styles. Pure; each binding renders the
 // resulting circles/paths. React + Vue + Angular ink renderers consume this.
 export * from './ink-rendering';
+// `p:contentPart` ink view model: per-stroke path/colour/width/opacity, the
+// pressure-circle decision, and the element viewBox. One decision function for
+// all five bindings (it used to be a Svelte-local module, while Vue and Angular
+// had no contentPart renderer at all and painted the unsupported placeholder).
+export * from './content-part-strokes';
 // Mobile chrome sheet state machine + bottom-bar action descriptors.
 export * from './mobile-chrome';
 // Gradient-picker editor model: read `GradientState` off an element + build
@@ -833,6 +889,9 @@ export * from './image-adjustments';
 export * from './table-inspector';
 // Active-slide comment-array transforms (add/remove/toggle-resolved/reply).
 export * from './comments-list';
+// `@`-mention segmentation (display) + `@`-typeahead insertion (authoring)
+// for a comment body. Bindings only map `CommentTextSegment[]` onto spans.
+export * from './comment-mentions';
 // Canvas comment-marker descriptors (numbered dots + "<author>: <text>"
 // titles); each binding renders these inside its slide stage.
 export * from './comment-markers';
@@ -930,10 +989,12 @@ export * from './chrome-metrics';
 export * from './zoom-step';
 export * from './command-search';
 export * from './autosave-store';
+export * from './autosave-tick';
 export * from './backstage';
 export * from './backstage-cards';
 export * from './master-page-layout';
 export * from './master-view';
+export * from './master-view-editing';
 export * from './virtualized-list';
 export * from './document-statistics';
 export * from './used-fonts';

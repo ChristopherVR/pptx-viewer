@@ -26,7 +26,7 @@
  *   area / area3D -> polygon fill + polyline
  *   pie / doughnut / pie3D / ofPie -> arc paths
  *   scatter -> circle dots
- *   bubble -> circle dots sized by a 3rd series
+ *   bubble -> circle dots sized by each series' own c:bubbleSize
  *   radar / radar3D -> polar polygons + spokes
  *   combo / stock / surface / treemap / waterfall / regionMap -> sibling modules
  *   funnel / sunburst / histogram / boxWhisker -> sibling modules
@@ -37,7 +37,7 @@
  *   area / area3D -> polygon fill + polyline
  *   pie / doughnut / pie3D / ofPie -> arc paths
  *   scatter -> circle dots
- *   bubble -> circle dots sized by a 3rd series
+ *   bubble -> circle dots sized by each series' own c:bubbleSize
  *   radar / radar3D -> polar polygons + spokes
  *
  * Deferred (fallback box rendered instead):
@@ -58,6 +58,7 @@ import { DEFAULT_CHART_AREA_FILL, chartAreaFill, plotAreaFill } from './chart-ar
 import { niceValueAxisBounds } from './chart-axis-nice';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { buildDataLabelText } from './chart-data-label-text';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
@@ -948,16 +949,57 @@ export interface ScatterDot {
 	cy: number;
 }
 
+/**
+ * The x extent a scatter / bubble plot is drawn against.
+ *
+ * Every `CT_ScatterSer` / `CT_BubbleSer` carries its own `c:xVal`, so the
+ * domain has to be computed ACROSS series before any of them is projected;
+ * letting each series derive its own min/span would stretch every series to
+ * fill the plot and destroy the relationship between them.
+ */
+export interface ScatterXDomain {
+	min: number;
+	span: number;
+}
+
+/**
+ * Union x domain of several series' x values. Returns `undefined` when no
+ * series declares a finite x value, in which case callers fall back to
+ * positioning points by index.
+ */
+export function computeScatterXDomain(
+	seriesXValues: ReadonlyArray<ReadonlyArray<number> | undefined>,
+): ScatterXDomain | undefined {
+	const finite: number[] = [];
+	for (const values of seriesXValues) {
+		for (const value of values ?? []) {
+			if (Number.isFinite(value)) {
+				finite.push(value);
+			}
+		}
+	}
+	if (finite.length === 0) {
+		return undefined;
+	}
+	const min = Math.min(...finite);
+	return { min, span: Math.max(Math.max(...finite) - min, 1) };
+}
+
 export function computeScatterDots(
 	values: ReadonlyArray<number>,
 	maxXIndex: number,
 	layout: PlotLayout,
 	range: ValueRange,
 	xValues?: ReadonlyArray<number>,
+	xDomain?: ScatterXDomain,
 ): ScatterDot[] {
 	const finiteX = xValues?.slice(0, values.length).filter(Number.isFinite);
-	const minX = finiteX?.length ? Math.min(...finiteX) : 0;
-	const spanX = finiteX?.length ? Math.max(Math.max(...finiteX) - minX, 1) : maxXIndex;
+	const minX = xDomain ? xDomain.min : finiteX?.length ? Math.min(...finiteX) : 0;
+	const spanX = xDomain
+		? xDomain.span
+		: finiteX?.length
+			? Math.max(Math.max(...finiteX) - minX, 1)
+			: maxXIndex;
 	return values.map((val, i) => ({
 		cx:
 			layout.plotLeft +
@@ -1337,6 +1379,10 @@ function buildPieViewModel(
 	const dataLabels: SvgText[] = [];
 	if (chartData.style?.hasDataLabels) {
 		// Offset (outEnd / bestFit) labels sit outside the rim with c:leaderLines.
+		// A pie's percentage base is the whole series, and `c:showPercent` is the
+		// flag that makes the difference between "40" and "40%" on the commonest
+		// labelled chart in a business deck.
+		const percentBase = values.reduce((total, entry) => total + Math.abs(entry), 0);
 		const labelResult = buildPieDataLabels({
 			slices,
 			values,
@@ -1346,6 +1392,16 @@ function buildPieViewModel(
 			position: chartData.style.dataLabels?.position,
 			showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
 			numberFormat: chartData.series[0]?.numberFormat,
+			labelText: pieSeries
+				? (pointIndex, value) =>
+						buildDataLabelText({
+							chartData,
+							series: pieSeries,
+							pointIndex,
+							value,
+							percentBase,
+						})
+				: undefined,
 		});
 		dataLabels.push(...labelResult.labels);
 		primitives.push(...labelResult.leaderLines);

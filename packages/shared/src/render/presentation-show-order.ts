@@ -204,16 +204,59 @@ export function hasShowSlideAfter(deckIndex: number, showIndexes: readonly numbe
  * runs the same show-order rule rather than reading `slides[index + 1]`: a
  * preview that shows a hidden slide the show is about to skip is worse than no
  * preview, because the presenter rehearses a segue to a slide the room never
- * sees. Custom shows are out of scope here (presenter previews run against the
- * live deck); pass explicit show indexes to `nextShowSlideIndex` when one is
- * active.
+ * sees.
+ *
+ * A running custom show is part of that rule, not an exception to it: while
+ * "Reverse" is playing, the slide after slide 3 is slide 2, and a presenter
+ * rail that previewed slide 4 would be previewing a slide the next press
+ * cannot reach. Pass the active show; omitting it presents the whole deck,
+ * which is the previous behaviour.
  */
 export function nextPresentedSlide<T extends ShowOrderSlide>(
 	slides: readonly T[],
 	deckIndex: number,
+	activeCustomShow?: ShowOrderCustomShow | null,
 ): T | undefined {
-	const next = nextShowSlideIndex(deckIndex, resolveShowSlideIndexes(slides));
+	const next = nextShowSlideIndex(deckIndex, resolveShowSlideIndexes(slides, activeCustomShow));
 	return next === undefined ? undefined : slides[next];
+}
+
+/** The `p:showPr` fields that name the show a deck is authored to open into. */
+export interface ShowSlidesSelection {
+	readonly showSlidesMode?: 'all' | 'customShow' | 'range';
+	readonly showSlidesCustomShowId?: string;
+}
+
+/** A custom show, as far as selecting one by id is concerned. */
+export interface SelectableCustomShow {
+	readonly id: string;
+}
+
+/**
+ * The custom show a deck asks to open into, or `undefined` for the whole deck.
+ *
+ * `p:showPr/p:custShow/@id` is what PowerPoint's "Set Up Slide Show > Custom
+ * show" radio writes, and it is authored intent: a deck saved that way plays
+ * that subset. Every binding parsed the two fields and then ignored them,
+ * driving playback from a separate viewer-only `activeCustomShowId`, so the
+ * radio was decorative and an authored deck played in full.
+ *
+ * An id that names no surviving show falls back to the whole deck rather than
+ * to an empty show, because a show deleted after `showPr` was written is far
+ * more likely than an author who meant "present nothing".
+ */
+export function resolveAuthoredCustomShowId(
+	selection: ShowSlidesSelection | undefined,
+	customShows: readonly SelectableCustomShow[] | undefined,
+): string | undefined {
+	if (!selection || selection.showSlidesMode !== 'customShow') {
+		return undefined;
+	}
+	const id = selection.showSlidesCustomShowId;
+	if (id === undefined || id.length === 0) {
+		return undefined;
+	}
+	return customShows?.some((show) => show.id === id) ? id : undefined;
 }
 
 /** The show's first slide (PowerPoint's Home key), or `undefined` when empty. */

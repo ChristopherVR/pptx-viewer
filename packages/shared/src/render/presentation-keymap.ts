@@ -15,7 +15,8 @@
  *   arrow     Ctrl+A                    eraser     Ctrl+E
  *   erase-all E                         ink markup Ctrl+M
  *   hide UI   Ctrl+H                    all slides Ctrl+S
- *   menu      Shift+F10                 end        Esc or `-`
+ *   subtitles J                         menu       Shift+F10
+ *   end       Esc or `-`
  *
  * Note the deliberate collisions with editor shortcuts: during a show `Ctrl+S`
  * is "All Slides", not save, and `Ctrl+A` is "arrow pointer", not select-all.
@@ -43,6 +44,8 @@ export type PresentationKeyAction =
 	| { action: 'toggleInkMarkup' }
 	| { action: 'toggleChrome' }
 	| { action: 'showAllSlides' }
+	/** Live captions / subtitles on or off (PowerPoint's bare `J`). */
+	| { action: 'toggleSubtitles' }
 	| { action: 'contextMenu' }
 	/** The key was consumed to build a pending slide number (no visible effect yet). */
 	| { action: 'buffering'; buffer: string }
@@ -194,6 +197,15 @@ export function mapPresentationKey(
 			case 'e':
 			case 'E':
 				return { action: 'eraseAnnotations' };
+			// PowerPoint toggles live captions on a bare `J` ("Present with
+			// real-time, automatic captions or subtitles"). Vue hand-wired this
+			// command to `c`, which is not a PowerPoint key at all and which the
+			// other four bindings therefore never got; the map settles it on the
+			// documented key so all five agree with PowerPoint rather than with
+			// each other.
+			case 'j':
+			case 'J':
+				return { action: 'toggleSubtitles' };
 			case 'Escape':
 			case '-':
 				buffer.digits = '';

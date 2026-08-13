@@ -145,3 +145,60 @@ describe('isEditorTextInputTarget', () => {
 		expect(isEditorTextInputTarget(null)).toBeFalsy();
 	});
 });
+
+describe('mapEditorKey find', () => {
+	it('maps Ctrl+F and Cmd+F to "find"', () => {
+		expect(mapEditorKey(press('f', { ctrlKey: true })).action).toBe('find');
+		expect(mapEditorKey(press('f', { metaKey: true })).action).toBe('find');
+	});
+
+	it('matches the chord case-insensitively, so Ctrl+Shift+F still finds', () => {
+		expect(mapEditorKey(press('F', { ctrlKey: true, shiftKey: true })).action).toBe('find');
+	});
+
+	it('stays live while text is being edited, the way PowerPoint does', () => {
+		// This is the one behaviour that separates `find` from every other chord:
+		// people reach for Ctrl+F with the caret already inside a text box, and
+		// gating it on the typing guards would silently hand the chord back to
+		// the browser exactly there.
+		expect(mapEditorKey(press('f', { ctrlKey: true }), { isEditingText: true }).action).toBe(
+			'find',
+		);
+		expect(mapEditorKey(press('f', { ctrlKey: true }), { isTextInputTarget: true }).action).toBe(
+			'find',
+		);
+	});
+
+	it('leaves a bare "f" and Ctrl+Alt+F to the host', () => {
+		expect(mapEditorKey(press('f')).action).toBeNull();
+		expect(mapEditorKey(press('f', { ctrlKey: true, altKey: true })).action).toBeNull();
+	});
+
+	it('is still gated on the editor being live', () => {
+		expect(mapEditorKey(press('f', { ctrlKey: true }), { canEdit: false }).action).toBeNull();
+		expect(mapEditorKey(press('f', { ctrlKey: true }), { isPresenting: true }).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey shortcut-panel chords', () => {
+	it('maps both "?" and Ctrl/Cmd+/ to the same command', () => {
+		expect(mapEditorKey(press('?')).action).toBe('toggleShortcuts');
+		expect(mapEditorKey(press('/', { ctrlKey: true })).action).toBe('toggleShortcuts');
+		expect(mapEditorKey(press('/', { metaKey: true })).action).toBe('toggleShortcuts');
+	});
+
+	it('leaves a bare "/" and Ctrl+Alt+/ alone, so typing a slash still types one', () => {
+		expect(mapEditorKey(press('/')).action).toBeNull();
+		expect(mapEditorKey(press('/', { ctrlKey: true, altKey: true })).action).toBeNull();
+	});
+
+	it('stands down while typing, exactly as "?" does', () => {
+		// The two keys are one command, so they must share a side of the typing
+		// gates. Opening a full-screen cheat sheet over the caret mid-sentence is
+		// no better from Ctrl+/ than it would be from "?".
+		expect(mapEditorKey(press('/', { ctrlKey: true }), { isEditingText: true }).action).toBeNull();
+		expect(
+			mapEditorKey(press('/', { ctrlKey: true }), { isTextInputTarget: true }).action,
+		).toBeNull();
+	});
+});

@@ -30,6 +30,12 @@ import {
 } from '../constants';
 import { normalizeHexColor } from './fill-style';
 import { isLinkedTextBox } from './linked-text-box-overflow';
+import {
+	buildTextBodyLayoutStyle,
+	getTextBodyRotationTransform,
+	resolveTextOverflowClip,
+} from './text-body-layout';
+import { resolveTextBodyRectPadding } from './text-body-rect';
 import { resolveCssTextAlign } from './text-paragraph-style';
 import {
 	computeAutoFitTextStyle,
@@ -50,10 +56,12 @@ export interface TextBlockStyleOptions {
 	 */
 	fallbackColor?: string;
 	/**
-	 * Emit the flex-column body box (`display` / `flex-direction` / size /
-	 * `word-break` / `white-space`) and the `a:bodyPr/@anchor` -> `justify-content`
-	 * mapping. React composes those separately (`getTextLayoutStyle`, which also
-	 * owns multi-column bodies); the other four fold them into this one style.
+	 * Emit the body BOX as well as its typography: size, `white-space` /
+	 * `word-break`, and everything `buildTextBodyLayoutStyle` decides (columns,
+	 * the `a:bodyPr/@anchor` justification, `@anchorCtr`, `tab-size`, kinsoku),
+	 * plus the `@rot` transform. React composes the same shared decisions onto a
+	 * separate layer in `getTextLayoutStyle`; the other four fold them into this
+	 * one style.
 	 */
 	bodyLayout?: boolean;
 	/**
@@ -147,14 +155,25 @@ export function buildTextBlockStyle(
 	// Layout first: the typography below must win on any shared property (a
 	// `wrap="none"` body's `nowrap` has to beat the default `pre-wrap`).
 	if (options.bodyLayout) {
-		style.display = 'flex';
-		style.flexDirection = 'column';
 		style.width = '100%';
 		style.height = '100%';
 		style.whiteSpace = 'pre-wrap';
 		style.wordBreak = 'break-word';
-		style.justifyContent =
-			ts?.vAlign === 'middle' ? 'center' : ts?.vAlign === 'bottom' ? 'flex-end' : 'flex-start';
+		// The box itself (columns, anchor, anchorCtr, tab-size, kinsoku) comes
+		// from the one shared decision React's `getTextLayoutStyle` also renders
+		// from. Assigned AFTER `wordBreak` so `@latinLnBrk` can override it.
+		Object.assign(style, buildTextBodyLayoutStyle(element));
+		// `a:bodyPr/@rot`, for the four bindings that put the body layout and the
+		// body typography on ONE element. React composes the same shared value
+		// with its text-compensation and 3D-scene transforms itself, so emitting
+		// it here too would just be overwritten; these four either have no other
+		// transform on the block (svelte, vanilla) or already compose onto
+		// whatever this returns (vue, angular).
+		const rotation = getTextBodyRotationTransform(element);
+		if (rotation) {
+			style.transform = rotation;
+			style.transformOrigin = 'center';
+		}
 	}
 
 	style.color = ts?.hyperlink
@@ -193,12 +212,16 @@ export function buildTextBlockStyle(
 		style.textDecorationStyle = 'double';
 	}
 	style.lineHeight = resolveLineHeight(ts, italic);
+	// The preset / custGeom TEXT RECTANGLE (`a:rect`), as extra padding. The
+	// body insets (`lIns` and friends) apply INSIDE that rectangle in
+	// PowerPoint, so the two add rather than one replacing the other.
+	const rect = resolveTextBodyRectPadding(element);
 	// Italic glyphs overhang their line box; one extra px of vertical inset stops
 	// the top and bottom rows being clipped by the shape edge.
-	style.paddingTop = bodyTop + (italic ? 1 : 0);
-	style.paddingBottom = bodyBottom + (italic ? 1 : 0);
-	style.paddingLeft = bodyLeft + bodyMarginLeft;
-	style.paddingRight = bodyRight + bodyMarginRight;
+	style.paddingTop = rect.top + bodyTop + (italic ? 1 : 0);
+	style.paddingBottom = rect.bottom + bodyBottom + (italic ? 1 : 0);
+	style.paddingLeft = rect.left + bodyLeft + bodyMarginLeft;
+	style.paddingRight = rect.right + bodyRight + bodyMarginRight;
 	style.textIndent = bodyIndent;
 	style.overflow = 'visible';
 
@@ -224,6 +247,15 @@ export function buildTextBlockStyle(
 	// linked box, matching React, which appends the same `overflow: hidden` last.
 	if (isLinkedTextBox(element)) {
 		style.overflow = 'hidden';
+	}
+
+	// `a:bodyPr/@vertOverflow="clip"|"ellipsis"` (and `@horzOverflow="clip"`)
+	// applied LAST, so an authored clip beats the `wrap="none"` branch that
+	// forces `visible` above. Nothing honoured these before: a body authored to
+	// clip spilled outside its shape in all five bindings.
+	const overflowClip = resolveTextOverflowClip(ts);
+	if (overflowClip) {
+		style.overflow = overflowClip;
 	}
 
 	// Auto-fit: the OOXML-provided `fontScale` / `lnSpcReduction` when present,

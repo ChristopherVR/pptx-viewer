@@ -58,13 +58,27 @@ export function generateSectionId(): string {
 }
 
 /**
- * Resolve the OOXML slide id used inside a section's `slideIds` list. Prefer the
- * raw `p:sld/@_id`, then the slide number, then a 1-based index fallback.
+ * The OOXML slide id a section's `slideIds` list names this slide by.
+ *
+ * This is `p:sldIdLst/p:sldId/@id` from `presentation.xml`, surfaced on the
+ * model as `PptxSlide.slideId`. It used to be looked for at
+ * `slide.rawXml['p:sld']['@_id']`, which does not exist and never has: the
+ * slide PART has no id attribute, the id lives in the presentation part. That
+ * lookup therefore always missed and the fallback wrote the slide NUMBER, so
+ * every section authored in this editor claimed slides `1, 2, 3` while the
+ * deck's real ids start at 256. The section came back on the next load with no
+ * slides in it and its whole membership was gone.
+ *
+ * The slide-number fallback is kept for synthetic slides that were built in
+ * memory and have never been through a save, where any stable key will do, but
+ * a real slide always answers with its real id now.
  */
 export function resolveSlideId(slide: PptxSlide | undefined, index: number): string {
-	const rawXml = slide?.rawXml as Record<string, unknown> | undefined;
-	const cSld = rawXml?.['p:sld'] as Record<string, unknown> | undefined;
-	return String(cSld?.['@_id'] || slide?.slideNumber || index + 1);
+	const slideId = slide?.slideId?.trim();
+	if (slideId !== undefined && slideId.length > 0) {
+		return slideId;
+	}
+	return String(slide?.slideNumber || index + 1);
 }
 
 /**

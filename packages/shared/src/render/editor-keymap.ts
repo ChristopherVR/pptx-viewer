@@ -10,6 +10,12 @@
  * here, framework-free and unit-testable, and each binding only supplies the
  * guard state and the callbacks.
  *
+ * The same drift recurred with Ctrl+F: all five bindings ship a find bar, but
+ * only React and Vue ever hand-wired the chord to open it, so on Angular,
+ * Svelte and Vanilla the shortcut fell through to the browser's own find (which
+ * cannot see text inside the slide model). It is in the map now, which is the
+ * point: a shortcut that is not here is a shortcut three bindings will miss.
+ *
  * Deliberately NOT here: what "escape" or "toggleShortcuts" then does. Closing a
  * format painter, an inline editor, a context menu or the help panel is view
  * state that only the binding owns, so the map stops at naming the action.
@@ -54,6 +60,7 @@ export type EditorKeyActionName =
 	| 'prevSlide'
 	| 'nextSlide'
 	| 'escape'
+	| 'find'
 	| 'toggleShortcuts';
 
 /** Result of resolving one key press; `null` means "not ours, leave it alone". */
@@ -149,9 +156,11 @@ const NO_ACTION: EditorKeyResult = { action: null };
  * Order is load-bearing:
  *  1. the mode gate (no editing while presenting or on a read-only host);
  *  2. `Escape`, which stays live even mid-edit so it can always cancel;
- *  3. the typing gates, so a shortcut never fires out of a text field;
- *  4. `?`, before the modifier chords, because it is a bare printable key;
- *  5. Delete/Backspace, chords, arrows.
+ *  3. Ctrl/Cmd+F, live mid-edit for the same reason (see below);
+ *  4. the typing gates, so a shortcut never fires out of a text field;
+ *  5. `?` and Ctrl/Cmd+`/` (one command, two keys), before the other chords,
+ *     because `?` is a bare printable key;
+ *  6. Delete/Backspace, chords, arrows.
  *
  * Selection-gated commands (copy, cut, duplicate, delete, nudge, group,
  * ungroup) return `null` with an empty selection rather than firing a no-op, so
@@ -174,6 +183,16 @@ export function mapEditorKey(
 		return { action: 'escape' };
 	}
 
+	// Ctrl/Cmd+F is the second chord that outranks the typing gates. PowerPoint
+	// opens Find with the caret sitting in a text box, and the browser's own
+	// find bar is what the user gets otherwise, so gating it on "not typing"
+	// would make the shortcut fail in the one place people reach for it most.
+	// It is still behind the mode gate above: a read-only or presenting host
+	// leaves Ctrl+F to the browser.
+	if ((input.ctrlKey || input.metaKey) && !input.altKey && key.toLowerCase() === 'f') {
+		return { action: 'find' };
+	}
+
 	if (state.isEditingText || state.isDrawing || state.isTextInputTarget) {
 		return NO_ACTION;
 	}
@@ -183,6 +202,16 @@ export function mapEditorKey(
 
 	// "?" is Shift+/ on most layouts, so it cannot be gated on `!shiftKey`.
 	if (key === '?' && !mod && !alt) {
+		return { action: 'toggleShortcuts' };
+	}
+
+	// Ctrl/Cmd+/ is the same command reached without a Shift: on a layout where
+	// "?" needs AltGr (French, German) the bare key is close to unusable, so Vue
+	// hand-wired this chord and the other four never got it. It sits here, WITH
+	// "?" and below the typing gates, on purpose: the two keys are one command,
+	// and a command that opened a full-screen cheat sheet over the caret while
+	// the user was mid-sentence would be worse from one key than the other.
+	if (mod && !alt && key === '/') {
 		return { action: 'toggleShortcuts' };
 	}
 

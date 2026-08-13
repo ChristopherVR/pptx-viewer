@@ -16,6 +16,7 @@ import {
 	embeddedFontSaveOptions,
 	FONT_EMBEDDING_UNAVAILABLE_KEY,
 } from './font-embedding';
+import { DEFAULT_VIEWER_OPTIONS, VIEWER_OPTIONS_TABS } from './options';
 
 describe('describeFontEmbedding', () => {
 	it('reports a deck with no embedded fonts as a non-interactive toggle with a reason', () => {
@@ -59,5 +60,36 @@ describe('embeddedFontSaveOptions', () => {
 	it('says nothing at all when the toggle is on, leaving core to re-embed', () => {
 		expect(embeddedFontSaveOptions(true)).toStrictEqual({});
 		expect('embeddedFontList' in embeddedFontSaveOptions(true)).toBeFalsy();
+	});
+});
+
+/**
+ * One setting, one switch.
+ *
+ * File > Options > Save carried a second "Embed fonts in the file" toggle
+ * (`ViewerSaveOptions.embedFonts`, plus an `embedAllFontCharacters` companion)
+ * that nothing read. So the viewer showed the user two switches for one
+ * setting, in two places, and the one that looked most like PowerPoint was the
+ * one that did nothing. The options copy is gone; this keeps it gone.
+ */
+describe('font embedding has exactly one setting', () => {
+	it('is absent from the File > Options model', () => {
+		const save = DEFAULT_VIEWER_OPTIONS.save as unknown as Record<string, unknown>;
+		expect(Object.keys(save)).not.toContain('embedFonts');
+		expect(Object.keys(save)).not.toContain('embedAllFontCharacters');
+	});
+
+	it('is absent from every File > Options pane', () => {
+		const keys = VIEWER_OPTIONS_TABS.flatMap((tab) =>
+			tab.sections.flatMap((section) => section.controls.map((control) => control.key)),
+		);
+		// `enableCustomFontUpload` is a different setting (loading a local face for
+		// rendering), so match embedding specifically.
+		expect(keys.filter((key) => /^embed.*font|font.*embed/iu.test(key))).toStrictEqual([]);
+	});
+
+	it('leaves `embeddedFontSaveOptions` as the only thing a save reads it through', () => {
+		expect(embeddedFontSaveOptions(true)).toStrictEqual({});
+		expect(embeddedFontSaveOptions(false)).toStrictEqual({ embeddedFontList: null });
 	});
 });

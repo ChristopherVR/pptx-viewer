@@ -1,17 +1,33 @@
-import type { PptxElementWithShapeStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxElementWithShapeStyle } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
+	beginShapeAdjustment,
 	clampShapeAdjustmentValue,
 	getRoundRectAdjustmentValue,
 	getRoundRectRadiusPx,
 	getDraggedShapeAdjustmentValue,
+	getDraggedShapeAdjustments,
 	getShapeAdjustmentHandleDescriptor,
+	getShapeAdjustmentHandleDescriptors,
 	SHAPE_ADJUSTMENT_MAX,
 	SHAPE_ADJUSTMENT_MIN,
 	DEFAULT_ROUND_RECT_ADJUSTMENT,
 } from './shape-adjustment';
 import type { ShapeAdjustmentDragState } from './shape-adjustment';
+
+/** A shape element with the fields the descriptor reads. */
+function shapeElement(overrides: Record<string, unknown>): PptxElement {
+	return {
+		id: 'el-1',
+		type: 'shape',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 100,
+		...overrides,
+	} as unknown as PptxElement;
+}
 
 describe('clampShapeAdjustmentValue', () => {
 	it('clamps below minimum to SHAPE_ADJUSTMENT_MIN', () => {
@@ -217,5 +233,95 @@ describe('getDraggedShapeAdjustmentValue', () => {
 			shapeAdjustments: { adj: 16667 },
 		} as unknown as PptxElementWithShapeStyle;
 		expect(getShapeAdjustmentHandleDescriptor(element)).not.toBeNull();
+	});
+});
+
+describe('getShapeAdjustmentHandleDescriptors', () => {
+	it('returns every handle a multi-adjust preset has, not just the first', () => {
+		const chevron = getShapeAdjustmentHandleDescriptors(
+			shapeElement({ shapeType: 'rightArrow', width: 240, height: 120 }),
+		);
+		expect(chevron.map((h) => h.key)).toStrictEqual(['adj1', 'adj2']);
+		// The historical singular entry point is the first of the same list.
+		expect(getShapeAdjustmentHandleDescriptor(shapeElement({ shapeType: 'rightArrow' }))?.key).toBe(
+			'adj1',
+		);
+	});
+
+	it('offers no handle for a plain rect (the negative case the overlay relies on)', () => {
+		expect(getShapeAdjustmentHandleDescriptors(shapeElement({ shapeType: 'rect' }))).toStrictEqual(
+			[],
+		);
+		expect(getShapeAdjustmentHandleDescriptors(shapeElement({}))).toStrictEqual([]);
+	});
+
+	it('honours a:spLocks/@noAdjustHandles', () => {
+		expect(
+			getShapeAdjustmentHandleDescriptors(
+				shapeElement({ shapeType: 'roundRect', locks: { noAdjustHandles: true } }),
+			),
+		).toStrictEqual([]);
+	});
+
+	it('offers no preset handle for a connector or a custom-geometry freeform', () => {
+		expect(
+			getShapeAdjustmentHandleDescriptors(
+				shapeElement({ type: 'connector', shapeType: 'bentConnector3' }),
+			),
+		).toStrictEqual([]);
+		expect(
+			getShapeAdjustmentHandleDescriptors(
+				shapeElement({ shapeType: 'roundRect', customGeometryPaths: [{ commands: [] }] }),
+			),
+		).toStrictEqual([]);
+	});
+
+	it('reports the value in guide space, so a 16667 radius is not collapsed to 1', () => {
+		const [handle] = getShapeAdjustmentHandleDescriptors(
+			shapeElement({ shapeType: 'roundRect', shapeAdjustments: { adj: 16667 } }),
+		);
+		expect(handle.value).toBe(16667);
+		expect(handle.left).toBeCloseTo(16.667, 3);
+		expect(handle.top).toBeCloseTo(0, 6);
+	});
+});
+
+describe('beginShapeAdjustment / getDraggedShapeAdjustments', () => {
+	it('carries the solver so a drag writes the preset scale, not a start value', () => {
+		const element = shapeElement({ shapeType: 'roundRect', shapeAdjustments: { adj: 16667 } });
+		const [handle] = getShapeAdjustmentHandleDescriptors(element);
+		const state = beginShapeAdjustment(element, handle, 400, 300);
+		expect(state.solvers).toBeDefined();
+		// ss = 100 px per 100000 guide units.
+		expect(getDraggedShapeAdjustmentValue(state, 20)).toBe(36667);
+		expect(getDraggedShapeAdjustments(state, 20)).toStrictEqual({ adj: 36667 });
+	});
+
+	it('writes both guides of a merged callout handle', () => {
+		const element = shapeElement({ shapeType: 'callout1', width: 240, height: 120 });
+		const [handle] = getShapeAdjustmentHandleDescriptors(element);
+		const state = beginShapeAdjustment(element, handle, 0, 0);
+		expect(getDraggedShapeAdjustments(state, 24, 12)).toStrictEqual({ adj1: 28750, adj2: 1667 });
+	});
+
+	it('falls back to a single-key patch when no solver was captured', () => {
+		const state = makeDragState({ shapeType: 'roundRect', startAdjustment: 10000 });
+		expect(Object.keys(getDraggedShapeAdjustments(state, 0))).toStrictEqual(['adj']);
+	});
+
+	it("carries the element's OTHER adjustments through, so a drag cannot drop them", () => {
+		const element = shapeElement({
+			shapeType: 'quadArrow',
+			width: 200,
+			height: 200,
+			shapeAdjustments: { adj1: 22500, adj2: 22500, adj3: 22500 },
+		});
+		const handles = getShapeAdjustmentHandleDescriptors(element);
+		const state = beginShapeAdjustment(element, handles[0], 0, 0);
+		const next = getDraggedShapeAdjustments(state, 10, 10);
+		expect(Object.keys(next).sort()).toStrictEqual(['adj1', 'adj2', 'adj3']);
+		expect(next.adj2).toBe(22500);
+		expect(next.adj3).toBe(22500);
+		expect(next.adj1).not.toBe(22500);
 	});
 });

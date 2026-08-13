@@ -115,6 +115,9 @@ const SVG_FILTER_EFFECTS = new Set<string>([
 	'crisscrossEtching',
 	'artisticMosaic',
 	'artisticMosaicBubbles',
+	// The DrawingML element really is spelled "Mosiaic"; Microsoft's typo is part
+	// of the format, so a file-sourced effect only ever arrives under this name.
+	'artisticMosiaicBubbles',
 	'mosaicBubbles',
 	'mosaic',
 	'artisticGlowEdges',
@@ -129,6 +132,27 @@ const SVG_FILTER_EFFECTS = new Set<string>([
 	'pencilGrayscale',
 	'grayPencil',
 ]);
+
+/**
+ * Whether an element's artistic effect has to be drawn by us.
+ *
+ * PowerPoint applies an artistic effect DESTRUCTIVELY: the bitmap the picture
+ * points at already carries the effect, and the `a14` blip extension we parse it
+ * from only records the settings (next to the pristine original, kept as a
+ * `.wdp` HD Photo part) so the effect can be re-edited. Verified against
+ * PowerPoint COM: exporting a slide with and without that extension produces a
+ * byte-identical render. Core therefore records the baked effect's name in
+ * `artisticPrerenderedEffect`, and only an effect that differs from it (i.e. one
+ * chosen in this library's own inspector) is rendered here.
+ */
+export function isArtisticEffectRendered(
+	effects: PptxImageEffects | undefined,
+): effects is PptxImageEffects & { artisticEffect: string } {
+	return (
+		Boolean(effects?.artisticEffect) &&
+		effects?.artisticEffect !== effects?.artisticPrerenderedEffect
+	);
+}
 
 /** Whether an artistic effect name needs an inline SVG `<filter>` (vs pure CSS). */
 export function needsSvgArtisticFilter(effectName: string | undefined): boolean {
@@ -219,8 +243,10 @@ export function getImageFilterCss(
 		filters.push(`url(#${getImageAlphaFilterId(element.id)})`);
 	}
 	// Artistic effects: complex ones reference the SVG filter; simple ones use
-	// CSS filter functions directly.
-	if (effects.artisticEffect) {
+	// CSS filter functions directly. A pre-rendered effect (one PowerPoint baked
+	// into the stored bitmap and recorded in the a14 blip extension) is skipped:
+	// re-applying it here would double it up. See `isArtisticEffectRendered`.
+	if (isArtisticEffectRendered(effects)) {
 		const radius = effects.artisticRadius ?? 5;
 
 		if (needsSvgArtisticFilter(effects.artisticEffect)) {
@@ -307,6 +333,14 @@ function buildSimpleArtisticCss(effect: string, radius: number): string {
 		case 'glass':
 		case 'artisticGlass':
 			return `blur(${Math.min(radius, 6)}px) brightness(110%)`;
+
+		// Inspector-gallery entries with no DrawingML counterpart. Without these
+		// they fell through to the generic default below, so picking Sepia or
+		// Grayscale in the gallery previewed the effect but rendered a near no-op.
+		case 'sepia':
+			return 'sepia(100%)';
+		case 'grayscale':
+			return 'grayscale(100%)';
 
 		default:
 			return 'contrast(105%) saturate(105%)';
@@ -665,6 +699,7 @@ function buildArtisticFilterMarkup(effectName: string, radius: number): string |
 
 		case 'artisticMosaic':
 		case 'artisticMosaicBubbles':
+		case 'artisticMosiaicBubbles':
 		case 'mosaicBubbles':
 		case 'mosaic': {
 			const blurAmount = Math.max(2, Math.round(radius * 0.8));
@@ -759,7 +794,7 @@ export function getArtisticImageFilter(
 	elementId: string = isImageLikeElement(element) ? element.id : '',
 ): { id: string; cssReference: string; filterMarkup: string } | undefined {
 	const effects = getEffects(element);
-	if (!effects?.artisticEffect || !needsSvgArtisticFilter(effects.artisticEffect)) {
+	if (!isArtisticEffectRendered(effects) || !needsSvgArtisticFilter(effects.artisticEffect)) {
 		return undefined;
 	}
 	const markup = buildArtisticFilterMarkup(effects.artisticEffect, effects.artisticRadius ?? 5);

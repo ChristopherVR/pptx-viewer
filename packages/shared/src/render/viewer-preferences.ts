@@ -44,7 +44,12 @@ export const VIEWER_SHORTCUT_REFERENCE: readonly ShortcutReferenceItem[] = [
 	{ actionKey: 'pptx.shortcuts.action.zoomCanvas', shortcut: 'Ctrl/Cmd+Mouse wheel' },
 	{ actionKey: 'pptx.shortcuts.action.commitTextEdit', shortcut: 'Ctrl/Cmd+Enter' },
 	{ actionKey: 'pptx.shortcuts.action.cancelTextEdit', shortcut: 'Escape' },
-	{ actionKey: 'pptx.shortcuts.title', shortcut: '?' },
+	// Both of these reached the shared keymap late (Ctrl+F was hand-wired in two
+	// bindings, Ctrl+/ in one), so the panel that is supposed to teach the keymap
+	// was advertising neither. The help panel is the keymap's documentation: a
+	// chord missing here is a chord nobody discovers.
+	{ actionKey: 'pptx.findReplace.title', shortcut: 'Ctrl/Cmd+F' },
+	{ actionKey: 'pptx.shortcuts.title', shortcut: '? or Ctrl/Cmd+/' },
 ];
 
 export const SHORTCUT_REFERENCE_ITEMS = VIEWER_SHORTCUT_REFERENCE;

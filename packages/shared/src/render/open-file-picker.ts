@@ -1,19 +1,16 @@
 /**
- * open-file-picker — framework-agnostic helper that opens the native file
- * picker and resolves the chosen file. Every binding's File ▸ Open action wires
+ * open-file-picker: framework-agnostic helper that opens the native file
+ * picker and resolves the chosen file. Every binding's File > Open action wires
  * its built-in picker through here so the accepted extensions and the
- * pick → ArrayBuffer flow stay identical across React / Vue / Angular.
+ * pick-to-ArrayBuffer flow stay identical across all five bindings.
+ *
+ * The accepted-extension list itself lives in `./presentation-file-kinds`,
+ * alongside the matching drop-target predicate, so a picker and a drop zone
+ * cannot disagree about what is loadable.
  */
 
+import { PPTX_OPEN_ACCEPT } from './presentation-file-kinds';
 import { rememberSessionDeck } from './session-restore';
-
-/**
- * Default `accept` filter for presentations the viewer can load: PowerPoint
- * archives, legacy binary `.ppt` (PowerPoint 97-2003, auto-detected and
- * converted through the pptx pipeline on load), plus portable
- * `pptx-viewer-json` documents.
- */
-export const PPTX_OPEN_ACCEPT = '.pptx,.ppsx,.pptm,.potx,.ppt,.json';
 
 export interface OpenFilePickerOptions {
 	/** Comma-separated `accept` list. Defaults to {@link PPTX_OPEN_ACCEPT}. */
@@ -34,7 +31,7 @@ export function openFilePicker(options: OpenFilePickerOptions = {}): Promise<Fil
 		const input = document.createElement('input');
 		input.type = 'file';
 		input.accept = options.accept ?? PPTX_OPEN_ACCEPT;
-		// Keep it out of the layout — it only needs to exist long enough to click.
+		// Keep it out of the layout: it only needs to exist long enough to click.
 		input.style.position = 'fixed';
 		input.style.left = '-9999px';
 		input.style.opacity = '0';

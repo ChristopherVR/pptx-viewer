@@ -791,6 +791,10 @@ describe('buildChartViewModel - scatter chart integration', () => {
 });
 
 describe('buildChartViewModel - bubble chart integration', () => {
+	// CT_BubbleSer carries x, y AND size per series, so each of these is a
+	// complete bubble series. The engine used to treat "the third series" as the
+	// size channel, which drew equal dots for a one-series chart and deleted
+	// every series past the second from a three-series one.
 	const element = {
 		id: 'el-bub',
 		type: 'chart' as const,
@@ -802,24 +806,25 @@ describe('buildChartViewModel - bubble chart integration', () => {
 			chartType: 'bubble' as const,
 			categories: [],
 			series: [
-				{ name: 'X', values: [1, 2, 3] },
-				{ name: 'Y', values: [4, 5, 6] },
-				{ name: 'Size', values: [10, 50, 100] },
+				{ name: 'Alpha', values: [4, 5, 6], xValues: [1, 2, 3], bubbleSizes: [10, 50, 100] },
+				{ name: 'Beta', values: [7, 8, 9], xValues: [1, 2, 3], bubbleSizes: [100, 50, 10] },
 			],
 		} satisfies PptxChartData,
 	};
 
-	it('produces circle primitives only for the first two series (size series excluded)', () => {
+	it('produces one circle per data point of EVERY series', () => {
 		const vm = buildChartViewModel(element);
 		const circles = vm.primitives.filter((p) => p.kind === 'circle');
 		expect(circles).toHaveLength(6);
 	});
 
-	it('scales bubble radius by the third series', () => {
+	it("scales bubble radius by the series' own c:bubbleSize", () => {
 		const vm = buildChartViewModel(element);
 		const circles = vm.primitives.filter((p) => p.kind === 'circle');
-		// First X-series point (size 10) should be smaller than the third (size 100).
+		// Alpha grows (10 -> 100) while Beta shrinks (100 -> 10) over the same
+		// three points, which only holds if each series reads its own sizes.
 		expect(circles[0].r).toBeLessThan(circles[2].r);
+		expect(circles[3].r).toBeGreaterThan(circles[5].r);
 	});
 });
 

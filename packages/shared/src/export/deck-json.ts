@@ -9,18 +9,19 @@
 import { serializePptxToJson, PPTX_JSON_MIME_TYPE } from 'pptx-viewer-core';
 import type { PptxData } from 'pptx-viewer-core';
 
+import { presentationBaseName } from '../render/presentation-file-kinds';
 import { downloadBlob, sanitizeDownloadFilename } from './download-helpers';
-
-/** Default base name used when the host supplies no source file name. */
-const DEFAULT_BASE_NAME = 'presentation';
 
 /**
  * Derive the download name for a deck-JSON export from the source file name:
  * `deck.pptx` becomes `deck.json`, a missing name becomes `presentation.json`.
+ *
+ * The stem comes from the shared extension list rather than a local copy of
+ * it: a private list here missed legacy binary `.ppt`, so a deck opened from
+ * `report.ppt` exported as `report.ppt.json`.
  */
 export function deckJsonFileName(sourceName?: string | null): string {
-	const base = (sourceName ?? '').replace(/\.(pptx|ppsx|pptm|potx|json)$/iu, '').trim();
-	return sanitizeDownloadFilename(`${base.length > 0 ? base : DEFAULT_BASE_NAME}.json`);
+	return sanitizeDownloadFilename(`${presentationBaseName(sourceName)}.json`);
 }
 
 /** Build the serialized `pptx-viewer-json` text for a deck. */

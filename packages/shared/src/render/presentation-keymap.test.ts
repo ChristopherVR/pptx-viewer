@@ -171,3 +171,33 @@ describe('isNavigationAction', () => {
 		expect(isNavigationAction({ action: 'none' })).toBeFalsy();
 	});
 });
+
+describe('mapPresentationKey subtitles', () => {
+	it('toggles live captions on a bare J, the documented PowerPoint key', () => {
+		expect(mapPresentationKey(press('j'))).toStrictEqual({ action: 'toggleSubtitles' });
+		expect(mapPresentationKey(press('J'))).toStrictEqual({ action: 'toggleSubtitles' });
+	});
+
+	it('does not fire while a modifier is held', () => {
+		expect(mapPresentationKey(press('j', { altKey: true }))).toStrictEqual({ action: 'none' });
+		expect(mapPresentationKey(press('j', { ctrlKey: true }))).toStrictEqual({ action: 'none' });
+	});
+
+	it('leaves "c" unmapped: it was never a PowerPoint key', () => {
+		// Vue hand-wired captions to "c" outside the shared map. Every other
+		// binding therefore had no captions key at all, and "c" does nothing in
+		// PowerPoint, so the map settles on J rather than propagating the invention.
+		expect(mapPresentationKey(press('c'))).toStrictEqual({ action: 'none' });
+	});
+
+	it('does not swallow a typed slide number that contains no J', () => {
+		const buffer = createPresentationKeyBuffer();
+		mapPresentationKey(press('1'), buffer);
+		expect(mapPresentationKey(press('j'), buffer)).toStrictEqual({ action: 'toggleSubtitles' });
+		// The pending jump survives the toggle: J is not a navigation key.
+		expect(mapPresentationKey(press('Enter'), buffer)).toStrictEqual({
+			action: 'goto',
+			slideNumber: 1,
+		});
+	});
+});

@@ -184,6 +184,12 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'linkedTxbxId',
 	'linkedTxbxSeq',
 	'promptText',
+	'placeholderType',
+	// Resolved from the slide master rather than authored, but it travels with
+	// `text` on purpose: the two are compared by the save writer to tell an
+	// inherited footer from one edited on this slide. See
+	// `collaboration-field-schema.ts`.
+	'inheritedPlaceholderText',
 ]);
 
 export const COMPLEX_ELEMENT_FIELDS: Readonly<Record<string, string>> = {
@@ -229,6 +235,9 @@ const REV_COMPLEX_ELEMENT: Record<string, string> = Object.fromEntries(
 export const SCALAR_SLIDE_KEYS: ReadonlySet<string> = new Set([
 	'id',
 	'rId',
+	// The real `p:sldIdLst` id (256+ on a PowerPoint deck). Sections reference
+	// it, so peers must agree on it exactly as they do on `rId`.
+	'slideId',
 	'sourceSlideId',
 	'name',
 	'layoutPath',

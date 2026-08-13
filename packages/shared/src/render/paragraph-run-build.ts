@@ -9,6 +9,7 @@
 import type { TextSegment } from 'pptx-viewer-core';
 import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
+import { DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import type { ParagraphBulletResult } from './bullet-list';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
@@ -16,6 +17,8 @@ import type { RunFontSpec } from './text-metric-tracking';
 import { buildRunEffectStyle } from './text-run-effects';
 import type { RunEquation, RunHyperlink } from './text-run-meta';
 import { resolveRunEquation, resolveRunHyperlink } from './text-run-meta';
+import type { RunRuby } from './text-run-ruby';
+import { resolveRunRuby } from './text-run-ruby';
 import type { RunStyle } from './text-run-style';
 import {
 	applyUnderlineVariant,
@@ -31,6 +34,7 @@ export interface BuiltRun {
 	style: RunStyle;
 	hyperlink?: RunHyperlink;
 	equation?: RunEquation;
+	ruby?: RunRuby;
 	segmentIndex?: number;
 	charStart?: number;
 }
@@ -94,6 +98,29 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			Object.assign(style, buildRunEffectStyle(seg.style));
 		}
 		const hyperlink = resolveRunHyperlink(seg.style);
+
+		// A ruby run is emitted WHOLE, never through the per-word metric split
+		// below: the annotation belongs to the whole segment, so splitting it
+		// would repeat the same reading over every word of the base text.
+		// (React, which looks a run's ruby up by `segmentIndex`, does exactly
+		// that today for any multi-word `a:ruby`.)
+		const ruby = resolveRunRuby(
+			seg,
+			typeof seg.style?.fontSize === 'number'
+				? seg.style.fontSize
+				: (blockFont.fontSizePx ?? DEFAULT_TEXT_FONT_SIZE),
+			blockFont,
+			typeof style.color === 'string' ? style.color : undefined,
+		);
+		if (ruby) {
+			const rubyRun: BuiltRun = { text, style, ruby, segmentIndex, charStart: 0 };
+			if (hyperlink) {
+				rubyRun.hyperlink = hyperlink;
+			}
+			runs.push(rubyRun);
+			continue;
+		}
+
 		// Each word and each gap carries its own PowerPoint metric tracking, so a
 		// line the browser assembles out of them measures exactly what PowerPoint
 		// measured and breaks where PowerPoint breaks (#149). Emitting them as

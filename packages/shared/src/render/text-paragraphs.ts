@@ -35,6 +35,7 @@ import {
 	resolveParagraphRtl,
 } from './text-paragraph-style';
 import type { RunEquation, RunHyperlink } from './text-run-meta';
+import type { RunRuby } from './text-run-ruby';
 import type { RunStyle } from './text-run-style';
 import { segmentStyleToCss } from './text-run-style';
 import { resolveAutoFitFontScale } from './text-style-helpers';
@@ -44,6 +45,7 @@ import { resolveAutoFitFontScale } from './text-style-helpers';
 export type { RunStyle };
 export { segmentStyleToCss };
 export type { RunEquation, RunHyperlink };
+export type { RunRuby };
 // Re-exported so the existing `./text-paragraphs` import path for the
 // paragraph-spacing resolver keeps working after the split.
 export { resolveParagraphSpacing };
@@ -66,6 +68,16 @@ export interface ParagraphRun {
 	 * authored position between the runs around it.
 	 */
 	equation?: RunEquation;
+	/**
+	 * The run's phonetic guide (`a:ruby`: furigana, pinyin, bopomofo), when it
+	 * has one. A binding renders `<ruby>{text}<rt style>{ruby.text}</rt></ruby>`;
+	 * a run carrying one is never split per word, so the annotation appears once
+	 * over the whole base run.
+	 *
+	 * Core parsed and saved ruby from the start, but `buildParagraphs` never read
+	 * it, so the annotation rendered in React alone.
+	 */
+	ruby?: RunRuby;
 	/**
 	 * Index of the `textSegments` entry (of the override list when one was
 	 * supplied) this run was built from.

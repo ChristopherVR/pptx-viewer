@@ -17,6 +17,17 @@ describe('deckJsonFileName', () => {
 		expect(deckJsonFileName('already.json')).toBe('already.json');
 	});
 
+	/**
+	 * Legacy binary `.ppt` is a format the loader really opens (core/ppt), so a
+	 * deck sourced from one must export as `report.json`. The private extension
+	 * list this used to carry omitted `.ppt`, producing `report.ppt.json`.
+	 */
+	it('strips a legacy binary .ppt / .pps / .pot source extension', () => {
+		expect(deckJsonFileName('report.ppt')).toBe('report.json');
+		expect(deckJsonFileName('SHOW.PPS')).toBe('SHOW.json');
+		expect(deckJsonFileName('template.pot')).toBe('template.json');
+	});
+
 	it('falls back to presentation.json without a source name', () => {
 		expect(deckJsonFileName()).toBe('presentation.json');
 		expect(deckJsonFileName('   ')).toBe('presentation.json');

@@ -13,16 +13,11 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { buildDataLabelText } from './chart-data-label-text';
 import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
-import {
-	computeStackedBarRects,
-	formatAxisValue,
-	paletteColor,
-	seriesColor,
-	valueToY,
-} from './chart-view-model';
+import { computeStackedBarRects, paletteColor, seriesColor, valueToY } from './chart-view-model';
 
 /** Per-category absolute totals (for percentStacked normalisation). */
 function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number): number[] {
@@ -138,15 +133,25 @@ export function buildBars(
 				} satisfies SvgRect);
 
 				if (showLabels) {
-					dataLabels.push({
-						kind: 'text',
-						x: x + singleBarWidth / 2,
-						y: val >= 0 ? y - 4 : y + h + 10,
-						text: formatAxisValue(val, series[si].numberFormat),
-						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-						fill: '#334155',
-						textAnchor: 'middle',
+					// c:showVal / c:showCatName / c:showPercent decide what the label
+					// says; the historical raw value is what you get when nothing does.
+					const text = buildDataLabelText({
+						chartData,
+						series: series[si],
+						pointIndex: sourceIndex,
+						value: val,
 					});
+					if (text !== undefined) {
+						dataLabels.push({
+							kind: 'text',
+							x: x + singleBarWidth / 2,
+							y: val >= 0 ? y - 4 : y + h + 10,
+							text,
+							fontSize: DEFAULT_CHART_DATA_LABEL_PX,
+							fill: '#334155',
+							textAnchor: 'middle',
+						});
+					}
 				}
 			}
 		}
@@ -176,7 +181,15 @@ export function buildBars(
 			primitives.push({ kind: 'rect', x: r.x, y: r.y, w: r.w, h: r.h, fill, rx: 1, part });
 		}
 		if (showLabels) {
-			pushClusteredStackedLabels(series, sourceIndices, catCount, layout, primaryRange, dataLabels);
+			pushClusteredStackedLabels(
+				chartData,
+				series,
+				sourceIndices,
+				catCount,
+				layout,
+				primaryRange,
+				dataLabels,
+			);
 		}
 		return { primitives, dataLabels };
 	}
@@ -252,6 +265,7 @@ export function buildBars(
  * reproduces that exact output for byte-identity.
  */
 function pushClusteredStackedLabels(
+	chartData: PptxChartData,
 	series: ReadonlyArray<PptxChartSeries>,
 	sourceIndices: ReadonlyArray<number>,
 	catCount: number,
@@ -277,11 +291,20 @@ function pushClusteredStackedLabels(
 			const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
 			const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
 			const labelY = val >= 0 ? Math.min(zeroY, valY) - 4 : Math.max(zeroY, valY) + 10;
+			const text = buildDataLabelText({
+				chartData,
+				series: series[si],
+				pointIndex: sourceIndex,
+				value: val,
+			});
+			if (text === undefined) {
+				continue;
+			}
 			dataLabels.push({
 				kind: 'text',
 				x,
 				y: labelY,
-				text: formatAxisValue(val, series[si].numberFormat),
+				text,
 				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: '#334155',
 				textAnchor: 'middle',

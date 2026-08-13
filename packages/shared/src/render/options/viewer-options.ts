@@ -57,13 +57,25 @@ export interface ViewerProofingOptions {
 	hideSpellingErrors: boolean;
 }
 
+/**
+ * File > Options > Save.
+ *
+ * Font embedding deliberately has NO entry here. It is owned by the File >
+ * Fonts panel, whose toggle is the one the save path reads (see
+ * `render/font-embedding`: `describeFontEmbedding` decides the toggle's start
+ * position and whether it can do anything at all, `embeddedFontSaveOptions`
+ * turns it into the `PptxHandler.save()` slice). This group used to carry a
+ * second `embedFonts` boolean, plus an `embedAllFontCharacters` companion, and
+ * neither was read by anything: the pane moved a switch that changed no saved
+ * byte, while the panel next door moved the real one. Two switches for one
+ * setting, one of them lying, is worse than one switch in a less
+ * PowerPoint-shaped place.
+ */
 export interface ViewerSaveOptions {
 	autoSave: boolean;
 	autoRecoverIntervalMinutes: number;
 	keepLastAutoRecoveredVersion: boolean;
 	defaultExportFormat: DefaultExportFormat;
-	embedFonts: boolean;
-	embedAllFontCharacters: boolean;
 	cacheRetentionDays: number;
 	clearCacheOnClose: boolean;
 }
@@ -171,8 +183,6 @@ export const DEFAULT_VIEWER_OPTIONS: ViewerOptions = {
 		autoRecoverIntervalMinutes: 2,
 		keepLastAutoRecoveredVersion: true,
 		defaultExportFormat: 'pptx',
-		embedFonts: false,
-		embedAllFontCharacters: false,
 		cacheRetentionDays: 14,
 		clearCacheOnClose: false,
 	},

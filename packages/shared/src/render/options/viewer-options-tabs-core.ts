@@ -174,18 +174,11 @@ export const SAVE_TAB: ViewerOptionsTabDefinition = {
 				}),
 			],
 		},
-		{
-			id: 'fidelity',
-			titleKey: 'pptx.options.save.fidelity',
-			controls: [
-				toggle('save', 'embedFonts', 'pptx.options.save.embedFonts', {
-					infoKey: 'pptx.options.save.embedFontsInfo',
-				}),
-				toggle('save', 'embedAllFontCharacters', 'pptx.options.save.embedAllCharacters', {
-					indent: true,
-				}),
-			],
-		},
+		// No "Preserve fidelity when sharing this presentation" section: the only
+		// control PowerPoint puts there is "Embed fonts in the file", and this
+		// viewer already owns that in the File > Fonts panel, which is the copy the
+		// save path actually reads (`render/font-embedding`). The section here was
+		// a second, unwired switch for the same setting.
 		{
 			id: 'cache',
 			titleKey: 'pptx.options.save.cache',

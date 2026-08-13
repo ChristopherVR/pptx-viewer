@@ -7,7 +7,7 @@
  *
  * Handled here (all with real, distinct keyframes):
  *
- *  - 3-D rotations: `cube`, `flip`, `rotate`, `orbit`
+ *  - 3-D rotations: `cube`, `box`, `flip`, `rotate`, `orbit`
  *  - page curl / peel: `pageCurlSingle`, `pageCurlDouble`, `peelOff`
  *  - directional / scale / rotate composites: `fallOver`, `drape`, `curtains`,
  *    `wind`, `prestige`, `fracture`, `crush`, `airplane`, `origami`
@@ -61,7 +61,12 @@ export function getCinematicTransitionAnimations(
 	void orient;
 
 	switch (type) {
+		// Box is Cube's inverted twin (`<p14:prism isInverted="1"/>`): the same
+		// solid rotating, seen from inside. The 3-D pair is the closest CSS
+		// approximation we have, and it beats the flat cross-fade an unhandled
+		// type falls back to.
 		case 'cube':
+		case 'box':
 			return threeDPair('pptx-tr-cube', resolveDirection(direction, 'left'), dur, false);
 
 		case 'orbit':

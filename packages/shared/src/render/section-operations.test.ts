@@ -74,12 +74,26 @@ describe('generateSectionId', () => {
 });
 
 describe('resolveSlideId', () => {
-	it('prefers the raw p:sld id', () => {
-		const s = { ...slide(2), rawXml: { 'p:sld': { '@_id': '256' } } } as PptxSlide;
-		expect(resolveSlideId(s, 0)).toBe('256');
+	/*
+	 * This used to read `slide.rawXml['p:sld']['@_id']` and was covered by a
+	 * test that hand-built exactly that shape. No real deck has it: `p:sld` is
+	 * the slide PART and carries no id, and the numeric slide id lives in
+	 * `presentation.xml`'s `p:sldIdLst`. So the lookup missed on every real
+	 * file and the slide NUMBER was written into the section instead, giving
+	 * `1, 2, 3` where PowerPoint's ids start at 256. The section came back on
+	 * the next load owning no slides at all.
+	 */
+	it('uses the real p:sldIdLst id the deck carries', () => {
+		const s = { ...slide(2), slideId: '257' } as PptxSlide;
+		expect(resolveSlideId(s, 0)).toBe('257');
 	});
 
-	it('falls back to slideNumber then 1-based index', () => {
+	it('does not mistake a slide-part id for the presentation-level one', () => {
+		const s = { ...slide(2), rawXml: { 'p:sld': { '@_id': '999' } } } as PptxSlide;
+		expect(resolveSlideId(s, 0)).not.toBe('999');
+	});
+
+	it('falls back to slideNumber then 1-based index for an unsaved slide', () => {
 		expect(resolveSlideId(slide(7), 0)).toBe('7');
 		expect(resolveSlideId(undefined, 3)).toBe('4');
 	});

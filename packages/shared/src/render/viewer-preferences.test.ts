@@ -31,4 +31,12 @@ describe('viewer preferences', () => {
 		).toBeTruthy();
 		expect(VIEWER_SHORTCUT_REFERENCE.some(({ shortcut }) => shortcut === 'Escape')).toBeTruthy();
 	});
+
+	it('advertises the two chords that reached the shared keymap late', () => {
+		// The panel is the keymap's own documentation, so a chord that every
+		// binding now answers but the panel never lists is a chord nobody finds.
+		const shortcuts = VIEWER_SHORTCUT_REFERENCE.map((entry) => entry.shortcut);
+		expect(shortcuts).toContain('Ctrl/Cmd+F');
+		expect(shortcuts).toContain('? or Ctrl/Cmd+/');
+	});
 });

@@ -32,6 +32,14 @@ export interface PieLabelParams {
 	showLeaderLines?: boolean;
 	/** Series `c:numFmt` / cache format code applied to each label value. */
 	numberFormat?: string;
+	/**
+	 * Resolves the TEXT of the label at `pointIndex`, so `c:showPercent` /
+	 * `c:showCatName` / `c:separator` can be honoured (see
+	 * `chart-data-label-text`). Returning `undefined` suppresses that one label
+	 * (a `c:dLbl/c:delete`). Omit to print the formatted value, which is what
+	 * this module did before the content flags were wired up.
+	 */
+	labelText?: (pointIndex: number, value: number) => string | undefined;
 }
 
 export interface PieLabelResult {
@@ -50,7 +58,8 @@ export function isOutsidePosition(position: PptxChartDataLabelPosition | undefin
  * leader line from the rim point to the label anchor.
  */
 export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
-	const { slices, values, cx, cy, outerR, position, showLeaderLines, numberFormat } = params;
+	const { slices, values, cx, cy, outerR, position, showLeaderLines, numberFormat, labelText } =
+		params;
 	const outside = isOutsidePosition(position);
 	const labels: SvgText[] = [];
 	const leaderLines: SvgLine[] = [];
@@ -60,12 +69,16 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		if (val === undefined) {
 			return;
 		}
+		const text = labelText ? labelText(i, val) : formatAxisValue(val, numberFormat);
+		if (text === undefined) {
+			return;
+		}
 		if (!outside) {
 			labels.push({
 				kind: 'text',
 				x: slice.labelX,
 				y: slice.labelY,
-				text: formatAxisValue(val, numberFormat),
+				text,
 				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: '#ffffff',
 				textAnchor: 'middle',
@@ -87,7 +100,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			kind: 'text',
 			x: labelX + (cos >= 0 ? 2 : -2),
 			y: labelY,
-			text: formatAxisValue(val, numberFormat),
+			text,
 			fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 			fill: '#334155',
 			textAnchor: anchor,

@@ -24,6 +24,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 import type { CssStyleMap } from './element-style-transform';
+import { escapeSvgAttr } from './visual-effects';
 
 /**
  * Whether this element paints its bitmap as a repeating tile.
@@ -128,6 +129,10 @@ export function buildMirrorTiledBackground(
 	const cols = flipX ? 2 : 1;
 	const rows = flipY ? 2 : 1;
 
+	// `src` is a data URI straight off the element. An un-encoded SVG payload
+	// (`data:image/svg+xml,<svg …>`) carries `<`, `&` and `"`, which would close
+	// the href attribute and leave the tile SVG malformed.
+	const href = escapeSvgAttr(src);
 	const images: string[] = [];
 	for (let cy = 0; cy < rows; cy++) {
 		for (let cx = 0; cx < cols; cx++) {
@@ -140,7 +145,7 @@ export function buildMirrorTiledBackground(
 			const tx = cx + (mirrorX ? 1 : 0);
 			const ty = cy + (mirrorY ? 1 : 0);
 			images.push(
-				`<image href="${src}" x="0" y="0" width="1" height="1" ` +
+				`<image href="${href}" x="0" y="0" width="1" height="1" ` +
 					`preserveAspectRatio="none" transform="translate(${tx},${ty}) scale(${sx},${sy})"/>`,
 			);
 		}

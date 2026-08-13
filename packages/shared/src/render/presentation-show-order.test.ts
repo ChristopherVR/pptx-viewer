@@ -7,6 +7,7 @@ import {
 	nextPresentedSlide,
 	nextShowSlideIndex,
 	previousShowSlideIndex,
+	resolveAuthoredCustomShowId,
 	resolveShowSlideIndexes,
 } from './presentation-show-order';
 import type { ShowOrderSlide } from './presentation-show-order';
@@ -176,5 +177,56 @@ describe('nextPresentedSlide', () => {
 
 	it('previews nothing on the last slide', () => {
 		expect(nextPresentedSlide(deck(false, false), 1)).toBeUndefined();
+	});
+});
+
+describe('nextPresentedSlide with a running custom show', () => {
+	it('previews the slide the show visits next, not the next deck slide', () => {
+		const slides = deck(false, false, false);
+		// "Reverse": 3, 2, 1. From slide 3 the next press lands on slide 2.
+		expect(nextPresentedSlide(slides, 2, { slideRIds: ['rId3', 'rId2', 'rId1'] })?.id).toBe(
+			'slide-2',
+		);
+	});
+
+	it('previews nothing at the end of the show even when the deck continues', () => {
+		const slides = deck(false, false, false);
+		expect(nextPresentedSlide(slides, 2, { slideRIds: ['rId1', 'rId3'] })).toBeUndefined();
+	});
+
+	it('still walks the deck when no show is passed', () => {
+		expect(nextPresentedSlide(deck(false, false, false), 0)?.id).toBe('slide-2');
+	});
+});
+
+describe('resolveAuthoredCustomShowId', () => {
+	const shows = [{ id: '0' }, { id: '1' }];
+
+	it('returns the id a deck is authored to open into', () => {
+		expect(
+			resolveAuthoredCustomShowId(
+				{ showSlidesMode: 'customShow', showSlidesCustomShowId: '1' },
+				shows,
+			),
+		).toBe('1');
+	});
+
+	it('ignores the id when the mode is not customShow', () => {
+		expect(
+			resolveAuthoredCustomShowId({ showSlidesMode: 'all', showSlidesCustomShowId: '1' }, shows),
+		).toBeUndefined();
+	});
+
+	it('falls back to the whole deck when the named show no longer exists', () => {
+		expect(
+			resolveAuthoredCustomShowId(
+				{ showSlidesMode: 'customShow', showSlidesCustomShowId: '7' },
+				shows,
+			),
+		).toBeUndefined();
+	});
+
+	it('tolerates a deck with no showPr at all', () => {
+		expect(resolveAuthoredCustomShowId(undefined, shows)).toBeUndefined();
 	});
 });

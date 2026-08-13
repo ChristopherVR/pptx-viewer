@@ -42,7 +42,7 @@ const DEFAULT_GLOW_COLOR = '#ffff00';
  * `v-html`, so an unescaped id from a crafted OOXML shape id could otherwise
  * break out of the attribute).
  */
-function escapeSvgAttr(value: string): string {
+export function escapeSvgAttr(value: string): string {
 	return value
 		.replace(/&/g, '&amp;')
 		.replace(/"/g, '&quot;')

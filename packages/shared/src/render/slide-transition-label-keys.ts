@@ -61,6 +61,7 @@ export const SLIDE_TRANSITION_LABEL_KEYS: Readonly<Record<PptxTransitionType, st
 	cube: 'pptx.transitionPresets.cube',
 	flip: 'pptx.transitionPresets.flip',
 	rotate: 'pptx.transitionPresets.rotate',
+	box: 'pptx.transitionPresets.box',
 	orbit: 'pptx.transitionPresets.orbit',
 	fallOver: 'pptx.transitionPresets.fallOver',
 	drape: 'pptx.transitionPresets.drape',
