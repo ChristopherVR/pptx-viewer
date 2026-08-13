@@ -35,12 +35,22 @@ export const translationsEn: Record<string, string> = {
 	'pptx.autosave.disabled': 'AutoSave unavailable',
 	'pptx.autosave.disabledNoFilePath': 'AutoSave disabled: no file path provided',
 	'pptx.autosave.disabledToggleOff': 'AutoSave off',
+	'pptx.autosave.disabledByHost': 'AutoSave turned off by this application',
+	'pptx.autosave.disabledReadOnly': 'AutoSave disabled: this presentation is read-only',
 	'pptx.autosave.justNow': 'just now',
 	'pptx.autosave.oneMinAgo': '1 min ago',
 	'pptx.autosave.minutesAgo': '{{count}} min ago',
 	'pptx.autosave.saveFailed': 'Save failed',
 	'pptx.autosave.savedShort': 'Saved',
 	'pptx.autosave.allChangesSaved': 'All changes saved',
+	// Crash-recovery prompt (offered on load when a newer snapshot exists)
+	'pptx.autosave.recovery.title': 'Recover unsaved changes?',
+	'pptx.autosave.recovery.message':
+		'An autosaved copy of "{{file}}" ({{size}}) has changes that are not in the version you just opened.',
+	'pptx.autosave.recovery.savedLabel': 'Autosaved {{when}}',
+	'pptx.autosave.recovery.hoursAgo': '{{count}} h ago',
+	'pptx.autosave.recovery.restore': 'Restore',
+	'pptx.autosave.recovery.discard': 'Discard',
 
 	// Title bar (PowerPoint-style top chrome row)
 	'pptx.titleBar.autoSave': 'AutoSave',

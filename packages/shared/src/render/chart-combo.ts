@@ -13,6 +13,11 @@ import { computeErrorBarPrimitives } from './chart-error-bars';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
+import {
+	computeAxisTitlePrimitives,
+	computeDataTablePrimitives,
+	computeTrendlinePrimitives,
+} from './chart-overlays';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -236,7 +241,10 @@ export function buildComboViewModel(
 	});
 	primitives.push(...horizontalAxis.tickMarks);
 	const displayChartData = horizontalAxis.displayChartData;
-	primitives.push(
+	// Overlay depth. Error bars were already here; trendlines, axis titles and
+	// the data-table block were not, even though `computeLayoutOptions` above
+	// reserves the table's strip, so the space was cleared and left blank.
+	const overlays: SvgPrimitive[] = [
 		...computeErrorBarPrimitives(displayChartData, catCount, layout, primaryRange, 'line', {
 			xPositions: horizontalAxis.xPositions,
 			seriesRanges: chartData.series.map((_series, index) =>
@@ -244,7 +252,22 @@ export function buildComboViewModel(
 			),
 			seriesModes: chartData.series.map((_series, index) => (index === 0 ? 'bar' : 'line')),
 		}),
+		...computeTrendlinePrimitives(
+			displayChartData,
+			catCount,
+			layout,
+			primaryRange,
+			'bar',
+			chartData.colorPalette,
+		),
+		...computeAxisTitlePrimitives(chartData, layout),
+	];
+	const dataTablePrimitives = computeDataTablePrimitives(
+		displayChartData,
+		layout,
+		chartData.colorPalette,
 	);
+	primitives.push(...overlays, ...dataTablePrimitives);
 
 	return {
 		svgWidth: layout.svgWidth,
@@ -264,6 +287,8 @@ export function buildComboViewModel(
 		legendAnchor,
 		secondaryGridlines: secondaryAxis?.gridlines,
 		secondaryAxisLabels: secondaryAxis?.axisLabels,
+		overlays: overlays.length > 0 ? overlays : undefined,
+		dataTable: dataTablePrimitives.length > 0 ? dataTablePrimitives : undefined,
 	};
 }
 

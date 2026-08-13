@@ -124,7 +124,7 @@ export const OUTLINE_TITLE_ELEMENT_NAME = 'Title';
 // ---------------------------------------------------------------------------
 
 interface RawPlaceholder {
-	'p:nvSpPr'?: { 'p:nvPr'?: { 'p:ph'?: { '@_type'?: string } } };
+	'p:nvSpPr'?: { 'p:nvPr'?: { 'p:ph'?: { '@_type'?: string } | string } };
 }
 
 /**
@@ -134,13 +134,37 @@ interface RawPlaceholder {
  * for `CT_Placeholder/@type` is `body`, and a content placeholder authored as
  * `<p:ph idx="1"/>` is extremely common. Treating it as "not a placeholder"
  * dropped the body of most real decks from the outline.
+ *
+ * The test is PRESENCE, not truthiness. `<p:ph/>` - every attribute defaulted,
+ * which is the shortest legal spelling of a body placeholder - is materialised
+ * by fast-xml-parser as the empty STRING, so `if (!ph)` read the element as
+ * absent and reported those shapes as non-placeholders, dropping their text
+ * from the outline. The `'body'` default above exists for exactly this shape
+ * and could never reach it.
  */
 function placeholderType(element: PptxElement): string | undefined {
-	const ph = (element.rawXml as RawPlaceholder | undefined)?.['p:nvSpPr']?.['p:nvPr']?.['p:ph'];
-	if (!ph) {
+	const nvPr = (element.rawXml as RawPlaceholder | undefined)?.['p:nvSpPr']?.['p:nvPr'];
+	// The presence test is `!== undefined` on the VALUE, deliberately: an absent
+	// element is `undefined` and a present-but-empty one is `''`, which is the
+	// whole distinction this function needs. `Object.hasOwn` would read better
+	// but trips oxlint's counterpart rule in one direction and
+	// `Object.prototype.hasOwnProperty.call` trips `prefer-object-has-own` in
+	// the other, so neither earns its keep here.
+	//
+	// Historical note, because it cost three days: `Object.hasOwn` on this line
+	// once failed the Angular build with TS2550 while every typecheck passed.
+	// Angular vendors shared's SOURCE, and `ng-packagr` was invoked without
+	// `-c`, so it compiled the copy against its own bundled config
+	// (`lib: es2018`) rather than the project's ES2022. A build-failed package
+	// is dropped from the release plan WITHOUT tagging, so its baseline never
+	// advanced and it silently missed every release. `ng-packagr` is now passed
+	// `-c tsconfig.lib.json`, so build and typecheck see the same lib.
+	const ph = nvPr === undefined || typeof nvPr === 'string' ? undefined : nvPr['p:ph'];
+	if (ph === undefined) {
 		return undefined;
 	}
-	const type = typeof ph['@_type'] === 'string' ? ph['@_type'].trim().toLowerCase() : '';
+	const rawType = typeof ph === 'object' && ph !== null ? ph['@_type'] : undefined;
+	const type = typeof rawType === 'string' ? rawType.trim().toLowerCase() : '';
 	return type.length > 0 ? type : 'body';
 }
 
@@ -328,7 +352,7 @@ export function outlineRowKey(
 	elementId: string | null,
 	paragraphIndex: number,
 ): string {
-	return `${slideId}|${elementId ?? ' new-title'}|${paragraphIndex}`;
+	return `${slideId}|${elementId ?? '\u0000new-title'}|${paragraphIndex}`;
 }
 
 function pushElementRows(

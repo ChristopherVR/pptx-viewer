@@ -119,6 +119,7 @@ export {
 	computeRadarPoints,
 	radarRingPoints,
 	resolveChartKind,
+	chartPreserveAspectRatio,
 	DEFAULT_PALETTE,
 } from './chart-view-model';
 export type {
@@ -990,6 +991,14 @@ export * from './zoom-step';
 export * from './command-search';
 export * from './autosave-store';
 export * from './autosave-tick';
+// Who wins when the host's `autosave` prop and the user's AutoSave toggle
+// disagree (the prop is a ceiling, the toggle a preference inside it), plus the
+// one cadence rule and the debounce cap that makes both engine shapes promise
+// the same thing.
+export * from './autosave-policy';
+// "Is there a recoverable snapshot for this deck, and what should the prompt
+// say?" One decision, five dialogs.
+export * from './autosave-recovery';
 export * from './backstage';
 export * from './backstage-cards';
 export * from './master-page-layout';

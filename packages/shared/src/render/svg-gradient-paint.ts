@@ -25,6 +25,7 @@ import {
 	normalizeHexColor,
 	sanitizeGradientStops,
 } from './fill-style';
+import { escapeSvgAttr } from './visual-effects';
 
 /** One `<stop>` of an SVG gradient. */
 export interface SvgGradientStopDef {
@@ -265,18 +266,9 @@ export function svgGradientFillRef(def: SvgGradientDef | SvgPatternDef): string 
 	return `url(#${def.id})`;
 }
 
-/** Escapes a value for safe use inside a double-quoted SVG/HTML attribute. */
-function escapeAttr(value: string): string {
-	return String(value)
-		.replace(/&/gu, '&amp;')
-		.replace(/"/gu, '&quot;')
-		.replace(/</gu, '&lt;')
-		.replace(/>/gu, '&gt;');
-}
-
 /** Coerces a value to a finite number and escapes it, for numeric attributes built into markup. */
 function numAttr(value: number): string {
-	return escapeAttr(String(Number.isFinite(value) ? value : 0));
+	return escapeSvgAttr(String(Number.isFinite(value) ? value : 0));
 }
 
 /**
@@ -289,11 +281,11 @@ function numAttr(value: number): string {
  * of how a `SvgGradientDef` was constructed.
  */
 export function svgGradientMarkup(def: SvgGradientDef): string {
-	const id = escapeAttr(def.id);
+	const id = escapeSvgAttr(def.id);
 	const stops = def.stops
 		.map(
 			(stop) =>
-				`<stop offset="${numAttr(stop.offset)}" stop-color="${escapeAttr(stop.color)}"${
+				`<stop offset="${numAttr(stop.offset)}" stop-color="${escapeSvgAttr(stop.color)}"${
 					typeof stop.opacity === 'number' ? ` stop-opacity="${numAttr(stop.opacity)}"` : ''
 				}/>`,
 		)

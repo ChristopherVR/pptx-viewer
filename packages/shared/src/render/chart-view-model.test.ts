@@ -12,6 +12,7 @@ import type { PlotLayout, ValueRange } from './chart-view-model';
 import {
 	buildChartViewModel,
 	buildFallbackViewModel,
+	chartPreserveAspectRatio,
 	computeBarRects,
 	computeBubbleRadius,
 	computeLinePoints,
@@ -914,5 +915,43 @@ describe('buildChartViewModel - non-chart element', () => {
 	it('returns a fallback view-model without crashing', () => {
 		const vm = buildChartViewModel(element as Parameters<typeof buildChartViewModel>[0]);
 		expect(vm.gridlines).toHaveLength(0);
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// chartPreserveAspectRatio
+//
+// Four bindings had each written their own `kind === 'pie' || ...` chain to
+// decide this, and they had drifted: Vue letterboxed sunburst, React stretched
+// the region map. One decision function, five bindings.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('chartPreserveAspectRatio', () => {
+	it('keeps the round and fixed-canvas kinds in proportion', () => {
+		for (const kind of ['pie', 'doughnut', 'radar', 'regionMap'] as const) {
+			expect(chartPreserveAspectRatio(kind)).toBe('xMidYMid meet');
+		}
+	});
+
+	it('stretches every cartesian and hierarchical kind to the element box', () => {
+		for (const kind of [
+			'bar',
+			'line',
+			'area',
+			'scatter',
+			'bubble',
+			'combo',
+			'stock',
+			'surface',
+			'treemap',
+			'waterfall',
+			'funnel',
+			'sunburst',
+			'histogram',
+			'boxWhisker',
+			'unsupported',
+		] as const) {
+			expect(chartPreserveAspectRatio(kind)).toBe('none');
+		}
 	});
 });

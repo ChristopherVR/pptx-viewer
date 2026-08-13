@@ -41,9 +41,22 @@ const DEFAULT_GLOW_COLOR = '#ffff00';
  * `<filter>` markup (some bindings inject that markup via `innerHTML`/
  * `v-html`, so an unescaped id from a crafted OOXML shape id could otherwise
  * break out of the attribute).
+ *
+ * This is the ONE escaper for every string-concatenated SVG in `render/`.
+ * `chart-sparkline`, `svg-gradient-paint` and `image-tiling` all build markup
+ * that lands in `innerHTML`, and each grew its own private copy of exactly
+ * this function; the copies are the failure mode, because a hardening applied
+ * to one of four escapers protects a quarter of the surface.
+ *
+ * `String(value)` is deliberate rather than decorative: these builders are
+ * fed descriptors assembled from parsed OOXML, so a field typed `string` can
+ * still arrive `undefined` from a malformed deck. Coercing yields an inert
+ * `"undefined"` in the attribute instead of throwing partway through building
+ * a markup string, which is what one of the private copies already did and
+ * what the consolidated version must keep doing.
  */
 export function escapeSvgAttr(value: string): string {
-	return value
+	return String(value)
 		.replace(/&/g, '&amp;')
 		.replace(/"/g, '&quot;')
 		.replace(/</g, '&lt;')

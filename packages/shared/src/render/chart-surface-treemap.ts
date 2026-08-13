@@ -40,7 +40,7 @@ function isoProject(x: number, y: number, z: number): { screenX: number; screenY
 	};
 }
 
-/** Map a normalised value t in [0..1] to a surface colour ramp (blue→green→red). */
+/** Map a normalised value t in [0..1] to a surface colour ramp (blue-green-red). */
 function surfaceColor(t: number): { r: number; g: number; b: number } {
 	return {
 		r: Math.round(30 + 200 * t),
@@ -159,7 +159,13 @@ function buildIsometricSurfaceViewModel(
 			.map((v) => `${(v.screenX + offsetX).toFixed(2)},${(v.screenY + offsetY).toFixed(2)}`)
 			.join(' ');
 
-		// Face fill polygon.
+		// Face fill polygon, tagged with the grid vertex it is ANCHORED at (its
+		// top-left corner). A mesh facet spans four data points, so there is no
+		// one value it "is"; the anchor is the only unambiguous mapping, and
+		// without it a surface chart is the one kind whose marks cannot be
+		// selected on canvas at all. The final row/column of vertices anchors no
+		// facet and therefore carries no mark, which is the honest consequence of
+		// a mesh having one fewer cell than vertices per axis.
 		primitives.push({
 			kind: 'polygon',
 			points,
@@ -167,6 +173,7 @@ function buildIsometricSurfaceViewModel(
 			stroke: 'none',
 			strokeWidth: 0,
 			opacity: 0.9,
+			part: { role: 'dataPoint', seriesIndex: row, pointIndex: col },
 		} satisfies SvgPolygon);
 
 		// Subtle edge overlay for depth perception.
@@ -230,6 +237,8 @@ function buildFlatSurfaceViewModel(
 			const val = chartData.series[si]?.values[ci] ?? 0;
 			const t = range.span > 0 ? (val - range.min) / range.span : 0;
 			const { r, g, b } = surfaceColor(t);
+			// One rect per (series, category) cell, so unlike the isometric mesh
+			// the mark maps to exactly one authored value.
 			primitives.push({
 				kind: 'rect',
 				x: layout.plotLeft + ci * cellW,
@@ -238,6 +247,7 @@ function buildFlatSurfaceViewModel(
 				h: cellH + 0.5,
 				fill: `rgb(${r},${g},${b})`,
 				opacity: 0.85,
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
 			} satisfies SvgRect);
 		}
 	}

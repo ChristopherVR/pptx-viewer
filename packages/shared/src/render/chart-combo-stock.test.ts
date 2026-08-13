@@ -945,3 +945,91 @@ describe('buildStockViewModel', () => {
 		expect(vm.svgHeight).toBe(10);
 	});
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Overlay depth lifted out of the React / Vue copies
+//
+// React's private stock and combo renderers called `renderOverlays` (up-down
+// bars, drop lines, hi-low lines, trendlines, error bars) and painted a data
+// table below the plot. The shared builders did neither for stock and only
+// error bars for combo, so converging the bindings on shared would have LOST
+// those. They were lifted here first.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('stock / combo overlay depth', () => {
+	const OHLC: PptxChartData = {
+		chartType: 'stock',
+		categories: CATEGORIES,
+		series: [
+			{ name: 'Open', values: [42, 58, 55, 66] },
+			{ name: 'High', values: [50, 65, 62, 74] },
+			{ name: 'Low', values: [38, 52, 51, 61] },
+			{ name: 'Close', values: [47, 61, 53, 71] },
+		],
+		style: { hasLegend: true, legendPosition: 'b' },
+	};
+
+	it('draws c:hiLowLines on a stock chart', () => {
+		const without = buildStockViewModel(makeElement(), OHLC, CATEGORIES);
+		const withLines = buildStockViewModel(makeElement(), { ...OHLC, hiLowLines: {} }, CATEGORIES);
+		expect(withLines.primitives.length).toBeGreaterThan(without.primitives.length);
+	});
+
+	it('draws c:upDownBars on a stock chart', () => {
+		const without = buildStockViewModel(makeElement(), OHLC, CATEGORIES);
+		const withBars = buildStockViewModel(
+			makeElement(),
+			{ ...OHLC, upDownBars: { gapWidth: 150 } },
+			CATEGORIES,
+		);
+		expect(withBars.primitives.length).toBeGreaterThan(without.primitives.length);
+	});
+
+	it('emits a data-table block for a stock chart that declares one', () => {
+		const vm = buildStockViewModel(
+			makeElement(),
+			{ ...OHLC, dataTable: { showKeys: true, showOutline: true } },
+			CATEGORIES,
+		);
+		expect(vm.dataTable).toBeDefined();
+		expect(vm.dataTable!.length).toBeGreaterThan(0);
+	});
+
+	it('emits a data-table block for a combo chart that declares one', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{ name: 'Revenue', values: [45, 62, 58, 71] },
+				{ name: 'Margin', values: [30, 41, 38, 52] },
+			],
+			dataTable: { showKeys: true, showOutline: true },
+			style: { hasLegend: true, legendPosition: 'b' },
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, CATEGORIES);
+		expect(vm.dataTable).toBeDefined();
+		expect(vm.dataTable!.length).toBeGreaterThan(0);
+	});
+
+	it('draws a trendline on a combo series that declares one', () => {
+		const base: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{ name: 'Revenue', values: [45, 62, 58, 71] },
+				{ name: 'Margin', values: [30, 41, 38, 52] },
+			],
+			style: { hasLegend: true, legendPosition: 'b' },
+		};
+		const without = buildComboViewModel(makeElement(), base, CATEGORIES);
+		const withTrend = buildComboViewModel(
+			makeElement(),
+			{
+				...base,
+				series: [{ ...base.series[0], trendlines: [{ trendlineType: 'linear' }] }, base.series[1]],
+			},
+			CATEGORIES,
+		);
+		expect(withTrend.primitives.length).toBeGreaterThan(without.primitives.length);
+	});
+});

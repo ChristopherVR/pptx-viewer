@@ -21,6 +21,7 @@
  * thrown error in the host.
  */
 
+import { markAutosaveSnapshotConsumed } from './autosave-recovery';
 import { getAutosaveSnapshot } from './autosave-store';
 import { secureRandomToken } from './secure-random';
 
@@ -262,6 +263,10 @@ export async function restoreSessionDeck(): Promise<SessionDeck | null> {
 		const snapshot = await getAutosaveSnapshot(deck.fileName);
 		const bytes = snapshot ? toBytes(snapshot.data) : null;
 		if (snapshot && bytes && bytes.byteLength > 0 && snapshot.timestamp > deck.timestamp) {
+			// The host is taking delivery of this snapshot, so the viewer must not
+			// also offer to "recover" the very bytes it is about to be handed. See
+			// `./autosave-recovery`, which reads the same per-tab marker.
+			markAutosaveSnapshotConsumed(snapshot.timestamp);
 			return { fileName: deck.fileName, data: bytes, timestamp: snapshot.timestamp };
 		}
 	} catch {

@@ -37,6 +37,14 @@ const INTERACTION_CSS = `
 .pptx-chart-interactive svg [data-chart-part] { pointer-events: auto; cursor: pointer; }
 .pptx-chart-interactive svg [data-chart-part]:hover { filter: brightness(1.12); }
 .pptx-chart-interactive svg [data-chart-part='title'] { cursor: text; }
+/* A data label is decoration painted ON TOP of the mark it describes, so it
+   must never intercept that mark's click. The treemap made this unmissable -
+   its label sits dead-centre on the cell, so clicking a cell hit the <text> and
+   selected nothing - but every kind's data labels overlap their marks. Only
+   labels are excluded: the chart title is itself a part and stays clickable.
+   Bindings whose chart <svg> is blanket pointer-events:none (React) never saw
+   this; the other three did, which is exactly why the rule belongs here. */
+.pptx-chart-interactive svg text:not([data-chart-part]) { pointer-events: none; }
 .pptx-chart-interactive svg .pptx-chart-part-selected { filter: drop-shadow(0 0 2.5px #3b82f6); }
 .pptx-chart-interactive svg .pptx-chart-part-selected:hover { filter: drop-shadow(0 0 2.5px #3b82f6) brightness(1.12); }
 `;

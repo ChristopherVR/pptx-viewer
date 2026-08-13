@@ -45,6 +45,9 @@ const WF_COLOR_NEGATIVE = '#ef4444';
 const WF_COLOR_TOTAL = '#6366f1';
 const WF_CONNECTOR_COLOR = '#94a3b8';
 
+/** Bands the region-map colour legend is drawn with. See its use site. */
+const REGION_LEGEND_BANDS = 32;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Public: buildWaterfallViewModel
 // ─────────────────────────────────────────────────────────────────────────────
@@ -608,6 +611,10 @@ export function buildRegionMapViewModel(
 			fill,
 			stroke: '#94a3b8',
 			strokeWidth: Math.max(0.5 / mapScale, 0.3),
+			// Hover tooltip. A choropleth prints only the value inside the shape
+			// (and only where the shape is big enough), so without this the reader
+			// has no way to find out WHICH country a patch of colour is.
+			title: entry ? `${region.name}: ${formatAxisValue(entry.value)}` : region.name,
 			...(entry
 				? {
 						part: {
@@ -650,29 +657,21 @@ export function buildRegionMapViewModel(
 	const barW = Math.min(svgWidth * 0.4, 160);
 	const barX = (svgWidth - barW) / 2;
 
-	// Approximate the gradient using three colour stops as adjacent rects.
-	const gradStops = [
-		{ offset: 0, color: '#dbeafe' },
-		{ offset: 0.5, color: '#3b82f6' },
-		{ offset: 1, color: '#1e3a5f' },
-	];
-	const stopCount = gradStops.length - 1;
-	for (let si = 0; si < stopCount; si++) {
-		const stopA = gradStops[si];
-		const stopB = gradStops[si + 1];
-		if (stopA === undefined || stopB === undefined) {
-			continue;
-		}
-		// Use the midpoint colour of each segment.
-		const midColor = lerpColor(stopA.color, stopB.color, 0.5);
+	// The ramp is banded, not a paint server: `SvgPrimitive` has no gradient
+	// kind, and inventing one would need a matching change in all five
+	// projectors. Two half-width rects (what this used to emit) read as a
+	// two-tone bar rather than a scale, so the band count is high enough that
+	// the seams fall below a pixel at any legend width a slide can produce.
+	for (let band = 0; band < REGION_LEGEND_BANDS; band++) {
 		primitives.push({
 			kind: 'rect',
-			x: barX + stopA.offset * barW,
+			x: barX + (band / REGION_LEGEND_BANDS) * barW,
 			y: legendY,
-			w: (stopB.offset - stopA.offset) * barW,
+			// A hair of overlap: adjacent rects on fractional pixel boundaries
+			// otherwise leave hairline gaps once the slide's zoom transform lands.
+			w: barW / REGION_LEGEND_BANDS + 0.5,
 			h: 8,
-			fill: midColor,
-			rx: si === 0 ? 4 : 0,
+			fill: sequentialColorScale((band + 0.5) / REGION_LEGEND_BANDS),
 		} satisfies SvgRect);
 	}
 

@@ -50,6 +50,33 @@ describe('resolveSlideOutlineElements', () => {
 		expect(resolved.body.map((element) => element.id)).toStrictEqual(['b']);
 	});
 
+	// `<p:ph/>` with every attribute defaulted is the shortest legal spelling of
+	// a body placeholder, and fast-xml-parser materialises it as the empty
+	// STRING. A truthiness test read it as "not a placeholder", so a deck whose
+	// body is spelled that way lost its body text from the outline: the title
+	// placeholder alone satisfied the placeholder branch and the body element
+	// was filtered out of it.
+	it('treats a bare <p:ph/>, which the parser gives as the empty string, as body', () => {
+		const title = textElement('t', { text: 'Title', rawXml: placeholder('title') });
+		const body = textElement('b', {
+			text: 'Body',
+			rawXml: { 'p:nvSpPr': { 'p:nvPr': { 'p:ph': '' } } },
+		});
+		const resolved = resolveSlideOutlineElements(slide('s1', [title, body]));
+		expect(resolved.title?.id).toBe('t');
+		expect(resolved.body.map((element) => element.id)).toStrictEqual(['b']);
+	});
+
+	it('still reports a shape with no p:ph at all as not a placeholder', () => {
+		const title = textElement('t', { text: 'Title', rawXml: placeholder('title') });
+		const free = textElement('f', {
+			text: 'Free text',
+			rawXml: { 'p:nvSpPr': { 'p:nvPr': '' } },
+		});
+		const resolved = resolveSlideOutlineElements(slide('s1', [title, free]));
+		expect(resolved.body).toStrictEqual([]);
+	});
+
 	it('excludes footer / date / slide-number chrome placeholders', () => {
 		const title = textElement('t', { text: 'Title', rawXml: placeholder('title') });
 		const footer = textElement('f', { text: 'Confidential', rawXml: placeholder('ftr') });

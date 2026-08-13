@@ -435,3 +435,61 @@ describe('buildTreemapViewModel — edge cases', () => {
 		expect(vm.svgHeight).toBe(10);
 	});
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Selectable marks
+//
+// Surface was the one kind whose primitives carried no `ChartPartRef` at all,
+// so its marks could not be selected on canvas in any binding. A mesh facet
+// spans four data points, so it is tagged with the grid vertex it is anchored
+// at; the flat fallback maps one rect to exactly one authored value.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('surface: interactive marks', () => {
+	it('tags every isometric facet with its anchoring grid vertex', () => {
+		const chartData: PptxChartData = {
+			chartType: 'surface',
+			categories: ['Q1', 'Q2', 'Q3'],
+			series: [
+				{ name: 'A', values: [10, 20, 30] },
+				{ name: 'B', values: [15, 25, 35] },
+				{ name: 'C', values: [12, 22, 32] },
+			],
+			style: {},
+		};
+		const vm = buildSurfaceViewModel(
+			{ id: 'el', type: 'chart', x: 0, y: 0, width: 400, height: 300 } as never,
+			chartData,
+			chartData.categories,
+		);
+		const faces = vm.primitives.filter(
+			(primitive) => primitive.kind === 'polygon' && primitive.part !== undefined,
+		);
+		// (3 series - 1) x (3 categories - 1) = 4 facets.
+		expect(faces).toHaveLength(4);
+		for (const face of faces) {
+			expect(face.part!.role).toBe('dataPoint');
+			expect(face.part!.seriesIndex).toBeGreaterThanOrEqual(0);
+			expect(face.part!.pointIndex).toBeGreaterThanOrEqual(0);
+		}
+	});
+
+	it('tags each flat-fallback cell with its own (series, category)', () => {
+		const chartData: PptxChartData = {
+			chartType: 'surface',
+			categories: ['Q1', 'Q2', 'Q3'],
+			series: [{ name: 'A', values: [10, 20, 30] }],
+			style: {},
+		};
+		const vm = buildSurfaceViewModel(
+			{ id: 'el', type: 'chart', x: 0, y: 0, width: 400, height: 300 } as never,
+			chartData,
+			chartData.categories,
+		);
+		const cells = vm.primitives.filter(
+			(primitive) => primitive.kind === 'rect' && primitive.part !== undefined,
+		);
+		expect(cells).toHaveLength(3);
+		expect(cells.map((cell) => cell.part!.pointIndex)).toStrictEqual([0, 1, 2]);
+	});
+});

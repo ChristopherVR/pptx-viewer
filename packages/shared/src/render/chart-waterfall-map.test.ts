@@ -520,3 +520,49 @@ describe('buildRegionMapViewModel — edge cases', () => {
 		expect(allTexts).toContain('World Sales');
 	});
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Capabilities lifted out of the React / Vue region-map copies
+//
+// Both bindings drew each region with an SVG `<title>` tooltip and a real
+// `<linearGradient>` legend bar. This builder had neither: a region carried no
+// name at all, and the legend was two half-width rects of the midpoint colours,
+// which reads as a two-tone bar rather than a scale. Both were lifted here so
+// converging on shared lost nothing, and so the other three bindings gained
+// them at the same time.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('region map: region identification and legend ramp', () => {
+	const mapData: PptxChartData = {
+		chartType: 'regionMap',
+		categories: ['United States', 'Germany', 'China'],
+		series: [{ name: 'Revenue', values: [45, 62, 58] }],
+		style: {},
+	};
+
+	it('names every region in a tooltip, with the value where there is one', () => {
+		const vm = buildRegionMapViewModel(makeElement(600, 400), mapData, mapData.categories);
+		const titles = vm.primitives
+			.filter((primitive) => primitive.kind === 'path')
+			.map((primitive) => (primitive as { title?: string }).title);
+		expect(titles).toContain('United States: 45');
+		expect(titles).toContain('Germany: 62');
+		// A region with no data still says what it is.
+		expect(titles).toContain('Australia');
+		// Every region path is identified; none is an anonymous blob.
+		expect(titles.every((title) => typeof title === 'string' && title.length > 0)).toBeTruthy();
+	});
+
+	it('draws the colour legend as a fine ramp, not two flat halves', () => {
+		const vm = buildRegionMapViewModel(makeElement(600, 400), mapData, mapData.categories);
+		// The legend bar sits at a single y with a fixed 8px height; count the
+		// rects that share it.
+		const bandHeights = vm.primitives.filter(
+			(primitive) => primitive.kind === 'rect' && (primitive as { h: number }).h === 8,
+		);
+		expect(bandHeights.length).toBeGreaterThanOrEqual(16);
+		const fills = new Set(bandHeights.map((primitive) => (primitive as { fill: string }).fill));
+		// A ramp, so almost every band is a different colour.
+		expect(fills.size).toBeGreaterThanOrEqual(bandHeights.length - 1);
+	});
+});

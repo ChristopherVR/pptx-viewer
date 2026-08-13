@@ -7,6 +7,7 @@
  * complete `<svg>…</svg>` string each binding can inject directly. Pure, with no
  * framework or DOM dependencies.
  */
+import { escapeSvgAttr } from './visual-effects';
 
 export interface SparklineData {
 	values: number[];
@@ -75,14 +76,6 @@ function scaleValue(
 	return outMin + ((value - min) / (max - min)) * (outMax - outMin);
 }
 
-function escapeAttr(s: string): string {
-	return s
-		.replace(/&/gu, '&amp;')
-		.replace(/"/gu, '&quot;')
-		.replace(/</gu, '&lt;')
-		.replace(/>/gu, '&gt;');
-}
-
 // ── Line Sparkline ──────────────────────────────────────────────────────
 
 function renderLineSparkline(data: SparklineData): string {
@@ -110,7 +103,7 @@ function renderLineSparkline(data: SparklineData): string {
 
 	return [
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`,
-		`<polyline points="${escapeAttr(points)}" fill="none" stroke="${escapeAttr(color)}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`,
+		`<polyline points="${escapeSvgAttr(points)}" fill="none" stroke="${escapeSvgAttr(color)}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`,
 		`</svg>`,
 	].join('');
 }
@@ -148,7 +141,7 @@ function renderBarSparkline(data: SparklineData): string {
 			const barHeight = Math.max(0.5, Math.abs(zeroY - valY));
 
 			const fill = v < 0 ? negColor : color;
-			return `<rect x="${x.toFixed(2)}" y="${barTop.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" fill="${escapeAttr(fill)}"/>`;
+			return `<rect x="${x.toFixed(2)}" y="${barTop.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" fill="${escapeSvgAttr(fill)}"/>`;
 		})
 		.join('');
 
@@ -185,7 +178,7 @@ function renderWinLossSparkline(data: SparklineData): string {
 			const barHeight = halfH;
 			const fill = isPositive ? color : negColor;
 
-			return `<rect x="${x.toFixed(2)}" y="${barTop.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" fill="${escapeAttr(fill)}"/>`;
+			return `<rect x="${x.toFixed(2)}" y="${barTop.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" fill="${escapeSvgAttr(fill)}"/>`;
 		})
 		.join('');
 
