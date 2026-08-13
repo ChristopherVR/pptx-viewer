@@ -8,7 +8,7 @@ import type {
 	ZoomPptxElement,
 } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
-import { mediaTransportVisible } from 'pptx-viewer-shared';
+import { getGroupChildParentFill, mediaTransportVisible } from 'pptx-viewer-shared';
 import React from 'react';
 
 import {
@@ -191,7 +191,11 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 				</div>
 			);
 		}
-		return renderGroup((el as GroupPptxElement).children, (el as GroupPptxElement).groupFill);
+		// Via the shared resolver, not the raw `groupFill`: a group whose own fill
+		// is itself `a:grpFill` has nothing to hand down from here (there is no
+		// enclosing group at this level), and passing the group-mode style on
+		// would have its children resolve against a fill that is not one.
+		return renderGroup((el as GroupPptxElement).children, getGroupChildParentFill(el));
 	}
 	if (shouldRenderFallbackLabel(el, isTxtEl)) {
 		return (

@@ -1,5 +1,9 @@
 import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
-import { groupSlidesBySection, resolveShowSlideIndexes } from 'pptx-viewer-shared';
+import {
+	groupSlidesBySection,
+	masterViewPseudoSlide,
+	resolveShowSlideIndexes,
+} from 'pptx-viewer-shared';
 /**
  * useDerivedSlideState: Memoised computed values derived from slide and
  * presentation state.  Keeps the orchestrator component slim by hosting
@@ -98,36 +102,32 @@ export function computeSlideSectionGroups(
 	}));
 }
 
-/** Compute a pseudo-slide for master / layout canvas rendering. */
+/**
+ * Compute a pseudo-slide for master / layout canvas rendering.
+ *
+ * The composition rule (a layout is painted on top of its own master, and the
+ * pseudo-slide is keyed on the selected part's archive path) lives in
+ * `pptx-viewer-shared` so all five bindings agree; this wrapper only adapts
+ * React's already-resolved master/layout objects to it.
+ */
 export function computeMasterPseudoSlide(
 	mode: ViewerMode,
 	activeLayout: PptxSlideLayout | undefined,
 	activeMaster: PptxSlideMaster | undefined,
 ): PptxSlide | undefined {
-	if (mode !== 'master') {
+	if (mode !== 'master' || !activeMaster) {
 		return undefined;
 	}
-	if (activeLayout) {
-		return {
-			id: activeLayout.path,
-			rId: '',
-			slideNumber: 0,
-			elements: activeLayout.elements ?? [],
-			backgroundColor: activeLayout.backgroundColor ?? activeMaster?.backgroundColor,
-			backgroundImage: activeLayout.backgroundImage ?? activeMaster?.backgroundImage,
-		};
-	}
-	if (activeMaster) {
-		return {
-			id: activeMaster.path,
-			rId: '',
-			slideNumber: 0,
-			elements: activeMaster.elements ?? [],
-			backgroundColor: activeMaster.backgroundColor,
-			backgroundImage: activeMaster.backgroundImage,
-		};
-	}
-	return undefined;
+	// React resolves the layout object itself rather than an index, so pin it
+	// as the master's only layout to address it positionally.
+	const document = activeLayout
+		? { slideMasters: [{ ...activeMaster, layouts: [activeLayout] }] }
+		: { slideMasters: [activeMaster] };
+	return masterViewPseudoSlide(document, {
+		tab: 'slides',
+		masterIndex: 0,
+		layoutIndex: activeLayout ? 0 : null,
+	});
 }
 
 // ---------------------------------------------------------------------------

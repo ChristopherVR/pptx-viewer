@@ -103,6 +103,40 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		transformCommittedText,
 	} = input;
 
+	// View > Slide Master edits a part that is not in `slides`, so element
+	// writes have to be routed to the master/layout/notes/handout model while
+	// the view is open. `null` outside master mode keeps the slide path.
+	const masterView = useMemo(
+		() => ({
+			target:
+				mode === 'master'
+					? {
+							tab: state.masterViewTab,
+							masterIndex: state.activeMasterIndex,
+							layoutIndex: state.activeLayoutIndex,
+						}
+					: null,
+			slideMasters: state.slideMasters,
+			notesMaster: state.notesMaster,
+			handoutMaster: state.handoutMaster,
+			setSlideMasters: state.setSlideMasters,
+			setNotesMaster: state.setNotesMaster,
+			setHandoutMaster: state.setHandoutMaster,
+		}),
+		[
+			mode,
+			state.masterViewTab,
+			state.activeMasterIndex,
+			state.activeLayoutIndex,
+			state.slideMasters,
+			state.notesMaster,
+			state.handoutMaster,
+			state.setSlideMasters,
+			state.setNotesMaster,
+			state.setHandoutMaster,
+		],
+	);
+
 	const ops = useElementOperations({
 		slides,
 		activeSlide,
@@ -111,6 +145,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		selectedElementId,
 		editTemplateMode: state.editTemplateMode,
 		templateElements: state.templateElements,
+		masterView,
 		history,
 		setSlides: state.setSlides,
 		setTemplateElementsBySlideId: state.setTemplateElementsBySlideId,

@@ -1,21 +1,20 @@
-import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
 import { describe, it, expect } from 'vitest';
 
-import type { ParagraphEntry } from './text-animation';
 import {
 	resolveParagraphRtl,
 	resolveParagraphAlign,
 	resolveCssTextAlign,
 	renderTextSegments,
 } from './text-paragraph-render';
-import { renderPictureBullet } from './text-segment-helpers';
-import { renderSingleSegment } from './text-segment-render';
+import { renderParagraphRun } from './text-segment-render';
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-/** Create a minimal ParagraphEntry for unit-testing helpers. */
-function makeParagraphEntry(style: TextStyle, text = 'test'): ParagraphEntry {
-	return { segment: { text, style }, globalIndex: 0 };
+/** Create a minimal paragraph entry for the shared direction/align resolvers. */
+function makeParagraphEntry(style: TextStyle, text = 'test'): { segment: TextSegment } {
+	return { segment: { text, style } };
 }
 
 /** Create a minimal text element with given textStyle overrides. */
@@ -63,8 +62,6 @@ describe('resolveParagraphRtl', () => {
 
 	it("uses the first segment's direction when multiple segments differ", () => {
 		const entries = [makeParagraphEntry({ rtl: true }), makeParagraphEntry({ rtl: false })];
-		// Second entry should get globalIndex = 1 for realistic data
-		entries[1].globalIndex = 1;
 		expect(resolveParagraphRtl(entries, undefined)).toBeTruthy();
 	});
 });
@@ -222,89 +219,49 @@ describe('renderTextSegments: paragraph-level BiDi', () => {
 });
 
 // =======================================================================
-// 5. renderSingleSegment: run-level BiDi
+// 5. renderParagraphRun: run-level BiDi
 // =======================================================================
 
-describe('renderSingleSegment: run-level BiDi override', () => {
-	const baseElement = makeTextElement({});
-	const fallbackColor = '#000000';
+/**
+ * Render one run the way the paragraph renderer does: the run's CSS comes from
+ * shared, the BiDi override is React's own layer on top of it.
+ */
+function runNode(
+	style: TextStyle,
+	text: string,
+	paragraphRtl: boolean | undefined,
+): React.ReactElement {
+	const segment: TextSegment = { text, style };
+	const element = makeTextElement({});
+	const run = buildParagraphs({ ...element, textSegments: [segment] } as PptxElement)[0].runs[0];
+	return renderParagraphRun(run, segment, {
+		element,
+		fallbackColor: '#000000',
+		paragraphRtl,
+	}) as React.ReactElement;
+}
 
+describe('renderParagraphRun: run-level BiDi override', () => {
 	it('applies bidi-override when run direction differs from paragraph (LTR run in RTL para)', () => {
-		const segment = {
-			text: 'Hello',
-			style: { rtl: false } as TextStyle,
-		};
-		const result = renderSingleSegment(
-			baseElement,
-			segment,
-			0,
-			fallbackColor,
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			/* paragraphRtl */ true,
-		) as React.ReactElement;
+		const result = runNode({ rtl: false }, 'Hello', true);
 		expect(result.props.style.direction).toBe('ltr');
 		expect(result.props.style.unicodeBidi).toBe('bidi-override');
 	});
 
 	it('applies bidi-override when run direction differs from paragraph (RTL run in LTR para)', () => {
-		const segment = {
-			text: '\u0645\u0631\u062D\u0628\u0627',
-			style: { rtl: true } as TextStyle,
-		};
-		const result = renderSingleSegment(
-			baseElement,
-			segment,
-			0,
-			fallbackColor,
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			/* paragraphRtl */ false,
-		) as React.ReactElement;
+		const result = runNode({ rtl: true }, 'مرحبا', false);
 		expect(result.props.style.direction).toBe('rtl');
 		expect(result.props.style.unicodeBidi).toBe('bidi-override');
 	});
 
 	it('applies embed when run direction matches paragraph direction', () => {
-		const segment = {
-			text: '\u0645\u0631\u062D\u0628\u0627',
-			style: { rtl: true } as TextStyle,
-		};
-		const result = renderSingleSegment(
-			baseElement,
-			segment,
-			0,
-			fallbackColor,
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			/* paragraphRtl */ true,
-		) as React.ReactElement;
+		const result = runNode({ rtl: true }, 'مرحبا', true);
 		expect(result.props.style.direction).toBe('rtl');
 		expect(result.props.style.unicodeBidi).toBe('embed');
 	});
 
 	it('does not set BiDi properties when run has no explicit direction', () => {
-		const segment = {
-			text: 'neutral',
-			style: {} as TextStyle,
-		};
-		const result = renderSingleSegment(
-			baseElement,
-			segment,
-			0,
-			fallbackColor,
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			/* paragraphRtl */ true,
-		) as React.ReactElement;
+		const result = runNode({}, 'neutral', true);
 		expect(result.props.style.direction).toBeUndefined();
 		expect(result.props.style.unicodeBidi).toBeUndefined();
 	});
@@ -374,21 +331,7 @@ describe('renderTextSegments: embedded numbers in RTL text', () => {
 	});
 
 	it('run-level embed reinforces number rendering in explicitly RTL runs', () => {
-		const segment = {
-			text: '\u0633\u0639\u0631 42.5$',
-			style: { rtl: true } as TextStyle,
-		};
-		const result = renderSingleSegment(
-			makeTextElement({}),
-			segment,
-			0,
-			'#000',
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			/* paragraphRtl */ true,
-		) as React.ReactElement;
+		const result = runNode({ rtl: true }, '\u0633\u0639\u0631 42.5$', true);
 		// Run matches paragraph direction -> embed
 		expect(result.props.style.unicodeBidi).toBe('embed');
 	});
@@ -399,22 +342,28 @@ describe('renderTextSegments: embedded numbers in RTL text', () => {
 // =======================================================================
 
 describe('bullet alignment in RTL paragraphs', () => {
-	it('uses marginInlineEnd on fallback character bullets (works for both LTR and RTL)', () => {
-		const bulletInfo: BulletInfo = { imageRelId: 'rId5' };
-		const result = renderPictureBullet('el-1', 0, bulletInfo, 16) as React.ReactElement;
-		// Should use marginInlineEnd instead of marginRight
-		expect(result.props.style.marginInlineEnd).toBe(4);
-		expect(result.props.style.marginRight).toBeUndefined();
-	});
-
-	it('uses marginInlineEnd on image bullets', () => {
-		const bulletInfo: BulletInfo = {
-			imageDataUrl: 'data:image/png;base64,iVBOR',
-			imageRelId: 'rId5',
-		};
-		const result = renderPictureBullet('el-1', 0, bulletInfo, 16) as React.ReactElement;
-		expect(result.props.style.marginInlineEnd).toBe(4);
-		expect(result.props.style.marginRight).toBeUndefined();
+	it('uses marginInlineEnd on a picture bullet image, never marginRight', () => {
+		// The marker markup is the paragraph renderer's now, built from shared's
+		// resolved `bulletPicture`; a logical margin keeps it on the correct side
+		// in both directions. (`renderPictureBullet` was React's private copy of
+		// this and is gone.)
+		const el = makeTextElement(
+			{},
+			{
+				textSegments: [
+					{
+						text: '• Item',
+						style: {},
+						bulletInfo: { char: '•', imageDataUrl: 'data:image/png;base64,iVBOR' },
+					},
+				],
+			},
+		);
+		const para = (renderTextSegments(el, '#000') as React.ReactElement[])[0];
+		const marker = (para.props.children as React.ReactElement[])[0];
+		expect(marker.type).toBe('img');
+		expect(marker.props.style.marginInlineEnd).toBe(4);
+		expect(marker.props.style.marginRight).toBeUndefined();
 	});
 
 	it('renders an RTL paragraph with a bullet and correct margin direction', () => {

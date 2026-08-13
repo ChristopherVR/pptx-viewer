@@ -1,10 +1,11 @@
 import type { TablePptxElement, PptxTableCell } from 'pptx-viewer-core';
-import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
+import { DEFAULT_FONT_FAMILY, tableContainerCss } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { cn } from '../../utils';
 import type { TableCellEditorState } from '../types';
 import type { TableStyleContext } from './table-band-style';
+import { renderTableCellContent } from './table-cell-runs';
 import { getCellDiagonalBorders, TableCellDiagonalBorders } from './table-diagonal-borders';
 import { computeSelectionRect, isCellInRect, rectToCells } from './table-merge-utils';
 import type { CellRect } from './table-merge-utils';
@@ -66,7 +67,13 @@ export function renderTableFromTableData(
 				    authored cell/run/table-style fonts still win below it. */}
 				<table
 					className='w-full h-full border-collapse table-fixed'
-					style={{ fontFamily: DEFAULT_FONT_FAMILY }}
+					style={
+						{
+							fontFamily: DEFAULT_FONT_FAMILY,
+							// `a:tblPr@rtl` mirrors the column order for RTL decks.
+							...tableContainerCss(tableData),
+						} as React.CSSProperties
+					}
 				>
 					{tableData.columnWidths.length > 0 && (
 						<colgroup>
@@ -174,7 +181,7 @@ export function renderTableFromTableData(
 													}}
 												/>
 											) : (
-												cell.text || '\u00a0'
+												renderTableCellContent(cell, cell.text || '\u00a0')
 											)}
 										</td>
 									);

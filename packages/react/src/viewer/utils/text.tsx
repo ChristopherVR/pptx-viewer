@@ -14,7 +14,7 @@ export {
 	buildTextBody3DSceneStyle,
 } from './text-effects';
 export { getTextWarpStyle } from './text-warp-css';
-export { type ParagraphEntry, buildAnimStyle, wrapWithTextBuildAnimation } from './text-animation';
+export { buildAnimStyle, wrapWithTextBuildAnimation } from './text-animation';
 export {
 	type TextSegmentHighlight,
 	type ElementFindHighlights,
@@ -22,6 +22,6 @@ export {
 	renderScriptAwareText,
 	renderSegmentContent,
 } from './text-segment-helpers';
-export { renderSingleSegment } from './text-segment-render';
+export { type RunRenderContext, renderParagraphRun } from './text-segment-render';
 export { renderTextSegments } from './text-paragraph-render';
 export { getKinsokuLineBreakStyles } from './kinsoku-styles';

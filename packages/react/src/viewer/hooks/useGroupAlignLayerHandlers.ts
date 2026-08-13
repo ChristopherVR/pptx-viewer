@@ -11,6 +11,7 @@ import {
 	groupElements,
 	sendBackward,
 	sendToBack,
+	ungroupElements,
 } from 'pptx-viewer-shared';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 
@@ -79,16 +80,25 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		}
 		const group = selectedElement as GroupPptxElement;
 		const intoTemplate = isTemplateElementId(group.id);
-		const ungrouped: PptxElement[] = group.children.map((child) => ({
-			...structuredClone(child),
-			// Keep child ids in the same store as the group so later edits route
-			// correctly: template groups yield template-prefixed child ids.
-			id: intoTemplate ? makeCloneId(true, child.id || group.id) : child.id || generateElementId(),
-			x: child.x + group.x,
-			y: child.y + group.y,
-		}));
-		ops.updateActiveElements((els) => [...els.filter((el) => el.id !== group.id), ...ungrouped]);
-		setSelectedElementIds(ungrouped.map((el) => el.id));
+		// Keep child ids in the same store as the group so later edits route
+		// correctly: template groups yield template-prefixed child ids. The
+		// shared op does the same for a promoted NESTED group's descendants, and
+		// splices the children in where the group stood instead of appending
+		// them (which reordered the slide's paint order behind the user's back).
+		const childIds = group.children.map((child) =>
+			intoTemplate ? makeCloneId(true, child.id || group.id) : child.id || generateElementId(),
+		);
+		const { elements, childIds: usedIds } = ungroupElements(
+			ops.activeElements,
+			group.id,
+			childIds,
+			{ intoTemplate },
+		);
+		if (usedIds.length === 0) {
+			return;
+		}
+		ops.updateActiveElements(() => elements);
+		setSelectedElementIds(usedIds);
 		history.markDirty();
 	};
 

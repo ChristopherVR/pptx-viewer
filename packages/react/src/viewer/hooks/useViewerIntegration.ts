@@ -44,6 +44,11 @@ export interface UseViewerIntegrationInput {
 	filePath: string | undefined;
 	/** AutoSave toggle state from the title bar. */
 	autosaveEnabled: boolean;
+	/**
+	 * AutoRecover cadence in seconds, resolved from File > Options > Save.
+	 * Optional: omitting it keeps `useAutosave`'s 120s default.
+	 */
+	autosaveIntervalSeconds?: number;
 	canEdit: boolean;
 	mode: ViewerState['mode'];
 	slides: PptxSlide[];
@@ -109,6 +114,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		content,
 		filePath,
 		autosaveEnabled,
+		autosaveIntervalSeconds,
 		canEdit,
 		mode,
 		slides,
@@ -168,6 +174,9 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			content,
 			filePath,
 			autosaveEnabled,
+			autosaveIntervalSeconds,
+			// The File > Fonts toggle, finally reaching a save call.
+			embedFonts: dialogs.embedFontsEnabled,
 			slides,
 			state,
 			history,

@@ -24,6 +24,18 @@ export interface UseContentLifecycleInput {
 	filePath: string | undefined;
 	/** AutoSave toggle state; when false the recovery autosave timer is off. */
 	autosaveEnabled?: boolean;
+	/**
+	 * AutoRecover cadence in seconds, from
+	 * `resolveAutosaveIntervalSeconds(File > Options > Save)`. React was the only
+	 * binding that never passed one (vanilla, svelte and angular all resolve it),
+	 * so the option's number field moved and the timer kept its 120s default.
+	 */
+	autosaveIntervalSeconds?: number;
+	/**
+	 * File > Fonts > "Embed fonts in the file". Forwarded to `useSerialize`, so
+	 * turning it off actually strips the embedded font data on the next save.
+	 */
+	embedFonts?: boolean;
 	slides: PptxSlide[];
 	state: ViewerState;
 	history: EditorHistoryResult;
@@ -61,6 +73,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		content,
 		filePath,
 		autosaveEnabled = true,
+		autosaveIntervalSeconds,
+		embedFonts = true,
 		slides,
 		state,
 		history,
@@ -134,6 +148,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		inlineEditingElementIdRef: state.inlineEditingElementIdRef,
 		inlineEditingTextRef: state.inlineEditingTextRef,
 		password,
+		embedFonts,
 	};
 
 	const serializeSlides = useSerialize(serializeInput);
@@ -149,6 +164,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		filePath,
 		serializeSlides: serializeForRecovery,
 		enabled: autosaveEnabled,
+		...(autosaveIntervalSeconds === undefined ? {} : { intervalSeconds: autosaveIntervalSeconds }),
 	});
 
 	return { handlerRef, serializeSlides, serializeForRecovery, autosaveStatus };

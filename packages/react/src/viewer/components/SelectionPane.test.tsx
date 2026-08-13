@@ -177,7 +177,10 @@ describe('selection Pane rename', () => {
 		pressKey(input, 'Enter');
 
 		expect(harness.markDirty).toHaveBeenCalledOnce();
-		expect(harness.slides()[0].elements[0].name).toBeUndefined();
+		// An explicit `''`, NOT `undefined`. The save writer reads `undefined` as
+		// "the model has no opinion" and leaves `cNvPr/@name` alone, so
+		// committing it made clearing a name a no-op that the file never saw.
+		expect(harness.slides()[0].elements[0].name).toBe('');
 
 		harness.rerender();
 		expect(nameLabel().textContent).toBe('Shape 1');

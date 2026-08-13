@@ -61,40 +61,6 @@ export function smartArtNodeGroupProps(
 // the historical React import surface is unchanged.
 export { chevronPoints, fitFontSize } from 'pptx-viewer-shared';
 
-/**
- * Generate an SVG path string for a gear shape with teeth.
- *
- * The gear is centred at (`cx`, `cy`). Teeth alternate between `outerR` and
- * `innerR` radii around the centre.
- *
- * @param cx     - Centre x coordinate.
- * @param cy     - Centre y coordinate.
- * @param outerR - Outer (tooth tip) radius.
- * @param innerR - Inner (tooth valley) radius.
- * @param teeth  - Number of teeth around the gear.
- * @returns An SVG path data string (M/L/Z).
- */
-export function gearPath(
-	cx: number,
-	cy: number,
-	outerR: number,
-	innerR: number,
-	teeth: number,
-): string {
-	const segments: string[] = [];
-	const step = (Math.PI * 2) / (teeth * 2);
-
-	for (let i = 0; i < teeth * 2; i++) {
-		const angle = i * step - Math.PI / 2;
-		const r = i % 2 === 0 ? outerR : innerR;
-		const x = cx + r * Math.cos(angle);
-		const y = cy + r * Math.sin(angle);
-		segments.push(i === 0 ? `M${x},${y}` : `L${x},${y}`);
-	}
-	segments.push('Z');
-	return segments.join(' ');
-}
-
 // ── Gradient paint server ───────────────────────────────────────────────────
 
 /** Props for {@link SmartArtGradient}. */
@@ -166,6 +132,11 @@ export interface SmartArtNodeTextProps {
 	/** Optional CSS class applied to the outer `<text>` element. */
 	className?: string;
 	/**
+	 * SVG `text-anchor` for the block. Defaults to `'middle'`; `'start'` is used
+	 * by labels parked beside their node (target leaders, gear legend rows).
+	 */
+	textAnchor?: 'start' | 'middle' | 'end';
+	/**
 	 * Axis anchor point for multi-line layout. Defaults to `'middle'`.
 	 *
 	 * - `'middle'`: centre the block around `y` (`dominantBaseline='central'`).
@@ -208,6 +179,7 @@ export function SmartArtNodeText({
 	fontWeight,
 	fontStyle,
 	className,
+	textAnchor = 'middle',
 	anchor = 'middle',
 	maxWidth,
 }: SmartArtNodeTextProps): React.ReactElement {
@@ -215,7 +187,7 @@ export function SmartArtNodeText({
 		return (
 			<text
 				x={x}
-				textAnchor='middle'
+				textAnchor={textAnchor}
 				dominantBaseline='central'
 				fill={fill}
 				fontSize={fontSize}
@@ -261,7 +233,7 @@ export function SmartArtNodeText({
 	return (
 		<text
 			x={x}
-			textAnchor='middle'
+			textAnchor={textAnchor}
 			dominantBaseline={dominantBaseline}
 			fill={fill}
 			fontSize={fontSize}

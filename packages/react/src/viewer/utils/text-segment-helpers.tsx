@@ -1,11 +1,5 @@
-import type { BulletInfo } from 'pptx-viewer-core';
 import type { RunFontSpec } from 'pptx-viewer-shared';
-import {
-	pieceLetterSpacing,
-	resolvePictureBullet,
-	sanitizeMathMl,
-	splitRunForMetrics,
-} from 'pptx-viewer-shared';
+import { pieceLetterSpacing, sanitizeMathMl, splitRunForMetrics } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -273,65 +267,11 @@ export function renderEquationSegment(
 	return <span key={`${elementId}-seg-${segmentIndex}`}>{equationContent}</span>;
 }
 
-/**
- * Render a picture bullet as an `<img>` element.
- *
- * When `bulletInfo.imageDataUrl` is available, renders an `<img>` sized to
- * match the bullet/font size. When only `imageRelId` is set (image not yet
- * resolved), falls back to a default character bullet so the user never sees
- * a broken image icon.
- */
-export function renderPictureBullet(
-	elementId: string,
-	segmentIndex: number,
-	bulletInfo: BulletInfo,
-	baseFontSize: number,
-): React.ReactNode {
-	const picture = resolvePictureBullet(bulletInfo, baseFontSize) ?? {
-		sizePx: baseFontSize,
-		fallbackMarker: '•',
-		accessibleLabel: 'Bullet',
-	};
-
-	// Fallback: when no resolved image data URL is available, render a
-	// default character bullet instead of a broken <img>.
-	// Uses marginInlineEnd so that the spacing is correct in both LTR
-	// (margin appears on the right) and RTL (margin appears on the left).
-	if (!picture.src) {
-		return (
-			<span
-				key={`${elementId}-seg-${segmentIndex}-bullet-fallback`}
-				style={{
-					fontSize: picture.sizePx,
-					display: 'inline-block',
-					verticalAlign: 'middle',
-					marginInlineEnd: 4,
-					color: bulletInfo.color || undefined,
-					fontFamily: bulletInfo.fontFamily || undefined,
-				}}
-				aria-label={picture.accessibleLabel}
-			>
-				{`${picture.fallbackMarker} `}
-			</span>
-		);
-	}
-
-	return (
-		<img
-			key={`${elementId}-seg-${segmentIndex}-bullet-img`}
-			src={picture.src}
-			alt={picture.accessibleLabel}
-			style={{
-				width: picture.sizePx,
-				height: picture.sizePx,
-				display: 'inline-block',
-				verticalAlign: 'middle',
-				marginInlineEnd: 4,
-				objectFit: 'contain',
-			}}
-		/>
-	);
-}
+// Picture bullets are no longer rendered here. Shared `buildParagraphs` resolves
+// the marker (`bulletPicture`, via `resolvePictureBullet`) and React's paragraph
+// renderer emits the `<img>` or the glyph fallback from that descriptor, exactly
+// as the other four bindings do - React's private `renderPictureBullet` was a
+// fifth copy of the same decision.
 
 // Underline decoration (extracted to pptx-viewer-shared).
 // `resolveUnderlineDecorationStyle` + `UnderlineDecorationCss` now live in

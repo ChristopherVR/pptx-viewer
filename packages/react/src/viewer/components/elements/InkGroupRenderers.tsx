@@ -7,6 +7,7 @@ import type {
 } from 'pptx-viewer-core';
 import {
 	filterRenderedElements,
+	getGroupChildParentFill,
 	getOleBadgeLabel,
 	getOleTypeColor,
 	getOleTypeLabel,
@@ -169,13 +170,21 @@ export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
 	);
 }
 
+/**
+ * Fallback painter for a group's children, used when `renderBody` is called
+ * without a `renderGroupChild` dispatcher (the prop is optional, so this is the
+ * behaviour any such caller gets; both viewer renderers supply one).
+ *
+ * It builds its own boxes rather than delegating to `ElementRenderer`, so every
+ * rule the main path gets for free has to be restated here: the Selection Pane
+ * hide filter, document-order z-indexing, and `a:grpFill` inheritance. It also
+ * has to recurse, because a `p:grpSp` inside a `p:grpSp` now loads as a nested
+ * group rather than being flattened into the parent's child list; painting a
+ * group child as a leaf drew an empty box where the whole sub-group belonged.
+ */
 export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyle) {
 	return (
 		<div className='relative w-full h-full pointer-events-none'>
-			{/* This fallback builds its own boxes rather than delegating to
-			    `ElementRenderer`, so it needs the Selection Pane's hide rule
-			    applied explicitly; filtering keeps hidden children out of the DOM
-			    entirely, matching the main renderer. */}
 			{filterRenderedElements(children).map((c, childIndex) => {
 				const { hf, fc, sw, sc } = shapeParams(c);
 				const baseSs = getShapeVisualStyle(c, hf, fc, sw, sc);
@@ -225,7 +234,11 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 						{/* Soft-edge <filter> defs + DAG fill-overlay tint layer. Required so
 						    a soft-edged child's `filter: url(#soft-edge-<id>)` resolves. */}
 						<ShapeEffectOverlay element={c} />
-						{isI && (('svgData' in c && c.svgData) || ('imageData' in c && c.imageData)) ? (
+						{c.type === 'group' ? (
+							// A nested group: recurse, chaining the inherited fill so a
+							// `grpFill` shape under a fill-less sub-group still paints.
+							renderGroup(c.children, getGroupChildParentFill(c, parentGroupFill))
+						) : isI && (('svgData' in c && c.svgData) || ('imageData' in c && c.imageData)) ? (
 							isImageTiled(c) ? (
 								<div
 									className='pointer-events-none select-none w-full h-full'

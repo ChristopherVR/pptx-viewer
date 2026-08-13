@@ -148,6 +148,8 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 				embedFontsEnabled={dialogs.embedFontsEnabled}
 				usedFontFamilies={propertyHandlers.usedFontFamilies}
 				embeddedFonts={embeddedFonts.map((f) => f.name)}
+				canEmbedFonts={dialogs.fontEmbedding.interactive}
+				embedUnavailableKey={dialogs.fontEmbedding.disabledReasonKey}
 				onClose={() => dialogs.setIsFontEmbeddingOpen(false)}
 				onToggleEmbedFonts={dialogs.setEmbedFontsEnabled}
 			/>

@@ -8,6 +8,7 @@
  * @module viewer-dialog-types
  */
 import type { PptxSlide, PptxPresentationProperties } from 'pptx-viewer-core';
+import type { FontEmbeddingDescriptor } from 'pptx-viewer-shared';
 
 import type { CanvasSize } from '../types';
 import type { ViewerMode } from '../types-core';
@@ -82,6 +83,12 @@ export interface UseViewerDialogsInput {
 	isDirty: boolean;
 	/** Editor history instance (used for markDirty on settings changes). */
 	history: EditorHistoryResult;
+	/**
+	 * Typeface names the loaded deck embeds (`p:embeddedFontLst`). Decides
+	 * whether the "Embed fonts" toggle can do anything, and which position it
+	 * starts in.
+	 */
+	embeddedFontFamilies?: readonly string[];
 }
 
 /**
@@ -129,9 +136,15 @@ export interface ViewerDialogsResult {
 	/** OMML data for the equation currently being edited, or null. */
 	editingEquationOmml: Record<string, unknown> | null;
 	setEditingEquationOmml: React.Dispatch<React.SetStateAction<Record<string, unknown> | null>>;
-	/** Whether font embedding is enabled for save. */
+	/**
+	 * Whether the saved file will carry the deck's embedded fonts. Read by
+	 * `useSerialize` via `embeddedFontSaveOptions`; false strips
+	 * `p:embeddedFontLst` and the `.fntdata` parts.
+	 */
 	embedFontsEnabled: boolean;
 	setEmbedFontsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+	/** Whether the toggle can do anything on this deck, and why not when it cannot. */
+	fontEmbedding: FontEmbeddingDescriptor;
 	/** True when the container is narrower than 768px (triggers compact layout). */
 	isNarrowViewport: boolean;
 

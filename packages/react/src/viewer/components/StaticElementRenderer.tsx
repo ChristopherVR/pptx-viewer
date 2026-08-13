@@ -242,7 +242,10 @@ function StaticElementRendererImpl({
 							zIndex={index}
 							fieldContext={fieldContext}
 							tableStyleContext={tableStyleContext}
-							parentGroupFill={getGroupChildParentFill(element)}
+							// Chained, not just this group's own fill: `a:grpFill` resolves
+							// against the nearest ANCESTOR that has one, so a nested group
+							// without a fill of its own passes its parent's straight down.
+							parentGroupFill={getGroupChildParentFill(element, parentGroupFill)}
 							onActionClick={onActionClick}
 							actionRequiresModifier={actionRequiresModifier}
 							exposeElementId={exposeElementId}

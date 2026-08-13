@@ -26,6 +26,18 @@ export interface EditorHistoryInput {
 	maxHistoryEntries?: number;
 	hasActivePointerInteraction: () => boolean;
 	pointerCommitNonce: number;
+	/**
+	 * Raised whenever a local edit is committed, i.e. exactly when this hook
+	 * learns the deck has diverged from what was last loaded or saved.
+	 *
+	 * This is what drives `state.isDirty`, and through it the status bar, the
+	 * host's `onDirtyChange` (the demos hang their "* filename" title marker off
+	 * it) and - critically - `useAutosave`, which short-circuits on a clean
+	 * document. Before this existed, `isDirty` was raised only by a few
+	 * master-view and document-property paths, so an element nudge, Home > New
+	 * Slide or a notes edit left the flag false and crash recovery never ran.
+	 */
+	onDirty?: () => void;
 	// Setters for applying snapshots
 	setSlides: (slides: PptxSlide[]) => void;
 	setCanvasSize: (size: CanvasSize) => void;
@@ -70,6 +82,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		maxHistoryEntries = DEFAULT_MAX_HISTORY_ENTRIES,
 		hasActivePointerInteraction,
 		pointerCommitNonce,
+		onDirty,
 		setSlides,
 		setCanvasSize,
 		setActiveSlideIndex,
@@ -176,8 +189,19 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		}, 0);
 	}, []);
 
+	/**
+	 * Held in a ref so `markDirty` can stay identity-stable: it is passed down
+	 * into dozens of memoised handlers, and a changing identity would invalidate
+	 * all of them on every render.
+	 */
+	const onDirtyRef = useRef(onDirty);
+	useEffect(() => {
+		onDirtyRef.current = onDirty;
+	}, [onDirty]);
+
 	const markDirty = useCallback(() => {
 		setEditCommitNonce((previous) => previous + 1);
+		onDirtyRef.current?.();
 	}, []);
 
 	// -- Stack navigation ---------------------------------------------------
@@ -312,6 +336,12 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 			return;
 		}
 
+		// Reaching here means the deck genuinely differs from the last snapshot,
+		// which is the strongest "this document is dirty" signal there is: it is
+		// true even for an edit path that forgot to call `markDirty()`. The very
+		// first snapshot after a load takes the `!previousSnapshot` branch above
+		// and so never reports dirty.
+		onDirtyRef.current?.();
 		historyPastRef.current.push(cloneHistorySnapshot(previousSnapshot));
 		while (historyPastRef.current.length > Math.max(1, maxHistoryEntries)) {
 			historyPastRef.current.shift();

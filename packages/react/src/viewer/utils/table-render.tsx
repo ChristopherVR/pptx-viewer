@@ -14,7 +14,7 @@ import type {
  *   - table-render-data.tsx       - renderTableFromTableData (programmatic tables)
  *   - table-render.tsx            - renderTableElement (XML-based tables)
  */
-import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
+import { DEFAULT_FONT_FAMILY, tableContainerCss } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -22,6 +22,7 @@ import { cn } from '../../utils';
 import { EMU_PER_PX } from '../constants';
 import type { TableCellEditorState } from '../types';
 import { ensureArrayValue } from './geometry';
+import { renderTableCellContent } from './table-cell-runs';
 import { getCellDiagonalBorders, TableCellDiagonalBorders } from './table-diagonal-borders';
 import { computeSelectionRect, isCellInRect, rectToCells } from './table-merge-utils';
 import type { CellRect } from './table-merge-utils';
@@ -111,7 +112,13 @@ export function renderTableElement(
 				    root; authored cell/run/table-style fonts still win below it. */}
 				<table
 					className='w-full h-full border-collapse table-fixed'
-					style={{ fontFamily: DEFAULT_FONT_FAMILY }}
+					style={
+						{
+							fontFamily: DEFAULT_FONT_FAMILY,
+							// `a:tblPr@rtl` mirrors the column order for RTL decks.
+							...tableContainerCss(tableEl.tableData),
+						} as React.CSSProperties
+					}
 				>
 					{parsedTable.columnPercentages.length > 0 ? (
 						<colgroup>
@@ -266,7 +273,10 @@ export function renderTableElement(
 														}}
 													/>
 												) : (
-													extractCellText(cell) || '\u00a0'
+													renderTableCellContent(
+														tableEl.tableData?.rows[rowIndex]?.cells[cellIndex],
+														extractCellText(cell) || '\u00a0',
+													)
 												)}
 											</td>
 										);

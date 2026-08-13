@@ -1,8 +1,9 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 
-import { renderSingleSegment } from './text-segment-render';
+import { renderParagraphRun } from './text-segment-render';
 
 /**
  * issue #132 - the per-script font span clobbered the fallback chain.
@@ -20,8 +21,8 @@ import { renderSingleSegment } from './text-segment-render';
  *     the font the browser fell back to its own default - a serif, for CJK.
  */
 
-function segment(style: Record<string, unknown>, text: string) {
-	return { style, text };
+function segment(style: Record<string, unknown>, text: string): TextSegment {
+	return { style, text } as TextSegment;
 }
 
 const element = {
@@ -34,8 +35,10 @@ const element = {
 } as unknown as PptxElement;
 
 function render(style: Record<string, unknown>, text: string): string {
+	const seg = segment(style, text);
+	const run = buildParagraphs({ ...element, textSegments: [seg] } as PptxElement)[0].runs[0];
 	return renderToStaticMarkup(
-		<>{renderSingleSegment(element, segment(style, text), 0, '#000000', undefined, undefined)}</>,
+		<>{renderParagraphRun(run, seg, { element, fallbackColor: '#000000' })}</>,
 	);
 }
 

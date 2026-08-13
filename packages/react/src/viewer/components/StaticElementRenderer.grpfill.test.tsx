@@ -55,6 +55,34 @@ function group(groupFill: ShapeStyle | undefined): PptxElement {
 	} as PptxElement;
 }
 
+/** An outer group holding an inner group whose only child uses `a:grpFill`. */
+function nestedGroup(
+	outerFill: ShapeStyle | undefined,
+	innerFill: ShapeStyle | undefined,
+): PptxElement {
+	return {
+		type: 'group',
+		id: 'outer',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 200,
+		groupFill: outerFill,
+		children: [
+			{
+				type: 'group',
+				id: 'inner',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 100,
+				groupFill: innerFill,
+				children: [grpFillChild('child-1')],
+			},
+		],
+	} as PptxElement;
+}
+
 /** Reads the rendered background colour of the group's grpFill child. */
 function childBackground(): string {
 	const child = container.querySelector<HTMLElement>('[data-static-element-type="shape"]');
@@ -76,5 +104,31 @@ describe('a:grpFill inheritance in StaticElementRenderer', () => {
 		});
 		// No parent fill to inherit: the base visual style keeps it transparent.
 		expect(childBackground()).toBe('transparent');
+	});
+
+	// `a:grpFill` resolves against the nearest ANCESTOR group that has a fill.
+	// The renderer asked the IMMEDIATE group only, so once a `p:grpSp` inside a
+	// `p:grpSp` loaded as a real nested group, a shape two levels down painted
+	// transparent. PowerPoint paints it with the outer group's fill.
+	it('paints a grpFill leaf inside a fill-less nested group', () => {
+		act(() => {
+			root.render(
+				<StaticElementRenderer element={nestedGroup({ fillColor: '#ff0000' }, undefined)} />,
+			);
+		});
+		const bg = childBackground();
+		expect(bg === '#ff0000' || bg === 'rgb(255, 0, 0)').toBeTruthy();
+	});
+
+	it('paints a grpFill leaf inside a nested group that is itself grpFill', () => {
+		act(() => {
+			root.render(
+				<StaticElementRenderer
+					element={nestedGroup({ fillColor: '#ff0000' }, { fillMode: 'group' })}
+				/>,
+			);
+		});
+		const bg = childBackground();
+		expect(bg === '#ff0000' || bg === 'rgb(255, 0, 0)').toBeTruthy();
 	});
 });

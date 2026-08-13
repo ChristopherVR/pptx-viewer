@@ -1,36 +1,20 @@
-import type { TextStyle, BulletInfo } from 'pptx-viewer-core';
 import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
+import type { ParagraphRun } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { TEXT_BUILD_ID_SEP } from './animation-timeline';
 import type { ElementAnimationState } from './animation-timeline';
 
 /**
- * A paragraph entry linking a text segment to its global index
- * in the original textSegments array (for highlights).
+ * Render one piece of a split paragraph: the caller re-renders `run` with
+ * `text` substituted, so the piece keeps the run's font, size, colour,
+ * decoration and hyperlink. `pieceKey` disambiguates the re-rendered node.
  */
-export interface ParagraphEntry {
-	segment: {
-		text: string;
-		style: TextStyle;
-		bulletInfo?: BulletInfo;
-		fieldType?: string;
-		equationXml?: Record<string, unknown>;
-		equationNumber?: string;
-		rubyText?: string;
-		rubyAlignment?: string;
-		rubyFontSize?: number;
-		rubyStyle?: TextStyle;
-	};
-	globalIndex: number;
-}
-
-/**
- * Render one piece of a split paragraph: the caller re-renders `entry`'s
- * segment with `text` substituted, so the piece keeps the run's font, size,
- * colour, decoration and hyperlink.
- */
-export type RenderTextBuildPiece = (entry: ParagraphEntry, text: string) => React.ReactNode;
+export type RenderTextBuildPiece = (
+	run: ParagraphRun,
+	text: string,
+	pieceKey: string,
+) => React.ReactNode;
 
 /**
  * Build inline style for a sub-element animation state (visibility + CSS animation).
@@ -68,7 +52,7 @@ export function wrapWithTextBuildAnimation(
 	elementId: string,
 	paraIndex: number,
 	renderedSegments: React.ReactNode[],
-	paraSegments: ReadonlyArray<ParagraphEntry>,
+	paraRuns: ReadonlyArray<ParagraphRun>,
 	subElementAnimStates: ReadonlyMap<string, ElementAnimationState> | undefined,
 	renderPiece?: RenderTextBuildPiece,
 ): React.ReactNode {
@@ -88,10 +72,10 @@ export function wrapWithTextBuildAnimation(
 		);
 	}
 
-	const spec = buildTextBuildSpec<ParagraphEntry>(
+	const spec = buildTextBuildSpec<ParagraphRun>(
 		elementId,
 		paraIndex,
-		paraSegments.map((entry) => ({ text: entry.segment.text, style: entry })),
+		paraRuns.map((run) => ({ text: run.text, style: run })),
 		subElementAnimStates,
 	);
 	if (!spec?.spans) {
@@ -99,7 +83,8 @@ export function wrapWithTextBuildAnimation(
 	}
 
 	return spec.spans.map((span, index) => {
-		const content = span.style && renderPiece ? renderPiece(span.style, span.text) : span.text;
+		const content =
+			span.style && renderPiece ? renderPiece(span.style, span.text, String(index)) : span.text;
 		if (!span.animId) {
 			// Whitespace between words: emitted verbatim, never animated.
 			return <React.Fragment key={`ws-${index}`}>{content}</React.Fragment>;

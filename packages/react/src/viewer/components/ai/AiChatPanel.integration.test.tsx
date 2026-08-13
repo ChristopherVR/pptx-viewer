@@ -169,17 +169,35 @@ async function flush(times = 8): Promise<void> {
 	}
 }
 
-async function waitForDom(container: HTMLElement, needle: string, timeoutMs = 3000): Promise<void> {
+/**
+ * Poll until `predicate` holds, yielding real time between attempts.
+ *
+ * The panel's session bootstrap is genuinely asynchronous (`useAiChat` awaits
+ * `isAiAvailable()`, which dynamically `import()`s the optional `ai` SDK, then
+ * awaits `createAiChatSession`). A fixed number of microtask turns is therefore
+ * NOT a valid readiness signal: it only happened to suffice while that import
+ * chain was short, and any growth in the module graph left the panel rendering
+ * its `state === 'checking'` spinner with no composer in the DOM.
+ */
+async function waitFor(predicate: () => boolean, what: string, timeoutMs = 5000): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
-	while (!(container.textContent ?? '').includes(needle)) {
+	while (!predicate()) {
 		if (Date.now() > deadline) {
-			throw new Error(`waitForDom: "${needle}" not found before deadline`);
+			throw new Error(`waitFor: ${what} did not happen before deadline`);
 		}
 		await flush(2);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 5);
 		});
 	}
+}
+
+async function waitForDom(container: HTMLElement, needle: string, timeoutMs = 3000): Promise<void> {
+	await waitFor(
+		() => (container.textContent ?? '').includes(needle),
+		`"${needle}" in the DOM`,
+		timeoutMs,
+	);
 }
 
 function findButton(container: HTMLElement, label: string): HTMLButtonElement {
@@ -243,7 +261,9 @@ describe('aiChatPanel integration', () => {
 				}),
 			);
 		});
-		await flush();
+		// Wait for the async session bootstrap to swap the spinner for the
+		// conversation; the composer only exists once `state === 'ready'`.
+		await waitFor(() => Boolean(host?.querySelector('textarea')), 'the AI composer to mount');
 
 		// Panel is live: type a request and send it.
 		const textarea = host.querySelector('textarea');

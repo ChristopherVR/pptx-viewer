@@ -233,7 +233,9 @@ describe('computeMasterPseudoSlide', () => {
 		const result = computeMasterPseudoSlide('master', layout, master);
 		expect(result).toBeDefined();
 		expect(result!.id).toBe(layout.path);
-		expect(result!.elements).toBe(layout.elements);
+		// A layout is painted on top of its master, so the pseudo-slide holds a
+		// merged list rather than the layout's own array.
+		expect(result!.elements).toStrictEqual(layout.elements);
 		expect(result!.backgroundColor).toBe('#FFFFFF');
 		// Falls back to master's backgroundImage since layout has none
 		expect(result!.backgroundImage).toBe('data:image/png;base64,master');
@@ -268,8 +270,32 @@ describe('computeMasterPseudoSlide', () => {
 		const result = computeMasterPseudoSlide('master', undefined, master);
 		expect(result).toBeDefined();
 		expect(result!.id).toBe(master.path);
-		expect(result!.elements).toBe(master.elements);
+		expect(result!.elements).toStrictEqual(master.elements);
 		expect(result!.backgroundColor).toBe('#CCCCCC');
+	});
+
+	it('paints the master artwork behind the selected layout', () => {
+		// View > Slide Master used to show a layout on an empty canvas: the
+		// master's logo, divider and placeholder prompts vanished the moment a
+		// layout was selected, which is not what PowerPoint shows.
+		const master = {
+			path: 'ppt/slideMasters/slideMaster1.xml',
+			elements: [
+				{ id: 'slide-master-slideMaster1-shape-0', type: 'shape', x: 0, y: 0, width: 1, height: 1 },
+			] as unknown as PptxElement[],
+		} as PptxSlideMaster;
+		const layout: PptxSlideLayout = {
+			path: 'ppt/slideLayouts/slideLayout1.xml',
+			elements: [
+				{ id: 'slide-layout-slideLayout1-shape-0', type: 'shape', x: 0, y: 0, width: 1, height: 1 },
+			] as unknown as PptxElement[],
+		};
+
+		const result = computeMasterPseudoSlide('master', layout, master);
+		expect(result!.elements.map((el) => el.id)).toStrictEqual([
+			'slide-master-slideMaster1-shape-0',
+			'slide-layout-slideLayout1-shape-0',
+		]);
 	});
 
 	it('sets slideNumber to 0 and empty rId', () => {

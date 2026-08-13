@@ -144,8 +144,11 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	const viewerOptions = useViewerOptionsContext();
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
-	const effectiveTemplateElements =
-		mode === 'master' ? (s.activeLayout ? (s.activeMaster?.elements ?? []) : []) : templateElements;
+	// In master mode the pseudo-slide already carries the master's artwork
+	// behind the selected layout's (see `masterViewPseudoSlide` in
+	// `pptx-viewer-shared`), so passing it again here would paint it twice and
+	// leave the duplicate un-editable.
+	const effectiveTemplateElements = mode === 'master' ? [] : templateElements;
 
 	// ── Field substitution context ──────────────────────────────────────
 	// Assembled by `pptx-viewer-shared` so all five bindings resolve fields

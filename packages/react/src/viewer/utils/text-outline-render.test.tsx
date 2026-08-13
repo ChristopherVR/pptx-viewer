@@ -1,10 +1,18 @@
-import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
+import type { ParagraphRun } from 'pptx-viewer-shared';
 import { describe, it, expect } from 'vitest';
 
-import { renderSingleSegment } from './text-segment-render';
+import { renderParagraphRun } from './text-segment-render';
 
 /**
- * Helper to create a minimal text element for renderSingleSegment tests.
+ * The `-webkit-text-stroke` + `paint-order` decision moved into shared
+ * (`text-run-style`), so all five bindings paint an outlined run the same way.
+ * These still drive React's production renderer, which merges shared's run CSS.
+ */
+
+/**
+ * Helper to create a minimal text element for the run renderer.
  */
 function makeElement(
 	textStyleOverrides: Partial<TextStyle> = {},
@@ -21,24 +29,22 @@ function makeElement(
 	} as unknown as PptxElement & Partial<{ textStyle: TextStyle }>;
 }
 
-/**
- * Helper to extract the outer span style from renderSingleSegment output.
- * renderSingleSegment returns a <span> (or a link wrapper around a <span>).
- */
+/** The run shared's builder produces for a one-segment element. */
+function runOf(element: PptxElement, segment: TextSegment): ParagraphRun {
+	return buildParagraphs({ ...element, textSegments: [segment] } as PptxElement)[0].runs[0];
+}
+
+/** Render one run and return its span style (a link wraps the span). */
 function getSpanStyle(
 	segmentStyle: Partial<TextStyle>,
 	elementTextStyle: Partial<TextStyle> = {},
 ): React.CSSProperties {
+	const segment: TextSegment = { style: segmentStyle as TextStyle, text: 'Test' };
 	const element = makeElement(elementTextStyle);
-	const segment = { style: segmentStyle as TextStyle, text: 'Test' };
-	const result = renderSingleSegment(
+	const result = renderParagraphRun(runOf(element, segment), segment, {
 		element,
-		segment,
-		0,
-		'#000000',
-		undefined,
-		undefined,
-	) as React.ReactElement;
+		fallbackColor: '#000000',
+	}) as React.ReactElement;
 	return result.props.style;
 }
 
@@ -135,7 +141,8 @@ describe('text outline / stroke rendering', () => {
 		});
 		expect(style.WebkitTextStroke).toBe('2px #FF00FF');
 		expect(style.paintOrder).toBe('stroke fill');
-		expect(style.fontWeight).toBe(700);
+		// Shared declares the CSS keyword; `700` and `bold` compute identically.
+		expect(style.fontWeight).toBe('bold');
 		expect(style.fontStyle).toBe('italic');
 	});
 
@@ -155,8 +162,7 @@ describe('text outline / stroke rendering', () => {
 	});
 
 	it('applies outline to hyperlink text segments', () => {
-		const element = makeElement();
-		const segment = {
+		const segment: TextSegment = {
 			style: {
 				textOutlineWidth: 2,
 				textOutlineColor: '#FF0000',
@@ -164,16 +170,12 @@ describe('text outline / stroke rendering', () => {
 			} as TextStyle,
 			text: 'Link Text',
 		};
-		const onHyperlinkClick = () => {};
-		const result = renderSingleSegment(
+		const element = makeElement();
+		const result = renderParagraphRun(runOf(element, segment), segment, {
 			element,
-			segment,
-			0,
-			'#000000',
-			undefined,
-			undefined,
-			onHyperlinkClick,
-		) as React.ReactElement;
+			fallbackColor: '#000000',
+			onHyperlinkClick: () => {},
+		}) as React.ReactElement;
 		// When hyperlink + handler, result is a wrapper <span role="link"> with children array
 		expect(result.props.role).toBe('link');
 		const children = result.props.children as React.ReactElement[];

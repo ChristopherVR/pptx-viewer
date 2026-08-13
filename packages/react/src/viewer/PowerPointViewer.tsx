@@ -28,6 +28,7 @@ import {
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	resolveAutosaveIntervalSeconds,
 	viewerOptionsToPreferences,
 	writeStoredViewerPrefs,
 } from 'pptx-viewer-shared';
@@ -469,6 +470,15 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			selectedElements: state.selectedElements,
 		});
 
+		// Every local edit commit funnels through the history hook, so this is the
+		// one place that has to raise the dirty flag. It feeds the status bar, the
+		// host's `onDirtyChange` and `useAutosave` (which does nothing at all
+		// while the document reads clean).
+		const { setIsDirty } = state;
+		const markDocumentDirty = useCallback(() => {
+			setIsDirty(true);
+		}, [setIsDirty]);
+
 		const history = useEditorHistory({
 			slides,
 			canvasSize,
@@ -482,6 +492,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			error,
 			hasActivePointerInteraction,
 			pointerCommitNonce: state.pointerCommitNonce,
+			onDirty: markDocumentDirty,
 			setSlides: state.setSlides,
 			setCanvasSize: state.setCanvasSize,
 			setActiveSlideIndex: state.setActiveSlideIndex,
@@ -573,6 +584,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			hasDigitalSignatures: state.hasDigitalSignatures,
 			isDirty: state.isDirty,
 			history,
+			embeddedFontFamilies: state.embeddedFonts.map((font) => font.name),
 		});
 
 		// ── Editor operations (element ops, canvas, insert, etc.) ─────
@@ -652,6 +664,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			content,
 			filePath,
 			autosaveEnabled,
+			// File > Options > Save > "Save AutoRecover information every N
+			// minutes". React alone ignored it and stayed on the 120s default.
+			autosaveIntervalSeconds: resolveAutosaveIntervalSeconds(viewerOptions),
 			canEdit,
 			mode,
 			slides,

@@ -1,4 +1,5 @@
-import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
+import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import { masterViewPseudoSlide } from 'pptx-viewer-shared';
 import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,27 +11,19 @@ import { SlideThumbnail } from './SlideThumbnail';
 // Helpers: build pseudo PptxSlide for thumbnail rendering
 // ---------------------------------------------------------------------------
 
-function masterToSlide(master: PptxSlideMaster): PptxSlide {
-	return {
-		id: master.path,
-		rId: '',
-		slideNumber: 0,
-		elements: master.elements ?? [],
-		backgroundColor: master.backgroundColor,
-		backgroundImage: master.backgroundImage,
-	};
+/**
+ * The rail's thumbnails are the same pseudo-slides the master canvas paints,
+ * so they come from the shared rule rather than a fourth local copy of it: a
+ * layout thumbnail shows the master's artwork behind its own.
+ */
+function partToSlide(master: PptxSlideMaster, layoutIndex: number | null): PptxSlide | undefined {
+	return masterViewPseudoSlide(
+		{ slideMasters: [master] },
+		{ tab: 'slides', masterIndex: 0, layoutIndex },
+	);
 }
 
-function layoutToSlide(layout: PptxSlideLayout): PptxSlide {
-	return {
-		id: layout.path,
-		rId: '',
-		slideNumber: 0,
-		elements: layout.elements ?? [],
-		backgroundColor: layout.backgroundColor,
-		backgroundImage: layout.backgroundImage,
-	};
-}
+const EMPTY_SLIDE: PptxSlide = { id: '', rId: '', slideNumber: 0, elements: [] };
 
 // ---------------------------------------------------------------------------
 // Props
@@ -85,7 +78,7 @@ export function SlideMastersList({
 						>
 							<div className='relative overflow-hidden rounded bg-white'>
 								<SlideThumbnail
-									slide={masterToSlide(master)}
+									slide={partToSlide(master, null) ?? EMPTY_SLIDE}
 									templateElements={[]}
 									canvasSize={canvasSize}
 								/>
@@ -122,8 +115,8 @@ export function SlideMastersList({
 										>
 											<div className='relative overflow-hidden rounded bg-white'>
 												<SlideThumbnail
-													slide={layoutToSlide(layout)}
-													templateElements={master.elements ?? []}
+													slide={partToSlide(master, layoutIdx) ?? EMPTY_SLIDE}
+													templateElements={[]}
 													canvasSize={canvasSize}
 												/>
 											</div>

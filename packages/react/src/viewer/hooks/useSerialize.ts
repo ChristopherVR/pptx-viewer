@@ -14,7 +14,7 @@ import type {
 } from 'pptx-viewer-core';
 import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
 import type { DeckSavePurpose } from 'pptx-viewer-shared';
-import { saveDeckWithPassword } from 'pptx-viewer-shared';
+import { embeddedFontSaveOptions, saveDeckWithPassword } from 'pptx-viewer-shared';
 /**
  * useSerialize: Builds the `serializeSlides` callback that persists the
  * current slide deck (including header/footer, properties, etc.) via the
@@ -51,6 +51,14 @@ export interface UseSerializeInput {
 	inlineEditingTextRef: React.MutableRefObject<string>;
 	password?: string;
 	/**
+	 * File > Fonts > "Embed fonts in the file". `false` passes
+	 * `embeddedFontList: null`, which strips `p:embeddedFontLst`, the `/font`
+	 * relationships and the `.fntdata` parts; `true` (the default) leaves core to
+	 * re-embed whatever the deck arrived with. Before this the toggle reached no
+	 * save call at all and the saved bytes were identical either way.
+	 */
+	embedFonts?: boolean;
+	/**
 	 * Why these bytes are being produced. Defaults to `'user-file'` (Save, Save
 	 * As, Export, the imperative `getContent()`), which honours `password`.
 	 * `'recovery-snapshot'` is for bytes the viewer reads back itself - the
@@ -86,6 +94,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
 		password,
+		embedFonts = true,
 		purpose,
 	} = input;
 
@@ -149,6 +158,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			tags: tagCollections.length > 0 ? tagCollections : undefined,
 			notesMaster,
 			handoutMaster,
+			...embeddedFontSaveOptions(embedFonts),
 		};
 
 		// One shared decision for all five bindings: a captured password means
@@ -174,6 +184,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
 		password,
+		embedFonts,
 		purpose,
 	]);
 }

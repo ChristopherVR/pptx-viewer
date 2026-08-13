@@ -1,8 +1,9 @@
-import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
 import type React from 'react';
 import { describe, it, expect } from 'vitest';
 
-import { renderSingleSegment } from './text-segment-render';
+import { renderParagraphRun } from './text-segment-render';
 
 function makeElement(): PptxElement & Partial<{ textStyle: TextStyle }> {
 	return {
@@ -16,20 +17,22 @@ function makeElement(): PptxElement & Partial<{ textStyle: TextStyle }> {
 	} as unknown as PptxElement & Partial<{ textStyle: TextStyle }>;
 }
 
-/** Render a single plain-text segment and return its resolved span style. */
+/**
+ * Render one run the way the paragraph renderer does - shared builds the run's
+ * CSS, React layers its own resolution on top - and return the span's style.
+ */
 function styleOf(style: TextStyle): React.CSSProperties {
-	const node = renderSingleSegment(
-		makeElement(),
-		{ text: 'Hello', style },
-		0,
-		'#000000',
-		undefined,
-		undefined,
-	) as React.ReactElement<{ style: React.CSSProperties }>;
+	const segment: TextSegment = { text: 'Hello', style };
+	const element = makeElement();
+	const run = buildParagraphs({ ...element, textSegments: [segment] } as PptxElement)[0].runs[0];
+	const node = renderParagraphRun(run, segment, {
+		element,
+		fallbackColor: '#000000',
+	}) as React.ReactElement<{ style: React.CSSProperties }>;
 	return node.props.style;
 }
 
-describe('renderSingleSegment - text capitalization (a:rPr/@cap)', () => {
+describe('renderParagraphRun - text capitalization (a:rPr/@cap)', () => {
 	it('maps cap="all" to text-transform: uppercase', () => {
 		const style = styleOf({ textCaps: 'all' });
 		expect(style.textTransform).toBe('uppercase');
@@ -49,7 +52,7 @@ describe('renderSingleSegment - text capitalization (a:rPr/@cap)', () => {
 	});
 });
 
-describe('renderSingleSegment - baseline shift (a:rPr/@baseline)', () => {
+describe('renderParagraphRun - baseline shift (a:rPr/@baseline)', () => {
 	it('honours the authored percentage magnitude (thousandths-of-percent)', () => {
 		// 30000 = 30% of a 20px font -> 6px raise.
 		const style = styleOf({ baseline: 30000, fontSize: 20 });
@@ -80,7 +83,7 @@ describe('renderSingleSegment - baseline shift (a:rPr/@baseline)', () => {
 	});
 });
 
-describe('renderSingleSegment - kerning threshold (a:rPr/@kern)', () => {
+describe('renderParagraphRun - kerning threshold (a:rPr/@kern)', () => {
 	it('disables kerning when kern=0', () => {
 		const style = styleOf({ kerning: 0, fontSize: 20 });
 		expect(style.fontKerning).toBe('none');

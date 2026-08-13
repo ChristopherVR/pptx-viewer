@@ -1,114 +1,91 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
-import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import {
-	hollowTextFillStyle,
 	pieceLetterSpacing,
 	resolveAutoFitFontScale,
 	resolveMetricTrackingPx,
 } from 'pptx-viewer-shared';
+import type { ParagraphRun } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
 import { normalizeHexColor } from './color';
-import {
-	buildTextFillCss,
-	buildTextShadowCss,
-	buildTextReflectionCss,
-	getTextAlphaOpacity,
-	buildTextRunFilterChain,
-} from './text-effects';
-import { substituteFieldText } from './text-field-substitution';
-import type { FieldSubstitutionContext } from './text-field-substitution';
-import {
-	renderSegmentContent,
-	renderEquationSegment,
-	renderPictureBullet,
-	resolveUnderlineDecorationStyle,
-} from './text-segment-helpers';
+import { renderSegmentContent, renderEquationSegment } from './text-segment-helpers';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { buildTabContext } from './text-tab-layout';
 import { hasDistinctScriptFonts } from './unicode-script-detection';
 
-/**
- * Render a single text segment as a styled `<span>`.
- * When `bulletInfo` is provided, the bullet character/number is rendered with
- * its own font family, size, and colour.
- */
-export function renderSingleSegment(
-	element: PptxElement & Partial<{ textStyle: TextStyle }>,
-	segment: {
-		style?: TextStyle;
-		text?: string;
-		hyperlink?: string;
-		bulletInfo?: BulletInfo;
-		fieldType?: string;
-		equationXml?: Record<string, unknown>;
-		equationNumber?: string;
-		rubyText?: string;
-		rubyAlignment?: string;
-		rubyFontSize?: number;
-		rubyStyle?: TextStyle;
-	},
-	segmentIndex: number,
-	fallbackColor: string,
-	findHighlights: ElementFindHighlights | undefined,
-	bulletInfo: BulletInfo | undefined,
-	onHyperlinkClick?: (url: string) => void,
-	fieldContext?: FieldSubstitutionContext,
-	/** Resolved paragraph-level RTL direction for BiDi isolation. */
-	paragraphRtl?: boolean,
+/** Super/subscript glyphs render at ~65% of the run font size (matches shared). */
+const BASELINE_FONT_SCALE = 0.65;
+
+/** What a run needs from its surroundings to render. */
+export interface RunRenderContext {
+	element: PptxElement & Partial<{ textStyle: TextStyle }>;
+	/** Colour a run with no resolved colour of its own falls back to. */
+	fallbackColor: string;
+	/** Find & Replace matches, keyed by source segment index. */
+	findHighlights?: ElementFindHighlights;
+	/** Handler for a followed link; without it a link renders as plain text. */
+	onHyperlinkClick?: (url: string) => void;
+	/** The paragraph's resolved BiDi direction, for per-run overrides. */
+	paragraphRtl?: boolean;
 	/** When true, hyperlinks require Ctrl+Click (editing mode). */
-	requireCtrlClick?: boolean,
-	/**
-	 * Hanging-indent distance in px when this segment is a bullet marker inside
-	 * a hanging paragraph (`marL > 0, indent < 0`). PowerPoint draws the marker
-	 * at `marL + indent` and tabs the first line's TEXT out to `marL`, so the
-	 * marker's box must be exactly the hang wide: without it the text starts
-	 * straight after the glyph, the first line sits left of its own wrapped
-	 * lines, and the extra width makes long bullets wrap one word later than
-	 * PowerPoint (issue #131, slide 13).
-	 */
-	bulletHangPx?: number,
+	requireCtrlClick?: boolean;
+}
+
+/**
+ * Render one run of a paragraph as a styled `<span>`.
+ *
+ * The run and its CSS come from shared `buildParagraphs`, which is where every
+ * decision the five bindings share now lives (paragraph grouping, bullets,
+ * spacing, run splitting, hyperlink, inline equation, and the whole
+ * `a:rPr` -> CSS map). This function layers on ONLY the properties React
+ * resolves more precisely than the neutral builder, plus the content-level
+ * rendering that has no equivalent in the other four bindings (find-match
+ * highlights, per-script font spans, real tab stops, ruby).
+ *
+ * The residual overrides, and why each is still here rather than in shared:
+ *
+ *  - `color` / `fontSize` / `fontFamily`: React resolves the run's own value
+ *    against the TEXT BODY's before falling back, and substitutes the font
+ *    through its PANOSE descriptor. Shared declares each only when the run
+ *    authored it and lets the block declaration cascade instead.
+ *  - `verticalAlign`: `a:rPr/@baseline` is a percentage, so React shifts by
+ *    that fraction of the font size; shared emits the `super` / `sub` keyword.
+ *  - `fontKerning`: `@kern` is a THRESHOLD (kern at or above this size), which
+ *    React honours and shared reduces to on/off.
+ *  - `letterSpacing`: measured against the PANOSE-substituted family above, so
+ *    it has to be re-derived from the same font this span will paint with.
+ *  - per-run `direction` / `unicodeBidi`: no shared equivalent yet.
+ *
+ * Each is a shared GAP, not a React preference; closing them is the next step
+ * and would delete the corresponding branch here.
+ */
+export function renderParagraphRun(
+	run: ParagraphRun,
+	segment: TextSegment | undefined,
+	ctx: RunRenderContext,
+	/** Disambiguates the key when one run is re-rendered in pieces (text build). */
+	keySuffix = '',
 ): React.ReactNode {
-	// ── Equation segments: render inline MathML ──
-	if (segment.equationXml) {
-		return renderEquationSegment(
-			element.id,
-			segmentIndex,
-			segment.equationXml,
-			segment.equationNumber,
-		);
+	const { element, fallbackColor, findHighlights, onHyperlinkClick } = ctx;
+	const segmentIndex = run.segmentIndex ?? 0;
+	const key = `${element.id}-seg-${segmentIndex}${keySuffix}`;
+
+	// Inline equation (`m:oMath`): the run has no text, the maths is the content.
+	if (run.equation) {
+		return renderEquationSegment(element.id, segmentIndex, run.equation.xml, run.equation.number);
 	}
 
-	const segmentStyle = segment.style || {};
-	// A marker filling its hang box must not also carry the core-inserted
-	// trailing space: the box (min-width) already provides the gap, and the
-	// space would push the first line's text past the indent stop whenever the
-	// glyph plus space outgrow the hang.
-	const rawText =
-		bulletInfo && typeof bulletHangPx === 'number'
-			? (segment.text || '').trimEnd()
-			: segment.text || '';
-	const textValue = substituteFieldText(rawText, segment.fieldType, fieldContext);
+	const segmentStyle = segment?.style ?? {};
+	const textValue = run.text;
 	const lines = textValue.split('\n');
-	const textDecorationTokens: string[] = [];
-	if (segmentStyle.underline || segmentStyle.hyperlink) {
-		textDecorationTokens.push('underline');
-	}
-	if (segmentStyle.strikethrough) {
-		textDecorationTokens.push('line-through');
-	}
 
-	// Double strikethrough needs a different text-decoration-style
-	const isDoubleStrike = segmentStyle.strikethrough && segmentStyle.strikeType === 'dblStrike';
-	const resolvedSegmentColor = segmentStyle.hyperlink
-		? normalizeHexColor(segmentStyle.color || element.textStyle?.color, HYPERLINK_COLOR)
-		: normalizeHexColor(segmentStyle.color || element.textStyle?.color, fallbackColor);
-
-	// Underline style variants → CSS text-decoration properties
-	const underlineDecoration = resolveUnderlineDecorationStyle(
-		Boolean(isDoubleStrike),
-		segmentStyle.underlineStyle,
+	// A link with no colour of its own paints in PowerPoint's `hlink` blue; the
+	// same fallback shared applies to `run.style.color`.
+	const resolvedSegmentColor = normalizeHexColor(
+		segmentStyle.color || element.textStyle?.color,
+		run.hyperlink ? HYPERLINK_COLOR : fallbackColor,
 	);
 
 	// Superscript / subscript via baseline shift.
@@ -123,35 +100,19 @@ export function renderSingleSegment(
 			: Math.abs(rawBaseline) >= 1000
 				? rawBaseline / 100000
 				: rawBaseline / 100;
-	// Sub/superscript text also renders smaller; keep the conventional reduction.
-	const baselineFontScale = baselineFraction !== 0 ? 0.65 : 1;
+	const baselineFontScale = baselineFraction !== 0 ? BASELINE_FONT_SCALE : 1;
 
-	// Character spacing → CSS letter-spacing (hundredths of a point → px).
-	const authoredLetterSpacing =
-		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
-			? (segmentStyle.characterSpacing / 100) * (96 / 72)
-			: 0;
-
-	// Text fill: gradient or pattern → CSS background-clip:text technique
-	const textFillStyles = buildTextFillCss(segmentStyle);
-
-	// Build the base text style
 	const rawFontSize = (segmentStyle.fontSize ||
 		element.textStyle?.fontSize ||
 		DEFAULT_TEXT_FONT_SIZE) as number;
-	// Apply normAutofit fontScale when present (e.g. 0.9 = 90%). Resolved by the
-	// shared helper the other four bindings' run builders now call, so a body
-	// that shrinks its text shrinks it identically in all five.
-	const autoFitScale = resolveAutoFitFontScale(element.textStyle);
-	const baseFontSize = rawFontSize * autoFitScale;
-
-	// Baseline shift as a length relative to the (unscaled) base font size, so a
-	// 30% shift raises/lowers by ~0.3 of the run's font size.
+	// `a:normAutofit/@fontScale` (e.g. 0.9 = 90%), resolved by the shared helper
+	// all five bindings use, so a body that shrinks its text shrinks it alike.
+	const baseFontSize = rawFontSize * resolveAutoFitFontScale(element.textStyle);
 	const baselineShift = baselineFraction !== 0 ? `${baselineFraction * baseFontSize}px` : undefined;
 
 	// Kerning → CSS font-kerning. OOXML `@kern` is a threshold: kerning applies
-	// only at or above the given font size (hundredths of a point). Respect the
-	// threshold where the run font size is known; `0` disables kerning outright.
+	// only at or above the given font size (hundredths of a point); `0` disables
+	// kerning outright.
 	const baseFontSizePt = baseFontSize * (72 / 96);
 	const fontKerning: React.CSSProperties['fontKerning'] =
 		typeof segmentStyle.kerning === 'number'
@@ -163,7 +124,7 @@ export function renderSingleSegment(
 			: undefined;
 
 	const rawFontFamily = segmentStyle.fontFamily || element.textStyle?.fontFamily;
-	// Apply PANOSE-based font substitution with fallback chain
+	// PANOSE-based font substitution with fallback chain.
 	const baseFontFamily = rawFontFamily
 		? getSubstituteFontFamily(
 				rawFontFamily,
@@ -199,12 +160,14 @@ export function renderSingleSegment(
 	const needsScriptFonts = hasDistinctScriptFonts(scriptFonts);
 
 	// Advance-width compensation on top of any authored spacing, so the browser
-	// breaks this run's lines where PowerPoint breaks them. Derived from the
-	// run's own characters: the disagreement between PowerPoint's 1/8-point
-	// advance grid and the browser's fractional advances runs in BOTH directions,
-	// so a flat constant wraps some strings early (issue #149). The run-level
-	// value below is the fallback; `metricContext` gives each word its own, which
-	// is what makes a LINE exact rather than just the whole run.
+	// breaks this run's lines where PowerPoint breaks them (issue #149). Both the
+	// split and the per-piece tracking come from shared `splitRunForMetrics`; the
+	// value below is the run-level fallback and `metricContext` gives each word
+	// its own, which is what makes a LINE exact rather than just the whole run.
+	const authoredLetterSpacing =
+		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
+			? (segmentStyle.characterSpacing / 100) * (96 / 72)
+			: 0;
 	const metricFont = {
 		fontFamily: baseFontFamily,
 		fontSizePx: baseFontSize * baselineFontScale,
@@ -212,136 +175,31 @@ export function renderSingleSegment(
 		italic: Boolean(segmentStyle.italic),
 	};
 	const metricContext = { font: metricFont, authoredPx: authoredLetterSpacing };
-	const letterSpacing = pieceLetterSpacing(
+
+	// Shared owns the run's paint: decorations, caps, highlight, outline stroke,
+	// gradient/pattern fill, shadow, filter chain, opacity, reflection and the
+	// hollow (`a:noFill`) decision. Only the properties listed in this function's
+	// doc comment are re-resolved on top.
+	const spanStyle: React.CSSProperties = { ...(run.style as React.CSSProperties) };
+	spanStyle.color = resolvedSegmentColor;
+	spanStyle.fontSize = baseFontSize * baselineFontScale;
+	spanStyle.fontFamily = baseFontFamily;
+	spanStyle.verticalAlign = baselineShift;
+	spanStyle.fontKerning = fontKerning;
+	spanStyle.letterSpacing = pieceLetterSpacing(
 		authoredLetterSpacing,
 		resolveMetricTrackingPx(textValue, metricFont),
 	);
 
-	const spanStyle: React.CSSProperties = {
-		color: resolvedSegmentColor,
-		fontSize: baseFontSize * baselineFontScale,
-		fontWeight: segmentStyle.bold ? 700 : 400,
-		fontStyle: segmentStyle.italic ? 'italic' : 'normal',
-		textDecorationLine: textDecorationTokens.length > 0 ? textDecorationTokens.join(' ') : 'none',
-		textDecorationStyle: underlineDecoration?.textDecorationStyle,
-		textDecorationThickness:
-			underlineDecoration?.textDecorationThickness as React.CSSProperties['textDecorationThickness'],
-		textUnderlineOffset:
-			underlineDecoration?.textUnderlineOffset as React.CSSProperties['textUnderlineOffset'],
-		fontFamily: baseFontFamily,
-		verticalAlign: baselineShift,
-		// Text capitalization (a:rPr/@cap): all -> force uppercase glyphs;
-		// small -> render lowercase as small caps.
-		textTransform: segmentStyle.textCaps === 'all' ? 'uppercase' : undefined,
-		fontVariantCaps: segmentStyle.textCaps === 'small' ? 'small-caps' : undefined,
-		letterSpacing,
-		fontKerning,
-		backgroundColor: textFillStyles
-			? undefined
-			: segmentStyle.highlightColor
-				? normalizeHexColor(segmentStyle.highlightColor, 'transparent')
-				: undefined,
-		...textFillStyles,
-		textDecorationColor: segmentStyle.underlineColor
-			? normalizeHexColor(segmentStyle.underlineColor, undefined)
-			: undefined,
-		WebkitTextStroke:
-			segmentStyle.textOutlineWidth && segmentStyle.textOutlineColor
-				? `${segmentStyle.textOutlineWidth}px ${normalizeHexColor(segmentStyle.textOutlineColor, '#000000')}`
-				: segmentStyle.textOutlineWidth
-					? `${segmentStyle.textOutlineWidth}px currentColor`
-					: undefined,
-		paintOrder: segmentStyle.textOutlineWidth ? 'stroke fill' : undefined,
-		textShadow: buildTextShadowCss(segmentStyle),
-		filter: buildTextRunFilterChain(segmentStyle),
-		opacity: getTextAlphaOpacity(segmentStyle),
-		WebkitBoxReflect: buildTextReflectionCss(segmentStyle),
-	};
-
-	// Hollow / outline-only text (`a:rPr > a:noFill`). The DECISION - clear the
-	// fill, and re-pin a `currentColor` outline to the colour the run resolved
-	// to first, or the letterform goes transparent with it - lives in shared and
-	// is merged by all five bindings. React alone had no branch for it at all
-	// and painted the inherited colour, so a hollow run came out solid.
-	//
-	// Merged here, after the run's own paint (including any gradient/pattern
-	// `textFillStyles`) and before the bullet overrides, which style the MARKER
-	// rather than the run text.
-	Object.assign(
-		spanStyle,
-		hollowTextFillStyle(segmentStyle, {
-			color: typeof spanStyle.color === 'string' ? spanStyle.color : undefined,
-			textStroke:
-				typeof spanStyle.WebkitTextStroke === 'string' ? spanStyle.WebkitTextStroke : undefined,
-		}) ?? {},
-	);
-
-	// Per-run BiDi direction override
-	// When a text run's direction differs from the paragraph direction,
-	// use `bidi-override` to force all characters in the run to follow
-	// the specified direction. This handles mixed RTL/LTR runs correctly
-	// (e.g. an LTR brand name inside an RTL paragraph).
+	// Per-run BiDi direction override. When a run's direction differs from the
+	// paragraph's, `bidi-override` forces its characters to follow the run (an
+	// LTR brand name inside an RTL paragraph); when it matches but is explicit,
+	// `embed` reinforces the level so numbers still render LTR.
 	const runRtl = segmentStyle.rtl;
-	if (runRtl !== undefined && runRtl !== paragraphRtl) {
+	if (runRtl !== undefined) {
 		spanStyle.direction = runRtl ? 'rtl' : 'ltr';
-		spanStyle.unicodeBidi = 'bidi-override';
-	} else if (runRtl !== undefined && runRtl === paragraphRtl) {
-		// Run direction matches paragraph but is explicitly set: use embed
-		// to reinforce the embedding level for proper number rendering.
-		spanStyle.direction = runRtl ? 'rtl' : 'ltr';
-		spanStyle.unicodeBidi = 'embed';
+		spanStyle.unicodeBidi = runRtl !== ctx.paragraphRtl ? 'bidi-override' : 'embed';
 	}
-
-	// Apply bullet-specific styling overrides
-	if (bulletInfo) {
-		if (bulletInfo.fontFamily) {
-			spanStyle.fontFamily = bulletInfo.fontFamily;
-		}
-		if (typeof bulletInfo.sizePts === 'number') {
-			spanStyle.fontSize = bulletInfo.sizePts * baselineFontScale;
-		} else if (typeof bulletInfo.sizePercent === 'number') {
-			spanStyle.fontSize = baseFontSize * (bulletInfo.sizePercent / 100) * baselineFontScale;
-		}
-		if (bulletInfo.color) {
-			spanStyle.color = normalizeHexColor(bulletInfo.color, resolvedSegmentColor);
-		}
-		// Reserve the full hanging distance for the marker so the first line's
-		// text starts on the indent stop (`marL`), aligned with its own wrapped
-		// lines - matching the shared `buildParagraphs` marker model the other
-		// four bindings render.
-		if (typeof bulletHangPx === 'number' && bulletHangPx > 0) {
-			spanStyle.display = 'inline-block';
-			spanStyle.minWidth = bulletHangPx;
-			// `text-indent` inherits, and an inline-block is a block container:
-			// without this reset the marker box applies the paragraph's negative
-			// first-line indent AGAIN internally and paints the glyph a full
-			// hang-width left of its own box (outside the text inset).
-			spanStyle.textIndent = 0;
-		}
-	}
-
-	// Picture bullet: render as <img> instead of text
-	if (bulletInfo?.imageDataUrl || bulletInfo?.imageRelId) {
-		return renderPictureBullet(element.id, segmentIndex, bulletInfo, baseFontSize);
-	}
-
-	// Resolve the hyperlink URL.
-	// For internal slide-jump actions (ppaction://hlinksldjump), encode the
-	// target slide index as a query parameter so it can travel through the
-	// `onHyperlinkClick(url)` callback without changing its signature.
-	let hyperlinkUrl = segmentStyle.hyperlink || segment.hyperlink;
-	if (
-		hyperlinkUrl &&
-		typeof segmentStyle.hyperlinkTargetSlideIndex === 'number' &&
-		hyperlinkUrl.toLowerCase().startsWith('ppaction://')
-	) {
-		const separator = hyperlinkUrl.includes('?') ? '&' : '?';
-		hyperlinkUrl = `${hyperlinkUrl}${separator}slideIndex=${segmentStyle.hyperlinkTargetSlideIndex}`;
-	}
-
-	// ── Ruby text (phonetic guide) rendering ──
-	const rubyText = segment.rubyText;
-	const hasRuby = typeof rubyText === 'string' && rubyText.length > 0;
 
 	const baseContent = renderSegmentContent(
 		element.id,
@@ -363,94 +221,125 @@ export function renderSingleSegment(
 		metricContext,
 	);
 
-	let innerContent: React.ReactNode;
-	if (hasRuby) {
-		// Resolve ruby annotation font size: use explicit rubyFontSize,
-		// fall back to 50% of the base font size (common default).
-		const rubyFs = segment.rubyFontSize ?? baseFontSize * 0.5;
-		const rubyStyle: React.CSSProperties = {
-			fontSize: rubyFs,
-			fontFamily: segment.rubyStyle?.fontFamily ?? baseFontFamily,
-			textAlign:
-				segment.rubyAlignment === 'l'
-					? 'left'
-					: segment.rubyAlignment === 'r'
-						? 'right'
-						: segment.rubyAlignment === 'dist' ||
-							  segment.rubyAlignment === 'distCat' ||
-							  segment.rubyAlignment === 'distLetter'
-							? 'justify'
-							: 'center',
-		};
-		if (segment.rubyStyle?.color) {
-			rubyStyle.color = normalizeHexColor(segment.rubyStyle.color, resolvedSegmentColor);
-		}
-
-		innerContent = (
-			<ruby>
-				{baseContent}
-				<rp>(</rp>
-				<rt style={rubyStyle}>{rubyText}</rt>
-				<rp>)</rp>
-			</ruby>
-		);
-	} else {
-		innerContent = baseContent;
-	}
-
 	const spanNode = (
-		<span key={`${element.id}-seg-${segmentIndex}`} data-seg-idx={segmentIndex} style={spanStyle}>
-			{innerContent}
+		<span key={key} data-seg-idx={segmentIndex} style={spanStyle}>
+			{renderRubyOrText(segment, baseContent, baseFontSize, baseFontFamily, resolvedSegmentColor)}
 		</span>
 	);
 
-	// Wrap hyperlinked text in a clickable element when a handler is available
-	if (hyperlinkUrl && onHyperlinkClick) {
-		// Strip ppaction:// protocol for display; show clean URL to user
-		const displayUrl = hyperlinkUrl.startsWith('ppaction://')
-			? hyperlinkUrl.replace(/^ppaction:\/\//u, '').split('?')[0]
-			: hyperlinkUrl;
+	return run.hyperlink && onHyperlinkClick ? renderHyperlink(run, spanNode, key, ctx) : spanNode;
+}
 
-		return (
-			<span
-				key={`${element.id}-seg-${segmentIndex}-link`}
-				role='link'
-				tabIndex={0}
-				className={requireCtrlClick ? 'group/link relative' : undefined}
-				style={{ cursor: requireCtrlClick ? undefined : 'pointer', pointerEvents: 'auto' }}
-				onClick={(e) => {
-					if (requireCtrlClick && !e.ctrlKey && !e.metaKey) {
-						return;
-					}
-					e.stopPropagation();
-					e.preventDefault();
-					onHyperlinkClick(hyperlinkUrl);
-				}}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						if (requireCtrlClick && !e.ctrlKey && !e.metaKey) {
-							return;
-						}
-						e.preventDefault();
-						e.stopPropagation();
-						onHyperlinkClick(hyperlinkUrl);
-					}
-				}}
-			>
-				{spanNode}
-				{requireCtrlClick && (
-					<span className='pointer-events-none absolute left-0 top-full z-[9999] mt-1 max-w-64 opacity-0 transition-opacity duration-150 group-hover/link:opacity-100'>
-						<span className='flex flex-col rounded border border-border bg-popover px-2.5 py-1.5 shadow-lg'>
-							<span className='truncate text-xs text-foreground'>{displayUrl}</span>
-							<span className='mt-0.5 text-[10px] text-muted-foreground'>
-								Ctrl+Click to follow link
-							</span>
+/**
+ * Wrap the run's content in `<ruby>` when the segment carries a phonetic guide
+ * (`a:ruby`, furigana / pinyin), or return it unchanged.
+ */
+function renderRubyOrText(
+	segment: TextSegment | undefined,
+	baseContent: React.ReactNode,
+	baseFontSize: number,
+	baseFontFamily: string,
+	resolvedColor: string,
+): React.ReactNode {
+	const rubyText = segment?.rubyText;
+	if (typeof rubyText !== 'string' || rubyText.length === 0) {
+		return baseContent;
+	}
+	// Resolve the annotation size: the explicit `rubyFontSize`, else 50% of the
+	// base size (the common default).
+	const rubyStyle: React.CSSProperties = {
+		fontSize: segment?.rubyFontSize ?? baseFontSize * 0.5,
+		fontFamily: segment?.rubyStyle?.fontFamily ?? baseFontFamily,
+		textAlign:
+			segment?.rubyAlignment === 'l'
+				? 'left'
+				: segment?.rubyAlignment === 'r'
+					? 'right'
+					: segment?.rubyAlignment === 'dist' ||
+						  segment?.rubyAlignment === 'distCat' ||
+						  segment?.rubyAlignment === 'distLetter'
+						? 'justify'
+						: 'center',
+	};
+	if (segment?.rubyStyle?.color) {
+		rubyStyle.color = normalizeHexColor(segment.rubyStyle.color, resolvedColor);
+	}
+	return (
+		<ruby>
+			{baseContent}
+			<rp>(</rp>
+			<rt style={rubyStyle}>{rubyText}</rt>
+			<rp>)</rp>
+		</ruby>
+	);
+}
+
+/**
+ * Wrap a linked run in a clickable element. The URL is shared's resolved
+ * {@link ParagraphRun.hyperlink} target, which already carries the encoded
+ * `slideIndex` for an internal `ppaction://` jump.
+ */
+function renderHyperlink(
+	run: ParagraphRun,
+	spanNode: React.ReactNode,
+	key: string,
+	ctx: RunRenderContext,
+): React.ReactNode {
+	const url = run.hyperlink?.url;
+	const onHyperlinkClick = ctx.onHyperlinkClick;
+	if (!url || !onHyperlinkClick) {
+		return spanNode;
+	}
+	const requireCtrlClick = ctx.requireCtrlClick;
+	// Strip the `ppaction://` protocol for display; show a clean URL to the user.
+	const displayUrl = url.startsWith('ppaction://')
+		? url.replace(/^ppaction:\/\//u, '').split('?')[0]
+		: url;
+	const follow = (modified: boolean): boolean => {
+		if (requireCtrlClick && !modified) {
+			return false;
+		}
+		onHyperlinkClick(url);
+		return true;
+	};
+
+	return (
+		<span
+			key={`${key}-link`}
+			role='link'
+			tabIndex={0}
+			className={requireCtrlClick ? 'group/link relative' : undefined}
+			style={{ cursor: requireCtrlClick ? undefined : 'pointer', pointerEvents: 'auto' }}
+			title={run.hyperlink?.tooltip}
+			onClick={(e) => {
+				if (!follow(e.ctrlKey || e.metaKey)) {
+					return;
+				}
+				e.stopPropagation();
+				e.preventDefault();
+			}}
+			onKeyDown={(e) => {
+				if (e.key !== 'Enter' && e.key !== ' ') {
+					return;
+				}
+				if (!follow(e.ctrlKey || e.metaKey)) {
+					return;
+				}
+				e.preventDefault();
+				e.stopPropagation();
+			}}
+		>
+			{spanNode}
+			{requireCtrlClick && (
+				<span className='pointer-events-none absolute left-0 top-full z-[9999] mt-1 max-w-64 opacity-0 transition-opacity duration-150 group-hover/link:opacity-100'>
+					<span className='flex flex-col rounded border border-border bg-popover px-2.5 py-1.5 shadow-lg'>
+						<span className='truncate text-xs text-foreground'>{displayUrl}</span>
+						<span className='mt-0.5 text-[10px] text-muted-foreground'>
+							Ctrl+Click to follow link
 						</span>
 					</span>
-				)}
-			</span>
-		);
-	}
-
-	return spanNode;
+				</span>
+			)}
+		</span>
+	);
 }

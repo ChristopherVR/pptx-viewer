@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { resolveSelectionPaneRename } from 'pptx-viewer-shared';
 /**
  * Selection Pane: lists all elements on the active slide with
  * visibility toggles, rename-on-double-click, and drag-to-reorder.
@@ -111,10 +112,11 @@ export function SelectionPane({
 		if (elementId === null) {
 			return;
 		}
-		const trimmed = editingName.trim();
-		// Unedited commit: keep whatever the element had (in particular, do not
-		// persist a "Shape 3"-style fallback label as a real name).
-		if (trimmed === editSeedRef.current.trim()) {
+		// Shared decision: `null` for an unedited commit (so a "Shape 3"-style
+		// fallback label is never persisted as a real name), otherwise the name to
+		// write - including `''` for a cleared box.
+		const commit = resolveSelectionPaneRename(editSeedRef.current, editingName);
+		if (!commit) {
 			return;
 		}
 		setSlides((prevSlides) => {
@@ -128,17 +130,15 @@ export function SelectionPane({
 			if (idx === -1) {
 				return prevSlides;
 			}
-			// A non-empty rename round-trips through save as cNvPr/@name.
-			// An empty commit does NOT clear it in the saved file: the writer
-			// (`applyNameToCnvPr`) reads `undefined` as "the model has no
-			// opinion" and keeps whatever the markup had, because several
-			// element kinds (charts, SmartArt, other graphic frames) parse
-			// without a `name` while carrying a real one, and `@name` is
-			// REQUIRED on CT_NonVisualDrawingProps so it cannot just be
-			// dropped. Clearing only resets the viewer-side label.
+			// A rename round-trips through save as cNvPr/@name, and so does a
+			// clear: the writer (`applyNameToCnvPr`) treats `undefined` as "the
+			// model has no opinion" and leaves the markup alone, so an emptied
+			// box has to commit `''` to mean anything at all. `@name` is
+			// REQUIRED on CT_NonVisualDrawingProps, so `''` is written as
+			// `name=""` rather than deleting the attribute.
 			nextElements[idx] = {
 				...nextElements[idx],
-				name: trimmed.length > 0 ? trimmed : undefined,
+				name: commit.name,
 			} as PptxElement;
 			nextSlides[activeSlideIndex] = { ...slide, elements: nextElements };
 			return nextSlides;

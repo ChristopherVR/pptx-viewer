@@ -35,7 +35,10 @@ export function LayoutGalleryMenu(p: LayoutGalleryMenuProps): React.ReactElement
 
 	return (
 		<RibbonMenu anchorRef={p.anchorRef} className='flex flex-col w-[620px] pt-1'>
-			<div className='grid grid-cols-4 gap-2 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-3 max-h-[520px] overflow-y-auto'>
+			<div
+				data-testid='layout-gallery-menu'
+				className='grid grid-cols-4 gap-2 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-3 max-h-[520px] overflow-y-auto'
+			>
 				{p.layoutOptions.length === 0 && (
 					<p className='col-span-4 px-2 py-3 text-xs text-muted-foreground'>
 						{t('pptx.layoutGallery.empty')}
