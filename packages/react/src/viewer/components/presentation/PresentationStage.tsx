@@ -1,5 +1,5 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { PRESENTATION_STAGE_ATTRIBUTE } from 'pptx-viewer-shared';
+import { PRESENTATION_HIT_TEST_CSS, PRESENTATION_STAGE_ATTRIBUTE } from 'pptx-viewer-shared';
 /**
  * PresentationStage: the slide show surface.
  *
@@ -175,6 +175,15 @@ export function PresentationStage({
 						} as React.CSSProperties
 					}
 				>
+					{/*
+					 * Which elements a running show accepts a pointer on. It has to be a
+					 * STYLESHEET, not a per-element `pointer-events: none`: an actionable
+					 * shape nested inside an inert group re-enables itself here, which an
+					 * inline rule written onto the group never could. React wrote the
+					 * inline form and was the only binding whose show could not click a
+					 * nested action shape at all.
+					 */}
+					<style>{PRESENTATION_HIT_TEST_CSS}</style>
 					{presentationKeyframesCss && <style>{presentationKeyframesCss}</style>}
 
 					{templateElements.map((element, index) => (
@@ -186,6 +195,9 @@ export function PresentationStage({
 							isInlineEditing={false}
 							inlineEditingText=''
 							canInteract={false}
+							// A running show: hit-testing is owned by the shared stylesheet
+							// above, never by an inline `pointer-events` on the element.
+							presenting
 							spellCheckEnabled={false}
 							mediaDataUrls={mediaDataUrls}
 							selectionColorClass='blue-400'
@@ -222,6 +234,9 @@ export function PresentationStage({
 							isInlineEditing={false}
 							inlineEditingText=''
 							canInteract={false}
+							// A running show: hit-testing is owned by the shared stylesheet
+							// above, never by an inline `pointer-events` on the element.
+							presenting
 							spellCheckEnabled={false}
 							mediaDataUrls={mediaDataUrls}
 							selectionColorClass='blue-500'

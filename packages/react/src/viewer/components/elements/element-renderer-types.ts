@@ -29,6 +29,16 @@ export interface ElementRendererProps {
 	isInlineEditing: boolean;
 	inlineEditingText: string;
 	canInteract: boolean;
+	/**
+	 * Whether the stage painting this element is a RUNNING SHOW.
+	 *
+	 * Distinct from `!canInteract`, which is also true for a thumbnail or a
+	 * locked template element. It gates the inline `pointer-events` rule: during a
+	 * show the shared `PRESENTATION_HIT_TEST_CSS` owns hit-testing (it is the only
+	 * form that can re-enable an action shape nested inside inert scenery), and an
+	 * inline `none` written here would outrank it.
+	 */
+	presenting?: boolean;
 	spellCheckEnabled: boolean;
 	mediaDataUrls: Map<string, string>;
 	tableEditorState?: TableCellEditorState | null;

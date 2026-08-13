@@ -243,6 +243,10 @@ function MobileSectionBody({
 					<TransitionsSection
 						isInspectorPaneOpen={p.isInspectorPaneOpen}
 						onToggleInspector={p.onToggleInspector}
+						canEdit={p.canEdit}
+						activeSlide={p.activeSlide}
+						onTransitionChange={p.onTransitionChange}
+						onApplyTransitionToAll={p.onApplyTransitionToAll}
 					/>
 				</div>
 			);

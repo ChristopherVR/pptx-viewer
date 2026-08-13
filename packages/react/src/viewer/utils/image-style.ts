@@ -1,6 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
-import { getImageFitStyle } from 'pptx-viewer-shared';
+import {
+	getImageFitStyle,
+	getImageTilingStyle as sharedGetImageTilingStyle,
+} from 'pptx-viewer-shared';
 /**
  * Image mask, render style, crop shape, and tiling helpers
  * for the PowerPoint editor.
@@ -92,135 +95,16 @@ export function getCropShapeClipPath(element: PptxElement): string | undefined {
 	return CROP_SHAPE_CLIP_PATHS[shape];
 }
 
-export function isImageTiled(element: PptxElement): boolean {
-	if (!isImageLikeElement(element)) {
-		return false;
-	}
-	return typeof element.tileScaleX === 'number' || typeof element.tileScaleY === 'number';
-}
-
 /**
- * Map OOXML tile alignment (`a:tile/@algn`) to a CSS background-position anchor.
- * This determines the origin from which tiles are repeated.
+ * `a:blipFill/a:tile` rendering (scale / offset / alignment / mirror-flip) moved
+ * to `pptx-viewer-shared` (`render/image-tiling`), because nothing in it was
+ * React-specific and the other four bindings were drawing every tiled texture as
+ * one stretched copy for want of it. Re-exported here under the historical
+ * symbol names React consumers already import.
  */
-function tileAlignmentToCssPosition(alignment: string | undefined): string | undefined {
-	switch (alignment) {
-		case 'tl':
-			return 'top left';
-		case 't':
-			return 'top center';
-		case 'tr':
-			return 'top right';
-		case 'l':
-			return 'center left';
-		case 'ctr':
-			return 'center center';
-		case 'r':
-			return 'center right';
-		case 'bl':
-			return 'bottom left';
-		case 'b':
-			return 'bottom center';
-		case 'br':
-			return 'bottom right';
-		default:
-			return undefined;
-	}
-}
+export { isImageTiled, buildMirrorTiledBackground } from 'pptx-viewer-shared';
 
-/**
- * OOXML `a:tile/@flip` mirrors adjacent tiles when the fill repeats. CSS
- * `background-repeat` cannot mirror on its own, so we bake the mirror into a
- * single composite tile: an inline SVG that lays out 2 (`x`/`y`) or 4 (`xy`)
- * mirrored copies of the source, which then repeats seamlessly (each neighbour
- * is the mirror of the last, exactly as PowerPoint tiles it).
- *
- * The source must be an embeddable `data:` URI: an SVG loaded as a `data:`
- * background has an opaque origin and cannot reference `blob:`/`http:` hrefs, so
- * for those sources we return `undefined` and the caller keeps plain (non
- * mirrored) repetition.
- *
- * @param src    - The tile image source (must start with `data:`).
- * @param flip   - Tile flip mode (`x` / `y` / `xy`).
- * @param scaleX - Per-tile horizontal size as a percentage (e.g. 100 = 100%).
- * @param scaleY - Per-tile vertical size as a percentage.
- * @returns The composite `backgroundImage` + doubled `backgroundSize`, or
- *          `undefined` when no mirror applies / the source is not embeddable.
- */
-export function buildMirrorTiledBackground(
-	src: string,
-	flip: 'x' | 'y' | 'xy',
-	scaleX: number,
-	scaleY: number,
-): { backgroundImage: string; backgroundSize: string } | undefined {
-	if (!src.startsWith('data:')) {
-		return undefined;
-	}
-	const flipX = flip === 'x' || flip === 'xy';
-	const flipY = flip === 'y' || flip === 'xy';
-	const cols = flipX ? 2 : 1;
-	const rows = flipY ? 2 : 1;
-
-	const images: string[] = [];
-	for (let cy = 0; cy < rows; cy++) {
-		for (let cx = 0; cx < cols; cx++) {
-			const mirrorX = flipX && cx % 2 === 1;
-			const mirrorY = flipY && cy % 2 === 1;
-			const sx = mirrorX ? -1 : 1;
-			const sy = mirrorY ? -1 : 1;
-			// After scale(-1) the unit cell spans [-1,0]; shift it back by +1 so it
-			// lands in [0,1], then translate to the target grid cell (cx, cy).
-			const tx = cx + (mirrorX ? 1 : 0);
-			const ty = cy + (mirrorY ? 1 : 0);
-			images.push(
-				`<image href="${src}" x="0" y="0" width="1" height="1" ` +
-					`preserveAspectRatio="none" transform="translate(${tx},${ty}) scale(${sx},${sy})"/>`,
-			);
-		}
-	}
-
-	const svg =
-		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cols} ${rows}" ` +
-		`width="${cols}" height="${rows}">${images.join('')}</svg>`;
-
-	return {
-		backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
-		backgroundSize: `${scaleX * cols}% ${scaleY * rows}%`,
-	};
-}
-
+/** The tiled-picture background layer, re-typed as `React.CSSProperties`. */
 export function getImageTilingStyle(element: PptxElement): React.CSSProperties | undefined {
-	if (!isImageLikeElement(element) || !isImageTiled(element)) {
-		return undefined;
-	}
-	const scaleX = typeof element.tileScaleX === 'number' ? element.tileScaleX * 100 : 100;
-	const scaleY = typeof element.tileScaleY === 'number' ? element.tileScaleY * 100 : 100;
-	const offsetX = typeof element.tileOffsetX === 'number' ? element.tileOffsetX : 0;
-	const offsetY = typeof element.tileOffsetY === 'number' ? element.tileOffsetY : 0;
-
-	// Tile alignment determines the starting anchor for the tile grid.
-	// If explicit offsets are provided, they override the alignment anchor.
-	const alignmentPosition = tileAlignmentToCssPosition(element.tileAlignment);
-	const hasExplicitOffset = offsetX !== 0 || offsetY !== 0;
-	const bgPosition = hasExplicitOffset
-		? `${offsetX}px ${offsetY}px`
-		: alignmentPosition || `${offsetX}px ${offsetY}px`;
-
-	const src = element.svgData || element.imageData;
-
-	// Tile flip (`a:tile/@flip`): mirror adjacent tiles via a composite SVG tile.
-	const flip = element.tileFlip;
-	const mirror =
-		src && flip && flip !== 'none'
-			? buildMirrorTiledBackground(src, flip, scaleX, scaleY)
-			: undefined;
-
-	return {
-		backgroundImage: mirror ? mirror.backgroundImage : src ? `url(${src})` : undefined,
-		backgroundRepeat: 'repeat',
-		backgroundSize: mirror ? mirror.backgroundSize : `${scaleX}% ${scaleY}%`,
-		backgroundPosition: bgPosition,
-		width: '100%',
-		height: '100%',
-	};
+	return sharedGetImageTilingStyle(element) as React.CSSProperties | undefined;
 }

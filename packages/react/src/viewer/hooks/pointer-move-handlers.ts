@@ -3,7 +3,12 @@
  * Handles marquee, drag, resize, and shape-adjustment interactions.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { applyResize, publishLiveGeometry, snapBoxToGrid } from 'pptx-viewer-shared';
+import {
+	applyResize,
+	getDraggedShapeAdjustmentValue,
+	publishLiveGeometry,
+	snapBoxToGrid,
+} from 'pptx-viewer-shared';
 import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 import { MIN_ELEMENT_SIZE } from '../constants';
@@ -52,17 +57,6 @@ export function computeResizeGeometry(
 		return box;
 	}
 	return snapBoxToGrid(box, handle, gridSpacingPx, MIN_ELEMENT_SIZE);
-}
-
-/** Compute new shape adjustment value from pointer delta. */
-export function computeAdjustmentValue(
-	startAdjustment: number,
-	dx: number,
-	startWidth: number,
-): number {
-	const range = startWidth || 200;
-	const delta = dx / range;
-	return Math.max(0, Math.min(1, startAdjustment + delta));
 }
 
 // ---------------------------------------------------------------------------
@@ -344,7 +338,12 @@ function processAdjustmentMove(
 	updateElementById: UsePointerHandlersInput['updateElementById'],
 ): void {
 	const dx = (e.clientX - adj.startClientX) / editorScale;
-	const newValue = computeAdjustmentValue(adj.startAdjustment, dx, adj.startWidth);
+	// Shared owns the adjustment maths for all five bindings. React used to keep
+	// a private `computeAdjustmentValue` that clamped the result to 0..1, but an
+	// `a:avLst` adjustment is a 0..50000 guide value: any drag therefore collapsed
+	// a 16667 corner radius to 1, i.e. to nothing. Its unit tests passed because
+	// they asserted the same wrong scale.
+	const newValue = getDraggedShapeAdjustmentValue(adj, dx);
 	if (!adj.moved && Math.abs(dx) > 2) {
 		adj.moved = true;
 	}

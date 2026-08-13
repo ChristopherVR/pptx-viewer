@@ -109,7 +109,7 @@ describe('getShapeVisualStyle gradient tiling (a:tileRect, @flip)', () => {
 		{ color: '#0000ff', position: 100 },
 	];
 
-	it('keeps a full-bleed gradient at 100% 100% with no position', () => {
+	it('keeps a full-bleed gradient unsized, with no position', () => {
 		const style = getShapeVisualStyle(
 			makeShape({ fillMode: 'gradient', fillGradientAngle: 90, fillGradientStops: stops }),
 			true,
@@ -118,7 +118,12 @@ describe('getShapeVisualStyle gradient tiling (a:tileRect, @flip)', () => {
 			'#000',
 		);
 		expect(style.backgroundImage).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
-		expect(style.backgroundSize).toBe('100% 100%');
+		// No explicit size: a gradient has no intrinsic size, so the initial
+		// `background-size: auto` already resolves to the whole positioning area
+		// (the border box, per `background-origin`). This is what the other four
+		// bindings have always emitted; React's hard-coded `100% 100%` was the
+		// same value written twice, and it is what dropped `a:tileRect`/`@flip`.
+		expect(style.backgroundSize).toBeUndefined();
 		expect(style.backgroundPosition).toBeUndefined();
 	});
 
@@ -174,5 +179,77 @@ describe('getShapeVisualStyle gradient tiling (a:tileRect, @flip)', () => {
 		);
 		expect(style.backgroundSize).toBe('50% 100%');
 		expect(style.backgroundRepeat).toBe('repeat-x');
+	});
+});
+
+/**
+ * The two directions of drift that routing React through shared closed: React
+ * used to be the only binding that rendered `a:ln/@cmpd`, and the only binding
+ * that dropped `a:reflection/@stPos`.
+ */
+describe('getShapeVisualStyle shared-pipeline convergence', () => {
+	it('paints a compound outline as a full-width CSS `double` border', () => {
+		const style = getShapeVisualStyle(
+			makeShape({ strokeWidth: 9, strokeColor: '#112233', compoundLine: 'dbl' }),
+			true,
+			'#fff',
+			9,
+			'#112233',
+		);
+		// The whole authored width stays on the border: `double` divides it into
+		// line / gap / line. (The old inset-box-shadow strands never painted a
+		// gap at all, and left the border at a third of its authored weight.)
+		expect(style.borderStyle).toBe('double');
+		expect(style.borderWidth).toBe(9);
+		expect(style.boxShadow).toBeUndefined();
+	});
+
+	it('honours `a:reflection/@stPos` (the hold before the fade)', () => {
+		const withHold = getShapeVisualStyle(
+			makeShape({
+				reflectionDistance: 4,
+				reflectionStartOpacity: 0.6,
+				reflectionEndOpacity: 0,
+				reflectionEndPosition: 1,
+				reflectionStartPosition: 0.5,
+			}),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		// 50% of a 100px fade = a 50px full-opacity hold stop before the ramp.
+		expect(String(withHold.WebkitBoxReflect)).toContain('rgba(255,255,255,0.6) 50px');
+
+		const withoutHold = getShapeVisualStyle(
+			makeShape({
+				reflectionDistance: 4,
+				reflectionStartOpacity: 0.6,
+				reflectionEndOpacity: 0,
+				reflectionEndPosition: 1,
+			}),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(String(withoutHold.WebkitBoxReflect)).not.toContain('rgba(255,255,255,0.6) 50px');
+	});
+
+	it('carries the line-level `a:ln` shadow onto the box', () => {
+		const style = getShapeVisualStyle(
+			makeShape({
+				strokeWidth: 2,
+				strokeColor: '#000000',
+				lineShadowColor: '#ff0000',
+				lineShadowOffsetX: 3,
+				lineShadowOffsetY: 4,
+			}),
+			true,
+			'#fff',
+			2,
+			'#000000',
+		);
+		expect(String(style.boxShadow)).toContain('3px 4px');
 	});
 });

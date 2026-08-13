@@ -1,4 +1,6 @@
+import type { PptxPresentationProperties } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { SLIDE_SHOW_OPTIONS, readSlideShowOption, slideShowOptionChange } from 'pptx-viewer-shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -50,6 +52,10 @@ export interface SlideShowSectionProps {
 	customShowControls: CustomShowsControlsProps;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** Deck presentation properties backing the Options checkboxes. */
+	presentationProperties?: PptxPresentationProperties;
+	/** Commit an Options checkbox onto the deck's presentation properties. */
+	onPresentationPropertiesChange?: (updates: Partial<PptxPresentationProperties>) => void;
 }
 
 export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
@@ -154,25 +160,35 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 				/>
 			</RibbonGroup>
 			<RibbonGroup label={t('pptx.slideShow.options', { defaultValue: 'Options' })}>
+				{/* The Options cluster used to be four hard-coded `checked` boxes with
+				    no `onChange`, so "Use Timings" claimed to be on whether or not the
+				    deck said so. Both supported entries now read and write the deck's
+				    presentation properties; the two nothing backs render disabled. */}
 				<RibbonCommandStack>
-					<RibbonToggle
-						label={t('pptx.slideShow.keepUpdated', { defaultValue: 'Keep Slides Updated' })}
-						checked={false}
-						disabled
-					/>
-					<RibbonToggle
-						label={t('pptx.slideShow.useTimings', { defaultValue: 'Use Timings' })}
-						checked
-					/>
-					<RibbonToggle
-						label={t('pptx.slideShow.playNarrations', { defaultValue: 'Play Narrations' })}
-						checked
-					/>
+					{SLIDE_SHOW_OPTIONS.slice(0, 3).map((option) => (
+						<RibbonToggle
+							key={option.id}
+							label={t(option.labelKey)}
+							checked={readSlideShowOption(p.presentationProperties, option.id)}
+							disabled={option.unsupported}
+							onChange={
+								option.unsupported
+									? undefined
+									: (next) => {
+											const change = slideShowOptionChange(option.id, next);
+											if (change) {
+												p.onPresentationPropertiesChange?.(change);
+											}
+										}
+							}
+						/>
+					))}
 				</RibbonCommandStack>
 				<RibbonCommandStack>
 					<RibbonToggle
-						label={t('pptx.slideShow.mediaControls', { defaultValue: 'Show Media Controls' })}
-						checked
+						label={t(SLIDE_SHOW_OPTIONS[3].labelKey)}
+						checked={readSlideShowOption(p.presentationProperties, SLIDE_SHOW_OPTIONS[3].id)}
+						disabled={SLIDE_SHOW_OPTIONS[3].unsupported}
 					/>
 					<RibbonToggle
 						label={t('pptx.slideShow.subtitles')}

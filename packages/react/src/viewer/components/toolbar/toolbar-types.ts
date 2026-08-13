@@ -1,7 +1,10 @@
 import type {
 	PptxElement,
+	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxSlide,
 	PptxSlideTransition,
+	PptxPresentationProperties,
 	TextStyle,
 	PptxCustomShow,
 	ShapeStyle,
@@ -148,7 +151,17 @@ export interface ToolbarProps {
 	onTransformTextCase: (mode: ChangeCaseMode) => void;
 	isOverflowMenuOpen: boolean;
 	onSetOverflowMenuOpen: (open: boolean) => void;
-	layoutOptions: Array<{ path: string; name: string }>;
+	layoutOptions: PptxLayoutOption[];
+	/** `layoutPath` of the active slide, marking the current gallery tile. */
+	currentLayoutPath?: string;
+	/** Supplies gallery artwork; without it the menus stay name-only. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	/** Re-map the active slide onto another of its master's layouts. */
 	onApplyLayout?: (path: string) => void;
@@ -200,6 +213,22 @@ export interface ToolbarProps {
 	activeSlide?: PptxSlide;
 	onTransitionChange: (updates: Partial<PptxSlideTransition>) => void;
 	onApplyTransitionToAll: () => void;
+	/**
+	 * Home > Slides > Reset: re-apply the active slide's own layout, restoring
+	 * inherited placeholder geometry. Undeclared until now, which is why
+	 * `SlidesGroup` bound `undefined` and the button did nothing.
+	 */
+	onResetSlide?: () => void;
+	/** Home > Slides > Section: start a new section at the active slide. */
+	onAddSection?: () => void;
+	/** Home > Editing > Select > Select All (every element on the active slide). */
+	onSelectAll?: () => void;
+	/**
+	 * Slide Show > Options: what the four checkboxes read, and how a tick is
+	 * committed. See shared `ribbon-slide-show-options`.
+	 */
+	presentationProperties?: PptxPresentationProperties;
+	onPresentationPropertiesChange?: (updates: Partial<PptxPresentationProperties>) => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. See `PowerPointViewerProps.hiddenActions`. */
 	hiddenActions?: readonly ToolbarActionId[];
 	/** Whether the AI assistant is available (the host passed the `ai` prop). */

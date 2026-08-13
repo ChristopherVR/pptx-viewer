@@ -41,7 +41,14 @@ export interface UseContentLifecycleInput {
 
 export interface ContentLifecycleResult {
 	handlerRef: React.RefObject<PptxHandler | null>;
+	/** Serialise for the user: honours "Encrypt with Password". */
 	serializeSlides: () => Promise<Uint8Array | null>;
+	/**
+	 * Serialise for bytes the viewer reads back itself (autosave snapshot,
+	 * re-serialise-then-reload). Always plaintext, so recovery - which has no
+	 * password to offer - can actually open them.
+	 */
+	serializeForRecovery: () => Promise<Uint8Array | null>;
 	autosaveStatus: AutosaveStatus;
 }
 
@@ -108,7 +115,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 
 	useFontInjection({ embeddedFonts: state.embeddedFonts, slides });
 
-	const serializeSlides = useSerialize({
+	const serializeInput = {
 		slides,
 		templateElementsBySlideId: state.templateElementsBySlideId,
 		activeSlideIndex: state.activeSlideIndex,
@@ -127,14 +134,22 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		inlineEditingElementIdRef: state.inlineEditingElementIdRef,
 		inlineEditingTextRef: state.inlineEditingTextRef,
 		password,
-	});
+	};
+
+	const serializeSlides = useSerialize(serializeInput);
+
+	// The same deck, serialised for the viewer's own eyes only. Autosave used to
+	// reuse `serializeSlides`, so protecting a deck wrote an ENCRYPTED recovery
+	// snapshot that recovery (which never has the password) could not reopen -
+	// the crash-recovery data was destroyed the moment protection was enabled.
+	const serializeForRecovery = useSerialize({ ...serializeInput, purpose: 'recovery-snapshot' });
 
 	const { autosaveStatus } = useAutosave({
 		isDirty: state.isDirty,
 		filePath,
-		serializeSlides,
+		serializeSlides: serializeForRecovery,
 		enabled: autosaveEnabled,
 	});
 
-	return { handlerRef, serializeSlides, autosaveStatus };
+	return { handlerRef, serializeSlides, serializeForRecovery, autosaveStatus };
 }

@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
 import { createBackstagePresentation, templateSchemeFromTheme } from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 
@@ -69,6 +69,8 @@ export interface BuildToolbarPropsInput {
 	autosaveStatus?: AutosaveStatus;
 	autosaveEnabled?: boolean;
 	hiddenActions?: readonly ToolbarActionId[];
+	/** Builds the New Slide / Layout gallery artwork on first menu open. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,6 +249,8 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		isOverflowMenuOpen: s.isOverflowMenuOpen,
 		onSetOverflowMenuOpen: s.setIsOverflowMenuOpen,
 		layoutOptions: scopedLayoutOptions,
+		currentLayoutPath: activeSlide?.layoutPath,
+		loadLayoutPreviews: input.loadLayoutPreviews,
 		onInsertSlideFromLayout: slideOps.handleInsertSlideFromLayout,
 		onInsertSlideFromTemplate: slideOps.handleInsertSlideFromTemplate,
 		templateScheme: templateSchemeFromTheme(s.theme?.colorScheme),
@@ -298,6 +302,20 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		activeSlide,
 		onTransitionChange: handleTransitionChange,
 		onApplyTransitionToAll: handleApplyTransitionToAll,
+		// No `onResetSlide` here: this building-blocks surface supplies no
+		// `onApplyLayout` either, so there is no layout to reset to. The mounted
+		// viewer (`ViewerToolbarSection`) wires both.
+		onSelectAll: () => {
+			const allIds = activeSlide?.elements.map((element) => element.id) ?? [];
+			if (allIds.length > 0) {
+				ops.applySelection(allIds[0], allIds);
+			}
+		},
+		presentationProperties: s.presentationProperties,
+		onPresentationPropertiesChange: (updates) => {
+			s.setPresentationProperties((prev) => ({ ...prev, ...updates }));
+			history.markDirty();
+		},
 		hiddenActions,
 	};
 }

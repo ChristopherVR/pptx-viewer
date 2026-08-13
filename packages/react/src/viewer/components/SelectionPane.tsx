@@ -128,7 +128,14 @@ export function SelectionPane({
 			if (idx === -1) {
 				return prevSlides;
 			}
-			// Round-trips through save as cNvPr/@name; an empty commit clears it.
+			// A non-empty rename round-trips through save as cNvPr/@name.
+			// An empty commit does NOT clear it in the saved file: the writer
+			// (`applyNameToCnvPr`) reads `undefined` as "the model has no
+			// opinion" and keeps whatever the markup had, because several
+			// element kinds (charts, SmartArt, other graphic frames) parse
+			// without a `name` while carrying a real one, and `@name` is
+			// REQUIRED on CT_NonVisualDrawingProps so it cannot just be
+			// dropped. Clearing only resets the viewer-side label.
 			nextElements[idx] = {
 				...nextElements[idx],
 				name: trimmed.length > 0 ? trimmed : undefined,

@@ -12,6 +12,7 @@ import {
 	buildLineShadowCss,
 	buildLineGlowFilter,
 } from '../../utils';
+import { getAriaLabel, getAriaRole, getAriaRoleDescription } from '../../utils/accessibility';
 import {
 	getCompoundLineOffsets,
 	getCompoundLineWidths,
@@ -99,6 +100,16 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 			<div
 				data-pptx-element='true'
 				data-element-id={el.id}
+				// The shared accessibility contract, which the other four bindings
+				// stamp on a connector through their post-render DOM pass. React's
+				// connector took a dedicated renderer that never applied it, so a
+				// connector was the one element type with no role and no
+				// `aria-roledescription` here: unreachable to a screen reader, and
+				// invisible to every spec that addresses elements by their type.
+				role={getAriaRole(el, { actionable: false })}
+				aria-label={getAriaLabel(el)}
+				aria-roledescription={getAriaRoleDescription(el)}
+				aria-selected={isSelected ? true : undefined}
 				className='absolute'
 				style={{
 					left: el.x,

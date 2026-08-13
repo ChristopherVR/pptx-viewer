@@ -167,12 +167,19 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onPaste={p.onPaste}
 							onToggleFormatPainter={p.onToggleFormatPainter}
 							layoutOptions={p.layoutOptions}
+							currentLayoutPath={p.currentLayoutPath}
+							loadLayoutPreviews={p.loadLayoutPreviews}
+							themeFonts={p.themeFonts}
+							embeddedFontFamilies={p.embeddedFontFamilies}
+							customFontFamilies={p.customFontFamilies}
 							onInsertSlideFromLayout={p.onInsertSlideFromLayout}
 							onApplyLayout={p.onApplyLayout}
 							onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
 							templateScheme={p.templateScheme}
 							selectedElement={p.selectedElement}
 							onUpdateTextStyle={p.onUpdateTextStyle}
+							onResetSlide={p.onResetSlide}
+							onAddSection={p.onAddSection}
 						/>
 					)}
 
@@ -207,7 +214,12 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						/>
 					)}
 
-					{sHome && <EditingSection onToggleFindReplace={p.onToggleFindReplace} />}
+					{sHome && (
+						<EditingSection
+							onToggleFindReplace={p.onToggleFindReplace}
+							onSelectAll={p.onSelectAll}
+						/>
+					)}
 
 					{sHome && (
 						<DrawingGroup
@@ -218,6 +230,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onAddShape={p.onAddShape}
 							onMoveLayer={p.onMoveLayer}
 							onMoveLayerToEdge={p.onMoveLayerToEdge}
+							onUpdateElementStyle={p.onUpdateElementStyle}
 						/>
 					)}
 
@@ -271,6 +284,10 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						<TransitionsSection
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
+							canEdit={p.canEdit}
+							activeSlide={p.activeSlide}
+							onTransitionChange={p.onTransitionChange}
+							onApplyTransitionToAll={p.onApplyTransitionToAll}
 						/>
 					)}
 
@@ -300,6 +317,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onSetMode={p.onSetMode}
 							customShowControls={p}
 							hiddenActions={p.hiddenActions}
+							presentationProperties={p.presentationProperties}
+							onPresentationPropertiesChange={p.onPresentationPropertiesChange}
 						/>
 					)}
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { MIN_ELEMENT_SIZE } from '../constants';
-import { computeResizeGeometry, computeAdjustmentValue } from './pointer-move-handlers';
+import { computeResizeGeometry } from './pointer-move-handlers';
 
 // ---------------------------------------------------------------------------
 // computeResizeGeometry
@@ -175,44 +175,5 @@ describe('computeResizeGeometry', () => {
 			width: start.width,
 			height: start.height,
 		});
-	});
-});
-
-// ---------------------------------------------------------------------------
-// computeAdjustmentValue
-// ---------------------------------------------------------------------------
-
-describe('computeAdjustmentValue', () => {
-	it('computes value from delta relative to width', () => {
-		// dx = 100, width = 200, so delta = 0.5; start = 0 => result = 0.5
-		const result = computeAdjustmentValue(0, 100, 200);
-		expect(result).toBe(0.5);
-	});
-
-	it('clamps to minimum of 0', () => {
-		const result = computeAdjustmentValue(0.1, -100, 200);
-		expect(result).toBe(0);
-	});
-
-	it('clamps to maximum of 1', () => {
-		const result = computeAdjustmentValue(0.9, 100, 200);
-		expect(result).toBe(1);
-	});
-
-	it('uses fallback width of 200 when startWidth is 0', () => {
-		const result = computeAdjustmentValue(0.5, 50, 0);
-		// range = 200, delta = 50/200 = 0.25, result = 0.75
-		expect(result).toBe(0.75);
-	});
-
-	it('returns start adjustment when dx is 0', () => {
-		const result = computeAdjustmentValue(0.3, 0, 200);
-		expect(result).toBe(0.3);
-	});
-
-	it('handles negative dx', () => {
-		const result = computeAdjustmentValue(0.5, -50, 200);
-		// delta = -50/200 = -0.25, result = 0.25
-		expect(result).toBe(0.25);
 	});
 });

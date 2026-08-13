@@ -1,3 +1,4 @@
+import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,14 +11,19 @@ import {
 	LuLayoutGrid,
 } from 'react-icons/lu';
 
+import { useLayoutPreviews } from '../../hooks/useLayoutPreviews';
 import { cn } from '../../utils';
 import { SlideTemplateGalleryDialog } from '../SlideTemplateGalleryDialog';
-import { RibbonMenu } from './RibbonMenu';
+import { LayoutGalleryMenu } from './LayoutGalleryMenu';
 import { ic, pill, sep } from './toolbar-constants';
 
 export interface SlidesGroupProps {
 	canEdit: boolean;
-	layoutOptions: Array<{ path: string; name: string }>;
+	layoutOptions: PptxLayoutOption[];
+	/** Marks the active tile in the Layout menu. */
+	currentLayoutPath?: string;
+	/** Supplies gallery artwork; without it the menus stay name-only. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
 	/** Deck scheme map so template previews show the deck's theme colours. */
@@ -34,6 +40,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 	const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
 	const newSlideMenuRef = useRef<HTMLDivElement>(null);
 	const layoutMenuRef = useRef<HTMLDivElement>(null);
+	const previews = useLayoutPreviews(p.loadLayoutPreviews, newSlideMenuOpen || layoutMenuOpen);
 
 	const handleNewSlide = useCallback(() => {
 		if (p.layoutOptions.length > 0) {
@@ -100,23 +107,15 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 							</button>
 						)}
 						{newSlideMenuOpen && (
-							<RibbonMenu anchorRef={newSlideMenuRef} className='flex flex-col w-48 pt-1'>
-								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
-									{p.layoutOptions.map((lo) => (
-										<button
-											key={lo.path}
-											type='button'
-											className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-											onClick={() => {
-												p.onInsertSlideFromLayout(lo.path, lo.name);
-												setNewSlideMenuOpen(false);
-											}}
-										>
-											{lo.name}
-										</button>
-									))}
-								</div>
-							</RibbonMenu>
+							<LayoutGalleryMenu
+								anchorRef={newSlideMenuRef}
+								layoutOptions={p.layoutOptions}
+								previews={previews}
+								onSelect={(layout) => {
+									p.onInsertSlideFromLayout(layout.path, layout.name);
+									setNewSlideMenuOpen(false);
+								}}
+							/>
 						)}
 					</div>
 
@@ -147,23 +146,16 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 							{t('pptx.master.layout')}
 						</button>
 						{layoutMenuOpen && (
-							<RibbonMenu anchorRef={layoutMenuRef} className='flex flex-col w-48 pt-1'>
-								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
-									{p.layoutOptions.map((lo) => (
-										<button
-											key={lo.path}
-											type='button'
-											className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-											onClick={() => {
-												p.onApplyLayout?.(lo.path);
-												setLayoutMenuOpen(false);
-											}}
-										>
-											{lo.name}
-										</button>
-									))}
-								</div>
-							</RibbonMenu>
+							<LayoutGalleryMenu
+								anchorRef={layoutMenuRef}
+								layoutOptions={p.layoutOptions}
+								previews={previews}
+								currentLayoutPath={p.currentLayoutPath}
+								onSelect={(layout) => {
+									p.onApplyLayout?.(layout.path);
+									setLayoutMenuOpen(false);
+								}}
+							/>
 						)}
 					</div>
 

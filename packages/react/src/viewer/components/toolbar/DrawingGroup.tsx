@@ -1,4 +1,5 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { RIBBON_SHAPE_SWATCHES, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLayers, LuPaintBucket, LuPenLine, LuShapes, LuSparkles } from 'react-icons/lu';
@@ -17,23 +18,13 @@ export interface DrawingGroupProps {
 	onAddShape: () => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
-	onUpdateElementStyle?: (style: Record<string, unknown>) => void;
+	/**
+	 * Patch the selected shape's style. Optional only because the mobile menu
+	 * sheet renders the group without one; the desktop ribbon always passes it.
+	 * It used to be passed by nobody, so both swatch grids were decorative.
+	 */
+	onUpdateElementStyle?: (style: Partial<ShapeStyle>) => void;
 }
-
-const FILL_COLORS = [
-	'#ffffff',
-	'#000000',
-	'#ff0000',
-	'#00ff00',
-	'#0000ff',
-	'#ffff00',
-	'#ff00ff',
-	'#00ffff',
-	'#ff8800',
-	'#8800ff',
-	'#008888',
-	'#888888',
-];
 
 const TOP_SHAPES = SHAPE_PRESETS.slice(0, 12);
 
@@ -216,7 +207,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						{fillOpen && (
 							<RibbonMenu anchorRef={fillRef} className='pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1'>
-									{FILL_COLORS.map((c) => (
+									{RIBBON_SHAPE_SWATCHES.map((c) => (
 										<button
 											key={c}
 											type='button'
@@ -226,7 +217,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											style={{ backgroundColor: c }}
 											title={c}
 											onClick={() => {
-												p.onUpdateElementStyle?.({ fill: c });
+												p.onUpdateElementStyle?.(shapeFillChange(c));
 												setFillOpen(false);
 											}}
 										/>
@@ -250,7 +241,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						{outlineOpen && (
 							<RibbonMenu anchorRef={outlineRef} className='pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1'>
-									{FILL_COLORS.map((c) => (
+									{RIBBON_SHAPE_SWATCHES.map((c) => (
 										<button
 											key={c}
 											type='button'
@@ -260,7 +251,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											style={{ backgroundColor: c }}
 											title={c}
 											onClick={() => {
-												p.onUpdateElementStyle?.({ outlineColor: c });
+												p.onUpdateElementStyle?.(shapeOutlineChange(c));
 												setOutlineOpen(false);
 											}}
 										/>

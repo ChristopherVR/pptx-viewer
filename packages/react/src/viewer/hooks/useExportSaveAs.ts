@@ -8,7 +8,8 @@ import type {
 	PptxTheme,
 } from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
-import { downloadBlob, exportDeckJson } from 'pptx-viewer-shared';
+import type { DeckSaveOptions } from 'pptx-viewer-shared';
+import { downloadBlob, exportDeckJson, saveDeckWithPassword } from 'pptx-viewer-shared';
 /**
  * useExportSaveAs: Save-As format and Package-for-Sharing handlers.
  */
@@ -200,14 +201,8 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			handoutMaster,
 			outputFormat: format,
 		};
-		if (password) {
-			return handler.saveEncrypted(
-				slidesToSave,
-				password,
-				saveOptions as Parameters<typeof handler.save>[1],
-			);
-		}
-		return handler.save(slidesToSave, saveOptions as Parameters<typeof handler.save>[1]);
+		// Same shared decision as `useSerialize`, so Save-As cannot drift from Save.
+		return saveDeckWithPassword(handler, slidesToSave, saveOptions as DeckSaveOptions, password);
 	};
 
 	/**

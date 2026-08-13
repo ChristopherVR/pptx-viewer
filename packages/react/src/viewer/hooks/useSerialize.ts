@@ -13,6 +13,8 @@ import type {
 	PptxTagCollection,
 } from 'pptx-viewer-core';
 import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
+import type { DeckSavePurpose } from 'pptx-viewer-shared';
+import { saveDeckWithPassword } from 'pptx-viewer-shared';
 /**
  * useSerialize: Builds the `serializeSlides` callback that persists the
  * current slide deck (including header/footer, properties, etc.) via the
@@ -48,6 +50,16 @@ export interface UseSerializeInput {
 	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
 	inlineEditingTextRef: React.MutableRefObject<string>;
 	password?: string;
+	/**
+	 * Why these bytes are being produced. Defaults to `'user-file'` (Save, Save
+	 * As, Export, the imperative `getContent()`), which honours `password`.
+	 * `'recovery-snapshot'` is for bytes the viewer reads back itself - the
+	 * autosave snapshot and the re-serialise-then-reload cycle - and is always
+	 * plaintext, because nothing on the way back in can supply the password.
+	 * See `deck-save-encryption` in `pptx-viewer-shared` for the full rationale
+	 * and the privacy tradeoff it accepts.
+	 */
+	purpose?: DeckSavePurpose;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,6 +86,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
 		password,
+		purpose,
 	} = input;
 
 	return useCallback(async (): Promise<Uint8Array | null> => {
@@ -138,10 +151,10 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			handoutMaster,
 		};
 
-		if (password) {
-			return handler.saveEncrypted(slidesToSave, password, saveOptions);
-		}
-		return handler.save(slidesToSave, saveOptions);
+		// One shared decision for all five bindings: a captured password means
+		// `saveEncrypted` (OLE2 container), never `save` (plain ZIP) - unless
+		// these bytes are a recovery snapshot, which must stay loadable.
+		return saveDeckWithPassword(handler, slidesToSave, saveOptions, { password, purpose });
 	}, [
 		slides,
 		templateElementsBySlideId,
@@ -161,5 +174,6 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
 		password,
+		purpose,
 	]);
 }

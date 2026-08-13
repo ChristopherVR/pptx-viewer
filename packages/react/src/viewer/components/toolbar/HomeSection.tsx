@@ -1,5 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
+import { resolveDefaultFontFamily } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,7 @@ import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } fro
 
 import type { ElementClipboardPayload } from '../../types';
 import { cn } from '../../utils';
+import { FontFamilyMenu } from './FontFamilyMenu';
 import { RibbonMenu } from './RibbonMenu';
 import { SlidesGroup } from './SlidesGroup';
 import { gB, gL, grp, ic, sep } from './toolbar-constants';
@@ -20,7 +22,11 @@ export interface HomeSectionProps {
 	onCut: () => void;
 	onPaste: () => void;
 	onToggleFormatPainter?: () => void;
-	layoutOptions: Array<{ path: string; name: string }>;
+	layoutOptions: PptxLayoutOption[];
+	/** Marks the active tile in the Layout menu. */
+	currentLayoutPath?: string;
+	/** Supplies gallery artwork; without it the menus stay name-only. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
 	templateScheme?: Record<string, string>;
@@ -29,14 +35,33 @@ export interface HomeSectionProps {
 	onAddSection?: () => void;
 	selectedElement?: PptxElement | null;
 	onUpdateTextStyle?: (style: Record<string, unknown>) => void;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 }
 
-function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fontSize: string } {
-	const defaults = { fontFamily: 'Segoe UI', fontSize: '24' };
-	if (!element) {
-		return defaults;
-	}
-	if (!hasTextProperties(element)) {
+/**
+ * What the font name / size boxes should display for the current selection.
+ *
+ * With nothing overriding it on the element, the box shows the family the deck
+ * would actually render: the theme's major font inside a title placeholder and
+ * its minor font elsewhere. It used to show a hardcoded "Segoe UI", which
+ * misreported every themed deck.
+ */
+function extractFontInfo(
+	element: PptxElement | null | undefined,
+	themeFonts: { heading?: string; body?: string } | undefined,
+): { fontFamily: string; fontSize: string } {
+	const placeholderType = (element as { placeholderType?: string } | null | undefined)
+		?.placeholderType;
+	const defaults = {
+		fontFamily: resolveDefaultFontFamily(placeholderType, themeFonts),
+		fontSize: '24',
+	};
+	if (!element || !hasTextProperties(element)) {
 		return defaults;
 	}
 
@@ -52,22 +77,6 @@ function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fo
 	};
 }
 
-const COMMON_FONTS = [
-	'Arial',
-	'Calibri',
-	'Cambria',
-	'Comic Sans MS',
-	'Courier New',
-	'Georgia',
-	'Helvetica',
-	'Impact',
-	'Segoe UI',
-	'Tahoma',
-	'Times New Roman',
-	'Trebuchet MS',
-	'Verdana',
-];
-
 const COMMON_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72, 96];
 
 export function HomeSection(p: HomeSectionProps): React.ReactElement {
@@ -78,7 +87,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 	const [cutFeedback, setCutFeedback] = useState(false);
 	const fontMenuRef = useRef<HTMLDivElement>(null);
 	const sizeMenuRef = useRef<HTMLDivElement>(null);
-	const { fontFamily, fontSize } = extractFontInfo(p.selectedElement);
+	const { fontFamily, fontSize } = extractFontInfo(p.selectedElement, p.themeFonts);
 	// Cut and Copy act on the selection, so with nothing selected they are
 	// no-ops. They used to render live anyway, which offered the user a button
 	// that could not do anything and disagreed with the Svelte binding.
@@ -181,6 +190,8 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 			<SlidesGroup
 				canEdit={p.canEdit}
 				layoutOptions={p.layoutOptions}
+				currentLayoutPath={p.currentLayoutPath}
+				loadLayoutPreviews={p.loadLayoutPreviews}
 				onInsertSlideFromLayout={p.onInsertSlideFromLayout}
 				onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
 				templateScheme={p.templateScheme}
@@ -206,24 +217,16 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							<LuChevronDown className='w-3 h-3 ml-1 shrink-0 text-muted-foreground' />
 						</button>
 						{fontMenuOpen && (
-							<RibbonMenu anchorRef={fontMenuRef} className='flex flex-col w-48 pt-1'>
-								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
-									{COMMON_FONTS.map((f) => (
-										<button
-											key={f}
-											type='button'
-											className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-											style={{ fontFamily: f }}
-											onClick={() => {
-												p.onUpdateTextStyle?.({ fontFamily: f });
-												setFontMenuOpen(false);
-											}}
-										>
-											{f}
-										</button>
-									))}
-								</div>
-							</RibbonMenu>
+							<FontFamilyMenu
+								anchorRef={fontMenuRef}
+								themeFonts={p.themeFonts}
+								embeddedFonts={p.embeddedFontFamilies}
+								customFonts={p.customFontFamilies}
+								onSelect={(family) => {
+									p.onUpdateTextStyle?.({ fontFamily: family });
+									setFontMenuOpen(false);
+								}}
+							/>
 						)}
 					</div>
 					<div className='relative' ref={sizeMenuRef}>

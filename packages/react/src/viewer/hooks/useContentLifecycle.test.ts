@@ -62,6 +62,7 @@ describe('contentLifecycleResult shape', () => {
 		const mockResult: ContentLifecycleResult = {
 			handlerRef: { current: null },
 			serializeSlides: async () => null,
+			serializeForRecovery: async () => null,
 			autosaveStatus: { state: 'idle' },
 		};
 
@@ -74,6 +75,7 @@ describe('contentLifecycleResult shape', () => {
 		const mockResult: ContentLifecycleResult = {
 			handlerRef: { current: null },
 			serializeSlides: async () => null,
+			serializeForRecovery: async () => null,
 			autosaveStatus: { state: 'idle' },
 		};
 
@@ -86,6 +88,7 @@ describe('contentLifecycleResult shape', () => {
 		const mockResult: ContentLifecycleResult = {
 			handlerRef: { current: null },
 			serializeSlides: async () => data,
+			serializeForRecovery: async () => null,
 			autosaveStatus: { state: 'idle' },
 		};
 
@@ -97,6 +100,7 @@ describe('contentLifecycleResult shape', () => {
 		const mockResult: ContentLifecycleResult = {
 			handlerRef: { current: null },
 			serializeSlides: async () => null,
+			serializeForRecovery: async () => null,
 			autosaveStatus: { state: 'idle' },
 		};
 		expect(mockResult.autosaveStatus.state).toBe('idle');
@@ -107,6 +111,7 @@ describe('contentLifecycleResult shape', () => {
 		const mockResult: ContentLifecycleResult = {
 			handlerRef: { current: null },
 			serializeSlides: async () => null,
+			serializeForRecovery: async () => null,
 			autosaveStatus: { state: 'saved', timestamp: now },
 		};
 		expect(mockResult.autosaveStatus.state).toBe('saved');

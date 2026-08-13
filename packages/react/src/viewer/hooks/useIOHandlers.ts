@@ -35,6 +35,12 @@ export interface UseIOHandlersInput {
 	};
 	handlerRef: React.RefObject<PptxHandler | null>;
 	serializeSlides: () => Promise<Uint8Array | null>;
+	/**
+	 * Plaintext serialisation for bytes the viewer feeds straight back into its
+	 * own loader. "Apply theme" does exactly that, and the loader has no password
+	 * to offer, so it must never receive an encrypted package.
+	 */
+	serializeForRecovery: () => Promise<Uint8Array | null>;
 	setContent: React.Dispatch<React.SetStateAction<ArrayBuffer | Uint8Array | null>>;
 	onContentChange: ((content: Uint8Array) => void) | undefined;
 	password?: string;
@@ -67,6 +73,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		zoom,
 		handlerRef,
 		serializeSlides,
+		serializeForRecovery,
 		setContent,
 		onContentChange,
 		password,
@@ -108,7 +115,9 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 
 	const themeHandlers = useThemeHandlers({
 		handlerRef,
-		serializeSlides,
+		// Theme apply re-serialises and re-parses through `setContent`, so these
+		// bytes go back into our own loader: plaintext, never the protected save.
+		serializeSlides: serializeForRecovery,
 		setContent,
 		onContentChange,
 		setTheme: state.setTheme as unknown as React.Dispatch<

@@ -1,386 +1,142 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
-	getGradientTileFlipCss,
-	getGradientTileRectCss,
-	getSoftEdgeFilterId,
+	getComputedEffectStyle,
+	getComputedFillStyle,
+	getComputedStrokeStyle,
 	isStrokeOnlyPresetElement,
-	sanitizeGradientStops,
-	suppressesCssBorder,
+	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
 /**
  * Shape visual style computation.
  *
- * Assembles a complete `React.CSSProperties` object for rendering a shape element,
- * combining fill (solid, gradient, pattern, image), stroke (dash, compound line),
- * shadow/glow effects, 3-D transforms, DAG image adjustments, reflection, and
- * clip-path / border-radius for non-rectangular shapes.
+ * Assembles a complete `React.CSSProperties` object for rendering a shape
+ * element. Every DECISION in it - fill precedence, gradient tiling, shadows,
+ * glow, soft edge, reflection, blend, the `a:ln` border and the geometry
+ * cascade - is made by `pptx-viewer-shared` and shared verbatim with the other
+ * four bindings; this module only maps those neutral descriptors onto React's
+ * style object.
+ *
+ * It used to be a ~470-line private reimplementation of that pipeline, which had
+ * drifted from shared in BOTH directions: React alone rendered `a:ln/@cmpd` and
+ * `a:blipFill/a:tile`, and React alone dropped `a:reflection/@stPos`. Routing
+ * both ways through shared is what ended that.
  */
-import React from 'react';
+import type React from 'react';
 
-import {
-	normalizeHexColor,
-	colorWithOpacity,
-	buildCssGradientFromShapeStyle,
-	buildShadowCssFromShapeStyle,
-	buildInnerShadowCssFromShapeStyle,
-	buildMultiLayerShadowCss,
-	buildGlowBoxShadow,
-	buildReflectionCss,
-	buildPatternFillCss,
-} from './color';
-import { getEffectDagFilter } from './effect-dag-filters';
-import { getResolvedShapeClipPath, isIdentityRectClip } from './resolved-shape-clip-path';
-import { getRoundRectRadiusPx } from './shape-round-rect';
-import { getShapeType } from './shape-types';
 import { apply3dEffects } from './shape-visual-3d';
-import {
-	buildLineShadowCss,
-	buildLineGlowFilter,
-	mapDagBlendModeToCss,
-} from './shape-visual-filters';
-import {
-	normalizeStrokeDashType,
-	getCssBorderDashStyle,
-	getCompoundLineBoxShadow,
-	getCompoundLineBorderWidth,
-} from './style';
 
 /**
- * Resolves the `background-size` / `background-position` / `background-repeat`
- * a gradient fill needs on top of its gradient string.
+ * Whether React paints this element as a freeform SVG `<path>`
+ * (`renderVectorShape`) rather than as a styled box.
  *
- * Mirrors the ordering in shared `getComputedFillStyle`: tile-flip wins for a
- * structured linear gradient (its stops were already reflected by
- * `buildCssGradientFromShapeStyle`, so the halved, repeating background
- * completes the per-tile mirror), otherwise the `a:tileRect` box applies.
- * Returns `undefined` when neither is in force, so callers keep their
- * full-bleed default.
+ * This is a VIEW-layer fact, not a property of the OOXML, which is why it is the
+ * one piece of the cascade that stays in the binding: the `<path>` already
+ * carries the fill and the stroke, so painting them a second time as a
+ * `backgroundColor` / `border` on the rectangular container floods the shape's
+ * whole bounding box - a thin balloon crescent reads as a solid rectangle.
+ * (Presets keep their container fill because a `clipPath` constrains it to the
+ * shape outline.)
  */
-function getGradientTilingCss(
-	style: ShapeStyle | undefined,
-): { backgroundSize?: string; backgroundPosition?: string; backgroundRepeat?: string } | undefined {
-	if (!style || style.fillMode !== 'gradient') {
-		return undefined;
-	}
-	const isStructuredLinear =
-		(style.fillGradientType || 'linear') === 'linear' &&
-		sanitizeGradientStops(style.fillGradientStops).length > 0;
-	if (isStructuredLinear) {
-		const flip = getGradientTileFlipCss(style.fillGradientFlip);
-		if (flip) {
-			return flip;
-		}
-	}
-	return getGradientTileRectCss(style.fillGradientTileRect);
+function rendersCustomVectorPath(element: PptxElement): boolean {
+	return (
+		(element.type === 'shape' || element.type === 'image' || element.type === 'picture') &&
+		Boolean(element.pathData) &&
+		typeof element.pathWidth === 'number' &&
+		element.pathWidth > 0 &&
+		typeof element.pathHeight === 'number' &&
+		element.pathHeight > 0
+	);
 }
 
 /**
  * Computes the full CSS style object for rendering a PPTX shape element.
  *
  * The returned style handles:
- * - **Fill**: solid colour with opacity, CSS gradients, pattern SVG backgrounds, image fills
- * - **Stroke**: border width/colour/dash style, compound line box-shadows
- * - **Shadows**: outer shadow, inner shadow, line-level shadow
- * - **Glow & soft-edge**: CSS filter drop-shadow and blur
+ * - **Fill**: solid colour with opacity, CSS gradients (including `@flip` /
+ *   `a:tileRect` tiling), pattern SVG backgrounds, image fills, `a:grpFill`
+ * - **Stroke**: border width/colour/dash, compound (`a:ln/@cmpd`) lines
+ * - **Shadows**: outer, inner, multi-layer, glow, and the line-level `a:ln` shadow
+ * - **Glow & soft-edge**: CSS filter drop-shadow and the alpha-feather `<filter>`
  * - **DAG effects**: grayscale, bi-level, brightness/contrast, hue/saturation, tint, duotone
  * - **3-D**: perspective transforms, extrusion depth, bevel highlights
- * - **Reflection**: Chromium `-webkit-box-reflect`
+ * - **Reflection**: Chromium `-webkit-box-reflect`, including `@stPos`
  * - **Shape geometry**: clip-path polygons, border-radius for ellipses and round-rects
  *
  * @param element - The PPTX element to style.
- * @param hasFill - Whether the shape has an active fill.
- * @param fillColor - Resolved fill colour (hex).
- * @param strokeWidth - Stroke width in pixels.
- * @param strokeColor - Resolved stroke colour (hex).
+ * @param _hasFill - Unused; the fill decision (including "is there one") is made
+ *   by shared `getComputedFillStyle`. Kept so the call sites and their tests keep
+ *   their historical signature.
+ * @param fillColor - Resolved fill colour (hex), used only as the 3-D
+ *   extrusion/contour default when the shape declares no explicit colour.
+ * @param _strokeWidth - Unused; shared `getComputedStrokeStyle` resolves the
+ *   painted width itself (a width-only fill-less `a:ln` paints nothing).
+ * @param _strokeColor - Unused; as above.
  * @param animatesFill - When an active `p:animClr` targets the shape fill, drop
  *   the static container fill so the wrapper's animated `background-color` /
  *   `fill` keyframes own the paint. Absent/false keeps the static fill.
  * @param animatesStroke - As `animatesFill`, but for the container stroke
  *   (`border-color`).
+ * @param parentGroupFill - The enclosing group's fill, for a child painted with
+ *   `a:grpFill` (`fillMode === 'group'`).
  * @returns A `React.CSSProperties` object ready to apply to the shape container.
  */
 export function getShapeVisualStyle(
 	element: PptxElement,
-	hasFill: boolean,
+	_hasFill: boolean,
 	fillColor: string,
-	strokeWidth: number,
-	strokeColor: string,
+	_strokeWidth: number,
+	_strokeColor: string,
 	animatesFill?: boolean,
 	animatesStroke?: boolean,
+	parentGroupFill?: ShapeStyle,
 ): React.CSSProperties {
 	if (!hasShapeProperties(element)) {
 		return {};
 	}
-	const normalizedShapeType = getShapeType(element.shapeType);
-	// A rect preset's clip is its own box: skip it so overflowing text spills
-	// visibly (as PowerPoint does) instead of being sliced.
-	const clipPath = isIdentityRectClip(element) ? undefined : getResolvedShapeClipPath(element);
-	// Custom-geometry shapes (freeforms) are painted by `renderVectorShape` as an
-	// SVG `<path>` that already carries the fill and stroke. Painting the fill a
-	// second time as a `backgroundColor`/`backgroundImage` on this rectangular
-	// container floods the shape's whole bounding box, so a thin balloon crescent
-	// reads as a solid rectangle. Suppress the container-level fill and border for
-	// these shapes and let the SVG path be the only paint. (Presets keep their
-	// container fill because a `clipPath` constrains it to the shape outline.)
-	const rendersCustomVectorPath =
-		(element.type === 'shape' || element.type === 'image' || element.type === 'picture') &&
-		Boolean(element.pathData) &&
-		typeof element.pathWidth === 'number' &&
-		element.pathWidth > 0 &&
-		typeof element.pathHeight === 'number' &&
-		element.pathHeight > 0;
-	// Open, stroke-only presets (`line`, `arc`, the connector family) are painted
-	// by `ShapeEffectOverlay` from the shared `buildStrokeOutline` as a stroked
-	// SVG path. Suppress the container fill/border (and the wedge clip-path) so
-	// the shape reads as an outline, not a filled region boxed by a border.
-	const rendersStrokeOnlyPreset = isStrokeOnlyPresetElement(element);
-	const fillOpacity = element.shapeStyle?.fillOpacity;
-	const strokeOpacity = element.shapeStyle?.strokeOpacity;
-	const strokeDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
-	// The gradient string depends on the element's own geometry: `a:lin/@scaled`
-	// stretches the authored angle across the box aspect ratio and
-	// `a:gradFill/@rotWithShape="0"` counter-rotates it. Omitting the context
-	// dropped both corrections in React only.
-	const fillGradient =
-		buildCssGradientFromShapeStyle(element.shapeStyle, {
-			rotation: element.rotation,
-			width: element.width,
-			height: element.height,
-		}) || element.shapeStyle?.fillGradient;
-	const shadowCss = buildShadowCssFromShapeStyle(element.shapeStyle);
-	const innerShadowCss = buildInnerShadowCssFromShapeStyle(element.shapeStyle);
-	const resolvedFillColor = colorWithOpacity(fillColor, fillOpacity);
-	const resolvedStrokeColor = colorWithOpacity(strokeColor, strokeOpacity);
 	const ss = element.shapeStyle;
-	// Gradient tiling. `a:gradFill/@flip` (mirror the tile per repeat) and
-	// `a:gradFill/a:tileRect` (confine the tile to a sub-rectangle, or blow it
-	// out past the shape with negative insets) change the background BOX, not
-	// the gradient string, so they have to be applied alongside it. React
-	// hard-coded `100% 100%` / `no-repeat` and lost both; the other four
-	// bindings already honour them through shared `getComputedFillStyle`.
-	const gradientTiling = getGradientTilingCss(ss);
-	// `ShapeEffectOverlay` strokes a gradient/pattern outline as an SVG path.
-	const paintsGradientOutline = suppressesCssBorder(element);
-	// A DAG fill-overlay tint layer is painted separately by `ShapeEffectOverlay`
-	// when a colour is parsed; in that case the whole-element blend proxy below is
-	// suppressed so the overlay layer owns the blend (mirrors shared
-	// `getComputedEffectStyle`).
-	const hasFillOverlayColor = Boolean(
-		ss?.dagFillOverlayColor && ss.dagFillOverlayColor !== 'transparent',
-	);
-
-	// Combine outer, inner, and line shadow into a single boxShadow value.
-	// Multi-layer shadows (from `shadows` array) take precedence over the
-	// single-shadow properties for outer shadows when present.
-	const combinedShadowParts: string[] = [];
-	const multiLayerShadow = buildMultiLayerShadowCss(element.shapeStyle);
-	if (multiLayerShadow) {
-		combinedShadowParts.push(multiLayerShadow);
-	} else if (shadowCss) {
-		combinedShadowParts.push(shadowCss);
-	}
-	if (innerShadowCss) {
-		combinedShadowParts.push(innerShadowCss);
-	}
-	// High-fidelity glow via layered box-shadows (supplements the filter-based glow)
-	const glowBoxShadow = buildGlowBoxShadow(ss?.glowColor, ss?.glowRadius, ss?.glowOpacity);
-	if (glowBoxShadow) {
-		combinedShadowParts.push(glowBoxShadow);
-	}
-	// Line-level shadow (from a:ln/a:effectLst/a:outerShdw)
-	const lineShadow = buildLineShadowCss(element);
-	if (lineShadow) {
-		combinedShadowParts.push(lineShadow);
-	}
-	// Compound line box-shadow (for dbl, thickThin, thinThick, tri)
-	const compoundLineShadow = getCompoundLineBoxShadow(
-		element.shapeStyle?.compoundLine,
-		strokeWidth,
-		resolvedStrokeColor,
-	);
-	if (compoundLineShadow) {
-		combinedShadowParts.push(compoundLineShadow);
-	}
-	const combinedBoxShadow =
-		combinedShadowParts.length > 0 ? combinedShadowParts.join(', ') : undefined;
-
-	// Build CSS filter for glow and soft-edge effects
-	const filterParts: string[] = [];
-	if (ss?.glowColor && ss.glowColor !== 'transparent' && ss.glowRadius) {
-		const glowOpacity = typeof ss.glowOpacity === 'number' ? ss.glowOpacity : 0.75;
-		const glowRad = Math.round(Math.max(0, ss.glowRadius));
-		const glowCol = colorWithOpacity(normalizeHexColor(ss.glowColor, '#ffff00'), glowOpacity);
-		filterParts.push(`drop-shadow(0 0 ${glowRad}px ${glowCol})`);
-	}
-	// Soft edges: feather only the alpha edge via an SVG `<filter>` (injected by
-	// `ShapeEffectOverlay`) rather than a whole-element `blur()` that would wash
-	// out the interior fill/text. `getSoftEdgeSvgFilter` builds the matching
-	// `soft-edge-<id>` filter; here we only reference it.
-	if (typeof ss?.softEdgeRadius === 'number' && ss.softEdgeRadius > 0) {
-		filterParts.push(`url(#${getSoftEdgeFilterId(element.id)})`);
-	}
-	// Blur effect (a:blur)
-	if (typeof ss?.blurRadius === 'number' && ss.blurRadius > 0) {
-		filterParts.push(`blur(${Math.round(ss.blurRadius)}px)`);
-	}
-	// Line-level glow (from a:ln/a:effectLst/a:glow)
-	const lineGlowCss = buildLineGlowFilter(element);
-	if (lineGlowCss) {
-		filterParts.push(lineGlowCss);
-	}
-
-	// ── DAG-specific CSS filters (centralised in effect-dag-filters.ts) ──
-	const dagFilter = getEffectDagFilter(ss, element.id);
-	if (dagFilter) {
-		filterParts.push(dagFilter);
-	}
-
-	// Line join → SVG lineJoin (applied by the SVG path renderer; also carried
-	// here for shapes that stroke via SVG). `miter` (with a:miter/@lim) is mapped
-	// alongside round/bevel instead of being dropped to the default.
-	const lineJoinCss: React.CSSProperties['strokeLinejoin'] =
-		ss?.lineJoin === 'round'
-			? 'round'
-			: ss?.lineJoin === 'bevel'
-				? 'bevel'
-				: ss?.lineJoin === 'miter'
-					? 'miter'
-					: undefined;
-	// a:miter/@lim is stored in 1000ths of a percent (800000 = 8.0); SVG's
-	// stroke-miterlimit is a plain ratio >= 1.
-	const miterLimitCss =
-		ss?.lineJoin === 'miter' && typeof ss?.miterLimit === 'number'
-			? Math.max(ss.miterLimit / 100000, 1)
-			: undefined;
-
-	// Pattern fill (SVG-based CSS background)
-	const patternFill = buildPatternFillCss(element.shapeStyle);
-
-	// Image fill (fillMode === "image")
-	const imageFillUrl = ss?.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
-	const imageFillMode = ss?.fillImageMode || 'stretch';
-
-	// ── Reflection effect via -webkit-box-reflect (Chromium) ──
-	let reflectCss: string | undefined;
-	if (ss) {
-		const hasReflection =
-			(typeof ss.reflectionStartOpacity === 'number' && ss.reflectionStartOpacity > 0) ||
-			(typeof ss.reflectionDistance === 'number' && ss.reflectionDistance > 0) ||
-			(typeof ss.reflectionBlurRadius === 'number' && ss.reflectionBlurRadius > 0);
-		if (hasReflection) {
-			const distance = ss.reflectionDistance ?? 0;
-			const startOpacity =
-				typeof ss.reflectionStartOpacity === 'number' ? ss.reflectionStartOpacity : 0.5;
-			const endOpacity = typeof ss.reflectionEndOpacity === 'number' ? ss.reflectionEndOpacity : 0;
-			// Fade length derived from reflectionEndPosition (fraction of shape height).
-			// If not set, default to 100px as a reasonable fallback.
-			const fadeLength =
-				typeof ss.reflectionEndPosition === 'number'
-					? Math.round(ss.reflectionEndPosition * Math.max(element.height, 1))
-					: 100;
-			const blurRadius = typeof ss.reflectionBlurRadius === 'number' ? ss.reflectionBlurRadius : 0;
-			reflectCss = buildReflectionCss(distance, startOpacity, endOpacity, fadeLength, blurRadius);
-		}
-	}
+	// Fill: image -> structured gradient -> preset pattern -> solid, with
+	// `a:gradFill/@flip` + `a:tileRect` applied to the background BOX and
+	// `a:grpFill` inheritance resolved in this child's own box.
+	const fill = animatesFill ? undefined : getComputedFillStyle(element, parentGroupFill);
+	// Shadows / glow / soft edge / blur / reflection / DAG blend + alpha.
+	const fx = getComputedEffectStyle(element);
+	// `a:ln` -> border width, style (compound lines become `double`), colour, plus
+	// the inherited SVG join / cap / miter-limit presentation properties.
+	const stroke = getComputedStrokeStyle(element);
 
 	const base: React.CSSProperties = {
-		// A gradient fill REPLACES the solid fill, it does not sit on top of it.
-		// The parser also records a representative `fillColor`/`fillOpacity` for a
-		// `a:gradFill` (used by thumbnails and the inspector), and painting that as
-		// a `backgroundColor` under the gradient washed the whole shape: wherever
-		// the gradient's own stops were transparent the solid still showed, so a
-		// fade-to-transparent overlay dimmed everything behind it and its edge read
-		// as a hard line. Mirrors the fill precedence in shared's
-		// `getComputedFillStyle` (image -> gradient -> pattern -> solid).
-		backgroundColor: imageFillUrl
-			? 'transparent'
-			: patternFill
-				? patternFill.backgroundColor
-				: hasFill && !fillGradient
-					? resolvedFillColor
-					: 'transparent',
-		backgroundImage: imageFillUrl
-			? `url(${imageFillUrl})`
-			: patternFill
-				? patternFill.backgroundImage
-				: hasFill && fillGradient
-					? fillGradient
-					: undefined,
-		backgroundRepeat: imageFillUrl
-			? imageFillMode === 'tile'
-				? 'repeat'
-				: 'no-repeat'
-			: patternFill
-				? 'repeat'
-				: hasFill && fillGradient
-					? (gradientTiling?.backgroundRepeat ?? 'no-repeat')
-					: undefined,
-		backgroundSize: imageFillUrl
-			? imageFillMode === 'tile'
-				? 'auto'
-				: '100% 100%'
-			: patternFill
-				? 'auto'
-				: hasFill && fillGradient
-					? (gradientTiling?.backgroundSize ?? '100% 100%')
-					: undefined,
-		// The container always carries a 1px border (transparent unless the shape
-		// has a stroke or is hovered) and `box-sizing: border-box`, so the default
-		// `background-origin: padding-box` sizes the paint 2px smaller than the
-		// shape. Combined with the default `background-repeat: repeat` that made a
-		// gradient tile wrap, painting a 1px sliver of its opposite end along the
-		// edge - a fade-to-transparent overlay grew a hard opaque line down its
-		// side. Paint from the border box so the fill matches the shape outline.
+		// A gradient fill REPLACES the solid fill, it does not sit on top of it;
+		// the whole precedence lives in shared's `getComputedFillStyle`.
+		backgroundColor: fill?.backgroundColor ?? 'transparent',
+		backgroundImage: fill?.backgroundImage,
+		backgroundRepeat: fill?.backgroundRepeat,
+		backgroundSize: fill?.backgroundSize,
+		backgroundPosition: fill?.backgroundPosition,
+		// The container always carries `box-sizing: border-box`, so the default
+		// `background-origin: padding-box` would size the paint 2px smaller than
+		// the shape and make a gradient tile wrap, painting a 1px sliver of its
+		// opposite end along the edge. Paint from the border box instead.
 		backgroundOrigin: 'border-box',
-		backgroundPosition: imageFillUrl
-			? 'center'
-			: hasFill && fillGradient
-				? gradientTiling?.backgroundPosition
-				: undefined,
-		boxShadow: combinedBoxShadow,
-		WebkitBoxReflect: reflectCss,
-		filter: filterParts.length > 0 ? filterParts.join(' ') : undefined,
-		opacity:
-			typeof ss?.dagAlphaModFix === 'number'
-				? Math.max(0, Math.min(1, ss.dagAlphaModFix / 100))
-				: undefined,
-		// Only proxy the DAG blend onto the whole element for the legacy
-		// blend-only case (no overlay colour parsed). When a fill-overlay colour
-		// is present, `ShapeEffectOverlay` paints a separate blended tint layer so
-		// the colour is actually rendered (and text/children are not tinted).
-		mixBlendMode: hasFillOverlayColor ? undefined : mapDagBlendModeToCss(ss?.dagFillOverlayBlend),
-		// An unstroked element must occupy EXACTLY its authored box. The
-		// container class carries a 1px (transparent) border for the
-		// selection/hover affordance and `box-sizing: border-box`, which
-		// silently shrank every unstroked element's content by 2px and shifted
-		// it 1px down-right. On a 40x40 icon that is a visible 5% shrink, and
-		// two adjacent 40px buttons rendered with a 2px gap PowerPoint does not
-		// draw. The affordance is an `outline` instead (see `ElementRenderer`),
-		// which paints in the same place without taking part in layout.
-		// A gradient outline is painted by `ShapeEffectOverlay` as a stroked SVG
-		// path following the shape's geometry, because a CSS border can only take
-		// one colour. Keeping the border too would draw the parser's averaged
-		// solid underneath the gradient.
-		borderWidth:
-			strokeWidth > 0 && !paintsGradientOutline
-				? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth)
-				: 0,
-		borderColor: strokeWidth > 0 && !paintsGradientOutline ? resolvedStrokeColor : undefined,
-		borderStyle:
-			strokeWidth > 0 && !paintsGradientOutline
-				? getCssBorderDashStyle(strokeDash, ss?.compoundLine)
-				: undefined,
-		strokeLinejoin: lineJoinCss,
-		strokeMiterlimit: miterLimitCss,
-		strokeLinecap:
-			ss?.lineCap === 'rnd'
-				? 'round'
-				: ss?.lineCap === 'sq'
-					? 'square'
-					: ss?.lineCap === 'flat'
-						? 'butt'
-						: undefined,
+		boxShadow: fx.boxShadow,
+		WebkitBoxReflect: fx.webkitBoxReflect,
+		filter: fx.filter,
+		opacity: fx.opacity,
+		// Only proxy the DAG blend onto the whole element for the blend-only case:
+		// with an overlay colour, `ShapeEffectOverlay` paints a separate blended
+		// tint layer (shared decides which, and returns only one of the two).
+		mixBlendMode: fx.mixBlendMode as React.CSSProperties['mixBlendMode'],
+		// An unstroked element must occupy EXACTLY its authored box, so the
+		// selection/hover affordance is an `outline` (see `ElementRenderer`) and
+		// the border collapses to 0 rather than to a transparent 1px.
+		borderWidth: stroke.borderWidth,
+		borderColor: animatesStroke ? undefined : stroke.borderColor,
+		borderStyle: stroke.borderStyle,
+		// Inherited SVG presentation properties: written on the container so the
+		// freeform `<path>` and the stroke overlay both pick them up.
+		strokeLinejoin: stroke.strokeLinejoin,
+		strokeMiterlimit: stroke.strokeMiterlimit,
+		strokeLinecap: stroke.strokeLinecap,
 	};
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
@@ -391,7 +147,7 @@ export function getShapeVisualStyle(
 	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
 	// (shadow, glow, opacity, blend) on the container but drop the rectangular
 	// fill and border that would otherwise flood the bounding box.
-	if (rendersCustomVectorPath || rendersStrokeOnlyPreset) {
+	if (rendersCustomVectorPath(element) || isStrokeOnlyPresetElement(element)) {
 		base.backgroundColor = 'transparent';
 		base.backgroundImage = undefined;
 		base.borderWidth = undefined;
@@ -399,76 +155,44 @@ export function getShapeVisualStyle(
 		base.borderStyle = undefined;
 	}
 
-	// A `p:animClr` colour animation drives the wrapper's `fill` / `stroke` (which
-	// cascade into the SVG vector via `fill: inherit`) plus `background-color` /
-	// `border-color` (for HTML-box shapes). Drop the conflicting static container
-	// paint so those keyframes own it cleanly. Guarded by the flag, so a shape
-	// without an active fill/stroke animation keeps its exact static paint.
+	// A `p:animClr` colour animation drives the wrapper's `background-color` /
+	// `border-color` keyframes; the static paint is already dropped above, this
+	// only clears the background image the fill could not carry.
 	if (animatesFill) {
 		base.backgroundColor = undefined;
 		base.backgroundImage = undefined;
 	}
-	if (animatesStroke) {
-		base.borderColor = undefined;
-	}
 
-	if (element.type === 'connector' || normalizedShapeType === 'connector') {
-		return {
-			backgroundColor: 'transparent',
-			borderWidth: 0,
-			borderStyle: 'none',
-		};
-	}
-
-	if (normalizedShapeType === 'roundRect') {
-		const radiusPx = getRoundRectRadiusPx(element);
-		if (radiusPx <= 0.01) {
+	// Geometry: the branch ORDER and every threshold live in shared
+	// `resolveShapeGeometry` (connector -> stroke-only -> roundRect -> ellipse ->
+	// clip-path -> line -> cylinder), so this binding only maps the decision onto
+	// its own style object. Keeping the cascade in one place is what stops the
+	// five copies drifting.
+	const geometry = resolveShapeGeometry(element);
+	switch (geometry.kind) {
+		case 'bare':
+			return { backgroundColor: 'transparent', borderWidth: 0, borderStyle: 'none' };
+		case 'strokeOnly':
+			// An open preset has no region to fill and no box to outline:
+			// `ShapeEffectOverlay` strokes the evaluated geometry. The clip in
+			// particular encloses zero area and would clip that overlay away.
+			return { ...base, backgroundColor: 'transparent', backgroundImage: undefined };
+		case 'borderRadius':
+			return { ...base, borderRadius: geometry.radius };
+		case 'clipPath':
+			return { ...base, clipPath: geometry.clipPath };
+		case 'lineEdge':
+			// A `line` whose geometry the evaluator cannot open (custom geometry)
+			// still needs the one-edge border approximation.
+			return {
+				...base,
+				backgroundColor: 'transparent',
+				borderWidth: 0,
+				borderTopWidth: geometry.strokeWidth,
+				borderTopColor: stroke.borderColor,
+				borderTopStyle: (stroke.borderStyle ?? 'solid') as React.CSSProperties['borderTopStyle'],
+			};
+		default:
 			return base;
-		}
-		return {
-			...base,
-			borderRadius: radiusPx,
-		};
 	}
-
-	if (normalizedShapeType === 'ellipse') {
-		return {
-			...base,
-			// `50%`, not a huge px value: CSS clamps over-large radii by scaling
-			// them all down uniformly, so `9999px` on a non-square box collapses to
-			// half the SHORT side on every corner - a pill with flat long edges,
-			// not an ellipse. `50%` resolves per-axis and inscribes correctly.
-			borderRadius: '50%',
-		};
-	}
-
-	if (clipPath && !rendersStrokeOnlyPreset) {
-		return {
-			...base,
-			clipPath,
-		};
-	}
-
-	// A `line` whose geometry is stroke-only is painted by the overlay; only a
-	// line-typed shape the evaluator cannot open (custom geometry) still needs
-	// the one-edge border approximation below.
-	if (normalizedShapeType === 'line' && !rendersStrokeOnlyPreset) {
-		return {
-			...base,
-			backgroundColor: 'transparent',
-			borderWidth: 0,
-			borderTopWidth: Math.max(strokeWidth, 2),
-			borderTopColor: resolvedStrokeColor,
-			borderTopStyle: getCssBorderDashStyle(strokeDash) as React.CSSProperties['borderTopStyle'],
-		};
-	}
-
-	if (normalizedShapeType === 'cylinder') {
-		return {
-			...base,
-			borderRadius: '48% / 12%',
-		};
-	}
-
-	return base;
 }

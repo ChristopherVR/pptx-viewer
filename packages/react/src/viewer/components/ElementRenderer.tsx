@@ -4,7 +4,9 @@ import {
 	isHollowShapeElement,
 	isElementActionable,
 	isElementRendered,
+	inlineElementPointerEvents,
 	LINK_TOOLTIP_HOST_CLASS,
+	resolveElementInteractivity,
 } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 
@@ -51,6 +53,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		isInlineEditing,
 		inlineEditingText,
 		canInteract,
+		presenting,
 		spellCheckEnabled,
 		mediaDataUrls,
 		tableEditorState,
@@ -102,8 +105,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		});
 		const chartUpdateHandler = smartArtUpdateHandler;
 		const { hf, fc, sw, sc } = shapeParams(el);
-		const elementLocks = el.locks;
-		const isTxt = isEditableTextElement(el) && !elementLocks?.noTextEdit;
+		// One shared verdict on what `a:spLocks` still allows, rather than five
+		// bindings each reading a different subset of the flags off the element.
+		const allow = resolveElementInteractivity(el);
+		const isTxt = isEditableTextElement(el) && allow.textEditable;
 		const txtSE = hasTextProperties(el) ? el.textStyle : undefined;
 		const ss = getShapeVisualStyle(
 			el,
@@ -165,7 +170,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					el={el}
 					isSelected={isSelected}
 					canInteract={canInteract}
-					showResizeHandles={showResizeHandles && !elementLocks?.noResize}
+					showResizeHandles={showResizeHandles && allow.resizable}
 					showHoverBorder={showHoverBorder}
 					selectionColorClass={selClr}
 					opacity={opacity}
@@ -178,10 +183,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			);
 		}
 
-		const effectiveCanInteract = canInteract && !elementLocks?.noSelect;
-		const effectiveShowResizeHandles = showResizeHandles && !elementLocks?.noResize;
-		const effectiveIsInlineEditing = isInlineEditing && !elementLocks?.noTextEdit;
-		const canEditSmartArt = effectiveCanInteract && !elementLocks?.noTextEdit;
+		const effectiveCanInteract = canInteract && allow.selectable;
+		const effectiveShowResizeHandles = showResizeHandles && allow.resizable;
+		const effectiveIsInlineEditing = isInlineEditing && allow.textEditable;
+		const canEditSmartArt = effectiveCanInteract && allow.textEditable;
 		const canEditChart = effectiveCanInteract;
 
 		const hasAction = Boolean(el.actionClick && onActionClick);
@@ -208,7 +213,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const cur = effectiveIsInlineEditing
 			? 'cursor-text'
 			: effectiveCanInteract
-				? elementLocks?.noMove
+				? !allow.movable
 					? 'cursor-default'
 					: 'cursor-move'
 				: hasAction || isZoom
@@ -252,7 +257,18 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					'absolute',
 					'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
 					cur,
-					effectiveCanInteract || isActionable ? '' : 'pointer-events-none',
+					// During a show this must stay EMPTY: `PRESENTATION_HIT_TEST_CSS`
+					// (injected by `PresentationStage`) owns hit-testing there, because
+					// it is the only form that can re-enable an action shape nested
+					// inside inert scenery - an inline `pointer-events: none` on the
+					// group could never do that, and React was the one binding that
+					// wrote it. Off the show stage the inline rule still applies.
+					inlineElementPointerEvents({
+						interactive: effectiveCanInteract || isActionable,
+						presenting: presenting === true,
+					}) === 'none'
+						? 'pointer-events-none'
+						: '',
 					// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
 					// outline only, so its interior must not swallow clicks meant for what it
 					// is drawn over. ShapeEffectOverlay paints a transparent
@@ -359,7 +375,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 						onAdjustmentPointerDown={onAdjustmentPointerDown}
 						rotation={el.rotation}
 						nonRotationTransform={getElementTransformWithoutRotation(el)}
-						onRotate={elementLocks?.noRotation ? undefined : onRotate}
+						onRotate={allow.rotatable ? onRotate : undefined}
 					/>
 				)}
 			</div>

@@ -1,8 +1,11 @@
 import type {
 	PptxElement,
+	PptxEmbeddedFont,
 	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxSlide,
 	PptxSlideTransition,
+	PptxPresentationProperties,
 	PptxElementAnimation,
 	PptxAnimationPreset,
 	PptxTheme,
@@ -11,6 +14,7 @@ import {
 	applyMotionPathPreset,
 	createBackstagePresentation,
 	DEFAULT_INSERT_CHART_KIND,
+	resetSlideLayoutPath,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
 import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
@@ -19,6 +23,7 @@ import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
  * and hidden file-input elements.
  */
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Toolbar, SignatureStatusBadge } from '.';
 import type { AutosaveStatus } from '../hooks/useAutosave';
@@ -93,6 +98,8 @@ export interface ViewerToolbarSectionProps {
 		layoutOptions: PptxLayoutOption[];
 		/** Loaded deck theme; used to resolve template-gallery scheme colours. */
 		theme?: PptxTheme;
+		/** Fonts the deck embeds, offered as their own font-dropdown group. */
+		embeddedFonts: PptxEmbeddedFont[];
 		hasMacros: boolean;
 		isThemeEditorOpen: boolean;
 		setIsThemeEditorOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -111,7 +118,8 @@ export interface ViewerToolbarSectionProps {
 		setShowSlideSorter: React.Dispatch<React.SetStateAction<boolean>>;
 		setShowReadingView: React.Dispatch<React.SetStateAction<boolean>>;
 		setShowOutlineView: React.Dispatch<React.SetStateAction<boolean>>;
-		presentationProperties: { showSubtitles?: boolean };
+		presentationProperties: PptxPresentationProperties;
+		setPresentationProperties: React.Dispatch<React.SetStateAction<PptxPresentationProperties>>;
 		hasDigitalSignatures: boolean;
 		digitalSignatureCount: number;
 		imageInputRef: React.RefObject<HTMLInputElement | null>;
@@ -141,8 +149,14 @@ export interface ViewerToolbarSectionProps {
 	propertyHandlers: PropertyHandlersResult;
 	dialogs: ViewerDialogsResult;
 	slideOps: SlideManagementHandlers;
+	/** Start a new deck section at a slide (Home > Slides > Section). */
+	sectionOps?: { addSection: (name: string, afterSlideIndex: number) => void };
 	/** Re-map the active slide onto another of its master's layouts. */
 	onApplyLayout?: (path: string) => void;
+	/** Builds the New Slide / Layout gallery artwork on first menu open. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 	ops: ElementOperations;
 	onSetMode: (mode: ViewerMode) => void;
 	onEnterPresenterView: () => void;
@@ -190,7 +204,10 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		propertyHandlers,
 		dialogs,
 		slideOps,
+		sectionOps,
 		onApplyLayout,
+		loadLayoutPreviews,
+		customFontFamilies,
 		ops,
 		onSetMode,
 		onEnterPresenterView,
@@ -210,6 +227,8 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		isAiPanelOpen,
 		onToggleAiPanel,
 	} = props;
+
+	const { t } = useTranslation();
 
 	const handleAddAnimation = useCallback(
 		(preset: string, group: AnimationApplyGroup) => {
@@ -268,6 +287,35 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 	const scopedLayoutOptions = React.useMemo(
 		() => scopeLayoutOptionsToActiveSlide(s.layoutOptions, activeSlide),
 		[s.layoutOptions, activeSlide],
+	);
+
+	// Home > Slides > Reset re-applies the slide's own layout, which is exactly
+	// what the other three bindings do; the shared helper decides whether there
+	// is a layout to reset to at all.
+	const handleResetSlide = useCallback(() => {
+		const path = resetSlideLayoutPath(activeSlide);
+		if (path) {
+			onApplyLayout?.(path);
+		}
+	}, [activeSlide, onApplyLayout]);
+
+	const handleAddSection = useCallback(() => {
+		sectionOps?.addSection(t('pptx.sections.defaultName'), activeSlideIndex);
+	}, [sectionOps, activeSlideIndex, t]);
+
+	const handleSelectAll = useCallback(() => {
+		const allIds = activeSlide?.elements.map((element) => element.id) ?? [];
+		if (allIds.length > 0) {
+			ops.applySelection(allIds[0], allIds);
+		}
+	}, [activeSlide, ops]);
+
+	const handlePresentationPropertiesChange = useCallback(
+		(updates: Partial<PptxPresentationProperties>) => {
+			s.setPresentationProperties((prev) => ({ ...prev, ...updates }));
+			history.markDirty();
+		},
+		[s, history],
 	);
 
 	const handleApplyTransitionToAll = useCallback(() => {
@@ -580,6 +628,14 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				isOverflowMenuOpen={s.isOverflowMenuOpen}
 				onSetOverflowMenuOpen={s.setIsOverflowMenuOpen}
 				layoutOptions={scopedLayoutOptions}
+				currentLayoutPath={activeSlide?.layoutPath}
+				loadLayoutPreviews={loadLayoutPreviews}
+				themeFonts={{
+					heading: s.theme?.fontScheme?.majorFont?.latin,
+					body: s.theme?.fontScheme?.minorFont?.latin,
+				}}
+				embeddedFontFamilies={s.embeddedFonts.map((font) => font.name)}
+				customFontFamilies={customFontFamilies}
 				onInsertSlideFromLayout={slideOps.handleInsertSlideFromLayout}
 				onApplyLayout={onApplyLayout}
 				onInsertSlideFromTemplate={slideOps.handleInsertSlideFromTemplate}
@@ -632,6 +688,11 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				activeSlide={activeSlide}
 				onTransitionChange={handleTransitionChange}
 				onApplyTransitionToAll={handleApplyTransitionToAll}
+				onResetSlide={handleResetSlide}
+				onAddSection={sectionOps ? handleAddSection : undefined}
+				onSelectAll={handleSelectAll}
+				presentationProperties={s.presentationProperties}
+				onPresentationPropertiesChange={handlePresentationPropertiesChange}
 				aiEnabled={aiEnabled}
 				isAiPanelOpen={isAiPanelOpen}
 				onToggleAiPanel={onToggleAiPanel}

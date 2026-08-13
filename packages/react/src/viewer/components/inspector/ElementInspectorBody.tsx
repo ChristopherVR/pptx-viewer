@@ -4,11 +4,11 @@ import type {
 	TablePptxElement,
 	ChartPptxElement,
 	MediaPptxElement,
-	PptxShapeLocks,
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
+import { elementLockTogglePatch, isElementLocked } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLock, LuLockOpen } from 'react-icons/lu';
@@ -93,18 +93,15 @@ export function ElementInspectorBody({
 }: ElementInspectorBodyProps): React.ReactElement {
 	const { t } = useTranslation();
 
-	const isLocked = Boolean(selectedElement.locks?.noMove || selectedElement.locks?.noSelect);
+	// Shared decides both what reads as "locked" and what the toggle writes, so
+	// the button's state can never drift from what the canvas enforces.
+	const isLocked = isElementLocked(selectedElement);
 
 	const handleToggleLock = () => {
 		if (!canEdit) {
 			return;
 		}
-		if (isLocked) {
-			onUpdateElement({ locks: undefined } as Partial<PptxElement>);
-		} else {
-			const locks: PptxShapeLocks = { noMove: true, noResize: true, noSelect: true };
-			onUpdateElement({ locks } as Partial<PptxElement>);
-		}
+		onUpdateElement({ locks: elementLockTogglePatch(!isLocked) } as Partial<PptxElement>);
 	};
 
 	return (

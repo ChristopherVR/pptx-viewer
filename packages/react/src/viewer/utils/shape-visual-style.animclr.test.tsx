@@ -20,7 +20,11 @@ function ellipseShape(): PptxElement {
 		y: 0,
 		width: 40,
 		height: 40,
-		shapeStyle: {},
+		// The paint lives on the element, not in the call arguments: the fill and
+		// stroke are resolved by shared `getComputedFillStyle` /
+		// `getComputedStrokeStyle` from `shapeStyle`, exactly as `shapeParams`
+		// derives the (now vestigial) positional arguments from it.
+		shapeStyle: { fillColor: '#ff0000', strokeWidth: 2, strokeColor: '#0000ff' },
 	} as unknown as PptxElement;
 }
 

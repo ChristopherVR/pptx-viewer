@@ -163,19 +163,21 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 	// ── Content lifecycle (load, font, serialize, autosave) ───────
 	const [isEncryptedDialogOpen, setIsEncryptedDialogOpen] = useState(false);
 	const [loadVersion, setLoadVersion] = useState(0);
-	const { handlerRef, serializeSlides, autosaveStatus } = useContentLifecycle({
-		content,
-		filePath,
-		autosaveEnabled,
-		slides,
-		state,
-		history,
-		ops: editorOps.ops,
-		actionSoundHandlerRef,
-		setIsEncryptedDialogOpen,
-		password: dialogs.presentationPassword ?? undefined,
-		onContentApplied: () => setLoadVersion((v) => v + 1),
-	});
+	const { handlerRef, serializeSlides, serializeForRecovery, autosaveStatus } = useContentLifecycle(
+		{
+			content,
+			filePath,
+			autosaveEnabled,
+			slides,
+			state,
+			history,
+			ops: editorOps.ops,
+			actionSoundHandlerRef,
+			setIsEncryptedDialogOpen,
+			password: dialogs.presentationPassword ?? undefined,
+			onContentApplied: () => setLoadVersion((v) => v + 1),
+		},
+	);
 
 	// ── I/O handlers (export, print, theme, properties) ───────────
 	const { exportHandlers, printHandlers, themeHandlers, propertyHandlers } = useIOHandlers({
@@ -189,6 +191,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		zoom,
 		handlerRef,
 		serializeSlides,
+		serializeForRecovery,
 		setContent,
 		onContentChange,
 		password: dialogs.presentationPassword ?? undefined,

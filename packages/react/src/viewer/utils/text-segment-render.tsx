@@ -1,6 +1,7 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
 import {
+	hollowTextFillStyle,
 	pieceLetterSpacing,
 	resolveAutoFitFontScale,
 	resolveMetricTrackingPx,
@@ -256,6 +257,24 @@ export function renderSingleSegment(
 		opacity: getTextAlphaOpacity(segmentStyle),
 		WebkitBoxReflect: buildTextReflectionCss(segmentStyle),
 	};
+
+	// Hollow / outline-only text (`a:rPr > a:noFill`). The DECISION - clear the
+	// fill, and re-pin a `currentColor` outline to the colour the run resolved
+	// to first, or the letterform goes transparent with it - lives in shared and
+	// is merged by all five bindings. React alone had no branch for it at all
+	// and painted the inherited colour, so a hollow run came out solid.
+	//
+	// Merged here, after the run's own paint (including any gradient/pattern
+	// `textFillStyles`) and before the bullet overrides, which style the MARKER
+	// rather than the run text.
+	Object.assign(
+		spanStyle,
+		hollowTextFillStyle(segmentStyle, {
+			color: typeof spanStyle.color === 'string' ? spanStyle.color : undefined,
+			textStroke:
+				typeof spanStyle.WebkitTextStroke === 'string' ? spanStyle.WebkitTextStroke : undefined,
+		}) ?? {},
+	);
 
 	// Per-run BiDi direction override
 	// When a text run's direction differs from the paragraph direction,

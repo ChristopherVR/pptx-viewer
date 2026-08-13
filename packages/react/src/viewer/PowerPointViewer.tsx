@@ -180,6 +180,18 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		const themeStyle = useThemeStyle(effectiveTheme);
 
+		// ── Custom fonts (File > Options > Fonts) ──────────────────────
+		// Families the user registered from a local font file this session.
+		// Held here rather than in a module-level global so several viewers on
+		// one page keep their own lists, and so nothing survives a reload: the
+		// font binary is the user's, not ours to persist.
+		const [customFontFamilies, setCustomFontFamilies] = useState<string[]>([]);
+		const handleCustomFontRegistered = useCallback((family: string) => {
+			setCustomFontFamilies((current) =>
+				current.includes(family) ? current : [...current, family],
+			);
+		}, []);
+
 		// ── Locale catalog (File > Options > Language) ─────────────────
 		// This package never bundles an i18n instance: the host initialises
 		// `react-i18next` and this component only calls `changeLanguage` on it.
@@ -788,7 +800,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									propertyHandlers={propertyHandlers}
 									dialogs={dialogs}
 									slideOps={editorOps.slideOps}
+									sectionOps={editorOps.sectionOps}
 									onApplyLayout={(path) => void layoutSwitching.applyLayout(path)}
+									loadLayoutPreviews={layoutSwitching.loadLayoutPreviews}
+									customFontFamilies={customFontFamilies}
 									ops={editorOps.ops}
 									onSetMode={handleSetMode}
 									onEnterPresenterView={handleEnterPresenterView}
@@ -946,6 +961,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					availableLocales={resolvedLocales}
 					onSelectLocale={handleLocaleChange}
 					aiEnabled={Boolean(ai)}
+					customFontFamilies={customFontFamilies}
+					onCustomFontRegistered={handleCustomFontRegistered}
 				/>
 
 				{isHeaderFooterOpen && (

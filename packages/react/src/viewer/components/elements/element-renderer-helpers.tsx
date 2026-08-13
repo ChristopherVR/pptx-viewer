@@ -99,7 +99,6 @@ export function getContainerStyle({
 		overflow: overflowValue,
 		clipPath: isImg && !has3DExtrusion ? getCropShapeClipPath(el) : undefined,
 		zIndex: isFullscreenMedia ? 20 : zIndex,
-		opacity,
 		visibility: animationState?.visible === false ? 'hidden' : 'visible',
 		animation: animationState?.cssAnimation,
 		background: isFullscreenMedia ? '#000' : undefined,
@@ -108,6 +107,15 @@ export function getContainerStyle({
 			: undefined,
 		borderColor: isFullscreenMedia ? 'transparent' : undefined,
 		...shapeVisualStyle,
+		// COMPOSE the effect alpha (`a:alphaModFix` on the effect DAG) with the
+		// element opacity instead of letting the spread clobber it. The other four
+		// bindings multiply the two; React spread the shape style over its own
+		// `opacity` key, so a half-transparent element carrying a DAG alpha
+		// rendered at the DAG's alpha alone.
+		opacity:
+			typeof shapeVisualStyle.opacity === 'number'
+				? (opacity ?? 1) * shapeVisualStyle.opacity
+				: opacity,
 		// Editable-template affordance: a distinct amber dashed ring + slight
 		// transparency so inherited master/layout shapes read as "template" while
 		// edit-template mode is on. Applied after the shape style so it wins; never

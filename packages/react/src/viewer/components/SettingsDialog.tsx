@@ -21,10 +21,18 @@ import { OptionsQuickAccessPane } from './settings/OptionsQuickAccessPane';
 import { OptionsRibbonPane } from './settings/OptionsRibbonPane';
 import { SettingsAiTab } from './SettingsAiTab';
 import { SettingsAppearanceTab } from './SettingsAppearanceTab';
+import { SettingsCustomFontsSection } from './SettingsCustomFontsSection';
 import { SettingsLanguageTab } from './SettingsLanguageTab';
 
 /** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
 const AI_TAB_ID = 'ai';
+
+/**
+ * Stable empty default for `customFontFamilies`. A fresh `[]` in the parameter
+ * list is a new reference every render, which breaks referential equality for
+ * anything downstream that memoises on it.
+ */
+const NO_CUSTOM_FONT_FAMILIES: readonly string[] = [];
 type SettingsTabId = ViewerOptionsTabId | typeof AI_TAB_ID;
 
 // ---------------------------------------------------------------------------
@@ -60,6 +68,10 @@ export interface SettingsDialogProps {
 	onSelectLocale: (code: string) => void;
 	/** When true, an "AI" section is shown for exporting detailed chat logs. */
 	aiEnabled?: boolean;
+	/** Families registered this session via the Fonts section. */
+	customFontFamilies?: readonly string[];
+	/** Called after a font file is registered, so the ribbon picks it up. */
+	onCustomFontRegistered?: (family: string) => void;
 	/** Chat store the AI section reads from (defaults to the shared store). */
 	chatStore?: PptxAiChatStore;
 }
@@ -92,6 +104,8 @@ export function SettingsDialog({
 	onSelectLocale,
 	aiEnabled,
 	chatStore,
+	customFontFamilies = NO_CUSTOM_FONT_FAMILIES,
+	onCustomFontRegistered,
 }: SettingsDialogProps): React.ReactElement | null {
 	const [activeTabId, setActiveTabId] = useState<SettingsTabId>('general');
 	const { t } = useTranslation();
@@ -281,6 +295,15 @@ export function SettingsDialog({
 														onSelectTheme={onSelectTheme}
 													/>
 												</div>
+											);
+										}
+										if (section.special === 'customFonts') {
+											return (
+												<SettingsCustomFontsSection
+													enabled={options.general.enableCustomFontUpload}
+													families={customFontFamilies}
+													onRegistered={(family) => onCustomFontRegistered?.(family)}
+												/>
 											);
 										}
 										if (section.special === 'clearCache') {

@@ -1,5 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import { canInteractWithElement, filterInteractableIds } from 'pptx-viewer-shared';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useRef } from 'react';
 
@@ -205,7 +206,7 @@ export function useCanvasInteractions(
 				justInteractedRef.current = false;
 			} else {
 				const el = elementLookup.get(elementId);
-				if (el && hasTextProperties(el) && !el.locks?.noTextEdit) {
+				if (el && hasTextProperties(el) && canInteractWithElement(el, 'textEdit')) {
 					// Equations open the equation editor (same as double-click);
 					// letting them into inline text editing destroys the OMML.
 					if (!openEquationEditorForElement(el)) {
@@ -227,7 +228,7 @@ export function useCanvasInteractions(
 		if (openEquationEditorForElement(el)) {
 			return;
 		}
-		if (hasTextProperties(el)) {
+		if (hasTextProperties(el) && canInteractWithElement(el, 'textEdit')) {
 			setInlineEditingElementId(elementId);
 			setInlineEditingText(el.text ?? '');
 		}
@@ -262,9 +263,18 @@ export function useCanvasInteractions(
 			: effectiveSelectedIds.length
 				? effectiveSelectedIds
 				: [elementId];
+		// `a:spLocks/@noMove` pins a shape: it may still be selected (so the
+		// inspector can unlock it) but it must not travel with the drag, and a
+		// multi-selection drags only its movable members - exactly as PowerPoint
+		// does. Arming an empty drag would move nothing and still swallow the
+		// trailing click, so bail out entirely when nothing is movable.
+		const movableIds = filterInteractableIds(ids, (id) => elementLookup.get(id), 'move');
+		if (movableIds.length === 0) {
+			return;
+		}
 		const startPositions: Record<string, { x: number; y: number }> = {};
 		const domEls = new Map<string, HTMLElement>();
-		for (const id of ids) {
+		for (const id of movableIds) {
 			const el = elementLookup.get(id);
 			if (el) {
 				startPositions[id] = { x: el.x, y: el.y };
@@ -336,7 +346,7 @@ export function useCanvasInteractions(
 	const handleResizePointerDown = (elementId: string, e: React.MouseEvent, handle: string) => {
 		e.stopPropagation();
 		const el = elementLookup.get(elementId);
-		if (!el) {
+		if (!el || !canInteractWithElement(el, 'resize')) {
 			return;
 		}
 		resizeStateRef.current = {
@@ -359,7 +369,7 @@ export function useCanvasInteractions(
 
 	const handleRotate = (elementId: string, rotationDeg: number) => {
 		const el = elementLookup.get(elementId);
-		if (!el || el.locks?.noRotation) {
+		if (!el || !canInteractWithElement(el, 'rotate')) {
 			return;
 		}
 		ops.updateElementById(elementId, { rotation: rotationDeg } as Partial<PptxElement>);
@@ -393,6 +403,9 @@ export function useCanvasInteractions(
 		e.stopPropagation();
 		const el = elementLookup.get(elementId);
 		if (!el || !('shapeType' in el) || !('shapeAdjustments' in el)) {
+			return;
+		}
+		if (!canInteractWithElement(el, 'adjustHandle')) {
 			return;
 		}
 		const adjEntries = Object.entries(

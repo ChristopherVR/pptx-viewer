@@ -1,7 +1,7 @@
 import type { ConnectorPptxElement, PptxSlide } from 'pptx-viewer-core';
+import { authorConnectorBetweenSites } from 'pptx-viewer-shared';
 import React, { useCallback, useState } from 'react';
 
-import { getConnectionSites } from '../../utils/shape-connector';
 import type { ZoomViewport } from './canvas-types';
 
 /* ------------------------------------------------------------------ */
@@ -76,11 +76,6 @@ export function useConnectorCreation({
 			if (!connectorDragState || !onCreateConnector) {
 				return;
 			}
-			if (connectorDragState.startElementId === targetElementId) {
-				setConnectorDragState(null);
-				return;
-			}
-
 			const startEl = activeSlide?.elements.find(
 				(el) => el.id === connectorDragState.startElementId,
 			);
@@ -90,43 +85,35 @@ export function useConnectorCreation({
 				return;
 			}
 
-			const startSites = getConnectionSites(startEl.width, startEl.height);
-			const endSites = getConnectionSites(endEl.width, endEl.height);
-			const startSite = startSites[connectorDragState.startSiteIndex] ?? startSites[0];
-			const endSite = endSites[targetSiteIndex] ?? endSites[0];
-
-			const sx = startEl.x + startSite.x;
-			const sy = startEl.y + startSite.y;
-			const ex = endEl.x + endSite.x;
-			const ey = endEl.y + endSite.y;
-
-			const dx = Math.abs(ex - sx);
-			const dy = Math.abs(ey - sy);
-			const dist = Math.sqrt(dx * dx + dy * dy);
-
-			// Auto-select connector type
-			const shapeType =
-				dist < 100 ? 'straightConnector1' : dist < 300 ? 'bentConnector3' : 'curvedConnector3';
+			// Shared decides the span, the preset and the `a:stCxn`/`a:endCxn`
+			// bindings, resolving each site index through the same list
+			// `rerouteConnectorsForMovedElements` reads. This hook used to snap
+			// against the four edge midpoints instead, so on a shape with a real
+			// `a:cxnLst` the connector was drawn to one point and jumped to another
+			// the first time that shape was dragged. It also returns null for a
+			// both-ends-on-one-shape drag, which used to be a separate guard here.
+			const authored = authorConnectorBetweenSites(
+				{ element: startEl, siteIndex: connectorDragState.startSiteIndex },
+				{ element: endEl, siteIndex: targetSiteIndex },
+			);
+			if (!authored) {
+				setConnectorDragState(null);
+				return;
+			}
 
 			const newConnector: ConnectorPptxElement = {
 				id: `conn-new-${Date.now()}`,
 				type: 'connector',
-				x: Math.min(sx, ex),
-				y: Math.min(sy, ey),
-				width: Math.abs(ex - sx) || 1,
-				height: Math.abs(ey - sy) || 1,
-				shapeType,
+				x: authored.x,
+				y: authored.y,
+				width: authored.width,
+				height: authored.height,
+				shapeType: authored.shapeType,
 				shapeStyle: {
 					strokeColor: '#4472C4',
 					strokeWidth: 2,
-					connectorStartConnection: {
-						shapeId: connectorDragState.startElementId,
-						connectionSiteIndex: connectorDragState.startSiteIndex,
-					},
-					connectorEndConnection: {
-						shapeId: targetElementId,
-						connectionSiteIndex: targetSiteIndex,
-					},
+					connectorStartConnection: authored.startConnection,
+					connectorEndConnection: authored.endConnection,
 				},
 			};
 

@@ -1,4 +1,10 @@
-import type { PptxElement, PptxSlide, PptxLayoutOption, PptxHandler } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSlide,
+	PptxLayoutOption,
+	PptxLayoutPreview,
+	PptxHandler,
+} from 'pptx-viewer-core';
 /**
  * useLayoutSwitching -- Hook for switching an existing slide's layout.
  *
@@ -46,6 +52,14 @@ export interface LayoutSwitchingResult {
 	loadAvailableLayouts: () => Promise<void>;
 	/** Apply a layout to the active slide by its archive path. */
 	applyLayout: (layoutPath: string) => Promise<void>;
+	/**
+	 * Build the artwork thumbnails the New Slide / Layout galleries draw.
+	 *
+	 * Deliberately a callback rather than state: parsing every layout is only
+	 * worth doing once the user opens one of those menus, and core memoises the
+	 * result so reopening costs nothing.
+	 */
+	loadLayoutPreviews: () => Promise<PptxLayoutPreview[]>;
 	/** The current slide's layout path (if known). */
 	currentLayoutPath: string | undefined;
 }
@@ -125,11 +139,17 @@ export function useLayoutSwitching(input: UseLayoutSwitchingInput): LayoutSwitch
 		[handler, activeSlideIndex, ops, history, onTemplateElementsChanged],
 	);
 
+	const loadLayoutPreviews = useCallback(
+		async () => (handler ? handler.getLayoutPreviews() : []),
+		[handler],
+	);
+
 	return {
 		availableLayouts,
 		isLoading,
 		loadAvailableLayouts,
 		applyLayout,
+		loadLayoutPreviews,
 		currentLayoutPath,
 	};
 }
