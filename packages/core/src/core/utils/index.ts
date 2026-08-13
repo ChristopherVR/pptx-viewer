@@ -466,6 +466,7 @@ export {
 export {
 	xmlChild,
 	xmlChildren,
+	ensureXmlChild,
 	xmlAttr,
 	xmlAttrNumber,
 	xmlAttrBool,

@@ -86,6 +86,133 @@ export function xmlHasChild(node: unknown, key: string): boolean {
 }
 
 /**
+ * Get a child element as a WRITABLE node, healing the empty-element case.
+ *
+ * fast-xml-parser materialises an element with no attributes, no children and
+ * no text as the string `''`, not `{}`. `<p:spPr/>` is the commonest spelling
+ * of an unstyled shape, `<p:cNvGrpSpPr/>` is bare in all 45 committed decks,
+ * and `p:nvPr`, `a:pPr`, `a:effectLst`, `a:bodyPr` and `a:lstStyle` are bare in
+ * most of them. {@link xmlChild} and {@link xmlPath} deliberately return
+ * `undefined` for such a node, which is the right answer when READING (a bare
+ * element has nothing to read) but the wrong one when the caller needs the
+ * container in order to WRITE into it: the write silently goes nowhere, and
+ * because our own builder re-emits `''` as `<p:spPr></p:spPr>`, a round-trip
+ * test never notices. That is how setting a fill on a shape authored
+ * `<p:spPr/>` failed to reach the saved file at all.
+ *
+ * This helper draws the distinction the writers actually need:
+ * - child is an object -> returned as-is, contents intact;
+ * - child is PRESENT but empty (`''`) -> replaced in `parent` with `{}` and
+ *   returned, which is lossless because a bare element holds nothing, and
+ *   byte-neutral because both forms serialize to `<tag></tag>`;
+ * - child is ABSENT -> `undefined`, so callers keep deciding for themselves
+ *   whether creating the element is schema-valid at that position.
+ *
+ * Use {@link xmlChild} for reads and this for writes.
+ */
+export function ensureXmlChild(parent: unknown, key: string): XmlObject | undefined {
+	if (!isXmlObject(parent) || !Object.hasOwn(parent, key)) {
+		return undefined;
+	}
+	const existing = parent[key];
+	if (isXmlObject(existing)) {
+		return existing;
+	}
+	if (Array.isArray(existing)) {
+		const first = existing[0];
+		return isXmlObject(first) ? first : undefined;
+	}
+	// Present but empty: `''` (and, defensively, any other non-object leaf that
+	// carries no content, which only `''` and `undefined` can be here).
+	if (existing === '' || existing === undefined || existing === null) {
+		const created: XmlObject = {};
+		parent[key] = created;
+		return created;
+	}
+	return undefined;
+}
+
+/**
+ * {@link xmlChildren} for WRITERS: every occurrence of `key` under `parent`,
+ * with the present-but-empty ones healed in place the way
+ * {@link ensureXmlChild} heals a single child.
+ *
+ * `xmlChildren` filters non-objects out, so a lone `<a:p/>` - an ordinary empty
+ * paragraph - disappeared from the list entirely and a caller iterating to
+ * apply a style skipped it. Keeping it as the raw `''` is no better: the
+ * entries handed back are written into, and a string throws on the first
+ * assignment. Healing means the returned array is always live, writable nodes
+ * that are still the SAME objects `parent` holds.
+ *
+ * Absent stays absent: an empty array, never a fabricated element.
+ */
+export function ensureXmlChildren(parent: XmlObject, key: string): XmlObject[] {
+	if (!Object.hasOwn(parent, key)) {
+		return [];
+	}
+	const value = parent[key];
+	if (!Array.isArray(value)) {
+		const single = ensureXmlChild(parent, key);
+		return single ? [single] : [];
+	}
+	const healed: XmlObject[] = [];
+	for (const [index, entry] of value.entries()) {
+		if (isXmlObject(entry)) {
+			healed.push(entry);
+			continue;
+		}
+		const created: XmlObject = {};
+		value[index] = created;
+		healed.push(created);
+	}
+	return healed;
+}
+
+/**
+ * {@link ensureXmlChild}, plus creating the element when it is ABSENT.
+ *
+ * `ensureXmlChild` deliberately stops at "present but empty" so a caller can
+ * still decide whether inventing the element is schema-valid where it sits.
+ * Plenty of writers have already made that decision - they were spelled
+ * `(parent['a:xfrm'] ??= {}) as XmlObject` - and `??=` is exactly the operator
+ * that CANNOT do the job, because `''` is not nullish: it leaves the string in
+ * place, and the very next property assignment throws
+ * `TypeError: Cannot create property '@_x' on string ''` in a module's strict
+ * mode. Every such site is one bare element in a real deck away from a crash.
+ *
+ * `position` decides where a newly CREATED element lands, which matters because
+ * fast-xml-parser's builder emits keys in insertion order and most OOXML
+ * complex types are a `xsd:sequence`: `CT_TextParagraph` is `a:pPr?` then the
+ * runs, `CT_RegularTextRun` is `a:rPr?` then `a:t`. Appending the properties
+ * node after the content emits an out-of-order package, which PowerPoint reads
+ * by silently discarding the whole group. Pass `'first'` for a leading
+ * properties element; `'last'` (the default) preserves the historical append.
+ * Healing and existing nodes never move.
+ */
+export function ensureXmlChildOrCreate(
+	parent: XmlObject,
+	key: string,
+	position: 'first' | 'last' = 'last',
+): XmlObject {
+	const existing = ensureXmlChild(parent, key);
+	if (existing) {
+		return existing;
+	}
+	const created: XmlObject = {};
+	if (position === 'last') {
+		parent[key] = created;
+		return created;
+	}
+	const carried = { ...parent };
+	for (const existingKey of Object.keys(parent)) {
+		delete parent[existingKey];
+	}
+	parent[key] = created;
+	Object.assign(parent, carried);
+	return created;
+}
+
+/**
  * Read an attribute value. Pass the unprefixed name (e.g. `"id"` or
  * `"r:embed"`); the `@_` prefix is added internally.
  */

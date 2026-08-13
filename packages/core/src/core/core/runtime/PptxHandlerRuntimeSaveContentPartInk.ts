@@ -5,6 +5,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { buildInkMlContent, parseInkMlContent } from '../../utils';
+import { ensureXmlChildOrCreate } from '../../utils/xml-access';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveModel3D';
 
@@ -160,7 +161,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	private applyContentPartTransform(shape: XmlObject, el: ContentPartPptxElement): void {
 		const emu = PptxHandlerRuntime.EMU_PER_PX;
-		const transform = (shape['p:xfrm'] ??= {}) as XmlObject;
+		const transform = ensureXmlChildOrCreate(shape, 'p:xfrm');
 		transform['a:off'] = {
 			'@_x': String(Math.round(el.x * emu)),
 			'@_y': String(Math.round(el.y * emu)),

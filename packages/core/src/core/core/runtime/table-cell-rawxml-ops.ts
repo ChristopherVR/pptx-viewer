@@ -12,6 +12,7 @@
  */
 import { EMU_PER_PX } from '../../constants';
 import type { PptxElement, PptxTableData, XmlObject } from '../../types';
+import { ensureXmlChild, ensureXmlChildOrCreate, ensureXmlChildren } from '../../utils/xml-access';
 import { DEFAULT_ROW_HEIGHT_EMU, ensureArray, getTblFromRawXml } from './table-structural-helpers';
 
 // ── Cell text update ─────────────────────────────────────────────────────
@@ -49,11 +50,32 @@ export function updateCellTextInRawXml(
 		return undefined;
 	}
 
-	const cell = cells[colIndex];
+	cells[colIndex]['a:txBody'] = rebuildCellTextBody(
+		cells[colIndex]['a:txBody'] as XmlObject | undefined,
+		text,
+	);
 
-	// Build a minimal text body with a single paragraph + run containing the
-	// new text, preserving any existing run properties (font, colour, etc.).
-	const existingTxBody = cell['a:txBody'] as XmlObject | undefined;
+	return newRawXml;
+}
+
+/**
+ * Rebuild a cell's `<a:txBody>` around a single run of `text`, carrying over
+ * the body properties, list style, first paragraph's properties and first
+ * run's properties.
+ *
+ * Every key is inserted in SCHEMA order, because fast-xml-parser's builder
+ * emits object keys in insertion order and the three types involved are all
+ * `xsd:sequence`s: `CT_TextBody` is (`a:bodyPr`, `a:lstStyle?`, `a:p+`),
+ * `CT_TextParagraph` is (`a:pPr?`, runs...), `CT_RegularTextRun` is
+ * (`a:rPr?`, `a:t`). Building the content first and appending the properties
+ * afterwards - which both copies of this code did - emits an out-of-order
+ * package, the spelling PowerPoint reads by silently discarding the group.
+ *
+ * Carry-over tests are `!== undefined` rather than truthiness, because a bare
+ * `<a:pPr/>` or `<a:rPr/>` parses to the empty STRING and a truthiness test
+ * drops it.
+ */
+function rebuildCellTextBody(existingTxBody: XmlObject | undefined, text: string): XmlObject {
 	const existingParagraphs = ensureArray(
 		existingTxBody?.['a:p'] as XmlObject | XmlObject[] | undefined,
 	);
@@ -61,39 +83,29 @@ export function updateCellTextInRawXml(
 	const existingRuns = firstParagraph
 		? ensureArray(firstParagraph['a:r'] as XmlObject | XmlObject[] | undefined)
 		: [];
-	const firstRunProps =
-		existingRuns.length > 0 ? (existingRuns[0]['a:rPr'] as XmlObject | undefined) : undefined;
+	const firstRunProps = existingRuns.length > 0 ? existingRuns[0]['a:rPr'] : undefined;
 
-	const newRun: XmlObject = { 'a:t': text };
-	if (firstRunProps) {
+	const newRun: XmlObject = {};
+	if (firstRunProps !== undefined) {
 		newRun['a:rPr'] = firstRunProps;
 	}
+	newRun['a:t'] = text;
 
-	const newParagraph: XmlObject = {
-		'a:r': newRun,
-	};
-	// Preserve paragraph properties if they existed
-	if (firstParagraph?.['a:pPr']) {
+	const newParagraph: XmlObject = {};
+	if (firstParagraph?.['a:pPr'] !== undefined) {
 		newParagraph['a:pPr'] = firstParagraph['a:pPr'];
 	}
+	newParagraph['a:r'] = newRun;
 
-	// Preserve body properties
-	const bodyPr = existingTxBody?.['a:bodyPr'];
-	const lstStyle = existingTxBody?.['a:lstStyle'];
-
-	const newTxBody: XmlObject = {
-		'a:p': newParagraph,
-	};
-	if (bodyPr !== undefined) {
-		newTxBody['a:bodyPr'] = bodyPr;
+	const newTxBody: XmlObject = {};
+	if (existingTxBody?.['a:bodyPr'] !== undefined) {
+		newTxBody['a:bodyPr'] = existingTxBody['a:bodyPr'];
 	}
-	if (lstStyle !== undefined) {
-		newTxBody['a:lstStyle'] = lstStyle;
+	if (existingTxBody?.['a:lstStyle'] !== undefined) {
+		newTxBody['a:lstStyle'] = existingTxBody['a:lstStyle'];
 	}
-
-	cell['a:txBody'] = newTxBody;
-
-	return newRawXml;
+	newTxBody['a:p'] = newParagraph;
+	return newTxBody;
 }
 
 // ── Cell text style update ───────────────────────────────────────────────
@@ -140,12 +152,38 @@ export function updateCellTextStyleInRawXml(
 		return undefined;
 	}
 
-	// Apply style updates to ALL runs in ALL paragraphs of the cell
-	const paragraphs = ensureArray(txBody['a:p'] as XmlObject | XmlObject[] | undefined);
+	// Apply style updates to ALL runs in ALL paragraphs of the cell.
+	// `ensureXmlChildren`, not `ensureArray`: the paragraphs are WRITTEN into,
+	// and a bare `<a:p/>` arrives as the string `''`.
+	const paragraphs = ensureXmlChildren(txBody, 'a:p');
 	for (const paragraph of paragraphs) {
+		// Alignment is a PARAGRAPH property, so it is applied once per paragraph
+		// rather than once per run: nesting it in the run loop meant an empty
+		// paragraph - a blank cell, or a cell holding a single `<a:p/>` - could
+		// not be aligned at all, because the loop it lived in never ran.
+		if ('align' in styleUpdates) {
+			const pPr = ensureXmlChildOrCreate(paragraph, 'a:pPr', 'first');
+			pPr['@_algn'] =
+				styleUpdates.align === 'left'
+					? 'l'
+					: styleUpdates.align === 'center'
+						? 'ctr'
+						: styleUpdates.align === 'right'
+							? 'r'
+							: styleUpdates.align === 'justify'
+								? 'just'
+								: String(styleUpdates.align);
+		}
+
 		const runs = ensureArray(paragraph['a:r'] as XmlObject | XmlObject[] | undefined);
 		for (const run of runs) {
-			const rPr = ((run['a:rPr'] as XmlObject | undefined) ?? {}) as XmlObject;
+			// `<a:rPr/>` and `<a:pPr/>` are bare in real decks, and
+			// fast-xml-parser materialises a bare element as the STRING `''`.
+			// `?? {}` does not catch that (`''` is not nullish), so the cast
+			// handed back a string and the first attribute assignment threw
+			// `TypeError: Cannot create property '@_b' on string ''` - styling a
+			// table cell CRASHED rather than silently doing nothing.
+			const rPr = ensureXmlChildOrCreate(run, 'a:rPr', 'first');
 
 			if ('bold' in styleUpdates) {
 				if (styleUpdates.bold) {
@@ -179,27 +217,14 @@ export function updateCellTextStyleInRawXml(
 				const hex = styleUpdates.color.replace('#', '');
 				rPr['a:solidFill'] = { 'a:srgbClr': { '@_val': hex } };
 			}
-			if ('align' in styleUpdates) {
-				const pPr = ((paragraph['a:pPr'] as XmlObject | undefined) ?? {}) as XmlObject;
-				pPr['@_algn'] =
-					styleUpdates.align === 'left'
-						? 'l'
-						: styleUpdates.align === 'center'
-							? 'ctr'
-							: styleUpdates.align === 'right'
-								? 'r'
-								: styleUpdates.align === 'justify'
-									? 'just'
-									: String(styleUpdates.align);
-				paragraph['a:pPr'] = pPr;
-			}
-
-			run['a:rPr'] = rPr;
 		}
 
-		// If there are no runs but there's an endParaRPr, update that too
-		if (runs.length === 0 && paragraph['a:endParaRPr']) {
-			const endRPr = paragraph['a:endParaRPr'] as XmlObject;
+		// If there are no runs but there's an endParaRPr, update that too. The
+		// presence test goes through `ensureXmlChild` because `<a:endParaRPr/>`
+		// with no attributes yet is exactly the paragraph a user is most likely
+		// to be styling, and a truthiness test reads that `''` as absent.
+		const endRPr = runs.length === 0 ? ensureXmlChild(paragraph, 'a:endParaRPr') : undefined;
+		if (endRPr) {
 			if ('bold' in styleUpdates) {
 				if (styleUpdates.bold) {
 					endRPr['@_b'] = '1';
@@ -303,45 +328,10 @@ export function updateMergeAttrsInRawXml(
 
 			// Sync cell text for merged cells that were cleared
 			if (cell.text !== undefined) {
-				const existingTxBody = xmlCell['a:txBody'] as XmlObject | undefined;
-				const existingParagraphs = existingTxBody
-					? ensureArray(existingTxBody['a:p'] as XmlObject | XmlObject[] | undefined)
-					: [];
-				const firstParagraph = existingParagraphs.length > 0 ? existingParagraphs[0] : undefined;
-				const existingRuns = firstParagraph
-					? ensureArray(firstParagraph['a:r'] as XmlObject | XmlObject[] | undefined)
-					: [];
-				const firstRunProps =
-					existingRuns.length > 0 ? (existingRuns[0]['a:rPr'] as XmlObject | undefined) : undefined;
-
-				const newRun: XmlObject = {
-					'a:t': cell.text,
-				};
-				if (firstRunProps) {
-					newRun['a:rPr'] = firstRunProps;
-				}
-
-				const newParagraph: XmlObject = {
-					'a:r': newRun,
-				};
-				if (firstParagraph?.['a:pPr']) {
-					newParagraph['a:pPr'] = firstParagraph['a:pPr'];
-				}
-
-				const bodyPr = existingTxBody?.['a:bodyPr'];
-				const lstStyle = existingTxBody?.['a:lstStyle'];
-
-				const newTxBody: XmlObject = {
-					'a:p': newParagraph,
-				};
-				if (bodyPr !== undefined) {
-					newTxBody['a:bodyPr'] = bodyPr;
-				}
-				if (lstStyle !== undefined) {
-					newTxBody['a:lstStyle'] = lstStyle;
-				}
-
-				xmlCell['a:txBody'] = newTxBody;
+				xmlCell['a:txBody'] = rebuildCellTextBody(
+					xmlCell['a:txBody'] as XmlObject | undefined,
+					cell.text,
+				);
 			}
 		}
 	}

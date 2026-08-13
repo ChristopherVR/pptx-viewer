@@ -1,6 +1,7 @@
 import type { SummaryZoomTarget, XmlObject, ZoomPptxElement } from '../../types';
 import { generateFontGuid } from '../../utils/font-deobfuscation';
 import { extractSectionMap } from '../../utils/presentation-section-parser';
+import { ensureXmlChildOrCreate, xmlHasChild } from '../../utils/xml-access';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSectionZoom';
 
@@ -37,7 +38,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 			const object = target.rawXml ?? existing[index] ?? {};
-			const properties = (object['psuz:zmPr'] ??= {}) as XmlObject;
+			const properties = ensureXmlChildOrCreate(object, 'psuz:zmPr');
 			const tile = this.summaryTileElement(el, target, index);
 			const relationshipShape = {
 				'psezm:sectionZmObj': { 'psezm:zmPr': properties },
@@ -52,9 +53,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.applyOptionalAttribute(object, '@_scaleFactorY', target.scaleFactorY);
 			properties['@_id'] ??= `{${generateFontGuid()}}`;
 			properties['@_imageType'] ??= 'preview';
-			properties['p166:blipFill'] ??= this.buildZoomBlipFill(relationshipId);
-			const shapeProperties = (properties['p166:spPr'] ??=
-				this.buildZoomShapeProperties(tile)) as XmlObject;
+			// `??=` cannot heal a bare `<p166:blipFill/>` / `<p166:spPr/>`: `''` is
+			// not nullish, so the string survived and the transform written onto
+			// it threw. `xmlHasChild` asks the only question that matters here -
+			// did the author write the element at all - and leaves an authored
+			// node untouched.
+			if (!xmlHasChild(properties, 'p166:blipFill')) {
+				properties['p166:blipFill'] = this.buildZoomBlipFill(relationshipId);
+			}
+			const shapeProperties = xmlHasChild(properties, 'p166:spPr')
+				? ensureXmlChildOrCreate(properties, 'p166:spPr')
+				: ((properties['p166:spPr'] = this.buildZoomShapeProperties(tile)) as XmlObject);
 			this.applyZoomTransform(shapeProperties, tile);
 			this.applyZoomBlipRelationship(properties, relationshipId);
 			target.sectionId = sectionId;
@@ -133,10 +142,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		group['p:pic'] = targets.map((target, index) => {
 			const tile = this.summaryTileElement(el, target, index);
 			const picture = existing[index] ?? this.buildZoomFallbackPicture(tile, relationships[index]);
-			this.applyZoomTransform((picture['p:spPr'] ??= {}) as XmlObject, tile);
+			this.applyZoomTransform(ensureXmlChildOrCreate(picture, 'p:spPr'), tile);
 			if (relationships[index]) {
-				const fill = (picture['p:blipFill'] ??= {}) as XmlObject;
-				const blip = (fill['a:blip'] ??= {}) as XmlObject;
+				const fill = ensureXmlChildOrCreate(picture, 'p:blipFill');
+				const blip = ensureXmlChildOrCreate(fill, 'a:blip');
 				blip['@_r:embed'] = relationships[index];
 			}
 			return picture;

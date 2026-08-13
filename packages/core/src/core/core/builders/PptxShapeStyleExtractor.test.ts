@@ -1,9 +1,25 @@
+import { XMLParser } from 'fast-xml-parser';
 import { describe, it, expect } from 'vitest';
 
 import type { ConnectorArrowType, StrokeDashType, XmlObject } from '../../types';
 import { PptxShapeStyleExtractor } from './PptxShapeStyleExtractor';
 
 const EMU_PER_PX = 9525;
+
+/**
+ * Parse real `spPr` markup, because the empty-container cases below only exist
+ * in the parser's output shape: `<a:effectLst/>` becomes the empty STRING, and
+ * an object literal cannot say that.
+ */
+function parseSpPr(xml: string): XmlObject {
+	const parsed = new XMLParser({
+		ignoreAttributes: false,
+		attributeNamePrefix: '@_',
+		parseAttributeValue: false,
+		parseTagValue: false,
+	}).parse(xml) as Record<string, XmlObject>;
+	return parsed['a:spPr'];
+}
 
 /**
  * Build a PptxShapeStyleExtractor with minimal stubs.
@@ -434,6 +450,60 @@ describe('pptxShapeStyleExtractor', () => {
 		it('still applies the ref when there is no a:ln at all', () => {
 			const style = themed.extractShapeStyle({}, styleNode);
 			expect(style.strokeColor).toBe('#10A8AC');
+		});
+	});
+	// ── Explicit <a:effectLst/> vs an inherited a:effectRef ──────────────
+
+	describe('an empty a:effectLst suppresses the theme effect style', () => {
+		/**
+		 * The theme's effect style, as `resolveThemeEffectRef` applies it: it
+		 * only fills in what the shape did not claim for itself.
+		 */
+		const themed = createExtractor({
+			resolveThemeEffectRef: (refNode: XmlObject, style: Record<string, unknown>) => {
+				style['effectRefIdx'] = Number(refNode['@_idx']);
+				style['shadowColor'] ??= '#203864';
+				style['shadowBlur'] ??= 12;
+			},
+		});
+		const styleNode: XmlObject = { 'a:effectRef': { '@_idx': '2' } };
+
+		it('inherits the theme shadow when spPr declares no a:effectLst', () => {
+			const style = themed.extractShapeStyle({}, styleNode);
+			expect(style.shadowColor).toBe('#203864');
+			expect(style.effectRefIdx).toBe(2);
+		});
+
+		it('drops the inherited shadow when spPr says <a:effectLst/>', () => {
+			// The empty string is how fast-xml-parser renders a bare
+			// `<a:effectLst/>`, and PowerPoint writes exactly that when the user
+			// switches the themed shadow off. Before, nothing tested the
+			// element's PRESENCE, so the author's explicit "no effects" lost to
+			// the theme.
+			const spPr = parseSpPr('<a:spPr><a:effectLst/></a:spPr>');
+			expect(spPr['a:effectLst']).toBe('');
+			const style = themed.extractShapeStyle(spPr, styleNode);
+			expect(style.shadowColor).toBeUndefined();
+			expect(style.shadowBlur).toBeUndefined();
+		});
+
+		it('still records the ref so <a:effectRef> round-trips', () => {
+			const spPr = parseSpPr('<a:spPr><a:effectLst/></a:spPr>');
+			expect(themed.extractShapeStyle(spPr, styleNode).effectRefIdx).toBe(2);
+		});
+
+		it('keeps an effect the shape itself authored', () => {
+			const authored = createExtractor({
+				extractShadowStyle: () => ({ shadowColor: '#FF0000', shadowBlur: 3 }),
+				resolveThemeEffectRef: (_refNode: XmlObject, style: Record<string, unknown>) => {
+					style['shadowColor'] ??= '#203864';
+				},
+			});
+			const spPr = parseSpPr(
+				'<a:spPr><a:effectLst><a:outerShdw blurRad="38100"/></a:effectLst></a:spPr>',
+			);
+			const style = authored.extractShapeStyle(spPr, styleNode);
+			expect(style.shadowColor).toBe('#FF0000');
 		});
 	});
 });

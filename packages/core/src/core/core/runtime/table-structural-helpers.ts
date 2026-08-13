@@ -25,11 +25,18 @@ export const DEFAULT_ROW_HEIGHT_EMU = DEFAULT_ROW_HEIGHT_PX * EMU_PER_PX;
  * Ensure a value is always returned as an array.
  * Wraps single values in an array and converts nullish values to an empty array.
  *
+ * Only `undefined` and `null` count as absent. A blanket `!value` also swallowed
+ * the empty STRING, which is how fast-xml-parser materialises an element with no
+ * attributes, no children and no text - and `<a:p/>` is a perfectly ordinary
+ * empty paragraph. A cell holding one of those reported ZERO paragraphs instead
+ * of one, so it could not be styled, counted, or rebuilt: the paragraph vanished
+ * rather than round-tripping.
+ *
  * @param value - The value to normalise into an array.
  * @returns An array containing the value(s), or an empty array.
  */
 export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
-	if (!value) {
+	if (value === undefined || value === null) {
 		return [];
 	}
 	return Array.isArray(value) ? value : [value];

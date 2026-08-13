@@ -93,3 +93,86 @@ describe('runtime dependency factory XML attribute entities', () => {
 		expect(xml).toBe('<a:t>Tom &amp; Jerry &lt;b&gt; it&apos;s &quot;so&quot;</a:t>');
 	});
 });
+
+describe('runtime dependency factory XML nesting depth', () => {
+	/** A slide whose `p:spTree` wraps one decorated text shape in `groups` nested `p:grpSp`. */
+	function nestedGroupSlide(groups: number): string {
+		let body =
+			'<p:sp><p:txBody><a:p><a:r><a:rPr><a:solidFill><a:srgbClr val="FF0000">' +
+			'<a:alpha val="50000"/></a:srgbClr></a:solidFill></a:rPr><a:t>hi</a:t></a:r></a:p>' +
+			'</p:txBody></p:sp>';
+		for (let i = 0; i < groups; i++) {
+			body = `<p:grpSp><p:grpSpPr/>${body}</p:grpSp>`;
+		}
+		return `<p:sld><p:cSld><p:spTree>${body}</p:spTree></p:cSld></p:sld>`;
+	}
+
+	it('never accepts on load a part it cannot write back on save', () => {
+		// The defect: fast-xml-parser and fast-xml-builder both default
+		// `maxNestedTags` to 100 but compare it differently (`> max` vs `>= max`),
+		// and the builder measures the parsed OBJECT rather than the source XML.
+		// At the shared default that made 89, 90 and 91 nested `p:grpSp` parse
+		// cleanly and throw "Maximum nested tags exceeded" on save - a deck the
+		// user can open and edit but can never keep. A refusal on load costs a
+		// day; a refusal on save costs the work.
+		const parser = factory.createParser();
+		const builder = factory.createBuilder();
+
+		const unsaveable: number[] = [];
+		let deepestLoadable = 0;
+		for (let groups = 1; groups <= 320; groups += 1) {
+			let parsed: unknown;
+			try {
+				parsed = parser.parse(nestedGroupSlide(groups));
+			} catch {
+				continue; // Rejected on load, which is allowed: nothing was promised.
+			}
+			deepestLoadable = groups;
+			try {
+				builder.build(parsed);
+			} catch {
+				unsaveable.push(groups);
+			}
+		}
+
+		expect(unsaveable).toStrictEqual([]);
+		// Guard the sweep itself: if the parser started accepting everything (or
+		// nothing) the loop above would pass vacuously.
+		expect(deepestLoadable).toBeGreaterThan(100);
+		expect(deepestLoadable).toBeLessThan(320);
+	});
+
+	it('accepts far deeper group nesting than any real deck reaches', () => {
+		// Scanned across all 45 committed decks, the deepest nested-group chain is
+		// 3 and the deepest element nesting of any kind is 25. `MAX_GROUP_DEPTH`,
+		// the depth our own enrichment walkers descend, is 32.
+		const parser = factory.createParser();
+		expect(() => parser.parse(nestedGroupSlide(32))).not.toThrow();
+		expect(() => parser.parse(nestedGroupSlide(100))).not.toThrow();
+	});
+
+	it('still refuses unbounded nesting', () => {
+		// The cap is raised, not removed: a hostile part must not be able to drive
+		// the parser's own recursive JSON conversion into a stack overflow.
+		expect(() => factory.createParser().parse(nestedGroupSlide(5000))).toThrow(/nested/iu);
+	});
+});
+
+describe('runtime dependency factory XML comments', () => {
+	// Comments are dropped deliberately (`commentPropName` left `false`). Zero of
+	// the 45 committed decks carry one in any part, and preserving them would not
+	// be faithful anyway: fast-xml-parser stores a comment as a `#comment` key on
+	// its parent, grouped by tag like every other key, so interleaved comments
+	// all migrate ahead of their siblings on rebuild - the same collapse that has
+	// already cost this repo four separate sibling-order annotators. This test
+	// exists so that turning the option on is a deliberate act with a failing
+	// test attached, not a one-word edit whose consequence surfaces in a deck.
+	it('drops XML comments rather than relocating them', () => {
+		const parser = factory.createParser();
+		const source = '<p:spTree><!--A--><p:sp id="1"/><!--B--><p:sp id="2"/><!--C--></p:spTree>';
+		const rebuilt = factory.createBuilder().build(parser.parse(source));
+
+		expect(rebuilt).not.toContain('<!--');
+		expect(rebuilt).toBe('<p:spTree><p:sp id="1"></p:sp><p:sp id="2"></p:sp></p:spTree>');
+	});
+});

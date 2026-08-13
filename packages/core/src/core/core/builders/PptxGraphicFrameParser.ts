@@ -9,6 +9,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { detectOleObjectType, inferOleExtensionFromTarget } from '../../utils/ole-utils';
+import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from '../runtime/shape-lock-containers';
 
 /**
  * Recognised `a:graphicData/a:extLst/a:ext` URIs that map to first-class
@@ -395,6 +396,14 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				flipHorizontal,
 				flipVertical,
 				rawXml: frame,
+				// `a:graphicFrameLocks` is the lock element for every family that
+				// round-trips as a graphic frame (table, chart, SmartArt, OLE
+				// object, graphic-frame media, loaded ink). Reading it is what
+				// makes the writer safe: `serializeShapeLocks` rebuilds the node
+				// from `element.locks` and treats an absent bag as "the user
+				// cleared the locks", so a lock that is never parsed would be
+				// erased on the first save.
+				locks: parseShapeLocksFromNode(frame, SHAPE_LOCK_CONTAINERS['p:graphicFrame']),
 			};
 
 			// Capture any unrecognised `<a:graphicData>/<a:extLst>/<a:ext>`

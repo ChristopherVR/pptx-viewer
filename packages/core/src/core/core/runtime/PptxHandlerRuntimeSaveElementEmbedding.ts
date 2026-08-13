@@ -18,6 +18,7 @@ import {
 	applyDrawingMediaReference,
 	parseDrawingMediaReference,
 } from '../../utils/drawing-media-reference';
+import { ensureXmlChild } from '../../utils/xml-access';
 import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTextWriter';
 
@@ -98,10 +99,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/** Apply geometry preset or custom paths to spPr. */
 	protected applyGeometryUpdate(shape: XmlObject, el: PptxElement): void {
-		if (!hasShapeProperties(el) || !shape['p:spPr']) {
+		if (!hasShapeProperties(el)) {
 			return;
 		}
-		const spPr = shape['p:spPr'] as XmlObject;
+		// `<p:spPr/>` parses to the empty STRING, which a truthiness test reads as
+		// absent; the custom-geometry write below then vanished, so a shape edited
+		// into a freeform saved with its original geometry. See `ensureXmlChild`.
+		const spPr = ensureXmlChild(shape, 'p:spPr');
+		if (!spPr) {
+			return;
+		}
 		const elWithPaths = el as ShapePptxElement | ImagePptxElement | PicturePptxElement;
 		if (elWithPaths.customGeometryPaths && elWithPaths.customGeometryPaths.length > 0) {
 			delete spPr['a:prstGeom'];

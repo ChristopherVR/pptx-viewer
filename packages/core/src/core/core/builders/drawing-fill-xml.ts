@@ -51,6 +51,42 @@ export function hasDrawingChild(node: XmlObject | undefined, requestedName: stri
 	return false;
 }
 
+/**
+ * Whether `node` declares a child with the requested local name that holds
+ * NOTHING - no element children, no text.
+ *
+ * DrawingML uses an empty container as a positive statement, not as an
+ * omission: `<a:effectLst/>` on a shape's `spPr` means "this shape has no
+ * effects", and it is how PowerPoint spells switching a themed shadow OFF. An
+ * omitted `a:effectLst` means the opposite - "no opinion, take the theme's
+ * `a:effectRef`". Nothing in the extractor could tell the two apart, because
+ * fast-xml-parser renders the empty container as `''` and every reader treated
+ * that as absent, so an authored absence kept inheriting the theme shadow.
+ */
+export function hasEmptyDrawingChild(node: XmlObject | undefined, requestedName: string): boolean {
+	if (!node) {
+		return false;
+	}
+	for (const [key, value] of Object.entries(node)) {
+		if (key.startsWith(ATTRIBUTE_PREFIX) || key === '#text') {
+			continue;
+		}
+		if (key.split(':').at(-1) !== requestedName) {
+			continue;
+		}
+		const child = Array.isArray(value) ? value[0] : value;
+		if (child === '' || child === undefined) {
+			return true;
+		}
+		return (
+			typeof child === 'object' &&
+			!Array.isArray(child) &&
+			Object.keys(child).every((childKey) => childKey.startsWith(ATTRIBUTE_PREFIX))
+		);
+	}
+	return false;
+}
+
 /** Return all object children whose qualified name has the requested local name. */
 export function drawingChildren(node: XmlObject | undefined, requestedName: string): XmlObject[] {
 	if (!node) {

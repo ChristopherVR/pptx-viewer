@@ -5,7 +5,7 @@ import {
 	STYLE_MATRIX_FILL_KEYS,
 	STYLE_MATRIX_LINE_KEYS,
 } from '../runtime/authored-shape-style';
-import { drawingChild, hasDrawingChild } from './drawing-fill-xml';
+import { drawingChild, hasDrawingChild, hasEmptyDrawingChild } from './drawing-fill-xml';
 import { extractGradientTileRect } from './PptxGradientStyleCodec';
 import { applyScene3dStyle, applyShape3dStyle } from './shape-style-3d-helpers';
 import { applyLineProperties } from './shape-style-line-helpers';
@@ -197,7 +197,30 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 		Object.assign(style, this.context.extractEffectDagStyle(shapeProps));
 
 		if (styleNode?.['a:effectRef']) {
+			// An EMPTY `<a:effectLst/>` on `spPr` is PowerPoint's spelling of
+			// "this shape has no effects" - it is what the UI writes when the user
+			// switches a themed shadow off. Because the container holds nothing,
+			// none of the extractors above set an effect property, and
+			// `resolveThemeEffectRef` only skips a property the shape already
+			// claimed; so the theme's shadow was handed straight back and the
+			// author's explicit "none" was silently overruled. That is the
+			// inheritance-flattening class inverted: an authored ABSENCE lost to
+			// inheritance.
+			//
+			// The ref is still resolved, then its contribution rolled back, so
+			// `effectRefIdx` / `effectRefColorXml` survive for the save path and
+			// `<a:effectRef>` still round-trips. Only keys this call ADDED are
+			// removed, so nothing authored can be caught by it.
+			const suppressInherited = hasEmptyDrawingChild(shapeProps, 'effectLst');
+			const authored = suppressInherited ? new Set(Object.keys(style)) : undefined;
 			this.context.resolveThemeEffectRef(styleNode['a:effectRef'] as XmlObject, style);
+			if (authored) {
+				for (const key of Object.keys(style) as (keyof ShapeStyle)[]) {
+					if (!authored.has(key) && key !== 'effectRefIdx' && key !== 'effectRefColorXml') {
+						delete style[key];
+					}
+				}
+			}
 		}
 
 		// Persist `<a:fontRef>` indices and override-color XML so they can be

@@ -9,6 +9,7 @@ import {
 } from '../../types';
 import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
+import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderDefaults';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
@@ -210,14 +211,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return [];
 			}
 
-			const masterXmlObj = this.parser.parse(masterXmlStr);
-			this.masterXmlMap.set(masterPath, masterXmlObj as XmlObject);
+			// Reuse the parse already cached for this part rather than replacing
+			// it, exactly as `getLayoutElements` does. Elements handed to the
+			// viewer keep `rawXml` nodes belonging to whichever parse produced
+			// them, and the save writer routes an inherited master edit back by
+			// patching that node IN PLACE; pointing `masterXmlMap` at a different
+			// tree makes the edit a silent no-op, because
+			// `ensureTemplateShapeAttached` matches the twin node in the new tree
+			// by `p:cNvPr` identity and returns it, discarding the patched one.
+			// Nothing currently drops `masterCache` per path the way
+			// `getLayoutPreview` drops the layout element cache, so this is latent
+			// rather than live - but one parse per part per handler is the
+			// invariant the writer depends on, and it should not rest on that.
+			const masterXmlObj = (this.masterXmlMap.get(masterPath) ??
+				this.parser.parse(masterXmlStr)) as XmlObject;
+			this.masterXmlMap.set(masterPath, masterXmlObj);
 
 			// Load master relationships
 			const masterRelsPath = partRelsPath(masterPath);
 			await this.loadSlideRelationships(masterPath, masterRelsPath);
 
-			const spTree = masterXmlObj['p:sldMaster']?.['p:cSld']?.['p:spTree'];
+			const spTree = xmlPath(masterXmlObj, 'p:sldMaster', 'p:cSld', 'p:spTree');
 			if (!spTree) {
 				this.masterCache.set(masterPath, []);
 				return [];

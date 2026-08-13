@@ -11,6 +11,7 @@
 
 import { parseOoxmlPercent } from '../color';
 import type { BulletInfo, TextStyle, XmlObject } from '../types';
+import { xmlHasChild } from './xml-access';
 
 const EMU_PER_PX = 9525;
 
@@ -323,8 +324,13 @@ export function parseBulletInfo(
 		return null;
 	}
 
-	// Explicit none
-	if (pPr['a:buNone']) {
+	// Explicit none. `a:buNone` is a marker element: it has no attributes and no
+	// children, so it is ALWAYS bare in the file and fast-xml-parser always
+	// materialises it as the empty string. A truthiness test therefore never
+	// fired - this branch was dead code, and SmartArt's "no bullet" was read as
+	// "no opinion" and lost on save. `xmlHasChild` is the same presence test the
+	// slide-text path was corrected to use, so both sides now share one answer.
+	if (xmlHasChild(pPr, 'a:buNone')) {
 		return { none: true };
 	}
 

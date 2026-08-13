@@ -1,5 +1,6 @@
 import type { XmlObject, ZoomPptxElement } from '../../types';
 import { generateFontGuid } from '../../utils/font-deobfuscation';
+import { ensureXmlChildOrCreate } from '../../utils/xml-access';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveInk';
 
@@ -182,7 +183,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	protected applyZoomTransform(shapeProperties: XmlObject, el: ZoomPptxElement): void {
 		const emu = PptxHandlerRuntime.EMU_PER_PX;
-		const transform = (shapeProperties['a:xfrm'] ??= {}) as XmlObject;
+		const transform = ensureXmlChildOrCreate(shapeProperties, 'a:xfrm');
 		transform['a:off'] = {
 			'@_x': String(Math.round(el.x * emu)),
 			'@_y': String(Math.round(el.y * emu)),
@@ -213,8 +214,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!relationshipId) {
 			return;
 		}
-		const blipFill = (zoomProperties['p166:blipFill'] ??= {}) as XmlObject;
-		const blip = (blipFill['a:blip'] ??= {}) as XmlObject;
+		const blipFill = ensureXmlChildOrCreate(zoomProperties, 'p166:blipFill');
+		const blip = ensureXmlChildOrCreate(blipFill, 'a:blip');
 		blip['@_r:embed'] = relationshipId;
 	}
 
@@ -229,11 +230,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!picture) {
 			return;
 		}
-		const shapeProperties = (picture['p:spPr'] ??= {}) as XmlObject;
+		const shapeProperties = ensureXmlChildOrCreate(picture, 'p:spPr');
 		this.applyZoomTransform(shapeProperties, el);
 		if (relationshipId) {
-			const blipFill = (picture['p:blipFill'] ??= {}) as XmlObject;
-			const blip = (blipFill['a:blip'] ??= {}) as XmlObject;
+			const blipFill = ensureXmlChildOrCreate(picture, 'p:blipFill');
+			const blip = ensureXmlChildOrCreate(blipFill, 'a:blip');
 			blip['@_r:embed'] = relationshipId;
 		}
 	}

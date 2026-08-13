@@ -19,6 +19,11 @@ interface RuntimeWithProtected {
 	getTreeBucketKeyForElementType(type: PptxElement['type']): string;
 	getCnvPrNode(shape: XmlObject, key: string): XmlObject | undefined;
 	serializeShapeLocks(shape: XmlObject, el: PptxElement): void;
+	serializeElementActions(
+		shape: XmlObject,
+		el: PptxElement,
+		resolveHyperlinkRelationshipId: (target: string) => string | undefined,
+	): void;
 	serializeSingleAction(
 		cNvPr: XmlObject,
 		nodeName: string,
@@ -148,6 +153,51 @@ describe('getCnvPrNode', () => {
 		expect(getCnvPrNode({}, 'p:graphicFrame')).toBeUndefined();
 		expect(getCnvPrNode({}, 'p:grpSp')).toBeUndefined();
 	});
+
+	// The bucket key comes from `el.type`, and the two disagree in real files.
+	// Trusting the key alone found nothing on these nodes, `serializeElementActions`
+	// returned early, and a hyperlink or action set on a video, an audio clip or
+	// an ink stroke was accepted by the editor and then never written to the file.
+	// This is the same markup-over-type rule the lock writer already follows.
+	it('resolves a media element written as a p:pic, not as its p:graphicFrame bucket', () => {
+		const cNvPr: XmlObject = { '@_id': '6', '@_name': 'Video 1' };
+		const shape: XmlObject = {
+			'p:nvPicPr': { 'p:cNvPr': cNvPr, 'p:cNvPicPr': '', 'p:nvPr': { 'a:videoFile': '' } },
+		};
+		expect(getTreeBucketKeyForElementType('media')).toBe('p:graphicFrame');
+		expect(getCnvPrNode(shape, 'p:graphicFrame')).toBe(cNvPr);
+	});
+
+	it('resolves loaded ink written as a graphic frame, not as its p:sp bucket', () => {
+		const cNvPr: XmlObject = { '@_id': '7', '@_name': 'Ink 1' };
+		const shape: XmlObject = { 'p:nvGraphicFramePr': { 'p:cNvPr': cNvPr } };
+		expect(getTreeBucketKeyForElementType('ink')).toBe('p:sp');
+		expect(getCnvPrNode(shape, 'p:sp')).toBe(cNvPr);
+	});
+
+	it('resolves ink written as a p:contentPart', () => {
+		const cNvPr: XmlObject = { '@_id': '8', '@_name': 'Ink 2' };
+		const shape: XmlObject = {
+			'p:nvContentPartPr': { 'p:cNvPr': cNvPr, 'p:cNvContentPartPr': '', 'p:nvPr': '' },
+		};
+		expect(getCnvPrNode(shape, 'p:sp')).toBe(cNvPr);
+	});
+
+	it('writes the hyperlink onto a media p:pic that the bucket key would have missed', () => {
+		const cNvPr: XmlObject = { '@_id': '9', '@_name': 'Video 2' };
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPr': cNvPr } };
+		const media = {
+			id: 'm1',
+			type: 'media',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			actionClick: { url: 'https://example.com' },
+		} as unknown as PptxElement;
+		runtime.serializeElementActions(shape, media, () => 'rId9');
+		expect(cNvPr['a:hlinkClick']).toStrictEqual({ '@_r:id': 'rId9' });
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -219,11 +269,84 @@ describe('serializeShapeLocks', () => {
 		expect(cNvSpPr['a:spLocks']).toBeUndefined();
 	});
 
-	it('leaves a graphic frame alone: a:graphicFrameLocks is not modelled', () => {
+	it('writes a:graphicFrameLocks onto p:cNvGraphicFramePr for a table', () => {
 		const cNvFramePr: XmlObject = { 'a:graphicFrameLocks': { '@_noGrp': '1' } };
 		const shape: XmlObject = { 'p:nvGraphicFramePr': { 'p:cNvGraphicFramePr': cNvFramePr } };
-		runtime.serializeShapeLocks(shape, elementWithLocks('table', undefined));
-		expect(cNvFramePr['a:graphicFrameLocks']).toStrictEqual({ '@_noGrp': '1' });
+		runtime.serializeShapeLocks(
+			shape,
+			elementWithLocks('table', { noGrouping: true, noMove: true, noDrilldown: true }),
+		);
+		expect(cNvFramePr['a:graphicFrameLocks']).toStrictEqual({
+			'@_noGrp': '1',
+			'@_noDrilldown': '1',
+			'@_noMove': '1',
+		});
+	});
+
+	it('does not write CT_ShapeLocking-only attributes onto a:graphicFrameLocks', () => {
+		const cNvFramePr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvGraphicFramePr': { 'p:cNvGraphicFramePr': cNvFramePr } };
+		runtime.serializeShapeLocks(
+			shape,
+			elementWithLocks('chart', {
+				noTextEdit: true,
+				noRotation: true,
+				noEditPoints: true,
+				noAdjustHandles: true,
+				noChangeArrowheads: true,
+				noChangeShapeType: true,
+				noSelect: true,
+			}),
+		);
+		expect(cNvFramePr['a:graphicFrameLocks']).toStrictEqual({ '@_noSelect': '1' });
+	});
+
+	it('does not write noDrilldown onto a:spLocks (CT_GraphicalObjectFrameLocking only)', () => {
+		const cNvSpPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvSpPr': { 'p:cNvSpPr': cNvSpPr } };
+		runtime.serializeShapeLocks(
+			shape,
+			elementWithLocks('shape', { noDrilldown: true, noMove: true }),
+		);
+		expect(cNvSpPr['a:spLocks']).toStrictEqual({ '@_noMove': '1' });
+	});
+
+	it('writes a:spLocks when p:cNvSpPr arrived as a self-closing element', () => {
+		// `<p:cNvSpPr/>` parses to the STRING '' (fast-xml-parser collapses an
+		// empty element), and it is the commonest spelling in any real deck
+		// because it is what a shape with no locks yet looks like. Walking
+		// through it returned undefined, so the writer concluded there was
+		// nowhere to put the lock: locking a not-already-locked shape never
+		// reached the file, for every family at once.
+		const nv: XmlObject = { 'p:cNvPr': { '@_id': '2' }, 'p:cNvSpPr': '', 'p:nvPr': {} };
+		runtime.serializeShapeLocks({ 'p:nvSpPr': nv }, elementWithLocks('shape', { noMove: true }));
+		expect(nv['p:cNvSpPr']).toStrictEqual({ 'a:spLocks': { '@_noMove': '1' } });
+	});
+
+	it('creates a missing p:cNvSpPr in CT_NonVisualShapeProperties sequence order', () => {
+		// The sequence is cNvPr, cNvSpPr, nvPr. Appending the new child would
+		// place it after p:nvPr and emit an out-of-order package.
+		const nv: XmlObject = { 'p:cNvPr': { '@_id': '2' }, 'p:nvPr': {} };
+		runtime.serializeShapeLocks({ 'p:nvSpPr': nv }, elementWithLocks('shape', { noResize: true }));
+		expect(Object.keys(nv)).toStrictEqual(['p:cNvPr', 'p:cNvSpPr', 'p:nvPr']);
+	});
+
+	it('does not materialise a container for an element that has no locks', () => {
+		const nv: XmlObject = { 'p:cNvPr': { '@_id': '2' }, 'p:nvPr': {} };
+		runtime.serializeShapeLocks({ 'p:nvSpPr': nv }, elementWithLocks('shape', undefined));
+		expect(nv['p:cNvSpPr']).toBeUndefined();
+	});
+
+	it('follows the markup, not the type: media authored as a p:pic gets a:picLocks', () => {
+		// PowerPoint writes a video as a `p:pic` (poster blip + `a:videoFile`),
+		// but `media` buckets as `p:graphicFrame`. Trusting the type here would
+		// build `a:graphicFrameLocks` on a node that has none and leave the real
+		// `a:picLocks` behind untouched.
+		const cNvPicPr: XmlObject = { 'a:picLocks': { '@_noCrop': '1' } };
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPicPr': cNvPicPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('media', { noMove: true }));
+		expect(cNvPicPr['a:picLocks']).toStrictEqual({ '@_noCrop': '1', '@_noMove': '1' });
+		expect(cNvPicPr['a:graphicFrameLocks']).toBeUndefined();
 	});
 });
 

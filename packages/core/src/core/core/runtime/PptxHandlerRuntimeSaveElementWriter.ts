@@ -16,6 +16,7 @@ import type {
 import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
+import { ensureXmlChild } from '../../utils/xml-access';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveContentPartInk';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
@@ -582,13 +583,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.applyGeometryUpdate(shape, el);
 
 		// Shape styles (fill, stroke, effects, 3D)
-		if (hasShapeProperties(el) && el.shapeStyle && shape['p:spPr']) {
-			const spPr = shape['p:spPr'] as XmlObject;
-			this.applyFillAndStroke(spPr, el.shapeStyle, ctx.inheritedGroupFill);
-			this.applyEffectsAndThreeD(spPr, el.shapeStyle);
-			this.finalizeSpPrSchemaOrder(shape);
-			// Re-emit `<p:style>` (lnRef/fillRef/effectRef/fontRef) — Phase 2 Stream B / C-H2.
-			this.applyShapeStyleRefs(shape, el.shapeStyle);
+		//
+		// `ensureXmlChild`, not a truthiness test on `shape['p:spPr']`: an
+		// unstyled shape is authored `<p:spPr/>`, which fast-xml-parser gives us
+		// as the empty STRING. A falsy gate here skipped the whole block, so
+		// setting a fill, an outline (colour / width / dash / arrows / join /
+		// cap), a shadow, glow, reflection, 3D or a `<p:style>` ref on such a
+		// shape silently never reached the saved file. Reproduced on
+		// corpus/master-layout-inheritance-fills.pptx, which loads NINE elements
+		// whose `rawXml['p:spPr']` is `''`; a solid fill set on one of them left
+		// no trace in the saved part. Bare `<p:spPr/>` occurs 623 times across
+		// all 45 committed decks, so this was the common case, not the corner.
+		if (hasShapeProperties(el) && el.shapeStyle) {
+			const spPr = ensureXmlChild(shape, 'p:spPr');
+			if (spPr) {
+				this.applyFillAndStroke(spPr, el.shapeStyle, ctx.inheritedGroupFill);
+				this.applyEffectsAndThreeD(spPr, el.shapeStyle);
+				this.finalizeSpPrSchemaOrder(shape);
+				// Re-emit `<p:style>` (lnRef/fillRef/effectRef/fontRef) — Phase 2 Stream B / C-H2.
+				this.applyShapeStyleRefs(shape, el.shapeStyle);
+			}
 		}
 
 		// Text body

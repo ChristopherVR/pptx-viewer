@@ -3,6 +3,7 @@ import type { MediaPptxElement } from '../../types';
 import { parseDrawingMediaReference } from '../../utils/drawing-media-reference';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParsing';
+import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from './shape-lock-containers';
 
 /** EMU values are int32 per ECMA-376 §22.1.2.4. Clamp parsed values to this range. */
 const INT32_MIN = -2_147_483_648;
@@ -142,6 +143,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					isLinked: mediaReference.isLinked,
 					posterFramePath,
 					posterFrameData,
+					// Real PowerPoint media is `p:pic`-shaped even though the
+					// `media` type buckets as `p:graphicFrame`, so its locks live
+					// in `a:picLocks`. The writer resolves the same container from
+					// the markup; leaving this unparsed would hand it an empty bag
+					// and delete the authored lock on the first save.
+					locks: parseShapeLocksFromNode(pic, SHAPE_LOCK_CONTAINERS['p:pic']),
 					rawXml: pic,
 				} as MediaPptxElement;
 			}

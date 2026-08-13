@@ -36,6 +36,41 @@ import { annotateOmmlSiblingOrder } from '../runtime/omml-sibling-order';
 import { annotateParagraphSiblingOrder } from '../runtime/paragraph-sibling-order';
 import { annotateSmartArtTextOrder } from '../runtime/smartart-text-order';
 
+/**
+ * The deepest element nesting accepted in any OOXML part, on BOTH the read and
+ * the write side.
+ *
+ * ## Why this is set at all
+ *
+ * fast-xml-parser and fast-xml-builder each default `maxNestedTags` to 100 and
+ * THROW past it, and the two compare it differently (`stack.length > max` in
+ * the parser, `depth >= max` in the builder), on top of which the builder
+ * measures the parsed OBJECT rather than the source XML. At the shared default
+ * that puts the builder's ceiling BELOW the parser's, which opens a window
+ * where a part loads and then cannot be written back. Measured against the real
+ * pipeline, a slide carrying 89, 90 or 91 nested `p:grpSp` parses cleanly and
+ * throws "Maximum nested tags exceeded" on save: the user can open the deck,
+ * edit it, and lose the work at the moment they try to keep it. A refusal on
+ * LOAD is a bad day; a refusal on SAVE is lost work, so the parser has to be
+ * the only ceiling, which is what the doubled builder limit below buys.
+ *
+ * ## Why 256 rather than 100
+ *
+ * Scanned across all 45 committed decks (`e2e/fixtures` + the corpus), every
+ * XML part in every deck: the deepest element nesting anywhere is **25**, in an
+ * animation `p:timing` tree (`issue-132-gradient-fill.pptx`, slide 10), and the
+ * deepest nested-group chain is **3**. So 100 is not reachable by anything we
+ * have. But 100 is fast-xml-parser's arbitrary default, not a considered OOXML
+ * limit: `p:grpSp` nests without bound in the schema, each level costs exactly
+ * one unit of depth, and a deck built by a generator that groups repeatedly is
+ * the one plausible way to reach it. 256 keeps a real bound (a hostile file
+ * cannot drive unbounded work) with ~10x headroom over anything observed and
+ * ~8x over `MAX_GROUP_DEPTH`, while staying far below the point where the
+ * parser's own recursive JSON conversion overflows the stack (measured between
+ * 5,000 and 20,000).
+ */
+const MAX_XML_NESTING_DEPTH = 256;
+
 export interface PptxRuntimeDependencyFactoryInput {
 	zip: JSZip;
 	parser: XMLParser;
@@ -135,6 +170,25 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// user-visible even without a save.
 			attributeValueProcessor: (_attrName: string, attrValue: string) =>
 				decodeXmlEntities(attrValue),
+			// See MAX_XML_NESTING_DEPTH. The parser rejects when the open-tag stack
+			// is STRICTLY greater than this, so it tolerates a part one element
+			// deeper than the number given; the builder is compensated below so the
+			// two ceilings land on the same part.
+			maxNestedTags: MAX_XML_NESTING_DEPTH,
+			// XML comments stay DROPPED (`commentPropName` left at its `false`
+			// default), deliberately. Scanning every part of all 45 committed decks
+			// found ZERO comments, in slides, rels and `[Content_Types].xml` alike,
+			// so nothing we have is losing anything. Turning it on would not be
+			// free or even faithful: fast-xml-parser stores a comment as a
+			// `#comment` KEY on its parent, which (a) injects a key the ~50 runtime
+			// mixins that enumerate `Object.keys(spTree)` have never seen, and (b)
+			// groups by tag like every other key, so `<!--A--><p:sp/><!--B--><p:sp/>`
+			// rebuilds as `<!--A--><!--B--><p:sp/><p:sp/>` - the same interleaved-
+			// sibling collapse that has already cost this repo four separate order
+			// annotators (custGeom, OMML, SmartArt text, a:fld/a:br). An XML comment
+			// carries no schema meaning, so the choice is between dropping one and
+			// relocating it, and dropping is the honest half. Parts we do not parse
+			// keep their comments regardless: they are copied through byte for byte.
 		});
 		const parse = parser.parse.bind(parser);
 		parser.parse = ((xml: string, validationOption?: boolean | object) => {
@@ -208,6 +262,20 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 				encodeXmlTextValue(String(tagValue)),
 			attributeValueProcessor: (_attrName: string, attrValue: unknown) =>
 				encodeXmlAttributeValue(String(attrValue)),
+			// See MAX_XML_NESTING_DEPTH. The doubling makes the PARSER the single
+			// gatekeeper: whatever it let into the model, the builder can write back.
+			// Matching the two numbers exactly does not achieve that, because the
+			// builder measures a different thing. It walks the parsed OBJECT, where
+			// repeated siblings sit under an extra array level and our own
+			// order-annotation keys (`#pptx-order-N`, custGeom / OMML / SmartArt /
+			// paragraph) add levels the source XML never had, so its depth runs 1-2
+			// above the parser's for the same part and drifts with what the
+			// annotators do. Deriving that offset would mean pinning two libraries'
+			// internals plus our annotators; a margin no realistic accounting
+			// difference can cross is both simpler and stabler, and the builder
+			// still keeps a bound of its own for models built programmatically
+			// rather than parsed. The round-trip test asserts the property directly.
+			maxNestedTags: MAX_XML_NESTING_DEPTH * 2,
 		});
 		const build = builder.build.bind(builder);
 		builder.build = ((value: unknown) =>

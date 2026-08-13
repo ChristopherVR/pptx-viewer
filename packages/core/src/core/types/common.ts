@@ -175,10 +175,17 @@ export interface XmlObject {
 }
 
 /**
- * Shape lock attributes from `p:cNvSpPr / a:spLocks`.
+ * Lock attributes from an element's non-visual properties node.
  *
  * When a flag is `true` the corresponding user interaction is disabled
  * in the editor (e.g. `noRotation` prevents free rotation of the shape).
+ *
+ * One bag covers every family, but the families are NOT interchangeable in
+ * the file: `a:spLocks` (`CT_ShapeLocking`), `a:picLocks`, `a:cxnSpLocks`,
+ * `a:grpSpLocks` (`CT_GroupLocking`) and `a:graphicFrameLocks`
+ * (`CT_GraphicalObjectFrameLocking`) each declare their own attribute subset.
+ * `runtime/shape-lock-containers` holds that table and is what decides which
+ * of these fields may be written for a given element.
  *
  * @example
  * ```ts
@@ -198,6 +205,14 @@ export interface PptxShapeLocks {
 	noAdjustHandles?: boolean;
 	noChangeArrowheads?: boolean;
 	noChangeShapeType?: boolean;
+	/**
+	 * `a:graphicFrameLocks/@noDrilldown`: forbids selecting the individual
+	 * parts inside a graphic frame (a chart series, a SmartArt node). Declared
+	 * ONLY by `CT_GraphicalObjectFrameLocking`, so it is written for tables,
+	 * charts, SmartArt, OLE objects and graphic-frame media, and never onto
+	 * `a:spLocks` / `a:picLocks` / `a:cxnSpLocks` / `a:grpSpLocks`.
+	 */
+	noDrilldown?: boolean;
 	/**
 	 * Text-box flag from `p:cNvSpPr/@txBox`. Not a lock in the strict sense,
 	 * but it lives on the same non-visual-properties node as `a:spLocks`, so

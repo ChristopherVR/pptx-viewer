@@ -6,6 +6,7 @@
  * buFont, buClr, buSzPct, buSzPts), and tab stops from XML structures
  * matching ECMA-376 Part 1, Section 21.1.2.2.7 (CT_TextParagraphProperties).
  */
+import { XMLParser } from 'fast-xml-parser';
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
@@ -445,6 +446,27 @@ describe('parseBulletInfo', () => {
 	it('returns { none: true } for a:buNone', () => {
 		const pPr: XmlObject = { 'a:buNone': {} };
 		expect(parseBulletInfo(pPr)).toStrictEqual({ none: true });
+	});
+
+	// `a:buNone` is a marker element: no attributes, no children, so a real file
+	// only ever spells it `<a:buNone/>` and fast-xml-parser only ever hands back
+	// the empty STRING. The `{ 'a:buNone': {} }` case above is a shape the parser
+	// cannot produce, which is why a truthiness test passed that test while the
+	// branch was dead against every actual deck - and SmartArt's "no bullet" was
+	// read as "no opinion" and dropped on save.
+	it('returns { none: true } for a bare <a:buNone/> as the parser emits it', () => {
+		const parsed = new XMLParser({
+			ignoreAttributes: false,
+			attributeNamePrefix: '@_',
+			parseAttributeValue: false,
+			parseTagValue: false,
+		}).parse('<a:pPr><a:buNone/></a:pPr>') as Record<string, XmlObject>;
+		expect(parsed['a:pPr']['a:buNone']).toBe('');
+		expect(parseBulletInfo(parsed['a:pPr'])).toStrictEqual({ none: true });
+	});
+
+	it('still returns null when no bullet element is present at all', () => {
+		expect(parseBulletInfo({ '@_lvl': '1' })).toBeNull();
 	});
 
 	// ── Character bullets ────────────────────────────────────────────────────

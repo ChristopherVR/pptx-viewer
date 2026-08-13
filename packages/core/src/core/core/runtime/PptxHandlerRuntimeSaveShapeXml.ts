@@ -90,6 +90,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * `rebuildTableXmlFromData` and fills in `a:tblGrid` / `a:tr` children.
 	 */
 	protected createTableGraphicFrameXml(el: TablePptxElement): XmlObject {
+		// PowerPoint writes `noGrp` on every table frame it creates. Seed it onto
+		// the MODEL, not just into the markup below: `serializeShapeLocks` runs
+		// immediately after this factory and rebuilds `a:graphicFrameLocks` from
+		// `el.locks`, treating an absent bag as "the user cleared the locks". A
+		// default that existed only in the fabricated XML would be stripped back
+		// off before the file was written.
+		el.locks = { noGrouping: true, ...el.locks };
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;
 		const offX = String(Math.round(el.x * EMU));
 		const offY = String(Math.round(el.y * EMU));
@@ -201,6 +208,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * specified relationship ID.
 	 */
 	protected createOleGraphicFrameXml(el: OlePptxElement, embedRelationshipId: string): XmlObject {
+		// See `createTableGraphicFrameXml`: the family default has to reach the
+		// model or the lock writer removes it again a few lines later.
+		el.locks = { noChangeAspect: true, ...el.locks };
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;
 		const offX = String(Math.round(el.x * EMU));
 		const offY = String(Math.round(el.y * EMU));
@@ -557,6 +567,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!xml) {
 				return null;
 			}
+			// A nested group never reaches `processSlideElement` (this branch
+			// recurses instead, so the save context survives), so it never got the
+			// lock pass a top-level group gets there. `buildGroupNonVisualXml`
+			// carries the ORIGINAL `a:grpSpLocks` over verbatim, which looks
+			// correct until the model is edited: locking a group inside a group
+			// was silently dropped on save.
+			this.serializeShapeLocks(xml, child);
 			applyGroupChildTransform(xml, child, PptxHandlerRuntime.EMU_PER_PX);
 			return { tag: 'p:grpSp', xml };
 		}

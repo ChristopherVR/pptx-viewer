@@ -11,20 +11,54 @@
 import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
 
+import { decodeXmlEntities } from './xml-entities';
+
 // ---------------------------------------------------------------------------
 // XML parser factory
 // ---------------------------------------------------------------------------
 
 /**
- * Create a pre-configured {@link XMLParser} with safe defaults for
- * parsing OOXML relationship and content-type files.
+ * Create a pre-configured {@link XMLParser} for parsing OOXML relationship,
+ * content-type and slide parts during validation and repair.
+ *
+ * ## Why this mirrors the loader's parser rather than taking the defaults
+ *
+ * A validator that reads a package differently from the loader reports on a
+ * package nobody will ever open. Two divergences were reproduced against the
+ * real `PptxRuntimeDependencyFactory` parser before this was aligned:
+ *
+ * - **Numeric character references were left encoded.** fast-xml-parser decodes
+ *   the five predefined entities by default but NOT `&#x…;` / `&#…;`. A rel
+ *   `Target="../media/Q&amp;A&#x5F;chart.png"` reached the validator as
+ *   `../media/Q&A&#x5F;chart.png` while the loader resolved
+ *   `../media/Q&A_chart.png`, so the validator reported a missing part - and
+ *   `repairPptx` would then "fix" a relationship that was never broken - for a
+ *   deck that opens correctly.
+ * - **A part carrying a DTD failed to parse at all.** With `processEntities`
+ *   at its default `true`, fast-xml-parser enforces a 10,000-character cap on
+ *   an internal entity and THROWS past it, so a package with a large DTD
+ *   entity was reported as malformed XML while the loader read it without
+ *   complaint. Turning entity processing off is strictly more robust here as
+ *   well as being the hardening the loader already applies: PPTX XML has no
+ *   legitimate DTD, and this is a read-only path, which is precisely where an
+ *   entity-expansion payload would be aimed if a future fast-xml-parser
+ *   regression re-enabled expansion (5.9.2 expands nothing and rejects
+ *   external entities outright, so nothing was exploitable today).
+ *
+ * `parseTagValue: false` comes along for the same reason: element text in
+ * OOXML is always an untyped string, and coercing `16.0000` to the number 16
+ * is how the loader's parser used to break `AppVersion`.
  */
 export function createParser(): XMLParser {
 	return new XMLParser({
 		ignoreAttributes: false,
 		attributeNamePrefix: '@_',
 		parseAttributeValue: false,
+		parseTagValue: false,
 		removeNSPrefix: false,
+		processEntities: false,
+		tagValueProcessor: (_tagName: string, tagValue: string) => decodeXmlEntities(tagValue),
+		attributeValueProcessor: (_attrName: string, attrValue: string) => decodeXmlEntities(attrValue),
 	});
 }
 
