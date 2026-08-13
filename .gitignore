@@ -115,6 +115,7 @@ packages/core/.perf-tmp/
 
 # Playwright / scratch screenshots
 /test-results/
+packages/*/test-results/
 playwright-report/
 e2e/.playwright-mcp/
 /*.png
