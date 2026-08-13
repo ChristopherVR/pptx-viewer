@@ -7,9 +7,14 @@
 	 * session so two tabs on the same URL edit the same deck live.
 	 */
 	import type { CollaborationConfig, PptxAiConfig } from 'pptx-svelte-viewer';
+	// The openable-file allow list comes from the binding's public surface, not
+	// a local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop
+	// that the viewer's own File > Open accepted.
 	import {
 		forgetSessionDeck,
+		isSupportedPresentationFile,
 		loadPresentationDeck,
+		PPTX_OPEN_ACCEPT,
 		parsePresentationSessionId,
 		PowerPointViewer,
 		rememberSessionDeck,
@@ -239,7 +244,7 @@
 	function onDrop(e: DragEvent): void {
 		e.preventDefault();
 		const file = e.dataTransfer?.files?.[0];
-		if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
+		if (file && isSupportedPresentationFile(file.name)) {
 			openFile(file);
 		}
 	}
@@ -338,7 +343,7 @@
 				id="file-input"
 				bind:this={fileInput}
 				type="file"
-				accept=".pptx,.ppt,.json"
+				accept={PPTX_OPEN_ACCEPT}
 				aria-label={t('demo.dropzone.uploadAriaLabel')}
 				class="sr-only"
 				onclick={(e) => e.stopPropagation()}

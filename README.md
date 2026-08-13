@@ -2,7 +2,7 @@
 
 [![docs](https://img.shields.io/badge/docs-christophervr.github.io-6366f1.svg)](https://christophervr.github.io/pptx-viewer/)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-18%2C800%2B%20passing-brightgreen.svg)](#)
+[![tests](https://img.shields.io/badge/tests-30%2C000%2B%20passing-brightgreen.svg)](#)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 [![pptx-viewer-core](https://img.shields.io/npm/v/pptx-viewer-core?label=pptx-viewer-core)](https://www.npmjs.com/package/pptx-viewer-core)
@@ -68,7 +68,7 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 
 ## What it does
 
-1. **Parse** `.pptx` files from a raw `ArrayBuffer` into a structured `PptxData` model
+1. **Parse** `.pptx` (and `.ppsx` / `.pptm` / `.potx`, plus legacy binary `.ppt` from PowerPoint 97-2003) from a raw `ArrayBuffer` into a structured `PptxData` model
 2. **Create** presentations from scratch with a fluent builder API
 3. **Render** slides as interactive React / Vue / Angular / Svelte / vanilla JS components with full visual fidelity
 4. **Edit** presentations programmatically or via the built-in WYSIWYG editor
@@ -78,7 +78,7 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 8. **Collaborate** in real-time via Yjs CRDT with presence tracking
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256)
 
-The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (14 layouts), 3D models, animations (40+ presets), transitions (46 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **18,800+ passing tests** across 1,300+ files.
+The engine handles the full OpenXML specification: 16 element types, all 187 `ST_ShapeType` preset shapes, 23 chart types, SmartArt (35 named layout presets over 13 algorithmic families), 3D models, animations (39 editor presets and 26 motion paths, resolved against PowerPoint's full 266-entry preset catalogue), 57 transition effects (including morph), 74 built-in table styles, themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **30,000+ passing tests** across 2,000+ files.
 
 > _Developed with [Claude Code](https://claude.com/claude-code) (Opus 4.x)._
 
@@ -132,18 +132,18 @@ pptx-vanilla-viewer ┘  (each UI binding) ────┘
 ### Core Engine (`pptx-viewer-core`)
 
 - **Embedded OLE objects are not editable in place** - OLE objects (embedded Excel, Word, etc.) are recognised, their preview images are displayed, and the embedded payload can be extracted and downloaded/opened from the viewer, but their internal content cannot be edited in place. OLE2 is an opaque binary container format; deserialising and re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
-- **SmartArt editing** - SmartArt diagrams support inline node text editing (double-click any node), per-node fill colour overrides via a hover swatch bar, node add/remove/reorder/promote/demote, layout switching, colour scheme, and style changes - all round-tripping through undo/redo and save. Multi-line node text (Shift+Enter) is supported across all three bindings. An optional Three.js 3D renderer (`smartArt3D` prop) applies spatial layout variants (carousel, receding tree, stacked tiers) and also supports inline editing via an SVG hit-test overlay. The library uses PowerPoint's own pre-computed shape geometry when available; after structural edits (add/remove/reorder nodes) it rebuilds the drawing shapes via a live reflow engine (`reflowToDrawingShapes`) so the high-fidelity drawing-shape renderer is used immediately and positions persist through save. The algorithmic fallback covers 14 layout families and is used only for diagrams that were never rendered by PowerPoint's layout engine.
+- **SmartArt editing** - SmartArt diagrams support inline node text editing (double-click any node), per-node fill colour overrides via a hover swatch bar, node add/remove/reorder/promote/demote, layout switching, colour scheme, and style changes - all round-tripping through undo/redo and save. Multi-line node text (Shift+Enter) is supported across all five bindings. An optional Three.js 3D renderer (`smartArt3D` prop) applies spatial layout variants (carousel, receding tree, stacked tiers) and also supports inline editing via an SVG hit-test overlay. The library uses PowerPoint's own pre-computed shape geometry when available; after structural edits (add/remove/reorder nodes) it rebuilds the drawing shapes via a live reflow engine (`reflowToDrawingShapes`) so the high-fidelity drawing-shape renderer is used immediately and positions persist through save. The algorithmic fallback covers 13 layout families (list, process, cycle, hierarchy, matrix, radial, pyramid, venn, funnel, target, gear, timeline, bending) reached from 35 named layout presets, and is used only for diagrams that were never rendered by PowerPoint's layout engine.
 - **Chart editing covers data, legend, axes, data labels, trendlines, error bars, and per-point overrides** - You can add/remove series, edit data points, add/remove categories, change chart type, show/hide or reposition the legend, set axis min/max, major/minor units, number format, and tick-label position, toggle data labels with their content (value/category/series/percent/legend key) and position, add a per-series trendline (linear, exponential, logarithmic, polynomial, power, moving average) with optional equation and R-squared, add per-series error bars (fixed value, percentage, standard deviation, standard error, or custom) with direction and plus/minus type, set axis titles, toggle major/minor axis gridlines, set value-axis display units, override data labels and marker symbol/size/fill per individual data point, and set series-level marker style - all round-trip on save.
-- **Strict OOXML conformance is normalised** - Office 365 can save files in ISO/IEC 29500 Strict mode, which uses different namespace URIs than the more common Transitional (ECMA-376) format. The engine maps 46+ namespace URI pairs on load (Strict to Transitional) and converts back on save. Features that rely on strict-only extensions outside these mapped namespaces may not round-trip.
+- **Strict OOXML conformance is normalised** - Office 365 can save files in ISO/IEC 29500 Strict mode, which uses different namespace URIs than the more common Transitional (ECMA-376) format. The engine maps 48 namespace URI pairs on load (Strict to Transitional) and converts back on save. Features that rely on strict-only extensions outside these mapped namespaces may not round-trip.
 
 ### Framework Viewers (React / Vue / Angular / Svelte / Vanilla JS)
 
 - **CSS-based rendering** - Slides are rendered as HTML/CSS rather than Canvas, which gives sharp text at any zoom, native accessibility, and DOM interactivity. `mix-blend-mode` and CSS 3D transforms (shape extrusion side faces, `rotateX/Y`) render natively in the live viewer. A couple of effects are approximated even on screen: `backdrop-filter` is replaced with semi-transparent backgrounds, and path gradients are approximated as elliptical radials. Raster export flattens more of these (see Print and export fidelity below).
 - **Font availability** - Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect text metrics and layout fidelity. Embedded fonts in the PPTX are deobfuscated and injected into the DOM when available.
 - **Embedded media** - Audio/video playback depends on browser codec support (e.g. browsers may not support WMV or legacy codecs). DRM-protected media will not play.
-- **Animation triggers** - 40+ animation presets are supported with `onClick`, `withPrevious`, `afterPrevious`, `afterDelay`, `onHover`, and `onShapeClick` triggers. Compound OOXML timing conditions (`p:stCondLst`/`p:endCondLst` OR-sets) are fully parsed; the engine resolves each set to its governing trigger while preserving click and hover alternatives for interactive playback.
-- **Morph transitions** - Morph matches elements across slides using three strategies: explicit `!!` naming convention, element ID matching, and proximity matching (within 300px). Position, size, opacity, rotation, colour, and shape geometry (cross-shape-type vertex interpolation resampled to 64 outline points) are all interpolated. Unmatched elements crossfade.
-- **Chart interactivity** - Charts are rendered as static SVG with hover tooltips. They are not directly editable via the chart surface; use the inspector panel's chart data editor instead.
+- **Animation triggers** - 39 editor animation presets and 26 motion paths are supported with `onClick`, `withPrevious`, `afterPrevious`, `afterDelay`, `onHover`, and `onShapeClick` triggers. A loaded deck's OOXML preset ids are recognised against PowerPoint's full 266-entry catalogue; 42 of them have a dedicated playback effect and the rest fall back to a generic fade/pulse that preserves show/hide semantics (the saved file always keeps the real preset id). Compound OOXML timing conditions (`p:stCondLst`/`p:endCondLst` OR-sets) are fully parsed; the engine resolves each set to its governing trigger while preserving click and hover alternatives for interactive playback.
+- **Morph transitions** - Morph matches elements across slides in priority order: the explicit `!!` naming convention, PowerPoint's own `a16:creationId` GUID, the child correspondence that let two groups be decomposed, the native `p:cNvPr/@id` (only when creation ids are absent), and finally type + proximity + size matching (same type within 300px, box ratio within 2x). Position, size, opacity, rotation, colour, and shape geometry (cross-shape-type vertex interpolation resampled to 64 outline points) are all interpolated. Unmatched elements crossfade.
+- **Chart interactivity** - Charts are rendered as SVG with hover tooltips, and are editable on the canvas: click a mark to select it, drag it vertically to set its value, and double-click the title to rename it. Drag-to-value applies to the un-stacked cartesian kinds (bar, line, area, scatter, bubble); pie, doughnut and radar marks are click-to-select with values edited in the inspector; stacked/percent-stacked series, surface and map charts are static. **On-canvas dragging is currently wired in React, Vue and Angular only** - the Svelte and vanilla renderers tag the marks but do not yet handle the drag, so use the inspector panel's chart data editor there.
 - **Print and export fidelity** - Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
 - **Maximum export resolution** - Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
 - **3D models** - Rendering GLB/GLTF 3D models requires the single optional `three` peer dependency. Without it, the element falls back to its poster image.
@@ -436,7 +436,7 @@ await fs.writeFile('deck.pptx', out);
 |          |                                  |  crypto, etc.)      |  |
 |  +-------+-------------------------------+ +--------------------+  |
 |  |              Runtime Layer             |                        |
-|  |  PptxHandlerRuntime - 50+ mixin        |                        |
+|  |  PptxHandlerRuntime - 96 mixin         |                        |
 |  |  modules for parsing, serializing,     |                        |
 |  |  theme resolution, element processing  |                        |
 |  +-------+-------------------------------+                         |
@@ -457,7 +457,7 @@ await fs.writeFile('deck.pptx', out);
 | Decision                             | Rationale                                                                                                    |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | **CSS-based rendering** (not Canvas) | Sharp text at any zoom, native accessibility, DOM interactivity, and standard CSS styling                    |
-| **Mixin composition** for runtime    | 50+ focused modules keep each concern isolated and testable; new capabilities added as new mixins            |
+| **Mixin composition** for runtime    | 96 focused modules keep each concern isolated and testable; new capabilities added as new mixins             |
 | **Discriminated union** for elements | TypeScript narrows to the correct element type via the `type` field - no casting needed                      |
 | **EMU units** internally             | PowerPoint uses English Metric Units (1 inch = 914,400 EMU). Conversion constants in `constants.ts`          |
 | **Theme resolution chain**           | Element -> Placeholder -> Layout -> Master -> Theme mirrors PowerPoint's own style inheritance               |
@@ -520,7 +520,7 @@ bun run pack:svelte  # packages/svelte
 | **3D**            | Three.js (optional)                                                                                |
 | **Collaboration** | Yjs (CRDT), y-websocket (optional)                                                                 |
 | **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                                                   |
-| **Testing**       | Vitest (18,800+ tests across 1,300+ files)                                                         |
+| **Testing**       | Vitest (30,000+ tests across 2,000+ files)                                                         |
 | **Formatting**    | oxfmt (from the [oxc](https://oxc.rs) toolchain)                                                   |
 | **Linting**       | oxlint (from the [oxc](https://oxc.rs) toolchain)                                                  |
 | **Bundler**       | tsup (ESM + CJS with .d.ts declarations)                                                           |

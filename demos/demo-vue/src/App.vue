@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { PptxHandler } from 'pptx-viewer-core';
+// The openable-file allow list comes from the binding's public surface, not a
+// local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop that
+// the viewer's own File > Open accepted.
 import {
+	PPTX_OPEN_ACCEPT,
 	PowerPointViewer,
 	isAudienceTab,
+	isSupportedPresentationFile,
 	loadAudienceContent,
 	parsePresentationSessionId,
 	rememberSessionDeck,
@@ -468,7 +473,7 @@ async function newPresentation(): Promise<void> {
 function onDrop(e: DragEvent): void {
 	e.preventDefault();
 	const file = e.dataTransfer?.files?.[0];
-	if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
+	if (file && isSupportedPresentationFile(file.name)) {
 		loadFile(file);
 	}
 }
@@ -564,7 +569,7 @@ function onZoneClick(e: MouseEvent): void {
 				id="file-input"
 				ref="fileInput"
 				type="file"
-				accept=".pptx,.ppt,.json"
+				:accept="PPTX_OPEN_ACCEPT"
 				:aria-label="t('demo.dropzone.uploadAriaLabel')"
 				class="sr-only"
 				@change="onInputChange"

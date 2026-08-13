@@ -9,6 +9,10 @@ import {
 } from '@angular/core';
 import type { ElementRef } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+// The openable-file allow list comes from the binding's public surface, not a
+// local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop that
+// the viewer's own File > Open accepted.
+import { PPTX_OPEN_ACCEPT, isSupportedPresentationFile } from 'pptx-angular-viewer';
 import type { ViewerTheme } from 'pptx-angular-viewer';
 
 type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
@@ -87,7 +91,7 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 					#fileInput
 					id="file-input"
 					type="file"
-					accept=".pptx,.ppt,.json"
+					[attr.accept]="acceptedExtensions"
 					[attr.aria-label]="tr('demo.dropzone.uploadAriaLabel')"
 					class="sr-only"
 					(change)="onInputChange($event)"
@@ -237,6 +241,9 @@ export class DropzoneComponent {
 		};
 	}
 
+	/** `accept` list for the file input; the same list the viewer's picker uses. */
+	protected readonly acceptedExtensions = PPTX_OPEN_ACCEPT;
+
 	protected onInputChange(e: Event): void {
 		const picked = (e.target as HTMLInputElement).files?.[0];
 		if (picked) {
@@ -247,7 +254,7 @@ export class DropzoneComponent {
 	protected onDrop(e: DragEvent): void {
 		e.preventDefault();
 		const picked = e.dataTransfer?.files?.[0];
-		if (picked && /\.(?:pptx|ppt|json)$/iu.test(picked.name)) {
+		if (picked && isSupportedPresentationFile(picked.name)) {
 			this.file.emit(picked);
 		}
 	}

@@ -1,3 +1,8 @@
+// The openable-file allow list comes from the binding's public surface, not a
+// local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop that
+// the viewer's own File > Open accepted.
+import { PPTX_OPEN_ACCEPT, isSupportedPresentationFile } from 'pptx-vanilla-viewer';
+
 import { t } from './demo-i18n';
 
 /** Callbacks the dropzone reports back to the demo shell. */
@@ -49,7 +54,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	const input = document.createElement('input');
 	input.id = 'file-input';
 	input.type = 'file';
-	input.accept = '.pptx,.ppt,.json';
+	input.accept = PPTX_OPEN_ACCEPT;
 	input.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
 	input.className = 'sr-only';
 
@@ -81,7 +86,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	zone.addEventListener('drop', (e) => {
 		e.preventDefault();
 		const file = e.dataTransfer?.files?.[0];
-		if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
+		if (file && isSupportedPresentationFile(file.name)) {
 			handlers.onFile(file);
 		}
 	});

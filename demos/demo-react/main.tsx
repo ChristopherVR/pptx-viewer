@@ -3,6 +3,10 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
+// The openable-file allow list comes from the binding's public surface, not a
+// local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop that
+// the viewer's own File > Open accepted.
+import { PPTX_OPEN_ACCEPT, isSupportedPresentationFile } from '../../packages/react/src/index';
 import {
 	themeToCssVars,
 	vermilionDarkTheme,
@@ -839,7 +843,7 @@ function App() {
 		(e: React.DragEvent) => {
 			e.preventDefault();
 			const file = e.dataTransfer.files[0];
-			if (file && /\.(?:pptx|ppt|json)$/iu.test(file.name)) {
+			if (file && isSupportedPresentationFile(file.name)) {
 				handleFile(file);
 			}
 		},
@@ -1004,7 +1008,7 @@ function App() {
 				<input
 					type='file'
 					id='file-input'
-					accept='.pptx,.ppt,.json'
+					accept={PPTX_OPEN_ACCEPT}
 					aria-label={t('demo.dropzone.uploadAriaLabel')}
 					className='sr-only'
 					ref={fileInputRef}
