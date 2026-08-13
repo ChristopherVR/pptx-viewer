@@ -23,6 +23,16 @@ export const translations = {
 	'pptx.autosave.saveFailed': "Échec de l'enregistrement",
 	'pptx.autosave.savedShort': 'Enregistré',
 	'pptx.autosave.allChangesSaved': 'Toutes les modifications enregistrées',
+	'pptx.autosave.disabledByHost': 'Enregistrement auto désactivé par cette application',
+	'pptx.autosave.disabledReadOnly':
+		'Enregistrement auto désactivé : cette présentation est en lecture seule',
+	'pptx.autosave.recovery.title': 'Récupérer les modifications non enregistrées ?',
+	'pptx.autosave.recovery.message':
+		'Une copie enregistrée automatiquement de "{{file}}" ({{size}}) contient des modifications absentes de la version que vous venez d\'ouvrir.',
+	'pptx.autosave.recovery.savedLabel': 'Enregistré automatiquement {{when}}',
+	'pptx.autosave.recovery.hoursAgo': 'il y a {{count}} h',
+	'pptx.autosave.recovery.restore': 'Restaurer',
+	'pptx.autosave.recovery.discard': 'Ignorer',
 	'pptx.titleBar.autoSave': 'Sauvegarde automatique',
 	'pptx.titleBar.autoSaveOn': 'Activée',
 	'pptx.titleBar.autoSaveOff': 'Désactivée',

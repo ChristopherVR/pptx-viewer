@@ -24,6 +24,16 @@ export const translations = {
 	'pptx.autosave.saveFailed': 'Error al guardar',
 	'pptx.autosave.savedShort': 'Guardado',
 	'pptx.autosave.allChangesSaved': 'Todos los cambios guardados',
+	'pptx.autosave.disabledByHost': 'Autoguardado desactivado por esta aplicación',
+	'pptx.autosave.disabledReadOnly':
+		'Autoguardado deshabilitado: esta presentación es de solo lectura',
+	'pptx.autosave.recovery.title': '¿Recuperar los cambios sin guardar?',
+	'pptx.autosave.recovery.message':
+		'Una copia autoguardada de "{{file}}" ({{size}}) contiene cambios que no están en la versión que acaba de abrir.',
+	'pptx.autosave.recovery.savedLabel': 'Autoguardado {{when}}',
+	'pptx.autosave.recovery.hoursAgo': 'hace {{count}} h',
+	'pptx.autosave.recovery.restore': 'Restaurar',
+	'pptx.autosave.recovery.discard': 'Descartar',
 	'pptx.titleBar.autoSave': 'Autoguardado',
 	'pptx.titleBar.autoSaveOn': 'Activado',
 	'pptx.titleBar.autoSaveOff': 'Desactivado',

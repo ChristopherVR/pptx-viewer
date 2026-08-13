@@ -23,6 +23,16 @@ export const translations = {
 	'pptx.autosave.saveFailed': 'Speichern fehlgeschlagen',
 	'pptx.autosave.savedShort': 'Gespeichert',
 	'pptx.autosave.allChangesSaved': 'Alle Änderungen gespeichert',
+	'pptx.autosave.disabledByHost': 'Automatisches Speichern von dieser Anwendung deaktiviert',
+	'pptx.autosave.disabledReadOnly':
+		'Automatisches Speichern deaktiviert: Diese Präsentation ist schreibgeschützt',
+	'pptx.autosave.recovery.title': 'Nicht gespeicherte Änderungen wiederherstellen?',
+	'pptx.autosave.recovery.message':
+		'Eine automatisch gespeicherte Kopie von "{{file}}" ({{size}}) enthält Änderungen, die in der soeben geöffneten Version fehlen.',
+	'pptx.autosave.recovery.savedLabel': 'Automatisch gespeichert {{when}}',
+	'pptx.autosave.recovery.hoursAgo': 'vor {{count}} Std.',
+	'pptx.autosave.recovery.restore': 'Wiederherstellen',
+	'pptx.autosave.recovery.discard': 'Verwerfen',
 	'pptx.titleBar.autoSave': 'Automatisch speichern',
 	'pptx.titleBar.autoSaveOn': 'An',
 	'pptx.titleBar.autoSaveOff': 'Aus',
