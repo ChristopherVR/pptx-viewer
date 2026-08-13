@@ -152,6 +152,7 @@
 						}`}
 					></span>
 					<select
+						aria-label={alias}
 						disabled={!canEdit}
 						value={activeSlide.clrMapOverride[alias] ?? DEFAULT_COLOR_MAP[alias]}
 						onchange={(event) => aliasChange(alias, event.currentTarget.value)}

@@ -22,7 +22,7 @@ import {
 	stepPresenterZoom,
 } from 'pptx-viewer-shared';
 import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { usePresenterClock } from '../composables/usePresenterClock';
@@ -44,6 +44,12 @@ const props = withDefaults(
 		snapshot?: PresentationSnapshot;
 		/** Membership of the running custom show, for the next-slide preview. */
 		activeCustomShow?: { slideRIds: string[] } | null;
+		/**
+		 * Bumped by the host to raise the "all slides" grid (PowerPoint's Ctrl+S).
+		 * A counter rather than a boolean so the host never has to be told when the
+		 * grid is closed again: closing stays entirely local to this component.
+		 */
+		openSlideGridNonce?: number;
 	}>(),
 	{
 		snapshot: () => createInitialPresentationSnapshot(),
@@ -61,6 +67,18 @@ const { t } = useI18n();
 const classes = PRESENTER_CONSOLE_CLASSES;
 const railKeys = PRESENTER_RAIL_LABEL_KEYS;
 const showSlides = ref(false);
+watch(
+	() => props.openSlideGridNonce,
+	(nonce) => {
+		if (nonce !== undefined && nonce > 0) {
+			showSlides.value = true;
+		}
+	},
+	// `immediate`, because Ctrl+S raises the console AND asks for the grid in one
+	// press: this component mounts with the nonce ALREADY bumped, and a watcher
+	// that only fires on later changes would miss the very press that opened it.
+	{ immediate: true },
+);
 
 const { clockText, elapsedText, progress } = usePresenterClock(() => props.presentationStartTime);
 

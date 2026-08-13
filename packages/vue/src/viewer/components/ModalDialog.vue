@@ -28,6 +28,17 @@ const props = defineProps<{
 	open: boolean;
 	/** Optional heading shown in the header bar. */
 	title?: string;
+	/**
+	 * A `data-*` attribute name to stamp on the panel, e.g.
+	 * `data-pptx-autosave-recovery`.
+	 *
+	 * This exists because the component's root is a `<Teleport>`, so a plain
+	 * fallthrough attribute written at the call site is silently dropped instead
+	 * of landing on the dialog. Framework-neutral e2e specs identify a dialog by
+	 * exactly such a marker, and "silently dropped" is how a binding ends up
+	 * being the only one a shared spec cannot see.
+	 */
+	markerAttr?: string;
 }>();
 
 const emit = defineEmits<{
@@ -114,6 +125,7 @@ onMounted(() => document.addEventListener('keydown', onDocumentKeydown));
 				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden overscroll-contain rounded-lg border border-border bg-popover text-foreground shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:min-w-0 max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-b-none max-md:rounded-t-2xl max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]"
 				role="dialog"
 				aria-modal="true"
+				v-bind="props.markerAttr ? { [props.markerAttr]: 'true' } : {}"
 				:aria-label="title"
 				tabindex="-1"
 				:style="{

@@ -50,6 +50,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 					<label class="pptx-chart-card__row">
 						<span class="pptx-chart-card__label">{{ 'pptx.chart.series' | translate }}</span>
 						<select
+							[attr.aria-label]="'pptx.chart.series' | translate"
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
 							[value]="activeIndex()"

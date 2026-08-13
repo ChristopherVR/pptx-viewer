@@ -1,22 +1,34 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { chartPreserveAspectRatio, resolveChartKind } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
-import { renderAreaChart, renderLineChart } from './chart-area-line';
-import { renderBoxWhiskerChart, renderHistogramChart, renderDefaultBarChart } from './chart-bar';
-import { renderMapChart } from './chart-map';
-import { renderPieChart } from './chart-pie';
-import { renderRadarChart } from './chart-radar';
-import { renderScatterChart, renderBubbleChart } from './chart-scatter-bubble';
-import { renderStackedBarChart } from './chart-stacked-bar';
-import { renderStockChart } from './chart-stock';
-import { renderSunburstChart, renderFunnelChart } from './chart-sunburst-funnel';
-import { renderSurfaceChart, renderTreemapChart } from './chart-surface-treemap';
-import { renderWaterfallChart, renderComboChart } from './chart-waterfall-combo';
+import { buildReactChartViewModel, renderChartViewModel } from './chart-view-model-render';
 
 /**
  * Main entry point for chart rendering.
- * Dispatches to the appropriate chart-type renderer.
+ *
+ * EVERY chart kind is projected from the framework-agnostic `buildChartViewModel`
+ * engine in `pptx-viewer-shared`. This module decides nothing about geometry; it
+ * resolves React's palette (via `buildReactChartViewModel`) and asks shared which
+ * aspect-ratio policy the kind wants.
+ *
+ * Historically waterfall / combo / stock / surface / treemap / regionMap were
+ * drawn by private React renderers. They emitted no `data-chart-part`
+ * attributes, so on-canvas mark selection did nothing for exactly those kinds
+ * while it worked in Angular, Svelte and Vanilla; and two of them were plainly
+ * wrong. The waterfall scaled its CUMULATIVE bars against the range of the RAW
+ * values, so a rising waterfall left the plot (its total bar was emitted at
+ * y=-650.6 with height 1026.6 inside a 420px-tall SVG), and the treemap ignored
+ * `c:categoryLevels`, so a hierarchical ChartEx treemap came out flat.
+ *
+ * Surface came back through here too. React used to paint it as an interactive
+ * Three.js scene, which made it the only binding whose surface chart was a
+ * `<canvas>`: no marks to select, nothing for the SVG parity harness to compare,
+ * and a picture no other viewer drew. The scene controller itself is still in
+ * shared (`render/surface-chart-3d-scene.ts`, `mountSurfaceChart3D`), so the
+ * capability is intact and a future opt-in can wire it in ALL five bindings the
+ * way `smartArt3D` already is.
  */
 export function renderChartElement(element: PptxElement): React.ReactNode {
 	if (element.type !== 'chart') {
@@ -36,80 +48,10 @@ export function renderChartElement(element: PptxElement): React.ReactNode {
 		);
 	}
 
-	const longestSeriesLength = chartData.series.reduce(
-		(maxLength, series) => Math.max(maxLength, series.values.length),
-		0,
+	const kind = resolveChartKind(chartData.chartType ?? 'bar');
+	return renderChartViewModel(
+		element.id,
+		buildReactChartViewModel(element),
+		chartPreserveAspectRatio(kind),
 	);
-	const categoryLabels =
-		chartData.categories.length > 0
-			? chartData.categories
-			: Array.from({ length: longestSeriesLength }, (_, index) => String(index + 1));
-
-	const chartType = chartData.chartType ?? 'bar';
-
-	if (
-		chartType === 'pie' ||
-		chartType === 'doughnut' ||
-		chartType === 'pie3D' ||
-		chartType === 'ofPie'
-	) {
-		// Pie-of-pie / bar-of-pie share the pie projector; the shared engine builds
-		// the primary + secondary plots and serLines. `meet` keeps the pies circular.
-		return renderPieChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'scatter') {
-		return renderScatterChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'bubble') {
-		return renderBubbleChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'radar') {
-		return renderRadarChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'stock') {
-		return renderStockChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'area' || chartType === 'area3D') {
-		return renderAreaChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'line' || chartType === 'line3D') {
-		return renderLineChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'waterfall') {
-		return renderWaterfallChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'combo') {
-		return renderComboChart(element, chartData, categoryLabels);
-	}
-	if (
-		chartType === 'bar' &&
-		(chartData.grouping === 'stacked' || chartData.grouping === 'percentStacked')
-	) {
-		return renderStackedBarChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'surface') {
-		return renderSurfaceChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'treemap') {
-		return renderTreemapChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'sunburst') {
-		return renderSunburstChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'funnel') {
-		return renderFunnelChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'boxWhisker') {
-		return renderBoxWhiskerChart(element, chartData, categoryLabels);
-	}
-	if (chartType === 'histogram') {
-		return renderHistogramChart(element, chartData, categoryLabels);
-	}
-
-	// Geographic map charts: render as SVG choropleth
-	if (chartType === 'regionMap') {
-		return renderMapChart(element, chartData, categoryLabels);
-	}
-
-	return renderDefaultBarChart(element, chartData, categoryLabels);
 }

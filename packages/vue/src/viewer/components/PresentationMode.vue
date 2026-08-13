@@ -261,6 +261,12 @@ const toolbarSlotStyle = computed(() => ({
 }));
 /** Whether the presenter view (notes + next-slide preview) is shown. */
 const presenterMode = ref(props.startInPresenterView);
+/**
+ * Bumped by Ctrl+S to raise the console's "See All Slides" grid. A counter, not
+ * a flag, so closing the grid stays local to `PresenterView` and this side never
+ * has to be told about it.
+ */
+const openSlideGridNonce = ref(0);
 /** On a phone, the presenter view uses a single-column mobile layout. */
 const { isMobile } = useIsMobile();
 /** Whether the live-caption (subtitle) bar is shown. */
@@ -366,8 +372,12 @@ usePresentationKeyboard({
 		const current = presenterSession.snapshot.value.blackout;
 		presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
 	},
+	// PowerPoint's Ctrl+S is "See All Slides", not "open presenter view": raising
+	// the console alone left the presenter one more click away from the grid the
+	// shortcut is named after, and nothing on screen said which click.
 	showAllSlides: () => {
 		presenterMode.value = true;
+		openSlideGridNonce.value += 1;
 	},
 });
 
@@ -482,6 +492,7 @@ useTouchGestures({
 				:audience-open="presenterSession.audienceOpen.value"
 				:snapshot="presenterSession.snapshot.value"
 				:active-custom-show="activeCustomShow"
+				:open-slide-grid-nonce="openSlideGridNonce"
 				@click.stop
 				@move="onToolbarMove"
 				@open-audience="presenterSession.openAudience"

@@ -24,7 +24,12 @@ import type {
 	PptxThemeOption,
 	XmlObject,
 } from 'pptx-viewer-core';
-import { PptxHandler, EncryptedFileError, parseSignatureXml } from 'pptx-viewer-core';
+import {
+	PptxHandler,
+	EncryptedFileError,
+	decodeXmlEntities,
+	parseSignatureXml,
+} from 'pptx-viewer-core';
 import type { DeckSaveIntent, DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
 	embeddedFontSaveOptions,
@@ -48,11 +53,39 @@ import { buildSaveSlides, partitionTemplateElements } from './template-editing';
  * (imported above) already pulls both into the same chunk, so a dynamic import
  * here cannot move them anywhere. It only made bundlers emit
  * INEFFECTIVE_DYNAMIC_IMPORT.
+ *
+ * The parser options mirror core's loader parser rather than taking
+ * fast-xml-parser's defaults, and `packages/angular` carries the identical
+ * copy of this function (see the note there). Two reasons, one cosmetic and
+ * one structural:
+ *
+ * - fast-xml-parser decodes the five predefined entities but NOT numeric
+ *   character references, so a certificate DN written
+ *   `CN=M&#xFC;ller CA` was rendered verbatim in the signatures panel instead
+ *   of `CN=Müller CA`. Non-ASCII signer names are exactly the ones a producer
+ *   is most likely to escape that way, so the panel garbled the names it most
+ *   needed to get right. `decodeXmlEntities` is the same helper core's parser
+ *   uses, so both now agree on what a DN says.
+ * - `processEntities: false` removes DTD handling from a path that reads
+ *   attacker-supplied bytes. fast-xml-parser 5.9.2 expands no entities and
+ *   rejects external ones outright, so nothing here was exploitable; this is
+ *   forward-stability, and it also stops a package with a large DTD entity
+ *   (which the default rejects with a size-cap throw) from silently
+ *   collapsing every signature to "none found" via the catch below.
  */
-async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSignature[]> {
+export async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSignature[]> {
 	try {
 		const zip = await JSZip.loadAsync(buffer);
-		const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+		const parser = new XMLParser({
+			ignoreAttributes: false,
+			attributeNamePrefix: '@_',
+			parseAttributeValue: false,
+			parseTagValue: false,
+			processEntities: false,
+			tagValueProcessor: (_tagName: string, tagValue: string) => decodeXmlEntities(tagValue),
+			attributeValueProcessor: (_attrName: string, attrValue: string) =>
+				decodeXmlEntities(attrValue),
+		});
 		const result: ParsedSignature[] = [];
 		for (const path of Object.keys(zip.files)) {
 			if (path.startsWith('_xmlsignatures/') && path.endsWith('.xml')) {

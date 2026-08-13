@@ -55,6 +55,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							'pptx.chart.legendPosition' | translate
 						}}</span>
 						<select
+							[attr.aria-label]="'pptx.chart.legendPosition' | translate"
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
 							[value]="style().legendPosition ?? 'b'"

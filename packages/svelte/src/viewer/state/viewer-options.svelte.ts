@@ -132,13 +132,13 @@ export class ViewerOptionsState {
 	}
 
 	/**
-	 * Autosave debounce in ms: the host prop until the user picks a custom
-	 * AutoRecover cadence in Options > Save, which then takes over.
+	 * Options > Save > "Save AutoRecover information every N minutes", in
+	 * seconds. The autosave cadence whenever the host passed no explicit
+	 * `autosaveIntervalMs`; the host-vs-user precedence itself is decided by
+	 * `resolveAutosaveIntervalMs` in shared, not re-invented here.
 	 */
-	autosaveDebounceMs(hostIntervalMs: number, defaultMinutes: number): number {
-		return this.options.save.autoRecoverIntervalMinutes === defaultMinutes
-			? hostIntervalMs
-			: resolveAutosaveIntervalSeconds(this.options) * 1000;
+	get autosaveIntervalSeconds(): number {
+		return resolveAutosaveIntervalSeconds(this.options);
 	}
 
 	/** Options > Save > "Delete cached files": drop all recovery snapshots. */

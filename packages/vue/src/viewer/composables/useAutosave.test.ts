@@ -53,7 +53,7 @@ describe('useAutosave', () => {
 		scope.stop();
 	});
 
-	it('coalesces rapid edits into a single debounced save', async () => {
+	it('coalesces rapid edits into a single save, one interval after the first', async () => {
 		const slides = ref<PptxSlide[]>([slide('a')]);
 		const onSave = vi.fn(() => Promise.resolve());
 		const scope = effectScope();
@@ -61,16 +61,39 @@ describe('useAutosave', () => {
 			useAutosave({ slides, intervalMs: 1000, onSave });
 		});
 
+		// Three edits inside one window produce ONE save, and re-arming does not
+		// push the snapshot past a full interval from the first unsaved edit: a
+		// plain debounce would defer it forever under continuous editing, which
+		// at the two-minute AutoRecover cadence is a whole session of lost work.
 		slides.value = [slide('1')];
-		vi.advanceTimersByTime(500);
+		vi.advanceTimersByTime(400);
 		slides.value = [slide('2')];
-		vi.advanceTimersByTime(500);
+		vi.advanceTimersByTime(400);
 		slides.value = [slide('3')];
 		expect(onSave).not.toHaveBeenCalled();
 
-		vi.advanceTimersByTime(1000);
+		vi.advanceTimersByTime(200);
 		await vi.runOnlyPendingTimersAsync();
 		expect(onSave).toHaveBeenCalledOnce();
+
+		scope.stop();
+	});
+
+	it('never defers a snapshot past one interval, however long the user keeps editing', async () => {
+		const slides = ref<PptxSlide[]>([slide('a')]);
+		const onSave = vi.fn(() => Promise.resolve());
+		const scope = effectScope();
+		scope.run(() => {
+			useAutosave({ slides, intervalMs: 1000, onSave });
+		});
+
+		// An edit every 300ms, for three windows' worth of time.
+		for (let i = 0; i < 10; i += 1) {
+			slides.value = [slide(`edit-${i}`)];
+			vi.advanceTimersByTime(300);
+			await vi.runOnlyPendingTimersAsync();
+		}
+		expect(onSave.mock.calls.length).toBeGreaterThanOrEqual(2);
 
 		scope.stop();
 	});

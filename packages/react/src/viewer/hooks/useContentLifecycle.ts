@@ -22,15 +22,18 @@ import type { ViewerState } from './useViewerState';
 export interface UseContentLifecycleInput {
 	content: ArrayBuffer | Uint8Array | null;
 	filePath: string | undefined;
-	/** AutoSave toggle state; when false the recovery autosave timer is off. */
+	/**
+	 * Whether autosave actually runs: the resolved `active` from the shared
+	 * `resolveAutosaveActivation` (host `autosave` prop as a ceiling, title-bar
+	 * toggle as the preference inside it), not the raw toggle.
+	 */
 	autosaveEnabled?: boolean;
 	/**
-	 * AutoRecover cadence in seconds, from
-	 * `resolveAutosaveIntervalSeconds(File > Options > Save)`. React was the only
-	 * binding that never passed one (vanilla, svelte and angular all resolve it),
-	 * so the option's number field moved and the timer kept its 120s default.
+	 * The resolved cadence in milliseconds, from the shared
+	 * `resolveAutosaveIntervalMs` (host `autosaveIntervalMs` prop > File >
+	 * Options > Save AutoRecover cadence > 120s default).
 	 */
-	autosaveIntervalSeconds?: number;
+	autosaveIntervalMs?: number;
 	/**
 	 * File > Fonts > "Embed fonts in the file". Forwarded to `useSerialize`, so
 	 * turning it off actually strips the embedded font data on the next save.
@@ -73,7 +76,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		content,
 		filePath,
 		autosaveEnabled = true,
-		autosaveIntervalSeconds,
+		autosaveIntervalMs,
 		embedFonts = true,
 		slides,
 		state,
@@ -169,7 +172,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		filePath,
 		serializeSlides: serializeForRecovery,
 		enabled: autosaveEnabled,
-		...(autosaveIntervalSeconds === undefined ? {} : { intervalSeconds: autosaveIntervalSeconds }),
+		...(autosaveIntervalMs === undefined ? {} : { intervalMs: autosaveIntervalMs }),
 		// Everything `serializeForRecovery` reads that changes by REASSIGNMENT,
 		// so a poll that finds all of them unchanged can skip re-serializing a
 		// deck it has already snapshotted. The two refs are read by `.current`

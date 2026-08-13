@@ -60,6 +60,7 @@ export function PresentationSettingsCard({
 				<label className='flex items-center justify-between gap-2'>
 					<span className='text-muted-foreground'>{t('pptx.presentationSettings.showType')}</span>
 					<select
+						aria-label={t('pptx.presentationSettings.showType')}
 						disabled={!canEdit}
 						className={cn(INPUT, 'w-28')}
 						value={presentationProperties.showType ?? 'presented'}
@@ -153,6 +154,7 @@ export function ThemeSelectorCard({
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.documentProperties.themeHeading')}</span>
 					<select
+						aria-label={t('pptx.documentProperties.themeHeading')}
 						disabled={themeOptions.length === 0}
 						className={INPUT}
 						value={selectedThemePath}

@@ -157,4 +157,27 @@ describe('chartView', () => {
 	it('falls back to the style-id palette when no palette is parsed', () => {
 		expect(resolveChartPalette(barChartData()).length).toBeGreaterThan(0);
 	});
+
+	/**
+	 * A choropleth patch carries no label of its own, so the shared descriptor's
+	 * per-region `title` is BOTH its hover tooltip and its accessible name.
+	 * Svelte projected every other field of the path primitive and dropped that
+	 * one, so a region map announced nothing at all.
+	 */
+	it('projects each region path title as an SVG <title> child', () => {
+		const svg = renderChartSvg({
+			chartType: 'regionMap',
+			title: 'Revenue by country',
+			categories: ['France', 'Germany', 'Spain'],
+			series: [{ name: 'Revenue', values: [12, 34, 21] }],
+			style: { hasTitle: true },
+		});
+
+		const titles = [...svg.querySelectorAll('path > title')].map((node) => node.textContent ?? '');
+		expect(titles.length).toBeGreaterThan(1);
+		// The matched regions name themselves AND report their value.
+		expect(titles.some((text) => text.startsWith('France:'))).toBeTruthy();
+		// An unmatched region still names itself, without a value.
+		expect(titles.some((text) => !text.includes(':'))).toBeTruthy();
+	});
 });

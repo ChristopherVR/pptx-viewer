@@ -26,7 +26,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
 		savedSnapshots.push({ key, data });
 		return true;
 	},
-	getAutosaveSnapshot: async () => undefined,
+	probeAutosaveRecovery: async () => null,
 }));
 
 const { createAutosaveController } = await import('./autosave-controller');
@@ -52,7 +52,7 @@ describe('vanilla autosave snapshot vs password protection', () => {
 			store,
 			getHandler: () => handler,
 			filePath: 'deck.pptx',
-			intervalMs: 2000,
+			getIntervalMs: () => 2000,
 			// Exactly the accessor `createSessionControllers` passes.
 			getSaveIntent: () => ({
 				password: store.get().presentationPassword,

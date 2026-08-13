@@ -94,7 +94,7 @@ describe('autosave timer redundancy', () => {
 			filePath: () => 'deck.pptx',
 			isDirty: () => true,
 			serialize,
-			intervalSeconds: () => 10,
+			intervalMs: () => 10_000,
 			...(withSources ? { changeSources: () => sources.value } : {}),
 		});
 		// The interval is armed inside the bind effect.
@@ -142,6 +142,23 @@ describe('autosave timer redundancy', () => {
 		await bound.tick();
 		await bound.tick();
 		expect(bound.serialize).toHaveBeenCalledTimes(2);
+	});
+
+	it('honours an explicit host cadence instead of the AutoRecover default', async () => {
+		const serialize = vi.fn(async () => new Uint8Array([1, 2, 3]));
+		const { autosave, flushEffects } = harness();
+		autosave.bind({
+			enabled: () => true,
+			filePath: () => 'deck.pptx',
+			isDirty: () => true,
+			serialize,
+			// A host asking for a two second cadence is stating a policy; the old
+			// seconds path clamped anything under ten seconds back up to ten.
+			intervalMs: () => 2000,
+		});
+		flushEffects();
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(serialize).toHaveBeenCalledOnce();
 	});
 
 	it('never suppresses an explicit triggerAutosave', async () => {

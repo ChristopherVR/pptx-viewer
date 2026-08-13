@@ -14,18 +14,29 @@ import type { GradientStop } from './FillStrokeHelpers';
 // ---------------------------------------------------------------------------
 
 /** Render a simple <select> row. */
-export const SelectRow: React.FC<{
+export function SelectRow({
+	label,
+	value,
+	span2,
+	options,
+	onChange,
+}: {
 	label: string;
 	value: string;
 	span2?: boolean;
 	options: Array<{ value: string; label: string; i18nKey?: string }>;
 	onChange: (v: string) => void;
-}> = ({ label, value, span2, options, onChange }) => {
+}): React.ReactElement {
 	const { t } = useTranslation();
 	return (
 		<label className={`flex flex-col gap-1 ${span2 ? COL2 : ''}`}>
 			<span className={LBL}>{label}</span>
-			<select value={value} onChange={(e) => onChange(e.target.value)} className={SEL}>
+			<select
+				aria-label={label}
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				className={SEL}
+			>
 				{options.map((o) => (
 					<option key={o.value} value={o.value}>
 						{o.i18nKey ? t(o.i18nKey) : o.label}
@@ -34,21 +45,28 @@ export const SelectRow: React.FC<{
 			</select>
 		</label>
 	);
-};
+}
 
 // ---------------------------------------------------------------------------
 // ColorPickerRow
 // ---------------------------------------------------------------------------
 
 /** Color picker + theme swatches + recent colors + eyedropper. */
-export const ColorPickerRow: React.FC<{
+export function ColorPickerRow({
+	label,
+	value,
+	disabled,
+	prefix,
+	recentColors,
+	onChange,
+}: {
 	label: string;
 	value: string;
 	disabled?: boolean;
 	prefix: string;
 	recentColors?: string[];
 	onChange: (c: string) => void;
-}> = ({ label, value, disabled, prefix, recentColors, onChange }) => {
+}): React.ReactElement {
 	const { t } = useTranslation();
 	const handleEyedropper = async (): Promise<void> => {
 		const color = await openNativeEyeDropper();
@@ -110,20 +128,26 @@ export const ColorPickerRow: React.FC<{
 			</div>
 		</label>
 	);
-};
+}
 
 // ---------------------------------------------------------------------------
 // GradientStopRow
 // ---------------------------------------------------------------------------
 
 /** A single gradient stop row. */
-export const GradientStopRow: React.FC<{
+export function GradientStopRow({
+	stop,
+	index,
+	total,
+	onUpdate,
+	allStops,
+}: {
 	stop: GradientStop;
 	index: number;
 	total: number;
 	onUpdate: (stops: GradientStop[]) => void;
 	allStops: GradientStop[];
-}> = ({ stop, index, total, onUpdate, allStops }) => {
+}): React.ReactElement {
 	const { t } = useTranslation();
 	const patchStop = (patch: Partial<GradientStop>): void => {
 		const next = allStops.map((s, i) => (i === index ? { ...s, ...patch } : s));
@@ -171,18 +195,22 @@ export const GradientStopRow: React.FC<{
 			</div>
 		</div>
 	);
-};
+}
 
 // ---------------------------------------------------------------------------
 // EffectField
 // ---------------------------------------------------------------------------
 
 /** Render fields for a togglable effect (shadow, glow, etc.). */
-export const EffectField: React.FC<{
+export function EffectField({
+	field,
+	style,
+	onUpdate,
+}: {
 	field: EffectToggleCfg['fields'][number];
 	style: ShapeStyle | undefined;
 	onUpdate: (u: Partial<ShapeStyle>) => void;
-}> = ({ field, style, onUpdate }) => {
+}): React.ReactElement {
 	const { t } = useTranslation();
 	const fieldLabel = field.i18nKey ? t(field.i18nKey) : field.label;
 	const val = field.read(style);
@@ -192,6 +220,7 @@ export const EffectField: React.FC<{
 			<label className={cls}>
 				<span className={LBL}>{fieldLabel}</span>
 				<select
+					aria-label={fieldLabel}
 					value={String(val)}
 					onChange={(e) => {
 						const result = field.write(e.target.value, style);
@@ -276,4 +305,4 @@ export const EffectField: React.FC<{
 			/>
 		</label>
 	);
-};
+}

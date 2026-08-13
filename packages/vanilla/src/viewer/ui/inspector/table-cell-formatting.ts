@@ -49,10 +49,13 @@ export function createTableCellFormatting(
 			handlers.setTableCellStyles(selectedCells.length > 0 ? selectedCells : [selected], patch);
 		}
 	};
+	// The control is named explicitly: a wrapping `<label>` lends its whole text
+	// content, which for a `<select>` includes every option.
 	const field = (labelText: string, input: HTMLInputElement | HTMLSelectElement): HTMLElement => {
 		const label = doc.createElement('label');
 		const text = doc.createElement('span');
 		text.textContent = labelText;
+		input.setAttribute('aria-label', labelText);
 		label.append(text, input);
 		el.appendChild(label);
 		return label;

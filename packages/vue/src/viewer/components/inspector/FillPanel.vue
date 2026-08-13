@@ -77,6 +77,7 @@ function onOpacity(value: string): void {
 			<label class="pptx-vue-fill-field flex flex-col gap-1">
 				<span class="pptx-vue-fill-label text-muted-foreground">{{ t('pptx.fill.fill') }}</span>
 				<select
+					:aria-label="t('pptx.fill.fill')"
 					class="pptx-vue-fill-select bg-muted border border-border rounded px-2 py-1"
 					:value="fillMode"
 					@change="onMode(($event.target as HTMLSelectElement).value)"

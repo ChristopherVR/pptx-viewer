@@ -42,6 +42,7 @@
 <label class="pptx-svelte-motionpath-row">
 	<span>{t('pptx.animation.motionPath.label')}</span>
 	<select
+		aria-label={t('pptx.animation.motionPath.label')}
 		class="pptx-svelte-animp-motionpath"
 		disabled={!canEdit}
 		{value}

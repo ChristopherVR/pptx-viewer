@@ -1,13 +1,15 @@
 <script lang="ts">
 	import type { PptxSlide } from 'pptx-viewer-core';
-	import { resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
+	import { resolveAuthoredCustomShowId, shouldShowAutosaveRecoveryPrompt } from 'pptx-viewer-shared';
 	import type { CanvasSize, ThemeCatalogEntry } from 'pptx-viewer-shared';
 	import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { ExportUiState } from '../export/export-ui.svelte';
+	import type { AutosaveRecoveryController } from '../state/autosave-recovery.svelte';
 	import type { ViewerOptionsState } from '../state/viewer-options.svelte';
 	import type { ViewerParityUiState } from '../state/viewer-parity-ui.svelte';
+	import AutosaveRecoveryDialog from './AutosaveRecoveryDialog.svelte';
 	import ComparePanel from './ComparePanel.svelte';
 	import CustomShowsDialog from './CustomShowsDialog.svelte';
 	import HeaderFooterPanel from './HeaderFooterPanel.svelte';
@@ -41,11 +43,14 @@
 		onselectslide,
 		onmoveslide,
 		optionsState,
+		autosaveRecovery,
 		aiEnabled = false,
 	}: {
 		ui: ViewerParityUiState;
 		editor: EditorState;
 		optionsState: ViewerOptionsState;
+		/** Crash-recovery probe; renders its prompt when there is one to offer. */
+		autosaveRecovery: AutosaveRecoveryController;
 		exportUi: ExportUiState;
 		slides: PptxSlide[];
 		canvasSize: CanvasSize;
@@ -95,5 +100,9 @@
 {#if ui.slideSorterOpen}<SlideSorterOverlay {slides} {canvasSize} {mediaDataUrls} {current} canEdit={editor.editable} onselect={onselectslide} onmove={onmoveslide} ondelete={() => navigateAfterSlideOp(editor.slidesOps.deleteCurrentSlide())} onduplicate={() => navigateAfterSlideOp(editor.slidesOps.duplicateCurrentSlide())} onclose={() => (ui.slideSorterOpen = false)} />{/if}
 {#if ui.outlineViewOpen}<OutlineViewOverlay slides={editor.slides} {canvasSize} canEdit={editor.editable} oncommit={(next) => editor.commitSlides(next)} onactiveslide={onselectslide} onclose={() => (ui.outlineViewOpen = false)} />{/if}
 {#if ui.readingViewOpen}<ReadingViewOverlay {slides} {canvasSize} {mediaDataUrls} activeSlideIndex={current} onexit={(index) => { ui.readingViewOpen = false; onselectslide(index); }} />{/if}
+<!-- A running show has no editor chrome, and this prompt is modal: left mounted
+     it puts a full-area backdrop over the stage that swallows action-button
+     clicks. The offer is deferred, not dropped. -->
+{#if shouldShowAutosaveRecoveryPrompt({ prompt: autosaveRecovery.prompt, presenting: fullscreen })}<AutosaveRecoveryDialog prompt={autosaveRecovery.prompt!} onrestore={() => void autosaveRecovery.restore()} ondiscard={() => void autosaveRecovery.discard()} />{/if}
 {#if ui.keepAnnotationsOpen}<KeepAnnotationsDialog annotationCount={ui.annotations.count} slideCount={ui.annotations.slideCount} onkeep={() => { ui.annotations.keep(editor); ui.keepAnnotationsOpen = false; }} ondiscard={() => { ui.annotations.clear(); ui.keepAnnotationsOpen = false; }} />{/if}
 <PresentationSubtitleBar enabled={fullscreen && (ui.subtitlesEnabled || editor.presentationProperties.showSubtitles === true)} {locale} />

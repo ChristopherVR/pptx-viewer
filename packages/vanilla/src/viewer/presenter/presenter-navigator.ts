@@ -40,7 +40,10 @@ export function buildPresenterNavigator(options: PresenterNavigatorOptions): HTM
 
 	const header = doc.createElement('header');
 	header.className = 'pptxv-presenter-navigator-header';
-	const title = doc.createElement('div');
+	// A heading, not a `div`: the other four bindings title this overlay with an
+	// `h2`, and a grid whose only landmark is unlabelled text is one a screen
+	// reader (and a by-role query) cannot find at all.
+	const title = doc.createElement('h2');
 	title.textContent = t(PRESENTER_NAVIGATOR_LABEL_KEYS.subtitle);
 	const close = doc.createElement('button');
 	close.type = 'button';

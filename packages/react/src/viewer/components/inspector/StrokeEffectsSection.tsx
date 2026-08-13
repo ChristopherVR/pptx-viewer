@@ -99,6 +99,7 @@ export function StrokeEffectsSection({
 			<label className={`flex flex-col gap-1 ${COL2}`}>
 				<span className={LBL}>{t('pptx.strokeEffects.strokeDash')}</span>
 				<select
+					aria-label={t('pptx.strokeEffects.strokeDash')}
 					value={style?.strokeDash || 'solid'}
 					onChange={(e) =>
 						onUpdateShapeStyle({

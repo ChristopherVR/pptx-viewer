@@ -32,6 +32,7 @@ import { LoadContentService } from './load-content.service';
 			<label class="icard__row">
 				<span class="icard__label">{{ 'pptx.presentationSettings.showType' | translate }}</span>
 				<select
+					[attr.aria-label]="'pptx.presentationSettings.showType' | translate"
 					class="icard__select"
 					[disabled]="!canEdit()"
 					[value]="props().showType ?? 'presented'"

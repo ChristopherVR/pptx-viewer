@@ -45,6 +45,7 @@ export function ConnectorArrowsSection({
 					<label key={end} className='flex flex-col gap-1'>
 						<span className='text-muted-foreground'>{t(END_LABEL_KEYS[end].arrow)}</span>
 						<select
+							aria-label={t(END_LABEL_KEYS[end].arrow)}
 							value={selectedShapeStyle?.[key] || 'none'}
 							onChange={(e) => {
 								onUpdateShapeStyle({
@@ -72,6 +73,7 @@ export function ConnectorArrowsSection({
 						<label className='flex flex-col gap-1'>
 							<span className='text-muted-foreground'>{t(END_LABEL_KEYS[end].width)}</span>
 							<select
+								aria-label={t(END_LABEL_KEYS[end].width)}
 								value={selectedShapeStyle?.[widthKey] || 'med'}
 								onChange={(e) => {
 									onUpdateShapeStyle({
@@ -92,6 +94,7 @@ export function ConnectorArrowsSection({
 						<label className='flex flex-col gap-1'>
 							<span className='text-muted-foreground'>{t(END_LABEL_KEYS[end].length)}</span>
 							<select
+								aria-label={t(END_LABEL_KEYS[end].length)}
 								value={selectedShapeStyle?.[lengthKey] || 'med'}
 								onChange={(e) => {
 									onUpdateShapeStyle({

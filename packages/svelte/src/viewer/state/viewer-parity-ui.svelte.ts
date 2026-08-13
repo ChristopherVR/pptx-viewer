@@ -2,6 +2,7 @@ import type { ViewerPreferences } from 'pptx-viewer-shared';
 import { DEFAULT_VIEWER_PREFERENCES } from 'pptx-viewer-shared';
 
 import { CompareController } from '../compare/compare-controller.svelte';
+import { PresentToolbarChrome } from '../components/presentation-toolbar.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
 import { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
 import { RehearseState } from '../presentation/rehearse-state.svelte';
@@ -10,6 +11,16 @@ import { RehearseState } from '../presentation/rehearse-state.svelte';
 export class ViewerParityUiState {
 	readonly compare: CompareController;
 	readonly annotations = new PresentationAnnotations();
+	/**
+	 * The show toolbar's fade/auto-hide state. It lives here, not inside
+	 * `PresentationToolbar.svelte`, because PowerPoint's Ctrl+H toggles the show
+	 * chrome from the keyboard handler, which is nowhere near that component: a
+	 * second visibility flag over there would be overwritten by the next mouse
+	 * move, so the shortcut and the countdown share this one.
+	 */
+	readonly showChrome = new PresentToolbarChrome();
+	/** PowerPoint's Ctrl+S "See All Slides" grid, over the running show. */
+	allSlidesOpen = $state(false);
 	readonly rehearse = new RehearseState();
 	setupSlideShowOpen = $state(false);
 	headerFooterOpen = $state(false);

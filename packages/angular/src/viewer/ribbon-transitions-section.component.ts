@@ -105,7 +105,11 @@ import { EditorStateService } from './editor-state.service';
 		-->
 		<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
 			<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
-			<select class="pptx-rb-select w-24 disabled:opacity-50" disabled>
+			<select
+				[attr.aria-label]="'pptx.ribbon.sound' | translate"
+				class="pptx-rb-select w-24 disabled:opacity-50"
+				disabled
+			>
 				<option value="none">{{ 'pptx.ribbon.soundNone' | translate }}</option>
 			</select>
 		</label>
@@ -135,9 +139,16 @@ import { EditorStateService } from './editor-state.service';
 				/>
 				<span class="whitespace-nowrap">{{ 'pptx.ribbon.onMouseClick' | translate }}</span>
 			</label>
+			<!--
+				Two controls under one label element: a label names only its FIRST
+				labelable descendant, so without these the seconds field had an EMPTY
+				accessible name and the checkbox took the field's value into its own
+				("After 5 seconds"). Both are named explicitly instead.
+			-->
 			<label class="inline-flex cursor-pointer items-center gap-1.5">
 				<input
 					type="checkbox"
+					[attr.aria-label]="'pptx.ribbon.afterDuration' | translate"
 					[checked]="draft().advanceAfter"
 					(change)="onAdvanceAfter($event)"
 					class="accent-primary h-3 w-3"
@@ -145,6 +156,7 @@ import { EditorStateService } from './editor-state.service';
 				<span class="whitespace-nowrap">{{ 'pptx.ribbon.afterDuration' | translate }}</span>
 				<input
 					type="text"
+					[attr.aria-label]="'pptx.ribbon.advanceAfterSeconds' | translate"
 					[value]="draft().advanceAfterText"
 					(change)="onAdvanceAfterText($event)"
 					[disabled]="!draft().advanceAfter"

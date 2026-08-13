@@ -189,16 +189,43 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 */
 	smartArt3D?: boolean;
 	/**
-	 * Enable debounced autosave (default `false`): after each local edit the deck
-	 * is re-serialized and stashed in the shared IndexedDB recovery store as a
-	 * crash-safety net (it never replaces the user's real Save). The toolbar shows
-	 * a small status pill; a snapshot from a prior session is offered through
+	 * Whether this application PERMITS recovery autosave (`@default true`).
+	 *
+	 * This is a policy ceiling, not the user's setting: the title-bar AutoSave
+	 * switch (and File > Options > Save > AutoSave) is the preference expressed
+	 * inside it, and it defaults to on.
+	 *
+	 *  - `false` turns recovery autosave off AND renders the switch inert, so a
+	 *    user cannot enable what the application forbade.
+	 *  - `true`, or omitting it, permits autosave and lets the user decide.
+	 *
+	 * When active, each local edit re-serializes the deck into the shared
+	 * IndexedDB recovery store as a crash-safety net (it never replaces the
+	 * user's real Save, and never clears the unsaved-changes flag). The toolbar
+	 * shows a small status pill, and a snapshot left by a previous session
+	 * raises the built-in recovery prompt as well as
 	 * {@link PptxViewerCallbacks.onAutosaveRecovery}.
+	 *
+	 * Autosave additionally requires an editable viewer and an
+	 * {@link PptxViewerOptions.autosaveFilePath} key, since there is otherwise
+	 * nothing to write or nowhere to write it.
+	 *
+	 * @default true
 	 */
 	autosave?: boolean;
 	/** Fired when the title-bar AutoSave control enables or disables recovery autosave. */
 	onToggleAutosave?: (enabled: boolean) => void;
-	/** Debounce window (ms) between an edit and the persisted snapshot (default 2000). */
+	/**
+	 * Explicit cadence (ms) between the first unsaved edit and the persisted
+	 * snapshot. Like {@link PptxViewerOptions.autosave} this is host policy, so
+	 * it OUTRANKS the user's File > Options > Save > "Save AutoRecover
+	 * information every N minutes". Omit it to leave the cadence to the user,
+	 * which is the default: that Options value decides, falling back to the
+	 * shared two-minute AutoRecover default.
+	 *
+	 * The debounce also has a ceiling: continuous editing still produces a
+	 * snapshot once per interval instead of deferring one forever.
+	 */
 	autosaveIntervalMs?: number;
 	/** IndexedDB recovery key for autosave (default `'presentation.pptx'`). */
 	autosaveFilePath?: string;

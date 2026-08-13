@@ -1,8 +1,18 @@
 import { schemaLabel } from 'pptx-viewer-shared';
 
+/**
+ * A caption plus its control, wrapped in one `<label>`.
+ *
+ * The control is named EXPLICITLY rather than leaning on the wrapper. A label
+ * that wraps its control lends the control its whole text content, and once the
+ * `<option>`s are appended that text is the caption plus every option, so a
+ * label-text lookup for any option word ("Rotate") matches the dropdown. The
+ * caption is the name; say so on the control.
+ */
 export function field<T extends HTMLElement>(doc: Document, text: string, control: T) {
 	const label = doc.createElement('label');
 	label.textContent = text;
+	control.setAttribute('aria-label', text);
 	label.appendChild(control);
 	return { label, control };
 }

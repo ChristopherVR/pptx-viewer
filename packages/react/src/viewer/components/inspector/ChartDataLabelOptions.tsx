@@ -62,6 +62,7 @@ export function ChartDataLabelOptions({
 						{t('pptx.chart.labelPosition')}
 					</span>
 					<select
+						aria-label={t('pptx.chart.labelPosition')}
 						disabled={!canEdit}
 						className={INPUT}
 						value={labels.position ?? ''}

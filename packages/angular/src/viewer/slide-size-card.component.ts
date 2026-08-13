@@ -50,6 +50,7 @@ const CUSTOM_PRESET_VALUE = '';
 					opened reading "On-screen Show (4:3)".
 				-->
 				<select
+					[attr.aria-label]="'pptx.slideSize.presets' | translate"
 					class="icard__select"
 					data-pptx-slide-size-preset
 					[disabled]="!canEdit()"

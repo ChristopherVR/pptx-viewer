@@ -62,7 +62,12 @@ export function motionPathSelectValue(motionPath: string | undefined): string {
 				a [value] naming a catalogue id would be assigned to an empty select
 				and silently drop back to the first entry on first render.
 			-->
-			<select class="pptx-ng-anim__select" [disabled]="!canEdit()" (change)="onSelect($event)">
+			<select
+				[attr.aria-label]="'pptx.animation.motionPath.label' | translate"
+				class="pptx-ng-anim__select"
+				[disabled]="!canEdit()"
+				(change)="onSelect($event)"
+			>
 				<option value="none" [selected]="selectedValue() === 'none'">
 					{{ 'pptx.animation.motionPath.none' | translate }}
 				</option>

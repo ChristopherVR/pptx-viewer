@@ -35,6 +35,7 @@ type GradientStop = { color: string; position: number };
 			<label class="pptx-tcaf__field">
 				<span class="pptx-tcaf__lbl">{{ 'pptx.table.fillMode' | translate }}</span>
 				<select
+					[attr.aria-label]="'pptx.table.fillMode' | translate"
 					class="pptx-tcaf__sel"
 					[disabled]="!canEdit()"
 					[value]="fillMode()"
@@ -51,6 +52,7 @@ type GradientStop = { color: string; position: number };
 					<label class="pptx-tcaf__field">
 						<span class="pptx-tcaf__lbl">{{ 'pptx.table.gradientType' | translate }}</span>
 						<select
+							[attr.aria-label]="'pptx.table.gradientType' | translate"
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
 							[value]="gradType()"
@@ -113,6 +115,7 @@ type GradientStop = { color: string; position: number };
 					<label class="pptx-tcaf__field">
 						<span class="pptx-tcaf__lbl">{{ 'pptx.table.patternPreset' | translate }}</span>
 						<select
+							[attr.aria-label]="'pptx.table.patternPreset' | translate"
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
 							[value]="patternPreset()"

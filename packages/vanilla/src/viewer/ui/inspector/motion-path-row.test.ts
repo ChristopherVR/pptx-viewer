@@ -19,7 +19,29 @@ function selectOf(el: HTMLElement): HTMLSelectElement {
 	return select;
 }
 
+/**
+ * The accessible name a label-text consumer computes for a form control: its
+ * own `aria-label` if it has one, and otherwise the ENTIRE text of the `<label>`
+ * wrapping it. That fallback is the defect this pins: the row's root IS a
+ * `<label>`, so without a name of its own the select answered to the caption
+ * plus the drag hint plus every path in the catalogue.
+ */
+function accessibleName(control: Element): string {
+	const own = control.getAttribute('aria-label');
+	return (own ?? control.closest('label')?.textContent ?? '').replace(/\s+/gu, ' ').trim();
+}
+
 describe('createMotionPathRow', () => {
+	it('names the select itself instead of borrowing the whole label', () => {
+		const row = createMotionPathRow(document, t, vi.fn());
+		row.update({ motionPath: 'M 0 0 L 0.37 0.11', editable: true });
+		const name = accessibleName(selectOf(row.el));
+
+		expect(name).toBe(t('pptx.animation.motionPath.label'));
+		expect(name).not.toContain(t('pptx.animation.motionPath.none'));
+		expect(name).not.toContain(t('pptx.animation.motionPath.editHint'));
+	});
+
 	it('captions the row and groups the catalogue by family', () => {
 		const row = createMotionPathRow(document, t, vi.fn());
 		expect(row.el.querySelector('span')?.textContent).toBe(t('pptx.animation.motionPath.label'));

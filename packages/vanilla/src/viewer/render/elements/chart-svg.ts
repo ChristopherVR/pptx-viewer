@@ -120,6 +120,15 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 				'stroke-width': prim.strokeWidth ?? 0,
 				'fill-opacity': prim.opacity ?? 1,
 			});
+			// The shared descriptor's tooltip, as an SVG <title> child. It is the
+			// shape's ACCESSIBLE NAME as well as its hover text, and a choropleth
+			// patch carries no label of its own: without it a region map announces
+			// nothing and names nothing.
+			if (prim.title !== undefined) {
+				const title = createSvgEl(doc, 'title', {});
+				title.textContent = prim.title;
+				el.appendChild(title);
+			}
 			applyPartAttrs(el, prim.part);
 			return el;
 		}

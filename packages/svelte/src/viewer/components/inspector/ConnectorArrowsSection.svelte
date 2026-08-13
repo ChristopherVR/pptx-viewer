@@ -40,6 +40,7 @@
 	{#each CONNECTOR_ARROW_CONTROLS as control (control.styleKey)}
 		<label
 			>{t(control.labelKey)}<select
+				aria-label={t(control.labelKey)}
 				value={connectorArrowValue(control, style)}
 				onchange={(event) => onChange(control, event.currentTarget.value)}
 				>{#each control.values as value (value)}<option {value}

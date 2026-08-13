@@ -41,6 +41,7 @@ export function MotionPathRow({
 				{t('pptx.animation.motionPath.label')}
 			</span>
 			<select
+				aria-label={t('pptx.animation.motionPath.label')}
 				value={isCustom ? 'custom' : (presetId ?? 'none')}
 				onChange={(event) => onChange(event.target.value)}
 				disabled={!canEdit}

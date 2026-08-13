@@ -55,6 +55,14 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	 * tests) working without this field.
 	 */
 	initialTheme?: ViewerTheme;
+	/**
+	 * The title-bar AutoSave switch state: the user's preference inside the
+	 * host's `autosave` ceiling. Omitted (direct construction in tests) falls
+	 * back to the ceiling itself, which is on unless the host said `false`.
+	 */
+	isAutosaveSwitchOn?(): boolean;
+	/** Whether that switch can change anything (`autosave: false` makes it inert). */
+	isAutosaveToggleAvailable?(): boolean;
 	goToFirstSlide(): void;
 	goToLastSlide(): void;
 	exitPresentation(): void;
@@ -64,6 +72,8 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	setPresentationPointerColor?(color: string): void;
 	/** Open or close the presenter console + audience display (show toolbar). */
 	togglePresenterView?(): void;
+	/** Raise the presenter console's "See All Slides" navigator (Ctrl+S). */
+	showPresentationAllSlides?(): void;
 	/**
 	 * Say what a fullscreen exit seen while the show is running actually meant.
 	 *
@@ -126,7 +136,10 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		hiddenActions: options.hiddenActions,
 		titleBar: {
 			fileName: options.fileName,
-			autosaveEnabled: options.autosave ?? false,
+			// The host option is a policy CEILING, not the preference: it only
+			// forces the switch off (and inert) when it is explicitly `false`.
+			autosaveEnabled: deps.isAutosaveSwitchOn?.() ?? options.autosave !== false,
+			autosaveToggleAvailable: deps.isAutosaveToggleAvailable?.() ?? options.autosave !== false,
 			onToggleAutosave: () => deps.toggleAutosave(),
 			save: () => deps.save(),
 			undo: () => deps.undo(),
@@ -178,6 +191,14 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		// writes the same presentation property, so the key and the button cannot
 		// disagree about whether captions are up.
 		toggleSubtitles: deps.toggleSubtitles,
+		// PowerPoint's Ctrl+H. Driven straight at the bar's own visibility flag,
+		// the one auto-hide writes, so the shortcut and the countdown cannot
+		// disagree; a second flag here would fight the next mouse move.
+		toggleChrome: () => chrome.presentationToolbar.toggleVisible(),
+		// PowerPoint's Ctrl+S ("See All Slides"). Vanilla builds the navigator
+		// inside the presenter console, so the host raises the console with the
+		// grid already up rather than this module rebuilding a second copy.
+		showAllSlides: deps.showPresentationAllSlides,
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),
@@ -416,6 +437,10 @@ export interface ChromeHost {
 	/** ScreenTip-styled tooltip for a strip button (undefined suppresses it). */
 	quickAccessScreenTip(label: string): string | undefined;
 	toggleAutosave(): boolean;
+	/** The AutoSave switch's state (the user preference within the host ceiling). */
+	isAutosaveSwitchOn(): boolean;
+	/** Whether the host permits that switch to change anything. */
+	isAutosaveToggleAvailable(): boolean;
 	downloadPptx(): Promise<void>;
 	downloadAs(format: PptxSaveFormat): Promise<void>;
 	packageForSharing(): Promise<void>;
@@ -430,6 +455,8 @@ export interface ChromeHost {
 	openPresenterView(): void;
 	/** Open the presenter console when closed, close it when open. */
 	togglePresenterView(): void;
+	/** Raise the console's "See All Slides" navigator (Ctrl+S during a show). */
+	showPresentationAllSlides(): void;
 	/** See {@link MountChromeDeps.classifyPresentationExit}. */
 	classifyPresentationExit(): 'end-show' | 'restore-show';
 	exitPresentation(): Promise<void>;
@@ -509,6 +536,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		undo: () => host.undo(),
 		redo: () => host.redo(),
 		toggleAutosave: () => host.toggleAutosave(),
+		isAutosaveSwitchOn: () => host.isAutosaveSwitchOn(),
+		isAutosaveToggleAvailable: () => host.isAutosaveToggleAvailable(),
 		startPresentationFromBeginning: () => {
 			host.goToSlide(0);
 			void host.enterPresentation();
@@ -577,6 +606,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 			host.updatePresenterSnapshot({ pointer: { ...pointer, color } });
 		},
 		togglePresenterView: () => host.togglePresenterView(),
+		showPresentationAllSlides: () => host.showPresentationAllSlides(),
 		classifyPresentationExit: () => host.classifyPresentationExit(),
 		erasePresentationAnnotations: () => host.clearPresentationAnnotations(),
 		togglePresentationInkMarkup: () =>

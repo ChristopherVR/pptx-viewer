@@ -77,6 +77,7 @@
 					<label>
 						{t('pptx.chart.displayUnits')}
 						<select
+							aria-label={t('pptx.chart.displayUnits')}
 							disabled={!canEdit}
 							value={axis.displayUnits ?? ''}
 							onchange={(event) =>

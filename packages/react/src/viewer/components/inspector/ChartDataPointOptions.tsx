@@ -51,6 +51,7 @@ export function ChartDataPointOptions({
 				<label className='flex items-center gap-2 text-[11px]'>
 					<span className='w-12 text-muted-foreground shrink-0'>{t('pptx.chart.series')}</span>
 					<select
+						aria-label={t('pptx.chart.series')}
 						disabled={!canEdit}
 						className={INPUT}
 						value={Math.min(seriesIndex, series.length - 1)}

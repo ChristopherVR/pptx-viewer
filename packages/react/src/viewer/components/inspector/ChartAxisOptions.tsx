@@ -97,6 +97,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 									{t('pptx.chart.displayUnits')}
 								</span>
 								<select
+									aria-label={t('pptx.chart.displayUnits')}
 									disabled={!canEdit}
 									className={INPUT}
 									value={axis.displayUnits ?? ''}
@@ -160,6 +161,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 								{t('pptx.chart.tickLabels')}
 							</span>
 							<select
+								aria-label={t('pptx.chart.tickLabels')}
 								disabled={!canEdit}
 								className={INPUT}
 								value={axis.tickLblPos ?? 'nextTo'}

@@ -32,6 +32,10 @@ export interface ViewportHandlersDeps {
 	toggleBlank?(value: 'black' | 'white'): void;
 	/** Show or hide live captions (PowerPoint's bare `J`). */
 	toggleSubtitles?(): void;
+	/** Show or hide the running show's own chrome (Ctrl+H). */
+	toggleChrome?(): void;
+	/** Raise PowerPoint's "See All Slides" navigator (Ctrl+S). */
+	showAllSlides?(): void;
 }
 
 export interface ViewportHandlers {
@@ -117,6 +121,15 @@ function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolea
 			return true;
 		case 'toggleSubtitles':
 			deps.toggleSubtitles?.();
+			return true;
+		// Both resolved in the shared map and were then dropped: `handleShowKey`
+		// returned true for them via its `default`, so the show consumed the key
+		// (after `preventDefault()`) and did nothing at all.
+		case 'toggleChrome':
+			deps.toggleChrome?.();
+			return true;
+		case 'showAllSlides':
+			deps.showAllSlides?.();
 			return true;
 		default:
 			return true;

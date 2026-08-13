@@ -127,6 +127,20 @@ export class EditorState {
 	readonly tableCells = new TableCellSelection();
 	editable = $state(false);
 	dirty = $state(false);
+	/**
+	 * Monotonic counter bumped by {@link setSlides}, i.e. every time a freshly
+	 * loaded deck is installed as the working document.
+	 *
+	 * It exists because the loader's own `loadCount` is bumped in an EARLIER
+	 * flush than the one that writes these slides: the seeding effect
+	 * (`viewer-effects.svelte.ts`) reacts to `loadCount`, so by the time it calls
+	 * `setSlides` the autosave effect has already run once, seen the new count
+	 * against the old slides, and settled. The slide reassignment that followed
+	 * then looked exactly like a user edit, and merely OPENING a deck wrote a
+	 * crash-recovery snapshot. This counter changes in the SAME synchronous block
+	 * as the slides it describes, so the reseed can never be misread again.
+	 */
+	seedNonce = $state(0);
 	editTemplateMode = $state(false);
 	interactionActive = $state(false);
 	clipboard = $state.raw<ElementClipboardPayload | null>(null);

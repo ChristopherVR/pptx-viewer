@@ -68,7 +68,7 @@
 		{#if series.length > 1}
 			<label class="picker">
 				{t('pptx.chart.series')}
-				<select disabled={!canEdit} bind:value={chosen}>
+				<select aria-label={t('pptx.chart.series')} disabled={!canEdit} bind:value={chosen}>
 					{#each series as item, index (index)}
 						<option value={index}>{item.name}</option>
 					{/each}

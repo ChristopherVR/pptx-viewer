@@ -130,6 +130,7 @@ const CONTROL =
 			<label :class="FIELD">
 				<span :class="LABEL">{{ t('pptx.chart.type') }}</span>
 				<select
+					:aria-label="t('pptx.chart.type')"
 					:class="['pptx-vue-chart-select', CONTROL]"
 					data-testid="chart-type"
 					:value="currentType"
@@ -156,6 +157,7 @@ const CONTROL =
 			<label v-if="showGrouping" :class="FIELD">
 				<span :class="LABEL">{{ t('pptx.chart.grouping') }}</span>
 				<select
+					:aria-label="t('pptx.chart.grouping')"
 					:class="['pptx-vue-chart-select', CONTROL]"
 					data-testid="chart-grouping"
 					:value="currentGrouping"

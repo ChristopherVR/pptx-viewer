@@ -112,6 +112,7 @@ export function AnimationPanel({
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.entrance')}</span>
 				<select
+					aria-label={t('pptx.animation.entrance')}
 					value={selectedElementAnimation?.entrance ?? 'none'}
 					onChange={handleEntranceChange}
 					disabled={!canEdit}
@@ -130,6 +131,7 @@ export function AnimationPanel({
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.emphasis')}</span>
 				<select
+					aria-label={t('pptx.animation.emphasis')}
 					value={selectedElementAnimation?.emphasis ?? 'none'}
 					onChange={handleEmphasisChange}
 					disabled={!canEdit}
@@ -148,6 +150,7 @@ export function AnimationPanel({
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.exit')}</span>
 				<select
+					aria-label={t('pptx.animation.exit')}
 					value={selectedElementAnimation?.exit ?? 'none'}
 					onChange={handleExitChange}
 					disabled={!canEdit}
@@ -210,6 +213,7 @@ export function AnimationPanel({
 							{t('pptx.animation.sequence')}
 						</span>
 						<select
+							aria-label={t('pptx.animation.sequence')}
 							value={selectedElementAnimation?.sequence ?? 'asOne'}
 							onChange={handleSequenceChange}
 							disabled={!canEdit}
@@ -231,6 +235,7 @@ export function AnimationPanel({
 					<label className='flex flex-col gap-1'>
 						<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.trigger')}</span>
 						<select
+							aria-label={t('pptx.animation.trigger')}
 							value={selectedElementAnimation?.trigger ?? 'onClick'}
 							onChange={handleTriggerChange}
 							disabled={!canEdit}
@@ -251,6 +256,7 @@ export function AnimationPanel({
 								{t('pptx.animation.trigger.shapeLabel')}
 							</span>
 							<select
+								aria-label={t('pptx.animation.trigger.shapeLabel')}
 								value={selectedElementAnimation?.triggerShapeId ?? ''}
 								onChange={handleTriggerShapeChange}
 								disabled={!canEdit}
@@ -302,6 +308,7 @@ export function AnimationPanel({
 							{t('pptx.animation.timingCurve')}
 						</span>
 						<select
+							aria-label={t('pptx.animation.timingCurve')}
 							value={selectedElementAnimation?.timingCurve ?? 'ease'}
 							onChange={handleTimingCurveChange}
 							disabled={!canEdit}
@@ -334,6 +341,7 @@ export function AnimationPanel({
 							{t('pptx.animation.repeatUntil')}
 						</span>
 						<select
+							aria-label={t('pptx.animation.repeatUntil')}
 							value={selectedElementAnimation?.repeatMode ?? 'none'}
 							onChange={handleRepeatModeChange}
 							disabled={!canEdit}

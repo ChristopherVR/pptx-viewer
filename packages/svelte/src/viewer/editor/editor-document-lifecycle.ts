@@ -82,6 +82,11 @@ export function loadEditorDocument(state: EditorState, ...args: LoadDocumentArgs
 	// parsed the tag parts; a freshly created deck legitimately has none.
 	state.tagCollections = [];
 	state.presentationMetadata.set(headerFooter, presentationProperties, customShows);
+	// Written in the same synchronous block as the content above so anything
+	// watching the slides for edits (the autosave controller) sees "this is a
+	// freshly seeded document" and the new slide array together, never one
+	// without the other. See `EditorState.seedNonce`.
+	state.seedNonce += 1;
 	resetEditorSession(state);
 }
 

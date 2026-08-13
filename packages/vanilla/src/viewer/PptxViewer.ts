@@ -336,12 +336,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			{
 				store: this.store,
 				root: () => this.lifecycle?.chrome.root ?? null,
-				isAutosaveEnabled: () => this.sessions?.isAutosaveEnabled() ?? false,
-				setAutosaveEnabled: (enabled) => this.sessions?.setAutosaveEnabled(enabled),
-				setAutosaveIntervalMs: () => {
-					// The recovery autosave interval is fixed at construction in the
-					// session controllers; a runtime change is a no-op for now.
-				},
+				// The options model stores the user's PREFERENCE, so it is compared
+				// against the preference, not against what the host ceiling and the
+				// read-only gate currently allow to actually run.
+				isAutosaveEnabled: () => this.sessions?.isAutosavePreferred() ?? true,
+				setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
+				// Re-read every time the debounce timer is armed, so an AutoRecover
+				// cadence change applies without rebuilding the viewer.
+				setAutosaveIntervalMs: (ms) => this.sessions?.setAutosaveIntervalMs(ms),
 				setHistoryDepth: (depth) => this.editor?.setHistoryDepth(depth),
 				setRibbonHiddenTabs: (tabIds) => this.lifecycle?.chrome.ribbon?.setHiddenOptionTabs(tabIds),
 				refreshQuickAccess: () => this.lifecycle?.chrome.titleBar?.refreshQuickAccess(),
@@ -350,9 +352,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 						this.optionsController.screenTip(label),
 					),
 			},
-			// Seed autosave from the constructor option so persisted values (if any)
-			// override it, and the default does not force autosave (+ IndexedDB) on.
-			{ initial: { save: { autoSave: options.autosave ?? false } } },
+			// Seed the AutoSave preference from the constructor option so persisted
+			// values (if any) override it. The default is ON: the host option is a
+			// policy CEILING, not the preference, so only `autosave: false` turns
+			// recovery snapshots off (see `render/autosave-policy` in shared).
+			{ initial: { save: { autoSave: options.autosave ?? true } } },
 		);
 		const parityWorkflowHost: ParityWorkflowHost = {
 			doc: this.doc,
@@ -432,6 +436,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getScale: () => this.renderer.effectiveScale(),
 			setEditable: (editable) => this.setEditable(editable),
 			goToSlide: (index) => this.controls.goToSlide(index),
+			// Restoring a crash-recovery snapshot re-enters the normal load path,
+			// exactly as `openRecentFile` does.
+			loadFile: (bytes) => this.loadFile(bytes),
 		});
 		// Every subsystem the options controller drives now exists: apply the
 		// persisted File > Options values (undo depth, ribbon visibility, root
@@ -1101,6 +1108,22 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.syncPresentationToolbar();
 	}
 
+	/**
+	 * PowerPoint's Ctrl+S during a show: raise "See All Slides".
+	 *
+	 * The navigator is built by the presenter console, so the console comes up
+	 * with it rather than a second grid being assembled over the show. The key
+	 * resolved in the shared map long before this existed and was then dropped on
+	 * the floor, so the show swallowed Ctrl+S and did nothing at all.
+	 */
+	showPresentationAllSlides(): void {
+		if (!this.presenterView) {
+			this.openPresenterView();
+			this.syncPresentationToolbar();
+		}
+		this.presenterView?.showAllSlides();
+	}
+
 	/** Start or stop the console's live captions, publishing onto the snapshot. */
 	private togglePresenterCaptions(): void {
 		this.presenterCaptions ??= createPresenterCaptions({
@@ -1271,11 +1294,35 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	undo = (): void => this.editor.undo();
 	redo = (): void => this.editor.redo();
 
+	/**
+	 * Flip the user's AutoSave preference and report the switch's new state.
+	 *
+	 * Returns the state the switch must actually show, which is NOT always the
+	 * requested one: when the host passed `autosave: false` the preference cannot
+	 * exceed that policy, so the toggle is inert and the switch snaps back off.
+	 */
 	toggleAutosave(): boolean {
-		const enabled = !this.sessions.isAutosaveEnabled();
-		this.setAutosaveEnabled(enabled);
-		return enabled;
+		this.setAutosaveEnabled(!this.sessions.isAutosavePreferred());
+		return this.isAutosaveSwitchOn();
 	}
+
+	/**
+	 * Whether the host permits the AutoSave switch to change anything. Falls back
+	 * to the raw option while the session controllers are still being built (the
+	 * chrome mounts before them).
+	 */
+	isAutosaveToggleAvailable = (): boolean =>
+		this.sessions?.getAutosaveActivation().toggleAvailable ?? this.options.autosave !== false;
+
+	/**
+	 * The title-bar switch state: the user's preference inside the host ceiling.
+	 * Deliberately not {@link isAutosaveEnabled}, which also reports the
+	 * read-only gate; a read-only deck must not look like the user turned
+	 * AutoSave off. Falls back to the option while the session controllers are
+	 * still being constructed (the chrome mounts before them).
+	 */
+	isAutosaveSwitchOn = (): boolean =>
+		this.sessions?.isAutosavePreferred() ?? this.isAutosaveToggleAvailable();
 
 	/**
 	 * Live Quick Access Toolbar options for the title-bar strip.
@@ -1351,7 +1398,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 
 	setAutosaveEnabled(enabled: boolean): void {
 		this.sessions.setAutosaveEnabled(enabled);
-		this.lifecycle.chrome.titleBar?.setAutosaveEnabled(enabled);
+		// Reflect what the session actually accepted, not what was asked for.
+		this.lifecycle.chrome.titleBar?.setAutosaveEnabled(this.isAutosaveSwitchOn());
 	}
 
 	isAutosaveEnabled = (): boolean => this.sessions.isAutosaveEnabled();

@@ -173,7 +173,25 @@ export class ChartElementViewComponent {
 
 		// Drop this chart's part selection when it stops being editable
 		// (deselected, mode change) so the inspector highlight does not linger.
+		//
+		// Guarded on `editable()`, and that guard is load-bearing: the SAME chart
+		// element is mounted several times over (the thumbnail rail alone renders
+		// one copy per slide), every copy shares this element id, and only the
+		// canvas copy is on an editable surface. Without the guard the read-only
+		// copies raced the canvas on every mark click - the canvas set the
+		// selection, a rail copy saw `!canEdit()` and cleared it a tick later, so
+		// the highlight class was applied and stripped within ~100ms and no mark
+		// ever stayed selected. Note the discriminator has to be the `editable`
+		// INPUT, not the editor service: that is `inject(..., {optional: true})`,
+		// so every mount in the tree shares one non-null instance and testing it
+		// excludes nothing. Deselecting still clears, because `editable()` stays
+		// true while `isSelected()` goes false. React's `ChartElementView` carried
+		// the identical defect (there the read-only mounts are told apart by the
+		// absence of an `onUpdateElement` prop).
 		effect(() => {
+			if (!this.editable()) {
+				return;
+			}
 			if (!this.canEdit()) {
 				this.partSelection?.clearForElement(this.element().id);
 			}

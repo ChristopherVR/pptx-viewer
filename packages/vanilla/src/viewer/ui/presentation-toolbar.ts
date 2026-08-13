@@ -57,6 +57,12 @@ export interface PresentationToolbar {
 	update(patch: Partial<PresentationToolbarState>): void;
 	/** Start/stop the elapsed timer, the auto-hide listeners and the bar itself. */
 	setPresenting(presenting: boolean): void;
+	/**
+	 * PowerPoint's Ctrl+H: flip the bar's visibility. It drives the SAME flag
+	 * auto-hide writes, so the shortcut and the countdown cannot disagree about
+	 * whether the chrome is up.
+	 */
+	toggleVisible(): void;
 	dispose(): void;
 }
 
@@ -113,15 +119,17 @@ export function createPresentationToolbar(
 
 	// -- Auto-hide (React's `PresentationToolbarWrapper`) ---------------------
 	let hideTimer: number | null = null;
+	let visible = false;
 	let hovering = false;
 	let startedAt = 0;
 	let tick: number | null = null;
 
-	const setVisible = (visible: boolean): void => {
+	const setVisible = (next: boolean): void => {
+		visible = next;
 		// Inline rather than a class: the hidden bar must stop receiving pointer
 		// events even in a host page that has not loaded the viewer stylesheet.
-		wrap.style.opacity = visible ? '1' : '0';
-		wrap.style.pointerEvents = visible ? 'auto' : 'none';
+		wrap.style.opacity = next ? '1' : '0';
+		wrap.style.pointerEvents = next ? 'auto' : 'none';
 	};
 	const clearHideTimer = (): void => {
 		if (hideTimer !== null) {
@@ -203,6 +211,15 @@ export function createPresentationToolbar(
 			tick ??= window.setInterval(renderElapsed, 1000);
 			doc.addEventListener('mousemove', onMouseMove);
 			doc.addEventListener('mousedown', onDocumentPointerDown);
+			setVisible(true);
+			resetHideTimer();
+		},
+		toggleVisible() {
+			if (visible) {
+				clearHideTimer();
+				setVisible(false);
+				return;
+			}
 			setVisible(true);
 			resetHideTimer();
 		},

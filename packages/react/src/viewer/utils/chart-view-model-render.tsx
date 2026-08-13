@@ -103,7 +103,13 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					strokeWidth={p.strokeWidth ?? 0}
 					fillOpacity={p.opacity ?? 1}
 					{...partAttrs(p.part)}
-				/>
+				>
+					{/* A single string child on purpose: the old region-map renderer
+					    interpolated the value next to the name, which makes `children`
+					    an ARRAY, and React refuses arrays inside <title> - every region
+					    logged a warning and no tooltip was produced. */}
+					{p.title !== undefined ? <title>{p.title}</title> : null}
+				</path>
 			);
 		}
 		case 'polyline': {

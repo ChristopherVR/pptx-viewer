@@ -1,5 +1,6 @@
 import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import type {
+	AutosaveDisabledReason,
 	CanvasSize,
 	CollaborationConfig,
 	FieldSubstitutionContext,
@@ -21,6 +22,7 @@ import type { ExportWiring } from '../export/export-wiring.svelte';
 import type { ExportingApi } from '../export/exporting-api';
 import type { PresentationController, PresenterSession } from '../presentation';
 import type { ViewerLoadDetail } from '../types';
+import type { AutosaveRecoveryController } from './autosave-recovery.svelte';
 import type { AutosaveController } from './autosave.svelte';
 import type { ChromeUiState } from './chrome-ui.svelte';
 import type { AiCluster } from './create-viewer-state-ai.svelte';
@@ -43,8 +45,13 @@ export interface CreateViewerStateOptions {
 	getSource: () => Uint8Array | ArrayBuffer | null | undefined;
 	collaboration?: CollaborationConfig;
 	shareDefaults?: ShareDefaultsInput;
-	/** Host `autosave` prop (post-effect value the caller keeps in sync). */
-	getAutosave: () => boolean;
+	/**
+	 * Host `autosave` prop, verbatim. `undefined` means the host said nothing,
+	 * which PERMITS autosave (the user's toggle then decides); only an explicit
+	 * `false` vetoes it and makes the toggle inert. See
+	 * `resolveAutosaveActivation` in `pptx-viewer-shared`.
+	 */
+	getAutosave: () => boolean | undefined;
 	autosaveIntervalMs?: number;
 	getFilePath: () => string | undefined;
 	getInitialSlide: () => number;
@@ -111,6 +118,8 @@ export interface ViewerStateBag {
 	readonly collab: CollaborationController;
 	readonly dialogs: CollaborationDialogsState;
 	readonly autosaveCtl: AutosaveController;
+	/** The "recover unsaved changes?" probe + prompt for the loaded deck. */
+	readonly autosaveRecovery: AutosaveRecoveryController;
 	readonly presentation: PresentationController;
 	readonly presenterSession: PresenterSession;
 	readonly exportWiring: ExportWiring;
@@ -148,8 +157,17 @@ export interface ViewerStateBag {
 	 * can flip it without waiting on the host.
 	 */
 	editable: boolean;
-	/** Read-only: mutate via {@link setAutosaveEnabled}, which also fires `onautosavetoggle`. */
+	/**
+	 * The EFFECTIVE title-bar AutoSave state: the user's preference, or false
+	 * when the host vetoed autosave (the switch renders off and inert rather
+	 * than pretending to work). Mutate via {@link setAutosaveEnabled}, which
+	 * also fires `onautosavetoggle`.
+	 */
 	readonly autosaveEnabled: boolean;
+	/** False only when the host passed `autosave={false}`; the toggle is then inert. */
+	readonly autosaveToggleAvailable: boolean;
+	/** Why autosave is not running, for a host that wants to explain it. */
+	readonly autosaveDisabledReason: AutosaveDisabledReason | undefined;
 	setAutosaveEnabled(enabled: boolean): void;
 	presenterMode: boolean;
 	/** `Date.now()` timestamp of the last `enterPresenterView()` call; the presenter view's elapsed-time display. */

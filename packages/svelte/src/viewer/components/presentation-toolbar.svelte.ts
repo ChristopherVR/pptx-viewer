@@ -102,6 +102,20 @@ export class PresentToolbarChrome {
 		this.#resetHideTimer();
 	}
 
+	/**
+	 * PowerPoint's Ctrl+H: flip the show chrome. Deliberately the same `visible`
+	 * flag auto-hide writes, and it re-arms the countdown when it reveals the bar,
+	 * so the shortcut leaves the toolbar in a state the pointer can still govern.
+	 */
+	toggleVisible(): void {
+		if (this.visible) {
+			this.#clearHideTimer();
+			this.visible = false;
+			return;
+		}
+		this.#show();
+	}
+
 	/** Open `key`'s palette, or close it when it is already the open one. */
 	togglePalette(key: PresentPaletteKey): void {
 		this.palette = this.palette === key ? null : key;

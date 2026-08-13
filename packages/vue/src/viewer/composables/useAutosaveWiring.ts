@@ -2,21 +2,24 @@
  * useAutosaveWiring: the title-bar AutoSave toggle plus the debounced save
  * engine behind it.
  *
- * Autosave is gated on three independent things (the host opted in, editing is
- * allowed, and the user has not switched the toggle off), and the title bar has
- * to explain WHICH one is missing, so the gate and its explanation live
- * together rather than being recomputed at two call sites.
+ * The gate itself is the shared `resolveAutosaveActivation`: the host's
+ * `autosave` prop is a POLICY CEILING and the toggle is the user's PREFERENCE
+ * inside it, identically in all five bindings. The title bar has to explain
+ * WHICH condition is missing, so the verdict and its reason come back together
+ * rather than being recomputed at two call sites.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import { saveAutosaveSnapshot } from 'pptx-viewer-shared';
+import {
+	resolveAutosaveActivation,
+	resolveAutosaveIntervalMs,
+	saveAutosaveSnapshot,
+} from 'pptx-viewer-shared';
+import type { AutosaveDisabledReason } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 import { computed, ref, watch } from 'vue';
 
 import type { UseAutosaveResult } from './useAutosave';
 import { useAutosave } from './useAutosave';
-
-/** Default debounce window when the host does not specify one. */
-const DEFAULT_AUTOSAVE_INTERVAL_MS = 2000;
 
 export interface UseAutosaveWiringOptions {
 	slides: ShallowRef<PptxSlide[]>;
@@ -29,9 +32,20 @@ export interface UseAutosaveWiringOptions {
 	/** True while the load pipeline is running; used to clear the dirty flag after a load. */
 	loading: Ref<boolean>;
 	canEdit: () => boolean;
-	/** Host opt-in (`autosave` prop), read as a getter so a mid-session change applies. */
-	autosaveEnabledByHost: () => boolean;
+	/**
+	 * The host's `autosave` prop, read as a getter so a mid-session change
+	 * applies. `undefined` means the host stated no policy, which permits
+	 * autosave; only an explicit `false` vetoes it.
+	 */
+	autosaveEnabledByHost: () => boolean | undefined;
+	/** The host's `autosaveIntervalMs` prop, if any. */
 	intervalMs: () => number | undefined;
+	/**
+	 * File > Options > Save > "Save AutoRecover information every N minutes", in
+	 * seconds. Used whenever the host did not state a cadence of its own; Vue
+	 * used to ignore it entirely and sit on a 2s debounce forever.
+	 */
+	optionsIntervalSeconds?: () => number | undefined;
 	/** Label the recovery snapshot is stored under (file path, else file name). */
 	snapshotName: () => string;
 	/**
@@ -50,35 +64,32 @@ export interface UseAutosaveWiringResult {
 	autosave: UseAutosaveResult;
 	/** The title bar's user-facing AutoSave toggle (defaults on). */
 	autosaveEnabled: Ref<boolean>;
+	/** Whether autosave is actually running (toggle AND host policy AND gates). */
+	autosaveActive: ComputedRef<boolean>;
 	toggleAutosave: () => void;
 	/** Why autosave is inactive, for the title bar's status message. */
-	autosaveDisabledReason: ComputedRef<string | undefined>;
+	autosaveDisabledReason: ComputedRef<AutosaveDisabledReason | undefined>;
 }
 
 export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosaveWiringResult {
 	const autosaveEnabled = ref(true);
-	const autosaveActive = computed(
-		() => options.canEdit() && options.autosaveEnabledByHost() && autosaveEnabled.value,
+	const activation = computed(() =>
+		resolveAutosaveActivation({
+			hostAutosave: options.autosaveEnabledByHost(),
+			userEnabled: autosaveEnabled.value,
+			canEdit: options.canEdit(),
+			filePath: options.snapshotName(),
+		}),
 	);
-
-	const autosaveDisabledReason = computed<string | undefined>(() => {
-		if (autosaveActive.value) {
-			return undefined;
-		}
-		if (!autosaveEnabled.value) {
-			return 'autosave_toggle_off';
-		}
-		if (!options.autosaveEnabledByHost()) {
-			return 'no_file_path';
-		}
-		if (!options.canEdit()) {
-			return 'autosave_toggle_off';
-		}
-		return undefined;
-	});
+	const autosaveActive = computed(() => activation.value.active);
+	const autosaveDisabledReason = computed(() => activation.value.reason);
 
 	function toggleAutosave(): void {
-		autosaveEnabled.value = !autosaveEnabled.value;
+		// Inert when the host passed `autosave={false}`: a preference cannot
+		// exceed the policy, so the switch must not move.
+		if (activation.value.toggleAvailable) {
+			autosaveEnabled.value = !autosaveEnabled.value;
+		}
 	}
 
 	const autosave = useAutosave({
@@ -88,7 +99,12 @@ export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosav
 		// A computed, not a snapshot: `useAutosave` re-reads it each time the timer
 		// is armed, so a host changing the AutoRecover cadence (File > Options >
 		// Save) takes effect on the next edit instead of needing a remount.
-		intervalMs: computed(() => options.intervalMs() ?? DEFAULT_AUTOSAVE_INTERVAL_MS),
+		intervalMs: computed(() =>
+			resolveAutosaveIntervalMs({
+				hostIntervalMs: options.intervalMs(),
+				optionsIntervalSeconds: options.optionsIntervalSeconds?.(),
+			}),
+		),
 		onSave: async () => {
 			const bytes = await options.getRecoverySnapshot();
 			options.emitAutosave(bytes);
@@ -112,5 +128,5 @@ export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosav
 		}
 	});
 
-	return { autosave, autosaveEnabled, toggleAutosave, autosaveDisabledReason };
+	return { autosave, autosaveEnabled, autosaveActive, toggleAutosave, autosaveDisabledReason };
 }

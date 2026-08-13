@@ -28,6 +28,9 @@ import {
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	resolveAutosaveActivation,
+	resolveAutosaveIntervalMs,
+	shouldShowAutosaveRecoveryPrompt,
 	resolveAutosaveIntervalSeconds,
 	viewerOptionsToPreferences,
 	writeStoredViewerPrefs,
@@ -53,6 +56,7 @@ import {
 	BroadcastDialog,
 } from './components';
 // Collaboration
+import { AutosaveRecoveryDialog } from './components/AutosaveRecoveryDialog';
 import {
 	CollaborationProvider,
 	useCollaboration,
@@ -119,6 +123,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			filePath,
 			fileName,
 			canEdit = false,
+			autosave: hostAutosave,
+			autosaveIntervalMs: hostAutosaveIntervalMs,
 			onContentChange,
 			onDirtyChange,
 			onActiveSlideChange,
@@ -277,7 +283,16 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const [isHeaderFooterOpen, setIsHeaderFooterOpen] = useState(false);
 
 		// ── AutoSave toggle (title bar) ─────────────────────────────
+		// The user PREFERENCE. What actually runs is `autosaveActivation` below,
+		// which folds in the host's `autosave` prop (a ceiling the preference
+		// cannot exceed), the file path, and edit permission.
 		const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+		const autosaveActivation = resolveAutosaveActivation({
+			hostAutosave,
+			userEnabled: autosaveEnabled,
+			canEdit,
+			filePath,
+		});
 
 		// ── Share dialog ────────────────────────────────────────────
 		const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -659,6 +674,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			handleEnterPresenterView,
 			handleEnterRehearsalMode,
 			autosaveStatus,
+			recovery,
 			isEncryptedDialogOpen,
 			setIsEncryptedDialogOpen,
 			handlerRef,
@@ -675,10 +691,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			gridSpacingPx,
 			content,
 			filePath,
-			autosaveEnabled,
-			// File > Options > Save > "Save AutoRecover information every N
-			// minutes". React alone ignored it and stayed on the 120s default.
-			autosaveIntervalSeconds: resolveAutosaveIntervalSeconds(viewerOptions),
+			autosaveEnabled: autosaveActivation.active,
+			autosaveAllowed: hostAutosave !== false,
+			// Host prop first (an explicit policy), else File > Options > Save >
+			// "Save AutoRecover information every N minutes", else the shared 120s.
+			autosaveIntervalMs: resolveAutosaveIntervalMs({
+				hostIntervalMs: hostAutosaveIntervalMs,
+				optionsIntervalSeconds: resolveAutosaveIntervalSeconds(viewerOptions),
+			}),
 			canEdit,
 			mode,
 			slides,
@@ -842,8 +862,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onOpenRecentFile={handleOpenRecentFile}
 									fileName={fileName}
 									autosaveStatus={autosaveStatus}
-									autosaveEnabled={autosaveEnabled}
-									onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
+									autosaveEnabled={autosaveActivation.active}
+									onToggleAutosave={() => {
+										// Inert when the host passed `autosave={false}`: a preference
+										// cannot exceed the policy, so the switch must not move.
+										if (autosaveActivation.toggleAvailable) {
+											setAutosaveEnabled((p) => !p);
+										}
+									}}
 									hiddenActions={hiddenActions}
 									aiEnabled={Boolean(ai)}
 									isAiPanelOpen={aiPanel.isOpen}
@@ -965,6 +991,22 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					showKeepAnnotationsDialog={showKeepAnnotationsDialog}
 					onKeepAnnotations={handleKeepAnnotations}
 					onDiscardAnnotations={handleDiscardAnnotations}
+				/>
+
+				{/* A running show has no editor chrome, and this prompt is modal: left
+				    mounted it puts a full-area backdrop over the stage that swallows
+				    action-button clicks. The offer is deferred, not dropped. */}
+				<AutosaveRecoveryDialog
+					prompt={
+						shouldShowAutosaveRecoveryPrompt({
+							prompt: recovery.prompt,
+							presenting: mode === 'present',
+						})
+							? recovery.prompt
+							: null
+					}
+					onRestore={recovery.restore}
+					onDiscard={recovery.discard}
 				/>
 
 				<SettingsDialog

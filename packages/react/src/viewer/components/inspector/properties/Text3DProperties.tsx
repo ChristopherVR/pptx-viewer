@@ -130,6 +130,7 @@ export function Text3DProperties({
 				<label className='flex flex-col gap-1 pl-4'>
 					<span className='text-muted-foreground'>{t('pptx.text3d.material')}</span>
 					<select
+						aria-label={t('pptx.text3d.material')}
 						value={t3d?.presetMaterial ?? ''}
 						onChange={(e) => {
 							const v = e.target.value;
@@ -181,6 +182,7 @@ function BevelSection({
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.text3d.bevelType')}</span>
 					<select
+						aria-label={t('pptx.text3d.bevelType')}
 						value={bevelType ?? 'none'}
 						onChange={(e) => onTypeChange(e.target.value as BevelPresetType)}
 						className={INPUT_CLS}

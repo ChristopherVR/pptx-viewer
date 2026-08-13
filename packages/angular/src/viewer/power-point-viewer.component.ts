@@ -34,7 +34,10 @@ import {
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	recoverySnapshotIntent,
+	resolveAutosaveActivation,
+	resolveAutosaveIntervalMs,
 	resolveThemeCatalogEntry,
+	shouldShowAutosaveRecoveryPrompt,
 	setMasterViewBackgroundColor,
 	setMotionPath,
 	shouldAutoFollowBroadcaster,
@@ -63,6 +66,8 @@ import { createAngularAiBridge } from './ai/ai-bridge';
 import { AiChatPanelComponent } from './ai/ai-chat-panel.component';
 import { aiToggleVisible } from './ai/ai-gating';
 import { AiPanelStore } from './ai/ai-panel-store';
+import { AutosaveRecoveryDialogComponent } from './autosave-recovery-dialog.component';
+import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
@@ -218,6 +223,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		InsertSmartArtDialogComponent,
 		SlideTemplateGalleryDialogComponent,
 		ViewerExtraDialogsComponent,
+		AutosaveRecoveryDialogComponent,
 		RehearseTimingsComponent,
 		AiChatPanelComponent,
 		TranslatePipe,
@@ -244,13 +250,13 @@ import { ZoomTargetService } from './zoom-target.service';
 					<pre class="pptx-ng-error-detail">{{ loader.error() }}</pre>
 				</div>
 			} @else {
-				@if (!mobile.isMobile()) {
+				@if (!mobile.isMobile() && chromeVisible()) {
 					<pptx-title-bar
 						[canEdit]="canEdit()"
 						[fileName]="fileName()"
 						[isDirty]="editor.dirty()"
 						[autosaveStatus]="autosave.status()"
-						[autosaveEnabled]="autosaveEnabled()"
+						[autosaveEnabled]="autosaveActivation().active"
 						[canUndo]="editor.canUndo()"
 						[canRedo]="editor.canRedo()"
 						[undoLabel]="editor.undoLabel()"
@@ -258,7 +264,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
 						[hiddenActions]="hiddenActions()"
 						[quickAccess]="viewerOpts.options().quickAccess"
-						(toggleAutosave)="autosaveEnabled.update((v) => !v)"
+						(toggleAutosave)="toggleAutosave()"
 						(save)="fileIO.saveAsPptx()"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
@@ -372,7 +378,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					/>
 				}
 
-				@if (mobile.isMobile()) {
+				@if (mobile.isMobile() && chromeVisible()) {
 					<pptx-mobile-toolbar
 						[canEdit]="canEdit()"
 						[canUndo]="editor.canUndo()"
@@ -397,14 +403,14 @@ import { ZoomTargetService } from './zoom-target.service';
 				}
 
 				<div class="pptx-ng-body">
-					@if (canEdit() && !mobile.isMobile() && !slidesPanelCollapsed()) {
+					@if (canEdit() && !mobile.isMobile() && !slidesPanelCollapsed() && chromeVisible()) {
 						<pptx-slides-panel
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[activeIndex]="activeSlideIndex()"
 							(select)="goTo($event)"
 						/>
-					} @else if (!canEdit()) {
+					} @else if (!canEdit() && chromeVisible()) {
 						<nav class="pptx-ng-thumbnails" [attr.aria-label]="'pptx.sections.slides' | translate">
 							@for (slide of displaySlides(); track slide.id; let i = $index) {
 								<button
@@ -535,7 +541,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						swipe past the threshold sets mobileInspectorHidden so the user
 						reclaims the canvas.
 					-->
-					@if (inspectorPanel.visibleInspectorKind(); as kind) {
+					@if (chromeVisible() ? inspectorPanel.visibleInspectorKind() : null; as kind) {
 						<!--
 							Mobile-only tap-to-dismiss backdrop behind the inspector sheet
 							(hidden on desktop via CSS, mirroring React's MobileDismissSheet).
@@ -632,7 +638,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					-->
 					@defer (when ai() && aiPanelOpen()) {
 						@if (ai(); as aiConfig) {
-							@if (aiPanelOpen()) {
+							@if (aiPanelOpen() && chromeVisible()) {
 								<pptx-ai-chat-panel
 									[bridge]="aiBridge"
 									[config]="aiConfig"
@@ -649,7 +655,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					status bar to match React/Vanilla, rather than nested under the
 					canvas column inside <main>.
 				-->
-				@if (canEdit() && !mobile.isMobile()) {
+				@if (canEdit() && !mobile.isMobile() && chromeVisible()) {
 					<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
 						<pptx-notes-panel
 							[slide]="activeSlide()"
@@ -660,7 +666,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					</aside>
 				}
 
-				@if (!mobile.isMobile()) {
+				@if (!mobile.isMobile() && chromeVisible()) {
 					<pptx-status-bar
 						[slideIndex]="activeSlideIndex()"
 						[slideCount]="slideCount()"
@@ -909,6 +915,15 @@ import { ZoomTargetService } from './zoom-target.service';
 				(localeSelect)="selectLocale($event)"
 			/>
 
+			<!-- A running show has no editor chrome, and this prompt is modal: left
+			     mounted it puts a full-area backdrop over the stage that swallows
+			     action-button clicks. The offer is deferred, not dropped. -->
+			<pptx-autosave-recovery-dialog
+				[prompt]="visibleRecoveryPrompt()"
+				(restore)="autosaveRecovery.restore()"
+				(discard)="autosaveRecovery.discard()"
+			/>
+
 			@if (canEdit()) {
 				<pptx-hyperlink-dialog
 					[open]="docProperties.showHyperlink()"
@@ -1145,6 +1160,29 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * Mirrors React's `fileName` prop.
 	 */
 	readonly fileName = input<string | undefined>(undefined);
+	/**
+	 * Recovery autosave: after an edit the deck is re-serialised (always as a
+	 * plain, unencrypted package, because recovery has no password) and stashed
+	 * in the shared IndexedDB store keyed by {@link filePath}. It is a crash-
+	 * safety net and never replaces the user's real Save: the document stays
+	 * dirty. On load, a newer snapshot is offered back through a recovery prompt.
+	 *
+	 * **The input is a policy ceiling; the title-bar AutoSave toggle is the
+	 * user's preference inside it.** `false` turns autosave off and makes the
+	 * toggle inert (a user cannot switch on what the application forbade).
+	 * `true` or omitted permits it, and the toggle decides, defaulting to on.
+	 * Identical in all five bindings; see `resolveAutosaveActivation` in
+	 * `pptx-viewer-shared`.
+	 *
+	 * @default true
+	 */
+	readonly autosaveInput = input<boolean | undefined>(undefined, { alias: 'autosave' });
+	/**
+	 * Recovery cadence in milliseconds. An explicit value is a host policy and is
+	 * honoured as given; omit it to follow the user's File > Options > Save >
+	 * "Save AutoRecover information every N minutes" (two minutes by default).
+	 */
+	readonly autosaveIntervalMs = input<number | undefined>(undefined);
 	/** Optional real-time collaboration config; when set, connects and shows remote cursors. */
 	readonly collaboration = input<CollaborationConfig | undefined>(undefined);
 	/**
@@ -1222,6 +1260,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly collab = inject(CollaborationService);
 	protected readonly accessibility = inject(AccessibilityService);
 	protected readonly autosave = inject(AutosaveService);
+	protected readonly autosaveRecovery = inject(AutosaveRecoveryService);
 	protected readonly print = inject(PrintService);
 	protected readonly mobile = inject(IsMobileService);
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
@@ -1372,8 +1411,53 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly activeLayoutIndex = signal<number | null>(null);
 	/** Whether the left slides panel is collapsed (top-bar sidebar toggle). */
 	protected readonly slidesPanelCollapsed = signal(false);
-	/** Whether periodic autosave is enabled (title-bar AutoSave toggle; default on). */
+	/**
+	 * Whether the editor chrome renders at all.
+	 *
+	 * A running slide show has no editing chrome, exactly as PowerPoint's does
+	 * not: no ribbon, no title bar, no slide rail, no inspector, no notes pane
+	 * and no status bar. The show overlay is `position: fixed`, so leaving them
+	 * mounted LOOKS the same while keeping every one of those controls in the
+	 * tab order and the accessibility tree underneath it - a screen-reader user
+	 * would still be walked through the whole editor mid-presentation, and the
+	 * "Slide Show" button would still be reachable during the show it starts.
+	 * React, Svelte and Vanilla already suppress theirs; `e2e/present-mode.spec.ts`
+	 * pins the rule for all five.
+	 */
+	protected readonly chromeVisible = computed(() => !this.presentationMode.presenting());
+	/**
+	 * The user PREFERENCE (title-bar AutoSave toggle; default on). What actually
+	 * runs is {@link autosaveActivation}, which folds in the host's `autosave`
+	 * input as a ceiling the preference cannot exceed.
+	 */
 	protected readonly autosaveEnabled = signal(true);
+	/** The shared verdict: does autosave run, may the toggle move, and if not why. */
+	protected readonly autosaveActivation = computed(() =>
+		resolveAutosaveActivation({
+			hostAutosave: this.autosaveInput(),
+			userEnabled: this.autosaveEnabled(),
+			canEdit: this.canEdit(),
+			filePath: this.filePath(),
+		}),
+	);
+
+	/** The recovery offer, or null while a slide show is running. */
+	protected readonly visibleRecoveryPrompt = computed(() => {
+		const prompt = this.autosaveRecovery.prompt();
+		return shouldShowAutosaveRecoveryPrompt({
+			prompt,
+			presenting: this.presentationMode.presenting(),
+		})
+			? prompt
+			: null;
+	});
+
+	/** Flip the AutoSave preference, unless the host forbade autosave outright. */
+	protected toggleAutosave(): void {
+		if (this.autosaveActivation().toggleAvailable) {
+			this.autosaveEnabled.update((v) => !v);
+		}
+	}
 
 	// ── Draw tool state (forwarded to slide-canvas) ───────────────────────────
 	/** Active drawing tool (from the ribbon Draw tab). */
@@ -1983,16 +2067,34 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			emitPropertiesChange: (patch) => this.propertiesChange.emit(patch),
 		});
 
+		// Offer a crash-recovery snapshot back once the deck has loaded. Angular
+		// wrote snapshots and never looked for one again, so the feature was
+		// invisible to the user; the decision and the copy are the shared ones.
+		this.autosaveRecovery.bind({
+			filePath: () => this.filePath(),
+			loading: () => this.loader.loading(),
+			error: () => this.loader.error(),
+			slideCount: () => this.displaySlidesMut().length,
+			autosaveAllowed: () => this.autosaveInput() !== false,
+			restore: (bytes) => this.fileIO.contentOverride.set(bytes),
+		});
+
 		// Hand the autosave engine the reactive accessors it reads (enabled toggle,
 		// file-path key, dirty flag) and a deck serialiser. It writes a recovery
 		// snapshot to the shared IndexedDB store every N seconds while dirty.
 		this.autosave.bind({
-			enabled: () => this.autosaveEnabled(),
+			enabled: () => this.autosaveActivation().active,
+			disabledReason: () => this.autosaveActivation().reason,
 			filePath: () => this.filePath(),
 			isDirty: () => this.editor.dirty(),
 			serialize: () => this.serializeForAutosave(),
-			// Options > Save > "Save AutoRecover information every N minutes".
-			intervalSeconds: () => this.viewerOpts.autosaveIntervalSeconds(),
+			// Host input first (an explicit policy), else Options > Save > "Save
+			// AutoRecover information every N minutes", else the shared 120s.
+			intervalMs: () =>
+				resolveAutosaveIntervalMs({
+					hostIntervalMs: this.autosaveIntervalMs(),
+					optionsIntervalSeconds: this.viewerOpts.autosaveIntervalSeconds(),
+				}),
 			// Everything `serializeForAutosave` reads that changes by
 			// REASSIGNMENT, so a tick that finds all of them unchanged can skip
 			// re-serializing a deck it has already snapshotted.

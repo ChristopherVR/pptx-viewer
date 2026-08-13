@@ -127,6 +127,7 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 			<label className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
 				<span className='whitespace-nowrap'>{t('pptx.ribbon.sound')}</span>
 				<select
+					aria-label={t('pptx.ribbon.sound')}
 					className='w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50'
 					defaultValue='none'
 					disabled
@@ -166,9 +167,14 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 					/>
 					<span className='whitespace-nowrap'>{t('pptx.ribbon.onMouseClick')}</span>
 				</label>
+				{/* Two controls under one `<label>`: the label names only its FIRST
+				    labelable descendant, so without these the seconds field had an
+				    EMPTY accessible name and the checkbox took the field's value into
+				    its own ("After 5 seconds"). Both are named explicitly instead. */}
 				<label className='inline-flex items-center gap-1.5 cursor-pointer'>
 					<input
 						type='checkbox'
+						aria-label={t('pptx.ribbon.afterDuration')}
 						disabled={!canEdit}
 						checked={draft.advanceAfter}
 						onChange={(e) => commit({ advanceAfter: e.target.checked })}
@@ -177,6 +183,7 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 					<span className='whitespace-nowrap'>{t('pptx.ribbon.afterDuration')}</span>
 					<input
 						type='text'
+						aria-label={t('pptx.ribbon.advanceAfterSeconds')}
 						value={advanceBuffer ?? draft.advanceAfterText}
 						onChange={(e) => {
 							setAdvanceBuffer(e.target.value);

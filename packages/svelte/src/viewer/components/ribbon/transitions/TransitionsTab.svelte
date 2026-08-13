@@ -127,7 +127,7 @@
 	     control that cannot do anything. -->
 	<label class="pptx-svelte-transitionstab-field">
 		<span>{t('pptx.ribbon.sound')}</span>
-		<select disabled>
+		<select aria-label={t('pptx.ribbon.sound')} disabled>
 			<option value="none">{t('pptx.ribbon.soundNone')}</option>
 		</select>
 	</label>
@@ -154,9 +154,14 @@
 			/>
 			{t('pptx.ribbon.onMouseClick')}
 		</label>
+		<!-- Two controls under one `<label>`: the label names only its FIRST
+		     labelable descendant, so without these the seconds field had an EMPTY
+		     accessible name and the checkbox took the field's value into its own
+		     ("After 5 seconds"). Both are named explicitly instead. -->
 		<label class="pptx-svelte-transitionstab-field">
 			<input
 				type="checkbox"
+				aria-label={t('pptx.ribbon.afterDuration')}
 				disabled={!editor.editable}
 				checked={draft.advanceAfter}
 				onchange={(e) => commit({ advanceAfter: e.currentTarget.checked })}
@@ -166,6 +171,7 @@
 			     otherwise write a stream of nonsense advances (and history steps). -->
 			<input
 				type="text"
+				aria-label={t('pptx.ribbon.advanceAfterSeconds')}
 				class="pptx-svelte-transitionstab-after"
 				title={t('pptx.ribbon.advanceAfterSeconds')}
 				disabled={!editor.editable || !draft.advanceAfter}

@@ -156,6 +156,7 @@ export function AdvancedTextFormatting({
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.textProperties.underlineStyle')}</span>
 					<select
+						aria-label={t('pptx.textProperties.underlineStyle')}
 						value={ts?.underlineStyle || 'sng'}
 						disabled={!canEdit}
 						onChange={(e) =>

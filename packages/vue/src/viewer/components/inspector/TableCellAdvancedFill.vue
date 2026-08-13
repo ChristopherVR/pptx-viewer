@@ -92,6 +92,7 @@ function addStop(): void {
 		<label class="flex flex-col gap-1">
 			<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.fillMode') }}</span>
 			<select
+				:aria-label="t('pptx.table.fillMode')"
 				class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
 				:disabled="!canEdit"
 				:value="fillMode"
@@ -109,6 +110,7 @@ function addStop(): void {
 				<label class="flex flex-col gap-0.5">
 					<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientType') }}</span>
 					<select
+						:aria-label="t('pptx.table.gradientType')"
 						class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
 						:disabled="!canEdit"
 						:value="gradientType"
@@ -176,6 +178,7 @@ function addStop(): void {
 			<label class="flex flex-col gap-0.5">
 				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.patternPreset') }}</span>
 				<select
+					:aria-label="t('pptx.table.patternPreset')"
 					class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
 					:disabled="!canEdit"
 					:value="cellStyle.patternFillPreset ?? 'ltDnDiag'"

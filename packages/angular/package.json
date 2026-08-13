@@ -39,9 +39,9 @@
 	"scripts": {
 		"inline-shared": "node ./scripts/inline-shared.mjs",
 		"finalize-dist": "node ./scripts/finalize-dist.mjs",
-		"build": "bun run inline-shared && ng-packagr -p ng-package.json && bun run finalize-dist && bun run build:css",
+		"build": "bun run inline-shared && ng-packagr -p ng-package.json -c tsconfig.lib.json && bun run finalize-dist && bun run build:css",
 		"build:css": "tailwindcss -i src/styles/pptx-angular-viewer.css -o dist/pptx-angular-viewer.css --minify",
-		"dev": "bun run inline-shared && ng-packagr -p ng-package.json --watch",
+		"dev": "bun run inline-shared && ng-packagr -p ng-package.json -c tsconfig.lib.json --watch",
 		"typecheck": "bun run inline-shared && tsc --noEmit -p tsconfig.lib.json",
 		"test": "bun run inline-shared && vitest run",
 		"test:watch": "bun run inline-shared && vitest",

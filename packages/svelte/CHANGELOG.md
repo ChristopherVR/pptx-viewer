@@ -3,6 +3,9 @@
 All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
+A release listed with no entries carried no Conventional Commit in this package's
+scope: scripts/release-plan.mjs re-releases a package whenever any of its files
+change, not only on conventional ones.
 
 ## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.19.0) - 2026-08-13
 
@@ -12,17 +15,62 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [2.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.18.0) - 2026-08-13
 
+### Features
+
+- **shared:** Own the decisions the bindings were each making themselves (by @ChristopherVR) ([5421272](https://github.com/ChristopherVR/pptx-viewer/commit/5421272a531536ab3b494e5df91068c98326e6ed))
+- **shared:** Model hyperlinks and equations, and own the group rules (by @ChristopherVR) ([a6bf4c1](https://github.com/ChristopherVR/pptx-viewer/commit/a6bf4c15ab3b49a44a2d24e2122ddbe3cdd3b8ed))
+
+### Bug Fixes
+
+- **core:** Repair save-pipeline corruption found by the OpenXML parity audit (by @ChristopherVR) ([554006e](https://github.com/ChristopherVR/pptx-viewer/commit/554006e004b6212f5561eb19954bbcff17bbdf7f))
+- **svelte:** Stop shadowing shared table ops and wire the missing gestures (by @ChristopherVR) ([c90fb3f](https://github.com/ChristopherVR/pptx-viewer/commit/c90fb3f1d468a3a89b5e76703167857d313f6474))
+- **core:** Close the round-trip defects the corpus harness exposed (by @ChristopherVR) ([2011c66](https://github.com/ChristopherVR/pptx-viewer/commit/2011c664049bfd580801529c3337ba65bd8d3f13))
+- **svelte,vanilla:** Wire SmartArt reflow and the shared run rendering (by @ChristopherVR) ([37b7e45](https://github.com/ChristopherVR/pptx-viewer/commit/37b7e45ce926c7949099f919715595db7c779405))
+
 ## [2.17.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.9) - 2026-08-11
+
+### Bug Fixes
+
+- **shared:** Keep a morph pair travelling when its outline is tweened too (by @ChristopherVR) ([0316cf7](https://github.com/ChristopherVR/pptx-viewer/commit/0316cf7b058bc49b247250d9e188822fdd4ef11f))
+- **shared:** Dissolve a re-fitted morph paragraph in place instead of stretching it (by @ChristopherVR) ([975c6f6](https://github.com/ChristopherVR/pptx-viewer/commit/975c6f600a836081ec0f30c99fffb9aabbaaa598))
 
 ## [2.17.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.8) - 2026-08-11
 
+### Bug Fixes
+
+- **shared:** Stop Vue and Angular writing an inline pointer-events lock during a show (by @ChristopherVR) ([4cb649a](https://github.com/ChristopherVR/pptx-viewer/commit/4cb649a53f5903557ef2f93c190fe6ddd538599e))
+- **svelte:** Stop the show stage writing an inline pointer-events unlock (by @ChristopherVR) ([6f0a9f4](https://github.com/ChristopherVR/pptx-viewer/commit/6f0a9f4c33879543311e783f51d5fb595e5a150d))
+
 ## [2.17.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.7) - 2026-08-11
+
+### Bug Fixes
+
+- **vue:** Swap inherited layout artwork when a slide's layout changes (by @ChristopherVR) ([1e927ce](https://github.com/ChristopherVR/pptx-viewer/commit/1e927ce2f079c1e84659791fa62f47b9e2e0ad45))
+
+### Refactor
+
+- **shared:** One paragraph-spacing resolver, and delete four more binding copies (by @ChristopherVR) ([65f8268](https://github.com/ChristopherVR/pptx-viewer/commit/65f8268df08021c1985dc86d93d3338c96b792c8))
+- **shared:** Give the cached-SmartArt projection the whole decision, and React's table styling too (by @ChristopherVR) ([411148f](https://github.com/ChristopherVR/pptx-viewer/commit/411148f44630a65b1cd6e90a2954a53a24f110a5))
+- **shared:** Move find/replace and per-cell table CSS off their React copies (by @ChristopherVR) ([5b81728](https://github.com/ChristopherVR/pptx-viewer/commit/5b81728891f3e8cea1c2def2aed2d8b23e338081))
 
 ## [2.17.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.6) - 2026-08-10
 
+### Bug Fixes
+
+- **shared:** Render cached SmartArt shapes and transparent table headers as authored (by @ChristopherVR) ([24ec6b4](https://github.com/ChristopherVR/pptx-viewer/commit/24ec6b4f2079b55f02aa5559bfa3c3f1eae67652))
+
 ## [2.17.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.5) - 2026-08-10
 
+### Bug Fixes
+
+- **core:** Read placeholder, list and percentage values as authored (by @ChristopherVR) ([dc2d679](https://github.com/ChristopherVR/pptx-viewer/commit/dc2d679d48d3be854743d3a09bd2e20c5dc5331f))
+- **shared:** Paint an inert morph ghost statically so it stops jittering (by @ChristopherVR) ([ce3be84](https://github.com/ChristopherVR/pptx-viewer/commit/ce3be8487d3530425afb3b455e1671b6c54ae61c))
+
 ## [2.17.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.4) - 2026-08-10
+
+### Bug Fixes
+
+- **shared:** Crossfade morph wording instead of fading it out then in (by @ChristopherVR) ([50984f1](https://github.com/ChristopherVR/pptx-viewer/commit/50984f141acc601d35aad19883b6fb1f8e0b79c2))
 
 ## [2.17.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.3) - 2026-08-10
 
@@ -37,23 +85,124 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [2.17.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.2) - 2026-08-08
 
+### Bug Fixes
+
+- Dissolve a morph's arriving shapes over the ghost that hid them (by @ChristopherVR) ([89536a3](https://github.com/ChristopherVR/pptx-viewer/commit/89536a36c3e38c3bc8b1219f702dee39e1526fcb))
+- Dissolve a morph's centre panel the way PowerPoint measurably does (by @ChristopherVR) ([8c03a9a](https://github.com/ChristopherVR/pptx-viewer/commit/8c03a9a4db720dc4c6883ecd5778749e9148f3af))
+- **shared:** Measure per word, and never measure a glyph in isolation (by @ChristopherVR) ([a92004b](https://github.com/ChristopherVR/pptx-viewer/commit/a92004bd554a66e5a0812d5bd20b3df1fff94379))
+
 ## [2.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.1) - 2026-08-07
+
+### Bug Fixes
+
+- **shared:** Morph a picture's scale, which OOXML stores as a source crop (by @ChristopherVR) ([e2743c7](https://github.com/ChristopherVR/pptx-viewer/commit/e2743c7509090272f4d7bed6df506402de8f6a91))
+- **shared:** A still of a slide paints no media chrome (by @ChristopherVR) ([d99e6fd](https://github.com/ChristopherVR/pptx-viewer/commit/d99e6fda7de360e1b1c3f16c578119f8ce5b5d5a))
+- **svelte:** Route the media fallback through the shared surface rule (by @ChristopherVR) ([f6b3b8d](https://github.com/ChristopherVR/pptx-viewer/commit/f6b3b8d91e409d30388c187c7fc6cad1d011f727))
+- **shared:** Measure each run's PowerPoint width instead of guessing one (by @ChristopherVR) ([920d1f3](https://github.com/ChristopherVR/pptx-viewer/commit/920d1f38129886f834fcfe42681339e8251f6814))
+- **shared:** A media fallback says WHICH badge, not just "a badge" (by @ChristopherVR) ([1cbe78f](https://github.com/ChristopherVR/pptx-viewer/commit/1cbe78f85985ca87a834380932d845303250606d))
+- **svelte:** Mark missing media as not found, not as playable (by @ChristopherVR) ([03e21b0](https://github.com/ChristopherVR/pptx-viewer/commit/03e21b0f413cb1e028b9075eeb43a740f5c19053))
+
+### Styling
+
+- **shared:** Escape the measurement cache separator (by @ChristopherVR) ([944b312](https://github.com/ChristopherVR/pptx-viewer/commit/944b312abee48c351b84e39c794027a18ec2d758))
 
 ## [2.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.17.0) - 2026-08-07
 
+### Features
+
+- Navigate a running slide show on the wheel in every binding (by @ChristopherVR) ([91a19e9](https://github.com/ChristopherVR/pptx-viewer/commit/91a19e96df9d19862b92c3f89ca55acbfbde3111))
+
 ## [2.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.16.0) - 2026-08-07
+
+### Features
+
+- **shared:** Map wheel gestures to PowerPoint's intents (by @ChristopherVR) ([1cc7797](https://github.com/ChristopherVR/pptx-viewer/commit/1cc779799cf5b6ffa94c39199c71b563e21afa82))
+
+### Refactor
+
+- Route four bindings through the shared geometry cascade (by @ChristopherVR) ([859ca12](https://github.com/ChristopherVR/pptx-viewer/commit/859ca12b37efcf98e7614b2c2109f3bf1d9c0f72))
 
 ## [2.15.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.15.3) - 2026-08-07
 
+### Bug Fixes
+
+- **shared:** Stop category-axis labels crowding the plot (by @ChristopherVR) ([b511ac4](https://github.com/ChristopherVR/pptx-viewer/commit/b511ac44bb53ed2ca20932801c805ea7f0a2fcd1))
+- Let clicks fall through an unfilled shape's interior (by @ChristopherVR) ([7e17f9d](https://github.com/ChristopherVR/pptx-viewer/commit/7e17f9ddacd058d9b5c13f1060f58621faeb9908))
+- Hollow-shape click-through in the remaining four bindings (by @ChristopherVR) ([fee05ad](https://github.com/ChristopherVR/pptx-viewer/commit/fee05ad5463de9949f289d3aac889794bc7d834a))
+
+### Refactor
+
+- **shared:** Single-source the shape geometry cascade (by @ChristopherVR) ([396e4a2](https://github.com/ChristopherVR/pptx-viewer/commit/396e4a28299168af0564364e9b0be7413b2c8ce8))
+
 ## [2.15.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.15.2) - 2026-08-07
+
+### Bug Fixes
+
+- **core:** Measure parallelogram skew against the short side, not the width (by @ChristopherVR) ([fea647f](https://github.com/ChristopherVR/pptx-viewer/commit/fea647f94633e6e919a1c59bda7a71cda8b1b677))
+- **core:** Bulge the teardrop preset's point outwards, not inwards (by @ChristopherVR) ([0b23bc4](https://github.com/ChristopherVR/pptx-viewer/commit/0b23bc4b6ecde5f82f7cebb0601859edbf1ab399))
+- Render ellipses as ellipses, not pills (by @ChristopherVR) ([b6d2598](https://github.com/ChristopherVR/pptx-viewer/commit/b6d2598fb58f8fc81fbef463c728d87a78c129b4))
+- Stop slicing overflowing text with an identity rect clip-path (by @ChristopherVR) ([7393111](https://github.com/ChristopherVR/pptx-viewer/commit/73931118e9e29bf16d1ffccb6f01d68a02091463))
 
 ## [2.15.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.15.1) - 2026-08-07
 
+### Bug Fixes
+
+- **core:** Recognize nodeType="afterEffect" when parsing animation triggers (by @ChristopherVR) ([554c077](https://github.com/ChristopherVR/pptx-viewer/commit/554c077b6d0960c5777163a83afe27ee9795b8c2))
+
 ## [2.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.15.0) - 2026-08-07
+
+### Features
+
+- **shared:** Remember the open deck so a refresh reopens it (by @ChristopherVR) ([abbe3bd](https://github.com/ChristopherVR/pptx-viewer/commit/abbe3bd15318dd2b7b470eb69b51468d5b9ed26a))
+
+### Bug Fixes
+
+- **shared:** Make Set Up Slide Show's Manual advance mode actually work (by @ChristopherVR) ([c308423](https://github.com/ChristopherVR/pptx-viewer/commit/c3084238158b582b149fcc74903045f4145a0981))
 
 ## [2.14.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.14.0) - 2026-08-07
 
+### Features
+
+- **core:** Import legacy PowerPoint 97-2003 (.ppt) files (by @ChristopherVR) ([6f71bd3](https://github.com/ChristopherVR/pptx-viewer/commit/6f71bd31270afac2bdc3df4ad082a3e08d5b3e75))
+- **core:** Export and import decks as portable JSON (by @ChristopherVR) ([965fc05](https://github.com/ChristopherVR/pptx-viewer/commit/965fc05ce0993d97a15d6199c8763eada99fa646))
+- **shared:** Insert slides from a template gallery (by @ChristopherVR) ([abc7f77](https://github.com/ChristopherVR/pptx-viewer/commit/abc7f77d911c644faa09540eaab30a684f4b6e19))
+- **shared:** Blackboard mode, element rename and column charts (by @ChristopherVR) ([a69ffce](https://github.com/ChristopherVR/pptx-viewer/commit/a69ffce0a7635632cf19cb060b329a8ff5d19422))
+- **shared:** Selectively-subscribable viewer store with per-binding adapters (by @ChristopherVR) ([745c554](https://github.com/ChristopherVR/pptx-viewer/commit/745c554866d66c6318db353ab678e34f235f8037))
+
+### Bug Fixes
+
+- **core:** Stop inferring motion-path auto-rotate from rAng (by @ChristopherVR) ([32ee041](https://github.com/ChristopherVR/pptx-viewer/commit/32ee041249ebd5f761f54275bb98148548c7364e))
+- **core:** Read line-series colours from a:ln/a:solidFill (by @ChristopherVR) ([714c10a](https://github.com/ChristopherVR/pptx-viewer/commit/714c10a2b29843dbb8481c98330db0f29a509b2d))
+- **shared:** Animation reveal, stroke paint and comment threading (by @ChristopherVR) ([946aea2](https://github.com/ChristopherVR/pptx-viewer/commit/946aea274a82dbc9fd231e4caeb269fecf9d8334))
+- **svelte:** Translate inspector tabs and place the caret at the end (by @ChristopherVR) ([b6d302c](https://github.com/ChristopherVR/pptx-viewer/commit/b6d302cd570a1d8b09f3cc06dfcca1d897b354a9))
+- **angular:** Title the Selection Pane control like every other binding (by @ChristopherVR) ([801a88a](https://github.com/ChristopherVR/pptx-viewer/commit/801a88a7c5a06cd8d2d1592b94ab28936e0143c3))
+- **shared:** Keep a drawing gesture from advancing the show (by @ChristopherVR) ([e2578cc](https://github.com/ChristopherVR/pptx-viewer/commit/e2578cc462725d70761058295de13f35c3ccb6fe))
+- **shared:** Return the keyboard to the viewer after an inline edit (by @ChristopherVR) ([351947a](https://github.com/ChristopherVR/pptx-viewer/commit/351947a1e515ad748f2fa23ec0dee59b1b1a8fbc))
+- **present:** Let a blanked screen pass clicks through to the show (by @ChristopherVR) ([a8cc5d2](https://github.com/ChristopherVR/pptx-viewer/commit/a8cc5d265959d98a8bee8ab9ace42dfeef53aba2))
+- **shared:** Translate the labels five bindings were rendering in English (by @ChristopherVR) ([d1bfad6](https://github.com/ChristopherVR/pptx-viewer/commit/d1bfad666119f27b3a01266729a471af8a0e47ea))
+- **cli:** Let the scaffolded starters open legacy .ppt decks (by @ChristopherVR) ([2cde7f8](https://github.com/ChristopherVR/pptx-viewer/commit/2cde7f84dded2d4beca7e0f48b8d0a50d0968bf5))
+- **shared:** Escape SVG gradient markup attributes (by @ChristopherVR) ([7e5dd23](https://github.com/ChristopherVR/pptx-viewer/commit/7e5dd232103f90b822ca268fdb5a15b0c619be1b))
+- **shared:** Route numeric SVG gradient attributes through the escape barrier (by @ChristopherVR) ([58485f3](https://github.com/ChristopherVR/pptx-viewer/commit/58485f36219d8b07c73825e47c8f7cd8b43e5a19))
+- **shared:** Stop a morph inventing pairs and hiding what arrives (by @ChristopherVR) ([058051d](https://github.com/ChristopherVR/pptx-viewer/commit/058051d88201f71d64c3dee8b373af70a5f005a9))
+
+### Performance
+
+- **shared:** Drop state writes that carry no new information (by @ChristopherVR) ([74ba824](https://github.com/ChristopherVR/pptx-viewer/commit/74ba82402f5f73fe1d3d7c04989374417444f2d2))
+
+### Refactor
+
+- **shared:** Place the eight resize handles from one table (by @ChristopherVR) ([86feabb](https://github.com/ChristopherVR/pptx-viewer/commit/86feabbdf23fb0bed31b44a472b2ae411110dba9))
+- **shared:** Move the canvas zoom slice onto the viewer runtime (by @ChristopherVR) ([054c9eb](https://github.com/ChristopherVR/pptx-viewer/commit/054c9eb5757ceefc10d71e596acb3b0b46d96820))
+
 ## [2.13.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.13.2) - 2026-08-05
+
+### Bug Fixes
+
+- **core:** Resolve styled full font names and add condensed fallbacks (by @ChristopherVR) ([26b1f74](https://github.com/ChristopherVR/pptx-viewer/commit/26b1f745929fe33cda2044dc4a24ff4edbbab0d5))
+- **shared:** Draw chart text at point size and scale chart SVGs 1:1 (by @ChristopherVR) ([da333f9](https://github.com/ChristopherVR/pptx-viewer/commit/da333f933eeba0af226ca1894639696350e23cfb))
+- **shared:** Suspend the show on window blur, not only tab-hide (by @ChristopherVR) ([4a2c254](https://github.com/ChristopherVR/pptx-viewer/commit/4a2c254350554c189a53a0284aeb72e84b724740))
+- **shared:** Fold the origami transition like a sheet of paper (by @ChristopherVR) ([f0f9fc2](https://github.com/ChristopherVR/pptx-viewer/commit/f0f9fc2710a4c1a3760729cfddca0afc7f66c70d))
+- **shared:** Cover the fillRect placement fields in the collab schema (by @ChristopherVR) ([d455ed7](https://github.com/ChristopherVR/pptx-viewer/commit/d455ed72b254633d34e08d7694069e6c0d9f5615))
 
 ## [2.13.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.13.1) - 2026-08-05
 
@@ -68,37 +217,186 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [2.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.13.0) - 2026-08-01
 
+### Features
+
+- Fixed graphs and arrows shapes (by @ChristopherVR) ([94813f5](https://github.com/ChristopherVR/pptx-viewer/commit/94813f52a75fb3b42f72e7c33be41393b794cf82))
+
 ## [2.12.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.12.1) - 2026-08-01
+
+### Bug Fixes
+
+- Let the presenter finish the show, and keep scrubbers out of its panes (by @ChristopherVR) ([c7c12bc](https://github.com/ChristopherVR/pptx-viewer/commit/c7c12bc053548c8e94d3da385461d6569a1695a0))
+
+### Refactor
+
+- **shared:** Split arrow markers and dash patterns out of connector-path (by @ChristopherVR) ([53d47d1](https://github.com/ChristopherVR/pptx-viewer/commit/53d47d1d529fe17f165a16ec9de7b7f29b17845c))
 
 ## [2.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.12.0) - 2026-08-01
 
+### Features
+
+- Mark hidden slides in every rail and sorter, and honour custom shows in vanilla and svelte (by @ChristopherVR) ([b61f202](https://github.com/ChristopherVR/pptx-viewer/commit/b61f2029b09d2bad78fc53bdd0f0d5538b171aa9))
+- Name every animation preset a user can reach, in every locale (by @ChristopherVR) ([f99962d](https://github.com/ChristopherVR/pptx-viewer/commit/f99962d0e98d579ad45ee77299b1df1f326fde6d))
+- **vue:** Add the connector arrowhead controls, and make connectors clickable (by @ChristopherVR) ([2b0976e](https://github.com/ChristopherVR/pptx-viewer/commit/2b0976ea68b4ffc6c3ab7fd5d58aed1c8f5d1356))
+- Draw action affordances in every binding, and mark group children (by @ChristopherVR) ([39ed47f](https://github.com/ChristopherVR/pptx-viewer/commit/39ed47f5a7a7dada06362e422aeb39e563485cab))
+- Make connectors clickable and give all five the same arrowhead controls (by @ChristopherVR) ([e482b12](https://github.com/ChristopherVR/pptx-viewer/commit/e482b12ff2a589f68953ab7e48c63d4bac927fb4))
+- Give all five the same presenter console, and stop vanilla dropping the show (by @ChristopherVR) ([bf861fd](https://github.com/ChristopherVR/pptx-viewer/commit/bf861fd79c55874ec4f4e66ee25357d003b6189d))
+
+### Bug Fixes
+
+- **shared:** Paint SVG-only pictures, honour srcRect crops, stop bold leaking (by @ChristopherVR) ([ff866db](https://github.com/ChristopherVR/pptx-viewer/commit/ff866db22a2f59f0fbb6da518b4055e8edd80481))
+- Give every binding React's slide-show bar, and make slice clicks work (by @ChristopherVR) ([31f30f7](https://github.com/ChristopherVR/pptx-viewer/commit/31f30f7f26117e3badb34c2e2e0a29f32f8da608))
+- Play slide media the way the deck authored it (by @ChristopherVR) ([855f140](https://github.com/ChristopherVR/pptx-viewer/commit/855f140bd3507a87de91479e62af0b67be4c8649))
+
 ## [2.11.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.11.1) - 2026-07-31
+
+### Bug Fixes
+
+- **shared:** Stop a morph gliding one text box into an unrelated one (by @ChristopherVR) ([bc4789f](https://github.com/ChristopherVR/pptx-viewer/commit/bc4789fef0dbcaf8d524b19f99fac15847597ad0))
+- **shared:** Stop a morph double-painting unchanged shapes, and dissolve text (by @ChristopherVR) ([d4b3952](https://github.com/ChristopherVR/pptx-viewer/commit/d4b3952757d719b2c7e1b4be307b14a15c56f73a))
+- Stop showing users raw OOXML tokens, and make Vanilla's point index work (by @ChristopherVR) ([33d63ce](https://github.com/ChristopherVR/pptx-viewer/commit/33d63cec94a22ddf7cc0b57ddaa61ddb43eaedd3))
+- Skip hidden slides in the show, and honour endWithBlackSlide (by @ChristopherVR) ([2a9ef49](https://github.com/ChristopherVR/pptx-viewer/commit/2a9ef49f97f976eb088a2fcc092b56a54b112fa3))
 
 ## [2.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.11.0) - 2026-07-31
 
+### Features
+
+- **shared:** Outline view, motion-path authoring, and chart marker resolution (by @ChristopherVR) ([e6a3621](https://github.com/ChristopherVR/pptx-viewer/commit/e6a362195b811231c76a24eb94de8e95795716f8))
+- Outline view, motion-path authoring and the missing chart controls (by @ChristopherVR) ([278de2f](https://github.com/ChristopherVR/pptx-viewer/commit/278de2f5754f2b8bb19722460e047deb4cd72fbb))
+
+### Bug Fixes
+
+- **core:** Stop dropping a:pPr/@lvl when a paragraph's runs share one style (by @ChristopherVR) ([03aa4ed](https://github.com/ChristopherVR/pptx-viewer/commit/03aa4edeea15336b032227601cc57fb65d378b1c))
+
 ## [2.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.10.0) - 2026-07-31
+
+### Features
+
+- **shared:** Own the equation, media, reading-view and table-grid logic (by @ChristopherVR) ([c33af39](https://github.com/ChristopherVR/pptx-viewer/commit/c33af39d2157fdb8610c104a8a3e54fa8ae7c672))
+- Wire reading view, the shared equation pipeline and a table data grid (by @ChristopherVR) ([b731b52](https://github.com/ChristopherVR/pptx-viewer/commit/b731b52f926737f0ccef95247f20db217cee1fb5))
+
+### Bug Fixes
+
+- **shared:** Resolve linked text-box chains inside groups (by @ChristopherVR) ([5e09586](https://github.com/ChristopherVR/pptx-viewer/commit/5e0958689a591f839ccfdf20bb3ae174af00030a))
 
 ## [2.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.9.0) - 2026-07-31
 
+### Features
+
+- **shared:** Give every referenced translation key a real entry (by @ChristopherVR) ([8ff4461](https://github.com/ChristopherVR/pptx-viewer/commit/8ff4461d0376408330ef5ce875b4aa7a13d0614f))
+- **shared:** Own the logic five bindings had each hand-ported (by @ChristopherVR) ([60b9b0d](https://github.com/ChristopherVR/pptx-viewer/commit/60b9b0d06d60d674835ef23166ca9c46c1b191ba))
+- **svelte:** Close the ribbon, inspector and ruler gaps against the reference (by @ChristopherVR) ([f2e0684](https://github.com/ChristopherVR/pptx-viewer/commit/f2e0684c4df94ff9e27dc878b7221431ec71e9de))
+- **core:** Model a gradient / pattern outline in structured form (by @ChristopherVR) ([69322c9](https://github.com/ChristopherVR/pptx-viewer/commit/69322c94ab40e37f19a1789c3149b5dd5d71498c))
+- **shared:** Stroke a gradient outline as SVG instead of a flat border (by @ChristopherVR) ([fc72324](https://github.com/ChristopherVR/pptx-viewer/commit/fc723241643cdc18bb6ad0c113ca08763c9426ad))
+- **svelte:** Paint a gradient outline with a stroked SVG path (by @ChristopherVR) ([dd43f2d](https://github.com/ChristopherVR/pptx-viewer/commit/dd43f2ddf135ab698cf37086823a0ea54ffd6694))
+- **shared:** Stroke a patterned outline with a real pattern tile (by @ChristopherVR) ([9d8c3bd](https://github.com/ChristopherVR/pptx-viewer/commit/9d8c3bdfbd40e78d0fc66d9325efedb0bc9a3ea4))
+- **svelte:** Stroke a patterned outline, not its bare foreground (by @ChristopherVR) ([f11c0f5](https://github.com/ChristopherVR/pptx-viewer/commit/f11c0f5b613911a3cbeda61d31af731729f0dab5))
+- **shared:** Translate the File backstage and merge the stray key namespaces (by @ChristopherVR) ([e56aa6d](https://github.com/ChristopherVR/pptx-viewer/commit/e56aa6d3f00e4cbd23983036a195cba3c2d6bf6b))
+
+### Bug Fixes
+
+- **shared:** Honour authored preset adjustments and emit parseable gradient CSS (by @ChristopherVR) ([dbf5640](https://github.com/ChristopherVR/pptx-viewer/commit/dbf5640fb532082ca96d6a7dc8b439e07dd34a80))
+- **svelte:** Apply the gradient tile background-position (by @ChristopherVR) ([7c3d664](https://github.com/ChristopherVR/pptx-viewer/commit/7c3d664e4ec635570549f0d0b464294170dfbde0))
+- **core:** Honour a preset path's own coordinate space, and repair hexagon (by @ChristopherVR) ([8e4a91d](https://github.com/ChristopherVR/pptx-viewer/commit/8e4a91d76a2bdd3ba3369ed541bc262d2a9c06f4))
+- **core:** Rebuild flowChartTerminator from its spec Beziers (by @ChristopherVR) ([0e81403](https://github.com/ChristopherVR/pptx-viewer/commit/0e8140381fe6af3719a52dcc1b39f16609b5faf0))
+- **core:** Keep an inline field in the position it was authored in (by @ChristopherVR) ([beb2067](https://github.com/ChristopherVR/pptx-viewer/commit/beb2067fc11ae709a26b4f9e6714fa557375ec85))
+- **core:** Rebuild sun as a disc plus eight detached rays (by @ChristopherVR) ([cd2fcd4](https://github.com/ChristopherVR/pptx-viewer/commit/cd2fcd4baec66f040671aea332d1bcd2250a2e7f))
+- **core:** Round-trip the Selection Pane hide toggle (by @ChristopherVR) ([14bdb23](https://github.com/ChristopherVR/pptx-viewer/commit/14bdb23d8c2840cc93d8a891c31ac9e8ffdf44cf))
+- **shared:** Resolve a click on a group's child to the group (by @ChristopherVR) ([88ef671](https://github.com/ChristopherVR/pptx-viewer/commit/88ef671c4af065c0e21327ceec5840a2de4d4516))
+- **shared:** Flow linked text-box overflow in every binding (by @ChristopherVR) ([abe1bb0](https://github.com/ChristopherVR/pptx-viewer/commit/abe1bb0702315c8a65582f1d64f62c6679298143))
+
+### Refactor
+
+- **svelte:** Clear the file-size debt, and the duplicate viewer state behind it (by @ChristopherVR) ([830bcc9](https://github.com/ChristopherVR/pptx-viewer/commit/830bcc9ed77d85f1461f4861a326dbbba7ebcc31))
+
+### Testing
+
+- **core:** Pin issue #132 fill and adjustment parsing against the reporter deck (by @ChristopherVR) ([06cd312](https://github.com/ChristopherVR/pptx-viewer/commit/06cd31287bcbd3895a834bed9f89af443526dca2))
+
 ## [2.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.8.0) - 2026-07-31
+
+### Features
+
+- **shared:** Decide which slide-show clicks are a PowerPoint advance (by @ChristopherVR) ([12ab5c8](https://github.com/ChristopherVR/pptx-viewer/commit/12ab5c82f08083e725eae332ee19b03b5021ce79))
 
 ## [2.7.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.7.1) - 2026-07-31
 
+### Bug Fixes
+
+- **shared:** Match PowerPoint's morph dissolve windows and half-turn direction (by @ChristopherVR) ([661c250](https://github.com/ChristopherVR/pptx-viewer/commit/661c250ff429f0d8ea2f0bb5e2992a7d57af0353))
+- **shared:** Stop morph pairing a shape with the group that wraps it (by @ChristopherVR) ([d240498](https://github.com/ChristopherVR/pptx-viewer/commit/d240498388734b5e81b238036856d891f86f2570))
+- **core:** Stop an interactive sequence adding a phantom click step (by @ChristopherVR) ([65a4738](https://github.com/ChristopherVR/pptx-viewer/commit/65a4738a6eb8fd0b34999c52dd7e1244c5f0e6b5))
+- **shared:** Resolve the timed slide auto-advance delay (by @ChristopherVR) ([beba8cc](https://github.com/ChristopherVR/pptx-viewer/commit/beba8ccb834f1eb04db305d68ac31d40beda4232))
+- **svelte:** Wire the backstage browse control and stretch its nav rail (by @ChristopherVR) ([339adb2](https://github.com/ChristopherVR/pptx-viewer/commit/339adb2c0c8a0871f8690562499c1c7f04b463a5))
+- **svelte:** Make the slide show's transitions visible on a large display (by @ChristopherVR) ([f8a8b8a](https://github.com/ChristopherVR/pptx-viewer/commit/f8a8b8a47145577bb57dda020ada69ab9bb74fa0))
+- **svelte:** Advance the slide show on a slide's authored timing (by @ChristopherVR) ([3ce750a](https://github.com/ChristopherVR/pptx-viewer/commit/3ce750ae5847a9406f24a221fd31cda6f36dc8a0))
+
+### Refactor
+
+- **shared:** Break the morph-matching <-> morph-flatten import cycle (by @ChristopherVR) ([92223c5](https://github.com/ChristopherVR/pptx-viewer/commit/92223c542d357d2831b4b3641180fec20c264dc1))
+
 ## [2.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.7.0) - 2026-07-31
+
+### Features
+
+- **shared:** Morph a !!-named shape across a grouping boundary (by @ChristopherVR) ([c74847d](https://github.com/ChristopherVR/pptx-viewer/commit/c74847dd53ef3344c4624c036a2f806ea62794c1))
+
+### Bug Fixes
+
+- **shared:** Morph rotates the short way round, like PowerPoint (by @ChristopherVR) ([255d0b5](https://github.com/ChristopherVR/pptx-viewer/commit/255d0b5541bdf12d66ab773090fee179072eb852))
+- **shared:** Honour the legacy spd speed, including for morph (by @ChristopherVR) ([ab796b9](https://github.com/ChristopherVR/pptx-viewer/commit/ab796b94e27fa8addbad5f70578b4c9a591c1b11))
+- **shared:** Keep a morphing object solid instead of dipping to the background (by @ChristopherVR) ([5f2b518](https://github.com/ChristopherVR/pptx-viewer/commit/5f2b518d39c16eeb207f70ea1df2583405022611))
 
 ## [2.6.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.6) - 2026-07-30
 
+### Bug Fixes
+
+- **shared:** Stop morph id-pairing shapes whose creationId GUIDs differ (by @ChristopherVR) ([b9afc84](https://github.com/ChristopherVR/pptx-viewer/commit/b9afc844f0cab88ed44b25236f21b4628f1309a6))
+
 ## [2.6.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.5) - 2026-07-30
+
+### Bug Fixes
+
+- **core:** Stamp the endParaRPr size on an empty paragraph's separator (by @ChristopherVR) ([2b18374](https://github.com/ChristopherVR/pptx-viewer/commit/2b1837473bdde04bc41f9593f444a096dd4196b8))
+- **shared:** PowerPoint-exact line height, blank-line strut, marker indent reset (by @ChristopherVR) ([7f7181b](https://github.com/ChristopherVR/pptx-viewer/commit/7f7181b2d4ec36f990b157964c2aa648d291b20f))
 
 ## [2.6.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.4) - 2026-07-30
 
+### Bug Fixes
+
+- **shared:** Restate the static transform in every morph keyframe (by @ChristopherVR) ([075a645](https://github.com/ChristopherVR/pptx-viewer/commit/075a6454fe4a5a17e79e2b2adb213ea2e21ccfb0))
+
 ## [2.6.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.3) - 2026-07-30
+
+### Bug Fixes
+
+- **shared:** Stop morph pairing nearby shapes of very different sizes; 2s default (by @ChristopherVR) ([3d49c67](https://github.com/ChristopherVR/pptx-viewer/commit/3d49c672089ae26008f24f8cce7160ef22709507))
 
 ## [2.6.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.2) - 2026-07-30
 
+### Bug Fixes
+
+- **shared:** Crossfade a morph pair whose GROUP children changed (by @ChristopherVR) ([7492f26](https://github.com/ChristopherVR/pptx-viewer/commit/7492f26a236659f2c15a99c36a92023f7da6cbbc))
+
 ## [2.6.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.1) - 2026-07-29
 
+### Bug Fixes
+
+- **core:** Keep grouped text at its authored point size (by @ChristopherVR) ([56f676a](https://github.com/ChristopherVR/pptx-viewer/commit/56f676a850a510fa405361d58c849e4a7adb3bea))
+- **shared:** Keep authored blank lines and give the bullet its hanging box (by @ChristopherVR) ([0a8de56](https://github.com/ChristopherVR/pptx-viewer/commit/0a8de560f117fdaeb06374e61e49a2cf4e1372b7))
+- **shared:** Make morph animate a near-duplicate slide pair (by @ChristopherVR) ([e73ade7](https://github.com/ChristopherVR/pptx-viewer/commit/e73ade737892f3b46a79eb183370a86e3f8b59fe))
+- **svelte:** Render authored blank lines and drop the bullet spacer (by @ChristopherVR) ([a964ad1](https://github.com/ChristopherVR/pptx-viewer/commit/a964ad1f4502962e551f0c10ea3c71120473686d))
+
 ## [2.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.6.0) - 2026-07-27
+
+### Features
+
+- **shared:** Morph transition render plan and paragraph strut basis (by @ChristopherVR) ([94cfddd](https://github.com/ChristopherVR/pptx-viewer/commit/94cfddd2afc9ab20f294f6aa08ddf95fff7f5213))
+
+### Bug Fixes
+
+- **core:** Parse morph, fontRef text colour, and unsized bullets correctly (by @ChristopherVR) ([7607996](https://github.com/ChristopherVR/pptx-viewer/commit/7607996123e493ed1f33a6891e444f3b02bb2ed9))
+- **svelte:** Play morph transitions and re-base paragraph line boxes (by @ChristopherVR) ([8c44caf](https://github.com/ChristopherVR/pptx-viewer/commit/8c44caf16f755af8ce0ced24bf3ee55d2f50261e))
 
 ## [2.5.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.3) - 2026-07-27
 
@@ -120,7 +418,25 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [2.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.1) - 2026-07-26
 
+### Testing
+
+- **e2e:** Cover remote presence geometry in every binding (by @ChristopherVR) ([adb9b3c](https://github.com/ChristopherVR/pptx-viewer/commit/adb9b3c180d3f7fce1bd175dfc0b29d385937a51))
+
 ## [2.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.5.0) - 2026-07-26
+
+### Features
+
+- **shared:** Lock the audience display out of edit mode (by @ChristopherVR) ([79dc876](https://github.com/ChristopherVR/pptx-viewer/commit/79dc8768ff599e662c4291861b340c2939001f84))
+- **shared:** Seed a slide as fully built, and keep audience input inert (by @ChristopherVR) ([6acdf5e](https://github.com/ChristopherVR/pptx-viewer/commit/6acdf5e02c6d727828433ba067942e72d6547922))
+
+### Bug Fixes
+
+- **core:** Keep the click step's own start conditions (by @ChristopherVR) ([755a4b2](https://github.com/ChristopherVR/pptx-viewer/commit/755a4b2e38dff73c9c460a5318c1fce913880328))
+- **shared:** Play a slide's opening build without a click (by @ChristopherVR) ([9d0ecec](https://github.com/ChristopherVR/pptx-viewer/commit/9d0ecec007d1f7ef48ecbd97429b55073352a487))
+- **svelte:** Never show the editor in an audience display (by @ChristopherVR) ([4b2c39b](https://github.com/ChristopherVR/pptx-viewer/commit/4b2c39b30e5382b20d9033c1b03524cd8ea712a7))
+- **core:** Paint useBgFill shapes with the slide background (by @ChristopherVR) ([f819817](https://github.com/ChristopherVR/pptx-viewer/commit/f81981744c637368d1ef0d87b1ba884e634c938a))
+- **shared:** Ripple a by-paragraph build that also iterates (by @ChristopherVR) ([73238d5](https://github.com/ChristopherVR/pptx-viewer/commit/73238d590217f8c61e86c9f065d19436dd6b699b))
+- **svelte:** Hold back on a back step, ignore audience input (by @ChristopherVR) ([4794bbe](https://github.com/ChristopherVR/pptx-viewer/commit/4794bbe26cc319f37b5cee64e26c38a4fb54bd71))
 
 ## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.4.0) - 2026-07-25
 
@@ -140,11 +456,59 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.3.0) - 2026-07-25
 
+### Features
+
+- **shared:** Rule for advancing a show from the presenter slide pane (by @ChristopherVR) ([ee2d0f5](https://github.com/ChristopherVR/pptx-viewer/commit/ee2d0f584dd042eeee89c57ec3c33335208bde28))
+
+### Bug Fixes
+
+- **core:** Rotate OOXML gradient angles into CSS space (by @ChristopherVR) ([eebf128](https://github.com/ChristopherVR/pptx-viewer/commit/eebf128df224247eb06ea1731c9418fcc36189f9))
+- **shared:** Rotate OOXML gradient angles into CSS space (by @ChristopherVR) ([406d78b](https://github.com/ChristopherVR/pptx-viewer/commit/406d78b2471ec171fe5cbd8b2ef6abb3216c3c3b))
+- **shared:** Parse playFrom media commands in linear time (by @ChristopherVR) ([60820b1](https://github.com/ChristopherVR/pptx-viewer/commit/60820b10ebf641ec2adf6c6d1089fe9f2bc4e490))
+- **svelte:** Restore double-tap to edit under finger-sized handles (by @ChristopherVR) ([956281e](https://github.com/ChristopherVR/pptx-viewer/commit/956281ec4b6ae6a5174f08e776ebf6a7830a683a))
+- Svelte border width for selected element (by @ChristopherVR) ([b1dccd1](https://github.com/ChristopherVR/pptx-viewer/commit/b1dccd192edb7509ed8b59e76a3e638dbef0e3af))
+- **core:** Honour a:noFill and stop painting hidden fills/lines (by @ChristopherVR) ([ae13541](https://github.com/ChristopherVR/pptx-viewer/commit/ae1354188b1c5d2bd5843dc36a7c438ba1d83c00))
+
 ## [2.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.2.1) - 2026-07-24
+
+### Bug Fixes
+
+- **core:** Preserve native bullets and boundary spaces ([#107](https://github.com/ChristopherVR/pptx-viewer/issues/107)) ([7ed0971](https://github.com/ChristopherVR/pptx-viewer/commit/7ed09718d2fc439b129ee5ed23c8f5c41fe399ba))
+- **svelte:** Enable touch resize of elements on mobile (by @ChristopherVR) ([6cab6d6](https://github.com/ChristopherVR/pptx-viewer/commit/6cab6d66e8f197d56270cff711c3d9501730c224))
 
 ## [2.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.2.0) - 2026-07-24
 
+### Features
+
+- **shared:** Powerpoint-accurate slide-show keyboard map (by @ChristopherVR) ([fdf55d4](https://github.com/ChristopherVR/pptx-viewer/commit/fdf55d45779e090c36aa994cdc17fae8f01df79b))
+- **vanilla:** Follow PowerPoint's slide-show shortcuts (by @ChristopherVR) ([629903c](https://github.com/ChristopherVR/pptx-viewer/commit/629903c8c1ecab33e5dde40ffef42a88e8bde94e))
+- **svelte:** Follow PowerPoint's slide-show shortcuts (by @ChristopherVR) ([7d349f3](https://github.com/ChristopherVR/pptx-viewer/commit/7d349f3d17170ef8603267e6d821585083d6da8a))
+- **react:** Give the slide-show menu PowerPoint's full command set (by @ChristopherVR) ([33c826d](https://github.com/ChristopherVR/pptx-viewer/commit/33c826d887c69e5103b0f0148e9ee1b1c17b16b0))
+
 ## [2.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.1.0) - 2026-07-23
+
+### Features
+
+- **shared:** Live-patch channel for interim collaboration state (by @ChristopherVR) ([efdcc1e](https://github.com/ChristopherVR/pptx-viewer/commit/efdcc1e13ef824f6b26f3c92ba199e0da732b164))
+- **shared:** Make a departing collaborator actually leave the room (by @ChristopherVR) ([6af3d8c](https://github.com/ChristopherVR/pptx-viewer/commit/6af3d8ce9933946a5420f1a21c8de55cf7da3548))
+
+### Bug Fixes
+
+- **svelte:** Publish inline-editor typing to peers before commit (by @ChristopherVR) ([ad63f5b](https://github.com/ChristopherVR/pptx-viewer/commit/ad63f5b3e1d4fc8cb5e7662fd74745fea66890c3))
+- **svelte:** Draw chrome icons with lucide, not text glyphs (by @ChristopherVR) ([8df0a37](https://github.com/ChristopherVR/pptx-viewer/commit/8df0a3700263bd49aa7049bdac512f6a0d7feb76))
+- **svelte:** Stack the follow bar above the mobile bottom bar (by @ChristopherVR) ([7f2140f](https://github.com/ChristopherVR/pptx-viewer/commit/7f2140fc1d7e07b9e118ef1acf5bc6140c0d8160))
+- **svelte:** Leave the collab room when the document is destroyed (by @ChristopherVR) ([17bd9f1](https://github.com/ChristopherVR/pptx-viewer/commit/17bd9f16ac2b30aeb0ec3eae216720613df61e7e))
+- **svelte:** Anchor the follow bar top-centre and trim the collab controller (by @ChristopherVR) ([daade43](https://github.com/ChristopherVR/pptx-viewer/commit/daade4365205ff147229cc311bbb260e9ae1da9e))
+
+### Other
+
+- Svelte lucide icon sweep + follow bar clears the mobile bottom bar (by @ChristopherVR) ([8b99577](https://github.com/ChristopherVR/pptx-viewer/commit/8b995771af93eb90ab2b0ab03e29dd0314514a09))
+- Peers leave the room synchronously on frame teardown (no ghost collaborators) (by @ChristopherVR) ([ae9acad](https://github.com/ChristopherVR/pptx-viewer/commit/ae9acad9cfe65ee8dfa6a9676152b6c1abab5b0f))
+
+### Refactor
+
+- **shared:** Split the live-patch module and escape its NUL key separator (by @ChristopherVR) ([6362b22](https://github.com/ChristopherVR/pptx-viewer/commit/6362b22135da6b7503113799f2631f8085ea49c5))
+- **svelte:** Lift the collab controller's effects into their own module (by @ChristopherVR) ([b3b9acd](https://github.com/ChristopherVR/pptx-viewer/commit/b3b9acd4b10e1e65e0dcc0040cfe37788b27ce82))
 
 ## [2.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.0.0) - 2026-07-23
 
@@ -624,6 +988,11 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [1.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.2.0) - 2026-07-18
 
+### Features
+
+- **svelte:** Ribbon and chrome parity with React (by @ChristopherVR) ([41b5bf1](https://github.com/ChristopherVR/pptx-viewer/commit/41b5bf100afb99b58a7db3d2d0b26ccc77d413fc))
+- **svelte:** Full React-parity Properties sections in the inspector (by @ChristopherVR) ([2afd746](https://github.com/ChristopherVR/pptx-viewer/commit/2afd74633dadb0634db3b19fb42864394cd00c21))
+
 ## [1.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.1.0) - 2026-07-17
 
 ### Features
@@ -659,6 +1028,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [0.8.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.8.1) - 2026-07-16
 
+### Bug Fixes
+
+- **e2e:** Relax media pause timing check (by @ChristopherVR) ([17e5116](https://github.com/ChristopherVR/pptx-viewer/commit/17e511652f6f5e6594bc6b9b2285ceb81fee47f9))
+
 ## [0.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.8.0) - 2026-07-16
 
 ### Documentation
@@ -666,6 +1039,19 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **packages:** Add package-specific readme visuals (by @ChristopherVR) ([9e20f13](https://github.com/ChristopherVR/pptx-viewer/commit/9e20f133dc8f21db75a1ca5e46e77c0af3c96d66))
 
 ## [0.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.7.0) - 2026-07-15
+
+### Features
+
+- **viewer:** Complete shared e2e parity (by @ChristopherVR) ([170bc74](https://github.com/ChristopherVR/pptx-viewer/commit/170bc74f21dc1c4c5a1d7c5583cf5c8656a312d3))
+
+### Bug Fixes
+
+- **viewer:** Align inspector and status chrome (by @ChristopherVR) ([0a4b38a](https://github.com/ChristopherVR/pptx-viewer/commit/0a4b38a851f42ec7dbc18b097904bfaa4e95a67c))
+- **viewer:** Align responsive mobile chrome (by @ChristopherVR) ([547f98c](https://github.com/ChristopherVR/pptx-viewer/commit/547f98cb37705aff9c36a6098f7cb6986101992f))
+
+### Testing
+
+- **viewer:** Enforce framework-neutral e2e parity (by @ChristopherVR) ([7389c7e](https://github.com/ChristopherVR/pptx-viewer/commit/7389c7e7586e7ce926400a096945b7e51448f709))
 
 ## [0.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.6.0) - 2026-07-13
 
@@ -688,11 +1074,67 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [0.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.5.1) - 2026-07-13
 
+### Bug Fixes
+
+- **svelte:** Raise smart-art-3d-view's flushMount tick budget to de-flake CI (by @ChristopherVR) ([cefb575](https://github.com/ChristopherVR/pptx-viewer/commit/cefb57565eba8c3465d2d331179c11ae364affce))
+- **core:** Open Office-encrypted pptx files (by @ChristopherVR) ([51aa670](https://github.com/ChristopherVR/pptx-viewer/commit/51aa670e8ca78d78323f55766b1a4c0e8b366c00))
+
 ## [0.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.5.0) - 2026-07-11
+
+### Features
+
+- **core:** Add canonical collaboration field-schema (by @ChristopherVR) ([cc78c1e](https://github.com/ChristopherVR/pptx-viewer/commit/cc78c1ed352fac3f69180ec2846d1df3e1dbd377))
+- **svelte:** Full collaboration presence + UI (Share/Broadcast/cursors) (by @ChristopherVR) ([b5dda6e](https://github.com/ChristopherVR/pptx-viewer/commit/b5dda6ef8319ec9059e2730bc578f9f347c89cf4))
+- **shared:** Add the office colour swatch catalogue (by @ChristopherVR) ([41135a0](https://github.com/ChristopherVR/pptx-viewer/commit/41135a0f8687550cb17ded1451fa8f361fc975b1))
+- **svelte:** Add ink-stroke editing state (EditorInkController) (by @ChristopherVR) ([9f8d2ec](https://github.com/ChristopherVR/pptx-viewer/commit/9f8d2ec0d1d705ff4ccf23d2eb30e9668b79b134))
+- **svelte:** Wire pen/highlighter/eraser pointer gestures on the stage (by @ChristopherVR) ([25540a6](https://github.com/ChristopherVR/pptx-viewer/commit/25540a6d4c5b1da751c3f379c4f747cc5178cad9))
+- **svelte:** Add the Draw ribbon tab (by @ChristopherVR) ([90bb39b](https://github.com/ChristopherVR/pptx-viewer/commit/90bb39b44c134062ffa46d0fd69a3cb6b075a6e2))
+
+### Bug Fixes
+
+- **shared:** Close CRDT allowlist data-loss gaps, add binary asset map (by @ChristopherVR) ([60ad222](https://github.com/ChristopherVR/pptx-viewer/commit/60ad2226bc4f3450c2992362e9fcceaac77f2ccf))
+- **svelte:** Keep zoom/fullscreen/notes controls always visible in the ribbon (by @ChristopherVR) ([00fd396](https://github.com/ChristopherVR/pptx-viewer/commit/00fd396057c9c992b6b54272d2a2b4072faa5c93))
 
 ## [0.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.4.0) - 2026-07-11
 
+### Features
+
+- **svelte:** Add chart insert to the Insert tab (by @ChristopherVR) ([b4dbbc3](https://github.com/ChristopherVR/pptx-viewer/commit/b4dbbc3c3fffb455d1853d3e05fac9c4b2e92600))
+- **svelte:** Add equation insert to the Insert tab (by @ChristopherVR) ([5d8a5fd](https://github.com/ChristopherVR/pptx-viewer/commit/5d8a5fdc5422642c50c072dcf441e221a0392b64))
+- **svelte:** Add SmartArt insert to the Insert tab (by @ChristopherVR) ([6a5a12e](https://github.com/ChristopherVR/pptx-viewer/commit/6a5a12e2dd47c030eb60f59c75534e0f2be13f24))
+- **svelte:** Add media insert factory for the Insert tab (by @ChristopherVR) ([3fe31b7](https://github.com/ChristopherVR/pptx-viewer/commit/3fe31b7570091644f03be2ffe1efaae18b997588))
+- **svelte:** Add action button insert to the Insert tab (by @ChristopherVR) ([22136ca](https://github.com/ChristopherVR/pptx-viewer/commit/22136ca4499a383b98d6dd147a812d6a42e07086))
+- **svelte:** Add field insert to the Insert tab (by @ChristopherVR) ([e8c4f7f](https://github.com/ChristopherVR/pptx-viewer/commit/e8c4f7fe7c3fe908f705e6a29eee31c3431353af))
+- **svelte:** Wire the new Insert actions into the ribbon (by @ChristopherVR) ([105a338](https://github.com/ChristopherVR/pptx-viewer/commit/105a338b600f8ad265a2f4f513c37f75c8ea228d))
+- **svelte:** Add slide-background/transition/animation editor actions (by @ChristopherVR) ([f032a47](https://github.com/ChristopherVR/pptx-viewer/commit/f032a4773e2b7d43a66121c12bfadffdbeccb687))
+- **svelte:** Add Design, Transitions, and Animations ribbon tabs (by @ChristopherVR) ([86caaec](https://github.com/ChristopherVR/pptx-viewer/commit/86caaec25cdb9753fc76ca205f806daf903c6075))
+- **shared:** Add text wrap/autofit, image adjustments, and table inspector helpers (by @ChristopherVR) ([54b2eda](https://github.com/ChristopherVR/pptx-viewer/commit/54b2eda35254bc75257932568442396a5f343708))
+- **svelte:** Add fill/stroke opacity and gradient to the inspector (by @ChristopherVR) ([34cb1ab](https://github.com/ChristopherVR/pptx-viewer/commit/34cb1ab62c4cef0739a1da9fc5e156b64f0b288b))
+- **svelte:** Add text properties to the inspector panel (by @ChristopherVR) ([7d8819b](https://github.com/ChristopherVR/pptx-viewer/commit/7d8819b57b9adadf094c4225f71551c0a05e975e))
+- **svelte:** Add image adjustment and crop controls to the inspector (by @ChristopherVR) ([fbe0f85](https://github.com/ChristopherVR/pptx-viewer/commit/fbe0f8531b8701592f6d9083c3e4cb2efbecb5f2))
+- **svelte:** Add table properties to the inspector panel (by @ChristopherVR) ([d87360f](https://github.com/ChristopherVR/pptx-viewer/commit/d87360f15a58561e180a24a99c509078a76d2abf))
+
+### Documentation
+
+- **shared:** Add i18n keys for the vanilla Design tab theme gallery (by @ChristopherVR) ([593ea23](https://github.com/ChristopherVR/pptx-viewer/commit/593ea230e61f606056ffc013e2fdb82bea70738b))
+
 ## [0.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.3.0) - 2026-07-11
+
+### Features
+
+- **svelte:** Add ribbon editor logic (clipboard, slides, arrange, text/paragraph, find-replace) (by @ChristopherVR) ([12d53da](https://github.com/ChristopherVR/pptx-viewer/commit/12d53da5984957d473c7ee47327b5957747c6c5d))
+- **svelte:** Add tabbed ribbon shell with File/Home/Insert/View tabs (by @ChristopherVR) ([4f391ab](https://github.com/ChristopherVR/pptx-viewer/commit/4f391ab80092b5562d0bd584664bd3acca3ce1f9))
+
+### Bug Fixes
+
+- **shared,react,vue,angular:** Make the Aa Change Case dropdown actually rewrite text (by @ChristopherVR) ([d84fd78](https://github.com/ChristopherVR/pptx-viewer/commit/d84fd788097253cf8b9281eca35af35caad20dce))
+- **svelte:** Prune the selection on undo/redo so ribbon buttons re-disable (by @ChristopherVR) ([7539b70](https://github.com/ChristopherVR/pptx-viewer/commit/7539b70ad5ac18be028bd1fa39c1438469038002))
+
+### Refactor
+
+- **shared:** Extract clipboard, shape-preset, and text-format catalogs from react (by @ChristopherVR) ([b9d7cc9](https://github.com/ChristopherVR/pptx-viewer/commit/b9d7cc9b061b8c9dcaad91038136349c9360080d))
+- **svelte:** Multi-element selection state (by @ChristopherVR) ([a259d5d](https://github.com/ChristopherVR/pptx-viewer/commit/a259d5df7a37f90c3baf3952b280b48c3d739dae))
+- **shared:** Dedupe change-case logic against text-case-transform (by @ChristopherVR) ([d007c07](https://github.com/ChristopherVR/pptx-viewer/commit/d007c070fb5bf8573bd8ac6dbeae160b46fc2dde))
 
 ## [0.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.2.0) - 2026-07-11
 

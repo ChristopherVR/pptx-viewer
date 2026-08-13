@@ -56,6 +56,7 @@ import { PresentationStageAnimator } from './presentation-stage-animator';
 import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
 import { PresentationToolbarComponent } from './presentation-toolbar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
+import { PresenterSlideNavigatorComponent } from './presenter-slide-navigator.component';
 import { PresenterWindowService } from './presenter-window.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { ZoomNavigationService } from './zoom-navigation.service';
@@ -92,6 +93,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		PresentationAnnotationOverlayComponent,
 		PresentationSubtitleBarComponent,
 		PresentationToolbarComponent,
+		PresenterSlideNavigatorComponent,
 		TranslatePipe,
 		LucideX,
 		LucideChevronLeft,
@@ -208,8 +210,20 @@ export class PresentationOverlayComponent implements OnInit {
 		// flipped value rather than mutating a local copy that would drift from the
 		// ribbon's own captions toggle.
 		toggleSubtitles: () => this.subtitlesChange.emit(!this.subtitlesVisible()),
+		// PowerPoint's Ctrl+H ("hide UI"). It drives the toolbar's OWN visibility
+		// flag rather than a second one here, so the shortcut and the auto-hide
+		// countdown cannot disagree about whether the bar is up.
+		toggleChrome: () => this.toolbarRef()?.toggleVisible(),
+		// PowerPoint's Ctrl+S ("See All Slides"). Rendered over the show, as React
+		// does it: the navigator is the presenter's way to jump to a backup slide
+		// without leaving the show, so putting it behind presenter view would make
+		// the shortcut mean something else.
+		showAllSlides: () => this.allSlidesOpen.set(true),
 		requestClose: () => this.emitClosed(),
 	});
+
+	/** Whether PowerPoint's "See All Slides" navigator is up (Ctrl+S). */
+	protected readonly allSlidesOpen = signal(false);
 
 	/** Template aliases for the navigator's state. */
 	protected readonly currentIndex = this.navigator.currentIndex;
@@ -264,6 +278,9 @@ export class PresentationOverlayComponent implements OnInit {
 	 * {@link setupFullscreen}).
 	 */
 	private readonly rootRef = viewChild<ElementRef<HTMLElement>>('root');
+
+	/** The show toolbar, so Ctrl+H can flip the visibility flag it already owns. */
+	private readonly toolbarRef = viewChild(PresentationToolbarComponent);
 
 	/**
 	 * Guards against handling the same exit twice: e.g. Escape both reaches our
@@ -527,6 +544,12 @@ export class PresentationOverlayComponent implements OnInit {
 	/** The show toolbar's end button: same exit path as Escape / the close button. */
 	protected onToolbarEnd(): void {
 		this.emitClosed();
+	}
+
+	/** A "See All Slides" tile: jump there and drop the navigator. */
+	protected onNavigatorSelect(index: number): void {
+		this.navigator.goToSlide(index);
+		this.allSlidesOpen.set(false);
 	}
 
 	/**

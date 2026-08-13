@@ -64,6 +64,7 @@ export function TableCellAdvancedFill({
 			<label className='flex flex-col gap-1'>
 				<span className={LBL}>{t('pptx.table.fillMode')}</span>
 				<select
+					aria-label={t('pptx.table.fillMode')}
 					disabled={!canEdit}
 					className={SEL}
 					value={fillMode}
@@ -161,6 +162,7 @@ function GradientControls({
 				<label className='flex flex-col gap-0.5'>
 					<span className={LBL}>{t('pptx.table.gradientType')}</span>
 					<select
+						aria-label={t('pptx.table.gradientType')}
 						disabled={!canEdit}
 						className={SEL}
 						value={gradType}

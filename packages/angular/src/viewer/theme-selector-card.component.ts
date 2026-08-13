@@ -24,6 +24,7 @@ import { LoadContentService } from './load-content.service';
 			<label class="icard__col">
 				<span class="icard__label">{{ 'pptx.documentProperties.themeHeading' | translate }}</span>
 				<select
+					[attr.aria-label]="'pptx.documentProperties.themeHeading' | translate"
 					class="icard__select"
 					[disabled]="options().length === 0"
 					[value]="selectedThemePath()"

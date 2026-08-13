@@ -279,6 +279,28 @@ export interface PowerPointViewerProps {
 
 	/** Whether editing actions are enabled */
 	canEdit?: boolean;
+	/**
+	 * Recovery autosave: after an edit the deck is re-serialised (always as a
+	 * plain, unencrypted package, because recovery has no password) and stashed
+	 * in the shared IndexedDB store keyed by {@link filePath}. It is a crash-
+	 * safety net and never replaces the user's real Save: the document stays
+	 * dirty. On load, a newer snapshot is offered back through a recovery prompt.
+	 *
+	 * **The prop is a policy ceiling; the title-bar AutoSave toggle is the user's
+	 * preference inside it.** `false` turns autosave off and makes the toggle
+	 * inert (a user cannot switch on what the application forbade). `true` or
+	 * omitted permits it, and the toggle decides, defaulting to on. Identical in
+	 * all five bindings; see `resolveAutosaveActivation` in `pptx-viewer-shared`.
+	 *
+	 * @default true
+	 */
+	autosave?: boolean;
+	/**
+	 * Recovery cadence in milliseconds. An explicit value is a host policy and is
+	 * honoured as given; omit it to follow the user's File > Options > Save >
+	 * "Save AutoRecover information every N minutes" (two minutes by default).
+	 */
+	autosaveIntervalMs?: number;
 	/** Optional class name */
 	className?: string;
 

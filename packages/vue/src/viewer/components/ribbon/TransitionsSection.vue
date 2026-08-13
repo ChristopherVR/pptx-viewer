@@ -144,6 +144,7 @@ function onAdvanceTextInput(event: Event): void {
 	<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
 		<span class="whitespace-nowrap">{{ t('pptx.ribbon.sound') }}</span>
 		<select
+			:aria-label="t('pptx.ribbon.sound')"
 			disabled
 			class="w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50"
 		>
@@ -180,9 +181,14 @@ function onAdvanceTextInput(event: Event): void {
 			/>
 			<span class="whitespace-nowrap">{{ t('pptx.ribbon.onMouseClick') }}</span>
 		</label>
+		<!-- Two controls under one `<label>`: the label names only its FIRST
+		     labelable descendant, so without these the seconds field had an EMPTY
+		     accessible name and the checkbox took the field's value into its own
+		     ("After 5 seconds"). Both are named explicitly instead. -->
 		<label class="inline-flex items-center gap-1.5 cursor-pointer">
 			<input
 				type="checkbox"
+				:aria-label="t('pptx.ribbon.afterDuration')"
 				:disabled="!editable"
 				:checked="draft.advanceAfter"
 				class="accent-primary h-3 w-3"
@@ -191,6 +197,7 @@ function onAdvanceTextInput(event: Event): void {
 			<span class="whitespace-nowrap">{{ t('pptx.ribbon.afterDuration') }}</span>
 			<input
 				type="text"
+				:aria-label="t('pptx.ribbon.advanceAfterSeconds')"
 				:value="advanceBuffer ?? draft.advanceAfterText"
 				:disabled="!editable || !draft.advanceAfter"
 				class="w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50"

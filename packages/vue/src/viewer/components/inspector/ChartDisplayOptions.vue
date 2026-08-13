@@ -64,6 +64,7 @@ function onLegendPosition(event: Event): void {
 					t('pptx.chart.legendPosition')
 				}}</span>
 				<select
+					:aria-label="t('pptx.chart.legendPosition')"
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-legend-position"
 					:value="props.style.legendPosition ?? 'b'"

@@ -1,15 +1,11 @@
 import {
 	autosaveSnapshotMark,
+	resolveAutosaveIntervalMs,
 	saveAutosaveSnapshot,
 	shouldWriteAutosaveSnapshot,
 } from 'pptx-viewer-shared';
 import type { AutosaveSnapshotMark } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-import {
-	computeAutosaveIntervalMs,
-	DEFAULT_AUTOSAVE_INTERVAL_SECONDS,
-} from './useAutosave-helpers';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,9 +25,25 @@ export interface UseAutosaveInput {
 	filePath: string | undefined;
 	/** Serialise current editor state to a Uint8Array. */
 	serializeSlides: () => Promise<Uint8Array | null>;
-	/** Autosave interval in seconds (default 120). */
+	/**
+	 * Autosave interval in seconds.
+	 *
+	 * @deprecated Pass {@link intervalMs} instead. Seconds cannot express the
+	 * short cadence a host may legitimately ask for, and the shared clamp it went
+	 * through raised anything under 10s back to 10s, so an explicit host policy
+	 * was silently overruled. Ignored when `intervalMs` is given.
+	 */
 	intervalSeconds?: number;
-	/** Whether autosave is enabled. */
+	/**
+	 * Autosave interval in milliseconds, already resolved by the shared
+	 * `resolveAutosaveIntervalMs` (host prop > File > Options > Save AutoRecover
+	 * cadence > 120s default). Wins over {@link intervalSeconds}.
+	 */
+	intervalMs?: number;
+	/**
+	 * Whether autosave is enabled: the resolved `active` from the shared
+	 * `resolveAutosaveActivation`, NOT the raw title-bar toggle.
+	 */
 	enabled?: boolean;
 	/**
 	 * The values a snapshot is built from, read fresh on each tick.
@@ -58,14 +70,13 @@ export interface UseAutosaveResult {
 // ---------------------------------------------------------------------------
 
 export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
-	const {
-		isDirty,
-		filePath,
-		serializeSlides,
-		intervalSeconds = DEFAULT_AUTOSAVE_INTERVAL_SECONDS,
-		enabled = true,
-		getChangeSources,
-	} = input;
+	const { isDirty, filePath, serializeSlides, enabled = true, getChangeSources } = input;
+	// One rule for all five bindings: an explicit interval is honoured as given,
+	// anything else falls back to the user's AutoRecover cadence.
+	const intervalMs = resolveAutosaveIntervalMs({
+		hostIntervalMs: input.intervalMs,
+		optionsIntervalSeconds: input.intervalSeconds,
+	});
 
 	const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>({
 		state: 'idle',
@@ -159,13 +170,12 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 		// Requirements met; reset to idle if currently disabled.
 		setAutosaveStatus((prev) => (prev.state === 'disabled' ? { state: 'idle' } : prev));
 
-		const ms = computeAutosaveIntervalMs(intervalSeconds);
 		const id = setInterval(() => {
 			void doAutosave({ polled: true });
-		}, ms);
+		}, intervalMs);
 
 		return () => clearInterval(id);
-	}, [enabled, filePath, intervalSeconds, doAutosave]);
+	}, [enabled, filePath, intervalMs, doAutosave]);
 
 	return {
 		autosaveStatus,

@@ -3,6 +3,7 @@ import {
 	applyChartBuildReveal,
 	dragAnchorViewY,
 	dragValueForPart,
+	ensureChartInteractionStyles,
 	findChartPartTarget,
 	withChartPointValue,
 	withChartTitle,
@@ -17,26 +18,6 @@ import { useChartPartSelection } from '../chart-part-selection';
 
 /** Minimum pointer travel (px) before a mark press becomes a value drag. */
 const DRAG_THRESHOLD_PX = 3;
-
-const STYLE_ELEMENT_ID = 'pptx-chart-interaction-styles';
-const INTERACTION_CSS = `
-.pptx-chart-interactive svg [data-chart-part] { pointer-events: auto; cursor: pointer; }
-.pptx-chart-interactive svg [data-chart-part]:hover { filter: brightness(1.12); }
-.pptx-chart-interactive svg [data-chart-part='title'] { cursor: text; }
-.pptx-chart-interactive svg .pptx-chart-part-selected { filter: drop-shadow(0 0 2.5px #3b82f6); }
-.pptx-chart-interactive svg .pptx-chart-part-selected:hover { filter: drop-shadow(0 0 2.5px #3b82f6) brightness(1.12); }
-`;
-
-/** Inject the (singleton) interaction stylesheet for chart part hit targets. */
-function ensureInteractionStyles(): void {
-	if (typeof document === 'undefined' || document.getElementById(STYLE_ELEMENT_ID)) {
-		return;
-	}
-	const style = document.createElement('style');
-	style.id = STYLE_ELEMENT_ID;
-	style.textContent = INTERACTION_CSS;
-	document.head.appendChild(style);
-}
 
 interface ActiveValueDrag {
 	part: ChartPartRef;
@@ -93,15 +74,28 @@ export function ChartElementView({
 		[canEdit, element],
 	);
 
-	useEffect(ensureInteractionStyles, []);
+	useEffect(ensureChartInteractionStyles, []);
 
 	// Drop this chart's part selection when it stops being editable (deselected,
 	// mode change) so the inspector highlight does not linger.
+	//
+	// Guarded on `onUpdateElement`, and that guard is load-bearing: the SAME chart
+	// element is mounted several times over (the thumbnail rail alone renders one
+	// copy per slide), every one of those copies shares this element id, and none
+	// of them is editable. Without the guard the read-only copies raced the canvas
+	// on every mark click - the canvas set the selection, a rail copy saw
+	// `!canEdit && selection.elementId === element.id` and nulled it a render
+	// later, so the highlight class was applied and stripped within ~100ms and no
+	// mark ever stayed selected. A mount with no way to commit an edit has no
+	// business owning (or clearing) the editing selection.
 	useEffect(() => {
+		if (!onUpdateElement) {
+			return;
+		}
 		if (!canEdit && selection?.elementId === element.id) {
 			setSelection(null);
 		}
-	}, [canEdit, selection, element.id, setSelection]);
+	}, [canEdit, selection, element.id, setSelection, onUpdateElement]);
 
 	// Re-apply the selected-part highlight class after every render: React
 	// re-creates the SVG marks on each chart change, dropping DOM-only classes.

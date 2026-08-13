@@ -84,6 +84,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 										'pptx.chart.displayUnits' | translate
 									}}</span>
 									<select
+										[attr.aria-label]="'pptx.chart.displayUnits' | translate"
 										class="pptx-chart-card__input"
 										[disabled]="!canEdit()"
 										[value]="row.axis.displayUnits ?? ''"
@@ -127,6 +128,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 									'pptx.chart.tickLabels' | translate
 								}}</span>
 								<select
+									[attr.aria-label]="'pptx.chart.tickLabels' | translate"
 									class="pptx-chart-card__input"
 									[disabled]="!canEdit()"
 									[value]="row.axis.tickLblPos ?? 'nextTo'"

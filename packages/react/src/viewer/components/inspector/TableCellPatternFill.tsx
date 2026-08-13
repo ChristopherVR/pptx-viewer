@@ -38,6 +38,7 @@ export function TableCellPatternFill({
 			<label className='flex flex-col gap-0.5'>
 				<span className={LBL}>{t('pptx.table.patternPreset')}</span>
 				<select
+					aria-label={t('pptx.table.patternPreset')}
 					disabled={!canEdit}
 					className={SEL}
 					value={cellStyle.patternFillPreset ?? 'ltDnDiag'}

@@ -133,6 +133,15 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		toggleSubtitles: () => {
 			parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled;
 		},
+		// PowerPoint's Ctrl+H. Drives the toolbar's own fade flag, the one
+		// auto-hide writes, so the shortcut and the countdown cannot disagree.
+		toggleChrome: () => parityUi.showChrome.toggleVisible(),
+		// PowerPoint's Ctrl+S ("See All Slides"), laid over the show: the point of
+		// the shortcut is reaching a backup slide WITHOUT leaving the show, so it
+		// must not be a door into presenter view.
+		showAllSlides: () => {
+			parityUi.allSlidesOpen = true;
+		},
 	});
 
 	return { presentation, ...handlers };

@@ -56,6 +56,9 @@ export function createTableCellFillControls(
 		const wrapper = doc.createElement('label');
 		wrapper.textContent = label;
 		const input = doc.createElement('select');
+		// Named explicitly: the wrapping `<label>` would otherwise lend the select
+		// its whole text content, which includes every option.
+		input.setAttribute('aria-label', label);
 		for (const value of values) {
 			const option = doc.createElement('option');
 			option.value = value;

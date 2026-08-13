@@ -230,7 +230,9 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:stroke-width="prim.strokeWidth ?? 0"
 				:fill-opacity="prim.opacity ?? 1"
 				v-bind="partAttrs(prim.part)"
-			/>
+			>
+				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
+			</path>
 			<polyline
 				v-else-if="isPolyline(prim)"
 				:points="prim.points"

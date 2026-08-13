@@ -31,6 +31,7 @@
 	<label>
 		<span>{t('pptx.presentationSettings.showType')}</span>
 		<select
+			aria-label={t('pptx.presentationSettings.showType')}
 			disabled={!canEdit}
 			value={properties.showType ?? 'presented'}
 			onchange={(event) =>

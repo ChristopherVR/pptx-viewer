@@ -56,6 +56,7 @@ export function ChartDataPointMarkerOptions({
 				<label className='flex items-center gap-2 text-[11px]'>
 					<span className='w-12 text-muted-foreground shrink-0'>{t('pptx.chart.series')}</span>
 					<select
+						aria-label={t('pptx.chart.series')}
 						disabled={!canEdit}
 						className='flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full'
 						value={Math.min(seriesIndex, series.length - 1)}

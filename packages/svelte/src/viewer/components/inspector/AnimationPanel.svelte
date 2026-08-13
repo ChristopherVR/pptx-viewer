@@ -116,7 +116,7 @@
 
 		<label>
 			<span>{t('pptx.animation.entrance')}</span>
-			<select class="pptx-svelte-animp-entrance" disabled={!canEdit} value={anim?.entrance ?? 'none'} onchange={(e) => onEffect('entrance', e.currentTarget.value)}>
+			<select aria-label={t('pptx.animation.entrance')} class="pptx-svelte-animp-entrance" disabled={!canEdit} value={anim?.entrance ?? 'none'} onchange={(e) => onEffect('entrance', e.currentTarget.value)}>
 				<option value="none">{t('pptx.animation.none')}</option>
 				{#each PANEL_ENTRANCE_PRESETS as preset (preset)}<option value={preset}>{t(`pptx.animation.preset.${preset}`)}</option>{/each}
 			</select>
@@ -124,7 +124,7 @@
 
 		<label>
 			<span>{t('pptx.animation.emphasis')}</span>
-			<select class="pptx-svelte-animp-emphasis" disabled={!canEdit} value={anim?.emphasis ?? 'none'} onchange={(e) => onEffect('emphasis', e.currentTarget.value)}>
+			<select aria-label={t('pptx.animation.emphasis')} class="pptx-svelte-animp-emphasis" disabled={!canEdit} value={anim?.emphasis ?? 'none'} onchange={(e) => onEffect('emphasis', e.currentTarget.value)}>
 				<option value="none">{t('pptx.animation.none')}</option>
 				{#each PANEL_EMPHASIS_PRESETS as preset (preset)}<option value={preset}>{t(`pptx.animation.preset.${preset}`)}</option>{/each}
 			</select>
@@ -132,7 +132,7 @@
 
 		<label>
 			<span>{t('pptx.animation.exit')}</span>
-			<select class="pptx-svelte-animp-exit" disabled={!canEdit} value={anim?.exit ?? 'none'} onchange={(e) => onEffect('exit', e.currentTarget.value)}>
+			<select aria-label={t('pptx.animation.exit')} class="pptx-svelte-animp-exit" disabled={!canEdit} value={anim?.exit ?? 'none'} onchange={(e) => onEffect('exit', e.currentTarget.value)}>
 				<option value="none">{t('pptx.animation.none')}</option>
 				{#each PANEL_EXIT_PRESETS as preset (preset)}<option value={preset}>{t(`pptx.animation.preset.${preset}`)}</option>{/each}
 			</select>
@@ -162,7 +162,7 @@
 
 			<label>
 				<span>{t('pptx.animation.sequence')}</span>
-				<select class="pptx-svelte-animp-sequence" disabled={!canEdit} value={anim?.sequence ?? 'asOne'} onchange={(e) => el && commit(setSequence(anims, el.id, e.currentTarget.value as PptxAnimationSequence))}>
+				<select aria-label={t('pptx.animation.sequence')} class="pptx-svelte-animp-sequence" disabled={!canEdit} value={anim?.sequence ?? 'asOne'} onchange={(e) => el && commit(setSequence(anims, el.id, e.currentTarget.value as PptxAnimationSequence))}>
 					{#each PANEL_SEQUENCE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}
 				</select>
 			</label>

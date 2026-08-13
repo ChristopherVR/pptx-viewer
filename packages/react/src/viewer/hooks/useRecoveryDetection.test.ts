@@ -1,222 +1,156 @@
-import { describe, it, expect, vi, expectTypeOf } from 'vitest';
-
-import type { UseRecoveryDetectionInput } from './useRecoveryDetection';
-import {
-	shouldCheckRecovery,
-	hasRecentRecoveryVersion,
-	RECOVERY_WINDOW_MS,
-} from './useRecoveryDetection-helpers';
-
-// ---------------------------------------------------------------------------
-// useRecoveryDetection is a small hook that:
-//   1. Uses shouldCheckRecovery to guard the check
-//   2. Calls electron.pptxRecovery.getVersions
-//   3. Calls hasRecentRecoveryVersion
-//   4. Opens version history if recent
-//
-// The helpers are already tested in useRecoveryDetection-helpers.test.ts.
-// Here we test additional edge cases and the decision flow as pure logic.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Decision flow (pure logic)
-// ---------------------------------------------------------------------------
-
+// @vitest-environment happy-dom
 /**
- * Simulate the full recovery detection decision flow.
- * Mirrors the logic in the useRecoveryDetection useEffect.
+ * useRecoveryDetection: does the viewer actually OFFER a crash-recovery
+ * snapshot, and does accepting it load the bytes?
+ *
+ * The previous version of this file reimplemented the hook's decision flow in a
+ * local `simulateRecoveryFlow` helper (against an "electron API" that does not
+ * exist in this codebase) and asserted the simulation. It stayed green whatever
+ * the hook did. This renders the real hook and asserts what it hands back.
+ *
+ * The IndexedDB round trip itself is proved in
+ * `pptx-viewer-shared/render/autosave-recovery.test.ts`, which has a real
+ * (fake-indexeddb) store; here the shared probe is stubbed so the assertion is
+ * about the wiring: probe -> prompt -> restore/discard.
  */
-async function simulateRecoveryFlow(input: {
-	alreadyChecked: boolean;
-	filePath: string | undefined;
-	loading: boolean;
-	error: string | null;
-	slideCount: number;
-	hasElectronApi: boolean;
-	versions: Array<{ timestamp: number }>;
-	now: number;
-}): Promise<{ shouldOpen: boolean; reason: string }> {
-	const { alreadyChecked, filePath, loading, error, slideCount, hasElectronApi, versions, now } =
-		input;
+import type { AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-	if (!shouldCheckRecovery({ alreadyChecked, filePath, loading, error, slideCount })) {
-		return { shouldOpen: false, reason: 'precondition_failed' };
-	}
+const { probeMock, discardMock } = vi.hoisted(() => ({
+	probeMock: vi.fn(),
+	discardMock: vi.fn(),
+}));
 
-	if (!hasElectronApi) {
-		return { shouldOpen: false, reason: 'no_electron_api' };
-	}
+vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
+	...(await importOriginal()),
+	probeAutosaveRecovery: probeMock,
+	discardAutosaveRecovery: discardMock,
+}));
 
-	if (hasRecentRecoveryVersion(versions, now)) {
-		return { shouldOpen: true, reason: 'recent_recovery_found' };
-	}
+const { useRecoveryDetection } = await import('./useRecoveryDetection');
+type Result = ReturnType<typeof useRecoveryDetection>;
+type Input = Parameters<typeof useRecoveryDetection>[0];
 
-	return { shouldOpen: false, reason: 'no_recent_recovery' };
+const PROMPT: AutosaveRecoveryPrompt = {
+	filePath: 'deck.pptx',
+	timestamp: 1_700_000_000_000,
+	size: 4096,
+	ageMinutes: 3,
+	titleKey: 'pptx.autosave.recovery.title',
+	messageKey: 'pptx.autosave.recovery.message',
+	messageParams: { file: 'deck.pptx', size: '4 KB' },
+	ageKey: 'pptx.autosave.minutesAgo',
+	ageParams: { count: 3 },
+	restoreKey: 'pptx.autosave.recovery.restore',
+	discardKey: 'pptx.autosave.recovery.discard',
+};
+
+const BYTES = new Uint8Array([1, 2, 3, 4]);
+
+function offer() {
+	return {
+		prompt: PROMPT,
+		record: { key: 'deck.pptx', data: BYTES, timestamp: PROMPT.timestamp, size: 4096 },
+	};
 }
 
-describe('simulateRecoveryFlow', () => {
-	const now = Date.now();
+let container: HTMLDivElement;
+let root: Root;
 
-	it('opens version history when recent recovery exists', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: '/test/file.pptx',
-			loading: false,
-			error: null,
-			slideCount: 5,
-			hasElectronApi: true,
-			versions: [{ timestamp: now - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeTruthy();
-		expect(result.reason).toBe('recent_recovery_found');
-	});
-
-	it('does not open when already checked', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: true,
-			filePath: '/test/file.pptx',
-			loading: false,
-			error: null,
-			slideCount: 5,
-			hasElectronApi: true,
-			versions: [{ timestamp: now - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('precondition_failed');
-	});
-
-	it('does not open when no electron API', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: '/test/file.pptx',
-			loading: false,
-			error: null,
-			slideCount: 5,
-			hasElectronApi: false,
-			versions: [{ timestamp: now - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('no_electron_api');
-	});
-
-	it('does not open when versions are too old', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: '/test/file.pptx',
-			loading: false,
-			error: null,
-			slideCount: 5,
-			hasElectronApi: true,
-			versions: [{ timestamp: now - RECOVERY_WINDOW_MS - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('no_recent_recovery');
-	});
-
-	it('does not open when no versions exist', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: '/test/file.pptx',
-			loading: false,
-			error: null,
-			slideCount: 5,
-			hasElectronApi: true,
-			versions: [],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('no_recent_recovery');
-	});
-
-	it('does not open when still loading', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: '/test/file.pptx',
-			loading: true,
-			error: null,
-			slideCount: 0,
-			hasElectronApi: true,
-			versions: [{ timestamp: now - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('precondition_failed');
-	});
-
-	it('does not open when there is an error', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: '/test/file.pptx',
-			loading: false,
-			error: 'Parse error',
-			slideCount: 5,
-			hasElectronApi: true,
-			versions: [{ timestamp: now - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('precondition_failed');
-	});
-
-	it('does not open when filePath is missing', async () => {
-		const result = await simulateRecoveryFlow({
-			alreadyChecked: false,
-			filePath: undefined,
-			loading: false,
-			error: null,
-			slideCount: 5,
-			hasElectronApi: true,
-			versions: [{ timestamp: now - 1000 }],
-			now,
-		});
-		expect(result.shouldOpen).toBeFalsy();
-		expect(result.reason).toBe('precondition_failed');
-	});
+beforeEach(() => {
+	probeMock.mockReset();
+	discardMock.mockReset();
+	container = document.createElement('div');
+	document.body.appendChild(container);
+	root = createRoot(container);
 });
 
-// ---------------------------------------------------------------------------
-// RECOVERY_WINDOW_MS constant
-// ---------------------------------------------------------------------------
-
-describe('rECOVERY_WINDOW_MS', () => {
-	it('is exactly 24 hours in milliseconds', () => {
-		expect(RECOVERY_WINDOW_MS).toBe(24 * 60 * 60 * 1000);
-		expect(RECOVERY_WINDOW_MS).toBe(86_400_000);
+afterEach(() => {
+	act(() => {
+		root.unmount();
 	});
+	container.remove();
 });
 
-// ---------------------------------------------------------------------------
-// UseRecoveryDetectionInput type shape
-// ---------------------------------------------------------------------------
+/** Mount the hook and expose its latest return value. */
+async function mount(input: Input): Promise<() => Result> {
+	let latest: Result | null = null;
+	function Probe(): null {
+		latest = useRecoveryDetection(input);
+		return null;
+	}
+	await act(async () => {
+		root.render(React.createElement(Probe));
+	});
+	// Let the probe promise settle and the resulting state update flush.
+	await act(async () => {
+		await Promise.resolve();
+	});
+	// oxlint-disable-next-line react/function-component-definition -- a value
+	// accessor, not a component: the linter only sees the capitalised `Result`.
+	function current(): Result {
+		if (!latest) {
+			throw new Error('hook did not render');
+		}
+		return latest;
+	}
+	return current;
+}
 
-describe('useRecoveryDetectionInput type', () => {
-	it('has expected properties', () => {
-		const input: UseRecoveryDetectionInput = {
-			filePath: '/test.pptx',
-			loading: false,
-			error: null,
-			slideCount: 3,
-			openVersionHistory: vi.fn<() => void>(),
-		};
-		expect(input.filePath).toBe('/test.pptx');
-		expect(input.loading).toBeFalsy();
-		expect(input.error).toBeNull();
-		expect(input.slideCount).toBe(3);
-		expectTypeOf(input.openVersionHistory).toBeFunction();
+const base = {
+	filePath: 'deck.pptx',
+	loading: false,
+	error: null,
+	slideCount: 3,
+};
+
+describe('useRecoveryDetection', () => {
+	it('surfaces the shared prompt once the deck has loaded', async () => {
+		probeMock.mockResolvedValue(offer());
+		const current = await mount({ ...base, onRestore: vi.fn() });
+		expect(current().prompt?.titleKey).toBe('pptx.autosave.recovery.title');
 	});
 
-	it('accepts undefined filePath', () => {
-		const input: UseRecoveryDetectionInput = {
-			filePath: undefined,
-			loading: false,
-			error: null,
-			slideCount: 0,
-			openVersionHistory: vi.fn<() => void>(),
-		};
-		expect(input.filePath).toBeUndefined();
+	it('offers nothing when the store has no snapshot for this deck', async () => {
+		probeMock.mockResolvedValue(null);
+		const current = await mount({ ...base, onRestore: vi.fn() });
+		expect(current().prompt).toBeNull();
+	});
+
+	it('hands the recovered bytes to the host on restore, then closes', async () => {
+		probeMock.mockResolvedValue(offer());
+		const onRestore = vi.fn();
+		const current = await mount({ ...base, onRestore });
+		await act(async () => {
+			current().restore();
+		});
+		expect(onRestore).toHaveBeenCalledWith(BYTES);
+		expect(current().prompt).toBeNull();
+	});
+
+	it('drops the snapshot on discard, and never loads it', async () => {
+		probeMock.mockResolvedValue(offer());
+		discardMock.mockResolvedValue(undefined);
+		const onRestore = vi.fn();
+		const current = await mount({ ...base, onRestore });
+		await act(async () => {
+			current().discard();
+		});
+		expect(discardMock).toHaveBeenCalledWith(
+			expect.objectContaining({ key: 'deck.pptx', timestamp: PROMPT.timestamp }),
+		);
+		expect(onRestore).not.toHaveBeenCalled();
+		expect(current().prompt).toBeNull();
+	});
+
+	it('never probes while loading, without slides, or when the host forbade autosave', async () => {
+		probeMock.mockResolvedValue(offer());
+		await mount({ ...base, loading: true, onRestore: vi.fn() });
+		await mount({ ...base, slideCount: 0, onRestore: vi.fn() });
+		await mount({ ...base, autosaveAllowed: false, onRestore: vi.fn() });
+		expect(probeMock).not.toHaveBeenCalled();
 	});
 });

@@ -22,6 +22,7 @@ import { useKeyboardShortcutWiring } from './useKeyboardShortcutWiring';
 import { usePointerHandlers } from './usePointerHandlers';
 import type { PresentationSetupResult } from './usePresentationSetup';
 import { useRecoveryDetection } from './useRecoveryDetection';
+import type { UseRecoveryDetectionResult } from './useRecoveryDetection';
 import type { ViewerState } from './useViewerState';
 import type { UseZoomViewportResult } from './useZoomViewport';
 import type { ViewerDialogsResult } from './viewer-dialog-types';
@@ -42,13 +43,22 @@ export interface UseViewerIntegrationInput {
 	gridSpacingPx: number;
 	content: ArrayBuffer | Uint8Array | null;
 	filePath: string | undefined;
-	/** AutoSave toggle state from the title bar. */
+	/**
+	 * Whether autosave actually runs: the shared `resolveAutosaveActivation`
+	 * verdict (host `autosave` prop as a ceiling, title-bar toggle inside it).
+	 */
 	autosaveEnabled: boolean;
 	/**
-	 * AutoRecover cadence in seconds, resolved from File > Options > Save.
-	 * Optional: omitting it keeps `useAutosave`'s 120s default.
+	 * Whether the host permits autosave at all. Only the recovery prompt needs
+	 * this separately from `autosaveEnabled`: a user who merely switched the
+	 * toggle off should still be offered a snapshot from before the crash.
 	 */
-	autosaveIntervalSeconds?: number;
+	autosaveAllowed?: boolean;
+	/**
+	 * The resolved cadence in milliseconds (shared `resolveAutosaveIntervalMs`).
+	 * Optional: omitting it keeps the shared 120s AutoRecover default.
+	 */
+	autosaveIntervalMs?: number;
 	canEdit: boolean;
 	mode: ViewerState['mode'];
 	slides: PptxSlide[];
@@ -84,6 +94,8 @@ export interface ViewerIntegrationResult {
 	handleEnterPresenterView: AnnotationHandlersResult['handleEnterPresenterView'];
 	handleEnterRehearsalMode: AnnotationHandlersResult['handleEnterRehearsalMode'];
 	autosaveStatus: AutosaveStatus;
+	/** The crash-recovery prompt (shared descriptor) plus its accept/decline actions. */
+	recovery: UseRecoveryDetectionResult;
 	isEncryptedDialogOpen: boolean;
 	setIsEncryptedDialogOpen: Dispatch<SetStateAction<boolean>>;
 	/** The loaded core handler, exposed for the AI bridge (`getHandler`). */
@@ -114,7 +126,8 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		content,
 		filePath,
 		autosaveEnabled,
-		autosaveIntervalSeconds,
+		autosaveAllowed = true,
+		autosaveIntervalMs,
 		canEdit,
 		mode,
 		slides,
@@ -174,7 +187,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			content,
 			filePath,
 			autosaveEnabled,
-			autosaveIntervalSeconds,
+			autosaveIntervalMs,
 			// The File > Fonts toggle, finally reaching a save call.
 			embedFonts: dialogs.embedFontsEnabled,
 			slides,
@@ -224,12 +237,16 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 	});
 
 	// ── Recovery detection ────────────────────────────────────────
-	useRecoveryDetection({
+	// The snapshot is offered as a real prompt now; the Version History panel is
+	// no longer flung open unannounced, because "a panel appeared" never told the
+	// user that unsaved changes were waiting for them.
+	const recovery = useRecoveryDetection({
 		filePath,
 		loading,
 		error,
 		slideCount: slides.length,
-		openVersionHistory: () => propertyHandlers.setIsVersionHistoryOpen(true),
+		autosaveAllowed,
+		onRestore: setContent,
 	});
 
 	// ── Imperative handle ─────────────────────────────────────────
@@ -450,6 +467,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		handleEnterPresenterView,
 		handleEnterRehearsalMode,
 		autosaveStatus,
+		recovery,
 		isEncryptedDialogOpen,
 		setIsEncryptedDialogOpen,
 		handlerRef,

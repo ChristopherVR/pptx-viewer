@@ -140,6 +140,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 					t('pptx.textPanel.font')
 				}}</span>
 				<select
+					:aria-label="t('pptx.textPanel.font')"
 					class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
 					:value="fontFamily"
 					@change="onFontFamily"

@@ -142,14 +142,16 @@ describe('chartRenderer', () => {
 		expect(wrapper.find('svg').exists()).toBeTruthy();
 	});
 
-	it('renders the labelled placeholder for a still-unsupported chart type (ofPie)', () => {
+	// Pie-of-pie used to hit Vue's local dispatch table, which had no branch for
+	// it and fell through to the placeholder - while React, Angular, Svelte and
+	// Vanilla all drew it, because the shared engine has had a `buildOfPieViewModel`
+	// for as long as the token has existed. Vue now asks shared what the kind is.
+	it('draws pie-of-pie through the shared engine instead of a placeholder', () => {
 		const wrapper = mount(ChartRenderer, {
 			props: { element: chartElement(data('ofPie')), zIndex: 0 },
 		});
-		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
-		// `ofPie` is a wire token, not a word: the placeholder now spells it via
-		// `pptx.chart.typeOfPie` like every other chart-kind control.
-		expect(wrapper.text()).toContain('Chart: Pie of Pie');
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.findAll('path').length).toBeGreaterThanOrEqual(3);
 	});
 
 	it('renders the placeholder when chart data is missing', () => {
@@ -224,7 +226,7 @@ describe('chartRenderer', () => {
 		});
 		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
 		expect(wrapper.find('svg').exists()).toBeTruthy();
-		// At least some rects drawn by WaterfallChart
+		// At least some rects drawn by the shared waterfall builder
 		expect(wrapper.findAll('rect').length).toBeGreaterThanOrEqual(1);
 	});
 
@@ -343,5 +345,74 @@ describe('chartRenderer', () => {
 		expect(wrapper.find('svg').exists()).toBeTruthy();
 		// 2 categories → 2 box-whisker groups with multiple lines each
 		expect(wrapper.findAll('line').length).toBeGreaterThanOrEqual(4);
+	});
+});
+
+/**
+ * Regression cover for the six kinds Vue used to draw with bespoke components
+ * (waterfall / combo / stock / surface / treemap / regionMap). They emitted no
+ * `data-chart-part` attributes, so on-canvas mark selection did nothing for
+ * exactly these kinds while it worked in Angular, Svelte and Vanilla.
+ */
+describe('chartRenderer: interactive marks on the formerly bespoke kinds', () => {
+	const cases: Array<[string, PptxChartData]> = [
+		['waterfall', data('waterfall', { series: [{ name: 'Cash flow', values: [45, 62, 58] }] })],
+		['combo', data('combo')],
+		[
+			'stock',
+			data('stock', {
+				series: [
+					{ name: 'Open', values: [42, 58, 55] },
+					{ name: 'High', values: [50, 65, 62] },
+					{ name: 'Low', values: [38, 52, 51] },
+					{ name: 'Close', values: [47, 61, 53] },
+				],
+			}),
+		],
+		['treemap', data('treemap')],
+		['regionMap', data('regionMap', { categories: ['United States', 'Germany', 'China'] })],
+		['surface', data('surface')],
+	];
+
+	for (const [name, chartData] of cases) {
+		it(`tags ${name} data marks so the canvas can select them`, () => {
+			const wrapper = mount(ChartRenderer, {
+				props: { element: chartElement(chartData), zIndex: 0 },
+			});
+			expect(wrapper.findAll('[data-chart-part="dataPoint"]').length).toBeGreaterThan(0);
+		});
+	}
+
+	/**
+	 * The bespoke waterfall scaled cumulative bars against the RAW value range,
+	 * so a rising waterfall ran off the top of the plot.
+	 */
+	it('keeps every waterfall bar inside the plot box', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('waterfall', { series: [{ name: 'Cash flow', values: [45, 62, 58, 71] }] }),
+				),
+				zIndex: 0,
+			},
+		});
+		const bars = wrapper.findAll('rect');
+		expect(bars.length).toBeGreaterThan(1);
+		for (const bar of bars) {
+			const y = Number(bar.attributes('y'));
+			const h = Number(bar.attributes('height'));
+			expect(y).toBeGreaterThanOrEqual(-8);
+			expect(y + h).toBeLessThanOrEqual(308);
+		}
+	});
+
+	it('names each region-map region in a tooltip', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(data('regionMap', { categories: ['United States', 'Germany'] })),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.html()).toContain('United States: 10');
 	});
 });

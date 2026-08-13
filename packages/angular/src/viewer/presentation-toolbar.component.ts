@@ -135,7 +135,13 @@ export class PresentationToolbarComponent {
 	// ------------------------------------------------------------------
 
 	protected readonly openPalette = signal<OpenPalette>('none');
-	protected readonly visible = signal(false);
+	/**
+	 * Whether the bar is faded in. Public because PowerPoint's Ctrl+H toggles it
+	 * from the show's key handler, which owns no visibility state of its own:
+	 * auto-hide and the shortcut have to drive ONE flag or the bar disagrees with
+	 * itself the moment the presenter moves the mouse.
+	 */
+	readonly visible = signal(false);
 
 	private readonly mountedAt = Date.now();
 	private readonly now = signal(Date.now());
@@ -198,6 +204,11 @@ export class PresentationToolbarComponent {
 			}
 		}
 		this.autoHide.poke();
+	}
+
+	/** PowerPoint's Ctrl+H: flip the show chrome, auto-hide countdown and all. */
+	toggleVisible(): void {
+		this.visible.update((shown) => !shown);
 	}
 
 	protected onMouseEnter(): void {

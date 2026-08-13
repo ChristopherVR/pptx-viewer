@@ -43,9 +43,10 @@ export type {
 	PptxAiWritePolicy,
 } from 'pptx-viewer-shared/ai';
 export type { AutosaveStatus } from './viewer/state/autosave.svelte';
-// Autosave recovery helpers (shared IndexedDB store), re-exported so a host can
-// offer restore-on-load. The viewer itself never auto-restores (see the
-// `autosave` prop docs); matching React/Vue, recovery is a host concern.
+// Autosave recovery helpers (shared IndexedDB store). The viewer now OFFERS a
+// pre-crash snapshot back itself on load ("Recover unsaved changes?", see the
+// `autosave` prop docs); these stay exported for hosts that want to inspect,
+// list or drop snapshots on their own terms.
 export {
 	deleteAutosaveSnapshot,
 	getAutosaveSnapshot,

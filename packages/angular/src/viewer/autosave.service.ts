@@ -2,8 +2,9 @@
  * autosave.service.ts: periodic recovery-snapshot autosave for the Angular
  * editor, the counterpart of React's `useAutosave` hook.
  *
- * Every N seconds (default {@link AUTOSAVE_DEFAULT_INTERVAL_SECONDS}, clamped by
- * the shared {@link autosaveIntervalMs}) it serialises the edited deck and writes
+ * Every N milliseconds (resolved by the shared {@link resolveAutosaveIntervalMs}:
+ * the host's explicit cadence, else the user's File > Options > Save AutoRecover
+ * cadence, else 120s) it serialises the edited deck and writes
  * it to the shared IndexedDB recovery store via {@link saveAutosaveSnapshot} when
  * the document is dirty, a `filePath` key is set, autosave is enabled, and no
  * save is already in flight. The IndexedDB store itself lives in
@@ -18,13 +19,12 @@ import { DestroyRef, effect, inject, Injectable, Injector, signal } from '@angul
 import { TranslateService } from '@ngx-translate/core';
 
 import {
-	AUTOSAVE_DEFAULT_INTERVAL_SECONDS,
-	autosaveIntervalMs,
 	autosaveSnapshotMark,
+	resolveAutosaveIntervalMs,
 	saveAutosaveSnapshot,
 	shouldWriteAutosaveSnapshot,
 } from '../internal/shared';
-import type { AutosaveSnapshotMark } from '../internal/shared';
+import type { AutosaveDisabledReason, AutosaveSnapshotMark } from '../internal/shared';
 
 /** Lifecycle status of the autosave engine (mirrors React's `AutosaveStatus`). */
 export type AutosaveStatus =
@@ -36,7 +36,11 @@ export type AutosaveStatus =
 
 /** Live host accessors the autosave engine reads (all reactive). */
 export interface AutosaveHost {
-	/** Whether autosave is enabled (the title-bar AutoSave toggle). */
+	/**
+	 * Whether autosave actually runs: the shared `resolveAutosaveActivation`
+	 * verdict (the host's `autosave` input as a ceiling, the title-bar toggle as
+	 * the user preference inside it), not the raw toggle.
+	 */
 	readonly enabled: () => boolean;
 	/** File path/name keying the recovery snapshot. Autosave is inert when unset. */
 	readonly filePath: () => string | undefined;
@@ -44,8 +48,18 @@ export interface AutosaveHost {
 	readonly isDirty: () => boolean;
 	/** Serialise the current edited deck to `.pptx` bytes (null skips the write). */
 	readonly serialize: () => Promise<Uint8Array | null>;
-	/** Autosave interval in seconds (defaults to {@link AUTOSAVE_DEFAULT_INTERVAL_SECONDS}). */
-	readonly intervalSeconds?: () => number;
+	/**
+	 * The resolved cadence in milliseconds (shared `resolveAutosaveIntervalMs`:
+	 * host `autosaveIntervalMs` input > File > Options > Save AutoRecover
+	 * cadence > 120s default).
+	 */
+	readonly intervalMs?: () => number;
+	/**
+	 * Why autosave is inactive, straight from the shared activation verdict, so
+	 * the title bar names the condition the user would have to change first
+	 * instead of always blaming the toggle.
+	 */
+	readonly disabledReason?: () => AutosaveDisabledReason | undefined;
 	/**
 	 * The values a snapshot is built from, read fresh on each tick.
 	 *
@@ -84,14 +98,15 @@ export class AutosaveService {
 			() => {
 				const enabled = host.enabled();
 				const filePath = host.filePath();
-				const seconds = host.intervalSeconds?.() ?? AUTOSAVE_DEFAULT_INTERVAL_SECONDS;
+				const intervalMs = resolveAutosaveIntervalMs({ hostIntervalMs: host.intervalMs?.() });
+				const reason = host.disabledReason?.();
 				this.clearTimer();
 				if (!enabled) {
-					this.status.set({ state: 'disabled', reason: 'autosave_toggle_off' });
+					this.status.set({ state: 'disabled', reason: reason ?? 'autosave_toggle_off' });
 					return;
 				}
 				if (!filePath) {
-					this.status.set({ state: 'disabled', reason: 'no_file_path' });
+					this.status.set({ state: 'disabled', reason: reason ?? 'no_file_path' });
 					return;
 				}
 				// Requirements met; reset to idle if currently disabled.
@@ -100,7 +115,7 @@ export class AutosaveService {
 				}
 				this.timer = setInterval(() => {
 					void this.doAutosave({ polled: true });
-				}, autosaveIntervalMs(seconds));
+				}, intervalMs);
 			},
 			{ injector: this.injector },
 		);

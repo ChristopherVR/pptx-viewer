@@ -68,6 +68,37 @@ export interface EditorHistoryResult {
 const DEFAULT_MAX_HISTORY_ENTRIES = 120;
 
 // ---------------------------------------------------------------------------
+// Change detection
+// ---------------------------------------------------------------------------
+
+/**
+ * The part of a history snapshot that IS the document.
+ *
+ * `activeSlideIndex` is deliberately excluded. It rides along in the STORED
+ * snapshot so undo/redo return the user to the slide the edit happened on, but
+ * it must never take part in deciding whether the deck changed: clicking a
+ * thumbnail reassigns nothing but the index, and comparing the whole snapshot
+ * made that read as a document mutation. The consequences were both visible to
+ * the user - the deck was marked dirty, so autosave wrote a crash-recovery
+ * snapshot and the next visit offered to "recover unsaved changes" for a deck
+ * that had only been read, and every slide click pushed an undo entry, so
+ * Ctrl+Z walked back through navigation instead of edits. Angular and Vanilla
+ * raise dirty from explicit commit choke points and never had either symptom.
+ *
+ * Note this is only the CHANGE GATE: an edit still announces itself through
+ * `markDirty()` the moment it commits, so narrowing the comparison cannot
+ * swallow an edit made immediately after a navigation.
+ */
+function serializeDocument(snapshot: EditorHistorySnapshot): string {
+	return JSON.stringify({
+		width: snapshot.width,
+		height: snapshot.height,
+		slides: snapshot.slides,
+		templateElementsBySlideId: snapshot.templateElementsBySlideId,
+	});
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
@@ -217,7 +248,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		isApplyingHistoryRef.current = true;
 		const nextSnapshot = cloneHistorySnapshot(previousSnapshot);
 		lastHistorySnapshotRef.current = cloneHistorySnapshot(nextSnapshot);
-		lastHistorySerializedRef.current = JSON.stringify(nextSnapshot);
+		lastHistorySerializedRef.current = serializeDocument(nextSnapshot);
 		applyHistorySnapshot(nextSnapshot);
 		updateHistoryAvailability();
 		unlockHistoryTracking();
@@ -241,7 +272,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		isApplyingHistoryRef.current = true;
 		const targetSnapshot = cloneHistorySnapshot(nextSnapshot);
 		lastHistorySnapshotRef.current = cloneHistorySnapshot(targetSnapshot);
-		lastHistorySerializedRef.current = JSON.stringify(targetSnapshot);
+		lastHistorySerializedRef.current = serializeDocument(targetSnapshot);
 		applyHistorySnapshot(targetSnapshot);
 		updateHistoryAvailability();
 		unlockHistoryTracking();
@@ -263,7 +294,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 			if (initialSnapshot) {
 				const clonedInitial = cloneHistorySnapshot(initialSnapshot);
 				lastHistorySnapshotRef.current = clonedInitial;
-				lastHistorySerializedRef.current = JSON.stringify(clonedInitial);
+				lastHistorySerializedRef.current = serializeDocument(clonedInitial);
 			} else {
 				lastHistorySnapshotRef.current = null;
 				lastHistorySerializedRef.current = '';
@@ -321,8 +352,22 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		}
 
 		const snapshot = buildHistorySnapshot();
-		const serialized = JSON.stringify(snapshot);
+		// Document only: see `serializeDocument`. A slide selection reaches here
+		// (the cheap hash above deliberately still lets it through, so the gate
+		// cannot swallow a same-tick edit) and stops on this comparison instead of
+		// being reported as a mutation.
+		const serialized = serializeDocument(snapshot);
 		if (serialized === lastHistorySerializedRef.current) {
+			// Nothing about the deck moved, only the view. Keep the stored
+			// snapshot's index current so a later undo returns to the slide the
+			// user was actually editing, then stop: no dirty flag, no undo entry.
+			const previous = lastHistorySnapshotRef.current;
+			if (previous && previous.activeSlideIndex !== snapshot.activeSlideIndex) {
+				lastHistorySnapshotRef.current = {
+					...previous,
+					activeSlideIndex: snapshot.activeSlideIndex,
+				};
+			}
 			lastCheapHashRef.current = cheapHash;
 			return;
 		}

@@ -29,6 +29,7 @@
 	<label>
 		<span>{t('pptx.documentProperties.themeHeading')}</span>
 		<select
+			aria-label={t('pptx.documentProperties.themeHeading')}
 			disabled={options.length === 0}
 			value={selectedPath}
 			onchange={(event) => onselect(event.currentTarget.value)}

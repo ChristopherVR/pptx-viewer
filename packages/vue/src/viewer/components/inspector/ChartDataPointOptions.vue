@@ -81,6 +81,7 @@ function onExplosion(event: Event, idx: number): void {
 		<label v-if="props.series.length > 1" class="flex items-center gap-2 text-[11px]">
 			<span class="w-12 text-muted-foreground shrink-0">{{ t('pptx.chart.series') }}</span>
 			<select
+				:aria-label="t('pptx.chart.series')"
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="chart-point-series"
 				:value="activeIndex"

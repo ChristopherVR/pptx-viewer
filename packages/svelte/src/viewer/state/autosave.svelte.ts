@@ -8,6 +8,7 @@ import type {
 } from 'pptx-viewer-core';
 import type { DeckSaveIntent } from 'pptx-viewer-shared';
 import {
+	nextAutosaveDelayMs,
 	recoverySnapshotIntent,
 	saveAutosaveSnapshot,
 	saveDeckWithPassword,
@@ -26,6 +27,13 @@ import {
  *  - Vue's debounce-on-edit trigger: an edit marks the document dirty and
  *    (re)arms a debounce timer instead of polling on a fixed interval.
  *
+ * The debounce is CAPPED by the shared `nextAutosaveDelayMs`, so it keeps the
+ * same promise React's and Angular's polling engines do: a snapshot lands no
+ * later than one interval after the FIRST unsaved edit, and no more often than
+ * once per interval. Without that cap a user who keeps typing keeps re-arming
+ * the timer, and at the two-minute AutoRecover cadence that is a whole session
+ * of work that never reaches the recovery store.
+ *
  * The controller registers its own edit-watching `$effect` in the constructor,
  * so the SFC only has to construct it once during setup and read its reactive
  * `status` / `isDirty` for the toolbar indicator.
@@ -43,9 +51,13 @@ import {
 export type AutosaveStatus = 'idle' | 'disabled' | 'saving' | 'saved' | 'error';
 
 export interface AutosaveDeps {
-	/** Master on/off: host `autosave` prop AND editing allowed. */
+	/**
+	 * Master on/off: the resolved activation (`resolveAutosaveActivation` in
+	 * shared), which folds the host policy, the user's toggle, editability and
+	 * the collaboration read-only veto into one answer.
+	 */
 	getEnabled: () => boolean;
-	/** Debounce window in milliseconds. */
+	/** Debounce window in milliseconds, and the ceiling on deferring a save. */
 	getIntervalMs: () => number;
 	/** IndexedDB record key (host `filePath`); autosave is disabled without one. */
 	getFilePath: () => string | undefined;
@@ -70,6 +82,19 @@ export interface AutosaveDeps {
 	 * a user edit), so the watcher clears dirty instead of arming a save.
 	 */
 	getLoadCount: () => number;
+	/**
+	 * Monotonic SEED counter, bumped in the same synchronous block that installs
+	 * the loaded slides (`EditorState.seedNonce`).
+	 *
+	 * `getLoadCount` alone is not enough, because the loader bumps it in an
+	 * earlier flush than the effect that copies its slides into the editor: this
+	 * watcher ran once on the count change (old slides, so nothing to do) and
+	 * then a second time on the slide reassignment, with the count already
+	 * settled - indistinguishable from an edit. Merely OPENING a deck therefore
+	 * marked it dirty and wrote a crash-recovery snapshot, so the next visit
+	 * offered to recover unsaved changes that never existed.
+	 */
+	getSeedNonce?: () => number;
 	/** Host callback with the freshly-serialized bytes on each successful save. */
 	onSaved?: (bytes: Uint8Array) => void;
 }
@@ -86,11 +111,19 @@ export class AutosaveController {
 	#timer: ReturnType<typeof setTimeout> | null = null;
 	#saving = false;
 	#lastLoadCount = 0;
+	#lastSeedNonce = 0;
 	#started = false;
+	/**
+	 * Epoch ms of the OLDEST edit not yet in a snapshot, or null when the
+	 * document is clean. This, not the latest edit, is what the debounce is
+	 * measured against.
+	 */
+	#firstDirtyAt: number | null = null;
 
 	constructor(deps: AutosaveDeps) {
 		this.#deps = deps;
 		this.#lastLoadCount = deps.getLoadCount();
+		this.#lastSeedNonce = deps.getSeedNonce?.() ?? 0;
 
 		// Watch edits: reassigning the (immutable) slide array on each edit fires
 		// this effect. A load bumps `getLoadCount()` in the same flush, which we
@@ -98,6 +131,7 @@ export class AutosaveController {
 		// teardown clears any pending debounce on destroy.
 		$effect(() => {
 			const loadCount = this.#deps.getLoadCount();
+			const seedNonce = this.#deps.getSeedNonce?.() ?? 0;
 			// Track the slides so edits (array reassignment) re-run the effect.
 			this.#deps.getSlides();
 			this.#deps.getSlideMasters?.();
@@ -108,15 +142,21 @@ export class AutosaveController {
 			if (!this.#started) {
 				this.#started = true;
 				this.#lastLoadCount = loadCount;
+				this.#lastSeedNonce = seedNonce;
 				return;
 			}
-			if (loadCount !== this.#lastLoadCount) {
+			// Either half of a load counts as a reseed. They arrive in separate
+			// flushes (see `getSeedNonce`), so both have to be able to answer.
+			if (loadCount !== this.#lastLoadCount || seedNonce !== this.#lastSeedNonce) {
 				this.#lastLoadCount = loadCount;
+				this.#lastSeedNonce = seedNonce;
 				this.#clearTimer();
+				this.#firstDirtyAt = null;
 				this.isDirty = false;
 				return;
 			}
 			this.isDirty = true;
+			this.#firstDirtyAt ??= Date.now();
 			if (this.#isEnabled()) {
 				this.#schedule();
 			}
@@ -135,14 +175,24 @@ export class AutosaveController {
 		}
 	}
 
+	/**
+	 * (Re)arm the debounce. The delay is whatever is LEFT of the first unsaved
+	 * edit's interval, so an unbroken stream of edits still gets a snapshot each
+	 * interval instead of pushing the deadline out forever.
+	 */
 	#schedule(): void {
 		this.#clearTimer();
+		const delay = nextAutosaveDelayMs({
+			intervalMs: this.#deps.getIntervalMs(),
+			firstDirtyAt: this.#firstDirtyAt,
+			now: Date.now(),
+		});
 		this.#timer = setTimeout(() => {
 			this.#timer = null;
 			if (this.#isEnabled()) {
 				void this.save();
 			}
-		}, this.#deps.getIntervalMs());
+		}, delay);
 	}
 
 	/**
@@ -187,6 +237,10 @@ export class AutosaveController {
 		}
 		this.#saving = true;
 		this.#clearTimer();
+		// Remembered across the await: an edit that lands mid-save starts a NEW
+		// dirty window, and clearing it below would hide that edit from the
+		// interval ceiling until the user happened to type again.
+		const savingFrom = this.#firstDirtyAt;
 		this.status = 'saving';
 		try {
 			const bytes = await this.#serialize();
@@ -196,7 +250,10 @@ export class AutosaveController {
 			}
 			await saveAutosaveSnapshot(filePath, bytes);
 			this.lastSavedAt = Date.now();
-			this.isDirty = false;
+			if (this.#firstDirtyAt === savingFrom) {
+				this.#firstDirtyAt = null;
+				this.isDirty = false;
+			}
 			this.status = 'saved';
 			this.#deps.onSaved?.(bytes);
 		} catch {

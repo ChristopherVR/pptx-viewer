@@ -48,7 +48,7 @@
 
 <label class="pptx-svelte-field">
 	<span class="pptx-svelte-field-label">{t('pptx.textPanel.verticalAlign')}</span>
-	<select value={vAlign} onchange={(e) => setVAlign(e.currentTarget.value)}>
+	<select aria-label={t('pptx.textPanel.verticalAlign')} value={vAlign} onchange={(e) => setVAlign(e.currentTarget.value)}>
 		<option value="top">{t('pptx.textPanel.valignTop')}</option>
 		<option value="middle">{t('pptx.textPanel.valignMiddle')}</option>
 		<option value="bottom">{t('pptx.textPanel.valignBottom')}</option>
@@ -62,7 +62,7 @@
 
 <label class="pptx-svelte-field">
 	<span class="pptx-svelte-field-label">{t('pptx.textAdvanced.autoFit')}</span>
-	<select value={autoFit} onchange={(e) => setAutoFit(e.currentTarget.value)}>
+	<select aria-label={t('pptx.textAdvanced.autoFit')} value={autoFit} onchange={(e) => setAutoFit(e.currentTarget.value)}>
 		<option value="none">{t('pptx.textAdvanced.autoFitNone')}</option>
 		<option value="normal">{t('pptx.textAdvanced.autoFitShrink')}</option>
 		<option value="shrink">{t('pptx.textAdvanced.autoFitResize')}</option>
@@ -77,7 +77,7 @@
 	<label class="pptx-svelte-field"><span>After (pt)</span><input type="number" min="0" value={textStyle.paragraphSpacingAfter ?? 0} onchange={(event) => patchText({ paragraphSpacingAfter: Number(event.currentTarget.value) })} /></label>
 	<label class="pptx-svelte-field"><span>Columns</span><input type="number" min="1" max="16" value={textStyle.columnCount ?? 1} onchange={(event) => patchText({ columnCount: Math.max(1, Number(event.currentTarget.value)) })} /></label>
 </div>
-<label class="pptx-svelte-field"><span>Text direction</span><select value={textStyle.textDirection ?? 'horizontal'} onchange={(event) => patchText({ textDirection: event.currentTarget.value as TextStyle['textDirection'] })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option><option value="vertical270">Vertical 270</option><option value="eaVert">East Asian vertical</option><option value="wordArtVert">Stacked</option><option value="wordArtVertRtl">Stacked RTL</option><option value="mongolianVert">Mongolian vertical</option></select></label>
+<label class="pptx-svelte-field"><span>Text direction</span><select aria-label="Text direction" value={textStyle.textDirection ?? 'horizontal'} onchange={(event) => patchText({ textDirection: event.currentTarget.value as TextStyle['textDirection'] })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option><option value="vertical270">Vertical 270</option><option value="eaVert">East Asian vertical</option><option value="wordArtVert">Stacked</option><option value="wordArtVertRtl">Stacked RTL</option><option value="mongolianVert">Mongolian vertical</option></select></label>
 <label class="pptx-svelte-field-checkbox"><input type="checkbox" checked={textStyle.rtl ?? false} onchange={(event) => patchText({ rtl: event.currentTarget.checked })} /><span>Right-to-left</span></label>
 
 <style>

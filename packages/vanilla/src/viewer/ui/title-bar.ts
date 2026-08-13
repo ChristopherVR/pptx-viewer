@@ -38,6 +38,14 @@ export interface TitleBarDeps {
 	fileName?: string;
 	/** Whether the AutoSave switch starts on. */
 	autosaveEnabled: boolean;
+	/**
+	 * Whether the switch can change anything (default `true`). The host's
+	 * `autosave: false` is a policy the user cannot override, and a switch that
+	 * silently does nothing is worse than a visibly disabled one, so it renders
+	 * inert instead of pretending to work. See
+	 * `pptx-viewer-shared/render/autosave-policy`.
+	 */
+	autosaveToggleAvailable?: boolean;
 	/** Flip autosave; returns the new enabled state the switch reflects. */
 	onToggleAutosave(): boolean;
 	save(): void;
@@ -97,11 +105,18 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 	const autosaveGroup = createEl(doc, 'span', 'pptxv-titlebar-autosave');
 	const autosaveLabel = createEl(doc, 'span', 'pptxv-titlebar-autosave-label');
 	autosaveLabel.textContent = t('pptx.titleBar.autoSave');
+	const toggleAvailable = deps.autosaveToggleAvailable ?? true;
 	const toggle = createEl(doc, 'button', 'pptxv-titlebar-switch');
 	toggle.type = 'button';
 	toggle.setAttribute('role', 'switch');
-	toggle.title = t('pptx.titleBar.toggleAutoSave');
+	toggle.title = toggleAvailable
+		? t('pptx.titleBar.toggleAutoSave')
+		: t('pptx.autosave.disabledByHost');
 	toggle.setAttribute('aria-label', t('pptx.titleBar.toggleAutoSave'));
+	if (!toggleAvailable) {
+		toggle.disabled = true;
+		toggle.classList.add('is-disabled');
+	}
 	toggle.appendChild(createEl(doc, 'span', 'pptxv-titlebar-switch-knob'));
 	const autosaveOnOff = createEl(doc, 'span', 'pptxv-titlebar-autosave-label');
 	autosaveGroup.append(autosaveLabel, toggle, autosaveOnOff);
@@ -115,6 +130,9 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 		);
 	};
 	toggle.addEventListener('click', () => {
+		if (!toggleAvailable) {
+			return;
+		}
 		autosaveEnabled = deps.onToggleAutosave();
 		applyAutosaveSwitch();
 		applyStatus();

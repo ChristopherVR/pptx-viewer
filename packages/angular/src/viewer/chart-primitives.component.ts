@@ -59,10 +59,21 @@ import type {
 						[attr.fill]="asPath(prim).fill"
 						[attr.stroke]="asPath(prim).stroke ?? 'none'"
 						[attr.stroke-width]="asPath(prim).strokeWidth ?? 0"
+						[attr.fill-opacity]="asPath(prim).opacity ?? 1"
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"
 						[attr.data-chart-point]="partPoint(prim)"
-					/>
+					>
+						<!--
+							The shared descriptor's tooltip, projected as the SVG title
+							element. It is the shape's ACCESSIBLE NAME as well as its hover
+							text, and a choropleth patch carries no label of its own: without
+							it a region map announces nothing and names nothing.
+						-->
+						@if (asPath(prim).title !== undefined) {
+							<svg:title>{{ asPath(prim).title }}</svg:title>
+						}
+					</svg:path>
 				}
 				@case ('polyline') {
 					<svg:polyline

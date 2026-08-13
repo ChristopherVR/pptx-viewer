@@ -35,11 +35,14 @@ import {
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
 	openPptxFile,
+	resolveAutosaveIntervalSeconds,
+	shouldShowAutosaveRecoveryPrompt,
 } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
+import AutosaveRecoveryDialog from './components/AutosaveRecoveryDialog.vue';
 import CollaborationStatusIndicator from './components/CollaborationStatusIndicator.vue';
 import ExportProgressModal from './components/ExportProgressModal.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
@@ -69,6 +72,7 @@ import { SmartArt3DKey } from './composables/smart-art-3d';
 import { TableThemeKey } from './composables/table-theme';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
+import { useAutosaveRecovery } from './composables/useAutosaveRecovery';
 import { useAutosaveWiring } from './composables/useAutosaveWiring';
 import { useCanvasPointer } from './composables/useCanvasPointer';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
@@ -622,18 +626,38 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 });
 
 // -- Autosave ----------------------------------------------------------
-const { autosave, autosaveEnabled, toggleAutosave, autosaveDisabledReason } = useAutosaveWiring({
-	slides,
-	// Edit-template mode rebuilds only this map, never `slides`.
-	templateElements: templateElementsBySlideId,
+const { autosave, autosaveEnabled, autosaveActive, toggleAutosave, autosaveDisabledReason } =
+	useAutosaveWiring({
+		slides,
+		// Edit-template mode rebuilds only this map, never `slides`.
+		templateElements: templateElementsBySlideId,
+		loading,
+		canEdit: () => props.canEdit,
+		// Undefined (the host said nothing) permits autosave; only an explicit
+		// `false` vetoes it. See `resolveAutosaveActivation` in the shared package.
+		autosaveEnabledByHost: () => props.autosave,
+		intervalMs: () => props.autosaveIntervalMs,
+		// File > Options > Save > "Save AutoRecover information every N minutes",
+		// used whenever the host did not state a cadence of its own.
+		optionsIntervalSeconds: () => resolveAutosaveIntervalSeconds(viewerOptions.value),
+		snapshotName: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
+		getRecoverySnapshot,
+		emitAutosave: (bytes) => emit('autosave', bytes),
+		captureVersion: (label, at) => versionHistoryWiring.versionHistory.capture(label, at),
+	});
+
+// -- Crash-recovery prompt --------------------------------------------
+// Vue wrote snapshots and never offered one back; the decision and the copy are
+// the shared ones every binding now renders.
+const autosaveRecovery = useAutosaveRecovery({
+	filePath: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
 	loading,
-	canEdit: () => props.canEdit,
-	autosaveEnabledByHost: () => props.autosave ?? false,
-	intervalMs: () => props.autosaveIntervalMs,
-	snapshotName: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
-	getRecoverySnapshot,
-	emitAutosave: (bytes) => emit('autosave', bytes),
-	captureVersion: (label, at) => versionHistoryWiring.versionHistory.capture(label, at),
+	error,
+	slideCount: () => slides.value.length,
+	autosaveAllowed: () => props.autosave !== false,
+	onRestore: (bytes) => {
+		source.internalContent.value = bytes;
+	},
 });
 
 // -- No-selection inspector deck actions (theme-by-path / slide size /
@@ -1164,7 +1188,7 @@ defineExpose<PowerPointViewerExpose>(
 					:file-name="props.fileName"
 					:is-dirty="autosave.isDirty.value"
 					:autosave-status="autosaveDisabledReason ? 'disabled' : autosave.status.value"
-					:autosave-enabled="autosaveEnabled"
+					:autosave-enabled="autosaveActive"
 					:autosave-disabled-reason="autosaveDisabledReason"
 					:on-toggle-autosave="toggleAutosave"
 					:can-undo="history.canUndo.value"
@@ -1235,8 +1259,12 @@ defineExpose<PowerPointViewerExpose>(
 			/>
 
 			<div class="pptx-vue-body">
+				<!-- Like the ribbon above, unmounted while presenting: the show
+				     overlay hides it visually, but a mounted rail keeps every
+				     thumbnail in the tab order and the accessibility tree during
+				     the show. -->
 				<ViewerSlideRail
-					v-if="!isMobile && !sidebarCollapsed"
+					v-if="!isMobile && !sidebarCollapsed && !presentation.presenting.value"
 					:merged-slides="mergedSlides"
 					:merged-slide-by-id="selection.mergedSlideById.value"
 					:active-slide-index="activeSlideIndex"
@@ -1308,7 +1336,10 @@ defineExpose<PowerPointViewerExpose>(
 					</SlideCanvas>
 				</main>
 
+				<!-- Inspector / selection / comments / AI rail: unmounted while
+				     presenting for the same reason as the ribbon and the rail. -->
 				<ViewerSidePanels
+					v-if="!presentation.presenting.value"
 					:deck="deck"
 					:can-edit="props.canEdit"
 					:is-mobile="isMobile"
@@ -1347,7 +1378,7 @@ defineExpose<PowerPointViewerExpose>(
 			     status-bar Notes button and this strip's chevron stay in sync. It
 			     lives OUTSIDE <main> so it never scrolls away with the canvas. -->
 			<NotesPanel
-				v-if="props.canEdit && !isMobile && slideCount > 0"
+				v-if="props.canEdit && !isMobile && slideCount > 0 && !presentation.presenting.value"
 				:slide="activeSlide"
 				:expanded="notesExpanded"
 				@update="onNotesUpdate"
@@ -1356,7 +1387,7 @@ defineExpose<PowerPointViewerExpose>(
 
 			<!-- Bottom status bar (desktop): React-parity chrome -->
 			<StatusBar
-				v-if="!isMobile && slideCount > 0"
+				v-if="!isMobile && slideCount > 0 && !presentation.presenting.value"
 				:slide-count="slideCount"
 				:active-slide-index="activeSlideIndex"
 				:is-dirty="autosave.isDirty.value"
@@ -1408,6 +1439,22 @@ defineExpose<PowerPointViewerExpose>(
 				:slide-count="slideCount"
 				:collaboration="collaboration"
 				:share-defaults="props.shareDefaults"
+			/>
+
+			<!-- A running show has no editor chrome, and this prompt is modal: left
+			     mounted it puts a full-area backdrop over the stage that swallows
+			     action-button clicks. The offer is deferred, not dropped. -->
+			<AutosaveRecoveryDialog
+				:prompt="
+					shouldShowAutosaveRecoveryPrompt({
+						prompt: autosaveRecovery.prompt.value,
+						presenting: presentation.presenting.value,
+					})
+						? autosaveRecovery.prompt.value
+						: null
+				"
+				@restore="autosaveRecovery.restore"
+				@discard="autosaveRecovery.discard"
 			/>
 
 			<ViewerFileDialogs

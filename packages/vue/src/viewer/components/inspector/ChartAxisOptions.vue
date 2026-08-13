@@ -128,6 +128,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						t('pptx.chart.displayUnits')
 					}}</span>
 					<select
+						:aria-label="t('pptx.chart.displayUnits')"
 						:class="INPUT"
 						data-testid="chart-axis-display-units"
 						:value="row.axis.displayUnits ?? ''"
@@ -170,6 +171,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 				<label class="flex items-center gap-2 text-[11px]">
 					<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.tickLabels') }}</span>
 					<select
+						:aria-label="t('pptx.chart.tickLabels')"
 						:class="INPUT"
 						data-testid="chart-axis-tick-pos"
 						:value="row.axis.tickLblPos ?? 'nextTo'"

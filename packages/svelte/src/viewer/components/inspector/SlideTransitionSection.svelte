@@ -62,6 +62,7 @@
 		<label>
 			<span>{t('pptx.transition.type')}</span>
 			<select
+				aria-label={t('pptx.transition.type')}
 				disabled={!canEdit}
 				value={transitionType}
 				onchange={(event) =>

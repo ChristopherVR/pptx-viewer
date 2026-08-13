@@ -109,7 +109,16 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	);
 
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
-	const collabCluster = useCollabCluster({ loader, viewer, editor, options, getEditable });
+	const collabCluster = useCollabCluster({
+		loader,
+		viewer,
+		editor,
+		options,
+		getEditable,
+		// Forward reference (like `getScale` below): the options cluster is built
+		// after this one, and the cadence is only read when a save is scheduled.
+		getOptionsIntervalSeconds: () => editorUi.optionsState.autosaveIntervalSeconds,
+	});
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const editorUi = useEditorUiCluster({
 		loader,
@@ -120,7 +129,10 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getScale: () => derived.scale,
 		getEditable,
 		setEditable,
-		getAutosaveEnabled: () => collabCluster.autosaveEnabled,
+		// The RAW preference, not the host-gated effective value: the options store
+		// persists what the user chose, and a host shipping `autosave={false}`
+		// must not rewrite that choice for every other host.
+		getAutosaveEnabled: () => collabCluster.autosavePreference,
 		setAutosaveEnabled: collabCluster.setAutosaveFlag,
 	});
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
@@ -216,6 +228,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		collab: collabCluster.collab,
 		dialogs: collabCluster.dialogs,
 		autosaveCtl: collabCluster.autosaveCtl,
+		autosaveRecovery: collabCluster.autosaveRecovery,
 		presentation: presentationCluster.presentation,
 		presenterSession: presenter.presenterSession,
 		exportWiring: exportNotes.exportWiring,
@@ -260,6 +273,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		},
 		get autosaveEnabled() {
 			return collabCluster.autosaveEnabled;
+		},
+		get autosaveToggleAvailable() {
+			return collabCluster.autosaveToggleAvailable;
+		},
+		get autosaveDisabledReason() {
+			return collabCluster.autosaveDisabledReason;
 		},
 		setAutosaveEnabled: collabCluster.setAutosaveEnabled,
 		get presenterMode() {

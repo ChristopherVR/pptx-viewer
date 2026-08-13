@@ -80,8 +80,11 @@ function buildField(
 	);
 	const wrapper = doc.createElement('label');
 	// The caption is the control's accessible name, so it comes from the same key
-	// React renders rather than a locally spelled string.
+	// React renders rather than a locally spelled string, and it is set ON the
+	// select: a wrapping `<label>` lends its whole text content, which once the
+	// options are appended is the caption plus every option.
 	wrapper.textContent = t(control.labelKey);
+	select.setAttribute('aria-label', t(control.labelKey));
 	wrapper.appendChild(select);
 	return { control, select };
 }

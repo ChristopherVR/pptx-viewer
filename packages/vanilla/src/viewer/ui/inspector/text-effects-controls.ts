@@ -20,9 +20,12 @@ export function createTextEffectsControls(
 	const apply = (patch: Partial<TextStyle>): void =>
 		handlers.setTextStyle(patch, state?.selectedTextRange);
 	const applyBody = (patch: Partial<TextStyle>): void => handlers.setTextStyle(patch);
+	// The control is named explicitly: a wrapping `<label>` lends its whole text
+	// content, which for a `<select>` includes every option.
 	const field = (labelText: string, input: HTMLElement): void => {
 		const label = doc.createElement('label');
 		label.textContent = labelText;
+		input.setAttribute('aria-label', labelText);
 		label.appendChild(input);
 		el.appendChild(label);
 	};

@@ -60,6 +60,12 @@ export interface PresenterViewHandle {
 	syncSlide: () => void;
 	/** Repaint the strip's pressed states and state-dependent labels. */
 	syncSnapshot: () => void;
+	/**
+	 * Raise the "See All Slides" grid. The strip's own button already does this;
+	 * exposing it lets PowerPoint's Ctrl+S reach the SAME navigator instead of a
+	 * second copy built over the show.
+	 */
+	showAllSlides: () => void;
 	dispose: () => void;
 }
 
@@ -219,6 +225,7 @@ export function mountPresenterView(options: PresenterViewOptions): PresenterView
 			strip.sync();
 			applyZoom();
 		},
+		showAllSlides: () => openNavigator(),
 		dispose: () => {
 			clearInterval(clockTimer);
 			closeNavigator();

@@ -47,6 +47,10 @@ export interface PresentationInputDeps {
 	toggleInkMarkup: () => void;
 	/** PowerPoint's bare `J`: show or hide the live-caption bar. */
 	toggleSubtitles: () => void;
+	/** PowerPoint's Ctrl+H: show or hide the running show's own chrome. */
+	toggleChrome: () => void;
+	/** PowerPoint's Ctrl+S: raise the "See All Slides" navigator. */
+	showAllSlides: () => void;
 	/** End the show; the component guards against double-closing. */
 	requestClose: () => void;
 }
@@ -126,6 +130,16 @@ export class PresentationInputController {
 				break;
 			case 'toggleSubtitles':
 				this.deps.toggleSubtitles();
+				break;
+			// Ctrl+H and Ctrl+S resolved here for as long as the shared map has had
+			// them, and were then dropped on the floor: the show swallowed the key
+			// (the `preventDefault()` above had already run) and did nothing, which
+			// is worse than not binding it at all.
+			case 'toggleChrome':
+				this.deps.toggleChrome();
+				break;
+			case 'showAllSlides':
+				this.deps.showAllSlides();
 				break;
 			case 'toggleBlackScreen':
 				this.toggleBlank('black');

@@ -49,6 +49,9 @@ export function animSelect(
 ): HTMLSelectElement {
 	const label = animField(doc, labelText, parent);
 	const select = doc.createElement('select');
+	// Named explicitly: the wrapping `<label>` would otherwise lend the select
+	// its whole text content, which includes every option.
+	select.setAttribute('aria-label', labelText);
 	for (const entry of entries) {
 		const option = doc.createElement('option');
 		option.value = entry.value;

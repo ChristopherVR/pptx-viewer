@@ -53,6 +53,7 @@ export function ChartDisplayOptions({ style, canEdit, onUpdateStyle }: ChartDisp
 							{t('pptx.chart.legendPosition')}
 						</span>
 						<select
+							aria-label={t('pptx.chart.legendPosition')}
 							disabled={!canEdit}
 							className={INPUT}
 							value={style.legendPosition ?? 'b'}

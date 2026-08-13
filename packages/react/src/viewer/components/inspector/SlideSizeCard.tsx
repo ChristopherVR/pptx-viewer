@@ -70,6 +70,7 @@ export function SlideSizeCard({
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.slideSize.presets')}</span>
 					<select
+						aria-label={t('pptx.slideSize.presets')}
 						data-pptx-slide-size-preset
 						disabled={presetDisabled}
 						className={INPUT}
@@ -92,6 +93,7 @@ export function SlideSizeCard({
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.slideSize.orientation')}</span>
 					<select
+						aria-label={t('pptx.slideSize.orientation')}
 						data-pptx-slide-size-orientation
 						disabled={presetDisabled}
 						className={INPUT}

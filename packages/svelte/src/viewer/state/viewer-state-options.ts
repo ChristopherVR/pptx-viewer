@@ -36,7 +36,10 @@ export function toViewerStateOptions(
 	return {
 		...dom,
 		getSource: () => getProps().source,
-		getAutosave: () => getProps().autosave ?? false,
+		// Deliberately NOT defaulted: the host prop is a ceiling, and `undefined`
+		// ("the host said nothing") permits autosave, which is not the same answer
+		// as an explicit `false`. See `resolveAutosaveActivation` in shared.
+		getAutosave: () => getProps().autosave,
 		getFilePath: () => getProps().filePath,
 		getInitialSlide: () => getProps().initialSlide ?? 0,
 		getSmartArt3D: () => getProps().smartArt3D ?? false,

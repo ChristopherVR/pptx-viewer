@@ -9,10 +9,13 @@
 	 * snapshot, so they render on an audience display as well as on the
 	 * presenter's own screen, which is why they are not gated on fullscreen.
 	 */
+	import { presenterConsoleStyleAttr } from 'pptx-viewer-shared';
+
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
 	import PresentationEndScreen from './PresentationEndScreen.svelte';
 	import PresentationToolbar from './PresentationToolbar.svelte';
 	import PresentationTouchControls from './PresentationTouchControls.svelte';
+	import PresenterSlideNavigator from './PresenterSlideNavigator.svelte';
 	import PresenterView from './PresenterView.svelte';
 
 	const { vm }: { vm: ViewerStateBag } = $props();
@@ -56,6 +59,7 @@
 	/>
 	<PresentationToolbar
 		annotations={parityUi.annotations}
+		chrome={parityUi.showChrome}
 		current={viewer.current}
 		total={viewer.slideCount}
 		presenterMode={vm.presenterMode}
@@ -70,6 +74,27 @@
      It MUST be visible - while it is up the next input either goes nowhere
      (backward) or ends the show (forward), so a deck that kept painting the
      last slide looked stuck and then exited with no warning. -->
+<!--
+	PowerPoint's "See All Slides" (Ctrl+S during a show). The navigator's own
+	metrics are CSS custom properties the presenter console normally supplies, so
+	the wrapper carries them here: without it the grid collapses to one column and
+	loses its stacking level.
+-->
+{#if viewer.isFullscreen && parityUi.allSlidesOpen}
+	<div class="pptx-svelte-show-navigator" style={presenterConsoleStyleAttr()}>
+		<PresenterSlideNavigator
+			slides={editor.renderedSlides}
+			current={viewer.current}
+			canvasSize={loader.canvasSize}
+			mediaDataUrls={loader.mediaDataUrls}
+			onselect={(index) => {
+				viewer.goTo(index);
+				parityUi.allSlidesOpen = false;
+			}}
+			onclose={() => (parityUi.allSlidesOpen = false)}
+		/>
+	</div>
+{/if}
 {#if viewer.isFullscreen && presentation.endOfShowVisible}
 	<PresentationEndScreen onexit={() => presentation.advance()} />
 {/if}
@@ -113,6 +138,12 @@
 {/if}
 
 <style>
+	.pptx-svelte-show-navigator {
+		position: absolute;
+		inset: 0;
+		z-index: 120;
+	}
+
 	.presenter-blackout {
 		position: absolute;
 		inset: 0;

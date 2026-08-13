@@ -1,56 +1,26 @@
 /**
- * useRecoveryDetection: Checks for recent autosave recovery versions on mount
- * and opens the version-history panel if a recovery entry exists.
+ * useRecoveryDetection: after a deck finishes loading, ask the shared recovery
+ * store whether a NEWER crash-recovery snapshot exists for it, and hand the
+ * caller a prompt descriptor to render.
+ *
+ * It used to open the Version History panel instead, which never says the word
+ * "recover" and left the user to work out what they were looking at. The panel
+ * is still opened alongside the prompt when the caller wants it, but the
+ * decision and the copy now come from `pptx-viewer-shared`
+ * (`render/autosave-recovery`), so the other four bindings render the same
+ * dialog from the same descriptor.
  */
-import { useEffect, useRef } from 'react';
-
-import { shouldCheckRecovery, hasRecentRecoveryVersion } from './useRecoveryDetection-helpers';
-
-// ---------------------------------------------------------------------------
-// IndexedDB access (mirrors the DB used by useAutosave)
-// ---------------------------------------------------------------------------
-
-const DB_NAME = 'pptx-viewer-autosave';
-const DB_VERSION = 1;
-const STORE_NAME = 'recoveryVersions';
-
-function openAutosaveDb(): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
-		const req = indexedDB.open(DB_NAME, DB_VERSION);
-		req.onupgradeneeded = () => {
-			const db = req.result;
-			if (!db.objectStoreNames.contains(STORE_NAME)) {
-				db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-			}
-		};
-		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => reject(req.error);
-	});
-}
-
-async function getRecoveryVersion(filePath: string): Promise<{ timestamp: number } | undefined> {
-	try {
-		const db = await openAutosaveDb();
-		return new Promise((resolve) => {
-			const tx = db.transaction(STORE_NAME, 'readonly');
-			const store = tx.objectStore(STORE_NAME);
-			const req = store.get(filePath);
-			req.onsuccess = () => {
-				db.close();
-				resolve(req.result as { timestamp: number } | undefined);
-			};
-			req.onerror = () => {
-				db.close();
-				resolve(undefined);
-			};
-		});
-	} catch {
-		return undefined;
-	}
-}
+import {
+	acceptAutosaveRecovery,
+	discardAutosaveRecovery,
+	probeAutosaveRecovery,
+	shouldProbeAutosaveRecovery,
+} from 'pptx-viewer-shared';
+import type { AutosaveRecord, AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ---------------------------------------------------------------------------
-// Input
+// Input / output
 // ---------------------------------------------------------------------------
 
 export interface UseRecoveryDetectionInput {
@@ -58,44 +28,83 @@ export interface UseRecoveryDetectionInput {
 	loading: boolean;
 	error: string | null;
 	slideCount: number;
-	openVersionHistory: () => void;
+	/**
+	 * Whether the host permits autosave (the shared `resolveAutosaveActivation`
+	 * ceiling). A host that passed `autosave={false}` is never offered snapshots
+	 * an earlier configuration left behind. Defaults to true.
+	 */
+	autosaveAllowed?: boolean;
+	/** Load the recovered bytes into the viewer. */
+	onRestore?: (bytes: Uint8Array) => void;
+	/** Legacy behaviour: also open the Version History panel when one is found. */
+	openVersionHistory?: () => void;
+}
+
+export interface UseRecoveryDetectionResult {
+	/** What the dialog should say, or null when there is nothing to offer. */
+	prompt: AutosaveRecoveryPrompt | null;
+	/** Accept: load the snapshot and close. */
+	restore: () => void;
+	/** Decline: drop the snapshot and close. */
+	discard: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useRecoveryDetection(input: UseRecoveryDetectionInput): void {
-	const { filePath, loading, error, slideCount, openVersionHistory } = input;
+export function useRecoveryDetection(input: UseRecoveryDetectionInput): UseRecoveryDetectionResult {
+	const { filePath, loading, error, slideCount, autosaveAllowed = true } = input;
 	const recoveryCheckedRef = useRef(false);
+	const recordRef = useRef<AutosaveRecord | null>(null);
+	const [prompt, setPrompt] = useState<AutosaveRecoveryPrompt | null>(null);
+
+	const onRestore = input.onRestore;
+	const openVersionHistory = input.openVersionHistory;
 
 	useEffect(() => {
 		if (
-			!shouldCheckRecovery({
+			!shouldProbeAutosaveRecovery({
 				alreadyChecked: recoveryCheckedRef.current,
 				filePath,
 				loading,
 				error,
 				slideCount,
+				autosaveAllowed,
 			})
 		) {
 			return;
 		}
 		recoveryCheckedRef.current = true;
 
-		if (typeof indexedDB === 'undefined') {
-			return;
-		}
-
 		void (async () => {
-			try {
-				const version = await getRecoveryVersion(filePath!);
-				if (version && hasRecentRecoveryVersion([version], Date.now())) {
-					openVersionHistory();
-				}
-			} catch {
-				// Silently ignore recovery check errors
+			const offer = await probeAutosaveRecovery(filePath!);
+			if (!offer) {
+				return;
 			}
+			recordRef.current = offer.record;
+			setPrompt(offer.prompt);
+			openVersionHistory?.();
 		})();
-	}, [filePath, loading, error, slideCount, openVersionHistory]);
+	}, [filePath, loading, error, slideCount, autosaveAllowed, openVersionHistory]);
+
+	const restore = useCallback(() => {
+		const record = recordRef.current;
+		setPrompt(null);
+		if (record && onRestore) {
+			onRestore(acceptAutosaveRecovery(record));
+		}
+		recordRef.current = null;
+	}, [onRestore]);
+
+	const discard = useCallback(() => {
+		const record = recordRef.current;
+		setPrompt(null);
+		recordRef.current = null;
+		if (record) {
+			void discardAutosaveRecovery(record);
+		}
+	}, []);
+
+	return { prompt, restore, discard };
 }

@@ -60,7 +60,7 @@ export function connectorStylePatch(
 				-->
 				<label class="geometry">
 					<span>Geometry</span>
-					<select (change)="onConnectorType($event)">
+					<select aria-label="Geometry" (change)="onConnectorType($event)">
 						@for (geometry of geometries; track geometry[0]) {
 							<option [value]="geometry[0]" [selected]="geometry[0] === connectorType()">
 								{{ geometry[1] }}
@@ -72,7 +72,10 @@ export function connectorStylePatch(
 					@for (control of arrowControls; track control.styleKey) {
 						<label>
 							<span>{{ control.labelKey | translate }}</span>
-							<select (change)="onArrow(control, $event)">
+							<select
+								[attr.aria-label]="control.labelKey | translate"
+								(change)="onArrow(control, $event)"
+							>
 								@for (value of control.values; track value) {
 									<option [value]="value" [selected]="value === arrowValue(control)">
 										{{ optionLabelKey(control, value) | translate }}

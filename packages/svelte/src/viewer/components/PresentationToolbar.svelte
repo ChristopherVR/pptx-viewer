@@ -49,6 +49,7 @@
 
 	const {
 		annotations,
+		chrome = new PresentToolbarChrome(),
 		current,
 		total,
 		presenterMode,
@@ -59,6 +60,12 @@
 		onexit,
 	}: {
 		annotations: PresentationAnnotations;
+		/**
+		 * Fade / auto-hide state. Injected by the viewer so PowerPoint's Ctrl+H can
+		 * reach the SAME flag from the show's key handler; the default keeps this
+		 * component usable on its own (and in its own tests).
+		 */
+		chrome?: PresentToolbarChrome;
 		/** Zero-based index of the slide on screen. */
 		current: number;
 		total: number;
@@ -74,7 +81,6 @@
 	} = $props();
 
 	const t = useTranslator();
-	const chrome = new PresentToolbarChrome();
 	const metricVars = presentToolbarStyleAttr();
 	const icon = PRESENT_TOOLBAR_METRICS.iconSize;
 

@@ -153,6 +153,31 @@ describe('renderChartElement', () => {
 	});
 });
 
+describe('region map region names', () => {
+	/**
+	 * A choropleth patch carries no label of its own, so the shared descriptor's
+	 * per-region `title` is BOTH its hover tooltip and its accessible name.
+	 * Vanilla projected every other field of the path primitive and dropped that
+	 * one, so a region map announced nothing at all.
+	 */
+	it('projects each region path title as an SVG <title> child', () => {
+		const svg = renderChart({
+			chartType: 'regionMap',
+			title: 'Revenue by country',
+			categories: ['France', 'Germany', 'Spain'],
+			series: [{ name: 'Revenue', values: [12, 34, 21] }],
+			style: { hasTitle: true },
+		}).querySelector('svg') as SVGSVGElement;
+
+		const titles = [...svg.querySelectorAll('path > title')].map((t) => t.textContent ?? '');
+		expect(titles.length).toBeGreaterThan(1);
+		// The matched regions name themselves AND report their value.
+		expect(titles.some((t) => t.startsWith('France:'))).toBeTruthy();
+		// An unmatched region still names itself, without a value.
+		expect(titles.some((t) => !t.includes(':'))).toBeTruthy();
+	});
+});
+
 describe('resolveChartPalette', () => {
 	it('prefers an explicit parsed colour palette', () => {
 		const data = { ...barChartData(), colorPalette: ['#111111', '#222222'] };

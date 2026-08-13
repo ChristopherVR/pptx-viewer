@@ -57,6 +57,15 @@ function makeSlides(): PptxSlide[] {
 			slideNumber: 1,
 			elements: [makeElement()],
 		} as unknown as PptxSlide,
+		// A second slide so the harness can NAVIGATE. Selecting a slide is the one
+		// interaction that changes editor state without changing the document, and
+		// the history effect used to be unable to tell the two apart.
+		{
+			id: 'slide-2',
+			rId: 'rId2',
+			slideNumber: 2,
+			elements: [],
+		} as unknown as PptxSlide,
 	];
 }
 
@@ -75,9 +84,16 @@ interface HarnessApi {
 	updateSelectedShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	/** A handler that reports a commit without changing the deck. */
 	markDirtyOnly: () => void;
+	/** Exactly what a thumbnail click does: move the active slide. */
+	goToSlide: (index: number) => void;
+	/** How many times the hook has reported "this document is dirty". */
+	dirtyReports: () => number;
+	/** The active slide index the hook is currently seeing. */
+	activeSlideIndex: () => number;
 }
 
 let api: HarnessApi | null = null;
+let dirtyReportCount = 0;
 
 function noopDispatch<T>(): React.Dispatch<React.SetStateAction<T>> {
 	return () => {};
@@ -110,6 +126,12 @@ function Harness(): React.ReactElement {
 		error: null,
 		hasActivePointerInteraction,
 		pointerCommitNonce: 0,
+		// The real composition passes `setIsDirty`; counting the calls is what
+		// distinguishes "reported dirty once, for the edit" from "reported dirty
+		// for a navigation too".
+		onDirty: useCallback(() => {
+			dirtyReportCount += 1;
+		}, []),
 		setSlides,
 		setCanvasSize,
 		setActiveSlideIndex,
@@ -147,6 +169,8 @@ function Harness(): React.ReactElement {
 	slidesRef.current = slides;
 	const historyRef = useRef(history);
 	historyRef.current = history;
+	const activeIndexRef = useRef(activeSlideIndex);
+	activeIndexRef.current = activeSlideIndex;
 
 	api = {
 		canUndo: () => historyRef.current.canUndo,
@@ -155,6 +179,9 @@ function Harness(): React.ReactElement {
 		updateSelectedElement: ops.updateSelectedElement,
 		updateSelectedShapeStyle: ops.updateSelectedShapeStyle,
 		markDirtyOnly: () => historyRef.current.markDirty(),
+		goToSlide: setActiveSlideIndex,
+		dirtyReports: () => dirtyReportCount,
+		activeSlideIndex: () => activeIndexRef.current,
 	};
 
 	return <div />;
@@ -163,6 +190,7 @@ function Harness(): React.ReactElement {
 let root: Root | null = null;
 
 function mount(): HarnessApi {
+	dirtyReportCount = 0;
 	const container = document.createElement('div');
 	document.body.append(container);
 	root = createRoot(container);
@@ -268,5 +296,84 @@ describe('history records content-only edits', () => {
 		});
 
 		expect(harness.canUndo()).toBeFalsy();
+	});
+});
+
+/**
+ * Navigation is not an edit.
+ *
+ * The tracking effect decided "the deck changed" by serializing the WHOLE
+ * history snapshot, and that snapshot carries `activeSlideIndex` so undo can
+ * return the user to the slide the edit happened on. Selecting a slide changes
+ * nothing else, so it read as a document mutation and the effect did both of
+ * the things it does for a real edit:
+ *
+ *  - called `onDirty`, which is what `state.isDirty` and through it
+ *    `useAutosave` gate on. Merely clicking through a deck therefore wrote a
+ *    crash-recovery snapshot, and the NEXT visit offered to "recover unsaved
+ *    changes" for a presentation the user had only read. Measured on the
+ *    running demos: IndexedDB held zero records after load and one after a
+ *    single thumbnail click, while Angular and Vanilla - which raise dirty from
+ *    explicit commit choke points - stayed empty throughout.
+ *  - pushed an undo entry, so Ctrl+Z walked back through navigation.
+ *
+ * The gate is now the document alone. `activeSlideIndex` still rides in the
+ * stored snapshot, and the last test here pins that it stays CURRENT, or undo
+ * would jump the user to wherever they happened to be before navigating.
+ */
+describe('navigating between slides is not an edit', () => {
+	it('reports no dirty and pushes no undo entry for a slide selection', () => {
+		const harness = mount();
+
+		act(() => {
+			harness.goToSlide(1);
+		});
+		act(() => {
+			harness.goToSlide(0);
+		});
+
+		expect(harness.activeSlideIndex()).toBe(0);
+		expect(harness.dirtyReports()).toBe(0);
+		expect(harness.canUndo()).toBeFalsy();
+	});
+
+	it('still records the next real edit, so the gate cannot swallow one', () => {
+		const harness = mount();
+
+		act(() => {
+			harness.goToSlide(1);
+		});
+		act(() => {
+			harness.goToSlide(0);
+		});
+		act(() => {
+			harness.updateSelectedElement({ x: 400 } as Partial<PptxElement>);
+		});
+
+		expect(harness.element().x).toBe(400);
+		expect(harness.dirtyReports()).toBeGreaterThan(0);
+		expect(harness.canUndo()).toBeTruthy();
+	});
+
+	it('undoes an edit made after navigating back to the slide it was made on', () => {
+		const harness = mount();
+
+		act(() => {
+			harness.goToSlide(1);
+		});
+		act(() => {
+			harness.goToSlide(0);
+		});
+		act(() => {
+			harness.updateSelectedElement({ x: 400 } as Partial<PptxElement>);
+		});
+		act(() => {
+			harness.undo();
+		});
+
+		expect(harness.element().x).toBe(100);
+		// The stored snapshot tracked the navigation even though it did not act on
+		// it, so undo restores the slide the edit happened on, not slide 2.
+		expect(harness.activeSlideIndex()).toBe(0);
 	});
 });

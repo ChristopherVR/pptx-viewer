@@ -44,6 +44,10 @@ export function createMotionPathRow(
 	caption.textContent = t('pptx.animation.motionPath.label');
 
 	const select = doc.createElement('select');
+	// The caption names the select EXPLICITLY. `el` is the wrapping `<label>`,
+	// and a wrapped control takes the label's whole text content as its name:
+	// that is the caption plus the edit hint plus every preset in the catalogue.
+	select.setAttribute('aria-label', t('pptx.animation.motionPath.label'));
 	const none = doc.createElement('option');
 	none.value = 'none';
 	none.textContent = t('pptx.animation.motionPath.none');

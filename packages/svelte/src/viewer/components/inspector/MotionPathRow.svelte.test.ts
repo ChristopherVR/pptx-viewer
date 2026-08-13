@@ -64,6 +64,18 @@ function mountPanel(animations?: PptxElementAnimation[]): {
 	return { editor, select: select!, target };
 }
 
+/**
+ * The accessible name a label-text consumer computes for a form control: its
+ * own `aria-label` if it has one, and otherwise the ENTIRE text of the `<label>`
+ * wrapping it. That fallback is the defect this pins: with the control nested in
+ * its label, the label's text is the caption plus every `<option>`, so the
+ * picker answered to the name of any path in the catalogue.
+ */
+function accessibleName(control: Element): string {
+	const own = control.getAttribute('aria-label');
+	return (own ?? control.closest('label')?.textContent ?? '').replace(/\s+/gu, ' ').trim();
+}
+
 function choose(select: HTMLSelectElement, value: string): void {
 	select.value = value;
 	select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -84,6 +96,19 @@ describe('motionPathRow', () => {
 		]);
 		// One option per preset, plus the leading "none" entry.
 		expect(select.querySelectorAll('option')).toHaveLength(MOTION_PATH_PRESETS.length + 1);
+	});
+
+	it('names the select itself instead of borrowing the whole label', () => {
+		const { select } = mountPanel([
+			{ elementId: 'shape-1', motionPath: 'M 0 0 L 0.37 0.11' } as PptxElementAnimation,
+		]);
+		const name = accessibleName(select);
+
+		expect(name).toBe('Motion Path');
+		// The caption alone: not the option list, and not the drag hint that also
+		// sits inside the same `<label>`.
+		expect(name).not.toContain('No motion path');
+		expect(name).not.toContain('Drag the end point');
 	});
 
 	it('hides the hint and the custom option until a path is applied', () => {

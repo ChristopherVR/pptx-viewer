@@ -28,6 +28,9 @@ export function optionSelect(
 	const label = doc.createElement('label');
 	label.textContent = t(labelText);
 	const select = doc.createElement('select');
+	// Named explicitly: the wrapping `<label>` would otherwise lend the select
+	// its whole text content, which includes every option.
+	select.setAttribute('aria-label', t(labelText));
 	for (const value of values) {
 		const option = doc.createElement('option');
 		option.value = value;

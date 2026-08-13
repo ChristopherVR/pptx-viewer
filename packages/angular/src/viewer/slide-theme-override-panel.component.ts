@@ -57,7 +57,11 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 					<label class="mapping">
 						<span>{{ labels[alias] | translate }}</span>
 						<i [style.background-color]="slotColor(current(alias))"></i>
-						<select [value]="current(alias)" (change)="change(alias, $event)">
+						<select
+							[attr.aria-label]="labels[alias] | translate"
+							[value]="current(alias)"
+							(change)="change(alias, $event)"
+						>
 							@for (slot of slots; track slot) {
 								<option [value]="slot">{{ slotLabelKey(slot) | translate }}</option>
 							}

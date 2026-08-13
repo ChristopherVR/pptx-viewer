@@ -122,7 +122,12 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 
 			<label class="flex flex-col gap-1 pl-4">
 				<span class="text-muted-foreground">{{ t('pptx.text3d.material') }}</span>
-				<select :class="INPUT_CLS" :value="t3d?.presetMaterial ?? ''" @change="onMaterial">
+				<select
+					:aria-label="t('pptx.text3d.material')"
+					:class="INPUT_CLS"
+					:value="t3d?.presetMaterial ?? ''"
+					@change="onMaterial"
+				>
 					<option v-for="opt in MATERIAL_PRESETS" :key="opt.value" :value="opt.value">
 						{{ opt.label }}
 					</option>

@@ -329,6 +329,7 @@ export type {
 	ViewerProfile,
 } from '../internal/shared';
 export { KeepAnnotationsDialogComponent } from './keep-annotations-dialog.component';
+export { AutosaveRecoveryDialogComponent } from './autosave-recovery-dialog.component';
 export { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
 export {
 	annotationMapToInkInserts,

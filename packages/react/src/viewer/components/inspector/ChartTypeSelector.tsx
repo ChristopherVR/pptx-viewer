@@ -61,6 +61,7 @@ export function ChartTypeSelector({
 			<label className='flex items-center gap-2 text-[11px]'>
 				<span className='w-10 text-muted-foreground shrink-0'>{t('pptx.chart.type')}</span>
 				<select
+					aria-label={t('pptx.chart.type')}
 					disabled={!canEdit}
 					className={INPUT}
 					value={chartType}
@@ -83,6 +84,7 @@ export function ChartTypeSelector({
 				<label className='flex items-center gap-2 text-[11px]'>
 					<span className='w-10 text-muted-foreground shrink-0'>{t('pptx.chart.grouping')}</span>
 					<select
+						aria-label={t('pptx.chart.grouping')}
 						disabled={!canEdit}
 						className={INPUT}
 						value={grouping ?? 'clustered'}

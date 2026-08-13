@@ -142,6 +142,7 @@ export function ThemeColorSchemeEditor({
 							{t('pptx.themeEditor.headingFont')}
 						</span>
 						<select
+							aria-label={t('pptx.themeEditor.headingFont')}
 							className={INPUT}
 							disabled={!canEdit}
 							value={COMMON_FONTS.includes(majorFont) ? majorFont : '__custom__'}
@@ -164,6 +165,7 @@ export function ThemeColorSchemeEditor({
 							{t('pptx.themeEditor.bodyFont')}
 						</span>
 						<select
+							aria-label={t('pptx.themeEditor.bodyFont')}
 							className={INPUT}
 							disabled={!canEdit}
 							value={COMMON_FONTS.includes(minorFont) ? minorFont : '__custom__'}

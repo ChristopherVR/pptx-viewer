@@ -177,13 +177,28 @@ export interface PowerPointViewerProps {
 	/** Host override for the File > Open action. */
 	onopenfile?: () => void;
 	/**
-	 * Enable debounced crash-recovery autosave. On each edit (when `editable`)
-	 * the current slides are serialized to `.pptx` bytes and written to the
-	 * shared IndexedDB recovery store (keyed by {@link filePath}), and
-	 * `onautosave` is fired with the bytes. Requires `filePath`; without one the
-	 * autosave indicator reads "disabled". This binding does not auto-restore on
-	 * load; recovery is a host concern (see the re-exported `getAutosaveSnapshot`
-	 * / `listAutosaveSnapshots` helpers). Default false.
+	 * POLICY CEILING for crash-recovery autosave. Not a switch the host flips on
+	 * the user's behalf: it states what this application permits, and the
+	 * title-bar AutoSave toggle (and File > Options > Save > AutoSave) is the
+	 * user's preference inside it.
+	 *
+	 *  - `false` turns autosave off AND renders the toggle off and inert; a user
+	 *    cannot switch on what the application forbade.
+	 *  - `true`, or omitted, PERMITS autosave and lets the toggle decide.
+	 *
+	 * While active, each edit serializes the current slides to `.pptx` bytes,
+	 * writes them to the shared IndexedDB recovery store (keyed by
+	 * {@link filePath}) and fires `onautosave`. A snapshot lands no later than
+	 * one interval after the first unsaved edit, and no more often than once per
+	 * interval. Requires `filePath`; without one the indicator reads "disabled".
+	 *
+	 * On the next load of the same `filePath` the viewer OFFERS the snapshot back
+	 * in a "Recover unsaved changes?" dialog (Restore loads it in place, Discard
+	 * deletes it), unless this prop is `false`. The store is also reachable
+	 * directly through the re-exported `getAutosaveSnapshot` /
+	 * `listAutosaveSnapshots` helpers.
+	 *
+	 * @default true
 	 */
 	autosave?: boolean;
 	/** Fired when the desktop title bar toggles AutoSave for this viewer instance. */
@@ -193,7 +208,16 @@ export interface PowerPointViewerProps {
 	 * Autosave is inert until this is set.
 	 */
 	filePath?: string;
-	/** Autosave debounce window in milliseconds. Default 2000. */
+	/**
+	 * Autosave cadence in milliseconds: the debounce window, and the ceiling on
+	 * how long an unbroken stream of edits may defer a snapshot.
+	 *
+	 * Optional, and a policy like {@link autosave}: pass it and it wins. Leave it
+	 * out and the cadence is the user's own File > Options > Save > "Save
+	 * AutoRecover information every N minutes", which defaults to two minutes.
+	 *
+	 * @default 120000 (Options > Save, "every 2 minutes")
+	 */
 	autosaveIntervalMs?: number;
 	/** Fired with the serialized `.pptx` bytes after each successful autosave. */
 	onautosave?: (bytes: Uint8Array) => void;

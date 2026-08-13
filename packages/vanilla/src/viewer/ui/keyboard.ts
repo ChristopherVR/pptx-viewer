@@ -30,6 +30,10 @@ export interface KeyboardHandlers {
 	toggleBlank?(value: 'black' | 'white'): void;
 	/** Show or hide live captions (PowerPoint's bare `J`). */
 	toggleSubtitles?(): void;
+	/** Show or hide the running show's own chrome (Ctrl+H). */
+	toggleChrome?(): void;
+	/** Raise PowerPoint's "See All Slides" navigator (Ctrl+S). */
+	showAllSlides?(): void;
 }
 
 /**
@@ -172,6 +176,15 @@ function handlePresentationKey(
 			return;
 		case 'toggleSubtitles':
 			handlers.toggleSubtitles?.();
+			break;
+		// Both of these resolved in the shared map and were then dropped: the
+		// `preventDefault()` above had already run, so the show swallowed the key
+		// and did nothing, which is worse than leaving it to the browser.
+		case 'toggleChrome':
+			handlers.toggleChrome?.();
+			break;
+		case 'showAllSlides':
+			handlers.showAllSlides?.();
 			break;
 		// A pending slide number and the context-menu key are consumed above so
 		// the browser does not act on them; nothing further to do.

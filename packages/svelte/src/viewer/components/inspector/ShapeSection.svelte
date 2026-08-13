@@ -26,7 +26,7 @@
 </script>
 
 {#if el.type === 'shape'}
-	<label>Shape type<select value={shapeType ?? 'rect'} onchange={(event) => setShapeType(event.currentTarget.value)}>{#each SHAPE_PRESET_DEFS as preset}<option value={preset.type}>{preset.label}</option>{/each}</select></label>
+	<label>Shape type<select aria-label="Shape type" value={shapeType ?? 'rect'} onchange={(event) => setShapeType(event.currentTarget.value)}>{#each SHAPE_PRESET_DEFS as preset}<option value={preset.type}>{preset.label}</option>{/each}</select></label>
 {/if}
 <div class="styles" aria-label="Quick styles">{#each SHAPE_QUICK_STYLES as preset}<button type="button" title={preset.name} style={`--fill:${preset.style.fillColor ?? 'transparent'};--stroke:${preset.style.strokeColor ?? 'transparent'}`} onclick={() => patchStyle(preset.style)}></button>{/each}</div>
 <button type="button" onclick={() => void sampleFill()} disabled={typeof window === 'undefined' || !('EyeDropper' in window)}>Eyedropper</button>

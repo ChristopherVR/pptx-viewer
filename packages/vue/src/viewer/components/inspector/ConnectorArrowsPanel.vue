@@ -72,6 +72,7 @@ function onChange(control: ConnectorArrowControl, event: Event): void {
 				t(control.labelKey)
 			}}</span>
 			<select
+				:aria-label="t(control.labelKey)"
 				class="pptx-vue-connector-arrow-input w-full bg-muted border border-border rounded px-1.5 py-0.5"
 				:value="valueOf(control)"
 				:disabled="!props.canEdit"

@@ -73,6 +73,7 @@
 		<label class="pptx-svelte-theme-field">
 			<span>{t('pptx.themeEditor.headingFont')}</span>
 			<select
+				aria-label={t('pptx.themeEditor.headingFont')}
 				disabled={!canEdit}
 				value={state.majorFont}
 				onchange={(event) => state.setFonts(event.currentTarget.value, state.minorFont)}
@@ -88,6 +89,7 @@
 		<label class="pptx-svelte-theme-field">
 			<span>{t('pptx.themeEditor.bodyFont')}</span>
 			<select
+				aria-label={t('pptx.themeEditor.bodyFont')}
 				disabled={!canEdit}
 				value={state.minorFont}
 				onchange={(event) => state.setFonts(state.majorFont, event.currentTarget.value)}

@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { nextAutosaveDelayMs } from 'pptx-viewer-shared';
 import { onScopeDispose, ref, toValue, watch } from 'vue';
 import type { Ref } from 'vue';
 
@@ -100,6 +101,13 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 
 	let timerId: number | null = null;
 	let savePromise: Promise<void> | null = null;
+	/**
+	 * When the oldest unsaved edit happened. A plain debounce re-arms on every
+	 * keystroke, so a user who keeps typing could defer the snapshot forever;
+	 * `nextAutosaveDelayMs` caps the wait at one interval from this moment, which
+	 * is the promise React and Angular's polling engines already keep.
+	 */
+	let firstDirtyAt: number | null = null;
 
 	const isEnabled = (): boolean => toValue(enabled) !== false;
 
@@ -122,6 +130,7 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 				await onSave();
 				lastSavedAt.value = Date.now();
 				isDirty.value = false;
+				firstDirtyAt = null;
 				status.value = 'saved';
 			} catch (err) {
 				status.value = 'error';
@@ -143,12 +152,29 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 
 	const scheduleSave = (): void => {
 		clearTimer();
+		const delay = nextAutosaveDelayMs({
+			intervalMs: toValue(intervalMs),
+			firstDirtyAt,
+			now: Date.now(),
+		});
 		timerId = timers.setTimer(() => {
 			timerId = null;
-			if (isEnabled()) {
+			// Re-read `isDirty` HERE, not at arming time. The watcher below arms on
+			// every reassignment of the watched stores, including the one that seeds
+			// the freshly loaded deck, and `useAutosaveWiring` clears the flag again
+			// once loading settles. Without this check that already-cancelled arm
+			// still fired, so merely OPENING a deck wrote a crash-recovery snapshot
+			// and the next visit offered to "recover unsaved changes" for a deck the
+			// user had only read. Anything that legitimately clears the flag (a real
+			// save, a host reseed) now also disarms the timer it left behind.
+			//
+			// `saveNow()` is deliberately NOT gated: it is an explicit request, not
+			// a poll, and the same asymmetry holds in the shared
+			// `shouldWriteAutosaveSnapshot`.
+			if (isEnabled() && isDirty.value) {
 				void runSave().catch(() => {});
 			}
-		}, toValue(intervalMs));
+		}, delay);
 	};
 
 	// Fires only on actual reassignments of the watched stores (not on setup,
@@ -162,6 +188,9 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 	watch(
 		templateElements ? [slides, templateElements] : [slides],
 		() => {
+			if (!isDirty.value || firstDirtyAt === null) {
+				firstDirtyAt = Date.now();
+			}
 			isDirty.value = true;
 			if (isEnabled()) {
 				scheduleSave();

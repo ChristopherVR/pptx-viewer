@@ -5,7 +5,8 @@
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
-import { resolveSelectionPaneRename } from 'pptx-viewer-shared';
+
+import { resolveSelectionPaneRename } from '../internal/shared';
 
 /** Unicode icon by element type (no Lucide dependency in Angular). */
 const ELEMENT_TYPE_ICONS: Record<string, string> = {

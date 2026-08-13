@@ -1,6 +1,14 @@
 /**
- * Pure helper functions extracted from useRecoveryDetection for testability.
+ * Thin shims over the shared crash-recovery decision.
+ *
+ * These pure helpers were React-only, which is exactly why only React ever
+ * offered a recovery snapshot back to the user: the other four bindings wrote
+ * snapshots and had nothing to consult. The logic now lives in
+ * `pptx-viewer-shared` (`render/autosave-recovery`) and all five ask it the same
+ * questions; these names stay so the React hook API does not churn.
  */
+
+import { AUTOSAVE_RECOVERY_WINDOW_MS, shouldProbeAutosaveRecovery } from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Guard: should we even attempt a recovery check?
@@ -12,6 +20,8 @@ export interface RecoveryCheckInput {
 	loading: boolean;
 	error: string | null;
 	slideCount: number;
+	/** Whether the host permits autosave at all. Defaults to true (see the shim note). */
+	autosaveAllowed?: boolean;
 }
 
 /**
@@ -21,25 +31,17 @@ export interface RecoveryCheckInput {
  * - Not currently loading
  * - No error present
  * - At least one slide loaded
+ * - The host has not switched autosave off
  */
 export function shouldCheckRecovery(input: RecoveryCheckInput): boolean {
-	const { alreadyChecked, filePath, loading, error, slideCount } = input;
-	if (alreadyChecked) {
-		return false;
-	}
-	if (!filePath) {
-		return false;
-	}
-	if (loading) {
-		return false;
-	}
-	if (error) {
-		return false;
-	}
-	if (slideCount === 0) {
-		return false;
-	}
-	return true;
+	return shouldProbeAutosaveRecovery({
+		alreadyChecked: input.alreadyChecked,
+		filePath: input.filePath,
+		loading: input.loading,
+		error: input.error,
+		slideCount: input.slideCount,
+		autosaveAllowed: input.autosaveAllowed ?? true,
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -47,7 +49,7 @@ export function shouldCheckRecovery(input: RecoveryCheckInput): boolean {
 // ---------------------------------------------------------------------------
 
 /** How recent (in ms) a recovery version must be to trigger the prompt. */
-export const RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+export const RECOVERY_WINDOW_MS = AUTOSAVE_RECOVERY_WINDOW_MS;
 
 /**
  * Returns true when the given timestamp is within the recovery window

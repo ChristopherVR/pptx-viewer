@@ -45,7 +45,11 @@ export function mergeImageEffects(
 			</label>
 			<label class="field field--stacked">
 				<span>{{ 'pptx.image.artisticEffects' | translate }}</span>
-				<select [value]="effects().artisticEffect ?? 'none'" (change)="onArtistic($event)">
+				<select
+					[attr.aria-label]="'pptx.image.artisticEffects' | translate"
+					[value]="effects().artisticEffect ?? 'none'"
+					(change)="onArtistic($event)"
+				>
 					@for (effect of artisticEffects; track effect[0]) {
 						<option [value]="effect[0]">{{ effect[1] | translate }}</option>
 					}

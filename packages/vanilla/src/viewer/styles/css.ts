@@ -154,6 +154,13 @@ const CHROME_CSS = `
 .pptxv-autosave-status.is-saving { color: var(--pptx-accent-foreground); opacity: 0.8; }
 .pptxv-autosave-status.is-error { color: #dc2626; }
 
+/* Crash-recovery prompt (\`autosave/autosave-recovery-dialog\`). It reuses the
+   \`pptxv-parity-*\` dialog shell, so only its own three classes are declared
+   here; the shell rules live in \`parity-dialog-css\`. */
+.pptxv-autosave-recovery .pptxv-parity-dialog { width: min(420px, calc(100vw - 32px)); }
+.pptxv-autosave-recovery-message { margin: 0; line-height: 1.45; }
+.pptxv-autosave-recovery-age { margin: 0; color: var(--pptx-muted-foreground); font-size: 11px; }
+
 /* ── PowerPoint-style title bar ─────────────────────────────────────── */
 .pptxv-titlebar {
 	position: relative;
@@ -192,6 +199,9 @@ const CHROME_CSS = `
 	cursor: pointer;
 }
 .pptxv-titlebar-switch.is-on { background: var(--pptx-primary); }
+/* The host passed \`autosave: false\`: the switch is a policy the user cannot
+   override, so it reads as unavailable instead of silently doing nothing. */
+.pptxv-titlebar-switch.is-disabled { opacity: .45; cursor: not-allowed; }
 .pptxv-titlebar-switch-knob { position: absolute; top: ${TB.switchKnobOffsetOff}px; left: ${TB.switchKnobOffsetOff}px; width: ${TB.switchKnobSize}px; height: ${TB.switchKnobSize}px; border-radius: 50%; background: #fff; transition: transform 120ms ease; }
 /* The knob is parked at its "off" offset, so the travel is the difference
    between the two offsets, not the "on" offset itself. */

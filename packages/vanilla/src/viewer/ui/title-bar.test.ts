@@ -7,7 +7,9 @@ import { createTitleBar } from './title-bar';
 
 function makeDeps(over: Partial<TitleBarDeps> = {}): TitleBarDeps {
 	return {
-		autosaveEnabled: false,
+		// The viewer now starts the switch ON wherever the host permits autosave
+		// (the option is a policy ceiling, not the user's preference).
+		autosaveEnabled: true,
 		onToggleAutosave: vi.fn(() => true),
 		save: vi.fn(),
 		undo: vi.fn(),
@@ -45,6 +47,50 @@ describe('createTitleBar', () => {
 		expect(() =>
 			titleBar.setEditState({ editable: true, canUndo: true, canRedo: true }),
 		).not.toThrow();
+	});
+});
+
+/**
+ * The AutoSave switch is the user's PREFERENCE inside the host's policy: it
+ * starts on, and it goes inert (not merely ignored) when the host passed
+ * `autosave: false`, because a switch that silently does nothing is worse than
+ * a visibly disabled one.
+ */
+describe('the title-bar AutoSave switch', () => {
+	function autosaveSwitch(deps: Partial<TitleBarDeps> = {}) {
+		const t = createTranslator();
+		const titleBar = createTitleBar(document, t, makeDeps(deps));
+		const toggle = titleBar.el.querySelector<HTMLButtonElement>('.pptxv-titlebar-switch');
+		return { t, titleBar, toggle: toggle as HTMLButtonElement };
+	}
+
+	it('starts on and reports its state through aria-checked', () => {
+		const { toggle } = autosaveSwitch();
+		expect(toggle.getAttribute('aria-checked')).toBe('true');
+		expect(toggle.classList.contains('is-on')).toBeTruthy();
+		expect(toggle.disabled).toBeFalsy();
+	});
+
+	it('flips to whatever the viewer reports back', () => {
+		const onToggleAutosave = vi.fn(() => false);
+		const { toggle } = autosaveSwitch({ onToggleAutosave });
+		toggle.click();
+		expect(onToggleAutosave).toHaveBeenCalledOnce();
+		expect(toggle.getAttribute('aria-checked')).toBe('false');
+	});
+
+	it('is inert when the host forbade autosave', () => {
+		const onToggleAutosave = vi.fn(() => true);
+		const { t, toggle } = autosaveSwitch({
+			autosaveEnabled: false,
+			autosaveToggleAvailable: false,
+			onToggleAutosave,
+		});
+		expect(toggle.disabled).toBeTruthy();
+		expect(toggle.title).toBe(t('pptx.autosave.disabledByHost'));
+		toggle.click();
+		expect(onToggleAutosave).not.toHaveBeenCalled();
+		expect(toggle.getAttribute('aria-checked')).toBe('false');
 	});
 });
 

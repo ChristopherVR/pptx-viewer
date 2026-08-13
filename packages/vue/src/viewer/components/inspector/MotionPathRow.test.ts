@@ -14,6 +14,18 @@ function mountRow(props: Record<string, unknown> = {}) {
 }
 
 /**
+ * The accessible name a label-text consumer computes for a form control: its
+ * own `aria-label` if it has one, and otherwise the ENTIRE text of the `<label>`
+ * wrapping it. That fallback is the defect this pins: with the control nested in
+ * its label, the label's text is the caption plus every `<option>`, so the
+ * picker answered to the name of any effect in its list.
+ */
+function accessibleName(control: Element): string {
+	const own = control.getAttribute('aria-label');
+	return (own ?? control.closest('label')?.textContent ?? '').replace(/\s+/gu, ' ').trim();
+}
+
+/**
  * MotionPathRow: the animation panel's motion-path picker.
  *
  * The interesting behaviour is the "Custom Path" marker: a hand-dragged path
@@ -78,5 +90,16 @@ describe('motionPathRow', () => {
 	it('disables the picker when editing is not allowed', () => {
 		const wrapper = mountRow({ canEdit: false });
 		expect(wrapper.get('select').attributes('disabled')).toBeDefined();
+	});
+
+	it('names the select itself instead of borrowing the whole label', () => {
+		const wrapper = mountRow({ motionPath: 'M 0 0 L 0.37 0.11' });
+		const name = accessibleName(wrapper.get('select').element);
+
+		expect(name).toBe(translationsEn['pptx.animation.motionPath.label']);
+		// The caption alone. Not the option list, and not the drag hint that also
+		// sits inside the same `<label>`.
+		expect(name).not.toContain(translationsEn['pptx.animation.motionPath.none']);
+		expect(name).not.toContain(translationsEn['pptx.animation.motionPath.editHint']);
 	});
 });

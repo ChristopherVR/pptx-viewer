@@ -136,7 +136,7 @@ const inputCls =
 				<span class="text-xs font-medium text-muted-foreground">{{
 					t('pptx.hyperlink.linkTo')
 				}}</span>
-				<select v-model="actionType" :class="inputCls">
+				<select :aria-label="t('pptx.hyperlink.linkTo')" v-model="actionType" :class="inputCls">
 					<option v-for="opt in ACTION_TYPES" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>

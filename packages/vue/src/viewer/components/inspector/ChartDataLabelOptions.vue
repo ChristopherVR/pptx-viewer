@@ -65,6 +65,7 @@ function onPosition(event: Event): void {
 			<label class="flex items-center gap-2 text-[11px]">
 				<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.labelPosition') }}</span>
 				<select
+					:aria-label="t('pptx.chart.labelPosition')"
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-data-label-position"
 					:value="labels.position ?? ''"

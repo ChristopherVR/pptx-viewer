@@ -23,6 +23,7 @@
  */
 import { AccessibilityService } from './accessibility.service';
 import { AiPanelStore } from './ai/ai-panel-store';
+import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
 import { ChartPartSelectionService } from './chart-part-selection.service';
 import { CollaborationService } from './collaboration.service';
@@ -75,6 +76,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	CustomFontsService,
 	AccessibilityService,
 	AutosaveService,
+	AutosaveRecoveryService,
 	PrintService,
 	IsMobileService,
 	SmartArt3DService,

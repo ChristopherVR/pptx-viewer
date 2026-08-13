@@ -63,6 +63,9 @@ export function createImageSection(
 	const artisticLabel = doc.createElement('label');
 	artisticLabel.textContent = t('pptx.image.artisticEffects');
 	const artistic = doc.createElement('select');
+	// Named explicitly: the wrapping `<label>` would otherwise lend the select
+	// its whole text content, which includes every effect name.
+	artistic.setAttribute('aria-label', t('pptx.image.artisticEffects'));
 	for (const [value, labelKey] of ARTISTIC_EFFECTS) {
 		const option = doc.createElement('option');
 		option.value = value;

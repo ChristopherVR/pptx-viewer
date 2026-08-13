@@ -46,7 +46,7 @@ export function shapeTypePatch(element: PptxElement, shapeType: string): Partial
 			<section class="panel" aria-label="Shape authoring">
 				<label class="field">
 					<span>Shape type</span>
-					<select [value]="shapeType()" (change)="onShapeType($event)">
+					<select aria-label="Shape type" [value]="shapeType()" (change)="onShapeType($event)">
 						@for (preset of presets; track preset.type) {
 							<option [value]="preset.type">{{ preset.label }}</option>
 						}
