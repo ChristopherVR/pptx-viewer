@@ -31,7 +31,9 @@ The file is processed entirely in the browser. Nothing is uploaded to a server: 
 :::
 
 ::: warning Supported files
-The app opens `.pptx` files only. Password-encrypted files cannot be opened; a dialog titled **Encrypted File** appears instead.
+The app opens `.pptx` and its relatives (`.ppsx`, `.pptm`, `.potx`), plus **legacy binary `.ppt`** from PowerPoint 97-2003, which is converted as it loads. Whatever you open, saving always writes a `.pptx`, so a deck opened as `report.ppt` is offered back as `report.pptx`.
+
+Password-protected `.pptx` files open once you supply the password: a dialog titled **Encrypted File** asks for it. Password-protected **`.ppt`** files cannot be opened at all, because the old encryption scheme is not decrypted.
 :::
 
 If the app finds unsaved work from a previous visit, a banner titled **Unsaved changes recovered** appears with **Restore** and **Dismiss** buttons. See [Autosave and recovery](/user/editing#autosave-and-recovery).

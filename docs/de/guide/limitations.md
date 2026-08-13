@@ -16,7 +16,7 @@ description: Was im Core-Engine und den Viewer-Bindungen nicht unterstuzt wird -
 
 Alles andere rundet den Kreis: SmartArt-Text und strukturelle Bearbeitungen, Diagrammdaten und Formatierung sowie OOXML Strict-Dateien uberleben Laden, Bearbeiten und Speichern.
 
-## Framework-Viewer (React, Vue 3, Angular)
+## Framework-Viewer (React, Vue 3, Angular, Svelte 5, Vanilla JS)
 
 ::: warning CSS-basiertes Rendering tauscht einige visuelle Effekte gegen Fidelitat an anderer Stelle
 Folien werden als HTML/CSS statt als Canvas gerendert, was scharfen Text bei jedem Zoom ergibt. Der Kompromiss: `backdrop-filter` wird ein halbtransparenter Hintergrund, `mix-blend-mode` wird auf Opazitatsalternativen abgebildet, CSS-3D-Transformationen werden auf 2D abgeflacht, und Pfaddegrades werden als elliptische Radiale approximiert.

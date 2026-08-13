@@ -40,7 +40,7 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 ## 2. Loading from a file `<input>`
 
 ```html
-<input type="file" id="file" accept=".pptx" />
+<input type="file" id="file" accept=".pptx,.ppt" />
 <div id="host" style="height: 80vh"></div>
 ```
 

@@ -67,7 +67,7 @@ export function FilePickerViewer() {
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-			<input type='file' accept='.pptx' onChange={handleFile} />
+			<input type='file' accept='.pptx,.ppt' onChange={handleFile} />
 			<div style={{ flex: 1, minHeight: 0 }}>
 				{content && <PowerPointViewer content={content} />}
 			</div>

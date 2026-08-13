@@ -153,6 +153,35 @@ const bytes = await handler.saveEncrypted(data.slides, 'secret');
 
 See [/core/encryption](/core/encryption) for algorithm options and details.
 
-## A note on `exportSlides`
+## `exportSlides`
 
-The handler also exposes `exportSlides(slides, options)` with `options.format: 'pdf' | 'png' | 'svg'`. In the default runtime this is a **backend hook, not a working exporter**: no rendering backend is configured, so it reports an `EXPORT_BACKEND_UNAVAILABLE` compatibility warning and returns empty byte arrays. For headless per-slide output use the [SVG exporter](/core/svg-export); for raster output use a viewer binding's export pipeline in a browser.
+The handler also exposes `exportSlides(slides, options)` with
+`options.format: 'pdf' | 'png' | 'svg'`, returning a `Map` keyed by slide index.
+
+**`svg` works with no setup.** It is rendered by the same headless
+[SVG exporter](/core/svg-export) the rest of this package uses, so it needs no
+DOM and runs in Node, Bun, Deno and Workers:
+
+```ts
+const exports = await handler.exportSlides(data.slides, {
+	format: 'svg',
+	slideIndices: [0, 2],
+});
+for (const [index, bytes] of exports) {
+	await fs.writeFile(`slide_${index}.svg`, Buffer.from(bytes));
+}
+// => one SVG document per exported slide
+```
+
+Hidden slides are skipped unless you pass `includeHidden: true`, so the returned
+map can be smaller than `slideIndices`. Pass `width` to rescale the viewport; the
+aspect ratio always comes from the deck.
+
+**`png` and `pdf` throw.** Rasterising needs a platform backend this package
+deliberately does not carry. It previously returned a correctly-keyed map of
+EMPTY byte arrays plus an `EXPORT_BACKEND_UNAVAILABLE` compatibility warning,
+which meant a caller who did not read the warning wrote zero-byte files and
+found out much later; it now fails loudly instead. For raster output use a
+viewer binding's export pipeline in a browser, or override `exportSlides` on the
+runtime with your own backend (an override replaces the body, so it is
+unaffected by the throw).

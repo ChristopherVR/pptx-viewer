@@ -20,7 +20,7 @@ port of the [React viewer](/react/), sharing the same underlying architecture an
 | **Viewer**         | Renders slides with 16 element types (shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom). |
 | **WYSIWYG editor** | Insert / move / resize / delete elements, inline text editing, style editing, slide management, gated behind `canEdit`.                      |
 | **Presenter**      | Fullscreen slideshow with animations, transitions, speaker notes, presenter view with timer.                                                 |
-| **Export**         | PNG / JPEG / SVG / PDF / GIF / video slide export, plus save-as PPTX. See [Export](/vue/export).                                             |
+| **Export**         | PNG / SVG / PDF / GIF / video / JSON slide export, plus save-as PPTX. See [Export](/vue/export).                                             |
 | **Collaboration**  | Real-time multi-user editing via Yjs CRDT with presence tracking and remote cursors. See [Collaboration](/vue/collaboration).                |
 
 ::: info Element coverage

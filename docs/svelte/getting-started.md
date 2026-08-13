@@ -100,7 +100,7 @@ new value loads the new presentation in place.
 	}
 </script>
 
-<input type="file" accept=".pptx" onchange={onPick} />
+<input type="file" accept=".pptx,.ppt" onchange={onPick} />
 {#if bytes}
 	<PowerPointViewer source={bytes} />
 {/if}

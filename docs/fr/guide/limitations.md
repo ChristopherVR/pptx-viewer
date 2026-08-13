@@ -16,7 +16,7 @@ description: Ce qui n'est pas supporte dans le moteur principal et les liaisons 
 
 Tout le reste fait l'aller-retour : texte et modifications structurelles SmartArt, donnees et mise en forme de graphiques, et fichiers OOXML Strict survivent au chargement, a l'edition et a la sauvegarde.
 
-## Visualiseurs de framework (React, Vue 3, Angular)
+## Visualiseurs de framework (React, Vue 3, Angular, Svelte 5, Vanilla JS)
 
 ::: warning Le rendu CSS echange certains effets visuels contre de la fidelite ailleurs
 Les diapositives sont rendues en HTML/CSS plutot qu'en Canvas, ce qui donne un texte net a n'importe quel zoom. La contrepartie : `backdrop-filter` devient un fond semi-transparent, `mix-blend-mode` se mappe sur des alternatives d'opacite, les transformations CSS 3D s'aplatissent en 2D, et les degrades de chemin s'approximent en radiaux elliptiques.

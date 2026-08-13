@@ -20,6 +20,7 @@ driven, no DOM capture); PPTX goes through the core serializer.
 | SVG             | Core `SvgExporter`: **stable** package-root functions (see below)                                        | per-slide SVG markup    |
 | Copy as image   | Rasterise the active slide → `ClipboardItem({'image/png'})` → system clipboard                           | -                       |
 | Print           | `usePrint`: slides (vector SVG document), outline (HTML), notes/handouts (rasterised), print window      | print window            |
+| JSON            | `exportToJson` (core model serializer): a portable JSON document that re-imports with full fidelity      | `<name>.json`           |
 | Package (share) | JSZip bundle of the serialized `.pptx` plus a generated README                                           | `<name>-package.zip`    |
 | PPTX/PPSX/PPTM  | `saveAs(format)` → `PptxHandler.save()` → `Uint8Array` (Save As)                                         | `presentation.<format>` |
 
@@ -43,10 +44,25 @@ Export is **driven by the viewer's UI**, not by props or the exposed API:
 
 ::: info No export method on the exposed handle
 The `defineExpose` surface has no raster/PDF/GIF/WebM/print methods; those are user-initiated
-through the toolbar/dialog. There is also no equivalent of React's standalone `renderToCanvas`
-utility at the Vue package root. For programmatic flows use the stable SVG functions below, or the
-internal composables.
+through the toolbar/dialog. For programmatic flows use the stable SVG functions below,
+`renderToCanvas` (see [React's docs](/react/export#rendertocanvas) for the identical signature), or
+the internal composables.
 :::
+
+## `renderToCanvas`
+
+```ts
+import { renderToCanvas } from 'pptx-vue-viewer';
+
+const canvas: HTMLCanvasElement = await renderToCanvas(element, { scale: 2 });
+```
+
+The same `html2canvas-pro` wrapper React, Angular, Svelte and Vanilla export: it
+normalises modern CSS colour functions (`oklch` / `oklab` / `lch` / `lab` /
+`color()`) to sRGB and runs the shared CSS-preprocessing pass over the cloned
+capture document before rasterising. Reach for it rather than calling
+`html2canvas` yourself: the viewer's theme tokens are authored in `oklch`, which
+html2canvas cannot parse.
 
 ## Stable: SVG export functions
 

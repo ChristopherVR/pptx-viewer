@@ -113,10 +113,16 @@ The inspector's **Properties** tab changes with the selection:
 Charts are directly editable without leaving the slide:
 
 - **Click** a bar, point, or slice to select it; the matching cell highlights in the inspector's data grid.
-- **Drag** a bar or point up or down to change its value (bar, line, scatter, and bubble charts). A badge shows the value while you drag; release to commit or press **Escape** to cancel.
+- **Drag** a bar or point up or down to change its value (bar, line, area, scatter, and bubble charts). A badge shows the value while you drag; release to commit or press **Escape** to cancel.
 - **Double-click the chart title** to rename it in place.
 
-Pie, radar, and stacked marks are click-to-select; edit their values in the data grid. Each change is a single undo step.
+Pie, doughnut, radar, and stacked marks are click-to-select; edit their values in the data grid. Each change is a single undo step.
+
+::: warning Dragging is not yet in every binding
+Drag-to-value is wired in the **React, Vue and Angular** viewers. The Svelte and vanilla
+viewers tag the marks but do not yet handle the drag, so on those two edit chart values in
+the inspector's data grid.
+:::
 
 ### Editing tables
 

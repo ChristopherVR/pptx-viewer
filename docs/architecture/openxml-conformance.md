@@ -15,16 +15,26 @@ A feature is fully supported only when every applicable capability below is
 verified. Preserving unknown XML is valuable, but it is not equivalent to
 understanding or editing that XML.
 
-| Capability | Requirement                                                                                                |
-| ---------- | ---------------------------------------------------------------------------------------------------------- |
-| Consume    | Parse every conforming representation without data loss or an unreported fallback.                         |
-| Preserve   | Retain unsupported markup, relationships, content types, ordering, and package parts through a dirty save. |
-| Render     | Reproduce the feature without a material semantic or visual fallback.                                      |
-| Edit       | Expose the feature in the typed model and apply supported mutations without damaging unrelated markup.     |
-| Produce    | Emit Strict or Transitional markup that validates against the selected conformance class.                  |
+The coverage manifest (`OPENXML_COVERAGE`, in `packages/core/src/core/openxml/`) scores every
+construct on **four** facets, typed as `OpenXmlCoverageFacet`:
 
-Each feature in the coverage manifest is classified independently as `full`,
-`partial`, `preserve-only`, or `unsupported` for these capabilities.
+| Facet       | Requirement                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `parse`     | Parse every conforming representation without data loss or an unreported fallback.                         |
+| `preserve`  | Retain unsupported markup, relationships, content types, ordering, and package parts through a dirty save. |
+| `edit`      | Expose the feature in the typed model and apply supported mutations without damaging unrelated markup.     |
+| `serialize` | Emit Strict or Transitional markup that validates against the selected conformance class.                  |
+
+Each facet is graded with an `OpenXmlCoverageLevel`: `native`, `partial`,
+`passthrough`, `unsupported`, or `unassessed`.
+
+::: warning The manifest does not score rendering
+There is deliberately **no `render` facet**. The manifest is a statement about the
+package-level round-trip, not about pixels: a construct can be `native` on all four
+facets and still be approximated on screen. Visual fidelity is tracked separately in
+[Limitations](/guide/limitations), which is the page to read for what a slide actually
+looks like.
+:::
 
 ## Strict vs Transitional
 
@@ -168,8 +178,8 @@ Full PresentationML parity requires all of these gates:
    package structure, typed semantics, and reference renders.
 6. Strict-to-Transitional and Transitional-to-Strict conversions validate in
    both directions without rewriting conformance-independent namespaces.
-7. No coverage-manifest entry remains `partial`, `preserve-only`, or
-   `unsupported` before a full-parity claim is published.
+7. No coverage-manifest facet remains `partial`, `passthrough`, `unsupported`,
+   or `unassessed` before a full-parity claim is published.
 
 ## Scope families
 

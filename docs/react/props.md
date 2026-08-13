@@ -102,7 +102,15 @@ the full flow and the `CollaborationConfig` shape.
 `onStartCollaboration` to set the `collaboration` prop, and `onStopCollaboration` to clear it.
 :::
 
-## Full interface
+## Interface sketch
+
+::: info Abridged
+This block shows the commonly used members, not the whole type. `PowerPointViewerProps`
+also carries `ai`, `accountAuth`, `hiddenActions`, `fonts`, `fileName`, `availableThemes`,
+`defaultThemeKey`, `onThemeChange`, `availableLocales`, `defaultLocale`, `onLocaleChange`,
+`onModeChange`, `onSelectionChange`, `onSlideCountChange` and `onZoomChange`. Read the
+shipped `.d.ts` (or `packages/react/src/viewer/types-ui.ts`) for the authoritative list.
+:::
 
 ```ts
 interface PowerPointViewerProps {

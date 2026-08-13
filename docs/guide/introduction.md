@@ -13,7 +13,7 @@ description: A high-level overview of the pptx-viewer TypeScript monorepo for pa
 
 The SDK provides nine core capabilities:
 
-1. **Parse** `.pptx` files from a raw `ArrayBuffer` into a structured [`PptxData`](/guide/data-model) model.
+1. **Parse** `.pptx` (and `.ppsx` / `.pptm` / `.potx`, plus legacy binary `.ppt` from PowerPoint 97-2003) from a raw `ArrayBuffer` into a structured [`PptxData`](/guide/data-model) model.
 2. **Create** presentations from scratch with a fluent builder API.
 3. **Render** slides as interactive React, Vue, Angular, Svelte, or vanilla JS components.
 4. **Edit** presentations programmatically or via the built-in WYSIWYG editor.
@@ -23,7 +23,7 @@ The SDK provides nine core capabilities:
 8. **Collaborate** in real time via Yjs CRDT with presence tracking.
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256).
 
-The engine handles the full OpenXML specification including 16 element types, 187+ preset shapes, 23 chart types, SmartArt, 3D models, animations, transitions (including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink, digital signatures, encryption, VBA macro preservation, and OOXML Strict conformance.
+The engine handles the full OpenXML specification including 16 element types, all 187 `ST_ShapeType` preset shapes, 23 chart types, 74 built-in table styles, SmartArt, 3D models, animations, 57 transition effects (including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink, digital signatures, encryption, VBA macro preservation, and OOXML Strict conformance.
 
 ## Who is it for
 

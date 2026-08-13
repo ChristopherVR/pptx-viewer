@@ -66,7 +66,7 @@ import { PowerPointViewer } from 'pptx-vue-viewer';
 
 ## Built-in presets: vermilion light & dark
 
-Two ready-made themes ship with every binding (React, Vue, Angular). They carry the same vermilion
+Two ready-made themes ship with all five bindings (React, Vue, Angular, Svelte, vanilla). They carry the same vermilion
 brand as this documentation site: a warm paper canvas in light mode, a dimmed presenter room in
 dark mode.
 

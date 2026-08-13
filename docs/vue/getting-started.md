@@ -66,7 +66,7 @@ async function handleFile(e: Event): Promise<void> {
 
 <template>
 	<div style="display: flex; flex-direction: column; height: 100vh">
-		<input type="file" accept=".pptx" @change="handleFile" />
+		<input type="file" accept=".pptx,.ppt" @change="handleFile" />
 		<div style="flex: 1; min-height: 0">
 			<PowerPointViewer v-if="content" :content="content" />
 		</div>

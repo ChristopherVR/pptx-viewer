@@ -49,7 +49,7 @@ export const translationsFr: Record<TranslationKey, string> = {
 
 ## Contribuer une traduction
 
-Pour ajouter une langue de premiere classe a `pptx-viewer-shared` (et donc aux trois liaisons a la fois) :
+Pour ajouter une langue de premiere classe a `pptx-viewer-shared` (et donc aux cinq liaisons a la fois) :
 
 1. Ajoutez `packages/shared/src/i18n/translations-<code>.ts` exporter `translations<Code>` type `Record<TranslationKey, string>`.
 2. Traduisez chaque valeur en preservant les espaces reserves d'interpolation `{{token}}`.

@@ -9,7 +9,7 @@ description: The PptxViewerInstance returned by createPptxViewer - loading, navi
 template refs / handles. All toolbar operations are also available as instance methods, so you can
 hide the chrome (`showToolbar: false`, `showThumbnails: false`) and drive the viewer from your
 own UI. The interface extends the shared `PowerPointViewerAPI` implemented by every binding, so the
-`getContent` / `goTo` / `getSlides`-style methods below match the React, Vue, and Angular handles.
+`getContent` / `goTo` / `getSlides`-style methods below match the React, Vue, Angular, and Svelte handles.
 
 ```ts
 import { createPptxViewer, type PptxViewerInstance } from 'pptx-vanilla-viewer';
@@ -174,6 +174,31 @@ interface ExportVideoOptions {
 Downloads are named `presentation-slide-<n>.png`, `presentation.pdf`, `presentation.gif`, and
 `presentation.webm`. Aborting via `signal` rejects with an `AbortError` `DOMException`.
 
+### `renderToCanvas`
+
+A standalone function exported from the package root (no viewer instance needed) that rasterises
+any DOM element to a Canvas:
+
+```ts
+import { renderToCanvas } from 'pptx-vanilla-viewer';
+
+const canvas: HTMLCanvasElement = await renderToCanvas(element, { scale: 2 });
+const dataUrl = canvas.toDataURL('image/png');
+```
+
+```ts
+function renderToCanvas(
+	element: HTMLElement,
+	options?: Partial<Html2CanvasOptions>, // the html2canvas-pro Options type
+): Promise<HTMLCanvasElement>;
+```
+
+The same `html2canvas-pro` wrapper React, Vue, Angular and Svelte export. Reach for it rather than
+calling `html2canvas` yourself: during the `onclone` phase it runs the shared CSS-preprocessing
+passes, which convert modern colour functions (`oklch` / `oklab` / `lch` / `lab` / `color()`) to
+sRGB and flatten `backdrop-filter`, `mix-blend-mode` and CSS 3D transforms. The viewer's theme
+tokens are authored in `oklch`, which html2canvas cannot parse on its own.
+
 ### Print
 
 `print()` covers slides, notes pages, handouts, and an outline view, assembled from the shared
@@ -315,3 +340,36 @@ fitButton.addEventListener('click', () => viewer.zoomToFit());
 presentButton.addEventListener('click', () => void viewer.enterPresentation());
 pdfButton.addEventListener('click', () => void viewer.exportPdf());
 ```
+
+## Openable file kinds {#openable-file-kinds}
+
+The package root re-exports the shared answer to "can the viewer open this file?", so a host's
+drop target and its `<input accept>` cannot disagree with the loader. Hand-rolled `endsWith`
+chains drift: every demo in this repo once shipped `.pptx,.ppt,.json`, which refused on drop a
+`.pptm` that **File > Open** inside the viewer accepted without complaint.
+
+```ts
+import {
+	PPTX_OPEN_ACCEPT,
+	PRESENTATION_OPEN_EXTENSIONS,
+	isSupportedPresentationFile,
+	isLegacyBinaryPresentation,
+	presentationBaseName,
+	savedPresentationFileName,
+	type SavedPresentationFormat,
+} from 'pptx-vanilla-viewer';
+```
+
+| Export                         | Type                                                                  | Description                                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `PPTX_OPEN_ACCEPT`             | `string`                                                              | Ready-made `<input type="file" accept>` value: `.pptx,.ppsx,.pptm,.potx,.ppt,.json`.                                  |
+| `PRESENTATION_OPEN_EXTENSIONS` | `readonly string[]`                                                   | The same list unjoined, for a drop target that wants to test extensions itself.                                       |
+| `isSupportedPresentationFile`  | `(name?: string \| null) => boolean`                                  | Cheap pre-filter for a picked or dropped file name. Extension-only; the real answer is the loader's sniff.            |
+| `isLegacyBinaryPresentation`   | `(name?: string \| null) => boolean`                                  | True for the binary PowerPoint 97-2003 family (`.ppt` / `.pps` / `.pot`), which the viewer reads but never writes.    |
+| `presentationBaseName`         | `(name?: string \| null, fallback?: string) => string`                | The file-name stem, directories and any loadable extension removed (a path like `decks/report.ppt` becomes `report`). |
+| `savedPresentationFileName`    | `(name?: string \| null, format?: SavedPresentationFormat) => string` | The name a saved copy should be offered under: `report.ppt` becomes `report.pptx`.                                    |
+| `SavedPresentationFormat`      | `'pptx' \| 'ppsx' \| 'pptm'`                                          | The formats the save path can produce. Binary `.ppt` is deliberately absent: output is always OpenXML.                |
+
+`savedPresentationFileName` is the one that matters on Save As. Output is always an OpenXML
+package, so keeping a legacy source extension would hand the user a `.ppt` whose bytes are a ZIP,
+which PowerPoint refuses to open.

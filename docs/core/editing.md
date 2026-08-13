@@ -266,7 +266,7 @@ const bytes = await handler.save(data.slides);
 
 ### Restyle with a theme preset
 
-`THEME_PRESETS` ships built-in color/font schemes (office, facet, integral, ion, organic, retrospect, slate, metropolitan, ...). `handler.switchThemePreset` updates both the in-memory ZIP (so the change persists through save) and the resolved colors in the parsed data:
+`THEME_PRESETS` ships eight built-in color/font schemes: office, facet, integral, ion, organic, retrospect, slate, and metropolitan. `handler.switchThemePreset` updates both the in-memory ZIP (so the change persists through save) and the resolved colors in the parsed data:
 
 ```ts
 import { THEME_PRESETS } from 'pptx-viewer-core';

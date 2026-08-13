@@ -37,6 +37,7 @@ Open **File > Export**:
 | **Export current slide**   | A PNG image of the current slide.                                     | Current slide |
 | **Create a Video**         | A `.webm` video that plays through the deck, a few seconds per slide. | Whole deck    |
 | **Create an Animated GIF** | A compact looping GIF of the deck.                                    | Whole deck    |
+| **Export as JSON**         | A portable JSON document that re-imports with full fidelity.          | Whole deck    |
 | **Copy as Image**          | Copies the current slide to your clipboard as an image.               | Current slide |
 
 For whole-deck formats a progress dialog shows each slide being captured, with a **Cancel** button if you change your mind. The finished file downloads automatically.

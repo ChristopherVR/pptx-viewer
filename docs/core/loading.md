@@ -22,7 +22,7 @@ console.log(`Canvas: ${data.width} x ${data.height}`);
 `handler.load(data, options?)` accepts an `ArrayBuffer` and returns `Promise<PptxData>`.
 
 ::: tip Keep the handler
-The handler holds the in-memory ZIP. Use the **same** handler instance to later `save()`, `exportSlides()`, or fetch media via `getImageData()` / `getMediaArrayBuffer()`.
+The handler holds the in-memory ZIP. Use the **same** handler instance to later `save()` or fetch media via `getImageData()` / `getMediaArrayBuffer()`.
 :::
 
 ## Getting an `ArrayBuffer`

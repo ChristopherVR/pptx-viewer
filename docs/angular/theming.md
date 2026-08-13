@@ -40,7 +40,7 @@ export class Example {
 
 ## Built-in presets: vermilion light & dark
 
-Two ready-made themes ship with every binding (React, Vue, Angular). They carry the same vermilion
+Two ready-made themes ship with all five bindings (React, Vue, Angular, Svelte, vanilla). They carry the same vermilion
 brand as this documentation site: a warm paper canvas in light mode, a dimmed presenter room in
 dark mode.
 
@@ -66,8 +66,8 @@ const custom: ViewerTheme = {
 };
 ```
 
-The React and Vue packages export the same five symbols from `pptx-react-viewer` and
-`pptx-vue-viewer`.
+The React, Vue, Svelte and vanilla packages export the same five symbols from
+`pptx-react-viewer`, `pptx-vue-viewer`, `pptx-svelte-viewer` and `pptx-vanilla-viewer`.
 
 ## `ViewerTheme` and `ViewerThemeColors`
 
@@ -90,7 +90,7 @@ interface ViewerTheme {
 ```
 
 `ViewerThemeColors` keys (all CSS color strings - hex, `rgb()`, `hsl()`, `oklch()`, named) are shared
-across all three bindings: `background`, `foreground`, `card`, `cardForeground`, `popover`,
+across all five bindings: `background`, `foreground`, `card`, `cardForeground`, `popover`,
 `popoverForeground`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `muted`,
 `mutedForeground`, `accent`, `accentForeground`, `destructive`, `destructiveForeground`, `border`,
 `input`, `ring`.

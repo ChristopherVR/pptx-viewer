@@ -5,7 +5,7 @@ description: The hooks-based architecture of PowerPointViewer, the curated set o
 
 # Hooks
 
-`PowerPointViewer` is a thin `forwardRef` orchestrator. Almost all of its logic lives in **67+ custom
+`PowerPointViewer` is a thin `forwardRef` orchestrator. Almost all of its logic lives in **80+ custom
 hooks** composed inside `PowerPointViewer.tsx`, while the visual components are largely
 presentational. State is held entirely in React hooks; there is no external state library.
 
@@ -50,7 +50,7 @@ handlers, presentation sub-hooks, etc.). See the **[Complete Hooks Reference](/r
 for the full list, grouped by concern.
 
 Internal hooks are wiring-heavy by design. `useEditorHistory`, for example, takes the full editor
-state plus a setter for every state slice (13 setters) and returns
+state plus a setter for every state slice (8 setters) and returns
 `{ canUndo, canRedo, undoLabel, redoLabel, handleUndo, handleRedo, resetHistory, markDirty, buildHistorySnapshot }`.
 That shape only makes sense inside the component's composition; for standalone undo/redo, mutate
 `PptxData` yourself and snapshot it (see [Editing Programmatically](/core/editing)).

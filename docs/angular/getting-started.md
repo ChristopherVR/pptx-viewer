@@ -67,7 +67,7 @@ import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 	imports: [PowerPointViewerComponent],
 	template: `
 		<div style="display: flex; flex-direction: column; height: 100vh">
-			<input type="file" accept=".pptx" (change)="onFile($event)" />
+			<input type="file" accept=".pptx,.ppt" (change)="onFile($event)" />
 			<div style="flex: 1; min-height: 0">
 				@if (content(); as bytes) {
 					<pptx-viewer [content]="bytes" />

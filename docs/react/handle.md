@@ -189,3 +189,36 @@ function SlideInspector({ viewerRef }: { viewerRef: React.RefObject<PowerPointVi
 `onContentChange` is a push callback that fires with fresh bytes as the document changes. Use
 whichever fits your save model; they return equivalent `Uint8Array` content.
 :::
+
+## Openable file kinds {#openable-file-kinds}
+
+The package root re-exports the shared answer to "can the viewer open this file?", so a host's
+drop target and its `<input accept>` cannot disagree with the loader. Hand-rolled `endsWith`
+chains drift: every demo in this repo once shipped `.pptx,.ppt,.json`, which refused on drop a
+`.pptm` that **File > Open** inside the viewer accepted without complaint.
+
+```ts
+import {
+	PPTX_OPEN_ACCEPT,
+	PRESENTATION_OPEN_EXTENSIONS,
+	isSupportedPresentationFile,
+	isLegacyBinaryPresentation,
+	presentationBaseName,
+	savedPresentationFileName,
+	type SavedPresentationFormat,
+} from 'pptx-react-viewer';
+```
+
+| Export                         | Type                                                                  | Description                                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `PPTX_OPEN_ACCEPT`             | `string`                                                              | Ready-made `<input type="file" accept>` value: `.pptx,.ppsx,.pptm,.potx,.ppt,.json`.                                  |
+| `PRESENTATION_OPEN_EXTENSIONS` | `readonly string[]`                                                   | The same list unjoined, for a drop target that wants to test extensions itself.                                       |
+| `isSupportedPresentationFile`  | `(name?: string \| null) => boolean`                                  | Cheap pre-filter for a picked or dropped file name. Extension-only; the real answer is the loader's sniff.            |
+| `isLegacyBinaryPresentation`   | `(name?: string \| null) => boolean`                                  | True for the binary PowerPoint 97-2003 family (`.ppt` / `.pps` / `.pot`), which the viewer reads but never writes.    |
+| `presentationBaseName`         | `(name?: string \| null, fallback?: string) => string`                | The file-name stem, directories and any loadable extension removed (a path like `decks/report.ppt` becomes `report`). |
+| `savedPresentationFileName`    | `(name?: string \| null, format?: SavedPresentationFormat) => string` | The name a saved copy should be offered under: `report.ppt` becomes `report.pptx`.                                    |
+| `SavedPresentationFormat`      | `'pptx' \| 'ppsx' \| 'pptm'`                                          | The formats the save path can produce. Binary `.ppt` is deliberately absent: output is always OpenXML.                |
+
+`savedPresentationFileName` is the one that matters on Save As. Output is always an OpenXML
+package, so keeping a legacy source extension would hand the user a `.ppt` whose bytes are a ZIP,
+which PowerPoint refuses to open.

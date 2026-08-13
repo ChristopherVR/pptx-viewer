@@ -180,7 +180,7 @@ the full set of lower-level collaboration building blocks (`LocalPresencePublish
 
 With the default `websocket` transport you need a running `y-websocket`-compatible relay reachable
 at `serverUrl`. Two production-shaped reference servers ship in `demos/` and are shared across all
-three bindings (React, Vue, Angular all speak the same sync schema):
+five bindings (React, Vue, Angular, Svelte and vanilla all speak the same sync schema):
 
 - **`demos/collab-server.example.mjs`** - zero-dependency Bun server (uses the repo's existing
   `yjs` / `y-protocols` / `lib0`). Auth has two modes, both validated at the websocket handshake

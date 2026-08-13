@@ -173,16 +173,34 @@ The assistant is given a fixed set of deck tools. You can narrow them with
 `tools.enabled` (allowlist) / `tools.disabled` (denylist), or add your own with
 `tools.extra`.
 
-- **Read**: `get_deck_overview`, `get_slide`, `get_element`, `get_speaker_notes`,
-  `find_text`, `get_theme`
-- **Navigate**: `go_to_slide`, `select_elements`
-- **Edit elements**: `update_text`, `set_text_style`, `set_shape_style`,
-  `move_resize_element`, `add_element`, `delete_elements`, `arrange_elements`,
-  `group_elements`, `update_table_cell`, `update_chart_data`, `replace_all`
-- **Edit slides**: `add_slide`, `duplicate_slide`, `delete_slides`,
-  `reorder_slides`, `set_speaker_notes`, `update_slide_properties`,
-  `set_slide_transition`, `set_element_animation`
-- **Edit theme**: `apply_theme_preset`, `update_theme_colors`, `update_theme_fonts`
+There are **55** of them, typed as `PptxAiToolName`. Most are the same functions the
+[MCP server](/packages/mcp) exposes, so a tool name means the same thing to an in-app
+assistant and to an external agent; a handful are viewer-only because they need the live
+UI (selection, navigation, the resolved deck overview).
+
+- **Viewer-only reads** (6): `get_deck_overview`, `get_slide`, `get_element`,
+  `get_speaker_notes`, `find_text`, `get_theme`
+- **Viewer-only navigation and convenience** (3): `go_to_slide`, `select_elements`,
+  `merge_tables`
+- **Other reads** (7): `get_metadata`, `get_layouts`, `find_placeholders`,
+  `get_presentation_properties`, `run_accessibility_check`, `convert_to_markdown`,
+  `export_to_json`
+- **Element editing** (13): `add_element`, `update_element`, `delete_elements`,
+  `arrange_elements`, `clone_element`, `set_element_animation`, `group_elements`,
+  `ungroup_elements`, `batch_update_elements`, `update_element_style`,
+  `replace_geometry`, `set_element_lock`, `manage_hyperlinks`
+- **Text, tables, charts, SmartArt** (11): `replace_text`, `manage_comments`,
+  `update_table_cells`, `manage_table_structure`, `create_chart`, `update_chart`,
+  `add_chart_series`, `remove_chart_series`, `update_chart_series_data`,
+  `manage_smart_art`, `apply_template`
+- **Slide structure** (6): `add_slide`, `duplicate_slide`, `delete_slides`,
+  `reorder_slides`, `update_slide_properties`, `set_slide_transition`
+- **Theme** (3): `apply_theme_preset`, `update_theme_colors`, `update_theme_fonts`
+- **Presentation level** (6): `set_canvas_size`, `update_metadata`, `manage_sections`,
+  `update_presentation_properties`, `import_from_json`, `apply_layout`
+
+Speaker notes are readable (`get_speaker_notes`) but there is no dedicated write tool for
+them; the assistant edits notes through `update_slide_properties`.
 
 ```ts
 const ai: PptxAiConfig = {

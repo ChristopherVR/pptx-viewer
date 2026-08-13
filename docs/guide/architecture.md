@@ -91,8 +91,10 @@ New engine capabilities (including new element types) are added as new links in 
 
 ```
 ArrayBuffer
-  │  encryption detection (decrypt with password if protected)
-  │  ZIP signature check (rejects legacy binary .ppt)
+  │  container sniff: an OLE compound file is either a legacy binary
+  │  .ppt (converted to an in-memory .pptx package) or an encrypted
+  │  OOXML package (decrypted with the supplied password)
+  │  ZIP signature check on whatever comes out
   ▼
 JSZip.loadAsync                 in-memory archive
   │  zip-bomb guard: 500 MiB uncompressed budget (configurable),
@@ -113,7 +115,7 @@ PptxLoadDataBuilder             assembles the final model
 PptxData
 ```
 
-1. **Container checks first.** Password-protected files raise `EncryptedFileError` unless a password is supplied for decryption. Non-ZIP input (including legacy binary `.ppt`) is rejected with a clear error. Oversized archives throw `ZipBombError` before any parsing happens.
+1. **Container checks first.** An OLE compound file is not necessarily an error: it is how both a legacy binary `.ppt` and an encrypted OOXML package arrive. A PowerPoint 97-2003 presentation (recognised by its `PowerPoint Document` stream) is converted to an equivalent in-memory `.pptx` package by `core/ppt/` and loaded from there, so the rest of the pipeline never learns the deck was binary. Otherwise the container is treated as encrypted and raises `EncryptedFileError` unless a password is supplied for decryption; a password-protected `.ppt` raises `EncryptedPptError`, because legacy RC4 encryption is not decrypted. Input that is neither a ZIP nor an OLE compound file is rejected with a clear error. Oversized archives throw `ZipBombError` before any parsing happens.
 2. **XML parsing** uses `fast-xml-parser`; every part becomes a plain object tree (the `XmlObject` type) with `@_`-prefixed attributes.
 3. **Theme resolution** loads each master's theme, colour map (`p:clrMap`), font scheme, and format scheme so that slide parsing can resolve scheme colours and style references (see below).
 4. **Element parsing** turns each slide's shape tree into the [`PptxElement` discriminated union](/guide/data-model#the-pptxelement-union), converting EMU coordinates to pixels and preserving raw XML for constructs the typed model does not cover.

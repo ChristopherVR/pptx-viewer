@@ -150,9 +150,13 @@ new saves without discarding anything already emitted. Each autosave cycle also 
 in-memory, session-scoped version-history snapshot (see the Version History panel), separate from
 the `@autosave` payload itself.
 
-::: warning No built-in persistence or recovery
-This differs from the React binding's IndexedDB-backed autosave/recovery flow: the Vue viewer does
-not write to IndexedDB and has no built-in "recover an unsaved session" prompt. If you need that
-behaviour, persist the `@autosave` bytes yourself (e.g. to IndexedDB, `localStorage`, or your
-backend) and re-supply `content` on reload.
+::: info Persistence yes, recovery prompt no
+Each autosave cycle also writes the bytes to the shared IndexedDB recovery store (the same store
+React, Angular, Svelte and vanilla use), so **File > Open**'s "Recent" list and **File > Account**'s
+Storage &amp; Privacy panel report real data. Those snapshots are stored as a plain ZIP even for a
+password-protected deck, so recovery can read them back without a password.
+
+What Vue does **not** yet have is the "recover an unsaved session" **prompt** on load, which is
+currently React-only. Until that lands, drive recovery yourself: read the snapshot back and
+re-supply `content`, or persist the `@autosave` bytes wherever your app prefers.
 :::

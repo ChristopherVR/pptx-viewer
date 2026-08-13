@@ -1,6 +1,6 @@
 ---
 title: Geometry Engine
-description: Overview of the pptx-viewer-core geometry engine - 188 evaluable preset shapes, clip paths, connector routing, the OOXML DrawingML guide-formula evaluator, and exported helpers.
+description: Overview of the pptx-viewer-core geometry engine - all 187 ST_ShapeType preset shapes, clip paths, connector routing, the OOXML DrawingML guide-formula evaluator, and exported helpers.
 ---
 
 # Geometry Engine
@@ -13,24 +13,26 @@ This is an overview of what the module does and the public helpers it exports (r
 
 Three exported tables cover the ECMA-376 preset catalogue from different angles:
 
-| Table                         | Entries | Contents                                                                                                                                                                                  |
-| ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PRESET_SHAPE_GEOMETRY_TABLE` | 188     | Full evaluable geometry definitions (`avLst`, `gdLst`, `pathLst`, text rect) per preset.                                                                                                  |
-| `PRESET_SHAPE_CLIP_PATHS`     | 200     | Precomputed static SVG clip paths keyed by preset name (includes aliases).                                                                                                                |
-| `PRESET_SHAPE_DEFINITIONS`    | 195     | Insertable shape definitions with display names, grouped by `PRESET_SHAPE_CATEGORY_LABELS` into 9 categories: basic, rectangles, arrows, stars, callouts, flowchart, math, action, other. |
+`ST_ShapeType` (ISO/IEC 29500-1 section 20.1.10.56) is a **closed 187-value enumeration**, and every one of those 187 presets has a full evaluable definition. That 187 is the number to reason about; the table sizes below differ from it only because two of them carry extra lookup keys.
+
+| Table                         | Keys | Contents                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PRESET_SHAPE_GEOMETRY_TABLE` | 194  | Full evaluable geometry definitions (`avLst`, `gdLst`, `pathLst`, text rect). All 187 `ST_ShapeType` presets, plus 6 alias keys (`cylinder`, `pentArrow`, `flowChartStoredData`, `bentArrowCallout`, `bentUpArrowCallout`, `diamondTabs`) and one render-only invention, `mathFunction`, which has no ECMA equivalent and degrades to `rect` on save. |
+| `PRESET_SHAPE_CLIP_PATHS`     | 200  | Precomputed static SVG clip paths keyed by preset name (includes aliases).                                                                                                                                                                                                                                                                            |
+| `PRESET_SHAPE_DEFINITIONS`    | 187  | Insertable shape definitions with display names, grouped by `PRESET_SHAPE_CATEGORY_LABELS` into 9 categories: basic, rectangles, arrows, stars, callouts, flowchart, math, action, other.                                                                                                                                                             |
 
 ## What it handles
 
-| Concern                 | Detail                                                                                                                                  |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Preset shapes**       | 188 evaluable definitions (rects, arrows, stars, callouts, flowchart, action buttons, scrolls, brackets, etc.) with adjustment handles. |
-| **Clip paths**          | Precomputed and adjustment-aware SVG clip paths for every preset.                                                                       |
-| **Guide formulas**      | Full OOXML DrawingML formula evaluator (operator list below) over built-in variables and adjustment handles (`adj`, `adj1`, ...).       |
-| **Custom geometry**     | Parsing and evaluation of arbitrary `<a:custGeom>` paths (`parseStructuredCustomGeometry`, `evaluateGeometryPaths`).                    |
-| **Connectors**          | Routing and path generation for straight / bent / curved connectors.                                                                    |
-| **Transforms**          | Element position, rotation, and flip transforms as CSS transform strings.                                                               |
-| **Boolean ops**         | Union / intersect / subtract / fragment of shapes (for merged geometry).                                                                |
-| **Freeform / callouts** | Freeform path building, Douglas-Peucker simplification, Catmull-Rom smoothing, callout leader-line geometry, cloud Bezier paths.        |
+| Concern                 | Detail                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Preset shapes**       | All 187 `ST_ShapeType` presets, evaluable (rects, arrows, stars, callouts, flowchart, action buttons, scrolls, brackets, etc.) with adjustment handles. |
+| **Clip paths**          | Precomputed and adjustment-aware SVG clip paths for every preset.                                                                                       |
+| **Guide formulas**      | Full OOXML DrawingML formula evaluator (operator list below) over built-in variables and adjustment handles (`adj`, `adj1`, ...).                       |
+| **Custom geometry**     | Parsing and evaluation of arbitrary `<a:custGeom>` paths (`parseStructuredCustomGeometry`, `evaluateGeometryPaths`).                                    |
+| **Connectors**          | Routing and path generation for straight / bent / curved connectors.                                                                                    |
+| **Transforms**          | Element position, rotation, and flip transforms as CSS transform strings.                                                                               |
+| **Boolean ops**         | Union / intersect / subtract / fragment of shapes (for merged geometry).                                                                                |
+| **Freeform / callouts** | Freeform path building, Douglas-Peucker simplification, Catmull-Rom smoothing, callout leader-line geometry, cloud Bezier paths.                        |
 
 ## Resolving geometry for a shape
 

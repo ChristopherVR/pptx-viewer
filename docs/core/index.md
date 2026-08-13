@@ -158,7 +158,7 @@ Everything is re-exported from the package root (`pptx-viewer-core`). Import fro
 ## Architecture at a glance
 
 - **`PptxHandler`** wraps `PptxHandlerCore`, which delegates to an injectable `IPptxHandlerRuntime` (you can pass your own via `new PptxHandler({ runtime })` for testing).
-- The **runtime** is assembled from 50+ focused mixin modules (theme loading, element parsing, save pipeline, etc.).
+- The **runtime** is assembled from 96 focused mixin modules (theme loading, element parsing, save pipeline, etc.).
 - The **type system** centres on `PptxElement`, a discriminated union of 16 variants (`text`, `shape`, `connector`, `image`, `picture`, `table`, `chart`, `smartArt`, `ole`, `media`, `group`, `ink`, `contentPart`, `zoom`, `model3d`, `unknown`) narrowed by `element.type`. See [/guide/data-model](/guide/data-model).
 - **EMU** (English Metric Units) is the native OOXML coordinate system: `1 inch = 914,400 EMU`, `1 point = 12,700 EMU`, `1 pixel = 9,525 EMU` at 96 DPI. The parsed model exposes pixel values (`data.width`/`data.height`) alongside raw EMU (`widthEmu`/`heightEmu`).
 

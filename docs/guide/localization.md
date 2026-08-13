@@ -41,7 +41,7 @@ import { translationsEn, keyToLabel } from 'pptx-vanilla-viewer';
 import { translationsEn, keyToLabel } from 'pptx-svelte-viewer/i18n';
 ```
 
-`translationsEn` is a flat `Record<string, string>` of every `pptx.*` key (over 2,300 of them), e.g. `'pptx.statusBar.allSaved': 'All saved'`. Values with dynamic content use `{{token}}` interpolation placeholders, e.g. `'pptx.statusBar.slideOf': 'Slide {{current}} of {{total}}'` - your i18n library substitutes these from the `opts` passed to `t()`/`translate()`.
+`translationsEn` is a flat `Record<string, string>` of every `pptx.*` key (3,396 of them), e.g. `'pptx.statusBar.allSaved': 'All saved'`. Values with dynamic content use `{{token}}` interpolation placeholders, e.g. `'pptx.statusBar.slideOf': 'Slide {{current}} of {{total}}'` - your i18n library substitutes these from the `opts` passed to `t()`/`translate()`.
 
 `keyToLabel(key)` derives a readable label from a key's last segment when no dictionary entry matches it (`"pptx.slideSorter.zoomIn"` → `"Zoom In"`). Wire it in as your library's missing-key handler so any key you haven't translated yet still renders something reasonable instead of the raw key string.
 

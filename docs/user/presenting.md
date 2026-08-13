@@ -22,15 +22,18 @@ You can also click the **Present** button in the toolbar's top row, or the **Sli
 
 ## Controlling the show
 
-| To...                              | Do this                                                         |
-| ---------------------------------- | --------------------------------------------------------------- |
-| Next slide / next animation step   | Click, or press **Right Arrow**, **Page Down**, or **Spacebar** |
-| Previous slide                     | Press **Left Arrow** or **Page Up**                             |
-| Black out the screen               | Press **B** (press again to resume)                             |
-| White out the screen               | Press **W** (press again to resume)                             |
-| Toggle presenter view              | Press **N**                                                     |
-| Show or hide the slideshow toolbar | Press **Ctrl+M**                                                |
-| End the show                       | Press **Escape**                                                |
+| To...                              | Do this                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| Next slide / next animation step   | Click, or press **Right Arrow**, **Page Down**, **Spacebar**, **Enter**, or **N** |
+| Previous slide                     | Press **Left Arrow**, **Page Up**, **Backspace**, or **P**                        |
+| Jump to a specific slide           | Type its number, then press **Enter**                                             |
+| First / last slide                 | Press **Home** / **End**                                                          |
+| Black out the screen               | Press **B** (press again to resume)                                               |
+| White out the screen               | Press **W** (press again to resume)                                               |
+| Toggle presenter view              | Use the **Presenter View** toolbar button (no keyboard shortcut)                  |
+| Show or hide the slideshow toolbar | Press **Ctrl+H**                                                                  |
+| Show all slides                    | Press **Ctrl+S**                                                                  |
+| End the show                       | Press **Escape**                                                                  |
 
 ### The slideshow toolbar
 
@@ -68,7 +71,7 @@ Presenter view shows you information the audience does not see:
 - **Speaker Notes**, with font size controls; you can edit the notes right there.
 - The current time, an elapsed timer with pause and reset, and a progress bar.
 
-Toggle presenter view by pressing **N** during a show, with the **Presenter View** button on the slideshow toolbar, or from **Slide Show > Presenter View** in the ribbon.
+Toggle presenter view with the **Presenter View** button on the slideshow toolbar, or from **Slide Show > Presenter View** in the ribbon. There is no keyboard shortcut for it: `N` is PowerPoint's "next slide" key.
 
 ![Presenter view showing notes, next slide preview, and timer](/user-guide/presenting-presenter-view.jpg)
 
@@ -80,11 +83,19 @@ Draw on slides while presenting to emphasise points:
 
 | Tool                  | What it does                                             | Shortcut       |
 | --------------------- | -------------------------------------------------------- | -------------- |
-| **Laser Pointer**     | A glowing dot that follows your cursor; leaves no marks. | **L**          |
-| **Pen**               | Freehand ink in the colour of your choice.               | **P**          |
+| **Arrow**             | The normal pointer; leaves no marks.                     | **Ctrl+A**     |
+| **Laser Pointer**     | A glowing dot that follows your cursor; leaves no marks. | **Ctrl+L**     |
+| **Pen**               | Freehand ink in the colour of your choice.               | **Ctrl+P**     |
 | **Highlighter**       | Translucent highlight strokes.                           | (toolbar only) |
-| **Eraser**            | Removes individual ink strokes.                          | **E**          |
-| **Clear Annotations** | Removes all ink on the current slide.                    | (toolbar only) |
+| **Eraser**            | Removes individual ink strokes.                          | **Ctrl+E**     |
+| **Clear Annotations** | Removes all ink on the current slide.                    | **E**          |
+| **Show / hide ink**   | Hides the ink without deleting it.                       | **Ctrl+M**     |
+
+::: tip Why the tools are Ctrl chords
+PowerPoint reserves the bare letters for navigation and screen commands (`N` next,
+`P` previous, `B` black, `W` white, `E` erase all), so the annotation tools take the
+**Ctrl** chord. This viewer follows the same split.
+:::
 
 To change colour, right-click the pen or highlighter button (or click the small arrow next to it) and pick from the swatch grid. Picking a colour also activates that tool.
 

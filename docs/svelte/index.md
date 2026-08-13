@@ -1,6 +1,6 @@
 ---
 title: Svelte Viewer Overview
-description: pptx-svelte-viewer is a Svelte 5 PowerPoint viewer component built on the same engine as the React, Vue, and Angular bindings - render, edit, present, and export .pptx slides with a single component.
+description: pptx-svelte-viewer is a Svelte 5 PowerPoint viewer component built on the same engine as the React, Vue, Angular, and vanilla bindings - render, edit, present, and export .pptx slides with a single component.
 ---
 
 # Svelte Viewer Overview
@@ -79,7 +79,7 @@ could never be `require()`d successfully anyway.
 	}
 </script>
 
-<input type="file" accept=".pptx" onchange={onPick} />
+<input type="file" accept=".pptx,.ppt" onchange={onPick} />
 {#if bytes}
 	<PowerPointViewer source={bytes} onload={({ slideCount }) => console.log(slideCount)} />
 {/if}

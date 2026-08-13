@@ -16,7 +16,7 @@ description: Lo que no se admite en el motor principal y los enlaces de visualiz
 
 Todo lo demas hace el ciclo completo: texto y ediciones estructurales de SmartArt, datos y formato de graficos, y archivos OOXML Strict sobreviven a la carga, edicion y guardado.
 
-## Visualizadores de framework (React, Vue 3, Angular)
+## Visualizadores de framework (React, Vue 3, Angular, Svelte 5, Vanilla JS)
 
 ::: warning El renderizado CSS intercambia algunos efectos visuales por fidelidad en otros lugares
 Las diapositivas se renderizan como HTML/CSS en lugar de Canvas, lo que da texto nitido a cualquier zoom. La contrapartida: `backdrop-filter` se convierte en un fondo semitransparente, `mix-blend-mode` se mapea a alternativas de opacidad, las transformaciones CSS 3D se aplanan a 2D, y los degradados de ruta se aproximan como radiales elipticos.

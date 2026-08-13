@@ -19,6 +19,7 @@ through the core serializer.
 | Video (WebM)    | `MediaRecorder` over a canvas capture stream (30 fps, 5 Mbps default), 3000 ms per slide                      | `presentation.webm`        |
 | SVG             | Core `SvgExporter` via `ExportService.exportSlideToSvg` / `exportAllSlidesToSvg` (vector, no DOM capture)     | per-slide SVG              |
 | Print           | `PrintService`: slides print as vector SVG, outline as HTML, notes/handouts from rasterised captures          | print window               |
+| JSON            | `exportToJson` (core model serializer): a portable JSON document that re-imports with full fidelity           | `presentation.json`        |
 | Package (share) | `ViewerFileIOService.packageForSharing()`: ZIP bundle of the serialized `.pptx` plus a README                 | `presentation-package.zip` |
 | PPTX/PPSX/PPTM  | `ViewerFileIOService.saveAs(format)` → `PptxHandler.save()` → `Uint8Array` (Save As, correct MIME per format) | `presentation.<format>`    |
 

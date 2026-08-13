@@ -6,7 +6,7 @@ description: The composables-based architecture of PowerPointViewer, the curated
 # Composables
 
 `PowerPointViewer.vue` is a thin `<script setup>` orchestrator. Almost all of its logic lives in
-**70+ custom composables** under `viewer/composables/`, composed inside the component, while the
+**110+ custom composables** under `viewer/composables/`, composed inside the component, while the
 visual components are largely presentational. State is held entirely in Vue's reactivity system;
 there is no external state library.
 

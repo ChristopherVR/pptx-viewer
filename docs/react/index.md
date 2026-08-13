@@ -13,13 +13,13 @@ animation engine, presentation mode, real-time collaboration, and export.
 
 ## What it provides
 
-| Capability         | Summary                                                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Viewer**         | Renders slides with 16 element types (shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom). |
-| **WYSIWYG editor** | Insert / move / resize / delete elements, inline text editing, style editing, slide management - gated behind `canEdit`.                     |
-| **Presenter**      | Fullscreen slideshow with 40+ animations, 46 transitions (including morph), speaker notes, presenter view with timer.                        |
-| **Export**         | PNG / JPEG / SVG / PDF / GIF / video slide export, plus save-as PPTX. See [Export](/react/export).                                           |
-| **Collaboration**  | Real-time multi-user editing via Yjs CRDT with presence tracking, remote cursors, and avatars. See [Collaboration](/react/collaboration).    |
+| Capability         | Summary                                                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Viewer**         | Renders slides with 16 element types (shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom).    |
+| **WYSIWYG editor** | Insert / move / resize / delete elements, inline text editing, style editing, slide management - gated behind `canEdit`.                        |
+| **Presenter**      | Fullscreen slideshow with 39 animation presets and 26 motion paths, 57 transitions (including morph), speaker notes, presenter view with timer. |
+| **Export**         | PNG / SVG / PDF / GIF / video / JSON slide export, plus save-as PPTX. See [Export](/react/export).                                              |
+| **Collaboration**  | Real-time multi-user editing via Yjs CRDT with presence tracking, remote cursors, and avatars. See [Collaboration](/react/collaboration).       |
 
 ::: info Element coverage
 For a precise list of what the underlying parser/serializer supports - and what is approximated -
@@ -85,7 +85,7 @@ full list lives in [Limitations](/guide/limitations).
 
 ## Hooks-based architecture
 
-The component is a `forwardRef` orchestrator. Its logic is decomposed into **67+ custom hooks**
+The component is a `forwardRef` orchestrator. Its logic is decomposed into **80+ custom hooks**
 composed inside `PowerPointViewer.tsx`; the visual components are almost purely presentational. Most
 hooks are internal architecture, but a curated, tree-shakeable subset is exported from
 `pptx-react-viewer/viewer` for advanced integrations. See [Hooks](/react/hooks) for which are public API.

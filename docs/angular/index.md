@@ -93,9 +93,9 @@ full list lives in [Limitations](/guide/limitations).
 ## Internal architecture: services and standalone components
 
 `PowerPointViewerComponent` is a thin, `OnPush`, signal-driven orchestrator. Its logic is decomposed
-into roughly two dozen `@Injectable` orchestration services (provided on the component and wired
-together with `inject()` and a `bind()` handoff pattern) plus 100+ standalone child components and
-pure helper functions, mirroring React's 67+ internal hooks and Vue's composables. Most of these are
+into roughly four dozen `@Injectable` orchestration services (provided on the component and wired
+together with `inject()` and a `bind()` handoff pattern) plus 200+ standalone child components and
+pure helper functions, mirroring React's 80+ internal hooks and Vue's composables. Most of these are
 internal architecture, but a curated subset is re-exported from the package root for building custom
 UI around the viewer. See [Services](/angular/services) for which are public API.
 

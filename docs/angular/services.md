@@ -6,9 +6,9 @@ description: The service-based architecture of PowerPointViewerComponent, the cu
 # Services
 
 `PowerPointViewerComponent` is a thin, `OnPush`, signal-driven orchestrator. Almost all of its logic
-lives in roughly two dozen `@Injectable` **orchestration services**, provided on the component
-(`providers: [...]`) and wired together with `inject()`, plus 100+ standalone child components and
-plain helper functions. This is Angular's counterpart to React's 67+ custom hooks and Vue's
+lives in roughly four dozen `@Injectable` **orchestration services**, provided on the component
+(`providers: [...]`) and wired together with `inject()`, plus 200+ standalone child components and
+plain helper functions. This is Angular's counterpart to React's 80+ custom hooks and Vue's
 composables: the same decomposition, expressed through Angular's own idiom (injectable services with
 signal-based state instead of hook closures).
 

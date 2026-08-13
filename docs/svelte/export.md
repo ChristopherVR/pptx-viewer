@@ -1,6 +1,6 @@
 ---
 title: Svelte Viewer Export & Print
-description: Export slides to PNG, PDF, GIF, WebM video, and SVG from the Svelte viewer, print slides, handouts, notes, and outline, and save the document back to .pptx, .ppsx, or .pptm.
+description: Export slides to PNG, PDF, GIF, WebM video, and SVG from the Svelte viewer, plus the standalone renderToCanvas utility, print slides, handouts, notes, and outline, and save the document back to .pptx, .ppsx, or .pptm.
 ---
 
 # Export & Print
@@ -11,15 +11,16 @@ modal and cancellation) and programmatically on the [component instance](/svelte
 
 ## Supported formats
 
-| Format | Pipeline                                                                                        |
-| ------ | ----------------------------------------------------------------------------------------------- |
-| PNG    | `html2canvas-pro` rasterisation (dynamically imported on first use)                             |
-| PDF    | `jspdf` (dynamically imported) + rasterisation, multi-page, one slide per page                  |
-| GIF    | Animated GIF frame encoder over rasterised frames                                               |
-| WebM   | `MediaRecorder` over a canvas capture stream (codec picked from the shared WebM candidates)     |
-| SVG    | Vector export straight from the parsed data model (no rasterisation), via standalone functions  |
-| Print  | Shared print document (slides / handouts / notes / outline) in a hidden same-origin iframe      |
-| PPTX   | Core serializer via `save(format)`, `downloadAs`, `downloadPptx` (`'pptx' \| 'ppsx' \| 'pptm'`) |
+| Format | Pipeline                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------- |
+| PNG    | `html2canvas-pro` rasterisation (dynamically imported on first use)                                 |
+| PDF    | `jspdf` (dynamically imported) + rasterisation, multi-page, one slide per page                      |
+| GIF    | Animated GIF frame encoder over rasterised frames                                                   |
+| WebM   | `MediaRecorder` over a canvas capture stream (codec picked from the shared WebM candidates)         |
+| SVG    | Vector export straight from the parsed data model (no rasterisation), via standalone functions      |
+| Print  | Shared print document (slides / handouts / notes / outline) in a hidden same-origin iframe          |
+| JSON   | `exportToJson` (core model serializer): a portable JSON document that re-imports with full fidelity |
+| PPTX   | Core serializer via `save(format)`, `downloadAs`, `downloadPptx` (`'pptx' \| 'ppsx' \| 'pptm'`)     |
 
 ::: tip Lazy dependencies
 `html2canvas-pro` and `jspdf` are dynamic imports: the first raster/PDF export pays a one-time
@@ -79,6 +80,31 @@ All methods live on the component instance (`bind:this`):
 | `onProgress`         | `(current: number, total: number) => void` | -           | Capture-phase progress callback.         |
 | `onRecordProgress`   | `(current: number, total: number) => void` | -           | Recording-phase progress callback.       |
 | `signal`             | `AbortSignal`                              | -           | Abort between slides and between frames. |
+
+## `renderToCanvas`
+
+A standalone utility exported from the package root (no component instance needed) that
+rasterises any DOM element to a Canvas:
+
+```ts
+import { renderToCanvas } from 'pptx-svelte-viewer';
+
+const canvas: HTMLCanvasElement = await renderToCanvas(element, { scale: 2 });
+const dataUrl = canvas.toDataURL('image/png');
+```
+
+```ts
+function renderToCanvas(
+	element: HTMLElement,
+	options?: Partial<Html2CanvasOptions>, // the html2canvas-pro Options type
+): Promise<HTMLCanvasElement>;
+```
+
+This is the same `html2canvas-pro` wrapper React, Vue, Angular and Vanilla export. Reach for it
+rather than calling `html2canvas` yourself: during the `onclone` phase it runs the shared
+CSS-preprocessing passes, which convert modern colour functions (`oklch` / `oklab` / `lch` /
+`lab` / `color()`) to sRGB and flatten `backdrop-filter`, `mix-blend-mode` and CSS 3D transforms.
+The viewer's theme tokens are authored in `oklch`, which html2canvas cannot parse on its own.
 
 ## Print
 
