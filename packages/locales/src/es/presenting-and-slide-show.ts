@@ -191,6 +191,7 @@ export const translations = {
 	'pptx.customShows.renamePrompt': 'Cambiar el nombre de la presentación personalizada',
 	'pptx.transitionPresets.airplane': 'Avión',
 	'pptx.transitionPresets.blinds': 'Persianas',
+	'pptx.transitionPresets.box': 'Cuadro',
 	'pptx.transitionPresets.checker': 'Damero',
 	'pptx.transitionPresets.circle': 'Círculo',
 	'pptx.transitionPresets.comb': 'Peine',

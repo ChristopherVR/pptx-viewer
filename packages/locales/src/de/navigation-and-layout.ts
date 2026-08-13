@@ -143,6 +143,9 @@ export const translations = {
 	'pptx.selectionPane.hideElement': 'Element ausblenden',
 	'pptx.selectionPane.renameElement': 'Element umbenennen',
 	'pptx.canvas.adjustShape': 'Form anpassen',
+	'pptx.canvas.connectorEndpointStart': 'Verbinderanfangspunkt',
+	'pptx.canvas.connectorEndpointEnd': 'Verbinderendpunkt',
+	'pptx.canvas.connectionSite': 'Verbindungspunkt',
 	'pptx.canvas.guideTooltip':
 		'Ziehen Sie, um die Hilfslinie zu verschieben, und doppelklicken Sie, um sie zu entfernen',
 	'pptx.guides.dragHint': 'Ziehen Sie, um die Hilfslinie zu verschieben',

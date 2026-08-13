@@ -51,10 +51,11 @@ async function expectFileChooser(page: Page, action: () => Promise<void>) {
 	const [chooser] = await Promise.all([page.waitForEvent('filechooser'), action()]);
 	expect(chooser.isMultiple()).toBe(false);
 	expect(await chooser.element().getAttribute('id')).toBe('file-input');
-	// `.ppt` (legacy binary) and `.json` (the portable-deck export added by
-	// `feat(core): export and import decks as portable JSON`) are both real
-	// import paths, so all five demos offer them alongside `.pptx`.
-	expect(await chooser.element().getAttribute('accept')).toBe('.pptx,.ppt,.json');
+	// The accept list is now the binding's exported `PPTX_OPEN_ACCEPT`, not a
+	// per-demo literal. The literal was `.pptx,.ppt,.json`, which silently
+	// dropped `.pptm`, `.ppsx` and `.potx` even though the loader has always
+	// read them: the picker offered less than the product supports.
+	expect(await chooser.element().getAttribute('accept')).toBe('.pptx,.ppsx,.pptm,.potx,.ppt,.json');
 	return chooser;
 }
 

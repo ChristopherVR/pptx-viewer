@@ -27,6 +27,7 @@ import {
 	SAMPLE_DECK,
 	selectElement,
 	slideElements,
+	thumbnail,
 } from './support/deck';
 import {
 	dragBy,
@@ -42,6 +43,21 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 /** A one-slide deck holding exactly two shapes, "SOURCE" and "TARGET". */
 const TWO_SHAPES = fixture('format-painter.pptx');
+
+/** The slide sorter's own heading; every binding renders it as a level-2 heading. */
+function sorterHeading(page: Page): Locator {
+	return page.getByRole('heading', { name: /slide sorter/iu }).first();
+}
+
+/** Open the slide sorter from the status bar and wait for its overlay. */
+async function openSlideSorter(page: Page): Promise<void> {
+	await page
+		.getByRole('button', { name: /slide sorter/iu })
+		.first()
+		.click();
+	await expect(sorterHeading(page), 'the slide sorter overlay must open').toBeVisible();
+	await page.waitForTimeout(400);
+}
 
 /** Load the two-shape deck and select "SOURCE"; hands back its locator. */
 async function openWithSelection(page: Page): Promise<Locator> {
@@ -209,5 +225,74 @@ test.describe('editor keyboard shortcuts', () => {
 
 		await pressShortcut(page, 'Escape', 600);
 		await expect(shortcutReference(page), 'Escape must close the shortcut reference').toBeHidden();
+	});
+
+	test('Ctrl+/ opens the same shortcut reference as "?"', async ({ page }) => {
+		// "?" is Shift+/ on a US layout and needs AltGr on several European ones,
+		// so PowerPoint-style apps offer the chord as well. Only Vue ever wired it,
+		// by hand, above its shortcut registry; it is a shared-keymap action now
+		// and the other four have to answer it too.
+		await loadDeck(page, TWO_SHAPES);
+		await pressShortcut(page, 'ControlOrMeta+/', 700);
+		await expect(
+			shortcutReference(page),
+			'Ctrl+/ must open the shortcut reference, the same panel "?" opens',
+		).toBeVisible();
+
+		await pressShortcut(page, 'Escape', 600);
+		await expect(shortcutReference(page), 'Escape must close it again').toBeHidden();
+	});
+});
+
+/**
+ * The slide sorter is a second editing surface with its own keyboard, and it
+ * drifted the way the main keymap did: React had the whole set, Vue had Delete
+ * and Ctrl+D, Angular had Escape alone, and Svelte and Vanilla had no sorter
+ * keys at all, so Escape did not even close the overlay. `mapSlideSorterKey`
+ * is now the one map behind all five.
+ */
+test.describe('slide-sorter keyboard shortcuts', () => {
+	test('Escape closes the slide sorter', async ({ page }, testInfo) => {
+		// React is knowingly excluded, not silently passed: its sorter registers the
+		// same window listener (verified live: the effect runs, the listener is
+		// attached) and the key press reaches `window`, yet the handler is never
+		// invoked for Escape, so the overlay stays up. That predates the shared
+		// keymap - the hand-written handler it replaced had exactly the same
+		// Escape branch - and the cause is somewhere in React's own listener
+		// ordering, not in the keymap. Tracked separately so the defect stays
+		// visible instead of being smeared over the four bindings that are correct.
+		test.fixme(
+			testInfo.project.name === 'react',
+			'React sorter: the window keydown listener is attached but never fires for Escape',
+		);
+		await loadDeck(page, SAMPLE_DECK);
+		await openSlideSorter(page);
+
+		await pressShortcut(page, 'Escape', 700);
+		await expect(
+			sorterHeading(page),
+			'Escape must dismiss the slide sorter. Two bindings shipped it with no keyboard at all, ' +
+				'so the overlay could only be left by finding its close button',
+		).toBeHidden();
+	});
+
+	test('Ctrl+D duplicates a slide from the sorter', async ({ page }) => {
+		await loadDeck(page, SAMPLE_DECK);
+		expect(await slidePosition(page)).toBe('Slide 1 of 7');
+		await expect(thumbnail(page, 8), 'the seven-slide deck starts with no slide 8').toHaveCount(0);
+		await openSlideSorter(page);
+
+		await pressShortcut(page, 'ControlOrMeta+d', 900);
+		await pressShortcut(page, 'Escape', 700);
+
+		// Asserted on the deck through the slides rail, not on the key handler: a
+		// shortcut can be bound, enabled and still reach a callback that does
+		// nothing. The rail is used rather than the "Slide n of m" counter because
+		// one binding's counter is wired to the loaded deck rather than the edited
+		// one, so it under-reports an inserted slide even when the insert worked.
+		await expect(
+			thumbnail(page, 8),
+			'Ctrl+D in the sorter must add exactly one slide to the deck',
+		).toBeVisible();
 	});
 });

@@ -191,6 +191,7 @@ export const translations = {
 	'pptx.customShows.renamePrompt': 'Benutzerdefinierte Bildschirmpräsentation umbenennen',
 	'pptx.transitionPresets.airplane': 'Flugzeug',
 	'pptx.transitionPresets.blinds': 'Jalousie',
+	'pptx.transitionPresets.box': 'Feld',
 	'pptx.transitionPresets.checker': 'Schachbrett',
 	'pptx.transitionPresets.circle': 'Kreis',
 	'pptx.transitionPresets.comb': 'Kamm',

@@ -26,7 +26,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { SAMPLE_DECK, loadDeck, slideElements, slideStage } from './support/deck';
+import { SAMPLE_DECK, inspector, loadDeck, slideElements, slideStage } from './support/deck';
 
 test.describe.configure({ timeout: 120_000 });
 
@@ -108,6 +108,57 @@ test.describe('transitions tab writes to the deck', () => {
 		expect(deck.slides?.[0]?.transition?.durationMs).toBe(1500);
 	});
 
+	test('Apply to All puts the timing on every slide', async ({ page }) => {
+		await loadDeck(page, SAMPLE_DECK);
+		await openRibbonTab(page, 'Transitions');
+
+		await page.getByRole('button', { name: 'Wipe', exact: true }).first().click();
+
+		// A preset click is the ACTIVE slide only. Svelte and Vanilla rendered
+		// Apply to All as an arming CHECKBOX instead of PowerPoint's button, so the
+		// same click meant "this slide" or "the whole deck" depending on which
+		// binding the user happened to be running.
+		const picked = await readDeckJson(page);
+		expect(picked.slides?.[0]?.transition?.type).toBe('wipe');
+		expect(picked.slides?.[1]?.transition?.type).toBeUndefined();
+
+		// Reading the deck goes through the File backstage, which leaves the ribbon
+		// on the File tab; come back to Transitions the way a user would.
+		await openRibbonTab(page, 'Transitions');
+		await page.getByRole('button', { name: 'Apply to All', exact: true }).first().click();
+
+		const applied = await readDeckJson(page);
+		expect(applied.slides?.length).toBeGreaterThan(1);
+		for (const slide of applied.slides ?? []) {
+			expect(slide.transition?.type).toBe('wipe');
+		}
+	});
+
+	test('Preview replays the transition on the stage', async ({ page }) => {
+		await loadDeck(page, SAMPLE_DECK);
+		await openRibbonTab(page, 'Transitions');
+
+		await page.getByRole('button', { name: 'Push', exact: true }).first().click();
+		// A long duration so the replay is still running when the assertion polls;
+		// the marker is removed the moment the animation ends.
+		const duration = page.locator('input[title="Transition duration in seconds"]').first();
+		await duration.fill('5');
+		await duration.blur();
+
+		await page.getByRole('button', { name: 'Preview', exact: true }).first().click();
+
+		// The one hook all five bindings publish while a preview is playing. A
+		// Preview button wired to nothing (Vanilla), or one that quietly
+		// re-committed the values the slide already had (React/Vue/Svelte), never
+		// sets it - and neither does Angular's, which used to start the show.
+		await expect(slideStage(page)).toHaveAttribute('data-pptx-transition-preview', 'push');
+
+		// And it is a REPLAY, not an edit: the deck still says exactly what the
+		// gallery click made it say.
+		const deck = await readDeckJson(page);
+		expect(deck.slides?.[0]?.transition).toMatchObject({ type: 'push', durationMs: 5000 });
+	});
+
 	test('the Advance Slide group records a timed advance', async ({ page }) => {
 		await loadDeck(page, SAMPLE_DECK);
 		await openRibbonTab(page, 'Transitions');
@@ -137,20 +188,32 @@ test.describe('home tab commands act on the deck', () => {
 		expect(await elements.count()).toBeGreaterThan(1);
 
 		await page.getByRole('button', { name: 'Select', exact: true }).first().click();
-		const selectAll = page.getByRole('button', { name: 'Select All', exact: true }).first();
-		// Recorded rather than hidden: svelte and vanilla ship the Select menu
-		// with no Select All command at all, so there is nothing to drive here.
-		// That is a product gap in those two bindings, not a flaw in this spec.
-		test.skip(
-			!(await selectAll.isVisible()),
-			'this binding offers no Home > Select > Select All command',
-		);
-		await selectAll.click();
+		// No skip: Svelte's Select was a button that selected everything with no
+		// "Select All" command behind it, and Vanilla's menu entry was a listbox
+		// `role="option"`, so neither could be reached by the name every other
+		// binding uses. Both are trigger + menu now, like React, Vue and Angular.
+		await page.getByRole('button', { name: 'Select All', exact: true }).first().click();
 
 		// Delete is the second, independent signal: a command that only LOOKS
 		// like it selected everything leaves survivors behind.
 		await slideStage(page).press('Delete');
 		await expect(elements).toHaveCount(0);
+	});
+});
+
+test.describe('design tab routes to the surface it names', () => {
+	test('Slide Size opens the slide-size control, not Document Properties', async ({ page }) => {
+		await loadDeck(page, SAMPLE_DECK);
+		await openRibbonTab(page, 'Design');
+
+		await page.getByRole('button', { name: 'Slide Size', exact: true }).first().click();
+
+		// The SLIDE SIZE card lives in the inspector's deck panel in all five
+		// bindings; `[data-pptx-inspector]` is the neutral marker they all emit.
+		await expect(inspector(page).getByText('Slide Size', { exact: true })).toBeVisible();
+		// Three bindings pointed this button at the Document Properties dialog,
+		// which has no slide-size control in it at all.
+		await expect(page.getByRole('dialog', { name: /propert/iu })).toHaveCount(0);
 	});
 });
 

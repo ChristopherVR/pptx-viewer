@@ -65,13 +65,28 @@ export function commentMarkerGap(project: string): string | null {
 }
 
 /**
- * True while `text` is readable in any visible text node OR as the value of a
+ * True while `text` is readable in any visible element OR as the value of a
  * visible textarea/input (Vanilla's pane shows comment text as a field value).
+ *
+ * Matches the DEEPEST visible element containing `text`, rather than requiring
+ * a childless leaf. The leaf rule broke the moment comment bodies gained
+ * `@`-mention rendering: every binding now splits a body into one span per
+ * `CommentTextSegment`, so a needle that straddles a mention has no single leaf
+ * containing it, and this returned false while the comment was plainly on
+ * screen. `openCommentsThread` then treated an already-open panel as closed and
+ * fired the toolbar toggle, which CLOSED it (observed on Svelte: the mention
+ * rendered after the inspector tab click, then vanished). Taking the deepest
+ * match keeps the check just as tight - `document.body` never qualifies,
+ * because a child element also contains the needle - while spanning segments.
  */
 export function commentTextVisible(page: Page, text: string): Promise<boolean> {
 	return page.evaluate((needle) => {
 		for (const el of document.querySelectorAll<HTMLElement>('*')) {
-			if (el.children.length === 0 && el.textContent?.includes(needle) && el.checkVisibility()) {
+			if (!el.textContent?.includes(needle) || !el.checkVisibility()) {
+				continue;
+			}
+			const deeper = [...el.children].some((child) => child.textContent?.includes(needle));
+			if (!deeper) {
 				return true;
 			}
 		}

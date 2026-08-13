@@ -90,9 +90,14 @@ function connector(page: Page): Locator {
 	return page.locator('[data-pptx-viewport] [aria-roledescription="connector line"]').first();
 }
 
-/** The amber shape-adjustment handle, scoped so ribbon controls cannot shadow it. */
+/** The amber shape-adjustment handles, scoped so ribbon controls cannot shadow them. */
 function adjustHandle(page: Page): Locator {
 	return viewport(page).getByRole('button', { name: /^adjust shape$/iu });
+}
+
+/** One endpoint handle of the selected connector, by the neutral data contract. */
+function connectorEndpoint(page: Page, kind: 'start' | 'end'): Locator {
+	return viewport(page).locator(`[data-pptx-connector-endpoint="${kind}"]`).first();
 }
 
 /** The rotate knob, by the shared accessible name every binding uses. */
@@ -233,5 +238,145 @@ test.describe('shape adjust handle', () => {
 				{ message: 'the adjust handle must track the corner radius it just changed' },
 			)
 			.toBeGreaterThan(15);
+	});
+
+	// A preset has ONE handle per `a:avLst` guide and most have several, but
+	// shared returned a single descriptor for every shape, so every guide after
+	// the first was unreachable in all five bindings. "Arrow" is a `rightArrow`:
+	// `adj1` is the shaft thickness, `adj2` the head length.
+	test('a multi-adjust preset offers one handle per adjustable parameter', async ({ page }) => {
+		await openDeck(page);
+
+		await select(page, shape(page, 'Rounded'));
+		await expect(adjustHandle(page)).toHaveCount(1);
+
+		await select(page, shape(page, 'Arrow'));
+		await expect(adjustHandle(page)).toHaveCount(2);
+		// Each drives a DIFFERENT guide; two diamonds writing `adj1` would be a
+		// convincing-looking way to ship the same bug twice.
+		const keys = await viewport(page)
+			.locator('[data-pptx-adjust-key]')
+			.evaluateAll((nodes) =>
+				nodes.map((node) => (node as HTMLElement).dataset.pptxAdjustKey ?? ''),
+			);
+		expect([...new Set(keys)].sort()).toStrictEqual(['adj1', 'adj2']);
+	});
+
+	test('dragging the second handle of a multi-adjust preset moves it, not the first', async ({
+		page,
+	}) => {
+		await openDeck(page);
+		await select(page, shape(page, 'Arrow'));
+
+		const first = adjustHandle(page).nth(0);
+		const second = adjustHandle(page).nth(1);
+		const firstBefore = (await first.boundingBox())!;
+		const secondBefore = (await second.boundingBox())!;
+
+		// The head-length handle travels horizontally; pull it left.
+		await drag(
+			page,
+			secondBefore.x + secondBefore.width / 2,
+			secondBefore.y + secondBefore.height / 2,
+			secondBefore.x + secondBefore.width / 2 - 50,
+			secondBefore.y + secondBefore.height / 2,
+		);
+		await page.waitForTimeout(400);
+
+		await expect
+			.poll(
+				async () => {
+					const box = await adjustHandle(page).nth(1).boundingBox();
+					return box ? Math.abs(box.x - secondBefore.x) : 0;
+				},
+				{ message: 'the grabbed handle must move with the guide it drives' },
+			)
+			.toBeGreaterThan(15);
+		const firstAfter = (await adjustHandle(page).nth(0).boundingBox())!;
+		expect(
+			Math.abs(firstAfter.x - firstBefore.x),
+			'the untouched handle must not have moved: the drag wrote its own guide only',
+		).toBeLessThan(3);
+	});
+});
+
+test.describe('connector endpoint authoring', () => {
+	// Attaching / detaching a connector end existed in NO binding: React shipped
+	// a `ConnectorOverlay` for a site-to-site creation gesture, but nothing ever
+	// passed the `connectorCreationMode` prop that mounts it, so the path was
+	// unreachable; the other four had no overlay at all. The fixture's connector
+	// arrives bound at both ends by `p:cNvPr/@id`.
+	test('a selected connector exposes both endpoint handles, both bound', async ({ page }) => {
+		await openDeck(page);
+
+		// Nothing selected: no endpoint chrome.
+		await expect(connectorEndpoint(page, 'start')).toHaveCount(0);
+
+		await select(page, connector(page));
+		await expect(connectorEndpoint(page, 'start')).toBeVisible();
+		await expect(connectorEndpoint(page, 'end')).toBeVisible();
+		await expect(connectorEndpoint(page, 'start')).toHaveAttribute(
+			'data-pptx-connector-attached',
+			'true',
+		);
+		await expect(connectorEndpoint(page, 'end')).toHaveAttribute(
+			'data-pptx-connector-attached',
+			'true',
+		);
+	});
+
+	test('dragging an end onto empty canvas DETACHES it, and back onto a shape re-attaches', async ({
+		page,
+	}) => {
+		await openDeck(page);
+		await select(page, connector(page));
+
+		const endHandle = connectorEndpoint(page, 'end');
+		const before = (await endHandle.boundingBox())!;
+		const canvas = (await shape(page, 'Box A').boundingBox())!;
+
+		// Drop it in the gap between the boxes, well clear of any site.
+		await drag(
+			page,
+			before.x + before.width / 2,
+			before.y + before.height / 2,
+			canvas.x + canvas.width + 40,
+			canvas.y + canvas.height + 30,
+		);
+		await page.waitForTimeout(400);
+
+		await expect
+			.poll(
+				async () => connectorEndpoint(page, 'end').getAttribute('data-pptx-connector-attached'),
+				{
+					message: 'a drop on empty canvas must remove the a:endCxn, not keep a stale one',
+				},
+			)
+			.toBe('false');
+		// The start end kept its own binding: a detach is per-end.
+		await expect(connectorEndpoint(page, 'start')).toHaveAttribute(
+			'data-pptx-connector-attached',
+			'true',
+		);
+		// Now drop it back on Box B's top-centre connection site.
+		const boxB = (await shape(page, 'Box B').boundingBox())!;
+		const loose = (await connectorEndpoint(page, 'end').boundingBox())!;
+		await drag(
+			page,
+			loose.x + loose.width / 2,
+			loose.y + loose.height / 2,
+			boxB.x + boxB.width / 2,
+			boxB.y,
+		);
+		await page.waitForTimeout(400);
+
+		await expect
+			.poll(
+				async () => connectorEndpoint(page, 'end').getAttribute('data-pptx-connector-attached'),
+				{
+					message: 'a drop on a connection site must write an a:endCxn',
+				},
+			)
+			.toBe('true');
 	});
 });

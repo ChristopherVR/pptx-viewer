@@ -143,6 +143,9 @@ export const translations = {
 	'pptx.selectionPane.hideElement': "Masquer l'élément",
 	'pptx.selectionPane.renameElement': "Renommer l'élément",
 	'pptx.canvas.adjustShape': 'Ajuster la forme',
+	'pptx.canvas.connectorEndpointStart': 'Point de depart du connecteur',
+	'pptx.canvas.connectorEndpointEnd': "Point d'arrivee du connecteur",
+	'pptx.canvas.connectionSite': 'Point de connexion',
 	'pptx.canvas.guideTooltip':
 		'Faites glisser pour déplacer le guide, double-cliquez pour le supprimer',
 	'pptx.guides.dragHint': 'Faites glisser pour déplacer le guide',

@@ -76,12 +76,6 @@ export const translations = {
 	'pptx.options.save.minutes': 'minutos',
 	'pptx.options.save.keepLastAutoRecovered':
 		'Conservar la última versión autorrecuperada cuando cierro sin guardar',
-	'pptx.options.save.fidelity': 'Mantener la fidelidad al compartir esta presentación',
-	'pptx.options.save.embedFonts': 'Incrustar fuentes en el archivo',
-	'pptx.options.save.embedFontsInfo':
-		'Incrustar fuentes aumenta el tamaño del archivo, pero mantiene el texto idéntico en otros dispositivos.',
-	'pptx.options.save.embedAllCharacters':
-		'Incrustar todos los caracteres (adecuado para que lo modifiquen otras personas)',
 	'pptx.options.save.cache': 'Configuración de la caché',
 	'pptx.options.save.cacheRetentionDays':
 		'Días para mantener los archivos en la caché de documentos local',

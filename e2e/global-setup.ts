@@ -12,6 +12,7 @@ import {
 	generateTemplateGroupFixture,
 	generateTemplateMceFixture,
 } from './fixtures/generate-template-group-fixture';
+import { generateTextBodyFixture } from './fixtures/generate-text-body-fixture';
 import { generateTextLayoutFixture } from './fixtures/generate-text-layout-fixture';
 import { generateFixture as generateTransitionsAnimationsFixture } from './fixtures/generate-transitions-animations-fixture';
 
@@ -30,6 +31,7 @@ export default async function globalSetup() {
 	await generateOleFixture();
 	await generateInkFixture();
 	await generateTextLayoutFixture();
+	await generateTextBodyFixture();
 	await generateLinkedTextBoxFixture();
 	await generateMorphShapeSwapFixture();
 	await generateLineFillFidelityFixture();

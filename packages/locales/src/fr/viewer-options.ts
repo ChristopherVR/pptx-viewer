@@ -82,12 +82,6 @@ export const translations = {
 	'pptx.options.save.minutes': 'minutes',
 	'pptx.options.save.keepLastAutoRecovered':
 		'Conserver la dernière version récupérée automatiquement si je ferme sans enregistrer',
-	'pptx.options.save.fidelity': 'Préserver la fidélité lors du partage de cette présentation',
-	'pptx.options.save.embedFonts': 'Incorporer les polices dans le fichier',
-	'pptx.options.save.embedFontsInfo':
-		"L'incorporation des polices augmente la taille du fichier mais garantit un texte identique sur les autres appareils.",
-	'pptx.options.save.embedAllCharacters':
-		"Incorporer tous les caractères (adapté aux modifications effectuées par d'autres personnes)",
 	'pptx.options.save.cache': 'Paramètres du cache',
 	'pptx.options.save.cacheRetentionDays':
 		'Nombre de jours de conservation des fichiers dans le cache de documents local',

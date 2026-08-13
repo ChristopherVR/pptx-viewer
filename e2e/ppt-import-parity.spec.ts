@@ -23,11 +23,14 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-import { elementWithText, fixture, loadDeck, resetTabSession } from './support/deck';
+import { savePptxViaBackstage } from './save-pptx';
+import { elementWithText, fixture, loadDeck, resetTabSession, slideElements } from './support/deck';
+import { downloadBytes } from './support/exports';
 import { fingerprintSlide } from './support/fingerprint';
 import { diffFormats } from './support/format-parity';
 import { applyExclusions } from './support/parity-exclusions';
 import type { ParityExclusion } from './support/parity-exclusions';
+import { summarizeDeck, validatePptxIntegrity } from './support/pptx-integrity';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -121,5 +124,48 @@ test.describe('legacy .ppt import', () => {
 	test('text-features.ppt opens and renders its slide-1 text', async ({ page }) => {
 		await openPpt(page, 'text-features.ppt');
 		await expect(elementWithText(page, TEXT_FEATURES_PROBE)).toBeVisible();
+	});
+
+	/**
+	 * Import is only half a claim. A deck opened from a `.ppt` has to be
+	 * editable and saveable like any other, and what comes back has to be a
+	 * real OpenXML package NAMED as one: we read the binary format and never
+	 * write it, so a download still called `.ppt` would be a file whose bytes
+	 * and whose extension disagree, which is exactly what PowerPoint refuses.
+	 */
+	test('a .ppt deck edits, saves as a valid .pptx, and is named .pptx', async ({ page }) => {
+		test.setTimeout(120_000);
+
+		await openPpt(page, 'sample-deck.ppt');
+
+		// A real model edit, driven through the shared selection contract so it
+		// stays framework-neutral: select an element on slide 1 and delete it.
+		// Saving an untouched deck would not prove the editor ever took
+		// ownership of the imported model.
+		//
+		// The LAST element, not the first: z-order is DOM order, so the first
+		// element on this deck sits under a group whose subtree intercepts the
+		// pointer. Clicking the topmost one is what a user can actually do.
+		const target = slideElements(page).last();
+		await expect(target).toBeVisible();
+		await target.click();
+		await page.keyboard.press('Delete');
+		await page.waitForTimeout(300);
+
+		const download = await savePptxViaBackstage(page);
+
+		// The extension is the honest part of the claim: never `.ppt`.
+		expect(download.suggestedFilename()).toMatch(/\.pptx$/u);
+
+		const bytes = await downloadBytes(download);
+		// PK\x03\x04: an OpenXML package, not the OLE compound file we opened.
+		expect([bytes[0], bytes[1], bytes[2], bytes[3]]).toStrictEqual([0x50, 0x4b, 0x03, 0x04]);
+
+		// Validated the way PowerPoint's loader validates before it looks at a
+		// single shape, so a repair prompt shows up here as a named fault.
+		expect(await validatePptxIntegrity(bytes)).toStrictEqual([]);
+
+		const summary = await summarizeDeck(bytes);
+		expect(summary.slideCount).toBe(SAMPLE_DECK_SLIDES);
 	});
 });

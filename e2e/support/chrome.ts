@@ -74,8 +74,16 @@ export async function measureChrome(page: Page): Promise<ChromeMeasurement> {
 			(el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '')
 				.replace(/\s+/gu, ' ')
 				.trim();
+		// "Childless" is not the same as "text the reader sees": `<style>` and
+		// `<script>` have no element children either, so a plain leaf scan hands
+		// their source back as chrome text. Bindings inject stylesheets into the
+		// live DOM (the show stage carries two of its own), and that is exactly how
+		// the presentation probe once read a CSS selector as the slide's text.
+		const CODE_TAGS = new Set(['STYLE', 'SCRIPT', 'TEMPLATE', 'NOSCRIPT']);
 		const leavesOf = (root: Element): Element[] =>
-			[...root.querySelectorAll('*')].filter((el) => el.children.length === 0);
+			[...root.querySelectorAll('*')].filter(
+				(el) => el.children.length === 0 && !CODE_TAGS.has(el.tagName),
+			);
 
 		const bar = document.querySelector('[data-pptx-title-bar]');
 		const logo = bar?.firstElementChild ?? null;

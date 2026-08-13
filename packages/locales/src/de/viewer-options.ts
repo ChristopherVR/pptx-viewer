@@ -71,12 +71,6 @@ export const translations = {
 	'pptx.options.save.minutes': 'Minuten',
 	'pptx.options.save.keepLastAutoRecovered':
 		'Beim Schließen ohne Speichern die letzte automatisch wiederhergestellte Version beibehalten',
-	'pptx.options.save.fidelity': 'Genauigkeit beim Freigeben dieser Präsentation beibehalten',
-	'pptx.options.save.embedFonts': 'Schriftarten in der Datei einbetten',
-	'pptx.options.save.embedFontsInfo':
-		'Das Einbetten von Schriftarten vergrößert die Datei, hält den Text aber auf anderen Geräten identisch.',
-	'pptx.options.save.embedAllCharacters':
-		'Alle Zeichen einbetten (am besten für die Bearbeitung durch andere Personen)',
 	'pptx.options.save.cache': 'Cacheeinstellungen',
 	'pptx.options.save.cacheRetentionDays':
 		'Anzahl der Tage, die Dateien im lokalen Dokumentcache aufbewahrt werden',

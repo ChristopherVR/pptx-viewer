@@ -31,6 +31,17 @@
  * the shape and slide counts are compared too: a repair that drops content
  * shows up as a count regression even when the open succeeded.
  *
+ * ## Supported runtimes
+ *
+ * **Bun only, and Windows only.** The script imports `packages/core/src` as
+ * TypeScript SOURCE, and that source uses extensionless and directory imports
+ * (`from './core'`) which node's ESM resolver rejects even with
+ * `--experimental-strip-types` (`ERR_UNSUPPORTED_DIR_IMPORT`). There is no flag
+ * that makes `node scripts/com-acceptance.mjs` work; a node run would need a
+ * built `packages/core/dist`, which would then no longer be testing the source
+ * under edit. The runtime is checked below so the failure is one line rather
+ * than a loader stack trace. PowerPoint COM makes it Windows-only regardless.
+ *
  * ## Running it
  *
  *     bun run scripts/com-acceptance.mjs                  # whole manifest
@@ -61,15 +72,33 @@ import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..');
 
-const { PptxHandler } = await import(path.join(REPO, 'packages/core/src/index.ts'));
-const { default: JSZip } = await import(path.join(REPO, 'node_modules/jszip/lib/index.js'));
-const { FIXTURE_MANIFEST, fixturePath } = await import(
-	path.join(REPO, 'packages/core/src/__tests__/integration/fixture-corpus-manifest.ts')
+if (!process.versions.bun) {
+	console.error(
+		'com-acceptance.mjs runs under bun only: it imports packages/core/src as\n' +
+			"TypeScript source, whose extensionless/directory imports node's ESM\n" +
+			'resolver cannot follow. Run:\n\n    bun scripts/com-acceptance.mjs\n',
+	);
+	process.exit(2);
+}
+
+/**
+ * `import()` takes a URL, not a path. On Windows a bare absolute path such as
+ * `D:\repo\file.ts` parses as the URL scheme `d:`, which node's ESM loader
+ * rejects with `ERR_UNSUPPORTED_ESM_URL_SCHEME`. Bun tolerates the raw path,
+ * so the bug was invisible under the documented invocation and only surfaced
+ * when someone ran the file with `node`.
+ */
+const importFrom = (...segments) => import(pathToFileURL(path.join(REPO, ...segments)).href);
+
+const { PptxHandler } = await importFrom('packages/core/src/index.ts');
+const { default: JSZip } = await importFrom('node_modules/jszip/lib/index.js');
+const { FIXTURE_MANIFEST, fixturePath } = await importFrom(
+	'packages/core/src/__tests__/integration/fixture-corpus-manifest.ts',
 );
 
 const args = process.argv.slice(2);

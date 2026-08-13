@@ -40,8 +40,9 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
+import { centreOf, openMenuOn } from './support/context-menu';
 import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
@@ -60,6 +61,8 @@ interface CellPaint {
 	x: number;
 	width: number;
 	background: string;
+	/** Computed `color`, i.e. what the cell's own text actually paints in. */
+	color: string;
 	borderTop: string;
 	borderTopWidth: number;
 	/** Per-run spans inside the cell: their text, weight, colour and family. */
@@ -79,9 +82,18 @@ interface TablePaint {
  * the biggest element on the page for the whole run and a plain area test
  * silently measures it on every slide.
  */
-async function measureTable(page: Page): Promise<TablePaint> {
-	return page.evaluate(() => {
-		const tables = Array.from(document.querySelectorAll('table'));
+async function measureTable(page: Page, containing?: string): Promise<TablePaint> {
+	return page.evaluate((needle: string | undefined) => {
+		// When a needle is given, only tables holding a cell with that text are
+		// candidates: a table INSERTED onto a slide that already has one has to be
+		// told apart from it, and it is not necessarily the larger of the two.
+		const tables = Array.from(document.querySelectorAll('table')).filter(
+			(table) =>
+				!needle ||
+				Array.from(table.querySelectorAll('td, th')).some((cell) =>
+					(cell.textContent ?? '').includes(needle),
+				),
+		);
 		let best: HTMLTableElement | undefined;
 		let bestArea = 0;
 		for (const table of tables) {
@@ -125,6 +137,7 @@ async function measureTable(page: Page): Promise<TablePaint> {
 					x: rect.x,
 					width: rect.width,
 					background: style.backgroundColor,
+					color: style.color,
 					borderTop: style.borderTopStyle,
 					borderTopWidth: Number.parseFloat(style.borderTopWidth) || 0,
 					runs,
@@ -132,7 +145,7 @@ async function measureTable(page: Page): Promise<TablePaint> {
 			});
 		});
 		return { direction: getComputedStyle(best).direction, cells };
-	});
+	}, containing);
 }
 
 /** Parse a computed `rgb()` / `rgba()` string. */
@@ -167,6 +180,44 @@ async function loadDeck(page: Page): Promise<void> {
 async function gotoSlide(page: Page, slideNumber: number): Promise<void> {
 	await page.locator(`[aria-label="Go to slide ${slideNumber}"]`).first().click();
 	await page.waitForTimeout(800);
+}
+
+/** Switch the ribbon to a tab by its accessible name (all five expose this). */
+async function openRibbonTab(page: Page, name: string): Promise<void> {
+	await page
+		.getByRole('toolbar', { name: 'Presentation toolbar' })
+		.getByRole('tab', { name, exact: true })
+		.click();
+	await page.waitForTimeout(300);
+}
+
+/** Insert a table from the Insert tab; every binding labels the control "Table". */
+async function insertTable(page: Page): Promise<void> {
+	await openRibbonTab(page, 'Insert');
+	await page.getByRole('button', { name: 'Table', exact: true }).first().click();
+	await page.waitForTimeout(900);
+}
+
+/**
+ * Right-click `cell` and report the menu's lower-cased command labels.
+ *
+ * A binding with no menu at all yields one explanatory entry rather than an
+ * empty array, so the failure names the gap instead of reading as "the command
+ * is missing".
+ */
+async function menuLabelsOn(page: Page, cell: Locator): Promise<string[]> {
+	const menu = await openMenuOn(page, cell);
+	return menu.present ? menu.labels : ['(no context menu appeared on the cell)'];
+}
+
+/** The `<td>` on the main canvas whose text is exactly `text`. */
+function canvasCell(page: Page, text: string): Locator {
+	return page
+		.locator('[aria-roledescription="slide"]')
+		.first()
+		.locator('td')
+		.filter({ hasText: new RegExp(`^\\s*${text}\\s*$`, 'u') })
+		.first();
 }
 
 test.describe('table styling', () => {
@@ -274,5 +325,84 @@ test.describe('table styling', () => {
 		// The style also gives the table lt1 gridlines; they must reach the cell.
 		expect(header.borderTopWidth).toBeGreaterThan(0);
 		expect(header.borderTop).not.toBe('none');
+	});
+
+	/**
+	 * A table INSERTED from the ribbon carries `firstRowHeader` + `bandedRows` and
+	 * no style GUID, so its banding can only come from the shared band cascade.
+	 * That is the one path React never ran: `table-render-data.tsx` (the
+	 * structured-model renderer, which every programmatic table goes through)
+	 * imported `TableStyleContext` as a TYPE and called `getTableCellBandStyle`
+	 * nowhere, so React alone painted these tables flat. The loaded-deck tests
+	 * above cannot see it, because a deck's tables carry rawXml and React renders
+	 * those through its other, banded, path.
+	 */
+	test('bands a table inserted from the ribbon', async ({ page }) => {
+		await gotoSlide(page, 4);
+		await insertTable(page);
+		const table = await measureTable(page, 'Header 1'),
+			band1 = cellAt(table, 1, 0),
+			band2 = cellAt(table, 2, 0),
+			header = cellAt(table, 0, 0);
+		expect(table.cells.length).toBeGreaterThanOrEqual(9);
+		// Only the band cascade distinguishes consecutive body rows here: the
+		// inserted cells carry an explicit fill on the HEADER row and none at all
+		// on the body rows.
+		expect(band1.background).not.toBe(band2.background);
+		expect(band1.background).not.toBe(header.background);
+	});
+
+	/**
+	 * ... and its body text has to be legible.
+	 *
+	 * These cells author no colour and no band supplies one, so without a floor
+	 * the `<td>` inherits whatever the viewer CHROME cascades. Angular was the one
+	 * binding with no floor and painted `rgb(240, 239, 236)` - literally the dark
+	 * theme preset's `foreground` token - on a light cell.
+	 */
+	test('paints inserted body cells in dark text, not the chrome foreground', async ({ page }) => {
+		await gotoSlide(page, 4);
+		await insertTable(page);
+		const table = await measureTable(page, 'Header 1'),
+			body = cellAt(table, 1, 0),
+			text = rgb(body.color);
+		expect(
+			text.r + text.g + text.b,
+			`an unstyled body cell painted ${body.color}, which is the host chrome's colour, not the deck's`,
+		).toBeLessThan(240);
+	});
+
+	/**
+	 * Shift-click has to build a real cell RANGE, or block merge is unreachable.
+	 *
+	 * Vue's `computeCellSelection` was correct all along; the break was upstream
+	 * in the gesture. The press bubbled to the canvas, whose additive branch
+	 * toggled the table OUT of the element selection, and the selection watcher
+	 * then nulled the cell selection - so by the time the click handler ran there
+	 * was no anchor and only the clicked cell was selected. The visible symptom is
+	 * exactly what this asserts: the context menu offering the two pairwise merges
+	 * instead of "Merge Selected Cells".
+	 */
+	test('builds a cell range from a shift-click and offers Merge Selected Cells', async ({
+		page,
+	}) => {
+		await gotoSlide(page, 4);
+		const anchor = canvasCell(page, 'R2C1'),
+			far = canvasCell(page, 'R3C2');
+		await anchor.waitFor();
+
+		// Two presses: the first selects the table element, the second the cell.
+		// The centre is re-measured between them because selecting opens the
+		// inspector, which narrows the canvas and moves the cell.
+		for (let press = 0; press < 2; press += 1) {
+			const point = await centreOf(anchor);
+			await page.mouse.click(point.x, point.y);
+			await page.waitForTimeout(350);
+		}
+
+		await far.click({ modifiers: ['Shift'] });
+		await page.waitForTimeout(400);
+
+		expect(await menuLabelsOn(page, far)).toContain('merge selected cells');
 	});
 });

@@ -10,8 +10,12 @@
  *    bindings, so dragging a shape there proves nothing. Note the binding is by
  *    `p:cNvPr/@id` ("2", "3"), which is how PowerPoint spells it and is NOT the
  *    viewer's own element id.
- *  - "Rounded", a `roundRect` with an explicit `a:avLst/a:gd name="adj"`, which
- *    is the only preset that currently gets PowerPoint's amber adjust handle.
+ *  - "Rounded", a `roundRect` with an explicit `a:avLst/a:gd name="adj"`: one
+ *    adjustable parameter, so exactly one amber adjust handle.
+ *  - "Arrow", a `rightArrow`: TWO adjustable parameters (`adj1` the shaft
+ *    thickness, `adj2` the head length), so it must offer two handles. Shared
+ *    used to return a single descriptor for every shape, so a preset's second
+ *    and later guides were unreachable in all five bindings.
  *  - "Pinned", carrying `a:spLocks noMove/noResize/noRot`. It stays selectable
  *    (so a user can unlock it) but must refuse every geometry gesture.
  *
@@ -99,6 +103,16 @@ const body = [
 		h: 110,
 		fill: 'FFF2CC',
 		avLst: '<a:avLst><a:gd name="adj" fmla="val 16667"/></a:avLst>',
+	}),
+	shape({
+		id: 7,
+		name: 'Arrow',
+		prst: 'rightArrow',
+		x: 320,
+		y: 250,
+		w: 220,
+		h: 110,
+		fill: 'E2EFDA',
 	}),
 	shape({
 		id: 6,

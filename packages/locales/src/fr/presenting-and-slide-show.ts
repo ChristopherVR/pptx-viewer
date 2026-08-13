@@ -190,6 +190,7 @@ export const translations = {
 	'pptx.customShows.renamePrompt': 'Renommer le diaporama personnalisé',
 	'pptx.transitionPresets.airplane': 'Avion',
 	'pptx.transitionPresets.blinds': 'Stores',
+	'pptx.transitionPresets.box': 'Boîte',
 	'pptx.transitionPresets.checker': 'Damier',
 	'pptx.transitionPresets.circle': 'Cercle',
 	'pptx.transitionPresets.comb': 'Peigne',
