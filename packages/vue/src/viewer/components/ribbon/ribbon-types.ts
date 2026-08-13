@@ -12,6 +12,7 @@
 import type {
 	PptxCustomShow,
 	PptxElement,
+	PptxLayoutPreview,
 	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideTransition,

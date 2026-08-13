@@ -52,8 +52,6 @@ import type { UseVersionHistoryWiringResult } from './useVersionHistoryWiring';
 /** The subset of `useLoadContent`'s result the ribbon reads. */
 export interface RibbonDeckInput {
 	layoutOptions: ShallowRef<PptxLayoutOption[]>;
-	/** Families the deck embeds, offered as their own font-dropdown group. */
-	embeddedFontFamilies: ComputedRef<string[]>;
 	customShows: ShallowRef<PptxCustomShow[]>;
 	/** Loaded deck theme; template gallery previews resolve scheme colours against it. */
 	theme: ShallowRef<PptxTheme | undefined>;
@@ -123,6 +121,8 @@ export interface UseViewerRibbonPropsOptions {
 	showShortcuts: Ref<boolean>;
 	showSettings: Ref<boolean>;
 	deck: RibbonDeckInput;
+	/** Families the deck embeds, offered as their own font-dropdown group. */
+	embeddedFontFamilies: ComputedRef<string[]>;
 	/** Families registered this session via File > Options > Fonts. */
 	customFontFamilies: Ref<string[]>;
 	ui: UseRibbonUiStateResult;
@@ -192,7 +192,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		snapToShape: o.drag.snapToShape,
 		overflowOpen: o.ui.overflowOpen,
 		layoutOptions: o.deck.layoutOptions,
-		embeddedFontFamilies: o.deck.embeddedFontFamilies,
+		embeddedFontFamilies: o.embeddedFontFamilies,
 		customFontFamilies: o.customFontFamilies,
 		theme: o.deck.theme,
 		customShows: o.deck.customShows,

@@ -32,6 +32,8 @@ import OptionsQuickAccessPane from './settings/OptionsQuickAccessPane.vue';
 import OptionsRibbonPane from './settings/OptionsRibbonPane.vue';
 import SettingsAiTab from './SettingsAiTab.vue';
 import SettingsAppearanceTab from './SettingsAppearanceTab.vue';
+import SettingsCustomFontsSection from './SettingsCustomFontsSection.vue';
+import SettingsCustomFontsSection from './SettingsCustomFontsSection.vue';
 import SettingsLanguageTab from './SettingsLanguageTab.vue';
 
 /** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
@@ -70,6 +72,8 @@ const props = defineProps<{
 	availableLocales: LocaleCatalogEntry[];
 	/** When true, an "AI" section is shown for exporting detailed chat logs. */
 	aiEnabled?: boolean;
+	/** Families registered this session via the Fonts section. */
+	customFontFamilies?: readonly string[];
 	/** Chat store the AI section reads from (defaults to the shared store). */
 	chatStore?: PptxAiChatStore;
 }>();
@@ -77,6 +81,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	/** Emitted when the dialog should close (changes kept). */
 	(e: 'close'): void;
+	/** A font file was registered; the ribbon adds the family to its list. */
+	(e: 'customFontRegistered', family: string): void;
 }>();
 
 const { t } = useI18n();
@@ -257,6 +263,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 											:on-select="onThemeSelect"
 										/>
 									</div>
+									<SettingsCustomFontsSection
+										v-else-if="section.special === 'customFonts'"
+										:enabled="props.options.general.enableCustomFontUpload"
+										:families="props.customFontFamilies ?? []"
+										@registered="(family: string) => emit('customFontRegistered', family)"
+									/>
 									<div v-else-if="section.special === 'clearCache'" class="mt-2">
 										<p class="mb-2 text-xs text-muted-foreground">
 											{{ t('pptx.options.save.clearCacheDescription') }}

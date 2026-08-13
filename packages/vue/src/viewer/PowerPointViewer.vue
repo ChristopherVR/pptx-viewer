@@ -695,6 +695,21 @@ const signatureWorkflow = useSignatureWorkflow({ signatures, isDirty: autosave.i
 const slideShow = useSlideShowSettings({ presentationProperties });
 // `password` is created above `useLoadContent` so the save path can read it.
 const fontEmbedding = useFontEmbedding({ slides, embeddedFonts: deck.embeddedFonts });
+
+/**
+ * Families the user registered from a local font file this session
+ * (File > Options > Fonts, off by default).
+ *
+ * Component state rather than a module-level global so several viewers on one
+ * page keep their own lists, and so nothing survives a reload: the font binary
+ * is the user's, not ours to persist.
+ */
+const customFontFamilies = ref<string[]>([]);
+function handleCustomFontRegistered(family: string): void {
+	if (!customFontFamilies.value.includes(family)) {
+		customFontFamilies.value = [...customFontFamilies.value, family];
+	}
+}
 const selectionPane = useSelectionPaneWiring({
 	findActiveElement,
 	activeSlide,
@@ -963,6 +978,8 @@ const ribbonProps = useViewerRibbonProps({
 	showShortcuts,
 	showSettings,
 	deck,
+	embeddedFontFamilies: fontEmbedding.embeddedFontNames,
+	customFontFamilies,
 	ui: ribbonUi,
 	selection,
 	history,
