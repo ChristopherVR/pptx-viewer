@@ -61,6 +61,68 @@ describe('clone helpers', () => {
 		);
 	});
 
+	// A group used to be copied with `{ ...element }`, which SHARES the children
+	// array: editing a shape inside the copy wrote through to the original (and
+	// to the undo snapshot this helper exists to isolate). Nesting multiplies
+	// the aliased surface, so the whole subtree is checked.
+	it('cloneElement deep-clones a nested group instead of aliasing its children', () => {
+		const leaf = textEl('leaf', 'x');
+		const inner = {
+			id: 'inner',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			children: [leaf],
+		} as unknown as PptxElement;
+		const outer = {
+			id: 'outer',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 20,
+			height: 20,
+			children: [inner],
+		} as unknown as PptxElement;
+
+		const clone = cloneElement(outer) as PptxElement & { children: PptxElement[] };
+		const clonedInner = clone.children[0] as PptxElement & { children: PptxElement[] };
+		expect(clone.children).not.toBe((outer as { children: unknown }).children);
+		expect(clonedInner).not.toBe(inner);
+		expect(clonedInner.children[0]).not.toBe(leaf);
+
+		// Mutate the clone's deepest descendant: the original must not move.
+		clonedInner.children[0].x = 999;
+		clonedInner.children[0].id = 'renamed';
+		expect(leaf.x).toBe(0);
+		expect(leaf.id).toBe('leaf');
+	});
+
+	// This module used to carry its own copy of the element clone, and the two
+	// copies drifted: neither cloned a table's rows. The binding entry point is
+	// now core's single implementation, so a variant it covers must be covered
+	// here too; if someone re-adds a local switch, this fails.
+	it('cloneElement deep-copies a table through the shared entry point', () => {
+		const el = {
+			id: 'tbl',
+			type: 'table',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			tableData: { rows: [{ cells: [{ text: 'a' }] }], columnWidths: [1] },
+		} as unknown as PptxElement;
+
+		const clone = cloneElement(el) as unknown as {
+			tableData: { rows: { cells: { text: string }[] }[] };
+		};
+		clone.tableData.rows[0].cells[0].text = 'edited';
+
+		const source = el as unknown as { tableData: { rows: { cells: { text: string }[] }[] } };
+		expect(source.tableData.rows[0].cells[0].text).toBe('a');
+	});
+
 	it('cloneSlide clones elements array and entries', () => {
 		const slide = { id: 's1', elements: [textEl('a', 'x')] } as unknown as PptxSlide;
 		const clone = cloneSlide(slide);

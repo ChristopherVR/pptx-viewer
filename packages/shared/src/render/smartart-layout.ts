@@ -44,6 +44,11 @@ import {
 	computeTargetLayout,
 	computeVennLayout,
 } from './smartart-layout-families-extra';
+import {
+	computeBendingLayout,
+	computeGearLayout,
+	computeTimelineLayout,
+} from './smartart-layout-families-flow';
 import { flattenNodes, resolveLayoutFamily } from './smartart-layout-helpers';
 import { interpretSmartArtLayout } from './smartart-layout-interpreter';
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
@@ -52,6 +57,7 @@ export * from './smartart-layout-types';
 export * from './smartart-layout-helpers';
 export * from './smartart-layout-families';
 export * from './smartart-layout-families-extra';
+export * from './smartart-layout-families-flow';
 export * from './smartart-layout-interpreter';
 export * from './smartart-layout-interpreter-model';
 
@@ -171,5 +177,11 @@ export function computeSmartArtLayout(
 			return computeFunnelLayout(flat, box, pal, style, elementId);
 		case 'target':
 			return computeTargetLayout(flat, box, pal, style, elementId);
+		case 'gear':
+			return computeGearLayout(flat, box, pal, style, elementId);
+		case 'timeline':
+			return computeTimelineLayout(flat, box, pal, style, elementId);
+		case 'bending':
+			return computeBendingLayout(flat, box, pal, style, elementId);
 	}
 }

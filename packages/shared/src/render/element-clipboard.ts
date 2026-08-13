@@ -19,6 +19,7 @@
  * @module render/element-clipboard
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { createEditorId, makeStoreAwareId, reassignDescendantIds } from 'pptx-viewer-core';
 
 /** MIME type bindings should use when writing the payload as a custom clipboard format. */
 export const ELEMENT_CLIPBOARD_MIME_TYPE = 'application/x-pptx-viewer-elements+json';
@@ -59,7 +60,7 @@ export interface PasteCloneOptions {
 
 /** Generate a unique element id (`el-<timestamp>-<random>`). */
 export function generateElementId(): string {
-	return `el-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	return createEditorId('el');
 }
 
 /**
@@ -70,16 +71,33 @@ export function generateElementId(): string {
  * a template (`master-` / `layout-`) prefix; otherwise later edits (which route
  * by id prefix) would target the wrong store and be lost. Outside template mode
  * a normal id is generated.
+ *
+ * This is core's `makeStoreAwareId` under the name the bindings already import.
+ * The clipboard used to carry its own copy of the rule, so a paste and an
+ * ungroup could drift apart in how they mint ids; both now mint the same way.
  */
-export function makeCloneId(intoTemplate: boolean, sourceId: string): string {
-	if (!intoTemplate) {
-		return generateElementId();
-	}
-	if (sourceId.startsWith('master-')) {
-		return `master-${generateElementId()}`;
-	}
-	return `layout-${generateElementId()}`;
-}
+export const makeCloneId = makeStoreAwareId;
+
+/**
+ * Re-id the DESCENDANTS of an already-cloned element, in place. Re-exported
+ * from core (`utils/group-ops`), which owns the canonical implementation that
+ * paste, duplicate and ungroup all share.
+ *
+ * Only the root of a pasted or promoted subtree used to be re-ided, which was
+ * invisible while a group could hold nothing but leaves and is not once a group
+ * can hold a group. Two things go wrong when the inside of a subtree keeps its
+ * original ids:
+ *
+ * - **Paste duplicates them.** Element ids are written back out as
+ *   `p:cNvPr/@id`, and an animation's `p:spTgt/@spid` then names two shapes at
+ *   once, so the deck animates the wrong one. Selection, hit testing and
+ *   collaboration reconcile are keyed by element id as well.
+ * - **Ungroup strands them in the wrong store.** Edits route by id prefix
+ *   (`master-` / `layout-` = the template store), so a promoted nested group
+ *   whose descendants kept plain ids has its inside silently edited into the
+ *   slide store and lost on save.
+ */
+export { reassignDescendantIds };
 
 /**
  * Snapshot a copied/cut element into the in-memory clipboard payload.
@@ -95,13 +113,21 @@ export function buildElementClipboardPayload(
 /**
  * Produce the clone inserted by paste/duplicate: a deep copy with a fresh
  * (template-prefix aware) id and the standard cascade offset applied.
+ *
+ * Every element INSIDE a pasted group is re-ided too (see
+ * {@link reassignDescendantIds}); only the root used to be, which put a
+ * duplicate of every grouped shape's id on the slide.
  */
 export function cloneElementForPaste(
 	element: PptxElement,
 	options: PasteCloneOptions = {},
 ): PptxElement {
 	const clone = structuredClone(element);
-	clone.id = makeCloneId(options.intoTemplate ?? false, element.id);
+	const intoTemplate = options.intoTemplate ?? false;
+	clone.id = makeCloneId(intoTemplate, element.id);
+	// The root's ORIGINAL id decides the template store for the whole subtree,
+	// so a descendant that carries no prefix of its own cannot vote it elsewhere.
+	reassignDescendantIds(clone, () => makeCloneId(intoTemplate, element.id));
 	clone.x += options.offsetX ?? PASTE_OFFSET_PX;
 	clone.y += options.offsetY ?? PASTE_OFFSET_PX;
 	return clone;

@@ -14,8 +14,25 @@ export interface LayoutRect {
 	height: number;
 }
 
+/**
+ * Per-node label styling resolved from `PptxSmartArtNode.style` (the overrides
+ * the inspector's node style bar writes).
+ *
+ * Every field is optional and every field has a documented binding default, so
+ * a renderer that ignores them keeps its historic output:
+ * `fontColor` -> `white`, `fontWeight` / `fontStyle` -> unset.
+ */
+export interface RenderedNodeTextStyle {
+	/** Label colour. Default `white`. */
+	fontColor?: string;
+	/** SVG `font-weight` (`700` when the node is bold). Default unset. */
+	fontWeight?: number;
+	/** SVG `font-style`. Default unset. */
+	fontStyle?: 'italic';
+}
+
 /** A node rendered as an SVG rect (rounded or flat). */
-export interface RenderedRectNode {
+export interface RenderedRectNode extends RenderedNodeTextStyle {
 	kind: 'rect';
 	key: string;
 	x: number;
@@ -36,7 +53,7 @@ export interface RenderedRectNode {
 }
 
 /** A node rendered as an SVG circle. */
-export interface RenderedCircleNode {
+export interface RenderedCircleNode extends RenderedNodeTextStyle {
 	kind: 'circle';
 	key: string;
 	cx: number;
@@ -48,10 +65,25 @@ export interface RenderedCircleNode {
 	opacity: number;
 	text: string;
 	fontSize: number;
+	/**
+	 * Label anchor x. Defaults to `cx`; set when the label sits away from the
+	 * circle (target leader labels, timeline captions).
+	 */
+	textX?: number;
+	/** Label anchor y. Defaults to `cy`. */
+	textY?: number;
+	/** SVG `text-anchor` for the label. Defaults to `middle`. */
+	textAnchor?: 'start' | 'middle' | 'end';
+	/**
+	 * How the label block sits relative to `textY`: `middle` centres it (the
+	 * default), `bottom` puts the last baseline on `textY` (label above the
+	 * node), `top` puts the first line's top on `textY` (label below).
+	 */
+	textBaseline?: 'top' | 'middle' | 'bottom';
 }
 
 /** A node rendered as an SVG polygon (chevron, trapezoid, etc.). */
-export interface RenderedPolygonNode {
+export interface RenderedPolygonNode extends RenderedNodeTextStyle {
 	kind: 'polygon';
 	key: string;
 	points: string;
@@ -69,11 +101,26 @@ export interface RenderedPolygonNode {
 
 export type RenderedNode = RenderedRectNode | RenderedCircleNode | RenderedPolygonNode;
 
-/** A connector line between two rendered nodes. */
+/**
+ * A connector line between two rendered nodes.
+ *
+ * The paint fields are optional and carry the values every binding already
+ * hardcodes, so a renderer that ignores them is unchanged:
+ * `stroke` -> `#94a3b8`, `strokeWidth` -> `1.5`, `opacity` -> `0.5`,
+ * `dash` -> solid.
+ */
 export interface RenderedConnector {
 	key: string;
 	/** SVG path data string. */
 	d: string;
+	/** Stroke colour. Default `#94a3b8`. */
+	stroke?: string;
+	/** Stroke width. Default `1.5`. */
+	strokeWidth?: number;
+	/** Stroke opacity. Default `0.5`. */
+	opacity?: number;
+	/** SVG `stroke-dasharray`. Default solid. */
+	dash?: string;
 }
 
 /** The layout family applied to a SmartArt element. */
@@ -87,7 +134,10 @@ export type LayoutFamily =
 	| 'pyramid'
 	| 'venn'
 	| 'funnel'
-	| 'target';
+	| 'target'
+	| 'gear'
+	| 'timeline'
+	| 'bending';
 
 /** Complete layout output for a single SmartArt family. */
 export interface SmartArtLayoutResult {

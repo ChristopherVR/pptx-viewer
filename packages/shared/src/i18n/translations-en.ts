@@ -1130,6 +1130,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.fonts.embedDescription':
 		'Embed fonts used in this presentation so they display correctly on other devices.',
 	'pptx.fonts.embedFonts': 'Embed Fonts',
+	'pptx.fonts.embedKeepsExisting': 'Turning this off removes the embedded font data when you save.',
+	'pptx.fonts.embedUnavailable':
+		'This presentation carries no embedded font data, and font files cannot be read from your system, so there is nothing to embed.',
 	'pptx.fonts.embedded': 'Embedded',
 	'pptx.fonts.enableEmbedding': 'Enable font embedding',
 	'pptx.fonts.missingWarning': '{{count}} font(s) could not be found and will not be embedded.',

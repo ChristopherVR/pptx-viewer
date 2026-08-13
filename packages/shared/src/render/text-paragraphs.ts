@@ -2,46 +2,88 @@
  * Build a slide element's rich text into rendered paragraphs of styled runs,
  * enriched with bullet markers + hanging-indent layout (framework-agnostic).
  *
- * Mirrors React's `renderTextSegments` (`text-paragraph-render.tsx`): groups
- * `textSegments` into paragraphs, resolves each paragraph's bullet glyph /
- * auto-number / font / colour and its marginLeft/text-indent, and drops the
+ * THE paragraph builder: all five bindings call this and render the descriptor
+ * it returns. It groups `textSegments` into paragraphs, resolves each
+ * paragraph's bullet glyph / auto-number / font / colour, its marginLeft and
+ * text-indent, its spacing, alignment and line-break rules, and drops the
  * core-inserted bullet-marker segment from the runs (the marker is rendered
  * separately so it can pick up bullet font/size/colour). Each binding maps the
  * returned plain-object styles onto its own style binding.
+ *
+ * It used to be described here as "mirrors React's `renderTextSegments`", which
+ * was the problem rather than the design: React kept a private copy that had
+ * drifted (it split paragraphs on a soft `a:br`, and never indented an
+ * outline-level paragraph that authored no explicit `marL`). That copy is gone;
+ * React's `text-paragraph-render` is now a view layer over this descriptor.
  */
 
-import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import type { PictureBulletMarker } from './bullet-list';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
+import { getKinsokuLineBreakStyles } from './kinsoku-styles';
+import { buildBulletMarkerStyle, buildParagraphRuns } from './paragraph-run-build';
+import { resolveParagraphSpacing } from './paragraph-spacing';
+import type { ParagraphSpacing, ParagraphSpacingInput } from './paragraph-spacing';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import type { FieldSubstitutionContext } from './text-field-substitution';
-import { substituteFieldText } from './text-field-substitution';
-import { buildRunEffectStyle } from './text-run-effects';
-import type { RunStyle } from './text-run-style';
 import {
-	applyUnderlineVariant,
-	authoredLetterSpacingPx,
-	resolveRunFont,
-	segmentStyleToCss,
-	splitStyledRun,
-} from './text-run-style';
-import { proportionalLineHeight, resolveAutoFitFontScale } from './text-style-helpers';
-
-/** Points to CSS px. */
-const PT_TO_PX = 96 / 72;
+	resolveCssTextAlign,
+	resolveParagraphAlign,
+	resolveParagraphRtl,
+} from './text-paragraph-style';
+import type { RunEquation, RunHyperlink } from './text-run-meta';
+import type { RunStyle } from './text-run-style';
+import { segmentStyleToCss } from './text-run-style';
+import { resolveAutoFitFontScale } from './text-style-helpers';
 
 // Re-exported so existing `pptx-viewer-shared` / `./text-paragraphs` import
 // paths for the run-style types + builder keep working after the split.
 export type { RunStyle };
 export { segmentStyleToCss };
+export type { RunEquation, RunHyperlink };
+// Re-exported so the existing `./text-paragraphs` import path for the
+// paragraph-spacing resolver keeps working after the split.
+export { resolveParagraphSpacing };
+export type { ParagraphSpacing, ParagraphSpacingInput };
 
 /** A single rendered run within a paragraph. */
 export interface ParagraphRun {
 	text: string;
 	style: RunStyle;
+	/**
+	 * The run's hyperlink (`a:hlinkClick` / `a:hlinkMouseOver`), when it has one.
+	 * A binding renders the run inside an `<a href>` when {@link RunHyperlink.href}
+	 * is set, and routes {@link RunHyperlink.url} to its click handler otherwise
+	 * (internal `ppaction://` slide jumps).
+	 */
+	hyperlink?: RunHyperlink;
+	/**
+	 * An inline equation (`m:oMath`) this run renders INSTEAD of `text`, which is
+	 * empty for it. Emitted in the run sequence so the maths lands at its
+	 * authored position between the runs around it.
+	 */
+	equation?: RunEquation;
+	/**
+	 * Index of the `textSegments` entry (of the override list when one was
+	 * supplied) this run was built from.
+	 *
+	 * Shared splits one authored run into several per-word runs for PowerPoint's
+	 * metric tracking, so this is many-to-one. It is the seam a binding uses to
+	 * reach the facts the neutral model does not carry - React's find-match
+	 * highlights, per-script font spans, tab stops and ruby all key off the
+	 * originating segment - without regrouping the segments itself and drifting
+	 * from the grouping here.
+	 */
+	segmentIndex?: number;
+	/**
+	 * Offset of this run's `text` within its segment's RENDERED text (after field
+	 * substitution), so a caller holding per-segment character offsets can map
+	 * them onto the split runs.
+	 */
+	charStart?: number;
 }
 
 /** A rendered paragraph: runs plus resolved bullet + hanging-indent metadata. */
@@ -88,83 +130,35 @@ export interface RenderParagraph {
 	 * block reads as one dense run of text (issue #131, slides 13-14).
 	 */
 	isEmpty?: boolean;
-}
-
-/** Resolved per-paragraph line-height + space-before/after. */
-export interface ParagraphSpacing {
-	/** Unitless multiplier (`a:spcPct`) or a `"<n>pt"` / `"<n>px"` string (`a:spcPts`). */
-	lineHeight?: number | string;
-	/** `margin-top` in px from `a:spcBef`. */
-	spaceBeforePx?: number;
-	/** `margin-bottom` in px from `a:spcAft`. */
-	spaceAfterPx?: number;
-}
-
-/** Input for {@link resolveParagraphSpacing}. */
-export interface ParagraphSpacingInput {
-	/** This paragraph's own `a:pPr` geometry (from its first segment). */
-	paraProps: TextStyle | undefined;
-	/** The text body's style, used as the inheritance fallback. */
-	bodyStyle?: TextStyle | undefined;
-	/** True for the first paragraph in the body. */
-	isFirst?: boolean;
-	/** True for the last paragraph in the body. */
-	isLast?: boolean;
 	/**
-	 * `a:bodyPr/@spcFirstLastPara`. When false, the first paragraph's
-	 * before-spacing and the last paragraph's after-spacing are suppressed;
-	 * they would otherwise fight the body anchor. Defaults to true (no
-	 * suppression) when omitted.
+	 * Indices of this paragraph's segments in the rendered segment list (the
+	 * override list when one was supplied), in authored order and INCLUDING the
+	 * bullet-marker segment the runs drop.
 	 *
-	 * PowerPoint's real rule is more involved than this: measured over COM, an
-	 * omitted attribute behaves as `false` AND the flag governs the *second*
-	 * paragraph's before-spacing, which this model has no way to express. Left
-	 * as-is deliberately rather than half-changed.
+	 * The seam a binding uses to reach paragraph facts the neutral model does not
+	 * carry, without regrouping the segments itself and drifting from the
+	 * grouping here - which is exactly how React ended up splitting on every
+	 * `"\n"` and treating a soft `a:br` as a paragraph break.
 	 */
-	spaceFirstLast?: boolean;
-}
-
-/**
- * Resolve a paragraph's line-height and vertical margins.
- *
- * OOXML puts line spacing (`a:lnSpc`), space-before (`a:spcBef`) and
- * space-after (`a:spcAft`) on the paragraph, so collapsing them into one
- * body-level padding gives every paragraph the same gap and loses the authored
- * rhythm. Values the paragraph does not set fall back to the text body's, and
- * an exact measure (`a:spcPts`) beats a proportional one (`a:spcPct`) taken
- * from the same level; a paragraph's own multiplier is never mixed with an
- * exact value inherited from the body.
- *
- * `paragraphSpacingBefore` / `paragraphSpacingAfter` are already px from core.
- */
-export function resolveParagraphSpacing(input: ParagraphSpacingInput): ParagraphSpacing {
-	const { paraProps, bodyStyle, isFirst = false, isLast = false, spaceFirstLast = true } = input;
-	const out: ParagraphSpacing = {};
-
-	const before = paraProps?.paragraphSpacingBefore ?? bodyStyle?.paragraphSpacingBefore;
-	if (typeof before === 'number' && before > 0 && (!isFirst || spaceFirstLast)) {
-		out.spaceBeforePx = before;
-	}
-
-	const after = paraProps?.paragraphSpacingAfter ?? bodyStyle?.paragraphSpacingAfter;
-	if (typeof after === 'number' && after > 0 && (!isLast || spaceFirstLast)) {
-		out.spaceAfterPx = after;
-	}
-
-	const hasOwnLineSpacing =
-		paraProps?.lineSpacing !== undefined || paraProps?.lineSpacingExactPt !== undefined;
-	const lineSource = hasOwnLineSpacing ? paraProps : bodyStyle;
-	const exactPt = lineSource?.lineSpacingExactPt;
-	const multiplier = lineSource?.lineSpacing;
-	if (typeof exactPt === 'number' && exactPt > 0) {
-		out.lineHeight = `${exactPt * PT_TO_PX}px`;
-	} else if (typeof multiplier === 'number' && multiplier > 0) {
-		// `a:spcPct` stacks on PowerPoint's 1.2 single-spacing pitch; see
-		// `proportionalLineHeight` for the COM measurement behind it.
-		out.lineHeight = proportionalLineHeight(multiplier);
-	}
-
-	return out;
+	segmentIndices: number[];
+	/**
+	 * True when this paragraph resolves right-to-left (`a:pPr/@rtl`, or the text
+	 * body's default). A binding that mirrors its hanging indent for RTL reads
+	 * this; the direction itself is already in {@link paragraphStyle}.
+	 */
+	rtl?: boolean;
+	/**
+	 * Extra CSS for the paragraph box, beyond the margin / indent / spacing
+	 * fields above: this paragraph's own `text-align` (`a:pPr/@algn`), its BiDi
+	 * `direction`, and the kinsoku line-breaking rules (`@eaLnBrk`,
+	 * `@latinLnBrk`, `@hangingPunct`). Absent when the paragraph overrides none
+	 * of them, which is the common case.
+	 *
+	 * All three used to be resolved in React's private paragraph renderer only,
+	 * so a deck that centred one paragraph of a left-aligned body, or set CJK
+	 * break rules, rendered differently in the other four bindings.
+	 */
+	paragraphStyle?: RunStyle;
 }
 
 /**
@@ -197,7 +191,9 @@ export function buildParagraphs(
 	}
 	const segments = segmentOverrides ?? element.textSegments;
 	if (!segments || segments.length === 0) {
-		return element.text ? [{ runs: [{ text: element.text, style: {} }], bulletStyle: {} }] : [];
+		return element.text
+			? [{ runs: [{ text: element.text, style: {} }], bulletStyle: {}, segmentIndices: [] }]
+			: [];
 	}
 
 	// `a:normAutofit/@fontScale`: applied to every authored run size below, since
@@ -213,163 +209,118 @@ export function buildParagraphs(
 		fontSizePx: (element.textStyle?.fontSize || DEFAULT_TEXT_FONT_SIZE) * fontScale,
 	};
 	const paragraphIndents = element.paragraphIndents;
-	const grouped: Array<{ paraSegments: TextSegment[]; terminator?: TextSegment }> = [
-		{ paraSegments: [] },
-	];
-	for (const seg of segments) {
+	const grouped: Array<{
+		paraSegments: TextSegment[];
+		/** Index of each entry of `paraSegments` in the source segment list. */
+		paraIndices: number[];
+		terminator?: TextSegment;
+	}> = [{ paraSegments: [], paraIndices: [] }];
+	for (const [segIndex, seg] of segments.entries()) {
 		if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
 			// Keep the separator: for an EMPTY paragraph it is the only carrier
 			// of the authored `a:endParaRPr` style (core stamps its font size on
 			// it), which sizes the blank line's box below.
 			grouped[grouped.length - 1].terminator = seg;
-			grouped.push({ paraSegments: [] });
+			grouped.push({ paraSegments: [], paraIndices: [] });
 			continue;
 		}
 		grouped[grouped.length - 1].paraSegments.push(seg);
+		grouped[grouped.length - 1].paraIndices.push(segIndex);
 	}
 
 	const bodyStyle = hasTextProperties(element) ? element.textStyle : undefined;
-	const result: RenderParagraph[] = grouped.map(({ paraSegments, terminator }, paraIndex) => {
-		const firstSeg = paraSegments[0];
-		const baseFontSize = firstSeg?.style?.fontSize ?? element.textStyle?.fontSize ?? 16;
-		const bulletResult = resolveParagraphBullet(firstSeg, baseFontSize);
+	const result: RenderParagraph[] = grouped.map(
+		({ paraSegments, paraIndices, terminator }, paraIndex) => {
+			const firstSeg = paraSegments[0];
+			const baseFontSize = firstSeg?.style?.fontSize ?? element.textStyle?.fontSize ?? 16;
+			const bulletResult = resolveParagraphBullet(firstSeg, baseFontSize);
 
-		// The slide-load path inserts a *dedicated* marker segment whose text is the
-		// precomputed glyph/number; we render the marker ourselves, so drop that
-		// segment from the runs to avoid a doubled marker. A run that merely carries
-		// `bulletInfo` but holds real content text (edit-remap path) is kept.
-		const markerSegment =
-			bulletResult && firstSeg?.bulletInfo && firstSeg.text.trim() === bulletResult.marker.trim()
-				? firstSeg
-				: undefined;
-
-		const runs: ParagraphRun[] = [];
-		for (const seg of paraSegments) {
-			if (seg === markerSegment) {
-				continue;
-			}
-			const rawText = seg.isLineBreak ? '\n' : seg.text;
-			const text = seg.fieldType
-				? substituteFieldText(rawText, seg.fieldType, fieldContext)
-				: rawText;
-			if (text) {
-				const style = segmentStyleToCss(seg, fontScale, { text, blockFont });
-				applyUnderlineVariant(style, seg);
-				// Per-run text effects (gradient/pattern fill, outer/inner shadow,
-				// 3D extrusion text-shadow, blur, HSL, alpha opacity, glow,
-				// reflection), mirroring React per-run span style. No-op {} for
-				// plain runs, so ordinary text is unchanged.
-				if (seg.style) {
-					Object.assign(style, buildRunEffectStyle(seg.style));
-				}
-				// Each word and each gap carries its own PowerPoint metric tracking,
-				// so a line the browser assembles out of them measures exactly what
-				// PowerPoint measured and breaks where PowerPoint breaks (#149).
-				// Emitting them as sibling RUNS rather than nested spans is what
-				// gets this to Vue/Svelte/Vanilla with no binding change: they
-				// already render one span per run.
-				runs.push(
-					...splitStyledRun(
-						text,
-						style,
-						resolveRunFont(style, seg.style ?? {}, blockFont),
-						authoredLetterSpacingPx(seg.style),
-					),
-				);
-			}
-		}
-
-		// Suppress bullets for paragraphs with no visible text content.
-		const hasVisibleTextContent = paraSegments.some(
-			(seg) => seg !== markerSegment && Boolean(seg.text) && seg.text.trim().length > 0,
-		);
-		const bullet = hasVisibleTextContent ? bulletResult : undefined;
-
-		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
-
-		const bulletStyle: RunStyle = {};
-		if (bullet) {
-			if (bullet.color) {
-				bulletStyle.color = bullet.color;
-			}
-			if (bullet.fontFamily) {
-				bulletStyle.fontFamily = bullet.fontFamily;
-			} else if (firstSeg?.style?.fontFamily) {
-				// A bullet that declares no `a:buFont` is painted in the paragraph's
-				// own typeface, which is what React does (the marker rides the first
-				// segment's span). Leaving it to inherit the text BODY's declaration
-				// picked a different family whenever the first run overrode it, and a
-				// marker glyph's advance is what positions the whole first line.
-				bulletStyle.fontFamily = getSubstituteFontFamily(firstSeg.style.fontFamily);
-			}
-			// Weight / slant come from the marker's OWN segment, never from the text
-			// body: a bold heading whose marker segment core parsed as regular
-			// painted a bold glyph here and a regular one in React, and a heavier
-			// marker is also a wider one, so the first line started further in.
-			bulletStyle.fontWeight = firstSeg?.style?.bold ? 700 : 400;
-			bulletStyle.fontStyle = firstSeg?.style?.italic ? 'italic' : 'normal';
-			// The marker shrinks with the body's autofit scale exactly as its runs do
-			// (an explicit `a:buSzPts` is an absolute size and stays put, matching
-			// React's `renderSingleSegment`).
-			const runFontSize = firstSeg?.style?.fontSize;
-			if (typeof bullet.sizePts === 'number') {
-				bulletStyle.fontSize = `${bullet.sizePts}px`;
-			} else if (typeof bullet.sizePercent === 'number' && typeof runFontSize === 'number') {
-				bulletStyle.fontSize = `${runFontSize * fontScale * (bullet.sizePercent / 100)}px`;
-			} else if (fontScale !== 1 && typeof runFontSize === 'number') {
-				bulletStyle.fontSize = `${runFontSize * fontScale}px`;
-			}
-			// PowerPoint draws the marker at `marL + indent` and starts the text
-			// at `marL`, so the marker's box is exactly the hanging distance
-			// wide. Reserving it here is what makes the runs line up on the
-			// indent stop instead of butting straight against the glyph, and it
-			// removes the need for a spacer character after the marker: a
-			// non-breaking space inherits the marker's font, and Wingdings maps
-			// U+00A0 to a visible dot, which painted a second bullet
-			// (issue #131, slides 13-14).
-			const hangPx =
-				typeof indent.textIndentPx === 'number' && indent.textIndentPx < 0
-					? -indent.textIndentPx
+			// The slide-load path inserts a *dedicated* marker segment whose text is the
+			// precomputed glyph/number; we render the marker ourselves, so drop that
+			// segment from the runs to avoid a doubled marker. A run that merely carries
+			// `bulletInfo` but holds real content text (edit-remap path) is kept.
+			const markerSegment =
+				bulletResult && firstSeg?.bulletInfo && firstSeg.text.trim() === bulletResult.marker.trim()
+					? firstSeg
 					: undefined;
-			bulletStyle.display = 'inline-block';
-			// `text-indent` inherits, and an inline-block is a block container:
-			// without this reset the marker box applies the paragraph's negative
-			// first-line indent AGAIN internally and paints the glyph a full
-			// hang-width left of its own box (outside the text inset).
-			bulletStyle.textIndent = '0px';
-			if (hangPx !== undefined) {
-				bulletStyle.minWidth = `${hangPx}px`;
-			} else {
-				bulletStyle.marginInlineEnd = '0.35em';
+
+			const runs: ParagraphRun[] = buildParagraphRuns({
+				paraSegments,
+				paraIndices,
+				markerSegment,
+				fontScale,
+				blockFont,
+				fieldContext,
+			});
+
+			// Suppress bullets for paragraphs with no visible text content.
+			const hasVisibleTextContent = paraSegments.some(
+				(seg) => seg !== markerSegment && Boolean(seg.text) && seg.text.trim().length > 0,
+			);
+			const bullet = hasVisibleTextContent ? bulletResult : undefined;
+
+			const indent = resolveParagraphIndent(
+				paragraphIndents?.[paraIndex],
+				firstSeg?.paragraphLevel,
+			);
+			const bulletStyle = buildBulletMarkerStyle(bullet, firstSeg, fontScale, indent.textIndentPx);
+			// An empty paragraph's own `a:pPr` / `a:endParaRPr` ride its terminator
+			// segment (there is no run to carry them), so read them from there.
+			const propsCarrier = firstSeg ?? (paraSegments.length === 0 ? terminator : undefined);
+			const spacing = resolveParagraphSpacing({
+				paraProps: propsCarrier?.paragraphProperties,
+				bodyStyle,
+				isFirst: paraIndex === 0,
+				isLast: paraIndex === grouped.length - 1,
+				spaceFirstLast: bodyStyle?.spaceFirstLastParagraph !== false,
+			});
+			const strutFontSizePx = resolveParagraphStrutFontSize(
+				paraSegments.length > 0 ? paraSegments : terminator ? [terminator] : [],
+				hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
+			);
+			const rtl = resolveParagraphRtl(
+				paraSegments.map((seg) => ({ segment: seg })),
+				bodyStyle?.rtl,
+			);
+			const align = resolveParagraphAlign(
+				paraSegments.map((seg) => ({ segment: seg })),
+				bodyStyle?.align,
+			);
+			const paragraphStyle: RunStyle = getKinsokuLineBreakStyles(firstSeg?.style);
+			const cssAlign = resolveCssTextAlign(align, rtl === true);
+			if (cssAlign !== undefined) {
+				paragraphStyle.textAlign = cssAlign;
 			}
-		}
-		// An empty paragraph's own `a:pPr` / `a:endParaRPr` ride its terminator
-		// segment (there is no run to carry them), so read them from there.
-		const propsCarrier = firstSeg ?? (paraSegments.length === 0 ? terminator : undefined);
-		const spacing = resolveParagraphSpacing({
-			paraProps: propsCarrier?.paragraphProperties,
-			bodyStyle,
-			isFirst: paraIndex === 0,
-			isLast: paraIndex === grouped.length - 1,
-			spaceFirstLast: bodyStyle?.spaceFirstLastParagraph !== false,
-		});
-		const strutFontSizePx = resolveParagraphStrutFontSize(
-			paraSegments.length > 0 ? paraSegments : terminator ? [terminator] : [],
-			hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
-		);
-		return {
-			runs,
-			bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
-			bulletPicture: bullet?.picture,
-			bulletStyle,
-			marginLeftPx: indent.marginLeftPx,
-			textIndentPx: indent.textIndentPx,
-			lineHeight: spacing.lineHeight,
-			spaceBeforePx: spacing.spaceBeforePx,
-			spaceAfterPx: spacing.spaceAfterPx,
-			strutFontSizePx,
-		};
-	});
+			if (rtl !== undefined) {
+				paragraphStyle.direction = rtl ? 'rtl' : 'ltr';
+				// `embed` rather than `plaintext`: the paragraph establishes its own
+				// BiDi embedding level, so digits inside RTL text still run LTR per the
+				// Unicode algorithm. `plaintext` is the body-level fallback.
+				paragraphStyle.unicodeBidi = 'embed';
+			}
+
+			const para: RenderParagraph = {
+				runs,
+				bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
+				bulletPicture: bullet?.picture,
+				bulletStyle,
+				marginLeftPx: indent.marginLeftPx,
+				textIndentPx: indent.textIndentPx,
+				lineHeight: spacing.lineHeight,
+				spaceBeforePx: spacing.spaceBeforePx,
+				spaceAfterPx: spacing.spaceAfterPx,
+				strutFontSizePx,
+				segmentIndices: paraIndices,
+			};
+			if (rtl !== undefined) {
+				para.rtl = rtl;
+			}
+			if (Object.keys(paragraphStyle).length > 0) {
+				para.paragraphStyle = paragraphStyle;
+			}
+			return para;
+		},
+	);
 
 	const hasContent = (p: RenderParagraph): boolean =>
 		p.runs.length > 0 || p.bulletMarker !== undefined || p.bulletPicture !== undefined;

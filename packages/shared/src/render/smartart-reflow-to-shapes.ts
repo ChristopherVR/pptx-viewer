@@ -197,6 +197,12 @@ export function rebuildDrawingShapesIfCleared(
 
 	// shapes is an empty array [] -- a structural edit cleared previously-
 	// populated shapes. Rebuild them from the algorithmic layout engine.
+	//
+	// The parsed `dgm:layoutDef` / `dgm:presLayoutVars` are forwarded so the
+	// rebuild runs the real DiagramML interpreter, exactly as the fallback
+	// renderer would for the same data. Omitting them (as this did) rebuilt the
+	// shapes from the crude family approximation, so a structural edit visibly
+	// changed the diagram's arrangement even when the interpreter understood it.
 	const layoutResult = computeSmartArtLayout(
 		smartArtData.nodes,
 		box,
@@ -205,6 +211,9 @@ export function rebuildDrawingShapesIfCleared(
 		elementId,
 		smartArtData.resolvedLayoutType,
 		layout,
+		undefined,
+		smartArtData.layoutDefinition,
+		smartArtData.presLayoutVars,
 	);
 
 	return {

@@ -12,6 +12,7 @@ import {
 	getDiagonalBorders,
 	getTableCellBandStyle,
 	ooxmlDashToCssBorderStyle,
+	tableContainerCss,
 } from './table-style';
 
 describe('ooxmlDashToCssBorderStyle', () => {
@@ -42,6 +43,12 @@ describe('ooxmlDashToCssBorderStyle', () => {
 describe('cellStyleToCss', () => {
 	it('should return an empty object for an undefined style', () => {
 		expect(cellStyleToCss(undefined)).toStrictEqual({});
+	});
+
+	it('should emit the cell font family (a:rPr/a:latin)', () => {
+		// Parsed by core but dropped by this mapper until issue F3: a cell that
+		// named an explicit typeface rendered in the binding default stack.
+		expect(cellStyleToCss({ fontFamily: 'Georgia' }).fontFamily).toBe('Georgia');
 	});
 
 	it('should map font / colour / weight properties', () => {
@@ -435,5 +442,21 @@ describe('getTableCellBandStyle - section fill types (issue #95)', () => {
 		});
 		const css = getTableCellBandStyle(td, 2, 2, 3, 3, { tableStyleMap: map });
 		expect(css?.backgroundColor).toBe('#654321');
+	});
+});
+
+describe('tableContainerCss', () => {
+	it('returns nothing for a left-to-right table', () => {
+		expect(tableContainerCss({ rows: [], columnWidths: [1] })).toStrictEqual({});
+		expect(tableContainerCss(undefined)).toStrictEqual({});
+	});
+
+	it('mirrors the column order for a:tblPr@rtl', () => {
+		// Parsed and round-tripped since forever, rendered by nobody: every table
+		// in an Arabic or Hebrew deck came out with its columns the wrong way
+		// round, and Vanilla shipped an inspector toggle that did nothing.
+		expect(tableContainerCss({ rows: [], columnWidths: [1], rtl: true })).toStrictEqual({
+			direction: 'rtl',
+		});
 	});
 });

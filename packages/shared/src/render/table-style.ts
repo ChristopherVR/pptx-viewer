@@ -20,6 +20,7 @@
  * passed to {@link getTableCellBandStyle}.
  */
 import type {
+	ParsedTableStyleEntry,
 	ParsedTableStyleFill,
 	ParsedTableStyleMap,
 	PptxTableCellStyle,
@@ -31,6 +32,7 @@ import type {
 import { getPatternSvg, normalizeHexColor } from './fill-style';
 import type { CellBorderPosition } from './table-style-borders';
 import { resolveCellBorderCss, resolveStyleDiagonalBorders } from './table-style-borders';
+import { getBuiltinTableStyle } from './table-style-builtins';
 import {
 	applyStyleFill,
 	applyStyleText,
@@ -178,23 +180,47 @@ export interface TableStyleContext {
 }
 
 /**
+ * Table-LEVEL CSS: the properties that belong on the `<table>` element rather
+ * than on a cell.
+ *
+ * Currently just `a:tblPr@rtl` (ECMA-376 §21.1.3.15), which lays the table out
+ * right-to-left so the first column is drawn on the right. It was parsed and
+ * round-tripped but rendered by nobody, so every table in an Arabic or Hebrew
+ * deck came out with its columns reversed, and Vanilla's inspector offered a
+ * toggle that changed nothing on screen.
+ *
+ * Returns an empty object for a left-to-right table so a binding can spread it
+ * unconditionally.
+ */
+export function tableContainerCss(tableData: PptxTableData | undefined): TableCellCss {
+	return tableData?.rtl ? { direction: 'rtl' } : {};
+}
+
+/**
  * Look up the table style entry for a style GUID, trying both the raw value
  * and the braced-upper-case normalisation that OOXML uses.
+ *
+ * A GUID the deck does not define is not an error: `ppt/tableStyles.xml` only
+ * carries the styles a deck CUSTOMISED, and PowerPoint's 74 gallery styles are
+ * normally absent from the package altogether. Those fall back to the built-in
+ * catalogue, which holds PowerPoint's own definitions expressed in scheme
+ * colours so the deck's theme still decides the actual colours. A deck-authored
+ * entry always wins over the built-in of the same GUID.
  */
-function resolveTableStyleEntry(
+export function resolveTableStyleEntry(
 	tableStyleId: string | undefined,
 	tableStyleMap: ParsedTableStyleMap | undefined,
-) {
-	if (!tableStyleId || !tableStyleMap) {
+): ParsedTableStyleEntry | undefined {
+	if (!tableStyleId) {
 		return undefined;
 	}
-	const direct = tableStyleMap[tableStyleId];
+	const direct = tableStyleMap?.[tableStyleId];
 	if (direct) {
 		return direct;
 	}
 	const normalised = tableStyleId.trim().toUpperCase();
 	const withBraces = normalised.startsWith('{') ? normalised : `{${normalised}}`;
-	return tableStyleMap[withBraces];
+	return tableStyleMap?.[withBraces] ?? getBuiltinTableStyle(withBraces);
 }
 
 /** Map an OOXML `a:prstDash/@val` value to a CSS `border-style` keyword. */
@@ -232,6 +258,9 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 	}
 	const css: TableCellCss = {};
 
+	if (style.fontFamily) {
+		css.fontFamily = style.fontFamily;
+	}
 	if (style.fontSize) {
 		css.fontSize = `${style.fontSize}px`;
 	}
@@ -553,8 +582,59 @@ export function getTableCellBandStyle(
 		}
 	}
 
+	// ── Emphasis parts, in the ECMA-376 §21.1.3.14 CT_TableStyle sequence. ──
+	// That sequence IS the application order, lowest precedence first:
+	//   wholeTbl, band1H, band2H, band1V, band2V, lastCol, firstCol, lastRow,
+	//   seCell, swCell, firstRow, neCell, nwCell
+	// Column emphasis therefore ranks BELOW row emphasis: a header row keeps
+	// its own colour where it crosses the first column, rather than the first
+	// column overpainting the header. (Verified against PowerPoint 16.0's own
+	// output, which writes the parts back in exactly this order.) The corner
+	// cells straddle the row parts, so `seCell`/`swCell` land between `lastRow`
+	// and `firstRow` while `neCell`/`nwCell` come last of all.
+	const atTop = Boolean(tableData.firstRowHeader) && rowIndex === 0;
+	const atBottom = Boolean(tableData.lastRow) && rowIndex === rowCount - 1;
+	const atLeft = Boolean(tableData.firstCol) && cellIndex === 0;
+	const atRight = Boolean(tableData.lastCol) && cellIndex === columnCount - 1;
+
+	/** Apply one emphasis part's fill + text, with an optional fill fallback. */
+	const applyPart = (
+		active: boolean,
+		fill: ParsedTableStyleFill | undefined,
+		text: ParsedTableStyleEntry['wholeTblText'],
+		fillFallback = '',
+	): void => {
+		if (!active) {
+			return;
+		}
+		if (fill || fillFallback) {
+			applyStyleFill(fill, colorScheme, style, fillFallback);
+		}
+		applyStyleText(text, colorScheme, style, fontScheme);
+		applied = true;
+	};
+
+	// lastCol / firstCol: bold emphasis plus the style's own fill and text.
+	if (atRight || atLeft) {
+		style.fontWeight = 700;
+	}
+	applyPart(atRight, styleEntry?.lastColFill, styleEntry?.lastColText);
+	applyPart(atLeft, styleEntry?.firstColFill, styleEntry?.firstColText);
+
+	// ── Total / last row emphasis. ──
+	if (atBottom) {
+		style.fontWeight = 700;
+		applyPart(true, styleEntry?.lastRowFill, styleEntry?.lastRowText);
+		const borderColor = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.7)');
+		style.borderTop = `2px solid ${borderColor}`;
+	}
+
+	// ── Bottom corner cells (seCell, swCell). ──
+	applyPart(atBottom && atRight, styleEntry?.seCellFill, styleEntry?.seCellText);
+	applyPart(atBottom && atLeft, styleEntry?.swCellFill, styleEntry?.swCellText);
+
 	// ── Header row (first row). ──
-	if (tableData.firstRowHeader && rowIndex === 0) {
+	if (atTop) {
 		style.fontWeight = 700;
 		applyStyleFill(styleEntry?.firstRowFill, colorScheme, style, 'rgba(68, 114, 196, 0.85)');
 		// White header text belongs with a painted header band. `a:noFill` is an
@@ -567,70 +647,9 @@ export function getTableCellBandStyle(
 		applied = true;
 	}
 
-	// ── Total / last row emphasis. ──
-	if (tableData.lastRow && rowIndex === rowCount - 1) {
-		style.fontWeight = 700;
-		if (styleEntry?.lastRowFill) {
-			applyStyleFill(styleEntry.lastRowFill, colorScheme, style, '');
-		}
-		const borderColor = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.7)');
-		style.borderTop = `2px solid ${borderColor}`;
-		applyStyleText(styleEntry?.lastRowText, colorScheme, style, fontScheme);
-		applied = true;
-	}
-
-	// ── First column emphasis. ──
-	if (tableData.firstCol && cellIndex === 0) {
-		style.fontWeight = 700;
-		if (styleEntry?.firstColFill) {
-			applyStyleFill(styleEntry.firstColFill, colorScheme, style, '');
-		}
-		applyStyleText(styleEntry?.firstColText, colorScheme, style, fontScheme);
-		applied = true;
-	}
-
-	// ── Last column emphasis. ──
-	if (tableData.lastCol && cellIndex === columnCount - 1) {
-		style.fontWeight = 700;
-		if (styleEntry?.lastColFill) {
-			applyStyleFill(styleEntry.lastColFill, colorScheme, style, '');
-		}
-		applyStyleText(styleEntry?.lastColText, colorScheme, style, fontScheme);
-		applied = true;
-	}
-
-	// ── Corner cells (highest fill/text precedence, issue #95). ──
-	// Each corner overrides the intersection of a first/last row with a
-	// first/last column (CT_TableStyle, ECMA-376 §21.1.3.16): nw = top-left,
-	// ne = top-right, sw = bottom-left, se = bottom-right. Only applies when
-	// both the row and column emphasis are active for this cell.
-	if (styleEntry) {
-		const atTop = Boolean(tableData.firstRowHeader) && rowIndex === 0;
-		const atBottom = Boolean(tableData.lastRow) && rowIndex === rowCount - 1;
-		const atLeft = Boolean(tableData.firstCol) && cellIndex === 0;
-		const atRight = Boolean(tableData.lastCol) && cellIndex === columnCount - 1;
-		let cornerFill: ParsedTableStyleFill | undefined;
-		let cornerText = undefined as (typeof styleEntry)['nwCellText'];
-		if (atTop && atLeft) {
-			cornerFill = styleEntry.nwCellFill;
-			cornerText = styleEntry.nwCellText;
-		} else if (atTop && atRight) {
-			cornerFill = styleEntry.neCellFill;
-			cornerText = styleEntry.neCellText;
-		} else if (atBottom && atLeft) {
-			cornerFill = styleEntry.swCellFill;
-			cornerText = styleEntry.swCellText;
-		} else if (atBottom && atRight) {
-			cornerFill = styleEntry.seCellFill;
-			cornerText = styleEntry.seCellText;
-		}
-		if (cornerFill && applyStyleFill(cornerFill, colorScheme, style, '')) {
-			applied = true;
-		}
-		if (applyStyleText(cornerText, colorScheme, style, fontScheme)) {
-			applied = true;
-		}
-	}
+	// ── Top corner cells (neCell, nwCell): highest precedence of all. ──
+	applyPart(atTop && atRight, styleEntry?.neCellFill, styleEntry?.neCellText);
+	applyPart(atTop && atLeft, styleEntry?.nwCellFill, styleEntry?.nwCellText);
 
 	// ── Table-style borders (issue #71). ──
 	// Resolve gridlines/edges the cell inherits from the table style and let

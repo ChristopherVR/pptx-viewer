@@ -43,6 +43,45 @@ describe('getGroupChildParentFill', () => {
 	it('returns undefined for a non-group element', () => {
 		expect(getGroupChildParentFill(shape({ fillColor: '#123456' }))).toBeUndefined();
 	});
+
+	// `a:grpFill` resolves against the nearest ANCESTOR group that has a fill,
+	// so a fill-less group in the middle passes its own inherited fill down.
+	// Before chaining, every binding asked the IMMEDIATE group only and a shape
+	// two levels down painted transparent.
+	it('passes the inherited fill through a group with no fill of its own', () => {
+		expect(getGroupChildParentFill(group(undefined), { fillColor: '#abcdef' })).toStrictEqual({
+			fillColor: '#abcdef',
+		});
+	});
+
+	it('passes the inherited fill through a group whose own fill is itself grpFill', () => {
+		expect(
+			getGroupChildParentFill(group({ fillMode: 'group' }), { fillColor: '#abcdef' }),
+		).toStrictEqual({ fillColor: '#abcdef' });
+	});
+
+	it('prefers the group own fill over the inherited one', () => {
+		expect(
+			getGroupChildParentFill(group({ fillColor: '#123456' }), { fillColor: '#abcdef' }),
+		).toStrictEqual({ fillColor: '#123456' });
+	});
+
+	it('still returns undefined for a non-group element with an inherited fill', () => {
+		expect(getGroupChildParentFill(shape(undefined), { fillColor: '#abcdef' })).toBeUndefined();
+	});
+
+	// End to end over a two-level tree, the way a binding walks it: outer group
+	// filled, middle group empty, leaf painted with `a:grpFill`.
+	it('paints a grpFill leaf under a fill-less nested group', () => {
+		const leaf = shape({ fillMode: 'group' });
+		const middle = group(undefined, [leaf]);
+		const outer = group({ fillColor: '#ff0000' }, [middle]);
+
+		const middleFill = getGroupChildParentFill(outer);
+		const leafFill = getGroupChildParentFill(middle, middleFill);
+
+		expect(resolveGroupChildFill(leaf, leafFill)?.backgroundColor).toBe('#ff0000');
+	});
 });
 
 describe('resolveGroupChildFill', () => {

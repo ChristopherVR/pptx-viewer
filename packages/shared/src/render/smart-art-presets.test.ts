@@ -28,6 +28,9 @@ const KNOWN_FAMILIES: LayoutFamily[] = [
 	'venn',
 	'funnel',
 	'target',
+	'gear',
+	'timeline',
+	'bending',
 ];
 
 const CATEGORY_IDS = new Set<SmartArtCategory>(CATEGORIES.map((c) => c.id));
@@ -105,10 +108,10 @@ describe('pRESETS <-> LAYOUT_FAMILY_MAP reconciliation', () => {
 	});
 
 	it('resolves the previously-unmapped catalogue layouts to their families', () => {
-		expect(resolveLayoutFamily([], undefined, 'basicTimeline')).toBe('process');
-		expect(resolveLayoutFamily([], undefined, 'bendingProcess')).toBe('process');
+		expect(resolveLayoutFamily([], undefined, 'basicTimeline')).toBe('timeline');
+		expect(resolveLayoutFamily([], undefined, 'bendingProcess')).toBe('bending');
 		expect(resolveLayoutFamily([], undefined, 'basicTarget')).toBe('radial');
-		expect(resolveLayoutFamily([], undefined, 'interlockingGears')).toBe('radial');
+		expect(resolveLayoutFamily([], undefined, 'interlockingGears')).toBe('gear');
 		expect(resolveLayoutFamily([], undefined, 'basicMatrix')).toBe('matrix');
 		expect(resolveLayoutFamily([], undefined, 'basicPyramid')).toBe('pyramid');
 		expect(resolveLayoutFamily([], undefined, 'invertedPyramid')).toBe('pyramid');

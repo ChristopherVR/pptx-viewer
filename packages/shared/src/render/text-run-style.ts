@@ -1,15 +1,20 @@
 /**
  * Per-run inline-style builder for rendered text runs (framework-agnostic).
  *
- * Mirrors React's per-run span style (`text-segment-render.tsx`): it maps a
- * `TextSegment`'s `TextStyle` onto a neutral CSS record that every non-React
- * binding (Vue / Angular / Svelte / Vanilla) applies to its own run span.
+ * Maps a `TextSegment`'s `TextStyle` onto a neutral CSS record that every
+ * binding applies to its own run span. React included: its `text-segment-render`
+ * now starts from this record and re-resolves only the handful of properties it
+ * derives more precisely (colour/size/family fallbacks, PANOSE substitution,
+ * the `@baseline` percentage, the `@kern` threshold, per-run BiDi), each of
+ * which is documented there as a gap in this module rather than a preference.
  * Split out of `text-paragraphs` to keep each module focused and small.
  */
 
 import type { TextSegment } from 'pptx-viewer-core';
 import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
+import { HYPERLINK_COLOR } from '../constants';
+import { normalizeHexColor } from './fill-style';
 import { resolveUnderlineDecorationStyle } from './text-decoration';
 import type { RunFontSpec } from './text-metric-tracking';
 import { resolveMetricTrackingPx, splitRunForMetrics } from './text-metric-tracking';
@@ -114,17 +119,20 @@ function applyExtraRunProps(
 	}
 	// Highlight (`a:highlight`) → background. Suppressed automatically when a
 	// gradient/pattern text fill later sets the `background` shorthand.
+	// Every colour here goes through `normalizeHexColor`: core hands back a bare
+	// `AABBCC` for some producers, and `-webkit-text-stroke: 1px AABBCC` is
+	// invalid CSS, so the whole declaration is dropped and the outline vanishes.
 	if (s.highlightColor) {
-		style.backgroundColor = s.highlightColor;
+		style.backgroundColor = normalizeHexColor(s.highlightColor, 'transparent');
 	}
 	// Underline colour (`a:uFill` / `a:uLn`) → text-decoration-color.
 	if (s.underlineColor) {
-		style.textDecorationColor = s.underlineColor;
+		style.textDecorationColor = normalizeHexColor(s.underlineColor);
 	}
 	// Text outline (`a:rPr > a:ln`) → -webkit-text-stroke, stroke painted first.
 	if (s.textOutlineWidth) {
 		style.WebkitTextStroke = s.textOutlineColor
-			? `${s.textOutlineWidth}px ${s.textOutlineColor}`
+			? `${s.textOutlineWidth}px ${normalizeHexColor(s.textOutlineColor, '#000000')}`
 			: `${s.textOutlineWidth}px currentColor`;
 		style.paintOrder = 'stroke fill';
 	}
@@ -274,6 +282,12 @@ export function segmentStyleToCss(
 	}
 	if (s.color) {
 		style.color = s.color;
+	} else if (s.hyperlink) {
+		// PowerPoint paints a hyperlink in the theme's `hlink` colour. Core
+		// resolves that into `s.color` for nearly every deck, so this only fires
+		// where the cascade produced nothing - but without it such a run rendered
+		// in the body colour and was indistinguishable from the prose around it.
+		style.color = HYPERLINK_COLOR;
 	}
 	// Declared unconditionally, exactly as React's `renderSingleSegment` does, and
 	// that is the whole point: the text BLOCK also carries a `font-weight` /
@@ -285,7 +299,10 @@ export function segmentStyleToCss(
 	style.fontWeight = s.bold ? 'bold' : 'normal';
 	style.fontStyle = s.italic ? 'italic' : 'normal';
 	const deco: string[] = [];
-	if (s.underline) {
+	// A hyperlink is underlined unless the run says otherwise, which is
+	// PowerPoint's default and React's long-standing behaviour; the other four
+	// bindings rendered a link as undecorated prose.
+	if (s.underline || s.hyperlink) {
 		deco.push('underline');
 	}
 	if (s.strikethrough) {

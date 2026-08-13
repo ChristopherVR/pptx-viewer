@@ -98,6 +98,16 @@ export function interpretSmartArtLayout(
 		case 'spacer':
 			return arrangeSpacer(plan, arranged, box, palette, style, elementId);
 		case 'text':
+			// `arrangeText` places only the FIRST point (a composite `tx` leaf
+			// describes one region). Reached as a standalone plan it is the
+			// last-resort aux branch, so accepting it for a multi-point diagram
+			// silently drops every point but one. Decline instead and let the
+			// caller's family approximation place them all. Seen on real decks
+			// whose `.../layout/default` definition hides its `snake` arrangers
+			// inside a `dgm:choose` this interpreter cannot decide.
+			if (arranged.length > 1) {
+				return undefined;
+			}
 			return arrangeText(plan, arranged, box, palette, style, elementId);
 	}
 }

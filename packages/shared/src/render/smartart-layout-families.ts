@@ -15,6 +15,7 @@ import {
 	nodeFill,
 	nodeOpacity,
 	nodeStroke,
+	nodeTextStyle,
 	strokeFor,
 	styleShadow,
 	styleStroke,
@@ -69,6 +70,7 @@ export function computeListLayout(
 			fontSize,
 			textX: pad + itemW / 2,
 			textY: y + itemH / 2,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});
@@ -148,6 +150,7 @@ export function computeProcessLayout(
 			fontSize,
 			textX: x + itemW / 2,
 			textY: yMid,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});
@@ -215,6 +218,7 @@ export function computeCycleLayout(
 			opacity: nodeOpacity(i, nodes.length, style),
 			text: truncate(node.text, 20),
 			fontSize,
+			...nodeTextStyle(node),
 		};
 	});
 
@@ -294,6 +298,7 @@ export function computeHierarchyLayout(
 			fontSize,
 			textX: nodeCx,
 			textY: nodeCy,
+			...nodeTextStyle(t.node),
 		};
 		renderedNodes.push(nodeEntry);
 
@@ -362,6 +367,7 @@ export function computeMatrixLayout(
 			fontSize,
 			textX: x + cellW / 2,
 			textY: y + cellH / 2,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});

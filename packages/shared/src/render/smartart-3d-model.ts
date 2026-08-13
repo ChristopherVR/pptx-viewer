@@ -19,11 +19,28 @@ import { applySpatialLayout } from './smartart-3d-spatial';
 import type {
 	Point2,
 	SmartArt3DConnector,
+	SmartArt3DFamily,
 	SmartArt3DMesh,
 	SmartArt3DModel,
 	SmartArt3DModelOptions,
 } from './smartart-3d-types';
-import type { RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
+import type { LayoutFamily, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
+
+/**
+ * The 2D engine grew three families (gear / timeline / bending) that the 3D
+ * spatial transform has no arrangement for. Each folds onto the family whose
+ * spatial treatment it used to receive, so 3D output is unchanged.
+ */
+const SPATIAL_FAMILY_FALLBACK: Partial<Record<LayoutFamily, SmartArt3DFamily>> = {
+	gear: 'radial',
+	timeline: 'process',
+	bending: 'process',
+};
+
+/** Narrow a 2D layout family to the subset the 3D spatial transform handles. */
+function spatialFamily(family: LayoutFamily): SmartArt3DFamily {
+	return SPATIAL_FAMILY_FALLBACK[family] ?? (family as SmartArt3DFamily);
+}
 
 const DEFAULT_DEPTH_RATIO = 0.35;
 const DEFAULT_BEVEL_RATIO = 0.2;
@@ -146,7 +163,7 @@ export function buildSmartArt3DModel(
 		meshes,
 		connectors,
 		bounds: { width: w, height: h },
-		family: layout.family,
+		family: spatialFamily(layout.family),
 		background: options.background,
 	};
 

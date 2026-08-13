@@ -271,6 +271,10 @@ export * from './motion-path-authoring';
 // avoid duplicate-export conflicts.
 export * from './visual-3d';
 export * from './table-style';
+// PowerPoint's 74 built-in table styles, keyed by GUID. They are absent from a
+// deck's `ppt/tableStyles.xml` by design, so without this catalogue every table
+// using a gallery style resolved to nothing and painted a hardcoded blue.
+export * from './table-style-builtins';
 export * from './table-merge';
 export * from './table-layout';
 // Immutable single-cell text edit (`setCellText`) for inline cell editing,
@@ -405,6 +409,9 @@ export * from './text-metric-tracking';
 // MathML/SVG sanitisation (DOMPurify wrapper, non-DOM fallback) for equation
 // rendering. React + Vue consume it; Angular uses its own DomSanitizer.
 export * from './mathml-sanitize';
+// Per-run hyperlink + inline-equation descriptors carried on `ParagraphRun`,
+// so every binding renders a link and an inline `m:oMath` from the same model.
+export * from './text-run-meta';
 export * from './text-paragraphs';
 export * from './paragraph-strut';
 export * from './morph-plan';
@@ -596,6 +603,19 @@ export type {
 	RenderedGradientStop,
 	DrawingViewBox,
 } from './smartart-drawing';
+// SmartArt fallback-layout paint decisions: the label placement / colour and
+// the connector stroke a binding should use once the descriptor's OPTIONAL
+// fields have had their documented defaults applied. Pure; each binding maps
+// the returned descriptor straight onto `<text>` / `<tspan>` / `<path>`.
+export {
+	smartArtConnectorPaint,
+	smartArtNodeLabel,
+	SMARTART_CONNECTOR_OPACITY,
+	SMARTART_CONNECTOR_STROKE,
+	SMARTART_CONNECTOR_WIDTH,
+	SMARTART_LABEL_COLOR,
+} from './smartart-node-label';
+export type { SmartArtConnectorPaint, SmartArtNodeLabel } from './smartart-node-label';
 // Centred multi-line SVG label layout (SmartArt nodes and cached shapes): each
 // binding places one `<tspan>` per returned line and owns nothing else.
 export { centeredSvgTextLines } from './svg-text-lines';
@@ -728,6 +748,9 @@ export * from './editor-keymap';
 // Focus repair for bindings whose canvas gesture preventDefault()s the click,
 // which would otherwise park focus on document.body and kill their keymap.
 export * from './editor-keyboard-focus';
+// What a Selection Pane rename commit means, including the empty commit that
+// has to reach the file as `name=""` rather than as "no opinion".
+export * from './selection-pane-rename';
 // Context-menu target resolution, including the right-click that lands inside
 // an inline text editor mounted as a sibling overlay of the element it edits.
 export * from './context-menu-target';
@@ -832,6 +855,10 @@ export * from './insert-chart';
 // SmartArt reflow: convert algorithmic layout results back to PptxSmartArtDrawingShape[]
 // so the drawing-shape renderer handles post-edit display and shapes round-trip through save.
 export * from './smartart-reflow-to-shapes';
+// The one-call form every edit commit path uses: derives layout / palette /
+// style from the updated data itself, so a binding cannot get them wrong or
+// skip the reflow because the six-argument call looked like a chore.
+export * from './smartart-reflow-element';
 
 // Inspector preset catalogues (framework-free pure data): artistic image-effect
 // presets, text-warp gallery presets + preview-path generator, shape quick-style
@@ -874,6 +901,10 @@ export * from './text-format-presets';
 // Home-tab font dropdown grouping (theme / embedded / custom / all) and the
 // theme-aware default family shown when the selection overrides nothing.
 export * from './font-catalog';
+// The File > Fonts "Embed fonts in the file" toggle: whether it can do
+// anything on this deck, which position describes reality, and the
+// `PptxHandlerSaveOptions` slice its position implies.
+export * from './font-embedding';
 // Opt-in custom font registration for File > Options: filename -> family and
 // weight/style axes, plus the FontFace hand-off.
 export * from './custom-fonts';
@@ -902,6 +933,7 @@ export * from './autosave-store';
 export * from './backstage';
 export * from './backstage-cards';
 export * from './master-page-layout';
+export * from './master-view';
 export * from './virtualized-list';
 export * from './document-statistics';
 export * from './used-fonts';

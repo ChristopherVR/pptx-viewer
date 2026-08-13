@@ -14,6 +14,7 @@ import {
 	nodeFill,
 	nodeOpacity,
 	nodeStroke,
+	nodeTextStyle,
 	strokeFor,
 	styleShadow,
 	styleStroke,
@@ -71,6 +72,7 @@ export function rectNode(params: RectParams): RenderedRectNode {
 		fontSize: fitFontSize(node.text, width * 0.9, height, 12),
 		textX: x + width / 2,
 		textY: y + height / 2,
+		...nodeTextStyle(node),
 	};
 }
 
@@ -102,6 +104,7 @@ export function circleNode(params: CircleParams): RenderedCircleNode {
 		opacity: nodeOpacity(index, total, style),
 		text: truncate(node.text, 20),
 		fontSize: fitFontSize(node.text, r * 1.4, r * 2, 11),
+		...nodeTextStyle(node),
 	};
 }
 
@@ -135,5 +138,6 @@ export function polygonNode(params: PolygonParams): RenderedPolygonNode {
 		fontSize: fitFontSize(node.text, params.fontWidth, params.fontHeight, 12),
 		textX,
 		textY,
+		...nodeTextStyle(node),
 	};
 }

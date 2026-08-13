@@ -14,6 +14,7 @@ import {
 	nodeFill,
 	nodeOpacity,
 	nodeStroke,
+	nodeTextStyle,
 	strokeFor,
 	styleShadow,
 	styleStroke,
@@ -74,6 +75,7 @@ export function computeRadialLayout(
 		opacity: nodeOpacity(0, nodes.length, style),
 		text: truncate(centre.text, 20),
 		fontSize: centreFontSize,
+		...nodeTextStyle(centre),
 	});
 
 	satellites.forEach((node, si) => {
@@ -102,6 +104,7 @@ export function computeRadialLayout(
 			opacity: nodeOpacity(i, nodes.length, style),
 			text: truncate(node.text, 20),
 			fontSize,
+			...nodeTextStyle(node),
 		});
 	});
 
@@ -164,6 +167,7 @@ export function computePyramidLayout(
 			fontSize,
 			textX: w / 2,
 			textY: y + bandH / 2,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});
@@ -211,6 +215,7 @@ export function computeVennLayout(
 				opacity: 0.35,
 				text: truncate(node.text, 20),
 				fontSize,
+				...nodeTextStyle(node),
 			};
 			return result;
 		});
@@ -245,6 +250,7 @@ export function computeVennLayout(
 			opacity: 0.35,
 			text: truncate(node.text, 20),
 			fontSize,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});
@@ -303,6 +309,7 @@ export function computeFunnelLayout(
 			fontSize,
 			textX: w / 2,
 			textY: y + stageH / 2,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});
@@ -316,7 +323,15 @@ export function computeFunnelLayout(
 	};
 }
 
-/** Concentric circles (bullseye) with leader lines to the right. */
+/**
+ * Concentric circles (bullseye) with leader lines to labels on the right.
+ *
+ * Every ring shares the same centre, so the labels cannot sit on it: stacking
+ * `n` captions at `(cx, cy)` renders them on top of each other. Each ring's
+ * caption is therefore parked in a right-hand column (`textX` / `textY`,
+ * `text-anchor: start`) and joined to its ring edge by a leader connector
+ * painted in the ring's own colour.
+ */
 export function computeTargetLayout(
 	nodes: PptxSmartArtNode[],
 	box: BoundingBox,
@@ -329,28 +344,47 @@ export function computeTargetLayout(
 	const cy = h / 2;
 	const maxR = Math.min(cx - 8, cy - 8);
 	const shadow = styleShadow(style);
+	const fontSize = Math.max(7, Math.min(10, maxR / Math.max(1, nodes.length + 1)));
+	const labelX = cx + maxR + 8;
+	const connectors: RenderedConnector[] = [];
 
 	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
-		const r = maxR * ((nodes.length - i) / Math.max(1, nodes.length));
+		const r = Math.max(maxR * ((nodes.length - i) / Math.max(1, nodes.length)), 4);
+		const fill = nodeFill(node, i, palette);
+		const labelY = 8 + i * (fontSize + 6);
+
+		connectors.push({
+			key: `${elementId}-target-lead-${i}`,
+			d: `M${cx + r},${cy} L${labelX - 2},${labelY}`,
+			stroke: fill,
+			strokeWidth: 1,
+			opacity: 0.6,
+		});
+
 		const result: RenderedCircleNode = {
 			kind: 'circle',
 			key: `${elementId}-target-${node.id}-${i}`,
 			cx,
 			cy,
-			r: Math.max(r, 4),
-			fill: nodeFill(node, i, palette),
+			r,
+			fill,
 			stroke: 'none',
 			strokeWidth: 0,
 			opacity: nodeOpacity(i, nodes.length, style),
 			text: truncate(node.text, 30),
-			fontSize: Math.max(7, Math.min(10, maxR / Math.max(1, nodes.length + 1))),
+			fontSize,
+			textX: labelX,
+			textY: labelY + fontSize / 2,
+			textAnchor: 'start',
+			fontColor: fill,
+			...nodeTextStyle(node),
 		};
 		return result;
 	});
 
 	return {
 		nodes: renderedNodes,
-		connectors: [],
+		connectors,
 		shadowFilter: shadow,
 		viewBox: `0 0 ${w} ${h}`,
 		family: 'target',

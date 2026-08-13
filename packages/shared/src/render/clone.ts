@@ -2,8 +2,19 @@
  * clone.ts: pure, immutable deep-clone builders for editor state.
  *
  * Each binding's editor copies `PptxElement` / `PptxSlide` / style objects and
- * history snapshots when pushing undo/redo state. The cloning is framework
- * agnostic, so it lives here and every binding imports it.
+ * history snapshots when pushing undo/redo state.
+ *
+ * The element/slide/style clones themselves live in `pptx-viewer-core`
+ * (`core/utils/clone-utils`) and are re-exported here unchanged. This file used
+ * to carry a near-identical SECOND copy of that logic, and the two drifted: the
+ * core copy never deep-cloned chart or SmartArt data, this one never cloned a
+ * group's `groupFill`, and NEITHER cloned table rows, ink stroke arrays or
+ * paragraph indents. One implementation cannot drift from itself, and
+ * `pptx-viewer-mcp` (which cannot depend on this private package) reaches the
+ * same functions through core.
+ *
+ * What stays here is the part core has no reason to know about: the editor
+ * history snapshot shape.
  *
  * @module render/clone
  */
@@ -14,10 +25,24 @@ import type {
 	PptxSlide,
 	PptxSlideTransition,
 	PptxSmartArtData,
-	ShapeStyle,
-	TextStyle,
 	XmlObject,
 } from 'pptx-viewer-core';
+import {
+	cloneElement,
+	cloneShapeStyle,
+	cloneSlide,
+	cloneTemplateElementsBySlideId,
+	cloneTextStyle,
+	deepCloneData,
+} from 'pptx-viewer-core';
+
+export {
+	cloneElement,
+	cloneShapeStyle,
+	cloneSlide,
+	cloneTemplateElementsBySlideId,
+	cloneTextStyle,
+};
 
 /**
  * The structural shape of an editor history snapshot that {@link cloneHistorySnapshot}
@@ -33,50 +58,24 @@ export interface HistorySnapshotLike {
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 }
 
-export function cloneTextStyle(style?: TextStyle): TextStyle | undefined {
-	if (!style) {
-		return undefined;
-	}
-	return { ...style };
-}
-
-export function cloneShapeStyle(style?: ShapeStyle): ShapeStyle | undefined {
-	if (!style) {
-		return undefined;
-	}
-	return {
-		...style,
-		...(style.fillGradientStops
-			? { fillGradientStops: style.fillGradientStops.map((stop) => ({ ...stop })) }
-			: {}),
-	};
-}
-
 export function cloneSlideTransition(
 	transition: PptxSlideTransition | undefined,
 ): PptxSlideTransition | undefined {
 	if (!transition) {
 		return undefined;
 	}
-	return { ...transition };
+	return deepCloneData(transition);
 }
 
 export function cloneElementAnimation(animation: PptxElementAnimation): PptxElementAnimation {
-	return { ...animation };
+	return deepCloneData(animation);
 }
 
 export function cloneChartData(data: PptxChartData | undefined): PptxChartData | undefined {
 	if (!data) {
 		return undefined;
 	}
-	return {
-		...data,
-		categories: [...(data.categories || [])],
-		series: (data.series || []).map((series) => ({
-			...series,
-			values: [...(series.values || [])],
-		})),
-	};
+	return deepCloneData(data);
 }
 
 export function cloneSmartArtData(
@@ -85,85 +84,27 @@ export function cloneSmartArtData(
 	if (!data) {
 		return undefined;
 	}
-	return {
-		...data,
-		nodes: (data.nodes || []).map((node) => ({ ...node })),
-	};
+	return deepCloneData(data);
 }
 
-export function cloneElement(element: PptxElement): PptxElement {
-	switch (element.type) {
-		case 'text':
-		case 'shape':
-			return {
-				...element,
-				...(element.textStyle ? { textStyle: cloneTextStyle(element.textStyle) } : {}),
-				...(element.shapeStyle ? { shapeStyle: cloneShapeStyle(element.shapeStyle) } : {}),
-				...(element.shapeAdjustments ? { shapeAdjustments: { ...element.shapeAdjustments } } : {}),
-				...(element.textSegments
-					? {
-							textSegments: element.textSegments.map((segment) => ({
-								...segment,
-								style: cloneTextStyle(segment.style) || {},
-							})),
-						}
-					: {}),
-			};
-		case 'connector':
-		case 'image':
-		case 'picture':
-			return {
-				...element,
-				...(element.shapeStyle ? { shapeStyle: cloneShapeStyle(element.shapeStyle) } : {}),
-				...(element.shapeAdjustments ? { shapeAdjustments: { ...element.shapeAdjustments } } : {}),
-			};
-		case 'table':
-			return { ...element };
-		case 'chart':
-			return {
-				...element,
-				chartData: cloneChartData(element.chartData),
-			};
-		case 'smartArt':
-			return {
-				...element,
-				smartArtData: cloneSmartArtData(element.smartArtData),
-			};
-		case 'ole':
-		case 'media':
-		case 'group':
-		case 'ink':
-		case 'zoom':
-		case 'contentPart':
-		case 'unknown':
-		case 'model3d':
-			return { ...element };
-		default: {
-			const _exhaustive: never = element;
-			return _exhaustive;
-		}
+/**
+ * Deep-clone an XML tree, or `undefined` when it cannot be serialised.
+ *
+ * Deliberately NOT core's `cloneXmlObject`, which is the same function with a
+ * `structuredClone` fast path: that one succeeds on a self-referencing object
+ * where this one gives up, and the editor's contract (asserted by the React
+ * binding) is that an unserialisable tree yields `undefined` rather than a
+ * live-linked copy.
+ */
+export function cloneXmlObject(value: XmlObject | undefined): XmlObject | undefined {
+	if (!value) {
+		return undefined;
 	}
-}
-
-export function cloneSlide(slide: PptxSlide): PptxSlide {
-	return {
-		...slide,
-		transition: cloneSlideTransition(slide.transition),
-		animations: slide.animations?.map(cloneElementAnimation),
-		comments: slide.comments?.map((comment) => ({ ...comment })),
-		warnings: slide.warnings?.map((warning) => ({ ...warning })),
-		elements: slide.elements.map(cloneElement),
-	};
-}
-
-export function cloneTemplateElementsBySlideId(
-	templateElementsBySlideId: Record<string, PptxElement[]>,
-): Record<string, PptxElement[]> {
-	const cloned: Record<string, PptxElement[]> = {};
-	Object.entries(templateElementsBySlideId).forEach(([slideId, elements]) => {
-		cloned[slideId] = elements.map(cloneElement);
-	});
-	return cloned;
+	try {
+		return JSON.parse(JSON.stringify(value)) as XmlObject;
+	} catch {
+		return undefined;
+	}
 }
 
 /**
@@ -180,15 +121,4 @@ export function cloneHistorySnapshot(snapshot: HistorySnapshotLike): HistorySnap
 		slides: snapshot.slides.map(cloneSlide),
 		templateElementsBySlideId: cloneTemplateElementsBySlideId(snapshot.templateElementsBySlideId),
 	};
-}
-
-export function cloneXmlObject(value: XmlObject | undefined): XmlObject | undefined {
-	if (!value) {
-		return undefined;
-	}
-	try {
-		return JSON.parse(JSON.stringify(value)) as XmlObject;
-	} catch {
-		return undefined;
-	}
 }

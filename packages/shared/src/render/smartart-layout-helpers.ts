@@ -12,14 +12,9 @@
  *   - React `packages/react/src/viewer/utils/smartart-helpers.tsx`
  */
 
-import type {
-	PptxSmartArtNode,
-	SmartArtLayout,
-	SmartArtLayoutType,
-	SmartArtStyle,
-} from 'pptx-viewer-core';
+import type { PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
 
-import type { LayoutFamily, TreeNode } from './smartart-layout-types';
+import type { RenderedNodeTextStyle, TreeNode } from './smartart-layout-types';
 
 // ── Colour + style utilities ─────────────────────────────────────────────────
 
@@ -44,6 +39,31 @@ export function nodeFill(node: PptxSmartArtNode, index: number, palette: string[
 export function nodeStroke(node: PptxSmartArtNode, defaultStroke: string): string {
 	const override = node.style?.lineColor;
 	return override && override.length > 0 ? override : defaultStroke;
+}
+
+/**
+ * Resolve the per-node label styling from an explicit `node.style` override.
+ *
+ * Returns only the fields the node actually overrides, so spreading the result
+ * into a `RenderedNode` leaves the binding defaults (white, no weight, no
+ * italic) in place for an unstyled node.
+ */
+export function nodeTextStyle(node: PptxSmartArtNode): RenderedNodeTextStyle {
+	const style = node.style;
+	if (!style) {
+		return {};
+	}
+	const out: RenderedNodeTextStyle = {};
+	if (style.fontColor && style.fontColor.length > 0) {
+		out.fontColor = style.fontColor;
+	}
+	if (style.bold) {
+		out.fontWeight = 700;
+	}
+	if (style.italic) {
+		out.fontStyle = 'italic';
+	}
+	return out;
 }
 
 /** Compute a fading opacity for progressive nodes. */
@@ -121,6 +141,40 @@ export function chevronPoints(x: number, y: number, w: number, h: number): strin
 		`${x},${y + h}`,
 		`${x + depth},${y + h / 2}`,
 	].join(' ');
+}
+
+/**
+ * SVG polygon `points` for a cog wheel centred at (`cx`, `cy`).
+ *
+ * Vertices alternate between `outerR` (tooth tip) and `innerR` (tooth valley),
+ * two vertices per tooth. Emitted as polygon points rather than a path so the
+ * gear rides the existing `RenderedPolygonNode` contract every binding already
+ * renders; the outline is identical either way because the teeth are straight
+ * segments.
+ *
+ * @param cx     - Centre x.
+ * @param cy     - Centre y.
+ * @param outerR - Tooth-tip radius.
+ * @param innerR - Tooth-valley radius.
+ * @param teeth  - Number of teeth.
+ * @returns Space-separated `"x,y"` pairs.
+ */
+export function gearPoints(
+	cx: number,
+	cy: number,
+	outerR: number,
+	innerR: number,
+	teeth: number,
+): string {
+	const total = Math.max(1, teeth) * 2;
+	const step = (Math.PI * 2) / total;
+	const pairs: string[] = [];
+	for (let i = 0; i < total; i++) {
+		const angle = i * step - Math.PI / 2;
+		const r = i % 2 === 0 ? outerR : innerR;
+		pairs.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+	}
+	return pairs.join(' ');
 }
 
 /** Outline-stroke colour for a node given its computed stroke width. */
@@ -202,95 +256,9 @@ export function flattenNodes(roots: PptxSmartArtNode[]): PptxSmartArtNode[] {
 	return out;
 }
 
-// ── Layout family selector ────────────────────────────────────────────────────
+// ── Layout family selector ────────────────────────────
+//
+// Lives in its own module (LOC ceiling) and is re-exported here so the
+// historic `smartart-layout-helpers` import surface is unchanged.
 
-/** Canonical mapping of SmartArt named layouts → LayoutFamily. */
-export const LAYOUT_FAMILY_MAP: Partial<Record<SmartArtLayout, LayoutFamily>> = {
-	basicBlockList: 'list',
-	alternatingHexagons: 'list',
-	horizontalBulletList: 'list',
-	stackedList: 'list',
-	tableList: 'list',
-	trapezoidList: 'list',
-	verticalBlockList: 'list',
-	groupedList: 'list',
-	pyramidList: 'list',
-
-	basicChevronProcess: 'process',
-	continuousBlockProcess: 'process',
-	segmentedProcess: 'process',
-	upwardArrow: 'process',
-	basicTimeline: 'process',
-	bendingProcess: 'process',
-	stepDownProcess: 'process',
-	alternatingFlow: 'process',
-	descendingProcess: 'process',
-	accentProcess: 'process',
-	verticalChevronList: 'process',
-	horizontalPictureList: 'process',
-	pictureAccentList: 'process',
-
-	basicCycle: 'cycle',
-	basicPie: 'cycle',
-
-	basicRadial: 'radial',
-	convergingRadial: 'radial',
-	basicTarget: 'radial',
-	interlockingGears: 'radial',
-
-	hierarchy: 'hierarchy',
-
-	basicMatrix: 'matrix',
-
-	basicPyramid: 'pyramid',
-	invertedPyramid: 'pyramid',
-
-	basicVenn: 'venn',
-	linearVenn: 'venn',
-
-	basicFunnel: 'funnel',
-};
-
-/** Map a `resolvedLayoutType` string to a LayoutFamily. */
-const RESOLVED_TYPE_MAP: Partial<Record<SmartArtLayoutType, LayoutFamily>> = {
-	list: 'list',
-	process: 'process',
-	cycle: 'cycle',
-	hierarchy: 'hierarchy',
-	relationship: 'radial',
-	matrix: 'matrix',
-	pyramid: 'pyramid',
-	funnel: 'funnel',
-	target: 'target',
-	venn: 'venn',
-	timeline: 'process',
-	chevron: 'process',
-	bending: 'process',
-	gear: 'radial',
-};
-
-/**
- * Determine which layout family to render.
- *
- * Priority:
- * 1. Named layout preset (`layout` field)
- * 2. `resolvedLayoutType` string from the core parser
- * 3. Heuristic: nodes with children → hierarchy; otherwise list
- */
-export function resolveLayoutFamily(
-	nodes: PptxSmartArtNode[],
-	resolvedLayoutType?: SmartArtLayoutType,
-	layout?: SmartArtLayout,
-): LayoutFamily {
-	if (layout && layout in LAYOUT_FAMILY_MAP) {
-		return LAYOUT_FAMILY_MAP[layout]!;
-	}
-	if (resolvedLayoutType && resolvedLayoutType in RESOLVED_TYPE_MAP) {
-		const mapped = RESOLVED_TYPE_MAP[resolvedLayoutType];
-		if (mapped) {
-			return mapped;
-		}
-	}
-	const hasChildren = nodes.some((n) => n.children && n.children.length > 0);
-	return hasChildren ? 'hierarchy' : 'list';
-}
+export { LAYOUT_FAMILY_MAP, resolveLayoutFamily } from './smartart-layout-family-map';
