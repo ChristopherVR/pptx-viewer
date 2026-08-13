@@ -22,6 +22,10 @@ _Releases: _
 
 ## 2026-08-13
 
+_Releases: _
+
+## 2026-08-13
+
 _Releases: pptx-viewer-core@2.3.6, pptx-react-viewer@2.18.0, pptx-vue-viewer@2.19.0, pptx-vanilla-viewer@1.20.0, pptx-svelte-viewer@2.19.0_
 
 ### Features
