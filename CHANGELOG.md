@@ -10,14 +10,6 @@ dated sections beneath it are generated from
 
 ## 2026-08-13
 
-_Releases: _
-
-## 2026-08-13
-
-_Releases: _
-
-## 2026-08-13
-
 _Releases: pptx-viewer-core@2.3.6, pptx-react-viewer@2.18.0, pptx-vue-viewer@2.19.0, pptx-vanilla-viewer@1.20.0, pptx-svelte-viewer@2.19.0_
 
 ### Features
@@ -38,22 +30,6 @@ _Releases: pptx-viewer-core@2.3.6, pptx-react-viewer@2.18.0, pptx-vue-viewer@2.1
 ### Testing
 
 - **e2e:** Cover the wave-4 surfaces, and the fixtures to prove them (by @ChristopherVR) ([686809b](https://github.com/ChristopherVR/pptx-viewer/commit/686809b727fa3fefab08a5392979dc032c16c8f5))
-
-## 2026-08-13
-
-_Releases: _
-
-## 2026-08-13
-
-_Releases: _
-
-## 2026-08-13
-
-_Releases: _
-
-## 2026-08-13
-
-_Releases: _
 
 ## 2026-08-13
 
@@ -1087,10 +1063,6 @@ _Releases: pptx-vue-viewer@2.0.1, pptx-angular-viewer@2.0.1, pptx-vanilla-viewer
 ### Build & CI
 
 - **docs:** Fail loudly when a demo is skipped from the Pages bundle (by @ChristopherVR) ([dff03e1](https://github.com/ChristopherVR/pptx-viewer/commit/dff03e18463f85b0b8694afd1c968521d5f6c62c))
-
-## 2026-07-23
-
-_Releases: _
 
 ## 2026-07-23
 

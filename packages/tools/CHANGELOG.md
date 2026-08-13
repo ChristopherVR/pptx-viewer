@@ -3,8 +3,15 @@
 All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
+A release listed with no entries carried no Conventional Commit in this package's
+scope: scripts/release-plan.mjs re-releases a package whenever any of its files
+change, not only on conventional ones.
 
 ## [2.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.2) - 2026-08-13
+
+### Testing
+
+- **e2e:** Add the corpus round-trip harness and a COM acceptance gate (by @ChristopherVR) ([edf6dd5](https://github.com/ChristopherVR/pptx-viewer/commit/edf6dd5f23d2644bae5ad290c9f755055537ae51))
 
 ## [2.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.1) - 2026-08-10
 
@@ -83,7 +90,24 @@ when the release is tagged.)
 
 ## [1.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@1.2.1) - 2026-07-11
 
+### Bug Fixes
+
+- **tools:** Derive codec field lists from the canonical core schema (by @ChristopherVR) ([d594bd1](https://github.com/ChristopherVR/pptx-viewer/commit/d594bd14f46a61257e7d73cb707c7b540225e3ff))
+
 ## [1.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@1.2.0) - 2026-07-06
+
+### Features
+
+- **tools:** Add 26 new MCP tools expanding coverage to 51 total (by @ChristopherVR) ([c784579](https://github.com/ChristopherVR/pptx-viewer/commit/c784579cf91431eac28bb40c874b4e2cbb6d7a20))
+
+### Bug Fixes
+
+- **vue,react:** Resolve lint warnings and TableRenderer interactive-prop default (by @ChristopherVR) ([6a69635](https://github.com/ChristopherVR/pptx-viewer/commit/6a69635214f389dea16ceafe37b10cfcbb236540))
+- **core:** Cast xmldom Element to Node for xml-crypto canonicalization (by @ChristopherVR) ([8fbd97e](https://github.com/ChristopherVR/pptx-viewer/commit/8fbd97eb1221f66650a7bcb45e089ee08034439f))
+
+### Documentation
+
+- **tools:** Note the codec schema diverges from the viewer sync layout (by @ChristopherVR) ([7ba5d9e](https://github.com/ChristopherVR/pptx-viewer/commit/7ba5d9ef76e95cb255f591b1483fcdab9fc824b9))
 
 ## [1.1.26](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@1.1.26) - 2026-06-21
 

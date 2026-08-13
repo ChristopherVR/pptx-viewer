@@ -3,6 +3,9 @@
 All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
+A release listed with no entries carried no Conventional Commit in this package's
+scope: scripts/release-plan.mjs re-releases a package whenever any of its files
+change, not only on conventional ones.
 
 ## [1.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.6.0) - 2026-08-07
 
@@ -61,6 +64,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [1.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.1) - 2026-07-12
 
+### Bug Fixes
+
+- **cli:** Fix Angular Node.js preflight, vanilla three dep, collab packages prompt (by @ChristopherVR) ([8e41cea](https://github.com/ChristopherVR/pptx-viewer/commit/8e41cea107925c61a6ec94480a71fc91df31e4d9))
+
 ## [1.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.0) - 2026-07-11
 
 ### Features
@@ -69,7 +76,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.4.2) - 2026-07-07
 
+### Bug Fixes
+
+- CLI interactive installation (by @ChristopherVR) ([7b0f649](https://github.com/ChristopherVR/pptx-viewer/commit/7b0f649caa2a2f7bdea949f2583f6c86ff218cc5))
+
 ## [1.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.4.1) - 2026-07-05
+
+### Bug Fixes
+
+- **cli:** Scaffold i18n setup, suppress scaffolder output, auto-run dev (by @ChristopherVR) ([d99b463](https://github.com/ChristopherVR/pptx-viewer/commit/d99b463ccbf39d05f47c044af7053c53f400b2d9))
 
 ## [1.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.4.0) - 2026-07-05
 
@@ -80,6 +95,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ## [1.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.3.0) - 2026-07-04
 
 ## [1.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.2.0) - 2026-07-04
+
+### Features
+
+- **cli:** Enforce a single UI framework and harden terminal handling (by @ChristopherVR) ([d1c9ae5](https://github.com/ChristopherVR/pptx-viewer/commit/d1c9ae551070ec29bf474a76af21f3b0682fb36d))
 
 ## [1.1.46](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.1.46) - 2026-07-03
 

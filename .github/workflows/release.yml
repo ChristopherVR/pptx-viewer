@@ -53,9 +53,12 @@ jobs:
 
       # Run the release plan FIRST (before any builds) -- it only reads git
       # history and the npm registry, so no built artifacts are needed. It is
-      # also the early-exit gate: if no package changed since its last tag the
-      # plan outputs any_changed=false and all later steps are skipped, so a
-      # scheduled run on a quiet week is a cheap no-op.
+      # also the FIRST of two early-exit gates: if no package changed since its
+      # last tag the plan outputs any_changed=false and all later steps are
+      # skipped, so a scheduled run on a quiet week is a cheap no-op. The second
+      # gate is `drop.outputs.any_remaining`, which re-answers the same question
+      # after build failures have been removed from the plan; everything that
+      # writes to the repo hangs off that one, not this one.
       - name: Plan release
         id: plan
         run: node scripts/release-plan.mjs --write
@@ -111,6 +114,7 @@ jobs:
       # bump and drop it from the plan so it is neither committed nor tagged.
       # It simply retries on the next run with an unchanged baseline.
       - name: Drop build-failed packages from the release
+        id: drop
         if: steps.plan.outputs.any_changed == 'true'
         env:
           REACT_BUILT: ${{ steps.build-react.outcome == 'success' }}
@@ -134,12 +138,31 @@ jobs:
           [ "$VANILLA_BUILT" = "true" ] || drop vanilla
           [ "$SVELTE_BUILT"  = "true" ] || drop svelte
 
+          # After the drops the plan can be EMPTY: everything that qualified was
+          # a framework package whose build failed. `any_changed` is the PRE-drop
+          # verdict and cannot express that, so publish the post-drop one. Every
+          # step below gates on THIS, because a run with nothing left to release
+          # must be a true no-op. It was not: the root-changelog step still ran
+          # and prepended a dated section whose release list was empty
+          #   ## 2026-08-13
+          #
+          #   _Releases: _
+          # which the commit step then pushed, once an hour, for as long as the
+          # failing build kept re-qualifying. Seven of those stubs accumulated in
+          # CHANGELOG.md before it was noticed; scripts/check-changelog-sections.mjs
+          # now fails CI if another one appears.
+          remaining=$(node -p "Object.values(require('./release-plan.json').packages).some(p => p.release)")
+          echo "any_remaining=$remaining" >> "$GITHUB_OUTPUT"
+          if [ "$remaining" != "true" ]; then
+            echo "::warning::Every package that qualified for release failed to build. Nothing is tagged, published or committed this run; it retries on the next schedule."
+          fi
+
       # Prepend the new release section to each released package's CHANGELOG.md.
       # Prepend (rather than full regeneration) means shipped sections are never
       # rewritten, so old tags can be culled by prune-releases without corrupting
       # changelog history.
       - name: Generate per-package changelogs
-        if: steps.plan.outputs.any_changed == 'true'
+        if: steps.drop.outputs.any_remaining == 'true'
         # `[remote.github]` in cliff.toml makes git-cliff call the GitHub API to
         # enrich author handles. Unauthenticated that is 60 requests/hour, and a
         # run paginates commits well past that, so an hourly schedule reliably
@@ -149,6 +172,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # `$inc` below holds git-cliff glob PATTERNS ("packages/vue/**"), and it
+          # has to stay unquoted so its words split into separate arguments. That
+          # made the shell expand the globs first: `--include-path packages/vue/**`
+          # became a list of literal top-level paths (packages/vue/src,
+          # packages/vue/package.json, ...), and since `--include-path` takes many
+          # values git-cliff accepted them silently. A literal `packages/vue/src`
+          # matches only that exact path, never a file under it, so every commit
+          # inside src/ was filtered out and the section came back heading-only.
+          # Disable filename expansion for this step; word splitting still happens.
+          set -f
           for key in core react vue angular vanilla svelte tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
             [ "$release" = "true" ] || continue
@@ -169,13 +202,21 @@ jobs:
       # plus the list of tags being cut. Prepend-only for the same reason as
       # above: culled tags must never rewrite shipped history.
       - name: Generate root changelog
-        if: steps.plan.outputs.any_changed == 'true'
+        if: steps.drop.outputs.any_remaining == 'true'
         # Same GitHub API rate-limit exposure as the per-package step above.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           DATE=$(date -u +%Y-%m-%d)
           TAGS=$(node -p "Object.values(require('./release-plan.json').packages).filter(p => p.release).map(p => p.tag).join(', ')")
+          # Belt and braces behind the `any_remaining` gate on this step: a
+          # section whose release list is empty documents nothing, and this file
+          # is prepend-only, so a stub written here can only ever be removed by
+          # hand. Never write one.
+          if [ -z "$TAGS" ]; then
+            echo "No packages are being released; leaving CHANGELOG.md untouched."
+            exit 0
+          fi
           bunx git-cliff --config cliff-root.toml --unreleased --strip all --output "${RUNNER_TEMP}/root-section.md"
           sed -i "s|^## \[Unreleased\]|## ${DATE}\n\n_Releases: ${TAGS}_|" "${RUNNER_TEMP}/root-section.md"
           # Drop any stale "[Unreleased]" section left by the old full-regeneration
@@ -188,7 +229,7 @@ jobs:
           mv "${RUNNER_TEMP}/root-out.md" CHANGELOG.md
 
       - name: Commit version bumps and changelogs
-        if: steps.plan.outputs.any_changed == 'true'
+        if: steps.drop.outputs.any_remaining == 'true'
         # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
         # guards against it regardless.
         #
@@ -250,7 +291,7 @@ jobs:
       # (b) its framework build succeeded (or it is a non-framework package).
       - name: Tag and release changed packages
         id: tagged
-        if: steps.plan.outputs.any_changed == 'true'
+        if: steps.drop.outputs.any_remaining == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # `release-notes.mjs` shells out to git-cliff, which reads GITHUB_TOKEN
