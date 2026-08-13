@@ -356,24 +356,66 @@ describe('pptxSlideTransitionService p15 preset transitions', () => {
 		const parsed = service.parseSlideTransition(fractureSlideXml());
 		const rebuilt = service.buildSlideTransitionXml(parsed!);
 		expect(rebuilt).toBeDefined();
-		// The defect: a fallback <p:cut/> was emitted alongside the real extLst.
+		// The defect: a fallback <p:cut/> was emitted alongside the real preset.
 		expect(rebuilt!['p:cut']).toBeUndefined();
 		// No standard child of any kind should be present.
 		expect(rebuilt!['p:fracture']).toBeUndefined();
-		// The real transition bytes survive in the preserved extLst.
-		const extLst = rebuilt!['p:extLst'] as XmlObject;
-		expect(extLst).toBeDefined();
-		const ext = extLst['p:ext'] as XmlObject;
-		const prstTrans = ext['p15:prstTrans'] as XmlObject;
-		expect(prstTrans['@_prst']).toBe('fracture');
+		expect((rebuilt!['p15:prstTrans'] as XmlObject)['@_prst']).toBe('fracture');
 	});
 
-	it('fabricates a p15:prstTrans extLst when no rawExtLst is present', () => {
+	// The extLst form this used to emit reopens in PowerPoint with
+	// `EntryEffect = 0`: no transition at all. PowerPoint reads the preset only
+	// as a direct child inside an `mc:Choice Requires="p15"`, which
+	// `slide-transition-reconcile` wraps around the node.
+	it('writes a p15:prstTrans direct child when no rawExtLst is present', () => {
 		const rebuilt = service.buildSlideTransitionXml({ type: 'peelOff' });
 		expect(rebuilt).toBeDefined();
 		expect(rebuilt!['p:cut']).toBeUndefined();
 		expect(rebuilt!['p:peelOff']).toBeUndefined();
-		const ext = (rebuilt!['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
-		expect((ext['p15:prstTrans'] as XmlObject)['@_prst']).toBe('peelOff');
+		expect(rebuilt!['p:extLst']).toBeUndefined();
+		expect((rebuilt!['p15:prstTrans'] as XmlObject)['@_prst']).toBe('peelOff');
+	});
+
+	// The preserved `rawExtLst` used to be written back verbatim, so the OLD
+	// `@prst` won over the edit and changing a cinematic transition was a silent
+	// no-op in the saved file. The p14 and morph paths already filtered their
+	// stale entries; only this one did not.
+	it('applies an edited preset instead of re-emitting the preserved one', () => {
+		const parsed = service.parseSlideTransition(fractureSlideXml());
+		const rebuilt = service.buildSlideTransitionXml({ ...parsed!, type: 'origami' });
+		expect((rebuilt!['p15:prstTrans'] as XmlObject)['@_prst']).toBe('origami');
+		expect(JSON.stringify(rebuilt)).not.toContain('fracture');
+	});
+
+	it('keeps the deck own prstTrans attributes when re-pointing the preset', () => {
+		const slideXml = fractureSlideXml();
+		const transitionNode = (slideXml['p:sld'] as XmlObject)['p:transition'] as XmlObject;
+		const ext = (transitionNode['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
+		(ext['p15:prstTrans'] as XmlObject)['@_invX'] = '1';
+
+		const parsed = service.parseSlideTransition(slideXml);
+		const rebuilt = service.buildSlideTransitionXml({ ...parsed!, type: 'crush' });
+
+		const prstTrans = rebuilt!['p15:prstTrans'] as XmlObject;
+		expect(prstTrans['@_prst']).toBe('crush');
+		expect(prstTrans['@_invX']).toBe('1');
+	});
+
+	it('keeps unrelated extensions alongside the edited preset', () => {
+		const slideXml = fractureSlideXml();
+		const transitionNode = (slideXml['p:sld'] as XmlObject)['p:transition'] as XmlObject;
+		const extLst = transitionNode['p:extLst'] as XmlObject;
+		extLst['p:ext'] = [
+			extLst['p:ext'] as XmlObject,
+			{ '@_uri': '{OTHER}', 'x:whatever': {} } as unknown as XmlObject,
+		];
+
+		const parsed = service.parseSlideTransition(slideXml);
+		const rebuilt = service.buildSlideTransitionXml({ ...parsed!, type: 'wind' });
+
+		expect((rebuilt!['p15:prstTrans'] as XmlObject)['@_prst']).toBe('wind');
+		// The unrelated extension stays; the one that declared the old preset goes.
+		const remaining = (rebuilt!['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
+		expect(remaining['@_uri']).toBe('{OTHER}');
 	});
 });

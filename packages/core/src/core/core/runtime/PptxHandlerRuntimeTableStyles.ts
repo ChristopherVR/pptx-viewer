@@ -1,15 +1,19 @@
 import { PptxSlide, XmlObject } from '../../types';
 import type {
 	ParsedTableBackground,
-	ParsedTableStyleBorders,
 	ParsedTableStyleFill,
 	ParsedTableStyleText,
 	PptxExportOptions,
-	ParsedTableStyleEntry,
 	ParsedTableStyleMap,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeState';
 import { parseTableStyleBorders } from './table-style-border-parse';
+import {
+	deriveTableStyleAccentKey,
+	normalizeTableStyleGuid,
+	parseTableBackground,
+	parseTableStyleList,
+} from './table-style-entry-parse';
 import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -50,11 +54,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Normalize a table style GUID to uppercase with braces.
 	 */
 	protected normalizeTableStyleGuid(guid: string): string {
-		const trimmed = guid.trim().toUpperCase();
-		if (trimmed.startsWith('{')) {
-			return trimmed;
-		}
-		return `{${trimmed}}`;
+		return normalizeTableStyleGuid(guid);
 	}
 
 	/**
@@ -63,12 +63,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected deriveTableStyleAccentKey(
 		...fills: (ParsedTableStyleFill | undefined)[]
 	): string | undefined {
-		for (const fill of fills) {
-			if (fill?.schemeColor?.startsWith('accent')) {
-				return fill.schemeColor;
-			}
-		}
-		return undefined;
+		return deriveTableStyleAccentKey(...fills);
 	}
 
 	/**
@@ -79,24 +74,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected extractTableBackground(
 		tblBg: XmlObject | undefined,
 	): ParsedTableBackground | undefined {
-		if (!tblBg) {
-			return undefined;
-		}
-		const fillNode = tblBg['a:fill'] as XmlObject | undefined;
-		const solidFill = (fillNode?.['a:solidFill'] ?? tblBg['a:solidFill']) as XmlObject | undefined;
-		const schemeClr = solidFill?.['a:schemeClr'] as XmlObject | undefined;
-		const schemeColor = schemeClr
-			? String(schemeClr['@_val'] || '').trim() || undefined
-			: undefined;
-		const fill = schemeColor ? { schemeColor } : undefined;
-		const hasEffectLst = Boolean(tblBg['a:effectLst']);
-		if (!fill && !hasEffectLst) {
-			return undefined;
-		}
-		return {
-			...(fill ? { fill } : {}),
-			...(hasEffectLst ? { hasEffectLst } : {}),
-		};
+		return parseTableBackground(tblBg);
 	}
 
 	/**
@@ -148,145 +126,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		try {
 			const parsed = this.parser.parse(xmlStr) as XmlObject;
-			const styleLst = parsed['a:tblStyleLst'] as XmlObject | undefined;
-			if (!styleLst) {
+			const result = parseTableStyleList(parsed, (value) => this.ensureArray(value));
+			if (!result || Object.keys(result.map).length === 0) {
 				return undefined;
 			}
-
-			const styles = this.ensureArray(styleLst['a:tblStyle']);
-			if (styles.length === 0) {
-				return undefined;
-			}
-
-			const map: Record<string, ParsedTableStyleEntry> = {};
-			for (const style of styles) {
-				const rawId = String((style as XmlObject)['@_styleId'] || '').trim();
-				if (!rawId) {
-					continue;
-				}
-
-				const styleId = this.normalizeTableStyleGuid(rawId);
-				const styleName = String((style as XmlObject)['@_styleName'] || '').trim() || undefined;
-
-				const wholeTblFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:wholeTbl'] as XmlObject | undefined,
-				);
-				const band1HFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:band1H'] as XmlObject | undefined,
-				);
-				const band2HFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:band2H'] as XmlObject | undefined,
-				);
-				const band1VFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:band1V'] as XmlObject | undefined,
-				);
-				const band2VFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:band2V'] as XmlObject | undefined,
-				);
-				const firstRowFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:firstRow'] as XmlObject | undefined,
-				);
-				const lastRowFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:lastRow'] as XmlObject | undefined,
-				);
-				const firstColFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:firstCol'] as XmlObject | undefined,
-				);
-				const lastColFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:lastCol'] as XmlObject | undefined,
-				);
-				// Corner cells (CT_TableStyle §21.1.3.16): each corner overrides
-				// the intersection of firstRow/lastRow × firstCol/lastCol.
-				const seCellFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:seCell'] as XmlObject | undefined,
-				);
-				const swCellFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:swCell'] as XmlObject | undefined,
-				);
-				const neCellFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:neCell'] as XmlObject | undefined,
-				);
-				const nwCellFill = this.extractTableStyleSectionFill(
-					(style as XmlObject)['a:nwCell'] as XmlObject | undefined,
-				);
-
-				const tableBackground = this.extractTableBackground(
-					(style as XmlObject)['a:tblBg'] as XmlObject | undefined,
-				);
-
-				const accentKey = this.deriveTableStyleAccentKey(
-					wholeTblFill,
-					band1HFill,
-					band1VFill,
-					firstRowFill,
-				);
-
-				// Extract per-role text styling (a:tcTxStyle)
-				const sectionNames = [
-					'wholeTbl',
-					'firstRow',
-					'lastRow',
-					'firstCol',
-					'lastCol',
-					'band1H',
-					'band2H',
-					'band1V',
-					'band2V',
-					'seCell',
-					'swCell',
-					'neCell',
-					'nwCell',
-				] as const;
-				const textProps: Partial<
-					Record<`${(typeof sectionNames)[number]}Text`, ParsedTableStyleText>
-				> = {};
-				for (const name of sectionNames) {
-					const text = this.extractTableStyleSectionText(
-						(style as XmlObject)[`a:${name}`] as XmlObject | undefined,
-					);
-					if (text) {
-						textProps[`${name}Text`] = text;
-					}
-				}
-
-				// Extract per-role border styling (a:tcStyle/a:tcBdr)
-				const borderProps: Partial<
-					Record<`${(typeof sectionNames)[number]}Borders`, ParsedTableStyleBorders>
-				> = {};
-				for (const name of sectionNames) {
-					const borders = this.extractTableStyleSectionBorders(
-						(style as XmlObject)[`a:${name}`] as XmlObject | undefined,
-					);
-					if (borders) {
-						borderProps[`${name}Borders`] = borders;
-					}
-				}
-
-				const entry: ParsedTableStyleEntry = {
-					styleId,
-					styleName,
-					accentKey,
-					...(tableBackground ? { tableBackground } : {}),
-					wholeTblFill,
-					band1HFill,
-					band2HFill,
-					band1VFill,
-					band2VFill,
-					firstRowFill,
-					lastRowFill,
-					firstColFill,
-					lastColFill,
-					...(seCellFill ? { seCellFill } : {}),
-					...(swCellFill ? { swCellFill } : {}),
-					...(neCellFill ? { neCellFill } : {}),
-					...(nwCellFill ? { nwCellFill } : {}),
-					...textProps,
-					...borderProps,
-				};
-				map[styleId] = entry;
-			}
-
-			return Object.keys(map).length > 0 ? map : undefined;
+			return result.map;
 		} catch (e) {
 			console.warn('Failed to parse ppt/tableStyles.xml:', e);
 			return undefined;

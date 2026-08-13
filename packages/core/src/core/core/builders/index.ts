@@ -60,6 +60,10 @@ export {
 	type IPptxTableDataParser,
 	type PptxTableDataParserContext,
 } from './PptxTableDataParser';
+// Per-run cell text (`a:tc/a:txBody` -> styled runs). Exported so a binding
+// that renders a table straight from its raw `a:tbl` XML (React) builds the
+// same run model as the parsed `tableData` path, rather than a second one.
+export { extractTableCellTextRuns, type TableCellRunsContext } from './table-cell-runs';
 export {
 	PptxMediaDataParser,
 	type IPptxMediaDataParser,

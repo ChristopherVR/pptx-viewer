@@ -37,11 +37,35 @@ async function facetIssues(themeBody: string, presentationBody = '') {
 describe('selected ECMA-376 simple-type facets', () => {
 	it('validates fixed and positive percentage ranges and lexical forms', async () => {
 		const issues = await facetIssues(
-			'<a:alpha val="-1"/><a:alphaMod val="100.1%"/><a:alphaOff val="-100001"/><a:lumOff val="25%"/>',
+			'<a:alpha val="-1"/><a:alpha val="100.1%"/><a:alphaOff val="-100001"/><a:alphaMod val="-1"/><a:lumMod val="not-a-number"/>',
 		);
 
-		expect(issues).toHaveLength(3);
+		expect(issues).toHaveLength(5);
 		expect(issues.every((issue) => issue.message.includes('percentage'))).toBeTruthy();
+	});
+
+	/**
+	 * `EG_ColorTransform` (ECMA-376 Part 1 §20.1.2.3.x) types every saturation,
+	 * luminance and per-channel transform as `CT_Percentage`, whose value space
+	 * is the full signed `xsd:int` range, and types `alphaMod`/`hueMod` as
+	 * `CT_PositivePercentage`, which has no upper bound either. Only
+	 * `alpha`/`tint`/`shade` are capped at 100000.
+	 *
+	 * Capping the others was the single biggest source of false positives in
+	 * this validator: PowerPoint's own default Office theme emits
+	 * `<a:satMod val="300000"/>` in its gradient fills and `<a:lumMod
+	 * val="110000"/>` in its chart styles, so the rule fired 695 times across
+	 * 32 of the 37 readable fixtures in this repo, all five COM-authored corpus
+	 * decks included. That made `validatePptx` unusable as a save gate.
+	 */
+	it('accepts modulations above 100 percent, which PowerPoint emits routinely', async () => {
+		const issues = await facetIssues(
+			'<a:satMod val="300000"/><a:lumMod val="110000"/><a:lum val="-50000"/>' +
+				'<a:satOff val="200000"/><a:redMod val="150000"/><a:blueOff val="-200000"/>' +
+				'<a:alphaMod val="200000"/><a:hueMod val="120000"/>',
+		);
+
+		expect(issues).toStrictEqual([]);
 	});
 
 	it('validates angle and coordinate facets including universal measures', async () => {
@@ -63,6 +87,29 @@ describe('selected ECMA-376 simple-type facets', () => {
 		expect(issues).toHaveLength(2);
 		expect(issues.some((issue) => issue.message.includes('language tag'))).toBeTruthy();
 		expect(issues.some((issue) => issue.message.includes('XML ID token'))).toBeTruthy();
+	});
+
+	/**
+	 * `CT_Hyperlink/@r:id` is optional, and an internal PowerPoint action has no
+	 * relationship to reference, so PowerPoint writes the attribute empty:
+	 * `<a:hlinkClick r:id="" action="ppaction://noaction"/>`. That shape occurs
+	 * on 11 of the 14 slides of `e2e/fixtures/solution-explorer.pptx` and in the
+	 * COM-authored `ole-embedded-media.pptx` corpus deck. An empty `r:id`
+	 * anywhere else is still a defect and must still be reported.
+	 */
+	it('accepts an empty r:id on an action hyperlink but nowhere else', async () => {
+		const allowed = await facetIssues(
+			'<a:hlinkClick r:id="" action="ppaction://noaction"/>' +
+				'<a:hlinkHover r:id="" action="ppaction://media"/>',
+		);
+		expect(allowed).toStrictEqual([]);
+
+		const rejected = await facetIssues(
+			'<a:blip r:embed="rId2"/>',
+			'<p:sldIdLst><p:sldId id="256" r:id=""/></p:sldIdLst>',
+		);
+		expect(rejected).toHaveLength(1);
+		expect(rejected[0].message).toContain('XML ID token');
 	});
 
 	it('validates common PresentationML and DrawingML enum domains', async () => {

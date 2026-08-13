@@ -143,6 +143,10 @@ export function parseP15FromExtLst(
  * `rawExtLst` is present the caller preserves those bytes verbatim.
  */
 export function buildP15ExtLst(transitionType: string, invX?: boolean, invY?: boolean): XmlObject {
+	return { 'p:ext': buildP15Ext(transitionType, invX, invY) };
+}
+
+function buildP15Ext(transitionType: string, invX?: boolean, invY?: boolean): XmlObject {
 	const prstTrans: XmlObject = {
 		'@_xmlns:p15': 'http://schemas.microsoft.com/office/powerpoint/2012/main',
 		'@_prst': transitionType,
@@ -153,9 +157,63 @@ export function buildP15ExtLst(transitionType: string, invX?: boolean, invY?: bo
 	if (invY === true) {
 		prstTrans['@_invY'] = '1';
 	}
-	const ext = {
+	return {
 		'@_uri': PRSTTRANS_EXT_URI,
 		'p15:prstTrans': prstTrans,
 	} as unknown as XmlObject;
-	return { 'p:ext': ext };
+}
+
+/**
+ * Write a p15 preset transition into the transition's `p:extLst`, reusing the
+ * deck's own `p15:prstTrans` element rather than the caller's fabricated one.
+ *
+ * Preserving `rawExtLst` verbatim (the previous behaviour) meant an EDIT was a
+ * silent no-op: the preserved element still carried the old `@prst`, so a deck
+ * that stored its transition in the extLst form re-emitted the original preset
+ * however many times the user changed it. Patching `@prst` in place keeps
+ * everything the model does not carry - `@invX`/`@invY`, the deck's own
+ * extension URI, sibling extensions - while making the edit land. A stale p14
+ * transition extension is dropped, because it would declare a second,
+ * contradictory transition next to the preset.
+ */
+export function applyP15PresetToExtLst(args: {
+	transitionType: string;
+	rawExtLst: XmlObject | undefined;
+	xmlLookupService: IPptxXmlLookupService;
+	getXmlLocalName: (xmlKey: string) => string;
+	isP14TransitionElement: (localName: string) => boolean;
+}): XmlObject {
+	const { transitionType, rawExtLst, xmlLookupService, getXmlLocalName } = args;
+	if (!rawExtLst) {
+		return buildP15ExtLst(transitionType);
+	}
+
+	const others: XmlObject[] = [];
+	let patched: XmlObject | undefined;
+
+	for (const ext of xmlLookupService.getChildrenArrayByLocalName(rawExtLst, 'ext')) {
+		if (!ext) {
+			continue;
+		}
+		const elementKeys = Object.keys(ext).filter((key) => !key.startsWith('@_'));
+		const prstKey = elementKeys.find((key) => getXmlLocalName(key) === 'prstTrans');
+		if (prstKey) {
+			if (!patched) {
+				const child = ext[prstKey];
+				const updated =
+					child && typeof child === 'object' && !Array.isArray(child)
+						? { ...(child as XmlObject), '@_prst': transitionType }
+						: { '@_prst': transitionType };
+				patched = { ...ext, [prstKey]: updated } as unknown as XmlObject;
+			}
+			continue;
+		}
+		if (elementKeys.some((key) => args.isP14TransitionElement(getXmlLocalName(key)))) {
+			continue;
+		}
+		others.push(ext);
+	}
+
+	const all = [patched ?? buildP15Ext(transitionType), ...others];
+	return { 'p:ext': all.length === 1 ? all[0]! : all };
 }

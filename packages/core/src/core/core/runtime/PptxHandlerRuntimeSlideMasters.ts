@@ -11,6 +11,7 @@ import type {
 import { parseCustomShows } from '../../utils/presentation-collections';
 import { resolveSlideLayoutOrder } from '../../utils/slide-layout-order';
 import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
+import { parseOverrideClrMapping } from './color-scheme-index';
 import { parseMasterColorMap } from './master-color-map';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeDocProperties';
 import { parseHeaderFooterFlags } from './PptxHandlerRuntimeMasterElements';
@@ -395,37 +396,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				layout.headerFooter = hf;
 			}
 
-			// Colour map override (inline parse — parseClrMapOverrideNode is further in chain)
+			// `p:clrMapOvr/a:overrideClrMapping` (§20.1.6.7).
+			//
+			// This used to be a hand-rolled copy of the parse, justified by a
+			// comment claiming the real one was "further in chain". It was not:
+			// the copy lower-cased every value, and `ST_ColorSchemeIndex` has a
+			// camel-cased token (`folHlink`), so a layout override round-tripped
+			// as `folHlink="folhlink"` - outside the enumeration, which makes
+			// PowerPoint refuse the package (0x80070570). Nothing hit it while
+			// untouched layouts passed through verbatim; the master/layout
+			// editing path reaches it. The shared normaliser is the only copy.
 			const clrMapOvr = sldLayout['p:clrMapOvr'] as XmlObject | undefined;
 			if (clrMapOvr && clrMapOvr['a:masterClrMapping'] === undefined) {
 				const overrideNode = clrMapOvr['a:overrideClrMapping'] as XmlObject | undefined;
-				if (overrideNode) {
-					const aliasKeys = [
-						'bg1',
-						'tx1',
-						'bg2',
-						'tx2',
-						'accent1',
-						'accent2',
-						'accent3',
-						'accent4',
-						'accent5',
-						'accent6',
-						'hlink',
-						'folHlink',
-					];
-					const overrideMap: Record<string, string> = {};
-					for (const key of aliasKeys) {
-						const mapped = String(overrideNode[`@_${key}`] || '')
-							.trim()
-							.toLowerCase();
-						if (mapped) {
-							overrideMap[key] = mapped;
-						}
-					}
-					if (Object.keys(overrideMap).length > 0) {
-						layout.clrMapOverride = overrideMap;
-					}
+				const overrideMap = overrideNode
+					? parseOverrideClrMapping(overrideNode, (alias, rawValue) => {
+							console.warn(
+								`Slide layout ${layoutPath}: dropping clrMapOvr ${alias}="${rawValue}" (not an ST_ColorSchemeIndex token).`,
+							);
+						})
+					: null;
+				if (overrideMap) {
+					layout.clrMapOverride = overrideMap;
 				}
 			}
 

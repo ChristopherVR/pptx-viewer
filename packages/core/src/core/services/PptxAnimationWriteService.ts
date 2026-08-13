@@ -1,10 +1,13 @@
 import type { PptxElementAnimation, XmlObject } from '../types';
-import { surgicallyUpdateTimingTree } from './animation-timing-surgical';
+import { writeOwnedEffectKeys } from './animation-timing-ownership';
+import { ownedEffectKeysFor, surgicallyUpdateTimingTree } from './animation-timing-surgical';
 import type { IPptxAnimationWriteService } from './animation-write-mappings';
 import {
 	buildEffectNodesForAnimation,
 	buildBuildListXml,
+	buildClickGroupNode,
 	buildInteractiveSequences,
+	buildMainSequenceNode,
 } from './animation-write-sequence-builders';
 
 export type { IPptxAnimationWriteService } from './animation-write-mappings';
@@ -55,12 +58,10 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 			.filter((a) => a.entrance || a.exit || a.emphasis || a.motionPath)
 			.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-		if (validAnimations.length === 0) {
-			return existingRawTiming;
-		}
-
-		// When an existing timing tree is available, perform surgical updates
-		// to preserve complex structures (endCondLst, exclusive containers, etc.)
+		// When an existing timing tree is available, reconcile into it rather
+		// than regenerating: a rebuild would drop every structure the typed
+		// model does not carry. An EMPTY list still goes down this path, because
+		// "the user deleted the effects we added" has to reach the tree too.
 		if (existingRawTiming) {
 			const cloned = (
 				typeof structuredClone === 'function'
@@ -68,6 +69,10 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 					: JSON.parse(JSON.stringify(existingRawTiming))
 			) as XmlObject;
 			return surgicallyUpdateTimingTree(cloned, validAnimations);
+		}
+
+		if (validAnimations.length === 0) {
+			return undefined;
 		}
 
 		this.nextId = 1;
@@ -99,41 +104,7 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 			markGroupAutoStart(animationNodes[0], mainSeqId);
 		}
 
-		// Build the main sequence container
-		const mainSequenceChildren: XmlObject[] = [];
-		for (const node of animationNodes) {
-			mainSequenceChildren.push(node);
-		}
-
-		const mainSeqNode: XmlObject = {
-			'p:cTn': {
-				'@_id': String(mainSeqId),
-				'@_dur': 'indefinite',
-				'@_nodeType': 'mainSeq',
-				'p:childTnLst': {
-					'p:par':
-						mainSequenceChildren.length === 1 ? mainSequenceChildren[0] : mainSequenceChildren,
-				},
-			},
-			'p:prevCondLst': {
-				'p:cond': {
-					'@_evt': 'onPrev',
-					'@_delay': '0',
-					'p:tgtEl': {
-						'p:sldTgt': {},
-					},
-				},
-			},
-			'p:nextCondLst': {
-				'p:cond': {
-					'@_evt': 'onNext',
-					'@_delay': '0',
-					'p:tgtEl': {
-						'p:sldTgt': {},
-					},
-				},
-			},
-		};
+		const mainSeqNode = buildMainSequenceNode(mainSeqId, [...animationNodes]);
 
 		// Build interactive sequence nodes
 		const interactiveSeqNodes = buildInteractiveSequences(
@@ -166,6 +137,12 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		if (buildList) {
 			timingXml['p:bldLst'] = buildList;
 		}
+
+		// Record what this tree owns, exactly as the reconcile path does: on the
+		// next save the whole tree is "existing", and without the registry the
+		// reconciler could not tell these effects from a deck's own and so could
+		// never delete one the user removed.
+		writeOwnedEffectKeys(timingXml, ownedEffectKeysFor(validAnimations));
 
 		return timingXml;
 	}
@@ -210,23 +187,9 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		}
 
 		// Wrap each click group in a p:par container
-		const nodes = clickGroups.map((group) => {
-			const groupId = this.allocateId();
-			return {
-				'p:cTn': {
-					'@_id': String(groupId),
-					'@_fill': 'hold',
-					'p:stCondLst': {
-						'p:cond': {
-							'@_delay': 'indefinite',
-						},
-					},
-					'p:childTnLst': {
-						'p:par': group.length === 1 ? group[0] : group,
-					},
-				},
-			} as XmlObject;
-		});
+		const nodes = clickGroups.map((group) =>
+			buildClickGroupNode(group, this.allocateId.bind(this)),
+		);
 
 		return {
 			nodes,

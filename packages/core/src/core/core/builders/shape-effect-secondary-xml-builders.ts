@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { positiveFixedAngleAttribute, shadowOffsetToDistanceAndDirection } from '../../utils';
 
 interface Context {
 	emuPerPx: number;
@@ -49,9 +50,19 @@ export function buildReflectionXml(style: ShapeStyle, context: Context): XmlObje
 	if (typeof style.reflectionEndPosition === 'number') {
 		xml['@_endPos'] = fixed(style.reflectionEndPosition);
 	}
-	numberAttr('dir', style.reflectionDirection, 60000);
+	// `a:reflection/@dir` and `@fadeDir` are `ST_PositiveFixedAngle`
+	// (ECMA-376 S20.1.8.50): `0 <= v < 21600000`. A direction reaching the model
+	// from a UI control can be negative or past a full turn, and PowerPoint
+	// refuses to open a package that spells one out of range rather than
+	// clamping it, so both go through the shared serializer.
+	const angleAttr = (name: string, value: number | undefined) => {
+		if (typeof value === 'number' && Number.isFinite(value)) {
+			xml[`@_${name}`] = positiveFixedAngleAttribute(value);
+		}
+	};
+	angleAttr('dir', style.reflectionDirection);
 	numberAttr('rot', style.reflectionRotation, 60000);
-	numberAttr('fadeDir', style.reflectionFadeDirection, 60000);
+	angleAttr('fadeDir', style.reflectionFadeDirection);
 	numberAttr('sx', style.reflectionScaleX);
 	numberAttr('sy', style.reflectionScaleY);
 	numberAttr('kx', style.reflectionSkewX);
@@ -87,10 +98,11 @@ export function buildLineEffectListXml(style: ShapeStyle, context: Context): Xml
 		const y = typeof style.lineShadowOffsetY === 'number' ? style.lineShadowOffsetY : 2;
 		const blur = typeof style.lineShadowBlur === 'number' ? Math.max(0, style.lineShadowBlur) : 4;
 		const opacity = context.clampUnitInterval(style.lineShadowOpacity ?? 0.35);
+		const { distance, directionDegrees } = shadowOffsetToDistanceAndDirection(x, y);
 		list['a:outerShdw'] = {
 			'@_blurRad': String(Math.round(blur * context.emuPerPx)),
-			'@_dist': String(Math.round(Math.hypot(x, y) * context.emuPerPx)),
-			'@_dir': String(Math.round((((Math.atan2(y, x) * 180) / Math.PI + 360) % 360) * 60000)),
+			'@_dist': String(Math.round(distance * context.emuPerPx)),
+			'@_dir': positiveFixedAngleAttribute(directionDegrees),
 			'a:srgbClr': colorXml(shadowColor, opacity),
 		};
 	}

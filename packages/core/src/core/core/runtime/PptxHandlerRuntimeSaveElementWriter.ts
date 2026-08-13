@@ -366,6 +366,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Group elements
 		if (el.type === 'group') {
+			// A `p:grpSp` inherited from this slide's layout or master belongs to
+			// that part, which the save pipeline flushes verbatim from
+			// `layoutXmlMap` / `masterXmlMap`. This branch returned before the
+			// template check further down ever ran, so every such group was
+			// copied into EVERY slide's own `p:spTree`: on
+			// `e2e/fixtures/absolute-path-rels.pptx` (the only deck in the corpus
+			// with a layout-level group) the deck grew from 82 to 106 shapes on a
+			// no-edit round-trip. Rendering a layout group on a slide and writing
+			// it into that slide are different requirements; only the first is
+			// wanted.
+			if (this.isTemplateElementId(el.id)) {
+				return;
+			}
 			const grpXml = this.buildGroupShapeXml(el as GroupPptxElement, ctx);
 			if (grpXml) {
 				collectors.groups.push(grpXml);
@@ -523,7 +536,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Shape styles (fill, stroke, effects, 3D)
 		if (hasShapeProperties(el) && el.shapeStyle && shape['p:spPr']) {
 			const spPr = shape['p:spPr'] as XmlObject;
-			this.applyFillAndStroke(spPr, el.shapeStyle);
+			this.applyFillAndStroke(spPr, el.shapeStyle, ctx.inheritedGroupFill);
 			this.applyEffectsAndThreeD(spPr, el.shapeStyle);
 			this.finalizeSpPrSchemaOrder(shape);
 			// Re-emit `<p:style>` (lnRef/fillRef/effectRef/fontRef) — Phase 2 Stream B / C-H2.

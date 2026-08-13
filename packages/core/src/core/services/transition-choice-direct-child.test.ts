@@ -204,12 +204,11 @@ describe('round-trip of the direct-child forms (no double emission)', () => {
 		expect(node?.['p:cut']).toBeUndefined();
 	});
 
-	it('still fabricates the extLst form when there is no preserved direct child', () => {
+	it('writes the direct-child form when there is no preserved one', () => {
 		const node = service.buildSlideTransitionXml({ type: 'origami' });
-		const ext = (node?.['p:extLst'] as XmlObject | undefined)?.['p:ext'] as XmlObject | undefined;
 
-		expect((ext?.['p15:prstTrans'] as XmlObject | undefined)?.['@_prst']).toBe('origami');
-		expect(node?.['p15:prstTrans']).toBeUndefined();
+		expect((node?.['p15:prstTrans'] as XmlObject | undefined)?.['@_prst']).toBe('origami');
+		expect(node?.['p:extLst']).toBeUndefined();
 	});
 
 	it('prunes a stale direct child when the transition type was edited', () => {
@@ -220,12 +219,12 @@ describe('round-trip of the direct-child forms (no double emission)', () => {
 		expect(node?.['p15:prstTrans']).toBeUndefined();
 	});
 
-	it('prunes the old direct child and writes the new preset via extLst on a p15-to-p15 edit', () => {
+	it('re-points the direct child on a p15-to-p15 edit, emitting exactly one', () => {
 		const parsed = service.parseSlideTransition(xmlParser.parse(ORIGAMI_SLIDE_XML) as XmlObject);
 		const node = service.buildSlideTransitionXml({ ...parsed!, type: 'fracture' });
 
-		expect(node?.['p15:prstTrans']).toBeUndefined();
-		const ext = (node?.['p:extLst'] as XmlObject | undefined)?.['p:ext'] as XmlObject | undefined;
-		expect((ext?.['p15:prstTrans'] as XmlObject | undefined)?.['@_prst']).toBe('fracture');
+		expect((node?.['p15:prstTrans'] as XmlObject | undefined)?.['@_prst']).toBe('fracture');
+		expect(node?.['p:extLst']).toBeUndefined();
+		expect(JSON.stringify(node)).not.toContain('origami');
 	});
 });

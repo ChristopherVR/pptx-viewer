@@ -11,6 +11,7 @@ import type {
 	ShapePptxElement,
 	ImagePptxElement,
 	PicturePptxElement,
+	ShapeStyle,
 } from '../../types';
 import { applyDiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
 import {
@@ -33,6 +34,14 @@ export interface SaveSlideContext {
 	readonly slideMediaRelationshipType: string;
 	readonly slideVideoRelationshipType: string;
 	readonly slideAudioRelationshipType: string;
+	/**
+	 * The fill the enclosing group hands down to an `<a:grpFill/>` child, set
+	 * only while serialising the children of a group (the group writer derives
+	 * it per nesting level). Lets the fill writer re-emit authored `a:grpFill`
+	 * instead of the colour the load pass resolved onto the child. Absent for a
+	 * top-level element.
+	 */
+	readonly inheritedGroupFill?: ShapeStyle;
 }
 
 function getMediaReferenceContainer(shape: XmlObject | undefined): XmlObject | undefined {

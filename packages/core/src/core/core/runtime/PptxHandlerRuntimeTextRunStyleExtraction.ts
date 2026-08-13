@@ -3,6 +3,19 @@ import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextRunEffects';
 
+/**
+ * The `EG_FillProperties` members `CT_TextCharacterProperties` may carry, minus
+ * `a:noFill`. Any one of them is a run declaring a fill of its OWN, which
+ * overrides an inherited `<a:noFill/>` from a lower style layer.
+ */
+const TEXT_FILL_ELEMENTS = [
+	'a:solidFill',
+	'a:gradFill',
+	'a:pattFill',
+	'a:blipFill',
+	'a:grpFill',
+] as const;
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected extractTextRunStyle(
 		runProperties: XmlObject | undefined,
@@ -137,9 +150,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 		}
-		// No fill on text run (a:rPr > a:noFill) — hollow/outline-only text
+		// No fill on text run (a:rPr > a:noFill): hollow / outline-only text.
+		//
+		// This flag has to be able to say `false` as well as `true`. Run styles are
+		// assembled as `{...mergedDefaultRunStyle, ...extractTextRunStyle(rPr)}`,
+		// where the lower layers are themselves `extractTextRunStyle` of the
+		// `a:lstStyle` levels, the layout / master `a:defRPr` and `a:endParaRPr`.
+		// Only ever setting it `true` meant a run that OVERRODE an inherited
+		// `<a:noFill/>` with a fill of its own left the slot untouched, so the
+		// inherited `true` survived the spread: the run rendered hollow
+		// (`hollowTextFillStyle` in shared) and the writer re-emitted `<a:noFill/>`
+		// over its real fill, losing the colour permanently on the first save.
+		// Recording the override explicitly is what lets the spread clear it.
 		if (runProperties['a:noFill'] !== undefined) {
 			style.textFillNone = true;
+		} else if (TEXT_FILL_ELEMENTS.some((name) => runProperties[name] !== undefined)) {
+			style.textFillNone = false;
 		}
 		// Superscript / subscript baseline shift (percentage)
 		if (runProperties['@_baseline'] !== undefined) {
@@ -231,7 +257,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Store per-script font families for Unicode font fallback. Only set when
-		// the source actually authored an `a:ea` / `a:cs` typeface — otherwise the
+		// the source actually authored an `a:ea` / `a:cs` typeface; otherwise the
 		// writer must not synthesize one (see #84).
 		const eaTypeface = this.resolveThemeTypeface(eaTypefaceToken);
 		if (eaTypeface) {
@@ -336,7 +362,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.applyTextRunEffects(style, runEffectList);
 		}
 
-		// Text run effect graph (a:effectDag on a:rPr) — ECMA-376
+		// Text run effect graph (a:effectDag on a:rPr): ECMA-376
 		// §21.1.2.3.6 allows `effectDag` as an alternative to `effectLst`.
 		this.applyTextRunEffectDag(style, runProperties);
 

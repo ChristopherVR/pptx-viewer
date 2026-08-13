@@ -101,11 +101,20 @@ describe('morph as a direct child of p:transition', () => {
 		expect(node?.['p:extLst']).toBeUndefined();
 	});
 
-	it('round-trips the option through the extLst form when there is no preserved child', () => {
+	it('writes the option onto a direct child when there is no preserved one', () => {
 		const node = service.buildSlideTransitionXml({ type: 'morph', morphOption: 'byChar' });
-		const ext = (node?.['p:extLst'] as XmlObject | undefined)?.['p:ext'] as XmlObject | undefined;
 
-		expect((ext?.['p159:morph'] as XmlObject | undefined)?.['@_option']).toBe('byChar');
+		expect((node?.['p159:morph'] as XmlObject | undefined)?.['@_option']).toBe('byChar');
+		expect(node?.['p:extLst']).toBeUndefined();
+	});
+
+	// PowerPoint refuses to open a deck whose morph element has no `option`
+	// (measured: "the file or directory is corrupted and unreadable"), and it
+	// writes byObject when the user has not chosen a granularity.
+	it('always states an option, defaulting to byObject', () => {
+		const node = service.buildSlideTransitionXml({ type: 'morph' });
+
+		expect((node?.['p159:morph'] as XmlObject | undefined)?.['@_option']).toBe('byObject');
 	});
 
 	// The compatibility inspector reported UNSUPPORTED_ALTERNATE_CONTENT_CHOICE

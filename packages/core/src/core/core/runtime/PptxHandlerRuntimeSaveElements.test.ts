@@ -1,182 +1,223 @@
 /**
- * Tests for PptxHandlerRuntimeSaveElements:
- *   - updateNotesXmlText logic (notes body shape finding, segment staleness)
+ * Tests for the REAL `updateNotesXmlText` on `PptxHandlerRuntime`: notes body
+ * shape selection, stale-segment handling, and paragraph-scope preservation.
+ *
+ * This file used to reimplement each of those rules as a local helper and test
+ * the copy, which proved nothing about the shipped code. It now drives the
+ * production method through a subclass that only widens its visibility.
  */
-import { describe, it, expect } from 'vitest';
+import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { describe, expect, it } from 'vitest';
 
-import type { XmlObject, TextSegment } from '../../types';
+import type { TextSegment, XmlObject } from '../../types';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
-// ---------------------------------------------------------------------------
-// Reimplemented helpers from PptxHandlerRuntimeSaveElements
-// ---------------------------------------------------------------------------
-
-function findNotesBodyShape(shapes: XmlObject[]): XmlObject | undefined {
-	return (
-		shapes.find((shape) => {
-			const placeholder = shape?.['p:nvSpPr']?.['p:nvPr']?.['p:ph'] as XmlObject | undefined;
-			const placeholderType = String(placeholder?.['@_type'] || '')
-				.trim()
-				.toLowerCase();
-			return placeholderType === 'body';
-		}) ||
-		shapes.find((shape) => Boolean(shape?.['p:txBody'])) ||
-		shapes[0]
-	);
-}
-
-function computeEffectiveSegments(
-	notesText: string | undefined,
-	notesSegments: TextSegment[] | undefined,
-): TextSegment[] | undefined {
-	if (notesSegments && notesSegments.length > 0 && notesText !== undefined) {
-		const segmentsText = notesSegments.map((s) => String(s.text ?? '')).join('');
-		if (segmentsText !== notesText) {
-			return undefined;
-		}
+class NotesRuntime extends PptxHandlerRuntime {
+	public updateNotes(
+		notesXmlObj: XmlObject,
+		notesText: string | undefined,
+		notesSegments?: TextSegment[],
+	): boolean {
+		return this.updateNotesXmlText(notesXmlObj, notesText, notesSegments);
 	}
-	return notesSegments;
 }
 
-function canUpdateNotesXml(notesXmlObj: XmlObject): boolean {
-	const notesRoot = notesXmlObj?.['p:notes'] as XmlObject | undefined;
-	const spTree = notesRoot?.['p:cSld']?.['p:spTree'] as XmlObject | undefined;
-	if (!spTree) {
-		return false;
-	}
+const runtime = new NotesRuntime();
 
-	const rawShapes = spTree['p:sp'];
-	const shapes = Array.isArray(rawShapes)
-		? (rawShapes as XmlObject[])
-		: rawShapes
-			? [rawShapes as XmlObject]
-			: [];
-	return shapes.length > 0;
+const parser = new XMLParser({
+	ignoreAttributes: false,
+	attributeNamePrefix: '@_',
+	parseAttributeValue: false,
+	parseTagValue: false,
+});
+const builder = new XMLBuilder({
+	ignoreAttributes: false,
+	attributeNamePrefix: '@_',
+	suppressEmptyNode: false,
+});
+
+/**
+ * The `a:pPr` PowerPoint writes on a notes body paragraph. Taken verbatim from
+ * `ppt/notesSlides/notesSlide1.xml` of `e2e/fixtures/solution-explorer.pptx`,
+ * whose 11 attributes a no-edit round-trip reduced to zero.
+ */
+const AUTHORED_NOTES_PPR = [
+	'<a:pPr marL="0" marR="0" lvl="0" indent="0" algn="l" defTabSz="914400" rtl="0"',
+	' eaLnBrk="1" fontAlgn="auto" latinLnBrk="0" hangingPunct="1">',
+	'<a:lnSpc><a:spcPct val="100000"/></a:lnSpc>',
+	'<a:spcBef><a:spcPts val="0"/></a:spcBef>',
+	'<a:spcAft><a:spcPts val="0"/></a:spcAft>',
+	'<a:buClrTx/><a:buSzTx/><a:buFontTx/><a:buNone/><a:tabLst/><a:defRPr/>',
+	'</a:pPr>',
+].join('');
+
+function notesPart(bodyParagraphs: string, extraShapes = ''): XmlObject {
+	return parser.parse(
+		[
+			'<p:notes><p:cSld><p:spTree>',
+			'<p:sp><p:nvSpPr><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr>',
+			`<p:txBody><a:bodyPr/><a:lstStyle/>${bodyParagraphs}</p:txBody></p:sp>`,
+			extraShapes,
+			'</p:spTree></p:cSld></p:notes>',
+		].join(''),
+	) as XmlObject;
 }
 
-// ---------------------------------------------------------------------------
-// findNotesBodyShape
-// ---------------------------------------------------------------------------
-describe('findNotesBodyShape', () => {
-	it('should find shape with body placeholder type', () => {
-		const bodyShape: XmlObject = {
-			'p:nvSpPr': { 'p:nvPr': { 'p:ph': { '@_type': 'body' } } },
-			'p:txBody': {},
-		};
-		const otherShape: XmlObject = {
-			'p:nvSpPr': { 'p:nvPr': { 'p:ph': { '@_type': 'sldNum' } } },
-		};
-		const result = findNotesBodyShape([otherShape, bodyShape]);
-		expect(result).toBe(bodyShape);
+function bodyTxBody(notesXml: XmlObject): XmlObject {
+	const spTree = (
+		((notesXml['p:notes'] as XmlObject)['p:cSld'] as XmlObject)['p:spTree'] as XmlObject
+	)['p:sp'];
+	const shapes = Array.isArray(spTree) ? (spTree as XmlObject[]) : [spTree as XmlObject];
+	return shapes[0]['p:txBody'] as XmlObject;
+}
+
+function bodyXml(notesXml: XmlObject): string {
+	return builder.build(bodyTxBody(notesXml)) as string;
+}
+
+function paragraphsOf(notesXml: XmlObject): XmlObject[] {
+	const paragraphs = bodyTxBody(notesXml)['a:p'];
+	return Array.isArray(paragraphs) ? (paragraphs as XmlObject[]) : [paragraphs as XmlObject];
+}
+
+describe('updateNotesXmlText paragraph-scope preservation', () => {
+	it('keeps every authored a:pPr attribute when the notes text is unchanged', () => {
+		const notesXml = notesPart(
+			`<a:p>${AUTHORED_NOTES_PPR}<a:r><a:rPr lang="en-GB"/><a:t>Speaker note</a:t></a:r>` +
+				'<a:endParaRPr lang="en-GB" dirty="0"/></a:p>',
+		);
+
+		expect(runtime.updateNotes(notesXml, 'Speaker note', undefined)).toBeTruthy();
+
+		const pPr = paragraphsOf(notesXml)[0]['a:pPr'] as XmlObject;
+		expect(pPr['@_marL']).toBe('0');
+		expect(pPr['@_algn']).toBe('l');
+		expect(pPr['@_defTabSz']).toBe('914400');
+		expect(pPr['@_eaLnBrk']).toBe('1');
+		expect(pPr['@_fontAlgn']).toBe('auto');
+		expect(pPr['@_latinLnBrk']).toBe('0');
+		expect(pPr['@_hangingPunct']).toBe('1');
+		expect(pPr['a:lnSpc']).toStrictEqual({ 'a:spcPct': { '@_val': '100000' } });
+		expect(pPr['a:buNone']).toBeDefined();
 	});
 
-	it('should match body type case-insensitively', () => {
-		const shape: XmlObject = {
-			'p:nvSpPr': { 'p:nvPr': { 'p:ph': { '@_type': 'Body' } } },
-		};
-		const result = findNotesBodyShape([shape]);
-		expect(result).toBe(shape);
+	it('keeps the authored a:pPr when the notes text itself was edited', () => {
+		const notesXml = notesPart(
+			`<a:p>${AUTHORED_NOTES_PPR}<a:r><a:rPr lang="en-GB"/><a:t>Old</a:t></a:r></a:p>`,
+		);
+
+		runtime.updateNotes(notesXml, 'A rewritten speaker note', undefined);
+
+		const paragraph = paragraphsOf(notesXml)[0];
+		expect((paragraph['a:pPr'] as XmlObject)['@_hangingPunct']).toBe('1');
+		expect(bodyXml(notesXml)).toContain('A rewritten speaker note');
 	});
 
-	it('should fallback to shape with txBody when no body placeholder', () => {
-		const shape1: XmlObject = { 'p:nvSpPr': { 'p:nvPr': {} } };
-		const shape2: XmlObject = {
-			'p:nvSpPr': { 'p:nvPr': {} },
-			'p:txBody': { 'a:p': {} },
-		};
-		const result = findNotesBodyShape([shape1, shape2]);
-		expect(result).toBe(shape2);
+	it('keeps the authored proofing language instead of stamping en-US', () => {
+		const notesXml = notesPart(
+			`<a:p>${AUTHORED_NOTES_PPR}<a:r><a:rPr lang="en-GB"/><a:t>Note</a:t></a:r>` +
+				'<a:endParaRPr lang="en-GB" dirty="0"/></a:p>',
+		);
+
+		runtime.updateNotes(notesXml, 'Note', undefined);
+
+		expect(paragraphsOf(notesXml)[0]['a:endParaRPr']).toStrictEqual({
+			'@_lang': 'en-GB',
+			'@_dirty': '0',
+		});
 	});
 
-	it('should fallback to first shape when no body or txBody found', () => {
-		const shape1: XmlObject = { 'p:nvSpPr': { 'p:nvPr': {} } };
-		const shape2: XmlObject = { 'p:nvSpPr': { 'p:nvPr': {} } };
-		const result = findNotesBodyShape([shape1, shape2]);
-		expect(result).toBe(shape1);
+	it('preserves each paragraph a:pPr independently across a multi-paragraph body', () => {
+		const notesXml = notesPart(
+			'<a:p><a:pPr algn="l" marL="0"/><a:r><a:t>first</a:t></a:r></a:p>' +
+				'<a:p><a:pPr algn="ctr" marL="457200"/><a:r><a:t>second</a:t></a:r></a:p>',
+		);
+
+		runtime.updateNotes(notesXml, 'first\nsecond', undefined);
+
+		const paragraphs = paragraphsOf(notesXml);
+		expect(paragraphs).toHaveLength(2);
+		expect((paragraphs[0]['a:pPr'] as XmlObject)['@_algn']).toBe('l');
+		expect((paragraphs[1]['a:pPr'] as XmlObject)['@_algn']).toBe('ctr');
+		expect((paragraphs[1]['a:pPr'] as XmlObject)['@_marL']).toBe('457200');
+	});
+
+	it('leaves an added paragraph with no borrowed properties', () => {
+		const notesXml = notesPart('<a:p><a:pPr algn="ctr"/><a:r><a:t>first</a:t></a:r></a:p>');
+
+		runtime.updateNotes(notesXml, 'first\nbrand new line', undefined);
+
+		const paragraphs = paragraphsOf(notesXml);
+		expect(paragraphs).toHaveLength(2);
+		expect((paragraphs[0]['a:pPr'] as XmlObject)['@_algn']).toBe('ctr');
+		expect(paragraphs[1]['a:pPr']).toStrictEqual({});
 	});
 });
 
-// ---------------------------------------------------------------------------
-// computeEffectiveSegments
-// ---------------------------------------------------------------------------
-describe('computeEffectiveSegments', () => {
-	it('should return segments when text matches segment concatenation', () => {
-		const segments: TextSegment[] = [{ text: 'Hello ' }, { text: 'World' }];
-		const result = computeEffectiveSegments('Hello World', segments);
-		expect(result).toBe(segments);
+describe('updateNotesXmlText body-shape selection', () => {
+	it('writes into the body placeholder rather than another shape', () => {
+		const notesXml = notesPart(
+			'<a:p><a:r><a:t>note</a:t></a:r></a:p>',
+			'<p:sp><p:nvSpPr><p:nvPr><p:ph type="sldNum" idx="5"/></p:nvPr></p:nvSpPr>' +
+				'<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>12</a:t></a:r></a:p></p:txBody></p:sp>',
+		);
+
+		runtime.updateNotes(notesXml, 'edited note', undefined);
+
+		expect(bodyXml(notesXml)).toContain('edited note');
 	});
 
-	it('should discard segments when text does not match', () => {
-		const segments: TextSegment[] = [{ text: 'Old ' }, { text: 'text' }];
-		const result = computeEffectiveSegments('New text', segments);
-		expect(result).toBeUndefined();
+	it('creates a txBody on the body placeholder when it has none', () => {
+		const notesXml = parser.parse(
+			'<p:notes><p:cSld><p:spTree>' +
+				'<p:sp><p:nvSpPr><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr></p:sp>' +
+				'</p:spTree></p:cSld></p:notes>',
+		) as XmlObject;
+
+		expect(runtime.updateNotes(notesXml, 'fresh note', undefined)).toBeTruthy();
+		expect(bodyXml(notesXml)).toContain('fresh note');
 	});
 
-	it('should return segments unchanged when notesText is undefined', () => {
-		const segments: TextSegment[] = [{ text: 'data' }];
-		const result = computeEffectiveSegments(undefined, segments);
-		expect(result).toBe(segments);
+	it('reports failure when the notes part has no shape tree', () => {
+		expect(runtime.updateNotes({}, 'note', undefined)).toBeFalsy();
+		expect(
+			runtime.updateNotes(parser.parse('<p:notes><p:cSld/></p:notes>') as XmlObject, 'note'),
+		).toBeFalsy();
 	});
 
-	it('should return undefined when segments is undefined', () => {
-		const result = computeEffectiveSegments('text', undefined);
-		expect(result).toBeUndefined();
-	});
-
-	it('should return empty segments unchanged when text is undefined', () => {
-		const result = computeEffectiveSegments(undefined, []);
-		expect(result).toStrictEqual([]);
+	it('reports failure when the shape tree has no shapes', () => {
+		const notesXml = parser.parse('<p:notes><p:cSld><p:spTree/></p:cSld></p:notes>') as XmlObject;
+		expect(runtime.updateNotes(notesXml, 'note', undefined)).toBeFalsy();
 	});
 });
 
-// ---------------------------------------------------------------------------
-// canUpdateNotesXml
-// ---------------------------------------------------------------------------
-describe('canUpdateNotesXml', () => {
-	it('should return true when spTree has shapes', () => {
-		const xml: XmlObject = {
-			'p:notes': {
-				'p:cSld': {
-					'p:spTree': {
-						'p:sp': { 'p:nvSpPr': {} },
-					},
-				},
-			},
-		};
-		expect(canUpdateNotesXml(xml)).toBeTruthy();
+describe('updateNotesXmlText stale-segment handling', () => {
+	it('honours segments that still match the plain text', () => {
+		const notesXml = notesPart('<a:p><a:r><a:t>Hello World</a:t></a:r></a:p>');
+		const segments: TextSegment[] = [
+			{ text: 'Hello ', style: { bold: true } },
+			{ text: 'World', style: {} },
+		];
+
+		runtime.updateNotes(notesXml, 'Hello World', segments);
+
+		const xml = bodyXml(notesXml);
+		expect(xml).toContain('b="1"');
+		expect(xml).toContain('Hello ');
+		expect(xml).toContain('World');
 	});
 
-	it('should return true when spTree has array of shapes', () => {
-		const xml: XmlObject = {
-			'p:notes': {
-				'p:cSld': {
-					'p:spTree': {
-						'p:sp': [{ 'p:nvSpPr': {} }, { 'p:nvSpPr': {} }],
-					},
-				},
-			},
-		};
-		expect(canUpdateNotesXml(xml)).toBeTruthy();
-	});
+	it('discards segments the plain text has outgrown', () => {
+		const notesXml = notesPart('<a:p><a:r><a:t>Old text</a:t></a:r></a:p>');
+		const segments: TextSegment[] = [
+			{ text: 'Old ', style: { bold: true } },
+			{ text: 'text', style: {} },
+		];
 
-	it('should return false when p:notes is missing', () => {
-		expect(canUpdateNotesXml({})).toBeFalsy();
-	});
+		runtime.updateNotes(notesXml, 'New text', segments);
 
-	it('should return false when spTree is missing', () => {
-		const xml: XmlObject = {
-			'p:notes': { 'p:cSld': {} },
-		};
-		expect(canUpdateNotesXml(xml)).toBeFalsy();
-	});
-
-	it('should return false when spTree has no shapes', () => {
-		const xml: XmlObject = {
-			'p:notes': {
-				'p:cSld': {
-					'p:spTree': {},
-				},
-			},
-		};
-		expect(canUpdateNotesXml(xml)).toBeFalsy();
+		const xml = bodyXml(notesXml);
+		expect(xml).toContain('New text');
+		expect(xml).not.toContain('b="1"');
 	});
 });

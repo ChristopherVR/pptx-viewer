@@ -5,6 +5,7 @@ import {
 	applyCellBorderStyle,
 	applyCellMarginStyle,
 } from './table-cell-fill-border-helpers';
+import { extractTableCellTextRuns } from './table-cell-runs';
 import { applyCellAlignmentStyle, applyCellTextFormat } from './table-cell-text-style-helpers';
 
 export interface PptxTableDataParserContext {
@@ -72,8 +73,10 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 						const extraAttributes = this.extractCellExtraAttributes(
 							cellNode['a:tcPr'] as XmlObject | undefined,
 						);
+						const textRuns = extractTableCellTextRuns(cellNode, this.context);
 						return {
 							text: this.extractTableCellText(cellNode),
+							...(textRuns ? { textRuns } : {}),
 							style: this.extractTableCellStyleFromXml(cellNode),
 							gridSpan: cellNode['@_gridSpan']
 								? parseInt(String(cellNode['@_gridSpan']), 10)
@@ -250,5 +253,7 @@ export {
 	applyCellMarginStyle,
 } from './table-cell-fill-border-helpers';
 export { applyCell3DStyle } from './table-cell-3d-helpers';
+export type { TableCellRunsContext } from './table-cell-runs';
+export { extractTableCellTextRuns } from './table-cell-runs';
 export type { TableCellTextStyleContext } from './table-cell-text-style-helpers';
 export { applyCellAlignmentStyle, applyCellTextFormat } from './table-cell-text-style-helpers';

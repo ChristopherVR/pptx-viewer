@@ -87,23 +87,62 @@ function buildMinimalTimingTree(
 	};
 }
 
-/** Navigate to the innermost effect p:cTn (the one with @_presetClass). */
-function getEffectCTn(tree: XmlObject): XmlObject {
+/** The `p:cTn` of the tree's main sequence. */
+function getMainSeqCTn(tree: XmlObject): XmlObject {
 	const tnLst = tree['p:tnLst'] as XmlObject;
 	const rootPar = tnLst['p:par'] as XmlObject;
 	const rootCTn = rootPar['p:cTn'] as XmlObject;
 	const rootChildren = rootCTn['p:childTnLst'] as XmlObject;
 	const seq = rootChildren['p:seq'] as XmlObject;
-	const seqCTn = seq['p:cTn'] as XmlObject;
-	const seqChildren = seqCTn['p:childTnLst'] as XmlObject;
-	const clickGrp = seqChildren['p:par'] as XmlObject;
-	const clickCTn = clickGrp['p:cTn'] as XmlObject;
-	const clickChildren = clickCTn['p:childTnLst'] as XmlObject;
-	const wrapper = clickChildren['p:par'] as XmlObject;
-	const wrapperCTn = wrapper['p:cTn'] as XmlObject;
-	const wrapperChildren = wrapperCTn['p:childTnLst'] as XmlObject;
-	const effect = wrapperChildren['p:par'] as XmlObject;
-	return effect['p:cTn'] as XmlObject;
+	return seq['p:cTn'] as XmlObject;
+}
+
+/** Every effect `p:cTn` (the ones with `@_presetClass`) in document order. */
+function collectEffectCTns(tree: XmlObject): XmlObject[] {
+	const out: XmlObject[] = [];
+	const visit = (value: unknown): void => {
+		if (Array.isArray(value)) {
+			value.forEach(visit);
+			return;
+		}
+		if (typeof value !== 'object' || value === null) {
+			return;
+		}
+		const node = value as XmlObject;
+		const cTn = node['p:cTn'];
+		if (cTn && typeof cTn === 'object' && !Array.isArray(cTn)) {
+			const effect = cTn as XmlObject;
+			if (effect['@_presetClass'] !== undefined) {
+				out.push(effect);
+			}
+		}
+		for (const key of Object.keys(node)) {
+			visit(node[key]);
+		}
+	};
+	visit(tree['p:tnLst']);
+	return out;
+}
+
+/** Navigate to the innermost effect p:cTn (the one with @_presetClass). */
+function getEffectCTn(tree: XmlObject): XmlObject {
+	return collectEffectCTns(tree)[0]!;
+}
+
+/** Read back the `spid:presetClass` registry this module writes into `p:extLst`. */
+function ownedKeys(tree: XmlObject): string[] {
+	const extLst = tree['p:extLst'] as XmlObject | undefined;
+	const exts = extLst?.['p:ext'];
+	const list = Array.isArray(exts) ? exts : exts ? [exts] : [];
+	for (const ext of list as XmlObject[]) {
+		const registry = ext['pptx:editorTiming'] as XmlObject | undefined;
+		if (registry) {
+			return String(registry['@_owned'] ?? '')
+				.split(/\s+/)
+				.filter((entry) => entry.length > 0);
+		}
+	}
+	return [];
 }
 
 describe('surgicallyUpdateTimingTree', () => {
@@ -210,5 +249,129 @@ describe('surgicallyUpdateTimingTree', () => {
 
 		const result = surgicallyUpdateTimingTree(tree, []);
 		expect(result).toStrictEqual(treeCopy);
+	});
+
+	// -----------------------------------------------------------------------
+	// Adding, deleting and sequencing effects (the panel's actual operations)
+	// -----------------------------------------------------------------------
+
+	it('inserts a real effect node for an animation the tree has no node for', () => {
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+
+		const result = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shape9', entrance: 'zoomIn', durationMs: 900, trigger: 'onClick' },
+		]);
+
+		const effects = collectEffectCTns(result);
+		expect(effects).toHaveLength(2);
+		const added = effects.find((cTn) => cTn['@_presetID'] === '23');
+		expect(added).toBeDefined();
+		expect(added?.['@_presetClass']).toBe('entr');
+		expect(added?.['@_dur']).toBe('900');
+		expect(added?.['@_nodeType']).toBe('clickEffect');
+		// It has to target the shape, or PowerPoint animates nothing.
+		expect(JSON.stringify(added)).toContain('"@_spid":"shape9"');
+		// It has to be reachable from the main sequence, not floating.
+		const mainSeqChildren = getMainSeqCTn(result)['p:childTnLst'] as XmlObject;
+		expect(mainSeqChildren['p:par'] as XmlObject[]).toHaveLength(2);
+	});
+
+	it('records the effects it authored so a later save can delete them', () => {
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+
+		const result = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shape9', entrance: 'zoomIn' },
+			{ elementId: 'shape9', exit: 'fadeOut' },
+		]);
+
+		expect(ownedKeys(result)).toStrictEqual(['shape9:entr', 'shape9:exit']);
+	});
+
+	it('deletes an effect it previously authored once the list drops it', () => {
+		const added = surgicallyUpdateTimingTree(buildMinimalTimingTree('shape1', 'entr', 10, 500), [
+			{ elementId: 'shape9', entrance: 'zoomIn', durationMs: 900 },
+		]);
+		expect(collectEffectCTns(added)).toHaveLength(2);
+
+		const removed = surgicallyUpdateTimingTree(added, []);
+
+		const effects = collectEffectCTns(removed);
+		expect(effects).toHaveLength(1);
+		// The deck's own effect survives; only ours went.
+		expect(effects[0]?.['@_presetID']).toBe('10');
+		expect(JSON.stringify(removed)).not.toContain('shape9');
+		expect(ownedKeys(removed)).toStrictEqual([]);
+	});
+
+	it('never deletes an effect it did not author', () => {
+		// A PowerPoint deck loads with an EMPTY editor list beside a populated
+		// timing tree; pruning on "not in the list" would wipe the deck.
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+		const before = JSON.parse(JSON.stringify(tree)) as XmlObject;
+
+		const result = surgicallyUpdateTimingTree(tree, [{ elementId: 'shape9', entrance: 'zoomIn' }]);
+		const after = surgicallyUpdateTimingTree(result, []);
+
+		expect(after['p:tnLst']).toStrictEqual(before['p:tnLst']);
+	});
+
+	it('sequences the click groups it owns by the panel order', () => {
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+		const added = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shapeA', entrance: 'zoomIn', order: 0 },
+			{ elementId: 'shapeB', entrance: 'flyIn', order: 1 },
+		]);
+		expect(collectEffectCTns(added).map((cTn) => cTn['@_presetID'])).toStrictEqual([
+			'10',
+			'23',
+			'2',
+		]);
+
+		const reordered = surgicallyUpdateTimingTree(added, [
+			{ elementId: 'shapeA', entrance: 'zoomIn', order: 1 },
+			{ elementId: 'shapeB', entrance: 'flyIn', order: 0 },
+		]);
+
+		// The deck's own group (presetID 10) keeps its slot; ours swap.
+		expect(collectEffectCTns(reordered).map((cTn) => cTn['@_presetID'])).toStrictEqual([
+			'10',
+			'2',
+			'23',
+		]);
+	});
+
+	it('retimes rather than duplicates an effect that already targets the shape', () => {
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+
+		const result = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shape1', entrance: 'zoomIn', durationMs: 1200 },
+		]);
+
+		const effects = collectEffectCTns(result);
+		expect(effects).toHaveLength(1);
+		expect(effects[0]?.['@_presetID']).toBe('23');
+		expect(effects[0]?.['@_dur']).toBe('1200');
+	});
+
+	it('builds a main sequence when the tree has only a timing root', () => {
+		const tree: XmlObject = {
+			'p:tnLst': {
+				'p:par': {
+					'p:cTn': {
+						'@_id': '1',
+						'@_dur': 'indefinite',
+						'@_restart': 'never',
+						'@_nodeType': 'tmRoot',
+					},
+				},
+			},
+		};
+
+		const result = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shape9', entrance: 'fadeIn', durationMs: 400 },
+		]);
+
+		expect(getMainSeqCTn(result)['@_nodeType']).toBe('mainSeq');
+		expect(collectEffectCTns(result)).toHaveLength(1);
 	});
 });

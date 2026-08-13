@@ -22,6 +22,16 @@
  * enveloped copy is removed.
  */
 import type { XmlObject } from '../../types';
+import {
+	declareDurationNamespaceIfUsed,
+	preserveNamespacedDuration,
+} from './slide-transition-duration-ns';
+import {
+	buildTransitionEnvelope,
+	extensionUsageOf,
+	refreshChoiceRequirements,
+	requiresPrefixFor,
+} from './slide-transition-envelope-build';
 
 /** A `p:transition` sitting inside one branch of an `mc:AlternateContent`. */
 interface EnvelopeTransitionSlot {
@@ -31,6 +41,8 @@ interface EnvelopeTransitionSlot {
 	branch: XmlObject;
 	/** The branch key the transition is stored under (namespace prefix intact). */
 	key: string;
+	/** Local name of the branch: `Choice` or `Fallback`. */
+	branchLocalName: string;
 	/** The parsed transition node itself. */
 	node: XmlObject;
 }
@@ -81,10 +93,11 @@ function collectEnvelopeSlots(
 				...keysWithLocalName(envelope, 'Fallback', getLocalName),
 			];
 			for (const branchKey of branchKeys) {
+				const branchLocalName = getLocalName(branchKey);
 				for (const branch of asObjects(envelope[branchKey])) {
 					for (const key of keysWithLocalName(branch, 'transition', getLocalName)) {
 						for (const node of asObjects(branch[key])) {
-							slots.push({ envelope, branch, key, node });
+							slots.push({ envelope, branch, key, branchLocalName, node });
 						}
 					}
 				}
@@ -92,31 +105,6 @@ function collectEnvelopeSlots(
 		}
 	}
 	return slots;
-}
-
-/**
- * Re-key the rebuilt transition's `@dur` back to the extension-namespace
- * spelling the source branch used.
- *
- * `CT_SlideTransition` has no `dur` attribute: the sub-second duration is
- * `p14:dur`, which is exactly why PowerPoint wrapped the element in an
- * `mc:Choice Requires="p14"` in the first place. The typed model flattens both
- * spellings into `durationMs`, so writing the rebuilt node into a p14 branch
- * verbatim would smuggle an unknown attribute into it. The rename is done
- * positionally so the attribute keeps its original slot.
- */
-function preserveNamespacedDuration(source: XmlObject, rebuilt: XmlObject): XmlObject {
-	const namespaced = Object.keys(source).find(
-		(key) => key.startsWith('@_') && key !== '@_dur' && key.endsWith(':dur'),
-	);
-	if (!namespaced || rebuilt['@_dur'] === undefined || rebuilt[namespaced] !== undefined) {
-		return rebuilt;
-	}
-	const result: XmlObject = {};
-	for (const [key, value] of Object.entries(rebuilt)) {
-		result[key === '@_dur' ? namespaced : key] = value;
-	}
-	return result;
 }
 
 /** Whether an MCE branch still declares any element child. */
@@ -151,6 +139,21 @@ export function reconcileSlideTransition(options: SlideTransitionReconcileOption
 	const slots = collectEnvelopeSlots(slideNode, getLocalName);
 	const target = sourceNode ? slots.find((slot) => slot.node === sourceNode) : undefined;
 
+	// Extension markup (`p14:ferris`, `p15:prstTrans`, `p159:morph`) is only
+	// read by PowerPoint from inside an `mc:Choice`; as a `p:extLst` extension
+	// it is ignored and as a bare direct child it can make the file unopenable.
+	// So a transition carrying an extension ELEMENT always ends up enveloped,
+	// and the SAME reconciler decides where it lands, which is what keeps the
+	// direct and enveloped paths from drifting back into emitting both.
+	const usage = transitionNode ? extensionUsageOf(transitionNode) : undefined;
+	const requiresPrefix = usage ? requiresPrefixFor(usage) : undefined;
+	// A Fallback branch is the legacy-reader copy, so extension markup must not
+	// be written into it: that case re-envelopes from scratch instead.
+	const reuseTarget =
+		target && (requiresPrefix === undefined || target.branchLocalName === 'Choice')
+			? target
+			: undefined;
+
 	// The direct child is re-added below only when the transition did not come
 	// out of an envelope; clearing it first also removes a stale direct copy
 	// left behind by an earlier save of the same in-memory slide.
@@ -163,18 +166,76 @@ export function reconcileSlideTransition(options: SlideTransitionReconcileOption
 	// only the branch we read from is rewritten. Every OTHER enveloped copy is
 	// stripped, and a "none" transition strips them all - including that sibling
 	// Fallback, or the envelope would keep replaying the effect we removed.
-	const keptEnvelope = transitionNode ? target?.envelope : undefined;
+	const keptEnvelope = transitionNode ? reuseTarget?.envelope : undefined;
 	for (const slot of slots) {
 		if (slot.envelope !== keptEnvelope) {
 			delete slot.branch[slot.key];
 		}
 	}
-	if (target && transitionNode) {
-		target.branch[target.key] = preserveNamespacedDuration(target.node, transitionNode);
+	if (reuseTarget && transitionNode) {
+		const rebuilt = preserveNamespacedDuration(reuseTarget.node, transitionNode);
+		if (requiresPrefix) {
+			// Recomputed on the REBUILT node: the duration only takes its
+			// namespaced spelling during the rename above, and the Choice has to
+			// declare that prefix too or the branch is not well-formed.
+			refreshChoiceRequirements(
+				reuseTarget.branch,
+				extensionUsageOf(rebuilt),
+				requiresPrefix,
+				getLocalName,
+			);
+		} else {
+			declareDurationNamespaceIfUsed(slideNode, reuseTarget.node, rebuilt, getLocalName);
+		}
+		reuseTarget.branch[reuseTarget.key] = rebuilt;
 	}
 	pruneEmptyEnvelopes(slideNode, getLocalName);
 
-	if (transitionNode && !keptEnvelope) {
-		slideNode['p:transition'] = transitionNode;
+	if (!transitionNode || keptEnvelope) {
+		return;
+	}
+
+	const rebuilt = preserveNamespacedDuration(sourceNode, transitionNode);
+	if (requiresPrefix) {
+		placeAfterExistingTransitionSlot(
+			slideNode,
+			'mc:AlternateContent',
+			buildTransitionEnvelope(rebuilt, extensionUsageOf(rebuilt), requiresPrefix),
+			getLocalName,
+		);
+		return;
+	}
+	// No extension element: a plain direct child is enough, with the duration as
+	// `p14:dur` plus an `mc:Ignorable` declaration, which PowerPoint honours.
+	declareDurationNamespaceIfUsed(slideNode, sourceNode, rebuilt, getLocalName);
+	placeAfterExistingTransitionSlot(slideNode, 'p:transition', rebuilt, getLocalName);
+}
+
+/**
+ * Store the transition (or its envelope) under `key`, keeping the schema
+ * sequence `cSld, clrMapOvr, transition, timing, extLst`.
+ *
+ * `fast-xml-parser` emits children in key insertion order, so simply assigning
+ * a key the slide did not already have appends it AFTER `p:timing`. Re-adding
+ * the trailing elements restores the order without replacing `slideNode`, whose
+ * identity the caller still holds.
+ */
+function placeAfterExistingTransitionSlot(
+	slideNode: XmlObject,
+	key: string,
+	value: XmlObject,
+	getLocalName: (key: string) => string,
+): void {
+	const alreadyPositioned = key in slideNode;
+	slideNode[key] = value;
+	if (alreadyPositioned) {
+		return;
+	}
+	for (const trailing of ['timing', 'extLst']) {
+		for (const trailingKey of keysWithLocalName(slideNode, trailing, getLocalName)) {
+			const moved = slideNode[trailingKey];
+			delete slideNode[trailingKey];
+			slideNode[trailingKey] = moved;
+		}
 	}
 }

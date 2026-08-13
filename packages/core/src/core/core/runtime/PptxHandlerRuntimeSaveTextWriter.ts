@@ -2,6 +2,7 @@ import { XmlObject } from '../../types';
 import type { PptxElementWithText } from '../../types';
 import { writeBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
 import { applyTextBodyScene3d } from '../../utils/text-body-scene3d';
+import { preserveParagraphScopedState } from './paragraph-scoped-segment-state';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveEffectsWriter';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -150,6 +151,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					el.textStyle,
 				);
 			}
+			// "Uniform" is a RUN-scope judgement (every `a:rPr` would come out
+			// the same), so collapsing the runs is legitimate. The paragraph
+			// scope is not its to discard: `a:pPr` geometry, the outline level,
+			// the bullet and `a:endParaRPr` all ride on the first segment of
+			// each paragraph, and the segmentless path supplies none of them, so
+			// dropping the list flattened every authored `a:pPr` to `<a:pPr/>`.
+			textSegmentsForSave = preserveParagraphScopedState(
+				textSegmentsForSave,
+				textValueForSave,
+				el.textSegments,
+			);
 		}
 
 		txBody['a:bodyPr'] = bodyPr;

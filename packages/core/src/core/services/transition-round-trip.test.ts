@@ -65,7 +65,7 @@ describe('pptxSlideTransitionService round-trip', () => {
 		expect(split['@_dir']).toBe('out');
 	});
 
-	it('should preserve pattern on shred transition via p14 extLst', () => {
+	it('should preserve pattern on shred transition as a p14 direct child', () => {
 		const transition: PptxSlideTransition = {
 			type: 'shred',
 			pattern: 'strip',
@@ -76,9 +76,12 @@ describe('pptxSlideTransitionService round-trip', () => {
 		const xml = service.buildSlideTransitionXml(transition);
 		expect(xml).toBeDefined();
 
-		// shred is a p14 type, should be in extLst
-		const extLst = xml!['p:extLst'] as XmlObject;
-		expect(extLst).toBeDefined();
+		// The extLst form PowerPoint ignores (EntryEffect 0, measured through COM)
+		// is gone: the element is a direct child, and the reconciler envelopes it.
+		expect(xml!['p:extLst']).toBeUndefined();
+		const shred = xml!['p14:shred'] as XmlObject;
+		expect(shred['@_pattern']).toBe('strip');
+		expect(shred['@_dir']).toBe('in');
 	});
 
 	it('should preserve thruBlk on blinds transition', () => {
@@ -209,18 +212,16 @@ describe('pptxSlideTransitionService round-trip', () => {
 	// PowerPoint 2016+ morph transition (p159 extension)
 	// -----------------------------------------------------------------------
 
-	it('emits morph as a p159 extLst entry, never as <p:morph/>', () => {
+	it('emits morph as a p159 direct child carrying its mandatory option', () => {
 		const xml = service.buildSlideTransitionXml({ type: 'morph', durationMs: 1000 });
 		expect(xml).toBeDefined();
-		// PowerPoint silently drops <p:morph/> as a direct child — must be an extLst.
 		expect(xml!['p:morph']).toBeUndefined();
-		const extLst = xml!['p:extLst'] as XmlObject;
-		expect(extLst).toBeDefined();
-		const ext = extLst['p:ext'] as XmlObject;
-		expect(ext).toBeDefined();
-		expect(ext['@_uri']).toBe('{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}');
-		const morphChild = ext['p159:morph'] as XmlObject;
-		expect(morphChild).toBeDefined();
+		// The extLst form reopens in PowerPoint as no transition at all, and a
+		// morph element with no `option` makes the file unopenable: PowerPoint
+		// writes `<p159:morph option="byObject"/>` inside an mc:Choice.
+		expect(xml!['p:extLst']).toBeUndefined();
+		const morphChild = xml!['p159:morph'] as XmlObject;
+		expect(morphChild['@_option']).toBe('byObject');
 		expect(morphChild['@_xmlns:p159']).toBe(
 			'http://schemas.microsoft.com/office/powerpoint/2015/09/main',
 		);
@@ -266,12 +267,14 @@ describe('pptxSlideTransitionService round-trip', () => {
 
 		const rebuilt = service.buildSlideTransitionXml(parsed!);
 		expect(rebuilt!['p:morph']).toBeUndefined();
-		const ext = (rebuilt!['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
-		expect(ext['@_uri']).toBe('{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}');
-		expect(ext['p159:morph']).toBeDefined();
+		expect(rebuilt!['p:extLst']).toBeUndefined();
+		expect(rebuilt!['p159:morph']).toBeDefined();
+		expect(service.parseSlideTransition({ 'p:sld': { 'p:transition': rebuilt! } })!.type).toBe(
+			'morph',
+		);
 	});
 
-	it('preserves non-morph ext entries when rebuilding morph extLst', () => {
+	it('keeps unrelated ext entries while lifting morph out of the extLst', () => {
 		const transition: PptxSlideTransition = {
 			type: 'morph',
 			rawExtLst: {
@@ -279,19 +282,18 @@ describe('pptxSlideTransitionService round-trip', () => {
 					{ '@_uri': '{SOME-OTHER-URI}', 'foo:bar': {} },
 					{
 						'@_uri': '{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}',
-						'p159:morph': {},
+						'p159:morph': { '@_option': 'byWord' },
 					},
 				],
 			},
 		};
 		const xml = service.buildSlideTransitionXml(transition);
-		const extLst = xml!['p:extLst'] as XmlObject;
-		const exts = extLst['p:ext'];
-		expect(Array.isArray(exts)).toBeTruthy();
-		const arr = exts as XmlObject[];
-		expect(arr).toHaveLength(2);
-		expect(arr[0]['p159:morph']).toBeDefined();
-		expect(arr[1]['foo:bar']).toBeDefined();
+		// The morph declaration moves onto the element; the stale ext that also
+		// declared it must go, or the transition would be declared twice.
+		expect((xml!['p159:morph'] as XmlObject)['@_option']).toBe('byWord');
+		const exts = (xml!['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
+		expect(Array.isArray(exts)).toBeFalsy();
+		expect(exts['foo:bar']).toBeDefined();
 	});
 
 	// -----------------------------------------------------------------------
@@ -319,17 +321,38 @@ describe('pptxSlideTransitionService round-trip', () => {
 		},
 	);
 
-	it.each(['cube', 'flip', 'rotate', 'orbit'] as const)(
-		'serializes p14 %s into the standard p14 extLst',
-		(name) => {
-			const xml = service.buildSlideTransitionXml({ type: name, direction: 'r' });
-			expect(xml![`p:${name}`]).toBeUndefined();
-			const ext = (xml!['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
-			expect(ext['@_uri']).toBe('{CE6CE671-F284-4235-B8B7-4F3F06D5A82C}');
-			const child = ext[`p14:${name}`] as XmlObject;
-			expect(child['@_dir']).toBe('r');
-		},
-	);
+	// `flip` has its own p14 element and a MANDATORY left/right `dir`: PowerPoint
+	// refuses to open `<p14:flip/>` at all.
+	it('serializes p14 flip as a direct child with a left/right direction', () => {
+		const xml = service.buildSlideTransitionXml({ type: 'flip', direction: 'r' });
+		expect(xml!['p:flip']).toBeUndefined();
+		expect(xml!['p:extLst']).toBeUndefined();
+		expect((xml!['p14:flip'] as XmlObject)['@_dir']).toBe('r');
+	});
+
+	it('forces a left/right direction on the p14 elements that require one', () => {
+		for (const name of ['conveyor', 'ferris', 'flip', 'gallery', 'switch'] as const) {
+			const xml = service.buildSlideTransitionXml({ type: name });
+			expect((xml![`p14:${name}`] as XmlObject)['@_dir']).toBe('l');
+		}
+	});
+
+	// Cube, Rotate and Orbit have no element of their own: PowerPoint writes all
+	// of them as `p14:prism`, told apart by `isContent` / `isInverted`. Emitting
+	// `<p14:cube/>` left PowerPoint showing no transition.
+	it.each([
+		['cube', undefined, undefined],
+		['rotate', undefined, '1'],
+		['orbit', '1', '1'],
+	] as const)('serializes %s as a p14:prism variant', (name, isContent, isInverted) => {
+		const xml = service.buildSlideTransitionXml({ type: name, direction: 'r' });
+		expect(xml![`p14:${name}`]).toBeUndefined();
+		expect(xml!['p:extLst']).toBeUndefined();
+		const prism = xml!['p14:prism'] as XmlObject;
+		expect(prism['@_dir']).toBe('r');
+		expect(prism['@_isContent']).toBe(isContent);
+		expect(prism['@_isInverted']).toBe(isInverted);
+	});
 
 	// -----------------------------------------------------------------------
 	// cut/fade thruBlk preservation (CT_OptionalBlackTransition)

@@ -124,7 +124,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (shapeIdAnimations !== undefined) {
 			this.applyEditorAnimations(slideNode, shapeIdAnimations);
 		}
-		if (shapeIdAnimations && shapeIdAnimations.length > 0) {
+		// An EMPTY list must still reach the writer: it is how "the user deleted
+		// the last effect" gets to `p:timing`. Gating on a non-empty list left the
+		// removed effect in the file forever, still playing in PowerPoint.
+		if (shapeIdAnimations !== undefined) {
 			// When rawTiming exists, surgical update preserves complex structures
 			const generatedTiming = this.animationWriteService.buildTimingXml(
 				shapeIdAnimations,

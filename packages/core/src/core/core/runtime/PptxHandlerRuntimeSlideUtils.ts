@@ -1,6 +1,7 @@
 import { XmlObject, TextSegment, PptxElement } from '../../types';
 import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
+import { selectNotesBodyShapes } from './notes-body-shapes';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeBackgroundParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -129,10 +130,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async setActiveMasterForSlide(slidePath: string): Promise<void> {
 		const layoutPath = this.findLayoutPathForSlide(slidePath);
 		if (!layoutPath) {
-			this.currentMasterClrMap = null;
-			this.themeColorMap = { ...this.globalThemeColorMapSnapshot };
-			this.themeFontMap = { ...this.globalThemeFontMapSnapshot };
-			this.themeFormatScheme = this.globalThemeFormatSchemeSnapshot;
+			this.applyMasterThemeState(undefined);
 			return;
 		}
 		// Ensure the layout's `.rels` are loaded so we can resolve the master.
@@ -144,7 +142,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				/* fall through — fallback below */
 			}
 		}
-		const masterPath = this.findMasterPathForLayoutBase(layoutPath);
+		this.applyMasterThemeState(this.findMasterPathForLayoutBase(layoutPath));
+	}
+
+	/**
+	 * Point colour/font/format resolution at one master's theme, or back at
+	 * the deck-wide snapshot when `masterPath` is undefined.
+	 *
+	 * Split out of {@link setActiveMasterForSlide} because the Slide Master
+	 * view parses each master's own shape tree outside any slide, and its
+	 * scheme colours must resolve through that master rather than through
+	 * whichever slide happened to be parsed last.
+	 */
+	protected applyMasterThemeState(masterPath: string | undefined): void {
 		if (!masterPath) {
 			this.currentMasterClrMap = null;
 			this.themeColorMap = { ...this.globalThemeColorMapSnapshot };
@@ -315,12 +325,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const shapes = this.ensureArray(spTree['p:sp']) as XmlObject[];
+		// Speaker notes are the BODY placeholder's text and nothing else. The
+		// slide-number / date / header / footer fields share the notes page and
+		// used to be merged in here, so a slide with no notes loaded as its own
+		// slide number and the save side wrote that back into the body.
+		const bodyShapes = new Set(selectNotesBodyShapes(shapes));
 		const notesChunks: string[] = [];
 		const allSegments: TextSegment[] = [];
 		const parsedShapes: PptxElement[] = [];
 		shapes.forEach((shape, shapeIndex) => {
 			const txBody = shape?.['p:txBody'] as XmlObject | undefined;
-			const text = this.extractTextFromTxBody(txBody);
+			const text = bodyShapes.has(shape) ? this.extractTextFromTxBody(txBody) : '';
 			if (text.length > 0) {
 				notesChunks.push(text);
 				const segs = this.extractTextSegmentsFromTxBodyForRewrite(txBody, undefined);

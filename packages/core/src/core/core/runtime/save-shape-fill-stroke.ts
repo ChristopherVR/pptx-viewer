@@ -3,6 +3,7 @@ import { serializeColorChoice } from '../../utils/color-xml-preservation';
 import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
 import { setFillChoice } from './fill-choice-group';
+import { fillMatchesInheritedGroupFill } from './save-group-fill';
 import { writeLineFill } from './save-line-fill';
 
 /**
@@ -22,6 +23,15 @@ export interface ShapeFillStrokeContext {
 	readonly lineEffectListXml?: XmlObject;
 	/** EMU per CSS pixel (9525). */
 	readonly emuPerPx: number;
+	/**
+	 * The fill this shape inherits from its enclosing group, when it is a group
+	 * child (see {@link groupChildInheritedFill}). Supplied so a shape authored
+	 * as `<a:grpFill/>`, whose fill the LOAD pass already resolved to a concrete
+	 * one, can be written back as `<a:grpFill/>` instead of the resolved paint.
+	 * `undefined` for a top-level shape, or for a group child with nothing to
+	 * inherit.
+	 */
+	readonly inheritedGroupFill?: ShapeStyle;
 	/** Resolve a preserved colour-choice node to a hex string. */
 	parseColor(colorNode: XmlObject | undefined): string | undefined;
 }
@@ -93,6 +103,22 @@ export function writeShapeFill(
 		// the slide background the load pipeline resolved onto it. Writing them
 		// out would bake today's background into the shape and cut its link to
 		// the slide, so leave `spPr`'s fill alone and let the attribute stand.
+		return;
+	}
+
+	if (
+		spPr['a:grpFill'] !== undefined &&
+		fillMatchesInheritedGroupFill(shapeStyle, ctx.inheritedGroupFill)
+	) {
+		// The shape was AUTHORED as `<a:grpFill/>` and still paints with exactly
+		// the fill its group handed down: the load pass resolved the link into a
+		// concrete `fillMode`, and writing that back would sever it, so the child
+		// stops following the group when the group is recoloured in PowerPoint.
+		// Re-assert the marker instead (an explicit edit changes at least one
+		// compared field and falls through to the concrete branches below).
+		// `CT_GroupFillProperties` (§20.1.8.35) is empty, so nothing is lost by
+		// rewriting the node rather than carrying the parsed value through.
+		setFillChoice(spPr, 'a:grpFill', {});
 		return;
 	}
 

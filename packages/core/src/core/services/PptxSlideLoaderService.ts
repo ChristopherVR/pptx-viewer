@@ -208,8 +208,18 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				params.enrichOleElementsWithEmbeddedData(slideElements, path),
 			]);
 
-			// Merge layout elements (behind) with slide elements (on top)
-			const elements = [...layoutElements, ...slideElements];
+			// Merge layout elements (behind) with slide elements (on top),
+			// unless the slide opted out. `p:sld/@showMasterSp="0"` is
+			// PowerPoint's Design > Format Background > "Hide background
+			// graphics": the slide keeps its own content and its inherited
+			// placeholders, but the decorative shapes drawn on the layout and
+			// master are not displayed (ECMA-376 §19.3.1.38). The layout-level
+			// equivalent is honoured inside `getLayoutElements`; the parse
+			// itself still runs, because it is what seeds the placeholder
+			// defaults the slide's own shapes inherit from.
+			const showMasterShapes = params.extractShowMasterShapes(slideXmlObj);
+			const elements =
+				showMasterShapes === false ? [...slideElements] : [...layoutElements, ...slideElements];
 			const ownBackgroundColor = params.extractBackgroundColor(slideXmlObj);
 			const ownBackgroundGradient = params.extractBackgroundGradient(slideXmlObj);
 			const [
@@ -245,7 +255,6 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const backgroundPattern = params.extractBackgroundPattern(slideXmlObj);
 			const backgroundShadeToTitle = params.extractBackgroundShadeToTitle(slideXmlObj);
 			const backgroundShowAnimation = params.extractBackgroundShowAnimation(slideXmlObj);
-			const showMasterShapes = params.extractShowMasterShapes(slideXmlObj);
 			const transition = params.parseSlideTransition(slideXmlObj, path);
 			const animations = params.parseEditorAnimations(slideXmlObj);
 			const nativeAnimations = params.parseNativeAnimations(slideXmlObj);

@@ -208,7 +208,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Also check inside groups (one level deep)
+		// Also check inside groups, at every level: the walk recurses (bounded by
+		// MAX_TIMING_DEPTH above), so media inside a group inside a group is
+		// enriched too.
 		for (const el of elements) {
 			if (el.type === 'group' && el.children) {
 				await this.enrichMediaElementsWithTiming(el.children, timingMap, depth + 1);

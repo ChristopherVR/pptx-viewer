@@ -87,6 +87,130 @@ export function buildBuildListXml(animations: PptxElementAnimation[]): XmlObject
 }
 
 /**
+ * Wrap effect nodes in the click-group `p:par` PowerPoint puts between the
+ * main sequence and its effects: a `p:cTn` gated by a lone
+ * `<p:cond delay="indefinite"/>`, which is what makes the group wait for a
+ * click.
+ */
+export function buildClickGroupNode(effectNodes: XmlObject[], allocateId: () => number): XmlObject {
+	return {
+		'p:cTn': {
+			'@_id': String(allocateId()),
+			'@_fill': 'hold',
+			'p:stCondLst': {
+				'p:cond': {
+					'@_delay': 'indefinite',
+				},
+			},
+			'p:childTnLst': {
+				'p:par': effectNodes.length === 1 ? effectNodes[0] : effectNodes,
+			},
+		},
+	} as XmlObject;
+}
+
+/**
+ * Build the `p:seq nodeType="interactiveSeq"` container PowerPoint uses for
+ * effects triggered by clicking a specific shape.
+ */
+export function wrapInInteractiveSequence(
+	effectNodes: XmlObject[],
+	triggerShapeId: string,
+	allocateId: () => number,
+): XmlObject {
+	const seqId = allocateId();
+	const groupId = allocateId();
+
+	const wrappedPar: XmlObject = {
+		'p:cTn': {
+			'@_id': String(groupId),
+			'@_fill': 'hold',
+			'p:stCondLst': {
+				'p:cond': {
+					'@_delay': '0',
+				},
+			},
+			'p:childTnLst': {
+				'p:par': effectNodes.length === 1 ? effectNodes[0] : effectNodes,
+			},
+		},
+	};
+
+	return {
+		'p:cTn': {
+			'@_id': String(seqId),
+			'@_dur': 'indefinite',
+			'@_nodeType': 'interactiveSeq',
+			'p:stCondLst': {
+				'p:cond': {
+					'@_evt': 'onClick',
+					'@_delay': '0',
+					'p:tgtEl': {
+						'p:spTgt': {
+							'@_spid': triggerShapeId,
+						},
+					},
+				},
+			},
+			'p:childTnLst': {
+				'p:par': wrappedPar,
+			},
+		},
+		'p:nextCondLst': {
+			'p:cond': {
+				'@_evt': 'onClick',
+				'@_delay': '0',
+				'p:tgtEl': {
+					'p:spTgt': {
+						'@_spid': triggerShapeId,
+					},
+				},
+			},
+		},
+	} as XmlObject;
+}
+
+/**
+ * Build the `p:seq nodeType="mainSeq"` container that holds a slide's
+ * click-driven animation sequence.
+ */
+export function buildMainSequenceNode(mainSeqId: number, children: XmlObject[]): XmlObject {
+	const node: XmlObject = {
+		'p:cTn': {
+			'@_id': String(mainSeqId),
+			'@_dur': 'indefinite',
+			'@_nodeType': 'mainSeq',
+			...(children.length > 0
+				? {
+						'p:childTnLst': {
+							'p:par': children.length === 1 ? children[0] : children,
+						},
+					}
+				: {}),
+		},
+		'p:prevCondLst': {
+			'p:cond': {
+				'@_evt': 'onPrev',
+				'@_delay': '0',
+				'p:tgtEl': {
+					'p:sldTgt': {},
+				},
+			},
+		},
+		'p:nextCondLst': {
+			'p:cond': {
+				'@_evt': 'onNext',
+				'@_delay': '0',
+				'p:tgtEl': {
+					'p:sldTgt': {},
+				},
+			},
+		},
+	};
+	return node;
+}
+
+/**
  * Build interactive sequence `p:seq` nodes for animations triggered by
  * clicking a specific shape. Groups animations by their `triggerShapeId`.
  */
@@ -116,59 +240,7 @@ export function buildInteractiveSequences(
 		if (effectNodes.length === 0) {
 			continue;
 		}
-
-		const seqId = allocateId();
-		const groupId = allocateId();
-
-		const wrappedPar: XmlObject = {
-			'p:cTn': {
-				'@_id': String(groupId),
-				'@_fill': 'hold',
-				'p:stCondLst': {
-					'p:cond': {
-						'@_delay': '0',
-					},
-				},
-				'p:childTnLst': {
-					'p:par': effectNodes.length === 1 ? effectNodes[0] : effectNodes,
-				},
-			},
-		};
-
-		const seqNode: XmlObject = {
-			'p:cTn': {
-				'@_id': String(seqId),
-				'@_dur': 'indefinite',
-				'@_nodeType': 'interactiveSeq',
-				'p:stCondLst': {
-					'p:cond': {
-						'@_evt': 'onClick',
-						'@_delay': '0',
-						'p:tgtEl': {
-							'p:spTgt': {
-								'@_spid': triggerShapeId,
-							},
-						},
-					},
-				},
-				'p:childTnLst': {
-					'p:par': wrappedPar,
-				},
-			},
-			'p:nextCondLst': {
-				'p:cond': {
-					'@_evt': 'onClick',
-					'@_delay': '0',
-					'p:tgtEl': {
-						'p:spTgt': {
-							'@_spid': triggerShapeId,
-						},
-					},
-				},
-			},
-		};
-
-		seqNodes.push(seqNode);
+		seqNodes.push(wrapInInteractiveSequence(effectNodes, triggerShapeId, allocateId));
 	}
 
 	return seqNodes;

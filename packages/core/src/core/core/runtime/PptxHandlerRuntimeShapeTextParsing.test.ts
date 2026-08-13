@@ -1,195 +1,231 @@
-import { describe, it, expect } from 'vitest';
+/**
+ * Tests for the REAL `extractParagraphOwnProperties` on `PptxHandlerRuntime`,
+ * plus the exported `a:pPr` parsers it delegates to.
+ *
+ * This file used to reimplement each parser as a local copy and assert on the
+ * copy, which proved nothing about the shipped code and hid the gap below: the
+ * production extractor never read `defTabSz`, `eaLnBrk`, `latinLnBrk`,
+ * `fontAlgn` or `hangingPunct`, so a paragraph whose values differed from the
+ * shape-level style (`resolveShapeParagraphStyle` keeps only the first
+ * paragraph's) lost them at LOAD and no save-side preservation could recover
+ * them. Measured on `e2e/fixtures/issue-132-hr-deck.pptx` slide 20, a no-edit
+ * round-trip dropped 10 instances each of `eaLnBrk`, `fontAlgn` and
+ * `hangingPunct`; all 30 now survive.
+ */
+import { describe, expect, it } from 'vitest';
 
-import type { TextStyle } from '../../types';
-
-// Since resolveShapeParagraphStyle is a protected method on a deeply chained
-// mixin with many dependencies, we extract and test the self-contained
-// paragraph property parsing logic that it uses.
+import type { TextStyle, XmlObject } from '../../types';
+import {
+	parseAlignmentAttr,
+	parseParagraphExtraAttributes,
+	parseParagraphLevel,
+	parseParagraphMargins,
+	parseParagraphRtl,
+	parseTabStops,
+} from '../../utils/paragraph-properties-parser';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 const EMU_PER_PX = 9525;
 
-// --- Extracted: alignment map lookup ---
-function resolveAlignmentFromAttr(algn: string | undefined): TextStyle['align'] | undefined {
-	if (!algn) {
-		return undefined;
+class ParagraphPropertiesRuntime extends PptxHandlerRuntime {
+	public extractOwnProperties(p: XmlObject, basisFontSize?: number): TextStyle | undefined {
+		return this.extractParagraphOwnProperties(p, basisFontSize);
 	}
-	const alignMap: Record<string, TextStyle['align']> = {
-		l: 'left',
-		ctr: 'center',
-		r: 'right',
-		just: 'justify',
-		justify: 'justify',
-		justLow: 'justLow',
-		dist: 'dist',
-		thaiDist: 'thaiDist',
-	};
-	return alignMap[algn] || 'left';
 }
 
-// --- Extracted: paragraph margin parsing ---
-function parseParagraphMarginLeft(marL: string | undefined): number | undefined {
-	if (marL === undefined) {
-		return undefined;
-	}
-	const val = Number.parseInt(String(marL), 10);
-	if (Number.isFinite(val)) {
-		return val / EMU_PER_PX;
-	}
-	return undefined;
-}
+const runtime = new ParagraphPropertiesRuntime();
 
-function parseParagraphIndent(indent: string | undefined): number | undefined {
-	if (indent === undefined) {
-		return undefined;
-	}
-	const val = Number.parseInt(String(indent), 10);
-	if (Number.isFinite(val)) {
-		return val / EMU_PER_PX;
-	}
-	return undefined;
-}
+/** The `a:pPr` PowerPoint wrote on `issue-132-hr-deck.pptx` slide 20. */
+const HR_DECK_SLIDE_20_PPR: XmlObject = {
+	'@_eaLnBrk': '1',
+	'@_fontAlgn': 'auto',
+	'@_hangingPunct': '1',
+};
 
-// --- Extracted: tab stop parsing ---
-function parseTabStops(
-	tabLst: Record<string, unknown> | undefined,
-): Array<{ position: number; align: string; leader?: string }> | undefined {
-	if (!tabLst) {
-		return undefined;
-	}
-	const tabNodes = ensureArray(tabLst['a:tab']) as Record<string, unknown>[];
-	if (tabNodes.length === 0) {
-		return undefined;
-	}
+// ---------------------------------------------------------------------------
+// extractParagraphOwnProperties
+// ---------------------------------------------------------------------------
+describe('extractParagraphOwnProperties', () => {
+	it('captures the East-Asian line-breaking and justification attributes', () => {
+		const result = runtime.extractOwnProperties({ 'a:pPr': HR_DECK_SLIDE_20_PPR });
 
-	return tabNodes
-		.filter((t) => t?.['@_pos'] !== undefined)
-		.map((t) => {
-			const posRaw = Number.parseInt(String(t['@_pos']), 10);
-			const position = Number.isFinite(posRaw) ? posRaw / EMU_PER_PX : 0;
-			const algn = String(t['@_algn'] || 'l').trim();
-			const align = algn === 'ctr' || algn === 'r' || algn === 'dec' ? algn : ('l' as const);
-			const leaderVal = String(t['@_leader'] || '').trim();
-			const leader =
-				leaderVal === 'dot' || leaderVal === 'hyphen' || leaderVal === 'underscore'
-					? leaderVal
-					: undefined;
-			return { position, align, ...(leader ? { leader } : {}) };
+		expect(result).toBeDefined();
+		expect(result!.eaLineBreak).toBeTruthy();
+		expect(result!.fontAlignment).toBe('auto');
+		expect(result!.hangingPunctuation).toBeTruthy();
+	});
+
+	it('captures latinLnBrk and defTabSz', () => {
+		const result = runtime.extractOwnProperties({
+			'a:pPr': { '@_latinLnBrk': '0', '@_defTabSz': '914400' },
 		});
-}
 
-function ensureArray(val: unknown): unknown[] {
-	if (val === undefined || val === null) {
-		return [];
-	}
-	return Array.isArray(val) ? val : [val];
-}
-
-// --- Extracted: additional paragraph properties parsing ---
-function parseDefaultTabSize(defTabSz: string | undefined): number | undefined {
-	if (defTabSz === undefined) {
-		return undefined;
-	}
-	const val = Number.parseInt(String(defTabSz), 10);
-	if (Number.isFinite(val)) {
-		return val / EMU_PER_PX;
-	}
-	return undefined;
-}
-
-// --- Extracted: paragraph level key computation ---
-function computeLevelKey(lvl: string | undefined): string {
-	const level = Number.parseInt(String(lvl || '0'), 10);
-	const clampedLevel = Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1;
-	return `a:lvl${clampedLevel}pPr`;
-}
-
-// ---------------------------------------------------------------------------
-// resolveAlignmentFromAttr
-// ---------------------------------------------------------------------------
-describe('resolveAlignmentFromAttr', () => {
-	it('should return undefined for undefined input', () => {
-		expect(resolveAlignmentFromAttr(undefined)).toBeUndefined();
+		expect(result!.latinLineBreak).toBeFalsy();
+		expect(result!.defaultTabSize).toBeCloseTo(914400 / EMU_PER_PX, 5);
 	});
 
-	it('should resolve "l" to "left"', () => {
-		expect(resolveAlignmentFromAttr('l')).toBe('left');
+	it('distinguishes an explicit "0" from an omitted attribute', () => {
+		const explicit = runtime.extractOwnProperties({
+			'a:pPr': { '@_eaLnBrk': '0', '@_hangingPunct': '0' },
+		});
+		expect(explicit!.eaLineBreak).toBeFalsy();
+		expect(explicit!.hangingPunctuation).toBeFalsy();
+		expect(explicit).toHaveProperty('eaLineBreak');
+		expect(explicit).toHaveProperty('hangingPunctuation');
+
+		const omitted = runtime.extractOwnProperties({ 'a:pPr': { '@_algn': 'ctr' } });
+		expect(omitted).not.toHaveProperty('eaLineBreak');
+		expect(omitted).not.toHaveProperty('hangingPunctuation');
 	});
 
-	it('should resolve "ctr" to "center"', () => {
-		expect(resolveAlignmentFromAttr('ctr')).toBe('center');
+	it('still captures margins, indent, alignment and rtl', () => {
+		const result = runtime.extractOwnProperties({
+			'a:pPr': {
+				'@_marL': '457200',
+				'@_marR': '228600',
+				'@_indent': '-228600',
+				'@_algn': 'ctr',
+				'@_rtl': '1',
+			},
+		});
+
+		expect(result!.paragraphMarginLeft).toBeCloseTo(457200 / EMU_PER_PX, 5);
+		expect(result!.paragraphMarginRight).toBeCloseTo(228600 / EMU_PER_PX, 5);
+		expect(result!.paragraphIndent).toBeCloseTo(-228600 / EMU_PER_PX, 5);
+		expect(result!.align).toBe('center');
+		expect(result!.rtl).toBeTruthy();
 	});
 
-	it('should resolve "r" to "right"', () => {
-		expect(resolveAlignmentFromAttr('r')).toBe('right');
+	it('still captures spacing, line spacing and tab stops', () => {
+		const result = runtime.extractOwnProperties({
+			'a:pPr': {
+				'a:lnSpc': { 'a:spcPct': { '@_val': '150000' } },
+				'a:spcBef': { 'a:spcPts': { '@_val': '600' } },
+				'a:spcAft': { 'a:spcPts': { '@_val': '300' } },
+				'a:tabLst': { 'a:tab': { '@_pos': '914400', '@_algn': 'ctr' } },
+			},
+		});
+
+		expect(result!.lineSpacing).toBeCloseTo(1.5, 5);
+		expect(result!.paragraphSpacingBefore).toBeGreaterThan(0);
+		expect(result!.paragraphSpacingAfter).toBeGreaterThan(0);
+		expect(result!.tabStops).toHaveLength(1);
+		expect(result!.tabStops![0].align).toBe('ctr');
 	});
 
-	it('should resolve "just" to "justify"', () => {
-		expect(resolveAlignmentFromAttr('just')).toBe('justify');
+	it('re-emits a:defRPr and a:extLst verbatim', () => {
+		const defRPr = { '@_sz': '1200' };
+		const extLst = { 'a:ext': { '@_uri': '{ABC}' } };
+		const result = runtime.extractOwnProperties({
+			'a:pPr': { 'a:defRPr': defRPr, 'a:extLst': extLst },
+		});
+
+		expect(result!.paragraphDefaultRunPropertiesXml).toBe(defRPr);
+		expect(result!.paragraphPropertiesExtLstXml).toBe(extLst);
 	});
 
-	it('should resolve "justify" to "justify"', () => {
-		expect(resolveAlignmentFromAttr('justify')).toBe('justify');
+	it('returns undefined for a paragraph with no or an empty a:pPr', () => {
+		expect(runtime.extractOwnProperties({})).toBeUndefined();
+		expect(runtime.extractOwnProperties({ 'a:pPr': {} })).toBeUndefined();
 	});
 
-	it('should resolve "justLow" to "justLow"', () => {
-		expect(resolveAlignmentFromAttr('justLow')).toBe('justLow');
-	});
-
-	it('should resolve "dist" to "dist"', () => {
-		expect(resolveAlignmentFromAttr('dist')).toBe('dist');
-	});
-
-	it('should resolve "thaiDist" to "thaiDist"', () => {
-		expect(resolveAlignmentFromAttr('thaiDist')).toBe('thaiDist');
-	});
-
-	it('should default to "left" for unknown values', () => {
-		expect(resolveAlignmentFromAttr('unknown')).toBe('left');
-	});
-});
-
-// ---------------------------------------------------------------------------
-// parseParagraphMarginLeft
-// ---------------------------------------------------------------------------
-describe('parseParagraphMarginLeft', () => {
-	it('should return undefined for undefined input', () => {
-		expect(parseParagraphMarginLeft(undefined)).toBeUndefined();
-	});
-
-	it('should parse EMU value to pixels', () => {
-		const result = parseParagraphMarginLeft('457200');
-		expect(result).toBeCloseTo(457200 / EMU_PER_PX, 2);
-	});
-
-	it('should parse zero margin', () => {
-		expect(parseParagraphMarginLeft('0')).toBe(0);
-	});
-
-	it('should return undefined for non-numeric value', () => {
-		expect(parseParagraphMarginLeft('abc')).toBeUndefined();
+	it('leaves lvl to TextSegment.paragraphLevel rather than duplicating it', () => {
+		const result = runtime.extractOwnProperties({ 'a:pPr': { '@_lvl': '2', '@_algn': 'r' } });
+		expect(result).not.toHaveProperty('paragraphLevel');
+		expect(parseParagraphLevel({ '@_lvl': '2' })).toBe(2);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// parseParagraphIndent
+// parseParagraphExtraAttributes (the shared parser the extractor delegates to)
 // ---------------------------------------------------------------------------
-describe('parseParagraphIndent', () => {
-	it('should return undefined for undefined input', () => {
-		expect(parseParagraphIndent(undefined)).toBeUndefined();
+describe('parseParagraphExtraAttributes', () => {
+	it('returns an empty object for an absent node', () => {
+		expect(parseParagraphExtraAttributes(undefined)).toStrictEqual({});
 	});
 
-	it('should parse positive indent (EMU to pixels)', () => {
-		const result = parseParagraphIndent('228600');
-		expect(result).toBeCloseTo(228600 / EMU_PER_PX, 2);
+	it('parses every attribute it owns', () => {
+		expect(
+			parseParagraphExtraAttributes({
+				'@_defTabSz': '914400',
+				'@_eaLnBrk': '1',
+				'@_latinLnBrk': '0',
+				'@_fontAlgn': 'base',
+				'@_hangingPunct': '1',
+			}),
+		).toStrictEqual({
+			defaultTabSize: 914400 / EMU_PER_PX,
+			eaLineBreak: true,
+			latinLineBreak: false,
+			fontAlignment: 'base',
+			hangingPunctuation: true,
+		});
 	});
 
-	it('should parse negative indent (hanging indent)', () => {
-		const result = parseParagraphIndent('-228600');
-		expect(result).toBeCloseTo(-228600 / EMU_PER_PX, 2);
+	it('ignores a non-numeric defTabSz and a blank fontAlgn', () => {
+		expect(
+			parseParagraphExtraAttributes({ '@_defTabSz': 'abc', '@_fontAlgn': '  ' }),
+		).toStrictEqual({});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseAlignmentAttr
+// ---------------------------------------------------------------------------
+describe('parseAlignmentAttr', () => {
+	it('returns undefined for an absent value', () => {
+		expect(parseAlignmentAttr(undefined)).toBeUndefined();
 	});
 
-	it('should parse zero indent', () => {
-		expect(parseParagraphIndent('0')).toBe(0);
+	it.each([
+		['l', 'left'],
+		['ctr', 'center'],
+		['r', 'right'],
+		['just', 'justify'],
+		['justify', 'justify'],
+		['justLow', 'justLow'],
+		['dist', 'dist'],
+		['thaiDist', 'thaiDist'],
+	])('maps %s to %s', (token, expected) => {
+		expect(parseAlignmentAttr(token)).toBe(expected);
+	});
+
+	it('returns undefined for an unknown token', () => {
+		expect(parseAlignmentAttr('unknown')).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseParagraphMargins / parseParagraphRtl
+// ---------------------------------------------------------------------------
+describe('parseParagraphMargins', () => {
+	it('returns an empty object for an absent node', () => {
+		expect(parseParagraphMargins(undefined)).toStrictEqual({});
+	});
+
+	it('converts EMU to pixels, including a negative hanging indent', () => {
+		expect(parseParagraphMargins({ '@_marL': '457200', '@_indent': '-228600' })).toStrictEqual({
+			paragraphMarginLeft: 457200 / EMU_PER_PX,
+			paragraphIndent: -228600 / EMU_PER_PX,
+		});
+	});
+
+	it('keeps a zero margin rather than treating it as absent', () => {
+		expect(parseParagraphMargins({ '@_marL': '0' })).toStrictEqual({ paragraphMarginLeft: 0 });
+	});
+
+	it('skips a non-numeric value', () => {
+		expect(parseParagraphMargins({ '@_marR': 'abc' })).toStrictEqual({});
+	});
+});
+
+describe('parseParagraphRtl', () => {
+	it('parses the flag in both directions and reports absence', () => {
+		expect(parseParagraphRtl({ '@_rtl': '1' })).toBeTruthy();
+		expect(parseParagraphRtl({ '@_rtl': '0' })).toBeFalsy();
+		expect(parseParagraphRtl({ '@_rtl': '0' })).toBeDefined();
+		expect(parseParagraphRtl({})).toBeUndefined();
+		expect(parseParagraphRtl(undefined)).toBeUndefined();
 	});
 });
 
@@ -197,140 +233,68 @@ describe('parseParagraphIndent', () => {
 // parseTabStops
 // ---------------------------------------------------------------------------
 describe('parseTabStops', () => {
-	it('should return undefined for undefined input', () => {
+	it('returns undefined when there is no tab list', () => {
 		expect(parseTabStops(undefined)).toBeUndefined();
-	});
-
-	it('should return undefined when a:tab is missing', () => {
 		expect(parseTabStops({})).toBeUndefined();
+		expect(parseTabStops({ 'a:tabLst': {} })).toBeUndefined();
 	});
 
-	it('should parse a single tab stop', () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'l' },
-		});
+	it('parses a single tab stop', () => {
+		const result = parseTabStops({ 'a:tabLst': { 'a:tab': { '@_pos': '914400', '@_algn': 'l' } } });
 		expect(result).toHaveLength(1);
-		expect(result![0].position).toBeCloseTo(914400 / EMU_PER_PX, 2);
+		expect(result![0].position).toBeCloseTo(914400 / EMU_PER_PX, 5);
 		expect(result![0].align).toBe('l');
 	});
 
-	it('should parse multiple tab stops', () => {
+	it('parses several tab stops with their alignments', () => {
 		const result = parseTabStops({
-			'a:tab': [
-				{ '@_pos': '914400', '@_algn': 'l' },
-				{ '@_pos': '1828800', '@_algn': 'ctr' },
-				{ '@_pos': '2743200', '@_algn': 'r' },
-			],
+			'a:tabLst': {
+				'a:tab': [
+					{ '@_pos': '914400', '@_algn': 'l' },
+					{ '@_pos': '1828800', '@_algn': 'ctr' },
+					{ '@_pos': '2743200', '@_algn': 'r' },
+					{ '@_pos': '3657600', '@_algn': 'dec' },
+				],
+			},
 		});
-		expect(result).toHaveLength(3);
-		expect(result![1].align).toBe('ctr');
-		expect(result![2].align).toBe('r');
+		expect(result!.map((t) => t.align)).toStrictEqual(['l', 'ctr', 'r', 'dec']);
 	});
 
-	it("should default align to 'l' for unknown alignment", () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'unknown' },
-		});
-		expect(result![0].align).toBe('l');
+	it("defaults an unknown or missing alignment to 'l'", () => {
+		expect(
+			parseTabStops({ 'a:tabLst': { 'a:tab': { '@_pos': '1', '@_algn': 'x' } } })![0].align,
+		).toBe('l');
+		expect(parseTabStops({ 'a:tabLst': { 'a:tab': { '@_pos': '1' } } })![0].align).toBe('l');
 	});
 
-	it("should default align to 'l' when missing", () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400' },
-		});
-		expect(result![0].align).toBe('l');
+	it.each(['dot', 'hyphen', 'underscore'])('keeps the %s leader', (leader) => {
+		const result = parseTabStops({ 'a:tabLst': { 'a:tab': { '@_pos': '1', '@_leader': leader } } });
+		expect(result![0].leader).toBe(leader);
 	});
 
-	it('should parse dot leader', () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'r', '@_leader': 'dot' },
-		});
-		expect(result![0].leader).toBe('dot');
-	});
-
-	it('should parse hyphen leader', () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'l', '@_leader': 'hyphen' },
-		});
-		expect(result![0].leader).toBe('hyphen');
-	});
-
-	it('should parse underscore leader', () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'l', '@_leader': 'underscore' },
-		});
-		expect(result![0].leader).toBe('underscore');
-	});
-
-	it('should ignore unknown leader values', () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'l', '@_leader': 'none' },
-		});
-		expect(result![0]).not.toHaveProperty('leader');
-	});
-
-	it('should filter out tab stops without position', () => {
-		const result = parseTabStops({
-			'a:tab': [{ '@_algn': 'l' }, { '@_pos': '914400', '@_algn': 'l' }],
-		});
-		expect(result).toHaveLength(1);
-	});
-
-	it('should handle decimal alignment', () => {
-		const result = parseTabStops({
-			'a:tab': { '@_pos': '914400', '@_algn': 'dec' },
-		});
-		expect(result![0].align).toBe('dec');
+	it('drops an unknown leader and a tab stop with no position', () => {
+		expect(
+			parseTabStops({ 'a:tabLst': { 'a:tab': { '@_pos': '1', '@_leader': 'none' } } })![0],
+		).not.toHaveProperty('leader');
+		expect(
+			parseTabStops({ 'a:tabLst': { 'a:tab': [{ '@_algn': 'l' }, { '@_pos': '914400' }] } }),
+		).toHaveLength(1);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// parseDefaultTabSize
+// parseParagraphLevel
 // ---------------------------------------------------------------------------
-describe('parseDefaultTabSize', () => {
-	it('should return undefined for undefined input', () => {
-		expect(parseDefaultTabSize(undefined)).toBeUndefined();
+describe('parseParagraphLevel', () => {
+	it('defaults an absent or omitted lvl to 0', () => {
+		expect(parseParagraphLevel(undefined)).toBe(0);
+		expect(parseParagraphLevel({})).toBe(0);
 	});
 
-	it('should parse EMU value to pixels', () => {
-		const result = parseDefaultTabSize('914400');
-		expect(result).toBeCloseTo(914400 / EMU_PER_PX, 2);
-	});
-
-	it('should return undefined for non-numeric value', () => {
-		expect(parseDefaultTabSize('abc')).toBeUndefined();
-	});
-});
-
-// ---------------------------------------------------------------------------
-// computeLevelKey
-// ---------------------------------------------------------------------------
-describe('computeLevelKey', () => {
-	it('should default to level 1 for undefined input', () => {
-		expect(computeLevelKey(undefined)).toBe('a:lvl1pPr');
-	});
-
-	it("should default to level 1 for '0'", () => {
-		expect(computeLevelKey('0')).toBe('a:lvl1pPr');
-	});
-
-	it("should compute level 2 for '1'", () => {
-		expect(computeLevelKey('1')).toBe('a:lvl2pPr');
-	});
-
-	it("should compute level 9 for '8'", () => {
-		expect(computeLevelKey('8')).toBe('a:lvl9pPr');
-	});
-
-	it('should clamp to level 9 for values above 8', () => {
-		expect(computeLevelKey('20')).toBe('a:lvl9pPr');
-	});
-
-	it('should clamp to level 1 for negative values', () => {
-		expect(computeLevelKey('-5')).toBe('a:lvl1pPr');
-	});
-
-	it('should default to level 1 for non-numeric input', () => {
-		expect(computeLevelKey('abc')).toBe('a:lvl1pPr');
+	it('reads a declared level and clamps out-of-range values to 0..8', () => {
+		expect(parseParagraphLevel({ '@_lvl': '3' })).toBe(3);
+		expect(parseParagraphLevel({ '@_lvl': '20' })).toBe(8);
+		expect(parseParagraphLevel({ '@_lvl': '-5' })).toBe(0);
+		expect(parseParagraphLevel({ '@_lvl': 'abc' })).toBe(0);
 	});
 });

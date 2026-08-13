@@ -318,6 +318,20 @@ describe('createEditorId', () => {
 		expect(Number.isFinite(timestamp)).toBeTruthy();
 		expect(timestamp).toBeGreaterThan(0);
 	});
+
+	// Ids minted inside one tick share the timestamp, so the random suffix is the
+	// only thing separating them. The four-digit suffix this used to carry
+	// produced ~46 duplicates per 1000 ids, and pasting or ungrouping a group
+	// mints one id per descendant in a single tick. A duplicate element id
+	// becomes a duplicate `p:cNvPr/@id` on save, which makes an animation's
+	// `p:spTgt/@spid` name two shapes at once.
+	it('stays unique across a burst minted in the same millisecond', () => {
+		const ids = new Set<string>();
+		for (let index = 0; index < 5000; index++) {
+			ids.add(createEditorId('el'));
+		}
+		expect(ids.size).toBe(5000);
+	});
 });
 
 // ---------------------------------------------------------------------------

@@ -1,8 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { describe, it, expect } from 'vitest';
 
+import { requireFixture } from '../../../__tests__/require-fixture';
 import { PptxHandler } from '../../PptxHandler';
 import type { TextSegment, XmlObject } from '../../types';
 import {
@@ -692,69 +693,65 @@ describe('collectShapeParagraphContent - empty paragraph metadata (real runtime)
 });
 
 describe('endParaRPr survives a real-deck load (anatidae-animation.pptx)', () => {
-	const fixture = fileURLToPath(
-		new URL('../../../../../../e2e/fixtures/anatidae-animation.pptx', import.meta.url),
+	const fixture = requireFixture(
+		fileURLToPath(
+			new URL('../../../../../../e2e/fixtures/anatidae-animation.pptx', import.meta.url),
+		),
 	);
 
-	it.skipIf(!existsSync(fixture))(
-		'carries the authored end properties of an empty-paragraph shape into the model',
-		async () => {
-			const bytes = readFileSync(fixture);
-			const handler = new PptxHandler();
-			const data = await handler.load(
-				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
-			);
+	it('carries the authored end properties of an empty-paragraph shape into the model', async () => {
+		const bytes = readFileSync(fixture);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
 
-			const captured = data.slides[0].elements
-				.flatMap((el) => (el as { textSegments?: TextSegment[] }).textSegments ?? [])
-				.map((segment) => segment.endParaRunProperties)
-				.filter((props): props is Record<string, unknown> => props !== undefined);
+		const captured = data.slides[0].elements
+			.flatMap((el) => (el as { textSegments?: TextSegment[] }).textSegments ?? [])
+			.map((segment) => segment.endParaRunProperties)
+			.filter((props): props is Record<string, unknown> => props !== undefined);
 
-			// Slide 1's decorative rectangles are single empty paragraphs whose
-			// endParaRPr carries the full run formatting.
-			const rich = captured.find((props) => props['@_kern'] !== undefined);
-			expect(rich).toBeDefined();
-			expect(rich?.['@_sz']).toBe('1800');
-			expect(rich?.['@_cap']).toBe('none');
-			expect(rich?.['a:uLnTx']).toBeDefined();
-			expect(rich?.['a:uFillTx']).toBeDefined();
-		},
-	);
+		// Slide 1's decorative rectangles are single empty paragraphs whose
+		// endParaRPr carries the full run formatting.
+		const rich = captured.find((props) => props['@_kern'] !== undefined);
+		expect(rich).toBeDefined();
+		expect(rich?.['@_sz']).toBe('1800');
+		expect(rich?.['@_cap']).toBe('none');
+		expect(rich?.['a:uLnTx']).toBeDefined();
+		expect(rich?.['a:uFillTx']).toBeDefined();
+	});
 
-	it.skipIf(!existsSync(fixture))(
-		'round-trips those end properties through a load -> save -> reload',
-		async () => {
-			const bytes = readFileSync(fixture);
-			const handler = new PptxHandler();
-			const data = await handler.load(
-				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
-			);
-			const saved = await handler.save(data.slides);
+	it('round-trips those end properties through a load -> save -> reload', async () => {
+		const bytes = readFileSync(fixture);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		const saved = await handler.save(data.slides);
 
-			const reloaded = await new PptxHandler().load(
-				saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
-			);
-			const captured = reloaded.slides[0].elements
-				.flatMap((el) => (el as { textSegments?: TextSegment[] }).textSegments ?? [])
-				.map((segment) => segment.endParaRunProperties)
-				.filter((props): props is Record<string, unknown> => props !== undefined);
+		const reloaded = await new PptxHandler().load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		const captured = reloaded.slides[0].elements
+			.flatMap((el) => (el as { textSegments?: TextSegment[] }).textSegments ?? [])
+			.map((segment) => segment.endParaRunProperties)
+			.filter((props): props is Record<string, unknown> => props !== undefined);
 
-			const rich = captured.find((props) => props['@_kern'] !== undefined);
-			// Every one of these came back as `<a:endParaRPr lang="en-US"/>`.
-			expect(rich).toBeDefined();
-			expect(rich?.['@_sz']).toBe('1800');
-			expect(rich?.['@_b']).toBe('0');
-			expect(rich?.['@_u']).toBe('none');
-			expect(rich?.['@_cap']).toBe('none');
-			// Children survive too, not just attributes.
-			expect(rich?.['a:uLnTx']).toBeDefined();
-			expect(rich?.['a:uFillTx']).toBeDefined();
-			expect(rich?.['a:ln']).toStrictEqual({ 'a:noFill': '' });
-			expect(rich?.['a:solidFill']).toStrictEqual({ 'a:prstClr': { '@_val': 'white' } });
-			expect(rich?.['a:latin']).toStrictEqual({
-				'@_typeface': 'Calibri',
-				'@_panose': '020F0502020204030204',
-			});
-		},
-	);
+		const rich = captured.find((props) => props['@_kern'] !== undefined);
+		// Every one of these came back as `<a:endParaRPr lang="en-US"/>`.
+		expect(rich).toBeDefined();
+		expect(rich?.['@_sz']).toBe('1800');
+		expect(rich?.['@_b']).toBe('0');
+		expect(rich?.['@_u']).toBe('none');
+		expect(rich?.['@_cap']).toBe('none');
+		// Children survive too, not just attributes.
+		expect(rich?.['a:uLnTx']).toBeDefined();
+		expect(rich?.['a:uFillTx']).toBeDefined();
+		expect(rich?.['a:ln']).toStrictEqual({ 'a:noFill': '' });
+		expect(rich?.['a:solidFill']).toStrictEqual({ 'a:prstClr': { '@_val': 'white' } });
+		expect(rich?.['a:latin']).toStrictEqual({
+			'@_typeface': 'Calibri',
+			'@_panose': '020F0502020204030204',
+		});
+	});
 });

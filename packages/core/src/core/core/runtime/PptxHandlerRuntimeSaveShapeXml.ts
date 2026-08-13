@@ -14,6 +14,7 @@ import {
 	createGroupChildCollectors,
 	pickGroupChildFromCollectors,
 } from './save-group-child-collectors';
+import { groupChildInheritedFill } from './save-group-fill';
 import type { GroupChildEntry } from './save-group-shape-xml';
 import {
 	appendGroupChildren,
@@ -511,10 +512,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			grpXml['p:extLst'] = rawExtLst;
 		}
 
+		// What an `<a:grpFill/>` child of THIS group inherits: the group's own
+		// fill when it has one, otherwise whatever the group itself inherited.
+		// Chaining here is what lets the fill writer tell "still following the
+		// group" from "recoloured by the user" at any nesting depth.
+		const childCtx: GroupChildSaveContext | undefined = ctx
+			? { ...ctx, inheritedGroupFill: groupChildInheritedFill(group, ctx.inheritedGroupFill) }
+			: undefined;
+
 		const entries: GroupChildEntry[] = [];
 		for (const child of group.children) {
-			const entry = ctx
-				? this.serializeGroupChildViaElementWriter(child, ctx)
+			const entry = childCtx
+				? this.serializeGroupChildViaElementWriter(child, childCtx)
 				: this.serializeGroupChildFromRawXml(child);
 			if (entry) {
 				entries.push(entry);

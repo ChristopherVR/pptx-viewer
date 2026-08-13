@@ -5,7 +5,18 @@ export {
 	cloneSlide,
 	cloneTemplateElementsBySlideId,
 	cloneXmlObject,
+	deepCloneData,
 } from './clone-utils';
+export {
+	groupElements,
+	ungroupElements,
+	isTemplateElementId,
+	makeStoreAwareId,
+	reassignDescendantIds,
+	type GroupResult,
+	type UngroupOptions,
+	type UngroupResult,
+} from './group-ops';
 export {
 	applyCustomShows,
 	applySections,

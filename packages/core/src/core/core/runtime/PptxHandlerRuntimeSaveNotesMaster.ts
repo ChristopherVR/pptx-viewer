@@ -81,7 +81,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 
 			data['p:notesMaster'] = root;
-			this.zip.file(notesMaster.path, this.builder.build(data));
+			// Re-serializing a parsed part emits its shape tree one bucket per
+			// tag, and document order is paint order. Put it back first.
+			const ordered = await this.withTemplateSpTreeOrder(
+				notesMaster.path,
+				data,
+				'p:notesMaster',
+				xml,
+			);
+			this.zip.file(notesMaster.path, this.builder.build(ordered));
 		} catch (e) {
 			console.warn('Failed to save notes master structural changes:', e);
 		}

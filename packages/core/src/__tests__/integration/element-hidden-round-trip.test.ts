@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
 import { PptxHandler } from '../../core/PptxHandler';
+import { requireFixture } from '../require-fixture';
 
 /**
  * Integration: the Selection Pane's hide toggle must survive a save/reload.
@@ -15,15 +16,16 @@ import { PptxHandler } from '../../core/PptxHandler';
  * viewer and in PowerPoint, which reads the same attribute.
  */
 describe('selection-pane hidden flag round-trip', () => {
-	const fixturePath = path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx');
-	const hasFixture = fs.existsSync(fixturePath);
+	const fixturePath = requireFixture(
+		path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx'),
+	);
 
 	function readFixture(): ArrayBuffer {
 		const bytes = fs.readFileSync(fixturePath);
 		return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 	}
 
-	it.skipIf(!hasFixture)('writes @hidden on save and reads it back on load', async () => {
+	it('writes @hidden on save and reads it back on load', async () => {
 		const handler = new PptxHandler();
 		const data = await handler.load(readFixture());
 
@@ -59,7 +61,7 @@ describe('selection-pane hidden flag round-trip', () => {
 		expect(resavedXml).not.toContain('hidden="1"');
 	});
 
-	it.skipIf(!hasFixture)('leaves visible shapes untouched', async () => {
+	it('leaves visible shapes untouched', async () => {
 		const handler = new PptxHandler();
 		const data = await handler.load(readFixture());
 		const saved = await handler.save(data.slides);

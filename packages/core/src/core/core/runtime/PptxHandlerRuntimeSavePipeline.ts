@@ -142,13 +142,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// §19.3.1.40.)
 		this.applySlideMasterChanges(options?.slideMasters);
 		this.applySlideLayoutChanges(options?.slideLayouts);
+		// Slide Master view shape-tree edits. Rewrites only the parts whose
+		// element list differs from the one parsed at load, so an untouched
+		// master keeps its verbatim passthrough below.
+		await this.applySlideMasterElementChanges(
+			options?.slideMasters,
+			options?.slideLayouts,
+			saveSession,
+			saveConstants,
+		);
 
-		// Persist template/master updates
+		// Persist template/master updates. `withTemplateSpTreeOrder` puts the
+		// shape tree back into document order (= paint order) on a clone; both
+		// the passthrough and the rebuilt-from-elements route reach the ZIP
+		// tag-bucketed otherwise.
 		for (const [layoutPath, layoutXmlObj] of this.layoutXmlMap.entries()) {
-			this.zip.file(layoutPath, this.builder.build(layoutXmlObj));
+			const ordered = await this.withTemplateSpTreeOrder(layoutPath, layoutXmlObj, 'p:sldLayout');
+			this.zip.file(layoutPath, this.builder.build(ordered));
 		}
 		for (const [masterPath, masterXmlObj] of this.masterXmlMap.entries()) {
-			this.zip.file(masterPath, this.builder.build(masterXmlObj));
+			const ordered = await this.withTemplateSpTreeOrder(masterPath, masterXmlObj, 'p:sldMaster');
+			this.zip.file(masterPath, this.builder.build(ordered));
 		}
 
 		// Theme parts. Re-emit dirty themes from in-memory state; clean themes

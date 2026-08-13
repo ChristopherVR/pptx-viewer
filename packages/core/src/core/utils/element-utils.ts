@@ -173,11 +173,19 @@ export function createUniformTextSegments(
  * Generate a unique editor element ID using a prefix, timestamp, and
  * random suffix. The format is `"{prefix}-{timestamp}-{random}"`.
  *
+ * The suffix is base-36 (~2 billion values), not a four-digit number. Ids
+ * minted in the same millisecond share the timestamp, so the suffix is the only
+ * thing separating them, and a four-digit one is not enough: minting 1000 ids
+ * in a loop produced ~46 duplicates. That matters because element ids are
+ * written back out as `p:cNvPr/@id`, and a duplicate makes an animation's
+ * `p:spTgt/@spid` name two shapes at once. Pasting or ungrouping a group mints
+ * one id per descendant in a single tick, which is exactly the burst case.
+ *
  * @param prefix - A human-readable prefix (e.g. `"shape"`, `"text"`).
  * @returns A unique ID string.
  */
 export function createEditorId(prefix: string): string {
-	return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+	return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 // ---------------------------------------------------------------------------

@@ -11,20 +11,14 @@ import type { PptxSlideTransition, XmlObject } from '../types';
 import {
 	parseP14DirectChild,
 	parseP14FromExtLst,
-	buildP14ExtLst,
 	P14_TRANSITION_TYPES,
 } from './p14-transition-parser';
 import {
 	parseP15DirectChild,
 	parseP15FromExtLst,
-	buildP15ExtLst,
 	P15_TRANSITION_PRESETS,
 } from './p15-transition-parser';
-import {
-	buildMorphExtLst,
-	hasDirectMorphChild,
-	parseMorphFromExtLst,
-} from './p159-morph-transition';
+import { hasDirectMorphChild, parseMorphFromExtLst } from './p159-morph-transition';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 import {
 	findTransitionInAlternateContent,
@@ -41,6 +35,13 @@ import {
 	parseTransitionDetails,
 	parseTransitionSound,
 } from './slide-transition-xml';
+import type { ExtensionChildContext } from './transition-extension-child';
+import {
+	buildMorphDirectChild,
+	buildP14DirectChild,
+	buildP15DirectChild,
+	retainNonTransitionExtensions,
+} from './transition-extension-child';
 
 /**
  * Configuration options for creating a {@link PptxSlideTransitionService}.
@@ -208,42 +209,44 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			: undefined;
 		pruneDirectExtensionChildren(node, this.getXmlLocalName, p14ChildKey ?? p15ChildKey);
 
+		// An extension transition goes out as the DIRECT child PowerPoint reads;
+		// `slide-transition-reconcile` then wraps the whole element in the
+		// `mc:Choice Requires="..."` envelope that makes the child legal. The
+		// `p:extLst` form written here previously was silently ignored by
+		// PowerPoint, so every extended transition saved as no transition at all.
+		const extensionContext: ExtensionChildContext = {
+			rawExtLst: transition.rawExtLst,
+			xmlLookupService: this.xmlLookupService,
+			getXmlLocalName: this.getXmlLocalName,
+		};
+		const isExtensionType = isP14Type || isP15Type || isMorphType;
+
 		if (isP14Type) {
-			// p14 transitions are stored in the extLst unless a matching direct
-			// mc:Choice-form child was preserved above.
 			if (!p14ChildKey) {
-				node['p:extLst'] = buildP14ExtLst(
+				const child = buildP14DirectChild(
 					transitionType,
-					transition.direction,
-					transition.orient,
-					transition.pattern,
-					transition.rawExtLst,
-					this.xmlLookupService,
-					this.getXmlLocalName,
+					{
+						direction: transition.direction,
+						orient: transition.orient,
+						pattern: transition.pattern,
+						spokes: transition.spokes,
+					},
+					extensionContext,
 				);
+				node[child.key] = child.node;
 			}
 		} else if (isP15Type) {
-			// PowerPoint 2013+/365 preset transitions live in a `p15:prstTrans`
-			// extension or, in the mc:Choice form, as a direct child preserved
-			// above. Emitting a standard child (or the historical `<p:cut/>`
-			// fallback) corrupts the file. Preserve the real extLst bytes when
-			// present; otherwise fabricate a minimal `p15:prstTrans` extension.
 			if (!p15ChildKey) {
-				node['p:extLst'] = transition.rawExtLst ?? buildP15ExtLst(transitionType);
+				const child = buildP15DirectChild(transitionType, extensionContext);
+				node[child.key] = child.node;
 			}
 		} else if (isMorphType) {
-			// PowerPoint 2016+ writes `morph` either as a p159 extension or, when
-			// the transition already sits inside an `mc:Choice Requires="p159"`
-			// envelope, as a direct `<p159:morph/>` child. `createPreservedTransitionNode`
-			// keeps that direct child verbatim (with its `option` attribute), so
-			// re-adding the extension form here would emit the transition twice.
+			// `createPreservedTransitionNode` keeps an existing direct
+			// `<p159:morph/>` verbatim (with its `option`), so only fabricate one
+			// when the deck did not already have it.
 			if (!hasDirectMorphChild(node, this.getXmlLocalName)) {
-				node['p:extLst'] = buildMorphExtLst(
-					transition.rawExtLst,
-					transition.morphOption,
-					this.xmlLookupService,
-					this.getXmlLocalName,
-				);
+				const child = buildMorphDirectChild(transition.morphOption, extensionContext);
+				node[child.key] = child.node;
 			}
 		} else {
 			node[`p:${transitionType}`] = buildStandardTransitionChild(transition);
@@ -257,12 +260,21 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 		if (soundAction) {
 			node['p:sndAc'] = soundAction;
 		}
-		// Only write rawExtLst when we did not already build our own extLst.
-		// p14, p15 and morph types build (or preserve) their own extLst.
-		if (transition.rawExtLst && !isP14Type && !isP15Type && !isMorphType) {
-			node['p:extLst'] = transition.rawExtLst;
+		// Extensions the deck carried survive, minus any that declared a
+		// transition: that declaration now lives on the element itself, and a
+		// leftover copy would contradict it (a stale preset, in the worst case).
+		const preservedExtensions = isExtensionType
+			? retainNonTransitionExtensions(extensionContext, isTransitionElementName)
+			: transition.rawExtLst;
+		if (preservedExtensions) {
+			node['p:extLst'] = preservedExtensions;
 		}
 
 		return node;
 	}
+}
+
+/** Element local names that declare a transition inside a `p:ext`. */
+function isTransitionElementName(localName: string): boolean {
+	return P14_TRANSITION_TYPES.has(localName) || localName === 'prstTrans' || localName === 'morph';
 }

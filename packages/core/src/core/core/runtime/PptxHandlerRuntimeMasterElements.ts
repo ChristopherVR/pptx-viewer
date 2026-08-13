@@ -344,10 +344,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (!group) {
 						continue;
 					}
+					// Pass the part's raw XML, or the group parser falls back to
+					// tag-grouped child order and restacks the group. See
+					// `group-child-order.ts`.
 					const element = await this.parseGroupShapeAsGroup(
 						group,
 						`master-group-${masterToken}-${entry.indexInType}`,
 						masterPath,
+						masterXmlStr,
 					);
 					if (element) {
 						element.id = `master-${element.id}`;

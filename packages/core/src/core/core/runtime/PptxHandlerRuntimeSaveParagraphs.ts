@@ -7,6 +7,7 @@ import {
 } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveRunProperties';
+import { toRunScopedTextStyle } from './run-scoped-text-style';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private isRenderedBulletMarker(segment: TextSegment): boolean {
@@ -30,11 +31,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		textSegments: TextSegment[] | undefined,
 		resolveHyperlinkRelationshipId?: (target: string) => string | undefined,
 	): XmlObject[] {
+		// `a:pPr` wants the element style whole; every `a:rPr` must not inherit
+		// its paragraph-only members. See `toRunScopedTextStyle`.
+		const runScopedTextStyle = toRunScopedTextStyle(textStyle);
 		// #69: Each paragraph's own pPr geometry (align / spacing / margins /
 		// indent / tabs / rtl), carried on the first segment as
 		// `paragraphProperties`, overrides the shape-level style for that
 		// paragraph. Paragraphs without their own properties fall back to the
 		// shape-level style, preserving prior behaviour for SDK-built text.
+		// `paragraphProperties` also travels to the builder as the authored set,
+		// so the shape-level half of the merge is not written back as explicit
+		// per-paragraph values (see `buildParagraphPropertiesXml`).
 		const createParagraph = (
 			runs: XmlObject[],
 			bulletInfo?: BulletInfo,
@@ -58,6 +65,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				bulletInfo,
 				spacing,
 				level,
+				paragraphProperties,
 			);
 			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties);
 		};
@@ -152,7 +160,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let capturedParagraphMeta = false;
 		const pushParagraph = (): void => {
 			if (currentRuns.length === 0) {
-				currentRuns.push(createRun('', textStyle));
+				currentRuns.push(createRun('', runScopedTextStyle));
 			}
 			paragraphs.push(
 				createParagraph(
@@ -172,11 +180,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 
 		if (textSegments && textSegments.length > 0) {
-			const uniformSegmentOverrides = computeUniformSegmentOverrides(textStyle, textSegments);
+			// This pushes element-level edits back down onto previously uniform
+			// runs, so it is a run destination too: passing the WHOLE element style
+			// re-added the paragraph `rtl` the spread below had already dropped.
+			const uniformSegmentOverrides = computeUniformSegmentOverrides(
+				runScopedTextStyle,
+				textSegments,
+			);
 
 			textSegments.forEach((segment) => {
 				const segmentStyle = {
-					...textStyle,
+					...runScopedTextStyle,
 					...segment.style,
 					...uniformSegmentOverrides,
 				} as TextStyle;
@@ -286,11 +300,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const normalizedText = typeof text === 'string' ? text : '';
 		const textLines = normalizedText.split('\n');
 		textLines.forEach((line) => {
-			paragraphs.push(createParagraph([createRun(line, textStyle)]));
+			paragraphs.push(createParagraph([createRun(line, runScopedTextStyle)]));
 		});
 
 		if (paragraphs.length === 0) {
-			paragraphs.push(createParagraph([createRun('', textStyle)]));
+			paragraphs.push(createParagraph([createRun('', runScopedTextStyle)]));
 		}
 
 		return paragraphs;

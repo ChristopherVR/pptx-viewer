@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxThemeFormatScheme } from '../../types';
+import { parseOverrideClrMapping } from './color-scheme-index';
 import {
 	PptxHandlerRuntime as PptxHandlerRuntimeBase,
 	extractFillStyleListChildOrder,
@@ -54,6 +55,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Extract a colour map override from a `p:clrMapOvr` node.
 	 * Returns `null` when the node is absent, empty, or specifies
 	 * `a:masterClrMapping` (meaning "inherit from master").
+	 *
+	 * Each attribute value is an `ST_ColorSchemeIndex` token and is normalised
+	 * TO that enumeration rather than case-folded: the parsed map is written
+	 * straight back out by `buildClrMapOverrideXml`, and the enumeration is
+	 * case sensitive, so lowercasing `folHlink` (its only camel-cased member)
+	 * used to make PowerPoint refuse the whole saved package with 0x80070570.
+	 * A value outside the enumeration is dropped and reported, never written
+	 * through; the writer then supplies the standard default for that alias.
 	 */
 	protected parseClrMapOverrideNode(
 		clrMapOvr: XmlObject | undefined,
@@ -62,7 +71,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return null;
 		}
 
-		// <a:masterClrMapping/> means "use the master's map" — no override.
+		// <a:masterClrMapping/> means "use the master's map": no override.
 		if (clrMapOvr['a:masterClrMapping'] !== undefined) {
 			return null;
 		}
@@ -72,32 +81,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return null;
 		}
 
-		const aliasKeys = [
-			'bg1',
-			'tx1',
-			'bg2',
-			'tx2',
-			'accent1',
-			'accent2',
-			'accent3',
-			'accent4',
-			'accent5',
-			'accent6',
-			'hlink',
-			'folHlink',
-		];
-
-		const overrideMap: Record<string, string> = {};
-		for (const key of aliasKeys) {
-			const mapped = String(overrideNode[`@_${key}`] || '')
-				.trim()
-				.toLowerCase();
-			if (mapped) {
-				overrideMap[key] = mapped;
-			}
-		}
-
-		return Object.keys(overrideMap).length > 0 ? overrideMap : null;
+		return parseOverrideClrMapping(overrideNode, (alias, rawValue) => {
+			console.warn(
+				`Ignoring a:overrideClrMapping/@${alias}="${rawValue}": not an ST_ColorSchemeIndex token.`,
+			);
+		});
 	}
 
 	/**

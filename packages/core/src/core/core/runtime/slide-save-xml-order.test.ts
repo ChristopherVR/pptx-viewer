@@ -8,12 +8,13 @@
  * `sp x43, grpSp, pic, pic`, so the group and both pictures jumped to the front
  * of the z-order and every shape authored above them fell behind.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
+import { requireFixture } from '../../../__tests__/require-fixture';
 import { PptxHandler } from '../../PptxHandler';
 import type { XmlObject } from '../../types';
 import {
@@ -198,38 +199,34 @@ describe('buildOrderedSlideXml', () => {
 	});
 });
 
-const fixture = fileURLToPath(
-	new URL('../../../../../../e2e/fixtures/issue-132-hr-deck.pptx', import.meta.url),
+const fixture = requireFixture(
+	fileURLToPath(new URL('../../../../../../e2e/fixtures/issue-132-hr-deck.pptx', import.meta.url)),
 );
 
 describe('p:spTree z-order round-trip', () => {
-	it.skipIf(!existsSync(fixture))(
-		'preserves interleaved child order on a no-edit save',
-		async () => {
-			const bytes = readFileSync(fixture);
-			const source = bytes.buffer.slice(
-				bytes.byteOffset,
-				bytes.byteOffset + bytes.byteLength,
-			) as ArrayBuffer;
-			const handler = new PptxHandler();
-			const data = await handler.load(source);
-			const saved = await handler.save(data.slides);
+	it('preserves interleaved child order on a no-edit save', async () => {
+		const bytes = readFileSync(fixture);
+		const source = bytes.buffer.slice(
+			bytes.byteOffset,
+			bytes.byteOffset + bytes.byteLength,
+		) as ArrayBuffer;
+		const handler = new PptxHandler();
+		const data = await handler.load(source);
+		const saved = await handler.save(data.slides);
 
-			const before = await JSZip.loadAsync(source);
-			const after = await JSZip.loadAsync(saved);
+		const before = await JSZip.loadAsync(source);
+		const after = await JSZip.loadAsync(saved);
 
-			const originalXml = (await before.file('ppt/slides/slide1.xml')!.async('string')) as string;
-			const savedXml = (await after.file('ppt/slides/slide1.xml')!.async('string')) as string;
-			const originalTags = shapeTreeChildTags(originalXml);
+		const originalXml = (await before.file('ppt/slides/slide1.xml')!.async('string')) as string;
+		const savedXml = (await after.file('ppt/slides/slide1.xml')!.async('string')) as string;
+		const originalTags = shapeTreeChildTags(originalXml);
 
-			// Guard the fixture itself: the bug is only observable on a slide whose
-			// children are genuinely interleaved.
-			expect(new Set(originalTags).size).toBeGreaterThan(1);
-			expect(originalTags.indexOf('p:sp')).toBeLessThan(originalTags.lastIndexOf('p:grpSp'));
-			expect(originalTags.lastIndexOf('p:grpSp')).toBeLessThan(originalTags.lastIndexOf('p:sp'));
+		// Guard the fixture itself: the bug is only observable on a slide whose
+		// children are genuinely interleaved.
+		expect(new Set(originalTags).size).toBeGreaterThan(1);
+		expect(originalTags.indexOf('p:sp')).toBeLessThan(originalTags.lastIndexOf('p:grpSp'));
+		expect(originalTags.lastIndexOf('p:grpSp')).toBeLessThan(originalTags.lastIndexOf('p:sp'));
 
-			expect(shapeTreeChildTags(savedXml)).toStrictEqual(originalTags);
-		},
-		60_000,
-	);
+		expect(shapeTreeChildTags(savedXml)).toStrictEqual(originalTags);
+	}, 60_000);
 });

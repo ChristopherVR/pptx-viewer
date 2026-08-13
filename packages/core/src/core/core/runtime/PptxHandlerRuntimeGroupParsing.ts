@@ -1,44 +1,28 @@
 import { XmlObject, PptxElement, hasShapeProperties } from '../../types';
 import type { GroupPptxElement } from '../../types';
+import { findGroupXmlOffset } from './group-child-order';
+import type { GroupTransform } from './group-shape-geometry';
+import {
+	MAX_GROUP_DEPTH,
+	parseEmuInt,
+	readGroupTransform,
+	transformGroupChild,
+} from './group-shape-geometry';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSpTreeParsing';
 
-/**
- * Maximum nesting depth for `p:grpSp` recursion (Load H1).
- *
- * PowerPoint itself does not document a hard limit, but legitimate decks
- * almost never nest more than a handful of levels (typical max < 10). A
- * depth of 64 is well above any plausible authoring use while still
- * preventing stack-overflow DoS from a maliciously deep group tree
- * (`<p:grpSp><p:grpSp>...</p:grpSp></p:grpSp>` chain).
- */
-const MAX_GROUP_DEPTH = 64;
-
-/** EMU values are int32 per ECMA-376 §22.1.2.4. Clamp parsed values to this range. */
-const INT32_MIN = -2_147_483_648;
-const INT32_MAX = 2_147_483_647;
-
-/**
- * Parse a string as a base-10 integer with a finite-number guard and an
- * int32 clamp. Used for attacker-controlled EMU values from XML attributes.
- * Returns 0 for malformed/non-finite inputs (matching previous fallback
- * behaviour from `parseInt(... || '0')` while rejecting `'1e308'` and
- * similar finite-overflow values).
- */
-function parseEmuInt(value: unknown): number {
-	const parsed = parseInt(String(value ?? ''), 10);
-	if (!Number.isFinite(parsed)) {
-		return 0;
-	}
-	if (parsed < INT32_MIN) {
-		return INT32_MIN;
-	}
-	if (parsed > INT32_MAX) {
-		return INT32_MAX;
-	}
-	return parsed;
-}
+/** The resolved fill a group hands down to children whose fill is `a:grpFill`. */
+type GroupFillStyle = NonNullable<GroupPptxElement['groupFill']>;
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Parse the children of a `<p:grpSp>` into the group's own pixel space.
+	 *
+	 * A nested `<p:grpSp>` becomes a nested {@link GroupPptxElement}, NOT a
+	 * flattened run of its descendants. Flattening kept the content but
+	 * destroyed the wrapper: its `p:cNvPr/@name`, its `p:grpSpPr` fill and
+	 * locks, its animation identity and the user-visible grouping all vanished
+	 * from the saved file, silently degrading a two-level group into one.
+	 */
 	protected async parseGroupShape(
 		group: XmlObject,
 		baseId: string,
@@ -61,108 +45,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const grpSpPr = group['p:grpSpPr'] as XmlObject | undefined;
-		const xfrm = grpSpPr?.['a:xfrm'] as XmlObject | undefined;
-
-		// Keep the group transform in UNROUNDED pixels. A themed background
-		// often uses a compact child coordinate space (e.g. `chExt` of a few
-		// thousand EMU for a full-slide group); rounding `chExt`/child offsets
-		// to whole pixels early collapses them to 0, which both zeroes the
-		// child geometry and makes the scale fall back to 1. Float math keeps
-		// the ratio (`parentExt / chExt`) accurate no matter the units.
-		const EMU_PX = PptxHandlerRuntime.EMU_PER_PX;
-		let parentX = 0,
-			parentY = 0,
-			parentW = 0,
-			parentH = 0;
-		let chX = 0,
-			chY = 0,
-			chW = 0,
-			chH = 0;
-
-		if (xfrm) {
-			const off = xfrm['a:off'] as XmlObject | undefined;
-			if (off) {
-				parentX = parseEmuInt(off['@_x']) / EMU_PX;
-				parentY = parseEmuInt(off['@_y']) / EMU_PX;
-			}
-			const ext = xfrm['a:ext'] as XmlObject | undefined;
-			if (ext) {
-				parentW = parseEmuInt(ext['@_cx']) / EMU_PX;
-				parentH = parseEmuInt(ext['@_cy']) / EMU_PX;
-			}
-			const chOff = xfrm['a:chOff'] as XmlObject | undefined;
-			if (chOff) {
-				chX = parseEmuInt(chOff['@_x']) / EMU_PX;
-				chY = parseEmuInt(chOff['@_y']) / EMU_PX;
-			}
-			const chExt = xfrm['a:chExt'] as XmlObject | undefined;
-			if (chExt) {
-				chW = parseEmuInt(chExt['@_cx']) / EMU_PX;
-				chH = parseEmuInt(chExt['@_cy']) / EMU_PX;
-			}
-		}
-
-		const scaleX = chW > 0 ? parentW / chW : 1;
-		const scaleY = chH > 0 ? parentH / chH : 1;
-
-		// A child shape's own `a:xfrm` is expressed in the group's child
-		// coordinate space, not EMU. `parseShape` converts it as if it were
-		// EMU (dividing by EMU_PER_PX and rounding), so compact child units
-		// round to 0. Recover the child's true position/size by re-reading its
-		// raw `a:off`/`a:ext` here (unrounded) before the group scale is
-		// applied, so the transform below produces the correct pixels.
-		const rawChildXfrm = (childNode: XmlObject | undefined): XmlObject | undefined => {
-			if (!childNode) {
-				return undefined;
-			}
-			const childXfrm =
-				((childNode['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] as XmlObject | undefined) ??
-				(childNode['p:xfrm'] as XmlObject | undefined);
-			return childXfrm;
-		};
-		const applyRawChildGeometry = (el: PptxElement, childNode: XmlObject | undefined): void => {
-			const childXfrm = rawChildXfrm(childNode);
-			if (!childXfrm) {
-				return;
-			}
-			const off = childXfrm['a:off'] as XmlObject | undefined;
-			const ext = childXfrm['a:ext'] as XmlObject | undefined;
-			if (off) {
-				el.x = parseEmuInt(off['@_x']) / EMU_PX;
-				el.y = parseEmuInt(off['@_y']) / EMU_PX;
-			}
-			if (ext) {
-				el.width = parseEmuInt(ext['@_cx']) / EMU_PX;
-				el.height = parseEmuInt(ext['@_cy']) / EMU_PX;
-			}
-		};
-
-		const transformElement = (el: PptxElement) => {
-			const relativeX = el.x - chX;
-			const relativeY = el.y - chY;
-			el.x = parentX + relativeX * scaleX;
-			el.y = parentY + relativeY * scaleY;
-			el.width *= scaleX;
-			el.height *= scaleY;
-
-			const avgScale = (Math.abs(scaleX) + Math.abs(scaleY)) / 2;
-			if (hasShapeProperties(el) && el.shapeStyle?.strokeWidth) {
-				el.shapeStyle.strokeWidth *= avgScale;
-			}
-			// Text is deliberately NOT scaled. Resizing a group in PowerPoint
-			// rewrites `a:ext` while leaving `a:chExt`, which scales the child
-			// GEOMETRY only: every run keeps the point size it was authored at,
-			// which is why text in a shrunken group overflows its box in
-			// PowerPoint too. Scaling `fontSize` here made grouped text render
-			// visibly smaller than PowerPoint draws it (issue #131 slide 3,
-			// where a 0.79 group scale turned 12pt into ~9.5pt).
-			return el;
-		};
+		const transform = readGroupTransform(grpSpPr?.['a:xfrm'], PptxHandlerRuntime.EMU_PER_PX);
 
 		this.unwrapAlternateContent(group as Record<string, unknown>);
 
 		const childOrder = this.extractSpTreeChildOrder(
-			undefined,
+			this.groupXmlSlice(group, rawXmlStr),
 			group as Record<string, unknown>,
 			'p:grpSp',
 		);
@@ -170,20 +58,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		for (const entry of childOrder) {
 			if (entry.tag === 'p:grpSp') {
-				const subArr = this.ensureArray(group['p:grpSp']);
-				const subGroup = subArr[entry.indexInType];
+				const subGroup = this.ensureArray(group['p:grpSp'])[entry.indexInType] as
+					| XmlObject
+					| undefined;
 				if (!subGroup) {
 					continue;
 				}
-				const subElements = await this.parseGroupShape(
+				const nested = await this.parseGroupShapeAsGroup(
 					subGroup,
 					`${baseId}-group-${entry.indexInType}`,
 					slidePath,
 					rawXmlStr,
 					depth + 1,
 				);
-				subElements.forEach((el) => transformElement(el));
-				elements.push(...subElements);
+				if (nested) {
+					transformGroupChild(nested, transform);
+					elements.push(nested);
+				}
 			} else {
 				const element = await this.parseSpTreeChild(
 					entry.tag,
@@ -196,8 +87,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const childNode = this.ensureArray(group[entry.tag])[entry.indexInType] as
 						| XmlObject
 						| undefined;
-					applyRawChildGeometry(element, childNode);
-					transformElement(element);
+					this.applyRawChildGeometry(element, childNode);
+					transformGroupChild(element, transform);
 					elements.push(element);
 				}
 			}
@@ -207,78 +98,154 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * The slide's raw XML, re-based so it STARTS at this group's `<p:grpSp>`.
+	 *
+	 * `extractSpTreeChildOrder` recovers true document order by scanning from
+	 * the first occurrence of the container tag, which only works when the
+	 * container is unique in the string. A slide has many `p:grpSp`, so the
+	 * string is sliced to this one first. Without it the scan is skipped and
+	 * children come back tag-grouped (all `p:sp`, then all `p:pic`, ...),
+	 * which restacks the group: see {@link findGroupXmlOffset}.
+	 *
+	 * @returns The slice, or `undefined` to let the caller fall back.
+	 */
+	private groupXmlSlice(group: XmlObject, rawXmlStr: string | undefined): string | undefined {
+		if (!rawXmlStr) {
+			return undefined;
+		}
+		const cNvPr = (group['p:nvGrpSpPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+			| XmlObject
+			| undefined;
+		const id = cNvPr?.['@_id'];
+		if (id === undefined || id === null) {
+			return undefined;
+		}
+		const offset = findGroupXmlOffset(rawXmlStr, String(id));
+		return offset === undefined ? undefined : rawXmlStr.slice(offset);
+	}
+
+	/**
+	 * A child shape's own `a:xfrm` is expressed in the group's child coordinate
+	 * space, not EMU. `parseShape` converts it as if it were EMU (dividing by
+	 * EMU_PER_PX and rounding), so compact child units round to 0. Recover the
+	 * child's true position/size by re-reading its raw `a:off`/`a:ext` here
+	 * (unrounded) before the group scale is applied.
+	 *
+	 * A nested `p:grpSp` needs no such repair: it is read unrounded by
+	 * {@link parseGroupShapeAsGroup} at depth > 0.
+	 */
+	private applyRawChildGeometry(el: PptxElement, childNode: XmlObject | undefined): void {
+		if (!childNode) {
+			return;
+		}
+		const childXfrm =
+			((childNode['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] as XmlObject | undefined) ??
+			(childNode['p:xfrm'] as XmlObject | undefined);
+		if (!childXfrm) {
+			return;
+		}
+		const off = childXfrm['a:off'] as XmlObject | undefined;
+		const ext = childXfrm['a:ext'] as XmlObject | undefined;
+		if (off) {
+			el.x = parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX;
+			el.y = parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX;
+		}
+		if (ext) {
+			el.width = parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX;
+			el.height = parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX;
+		}
+	}
+
+	/**
+	 * Push a group fill down to every descendant whose own fill is `a:grpFill`
+	 * ("inherit from my group").
+	 *
+	 * `a:grpFill` resolves against the nearest ANCESTOR group that actually has
+	 * a fill, so the walk descends through a nested group that has none of its
+	 * own. Two things count as "none of its own", and they are the same two the
+	 * render side applies in `getGroupChildParentFill` (`pptx-viewer-shared`,
+	 * `render/group-fill.ts`):
+	 *
+	 * - the group declares no fill at all;
+	 * - the group's own fill is ITSELF `a:grpFill` (`fillMode === 'group'`),
+	 *   i.e. it inherits too, so the ancestor's fill passes straight through.
+	 *   Stopping there left the leaves under it carrying an unresolved
+	 *   `fillMode: 'group'` in the MODEL. Render compensated by chaining, but
+	 *   the MCP tools, the exporters and the Markdown converter read the model,
+	 *   not the DOM, so they saw an unpainted shape.
+	 *
+	 * A nested group that declares a REAL fill has already resolved its own
+	 * subtree against that fill, so the walk stops there.
+	 */
+	private applyGroupFillInheritance(children: PptxElement[], fill: GroupFillStyle): void {
+		for (const child of children) {
+			if (child.type === 'group') {
+				if (!child.groupFill || child.groupFill.fillMode === 'group') {
+					this.applyGroupFillInheritance(child.children, fill);
+				}
+				continue;
+			}
+			if (hasShapeProperties(child) && child.shapeStyle?.fillMode === 'group') {
+				child.shapeStyle = {
+					...child.shapeStyle,
+					fillMode: fill.fillMode,
+					fillColor: fill.fillColor,
+					fillOpacity: fill.fillOpacity,
+					fillGradient: fill.fillGradient,
+					fillGradientStops: fill.fillGradientStops,
+					fillGradientAngle: fill.fillGradientAngle,
+					fillGradientType: fill.fillGradientType,
+					fillPatternPreset: fill.fillPatternPreset,
+					fillPatternBackgroundColor: fill.fillPatternBackgroundColor,
+				};
+			}
+		}
+	}
+
+	/**
 	 * Parse a p:grpSp element into a GroupPptxElement with children.
 	 * Children have coordinates relative to the group's position.
+	 *
+	 * `depth` is the group's nesting level: 0 for a `<p:spTree>` child. Only a
+	 * top-level group rounds its transform to whole pixels; a nested one stays
+	 * unrounded, because its parent is still going to map it through
+	 * `ext / chExt` and rounding first collapses a compact child space to 0.
 	 */
 	protected override async parseGroupShapeAsGroup(
 		group: XmlObject,
 		baseId: string,
 		slidePath: string,
 		rawXmlStr?: string,
+		depth: number = 0,
 	): Promise<PptxElement | null> {
 		const grpSpPr = group['p:grpSpPr'] as XmlObject | undefined;
-		const xfrm = grpSpPr?.['a:xfrm'] as XmlObject | undefined;
-
-		let parentX = 0,
-			parentY = 0,
-			parentW = 0,
-			parentH = 0;
-
-		// Group-level rotation/flip live on `p:grpSpPr/a:xfrm` and must be
-		// carried onto the GroupPptxElement so the renderer can wrap the whole
-		// group in a single rotate/flip transform (issue #70). `@_rot` is in
-		// 60000ths of a degree (ECMA-376 ST_Angle), matching shape parsing.
-		let groupRotation: number | undefined;
-		let flipHorizontal = false;
-		let flipVertical = false;
-
-		if (xfrm) {
-			const off = xfrm['a:off'] as XmlObject | undefined;
-			if (off) {
-				parentX = Math.round(parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentY = Math.round(parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
-			}
-			const ext = xfrm['a:ext'] as XmlObject | undefined;
-			if (ext) {
-				parentW = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentH = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
-			}
-			if (xfrm['@_rot'] !== undefined && xfrm['@_rot'] !== null) {
-				const rot = parseInt(String(xfrm['@_rot']), 10) / 60000;
-				groupRotation = Number.isFinite(rot) && rot !== 0 ? rot : undefined;
-			}
-			flipHorizontal = this.parseBooleanAttr(xfrm['@_flipH']);
-			flipVertical = this.parseBooleanAttr(xfrm['@_flipV']);
-		}
+		const raw: GroupTransform = readGroupTransform(
+			grpSpPr?.['a:xfrm'],
+			PptxHandlerRuntime.EMU_PER_PX,
+		);
+		const round = depth === 0 ? Math.round : (value: number) => value;
+		const parentX = round(raw.parentX);
+		const parentY = round(raw.parentY);
+		const parentW = round(raw.parentW);
+		const parentH = round(raw.parentH);
 
 		const grpFillStyle = grpSpPr
 			? this.extractShapeStyle(grpSpPr as XmlObject | undefined)
 			: undefined;
 		const hasGroupFill = grpFillStyle && grpFillStyle.fillMode && grpFillStyle.fillMode !== 'none';
 
-		const children = await this.parseGroupShape(group, baseId, slidePath, rawXmlStr);
+		const children = await this.parseGroupShape(group, baseId, slidePath, rawXmlStr, depth);
 		if (children.length === 0) {
 			return null;
 		}
 
-		// Apply group fill inheritance
-		if (hasGroupFill) {
-			for (const child of children) {
-				if (hasShapeProperties(child) && child.shapeStyle?.fillMode === 'group') {
-					child.shapeStyle = {
-						...child.shapeStyle,
-						fillMode: grpFillStyle.fillMode,
-						fillColor: grpFillStyle.fillColor,
-						fillOpacity: grpFillStyle.fillOpacity,
-						fillGradient: grpFillStyle.fillGradient,
-						fillGradientStops: grpFillStyle.fillGradientStops,
-						fillGradientAngle: grpFillStyle.fillGradientAngle,
-						fillGradientType: grpFillStyle.fillGradientType,
-						fillPatternPreset: grpFillStyle.fillPatternPreset,
-						fillPatternBackgroundColor: grpFillStyle.fillPatternBackgroundColor,
-					};
-				}
-			}
+		// Only a fill that RESOLVES to paint can be pushed down. A group whose
+		// own fill is `a:grpFill` inherits from its own ancestor, so its subtree
+		// is left for that ancestor's pass to resolve (see
+		// {@link applyGroupFillInheritance}); pushing the group-mode style down
+		// here would just re-stamp `fillMode: 'group'` on the leaves.
+		if (hasGroupFill && grpFillStyle.fillMode !== 'group') {
+			this.applyGroupFillInheritance(children, grpFillStyle);
 		}
 
 		// Convert children to group-relative coordinates
@@ -308,9 +275,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			y: parentY,
 			width: parentW || Math.max(...children.map((c) => c.x + c.width)),
 			height: parentH || Math.max(...children.map((c) => c.y + c.height)),
-			rotation: groupRotation,
-			flipHorizontal: flipHorizontal || undefined,
-			flipVertical: flipVertical || undefined,
+			// Group-level rotation/flip live on `p:grpSpPr/a:xfrm` and must be
+			// carried onto the GroupPptxElement so the renderer can wrap the
+			// whole group in a single rotate/flip transform (issue #70).
+			rotation: raw.rotation,
+			flipHorizontal: raw.flipHorizontal || undefined,
+			flipVertical: raw.flipVertical || undefined,
 			children,
 			rawXml: group as XmlObject,
 			actionClick: grpActionClick,

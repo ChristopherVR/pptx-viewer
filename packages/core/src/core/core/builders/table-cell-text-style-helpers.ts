@@ -126,6 +126,20 @@ function applyRunProperties(
 			hasStyle = true;
 		}
 	}
+	// `a:rPr/a:latin@typeface` (with `a:ea` / `a:cs` as fallbacks) is the run's
+	// font. Without it a cell that names an explicit face rendered in the
+	// binding's default stack, so a deck whose tables use a display face for
+	// headers looked wrong everywhere.
+	for (const key of ['a:latin', 'a:ea', 'a:cs'] as const) {
+		const typeface = String(
+			(runProperties[key] as XmlObject | undefined)?.['@_typeface'] ?? '',
+		).trim();
+		if (typeface) {
+			style.fontFamily = typeface;
+			hasStyle = true;
+			break;
+		}
+	}
 
 	hasStyle = applyTextEffects(runProperties, style, context) || hasStyle;
 	return hasStyle;

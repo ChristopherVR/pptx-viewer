@@ -84,6 +84,36 @@ describe('eCMA-376 rule validation', () => {
 		expect(result.valid).toBeFalsy();
 	});
 
+	/**
+	 * `validateOrder` skips any child missing from its table, so a wrong token
+	 * is a FALSE NEGATIVE, not a false positive: it silently disables ordering
+	 * checks for that element and nothing ever looks wrong. `PRESENTATION_ORDER`
+	 * carried `kiosk` (a `ST_PresentationShowType` value, not an element) where
+	 * `CT_Presentation` defines `kinsoku`, so a misplaced `<p:kinsoku>` passed.
+	 *
+	 * `p:kinsoku` belongs after `custDataLst` and before `defaultTextStyle`, so
+	 * putting it after `defaultTextStyle` must be reported.
+	 */
+	it('checks the position of p:kinsoku in the presentation sequence', async () => {
+		const misordered = presentationXml(`
+			<p:sldSz cx="12192000" cy="6858000"/>
+			<p:notesSz cx="6858000" cy="9144000"/>
+			<p:defaultTextStyle/>
+			<p:kinsoku lang="ja-JP" invalStChars="([" invalEndChars=")]"/>`);
+		expect(codes(await validatePptx(await packageWith(misordered)))).toContain(
+			'INVALID_CONTENT_ORDER',
+		);
+
+		const ordered = presentationXml(`
+			<p:sldSz cx="12192000" cy="6858000"/>
+			<p:notesSz cx="6858000" cy="9144000"/>
+			<p:kinsoku lang="ja-JP" invalStChars="([" invalEndChars=")]"/>
+			<p:defaultTextStyle/>`);
+		expect(codes(await validatePptx(await packageWith(ordered)))).not.toContain(
+			'INVALID_CONTENT_ORDER',
+		);
+	});
+
 	it('checks required slide content and shape-tree leading children', async () => {
 		const slide = `<p:sld xmlns:p="${TRANSITIONAL.p}" xmlns:a="${TRANSITIONAL.a}">
 			<p:cSld><p:spTree><p:grpSpPr/><p:nvGrpSpPr/></p:spTree></p:cSld>

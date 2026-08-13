@@ -33,6 +33,11 @@ export interface PptxTableCellStyle {
 	underline?: boolean;
 	color?: string;
 	/**
+	 * Font family from the first run's `a:rPr/a:latin@typeface` (falling back to
+	 * `a:ea` / `a:cs`). Per-run families live on {@link PptxTableCellTextRun}.
+	 */
+	fontFamily?: string;
+	/**
 	 * Raw XML colour-choice node preserved from `a:tc/a:txBody/.../a:rPr/a:solidFill`
 	 * for round-trip serialisation. Currently unused by the cell-level writer
 	 * (cell text colour falls through `writeCellTextFormatting`), reserved for
@@ -188,6 +193,46 @@ export interface PptxTableCell3D {
 }
 
 /**
+ * One styled text run inside a table cell's `a:txBody`.
+ *
+ * `PptxTableCell.text` is a flat string and `PptxTableCell.style` describes
+ * only the FIRST run, so a cell mixing formats ("Revenue **grew 42%** last
+ * year") cannot be represented by those two alone. {@link PptxTableCell.runs}
+ * carries the full sequence, with paragraph and line breaks as marker entries
+ * so a renderer can walk it linearly.
+ *
+ * Structurally identical to `pptx-viewer-shared`'s `CellTextRun`, which every
+ * binding's table renderer already consumes.
+ *
+ * @example
+ * ```ts
+ * const runs: PptxTableCellTextRun[] = [
+ *   { text: "Revenue " },
+ *   { text: "grew 42%", bold: true, color: "#C00000" },
+ * ];
+ * // => satisfies PptxTableCellTextRun[]
+ * ```
+ */
+export interface PptxTableCellTextRun {
+	/** Run text. Empty for the break markers below. */
+	text: string;
+	/** This entry starts a new paragraph (`a:p` boundary) rather than carrying text. */
+	isParagraphBreak?: boolean;
+	/** This entry is a soft line break (`a:br`) rather than carrying text. */
+	isLineBreak?: boolean;
+	bold?: boolean;
+	italic?: boolean;
+	underline?: boolean;
+	strikethrough?: boolean;
+	/** Resolved run colour as a CSS colour string. */
+	color?: string;
+	/** Run font size in points (`a:rPr@sz` / 100). */
+	fontSize?: number;
+	/** Run font family from `a:rPr/a:latin@typeface` (or `a:ea` / `a:cs`). */
+	fontFamily?: string;
+}
+
+/**
  * A single table cell with text content, optional style, and merge info.
  *
  * @example
@@ -203,6 +248,15 @@ export interface PptxTableCell3D {
 export interface PptxTableCell {
 	text: string;
 	style?: PptxTableCellStyle;
+	/**
+	 * Per-run formatting for the cell's text, when it has any beyond what
+	 * {@link style} can express. Present only for cells whose `a:txBody`
+	 * actually carries runs; renderers fall back to {@link text} when absent.
+	 *
+	 * Editing a cell's text invalidates these (the editor produces a plain
+	 * string), so an edit path must clear them alongside setting `text`.
+	 */
+	textRuns?: PptxTableCellTextRun[];
 	/** Column span (defaults to 1). */
 	gridSpan?: number;
 	/** Row span (defaults to 1). */

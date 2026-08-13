@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { positiveFixedAngleAttribute, shadowOffsetToDistanceAndDirection } from '../../utils';
 import {
 	buildBlurXml,
 	buildLineEffectListXml,
@@ -45,7 +46,11 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 				? Math.max(0, shapeStyle.shadowBlur)
 				: 6;
 
-		// Prefer stored angle/distance if available, otherwise compute from offsets
+		// Prefer stored angle/distance if available, otherwise compute from offsets.
+		// Both paths must go through `positiveFixedAngleAttribute` below: a stored
+		// angle arrives from a UI spinner or the public API and can be negative or
+		// past a full turn, which is out of range for `ST_PositiveFixedAngle` and
+		// makes PowerPoint refuse to open the package.
 		let distance: number;
 		let directionDegrees: number;
 
@@ -67,14 +72,16 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 					? shapeStyle.shadowOffsetY
 					: 4;
 
-			distance = Math.sqrt(shadowOffsetX * shadowOffsetX + shadowOffsetY * shadowOffsetY);
-			directionDegrees = ((Math.atan2(shadowOffsetY, shadowOffsetX) * 180) / Math.PI + 360) % 360;
+			({ distance, directionDegrees } = shadowOffsetToDistanceAndDirection(
+				shadowOffsetX,
+				shadowOffsetY,
+			));
 		}
 
 		const xmlObj: XmlObject = {
 			'@_blurRad': String(Math.round(shadowBlur * this.context.emuPerPx)),
 			'@_dist': String(Math.round(distance * this.context.emuPerPx)),
-			'@_dir': String(Math.round(directionDegrees * 60000)),
+			'@_dir': positiveFixedAngleAttribute(directionDegrees),
 			'a:srgbClr': {
 				'@_val': shadowColor.replace('#', ''),
 				'a:alpha': {
@@ -132,14 +139,13 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 		} else {
 			const ox = typeof shapeStyle.shadowOffsetX === 'number' ? shapeStyle.shadowOffsetX : 0;
 			const oy = typeof shapeStyle.shadowOffsetY === 'number' ? shapeStyle.shadowOffsetY : 0;
-			distance = Math.sqrt(ox * ox + oy * oy);
-			directionDegrees = ((Math.atan2(oy, ox) * 180) / Math.PI + 360) % 360;
+			({ distance, directionDegrees } = shadowOffsetToDistanceAndDirection(ox, oy));
 		}
 
 		return {
 			'@_prst': preset,
 			'@_dist': String(Math.round(distance * this.context.emuPerPx)),
-			'@_dir': String(Math.round(directionDegrees * 60000)),
+			'@_dir': positiveFixedAngleAttribute(directionDegrees),
 			'a:srgbClr': {
 				'@_val': shadowColor.replace('#', ''),
 				'a:alpha': {
@@ -175,13 +181,12 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 				? this.context.clampUnitInterval(shapeStyle.innerShadowOpacity)
 				: 0.5;
 
-		const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-		const directionDegrees = ((Math.atan2(offsetY, offsetX) * 180) / Math.PI + 360) % 360;
+		const { distance, directionDegrees } = shadowOffsetToDistanceAndDirection(offsetX, offsetY);
 
 		const xmlObj: XmlObject = {
 			'@_blurRad': String(Math.round(blurValue * this.context.emuPerPx)),
 			'@_dist': String(Math.round(distance * this.context.emuPerPx)),
-			'@_dir': String(Math.round(directionDegrees * 60000)),
+			'@_dir': positiveFixedAngleAttribute(directionDegrees),
 			'a:srgbClr': {
 				'@_val': innerColor.replace('#', ''),
 				'a:alpha': {

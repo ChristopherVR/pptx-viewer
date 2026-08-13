@@ -1,6 +1,7 @@
 import { XmlObject, TextStyle } from '../../types';
 import {
 	parseAlignmentAttr,
+	parseParagraphExtraAttributes,
 	parseParagraphMargins,
 	parseParagraphRtl,
 	parseTabStops,
@@ -25,9 +26,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Extract a paragraph's OWN `a:pPr` geometry (align, spacing, margins,
-	 * indent, tabs, rtl) as a partial {@link TextStyle} so per-paragraph
-	 * formatting round-trips rather than collapsing to one shape-level pPr
-	 * (#69). Inherited layout/master values are not re-stamped.
+	 * indent, tabs, rtl, line-breaking and justification flags) as a partial
+	 * {@link TextStyle} so per-paragraph formatting round-trips rather than
+	 * collapsing to one shape-level pPr (#69). Inherited layout/master values
+	 * are not re-stamped.
+	 *
+	 * Every attribute of `CT_TextParagraphProperties` is accounted for here
+	 * except `lvl`, which travels separately as `TextSegment.paragraphLevel`.
+	 * `marL`/`marR`/`indent` come from `parseParagraphMargins`; `algn` and
+	 * `rtl` are read below; and `defTabSz`, `eaLnBrk`, `latinLnBrk`,
+	 * `fontAlgn` and `hangingPunct` come from `parseParagraphExtraAttributes`.
+	 * Those last five used to be omitted, so a paragraph whose values differed
+	 * from the shape-level style (`resolveShapeParagraphStyle` keeps only the
+	 * FIRST paragraph's) lost them at LOAD and no save-side preservation could
+	 * bring them back. Three of the five govern East-Asian line breaking and
+	 * justification, so the loss fell hardest on CJK decks.
+	 *
+	 * The `a:pPr` child elements likewise round-trip: `lnSpc`/`spcBef`/`spcAft`
+	 * and `tabLst` below, `defRPr` and `extLst` verbatim, and the bullet group
+	 * separately as `TextSegment.bulletInfo`.
 	 */
 	protected extractParagraphOwnProperties(
 		p: XmlObject,
@@ -37,7 +54,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!pPr) {
 			return undefined;
 		}
-		const pp: TextStyle = { ...parseParagraphMargins(pPr) };
+		const pp: TextStyle = {
+			...parseParagraphMargins(pPr),
+			...parseParagraphExtraAttributes(pPr),
+		};
 		const align =
 			pPr['@_algn'] !== undefined ? parseAlignmentAttr(String(pPr['@_algn'])) : undefined;
 		if (align) {

@@ -15,6 +15,16 @@ import type { ValidationConformance, ValidationIssue } from './pptx-validator-ty
 
 type Dialect = ValidationConformance['dialect'];
 
+/**
+ * `CT_Presentation` (ECMA-376 Part 1 §19.2.1.26) child sequence.
+ *
+ * `validateOrder` SKIPS any child it does not find in its table, so a wrong
+ * token here does not produce a false positive: it silently switches the check
+ * off for that element. This list carried `kiosk` for `kinsoku` - `kiosk` is
+ * not a `CT_Presentation` child at all, it is a value of
+ * `ST_PresentationShowType` - so a genuinely misplaced `<p:kinsoku>` passed
+ * unnoticed. Verified element by element against the spec; the rest is correct.
+ */
 const PRESENTATION_ORDER = [
 	'sldMasterIdLst',
 	'notesMasterIdLst',
@@ -27,7 +37,7 @@ const PRESENTATION_ORDER = [
 	'custShowLst',
 	'photoAlbum',
 	'custDataLst',
-	'kiosk',
+	'kinsoku',
 	'defaultTextStyle',
 	'modifyVerifier',
 	'extLst',

@@ -5,6 +5,7 @@ import type {
 	PptxElementWithText,
 	PptxImageLikeElement,
 } from '../../types';
+import { preserveNotesParagraphXml } from './notes-paragraph-scoped-xml';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveParagraphs';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -65,7 +66,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		txBody['a:p'] = this.createParagraphsFromTextContent(notesText, undefined, effectiveSegments);
+		// Read the authored paragraphs BEFORE the rebuild overwrites them: the
+		// notes part is the only carrier of its own paragraph scope. Notes
+		// segments come from `extractTextSegmentsFromTxBodyForRewrite` +
+		// `compactTextSegments`, which produce `{ text, style }` and nothing
+		// else, so the slide-body helper `preserveParagraphScopedState` has no
+		// state to find here and the segmentless builder supplies none either:
+		// every authored notes `a:pPr` was coming back as a bare `<a:pPr/>`.
+		const originalParagraphs = this.ensureArray(txBody['a:p']) as XmlObject[];
+
+		txBody['a:p'] = preserveNotesParagraphXml(
+			originalParagraphs,
+			this.createParagraphsFromTextContent(notesText, undefined, effectiveSegments),
+		);
 
 		return true;
 	}

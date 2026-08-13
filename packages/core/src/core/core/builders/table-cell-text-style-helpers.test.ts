@@ -233,6 +233,41 @@ describe('applyCellTextFormat - run properties', () => {
 		expect(style.bold).toBeTruthy();
 	});
 
+	it('applies the run typeface (a:latin) as the cell font family', () => {
+		// Before this was parsed, a cell naming an explicit face rendered in the
+		// binding's default font stack: every table on a deck using a display
+		// face for its headers looked wrong.
+		const tableCell: XmlObject = {
+			'a:txBody': {
+				'a:p': {
+					'a:r': {
+						'a:rPr': { 'a:latin': { '@_typeface': 'Georgia' } },
+						'a:t': 'Header',
+					},
+				},
+			},
+		};
+		const style: PptxTableCellStyle = {};
+		expect(applyCellTextFormat(tableCell, style, makeContext())).toBeTruthy();
+		expect(style.fontFamily).toBe('Georgia');
+	});
+
+	it('falls back to a:ea / a:cs when the run has no a:latin', () => {
+		const tableCell: XmlObject = {
+			'a:txBody': {
+				'a:p': {
+					'a:r': {
+						'a:rPr': { 'a:ea': { '@_typeface': 'MS Gothic' } },
+						'a:t': 'Header',
+					},
+				},
+			},
+		};
+		const style: PptxTableCellStyle = {};
+		applyCellTextFormat(tableCell, style, makeContext());
+		expect(style.fontFamily).toBe('MS Gothic');
+	});
+
 	it('applies italic from run properties', () => {
 		const tableCell: XmlObject = {
 			'a:txBody': {

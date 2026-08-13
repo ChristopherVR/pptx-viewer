@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { PptxHandler } from '../../core/PptxHandler';
 import type { PptxData, PptxElement } from '../../core/types';
+import { requireFixture } from '../require-fixture';
 
 /**
  * Integration regression for issue #66 ("The background theme does not load
@@ -23,16 +24,14 @@ import type { PptxData, PptxElement } from '../../core/types';
  *     title/body text box was dropped.
  */
 describe('themed layout placeholders + grouped background (issue #66)', () => {
-	const fixturePath = path.resolve(__dirname, '../fixtures/themed-layout-placeholders.pptx');
-	const hasFixture = fs.existsSync(fixturePath);
+	const fixturePath = requireFixture(
+		path.resolve(__dirname, '../fixtures/themed-layout-placeholders.pptx'),
+	);
 
 	// Parse the deck once: the 111 KB "Balloons" master/layout are expensive to
 	// re-parse and doing it per-test times out under full-suite CPU contention.
 	let data: PptxData;
 	beforeAll(async () => {
-		if (!hasFixture) {
-			return;
-		}
 		const bytes = fs.readFileSync(fixturePath);
 		const buffer = bytes.buffer.slice(
 			bytes.byteOffset,
@@ -60,29 +59,26 @@ describe('themed layout placeholders + grouped background (issue #66)', () => {
 		return 1;
 	}
 
-	it.skipIf(!hasFixture)(
-		'renders every slide placeholder text box (inherited master geometry)',
-		() => {
-			expect(data.slides).toHaveLength(10);
+	it('renders every slide placeholder text box (inherited master geometry)', () => {
+		expect(data.slides).toHaveLength(10);
 
-			for (const [index, slide] of data.slides.entries()) {
-				const ownElements = slide.elements.filter(
-					(element) => !/^(layout|master)-/u.test(element.id),
-				);
-				// Every slide in this deck has a title + body placeholder. Before
-				// the fix, empty-spPr layout placeholders wiped the inherited
-				// master geometry and these were dropped (0 own elements).
-				expect(
-					ownElements.length,
-					`slide ${index + 1} lost its placeholder text boxes`,
-				).toBeGreaterThanOrEqual(2);
-				const text = ownElements.map(ownText).join(' ');
-				expect(text.trim().length, `slide ${index + 1} has no rendered text`).toBeGreaterThan(0);
-			}
-		},
-	);
+		for (const [index, slide] of data.slides.entries()) {
+			const ownElements = slide.elements.filter(
+				(element) => !/^(layout|master)-/u.test(element.id),
+			);
+			// Every slide in this deck has a title + body placeholder. Before
+			// the fix, empty-spPr layout placeholders wiped the inherited
+			// master geometry and these were dropped (0 own elements).
+			expect(
+				ownElements.length,
+				`slide ${index + 1} lost its placeholder text boxes`,
+			).toBeGreaterThanOrEqual(2);
+			const text = ownElements.map(ownText).join(' ');
+			expect(text.trim().length, `slide ${index + 1} has no rendered text`).toBeGreaterThan(0);
+		}
+	});
 
-	it.skipIf(!hasFixture)('renders the grouped themed background from the layout/master', () => {
+	it('renders the grouped themed background from the layout/master', () => {
 		for (const [index, slide] of data.slides.entries()) {
 			const backgroundGroups = slide.elements.filter(
 				(element) => element.type === 'group' && /^(layout|master)-/u.test(element.id),
@@ -96,7 +92,7 @@ describe('themed layout placeholders + grouped background (issue #66)', () => {
 		}
 	});
 
-	it.skipIf(!hasFixture)('keeps complete custom-geometry paths on the balloon freeforms', () => {
+	it('keeps complete custom-geometry paths on the balloon freeforms', () => {
 		// The balloon freeforms are custGeom paths with dozens of lnTo segments.
 		// A command-order misalignment used to truncate them to ~4 points, so
 		// they rendered as tiny slivers. Assert at least one background shape
@@ -124,7 +120,7 @@ describe('themed layout placeholders + grouped background (issue #66)', () => {
 		expect(maxSegments, 'balloon custom-geometry path was truncated').toBeGreaterThan(30);
 	});
 
-	it.skipIf(!hasFixture)('parses each large layout/master part once, not per slide', async () => {
+	it('parses each large layout/master part once, not per slide', async () => {
 		// Background resolution used to re-read and re-parse the (large) layout
 		// and master XML for every slide, making themed-deck load O(slides) in
 		// the ~200 KB master (~28 large parses for these 10 slides). It is now a

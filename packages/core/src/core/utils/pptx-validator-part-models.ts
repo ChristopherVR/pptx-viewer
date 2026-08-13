@@ -21,9 +21,16 @@ interface PartContract {
 const PART_NAMESPACES = {
 	p: [ECMA_NAMESPACES.transitionalP, ECMA_NAMESPACES.strictP],
 	a: [ECMA_NAMESPACES.transitionalA, ECMA_NAMESPACES.strictA],
+	// `ppt/charts/chartN.xml` holds either flavour of chart part. The classic
+	// 2006 DrawingML chart is `<c:chartSpace>`; the 2014 "chartex" chart
+	// (funnel, sunburst, histogram, box-whisker, treemap, waterfall,
+	// region-map) is `<cx:chartSpace>` in a Microsoft extension namespace and
+	// shares the same folder and part-name pattern. Both have a `chart` child,
+	// so only the namespace list has to admit them.
 	c: [
 		'http://schemas.openxmlformats.org/drawingml/2006/chart',
 		'http://purl.oclc.org/ooxml/drawingml/chart',
+		'http://schemas.microsoft.com/office/drawing/2014/chartex',
 	],
 	d: [
 		'http://schemas.openxmlformats.org/drawingml/2006/diagram',

@@ -4,6 +4,8 @@ import {
 	ENUMS,
 	FIXED_PERCENT,
 	POSITIVE_PERCENT,
+	POSITIVE_UNBOUNDED_PERCENT,
+	UNBOUNDED_PERCENT,
 } from './pptx-validator-facet-constants';
 import type { ValidationIssue } from './pptx-validator-types';
 
@@ -51,9 +53,30 @@ function numericValue(value: string): number | undefined {
 	return undefined;
 }
 
+/** `xsd:int` bounds, the value space of an uncapped `ST_Percentage`. */
+const INT_MIN = -2147483648;
+const INT_MAX = 2147483647;
+
+/** The facet bounds and prose label for a percentage element, if it has any. */
+function percentageFacet(local: string): { min: number; max: number; label: string } | undefined {
+	if (POSITIVE_PERCENT.has(local)) {
+		return { min: 0, max: 100000, label: 'a positive fixed percentage from 0 through 100000' };
+	}
+	if (FIXED_PERCENT.has(local)) {
+		return { min: -100000, max: 100000, label: 'a fixed percentage from -100000 through 100000' };
+	}
+	if (POSITIVE_UNBOUNDED_PERCENT.has(local)) {
+		return { min: 0, max: INT_MAX, label: 'a non-negative percentage' };
+	}
+	if (UNBOUNDED_PERCENT.has(local)) {
+		return { min: INT_MIN, max: INT_MAX, label: 'a percentage in the signed 32-bit range' };
+	}
+	return undefined;
+}
+
 function validatePercentage(element: XmlElement, path: string, issues: ValidationIssue[]): void {
-	const positive = POSITIVE_PERCENT.has(element.local);
-	if (!positive && !FIXED_PERCENT.has(element.local)) {
+	const facet = percentageFacet(element.local);
+	if (!facet) {
 		return;
 	}
 	const value = attribute(element.attributes, 'val');
@@ -61,16 +84,8 @@ function validatePercentage(element: XmlElement, path: string, issues: Validatio
 		return;
 	}
 	const numeric = numericValue(value);
-	const min = positive ? 0 : -100000;
-	if (numeric === undefined || numeric < min || numeric > 100000) {
-		add(
-			issues,
-			path,
-			element.local,
-			'val',
-			value,
-			`${positive ? 'a positive fixed' : 'a fixed'} percentage from ${min} through 100000`,
-		);
+	if (numeric === undefined || numeric < facet.min || numeric > facet.max) {
+		add(issues, path, element.local, 'val', value, facet.label);
 	}
 }
 
@@ -167,33 +182,51 @@ function validateEnums(element: XmlElement, path: string, issues: ValidationIssu
 	}
 }
 
+/**
+ * Elements on which an EMPTY `r:id` is legal and routinely emitted.
+ *
+ * `CT_Hyperlink/@r:id` is optional, and when the hyperlink is an internal
+ * PowerPoint action rather than an external target there is no relationship to
+ * point at. PowerPoint writes the attribute anyway with an empty value:
+ * `<a:hlinkClick r:id="" action="ppaction://noaction"/>` appears on 11 of the
+ * 14 slides of `e2e/fixtures/solution-explorer.pptx` and in the COM-authored
+ * `ole-embedded-media.pptx` corpus deck. Rejecting it made the validator
+ * unusable as a save gate on genuine decks.
+ */
+const EMPTY_REL_ID_ALLOWED = new Set(['hlinkClick', 'hlinkHover', 'hlinkMouseOver']);
+
 function validateRelationshipIds(
 	xml: string,
 	ns: Map<string, string>,
 	path: string,
 	issues: ValidationIssue[],
 ): void {
-	for (const [prefix, uri] of ns) {
-		if (uri !== ECMA_NAMESPACES.strictR && uri !== ECMA_NAMESPACES.transitionalR) {
-			continue;
-		}
-		if (!prefix) {
-			continue;
-		}
-		const qualifier = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		for (const match of xml.matchAll(
-			new RegExp(`\\b${qualifier}:id\\s*=\\s*["']([^"']*)["']`, 'g'),
-		)) {
-			if (!/^[A-Za-z_][\w.-]*$/.test(match[1])) {
-				add(
-					issues,
-					path,
-					'relationship reference',
-					`${prefix}:id`,
-					match[1],
-					'a non-empty XML ID token',
-				);
+	const relPrefixes = [...ns]
+		.filter(
+			([prefix, uri]) =>
+				prefix !== '' && (uri === ECMA_NAMESPACES.strictR || uri === ECMA_NAMESPACES.transitionalR),
+		)
+		.map(([prefix]) => prefix);
+	if (relPrefixes.length === 0) {
+		return;
+	}
+	for (const element of elements(xml)) {
+		for (const prefix of relPrefixes) {
+			const value = attribute(element.attributes, `${prefix}:id`);
+			if (value === undefined || /^[A-Za-z_][\w.-]*$/.test(value)) {
+				continue;
 			}
+			if (value === '' && EMPTY_REL_ID_ALLOWED.has(element.local)) {
+				continue;
+			}
+			add(
+				issues,
+				path,
+				'relationship reference',
+				`${prefix}:id`,
+				value,
+				'a non-empty XML ID token',
+			);
 		}
 	}
 }

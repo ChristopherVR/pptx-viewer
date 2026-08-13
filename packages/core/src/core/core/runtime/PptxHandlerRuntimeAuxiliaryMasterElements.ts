@@ -1,17 +1,53 @@
-import type { PptxHandoutMaster, PptxNotesMaster, XmlObject } from '../../types';
+/**
+ * @fileoverview Shape-tree parsing for the four "template" parts whose
+ * artwork the Slide Master view renders and edits: `p:notesMaster`,
+ * `p:handoutMaster`, `p:sldMaster` and `p:sldLayout`.
+ *
+ * Note the difference from {@link PptxHandlerRuntimeMasterElements.getMasterElements}
+ * and {@link PptxHandlerRuntimeLayoutElements.getLayoutElementsByPath}: those
+ * resolve the artwork a *slide* inherits, so they deliberately skip placeholder
+ * shapes (a slide resolves its own placeholders through the inheritance chain)
+ * and prefix ids with `master-` / `layout-`. The Slide Master view needs the
+ * opposite: the part's own tree exactly as authored, placeholders included,
+ * because "Click to edit Master title style" is the thing being edited.
+ *
+ * Historically only the notes and handout masters were parsed here (the
+ * feature landed as "editable auxiliary master elements", fdb32c65), which
+ * left `PptxSlideMaster.elements` / `PptxSlideLayout.elements` declared,
+ * consumed by all five bindings' Slide Master views, and never written: the
+ * Slides tab rendered a bare background on every real deck. The restriction
+ * was scope, not design, so the same parser now covers all four root tags.
+ */
+import type {
+	PptxElement,
+	PptxHandoutMaster,
+	PptxNotesMaster,
+	PptxSlideMaster,
+	XmlObject,
+} from '../../types';
 import { rememberAuxiliaryMasterUnparsedNodes } from './auxiliary-master-node-cache';
+import { rememberMasterPartElementSignature } from './master-part-element-signature';
+import { masterPartIdPrefix } from './master-part-tags';
+import type { MasterPartRootTag } from './master-part-tags';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMasterElements';
 
+/** The slice of each master/layout model this parser writes to. */
+export interface MasterPartElementHost {
+	path: string;
+	elements?: PptxElement[];
+	backgroundImage?: string;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	/** Parse every editable element in a notes or handout master shape tree. */
-	protected async enrichAuxiliaryMasterElements(
-		master: PptxNotesMaster | PptxHandoutMaster | undefined,
-		rootTag: 'p:notesMaster' | 'p:handoutMaster',
+	/** Parse every editable element in a master or layout shape tree. */
+	protected async enrichMasterPartElements(
+		part: MasterPartElementHost | undefined,
+		rootTag: MasterPartRootTag,
 	): Promise<void> {
-		if (!master) {
+		if (!part) {
 			return;
 		}
-		const partPath = master.path;
+		const partPath = part.path;
 		const xml = await this.zip.file(partPath)?.async('string');
 		if (!xml) {
 			return;
@@ -21,25 +57,71 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const cSld = root?.['p:cSld'] as XmlObject | undefined;
 		const spTree = cSld?.['p:spTree'] as XmlObject | undefined;
 		if (!spTree) {
-			master.elements = [];
+			part.elements = [];
 			return;
 		}
 
 		const fileName = partPath.slice(partPath.lastIndexOf('/') + 1);
 		const partDirectory = partPath.slice(0, partPath.lastIndexOf('/'));
-		await this.loadSlideRelationships(partPath, `${partDirectory}/_rels/${fileName}.rels`);
-		master.backgroundImage = await this.extractBackgroundImage(data, partPath, rootTag);
+		if (!this.slideRelsMap.has(partPath)) {
+			await this.loadSlideRelationships(partPath, `${partDirectory}/_rels/${fileName}.rels`);
+		}
+		part.backgroundImage = await this.extractBackgroundImage(data, partPath, rootTag);
 		this.unwrapAlternateContent(spTree as Record<string, unknown>);
 
-		const prefix = rootTag === 'p:notesMaster' ? 'notes-master-' : 'handout-master-';
-		master.elements = await this.parseSpTreeChildren(
-			spTree as Record<string, unknown>,
-			partPath,
-			xml,
-			'p:spTree',
-			prefix,
-		);
-		this.rememberUnparsedMasterNodes(partPath, spTree, master.elements);
+		// A layout may re-route the colour aliases its own shapes resolve
+		// through (`p:clrMapOvr/a:overrideClrMapping`), exactly as
+		// getLayoutElementsByPath does for the slide-facing copy.
+		const previousClrMapOverride = this.currentSlideClrMapOverride;
+		if (rootTag === 'p:sldLayout') {
+			const override = this.parseLayoutClrMapOverride(data);
+			if (override) {
+				this.currentSlideClrMapOverride = override;
+			}
+		}
+		try {
+			part.elements = await this.parseSpTreeChildren(
+				spTree as Record<string, unknown>,
+				partPath,
+				xml,
+				'p:spTree',
+				masterPartIdPrefix(rootTag, partPath),
+			);
+		} finally {
+			this.currentSlideClrMapOverride = previousClrMapOverride;
+		}
+		rememberMasterPartElementSignature(this, partPath, part.elements);
+		this.rememberUnparsedMasterNodes(partPath, spTree, part.elements);
+	}
+
+	/**
+	 * Populate `elements` on every slide master and on each of its layouts.
+	 *
+	 * Scheme colours on a master's own shapes must resolve through that
+	 * master's colour map and theme, so the active master state is switched
+	 * per part and reset to the deck-wide snapshot afterwards.
+	 */
+	protected async enrichSlideMasterElements(masters: PptxSlideMaster[]): Promise<void> {
+		for (const master of masters) {
+			try {
+				this.applyMasterThemeState(master.path);
+				await this.enrichMasterPartElements(master, 'p:sldMaster');
+				for (const layout of master.layouts ?? []) {
+					await this.enrichMasterPartElements(layout, 'p:sldLayout');
+				}
+			} catch (e) {
+				console.warn(`Failed to parse slide master elements for ${master.path}:`, e);
+			}
+		}
+		this.applyMasterThemeState(undefined);
+	}
+
+	/** Parse every editable element in a notes or handout master shape tree. */
+	protected async enrichAuxiliaryMasterElements(
+		master: PptxNotesMaster | PptxHandoutMaster | undefined,
+		rootTag: 'p:notesMaster' | 'p:handoutMaster',
+	): Promise<void> {
+		await this.enrichMasterPartElements(master, rootTag);
 	}
 
 	private rememberUnparsedMasterNodes(

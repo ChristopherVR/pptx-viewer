@@ -452,12 +452,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Forward declaration – implemented in PptxHandlerRuntimeGroupParsing.
+	 *
+	 * `_depth` is the group's `p:grpSp` nesting level (0 for a `p:spTree`
+	 * child); the implementation recurses into nested groups with `depth + 1`.
 	 */
 	protected parseGroupShapeAsGroup(
 		_group: XmlObject,
 		_baseId: string,
 		_slidePath: string,
 		_rawXmlStr?: string,
+		_depth?: number,
 	): Promise<PptxElement | null> {
 		throw new Error('parseGroupShapeAsGroup not yet initialised');
 	}

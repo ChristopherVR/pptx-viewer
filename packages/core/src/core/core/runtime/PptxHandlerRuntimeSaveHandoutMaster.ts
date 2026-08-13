@@ -71,7 +71,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 
 			data['p:handoutMaster'] = root;
-			this.zip.file(handoutMaster.path, this.builder.build(data));
+			// Re-serializing a parsed part emits its shape tree one bucket per
+			// tag, and document order is paint order. Put it back first.
+			const ordered = await this.withTemplateSpTreeOrder(
+				handoutMaster.path,
+				data,
+				'p:handoutMaster',
+				xml,
+			);
+			this.zip.file(handoutMaster.path, this.builder.build(ordered));
 		} catch (e) {
 			console.warn('Failed to save handout master structural changes:', e);
 		}

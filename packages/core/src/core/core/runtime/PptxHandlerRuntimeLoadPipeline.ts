@@ -52,6 +52,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		await this.enrichAuxiliaryMasterElements(notesMaster, 'p:notesMaster');
 		await this.enrichAuxiliaryMasterElements(handoutMaster, 'p:handoutMaster');
+		// Slide masters and their layouts get the same treatment: View >
+		// Slide Master renders `PptxSlideMaster.elements` /
+		// `PptxSlideLayout.elements` directly, and until these were populated
+		// the Slides tab was a bare background in all five bindings.
+		await this.enrichSlideMasterElements(slideMasters);
 		const tags = await this.parseTags();
 		const customProperties = await this.parseCustomProperties();
 		const coreProperties = await this.parseCoreProperties();
@@ -384,6 +389,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * @returns Master + layout elements with prefixed ids (may be empty).
 	 */
 	async getTemplateElementsForSlide(slideId: string): Promise<PptxElement[]> {
+		// A slide with "Hide background graphics" ticked
+		// (`p:sld/@showMasterSp="0"`) does not display its inherited
+		// decorations, so there is nothing for a template-mode editor to
+		// select on it either.
+		const slideXml = this.slideMap.get(slideId);
+		if (slideXml && this.extractShowMasterShapes(slideXml) === false) {
+			return [];
+		}
 		return this.getLayoutElements(slideId);
 	}
 

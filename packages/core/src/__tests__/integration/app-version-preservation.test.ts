@@ -1,10 +1,11 @@
-import { existsSync, promises as fs } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
 import { PptxHandler } from '../../core/PptxHandler';
+import { requireFixture } from '../require-fixture';
 
 /**
  * PowerPoint's loader enforces a strict `[0-9]+\.[0-9]{4}` pattern on
@@ -18,37 +19,34 @@ import { PptxHandler } from '../../core/PptxHandler';
  * element text round-trips as a literal string.
  */
 describe('docProps/app.xml <AppVersion> round-trip preserves literal string', () => {
-	const fixturePath = path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx');
-	const hasFixture = existsSync(fixturePath);
-
-	it.skipIf(!hasFixture)(
-		'appVersion with trailing decimal zeros survives round-trip byte-for-byte',
-		async () => {
-			const buf = await fs.readFile(fixturePath);
-			const handler = new PptxHandler();
-			const data = await handler.load(
-				buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
-			);
-
-			const origZip = await JSZip.loadAsync(buf);
-			const origAppXml = await origZip.file('docProps/app.xml')!.async('string');
-			const origMatch = origAppXml.match(/<AppVersion>(?<version>[^<]+)<\/AppVersion>/u);
-			expect(origMatch, 'fixture is expected to declare <AppVersion>').not.toBeNull();
-			const origVersion = origMatch!.groups!.version;
-
-			const saved = await handler.save(data.slides);
-			const savedZip = await JSZip.loadAsync(saved);
-			const savedAppXml = await savedZip.file('docProps/app.xml')!.async('string');
-			const savedMatch = savedAppXml.match(/<AppVersion>(?<version>[^<]+)<\/AppVersion>/u);
-			expect(savedMatch, 'saved file must preserve <AppVersion>').not.toBeNull();
-			const savedVersion = savedMatch!.groups!.version;
-
-			expect(savedVersion).toBe(origVersion);
-			// PowerPoint also enforces the [0-9]+\.[0-9]{4} pattern even
-			// when a file didn't originate from Office; fail fast if the
-			// pipeline ever produces a non-matching literal.
-			expect(savedVersion).toMatch(/^\d+\.\d{4}$/u);
-		},
-		30000,
+	const fixturePath = requireFixture(
+		path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx'),
 	);
+
+	it('appVersion with trailing decimal zeros survives round-trip byte-for-byte', async () => {
+		const buf = await fs.readFile(fixturePath);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
+		);
+
+		const origZip = await JSZip.loadAsync(buf);
+		const origAppXml = await origZip.file('docProps/app.xml')!.async('string');
+		const origMatch = origAppXml.match(/<AppVersion>(?<version>[^<]+)<\/AppVersion>/u);
+		expect(origMatch, 'fixture is expected to declare <AppVersion>').not.toBeNull();
+		const origVersion = origMatch!.groups!.version;
+
+		const saved = await handler.save(data.slides);
+		const savedZip = await JSZip.loadAsync(saved);
+		const savedAppXml = await savedZip.file('docProps/app.xml')!.async('string');
+		const savedMatch = savedAppXml.match(/<AppVersion>(?<version>[^<]+)<\/AppVersion>/u);
+		expect(savedMatch, 'saved file must preserve <AppVersion>').not.toBeNull();
+		const savedVersion = savedMatch!.groups!.version;
+
+		expect(savedVersion).toBe(origVersion);
+		// PowerPoint also enforces the [0-9]+\.[0-9]{4} pattern even
+		// when a file didn't originate from Office; fail fast if the
+		// pipeline ever produces a non-matching literal.
+		expect(savedVersion).toMatch(/^\d+\.\d{4}$/u);
+	}, 30000);
 });

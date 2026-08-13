@@ -696,4 +696,143 @@ describe('pptxShapeEffectXmlCodec', () => {
 			expect(codec.buildPresetShadowXml({} as ShapeStyle)).toBeUndefined();
 		});
 	});
+
+	// ---------------------------------------------------------------------
+	// ST_PositiveFixedAngle range (ECMA-376 S20.1.10.53)
+	// ---------------------------------------------------------------------
+	/**
+	 * `@dir` on `a:outerShdw` / `a:prstShdw` / `a:innerShdw`, and `@dir` /
+	 * `@fadeDir` on `a:reflection`, are all typed `ST_PositiveFixedAngle`:
+	 * `0 <= v < 21600000`. PowerPoint does NOT clamp an out-of-range value, it
+	 * refuses to open the whole package ("The file or directory is corrupted and
+	 * unreadable"), verified through COM on a round-tripped deck.
+	 *
+	 * The offset-derived paths here were already normalised. The exposure was the
+	 * STORED-value branch, which assigned `shapeStyle.shadowAngle` straight
+	 * through: that value arrives from a UI shadow-angle spinner or the public
+	 * API and is freely negative or past a full turn.
+	 */
+	describe('@dir / @fadeDir stay inside ST_PositiveFixedAngle', () => {
+		const MAX_UNITS = 21600000;
+
+		function expectInRange(value: unknown): number {
+			const units = Number(value);
+			expect(Number.isInteger(units)).toBeTruthy();
+			expect(units).toBeGreaterThanOrEqual(0);
+			expect(units).toBeLessThan(MAX_UNITS);
+			return units;
+		}
+
+		it('normalises a negative STORED outer-shadow angle', () => {
+			const xml = codec.buildOuterShadowXml({
+				shadowColor: '#000000',
+				shadowAngle: -45,
+				shadowDistance: 5.66,
+			} as ShapeStyle);
+			expect(expectInRange(xml!['@_dir'])).toBe(315 * 60000);
+		});
+
+		it('folds a STORED outer-shadow angle past a full turn', () => {
+			const xml = codec.buildOuterShadowXml({
+				shadowColor: '#000000',
+				shadowAngle: 405,
+				shadowDistance: 5.66,
+			} as ShapeStyle);
+			expect(expectInRange(xml!['@_dir'])).toBe(45 * 60000);
+		});
+
+		it('normalises a negative STORED preset-shadow angle', () => {
+			const xml = codec.buildPresetShadowXml({
+				presetShadowName: 'shdw1',
+				shadowColor: '#000000',
+				shadowAngle: -135,
+				shadowDistance: 4,
+			} as ShapeStyle);
+			expect(expectInRange(xml!['@_dir'])).toBe(225 * 60000);
+		});
+
+		it('normalises a negative reflection @dir', () => {
+			const xml = codec.buildReflectionXml({
+				reflectionBlurRadius: 1,
+				reflectionDirection: -90,
+			} as ShapeStyle);
+			expect(expectInRange(xml!['@_dir'])).toBe(270 * 60000);
+		});
+
+		it('normalises a negative reflection @fadeDir', () => {
+			const xml = codec.buildReflectionXml({
+				reflectionBlurRadius: 1,
+				reflectionFadeDirection: -90,
+			} as ShapeStyle);
+			expect(expectInRange(xml!['@_fadeDir'])).toBe(270 * 60000);
+		});
+
+		it('never emits an out-of-range angle for any stored direction', () => {
+			const outOfRange: string[] = [];
+			for (let degrees = -720; degrees <= 720; degrees += 15) {
+				const nodes: Array<[string, XmlObject | undefined, string]> = [
+					[
+						'outerShdw@dir',
+						codec.buildOuterShadowXml({
+							shadowColor: '#000000',
+							shadowAngle: degrees,
+							shadowDistance: 4,
+						} as ShapeStyle),
+						'@_dir',
+					],
+					[
+						'prstShdw@dir',
+						codec.buildPresetShadowXml({
+							presetShadowName: 'shdw1',
+							shadowColor: '#000000',
+							shadowAngle: degrees,
+							shadowDistance: 4,
+						} as ShapeStyle),
+						'@_dir',
+					],
+					[
+						'innerShdw@dir',
+						codec.buildInnerShadowXml({
+							innerShadowColor: '#000000',
+							innerShadowOffsetX: Math.cos((degrees * Math.PI) / 180) * 3,
+							innerShadowOffsetY: Math.sin((degrees * Math.PI) / 180) * 3,
+						} as ShapeStyle),
+						'@_dir',
+					],
+					[
+						'reflection@dir',
+						codec.buildReflectionXml({
+							reflectionBlurRadius: 1,
+							reflectionDirection: degrees,
+						} as ShapeStyle),
+						'@_dir',
+					],
+					[
+						'reflection@fadeDir',
+						codec.buildReflectionXml({
+							reflectionBlurRadius: 1,
+							reflectionFadeDirection: degrees,
+						} as ShapeStyle),
+						'@_fadeDir',
+					],
+					[
+						'ln/outerShdw@dir',
+						codec.buildLineEffectListXml({
+							lineShadowColor: '#000000',
+							lineShadowOffsetX: Math.cos((degrees * Math.PI) / 180) * 3,
+							lineShadowOffsetY: Math.sin((degrees * Math.PI) / 180) * 3,
+						} as ShapeStyle)?.['a:outerShdw'] as XmlObject | undefined,
+						'@_dir',
+					],
+				];
+				for (const [label, node, attribute] of nodes) {
+					const units = Number(node?.[attribute]);
+					if (!(units >= 0 && units < MAX_UNITS)) {
+						outOfRange.push(`${label}=${units} at ${degrees} deg`);
+					}
+				}
+			}
+			expect(outOfRange).toStrictEqual([]);
+		});
+	});
 });

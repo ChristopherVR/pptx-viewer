@@ -13,12 +13,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * function so the colocated unit test can import and drive the REAL logic
 	 * (it used to keep a private copy, which is why the dual-fill defect went
 	 * unnoticed). This method only supplies the runtime-bound dependencies.
+	 *
+	 * `inheritedGroupFill` is the fill the shape's enclosing group hands down to
+	 * an `<a:grpFill/>` child; the group writer threads it in so that authored
+	 * inheritance survives the round-trip instead of being flattened into the
+	 * colour the load pass resolved. It is `undefined` for a top-level shape.
 	 */
-	protected applyFillAndStroke(spPr: XmlObject, shapeStyle: ShapeStyle): void {
+	protected applyFillAndStroke(
+		spPr: XmlObject,
+		shapeStyle: ShapeStyle,
+		inheritedGroupFill?: ShapeStyle,
+	): void {
 		writeShapeFillAndStroke(spPr, shapeStyle, {
 			gradientFillXml: this.buildGradientFillXml(shapeStyle),
 			lineEffectListXml: this.buildLineEffectListXml(shapeStyle),
 			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
+			inheritedGroupFill,
 			parseColor: (colorNode) => this.parseColor(colorNode),
 		});
 	}

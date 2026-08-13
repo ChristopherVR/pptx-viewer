@@ -12,17 +12,20 @@ describe('pptxAnimationWriteService', () => {
 	// buildTimingXml - basic cases
 	// -----------------------------------------------------------------------
 	describe('buildTimingXml - basic', () => {
-		it('returns existingRawTiming when animations array is empty', () => {
+		// The empty list still goes through the reconciler (that is how "the user
+		// deleted the effects we added" reaches the tree), so the result is an
+		// equal CLONE of the input rather than the same object.
+		it('leaves an existing timing tree untouched when the animations array is empty', () => {
 			const service = createService();
 			const existing: XmlObject = { 'p:tnLst': {} };
-			expect(service.buildTimingXml([], existing)).toBe(existing);
+			expect(service.buildTimingXml([], existing)).toStrictEqual(existing);
 		});
 
-		it('returns existingRawTiming when no animations have effects', () => {
+		it('leaves an existing timing tree untouched when no animations have effects', () => {
 			const service = createService();
 			const existing: XmlObject = { 'p:tnLst': {} };
 			const animations: PptxElementAnimation[] = [{ elementId: 'sp1' }, { elementId: 'sp2' }];
-			expect(service.buildTimingXml(animations, existing)).toBe(existing);
+			expect(service.buildTimingXml(animations, existing)).toStrictEqual(existing);
 		});
 
 		it('returns undefined when no animations and no existing timing', () => {
