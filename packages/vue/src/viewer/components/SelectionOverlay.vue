@@ -31,6 +31,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useSelectionAffordances } from '../composables/element-lock-guards';
 import { useSelectionGesture } from '../composables/selection-gesture';
 import { getShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
 import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
@@ -90,6 +91,13 @@ function boxForId(id: string): SelectedBox | undefined {
 	return selectedBoxes.value.find((b) => b.id === id);
 }
 
+// A shape must not advertise a gesture its `a:spLocks` will refuse: Vue painted
+// all eight resize handles and the rotate knob unconditionally.
+const { canResize, canRotate } = useSelectionAffordances(
+	() => props.elements,
+	() => props.selectedIds,
+);
+
 /** The adjustment-handle descriptor for a selected element, or null. */
 function adjustDescriptorFor(id: string): ShapeAdjustmentHandleDescriptor | null {
 	const el = props.elements.find((e) => e.id === id);
@@ -139,30 +147,34 @@ const adjustHandleStyle = (box: SelectedBox): Record<string, string> =>
 			<!-- Body: drag-to-move hit area covering the box interior -->
 			<div class="pptx-vue-selection-body" @pointerdown="(e) => beginGesture('move', box.id, e)" />
 
-			<!-- Rotate handle stem + knob -->
-			<div class="pptx-vue-rotate-stem" :style="rotateStemStyle(box)" />
-			<button
-				type="button"
-				class="pptx-vue-rotate-knob"
-				data-pptx-compact
-				:style="rotateKnobStyle(box)"
-				:aria-label="t('pptx.selectionOverlay.rotate')"
-				@pointerdown="(e) => beginGesture('rotate', box.id, e)"
-			/>
+			<!-- Rotate stem + knob. Hidden by `a:spLocks/@noRotation`. -->
+			<template v-if="canRotate(box.id)">
+				<div class="pptx-vue-rotate-stem" :style="rotateStemStyle(box)" />
+				<button
+					type="button"
+					class="pptx-vue-rotate-knob"
+					data-pptx-compact
+					:style="rotateKnobStyle(box)"
+					:aria-label="t('pptx.selectionOverlay.rotate')"
+					@pointerdown="(e) => beginGesture('rotate', box.id, e)"
+				/>
+			</template>
 
-			<!-- Resize handles -->
-			<button
-				v-for="meta in handleList"
-				:key="meta.id"
-				type="button"
-				class="pptx-vue-resize-handle"
-				:class="`pptx-vue-resize-${meta.id}`"
-				data-pptx-compact
-				:data-handle="meta.id"
-				:style="handleStyle(meta, box)"
-				:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
-				@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
-			/>
+			<!-- Resize handles. Hidden by `a:spLocks/@noResize`. -->
+			<template v-if="canResize(box.id)">
+				<button
+					v-for="meta in handleList"
+					:key="meta.id"
+					type="button"
+					class="pptx-vue-resize-handle"
+					:class="`pptx-vue-resize-${meta.id}`"
+					data-pptx-compact
+					:data-handle="meta.id"
+					:style="handleStyle(meta, box)"
+					:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
+					@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
+				/>
+			</template>
 
 			<!-- Shape adjustment handle (amber diamond): round-rect corner radius -->
 			<button

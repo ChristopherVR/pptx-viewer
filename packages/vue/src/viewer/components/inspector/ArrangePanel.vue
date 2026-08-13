@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Lock, LockOpen } from 'lucide-vue-next';
-import type { PptxElement, PptxShapeLocks } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
+import { elementLockTogglePatch, isElementLocked } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -30,20 +31,15 @@ const rotation = computed(() => Math.round(props.element.rotation ?? 0));
 const flipHorizontal = computed(() => Boolean(props.element.flipHorizontal));
 const flipVertical = computed(() => Boolean(props.element.flipVertical));
 
-const isLocked = computed(
-	() => Boolean(props.element.locks?.noMove) || Boolean(props.element.locks?.noSelect),
-);
+// Shared decides what counts as "locked" (`noSelect` / `noMove` / `noResize`),
+// so the toggle's state cannot drift from what the canvas actually enforces.
+const isLocked = computed(() => isElementLocked(props.element));
 
 function toggleLock(): void {
 	if (!props.canEdit) {
 		return;
 	}
-	if (isLocked.value) {
-		emit('update', { locks: undefined } as Partial<PptxElement>);
-	} else {
-		const locks: PptxShapeLocks = { noMove: true, noResize: true, noSelect: true };
-		emit('update', { locks } as Partial<PptxElement>);
-	}
+	emit('update', { locks: elementLockTogglePatch(!isLocked.value) } as Partial<PptxElement>);
 }
 
 const MIN_SIZE = 1;

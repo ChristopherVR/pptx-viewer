@@ -28,8 +28,12 @@ export interface UseAutosaveWiringOptions {
 	intervalMs: () => number | undefined;
 	/** Label the recovery snapshot is stored under (file path, else file name). */
 	snapshotName: () => string;
-	/** Serialise the current deck. */
-	getContent: () => Promise<Uint8Array>;
+	/**
+	 * Serialise the current deck for crash recovery. Must be the plaintext
+	 * (`recovery-snapshot`) serialisation, NOT `getContent`: an encrypted
+	 * snapshot cannot be reopened, because no recovery path has the password.
+	 */
+	getRecoverySnapshot: () => Promise<Uint8Array>;
 	/** Emit the serialised bytes to the host. */
 	emitAutosave: (bytes: Uint8Array) => void;
 	/** Snapshot a restorable version (version history). */
@@ -79,13 +83,15 @@ export function useAutosaveWiring(options: UseAutosaveWiringOptions): UseAutosav
 		// Save) takes effect on the next edit instead of needing a remount.
 		intervalMs: computed(() => options.intervalMs() ?? DEFAULT_AUTOSAVE_INTERVAL_MS),
 		onSave: async () => {
-			const bytes = await options.getContent();
+			const bytes = await options.getRecoverySnapshot();
 			options.emitAutosave(bytes);
 			options.captureVersion('Autosave', Date.now());
 			// Also persist to the shared IndexedDB recovery store (matches
 			// React/Angular/Vanilla/Svelte's `useAutosave`), so File > Account's
 			// Storage & Privacy panel (`getLocalStorageUsageSummary`) and File >
-			// Open's "Recent" list have something real to report.
+			// Open's "Recent" list have something real to report. Recovery reads
+			// these bytes back with no password, so they are deliberately a plain
+			// ZIP even when the deck is protected.
 			void saveAutosaveSnapshot(options.snapshotName(), bytes);
 		},
 	});

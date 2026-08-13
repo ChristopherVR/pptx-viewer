@@ -10,14 +10,15 @@ import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-
  * the copied/cut feedback flashes use a `ref` + `setTimeout`.
  */
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxLayoutPreview, TextStyle } from 'pptx-viewer-core';
+import { resolveDefaultFontFamily } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import FontFamilyMenu from './FontFamilyMenu.vue';
 import {
-	COMMON_FONTS,
 	COMMON_SIZES,
 	gB,
 	gL,
@@ -42,6 +43,10 @@ interface Props {
 	onPaste: () => void;
 	onToggleFormatPainter?: () => void;
 	layoutOptions: LayoutOption[];
+	/** Marks the active tile in the Layout menu. */
+	currentLayoutPath?: string;
+	/** Supplies gallery artwork; without it the menus stay name-only. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
 	/** Deck scheme map so template previews show the deck's theme colours. */
@@ -51,14 +56,31 @@ interface Props {
 	onAddSection?: () => void;
 	selectedElement?: PptxElement | null;
 	onUpdateTextStyle?: (style: Partial<TextStyle>) => void;
+	/** Theme major/minor latin faces, leading the font dropdown. */
+	themeFonts?: { heading?: string; body?: string };
+	/** Families the deck embeds, offered as their own dropdown group. */
+	embeddedFontFamilies?: readonly string[];
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies?: readonly string[];
 }
 
 const props = defineProps<Props>();
 
 const { t } = useI18n();
 
+/**
+ * With nothing overriding it on the element, the font box shows the family the
+ * deck would actually render: the theme's major font inside a title
+ * placeholder and its minor font elsewhere. It used to show a hardcoded
+ * "Segoe UI", which misreported every themed deck.
+ */
 function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fontSize: string } {
-	const defaults = { fontFamily: 'Segoe UI', fontSize: '24' };
+	const placeholderType = (element as { placeholderType?: string } | null | undefined)
+		?.placeholderType;
+	const defaults = {
+		fontFamily: resolveDefaultFontFamily(placeholderType, props.themeFonts),
+		fontSize: '24',
+	};
 	if (!element) {
 		return defaults;
 	}
@@ -177,6 +199,8 @@ function handlePickSize(s: number): void {
 	<SlidesGroup
 		:can-edit="props.canEdit"
 		:layout-options="props.layoutOptions"
+		:current-layout-path="props.currentLayoutPath"
+		:load-layout-previews="props.loadLayoutPreviews"
 		:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
 		:on-insert-slide-from-template="props.onInsertSlideFromTemplate"
 		:template-scheme="props.templateScheme"
@@ -200,23 +224,13 @@ function handlePickSize(s: number): void {
 					<span class="truncate">{{ fontFamily }}</span>
 					<ChevronDown class="w-3 h-3 ml-1 shrink-0 text-muted-foreground" />
 				</button>
-				<div
+				<FontFamilyMenu
 					v-if="fontMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-48 pt-1"
-				>
-					<div :class="MENU_PANEL">
-						<button
-							v-for="f in COMMON_FONTS"
-							:key="f"
-							type="button"
-							:class="MENU_ITEM"
-							:style="{ fontFamily: f }"
-							@click="handlePickFont(f)"
-						>
-							{{ f }}
-						</button>
-					</div>
-				</div>
+					:theme-fonts="props.themeFonts"
+					:embedded-fonts="props.embeddedFontFamilies"
+					:custom-fonts="props.customFontFamilies"
+					@select="handlePickFont"
+				/>
 			</div>
 			<div :ref="sizeMenu.root" class="relative">
 				<button

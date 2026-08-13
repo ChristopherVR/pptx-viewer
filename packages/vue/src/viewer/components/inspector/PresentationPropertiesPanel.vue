@@ -31,6 +31,7 @@ import NotesHandoutCard from './NotesHandoutCard.vue';
 import PresentationSettingsCard from './PresentationSettingsCard.vue';
 import SlideSizeCard from './SlideSizeCard.vue';
 import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
+import SlideTransitionSection from './SlideTransitionSection.vue';
 import TagsSection from './TagsSection.vue';
 import ThemeSelectorCard from './ThemeSelectorCard.vue';
 
@@ -122,6 +123,17 @@ watch(
 			:can-edit="props.canEdit"
 			@update="(size) => emit('canvas-size-update', size)"
 		/>
+
+		<!-- SLIDE TRANSITION sits beside SLIDE SIZE, matching React, Angular,
+		     Svelte and Vanilla. This section and its `SlideTransitionPanel` were
+		     built and then never mounted, which combined with an inert ribbon left
+		     Vue with no way to author a transition at all. -->
+		<div :class="CARD">
+			<SlideTransitionSection
+				:slide="props.slide"
+				@transition-update="(next) => emit('slide-update', { transition: next })"
+			/>
+		</div>
 
 		<NotesHandoutCard
 			:notes-canvas-size="props.notesCanvasSize"

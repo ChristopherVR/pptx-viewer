@@ -16,6 +16,7 @@ import type {
 	PptxCustomShow,
 	PptxElement,
 	PptxLayoutOption,
+	PptxPresentationProperties,
 	PptxSlide,
 	PptxTheme,
 } from 'pptx-viewer-core';
@@ -86,6 +87,13 @@ export interface RibbonSlideMutationsInput {
 	onApplyTransitionToAll: () => void;
 }
 
+/** Home > Slides > Section and Home > Editing > Select All. */
+export interface RibbonSlideCommandsInput {
+	addSection: (name: string, afterSlideIndex: number) => void;
+	defaultSectionName: () => string;
+	selectAllElements: () => void;
+}
+
 /** Format painter + clipboard + shortcut-driven copy/cut. */
 export interface RibbonEditingInput {
 	clipboard: Ref<PptxElement | null>;
@@ -119,6 +127,9 @@ export interface UseViewerRibbonPropsOptions {
 	arrange: RibbonArrangeInput;
 	editing: RibbonEditingInput;
 	slideMutations: RibbonSlideMutationsInput;
+	slideCommands: RibbonSlideCommandsInput;
+	/** Deck presentation properties, for the Slide Show tab's Options checkboxes. */
+	presentationProperties: Ref<PptxPresentationProperties>;
 	ribbonActions: UseRibbonActionsResult;
 	drag: UseElementDragResult;
 	insertion: UseElementInsertionResult;
@@ -193,6 +204,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		activeSlide: o.activeSlide,
 		activeSlideIndex: o.activeSlideIndex,
 		toggleSlideHidden: o.slideMutations.toggleSlideHidden,
+		presentationProperties: o.presentationProperties,
 		presenting: o.presentation.presenting,
 		canDistribute: o.arrange.canDistribute,
 		shareOpen: o.collaboration.shareOpen,
@@ -276,5 +288,9 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		onToggleSubtitles: o.slideShow.onToggleSubtitles,
 		onTransitionChange: o.slideMutations.onTransitionChange,
 		onApplyTransitionToAll: o.slideMutations.onApplyTransitionToAll,
+		addSection: o.slideCommands.addSection,
+		defaultSectionName: o.slideCommands.defaultSectionName,
+		selectAllElements: o.slideCommands.selectAllElements,
+		onPresentationPropertiesUpdate: o.slideShow.onPresentationPropertiesUpdate,
 	});
 }

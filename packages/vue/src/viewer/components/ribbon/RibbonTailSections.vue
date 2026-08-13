@@ -42,6 +42,8 @@ const s = computed(() => props.toolbarSection);
 		:on-set-mode="props.onSetMode"
 		:custom-show-controls="toCustomShowsControlsProps(props)"
 		:hidden-actions="props.hiddenActions"
+		:presentation-properties="props.presentationProperties"
+		:on-presentation-properties-change="props.onPresentationPropertiesChange"
 	/>
 
 	<ReviewSection

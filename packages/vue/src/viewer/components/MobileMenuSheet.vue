@@ -197,6 +197,10 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 					<TransitionsSection
 						:is-inspector-pane-open="props.isInspectorPaneOpen"
 						:on-toggle-inspector="props.onToggleInspector"
+						:can-edit="props.canEdit"
+						:active-slide="props.activeSlide"
+						:on-transition-change="props.onTransitionChange"
+						:on-apply-transition-to-all="props.onApplyTransitionToAll"
 					/>
 				</div>
 

@@ -3,6 +3,7 @@ import type {
 	PptxCustomShow,
 	PptxElement,
 	PptxLayoutOption,
+	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSlide,
 	PptxTheme,
@@ -63,6 +64,10 @@ export interface UseRibbonPropsStateInput {
 	snapToShape: Ref<boolean>;
 	overflowOpen: Ref<boolean>;
 	layoutOptions: Ref<PptxLayoutOption[]>;
+	/** Families the deck embeds, offered as their own font-dropdown group. */
+	embeddedFontFamilies: Ref<string[]> | ComputedRef<string[]>;
+	/** Families registered this session via File > Options > Fonts. */
+	customFontFamilies: Ref<string[]>;
 	/** Loaded deck theme; template gallery previews resolve scheme colours against it. */
 	theme: ShallowRef<PptxTheme | undefined>;
 	customShows: Ref<PptxCustomShow[]>;
@@ -82,6 +87,8 @@ export interface UseRibbonPropsStateInput {
 	activeSlideIndex: Ref<number>;
 	/** Toggle a slide's `hidden` flag (one undo step), from `useSlideMutations`. */
 	toggleSlideHidden: (index: number) => void;
+	/** Deck presentation properties, backing the Slide Show tab's Options checkboxes. */
+	presentationProperties: Ref<PptxPresentationProperties>;
 	presenting: Ref<boolean>;
 	canDistribute: ComputedRef<boolean>;
 	shareOpen: Ref<boolean>;
@@ -162,6 +169,8 @@ export interface UseRibbonPropsActionsInput {
 	ribbonUpdateTextCase: RibbonProps['onTransformTextCase'];
 	insertSlideFromLayout: (layoutPath: string, layoutName?: string) => Promise<void>;
 	applyLayoutToActiveSlide: (layoutPath: string) => Promise<void>;
+	/** Builds the New Slide / Layout gallery artwork on first menu open. */
+	loadLayoutPreviews: () => Promise<PptxLayoutPreview[]>;
 	insertSlideFromTemplate: (templateId: SlideTemplateId) => void;
 	onRenameActiveCustomShow: () => void;
 	onDeleteActiveCustomShow: () => void;
@@ -170,6 +179,14 @@ export interface UseRibbonPropsActionsInput {
 	onToggleSubtitles: () => void;
 	onTransitionChange: RibbonProps['onTransitionChange'];
 	onApplyTransitionToAll: () => void;
+	/** Start a new deck section (Home > Slides > Section), from `useSectionOperations`. */
+	addSection: (name: string, afterSlideIndex: number) => void;
+	/** The localised name a ribbon-created section gets. */
+	defaultSectionName: () => string;
+	/** Select every element on the active slide (Home > Editing > Select All). */
+	selectAllElements: () => void;
+	/** Commit a Slide Show Options checkbox, from `useSlideShowSettings`. */
+	onPresentationPropertiesUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 }
 
 export type UseRibbonPropsInput = UseRibbonPropsStateInput & UseRibbonPropsActionsInput;

@@ -5,7 +5,8 @@ import { Layers, PaintBucket, PenLine, Shapes, Sparkles } from 'lucide-vue-next'
  * controls, Shape Fill/Outline colour popovers, and a Shape Effects placeholder.
  * Vue port of React's `toolbar/DrawingGroup.tsx`.
  */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { RIBBON_SHAPE_SWATCHES, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -21,7 +22,12 @@ interface Props {
 	onAddShape: () => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
-	onUpdateElementStyle?: (style: Record<string, unknown>) => void;
+	/**
+	 * Patch the selected shape's style. Optional only because the mobile menu
+	 * sheet renders the group without one; the desktop ribbon always passes it.
+	 * It used to be passed by nobody, so both swatch grids were decorative.
+	 */
+	onUpdateElementStyle?: (style: Partial<ShapeStyle>) => void;
 }
 
 const props = defineProps<Props>();
@@ -42,20 +48,7 @@ const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
 	{ type: 'cloud', labelKey: 'pptx.shapePresets.cloud' },
 ];
 
-const FILL_COLORS = [
-	'#ffffff',
-	'#000000',
-	'#ff0000',
-	'#00ff00',
-	'#0000ff',
-	'#ffff00',
-	'#ff00ff',
-	'#00ffff',
-	'#ff8800',
-	'#8800ff',
-	'#008888',
-	'#888888',
-];
+const FILL_COLORS = RIBBON_SHAPE_SWATCHES;
 
 const shapesMenu = useDropdown();
 const arrangeMenu = useDropdown();
@@ -78,12 +71,12 @@ function handleArrange(action: string, edge: boolean): void {
 }
 
 function handleFill(color: string): void {
-	props.onUpdateElementStyle?.({ fill: color });
+	props.onUpdateElementStyle?.(shapeFillChange(color));
 	fillMenu.close();
 }
 
 function handleOutline(color: string): void {
-	props.onUpdateElementStyle?.({ outlineColor: color });
+	props.onUpdateElementStyle?.(shapeOutlineChange(color));
 	outlineMenu.close();
 }
 </script>
@@ -173,10 +166,12 @@ function handleOutline(color: string): void {
 							v-for="c in FILL_COLORS"
 							:key="c"
 							type="button"
+							:aria-label="`Fill colour ${c}`"
 							class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
 							data-pptx-compact
 							:style="{ backgroundColor: c }"
 							:title="c"
+							@mousedown.prevent
 							@click="handleFill(c)"
 						/>
 					</div>
@@ -202,10 +197,12 @@ function handleOutline(color: string): void {
 							v-for="c in FILL_COLORS"
 							:key="c"
 							type="button"
+							:aria-label="`Outline colour ${c}`"
 							class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
 							data-pptx-compact
 							:style="{ backgroundColor: c }"
 							:title="c"
+							@mousedown.prevent
 							@click="handleOutline(c)"
 						/>
 					</div>

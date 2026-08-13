@@ -12,6 +12,7 @@
 import type {
 	PptxCustomShow,
 	PptxElement,
+	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideTransition,
 	ShapeStyle,
@@ -309,4 +310,8 @@ export interface RibbonProps {
 	onToggleSubtitles?: () => void;
 	onTransitionChange: (updates: Partial<PptxSlideTransition>) => void;
 	onApplyTransitionToAll: () => void;
+	/** Deck presentation properties backing the Slide Show tab's Options checkboxes. */
+	presentationProperties?: PptxPresentationProperties;
+	/** Commit an Options checkbox onto the deck's presentation properties. */
+	onPresentationPropertiesChange?: (updates: Partial<PptxPresentationProperties>) => void;
 }

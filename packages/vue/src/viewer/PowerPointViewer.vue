@@ -28,6 +28,7 @@ import type { PptxElement, PptxTheme, ShapeStyle } from 'pptx-viewer-core';
 import {
 	buildFieldSubstitutionContext,
 	buildUserFontFaceStyles,
+	canInteractWithElement,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -163,10 +164,18 @@ const activeContent = source.activeContent;
 // slow local load lands mid-session (late-joiner bootstrap-deck clobber).
 const loadVersion = ref(0);
 
+// Declared ahead of `useLoadContent` on purpose: the save path reads the
+// Protect-Presentation secret so a protected deck serialises encrypted.
+const password = usePasswordProtection();
+
 const deck = useLoadContent(() => activeContent.value, {
 	onContentApplied: () => {
 		loadVersion.value += 1;
 	},
+	getSaveIntent: () => ({
+		password: password.presentationPassword.value,
+		passwordProtected: password.isPasswordProtected.value,
+	}),
 });
 const {
 	slides,
@@ -193,6 +202,7 @@ const {
 	themeColorMap,
 	handler,
 	getContent,
+	getRecoverySnapshot,
 } = deck;
 
 function createPresentation(templateId: string): void {
@@ -328,11 +338,13 @@ watch(slideCount, (count) => {
 });
 
 // Rubber-band selection. Template-owned elements join the band only in
-// edit-template mode, the same rule the pointer uses for a direct click.
+// edit-template mode, the same rule the pointer uses for a direct click, and an
+// `a:spLocks/@noSelect` shape never joins it at all (the band was the one route
+// that could still select a locked shape once the pointer path was gated).
 const { marquee, beginMarquee, cancelMarquee } = useMarqueeSelection({
 	getSelectableElements: () =>
-		[...activeTemplateElements.value, ...(activeSlide.value?.elements ?? [])].filter((el) =>
-			selection.isInteractive(el.id),
+		[...activeTemplateElements.value, ...(activeSlide.value?.elements ?? [])].filter(
+			(el) => selection.isInteractive(el.id) && canInteractWithElement(el, 'select'),
 		),
 	getCanvasSize: () => canvasSize.value,
 	selectedElementIds,
@@ -613,7 +625,7 @@ const { autosave, autosaveEnabled, toggleAutosave, autosaveDisabledReason } = us
 	autosaveEnabledByHost: () => props.autosave ?? false,
 	intervalMs: () => props.autosaveIntervalMs,
 	snapshotName: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
-	getContent,
+	getRecoverySnapshot,
 	emitAutosave: (bytes) => emit('autosave', bytes),
 	captureVersion: (label, at) => versionHistoryWiring.versionHistory.capture(label, at),
 });
@@ -632,9 +644,11 @@ const deckActions = useInspectorDeckActions({
 		autosave.isDirty.value = true;
 	},
 	// Mirror React's refreshContentAfterThemeChange: re-serialise and reload so
-	// slide colours re-resolve against the newly-applied theme.
+	// slide colours re-resolve against the newly-applied theme. These bytes go
+	// straight back into our own loader, which has no password, so they use the
+	// plaintext recovery serialisation rather than `getContent`.
 	refreshContent: async () => {
-		source.internalContent.value = await getContent();
+		source.internalContent.value = await getRecoverySnapshot();
 	},
 });
 
@@ -679,7 +693,7 @@ const collaboration = useCollaborationWiring({
 // -- Panels and dialogs owned by their own composables ------------------
 const signatureWorkflow = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
 const slideShow = useSlideShowSettings({ presentationProperties });
-const password = usePasswordProtection();
+// `password` is created above `useLoadContent` so the save path can read it.
 const fontEmbedding = useFontEmbedding({ slides, embeddedFonts: deck.embeddedFonts });
 const selectionPane = useSelectionPaneWiring({
 	findActiveElement,
@@ -782,30 +796,31 @@ const mobileChrome = useMobileChrome({
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
 // overlay (Ctrl+/) are handled in `onEditorKeydown` before delegating.
-const { showShortcuts, onEditorKeydown, copySelected, cutSelected } = useEditorKeyboard({
-	canEdit: () => props.canEdit,
-	hasSelection: selection.hasSelection,
-	presenting: presentation.presenting,
-	findOpen,
-	selectedElementIds,
-	activeSlide,
-	activeSlideIndex,
-	slides,
-	templateElementsBySlideId,
-	pushHistory: history.pushHistory,
-	undo: history.undo,
-	redo: history.redo,
-	copyElement: clipboard.copyElement,
-	cutElement: clipboard.cutElement,
-	pasteElement: clipboard.pasteElement,
-	duplicateSelected,
-	deleteSelected,
-	goPrev,
-	goNext,
-	onEscape,
-	onGroup,
-	onUngroup,
-});
+const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElements } =
+	useEditorKeyboard({
+		canEdit: () => props.canEdit,
+		hasSelection: selection.hasSelection,
+		presenting: presentation.presenting,
+		findOpen,
+		selectedElementIds,
+		activeSlide,
+		activeSlideIndex,
+		slides,
+		templateElementsBySlideId,
+		pushHistory: history.pushHistory,
+		undo: history.undo,
+		redo: history.redo,
+		copyElement: clipboard.copyElement,
+		cutElement: clipboard.cutElement,
+		pasteElement: clipboard.pasteElement,
+		duplicateSelected,
+		deleteSelected,
+		goPrev,
+		goNext,
+		onEscape,
+		onGroup,
+		onUngroup,
+	});
 
 // -- Office-style ribbon wiring (RibbonToolbar <- React Toolbar.tsx) ----
 // The desktop chrome is the full Office ribbon. This block adapts the host's
@@ -980,6 +995,12 @@ const ribbonProps = useViewerRibbonProps({
 		onTransitionChange,
 		onApplyTransitionToAll,
 	},
+	slideCommands: {
+		addSection: sectionOps.addSection,
+		defaultSectionName: () => t('pptx.sections.defaultName'),
+		selectAllElements,
+	},
+	presentationProperties,
 	ribbonActions,
 	drag,
 	insertion,

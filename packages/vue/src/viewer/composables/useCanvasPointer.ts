@@ -13,7 +13,7 @@
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { resolveTopLevelElementId } from 'pptx-viewer-shared';
+import { canInteractWithElement, resolveTopLevelElementId } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import { isElementIdInteractive } from './template-editing';
@@ -69,6 +69,22 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 	// so the last tap's element id and coordinates are tracked by hand. Plain
 	// mutable state, never rendered, so it is not a ref.
 	let lastCanvasTap: { id: string; time: number; x: number; y: number } | null = null;
+
+	/**
+	 * The id a press on `hitId` may act on, or undefined when nothing on the
+	 * canvas is allowed to claim it.
+	 *
+	 * Two gates, in order. Template (master/layout) elements are inert unless the
+	 * user turned on edit-template mode. Then `a:spLocks/@noSelect`: PowerPoint
+	 * makes such a shape unclickable outright, and Vue read that flag nowhere, so
+	 * a "locked" shape still selected, dragged and resized like any other.
+	 */
+	function interactiveIdFor(hitId: string | null | undefined): string | undefined {
+		if (!hitId || !isElementIdInteractive(hitId, options.editTemplateMode.value)) {
+			return undefined;
+		}
+		return canInteractWithElement(options.findActiveElement(hitId), 'select') ? hitId : undefined;
+	}
 
 	function requestElementEdit(id: string): void {
 		const el = options.findActiveElement(id);
@@ -158,10 +174,7 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 		const hitEl = document.elementFromPoint(event.clientX, event.clientY);
 		const target = event.target as HTMLElement | null;
 		const hitElementId = resolveTopLevelElementId(hitEl) ?? resolveTopLevelElementId(target);
-		const resolvedId =
-			hitElementId && isElementIdInteractive(hitElementId, options.editTemplateMode.value)
-				? hitElementId
-				: fallbackId;
+		const resolvedId = interactiveIdFor(hitElementId) ?? fallbackId;
 
 		// On the second tap, match against the first tap's element. Layout may
 		// shift between taps (selection causing fitScale change), so the second
@@ -209,18 +222,19 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 		// selects the group on a single click, and so do React, Vanilla and Svelte.
 		const hitId = resolveTopLevelElementId(target);
 		// Template (master/layout) elements are interaction-locked unless the user
-		// turns on edit-template mode; a click on a locked one behaves like an
-		// empty-canvas click (no select / drag / inline-edit).
-		const id =
-			hitId && isElementIdInteractive(hitId, options.editTemplateMode.value) ? hitId : undefined;
+		// turns on edit-template mode, and an `a:spLocks/@noSelect` shape is locked
+		// for everybody; a click on either behaves like an empty-canvas click (no
+		// select / drag / inline-edit).
+		const id = interactiveIdFor(hitId);
 
 		// AI pick mode: the next canvas element click(s) become picks for the
 		// assistant (multi-pick, deduped) instead of a normal selection/drag. Resolve
 		// via elementFromPoint too so overlays do not swallow the hit.
 		if (options.aiPickMode.value) {
-			const pickId =
-				resolveTopLevelElementId(document.elementFromPoint(event.clientX, event.clientY)) ?? hitId;
-			if (pickId && isElementIdInteractive(pickId, options.editTemplateMode.value)) {
+			const pickId = interactiveIdFor(
+				resolveTopLevelElementId(document.elementFromPoint(event.clientX, event.clientY)) ?? hitId,
+			);
+			if (pickId) {
 				event.preventDefault();
 				options.addAiPick(options.activeSlideIndex.value, pickId);
 			}
@@ -258,6 +272,11 @@ export function useCanvasPointer(options: UseCanvasPointerOptions): UseCanvasPoi
 			}
 			// Drive move (drag) + inline-edit entry from the element itself. A tap
 			// without drag on an already-selected element enters inline edit.
+			//
+			// A `noMove` shape still arms this: the press may be the second tap of a
+			// click-to-edit, which PowerPoint allows on a pinned shape. `useElementDrag`
+			// resolves the move lock at drag start and never travels a pinned element,
+			// so nothing here has to know about it.
 			if (!additive) {
 				options.startElementDrag(id, event, wasSelected);
 			}

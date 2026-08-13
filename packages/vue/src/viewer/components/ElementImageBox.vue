@@ -11,6 +11,7 @@ import {
 	getImageColorWashStyle,
 	getImageFitStyle,
 	getImageOverflow,
+	getImageTilingStyle,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -37,6 +38,12 @@ const containerStyle = computed<CSSProperties>(() => ({
 }));
 const imageFitStyle = computed<CSSProperties>(
 	() => getImageFitStyle(props.element) as CSSProperties,
+);
+// `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express, so
+// the picture paints as a repeating background layer instead. `undefined` for a
+// normal (untiled) picture, which keeps the `<img>` branch.
+const tilingStyle = computed<CSSProperties | undefined>(
+	() => getImageTilingStyle(props.element) as CSSProperties | undefined,
 );
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 const imageFx = computed(() => getComputedImageStyle(props.element));
@@ -89,8 +96,13 @@ const rootPointerEvents = computed<CSSProperties | null>(() =>
 				<filter :id="f.id" color-interpolation-filters="sRGB" v-html="f.markup" />
 			</defs>
 		</svg>
+		<div
+			v-if="tilingStyle"
+			class="pptx-vue-image-tile"
+			:style="{ ...tilingStyle, filter: imageFx.filter, opacity: imageFx.opacity }"
+		/>
 		<img
-			v-if="imageSrc"
+			v-else-if="imageSrc"
 			:src="displaySrc ?? imageSrc"
 			alt=""
 			:style="{

@@ -11,9 +11,11 @@ export interface UsePasswordProtectionResult {
 
 /**
  * usePasswordProtection: File ▸ Protect Presentation dialog. Mirrors React:
- * the password lives in host state; encryption on save is not wired in either
- * binding, so this only tracks the protected flag + secret. Extracted
- * verbatim from `PowerPointViewer.vue`.
+ * the password lives in host state and the save path reads it through the
+ * shared `planDeckSave`/`saveDeckWithPassword` decision, so a protected deck
+ * serialises to an encrypted OLE2 container instead of a plain ZIP. The
+ * viewer creates this composable ahead of `useLoadContent` and hands it in as
+ * `getSaveIntent`.
  */
 export function usePasswordProtection(): UsePasswordProtectionResult {
 	const showPasswordDialog = ref(false);

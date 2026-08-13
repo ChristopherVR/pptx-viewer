@@ -1,8 +1,9 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import { isTemplateElementId } from 'pptx-viewer-shared';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { filterInteractableIds, isTemplateElementId } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
+import { useConnectorReroute } from './connector-reroute-store';
 import { setTemplateElements } from './template-editing';
 import type { TemplateElementMap } from './template-editing';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -43,6 +44,8 @@ export interface UseEditorKeyboardResult {
 	copySelected: () => void;
 	/** Cut the first selected element to the in-memory clipboard (also used by the ribbon). */
 	cutSelected: () => void;
+	/** Select every element on the active slide (Ctrl+A, and Home > Editing > Select All). */
+	selectAllElements: () => void;
 }
 
 /**
@@ -98,6 +101,13 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 			cutElement(id);
 		}
 	}
+	/** Recompute the connectors glued to shapes an arrow-key nudge just moved. */
+	const rerouteConnectorsFor = useConnectorReroute({
+		slides,
+		activeSlideIndex,
+		templateElementsBySlideId,
+	});
+
 	/** Nudge every selected element by (dx, dy) px as one history entry. */
 	function nudgeSelected(dx: number, dy: number): void {
 		if (selectedElementIds.value.length === 0) {
@@ -108,7 +118,21 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		if (!slide) {
 			return;
 		}
-		const ids = new Set(selectedElementIds.value);
+		// `a:spLocks/@noMove` pins a shape, so the arrow keys must skip it exactly as
+		// a drag does, and a multi-selection nudges only its movable members.
+		const lookup = new Map<string, PptxElement>();
+		for (const el of [...(templateElementsBySlideId.value[slide.id] ?? []), ...slide.elements]) {
+			lookup.set(el.id, el);
+		}
+		const movableIds = filterInteractableIds(
+			selectedElementIds.value,
+			(id) => lookup.get(id),
+			'move',
+		);
+		if (movableIds.length === 0) {
+			return;
+		}
+		const ids = new Set(movableIds);
 		// Partition into template ids (master-/layout- prefix) and normal slide ids so
 		// the nudge routes through the correct store for each group. Without this split
 		// a selected template element is silently skipped (it lives in the template
@@ -138,6 +162,9 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 			};
 			slides.value = nextSlides;
 		}
+		// The nudged shapes have landed: connectors glued to them follow, the same
+		// as at the end of a pointer drag.
+		rerouteConnectorsFor(ids);
 	}
 
 	const shortcuts = useKeyboardShortcuts({
@@ -190,5 +217,14 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		shortcuts.handleKeyDown(event);
 	}
 
-	return { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected };
+	return {
+		showShortcuts,
+		shortcuts,
+		onEditorKeydown,
+		copySelected,
+		cutSelected,
+		// Also reachable from Home > Editing > Select > Select All, which had no
+		// producer at all until now.
+		selectAllElements,
+	};
 }

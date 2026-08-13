@@ -172,6 +172,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-add-shape="props.onAddShape"
 				:on-move-layer="props.onMoveLayer"
 				:on-move-layer-to-edge="props.onMoveLayerToEdge"
+				:on-update-element-style="props.onUpdateElementStyle"
 			/>
 
 			<DrawSection
@@ -221,6 +222,10 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				v-if="s === 'transitions'"
 				:is-inspector-pane-open="props.isInspectorPaneOpen"
 				:on-toggle-inspector="props.onToggleInspector"
+				:can-edit="props.canEdit"
+				:active-slide="props.activeSlide"
+				:on-transition-change="props.onTransitionChange"
+				:on-apply-transition-to-all="props.onApplyTransitionToAll"
 			/>
 
 			<AnimationsSection

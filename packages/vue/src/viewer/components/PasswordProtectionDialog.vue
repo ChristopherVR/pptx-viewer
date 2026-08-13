@@ -210,10 +210,14 @@ function onRemove(): void {
 				class="rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
 				@click="onSubmit"
 			>
+				<!-- `pptx.security.*`, not `pptx.password.*`: the same keys React,
+				     Angular, Svelte and Vanilla use, so the button reads identically
+				     in all five (it used to be "Set password" here and "Save" in two
+				     bindings). -->
 				{{
 					props.isCurrentlyProtected
-						? t('pptx.password.updatePassword')
-						: t('pptx.password.setPassword')
+						? t('pptx.security.updatePassword')
+						: t('pptx.security.setPassword')
 				}}
 			</button>
 		</template>

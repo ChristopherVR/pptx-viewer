@@ -4,13 +4,12 @@ import {
 	buildTextBlockStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	getComputedStrokeStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	isHollowShapeElement,
 	resolveShapeGeometry,
-	paintedStrokeWidth,
-	suppressesCssBorder,
 	px,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -96,20 +95,33 @@ export function getShapeFillStrokeStyle(
 			}
 		}
 
-		// Stroke. A gradient outline is stroked as an SVG path by
-		// `ShapeEffectOverlay` (a CSS border takes one colour only), so the border
-		// is dropped here rather than drawing the averaged solid underneath it.
-		// `paintedStrokeWidth`: a width-only fill-less <a:ln> paints NO outline
-		// (PowerPoint ground truth; see shared stroke-paint).
-		const strokeWidth = suppressesCssBorder(el) ? 0 : paintedStrokeWidth(ss);
-		if (strokeWidth > 0) {
+		// Stroke: the whole `a:ln` -> CSS decision lives in shared
+		// `getComputedStrokeStyle` (painted width, dash, compound `@cmpd` lines as
+		// `border-style: double`, `strokeOpacity`, and the inherited join / cap /
+		// miter-limit), so this binding only maps it. It also drops the border for
+		// an outline the SVG overlay is painting instead - a gradient/pattern line
+		// or an open preset - rather than drawing the averaged solid underneath.
+		const stroke = getComputedStrokeStyle(el);
+		if (stroke.borderWidth > 0) {
 			if (animatesStroke) {
 				// Keep the width / dash; leave the colour to the animated keyframes.
-				style.borderWidth = px(strokeWidth);
-				style.borderStyle = getCssBorderDashStyle(ss.strokeDash);
+				style.borderWidth = px(stroke.borderWidth);
+				style.borderStyle = stroke.borderStyle;
 			} else {
-				style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+				style.border = stroke.border;
 			}
+		}
+		// SVG presentation properties are INHERITED, so writing them on the shape
+		// box is what carries `a:ln`'s join / cap / `a:miter/@lim` into the stroke
+		// overlay's `<path>` without the overlay restating them.
+		if (stroke.strokeLinejoin) {
+			style.strokeLinejoin = stroke.strokeLinejoin;
+		}
+		if (stroke.strokeLinecap) {
+			style.strokeLinecap = stroke.strokeLinecap;
+		}
+		if (stroke.strokeMiterlimit !== undefined) {
+			style.strokeMiterlimit = stroke.strokeMiterlimit;
 		}
 	}
 

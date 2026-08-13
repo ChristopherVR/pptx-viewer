@@ -1,4 +1,5 @@
 import type { DistributeAxis } from 'pptx-viewer-shared';
+import { resetSlideLayoutPath } from 'pptx-viewer-shared';
 
 import type { UseRibbonPropsInput } from './ribbon-props-types';
 import { RIBBON_ALIGN, toShapePreset } from './useRibbonActions';
@@ -231,5 +232,19 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onToggleSubtitles: input.onToggleSubtitles,
 		onTransitionChange: input.onTransitionChange,
 		onApplyTransitionToAll: input.onApplyTransitionToAll,
+		// Reset / Section / Select All were declared on `RibbonProps` and forwarded
+		// all the way down to their buttons, but no producer ever supplied them, so
+		// the three controls rendered enabled and bound `undefined`.
+		onResetSlide: () => {
+			const path = resetSlideLayoutPath(input.activeSlide.value);
+			if (path) {
+				void input.applyLayoutToActiveSlide(path);
+			}
+		},
+		onAddSection: () => {
+			input.addSection(input.defaultSectionName(), input.activeSlideIndex.value);
+		},
+		onSelectAll: input.selectAllElements,
+		onPresentationPropertiesChange: input.onPresentationPropertiesUpdate,
 	};
 }

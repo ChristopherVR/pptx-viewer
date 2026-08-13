@@ -25,6 +25,8 @@ import type {
 	XmlObject,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError, parseSignatureXml } from 'pptx-viewer-core';
+import type { DeckSaveIntent, DeckSavePurpose } from 'pptx-viewer-shared';
+import { saveDeckWithPassword } from 'pptx-viewer-shared';
 import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 
@@ -143,6 +145,15 @@ export interface UseLoadContentResult {
 	notesCanvasSize: Ref<CanvasSize | undefined>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
+	/**
+	 * Serialise for bytes this viewer will read back itself: the autosave
+	 * crash-recovery snapshot, and the re-serialise-then-reload cycle behind
+	 * "apply theme". Always a plain ZIP even when the deck is password
+	 * protected, because neither reader can supply the password (see
+	 * `deck-save-encryption` in `pptx-viewer-shared` for the rationale and the
+	 * privacy tradeoff it accepts).
+	 */
+	getRecoverySnapshot: () => Promise<Uint8Array>;
 	/** Serialise to a specific OpenXML format (pptx / ppsx / pptm). */
 	saveAs: (format: PptxSaveFormat) => Promise<Uint8Array>;
 }
@@ -154,6 +165,13 @@ export interface UseLoadContentOptions {
 	 * load lands mid-session and would otherwise clobber remotely-synced state.
 	 */
 	onContentApplied?: () => void;
+	/**
+	 * The File > Info > Protect Presentation state, read at save time. When it
+	 * yields a password the deck is serialised through `saveEncrypted` (an OLE2
+	 * container), not `save` (a plain ZIP). A getter rather than a value so the
+	 * secret is always the current one, no matter when the dialog set it.
+	 */
+	getSaveIntent?: () => DeckSaveIntent;
 }
 
 export function useLoadContent(
@@ -413,7 +431,10 @@ export function useLoadContent(
 		}
 	};
 
-	const saveAs = async (format: PptxSaveFormat): Promise<Uint8Array> => {
+	const serialize = async (
+		format: PptxSaveFormat,
+		purpose: DeckSavePurpose,
+	): Promise<Uint8Array> => {
 		if (!handler.value) {
 			throw new Error('No presentation is loaded.');
 		}
@@ -422,23 +443,40 @@ export function useLoadContent(
 		// edits persist. Persist edited document metadata (core properties,
 		// sections, custom shows, header/footer, tag collections) into the
 		// saved file.
-		return handler.value.save(buildSaveSlides(slides.value, templateElementsBySlideId.value), {
-			coreProperties: coreProperties.value,
-			customProperties: customProperties.value,
-			appProperties: appProperties.value,
-			sections: sections.value,
-			customShows: customShows.value,
-			presentationProperties: presentationProperties.value,
-			headerFooter: headerFooter.value,
-			slideMasters: slideMasters.value,
-			notesMaster: notesMaster.value,
-			handoutMaster: handoutMaster.value,
-			tags: tagCollections.value.length > 0 ? tagCollections.value : undefined,
-			outputFormat: format,
-		});
+		// Routed through the shared decision so a password set in the protection
+		// dialog produces an encrypted OLE2 file, exactly as in the other four
+		// bindings - unless `purpose` says these bytes are a recovery snapshot,
+		// which stays a plain ZIP so it can be reopened without the password
+		// (see `deck-save-encryption` in `pptx-viewer-shared`).
+		return saveDeckWithPassword(
+			handler.value,
+			buildSaveSlides(slides.value, templateElementsBySlideId.value),
+			{
+				coreProperties: coreProperties.value,
+				customProperties: customProperties.value,
+				appProperties: appProperties.value,
+				sections: sections.value,
+				customShows: customShows.value,
+				presentationProperties: presentationProperties.value,
+				headerFooter: headerFooter.value,
+				slideMasters: slideMasters.value,
+				notesMaster: notesMaster.value,
+				handoutMaster: handoutMaster.value,
+				tags: tagCollections.value.length > 0 ? tagCollections.value : undefined,
+				outputFormat: format,
+			},
+			{ ...options?.getSaveIntent?.(), purpose },
+		);
 	};
 
+	const saveAs = (format: PptxSaveFormat): Promise<Uint8Array> => serialize(format, 'user-file');
+
 	const getContent = (): Promise<Uint8Array> => saveAs('pptx');
+
+	// Autosave used to call `getContent()`, so protecting a deck wrote an
+	// ENCRYPTED recovery snapshot that nothing could reopen. Recovery gets its
+	// own serialisation now, and the decision lives in shared.
+	const getRecoverySnapshot = (): Promise<Uint8Array> => serialize('pptx', 'recovery-snapshot');
 
 	watch(
 		() => toValue(content),
@@ -488,5 +526,6 @@ export function useLoadContent(
 		notesCanvasSize,
 		saveAs,
 		getContent,
+		getRecoverySnapshot,
 	};
 }

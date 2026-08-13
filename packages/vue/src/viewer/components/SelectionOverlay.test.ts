@@ -158,6 +158,83 @@ describe('selectionOverlay', () => {
 		wrapper.unmount();
 	});
 
+	// The inspector's Lock toggle wrote `locks` that the overlay never read, so a
+	// shape the author pinned still offered all nine transform affordances.
+	it('hides the resize handles for a noResize element', () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: {
+				elements: [el({ locks: { noResize: true } })],
+				selectedIds: ['s1'],
+				zoom: 1,
+			},
+		});
+		expect(wrapper.findAll('.pptx-vue-resize-handle')).toHaveLength(0);
+		// Each lock gates exactly one gesture: rotation is still on offer.
+		expect(wrapper.find('.pptx-vue-rotate-knob').exists()).toBeTruthy();
+	});
+
+	it('hides the rotate knob for a noRotation element', () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: {
+				elements: [el({ locks: { noRotation: true } })],
+				selectedIds: ['s1'],
+				zoom: 1,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-rotate-knob').exists()).toBeFalsy();
+		expect(wrapper.findAll('.pptx-vue-resize-handle')).toHaveLength(8);
+	});
+
+	it('hides every transform affordance for a noSelect element', () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: {
+				elements: [el({ locks: { noSelect: true } })],
+				selectedIds: ['s1'],
+				zoom: 1,
+			},
+		});
+		expect(wrapper.findAll('.pptx-vue-resize-handle')).toHaveLength(0);
+		expect(wrapper.find('.pptx-vue-rotate-knob').exists()).toBeFalsy();
+	});
+
+	// The framework-neutral e2e contract: a selected roundRect must expose a
+	// control named "Adjust shape" that drives the corner radius.
+	it('exposes the adjust handle for a roundRect and drags its corner radius', async () => {
+		const wrapper = mount(SelectionOverlay, {
+			attachTo: document.body,
+			props: {
+				elements: [el({ shapeType: 'roundRect', shapeAdjustments: { adj: 16667 } })],
+				selectedIds: ['s1'],
+				zoom: 1,
+			},
+		});
+		const adjust = wrapper.find('.pptx-vue-adjust-handle');
+		expect(adjust.exists()).toBeTruthy();
+		expect(adjust.attributes('aria-label')).toBe('Adjust shape');
+
+		adjust.element.dispatchEvent(pointer('pointerdown', { clientX: 0, clientY: 0 }));
+		window.dispatchEvent(pointer('pointermove', { clientX: 20, clientY: 0 }));
+		window.dispatchEvent(pointer('pointerup', { clientX: 20, clientY: 0 }));
+		await wrapper.vm.$nextTick();
+
+		expect(wrapper.emitted('adjustStart')?.[0]?.[0]).toStrictEqual({ id: 's1' });
+		const ends = wrapper.emitted('adjustEnd') ?? [];
+		const value = (ends[0]?.[0] as { value: number } | undefined)?.value;
+		expect(value).toBeGreaterThan(16667);
+		wrapper.unmount();
+	});
+
+	it('hides the adjust handle for a shape locked with noAdjustHandles', () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: {
+				elements: [el({ shapeType: 'roundRect', locks: { noAdjustHandles: true } })],
+				selectedIds: ['s1'],
+				zoom: 1,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-adjust-handle').exists()).toBeFalsy();
+	});
+
 	it('rotates about the box centre, and snaps to 15 degrees with shift held', async () => {
 		const wrapper = mount(SelectionOverlay, {
 			attachTo: document.body,

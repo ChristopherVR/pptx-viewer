@@ -170,21 +170,15 @@ export const ANIMATION_START_MODES = [
 	'pptx.animations.afterPrevious',
 ];
 
-export const COMMON_FONTS = [
-	'Arial',
-	'Calibri',
-	'Cambria',
-	'Comic Sans MS',
-	'Courier New',
-	'Georgia',
-	'Helvetica',
-	'Impact',
-	'Segoe UI',
-	'Tahoma',
-	'Times New Roman',
-	'Trebuchet MS',
-	'Verdana',
-];
+/**
+ * Re-exported from `pptx-viewer-shared` rather than declared here.
+ *
+ * This binding kept its own copy of the family list, which is exactly how the
+ * five bindings end up offering different fonts. The grouped Home-tab dropdown
+ * now builds itself from `buildFontCatalog`, so nothing in this package should
+ * need the flat list at all; the alias remains only for external importers.
+ */
+export { COMMON_FONT_FAMILIES as COMMON_FONTS } from 'pptx-viewer-shared';
 
 export const COMMON_SIZES = [
 	8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72, 96,

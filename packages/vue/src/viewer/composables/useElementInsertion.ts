@@ -1,5 +1,5 @@
 import { createEditorId, createShapeElement, createTextElement } from 'pptx-viewer-core';
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
 import {
 	createDefaultChartElement,
 	newFieldElement,
@@ -48,6 +48,13 @@ export interface UseElementInsertionResult {
 	insertSlideFromLayout: (layoutPath: string, layoutName?: string) => Promise<void>;
 	/** Re-map the active slide onto another layout of its master. */
 	applyLayoutToActiveSlide: (layoutPath: string) => Promise<void>;
+	/**
+	 * Build the artwork thumbnails the New Slide / Layout galleries draw.
+	 *
+	 * A callback rather than state: parsing every layout is only worth doing
+	 * once the user opens one of those menus, and core memoises the result.
+	 */
+	loadLayoutPreviews: () => Promise<PptxLayoutPreview[]>;
 }
 
 /**
@@ -255,6 +262,10 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 	 * layout's geometry and the layout relationship rewritten; unlike
 	 * {@link insertSlideFromLayout} nothing is added to the deck.
 	 */
+	async function loadLayoutPreviews(): Promise<PptxLayoutPreview[]> {
+		return handler.value ? handler.value.getLayoutPreviews() : [];
+	}
+
 	async function applyLayoutToActiveSlide(layoutPath: string): Promise<void> {
 		const h = handler.value;
 		const index = activeSlideIndex.value;
@@ -328,5 +339,6 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		addActionButton,
 		insertSlideFromLayout,
 		applyLayoutToActiveSlide,
+		loadLayoutPreviews,
 	};
 }

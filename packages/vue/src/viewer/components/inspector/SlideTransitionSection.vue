@@ -3,9 +3,8 @@
  * SlideTransitionSection: slide transition editing (type / duration / direction
  * / orientation / spokes / advance-on-click), extracted from the old untabbed
  * `SlideInspector`. Mirrors React's `inspector/SlideTransitionSection.tsx`,
- * which is likewise not rendered by the default inspector: React surfaces
- * transitions on the ribbon's Transitions tab, so this section is kept as a
- * standalone component rather than a default inspector section.
+ * which `PresentationPropertiesPanel` renders beside SLIDE SIZE; this one is
+ * mounted from the Vue panel in the same slot.
  */
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';

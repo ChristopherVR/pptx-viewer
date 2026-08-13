@@ -7,9 +7,11 @@
  * THEME, THEME OVERRIDE, SLIDE SIZE, NOTES & HANDOUT, DOCUMENT) followed by the
  * Background card (`SlideBackgroundPanel`), matching React's section order.
  *
- * Slide transitions are no longer a section here: as in React, they surface on
- * the ribbon's Transitions tab (the extracted `SlideTransitionSection`
- * component mirrors React's equally-unmounted inspector section).
+ * Slide transitions are edited from BOTH the ribbon's Transitions tab and the
+ * SLIDE TRANSITION card `PresentationPropertiesPanel` renders, exactly as in
+ * React. An earlier comment here claimed the ribbon owned them exclusively;
+ * the ribbon was inert at the time and `SlideTransitionSection` was mounted
+ * nowhere, so Vue had no transition-authoring path at all.
  */
 import type {
 	PptxAppProperties,

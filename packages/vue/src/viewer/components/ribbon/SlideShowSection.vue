@@ -10,7 +10,9 @@ import {
 	Settings,
 	Video,
 } from 'lucide-vue-next';
+import type { PptxPresentationProperties } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { SLIDE_SHOW_OPTIONS, readSlideShowOption, slideShowOptionChange } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -55,6 +57,10 @@ interface Props {
 	customShowControls: CustomShowsControlsProps;
 	/** Toolbar buttons the host has asked to hide (gates the Broadcast button below). */
 	hiddenActions?: ToolbarActionId[];
+	/** Deck presentation properties backing the Options checkboxes. */
+	presentationProperties?: PptxPresentationProperties;
+	/** Commit an Options checkbox onto the deck's presentation properties. */
+	onPresentationPropertiesChange?: (updates: Partial<PptxPresentationProperties>) => void;
 }
 
 const props = defineProps<Props>();
@@ -64,6 +70,24 @@ const showsMenu = useDropdown();
 
 /** A checkbox pill: matches the reference's `RibbonToggle`, which is a labelled input. */
 const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px]';
+
+// The Options cluster used to be four hard-coded `checked` boxes with no change
+// handler, so "Use Timings" claimed to be on whether or not the deck said so.
+// Both supported entries now read and write the deck's presentation properties;
+// the two nothing backs render disabled.
+const optionsColumnOne = SLIDE_SHOW_OPTIONS.slice(0, 3);
+const mediaControlsOption = SLIDE_SHOW_OPTIONS[3];
+
+function optionChecked(id: (typeof SLIDE_SHOW_OPTIONS)[number]['id']): boolean {
+	return readSlideShowOption(props.presentationProperties, id);
+}
+
+function commitOption(id: (typeof SLIDE_SHOW_OPTIONS)[number]['id'], checked: boolean): void {
+	const change = slideShowOptionChange(id, checked);
+	if (change) {
+		props.onPresentationPropertiesChange?.(change);
+	}
+}
 </script>
 
 <template>
@@ -147,23 +171,26 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 	</button>
 	<div :class="SEP" />
 	<div class="flex flex-col justify-start gap-0.5">
-		<label :class="toggleRow">
-			<input type="checkbox" disabled class="h-3 w-3 accent-primary disabled:opacity-35" />
-			{{ t('pptx.slideShow.keepUpdated') }}
-		</label>
-		<label :class="toggleRow">
-			<input type="checkbox" checked class="h-3 w-3 accent-primary" />
-			{{ t('pptx.slideShow.useTimings') }}
-		</label>
-		<label :class="toggleRow">
-			<input type="checkbox" checked class="h-3 w-3 accent-primary" />
-			{{ t('pptx.slideShow.playNarrations') }}
+		<label v-for="option in optionsColumnOne" :key="option.id" :class="toggleRow">
+			<input
+				type="checkbox"
+				class="h-3 w-3 accent-primary disabled:opacity-35"
+				:disabled="option.unsupported"
+				:checked="optionChecked(option.id)"
+				@change="commitOption(option.id, ($event.target as HTMLInputElement).checked)"
+			/>
+			{{ t(option.labelKey) }}
 		</label>
 	</div>
 	<div class="flex flex-col justify-start gap-0.5">
 		<label :class="toggleRow">
-			<input type="checkbox" checked class="h-3 w-3 accent-primary" />
-			{{ t('pptx.slideShow.mediaControls') }}
+			<input
+				type="checkbox"
+				class="h-3 w-3 accent-primary disabled:opacity-35"
+				:disabled="mediaControlsOption.unsupported"
+				:checked="optionChecked(mediaControlsOption.id)"
+			/>
+			{{ t(mediaControlsOption.labelKey) }}
 		</label>
 		<label :class="cn(toggleRow, props.showSubtitles ? 'bg-primary/15 text-primary' : '')">
 			<input

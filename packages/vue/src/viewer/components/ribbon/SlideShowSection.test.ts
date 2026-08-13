@@ -110,3 +110,71 @@ describe('slideShowSection', () => {
 		expect(keepUpdated?.find('input').attributes('disabled')).toBeDefined();
 	});
 });
+
+/**
+ * The Options cluster used to be four hard-coded `checked` boxes with no change
+ * handler, so "Use Timings" claimed to be on whether or not the deck said so
+ * and unticking it did nothing. These assert EFFECT.
+ */
+describe('slideShowSection options cluster', () => {
+	function mountWithProperties(
+		presentationProperties: Record<string, unknown>,
+		onPresentationPropertiesChange = () => {},
+	) {
+		return mount(SlideShowSection, {
+			props: {
+				onPresent: () => {},
+				onEnterPresenterView: () => {},
+				onEnterRehearsalMode: () => {},
+				onOpenSetUpSlideShow: () => {},
+				onOpenBroadcastDialog: () => {},
+				onToggleSubtitles: () => {},
+				showSubtitles: false,
+				onSetMode: () => {},
+				customShowControls,
+				presentationProperties,
+				onPresentationPropertiesChange,
+			},
+		});
+	}
+
+	function optionBox(wrapper: ReturnType<typeof mountWithProperties>, label: string) {
+		return wrapper
+			.findAll('label')
+			.find((l) => l.text() === label)
+			?.find('input[type="checkbox"]');
+	}
+
+	it('reflects the deck rather than a hard-coded checked attribute', () => {
+		const wrapper = mountWithProperties({ advanceMode: 'manual' });
+		const box = optionBox(wrapper, 'Using timings, if present');
+		if (!box) {
+			throw new Error('the Use Timings checkbox must exist');
+		}
+		expect((box.element as HTMLInputElement).checked).toBeFalsy();
+	});
+
+	it('commits Use Timings onto the presentation properties', async () => {
+		const changes: Record<string, unknown>[] = [];
+		const wrapper = mountWithProperties({}, (patch: Record<string, unknown>) =>
+			changes.push(patch),
+		);
+		await optionBox(wrapper, 'Using timings, if present')?.setValue(false);
+		expect(changes).toStrictEqual([{ advanceMode: 'manual' }]);
+	});
+
+	it('commits Play Narrations onto the presentation properties', async () => {
+		const changes: Record<string, unknown>[] = [];
+		const wrapper = mountWithProperties({}, (patch: Record<string, unknown>) =>
+			changes.push(patch),
+		);
+		await optionBox(wrapper, 'Play Narrations')?.setValue(false);
+		expect(changes).toStrictEqual([{ showWithNarration: false }]);
+	});
+
+	it('disables the two options nothing backs', () => {
+		const wrapper = mountWithProperties({});
+		expect(optionBox(wrapper, 'Keep Slides Updated')?.attributes('disabled')).toBeDefined();
+		expect(optionBox(wrapper, 'Show Media Controls')?.attributes('disabled')).toBeDefined();
+	});
+});

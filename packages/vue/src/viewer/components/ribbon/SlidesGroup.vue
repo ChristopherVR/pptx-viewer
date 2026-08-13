@@ -12,19 +12,25 @@ import {
 	Plus,
 	RotateCcw,
 } from 'lucide-vue-next';
+import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
-import { ref } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import SlideTemplateGalleryDialog from '../SlideTemplateGalleryDialog.vue';
-import { ic, MENU_ITEM, MENU_PANEL, pill } from './ribbon-constants';
+import LayoutGalleryMenu from './LayoutGalleryMenu.vue';
+import { ic, pill } from './ribbon-constants';
 import type { LayoutOption } from './ribbon-types';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
 	canEdit: boolean;
 	layoutOptions: LayoutOption[];
+	/** Marks the active tile in the Layout menu. */
+	currentLayoutPath?: string;
+	/** Supplies gallery artwork; without it the menus stay name-only. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	onInsertSlideFromTemplate?: (templateId: SlideTemplateId) => void;
 	/** Deck scheme map so template previews show the deck's theme colours. */
@@ -41,6 +47,30 @@ const layoutMenu = useDropdown();
 const layoutApplyMenu = useDropdown();
 const templateGalleryOpen = ref(false);
 
+/**
+ * Layout artwork, fetched the first time either gallery opens.
+ *
+ * Parsing every layout part is only worth doing once the user asks to see the
+ * thumbnails; core memoises the result, so reopening a menu costs nothing.
+ */
+const previews = ref<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+watchEffect(() => {
+	if (!layoutMenu.open.value && !layoutApplyMenu.open.value) {
+		return;
+	}
+	const load = props.loadLayoutPreviews;
+	if (!load) {
+		return;
+	}
+	void load()
+		.then((loaded) => {
+			previews.value = new Map(loaded.map((preview) => [preview.path, preview]));
+		})
+		// A layout that will not parse costs the user a name-only tile, not a
+		// broken menu.
+		.catch(() => undefined);
+});
+
 function handleInsertTemplate(templateId: SlideTemplateId): void {
 	props.onInsertSlideFromTemplate?.(templateId);
 }
@@ -52,12 +82,12 @@ function handleNewSlide(): void {
 	}
 }
 
-function handlePickLayout(lo: LayoutOption): void {
+function handlePickLayout(lo: PptxLayoutOption | LayoutOption): void {
 	props.onInsertSlideFromLayout(lo.path, lo.name);
 	layoutMenu.close();
 }
 
-function handleApplyLayout(lo: LayoutOption): void {
+function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 	props.onApplyLayout?.(lo.path);
 	layoutApplyMenu.close();
 }
@@ -90,22 +120,12 @@ function handleApplyLayout(lo: LayoutOption): void {
 				>
 					<ChevronDown class="w-3 h-3" />
 				</button>
-				<div
+				<LayoutGalleryMenu
 					v-if="layoutMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-48 pt-1"
-				>
-					<div :class="MENU_PANEL">
-						<button
-							v-for="lo in props.layoutOptions"
-							:key="lo.path"
-							type="button"
-							:class="MENU_ITEM"
-							@click="handlePickLayout(lo)"
-						>
-							{{ lo.name }}
-						</button>
-					</div>
-				</div>
+					:layout-options="props.layoutOptions"
+					:previews="previews"
+					@select="handlePickLayout"
+				/>
 			</div>
 
 			<!-- Slide Templates gallery button -->
@@ -133,22 +153,13 @@ function handleApplyLayout(lo: LayoutOption): void {
 					<LayoutGrid :class="ic" />
 					{{ t('pptx.master.layout') }}
 				</button>
-				<div
+				<LayoutGalleryMenu
 					v-if="layoutApplyMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-48 pt-1"
-				>
-					<div :class="MENU_PANEL">
-						<button
-							v-for="lo in props.layoutOptions"
-							:key="lo.path"
-							type="button"
-							:class="MENU_ITEM"
-							@click="handleApplyLayout(lo)"
-						>
-							{{ lo.name }}
-						</button>
-					</div>
-				</div>
+					:layout-options="props.layoutOptions"
+					:previews="previews"
+					:current-layout-path="props.currentLayoutPath"
+					@select="handleApplyLayout"
+				/>
 			</div>
 
 			<!-- Reset -->

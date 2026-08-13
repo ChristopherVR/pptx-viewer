@@ -1,7 +1,12 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CollaborationLivePatcher, ViewerProofingOptions } from 'pptx-viewer-shared';
-import { applyAutoCorrect, publishLiveInlineText, setCellText } from 'pptx-viewer-shared';
+import {
+	applyAutoCorrect,
+	canInteractWithElement,
+	publishLiveInlineText,
+	setCellText,
+} from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -83,11 +88,12 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	function enterInlineEdit(id: string): void {
 		const el = findActiveElement(id);
 		// Only elements that carry text (text boxes / shapes) get the element-level
-		// inline text editor, and only when text editing is not locked. Mirrors
-		// React's gate (useCanvasInteractions: `hasTextProperties(el) &&
-		// !el.locks?.noTextEdit`). Without this, tapping a selected table opened the
-		// whole-table text editor and masked the per-cell <td> editor.
-		if (!el || !hasTextProperties(el) || el.locks?.noTextEdit) {
+		// inline text editor, and only when text editing is not locked. The lock
+		// composition (`noSelect` subsumes `noTextEdit`) is decided once, in shared
+		// `element-locks`, rather than re-read flag by flag here. Without the text
+		// gate, tapping a selected table opened the whole-table text editor and
+		// masked the per-cell <td> editor.
+		if (!el || !hasTextProperties(el) || !canInteractWithElement(el, 'textEdit')) {
 			return;
 		}
 		// Equation elements never enter inline text editing: the editor only

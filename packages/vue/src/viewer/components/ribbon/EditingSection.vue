@@ -69,7 +69,12 @@ function handleSelectAll(): void {
 					class="absolute right-0 top-full z-50 flex flex-col w-32 pt-1"
 				>
 					<div :class="MENU_PANEL">
-						<button type="button" :class="MENU_ITEM" @click="handleSelectAll">
+						<!-- `mousedown.prevent` is load-bearing, and its absence is why this
+						     item did nothing once a producer was finally supplied: without it
+						     the click blurs the canvas, and the deselect-on-outside-click
+						     handler wipes the selection the command has just made. React's
+						     item has always prevented it. -->
+						<button type="button" :class="MENU_ITEM" @mousedown.prevent @click="handleSelectAll">
 							{{ t('pptx.editing.selectAll') }}
 						</button>
 					</div>
