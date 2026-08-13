@@ -33,7 +33,6 @@ import OptionsRibbonPane from './settings/OptionsRibbonPane.vue';
 import SettingsAiTab from './SettingsAiTab.vue';
 import SettingsAppearanceTab from './SettingsAppearanceTab.vue';
 import SettingsCustomFontsSection from './SettingsCustomFontsSection.vue';
-import SettingsCustomFontsSection from './SettingsCustomFontsSection.vue';
 import SettingsLanguageTab from './SettingsLanguageTab.vue';
 
 /** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
