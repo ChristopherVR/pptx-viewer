@@ -51,6 +51,15 @@ Turn on **Rulers**, **Grid**, **Guides**, and **Snap to grid** from the **View**
 Format text from the **Home** tab:
 
 - **Font group** - font family and size dropdowns; **Bold**, **Italic**, **Underline**, **Strikethrough**; **Text Shadow**; **Increase / Decrease Font Size**; **Clear Formatting**; **Character Spacing**; **Change Case**; **Font Color** and **Text Highlight Color** (each with preset swatches and a **Custom colour...** picker).
+
+  The font list is grouped the way PowerPoint groups it: the presentation's two
+  **theme fonts** first (marked _Headings_ and _Body_), then any fonts
+  **embedded in this presentation**, then any you have
+  [added this session](#adding-a-font-the-viewer-does-not-have), then the full
+  alphabetical list. With nothing overriding it on the selected element, the box
+  shows the font the deck would actually render, which inside a title
+  placeholder is the theme's heading font rather than a generic default.
+
 - **Paragraph group** - bullet and numbered lists; indent controls; **Align left / center / right / Justify**; **Line Spacing**; **Text Direction** (horizontal, rotated, stacked); **Columns**.
 
 The same text settings are available in the inspector's **Text** panel when a text element is selected.
@@ -126,11 +135,35 @@ Right-click a table for row and column commands: **Insert Row Above / Below**, *
 
 ## Managing slides
 
-- **Add a slide** - click **Add Slide** at the bottom of the slides panel, or use **Home > New Slide**. The arrow next to New Slide lets you pick a layout; the **Layout** button changes the layout of the current slide.
+- **Add a slide** - click **Add Slide** at the bottom of the slides panel, or use **Home > New Slide**. The arrow next to New Slide opens a gallery of the layouts belonging to the current slide's master, each drawn with its real artwork and placeholder frames rather than listed by name. The **Layout** button opens the same gallery to change the current slide's layout, with the layout it is using now outlined. Changing layout moves your content into the matching placeholders; anything the new layout has no slot for stays on the slide as free-standing content rather than being discarded.
 - **Reorder** - drag thumbnails in the slides panel, or drag cards in the [slide sorter](/user/viewing#the-slide-sorter).
 - **Duplicate, hide, or delete** - open the slide sorter, right-click one or more slides, and choose **Duplicate**, **Hide Slides** / **Show Slides**, or **Delete**. Copy and paste of whole slides works there too (**Ctrl+C** / **Ctrl+V**).
 - **Sections** - use **Home > Section** or right-click a thumbnail and choose **Add Section Before** to group slides under named headings. Right-click a section header to **Rename**, **Delete**, or **Move** it.
 - **Reset** - **Home > Reset** restores the current slide's placeholder positions from its layout.
+
+## Adding a font the viewer does not have
+
+Presentations sometimes use fonts that are not installed on your device. The
+viewer substitutes the closest available face, which can change how the deck
+looks. If you have the font file, you can hand it to the viewer for the current
+session:
+
+1. Open **File > Options > General** and find the **Fonts** section.
+2. Turn on **Let me add font files to this session**. The setting is off by
+   default, so the file picker stays disabled until you enable it.
+3. Click **Add font file** and choose a `.ttf`, `.otf`, `.woff`, or `.woff2`
+   file.
+
+The family appears under **Fonts added this session** and in the Home tab's font
+list, and slides using it re-render with the real face. Files whose names spell
+out a weight or style (`Inter-SemiBoldItalic.woff2`) register under the family
+name alone, so the four files of one family combine into a single entry that the
+**Bold** and _Italic_ buttons work against.
+
+Added fonts are held in memory only. They are never uploaded, never written into
+the presentation, and are discarded when you reload the page, so a licensed font
+file stays where you put it. To ship a font _with_ the deck instead, use
+**File > Embed Fonts**.
 
 ## Editing speaker notes
 
