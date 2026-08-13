@@ -73,7 +73,7 @@ function makeProps(element: PptxElement): ElementRendererProps {
 		showResizeHandles: false,
 		renderInk: true,
 		renderGroups: true,
-		adjustmentHandleDescriptor: null,
+		adjustmentHandles: [],
 		onResizePointerDown: vi.fn<() => void>(),
 		onAdjustmentPointerDown: vi.fn<() => void>(),
 		onInlineEditChange: vi.fn<() => void>(),

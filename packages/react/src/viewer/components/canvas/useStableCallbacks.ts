@@ -1,7 +1,7 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import React, { useCallback, useRef } from 'react';
 
-import type { TableCellEditorState } from '../../types';
+import type { ShapeAdjustmentHandleDescriptor, TableCellEditorState } from '../../types';
 
 /* ------------------------------------------------------------------ */
 /*  Callbacks type (mirrors the shape of SlideCanvasProps callbacks)   */
@@ -13,7 +13,11 @@ interface ParentCallbacks {
 	onMouseDown: (elementId: string, e: React.MouseEvent) => void;
 	onContextMenu: (elementId: string, e: React.MouseEvent) => void;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	onRotate?: (elementId: string, rotationDeg: number) => void;
 	onInlineEditChange: (text: string) => void;
 	onInlineEditCommit: () => void;
@@ -36,7 +40,11 @@ interface ParentCallbacks {
 export interface StableCallbacks {
 	cbRef: React.RefObject<ParentCallbacks>;
 	stableResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	stableAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	stableAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	stableRotate: (elementId: string, rotationDeg: number) => void;
 	stableInlineEditChange: (text: string) => void;
 	stableInlineEditCommit: () => void;
@@ -69,7 +77,8 @@ export function useStableCallbacks(callbacks: ParentCallbacks): StableCallbacks 
 	);
 
 	const stableAdjustmentPointerDown = useCallback(
-		(elementId: string, e: React.MouseEvent) => cbRef.current.onAdjustmentPointerDown(elementId, e),
+		(elementId: string, e: React.MouseEvent, descriptor: ShapeAdjustmentHandleDescriptor) =>
+			cbRef.current.onAdjustmentPointerDown(elementId, e, descriptor),
 		[],
 	);
 

@@ -14,6 +14,13 @@ export interface DesignSectionProps {
 	onToggleThemeEditor: () => void;
 	isThemeEditorOpen: boolean;
 	onOpenDocumentProperties?: () => void;
+	/**
+	 * Design > Slide Size: reveal the inspector's SLIDE SIZE card, the only
+	 * slide-size control this binding has. The button used to run
+	 * `onOpenDocumentProperties`, a dialog with no slide-size control in it -
+	 * the same mis-wiring Angular, Vanilla and Svelte each shipped separately.
+	 */
+	onOpenSlideSize?: () => void;
 	onToggleInspector?: () => void;
 	isInspectorPaneOpen?: boolean;
 }
@@ -49,9 +56,9 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 			{sep}
 
 			{/* Customize */}
-			{p.onOpenDocumentProperties && (
+			{(p.onOpenSlideSize ?? p.onOpenDocumentProperties) && (
 				<button
-					onClick={p.onOpenDocumentProperties}
+					onClick={p.onOpenSlideSize ?? p.onOpenDocumentProperties}
 					className={pill}
 					title={t('pptx.ribbon.slideSizeTitle')}
 				>

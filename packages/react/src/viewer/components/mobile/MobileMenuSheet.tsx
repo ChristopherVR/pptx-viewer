@@ -232,6 +232,7 @@ function MobileSectionBody({
 						onToggleThemeEditor={p.onToggleThemeEditor}
 						isThemeEditorOpen={p.isThemeEditorOpen}
 						onOpenDocumentProperties={p.onOpenDocumentProperties}
+						onOpenSlideSize={p.onOpenSlideSize}
 						onToggleInspector={p.onToggleInspector}
 						isInspectorPaneOpen={p.isInspectorPaneOpen}
 					/>

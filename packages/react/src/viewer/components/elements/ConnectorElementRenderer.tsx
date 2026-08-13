@@ -36,7 +36,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		selectionColorClass: selClr,
 		opacity,
 		zIndex,
-		adjustmentHandleDescriptor: adjH,
+		adjustmentHandles: adjH,
 		onResizePointerDown,
 		onAdjustmentPointerDown,
 		animationState,
@@ -272,7 +272,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 				{showResizeHandles && (
 					<ResizeHandles
 						elementId={el.id}
-						adjustmentHandleDescriptor={adjH}
+						adjustmentHandles={adjH}
 						onResizePointerDown={onResizePointerDown}
 						onAdjustmentPointerDown={onAdjustmentPointerDown}
 						forcePointerEvents

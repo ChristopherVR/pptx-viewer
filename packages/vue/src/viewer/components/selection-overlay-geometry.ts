@@ -32,10 +32,17 @@ export interface TransformPayload {
 	rotation: number;
 }
 
-/** Live value emitted while (and after) a shape-adjustment gesture. */
+/**
+ * Live values emitted while (and after) a shape-adjustment gesture.
+ *
+ * A MAP, not one number: a preset has one handle per `a:avLst` guide and a
+ * callout's single diamond drives two of them at once, so a payload carrying
+ * only `value` could describe neither. It also carries the element's other
+ * adjustments forward, because the store writes `shapeAdjustments` whole.
+ */
 export interface AdjustPayload {
 	id: string;
-	value: number;
+	adjustments: Record<string, number>;
 }
 
 /** One rendered resize handle: its id plus where and how it draws. */
@@ -152,9 +159,14 @@ export function rotateKnobStyle(box: SelectedBox, zoom: number): Record<string, 
 export function adjustHandleStyle(
 	descriptor: { left: number; top: number; cursor: string } | null,
 ): Record<string, string> {
+	// The descriptor point is where the handle's CENTRE belongs (shared measures
+	// it off the preset geometry), and the diamond is 10px, so it is pulled back
+	// by half. Left un-centred, every handle sat down-and-right of the feature it
+	// controls, which on a small shape is the difference between grabbing the
+	// adjust handle and grabbing the resize handle beside it.
 	return {
-		left: `${descriptor?.left ?? 0}px`,
-		top: `${descriptor?.top ?? 0}px`,
+		left: `${(descriptor?.left ?? 0) - 5}px`,
+		top: `${(descriptor?.top ?? 0) - 5}px`,
 		cursor: descriptor?.cursor ?? 'ew-resize',
 	};
 }

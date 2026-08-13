@@ -1,5 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { applyFindReplacements, findInSlides } from 'pptx-viewer-shared';
+import {
+	applyFindReplacements,
+	findInSlides,
+	isEditorTextInputTarget,
+	mapEditorKey,
+} from 'pptx-viewer-shared';
 import type { FindResult } from 'pptx-viewer-shared';
 import { useState, useCallback, useEffect } from 'react';
 
@@ -129,16 +134,23 @@ export function useFindReplace({
 		setTimeout(performFind, 0);
 	}, [findResults, applyReplacements, performFind]);
 
-	// ── Keyboard shortcut: Ctrl/Cmd+F toggles find bar (edit mode only) ──
+	// ── Keyboard shortcut: Ctrl/Cmd+F toggles the find bar ────────────────
+	// The chord itself is decided by the shared editor keymap, not here. This
+	// used to be a hand-rolled `event.key === 'f'` test, which is why Angular,
+	// Svelte and Vanilla never got the shortcut at all: there was nothing in
+	// shared for them to adopt. Note `key === 'f'` also missed Ctrl+Shift+F,
+	// which `mapEditorKey` folds in via `toLowerCase()`.
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
-			if ((event.metaKey || event.ctrlKey) && event.key === 'f') {
-				if (mode !== 'edit') {
-					return;
-				}
-				event.preventDefault();
-				setFindReplaceOpen((prev) => !prev);
+			const { action } = mapEditorKey(event, {
+				canEdit: mode === 'edit',
+				isTextInputTarget: isEditorTextInputTarget(event.target),
+			});
+			if (action !== 'find') {
+				return;
 			}
+			event.preventDefault();
+			setFindReplaceOpen((prev) => !prev);
 		};
 		window.addEventListener('keydown', handler);
 		return () => window.removeEventListener('keydown', handler);

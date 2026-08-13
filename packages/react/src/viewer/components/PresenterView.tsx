@@ -1,5 +1,9 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
+import type {
+	PresentationPointerTool,
+	PresentationSnapshot,
+	ShowOrderCustomShow,
+} from 'pptx-viewer-shared';
 import { PRESENTER_CONSOLE_CLASSES, presenterTimerProgress } from 'pptx-viewer-shared';
 /**
  * PresenterView: Split-screen presenter layout with current slide,
@@ -42,6 +46,8 @@ export interface PresenterViewProps {
 	canvasSize: CanvasSize;
 	templateElements: PptxElement[];
 	presentationStartTime: number | null;
+	/** The running custom show, so the next-slide preview follows its order. */
+	activeCustomShow?: ShowOrderCustomShow | null;
 	/**
 	 * `trigger` mirrors the show stage: `'click'` steps through pending element
 	 * builds first and honours the slide's `advanceOnClick` transition flag,
@@ -86,6 +92,7 @@ export function PresenterView({
 	canvasSize,
 	templateElements,
 	presentationStartTime,
+	activeCustomShow,
 	onMovePresentationSlide,
 	onExit,
 	onOpenAudienceWindow,
@@ -221,6 +228,7 @@ export function PresenterView({
 					current={currentSlideIndex}
 					canvasSize={canvasSize}
 					templateElements={templateElements}
+					activeCustomShow={activeCustomShow}
 					now={now}
 					elapsed={elapsed}
 					onMove={onMovePresentationSlide}

@@ -19,7 +19,7 @@ import type {
 	PptxTagCollection,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
-import type { CollaborationLivePatcher } from 'pptx-viewer-shared';
+import type { CollaborationLivePatcher, SlideSizeEmu } from 'pptx-viewer-shared';
 /**
  * Type definitions for the useViewerCoreState hook.
  *
@@ -139,6 +139,15 @@ export interface ViewerCoreState {
 	/** Width and height of the slide canvas in CSS pixels. */
 	canvasSize: CanvasSize;
 	setCanvasSize: React.Dispatch<React.SetStateAction<CanvasSize>>;
+	/**
+	 * `p:sldSz` in EMU, seeded from the loaded deck and updated by Design >
+	 * Slide Size. It is what a save persists: the pixel `canvasSize` above
+	 * cannot round-trip a preset (Ledger's 12179300 EMU is 1278.5px, and the
+	 * integer pixel it rounds to costs the deck its `ppSlideSizeLedgerPaper`
+	 * identity). `undefined` until a deck loads or the user picks a preset.
+	 */
+	slideSizeEmu: SlideSizeEmu | undefined;
+	setSlideSizeEmu: React.Dispatch<React.SetStateAction<SlideSizeEmu | undefined>>;
 	/** Zero-based index of the currently active (visible) slide. */
 	activeSlideIndex: number;
 	setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;

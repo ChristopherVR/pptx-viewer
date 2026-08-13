@@ -207,7 +207,7 @@ export function PresentationStage({
 							showResizeHandles={false}
 							renderInk={false}
 							renderGroups
-							adjustmentHandleDescriptor={null}
+							adjustmentHandles={[]}
 							onResizePointerDown={noop}
 							onAdjustmentPointerDown={noop}
 							onInlineEditChange={noop}
@@ -246,7 +246,7 @@ export function PresentationStage({
 							showResizeHandles={false}
 							renderInk
 							renderGroups
-							adjustmentHandleDescriptor={null}
+							adjustmentHandles={[]}
 							onResizePointerDown={noop}
 							onAdjustmentPointerDown={noop}
 							onInlineEditChange={noop}

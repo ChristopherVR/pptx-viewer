@@ -12,7 +12,12 @@ import {
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { EMU_PER_PX, GRID_SIZE, UNGROUPED_SECTION_ID } from '../constants';
+import {
+	DEFAULT_SECTION_GROUP_ID,
+	EMU_PER_PX,
+	GRID_SIZE,
+	UNGROUPED_SECTION_ID,
+} from '../constants';
 import type { SlideSectionGroup } from '../types';
 import type { ViewerMode } from '../types-core';
 
@@ -92,7 +97,8 @@ export function computeSlideSectionGroups(
 	}>,
 ): SlideSectionGroup[] {
 	return groupSlidesBySection(sections, slides).map((group) => ({
-		id: group.section?.id ?? (sections.length > 0 ? UNGROUPED_SECTION_ID : 'default'),
+		id:
+			group.section?.id ?? (sections.length > 0 ? UNGROUPED_SECTION_ID : DEFAULT_SECTION_GROUP_ID),
 		label: group.section?.name ?? (sections.length > 0 ? 'Ungrouped Slides' : 'Slides'),
 		slideIndexes: group.slideIndexes,
 		...(group.section?.color !== undefined ? { color: group.section.color } : {}),
@@ -168,7 +174,7 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 				if (group.id === UNGROUPED_SECTION_ID && group.label === 'Ungrouped Slides') {
 					return { ...group, label: t('pptx.slides.ungroupedSlides') };
 				}
-				if (group.id === 'default' && group.label === 'Slides') {
+				if (group.id === DEFAULT_SECTION_GROUP_ID && group.label === 'Slides') {
 					return { ...group, label: t('pptx.sections.slides') };
 				}
 				return group;

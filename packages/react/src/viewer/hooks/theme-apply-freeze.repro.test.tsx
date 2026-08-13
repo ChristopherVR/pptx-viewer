@@ -19,6 +19,7 @@ import type {
 	PptxThemeOption,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
 /**
  * Regression harness for the "AI theme colour change freezes the renderer" bug.
@@ -90,6 +91,7 @@ function Harness({ initial }: { initial: Uint8Array }): React.ReactElement {
 		setTemplateElementsBySlideId: noopDispatch<Record<string, PptxElement[]>>(),
 		mediaDataUrls: new Map<string, string>(),
 		setCanvasSize: noopDispatch<CanvasSize>(),
+		setSlideSizeEmu: noopDispatch<SlideSizeEmu | undefined>(),
 		setHeaderFooter: noopDispatch<PptxHeaderFooter>(),
 		setLayoutOptions: noopDispatch<Array<{ path: string; name: string }>>(),
 		setSlideMasters: noopDispatch<PptxSlideMaster[]>(),
@@ -97,6 +99,7 @@ function Harness({ initial }: { initial: Uint8Array }): React.ReactElement {
 		setTableStyleMap: noopDispatch<ParsedTableStyleMap | undefined>(),
 		setThemeOptions: noopDispatch<PptxThemeOption[]>(),
 		setCustomShows: noopDispatch<PptxCustomShow[]>(),
+		setActiveCustomShowId: noopDispatch<string | null>(),
 		setSections: noopDispatch<PptxSection[]>(),
 		setPresentationProperties: noopDispatch<PptxPresentationProperties>(),
 		setNotesMaster: noopDispatch<PptxNotesMaster | undefined>(),

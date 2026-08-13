@@ -9,12 +9,17 @@ import type {
 	PptxCustomProperty,
 	PptxNotesMaster,
 	PptxHandoutMaster,
+	PptxSlideMaster,
 	PptxSection,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
 import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
-import type { DeckSavePurpose } from 'pptx-viewer-shared';
-import { embeddedFontSaveOptions, saveDeckWithPassword } from 'pptx-viewer-shared';
+import type { DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
+import {
+	embeddedFontSaveOptions,
+	resolveSlideSizeSelection,
+	saveDeckWithPassword,
+} from 'pptx-viewer-shared';
 /**
  * useSerialize: Builds the `serializeSlides` callback that persists the
  * current slide deck (including header/footer, properties, etc.) via the
@@ -23,6 +28,7 @@ import { embeddedFontSaveOptions, saveDeckWithPassword } from 'pptx-viewer-share
 import { useCallback } from 'react';
 import type React from 'react';
 
+import type { CanvasSize } from '../types';
 import { remapTextToSegments } from '../utils/remap-text';
 import { buildSaveSlides } from '../utils/template-editing';
 
@@ -35,6 +41,16 @@ export interface UseSerializeInput {
 	/** Separated master/layout (template) elements, merged back at save time. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	activeSlideIndex: number;
+	/** The pixel canvas the raw Slide Size W/H inputs edit. */
+	canvasSize: CanvasSize;
+	/**
+	 * The EMU `p:sldSz` the viewer is holding (seeded on load, replaced by a
+	 * preset/orientation pick). Passed with `canvasSize` to
+	 * `resolveSlideSizeSelection`, which keeps the EMU whenever the two still
+	 * agree so a preset survives the save, and takes the pixels when the user
+	 * has typed into the raw inputs.
+	 */
+	slideSizeEmu?: SlideSizeEmu | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	headerFooter: PptxHeaderFooter;
 	presentationProperties: PptxPresentationProperties;
@@ -44,6 +60,19 @@ export interface UseSerializeInput {
 	appProperties: PptxAppProperties | undefined;
 	customProperties: PptxCustomProperty[];
 	tagCollections: PptxTagCollection[];
+	/**
+	 * The slide masters and their layouts, as View > Slide Master left them.
+	 *
+	 * Required, not optional: this was the one save option React never passed,
+	 * and core rewrites a master or layout part only for the ones the caller
+	 * hands back. Every master-view edit therefore showed on screen and was
+	 * dropped by the save - a deleted master shape came back on reload, and a
+	 * master background reverted to white. The other four bindings pass it.
+	 * Core compares each part against the element list parsed at load and
+	 * rewrites only what actually changed, so passing the whole array on every
+	 * save costs an untouched deck nothing.
+	 */
+	slideMasters: PptxSlideMaster[];
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	handlerRef: React.RefObject<PptxHandler | null>;
@@ -79,6 +108,8 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		slides,
 		templateElementsBySlideId,
 		activeSlideIndex,
+		canvasSize,
+		slideSizeEmu,
 		guides,
 		headerFooter,
 		presentationProperties,
@@ -88,6 +119,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		appProperties,
 		customProperties,
 		tagCollections,
+		slideMasters,
 		notesMaster,
 		handoutMaster,
 		handlerRef,
@@ -148,6 +180,10 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		const slidesToSave = buildSaveSlides(slidesWithGuides, templateElementsBySlideId);
 
 		const saveOptions = {
+			// Without this the Slide Size card edited a viewer-only pixel value and
+			// the saved `p:sldSz` never moved: passing `slideSize` is the only way a
+			// slide-size edit reaches the file.
+			slideSize: resolveSlideSizeSelection({ current: slideSizeEmu, canvas: canvasSize }).size,
 			headerFooter,
 			presentationProperties,
 			customShows: customShows.length > 0 ? customShows : undefined,
@@ -156,6 +192,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			appProperties,
 			customProperties: customProperties.length > 0 ? customProperties : undefined,
 			tags: tagCollections.length > 0 ? tagCollections : undefined,
+			slideMasters,
 			notesMaster,
 			handoutMaster,
 			...embeddedFontSaveOptions(embedFonts),
@@ -168,6 +205,8 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 	}, [
 		slides,
 		templateElementsBySlideId,
+		canvasSize,
+		slideSizeEmu,
 		headerFooter,
 		presentationProperties,
 		customShows,
@@ -176,6 +215,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		appProperties,
 		customProperties,
 		tagCollections,
+		slideMasters,
 		notesMaster,
 		handoutMaster,
 		guides,

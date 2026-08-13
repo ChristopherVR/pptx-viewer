@@ -1,6 +1,10 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
-import { canInteractWithElement, filterInteractableIds } from 'pptx-viewer-shared';
+import {
+	beginShapeAdjustment,
+	canInteractWithElement,
+	filterInteractableIds,
+} from 'pptx-viewer-shared';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useRef } from 'react';
 
@@ -10,6 +14,7 @@ import type {
 	MarqueeSelectionState,
 	ResizeState,
 	ShapeAdjustmentDragState,
+	ShapeAdjustmentHandleDescriptor,
 	ElementContextMenuState,
 } from '../types';
 import type { ViewerMode } from '../types-core';
@@ -399,33 +404,29 @@ export function useCanvasInteractions(
 		ops.updateSelectedTextStyle(updates);
 	};
 
-	const handleAdjustmentPointerDown = (elementId: string, e: React.MouseEvent) => {
+	const handleAdjustmentPointerDown = (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => {
 		e.stopPropagation();
 		const el = elementLookup.get(elementId);
-		if (!el || !('shapeType' in el) || !('shapeAdjustments' in el)) {
+		if (!el || !canInteractWithElement(el, 'adjustHandle')) {
 			return;
 		}
-		if (!canInteractWithElement(el, 'adjustHandle')) {
-			return;
-		}
-		const adjEntries = Object.entries(
-			(el as { shapeAdjustments?: Record<string, number> }).shapeAdjustments ?? {},
+		// The gesture starts from the DESCRIPTOR the user actually grabbed, not
+		// from the element's first authored adjustment. The old code read
+		// `Object.entries(shapeAdjustments)[0]` and bailed when the map was empty,
+		// so a preset sitting on its `a:avLst` defaults (the common case for a
+		// shape inserted from the picker) had a handle that could not be dragged
+		// at all, and a multi-adjust preset always dragged its first guide
+		// whichever diamond was grabbed.
+		shapeAdjustmentDragStateRef.current = beginShapeAdjustment(
+			el,
+			descriptor,
+			e.clientX,
+			e.clientY,
 		);
-		if (!adjEntries.length) {
-			return;
-		}
-		const [key, value] = adjEntries[0];
-		shapeAdjustmentDragStateRef.current = {
-			elementId,
-			key,
-			shapeType: (el as { shapeType?: string }).shapeType ?? 'rect',
-			startClientX: e.clientX,
-			startClientY: e.clientY,
-			startAdjustment: value,
-			startWidth: el.width,
-			startHeight: el.height,
-			moved: false,
-		};
 	};
 
 	return {

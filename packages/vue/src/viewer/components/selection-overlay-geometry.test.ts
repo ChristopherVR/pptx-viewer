@@ -78,16 +78,22 @@ describe('selection overlay geometry', () => {
 		expect(rotateKnobStyle(box, 0.5)).toStrictEqual({ left: '100px', top: '-48px' });
 	});
 
+	// The descriptor point is where the diamond's CENTRE belongs (shared measures
+	// it off the preset geometry), so the 10px handle is pulled back by half.
+	// Left un-centred, every handle sat down-and-right of the feature it controls.
+	it('centres the adjust handle on the descriptor point', () => {
+		expect(adjustHandleStyle({ left: 12, top: 4, cursor: 'ns-resize' })).toStrictEqual({
+			left: '7px',
+			top: '-1px',
+			cursor: 'ns-resize',
+		});
+	});
+
 	it('falls back to a sane adjust handle when the shape has no descriptor', () => {
 		expect(adjustHandleStyle(null)).toStrictEqual({
-			left: '0px',
-			top: '0px',
+			left: '-5px',
+			top: '-5px',
 			cursor: 'ew-resize',
-		});
-		expect(adjustHandleStyle({ left: 12, top: 4, cursor: 'ns-resize' })).toStrictEqual({
-			left: '12px',
-			top: '4px',
-			cursor: 'ns-resize',
 		});
 	});
 

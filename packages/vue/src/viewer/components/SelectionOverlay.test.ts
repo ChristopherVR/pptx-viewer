@@ -219,9 +219,33 @@ describe('selectionOverlay', () => {
 
 		expect(wrapper.emitted('adjustStart')?.[0]?.[0]).toStrictEqual({ id: 's1' });
 		const ends = wrapper.emitted('adjustEnd') ?? [];
-		const value = (ends[0]?.[0] as { value: number } | undefined)?.value;
-		expect(value).toBeGreaterThan(16667);
+		const adjustments = (ends[0]?.[0] as { adjustments: Record<string, number> } | undefined)
+			?.adjustments;
+		// 200x100 box, so ss = 100 px per 100000 guide units: +20 px is +20000.
+		expect(adjustments?.adj).toBe(36667);
 		wrapper.unmount();
+	});
+
+	// A preset with several `a:avLst` guides must offer one diamond per guide.
+	it('exposes one adjust handle per adjustable parameter', () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: {
+				elements: [el({ shapeType: 'rightArrow' })],
+				selectedIds: ['s1'],
+				zoom: 1,
+			},
+		});
+		const keys = wrapper
+			.findAll('.pptx-vue-adjust-handle')
+			.map((h) => h.attributes('data-pptx-adjust-key'));
+		expect(keys).toStrictEqual(['adj1', 'adj2']);
+	});
+
+	it('offers no adjust handle for a plain rect', () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: { elements: [el({ shapeType: 'rect' })], selectedIds: ['s1'], zoom: 1 },
+		});
+		expect(wrapper.find('.pptx-vue-adjust-handle').exists()).toBeFalsy();
 	});
 
 	it('hides the adjust handle for a shape locked with noAdjustHandles', () => {

@@ -19,6 +19,8 @@ import type {
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import { resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
 /**
  * useLoadContent: Handles loading/parsing PPTX content into viewer state.
  *
@@ -49,6 +51,8 @@ export interface UseLoadContentInput {
 	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
 	mediaDataUrls: Map<string, string>;
 	setCanvasSize: React.Dispatch<React.SetStateAction<CanvasSize>>;
+	/** Seeds the EMU `p:sldSz` that a save persists (see `ViewerCoreState.slideSizeEmu`). */
+	setSlideSizeEmu: React.Dispatch<React.SetStateAction<SlideSizeEmu | undefined>>;
 	setHeaderFooter: React.Dispatch<React.SetStateAction<PptxHeaderFooter>>;
 	setLayoutOptions: React.Dispatch<React.SetStateAction<Array<{ path: string; name: string }>>>;
 	setSlideMasters: React.Dispatch<React.SetStateAction<PptxSlideMaster[]>>;
@@ -56,6 +60,12 @@ export interface UseLoadContentInput {
 	setTableStyleMap: React.Dispatch<React.SetStateAction<ParsedTableStyleMap | undefined>>;
 	setThemeOptions: React.Dispatch<React.SetStateAction<PptxThemeOption[]>>;
 	setCustomShows: React.Dispatch<React.SetStateAction<PptxCustomShow[]>>;
+	/**
+	 * Seeds the running show from `p:showPr/p:custShow/@id`, so a deck authored
+	 * to open into a custom show plays that subset instead of the whole deck.
+	 * A later manual pick still wins: this only fires on load.
+	 */
+	setActiveCustomShowId: React.Dispatch<React.SetStateAction<string | null>>;
 	setSections: React.Dispatch<React.SetStateAction<PptxSection[]>>;
 	setPresentationProperties: React.Dispatch<React.SetStateAction<PptxPresentationProperties>>;
 	setNotesMaster: React.Dispatch<React.SetStateAction<PptxNotesMaster | undefined>>;
@@ -101,6 +111,7 @@ export function useLoadContent({
 	setTemplateElementsBySlideId,
 	mediaDataUrls,
 	setCanvasSize,
+	setSlideSizeEmu,
 	setHeaderFooter,
 	setLayoutOptions,
 	setSlideMasters,
@@ -108,6 +119,7 @@ export function useLoadContent({
 	setTableStyleMap,
 	setThemeOptions,
 	setCustomShows,
+	setActiveCustomShowId,
 	setSections,
 	setPresentationProperties,
 	setNotesMaster,
@@ -305,6 +317,20 @@ export function useLoadContent({
 					width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 					height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
 				});
+				// Keep the authored `p:sldSz` in EMU alongside the pixel canvas: the
+				// pixels are what the stage renders, the EMU is what a save writes.
+				setSlideSizeEmu(
+					typeof parsed.widthEmu === 'number' &&
+						typeof parsed.heightEmu === 'number' &&
+						parsed.widthEmu > 0 &&
+						parsed.heightEmu > 0
+						? {
+								widthEmu: parsed.widthEmu,
+								heightEmu: parsed.heightEmu,
+								type: parsed.slideSizeType ?? '',
+							}
+						: undefined,
+				);
 				setHeaderFooter(parsed.headerFooter ?? {});
 				setLayoutOptions(parsed.layoutOptions ?? []);
 				setSlideMasters(parsed.slideMasters ?? []);
@@ -312,6 +338,12 @@ export function useLoadContent({
 				setTableStyleMap(parsed.tableStyleMap);
 				setThemeOptions(parsed.themeOptions ?? []);
 				setCustomShows(parsed.customShows ?? []);
+				// "Set Up Slide Show > Custom show" is authored intent, not decoration:
+				// honour `p:showPr/p:custShow/@id` so the deck opens into the show it
+				// names. An id naming no surviving show falls back to the whole deck.
+				setActiveCustomShowId(
+					resolveAuthoredCustomShowId(parsed.presentationProperties, parsed.customShows) ?? null,
+				);
 				setSections(parsed.sections ?? []);
 				setPresentationProperties(parsed.presentationProperties ?? {});
 				setNotesMaster(parsed.notesMaster);

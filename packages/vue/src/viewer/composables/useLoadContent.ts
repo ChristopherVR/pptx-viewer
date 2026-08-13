@@ -25,8 +25,12 @@ import type {
 	XmlObject,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError, parseSignatureXml } from 'pptx-viewer-core';
-import type { DeckSaveIntent, DeckSavePurpose } from 'pptx-viewer-shared';
-import { embeddedFontSaveOptions, saveDeckWithPassword } from 'pptx-viewer-shared';
+import type { DeckSaveIntent, DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
+import {
+	embeddedFontSaveOptions,
+	resolveSlideSizeSelection,
+	saveDeckWithPassword,
+} from 'pptx-viewer-shared';
 import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 
@@ -91,6 +95,17 @@ export interface UseLoadContentResult {
 	templateElementsBySlideId: ShallowRef<TemplateElementMap>;
 	/** Slide canvas size in pixels. */
 	canvasSize: Ref<CanvasSize>;
+	/**
+	 * The slide size in EMU (`p:sldSz`), seeded from the loaded deck and updated
+	 * by the inspector's preset / orientation controls.
+	 *
+	 * Held ALONGSIDE {@link canvasSize} rather than derived from it because the
+	 * pixel round-trip is lossy: Ledger is 12179300 EMU = 1278.5px, and rounding
+	 * that to an integer pixel and back moves it far enough to lose the deck's
+	 * `ppSlideSizeLedgerPaper` identity. `resolveSlideSizeSelection` decides
+	 * which of the two wins whenever they disagree.
+	 */
+	slideSize: Ref<SlideSizeEmu | undefined>;
 	/** Resolved presentation theme. */
 	theme: ShallowRef<PptxTheme | undefined>;
 	/** Theme colour map (`accent1`→hex, …) used to re-resolve colours on theme switch. */
@@ -193,6 +208,7 @@ export function useLoadContent(
 		width: DEFAULT_CANVAS_WIDTH,
 		height: DEFAULT_CANVAS_HEIGHT,
 	});
+	const slideSize = ref<SlideSizeEmu | undefined>(undefined);
 	const theme = shallowRef<PptxTheme | undefined>(undefined);
 	const themeColorMap = shallowRef<Record<string, string> | undefined>(undefined);
 	const slideMasters = shallowRef<PptxSlideMaster[]>([]);
@@ -392,6 +408,19 @@ export function useLoadContent(
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
 			};
+			// `p:sldSz` verbatim, so a preset deck keeps its identity through a
+			// save even though the viewer lays out in rounded pixels.
+			slideSize.value =
+				typeof parsed.widthEmu === 'number' &&
+				typeof parsed.heightEmu === 'number' &&
+				parsed.widthEmu > 0 &&
+				parsed.heightEmu > 0
+					? {
+							widthEmu: parsed.widthEmu,
+							heightEmu: parsed.heightEmu,
+							type: parsed.slideSizeType ?? '',
+						}
+					: undefined;
 			theme.value = parsed.theme;
 			themeColorMap.value = parsed.themeColorMap;
 			slideMasters.value = parsed.slideMasters ?? [];
@@ -468,6 +497,13 @@ export function useLoadContent(
 				customShows: customShows.value,
 				presentationProperties: presentationProperties.value,
 				headerFooter: headerFooter.value,
+				// Design > Slide Size. Without this the card resized the stage and
+				// the saved `p:sldSz` still said whatever the deck arrived with, so
+				// every slide-size edit was discarded at the file boundary.
+				slideSize: resolveSlideSizeSelection({
+					current: slideSize.value,
+					canvas: canvasSize.value,
+				}).size,
 				slideMasters: slideMasters.value,
 				notesMaster: notesMaster.value,
 				handoutMaster: handoutMaster.value,
@@ -513,6 +549,7 @@ export function useLoadContent(
 		templateElementsBySlideId,
 		layoutOptions,
 		canvasSize,
+		slideSize,
 		theme,
 		themeColorMap,
 		slideMasters,

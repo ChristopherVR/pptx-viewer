@@ -607,6 +607,46 @@ describe('tableRenderer', () => {
 		expect(wrapper.findAll('td')[3].classes()).toContain('pptx-vue-table__cell--in-selection');
 	});
 
+	/**
+	 * The gesture, not the maths.
+	 *
+	 * `computeCellSelection` was always correct, and the test above always
+	 * passed, because a mounted `TableRenderer` has no canvas above it. In the
+	 * real viewer the `<td>` press bubbles to `<main>`'s `@pointerdown`, whose
+	 * additive branch TOGGLED this table out of the slide selection; the
+	 * selection watcher then nulled the cell selection, so the click handler
+	 * found no anchor and could only ever select one cell. Block merge was
+	 * unreachable in Vue: its context menu offered "merge right / merge down"
+	 * where React offered "merge selected cells". A Shift-press inside a cell of
+	 * the selected table must therefore be CONSUMED before it reaches an
+	 * ancestor.
+	 */
+	it('consumes a shift+pointerdown inside a cell so the canvas cannot toggle the table', async () => {
+		const { wrapper } = mountSelectable(basicGrid),
+			reachedCanvas = vi.fn();
+		wrapper.element.addEventListener('pointerdown', reachedCanvas);
+
+		// A plain press still reaches the canvas: that is what selects the table
+		// and arms the drag.
+		await wrapper.findAll('td')[0].trigger('pointerdown', { pointerType: 'mouse' });
+		expect(reachedCanvas).toHaveBeenCalledOnce();
+
+		// Anchor the range, then Shift-press: this one must stop at the cell.
+		await wrapper.findAll('td')[0].trigger('click');
+		await wrapper.findAll('td')[3].trigger('pointerdown', { pointerType: 'mouse', shiftKey: true });
+		expect(reachedCanvas).toHaveBeenCalledOnce();
+	});
+
+	it('lets a shift+pointerdown through when there is no range to extend', async () => {
+		const { wrapper } = mountSelectable(basicGrid),
+			reachedCanvas = vi.fn();
+		wrapper.element.addEventListener('pointerdown', reachedCanvas);
+		// No cell selected yet, so the press is an ordinary element press and the
+		// canvas must still see it (otherwise the table could never be selected).
+		await wrapper.findAll('td')[3].trigger('pointerdown', { pointerType: 'mouse', shiftKey: true });
+		expect(reachedCanvas).toHaveBeenCalledOnce();
+	});
+
 	it('does not select cells when no selection context is provided', async () => {
 		const commit = vi.fn();
 		const wrapper = mount(TableRenderer, {

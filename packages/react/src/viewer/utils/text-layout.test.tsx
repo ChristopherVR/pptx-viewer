@@ -77,10 +77,15 @@ describe('getTextLayoutStyle', () => {
 		expect(style.columnGap).toBe('20px');
 	});
 
-	it('uses default columnGap when no columnSpacing', () => {
+	// `a:bodyPr/@spcCol` is `ST_PositiveCoordinate32` with a schema default of 0,
+	// so an omitted attribute means "no gap", not a gap of the renderer's
+	// choosing. React used to invent `0.75em` here, which is neither the authored
+	// value nor the spec default, and which the other four bindings (now sharing
+	// this decision) would have had to reproduce to stay in parity.
+	it('uses the spec default gap of 0 when no columnSpacing is authored', () => {
 		const el = makeTextElement({ columnCount: 2 });
 		const style = getTextLayoutStyle(el);
-		expect(style.columnGap).toBe('0.75em');
+		expect(style.columnGap).toBe('0px');
 	});
 
 	// ── Writing mode ────────────────────────────────────────────

@@ -12,6 +12,7 @@
  *
  * @module viewer/composables/selection-gesture
  */
+import type { PptxElement } from 'pptx-viewer-core';
 import type { InteractionBox, ResizeHandleId } from 'pptx-viewer-shared';
 import {
 	applyDragDelta,
@@ -29,8 +30,8 @@ import type {
 	TransformPayload,
 } from '../components/selection-overlay-geometry';
 import { payloadFromBox, startBoxOf } from '../components/selection-overlay-geometry';
-import { getDraggedShapeAdjustmentValue } from './shape-adjustment';
-import type { ShapeAdjustmentHandleDescriptor } from './shape-adjustment';
+import { beginShapeAdjustment, getDraggedShapeAdjustments } from './shape-adjustment';
+import type { ShapeAdjustmentDragState, ShapeAdjustmentHandleDescriptor } from './shape-adjustment';
 
 /** Which of the four gestures is running. */
 export type GestureKind = 'move' | 'resize' | 'rotate' | 'adjust';
@@ -51,8 +52,8 @@ interface Gesture {
 	/** Shift held: used for rotation snap. */
 	shift: boolean;
 	last: TransformPayload;
-	/** Start state for an `adjust` gesture (round-rect corner radius). */
-	adjust?: { startAdjustment: number; lastValue: number };
+	/** Start state for an `adjust` gesture (an `a:avLst` guide). */
+	adjust?: { state: ShapeAdjustmentDragState; lastValues: Record<string, number> };
 }
 
 /** What the overlay must supply for the gesture to run. */
@@ -61,8 +62,8 @@ export interface SelectionGestureContext {
 	zoom: () => number;
 	/** The live box for an id, or undefined once it stops being selected. */
 	boxForId: (id: string) => SelectedBox | undefined;
-	/** The shape-adjustment descriptor for an id, or null. */
-	adjustDescriptorFor: (id: string) => ShapeAdjustmentHandleDescriptor | null;
+	/** The element behind an id, for the adjustment gesture's drag state. */
+	elementForId: (id: string) => PptxElement | undefined;
 	/** The overlay root, for mapping client coords into element space. */
 	rootEl: Ref<HTMLElement | null>;
 	onTransformStart: (payload: { id: string }) => void;
@@ -83,7 +84,11 @@ export interface SelectionGesture {
 		event: PointerEvent,
 		handle?: ResizeHandleId,
 	) => void;
-	beginAdjust: (id: string, event: PointerEvent) => void;
+	beginAdjust: (
+		id: string,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+		event: PointerEvent,
+	) => void;
 }
 
 export function useSelectionGesture(context: SelectionGestureContext): SelectionGesture {
@@ -148,11 +153,20 @@ export function useSelectionGesture(context: SelectionGestureContext): Selection
 		context.onTransformStart({ id });
 	}
 
-	/** Begin a round-rect corner-radius adjustment gesture (the amber diamond). */
-	function beginAdjust(id: string, event: PointerEvent): void {
+	/**
+	 * Begin an `a:avLst` adjustment gesture on ONE amber diamond.
+	 *
+	 * The descriptor is passed in rather than looked up, because a preset has
+	 * several handles and the gesture must act on the one the user grabbed.
+	 */
+	function beginAdjust(
+		id: string,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+		event: PointerEvent,
+	): void {
 		const box = context.boxForId(id);
-		const descriptor = context.adjustDescriptorFor(id);
-		if (!box || !descriptor) {
+		const element = context.elementForId(id);
+		if (!box || !element) {
 			return;
 		}
 		event.preventDefault();
@@ -169,34 +183,32 @@ export function useSelectionGesture(context: SelectionGestureContext): Selection
 			moved: false,
 			shift: false,
 			last: payloadFromBox(id, startBox),
-			adjust: { startAdjustment: descriptor.value, lastValue: descriptor.value },
+			adjust: {
+				state: beginShapeAdjustment(element, descriptor, event.clientX, event.clientY),
+				lastValues: { [descriptor.key]: descriptor.value },
+			},
 		};
 
 		attach(event);
 		context.onAdjustStart({ id });
 	}
 
-	/** The adjustment branch: emits a value, not a geometry transform. */
-	function moveAdjust(g: Gesture, dxScreen: number): void {
+	/** The adjustment branch: emits guide values, not a geometry transform. */
+	function moveAdjust(g: Gesture, dxScreen: number, dyScreen: number): void {
 		if (!g.adjust) {
 			return;
 		}
-		const value = getDraggedShapeAdjustmentValue(
-			{
-				elementId: g.id,
-				key: 'adj',
-				shapeType: 'roundrect',
-				startClientX: g.startClientX,
-				startClientY: g.startClientY,
-				startAdjustment: g.adjust.startAdjustment,
-				startWidth: g.startBox.width,
-				startHeight: g.startBox.height,
-				moved: g.moved,
-			},
-			dxScreen / (context.zoom() || 1),
+		const scale = context.zoom() || 1;
+		// BOTH axes, in element px. The old branch fabricated a drag state with a
+		// hardcoded `key: 'adj'` and `shapeType: 'roundrect'` and passed dx only,
+		// so every preset other than a round-rect was adjusted as if it were one.
+		const adjustments = getDraggedShapeAdjustments(
+			g.adjust.state,
+			dxScreen / scale,
+			dyScreen / scale,
 		);
-		g.adjust.lastValue = value;
-		context.onAdjust({ id: g.id, value });
+		g.adjust.lastValues = adjustments;
+		context.onAdjust({ id: g.id, adjustments });
 	}
 
 	function nextTransform(g: Gesture, event: PointerEvent): TransformPayload {
@@ -234,7 +246,7 @@ export function useSelectionGesture(context: SelectionGestureContext): Selection
 		}
 
 		if (g.kind === 'adjust') {
-			moveAdjust(g, dxScreen);
+			moveAdjust(g, dxScreen, dyScreen);
 			return;
 		}
 
@@ -250,7 +262,7 @@ export function useSelectionGesture(context: SelectionGestureContext): Selection
 		}
 		detach();
 		if (g.kind === 'adjust' && g.adjust) {
-			context.onAdjustEnd({ id: g.id, value: g.adjust.lastValue });
+			context.onAdjustEnd({ id: g.id, adjustments: g.adjust.lastValues });
 		} else if (g.kind === 'move' && !g.moved) {
 			// A tap on the already-selected element (no drag): enter inline edit,
 			// mirroring React's "click a selected element again to edit".

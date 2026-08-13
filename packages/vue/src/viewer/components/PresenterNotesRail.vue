@@ -43,6 +43,8 @@ const props = defineProps<{
 	clockText: string;
 	elapsedText: string;
 	audienceOpen: boolean;
+	/** Membership of the running custom show, when one is playing. */
+	activeCustomShow?: { slideRIds: string[] } | null;
 }>();
 
 const emit = defineEmits<{
@@ -60,9 +62,13 @@ const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.cu
  * The next slide the SHOW will present, not simply `index + 1`: hidden slides
  * are skipped and custom-show membership is honoured, so the preview matches
  * what the audience is about to see.
+ *
+ * The running show is part of that rule: while "Reverse" plays, the slide after
+ * slide 3 is slide 2, and a rail that previewed slide 4 was rehearsing the
+ * presenter into a segue the next press could not reach.
  */
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	nextPresentedSlide(props.slides, props.currentSlideIndex),
+	nextPresentedSlide(props.slides, props.currentSlideIndex, props.activeCustomShow),
 );
 
 const notesText = computed(() => currentSlide.value?.notes ?? '');

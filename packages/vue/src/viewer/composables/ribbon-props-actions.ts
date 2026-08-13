@@ -188,6 +188,14 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onOpenDocumentProperties: () => {
 			input.propertiesOpen.value = true;
 		},
+		// Design > Slide Size. The size control is the inspector's SLIDE SIZE
+		// card, which the deck (no-selection) panel renders, so drop the element
+		// selection and make sure the pane is open. It used to open Document
+		// Properties, which has no slide-size control in it.
+		onOpenSlideSize: () => {
+			input.clearSelection();
+			input.inspectorOpen.value = true;
+		},
 		onOpenFontEmbedding: () => {
 			input.showFontEmbedding.value = true;
 		},

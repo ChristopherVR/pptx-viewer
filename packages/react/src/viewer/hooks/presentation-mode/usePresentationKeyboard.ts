@@ -41,6 +41,8 @@ export interface UsePresentationKeyboardInput {
 	onToggleToolbar?: () => void;
 	/** Open the All Slides navigator (Ctrl+S). */
 	onShowAllSlides?: () => void;
+	/** Show or hide live captions (J). */
+	onToggleSubtitles?: () => void;
 	onToggleBlackScreen?: () => void;
 	onToggleWhiteScreen?: () => void;
 	rehearsing: boolean;
@@ -74,6 +76,7 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 		onToggleInkMarkup,
 		onToggleToolbar,
 		onShowAllSlides,
+		onToggleSubtitles,
 		onToggleBlackScreen,
 		onToggleWhiteScreen,
 		rehearsing,
@@ -151,6 +154,9 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 				case 'showAllSlides':
 					onShowAllSlides?.();
 					return;
+				case 'toggleSubtitles':
+					onToggleSubtitles?.();
+					return;
 				case 'toggleBlackScreen':
 					onToggleBlackScreen?.();
 					return;
@@ -198,6 +204,7 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 		onToggleInkMarkup,
 		onToggleToolbar,
 		onShowAllSlides,
+		onToggleSubtitles,
 		onToggleBlackScreen,
 		onToggleWhiteScreen,
 		rehearsing,

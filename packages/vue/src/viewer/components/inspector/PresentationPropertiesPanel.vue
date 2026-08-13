@@ -21,6 +21,7 @@ import type {
 	PptxTheme,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -44,6 +45,8 @@ const props = withDefaults(
 		themeOptions?: PptxThemeOption[];
 		slideMasters?: PptxSlideMaster[];
 		canvasSize?: CanvasSize;
+		/** The deck's `p:sldSz` in EMU, for the Slide Size card's preset match. */
+		slideSize?: SlideSizeEmu;
 		notesCanvasSize?: CanvasSize;
 		notesMaster?: PptxNotesMaster;
 		handoutMaster?: PptxHandoutMaster;
@@ -60,6 +63,7 @@ const emit = defineEmits<{
 	'apply-theme': [path: string, allMasters: boolean];
 	'slide-update': [patch: Partial<PptxSlide>];
 	'canvas-size-update': [size: CanvasSize];
+	'slide-size-update': [size: SlideSizeEmu, canvas: CanvasSize];
 	'update-core-properties': [patch: Partial<PptxCoreProperties>];
 	'update-app-properties': [patch: Partial<PptxAppProperties>];
 	'update-custom-properties': [props: PptxCustomProperty[]];
@@ -120,8 +124,10 @@ watch(
 		<SlideSizeCard
 			v-if="props.canvasSize"
 			:canvas-size="props.canvasSize"
+			:slide-size="props.slideSize"
 			:can-edit="props.canEdit"
 			@update="(size) => emit('canvas-size-update', size)"
+			@update-slide-size="(size, canvas) => emit('slide-size-update', size, canvas)"
 		/>
 
 		<!-- SLIDE TRANSITION sits beside SLIDE SIZE, matching React, Angular,

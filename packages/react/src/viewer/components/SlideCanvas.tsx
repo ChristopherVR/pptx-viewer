@@ -1,12 +1,14 @@
 import { motionPathFor, setMotionPath } from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
-import { getShapeAdjustmentHandleDescriptor } from '../utils';
+import type { ShapeAdjustmentHandleDescriptor } from '../types';
+import { getShapeAdjustmentHandleDescriptors } from '../utils';
 import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
 import { CanvasGuides, MarqueeOverlay, SnapLinesOverlay } from './canvas/CanvasOverlays';
 import { CommentMarkersOverlay } from './canvas/CommentMarkersOverlay';
+import { ConnectorEndpointOverlay } from './canvas/ConnectorEndpointOverlay';
 import { ConnectorOverlay } from './canvas/ConnectorOverlay';
 import { DrawingOverlaySvg } from './canvas/DrawingOverlaySvg';
 import { GridOverlay } from './canvas/GridOverlay';
@@ -19,6 +21,13 @@ import { useDrawingOverlay } from './canvas/useDrawingOverlay';
 import { useStableCallbacks } from './canvas/useStableCallbacks';
 import { ElementRenderer } from './ElementRenderer';
 import { ActiveXControlOverlay } from './elements/ActiveXControlOverlay';
+
+/**
+ * A stable empty array for the un-selected case: a fresh `[]` on every render
+ * would make `ElementRenderer`'s props change identity for every element on the
+ * slide, defeating its memoisation.
+ */
+const EMPTY_ADJUSTMENT_HANDLES: ShapeAdjustmentHandleDescriptor[] = [];
 
 export type { SlideCanvasProps } from './canvas/canvas-types';
 
@@ -298,10 +307,10 @@ export function SlideCanvas({
 							}
 							renderInk={false}
 							renderGroups
-							adjustmentHandleDescriptor={
+							adjustmentHandles={
 								isEditableCanvas && selectedElement?.id === element.id
-									? getShapeAdjustmentHandleDescriptor(element)
-									: null
+									? getShapeAdjustmentHandleDescriptors(element)
+									: EMPTY_ADJUSTMENT_HANDLES
 							}
 							onResizePointerDown={stableResizePointerDown}
 							onAdjustmentPointerDown={stableAdjustmentPointerDown}
@@ -348,10 +357,10 @@ export function SlideCanvas({
 							}
 							renderInk
 							renderGroups
-							adjustmentHandleDescriptor={
+							adjustmentHandles={
 								isEditableCanvas && selectedElement?.id === element.id
-									? getShapeAdjustmentHandleDescriptor(element)
-									: null
+									? getShapeAdjustmentHandleDescriptors(element)
+									: EMPTY_ADJUSTMENT_HANDLES
 							}
 							onResizePointerDown={stableResizePointerDown}
 							onAdjustmentPointerDown={stableAdjustmentPointerDown}
@@ -393,6 +402,21 @@ export function SlideCanvas({
 					)}
 
 					<SnapLinesOverlay snapLines={snapLines} />
+
+					{/* Connector endpoint authoring: attach an end to a shape's
+					    connection point, or drag it clear to detach. Shown for the
+					    selected connector, so it needs no separate mode toggle (which
+					    is why the older `connectorCreationMode` overlay below has
+					    always been unreachable: nothing ever set that prop). */}
+					{isEditableCanvas && selectedElement?.type === 'connector' && activeSlide && (
+						<ConnectorEndpointOverlay
+							connector={selectedElement}
+							elements={activeSlide.elements}
+							editorScale={zoom.editorScale}
+							canvasStageRef={zoom.canvasStageRef}
+							onUpdateElement={stableUpdateSmartArtElement}
+						/>
+					)}
 
 					{connectorCreationMode && activeSlide && (
 						<ConnectorOverlay

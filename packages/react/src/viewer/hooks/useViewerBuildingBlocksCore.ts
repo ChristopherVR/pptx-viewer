@@ -149,6 +149,12 @@ export function useViewerBuildingBlocksCore(
 		setActiveSlideIndex: state.setActiveSlideIndex,
 		setSlides: state.setSlides,
 		history,
+		// PowerPoint's bare `J` during a show toggles live captions.
+		onToggleSubtitles: () =>
+			state.setPresentationProperties((prev) => ({
+				...prev,
+				showSubtitles: !prev.showSubtitles,
+			})),
 	});
 
 	return {

@@ -5,11 +5,19 @@ import type {
 	PptxSlide,
 	PptxSaveFormat,
 	PptxHandler,
+	PptxSlideMaster,
 	PptxTheme,
 } from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
-import type { DeckSaveOptions } from 'pptx-viewer-shared';
-import { downloadBlob, exportDeckJson, saveDeckWithPassword } from 'pptx-viewer-shared';
+import type { DeckSaveOptions, SlideSizeEmu } from 'pptx-viewer-shared';
+import {
+	downloadBlob,
+	exportDeckJson,
+	presentationBaseName,
+	resolveSlideSizeSelection,
+	savedPresentationFileName,
+	saveDeckWithPassword,
+} from 'pptx-viewer-shared';
 /**
  * useExportSaveAs: Save-As format and Package-for-Sharing handlers.
  */
@@ -40,6 +48,13 @@ export interface UseExportSaveAsInput {
 	appProperties: Record<string, unknown> | null;
 	customProperties: Array<Record<string, unknown>>;
 	tagCollections: Array<Record<string, unknown>>;
+	/**
+	 * The slide masters and their layouts, as View > Slide Master left them.
+	 * Save As builds its own options rather than reusing `useSerialize`, so it
+	 * needs the same array: without it a master-view edit reached Save and not
+	 * Save As. (For a long while it reached neither.)
+	 */
+	slideMasters: PptxSlideMaster[];
 	notesMaster: Record<string, unknown> | undefined;
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
@@ -48,6 +63,8 @@ export interface UseExportSaveAsInput {
 	theme: PptxTheme | undefined;
 	/** Slide canvas size in CSS pixels, carried into the deck-JSON export. */
 	canvasSize: CanvasSize;
+	/** The EMU `p:sldSz` the viewer holds; see `UseExportHandlersInput`. */
+	slideSizeEmu?: SlideSizeEmu | undefined;
 	modalControls: ExportModalControls;
 	password?: string;
 }
@@ -76,12 +93,14 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		appProperties,
 		customProperties,
 		tagCollections,
+		slideMasters,
 		notesMaster,
 		handoutMaster,
 		guides,
 		activeSlideIndexForGuides,
 		theme,
 		canvasSize,
+		slideSizeEmu,
 		modalControls,
 		password,
 	} = input;
@@ -108,9 +127,9 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			setExportProgress(10);
 			setExportStatusMessage('Adding presentation...');
 			const pptxData = await serializeSlides();
-			const pptxFilename = filePath
-				? (filePath.replace(/\\/gu, '/').split('/').pop() ?? 'presentation.pptx')
-				: 'presentation.pptx';
+			// Re-extensioned, not copied: the bytes are always an OpenXML package,
+			// so a deck opened as `report.ppt` must be packaged as `report.pptx`.
+			const pptxFilename = savedPresentationFileName(filePath);
 			if (pptxData) {
 				pkgFolder.file(pptxFilename, pptxData);
 			}
@@ -130,8 +149,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 
 			setExportProgress(95);
 			setExportStatusMessage('Downloading...');
-			const baseName = pptxFilename.replace(/\.[^.]+$/u, '');
-			downloadBlob(zipBlob, `${baseName}-package.zip`);
+			downloadBlob(zipBlob, `${presentationBaseName(pptxFilename)}-package.zip`);
 			setExportProgress(100);
 		} catch (err) {
 			if ((err as DOMException).name !== 'AbortError') {
@@ -148,22 +166,18 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		if (!handler) {
 			return;
 		}
-		const ext = format === 'ppsx' ? 'ppsx' : format === 'pptm' ? 'pptm' : 'pptx';
-		const baseName = filePath
-			? (filePath
-					.replace(/\\/gu, '/')
-					.split('/')
-					.pop()
-					?.replace(/\.[^.]+$/u, '') ?? 'presentation')
-			: 'presentation';
+		// One shared decision for "what should the saved copy be called": the
+		// source stem plus the extension of the format actually being written.
+		// A `.ppt` source therefore saves as `.pptx`, as it does in PowerPoint.
+		const downloadName = savedPresentationFileName(filePath, format);
 		try {
 			const data = await buildSaveAsData(handler, format);
 			const blob = new Blob([data as BlobPart], {
 				type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 			});
-			downloadBlob(blob, `${baseName}.${ext}`);
+			downloadBlob(blob, downloadName);
 		} catch (err) {
-			console.error(`[PowerPointViewer] Save as .${ext} failed:`, err);
+			console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
 		}
 	};
 
@@ -189,6 +203,9 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		// in edit-template mode persist into the saved package.
 		const slidesToSave = buildSaveSlides(slidesWithGuides, templateElementsBySlideId);
 		const saveOptions = {
+			// Save As shares Save's slide-size decision; leaving it out here is how
+			// a preset picked in the inspector reached one save path and not the other.
+			slideSize: resolveSlideSizeSelection({ current: slideSizeEmu, canvas: canvasSize }).size,
 			headerFooter,
 			presentationProperties,
 			customShows: customShows.length > 0 ? customShows : undefined,
@@ -197,6 +214,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			appProperties: appProperties ?? undefined,
 			customProperties: customProperties.length > 0 ? customProperties : undefined,
 			tags: tagCollections.length > 0 ? tagCollections : undefined,
+			slideMasters,
 			notesMaster,
 			handoutMaster,
 			outputFormat: format,
@@ -214,12 +232,16 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 	 */
 	const handleExportJson = () => {
 		const sourceName = filePath ? filePath.replace(/\\/gu, '/').split('/').pop() : undefined;
+		// Same slide-size decision as the .pptx paths, so the JSON document does
+		// not quietly round a preset away through its pixel canvas.
+		const slideSize = resolveSlideSizeSelection({ current: slideSizeEmu, canvas: canvasSize }).size;
 		const data = {
 			slides: buildSaveSlides(slides, templateElementsBySlideId),
 			width: canvasSize.width,
 			height: canvasSize.height,
-			widthEmu: guidePxToEmu(canvasSize.width),
-			heightEmu: guidePxToEmu(canvasSize.height),
+			widthEmu: slideSize.widthEmu,
+			heightEmu: slideSize.heightEmu,
+			slideSizeType: slideSize.type === '' ? undefined : slideSize.type,
 			theme,
 			headerFooter,
 			presentationProperties,

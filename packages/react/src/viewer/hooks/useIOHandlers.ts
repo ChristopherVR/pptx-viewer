@@ -97,12 +97,14 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		appProperties: (state.appProperties ?? null) as Record<string, unknown> | null,
 		customProperties: state.customProperties as unknown as Array<Record<string, unknown>>,
 		tagCollections: state.tagCollections as unknown as Array<Record<string, unknown>>,
+		slideMasters: state.slideMasters,
 		notesMaster: state.notesMaster as unknown as Record<string, unknown> | undefined,
 		handoutMaster: state.handoutMaster as unknown as Record<string, unknown> | undefined,
 		guides: state.guides,
 		activeSlideIndexForGuides: state.activeSlideIndex,
 		theme: state.theme,
 		canvasSize,
+		slideSizeEmu: state.slideSizeEmu,
 		password,
 	});
 

@@ -8,13 +8,21 @@
  * which is handed over whole as `state` rather than being unpacked into a
  * dozen individual props.
  */
-import type { PptxHandoutMaster, PptxNotesMaster, PptxSlideMaster } from 'pptx-viewer-core';
-import { ref } from 'vue';
+import type {
+	PptxElement,
+	PptxHandoutMaster,
+	PptxNotesMaster,
+	PptxSlideMaster,
+} from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
+import { masterViewOwnerElementId } from 'pptx-viewer-shared';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { UseMasterViewWiringResult } from '../composables/useMasterViewWiring';
 import type { CanvasSize } from '../types';
 import HandoutMasterCanvas from './HandoutMasterCanvas.vue';
+import InlineTextEditor from './InlineTextEditor.vue';
 import MasterViewSidebar from './MasterViewSidebar.vue';
 import NotesMasterCanvas from './NotesMasterCanvas.vue';
 import type { TransformPayload } from './selection-overlay-geometry';
@@ -27,6 +35,12 @@ const props = defineProps<{
 	canvasSize: CanvasSize;
 	mediaDataUrls: Map<string, string>;
 	notesMaster: PptxNotesMaster | undefined;
+	/**
+	 * The deck's `p:notesSz` in pixels. Without it the notes preview falls back
+	 * to a 720x960 US-Letter page, so a deck authored on any other notes page
+	 * size was drawn at the wrong proportions (React and Angular both pass it).
+	 */
+	notesCanvasSize: CanvasSize | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	/** Editing affordances are offered only on an editable deck. */
 	canEdit?: boolean;
@@ -43,11 +57,98 @@ const MASTER_STAGE_SCALE = 0.75;
  */
 const selectedIds = ref<string[]>([]);
 
-function onStagePointerDown(event: PointerEvent): void {
+/** The shape whose text is being typed into, and the text so far. */
+const editingId = ref<string | null>(null);
+const editingText = ref('');
+
+const editingElement = computed<PptxElement | undefined>(() =>
+	editingId.value
+		? props.state.activeMasterViewElements.value.find((element) => element.id === editingId.value)
+		: undefined,
+);
+
+/**
+ * The master-view element under a pointer event, or null when the click landed
+ * on the surface.
+ *
+ * The nearest `[data-element-id]` is not the answer on its own: a group stamps
+ * the marker on its children too, so a click inside one resolved to a CHILD id,
+ * which the part's top-level shape list does not contain. Selecting it looked
+ * fine and then every write silently did nothing - Delete could remove a plain
+ * master shape but never a group. The shared rule maps a hit back to the
+ * element the part actually owns.
+ */
+function elementIdAt(event: Event): string | null {
 	const target = event.target as HTMLElement | null;
-	const node = target?.closest?.('[data-element-id]') ?? null;
-	const id = node?.getAttribute('data-element-id') ?? null;
+	const hit = target?.closest?.('[data-element-id]')?.getAttribute('data-element-id') ?? null;
+	return masterViewOwnerElementId(props.state.activeMasterViewElements.value, hit);
+}
+
+function onStagePointerDown(event: PointerEvent): void {
+	const id = elementIdAt(event);
+	if (editingId.value && id !== editingId.value) {
+		commitInlineEdit();
+	}
 	selectedIds.value = id ? [id] : [];
+}
+
+/**
+ * Open the inline text editor on one master/layout shape.
+ *
+ * Reached by double-clicking the shape, the same gesture the ordinary canvas
+ * uses and the one svelte, vanilla and angular already offer here, and by the
+ * selection overlay's tap-an-already-selected request.
+ */
+function beginInlineEdit(id: string | null): void {
+	if (!props.canEdit || !id) {
+		return;
+	}
+	const element = props.state.activeMasterViewElements.value.find(
+		(candidate) => candidate.id === id,
+	);
+	if (!element || !hasTextProperties(element)) {
+		return;
+	}
+	// An equation's text is the literal "[Equation]" placeholder, so committing
+	// it would remap the runs from that and drop the OMML for good.
+	if (element.textSegments?.some((segment) => segment.equationXml)) {
+		return;
+	}
+	editingId.value = element.id;
+	editingText.value = (element as { text?: string }).text ?? '';
+}
+
+function onStageDoubleClick(event: MouseEvent): void {
+	beginInlineEdit(elementIdAt(event));
+}
+
+function commitInlineEdit(): void {
+	const id = editingId.value;
+	editingId.value = null;
+	if (id) {
+		props.state.onMasterViewTextCommit(id, editingText.value);
+	}
+}
+
+function cancelInlineEdit(): void {
+	editingId.value = null;
+}
+
+/**
+ * Delete removes the selected master/layout shapes. The overlay has to own
+ * this: the deck-wide key handler resolves ids against `slides`, where a
+ * master part's shapes do not exist.
+ */
+function onOverlayKeyDown(event: KeyboardEvent): void {
+	if (!props.canEdit || editingId.value || selectedIds.value.length === 0) {
+		return;
+	}
+	if (event.key !== 'Delete' && event.key !== 'Backspace') {
+		return;
+	}
+	event.preventDefault();
+	props.state.onMasterViewElementDelete(selectedIds.value);
+	selectedIds.value = [];
 }
 
 /** A drag / resize / rotate on a master or layout shape. */
@@ -78,7 +179,9 @@ function canvasLabel(): string {
 		class="pptx-vue-master-overlay"
 		role="dialog"
 		:aria-label="t('pptx.view.masterViews')"
+		:tabindex="canEdit ? 0 : undefined"
 		@click.self="state.showMasterView.value = false"
+		@keydown="onOverlayKeyDown"
 	>
 		<MasterViewSidebar
 			:slide-masters="slideMasters"
@@ -90,12 +193,15 @@ function canvasLabel(): string {
 			:notes-master="notesMaster"
 			:handout-master="handoutMaster"
 			:handout-slides-per-page="handoutMaster?.slidesPerPage ?? state.handoutSlidesPerPage.value"
+			:slides-background="state.activeMasterViewBackground.value"
+			:can-edit="canEdit"
 			@select-master="state.onSelectMaster"
 			@select-layout="state.onSelectLayout"
 			@tab-change="state.masterViewTab.value = $event"
 			@handout-slides-per-page-change="state.onHandoutSlidesPerPageChange"
 			@notes-background-change="state.onNotesMasterBackgroundChange"
 			@handout-background-change="state.onHandoutMasterBackgroundChange"
+			@slides-background-change="state.onMasterViewBackgroundChange"
 			@collapse="state.showMasterView.value = false"
 		/>
 		<main class="pptx-vue-master-canvas" role="application" :aria-label="canvasLabel()">
@@ -103,6 +209,7 @@ function canvasLabel(): string {
 				v-if="state.masterViewTab.value === 'notes'"
 				:notes-master="notesMaster"
 				:canvas-size="canvasSize"
+				:notes-canvas-size="notesCanvasSize"
 			/>
 			<HandoutMasterCanvas
 				v-else-if="state.masterViewTab.value === 'handout'"
@@ -118,22 +225,39 @@ function canvasLabel(): string {
 					height: `${canvasSize.height * MASTER_STAGE_SCALE}px`,
 				}"
 				@pointerdown="onStagePointerDown"
+				@dblclick="onStageDoubleClick"
 			>
+				<!--
+					Both overlays go in the stage's slot, not beside it. They read
+					UNSCALED element px and rely on the stage's own `scale()` to line
+					up, which is the contract `SlideStage` documents; mounted as
+					siblings they were laid out against the scaled-down box and every
+					handle sat 1/scale away from the shape it belonged to.
+				-->
 				<SlideStage
 					:slide="state.activeMasterViewSlide.value"
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
 					:scale="MASTER_STAGE_SCALE"
 					:interactive="canEdit"
-				/>
-				<SelectionOverlay
-					v-if="canEdit"
-					:elements="state.activeMasterViewElements.value"
-					:selected-ids="selectedIds"
-					:zoom="MASTER_STAGE_SCALE"
-					@transform="onTransform"
-					@transform-end="onTransform"
-				/>
+				>
+					<SelectionOverlay
+						v-if="canEdit && !editingId"
+						:elements="state.activeMasterViewElements.value"
+						:selected-ids="selectedIds"
+						:zoom="MASTER_STAGE_SCALE"
+						@transform="onTransform"
+						@transform-end="onTransform"
+						@request-edit="(payload) => beginInlineEdit(payload.id)"
+					/>
+					<InlineTextEditor
+						v-if="canEdit && editingElement"
+						:element="editingElement"
+						@change="editingText = $event"
+						@commit="commitInlineEdit"
+						@cancel="cancelInlineEdit"
+					/>
+				</SlideStage>
 			</div>
 		</main>
 	</div>

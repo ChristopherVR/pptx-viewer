@@ -7,9 +7,18 @@ import { cn } from '../../utils';
 
 export interface ResizeHandlesProps {
 	elementId: string;
-	adjustmentHandleDescriptor: ShapeAdjustmentHandleDescriptor | null;
+	/**
+	 * Every `a:avLst` handle the shape offers, not just the first: PowerPoint
+	 * shows one amber diamond per adjustable parameter and presets routinely
+	 * have several (`quadArrow` three, `callout3` four).
+	 */
+	adjustmentHandles: ShapeAdjustmentHandleDescriptor[];
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	/** Whether to force pointerEvents: "auto" on buttons (needed inside pointer-events:none containers). */
 	forcePointerEvents?: boolean;
 	/** Current element rotation in degrees (the rotate-handle drag baseline). */
@@ -98,7 +107,7 @@ export const EDGE_HANDLES: {
 
 export function ResizeHandles({
 	elementId,
-	adjustmentHandleDescriptor: adjH,
+	adjustmentHandles,
 	onResizePointerDown,
 	onAdjustmentPointerDown,
 	forcePointerEvents,
@@ -244,16 +253,22 @@ export function ResizeHandles({
 				</button>
 			) : null}
 
-			{/* Shape adjustment handle (yellow diamond) */}
-			{adjH ? (
+			{/* Shape adjustment handles (yellow diamonds), one per `a:avLst` guide.
+			    Every one carries the SAME accessible name: `playwright.config.ts`
+			    lists `aria-label="Adjust shape"` as part of the framework-neutral
+			    contract all five viewers emit. The offsets centre the 10px diamond
+			    on the element-local point shared measured off the preset geometry. */}
+			{adjustmentHandles.map((adjH) => (
 				<button
+					key={adjH.key}
 					type='button'
 					aria-label={t('pptx.canvas.adjustShape')}
+					data-pptx-adjust-key={adjH.key}
 					data-pptx-compact
 					className='absolute h-2.5 w-2.5 max-md:h-4 max-md:w-4 rotate-45 border border-amber-700 bg-amber-300 shadow z-10'
 					style={{
 						left: adjH.left - 5,
-						top: adjH.top,
+						top: adjH.top - 5,
 						cursor: adjH.cursor,
 						...HANDLE_TOUCH_ACTION,
 						...(forcePointerEvents ? { pointerEvents: 'auto' as const } : {}),
@@ -264,14 +279,14 @@ export function ResizeHandles({
 						}
 						e.stopPropagation();
 						(e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-						onAdjustmentPointerDown(elementId, e);
+						onAdjustmentPointerDown(elementId, e, adjH);
 					}}
 					onMouseDown={(e) => {
 						e.stopPropagation();
-						onAdjustmentPointerDown(elementId, e);
+						onAdjustmentPointerDown(elementId, e, adjH);
 					}}
 				/>
-			) : null}
+			))}
 		</>
 	);
 }

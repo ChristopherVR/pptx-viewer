@@ -50,7 +50,7 @@ export function SlideMastersList({
 	onSelectMaster,
 	onSelectLayout,
 }: SlideMastersListProps): React.ReactElement {
-	const activeRef = useRef<HTMLDivElement>(null);
+	const activeRef = useRef<HTMLButtonElement>(null);
 
 	useEffect(() => {
 		activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -66,10 +66,20 @@ export function SlideMastersList({
 
 				return (
 					<div key={master.path} className='space-y-1'>
-						<div
+						{/*
+						 * A real <button> with an accessible name, as vue, angular,
+						 * svelte and vanilla all render here. React's rail was a bare
+						 * `<div onClick>`: not reachable by keyboard, invisible to
+						 * assistive technology, and nameless, so the only way to pick a
+						 * master or layout was a mouse click on an unlabelled box.
+						 */}
+						<button
+							type='button'
 							ref={isMasterActive ? activeRef : undefined}
+							aria-pressed={isMasterActive}
+							aria-label={master.name || t('pptx.master.master')}
 							className={cn(
-								'group relative cursor-pointer rounded-lg border-2 p-1 transition-all',
+								'group relative block w-full cursor-pointer rounded-lg border-2 p-1 text-left transition-all',
 								isMasterActive
 									? 'border-amber-500 bg-amber-500/10'
 									: 'border-border bg-background/40 hover:border-border',
@@ -93,7 +103,7 @@ export function SlideMastersList({
 									{master.name || t('pptx.master.master')}
 								</span>
 							</div>
-						</div>
+						</button>
 
 						{layouts.length > 0 && (
 							<div className='ml-3 space-y-1 border-l border-border/40 pl-2'>
@@ -102,11 +112,14 @@ export function SlideMastersList({
 										masterIdx === activeMasterIndex && layoutIdx === activeLayoutIndex;
 
 									return (
-										<div
+										<button
+											type='button'
 											key={layout.path}
 											ref={isLayoutActive ? activeRef : undefined}
+											aria-pressed={isLayoutActive}
+											aria-label={layout.name || t('pptx.master.layout')}
 											className={cn(
-												'group relative cursor-pointer rounded-md border-2 p-0.5 transition-all',
+												'group relative block w-full cursor-pointer rounded-md border-2 p-0.5 text-left transition-all',
 												isLayoutActive
 													? 'border-primary bg-primary/10'
 													: 'border-border bg-background/40 hover:border-border',
@@ -130,7 +143,7 @@ export function SlideMastersList({
 													{layout.name || t('pptx.master.layout')}
 												</span>
 											</div>
-										</div>
+										</button>
 									);
 								})}
 							</div>

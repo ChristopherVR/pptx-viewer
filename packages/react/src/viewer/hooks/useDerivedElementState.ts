@@ -128,9 +128,43 @@ export function useDerivedElementState(input: UseDerivedElementStateInput): Deri
 		return templateElementsBySlideId[activeSlide.id] ?? [];
 	}, [activeSlide, templateElementsBySlideId]);
 
+	// ── Master View derived state ───────────────────────────────────
+	// Resolved before the lookup below, which has to be able to see these:
+	// the Slide Master view paints shapes whose ids (`slide-master-…`,
+	// `slide-layout-…`, `notes-master-…`, `handout-master-…`) exist on no
+	// slide, so a lookup built from `slides` alone resolved every one of them
+	// to nothing. That single miss disabled inline text editing, the
+	// tap-an-already-selected edit, the Arrange > Delete button and the
+	// context menu over a master shape, all of whose handlers begin by
+	// resolving the id. The write path behind them was correct all along.
+	const activeMaster = slideMasters[activeMasterIndex];
+
+	const activeLayout = useMemo(
+		() => resolveActiveLayout(activeMaster, activeLayoutIndex),
+		[activeMaster, activeLayoutIndex],
+	);
+
+	const masterViewElements = useMemo(
+		() => computeMasterViewElements(activeMaster, activeLayout),
+		[activeMaster, activeLayout],
+	);
+
+	const notesMasterElements = useMemo(() => notesMaster?.elements ?? [], [notesMaster]);
+
+	const handoutMasterElements = useMemo(() => handoutMaster?.elements ?? [], [handoutMaster]);
+
 	const elementLookup = useMemo(
-		() => buildElementLookup(templateElements, activeSlide?.elements ?? []),
-		[activeSlide, templateElements],
+		() =>
+			buildElementLookup(
+				[
+					...templateElements,
+					...masterViewElements,
+					...notesMasterElements,
+					...handoutMasterElements,
+				],
+				activeSlide?.elements ?? [],
+			),
+		[activeSlide, templateElements, masterViewElements, notesMasterElements, handoutMasterElements],
 	);
 
 	// ── Selection derived state ─────────────────────────────────────
@@ -152,23 +186,6 @@ export function useDerivedElementState(input: UseDerivedElementStateInput): Deri
 		() => effectiveSelectedIds.map((id) => elementLookup.get(id)).filter(Boolean) as PptxElement[],
 		[effectiveSelectedIds, elementLookup],
 	);
-
-	// ── Master View derived state ───────────────────────────────────
-	const activeMaster = slideMasters[activeMasterIndex];
-
-	const activeLayout = useMemo(
-		() => resolveActiveLayout(activeMaster, activeLayoutIndex),
-		[activeMaster, activeLayoutIndex],
-	);
-
-	const masterViewElements = useMemo(
-		() => computeMasterViewElements(activeMaster, activeLayout),
-		[activeMaster, activeLayout],
-	);
-
-	const notesMasterElements = useMemo(() => notesMaster?.elements ?? [], [notesMaster]);
-
-	const handoutMasterElements = useMemo(() => handoutMaster?.elements ?? [], [handoutMaster]);
 
 	return {
 		activeSlide,

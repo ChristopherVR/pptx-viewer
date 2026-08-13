@@ -66,7 +66,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		showResizeHandles,
 		renderInk: doInk,
 		renderGroups: doGrp,
-		adjustmentHandleDescriptor: adjH,
+		adjustmentHandles: adjH,
 		onResizePointerDown,
 		onAdjustmentPointerDown,
 		onRotate,
@@ -175,7 +175,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					selectionColorClass={selClr}
 					opacity={opacity}
 					zIndex={zIndex}
-					adjustmentHandleDescriptor={adjH}
+					adjustmentHandles={adjH}
 					onResizePointerDown={onResizePointerDown}
 					onAdjustmentPointerDown={onAdjustmentPointerDown}
 					animationState={animationState}
@@ -370,7 +370,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				{effectiveShowResizeHandles && !effectiveIsInlineEditing && (
 					<ResizeHandles
 						elementId={el.id}
-						adjustmentHandleDescriptor={adjH}
+						adjustmentHandles={adjH}
 						onResizePointerDown={onResizePointerDown}
 						onAdjustmentPointerDown={onAdjustmentPointerDown}
 						rotation={el.rotation}

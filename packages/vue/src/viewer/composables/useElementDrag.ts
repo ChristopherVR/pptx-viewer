@@ -240,8 +240,8 @@ export function useElementDrag(input: UseElementDragInput) {
 		rerouteConnectorsFor(new Set([payload.id]));
 	}
 
-	/** Patch an element's round-rect corner-radius adjustment WITHOUT a history entry. */
-	function patchActiveElementAdjustment(id: string, value: number): void {
+	/** Patch an element's `a:avLst` adjustments WITHOUT a history entry. */
+	function patchActiveElementAdjustment(id: string, adjustments: Record<string, number>): void {
 		patchElementInStore(
 			id,
 			(el) =>
@@ -249,7 +249,7 @@ export function useElementDrag(input: UseElementDragInput) {
 					...el,
 					shapeAdjustments: {
 						...(el as { shapeAdjustments?: Record<string, number> }).shapeAdjustments,
-						adj: value,
+						...adjustments,
 					},
 				}) as PptxElement,
 		);
@@ -257,11 +257,21 @@ export function useElementDrag(input: UseElementDragInput) {
 	function onAdjustStart(): void {
 		pushHistory();
 	}
-	function onAdjust(payload: { id: string; value: number }): void {
-		patchActiveElementAdjustment(payload.id, payload.value);
+
+	/**
+	 * Commit a connector endpoint that was dragged onto a connection site (or
+	 * off one). Shared decided the geometry AND the `a:stCxn`/`a:endCxn`
+	 * bindings; this only writes the element and takes the history entry.
+	 */
+	function onConnectorEndpoint(payload: { id: string; element: PptxElement }): void {
+		pushHistory();
+		patchElementInStore(payload.id, () => payload.element);
 	}
-	function onAdjustEnd(payload: { id: string; value: number }): void {
-		patchActiveElementAdjustment(payload.id, payload.value);
+	function onAdjust(payload: { id: string; adjustments: Record<string, number> }): void {
+		patchActiveElementAdjustment(payload.id, payload.adjustments);
+	}
+	function onAdjustEnd(payload: { id: string; adjustments: Record<string, number> }): void {
+		patchActiveElementAdjustment(payload.id, payload.adjustments);
 	}
 
 	return {
@@ -273,5 +283,6 @@ export function useElementDrag(input: UseElementDragInput) {
 		onAdjustStart,
 		onAdjust,
 		onAdjustEnd,
+		onConnectorEndpoint,
 	};
 }

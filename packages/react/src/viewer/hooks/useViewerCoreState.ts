@@ -34,6 +34,7 @@ import type {
  * @module useViewerCoreState
  */
 import { createCollaborationLivePatcher, publishLiveInlineText } from 'pptx-viewer-shared';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 
@@ -112,6 +113,9 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		width: DEFAULT_CANVAS_WIDTH,
 		height: DEFAULT_CANVAS_HEIGHT,
 	});
+	// The EMU `p:sldSz` behind that pixel canvas. Held separately because a
+	// pixel round-trip is lossy and would strip a deck's slide-size preset.
+	const [slideSizeEmu, setSlideSizeEmu] = useState<SlideSizeEmu | undefined>();
 	const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 	const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 	const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
@@ -230,6 +234,8 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		setTemplateElementsBySlideId,
 		canvasSize,
 		setCanvasSize,
+		slideSizeEmu,
+		setSlideSizeEmu,
 		activeSlideIndex,
 		setActiveSlideIndex,
 		selectedElementId,

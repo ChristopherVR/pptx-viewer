@@ -29,6 +29,7 @@ import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.vue';
 import CanvasGuides from './CanvasGuides.vue';
 import CollaborationCursors from './CollaborationCursors.vue';
 import CommentMarkersOverlay from './CommentMarkersOverlay.vue';
+import ConnectorEndpointOverlay from './ConnectorEndpointOverlay.vue';
 import DrawingOverlay from './DrawingOverlay.vue';
 import GridOverlay from './GridOverlay.vue';
 import InlineTextEditor from './InlineTextEditor.vue';
@@ -164,6 +165,21 @@ defineProps<{
 		@adjust="drag.onAdjust"
 		@adjust-end="drag.onAdjustEnd"
 		@request-edit="(p) => onRequestEdit(p.id)"
+	/>
+
+	<!-- Connector endpoint authoring, above the selection chrome so its handles
+	     win the hit test against the connector's own resize handles. -->
+	<ConnectorEndpointOverlay
+		v-if="
+			canEdit &&
+			!presenting &&
+			selectedElements.length === 1 &&
+			selectedElements[0].type === 'connector'
+		"
+		:connector="selectedElements[0]"
+		:elements="activeSlide?.elements ?? []"
+		:zoom="effectiveZoom"
+		@commit="drag.onConnectorEndpoint"
 	/>
 
 	<InlineTextEditor

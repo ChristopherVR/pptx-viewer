@@ -223,7 +223,7 @@ export function renderParagraphRun(
 
 	const spanNode = (
 		<span key={key} data-seg-idx={segmentIndex} style={spanStyle}>
-			{renderRubyOrText(segment, baseContent, baseFontSize, baseFontFamily, resolvedSegmentColor)}
+			{renderRubyOrText(run, baseContent)}
 		</span>
 	);
 
@@ -231,44 +231,24 @@ export function renderParagraphRun(
 }
 
 /**
- * Wrap the run's content in `<ruby>` when the segment carries a phonetic guide
+ * Wrap the run's content in `<ruby>` when it carries a phonetic guide
  * (`a:ruby`, furigana / pinyin), or return it unchanged.
+ *
+ * The annotation and its style are resolved by shared `resolveRunRuby` and ride
+ * the run, so all five bindings render the same markup. This used to read the
+ * SEGMENT here, which also meant the reading was repeated over every piece a
+ * multi-word segment was split into for metric tracking; shared emits a ruby run
+ * whole, so it now appears once.
  */
-function renderRubyOrText(
-	segment: TextSegment | undefined,
-	baseContent: React.ReactNode,
-	baseFontSize: number,
-	baseFontFamily: string,
-	resolvedColor: string,
-): React.ReactNode {
-	const rubyText = segment?.rubyText;
-	if (typeof rubyText !== 'string' || rubyText.length === 0) {
+function renderRubyOrText(run: ParagraphRun, baseContent: React.ReactNode): React.ReactNode {
+	if (!run.ruby) {
 		return baseContent;
-	}
-	// Resolve the annotation size: the explicit `rubyFontSize`, else 50% of the
-	// base size (the common default).
-	const rubyStyle: React.CSSProperties = {
-		fontSize: segment?.rubyFontSize ?? baseFontSize * 0.5,
-		fontFamily: segment?.rubyStyle?.fontFamily ?? baseFontFamily,
-		textAlign:
-			segment?.rubyAlignment === 'l'
-				? 'left'
-				: segment?.rubyAlignment === 'r'
-					? 'right'
-					: segment?.rubyAlignment === 'dist' ||
-						  segment?.rubyAlignment === 'distCat' ||
-						  segment?.rubyAlignment === 'distLetter'
-						? 'justify'
-						: 'center',
-	};
-	if (segment?.rubyStyle?.color) {
-		rubyStyle.color = normalizeHexColor(segment.rubyStyle.color, resolvedColor);
 	}
 	return (
 		<ruby>
 			{baseContent}
 			<rp>(</rp>
-			<rt style={rubyStyle}>{rubyText}</rt>
+			<rt style={run.ruby.style as React.CSSProperties}>{run.ruby.text}</rt>
 			<rp>)</rp>
 		</ruby>
 	);

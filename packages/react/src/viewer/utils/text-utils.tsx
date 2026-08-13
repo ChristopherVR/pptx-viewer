@@ -91,9 +91,13 @@ export function formatTextAsList(text: string, mode: ListMode): string {
 		.join('\n');
 }
 
-export function createEditorId(prefix: string): string {
-	return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-}
+// `createEditorId` deliberately does NOT live here. `pptx-viewer-core` owns the
+// one implementation (`createEditorId` in `core/utils/element-utils`), and this
+// file's private copy still carried the four-digit random suffix that core
+// abandoned: ids minted in the same tick share the timestamp, so that suffix
+// produced ~46 duplicates per 1000 ids, and a duplicate element id becomes a
+// duplicate `p:cNvPr/@id` on save. The copy had no callers, so it is gone
+// rather than re-exported. Import from `pptx-viewer-core` if you need one.
 
 /**
  * Element-level text-body CSS.

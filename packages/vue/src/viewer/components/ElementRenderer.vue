@@ -27,6 +27,7 @@ import { build3DExtrusionData } from '../composables/visual-3d';
 import ActionButtonGlyphOverlay from './ActionButtonGlyphOverlay.vue';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
+import ContentPartRenderer from './ContentPartRenderer.vue';
 import DuotoneFilterDefs from './DuotoneFilterDefs.vue';
 import ElementImageBox from './ElementImageBox.vue';
 import ElementMediaBox from './ElementMediaBox.vue';
@@ -390,6 +391,13 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:replay="presenting"
+		:data-pptx-element="elementMarker"
+	/>
+	<ContentPartRenderer
+		v-else-if="element.type === 'contentPart'"
+		:element="element"
+		:z-index="zIndex"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 	<OleRenderer

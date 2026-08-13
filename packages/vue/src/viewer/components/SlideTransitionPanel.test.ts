@@ -92,6 +92,33 @@ describe('slideTransitionPanel', () => {
 });
 
 /**
+ * Both controls sit INSIDE their `<label>`, which makes the label element's
+ * text - caption plus every option - their accessible label unless they carry
+ * an explicit one. One effect is called "Rotate", so the select announced a
+ * rotate control, and the presentation spec's "no resize/rotate affordance is
+ * reachable over a running show" assertion matched this dropdown in the
+ * inspector. Angular's transition card has always labelled its select; Vue was
+ * the copy that drifted.
+ */
+describe('slideTransitionPanel - accessible labels', () => {
+	it('labels the effect select without swallowing its option list', () => {
+		const wrapper = mount(SlideTransitionPanel, { props: { slide: slide(undefined) } });
+
+		const select = wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]');
+		expect(select.attributes('aria-label')).toBe('Transition');
+		// The leak this guards against: the wrapping label's own text.
+		expect(select.element.closest('label')?.textContent).toContain('Rotate');
+	});
+
+	it('labels the duration input', () => {
+		const wrapper = mount(SlideTransitionPanel, { props: { slide: slide(undefined) } });
+
+		const duration = wrapper.get<HTMLInputElement>('[data-testid="transition-duration"]');
+		expect(duration.attributes('aria-label')).toBe('Duration (ms)');
+	});
+});
+
+/**
  * The effect select used to print the 45 raw `p:transition` element names
  * (`randomBar`, `wheelReverse`, `flythrough`) as if they were English. The
  * option VALUES are the wire tokens the panel emits, so they are asserted
@@ -104,14 +131,17 @@ describe('slideTransitionPanel - effect names', () => {
 		return wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]').findAll('option');
 	}
 
-	it('still offers the same 45 effects plus the None sentinel, by value', () => {
+	it('still offers the same 46 effects plus the None sentinel, by value', () => {
 		const values = typeSelect().map((o) => (o.element as HTMLOptionElement).value);
-		expect(values).toHaveLength(46);
+		expect(values).toHaveLength(47);
 		expect(values[0]).toBe('__none__');
 		expect(values).toContain('randomBar');
 		expect(values).toContain('wheelReverse');
 		expect(values).toContain('flythrough');
 		expect(values).toContain('orbit');
+		// `box` completes the `p14:prism` family (Cube / Rotate / Box / Orbit),
+		// which the panel already offered three quarters of.
+		expect(values).toContain('box');
 	});
 
 	it('spells each effect instead of printing its wire token', () => {

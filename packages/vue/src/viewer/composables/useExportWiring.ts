@@ -1,9 +1,15 @@
 import type { PptxData, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { downloadBlob, exportDeckJson } from 'pptx-viewer-shared';
+import {
+	downloadBlob,
+	exportDeckJson,
+	presentationBaseName,
+	savedPresentationFileName,
+} from 'pptx-viewer-shared';
 import { computed, nextTick, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
+import { renderToCanvas } from '../../lib/canvas-export';
 import { buildSharingPackage } from './package-sharing';
 import { useExport } from './useExport';
 import type { UseExportResult } from './useExport';
@@ -70,8 +76,7 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		if (!stageEl) {
 			throw new Error('Export stage not ready');
 		}
-		const { default: html2canvas } = await import('html2canvas-pro');
-		return html2canvas(stageEl, {
+		return renderToCanvas(stageEl, {
 			backgroundColor: '#ffffff',
 			scale: 2,
 			width: canvasSize.value.width,
@@ -122,11 +127,13 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 	/** Bundle the current deck with usage notes, matching React's File action. */
 	async function packageForSharing(): Promise<void> {
 		try {
-			const fileName = input.fileName?.() || 'presentation.pptx';
+			// The bytes are always an OpenXML package, so the name inside the ZIP
+			// has to be re-extensioned: a deck opened as `report.ppt` used to be
+			// packaged as `report.ppt` containing `.pptx` bytes.
+			const fileName = savedPresentationFileName(input.fileName?.());
 			const bytes = await saveAs('pptx');
 			const blob = await buildSharingPackage(bytes, fileName);
-			const baseName = fileName.replace(/\.[^.]+$/u, '');
-			downloadBlob(blob, `${baseName}-package.zip`);
+			downloadBlob(blob, `${presentationBaseName(fileName)}-package.zip`);
 		} catch (err) {
 			console.error('[PowerPointViewer] Package export failed:', err);
 		}

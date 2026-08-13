@@ -77,6 +77,7 @@ function viewerState(): ViewerState {
 	return {
 		templateElementsBySlideId: {},
 		activeSlideIndex: 0,
+		canvasSize: { width: 960, height: 540 },
 		guides: [],
 		headerFooter: {},
 		presentationProperties: {},

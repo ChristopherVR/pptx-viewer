@@ -1,6 +1,7 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import {
+	playSlideTransitionPreview,
 	RIBBON_TRANSITION_PRESETS,
 	readRibbonTransitionDraft,
 	ribbonTransitionUpdates,
@@ -56,19 +57,16 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 
 	return (
 		<>
-			{/* Preview: replays the slide's own transition by re-committing it, which
-			    is all any binding can do without a dedicated preview API. A slide
-			    with no transition has nothing to replay, so this stays a no-op there
-			    rather than writing a `none` transition onto a clean slide. */}
+			{/* Preview: REPLAYS the slide's transition on the editing stage through
+			    the shared `playSlideTransitionPreview`, and writes nothing. It used
+			    to re-commit the slide's own transition, which puts back the values
+			    the slide already had: an edit with no visible effect, and one no
+			    test could tell apart from the dead button Vanilla shipped. */}
 			<button
 				type='button'
 				className={pill}
 				title={t('pptx.ribbon.previewTransition')}
-				onClick={() => {
-					if (p.activeSlide?.transition) {
-						commit({});
-					}
-				}}
+				onClick={() => playSlideTransitionPreview(p.activeSlide?.transition, document)}
 			>
 				<LuPlay className={ics} />
 				{t('pptx.ribbon.preview')}

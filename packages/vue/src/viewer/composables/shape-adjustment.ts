@@ -9,6 +9,9 @@
  */
 export type { ShapeAdjustmentHandleDescriptor, ShapeAdjustmentDragState } from 'pptx-viewer-shared';
 export {
+	beginShapeAdjustment,
+	getShapeAdjustmentHandleDescriptors,
+	getDraggedShapeAdjustments,
 	SHAPE_ADJUSTMENT_MIN,
 	SHAPE_ADJUSTMENT_MAX,
 	DEFAULT_ROUND_RECT_ADJUSTMENT,

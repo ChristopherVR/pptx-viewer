@@ -26,7 +26,8 @@ export function renderScatterChart(
 /**
  * Render a bubble chart.
  *
- * Geometry (first two series as points, a third as bubble size), layout, chrome,
+ * Geometry (every series plotted from its own `c:xVal` / `c:yVal` /
+ * `c:bubbleSize`), layout, chrome,
  * and overlays flow through the framework-agnostic `buildChartViewModel` engine
  * in `pptx-viewer-shared` (dispatched on `chartType === 'bubble'`). React's
  * style-id palette is threaded in via `buildReactChartViewModel`.

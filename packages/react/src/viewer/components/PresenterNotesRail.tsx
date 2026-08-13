@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
 import {
 	nextPresentedSlide,
 	PRESENTER_CONSOLE_CLASSES,
@@ -29,6 +30,13 @@ interface PresenterNotesRailProps {
 	templateElements: PptxElement[];
 	now: number;
 	elapsed: number;
+	/**
+	 * The custom show currently playing, if any. The "next slide" preview MUST
+	 * run the same show order the next forward press will: while "Reverse" is
+	 * playing, the slide after 3 is 2, and previewing 4 rehearses a segue the
+	 * room never sees.
+	 */
+	activeCustomShow?: ShowOrderCustomShow | null;
 	onMove: (direction: 1 | -1) => void;
 	onUpdateNotes?: (notes: string) => void;
 }
@@ -40,12 +48,13 @@ export function PresenterNotesRail({
 	templateElements,
 	now,
 	elapsed,
+	activeCustomShow,
 	onMove,
 	onUpdateNotes,
 }: PresenterNotesRailProps): React.ReactElement {
 	const { t } = useTranslation();
 	const slide = slides[current];
-	const nextSlide = nextPresentedSlide(slides, current);
+	const nextSlide = nextPresentedSlide(slides, current, activeCustomShow);
 	const notesText = slide?.notes ?? '';
 	const notesSegments = slide?.notesSegments;
 	const [notesDraft, setNotesDraft] = useState(notesText);

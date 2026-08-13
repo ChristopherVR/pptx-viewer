@@ -15,10 +15,10 @@ import type {
 import {
 	cellPatternFillCss,
 	cellRunStyle,
-	cellStyleToCss,
 	DEFAULT_FONT_FAMILY,
 	getCellDiagonalBorders,
-	getTableCellBandStyle,
+	tableCellCss,
+	tableCellPointerIntent,
 	tableContainerCss,
 } from 'pptx-viewer-shared';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
@@ -28,7 +28,6 @@ import { getContainerStyle } from '../composables/element-style';
 import { injectTableCellEdit } from '../composables/table-edit';
 import { injectTableSelection, useTableCellSelection } from '../composables/table-selection';
 import { injectTableTheme, resolveTableTheme } from '../composables/table-theme';
-import { DEFAULT_TEXT_COLOR } from '../constants';
 import TableResizeOverlay from './TableResizeOverlay.vue';
 
 /**
@@ -208,19 +207,16 @@ const rows = computed<RenderableRow[]>(() => {
 			const colSpan = cell.gridSpan && cell.gridSpan > 1 ? cell.gridSpan : undefined;
 			const rowSpan = cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : undefined;
 
-			const bandStyle = getTableCellBandStyle(td, rowIndex, cellIndex, rCount, cCount, styleCtx);
-			const cellStyle = cellStyleToCss(cell.style);
-			// Explicit cell style wins over band style (mirrors the React layering).
-			const style: TableCellCss = { ...bandStyle, ...cellStyle };
-			// Default body-cell text to the dark slide-text colour when nothing
-			// (cell style, band/header emphasis, or per-run colour) sets one.
-			// Otherwise the cell inherits the dark-UI chrome `foreground`
-			// (near-white), rendering invisible on a light table; React resolves
-			// these cells to DEFAULT_TEXT_COLOR (#111827). Per-run colours still win
-			// because their `<span>` overrides this cascaded `<td>` colour.
-			if (style.color === undefined) {
-				style.color = DEFAULT_TEXT_COLOR;
-			}
+			// Band beneath the explicit cell style, then the dark-text floor for a
+			// cell nothing gave a colour (otherwise it inherits the chrome's
+			// near-white `foreground` and vanishes on a light table). All three
+			// layers are decided once, in shared, for all five bindings.
+			const style: TableCellCss = tableCellCss(
+				td,
+				cell,
+				{ rowIndex, cellIndex, rowCount: rCount, columnCount: cCount },
+				styleCtx,
+			);
 
 			// Pattern fill: resolve separately so the Vue template can apply
 			// `backgroundImage` in addition to `backgroundColor`.
@@ -357,8 +353,35 @@ function isEditing(cell: RenderableCell): boolean {
 const DOUBLE_TAP_MS = 400;
 const lastCellTap = ref<{ rowIndex: number; colIndex: number; time: number } | null>(null);
 
-/** Detect touch double-tap on a cell (native dblclick is unreliable on touch). */
+/**
+ * Arbitrate the press between the CELL range and the slide's element selection,
+ * then detect a touch double-tap (native `dblclick` is unreliable on touch).
+ *
+ * A Shift-click inside a cell is a cell-range gesture, and left to bubble it
+ * reached the canvas's additive branch in `useCanvasPointer`, which TOGGLES this
+ * table out of the slide selection. `PowerPointViewer`'s selection watcher then
+ * nulls the cell selection, so by the time `onCellClick` ran there was no anchor
+ * left and `computeCellSelection` - which is correct - could only ever return a
+ * single cell. Block merge was therefore unreachable in Vue: the context menu
+ * offered "merge right / merge down" where React offered "merge selected cells".
+ * Consuming the press is what Svelte's `applyTableCellPointer` does, and for
+ * exactly this reason.
+ */
 function onCellPointerDown(event: PointerEvent, cell: RenderableCell): void {
+	if (
+		editingEnabled.value &&
+		tableCellPointerIntent({
+			isTableCell: true,
+			shiftKey: event.shiftKey,
+			// In Vue these two facts coincide: the cell range is dropped the moment
+			// its owning table leaves the element selection, so a range that is still
+			// on this table proves the table is still selected.
+			elementSelected: cellSelection.activeSelection.value !== null,
+			rangeOnSameElement: cellSelection.activeSelection.value !== null,
+		}) === 'extend'
+	) {
+		event.stopPropagation();
+	}
 	if (event.pointerType === 'mouse' || !editingEnabled.value) {
 		return;
 	}

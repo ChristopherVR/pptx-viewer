@@ -15,6 +15,7 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 
 import type { CanvasSize, TableCellEditorState, ViewerMode } from '../../types';
 
@@ -83,6 +84,9 @@ export interface InspectorPaneProps {
 	replyingToCommentId?: string | null;
 	replyDraftByCommentId?: Record<string, string>;
 	onUpdateCanvasSize: (size: CanvasSize) => void;
+	/** The deck's `p:sldSz` in EMU, forwarded to the Slide Size card. */
+	slideSizeEmu?: SlideSizeEmu | undefined;
+	onUpdateSlideSize?: (size: SlideSizeEmu) => void;
 	editTemplateMode?: boolean;
 	slideMasters?: PptxSlideMaster[];
 	onSetTemplateBackground?: (path: string, backgroundColor: string) => void;

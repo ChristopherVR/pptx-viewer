@@ -70,6 +70,8 @@ export interface UsePresentationModeInput {
 	onToggleToolbar?: () => void;
 	/** Open the All Slides navigator (Ctrl+S). */
 	onShowAllSlides?: () => void;
+	/** Show or hide live captions (PowerPoint's bare J). */
+	onToggleSubtitles?: () => void;
 	/** Called to persist rehearsal timings into slide transitions. */
 	onSaveRehearsalTimings?: (timings: Record<number, number>) => void;
 	/** Whether to loop continuously (kiosk or explicit loop setting). */

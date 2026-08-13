@@ -52,8 +52,8 @@ export interface UseEditorKeyboardResult {
  * useEditorKeyboard: the root keydown handler plus the config-driven shortcut
  * registry it delegates to (undo/redo/copy/cut/paste/duplicate/delete/select-
  * all/nudge/slide-nav/escape). Find (Ctrl+F) and the shortcut-help overlay
- * (Ctrl+/) are intercepted here before falling through to the registry.
- * Extracted verbatim from `PowerPointViewer.vue`.
+ * ("?" or Ctrl+/) resolve inside the shared keymap, so nothing is intercepted
+ * ahead of the registry any more. Extracted from `PowerPointViewer.vue`.
  */
 export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeyboardResult {
 	const {
@@ -195,25 +195,24 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 				}
 				onEscape();
 			},
+			find: () => {
+				findOpen.value = !findOpen.value;
+			},
 		},
 		canEdit,
 		hasSelection,
 		isPresenting: presenting,
 	});
 
-	/** Root keydown: Find / shortcut-help first, then the shortcut registry. */
+	/**
+	 * Root keydown: everything now goes through the shortcut registry.
+	 *
+	 * Ctrl/Cmd+F and Ctrl/Cmd+/ used to be hand-matched here, above the registry.
+	 * Both are shared-keymap actions now (`find` and `toggleShortcuts`), so
+	 * Angular, Svelte and Vanilla get the same chords instead of Ctrl+F falling
+	 * through to the browser's find bar and Ctrl+/ doing nothing at all.
+	 */
 	function onEditorKeydown(event: KeyboardEvent): void {
-		const mod = event.ctrlKey || event.metaKey;
-		if (canEdit() && mod && event.key.toLowerCase() === 'f') {
-			event.preventDefault();
-			findOpen.value = !findOpen.value;
-			return;
-		}
-		if (mod && event.key === '/') {
-			event.preventDefault();
-			showShortcuts.value = !showShortcuts.value;
-			return;
-		}
 		shortcuts.handleKeyDown(event);
 	}
 

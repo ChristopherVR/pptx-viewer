@@ -71,6 +71,7 @@ const TRANSITION_TYPES: readonly PptxTransitionType[] = [
 	'cube',
 	'flip',
 	'rotate',
+	'box',
 	'orbit',
 ];
 
@@ -145,9 +146,19 @@ function onDurationChange(event: Event): void {
 			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground">{{
 				t('pptx.transition.label')
 			}}</span>
+			<!--
+			 The explicit `aria-label` is load-bearing, not decoration. A `<select>`
+			 nested inside its `<label>` takes the WHOLE label element's text as its
+			 accessible label, and that text includes every option: this control
+			 announced itself as "Transition None Cut Fade ... Rotate ..." and, since
+			 one effect is called Rotate, a running show matched a "rotate" affordance
+			 that was never on screen. Angular's transition card labels its select the
+			 same way; this is the binding that had drifted.
+			-->
 			<select
 				class="pptx-vue-transition-panel__select rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				:value="selectedType"
+				:aria-label="t('pptx.transition.label')"
 				data-testid="transition-type"
 				@change="onTypeChange"
 			>
@@ -169,6 +180,7 @@ function onDurationChange(event: Event): void {
 				step="100"
 				:value="durationMs"
 				:disabled="!hasTransition"
+				:aria-label="t('pptx.transition.duration')"
 				data-testid="transition-duration"
 				@change="onDurationChange"
 			/>

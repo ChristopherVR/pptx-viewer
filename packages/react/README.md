@@ -72,18 +72,18 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 
 ## Features
 
-| Feature            | Description                                                                                                                               |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **View**           | Render slides with 16 element types: shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom |
-| **Edit**           | Insert/move/resize/delete elements, edit text inline, modify styles, manage slides                                                        |
-| **Present**        | Fullscreen slideshow with 40+ animations, 46 transitions (including morph), speaker notes, presenter view with timer                      |
-| **Export**         | PNG/JPEG/SVG/PDF/GIF/video slide export, save-as PPTX                                                                                     |
-| **Collaborate**    | Real-time multi-user editing (powered by Yjs) with live presence, remote cursors, and user avatars                                        |
-| **Print**          | Print dialog with handout layouts and notes page formatting with overflow pagination                                                      |
-| **Annotate**       | Pen/highlighter/laser pointer tools during presentations                                                                                  |
-| **Find & Replace** | Cross-slide text search with regex support                                                                                                |
-| **Accessibility**  | Keyboard navigation, alt-text audit panel, screen reader support                                                                          |
-| **3D**             | GLB/GLTF model rendering via Three.js, 3D surface charts, CSS 3D shape/text extrusion                                                     |
+| Feature            | Description                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **View**           | Render slides with 16 element types: shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom      |
+| **Edit**           | Insert/move/resize/delete elements, edit text inline, modify styles, manage slides                                                             |
+| **Present**        | Fullscreen slideshow with 39 animation presets and 26 motion paths, 57 transitions (including morph), speaker notes, presenter view with timer |
+| **Export**         | PNG/SVG/PDF/GIF/video/JSON slide export, save-as PPTX                                                                                          |
+| **Collaborate**    | Real-time multi-user editing (powered by Yjs) with live presence, remote cursors, and user avatars                                             |
+| **Print**          | Print dialog with handout layouts and notes page formatting with overflow pagination                                                           |
+| **Annotate**       | Pen/highlighter/laser pointer tools during presentations                                                                                       |
+| **Find & Replace** | Cross-slide text search with regex support                                                                                                     |
+| **Accessibility**  | Keyboard navigation, alt-text audit panel, screen reader support                                                                               |
+| **3D**             | GLB/GLTF model rendering via Three.js, 3D surface charts, CSS 3D shape/text extrusion                                                          |
 
 ---
 
@@ -238,11 +238,11 @@ UI labels go through [i18next](https://www.i18next.com/) / [react-i18next](https
 
 You only need the `<PowerPointViewer>` component; everything else is internal. Behind it, the logic lives in many small, focused React hooks, and the components themselves just draw what those hooks produce. Slides are rendered as ordinary HTML and CSS (charts as inline SVG, tables as real `<table>` elements), which is why text stays sharp, selectable, and accessible. For the full component tree, the rendering pipeline, the animation and transition engine, connector routing, collaboration, and a file-by-file map, see the [full documentation](https://christophervr.github.io/pptx-viewer/).
 
-A small curated set of those hooks is exported from `pptx-react-viewer/viewer` with a stable API; the complete set (67+) is also importable from `pptx-react-viewer/internals` for advanced integrations. The `internals` subpath is **not covered by semver**: prefer the stable root exports. See the [Hooks reference](https://christophervr.github.io/pptx-viewer/react/hooks-reference) for the full list.
+A small curated set of those hooks is exported from `pptx-react-viewer/viewer` with a stable API; the complete set (80+) is also importable from `pptx-react-viewer/internals` for advanced integrations. The `internals` subpath is **not covered by semver**: prefer the stable root exports. See the [Hooks reference](https://christophervr.github.io/pptx-viewer/react/hooks-reference) for the full list.
 
 ## Limitations
 
-CSS-based rendering trades a few visual effects for crisp text, accessibility, and DOM interactivity: `backdrop-filter` becomes semi-transparent backgrounds and path gradients approximate as elliptical radials, while `mix-blend-mode` and CSS 3D transforms render natively on screen but flatten in raster export. Text uses fonts available in the browser (embedded fonts are injected when present). Media playback depends on browser codec support. SmartArt is decomposed into editable shapes with a live reflow engine for structural edits, and charts edit via the inspector data grid rather than the chart surface. 3D models need the optional Three.js peer. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete list.
+CSS-based rendering trades a few visual effects for crisp text, accessibility, and DOM interactivity: `backdrop-filter` becomes semi-transparent backgrounds and path gradients approximate as elliptical radials, while `mix-blend-mode` and CSS 3D transforms render natively on screen but flatten in raster export. Text uses fonts available in the browser (embedded fonts are injected when present). Media playback depends on browser codec support. SmartArt is decomposed into editable shapes with a live reflow engine for structural edits. Charts are editable directly on the canvas (click a mark, drag it to a new value, double-click the title to rename), except for stacked, pie, radar, surface and map kinds, which are click-to-select and edited in the inspector data grid. 3D models need the optional Three.js peer. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete list.
 
 ## License
 

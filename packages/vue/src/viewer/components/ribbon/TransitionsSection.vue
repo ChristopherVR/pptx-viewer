@@ -3,6 +3,7 @@ import { Copy, PanelRight, Play } from 'lucide-vue-next';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import {
+	playSlideTransitionPreview,
 	RIBBON_TRANSITION_PRESETS,
 	readRibbonTransitionDraft,
 	ribbonTransitionUpdates,
@@ -56,11 +57,13 @@ function commit(changes: Partial<RibbonTransitionDraft>): void {
 	props.onTransitionChange(ribbonTransitionUpdates({ ...draft.value, ...changes }));
 }
 
-/** Replay the slide's own transition. A slide with none has nothing to replay. */
+/**
+ * Replay the slide's own transition ON THE STAGE, without touching the deck.
+ * This used to re-commit the transition, which writes back the values the slide
+ * already had: an edit the user cannot see and a spec cannot tell from a no-op.
+ */
 function preview(): void {
-	if (props.activeSlide?.transition) {
-		commit({});
-	}
+	playSlideTransitionPreview(props.activeSlide?.transition, document);
 }
 
 function onDurationInput(event: Event): void {

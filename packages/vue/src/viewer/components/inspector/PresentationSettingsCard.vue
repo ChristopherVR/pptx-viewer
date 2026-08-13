@@ -38,8 +38,11 @@ function onNumber(e: Event): number {
 	<div class="space-y-1.5 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
 			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showType') }}</span>
+			<!-- Nested in its `<label>`, so without this its accessible label would
+			     be the caption plus every option: see `SlideTransitionPanel.vue`. -->
 			<select
 				class="w-28 rounded border border-border bg-muted px-2 py-1 text-xs"
+				:aria-label="t('pptx.presentationSettings.showType')"
 				:disabled="!props.canEdit"
 				:value="props.presentationProperties.showType ?? 'presented'"
 				@change="

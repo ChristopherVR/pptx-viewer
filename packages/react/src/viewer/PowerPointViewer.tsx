@@ -443,6 +443,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				presentationGridSpacing: state.presentationProperties.gridSpacing,
 			});
 
+		// The show that is actually playing, resolved once so presenter view's
+		// next-slide preview follows the same order as the forward key.
+		const activeCustomShow =
+			state.customShows.find((show) => show.id === state.activeCustomShowId) ?? null;
+
 		// ── Core hooks ────────────────────────────────────────────────
 		// Returns true when a drag, resize, marquee, adjustment, or drawing
 		// interaction is in progress. Used by the history hook to defer
@@ -520,6 +525,13 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			setActiveSlideIndex: state.setActiveSlideIndex,
 			setSlides: state.setSlides,
 			history,
+			// PowerPoint's bare `J` during a show toggles live captions. It resolves
+			// in the shared slide-show keymap; this is the state it has to reach.
+			onToggleSubtitles: () =>
+				state.setPresentationProperties((prev) => ({
+					...prev,
+					showSubtitles: !prev.showSubtitles,
+				})),
 		});
 
 		// ── Touch gestures: pinch-to-zoom on canvas viewport ──────
@@ -1077,6 +1089,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					canvasSize={canvasSize}
 					templateElements={state.templateElements}
 					presentation={presentation}
+					activeCustomShow={activeCustomShow}
 					onExitPresentation={() => handleSetMode('edit')}
 					onUpdateNotes={propertyHandlers.handleUpdateNotes}
 					isMobile={isMobile}

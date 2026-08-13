@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { collectConnectorSiteCandidates, getShapeConnectionSites } from 'pptx-viewer-shared';
 /**
  * Connector creation overlay: shows connection-site dots on shapes
  * and a live drag-preview line when drawing a new connector.
@@ -6,7 +7,6 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import React from 'react';
 
 import type { CanvasSize } from '../../types';
-import { getConnectionSites } from '../../utils/shape-connector';
 import type { ZoomViewport } from './canvas-types';
 import type { ConnectorDragState } from './useConnectorCreation';
 
@@ -46,29 +46,30 @@ export function ConnectorOverlay({
 			onMouseUp={onConnectorDragEnd}
 			style={{ pointerEvents: connectorDragState ? 'auto' : 'none' }}
 		>
-			{activeSlide.elements
-				.filter((el) => el.type !== 'connector')
-				.map((el) => {
-					const sites = getConnectionSites(el.width, el.height);
-					return sites.map((site) => (
-						<div
-							key={`${el.id}-site-${site.index}`}
-							className='absolute rounded-full border-2 border-blue-500 bg-blue-400/60 hover:bg-blue-500 hover:scale-125 transition-transform cursor-crosshair'
-							style={{
-								left: el.x + site.x - 5,
-								top: el.y + site.y - 5,
-								width: 10,
-								height: 10,
-								pointerEvents: 'auto',
-								zIndex: 56,
-							}}
-							onMouseDown={(e) => onConnectionSiteDown(el.id, site.index, e)}
-							onMouseUp={() =>
-								connectorDragState ? onConnectionSiteDrop(el.id, site.index) : undefined
-							}
-						/>
-					));
-				})}
+			{/* Sites come from shared, which resolves each shape's parsed
+			    `a:cxnLst` and only falls back to the four edge midpoints when it
+			    has none. This used to call the fallback DIRECTLY, so on any shape
+			    with real connection sites the dots were drawn in one place and the
+			    connector `authorConnectorBetweenSites` created landed in another. */}
+			{collectConnectorSiteCandidates(activeSlide.elements).map((site) => (
+				<div
+					key={`${site.elementId}-site-${site.siteIndex}`}
+					data-pptx-connection-site
+					className='absolute rounded-full border-2 border-blue-500 bg-blue-400/60 hover:bg-blue-500 hover:scale-125 transition-transform cursor-crosshair'
+					style={{
+						left: site.x - 5,
+						top: site.y - 5,
+						width: 10,
+						height: 10,
+						pointerEvents: 'auto',
+						zIndex: 56,
+					}}
+					onMouseDown={(e) => onConnectionSiteDown(site.elementId, site.siteIndex, e)}
+					onMouseUp={() =>
+						connectorDragState ? onConnectionSiteDrop(site.elementId, site.siteIndex) : undefined
+					}
+				/>
+			))}
 
 			{/* Live connector drag preview line */}
 			{connectorDragState && (
@@ -103,7 +104,7 @@ function ConnectorDragPreview({
 		return null;
 	}
 
-	const startSites = getConnectionSites(startEl.width, startEl.height);
+	const startSites = getShapeConnectionSites(startEl);
 	const startSite = startSites[connectorDragState.startSiteIndex] ?? startSites[0];
 	const sx = startEl.x + startSite.x;
 	const sy = startEl.y + startSite.y;

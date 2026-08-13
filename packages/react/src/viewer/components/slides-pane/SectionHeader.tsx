@@ -18,7 +18,7 @@ interface SectionHeaderProps {
 	sectionIndex: number;
 	totalSections: number;
 	renameInputRef: React.RefObject<HTMLInputElement | null>;
-	onToggle: (sectionId: string) => void;
+	onToggle: (sectionId: string, isCollapsed: boolean) => void;
 	onContextMenu: (
 		e: React.MouseEvent,
 		sectionId: string,
@@ -57,7 +57,7 @@ export function SectionHeader({
 		<button
 			type='button'
 			className='flex w-full items-center gap-1 rounded px-1.5 py-1 text-[11px] uppercase tracking-wide text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-			onClick={() => onToggle(sectionId)}
+			onClick={() => onToggle(sectionId, isCollapsed)}
 			onContextMenu={(e) =>
 				canEdit ? onContextMenu(e, sectionId, sectionIndex, totalSections) : undefined
 			}

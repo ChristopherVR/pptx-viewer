@@ -1,5 +1,6 @@
-import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
-import { computed, ref } from 'vue';
+import type { PptxCustomShow, PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import { resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
+import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -11,6 +12,12 @@ export interface UseCustomShowsWiringInput {
 	slides: Ref<PptxSlide[]>;
 	activeSlideIndex: Ref<number>;
 	activeSlide: ComputedRef<PptxSlide | undefined>;
+	/**
+	 * `p:showPr`, which carries the show the deck was AUTHORED to open into
+	 * ("Set Up Slide Show > Custom show"). Optional so existing call sites and
+	 * tests keep working; without it the deck always opens in full.
+	 */
+	presentationProperties?: Ref<PptxPresentationProperties>;
 	pushHistory: () => void;
 }
 
@@ -39,6 +46,29 @@ export function useCustomShowsWiring(input: UseCustomShowsWiringInput): UseCusto
 	const showCustomShows = ref(false);
 	const activeCustomShowId = ref<string | null>(null);
 	const customShowOps = useCustomShows({ customShows, slides, activeSlideIndex, pushHistory });
+
+	/**
+	 * The show the loaded deck asks to open into, or `undefined` for the whole
+	 * deck. The "Set Up Slide Show > Custom show" radio wrote these two fields and
+	 * nothing ever read them back, so playback ran off `activeCustomShowId` alone
+	 * and an authored deck presented in full.
+	 */
+	const authoredCustomShowId = computed(() =>
+		resolveAuthoredCustomShowId(input.presentationProperties?.value, customShows.value),
+	);
+
+	// Seeded, not pinned: this fires when the AUTHORED id changes (a deck load, or
+	// a commit from the Set Up Slide Show dialog), so a later pick in the ribbon
+	// or the Custom Shows panel still wins.
+	watch(
+		authoredCustomShowId,
+		(id) => {
+			if (id !== undefined) {
+				activeCustomShowId.value = id;
+			}
+		},
+		{ immediate: true },
+	);
 
 	function onCreateCustomShow(name: string): void {
 		activeCustomShowId.value = customShowOps.createCustomShow(name);

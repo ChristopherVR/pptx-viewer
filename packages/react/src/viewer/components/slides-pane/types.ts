@@ -27,6 +27,11 @@ export interface SlidesPaneSidebarProps {
 	onDeleteSection?: (sectionId: string) => void;
 	onMoveSectionUp?: (sectionId: string) => void;
 	onMoveSectionDown?: (sectionId: string) => void;
+	/**
+	 * Persist the collapse flag onto the section model, so it round-trips
+	 * through save exactly as it does in the other four bindings.
+	 */
+	onToggleSectionCollapse?: (sectionId: string) => void;
 	/** Recorded rehearsal timings in ms, keyed by slide index. */
 	rehearsalTimings?: Record<number, number>;
 	/** Width of the panel in pixels (for resizable panels). */

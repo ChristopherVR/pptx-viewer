@@ -69,6 +69,8 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 		replyingToCommentId,
 		replyDraftByCommentId,
 		onUpdateCanvasSize,
+		slideSizeEmu,
+		onUpdateSlideSize,
 		onUpdateElementStyle,
 		onUpdateTextStyle,
 		onUpdateSlide,
@@ -194,6 +196,8 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 										tagCollections={tagCollections}
 										onUpdateTagCollections={onUpdateTagCollections}
 										onUpdateCanvasSize={onUpdateCanvasSize}
+										slideSizeEmu={slideSizeEmu}
+										onUpdateSlideSize={onUpdateSlideSize}
 										activeSlide={activeSlide}
 										theme={theme}
 										onUpdateSlide={onUpdateSlide}

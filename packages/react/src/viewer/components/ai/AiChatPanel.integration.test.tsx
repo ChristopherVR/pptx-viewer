@@ -161,6 +161,16 @@ afterEach(() => {
 	host = null;
 });
 
+/**
+ * Drain `times` microtask turns inside `act`.
+ *
+ * NEVER use this as a readiness signal: a fixed turn count is a guess about the
+ * depth of somebody else's promise chain, and when an unrelated merge added one
+ * `await` to the module graph the guess rotted and left this file red for three
+ * and a half weeks with nothing pointing at the cause. Its only legitimate use
+ * is as the yield inside {@link waitFor}, where a real-time deadline decides
+ * when to give up.
+ */
 async function flush(times = 8): Promise<void> {
 	for (let i = 0; i < times; i += 1) {
 		await act(async () => {
@@ -185,6 +195,8 @@ async function waitFor(predicate: () => boolean, what: string, timeoutMs = 5000)
 		if (Date.now() > deadline) {
 			throw new Error(`waitFor: ${what} did not happen before deadline`);
 		}
+		// A fixed turn count is safe HERE, and only here: it is the yield inside a
+		// loop the real-time deadline terminates, not the readiness signal.
 		await flush(2);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 5);
@@ -295,7 +307,10 @@ describe('aiChatPanel integration', () => {
 				new MouseEvent('click', { bubbles: true }),
 			);
 		});
-		await flush();
+		// Applying routes through the ProposalStore, which resolves the staged
+		// updater before calling the bridge. Poll for the write itself rather than
+		// guessing how many microtask turns that chain is deep.
+		await waitFor(() => applied.length > 0, 'the Apply click to reach the bridge');
 
 		expect(applied).toHaveLength(1);
 		expect((current()[0].elements[0] as { text: string }).text).toBe('AI Edited Title');

@@ -44,6 +44,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onEraseAnnotations,
 		onToggleInkMarkup,
 		onToggleToolbar,
+		onToggleSubtitles,
 		onSaveRehearsalTimings,
 		loopContinuously,
 		showWithAnimation,
@@ -323,6 +324,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onToggleInkMarkup,
 		onToggleToolbar,
 		onShowAllSlides: openAllSlides,
+		onToggleSubtitles,
 		onToggleBlackScreen: () =>
 			presenterConsole.setBlackout(
 				presenterConsole.snapshot.blackout === 'black' ? 'none' : 'black',

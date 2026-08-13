@@ -180,6 +180,8 @@ export interface ToolbarProps {
 	onToggleVersionHistory?: () => void;
 	onOpenPasswordProtection?: () => void;
 	onOpenDocumentProperties?: () => void;
+	/** Design > Slide Size: reveal the inspector card that owns the slide size. */
+	onOpenSlideSize?: () => void;
 	onOpenFontEmbedding?: () => void;
 	onOpenDigitalSignatures?: () => void;
 	onEnterMasterView: () => void;

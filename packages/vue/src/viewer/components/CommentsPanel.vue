@@ -4,6 +4,8 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import CommentBody from './CommentBody.vue';
+
 /**
  * CommentsPanel: side panel listing the active slide's comments.
  *
@@ -109,7 +111,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 					</time>
 				</div>
 				<p class="pptx-comments-panel__text m-0 mb-2 whitespace-pre-wrap break-words text-[13px]">
-					{{ comment.text }}
+					<CommentBody :text="comment.text" :mentions="comment.mentions" />
 				</p>
 
 				<!-- Threaded replies -->
@@ -134,7 +136,9 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 								{{ formatTimestamp(reply.createdAt) }}
 							</time>
 						</div>
-						<p class="m-0 whitespace-pre-wrap break-words text-[12px]">{{ reply.text }}</p>
+						<p class="m-0 whitespace-pre-wrap break-words text-[12px]">
+							<CommentBody :text="reply.text" :mentions="reply.mentions" />
+						</p>
 					</li>
 				</ul>
 

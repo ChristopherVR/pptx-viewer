@@ -33,7 +33,7 @@ import { useI18n } from 'vue-i18n';
 
 import { useSelectionAffordances } from '../composables/element-lock-guards';
 import { useSelectionGesture } from '../composables/selection-gesture';
-import { getShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
+import { getShapeAdjustmentHandleDescriptors } from '../composables/shape-adjustment';
 import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
 import {
 	adjustHandleStyle as adjustHandleStyleFor,
@@ -98,16 +98,26 @@ const { canResize, canRotate } = useSelectionAffordances(
 	() => props.selectedIds,
 );
 
-/** The adjustment-handle descriptor for a selected element, or null. */
-function adjustDescriptorFor(id: string): ShapeAdjustmentHandleDescriptor | null {
-	const el = props.elements.find((e) => e.id === id);
-	return el ? getShapeAdjustmentHandleDescriptor(el) : null;
+function elementForId(id: string) {
+	return props.elements.find((e) => e.id === id);
+}
+
+/**
+ * EVERY adjustment handle a selected element offers.
+ *
+ * PowerPoint shows one amber diamond per `a:avLst` guide and presets routinely
+ * have several (`quadArrow` three, `callout3` four); this used to return one,
+ * so the rest were unreachable.
+ */
+function adjustDescriptorsFor(id: string): ShapeAdjustmentHandleDescriptor[] {
+	const el = elementForId(id);
+	return el ? getShapeAdjustmentHandleDescriptors(el) : [];
 }
 
 const { beginGesture, beginAdjust } = useSelectionGesture({
 	zoom: () => props.zoom,
 	boxForId,
-	adjustDescriptorFor,
+	elementForId,
 	rootEl,
 	onTransformStart: (payload) => emit('transformStart', payload),
 	onTransform: (payload) => emit('transform', payload),
@@ -125,8 +135,8 @@ const rotateStemStyle = (box: SelectedBox): Record<string, string> =>
 	rotateStemStyleFor(box, props.zoom);
 const rotateKnobStyle = (box: SelectedBox): Record<string, string> =>
 	rotateKnobStyleFor(box, props.zoom);
-const adjustHandleStyle = (box: SelectedBox): Record<string, string> =>
-	adjustHandleStyleFor(adjustDescriptorFor(box.id));
+const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<string, string> =>
+	adjustHandleStyleFor(descriptor);
 </script>
 
 <template>
@@ -176,15 +186,17 @@ const adjustHandleStyle = (box: SelectedBox): Record<string, string> =>
 				/>
 			</template>
 
-			<!-- Shape adjustment handle (amber diamond): round-rect corner radius -->
+			<!-- Shape adjustment handles (amber diamonds): one per `a:avLst` guide -->
 			<button
-				v-if="adjustDescriptorFor(box.id)"
+				v-for="descriptor in adjustDescriptorsFor(box.id)"
+				:key="`adjust-${descriptor.key}`"
 				type="button"
 				class="pptx-vue-adjust-handle"
 				data-pptx-compact
-				:style="adjustHandleStyle(box)"
+				:data-pptx-adjust-key="descriptor.key"
+				:style="adjustHandleStyle(descriptor)"
 				:aria-label="t('pptx.selectionOverlay.adjust')"
-				@pointerdown="(e) => beginAdjust(box.id, e)"
+				@pointerdown="(e) => beginAdjust(box.id, descriptor, e)"
 			/>
 		</div>
 	</div>

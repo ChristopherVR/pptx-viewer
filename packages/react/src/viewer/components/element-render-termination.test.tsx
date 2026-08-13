@@ -119,7 +119,7 @@ function makeProps(overrides: Partial<ElementRendererProps>): ElementRendererPro
 		showResizeHandles: true,
 		renderInk: true,
 		renderGroups: true,
-		adjustmentHandleDescriptor: null,
+		adjustmentHandles: [],
 		onResizePointerDown: vi.fn<() => void>(),
 		onAdjustmentPointerDown: vi.fn<() => void>(),
 		onInlineEditChange: vi.fn<() => void>(),
@@ -140,7 +140,9 @@ describe('elementRenderer render termination (sample deck)', () => {
 		const started = Date.now();
 		act(() => {
 			root.render(
-				<ElementRenderer {...makeProps({ element: round!, adjustmentHandleDescriptor: adj })} />,
+				<ElementRenderer
+					{...makeProps({ element: round!, adjustmentHandles: adj ? [adj] : [] })}
+				/>,
 			);
 		});
 		const elapsed = Date.now() - started;

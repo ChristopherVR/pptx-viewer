@@ -42,6 +42,8 @@ const props = withDefaults(
 		presentationStartTime: number | null;
 		audienceOpen?: boolean;
 		snapshot?: PresentationSnapshot;
+		/** Membership of the running custom show, for the next-slide preview. */
+		activeCustomShow?: { slideRIds: string[] } | null;
 	}>(),
 	{
 		snapshot: () => createInitialPresentationSnapshot(),
@@ -148,6 +150,7 @@ const timerTitle = computed(() =>
 					:clock-text="clockText"
 					:elapsed-text="elapsedText"
 					:audience-open="Boolean(audienceOpen)"
+					:active-custom-show="activeCustomShow"
 					@move="(direction) => emit('move', direction)"
 					@audience="toggleAudience"
 					@exit="emit('exit')"

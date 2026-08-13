@@ -21,6 +21,7 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
@@ -52,6 +53,10 @@ export interface ViewerInspectorProps {
 	onUpdateElement: (updates: Partial<PptxElement>) => void;
 	onApplySelection: (id: string | null) => void;
 	onSetCanvasSize: React.Dispatch<React.SetStateAction<CanvasSize>>;
+	/** The deck's `p:sldSz` in EMU, forwarded to the Slide Size card. */
+	slideSizeEmu?: SlideSizeEmu | undefined;
+	/** Applies a Slide Size preset / orientation pick (EMU + pixel canvas). */
+	onSetSlideSize?: (size: SlideSizeEmu) => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
 	onDeleteElement: () => void;
@@ -105,6 +110,8 @@ export function ViewerInspector({
 	onUpdateElement,
 	onApplySelection,
 	onSetCanvasSize,
+	slideSizeEmu,
+	onSetSlideSize,
 	onMoveLayer,
 	onMoveLayerToEdge,
 	onDeleteElement,
@@ -220,6 +227,8 @@ export function ViewerInspector({
 				replyingToCommentId={comments.replyingToCommentId}
 				replyDraftByCommentId={comments.replyDraftByCommentId}
 				onUpdateCanvasSize={onSetCanvasSize}
+				slideSizeEmu={slideSizeEmu}
+				onUpdateSlideSize={onSetSlideSize}
 				editTemplateMode={editTemplateMode}
 				slideMasters={slideMasters}
 				onSetTemplateBackground={onSetTemplateBackground}

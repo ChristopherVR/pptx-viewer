@@ -152,6 +152,15 @@ afterEach(() => {
 	globalThis.IS_REACT_ACT_ENVIRONMENT = false;
 });
 
+/**
+ * Drain `times` microtask turns inside `act`.
+ *
+ * NEVER use this as a readiness signal: a fixed turn count is a guess about the
+ * depth of somebody else's promise chain, and when an unrelated merge added one
+ * `await` to the module graph such a guess rotted and left a sibling AI test red
+ * for three and a half weeks. Its only legitimate use is as the yield inside
+ * {@link waitFor}, where a real-time deadline decides when to give up.
+ */
 async function flush(times = 4): Promise<void> {
 	for (let i = 0; i < times; i += 1) {
 		await act(async () => {
@@ -160,12 +169,18 @@ async function flush(times = 4): Promise<void> {
 	}
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 4000): Promise<void> {
+async function waitFor(
+	predicate: () => boolean,
+	what = 'predicate',
+	timeoutMs = 4000,
+): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
 	while (!predicate()) {
 		if (Date.now() > deadline) {
-			throw new Error('waitFor: predicate not satisfied before deadline');
+			throw new Error(`waitFor: ${what} not satisfied before deadline`);
 		}
+		// A fixed turn count is safe HERE, and only here: it is the yield inside a
+		// loop the real-time deadline terminates, not the readiness signal.
 		await flush(2);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 5);
@@ -192,7 +207,10 @@ async function run(steps: StreamChunk[]): Promise<{
 			React.createElement(Harness, { session, config: cfg, bridge, onFlash: flash, sendRef }),
 		);
 	});
-	await flush();
+	// The harness publishes `send` from inside the render, and `useAiConversation`
+	// wires its stream subscription in an effect. Wait for the handle itself
+	// rather than guessing how many microtask turns the mount takes.
+	await waitFor(() => sendRef.current !== null, 'the harness to publish send');
 	act(() => sendRef.current?.('go'));
 	return { goToSlide, flash };
 }

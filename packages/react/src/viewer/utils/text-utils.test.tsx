@@ -65,3 +65,27 @@ describe('getTextStyleForElement body insets vs paragraph indents', () => {
 		expect(style.paddingLeft).toBeCloseTo(31, 5);
 	});
 });
+
+/**
+ * React must not ship its own element-id minter.
+ *
+ * This module carried a fourth `createEditorId`, still on the four-digit random
+ * suffix core abandoned. Ids minted inside one millisecond share the timestamp,
+ * so the suffix is all that separates them, and four digits produced ~46
+ * duplicates per 1000 minted in a burst (pasting or ungrouping a group mints one
+ * id per descendant in a single tick). A duplicate element id is written out as
+ * a duplicate `p:cNvPr/@id`, which makes an animation's `p:spTgt/@spid` name two
+ * shapes at once. Core's `createEditorId` is the only implementation; this
+ * asserts the copy does not come back.
+ */
+describe('editor id minting is core-owned', () => {
+	it('exports no createEditorId of its own', async () => {
+		const textUtils: Record<string, unknown> = await import('./text-utils');
+		expect(Object.keys(textUtils)).not.toContain('createEditorId');
+	});
+
+	it('keeps the core minter unique across a burst in one tick', async () => {
+		const { createEditorId } = await import('pptx-viewer-core');
+		expect(new Set(Array.from({ length: 5000 }, () => createEditorId('el'))).size).toBe(5000);
+	});
+});

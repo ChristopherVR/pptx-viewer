@@ -31,6 +31,12 @@ export interface SectionOperations {
 	moveSectionUp: (sectionId: string) => void;
 	moveSectionDown: (sectionId: string) => void;
 	moveSlidesToSection: (slideIndexes: number[], targetSectionId: string) => void;
+	/**
+	 * Flip `section.collapsed`, the `p14:section/@collapsed` flag core already
+	 * round-trips. React alone kept collapse in component-local state, so the
+	 * one binding that could not persist a collapsed section was this one.
+	 */
+	toggleSectionCollapse: (sectionId: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -96,6 +102,16 @@ export function useSectionOperations(input: UseSectionOperationsInput): SectionO
 		[sections, slides, setSlides, setSections, markDirty],
 	);
 
+	const toggleSectionCollapse = useCallback(
+		(sectionId: string) => {
+			setSections((prev) =>
+				prev.map((sec) => (sec.id === sectionId ? { ...sec, collapsed: !sec.collapsed } : sec)),
+			);
+			markDirty();
+		},
+		[setSections, markDirty],
+	);
+
 	return {
 		addSection,
 		renameSection,
@@ -103,5 +119,6 @@ export function useSectionOperations(input: UseSectionOperationsInput): SectionO
 		moveSectionUp,
 		moveSectionDown,
 		moveSlidesToSection,
+		toggleSectionCollapse,
 	};
 }

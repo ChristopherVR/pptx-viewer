@@ -49,6 +49,12 @@ export interface UsePresentationSetupInput {
 	promptKeepInkAnnotations?: boolean;
 	/** Options > Advanced > "Show popup toolbar" (default true). */
 	popupToolbarEnabled?: boolean;
+	/**
+	 * Show or hide live captions. PowerPoint toggles them on a bare `J` during a
+	 * show, and the shared slide-show keymap resolves that key for every binding;
+	 * without this callback the key is mapped and then lands nowhere.
+	 */
+	onToggleSubtitles?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +88,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		endWithBlackSlide = true,
 		promptKeepInkAnnotations = true,
 		popupToolbarEnabled = true,
+		onToggleSubtitles,
 	} = input;
 
 	const actionSoundHandlerRef = useRef<PptxHandler | null>(null);
@@ -181,6 +188,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		onEraseAnnotations: () => annotations.clearAnnotations(),
 		onToggleInkMarkup: () => annotations.setInkMarkupVisible(!annotations.inkMarkupVisible),
 		onToggleToolbar: () => annotations.setToolbarVisible(!annotations.toolbarVisible),
+		onToggleSubtitles,
 		onSaveRehearsalTimings: (timings: Record<number, number>) => {
 			setSlides((prev) => applyRehearsalTimings(prev, timings));
 			history.markDirty();

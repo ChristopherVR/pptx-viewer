@@ -154,34 +154,15 @@ export interface ResizeState {
 }
 
 /**
- * Describes the position and value of a shape adjustment handle (yellow diamond).
- * Adjustment handles allow users to modify shape parameters like corner radius,
- * arrow width, etc. without a full resize.
+ * The adjustment-handle types are OWNED BY SHARED and re-exported here.
+ *
+ * They used to be structurally-identical local copies, which is exactly how a
+ * binding drifts: shared grew a `solvers` field carrying the measured
+ * px-per-guide-unit scale of each handle, and a local copy would have dropped
+ * it on the floor, leaving React's drag with nothing to convert pointer travel
+ * with. One declaration, five bindings.
  */
-export interface ShapeAdjustmentHandleDescriptor {
-	key: string;
-	left: number;
-	top: number;
-	value: number;
-	cursor: string;
-}
-
-/**
- * Tracks the state of an ongoing shape adjustment handle drag.
- * Used when the user drags the yellow diamond handle to alter
- * shape-specific parameters (e.g. corner radius on a rounded rectangle).
- */
-export interface ShapeAdjustmentDragState {
-	elementId: string;
-	key: string;
-	shapeType: string;
-	startClientX: number;
-	startClientY: number;
-	startAdjustment: number;
-	startWidth: number;
-	startHeight: number;
-	moved: boolean;
-}
+export type { ShapeAdjustmentHandleDescriptor, ShapeAdjustmentDragState } from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Clipboard / history

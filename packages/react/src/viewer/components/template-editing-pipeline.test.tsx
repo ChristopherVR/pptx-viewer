@@ -68,7 +68,7 @@ function makeProps(overrides: Partial<ElementRendererProps>): ElementRendererPro
 		showResizeHandles: false,
 		renderInk: false,
 		renderGroups: false,
-		adjustmentHandleDescriptor: null,
+		adjustmentHandles: [],
 		onResizePointerDown: noop,
 		onAdjustmentPointerDown: noop,
 		onInlineEditChange: noop,

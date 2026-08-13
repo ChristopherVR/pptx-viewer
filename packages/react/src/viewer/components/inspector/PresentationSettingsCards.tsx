@@ -8,7 +8,6 @@ import {
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { CanvasSize } from '../../types';
 import { cn } from '../../utils';
 import { CARD, HEADING, INPUT, BTN } from './inspector-pane-constants';
 
@@ -197,38 +196,7 @@ export function ThemeSelectorCard({
 // Slide Size Card
 // ---------------------------------------------------------------------------
 
-export function SlideSizeCard({
-	canvasSize,
-	canEdit,
-	onUpdate,
-}: {
-	canvasSize: CanvasSize;
-	canEdit: boolean;
-	onUpdate: (size: CanvasSize) => void;
-}): React.ReactElement {
-	const { t } = useTranslation();
-	return (
-		<div className={CARD}>
-			<div className={HEADING}>{t('pptx.slideSize.title')}</div>
-			<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
-				{(
-					[
-						['W', 'width'],
-						['H', 'height'],
-					] as const
-				).map(([label, key]) => (
-					<label key={key} className='flex items-center gap-1'>
-						<span className='text-muted-foreground'>{label}</span>
-						<input
-							type='number'
-							className={INPUT}
-							disabled={!canEdit}
-							value={canvasSize[key]}
-							onChange={(e) => onUpdate({ ...canvasSize, [key]: Number(e.target.value) })}
-						/>
-					</label>
-				))}
-			</div>
-		</div>
-	);
-}
+// Lives in its own module now that it carries the preset + orientation
+// controls; re-exported here so existing importers keep working.
+export { SlideSizeCard } from './SlideSizeCard';
+export type { SlideSizeCardProps } from './SlideSizeCard';

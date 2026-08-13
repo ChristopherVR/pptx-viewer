@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LuCheck, LuMessageSquare, LuPencil, LuReply, LuTrash2, LuType } from 'react-icons/lu';
 
 import { cn, formatCommentTimestamp, getElementLabel } from '../../utils';
+import { CommentBody } from './CommentBody';
 
 // ---------------------------------------------------------------------------
 // Props for CommentsTab
@@ -194,9 +195,11 @@ export function CommentItem({
 				</div>
 			) : (
 				<>
-					<div className='mt-1 whitespace-pre-wrap break-words text-[11px] text-foreground'>
-						{comment.text}
-					</div>
+					<CommentBody
+						text={comment.text}
+						mentions={comment.mentions}
+						className='mt-1 whitespace-pre-wrap break-words text-[11px] text-foreground'
+					/>
 					{canEdit && (
 						<div className='mt-1.5 inline-flex items-center rounded bg-muted overflow-hidden'>
 							<button

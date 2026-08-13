@@ -32,7 +32,7 @@ export interface UsePresentationKeyboardOptions {
 	clearAnnotations: () => void;
 	/** Ctrl+M: hide ink markup without discarding the strokes. */
 	inkMarkupVisible: Ref<boolean>;
-	/** "C": live captions, which the shared keymap leaves unassigned. */
+	/** PowerPoint's bare `J`: live captions on or off. */
 	subtitlesOn: Ref<boolean>;
 	toolbarVisible: Ref<boolean>;
 	setToolbarVisible: (visible: boolean) => void;
@@ -52,14 +52,6 @@ export function usePresentationKeyboard(options: UsePresentationKeyboardOptions)
 		if (!acceptsPresentationInput()) {
 			return;
 		}
-		// Live captions are PowerPoint's "C", which the shared slide-show map leaves
-		// unassigned, so it stays handled here.
-		if ((event.key === 'c' || event.key === 'C') && !event.ctrlKey && !event.metaKey) {
-			event.preventDefault();
-			options.subtitlesOn.value = !options.subtitlesOn.value;
-			return;
-		}
-
 		const mapped = mapPresentationKey(event, keyBuffer);
 		if (mapped.action === 'none') {
 			return;
@@ -110,6 +102,13 @@ export function usePresentationKeyboard(options: UsePresentationKeyboardOptions)
 				return;
 			case 'showAllSlides':
 				options.showAllSlides();
+				break;
+			case 'toggleSubtitles':
+				// Captions used to be hand-matched above this switch on "c", a key
+				// PowerPoint does not use, which is why the other four bindings had
+				// no captions shortcut at all. The map now resolves the documented
+				// `J` for all five.
+				options.subtitlesOn.value = !options.subtitlesOn.value;
 				break;
 			// A pending slide number and the context-menu key are consumed above so
 			// the browser does not act on them; nothing further to do.

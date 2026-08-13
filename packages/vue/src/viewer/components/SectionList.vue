@@ -168,6 +168,17 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					@click="onHeaderClick(group)"
 					@dblclick.stop="startRename(group.section.id, group.section.name)"
 				>
+					<!-- Section colour from `p15:sectionPr/@clr`. Core parses and
+					     round-trips it and React's sorter paints it; the Vue rail
+					     dropped it on the floor, so a colour-coded deck looked
+					     uncoloured here. -->
+					<span
+						v-if="group.section.color"
+						class="pptx-vue-section-color inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
+						:style="{ backgroundColor: group.section.color }"
+						data-pptx-section-color
+						aria-hidden="true"
+					/>
 					<svg
 						class="pptx-vue-section-chevron h-3 w-3 flex-shrink-0 transition-transform"
 						:class="{ 'is-collapsed -rotate-90': isCollapsed(group) }"

@@ -3,8 +3,10 @@ import type {
 	PptxSlide,
 	PptxSaveFormat,
 	PptxHandler,
+	PptxSlideMaster,
 	PptxTheme,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 /**
  * Types and utility helpers for export handlers.
  */
@@ -37,6 +39,8 @@ export interface UseExportHandlersInput {
 	appProperties: Record<string, unknown> | null;
 	customProperties: Array<Record<string, unknown>>;
 	tagCollections: Array<Record<string, unknown>>;
+	/** The slide masters and their layouts; see `UseExportSaveAsInput`. */
+	slideMasters: PptxSlideMaster[];
 	notesMaster: Record<string, unknown> | undefined;
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
@@ -45,6 +49,12 @@ export interface UseExportHandlersInput {
 	theme: PptxTheme | undefined;
 	/** Slide canvas size in CSS pixels, carried into the deck-JSON export. */
 	canvasSize: CanvasSize;
+	/**
+	 * The EMU `p:sldSz` the viewer holds. Save-As builds its own save options
+	 * rather than reusing `useSerialize`, so without this a Slide Size edit
+	 * reached Save and not Save As (or the backstage Save, which routes here).
+	 */
+	slideSizeEmu?: SlideSizeEmu | undefined;
 	password?: string;
 }
 

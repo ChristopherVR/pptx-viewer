@@ -18,11 +18,14 @@ export {
 } from './image-style';
 
 export {
+	beginShapeAdjustment,
 	clampShapeAdjustmentValue,
 	getRoundRectAdjustmentValue,
 	getRoundRectRadiusPx,
 	getShapeAdjustmentHandleDescriptor,
+	getShapeAdjustmentHandleDescriptors,
 	getDraggedShapeAdjustmentValue,
+	getDraggedShapeAdjustments,
 } from './shape-adjustment';
 
 // ---------------------------------------------------------------------------

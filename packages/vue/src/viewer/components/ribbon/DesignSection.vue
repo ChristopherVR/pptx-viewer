@@ -19,6 +19,13 @@ interface Props {
 	onToggleThemeEditor: () => void;
 	isThemeEditorOpen: boolean;
 	onOpenDocumentProperties?: () => void;
+	/**
+	 * Design > Slide Size: reveal the inspector's SLIDE SIZE card, which is the
+	 * only slide-size control this binding has. The button used to run
+	 * `onOpenDocumentProperties`, a dialog with no slide-size control in it at
+	 * all - the same mis-wiring Angular, Vanilla and Svelte each shipped.
+	 */
+	onOpenSlideSize?: () => void;
 	onToggleInspector?: () => void;
 	isInspectorPaneOpen?: boolean;
 }
@@ -53,10 +60,10 @@ const { t } = useI18n();
 
 	<!-- Customize -->
 	<button
-		v-if="props.onOpenDocumentProperties"
+		v-if="props.onOpenSlideSize ?? props.onOpenDocumentProperties"
 		:class="pill"
 		:title="t('pptx.design.slideSizeTooltip')"
-		@click="props.onOpenDocumentProperties()"
+		@click="(props.onOpenSlideSize ?? props.onOpenDocumentProperties)?.()"
 	>
 		<Monitor :class="ics" />
 		{{ t('pptx.ribbon.slideSize') }}

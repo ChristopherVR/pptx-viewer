@@ -106,6 +106,7 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 				onDeleteSection={editorOps.sectionOps.deleteSection}
 				onMoveSectionUp={editorOps.sectionOps.moveSectionUp}
 				onMoveSectionDown={editorOps.sectionOps.moveSectionDown}
+				onToggleSectionCollapse={editorOps.sectionOps.toggleSectionCollapse}
 				rehearsalTimings={
 					Object.keys(presentation.recordedTimings).length > 0
 						? presentation.recordedTimings

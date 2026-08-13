@@ -4,6 +4,7 @@ import type {
 	PptxHandoutMaster,
 	MasterViewTab,
 } from 'pptx-viewer-core';
+import { masterViewBackgroundColor } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPanelLeftClose } from 'react-icons/lu';
@@ -37,6 +38,8 @@ interface MasterViewSidebarProps {
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	handoutSlidesPerPage: number;
+	/** Editing affordances are offered only on an editable deck. */
+	canEdit?: boolean;
 	onSelectMaster: (index: number) => void;
 	onSelectLayout: (masterIndex: number, layoutIndex: number) => void;
 	onCollapse: () => void;
@@ -44,6 +47,8 @@ interface MasterViewSidebarProps {
 	onHandoutSlidesPerPageChange: (count: number) => void;
 	onNotesMasterBackgroundChange: (color: string) => void;
 	onHandoutMasterBackgroundChange: (color: string) => void;
+	/** Format Background for the selected slide master or layout. */
+	onSlidesBackgroundChange: (color: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +64,7 @@ export function MasterViewSidebar({
 	notesMaster,
 	handoutMaster,
 	handoutSlidesPerPage,
+	canEdit,
 	onSelectMaster,
 	onSelectLayout,
 	onCollapse,
@@ -66,9 +72,17 @@ export function MasterViewSidebar({
 	onHandoutSlidesPerPageChange,
 	onNotesMasterBackgroundChange,
 	onHandoutMasterBackgroundChange,
+	onSlidesBackgroundChange,
 }: MasterViewSidebarProps): React.ReactElement {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const { t } = useTranslation();
+
+	// Which part's background the swatch shows, decided by the same shared rule
+	// that decides where a colour is written.
+	const slidesBackground = masterViewBackgroundColor(
+		{ slideMasters },
+		{ tab: 'slides', masterIndex: activeMasterIndex, layoutIndex: activeLayoutIndex },
+	);
 
 	const handleMasterClick = useCallback(
 		(index: number) => {
@@ -135,6 +149,21 @@ export function MasterViewSidebar({
 
 			{/* Scrollable content per tab */}
 			<div ref={scrollRef} className='flex-1 space-y-2 overflow-y-auto px-1.5 pb-2 pt-1'>
+				{masterViewTab === 'slides' && canEdit && (
+					<section className='space-y-1.5 rounded-md border border-border/60 p-2'>
+						<div className='text-[11px] text-muted-foreground'>
+							{t('pptx.master.notesMasterBackground')}
+						</div>
+						<input
+							type='color'
+							aria-label={t('pptx.master.backgroundColorLabel')}
+							className='h-7 w-full cursor-pointer rounded border border-border/60 bg-transparent'
+							value={slidesBackground ?? '#ffffff'}
+							onChange={(event) => onSlidesBackgroundChange(event.target.value)}
+						/>
+					</section>
+				)}
+
 				{masterViewTab === 'slides' && (
 					<SlideMastersList
 						slideMasters={slideMasters}

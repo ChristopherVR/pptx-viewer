@@ -4,6 +4,8 @@
  */
 import { themeColorSchemesEqual } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import { slideSizeToCanvasPx } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import { ViewerInspector, SelectionPane } from '.';
@@ -84,6 +86,16 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 		aiPanel,
 	} = props;
 
+	// A Slide Size preset / orientation pick moves BOTH the EMU size a save
+	// writes and the pixel canvas the stage renders at. Keeping them in step
+	// here is what lets `resolveSlideSizeSelection` prefer the EMU (and so the
+	// preset identity) instead of falling back to the lossy pixel round-trip.
+	const handleSetSlideSize = (size: SlideSizeEmu): void => {
+		s.setSlideSizeEmu(size);
+		s.setCanvasSize(slideSizeToCanvasPx(size));
+		history.markDirty();
+	};
+
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
 	const currentBuiltInTheme =
 		BUILT_IN_THEMES.find((candidate) =>
@@ -115,6 +127,8 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 				onUpdateElement={ops.updateSelectedElement}
 				onApplySelection={ops.applySelection}
 				onSetCanvasSize={s.setCanvasSize}
+				slideSizeEmu={s.slideSizeEmu}
+				onSetSlideSize={handleSetSlideSize}
 				onMoveLayer={manipulation.handleMoveLayer}
 				onMoveLayerToEdge={manipulation.handleMoveLayerToEdge}
 				onDeleteElement={manipulation.handleDelete}

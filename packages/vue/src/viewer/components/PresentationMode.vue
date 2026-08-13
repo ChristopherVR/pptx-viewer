@@ -467,6 +467,7 @@ useTouchGestures({
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:presentation-start-time="presentationStartTime"
+				:active-custom-show="activeCustomShow"
 				@click.stop
 				@move="onToolbarMove"
 				@exit="presenterMode = false"
@@ -480,6 +481,7 @@ useTouchGestures({
 				:presentation-start-time="presentationStartTime"
 				:audience-open="presenterSession.audienceOpen.value"
 				:snapshot="presenterSession.snapshot.value"
+				:active-custom-show="activeCustomShow"
 				@click.stop
 				@move="onToolbarMove"
 				@open-audience="presenterSession.openAudience"

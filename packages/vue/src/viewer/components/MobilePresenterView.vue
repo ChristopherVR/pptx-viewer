@@ -37,6 +37,8 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	/** Timestamp (ms) the presentation started, or `null`. */
 	presentationStartTime: number | null;
+	/** Membership of the running custom show, when one is playing. */
+	activeCustomShow?: { slideRIds: string[] } | null;
 }>();
 
 const emit = defineEmits<{
@@ -70,9 +72,10 @@ const elapsedText = computed(() =>
 // -- Slide data -------------------------------------------------------------
 const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.currentSlideIndex]);
 // The preview must be the slide the next advance really lands on, so it runs
-// the shared show-order rule and skips slides the author hid.
+// the shared show-order rule: it skips slides the author hid, and follows the
+// running custom show's order rather than the deck's.
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	nextPresentedSlide(props.slides, props.currentSlideIndex),
+	nextPresentedSlide(props.slides, props.currentSlideIndex, props.activeCustomShow),
 );
 
 const counterText = computed(() =>

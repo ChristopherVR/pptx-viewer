@@ -267,6 +267,15 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onToggleVersionHistory: () => propertyHandlers.setIsVersionHistoryOpen((p) => !p),
 		onOpenPasswordProtection: () => dialogs.setIsPasswordDialogOpen(true),
 		onOpenDocumentProperties: () => dialogs.setIsDocPropsDialogOpen(true),
+		// Design > Slide Size: the size control is the inspector's SLIDE SIZE
+		// card, which the deck (no-selection) panel renders. Drop the selection so
+		// that panel is what the pane shows, then open it.
+		onOpenSlideSize: () => {
+			s.setSelectedElementId(null);
+			s.setSelectedElementIds([]);
+			s.setSidebarPanelMode('properties');
+			s.setIsInspectorPaneOpen(true);
+		},
 		onOpenFontEmbedding: () => dialogs.setIsFontEmbeddingOpen(true),
 		onOpenDigitalSignatures: () => dialogs.setIsDigitalSigDialogOpen(true),
 		onEnterPresenterView,

@@ -16,7 +16,12 @@
  */
 import { X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { HIDDEN_SLIDE_SLASH_GRADIENT, hiddenSlideCue } from 'pptx-viewer-shared';
+import {
+	HIDDEN_SLIDE_SLASH_GRADIENT,
+	hiddenSlideCue,
+	isEditorTextInputTarget,
+	mapSlideSorterKey,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -146,26 +151,31 @@ function onContextSelect(id: string): void {
 	}
 }
 
-// ── Keyboard shortcuts (Delete / Ctrl+D / Escape) ─────────────────────
+// ── Keyboard shortcuts ────────────────────────────────────────────────
+// Resolution is the shared `mapSlideSorterKey`, the one sorter keymap every
+// binding answers to. Only the commands this overlay can actually perform are
+// dispatched: it has no slide clipboard, no multi-selection and no thumbnail
+// zoom, so copy / paste / select-all / Ctrl+plus fall through to the host
+// rather than being swallowed by a handler that would do nothing with them.
 function onKeyDown(event: KeyboardEvent): void {
 	if (contextMenu.value.open) {
 		contextMenu.value.open = false;
 	}
-	const isCtrl = event.ctrlKey || event.metaKey;
-	if (event.key === 'Escape') {
+	const { action } = mapSlideSorterKey(event, {
+		canEdit: Boolean(props.canEdit),
+		isTextInputTarget: isEditorTextInputTarget(event.target),
+	});
+	if (action === 'close') {
 		event.stopPropagation();
 		emit('close');
 		return;
 	}
-	if (!props.canEdit) {
-		return;
-	}
-	if (event.key === 'Delete' || event.key === 'Backspace') {
+	if (action === 'delete') {
 		event.preventDefault();
 		emit('delete', props.activeIndex);
 		return;
 	}
-	if (isCtrl && (event.key === 'd' || event.key === 'D')) {
+	if (action === 'duplicate') {
 		event.preventDefault();
 		emit('duplicate', props.activeIndex);
 	}

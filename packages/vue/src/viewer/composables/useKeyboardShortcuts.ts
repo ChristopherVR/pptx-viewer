@@ -70,7 +70,8 @@ export type ShortcutActionName =
 	| 'nudge'
 	| 'prevSlide'
 	| 'nextSlide'
-	| 'escape';
+	| 'escape'
+	| 'find';
 
 /**
  * Action callbacks the registry dispatches to. All are optional; a missing
@@ -108,6 +109,8 @@ export interface ShortcutActions {
 	nextSlide?: () => void;
 	/** Escape: clear selection / close menus / cancel inline edit. */
 	escape?: () => void;
+	/** Open or close the find bar (Ctrl/Cmd+F). */
+	find?: () => void;
 }
 
 /**
@@ -271,6 +274,7 @@ export const SHORTCUT_CATALOG: readonly ShortcutDefinition[] = [
 		group: 'general',
 		descriptionKey: 'pptx.shortcuts.action.clearSelection',
 	},
+	{ id: 'find', combo: 'Mod+F', group: 'general', descriptionKey: 'pptx.findReplace.title' },
 	{ id: 'shortcuts', combo: '?', group: 'general', descriptionKey: 'pptx.shortcuts.title' },
 ] as const;
 
@@ -413,6 +417,9 @@ export function useKeyboardShortcuts(
 				break;
 			case 'ungroup':
 				actions.ungroup?.();
+				break;
+			case 'find':
+				actions.find?.();
 				break;
 			case 'toggleShortcuts':
 				actions.toggleShortcuts?.();

@@ -1,5 +1,9 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import { getOverflowSegments, isLinkedTextBox as isLinkedTextBoxElement } from 'pptx-viewer-shared';
+import {
+	getOverflowSegments,
+	getTextBodyRotationTransform,
+	isLinkedTextBox as isLinkedTextBoxElement,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
@@ -41,11 +45,9 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 	);
 	const scene3dStyle = hasTextProperties(el) ? buildTextBody3DSceneStyle(el.textStyle) : undefined;
 	// `a:bodyPr/@rot` rotates the whole text body (degrees, clockwise positive).
-	const bodyRotation = hasTextProperties(el) ? el.textStyle?.textBodyRotation : undefined;
-	const rotationTransform =
-		typeof bodyRotation === 'number' && Number.isFinite(bodyRotation) && bodyRotation !== 0
-			? `rotate(${bodyRotation}deg)`
-			: undefined;
+	// Through shared since wave 4: the same rotation now reaches vue, angular,
+	// svelte and vanilla, which all painted a rotated body upright.
+	const rotationTransform = getTextBodyRotationTransform(el);
 	const composedTransform =
 		[rotationTransform, getTextCompensationTransform(el), scene3dStyle?.transform]
 			.filter(Boolean)

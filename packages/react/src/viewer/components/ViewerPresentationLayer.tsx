@@ -3,6 +3,7 @@
  * rehearsal summary overlays that sit above the main editor UI.
  */
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
+import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 import { PresenterView, RehearseTimingsHud, RehearseTimingsSummary } from '.';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
@@ -20,6 +21,8 @@ export interface ViewerPresentationLayerProps {
 	canvasSize: CanvasSize;
 	templateElements: PptxElement[];
 	presentation: UsePresentationModeResult;
+	/** The running custom show, forwarded to the presenter next-slide preview. */
+	activeCustomShow?: ShowOrderCustomShow | null;
 	onExitPresentation: () => void;
 	/** Use the single-column mobile presenter layout instead of the desktop one. */
 	isMobile?: boolean;
@@ -37,6 +40,7 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 		canvasSize,
 		templateElements,
 		presentation,
+		activeCustomShow,
 		onExitPresentation,
 		isMobile,
 		onUpdateNotes,
@@ -63,6 +67,7 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 						currentSlideIndex={presentation.presentationSlideIndex}
 						canvasSize={canvasSize}
 						templateElements={templateElements}
+						activeCustomShow={activeCustomShow}
 						presentationStartTime={presentation.presentationStartTime}
 						onMovePresentationSlide={presentation.movePresentationSlide}
 						onExit={onExitPresentation}

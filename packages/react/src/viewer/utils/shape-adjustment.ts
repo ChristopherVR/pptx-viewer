@@ -9,9 +9,12 @@
  * them from there.
  */
 export {
+	beginShapeAdjustment,
 	clampShapeAdjustmentValue,
 	getRoundRectAdjustmentValue,
 	getRoundRectRadiusPx,
 	getShapeAdjustmentHandleDescriptor,
+	getShapeAdjustmentHandleDescriptors,
 	getDraggedShapeAdjustmentValue,
+	getDraggedShapeAdjustments,
 } from 'pptx-viewer-shared';

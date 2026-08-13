@@ -37,3 +37,9 @@ export const GRID_SIZE = 8;
 export const SNAP_THRESHOLD = 6;
 export const SLIDE_NAV_THUMBNAIL_WIDTH = 156;
 export const UNGROUPED_SECTION_ID = '__ungrouped__';
+/**
+ * Id of the synthetic group that wraps a deck with NO declared sections. It is
+ * not a section, so the slides pane renders no header for it, matching the
+ * other four bindings (which fall back to a plain thumbnail rail instead).
+ */
+export const DEFAULT_SECTION_GROUP_ID = 'default';

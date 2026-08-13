@@ -11,6 +11,7 @@ import type {
 	PptxHandoutMaster,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import { mergeSlideTransition } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +49,9 @@ interface PresentationPropertiesPanelProps {
 
 	canvasSize: CanvasSize;
 	onUpdateCanvasSize: (size: CanvasSize) => void;
+	/** The deck's `p:sldSz` in EMU, so the card can name the matching preset. */
+	slideSizeEmu?: SlideSizeEmu | undefined;
+	onUpdateSlideSize?: (size: SlideSizeEmu) => void;
 
 	notesCanvasSize: CanvasSize | undefined;
 	notesMaster: PptxNotesMaster | undefined;
@@ -81,6 +85,8 @@ export function PresentationPropertiesPanel({
 	onUpdateSlide,
 	canvasSize,
 	onUpdateCanvasSize,
+	slideSizeEmu,
+	onUpdateSlideSize,
 	notesCanvasSize,
 	notesMaster,
 	handoutMaster,
@@ -135,7 +141,13 @@ export function PresentationPropertiesPanel({
 				/>
 			</div>
 
-			<SlideSizeCard canvasSize={canvasSize} canEdit={canEdit} onUpdate={onUpdateCanvasSize} />
+			<SlideSizeCard
+				canvasSize={canvasSize}
+				slideSizeEmu={slideSizeEmu}
+				canEdit={canEdit}
+				onUpdate={onUpdateCanvasSize}
+				onUpdateSlideSize={onUpdateSlideSize}
+			/>
 
 			{/* SLIDE TRANSITION sits beside SLIDE SIZE, matching where Angular,
 			    Svelte and Vanilla place it in their deck-properties panes. */}

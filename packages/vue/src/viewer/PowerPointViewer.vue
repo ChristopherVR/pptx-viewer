@@ -642,6 +642,7 @@ const deckActions = useInspectorDeckActions({
 	handler,
 	slideMasters,
 	canvasSize,
+	slideSize: deck.slideSize,
 	coreProperties,
 	appProperties,
 	customProperties,
@@ -737,6 +738,9 @@ const customShowsWiring = useCustomShowsWiring({
 	slides,
 	activeSlideIndex,
 	activeSlide,
+	// Honours `p:showPr/p:custShow`: a deck authored to open into a named show
+	// now plays that show instead of the whole deck.
+	presentationProperties,
 	pushHistory: history.pushHistory,
 });
 
@@ -816,7 +820,8 @@ const mobileChrome = useMobileChrome({
 // -- Keyboard shortcuts ------------------------------------------------
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
-// overlay (Ctrl+/) are handled in `onEditorKeydown` before delegating.
+// overlay ("?" or Ctrl+/) now resolve inside the shared keymap too, so
+// `onEditorKeydown` intercepts nothing ahead of the registry.
 const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElements } =
 	useEditorKeyboard({
 		canEdit: () => props.canEdit,
@@ -1022,6 +1027,7 @@ const ribbonProps = useViewerRibbonProps({
 		addSection: sectionOps.addSection,
 		defaultSectionName: () => t('pptx.sections.defaultName'),
 		selectAllElements,
+		clearSelection,
 	},
 	presentationProperties,
 	ribbonActions,
@@ -1443,6 +1449,7 @@ defineExpose<PowerPointViewerExpose>(
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:notes-master="notesMaster"
+				:notes-canvas-size="deck.notesCanvasSize.value"
 				:handout-master="handoutMaster"
 				:can-edit="canEdit"
 			/>

@@ -93,6 +93,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setTemplateElementsBySlideId: state.setTemplateElementsBySlideId,
 		mediaDataUrls: state.mediaDataUrls,
 		setCanvasSize: state.setCanvasSize,
+		setSlideSizeEmu: state.setSlideSizeEmu,
 		setHeaderFooter: state.setHeaderFooter,
 		setLayoutOptions: state.setLayoutOptions,
 		setSlideMasters: state.setSlideMasters,
@@ -100,6 +101,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setTableStyleMap: state.setTableStyleMap,
 		setThemeOptions: state.setThemeOptions,
 		setCustomShows: state.setCustomShows,
+		setActiveCustomShowId: state.setActiveCustomShowId,
 		setSections: state.setSections,
 		setPresentationProperties: state.setPresentationProperties,
 		setNotesMaster: state.setNotesMaster,
@@ -133,6 +135,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		slides,
 		templateElementsBySlideId: state.templateElementsBySlideId,
 		activeSlideIndex: state.activeSlideIndex,
+		canvasSize: state.canvasSize,
+		slideSizeEmu: state.slideSizeEmu,
 		guides: state.guides,
 		headerFooter: state.headerFooter,
 		presentationProperties: state.presentationProperties,
@@ -142,6 +146,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		appProperties: state.appProperties,
 		customProperties: state.customProperties,
 		tagCollections: state.tagCollections,
+		slideMasters: state.slideMasters,
 		notesMaster: state.notesMaster,
 		handoutMaster: state.handoutMaster,
 		handlerRef,
@@ -165,6 +170,30 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		serializeSlides: serializeForRecovery,
 		enabled: autosaveEnabled,
 		...(autosaveIntervalSeconds === undefined ? {} : { intervalSeconds: autosaveIntervalSeconds }),
+		// Everything `serializeForRecovery` reads that changes by REASSIGNMENT,
+		// so a poll that finds all of them unchanged can skip re-serializing a
+		// deck it has already snapshotted. The two refs are read by `.current`
+		// because an inline edit in progress lives there and nowhere else yet.
+		getChangeSources: () => [
+			slides,
+			state.templateElementsBySlideId,
+			state.guides,
+			state.headerFooter,
+			state.presentationProperties,
+			state.customShows,
+			state.sections,
+			state.coreProperties,
+			state.appProperties,
+			state.customProperties,
+			state.tagCollections,
+			state.notesMaster,
+			state.handoutMaster,
+			state.embeddedFonts,
+			embedFonts,
+			password,
+			state.inlineEditingElementIdRef.current,
+			state.inlineEditingTextRef.current,
+		],
 	});
 
 	return { handlerRef, serializeSlides, serializeForRecovery, autosaveStatus };

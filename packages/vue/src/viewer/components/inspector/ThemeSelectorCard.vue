@@ -37,7 +37,10 @@ function onSelect(event: Event): void {
 		<div class="space-y-2 text-[11px]">
 			<label class="flex flex-col gap-1">
 				<span class="text-muted-foreground">{{ t('pptx.documentProperties.themeHeading') }}</span>
+				<!-- Nested in its `<label>`, so without this its accessible label would
+				     be the caption plus every option: see `SlideTransitionPanel.vue`. -->
 				<select
+					:aria-label="t('pptx.documentProperties.themeHeading')"
 					:disabled="props.themeOptions.length === 0"
 					:class="INPUT"
 					:value="props.selectedThemePath"

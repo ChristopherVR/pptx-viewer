@@ -16,6 +16,7 @@ import type {
 	MarqueeSelectionState,
 	TableCellEditorState,
 	ViewerMode,
+	ShapeAdjustmentHandleDescriptor,
 } from '../../types';
 import type { DrawingTool } from '../../types-ui';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -88,7 +89,11 @@ export interface SlideCanvasProps {
 	/** Called when the user presses mouse down on empty canvas space. */
 	onCanvasMouseDown?: (e: React.MouseEvent) => void;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	/** Commit a new rotation (degrees) when the on-canvas rotate handle is dragged. */
 	onRotate?: (elementId: string, rotationDeg: number) => void;
 	onInlineEditChange: (text: string) => void;

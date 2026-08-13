@@ -16,7 +16,12 @@ export interface SlidePaneCallbacks {
 	handleDragStart: (e: React.DragEvent, slideIndex: number) => void;
 	handleDragOver: (e: React.DragEvent) => void;
 	handleDrop: (e: React.DragEvent, toIndex: number) => void;
-	toggleSection: (sectionId: string) => void;
+	/**
+	 * Collapse/expand a section. `isCollapsed` is the CURRENT effective state
+	 * (which may come from the model's `collapsed` flag rather than this hook's
+	 * override map), so the flip cannot disagree with what is on screen.
+	 */
+	toggleSection: (sectionId: string, isCollapsed: boolean) => void;
 	startRename: (sectionId: string, currentLabel: string) => void;
 	commitRename: () => void;
 	cancelRename: () => void;
@@ -38,6 +43,7 @@ export interface SlidePaneCallbacks {
 export function useSlidePaneCallbacks(
 	onMoveSlide: (fromIndex: number, toIndex: number) => void,
 	onRenameSection?: (sectionId: string, newName: string) => void,
+	onToggleSectionCollapse?: (sectionId: string) => void,
 ): SlidePaneCallbacks {
 	const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 	const [renamingSectionId, setRenamingSectionId] = useState<string | null>(null);
@@ -83,12 +89,19 @@ export function useSlidePaneCallbacks(
 		[onMoveSlide],
 	);
 
-	const toggleSection = useCallback((sectionId: string) => {
-		setCollapsedSections((prev) => ({
-			...prev,
-			[sectionId]: !prev[sectionId],
-		}));
-	}, []);
+	const toggleSection = useCallback(
+		(sectionId: string, isCollapsed: boolean) => {
+			setCollapsedSections((prev) => ({
+				...prev,
+				[sectionId]: !isCollapsed,
+			}));
+			// Write the flag back to the model too. Vue, Angular, Svelte and
+			// Vanilla all do, so React was the only binding whose collapsed
+			// sections were forgotten on save.
+			onToggleSectionCollapse?.(sectionId);
+		},
+		[onToggleSectionCollapse],
+	);
 
 	// ── Rename handlers ──
 	const startRename = useCallback((sectionId: string, currentLabel: string) => {

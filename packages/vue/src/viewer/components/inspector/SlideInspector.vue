@@ -27,6 +27,7 @@ import type {
 	PptxTheme,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -49,6 +50,8 @@ const props = withDefaults(
 		themeOptions?: PptxThemeOption[];
 		slideMasters?: PptxSlideMaster[];
 		canvasSize?: CanvasSize;
+		/** The deck's `p:sldSz` in EMU, for the Slide Size card's preset match. */
+		slideSize?: SlideSizeEmu;
 		notesCanvasSize?: CanvasSize;
 		notesMaster?: PptxNotesMaster;
 		handoutMaster?: PptxHandoutMaster;
@@ -67,6 +70,7 @@ const emit = defineEmits<{
 	'presentation-update': [patch: Partial<PptxPresentationProperties>];
 	'apply-theme': [path: string, allMasters: boolean];
 	'canvas-size-update': [size: CanvasSize];
+	'slide-size-update': [size: SlideSizeEmu, canvas: CanvasSize];
 	'update-core-properties': [patch: Partial<PptxCoreProperties>];
 	'update-app-properties': [patch: Partial<PptxAppProperties>];
 	'update-custom-properties': [props: PptxCustomProperty[]];
@@ -116,6 +120,7 @@ const activeTab = ref<InspectorTab>('properties');
 					:theme-options="themeOptions"
 					:slide-masters="slideMasters"
 					:canvas-size="canvasSize"
+					:slide-size="slideSize"
 					:notes-canvas-size="notesCanvasSize"
 					:notes-master="notesMaster"
 					:handout-master="handoutMaster"
@@ -127,6 +132,7 @@ const activeTab = ref<InspectorTab>('properties');
 					@apply-theme="(path, allMasters) => emit('apply-theme', path, allMasters)"
 					@slide-update="(patch) => emit('slide-update', patch)"
 					@canvas-size-update="(size) => emit('canvas-size-update', size)"
+					@slide-size-update="(size, canvas) => emit('slide-size-update', size, canvas)"
 					@update-core-properties="(patch) => emit('update-core-properties', patch)"
 					@update-app-properties="(patch) => emit('update-app-properties', patch)"
 					@update-custom-properties="(next) => emit('update-custom-properties', next)"

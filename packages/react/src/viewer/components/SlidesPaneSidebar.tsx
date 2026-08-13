@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlus } from 'react-icons/lu';
 
+import { DEFAULT_SECTION_GROUP_ID } from '../constants';
 import { useVirtualizedSlides } from '../hooks/useVirtualizedSlides';
 import { useCollaboration } from './collaboration';
 import { SectionContextMenu } from './slides-pane/SectionContextMenu';
@@ -47,6 +48,7 @@ export function SlidesPaneSidebar({
 	onDeleteSection,
 	onMoveSectionUp,
 	onMoveSectionDown,
+	onToggleSectionCollapse,
 	rehearsalTimings,
 	panelWidth,
 	fieldContext,
@@ -82,9 +84,13 @@ export function SlidesPaneSidebar({
 		[canvasSize.width, canvasSize.height],
 	);
 
-	// Build a flat list of slide indices respecting section collapse state
-	// and determine whether sections are in use
-	const showSectionHeaders = sectionGroups.length > 1;
+	// Headers show for every real section, however few. The gate here used to be
+	// `sectionGroups.length > 1`, which hid the header of a deck with EXACTLY
+	// one section, leaving it impossible to rename, collapse or delete; the
+	// other four bindings show it. Only the synthetic "no sections at all"
+	// group stays headerless (Vue/Angular/Svelte/Vanilla fall back to a plain
+	// thumbnail rail in that case).
+	const showSectionHeaders = sectionGroups.some((group) => group.id !== DEFAULT_SECTION_GROUP_ID);
 
 	const {
 		collapsedSections,
@@ -104,13 +110,24 @@ export function SlidesPaneSidebar({
 		handleOpenSlideCtxMenu,
 		closeSectionContextMenu,
 		closeSlideCtxMenu,
-	} = useSlidePaneCallbacks(onMoveSlide, onRenameSection);
+	} = useSlidePaneCallbacks(onMoveSlide, onRenameSection, onToggleSectionCollapse);
+
+	// The model's `collapsed` flag is the starting state; the local override map
+	// only records what the user has toggled this session. Reading the model
+	// first is what makes a deck saved with a collapsed section reopen collapsed.
+	const effectiveCollapsed = useMemo(() => {
+		const map: Record<string, boolean> = {};
+		for (const group of sectionGroups) {
+			map[group.id] = collapsedSections[group.id] ?? group.defaultCollapsed ?? false;
+		}
+		return map;
+	}, [sectionGroups, collapsedSections]);
 
 	// Build a flat ordered list of renderable items (section headers + slides)
 	// so we can virtualize across the entire list.
 	const flatItems = useMemo(
-		() => buildFlatPaneItems(sectionGroups, showSectionHeaders, collapsedSections),
-		[sectionGroups, showSectionHeaders, collapsedSections],
+		() => buildFlatPaneItems(sectionGroups, showSectionHeaders, effectiveCollapsed),
+		[sectionGroups, showSectionHeaders, effectiveCollapsed],
 	);
 
 	// Determine whether virtualization is warranted
@@ -187,7 +204,7 @@ export function SlidesPaneSidebar({
 									if (!section) {
 										return null;
 									}
-									const isCollapsed = collapsedSections[section.id] ?? false;
+									const isCollapsed = effectiveCollapsed[section.id] ?? false;
 									return (
 										<SectionHeader
 											key={`section-${section.id}`}
@@ -253,7 +270,7 @@ export function SlidesPaneSidebar({
 	const renderNonVirtualized = () => (
 		<div className='flex-1 space-y-1 overflow-y-auto px-1.5 pb-2'>
 			{sectionGroups.map((section, sectionIndex) => {
-				const isCollapsed = collapsedSections[section.id] ?? false;
+				const isCollapsed = effectiveCollapsed[section.id] ?? false;
 
 				return (
 					<div key={section.id} className='space-y-1'>

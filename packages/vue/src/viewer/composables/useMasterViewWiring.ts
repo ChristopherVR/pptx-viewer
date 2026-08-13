@@ -15,14 +15,18 @@ import type {
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
 import {
+	deleteMasterViewElements,
+	masterViewBackgroundColor,
 	masterViewElements,
 	masterViewPseudoSlide,
+	setMasterViewBackgroundColor,
 	updateMasterViewElement,
 } from 'pptx-viewer-shared';
-import type { MasterViewDocument, MasterViewTarget } from 'pptx-viewer-shared';
+import type { MasterViewDocument, MasterViewTarget, MasterViewWrite } from 'pptx-viewer-shared';
 import type { ComputedRef, ShallowRef } from 'vue';
 import { computed } from 'vue';
 
+import { remapTextToSegments } from './remap-text';
 import type { UseMasterViewStateResult } from './useMasterViewState';
 import { useMasterViewState } from './useMasterViewState';
 
@@ -50,6 +54,17 @@ export interface UseMasterViewWiringResult extends UseMasterViewStateResult {
 	 * the only binding with no master-view edit affordance at all.
 	 */
 	onMasterViewElementUpdate: (elementId: string, patch: Partial<PptxElement>) => void;
+	/**
+	 * Commit inline-edited text onto a master/layout shape, remapping the typed
+	 * plain text over the element's existing runs so per-run styling survives.
+	 */
+	onMasterViewTextCommit: (elementId: string, text: string) => void;
+	/** Remove master/layout shapes, each from whichever part owns it. */
+	onMasterViewElementDelete: (elementIds: readonly string[]) => void;
+	/** The background colour of the master or layout the sidebar has selected. */
+	activeMasterViewBackground: ComputedRef<string | undefined>;
+	/** Set that background; the empty string clears it back to inherited. */
+	onMasterViewBackgroundChange: (backgroundColor: string) => void;
 }
 
 export function useMasterViewWiring(
@@ -106,13 +121,8 @@ export function useMasterViewWiring(
 		masterViewElements(masterViewDocument(), masterViewTarget()),
 	);
 
-	function onMasterViewElementUpdate(elementId: string, patch: Partial<PptxElement>): void {
-		const write = updateMasterViewElement(
-			masterViewDocument(),
-			masterViewTarget(),
-			elementId,
-			patch,
-		);
+	/** Land one shared `MasterViewWrite` on the refs the viewer holds. */
+	function applyWrite(write: MasterViewWrite | null): void {
 		if (!write) {
 			return;
 		}
@@ -128,6 +138,47 @@ export function useMasterViewWiring(
 		options.markDirty();
 	}
 
+	function onMasterViewElementUpdate(elementId: string, patch: Partial<PptxElement>): void {
+		applyWrite(updateMasterViewElement(masterViewDocument(), masterViewTarget(), elementId, patch));
+	}
+
+	function onMasterViewTextCommit(elementId: string, text: string): void {
+		const element = activeMasterViewElements.value.find(
+			(candidate) => candidate.id === elementId,
+		) as (PptxElement & { text?: string; textSegments?: unknown; textStyle?: unknown }) | undefined;
+		if (!element) {
+			return;
+		}
+		// Clicking in and straight back out is not an edit. Committing anyway
+		// would remap the runs from the seeded plain text, which erases the rich
+		// `textSegments` of a shape that carries runs but no flat `text` (the
+		// same trap `useInlineEditing` guards on the ordinary canvas).
+		const current = element.text ?? '';
+		if (text === current) {
+			return;
+		}
+		const segments = remapTextToSegments(
+			text,
+			(element.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
+			(element.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
+		);
+		onMasterViewElementUpdate(elementId, { text, textSegments: segments } as Partial<PptxElement>);
+	}
+
+	function onMasterViewElementDelete(elementIds: readonly string[]): void {
+		applyWrite(deleteMasterViewElements(masterViewDocument(), masterViewTarget(), elementIds));
+	}
+
+	const activeMasterViewBackground = computed<string | undefined>(() =>
+		masterViewBackgroundColor(masterViewDocument(), masterViewTarget()),
+	);
+
+	function onMasterViewBackgroundChange(backgroundColor: string): void {
+		applyWrite(
+			setMasterViewBackgroundColor(masterViewDocument(), masterViewTarget(), backgroundColor),
+		);
+	}
+
 	return {
 		...state,
 		activeMasterViewSlide,
@@ -136,5 +187,9 @@ export function useMasterViewWiring(
 		onHandoutMasterBackgroundChange,
 		onHandoutSlidesPerPageChange,
 		onMasterViewElementUpdate,
+		onMasterViewTextCommit,
+		onMasterViewElementDelete,
+		activeMasterViewBackground,
+		onMasterViewBackgroundChange,
 	};
 }

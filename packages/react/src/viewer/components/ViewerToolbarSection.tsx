@@ -303,6 +303,19 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		sectionOps?.addSection(t('pptx.sections.defaultName'), activeSlideIndex);
 	}, [sectionOps, activeSlideIndex, t]);
 
+	/**
+	 * Design > Slide Size. The size control is the inspector's SLIDE SIZE card,
+	 * which the deck (no-selection) panel renders, so drop the element selection
+	 * and open the pane on Properties. The button used to open Document
+	 * Properties, a dialog with no slide-size control in it at all.
+	 */
+	const handleOpenSlideSize = useCallback(() => {
+		s.setSelectedElementId(null);
+		s.setSelectedElementIds([]);
+		s.setSidebarPanelMode('properties');
+		s.setIsInspectorPaneOpen(true);
+	}, [s]);
+
 	const handleSelectAll = useCallback(() => {
 		const allIds = activeSlide?.elements.map((element) => element.id) ?? [];
 		if (allIds.length > 0) {
@@ -424,7 +437,10 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 							s.setIsThemeGalleryOpen((p) => !p);
 							break;
 						case 'slideSize':
-							dialogs.setIsSetUpSlideShowOpen(true);
+							// Was `setIsSetUpSlideShowOpen`: the command-palette route to
+							// Slide Size opened the Set Up Show dialog, a third unrelated
+							// surface. Same destination as the ribbon button now.
+							handleOpenSlideSize();
 							break;
 					}
 					break;
@@ -453,7 +469,17 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 					break;
 			}
 		},
-		[ops, insertHandlers, s, dialogs, zoom, onSetMode, onEnterPresenterView, manipulation],
+		[
+			ops,
+			insertHandlers,
+			s,
+			dialogs,
+			zoom,
+			onSetMode,
+			onEnterPresenterView,
+			manipulation,
+			handleOpenSlideSize,
+		],
 	);
 
 	/**
@@ -653,6 +679,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onToggleVersionHistory={() => propertyHandlers.setIsVersionHistoryOpen((p) => !p)}
 				onOpenPasswordProtection={() => dialogs.setIsPasswordDialogOpen(true)}
 				onOpenDocumentProperties={() => dialogs.setIsDocPropsDialogOpen(true)}
+				onOpenSlideSize={handleOpenSlideSize}
 				onOpenFontEmbedding={() => dialogs.setIsFontEmbeddingOpen(true)}
 				onOpenDigitalSignatures={() => dialogs.setIsDigitalSigDialogOpen(true)}
 				onEnterPresenterView={onEnterPresenterView}

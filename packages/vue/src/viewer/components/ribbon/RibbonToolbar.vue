@@ -219,6 +219,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-toggle-theme-editor="props.onToggleThemeEditor"
 				:is-theme-editor-open="props.isThemeEditorOpen"
 				:on-open-document-properties="props.onOpenDocumentProperties"
+				:on-open-slide-size="props.onOpenSlideSize"
 				:on-toggle-inspector="props.onToggleInspector"
 				:is-inspector-pane-open="props.isInspectorPaneOpen"
 			/>

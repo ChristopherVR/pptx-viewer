@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import { TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import TransitionsSection from './TransitionsSection.vue';
@@ -70,6 +71,24 @@ describe('transitionsSection commits to the deck', () => {
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ advanceAfterMs: 3000 }),
 		);
+	});
+
+	it('replays the transition on the stage from Preview, without editing the deck', async () => {
+		const { wrapper, onTransitionChange } = mountTab(slideWith({ type: 'push', durationMs: 800 }));
+		const stage = document.createElement('div');
+		stage.setAttribute('aria-roledescription', 'slide');
+		document.body.appendChild(stage);
+
+		await wrapper
+			.findAll('button')
+			.find((button) => button.text().includes('Preview'))
+			?.trigger('click');
+
+		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('push');
+		// Preview used to re-commit the slide's own transition: an edit nobody
+		// could see, and one no assertion could tell apart from a dead button.
+		expect(onTransitionChange).not.toHaveBeenCalled();
+		stage.remove();
 	});
 
 	it('has a working Apply to All', async () => {

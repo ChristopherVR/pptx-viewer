@@ -1,4 +1,9 @@
-import { saveAutosaveSnapshot } from 'pptx-viewer-shared';
+import {
+	autosaveSnapshotMark,
+	saveAutosaveSnapshot,
+	shouldWriteAutosaveSnapshot,
+} from 'pptx-viewer-shared';
+import type { AutosaveSnapshotMark } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -28,6 +33,17 @@ export interface UseAutosaveInput {
 	intervalSeconds?: number;
 	/** Whether autosave is enabled. */
 	enabled?: boolean;
+	/**
+	 * The values a snapshot is built from, read fresh on each tick.
+	 *
+	 * `isDirty` stays true from the first edit until the user performs a real
+	 * save, so on its own it makes the timer re-serialize and rewrite an
+	 * identical deck every N seconds forever. Vue, Svelte and Vanilla never had
+	 * that problem because they debounce on the slides array being reassigned;
+	 * this is the same trigger, and `shouldWriteAutosaveSnapshot` writes
+	 * whenever it is unsure. Omit it and every tick writes, as before.
+	 */
+	getChangeSources?: () => readonly unknown[];
 }
 
 export interface UseAutosaveResult {
@@ -48,6 +64,7 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 		serializeSlides,
 		intervalSeconds = DEFAULT_AUTOSAVE_INTERVAL_SECONDS,
 		enabled = true,
+		getChangeSources,
 	} = input;
 
 	const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>({
@@ -59,6 +76,8 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 	const filePathRef = useRef(filePath);
 	const serializeRef = useRef(serializeSlides);
 	const isSavingRef = useRef(false);
+	const changeSourcesRef = useRef(getChangeSources);
+	const lastSnapshotRef = useRef<AutosaveSnapshotMark | undefined>(undefined);
 
 	useEffect(() => {
 		isDirtyRef.current = isDirty;
@@ -69,16 +88,30 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 	useEffect(() => {
 		serializeRef.current = serializeSlides;
 	}, [serializeSlides]);
+	useEffect(() => {
+		changeSourcesRef.current = getChangeSources;
+	}, [getChangeSources]);
 
 	// ── Core save logic ─────────────────────────────────────────────
-	const doAutosave = useCallback(async () => {
-		if (!filePathRef.current) {
+	// `polled` distinguishes the interval from an explicit `triggerAutosave()`:
+	// a poll may be skipped as redundant, a request never is. It is an options
+	// object rather than a positional boolean so that wiring the trigger
+	// straight to a DOM handler cannot smuggle an event in as `true`.
+	const doAutosave = useCallback(async (options?: { polled?: boolean }) => {
+		const path = filePathRef.current;
+		if (!path) {
 			return;
 		}
-		if (!isDirtyRef.current) {
-			return;
-		}
-		if (isSavingRef.current) {
+		const sources = changeSourcesRef.current?.() ?? [];
+		if (
+			!shouldWriteAutosaveSnapshot({
+				filePath: path,
+				isDirty: isDirtyRef.current,
+				saving: isSavingRef.current,
+				sources: options?.polled === true ? sources : [],
+				lastSnapshot: lastSnapshotRef.current,
+			})
+		) {
 			return;
 		}
 
@@ -93,7 +126,11 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 				return;
 			}
 
-			await saveAutosaveSnapshot(filePathRef.current, data);
+			await saveAutosaveSnapshot(path, data);
+			// Mark AFTER the write, and from the sources read before it, so an
+			// edit made while serialising is not mistaken for one already
+			// captured: the next tick sees a different reference and writes.
+			lastSnapshotRef.current = autosaveSnapshotMark(path, sources);
 			setAutosaveStatus({ state: 'saved', timestamp: Date.now() });
 		} catch (err) {
 			setAutosaveStatus({
@@ -124,7 +161,7 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 
 		const ms = computeAutosaveIntervalMs(intervalSeconds);
 		const id = setInterval(() => {
-			void doAutosave();
+			void doAutosave({ polled: true });
 		}, ms);
 
 		return () => clearInterval(id);
@@ -132,6 +169,6 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 
 	return {
 		autosaveStatus,
-		triggerAutosave: doAutosave,
+		triggerAutosave: () => doAutosave(),
 	};
 }

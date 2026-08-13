@@ -98,4 +98,23 @@ describe('sectionList', () => {
 		expect(wrapper.findAll('.pptx-vue-section-action')).toHaveLength(0);
 		expect(wrapper.findAll('.pptx-vue-section-add')).toHaveLength(0);
 	});
+
+	/**
+	 * `p15:sectionPr/@clr` is parsed and round-tripped by core and painted by
+	 * React's sorter, and the Vue rail showed nothing at all, so a colour-coded
+	 * deck lost its coding here.
+	 */
+	it('paints a swatch for a section that carries a colour', () => {
+		const groups = sampleGroups();
+		groups[0]!.section = { ...groups[0]!.section!, color: '#ff0000' };
+		const wrapper = mountList(groups);
+		const swatches = wrapper.findAll('[data-pptx-section-color]');
+		expect(swatches).toHaveLength(1);
+		expect(swatches[0]!.attributes('style')).toContain('#ff0000');
+	});
+
+	it('paints no swatch for a section with no colour', () => {
+		const wrapper = mountList(sampleGroups());
+		expect(wrapper.findAll('[data-pptx-section-color]')).toHaveLength(0);
+	});
 });

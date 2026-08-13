@@ -15,9 +15,13 @@ export interface ConnectorRendererProps {
 	selectionColorClass: 'blue-400' | 'blue-500';
 	opacity?: number;
 	zIndex?: number;
-	adjustmentHandleDescriptor: ShapeAdjustmentHandleDescriptor | null;
+	adjustmentHandles: ShapeAdjustmentHandleDescriptor[];
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	onRotate?: (elementId: string, rotationDeg: number) => void;
 	animationState?: ElementAnimationState;
 }
@@ -57,9 +61,13 @@ export interface ElementRendererProps {
 	showResizeHandles: boolean;
 	renderInk: boolean;
 	renderGroups: boolean;
-	adjustmentHandleDescriptor: ShapeAdjustmentHandleDescriptor | null;
+	adjustmentHandles: ShapeAdjustmentHandleDescriptor[];
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	/** Commit a new rotation (degrees) when the on-canvas rotate handle is dragged. */
 	onRotate?: (elementId: string, rotationDeg: number) => void;
 	onInlineEditChange: (text: string) => void;

@@ -186,6 +186,8 @@ export interface UseRibbonPropsActionsInput {
 	defaultSectionName: () => string;
 	/** Select every element on the active slide (Home > Editing > Select All). */
 	selectAllElements: () => void;
+	/** Drop the element selection (Design > Slide Size shows the deck panel). */
+	clearSelection: () => void;
 	/** Commit a Slide Show Options checkbox, from `useSlideShowSettings`. */
 	onPresentationPropertiesUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 }

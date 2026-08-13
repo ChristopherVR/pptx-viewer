@@ -355,7 +355,16 @@ describe('elementRenderer neutral element marker', () => {
 				children: [{ id: 'c1', type: 'text', x: 0, y: 0, width: 50, height: 20, text: 'kid' }],
 			},
 		],
-		['unsupported', { type: 'contentPart' }],
+		// `contentPart` used to land here as "unsupported", which is what this
+		// case asserted. Vue now has a real ContentPartRenderer, so it is an
+		// ordinary rendered element like the rest.
+		[
+			'contentPart',
+			{
+				type: 'contentPart',
+				inkStrokes: [{ path: 'M 0 0 L 5 5', color: '#000', width: 1, opacity: 1 }],
+			},
+		],
 	];
 
 	it.each(cases)('marks a %s element on the interactive canvas', (_type, payload) => {

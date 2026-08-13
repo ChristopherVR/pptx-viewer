@@ -92,6 +92,8 @@ export interface RibbonSlideCommandsInput {
 	addSection: (name: string, afterSlideIndex: number) => void;
 	defaultSectionName: () => string;
 	selectAllElements: () => void;
+	/** Drop the element selection, so the inspector shows the deck panel. */
+	clearSelection: () => void;
 }
 
 /** Format painter + clipboard + shortcut-driven copy/cut. */
@@ -298,6 +300,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		addSection: o.slideCommands.addSection,
 		defaultSectionName: o.slideCommands.defaultSectionName,
 		selectAllElements: o.slideCommands.selectAllElements,
+		clearSelection: o.slideCommands.clearSelection,
 		onPresentationPropertiesUpdate: o.slideShow.onPresentationPropertiesUpdate,
 	});
 }

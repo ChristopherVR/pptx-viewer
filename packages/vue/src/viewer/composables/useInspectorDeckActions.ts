@@ -6,6 +6,7 @@ import type {
 	PptxSlideMaster,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
+import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import type { Ref, ShallowRef } from 'vue';
 
 import type { CanvasSize } from '../types';
@@ -14,6 +15,8 @@ export interface UseInspectorDeckActionsInput {
 	handler: ShallowRef<PptxHandler | null>;
 	slideMasters: ShallowRef<PptxSlideMaster[]>;
 	canvasSize: Ref<CanvasSize>;
+	/** The deck's `p:sldSz` in EMU (`useLoadContent().slideSize`). */
+	slideSize: Ref<SlideSizeEmu | undefined>;
 	coreProperties: ShallowRef<PptxCoreProperties | undefined>;
 	appProperties: ShallowRef<PptxAppProperties | undefined>;
 	customProperties: ShallowRef<PptxCustomProperty[]>;
@@ -31,8 +34,14 @@ export interface UseInspectorDeckActionsInput {
 export interface UseInspectorDeckActionsResult {
 	/** Apply a packaged theme part by archive path (React's `handleApplyTheme`). */
 	applyThemeByPath: (themePath: string, applyToAllMasters: boolean) => void;
-	/** Resize the slide canvas (inspector SLIDE SIZE card). */
+	/** Resize the slide canvas (inspector SLIDE SIZE card's raw W/H inputs). */
 	updateCanvasSize: (size: CanvasSize) => void;
+	/**
+	 * Adopt a slide size chosen by preset or orientation. Sets BOTH the EMU size
+	 * (what the save writes to `p:sldSz`) and the pixel canvas (what the stage
+	 * lays out at), because deriving one from the other loses preset identity.
+	 */
+	updateSlideSize: (size: SlideSizeEmu, canvas: CanvasSize) => void;
 	/** Patch document core properties (Title / Author / ...). */
 	updateCoreProperties: (patch: Partial<PptxCoreProperties>) => void;
 	/** Patch application properties (Company / Application). */
@@ -57,6 +66,7 @@ export function useInspectorDeckActions(
 		handler,
 		slideMasters,
 		canvasSize,
+		slideSize,
 		coreProperties,
 		appProperties,
 		customProperties,
@@ -90,6 +100,14 @@ export function useInspectorDeckActions(
 		markDirty();
 	}
 
+	function updateSlideSize(size: SlideSizeEmu, canvas: CanvasSize): void {
+		if (size.widthEmu <= 0 || size.heightEmu <= 0) {
+			return;
+		}
+		slideSize.value = size;
+		updateCanvasSize(canvas);
+	}
+
 	function updateCoreProperties(patch: Partial<PptxCoreProperties>): void {
 		coreProperties.value = { ...(coreProperties.value ?? {}), ...patch };
 		markDirty();
@@ -113,6 +131,7 @@ export function useInspectorDeckActions(
 	return {
 		applyThemeByPath,
 		updateCanvasSize,
+		updateSlideSize,
 		updateCoreProperties,
 		updateAppProperties,
 		updateCustomProperties,

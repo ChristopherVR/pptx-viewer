@@ -18,6 +18,7 @@ import type {
 	MarqueeSelectionState,
 	TableCellEditorState,
 	ViewerMode,
+	ShapeAdjustmentHandleDescriptor,
 } from '../../types';
 import type { DrawingTool } from '../../types-ui';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -62,7 +63,11 @@ export interface SlideCanvasProps {
 	onContextMenu: (elementId: string, e: React.MouseEvent) => void;
 	onCanvasMouseDown?: (e: React.MouseEvent) => void;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
-	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onAdjustmentPointerDown: (
+		elementId: string,
+		e: React.MouseEvent,
+		descriptor: ShapeAdjustmentHandleDescriptor,
+	) => void;
 	onInlineEditChange: (text: string) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;

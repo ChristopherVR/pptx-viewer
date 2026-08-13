@@ -3,6 +3,7 @@
  * canvas, context menu, and side panels.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { setMasterViewBackgroundColor } from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { useMemo } from 'react';
@@ -175,6 +176,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 							onDeleteSection={sectionOps.deleteSection}
 							onMoveSectionUp={sectionOps.moveSectionUp}
 							onMoveSectionDown={sectionOps.moveSectionDown}
+							onToggleSectionCollapse={sectionOps.toggleSectionCollapse}
 							rehearsalTimings={
 								Object.keys(presentation.recordedTimings).length > 0
 									? presentation.recordedTimings
@@ -217,6 +219,22 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 								master ? { ...master, backgroundColor } : master,
 							);
 							state.setIsDirty(true);
+						}}
+						canEdit={canEdit}
+						onSlidesBackgroundChange={(backgroundColor) => {
+							const write = setMasterViewBackgroundColor(
+								{ slideMasters: state.slideMasters },
+								{
+									tab: 'slides',
+									masterIndex: state.activeMasterIndex,
+									layoutIndex: state.activeLayoutIndex,
+								},
+								backgroundColor,
+							);
+							if (write?.slideMasters) {
+								state.setSlideMasters(write.slideMasters);
+								state.setIsDirty(true);
+							}
 						}}
 					/>
 				)}

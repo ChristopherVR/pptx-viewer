@@ -60,6 +60,13 @@ export interface UseKeyboardShortcutsInput {
 	onUngroup?: () => void;
 	/** Show or hide the keyboard-shortcut reference ("?"). */
 	onToggleShortcuts?: () => void;
+	/**
+	 * Open or close the find bar (Ctrl/Cmd+F). Left unwired by the default
+	 * shell, where `useFindReplace` owns the find state and resolves the same
+	 * chord against the same shared keymap; the case exists so the switch stays
+	 * exhaustive and so a host driving this hook directly can handle it.
+	 */
+	onFind?: () => void;
 	/** Navigate to previous visible slide (edit mode, no selection). */
 	onPrevSlide?: () => void;
 	/** Navigate to next visible slide (edit mode, no selection). */
@@ -80,7 +87,14 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 		const current = inputRef.current;
 		const { action, dx, dy } = mapEditorKey(e, {
 			canEdit: current.canEdit,
-			isPresenting: current.mode !== 'edit',
+			// The Slide Master view is an editing surface, not a viewing one.
+			// Gating on `mode !== 'edit'` alone made `mapEditorKey` return
+			// NO_ACTION there, so Delete, the arrow-key nudges and the clipboard
+			// keys were all inert over a master shape even though the write path
+			// behind them routes to the owning part correctly. Svelte and
+			// vanilla, which render the master into their ordinary editable
+			// stage, never had the gap.
+			isPresenting: current.mode !== 'edit' && current.mode !== 'master',
 			hasSelection: current.hasSelection,
 			isEditingText: Boolean(current.inlineEditingElementId || current.tableEditorState?.isEditing),
 			isDrawing: current.activeTool !== 'select',
@@ -127,6 +141,9 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 				break;
 			case 'toggleShortcuts':
 				current.onToggleShortcuts?.();
+				break;
+			case 'find':
+				current.onFind?.();
 				break;
 			case 'nudge':
 				current.onNudge(dx ?? 0, dy ?? 0);

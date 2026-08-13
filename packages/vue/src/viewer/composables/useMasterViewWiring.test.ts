@@ -89,3 +89,85 @@ describe('useMasterViewWiring master-part editing', () => {
 		expect(markDirty).not.toHaveBeenCalled();
 	});
 });
+
+/**
+ * Vue's master editing stopped at drag/resize: there was no inline text editor
+ * and no delete, so a template's "Click to edit Master title style" could be
+ * moved but never reworded, and a stray master shape could never be removed.
+ */
+describe('useMasterViewWiring text commit', () => {
+	it('writes the text and remaps the runs onto the owning part', () => {
+		const { slideMasters, markDirty, state } = useWiring();
+		state.onMasterViewTextCommit('slide-master-slideMaster1-shape-0', 'Retitled');
+		const edited = slideMasters.value[0].elements?.[0] as {
+			text?: string;
+			textSegments?: unknown[];
+		};
+		expect(edited.text).toBe('Retitled');
+		expect(edited.textSegments).toBeDefined();
+		expect(markDirty).toHaveBeenCalledWith();
+	});
+
+	it('routes a layout text commit to the layout', () => {
+		const { slideMasters, state } = useWiring();
+		state.onSelectLayout(0, 0);
+		state.onMasterViewTextCommit('slide-layout-slideLayout1-shape-0', 'Layout words');
+		const layoutElement = slideMasters.value[0]?.layouts?.[0]?.elements?.[0] as
+			| { text?: string }
+			| undefined;
+		expect(layoutElement?.text).toBe('Layout words');
+	});
+
+	it('does not commit when the text is unchanged, so runs are never remapped away', () => {
+		const { markDirty, state } = useWiring();
+		state.onMasterViewTextCommit('slide-master-slideMaster1-shape-0', '');
+		expect(markDirty).not.toHaveBeenCalled();
+	});
+});
+
+describe('useMasterViewWiring delete', () => {
+	it('removes a master shape', () => {
+		const { slideMasters, markDirty, state } = useWiring();
+		state.onMasterViewElementDelete(['slide-master-slideMaster1-shape-0']);
+		expect(slideMasters.value[0].elements).toStrictEqual([]);
+		expect(markDirty).toHaveBeenCalledWith();
+	});
+
+	it('removes a layout shape without touching its master', () => {
+		const { slideMasters, state } = useWiring();
+		state.onSelectLayout(0, 0);
+		state.onMasterViewElementDelete(['slide-layout-slideLayout1-shape-0']);
+		expect(slideMasters.value[0].layouts?.[0].elements).toStrictEqual([]);
+		expect(slideMasters.value[0].elements).toHaveLength(1);
+	});
+
+	it('is a no-op with nothing selected', () => {
+		const { markDirty, state } = useWiring();
+		state.onMasterViewElementDelete([]);
+		expect(markDirty).not.toHaveBeenCalled();
+	});
+});
+
+describe('useMasterViewWiring background', () => {
+	it('reads and writes the selected master background', () => {
+		const { slideMasters, state } = useWiring();
+		expect(state.activeMasterViewBackground.value).toBe('#111111');
+		state.onMasterViewBackgroundChange('#abcdef');
+		expect(slideMasters.value[0].backgroundColor).toBe('#abcdef');
+	});
+
+	it('writes onto the selected layout rather than its master', () => {
+		const { slideMasters, state } = useWiring();
+		state.onSelectLayout(0, 0);
+		state.onMasterViewBackgroundChange('#123456');
+		expect(slideMasters.value[0].layouts?.[0].backgroundColor).toBe('#123456');
+		expect(slideMasters.value[0].backgroundColor).toBe('#111111');
+	});
+
+	it('routes the notes tab to the notes master', () => {
+		const { notesMaster, state } = useWiring();
+		state.masterViewTab.value = 'notes';
+		state.onMasterViewBackgroundChange('#222222');
+		expect(notesMaster.value?.backgroundColor).toBe('#222222');
+	});
+});

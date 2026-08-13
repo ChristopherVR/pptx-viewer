@@ -13,6 +13,7 @@
  * its cursor said otherwise.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { getShapeAdjustmentHandleDescriptors } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -28,6 +29,13 @@ import type {
 import type { CanvasInteractionHandlers } from './canvas-interaction-types';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import type { UseCanvasInteractionsInput } from './useCanvasInteractions';
+
+/**
+ * A descriptor the lock tests hand to the gesture directly. Shared already
+ * refuses to EMIT one for a locked shape, so the gesture is additionally
+ * checked against a forced handle: two independent guards, not one.
+ */
+const FORCED_HANDLE = { key: 'adj', left: 16, top: 0, value: 16667, cursor: 'ew-resize' };
 
 function shape(id: string, locks?: PptxElement['locks']): PptxElement {
 	return {
@@ -234,20 +242,29 @@ describe('canvas gestures honour a:spLocks', () => {
 	});
 
 	it('refuses the adjustment gesture for a noAdjustHandles shape', () => {
-		const locked = mount(shape('plain', { noAdjustHandles: true }));
-		locked.handlers.handleAdjustmentPointerDown('plain', mouseEvent());
+		const lockedShape = shape('plain', { noAdjustHandles: true });
+		// The lock removes the handle itself, so there is nothing to grab...
+		expect(getShapeAdjustmentHandleDescriptors(lockedShape)).toStrictEqual([]);
+		// ...and the gesture refuses even when a descriptor is forced on it.
+		const locked = mount(lockedShape);
+		locked.handlers.handleAdjustmentPointerDown('plain', mouseEvent(), FORCED_HANDLE);
 		expect(locked.adjustRef.current).toBeNull();
 
-		const free = mount(shape('free'));
-		free.handlers.handleAdjustmentPointerDown('free', mouseEvent());
+		const freeShape = shape('free');
+		const [handle] = getShapeAdjustmentHandleDescriptors(freeShape);
+		expect(handle).toBeDefined();
+		const free = mount(freeShape);
+		free.handlers.handleAdjustmentPointerDown('free', mouseEvent(), handle);
 		expect(free.adjustRef.current).not.toBeNull();
+		// The captured solver is what converts pointer travel into guide units.
+		expect(free.adjustRef.current?.solvers?.length).toBeGreaterThan(0);
 	});
 
 	it('lets noSelect subsume the others: nothing arms at all', () => {
 		const harness = mount(shape('hidden', { noSelect: true }));
 		harness.handlers.handleElementMouseDown('hidden', mouseEvent());
 		harness.handlers.handleResizePointerDown('hidden', mouseEvent(), 'se');
-		harness.handlers.handleAdjustmentPointerDown('hidden', mouseEvent());
+		harness.handlers.handleAdjustmentPointerDown('hidden', mouseEvent(), FORCED_HANDLE);
 		harness.handlers.handleRotate('hidden', 30);
 		expect(harness.dragStateRef.current).toBeNull();
 		expect(harness.resizeStateRef.current).toBeNull();
