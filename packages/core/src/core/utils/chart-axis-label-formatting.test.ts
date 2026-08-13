@@ -22,6 +22,7 @@ describe('chart axis label formatting', () => {
 			applyChartAxisLabelFormatting({}, { axisType: 'valAx', axPos: 'bad' as never }, localName),
 		).toThrow(RangeError);
 	});
+
 	it('parses tick marks and category label controls with arbitrary prefixes', () => {
 		const node: XmlObject = {
 			'x:majorTickMark': { '@_val': 'out' },
@@ -74,7 +75,35 @@ describe('chart axis label formatting', () => {
 		expect(parseChartAxisLabelFormatting(node, 'catAx', localName)).toStrictEqual({});
 	});
 
-	it('writes Strict-compatible offsets in schema order and preserves unknown XML', () => {
+	it('writes lblOffset as the numeric union member PowerPoint accepts', () => {
+		// ST_LblOffset unions a percent form with an unsignedShort form, so
+		// `val="100%"` is schema-valid, but PowerPoint rejects the percent form
+		// and refuses to open the whole file (0x80070570, verified via COM
+		// against an otherwise-pristine deck). Only the numeric member may be
+		// emitted.
+		for (const axisType of ['catAx', 'dateAx'] as const) {
+			const node: XmlObject = {};
+			applyChartAxisLabelFormatting(node, { axisType, labelOffset: 100 }, localName);
+			const emitted = String((node['c:lblOffset'] as XmlObject)['@_val']);
+			expect(emitted).toBe('100');
+			expect(emitted).not.toContain('%');
+		}
+
+		// What we write must survive our own reader unchanged.
+		const written: XmlObject = {};
+		applyChartAxisLabelFormatting(written, { axisType: 'catAx', labelOffset: 250 }, localName);
+		expect(parseChartAxisLabelFormatting(written, 'catAx', localName)).toStrictEqual({
+			labelOffset: 250,
+		});
+
+		// The numeric member is xsd:unsignedShort, so a fractional model value
+		// has to be rounded rather than emitted verbatim.
+		const fractional: XmlObject = {};
+		applyChartAxisLabelFormatting(fractional, { axisType: 'catAx', labelOffset: 120.4 }, localName);
+		expect(fractional['c:lblOffset']).toStrictEqual({ '@_val': '120' });
+	});
+
+	it('writes label controls in schema order and preserves unknown XML', () => {
 		const node: XmlObject = {
 			'c:axId': { '@_val': '1' },
 			'c:spPr': { 'a:noFill': {} },
@@ -99,7 +128,7 @@ describe('chart axis label formatting', () => {
 			localName,
 		);
 
-		expect(node['c:lblOffset']).toStrictEqual({ '@_val': '140%' });
+		expect(node['c:lblOffset']).toStrictEqual({ '@_val': '140' });
 		expect(node['c:tickLblSkip']).toStrictEqual({ '@_val': '2' });
 		expect(node['c:tickMarkSkip']).toStrictEqual({ '@_val': '3' });
 		expect(node['c:spPr']).toStrictEqual({ 'a:noFill': {} });

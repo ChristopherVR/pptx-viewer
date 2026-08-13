@@ -1,3 +1,4 @@
+import { normalizeStShapeType } from '../geometry';
 import type {
 	ConnectorPptxElement,
 	MediaPptxElement,
@@ -96,21 +97,23 @@ export class PptxElementXmlBuilder {
 
 	/**
 	 * Normalize a shape type string to a valid DrawingML preset geometry name.
-	 * Falls back to "rect" for missing or invalid values; maps "cylinder" to "can".
+	 *
+	 * `a:prstGeom/@prst` is typed `ST_ShapeType`, a closed 187-value
+	 * enumeration, so anything outside it makes the package schema-invalid and
+	 * PowerPoint refuses to open it. This used to pass through any identifier
+	 * matching `[A-Za-z][A-Za-z0-9_]*`, which let picker-only names such as
+	 * `rightTriangle` / `cross` / `flowChartData` and internal render tokens
+	 * such as `rtArrow` reach the saved XML verbatim.
+	 *
+	 * Resolution now goes through {@link normalizeStShapeType}: exact spec
+	 * spelling, then case-insensitive match, then the alias table. Anything
+	 * still unrecognised degrades to `"rect"` rather than being emitted.
+	 *
 	 * @param shapeType - Raw shape type identifier.
 	 * @returns A valid `a:prstGeom/@prst` value.
 	 */
 	public normalizePresetGeometry(shapeType: string | undefined): string {
-		if (!shapeType) {
-			return 'rect';
-		}
-		if (shapeType === 'cylinder') {
-			return 'can';
-		}
-		if (/^[A-Za-z][A-Za-z0-9_]*$/.test(shapeType)) {
-			return shapeType;
-		}
-		return 'rect';
+		return normalizeStShapeType(shapeType) ?? 'rect';
 	}
 
 	/**

@@ -12,6 +12,7 @@ import type {
 	PptxExportOptions,
 	PptxHandoutMaster,
 	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxData,
 	PptxElement,
 	PptxHeaderFooter,
@@ -185,6 +186,8 @@ export interface IPptxHandlerRuntime {
 
 	getCompatibilityWarnings(): PptxCompatibilityWarning[];
 	getLayoutOptions(): PptxLayoutOption[];
+	getLayoutPreview(layoutPath: string): Promise<PptxLayoutPreview | null>;
+	getLayoutPreviews(layoutPaths?: readonly string[]): Promise<PptxLayoutPreview[]>;
 	createXmlBuilder(data: PptxData): PptxXmlBuilder;
 	Builder(data: PptxData): PptxXmlBuilder;
 	setTemplateBackground(path: string, backgroundColor: string | undefined): void;

@@ -1,4 +1,5 @@
 import type { PptxBubbleChartOptions, XmlObject } from '../types';
+import { chartPercentUnionValue } from './chart-percent-union-value';
 
 type LocalName = (key: string) => string;
 const ORDER = [
@@ -96,14 +97,22 @@ export function applyBubbleChartOptions(
 		insertOrdered(container, 'bubble3D', { '@_val': options.bubble3D ? '1' : '0' }, localName);
 	}
 	if (options.bubbleScale !== undefined) {
-		if (
-			!Number.isFinite(options.bubbleScale) ||
-			options.bubbleScale < 0 ||
-			options.bubbleScale > 300
-		) {
-			throw new RangeError('bubbleScale must be between 0 and 300');
-		}
-		insertOrdered(container, 'bubbleScale', { '@_val': `${options.bubbleScale}%` }, localName);
+		// ST_BubbleScale is a union of ST_BubbleScalePercent and
+		// ST_BubbleScaleUShort. PowerPoint only implements the unsigned-short
+		// member; the percent lexical form (`val="150%"`) is schema-valid but
+		// makes the package unreadable (0x80070570). See chartPercentUnionValue.
+		insertOrdered(
+			container,
+			'bubbleScale',
+			{
+				'@_val': chartPercentUnionValue(options.bubbleScale, {
+					name: 'bubbleScale',
+					min: 0,
+					max: 300,
+				}),
+			},
+			localName,
+		);
 	}
 	if (options.showNegativeBubbles !== undefined) {
 		insertOrdered(

@@ -552,7 +552,28 @@ export interface BulletInfo {
 	autoNumType?: string;
 	/** Auto-numbering start value. */
 	autoNumStartAt?: number;
-	/** Zero-based paragraph index within the text body (for auto-numbering). */
+	/**
+	 * Auto-numbering ORDINAL OFFSET: the zero-based distance of this paragraph
+	 * within its own numbered list, such that
+	 * `autoNumStartAt + paragraphIndex` is the ordinal to render. Despite the
+	 * name it is NOT the paragraph's position in the text body; the two agree
+	 * only for a list that starts at the first paragraph and is never
+	 * interrupted.
+	 *
+	 * It has to be the offset rather than the raw position because every
+	 * consumer that re-derives a marker from `BulletInfo` alone (the renderer's
+	 * `resolveParagraphBullet`, the Markdown converter's `resolveListMarker`)
+	 * computes `autoNumStartAt + paragraphIndex`. The load path resolves the
+	 * real sequence itself, restarting the count after any paragraph that
+	 * interrupts the list, and publishes the offset here so those consumers
+	 * land on the same number. With the raw position they did not, and BOTH
+	 * markers were painted ("3.1. Item"), because the paragraph builder drops
+	 * the parsed marker segment only when the two strings agree.
+	 *
+	 * Runtime-only: derived at parse time and never serialized. OOXML has no
+	 * counterpart (`a:buAutoNum` carries only `@type` and `@startAt`), so the
+	 * writer neither reads nor emits it.
+	 */
 	paragraphIndex?: number;
 	/** Bullet font family from `a:buFont`. */
 	fontFamily?: string;

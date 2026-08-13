@@ -123,11 +123,33 @@ describe('evaluateFormula — trigonometry', () => {
 		expect(evalFmla('atan 1')).toBeCloseTo(45 * ANGLE_SCALE);
 	});
 
-	it('at2 returns atan2(y, x) in OOXML angle units', () => {
-		// atan2(1, 0) = 90 degrees
-		expect(evalFmla('at2 1 0')).toBeCloseTo(90 * ANGLE_SCALE);
-		// atan2(0, 1) = 0 degrees
-		expect(evalFmla('at2 0 1')).toBeCloseTo(0);
+	// ECMA-376 / ISO-IEC-29500-1 section 20.1.9.6: `at2 x y` = arctan(y / x),
+	// i.e. Math.atan2(y, x). The FIRST operand is x (horizontal), the SECOND is
+	// y (vertical) - the reverse of the JS argument order.
+	it('at2 x y returns arctan(y / x) in OOXML angle units', () => {
+		// at2 1 0 -> atan2(0, 1) = 0 degrees (pointing along +x)
+		expect(evalFmla('at2 1 0')).toBeCloseTo(0);
+		// at2 0 1 -> atan2(1, 0) = 90 degrees (pointing along +y)
+		expect(evalFmla('at2 0 1')).toBeCloseTo(90 * ANGLE_SCALE);
+		// at2 1 1 -> atan2(1, 1) = 45 degrees
+		expect(evalFmla('at2 1 1')).toBeCloseTo(45 * ANGLE_SCALE);
+		// at2 -1 0 -> atan2(0, -1) = 180 degrees
+		expect(evalFmla('at2 -1 0')).toBeCloseTo(180 * ANGLE_SCALE);
+		// at2 0 -1 -> atan2(-1, 0) = -90 degrees
+		expect(evalFmla('at2 0 -1')).toBeCloseTo(-90 * ANGLE_SCALE);
+		// Non-unit magnitudes: at2 3 4 -> atan2(4, 3) = 53.13 degrees
+		expect(evalFmla('at2 3 4')).toBeCloseTo(53.130102 * ANGLE_SCALE, 0);
+		// `atan2` is accepted as an alias for the same operator.
+		expect(evalFmla('atan2 0 1')).toBeCloseTo(90 * ANGLE_SCALE);
+	});
+
+	it('at2 agrees with the cat2 / sat2 operand convention', () => {
+		// `cat2 x y z` = x * cos(atan2(z, y)), so cat2's (y, z) pair carries the
+		// same (horizontal, vertical) ordering as at2's two operands. Feeding the
+		// same pair through both must produce a consistent angle.
+		const ang = evalFmla('at2 3 4') / ANGLE_SCALE;
+		expect(evalFmla('cat2 1 3 4')).toBeCloseTo(Math.cos((ang * Math.PI) / 180));
+		expect(evalFmla('sat2 1 3 4')).toBeCloseTo(Math.sin((ang * Math.PI) / 180));
 	});
 
 	it('cat2 computes x * cos(atan2(z, y))', () => {

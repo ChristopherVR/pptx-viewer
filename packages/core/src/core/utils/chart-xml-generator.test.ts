@@ -116,7 +116,9 @@ describe('buildChartSpaceXml', () => {
 		);
 		const axis = pa['c:catAx'] as XmlObject;
 		expect(axis['c:majorTickMark']).toStrictEqual({ '@_val': 'out' });
-		expect(axis['c:lblOffset']).toStrictEqual({ '@_val': '175%' });
+		// Numeric member of ST_LblOffset: PowerPoint rejects the percent form
+		// outright (see chart-percent-union-value.ts).
+		expect(axis['c:lblOffset']).toStrictEqual({ '@_val': '175' });
 		expect(axis['c:noMultiLvlLbl']).toStrictEqual({ '@_val': '1' });
 		const names = Object.keys(axis).map((key) => key.replace(/^.*:/u, ''));
 		expect(names.indexOf('majorTickMark')).toBeLessThan(names.indexOf('crossAx'));

@@ -1,4 +1,5 @@
 import { PptxElement, XmlObject, TextSegment, TextStyle } from '../../types';
+import { textBodyHasContent } from '../../utils/text-body-has-content';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { createAutoNumberSequence } from './auto-number-sequence';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParagraphContentParsing';
@@ -33,13 +34,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const xfrm = (effectiveSpPr?.['a:xfrm'] || spPr?.['a:xfrm'] || inheritedSpPr?.['a:xfrm']) as
 				| XmlObject
 				| undefined;
-			if (!xfrm) {
-				return null;
-			}
 
 			const off = xmlChild(xfrm, 'a:off');
 			const ext = xmlChild(xfrm, 'a:ext');
-			if (!off || !ext) {
+
+			// A shape whose transform cannot be resolved is normally an empty stub
+			// and is skipped. It must NEVER be skipped when it carries typed text:
+			// dropping it here keeps it out of the model, so the save pipeline has
+			// nothing to re-emit and the user's text is gone from the file with no
+			// warning. Degrade to a zero transform instead, so the content survives
+			// the round trip.
+			if ((!xfrm || !off || !ext) && !textBodyHasContent(shape['p:txBody'])) {
 				return null;
 			}
 
@@ -50,9 +55,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				parseInt(xmlAttr(ext, 'cy') || '0') / PptxHandlerRuntime.EMU_PER_PX,
 			);
 
-			const rotation = xfrm['@_rot'] ? parseInt(xfrm['@_rot']) / 60000 : undefined;
-			const skewX = xfrm['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
-			const skewY = xfrm['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
+			const rotation = xfrm?.['@_rot'] ? parseInt(String(xfrm['@_rot']), 10) / 60000 : undefined;
+			const skewX = xfrm?.['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
+			const skewY = xfrm?.['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
 			const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
 			// Extract shape geometry
@@ -300,7 +305,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				height,
 				text,
 				textStyle: hasText || promptText ? textStyle : undefined,
-				textSegments: hasText ? textSegments : undefined,
+				// A body whose only paragraph is EMPTY still produces a segment:
+				// the zero-length carrier of its `a:endParaRPr` / `a:pPr`, which
+				// is what PowerPoint sizes and styles that blank line from.
+				// Gating on `hasText` alone threw it away and the writer rebuilt
+				// the paragraph as a bare `<a:endParaRPr lang="en-US"/>` stub.
+				textSegments: hasText || textSegments.length > 0 ? textSegments : undefined,
 				paragraphIndents: hasText && paragraphIndents.length > 0 ? paragraphIndents : undefined,
 				promptText,
 				linkedTxbxId,

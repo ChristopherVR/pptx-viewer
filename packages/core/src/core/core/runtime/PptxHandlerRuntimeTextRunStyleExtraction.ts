@@ -20,11 +20,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.fontSize = points * (96 / 72);
 		}
 
-		if (runProperties['@_b'] !== undefined) {
-			style.bold = runProperties['@_b'] === '1';
+		// `@b` / `@i` are `xsd:boolean`, so "1", "0", "true" and "false" are all
+		// legal (the parser runs with `parseAttributeValue: false`, so the value
+		// is the raw string). A literal `=== '1'` test read the spec-legal
+		// `b="true"` written by several non-Microsoft producers as an EXPLICIT
+		// false, which then also beat the inherited bold. Every other boolean in
+		// this file already goes through the tolerant helper.
+		const bold = this.parseOptionalBooleanAttr(runProperties['@_b']);
+		if (bold !== undefined) {
+			style.bold = bold;
 		}
-		if (runProperties['@_i'] !== undefined) {
-			style.italic = runProperties['@_i'] === '1';
+		const italic = this.parseOptionalBooleanAttr(runProperties['@_i']);
+		if (italic !== undefined) {
+			style.italic = italic;
 		}
 		if (runProperties['@_u'] !== undefined) {
 			const underlineToken = String(runProperties['@_u'] || '')
@@ -181,7 +189,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.textFillPatternForeground = textFillVariants.textFillPatternForeground;
 			style.textFillPatternBackground = textFillVariants.textFillPatternBackground;
 		}
-		const runRtl = this.parseOptionalBooleanAttr(runProperties['@_rtl']);
+		// Run-level right-to-left. On CT_TextCharacterProperties `rtl` is a child
+		// ELEMENT of type CT_Boolean (`<a:rtl val="1"/>`) whose `@val` defaults
+		// to true when omitted; the ATTRIBUTE spelling belongs to
+		// CT_TextParagraphProperties. Reading only `@_rtl` here meant an
+		// authored `<a:rtl/>` never loaded at all. The attribute is still read
+		// as a fallback for SDK-built content that put it there.
+		const rtlElement = runProperties['a:rtl'];
+		const runRtl =
+			rtlElement !== undefined
+				? (this.parseOptionalBooleanAttr(xmlAttr(xmlChild(runProperties, 'a:rtl'), 'val')) ?? true)
+				: this.parseOptionalBooleanAttr(runProperties['@_rtl']);
 		if (runRtl !== undefined) {
 			style.rtl = runRtl;
 		}

@@ -129,4 +129,46 @@ describe('spec-exact curved arrows', () => {
 			1,
 		);
 	});
+
+	// -------------------------------------------------------------------------
+	// `at2` operand order: the token stream must be the ECMA-376 one.
+	//
+	// This file used to hand-swap every `at2 A B` into `at2 B A` to compensate
+	// for an inverted `at2` in `guide-formula-eval`. The evaluator now follows
+	// ISO/IEC 29500-1 section 20.1.9.6 (`at2 x y` = arctan(y / x)), so the
+	// compensating swaps are gone and the tokens below are verbatim spec.
+	// -------------------------------------------------------------------------
+	const SPEC_AT2: Record<string, Record<string, string>> = {
+		curvedRightArrow: { swAng: 'at2 ah dy', dang2: 'at2 idx q12' },
+		curvedLeftArrow: { swAng: 'at2 ah dy', dang2: 'at2 idx q12' },
+		curvedUpArrow: { swAng: 'at2 ah dx', dang2: 'at2 idy q12' },
+		curvedDownArrow: { swAng: 'at2 ah dx', dang2: 'at2 idy q12' },
+	};
+
+	it.each(SHAPES)('%s carries the verbatim ECMA-376 at2 operand order', (name) => {
+		const def = EXACT_CURVED_ARROW_PRESET_DEFINITIONS[name]!;
+		for (const [guide, formula] of Object.entries(SPEC_AT2[name]!)) {
+			const entry = def.gdLst!.find((g) => g.name === guide);
+			expect(entry, `${name} must define guide ${guide}`).toBeDefined();
+			expect(entry!.formula).toBe(formula);
+		}
+		// No `at2` anywhere else in the chain may carry a compensating swap: the
+		// spec only ever uses at2 for `swAng` and `dang2` in these four shapes.
+		const at2Guides = def.gdLst!.filter((g) => g.formula.startsWith('at2 ')).map((g) => g.name);
+		expect(at2Guides.sort()).toStrictEqual(['dang2', 'swAng']);
+	});
+
+	// A pinned path is the cheapest "visual" regression available: it fails if
+	// EITHER half of the at2 correction lands without the other, because the two
+	// halves cancel out exactly and any single-sided edit moves the arcs.
+	it('curvedRightArrow renders the same path after the at2 correction', () => {
+		expect(evaluatePresetShape('curvedRightArrow', W, H)!.svgPath).toBe(
+			'M 0 37.5 A 200 37.5 0 0 0 74.195 66.652 L 170 59.575724874909724 L 200 90 ' +
+				'L 170 119.57572487490972 L 170 104.57572487490972 A 200 37.5 0 0 1 95.805 75.424 Z ' +
+				'M 200 30 A 200 37.5 0 0 0 0.666 64.442 A 200 37.5 0 0 1 200 23.883 Z ' +
+				'M 0 37.5 A 200 37.5 0 0 0 74.195 66.652 L 170 59.575724874909724 L 200 90 ' +
+				'L 170 119.57572487490972 L 170 104.57572487490972 A 200 37.5 0 0 1 95.805 75.424 ' +
+				'L 0 37.5 A 200 37.5 0 0 1 200 0 L 200 30 A 200 37.5 0 0 0 0.666 64.442',
+		);
+	});
 });

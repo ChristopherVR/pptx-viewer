@@ -125,6 +125,100 @@ describe('buildTextRunEffectListXml', () => {
 		expect(colors[1]['@_val']).toBe('FFFFFF');
 	});
 
+	/**
+	 * `@dir` on `a:outerShdw` / `a:innerShdw` / `a:prstShdw` is typed
+	 * `ST_PositiveFixedAngle` (ECMA-376 S20.1.10.53): `0 <= v < 21600000`.
+	 * `Math.atan2` ranges over `(-pi, pi]`, so deriving the direction straight
+	 * from the shadow offsets emitted a NEGATIVE angle for every direction in
+	 * the lower half plane - half of all shadows. PowerPoint does not clamp it;
+	 * it refuses to open the package at all.
+	 */
+	describe('@dir stays inside ST_PositiveFixedAngle', () => {
+		const MAX_UNITS = 21600000;
+
+		/** 225 degrees: the "up and to the left" drop shadow, atan2 -> -135. */
+		const UP_LEFT = { x: -0.94, y: -0.94 };
+
+		/** Read `@_dir` off one effect node of a built `a:effectLst`. */
+		function directionOf(style: TextStyle, effect: string): number {
+			const result = buildTextRunEffectListXml(style);
+			const node = result?.[effect] as Record<string, unknown> | undefined;
+			expect(node).toBeDefined();
+			return Number(node?.['@_dir']);
+		}
+
+		it('normalises a lower-half-plane outer shadow direction', () => {
+			const dir = directionOf(
+				{
+					textShadowColor: '#000000',
+					textShadowBlur: 4,
+					textShadowOffsetX: UP_LEFT.x,
+					textShadowOffsetY: UP_LEFT.y,
+				},
+				'a:outerShdw',
+			);
+			expect(dir).toBe(225 * 60000);
+			expect(dir).toBeGreaterThanOrEqual(0);
+			expect(dir).toBeLessThan(MAX_UNITS);
+		});
+
+		it('normalises a lower-half-plane inner shadow direction', () => {
+			const dir = directionOf(
+				{
+					textInnerShadowColor: '#000000',
+					textInnerShadowBlur: 3,
+					textInnerShadowOffsetX: UP_LEFT.x,
+					textInnerShadowOffsetY: UP_LEFT.y,
+				},
+				'a:innerShdw',
+			);
+			expect(dir).toBe(225 * 60000);
+			expect(dir).toBeGreaterThanOrEqual(0);
+			expect(dir).toBeLessThan(MAX_UNITS);
+		});
+
+		it('clamps a negative preset shadow direction', () => {
+			const dir = directionOf(
+				{ textPresetShadowName: 'shdw1', textPresetShadowDirection: -45 },
+				'a:prstShdw',
+			);
+			expect(dir).toBe(315 * 60000);
+			expect(dir).toBeGreaterThanOrEqual(0);
+			expect(dir).toBeLessThan(MAX_UNITS);
+		});
+
+		it('clamps a preset shadow direction beyond a full turn', () => {
+			expect(
+				directionOf(
+					{ textPresetShadowName: 'shdw1', textPresetShadowDirection: 405 },
+					'a:prstShdw',
+				),
+			).toBe(45 * 60000);
+		});
+
+		it('never emits an out-of-range @dir for any shadow offset direction', () => {
+			const outOfRange: string[] = [];
+			for (let degrees = 0; degrees < 360; degrees += 15) {
+				const radians = (degrees * Math.PI) / 180;
+				const style: TextStyle = {
+					textShadowColor: '#000000',
+					textShadowOffsetX: Math.cos(radians) * 3,
+					textShadowOffsetY: Math.sin(radians) * 3,
+					textInnerShadowColor: '#000000',
+					textInnerShadowOffsetX: Math.cos(radians) * 3,
+					textInnerShadowOffsetY: Math.sin(radians) * 3,
+				};
+				for (const effect of ['a:outerShdw', 'a:innerShdw']) {
+					const dir = directionOf(style, effect);
+					if (!(dir >= 0 && dir < MAX_UNITS)) {
+						outOfRange.push(`${effect} @dir=${dir} at ${degrees} deg`);
+					}
+				}
+			}
+			expect(outOfRange).toStrictEqual([]);
+		});
+	});
+
 	it('should include multiple effects in same effectLst', () => {
 		const style: TextStyle = {
 			textShadowColor: '#000000',

@@ -1,14 +1,9 @@
 import { XmlObject, TextStyle } from '../../types';
-import type {
-	PptxShapeLocks,
-	PptxTextWarpPreset,
-	Text3DStyle,
-	BevelPresetType,
-	MaterialPresetType,
-} from '../../types';
+import type { PptxShapeLocks, PptxTextWarpPreset } from '../../types';
 import { selectAlternateContentBranch as selectACBranch } from '../../utils/alternate-content';
 import { parseBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
 import { parseTextBodyScene3d } from '../../utils/text-body-scene3d';
+import { parseTextBodySp3d } from '../../utils/text-body-sp3d';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeBulletParsing';
 import type { BodyPropertiesResult } from './PptxHandlerRuntimeTypes';
 
@@ -187,44 +182,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// 3D text body properties (a:bodyPr/a:sp3d)
-		const bodySp3d = bodyPr['a:sp3d'] as XmlObject | undefined;
-		if (bodySp3d) {
-			const bevelT = bodySp3d['a:bevelT'] as XmlObject | undefined;
-			const bevelB = bodySp3d['a:bevelB'] as XmlObject | undefined;
-			const t3d: Text3DStyle = {};
-			if (bodySp3d['@_extrusionH'] !== null) {
-				t3d.extrusionHeight = parseInt(String(bodySp3d['@_extrusionH']), 10);
-			}
-			const extClr = this.parseColor(bodySp3d['a:extrusionClr'] as XmlObject | undefined);
-			if (extClr) {
-				t3d.extrusionColor = extClr;
-			}
-			const mat = String(bodySp3d['@_prstMaterial'] || '').trim();
-			if (mat) {
-				t3d.presetMaterial = mat as MaterialPresetType;
-			}
-			if (bevelT) {
-				t3d.bevelTopType = String(bevelT['@_prst'] || 'circle').trim() as BevelPresetType;
-				if (bevelT['@_w'] !== null) {
-					t3d.bevelTopWidth = parseInt(String(bevelT['@_w']), 10);
-				}
-				if (bevelT['@_h'] !== null) {
-					t3d.bevelTopHeight = parseInt(String(bevelT['@_h']), 10);
-				}
-			}
-			if (bevelB) {
-				t3d.bevelBottomType = String(bevelB['@_prst'] || 'circle').trim() as BevelPresetType;
-				if (bevelB['@_w'] !== null) {
-					t3d.bevelBottomWidth = parseInt(String(bevelB['@_w']), 10);
-				}
-				if (bevelB['@_h'] !== null) {
-					t3d.bevelBottomHeight = parseInt(String(bevelB['@_h']), 10);
-				}
-			}
-			if (Object.keys(t3d).length > 0) {
-				textStyle.text3d = t3d;
-			}
-		}
+		parseTextBodySp3d(bodyPr, textStyle, (colorNode) => this.parseColor(colorNode));
 
 		parseTextBodyScene3d(bodyPr, textStyle);
 

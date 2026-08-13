@@ -6,6 +6,11 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Parse the layout artwork inherited by a slide.
+	 *
+	 * @param slidePath - Archive path of the slide whose layout to resolve.
+	 */
 	protected async getLayoutElements(slidePath: string): Promise<PptxElement[]> {
 		// Get the slide's relationship file to find the layout
 		const slideRels = this.slideRelsMap.get(slidePath);
@@ -31,6 +36,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return [];
 		}
 
+		return this.getLayoutElementsByPath(layoutPath);
+	}
+
+	/**
+	 * Parse a layout's artwork given the layout's own archive path.
+	 *
+	 * Split out from {@link getLayoutElements} so callers that already know
+	 * which layout they want (the layout gallery) do not have to invent a slide
+	 * that points at it.
+	 *
+	 * @param layoutPath - Archive path of the `p:sldLayout` part.
+	 */
+	protected async getLayoutElementsByPath(layoutPath: string): Promise<PptxElement[]> {
 		// Check cache first
 		if (this.layoutCache.has(layoutPath)) {
 			return this.layoutCache.get(layoutPath)!;

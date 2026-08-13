@@ -125,8 +125,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				xmlChild(relsData, 'Relationships')?.Relationship,
 			) as XmlObject[];
 			const commentRelation = rels.find((relation) => {
-				const relationType = String(relation?.['@_Type'] || '').toLowerCase();
-				return relationType.endsWith('/comments');
+				const relationType = String(relation?.['@_Type'] || '');
+				// The modern (2018/10) threaded-comment relationship type also ends
+				// in `/comments`, and `extractModernSlideComments` already owns it.
+				// Matching it here parses the same `p188:cmLst` part a second time
+				// as a legacy list, which surfaces every threaded comment twice.
+				if (relationType === MODERN_COMMENT_RELATIONSHIP) {
+					return false;
+				}
+				return relationType.toLowerCase().endsWith('/comments');
 			});
 			const target = String(commentRelation?.['@_Target'] || '').trim();
 			return target.length > 0 ? target : undefined;

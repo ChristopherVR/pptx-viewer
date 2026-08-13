@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { TextStyle, XmlObject } from '../../types';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 // ---------------------------------------------------------------------------
 // Extracted from PptxHandlerRuntimeTextRunStyleExtraction.extractTextRunStyle
@@ -500,5 +501,89 @@ describe('extractTextRunStyle', () => {
 			const result = extractTextRunStyle({ '@_rtl': '0' }, 'left');
 			expect(result.rtl).toBeFalsy();
 		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Regression coverage against the REAL `extractTextRunStyle`. The block above
+// exercises a copy of the logic, which by construction cannot catch a drift
+// between the copy and production - and did not: both `@b`/`@i` parsing and
+// the `a:rtl` read were wrong in production while the copy's tests passed.
+// ---------------------------------------------------------------------------
+
+class RunStyleRuntime extends PptxHandlerRuntime {
+	public extract(runProperties: XmlObject | undefined): TextStyle {
+		return this.extractTextRunStyle(runProperties, 'left');
+	}
+}
+
+describe('extractTextRunStyle (real runtime)', () => {
+	const runtime = new RunStyleRuntime();
+
+	describe('the ST_Boolean spellings of @b / @i', () => {
+		it('accepts the spec-legal "true" spelling', () => {
+			// `@b` / `@i` are xsd:boolean, so "true"/"false" are as legal as
+			// "1"/"0". A literal `=== '1'` test turned `b="true"` into an
+			// EXPLICIT false, which then also suppressed the inherited bold.
+			const style = runtime.extract({ '@_b': 'true', '@_i': 'true' });
+			expect(style.bold).toBeTruthy();
+			expect(style.italic).toBeTruthy();
+		});
+
+		it('accepts the spec-legal "false" spelling as an explicit false', () => {
+			const style = runtime.extract({ '@_b': 'false', '@_i': 'false' });
+			expect(style.bold).toBeFalsy();
+			expect(style.bold).toBeDefined();
+			expect(style.italic).toBeFalsy();
+			expect(style.italic).toBeDefined();
+		});
+
+		it('keeps the "1" / "0" spellings working', () => {
+			expect(runtime.extract({ '@_b': '1' }).bold).toBeTruthy();
+			expect(runtime.extract({ '@_b': '0' }).bold).toBeFalsy();
+			expect(runtime.extract({ '@_b': '0' }).bold).toBeDefined();
+			expect(runtime.extract({ '@_i': '1' }).italic).toBeTruthy();
+			expect(runtime.extract({ '@_i': '0' }).italic).toBeFalsy();
+			expect(runtime.extract({ '@_i': '0' }).italic).toBeDefined();
+		});
+
+		it('leaves bold/italic unset (inherited) when the attribute is absent', () => {
+			const style = runtime.extract({ '@_sz': '1800' });
+			expect(style.bold).toBeUndefined();
+			expect(style.italic).toBeUndefined();
+		});
+	});
+
+	describe('a:rtl child element', () => {
+		it('reads run-level rtl from the child ELEMENT, as the schema declares it', () => {
+			// CT_TextCharacterProperties declares `rtl` as a CT_Boolean CHILD
+			// (`<a:rtl val="1"/>`); the attribute spelling belongs to
+			// CT_TextParagraphProperties. Reading only `@_rtl` meant run-level
+			// RTL never loaded at all.
+			expect(runtime.extract({ 'a:rtl': { '@_val': '1' } }).rtl).toBeTruthy();
+			expect(runtime.extract({ 'a:rtl': { '@_val': 'true' } }).rtl).toBeTruthy();
+			expect(runtime.extract({ 'a:rtl': { '@_val': '0' } }).rtl).toBeFalsy();
+			expect(runtime.extract({ 'a:rtl': { '@_val': '0' } }).rtl).toBeDefined();
+		});
+
+		it('treats a valueless <a:rtl/> as true (CT_Boolean default)', () => {
+			// fast-xml-parser renders an empty element as '' with this config.
+			expect(runtime.extract({ 'a:rtl': '' }).rtl).toBeTruthy();
+		});
+
+		it('still honours the attribute spelling for SDK-built content', () => {
+			expect(runtime.extract({ '@_rtl': '1' }).rtl).toBeTruthy();
+			expect(runtime.extract({ '@_rtl': '0' }).rtl).toBeFalsy();
+			expect(runtime.extract({ '@_rtl': '0' }).rtl).toBeDefined();
+		});
+
+		it('leaves rtl unset when neither spelling is present', () => {
+			expect(runtime.extract({ '@_sz': '1800' }).rtl).toBeUndefined();
+		});
+	});
+
+	it('parses a:noFill into textFillNone (hollow / outline-only text)', () => {
+		expect(runtime.extract({ 'a:noFill': '' }).textFillNone).toBeTruthy();
+		expect(runtime.extract({ '@_sz': '1800' }).textFillNone).toBeUndefined();
 	});
 });

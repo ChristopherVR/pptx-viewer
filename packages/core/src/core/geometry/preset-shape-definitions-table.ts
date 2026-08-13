@@ -47,6 +47,8 @@ import { ACTION_BUTTON_PRESET_DEFINITIONS } from './preset-shape-definitions-act
 import { ARROW_CALLOUT_PRESET_DEFINITIONS } from './preset-shape-definitions-arrow-callouts';
 import { ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows';
 import { REFINED_ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows-refined';
+import { CHART_MARK_PRESET_DEFINITIONS } from './preset-shape-definitions-chart-marks';
+import { CLOUD_CALLOUT_PRESET_DEFINITIONS } from './preset-shape-definitions-cloud-callout';
 import { CONNECTORS_BRACKETS_PRESET_DEFINITIONS } from './preset-shape-definitions-connectors-brackets';
 import { CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS } from './preset-shape-definitions-curved-arrows-connectors';
 import { EXACT_CURVED_ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-curved-arrows-exact';
@@ -1150,6 +1152,12 @@ export const PRESET_SHAPE_GEOMETRY_TABLE: Record<string, PresetShapeGeometryDefi
 	...TABS_DECORATIONS_PRESET_DEFINITIONS,
 	...SCROLLS_ACCENT_CALLOUTS_PRESET_DEFINITIONS,
 	...ACTION_BUTTON_PRESET_DEFINITIONS,
+	// The last six ST_ShapeType names to be transcribed: `chartX` / `chartStar`
+	// / `chartPlus` here, `cloudCallout` below, and `flowChartInputOutput` /
+	// `flowChartOfflineStorage` inside FLOWCHART_PRESET_DEFINITIONS. Together
+	// they take spec coverage to 187/187.
+	...CHART_MARK_PRESET_DEFINITIONS,
+	...CLOUD_CALLOUT_PRESET_DEFINITIONS,
 	// Refined arrows MUST come last so its full-spec versions override the
 	// simplified entries from ARROW_PRESET_DEFINITIONS.
 	...REFINED_ARROW_PRESET_DEFINITIONS,

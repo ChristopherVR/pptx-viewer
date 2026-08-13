@@ -1,234 +1,26 @@
 import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
-import { serializeColorChoice } from '../../utils/color-xml-preservation';
-import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import { reorderObjectKeys, SHAPE_STYLE_ORDER } from '../../utils/xml-reorder';
-import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveXmlHelpers';
-import { writeLineFill } from './save-line-fill';
+import { writeShapeFillAndStroke } from './save-shape-fill-stroke';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Serialize shape fill, stroke, dash, arrows, line join/cap/compound,
 	 * and line-level effects to the given spPr XML object.
+	 *
+	 * The whole body lives in {@link writeShapeFillAndStroke} as a free
+	 * function so the colocated unit test can import and drive the REAL logic
+	 * (it used to keep a private copy, which is why the dual-fill defect went
+	 * unnoticed). This method only supplies the runtime-bound dependencies.
 	 */
 	protected applyFillAndStroke(spPr: XmlObject, shapeStyle: ShapeStyle): void {
-		const requestedFillMode = shapeStyle.fillMode;
-		const gradientFillXml = this.buildGradientFillXml(shapeStyle);
-
-		// Fill
-		if (shapeStyle.useBackgroundFill) {
-			// `<p:sp useBgFill="1">` has no fill of its own: the fill fields hold
-			// the slide background the load pipeline resolved onto it. Writing them
-			// out would bake today's background into the shape and cut its link to
-			// the slide, so leave `spPr`'s fill alone and let the attribute stand.
-		} else if (requestedFillMode === 'none' || shapeStyle.fillColor === 'transparent') {
-			spPr['a:noFill'] = {};
-			delete spPr['a:solidFill'];
-			delete spPr['a:gradFill'];
-			delete spPr['a:blipFill'];
-		} else if (requestedFillMode === 'gradient') {
-			delete spPr['a:noFill'];
-			delete spPr['a:solidFill'];
-			delete spPr['a:blipFill'];
-			if (gradientFillXml) {
-				spPr['a:gradFill'] = gradientFillXml;
-			}
-		} else if (requestedFillMode === 'pattern') {
-			// Round-trip pattern fill: re-serialize from parsed fields
-			delete spPr['a:noFill'];
-			delete spPr['a:solidFill'];
-			delete spPr['a:gradFill'];
-			delete spPr['a:blipFill'];
-			const pattNode: XmlObject = {};
-			const preset = shapeStyle.fillPatternPreset;
-			if (preset) {
-				pattNode['@_prst'] = preset;
-			}
-			// Prefer preserved raw XML colour nodes (retains color transforms)
-			if (
-				shapeStyle.fillPatternFgClrXml &&
-				(shapeStyle.fillColor === undefined ||
-					this.parseColor(shapeStyle.fillPatternFgClrXml) === shapeStyle.fillColor)
-			) {
-				pattNode['a:fgClr'] = shapeStyle.fillPatternFgClrXml;
-			} else if (shapeStyle.fillColor) {
-				pattNode['a:fgClr'] = {
-					'a:srgbClr': {
-						'@_val': shapeStyle.fillColor.replace('#', ''),
-					},
-				};
-			}
-			if (
-				shapeStyle.fillPatternBgClrXml &&
-				(shapeStyle.fillPatternBackgroundColor === undefined ||
-					this.parseColor(shapeStyle.fillPatternBgClrXml) === shapeStyle.fillPatternBackgroundColor)
-			) {
-				pattNode['a:bgClr'] = shapeStyle.fillPatternBgClrXml;
-			} else if (shapeStyle.fillPatternBackgroundColor) {
-				pattNode['a:bgClr'] = {
-					'a:srgbClr': {
-						'@_val': shapeStyle.fillPatternBackgroundColor.replace('#', ''),
-					},
-				};
-			}
-			spPr['a:pattFill'] = mergeDrawingFillXml(
-				shapeStyle.fillPatternXml,
-				pattNode,
-				['fgClr', 'bgClr'],
-				['fgClr', 'bgClr', 'extLst'],
-			);
-		} else if (requestedFillMode === 'solid' || shapeStyle.fillColor !== undefined) {
-			const fillColor = String(shapeStyle.fillColor || '').trim();
-			if (fillColor.length > 0) {
-				delete spPr['a:noFill'];
-				delete spPr['a:gradFill'];
-				delete spPr['a:blipFill'];
-				// Prefer the original colour-choice XML when the resolved
-				// hex still matches — preserves scheme/sys/prst identity and
-				// colour transforms (lumMod/lumOff/tint/shade/satMod/alpha).
-				const resolvedOriginal = shapeStyle.fillColorXml
-					? this.parseColor(shapeStyle.fillColorXml)
-					: undefined;
-				spPr['a:solidFill'] = serializeColorChoice(
-					shapeStyle.fillColorXml,
-					resolvedOriginal,
-					fillColor,
-					shapeStyle.fillOpacity,
-				);
-			}
-		}
-
-		// Stroke
-		if (
-			shapeStyle.strokeColor !== undefined ||
-			shapeStyle.strokeFillMode === 'gradient' ||
-			shapeStyle.strokeFillMode === 'pattern'
-		) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			const lineNode = spPr['a:ln'] as XmlObject;
-			const w = Math.round((shapeStyle.strokeWidth || 1) * PptxHandlerRuntime.EMU_PER_PX);
-			lineNode['@_w'] = String(w);
-			this.applyLineFill(lineNode, shapeStyle);
-		}
-		if (shapeStyle.strokeDash !== undefined) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			const lineNode = spPr['a:ln'] as XmlObject;
-			applyDrawingLineDash(lineNode, shapeStyle);
-		}
-
-		// Connector arrows
-		if (
-			shapeStyle.connectorEndArrow !== undefined &&
-			(spPr['a:ln'] || shapeStyle.connectorEndArrow !== 'none')
-		) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			const lineNode = spPr['a:ln'] as XmlObject;
-			if (shapeStyle.connectorEndArrow === 'none') {
-				delete lineNode['a:tailEnd'];
-			} else {
-				const tailEnd: XmlObject = { '@_type': shapeStyle.connectorEndArrow };
-				if (shapeStyle.connectorEndArrowWidth) {
-					tailEnd['@_w'] = shapeStyle.connectorEndArrowWidth;
-				}
-				if (shapeStyle.connectorEndArrowLength) {
-					tailEnd['@_len'] = shapeStyle.connectorEndArrowLength;
-				}
-				lineNode['a:tailEnd'] = tailEnd;
-			}
-		}
-		if (
-			shapeStyle.connectorStartArrow !== undefined &&
-			(spPr['a:ln'] || shapeStyle.connectorStartArrow !== 'none')
-		) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			const lineNode = spPr['a:ln'] as XmlObject;
-			if (shapeStyle.connectorStartArrow === 'none') {
-				delete lineNode['a:headEnd'];
-			} else {
-				const headEnd: XmlObject = {
-					'@_type': shapeStyle.connectorStartArrow,
-				};
-				if (shapeStyle.connectorStartArrowWidth) {
-					headEnd['@_w'] = shapeStyle.connectorStartArrowWidth;
-				}
-				if (shapeStyle.connectorStartArrowLength) {
-					headEnd['@_len'] = shapeStyle.connectorStartArrowLength;
-				}
-				lineNode['a:headEnd'] = headEnd;
-			}
-		}
-
-		// Line join style
-		if (shapeStyle.lineJoin !== undefined) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			const lineNode = spPr['a:ln'] as XmlObject;
-			delete lineNode['a:round'];
-			delete lineNode['a:bevel'];
-			delete lineNode['a:miter'];
-			if (shapeStyle.lineJoin === 'round') {
-				lineNode['a:round'] = {};
-			} else if (shapeStyle.lineJoin === 'bevel') {
-				lineNode['a:bevel'] = {};
-			} else if (shapeStyle.lineJoin === 'miter') {
-				const miterNode: XmlObject = {};
-				if (
-					typeof shapeStyle.miterLimit === 'number' &&
-					Number.isFinite(shapeStyle.miterLimit) &&
-					shapeStyle.miterLimit !== 800000
-				) {
-					miterNode['@_lim'] = String(Math.round(shapeStyle.miterLimit));
-				}
-				lineNode['a:miter'] = miterNode;
-			}
-		}
-		// Line cap style
-		if (shapeStyle.lineCap !== undefined) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			(spPr['a:ln'] as XmlObject)['@_cap'] = shapeStyle.lineCap;
-		}
-		// Compound line type
-		if (shapeStyle.compoundLine !== undefined) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			(spPr['a:ln'] as XmlObject)['@_cmpd'] = shapeStyle.compoundLine;
-		}
-		// Line alignment (a:ln/@algn)
-		if (shapeStyle.lineAlignment !== undefined) {
-			if (!spPr['a:ln']) {
-				spPr['a:ln'] = {};
-			}
-			(spPr['a:ln'] as XmlObject)['@_algn'] = shapeStyle.lineAlignment;
-		}
-
-		// Line-level effects (a:ln/a:effectLst)
-		const lineEffectListXml = this.buildLineEffectListXml(shapeStyle);
-		if (lineEffectListXml && spPr['a:ln']) {
-			(spPr['a:ln'] as XmlObject)['a:effectLst'] = lineEffectListXml;
-		}
-	}
-
-	/**
-	 * Emit the single fill child of an `<a:ln>` (CT_LineProperties allows at
-	 * most one of noFill/solidFill/gradFill/pattFill). Delegates to
-	 * {@link writeLineFill} so the logic stays unit-testable without the full
-	 * save runtime (issue #87).
-	 */
-	private applyLineFill(lineNode: XmlObject, shapeStyle: ShapeStyle): void {
-		writeLineFill(lineNode, shapeStyle, (colorNode) => this.parseColor(colorNode));
+		writeShapeFillAndStroke(spPr, shapeStyle, {
+			gradientFillXml: this.buildGradientFillXml(shapeStyle),
+			lineEffectListXml: this.buildLineEffectListXml(shapeStyle),
+			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
+			parseColor: (colorNode) => this.parseColor(colorNode),
+		});
 	}
 
 	/**
@@ -239,7 +31,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * When the original shape XML already contained a `<p:style>` we mutate
 	 * that node in place so any unmodelled attributes/children are preserved.
 	 * When it didn't, we create one. When the shape no longer has any ref
-	 * data we leave the existing `<p:style>` (if any) untouched — silently
+	 * data we leave the existing `<p:style>` (if any) untouched: silently
 	 * dropping it would break round-tripping.
 	 *
 	 * Phase 2 Stream B / C-H2.

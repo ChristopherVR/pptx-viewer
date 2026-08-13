@@ -68,6 +68,7 @@ export class PptxDocumentPropertiesUpdater {
 						coreProps['cp:lastModifiedBy'] = 'pptx';
 					}
 
+					this.ensureDatePropertyNamespaces(coreProps);
 					coreData['cp:coreProperties'] = coreProps;
 					this.context.zip.file('docProps/core.xml', this.context.builder.build(coreData));
 				}
@@ -110,6 +111,25 @@ export class PptxDocumentPropertiesUpdater {
 		}
 
 		await this.updateCustomProperties(options?.customProperties);
+	}
+
+	/**
+	 * Declare the prefixes the dcterms date properties depend on.
+	 *
+	 * `dcterms:created` / `dcterms:modified` are always written with
+	 * `xsi:type="dcterms:W3CDTF"` (ECMA-376 Part 2 §11.3, ISO 8601 typing), but
+	 * every `CT_CoreProperties` child is optional, so a third-party generator
+	 * may ship a `core.xml` that declares neither `xsi` nor `dcterms`. Emitting
+	 * the typed attribute into that document produces XML that is not
+	 * well-formed (undeclared prefix), which PowerPoint rejects outright.
+	 */
+	private ensureDatePropertyNamespaces(coreProps: XmlObject): void {
+		if (coreProps['@_xmlns:xsi'] === undefined) {
+			coreProps['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
+		}
+		if (coreProps['@_xmlns:dcterms'] === undefined) {
+			coreProps['@_xmlns:dcterms'] = 'http://purl.org/dc/terms/';
+		}
 	}
 
 	private applyCorePropertiesOverrides(

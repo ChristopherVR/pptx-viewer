@@ -263,3 +263,44 @@ describe('resolveCoordinate — additional scenarios', () => {
 		expect(resolveCoordinate('  42  ', new Map())).toBe(42);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// `at2` in a PowerPoint-authored guide chain
+// ---------------------------------------------------------------------------
+
+describe('evaluateGuides with a spec at2 chain', () => {
+	// A deck's `a:custGeom/a:gdLst` is written by PowerPoint against ECMA-376,
+	// where `at2 x y` = arctan(y / x). This is the shape of chain themed
+	// backgrounds and converted SmartArt produce: an angle taken from a
+	// (dx, dy) pair, then fed back through `cos` / `sin` to place a point.
+	it('places the point on the ray through (dx, dy)', () => {
+		const vars = evaluateGuides(
+			[
+				{ name: 'dx', formula: 'val 300' },
+				{ name: 'dy', formula: 'val 100' },
+				{ name: 'ang', formula: 'at2 dx dy' },
+				{ name: 'px', formula: 'cos 1000 ang' },
+				{ name: 'py', formula: 'sin 1000 ang' },
+			],
+			{ w: 400, h: 200 },
+		);
+		// atan(100 / 300) = 18.4349 degrees.
+		expect(vars.get('ang')! / ANGLE_SCALE).toBeCloseTo(18.434949, 4);
+		// The unit vector at that angle, scaled to 1000, keeps the 3:1 ratio.
+		expect(vars.get('px')! / vars.get('py')!).toBeCloseTo(3, 6);
+	});
+
+	it('agrees with the ECMA cat2 / sat2 decomposition of the same vector', () => {
+		const vars = evaluateGuides(
+			[
+				{ name: 'dx', formula: 'val 300' },
+				{ name: 'dy', formula: 'val 100' },
+				{ name: 'ang', formula: 'at2 dx dy' },
+				{ name: 'viaTrig', formula: 'cos 1000 ang' },
+				{ name: 'viaCat2', formula: 'cat2 1000 dx dy' },
+			],
+			{ w: 400, h: 200 },
+		);
+		expect(vars.get('viaCat2')).toBeCloseTo(vars.get('viaTrig')!, 6);
+	});
+});

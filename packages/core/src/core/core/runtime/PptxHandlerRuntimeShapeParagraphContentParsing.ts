@@ -71,6 +71,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				autoNumScheme,
 				paragraphBulletInfo?.autoNumStartAt ?? 1,
 			);
+			if (paragraphBulletInfo) {
+				// Consumers that re-derive the marker from `BulletInfo` alone
+				// (the renderer's `resolveParagraphBullet`, the Markdown
+				// converter's `resolveListMarker`) compute
+				// `autoNumStartAt + paragraphIndex`. Publishing the ordinal's
+				// OFFSET here rather than the raw paragraph position is what
+				// makes them land on the sequence resolved above, which is the
+				// only one that accounts for a list interrupted by an unnumbered
+				// paragraph. With the raw position, a list that did not start at
+				// the first paragraph of the body numbered one way here and
+				// another way in the renderer, and BOTH markers were painted
+				// ("3.1. Item"), since the paragraph builder drops the parsed
+				// marker segment only when the two strings agree.
+				paragraphBulletInfo.paragraphIndex =
+					autoNumOrdinal - (paragraphBulletInfo.autoNumStartAt ?? 1);
+			}
 		} else {
 			breakAutoNumberRun(ctx.autoNumbering, paragraphLevel);
 		}
@@ -81,8 +97,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				bulletText = `${paragraphBulletInfo.char} `;
 			} else if (autoNumScheme && autoNumOrdinal !== undefined) {
 				bulletText = this.formatAutoNumber(autoNumScheme, autoNumOrdinal);
-			} else if (paragraphBulletInfo.imageRelId) {
-				bulletText = '\u{1F4CE} ';
+			} else if (paragraphBulletInfo.imageRelId || paragraphBulletInfo.imageDataUrl) {
+				// A picture bullet HAS no text marker: the image is the marker,
+				// and every renderer paints it from `bulletInfo` (an `<img>`, or
+				// the '•' fallback when the image cannot be resolved). Stamping
+				// a stand-in glyph here (it used to be a paperclip emoji) simply
+				// added a second, competing marker: the paragraph builder drops
+				// the parsed marker segment only when its text equals the marker
+				// the renderer resolved, and a paperclip never equals a picture,
+				// so every picture-bullet paragraph painted "📎" next to the
+				// image in all five bindings. The segment itself is kept: it
+				// carries `bulletInfo` for the renderers and the writer.
+				bulletText = '';
 			} else {
 				bulletText = '• ';
 			}
@@ -102,7 +128,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					bulletStyle.fontSize = firstRunSize;
 				}
 			}
-			parts.push(bulletText);
+			if (bulletText) {
+				parts.push(bulletText);
+			}
 			segments.push({
 				text: bulletText,
 				style: bulletStyle,
@@ -329,6 +357,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			parts.push('\n');
 			segments.push({ text: '\n', style: separatorStyle });
+		} else if (segments.length === 0 && this.paragraphCarriesOwnMetadata(p)) {
+			// The LAST paragraph of a body gets no terminating separator, so an
+			// empty one produced no segment at all and its `a:endParaRPr` /
+			// `a:pPr` were captured nowhere: the writer then rebuilt it as the
+			// bare `<a:endParaRPr lang="en-US"/>` stub, destroying the size,
+			// weight, underline (`a:uLnTx` / `a:uFillTx`), colour and typeface
+			// PowerPoint uses to lay out that BLANK line. A whole text body that
+			// is one empty paragraph (very common: decorative auto-layout
+			// rectangles) lost its end properties outright.
+			//
+			// A zero-length segment carries them instead. It adds no run to the
+			// saved paragraph that was not already there (the writer emits one
+			// empty run for an empty paragraph either way) and no text to the
+			// element, and it takes the blank line's size from `a:endParaRPr sz`
+			// exactly as the separator above does.
+			const emptyParagraphStyle = { ...mergedDefaultRunStyle } as TextStyle;
+			const endParaSz = (p['a:endParaRPr'] as XmlObject | undefined)?.['@_sz'];
+			const endParaPoints = endParaSz !== undefined ? parseInt(String(endParaSz)) / 100 : NaN;
+			if (Number.isFinite(endParaPoints) && endParaPoints > 0) {
+				emptyParagraphStyle.fontSize = endParaPoints * (96 / 72);
+			}
+			segments.push({ text: '', style: emptyParagraphStyle });
 		}
 
 		// Attach paragraph-level metadata to the first segment of this
@@ -367,6 +417,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return { parts, segments, seedStyle };
+	}
+
+	/**
+	 * True when a paragraph authored properties of its own that only a segment
+	 * can carry through the model: its end-paragraph run properties
+	 * (`a:endParaRPr`) or its paragraph properties (`a:pPr`). Used to decide
+	 * whether an EMPTY trailing paragraph is worth a zero-length segment; a
+	 * genuinely bare `<a:p/>` gets none.
+	 */
+	protected paragraphCarriesOwnMetadata(p: XmlObject): boolean {
+		return p['a:endParaRPr'] !== undefined || p['a:pPr'] !== undefined;
 	}
 
 	/**

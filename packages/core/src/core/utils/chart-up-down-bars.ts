@@ -1,4 +1,5 @@
 import type { PptxChartShapeProps, PptxChartUpDownBars, XmlObject } from '../types';
+import { chartPercentUnionValue } from './chart-percent-union-value';
 import { parseShapeProps } from './chart-series-detail-parser';
 
 interface XmlLookupLike {
@@ -247,13 +248,13 @@ export function applyChartUpDownBars(
 	}
 	const node: XmlObject = { ...((key ? chartContainer[key] : undefined) as XmlObject | undefined) };
 	if (options.gapWidth !== undefined) {
-		if (!Number.isFinite(options.gapWidth) || options.gapWidth < 0 || options.gapWidth > 500) {
-			throw new RangeError('gapWidth must be between 0 and 500');
-		}
+		// ST_GapAmount is a union of ST_GapAmountPercent and ST_GapAmountUShort.
+		// PowerPoint only implements the unsigned-short member; `val="150%"` is
+		// schema-valid yet fatal (0x80070570). See chartPercentUnionValue.
 		setOrdered(
 			node,
 			'gapWidth',
-			{ '@_val': `${options.gapWidth}%` },
+			{ '@_val': chartPercentUnionValue(options.gapWidth, { name: 'gapWidth', min: 0, max: 500 }) },
 			['gapWidth', 'upBars', 'downBars', 'extLst'],
 			localName,
 		);

@@ -1,6 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxThemeFillStyle, PptxThemeLineStyle, PptxThemeEffectStyle } from '../../types';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLayoutElements';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLayoutPreviews';
 
 /**
  * Ordered fill-child tag tokens recognised inside `a:fillStyleLst` /

@@ -91,6 +91,21 @@ describe('chart up/down bars', () => {
 		);
 	});
 
+	it('emits the numeric member of ST_GapAmount, never the percent literal', () => {
+		// Probed through PowerPoint COM: `c:gapWidth val="219%"` in an otherwise
+		// pristine deck yields 0x80070570 "The file or directory is corrupted and
+		// unreadable". Only the unsigned-short member is accepted.
+		const container: XmlObject = {};
+		applyChartUpDownBars(container, { gapWidth: 219 }, localName);
+		const node = container['c:upDownBars'] as XmlObject;
+		expect((node['c:gapWidth'] as XmlObject)['@_val']).toBe('219');
+
+		const rounded: XmlObject = {};
+		applyChartUpDownBars(rounded, { gapWidth: 218.7 }, localName);
+		const roundedNode = rounded['c:upDownBars'] as XmlObject;
+		expect((roundedNode['c:gapWidth'] as XmlObject)['@_val']).toBe('219');
+	});
+
 	it('emits up/down bars for a generated line chart', () => {
 		const tree = buildChartSpaceXml({
 			chartType: 'line',

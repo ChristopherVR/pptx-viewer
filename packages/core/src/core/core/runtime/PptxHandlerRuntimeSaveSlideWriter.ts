@@ -11,6 +11,8 @@ import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders'
 import type { PptxSaveConstants } from '../factories';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementWriter';
 import type { SlideShapeCollectors, SaveSlideContext } from './PptxHandlerRuntimeSaveElementWriter';
+import { buildOrderedSlideXml, SpTreeChildOrderTracker } from './slide-save-xml-order';
+import { reconcileSlideTransition } from './slide-transition-reconcile';
 import {
 	ensureA16NamespaceOnSlideRoot,
 	slideContainsA16Element,
@@ -94,13 +96,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		slideNode['p:clrMapOvr'] = buildClrMapOverrideXml(slide.clrMapOverride);
 
+		const spTree = this.ensureSlideTree(xmlObj);
+
 		if (slide.transition !== undefined) {
-			const transitionNode = this.buildSlideTransitionXml(slide.transition);
-			if (transitionNode) {
-				slideNode['p:transition'] = transitionNode;
-			} else {
-				delete slideNode['p:transition'];
-			}
+			// `CT_Slide` allows ONE `p:transition`, and PowerPoint 2010+ keeps it
+			// inside a slide-root `mc:AlternateContent` envelope whenever it
+			// carries p14/p15/p159 markup. Assigning a direct child on top of
+			// that envelope emitted the transition up to three times, after
+			// `p:timing` and so out of schema sequence too.
+			reconcileSlideTransition({
+				slideNode,
+				transitionNode: this.buildSlideTransitionXml(slide.transition),
+				sourceNode: slide.transition.rawTransition,
+				getLocalName: (key) => this.compatibilityService.getXmlLocalName(key),
+			});
 		}
 		// Editor animations key their target by the positional `element.id`. On
 		// save, rewrite those references to the target shape's native OOXML
@@ -110,11 +119,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// back on the next load. Shapes are stamped with the same id below.
 		const shapeIdAnimations =
 			slide.animations !== undefined
-				? remapEditorAnimationsToShapeIds(
-						slide.elements,
-						slide.animations,
-						this.maxCnvPrId(this.ensureSlideTree(xmlObj)),
-					)
+				? remapEditorAnimationsToShapeIds(slide.elements, slide.animations, this.maxCnvPrId(spTree))
 				: undefined;
 		if (shapeIdAnimations !== undefined) {
 			this.applyEditorAnimations(slideNode, shapeIdAnimations);
@@ -138,7 +143,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		xmlObj['p:sld'] = slideNode;
 
-		const spTree = this.ensureSlideTree(xmlObj);
 		const slideRelsPath = this.toSlideRelsPath(slide.id);
 		const slideRelsXml = await this.zip.file(slideRelsPath)?.async('string');
 		const slideRelsData: XmlObject = slideRelsXml
@@ -274,9 +278,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			slideAudioRelationshipType: constants.slideAudioRelationshipType,
 		};
 
-		slide.elements.forEach((el) => {
+		// `p:spTree` is an ordered sequence and document order IS paint order, but
+		// the collectors below are one array per tag. Stamp each emitted node with
+		// the position of the element that produced it so the interleaved order
+		// can be restored just before serialization.
+		const childOrder = new SpTreeChildOrderTracker(collectors);
+		for (const el of slide.elements) {
 			this.processSlideElement(el, collectors, ctx);
-		});
+			childOrder.capture();
+		}
 
 		// Assign lists back to spTree
 		spTree['p:sp'] = collectors.shapes;
@@ -359,7 +369,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			applyActiveXControlsToSlide(xmlObj, slide.activeXControls);
 		}
 
-		this.zip.file(slide.id, this.builder.build(xmlObj));
+		// Serialize through an order-corrected shallow clone: the shape tree is
+		// re-interleaved into `slide.elements` order and the slide root is put
+		// back into `CT_Slide` sequence. The clone keeps the marker keys out of
+		// the cached slide map, so the next save still sees plain tag arrays.
+		this.zip.file(
+			slide.id,
+			this.builder.build(
+				buildOrderedSlideXml({
+					xmlObj,
+					positionOf: (node) => childOrder.positionOf(node),
+					getLocalName: (key) => this.compatibilityService.getXmlLocalName(key),
+				}),
+			),
+		);
 	}
 
 	/**

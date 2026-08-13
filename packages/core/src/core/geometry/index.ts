@@ -27,6 +27,13 @@ export {
 } from './preset-shape-definitions-table';
 
 export {
+	ST_SHAPE_TYPE_VALUES,
+	PRESET_GEOMETRY_ALIASES,
+	isStShapeType,
+	normalizeStShapeType,
+} from './preset-geometry-names';
+
+export {
 	evaluatePresetShape,
 	lookupPresetShape,
 	type PresetShapeEvaluationResult,

@@ -1,5 +1,6 @@
 import type { ShapeStyle, XmlObject } from '../../types';
 import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { setFillChoice } from './fill-choice-group';
 
 /**
  * Emit the single fill child of an `<a:ln>` node.
@@ -19,6 +20,8 @@ import { serializeColorChoice } from '../../utils/color-xml-preservation';
  * This is the fix for issue #87: previously a gradient/pattern outline was
  * downgraded to an averaged `a:solidFill` while any preserved `a:gradFill`/
  * `a:pattFill` was left in place, producing an invalid dual-fill `<a:ln>`.
+ * The clearing itself now lives in {@link setFillChoice} so `a:ln` and
+ * `a:spPr` cannot drift apart on which members they remember to remove.
  *
  * @param lineNode   - The `a:ln` XML object to mutate in place.
  * @param shapeStyle - Resolved shape style carrying the outline fill.
@@ -30,33 +33,32 @@ export function writeLineFill(
 	shapeStyle: ShapeStyle,
 	parseColor: (colorNode: XmlObject | undefined) => string | undefined,
 ): void {
-	delete lineNode['a:noFill'];
-	delete lineNode['a:solidFill'];
-	delete lineNode['a:gradFill'];
-	delete lineNode['a:pattFill'];
-
 	if (shapeStyle.strokeColor === 'transparent' || shapeStyle.strokeWidth === 0) {
-		lineNode['a:noFill'] = {};
+		setFillChoice(lineNode, 'a:noFill', {});
 		return;
 	}
 
 	if (shapeStyle.strokeFillMode === 'gradient' && shapeStyle.strokeGradientXml) {
-		lineNode['a:gradFill'] = shapeStyle.strokeGradientXml;
+		setFillChoice(lineNode, 'a:gradFill', shapeStyle.strokeGradientXml);
 		return;
 	}
 
 	if (shapeStyle.strokeFillMode === 'pattern' && shapeStyle.strokePatternXml) {
-		lineNode['a:pattFill'] = shapeStyle.strokePatternXml;
+		setFillChoice(lineNode, 'a:pattFill', shapeStyle.strokePatternXml);
 		return;
 	}
 
 	const resolvedStrokeOriginal = shapeStyle.strokeColorXml
 		? parseColor(shapeStyle.strokeColorXml)
 		: undefined;
-	lineNode['a:solidFill'] = serializeColorChoice(
-		shapeStyle.strokeColorXml,
-		resolvedStrokeOriginal,
-		shapeStyle.strokeColor ?? '#000000',
-		shapeStyle.strokeOpacity,
+	setFillChoice(
+		lineNode,
+		'a:solidFill',
+		serializeColorChoice(
+			shapeStyle.strokeColorXml,
+			resolvedStrokeOriginal,
+			shapeStyle.strokeColor ?? '#000000',
+			shapeStyle.strokeOpacity,
+		),
 	);
 }

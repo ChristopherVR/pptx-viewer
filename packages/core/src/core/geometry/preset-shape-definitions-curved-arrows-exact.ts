@@ -11,17 +11,10 @@
  * (ISO/IEC 29500-1 §20.1.10.55), sourced from the Apache POI mirror
  * `poi/src/main/resources/org/apache/poi/sl/draw/geom/presetShapeDefinitions.xml`.
  *
- * # The one deliberate deviation: `at2` argument order
- *
- * ECMA-376 defines `at2 x y = atan2(y, x)` (see ISO/IEC 29500-1 §20.1.9.5 and
- * the companion `cat2`/`sat2` which use `atan2(z, y)`). This repository's guide
- * evaluator (`guide-formula-eval.ts`) instead computes `at2 x y = atan2(x, y)`
- * (its unit test pins `at2 1 0 -> 90deg`). To keep the evaluator untouched
- * (other shapes are authored against its convention) while still producing the
- * ECMA-correct angle, every `at2 A B` from the spec is written here as
- * `at2 B A`. That is the only edit to the canonical token stream; all other
- * operators (multiply-divide, add-subtract, add-divide, sqrt, pin) already
- * match ECMA.
+ * There are no deviations from the canonical token stream: every operator here
+ * (including `at2`, whose ECMA operand order is `at2 x y = atan2(y, x)`) is
+ * evaluated exactly as ISO/IEC 29500-1 section 20.1.9.6 specifies by
+ * `guide-formula-eval.ts`.
  *
  * The aggregator in `preset-shape-definitions-table.ts` spreads
  * `EXACT_CURVED_ARROW_PRESET_DEFINITIONS` last so these authoritative entries
@@ -76,15 +69,13 @@ const curvedRightArrow: PresetShapeGeometryDefinition = {
 		gd('aw2', '*/ aw 1 2'),
 		gd('y6', '+- b 0 aw2'),
 		gd('x1', '+- r 0 ah'),
-		// Spec: swAng = at2 ah dy. Evaluator at2 is swapped, so pass (dy, ah).
-		gd('swAng', 'at2 dy ah'),
+		gd('swAng', 'at2 ah dy'),
 		gd('stAng', '+- cd2 0 swAng'),
 		gd('mswAng', '+- 0 0 swAng'),
 		gd('ix', '+- r 0 idx'),
 		gd('iy', '+/ hR y3 2'),
 		gd('q12', '*/ th 1 2'),
-		// Spec: dang2 = at2 idx q12 -> pass (q12, idx).
-		gd('dang2', 'at2 q12 idx'),
+		gd('dang2', 'at2 idx q12'),
 		gd('swAng2', '+- dang2 0 cd4'),
 		gd('swAng3', '+- cd4 dang2 0'),
 		gd('stAng3', '+- cd2 0 dang2'),
@@ -172,12 +163,12 @@ const curvedLeftArrow: PresetShapeGeometryDefinition = {
 		gd('aw2', '*/ aw 1 2'),
 		gd('y6', '+- b 0 aw2'),
 		gd('x1', '+- l ah 0'),
-		gd('swAng', 'at2 dy ah'),
+		gd('swAng', 'at2 ah dy'),
 		gd('mswAng', '+- 0 0 swAng'),
 		gd('ix', '+- l idx 0'),
 		gd('iy', '+/ hR y3 2'),
 		gd('q12', '*/ th 1 2'),
-		gd('dang2', 'at2 q12 idx'),
+		gd('dang2', 'at2 idx q12'),
 		gd('swAng2', '+- dang2 0 swAng'),
 		gd('swAng3', '+- swAng dang2 0'),
 		gd('stAng3', '+- 0 0 dang2'),
@@ -265,12 +256,12 @@ const curvedUpArrow: PresetShapeGeometryDefinition = {
 		gd('aw2', '*/ aw 1 2'),
 		gd('x6', '+- r 0 aw2'),
 		gd('y1', '+- t ah 0'),
-		gd('swAng', 'at2 dx ah'),
+		gd('swAng', 'at2 ah dx'),
 		gd('mswAng', '+- 0 0 swAng'),
 		gd('iy', '+- t idy 0'),
 		gd('ix', '+/ wR x3 2'),
 		gd('q12', '*/ th 1 2'),
-		gd('dang2', 'at2 q12 idy'),
+		gd('dang2', 'at2 idy q12'),
 		gd('swAng2', '+- dang2 0 swAng'),
 		gd('mswAng2', '+- 0 0 swAng2'),
 		gd('stAng3', '+- cd4 0 swAng'),
@@ -360,12 +351,12 @@ const curvedDownArrow: PresetShapeGeometryDefinition = {
 		gd('aw2', '*/ aw 1 2'),
 		gd('x6', '+- r 0 aw2'),
 		gd('y1', '+- b 0 ah'),
-		gd('swAng', 'at2 dx ah'),
+		gd('swAng', 'at2 ah dx'),
 		gd('mswAng', '+- 0 0 swAng'),
 		gd('iy', '+- b 0 idy'),
 		gd('ix', '+/ wR x3 2'),
 		gd('q12', '*/ th 1 2'),
-		gd('dang2', 'at2 q12 idy'),
+		gd('dang2', 'at2 idy q12'),
 		gd('stAng', '+- 3cd4 swAng 0'),
 		gd('stAng2', '+- 3cd4 0 dang2'),
 		gd('swAng2', '+- dang2 0 cd4'),

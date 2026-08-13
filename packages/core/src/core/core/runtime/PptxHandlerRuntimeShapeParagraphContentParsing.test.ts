@@ -1,10 +1,16 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { describe, it, expect } from 'vitest';
 
+import { PptxHandler } from '../../PptxHandler';
+import type { TextSegment, XmlObject } from '../../types';
 import {
 	breakAutoNumberRun,
 	createAutoNumberSequence,
 	nextAutoNumber,
 } from './auto-number-sequence';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 // Since collectShapeParagraphContent is a protected method on a deeply
 // chained mixin with many dependencies, we test the self-contained
 // content extraction logic used within it.
@@ -189,7 +195,10 @@ function formatBulletText(
 		return `${ordinal}. `;
 	}
 	if (bulletInfo.imageRelId) {
-		return '\u{1F4CE} ';
+		// A picture bullet has no TEXT marker: the image is the marker and every
+		// renderer paints it from `bulletInfo`. See the real-runtime coverage at
+		// the bottom of this file.
+		return '';
 	}
 	return '\u2022 ';
 }
@@ -479,8 +488,8 @@ describe('formatBulletText', () => {
 		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, 1)).toBe('1. ');
 	});
 
-	it('should format image bullet as paper clip', () => {
-		expect(formatBulletText({ imageRelId: 'rId5' }, 1)).toBe('\u{1F4CE} ');
+	it('should emit no text marker for a picture bullet', () => {
+		expect(formatBulletText({ imageRelId: 'rId5' }, 1)).toBe('');
 	});
 
 	it('should default to bullet character when no specific type', () => {
@@ -498,4 +507,254 @@ describe('formatBulletText', () => {
 		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, first)).toBe('1. ');
 		expect(formatBulletText({ autoNumType: 'arabicPeriod' }, second)).toBe('2. ');
 	});
+});
+
+// ---------------------------------------------------------------------------
+// Regression coverage against the REAL `collectShapeParagraphContent`.
+//
+// The marker segment this method stamps competes with the marker the renderer
+// resolves from the same `BulletInfo`: the paragraph builder drops the segment
+// only when the two strings agree (`text-paragraphs.ts`), so any disagreement
+// paints BOTH markers.
+// ---------------------------------------------------------------------------
+
+class ParagraphContentRuntime extends PptxHandlerRuntime {
+	public collect(
+		p: XmlObject,
+		pIdx: number,
+		paraCount: number,
+		sequence = createAutoNumberSequence(),
+	) {
+		return this.collectShapeParagraphContent(p, pIdx, paraCount, 'left', {}, {
+			txBody: undefined,
+			inheritedTxBody: undefined,
+			bodyDefaultRunStyle: {},
+			slideRelationshipMap: undefined,
+			placeholderInfo: undefined,
+			phDefaults: undefined,
+			slidePath: 'ppt/slides/slide1.xml',
+			effectiveLevelStyles: undefined,
+			autoNumbering: sequence,
+		} as never);
+	}
+}
+
+const pictureBulletParagraph: XmlObject = {
+	'a:pPr': { 'a:buBlip': { 'a:blip': { '@_r:embed': 'rId7' } } },
+	'a:r': { 'a:t': 'Item text' },
+};
+
+describe('collectShapeParagraphContent - bullet markers (real runtime)', () => {
+	it('stamps no display glyph for a picture bullet, only the bullet metadata', () => {
+		const { segments, parts } = new ParagraphContentRuntime().collect(pictureBulletParagraph, 0, 1);
+
+		// The marker segment survives (it carries `bulletInfo` for the renderers
+		// and the writer) but contributes no text of its own.
+		expect(segments[0].text).toBe('');
+		expect(segments[0].bulletInfo?.imageRelId).toBe('rId7');
+		expect(segments[1].text).toBe('Item text');
+		// The paperclip must not reach the element's plain text either.
+		expect(parts.join('')).toBe('Item text');
+		expect(parts.join('')).not.toContain('\u{1F4CE}');
+	});
+
+	it('keeps the bullet-glyph fallback when the picture cannot be resolved', () => {
+		// No `r:embed` to resolve, so every renderer falls back to the '•'
+		// marker text; core must still stamp it.
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buBlip': {} },
+				'a:r': { 'a:t': 'Item text' },
+			},
+			0,
+			1,
+		);
+		expect(segments[0].text).toBe('• ');
+	});
+
+	it('stamps an East-Asian auto-number marker in its own script', () => {
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buAutoNum': { '@_type': 'ea1ChsPeriod' } },
+				'a:r': { 'a:t': 'Item text' },
+			},
+			0,
+			1,
+		);
+		expect(segments[0].text).toBe('一. ');
+	});
+
+	it('publishes the list ordinal, not the paragraph position, on the bullet info', () => {
+		// A title and an intro paragraph precede the list, so the first numbered
+		// paragraph is the THIRD paragraph of the body but the FIRST list item.
+		// Consumers that re-derive the marker compute
+		// `autoNumStartAt + paragraphIndex`, so publishing the raw position made
+		// them render "3." against core's "1." and both markers were painted.
+		const runtime = new ParagraphContentRuntime();
+		const sequence = createAutoNumberSequence();
+		runtime.collect({ 'a:r': { 'a:t': 'Title' } }, 0, 3, sequence);
+		runtime.collect({ 'a:r': { 'a:t': 'Intro' } }, 1, 3, sequence);
+		const { segments } = runtime.collect(
+			{
+				'a:pPr': { 'a:buAutoNum': { '@_type': 'arabicPeriod' } },
+				'a:r': { 'a:t': 'First item' },
+			},
+			2,
+			3,
+			sequence,
+		);
+
+		expect(segments[0].text).toBe('1. ');
+		const info = segments[0].bulletInfo;
+		expect(info?.paragraphIndex).toBe(0);
+		expect((info?.autoNumStartAt ?? 1) + (info?.paragraphIndex ?? 0)).toBe(1);
+	});
+
+	it('honours a startAt offset when publishing the ordinal', () => {
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buAutoNum': { '@_type': 'arabicPeriod', '@_startAt': '5' } },
+				'a:r': { 'a:t': 'Item text' },
+			},
+			0,
+			1,
+		);
+		expect(segments[0].text).toBe('5. ');
+		const info = segments[0].bulletInfo;
+		expect((info?.autoNumStartAt ?? 1) + (info?.paragraphIndex ?? 0)).toBe(5);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// `a:endParaRPr` on an EMPTY paragraph.
+//
+// A trailing/only empty paragraph produced no segment, so its end-paragraph run
+// properties were captured nowhere and the writer rebuilt them as the bare
+// `<a:endParaRPr lang="en-US"/>` stub. That is what PowerPoint sizes and styles
+// a BLANK line from (and it carries the `a:uLnTx` / `a:uFillTx` underline
+// markers), so the deck's vertical layout changed on every round-trip.
+// ---------------------------------------------------------------------------
+
+const richEndParaRPr: XmlObject = {
+	'@_lang': 'en-US',
+	'@_sz': '1800',
+	'@_b': '0',
+	'@_u': 'none',
+	'@_kern': '1200',
+	'@_cap': 'none',
+	'a:uLnTx': '',
+	'a:uFillTx': '',
+	'a:latin': { '@_typeface': 'Calibri', '@_panose': '020F0502020204030204' },
+};
+
+describe('collectShapeParagraphContent - empty paragraph metadata (real runtime)', () => {
+	it('captures endParaRPr attributes AND children for a body of one empty paragraph', () => {
+		const { segments, parts } = new ParagraphContentRuntime().collect(
+			{ 'a:pPr': { '@_algn': 'ctr' }, 'a:endParaRPr': richEndParaRPr },
+			0,
+			1,
+		);
+
+		expect(segments).toHaveLength(1);
+		expect(segments[0].text).toBe('');
+		expect(parts.join('')).toBe('');
+		const captured = segments[0].endParaRunProperties;
+		expect(captured?.['@_sz']).toBe('1800');
+		expect(captured?.['@_kern']).toBe('1200');
+		expect(captured?.['@_cap']).toBe('none');
+		// Children, not just attributes.
+		expect(captured?.['a:uLnTx']).toBe('');
+		expect(captured?.['a:uFillTx']).toBe('');
+		expect(captured?.['a:latin']).toStrictEqual({
+			'@_typeface': 'Calibri',
+			'@_panose': '020F0502020204030204',
+		});
+		// The blank line is sized from `a:endParaRPr sz`, as for the separator
+		// segment of a non-last empty paragraph (18pt at 96dpi).
+		expect(segments[0].style.fontSize).toBeCloseTo(24, 5);
+	});
+
+	it('captures endParaRPr on a trailing empty paragraph without adding one', () => {
+		const runtime = new ParagraphContentRuntime();
+		const first = runtime.collect({ 'a:r': { 'a:t': 'Body' } }, 0, 2);
+		const last = runtime.collect({ 'a:endParaRPr': richEndParaRPr }, 1, 2);
+
+		// Paragraph 0 keeps its own terminator; paragraph 1 gains the carrier.
+		expect(first.segments.map((s) => s.text)).toStrictEqual(['Body', '\n']);
+		expect(last.segments).toHaveLength(1);
+		expect(last.segments[0].endParaRunProperties?.['@_kern']).toBe('1200');
+	});
+
+	it('leaves a genuinely bare empty paragraph without a segment', () => {
+		const { segments } = new ParagraphContentRuntime().collect({}, 0, 1);
+		expect(segments).toStrictEqual([]);
+	});
+});
+
+describe('endParaRPr survives a real-deck load (anatidae-animation.pptx)', () => {
+	const fixture = fileURLToPath(
+		new URL('../../../../../../e2e/fixtures/anatidae-animation.pptx', import.meta.url),
+	);
+
+	it.skipIf(!existsSync(fixture))(
+		'carries the authored end properties of an empty-paragraph shape into the model',
+		async () => {
+			const bytes = readFileSync(fixture);
+			const handler = new PptxHandler();
+			const data = await handler.load(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+			);
+
+			const captured = data.slides[0].elements
+				.flatMap((el) => (el as { textSegments?: TextSegment[] }).textSegments ?? [])
+				.map((segment) => segment.endParaRunProperties)
+				.filter((props): props is Record<string, unknown> => props !== undefined);
+
+			// Slide 1's decorative rectangles are single empty paragraphs whose
+			// endParaRPr carries the full run formatting.
+			const rich = captured.find((props) => props['@_kern'] !== undefined);
+			expect(rich).toBeDefined();
+			expect(rich?.['@_sz']).toBe('1800');
+			expect(rich?.['@_cap']).toBe('none');
+			expect(rich?.['a:uLnTx']).toBeDefined();
+			expect(rich?.['a:uFillTx']).toBeDefined();
+		},
+	);
+
+	it.skipIf(!existsSync(fixture))(
+		'round-trips those end properties through a load -> save -> reload',
+		async () => {
+			const bytes = readFileSync(fixture);
+			const handler = new PptxHandler();
+			const data = await handler.load(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+			);
+			const saved = await handler.save(data.slides);
+
+			const reloaded = await new PptxHandler().load(
+				saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+			);
+			const captured = reloaded.slides[0].elements
+				.flatMap((el) => (el as { textSegments?: TextSegment[] }).textSegments ?? [])
+				.map((segment) => segment.endParaRunProperties)
+				.filter((props): props is Record<string, unknown> => props !== undefined);
+
+			const rich = captured.find((props) => props['@_kern'] !== undefined);
+			// Every one of these came back as `<a:endParaRPr lang="en-US"/>`.
+			expect(rich).toBeDefined();
+			expect(rich?.['@_sz']).toBe('1800');
+			expect(rich?.['@_b']).toBe('0');
+			expect(rich?.['@_u']).toBe('none');
+			expect(rich?.['@_cap']).toBe('none');
+			// Children survive too, not just attributes.
+			expect(rich?.['a:uLnTx']).toBeDefined();
+			expect(rich?.['a:uFillTx']).toBeDefined();
+			expect(rich?.['a:ln']).toStrictEqual({ 'a:noFill': '' });
+			expect(rich?.['a:solidFill']).toStrictEqual({ 'a:prstClr': { '@_val': 'white' } });
+			expect(rich?.['a:latin']).toStrictEqual({
+				'@_typeface': 'Calibri',
+				'@_panose': '020F0502020204030204',
+			});
+		},
+	);
 });

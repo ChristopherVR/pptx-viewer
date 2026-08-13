@@ -1,4 +1,8 @@
 import type { XmlObject, TextStyle } from '../../types';
+import {
+	positiveFixedAngleAttribute,
+	shadowOffsetToDistanceAndDirection,
+} from '../../utils/positive-fixed-angle';
 
 const EMU_PER_PX = 9525;
 
@@ -104,20 +108,14 @@ function buildShadowColorNode(hex: string, opacity: number | undefined): XmlObje
 	};
 }
 
-function distAndDir(ox: number, oy: number): { dist: number; dir: number } {
-	const dist = Math.sqrt(ox * ox + oy * oy);
-	const dir = (Math.atan2(oy, ox) * 180) / Math.PI;
-	return { dist, dir };
-}
-
 function buildOuterShadowNode(style: TextStyle): XmlObject {
 	const ox = style.textShadowOffsetX ?? 0;
 	const oy = style.textShadowOffsetY ?? 0;
-	const { dist, dir } = distAndDir(ox, oy);
+	const { distance, directionDegrees } = shadowOffsetToDistanceAndDirection(ox, oy);
 	return {
 		'@_blurRad': String(Math.round((style.textShadowBlur ?? 4) * EMU_PER_PX)),
-		'@_dist': String(Math.round(dist * EMU_PER_PX)),
-		'@_dir': String(Math.round(dir * 60000)),
+		'@_dist': String(Math.round(distance * EMU_PER_PX)),
+		'@_dir': positiveFixedAngleAttribute(directionDegrees),
 		'a:srgbClr': buildShadowColorNode(style.textShadowColor || '#000000', style.textShadowOpacity),
 	};
 }
@@ -125,11 +123,11 @@ function buildOuterShadowNode(style: TextStyle): XmlObject {
 function buildInnerShadowNode(style: TextStyle): XmlObject {
 	const ox = style.textInnerShadowOffsetX ?? 0;
 	const oy = style.textInnerShadowOffsetY ?? 0;
-	const { dist, dir } = distAndDir(ox, oy);
+	const { distance, directionDegrees } = shadowOffsetToDistanceAndDirection(ox, oy);
 	return {
 		'@_blurRad': String(Math.round((style.textInnerShadowBlur ?? 3) * EMU_PER_PX)),
-		'@_dist': String(Math.round(dist * EMU_PER_PX)),
-		'@_dir': String(Math.round(dir * 60000)),
+		'@_dist': String(Math.round(distance * EMU_PER_PX)),
+		'@_dir': positiveFixedAngleAttribute(directionDegrees),
 		'a:srgbClr': buildShadowColorNode(
 			style.textInnerShadowColor || '#000000',
 			style.textInnerShadowOpacity,
@@ -145,7 +143,7 @@ function buildPresetShadowNode(style: TextStyle): XmlObject {
 		node['@_dist'] = String(Math.round(style.textPresetShadowDistance * EMU_PER_PX));
 	}
 	if (typeof style.textPresetShadowDirection === 'number') {
-		node['@_dir'] = String(Math.round(style.textPresetShadowDirection * 60000));
+		node['@_dir'] = positiveFixedAngleAttribute(style.textPresetShadowDirection);
 	}
 	if (style.textPresetShadowColor) {
 		node['a:srgbClr'] = buildShadowColorNode(

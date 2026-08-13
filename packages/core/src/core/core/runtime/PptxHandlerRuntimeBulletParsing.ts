@@ -1,5 +1,6 @@
 import { BulletInfo, XmlObject } from '../../types';
 import type { PlaceholderTextLevelStyle } from '../../types';
+import { formatAutoNumberMarker } from '../../utils/auto-number-format';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { parseBulletSizePercent } from '../../utils/paragraph-properties-parser';
 import { xmlChild, xmlHasChild, xmlPath } from '../../utils/xml-access';
@@ -254,88 +255,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Format an auto-numbered bullet sequence number according to the OOXML
-	 * numbering type (e.g. "arabicPeriod", "romanUcPeriod").
+	 * numbering type (e.g. "arabicPeriod", "romanUcPeriod", "ea1ChsPeriod").
+	 *
+	 * Delegates to {@link formatAutoNumberMarker}, the single implementation
+	 * that `pptx-viewer-shared` also renders from. It previously carried its own
+	 * table covering only the Latin/circled half of `ST_TextAutonumberScheme`
+	 * and falling back to `"<n>. "` for every East-Asian / Thai / Hindi /
+	 * Hebrew scheme, which disagreed with the renderer's marker and painted a
+	 * DOUBLE marker (`一.1. Item`).
+	 *
+	 * The trailing space is this method's own contract: the marker is stamped
+	 * into a text segment, so it needs the gap before the run text. The
+	 * renderer's copy has no trailing space and the de-duplication compares
+	 * trimmed strings.
 	 */
 	protected formatAutoNumber(autoNumType: string, seqNum: number): string {
-		const toAlpha = (n: number, upper: boolean): string => {
-			const code = (n - 1) % 26;
-			const ch = String.fromCharCode((upper ? 65 : 97) + code);
-			return ch;
-		};
-
-		const toRoman = (n: number, upper: boolean): string => {
-			const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-			const numerals = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
-			let result = '';
-			let remaining = Math.max(1, Math.min(n, 3999));
-			for (let i = 0; i < values.length; i++) {
-				while (remaining >= values[i]) {
-					result += numerals[i];
-					remaining -= values[i];
-				}
-			}
-			return upper ? result : result.toLowerCase();
-		};
-
-		// Map a single Arabic digit (0-9) to its Unicode "circled digit" code point.
-		// circleNumDbPlain — Wingdings/full-width style ⓪–⑨ (U+24EA, U+2460..U+2468).
-		// circleNumWdBlackPlain — black filled circles ⓿–⓽ (U+24EB..U+24F4).
-		// circleNumWdWhitePlain — white outlined circles (uses the same block as
-		//   circleNumDbPlain since Unicode does not maintain a parallel "white" set
-		//   distinct from the standard set; falls back to U+24EA / U+2460..).
-		const toCircled = (n: number, style: 'std' | 'black'): string => {
-			if (n < 0 || n > 9) {
-				return `${n}`; // out of representable range — fall back to digit
-			}
-			if (style === 'black') {
-				return n === 0 ? '⓫' : String.fromCodePoint(0x24eb + n);
-			}
-			// std (and white fallback)
-			return n === 0 ? '⓪' : String.fromCodePoint(0x245f + n);
-		};
-
-		switch (autoNumType) {
-			case 'arabicPeriod':
-			case 'arabicDbPeriod':
-				return `${seqNum}. `;
-			case 'arabicParenR':
-				return `${seqNum}) `;
-			case 'arabicParenBoth':
-				return `(${seqNum}) `;
-			case 'arabicPlain':
-			case 'arabicDbPlain':
-				return `${seqNum} `;
-			case 'alphaLcPeriod':
-				return `${toAlpha(seqNum, false)}. `;
-			case 'alphaUcPeriod':
-				return `${toAlpha(seqNum, true)}. `;
-			case 'alphaLcParenR':
-				return `${toAlpha(seqNum, false)}) `;
-			case 'alphaUcParenR':
-				return `${toAlpha(seqNum, true)}) `;
-			case 'alphaLcParenBoth':
-				return `(${toAlpha(seqNum, false)}) `;
-			case 'alphaUcParenBoth':
-				return `(${toAlpha(seqNum, true)}) `;
-			case 'romanLcPeriod':
-				return `${toRoman(seqNum, false)}. `;
-			case 'romanUcPeriod':
-				return `${toRoman(seqNum, true)}. `;
-			case 'romanLcParenR':
-				return `${toRoman(seqNum, false)}) `;
-			case 'romanUcParenR':
-				return `${toRoman(seqNum, true)}) `;
-			case 'romanLcParenBoth':
-				return `(${toRoman(seqNum, false)}) `;
-			case 'romanUcParenBoth':
-				return `(${toRoman(seqNum, true)}) `;
-			case 'circleNumDbPlain':
-			case 'circleNumWdWhitePlain':
-				return `${toCircled(seqNum, 'std')} `;
-			case 'circleNumWdBlackPlain':
-				return `${toCircled(seqNum, 'black')} `;
-			default:
-				return `${seqNum}. `;
-		}
+		return `${formatAutoNumberMarker(autoNumType, seqNum)} `;
 	}
 }

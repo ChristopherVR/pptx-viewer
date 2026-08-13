@@ -61,6 +61,19 @@ describe('classic bubble chart options', () => {
 		);
 	});
 
+	it('emits the numeric member of ST_BubbleScale, never the percent literal', () => {
+		// PowerPoint does not implement the percent member of the union, so
+		// `c:bubbleScale val="150%"` makes the package unreadable (0x80070570),
+		// exactly as measured for c:lblOffset / c:gapWidth / c:overlap.
+		const container: XmlObject = {};
+		applyBubbleChartOptions(container, { bubbleScale: 150 }, localName);
+		expect((container['c:bubbleScale'] as XmlObject)['@_val']).toBe('150');
+
+		const rounded: XmlObject = {};
+		applyBubbleChartOptions(rounded, { bubbleScale: 149.6 }, localName);
+		expect((rounded['c:bubbleScale'] as XmlObject)['@_val']).toBe('150');
+	});
+
 	it('emits options for a generated bubble chart', () => {
 		const tree = buildChartSpaceXml({
 			chartType: 'bubble',

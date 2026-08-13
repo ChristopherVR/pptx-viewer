@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 
+import {
+	ST_SHAPE_TYPE_VALUES,
+	isStShapeType,
+	PRESET_SHAPE_DEFINITIONS,
+	PRESET_SHAPE_GEOMETRY_TABLE,
+} from '../geometry';
 import type {
 	ConnectorPptxElement,
 	MediaPptxElement,
@@ -118,9 +124,55 @@ describe('pptxElementXmlBuilder.normalizePresetGeometry', () => {
 		expect(builder.normalizePresetGeometry('bentConnector3')).toBe('bentConnector3');
 	});
 
-	it('allows underscores in shape names', () => {
+	// `@prst` is typed ST_ShapeType, a closed enumeration: an identifier that
+	// merely LOOKS like an NCName is still schema-invalid, and PowerPoint
+	// refuses the package. This used to pass `[A-Za-z][A-Za-z0-9_]*` straight
+	// through.
+	it('returns "rect" for identifiers outside the ST_ShapeType enumeration', () => {
 		const builder = new PptxElementXmlBuilder(createDefaultOptions());
-		expect(builder.normalizePresetGeometry('custom_shape')).toBe('custom_shape');
+		expect(builder.normalizePresetGeometry('custom_shape')).toBe('rect');
+		expect(builder.normalizePresetGeometry('notARealPreset')).toBe('rect');
+	});
+
+	// Every non-spec name the shape pickers and the internal SupportedShapeType
+	// union can produce must land on the preset it actually draws.
+	it('folds the shape-picker and internal aliases onto their ST_ShapeType names', () => {
+		const builder = new PptxElementXmlBuilder(createDefaultOptions());
+		const expected: Record<string, string> = {
+			rightTriangle: 'rtTriangle',
+			cross: 'plus',
+			flowChartData: 'flowChartInputOutput',
+			flowChartDirectData: 'flowChartMagneticDrum',
+			flowChartSequentialAccessStorage: 'flowChartMagneticTape',
+			flowChartStoredData: 'flowChartOnlineStorage',
+			actionButtonBackOrPrevious: 'actionButtonBackPrevious',
+			actionButtonForwardOrNext: 'actionButtonForwardNext',
+			rtArrow: 'rightArrow',
+			cylinder: 'can',
+			pentArrow: 'notchedRightArrow',
+			diamondTabs: 'diamond',
+			oval: 'ellipse',
+			connector: 'straightConnector1',
+		};
+		for (const [alias, canonical] of Object.entries(expected)) {
+			expect(builder.normalizePresetGeometry(alias), `alias ${alias}`).toBe(canonical);
+		}
+	});
+
+	it('never emits a value outside the ST_ShapeType enumeration', () => {
+		const builder = new PptxElementXmlBuilder(createDefaultOptions());
+		const inputs = [
+			...ST_SHAPE_TYPE_VALUES,
+			...PRESET_SHAPE_DEFINITIONS.map((d) => d.name),
+			...Object.keys(PRESET_SHAPE_GEOMETRY_TABLE),
+			'custom_shape',
+			'',
+			undefined,
+		];
+		for (const input of inputs) {
+			const emitted = builder.normalizePresetGeometry(input);
+			expect(isStShapeType(emitted), `${String(input)} -> ${emitted}`).toBeTruthy();
+		}
 	});
 
 	it('returns "rect" for names containing special characters', () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject, TextStyle } from '../../types';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 /**
  * The `createRunPropertiesFromTextStyle` method is protected on the runtime
@@ -410,5 +411,127 @@ describe('createRunPropertiesFromTextStyle', () => {
 		expect(pattFill['@_prst']).toBe('dkDnDiag');
 		expect(((pattFill['a:fgClr'] as XmlObject)['a:srgbClr'] as XmlObject)['@_val']).toBe('000000');
 		expect(((pattFill['a:bgClr'] as XmlObject)['a:srgbClr'] as XmlObject)['@_val']).toBe('FFFFFF');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Regression coverage against the REAL `createRunPropertiesFromTextStyle`.
+// Everything above exercises a hand-maintained COPY of the mapping, which by
+// construction cannot catch a drift between the copy and production - and did
+// not: the copy has always emitted `@_rtl` while production emitted no rtl at
+// all, and the copy's `a:noFill` behaviour was never modelled because
+// production had none. Import the real symbol.
+// ---------------------------------------------------------------------------
+
+class SaveRunPropsRuntime extends PptxHandlerRuntime {
+	public build(
+		style: TextStyle | undefined,
+		resolveHyperlinkRelationshipId?: (target: string) => string | undefined,
+	): XmlObject {
+		return this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
+	}
+}
+
+/** The child ELEMENT keys of the built `a:rPr`, in emission order. */
+function childElementOrder(runProps: XmlObject): string[] {
+	return Object.keys(runProps).filter((key) => !key.startsWith('@_'));
+}
+
+describe('createRunPropertiesFromTextStyle (real runtime)', () => {
+	const runtime = new SaveRunPropsRuntime();
+
+	describe('a:noFill - hollow / outline-only text', () => {
+		it('emits a:noFill for a run whose fill was suppressed', () => {
+			const result = runtime.build({ textFillNone: true });
+			expect(result['a:noFill']).toStrictEqual({});
+			expect(result['a:solidFill']).toBeUndefined();
+		});
+
+		// THE regression. `textFillNone` never arrives on its own: run styles are
+		// assembled as `{...mergedDefaultRunStyle, ...extractTextRunStyle(rPr)}`,
+		// so the inherited theme / placeholder / master colour always fills the
+		// slot `<a:noFill/>` deliberately left empty. Testing `style.color`
+		// first therefore rewrote every hollow run as `<a:solidFill>` of a colour
+		// the author never asked for, and the effect was gone for good after one
+		// round-trip. This case is what the branch ORDER exists for: swap the two
+		// branches back and only this assertion fails.
+		it('prefers a:noFill over the inherited colour that always accompanies it', () => {
+			const result = runtime.build({ textFillNone: true, color: '#000000' });
+			expect(result['a:noFill']).toStrictEqual({});
+			expect(result['a:solidFill']).toBeUndefined();
+		});
+
+		it('prefers a:noFill over a gradient or pattern text fill', () => {
+			const gradient = runtime.build({
+				textFillNone: true,
+				textFillGradientStops: [{ color: '#FF0000', position: 0 }],
+			});
+			expect(gradient['a:noFill']).toStrictEqual({});
+			expect(gradient['a:gradFill']).toBeUndefined();
+
+			const pattern = runtime.build({ textFillNone: true, textFillPattern: 'dkDnDiag' });
+			expect(pattern['a:noFill']).toStrictEqual({});
+			expect(pattern['a:pattFill']).toBeUndefined();
+		});
+
+		it('still emits a:solidFill for an ordinary filled run', () => {
+			const result = runtime.build({ color: '#123456' });
+			expect(result['a:noFill']).toBeUndefined();
+			expect(result['a:solidFill']).toStrictEqual({ 'a:srgbClr': { '@_val': '123456' } });
+		});
+
+		// EG_FillProperties is a choice, and the choice occupies ONE slot in the
+		// CT_TextCharacterProperties sequence: directly after `a:ln`. Emitting a
+		// schema-valid element in the wrong position still fails validation and
+		// still shows PowerPoint's repair dialog, so pin the position, not just
+		// the presence.
+		it('emits a:noFill in the fill slot, between a:ln and the typefaces', () => {
+			const result = runtime.build({
+				textFillNone: true,
+				color: '#000000',
+				textOutlineWidth: 1,
+				textOutlineColor: '#FF0000',
+				fontFamily: 'Arial',
+			});
+			expect(childElementOrder(result)).toStrictEqual(['a:ln', 'a:noFill', 'a:latin']);
+		});
+	});
+
+	describe('a:rtl - run-level right-to-left', () => {
+		it('emits a:rtl as a CT_Boolean child element, not an attribute', () => {
+			const on = runtime.build({ rtl: true });
+			expect(on['a:rtl']).toStrictEqual({ '@_val': '1' });
+			// `@rtl` is CT_TextParagraphProperties' spelling. On `a:rPr` it is a
+			// Sch_UndeclaredAttribute violation, which is the real fact behind
+			// the note that used to (wrongly) suppress the element too.
+			expect(on['@_rtl']).toBeUndefined();
+
+			const off = runtime.build({ rtl: false });
+			expect(off['a:rtl']).toStrictEqual({ '@_val': '0' });
+		});
+
+		it('omits a:rtl entirely when the run declared no direction', () => {
+			expect(runtime.build({ color: '#000000' })['a:rtl']).toBeUndefined();
+		});
+
+		// CT_TextCharacterProperties sequences `rtl` between `hlinkMouseOver` and
+		// `extLst`, and fast-xml-parser serialises keys in insertion order.
+		it('sequences a:rtl after a:hlinkMouseOver and before a:extLst', () => {
+			const result = runtime.build(
+				{
+					rtl: true,
+					hyperlink: 'https://example.com/click',
+					hyperlinkMouseOver: 'https://example.com/hover',
+					runPropertiesExtLstXml: { 'a:ext': { '@_uri': '{TEST}' } },
+				},
+				(target) => (target.includes('hover') ? 'rId9' : 'rId8'),
+			);
+			expect(childElementOrder(result)).toStrictEqual([
+				'a:hlinkClick',
+				'a:hlinkMouseOver',
+				'a:rtl',
+				'a:extLst',
+			]);
+		});
 	});
 });

@@ -181,6 +181,42 @@ function findAinkInkPayload(graphicData: XmlObject | undefined): XmlObject | und
  * `<a:graphicData>`. A handful of producers may also put it inside an
  * `mc:Choice` instead of `mc:Fallback`, so both are checked.
  */
+/**
+ * Detect a ChartEx payload by LOCAL NAME, independent of the namespace prefix.
+ *
+ * PowerPoint binds each chartex part to its own prefix, so the payload element
+ * is `<cx:chart>` in a single-chart deck but `<cx1:chart>`, `<cx2:chart>` and
+ * so on once there are several. Matching the raw key `cx:chart` therefore sees
+ * only the first spelling. Splitting on the prefix separator and comparing the
+ * local name matches every one of them, and every `mc:Choice`/`mc:Fallback`
+ * branch spelling too.
+ */
+function hasChartExPayload(graphicData: XmlObject | undefined): boolean {
+	if (!graphicData) {
+		return false;
+	}
+	for (const key of Object.keys(graphicData)) {
+		const separator = key.indexOf(':');
+		if (separator <= 0) {
+			continue;
+		}
+		const prefix = key.slice(0, separator);
+		const localName = key.slice(separator + 1);
+		if (localName === 'chart' && /^cx\d*$/.test(prefix)) {
+			return true;
+		}
+	}
+	const altContent = graphicData['mc:AlternateContent'] as XmlObject | undefined;
+	if (!altContent) {
+		return false;
+	}
+	const branches = [
+		...ensureArrayLike(altContent['mc:Choice'] as XmlObject | XmlObject[] | undefined),
+		...ensureArrayLike(altContent['mc:Fallback'] as XmlObject | XmlObject[] | undefined),
+	];
+	return branches.some((branch) => hasChartExPayload(branch));
+}
+
 function findOleObjPayload(graphicData: XmlObject | undefined): XmlObject | undefined {
 	if (!graphicData) {
 		return undefined;
@@ -526,7 +562,19 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 		if (graphicData['a:tbl'] || uri.includes('/drawingml/2006/table')) {
 			return 'table';
 		}
-		if (graphicData['c:chart'] || uri.includes('/drawingml/2006/chart')) {
+		// A ChartEx frame (waterfall, funnel, treemap, sunburst, histogram,
+		// boxWhisker, regionMap) carries the 2014 chartex URI and a `<cx:chart>`
+		// payload, NOT the 2006 DrawingML `<c:chart>`. Branching on the raw
+		// `c:chart` key alone typed every real chartex frame as `unknown`, so
+		// enrichment skipped it and all seven renderers were dead code on real
+		// decks. The prefix is not fixed either: a deck with several chartex
+		// parts binds them as `cx1:` .. `cx8:`, so match the local name.
+		if (
+			graphicData['c:chart'] ||
+			uri.includes('/drawingml/2006/chart') ||
+			uri.includes('/2014/chartex') ||
+			hasChartExPayload(graphicData)
+		) {
 			return 'chart';
 		}
 		if (graphicData['dgm:relIds'] || uri.includes('/drawingml/2006/diagram')) {

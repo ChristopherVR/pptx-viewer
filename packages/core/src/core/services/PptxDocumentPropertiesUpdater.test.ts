@@ -177,6 +177,42 @@ describe('pptxDocumentPropertiesUpdater', () => {
 			expect(updatedXml).toContain('New Title');
 			expect(updatedXml).toContain('Test Author');
 		});
+
+		/**
+		 * Every `CT_CoreProperties` child is optional, so a third-party generator
+		 * may ship a `core.xml` declaring neither `xsi` nor `dcterms`. Writing
+		 * `xsi:type="dcterms:W3CDTF"` into that document without declaring the
+		 * prefix produces XML that is not well-formed; PowerPoint rejects the
+		 * package with ERROR_FILE_CORRUPT (0x80070570).
+		 */
+		it('declares xmlns:xsi and xmlns:dcterms when the source omits them', async () => {
+			const coreXml = `<?xml version="1.0"?>
+        <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <dc:title>Third party deck</dc:title>
+        </cp:coreProperties>`;
+			context.zip.file('docProps/core.xml', coreXml);
+
+			await updater.updateOnSave([makeSlide()]);
+
+			const updatedXml = await context.zip.file('docProps/core.xml')!.async('string');
+			expect(updatedXml).toContain('xsi:type="dcterms:W3CDTF"');
+			expect(updatedXml).toContain('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
+			expect(updatedXml).toContain('xmlns:dcterms="http://purl.org/dc/terms/"');
+		});
+
+		it('keeps the namespace declarations the source already carried', async () => {
+			const coreXml = `<?xml version="1.0"?>
+        <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <dcterms:modified xsi:type="dcterms:W3CDTF">2024-01-01T00:00:00Z</dcterms:modified>
+        </cp:coreProperties>`;
+			context.zip.file('docProps/core.xml', coreXml);
+
+			await updater.updateOnSave([makeSlide()]);
+
+			const updatedXml = await context.zip.file('docProps/core.xml')!.async('string');
+			expect(updatedXml.match(/xmlns:xsi=/gu)).toHaveLength(1);
+			expect(updatedXml.match(/xmlns:dcterms=/gu)).toHaveLength(1);
+		});
 	});
 
 	// ── updateOnSave: app properties ──────────────────────────────────

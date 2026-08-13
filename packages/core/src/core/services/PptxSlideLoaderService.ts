@@ -10,6 +10,7 @@
 import { applyBackgroundFillToShapes } from '../core/builders/background-fill-shapes';
 import { applyHiddenFlagFromRawXml } from '../core/builders/element-hidden-flag';
 import type { PptxSlide, XmlObject } from '../types';
+import { flattenElementsDeep } from '../utils/flatten-elements';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
 import { loadLegacyVmlDrawings } from '../utils/vml-drawing-loader';
@@ -290,6 +291,12 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				id: path,
 				rId,
 				slideNumber: slideIndex + 1,
+				// The slide -> slideLayout relationship, kept on the loaded model so
+				// the editor can mark the active entry in the layout gallery and
+				// scope the offered layouts to this slide's master. Resolved above
+				// for the theme override; the field stayed unset until now, so
+				// nothing downstream could tell which layout a slide was using.
+				layoutPath: layoutPathForOverride,
 				hidden,
 				sectionId: sectionMeta?.sectionId,
 				sectionName: sectionMeta?.sectionName,
@@ -340,7 +347,9 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 		params: PptxSlideLoaderParams,
 	): Promise<void> {
 		for (const slide of slides) {
-			for (const element of slide.elements) {
+			// Same tree walk as `enrichChartData`: grouped SmartArt is just as
+			// reachable as a grouped chart and had the same enrichment gap.
+			for (const element of flattenElementsDeep(slide.elements)) {
 				if (element.type !== 'smartArt' || element.smartArtData) {
 					continue;
 				}
@@ -374,7 +383,11 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 	 */
 	private async enrichChartData(slides: PptxSlide[], params: PptxSlideLoaderParams): Promise<void> {
 		for (const slide of slides) {
-			for (const element of slide.elements) {
+			// Walk the tree, not the top level: a chart the user dropped into a
+			// group lives in `group.children` and would otherwise never be
+			// enriched, rendering as a placeholder while an identical ungrouped
+			// chart rendered fine.
+			for (const element of flattenElementsDeep(slide.elements)) {
 				if (element.type !== 'chart' || element.chartData) {
 					continue;
 				}

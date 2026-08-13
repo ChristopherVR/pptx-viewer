@@ -139,6 +139,24 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 		const builder = new XMLBuilder({
 			ignoreAttributes: false,
 			attributeNamePrefix: '@_',
+			// fast-xml-parser defaults `suppressBooleanAttributes` to TRUE, which
+			// collapses any attribute whose value is literally the string `true`
+			// into the HTML-style valueless form: `<p:strVal val="true"/>` is
+			// emitted as `<p:strVal val/>`. XML 1.0 has no boolean attributes
+			// (AttValue is required by production [41]), so that output is not
+			// merely schema-invalid, it is not well-formed, and PowerPoint refuses
+			// the whole package with "PowerPoint could not open the file". It hit
+			// EVERY part: `p:strVal`/`p:boolVal` animation values, the SharePoint
+			// `customXml` itemProps (`ma:hidden="true"`, `ma:readOnly="true"`,
+			// `nillable="true"`), and any third-party producer's `xsd:boolean`
+			// attributes written in the `true`/`false` lexical form rather than
+			// `1`/`0`. Our own writers emit `1`/`0`, so the damage arrived purely
+			// through rawXml passthrough of real decks. Round-tripping
+			// e2e/fixtures/animation-builds-color.pptx reproduced it from a single
+			// attribute. Turning the option off is also symmetric with the parser:
+			// `allowBooleanAttributes` is left at its default `false` there, so a
+			// valueless attribute is silently DROPPED on read-back.
+			suppressBooleanAttributes: false,
 			// Pretty-printing is intentionally disabled. PowerPoint ignores
 			// inter-element whitespace in OOXML parts, so indentation buys
 			// nothing on read-back but costs measurable serialize time (~2.3s of

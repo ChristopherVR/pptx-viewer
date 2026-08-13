@@ -112,11 +112,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// to inherit (which would let an inherited caps style bleed through).
 			runProps['@_cap'] = 'none';
 		}
-		// NOTE: `rtl` is only valid on CT_TextParagraphProperties (a:pPr), not
-		// CT_TextCharacterProperties (a:rPr). Emitting it here produces a
-		// Sch_UndeclaredAttribute violation and triggers PowerPoint's file-
-		// corruption/repair dialog. Paragraph-level rtl is emitted by
-		// buildParagraphPropertiesXml.
+		// NOTE (corrected): run-level `rtl` IS valid on
+		// CT_TextCharacterProperties, but as a child ELEMENT of type CT_Boolean
+		// (`<a:rtl val="1"/>`) sequenced between `hlinkMouseOver` and `extLst`,
+		// so it is emitted down in the child-element section below rather than
+		// here among the attributes. What is NOT valid on `a:rPr` is the
+		// ATTRIBUTE spelling `@rtl`: that one belongs to
+		// CT_TextParagraphProperties, where `buildParagraphPropertiesXml`
+		// writes it. The note that used to sit here claimed the whole property
+		// was paragraph-only, which is why run-level RTL was never written at
+		// all; a comment asserting a false schema fact is a much better way of
+		// keeping a bug alive than the bug itself, so it is corrected rather
+		// than deleted.
 		// Run metadata
 		if (style.kumimoji !== undefined) {
 			runProps['@_kumimoji'] = style.kumimoji ? '1' : '0';
@@ -151,9 +158,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// in this exact sequence — any reversal triggers
 		// Sch_UnexpectedElementContentExpectingComplex and PowerPoint's
 		// file-corruption/repair dialog):
-		//   ln, (solidFill | gradFill | pattFill), effectLst, highlight,
+		//   ln, (noFill | solidFill | gradFill | pattFill), effectLst, highlight,
 		//   (uLnTx | uLn), (uFillTx | uFill), latin, ea, cs, sym,
-		//   hlinkClick, hlinkMouseOver.
+		//   hlinkClick, hlinkMouseOver, rtl, extLst.
 
 		// 1. a:ln (text outline)
 		if (style.textOutlineWidth || style.textOutlineColor) {
@@ -171,8 +178,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['a:ln'] = lnObj;
 		}
 
-		// 2. fill (solidFill | gradFill | pattFill — schema allows at most one)
-		if (style.color) {
+		// 2. fill: EG_FillProperties is a CHOICE, so at most one of
+		// noFill / solidFill / gradFill / pattFill may be emitted.
+		//
+		// `a:noFill` (hollow, outline-only WordArt) MUST be tested FIRST, and the
+		// ordering is the entire fix: a hollow run still arrives here carrying a
+		// `color`, because run styles are assembled as
+		// `{...mergedDefaultRunStyle, ...extractTextRunStyle(rPr)}` and the
+		// inherited theme / placeholder / master colour fills the very slot the
+		// authored `<a:noFill/>` deliberately left empty. Testing `style.color`
+		// first therefore rewrote EVERY hollow run as `<a:solidFill>` of the
+		// inherited colour, so the effect was lost permanently on the first
+		// round-trip and could never be recovered from the saved file.
+		if (style.textFillNone) {
+			runProps['a:noFill'] = {};
+		} else if (style.color) {
 			const resolvedOriginalColor = style.colorXml ? this.parseColor(style.colorXml) : undefined;
 			runProps['a:solidFill'] = serializeColorChoice(
 				style.colorXml,
@@ -385,6 +405,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					runProps['a:hlinkMouseOver'] = mouseOverNode;
 				}
 			}
+		}
+
+		// 8. a:rtl — the run-level right-to-left flag, and the LAST child before
+		// `a:extLst` in the CT_TextCharacterProperties sequence (see the
+		// corrected note above: on a run it is a CT_Boolean child element, not
+		// the `@rtl` attribute that CT_TextParagraphProperties declares). It has
+		// to be assigned after `a:hlinkMouseOver` because fast-xml-parser
+		// serialises keys in insertion order.
+		if (style.rtl !== undefined) {
+			runProps['a:rtl'] = { '@_val': style.rtl ? '1' : '0' };
 		}
 
 		// `a:extLst` is the final child of CT_TextCharacterProperties. Re-emit the

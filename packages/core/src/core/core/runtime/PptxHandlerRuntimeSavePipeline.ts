@@ -283,7 +283,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		return await this.zip.generateAsync({ type: 'uint8array' });
+		// JSZip defaults to STORE, which writes every part verbatim and turns a
+		// 4.9 MB deck into 7.5 MB on a no-op open-and-save. PowerPoint DEFLATEs
+		// its own packages, so matching it keeps the file the user downloads the
+		// same size as the one they opened. Level 6 is zlib's default: the knee
+		// of the ratio/time curve, and near-free next to the XML re-serialization
+		// that already dominates a save.
+		return await this.zip.generateAsync({
+			type: 'uint8array',
+			compression: 'DEFLATE',
+			compressionOptions: { level: 6 },
+		});
 	}
 
 	/**

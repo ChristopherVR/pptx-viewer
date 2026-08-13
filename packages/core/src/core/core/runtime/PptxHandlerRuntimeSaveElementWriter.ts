@@ -55,6 +55,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * writer serializes under `<p:sp>` -- corrupting the picture markup
 	 * (`p:nvPicPr`/`p:blipFill`) into an invalid shape and permanently
 	 * losing the media relationship on save.
+	 *
+	 * `p:nvPicPr` is the whole test, deliberately: it is the one member
+	 * `CT_Picture` requires and no other shape-tree type has. It must NOT be
+	 * widened to "carries a blip somewhere", because a `<p:sp>` with an
+	 * `<a:blipFill>` in its `p:spPr` is a shape with a picture fill, not a
+	 * picture, and emitting it as `<p:pic>` is the inverse corruption of the
+	 * media case above.
 	 */
 	protected isPictureShape(shape: XmlObject): boolean {
 		return Boolean(shape['p:nvPicPr']);
@@ -282,6 +289,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Write the element's user-visible name back to `p:cNvPr/@name`.
+	 *
+	 * Without this a rename is viewer-local: renaming a shape in the Selection
+	 * Pane, saving and reopening brings the old name back, here and in
+	 * PowerPoint. `@_name` used to be written only where brand-new shape XML is
+	 * fabricated, never when patching an existing `p:cNvPr`.
+	 *
+	 * `undefined` means "the model has no opinion", NOT "clear it": several
+	 * element kinds (charts, SmartArt and other graphic frames) parse without
+	 * populating `name` while their markup carries a real one, so blanking on
+	 * `undefined` would wipe the name of every such frame on a plain
+	 * round-trip. An explicit empty string is honoured, and is written as
+	 * `name=""` rather than deleted because `@name` is REQUIRED on
+	 * `CT_NonVisualDrawingProps` (ECMA-376 S20.1.2.2.8) - unlike `@hidden`,
+	 * which is optional and therefore is deleted when false.
+	 */
+	protected applyNameToCnvPr(shape: XmlObject, el: PptxElement): void {
+		if (el.name === undefined) {
+			return;
+		}
+		for (const nvKey of PptxHandlerRuntime.NV_CONTAINERS) {
+			const nv = shape[nvKey] as XmlObject | undefined;
+			const cNvPr = nv?.['p:cNvPr'] as XmlObject | undefined;
+			if (cNvPr) {
+				cNvPr['@_name'] = el.name;
+				return;
+			}
+		}
+	}
+
+	/**
 	 * Write the Selection Pane's hide toggle back to `p:cNvPr/@hidden`.
 	 *
 	 * Without this the flag is viewer-local: hiding a shape, saving and
@@ -328,7 +366,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Group elements
 		if (el.type === 'group') {
-			const grpXml = this.buildGroupShapeXml(el as GroupPptxElement);
+			const grpXml = this.buildGroupShapeXml(el as GroupPptxElement, ctx);
 			if (grpXml) {
 				collectors.groups.push(grpXml);
 			}
@@ -509,9 +547,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.serializeElementActions(shape, el, ctx.resolveHyperlinkRelationshipId);
 		this.serializeShapeLocks(shape, el);
 
-		// Selection Pane visibility. Applied before the template branch below so a
-		// hidden inherited layout/master shape persists too.
+		// Selection Pane visibility and name. Applied before the template branch
+		// below so a hidden or renamed inherited layout/master shape persists too.
 		this.applyHiddenToCnvPr(shape, el);
+		this.applyNameToCnvPr(shape, el);
 
 		// Template elements
 		if (this.isTemplateElementId(el.id)) {
@@ -526,12 +565,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// shape id so animation `p:spTgt/@spid` references bind correctly.
 		this.applyShapeIdToCnvPr(shape, el);
 
-		// Sort into collector
-		if (el.type === 'picture' || el.type === 'image') {
-			collectors.pics.push(shape);
-		} else if (el.type === 'connector') {
+		// Sort into collector.
+		//
+		// Bucketing is driven by the MARKUP of the node about to be emitted, not
+		// by the model's `type` discriminant. Each collector is assigned to one
+		// fixed `p:spTree` tag by the slide writer (`pics` -> `<p:pic>`), and
+		// `rawXml` passthrough means the node already carries the body it was
+		// parsed from, so a mismatch re-labels a node without rewriting its
+		// contents: the tag says `p:pic` while the children are still a shape's.
+		//
+		// `type: 'picture'` does NOT imply `<p:pic>`. `parseShapeWithImageFill`
+		// reports a `<p:sp>` whose `p:spPr` carries an `<a:blipFill>` (a shape
+		// with a picture FILL, e.g. a photo-filled ellipse) as a `picture`
+		// element, because that is what it renders as. Bucketing on the type
+		// alone emitted that shape body under `<p:pic>`, yielding a `CT_Picture`
+		// (S19.3.1.37, sequence `nvPicPr, blipFill, spPr`) that had `p:nvSpPr`
+		// instead of `p:nvPicPr`, no `p:blipFill` at all, and stray `p:style` /
+		// `p:txBody` members that are not part of the type. PowerPoint rejected
+		// the whole package. Picture-ness that comes from a fill does not change
+		// the tag; a genuine `<p:pic>` is identified by its own `p:nvPicPr`,
+		// which `createPictureXml` also emits for SDK-created images.
+		if (el.type === 'connector') {
 			collectors.connectors.push(shape);
-		} else if (el.type === 'media' && this.isPictureShape(shape)) {
+		} else if (this.isPictureShape(shape)) {
 			collectors.pics.push(shape);
 		} else if (this.isGraphicFrameShape(shape)) {
 			collectors.graphicFrames.push(shape);

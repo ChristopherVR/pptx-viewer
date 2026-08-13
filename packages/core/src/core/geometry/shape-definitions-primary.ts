@@ -22,8 +22,10 @@ export const PRIMARY_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
 	{ name: 'roundRect', label: 'Rounded Rectangle', category: 'basic' },
 	{ name: 'ellipse', label: 'Ellipse', category: 'basic' },
 	{ name: 'triangle', label: 'Triangle', category: 'basic' },
+	// `rtTriangle` is the ST_ShapeType spelling; the `rightTriangle` duplicate
+	// that used to follow it is not a schema value and wrote an invalid
+	// `a:prstGeom/@prst` on save.
 	{ name: 'rtTriangle', label: 'Right Triangle', category: 'basic' },
-	{ name: 'rightTriangle', label: 'Right Triangle', category: 'basic' },
 	{ name: 'diamond', label: 'Diamond', category: 'basic' },
 	{ name: 'parallelogram', label: 'Parallelogram', category: 'basic' },
 	{ name: 'trapezoid', label: 'Trapezoid', category: 'basic' },
@@ -33,8 +35,10 @@ export const PRIMARY_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
 	{ name: 'octagon', label: 'Octagon', category: 'basic' },
 	{ name: 'decagon', label: 'Decagon', category: 'basic' },
 	{ name: 'dodecagon', label: 'Dodecagon', category: 'basic' },
-	{ name: 'cross', label: 'Cross', category: 'basic' },
-	{ name: 'plus', label: 'Plus', category: 'basic' },
+	// PowerPoint calls this shape "Cross"; its ST_ShapeType name is `plus`
+	// (`mathPlus` in the Math category is the operator glyph). The separate
+	// `cross` entry that used to sit here is not a schema value.
+	{ name: 'plus', label: 'Cross', category: 'basic' },
 	{ name: 'frame', label: 'Frame', category: 'basic' },
 	{ name: 'halfFrame', label: 'Half Frame', category: 'basic' },
 	{ name: 'corner', label: 'Corner', category: 'basic' },

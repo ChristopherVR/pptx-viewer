@@ -304,7 +304,9 @@ const circularArrow: PresetShapeGeometryDefinition = {
 		// Head triangle vertices.
 		gd('u17', '+- yH 0 vc'),
 		gd('u18', '+- u16 0 hc'),
-		gd('u19', 'at2 u17 u18'),
+		// u17 is the vertical component and u18 the horizontal one, so the
+		// ECMA operand order (`at2 x y` = atan2(y, x)) puts u18 first.
+		gd('u19', 'at2 u18 u17'),
 		gd('u20', '+- u19 cd4 0'),
 		gd('u21', '+- u19 0 cd4'),
 		gd('wtA', 'sin rw3 a3'),
@@ -407,7 +409,9 @@ const leftCircularArrow: PresetShapeGeometryDefinition = {
 		gd('u16', '+- u15 xH 0'),
 		gd('u17', '+- yH 0 vc'),
 		gd('u18', '+- u16 0 hc'),
-		gd('u19', 'at2 u17 u18'),
+		// u17 is the vertical component and u18 the horizontal one, so the
+		// ECMA operand order (`at2 x y` = atan2(y, x)) puts u18 first.
+		gd('u19', 'at2 u18 u17'),
 		gd('u20', '+- u19 cd4 0'),
 		gd('u21', '+- u19 0 cd4'),
 		gd('wtA', 'sin rw3 a3'),

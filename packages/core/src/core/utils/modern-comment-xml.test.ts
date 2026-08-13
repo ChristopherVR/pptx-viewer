@@ -79,6 +79,60 @@ describe('modern PowerPoint comments XML', () => {
 		expect(node['p188:extLst']).toStrictEqual({ 'x:ext': { '@_uri': 'keep' } });
 	});
 
+	it('preserves rich runs and mention metadata when only the text changed', () => {
+		const raw: XmlObject = {
+			'@_created': '2024-01-02T03:04:05.000Z',
+			'p188:mentionLst': {
+				'p188:mention': { '@_mentionpersonName': 'Jane Doe', '@_startIdx': '0', '@_length': '9' },
+			},
+			'p188:txBody': {
+				'a:bodyPr': {},
+				'a:p': {
+					'a:r': [
+						{ 'a:rPr': { '@_b': '1' }, 'a:t': '@Jane Doe' },
+						{ 'a:rPr': {}, 'a:t': ' please review' },
+					],
+				},
+			},
+		};
+		const comment: PptxComment = {
+			id: 'c1',
+			format: 'modern',
+			text: '@Jane Doe please review today',
+			authorId: 'a1',
+			createdAt: '2024-01-02T03:04:05.000Z',
+			rawXml: raw,
+		};
+		const built = buildModernCommentPart([comment], undefined, () => 'a1', 9525);
+		const node = ((built['p188:cmLst'] as XmlObject)['p188:cm'] as XmlObject[])[0];
+		const runs = ((node['p188:txBody'] as XmlObject)['a:p'] as XmlObject)['a:r'] as XmlObject[];
+
+		expect(runs).toHaveLength(2);
+		expect(runs[0]).toStrictEqual({ 'a:rPr': { '@_b': '1' }, 'a:t': '@Jane Doe' });
+		expect(runs[1]['a:t']).toBe(' please review today');
+		expect(node['p188:mentionLst']).toStrictEqual(raw['p188:mentionLst']);
+	});
+
+	it('persists un-resolving a thread and keeps an unparsable created stamp', () => {
+		const comment: PptxComment = {
+			id: 'c1',
+			format: 'modern',
+			text: 'Root',
+			authorId: 'a1',
+			// The shared comment-list toggle flips `resolved` only; `status` is
+			// the stale value carried over from the source part.
+			status: 'resolved',
+			resolved: false,
+			createdAt: 'not a date',
+			rawXml: { '@_created': '0001-01-01T00:00:00' },
+		};
+		const built = buildModernCommentPart([comment], undefined, () => 'a1', 9525);
+		const node = ((built['p188:cmLst'] as XmlObject)['p188:cm'] as XmlObject[])[0];
+
+		expect(node['@_status']).toBe('active');
+		expect(node['@_created']).toBe('0001-01-01T00:00:00');
+	});
+
 	it('round-trips modern author identity and unknown XML', () => {
 		const source: XmlObject = {
 			'x:authorLst': {

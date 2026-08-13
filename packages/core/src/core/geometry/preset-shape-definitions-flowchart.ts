@@ -1,12 +1,14 @@
 /**
  * ECMA-376 ST_ShapeType preset geometry definitions — flowchart family.
  *
- * Mirrors Microsoft's `presetShapeDefinitions.xml` for the 28 `flowChart*`
- * shapes catalogued in ISO/IEC 29500-1 §20.1.10.55. The data here is
- * authored using the same conventions as
- * `preset-shape-definitions-table.ts`; see that module's header comment for
- * the full procedure (each `<a:gd>` is captured verbatim, every `<a:path>`
- * child becomes a `PresetPathCommand`, coordinates are guide-formula tokens).
+ * Mirrors Microsoft's `presetShapeDefinitions.xml` for every `flowChart*`
+ * shape catalogued in ISO/IEC 29500-1 §20.1.10.55 (all 29 of them), plus the
+ * non-spec `flowChartStoredData` alias PowerPoint's UI exposes for
+ * `flowChartOnlineStorage`. The data here is authored using the same
+ * conventions as `preset-shape-definitions-table.ts`; see that module's header
+ * comment for the full procedure (each `<a:gd>` is captured verbatim, every
+ * `<a:path>` child becomes a `PresetPathCommand`, coordinates are
+ * guide-formula tokens).
  *
  * None of the flowchart shapes have an `avLst` (no user adjustments) so all
  * `gdLst` entries are deterministic — the geometry depends only on the
@@ -759,6 +761,73 @@ const flowChartStoredData: PresetShapeGeometryDefinition = {
 	],
 };
 
+// flowChartInputOutput - the "Data" parallelogram. Verbatim transcription of
+// the canonical `presetShapeDefinitions.xml` entry: a single sub-path authored
+// in a 5x5 coordinate space, slanted by one fifth of the width.
+const flowChartInputOutput: PresetShapeGeometryDefinition = {
+	name: 'flowChartInputOutput',
+	gdLst: [gd('x3', '*/ w 2 5'), gd('x4', '*/ w 3 5'), gd('x5', '*/ w 4 5'), gd('x6', '*/ w 9 10')],
+	rect: { l: 'wd5', t: 't', r: 'x5', b: 'b' },
+	pathLst: [
+		{
+			w: 5,
+			h: 5,
+			commands: [
+				{ kind: 'moveTo', x: '0', y: '5' },
+				{ kind: 'lnTo', x: '1', y: '0' },
+				{ kind: 'lnTo', x: '5', y: '0' },
+				{ kind: 'lnTo', x: '4', y: '5' },
+				{ kind: 'close' },
+			],
+		},
+	],
+};
+
+// flowChartOfflineStorage - downward-pointing triangle with a rule across its
+// lower third. Verbatim transcription: a filled unstroked triangle (2x2
+// space), the stroke-only rule (5x5 space), then the stroked triangle outline.
+const flowChartOfflineStorage: PresetShapeGeometryDefinition = {
+	name: 'flowChartOfflineStorage',
+	gdLst: [gd('x4', '*/ w 3 4')],
+	rect: { l: 'wd4', t: 't', r: 'x4', b: 'vc' },
+	pathLst: [
+		{
+			w: 2,
+			h: 2,
+			stroke: false,
+			extrusionOk: false,
+			commands: [
+				{ kind: 'moveTo', x: '0', y: '0' },
+				{ kind: 'lnTo', x: '2', y: '0' },
+				{ kind: 'lnTo', x: '1', y: '2' },
+				{ kind: 'close' },
+			],
+		},
+		{
+			w: 5,
+			h: 5,
+			fill: 'none',
+			extrusionOk: false,
+			commands: [
+				{ kind: 'moveTo', x: '2', y: '4' },
+				{ kind: 'lnTo', x: '3', y: '4' },
+			],
+		},
+		{
+			w: 2,
+			h: 2,
+			fill: 'none',
+			extrusionOk: true,
+			commands: [
+				{ kind: 'moveTo', x: '0', y: '0' },
+				{ kind: 'lnTo', x: '2', y: '0' },
+				{ kind: 'lnTo', x: '1', y: '2' },
+				{ kind: 'close' },
+			],
+		},
+	],
+};
+
 // ---------------------------------------------------------------------------
 // Aggregate
 // ---------------------------------------------------------------------------
@@ -801,4 +870,6 @@ export const FLOWCHART_PRESET_DEFINITIONS: Record<string, PresetShapeGeometryDef
 	flowChartDisplay,
 	flowChartDelay,
 	flowChartStoredData,
+	flowChartInputOutput,
+	flowChartOfflineStorage,
 };

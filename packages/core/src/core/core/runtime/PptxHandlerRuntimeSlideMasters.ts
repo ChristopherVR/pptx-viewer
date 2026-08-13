@@ -1,3 +1,4 @@
+import { EMU_PER_PX } from '../../constants';
 import { XmlObject } from '../../types';
 import type {
 	PptxSlideMaster,
@@ -5,9 +6,11 @@ import type {
 	PptxCustomShow,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxPlaceholderFrame,
 } from '../../types';
 import { parseCustomShows } from '../../utils/presentation-collections';
-import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
+import { resolveSlideLayoutOrder } from '../../utils/slide-layout-order';
+import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
 import { parseMasterColorMap } from './master-color-map';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeDocProperties';
 import { parseHeaderFooterFlags } from './PptxHandlerRuntimeMasterElements';
@@ -32,16 +35,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Extract placeholder type+idx from all shapes in a shape tree.
+	 * Extract placeholder type, idx and frame from all shapes in a shape tree.
+	 *
+	 * The frame is only reported when the shape carries an explicit `a:xfrm`;
+	 * placeholders that inherit their position from the master leave the
+	 * geometry undefined rather than reporting a zero-sized box at the origin.
 	 */
-	protected extractPlaceholderList(
-		spTree: XmlObject | undefined,
-	): Array<{ type: string; idx?: string }> {
+	protected extractPlaceholderList(spTree: XmlObject | undefined): PptxPlaceholderFrame[] {
 		if (!spTree) {
 			return [];
 		}
 		const shapes = this.ensureArray(spTree['p:sp']);
-		const result: Array<{ type: string; idx?: string }> = [];
+		const result: PptxPlaceholderFrame[] = [];
 		for (const sp of shapes) {
 			const ph = xmlPath(sp, 'p:nvSpPr', 'p:nvPr', 'p:ph');
 			if (!ph) {
@@ -49,7 +54,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			const type = (xmlAttr(ph, 'type') ?? 'body').trim();
 			const idx = xmlAttr(ph, 'idx');
-			result.push({ type, idx });
+			const xfrm = xmlPath(sp, 'p:spPr', 'a:xfrm');
+			const off = xmlChild(xfrm, 'a:off');
+			const ext = xmlChild(xfrm, 'a:ext');
+			result.push({
+				type,
+				idx,
+				...toPx('x', xmlAttrNumber(off, 'x')),
+				...toPx('y', xmlAttrNumber(off, 'y')),
+				...toPx('width', xmlAttrNumber(ext, 'cx')),
+				...toPx('height', xmlAttrNumber(ext, 'cy')),
+			});
 		}
 		return result;
 	}
@@ -200,12 +215,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const rels = this.ensureArray(
 						xmlChild(relsData, 'Relationships')?.['Relationship'],
 					) as XmlObject[];
-					for (const rel of rels) {
-						const relType = String(rel['@_Type'] || '');
-						if (relType.includes('/slideLayout')) {
-							layoutPaths.push(this.resolveImagePath(path, String(rel['@_Target'] || '')));
-						}
-					}
+					// Follow the master's own <p:sldLayoutIdLst> rather than the
+					// unordered .rels bag, so the gallery lists layouts in the
+					// order PowerPoint shows them.
+					layoutPaths.push(
+						...resolveSlideLayoutOrder(sldMaster, rels, (target) =>
+							this.resolveImagePath(path, target),
+						),
+					);
 				}
 
 				// Parse layout attributes
@@ -444,4 +461,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 	}
+}
+
+/**
+ * Convert one EMU measurement to a CSS-pixel entry, or to nothing at all when
+ * the attribute was absent or unparseable. Spreading the result keeps the key
+ * off the object entirely rather than setting it to `undefined`, which matters
+ * because callers treat "no geometry" as "inherits from the master".
+ */
+function toPx<K extends 'x' | 'y' | 'width' | 'height'>(
+	key: K,
+	emu: number | undefined,
+): Partial<Record<K, number>> {
+	return emu === undefined ? {} : ({ [key]: emu / EMU_PER_PX } as Record<K, number>);
 }

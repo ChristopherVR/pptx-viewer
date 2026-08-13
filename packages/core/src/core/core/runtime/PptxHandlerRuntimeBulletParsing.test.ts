@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
 import type { PlaceholderTextLevelStyle } from '../../types';
+import { TEXT_AUTONUMBER_SCHEMES, formatAutoNumberMarker } from '../../utils/auto-number-format';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 // Since formatAutoNumber and createBulletInfoFromLevelStyle are protected
 // methods on a deeply chained mixin, we extract and test their logic directly.
@@ -283,5 +285,52 @@ describe('createBulletInfoFromLevelStyle', () => {
 		const result = createBulletInfoFromLevelStyle(style, 0);
 		expect(result).toHaveProperty('char', '-');
 		expect(result).not.toHaveProperty('autoNumType');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Regression coverage against the REAL runtime method (the block above tests a
+// copy of the logic, which cannot catch a drift between the two).
+//
+// `formatAutoNumber` stamps the marker text of the bullet segment the load path
+// inserts. The renderer resolves its own marker from `BulletInfo` and drops
+// that segment only when the two strings agree, so a scheme this method got
+// wrong painted BOTH markers ("一.1. Item"). It now delegates to
+// `formatAutoNumberMarker`, the single implementation `pptx-viewer-shared`
+// re-exports.
+// ---------------------------------------------------------------------------
+
+class BulletRuntime extends PptxHandlerRuntime {
+	public format(autoNumType: string, seqNum: number): string {
+		return this.formatAutoNumber(autoNumType, seqNum);
+	}
+}
+
+describe('formatAutoNumber on the real runtime', () => {
+	const runtime = new BulletRuntime();
+
+	it('formats the East-Asian / Thai / Hindi / Hebrew schemes in their own script', () => {
+		expect(runtime.format('ea1ChsPeriod', 1)).toBe('一. ');
+		expect(runtime.format('ea1ChtPeriod', 3)).toBe('三. ');
+		expect(runtime.format('ea1JpnKorPeriod', 5)).toBe('５. ');
+		expect(runtime.format('thaiNumPeriod', 1)).toBe('๑. ');
+		expect(runtime.format('hindiAlphaPeriod', 1)).toBe('अ. ');
+		expect(runtime.format('hebrew2Minus', 15)).toBe('טו- ');
+		expect(runtime.format('arabic2Minus', 3)).toBe('ج- ');
+	});
+
+	it('agrees with the renderer implementation for every scheme, modulo the trailing space', () => {
+		for (const scheme of TEXT_AUTONUMBER_SCHEMES) {
+			for (const n of [1, 2, 11, 27]) {
+				expect(runtime.format(scheme, n)).toBe(`${formatAutoNumberMarker(scheme, n)} `);
+			}
+		}
+	});
+
+	it('keeps the Latin families it already handled', () => {
+		expect(runtime.format('arabicPeriod', 3)).toBe('3. ');
+		expect(runtime.format('romanUcParenBoth', 4)).toBe('(IV) ');
+		expect(runtime.format('alphaLcPeriod', 2)).toBe('b. ');
+		expect(runtime.format('unknownScheme', 2)).toBe('2. ');
 	});
 });

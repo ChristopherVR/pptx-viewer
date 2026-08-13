@@ -1,5 +1,6 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
+import { isStShapeType, normalizeStShapeType } from './preset-geometry-names';
 import {
 	PRESET_SHAPE_DEFINITIONS,
 	PRESET_SHAPE_CATEGORY_LABELS,
@@ -68,8 +69,17 @@ describe('pRESET_SHAPE_DEFINITIONS', () => {
 		expect(names.has('diamond')).toBeTruthy();
 	});
 
-	it('contains all 195 ECMA-376 preset shape definitions', () => {
-		expect(PRESET_SHAPE_DEFINITIONS).toHaveLength(195);
+	// One entry per ST_ShapeType value, and nothing else: `a:prstGeom/@prst` is
+	// a closed 187-value enumeration, so a picker entry outside it produces a
+	// package PowerPoint refuses to open.
+	it('contains exactly the 187 ECMA-376 ST_ShapeType preset definitions', () => {
+		expect(PRESET_SHAPE_DEFINITIONS).toHaveLength(187);
+		const invalid = PRESET_SHAPE_DEFINITIONS.filter((d) => !isStShapeType(d.name)).map(
+			(d) => d.name,
+		);
+		expect(invalid, `picker offers non-ST_ShapeType names: ${invalid.join(', ')}`).toStrictEqual(
+			[],
+		);
 	});
 
 	it('clip-path values are either undefined or non-empty strings', () => {
@@ -175,14 +185,19 @@ describe('eCMA-376 completeness', () => {
 		expect(names.has('straightConnector1')).toBeTruthy();
 	});
 
-	it('includes plus shape (ECMA-376 alias of cross)', () => {
+	// PowerPoint's "Cross" and "Right Triangle" are the `plus` and `rtTriangle`
+	// presets. The picker used to ALSO offer them under their UI names, which
+	// are not ST_ShapeType values and were written straight into `@prst`.
+	it('offers the cross shape only under its ST_ShapeType name `plus`', () => {
 		expect(names.has('plus')).toBeTruthy();
-		expect(names.has('cross')).toBeTruthy();
+		expect(names.has('cross')).toBeFalsy();
+		expect(normalizeStShapeType('cross')).toBe('plus');
 	});
 
-	it('includes rightTriangle (ECMA-376 alias of rtTriangle)', () => {
-		expect(names.has('rightTriangle')).toBeTruthy();
+	it('offers the right triangle only under its ST_ShapeType name `rtTriangle`', () => {
 		expect(names.has('rtTriangle')).toBeTruthy();
+		expect(names.has('rightTriangle')).toBeFalsy();
+		expect(normalizeStShapeType('rightTriangle')).toBe('rtTriangle');
 	});
 
 	it('includes squareTabs and plaqueTabs', () => {
@@ -329,7 +344,6 @@ describe('eCMA-376 completeness', () => {
 			'rightArrowCallout',
 			'rightBrace',
 			'rightBracket',
-			'rightTriangle',
 			'round1Rect',
 			'round2DiagRect',
 			'round2SameRect',

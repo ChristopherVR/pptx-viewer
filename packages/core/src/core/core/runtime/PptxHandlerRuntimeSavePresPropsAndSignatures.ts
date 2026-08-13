@@ -4,6 +4,7 @@ import { safeResolveZipPath } from '../../utils/safe-path';
 import { DIGITAL_SIGNATURE_ORIGIN_REL_TYPE } from '../../utils/signature-constants';
 import { getSignaturePathsToStrip } from '../../utils/signature-detection';
 import { serializePrintProperties, setPresentationPropertiesChild } from './pptx-print-properties';
+import { rebuildShowProperties } from './pptx-show-properties';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDocumentParts';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -59,77 +60,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'p:presentationPr';
 		let root = (propsData[rootKey] || {}) as XmlObject;
 
-		// Preserve any existing attributes and the `p:extLst` tail, but rebuild
-		// the child sequence in the exact OOXML CT_ShowProperties order:
-		//   attributes, (present|browse|kiosk)?, (sldAll|sldRg|custShow)?,
-		//   penClr?, extLst?
-		// fast-xml-parser serialises keys in insertion order, so any other
-		// order triggers Sch_UnexpectedElementContentExpectingComplex and
-		// PowerPoint's file-corruption / repair dialog on open.
-		const existingShowPr = (root['p:showPr'] || {}) as XmlObject;
-		const rebuiltShowPr: XmlObject = {};
-
-		// 1. Attributes (pass through any existing ones, override from options).
-		for (const key of Object.keys(existingShowPr)) {
-			if (key.startsWith('@_')) {
-				rebuiltShowPr[key] = existingShowPr[key];
-			}
+		// `CT_PresentationProperties` is a fixed sequence
+		//   htmlPubPr?, webPr?, prnPr?, showPr?, clrMru?, extLst?
+		// and fast-xml-parser serialises keys in insertion order, so every child
+		// write has to go through `setPresentationPropertiesChild`. Assigning
+		// `root['p:showPr']` by raw key appended it AFTER an existing
+		// `p:extLst`, which is Sch_UnexpectedElementContentExpectingComplex.
+		const rebuiltShowPr = rebuildShowProperties(
+			root['p:showPr'] as XmlObject | undefined,
+			properties,
+		);
+		if (rebuiltShowPr) {
+			root = setPresentationPropertiesChild(root, 'showPr', rebuiltShowPr);
 		}
-		if (properties.loopContinuously !== undefined) {
-			rebuiltShowPr['@_loop'] = properties.loopContinuously ? '1' : '0';
-		}
-		if (properties.showWithNarration !== undefined) {
-			rebuiltShowPr['@_showNarration'] = properties.showWithNarration ? '1' : '0';
-		}
-		if (properties.showWithAnimation !== undefined) {
-			rebuiltShowPr['@_showAnimation'] = properties.showWithAnimation ? '1' : '0';
-		}
-		if (properties.advanceMode !== undefined) {
-			rebuiltShowPr['@_useTimings'] = properties.advanceMode === 'useTimings' ? '1' : '0';
-		}
-
-		// 2. Show-mode choice: present | browse | kiosk.
-		if (properties.showType === 'browsed') {
-			rebuiltShowPr['p:browse'] = {};
-		} else if (properties.showType === 'kiosk') {
-			const kioskNode: XmlObject = {};
-			if (properties.kioskRestartTime !== undefined && properties.kioskRestartTime > 0) {
-				kioskNode['@_restart'] = String(properties.kioskRestartTime);
-			}
-			rebuiltShowPr['p:kiosk'] = kioskNode;
-		} else {
-			rebuiltShowPr['p:present'] = {};
-		}
-
-		// 3. Slide-range choice: sldAll | sldRg | custShow.
-		if (properties.showSlidesMode === 'range') {
-			rebuiltShowPr['p:sldRg'] = {
-				'@_st': String(properties.showSlidesFrom ?? 1),
-				'@_end': String(properties.showSlidesTo ?? 1),
-			};
-		} else if (properties.showSlidesMode === 'customShow' && properties.showSlidesCustomShowId) {
-			rebuiltShowPr['p:custShow'] = {
-				'@_id': properties.showSlidesCustomShowId,
-			};
-		} else {
-			rebuiltShowPr['p:sldAll'] = {};
-		}
-
-		// 4. Pen colour.
-		if (properties.penColor) {
-			rebuiltShowPr['p:penClr'] = {
-				'a:srgbClr': { '@_val': properties.penColor.replace('#', '') },
-			};
-		} else if (existingShowPr['p:penClr'] !== undefined) {
-			rebuiltShowPr['p:penClr'] = existingShowPr['p:penClr'];
-		}
-
-		// 5. Preserve any existing extLst at the tail.
-		if (existingShowPr['p:extLst'] !== undefined) {
-			rebuiltShowPr['p:extLst'] = existingShowPr['p:extLst'];
-		}
-
-		root['p:showPr'] = rebuiltShowPr;
 
 		if (properties.printProperties === null) {
 			root = setPresentationPropertiesChild(root, 'prnPr', null);
@@ -142,11 +85,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		if (properties.mruColors && properties.mruColors.length > 0) {
-			root['p:clrMru'] = {
+			root = setPresentationPropertiesChild(root, 'clrMru', {
 				'a:srgbClr': properties.mruColors.map((color) => ({
 					'@_val': color.replace('#', ''),
 				})),
-			};
+			});
 		}
 
 		// Grid spacing

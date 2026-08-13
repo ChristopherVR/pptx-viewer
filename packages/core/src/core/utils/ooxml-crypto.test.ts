@@ -412,7 +412,12 @@ describe('encryptPptx / decryptPptx round-trip', () => {
 		expect(new Uint8Array(decrypted).subarray(0, 4)).toStrictEqual(
 			new Uint8Array([0x50, 0x4b, 0x03, 0x04]),
 		);
-	}, 30_000);
+		// The other crypto cases weaken the KDF, but this one cannot: the spin
+		// count is baked into the PowerPoint-authored fixture. Full-strength
+		// derivation over a 2.3 MB package runs ~13s alone and longer when the
+		// suite saturates the machine, so the budget is generous on purpose.
+	}, 120_000);
+
 	it('encrypts and decrypts a buffer with the correct password', async () => {
 		const originalData = createMinimalZipBuffer();
 		const password = 'test-password-123';

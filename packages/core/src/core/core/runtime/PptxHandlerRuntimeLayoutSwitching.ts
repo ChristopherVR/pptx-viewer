@@ -1,16 +1,32 @@
 import { EMU_PER_PX } from '../../constants';
 import { XmlObject, PptxElement } from '../../types';
-import { placeholderStyleFamily } from '../../utils/placeholder-style-family';
+import { cloneXmlObject } from '../../utils/clone-utils';
+import { scorePlaceholderMatch } from '../../utils/placeholder-remap';
+import {
+	createEmptyPlaceholderElement,
+	retargetPlaceholder,
+	setRawXmlTransform,
+} from '../../utils/placeholder-xml';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextEditing';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
+/** A placeholder slot offered by the layout being switched to. */
+interface LayoutPlaceholderSlot {
+	phInfo: PlaceholderInfo;
+	xEmu: number;
+	yEmu: number;
+	cxEmu: number;
+	cyEmu: number;
+	shapeXml: XmlObject;
+}
+
 /**
  * Layout-switching helpers for the PptxHandlerRuntime mixin chain.
  *
- * Provides methods that map slide elements to a new layout's placeholders
- * by type, reposition matched placeholders, remove unmatched ones, and
- * inject empty placeholders that exist only in the target layout.
+ * Provides methods that map slide elements onto a new layout's placeholders,
+ * reposition the matched ones, keep content the new layout has no slot for,
+ * and inject empty placeholders that exist only in the target layout.
  */
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	// ── Placeholder info extraction ─────────────────────────────────────
@@ -68,31 +84,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Extract all placeholders from a layout's `p:spTree`, returning
 	 * their placeholder info and their transform (position/size in EMU).
 	 */
-	protected extractLayoutPlaceholders(layoutXml: XmlObject): Array<{
-		phInfo: PlaceholderInfo;
-		xEmu: number;
-		yEmu: number;
-		cxEmu: number;
-		cyEmu: number;
-		shapeXml: XmlObject;
-	}> {
+	protected extractLayoutPlaceholders(layoutXml: XmlObject): LayoutPlaceholderSlot[] {
 		const spTree = xmlPath(layoutXml, 'p:sldLayout', 'p:cSld', 'p:spTree');
 		if (!spTree) {
 			return [];
 		}
 
-		const result: Array<{
-			phInfo: PlaceholderInfo;
-			xEmu: number;
-			yEmu: number;
-			cxEmu: number;
-			cyEmu: number;
-			shapeXml: XmlObject;
-		}> = [];
+		const result: LayoutPlaceholderSlot[] = [];
 
-		const shapes = this.ensureArray(spTree['p:sp']) as XmlObject[];
+		// Placeholders are usually `p:sp`, but a layout may legitimately anchor
+		// one on a picture or a graphic frame (PowerPoint writes those for
+		// picture-with-caption layouts, and importers emit them freely). Scanning
+		// shapes alone left those slots invisible to the remapper, so content
+		// bound to them was treated as unmatched.
+		const shapes = [
+			...(this.ensureArray(spTree['p:sp']) as XmlObject[]),
+			...(this.ensureArray(spTree['p:pic']) as XmlObject[]),
+			...(this.ensureArray(spTree['p:graphicFrame']) as XmlObject[]),
+		];
 		for (const shape of shapes) {
-			const nvPr = xmlPath(shape, 'p:nvSpPr', 'p:nvPr');
+			const nvPr =
+				xmlPath(shape, 'p:nvSpPr', 'p:nvPr') ??
+				xmlPath(shape, 'p:nvPicPr', 'p:nvPr') ??
+				xmlPath(shape, 'p:nvGraphicFramePr', 'p:nvPr');
 			const phInfo = this.readPlaceholderInfoFromNvPr(nvPr);
 			if (!phInfo) {
 				continue;
@@ -115,27 +129,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return result;
 	}
 
-	// ── Placeholder matching key ────────────────────────────────────────
-
-	/**
-	 * Build a matching key for a placeholder. Placeholders match primarily
-	 * by the style family they belong to (so a `ctrTitle` slide placeholder can
-	 * take the target layout's `title` slot, and `obj` can take `body`'s). When
-	 * both carry an idx, the idx must also match.
-	 */
-	protected buildPlaceholderMatchKey(phInfo: PlaceholderInfo): string {
-		const family = placeholderStyleFamily(phInfo.type);
-		return phInfo.idx !== undefined ? `${family}:${phInfo.idx}` : family;
-	}
-
 	// ── Core layout switching logic ─────────────────────────────────────
 
 	/**
 	 * Re-map slide elements to a new layout's placeholders.
 	 *
-	 * - Placeholder elements whose type matches a new-layout placeholder
-	 *   get their position/size updated to the new layout's values.
-	 * - Placeholder elements with no match in the new layout are removed.
+	 * - Placeholder elements are moved into the best-scoring free placeholder
+	 *   of the new layout and adopt its position, size and `p:ph` identity.
+	 * - Placeholder elements the new layout has no slot for are kept as
+	 *   free-standing content, which is what PowerPoint does; discarding them
+	 *   silently destroyed the user's text and pictures.
 	 * - New-layout placeholders with no matching slide element produce
 	 *   empty text elements that are appended to the slide.
 	 * - Non-placeholder elements are left untouched.
@@ -147,25 +150,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		newLayoutXml: XmlObject,
 		newLayoutPath: string,
 	): PptxElement[] {
-		const layoutPlaceholders = this.extractLayoutPlaceholders(newLayoutXml);
-
-		// Build a map from match-key -> layout placeholder info
-		const layoutPhMap = new Map<
-			string,
-			{
-				phInfo: PlaceholderInfo;
-				xEmu: number;
-				yEmu: number;
-				cxEmu: number;
-				cyEmu: number;
-				shapeXml: XmlObject;
-				matched: boolean;
-			}
-		>();
-		for (const lp of layoutPlaceholders) {
-			const key = this.buildPlaceholderMatchKey(lp.phInfo);
-			layoutPhMap.set(key, { ...lp, matched: false });
-		}
+		// Keep the slots in an array rather than a map keyed by match key. A
+		// layout may legally declare several placeholders of one family (two
+		// content boxes, or a body whose idx is omitted alongside one that
+		// carries it), and keying by family collapsed them onto a single entry,
+		// so every slot but the last became unreachable.
+		const targets: Array<LayoutPlaceholderSlot & { matched: boolean }> =
+			this.extractLayoutPlaceholders(newLayoutXml).map((slot) => ({ ...slot, matched: false }));
 
 		const resultElements: PptxElement[] = [];
 
@@ -178,21 +169,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 
-			const matchKey = this.buildPlaceholderMatchKey(phInfo);
-			const layoutPh = layoutPhMap.get(matchKey);
-
-			// Fall back to the first free placeholder of the same family, ignoring
-			// idx. Layouts from different families number their placeholders
-			// independently, so the target layout's body slot is usually idx 1
-			// where the source deck's was idx 14.
-			let resolvedLayoutPh = layoutPh;
-			if (!resolvedLayoutPh) {
-				const family = placeholderStyleFamily(phInfo.type);
-				for (const [, lp] of layoutPhMap.entries()) {
-					if (!lp.matched && placeholderStyleFamily(lp.phInfo.type) === family) {
-						resolvedLayoutPh = lp;
-						break;
-					}
+			// Rank every free slot instead of taking the first compatible one.
+			// Layouts that mix content kinds need this: a picture must claim the
+			// picture frame before the body box, or the deck's prose ends up in
+			// the image slot and vice versa.
+			let resolvedLayoutPh: (typeof targets)[number] | undefined;
+			let bestScore = 0;
+			for (const candidate of targets) {
+				if (candidate.matched) {
+					continue;
+				}
+				const score = scorePlaceholderMatch(element, phInfo, candidate.phInfo);
+				if (score > bestScore) {
+					bestScore = score;
+					resolvedLayoutPh = candidate;
 				}
 			}
 
@@ -200,7 +190,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Matched: update position and size from new layout
 				resolvedLayoutPh.matched = true;
 
-				const updatedElement = { ...element };
+				// Shallow-copying the element shares its rawXml with the pre-switch
+				// model, so writing the new transform into it also rewrote history
+				// entries and the caller's own copy. Clone before mutating.
+				const updatedElement: PptxElement = {
+					...element,
+					rawXml: cloneXmlObject(element.rawXml),
+				};
 				if (resolvedLayoutPh.cxEmu > 0 && resolvedLayoutPh.cyEmu > 0) {
 					updatedElement.x = Math.round(resolvedLayoutPh.xEmu / EMU_PER_PX);
 					updatedElement.y = Math.round(resolvedLayoutPh.yEmu / EMU_PER_PX);
@@ -210,7 +206,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// Update the element's rawXml transform to match
 				if (updatedElement.rawXml && resolvedLayoutPh.cxEmu > 0 && resolvedLayoutPh.cyEmu > 0) {
-					this.updateElementRawXmlTransform(
+					setRawXmlTransform(
 						updatedElement.rawXml,
 						resolvedLayoutPh.xEmu,
 						resolvedLayoutPh.yEmu,
@@ -219,13 +215,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					);
 				}
 
+				// The element now occupies a different slot, so its own `p:ph` has
+				// to name that slot. Leaving the old type/idx behind meant the
+				// saved deck claimed a placeholder the new layout does not define,
+				// and inheritance resolved against the wrong entry on reload.
+				if (updatedElement.rawXml) {
+					retargetPlaceholder(updatedElement.rawXml, resolvedLayoutPh.phInfo);
+				}
+
 				resultElements.push(updatedElement);
+			} else {
+				// No slot for this content in the new layout. PowerPoint keeps it
+				// on the slide as free-standing content rather than deleting it,
+				// and so do we: dropping it silently lost the user's work.
+				resultElements.push(element);
 			}
-			// Else: placeholder has no match in the new layout -- drop it
 		}
 
 		// Add empty placeholders from the new layout that were not matched
-		for (const [, lp] of layoutPhMap) {
+		let slotIndex = 0;
+		for (const lp of targets) {
 			if (lp.matched) {
 				continue;
 			}
@@ -238,13 +247,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Create an empty text element for this placeholder
-			const emptyElement = this.createEmptyPlaceholderElement(
+			const emptyElement = createEmptyPlaceholderElement(
 				lp.phInfo,
 				lp.xEmu,
 				lp.yEmu,
 				lp.cxEmu,
 				lp.cyEmu,
-				newLayoutPath,
+				`${newLayoutPath}-${slotIndex++}-${Date.now()}`,
 			);
 			if (emptyElement) {
 				resultElements.push(emptyElement);
@@ -252,115 +261,5 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return resultElements;
-	}
-
-	// ── rawXml transform update ─────────────────────────────────────────
-
-	/**
-	 * Update the transform (`a:xfrm`) inside an element's rawXml to
-	 * reflect new position and size values in EMU.
-	 */
-	protected updateElementRawXmlTransform(
-		rawXml: XmlObject,
-		xEmu: number,
-		yEmu: number,
-		cxEmu: number,
-		cyEmu: number,
-	): void {
-		// Find spPr in the appropriate container
-		const spPr = rawXml['p:spPr'] as XmlObject | undefined;
-		if (!spPr) {
-			return;
-		}
-
-		let xfrm = spPr['a:xfrm'] as XmlObject | undefined;
-		if (!xfrm) {
-			xfrm = {};
-			spPr['a:xfrm'] = xfrm;
-		}
-
-		let off = xfrm['a:off'] as XmlObject | undefined;
-		if (!off) {
-			off = {};
-			xfrm['a:off'] = off;
-		}
-		off['@_x'] = String(xEmu);
-		off['@_y'] = String(yEmu);
-
-		let ext = xfrm['a:ext'] as XmlObject | undefined;
-		if (!ext) {
-			ext = {};
-			xfrm['a:ext'] = ext;
-		}
-		ext['@_cx'] = String(cxEmu);
-		ext['@_cy'] = String(cyEmu);
-	}
-
-	// ── Empty placeholder creation ──────────────────────────────────────
-
-	/**
-	 * Create a minimal text element representing an empty placeholder
-	 * from the new layout. The element has the correct position/size and
-	 * a `rawXml` with a `p:ph` reference so that the save pipeline
-	 * preserves the placeholder binding.
-	 */
-	protected createEmptyPlaceholderElement(
-		phInfo: PlaceholderInfo,
-		xEmu: number,
-		yEmu: number,
-		cxEmu: number,
-		cyEmu: number,
-		_layoutPath: string,
-	): PptxElement | null {
-		if (cxEmu <= 0 || cyEmu <= 0) {
-			return null;
-		}
-
-		const phNode: XmlObject = {};
-		if (phInfo.type) {
-			phNode['@_type'] = phInfo.type;
-		}
-		if (phInfo.idx !== undefined) {
-			phNode['@_idx'] = phInfo.idx;
-		}
-
-		const rawXml: XmlObject = {
-			'p:nvSpPr': {
-				'p:cNvPr': {
-					'@_id': String(Date.now() + Math.floor(Math.random() * 10000)),
-					'@_name': `Placeholder ${phInfo.type || 'content'}`,
-				},
-				'p:cNvSpPr': {
-					'a:spLocks': { '@_noGrp': '1' },
-				},
-				'p:nvPr': {
-					'p:ph': phNode,
-				},
-			},
-			'p:spPr': {
-				'a:xfrm': {
-					'a:off': { '@_x': String(xEmu), '@_y': String(yEmu) },
-					'a:ext': { '@_cx': String(cxEmu), '@_cy': String(cyEmu) },
-				},
-			},
-			'p:txBody': {
-				'a:bodyPr': {},
-				'a:lstStyle': {},
-				'a:p': { 'a:endParaRPr': { '@_lang': 'en-US' } },
-			},
-		};
-
-		const element: PptxElement = {
-			type: 'text' as const,
-			id: `ph-${phInfo.type || 'content'}-${phInfo.idx || '0'}-${Date.now()}`,
-			x: Math.round(xEmu / EMU_PER_PX),
-			y: Math.round(yEmu / EMU_PER_PX),
-			width: Math.round(cxEmu / EMU_PER_PX),
-			height: Math.round(cyEmu / EMU_PER_PX),
-			text: '',
-			rawXml,
-		};
-
-		return element;
 	}
 }

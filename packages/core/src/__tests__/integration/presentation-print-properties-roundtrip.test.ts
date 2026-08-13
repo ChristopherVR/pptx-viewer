@@ -48,7 +48,19 @@ describe('presentationML print properties integration', () => {
 		expect(savedXml).toContain('scaleToFitPaper="1" vendor="keep"');
 		expect(savedXml).not.toContain('frameSlides=');
 		expect(savedXml).toContain('<q:extLst><q:ext uri="urn:test"></q:ext></q:extLst>');
-		expect(savedXml.indexOf('<q:prnPr')).toBeLessThan(savedXml.indexOf('<p:showPr'));
+		// Editing print settings alone must not fabricate a `p:showPr` the source
+		// never had; when one IS requested it still follows `p:prnPr` per
+		// CT_PresentationProperties.
+		expect(savedXml).not.toContain('showPr');
+		const withShow = await handler.save(data.slides, {
+			presentationProperties: { ...data.presentationProperties, showType: 'browsed' },
+		});
+		const withShowXml = await (
+			await JSZip.loadAsync(withShow)
+		)
+			.file('ppt/presProps.xml')!
+			.async('string');
+		expect(withShowXml.indexOf('<q:prnPr')).toBeLessThan(withShowXml.indexOf('<p:showPr'));
 
 		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
 		expect(reloaded.presentationProperties!.printProperties).toMatchObject({

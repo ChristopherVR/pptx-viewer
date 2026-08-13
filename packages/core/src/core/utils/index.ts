@@ -50,6 +50,11 @@ export {
 } from './stroke-utils';
 
 export { ooxmlGradientAngleToCssDegrees, cssDegreesToOoxmlGradientAngle } from './gradient-angle';
+export {
+	normalizePositiveFixedAngleDegrees,
+	positiveFixedAngleAttribute,
+	shadowOffsetToDistanceAndDirection,
+} from './positive-fixed-angle';
 
 export { parseDataUrlToBytes, fetchUrlToBytes } from './data-url-utils';
 export { buildInkMlContent, parseInkMlContent } from './inkml-content-part';
@@ -473,3 +478,28 @@ export { parseDrawingLineDash, applyDrawingLineDash } from './drawing-line-dash'
 export { extractStyleReferenceColorXml, withThemePlaceholderColor } from './theme-style-reference';
 
 export { deriveSlideTitle, deriveSlideTitles } from './slide-title';
+
+// Auto-numbered bullet markers (`ST_TextAutonumberScheme`). The single copy:
+// the load path stamps the marker onto the parsed segment and
+// `pptx-viewer-shared` re-exports these for the render layer, so the two can
+// never disagree and paint a double marker.
+export {
+	formatAutoNumberMarker,
+	romanNumeral,
+	alphaLabel,
+	TEXT_AUTONUMBER_SCHEMES,
+} from './auto-number-format';
+export {
+	formatScriptAutoNumber,
+	bijectiveLabel,
+	toChineseNumeral,
+	toHebrewNumeral,
+	toArabicAbjadNumeral,
+	toDevanagariDigits,
+	toThaiDigits,
+	toFullWidthDigits,
+	HINDI_VOWELS,
+	HINDI_CONSONANTS,
+	THAI_CONSONANTS,
+	ARABIC_HIJAI_LETTERS,
+} from './auto-number-scripts';

@@ -1,4 +1,6 @@
 import type { PptxChartAxisFormatting, PptxChartTickMark, XmlObject } from '../types';
+import type { ChartPercentUnionRange } from './chart-percent-union-value';
+import { chartPercentUnionValue } from './chart-percent-union-value';
 
 type LocalName = (key: string) => string;
 type AxisLabels = Pick<
@@ -57,6 +59,7 @@ const LABEL_ALIGNMENTS = new Set<string>(['ctr', 'l', 'r']);
 const AXIS_POSITIONS = new Set(['b', 'l', 'r', 't']);
 const CROSSING_MODES = new Set(['autoZero', 'min', 'max']);
 const CROSS_BETWEEN_MODES = new Set(['between', 'midCat']);
+const LABEL_OFFSET_RANGE: ChartPercentUnionRange = { name: 'labelOffset', min: 0, max: 1000 };
 
 function findKey(node: XmlObject, name: string, localName: LocalName): string | undefined {
 	return Object.keys(node).find((key) => localName(key) === name);
@@ -216,14 +219,10 @@ export function applyChartAxisLabelFormatting(
 			upsertOrdered(node, 'auto', { '@_val': formatting.auto ? '1' : '0' }, localName);
 		}
 		if (formatting.labelOffset !== undefined) {
-			if (
-				!Number.isFinite(formatting.labelOffset) ||
-				formatting.labelOffset < 0 ||
-				formatting.labelOffset > 1000
-			) {
-				throw new RangeError('labelOffset must be between 0 and 1000');
-			}
-			upsertOrdered(node, 'lblOffset', { '@_val': `${formatting.labelOffset}%` }, localName);
+			// ST_LblOffset is a union whose percent member PowerPoint rejects
+			// outright; see chart-percent-union-value.ts for the COM evidence.
+			const offset = chartPercentUnionValue(formatting.labelOffset, LABEL_OFFSET_RANGE);
+			upsertOrdered(node, 'lblOffset', { '@_val': offset }, localName);
 		}
 		for (const [name, value] of [
 			['tickLblSkip', formatting.tickLabelSkip],

@@ -4,9 +4,25 @@ import type {
 	InkPptxElement,
 	GroupPptxElement,
 	OlePptxElement,
+	PptxElement,
 	TablePptxElement,
 } from '../../types';
+import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElements';
+import type { SlideShapeCollectors } from './PptxHandlerRuntimeSaveElementWriter';
+import {
+	createGroupChildCollectors,
+	pickGroupChildFromCollectors,
+} from './save-group-child-collectors';
+import type { GroupChildEntry } from './save-group-shape-xml';
+import {
+	appendGroupChildren,
+	applyGroupChildTransform,
+	buildGroupNonVisualXml,
+	buildGroupPropertiesXml,
+	buildGroupTransformXml,
+	classifyGroupChildTag,
+} from './save-group-shape-xml';
 
 /** Relationship type for chart parts. */
 export const CHART_RELATIONSHIP_TYPE =
@@ -40,6 +56,23 @@ const IMAGE_RELATIONSHIP_TYPE =
  * URI for OLE objects in `<a:graphicData>`.
  */
 const OLE_GRAPHIC_DATA_URI = 'http://schemas.openxmlformats.org/presentationml/2006/ole';
+
+/** The save context a group child needs to serialise like a top-level shape. */
+export type GroupChildSaveContext = SaveSlideContext;
+
+/**
+ * Structural view of the element writer that lives further down the mixin
+ * chain. `buildGroupShapeXml` is defined in an ancestor mixin, so
+ * `processSlideElement` is present at runtime but not in this class's static
+ * type; this interface names the one method needed without widening to `any`.
+ */
+interface GroupChildElementWriter {
+	processSlideElement(
+		el: PptxElement,
+		collectors: SlideShapeCollectors,
+		ctx: GroupChildSaveContext,
+	): void;
+}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -120,14 +153,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				'a:ext': { '@_cx': extCx, '@_cy': extCy },
 			},
 			'a:graphic': {
-				'a:graphicData': {
-					'@_uri': extended ? CHART_EX_GRAPHIC_DATA_URI : CHART_GRAPHIC_DATA_URI,
-					'c:chart': {
-						'@_xmlns:c': CHART_NS_C,
-						'@_xmlns:r': CHART_NS_R,
-						'@_r:id': relId,
-					},
-				},
+				// A ChartEx (2014 chartex) frame's payload element is
+				// `<cx:chart>` in the chartex namespace, NOT the 2006
+				// DrawingML `<c:chart>`. Emitting `c:chart` under the chartex
+				// URI produced a graphic frame PowerPoint cannot resolve; it
+				// only round-tripped here because the load-side classifier
+				// matched the raw `c:chart` key.
+				'a:graphicData': extended
+					? {
+							'@_uri': CHART_EX_GRAPHIC_DATA_URI,
+							'cx:chart': {
+								'@_xmlns:cx': CHART_EX_GRAPHIC_DATA_URI,
+								'@_xmlns:r': CHART_NS_R,
+								'@_r:id': relId,
+							},
+						}
+					: {
+							'@_uri': CHART_GRAPHIC_DATA_URI,
+							'c:chart': {
+								'@_xmlns:c': CHART_NS_C,
+								'@_xmlns:r': CHART_NS_R,
+								'@_r:id': relId,
+							},
+						},
 			},
 		};
 	}
@@ -433,124 +481,130 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Build a p:grpSp XML object from a GroupPptxElement.
-	 * Children are stored with coordinates relative to the group origin.
+	 * Build a `p:grpSp` XML object from a {@link GroupPptxElement}.
+	 *
+	 * Children are stored with coordinates relative to the group origin and
+	 * are routed to the `CT_GroupShape` child tag their markup actually
+	 * requires (see {@link classifyGroupChildTag}). A group loaded from a
+	 * file keeps its original `p:nvGrpSpPr` (so `p:timing`'s `p:spTgt/@spid`
+	 * still resolves) and its original `p:grpSpPr` fill / effects / locks.
 	 */
-	protected buildGroupShapeXml(group: GroupPptxElement): XmlObject | null {
+	protected buildGroupShapeXml(
+		group: GroupPptxElement,
+		ctx?: GroupChildSaveContext,
+	): XmlObject | null {
 		// If the group still has rawXml and children haven't changed, reuse it
 		if (group.rawXml && group.children.length === 0) {
 			return group.rawXml;
 		}
 
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;
-		const offX = Math.round(group.x * EMU);
-		const offY = Math.round(group.y * EMU);
-		const extCx = Math.round(group.width * EMU);
-		const extCy = Math.round(group.height * EMU);
-
-		// Group child coordinate space — same as group extent for user-created groups
-		const chOffX = 0;
-		const chOffY = 0;
-		const chExtCx = extCx;
-		const chExtCy = extCy;
-
-		// Preserve group-level rotation/flip (issue #70). `@_rot` is stored in
-		// 60000ths of a degree (ECMA-376 ST_Angle); flips are boolean "1" flags.
-		const xfrmAttrs: XmlObject = {};
-		if (typeof group.rotation === 'number' && group.rotation !== 0) {
-			xfrmAttrs['@_rot'] = String(Math.round(group.rotation * 60000));
-		}
-		if (group.flipHorizontal) {
-			xfrmAttrs['@_flipH'] = '1';
-		}
-		if (group.flipVertical) {
-			xfrmAttrs['@_flipV'] = '1';
-		}
+		const rawGroupXml = group.rawXml as XmlObject | undefined;
+		const xfrm = buildGroupTransformXml(group, EMU);
 
 		const grpXml: XmlObject = {
-			'p:nvGrpSpPr': {
-				'p:cNvPr': { '@_id': '0', '@_name': group.id },
-				'p:cNvGrpSpPr': {},
-				'p:nvPr': {},
-			},
-			'p:grpSpPr': {
-				'a:xfrm': {
-					...xfrmAttrs,
-					'a:off': {
-						'@_x': String(offX),
-						'@_y': String(offY),
-					},
-					'a:ext': {
-						'@_cx': String(extCx),
-						'@_cy': String(extCy),
-					},
-					'a:chOff': {
-						'@_x': String(chOffX),
-						'@_y': String(chOffY),
-					},
-					'a:chExt': {
-						'@_cx': String(chExtCx),
-						'@_cy': String(chExtCy),
-					},
-				},
-			},
+			'p:nvGrpSpPr': buildGroupNonVisualXml(rawGroupXml, group.name, group.id),
+			'p:grpSpPr': buildGroupPropertiesXml(rawGroupXml, xfrm),
 		};
+		const rawExtLst = rawGroupXml?.['p:extLst'];
+		if (rawExtLst !== undefined) {
+			grpXml['p:extLst'] = rawExtLst;
+		}
 
-		// Categorise children into XML lists
-		const childShapes: XmlObject[] = [];
-		const childPics: XmlObject[] = [];
-		const childConnectors: XmlObject[] = [];
-
+		const entries: GroupChildEntry[] = [];
 		for (const child of group.children) {
-			let xml = child.rawXml as XmlObject | undefined;
-
-			// Create XML for elements that don't have rawXml
-			if (!xml && (child.type === 'text' || child.type === 'shape')) {
-				xml = this.createElementXml(child);
-			}
-			if (!xml && child.type === 'connector') {
-				xml = this.createConnectorXml(child);
-			}
-			if (!xml) {
-				continue;
-			}
-
-			// Update child transform — coordinates are relative to group
-			const childXfrm = ((xml['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] || xml['p:xfrm']) as
-				| XmlObject
-				| undefined;
-			if (childXfrm) {
-				if (!childXfrm['a:off']) {
-					childXfrm['a:off'] = {};
-				}
-				if (!childXfrm['a:ext']) {
-					childXfrm['a:ext'] = {};
-				}
-				(childXfrm['a:off'] as XmlObject)['@_x'] = String(Math.round(child.x * EMU));
-				(childXfrm['a:off'] as XmlObject)['@_y'] = String(Math.round(child.y * EMU));
-				(childXfrm['a:ext'] as XmlObject)['@_cx'] = String(Math.round(child.width * EMU));
-				(childXfrm['a:ext'] as XmlObject)['@_cy'] = String(Math.round(child.height * EMU));
-			}
-
-			if (child.type === 'picture' || child.type === 'image') {
-				childPics.push(xml);
-			} else if (child.type === 'connector') {
-				childConnectors.push(xml);
-			} else {
-				childShapes.push(xml);
+			const entry = ctx
+				? this.serializeGroupChildViaElementWriter(child, ctx)
+				: this.serializeGroupChildFromRawXml(child);
+			if (entry) {
+				entries.push(entry);
 			}
 		}
 
-		if (childShapes.length > 0) {
-			grpXml['p:sp'] = childShapes;
-		}
-		if (childPics.length > 0) {
-			grpXml['p:pic'] = childPics;
-		}
-		if (childConnectors.length > 0) {
-			grpXml['p:cxnSp'] = childConnectors;
-		}
-
+		appendGroupChildren(grpXml, entries);
 		return grpXml;
+	}
+
+	/**
+	 * Serialise one group child through the ordinary element writer, so a
+	 * model-level edit to a shape inside a group (text, fill, stroke, geometry,
+	 * effects, locks, alt text, image crop, re-embedded media) reaches the file
+	 * exactly as it does for a top-level shape.
+	 *
+	 * Nested groups are recursed here rather than handed to the element writer,
+	 * so the save context survives to every nesting depth.
+	 */
+	private serializeGroupChildViaElementWriter(
+		child: GroupPptxElement['children'][number],
+		ctx: GroupChildSaveContext,
+	): GroupChildEntry | null {
+		if (child.type === 'group') {
+			const xml = this.buildGroupShapeXml(child, ctx);
+			if (!xml) {
+				return null;
+			}
+			applyGroupChildTransform(xml, child, PptxHandlerRuntime.EMU_PER_PX);
+			return { tag: 'p:grpSp', xml };
+		}
+		const collectors: SlideShapeCollectors = createGroupChildCollectors();
+		// `processSlideElement` is implemented further down the mixin chain
+		// (`PptxHandlerRuntimeSaveElementWriter`), which is why it is reached
+		// through a structural view rather than `this` directly.
+		(this as unknown as GroupChildElementWriter).processSlideElement(child, collectors, ctx);
+		return pickGroupChildFromCollectors(collectors);
+	}
+
+	/**
+	 * Fallback used when no save context is available: pass the child's own
+	 * markup through and patch only its transform. Preserves everything, but
+	 * cannot pick up model-level edits.
+	 */
+	private serializeGroupChildFromRawXml(
+		child: GroupPptxElement['children'][number],
+	): GroupChildEntry | null {
+		const xml = this.buildGroupChildXml(child);
+		if (!xml) {
+			return null;
+		}
+		applyGroupChildTransform(xml, child, PptxHandlerRuntime.EMU_PER_PX);
+
+		const tag = classifyGroupChildTag(child.type, xml);
+		if (!tag) {
+			// Emitting an unplaceable node under `p:sp` is what produced
+			// schema-invalid packages; skipping one child is recoverable,
+			// a repair prompt on the whole deck is not.
+			this.compatibilityService.reportWarning({
+				code: 'SAVE_GROUP_CHILD_SKIPPED',
+				message: `Group child '${child.id}' (${child.type}) has no valid CT_GroupShape slot and was skipped during save.`,
+				scope: 'save',
+				elementId: child.id,
+			});
+			return null;
+		}
+		return { tag, xml };
+	}
+
+	/** Resolve (or fabricate) the XML node for a single group child. */
+	private buildGroupChildXml(child: GroupPptxElement['children'][number]): XmlObject | undefined {
+		if (child.type === 'group') {
+			return this.buildGroupShapeXml(child) ?? undefined;
+		}
+		const xml = child.rawXml as XmlObject | undefined;
+		if (xml) {
+			return xml;
+		}
+		if (child.type === 'text' || child.type === 'shape') {
+			return this.createElementXml(child);
+		}
+		if (child.type === 'connector') {
+			return this.createConnectorXml(child);
+		}
+		if (child.type === 'ink') {
+			return this.createInkShapeXml(child);
+		}
+		if (child.type === 'table') {
+			return this.createTableGraphicFrameXml(child);
+		}
+		return undefined;
 	}
 }

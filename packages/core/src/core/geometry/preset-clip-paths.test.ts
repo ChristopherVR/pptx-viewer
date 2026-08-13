@@ -699,10 +699,14 @@ describe('shape definitions coverage', () => {
 		expect(ca!.category).toBe('arrows');
 	});
 
-	it('includes flowChartStoredData in shape definitions', () => {
-		const fsd = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === 'flowChartStoredData');
+	// PowerPoint's "Stored Data" is `flowChartOnlineStorage`. The picker used to
+	// carry a second `flowChartStoredData` entry, which is not an ST_ShapeType
+	// value and was written verbatim into `a:prstGeom/@prst`.
+	it('includes flowChartOnlineStorage (PowerPoint "Stored Data") in shape definitions', () => {
+		const fsd = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === 'flowChartOnlineStorage');
 		expect(fsd).toBeDefined();
 		expect(fsd!.category).toBe('flowchart');
+		expect(PRESET_SHAPE_DEFINITIONS.some((d) => d.name === 'flowChartStoredData')).toBeFalsy();
 	});
 
 	it('includes cornerTabs in shape definitions', () => {
@@ -725,11 +729,14 @@ describe('shape definitions coverage', () => {
 		expect(pl).toBeDefined();
 	});
 
-	it('includes plus and rightTriangle in shape definitions', () => {
+	it('includes plus and rtTriangle in shape definitions', () => {
 		const plus = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === 'plus');
-		const rt = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === 'rightTriangle');
+		const rt = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === 'rtTriangle');
 		expect(plus).toBeDefined();
 		expect(rt).toBeDefined();
+		// `cross` / `rightTriangle` are UI labels, not ST_ShapeType values.
+		expect(PRESET_SHAPE_DEFINITIONS.some((d) => d.name === 'cross')).toBeFalsy();
+		expect(PRESET_SHAPE_DEFINITIONS.some((d) => d.name === 'rightTriangle')).toBeFalsy();
 	});
 
 	it('includes straightConnector1 in shape definitions', () => {

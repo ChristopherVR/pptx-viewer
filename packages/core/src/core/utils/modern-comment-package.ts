@@ -3,6 +3,7 @@ import type JSZip from 'jszip';
 
 import type { IPptxSlideRelationshipRegistry } from '../core/builders';
 import type { PptxComment, PptxModernCommentAuthor, PptxSlide, XmlObject } from '../types';
+import { promoteCommentToModern, usesModernCommentFormat } from './comment-thread-format';
 import {
 	buildModernAuthorPart,
 	buildModernCommentPart,
@@ -44,8 +45,13 @@ const relationshipTarget = (slidePath: string, partPath: string): string => {
 	return `${'../'.repeat(source.length)}${target.join('/')}`;
 };
 
+/**
+ * The comments this slide writes to the modern (`p188`) part: the ones already
+ * in that format, plus any legacy comment that grew a reply, which the legacy
+ * `p:cmLst` vocabulary cannot represent.
+ */
 const modernComments = (slide: PptxSlide): PptxComment[] =>
-	(slide.comments || []).filter((comment) => comment.format === 'modern');
+	(slide.comments || []).filter(usesModernCommentFormat).map(promoteCommentToModern);
 
 export interface SaveModernSlideCommentsInput {
 	slide: PptxSlide;

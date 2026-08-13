@@ -89,6 +89,29 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 		expect(style.italic).toBeFalsy();
 	});
 
+	// `@b` / `@i` are ST_Boolean, so "true"/"false" are as legal as "1"/"0".
+	// A literal `=== '1'` test turned the spec-legal `b="true"` into an
+	// EXPLICIT false, which then also suppressed the inherited bold.
+	it('parses @_b="true" / @_i="true" as bold/italic=true', () => {
+		const style = parseRunPropertyAttributes({ '@_b': 'true', '@_i': 'true' });
+		expect(style.bold).toBeTruthy();
+		expect(style.italic).toBeTruthy();
+	});
+
+	it('parses @_b="false" / @_i="false" as an explicit false', () => {
+		const style = parseRunPropertyAttributes({ '@_b': 'false', '@_i': 'false' });
+		expect(style.bold).toBeFalsy();
+		expect(style.bold).toBeDefined();
+		expect(style.italic).toBeFalsy();
+		expect(style.italic).toBeDefined();
+	});
+
+	it('leaves bold/italic unset when the attribute is absent', () => {
+		const style = parseRunPropertyAttributes({ '@_sz': '1800' });
+		expect(style.bold).toBeUndefined();
+		expect(style.italic).toBeUndefined();
+	});
+
 	// ── Underline (all 18 types per ST_TextUnderlineType) ────────────────────
 
 	it('parses @_u="sng" as underline=true, underlineStyle="sng"', () => {

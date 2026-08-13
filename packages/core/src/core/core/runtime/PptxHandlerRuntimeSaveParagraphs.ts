@@ -144,10 +144,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let currentLevel: number | undefined;
 		let currentEndParaRunProperties: Record<string, unknown> | undefined;
 		let currentParagraphProperties: TextStyle | undefined;
-		// #69: track whether this paragraph has taken its metadata yet. A
-		// paragraph-break segment (`\n`) splits and leaves a trailing empty run,
-		// so `currentRuns.length === 0` would miss the metadata on the *next*
-		// paragraph's first segment (dropping its per-paragraph pPr / level).
+		// #69: track whether this paragraph has taken its metadata yet.
+		// `currentRuns.length === 0` cannot stand in for "new paragraph", because
+		// a paragraph-break segment (`\n`) can open one that has no runs yet, and
+		// testing the run count would miss the metadata on the *next* paragraph's
+		// first segment (dropping its per-paragraph pPr / level).
 		let capturedParagraphMeta = false;
 		const pushParagraph = (): void => {
 			if (currentRuns.length === 0) {
@@ -233,8 +234,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				const segmentText = String(segment.text ?? '');
 				const lineParts = segmentText.split('\n');
+				// A paragraph-break segment is the literal "\n", which splits into
+				// two empty halves. Emitting a run for each of them appended one
+				// empty `a:r` to the paragraph that closed AND to the one that
+				// opened; the next load read those back as segments, which emitted
+				// their own empty runs, so the run count grew by one per paragraph
+				// on every save forever. Only a split product that carries text
+				// deserves a run. A paragraph left with none still gets the single
+				// empty run that `pushParagraph` backfills, so genuinely blank
+				// lines keep their `endParaRPr`-sized placeholder.
+				const isSplitProduct = lineParts.length > 1;
 
 				lineParts.forEach((linePart, lineIndex) => {
+					if (isSplitProduct && linePart.length === 0) {
+						if (lineIndex < lineParts.length - 1) {
+							pushParagraph();
+						}
+						return;
+					}
 					if (segment.rubyText !== undefined) {
 						// Ruby segment: emit as a:ruby structure
 						const rubySeg = { ...segment, text: linePart };

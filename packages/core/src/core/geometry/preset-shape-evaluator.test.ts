@@ -168,3 +168,70 @@ describe('getShapeClipPathFromPreset', () => {
 		expect(getShapeClipPathFromPreset(undefined, 100, 100)).toBeUndefined();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// `at2` operand order, observed through real preset geometry
+// ---------------------------------------------------------------------------
+
+/**
+ * `at2 x y` = arctan(y / x) per ISO/IEC 29500-1 section 20.1.9.6. The evaluator
+ * used to compute arctan(x / y), which made every angle derived from an
+ * unequal (x, y) pair the complement of the correct one. The presets below all
+ * carry verbatim spec token streams, so they are the observable symptom: on a
+ * non-square shape the inverted operator collapsed each of them to a fixed
+ * 45-degree construction independent of the aspect ratio.
+ */
+describe('at2 operand order in preset geometry', () => {
+	/** Endpoint coordinates of every draw command in an SVG path. */
+	function points(svg: string): Array<[number, number]> {
+		return [...svg.matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)].map((m) => [
+			Number(m[1]),
+			Number(m[2]),
+		]);
+	}
+
+	// noSmoking's bar runs along `ang = at2 iwd2 ihd2`, the angle of the inner
+	// ellipse's (half-width, half-height) vector. On a 320x120 shape that is a
+	// shallow diagonal; the inverted operator produced |dx| === |dy| instead,
+	// i.e. a 45-degree bar on every aspect ratio.
+	it('noSmoking slashes along the shape aspect, not a fixed 45 degrees', () => {
+		const wide = evaluatePresetShape('noSmoking', 320, 120)!;
+		const barPoints = points(wide.svgPath).slice(-4);
+		const dx = Math.abs(barPoints[1]![0] - barPoints[0]![0]);
+		const dy = Math.abs(barPoints[1]![1] - barPoints[0]![1]);
+		expect(dx).toBeGreaterThan(dy * 3);
+
+		// A square shape is the degenerate case where both conventions agree.
+		const square = evaluatePresetShape('noSmoking', 200, 200)!;
+		const squarePoints = points(square.svgPath).slice(-4);
+		expect(Math.abs(squarePoints[1]![0] - squarePoints[0]![0])).toBeCloseTo(
+			Math.abs(squarePoints[1]![1] - squarePoints[0]![1]),
+			6,
+		);
+	});
+
+	// mathMultiply's bar thickness comes from `a = at2 w h`, so the diagonal
+	// bars of a wide multiply sign must be thinner vertically than horizontally.
+	it('mathMultiply derives its bar offsets from the true diagonal angle', () => {
+		const wide = evaluatePresetShape('mathMultiply', 320, 120)!;
+		const first = points(wide.svgPath);
+		// x1 = l + th*cos(a): on a wide shape cos(a) > sin(a), so the horizontal
+		// inset exceeds the vertical one.
+		const [, y0] = first[0]!;
+		const [x1] = first[1]!;
+		expect(x1).toBeGreaterThan(y0);
+	});
+
+	// wedgeEllipseCallout points its tail at `pang = at2 sdx sdy`; with the
+	// operands inverted the tail base sat on the wrong side of the ellipse.
+	it('wedgeEllipseCallout anchors its tail on the side the target sits on', () => {
+		// Default adj1 is negative (target to the LEFT of centre), so the two
+		// tail-base points must sit left of the ellipse centre.
+		const result = evaluatePresetShape('wedgeEllipseCallout', 200, 200, {
+			adj1: -60000,
+			adj2: 0,
+		})!;
+		const [firstPoint] = points(result.svgPath);
+		expect(firstPoint![0]).toBeLessThan(100);
+	});
+});

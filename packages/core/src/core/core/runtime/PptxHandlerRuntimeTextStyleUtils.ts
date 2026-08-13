@@ -167,7 +167,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			segment.equationXml ||
 			segment.rubyText ||
 			segment.bulletInfo ||
-			segment.paragraphLevel,
+			segment.paragraphLevel ||
+			// The zero-length carrier of an EMPTY paragraph's end properties.
+			// `a:endParaRPr` is what PowerPoint sizes and styles a BLANK line
+			// from, and a body that is one empty paragraph is a single segment,
+			// which "uniform" accepted: the save path then discarded it and
+			// rebuilt the paragraph from the flat text, emitting the bare
+			// `<a:endParaRPr lang="en-US"/>` stub. Deliberately narrow to the
+			// EMPTY carrier - a segment holding real text keeps taking the
+			// flat-string path, which is what lets an edited `element.text`
+			// override stale segments.
+			(segment.text === '' && segment.endParaRunProperties),
 		);
 	}
 

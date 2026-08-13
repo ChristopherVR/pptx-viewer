@@ -13,6 +13,36 @@ import type { PlaceholderTextLevelStyle } from './element-base';
 import type { PptxElement } from './elements';
 
 /**
+ * A placeholder slot declared on a master or layout.
+ *
+ * The geometry fields are in CSS pixels (EMU / {@link EMU_PER_PX}) and are only
+ * present when the shape carried an explicit `a:xfrm`. Placeholders that
+ * inherit their frame from the master leave them undefined, so consumers that
+ * draw placeholder outlines (the layout gallery) must skip those entries
+ * rather than assume a zero-sized box at the origin.
+ *
+ * @example
+ * ```ts
+ * const frame: PptxPlaceholderFrame = { type: "body", idx: "1", x: 63, y: 130 };
+ * // => satisfies PptxPlaceholderFrame
+ * ```
+ */
+export interface PptxPlaceholderFrame {
+	/** `p:ph/@type`, lower-cased by the parser; defaults to `body` when omitted. */
+	type: string;
+	/** `p:ph/@idx`, when present. */
+	idx?: string;
+	/** Left offset in CSS pixels, when the shape declares `a:off`. */
+	x?: number;
+	/** Top offset in CSS pixels, when the shape declares `a:off`. */
+	y?: number;
+	/** Width in CSS pixels, when the shape declares `a:ext`. */
+	width?: number;
+	/** Height in CSS pixels, when the shape declares `a:ext`. */
+	height?: number;
+}
+
+/**
  * Parsed notes master from `ppt/notesMasters/notesMaster1.xml`.
  *
  * @example
@@ -33,10 +63,7 @@ export interface PptxNotesMaster {
 	/** Background image data URL. */
 	backgroundImage?: string;
 	/** Placeholder shapes found on the notes master. */
-	placeholders?: Array<{
-		type: string;
-		idx?: string;
-	}>;
+	placeholders?: PptxPlaceholderFrame[];
 	/** Editable elements on the notes master (header, footer, date, page number, slide image, notes body). */
 	elements?: PptxElement[];
 	/** Header/footer flags from `<p:hf>` on the notes master (P-H3). */
@@ -65,10 +92,7 @@ export interface PptxHandoutMaster {
 	/** Background image data URL. */
 	backgroundImage?: string;
 	/** Placeholder shapes found on the handout master. */
-	placeholders?: Array<{
-		type: string;
-		idx?: string;
-	}>;
+	placeholders?: PptxPlaceholderFrame[];
 	/** Editable elements on the handout master (header, footer, date, page number, slide placeholders). */
 	elements?: PptxElement[];
 	/** Number of slides per page for handout print layout (1, 2, 3, 4, 6, or 9). */
@@ -122,10 +146,7 @@ export interface PptxSlideMaster {
 	/** Layout paths associated with this master. */
 	layoutPaths?: string[];
 	/** Placeholder shapes on the master. */
-	placeholders?: Array<{
-		type: string;
-		idx?: string;
-	}>;
+	placeholders?: PptxPlaceholderFrame[];
 	/** Parsed element shapes on the master slide (for master view rendering). */
 	elements?: PptxElement[];
 	/** Parsed slide layout objects associated with this master. */
@@ -201,10 +222,7 @@ export interface PptxSlideLayout {
 	/** Parsed element shapes on the layout. */
 	elements?: PptxElement[];
 	/** Placeholder shapes on the layout. */
-	placeholders?: Array<{
-		type: string;
-		idx?: string;
-	}>;
+	placeholders?: PptxPlaceholderFrame[];
 	/** Matching name attribute for layout identification (`@matchingName`). */
 	matchingName?: string;
 	/** Whether the layout is marked as preserved (prevent deletion, `@preserve`). */
@@ -217,6 +235,43 @@ export interface PptxSlideLayout {
 	clrMapOverride?: Record<string, string>;
 	/** Header/footer flags from `<p:hf>` on this layout (P-H3). */
 	headerFooter?: PptxHeaderFooterFlags;
+}
+
+/**
+ * Rendered content of a single layout, used to draw gallery thumbnails.
+ *
+ * Produced on demand rather than during load: materialising every layout's
+ * artwork (and decoding its images) up front costs a noticeable amount of time
+ * on decks with many masters, and most sessions never open the layout gallery
+ * at all.
+ *
+ * @example
+ * ```ts
+ * const preview: PptxLayoutPreview = {
+ *   path: "ppt/slideLayouts/slideLayout2.xml",
+ *   width: 960,
+ *   height: 540,
+ *   elements: [],
+ *   placeholders: [{ type: "title" }],
+ * };
+ * // => satisfies PptxLayoutPreview
+ * ```
+ */
+export interface PptxLayoutPreview {
+	/** ZIP path of the layout this preview belongs to. */
+	path: string;
+	/** Slide width in CSS pixels, so a thumbnail can compute its own scale. */
+	width: number;
+	/** Slide height in CSS pixels. */
+	height: number;
+	/** Background resolved from the layout, falling back to its master's. */
+	backgroundColor?: string;
+	/** Background image data URL, when the layout or master declares one. */
+	backgroundImage?: string;
+	/** The layout's own artwork (pictures, shapes and static text). */
+	elements: PptxElement[];
+	/** Placeholder slots, drawn as outlined frames in the gallery. */
+	placeholders: PptxPlaceholderFrame[];
 }
 
 /**

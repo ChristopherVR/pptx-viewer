@@ -5,6 +5,8 @@ import type {
 	XmlObject,
 } from '../types';
 import { MODERN_COMMENT_NAMESPACE } from './modern-comment-constants';
+import { modernCommentCreated, modernCommentStatus } from './modern-comment-fields';
+import { applyModernCommentText } from './modern-comment-text-body';
 
 export * from './modern-comment-constants';
 
@@ -168,19 +170,6 @@ const rawChildrenExcept = (raw: XmlObject | undefined, excluded: Set<string>): X
 	return result;
 };
 
-const isoDate = (value: string | undefined): string => {
-	const parsed = Date.parse(String(value || ''));
-	return Number.isNaN(parsed) ? new Date().toISOString() : new Date(parsed).toISOString();
-};
-
-const textBody = (text: string): XmlObject => ({
-	'a:bodyPr': {},
-	'a:lstStyle': {},
-	'a:p': String(text)
-		.split('\n')
-		.map((line) => ({ 'a:r': { 'a:rPr': {}, 'a:t': line } })),
-});
-
 const buildComment = (
 	comment: PptxComment,
 	resolveAuthorId: (comment: PptxComment) => string,
@@ -188,13 +177,12 @@ const buildComment = (
 	isReply = false,
 ): XmlObject => {
 	const raw = comment.rawXml;
-	const status = comment.status || (comment.resolved ? 'resolved' : 'active');
 	const node: XmlObject = {
 		...copyAttributes(raw),
 		'@_id': comment.id,
 		'@_authorId': resolveAuthorId(comment),
-		'@_status': status,
-		'@_created': isoDate(comment.createdAt),
+		'@_status': modernCommentStatus(comment),
+		'@_created': modernCommentCreated(comment.createdAt, raw?.['@_created']),
 	};
 	for (const [attribute, value] of [
 		['tags', comment.tags?.join(' ')],
@@ -244,11 +232,10 @@ const buildComment = (
 			),
 		};
 	}
-	const originalBody = child(raw, 'txBody');
-	node['p188:txBody'] =
-		originalBody && extractModernCommentText(raw!) === comment.text
-			? originalBody
-			: textBody(comment.text);
+	// Splice the (possibly edited) text into the original body rather than
+	// swapping the whole `txBody`: a whole-body swap destroyed run properties
+	// and the run boundaries an `@`-mention is indexed against on every edit.
+	node['p188:txBody'] = applyModernCommentText(child(raw, 'txBody'), comment.text);
 	const extension = child(raw, 'extLst');
 	if (extension) {
 		node['p188:extLst'] = extension;

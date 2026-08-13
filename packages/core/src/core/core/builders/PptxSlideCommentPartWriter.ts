@@ -3,6 +3,7 @@ import type JSZip from 'jszip';
 
 import type { PptxSlide } from '../../types';
 import type { OoxmlConformanceClass } from '../../utils';
+import { usesModernCommentFormat } from '../../utils/comment-thread-format';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
 import type {
 	IPptxSlideRelationshipRegistry,
@@ -29,8 +30,11 @@ export interface IPptxSlideCommentPartWriter {
 
 export class PptxSlideCommentPartWriter implements IPptxSlideCommentPartWriter {
 	public writeComments(init: PptxSlideCommentPartWriterInput): void {
+		// A comment carrying replies goes to the modern threaded part instead:
+		// legacy `CT_Comment` has no reply model, so writing it here would drop
+		// the thread silently. See `comment-thread-format`.
 		const sanitizedComments = (init.slide.comments || [])
-			.filter((comment) => comment.format !== 'modern')
+			.filter((comment) => !usesModernCommentFormat(comment))
 			.map((comment) => ({
 				...comment,
 				text: String(comment.text || '').trim(),

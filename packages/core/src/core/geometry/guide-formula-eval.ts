@@ -237,11 +237,15 @@ export function evaluateFormula(parsed: ParsedFormula, vars: Map<string, number>
 			return (radians * 180 * ANGLE_SCALE) / Math.PI;
 		}
 
-		// at2 y x — atan2(y, x) result in OOXML angle units (OOXML spec name)
-		// Note: OOXML parameter order is (y, x), matching Math.atan2(y, x)
+		// at2 x y -> arctan(y / x), i.e. Math.atan2(y, x), result in OOXML angle
+		// units. ECMA-376 / ISO-IEC-29500-1 section 20.1.9.6 defines the operand
+		// order as (x, y) with the ARGUMENTS REVERSED relative to Math.atan2, so
+		// the first operand is the horizontal component and the second is the
+		// vertical one. This matches the companion `cat2`/`sat2` operators below,
+		// which take (x, y, z) and compute atan2(z, y).
 		case 'at2':
 		case 'atan2': {
-			const radians = Math.atan2(r(0), r(1));
+			const radians = Math.atan2(r(1), r(0));
 			// Convert radians back to OOXML angle units
 			return (radians * 180 * ANGLE_SCALE) / Math.PI;
 		}

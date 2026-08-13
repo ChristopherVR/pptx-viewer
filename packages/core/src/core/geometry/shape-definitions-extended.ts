@@ -222,22 +222,14 @@ export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
 	},
 	{ name: 'flowChartDisplay', label: 'Display', category: 'flowchart' },
 	{ name: 'flowChartDelay', label: 'Delay', category: 'flowchart' },
-	{ name: 'flowChartData', label: 'Data', category: 'flowchart' },
-	{
-		name: 'flowChartDirectData',
-		label: 'Direct Access Storage',
-		category: 'flowchart',
-	},
-	{
-		name: 'flowChartSequentialAccessStorage',
-		label: 'Sequential Access',
-		category: 'flowchart',
-	},
-	{
-		name: 'flowChartStoredData',
-		label: 'Stored Data',
-		category: 'flowchart',
-	},
+	// PowerPoint's UI names for four presets already listed above under their
+	// ECMA-376 schema names ("Data" = flowChartInputOutput, "Direct Access
+	// Storage" = flowChartMagneticDrum, "Sequential Access" =
+	// flowChartMagneticTape, "Stored Data" = flowChartOnlineStorage). They used
+	// to appear here as separate entries whose `name` is NOT an ST_ShapeType
+	// value, so inserting one and saving wrote an invalid `a:prstGeom/@prst`.
+	// `normalizeStShapeType` still folds the old spellings for any persisted
+	// element that carries one.
 
 	// ── Action Buttons ────────────────────────────────────────────────────
 	{ name: 'actionButtonBlank', label: 'Action: Blank', category: 'action' },
@@ -248,16 +240,10 @@ export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
 		label: 'Action: Information',
 		category: 'action',
 	},
-	{
-		name: 'actionButtonBackOrPrevious',
-		label: 'Action: Back',
-		category: 'action',
-	},
-	{
-		name: 'actionButtonForwardOrNext',
-		label: 'Action: Forward',
-		category: 'action',
-	},
+	// `actionButtonBackOrPrevious` / `actionButtonForwardOrNext` used to sit
+	// here as duplicates of the canonical `actionButtonBackPrevious` /
+	// `actionButtonForwardNext` entries below. Neither "Or" spelling is an
+	// ST_ShapeType value, so they wrote an invalid `@prst` on save.
 	{
 		name: 'actionButtonBeginning',
 		label: 'Action: Beginning',

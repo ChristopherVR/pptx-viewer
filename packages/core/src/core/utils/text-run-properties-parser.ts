@@ -56,12 +56,17 @@ export function parseRunPropertyAttributes(rPr: XmlObject | undefined): TextStyl
 		}
 	}
 
-	// Bold / Italic
-	if (rPr['@_b'] !== undefined) {
-		style.bold = rPr['@_b'] === '1';
+	// Bold / Italic. `ST_Boolean` permits "1", "0", "true" and "false"; a
+	// literal `=== '1'` test read the spec-legal `b="true"` as an EXPLICIT
+	// false, which then also beat the inherited bold. Same tolerant helper as
+	// every other boolean below.
+	const bold = parseBoolAttr(rPr['@_b']);
+	if (bold !== undefined) {
+		style.bold = bold;
 	}
-	if (rPr['@_i'] !== undefined) {
-		style.italic = rPr['@_i'] === '1';
+	const italic = parseBoolAttr(rPr['@_i']);
+	if (italic !== undefined) {
+		style.italic = italic;
 	}
 
 	// Underline

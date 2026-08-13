@@ -21,6 +21,16 @@ import {
 	applyComboSeriesTypesToXml,
 	consolidateComboContainersInXml,
 } from '../../utils/chart-combo-serializer';
+import {
+	chartContainerAllows,
+	chartTypeToContainerLocalName,
+	isKnownChartContainer,
+	normalizeChartContainerChildren,
+	normalizeChartGroupingValue,
+	orderChartContainerChildren,
+	reconcileChartPlotAreaAxes,
+	renameXmlKeyInPlace,
+} from '../../utils/chart-container-schema';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartDataTable } from '../../utils/chart-data-table';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
@@ -229,7 +239,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// series flatten into one index-aligned model list. Consolidate them
 				// back into a single container so the generic per-series update runs
 				// over the full list; the combo split below re-emits per type.
-				consolidateComboContainersInXml(plotArea, (key) =>
+				const consolidation = consolidateComboContainersInXml(plotArea, (key) =>
 					this.compatibilityService.getXmlLocalName(key),
 				);
 
@@ -247,26 +257,43 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 
 				// ── Handle chart type change ──────────────────────────────
+				// Renaming the container is not enough: `CT_PieChart` allows none of
+				// `c:barDir` / `c:gapWidth` / `c:overlap` / `c:axId`, and the axes the
+				// old type referenced are left orphaned under `c:plotArea`. Rebuild the
+				// container against the new content model, keeping what is legal.
 				const expectedXmlTag = this.chartTypeToXmlTag(chartData.chartType);
 				const currentLocalName = this.compatibilityService.getXmlLocalName(chartTypeKey);
+				let containerLocalName = currentLocalName;
 				if (expectedXmlTag && currentLocalName !== expectedXmlTag) {
-					// Move the container to a new key under plotArea
 					const newKey = `c:${expectedXmlTag}`;
-					(plotArea as XmlObject)[newKey] = chartTypeContainer;
-					delete (plotArea as XmlObject)[chartTypeKey];
+					// Rename in place: `CT_PlotArea` sequences chart groups BEFORE axes,
+					// so re-adding the key would push the chart behind `c:catAx`.
+					renameXmlKeyInPlace(plotArea, chartTypeKey, newKey);
 					chartTypeKey = newKey;
+					containerLocalName = expectedXmlTag;
+					normalizeChartContainerChildren(chartTypeContainer, expectedXmlTag, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+					reconcileChartPlotAreaAxes(plotArea, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
 				}
 
-				// Update grouping mode
+				// Update grouping mode (only where the container's CT_* permits it)
 				const groupingKey = Object.keys(chartTypeContainer).find(
 					(key) => this.compatibilityService.getXmlLocalName(key) === 'grouping',
 				);
-				if (chartData.grouping) {
+				const groupingAllowed =
+					!isKnownChartContainer(containerLocalName) ||
+					chartContainerAllows(containerLocalName, 'grouping');
+				if (chartData.grouping && groupingAllowed) {
+					// `clustered` is a member of ST_BarGrouping only; line/area demote it.
+					const grouping = normalizeChartGroupingValue(containerLocalName, chartData.grouping);
 					if (groupingKey) {
-						(chartTypeContainer[groupingKey] as XmlObject)['@_val'] = chartData.grouping;
+						(chartTypeContainer[groupingKey] as XmlObject)['@_val'] = grouping;
 					} else {
 						// Insert grouping element if the chart type supports it
-						chartTypeContainer['c:grouping'] = { '@_val': chartData.grouping };
+						chartTypeContainer['c:grouping'] = { '@_val': grouping };
 					}
 				} else if (groupingKey) {
 					// Remove grouping if it was cleared (e.g. switching to pie)
@@ -445,6 +472,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						chartData.chartType,
 						(key) => this.compatibilityService.getXmlLocalName(key),
 						chartData.axes,
+						consolidation?.containerChildren,
 					);
 				}
 
@@ -672,6 +700,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				}
 
+				// Every chart-group container is a CT_* SEQUENCE, and the mutations
+				// above (new series appended, grouping inserted, ofPie options added)
+				// can land a child out of position. Re-emit each container in schema
+				// order as the last step.
+				for (const key of Object.keys(plotArea)) {
+					const local = this.compatibilityService.getXmlLocalName(key);
+					if (!local.endsWith('Chart')) {
+						continue;
+					}
+					const container = plotArea[key] as XmlObject | undefined;
+					if (container) {
+						orderChartContainerChildren(container, local, (k) =>
+							this.compatibilityService.getXmlLocalName(k),
+						);
+					}
+				}
+
 				// Write updated chart XML back
 				this.zip.file(chartPartPath, this.builder.build(chartXmlData));
 			} catch (e) {
@@ -884,24 +929,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * `c:*Chart` element (e.g. Office 2016+ cx: chart types).
 	 */
 	protected chartTypeToXmlTag(chartType: PptxChartData['chartType']): string | undefined {
-		const map: Partial<Record<PptxChartData['chartType'], string>> = {
-			bar: 'barChart',
-			bar3D: 'bar3DChart',
-			line: 'lineChart',
-			line3D: 'line3DChart',
-			pie: 'pieChart',
-			pie3D: 'pie3DChart',
-			ofPie: 'ofPieChart',
-			doughnut: 'doughnutChart',
-			area: 'areaChart',
-			area3D: 'area3DChart',
-			scatter: 'scatterChart',
-			bubble: 'bubbleChart',
-			radar: 'radarChart',
-			stock: 'stockChart',
-			surface: 'surfaceChart',
-		};
-		return map[chartType];
+		return chartTypeToContainerLocalName(chartType);
 	}
 
 	/**

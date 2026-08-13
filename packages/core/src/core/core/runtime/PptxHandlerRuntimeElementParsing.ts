@@ -6,6 +6,7 @@ import type {
 	PptxTableData,
 } from '../../types';
 import { parseInkMlContent } from '../../utils';
+import { normalizePlaceholderIndex } from '../../utils/placeholder-index';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSavePipeline';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
@@ -250,7 +251,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return {
-			idx: idx !== undefined ? String(idx) : undefined,
+			// `idx="4294967295"` is PowerPoint's unsigned encoding of -1: the
+			// placeholder has no counterpart on the layout. Erasing it here lets
+			// the shape match on `type` instead of chasing an index that cannot
+			// exist, which used to fail the lookup and drop the shape outright.
+			idx: normalizePlaceholderIndex(idx),
 			type: type !== undefined ? String(type).toLowerCase() : undefined,
 			sz: sz !== undefined ? String(sz).toLowerCase() : undefined,
 			orient,

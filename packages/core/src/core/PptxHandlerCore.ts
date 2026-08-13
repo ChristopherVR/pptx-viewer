@@ -13,6 +13,7 @@ import type {
 	PptxElement,
 	PptxExportOptions,
 	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxData,
 	PptxSlide,
 	PptxSmartArtData,
@@ -146,6 +147,32 @@ export class PptxHandlerCore {
 	 */
 	public getLayoutOptions(): PptxLayoutOption[] {
 		return this.runtime.getLayoutOptions();
+	}
+
+	/**
+	 * Build the artwork thumbnails backing the New Slide / Layout galleries.
+	 *
+	 * Parsing happens on first request and is memoised afterwards, so opening
+	 * the gallery costs one pass over the layout parts and reopening it costs
+	 * nothing. Callers that only need one entry should prefer
+	 * {@link getLayoutPreview}.
+	 *
+	 * @param layoutPaths - Restrict the result to these layouts; defaults to
+	 *   every layout in the presentation.
+	 * @returns One {@link PptxLayoutPreview} per resolvable layout.
+	 */
+	public getLayoutPreviews(layoutPaths?: readonly string[]): Promise<PptxLayoutPreview[]> {
+		return this.runtime.getLayoutPreviews(layoutPaths);
+	}
+
+	/**
+	 * Build the artwork thumbnail for a single layout.
+	 *
+	 * @param layoutPath - Archive path of the `p:sldLayout` part.
+	 * @returns The preview, or `null` when the presentation has no such layout.
+	 */
+	public getLayoutPreview(layoutPath: string): Promise<PptxLayoutPreview | null> {
+		return this.runtime.getLayoutPreview(layoutPath);
 	}
 
 	/**

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { evaluateGuides } from './guide-formula-api';
 import { evaluateFormula, parseFormula } from './guide-formula-eval';
+import { ST_SHAPE_TYPE_VALUES } from './preset-geometry-names';
 import { FLOWCHART_PRESET_DEFINITIONS } from './preset-shape-definitions-flowchart';
 import type { PresetShapeGeometryDefinition } from './preset-shape-definitions-table';
 
@@ -34,15 +35,30 @@ const REQUIRED_FLOWCHART_SHAPES = [
 	'flowChartDisplay',
 	'flowChartDelay',
 	'flowChartStoredData',
+	'flowChartInputOutput',
+	'flowChartOfflineStorage',
 ] as const;
 
 describe('flowchart preset shape definitions', () => {
-	it('contains all 28 required flowchart shapes', () => {
+	it('contains all 30 required flowchart shapes', () => {
 		for (const name of REQUIRED_FLOWCHART_SHAPES) {
 			expect(FLOWCHART_PRESET_DEFINITIONS[name], `missing preset ${name}`).toBeDefined();
 		}
-		expect(REQUIRED_FLOWCHART_SHAPES).toHaveLength(28);
-		expect(Object.keys(FLOWCHART_PRESET_DEFINITIONS)).toHaveLength(28);
+		expect(REQUIRED_FLOWCHART_SHAPES).toHaveLength(30);
+		expect(Object.keys(FLOWCHART_PRESET_DEFINITIONS)).toHaveLength(30);
+	});
+
+	// `flowChartInputOutput` (the "Data" parallelogram) and
+	// `flowChartOfflineStorage` are ST_ShapeType values that were missing from
+	// the table entirely, so they fell through to the adjustment-blind polygon
+	// approximations in `preset-shape-clip-paths.ts`.
+	it('covers every flowChart* ST_ShapeType value', () => {
+		const specFlowChartShapes = ST_SHAPE_TYPE_VALUES.filter((n) => n.startsWith('flowChart'));
+		expect(specFlowChartShapes).toHaveLength(29);
+		const missing = specFlowChartShapes.filter(
+			(n) => FLOWCHART_PRESET_DEFINITIONS[n] === undefined,
+		);
+		expect(missing, `missing flowchart presets: ${missing.join(', ')}`).toStrictEqual([]);
 	});
 
 	it('every shape exposes at least one path with at least one command', () => {
