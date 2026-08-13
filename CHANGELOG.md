@@ -10,6 +10,29 @@ dated sections beneath it are generated from
 
 ## 2026-08-13
 
+_Releases: pptx-viewer-core@2.3.6, pptx-react-viewer@2.18.0, pptx-vue-viewer@2.19.0, pptx-vanilla-viewer@1.20.0, pptx-svelte-viewer@2.19.0_
+
+### Features
+
+- **shared:** Own the decisions the bindings were still making apart (by @ChristopherVR) ([2bee9c5](https://github.com/ChristopherVR/pptx-viewer/commit/2bee9c5c1ec731d3f7097983a0c9c739ce95f5a4))
+
+### Bug Fixes
+
+- **core:** Stop save rewriting what the author never wrote (by @ChristopherVR) ([6fb2767](https://github.com/ChristopherVR/pptx-viewer/commit/6fb2767583de0e82747c3700e3311869dd693a1d))
+- **react,vue:** Wire the surfaces that rendered without acting (by @ChristopherVR) ([9eed8a3](https://github.com/ChristopherVR/pptx-viewer/commit/9eed8a37aa42d7e20cee627a6a5a20a0c601b532))
+- **angular,svelte,vanilla:** Close the remaining binding gaps (by @ChristopherVR) ([a7c377c](https://github.com/ChristopherVR/pptx-viewer/commit/a7c377c9d40e174434e6d7801cfc72d0e871a37f))
+- **demos:** Accept every file kind the loader does (by @ChristopherVR) ([b530f6d](https://github.com/ChristopherVR/pptx-viewer/commit/b530f6de906ca59ff764209ddf8bacf20866a374))
+
+### Documentation
+
+- Make the capability claims true in both directions (by @ChristopherVR) ([c469d9f](https://github.com/ChristopherVR/pptx-viewer/commit/c469d9fe50aa7ac9c260ffdc13699385434a3dbd))
+
+### Testing
+
+- **e2e:** Cover the wave-4 surfaces, and the fixtures to prove them (by @ChristopherVR) ([686809b](https://github.com/ChristopherVR/pptx-viewer/commit/686809b727fa3fefab08a5392979dc032c16c8f5))
+
+## 2026-08-13
+
 _Releases: _
 
 ## 2026-08-13

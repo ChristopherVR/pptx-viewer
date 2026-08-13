@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.19.0) - 2026-08-13
+
+### Bug Fixes
+
+- **core:** Stop save rewriting what the author never wrote (by @ChristopherVR) ([6fb2767](https://github.com/ChristopherVR/pptx-viewer/commit/6fb2767583de0e82747c3700e3311869dd693a1d))
+
 ## [2.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.18.0) - 2026-08-13
 
 ## [2.17.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.17.9) - 2026-08-11

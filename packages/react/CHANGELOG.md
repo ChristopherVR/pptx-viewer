@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.18.0) - 2026-08-13
+
+### Bug Fixes
+
+- **core:** Stop save rewriting what the author never wrote (by @ChristopherVR) ([6fb2767](https://github.com/ChristopherVR/pptx-viewer/commit/6fb2767583de0e82747c3700e3311869dd693a1d))
+- **react,vue:** Wire the surfaces that rendered without acting (by @ChristopherVR) ([9eed8a3](https://github.com/ChristopherVR/pptx-viewer/commit/9eed8a37aa42d7e20cee627a6a5a20a0c601b532))
+
 ## [2.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.17.0) - 2026-08-13
 
 ## [2.16.10](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.16.10) - 2026-08-12
