@@ -102,14 +102,18 @@ describe('presentationBuilder metadata escaping', () => {
 			const loaded = await next.load(bytes.buffer as ArrayBuffer);
 			bytes = await next.save(loaded.slides);
 			const parts = await readParts(bytes);
-			// `cp:revision` legitimately increments on every save; nothing else may move.
+			// `cp:revision` increments and `dcterms:modified` is restamped with the
+			// current time on every save; nothing else may move. Both must be
+			// masked, not just the revision: five cycles fit inside one second on
+			// a warm machine and straddle a second boundary on a loaded one, so
+			// masking only the revision passes locally and fails in CI, which is
+			// exactly how this test behaved before.
 			snapshots.push(
 				JSON.stringify({
 					...parts,
-					'docProps/core.xml': parts['docProps/core.xml'].replace(
-						/<cp:revision>\d+<\/cp:revision>/,
-						'',
-					),
+					'docProps/core.xml': parts['docProps/core.xml']
+						.replace(/<cp:revision>\d+<\/cp:revision>/u, '')
+						.replace(/<dcterms:modified[^>]*>[^<]*<\/dcterms:modified>/u, ''),
 				}),
 			);
 			for (const [name, text] of Object.entries(parts)) {
