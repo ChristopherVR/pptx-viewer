@@ -1,5 +1,9 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationConfig, CollaborationTransport } from 'pptx-viewer-shared';
+import type {
+	CollabLoadOrigin,
+	CollaborationConfig,
+	CollaborationTransport,
+} from 'pptx-viewer-shared';
 import { buildBroadcastViewerUrl, shouldAutoFollowBroadcaster } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
@@ -15,6 +19,8 @@ export interface UseCollaborationWiringInput {
 	 * load cannot clobber remotely-synced content.
 	 */
 	loadVersion?: Ref<number>;
+	/** Why the last content load ran; see `shouldRoomSlidesReplaceLoad`. */
+	getLoadOrigin?: () => CollabLoadOrigin;
 	getTemplateElements: () => Record<string, PptxElement[]>;
 	/** Retain the loaded source bytes for elected-writer (role 'owner') write-back. */
 	getSourceBytes: () => Uint8Array | null;
@@ -64,6 +70,7 @@ export function useCollaborationWiring(
 	const {
 		slides,
 		loadVersion,
+		getLoadOrigin,
 		getTemplateElements,
 		getSourceBytes,
 		initialUserColor,
@@ -82,6 +89,7 @@ export function useCollaborationWiring(
 	const collab = useCollaboration({
 		slides,
 		loadVersion,
+		getLoadOrigin,
 		onRemoteSlides: (remote) => {
 			slides.value = remote;
 		},

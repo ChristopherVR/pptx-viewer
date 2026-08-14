@@ -66,6 +66,17 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 		inspector?.setEditable(editingVisible && state.inspectorOpen);
 		ribbon?.setInspectorOpen(state.inspectorOpen);
 
+		// A running show hides the ribbon and the inspector outright
+		// (`.pptxv-presenting` in the stylesheet), so refreshing their contents
+		// on every slide change is work nobody can see - and it is not small:
+		// the selection refresh walks the layout gallery, the font/size/
+		// transition menus and every inspector section. React has no equivalent
+		// cost because it unmounts the editing chrome for the duration. Leaving
+		// the show flips `presenting`, which runs this sync again in full.
+		if (state.presenting) {
+			return;
+		}
+
 		const el = editingVisible ? deps.selectedElement(state) : undefined;
 
 		ribbon?.updateSelection(el, {

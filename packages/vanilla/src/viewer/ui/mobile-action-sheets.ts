@@ -13,14 +13,30 @@ import { createEl } from '../render';
 import { createIcon } from './icons';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
 
+/** Paint one slide at `scale`, the same callback the desktop rail is given. */
+export type MobileThumbnailRenderer = (slide: PptxSlide, scale: number) => HTMLElement;
+
 export interface MobileActionSheets {
 	el: HTMLElement;
 	update(current: number, slides: readonly PptxSlide[], comments: readonly PptxComment[]): void;
+	/**
+	 * Hand the Slides sheet the deck renderer, so it can show the slides
+	 * themselves rather than a list of their titles (which is all it had, and
+	 * nothing like React's thumbnail list).
+	 */
+	setThumbnailRenderer(
+		render: MobileThumbnailRenderer | null,
+		canvasWidth: number,
+		canvasHeight: number,
+	): void;
 	toggle(key: Exclude<MobileSheetKey, null>): void;
 	close(): void;
 	setEditable(editable: boolean): void;
 	setNotesExpanded(expanded: boolean): void;
 }
+
+/** Thumbnail width in the sheet; the rail uses 128px in a narrower column. */
+const MOBILE_THUMB_WIDTH = 148;
 
 export function createMobileActionSheets(
 	doc: Document,
@@ -55,6 +71,9 @@ export function createMobileActionSheets(
 	let comments: readonly PptxComment[] = [];
 	let editable = true;
 	let notesExpanded = false;
+	let renderThumbnail: MobileThumbnailRenderer | null = null;
+	let canvasWidth = 960;
+	let canvasHeight = 540;
 	const inspectorHome = inspector ? doc.createComment('inspector-home') : null;
 	inspector?.parentNode?.insertBefore(inspectorHome!, inspector);
 
@@ -98,11 +117,33 @@ export function createMobileActionSheets(
 		sheetHost.setAttribute('aria-label', title.textContent);
 		if (key === 'slides') {
 			const list = createEl(doc, 'div', 'pptxv-mobile-slide-list');
+			const scale = MOBILE_THUMB_WIDTH / Math.max(canvasWidth, 1);
 			for (let index = 0; index < slides.length; index += 1) {
 				const button = doc.createElement('button');
 				button.type = 'button';
-				button.textContent = slideTitle(slides[index], index);
+				const label = slideTitle(slides[index], index);
+				button.setAttribute('aria-label', label);
 				button.classList.toggle('is-active', index === current);
+				if (index === current) {
+					button.setAttribute('aria-current', 'true');
+				}
+				const number = createEl(doc, 'span', 'pptxv-mobile-slide-num');
+				number.textContent = String(index + 1);
+				button.appendChild(number);
+				if (renderThumbnail) {
+					const frame = createEl(doc, 'span', 'pptxv-mobile-slide-frame', {
+						width: `${MOBILE_THUMB_WIDTH}px`,
+						height: `${Math.round(canvasHeight * scale)}px`,
+					});
+					frame.appendChild(renderThumbnail(slides[index], scale));
+					button.appendChild(frame);
+				} else {
+					// No renderer wired up (a host that never rendered a deck): the
+					// title still names the slide.
+					const caption = createEl(doc, 'span', 'pptxv-mobile-slide-title');
+					caption.textContent = label;
+					button.appendChild(caption);
+				}
 				button.addEventListener('click', () => {
 					onSelectSlide(index);
 					close();
@@ -208,11 +249,12 @@ export function createMobileActionSheets(
 			item.setAttribute('aria-pressed', String(item.dataset.mobileAction === active));
 		}
 	};
+	/** The same five lucide glyphs React's `MobileBottomBar` draws. */
 	const actionIcons = {
-		slides: 'panel-left',
+		slides: 'layers',
 		insert: 'plus',
-		inspector: 'shapes',
-		comments: 'notes',
+		inspector: 'sliders',
+		comments: 'comment',
 		notes: 'sticky-note',
 	} as const;
 	for (const descriptor of buildBarActions({ slideCount: 0 })) {
@@ -278,6 +320,14 @@ export function createMobileActionSheets(
 				render(active);
 			}
 			syncBar();
+		},
+		setThumbnailRenderer(renderer, width, height) {
+			renderThumbnail = renderer;
+			canvasWidth = width;
+			canvasHeight = height;
+			if (active === 'slides') {
+				render(active);
+			}
 		},
 		toggle: openSheet,
 		close,

@@ -141,7 +141,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getOnerror: () => options.onerror,
 		getOnslidechange: () => options.onslidechange,
 		onContentApplied: () => {
-			collab.adoptDocAfterLoad();
+			collab.adoptDocAfterLoad(loader.loadOrigin);
 			// `p:showPr/p:custShow/@id` is authored intent: a deck saved with "Set
 			// Up Slide Show > Custom show" plays that subset. It was parsed and
 			// then ignored, so the radio was decorative. Seeded per load, so a

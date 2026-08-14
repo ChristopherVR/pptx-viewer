@@ -221,6 +221,36 @@ describe('pptxCompatibilityService', () => {
 			vi.restoreAllMocks();
 		});
 
+		it('does not call the markup-compatibility envelope unmodelled', () => {
+			// PowerPoint wraps every 2010+ transition (morph included) in a
+			// slide-root `mc:AlternateContent`, and the reader resolves the
+			// transition out of it. Reporting the envelope as unmodelled logged one
+			// bogus warning per slide per load for markup we do expose.
+			const svc = new PptxCompatibilityService();
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			svc.inspectSlideCompatibility(
+				{
+					'p:sld': {
+						'p:cSld': {},
+						'mc:AlternateContent': {
+							'mc:Choice': {
+								'@_Requires': 'p159',
+								'p:transition': { 'p159:morph': { '@_option': 'byObject' } },
+							},
+							'mc:Fallback': { 'p:transition': { 'p:fade': {} } },
+						},
+					},
+				},
+				'ppt/slides/slide7.xml',
+			);
+			svc.inspectPresentationCompatibility({
+				'p:presentation': { 'p:sldIdLst': {}, 'mc:AlternateContent': {} },
+			});
+
+			expect(svc.getWarnings()).toStrictEqual([]);
+			vi.restoreAllMocks();
+		});
+
 		it('reports unsupported AlternateContent choices with fallback severity', () => {
 			const svc = new PptxCompatibilityService();
 			vi.spyOn(console, 'info').mockImplementation(() => {});

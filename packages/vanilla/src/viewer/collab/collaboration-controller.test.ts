@@ -193,17 +193,38 @@ describe('createCollaborationController', () => {
 		readSlidesFromYDoc.mockReturnValue([slide('room-1')]);
 
 		// The bootstrap load finishes parsing afterwards and commits its deck.
-		collab.beginContentLoad();
+		collab.beginContentLoad('bootstrap');
 		store.set({ slides: [slide('placeholder')] });
 		// Ordering guarantee: the placeholder must not reach the doc before the
 		// adoption check runs.
 		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
 
-		collab.notifyContentLoaded();
+		collab.notifyContentLoaded('bootstrap');
 		// The room content wins over the placeholder deck...
 		expect(store.get().slides).toStrictEqual([slide('room-1')]);
 		// ...and the placeholder deck is never written into the doc.
 		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
+		collab.stop();
+	});
+
+	it('keeps a deck the USER opened mid-session and publishes it to the room', async () => {
+		// Joining a room and then opening a file used to leave the room's starter
+		// deck on screen: the file parsed, was committed, and the adoption check
+		// immediately replaced it with the room's slides. Only a bootstrap load
+		// may lose that argument.
+		const collab = build();
+		await collab.start({ ...webrtcConfig, role: 'collaborator' });
+		capturedSynced?.(); // gate opens
+		reconcileSlidesInYDoc.mockClear();
+		readSlidesFromYDoc.mockReturnValue([slide('room-1')]);
+
+		collab.beginContentLoad('user');
+		store.set({ slides: [slide('opened-by-user')] });
+		collab.notifyContentLoaded('user');
+
+		expect(store.get().slides).toStrictEqual([slide('opened-by-user')]);
+		expect(reconcileSlidesInYDoc).toHaveBeenCalledOnce();
+		expect(reconcileSlidesInYDoc.mock.calls[0][0]).toStrictEqual([slide('opened-by-user')]);
 		collab.stop();
 	});
 
@@ -213,12 +234,12 @@ describe('createCollaborationController', () => {
 		capturedSynced?.(); // gate opens
 		reconcileSlidesInYDoc.mockClear();
 
-		collab.beginContentLoad();
+		collab.beginContentLoad('bootstrap');
 		store.set({ slides: [slide('loaded')] });
 		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
 
 		// Empty doc: this client is the seeder; the suppressed publish runs now.
-		collab.notifyContentLoaded();
+		collab.notifyContentLoaded('bootstrap');
 		expect(reconcileSlidesInYDoc).toHaveBeenCalledOnce();
 		expect(reconcileSlidesInYDoc.mock.calls[0][0]).toStrictEqual([slide('loaded')]);
 		collab.stop();
@@ -228,9 +249,9 @@ describe('createCollaborationController', () => {
 		const collab = build();
 		await collab.start({ ...webrtcConfig, role: 'collaborator' });
 
-		collab.beginContentLoad();
+		collab.beginContentLoad('bootstrap');
 		store.set({ slides: [slide('loaded')] });
-		collab.notifyContentLoaded();
+		collab.notifyContentLoaded('bootstrap');
 		// Gate still closed: nothing may be written yet.
 		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
 

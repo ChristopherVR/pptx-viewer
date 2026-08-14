@@ -18,7 +18,7 @@ import type {
 	PptxThemeOption,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
-import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
+import type { CanvasSize, CollabLoadOrigin, SlideSizeEmu } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
 
 import { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-helpers';
@@ -94,8 +94,16 @@ export class PresentationLoader {
 	#renderToken = 0;
 	#activeBlobUrls: string[] = [];
 
+	/**
+	 * Why the deck now loaded was loaded. A collaboration room may replace the
+	 * host's own `source` (a late joiner's bootstrap) but never a file the user
+	 * opened during the session (`shouldRoomSlidesReplaceLoad`).
+	 */
+	loadOrigin: CollabLoadOrigin = $state('user');
+
 	/** Parse a `.pptx` buffer into reactive viewer state. */
-	async load(raw: Uint8Array | ArrayBuffer): Promise<void> {
+	async load(raw: Uint8Array | ArrayBuffer, origin: CollabLoadOrigin = 'user'): Promise<void> {
+		this.loadOrigin = origin;
 		const token = ++this.#renderToken;
 		const loadBlobUrls: string[] = [];
 

@@ -5,12 +5,18 @@
  * holds no state of its own, only callbacks into the controller's fields.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationConfig, YDocLike, YjsFactories } from 'pptx-viewer-shared';
+import type {
+	CollabLoadOrigin,
+	CollaborationConfig,
+	YDocLike,
+	YjsFactories,
+} from 'pptx-viewer-shared';
 import {
 	LOCAL_SYNC_ORIGIN,
 	observeYDocSlides,
 	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
+	shouldRoomSlidesReplaceLoad,
 } from 'pptx-viewer-shared';
 
 export interface ObserveRemoteDeps {
@@ -37,9 +43,15 @@ export type AdoptDocSlidesDeps = Pick<
  * win; an empty room means this client is the seeder and its loaded deck
  * stands (written into the doc by the normal gated publish path).
  */
-export function adoptDocSlidesAfterLoad(ydoc: YDocLike, deps: AdoptDocSlidesDeps): void {
+export function adoptDocSlidesAfterLoad(
+	ydoc: YDocLike,
+	deps: AdoptDocSlidesDeps,
+	origin: CollabLoadOrigin = 'user',
+): void {
 	const docSlides = readSlidesFromYDoc(ydoc);
-	if (docSlides.length === 0) {
+	// Only a bootstrap deck yields: a file the user opened during the session
+	// is what they asked for, and used to be discarded on the spot.
+	if (!shouldRoomSlidesReplaceLoad(origin, docSlides.length)) {
 		return;
 	}
 	// Bypass the JSON dedupe: point it at the doc content so the publish flush

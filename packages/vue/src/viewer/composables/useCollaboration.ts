@@ -305,6 +305,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 					loadVersion: options.loadVersion,
 					getYDoc: () => currentYDoc,
 					isConnected: () => status.value === 'connected',
+					getLoadOrigin: options.getLoadOrigin,
 					adoptDocSlides: (docSlides) => {
 						applyingRemote = true;
 						options.onRemoteSlides(docSlides);

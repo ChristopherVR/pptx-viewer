@@ -697,6 +697,9 @@ const comments = useCommentsWiring({
 const collaboration = useCollaborationWiring({
 	slides,
 	loadVersion,
+	// A room may replace the host's own deck (a late joiner's bootstrap load),
+	// never one the user opened during the session.
+	getLoadOrigin: () => source.loadOrigin.value,
 	getTemplateElements: () => templateElementsBySlideId.value,
 	// Retain the loaded source bytes for elected-writer (role 'owner') write-back:
 	// the write-back reloads the original file, overlays the live Y.Doc slides,

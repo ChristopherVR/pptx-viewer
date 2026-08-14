@@ -253,7 +253,7 @@ describe('collaborationController', () => {
 			// load pipeline then calls adoptDocAfterLoad synchronously, before
 			// any local-to-doc publish of the placeholder deck can flush.
 			editor.setSlides([slide('placeholder', [shape('p1')])]);
-			collab.adoptDocAfterLoad();
+			collab.adoptDocAfterLoad('bootstrap');
 			flushSync();
 
 			// The room's slides win locally and the placeholder never reaches the doc.
@@ -280,7 +280,7 @@ describe('collaborationController', () => {
 			// Load completes into an empty room: adoption is a no-op and the
 			// normal gated publish path seeds the doc with the loaded deck.
 			editor.setSlides([slide('loaded', [shape('l1')])]);
-			collab.adoptDocAfterLoad();
+			collab.adoptDocAfterLoad('bootstrap');
 			flushSync();
 
 			expect(editor.slides.map((s) => s.id)).toStrictEqual(['loaded']);

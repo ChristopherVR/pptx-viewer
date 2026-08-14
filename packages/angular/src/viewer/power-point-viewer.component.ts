@@ -1741,7 +1741,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				// so the broadcast effect below (which only runs after this effect
 				// completes) sees the adopted deck, never the placeholder, and its
 				// write dedupes against the adopted baseline.
-				this.collab.adoptDocSlidesAfterLoad();
+				// ...but only for the deck the HOST supplied. A file opened from
+				// File > Open (which sets `contentOverride`) is what the user asked
+				// for, and used to be discarded the instant it finished parsing.
+				this.collab.adoptDocSlidesAfterLoad(
+					this.fileIO.contentOverride() === null ? 'bootstrap' : 'user',
+				);
 			});
 		});
 

@@ -67,7 +67,8 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 			// untrack: load()'s synchronous prefix reads loader state (e.g. the
 			// previous handler); without this the effect would re-run, and
 			// re-load, every time a load commits.
-			untrack(() => void deps.loader.load(raw));
+			// The host's own deck: a room that already holds slides outranks it.
+			untrack(() => void deps.loader.load(raw, 'bootstrap'));
 		}
 	});
 

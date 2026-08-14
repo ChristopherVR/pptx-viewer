@@ -8,7 +8,7 @@ import {
 } from 'pptx-viewer-shared';
 import type { InlineTextSelection } from 'pptx-viewer-shared';
 
-import { createEl } from '../render';
+import { createEl, getTextBlockStyle } from '../render';
 import type { OverlayBox } from './selection-overlay';
 
 /**
@@ -115,13 +115,33 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	const fontSize = withText?.textStyle?.fontSize;
 
 	const fontFamily = withText?.textStyle?.fontFamily;
-	const surface = createEl(doc, 'div', 'pptxv-inline-editor', {
+	/**
+	 * The surface is placed in the overlay's own (scaled) space, then given the
+	 * element's SLIDE-space typography and shrunk back onto it with a scale
+	 * transform - the same trick the stage uses, and the reason the block style
+	 * below can be handed over untouched.
+	 *
+	 * Two things were wrong before. The surface was positioned with `left`/`top`
+	 * but nothing ever gave `.pptxv-inline-editor` a `position`, so a static
+	 * block ignored both and the editor opened at the overlay's origin, a whole
+	 * slide away from the words it was editing (the size was right, which is why
+	 * it looked like a stray box rather than a missing one). And it carried only
+	 * the font size and family, so a centred or right-aligned paragraph jumped to
+	 * the left edge the moment editing began, in a different weight and colour.
+	 * `getTextBlockStyle` is what the renderer itself paints with.
+	 */
+	const surface = createEl(doc, 'div', 'pptxv-inline-editor pptxv-inline-text-editor', {
+		// The block style first: it carries the element's own box sizing, which
+		// the editor's geometry then has to win over.
+		...getTextBlockStyle(element),
+		...(typeof fontSize === 'number' ? { fontSize: `${fontSize}px` } : {}),
+		...(fontFamily !== undefined ? { fontFamily } : {}),
 		left: `${box.x * scale}px`,
 		top: `${box.y * scale}px`,
-		width: `${box.width * scale}px`,
-		minHeight: `${box.height * scale}px`,
-		...(typeof fontSize === 'number' ? { fontSize: `${fontSize * scale}px` } : {}),
-		...(fontFamily !== undefined ? { fontFamily } : {}),
+		width: `${box.width}px`,
+		height: `${box.height}px`,
+		transform: `scale(${scale})`,
+		transformOrigin: 'top left',
 	});
 	surface.contentEditable = 'true';
 	surface.spellcheck = options.spellCheck ?? false;

@@ -199,8 +199,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			// deck and instead re-adopt the room's slides when the shared doc
 			// already has content (`this.sessions` is constructed later, hence
 			// the lazy optional access).
-			onContentApplying: () => this.sessions?.beginCollaborationContentLoad(),
-			onContentApplied: () => this.sessions?.notifyCollaborationContentLoaded(),
+			onContentApplying: (origin) => this.sessions?.beginCollaborationContentLoad(origin),
+			onContentApplied: (origin) => this.sessions?.notifyCollaborationContentLoaded(origin),
 		});
 		this.renderer = createRenderController({
 			doc: this.doc,
@@ -448,7 +448,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.setupAiChat();
 
 		if (options.source !== undefined) {
-			void this.loading.load(options.source);
+			// The deck the host mounted with: a room that already has slides
+			// outranks it (late-joiner bootstrap), unlike one opened later.
+			void this.loading.load(options.source, 'bootstrap');
 		}
 		this.connectAudienceRole();
 	}
@@ -1206,7 +1208,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				if (!bytes) {
 					return undefined;
 				}
-				await this.loading.load(bytes);
+				// An audience-view handoff is a bootstrap too: nobody picked this
+				// deck during the session.
+				await this.loading.load(bytes, 'bootstrap');
 				await this.enterPresentation();
 				return undefined;
 			});

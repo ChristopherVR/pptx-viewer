@@ -5,6 +5,7 @@ import {
 	partitionTemplateElements,
 	resolveAuthoredCustomShowId,
 } from 'pptx-viewer-shared';
+import type { CollabLoadOrigin } from 'pptx-viewer-shared';
 
 import type { EditorController } from './editor';
 import type { Translator } from './i18n';
@@ -26,13 +27,18 @@ export interface LoadingControllerDeps {
 	 * about-to-land slides into the shared doc ahead of the adoption check in
 	 * `onContentApplied` (late-joiner bootstrap protection).
 	 */
-	onContentApplying?: () => void;
+	onContentApplying?: (origin: CollabLoadOrigin) => void;
 	/** Called synchronously right after a parsed deck was applied to the store. */
-	onContentApplied?: () => void;
+	onContentApplied?: (origin: CollabLoadOrigin) => void;
 }
 
 export interface LoadingController {
-	load(source: PptxViewerSource): Promise<void>;
+	/**
+	 * @param origin - `bootstrap` for the deck the host mounted the viewer with;
+	 *   `user` (the default) for one opened during the session, which a
+	 *   collaboration room must not silently replace.
+	 */
+	load(source: PptxViewerSource, origin?: CollabLoadOrigin): Promise<void>;
 	/** Dispose the current handler + Blob URLs (before replacing or on destroy). */
 	releaseLoaded(): void;
 	getHandler(): PptxHandler | null;
@@ -60,7 +66,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 		handler = null;
 	}
 
-	async function load(source: PptxViewerSource): Promise<void> {
+	async function load(source: PptxViewerSource, origin: CollabLoadOrigin = 'user'): Promise<void> {
 		const token = ++loadToken;
 		deps.getEditor()?.reset();
 		store.set({ loading: true, error: null });
@@ -76,7 +82,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			handler = loaded.handler;
 			blobUrls = loaded.blobUrls;
 			const partition = partitionTemplateElements(loaded.slides);
-			deps.onContentApplying?.();
+			deps.onContentApplying?.(origin);
 			store.set({
 				slides: partition.slides,
 				sections: loaded.sections,
@@ -127,7 +133,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,
 			});
-			deps.onContentApplied?.();
+			deps.onContentApplied?.(origin);
 			options.onLoad?.({ slideCount: loaded.slides.length, canvasSize: loaded.canvasSize });
 		} catch (error) {
 			if (token !== loadToken) {

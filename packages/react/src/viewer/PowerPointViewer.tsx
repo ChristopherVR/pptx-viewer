@@ -19,7 +19,11 @@ import type { PptxElement, PptxSlide, PptxTheme } from 'pptx-viewer-core';
  * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
  * applications can call `getContent()` to retrieve the current file bytes.
  */
-import type { CollaborationLivePatcher, ViewerSettings } from 'pptx-viewer-shared';
+import type {
+	CollabLoadOrigin,
+	CollaborationLivePatcher,
+	ViewerSettings,
+} from 'pptx-viewer-shared';
 import {
 	applyPreferenceToOptions,
 	buildUserFontFaceStyles,
@@ -250,9 +254,17 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		// Local content state -- synced from incoming prop but may diverge during editing.
 		const [content, setContent] = useState<ArrayBuffer | Uint8Array | null>(incomingContent);
+		/**
+		 * Who chose the deck now loading. A collaboration room may replace the
+		 * host's own deck (a late joiner whose bootstrap parse lands after the
+		 * room's slides) but never a file the user opened during the session,
+		 * which used to vanish the moment it finished parsing.
+		 */
+		const [loadOrigin, setLoadOrigin] = useState<CollabLoadOrigin>('bootstrap');
 		// Re-sync when the parent provides a new content buffer (e.g. file reload).
 		useEffect(() => {
 			setContent(incomingContent);
+			setLoadOrigin('bootstrap');
 		}, [incomingContent]);
 
 		// File ▸ Open: let the host override (`onOpenFile` prop); otherwise fall
@@ -265,6 +277,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			void (async () => {
 				const picked = await openPptxFile();
 				if (picked) {
+					setLoadOrigin('user');
 					setContent(picked.buffer);
 				}
 			})();
@@ -273,6 +286,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			void (async () => {
 				const bytes = await readBackstageRecentFile(key);
 				if (bytes) {
+					setLoadOrigin('user');
 					setContent(bytes);
 				}
 			})();
@@ -1163,6 +1177,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								config={collaboration}
 								content={content}
 								loadVersion={loadVersion}
+								loadOrigin={loadOrigin}
 								livePatcher={state.livePatcher}
 							/>
 							<CollaborationFollowLayer
@@ -1214,6 +1229,7 @@ function CollaborationDocumentSync({
 	config,
 	content,
 	loadVersion,
+	loadOrigin,
 	livePatcher,
 }: {
 	slides: PptxSlide[];
@@ -1222,6 +1238,7 @@ function CollaborationDocumentSync({
 	config?: CollaborationConfig;
 	content: ArrayBuffer | Uint8Array | null;
 	loadVersion: number;
+	loadOrigin: CollabLoadOrigin;
 	livePatcher: CollaborationLivePatcher;
 }) {
 	const collab = useCollaboration();
@@ -1248,6 +1265,7 @@ function CollaborationDocumentSync({
 		config,
 		getSourceBytes,
 		loadVersion,
+		loadOrigin,
 	});
 	// Interim (mid-gesture / mid-typing) writes bypass the slides state, so the
 	// channel needs the doc directly. Dormant unless connected + synced.

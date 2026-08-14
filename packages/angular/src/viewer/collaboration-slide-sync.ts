@@ -11,12 +11,13 @@
 
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { YjsFactories, YTransactionLike } from '../internal/shared';
+import type { CollabLoadOrigin, YjsFactories, YTransactionLike } from '../internal/shared';
 import {
 	createSyncGate,
 	LOCAL_SYNC_ORIGIN,
 	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
+	shouldRoomSlidesReplaceLoad,
 	YDOC_SLIDES_KEY,
 } from '../internal/shared';
 import type { DestroyableYDoc, ProviderLike } from './collaboration-providers';
@@ -145,14 +146,18 @@ export class SlideSyncEngine {
 	 * through `onRemoteSlides` and recorded as the baseline (bypassing the JSON
 	 * dedupe) so the follow-up local broadcast is a no-op. An empty room means
 	 * this client is the seeder. Returns true when the doc was adopted.
+	 *
+	 * Only a BOOTSTRAP deck loses this argument. A file the user opened during
+	 * the session is what they asked for: replacing it left the room's starter
+	 * deck on screen and lost the file entirely (`shouldRoomSlidesReplaceLoad`).
 	 */
-	adoptDocAfterLoad(): boolean {
+	adoptDocAfterLoad(origin: CollabLoadOrigin = 'user'): boolean {
 		const b = this.#binding;
 		if (!b) {
 			return false;
 		}
 		const docSlides = readSlidesFromYDoc(b.ydoc);
-		if (docSlides.length === 0) {
+		if (!shouldRoomSlidesReplaceLoad(origin, docSlides.length)) {
 			return false;
 		}
 		this.#lastSynced = JSON.stringify(docSlides);

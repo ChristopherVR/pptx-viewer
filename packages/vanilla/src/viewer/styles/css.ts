@@ -364,7 +364,13 @@ const CHROME_CSS = `
 	min-width: 0;
 	overflow: auto;
 	display: grid;
-	place-items: center;
+	/*
+	 * Centred across, TOP-aligned down, which is what React's canvas does
+	 * (mx-auto my-4). Centring both ways only looks the same while the slide
+	 * nearly fills the area: on a phone the slide floated in the middle of a
+	 * screen-tall gap while React had it just under the toolbar.
+	 */
+	place-items: start center;
 	padding: 16px;
 	background: var(--pptx-muted);
 }
@@ -418,6 +424,28 @@ const CHROME_CSS = `
 	/* The handle must own its touch gesture (no scroll/zoom stealing). */
 	touch-action: none;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+/*
+ * The contenteditable surface double-click opens over a text element.
+ *
+ * It is mounted in the editor overlay, which is pointer-events: none, so it
+ * has to take pointer events back or a click inside it never reaches the caret.
+ * The position matters just as much: the surface is placed with left/top in
+ * the overlay's space, and without this it laid out statically at the overlay's
+ * origin - the right size, a whole slide away from the text it was editing.
+ * Scoped to the text surface: the table-cell editor shares
+ * .pptxv-inline-editor but is an input stretched inside its own cell.
+ */
+.pptxv-inline-text-editor {
+	position: absolute;
+	z-index: 6;
+	box-sizing: border-box;
+	outline: none;
+	cursor: text;
+	pointer-events: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+	touch-action: none;
 }
 .pptxv-rotate-stem {
 	position: absolute;
@@ -723,7 +751,9 @@ const CHROME_CSS = `
 .pptxv.pptxv-presenting .pptxv-ribbon,
 .pptxv.pptxv-presenting .pptxv-thumbs,
 .pptxv.pptxv-presenting .pptxv-titlebar { display: none; }
-.pptxv.pptxv-presenting .pptxv-viewport { background: #000; padding: 0; }
+/* A show letterboxes the slide in the middle of the black, so the editing
+   canvas's top alignment is overridden back to centred here. */
+.pptxv.pptxv-presenting .pptxv-viewport { background: #000; padding: 0; place-items: center; }
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
 /* A slide show is not a document: dragging across it must not select text the
    way it does on the editing canvas. */

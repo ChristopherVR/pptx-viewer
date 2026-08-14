@@ -13,6 +13,9 @@ export type IconName =
 	| 'fit'
 	| 'play'
 	| 'sidebar'
+	| 'menu'
+	| 'layers'
+	| 'sliders'
 	| 'undo'
 	| 'redo'
 	| 'save'
@@ -281,6 +284,20 @@ const ICON_PATHS: Record<IconName, string[]> = {
 		'M7 21l-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21',
 		'M22 21H7',
 		'M5 11l9 9',
+	],
+	// The mobile chrome's own three: React draws them with lucide's Menu,
+	// Layers and Settings2, so these are those paths.
+	menu: ['M4 6h16', 'M4 12h16', 'M4 18h16'],
+	layers: [
+		'M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z',
+		'M22 17.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65',
+		'M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65',
+	],
+	sliders: [
+		'M20 7h-9',
+		'M14 17H5',
+		'M17 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+		'M7 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
 	],
 	'panel-left': ['M4 4h16v16H4z', 'M9 4v16'],
 	'panel-right': ['M4 4h16v16H4z', 'M15 4v16'],

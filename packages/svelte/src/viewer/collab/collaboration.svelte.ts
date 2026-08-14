@@ -9,6 +9,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
+	CollabLoadOrigin,
 	CollaborationLivePatcher,
 	ConnectionStatus,
 	RemoteCursor,
@@ -143,9 +144,9 @@ export class CollaborationController {
 	 * publish effect can flush the freshly loaded slides into the doc, so a
 	 * late joiner's bootstrap deck never clobbers the room's synced content.
 	 */
-	adoptDocAfterLoad(): void {
+	adoptDocAfterLoad(origin: CollabLoadOrigin = 'user'): void {
 		if (this.#active && this.#ydoc) {
-			adoptDocSlidesAfterLoad(this.#ydoc, this.#remoteDeps());
+			adoptDocSlidesAfterLoad(this.#ydoc, this.#remoteDeps(), origin);
 		}
 	}
 

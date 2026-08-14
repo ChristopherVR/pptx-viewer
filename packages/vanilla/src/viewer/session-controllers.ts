@@ -1,5 +1,10 @@
 import type { PptxHandler } from 'pptx-viewer-core';
-import type { AutosaveActivation, CollaborationConfig, ConnectionStatus } from 'pptx-viewer-shared';
+import type {
+	AutosaveActivation,
+	CollabLoadOrigin,
+	CollaborationConfig,
+	ConnectionStatus,
+} from 'pptx-viewer-shared';
 import { publishLiveInlineText } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from './autosave';
@@ -57,12 +62,13 @@ export interface SessionControllers {
 	 * The load pipeline is about to commit a parsed deck: suppress collaboration
 	 * slide publishing until {@link notifyCollaborationContentLoaded} runs.
 	 */
-	beginCollaborationContentLoad(): void;
+	beginCollaborationContentLoad(origin: CollabLoadOrigin): void;
 	/**
-	 * A content load finished; when the shared doc already has slides, they are
-	 * re-adopted over the just-loaded deck (late-joiner bootstrap protection).
+	 * A content load finished. A BOOTSTRAP deck yields to a room that already
+	 * holds slides (late-joiner protection); a deck the user opened during the
+	 * session is published to the room instead of being thrown away.
 	 */
-	notifyCollaborationContentLoaded(): void;
+	notifyCollaborationContentLoaded(origin: CollabLoadOrigin): void;
 	/** Force an immediate autosave (no-op when autosave is disabled). */
 	autosaveNow(): Promise<void>;
 	/**
@@ -206,8 +212,8 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		},
 		flushCollaborationLivePatch: () => collaboration.livePatcher.flush(),
 		followCollaborationUser: (clientId) => collaboration.followUser(clientId),
-		beginCollaborationContentLoad: () => collaboration.beginContentLoad(),
-		notifyCollaborationContentLoaded: () => collaboration.notifyContentLoaded(),
+		beginCollaborationContentLoad: (origin) => collaboration.beginContentLoad(origin),
+		notifyCollaborationContentLoaded: (origin) => collaboration.notifyContentLoaded(origin),
 		autosaveNow: () => autosave.saveNow(),
 		setAutosaveEnabled(enabled) {
 			// `setEnabled` reports whether the preference was applied at all; a

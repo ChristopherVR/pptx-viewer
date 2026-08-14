@@ -11,12 +11,18 @@
 
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationConfig, YjsFactories, YTransactionLike } from 'pptx-viewer-shared';
+import type {
+	CollabLoadOrigin,
+	CollaborationConfig,
+	YjsFactories,
+	YTransactionLike,
+} from 'pptx-viewer-shared';
 import {
 	reconcileSlidesInYDoc,
 	LOCAL_SYNC_ORIGIN,
 	readSlidesFromYDoc,
 	observeYDocSlides,
+	shouldRoomSlidesReplaceLoad,
 } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
 import type { Doc as YDoc } from 'yjs';
@@ -58,6 +64,13 @@ export interface UseYjsDocumentSyncInput {
 	 * each bump re-adopts the doc's slides when the room has content.
 	 */
 	loadVersion?: number;
+	/**
+	 * Why the last content load ran. Only a `bootstrap` deck (the host's
+	 * `content`) yields to a room that already holds slides; a file the user
+	 * opened mid-session is what they asked for and is published instead
+	 * (`shouldRoomSlidesReplaceLoad`).
+	 */
+	loadOrigin?: CollabLoadOrigin;
 }
 
 export function useYjsDocumentSync({
@@ -70,6 +83,7 @@ export function useYjsDocumentSync({
 	config,
 	getSourceBytes,
 	loadVersion = 0,
+	loadOrigin = 'user',
 }: UseYjsDocumentSyncInput): void {
 	const isApplyingRemoteRef = useRef(false);
 	const lastSyncedRef = useRef('');
@@ -146,7 +160,7 @@ export function useYjsDocumentSync({
 		const docSlides = readSlidesFromYDoc(
 			doc as unknown as Parameters<typeof readSlidesFromYDoc>[0],
 		);
-		if (docSlides.length === 0) {
+		if (!shouldRoomSlidesReplaceLoad(loadOrigin, docSlides.length)) {
 			return;
 		}
 		// Unconditional re-apply: the freshly loaded slides differ from the doc
@@ -161,7 +175,7 @@ export function useYjsDocumentSync({
 		// outbound edits until refocus. The `lastSyncedRef` JSON dedupe already
 		// suppresses the echo, so no deferral is needed.
 		isApplyingRemoteRef.current = false;
-	}, [loadVersion, doc, isConnected, setSlides]);
+	}, [loadVersion, loadOrigin, doc, isConnected, setSlides]);
 
 	// Sync local slide changes -> Y.Doc. Gated on isSynced: until the provider
 	// confirms its initial sync (or the grace period lifts the gate), local

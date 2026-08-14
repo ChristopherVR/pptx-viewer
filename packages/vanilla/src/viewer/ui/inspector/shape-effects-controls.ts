@@ -2,96 +2,96 @@ import type { ShapeStyle } from 'pptx-viewer-core';
 import { SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import { createEl } from '../../render';
+import type { ColorControlHandle, NumberFieldHandle } from '../controls';
+import { makeColorControl, makeNumberField } from '../controls';
 import { createConnectorArrowControls } from './connector-arrow-controls';
+import { makeCheckboxField, makeSelectField } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
-
-const QUICK_STYLES: Array<{ labelKey: string; patch: Partial<ShapeStyle> }> = [
-	{
-		labelKey: 'pptx.shape.quickStyleAccent',
-		patch: { fillColor: '#4472c4', strokeColor: '#2f5597', strokeWidth: 1 },
-	},
-	{
-		labelKey: 'pptx.shape.quickStyleSubtle',
-		patch: { fillColor: '#f2f2f2', strokeColor: '#a6a6a6', strokeWidth: 1 },
-	},
-	{
-		labelKey: 'pptx.shape.quickStyleOutline',
-		patch: { fillColor: 'transparent', strokeColor: '#4472c4', strokeWidth: 2 },
-	},
-	{
-		labelKey: 'pptx.shape.quickStyleDark',
-		patch: { fillColor: '#262626', strokeColor: '#000000', strokeWidth: 1 },
-	},
-];
 
 export interface ShapeEffectsControls {
 	el: HTMLElement;
 	update(state: InspectorState): void;
 }
 
+/**
+ * The shape's outline preset and its effect stack (shadow, glow, soft edges,
+ * reflection), plus the connector arrowhead pickers.
+ *
+ * Every row is built from the panel's own field factories rather than raw
+ * `<label>`/`<input>` pairs. Written by hand they carried no class at all, so
+ * the panel's stylesheet never reached them: the captions and their controls
+ * became loose inline text that wrapped wherever the column ended ("Shadow
+ * Color [swatch] Blur" on one line, its value on the next), and a second,
+ * unstyled copy of the Quick Styles buttons rendered as the bare run
+ * "AccentSubtleOutlineDark". The real gallery is its own section
+ * (`quick-styles-gallery`), so that copy is gone.
+ */
 export function createShapeEffectsControls(
 	doc: Document,
 	t: Translator,
 	handlers: InspectorHandlers,
 ): ShapeEffectsControls {
-	const el = doc.createElement('div');
-	el.className = 'pptxv-inspector-shape-effects';
-	const gallery = doc.createElement('div');
-	for (const style of QUICK_STYLES) {
-		const button = doc.createElement('button');
-		button.type = 'button';
-		button.textContent = t(style.labelKey);
-		button.addEventListener('click', () => handlers.setShapeStyle(style.patch));
-		gallery.appendChild(button);
-	}
-	el.appendChild(gallery);
-	const shapeType = doc.createElement('select');
-	for (const preset of SHAPE_PRESET_DEFS) {
-		const option = doc.createElement('option');
-		option.value = preset.type;
-		option.textContent = t(preset.i18nKey);
-		shapeType.appendChild(option);
-	}
-	shapeType.addEventListener('change', () => handlers.setShapeType(shapeType.value));
-	el.appendChild(shapeType);
-	const field = (label: string, input: HTMLInputElement): void => {
-		const wrapper = doc.createElement('label');
-		wrapper.textContent = label;
-		wrapper.appendChild(input);
-		el.appendChild(wrapper);
+	const el = createEl(doc, 'div', 'pptxv-inspector-shape-effects');
+
+	const shapeType = makeSelectField<string>(doc, {
+		label: t('pptx.shape.type'),
+		options: SHAPE_PRESET_DEFS.map((preset) => ({
+			value: preset.type as string,
+			label: t(preset.i18nKey),
+		})),
+		onChange: (value) => handlers.setShapeType(value),
+	});
+	el.appendChild(shapeType.el);
+
+	/**
+	 * A colour swatch on its own labelled row, the same shape the Fill & Stroke
+	 * rows use: the swatch control carries only a title, so the row supplies the
+	 * visible caption.
+	 */
+	const colorRow = (label: string, key: keyof ShapeStyle, fallback: string): ColorControlHandle => {
+		const row = createEl(doc, 'div', 'pptxv-inspector-row');
+		const caption = createEl(doc, 'span', 'pptxv-inspector-row-label');
+		caption.textContent = label;
+		const control = makeColorControl(
+			doc,
+			{ label, onInput: (value) => handlers.setShapeStyle({ [key]: value }) },
+			fallback,
+		);
+		row.append(caption, control.el);
+		el.appendChild(row);
+		return control;
 	};
-	const number = (label: string, key: keyof ShapeStyle): HTMLInputElement => {
-		const input = doc.createElement('input');
-		input.type = 'number';
-		input.min = '0';
-		input.addEventListener('change', () => handlers.setShapeStyle({ [key]: Number(input.value) }));
-		field(label, input);
-		return input;
+
+	const numberRow = (label: string, key: keyof ShapeStyle): NumberFieldHandle => {
+		const field = makeNumberField(doc, {
+			label,
+			min: 0,
+			onCommit: (value) => handlers.setShapeStyle({ [key]: value }),
+		});
+		el.appendChild(field.el);
+		return field;
 	};
-	const color = (label: string, key: keyof ShapeStyle): HTMLInputElement => {
-		const input = doc.createElement('input');
-		input.type = 'color';
-		input.addEventListener('input', () => handlers.setShapeStyle({ [key]: input.value }));
-		field(label, input);
-		return input;
-	};
-	const shadowColor = color(t('pptx.textEffects.shadowColor'), 'shadowColor');
-	const shadowBlur = number(t('pptx.textEffects.blur'), 'shadowBlur');
-	const shadowDistance = number(t('pptx.shape.shadowDistance'), 'shadowDistance');
-	const glowColor = color(t('pptx.textEffects.glowColor'), 'glowColor');
-	const glowRadius = number(t('pptx.textEffects.glow'), 'glowRadius');
-	const softEdge = number(t('pptx.shape.softEdges'), 'softEdgeRadius');
-	const reflection = doc.createElement('input');
-	reflection.type = 'checkbox';
-	reflection.addEventListener('change', () =>
-		handlers.setShapeStyle({ reflectionStartOpacity: reflection.checked ? 0.5 : undefined }),
-	);
-	field(t('pptx.textEffects.reflection'), reflection);
+
+	const shadowColor = colorRow(t('pptx.textEffects.shadowColor'), 'shadowColor', '#000000');
+	const shadowBlur = numberRow(t('pptx.textEffects.blur'), 'shadowBlur');
+	const shadowDistance = numberRow(t('pptx.shape.shadowDistance'), 'shadowDistance');
+	const glowColor = colorRow(t('pptx.textEffects.glowColor'), 'glowColor', '#ffff00');
+	const glowRadius = numberRow(t('pptx.textEffects.glow'), 'glowRadius');
+	const softEdge = numberRow(t('pptx.shape.softEdges'), 'softEdgeRadius');
+	const reflection = makeCheckboxField(doc, {
+		label: t('pptx.textEffects.reflection'),
+		onChange: (checked) =>
+			handlers.setShapeStyle({ reflectionStartOpacity: checked ? 0.5 : undefined }),
+	});
+	el.appendChild(reflection.el);
+
 	// The six `a:headEnd`/`a:tailEnd` dropdowns are their own card; see
 	// `connector-arrow-controls`.
 	const arrows = createConnectorArrowControls(doc, t, handlers);
 	el.appendChild(arrows.el);
-	const inputs = [
+
+	const fields = [
 		shapeType,
 		shadowColor,
 		shadowBlur,
@@ -106,21 +106,18 @@ export function createShapeEffectsControls(
 		el,
 		update(state) {
 			const style = state.shapeStyle ?? {};
-			shadowColor.value = style.shadowColor ?? '#000000';
-			shadowBlur.value = String(style.shadowBlur ?? 0);
-			shadowDistance.value = String(style.shadowDistance ?? 0);
-			glowColor.value = style.glowColor ?? '#ffff00';
-			glowRadius.value = String(style.glowRadius ?? 0);
-			softEdge.value = String(style.softEdgeRadius ?? 0);
-			reflection.checked = Boolean(style.reflectionStartOpacity);
-			shapeType.value = state.shapeType ?? 'rect';
-			shapeType.hidden = !state.shapeType;
+			shadowColor.setValue(style.shadowColor ?? '#000000');
+			shadowBlur.setValue(style.shadowBlur ?? 0);
+			shadowDistance.setValue(style.shadowDistance ?? 0);
+			glowColor.setValue(style.glowColor ?? '#ffff00');
+			glowRadius.setValue(style.glowRadius ?? 0);
+			softEdge.setValue(style.softEdgeRadius ?? 0);
+			reflection.setValue(Boolean(style.reflectionStartOpacity));
+			shapeType.setValue(state.shapeType ?? 'rect');
+			shapeType.el.hidden = !state.shapeType;
 			arrows.update(state);
-			for (const input of inputs) {
-				input.disabled = !state.canShape;
-			}
-			for (const button of gallery.querySelectorAll('button')) {
-				button.disabled = !state.canShape;
+			for (const field of fields) {
+				field.setDisabled(!state.canShape);
 			}
 		},
 	};

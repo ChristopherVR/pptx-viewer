@@ -46,7 +46,9 @@ export function createMobileToolbar(
 
 	const menu = makeButton(doc, {
 		label: t('pptx.mobileToolbar.menu'),
-		icon: 'sidebar',
+		// It opens the all-sections sheet, so it is a menu, and React draws it
+		// with lucide's Menu rather than a panel toggle.
+		icon: 'menu',
 		className: 'pptxv-mobile-toolbar-btn pptxv-mobile-toolbar-edit',
 		onClick: handlers.openMenu,
 	});

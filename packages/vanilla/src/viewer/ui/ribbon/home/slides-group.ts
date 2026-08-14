@@ -94,9 +94,27 @@ function createLayoutMenu(
 		}
 	});
 
+	/**
+	 * What the gallery currently shows. Each tile RENDERS a layout preview, and
+	 * the whole menu was rebuilt on every state sync - including while a slide
+	 * show is running and the ribbon is hidden. Skipping an unchanged gallery is
+	 * what keeps a slide advance from repainting the layouts it cannot see.
+	 */
+	let renderedSignature: string | null = null;
+
 	return {
 		el,
 		setItems(layouts, context) {
+			const signature = JSON.stringify([
+				layouts.map((layout) => [layout.path, layout.name]),
+				context.currentLayoutPath ?? '',
+				// A preview arriving later must repaint its tile.
+				layouts.map((layout) => (context.previews.get(layout.path) ? 1 : 0)),
+			]);
+			if (signature === renderedSignature) {
+				return;
+			}
+			renderedSignature = signature;
 			el.replaceChildren();
 			for (const layout of layouts) {
 				const btn = createEl(doc, 'button', 'pptxv-layout-tile');

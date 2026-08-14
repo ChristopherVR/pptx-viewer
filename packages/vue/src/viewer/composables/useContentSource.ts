@@ -7,6 +7,7 @@
  * is cleared whenever the host supplies a fresh `content`, so an external reload
  * always wins over a locally-opened file.
  */
+import type { CollabLoadOrigin } from 'pptx-viewer-shared';
 import { openPptxFile, readBackstageRecentFile } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref, watch } from 'vue';
@@ -27,6 +28,12 @@ export interface UseContentSourceResult {
 	handleOpenFile: () => void;
 	/** File > Recent: load a previously-opened deck back out of the backstage store. */
 	handleOpenRecentFile: (key: string) => void;
+	/**
+	 * Whether the deck now loading is the host's (`bootstrap`) or one the user
+	 * opened during the session (`user`). A collaboration room may replace the
+	 * former, never the latter (`shouldRoomSlidesReplaceLoad`).
+	 */
+	loadOrigin: ComputedRef<CollabLoadOrigin>;
 }
 
 export function useContentSource(options: UseContentSourceOptions): UseContentSourceResult {
@@ -59,5 +66,9 @@ export function useContentSource(options: UseContentSourceOptions): UseContentSo
 		})();
 	}
 
-	return { internalContent, activeContent, handleOpenFile, handleOpenRecentFile };
+	const loadOrigin = computed<CollabLoadOrigin>(() =>
+		internalContent.value === null ? 'bootstrap' : 'user',
+	);
+
+	return { internalContent, activeContent, handleOpenFile, handleOpenRecentFile, loadOrigin };
 }

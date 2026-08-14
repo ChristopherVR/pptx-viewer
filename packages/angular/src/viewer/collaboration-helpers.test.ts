@@ -659,15 +659,21 @@ describe('collaborationService', () => {
 		hoisted.syncCb?.(true);
 
 		// Empty room: this client is the seeder, so its loaded deck stands.
-		expect(svc.adoptDocSlidesAfterLoad()).toBeFalsy();
+		expect(svc.adoptDocSlidesAfterLoad('bootstrap')).toBeFalsy();
 		expect(onRemoteSlides).not.toHaveBeenCalled();
 
 		// The room's real slides arrive (written by a remote peer). A local
 		// bootstrap load that finishes AFTER this point would clobber them; the
 		// adoption step re-applies the doc content instead.
 		hoisted.slidesArray?.push([remoteSlideYMap('9')]);
-		expect(svc.adoptDocSlidesAfterLoad()).toBeTruthy();
+		expect(svc.adoptDocSlidesAfterLoad('bootstrap')).toBeTruthy();
 		expect(onRemoteSlides).toHaveBeenCalledWith([expect.objectContaining({ id: '9' })]);
+
+		// A deck the USER opened mid-session is not a bootstrap: the room must
+		// not replace it, or opening a file in a room loses the file.
+		onRemoteSlides.mockClear();
+		expect(svc.adoptDocSlidesAfterLoad('user')).toBeFalsy();
+		expect(onRemoteSlides).not.toHaveBeenCalled();
 
 		destroy();
 	});

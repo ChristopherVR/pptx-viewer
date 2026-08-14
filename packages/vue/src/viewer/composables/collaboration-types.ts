@@ -1,5 +1,6 @@
 import type {
 	AwarenessLike,
+	CollabLoadOrigin,
 	CollaborationConfig,
 	CollaborationLivePatcher,
 	CollaborationRole,
@@ -45,6 +46,8 @@ export interface UseCollaborationOptions {
 	 * each bump re-adopts the doc's slides when the room has content.
 	 */
 	loadVersion?: Ref<number>;
+	/** Why the last content load ran; see `shouldRoomSlidesReplaceLoad`. */
+	getLoadOrigin?: () => CollabLoadOrigin;
 }
 
 /**

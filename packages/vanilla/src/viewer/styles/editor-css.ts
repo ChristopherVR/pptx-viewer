@@ -232,7 +232,20 @@ export const EDITOR_CSS = `
 .pptxv-inspector-body[hidden] { display: none; }
 .pptxv-inspector-empty { color: var(--pptx-muted-foreground); margin: 0; }
 .pptxv-inspector-empty[hidden] { display: none; }
-.pptxv-inspector-section { margin-bottom: 14px; }
+/*
+ * A section is a CARD, the way React's inspector draws one (rounded, bordered,
+ * card background, 8px of padding). Left as a bare bottom margin, the panel
+ * read as one unbroken column of loose labels with nothing tying a heading to
+ * the fields under it.
+ */
+.pptxv-inspector-section {
+	margin-bottom: 10px;
+	padding: 8px;
+	border: 1px solid var(--pptx-border);
+	border-radius: 6px;
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+}
 .pptxv-inspector-section[hidden] { display: none; }
 .pptxv-inspector-section-title {
 	margin: 0 0 6px;

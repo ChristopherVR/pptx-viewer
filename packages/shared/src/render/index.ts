@@ -514,6 +514,9 @@ export * from './collaboration-text-merge';
 // First-write gate: block local doc writes until the provider's initial sync
 // (or a grace period) so late joiners never seed placeholder content.
 export * from './collaboration-sync-gate';
+// Whether a freshly loaded deck yields to the room: only a bootstrap load does,
+// or opening a file mid-session silently loses it (issue: vanilla + room).
+export * from './collaboration-load-origin';
 // Document-teardown listeners (pagehide / beforeunload / host postMessage) so a
 // peer whose document is destroyed (tab close, navigation, or an embedding page
 // removing the viewer iframe) leaves the room instead of lingering as a ghost

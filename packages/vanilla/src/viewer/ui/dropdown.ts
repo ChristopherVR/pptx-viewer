@@ -87,6 +87,29 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 		}
 	};
 
+	/**
+	 * What the menu currently shows, so an unchanged list can be left alone.
+	 *
+	 * Every state sync re-supplies the items (fonts, sizes, layouts, transitions
+	 * ...), and rebuilding the menu each time was the single biggest source of
+	 * DOM churn in the binding: a slide advance during a SHOW - where the whole
+	 * ribbon is hidden - rebuilt ~344 nodes, against 4 in React, because each of
+	 * these menus tore itself down and built itself again. Deck-sized menus make
+	 * that scale with the deck.
+	 */
+	let renderedSignature: string | null = null;
+
+	const signatureOf = (items: ReadonlyArray<DropdownItem<T>>): string =>
+		JSON.stringify(
+			items.map((item) => [
+				item.label,
+				String(item.value),
+				item.groupLabel ?? '',
+				item.hint ?? '',
+				item.style ? Object.entries(item.style) : 0,
+			]),
+		);
+
 	const renderItems = (items: ReadonlyArray<DropdownItem<T>>): void => {
 		menu.replaceChildren();
 		itemButtons.clear();
@@ -148,7 +171,14 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 			applySelected();
 		},
 		setItems(items) {
+			const signature = signatureOf(items);
+			if (signature === renderedSignature) {
+				return;
+			}
+			renderedSignature = signature;
 			renderItems(items);
+			// The rebuild dropped the selection classes with the old buttons.
+			applySelected();
 		},
 		close: () => setOpen(false),
 	};

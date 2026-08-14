@@ -267,6 +267,13 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			zoomPercent: stageZoomPercent,
 		});
 		chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
+		// The phone's Slides sheet paints real thumbnails, so it needs the same
+		// stage renderer the desktop rail is handed.
+		chrome.mobileActionSheets?.setThumbnailRenderer(
+			(thumbSlide, thumbScale) => renderStageFor(thumbSlide, thumbScale),
+			state.canvasSize.width,
+			state.canvasSize.height,
+		);
 		chrome.mobileActionSheets?.update(state.currentSlide, state.slides, slide?.comments ?? []);
 		chrome.notes.update({ slide: specialMaster ? undefined : slide, editable: state.editable });
 		deps.onStageRendered?.();

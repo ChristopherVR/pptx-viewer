@@ -28,14 +28,22 @@ export const MOBILE_SHEET_CSS = `
 	.pptxv-mobile-sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--pptx-muted-foreground); opacity: .45; }
 	.pptxv-mobile-sheet-body { display: flex; flex-wrap: wrap; gap: 8px; overflow: auto; padding: 12px; overscroll-behavior: contain; }
 	.pptxv-mobile-sheet-body > button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--pptx-border); border-radius: 8px; background: var(--pptx-muted); color: inherit; }
-	.pptxv-mobile-slide-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+	/* A vertical list of real thumbnails, the way React's mobile Slides sheet
+	   shows them; the five-column grid of title pills it replaced could not show
+	   the slides at all. */
+	.pptxv-mobile-slide-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-height: 46dvh; overflow-y: auto; }
 	.pptxv-mobile-comment { display: grid; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--pptx-border); }
 	.pptxv-mobile-comment textarea, .pptxv-mobile-comment-add textarea { box-sizing: border-box; width: 100%; min-height: 58px; padding: 8px; border: 1px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-background); color: var(--pptx-foreground); font: inherit; }
 	.pptxv-mobile-comment-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 	.pptxv-mobile-comment-actions button, .pptxv-mobile-comment-add button { min-height: 36px; padding: 6px 10px; border: 1px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-muted); color: var(--pptx-foreground); }
 	.pptxv-mobile-comment-add { display: grid; gap: 6px; padding-top: 10px; }
-	.pptxv-mobile-slide-list button { min-height: 44px; border: 1px solid var(--pptx-border); border-radius: 8px; background: var(--pptx-muted); color: inherit; }
+	.pptxv-mobile-slide-list button { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px; border: 1px solid var(--pptx-border); border-radius: 8px; background: var(--pptx-muted); color: inherit; text-align: left; }
 	.pptxv-mobile-slide-list button.is-active { border-color: var(--pptx-primary); color: var(--pptx-primary); }
+	.pptxv-mobile-slide-num { min-width: 18px; color: var(--pptx-muted-foreground); font-size: 11px; text-align: right; }
+	.pptxv-mobile-slide-list button.is-active .pptxv-mobile-slide-num { color: var(--pptx-primary); }
+	/* The thumbnail is a scaled stage: it must clip and never stretch. */
+	.pptxv-mobile-slide-frame { display: block; flex: none; overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 4px; background: #fff; }
+	.pptxv-mobile-slide-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.pptxv-mobile-sheet .pptxv-inspector { display: flex; width: 100%; max-height: 55dvh; border: 0; }
 	.pptxv.pptxv-presenting .pptxv-mobile-toolbar,
 	.pptxv.pptxv-presenting .pptxv-mobile-actions > nav,

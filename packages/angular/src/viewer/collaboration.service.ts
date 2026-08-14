@@ -19,6 +19,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type {
+	CollabLoadOrigin,
 	CollaborationConfig,
 	CollaborationLivePatcher,
 	CollaborationRole,
@@ -268,8 +269,8 @@ export class CollaborationService {
 	 * a parsed deck to viewer state (see {@link SlideSyncEngine.adoptDocAfterLoad}).
 	 * Returns true when the room's slides were adopted over the loaded deck.
 	 */
-	adoptDocSlidesAfterLoad(): boolean {
-		return this.connected() ? this.slideSync.adoptDocAfterLoad() : false;
+	adoptDocSlidesAfterLoad(origin: CollabLoadOrigin = 'user'): boolean {
+		return this.connected() ? this.slideSync.adoptDocAfterLoad(origin) : false;
 	}
 
 	/**
