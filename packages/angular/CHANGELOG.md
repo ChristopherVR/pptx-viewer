@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.18.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.4) - 2026-08-14
+
+### Bug Fixes
+
+- **vanilla:** Repair the properties panel, inline editor, mobile chrome and show performance (by @ChristopherVR) ([47265ef](https://github.com/ChristopherVR/pptx-viewer/commit/47265efba9459359695bdcd74038b8b6d0787d0f))
+
 ## [2.18.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.3) - 2026-08-14
 
 ### Bug Fixes

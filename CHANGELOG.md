@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-14
 
+_Releases: pptx-viewer-core@2.3.8, pptx-react-viewer@2.19.4, pptx-vue-viewer@2.20.4, pptx-angular-viewer@2.18.4, pptx-vanilla-viewer@1.21.4, pptx-svelte-viewer@2.20.4_
+
+### Bug Fixes
+
+- **vanilla:** Repair the properties panel, inline editor, mobile chrome and show performance (by @ChristopherVR) ([47265ef](https://github.com/ChristopherVR/pptx-viewer/commit/47265efba9459359695bdcd74038b8b6d0787d0f))
+
+## 2026-08-14
+
 _Releases: pptx-react-viewer@2.19.3, pptx-vue-viewer@2.20.3, pptx-angular-viewer@2.18.3, pptx-vanilla-viewer@1.21.3, pptx-svelte-viewer@2.20.3_
 
 ### Bug Fixes
