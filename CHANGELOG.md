@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-14
+
+_Releases: pptx-react-viewer@2.19.1, pptx-vue-viewer@2.20.1, pptx-angular-viewer@2.18.1, pptx-vanilla-viewer@1.21.1, pptx-svelte-viewer@2.20.1_
+
+### Bug Fixes
+
+- Repair five regressions this review introduced (by @ChristopherVR) ([952063b](https://github.com/ChristopherVR/pptx-viewer/commit/952063b7c1a198aed9acc0696b2b326deba35e95))
+
 ## 2026-08-13
 
 _Releases: pptx-viewer-core@2.3.7, pptx-react-viewer@2.19.0, pptx-vue-viewer@2.20.0, pptx-angular-viewer@2.18.0, pptx-vanilla-viewer@1.21.0, pptx-svelte-viewer@2.20.0_

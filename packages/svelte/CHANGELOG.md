@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.20.1) - 2026-08-14
+
+### Bug Fixes
+
+- Repair five regressions this review introduced (by @ChristopherVR) ([952063b](https://github.com/ChristopherVR/pptx-viewer/commit/952063b7c1a198aed9acc0696b2b326deba35e95))
+
 ## [2.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.20.0) - 2026-08-13
 
 ### Features
