@@ -275,6 +275,10 @@ describe('presentationTransitionOverlay', () => {
 		expect(halves).toHaveLength(2);
 		for (const half of halves) {
 			expect(half.getAttribute('style')).toContain('mix-blend-mode: plus-lighter');
+			// The dissolve rides the wrapper: on the element it would take a
+			// compositing layer whose raster snaps to whole device pixels and paints
+			// the wording off the live stage.
+			expect(half.getAttribute('style')).toContain('-fade');
 		}
 		expect(group!.textContent).toContain('Open Integration');
 		expect(group!.textContent).toContain('Tactical Edge');

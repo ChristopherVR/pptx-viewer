@@ -303,6 +303,10 @@ describe('playTransitionOverlay', () => {
 		expect(halves).toHaveLength(2);
 		for (const half of halves) {
 			expect(half.style.mixBlendMode).toBe('plus-lighter');
+			// The dissolve rides the wrapper: on the element it would take a
+			// compositing layer whose raster snaps to whole device pixels and paints
+			// the wording off the live stage.
+			expect(half.style.animation).toContain('-fade');
 		}
 		// Each half is stripped to its own element...
 		expect(halves[0].querySelector('[data-element-id="out-wording"]')).not.toBeNull();

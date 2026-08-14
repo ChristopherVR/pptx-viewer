@@ -284,9 +284,14 @@ export function PresentationTransitionOverlay({
 											index,
 									}}
 								>
+									{/* The dissolve rides the WRAPPER, not the element: a pair that
+									    dissolves in place never moves, and an animation on the small
+									    element box gives it a compositing layer whose raster snaps
+									    to whole device pixels, painting the wording a fraction of a
+									    pixel off the live stage (issue #161). */}
 									<div
 										data-pptx-morph-outgoing={group.outgoing.id}
-										style={MORPH_CROSSFADE_HALF_STYLE}
+										style={{ ...MORPH_CROSSFADE_HALF_STYLE, animation: group.outgoingAnimation }}
 									>
 										<StaticElementRenderer
 											element={group.outgoing}
@@ -299,7 +304,7 @@ export function PresentationTransitionOverlay({
 									</div>
 									<div
 										data-pptx-morph-lifted={group.incoming.id}
-										style={MORPH_CROSSFADE_HALF_STYLE}
+										style={{ ...MORPH_CROSSFADE_HALF_STYLE, animation: group.incomingAnimation }}
 									>
 										<StaticElementRenderer
 											element={group.incoming}

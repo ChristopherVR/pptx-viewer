@@ -94,6 +94,13 @@
 			: undefined,
 	);
 
+	/** One half of a grouped pair: blends additively, and carries the dissolve. */
+	function halfStyle(animation: string | undefined): string {
+		return `mix-blend-mode: ${MORPH_CROSSFADE_HALF_BLEND_MODE};${
+			animation === undefined ? '' : ` animation: ${animation};`
+		}`;
+	}
+
 	/**
 	 * The pairs the overlay paints BOTH halves of, each as one isolated group so
 	 * the halves are summed rather than stacked: two source-over fades leave the
@@ -108,13 +115,18 @@
 					// `isolation` makes the group a stacking context, so it carries its
 					// own z-index to stay above the ghosts its halves came from.
 					style: `${MORPH_CROSSFADE_GROUP_CSS_TEXT} z-index: ${4 + index};`,
+					// The dissolve rides these WRAPPERS, not the elements: a pair
+					// dissolving in place never moves, and an animation on the small
+					// element box gives it a compositing layer whose raster snaps to whole
+					// device pixels, painting the wording a fraction of a pixel off the
+					// live stage (issue #161).
+					outgoingStyle: halfStyle(group.outgoingAnimation),
+					incomingStyle: halfStyle(group.incomingAnimation),
 					outgoing: { ...outgoingSlide, elements: [group.outgoing] },
 					incoming: { ...incomingSlide, elements: [group.incoming] },
 				}))
 			: [],
 	);
-
-	const crossfadeHalfStyle = `mix-blend-mode: ${MORPH_CROSSFADE_HALF_BLEND_MODE};`;
 
 	const morphCss = $derived(
 		morphPlan
@@ -210,7 +222,7 @@
 				class="pptx-svelte-transition-layer"
 				data-pptx-transition-layer="outgoing"
 				data-pptx-morph-outgoing="true"
-				style={crossfadeHalfStyle}
+				style={group.outgoingStyle}
 			>
 				<SlideStage slide={group.outgoing} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
 			</div>
@@ -218,7 +230,7 @@
 				class="pptx-svelte-transition-layer"
 				data-pptx-transition-layer="lifted"
 				data-pptx-morph-lifted="true"
-				style={crossfadeHalfStyle}
+				style={group.incomingStyle}
 			>
 				<SlideStage slide={group.incoming} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
 			</div>

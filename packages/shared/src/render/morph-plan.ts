@@ -131,10 +131,14 @@ export interface MorphTransitionPlan {
 	 * {@link MorphTransitionPlan.outgoingElements} and
 	 * {@link MorphTransitionPlan.overlayIncomingElements}: a binding that renders
 	 * the groups paints each half exactly once, and one that ignored them would
-	 * drop the pair rather than paint it twice. Their animations stay where they
-	 * were - the ghost's in `outgoingAnimations`, the arriving half's in
-	 * `overlayIncomingAnimations` - so the scoped CSS is unchanged as long as the
-	 * group's two halves carry the same scope attributes the flat layers do.
+	 * drop the pair rather than paint it twice.
+	 *
+	 * A pair that dissolves where it stands also has its dissolve moved OFF the
+	 * two elements and onto {@link MorphCrossfadeGroup.outgoingAnimation} /
+	 * {@link MorphCrossfadeGroup.incomingAnimation}, for the binding to put on
+	 * the wrapper it paints each half in; the elements are then absent from
+	 * `outgoingAnimations` / `overlayIncomingAnimations` too, so no scoped rule
+	 * animates them. One that MOVES keeps its animations where they were.
 	 *
 	 * Painted above {@link MorphTransitionPlan.overlayIncomingElements}, in the
 	 * incoming slide's document order.
@@ -347,6 +351,8 @@ export function buildMorphTransitionPlan(
 		ghostIds,
 		new Set(overlayIncomingAnimations.keys()),
 		flattenedIncoming,
+	).map((group) =>
+		liftCrossfadeToWrapper(group, animations, outgoingAnimations, overlayIncomingAnimations),
 	);
 	const groupedOutgoingIds = new Set(crossfadeGroups.map((group) => group.outgoing.id));
 	const groupedIncomingIds = new Set(crossfadeGroups.map((group) => group.incoming.id));
@@ -367,6 +373,161 @@ export function buildMorphTransitionPlan(
 		crossfadeGroups,
 		durationMs,
 	};
+}
+
+/**
+ * Move a grouped pair's dissolve off the two elements and onto their wrappers.
+ *
+ * A pair that dissolves where it stands does not move, so the journey keyframes
+ * it was given are `translate(0, 0) scale(1, 1) rotate(0deg)` at both ends. They
+ * animate nothing and cost a compositing layer, whose raster the browser snaps
+ * to whole device pixels - the wording is then painted a fraction of a pixel
+ * from where the live stage paints it and twitches as the overlay comes and
+ * goes. Dropping them and running only the fade, on the slide-sized wrapper the
+ * binding puts each half in, measured pixel-identical to the settled slide
+ * (issue #161; the same reasoning already governs an inert pair's ghost).
+ *
+ * A pair that MOVES keeps everything on the element: it needs the journey, and
+ * a travelling shape cannot be seen to snap.
+ */
+function liftCrossfadeToWrapper(
+	group: MorphCrossfadeGroup,
+	animations: readonly {
+		elementId: string;
+		animation: string;
+		keyframes: string;
+		target?: string;
+	}[],
+	outgoingAnimations: Map<string, string>,
+	overlayIncomingAnimations: Map<string, string>,
+): MorphCrossfadeGroup {
+	// One entry can carry several tracks in its shorthand (a journey and its
+	// fade), so they are separated and classified against their own keyframes.
+	// A track that only touches opacity is the dissolve. One that touches
+	// transform is the journey, and it only comes off the element when it says
+	// the SAME thing at both ends - which is what an in-slot dissolve emits, and
+	// what an inert pair's ghost already has dropped for the same reason. The
+	// pair's boxes are no help here: a paragraph re-fitted around new wording
+	// sits at a different height on the two slides and still does not move,
+	// because `morphTextReplacedInSlot` refuses to interpolate it. Anything else
+	// (an `<img>` crop) means the pair is doing more than dissolving.
+	const tracksOf = (elementId: string): { fade: string[]; travels: boolean; other: number } => {
+		const fade: string[] = [];
+		let travels = false;
+		let other = 0;
+		for (const animation of animations) {
+			if (animation.elementId !== elementId) {
+				continue;
+			}
+			if (animation.target !== undefined) {
+				other += 1;
+				continue;
+			}
+			for (const track of splitAnimationTracks(animation.animation)) {
+				const block = keyframesBlockOf(track.split(/\s+/u)[0], animation.keyframes);
+				if (block === undefined) {
+					other += 1;
+				} else if (block.includes('transform')) {
+					travels ||= !isStationaryKeyframes(block);
+				} else if (block.includes('opacity')) {
+					fade.push(track);
+				} else {
+					other += 1;
+				}
+			}
+		}
+		return { fade, travels, other };
+	};
+	const outgoing = tracksOf(group.outgoing.id);
+	const incoming = tracksOf(group.incoming.id);
+	if (
+		outgoing.fade.length === 0 ||
+		incoming.fade.length === 0 ||
+		outgoing.travels ||
+		incoming.travels ||
+		outgoing.other + incoming.other > 0
+	) {
+		return group;
+	}
+	// Neutralised rather than dropped. A binding whose live stage is a SIBLING of
+	// the overlay (Angular) has to emit its `incoming` rules unscoped, and the
+	// one holding the stage copy invisible then matches the overlay's copy of the
+	// same element too. Without a scoped rule to outrank it the arriving half
+	// never painted at all, which is issue #160's defect exactly. `none` is that
+	// rule, and it leaves the dissolve to the wrapper.
+	outgoingAnimations.set(group.outgoing.id, 'none');
+	overlayIncomingAnimations.set(group.incoming.id, 'none');
+	return {
+		...group,
+		outgoingAnimation: outgoing.fade.join(', '),
+		incomingAnimation: incoming.fade.join(', '),
+	};
+}
+
+/**
+ * Split an `animation` shorthand into its tracks.
+ *
+ * Not a plain `split(',')`: an easing is `cubic-bezier(0.2, 0, 0.4, 1)` and its
+ * commas are nested, so the depth has to be tracked.
+ */
+function splitAnimationTracks(shorthand: string): string[] {
+	const tracks: string[] = [];
+	let depth = 0;
+	let start = 0;
+	for (let index = 0; index < shorthand.length; index += 1) {
+		const character = shorthand[index];
+		if (character === '(') {
+			depth += 1;
+		} else if (character === ')') {
+			depth -= 1;
+		} else if (character === ',' && depth === 0) {
+			tracks.push(shorthand.slice(start, index).trim());
+			start = index + 1;
+		}
+	}
+	tracks.push(shorthand.slice(start).trim());
+	return tracks.filter((track) => track.length > 0);
+}
+
+/**
+ * Whether a keyframes block moves nothing: every frame states the same
+ * transform, so running it is pure cost - a compositing layer whose raster the
+ * browser snaps to whole device pixels (issue #161).
+ */
+function isStationaryKeyframes(block: string): boolean {
+	// Compared on VALUE, not text: the generator writes the same standstill as
+	// `translate(0px, 0px)` at one end and `translate(0, 0)` at the other, and a
+	// string compare would call that a journey.
+	const normalise = (value: string): string =>
+		value
+			.replace(/\s+/gu, '')
+			.replace(/(-?\d*\.?\d+)(px|deg|%)?/gu, (_match, number: string, unit = '') =>
+				Number(number) === 0 ? '0' : `${Number(number)}${unit}`,
+			);
+	const values = new Set(
+		[...block.matchAll(/(?<![\w-])transform:\s*([^;}]+)/gu)].map((match) => normalise(match[1])),
+	);
+	return values.size <= 1;
+}
+
+/** The body of one `@keyframes` block inside a generated stylesheet. */
+function keyframesBlockOf(name: string, keyframes: string): string | undefined {
+	const start = keyframes.indexOf(`@keyframes ${name}`);
+	if (start < 0) {
+		return undefined;
+	}
+	let depth = 0;
+	for (let index = keyframes.indexOf('{', start); index < keyframes.length; index += 1) {
+		if (keyframes[index] === '{') {
+			depth += 1;
+		} else if (keyframes[index] === '}') {
+			depth -= 1;
+			if (depth === 0) {
+				return keyframes.slice(start, index + 1);
+			}
+		}
+	}
+	return undefined;
 }
 
 /** Escape a value for use inside a double-quoted CSS attribute selector. */

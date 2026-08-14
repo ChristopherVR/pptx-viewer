@@ -54,6 +54,25 @@ export interface MorphCrossfadeGroup {
 	outgoing: PptxElement;
 	/** The incoming half, rendered in the INCOMING slide's context. */
 	incoming: PptxElement;
+	/**
+	 * The dissolve to run on the outgoing half's own WRAPPER, not on the element.
+	 *
+	 * A pair that dissolves where it stands never moves, so its journey keyframes
+	 * are an identity transform and are dropped; what is left is the fade. Put
+	 * that fade on the element and the element becomes its own compositing layer,
+	 * whose raster the browser snaps to whole device pixels: the wording is
+	 * painted up to a third of a pixel from where the live stage paints it, so it
+	 * visibly twitches as the transition starts and again as it ends. Measured on
+	 * the wheel deck at four show sizes, moving the fade onto the slide-sized
+	 * wrapper takes the arriving half from 0.22-0.31px off to under 0.02px - a
+	 * mean pixel difference of 0.01/255 against the settled slide.
+	 *
+	 * Undefined when the pair MOVES: it needs its journey keyframes on the
+	 * element, and a shape that is travelling cannot be seen to snap.
+	 */
+	outgoingAnimation?: string;
+	/** The arriving half's dissolve. @see MorphCrossfadeGroup.outgoingAnimation */
+	incomingAnimation?: string;
 }
 
 /**

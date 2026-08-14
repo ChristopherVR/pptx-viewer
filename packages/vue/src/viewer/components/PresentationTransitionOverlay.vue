@@ -114,6 +114,9 @@ const morphLiftedSlide = computed<PptxSlide | undefined>(() => {
 	return { ...props.incomingSlide, elements: plan.overlayIncomingElements };
 });
 
+/** Both halves of a grouped pair blend additively, and only with each other. */
+const crossfadeHalfStyle: CSSProperties = { mixBlendMode: MORPH_CROSSFADE_HALF_BLEND_MODE };
+
 /**
  * The pairs whose two halves the overlay paints itself, as one isolated group
  * each so they can be SUMMED rather than stacked.
@@ -135,13 +138,16 @@ const morphCrossfadeGroups = computed(() => {
 		// `isolation` makes the group a stacking context, so it needs its own
 		// z-index to stay above the ghosts its halves used to sit among.
 		style: { ...MORPH_CROSSFADE_GROUP_STYLE, zIndex: 4 + index } as CSSProperties,
+		// The dissolve rides these WRAPPERS, not the elements: a pair dissolving
+		// in place never moves, and an animation on the small element box gives it
+		// a compositing layer whose raster snaps to whole device pixels, painting
+		// the wording a fraction of a pixel off the live stage (issue #161).
+		outgoingStyle: { ...crossfadeHalfStyle, animation: group.outgoingAnimation } as CSSProperties,
+		incomingStyle: { ...crossfadeHalfStyle, animation: group.incomingAnimation } as CSSProperties,
 		outgoingSlide: { ...outgoing, elements: [group.outgoing] },
 		incomingSlide: { ...incoming, elements: [group.incoming] },
 	}));
 });
-
-/** Both halves of a grouped pair blend additively, and only with each other. */
-const crossfadeHalfStyle: CSSProperties = { mixBlendMode: MORPH_CROSSFADE_HALF_BLEND_MODE };
 
 const morphCss = computed(() => {
 	const plan = morphPlan.value;
@@ -281,7 +287,7 @@ onBeforeUnmount(clearTimer);
 				class="pptx-vue-transition-layer"
 				data-pptx-transition-layer="outgoing"
 				data-pptx-morph-outgoing="true"
-				:style="crossfadeHalfStyle"
+				:style="group.outgoingStyle"
 			>
 				<SlideStage
 					:slide="group.outgoingSlide"
@@ -296,7 +302,7 @@ onBeforeUnmount(clearTimer);
 				class="pptx-vue-transition-layer"
 				data-pptx-transition-layer="lifted"
 				data-pptx-morph-lifted="true"
-				:style="crossfadeHalfStyle"
+				:style="group.incomingStyle"
 			>
 				<SlideStage
 					:slide="group.incomingSlide"

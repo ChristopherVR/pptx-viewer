@@ -128,9 +128,52 @@ describe('buildMorphTransitionPlan crossfade groups (issue #161)', () => {
 		expect(plan?.overlayIncomingElements.map((element) => element.id)).not.toContain('b-2');
 		// The ghost the arrival dissolves over is still painted flat.
 		expect(plan?.outgoingElements.map((element) => element.id)).toContain('a-1');
-		// The animations stay where they were, so the scoped CSS is unchanged.
-		expect(plan?.outgoingAnimations.get('a-2')).toContain('pptx-morph-ghost-');
-		expect(plan?.overlayIncomingAnimations.get('b-2')).toContain('pptx-morph-');
+	});
+
+	it('hands the dissolve to the wrapper and drops the pair no-op journey', () => {
+		const { from, to } = discAndReplacedWording();
+
+		const plan = buildMorphTransitionPlan(from, to, 500);
+		const [group] = plan!.crossfadeGroups;
+
+		// The pair stands still, so all it needs is the fade, and the fade rides
+		// the wrapper: on the element it would buy a compositing layer whose raster
+		// snaps to whole device pixels and nothing else. The journey keyframes say
+		// the same thing at both ends, so they go entirely.
+		const trackNames = (shorthand: string | undefined): string[] =>
+			(shorthand ?? '').split(/,\s*(?=pptx-)/u).map((track) => track.split(' ')[0]);
+		expect(trackNames(group.outgoingAnimation)).toHaveLength(1);
+		expect(trackNames(group.outgoingAnimation)[0]).toMatch(/-fade$/u);
+		expect(trackNames(group.incomingAnimation)).toHaveLength(1);
+		expect(trackNames(group.incomingAnimation)[0]).toMatch(/-fade$/u);
+		// The elements themselves are pinned to `none`, not just left out: a
+		// binding whose stage rules are unscoped (Angular) would otherwise let the
+		// rule that hides the STAGE copy match the overlay's copy as well, and the
+		// arriving half would never paint (issue #160's defect).
+		expect(plan?.outgoingAnimations.get('a-2')).toBe('none');
+		expect(plan?.overlayIncomingAnimations.get('b-2')).toBe('none');
+		// The stage copy is still held invisible, or the pair composites twice.
+		expect(plan?.incomingAnimations.get('b-2')).toContain('pptx-morph-lifted-hidden');
+	});
+
+	it('leaves a pair that MOVES driving itself', () => {
+		const { from, to } = discAndReplacedWording();
+		const moved = {
+			...to,
+			elements: to.elements.map((element) =>
+				element.id === 'b-2' ? ({ ...element, y: 160 } as PptxElement) : element,
+			),
+		} as PptxSlide;
+
+		const plan = buildMorphTransitionPlan(from, moved, 500);
+		const group = plan?.crossfadeGroups[0];
+
+		if (group) {
+			// It has a journey to run, and a travelling shape cannot be seen to snap.
+			expect(group.outgoingAnimation).toBeUndefined();
+			expect(group.incomingAnimation).toBeUndefined();
+			expect(plan?.outgoingAnimations.has('a-2')).toBeTruthy();
+		}
 	});
 
 	it('has no groups when nothing is lifted', () => {

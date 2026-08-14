@@ -60,6 +60,17 @@ export function morphLiftedSlide(
 export interface MorphCrossfadeGroupSlides {
 	key: string;
 	style: StyleMap;
+	/**
+	 * The departing half's layer style, carrying the dissolve itself.
+	 *
+	 * A pair dissolving in place never moves, and an animation on the small
+	 * element box gives it a compositing layer whose raster snaps to whole device
+	 * pixels - the wording is then painted a fraction of a pixel off the live
+	 * stage and twitches as the overlay comes and goes (issue #161).
+	 */
+	outgoingStyle: StyleMap;
+	/** The arriving half's layer style. @see MorphCrossfadeGroupSlides.outgoingStyle */
+	incomingStyle: StyleMap;
 	outgoing: PptxSlide;
 	incoming: PptxSlide;
 }
@@ -85,6 +96,10 @@ export function morphCrossfadeGroupSlides(
 	if (!plan || !outgoingSlide || !incomingSlide) {
 		return [];
 	}
+	const half = (animation: string | undefined): StyleMap => ({
+		'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE,
+		...(animation === undefined ? {} : { animation }),
+	});
 	return plan.crossfadeGroups.map((group, index) => ({
 		key: group.incoming.id,
 		style: {
@@ -94,6 +109,8 @@ export function morphCrossfadeGroupSlides(
 			// layer (41) its halves came from.
 			'z-index': String(42 + index),
 		},
+		outgoingStyle: half(group.outgoingAnimation),
+		incomingStyle: half(group.incomingAnimation),
 		outgoing: { ...outgoingSlide, elements: [group.outgoing] },
 		incoming: { ...incomingSlide, elements: [group.incoming] },
 	}));
@@ -204,7 +221,7 @@ export function morphCrossfadeGroupSlides(
 					class="pptx-ng-transition-layer"
 					data-pptx-transition-layer="outgoing"
 					data-pptx-morph-outgoing="true"
-					[ngStyle]="crossfadeHalfStyle"
+					[ngStyle]="group.outgoingStyle"
 				>
 					<div [ngStyle]="slideBoxStyle()">
 						<pptx-slide-canvas
@@ -222,7 +239,7 @@ export function morphCrossfadeGroupSlides(
 					class="pptx-ng-transition-layer"
 					data-pptx-transition-layer="lifted"
 					data-pptx-morph-lifted="true"
-					[ngStyle]="crossfadeHalfStyle"
+					[ngStyle]="group.incomingStyle"
 				>
 					<div [ngStyle]="slideBoxStyle()">
 						<pptx-slide-canvas
@@ -433,11 +450,6 @@ export class PresentationTransitionOverlayComponent {
 	protected readonly crossfadeGroups = computed<MorphCrossfadeGroupSlides[]>(() =>
 		morphCrossfadeGroupSlides(this.morphPlan(), this.outgoingSlide(), this.incomingSlide()),
 	);
-
-	/** Both halves of a grouped pair blend additively, and only with each other. */
-	protected readonly crossfadeHalfStyle: StyleMap = {
-		'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE,
-	};
 
 	/** Layer container style: animation + stacking relative to the stage. */
 	protected readonly layerStyle = computed<StyleMap>(() => {

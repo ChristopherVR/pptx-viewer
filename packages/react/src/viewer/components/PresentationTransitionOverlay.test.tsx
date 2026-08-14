@@ -336,8 +336,12 @@ describe('presentationTransitionOverlay', () => {
 			/<div data-pptx-morph-crossfade="in-wording" style="([^"]*)">(.*?)Tactical Edge/su.exec(html);
 		expect(group, 'the pair must be rendered as its own group').not.toBeNull();
 		expect(group![1]).toContain('isolation:isolate');
-		// Both halves inside it, blending only with each other.
+		// Both halves inside it, blending only with each other, each carrying its
+		// own dissolve on the WRAPPER: on the element it would take a compositing
+		// layer whose raster snaps to whole device pixels and paints the wording
+		// off the live stage.
 		expect(group![2]).toContain('mix-blend-mode:plus-lighter');
+		expect(group![2]).toMatch(/mix-blend-mode:plus-lighter;animation:[^"]*-fade/u);
 		expect(group![2]).toContain('Open Integration');
 		// And painted exactly once: not left in the flat layers as well.
 		expect(html.match(/Open Integration/gu)).toHaveLength(1);

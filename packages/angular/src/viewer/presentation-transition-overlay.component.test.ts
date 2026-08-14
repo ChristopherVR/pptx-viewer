@@ -238,6 +238,13 @@ describe('morphCrossfadeGroupSlides', () => {
 		expect(groups[0].style['isolation']).toBe('isolate');
 		// Above the ghost layer (40) and the lifted layer (41).
 		expect(groups[0].style['z-index']).toBe('42');
+		// Both halves blend additively, and each carries its own dissolve: on the
+		// wrapper, not on the element, whose own layer would snap to whole device
+		// pixels and paint the wording off the live stage.
+		expect(groups[0].outgoingStyle['mix-blend-mode']).toBe('plus-lighter');
+		expect(groups[0].incomingStyle['mix-blend-mode']).toBe('plus-lighter');
+		expect(groups[0].outgoingStyle['animation']).toContain('-fade');
+		expect(groups[0].incomingStyle['animation']).toContain('-fade');
 		// Each half is painted exactly once: the flat layers no longer carry them.
 		expect(plan?.outgoingElements.map((element) => element.id)).not.toContain('out-wording');
 		expect(morphLiftedSlide(plan, to)).toBeUndefined();
@@ -252,11 +259,13 @@ describe('morphCrossfadeGroupSlides', () => {
 		expect(morphCrossfadeGroupSlides(plan, from, undefined)).toStrictEqual([]);
 	});
 
-	it('blends both halves additively in the template', () => {
+	it('binds the group and its two halves in the template', () => {
 		// No TestBed in this package, so the template is asserted as source: the
-		// group is worthless without `plus-lighter` on the two halves.
+		// group is worthless unless both halves are actually bound to the styles
+		// carrying `plus-lighter` and the dissolve.
 		expect(OVERLAY_SOURCE).toContain('[attr.data-pptx-morph-crossfade]="group.key"');
 		expect(OVERLAY_SOURCE).toContain(`'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE`);
-		expect(OVERLAY_SOURCE).toContain('[ngStyle]="crossfadeHalfStyle"');
+		expect(OVERLAY_SOURCE).toContain('[ngStyle]="group.outgoingStyle"');
+		expect(OVERLAY_SOURCE).toContain('[ngStyle]="group.incomingStyle"');
 	});
 });

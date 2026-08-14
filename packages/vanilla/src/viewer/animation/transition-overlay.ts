@@ -117,13 +117,24 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 		// `isolation` makes the wrapper a stacking context, so it needs a z-index
 		// of its own to stay above the ghosts its halves came from.
 		wrapper.style.zIndex = String(4 + index);
+		// The dissolve rides these WRAPPERS, not the elements: a pair dissolving in
+		// place never moves, and an animation on the small element box gives it a
+		// compositing layer whose raster snaps to whole device pixels, painting the
+		// wording a fraction of a pixel off the live stage.
 		const half = (
 			stage: HTMLElement,
 			id: string,
 			state: 'outgoing' | 'lifted',
 			zIndex: number,
+			animation: string | undefined,
 		): HTMLElement => {
-			const layer = buildLayer(doc, keepOnlyElements(stage, [id]), zIndex, 'none', state);
+			const layer = buildLayer(
+				doc,
+				keepOnlyElements(stage, [id]),
+				zIndex,
+				animation ?? 'none',
+				state,
+			);
 			if (state === 'outgoing') {
 				layer.dataset.pptxMorphOutgoing = 'true';
 			} else {
@@ -133,8 +144,20 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 			return layer;
 		};
 		wrapper.append(
-			half(outgoing.cloneNode(true) as HTMLElement, group.outgoing.id, 'outgoing', 0),
-			half(incoming.cloneNode(true) as HTMLElement, group.incoming.id, 'lifted', 1),
+			half(
+				outgoing.cloneNode(true) as HTMLElement,
+				group.outgoing.id,
+				'outgoing',
+				0,
+				group.outgoingAnimation,
+			),
+			half(
+				incoming.cloneNode(true) as HTMLElement,
+				group.incoming.id,
+				'lifted',
+				1,
+				group.incomingAnimation,
+			),
 		);
 		return wrapper;
 	});
