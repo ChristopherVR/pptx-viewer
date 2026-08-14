@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-14
 
+_Releases: pptx-react-viewer@2.19.3, pptx-vue-viewer@2.20.3, pptx-angular-viewer@2.18.3, pptx-vanilla-viewer@1.21.3, pptx-svelte-viewer@2.20.3_
+
+### Bug Fixes
+
+- **shared:** Run an in-place morph dissolve on the wrapper, not the element (by @ChristopherVR) ([d46d2ee](https://github.com/ChristopherVR/pptx-viewer/commit/d46d2eea5aeced925f1b51b4be2758f2b634ea3e))
+
+## 2026-08-14
+
 _Releases: pptx-react-viewer@2.19.2, pptx-vue-viewer@2.20.2, pptx-angular-viewer@2.18.2, pptx-vanilla-viewer@1.21.2, pptx-svelte-viewer@2.20.2_
 
 ### Bug Fixes

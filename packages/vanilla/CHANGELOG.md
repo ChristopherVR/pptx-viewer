@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [1.21.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.21.3) - 2026-08-14
+
+### Bug Fixes
+
+- **shared:** Run an in-place morph dissolve on the wrapper, not the element (by @ChristopherVR) ([d46d2ee](https://github.com/ChristopherVR/pptx-viewer/commit/d46d2eea5aeced925f1b51b4be2758f2b634ea3e))
+
 ## [1.21.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.21.2) - 2026-08-14
 
 ### Bug Fixes
