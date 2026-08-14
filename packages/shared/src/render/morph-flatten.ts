@@ -26,6 +26,16 @@
  * counterpart stay whole and dissolve as one object, and ordinary grouped
  * artwork keeps animating as a single unit exactly as before.
  *
+ * "Level" means a level the two slides AGREE on. Real decks wrap the same cast
+ * differently from slide to slide, and the loader used to hide it by flattening
+ * a nested `p:grpSp` into its parent's child list; it no longer does, because
+ * the wrapper's name, fill, locks and animation identity have to survive a
+ * round-trip. A wrapper the counterpart has no group for is therefore taken out
+ * of the way when, and only when, that is what stops the two casts lining up
+ * ({@link expandUnpairedWrappers}); a wrapper both slides have is a real level
+ * and is descended into on its own correspondence, `!!` name or not
+ * ({@link flattenMorphLevel}).
+ *
  * Decomposed children are returned with ABSOLUTE slide coordinates, because
  * that is the space every downstream geometry calculation (deltas, proximity)
  * works in. A binding renders group children as absolutely positioned boxes
@@ -196,6 +206,87 @@ function correspondingChildren(
 }
 
 /**
+ * Replace every group in `children` that `counterpart` has no group to pair
+ * with by its OWN children, offset into the parent's space (recursively).
+ *
+ * Two slides can express the same cast with different WRAPPING. In the issue
+ * #131 deck the hub-adjacent topic slide keeps the panel's disc, button and
+ * three paragraphs as five children of `!!Circle`, while the next topic slide
+ * wraps the three paragraphs in a plain `Group 3` inside the same `!!Circle`:
+ * five objects against three. That wrapper is not an object either slide draws,
+ * it is authoring debris, and PowerPoint carries the disc through the morph
+ * regardless (measured: the disc's centre pixel holds RGB 39,40,42 for the
+ * whole of 4 -> 5, where an unpaired dissolve shows the artwork behind it).
+ *
+ * The loader used to hide this by flattening a nested `p:grpSp` into its
+ * parent's child list, so a morph never saw one. It no longer does - the
+ * wrapper's name, fill, locks and animation identity are real and have to
+ * survive a round-trip - so the morph has to see past the wrapper itself.
+ *
+ * Only a wrapper with NO counterpart group is expanded, and only as a fallback
+ * (see {@link correspondingCast}): a nested group the other slide also has is a
+ * real level of the tree and pairs with its own twin.
+ */
+function expandUnpairedWrappers(
+	children: readonly PptxElement[],
+	counterpart: readonly PptxElement[],
+): PptxElement[] | undefined {
+	let expanded = false;
+	const out: PptxElement[] = [];
+	for (const child of children) {
+		const nested = groupChildren(child);
+		if (nested && !correspondingGroup(child, counterpart)) {
+			expanded = true;
+			for (const leaf of expandUnpairedWrappers(nested, counterpart) ?? nested) {
+				out.push(toAbsolute(leaf, child.x, child.y));
+			}
+			continue;
+		}
+		out.push(child);
+	}
+	return expanded ? out : undefined;
+}
+
+/** Two groups' casts, and the one-for-one correspondence between them. */
+interface MorphCast {
+	/** The outgoing group's cast, in the space of that group's own box. */
+	from: PptxElement[];
+	/** The incoming group's cast, in the space of that group's own box. */
+	to: PptxElement[];
+	/** Outgoing element -> incoming element, for every member of the cast. */
+	paired: Array<[PptxElement, PptxElement]>;
+}
+
+/**
+ * The correspondence between two paired groups' contents, or `undefined` when
+ * they hold different casts and so must dissolve as whole objects.
+ *
+ * Tried as authored first, so a group that lines up level for level keeps its
+ * levels: a nested group facing a flat shape of the same box is one object
+ * against one object and stays whole. Only when the two casts do NOT line up is
+ * an unpaired wrapper taken out of the way ({@link expandUnpairedWrappers}),
+ * which is the one case where it can be the wrapper that is in the way.
+ */
+function correspondingCast(
+	children: readonly PptxElement[],
+	twinChildren: readonly PptxElement[],
+): MorphCast | undefined {
+	const direct = correspondingChildren(children, twinChildren);
+	if (direct) {
+		return { from: [...children], to: [...twinChildren], paired: direct };
+	}
+	const expandedFrom = expandUnpairedWrappers(children, twinChildren);
+	const expandedTo = expandUnpairedWrappers(twinChildren, children);
+	if (!expandedFrom && !expandedTo) {
+		return undefined;
+	}
+	const from = expandedFrom ?? [...children];
+	const to = expandedTo ?? [...twinChildren];
+	const paired = correspondingChildren(from, to);
+	return paired ? { from, to, paired } : undefined;
+}
+
+/**
  * The elements of `elements` that a morph should treat as individual units,
  * given the `counterpart` slide's elements at the same level of the tree.
  *
@@ -203,7 +294,7 @@ function correspondingChildren(
  * absolute coordinates) when it holds a `!!`-named descendant, `counterpart`
  * holds a group it would pair with, AND the two groups hold the same cast of
  * objects; everything else is passed through untouched. See the module comment
- * for why the first two are required and {@link childrenCorrespond} for the
+ * for why the first two are required and {@link correspondingCast} for the
  * third.
  */
 export function flattenMorphElements(
@@ -212,15 +303,40 @@ export function flattenMorphElements(
 	offsetX = 0,
 	offsetY = 0,
 ): PptxElement[] {
+	return flattenMorphLevel(elements, counterpart, offsetX, offsetY, true);
+}
+
+/**
+ * One level of {@link flattenMorphElements}.
+ *
+ * `topLevel` carries the `!!` requirement, and only the slide's own top level
+ * has it. The prefix is the author naming the containers that take part in the
+ * morph, which is a statement about what the slide shows - not about the
+ * authoring wrappers inside it. Once a group's cast has been shown to
+ * correspond one for one, its members ARE each other's counterparts, and a
+ * nested group among them is descended into on the strength of that
+ * correspondence alone. PowerPoint's own render of the deck's 5 -> 6 crossfades
+ * the three paragraphs inside the unnamed `Group 3` individually (issue #160,
+ * `CreateVideo` at 62.5fps: every frame of the panel is a blend of the two end
+ * states summing to 1.000), which requiring `!!` all the way down would refuse.
+ */
+function flattenMorphLevel(
+	elements: readonly PptxElement[],
+	counterpart: readonly PptxElement[],
+	offsetX: number,
+	offsetY: number,
+	topLevel: boolean,
+): PptxElement[] {
 	const out: PptxElement[] = [];
 	for (const element of elements) {
 		const children = groupChildren(element);
-		if (children && containsMorphNamedDescendant(element)) {
+		if (children && (!topLevel || containsMorphNamedDescendant(element))) {
 			const twin = correspondingGroup(element, counterpart);
 			const twinChildren = twin ? (groupChildren(twin) ?? []) : undefined;
-			if (twinChildren && correspondingChildren(children, twinChildren)) {
+			const cast = twinChildren ? correspondingCast(children, twinChildren) : undefined;
+			if (cast) {
 				out.push(
-					...flattenMorphElements(children, twinChildren, offsetX + element.x, offsetY + element.y),
+					...flattenMorphLevel(cast.from, cast.to, offsetX + element.x, offsetY + element.y, false),
 				);
 				continue;
 			}
@@ -260,7 +376,7 @@ export function morphGroupChildPairs(
 	counterpart: readonly PptxElement[],
 ): Map<string, string> {
 	const pairs = new Map<string, string>();
-	collectGroupChildPairs(elements, counterpart, pairs);
+	collectGroupChildPairs(elements, counterpart, pairs, true);
 	return pairs;
 }
 
@@ -269,22 +385,23 @@ function collectGroupChildPairs(
 	elements: readonly PptxElement[],
 	counterpart: readonly PptxElement[],
 	into: Map<string, string>,
+	topLevel: boolean,
 ): void {
 	for (const element of elements) {
 		const children = groupChildren(element);
-		if (!children || !containsMorphNamedDescendant(element)) {
+		if (!children || (topLevel && !containsMorphNamedDescendant(element))) {
 			continue;
 		}
 		const twin = correspondingGroup(element, counterpart);
 		const twinChildren = twin ? (groupChildren(twin) ?? []) : undefined;
-		const corresponded = twinChildren ? correspondingChildren(children, twinChildren) : undefined;
-		if (!corresponded) {
+		const cast = twinChildren ? correspondingCast(children, twinChildren) : undefined;
+		if (!cast) {
 			continue;
 		}
-		for (const [child, twinChild] of corresponded) {
+		for (const [child, twinChild] of cast.paired) {
 			into.set(child.id, twinChild.id);
 		}
-		collectGroupChildPairs(children, twinChildren ?? [], into);
+		collectGroupChildPairs(cast.from, cast.to, into, false);
 	}
 }
 

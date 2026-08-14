@@ -16,6 +16,8 @@
  */
 import type { PptxTableCell, PptxTableData } from 'pptx-viewer-core';
 
+import { withCellText } from './table-cell-edit';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -265,11 +267,16 @@ export function mergeCells(cells: CellCoord[], tableData: PptxTableData): PptxTa
 				return cell;
 			}
 
+			// Every branch below re-texts the cell, so each goes through
+			// `withCellText`: the anchor takes the CONCATENATION of the group and
+			// the absorbed cells are emptied, and a cell that kept the `textRuns`
+			// describing its old content would paint that content instead (the
+			// renderers prefer the run model over the flat string).
+
 			// Top-left anchor cell
 			if (ri === rect.startRow && ci === rect.startCol) {
 				return {
-					...cell,
-					text: combinedText,
+					...withCellText(cell, combinedText),
 					gridSpan: colCount > 1 ? colCount : undefined,
 					rowSpan: rowCount > 1 ? rowCount : undefined,
 					hMerge: undefined,
@@ -280,8 +287,7 @@ export function mergeCells(cells: CellCoord[], tableData: PptxTableData): PptxTa
 			// Same row as anchor, different column → hMerge
 			if (ri === rect.startRow) {
 				return {
-					...cell,
-					text: '',
+					...withCellText(cell, ''),
 					hMerge: true,
 					vMerge: undefined,
 					gridSpan: undefined,
@@ -292,8 +298,7 @@ export function mergeCells(cells: CellCoord[], tableData: PptxTableData): PptxTa
 			// Different row, same column as anchor → vMerge
 			if (ci === rect.startCol) {
 				return {
-					...cell,
-					text: '',
+					...withCellText(cell, ''),
 					vMerge: true,
 					hMerge: undefined,
 					gridSpan: undefined,
@@ -304,8 +309,7 @@ export function mergeCells(cells: CellCoord[], tableData: PptxTableData): PptxTa
 			// Interior cell (both hMerge and vMerge apply, but OpenXML uses vMerge for rows
 			// below the first row and hMerge for columns after the first column in that row)
 			return {
-				...cell,
-				text: '',
+				...withCellText(cell, ''),
 				hMerge: true,
 				vMerge: true,
 				gridSpan: undefined,

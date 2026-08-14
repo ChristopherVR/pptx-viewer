@@ -1,7 +1,12 @@
 import type { TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { applyUnderlineVariant, hollowTextFillStyle, segmentStyleToCss } from './text-run-style';
+import {
+	applyUnderlineVariant,
+	hollowTextFillStyle,
+	nestedTextDecorationStyle,
+	segmentStyleToCss,
+} from './text-run-style';
 
 function seg(style: NonNullable<TextSegment['style']>): TextSegment {
 	return { text: 'x', style };
@@ -196,5 +201,24 @@ describe('hollowTextFillStyle', () => {
 				{ color: '#0000ff', textStroke: '2px #c00000' },
 			).WebkitTextStroke,
 		).toBeUndefined();
+	});
+});
+
+describe('nestedTextDecorationStyle', () => {
+	it('hands back the decoration a nested span must repeat', () => {
+		// `text-decoration-*` does not inherit: a span nested inside the run (a
+		// per-word metric piece, a per-script font span) computes `none` of its
+		// own, so the run's underline has to be repeated on it.
+		const style = segmentStyleToCss(seg({ hyperlink: 'https://example.com/docs' }));
+		applyUnderlineVariant(style, seg({ underline: true, underlineStyle: 'dbl' }));
+		expect(nestedTextDecorationStyle(style)).toStrictEqual({
+			textDecoration: 'underline',
+			textDecorationStyle: 'double',
+			textDecorationThickness: '1px',
+		});
+	});
+
+	it('hands back nothing for an undecorated run, so the span stays bare', () => {
+		expect(nestedTextDecorationStyle(segmentStyleToCss(seg({ fontSize: 20 })))).toBeUndefined();
 	});
 });

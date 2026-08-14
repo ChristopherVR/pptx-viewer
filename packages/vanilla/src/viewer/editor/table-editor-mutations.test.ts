@@ -67,4 +67,28 @@ describe('table editor mutations', () => {
 		expect(split.rows[0].cells[0].gridSpan).toBeUndefined();
 		expect(split.rows[1].cells[1].hMerge).toBeUndefined();
 	});
+
+	// Regression: `appendCellText` paints `cell.textRuns` in preference to
+	// `cell.text`, so a merge that re-texted the cells but left their old run
+	// model behind kept painting the absorbed cells' own words.
+	it('drops the per-run model of every cell a merge re-texts', () => {
+		const data = table();
+		for (const row of data.rows) {
+			for (const cell of row.cells) {
+				cell.textRuns = [{ text: cell.text, bold: true }];
+			}
+		}
+		const merged = mergeTableCellRange(data, [
+			{ row: 0, column: 0 },
+			{ row: 0, column: 1 },
+			{ row: 1, column: 0 },
+			{ row: 1, column: 1 },
+		]);
+		expect(merged.rows[0].cells[0].text).toBe('A B C D');
+		for (const row of merged.rows) {
+			for (const cell of row.cells) {
+				expect(cell.textRuns).toBeUndefined();
+			}
+		}
+	});
 });

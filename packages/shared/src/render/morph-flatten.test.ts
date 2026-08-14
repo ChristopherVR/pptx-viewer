@@ -196,6 +196,81 @@ describe('flattenMorphElements', () => {
 		expect(flat.map((e) => e.id)).toStrictEqual(['n-c', 'plain']);
 	});
 
+	it('sees past a wrapper group only one of the two slides has', () => {
+		// The loader used to flatten a nested `p:grpSp` into its parent's child
+		// list, so a morph never saw one. It now keeps the wrapper (its name,
+		// fill, locks and animation identity have to survive a round-trip), and
+		// the issue #131 deck wraps three of `!!Circle`'s five children in a plain
+		// `Group 3` on one topic slide and not on the previous one. Comparing the
+		// casts as authored reads five objects against three, refuses to
+		// decompose, and the disc stops being carried through - which is exactly
+		// what PowerPoint's own render of 4 -> 5 does NOT do (the disc's centre
+		// pixel holds RGB 39,40,42 for the whole transition).
+		const flat = [
+			circle('a', [
+				el({ id: 'a-disc', name: '!!Content', width: 270, height: 270 }),
+				el({ id: 'a-button', name: 'Rectangle 4', x: 73, y: 189, width: 124, height: 31 }),
+				el({ id: 'a-title', name: 'TextBox 9', x: 28, y: 60, width: 214, height: 29 }),
+				el({ id: 'a-body', name: 'TextBox 11', x: 41, y: 95, width: 193, height: 36 }),
+			]),
+		];
+		const wrapped = [
+			circle('b', [
+				el({ id: 'b-disc', name: '!!Content', width: 270, height: 270 }),
+				group({ id: 'b-wrap', name: 'Group 3', x: 28, y: 60, width: 214, height: 71 }, [
+					el({ id: 'b-title', name: 'TextBox 5', x: 0, y: 0, width: 214, height: 29 }),
+					el({ id: 'b-body', name: 'TextBox 6', x: 13, y: 35, width: 193, height: 36 }),
+				]),
+				el({ id: 'b-button', name: 'Rectangle 4', x: 73, y: 189, width: 124, height: 31 }),
+			]),
+		];
+
+		expect(flattenMorphElements(flat, wrapped).map((e) => e.id)).toStrictEqual([
+			'a-disc',
+			'a-button',
+			'a-title',
+			'a-body',
+		]);
+		expect(flattenMorphElements(wrapped, flat).map((e) => e.id)).toStrictEqual([
+			'b-disc',
+			'b-title',
+			'b-body',
+			'b-button',
+		]);
+		// The expanded leaves land in the wrapper's space, then the group's.
+		const [, title] = flattenMorphElements(wrapped, flat);
+		expect(title).toMatchObject({ id: 'b-title', x: 505 + 28, y: 225 + 60 });
+	});
+
+	it('descends into a wrapper both slides have, even with no !! name inside', () => {
+		// Once `!!Circle`'s cast has corresponded one for one, its members ARE
+		// each other's counterparts, so the unnamed `Group 3` inside pairs with
+		// its twin and its paragraphs animate individually. PowerPoint crossfades
+		// them (issue #160); requiring `!!` all the way down carries the whole
+		// wrapper as one object instead.
+		const panel = (prefix: string, words: string): PptxElement =>
+			circle(prefix, [
+				el({ id: `${prefix}-disc`, name: '!!Content', width: 270, height: 270 }),
+				group({ id: `${prefix}-wrap`, name: 'Group 3', x: 28, y: 60, width: 214, height: 71 }, [
+					el({
+						id: `${prefix}-title`,
+						type: 'text',
+						name: 'TextBox 5',
+						width: 214,
+						height: 29,
+						text: words,
+					} as Partial<PptxElement> & { id: string }),
+					el({ id: `${prefix}-body`, name: 'TextBox 6', x: 13, y: 35, width: 193, height: 36 }),
+				]),
+			]);
+
+		expect(
+			flattenMorphElements([panel('a', 'Open Integration')], [panel('b', 'Tactical Edge')]).map(
+				(e) => e.id,
+			),
+		).toStrictEqual(['a-disc', 'a-title', 'a-body']);
+	});
+
 	it('does not mutate the input elements', () => {
 		const child = el({ id: 'c', name: '!!X', x: 1, y: 2 });
 		const elements = [group({ id: 'g', x: 50, y: 60 }, [child])];
@@ -296,5 +371,54 @@ describe('morphGroupChildPairs', () => {
 		);
 		expect(pairs.get('a-inner')).toBe('b-inner');
 		expect(pairs.get('a-line')).toBe('b-line');
+	});
+
+	it('pairs the paragraphs inside an unnamed wrapper both slides have', () => {
+		// The wording is what makes two text boxes look unrelated (same place,
+		// different words), so nothing but this pairing can carry them through -
+		// and the wrapper carries no `!!` name of its own (issue #160).
+		const wrapPanel = (prefix: string, words: string): PptxElement =>
+			circle(prefix, [
+				el({ id: `${prefix}-disc`, name: '!!Content', width: 270, height: 270 }),
+				group({ id: `${prefix}-wrap`, name: 'Group 3', x: 28, y: 60, width: 214, height: 71 }, [
+					el({
+						id: `${prefix}-title`,
+						type: 'text',
+						name: 'TextBox 5',
+						width: 214,
+						height: 29,
+						text: words,
+					} as Partial<PptxElement> & { id: string }),
+				]),
+			]);
+		const pairs = morphGroupChildPairs(
+			[wrapPanel('a', 'Open Integration')],
+			[wrapPanel('b', 'Tactical Edge')],
+		);
+		expect(pairs.get('a-wrap')).toBe('b-wrap');
+		expect(pairs.get('a-title')).toBe('b-title');
+	});
+
+	it('pairs across a wrapper only one slide has', () => {
+		// Three objects against "one object and a wrapper holding two". The casts
+		// only line up once the wrapper is out of the way, and it is the pairing
+		// they then produce that carries the disc through 4 -> 5 (issue #131).
+		const flat = circle('a', [
+			el({ id: 'a-disc', name: '!!Content', width: 270, height: 270 }),
+			el({ id: 'a-title', name: 'TextBox 9', x: 28, y: 60, width: 214, height: 29 }),
+			el({ id: 'a-body', name: 'TextBox 11', x: 41, y: 95, width: 193, height: 36 }),
+		]);
+		const wrapped = circle('b', [
+			el({ id: 'b-disc', name: '!!Content', width: 270, height: 270 }),
+			group({ id: 'b-wrap', name: 'Group 3', x: 28, y: 60, width: 214, height: 71 }, [
+				el({ id: 'b-title', name: 'TextBox 5', width: 214, height: 29 }),
+				el({ id: 'b-body', name: 'TextBox 6', x: 13, y: 35, width: 193, height: 36 }),
+			]),
+		]);
+		expect(Object.fromEntries(morphGroupChildPairs([flat], [wrapped]))).toStrictEqual({
+			'a-disc': 'b-disc',
+			'a-title': 'b-title',
+			'a-body': 'b-body',
+		});
 	});
 });

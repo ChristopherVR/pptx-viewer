@@ -14,7 +14,22 @@
  * Every element renderer stamps `data-element-id`, so the whole mechanism is a
  * single `querySelectorAll` and needs no per-element renderer plumbing.
  */
+import type { ElementAnimationState } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
+
+/** True when at least one staged node belongs to the tracked element states. */
+function stageHoldsTrackedElement(
+	nodes: ArrayLike<HTMLElement>,
+	states: ReadonlyMap<string, ElementAnimationState>,
+): boolean {
+	for (let i = 0; i < nodes.length; i++) {
+		const id = nodes[i].dataset['elementId'];
+		if (id && states.has(id)) {
+			return true;
+		}
+	}
+	return false;
+}
 
 /** Resolve the nearest element id above a pointer target, if any. */
 export function closestElementId(target: EventTarget | null): string | undefined {
@@ -45,8 +60,17 @@ export class PresentationStageAnimator {
 	 * cursor on interactive / hover trigger shapes. Mirrors the Vue
 	 * `applyAnimationStyles`. Structural reveals (chart / SmartArt build, fill /
 	 * stroke inherit) are applied declaratively by the renderers themselves.
+	 *
+	 * @param options.onlyWhenStaged - Skip entirely unless the stage already holds
+	 *   a node for at least one tracked element id. Used by the SYNCHRONOUS apply
+	 *   the playback service fires the instant a click-group's states change
+	 *   (see {@link AnimationPlaybackService.setStyleApplier}): on a slide change
+	 *   the states describe the INCOMING slide while the stage still holds the
+	 *   outgoing one, and clearing the outgoing nodes' `visibility` mid-transition
+	 *   would reveal shapes whose entrance never played. In that case the
+	 *   `afterNextRender` pass in the overlay is the correct (and only) applier.
 	 */
-	applyAnimationStyles(): void {
+	applyAnimationStyles(options?: { onlyWhenStaged?: boolean }): void {
 		const root = this.stageRoot();
 		if (!root) {
 			return;
@@ -55,6 +79,9 @@ export class PresentationStageAnimator {
 		const interactive = this.playback.interactiveTriggerShapeIds();
 		const hover = this.playback.hoverTriggerShapeIds();
 		const nodes = root.querySelectorAll<HTMLElement>('[data-element-id]');
+		if (options?.onlyWhenStaged && !stageHoldsTrackedElement(nodes, states)) {
+			return;
+		}
 		nodes.forEach((el) => {
 			const id = el.dataset['elementId'];
 			if (!id) {

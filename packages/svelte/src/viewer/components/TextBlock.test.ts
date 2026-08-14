@@ -130,6 +130,52 @@ describe('textBlock picture bullets', () => {
 	});
 });
 
+/**
+ * The paragraph box carries BOTH shared's `paragraphStyle` map (align / BiDi /
+ * kinsoku) and the explicit geometry (margins, indent, line-height). This
+ * binding is the only one that has to SERIALISE those into one attribute
+ * string, and it used to concatenate `styleToString(paragraphStyle)` - which
+ * has no trailing `;` - straight onto `margin: ...`. That fused two
+ * declarations into one invalid one, so the paragraph lost BOTH its alignment
+ * and its hanging-indent `margin-left`: every bulleted run painted a full
+ * `marL` (36px / 18px) to the left of the other four bindings, the authored
+ * `a:bodyPr` inset vanished, and the wider content box wrapped a word late.
+ */
+describe('textBlock paragraph box geometry', () => {
+	it('keeps the hanging indent when the paragraph also carries its own style', () => {
+		const target = render(
+			paragraph({
+				paragraphStyle: { textAlign: 'center', lineBreak: 'strict' },
+				marginLeftPx: 36,
+				textIndentPx: -36,
+			}),
+		);
+		const p = target.querySelector<HTMLElement>('.pptx-svelte-para');
+		// The indent stop survives the paragraph's own style.
+		expect(p?.style.marginLeft).toBe('36px');
+		expect(p?.style.textIndent).toBe('-36px');
+		// ...and so does the style itself.
+		expect(p?.style.textAlign).toBe('center');
+		expect(p?.style.lineBreak).toBe('strict');
+	});
+
+	it('lets the explicit geometry win over the same key in paragraphStyle', () => {
+		const target = render(
+			paragraph({
+				// A stray margin in the shared map must not beat the resolved indent.
+				paragraphStyle: {
+					textAlign: 'right',
+					marginLeft: '99px',
+				} as RenderParagraph['paragraphStyle'],
+				marginLeftPx: 18,
+			}),
+		);
+		const p = target.querySelector<HTMLElement>('.pptx-svelte-para');
+		expect(p?.style.marginLeft).toBe('18px');
+		expect(p?.style.textAlign).toBe('right');
+	});
+});
+
 describe('textBlock hyperlink and inline equation runs', () => {
 	it('renders a hyperlinked run as a safe anchor', () => {
 		// Before `ParagraphRun` carried a hyperlink, this binding painted linked

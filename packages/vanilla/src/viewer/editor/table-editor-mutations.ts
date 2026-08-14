@@ -5,6 +5,7 @@ import {
 	deleteTableRow,
 	insertTableColumn,
 	insertTableRow,
+	withCellText,
 } from 'pptx-viewer-shared';
 
 export interface TableCellPosition {
@@ -115,20 +116,25 @@ export function mergeTableCellRange(
 			if (rowIndex < top || rowIndex > bottom || columnIndex < left || columnIndex > right) {
 				return cell;
 			}
+			// `withCellText`, not a bare spread: the cell's `textRuns` describe the
+			// text being replaced here, and the renderer paints those runs in
+			// preference to the flat string, so keeping them leaves the absorbed
+			// cells still showing their old content.
 			if (rowIndex === top && columnIndex === left) {
 				return {
-					...cell,
-					text: cells
-						.map(({ row: selectedRow, column }) => data.rows[selectedRow]?.cells[column]?.text)
-						.filter(Boolean)
-						.join(' '),
+					...withCellText(
+						cell,
+						cells
+							.map(({ row: selectedRow, column }) => data.rows[selectedRow]?.cells[column]?.text)
+							.filter(Boolean)
+							.join(' '),
+					),
 					gridSpan: right > left ? right - left + 1 : undefined,
 					rowSpan: bottom > top ? bottom - top + 1 : undefined,
 				};
 			}
 			return {
-				...cell,
-				text: '',
+				...withCellText(cell, ''),
 				hMerge: columnIndex > left || undefined,
 				vMerge: rowIndex > top || undefined,
 			};

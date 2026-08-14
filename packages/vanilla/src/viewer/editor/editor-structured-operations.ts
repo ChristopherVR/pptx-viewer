@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { withCellText } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import {
@@ -29,7 +30,11 @@ export function createStructuredEditorOperations(deps: {
 			const rows = target.tableData.rows.map((tableRow, rowIndex) => ({
 				...tableRow,
 				cells: tableRow.cells.map((cell, cellIndex) =>
-					rowIndex === row && cellIndex === column ? { ...cell, text, textRuns: undefined } : cell,
+					// Shared `withCellText`, not a local `textRuns: undefined`. Vanilla
+					// was the ONLY binding clearing the stale run model here, so it was
+					// the only one whose cell edits painted; that made a local defence
+					// out of a decision all five bindings need.
+					rowIndex === row && cellIndex === column ? withCellText(cell, text) : cell,
 				),
 			}));
 			deps.store.set(

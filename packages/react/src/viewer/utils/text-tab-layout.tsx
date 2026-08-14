@@ -211,6 +211,12 @@ export function renderTabbedLine(
 	ctx: TabRenderContext,
 	keyPrefix: string,
 	renderPiece: (text: string, key: string) => React.ReactNode,
+	/**
+	 * The run's decoration. Each piece is an `inline-block`, and CSS does not
+	 * propagate a text decoration into an atomic inline-level box, so without
+	 * repeating it here an underlined tabbed line loses its underline outright.
+	 */
+	nestedStyle?: React.CSSProperties,
 ): React.ReactNode {
 	const segments = line.split('\t');
 	const pieces = computeTabbedLayout(
@@ -240,7 +246,7 @@ export function renderTabbedLine(
 								{piece.leaderChar ? fillLeader(piece.leaderChar, piece.leaderWidth, ctx.font) : ''}
 							</span>
 						) : null}
-						<span style={{ display: 'inline-block', whiteSpace: 'pre' }}>
+						<span style={{ ...nestedStyle, display: 'inline-block', whiteSpace: 'pre' }}>
 							{renderPiece(piece.text, key)}
 						</span>
 					</React.Fragment>

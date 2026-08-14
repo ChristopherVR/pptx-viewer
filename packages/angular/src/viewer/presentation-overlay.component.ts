@@ -352,6 +352,16 @@ export class PresentationOverlayComponent implements OnInit {
 		// Scope media-command (`p:cmd`) target lookups to the slide stage.
 		this.playback.setFrameRoot(() => this.stageRef()?.nativeElement ?? null);
 
+		// Stamp a playback step onto the DOM in the SAME task as the input that
+		// caused it. The reactive path below (effect -> afterNextRender) is still
+		// the applier for a slide change, but it lands ~24ms after a click-advance,
+		// so the first frame of every entrance was dropped and the show visibly
+		// lagged its own key press. `onlyWhenStaged` keeps this out of the slide
+		// swap, where the states describe a slide the stage has not rendered yet.
+		this.playback.setStyleApplier(() =>
+			this.stageAnimator.applyAnimationStyles({ onlyWhenStaged: true }),
+		);
+
 		// Wire the zoom-navigation context to this overlay's slide navigation so a
 		// descendant zoom tile can jump to its target slide on click.
 		this.zoomNavigation.setHandler((index) => this.navigator.goToSlide(index));

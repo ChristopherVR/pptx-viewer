@@ -51,9 +51,23 @@ describe('createTransitionsTab', () => {
 		const t = createTranslator();
 		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
 		expect(named(tab, t('pptx.ribbon.onMouseClick'))).toHaveLength(1);
-		// The checkbox and its duration box share one name in React, which derives
-		// both from the single wrapping label.
-		expect(named(tab, t('pptx.ribbon.afterDuration'))).toHaveLength(2);
+		expect(named(tab, t('pptx.ribbon.afterDuration'))).toHaveLength(1);
+		expect(named(tab, t('pptx.ribbon.advanceAfterSeconds'))).toHaveLength(1);
+	});
+
+	it('names the After checkbox and its duration box apart, as the other four bindings do', () => {
+		const t = createTranslator();
+		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
+		// Both controls live under one `<label>`, which names only its FIRST
+		// labelable descendant, so each carries its own aria-label. This binding
+		// used to give the seconds box the checkbox's name, which published the
+		// ribbon as offering "After:" twice and never offering "Advance after
+		// specified duration" at all (caught by e2e/ribbon-control-inventory).
+		const afterCheckbox = named(tab, t('pptx.ribbon.afterDuration'))[0] as HTMLInputElement;
+		const afterSeconds = named(tab, t('pptx.ribbon.advanceAfterSeconds'))[0] as HTMLInputElement;
+		expect(afterCheckbox?.type).toBe('checkbox');
+		expect(afterSeconds?.type).toBe('text');
+		expect(afterSeconds.title).toBe(t('pptx.ribbon.advanceAfterSeconds'));
 	});
 
 	it('opens the inspector from the Inspector button', () => {
@@ -96,10 +110,8 @@ describe('createTransitionsTab', () => {
 		const t = createTranslator();
 		const handlers = makeHandlers();
 		const tab = createTransitionsTab(document, t, handlers, vi.fn());
-		const [afterCheckbox, afterSeconds] = named(
-			tab,
-			t('pptx.ribbon.afterDuration'),
-		) as HTMLInputElement[];
+		const afterCheckbox = named(tab, t('pptx.ribbon.afterDuration'))[0] as HTMLInputElement;
+		const afterSeconds = named(tab, t('pptx.ribbon.advanceAfterSeconds'))[0] as HTMLInputElement;
 		afterCheckbox.checked = true;
 		afterCheckbox.dispatchEvent(new Event('change'));
 		afterSeconds.value = '00:03.00';
@@ -175,10 +187,8 @@ describe('createTransitionsTab', () => {
 		tab.sync();
 
 		const duration = named(tab, t('pptx.ribbon.duration'))[0] as HTMLInputElement;
-		const [afterCheckbox, afterSeconds] = named(
-			tab,
-			t('pptx.ribbon.afterDuration'),
-		) as HTMLInputElement[];
+		const afterCheckbox = named(tab, t('pptx.ribbon.afterDuration'))[0] as HTMLInputElement;
+		const afterSeconds = named(tab, t('pptx.ribbon.advanceAfterSeconds'))[0] as HTMLInputElement;
 		expect(duration.value).toBe('2');
 		expect(afterCheckbox.checked).toBeTruthy();
 		expect(afterSeconds.value).toBe('00:05.00');

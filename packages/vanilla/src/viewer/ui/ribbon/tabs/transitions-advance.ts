@@ -30,9 +30,11 @@ export interface AdvanceGroup {
  * half-typed "00:0" parses as a real (wrong) time, and each commit is its own
  * undo step.
  *
- * Both the checkbox and its duration box are named "After" on purpose: React
- * derives both names from the one wrapping label, and the ribbon inventory
- * spec compares the two bindings name for name.
+ * Two controls sit under the one "After" label, and a `<label>` names only its
+ * FIRST labelable descendant, so both are named explicitly: the checkbox after
+ * the caption, the box after what it actually holds. Naming BOTH "After:" (as
+ * this file used to) reads as a duplicate control to a screen reader and to the
+ * ribbon inventory spec, which compares all five bindings name for name.
  */
 export function createAdvanceGroup(
 	doc: Document,
@@ -61,7 +63,7 @@ export function createAdvanceGroup(
 	afterSeconds.value = NO_ADVANCE_AFTER_TEXT;
 	afterSeconds.disabled = true;
 	afterSeconds.title = t('pptx.ribbon.advanceAfterSeconds');
-	afterSeconds.setAttribute('aria-label', t('pptx.ribbon.afterDuration'));
+	afterSeconds.setAttribute('aria-label', t('pptx.ribbon.advanceAfterSeconds'));
 	afterLabel.append(afterEnabled, doc.createTextNode(t('pptx.ribbon.afterDuration')), afterSeconds);
 
 	const current = (): AdvanceDraft => ({

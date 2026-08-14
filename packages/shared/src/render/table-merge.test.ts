@@ -177,6 +177,40 @@ describe('mergeCells', () => {
 		const table = makeTable(3, 3);
 		expect(mergeCells([{ row: 0, col: 0 }], table)).toBe(table);
 	});
+
+	// Regression: a merge re-texts every cell in the rectangle (the anchor takes
+	// the concatenation, the absorbed cells are emptied), and the renderers paint
+	// `cell.textRuns` in preference to `cell.text`. Leaving the old run model
+	// behind left the absorbed cells still painting their own words on top of the
+	// merged anchor.
+	it('drops the per-run model of every cell it re-texts', () => {
+		const table = makeTable(2, 2, [
+			['Hello', 'World'],
+			['Foo', 'Bar'],
+		]);
+		for (const row of table.rows) {
+			for (const cell of row.cells) {
+				cell.textRuns = [{ text: cell.text, bold: true }];
+			}
+		}
+		const result = mergeCells(
+			[
+				{ row: 0, col: 0 },
+				{ row: 0, col: 1 },
+				{ row: 1, col: 0 },
+				{ row: 1, col: 1 },
+			],
+			table,
+		);
+		for (const row of result.rows) {
+			for (const cell of row.cells) {
+				expect(cell.textRuns).toBeUndefined();
+			}
+		}
+		expect(result.rows[0].cells[0].text).toBe('Hello World Foo Bar');
+		// Immutable: the source keeps its runs.
+		expect(table.rows[0].cells[0].textRuns).toHaveLength(1);
+	});
 });
 
 describe('splitCell', () => {

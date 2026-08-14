@@ -8,7 +8,7 @@
 	import { styleToString } from '../style';
 	import type { TextBlockProps } from './props';
 	import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
-	import type { RenderParagraph } from 'pptx-viewer-shared';
+	import type { CssStyleMap, RenderParagraph } from 'pptx-viewer-shared';
 	import TextRun from './TextRun.svelte';
 
 	const { paragraphs, textStyle, elementId, subElementAnimStates }: TextBlockProps = $props();
@@ -43,29 +43,38 @@
 	 * own spacing inherit the body-level `textStyle`.
 	 */
 	function paraStyle(para: RenderParagraph): string {
-		// This paragraph's own `text-align` / BiDi `direction` / kinsoku rules,
-		// when it overrides the body's. Emitted first so the explicit geometry
-		// below always wins.
-		let css = para.paragraphStyle ? styleToString(para.paragraphStyle) : '';
-		css += `margin: 0 0 0 ${para.marginLeftPx ?? 0}px;`;
-		if (para.spaceBeforePx !== undefined) {
-			css += `margin-top: ${para.spaceBeforePx}px;`;
-		}
-		if (para.spaceAfterPx !== undefined) {
-			css += `margin-bottom: ${para.spaceAfterPx}px;`;
-		}
+		// Built as a MAP and serialised once, exactly as the other four bindings
+		// assemble theirs. Hand-concatenating declaration strings fused shared's
+		// `paragraphStyle` (which `styleToString` leaves unterminated) onto the
+		// margin that followed it, and the browser dropped the whole invalid
+		// declaration: the paragraph lost its hanging-indent `margin-left`, so
+		// every bulleted run painted a full `marL` left of the other bindings and
+		// the too-wide content box wrapped a word late.
+		const style: CssStyleMap = {
+			// This paragraph's own `text-align` / BiDi `direction` / kinsoku rules,
+			// when it overrides the body's. Spread first so the explicit geometry
+			// below always wins.
+			...para.paragraphStyle,
+			// `<p>` has a UA margin; zero it. Longhands rather than the `margin`
+			// shorthand, because a shorthand serialised AFTER `margin-left` would
+			// reset the indent again whatever order the keys land in.
+			marginTop: `${para.spaceBeforePx ?? 0}px`,
+			marginRight: '0px',
+			marginBottom: `${para.spaceAfterPx ?? 0}px`,
+			marginLeft: `${para.marginLeftPx ?? 0}px`,
+		};
 		if (para.lineHeight !== undefined) {
-			css += `line-height: ${para.lineHeight};`;
+			style.lineHeight = para.lineHeight;
 		}
 		if (para.textIndentPx !== undefined) {
-			css += `text-indent: ${para.textIndentPx}px;`;
+			style.textIndent = `${para.textIndentPx}px`;
 		}
 		if (para.strutFontSizePx !== undefined) {
 			// Re-base the line box on this paragraph's own runs; every run span
 			// carries an explicit font-size, so this only moves the CSS strut.
-			css += `font-size: ${para.strutFontSizePx}px;`;
+			style.fontSize = `${para.strutFontSizePx}px`;
 		}
-		return css;
+		return styleToString(style);
 	}
 </script>
 

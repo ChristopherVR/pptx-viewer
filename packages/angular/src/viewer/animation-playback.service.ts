@@ -64,10 +64,23 @@ export class AnimationPlaybackService {
 	private showWithAnimation: boolean | undefined = undefined;
 	private frameRoot: (() => HTMLElement | null) | undefined;
 	private onPlayActionSound: ((soundPath: string) => void) | undefined;
+	private applyStyles: (() => void) | undefined;
 
 	private readonly ctx: PlaybackContext = {
 		setStates: (updater) => {
 			this.presentationElementStates.set(updater(this.presentationElementStates()));
+			// Stamp the DOM NOW, in the same task as the input that caused the step.
+			// The overlay also applies the state reactively (effect -> afterNextRender),
+			// but that lands one change-detection cycle plus one render hook later:
+			// measured at ~24ms (1.5 frames) after the ArrowRight that starts a
+			// click-group, where React / Vue / Svelte / Vanilla all have the
+			// animation on the element within the key handler's own task. The delay
+			// is a real dropped frame at the start of every entrance, and it makes
+			// the show observably lag its own input (`e2e/animation-entry-state.spec.ts`
+			// reads the inline `animation` right after the key press and saw nothing).
+			// Only playback steps route through here; the per-slide seed in
+			// `setSlide` deliberately does not (see `onlyWhenStaged`).
+			this.applyStyles?.();
 		},
 		timers: this.timers,
 		buildHandle: this.buildHandle,
@@ -91,6 +104,18 @@ export class AnimationPlaybackService {
 	/** Register a host-provided action-sound player (embedded-sound resolution). */
 	setActionSoundHandler(handler: ((soundPath: string) => void) | undefined): void {
 		this.onPlayActionSound = handler;
+	}
+
+	/**
+	 * Register the DOM applier that stamps the element states onto the rendered
+	 * stage ({@link PresentationStageAnimator.applyAnimationStyles}). It is run
+	 * SYNCHRONOUSLY on every playback state change, so a click-advance starts its
+	 * entrance in the same task as the key press instead of waiting for Angular's
+	 * next change-detection + render pass. Pass an applier that no-ops while the
+	 * stage still shows another slide (`onlyWhenStaged`).
+	 */
+	setStyleApplier(apply: () => void): void {
+		this.applyStyles = apply;
 	}
 
 	private animationsEnabled(): boolean {

@@ -1,6 +1,8 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import {
+	hollowTextFillStyle,
+	nestedTextDecorationStyle,
 	pieceLetterSpacing,
 	resolveAutoFitFontScale,
 	resolveMetricTrackingPx,
@@ -174,7 +176,13 @@ export function renderParagraphRun(
 		bold: Boolean(segmentStyle.bold),
 		italic: Boolean(segmentStyle.italic),
 	};
-	const metricContext = { font: metricFont, authoredPx: authoredLetterSpacing };
+	// A run's decoration has to be repeated on every span React nests inside it
+	// (per-word metric pieces, per-script font spans, find-match marks): CSS draws
+	// an ancestor's underline THROUGH its descendants but does not inherit it, so
+	// the element that directly parents the text - the one a reader's browser and
+	// our parity harness both read - declared `text-decoration-line: none`.
+	const nestedStyle = nestedTextDecorationStyle(run.style) as React.CSSProperties | undefined;
+	const metricContext = { font: metricFont, authoredPx: authoredLetterSpacing, nestedStyle };
 
 	// Shared owns the run's paint: decorations, caps, highlight, outline stroke,
 	// gradient/pattern fill, shadow, filter chain, opacity, reflection and the
@@ -190,6 +198,22 @@ export function renderParagraphRun(
 		authoredLetterSpacing,
 		resolveMetricTrackingPx(textValue, metricFont),
 	);
+
+	// Re-apply the shared hollow (`a:rPr > a:noFill`) decision OVER the colour
+	// just resolved. Shared already merged it into `run.style`, but the `color`
+	// assignment above is unconditional, so it put the inherited colour back and
+	// React painted a hollow run blue-with-a-transparent-fill while the other four
+	// bindings painted it hollow. The decision function is called with React's own
+	// (more precisely resolved) colour, which is also what the outline falls back
+	// to when the `a:ln` declared no colour of its own.
+	const hollow = hollowTextFillStyle(segmentStyle, {
+		color: resolvedSegmentColor,
+		textStroke:
+			typeof spanStyle.WebkitTextStroke === 'string' ? spanStyle.WebkitTextStroke : undefined,
+	});
+	if (hollow) {
+		Object.assign(spanStyle, hollow);
+	}
 
 	// Per-run BiDi direction override. When a run's direction differs from the
 	// paragraph's, `bidi-override` forces its characters to follow the run (an

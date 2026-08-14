@@ -79,6 +79,33 @@ describe('createTableStructHandlers', () => {
 			);
 		});
 
+		// Regression: `renderTableCellContent` paints `cell.textRuns` whenever the
+		// cell carries them and only falls back to the flat text when it does not,
+		// so committing an edit that left the old run model in place kept the OLD
+		// wording on the canvas - the `desktop-manipulation` / `mobile-table`
+		// failure. The handler now goes through shared `setCellText`, which owns
+		// the invalidation for all five bindings.
+		it('drops the stale per-run model of the cell it re-texts', () => {
+			const tableData = createSimpleTableData(2, 2);
+			tableData.rows[0].cells[0].text = 'Starter';
+			tableData.rows[0].cells[0].textRuns = [{ text: 'Starter', bold: true }];
+			const tableEl = createTableElement(tableData);
+			const lookup = new Map<string, PptxElement>([[tableEl.id, tableEl]]);
+			const input = createMockInput({ selectedElement: tableEl, elementLookup: lookup });
+			const handlers = createTableStructHandlers(input);
+
+			handlers.handleCommitCellEdit('table-1', 0, 0, 'Freebie');
+
+			const updates = vi.mocked(input.ops.updateElementById).mock.calls[0][1] as {
+				tableData: PptxTableData;
+			};
+			const edited = updates.tableData.rows[0].cells[0];
+			expect(edited.text).toBe('Freebie');
+			expect(edited.textRuns).toBeUndefined();
+			// The neighbouring cell is untouched, runs and all.
+			expect(updates.tableData.rows[0].cells[1]).toBe(tableData.rows[0].cells[1]);
+		});
+
 		it('should mark history dirty after edit', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);

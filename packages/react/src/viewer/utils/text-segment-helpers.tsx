@@ -40,6 +40,8 @@ export function renderScriptAwareText(
 	scriptFonts: ScriptFonts,
 	baseFontFamily: string,
 	keyPrefix: string,
+	/** Decoration the run carries, which a nested span has to repeat (it does not inherit). */
+	nestedStyle?: React.CSSProperties,
 ): React.ReactNode {
 	if (!needsScriptFonts || !text) {
 		return text;
@@ -51,7 +53,7 @@ export function renderScriptAwareText(
 		if (runs.length === 1) {
 			const font = resolveFontForScript(runs[0].script, scriptFonts);
 			if (font && font !== baseFontFamily) {
-				return <span style={{ fontFamily: font }}>{text}</span>;
+				return <span style={{ ...nestedStyle, fontFamily: font }}>{text}</span>;
 			}
 		}
 		return text;
@@ -63,7 +65,7 @@ export function renderScriptAwareText(
 			return <React.Fragment key={`${keyPrefix}-r${i}`}>{run.text}</React.Fragment>;
 		}
 		return (
-			<span key={`${keyPrefix}-r${i}`} style={{ fontFamily: font }}>
+			<span key={`${keyPrefix}-r${i}`} style={{ ...nestedStyle, fontFamily: font }}>
 				{run.text}
 			</span>
 		);
@@ -76,6 +78,13 @@ export interface MetricTextContext {
 	font: RunFontSpec;
 	/** Authored `a:rPr/@spc` in px; each piece's tracking layers on top. */
 	authoredPx: number;
+	/**
+	 * The run's own decoration, which every span nested inside the run has to
+	 * repeat: `text-decoration-*` does not inherit, so a piece span reports
+	 * `none` of its own even while the run's underline is drawn through it.
+	 * Shared `nestedTextDecorationStyle` decides the subset.
+	 */
+	nestedStyle?: React.CSSProperties;
 }
 
 /**
@@ -107,7 +116,10 @@ export function renderMetricPieces(
 	return pieces.map((piece, i) => (
 		<span
 			key={`${keyPrefix}-w${i}`}
-			style={{ letterSpacing: pieceLetterSpacing(metric.authoredPx, piece.tracking) }}
+			style={{
+				...metric.nestedStyle,
+				letterSpacing: pieceLetterSpacing(metric.authoredPx, piece.tracking),
+			}}
 		>
 			{inner(piece.text, `${keyPrefix}-w${i}`)}
 		</span>
@@ -139,12 +151,19 @@ export function renderSegmentContent(
 			const lineKey = `${elementId}-seg-${segmentIndex}-line-${lineIndex}`;
 			const renderPiece = (text: string, key: string): React.ReactNode =>
 				renderMetricPieces(text, metric, key, (pieceText, pieceKey) =>
-					renderScriptAwareText(pieceText, needsScriptFonts, scriptFonts, baseFontFamily, pieceKey),
+					renderScriptAwareText(
+						pieceText,
+						needsScriptFonts,
+						scriptFonts,
+						baseFontFamily,
+						pieceKey,
+						metric?.nestedStyle,
+					),
 				);
 			return (
 				<React.Fragment key={lineKey}>
 					{tabContext && line.includes('\t')
-						? renderTabbedLine(line, tabContext, lineKey, renderPiece)
+						? renderTabbedLine(line, tabContext, lineKey, renderPiece, metric?.nestedStyle)
 						: renderPiece(line, lineKey)}
 					{lineIndex < lines.length - 1 ? <br /> : null}
 				</React.Fragment>
@@ -184,7 +203,14 @@ export function renderSegmentContent(
 	}
 	const renderChunk = (text: string, key: string): React.ReactNode =>
 		renderMetricPieces(text, metric, key, (pieceText, pieceKey) =>
-			renderScriptAwareText(pieceText, needsScriptFonts, scriptFonts, baseFontFamily, pieceKey),
+			renderScriptAwareText(
+				pieceText,
+				needsScriptFonts,
+				scriptFonts,
+				baseFontFamily,
+				pieceKey,
+				metric?.nestedStyle,
+			),
 		);
 	return chunks.map((chunk, ci) => {
 		const chunkKey = `${elementId}-seg-${segmentIndex}-hl-${ci}`;
@@ -192,6 +218,7 @@ export function renderSegmentContent(
 			<mark
 				key={chunkKey}
 				style={{
+					...metric?.nestedStyle,
 					backgroundColor: chunk.isCurrent ? '#f97316' : '#facc15',
 					color: 'inherit',
 					borderRadius: 2,

@@ -134,6 +134,40 @@ export const RIBBON_CSS = `
 .pptxv-arrange-extras { display: inline-flex; align-items: center; gap: 2px; }
 .pptxv-arrange-extras .pptxv-arrange-stroke { width: 52px; text-align: center; }
 
+/* ── Transitions > Advance Slide ────────────────────────────────────────
+   The group shipped with no rules at all, so its caption and both rows ran
+   together as inline text ("On Mouse ClickAfter:00:00.00") and the duration
+   box stretched to whatever width the row left it. React lays it out as a
+   caption over two checkbox rows, with a 64px centred time box. */
+.pptxv-transition-advance {
+	display: inline-flex;
+	flex: none;
+	flex-direction: column;
+	gap: 3px;
+	font-size: 12px;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-transition-advance-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.pptxv-transition-advance-seconds {
+	width: 64px;
+	padding: 1px 4px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 11px;
+	text-align: center;
+}
+.pptxv-transition-advance-seconds:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
+.pptxv-transition-advance-seconds:disabled { opacity: 0.5; }
+
 /* ── Home > Slides split button (New Slide + layout caret) ──────────────*/
 .pptxv-slides-split { position: relative; display: inline-flex; align-items: stretch; }
 .pptxv-slides-split .pptxv-btn-pill { border-top-right-radius: 0; border-bottom-right-radius: 0; }
