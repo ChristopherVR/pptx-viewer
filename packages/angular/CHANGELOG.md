@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.18.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.2) - 2026-08-14
+
+### Bug Fixes
+
+- **shared:** Sum a morph cross-dissolve instead of stacking two fades (by @ChristopherVR) ([86a9e7a](https://github.com/ChristopherVR/pptx-viewer/commit/86a9e7a2ab851d7b0005ab2d1c2267f668b308a8))
+
+### Testing
+
+- Mask the fields that legitimately move, and size two waits for CI (by @ChristopherVR) ([68bae19](https://github.com/ChristopherVR/pptx-viewer/commit/68bae19fe8cb3e283e2c87a90d31946c48be5e3a))
+
 ## [2.18.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.1) - 2026-08-14
 
 ### Bug Fixes
