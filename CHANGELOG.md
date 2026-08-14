@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-08-14
 
+_Releases: pptx-react-viewer@2.19.2, pptx-vue-viewer@2.20.2, pptx-angular-viewer@2.18.2, pptx-vanilla-viewer@1.21.2, pptx-svelte-viewer@2.20.2_
+
+### Bug Fixes
+
+- **shared:** Sum a morph cross-dissolve instead of stacking two fades (by @ChristopherVR) ([86a9e7a](https://github.com/ChristopherVR/pptx-viewer/commit/86a9e7a2ab851d7b0005ab2d1c2267f668b308a8))
+
+### Testing
+
+- Mask the fields that legitimately move, and size two waits for CI (by @ChristopherVR) ([68bae19](https://github.com/ChristopherVR/pptx-viewer/commit/68bae19fe8cb3e283e2c87a90d31946c48be5e3a))
+
+## 2026-08-14
+
 _Releases: pptx-react-viewer@2.19.1, pptx-vue-viewer@2.20.1, pptx-angular-viewer@2.18.1, pptx-vanilla-viewer@1.21.1, pptx-svelte-viewer@2.20.1_
 
 ### Bug Fixes
