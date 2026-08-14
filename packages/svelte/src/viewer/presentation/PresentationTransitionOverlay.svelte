@@ -18,6 +18,8 @@
 	import {
 		buildMorphScopedCss,
 		buildMorphTransitionPlan,
+		MORPH_CROSSFADE_GROUP_CSS_TEXT,
+		MORPH_CROSSFADE_HALF_BLEND_MODE,
 		morphOptionToMode,
 		resolveSlideTransition,
 		resolveTransitionDurationMs,
@@ -91,6 +93,28 @@
 			? { ...incomingSlide, elements: morphPlan.overlayIncomingElements }
 			: undefined,
 	);
+
+	/**
+	 * The pairs the overlay paints BOTH halves of, each as one isolated group so
+	 * the halves are summed rather than stacked: two source-over fades leave the
+	 * ink they share at 0.75 of full strength mid-transition, biting chunks out
+	 * of glyphs that cross during a text dissolve, where PowerPoint's own blend
+	 * keeps the two coefficients summing to 1.0 (issue #161).
+	 */
+	const morphCrossfadeGroups = $derived(
+		morphPlan && outgoingSlide && incomingSlide
+			? morphPlan.crossfadeGroups.map((group, index) => ({
+					key: group.incoming.id,
+					// `isolation` makes the group a stacking context, so it carries its
+					// own z-index to stay above the ghosts its halves came from.
+					style: `${MORPH_CROSSFADE_GROUP_CSS_TEXT} z-index: ${4 + index};`,
+					outgoing: { ...outgoingSlide, elements: [group.outgoing] },
+					incoming: { ...incomingSlide, elements: [group.incoming] },
+				}))
+			: [],
+	);
+
+	const crossfadeHalfStyle = `mix-blend-mode: ${MORPH_CROSSFADE_HALF_BLEND_MODE};`;
 
 	const morphCss = $derived(
 		morphPlan
@@ -178,6 +202,28 @@
 			<SlideStage slide={morphLiftedSlide} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
 		</div>
 	{/if}
+	<!-- A pair dissolving in place, painted as ONE isolated group whose two
+	     halves sum instead of stacking (issue #161). -->
+	{#each morphCrossfadeGroups as group (group.key)}
+		<div data-pptx-morph-crossfade={group.key} style={group.style}>
+			<div
+				class="pptx-svelte-transition-layer"
+				data-pptx-transition-layer="outgoing"
+				data-pptx-morph-outgoing="true"
+				style={crossfadeHalfStyle}
+			>
+				<SlideStage slide={group.outgoing} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
+			</div>
+			<div
+				class="pptx-svelte-transition-layer"
+				data-pptx-transition-layer="lifted"
+				data-pptx-morph-lifted="true"
+				style={crossfadeHalfStyle}
+			>
+				<SlideStage slide={group.incoming} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
+			</div>
+		</div>
+	{/each}
 </div>
 
 <style>

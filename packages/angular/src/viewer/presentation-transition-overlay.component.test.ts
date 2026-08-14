@@ -27,7 +27,10 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildMorphScopedCss, buildMorphTransitionPlan } from '../internal/shared';
-import { morphLiftedSlide } from './presentation-transition-overlay.component';
+import {
+	morphCrossfadeGroupSlides,
+	morphLiftedSlide,
+} from './presentation-transition-overlay.component';
 
 const OVERLAY_SOURCE = readFileSync(
 	path.join(__dirname, 'presentation-transition-overlay.component.ts'),
@@ -183,5 +186,77 @@ describe('morphLiftedSlide', () => {
 		const { from, to } = discAndWording();
 		expect(morphLiftedSlide(undefined, to)).toBeUndefined();
 		expect(morphLiftedSlide(buildMorphTransitionPlan(from, to, 800), undefined)).toBeUndefined();
+	});
+});
+
+/**
+ * The same panel with its wording REPLACED rather than arriving: a matched pair
+ * the overlay paints both halves of. `shapeId` is the identity that pairs two
+ * text boxes saying different things - proximity alone deliberately refuses
+ * them (issue #131).
+ */
+function discAndReplacedWording(): { from: PptxSlide; to: PptxSlide } {
+	const { from, to } = discAndWording();
+	const wording = (id: string, text: string): PptxElement =>
+		({
+			id,
+			type: 'text',
+			name: 'TextBox 6',
+			shapeId: 7,
+			x: 50,
+			y: 60,
+			width: 200,
+			height: 30,
+			text,
+		}) as unknown as PptxElement;
+	return {
+		from: slide('out', [...from.elements, wording('out-wording', 'Open Integration')]),
+		to: slide('in', [
+			...to.elements.filter((element) => element.id !== 'in-wording'),
+			wording('in-wording', 'Tactical Edge'),
+		]),
+	};
+}
+
+// Regression (issue #161): two fades stacked as ordinary layers composite
+// source-over, leaving the ink the halves SHARE at 0.75 of full strength
+// halfway through - measured 34.6/255 too dark on the wheel deck, which bites
+// chunks out of glyphs where the two line grids cross. PowerPoint's own render
+// keeps the blend coefficients summing to 1.0 for every frame, so the pair is
+// summed inside its own isolation group instead.
+describe('morphCrossfadeGroupSlides', () => {
+	it('wraps each half as its own single-element slide, in an isolated group', () => {
+		const { from, to } = discAndReplacedWording();
+		const plan = buildMorphTransitionPlan(from, to, 800);
+
+		const groups = morphCrossfadeGroupSlides(plan, from, to);
+
+		expect(groups).toHaveLength(1);
+		expect(groups[0].key).toBe('in-wording');
+		expect(groups[0].outgoing.elements.map((element) => element.id)).toStrictEqual(['out-wording']);
+		expect(groups[0].incoming.elements.map((element) => element.id)).toStrictEqual(['in-wording']);
+		expect(groups[0].style['isolation']).toBe('isolate');
+		// Above the ghost layer (40) and the lifted layer (41).
+		expect(groups[0].style['z-index']).toBe('42');
+		// Each half is painted exactly once: the flat layers no longer carry them.
+		expect(plan?.outgoingElements.map((element) => element.id)).not.toContain('out-wording');
+		expect(morphLiftedSlide(plan, to)).toBeUndefined();
+	});
+
+	it('renders no group without a plan or either slide', () => {
+		const { from, to } = discAndReplacedWording();
+		const plan = buildMorphTransitionPlan(from, to, 800);
+
+		expect(morphCrossfadeGroupSlides(undefined, from, to)).toStrictEqual([]);
+		expect(morphCrossfadeGroupSlides(plan, undefined, to)).toStrictEqual([]);
+		expect(morphCrossfadeGroupSlides(plan, from, undefined)).toStrictEqual([]);
+	});
+
+	it('blends both halves additively in the template', () => {
+		// No TestBed in this package, so the template is asserted as source: the
+		// group is worthless without `plus-lighter` on the two halves.
+		expect(OVERLAY_SOURCE).toContain('[attr.data-pptx-morph-crossfade]="group.key"');
+		expect(OVERLAY_SOURCE).toContain(`'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE`);
+		expect(OVERLAY_SOURCE).toContain('[ngStyle]="crossfadeHalfStyle"');
 	});
 });

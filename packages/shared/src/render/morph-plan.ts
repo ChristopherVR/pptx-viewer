@@ -30,7 +30,10 @@
  * A binding therefore: injects {@link MorphTransitionPlan.keyframesCss} once,
  * renders `outgoingElements` in an overlay above the slide, applies
  * `outgoingAnimations` to them and `incomingAnimations` to the real slide's
- * elements, then tears the overlay down after `durationMs`.
+ * elements, then tears the overlay down after `durationMs`. It must also render
+ * {@link MorphTransitionPlan.crossfadeGroups}, the pairs whose two halves are
+ * both painted here and have to be blended additively to dissolve the way
+ * PowerPoint does; their elements appear in no other list.
  *
  * @module render/morph-plan
  */
@@ -42,6 +45,8 @@ import {
 	morphPairNeedsCrossfade,
 	resolveMorphGhostIds,
 } from './morph-animation';
+import { resolveMorphCrossfadeGroups } from './morph-crossfade-group';
+import type { MorphCrossfadeGroup } from './morph-crossfade-group';
 import { flattenMorphElements } from './morph-flatten';
 import { matchMorphElementsFull } from './morph-matching';
 import { resolveMorphOverlayArrivals } from './morph-overlay-order';
@@ -112,8 +117,29 @@ export interface MorphTransitionPlan {
 	 *
 	 * Usually empty. A binding renders these with the INCOMING slide as their
 	 * context, applying {@link MorphTransitionPlan.overlayIncomingAnimations}.
+	 *
+	 * A lifted half that is one end of a cross-dissolve is NOT here: it moves
+	 * into {@link MorphTransitionPlan.crossfadeGroups} so it can be composited
+	 * with its own ghost.
 	 */
 	overlayIncomingElements: PptxElement[];
+	/**
+	 * Pairs the overlay paints BOTH halves of, to be rendered as one isolated
+	 * group blending additively (see `morph-crossfade-group`).
+	 *
+	 * Their elements are deliberately absent from
+	 * {@link MorphTransitionPlan.outgoingElements} and
+	 * {@link MorphTransitionPlan.overlayIncomingElements}: a binding that renders
+	 * the groups paints each half exactly once, and one that ignored them would
+	 * drop the pair rather than paint it twice. Their animations stay where they
+	 * were - the ghost's in `outgoingAnimations`, the arriving half's in
+	 * `overlayIncomingAnimations` - so the scoped CSS is unchanged as long as the
+	 * group's two halves carry the same scope attributes the flat layers do.
+	 *
+	 * Painted above {@link MorphTransitionPlan.overlayIncomingElements}, in the
+	 * incoming slide's document order.
+	 */
+	crossfadeGroups: MorphCrossfadeGroup[];
 	/**
 	 * The outgoing slide's elements, in document order, for the binding to
 	 * render in its transition overlay for the duration of the morph. Most carry
@@ -253,7 +279,7 @@ export function buildMorphTransitionPlan(
 	// put it on its own compositing layer and shift its raster by up to a pixel
 	// for the duration (issue #161); it still has to be painted, so this asks
 	// the ghost set directly rather than reading it off the animation map.
-	const outgoingElements = flattenedOutgoing.filter((element) => ghostIds.has(element.id));
+	const ghostElements = flattenedOutgoing.filter((element) => ghostIds.has(element.id));
 
 	// Everything the overlay paints hides whatever the live stage is doing
 	// underneath, which is wrong for a shape that ARRIVES on top of a ghost:
@@ -311,8 +337,22 @@ export function buildMorphTransitionPlan(
 	if (overlayIncomingAnimations.size > 0) {
 		keyframes.push(LIFTED_HIDDEN_KEYFRAMES);
 	}
-	const overlayIncomingElements = flattenedIncoming.filter((element) =>
-		overlayIncomingAnimations.has(element.id),
+	// A lifted half whose ghost is painted too is one end of a cross-dissolve
+	// with both ends in this overlay, so the two are handed over as a pair and
+	// taken out of the flat layers. Stacking them there composites them
+	// source-over, which dips their shared ink toward the backdrop instead of
+	// summing it the way PowerPoint's own blend does (issue #161).
+	const crossfadeGroups = resolveMorphCrossfadeGroups(
+		match.pairs,
+		ghostIds,
+		new Set(overlayIncomingAnimations.keys()),
+		flattenedIncoming,
+	);
+	const groupedOutgoingIds = new Set(crossfadeGroups.map((group) => group.outgoing.id));
+	const groupedIncomingIds = new Set(crossfadeGroups.map((group) => group.incoming.id));
+	const outgoingElements = ghostElements.filter((element) => !groupedOutgoingIds.has(element.id));
+	const overlayIncomingElements = flattenedIncoming.filter(
+		(element) => overlayIncomingAnimations.has(element.id) && !groupedIncomingIds.has(element.id),
 	);
 
 	return {
@@ -324,6 +364,7 @@ export function buildMorphTransitionPlan(
 		overlayIncomingAnimations,
 		outgoingElements,
 		overlayIncomingElements,
+		crossfadeGroups,
 		durationMs,
 	};
 }

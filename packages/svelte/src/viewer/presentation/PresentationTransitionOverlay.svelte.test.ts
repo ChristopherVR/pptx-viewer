@@ -113,6 +113,39 @@ function discAndWording(): { from: PptxSlide; to: PptxSlide } {
 	};
 }
 
+/**
+ * The same panel with its wording REPLACED rather than arriving: a matched pair
+ * the overlay paints both halves of, which is what has to be blended additively
+ * (issue #161). `shapeId` is the identity that pairs two text boxes saying
+ * different things - proximity alone deliberately refuses them (issue #131).
+ */
+function discAndReplacedWording(): { from: PptxSlide; to: PptxSlide } {
+	const { from, to } = discAndWording();
+	const wording = (id: string, text: string): unknown => ({
+		id,
+		type: 'text',
+		name: 'TextBox 6',
+		shapeId: 7,
+		x: 50,
+		y: 60,
+		width: 200,
+		height: 30,
+		text,
+	});
+	return {
+		from: makeSlide('out', [
+			...(from.elements as unknown[]),
+			wording('out-wording', 'Open Integration'),
+		]),
+		to: makeSlide('in', [
+			...(to.elements as unknown[]).filter(
+				(element) => (element as { id: string }).id !== 'in-wording',
+			),
+			wording('in-wording', 'Tactical Edge'),
+		]),
+	};
+}
+
 function mountOverlay(
 	transition: PptxSlideTransition,
 	slides?: { from: PptxSlide; to: PptxSlide },
@@ -219,6 +252,34 @@ describe('presentationTransitionOverlay', () => {
 		expect(css).toMatch(
 			/\[data-pptx-morph-incoming\] \[data-element-id="in-wording"\] \{ animation: pptx-morph-lifted-hidden/u,
 		);
+	});
+
+	// Regression (issue #161): two fades stacked as ordinary layers composite
+	// source-over, leaving the ink the halves SHARE at 0.75 of full strength
+	// halfway through - measured 34.6/255 too dark on the wheel deck, which
+	// bites chunks out of glyphs where the two line grids cross. PowerPoint's
+	// own render keeps the blend coefficients summing to 1.0 for every frame, so
+	// the pair is summed inside its own isolation group instead.
+	it('paints a pair dissolving in place as one isolated, additive group', () => {
+		const target = mountOverlay(
+			{ type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			discAndReplacedWording(),
+		);
+
+		const group = target.querySelector<HTMLElement>('[data-pptx-morph-crossfade="in-wording"]');
+		expect(group, 'the pair must be rendered as its own group').not.toBeNull();
+		expect(group!.getAttribute('style')).toContain('isolation: isolate');
+		// Above the ghost layer (2) and the lifted layer (3).
+		expect(group!.getAttribute('style')).toContain('z-index: 4');
+		const halves = [...group!.querySelectorAll<HTMLElement>('[data-pptx-transition-layer]')];
+		expect(halves).toHaveLength(2);
+		for (const half of halves) {
+			expect(half.getAttribute('style')).toContain('mix-blend-mode: plus-lighter');
+		}
+		expect(group!.textContent).toContain('Open Integration');
+		expect(group!.textContent).toContain('Tactical Edge');
+		// Painted exactly once: not left in the flat layers as well.
+		expect(target.textContent!.match(/Open Integration/gu)).toHaveLength(1);
 	});
 
 	it('stretches each transition layer to the overlay instead of shrink-wrapping it', () => {

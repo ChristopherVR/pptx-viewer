@@ -16,6 +16,8 @@ import {
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
 	DEFAULT_MORPH_DURATION_MS,
+	MORPH_CROSSFADE_GROUP_STYLE,
+	MORPH_CROSSFADE_HALF_BLEND_MODE,
 	morphOptionToMode,
 } from '../internal/shared';
 import type { StyleMap } from './element-style';
@@ -52,6 +54,49 @@ export function morphLiftedSlide(
 		return undefined;
 	}
 	return { ...incomingSlide, elements: [...plan.overlayIncomingElements] };
+}
+
+/** One cross-dissolving pair, as the two single-element slides that paint it. */
+export interface MorphCrossfadeGroupSlides {
+	key: string;
+	style: StyleMap;
+	outgoing: PptxSlide;
+	incoming: PptxSlide;
+}
+
+/**
+ * The pairs the overlay paints BOTH halves of, as one isolated group each.
+ *
+ * Stacking the halves composites them source-over, which leaves the ink they
+ * share at 0.75 of full strength halfway through instead of summing it, biting
+ * chunks out of glyphs that cross during a text dissolve. PowerPoint's own
+ * render holds the two blend coefficients at a sum of 1.0 for every frame
+ * (issue #161), which `isolation: isolate` plus `mix-blend-mode: plus-lighter`
+ * on the two halves reproduces.
+ *
+ * Exported and pure so it can be unit-tested: this package renders no component
+ * under test (see `action-settings-panel.component.test.ts`).
+ */
+export function morphCrossfadeGroupSlides(
+	plan: MorphTransitionPlan | undefined,
+	outgoingSlide: PptxSlide | undefined,
+	incomingSlide: PptxSlide | undefined,
+): MorphCrossfadeGroupSlides[] {
+	if (!plan || !outgoingSlide || !incomingSlide) {
+		return [];
+	}
+	return plan.crossfadeGroups.map((group, index) => ({
+		key: group.incoming.id,
+		style: {
+			...MORPH_CROSSFADE_GROUP_STYLE,
+			// `isolation` makes the group a stacking context, so it carries a
+			// z-index of its own to stay above the ghost layer (40) and the lifted
+			// layer (41) its halves came from.
+			'z-index': String(42 + index),
+		},
+		outgoing: { ...outgoingSlide, elements: [group.outgoing] },
+		incoming: { ...incomingSlide, elements: [group.incoming] },
+	}));
 }
 
 /**
@@ -147,6 +192,49 @@ export function morphLiftedSlide(
 						[interactive]="false"
 						[transparentBackground]="true"
 					/>
+				</div>
+			</div>
+		}
+
+		<!-- A pair dissolving in place, painted as ONE isolated group whose two
+		     halves sum instead of stacking (issue #161). -->
+		@for (group of crossfadeGroups(); track group.key) {
+			<div [attr.data-pptx-morph-crossfade]="group.key" [ngStyle]="group.style">
+				<div
+					class="pptx-ng-transition-layer"
+					data-pptx-transition-layer="outgoing"
+					data-pptx-morph-outgoing="true"
+					[ngStyle]="crossfadeHalfStyle"
+				>
+					<div [ngStyle]="slideBoxStyle()">
+						<pptx-slide-canvas
+							[slide]="group.outgoing"
+							[canvasSize]="canvasSize()"
+							[mediaDataUrls]="mediaDataUrls()"
+							[zoom]="zoom()"
+							[autoFit]="false"
+							[interactive]="false"
+							[transparentBackground]="true"
+						/>
+					</div>
+				</div>
+				<div
+					class="pptx-ng-transition-layer"
+					data-pptx-transition-layer="lifted"
+					data-pptx-morph-lifted="true"
+					[ngStyle]="crossfadeHalfStyle"
+				>
+					<div [ngStyle]="slideBoxStyle()">
+						<pptx-slide-canvas
+							[slide]="group.incoming"
+							[canvasSize]="canvasSize()"
+							[mediaDataUrls]="mediaDataUrls()"
+							[zoom]="zoom()"
+							[autoFit]="false"
+							[interactive]="false"
+							[transparentBackground]="true"
+						/>
+					</div>
 				</div>
 			</div>
 		}
@@ -337,6 +425,19 @@ export class PresentationTransitionOverlayComponent {
 	protected readonly liftedSlide = computed<PptxSlide | undefined>(() =>
 		morphLiftedSlide(this.morphPlan(), this.incomingSlide()),
 	);
+
+	/**
+	 * The cross-dissolving pairs this overlay paints both halves of, each in its
+	 * own isolated group so the halves are summed rather than stacked.
+	 */
+	protected readonly crossfadeGroups = computed<MorphCrossfadeGroupSlides[]>(() =>
+		morphCrossfadeGroupSlides(this.morphPlan(), this.outgoingSlide(), this.incomingSlide()),
+	);
+
+	/** Both halves of a grouped pair blend additively, and only with each other. */
+	protected readonly crossfadeHalfStyle: StyleMap = {
+		'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE,
+	};
 
 	/** Layer container style: animation + stacking relative to the stage. */
 	protected readonly layerStyle = computed<StyleMap>(() => {

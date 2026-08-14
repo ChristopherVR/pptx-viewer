@@ -2,6 +2,8 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
+	MORPH_CROSSFADE_GROUP_CSS_TEXT,
+	MORPH_CROSSFADE_HALF_BLEND_MODE,
 	morphOptionToMode,
 	resolveSlideTransition,
 	resolveTransitionDurationMs,
@@ -102,6 +104,41 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 			: undefined;
 	const liftedLayer = lifted ? buildLayer(doc, lifted, 3, 'none', 'lifted') : undefined;
 
+	// A pair the overlay paints BOTH halves of goes in its own isolated group,
+	// where the two are summed rather than stacked: two source-over fades leave
+	// the ink they share at 0.75 of full strength mid-transition, which bites
+	// chunks out of glyphs crossing during a text dissolve, while PowerPoint's
+	// own blend keeps the two coefficients summing to 1.0 (issue #161). The
+	// clones are taken BEFORE `keepOnlyElements` strips the outgoing stage below.
+	const crossfadeGroups = (morphPlan?.crossfadeGroups ?? []).map((group, index) => {
+		const wrapper = doc.createElement('div');
+		wrapper.dataset.pptxMorphCrossfade = group.incoming.id;
+		wrapper.style.cssText = MORPH_CROSSFADE_GROUP_CSS_TEXT;
+		// `isolation` makes the wrapper a stacking context, so it needs a z-index
+		// of its own to stay above the ghosts its halves came from.
+		wrapper.style.zIndex = String(4 + index);
+		const half = (
+			stage: HTMLElement,
+			id: string,
+			state: 'outgoing' | 'lifted',
+			zIndex: number,
+		): HTMLElement => {
+			const layer = buildLayer(doc, keepOnlyElements(stage, [id]), zIndex, 'none', state);
+			if (state === 'outgoing') {
+				layer.dataset.pptxMorphOutgoing = 'true';
+			} else {
+				layer.dataset.pptxMorphLifted = 'true';
+			}
+			layer.style.mixBlendMode = MORPH_CROSSFADE_HALF_BLEND_MODE;
+			return layer;
+		};
+		wrapper.append(
+			half(outgoing.cloneNode(true) as HTMLElement, group.outgoing.id, 'outgoing', 0),
+			half(incoming.cloneNode(true) as HTMLElement, group.incoming.id, 'lifted', 1),
+		);
+		return wrapper;
+	});
+
 	if (morphPlan) {
 		inLayer.dataset.pptxMorphIncoming = 'true';
 		outLayer.dataset.pptxMorphOutgoing = 'true';
@@ -128,6 +165,9 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 	overlay.append(outLayer, inLayer);
 	if (liftedLayer) {
 		overlay.appendChild(liftedLayer);
+	}
+	for (const group of crossfadeGroups) {
+		overlay.appendChild(group);
 	}
 	stageWrap.appendChild(overlay);
 

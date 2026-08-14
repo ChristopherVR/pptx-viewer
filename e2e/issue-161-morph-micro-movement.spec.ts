@@ -59,6 +59,13 @@ const BUTTON = {
 	in: 'ppt/slides/slide8.xml-group-0-shape-1',
 } as const;
 
+/**
+ * The centre panel's wording: the title, the description and the "Challenge"
+ * paragraph, which every topic slide replaces. Their group is the crop the
+ * cross-dissolve is measured in.
+ */
+const WORDING = 'ppt/slides/slide7.xml-group-0-group-0';
+
 /** The panel's disc, also identical on both slides. */
 const DISC = {
 	out: 'ppt/slides/slide7.xml-group-0-shape-0',
@@ -448,6 +455,74 @@ async function edgesOf(scratch: Page, png: Buffer): Promise<[number, number, num
 }
 
 /**
+ * How much dimmer than a TRUE cross-dissolve the frame is, where both slides
+ * paint ink on the same pixel.
+ *
+ * PowerPoint's own render of this transition is a blend of the two end states
+ * with the coefficients summing to 1.0 on every frame (`CreateVideo`, fitted
+ * per frame). Stacking two fades with ordinary blending sums to `1 - t + t^2`
+ * instead - 0.75 halfway - so the shared ink dips toward the backdrop while the
+ * rest of each half is untouched, and glyphs the two line grids cross are
+ * painted with bites out of them.
+ *
+ * Only pixels BOTH end states light up are measured: everywhere else the two
+ * models agree exactly, and averaging them in would bury the defect.
+ */
+async function crossfadeDipAt(
+	scratch: Page,
+	before: Buffer,
+	middle: Buffer,
+	after: Buffer,
+): Promise<{ overlapPixels: number; meanError: number }> {
+	return scratch.evaluate(
+		async ([a64, b64, m64]) => {
+			const luminance = async (base64: string): Promise<Float64Array> => {
+				const image = await new Promise<HTMLImageElement>((res, rej) => {
+					const img = new Image();
+					img.onload = () => {
+						res(img);
+					};
+					img.onerror = rej;
+					img.src = `data:image/png;base64,${base64}`;
+				});
+				const canvas = document.createElement('canvas');
+				canvas.width = image.naturalWidth;
+				canvas.height = image.naturalHeight;
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				if (!ctx) {
+					throw new Error('no 2d canvas context');
+				}
+				ctx.drawImage(image, 0, 0);
+				const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+				const out = new Float64Array(data.length / 4);
+				for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+					out[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+				}
+				return out;
+			};
+			const a = await luminance(a64);
+			const b = await luminance(b64);
+			const m = await luminance(m64);
+			// Bright enough to be a glyph rather than the dark panel behind it.
+			const INK = 120;
+			let overlapPixels = 0;
+			let total = 0;
+			for (let i = 0; i < a.length; i++) {
+				if (a[i] <= INK || b[i] <= INK) {
+					continue;
+				}
+				overlapPixels += 1;
+				total += m[i] - (a[i] + b[i]) / 2;
+			}
+			return { overlapPixels, meanError: overlapPixels === 0 ? 0 : total / overlapPixels };
+		},
+		// The two END states first, then the frame under test: the body fits the
+		// middle against a blend of the ends.
+		[before.toString('base64'), after.toString('base64'), middle.toString('base64')] as const,
+	);
+}
+
+/**
  * How far the four edges moved. A compositing-rounded layer shifts a whole
  * edge at once, so the worst single edge is the number that matters.
  */
@@ -483,6 +558,53 @@ test.describe('issue #161 - an unchanged shape does not drift during a morph', (
 
 	test("the button's edges hold their sub-pixel position through the morph", async ({ page }) => {
 		await expectTheButtonHoldsItsEdges(page);
+	});
+
+	/**
+	 * The follow-up complaint on the same transition: "something is going on with
+	 * the text, almost like the line-height is changing".
+	 *
+	 * Nothing moves - measured, at every scrub point - but the panel's wording
+	 * sits at a different height on each topic slide (the deck authors it that
+	 * way, and PowerPoint dissolves it in place exactly as we do), so the two
+	 * line grids interleave for the length of the morph. What made that read as
+	 * deforming type was the COMPOSITE: two fades stacked source-over leave the
+	 * ink the halves share at 0.75 of full strength, so every glyph the other
+	 * grid crosses is painted with a dark bite out of it, while the rest of the
+	 * same glyph is untouched.
+	 */
+	test('the wording dissolves at full strength where the two line grids cross', async ({
+		page,
+	}) => {
+		await startShowOnTopicSlide(page);
+		const clip = await clipOf(page, WORDING);
+		const before = await page.screenshot({ clip });
+
+		await clickWedgeAndFreezeMorph(page);
+		await scrubTo(page, 0.5);
+		const middle = await page.screenshot({ clip });
+		// The end of the morph is the arriving slide, so it stands in for the
+		// settled frame without waiting out a teardown this test has neutralised.
+		await scrubTo(page, 1);
+		const after = await page.screenshot({ clip });
+
+		const scratch = await page.context().newPage();
+		const dip = await crossfadeDipAt(scratch, before, middle, after);
+		await scratch.close();
+
+		// Vacuous unless the two wordings really do overlap in this crop.
+		expect(
+			dip.overlapPixels,
+			'the two slides must paint ink on the same pixels for this to measure anything',
+		).toBeGreaterThan(100);
+		// The defect measured -34.6 of 255 (worst -54.9); a true cross-dissolve,
+		// which is what PowerPoint paints, lands near 0. The tolerance leaves room
+		// for the frame being a couple of percent off 50% and for each binding's
+		// own antialiasing.
+		expect(
+			dip.meanError,
+			'shared ink must be summed, not dipped toward the backdrop',
+		).toBeGreaterThan(-12);
 	});
 });
 

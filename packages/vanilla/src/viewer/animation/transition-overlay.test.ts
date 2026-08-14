@@ -114,6 +114,40 @@ function discAndWording(): { from: PptxSlide; to: PptxSlide } {
 	};
 }
 
+/**
+ * The same panel with its wording REPLACED rather than arriving: a matched pair
+ * the overlay paints both halves of, which is what has to be blended additively
+ * (issue #161). `shapeId` is the identity that pairs two text boxes saying
+ * different things - proximity alone deliberately refuses them (issue #131).
+ */
+function discAndReplacedWording(): { from: PptxSlide; to: PptxSlide } {
+	const { from, to } = discAndWording();
+	const wording = (id: string, text: string): unknown => ({
+		id,
+		type: 'text',
+		name: 'TextBox 6',
+		shapeId: 7,
+		x: 50,
+		y: 60,
+		width: 200,
+		height: 30,
+		text,
+	});
+	return {
+		from: {
+			...from,
+			elements: [...from.elements, wording('out-wording', 'Open Integration')],
+		} as unknown as PptxSlide,
+		to: {
+			...to,
+			elements: [
+				...to.elements.filter((element) => element.id !== 'in-wording'),
+				wording('in-wording', 'Tactical Edge'),
+			],
+		} as unknown as PptxSlide,
+	};
+}
+
 describe('playTransitionOverlay', () => {
 	let doc: Document;
 	let stageWrap: HTMLElement;
@@ -238,6 +272,48 @@ describe('playTransitionOverlay', () => {
 		expect(css).toMatch(
 			/\[data-pptx-morph-incoming\] \[data-element-id="in-wording"\] \{ animation: pptx-morph-lifted-hidden/u,
 		);
+		cancel();
+	});
+
+	// Regression (issue #161): two fades stacked as ordinary layers composite
+	// source-over, leaving the ink the halves SHARE at 0.75 of full strength
+	// halfway through - measured 34.6/255 too dark on the wheel deck, which
+	// bites chunks out of glyphs where the two line grids cross. PowerPoint's
+	// own render keeps the blend coefficients summing to 1.0 for every frame, so
+	// the pair is summed inside its own isolation group instead.
+	it('paints a pair dissolving in place as one isolated, additive group', () => {
+		const { from, to } = discAndReplacedWording();
+		const cancel = playTransitionOverlay({
+			doc,
+			stageWrap,
+			outgoing: buildStage(doc, ['out-backdrop', 'out-disc', 'out-wording']),
+			incoming: buildStage(doc, ['in-disc', 'in-wording']),
+			transition: { type: 'morph', durationMs: 800 } as PptxSlideTransition,
+			outgoingSlide: from,
+			incomingSlide: to,
+			onDone: vi.fn(),
+		});
+
+		const group = stageWrap.querySelector<HTMLElement>('[data-pptx-morph-crossfade="in-wording"]');
+		expect(group, 'the pair must be rendered as its own group').not.toBeNull();
+		expect(group!.style.isolation).toBe('isolate');
+		// Above the ghost layer (2) and the lifted layer (3).
+		expect(group!.style.zIndex).toBe('4');
+		const halves = [...group!.querySelectorAll<HTMLElement>('.pptxv-transition-layer')];
+		expect(halves).toHaveLength(2);
+		for (const half of halves) {
+			expect(half.style.mixBlendMode).toBe('plus-lighter');
+		}
+		// Each half is stripped to its own element...
+		expect(halves[0].querySelector('[data-element-id="out-wording"]')).not.toBeNull();
+		expect(halves[0].querySelector('[data-element-id="out-disc"]')).toBeNull();
+		expect(halves[1].querySelector('[data-element-id="in-wording"]')).not.toBeNull();
+		// ...and the ghost layer no longer paints the grouped one itself.
+		const ghostLayer = stageWrap.querySelector<HTMLElement>(
+			'[data-pptx-transition-layer="outgoing"][data-pptx-morph-outgoing]',
+		);
+		expect(ghostLayer!.querySelector('[data-element-id="out-wording"]')).toBeNull();
+		expect(ghostLayer!.querySelector('[data-element-id="out-disc"]')).not.toBeNull();
 		cancel();
 	});
 

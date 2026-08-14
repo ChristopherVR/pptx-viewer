@@ -263,6 +263,87 @@ describe('presentationTransitionOverlay', () => {
 		expect(html).toMatch(/animation:\s*pptx-morph-fadein-/u);
 	});
 
+	// Regression (issue #161): the two halves of a dissolve stacked as ordinary
+	// layers composite source-over, which leaves the ink they SHARE at 0.75 of
+	// full strength halfway through - measured 34.6/255 too dark on the wheel
+	// deck, biting chunks out of glyphs the two line grids cross. PowerPoint's
+	// own render holds the blend coefficients summing to 1.0 for every frame, so
+	// the pair has to be summed inside its own isolation group.
+	it('paints a pair dissolving in place as one isolated, additive group', () => {
+		const disc = {
+			type: 'shape',
+			name: '!!Content',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 300,
+			shapeStyle: { fillMode: 'solid', fillColor: '#27282A' },
+		};
+		const wording = (id: string, text: string): PptxElement =>
+			({
+				id,
+				type: 'text',
+				name: 'TextBox 6',
+				// The identity that pairs two text boxes saying different things;
+				// proximity alone deliberately refuses them (issue #131).
+				shapeId: 7,
+				x: 50,
+				y: 60,
+				width: 200,
+				height: 30,
+				text,
+			}) as unknown as PptxElement;
+		const outgoing = {
+			id: 'out',
+			elements: [
+				{
+					id: 'out-backdrop',
+					type: 'shape',
+					name: 'Backdrop',
+					x: 0,
+					y: 0,
+					width: 960,
+					height: 540,
+				} as unknown as PptxElement,
+				{ ...disc, id: 'out-disc' } as unknown as PptxElement,
+				wording('out-wording', 'Open Integration'),
+			],
+		} as PptxSlide;
+		const incoming = {
+			id: 'in',
+			elements: [
+				{ ...disc, id: 'in-disc' } as unknown as PptxElement,
+				wording('in-wording', 'Tactical Edge'),
+			],
+		} as PptxSlide;
+		const plan = buildMorphTransitionPlan(outgoing, incoming, 500)!;
+		expect(plan.crossfadeGroups.map((group) => group.incoming.id)).toStrictEqual(['in-wording']);
+
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={outgoing}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={{ type: 'morph', durationMs: 500 }}
+				durationMs={500}
+				morphPlan={plan}
+				incomingSlide={incoming}
+				onComplete={vi.fn()}
+			/>,
+		);
+
+		const group =
+			/<div data-pptx-morph-crossfade="in-wording" style="([^"]*)">(.*?)Tactical Edge/su.exec(html);
+		expect(group, 'the pair must be rendered as its own group').not.toBeNull();
+		expect(group![1]).toContain('isolation:isolate');
+		// Both halves inside it, blending only with each other.
+		expect(group![2]).toContain('mix-blend-mode:plus-lighter');
+		expect(group![2]).toContain('Open Integration');
+		// And painted exactly once: not left in the flat layers as well.
+		expect(html.match(/Open Integration/gu)).toHaveLength(1);
+		expect(html.match(/Tactical Edge/gu)).toHaveLength(1);
+	});
+
 	it('ignores a non-positive stage scale and falls back to measuring', () => {
 		const html = renderToStaticMarkup(
 			<PresentationTransitionOverlay

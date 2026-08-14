@@ -3,6 +3,8 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
+	MORPH_CROSSFADE_GROUP_STYLE,
+	MORPH_CROSSFADE_HALF_BLEND_MODE,
 	morphOptionToMode,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -111,6 +113,35 @@ const morphLiftedSlide = computed<PptxSlide | undefined>(() => {
 	}
 	return { ...props.incomingSlide, elements: plan.overlayIncomingElements };
 });
+
+/**
+ * The pairs whose two halves the overlay paints itself, as one isolated group
+ * each so they can be SUMMED rather than stacked.
+ *
+ * Two source-over fades leave the ink the halves share dipped toward the
+ * backdrop (0.75 of full strength at the midpoint), which bites chunks out of
+ * glyphs crossing during a text dissolve; PowerPoint's own render holds the two
+ * coefficients at a sum of 1.0 throughout (issue #161).
+ */
+const morphCrossfadeGroups = computed(() => {
+	const plan = morphPlan.value;
+	if (!plan || !props.outgoingSlide || !props.incomingSlide) {
+		return [];
+	}
+	const outgoing = props.outgoingSlide;
+	const incoming = props.incomingSlide;
+	return plan.crossfadeGroups.map((group, index) => ({
+		key: group.incoming.id,
+		// `isolation` makes the group a stacking context, so it needs its own
+		// z-index to stay above the ghosts its halves used to sit among.
+		style: { ...MORPH_CROSSFADE_GROUP_STYLE, zIndex: 4 + index } as CSSProperties,
+		outgoingSlide: { ...outgoing, elements: [group.outgoing] },
+		incomingSlide: { ...incoming, elements: [group.incoming] },
+	}));
+});
+
+/** Both halves of a grouped pair blend additively, and only with each other. */
+const crossfadeHalfStyle: CSSProperties = { mixBlendMode: MORPH_CROSSFADE_HALF_BLEND_MODE };
 
 const morphCss = computed(() => {
 	const plan = morphPlan.value;
@@ -236,6 +267,46 @@ onBeforeUnmount(clearTimer);
 				preserve-element-ids
 				transparent-background
 			/>
+		</div>
+
+		<!-- A pair dissolving in place, painted as ONE isolated group whose two
+		     halves sum instead of stacking (issue #161). -->
+		<div
+			v-for="group in morphCrossfadeGroups"
+			:key="group.key"
+			:data-pptx-morph-crossfade="group.key"
+			:style="group.style"
+		>
+			<div
+				class="pptx-vue-transition-layer"
+				data-pptx-transition-layer="outgoing"
+				data-pptx-morph-outgoing="true"
+				:style="crossfadeHalfStyle"
+			>
+				<SlideStage
+					:slide="group.outgoingSlide"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:scale="scale"
+					preserve-element-ids
+					transparent-background
+				/>
+			</div>
+			<div
+				class="pptx-vue-transition-layer"
+				data-pptx-transition-layer="lifted"
+				data-pptx-morph-lifted="true"
+				:style="crossfadeHalfStyle"
+			>
+				<SlideStage
+					:slide="group.incomingSlide"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:scale="scale"
+					preserve-element-ids
+					transparent-background
+				/>
+			</div>
 		</div>
 	</div>
 </template>

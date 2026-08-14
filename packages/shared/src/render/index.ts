@@ -544,6 +544,9 @@ export * from './morph-text';
 // "Same slot, new wording": the pair PowerPoint dissolves where it stands
 // instead of interpolating a box it only re-fitted around the new text.
 export * from './morph-text-slot';
+// The two halves of such a dissolve, paired so the overlay can sum them inside
+// an isolated group rather than stacking two fades (issue #161).
+export * from './morph-crossfade-group';
 // Intelligent token-level text morph: LCS diff (shared/added/removed) + per-
 // token slide/fade keyframe building, consumed by `morph-animation`.
 export * from './morph-text-tokens';

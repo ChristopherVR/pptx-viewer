@@ -7,6 +7,7 @@ import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-co
  * main SlideCanvas underneath (or on top, depending on `outgoingOnTop`).
  */
 import type { MorphTransitionPlan } from 'pptx-viewer-shared';
+import { MORPH_CROSSFADE_GROUP_STYLE, MORPH_CROSSFADE_HALF_STYLE } from 'pptx-viewer-shared';
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 
 import type { CanvasSize } from '../types';
@@ -261,6 +262,53 @@ export function PresentationTransitionOverlay({
 										zIndex={morphPlan.outgoingElements.length + index}
 										animation={morphPlan.overlayIncomingAnimations.get(element.id)}
 									/>
+								</div>
+							))}
+						{/* Pairs the overlay paints both halves of, summed inside their own
+						    isolated group instead of stacked: two source-over fades dip the
+						    ink they share toward the backdrop, which bites chunks out of
+						    glyphs that cross during a text dissolve (issue #161). The group
+						    carries an explicit z-index because `isolation` makes it a
+						    stacking context, so the halves' own z-indexes no longer place
+						    it against the ghosts. */}
+						{incomingSlide &&
+							morphPlan.crossfadeGroups.map((group, index) => (
+								<div
+									key={group.incoming.id}
+									data-pptx-morph-crossfade={group.incoming.id}
+									style={{
+										...MORPH_CROSSFADE_GROUP_STYLE,
+										zIndex:
+											morphPlan.outgoingElements.length +
+											morphPlan.overlayIncomingElements.length +
+											index,
+									}}
+								>
+									<div
+										data-pptx-morph-outgoing={group.outgoing.id}
+										style={MORPH_CROSSFADE_HALF_STYLE}
+									>
+										<StaticElementRenderer
+											element={group.outgoing}
+											activeSlide={outgoingSlide}
+											allSlides={[outgoingSlide]}
+											zIndex={0}
+											animation={morphPlan.outgoingAnimations.get(group.outgoing.id)}
+											imageAnimation={morphPlan.outgoingImageAnimations.get(group.outgoing.id)}
+										/>
+									</div>
+									<div
+										data-pptx-morph-lifted={group.incoming.id}
+										style={MORPH_CROSSFADE_HALF_STYLE}
+									>
+										<StaticElementRenderer
+											element={group.incoming}
+											activeSlide={incomingSlide}
+											allSlides={[incomingSlide]}
+											zIndex={0}
+											animation={morphPlan.overlayIncomingAnimations.get(group.incoming.id)}
+										/>
+									</div>
 								</div>
 							))}
 					</div>
