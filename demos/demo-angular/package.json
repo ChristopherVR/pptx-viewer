@@ -12,7 +12,7 @@
 		"@ai-sdk/openai-compatible": "^3.0.12",
 		"@angular/common": "^22.1.0",
 		"@angular/core": "^22.1.0",
-		"@angular/platform-browser": "^22.1.0",
+		"@angular/platform-browser": "^22.1.2",
 		"@ngx-translate/core": "^18.0.0",
 		"ai": "^7.0.44",
 		"fast-xml-parser": "^5.10.1",

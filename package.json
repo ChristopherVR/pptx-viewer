@@ -66,7 +66,7 @@
 		"@angular/compiler": "^22.1.0",
 		"@angular/compiler-cli": "^22.1.0",
 		"@angular/core": "^22.1.0",
-		"@angular/platform-browser": "^22.1.0",
+		"@angular/platform-browser": "^22.1.2",
 		"@angular/platform-browser-dynamic": "^22.1.0",
 		"@microsoft/api-extractor": "^7.58.12",
 		"@vitejs/plugin-react": "^6.0.5",

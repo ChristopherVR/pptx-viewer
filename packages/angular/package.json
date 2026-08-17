@@ -65,7 +65,7 @@
 		"@angular/compiler": "^22.1.0",
 		"@angular/compiler-cli": "^22.1.0",
 		"@angular/core": "^22.1.0",
-		"@angular/platform-browser": "^22.1.0",
+		"@angular/platform-browser": "^22.1.2",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/three": "^0.185.4",
 		"ai": ">=6 <8",
