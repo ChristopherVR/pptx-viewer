@@ -73,7 +73,7 @@
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
 		"y-webrtc": "^10.3.0",
-		"y-websocket": "^3.0.0",
+		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
@@ -86,7 +86,7 @@
 	},
 	"optionalDependencies": {
 		"y-webrtc": "^10.3.0",
-		"y-websocket": "^3.0.0",
+		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
 	}
 }

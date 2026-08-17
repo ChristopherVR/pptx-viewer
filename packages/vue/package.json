@@ -103,7 +103,7 @@
 		"vitest": "^4.1.10",
 		"vue-tsc": "^3.3.9",
 		"y-webrtc": "^10.3.0",
-		"y-websocket": "^3.0.0",
+		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
 	},
 	"peerDependencies": {
@@ -129,7 +129,7 @@
 	"optionalDependencies": {
 		"three": "^0.185.1",
 		"y-webrtc": "^10.3.0",
-		"y-websocket": "^3.0.0",
+		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
 	}
 }
