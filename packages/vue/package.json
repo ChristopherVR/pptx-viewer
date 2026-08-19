@@ -91,7 +91,7 @@
 		"@vue/compiler-sfc": "^3.5.40",
 		"@vue/test-utils": "^2.4.11",
 		"happy-dom": "^20.11.1",
-		"jsdom": "^29.1.1",
+		"jsdom": "^30.0.1",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.3",

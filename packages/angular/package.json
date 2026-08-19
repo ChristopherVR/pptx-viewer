@@ -70,7 +70,7 @@
 		"@types/three": "^0.185.4",
 		"ai": ">=6 <8",
 		"happy-dom": "^20.11.1",
-		"jsdom": "^29.1.1",
+		"jsdom": "^30.0.1",
 		"ng-packagr": "^22.0.2",
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.2",
