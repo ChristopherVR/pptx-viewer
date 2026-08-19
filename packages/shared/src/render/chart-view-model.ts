@@ -45,6 +45,10 @@
  *
  * @module chart-view-model
  */
+/* eslint-disable one-var -- this module predates the rule and combining every
+   sibling `const`/`let` in a function into one comma-list (oxlint's own
+   `--fix` cannot do this safely once a non-declaration statement sits between
+   them) would churn geometry code far beyond this change's scope. */
 
 import type {
 	ChartPptxElement,
@@ -132,8 +136,8 @@ export interface ValueRange {
  * mirrors `computeValueRange` in `chart-helpers.ts`.
  */
 export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): ValueRange {
-	let dataMin = Number.POSITIVE_INFINITY;
-	let dataMax = Number.NEGATIVE_INFINITY;
+	let dataMin = Number.POSITIVE_INFINITY,
+		dataMax = Number.NEGATIVE_INFINITY;
 	for (const item of series) {
 		for (const value of item.values) {
 			if (value < dataMin) {
@@ -159,11 +163,11 @@ export function computeStackedValueRange(
 	series: ReadonlyArray<PptxChartSeries>,
 	catCount: number,
 ): ValueRange {
-	let maxSum = 0;
-	let minSum = 0;
+	let maxSum = 0,
+		minSum = 0;
 	for (let ci = 0; ci < catCount; ci++) {
-		let pos = 0;
-		let neg = 0;
+		let pos = 0,
+			neg = 0;
 		for (const s of series) {
 			const v = s.values[ci] ?? 0;
 			if (v >= 0) {
@@ -189,10 +193,10 @@ export function valueToY(val: number, range: ValueRange, topY: number, bottomY: 
 	const usable = bottomY - topY;
 	let ratio: number;
 	if (range.logScale && range.logBase) {
-		const base = range.logBase;
-		const clampedVal = Math.max(val, range.min);
-		const logVal = Math.log(clampedVal) / Math.log(base);
-		const logMin = Math.log(range.min) / Math.log(base);
+		const base = range.logBase,
+			clampedVal = Math.max(val, range.min),
+			logVal = Math.log(clampedVal) / Math.log(base),
+			logMin = Math.log(range.min) / Math.log(base);
 		ratio = (logVal - logMin) / range.span;
 	} else {
 		ratio = (val - range.min) / range.span;
@@ -224,6 +228,30 @@ export function formatAxisValue(val: number, formatCode?: string): string {
 		return String(val);
 	}
 	return val.toFixed(1);
+}
+
+/**
+ * Build the hover-tooltip text for a plain data mark (bar / line / area /
+ * scatter / bubble / pie / radar point), projected as each primitive's `title`
+ * field (see the doc comment on `SvgPath.title`).
+ *
+ * Mirrors the region map's own `"<name>: <value>"` tooltip (chart-waterfall-map.ts):
+ * join whichever of the series name and category/point label are known, then
+ * append the formatted value. Either label may be absent (a scatter/bubble
+ * point has no category; an un-named series has no name); the result degrades
+ * to just the value when neither is.
+ */
+export function buildMarkTooltip(
+	seriesName: string | undefined,
+	categoryLabel: string | undefined,
+	value: number,
+	numberFormat?: string,
+): string {
+	const label = [seriesName, categoryLabel]
+			.filter((part): part is string => Boolean(part && part.length > 0))
+			.join(', '),
+		formatted = formatAxisValue(value, numberFormat);
+	return label.length > 0 ? `${label}: ${formatted}` : formatted;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,10 +304,10 @@ export interface PlotLayoutOptions {
  */
 function categoryAxisBand(chartData: PptxChartData): number {
 	const axis = chartData.axes?.find(
-		(candidate) => candidate.axisType === 'catAx' || candidate.axisType === 'dateAx',
-	);
-	const fontPx = axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX;
-	const offset = 4 + 8 * ((axis?.labelOffset ?? 100) / 100);
+			(candidate) => candidate.axisType === 'catAx' || candidate.axisType === 'dateAx',
+		),
+		fontPx = axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX,
+		offset = 4 + 8 * ((axis?.labelOffset ?? 100) / 100);
 	return Math.max(24, offset + fontPx * 1.2);
 }
 
@@ -294,16 +322,16 @@ export function computePlotLayout(
 	// it with `preserveAspectRatio="none"`, so ANY minimum here (historically
 	// 320x180) makes the chart scale non-uniformly inside its host (issue #132:
 	// a 475x174 frame got a 475x180 viewBox, squeezing y by 0.967).
-	const svgWidth = Math.max(1, elementWidth);
-	const svgHeight = Math.max(1, elementHeight);
+	const svgWidth = Math.max(1, elementWidth),
+		svgHeight = Math.max(1, elementHeight);
 
-	let plotLeft = hasAxes ? 48 : 8;
-	let plotTop = 8;
-	let plotRight = svgWidth - 8;
-	let plotBottom = svgHeight - (hasAxes ? categoryAxisBand(chartData) : 8);
+	let plotLeft = hasAxes ? 48 : 8,
+		plotTop = 8,
+		plotRight = svgWidth - 8,
+		plotBottom = svgHeight - (hasAxes ? categoryAxisBand(chartData) : 8);
 
-	const style = chartData.style;
-	const legendPos = style?.legendPosition ?? 'b';
+	const style = chartData.style,
+		legendPos = style?.legendPosition ?? 'b';
 
 	if (style?.hasTitle) {
 		plotTop += 20;
@@ -334,8 +362,8 @@ export function computePlotLayout(
 		plotBottom -= 14 + rowCount * 14;
 	}
 
-	const plotWidth = Math.max(plotRight - plotLeft, 1);
-	const plotHeight = Math.max(plotBottom - plotTop, 1);
+	const plotWidth = Math.max(plotRight - plotLeft, 1),
+		plotHeight = Math.max(plotBottom - plotTop, 1);
 
 	return {
 		svgWidth,
@@ -385,6 +413,13 @@ export interface ChartValueDrag {
 // SVG primitive descriptors
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Hover tooltip / accessible name, projected as each primitive's SVG `<title>`
+ * child. Every primitive kind that can represent a data mark (rect, path,
+ * polyline, circle, line, polygon) carries this field so any chart mark, not
+ * just the region map's choropleth patches, can surface a tooltip. Projectors
+ * that ignore the field simply render no tooltip.
+ */
 export interface SvgRect {
 	kind: 'rect';
 	x: number;
@@ -395,6 +430,7 @@ export interface SvgRect {
 	rx?: number;
 	opacity?: number;
 	part?: ChartPartRef;
+	title?: string;
 }
 
 export interface SvgPath {
@@ -408,9 +444,12 @@ export interface SvgPath {
 	/**
 	 * Hover tooltip / accessible name, projected as an SVG `<title>` child.
 	 *
-	 * Only the region map sets it today: a choropleth patch carries no label of
-	 * its own, so without a tooltip the reader cannot tell which region a colour
-	 * belongs to. Projectors that ignore the field simply render no tooltip.
+	 * The region map (chart-waterfall-map.ts) was the first to set it: a
+	 * choropleth patch carries no label of its own, so without a tooltip the
+	 * reader cannot tell which region a colour belongs to. Every other primitive
+	 * kind now carries the same field for the same reason on the mainstream chart
+	 * kinds (bar / line / area / scatter / bubble / pie / radar). Projectors that
+	 * ignore the field simply render no tooltip.
 	 */
 	title?: string;
 }
@@ -423,6 +462,7 @@ export interface SvgPolyline {
 	fill: string;
 	opacity?: number;
 	part?: ChartPartRef;
+	title?: string;
 }
 
 export interface SvgCircle {
@@ -433,6 +473,7 @@ export interface SvgCircle {
 	fill: string;
 	opacity?: number;
 	part?: ChartPartRef;
+	title?: string;
 }
 
 export interface SvgLine {
@@ -445,6 +486,7 @@ export interface SvgLine {
 	strokeWidth: number;
 	dashArray?: string;
 	opacity?: number;
+	title?: string;
 }
 
 export interface SvgText {
@@ -472,6 +514,7 @@ export interface SvgPolygon {
 	opacity?: number;
 	dashArray?: string;
 	part?: ChartPartRef;
+	title?: string;
 }
 
 export interface SvgAreaGradient {
@@ -597,8 +640,8 @@ export function buildGridlinesAndLabels(
 	range: ValueRange,
 	layout: PlotLayout,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
-	const gridlines: SvgLine[] = [];
-	const axisLabels: SvgText[] = [];
+	const gridlines: SvgLine[] = [],
+		axisLabels: SvgText[] = [];
 
 	for (const val of axisTickValues(range)) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
@@ -687,9 +730,9 @@ export function buildLegend(
 		label: s.name,
 	}));
 
-	let legendX = svgWidth / 2;
-	let legendY = svgHeight - 8;
-	let legendAnchor: 'start' | 'middle' | 'end' = 'middle';
+	let legendX = svgWidth / 2,
+		legendY = svgHeight - 8,
+		legendAnchor: 'start' | 'middle' | 'end' = 'middle';
 
 	if (legendPos === 'r') {
 		legendX = svgWidth - 75;
@@ -729,20 +772,20 @@ export function computeBarRects(
 	range: ValueRange,
 	colorPalette: readonly string[] | undefined,
 ): BarRect[] {
-	const rects: BarRect[] = [];
-	const seriesCount = Math.max(series.length, 1);
-	const barGroupWidth = layout.plotWidth / Math.max(catCount, 1);
-	const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
-	const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
+	const rects: BarRect[] = [],
+		seriesCount = Math.max(series.length, 1),
+		barGroupWidth = layout.plotWidth / Math.max(catCount, 1),
+		singleBarWidth = (barGroupWidth * 0.7) / seriesCount,
+		groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
 
 	for (let ci = 0; ci < catCount; ci++) {
 		for (let si = 0; si < series.length; si++) {
-			const val = series[si].values[ci] ?? 0;
-			const x = layout.plotLeft + barGroupWidth * ci + groupOffset + singleBarWidth * si;
-			const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-			const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
-			const y = Math.min(zeroY, valY);
-			const h = Math.max(Math.abs(zeroY - valY), 1);
+			const val = series[si].values[ci] ?? 0,
+				x = layout.plotLeft + barGroupWidth * ci + groupOffset + singleBarWidth * si,
+				zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom),
+				valY = valueToY(val, range, layout.plotTop, layout.plotBottom),
+				y = Math.min(zeroY, valY),
+				h = Math.max(Math.abs(zeroY - valY), 1);
 			rects.push({
 				x,
 				y,
@@ -762,28 +805,28 @@ export function computeStackedBarRects(
 	range: ValueRange,
 	colorPalette: readonly string[] | undefined,
 ): BarRect[] {
-	const rects: BarRect[] = [];
-	const barW = (layout.plotWidth / Math.max(catCount, 1)) * 0.7;
-	const barOffset = (layout.plotWidth / Math.max(catCount, 1) - barW) / 2;
-	const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
+	const rects: BarRect[] = [],
+		barW = (layout.plotWidth / Math.max(catCount, 1)) * 0.7,
+		barOffset = (layout.plotWidth / Math.max(catCount, 1) - barW) / 2,
+		zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
 
 	for (let ci = 0; ci < catCount; ci++) {
-		let posTop = zeroY;
-		let negBottom = zeroY;
+		let posTop = zeroY,
+			negBottom = zeroY;
 
 		for (let si = 0; si < series.length; si++) {
 			const val = series[si].values[ci] ?? 0;
 			if (val === 0) {
 				continue;
 			}
-			const x = layout.plotLeft + (layout.plotWidth / Math.max(catCount, 1)) * ci + barOffset;
-			const h = Math.max(
-				Math.abs(
-					valueToY(val, range, layout.plotTop, layout.plotBottom) -
-						valueToY(0, range, layout.plotTop, layout.plotBottom),
-				),
-				1,
-			);
+			const x = layout.plotLeft + (layout.plotWidth / Math.max(catCount, 1)) * ci + barOffset,
+				h = Math.max(
+					Math.abs(
+						valueToY(val, range, layout.plotTop, layout.plotBottom) -
+							valueToY(0, range, layout.plotTop, layout.plotBottom),
+					),
+					1,
+				);
 			if (val > 0) {
 				const y = posTop - h;
 				rects.push({
@@ -831,9 +874,9 @@ export function computeLinePoints(
 ): LinePoint[] {
 	const n = Math.max(catCount, 2);
 	return values.map((val, i) => {
-		const nx = n > 1 ? i / (n - 1) : 0;
-		const x = layout.plotLeft + layout.plotWidth * nx;
-		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+		const nx = n > 1 ? i / (n - 1) : 0,
+			x = layout.plotLeft + layout.plotWidth * nx,
+			y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 		return { x, y };
 	});
 }
@@ -861,27 +904,27 @@ export function computePieSlicePath(
 	startAngle: number,
 	endAngle: number,
 ): PieSliceGeometry {
-	const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
-	const x1 = cx + outerR * Math.cos(startAngle);
-	const y1 = cy + outerR * Math.sin(startAngle);
-	const x2 = cx + outerR * Math.cos(endAngle);
-	const y2 = cy + outerR * Math.sin(endAngle);
+	const largeArc = endAngle - startAngle > Math.PI ? 1 : 0,
+		x1 = cx + outerR * Math.cos(startAngle),
+		y1 = cy + outerR * Math.sin(startAngle),
+		x2 = cx + outerR * Math.cos(endAngle),
+		y2 = cy + outerR * Math.sin(endAngle);
 
 	let d: string;
 	if (innerR > 0) {
-		const ix1 = cx + innerR * Math.cos(startAngle);
-		const iy1 = cy + innerR * Math.sin(startAngle);
-		const ix2 = cx + innerR * Math.cos(endAngle);
-		const iy2 = cy + innerR * Math.sin(endAngle);
+		const ix1 = cx + innerR * Math.cos(startAngle),
+			iy1 = cy + innerR * Math.sin(startAngle),
+			ix2 = cx + innerR * Math.cos(endAngle),
+			iy2 = cy + innerR * Math.sin(endAngle);
 		d = `M${x1},${y1} A${outerR},${outerR} 0 ${largeArc} 1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${largeArc} 0 ${ix1},${iy1} Z`;
 	} else {
 		d = `M${cx},${cy} L${x1},${y1} A${outerR},${outerR} 0 ${largeArc} 1 ${x2},${y2} Z`;
 	}
 
-	const midAngle = (startAngle + endAngle) / 2;
-	const labelR = outerR * 0.7;
-	const labelX = cx + labelR * Math.cos(midAngle);
-	const labelY = cy + labelR * Math.sin(midAngle);
+	const midAngle = (startAngle + endAngle) / 2,
+		labelR = outerR * 0.7,
+		labelX = cx + labelR * Math.cos(midAngle),
+		labelY = cy + labelR * Math.sin(midAngle);
 
 	return { d, midAngle, labelX, labelY };
 }
@@ -892,19 +935,19 @@ export function computePieLayout(
 	chartData: PptxChartData,
 	isDoughnut: boolean,
 ): { cx: number; cy: number; outerR: number; innerR: number; size: number } {
-	const size = Math.min(Math.max(elementWidth, 1), Math.max(elementHeight, 1));
-	const titleOffset = chartData.style?.hasTitle ? 20 : 0;
-	const legendOffset = chartData.style?.hasLegend ? 20 : 0;
-	const cx = size / 2;
-	const cy = titleOffset + (size - titleOffset - legendOffset) / 2;
-	const outerR = Math.max((size - titleOffset - legendOffset) * 0.42, 0);
-	// Honour c:holeSize (10-90% of the outer diameter) when parsed; otherwise
-	// keep the legacy 0.55 ratio byte-for-byte.
-	const holeRatio =
-		isDoughnut && chartData.doughnutHoleSize !== undefined
-			? Math.min(Math.max(chartData.doughnutHoleSize, 10), 90) / 100
-			: 0.55;
-	const innerR = isDoughnut ? outerR * holeRatio : 0;
+	const size = Math.min(Math.max(elementWidth, 1), Math.max(elementHeight, 1)),
+		titleOffset = chartData.style?.hasTitle ? 20 : 0,
+		legendOffset = chartData.style?.hasLegend ? 20 : 0,
+		cx = size / 2,
+		cy = titleOffset + (size - titleOffset - legendOffset) / 2,
+		outerR = Math.max((size - titleOffset - legendOffset) * 0.42, 0),
+		// Honour c:holeSize (10-90% of the outer diameter) when parsed; otherwise
+		// keep the legacy 0.55 ratio byte-for-byte.
+		holeRatio =
+			isDoughnut && chartData.doughnutHoleSize !== undefined
+				? Math.min(Math.max(chartData.doughnutHoleSize, 10), 90) / 100
+				: 0.55,
+		innerR = isDoughnut ? outerR * holeRatio : 0;
 	return { cx, cy, outerR, innerR, size };
 }
 
@@ -927,14 +970,14 @@ export function computePieSlices(
 	const total = values.reduce((s, v) => s + Math.abs(v), 0) || 1;
 	let cumAngle = options?.startAngle ?? -Math.PI / 2;
 	return values.map((val, i) => {
-		const sliceAngle = (Math.abs(val) / total) * Math.PI * 2;
-		const startAngle = cumAngle;
+		const sliceAngle = (Math.abs(val) / total) * Math.PI * 2,
+			startAngle = cumAngle;
 		cumAngle += sliceAngle;
 		// A c:explosion pulls the slice outward along its bisector.
 		const explosion = options?.explosions?.[i] ?? 0;
 		if (explosion > 0) {
-			const mid = (startAngle + cumAngle) / 2;
-			const offset = outerR * (explosion / 100);
+			const mid = (startAngle + cumAngle) / 2,
+				offset = outerR * (explosion / 100);
 			return computePieSlicePath(
 				cx + Math.cos(mid) * offset,
 				cy + Math.sin(mid) * offset,
@@ -1001,13 +1044,13 @@ export function computeScatterDots(
 	xValues?: ReadonlyArray<number>,
 	xDomain?: ScatterXDomain,
 ): ScatterDot[] {
-	const finiteX = xValues?.slice(0, values.length).filter(Number.isFinite);
-	const minX = xDomain ? xDomain.min : finiteX?.length ? Math.min(...finiteX) : 0;
-	const spanX = xDomain
-		? xDomain.span
-		: finiteX?.length
-			? Math.max(Math.max(...finiteX) - minX, 1)
-			: maxXIndex;
+	const finiteX = xValues?.slice(0, values.length).filter(Number.isFinite),
+		minX = xDomain ? xDomain.min : finiteX?.length ? Math.min(...finiteX) : 0,
+		spanX = xDomain
+			? xDomain.span
+			: finiteX?.length
+				? Math.max(Math.max(...finiteX) - minX, 1)
+				: maxXIndex;
 	return values.map((val, i) => ({
 		cx:
 			layout.plotLeft +
@@ -1065,8 +1108,8 @@ export function computeRadarPoints(
 ): RadarPoint[] {
 	const denom = maxVal > 0 ? maxVal : 1;
 	return values.slice(0, Math.max(catCount, 1)).map((val, i) => {
-		const angle = radarAngle(i, catCount);
-		const r = (Math.abs(val) / denom) * radius;
+		const angle = radarAngle(i, catCount),
+			r = (Math.abs(val) / denom) * radius;
 		return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
 	});
 }
@@ -1181,25 +1224,25 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 	if (element.type !== 'chart') {
 		return buildFallbackViewModel(element.width, element.height, 'Chart');
 	}
-	const chartEl = element as ChartPptxElement;
-	const chartData = chartEl.chartData;
+	const chartEl = element as ChartPptxElement,
+		chartData = chartEl.chartData;
 
 	if (!chartData || chartData.series.length === 0) {
 		return buildFallbackViewModel(element.width, element.height, chartData?.title ?? 'Chart');
 	}
 
-	const chartType = chartData.chartType ?? 'bar';
-	const kind = resolveChartKind(chartType);
+	const chartType = chartData.chartType ?? 'bar',
+		kind = resolveChartKind(chartType);
 
 	if (kind === 'unsupported') {
 		return buildFallbackViewModel(element.width, element.height, chartData.title ?? chartType);
 	}
 
-	const longestLen = chartData.series.reduce((m, s) => Math.max(m, s.values.length), 0);
-	const categoryLabels =
-		chartData.categories.length > 0
-			? chartData.categories
-			: Array.from({ length: longestLen }, (_, i) => String(i + 1));
+	const longestLen = chartData.series.reduce((m, s) => Math.max(m, s.values.length), 0),
+		categoryLabels =
+			chartData.categories.length > 0
+				? chartData.categories
+				: Array.from({ length: longestLen }, (_, i) => String(i + 1));
 
 	// Pie-of-pie / bar-of-pie splits one series across a primary + secondary plot.
 	if (chartType === 'ofPie') {
@@ -1319,8 +1362,8 @@ export function buildFallbackViewModel(
 ): ChartViewModel {
 	// Match the frame box exactly (bindings stretch with preserveAspectRatio
 	// "none"; a minimum here would scale the fallback non-uniformly).
-	const svgWidth = Math.max(width, 1);
-	const svgHeight = Math.max(height, 1);
+	const svgWidth = Math.max(width, 1),
+		svgHeight = Math.max(height, 1);
 	return {
 		svgWidth,
 		svgHeight,
@@ -1370,81 +1413,84 @@ function buildPieViewModel(
 	isDoughnut: boolean,
 ): ChartViewModel {
 	const { cx, cy, outerR, innerR, size } = computePieLayout(
-		element.width,
-		element.height,
-		chartData,
-		isDoughnut,
-	);
-	const svgWidth = Math.max(size, 100);
-	const svgHeight = Math.max(size, 60);
-
-	const pieSeries = chartData.series[0];
-	const values = pieSeries?.values ?? [];
-	// c:firstSliceAng rotates the pie clockwise from 12 o'clock; c:explosion (per
-	// series or per c:dPt) pulls slices outward.
-	const startAngle = -Math.PI / 2 + ((chartData.firstSliceAngle ?? 0) * Math.PI) / 180;
-	const explosions = pieSeries
-		? values.map((_v, i) => resolveDataPointExplosion(pieSeries, i))
-		: undefined;
-	const slices = computePieSlices(values, cx, cy, outerR, innerR, { startAngle, explosions });
-	const primitives: SvgPrimitive[] = slices.map(
-		({ d }, i) =>
-			({
-				kind: 'path',
-				d,
-				// Pie/doughnut vary colours per slice (c:varyColors defaults on), so each
-				// slice takes its palette colour, with a per-point c:dPt fill overriding.
-				fill: pieSeries
-					? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
-					: paletteColor(i, chartData.colorPalette),
-				stroke: '#ffffff',
-				strokeWidth: 1.5,
-				part: { role: 'dataPoint', seriesIndex: 0, pointIndex: i },
-			}) satisfies SvgPath,
-	);
-
-	const dataLabels: SvgText[] = [];
+			element.width,
+			element.height,
+			chartData,
+			isDoughnut,
+		),
+		svgWidth = Math.max(size, 100),
+		svgHeight = Math.max(size, 60),
+		pieSeries = chartData.series[0],
+		values = pieSeries?.values ?? [],
+		// c:firstSliceAng rotates the pie clockwise from 12 o'clock; c:explosion (per
+		// series or per c:dPt) pulls slices outward.
+		startAngle = -Math.PI / 2 + ((chartData.firstSliceAngle ?? 0) * Math.PI) / 180,
+		explosions = pieSeries
+			? values.map((_v, i) => resolveDataPointExplosion(pieSeries, i))
+			: undefined,
+		slices = computePieSlices(values, cx, cy, outerR, innerR, { startAngle, explosions }),
+		primitives: SvgPrimitive[] = slices.map(
+			({ d }, i) =>
+				({
+					kind: 'path',
+					d,
+					// Pie/doughnut vary colours per slice (c:varyColors defaults on), so each
+					// slice takes its palette colour, with a per-point c:dPt fill overriding.
+					fill: pieSeries
+						? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
+						: paletteColor(i, chartData.colorPalette),
+					stroke: '#ffffff',
+					strokeWidth: 1.5,
+					part: { role: 'dataPoint', seriesIndex: 0, pointIndex: i },
+					title: buildMarkTooltip(
+						pieSeries?.name,
+						categoryLabels[i],
+						values[i] ?? 0,
+						pieSeries?.numberFormat,
+					),
+				}) satisfies SvgPath,
+		),
+		dataLabels: SvgText[] = [];
 	if (chartData.style?.hasDataLabels) {
 		// Offset (outEnd / bestFit) labels sit outside the rim with c:leaderLines.
 		// A pie's percentage base is the whole series, and `c:showPercent` is the
 		// flag that makes the difference between "40" and "40%" on the commonest
 		// labelled chart in a business deck.
-		const percentBase = values.reduce((total, entry) => total + Math.abs(entry), 0);
-		const labelResult = buildPieDataLabels({
-			slices,
-			values,
-			cx,
-			cy,
-			outerR,
-			position: chartData.style.dataLabels?.position,
-			showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
-			numberFormat: chartData.series[0]?.numberFormat,
-			labelText: pieSeries
-				? (pointIndex, value) =>
-						buildDataLabelText({
-							chartData,
-							series: pieSeries,
-							pointIndex,
-							value,
-							percentBase,
-						})
-				: undefined,
-		});
+		const percentBase = values.reduce((total, entry) => total + Math.abs(entry), 0),
+			labelResult = buildPieDataLabels({
+				slices,
+				values,
+				cx,
+				cy,
+				outerR,
+				position: chartData.style.dataLabels?.position,
+				showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
+				numberFormat: chartData.series[0]?.numberFormat,
+				labelText: pieSeries
+					? (pointIndex, value) =>
+							buildDataLabelText({
+								chartData,
+								series: pieSeries,
+								pointIndex,
+								value,
+								percentBase,
+							})
+					: undefined,
+			});
 		dataLabels.push(...labelResult.labels);
 		primitives.push(...labelResult.leaderLines);
 	}
 
-	const legendPos = chartData.style?.legendPosition ?? 'b';
-	// Legend swatches must match the slices: a per-point `c:dPt` fill overrides
-	// the palette on the slice, so it overrides it on the swatch too.
-	const legend: LegendEntry[] = categoryLabels.map((label, i) => ({
-		color: pieSeries
-			? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
-			: paletteColor(i, chartData.colorPalette),
-		label,
-	}));
-
-	const legendX = svgWidth / 2;
+	const legendPos = chartData.style?.legendPosition ?? 'b',
+		// Legend swatches must match the slices: a per-point `c:dPt` fill overrides
+		// the palette on the slice, so it overrides it on the swatch too.
+		legend: LegendEntry[] = categoryLabels.map((label, i) => ({
+			color: pieSeries
+				? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
+				: paletteColor(i, chartData.colorPalette),
+			label,
+		})),
+		legendX = svgWidth / 2;
 	let legendY = svgHeight - 8;
 	const legendAnchor: 'start' | 'middle' | 'end' = 'middle';
 
@@ -1473,10 +1519,10 @@ function buildPieViewModel(
 	};
 }
 
-const RADAR_RINGS = 4;
-const RADAR_RING_COLOR = '#cbd5e1';
-const RADAR_SPOKE_COLOR = '#94a3b8';
-const RADAR_LABEL_COLOR = '#64748b';
+const RADAR_RINGS = 4,
+	RADAR_RING_COLOR = '#cbd5e1',
+	RADAR_SPOKE_COLOR = '#94a3b8',
+	RADAR_LABEL_COLOR = '#64748b';
 
 /**
  * Build the view-model for a radar / spider chart. Polar, so it has no
@@ -1489,15 +1535,14 @@ function buildRadarViewModel(
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, false);
-	const cx = layout.plotLeft + layout.plotWidth / 2;
-	const cy = layout.plotTop + layout.plotHeight / 2;
-	const radius = Math.max(Math.min(layout.plotWidth, layout.plotHeight) / 2 - 4, 1);
-	const catCount = Math.max(categoryLabels.length, 1);
-	const maxVal = Math.max(1, ...chartData.series.flatMap((s) => s.values.map((v) => Math.abs(v))));
-
-	const primitives: SvgPrimitive[] = [];
-	const perimeterLabels: SvgText[] = [];
+	const layout = computePlotLayout(element.width, element.height, chartData, false),
+		cx = layout.plotLeft + layout.plotWidth / 2,
+		cy = layout.plotTop + layout.plotHeight / 2,
+		radius = Math.max(Math.min(layout.plotWidth, layout.plotHeight) / 2 - 4, 1),
+		catCount = Math.max(categoryLabels.length, 1),
+		maxVal = Math.max(1, ...chartData.series.flatMap((s) => s.values.map((v) => Math.abs(v)))),
+		primitives: SvgPrimitive[] = [],
+		perimeterLabels: SvgText[] = [];
 
 	// Concentric gridline rings (dashed except the outermost).
 	for (let r = 1; r <= RADAR_RINGS; r++) {
@@ -1540,8 +1585,8 @@ function buildRadarViewModel(
 	// Per-series data polygons + vertex dots.
 	const dataLabels: SvgText[] = [];
 	chartData.series.forEach((series, si) => {
-		const c = seriesColor(series, si, chartData.colorPalette);
-		const pts = computeRadarPoints(series.values, maxVal, radius, cx, cy, catCount);
+		const c = seriesColor(series, si, chartData.colorPalette),
+			pts = computeRadarPoints(series.values, maxVal, radius, cx, cy, catCount);
 		if (pts.length === 0) {
 			return;
 		}
@@ -1554,6 +1599,7 @@ function buildRadarViewModel(
 			stroke: c,
 			strokeWidth: 1.5,
 			part: { role: 'series', seriesIndex: si },
+			title: series.name.length > 0 ? series.name : undefined,
 		} satisfies SvgPolygon);
 		pts.forEach((p, vi) => {
 			primitives.push({
@@ -1563,6 +1609,12 @@ function buildRadarViewModel(
 				r: 3,
 				fill: c,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
+				title: buildMarkTooltip(
+					series.name,
+					categoryLabels[vi],
+					series.values[vi] ?? 0,
+					series.numberFormat,
+				),
 			} satisfies SvgCircle);
 		});
 
@@ -1585,17 +1637,16 @@ function buildRadarViewModel(
 		}
 	});
 
-	const legendPos = chartData.style?.legendPosition ?? 'b';
-	const { legend, legendX, legendY, legendAnchor } = buildLegend(
-		chartData.series,
-		chartData.colorPalette,
-		layout.svgWidth,
-		legendPos,
-		layout.svgHeight,
-		layout.plotTop,
-	);
-
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const legendPos = chartData.style?.legendPosition ?? 'b',
+		{ legend, legendX, legendY, legendAnchor } = buildLegend(
+			chartData.series,
+			chartData.colorPalette,
+			layout.svgWidth,
+			legendPos,
+			layout.svgHeight,
+			layout.plotTop,
+		),
+		title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
 
 	return {
 		svgWidth: layout.svgWidth,

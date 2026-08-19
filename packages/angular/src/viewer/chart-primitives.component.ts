@@ -51,7 +51,11 @@ import type {
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"
 						[attr.data-chart-point]="partPoint(prim)"
-					/>
+					>
+						@if (asRect(prim).title !== undefined) {
+							<svg:title>{{ asRect(prim).title }}</svg:title>
+						}
+					</svg:rect>
 				}
 				@case ('path') {
 					<svg:path
@@ -85,7 +89,11 @@ import type {
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"
 						[attr.data-chart-point]="partPoint(prim)"
-					/>
+					>
+						@if (asPolyline(prim).title !== undefined) {
+							<svg:title>{{ asPolyline(prim).title }}</svg:title>
+						}
+					</svg:polyline>
 				}
 				@case ('circle') {
 					<svg:circle
@@ -97,7 +105,11 @@ import type {
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"
 						[attr.data-chart-point]="partPoint(prim)"
-					/>
+					>
+						@if (asCircle(prim).title !== undefined) {
+							<svg:title>{{ asCircle(prim).title }}</svg:title>
+						}
+					</svg:circle>
 				}
 				@case ('line') {
 					<svg:line
@@ -107,7 +119,11 @@ import type {
 						[attr.y2]="asLine(prim).y2"
 						[attr.stroke]="asLine(prim).stroke"
 						[attr.stroke-width]="asLine(prim).strokeWidth"
-					/>
+					>
+						@if (asLine(prim).title !== undefined) {
+							<svg:title>{{ asLine(prim).title }}</svg:title>
+						}
+					</svg:line>
 				}
 				@case ('polygon') {
 					<svg:polygon
@@ -120,7 +136,11 @@ import type {
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"
 						[attr.data-chart-point]="partPoint(prim)"
-					/>
+					>
+						@if (asPolygon(prim).title !== undefined) {
+							<svg:title>{{ asPolygon(prim).title }}</svg:title>
+						}
+					</svg:polygon>
 				}
 				@case ('text') {
 					<svg:text

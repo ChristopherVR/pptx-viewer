@@ -42,9 +42,9 @@ import { resetTabSession } from './support/deck';
  */
 
 const fixturePath = resolve(
-	fileURLToPath(new URL('./fixtures/chart-gallery.pptx', import.meta.url)),
-);
-const screenshotDir = resolve(fileURLToPath(new URL('./__screenshots__', import.meta.url)));
+		fileURLToPath(new URL('./fixtures/chart-gallery.pptx', import.meta.url)),
+	),
+	screenshotDir = resolve(fileURLToPath(new URL('./__screenshots__', import.meta.url)));
 
 /**
  * Load the gallery deck and enter presentation mode.
@@ -117,12 +117,13 @@ async function chartElement(page: Page, slide: ChartSlideSpec): Promise<Locator>
 		.locator('[data-element-id]:visible:has(svg)')
 		.filter({ hasText: slide.title });
 	await candidates.first().waitFor();
+	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const count = await candidates.count();
-	let bestIndex = 0;
-	let bestArea = -1;
+	let bestIndex = 0,
+		bestArea = -1;
 	for (let i = 0; i < count; i++) {
-		const box = await candidates.nth(i).boundingBox();
-		const area = box ? box.width * box.height : 0;
+		const box = await candidates.nth(i).boundingBox(),
+			area = box ? box.width * box.height : 0;
 		if (area > bestArea) {
 			bestArea = area;
 			bestIndex = i;
@@ -178,8 +179,8 @@ interface PrimitiveExpectation {
  * same kinds on top of the data marks.
  */
 function expectedPrimitives(slide: ChartSlideSpec): PrimitiveExpectation[] {
-	const { seriesCount: series, categoryCount: categories } = slide;
-	const points = series * categories;
+	const { seriesCount: series, categoryCount: categories } = slide,
+		points = series * categories;
 	switch (slide.chartType) {
 		case 'bar':
 			return [{ kind: 'rect', min: points, why: `one bar per series x category (${points})` }];
@@ -277,9 +278,11 @@ test.describe('chart rendering (cross-framework parity)', () => {
 			// anchor must be on screen before we inspect that slide's chart.
 			await expect(titleAnchor(page, slide), `${slide.key}: slide active`).toBeVisible();
 
+			// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 			const el = await chartElement(page, slide);
 			await expect(el, `${slide.key}: chart element present`).toBeVisible();
 
+			// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 			const counts = await primitiveCounts(el);
 			expect(counts.hasSvg, `${slide.key}: chart renders as SVG`).toBe(true);
 			for (const expectation of expectedPrimitives(slide)) {
@@ -300,6 +303,26 @@ test.describe('chart rendering (cross-framework parity)', () => {
 				const titled = await el.locator('path > title').count();
 				expect(titled, `${slide.key}: every region path names itself`).toBeGreaterThan(1);
 			}
+
+			// Every mainstream mark kind now carries the same hover-tooltip `title`
+			// the region map pioneered: a bar rect and a line-chart point dot, not
+			// just a choropleth patch, name their series/category/value on hover.
+			// Only the shared engine's `part`-tagged data marks are checked (chrome
+			// primitives like gridlines and legend swatches stay untitled).
+			if (slide.chartType === 'bar') {
+				const titled = await el.locator('rect[data-chart-part="dataPoint"] > title').count();
+				expect(titled, `${slide.key}: every bar names its series/category/value`).toBeGreaterThan(
+					0,
+				);
+			}
+			if (slide.chartType === 'line') {
+				const titled = await el.locator('circle[data-chart-part="dataPoint"] > title').count();
+				expect(
+					titled,
+					`${slide.key}: every line-chart point dot names its series/category/value`,
+				).toBeGreaterThan(0);
+			}
+
 			await expect(el, `${slide.key}: real chart, not placeholder`).toContainText(slide.title);
 
 			// (b) VISUAL - screenshot the chart element per framework + type.

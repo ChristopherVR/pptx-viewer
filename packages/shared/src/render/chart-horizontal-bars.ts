@@ -33,6 +33,7 @@ import {
 	ZERO_LINE_COLOR,
 	axisTickValues,
 	buildLegend,
+	buildMarkTooltip,
 	computePlotLayout,
 	computeStackedValueRange,
 	formatAxisValue,
@@ -45,10 +46,10 @@ export function valueToX(val: number, range: ValueRange, leftX: number, rightX: 
 	const usable = rightX - leftX;
 	let ratio: number;
 	if (range.logScale && range.logBase) {
-		const base = range.logBase;
-		const clampedVal = Math.max(val, range.min);
-		const logVal = Math.log(clampedVal) / Math.log(base);
-		const logMin = Math.log(range.min) / Math.log(base);
+		const base = range.logBase,
+			clampedVal = Math.max(val, range.min),
+			logVal = Math.log(clampedVal) / Math.log(base),
+			logMin = Math.log(range.min) / Math.log(base);
 		ratio = (logVal - logMin) / range.span;
 	} else {
 		ratio = (val - range.min) / range.span;
@@ -61,8 +62,8 @@ function buildTransposedValueAxis(
 	range: ValueRange,
 	layout: PlotLayout,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
-	const gridlines: SvgLine[] = [];
-	const axisLabels: SvgText[] = [];
+	const gridlines: SvgLine[] = [],
+		axisLabels: SvgText[] = [];
 	for (const val of axisTickValues(range)) {
 		const x = valueToX(val, range, layout.plotLeft, layout.plotRight);
 		gridlines.push({
@@ -92,8 +93,8 @@ function buildSideCategoryLabels(
 	categoryLabels: ReadonlyArray<string>,
 	layout: PlotLayout,
 ): SvgText[] {
-	const catCount = Math.max(categoryLabels.length, 1);
-	const band = layout.plotHeight / catCount;
+	const catCount = Math.max(categoryLabels.length, 1),
+		band = layout.plotHeight / catCount;
 	return categoryLabels.map((label, i) => ({
 		kind: 'text' as const,
 		x: layout.plotLeft - 4,
@@ -139,57 +140,54 @@ export function buildHorizontalBarViewModel(
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, true);
-	const catCount = Math.max(categoryLabels.length, 1);
-	const series = chartData.series;
-	const grouping = chartData.grouping ?? 'clustered';
-	const isStacked = grouping === 'stacked' || grouping === 'percentStacked';
-	const isPercent = grouping === 'percentStacked';
-
-	const range: ValueRange = isPercent
-		? { min: 0, max: 100, span: 100 }
-		: isStacked
-			? computeStackedValueRange(series, catCount)
-			: computeValueRangeForChart(series, chartData.axes);
-
-	const { gridlines, axisLabels } = buildTransposedValueAxis(range, layout);
-	const zeroX = valueToX(0, range, layout.plotLeft, layout.plotRight);
-	const zeroLine: SvgLine | undefined =
-		range.min < 0 && range.max > 0
-			? {
-					kind: 'line',
-					x1: zeroX,
-					y1: layout.plotTop,
-					x2: zeroX,
-					y2: layout.plotBottom,
-					stroke: ZERO_LINE_COLOR,
-					strokeWidth: 1,
-				}
-			: undefined;
-
-	const primitives: SvgPrimitive[] = [];
-	const dataLabels: SvgText[] = [];
-	const showLabels = chartData.style?.hasDataLabels;
-	const band = layout.plotHeight / catCount;
+	const layout = computePlotLayout(element.width, element.height, chartData, true),
+		catCount = Math.max(categoryLabels.length, 1),
+		series = chartData.series,
+		grouping = chartData.grouping ?? 'clustered',
+		isStacked = grouping === 'stacked' || grouping === 'percentStacked',
+		isPercent = grouping === 'percentStacked',
+		range: ValueRange = isPercent
+			? { min: 0, max: 100, span: 100 }
+			: isStacked
+				? computeStackedValueRange(series, catCount)
+				: computeValueRangeForChart(series, chartData.axes),
+		{ gridlines, axisLabels } = buildTransposedValueAxis(range, layout),
+		zeroX = valueToX(0, range, layout.plotLeft, layout.plotRight),
+		zeroLine: SvgLine | undefined =
+			range.min < 0 && range.max > 0
+				? {
+						kind: 'line',
+						x1: zeroX,
+						y1: layout.plotTop,
+						x2: zeroX,
+						y2: layout.plotBottom,
+						stroke: ZERO_LINE_COLOR,
+						strokeWidth: 1,
+					}
+				: undefined,
+		primitives: SvgPrimitive[] = [],
+		dataLabels: SvgText[] = [],
+		showLabels = chartData.style?.hasDataLabels,
+		band = layout.plotHeight / catCount;
 
 	if (!isStacked) {
-		const seriesCount = Math.max(series.length, 1);
-		const singleBarHeight =
-			chartData.barGapWidth !== undefined
-				? band / (seriesCount + Math.max(chartData.barGapWidth, 0) / 100)
-				: (band * 0.7) / seriesCount;
-		const overlap = chartData.barOverlap ?? 0;
-		const step = singleBarHeight * (1 - overlap / 100);
-		const clusterHeight = singleBarHeight + step * (seriesCount - 1);
-		const groupOffset = (band - clusterHeight) / 2;
+		const seriesCount = Math.max(series.length, 1),
+			singleBarHeight =
+				chartData.barGapWidth !== undefined
+					? band / (seriesCount + Math.max(chartData.barGapWidth, 0) / 100)
+					: (band * 0.7) / seriesCount,
+			overlap = chartData.barOverlap ?? 0,
+			step = singleBarHeight * (1 - overlap / 100),
+			clusterHeight = singleBarHeight + step * (seriesCount - 1),
+			groupOffset = (band - clusterHeight) / 2;
 
 		for (let ci = 0; ci < catCount; ci++) {
 			for (let si = 0; si < series.length; si++) {
-				const val = series[si].values[ci] ?? 0;
-				const y = layout.plotTop + band * ci + groupOffset + step * si;
-				const valX = valueToX(val, range, layout.plotLeft, layout.plotRight);
-				const x = Math.min(zeroX, valX);
-				const w = Math.max(Math.abs(valX - zeroX), 1);
+				const val = series[si].values[ci] ?? 0,
+					y = layout.plotTop + band * ci + groupOffset + step * si,
+					valX = valueToX(val, range, layout.plotLeft, layout.plotRight),
+					x = Math.min(zeroX, valX),
+					w = Math.max(Math.abs(valX - zeroX), 1);
 				primitives.push({
 					kind: 'rect',
 					x,
@@ -199,6 +197,12 @@ export function buildHorizontalBarViewModel(
 					fill: barFill(chartData, series[si], si, ci),
 					rx: 1,
 					part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
+					title: buildMarkTooltip(
+						series[si].name,
+						categoryLabels[ci],
+						val,
+						series[si].numberFormat,
+					),
 				} satisfies SvgRect);
 				if (showLabels) {
 					dataLabels.push({
@@ -215,27 +219,28 @@ export function buildHorizontalBarViewModel(
 			}
 		}
 	} else {
-		const totals = isPercent ? categoryTotals(series, catCount) : [];
-		const barH = band * (isPercent ? 0.6 : 0.7);
-		const barOffset = (band - barH) / 2;
+		const totals = isPercent ? categoryTotals(series, catCount) : [],
+			barH = band * (isPercent ? 0.6 : 0.7),
+			barOffset = (band - barH) / 2;
 		for (let ci = 0; ci < catCount; ci++) {
-			let posRunning = 0;
-			let negRunning = 0;
+			let posRunning = 0,
+				negRunning = 0;
 			const catTotal = isPercent ? totals[ci] || 1 : 1;
 			for (let si = 0; si < series.length; si++) {
-				const rawVal = series[si].values[ci] ?? 0;
-				const val = isPercent ? (rawVal / catTotal) * 100 : rawVal;
+				const rawVal = series[si].values[ci] ?? 0,
+					val = isPercent ? (rawVal / catTotal) * 100 : rawVal;
 				if (val === 0) {
 					continue;
 				}
-				const isNeg = val < 0;
-				const base = isNeg ? negRunning : posRunning;
-				const top = base + val;
-				const y = layout.plotTop + band * ci + barOffset;
-				const baseX = valueToX(base, range, layout.plotLeft, layout.plotRight);
-				const topX = valueToX(top, range, layout.plotLeft, layout.plotRight);
-				const x = Math.min(baseX, topX);
-				const w = Math.max(Math.abs(topX - baseX), 0.5);
+				// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+				const isNeg = val < 0,
+					base = isNeg ? negRunning : posRunning,
+					top = base + val,
+					y = layout.plotTop + band * ci + barOffset,
+					baseX = valueToX(base, range, layout.plotLeft, layout.plotRight),
+					topX = valueToX(top, range, layout.plotLeft, layout.plotRight),
+					x = Math.min(baseX, topX),
+					w = Math.max(Math.abs(topX - baseX), 0.5);
 				primitives.push({
 					kind: 'rect',
 					x,
@@ -245,6 +250,12 @@ export function buildHorizontalBarViewModel(
 					fill: barFill(chartData, series[si], si, ci),
 					rx: 1,
 					part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
+					title: buildMarkTooltip(
+						series[si].name,
+						categoryLabels[ci],
+						rawVal,
+						series[si].numberFormat,
+					),
 				} satisfies SvgRect);
 				if (showLabels && Math.abs(val) > 0) {
 					dataLabels.push({
@@ -270,15 +281,16 @@ export function buildHorizontalBarViewModel(
 		}
 	}
 
-	const legendPos = chartData.style?.legendPosition ?? 'b';
-	const { legend, legendX, legendY, legendAnchor } = buildLegend(
-		series,
-		chartData.colorPalette,
-		layout.svgWidth,
-		legendPos,
-		layout.svgHeight,
-		layout.plotTop,
-	);
+	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+	const legendPos = chartData.style?.legendPosition ?? 'b',
+		{ legend, legendX, legendY, legendAnchor } = buildLegend(
+			series,
+			chartData.colorPalette,
+			layout.svgWidth,
+			legendPos,
+			layout.svgHeight,
+			layout.plotTop,
+		);
 
 	return {
 		svgWidth: layout.svgWidth,

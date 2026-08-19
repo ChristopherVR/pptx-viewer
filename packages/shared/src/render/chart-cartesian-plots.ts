@@ -28,10 +28,12 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import {
+	buildMarkTooltip,
 	computeBubbleRadius,
 	computeLinePoints,
 	computeScatterDots,
 	computeScatterXDomain,
+	formatAxisValue,
 	linePointsToSvgString,
 	seriesColor,
 	valueToY,
@@ -41,6 +43,23 @@ import {
 export interface SeriesPlotResult {
 	primitives: SvgPrimitive[];
 	dataLabels: SvgText[];
+}
+
+/**
+ * Hover-tooltip text for an XY (scatter/bubble) point: `"<series>: (x, y)"`.
+ * Neither kind has a category label to hang the tooltip off, unlike
+ * `buildMarkTooltip`'s bar/line/area/pie/radar marks, so this formats the raw
+ * coordinate pair instead.
+ */
+function xyMarkTooltip(
+	seriesName: string,
+	xVal: number | undefined,
+	yVal: number,
+	numberFormat: string | undefined,
+): string {
+	const y = formatAxisValue(yVal, numberFormat),
+		coords = xVal !== undefined ? `(${formatAxisValue(xVal)}, ${y})` : y;
+	return seriesName.length > 0 ? `${seriesName}: ${coords}` : coords;
 }
 
 /**
@@ -62,24 +81,28 @@ function pushMarker(
 	defaultRadius: number,
 	part: ChartPartRef,
 	opacity?: number,
+	title?: string,
 ): void {
-	const marker = resolveDataPointMarker(series, pointIndex);
-	const m = buildMarkerPrimitive({
-		symbol: marker.symbol,
-		size: marker.size,
-		cx,
-		cy,
-		// A marker fill (series or per-point) wins over the plot fill, which is
-		// what the line/area body is drawn with.
-		fill: marker.fill ?? fill,
-		defaultRadius,
-		part,
-	});
+	const marker = resolveDataPointMarker(series, pointIndex),
+		m = buildMarkerPrimitive({
+			symbol: marker.symbol,
+			size: marker.size,
+			cx,
+			cy,
+			// A marker fill (series or per-point) wins over the plot fill, which is
+			// what the line/area body is drawn with.
+			fill: marker.fill ?? fill,
+			defaultRadius,
+			part,
+		});
 	if (!m) {
 		return;
 	}
 	if (opacity !== undefined) {
 		m.opacity = opacity;
+	}
+	if (title !== undefined) {
+		m.title = title;
 	}
 	out.push(m);
 }
@@ -95,35 +118,34 @@ export function buildLines(
 	sourceIndices: ReadonlyArray<number>,
 	xPositions?: ReadonlyArray<number>,
 ): SeriesPlotResult {
-	const primitives: SvgPrimitive[] = [];
-	const dataLabels: SvgText[] = [];
-	const showLabels = chartData.style?.hasDataLabels;
+	const primitives: SvgPrimitive[] = [],
+		dataLabels: SvgText[] = [],
+		showLabels = chartData.style?.hasDataLabels;
 
 	for (let si = 0; si < chartData.series.length; si++) {
 		const series = chartData.series[si];
 		if (series.values.length === 0) {
 			continue;
 		}
-		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
-		const rawValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
-		const displayBlanks = sourceIndices.map((sourceIndex) => series.blanks?.[sourceIndex] ?? false);
-		// Honour c:dispBlanksAs: gap breaks the line at blanks, span interpolates,
-		// zero/unset keep the placeholder 0 (existing behaviour).
-		const { values: displayValues, visible } = resolveBlankDisplay(
-			rawValues,
-			displayBlanks,
-			chartData.chartChrome?.dispBlanksAs,
-		);
-		const pts = computeLinePoints(displayValues, catCount, layout, activeRange).map(
-			(point, index) => ({
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange,
+			rawValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0),
+			displayBlanks = sourceIndices.map((sourceIndex) => series.blanks?.[sourceIndex] ?? false),
+			// Honour c:dispBlanksAs: gap breaks the line at blanks, span interpolates,
+			// zero/unset keep the placeholder 0 (existing behaviour).
+			{ values: displayValues, visible } = resolveBlankDisplay(
+				rawValues,
+				displayBlanks,
+				chartData.chartChrome?.dispBlanksAs,
+			),
+			pts = computeLinePoints(displayValues, catCount, layout, activeRange).map((point, index) => ({
 				...point,
 				x: xPositions?.[index] ?? point.x,
-			}),
-		);
-		const c = seriesColor(series, si, chartData.colorPalette);
-		// c:smooth draws a bezier path through the points; otherwise a polyline.
-		const seriesPart: ChartPartRef = { role: 'series', seriesIndex: si };
-		const allVisible = visible.every(Boolean);
+			})),
+			c = seriesColor(series, si, chartData.colorPalette),
+			// c:smooth draws a bezier path through the points; otherwise a polyline.
+			seriesPart: ChartPartRef = { role: 'series', seriesIndex: si },
+			allVisible = visible.every(Boolean);
 		if (allVisible) {
 			primitives.push(
 				series.smooth
@@ -164,8 +186,8 @@ export function buildLines(
 			if (!visible[displayIndex]) {
 				return;
 			}
-			const idx = sourceIndices[displayIndex] ?? displayIndex;
-			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
+			const idx = sourceIndices[displayIndex] ?? displayIndex,
+				part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
 			pushMarker(
 				primitives,
 				series,
@@ -175,17 +197,24 @@ export function buildLines(
 				resolveDataPointFill(series, idx, c) ?? c,
 				2.5,
 				part,
+				undefined,
+				buildMarkTooltip(
+					series.name,
+					chartData.categories[idx],
+					series.values[idx] ?? 0,
+					series.numberFormat,
+				),
 			);
 		});
 		if (showLabels) {
 			displayValues.forEach((val, displayIndex) => {
-				const pt = pts[displayIndex];
-				const text = buildDataLabelText({
-					chartData,
-					series,
-					pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-					value: val,
-				});
+				const pt = pts[displayIndex],
+					text = buildDataLabelText({
+						chartData,
+						series,
+						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
+						value: val,
+					});
 				if (!pt || !visible[displayIndex] || text === undefined) {
 					return;
 				}
@@ -213,25 +242,26 @@ export function buildAreas(
 	sourceIndices: ReadonlyArray<number>,
 	xPositions?: ReadonlyArray<number>,
 ): SeriesPlotResult {
-	const primitives: SvgPrimitive[] = [];
-	const dataLabels: SvgText[] = [];
-	const showLabels = chartData.style?.hasDataLabels;
-	const baselineY = valueToY(0, range, layout.plotTop, layout.plotBottom);
+	const primitives: SvgPrimitive[] = [],
+		dataLabels: SvgText[] = [],
+		showLabels = chartData.style?.hasDataLabels,
+		baselineY = valueToY(0, range, layout.plotTop, layout.plotBottom);
 
 	for (let si = 0; si < chartData.series.length; si++) {
 		const series = chartData.series[si];
 		if (series.values.length === 0) {
 			continue;
 		}
-		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
-		const pts = computeLinePoints(displayValues, catCount, layout, range).map((point, index) => ({
-			...point,
-			x: xPositions?.[index] ?? point.x,
-		}));
-		const c = seriesColor(series, si, chartData.colorPalette);
-		const lineStr = linePointsToSvgString(pts);
-		const firstPt = pts[0];
-		const lastPt = pts[pts.length - 1];
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0),
+			pts = computeLinePoints(displayValues, catCount, layout, range).map((point, index) => ({
+				...point,
+				x: xPositions?.[index] ?? point.x,
+			})),
+			c = seriesColor(series, si, chartData.colorPalette),
+			lineStr = linePointsToSvgString(pts),
+			firstPt = pts[0],
+			lastPt = pts[pts.length - 1];
 		if (firstPt && lastPt) {
 			primitives.push({
 				kind: 'polyline',
@@ -252,8 +282,8 @@ export function buildAreas(
 			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
 		pts.forEach((pt, displayIndex) => {
-			const idx = sourceIndices[displayIndex] ?? displayIndex;
-			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
+			const idx = sourceIndices[displayIndex] ?? displayIndex,
+				part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
 			pushMarker(
 				primitives,
 				series,
@@ -263,17 +293,24 @@ export function buildAreas(
 				resolveDataPointFill(series, idx, c) ?? c,
 				2,
 				part,
+				undefined,
+				buildMarkTooltip(
+					series.name,
+					chartData.categories[idx],
+					series.values[idx] ?? 0,
+					series.numberFormat,
+				),
 			);
 		});
 		if (showLabels) {
 			displayValues.forEach((val, displayIndex) => {
-				const pt = pts[displayIndex];
-				const text = buildDataLabelText({
-					chartData,
-					series,
-					pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-					value: val,
-				});
+				const pt = pts[displayIndex],
+					text = buildDataLabelText({
+						chartData,
+						series,
+						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
+						value: val,
+					});
 				if (!pt || text === undefined) {
 					return;
 				}
@@ -335,31 +372,23 @@ export function buildScatter(
 	layout: PlotLayout,
 	range: ValueRange,
 ): SeriesPlotResult {
-	const primitives: SvgPrimitive[] = [];
-	const dataLabels: SvgText[] = [];
-	const showLabels = chartData.style?.hasDataLabels;
-	const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
-	const maxXIndex = Math.max(1, ...allIndices);
-	const perSeriesX = chartData.series.map((series) => seriesXValues(chartData, series));
-	const xDomain = computeScatterXDomain(perSeriesX);
-	const smoothStyle =
-		chartData.scatterStyle === 'smooth' || chartData.scatterStyle === 'smoothMarker';
+	const primitives: SvgPrimitive[] = [],
+		dataLabels: SvgText[] = [],
+		showLabels = chartData.style?.hasDataLabels,
+		allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i)),
+		maxXIndex = Math.max(1, ...allIndices),
+		perSeriesX = chartData.series.map((series) => seriesXValues(chartData, series)),
+		xDomain = computeScatterXDomain(perSeriesX),
+		smoothStyle = chartData.scatterStyle === 'smooth' || chartData.scatterStyle === 'smoothMarker';
 
 	for (let si = 0; si < chartData.series.length; si++) {
-		const series = chartData.series[si];
-		const c = seriesColor(series, si, chartData.colorPalette);
-		const dots = computeScatterDots(
-			series.values,
-			maxXIndex,
-			layout,
-			range,
-			perSeriesX[si],
-			xDomain,
-		);
+		const series = chartData.series[si],
+			c = seriesColor(series, si, chartData.colorPalette),
+			dots = computeScatterDots(series.values, maxXIndex, layout, range, perSeriesX[si], xDomain);
 		// The connecting line goes down FIRST so the markers sit on top of it.
 		if (scatterDrawsLine(chartData, series) && dots.length >= 2) {
-			const points = dots.map((dot) => ({ x: dot.cx, y: dot.cy }));
-			const seriesPart: ChartPartRef = { role: 'series', seriesIndex: si };
+			const points = dots.map((dot) => ({ x: dot.cx, y: dot.cy })),
+				seriesPart: ChartPartRef = { role: 'series', seriesIndex: si };
 			primitives.push(
 				(series.smooth ?? smoothStyle)
 					? ({
@@ -392,12 +421,18 @@ export function buildScatter(
 				4,
 				part,
 				0.85,
+				xyMarkTooltip(
+					series.name,
+					perSeriesX[si]?.[vi],
+					series.values[vi] ?? 0,
+					series.numberFormat,
+				),
 			);
 		});
 		if (showLabels) {
 			series.values.forEach((val, vi) => {
-				const dot = dots[vi];
-				const text = buildDataLabelText({ chartData, series, pointIndex: vi, value: val });
+				const dot = dots[vi],
+					text = buildDataLabelText({ chartData, series, pointIndex: vi, value: val });
 				if (!dot || text === undefined) {
 					return;
 				}
@@ -429,31 +464,34 @@ export function buildBubbles(
 	layout: PlotLayout,
 	range: ValueRange,
 ): SeriesPlotResult {
-	const primitives: SvgPrimitive[] = [];
-	const dataLabels: SvgText[] = [];
-	const showLabels = chartData.style?.hasDataLabels;
-	const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
-	const maxXIndex = Math.max(1, ...allIndices);
-	const perSeriesX = chartData.series.map((series) => seriesXValues(chartData, series));
-	const xDomain = computeScatterXDomain(perSeriesX);
-	// One size scale for the whole chart, so bubbles stay comparable across series.
-	const allSizes = chartData.series.flatMap((series) => series.bubbleSizes ?? []);
-	const maxBubble = allSizes.length > 0 ? Math.max(1, ...allSizes.map(Math.abs)) : 1;
-	const medianRadius = Math.min(layout.plotWidth, layout.plotHeight) * 0.04;
+	const primitives: SvgPrimitive[] = [],
+		dataLabels: SvgText[] = [],
+		showLabels = chartData.style?.hasDataLabels,
+		allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i)),
+		maxXIndex = Math.max(1, ...allIndices),
+		perSeriesX = chartData.series.map((series) => seriesXValues(chartData, series)),
+		xDomain = computeScatterXDomain(perSeriesX),
+		// One size scale for the whole chart, so bubbles stay comparable across series.
+		allSizes = chartData.series.flatMap((series) => series.bubbleSizes ?? []),
+		maxBubble = allSizes.length > 0 ? Math.max(1, ...allSizes.map(Math.abs)) : 1,
+		medianRadius = Math.min(layout.plotWidth, layout.plotHeight) * 0.04;
 
 	for (let si = 0; si < chartData.series.length; si++) {
-		const series = chartData.series[si];
-		const c = seriesColor(series, si, chartData.colorPalette);
-		const dots = computeScatterDots(
-			series.values,
-			maxXIndex,
-			layout,
-			range,
-			perSeriesX[si],
-			xDomain,
-		);
+		const series = chartData.series[si],
+			c = seriesColor(series, si, chartData.colorPalette),
+			dots = computeScatterDots(series.values, maxXIndex, layout, range, perSeriesX[si], xDomain);
 		dots.forEach((dot, vi) => {
-			const r = computeBubbleRadius(series.bubbleSizes?.[vi], maxBubble, medianRadius);
+			const r = computeBubbleRadius(series.bubbleSizes?.[vi], maxBubble, medianRadius),
+				size = series.bubbleSizes?.[vi],
+				label =
+					size !== undefined
+						? `${xyMarkTooltip(series.name, perSeriesX[si]?.[vi], series.values[vi] ?? 0, series.numberFormat)}, size ${formatAxisValue(size)}`
+						: xyMarkTooltip(
+								series.name,
+								perSeriesX[si]?.[vi],
+								series.values[vi] ?? 0,
+								series.numberFormat,
+							);
 			primitives.push({
 				kind: 'circle',
 				cx: dot.cx,
@@ -462,12 +500,13 @@ export function buildBubbles(
 				fill: resolveDataPointFill(series, vi, c) ?? c,
 				opacity: 0.6,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
+				title: label,
 			} satisfies SvgCircle);
 		});
 		if (showLabels) {
 			series.values.forEach((val, vi) => {
-				const dot = dots[vi];
-				const text = buildDataLabelText({ chartData, series, pointIndex: vi, value: val });
+				const dot = dots[vi],
+					text = buildDataLabelText({ chartData, series, pointIndex: vi, value: val });
 				if (!dot || text === undefined) {
 					return;
 				}

@@ -221,7 +221,9 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:rx="prim.rx ?? 0"
 				:opacity="prim.opacity ?? 1"
 				v-bind="partAttrs(prim.part)"
-			/>
+			>
+				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
+			</rect>
 			<path
 				v-else-if="isPath(prim)"
 				:d="prim.d"
@@ -241,7 +243,9 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:fill="prim.fill"
 				:opacity="prim.opacity ?? 1"
 				v-bind="partAttrs(prim.part)"
-			/>
+			>
+				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
+			</polyline>
 			<circle
 				v-else-if="isCircle(prim)"
 				:cx="prim.cx"
@@ -250,7 +254,9 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:fill="prim.fill"
 				:opacity="prim.opacity ?? 1"
 				v-bind="partAttrs(prim.part)"
-			/>
+			>
+				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
+			</circle>
 			<line
 				v-else-if="isLine(prim)"
 				:x1="prim.x1"
@@ -261,7 +267,9 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:stroke-width="prim.strokeWidth"
 				:stroke-dasharray="prim.dashArray"
 				:opacity="prim.opacity ?? 1"
-			/>
+			>
+				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
+			</line>
 			<polygon
 				v-else-if="isPolygon(prim)"
 				:points="prim.points"
@@ -271,7 +279,9 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:opacity="prim.opacity ?? 1"
 				:stroke-dasharray="prim.dashArray"
 				v-bind="partAttrs(prim.part)"
-			/>
+			>
+				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
+			</polygon>
 			<text
 				v-else-if="isText(prim)"
 				:x="prim.x"

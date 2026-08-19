@@ -66,11 +66,11 @@ export function buildReactChartViewModel(element: PptxElement): ChartViewModel {
 	if (element.type !== 'chart' || !element.chartData) {
 		return buildChartViewModel(element);
 	}
-	const palette = resolveReactPalette(element.chartData);
-	const themedElement: PptxElement = {
-		...element,
-		chartData: { ...element.chartData, colorPalette: palette },
-	};
+	const palette = resolveReactPalette(element.chartData),
+		themedElement: PptxElement = {
+			...element,
+			chartData: { ...element.chartData, colorPalette: palette },
+		};
 	return buildChartViewModel(themedElement);
 }
 
@@ -89,7 +89,9 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					rx={r.rx ?? 0}
 					opacity={r.opacity ?? 1}
 					{...partAttrs(r.part)}
-				/>
+				>
+					{r.title !== undefined ? <title>{r.title}</title> : null}
+				</rect>
 			);
 		}
 		case 'path': {
@@ -123,7 +125,9 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					fill={p.fill}
 					opacity={p.opacity ?? 1}
 					{...partAttrs(p.part)}
-				/>
+				>
+					{p.title !== undefined ? <title>{p.title}</title> : null}
+				</polyline>
 			);
 		}
 		case 'circle': {
@@ -137,7 +141,9 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					fill={c.fill}
 					opacity={c.opacity ?? 1}
 					{...partAttrs(c.part)}
-				/>
+				>
+					{c.title !== undefined ? <title>{c.title}</title> : null}
+				</circle>
 			);
 		}
 		case 'line': {
@@ -153,7 +159,9 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					strokeWidth={l.strokeWidth}
 					strokeDasharray={l.dashArray}
 					opacity={l.opacity ?? 1}
-				/>
+				>
+					{l.title !== undefined ? <title>{l.title}</title> : null}
+				</line>
 			);
 		}
 		case 'polygon': {
@@ -168,7 +176,9 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					opacity={p.opacity ?? 1}
 					strokeDasharray={p.dashArray}
 					{...partAttrs(p.part)}
-				/>
+				>
+					{p.title !== undefined ? <title>{p.title}</title> : null}
+				</polygon>
 			);
 		}
 		case 'text': {
@@ -311,9 +321,9 @@ export function renderChartViewModel(
 
 			{vm.legend.map((entry, i) => {
 				const x = isVerticalLegend
-					? vm.legendX
-					: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH;
-				const y = isVerticalLegend ? vm.legendY + i * 14 : vm.legendY;
+						? vm.legendX
+						: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH,
+					y = isVerticalLegend ? vm.legendY + i * 14 : vm.legendY;
 				return (
 					<g key={`${elementId}-lg-${i}`} transform={`translate(${x.toFixed(1)},${y.toFixed(1)})`}>
 						<rect x={0} y={-7} width={10} height={10} rx={2} fill={entry.color} />

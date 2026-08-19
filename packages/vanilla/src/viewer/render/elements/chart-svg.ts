@@ -109,6 +109,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 				rx: prim.rx ?? 0,
 				opacity: prim.opacity ?? 1,
 			});
+			appendTitle(doc, el, prim.title);
 			applyPartAttrs(el, prim.part);
 			return el;
 		}
@@ -124,11 +125,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 			// shape's ACCESSIBLE NAME as well as its hover text, and a choropleth
 			// patch carries no label of its own: without it a region map announces
 			// nothing and names nothing.
-			if (prim.title !== undefined) {
-				const title = createSvgEl(doc, 'title', {});
-				title.textContent = prim.title;
-				el.appendChild(title);
-			}
+			appendTitle(doc, el, prim.title);
 			applyPartAttrs(el, prim.part);
 			return el;
 		}
@@ -140,6 +137,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 				fill: prim.fill,
 				opacity: prim.opacity ?? 1,
 			});
+			appendTitle(doc, el, prim.title);
 			applyPartAttrs(el, prim.part);
 			return el;
 		}
@@ -151,6 +149,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 				fill: prim.fill,
 				opacity: prim.opacity ?? 1,
 			});
+			appendTitle(doc, el, prim.title);
 			applyPartAttrs(el, prim.part);
 			return el;
 		}
@@ -165,6 +164,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 				opacity: prim.opacity ?? 1,
 				'stroke-dasharray': prim.dashArray,
 			});
+			appendTitle(doc, el, prim.title);
 			applyPartAttrs(el, prim.part);
 			return el;
 		}
@@ -178,7 +178,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 }
 
 function renderLine(doc: Document, line: SvgLine): SVGLineElement {
-	return createSvgEl(doc, 'line', {
+	const el = createSvgEl(doc, 'line', {
 		x1: line.x1,
 		y1: line.y1,
 		x2: line.x2,
@@ -188,6 +188,23 @@ function renderLine(doc: Document, line: SvgLine): SVGLineElement {
 		'stroke-dasharray': line.dashArray,
 		opacity: line.opacity ?? 1,
 	});
+	appendTitle(doc, el, line.title);
+	return el;
+}
+
+/**
+ * Append the shared descriptor's tooltip as an SVG `<title>` child, when set.
+ * Shared by every mark-primitive branch (rect / path / polyline / circle /
+ * line / polygon) so a hover reveals the same value/label text the other four
+ * bindings show.
+ */
+function appendTitle(doc: Document, el: SVGElement, title: string | undefined): void {
+	if (title === undefined) {
+		return;
+	}
+	const titleEl = createSvgEl(doc, 'title', {});
+	titleEl.textContent = title;
+	el.appendChild(titleEl);
 }
 
 function renderText(doc: Document, text: SvgText): SVGTextElement {
@@ -222,16 +239,17 @@ function appendLegend(doc: Document, svg: SVGSVGElement, vm: ChartViewModel): vo
 	const vertical = vm.legendAnchor === 'start';
 	vm.legend.forEach((entry, i) => {
 		const x = vertical
-			? vm.legendX
-			: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH;
-		const y = vertical ? vm.legendY + i * 14 : vm.legendY;
-		const g = createSvgEl(doc, 'g', {
-			class: 'pptxv-chart-legend-item',
-			transform: `translate(${x.toFixed(1)},${y.toFixed(1)})`,
-		});
+				? vm.legendX
+				: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH,
+			y = vertical ? vm.legendY + i * 14 : vm.legendY,
+			g = createSvgEl(doc, 'g', {
+				class: 'pptxv-chart-legend-item',
+				transform: `translate(${x.toFixed(1)},${y.toFixed(1)})`,
+			});
 		g.appendChild(
 			createSvgEl(doc, 'rect', { x: 0, y: -7, width: 10, height: 10, rx: 2, fill: entry.color }),
 		);
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const label = createSvgEl(doc, 'text', { x: 13, y: 3, 'font-size': 9, fill: '#475569' });
 		label.textContent = entry.label;
 		g.appendChild(label);

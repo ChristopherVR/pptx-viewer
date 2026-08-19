@@ -134,20 +134,20 @@
 
 				{#each vm.primitives as prim, i (`p${i}`)}
 					{#if prim.kind === 'rect'}
-						<rect x={prim.x} y={prim.y} width={prim.w} height={prim.h} fill={prim.fill} rx={prim.rx ?? 0} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)} />
+						<rect x={prim.x} y={prim.y} width={prim.w} height={prim.h} fill={prim.fill} rx={prim.rx ?? 0} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</rect>
 					{:else if prim.kind === 'path'}
 						<!-- The shared descriptor's `title` is the shape's ACCESSIBLE NAME as
 						     well as its hover text. A choropleth patch carries no label of its
 						     own, so a region map without it announces nothing at all. -->
 						<path d={prim.d} fill={prim.fill} stroke={prim.stroke ?? 'none'} stroke-width={prim.strokeWidth ?? 0} fill-opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</path>
 					{:else if prim.kind === 'polyline'}
-						<polyline points={prim.points} stroke={prim.stroke} stroke-width={prim.strokeWidth} fill={prim.fill} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)} />
+						<polyline points={prim.points} stroke={prim.stroke} stroke-width={prim.strokeWidth} fill={prim.fill} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</polyline>
 					{:else if prim.kind === 'circle'}
-						<circle cx={prim.cx} cy={prim.cy} r={prim.r} fill={prim.fill} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)} />
+						<circle cx={prim.cx} cy={prim.cy} r={prim.r} fill={prim.fill} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</circle>
 					{:else if prim.kind === 'line'}
-						<line x1={prim.x1} y1={prim.y1} x2={prim.x2} y2={prim.y2} stroke={prim.stroke} stroke-width={prim.strokeWidth} stroke-dasharray={prim.dashArray} opacity={prim.opacity ?? 1} />
+						<line x1={prim.x1} y1={prim.y1} x2={prim.x2} y2={prim.y2} stroke={prim.stroke} stroke-width={prim.strokeWidth} stroke-dasharray={prim.dashArray} opacity={prim.opacity ?? 1}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</line>
 					{:else if prim.kind === 'polygon'}
-						<polygon points={prim.points} fill={prim.fill} stroke={prim.stroke} stroke-width={prim.strokeWidth} opacity={prim.opacity ?? 1} stroke-dasharray={prim.dashArray} {...partAttrs(prim.part)} />
+						<polygon points={prim.points} fill={prim.fill} stroke={prim.stroke} stroke-width={prim.strokeWidth} opacity={prim.opacity ?? 1} stroke-dasharray={prim.dashArray} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</polygon>
 					{:else if prim.kind === 'text'}
 						<text x={prim.x} y={prim.y} text-anchor={prim.textAnchor} font-size={prim.fontSize} fill={prim.fill} font-weight={prim.fontWeight ?? 'normal'} dominant-baseline={prim.dominantBaseline} opacity={prim.opacity ?? 1} transform={prim.transform}>{prim.text}</text>
 					{/if}
