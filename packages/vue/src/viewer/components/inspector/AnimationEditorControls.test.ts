@@ -93,3 +93,67 @@ describe('animationEditorControls - timing curve', () => {
 		expect(options.map((o) => o.text())).toStrictEqual(['Ease', 'Ease In', 'Ease Out', 'Linear']);
 	});
 });
+
+/**
+ * The Vue patch path bypassed the shared granular setters entirely, so
+ * out-of-range duration/delay/repeatCount were forwarded verbatim onto the
+ * animation entry, unlike Angular (shared re-export shim) and Svelte
+ * (`AnimationTimingFields.svelte`) which both clamp through
+ * `setDuration`/`setDelay`/`setRepeatCount`. These assert the same clamps now
+ * apply here.
+ */
+describe('animationEditorControls - timing field clamping', () => {
+	function lastPatch(wrapper: ReturnType<typeof mount>): Partial<PptxElementAnimation> {
+		const events = wrapper.emitted('patch');
+		expect(events).toBeTruthy();
+		return events?.at(-1)?.[0] as Partial<PptxElementAnimation>;
+	}
+
+	it('clamps an out-of-range low duration up to 100ms', async () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		await wrapper.get('input[aria-label="Animation duration"]').setValue(50);
+		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 100 });
+	});
+
+	it('clamps an out-of-range high duration down to 10000ms', async () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		await wrapper.get('input[aria-label="Animation duration"]').setValue(50000);
+		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 10000 });
+	});
+
+	it('clamps a negative delay up to 0ms', async () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		await wrapper.get('input[aria-label="Animation delay"]').setValue(-500);
+		expect(lastPatch(wrapper)).toStrictEqual({ delayMs: 0 });
+	});
+
+	it('clamps an out-of-range high repeat count down to 100', async () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		await wrapper.get('input[aria-label="Animation repeat count"]').setValue(500);
+		expect(lastPatch(wrapper)).toStrictEqual({ repeatCount: 100 });
+	});
+
+	it('clamps a zero repeat count up to 1', async () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		await wrapper.get('input[aria-label="Animation repeat count"]').setValue(0);
+		expect(lastPatch(wrapper)).toStrictEqual({ repeatCount: 1 });
+	});
+
+	it('passes an in-range duration through unchanged', async () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		await wrapper.get('input[aria-label="Animation duration"]').setValue(750);
+		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 750 });
+	});
+});

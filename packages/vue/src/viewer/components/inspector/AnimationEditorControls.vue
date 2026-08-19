@@ -9,7 +9,7 @@ import type {
 	PptxElement,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
-import { schemaLabel } from 'pptx-viewer-shared';
+import { schemaLabel, setDelay, setDuration, setRepeatCount } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import {
@@ -59,6 +59,25 @@ function numberValue(event: Event): number {
 }
 function label(element: PptxElement): string {
 	return animationElementLabel(element, element.id);
+}
+
+/**
+ * Clamp a granular timing field through the shared setter (a single-entry
+ * scratch array keyed by the row's own `elementId`) so Vue rejects
+ * out-of-range input the same way Angular/Svelte do, instead of forwarding
+ * the raw number straight into the patch.
+ */
+function clampedDurationMs(raw: number): number {
+	const [result] = setDuration([props.animation], props.animation.elementId, raw);
+	return result?.durationMs ?? raw;
+}
+function clampedDelayMs(raw: number): number {
+	const [result] = setDelay([props.animation], props.animation.elementId, raw);
+	return result?.delayMs ?? raw;
+}
+function clampedRepeatCount(raw: number): number {
+	const [result] = setRepeatCount([props.animation], props.animation.elementId, raw);
+	return result?.repeatCount ?? raw;
 }
 
 /** The row's effect name (`t` is an overloaded generic, hence the lambda). */
@@ -115,7 +134,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 					max="10000"
 					step="50"
 					:value="animation.durationMs ?? 500"
-					@change="emit('patch', { durationMs: numberValue($event) })"
+					@change="emit('patch', { durationMs: clampedDurationMs(numberValue($event)) })"
 				/>
 			</label>
 			<label
@@ -127,7 +146,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 					max="10000"
 					step="50"
 					:value="animation.delayMs ?? 0"
-					@change="emit('patch', { delayMs: numberValue($event) })"
+					@change="emit('patch', { delayMs: clampedDelayMs(numberValue($event)) })"
 				/>
 			</label>
 		</div>
@@ -210,7 +229,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 					min="1"
 					max="100"
 					:value="animation.repeatCount ?? 1"
-					@change="emit('patch', { repeatCount: numberValue($event) })"
+					@change="emit('patch', { repeatCount: clampedRepeatCount(numberValue($event)) })"
 				/>
 			</label>
 			<label
