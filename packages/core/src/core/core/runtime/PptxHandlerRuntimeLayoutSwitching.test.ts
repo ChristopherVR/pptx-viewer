@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks and helper
+   functions, each with unrelated locals; merging across them would hurt
+   readability. */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 
 import type { PptxSlide, PptxLayoutOption, XmlObject, PptxElement } from '../../types';
@@ -392,12 +395,16 @@ const EMU_PER_PX = 9525;
 let remapImpl:
 	| ((elements: PptxElement[], newLayoutXml: XmlObject, layoutPath: string) => PptxElement[])
 	| undefined;
+let harnessSlideRelsMap: Map<string, Map<string, string>> | undefined;
+let harnessMasterXmlMap: Map<string, XmlObject> | undefined;
 
 beforeAll(async () => {
 	await import('../../../index');
 	const { PptxHandlerRuntime } = await import('./PptxHandlerRuntimeLayoutSwitching');
 	type Harness = {
 		ensureArray: (value: unknown) => unknown[];
+		slideRelsMap: Map<string, Map<string, string>>;
+		masterXmlMap: Map<string, XmlObject>;
 		remapElementsToNewLayout: (
 			elements: PptxElement[],
 			newLayoutXml: XmlObject,
@@ -407,15 +414,40 @@ beforeAll(async () => {
 	const harness = Object.create(PptxHandlerRuntime.prototype) as Harness;
 	harness.ensureArray = (value: unknown) =>
 		value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
+	harness.slideRelsMap = new Map();
+	harness.masterXmlMap = new Map();
+	harnessSlideRelsMap = harness.slideRelsMap;
+	harnessMasterXmlMap = harness.masterXmlMap;
 	remapImpl = (elements, newLayoutXml, layoutPath) =>
 		harness.remapElementsToNewLayout(elements, newLayoutXml, layoutPath);
 });
 
-function remapElementsToNewLayout(elements: PptxElement[], newLayoutXml: XmlObject): PptxElement[] {
+beforeEach(() => {
+	harnessSlideRelsMap?.clear();
+	harnessMasterXmlMap?.clear();
+});
+
+function remapElementsToNewLayout(
+	elements: PptxElement[],
+	newLayoutXml: XmlObject,
+	layoutPath = 'ppt/slideLayouts/target.xml',
+): PptxElement[] {
 	if (!remapImpl) {
 		throw new Error('remapElementsToNewLayout harness was not initialised');
 	}
-	return remapImpl(elements, newLayoutXml, 'ppt/slideLayouts/target.xml');
+	return remapImpl(elements, newLayoutXml, layoutPath);
+}
+
+/** Register a layout->master relationship and the master's XML for the harness. */
+function registerMaster(layoutPath: string, masterPath: string, masterXml: XmlObject): void {
+	if (!harnessSlideRelsMap || !harnessMasterXmlMap) {
+		throw new Error('harness was not initialised');
+	}
+	harnessSlideRelsMap.set(
+		layoutPath,
+		new Map([['rId1', `../slideMasters/${masterPath.split('/').pop()}`]]),
+	);
+	harnessMasterXmlMap.set(masterPath, masterXml);
 }
 /** Helper: create a text element with a placeholder rawXml. */
 function makePhElement(
@@ -494,7 +526,11 @@ function makeLayoutXml(
 		yEmu: number;
 		cxEmu: number;
 		cyEmu: number;
+		/** Omit `a:xfrm` entirely, as a real layout does when it inherits
+		 * position/size from the matching master placeholder instead. */
+		noXfrm?: boolean;
 	}>,
+	layoutName = 'Test Layout',
 ): XmlObject {
 	const shapes = placeholders.map((ph) => {
 		const phNode: XmlObject = {};
@@ -510,6 +546,53 @@ function makeLayoutXml(
 				'p:cNvSpPr': {},
 				'p:nvPr': { 'p:ph': phNode },
 			},
+			'p:spPr': ph.noXfrm
+				? {}
+				: {
+						'a:xfrm': {
+							'a:off': { '@_x': String(ph.xEmu), '@_y': String(ph.yEmu) },
+							'a:ext': { '@_cx': String(ph.cxEmu), '@_cy': String(ph.cyEmu) },
+						},
+					},
+		};
+	});
+	return {
+		'p:sldLayout': {
+			'p:cSld': {
+				'@_name': layoutName,
+				'p:spTree': {
+					'p:sp': shapes.length === 1 ? shapes[0] : shapes,
+				},
+			},
+		},
+	};
+}
+
+/** Helper: a master's `p:spTree`, in the same shape as {@link makeLayoutXml}. */
+function makeMasterXml(
+	placeholders: Array<{
+		phType?: string;
+		phIdx?: string;
+		xEmu: number;
+		yEmu: number;
+		cxEmu: number;
+		cyEmu: number;
+	}>,
+): XmlObject {
+	const shapes = placeholders.map((ph) => {
+		const phNode: XmlObject = {};
+		if (ph.phType) {
+			phNode['@_type'] = ph.phType;
+		}
+		if (ph.phIdx !== undefined) {
+			phNode['@_idx'] = ph.phIdx;
+		}
+		return {
+			'p:nvSpPr': {
+				'p:cNvPr': { '@_id': '1', '@_name': 'Master PH' },
+				'p:cNvSpPr': {},
+				'p:nvPr': { 'p:ph': phNode },
+			},
 			'p:spPr': {
 				'a:xfrm': {
 					'a:off': { '@_x': String(ph.xEmu), '@_y': String(ph.yEmu) },
@@ -519,9 +602,8 @@ function makeLayoutXml(
 		};
 	});
 	return {
-		'p:sldLayout': {
+		'p:sldMaster': {
 			'p:cSld': {
-				'@_name': 'Test Layout',
 				'p:spTree': {
 					'p:sp': shapes.length === 1 ? shapes[0] : shapes,
 				},
@@ -582,6 +664,47 @@ describe('placeholder re-mapping (GAP-E4 layout switching)', () => {
 		expect(body.text).toBe('Body text'); // content preserved
 		expect(body.x).toBe(Math.round(190500 / EMU_PER_PX));
 		expect(body.y).toBe(Math.round(1524000 / EMU_PER_PX));
+	});
+
+	it('resolves geometry from the master when the layout placeholder omits a:xfrm', () => {
+		const layoutPath = 'ppt/slideLayouts/target.xml';
+		const masterPath = 'ppt/slideMasters/slideMaster1.xml';
+		registerMaster(
+			layoutPath,
+			masterPath,
+			makeMasterXml([
+				{ phType: 'title', xEmu: 500000, yEmu: 250000, cxEmu: 8000000, cyEmu: 1200000 },
+				{ phType: 'body', phIdx: '1', xEmu: 500000, yEmu: 1800000, cxEmu: 8000000, cyEmu: 4000000 },
+			]),
+		);
+
+		const titleEl = makePhElement('t1', 'title', undefined, 10, 10, 100, 50, 'My Title');
+		const newLayout = makeLayoutXml([
+			{ phType: 'title', xEmu: 0, yEmu: 0, cxEmu: 0, cyEmu: 0, noXfrm: true },
+		]);
+
+		const result = remapElementsToNewLayout([titleEl], newLayout, layoutPath);
+
+		const title = result.find((e) => e.id === 't1')!;
+		expect(title.x).toBe(Math.round(500000 / EMU_PER_PX));
+		expect(title.y).toBe(Math.round(250000 / EMU_PER_PX));
+		expect(title.width).toBe(Math.round(8000000 / EMU_PER_PX));
+		expect(title.height).toBe(Math.round(1200000 / EMU_PER_PX));
+	});
+
+	it('leaves the element at its own position when neither layout nor master has geometry', () => {
+		const titleEl = makePhElement('t1', 'title', undefined, 10, 10, 100, 50, 'My Title');
+		const newLayout = makeLayoutXml([
+			{ phType: 'title', xEmu: 0, yEmu: 0, cxEmu: 0, cyEmu: 0, noXfrm: true },
+		]);
+
+		const result = remapElementsToNewLayout([titleEl], newLayout);
+
+		const title = result.find((e) => e.id === 't1')!;
+		expect(title.x).toBe(10);
+		expect(title.y).toBe(10);
+		expect(title.width).toBe(100);
+		expect(title.height).toBe(50);
 	});
 
 	it('keeps placeholder content the new layout has no slot for', () => {

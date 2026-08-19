@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- each method declares its own independent
+   locals; merging unrelated declarations across the many methods here would
+   hurt readability, not help it. */
 import { EMU_PER_PX } from '../../constants';
 import { XmlObject, PptxElement } from '../../types';
 import { cloneXmlObject } from '../../utils/clone-utils';
@@ -7,6 +10,7 @@ import {
 	retargetPlaceholder,
 	setRawXmlTransform,
 } from '../../utils/placeholder-xml';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextEditing';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
@@ -81,11 +85,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	// ── Layout placeholder extraction ───────────────────────────────────
 
 	/**
-	 * Extract all placeholders from a layout's `p:spTree`, returning
-	 * their placeholder info and their transform (position/size in EMU).
+	 * Extract placeholder info + transform (position/size in EMU) for every
+	 * placeholder shape in a `p:spTree`. Shared by layout and master
+	 * extraction so a layout slot that omits `a:xfrm` (common: only the first
+	 * placeholder of a family typically carries one, the rest inherit
+	 * position/size from the matching master placeholder) can be resolved
+	 * against the same shape of the master.
 	 */
-	protected extractLayoutPlaceholders(layoutXml: XmlObject): LayoutPlaceholderSlot[] {
-		const spTree = xmlPath(layoutXml, 'p:sldLayout', 'p:cSld', 'p:spTree');
+	private extractPlaceholderSlotsFromSpTree(
+		spTree: XmlObject | undefined,
+	): LayoutPlaceholderSlot[] {
 		if (!spTree) {
 			return [];
 		}
@@ -129,6 +138,120 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return result;
 	}
 
+	/**
+	 * Resolve a layout's slideMaster path from its `.rels` map. Mirrors
+	 * `PptxHandlerRuntimeLoadPipeline.findMasterPathForLayout` under a
+	 * distinct name: that mixin sits higher in the chain and is not yet
+	 * available at this level, and reusing its exact name here would collide
+	 * across the mixin chain (TypeScript requires consistent member
+	 * visibility for same-named members across the whole prototype chain).
+	 */
+	private resolveMasterPathForNewLayout(layoutPath: string): string | undefined {
+		const layoutRels = this.slideRelsMap.get(layoutPath);
+		if (!layoutRels) {
+			return undefined;
+		}
+		for (const [, target] of layoutRels.entries()) {
+			if (target.includes('slideMaster')) {
+				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
+				if (target.startsWith('..')) {
+					const segments = (layoutDir + target).split('/');
+					const stack: string[] = [];
+					for (const seg of segments) {
+						if (seg === '..') {
+							stack.pop();
+						} else if (seg && seg !== '.') {
+							stack.push(seg);
+						}
+					}
+					return stack.join('/');
+				}
+				return `ppt/${stripParentDirSegments(target)}`;
+			}
+		}
+		return undefined;
+	}
+
+	/**
+	 * Find the master placeholder slot a layout slot inherits its geometry
+	 * from when the layout shape itself carries no `a:xfrm`. Prefers an idx
+	 * match (the common case: layout and master share idx for ordinary
+	 * title/body placeholders); falls back to a type match (with the
+	 * ctrTitle->title / subTitle->body aliasing `placeholderMatches` also
+	 * applies) since idx is not guaranteed to line up for every family.
+	 */
+	private findMasterSlotForLayoutSlot(
+		masterSlots: LayoutPlaceholderSlot[],
+		layoutPhInfo: PlaceholderInfo,
+	): LayoutPlaceholderSlot | undefined {
+		if (layoutPhInfo.idx !== undefined) {
+			const byIdx = masterSlots.find((slot) => slot.phInfo.idx === layoutPhInfo.idx);
+			if (byIdx) {
+				return byIdx;
+			}
+		}
+		if (!layoutPhInfo.type) {
+			return undefined;
+		}
+		const aliasedType =
+			layoutPhInfo.type === 'ctrtitle'
+				? 'title'
+				: layoutPhInfo.type === 'subtitle'
+					? 'body'
+					: layoutPhInfo.type;
+		return masterSlots.find(
+			(slot) => slot.phInfo.type === layoutPhInfo.type || slot.phInfo.type === aliasedType,
+		);
+	}
+
+	/**
+	 * Extract all placeholders from a layout's `p:spTree`, returning their
+	 * placeholder info and transform (position/size in EMU). A slot whose
+	 * layout shape has no `a:xfrm` (inheriting position/size from the master
+	 * instead) resolves its geometry against the matching master placeholder
+	 * rather than reporting an all-zero transform.
+	 */
+	protected extractLayoutPlaceholders(
+		layoutXml: XmlObject,
+		layoutPath?: string,
+	): LayoutPlaceholderSlot[] {
+		const spTree = xmlPath(layoutXml, 'p:sldLayout', 'p:cSld', 'p:spTree');
+		const slots = this.extractPlaceholderSlotsFromSpTree(spTree);
+		if (slots.length === 0 || !layoutPath) {
+			return slots;
+		}
+
+		const needsMasterGeometry = slots.some((slot) => slot.cxEmu <= 0 || slot.cyEmu <= 0);
+		if (!needsMasterGeometry) {
+			return slots;
+		}
+
+		const masterPath = this.resolveMasterPathForNewLayout(layoutPath);
+		const masterXml = masterPath ? this.masterXmlMap.get(masterPath) : undefined;
+		const masterSpTree = xmlPath(masterXml, 'p:sldMaster', 'p:cSld', 'p:spTree');
+		const masterSlots = this.extractPlaceholderSlotsFromSpTree(masterSpTree);
+		if (masterSlots.length === 0) {
+			return slots;
+		}
+
+		return slots.map((slot) => {
+			if (slot.cxEmu > 0 && slot.cyEmu > 0) {
+				return slot;
+			}
+			const masterSlot = this.findMasterSlotForLayoutSlot(masterSlots, slot.phInfo);
+			if (!masterSlot || masterSlot.cxEmu <= 0 || masterSlot.cyEmu <= 0) {
+				return slot;
+			}
+			return {
+				...slot,
+				xEmu: masterSlot.xEmu,
+				yEmu: masterSlot.yEmu,
+				cxEmu: masterSlot.cxEmu,
+				cyEmu: masterSlot.cyEmu,
+			};
+		});
+	}
+
 	// ── Core layout switching logic ─────────────────────────────────────
 
 	/**
@@ -156,7 +279,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// carries it), and keying by family collapsed them onto a single entry,
 		// so every slot but the last became unreachable.
 		const targets: Array<LayoutPlaceholderSlot & { matched: boolean }> =
-			this.extractLayoutPlaceholders(newLayoutXml).map((slot) => ({ ...slot, matched: false }));
+			this.extractLayoutPlaceholders(newLayoutXml, newLayoutPath).map((slot) => ({
+				...slot,
+				matched: false,
+			}));
 
 		const resultElements: PptxElement[] = [];
 
