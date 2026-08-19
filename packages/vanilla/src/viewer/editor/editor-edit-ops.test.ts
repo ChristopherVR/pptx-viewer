@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
+   its own short arrange/act/assert consts. */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -60,11 +62,24 @@ describe('createEditActions formatting', () => {
 		expect(reverted.textStyle.bold).toBeFalsy();
 	});
 
-	it('sets the shape fill colour', () => {
+	it('sets the shape fill colour and forces solid fill mode (shared shapeFillChange)', () => {
 		const { store, actions } = setup();
 		actions.setShapeFill('#abcdef');
-		const el = elementById(store, 'a') as PptxElement & { shapeStyle: { fillColor?: string } };
+		const el = elementById(store, 'a') as PptxElement & {
+			shapeStyle: { fillColor?: string; fillMode?: string };
+		};
 		expect(el.shapeStyle.fillColor).toBe('#abcdef');
+		expect(el.shapeStyle.fillMode).toBe('solid');
+	});
+
+	it('sets the shape outline (stroke) colour without disturbing the fill', () => {
+		const { store, actions } = setup();
+		actions.setShapeStroke('#123456');
+		const el = elementById(store, 'a') as PptxElement & {
+			shapeStyle: { fillColor?: string; strokeColor?: string };
+		};
+		expect(el.shapeStyle.strokeColor).toBe('#123456');
+		expect(el.shapeStyle.fillColor).toBe('#ffffff');
 	});
 
 	it('does nothing when the viewer is not editable', () => {

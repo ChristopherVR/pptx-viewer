@@ -171,6 +171,8 @@ export const translations = {
 	'pptx.ribbon.customColour': 'Benutzerdefinierte Farbe...',
 	'pptx.ribbon.textHighlightColour': 'Texthervorhebungsfarbe',
 	'pptx.ribbon.highlightColourValue': 'Texthervorhebungsfarbe {{color}}',
+	'pptx.ribbon.fillColourValue': 'Füllfarbe {{color}}',
+	'pptx.ribbon.outlineColourValue': 'Umrissfarbe {{color}}',
 	'pptx.ribbon.bulletList': 'Bullet-Liste',
 	'pptx.ribbon.justify': 'Blocksatz',
 	'pptx.home.chooseLayout': 'Wählen Sie Layout',

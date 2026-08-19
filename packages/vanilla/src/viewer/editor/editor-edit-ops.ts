@@ -1,6 +1,15 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per action); merging them isn't a
+   style choice here. */
 import type { PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
-import { createGuide, DEFAULT_INSERT_CHART_KIND, isElementIdInteractive } from 'pptx-viewer-shared';
+import {
+	createGuide,
+	DEFAULT_INSERT_CHART_KIND,
+	isElementIdInteractive,
+	shapeFillChange,
+	shapeOutlineChange,
+} from 'pptx-viewer-shared';
 import type { Guide, InsertChartKind, ShapePresetType } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -173,9 +182,11 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 
 		// Picking a flat colour swatch implies solid fill, so it also clears any
 		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).
-		setShapeFill: (color) =>
-			applyToSelected((el) => patchShapeStyle(el, { fillColor: color, fillMode: 'solid' })),
-		setShapeStroke: (color) => applyToSelected((el) => patchShapeStyle(el, { strokeColor: color })),
+		// The patch itself comes from the shared `shapeFillChange`/`shapeOutlineChange`
+		// decision functions so the two keys can't drift from the other bindings.
+		setShapeFill: (color) => applyToSelected((el) => patchShapeStyle(el, shapeFillChange(color))),
+		setShapeStroke: (color) =>
+			applyToSelected((el) => patchShapeStyle(el, shapeOutlineChange(color))),
 		setShapeStrokeWidth: (width) =>
 			applyToSelected((el) => patchShapeStyle(el, { strokeWidth: Math.max(0, width) })),
 		setShapeStyle: (patch) => applyToSelected((el) => patchShapeStyle(el, patch)),

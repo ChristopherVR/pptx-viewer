@@ -30,6 +30,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
+import { resetSlideLayoutPath } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
@@ -37,6 +38,26 @@ import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
 import { RibbonLayoutGalleryComponent } from './ribbon-layout-gallery.component';
 import { layoutOptionsFrom } from './ribbon-layout-options';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
+
+/**
+ * Home > Reset: re-apply the active slide's own layout, restoring inherited
+ * placeholder geometry and formatting (React/Vue parity via the shared
+ * `resetSlideLayoutPath` decision function). A no-op when the slide records
+ * no layout. Exported as a pure dispatch function (rather than inlined in the
+ * component) so it is directly testable without constructing the component,
+ * whose constructor runs an `effect()` that needs a full Angular
+ * `ChangeDetectionScheduler` this package's TestBed-free unit tests don't
+ * provide (see `action-settings-panel.component.test.ts`).
+ */
+export function performResetSlide(
+	editor: Pick<EditorStateService, 'slides' | 'applyLayout'>,
+	slideIndex: number,
+): void {
+	const path = resetSlideLayoutPath(editor.slides()[slideIndex]);
+	if (path) {
+		void editor.applyLayout(slideIndex, path);
+	}
+}
 
 @Component({
 	selector: 'pptx-ribbon-home-section',
@@ -202,8 +223,9 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 					<button
 						type="button"
 						class="pptx-rb-gb whitespace-nowrap"
+						[disabled]="!canEdit()"
 						[title]="'pptx.sections.resetSlideTitle' | translate"
-						(click)="resetSlide.emit()"
+						(click)="onResetSlide()"
 					>
 						<svg lucideRotateCcw class="h-4 w-4"></svg> {{ 'pptx.animations.reset' | translate }}
 					</button>
@@ -315,6 +337,7 @@ export class RibbonHomeSectionComponent {
 	readonly openTemplateGallery = output<void>();
 	/** Emitted with the layout the user picked, after it has been applied. */
 	readonly applyLayout = output<string>();
+	/** Emitted after Home > Reset has re-applied the slide's layout. */
 	readonly resetSlide = output<void>();
 
 	/**
@@ -324,6 +347,15 @@ export class RibbonHomeSectionComponent {
 	protected onApplyLayout(layoutPath: string): void {
 		void this.editor.applyLayout(this.slideIndex(), layoutPath);
 		this.applyLayout.emit(layoutPath);
+	}
+
+	/**
+	 * The button used to `resetSlide.emit()` to nobody, so clicking it did
+	 * nothing; {@link performResetSlide} now actually performs the reset.
+	 */
+	protected onResetSlide(): void {
+		performResetSlide(this.editor, this.slideIndex());
+		this.resetSlide.emit();
 	}
 
 	protected copy(): void {

@@ -1,6 +1,9 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per action, several separated by
+   `await`); merging them isn't a style choice here. */
 import { cloneElement } from 'pptx-viewer-core';
 import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import { partitionTemplateElements } from 'pptx-viewer-shared';
+import { partitionTemplateElements, resetSlideLayoutPath } from 'pptx-viewer-shared';
 import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-shared';
 
 import {
@@ -162,7 +165,7 @@ export class EditorSlidesController {
 	 * index, or null when the slide has no known layout path.
 	 */
 	async resetSlide(): Promise<number | null> {
-		const path = this.#editor.slides[this.#editor.currentSlideIndex]?.layoutPath;
+		const path = resetSlideLayoutPath(this.#editor.slides[this.#editor.currentSlideIndex]);
 		if (!path) {
 			return null;
 		}

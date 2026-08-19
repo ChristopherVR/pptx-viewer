@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per action, each computed from the
+   previous statement's result); merging them isn't a style choice here. */
 import { cloneElement, cloneSlide } from 'pptx-viewer-core';
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import {
@@ -5,6 +8,7 @@ import {
 	createBlankSlide,
 	makeSlideId,
 	partitionTemplateElements,
+	resetSlideLayoutPath,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
@@ -237,10 +241,15 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 		resetSlide() {
 			const state = store.get();
 			const target = state.slides[state.currentSlide];
-			if (!state.editable || !target?.layoutPath) {
+			// The layout-path decision itself comes from the shared
+			// `resetSlideLayoutPath` function (React/Vue/Angular parity); this
+			// keeps the extra `editable` gate the ribbon button's own disabled
+			// state already relies on.
+			const path = resetSlideLayoutPath(target);
+			if (!state.editable || !target || !path) {
 				return;
 			}
-			resolveLayout(state.currentSlide, target.layoutPath, target.id);
+			resolveLayout(state.currentSlide, path, target.id);
 		},
 	};
 }

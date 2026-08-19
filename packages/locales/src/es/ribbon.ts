@@ -171,6 +171,8 @@ export const translations = {
 	'pptx.ribbon.customColour': 'Color personalizado...',
 	'pptx.ribbon.textHighlightColour': 'Color de resaltado del texto',
 	'pptx.ribbon.highlightColourValue': 'Color destacado {{color}}',
+	'pptx.ribbon.fillColourValue': 'Color de relleno {{color}}',
+	'pptx.ribbon.outlineColourValue': 'Color de contorno {{color}}',
 	'pptx.ribbon.bulletList': 'lista de viñetas',
 	'pptx.ribbon.justify': 'Justificar',
 	'pptx.home.chooseLayout': 'Elige el diseño',

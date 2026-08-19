@@ -172,6 +172,8 @@ export const translations = {
 	'pptx.ribbon.customColour': 'Couleur personnalisée...',
 	'pptx.ribbon.textHighlightColour': 'Couleur de surbrillance du texte',
 	'pptx.ribbon.highlightColourValue': 'Couleur de surbrillance {{color}}',
+	'pptx.ribbon.fillColourValue': 'Couleur de remplissage {{color}}',
+	'pptx.ribbon.outlineColourValue': 'Couleur de contour {{color}}',
 	'pptx.ribbon.bulletList': 'Liste à puces',
 	'pptx.ribbon.justify': 'Justifier',
 	'pptx.home.chooseLayout': 'Choisir la mise en page',

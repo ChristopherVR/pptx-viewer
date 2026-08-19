@@ -2002,6 +2002,8 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ribbon.customColour': 'Custom colour...',
 	'pptx.ribbon.textHighlightColour': 'Text highlight colour',
 	'pptx.ribbon.highlightColourValue': 'Highlight colour {{color}}',
+	'pptx.ribbon.fillColourValue': 'Fill colour {{color}}',
+	'pptx.ribbon.outlineColourValue': 'Outline colour {{color}}',
 	'pptx.ribbon.bulletList': 'Bullet list',
 	'pptx.ribbon.justify': 'Justify',
 	'pptx.toolbar.findAndReplace': 'Find and replace',

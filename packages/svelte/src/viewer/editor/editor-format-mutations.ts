@@ -1,6 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { fontSizeOf, shapeStylePatch, textStylePatch } from 'pptx-viewer-shared';
+import {
+	fontSizeOf,
+	shapeFillChange,
+	shapeOutlineChange,
+	shapeStylePatch,
+	textStylePatch,
+} from 'pptx-viewer-shared';
 
 /**
  * Pure patch builders for the formatting toolbar / inspector.
@@ -21,8 +27,8 @@ import { fontSizeOf, shapeStylePatch, textStylePatch } from 'pptx-viewer-shared'
  */
 
 /** Smallest / largest font size (pt) the toolbar will set. */
-const MIN_FONT = 1;
-const MAX_FONT = 400;
+const MIN_FONT = 1,
+	MAX_FONT = 400;
 
 function clampFont(size: number): number {
 	return Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(size)));
@@ -72,16 +78,16 @@ export function setFillColorPatch(el: PptxElement, color: string): Partial<PptxE
  * Set the shape fill colour AND force `fillMode` back to `'solid'`. Picking a
  * flat colour swatch implies solid fill, so it also clears any active
  * gradient (the renderer prefers `fillMode === 'gradient'` over `fillColor`
- * when both are present); mirrors the vanilla binding's `setShapeFill`.
+ * when both are present); the patch itself comes from the shared
+ * `shapeFillChange` decision function (React/Vue/Angular/vanilla parity).
  */
 export function setSolidFillPatch(el: PptxElement, color: string): Partial<PptxElement> {
-	const base = hasShapeProperties(el) ? (el.shapeStyle ?? {}) : {};
-	return { shapeStyle: { ...base, fillColor: color, fillMode: 'solid' } } as Partial<PptxElement>;
+	return shapeStylePatch(el, shapeFillChange(color));
 }
 
-/** Set the shape stroke (outline) colour. */
+/** Set the shape stroke (outline) colour, via the shared decision function. */
 export function setStrokeColorPatch(el: PptxElement, color: string): Partial<PptxElement> {
-	return shapeStylePatch(el, { strokeColor: color });
+	return shapeStylePatch(el, shapeOutlineChange(color));
 }
 
 /** Read the shape stroke width (defaults to 1 when unset). */

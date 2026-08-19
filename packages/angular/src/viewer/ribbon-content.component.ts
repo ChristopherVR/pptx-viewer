@@ -96,7 +96,11 @@ import type { RibbonTab } from './ribbon-types';
 					(openTemplateGallery)="openTemplateGallery.emit()"
 				/>
 				<span class="pptx-rb-sep"></span>
-				<pptx-ribbon-drawing-group [canEdit]="canEdit()" [slideIndex]="slideIndex()" />
+				<pptx-ribbon-drawing-group
+					[canEdit]="canEdit()"
+					[slideIndex]="slideIndex()"
+					[selectedElement]="selectedElement()"
+				/>
 				<span class="pptx-rb-sep"></span>
 				<!--
 					React parity (Toolbar.tsx: sArr = sHome || toolbarSection === 'arrange'):

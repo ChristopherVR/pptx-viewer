@@ -1,6 +1,8 @@
 /**
  * ribbon-drawing-group.component.ts: Drawing group for the Home tab ribbon.
- * Provides shape insertion, layer arrangement, and shape formatting placeholders.
+ * Provides shape insertion, layer arrangement, and shape Fill/Outline colour
+ * pickers (Shape Effects stays a disabled placeholder: it is genuinely
+ * unimplemented in every binding).
  *
  * The Arrange menu also carries Group / Ungroup, which is where PowerPoint
  * puts them (Home > Drawing > Arrange) and where the other bindings expose
@@ -13,25 +15,83 @@
  * The picker lists the first 12 entries of the shared preset catalogue
  * ({@link SHAPE_PRESET_DEFS}), so the geometry ids are valid OOXML
  * `a:prstGeom` values shared with every binding.
+ *
+ * Fill/Outline commit through `pptx-viewer-shared`'s `shapeFillChange` /
+ * `shapeOutlineChange` decision functions (the same ones React's and Vue's
+ * DrawingGroup use), so the two keys written (`fillColor`+`fillMode` /
+ * `strokeColor`) can't drift from the other bindings a third time. The
+ * buttons used to be `disabled` placeholders that did nothing when clicked.
  */
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { LucideChevronDown } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
+import { hasShapeProperties } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 
-import { SHAPE_PRESET_DEFS } from '../internal/shared';
+import {
+	RIBBON_SHAPE_SWATCHES,
+	SHAPE_PRESET_DEFS,
+	shapeFillChange,
+	shapeOutlineChange,
+} from '../internal/shared';
 import type { ShapePresetDef } from '../internal/shared';
 import { newPresetShapeElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
+import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
 
-/** The quick "top shapes" row shared with React's toolbar (first 12 presets). */
-const TOP_SHAPES: readonly ShapePresetDef[] = SHAPE_PRESET_DEFS.slice(0, 12);
+/**
+ * The quick "top shapes" row shared with React's toolbar (first 12 presets),
+ * and the fallbacks the Fill/Outline swatch dots show when the selection has
+ * none set (declared together: oxlint's `one-var` wants one `const` statement
+ * per top-level scope).
+ */
+const TOP_SHAPES: readonly ShapePresetDef[] = SHAPE_PRESET_DEFS.slice(0, 12),
+	DEFAULT_FILL_COLOR = '#ffffff',
+	DEFAULT_OUTLINE_COLOR = '#000000';
+
+/** Fill/Outline only apply to an editable, selected shape-like element. */
+export function canFormatShapeSelection(canEdit: boolean, element: PptxElement | null): boolean {
+	return canEdit && element !== null && hasShapeProperties(element);
+}
+
+/** The colour the Fill swatch dot shows for the current selection. */
+export function fillColorOf(element: PptxElement | null): string {
+	if (element === null || !hasShapeProperties(element)) {
+		return DEFAULT_FILL_COLOR;
+	}
+	return element.shapeStyle?.fillColor ?? DEFAULT_FILL_COLOR;
+}
+
+/** The colour the Outline swatch dot shows for the current selection. */
+export function outlineColorOf(element: PptxElement | null): string {
+	if (element === null || !hasShapeProperties(element)) {
+		return DEFAULT_OUTLINE_COLOR;
+	}
+	return element.shapeStyle?.strokeColor ?? DEFAULT_OUTLINE_COLOR;
+}
+
+/**
+ * The element patch a Fill/Outline swatch pick commits, or `undefined` when
+ * the selection has no shape style to patch. Merges into the EXISTING
+ * `shapeStyle` (not a replace) so picking a fill colour never clears an
+ * already-set outline, and vice versa.
+ */
+export function shapeStylePatch(
+	element: PptxElement | null,
+	style: Partial<ShapeStyle>,
+): Partial<PptxElement> | undefined {
+	if (element === null || !hasShapeProperties(element)) {
+		return undefined;
+	}
+	return { shapeStyle: { ...element.shapeStyle, ...style } } as Partial<PptxElement>;
+}
 
 @Component({
 	selector: 'pptx-ribbon-drawing-group',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe, LucideChevronDown],
+	imports: [TranslatePipe, LucideChevronDown, RibbonColorPopoverComponent],
 	template: `
 		<!-- Shapes -->
 		<div class="flex flex-col items-center gap-0.5">
@@ -129,16 +189,36 @@ const TOP_SHAPES: readonly ShapePresetDef[] = SHAPE_PRESET_DEFS.slice(0, 12);
 			</span>
 		</div>
 		<span class="pptx-rb-sep"></span>
-		<!-- Shape formatting (placeholders) -->
+		<!-- Shape formatting -->
 		<div class="flex flex-col items-center gap-0.5">
-			<div class="pptx-rb-grp">
-				<button type="button" class="pptx-rb-gb" disabled>
+			<div class="flex items-center gap-1">
+				<pptx-ribbon-color-popover
+					[current]="fillColor()"
+					[presets]="swatches"
+					[disabled]="!canFormatShape()"
+					titleKey="pptx.drawing.shapeFill"
+					swatchAriaKey="pptx.ribbon.fillColourValue"
+					(pick)="onFill($event)"
+				>
 					{{ 'pptx.drawing.shapeFill' | translate }}
-				</button>
-				<button type="button" class="pptx-rb-gb" disabled>
+				</pptx-ribbon-color-popover>
+				<pptx-ribbon-color-popover
+					[current]="outlineColor()"
+					[presets]="swatches"
+					[disabled]="!canFormatShape()"
+					titleKey="pptx.drawing.shapeOutline"
+					swatchAriaKey="pptx.ribbon.outlineColourValue"
+					(pick)="onOutline($event)"
+				>
 					{{ 'pptx.drawing.shapeOutline' | translate }}
-				</button>
-				<button type="button" class="pptx-rb-gb" disabled>
+				</pptx-ribbon-color-popover>
+				<!-- Shape Effects: genuinely unimplemented (React/Vue parity), left as a placeholder. -->
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					disabled
+					[title]="'pptx.drawing.shapeEffectsUnavailable' | translate"
+				>
 					{{ 'pptx.drawing.shapeEffectsUnavailable' | translate }}
 				</button>
 			</div>
@@ -154,10 +234,38 @@ export class RibbonDrawingGroupComponent {
 	readonly canEdit = input<boolean>(false);
 	/** Index of the active slide (insertion target). */
 	readonly slideIndex = input<number>(0);
+	readonly selectedElement = input<PptxElement | null>(null);
 
 	protected readonly shapes = TOP_SHAPES;
 	protected readonly shapesOpen = signal(false);
 	protected readonly arrangeOpen = signal(false);
+	protected readonly swatches = RIBBON_SHAPE_SWATCHES;
+
+	protected readonly canFormatShape = computed(() =>
+		canFormatShapeSelection(this.canEdit(), this.selectedElement()),
+	);
+	protected readonly fillColor = computed(() => fillColorOf(this.selectedElement()));
+	protected readonly outlineColor = computed(() => outlineColorOf(this.selectedElement()));
+
+	/** Commit a picked Fill swatch through the shared decision function. */
+	protected onFill(color: string): void {
+		this.patchShapeStyle(shapeFillChange(color));
+	}
+
+	/** Commit a picked Outline swatch through the shared decision function. */
+	protected onOutline(color: string): void {
+		this.patchShapeStyle(shapeOutlineChange(color));
+	}
+
+	/** Merge a Fill/Outline patch into the selection's shape style, if it has one. */
+	private patchShapeStyle(style: Partial<ShapeStyle>): void {
+		const el = this.selectedElement(),
+			patch = shapeStylePatch(el, style);
+		if (!this.canFormatShape() || el === null || !patch) {
+			return;
+		}
+		this.editor.updateElement(this.slideIndex(), el.id, patch);
+	}
 
 	/** Insert the picked preset immediately (selects it and records history). */
 	protected onShapeSelect(shape: ShapePresetDef): void {
