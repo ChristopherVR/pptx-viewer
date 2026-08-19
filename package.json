@@ -93,7 +93,7 @@
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
 		"rollup": "^4.62.3",
-		"rollup-plugin-dts": "^6.4.1",
+		"rollup-plugin-dts": "^6.5.1",
 		"typescript": "^6.0.3",
 		"unrun": "^0.3.1",
 		"y-protocols": "^1.0.7",
