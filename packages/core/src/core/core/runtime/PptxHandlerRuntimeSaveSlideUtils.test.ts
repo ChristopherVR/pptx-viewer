@@ -10,6 +10,8 @@
  *   - createLineSpacingXmlFromMultiplier (line spacing XML)
  *   - toPresentationTarget / toSlidePathFromTarget / toSlideRelsPath
  */
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own unrelated locals; merging across them would hurt readability. */
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject, TextStyle } from '../../types';
@@ -67,11 +69,6 @@ function findSourceSlidePath(
 		requestedSourcePath.startsWith('ppt/slides/slide')
 	) {
 		return requestedSourcePath;
-	}
-	for (const slidePath of slideMap.keys()) {
-		if (slidePath.startsWith('ppt/slides/slide')) {
-			return slidePath;
-		}
 	}
 	return undefined;
 }
@@ -221,13 +218,19 @@ describe('findSourceSlidePath', () => {
 		expect(findSourceSlidePath('ppt/slides/slide2.xml', slideMap)).toBe('ppt/slides/slide2.xml');
 	});
 
-	it('should fall back to first slide path when requested is not found', () => {
+	it('should return undefined when the requested path is not found, not fall back to another slide', () => {
+		// A genuinely new (blank) slide has no source: falling back to an
+		// arbitrary slide would silently clone that slide's content and
+		// relationships (media, charts, notes) onto it.
 		const slideMap = new Map([['ppt/slides/slide1.xml', {}]]);
-		expect(findSourceSlidePath('ppt/slides/slide99.xml', slideMap)).toBe('ppt/slides/slide1.xml');
+		expect(findSourceSlidePath('ppt/slides/slide99.xml', slideMap)).toBeUndefined();
 	});
 
-	it('should return undefined when map has no slide paths', () => {
-		const slideMap = new Map([['ppt/noteslides/notesSlide1.xml', {}]]);
+	it('should return undefined when no source path is requested', () => {
+		const slideMap = new Map([
+			['ppt/noteslides/notesSlide1.xml', {}],
+			['ppt/slides/slide1.xml', {}],
+		]);
 		expect(findSourceSlidePath(undefined, slideMap)).toBeUndefined();
 	});
 
@@ -236,9 +239,7 @@ describe('findSourceSlidePath', () => {
 			['ppt/slideLayouts/slideLayout1.xml', {}],
 			['ppt/slides/slide1.xml', {}],
 		]);
-		expect(findSourceSlidePath('ppt/slideLayouts/slideLayout1.xml', slideMap)).toBe(
-			'ppt/slides/slide1.xml',
-		);
+		expect(findSourceSlidePath('ppt/slideLayouts/slideLayout1.xml', slideMap)).toBeUndefined();
 	});
 });
 

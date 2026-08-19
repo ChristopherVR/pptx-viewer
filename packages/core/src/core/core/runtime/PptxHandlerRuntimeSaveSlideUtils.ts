@@ -57,12 +57,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return requestedSourcePath;
 		}
 
-		for (const slidePath of this.slideMap.keys()) {
-			if (slidePath.startsWith('ppt/slides/slide')) {
-				return slidePath;
-			}
-		}
-
+		// No explicit source: this is a genuinely new (blank) slide, not a copy
+		// of an existing one. Falling back to an arbitrary slide here would
+		// silently clone that slide's content and relationships (media, charts,
+		// notes) onto a slide the caller never asked to copy.
 		return undefined;
 	}
 
@@ -108,18 +106,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!xmlObj['p:sld']) {
 			xmlObj['p:sld'] = {};
 		}
+		// oxlint-disable-next-line eslint/one-var -- preceding `if` blocks merging
 		const pSld = xmlObj['p:sld'] as XmlObject;
 
 		if (!pSld['p:cSld']) {
 			pSld['p:cSld'] = {};
 		}
+		// oxlint-disable-next-line eslint/one-var -- preceding `if` blocks merging
 		const cSld = pSld['p:cSld'] as XmlObject;
 
 		if (!cSld['p:spTree']) {
-			const emptySlide = this.createEmptySlideXml();
-			const emptyTree = (
-				(emptySlide['p:sld'] as XmlObject | undefined)?.['p:cSld'] as XmlObject | undefined
-			)?.['p:spTree'] as XmlObject | undefined;
+			const emptySlide = this.createEmptySlideXml(),
+				emptyTree = (
+					(emptySlide['p:sld'] as XmlObject | undefined)?.['p:cSld'] as XmlObject | undefined
+				)?.['p:spTree'] as XmlObject | undefined;
 			if (emptyTree) {
 				cSld['p:spTree'] = emptyTree;
 			}
