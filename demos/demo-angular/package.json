@@ -11,7 +11,7 @@
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.12",
 		"@angular/common": "^22.1.0",
-		"@angular/core": "^22.1.0",
+		"@angular/core": "^22.1.2",
 		"@angular/platform-browser": "^22.1.0",
 		"@ngx-translate/core": "^18.0.0",
 		"ai": "^7.0.44",
@@ -31,6 +31,6 @@
 		"@angular/compiler": "^22.1.0",
 		"@angular/compiler-cli": "^22.1.0",
 		"typescript": "6.0.3",
-		"vite": "^8.2.0"
+		"vite": "^8.2.1"
 	}
 }

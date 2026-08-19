@@ -11,7 +11,7 @@
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.12",
 		"@ai-sdk/svelte": "^5.0.31",
-		"@lucide/svelte": "^1.28.0",
+		"@lucide/svelte": "^1.31.0",
 		"ai": "^7.0.44",
 		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
@@ -20,7 +20,7 @@
 		"pptx-viewer-locales": "workspace:*",
 		"svelte": "^5.56.6",
 		"y-webrtc": "^10.3.0",
-		"y-websocket": "^3.0.0",
+		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
 	},
 	"devDependencies": {
@@ -29,6 +29,6 @@
 		"@types/node": "^26.1.1",
 		"tailwindcss": "^4.3.3",
 		"typescript": "6.0.3",
-		"vite": "^8.2.0"
+		"vite": "^8.2.1"
 	}
 }
