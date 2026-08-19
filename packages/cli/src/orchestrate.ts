@@ -1,0 +1,264 @@
+/* oxlint-disable eslint/one-var -- pre-existing throughout this file; independent concerns, not one statement */
+import { existsSync } from 'node:fs';
+
+import { parseArgs } from './args';
+import type { ParsedArgs } from './args';
+import { bold, cyan, dim, gray, green, red, yellow } from './colors';
+import { checkCompat } from './compat';
+import { detectPackageManager, installCommand } from './package-manager';
+import { confirm, input, multiSelect, selectOption } from './prompt';
+import { assertSingleFramework, findTargetsByIds, mergePackages, parseTargetIds } from './resolve';
+import { runCommand } from './run-command';
+import { sanitizeProjectName, scaffoldProject } from './scaffold';
+import { TARGETS } from './targets';
+import type { Target } from './targets';
+
+export function printBanner(): void {
+	console.log(`\n${bold(cyan('pptx-viewer'))} ${dim('· interactive installer')}`);
+}
+
+export function printUsage(): void {
+	printBanner();
+	console.log(`
+${bold('Usage:')} npx @christophervr/pptx-viewer [options]
+
+${bold('Options:')}
+  ${cyan('--target <ids>')}  Skip the picker; comma-separated, any of: ${TARGETS.map((t) => t.id).join(', ')}
+                   (the UI bindings - react, vue, angular, svelte, vanilla - are mutually exclusive; pick at most one)
+  ${cyan('--scaffold')}      Bootstrap a brand-new starter project instead of installing here
+  ${cyan('--dir <name>')}    Project directory name for --scaffold
+  ${cyan('--pm <manager>')}  Package manager to use: bun, pnpm, yarn, npm (default: auto-detected)
+  ${cyan('--yes, -y')}       Skip confirmation prompts
+  ${cyan('--help, -h')}      Show this help
+
+${bold('Examples:')}
+  ${gray('npx @christophervr/pptx-viewer')}
+  ${gray('npx @christophervr/pptx-viewer --target react,mcp --yes')}
+  ${gray('npx @christophervr/pptx-viewer --target react --scaffold --dir my-app --yes')}
+`);
+}
+
+export async function resolveTargets(requested: string | undefined): Promise<Target[]> {
+	if (requested) {
+		const targets = findTargetsByIds(parseTargetIds(requested));
+		console.log(`${green('✔')} ${targets.map((t) => t.label).join(', ')}`);
+		return targets;
+	}
+	if (!process.stdin.isTTY) {
+		throw new Error('Not running in a terminal: pass --target explicitly (see --help).');
+	}
+	return multiSelect(
+		'What are you building with pptx-viewer? (you can pick more than one)',
+		TARGETS,
+	);
+}
+
+/** Ask the user to confirm past a compatibility warning; non-interactively, just warn and proceed. */
+export async function confirmCompat(cwd: string, targets: Target[]): Promise<boolean> {
+	for (const target of targets) {
+		const result = checkCompat(cwd, target);
+		if (result.compatible) {
+			continue;
+		}
+		console.log(`\n${yellow('Warning:')} ${result.message}`);
+		if (process.stdin.isTTY) {
+			const proceed = await confirm('Continue anyway?');
+			if (!proceed) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+export interface ScaffoldChoice {
+	useScaffold: boolean;
+	scaffoldTarget?: Target;
+}
+
+/** Decide install-vs-scaffold. Scaffolding is only offered when exactly one scaffoldable target is picked. */
+export async function resolveScaffoldChoice(
+	installTargets: Target[],
+	args: ParsedArgs,
+): Promise<ScaffoldChoice> {
+	// At most one scaffoldable (UI binding) target can reach here:
+	// assertSingleFramework already rejected picking more than one in runCli().
+	const scaffoldable = installTargets.filter((t) => t.scaffold);
+
+	if (args.scaffold) {
+		if (scaffoldable.length !== 1) {
+			const scaffoldIds = TARGETS.filter((t) => t.scaffold)
+				.map((t) => t.id)
+				.join(', ');
+			throw new Error(`--scaffold requires exactly one of: ${scaffoldIds} to be selected.`);
+		}
+		return { useScaffold: true, scaffoldTarget: scaffoldable[0] };
+	}
+
+	if (scaffoldable.length === 1 && process.stdin.isTTY) {
+		const choice = await selectOption('Install into the current project, or scaffold a new one?', [
+			{ label: 'Install here', description: 'Add the package(s) to the project in this directory' },
+			{
+				label: 'Scaffold a new project',
+				description: 'Bootstrap a brand-new starter app in its own folder',
+			},
+		]);
+		return {
+			useScaffold: choice.label === 'Scaffold a new project',
+			scaffoldTarget: scaffoldable[0],
+		};
+	}
+
+	return { useScaffold: false };
+}
+
+export async function runScaffoldMode(
+	target: Target,
+	args: ParsedArgs,
+	configTargets: Target[],
+	cwd: string,
+): Promise<void> {
+	const recipe = target.scaffold;
+	if (!recipe) {
+		throw new Error(`${target.label} has no scaffold recipe.`);
+	}
+
+	// Run the pre-flight check (e.g. Node.js version) before showing any prompts
+	// so the user sees the real reason for failure immediately, without first
+	// having to enter a project name and confirm.
+	recipe.preflight?.();
+
+	// Prompt for optional feature groups (e.g. real-time collaboration).
+	// In non-interactive mode (--yes or piped stdin) each group is included
+	// according to its defaultInclude setting (default: true).
+	const optionalPkgs: string[] = [];
+	if (recipe.optionalExtras) {
+		for (const extra of recipe.optionalExtras) {
+			const defaultChoice = extra.defaultInclude !== false;
+			const include =
+				args.yes || !process.stdin.isTTY ? defaultChoice : await confirm(extra.prompt);
+			if (include) {
+				optionalPkgs.push(...extra.packages);
+			}
+		}
+	}
+	const effectiveRecipe =
+		optionalPkgs.length > 0
+			? { ...recipe, extraPackages: [...recipe.extraPackages, ...optionalPkgs] }
+			: recipe;
+
+	const defaultName = `pptx-${target.id}-app`;
+	const rawName =
+		args.dir ??
+		(process.stdin.isTTY ? await input('Project directory name', defaultName) : defaultName);
+	const projectName = sanitizeProjectName(rawName);
+	const pm = args.pm ?? detectPackageManager(cwd);
+
+	console.log(
+		`\n${bold('About to scaffold')} "${cyan(projectName)}" with ${recipe.command} (${target.label}), then install with ${pm}.\n`,
+	);
+	if (!args.yes && process.stdin.isTTY) {
+		const proceed = await confirm('Continue?');
+		if (!proceed) {
+			console.log(`\n${dim('Skipped.')}`);
+			return;
+		}
+	}
+
+	const result = await scaffoldProject(effectiveRecipe, projectName, pm, cwd);
+	if (!result.patchedFile) {
+		console.log(
+			`\n${yellow('Scaffolded the project, but could not find an entry file to wire up automatically.')} ` +
+				`See the quick-start snippet below and add it yourself.`,
+		);
+	}
+
+	for (const configTarget of configTargets) {
+		console.log(`\n${configTarget.nextSteps}\n`);
+	}
+
+	// Start the dev server automatically, mirroring what `create-vite` does
+	// after a successful scaffold.
+	console.log(`\n${green('✔')} ${bold('Done!')} Starting dev server...\n`);
+	const projectDir = result.projectDir;
+	const devExit = await runCommand(pm, ['run', 'dev'], projectDir);
+	if (devExit !== 0) {
+		// Dev server exited (user Ctrl-C'd, or error); print manual instructions as fallback.
+		console.log(`\n  ${cyan(`cd ${projectName}`)}\n  ${cyan(`${pm} run dev`)}\n`);
+	}
+}
+
+export async function runInstallMode(
+	installTargets: Target[],
+	configTargets: Target[],
+	args: ParsedArgs,
+	cwd: string,
+): Promise<void> {
+	if (installTargets.length > 0) {
+		if (!existsSync(`${cwd}/package.json`)) {
+			throw new Error(
+				`No package.json found in ${cwd}. Run "npm init -y" first, then re-run this command.`,
+			);
+		}
+
+		const proceedPastCompat = await confirmCompat(cwd, installTargets);
+		if (!proceedPastCompat) {
+			console.log(`\n${red('Aborted.')}`);
+			return;
+		}
+
+		const packages = mergePackages(installTargets);
+		const pm = args.pm ?? detectPackageManager(cwd);
+		const [command, cmdArgs] = installCommand(pm, packages);
+		console.log(`\n${bold('About to run:')} ${cyan(`${command} ${cmdArgs.join(' ')}`)}\n`);
+
+		if (!args.yes && process.stdin.isTTY) {
+			const proceed = await confirm('Install now?');
+			if (!proceed) {
+				console.log(
+					`\n${dim('Skipped.')} Run this yourself when ready:\n  ${cyan(`${command} ${cmdArgs.join(' ')}`)}\n`,
+				);
+				return;
+			}
+		}
+
+		const exitCode = await runCommand(command, cmdArgs, cwd);
+		if (exitCode !== 0) {
+			throw new Error(`${command} exited with code ${exitCode}`);
+		}
+
+		console.log(`\n${green('✔')} ${bold('Done.')} Next steps:`);
+		for (const target of installTargets) {
+			console.log(`\n${target.nextSteps}\n`);
+		}
+	}
+
+	for (const target of configTargets) {
+		console.log(`\n${target.nextSteps}\n`);
+	}
+}
+
+/** The interactive installer's whole flow: parse argv, pick targets, then install or scaffold. */
+export async function runCli(): Promise<void> {
+	const args = parseArgs(process.argv.slice(2));
+	if (args.help) {
+		printUsage();
+		return;
+	}
+
+	printBanner();
+	const targets = await resolveTargets(args.target);
+	assertSingleFramework(targets);
+
+	const installTargets = targets.filter((t) => t.mode === 'install');
+	const configTargets = targets.filter((t) => t.mode === 'print-config');
+	const cwd = process.cwd();
+
+	const { useScaffold, scaffoldTarget } = await resolveScaffoldChoice(installTargets, args);
+	if (useScaffold && scaffoldTarget) {
+		await runScaffoldMode(scaffoldTarget, args, configTargets, cwd);
+		return;
+	}
+
+	await runInstallMode(installTargets, configTargets, args, cwd);
+}

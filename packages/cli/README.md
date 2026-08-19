@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/%40christophervr%2Fpptx-viewer.svg)](https://www.npmjs.com/package/@christophervr/pptx-viewer)
 [![license](https://img.shields.io/npm/l/%40christophervr%2Fpptx-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
-> The interactive installer for the [pptx-viewer](https://github.com/ChristopherVR/pptx-viewer) family: pick what you're building, and it installs the right package(s) plus their required companions, or bootstraps a brand-new starter app for you.
+> The interactive installer for the [pptx-viewer](https://github.com/ChristopherVR/pptx-viewer) family: pick what you're building, and it installs the right package(s) plus their required companions, or bootstraps a brand-new starter app for you. Installed as a dependency and imported (not run via `npx`), it doubles as a drop-in for [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer) - see [It's also a drop-in for `pptx-react-viewer`](#its-also-a-drop-in-for-pptx-react-viewer).
 
 ![The interactive installer selecting React and MCP, then scaffolding a starter app](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/cli-installer.gif)
 
@@ -70,6 +70,31 @@ npx @christophervr/pptx-viewer --pm pnpm                           # force a pac
 | `--pm <manager>` | `bun`, `pnpm`, `yarn`, or `npm`. Skips auto-detection.                                            |
 | `--yes`, `-y`    | Skip confirmation prompts (including the compatibility warning).                                  |
 | `--help`, `-h`   | Print usage.                                                                                      |
+
+## It's also a drop-in for `pptx-react-viewer`
+
+`@christophervr/pptx-viewer` is the name most people search or guess first, so as well as being the `npx` installer above, **the package itself, imported as a library, re-exports [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer) directly.** React is this project's primary/flagship binding, so `npm install @christophervr/pptx-viewer` and importing from it behaves exactly like installing `pptx-react-viewer` on its own:
+
+```bash
+npm install @christophervr/pptx-viewer
+```
+
+```tsx
+import { PowerPointViewer } from '@christophervr/pptx-viewer';
+import 'pptx-react-viewer/styles.css'; // styles ship under the real package name
+
+<PowerPointViewer content={arrayBuffer} canEdit />;
+```
+
+Everything [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer) exports (`PowerPointViewer`, `Toolbar`, `SlideCanvas`, theme helpers, and the rest) is re-exported from the package root here too, so the two names are interchangeable as a dependency. What differs is what you get from each command:
+
+| You run/import                                 | What you get                                                                                       |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `npx @christophervr/pptx-viewer`               | The interactive installer/scaffolder (this page's main usage) - no code runs, nothing is imported. |
+| `import ... from '@christophervr/pptx-viewer'` | The React viewer component, re-exported from `pptx-react-viewer`.                                  |
+| `import ... from 'pptx-react-viewer'` directly | The exact same component, one dependency lighter (no installer code pulled in).                    |
+
+Reach for the `pptx-react-viewer` name directly in new React projects; this package's re-export exists so nothing breaks if you (or your editor's autocomplete) reach for `@christophervr/pptx-viewer` instead. If you're building for Vue, Angular, Svelte, or vanilla JS, use the matching package from the table below directly - the re-export here is React-only.
 
 ## What it installs
 
