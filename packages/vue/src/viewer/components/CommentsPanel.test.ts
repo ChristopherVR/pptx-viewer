@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/one-var -- independent per-test locals, not intended as one statement */
 import { mount } from '@vue/test-utils';
 import type { PptxComment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
@@ -85,5 +86,17 @@ describe('commentsPanel', () => {
 		const time = wrapper.find('time');
 		expect(time.exists()).toBeTruthy();
 		expect(time.text().length).toBeGreaterThan(0);
+	});
+
+	it('renders its own header by default, but suppresses it when embedded', () => {
+		const standalone = mountPanel([]);
+		expect(standalone.find('.pptx-comments-panel__header').exists()).toBeTruthy();
+
+		const embedded = mount(CommentsPanel, {
+			props: { comments: [], authorName: 'You', embedded: true },
+		});
+		expect(embedded.find('.pptx-comments-panel__header').exists()).toBeFalsy();
+		// The rest of the panel (compose form) still renders.
+		expect(embedded.find('[data-testid="add-comment"]').exists()).toBeTruthy();
 	});
 });

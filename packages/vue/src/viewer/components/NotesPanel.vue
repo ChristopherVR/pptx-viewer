@@ -46,6 +46,14 @@ const props = defineProps<{
 	 * Notes button and the header chevron stay in sync.
 	 */
 	expanded?: boolean;
+	/**
+	 * True when hosted inside a chrome that already renders its own title +
+	 * close button (the mobile `MobileSheet`). Suppresses the internal
+	 * collapsible header, since the sheet is already fully open and provides
+	 * its own close affordance - avoids a mismatched "Notes" / "Speaker Notes"
+	 * double header on mobile.
+	 */
+	embedded?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -98,6 +106,7 @@ function toggle(): void {
 		:data-collapsed="collapsed"
 	>
 		<button
+			v-if="!embedded"
 			type="button"
 			class="pptx-vue-notes-header flex w-full items-center justify-between px-3 py-2 text-left text-[0.8125rem] font-semibold text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 			:aria-expanded="!collapsed"

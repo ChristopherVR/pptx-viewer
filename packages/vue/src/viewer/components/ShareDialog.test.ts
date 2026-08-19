@@ -1,10 +1,44 @@
-import { mount } from '@vue/test-utils';
+/* oxlint-disable eslint/one-var -- independent per-test locals, not intended as one statement */
+import { flushPromises, mount } from '@vue/test-utils';
 import type { CollaborationConfig } from 'pptx-viewer-shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { computed, ref } from 'vue';
 
+import type { UseCollaborationResult } from '../composables/useCollaboration';
 import ShareDialog from './ShareDialog.vue';
 
 const mountOptions = { global: { stubs: { teleport: true } } } as const;
+
+/** A minimal stand-in for `useCollaboration()`'s return value. */
+function makeCollab(
+	overrides: Partial<Pick<UseCollaborationResult, 'status' | 'remotePresences'>> = {},
+): UseCollaborationResult {
+	const status = overrides.status ?? ref('connected');
+	const remotePresences = overrides.remotePresences ?? ref([]);
+	return {
+		status,
+		connected: computed(() => status.value === 'connected'),
+		cursors: ref([]),
+		remotePresences,
+		connectedCount: computed(() => remotePresences.value.length + 1),
+		active: ref(true),
+		activeRole: ref('collaborator'),
+		followedClientId: ref(null),
+		followedSlideIndex: computed(() => null),
+		broadcasterSlideIndex: computed(() => null),
+		start: vi.fn(),
+		stop: vi.fn(),
+		retry: vi.fn(),
+		setCursor: vi.fn(),
+		setSelection: vi.fn(),
+		setActiveSlide: vi.fn(),
+		followUser: vi.fn(),
+		livePatcher: {
+			publish: vi.fn(),
+			stop: vi.fn(),
+		} as unknown as UseCollaborationResult['livePatcher'],
+	};
+}
 
 describe('shareDialog', () => {
 	it('prefills the fields from the defaults prop', () => {
@@ -118,5 +152,70 @@ describe('shareDialog', () => {
 			.find((b) => !b.classes().includes('pptx-vue-share-btn-primary'));
 		await cancel?.trigger('click');
 		expect(wrapper.emitted('close')).toHaveLength(1);
+	});
+
+	it('lists the local user and every remote peer when a session is active', () => {
+		const activeCollaboration: CollaborationConfig = {
+			roomId: 'team-room',
+			userName: 'Ada Lovelace',
+			userColor: '#f97316',
+			serverUrl: 'wss://collab.example.com',
+			transport: 'websocket',
+			role: 'collaborator',
+		};
+		const collab = makeCollab({
+			remotePresences: ref([
+				{
+					clientId: 7,
+					userName: 'Grace Hopper',
+					color: '#22c55e',
+					selectionIds: [],
+					activeSlide: 2,
+				},
+			]),
+		});
+		const wrapper = mount(ShareDialog, {
+			...mountOptions,
+			props: { open: true, active: true, collab, activeCollaboration },
+		});
+
+		const rows = wrapper.findAll('.pptx-vue-share-active [class*="items-center"][class*="gap-2"]');
+		const text = wrapper.text();
+		expect(text).toContain('Ada Lovelace');
+		expect(text).toContain('Grace Hopper');
+		expect(text).toContain('team-room');
+		expect(text).toContain('wss://collab.example.com');
+		expect(rows.length).toBeGreaterThan(0);
+	});
+
+	it('copies the share link to the clipboard and shows the copied confirmation', async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText },
+			configurable: true,
+		});
+
+		const activeCollaboration: CollaborationConfig = {
+			roomId: 'team-room',
+			userName: 'Ada',
+			serverUrl: 'wss://collab.example.com',
+			transport: 'websocket',
+			role: 'collaborator',
+		};
+		const wrapper = mount(ShareDialog, {
+			...mountOptions,
+			props: { open: true, active: true, collab: makeCollab(), activeCollaboration },
+		});
+
+		const copyBtn = wrapper
+			.findAll('button')
+			.find((b) => b.attributes('title') === 'Copy share link');
+		expect(copyBtn?.text()).toBe('Copy URL');
+		await copyBtn?.trigger('click');
+		await flushPromises();
+		expect(writeText).toHaveBeenCalledWith(expect.stringContaining('room=team-room'));
+		await flushPromises();
+		await wrapper.vm.$nextTick();
+		expect(wrapper.get('.pptx-vue-share-active').text()).toContain('Copied');
 	});
 });

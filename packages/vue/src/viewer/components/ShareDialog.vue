@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { CollaborationConfig } from 'pptx-viewer-shared';
 import {
+	buildActiveSessionUsers,
+	buildCollaborationShareUrl,
 	buildCreateCollaborationConfig,
 	buildJoinCollaborationConfig,
 	resolveTransportForServerUrl,
@@ -8,6 +10,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { UseCollaborationResult } from '../composables/useCollaboration';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -16,7 +19,9 @@ import ModalDialog from './ModalDialog.vue';
  * Configures and starts a real-time collaboration session (room id, display
  * name, server URL), or stops an active one. Field defaults are supplied by
  * the host application via the `defaults` prop. When `active` is `true` the
- * form is replaced by a "Stop sharing" action.
+ * form is replaced by the active-session view: status, a copyable share link,
+ * room/server details, and the connected-users list built by shared's
+ * `buildActiveSessionUsers` from `collab`'s live presence state.
  */
 const props = defineProps<{
 	/** Whether the dialog is visible. */
@@ -25,6 +30,10 @@ const props = defineProps<{
 	defaults?: { roomId?: string; userName?: string; serverUrl?: string };
 	/** Whether a collaboration session is currently active. */
 	active?: boolean;
+	/** Live collaboration session state (status/count/remote users). */
+	collab?: UseCollaborationResult;
+	/** The config the active session was started with; null while stopped. */
+	activeCollaboration?: CollaborationConfig | null;
 }>();
 
 const emit = defineEmits<{
@@ -80,6 +89,52 @@ const canStart = computed(() => pendingConfig.value !== null);
 // True when the current server field selects serverless peer-to-peer mode.
 const isPeerToPeer = computed(() => resolveTransportForServerUrl(serverUrl.value) === 'webrtc');
 
+// ── Active-session view ──────────────────────────────────────────────────
+
+const status = computed(() => props.collab?.status.value ?? 'disconnected');
+const connectedCount = computed(() => props.collab?.connectedCount.value ?? 0);
+const activeIsPeerToPeer = computed(
+	() => resolveTransportForServerUrl(props.activeCollaboration?.serverUrl ?? '') === 'webrtc',
+);
+const activeShareUrl = computed(() => {
+	if (!props.activeCollaboration || typeof window === 'undefined') {
+		return '';
+	}
+	return buildCollaborationShareUrl(props.activeCollaboration, {
+		origin: window.location.origin,
+		pathname: window.location.pathname,
+	});
+});
+const sessionUsers = computed(() => {
+	if (!props.collab || !props.activeCollaboration) {
+		return [];
+	}
+	return buildActiveSessionUsers({
+		localUserName: props.activeCollaboration.userName,
+		localUserColor: props.activeCollaboration.userColor,
+		remoteUsers: props.collab.remotePresences.value.map((peer) => ({
+			clientId: peer.clientId,
+			userName: peer.userName,
+			userColor: peer.color,
+			activeSlideIndex: peer.activeSlide,
+		})),
+	});
+});
+
+const copied = ref(false);
+function onCopyLink(): void {
+	if (!activeShareUrl.value || typeof navigator === 'undefined' || !navigator.clipboard) {
+		return;
+	}
+	void navigator.clipboard.writeText(activeShareUrl.value).then(() => {
+		copied.value = true;
+		window.setTimeout(() => {
+			copied.value = false;
+		}, 2000);
+		return undefined;
+	});
+}
+
 function handleStart(): void {
 	if (pendingConfig.value) {
 		emit('start', pendingConfig.value);
@@ -98,12 +153,105 @@ function handleStop(): void {
 		@close="emit('close')"
 	>
 		<div v-if="active" class="pptx-vue-share-active flex flex-col gap-4">
-			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
-				{{ t('pptx.share.activeDescription') }}
-			</p>
-			<p v-if="isPeerToPeer" class="pptx-vue-share-server-value text-[12px] text-muted-foreground">
+			<!-- Status -->
+			<div class="flex items-center gap-2">
+				<span
+					class="inline-block h-2 w-2 rounded-full"
+					:class="{
+						'bg-green-400': status === 'connected',
+						'bg-yellow-400': status === 'connecting',
+						'bg-red-400': status !== 'connected' && status !== 'connecting',
+					}"
+				/>
+				<span class="text-[13px] font-medium capitalize text-foreground">{{ status }}</span>
+				<span class="ml-auto text-[12px] text-muted-foreground">
+					{{ t('pptx.collaboration.userCount', { count: connectedCount }) }}
+				</span>
+			</div>
+
+			<!-- Share URL -->
+			<div v-if="activeShareUrl" class="pptx-vue-share-field flex flex-col gap-1.5">
+				<label class="text-[12px] font-medium text-foreground">{{
+					t('pptx.share.shareLink')
+				}}</label>
+				<div class="flex items-center gap-2">
+					<div
+						class="flex-1 select-all truncate rounded border border-border bg-background px-3 py-1.5 font-mono text-[11px] text-foreground"
+					>
+						{{ activeShareUrl }}
+					</div>
+					<button
+						type="button"
+						class="shrink-0 rounded border border-border bg-muted px-2.5 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
+						:title="t('pptx.share.copyLink')"
+						@click="onCopyLink"
+					>
+						{{ copied ? t('pptx.share.copied') : t('pptx.share.copyUrl') }}
+					</button>
+				</div>
+				<p class="text-[11px] text-muted-foreground">{{ t('pptx.share.shareHint') }}</p>
+			</div>
+
+			<!-- Session details -->
+			<div
+				v-if="activeCollaboration"
+				class="flex items-center gap-3 text-[11px] text-muted-foreground"
+			>
+				<span>
+					{{ t('pptx.share.room') }}
+					<code class="font-mono text-foreground">{{ activeCollaboration.roomId }}</code>
+				</span>
+				<span>
+					{{ t('pptx.share.server') }}
+					<code class="font-mono text-foreground">
+						{{
+							activeIsPeerToPeer ? t('pptx.share.p2pServerValue') : activeCollaboration.serverUrl
+						}}
+					</code>
+				</span>
+			</div>
+			<p
+				v-else-if="isPeerToPeer"
+				class="pptx-vue-share-server-value text-[12px] text-muted-foreground"
+			>
 				{{ t('pptx.share.p2pServerValue') }}
 			</p>
+
+			<!-- Connected users -->
+			<div v-if="sessionUsers.length > 0" class="pptx-vue-share-field flex flex-col gap-1.5">
+				<label class="text-[12px] font-medium text-foreground">{{
+					t('pptx.share.connectedUsers')
+				}}</label>
+				<div
+					class="max-h-[140px] divide-y divide-border overflow-y-auto rounded border border-border bg-background"
+				>
+					<div
+						v-for="user in sessionUsers"
+						:key="user.id"
+						class="flex items-center gap-2 px-3 py-2"
+					>
+						<div
+							class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-white"
+							:style="{ backgroundColor: user.color }"
+						>
+							<img
+								v-if="user.avatarUrl"
+								:src="user.avatarUrl"
+								alt=""
+								class="h-full w-full rounded-full object-cover"
+							/>
+							<template v-else>{{ user.initials }}</template>
+						</div>
+						<span class="truncate text-[12px] text-foreground">{{ user.name }}</span>
+						<span class="ml-auto text-[10px] text-muted-foreground">
+							{{
+								user.isLocal ? t('pptx.share.you') : t('pptx.notes.slideN', { n: user.slideNumber })
+							}}
+						</span>
+					</div>
+				</div>
+			</div>
+
 			<button
 				type="button"
 				class="pptx-vue-share-stop w-full rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-400 transition-colors hover:bg-red-500/20"

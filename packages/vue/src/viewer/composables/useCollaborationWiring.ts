@@ -43,6 +43,9 @@ export interface UseCollaborationWiringInput {
 export interface UseCollaborationWiringResult {
 	collab: UseCollaborationResult;
 	collabActive: Ref<boolean>;
+	/** The config the active session was started with (null when stopped); the
+	 * Share dialog's active view reads the local user's name/colour from this. */
+	activeCollaboration: Ref<CollaborationConfig | null>;
 	shareOpen: Ref<boolean>;
 	onShareStart: (config: CollaborationConfig) => void;
 	onShareStop: () => void;
@@ -86,11 +89,13 @@ export function useCollaborationWiring(
 		onStopCollaboration,
 	} = input;
 
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const collab = useCollaboration({
 		slides,
 		loadVersion,
 		getLoadOrigin,
 		onRemoteSlides: (remote) => {
+			// oxlint-disable-next-line react/immutability -- Vue ref write, not a React prop mutation
 			slides.value = remote;
 		},
 		getTemplateElements,
@@ -99,22 +104,25 @@ export function useCollaborationWiring(
 		canvasWidth,
 		canvasHeight,
 	});
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const shareOpen = ref(false);
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const collabActive = collab.active;
 
 	// Auto-start/stop a session when the host supplies (or clears) a `collaboration`
 	// config, so URL-driven joins connect without opening the Share dialog.
 	// Dialog-initiated sessions echo the same config object back through this prop,
 	// so we compare by reference to avoid restarting a session we already started.
-	let lastStartedCollab: CollaborationConfig | null = null;
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
+	const activeCollaboration = ref<CollaborationConfig | null>(null);
 	watch(
 		collaborationProp,
 		(config) => {
-			if (config && config !== lastStartedCollab) {
-				lastStartedCollab = config;
+			if (config && config !== activeCollaboration.value) {
+				activeCollaboration.value = config;
 				void collab.start(config);
 			} else if (!config && collab.active.value) {
-				lastStartedCollab = null;
+				activeCollaboration.value = null;
 				collab.stop();
 			}
 		},
@@ -155,13 +163,13 @@ export function useCollaborationWiring(
 	function onShareStart(config: CollaborationConfig): void {
 		// Two-way collaboration: peers edit together (default role).
 		const collaboratorConfig: CollaborationConfig = { role: 'collaborator', ...config };
-		lastStartedCollab = collaboratorConfig;
+		activeCollaboration.value = collaboratorConfig;
 		void collab.start(collaboratorConfig);
 		onStartCollaboration(collaboratorConfig);
 		shareOpen.value = false;
 	}
 	function onShareStop(): void {
-		lastStartedCollab = null;
+		activeCollaboration.value = null;
 		collab.stop();
 		onStopCollaboration();
 		shareOpen.value = false;
@@ -175,6 +183,7 @@ export function useCollaborationWiring(
 		if (!stage) {
 			return;
 		}
+		// oxlint-disable-next-line eslint/one-var -- an early-return sits between this and the previous const
 		const rect = stage.getBoundingClientRect();
 		collab.setCursor(
 			(event.clientX - rect.left) / effectiveZoom.value,
@@ -183,12 +192,15 @@ export function useCollaborationWiring(
 	}
 
 	// ── Broadcast (one-way, viewer-follows-presenter) ────────────────────
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const broadcastOpen = ref(false);
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const broadcastConfig = ref<{
 		roomId: string;
 		serverUrl: string;
 		transport?: CollaborationTransport;
 	} | null>(null);
+	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const broadcastViewerUrl = computed(() => {
 		if (!broadcastConfig.value || typeof window === 'undefined') {
 			return '';
@@ -209,13 +221,13 @@ export function useCollaborationWiring(
 			userName: authorName() ?? 'Presenter',
 			role: 'owner',
 		};
-		lastStartedCollab = broadcastSession;
+		activeCollaboration.value = broadcastSession;
 		void collab.start(broadcastSession);
 		onStartCollaboration(broadcastSession);
 		broadcastOpen.value = false;
 	}
 	function onBroadcastStop(): void {
-		lastStartedCollab = null;
+		activeCollaboration.value = null;
 		broadcastConfig.value = null;
 		collab.stop();
 		onStopCollaboration();
@@ -225,6 +237,7 @@ export function useCollaborationWiring(
 	return {
 		collab,
 		collabActive,
+		activeCollaboration,
 		shareOpen,
 		onShareStart,
 		onShareStop,

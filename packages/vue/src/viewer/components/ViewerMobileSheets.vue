@@ -126,12 +126,7 @@ function toggleSheet(sheet: keyof typeof SHEET_REFS): void {
 		:title="t('pptx.notes.title')"
 		@close="chrome.mobileNotesOpen.value = false"
 	>
-		<NotesPanel
-			:slide="activeSlide"
-			:expanded="true"
-			@update="onNotesUpdate"
-			@toggle="chrome.mobileNotesOpen.value = false"
-		/>
+		<NotesPanel embedded :slide="activeSlide" :expanded="true" @update="onNotesUpdate" />
 	</MobileSheet>
 
 	<!-- Format / properties sheet (right-rail inspector on desktop) -->
@@ -169,6 +164,7 @@ function toggleSheet(sheet: keyof typeof SHEET_REFS): void {
 		@close="chrome.mobileCommentsOpen.value = false"
 	>
 		<CommentsPanel
+			embedded
 			:comments="comments.commentsApi.slideComments.value"
 			:author-name="authorName"
 			@add="(text) => commit(comments.commentsApi.addComment(text))"

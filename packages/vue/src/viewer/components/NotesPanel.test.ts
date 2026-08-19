@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/one-var -- independent per-test locals, not intended as one statement */
 import { mount } from '@vue/test-utils';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
@@ -97,5 +98,14 @@ describe('notesPanel', () => {
 
 		await wrapper.setProps({ expanded: false });
 		expect(header.attributes('aria-expanded')).toBe('false');
+	});
+
+	it('suppresses the collapsible header when embedded, still rendering the body', async () => {
+		const wrapper = mount(NotesPanel, {
+			props: { slide: makeSlide({ notes: 'hi' }), expanded: true, embedded: true },
+		});
+		await nextTick();
+		expect(wrapper.find('.pptx-vue-notes-header').exists()).toBeFalsy();
+		expect(wrapper.find('.pptx-vue-notes-body').isVisible()).toBeTruthy();
 	});
 });

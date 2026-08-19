@@ -92,6 +92,8 @@ const { t } = useI18n();
 		:open="collaboration.shareOpen.value"
 		:defaults="shareDefaults"
 		:active="collaboration.collabActive.value"
+		:collab="collaboration.collab"
+		:active-collaboration="collaboration.activeCollaboration.value"
 		@start="collaboration.onShareStart"
 		@stop="collaboration.onShareStop"
 		@close="collaboration.shareOpen.value = false"

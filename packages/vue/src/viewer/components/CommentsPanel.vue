@@ -19,6 +19,12 @@ import CommentBody from './CommentBody.vue';
 const props = defineProps<{
 	comments: PptxComment[];
 	authorName: string;
+	/**
+	 * True when hosted inside a chrome that already renders its own title +
+	 * close button (the mobile `MobileSheet`). Suppresses the internal
+	 * `<header>` so mobile doesn't show "Comments" twice stacked.
+	 */
+	embedded?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -75,6 +81,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 		:aria-label="t('pptx.comments.slideComments')"
 	>
 		<header
+			v-if="!embedded"
 			class="pptx-comments-panel__header flex items-center justify-between border-b border-border px-4 py-3"
 		>
 			<h2 class="pptx-comments-panel__title m-0 text-sm font-semibold">
