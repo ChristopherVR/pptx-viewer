@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks and extracted
+   helper functions, each with unrelated locals; merging across them would
+   hurt readability. */
 import { describe, it, expect } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -72,6 +75,16 @@ function placeholderMatches(
 	}
 
 	if (source.type && target.type && !typesMatch) {
+		return false;
+	}
+
+	// A special placeholder (date/footer/header/slide-number) must never bind
+	// to an untyped generic placeholder just because idx agrees.
+	const specialTypes = new Set(['dt', 'ftr', 'hdr', 'sldnum']);
+	if (
+		(source.type && specialTypes.has(source.type) && !target.type) ||
+		(target.type && specialTypes.has(target.type) && !source.type)
+	) {
 		return false;
 	}
 
@@ -302,6 +315,24 @@ describe('placeholderMatches', () => {
 
 	it('should match no-idx-vs-idx=0 for a plain untyped placeholder', () => {
 		expect(placeholderMatches({}, { idx: '0' })).toBeTruthy();
+	});
+
+	// Special (date/footer/header/slide-number) placeholders must not bind to
+	// an untyped generic placeholder that happens to reuse the same idx.
+	it('should NOT match an untyped source against a footer target with the same idx', () => {
+		expect(placeholderMatches({ idx: '1' }, { idx: '1', type: 'ftr' })).toBeFalsy();
+	});
+
+	it('should NOT match a date-typed source against an untyped target with the same idx', () => {
+		expect(placeholderMatches({ idx: '1', type: 'dt' }, { idx: '1' })).toBeFalsy();
+	});
+
+	it('should NOT match an untyped source against a slide-number target with the same idx', () => {
+		expect(placeholderMatches({ idx: '2' }, { idx: '2', type: 'sldnum' })).toBeFalsy();
+	});
+
+	it('should still match two footer placeholders with the same idx and type', () => {
+		expect(placeholderMatches({ idx: '1', type: 'ftr' }, { idx: '1', type: 'ftr' })).toBeTruthy();
 	});
 });
 

@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- each parse method declares its own
+   independent locals; merging unrelated declarations across the many parse
+   methods here would hurt readability, not help it. */
 import { PptxElement, XmlObject } from '../../types';
 import type {
 	ContentPartPptxElement,
@@ -9,6 +12,14 @@ import { parseInkMlContent } from '../../utils';
 import { normalizePlaceholderIndex } from '../../utils/placeholder-index';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSavePipeline';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
+
+/**
+ * `p:ph/@type` values (CT_Placeholder, lowercased) whose slot carries
+ * dedicated formatting (date, footer, header, slide number) rather than
+ * authored slide content. These must never absorb an untyped placeholder,
+ * even when their `idx` happens to agree with it.
+ */
+const SPECIAL_PLACEHOLDER_TYPES = new Set(['dt', 'ftr', 'hdr', 'sldnum']);
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -306,6 +317,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// idx agrees. When both sides carry a type they must be compatible.
 		if (source.type && target.type && !typesMatch) {
+			return false;
+		}
+
+		// A special placeholder (date/footer/header/slide-number) must never bind
+		// to an untyped generic placeholder just because their idx happens to
+		// agree: ordinary slide content would then inherit that slot's footer/date
+		// styling. This overrides the idx-alone trust below.
+		if (
+			(source.type && SPECIAL_PLACEHOLDER_TYPES.has(source.type) && !target.type) ||
+			(target.type && SPECIAL_PLACEHOLDER_TYPES.has(target.type) && !source.type)
+		) {
 			return false;
 		}
 
