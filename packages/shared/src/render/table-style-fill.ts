@@ -44,13 +44,17 @@ function rgbToHex(r: number, g: number, b: number): string {
 	return `#${clamp(r).toString(16).padStart(2, '0').toUpperCase()}${clamp(g).toString(16).padStart(2, '0').toUpperCase()}${clamp(b).toString(16).padStart(2, '0').toUpperCase()}`;
 }
 
-/** Compute a tinted (lighter) colour. `tintFactor` in 0-1 (1 = white). */
+/**
+ * Compute a tinted (lighter) colour per ECMA-376 20.1.2.3.32: "a 10% tint is
+ * 10% of the input color combined with 90% white". `tintFactor` is the raw
+ * `a:tint` value in 0-1 (1 = unchanged/100% input, 0 = pure white).
+ */
 function tintColor(hex: string, tintFactor: number): string {
 	const { r, g, b } = hexToRgb(hex);
 	return rgbToHex(
-		r + (255 - r) * tintFactor,
-		g + (255 - g) * tintFactor,
-		b + (255 - b) * tintFactor,
+		255 - (255 - r) * tintFactor,
+		255 - (255 - g) * tintFactor,
+		255 - (255 - b) * tintFactor,
 	);
 }
 
@@ -114,6 +118,7 @@ function gradientCssFromFill(
 	if (!gradient || gradient.stops.length === 0) {
 		return undefined;
 	}
+	// oxlint-disable-next-line eslint/one-var -- preceding `if` return blocks merging
 	const shapeLike = {
 		fillMode: 'gradient',
 		fillGradientType: gradient.type,
@@ -155,14 +160,14 @@ export function applyStyleFill(
 
 	if (fill?.pattern) {
 		const fg = normalizeHexColor(
-			resolveStyleFillColor(fill.pattern.foreground, colorScheme),
-			'#000000',
-		);
-		const bg = normalizeHexColor(
-			resolveStyleFillColor(fill.pattern.background, colorScheme),
-			'#ffffff',
-		);
-		const svg = getPatternSvg(fill.pattern.preset, fg, bg);
+				resolveStyleFillColor(fill.pattern.foreground, colorScheme),
+				'#000000',
+			),
+			bg = normalizeHexColor(
+				resolveStyleFillColor(fill.pattern.background, colorScheme),
+				'#ffffff',
+			),
+			svg = getPatternSvg(fill.pattern.preset, fg, bg);
 		clearBackground(css);
 		if (svg) {
 			css.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -284,10 +289,10 @@ const BEVEL_LIGHT_OFFSETS: Record<string, { x: number; y: number }> = {
  * shadow on the opposite edges, sized from the bevel height/width.
  */
 export function cell3DBevelCss(cell3D: PptxTableCell3D): TableCellCss {
-	const size = Math.max(cell3D.bevelHeight ?? cell3D.bevelWidth ?? 4, 1);
-	const dir = cell3D.lightRigDirection ?? 'tl';
-	const off = BEVEL_LIGHT_OFFSETS[dir] ?? BEVEL_LIGHT_OFFSETS.tl;
-	const highlight = `inset ${off.x * size}px ${off.y * size}px ${size}px rgba(255,255,255,0.55)`;
-	const shadow = `inset ${-off.x * size}px ${-off.y * size}px ${size}px rgba(0,0,0,0.4)`;
+	const size = Math.max(cell3D.bevelHeight ?? cell3D.bevelWidth ?? 4, 1),
+		dir = cell3D.lightRigDirection ?? 'tl',
+		off = BEVEL_LIGHT_OFFSETS[dir] ?? BEVEL_LIGHT_OFFSETS.tl,
+		highlight = `inset ${off.x * size}px ${off.y * size}px ${size}px rgba(255,255,255,0.55)`,
+		shadow = `inset ${-off.x * size}px ${-off.y * size}px ${size}px rgba(0,0,0,0.4)`;
 	return { boxShadow: `${highlight}, ${shadow}` };
 }

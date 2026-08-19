@@ -178,18 +178,18 @@ describe('applyDrawingColorTransforms', () => {
 		expect(result).toBe('#000000');
 	});
 
-	it('applies tint=100000 (pure white)', () => {
+	it('applies tint=100000 (no change)', () => {
 		const result = applyDrawingColorTransforms('#FF0000', {
 			'a:tint': { '@_val': '100000' },
 		});
-		expect(result).toBe('#FFFFFF');
+		expect(result).toBe('#FF0000');
 	});
 
-	it('applies tint=0 (no change)', () => {
+	it('applies tint=0 (pure white)', () => {
 		const result = applyDrawingColorTransforms('#FF0000', {
 			'a:tint': { '@_val': '0' },
 		});
-		expect(result).toBe('#FF0000');
+		expect(result).toBe('#FFFFFF');
 	});
 });
 
@@ -427,10 +427,10 @@ describe('parseDrawingColorChoice', () => {
 
 		it('resolves all six accent colors', () => {
 			for (let i = 1; i <= 6; i++) {
-				const key = `accent${i}`;
-				const node: XmlObject = {
-					'a:schemeClr': { '@_val': key },
-				};
+				const key = `accent${i}`,
+					node: XmlObject = {
+						'a:schemeClr': { '@_val': key },
+					};
 				expect(parseDrawingColorChoice(node)).toBe(DEFAULT_SCHEME_COLOR_MAP[key]);
 			}
 		});
@@ -653,13 +653,13 @@ describe('parseDrawingColorChoice', () => {
 
 		it('parses a specific color (25% R, 75% G, 50% B)', () => {
 			const node: XmlObject = {
-				'a:scrgbClr': {
-					'@_r': '25000',
-					'@_g': '75000',
-					'@_b': '50000',
+					'a:scrgbClr': {
+						'@_r': '25000',
+						'@_g': '75000',
+						'@_b': '50000',
+					},
 				},
-			};
-			const result = parseDrawingColorChoice(node);
+				result = parseDrawingColorChoice(node);
 			expect(result).toBeDefined();
 			// 0.25*255=64=0x40, 0.75*255=191=0xBF, 0.5*255=128=0x80
 			expect(result).toBe('#40BF80');
@@ -720,14 +720,14 @@ describe('parseDrawingColorChoice', () => {
 
 		it('clamps channel values above 100%', () => {
 			const node: XmlObject = {
-				'a:scrgbClr': {
-					'@_r': '200000',
-					'@_g': '0',
-					'@_b': '0',
+					'a:scrgbClr': {
+						'@_r': '200000',
+						'@_g': '0',
+						'@_b': '0',
+					},
 				},
-			};
-			// 2.0 * 255 = 510 -> clamped to 255 by Math.min(255, ...)
-			const result = parseDrawingColorChoice(node);
+				// 2.0 * 255 = 510 -> clamped to 255 by Math.min(255, ...)
+				result = parseDrawingColorChoice(node);
 			expect(result).toBeDefined();
 			expect(result).toBe('#FF0000');
 		});

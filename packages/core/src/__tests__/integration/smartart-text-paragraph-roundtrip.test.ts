@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own unrelated locals; merging across them would hurt readability. */
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
@@ -89,7 +91,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 					textGlowRadius: 2,
 					textOutlineColor: '#112233',
 					textOutlineWidth: 2,
-					color: '#F1975A',
+					color: '#FBE5D6',
 					colorXml: { 'a:schemeClr': { '@_val': 'accent2', 'a:tint': { '@_val': '20000' } } },
 				},
 			},
@@ -142,7 +144,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 			highlightColor: '#FFFF00',
 			textGlowColor: '#00FF00',
 			textOutlineColor: '#112233',
-			color: '#F1975A',
+			color: '#FBE5D6',
 			colorXml: { 'a:schemeClr': { '@_val': 'accent2' } },
 		});
 		expect(renderShape?.textSegments?.[5].style).toMatchObject({
@@ -241,7 +243,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 				highlightColor: '#FFFF00',
 				textGlowColor: '#00FF00',
 				textOutlineColor: '#112233',
-				color: '#F1975A',
+				color: '#FBE5D6',
 				colorXml: { 'a:schemeClr': { '@_val': 'accent2' } },
 			},
 		});

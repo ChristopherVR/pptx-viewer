@@ -11,6 +11,10 @@
  * @module color-transforms
  */
 
+/* oxlint-disable eslint/one-var -- each transform block declares its own
+   independent locals; merging unrelated declarations across ~26 transform
+   blocks into shared statements would hurt readability, not help it. */
+
 import type { XmlObject } from '../types';
 import {
 	clampUnitInterval,
@@ -113,13 +117,14 @@ export function applyDrawingColorTransforms(baseColor: string, colorNode: XmlObj
 		b *= shade;
 	}
 
-	// Tint: mix toward white by linear interpolation from current toward 255.
-	// tint=0 → unchanged, tint=1 → pure white.
+	// Tint: mix input colour with white. Per ECMA-376 20.1.2.3.32, "a 10%
+	// tint is 10% of the input color combined with 90% white" — tint=1 →
+	// unchanged (100% input), tint=0 → pure white.
 	const tint = parseDrawingPercent(getVal('a:tint'));
 	if (tint !== undefined) {
-		r += (255 - r) * tint;
-		g += (255 - g) * tint;
-		b += (255 - b) * tint;
+		r = 255 - (255 - r) * tint;
+		g = 255 - (255 - g) * tint;
+		b = 255 - (255 - b) * tint;
 	}
 
 	// ── 3. HSL transforms (single conversion round-trip) ─────────────────

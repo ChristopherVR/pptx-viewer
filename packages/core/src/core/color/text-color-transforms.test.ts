@@ -11,6 +11,8 @@
  * colours (particularly from theme scheme references) are rendered with
  * the correct lumMod/satMod/tint/shade/alpha adjustments.
  */
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own unrelated locals; merging across them would hurt readability. */
 import { describe, it, expect } from 'vitest';
 
 import { PptxColorTransformCodec } from '../core/builders/PptxColorTransformCodec';
@@ -82,12 +84,12 @@ describe('text colour transforms — applyDrawingColorTransforms', () => {
 		expect(result).toBe('#A2B9E2');
 	});
 
-	it('tint 100% produces white regardless of base', () => {
+	it('tint 100% leaves the base colour unchanged', () => {
 		expect(
 			applyDrawingColorTransforms('#4472C4', {
 				'a:tint': { '@_val': '100000' },
 			}),
-		).toBe('#FFFFFF');
+		).toBe('#4472C4');
 	});
 
 	// ── lumMod (a:lumMod) ───────────────────────────────────────────────
@@ -389,8 +391,8 @@ describe('text colour transforms — PptxColorTransformCodec scheme colours', ()
 			},
 		};
 		const result = codec.parseColorChoice(node)!;
-		// 0 + (255-0)*0.6 = 153 each channel = #999999
-		expect(result).toBe('#999999');
+		// 255 - (255-0)*0.6 = 102 each channel = #666666
+		expect(result).toBe('#666666');
 	});
 
 	it('srgbClr text colour with lumMod', () => {

@@ -64,16 +64,23 @@ describe('applyDrawingColorTransforms', () => {
 	});
 
 	it('applies tint (a:tint) — lightens toward white', () => {
-		// tint = 50000 = 50%. r = 0 + (255-0)*0.5 = 127.5 → 80
+		// tint = 50000 = 50%. r = 255 - (255-0)*0.5 = 127.5 → 80
 		const result = applyDrawingColorTransforms('#000000', {
 			'a:tint': { '@_val': '50000' },
 		});
 		expect(result).toBe('#808080');
 	});
 
-	it('tint at 100% produces pure white', () => {
-		const result = applyDrawingColorTransforms('#000000', {
+	it('tint at 100% leaves color unchanged', () => {
+		const result = applyDrawingColorTransforms('#AABBCC', {
 			'a:tint': { '@_val': '100000' },
+		});
+		expect(result).toBe('#AABBCC');
+	});
+
+	it('tint at 0% produces pure white', () => {
+		const result = applyDrawingColorTransforms('#000000', {
+			'a:tint': { '@_val': '0' },
 		});
 		expect(result).toBe('#FFFFFF');
 	});

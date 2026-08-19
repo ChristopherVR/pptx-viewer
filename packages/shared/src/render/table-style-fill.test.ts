@@ -1,8 +1,36 @@
-import type { ParsedTableStyleText, PptxTableCell3D, PptxThemeFontScheme } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleFill,
+	ParsedTableStyleText,
+	PptxTableCell3D,
+	PptxThemeFontScheme,
+} from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import type { TableCellCss } from './table-style';
-import { applyStyleText, cell3DBevelCss, resolveFontRefIdx } from './table-style-fill';
+import {
+	applyStyleText,
+	cell3DBevelCss,
+	resolveFontRefIdx,
+	resolveStyleFillColor,
+} from './table-style-fill';
+
+describe('resolveStyleFillColor - tint/shade (ECMA-376 20.1.2.3.32)', () => {
+	it('tint=100000 (100%) leaves an explicit colour unchanged', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: '', color: '#AABBCC', tint: 100_000 };
+		expect(resolveStyleFillColor(fill, undefined)).toBe('#AABBCC');
+	});
+
+	it('a low tint value mixes mostly toward white', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: '', color: '#000000', tint: 20_000 };
+		// 20% tint = 20% input + 80% white: 255 - 255*0.2 = 204 = 0xCC
+		expect(resolveStyleFillColor(fill, undefined)).toBe('#CCCCCC');
+	});
+
+	it('shade=100000 (100%) leaves an explicit colour unchanged', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: '', color: '#AABBCC', shade: 100_000 };
+		expect(resolveStyleFillColor(fill, undefined)).toBe('#AABBCC');
+	});
+});
 
 describe('resolveFontRefIdx', () => {
 	const fontScheme: PptxThemeFontScheme = {
@@ -32,8 +60,8 @@ describe('applyStyleText - fontRef idx (issue: tcTxStyle a:fontRef@idx)', () => 
 	};
 
 	it('applies the theme minor font from fontRefIdx', () => {
-		const css: TableCellCss = {};
-		const text: ParsedTableStyleText = { fontRefIdx: 'minor' };
+		const css: TableCellCss = {},
+			text: ParsedTableStyleText = { fontRefIdx: 'minor' };
 		expect(applyStyleText(text, undefined, css, fontScheme)).toBeTruthy();
 		expect(css.fontFamily).toBe('Verdana');
 	});
@@ -59,8 +87,8 @@ describe('applyStyleText - fontRef idx (issue: tcTxStyle a:fontRef@idx)', () => 
 
 describe('cell3DBevelCss', () => {
 	it('builds a paired inset box-shadow bevel', () => {
-		const cell3D: PptxTableCell3D = { bevelWidth: 6, bevelHeight: 6, lightRigDirection: 'tl' };
-		const css = cell3DBevelCss(cell3D);
+		const cell3D: PptxTableCell3D = { bevelWidth: 6, bevelHeight: 6, lightRigDirection: 'tl' },
+			css = cell3DBevelCss(cell3D);
 		expect(String(css.boxShadow)).toContain('inset 6px 6px');
 		expect(String(css.boxShadow)).toContain('inset -6px -6px');
 	});
