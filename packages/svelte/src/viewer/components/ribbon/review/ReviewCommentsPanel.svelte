@@ -16,7 +16,18 @@
 	import CommentBody from '../../CommentBody.svelte';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 
-	const { editor }: { editor: EditorState } = $props();
+	const {
+		editor,
+		embedded = false,
+	}: {
+		editor: EditorState;
+		/**
+		 * True when hosted inside a chrome that already renders its own title +
+		 * close button (the mobile `MobileSheet`). Suppresses the internal
+		 * heading so mobile doesn't show "Comments" twice stacked.
+		 */
+		embedded?: boolean;
+	} = $props();
 	const t = useTranslator();
 	let draft = $state('');
 	// Which comment has its reply composer open (one at a time) + its draft.
@@ -82,14 +93,20 @@
 	}
 </script>
 
-<section class="pptx-svelte-comments" aria-labelledby="pptx-svelte-comments-title">
-	<div class="pptx-svelte-comments-heading">
-		<div>
-			<span class="pptx-svelte-comments-eyebrow">{t('pptx.ribbon.tab.review')}</span>
-			<h3 id="pptx-svelte-comments-title">{t('pptx.comments.slideComments')}</h3>
+<section
+	class="pptx-svelte-comments"
+	aria-label={embedded ? t('pptx.comments.slideComments') : undefined}
+	aria-labelledby={embedded ? undefined : 'pptx-svelte-comments-title'}
+>
+	{#if !embedded}
+		<div class="pptx-svelte-comments-heading">
+			<div>
+				<span class="pptx-svelte-comments-eyebrow">{t('pptx.ribbon.tab.review')}</span>
+				<h3 id="pptx-svelte-comments-title">{t('pptx.comments.slideComments')}</h3>
+			</div>
+			<span class="pptx-svelte-comments-count">{comments.length}</span>
 		</div>
-		<span class="pptx-svelte-comments-count">{comments.length}</span>
-	</div>
+	{/if}
 
 	{#if selectedLabel}
 		<p class="pptx-svelte-comments-target">{t('pptx.comments.commentingOn')} {selectedLabel}</p>

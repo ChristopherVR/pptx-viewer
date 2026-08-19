@@ -60,7 +60,7 @@ export class CollaborationController {
 	#ydoc: YDocLike | null = null;
 	#factories: YjsFactories | null = null;
 	#provider: CollabProviderHandle | null = null;
-	#config: CollaborationConfig | null = null;
+	#config: CollaborationConfig | null = $state(null);
 	#lastStarted: CollaborationConfig | null = null;
 	#startedByEffect = false;
 
@@ -118,6 +118,15 @@ export class CollaborationController {
 	/** Followed peer's client id, or null when free (reactive). */
 	get followedClientId(): number | null {
 		return this.#presence.followedClientId;
+	}
+	/** The config the active session was started with (null when stopped); the
+	 * Share dialog's active view reads the local user's name/colour from this. */
+	get activeCollaboration(): CollaborationConfig | null {
+		return this.#config;
+	}
+	/** Total connected participants (self + remote peers), reactive. */
+	get connectedCount(): number {
+		return this.remotePresences.length + (this.#active ? 1 : 0);
 	}
 
 	/** Publish a cursor move (slide-space px); no-op when no session is active. */
@@ -288,6 +297,7 @@ export class CollaborationController {
 		this.#provider = null;
 		this.#ydoc = null;
 		this.#factories = null;
+		this.#config = null;
 		this.livePatcher.configure(null, null);
 		this.#applyingRemote = false;
 		this.#lastSynced = '';

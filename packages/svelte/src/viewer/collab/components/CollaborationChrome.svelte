@@ -39,6 +39,10 @@
 	open={dialogs.shareOpen}
 	defaults={shareDefaults}
 	active={collab.active}
+	status={collab.status}
+	connectedCount={collab.connectedCount}
+	remotePresences={collab.remotePresences}
+	activeCollaboration={collab.activeCollaboration}
 	onstart={dialogs.onShareStart}
 	onstop={dialogs.onShareStop}
 	onclose={() => (dialogs.shareOpen = false)}

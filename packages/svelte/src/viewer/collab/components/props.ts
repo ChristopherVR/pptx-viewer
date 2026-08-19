@@ -39,6 +39,14 @@ export interface ShareDialogProps {
 	defaults?: ShareDefaults;
 	/** Whether a collaboration session is currently active. */
 	active: boolean;
+	/** Live connection status while a session is active. */
+	status: ConnectionStatus;
+	/** Total connected participants (self + remote peers). */
+	connectedCount: number;
+	/** Remote collaborators' presence, for the connected-users list. */
+	remotePresences: SanitizedPresence[];
+	/** The config the active session was started with; null while stopped. */
+	activeCollaboration: CollaborationConfig | null;
 	/** Fired with the assembled config when the user starts sharing. */
 	onstart: (config: CollaborationConfig) => void;
 	/** Fired when the user stops an active session. */

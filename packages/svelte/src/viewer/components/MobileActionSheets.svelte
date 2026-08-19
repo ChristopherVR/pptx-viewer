@@ -75,7 +75,7 @@
 	{:else if active === 'inspector'}
 		<MobileSheet title={t('pptx.field.format')} onclose={close}><InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} /></MobileSheet>
 	{:else if active === 'comments'}
-		<MobileSheet title={t('pptx.toolbar.comments')} onclose={close}><ReviewCommentsPanel {editor} /></MobileSheet>
+		<MobileSheet title={t('pptx.toolbar.comments')} onclose={close}><ReviewCommentsPanel {editor} embedded /></MobileSheet>
 	{:else if active === 'menu'}
 		<MobileSheet title={t('pptx.mobileToolbar.menu')} onclose={close}>
 			<div class="pptx-svelte-mobile-menu-grid">

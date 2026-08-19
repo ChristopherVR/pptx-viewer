@@ -2,8 +2,12 @@
 	/**
 	 * ShareDialog: configure and start a real-time collaboration session (room
 	 * id, display name, server URL), or stop an active one. Svelte port of the
-	 * Vue `ShareDialog.vue`; form/config logic lives in `share-helpers.ts`.
+	 * Vue `ShareDialog.vue`; form/config logic lives in `share-helpers.ts`. The
+	 * active view (status, share link, connected-users list) mirrors React's
+	 * `ShareDialogActiveView.tsx`, built on shared's `buildActiveSessionUsers`.
 	 */
+	import { buildActiveSessionUsers, buildCollaborationShareUrl, resolveTransportForServerUrl } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../i18n/context';
 	import ModalDialog from './ModalDialog.svelte';
 	import type { ShareDialogProps } from './props';
@@ -16,7 +20,18 @@
 		seedShareFields,
 	} from './share-helpers';
 
-	const { open, defaults, active, onstart, onstop, onclose }: ShareDialogProps = $props();
+	const {
+		open,
+		defaults,
+		active,
+		status,
+		connectedCount,
+		remotePresences,
+		activeCollaboration,
+		onstart,
+		onstop,
+		onclose,
+	}: ShareDialogProps = $props();
 
 	const t = useTranslator();
 
@@ -58,6 +73,43 @@
 			onstart(config);
 		}
 	}
+
+	// ── Active-session view ──────────────────────────────────────────────────
+
+	const activeIsPeerToPeer = $derived(
+		resolveTransportForServerUrl(activeCollaboration?.serverUrl ?? '') === 'webrtc',
+	);
+	const activeShareUrl = $derived(
+		activeCollaboration && typeof window !== 'undefined'
+			? buildCollaborationShareUrl(activeCollaboration, {
+					origin: window.location.origin,
+					pathname: window.location.pathname,
+				})
+			: '',
+	);
+	const sessionUsers = $derived(
+		activeCollaboration
+			? buildActiveSessionUsers({
+					localUserName: activeCollaboration.userName,
+					localUserColor: activeCollaboration.userColor,
+					remoteUsers: remotePresences,
+				})
+			: [],
+	);
+
+	let copied = $state(false);
+	function onCopyLink(): void {
+		if (!activeShareUrl || typeof navigator === 'undefined' || !navigator.clipboard) {
+			return;
+		}
+		void navigator.clipboard.writeText(activeShareUrl).then(() => {
+			copied = true;
+			window.setTimeout(() => {
+				copied = false;
+			}, 2000);
+			return undefined;
+		});
+	}
 </script>
 
 <ModalDialog
@@ -67,10 +119,78 @@
 >
 	{#if active}
 		<div class="pptx-svelte-share-active">
-			<p class="pptx-svelte-share-desc">{t('pptx.share.activeDescription')}</p>
-			{#if isPeerToPeer}
+			<!-- Status -->
+			<div class="pptx-svelte-share-status-row">
+				<span
+					class="pptx-svelte-share-status-dot"
+					class:is-connected={status === 'connected'}
+					class:is-connecting={status === 'connecting'}
+				></span>
+				<span class="pptx-svelte-share-status-text">{status}</span>
+				<span class="pptx-svelte-share-count">
+					{t('pptx.collaboration.userCount', { count: connectedCount })}
+				</span>
+			</div>
+
+			<!-- Share URL -->
+			{#if activeShareUrl}
+				<div class="pptx-svelte-share-field">
+					<label for="pptx-svelte-share-link">{t('pptx.share.shareLink')}</label>
+					<div class="pptx-svelte-share-link-row">
+						<div id="pptx-svelte-share-link" class="pptx-svelte-share-link-value">{activeShareUrl}</div>
+						<button
+							type="button"
+							class="pptx-svelte-share-btn"
+							title={t('pptx.share.copyLink')}
+							onclick={onCopyLink}
+						>
+							{copied ? t('pptx.share.copied') : t('pptx.share.copyUrl')}
+						</button>
+					</div>
+					<p class="pptx-svelte-share-p2p-hint">{t('pptx.share.shareHint')}</p>
+				</div>
+			{/if}
+
+			<!-- Session details -->
+			{#if activeCollaboration}
+				<div class="pptx-svelte-share-details-row">
+					<span>
+						{t('pptx.share.room')}
+						<code>{activeCollaboration.roomId}</code>
+					</span>
+					<span>
+						{t('pptx.share.server')}
+						<code>{activeIsPeerToPeer ? t('pptx.share.p2pServerValue') : activeCollaboration.serverUrl}</code>
+					</span>
+				</div>
+			{:else if isPeerToPeer}
 				<p class="pptx-svelte-share-server-value">{t('pptx.share.p2pServerValue')}</p>
 			{/if}
+
+			<!-- Connected users -->
+			{#if sessionUsers.length > 0}
+				<div class="pptx-svelte-share-field">
+					<label for="pptx-svelte-share-users">{t('pptx.share.connectedUsers')}</label>
+					<div id="pptx-svelte-share-users" class="pptx-svelte-share-users">
+						{#each sessionUsers as user (user.id)}
+							<div class="pptx-svelte-share-user">
+								<span class="pptx-svelte-share-user-avatar" style={`background-color: ${user.color}`}>
+									{#if user.avatarUrl}
+										<img src={user.avatarUrl} alt="" />
+									{:else}
+										{user.initials}
+									{/if}
+								</span>
+								<span class="pptx-svelte-share-user-name">{user.name}</span>
+								<span class="pptx-svelte-share-user-tag">
+									{user.isLocal ? t('pptx.share.you') : t('pptx.notes.slideN', { n: user.slideNumber ?? 1 })}
+								</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
 			<button type="button" class="pptx-svelte-share-stop" onclick={onstop}>
 				{t('pptx.share.stopSharing')}
 			</button>
@@ -223,6 +343,128 @@
 	.pptx-svelte-share-field input:focus {
 		outline: 1px solid var(--pptx-primary, #6366f1);
 		outline-offset: -1px;
+	}
+
+	.pptx-svelte-share-status-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.pptx-svelte-share-status-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 9999px;
+		background: #f87171;
+	}
+
+	.pptx-svelte-share-status-dot.is-connected {
+		background: #4ade80;
+	}
+
+	.pptx-svelte-share-status-dot.is-connecting {
+		background: #facc15;
+	}
+
+	.pptx-svelte-share-status-text {
+		font-size: 13px;
+		font-weight: 500;
+		text-transform: capitalize;
+		color: var(--pptx-foreground, #e2e8f0);
+	}
+
+	.pptx-svelte-share-count {
+		margin-left: auto;
+		font-size: 12px;
+		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
+	.pptx-svelte-share-link-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.pptx-svelte-share-link-value {
+		flex: 1;
+		overflow: hidden;
+		border: 1px solid var(--pptx-border, #33334d);
+		border-radius: var(--pptx-radius, 6px);
+		background: var(--pptx-background, #11111b);
+		padding: 6px 10px;
+		color: var(--pptx-foreground, #e2e8f0);
+		font-family: monospace;
+		font-size: 11px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.pptx-svelte-share-details-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 11px;
+		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
+	.pptx-svelte-share-details-row code {
+		color: var(--pptx-foreground, #e2e8f0);
+		font-family: monospace;
+	}
+
+	.pptx-svelte-share-users {
+		max-height: 140px;
+		overflow-y: auto;
+		border: 1px solid var(--pptx-border, #33334d);
+		border-radius: var(--pptx-radius, 6px);
+		background: var(--pptx-background, #11111b);
+	}
+
+	.pptx-svelte-share-user {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		border-bottom: 1px solid var(--pptx-border, #33334d);
+		padding: 6px 10px;
+	}
+
+	.pptx-svelte-share-user:last-child {
+		border-bottom: 0;
+	}
+
+	.pptx-svelte-share-user-avatar {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: 9999px;
+		overflow: hidden;
+		color: #ffffff;
+		font-size: 9px;
+		font-weight: 600;
+	}
+
+	.pptx-svelte-share-user-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.pptx-svelte-share-user-name {
+		overflow: hidden;
+		font-size: 12px;
+		color: var(--pptx-foreground, #e2e8f0);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.pptx-svelte-share-user-tag {
+		margin-left: auto;
+		font-size: 10px;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		white-space: nowrap;
 	}
 
 	.pptx-svelte-share-stop {
