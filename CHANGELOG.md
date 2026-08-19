@@ -10,6 +10,27 @@ dated sections beneath it are generated from
 
 ## 2026-08-19
 
+_Releases: pptx-react-viewer@2.19.6, pptx-vue-viewer@2.20.6, pptx-angular-viewer@2.18.6, pptx-vanilla-viewer@1.21.6, pptx-svelte-viewer@2.20.6_
+
+### Bug Fixes
+
+- **shared:** Add collaboration-active-session connected-users view-model (by @ChristopherVR) ([7add165](https://github.com/ChristopherVR/pptx-viewer/commit/7add165d14ae855889bd9aedac13e859b86d2274))
+- **vue:** Mobile Comments/Notes double header, Share dialog user list (by @ChristopherVR) ([9091398](https://github.com/ChristopherVR/pptx-viewer/commit/90913981aab89a608b38416ec4e22a5d429990c4))
+- **angular:** Show connected users in the active Share dialog (by @ChristopherVR) ([b5630ba](https://github.com/ChristopherVR/pptx-viewer/commit/b5630bad9fa7ef16c5b9c8707b96b9cb42e2bb76))
+- **svelte:** Mobile Comments double header, Share dialog user list (by @ChristopherVR) ([e97fdd6](https://github.com/ChristopherVR/pptx-viewer/commit/e97fdd671491fabf5b7d338d1b2471c7c49d125c))
+- **vanilla:** Show connected users in the active Share dialog (by @ChristopherVR) ([8b73321](https://github.com/ChristopherVR/pptx-viewer/commit/8b7332123321040a3cd93f999f84c3d23ef5eec3))
+
+### Refactor
+
+- **react:** Source the Share dialog user list from shared (by @ChristopherVR) ([bd41a14](https://github.com/ChristopherVR/pptx-viewer/commit/bd41a1440b4f33b0d68616ae141e4c89bd5a4f50))
+
+### Dependencies
+
+- **deps:** Update all outdated dependencies (by @ChristopherVR) ([4bba8db](https://github.com/ChristopherVR/pptx-viewer/commit/4bba8dbdf8b49a3aa8b404fd79eb3c9e5997f591))
+- **deps:** Update oxfmt to 0.64.0 (by @ChristopherVR) ([8957155](https://github.com/ChristopherVR/pptx-viewer/commit/89571554737abc415f0ef274a95b4fbb6da2bae8))
+
+## 2026-08-19
+
 _Releases: pptx-viewer-core@2.3.9, pptx-react-viewer@2.19.5, pptx-vue-viewer@2.20.5, pptx-angular-viewer@2.18.5, pptx-vanilla-viewer@1.21.5, pptx-svelte-viewer@2.20.5_
 
 ### Dependencies

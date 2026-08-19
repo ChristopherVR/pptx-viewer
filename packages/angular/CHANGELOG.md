@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.18.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.6) - 2026-08-19
+
+### Bug Fixes
+
+- **shared:** Add collaboration-active-session connected-users view-model (by @ChristopherVR) ([7add165](https://github.com/ChristopherVR/pptx-viewer/commit/7add165d14ae855889bd9aedac13e859b86d2274))
+- **angular:** Show connected users in the active Share dialog (by @ChristopherVR) ([b5630ba](https://github.com/ChristopherVR/pptx-viewer/commit/b5630bad9fa7ef16c5b9c8707b96b9cb42e2bb76))
+
 ## [2.18.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.5) - 2026-08-19
 
 ### Dependencies

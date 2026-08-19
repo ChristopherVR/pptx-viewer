@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.20.6) - 2026-08-19
+
+### Bug Fixes
+
+- **shared:** Add collaboration-active-session connected-users view-model (by @ChristopherVR) ([7add165](https://github.com/ChristopherVR/pptx-viewer/commit/7add165d14ae855889bd9aedac13e859b86d2274))
+- **svelte:** Mobile Comments double header, Share dialog user list (by @ChristopherVR) ([e97fdd6](https://github.com/ChristopherVR/pptx-viewer/commit/e97fdd671491fabf5b7d338d1b2471c7c49d125c))
+
 ## [2.20.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.20.5) - 2026-08-19
 
 ### Dependencies

@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.20.6) - 2026-08-19
+
+### Bug Fixes
+
+- **shared:** Add collaboration-active-session connected-users view-model (by @ChristopherVR) ([7add165](https://github.com/ChristopherVR/pptx-viewer/commit/7add165d14ae855889bd9aedac13e859b86d2274))
+- **vue:** Mobile Comments/Notes double header, Share dialog user list (by @ChristopherVR) ([9091398](https://github.com/ChristopherVR/pptx-viewer/commit/90913981aab89a608b38416ec4e22a5d429990c4))
+
 ## [2.20.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.20.5) - 2026-08-19
 
 ### Dependencies

@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.19.6) - 2026-08-19
+
+### Bug Fixes
+
+- **shared:** Add collaboration-active-session connected-users view-model (by @ChristopherVR) ([7add165](https://github.com/ChristopherVR/pptx-viewer/commit/7add165d14ae855889bd9aedac13e859b86d2274))
+
+### Refactor
+
+- **react:** Source the Share dialog user list from shared (by @ChristopherVR) ([bd41a14](https://github.com/ChristopherVR/pptx-viewer/commit/bd41a1440b4f33b0d68616ae141e4c89bd5a4f50))
+
 ## [2.19.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.19.5) - 2026-08-19
 
 ### Dependencies
