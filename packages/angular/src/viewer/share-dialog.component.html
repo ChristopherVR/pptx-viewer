@@ -22,7 +22,18 @@
 				</span>
 			</div>
 
-			@if (p2p()) {
+			@if (activeRoomId()) {
+				<div class="pptx-ng-share-details-row">
+					<span>
+						{{ 'pptx.share.room' | translate }}
+						<code>{{ activeRoomId() }}</code>
+					</span>
+					<span>
+						{{ 'pptx.share.server' | translate }}
+						<code>{{ p2p() ? ('pptx.share.p2pServerValue' | translate) : activeServerUrl() }}</code>
+					</span>
+				</div>
+			} @else if (p2p()) {
 				<div class="pptx-ng-share-status-row">
 					<span class="pptx-ng-share-count" style="margin-left: 0">
 						{{ 'pptx.share.p2pServerValue' | translate }}
@@ -51,6 +62,33 @@
 						</button>
 					</div>
 					<p class="pptx-ng-share-hint">{{ 'pptx.share.shareHint' | translate }}</p>
+				</div>
+			}
+
+			@if (users().length > 0) {
+				<div class="pptx-ng-share-field">
+					<label class="pptx-ng-share-label">{{ 'pptx.share.connectedUsers' | translate }}</label>
+					<div class="pptx-ng-share-users">
+						@for (user of users(); track user.id) {
+							<div class="pptx-ng-share-user">
+								<span class="pptx-ng-share-user-avatar" [style.background-color]="user.color">
+									@if (user.avatarUrl) {
+										<img [src]="user.avatarUrl" alt="" />
+									} @else {
+										{{ user.initials }}
+									}
+								</span>
+								<span class="pptx-ng-share-user-name">{{ user.name }}</span>
+								<span class="pptx-ng-share-user-meta">
+									{{
+										user.isLocal
+											? ('pptx.share.you' | translate)
+											: ('pptx.notes.slideN' | translate: { n: user.slideNumber })
+									}}
+								</span>
+							</div>
+						}
+					</div>
 				</div>
 			}
 

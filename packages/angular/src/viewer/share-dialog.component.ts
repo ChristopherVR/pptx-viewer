@@ -23,7 +23,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import type { CollaborationConfig } from '../internal/shared';
+import type { ActiveSessionUserDescriptor, CollaborationConfig } from '../internal/shared';
 import { buildCreateCollaborationConfig, buildJoinCollaborationConfig } from '../internal/shared';
 import { canUseClipboard } from './broadcast-helpers';
 import { ModalDialogComponent } from './modal-dialog.component';
@@ -59,6 +59,15 @@ export class ShareDialogComponent {
 
 	/** Whether the active session is peer-to-peer (serverless webrtc). */
 	readonly p2p = input<boolean>(false);
+
+	/** Room id of the active session, for the room/server detail line. */
+	readonly activeRoomId = input<string>('');
+
+	/** Server URL of the active session (ignored when `p2p` is true). */
+	readonly activeServerUrl = input<string>('');
+
+	/** Connected-users list (local user first, then remote peers). */
+	readonly users = input<ActiveSessionUserDescriptor[]>([]);
 
 	/** Fired with the assembled config when the user starts sharing. */
 	readonly start = output<CollaborationConfig>();

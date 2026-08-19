@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/one-var -- pre-existing throughout this file; independent concerns, not one statement */
 import { NgClass, NgStyle } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
@@ -957,6 +958,9 @@ import { ZoomTargetService } from './zoom-target.service';
 				[userCount]="collab.connectedCount()"
 				[shareUrl]="session.shareUrl()"
 				[p2p]="session.activeSessionP2p()"
+				[activeRoomId]="session.activeCollaboration()?.roomId ?? ''"
+				[activeServerUrl]="session.activeCollaboration()?.serverUrl ?? ''"
+				[users]="session.users()"
 				[defaults]="session.shareDialogDefaults()"
 				(start)="session.onShareStart($event)"
 				(stop)="session.onShareStop()"
