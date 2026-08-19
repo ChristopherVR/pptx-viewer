@@ -88,7 +88,7 @@
 		"jszip": "^3.10.1",
 		"lib0": "^0.2.117",
 		"lint-staged": "^17.3.0",
-		"oxfmt": "^0.62.0",
+		"oxfmt": "0.64.0",
 		"oxlint": "^1.79.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
