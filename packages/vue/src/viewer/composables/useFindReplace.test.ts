@@ -3,7 +3,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 
-import { findMatches, replaceInElement, useFindReplace } from './useFindReplace';
+import { useFindReplace } from './useFindReplace';
 
 function textEl(id: string, text: string): PptxElement {
 	return {
@@ -18,21 +18,20 @@ function textEl(id: string, text: string): PptxElement {
 	} as PptxElement;
 }
 
-function segEl(id: string, segments: Array<{ text: string }>): PptxElement {
-	return {
-		type: 'text',
-		id,
-		x: 0,
-		y: 0,
-		width: 100,
-		height: 40,
-		text: segments.map((s) => s.text).join(''),
-		textSegments: segments.map((s) => ({ text: s.text, style: {} })),
-	} as PptxElement;
-}
-
 function slide(id: string, elements: PptxElement[]): PptxSlide {
 	return { id, elements } as PptxSlide;
+}
+
+/** Look up a text element by id and narrow it, for asserting on `.text` / `.textSegments`. */
+function findTextElement(
+	slides: PptxSlide[],
+	slideIndex: number,
+	elementId: string,
+): Extract<PptxElement, { type: 'text' }> {
+	return slides[slideIndex].elements?.find((e) => e.id === elementId) as Extract<
+		PptxElement,
+		{ type: 'text' }
+	>;
 }
 
 function makeSlides(): PptxSlide[] {
@@ -45,59 +44,30 @@ function makeSlides(): PptxSlide[] {
 	];
 }
 
-describe('findMatches', () => {
-	it('finds text elements across slides containing the query', () => {
-		const results = findMatches(makeSlides(), 'world', false);
-		expect(results).toHaveLength(2);
-		expect(results.map((r) => r.elementId)).toStrictEqual(['a', 'c']);
-		expect(results.map((r) => r.slideIndex)).toStrictEqual([0, 1]);
-	});
-
-	it('respects case sensitivity', () => {
-		const slides = [slide('s1', [textEl('a', 'World'), textEl('b', 'world')])];
-		expect(findMatches(slides, 'world', true).map((r) => r.elementId)).toStrictEqual(['b']);
-		expect(findMatches(slides, 'world', false).map((r) => r.elementId)).toStrictEqual(['a', 'b']);
-	});
-
-	it('returns nothing for an empty query', () => {
-		expect(findMatches(makeSlides(), '', false)).toStrictEqual([]);
-	});
-});
-
-describe('replaceInElement', () => {
-	it('rewrites both text and every segment', () => {
-		const el = segEl('a', [{ text: 'foo ' }, { text: 'bar foo' }]);
-		const next = replaceInElement(
-			el as Extract<PptxElement, { type: 'text' }>,
-			'foo',
-			'baz',
-			false,
-		);
-		expect(next.text).toBe('baz bar baz');
-		expect(next.textSegments?.map((s) => s.text)).toStrictEqual(['baz ', 'bar baz']);
-	});
-
-	it('treats the query as a literal string (escapes regex)', () => {
-		const el = textEl('a', 'a.b a.b');
-		const next = replaceInElement(el as Extract<PptxElement, { type: 'text' }>, 'a.b', 'X', false);
-		expect(next.text).toBe('X X');
-	});
-});
-
 describe('useFindReplace', () => {
-	it('exposes a reactive match count over the live slides', () => {
-		const slides = ref(makeSlides());
-		const activeSlideIndex = ref(0);
-		const fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
+	it('exposes a reactive match count over the live slides, at per-occurrence precision', () => {
+		const slides = ref(makeSlides()),
+			activeSlideIndex = ref(0),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
 
 		fr.query.value = 'world';
 		expect(fr.matchCount.value).toBe(2);
 	});
 
+	it('counts every occurrence within a single element, not one match per element', () => {
+		const slides = ref([slide('s1', [textEl('a', 'world world world')])]),
+			activeSlideIndex = ref(0),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
+
+		fr.query.value = 'world';
+		// Per-occurrence: 3 matches inside one element, not 1.
+		expect(fr.matchCount.value).toBe(3);
+	});
+
 	it('next() cycles matches and moves the active slide', () => {
-		const slides = ref(makeSlides());
-		const activeSlideIndex = ref(0);
-		const fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
+		const slides = ref(makeSlides()),
+			activeSlideIndex = ref(0),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
 		fr.query.value = 'world';
 
 		fr.next();
@@ -109,9 +79,9 @@ describe('useFindReplace', () => {
 	});
 
 	it('prev() cycles backwards', () => {
-		const slides = ref(makeSlides());
-		const activeSlideIndex = ref(0);
-		const fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
+		const slides = ref(makeSlides()),
+			activeSlideIndex = ref(0),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
 		fr.query.value = 'world';
 
 		fr.prev();
@@ -119,44 +89,63 @@ describe('useFindReplace', () => {
 		expect(activeSlideIndex.value).toBe(1);
 	});
 
+	it('respects case sensitivity', () => {
+		const slides = ref([slide('s1', [textEl('a', 'World'), textEl('b', 'world')])]),
+			activeSlideIndex = ref(0),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
+
+		fr.matchCase.value = true;
+		fr.query.value = 'world';
+		expect(fr.matchCount.value).toBe(1);
+
+		fr.matchCase.value = false;
+		expect(fr.matchCount.value).toBe(2);
+	});
+
 	it('replaceAll rewrites text + segments and snapshots history', () => {
-		const slides = ref(makeSlides());
-		const activeSlideIndex = ref(0);
-		const pushHistory = vi.fn();
-		const fr = useFindReplace({ slides, activeSlideIndex, pushHistory });
+		const slides = ref(makeSlides()),
+			activeSlideIndex = ref(0),
+			pushHistory = vi.fn(),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory });
 
 		fr.query.value = 'world';
 		fr.replacement.value = 'earth';
 		fr.replaceAll();
 
 		expect(pushHistory).toHaveBeenCalledOnce();
-		const a = slides.value[0].elements?.find((e) => e.id === 'a');
-		const c = slides.value[1].elements?.find((e) => e.id === 'c');
-		expect((a as Extract<PptxElement, { type: 'text' }>).text).toBe('Hello earth');
-		expect((a as Extract<PptxElement, { type: 'text' }>).textSegments?.[0].text).toBe(
-			'Hello earth',
-		);
-		expect((c as Extract<PptxElement, { type: 'text' }>).text).toBe('earth peace');
+		expect(findTextElement(slides.value, 0, 'a').text).toBe('Hello earth');
+		expect(findTextElement(slides.value, 0, 'a').textSegments?.[0].text).toBe('Hello earth');
+		expect(findTextElement(slides.value, 1, 'c').text).toBe('earth peace');
 		// Query no longer matches after replacement.
 		expect(fr.matchCount.value).toBe(0);
 	});
 
-	it('replaceCurrent only rewrites the focused match', () => {
-		const slides = ref(makeSlides());
-		const activeSlideIndex = ref(0);
-		const pushHistory = vi.fn();
-		const fr = useFindReplace({ slides, activeSlideIndex, pushHistory });
+	it('replaceAll replaces every occurrence within a single element, not just the first', () => {
+		const slides = ref([slide('s1', [textEl('a', 'world world world')])]),
+			activeSlideIndex = ref(0),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory: () => {} });
+
+		fr.query.value = 'world';
+		fr.replacement.value = 'earth';
+		fr.replaceAll();
+
+		expect(findTextElement(slides.value, 0, 'a').text).toBe('earth earth earth');
+	});
+
+	it('replaceCurrent only rewrites the focused occurrence', () => {
+		const slides = ref(makeSlides()),
+			activeSlideIndex = ref(0),
+			pushHistory = vi.fn(),
+			fr = useFindReplace({ slides, activeSlideIndex, pushHistory });
 
 		fr.query.value = 'world';
 		fr.replacement.value = 'earth';
 		fr.replaceCurrent();
 
 		expect(pushHistory).toHaveBeenCalledOnce();
-		const a = slides.value[0].elements?.find((e) => e.id === 'a');
-		const c = slides.value[1].elements?.find((e) => e.id === 'c');
-		expect((a as Extract<PptxElement, { type: 'text' }>).text).toBe('Hello earth');
+		expect(findTextElement(slides.value, 0, 'a').text).toBe('Hello earth');
 		// Second match untouched, so one match remains.
-		expect((c as Extract<PptxElement, { type: 'text' }>).text).toBe('world peace');
+		expect(findTextElement(slides.value, 1, 'c').text).toBe('world peace');
 		expect(fr.matchCount.value).toBe(1);
 	});
 });
