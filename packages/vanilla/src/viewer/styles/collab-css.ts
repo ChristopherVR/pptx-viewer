@@ -116,6 +116,41 @@ export const COLLAB_CSS = `
 }
 .pptxv-modal-danger-btn:hover { background: rgb(239 68 68 / 0.2); }
 
+/* ── Share dialog: active-session status/details/connected-users ───────── */
+.pptxv-share-status-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.pptxv-share-status-row .pptxv-collab-status-dot { flex-shrink: 0; }
+.pptxv-share-status-text { font-weight: 500; text-transform: capitalize; }
+.pptxv-share-count { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--pptx-muted-foreground); }
+.pptxv-share-details { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--pptx-muted-foreground); }
+.pptxv-share-details code { font-family: monospace; color: var(--pptx-foreground); }
+.pptxv-share-users-list {
+	display: flex;
+	flex-direction: column;
+	max-height: 140px;
+	overflow-y: auto;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-background);
+}
+.pptxv-share-user { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--pptx-border); }
+.pptxv-share-user:last-child { border-bottom: none; }
+.pptxv-share-user-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	overflow: hidden;
+	color: #ffffff;
+	font-size: 9px;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+.pptxv-share-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pptxv-share-user-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pptxv-share-user-tag { margin-left: auto; font-size: 10px; color: var(--pptx-muted-foreground); white-space: nowrap; }
+
 /* ── Remote-cursor overlay ────────────────────────────────────────────── */
 .pptxv-collab-cursors {
 	position: absolute;
