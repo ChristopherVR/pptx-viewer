@@ -6,12 +6,16 @@ import MobileBottomBar from './MobileBottomBar.vue';
 
 function mountBar(
 	props: Partial<{
+		slideCount: number;
 		activeSheet: MobileActiveSheet;
 		commentCount: number;
 		keyboardInset: number;
 	}> = {},
 ) {
-	return mount(MobileBottomBar, { props });
+	// Default to a loaded deck so the pre-existing behavioural tests below
+	// (tapping tabs, badges, etc.) don't need to opt into a non-zero slide
+	// count individually; the disabled-gating tests below pass 0 explicitly.
+	return mount(MobileBottomBar, { props: { slideCount: 5, ...props } });
 }
 
 /** The translated label of each tab, in render order. */
@@ -28,8 +32,8 @@ describe('mobileBottomBar', () => {
 	});
 
 	it('emits the matching event for each tab tap', async () => {
-		const wrapper = mountBar();
-		const tabs = wrapper.findAll('.pptx-vue-mobile-tab');
+		const wrapper = mountBar(),
+			tabs = wrapper.findAll('.pptx-vue-mobile-tab');
 		for (const tab of tabs) {
 			await tab.trigger('click');
 		}
@@ -41,19 +45,19 @@ describe('mobileBottomBar', () => {
 	});
 
 	it('marks only the active sheet tab as pressed', () => {
-		const wrapper = mountBar({ activeSheet: 'format' });
-		const pressed = wrapper
-			.findAll('.pptx-vue-mobile-tab')
-			.filter((tab) => tab.attributes('aria-pressed') === 'true');
+		const wrapper = mountBar({ activeSheet: 'format' }),
+			pressed = wrapper
+				.findAll('.pptx-vue-mobile-tab')
+				.filter((tab) => tab.attributes('aria-pressed') === 'true');
 		expect(pressed).toHaveLength(1);
 		expect(pressed[0].text()).toContain('Format');
 	});
 
 	it('leaves every tab unpressed when no sheet is open', () => {
-		const wrapper = mountBar({ activeSheet: null });
-		const pressed = wrapper
-			.findAll('.pptx-vue-mobile-tab')
-			.filter((tab) => tab.attributes('aria-pressed') === 'true');
+		const wrapper = mountBar({ activeSheet: null }),
+			pressed = wrapper
+				.findAll('.pptx-vue-mobile-tab')
+				.filter((tab) => tab.attributes('aria-pressed') === 'true');
 		expect(pressed).toHaveLength(0);
 	});
 
@@ -82,5 +86,19 @@ describe('mobileBottomBar', () => {
 	it('lifts above the keyboard when a keyboard inset is supplied', () => {
 		const wrapper = mountBar({ keyboardInset: 120 });
 		expect(wrapper.get('.pptx-vue-mobile-bar').attributes('style')).toContain('translateY(-120px)');
+	});
+
+	it('disables every tab when no slides are loaded', () => {
+		const wrapper = mountBar({ slideCount: 0 }),
+			tabs = wrapper.findAll('.pptx-vue-mobile-tab');
+		expect(tabs).toHaveLength(5);
+		expect(tabs.every((tab) => tab.attributes('disabled') !== undefined)).toBeTruthy();
+	});
+
+	it('enables every tab once slides are loaded', () => {
+		const wrapper = mountBar({ slideCount: 3 }),
+			tabs = wrapper.findAll('.pptx-vue-mobile-tab');
+		expect(tabs).toHaveLength(5);
+		expect(tabs.every((tab) => tab.attributes('disabled') === undefined)).toBeTruthy();
 	});
 });

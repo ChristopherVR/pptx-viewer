@@ -19,6 +19,8 @@
  * classes are used directly, like React, rather than hand-written scoped CSS.
  */
 import { Layers, MessageSquare, Plus, Settings2, StickyNote } from 'lucide-vue-next';
+import type { ActionDescriptor } from 'pptx-viewer-shared';
+import { buildBarActions } from 'pptx-viewer-shared';
 import type { FunctionalComponent } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -27,17 +29,22 @@ import type { MobileActiveSheet } from '../composables/useMobileChrome';
 
 const { t } = useI18n();
 
-const props = defineProps<{
-	/** The currently-open sheet, so its tab renders active. */
-	activeSheet?: MobileActiveSheet;
-	/** Number of comments on the active slide (renders a badge, capped at 99+). */
-	commentCount?: number;
-	/**
-	 * CSS pixels the on-screen keyboard covers. When > 0 the fixed bar lifts by
-	 * this amount so it stays above the keyboard instead of under it.
-	 */
-	keyboardInset?: number;
-}>();
+const props = withDefaults(
+	defineProps<{
+		/** Total number of slides in the presentation; every tab disables at 0. */
+		slideCount?: number;
+		/** The currently-open sheet, so its tab renders active. */
+		activeSheet?: MobileActiveSheet;
+		/** Number of comments on the active slide (renders a badge, capped at 99+). */
+		commentCount?: number;
+		/**
+		 * CSS pixels the on-screen keyboard covers. When > 0 the fixed bar lifts by
+		 * this amount so it stays above the keyboard instead of under it.
+		 */
+		keyboardInset?: number;
+	}>(),
+	{ slideCount: 0 },
+);
 
 const emit = defineEmits<{
 	slides: [];
@@ -57,25 +64,46 @@ interface Tab {
 	/** Overrides the visible label as the accessible name (React does this for Notes). */
 	ariaLabelKey?: string;
 	badge?: number;
+	disabled: boolean;
 }
 
-const tabs = computed<Tab[]>(() => [
-	{ key: 'slides', labelKey: 'pptx.sections.slides', icon: Layers },
-	{ key: 'insert', labelKey: 'pptx.mobileBar.insert', icon: Plus },
-	{ key: 'format', labelKey: 'pptx.field.format', icon: Settings2 },
-	{
-		key: 'comments',
-		labelKey: 'pptx.toolbar.comments',
-		icon: MessageSquare,
-		badge: props.commentCount,
-	},
-	{
-		key: 'notes',
-		labelKey: 'pptx.notes.title',
-		icon: StickyNote,
-		ariaLabelKey: 'pptx.statusBar.toggleNotes',
-	},
-]);
+/**
+ * Per-tab display metadata, plus the shared `buildBarActions` key each tab
+ * maps from (the shared vocabulary calls the format tab `inspector`).
+ */
+const TAB_META: Record<
+	TabKey,
+	{ labelKey: string; icon: FunctionalComponent; sharedKey: ActionDescriptor['key'] }
+> = {
+	slides: { labelKey: 'pptx.sections.slides', icon: Layers, sharedKey: 'slides' },
+	insert: { labelKey: 'pptx.mobileBar.insert', icon: Plus, sharedKey: 'insert' },
+	format: { labelKey: 'pptx.field.format', icon: Settings2, sharedKey: 'inspector' },
+	comments: { labelKey: 'pptx.toolbar.comments', icon: MessageSquare, sharedKey: 'comments' },
+	notes: { labelKey: 'pptx.notes.title', icon: StickyNote, sharedKey: 'notes' },
+};
+
+// Shared `buildBarActions` decides which tabs are disabled (no slides
+// loaded); this binding only maps the resulting descriptor onto its own
+// icons, labels and click handlers.
+const tabs = computed<Tab[]>(() => {
+	const disabledBySharedKey = new Map(
+		buildBarActions({ slideCount: props.slideCount ?? 0 }).map((descriptor) => [
+			descriptor.key,
+			descriptor.disabled,
+		]),
+	);
+	return (Object.keys(TAB_META) as TabKey[]).map((key) => {
+		const meta = TAB_META[key];
+		return {
+			key,
+			labelKey: meta.labelKey,
+			icon: meta.icon,
+			ariaLabelKey: key === 'notes' ? 'pptx.statusBar.toggleNotes' : undefined,
+			badge: key === 'comments' ? props.commentCount : undefined,
+			disabled: disabledBySharedKey.get(meta.sharedKey) ?? false,
+		};
+	});
+});
 
 /**
  * Fire the emit for a tapped tab. Vue's typed `emit` is an overload set that
@@ -133,10 +161,11 @@ const barStyle = computed(() => {
 			v-for="tab in tabs"
 			:key="tab.key"
 			type="button"
-			class="pptx-vue-mobile-tab relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-1.5 text-[10px] font-medium transition-colors active:scale-95"
+			class="pptx-vue-mobile-tab relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-1.5 text-[10px] font-medium transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
 			:class="
 				activeSheet === tab.key ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
 			"
+			:disabled="tab.disabled"
 			:aria-pressed="activeSheet === tab.key"
 			:aria-label="tab.ariaLabelKey ? t(tab.ariaLabelKey) : undefined"
 			@click="onTab(tab.key)"

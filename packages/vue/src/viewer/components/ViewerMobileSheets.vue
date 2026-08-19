@@ -90,6 +90,7 @@ function toggleSheet(sheet: keyof typeof SHEET_REFS): void {
 
 <template>
 	<MobileBottomBar
+		:slide-count="slideCount"
 		:active-sheet="chrome.activeSheet.value"
 		:keyboard-inset="keyboardInset"
 		:comment-count="activeComments.length"
