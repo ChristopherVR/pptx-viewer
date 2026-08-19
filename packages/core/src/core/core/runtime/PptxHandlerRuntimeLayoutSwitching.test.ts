@@ -747,6 +747,67 @@ describe('placeholder re-mapping (GAP-E4 layout switching)', () => {
 		expect(newBody.width).toBe(Math.round(5000000 / EMU_PER_PX));
 	});
 
+	it('drops an untouched empty placeholder left over from a previous switch when its slot disappears', () => {
+		// Layout A: title + body only. Layout B: title + body + subtitle.
+		const layoutA = makeLayoutXml([
+			{ phType: 'title', xEmu: 100000, yEmu: 100000, cxEmu: 5000000, cyEmu: 1000000 },
+			{ phType: 'body', xEmu: 100000, yEmu: 1500000, cxEmu: 5000000, cyEmu: 3000000 },
+		]);
+		const layoutB = makeLayoutXml([
+			{ phType: 'title', xEmu: 200000, yEmu: 200000, cxEmu: 6000000, cyEmu: 1200000 },
+			{ phType: 'body', xEmu: 200000, yEmu: 1700000, cxEmu: 6000000, cyEmu: 3200000 },
+			{ phType: 'subTitle', xEmu: 200000, yEmu: 5200000, cxEmu: 6000000, cyEmu: 800000 },
+		]);
+
+		const titleEl = makePhElement('t1', 'title', undefined, 10, 10, 100, 50, 'My Title');
+		const bodyEl = makePhElement('b1', 'body', undefined, 10, 70, 100, 200, 'Body text');
+
+		// A -> B: title and body claim their slots; B's subtitle slot has no
+		// matching content, so an empty placeholder is generated for it.
+		const afterSwitchToB = remapElementsToNewLayout([titleEl, bodyEl], layoutB);
+		expect(afterSwitchToB).toHaveLength(3);
+		const emptySubtitle = afterSwitchToB.find((e) => e.id !== 't1' && e.id !== 'b1')!;
+		expect(emptySubtitle.text).toBe('');
+
+		// B -> A: title and body claim A's slots again; A has no subtitle slot,
+		// and the leftover subtitle is still untouched, so it must vanish
+		// instead of surviving as orphaned free-standing content.
+		const afterSwitchBackToA = remapElementsToNewLayout(afterSwitchToB, layoutA);
+		expect(afterSwitchBackToA.map((e) => e.id)).toStrictEqual(['t1', 'b1']);
+
+		const title = afterSwitchBackToA.find((e) => e.id === 't1')!;
+		expect(title.x).toBe(Math.round(100000 / EMU_PER_PX));
+		expect(title.y).toBe(Math.round(100000 / EMU_PER_PX));
+		const body = afterSwitchBackToA.find((e) => e.id === 'b1')!;
+		expect(body.x).toBe(Math.round(100000 / EMU_PER_PX));
+		expect(body.y).toBe(Math.round(1500000 / EMU_PER_PX));
+	});
+
+	it('keeps an edited placeholder as free-standing content even when its slot disappears', () => {
+		const layoutB = makeLayoutXml([
+			{ phType: 'title', xEmu: 200000, yEmu: 200000, cxEmu: 6000000, cyEmu: 1200000 },
+		]);
+
+		const titleEl = makePhElement('t1', 'title', undefined, 10, 10, 100, 50, 'My Title');
+		const subtitleEl = makePhElement(
+			's1',
+			'subTitle',
+			undefined,
+			10,
+			70,
+			100,
+			50,
+			'Real subtitle text',
+		);
+
+		const result = remapElementsToNewLayout([titleEl, subtitleEl], layoutB);
+
+		// The subtitle has real user content and layout B has no subtitle slot,
+		// so it must survive as free-standing content, not be dropped.
+		expect(result.map((e) => e.id)).toStrictEqual(['t1', 's1']);
+		expect(result.find((e) => e.id === 's1')?.text).toBe('Real subtitle text');
+	});
+
 	it('keeps non-placeholder elements at their current positions', () => {
 		const titleEl = makePhElement('t1', 'title', undefined, 10, 10, 100, 50);
 		const freeform = makeNonPhElement('f1', 300, 400, 150, 80);

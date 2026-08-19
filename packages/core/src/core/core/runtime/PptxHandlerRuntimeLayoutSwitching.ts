@@ -82,6 +82,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return this.readPlaceholderInfoFromNvPr(nvPr);
 	}
 
+	/**
+	 * Whether a placeholder element is still an untouched prompt ("Click to
+	 * add text") rather than real user content. Only `type: 'text'`
+	 * placeholders can be untouched this way: `createEmptyPlaceholderElement`
+	 * only ever fabricates that kind, and any other kind (picture, table,
+	 * chart, ...) implies the user already put something in it.
+	 */
+	private isUntouchedPlaceholderPrompt(element: PptxElement): boolean {
+		if (element.type !== 'text') {
+			return false;
+		}
+		if (element.text && element.text.trim().length > 0) {
+			return false;
+		}
+		return !element.textSegments?.some((segment) => segment.text.trim().length > 0);
+	}
+
 	// ── Layout placeholder extraction ───────────────────────────────────
 
 	/**
@@ -350,12 +367,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 
 				resultElements.push(updatedElement);
-			} else {
-				// No slot for this content in the new layout. PowerPoint keeps it
-				// on the slide as free-standing content rather than deleting it,
-				// and so do we: dropping it silently lost the user's work.
+			} else if (!this.isUntouchedPlaceholderPrompt(element)) {
+				// No slot for this content in the new layout. PowerPoint keeps
+				// genuine content on the slide as free-standing rather than
+				// deleting it, and so do we: dropping it would silently lose the
+				// user's work.
 				resultElements.push(element);
 			}
+			// An untouched placeholder prompt (never edited -- including one an
+			// earlier switch generated for a layout the slide has since left)
+			// carries no real content. Keeping it as free-standing clutter is
+			// how repeated A->B->A switching accumulated empty leftover shapes;
+			// PowerPoint itself drops the prompt the moment its slot is gone, so
+			// we do too.
 		}
 
 		// Add empty placeholders from the new layout that were not matched
