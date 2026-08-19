@@ -1,11 +1,15 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (independent short-lived `const`s per operation); merging them isn't a
+   style choice here. */
 import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
 import {
+	canMergeCells,
 	computeSplitCell,
 	deleteTableColumn,
 	deleteTableRow,
 	insertTableColumn,
 	insertTableRow,
-	withCellText,
+	mergeCells,
 } from 'pptx-viewer-shared';
 
 export interface TableCellPosition {
@@ -94,53 +98,26 @@ export function setTableRowHeight(
 	};
 }
 
+/**
+ * Merge a rectangular selection of cells.
+ *
+ * Delegates to `pptx-viewer-shared`'s `canMergeCells` / `mergeCells`, which
+ * first expand the selection rect to fully cover any merge group it only
+ * partially overlaps before validating and applying the merge. Mirrors
+ * Vue's `applyMergeSelected` / Svelte's `table-merge-selected` command; a
+ * hand-rolled bounding-rect + cell-count check here (as this used to be)
+ * rejects, or incorrectly merges, a selection that partially overlaps an
+ * existing merged cell.
+ */
 export function mergeTableCellRange(
 	data: PptxTableData,
 	cells: TableCellPosition[],
 ): PptxTableData {
-	if (cells.length < 2) {
+	const coords = cells.map(({ row, column }) => ({ row, col: column }));
+	if (!canMergeCells(coords, data)) {
 		return data;
 	}
-	const rows = cells.map(({ row }) => row);
-	const columns = cells.map(({ column }) => column);
-	const top = Math.min(...rows);
-	const bottom = Math.max(...rows);
-	const left = Math.min(...columns);
-	const right = Math.max(...columns);
-	if (cells.length !== (bottom - top + 1) * (right - left + 1)) {
-		return data;
-	}
-	const nextRows = data.rows.map((row, rowIndex) => ({
-		...row,
-		cells: row.cells.map((cell, columnIndex) => {
-			if (rowIndex < top || rowIndex > bottom || columnIndex < left || columnIndex > right) {
-				return cell;
-			}
-			// `withCellText`, not a bare spread: the cell's `textRuns` describe the
-			// text being replaced here, and the renderer paints those runs in
-			// preference to the flat string, so keeping them leaves the absorbed
-			// cells still showing their old content.
-			if (rowIndex === top && columnIndex === left) {
-				return {
-					...withCellText(
-						cell,
-						cells
-							.map(({ row: selectedRow, column }) => data.rows[selectedRow]?.cells[column]?.text)
-							.filter(Boolean)
-							.join(' '),
-					),
-					gridSpan: right > left ? right - left + 1 : undefined,
-					rowSpan: bottom > top ? bottom - top + 1 : undefined,
-				};
-			}
-			return {
-				...withCellText(cell, ''),
-				hMerge: columnIndex > left || undefined,
-				vMerge: rowIndex > top || undefined,
-			};
-		}),
-	}));
-	return { ...data, rows: nextRows };
+	return mergeCells(coords, data);
 }
 
 export function splitTableCell(data: PptxTableData, cell: TableCellPosition): PptxTableData {

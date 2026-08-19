@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
+   its own short arrange/act/assert consts. */
 import type { PptxTableData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
@@ -66,6 +68,35 @@ describe('table editor mutations', () => {
 		const split = splitTableCell(merged, { row: 0, column: 0 });
 		expect(split.rows[0].cells[0].gridSpan).toBeUndefined();
 		expect(split.rows[1].cells[1].hMerge).toBeUndefined();
+	});
+
+	// Regression: a selection that only partially overlaps an existing merged
+	// cell must expand to fully cover that merge group before validating,
+	// mirroring `pptx-viewer-shared`'s `table-merge.test.ts` ("should expand to
+	// cover an overlapped merge anchor"). `mergeTableCellRange` used to compute
+	// its own bounding rect from the raw selection and validate with a naive
+	// `cells.length === area` check, so a selection touching only part of an
+	// existing merge (here: the merge's right continuation cell plus the cell
+	// below it) passed that check without ever pulling in the merge's anchor,
+	// merging two cells while leaving the pre-existing gridSpan=2 anchor
+	// untouched and overlapping the new merge.
+	it('expands the selection over an existing merge before merging', () => {
+		const data = table();
+		data.rows[0].cells[0].gridSpan = 2;
+		data.rows[0].cells[1].hMerge = true;
+
+		// Selection only covers the merge's continuation cell (0,1) and the
+		// plain cell below it (1,1); it never names the anchor at (0,0).
+		const merged = mergeTableCellRange(data, [
+			{ row: 0, column: 1 },
+			{ row: 1, column: 1 },
+		]);
+
+		// The rect must expand left to (0,0) and merge the full 2x2 block.
+		expect(merged.rows[0].cells[0]).toMatchObject({ gridSpan: 2, rowSpan: 2 });
+		expect(merged.rows[0].cells[1]).toMatchObject({ hMerge: true });
+		expect(merged.rows[1].cells[0]).toMatchObject({ vMerge: true });
+		expect(merged.rows[1].cells[1]).toMatchObject({ hMerge: true, vMerge: true });
 	});
 
 	// Regression: `appendCellText` paints `cell.textRuns` in preference to
