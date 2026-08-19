@@ -72,8 +72,8 @@ describe('getImageSrc', () => {
 	});
 
 	it('resolves a lazily hydrated SVG through its media path', () => {
-		const el = picture({ svgPath: 'ppt/media/image20.svg' } as Partial<PptxElement>);
-		const media = new Map([['ppt/media/image20.svg', 'blob:svg']]);
+		const el = picture({ svgPath: 'ppt/media/image20.svg' } as Partial<PptxElement>),
+			media = new Map([['ppt/media/image20.svg', 'blob:svg']]);
 		expect(getImageSrc(el, media)).toBe('blob:svg');
 	});
 
@@ -95,11 +95,11 @@ describe('getImageSrc', () => {
 });
 
 describe('getImageFitStyle', () => {
-	it('covers the frame when the picture is uncropped', () => {
+	it('stretches to fill the frame when the picture is uncropped', () => {
 		expect(getImageFitStyle(picture())).toStrictEqual({
 			width: '100%',
 			height: '100%',
-			objectFit: 'cover',
+			objectFit: 'fill',
 		});
 	});
 
@@ -159,9 +159,9 @@ describe('getImageFitStyle', () => {
 		expect(String(style['transform'])).not.toContain('NaN');
 	});
 
-	it('covers the frame for a non-image element', () => {
+	it('fills the frame for a non-image element', () => {
 		const shape = { type: 'shape', id: 's1', x: 0, y: 0, width: 1, height: 1 } as PptxElement;
-		expect(getImageFitStyle(shape)['objectFit']).toBe('cover');
+		expect(getImageFitStyle(shape)['objectFit']).toBe('fill');
 	});
 });
 

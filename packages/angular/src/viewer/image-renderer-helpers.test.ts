@@ -34,11 +34,14 @@ describe('buildAngularImageRenderView', () => {
 		expect(view.imageStyle.filter).toContain('url(#imgalpha-angular-image)');
 		expect(view.imageStyle.opacity).toBe(0.4);
 		expect(view.svgFilters).toHaveLength(1);
+		// oxlint-disable-next-line eslint/one-var -- interleaved with expect() calls
 		const markup = view.svgFilters[0].markup;
 		expect(markup).toContain(`tableValues="${buildImageBiLevelTable(30)}"`);
 		expect(markup).toContain('type="hueRotate" values="45"');
+		// oxlint-disable-next-line eslint/one-var -- interleaved with expect() calls
 		const luminance = buildImageLuminanceTransfer(20);
 		expect(markup).toContain(`slope="${luminance.slope}" intercept="${luminance.intercept}"`);
+		// oxlint-disable-next-line eslint/one-var -- interleaved with expect() calls
 		const tint = buildImageLuminanceTransfer(-25);
 		expect(markup).toContain(`slope="${tint.slope}" intercept="${tint.intercept}"`);
 	});
@@ -82,7 +85,7 @@ describe('buildAngularImageRenderView', () => {
 		expect(view.imageStyle).toStrictEqual({
 			width: '100%',
 			height: '100%',
-			objectFit: 'cover',
+			objectFit: 'fill',
 			display: 'block',
 		});
 		expect(view.svgFilters).toStrictEqual([]);

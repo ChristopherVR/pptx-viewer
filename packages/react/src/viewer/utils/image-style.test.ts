@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own unrelated locals; merging across them would hurt readability. */
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
@@ -292,18 +294,18 @@ describe('getImageTilingStyle flip integration', () => {
 // ---------------------------------------------------------------------------
 
 describe('getImageRenderStyle', () => {
-	it('returns basic cover style for non-image elements', () => {
+	it('returns basic fill style for non-image elements', () => {
 		const style = getImageRenderStyle(makeShapeElement());
 		expect(style.width).toBe('100%');
 		expect(style.height).toBe('100%');
-		expect(style.objectFit).toBe('cover');
+		expect(style.objectFit).toBe('fill');
 	});
 
-	it('returns basic cover style for image without crop', () => {
+	it('returns basic fill style for image without crop', () => {
 		const style = getImageRenderStyle(makeImageElement());
 		expect(style.width).toBe('100%');
 		expect(style.height).toBe('100%');
-		expect(style.objectFit).toBe('cover');
+		expect(style.objectFit).toBe('fill');
 	});
 
 	it('applies crop transform when crop values are set', () => {
@@ -327,7 +329,7 @@ describe('getImageRenderStyle', () => {
 			cropBottom: 0,
 		} as Partial<PptxElement>);
 		const style = getImageRenderStyle(el);
-		expect(style.objectFit).toBe('cover');
+		expect(style.objectFit).toBe('fill');
 	});
 
 	it('handles extreme crop values safely', () => {

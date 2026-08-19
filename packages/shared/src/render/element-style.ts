@@ -14,6 +14,9 @@
  * uses inline gradient/pattern/duotone builders and a different geometry
  * cascade), so each binding keeps its own to avoid changing render output.
  */
+/* oxlint-disable eslint/one-var -- each style-builder function declares its
+   own independent locals; merging unrelated declarations across the many
+   exported functions here would hurt readability, not help it. */
 import type { PptxElement } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE, hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 
@@ -151,15 +154,21 @@ export function getImageOverflow(el: PptxElement): 'hidden' | 'visible' {
  * Callers must give the containing element `overflow: hidden`, since the
  * cropped branch deliberately paints outside the frame.
  *
+ * Absent a crop, `<a:stretch><a:fillRect/></a:stretch>` (the default fill
+ * mode) maps the ENTIRE source bitmap onto the destination rect, distorting
+ * its aspect ratio if the frame's doesn't match. That is CSS `fill`, not
+ * `cover`: `cover` crops to preserve aspect, which PowerPoint's own picture
+ * placeholder never does on a plain (non-cropped) blip fill.
+ *
  * @returns A neutral CSS map to spread onto the `<img>`; never `undefined`, so
- *          the uncropped case still pins the shared `cover` fit that every
+ *          the uncropped case still pins the shared `fill` fit that every
  *          binding must agree on.
  */
 export function getImageFitStyle(el: PptxElement): CssStyleMap {
 	const uncropped: CssStyleMap = {
 		width: '100%',
 		height: '100%',
-		objectFit: 'cover',
+		objectFit: 'fill',
 	};
 	if (!isImageLikeElement(el)) {
 		return uncropped;
