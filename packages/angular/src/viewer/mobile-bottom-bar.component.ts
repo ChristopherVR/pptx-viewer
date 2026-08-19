@@ -30,6 +30,8 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { buildBarActions } from './mobile-chrome-helpers';
+
 /** Which mobile sheet/panel is currently active (highlights its button). */
 export type MobileBarSheet = 'slides' | 'inspector' | 'comments' | 'notes' | null;
 
@@ -249,36 +251,43 @@ export class MobileBottomBarComponent {
 
 	// ── Derived action list ───────────────────────────────────────────────────
 
+	// Shared `buildBarActions` decides which slots are disabled (no slides
+	// loaded); this binding only maps the resulting descriptor's `key` and
+	// `disabled` onto its own labels, icons and outputs.
 	readonly actions = computed<BarAction[]>(() => {
-		const count = this.slideCount();
-		const noSlides = count === 0;
-		const active = this.activeSheet();
+		const active = this.activeSheet(),
+			disabledByKey = new Map(
+				buildBarActions({ slideCount: this.slideCount() }).map((descriptor) => [
+					descriptor.key,
+					descriptor.disabled,
+				]),
+			);
 		return [
 			{
 				key: 'slides',
 				labelKey: 'pptx.sections.slides',
-				disabled: noSlides,
+				disabled: disabledByKey.get('slides') ?? false,
 				active: active === 'slides',
 				emit: () => this.openSlides.emit(),
 			},
 			{
 				key: 'insert',
 				labelKey: 'pptx.editorToolbar.insert',
-				disabled: noSlides,
+				disabled: disabledByKey.get('insert') ?? false,
 				active: false,
 				emit: () => this.insert.emit(),
 			},
 			{
 				key: 'inspector',
 				labelKey: 'pptx.arrange.format',
-				disabled: noSlides,
+				disabled: disabledByKey.get('inspector') ?? false,
 				active: active === 'inspector',
 				emit: () => this.openFormat.emit(),
 			},
 			{
 				key: 'comments',
 				labelKey: 'pptx.toolbar.comments',
-				disabled: noSlides,
+				disabled: disabledByKey.get('comments') ?? false,
 				active: active === 'comments',
 				badge: this.commentCount(),
 				emit: () => this.openComments.emit(),
@@ -287,7 +296,7 @@ export class MobileBottomBarComponent {
 				key: 'notes',
 				labelKey: 'pptx.notes.title',
 				ariaLabelKey: 'pptx.statusBar.toggleNotes',
-				disabled: noSlides,
+				disabled: disabledByKey.get('notes') ?? false,
 				active: active === 'notes',
 				emit: () => this.notes.emit(),
 			},
