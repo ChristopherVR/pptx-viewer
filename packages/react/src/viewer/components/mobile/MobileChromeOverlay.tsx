@@ -28,58 +28,55 @@ export interface MobileChromeOverlayProps {
  * only needs to manage the slides pane (which is hidden inline on mobile).
  */
 export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.ReactElement {
-	const {
-		state: s,
-		editorOps,
-		presentation,
-		slides,
-		activeSlideIndex,
-		canvasSize,
-		slideSectionGroups,
-		canEdit,
-		commentCount,
-	} = props;
-
 	// Track the on-screen-keyboard inset so the fixed bottom bar can lift above
-	// the keyboard (and the focused field is scrolled into view by the hook).
-	const { keyboardInset, isKeyboardOpen } = useKeyboardInsets();
-
-	// Determine which mobile sheet is currently active for bar highlighting.
-	const activeSheet: 'slides' | 'inspector' | 'comments' | 'notes' | null = s.isSlidesPaneOpen
-		? 'slides'
-		: s.isInspectorPaneOpen
-			? s.sidebarPanelMode === 'comments'
-				? 'comments'
-				: 'inspector'
-			: !s.isSlideNotesCollapsed
-				? 'notes'
-				: null;
-
-	const closeAllSheets = () => {
-		s.setIsSlidesPaneOpen(false);
-		s.setIsInspectorPaneOpen(false);
-		s.setIsSlideNotesCollapsed(true);
-	};
-
-	const openSheet = (which: 'slides' | 'inspector' | 'comments' | 'notes') => {
-		closeAllSheets();
-		switch (which) {
-			case 'slides':
-				s.setIsSlidesPaneOpen(true);
-				break;
-			case 'inspector':
-				s.setSidebarPanelMode('properties');
-				s.setIsInspectorPaneOpen(true);
-				break;
-			case 'comments':
-				s.setSidebarPanelMode('comments');
-				s.setIsInspectorPaneOpen(true);
-				break;
-			case 'notes':
-				s.setIsSlideNotesCollapsed(false);
-				break;
-		}
-	};
+	// the keyboard (and the focused field is scrolled into view by the hook),
+	// determine which mobile sheet is currently active for bar highlighting,
+	// and build the sheet-toggle helpers the bar and sheets below call into.
+	const {
+			state: s,
+			editorOps,
+			presentation,
+			slides,
+			activeSlideIndex,
+			canvasSize,
+			slideSectionGroups,
+			canEdit,
+			commentCount,
+		} = props,
+		{ keyboardInset, isKeyboardOpen } = useKeyboardInsets(),
+		activeSheet: 'slides' | 'inspector' | 'comments' | 'notes' | null = s.isSlidesPaneOpen
+			? 'slides'
+			: s.isInspectorPaneOpen
+				? s.sidebarPanelMode === 'comments'
+					? 'comments'
+					: 'inspector'
+				: !s.isSlideNotesCollapsed
+					? 'notes'
+					: null,
+		closeAllSheets = () => {
+			s.setIsSlidesPaneOpen(false);
+			s.setIsInspectorPaneOpen(false);
+			s.setIsSlideNotesCollapsed(true);
+		},
+		openSheet = (which: 'slides' | 'inspector' | 'comments' | 'notes') => {
+			closeAllSheets();
+			switch (which) {
+				case 'slides':
+					s.setIsSlidesPaneOpen(true);
+					break;
+				case 'inspector':
+					s.setSidebarPanelMode('properties');
+					s.setIsInspectorPaneOpen(true);
+					break;
+				case 'comments':
+					s.setSidebarPanelMode('comments');
+					s.setIsInspectorPaneOpen(true);
+					break;
+				case 'notes':
+					s.setIsSlideNotesCollapsed(false);
+					break;
+			}
+		};
 
 	return (
 		<>
@@ -131,6 +128,7 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 				data-keyboard-open={isKeyboardOpen ? 'true' : undefined}
 			>
 				<MobileBottomBar
+					slideCount={slides.length}
 					activeSheet={activeSheet}
 					commentCount={commentCount}
 					onOpenSlides={() =>

@@ -1,3 +1,5 @@
+import type { ActionDescriptor } from 'pptx-viewer-shared';
+import { buildBarActions } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLayers, LuMessageSquare, LuPlus, LuSettings2, LuStickyNote } from 'react-icons/lu';
@@ -5,6 +7,8 @@ import { LuLayers, LuMessageSquare, LuPlus, LuSettings2, LuStickyNote } from 're
 import { cn } from '../../utils';
 
 export interface MobileBottomBarProps {
+	/** Total number of slides in the presentation; every action disables at 0. */
+	slideCount: number;
 	/** Open the slides panel sheet. */
 	onOpenSlides: () => void;
 	/** Open the insert sheet (also reachable from menu). */
@@ -21,13 +25,41 @@ export interface MobileBottomBarProps {
 	commentCount?: number;
 }
 
+type ActionKey = NonNullable<MobileBottomBarProps['activeSheet']>;
+
 interface Action {
-	key: NonNullable<MobileBottomBarProps['activeSheet']>;
+	key: ActionKey;
 	label: string;
 	icon: React.ComponentType<{ className?: string }>;
 	onClick: () => void;
+	disabled: boolean;
 	badge?: number;
 }
+
+function isActionKey(key: ActionDescriptor['key']): key is ActionKey {
+	return (
+		key === 'slides' ||
+		key === 'insert' ||
+		key === 'inspector' ||
+		key === 'comments' ||
+		key === 'notes'
+	);
+}
+
+const LABEL_BY_KEY: Record<ActionKey, string> = {
+		slides: 'pptx.sections.slides',
+		insert: 'pptx.mobileBar.insert',
+		inspector: 'pptx.field.format',
+		comments: 'pptx.toolbar.comments',
+		notes: 'pptx.notes.title',
+	},
+	ICON_BY_KEY: Record<ActionKey, React.ComponentType<{ className?: string }>> = {
+		slides: LuLayers,
+		insert: LuPlus,
+		inspector: LuSettings2,
+		comments: LuMessageSquare,
+		notes: LuStickyNote,
+	};
 
 /**
  * Persistent mobile bottom action bar: five primary navigation targets that
@@ -36,6 +68,7 @@ interface Action {
  * Google Slides on small screens.
  */
 export function MobileBottomBar({
+	slideCount,
 	onOpenSlides,
 	onOpenInsert,
 	onOpenInspector,
@@ -44,40 +77,30 @@ export function MobileBottomBar({
 	activeSheet,
 	commentCount,
 }: MobileBottomBarProps): React.ReactElement {
-	const { t } = useTranslation();
-	const actions: Action[] = [
-		{
-			key: 'slides',
-			label: 'pptx.sections.slides',
-			icon: LuLayers,
-			onClick: onOpenSlides,
+	// Shared `buildBarActions` decides which slots are disabled (no slides
+	// loaded); this binding only maps the resulting descriptor onto its own
+	// icons, labels and click handlers.
+	const { t } = useTranslation(),
+		onClickByKey: Record<ActionKey, () => void> = {
+			slides: onOpenSlides,
+			insert: onOpenInsert,
+			inspector: onOpenInspector,
+			comments: onOpenComments,
+			notes: onToggleNotes,
 		},
-		{
-			key: 'insert',
-			label: 'pptx.mobileBar.insert',
-			icon: LuPlus,
-			onClick: onOpenInsert,
-		},
-		{
-			key: 'inspector',
-			label: 'pptx.field.format',
-			icon: LuSettings2,
-			onClick: onOpenInspector,
-		},
-		{
-			key: 'comments',
-			label: 'pptx.toolbar.comments',
-			icon: LuMessageSquare,
-			onClick: onOpenComments,
-			badge: commentCount,
-		},
-		{
-			key: 'notes',
-			label: 'pptx.notes.title',
-			icon: LuStickyNote,
-			onClick: onToggleNotes,
-		},
-	];
+		actions: Action[] = buildBarActions({ slideCount })
+			.filter((descriptor) => isActionKey(descriptor.key))
+			.map((descriptor) => {
+				const key = descriptor.key as ActionKey;
+				return {
+					key,
+					label: LABEL_BY_KEY[key],
+					icon: ICON_BY_KEY[key],
+					onClick: onClickByKey[key],
+					disabled: descriptor.disabled,
+					badge: key === 'comments' ? commentCount : undefined,
+				};
+			});
 
 	return (
 		<nav
@@ -87,15 +110,16 @@ export function MobileBottomBar({
 			// wide-but-short landscape phone, which is still mobile.
 			className='flex items-stretch justify-around border-t border-border bg-secondary/80 backdrop-blur supports-[backdrop-filter]:bg-secondary/60 pb-[max(env(safe-area-inset-bottom),0px)]'
 		>
-			{actions.map(({ key, label, icon: Icon, onClick, badge }) => {
+			{actions.map(({ key, label, icon: Icon, onClick, disabled, badge }) => {
 				const active = activeSheet === key;
 				return (
 					<button
 						key={key}
 						type='button'
 						onClick={onClick}
+						disabled={disabled}
 						className={cn(
-							'relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-1.5 text-[10px] font-medium transition-colors active:scale-95',
+							'relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-1.5 text-[10px] font-medium transition-colors active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
 							active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
 						)}
 						aria-pressed={active}
