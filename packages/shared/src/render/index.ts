@@ -497,6 +497,10 @@ export * from './collaboration-presence-publisher';
 // Memoising awareness -> presence/cursor projection: returns the previous
 // result by identity when an awareness event carries no visible change.
 export * from './collaboration-presence-projector';
+// Share dialog "active session" view-model: connected-users list (initials,
+// colour, avatar, slide number) built from the presence projection above plus
+// the local user's own name/colour. Only React had this feature before.
+export * from './collaboration-active-session';
 export * from './collaboration-sync';
 // One-way broadcast auto-follow policy (only a local `viewer` follows the
 // session `owner`), shared by every binding so the rule cannot drift.
