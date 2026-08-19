@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.20.5) - 2026-08-19
+
+### Dependencies
+
+- **deps:** Update y-websocket requirement from ^3.0.0 to ^3.1.0 ([#169](https://github.com/ChristopherVR/pptx-viewer/issues/169)) (by @dependabot[bot]) ([7e9c5a5](https://github.com/ChristopherVR/pptx-viewer/commit/7e9c5a51a7cb46df36223df4f91f192200562871))
+- **deps:** Bump @ai-sdk/vue from 4.0.66 to 4.0.65 ([#163](https://github.com/ChristopherVR/pptx-viewer/issues/163)) (by @dependabot[bot]) ([996f840](https://github.com/ChristopherVR/pptx-viewer/commit/996f84080e06cace9c945c27d293e8305a60999d))
+
+### Chores
+
+- **deps-dev:** Bump jsdom from 29.1.1 to 30.0.1 ([#171](https://github.com/ChristopherVR/pptx-viewer/issues/171)) (by @dependabot[bot]) ([cfe38c9](https://github.com/ChristopherVR/pptx-viewer/commit/cfe38c9e848bd509e59dfbbb6898aac13ce69b7e))
+- **deps-dev:** Update vite requirement from ^8.2.0 to ^8.2.1 ([#165](https://github.com/ChristopherVR/pptx-viewer/issues/165)) (by @dependabot[bot]) ([a059a9e](https://github.com/ChristopherVR/pptx-viewer/commit/a059a9ecbd374279864c42d45c249bcb5c0ecc6b))
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#162](https://github.com/ChristopherVR/pptx-viewer/issues/162)) (by @dependabot[bot]) ([2645f25](https://github.com/ChristopherVR/pptx-viewer/commit/2645f258a35282b61960c30649f216e583879f12))
+
 ## [2.20.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.20.4) - 2026-08-14
 
 ### Bug Fixes
