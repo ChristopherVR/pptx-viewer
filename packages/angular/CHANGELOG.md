@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.18.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.5) - 2026-08-19
+
+### Dependencies
+
+- **deps:** Update @angular/core requirement from ^22.1.0 to ^22.1.2 ([#170](https://github.com/ChristopherVR/pptx-viewer/issues/170)) (by @dependabot[bot]) ([ee56a6f](https://github.com/ChristopherVR/pptx-viewer/commit/ee56a6f91c74e6bb72aad8b51394b6218c8680b0))
+- **deps:** Update y-websocket requirement from ^3.0.0 to ^3.1.0 ([#169](https://github.com/ChristopherVR/pptx-viewer/issues/169)) (by @dependabot[bot]) ([7e9c5a5](https://github.com/ChristopherVR/pptx-viewer/commit/7e9c5a51a7cb46df36223df4f91f192200562871))
+
+### Chores
+
+- **deps-dev:** Bump jsdom from 29.1.1 to 30.0.1 ([#171](https://github.com/ChristopherVR/pptx-viewer/issues/171)) (by @dependabot[bot]) ([cfe38c9](https://github.com/ChristopherVR/pptx-viewer/commit/cfe38c9e848bd509e59dfbbb6898aac13ce69b7e))
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#162](https://github.com/ChristopherVR/pptx-viewer/issues/162)) (by @dependabot[bot]) ([2645f25](https://github.com/ChristopherVR/pptx-viewer/commit/2645f258a35282b61960c30649f216e583879f12))
+
 ## [2.18.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.4) - 2026-08-14
 
 ### Bug Fixes

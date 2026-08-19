@@ -8,6 +8,24 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-19
+
+_Releases: pptx-viewer-core@2.3.9, pptx-react-viewer@2.19.5, pptx-vue-viewer@2.20.5, pptx-angular-viewer@2.18.5, pptx-vanilla-viewer@1.21.5, pptx-svelte-viewer@2.20.5_
+
+### Dependencies
+
+- **deps:** Update @angular/core requirement from ^22.1.0 to ^22.1.2 ([#170](https://github.com/ChristopherVR/pptx-viewer/issues/170)) (by @dependabot[bot]) ([ee56a6f](https://github.com/ChristopherVR/pptx-viewer/commit/ee56a6f91c74e6bb72aad8b51394b6218c8680b0))
+- **deps:** Update y-websocket requirement from ^3.0.0 to ^3.1.0 ([#169](https://github.com/ChristopherVR/pptx-viewer/issues/169)) (by @dependabot[bot]) ([7e9c5a5](https://github.com/ChristopherVR/pptx-viewer/commit/7e9c5a51a7cb46df36223df4f91f192200562871))
+- **deps:** Update @lucide/svelte requirement from ^1.28.0 to ^1.31.0 ([#166](https://github.com/ChristopherVR/pptx-viewer/issues/166)) (by @dependabot[bot]) ([3e1a554](https://github.com/ChristopherVR/pptx-viewer/commit/3e1a55404483f8010455169781dcd39a3721ef8d))
+- **deps:** Bump @ai-sdk/vue from 4.0.66 to 4.0.65 ([#163](https://github.com/ChristopherVR/pptx-viewer/issues/163)) (by @dependabot[bot]) ([996f840](https://github.com/ChristopherVR/pptx-viewer/commit/996f84080e06cace9c945c27d293e8305a60999d))
+
+### Chores
+
+- **deps-dev:** Bump jsdom from 29.1.1 to 30.0.1 ([#171](https://github.com/ChristopherVR/pptx-viewer/issues/171)) (by @dependabot[bot]) ([cfe38c9](https://github.com/ChristopherVR/pptx-viewer/commit/cfe38c9e848bd509e59dfbbb6898aac13ce69b7e))
+- **deps-dev:** Update rollup-plugin-dts requirement ([#167](https://github.com/ChristopherVR/pptx-viewer/issues/167)) (by @dependabot[bot]) ([d6ecdf5](https://github.com/ChristopherVR/pptx-viewer/commit/d6ecdf53132ca750f9fc5e8b2bb45b4560f9e340))
+- **deps-dev:** Update vite requirement from ^8.2.0 to ^8.2.1 ([#165](https://github.com/ChristopherVR/pptx-viewer/issues/165)) (by @dependabot[bot]) ([a059a9e](https://github.com/ChristopherVR/pptx-viewer/commit/a059a9ecbd374279864c42d45c249bcb5c0ecc6b))
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#162](https://github.com/ChristopherVR/pptx-viewer/issues/162)) (by @dependabot[bot]) ([2645f25](https://github.com/ChristopherVR/pptx-viewer/commit/2645f258a35282b61960c30649f216e583879f12))
+
 ## 2026-08-14
 
 _Releases: pptx-viewer-core@2.3.8, pptx-react-viewer@2.19.4, pptx-vue-viewer@2.20.4, pptx-angular-viewer@2.18.4, pptx-vanilla-viewer@1.21.4, pptx-svelte-viewer@2.20.4_
