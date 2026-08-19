@@ -13,6 +13,10 @@
  * @module render/custom-fonts
  */
 
+/* oxlint-disable eslint/one-var -- these top-level const/let declarations are
+   unrelated exports and locals, not adjacent initializations of related values;
+   merging them would hurt readability far more than it helps. */
+
 /** Recognised font file extensions, in the order the file input advertises. */
 export const CUSTOM_FONT_EXTENSIONS: readonly string[] = ['.ttf', '.otf', '.woff', '.woff2'];
 
@@ -47,9 +51,18 @@ const WEIGHT_SUFFIXES: ReadonlyArray<[RegExp, string]> = [
 	[/bold/iu, '700'],
 ];
 
-/** Style tokens stripped from the family name once interpreted. */
+/**
+ * Style tokens stripped from the family name once interpreted.
+ *
+ * No trailing `+` around the alternation: several alternatives share a suffix
+ * (semibold/demibold/extrabold/ultrabold all end in "bold"), and repeating an
+ * overlapping alternation with `+` is polynomial on adversarial input (e.g. a
+ * filename padded with many "bold" repetitions). The call site already loops
+ * to strip multiple trailing tokens one at a time, so a single, unrepeated
+ * alternation per call is enough.
+ */
 const STYLE_TOKEN =
-	/[-_\s]*(?:thin|hairline|extralight|ultralight|light|regular|normal|book|medium|semibold|demibold|extrabold|ultrabold|black|heavy|bold|italic|oblique)+$/giu;
+	/[-_\s]*(?:thin|hairline|extralight|ultralight|light|regular|normal|book|medium|semibold|demibold|extrabold|ultrabold|black|heavy|bold|italic|oblique)$/giu;
 
 /**
  * Derive a family name, weight and style from a font file's name.

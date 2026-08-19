@@ -38,8 +38,8 @@ function templateFiles(dir: string, out: string[] = []): string[] {
 
 /** `<label>…</label>` bodies in `source` (labels cannot nest). */
 function labelBodies(source: string): string[] {
-	const bodies: string[] = [];
-	const open = /<label\b[^>]*>/giu;
+	const bodies: string[] = [],
+		open = /<label\b[^>]*>/giu;
 	let match = open.exec(source);
 	while (match !== null) {
 		// `</label\n>` as well as `</label>`: a template formatter may break the
@@ -63,7 +63,16 @@ describe('wrapped control labels', () => {
 			for (const body of labelBodies(source)) {
 				// An HTML comment may legitimately SPELL `<select>` while explaining
 				// this very rule, so strip comments before looking for controls.
-				const markup = body.replace(/<!--[\s\S]*?-->/gu, '');
+				// Loop to stability rather than a single pass: a single pass can
+				// leave a reconstructed `<!--` behind when comments are adjacent or
+				// overlapping (e.g. `<!--<!---->`), which would falsely un-hide a
+				// `<select>` that only appeared inside comment-spelled markup.
+				let markup = body,
+					previous: string;
+				do {
+					previous = markup;
+					markup = markup.replace(/<!--[\s\S]*?-->/gu, '');
+				} while (markup !== previous);
 				const selects = markup.match(/<select\b[^>]*>/giu) ?? [];
 				for (const tag of selects) {
 					if (!/aria-label/u.test(tag)) {

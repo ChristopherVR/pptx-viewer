@@ -46,6 +46,10 @@
  *   node scripts/backfill-changelog-sections.mjs --write [pkg...]
  */
 
+/* oxlint-disable eslint/one-var -- independent const/let declarations throughout this
+   file are not adjacent initializations of related values; merging them would hurt
+   readability far more than it helps. */
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -138,7 +142,13 @@ export function classify(subject) {
 
 /** `### Bug Fixes` - the group name with its sort-key comment stripped. */
 export function groupHeading(group) {
-	return upperFirst(group.replace(/<!--.*?-->/gu, '').trim());
+	let stripped = group;
+	let previous;
+	do {
+		previous = stripped;
+		stripped = stripped.replace(/<!--[\s\S]*?-->/gu, '');
+	} while (stripped !== previous);
+	return upperFirst(stripped.trim());
 }
 
 export function renderBullet({ scope, message, username, id }) {
