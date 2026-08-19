@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own unrelated locals; merging across them would hurt readability. */
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -67,16 +69,15 @@ describe('guidToKey', () => {
 		expect(key).toHaveLength(16);
 	});
 
-	it('produces correct bytes for known GUID', () => {
+	it('produces correct bytes for known GUID, reversed per ECMA-376 Part 4 §2.8.1', () => {
 		// GUID: AABBCCDD-1122-3344-5566-778899AABBCC
-		// Stripped: AABBCCDD11223344556677889 9AABBCC
+		// Stripped, in order: AA BB CC DD 11 22 33 44 55 66 77 88 99 AA BB CC
+		// Reversed (key[0] = last byte, key[15] = first byte):
 		const key = guidToKey('AABBCCDD-1122-3344-5566-778899AABBCC');
-		expect(key[0]).toBe(0xaa);
+		expect(key[0]).toBe(0xcc);
 		expect(key[1]).toBe(0xbb);
-		expect(key[2]).toBe(0xcc);
-		expect(key[3]).toBe(0xdd);
-		expect(key[4]).toBe(0x11);
-		expect(key[5]).toBe(0x22);
+		expect(key[15]).toBe(0xaa);
+		expect(key[14]).toBe(0xbb);
 	});
 
 	it('throws for invalid GUID length', () => {
@@ -86,7 +87,7 @@ describe('guidToKey', () => {
 	it('handles GUID with braces (braces are stripped)', () => {
 		const key = guidToKey('{AABBCCDD-1122-3344-5566-778899AABBCC}');
 		expect(key).toHaveLength(16);
-		expect(key[0]).toBe(0xaa);
+		expect(key[15]).toBe(0xaa);
 	});
 });
 

@@ -10,6 +10,10 @@
  * {@link deobfuscateFont} are provided for clarity of intent.
  */
 
+/* oxlint-disable eslint/one-var -- each function declares its own
+   independent locals; merging unrelated declarations across the functions
+   here would hurt readability, not help it. */
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                         */
 /* ------------------------------------------------------------------ */
@@ -53,12 +57,17 @@ export function extractGuidFromPartName(partName: string): string | null {
 /**
  * Convert a GUID string to a 16-byte XOR key.
  *
- * Per ECMA-376 Part 2 §14.2.1, the key is formed by:
+ * Per ECMA-376 Part 4 §2.8.1 (font obfuscation), the key is formed by:
  *   1. Removing '{', '}', and '-' from the GUID string.
- *   2. Converting consecutive pairs of hex characters to bytes.
+ *   2. Converting consecutive pairs of hex characters to bytes, in order.
+ *   3. Reversing the resulting 16-byte array.
  *
- * No byte-order reversal is performed — the hex pairs are converted
- * sequentially to produce 16 key bytes.
+ * The reversal is required for interop with real PowerPoint-embedded fonts
+ * (and reference implementations, e.g. docx4j's `ObfuscatedFontPart`, which
+ * XORs against `guidByteArray[15 - i]`). Without it, this is invisible on a
+ * round-trip of our own obfuscated output (XOR with any consistent key is
+ * self-inverse) but breaks reading a real deck's embedded fonts and produces
+ * fonts real PowerPoint cannot de-obfuscate.
  */
 export function guidToKey(guid: string): Uint8Array {
 	const stripped = guid.replace(/[-{}]/g, '');
@@ -68,7 +77,7 @@ export function guidToKey(guid: string): Uint8Array {
 
 	const key = new Uint8Array(KEY_LENGTH);
 	for (let i = 0; i < KEY_LENGTH; i++) {
-		key[i] = parseInt(stripped.substring(i * 2, i * 2 + 2), 16);
+		key[KEY_LENGTH - 1 - i] = parseInt(stripped.substring(i * 2, i * 2 + 2), 16);
 	}
 
 	return key;
