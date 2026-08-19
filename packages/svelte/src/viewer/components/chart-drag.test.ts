@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
+   its own locals; not intended as one statement */
 import type { ChartPptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -142,5 +144,100 @@ describe('svelte chart on-canvas value drag', () => {
 		controller.syncHighlight();
 
 		expect(root.querySelectorAll('.pptx-chart-part-selected')).toHaveLength(1);
+	});
+});
+
+/**
+ * Double-clicking the chart title opens an inline editor; the commit routes
+ * through the SAME `commit` callback a value drag uses (both are just a
+ * `chartData` patch), so undo/redo and the save round-trip work identically.
+ */
+describe('svelte chart title double-click rename', () => {
+	const titledElement: ChartPptxElement = {
+		...element,
+		chartData: { ...element.chartData!, title: 'Sales', style: { hasTitle: true } },
+	};
+
+	function dblclick(target: Element): MouseEvent {
+		const event = new MouseEvent('dblclick', { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'target', { value: target });
+		return event;
+	}
+
+	function makeTitleRoot(): { root: HTMLElement; title: Element } {
+		const root = document.createElement('div');
+		root.innerHTML = '<svg><text data-chart-part="title">Sales</text></svg>';
+		document.body.appendChild(root);
+		return { root, title: root.querySelector("[data-chart-part='title']") as Element };
+	}
+
+	it('opens the title draft with the current title on double-click', () => {
+		const commit = vi.fn();
+		const { root, title } = makeTitleRoot();
+		const controller = new ChartDragController({
+			element: () => titledElement,
+			root: () => root,
+			commit,
+		});
+
+		const event = dblclick(title);
+		const stopPropagation = vi.spyOn(event, 'stopPropagation');
+		controller.ondblclick(event);
+
+		expect(controller.titleDraft).toBe('Sales');
+		// The ARGUMENTS are not the point here; that it was called at all is.
+		// oxlint-disable-next-line vitest/prefer-called-with
+		expect(stopPropagation).toHaveBeenCalled();
+	});
+
+	it('commits the edited title through the commit callback', () => {
+		const commit = vi.fn();
+		const { root, title } = makeTitleRoot();
+		const controller = new ChartDragController({
+			element: () => titledElement,
+			root: () => root,
+			commit,
+		});
+
+		controller.ondblclick(dblclick(title));
+		controller.setTitleDraft('Quarterly Sales');
+		controller.commitTitle();
+
+		expect(commit).toHaveBeenCalledOnce();
+		const [id, chartData] = commit.mock.calls[0];
+		expect(id).toBe('chart-1');
+		expect(chartData.title).toBe('Quarterly Sales');
+		expect(chartData.style?.hasTitle).toBeTruthy();
+		expect(controller.titleDraft).toBeNull();
+	});
+
+	it('cancels on Escape without committing', () => {
+		const commit = vi.fn();
+		const { root, title } = makeTitleRoot();
+		const controller = new ChartDragController({
+			element: () => titledElement,
+			root: () => root,
+			commit,
+		});
+
+		controller.ondblclick(dblclick(title));
+		controller.cancelTitle();
+
+		expect(commit).not.toHaveBeenCalled();
+		expect(controller.titleDraft).toBeNull();
+	});
+
+	it('stops a mark double-click from bubbling, without opening the title editor', () => {
+		const commit = vi.fn();
+		const { controller, mark } = makeController(commit);
+
+		const event = dblclick(mark);
+		const stopPropagation = vi.spyOn(event, 'stopPropagation');
+		controller.ondblclick(event);
+
+		// The ARGUMENTS are not the point here; that it was called at all is.
+		// oxlint-disable-next-line vitest/prefer-called-with
+		expect(stopPropagation).toHaveBeenCalled();
+		expect(controller.titleDraft).toBeNull();
 	});
 });

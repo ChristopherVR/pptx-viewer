@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
+   its own locals; not intended as one statement */
 import type { ChartPptxElement } from 'pptx-viewer-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -124,5 +126,82 @@ describe('vanilla chart on-canvas value drag', () => {
 		drag(180, 'pointerup');
 
 		expect(onChartPointChange).not.toHaveBeenCalled();
+	});
+});
+
+/**
+ * Double-clicking the chart title opens an inline `<input>` editor; the
+ * commit routes through the SAME `onChartPointChange` path a dragged data
+ * point uses, since both are just a `chartData` patch.
+ */
+describe('vanilla chart title double-click rename', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	const titled: ChartPptxElement = {
+		...element,
+		chartData: { ...element.chartData!, title: 'Sales', style: { hasTitle: true } },
+	};
+
+	function dblclick(target: EventTarget): void {
+		target.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+	}
+
+	it('opens an input pre-filled with the current title on double-click', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+
+		const input = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement | null;
+		expect(input).not.toBeNull();
+		expect(input?.value).toBe('Sales');
+	});
+
+	it('commits the edited title on Enter, through onChartPointChange', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+		const input = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement;
+		input.value = 'Quarterly Sales';
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		expect(onChartPointChange).toHaveBeenCalledOnce();
+		const [, chartData] = onChartPointChange.mock.calls[0];
+		expect(chartData.title).toBe('Quarterly Sales');
+		expect(chartData.style?.hasTitle).toBeTruthy();
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
+	});
+
+	it('cancels on Escape without committing', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+		const input = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement;
+		input.value = 'Discarded';
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+		expect(onChartPointChange).not.toHaveBeenCalled();
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
+	});
+
+	it('does not open the title editor for a mark double-click', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(element, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const bar = container?.querySelector('[data-chart-part="dataPoint"]') as SVGElement;
+
+		dblclick(bar);
+
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
 	});
 });

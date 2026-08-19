@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   an imperative DOM-builder with many independent `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
 	advanceChartValueDrag,
@@ -8,6 +10,7 @@ import {
 	ensureChartInteractionStyles,
 	findChartPartTarget,
 	formatAxisValue,
+	withChartTitle,
 } from 'pptx-viewer-shared';
 import type { ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
 
@@ -50,6 +53,7 @@ export function attachChartEditing(
 	let active: ChartValueDragState | null = null;
 	let selected: ChartPartRef | null = null;
 	let badge: HTMLElement | null = null;
+	let titleInput: HTMLInputElement | null = null;
 
 	const showBadge = (text: string): void => {
 		if (!badge) {
@@ -119,6 +123,70 @@ export function attachChartEditing(
 			applyChartPartHighlight(container, selected);
 		}
 	}
+
+	const closeTitleEditor = (): void => {
+		titleInput?.remove();
+		titleInput = null;
+	};
+
+	/**
+	 * Open an inline `<input>` over the chart title, the vanilla port of React's
+	 * / Vue's title editor overlay. Committed on Enter/blur, cancelled on
+	 * Escape; the commit routes through the SAME `onChartPointChange` path a
+	 * dragged data point uses, since both are just a `chartData` patch.
+	 */
+	const openTitleEditor = (): void => {
+		closeTitleEditor();
+		if (!chart.chartData) {
+			return;
+		}
+		const doc = container.ownerDocument;
+		titleInput = doc.createElement('input');
+		titleInput.type = 'text';
+		titleInput.className = 'pptxv-chart-title-input';
+		titleInput.value = chart.chartData.title ?? '';
+		const commitTitle = (): void => {
+			const value = titleInput?.value ?? '';
+			closeTitleEditor();
+			if (!chart.chartData) {
+				return;
+			}
+			context.onChartPointChange?.(element, withChartTitle(chart.chartData, value));
+		};
+		titleInput.addEventListener('blur', commitTitle, { once: true });
+		titleInput.addEventListener('keydown', (keyEvent) => {
+			if (keyEvent.key === 'Enter') {
+				keyEvent.preventDefault();
+				commitTitle();
+			} else if (keyEvent.key === 'Escape') {
+				keyEvent.preventDefault();
+				closeTitleEditor();
+			}
+			keyEvent.stopPropagation();
+		});
+		titleInput.addEventListener('pointerdown', (pointerEvent) => pointerEvent.stopPropagation());
+		titleInput.addEventListener('dblclick', (dblEvent) => dblEvent.stopPropagation());
+		container.appendChild(titleInput);
+		titleInput.focus();
+		titleInput.select();
+	};
+
+	container.addEventListener('dblclick', (event: MouseEvent) => {
+		const target = event.target;
+		if (!(target instanceof Element)) {
+			return;
+		}
+		if (target.closest("[data-chart-part='title']")) {
+			event.stopPropagation();
+			openTitleEditor();
+			return;
+		}
+		if (findChartPartTarget(event.target)) {
+			// A mark double-click is already handled as two selects; keep it from
+			// bubbling into the element-level inline-text-edit handler.
+			event.stopPropagation();
+		}
+	});
 
 	container.addEventListener('pointerdown', (event: PointerEvent) => {
 		const part = findChartPartTarget(event.target);

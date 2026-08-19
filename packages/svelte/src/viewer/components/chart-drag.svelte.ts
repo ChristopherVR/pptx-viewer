@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
 	advanceChartValueDrag,
@@ -7,6 +9,7 @@ import {
 	ensureChartInteractionStyles,
 	findChartPartTarget,
 	formatAxisValue,
+	withChartTitle,
 } from 'pptx-viewer-shared';
 import type { ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
 
@@ -20,7 +23,8 @@ import type { ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
  *
  * Behaviour: press a bar / dot / slice to select it, drag it vertically to
  * change its value (live local preview, committed ONCE on release so one drag
- * is one undo step), Escape cancels. The projector always emits the
+ * is one undo step), Escape cancels; double-click the title to edit it in
+ * place (Enter/blur commits, Escape cancels). The projector always emits the
  * `data-chart-*` hit-testing attributes; they stay pointer-transparent until
  * the root carries `pptx-chart-interactive`, which is why thumbnails and the
  * presentation stage cannot be dragged.
@@ -32,6 +36,8 @@ export class ChartDragController {
 	label = $state<string | null>(null);
 	/** The mark the user last pressed, highlighted until selection moves away. */
 	selectedPart = $state<ChartPartRef | null>(null);
+	/** Inline title editor draft; null while the editor is closed. */
+	titleDraft = $state<string | null>(null);
 
 	#active: ChartValueDragState | null = null;
 	#element: () => ChartPptxElement;
@@ -99,6 +105,43 @@ export class ChartDragController {
 		window.addEventListener('pointermove', this.#onpointermove);
 		window.addEventListener('pointerup', this.#onpointerup);
 	};
+
+	/**
+	 * Double-click handler for the chart root: opens the inline title editor
+	 * when the title itself was hit, and otherwise just keeps a mark
+	 * double-click from bubbling into the element-level inline-text-edit
+	 * handler (a mark double-click is already handled as two presses).
+	 */
+	ondblclick = (event: MouseEvent): void => {
+		const target = event.target;
+		if (!(target instanceof Element)) {
+			return;
+		}
+		if (target.closest("[data-chart-part='title']")) {
+			event.stopPropagation();
+			this.titleDraft = this.#element().chartData?.title ?? '';
+			return;
+		}
+		if (findChartPartTarget(event.target)) {
+			event.stopPropagation();
+		}
+	};
+
+	setTitleDraft(value: string): void {
+		this.titleDraft = value;
+	}
+
+	commitTitle(): void {
+		const element = this.#element();
+		if (this.titleDraft !== null && element.chartData) {
+			this.#commit(element.id, withChartTitle(element.chartData, this.titleDraft));
+		}
+		this.titleDraft = null;
+	}
+
+	cancelTitle(): void {
+		this.titleDraft = null;
+	}
 
 	/** Release listeners when the chart unmounts mid-drag. */
 	destroy(): void {

@@ -29,6 +29,7 @@
 	 * presentation surface keep inert charts.
 	 */
 	let rootEl = $state<HTMLElement | null>(null);
+	let titleInputEl = $state<HTMLInputElement | null>(null);
 	const editable = $derived(interactive && Boolean(onchartpointcommit) && element.type === 'chart');
 	const drag = new ChartDragController({
 		element: () => element as ChartPptxElement,
@@ -72,6 +73,16 @@
 		void drag.selectedPart;
 		drag.syncHighlight();
 	});
+
+	// Focus (and select) the inline title editor when it opens: the dblclick
+	// that opened it landed on the SVG title, so the browser gives the input
+	// no focus of its own.
+	$effect(() => {
+		if (drag.titleDraft !== null) {
+			titleInputEl?.focus();
+			titleInputEl?.select();
+		}
+	});
 </script>
 
 {#if view}
@@ -85,6 +96,7 @@
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 		onpointerdown={editable ? drag.onpointerdown : undefined}
+		ondblclick={editable ? drag.ondblclick : undefined}
 	>
 		{#if view.kind === 'chart'}
 			{@const vm = view.vm}
@@ -172,6 +184,26 @@
 		{#if drag.label !== null}
 			<div class="pptx-svelte-chart-drag-badge">{drag.label}</div>
 		{/if}
+		{#if drag.titleDraft !== null}
+			<input
+				bind:this={titleInputEl}
+				type="text"
+				class="pptx-svelte-chart-title-input"
+				value={drag.titleDraft}
+				oninput={(event) => drag.setTitleDraft((event.currentTarget as HTMLInputElement).value)}
+				onpointerdown={(event) => event.stopPropagation()}
+				ondblclick={(event) => event.stopPropagation()}
+				onkeydown={(event) => {
+					if (event.key === 'Enter') {
+						drag.commitTitle();
+					} else if (event.key === 'Escape') {
+						drag.cancelTitle();
+					}
+					event.stopPropagation();
+				}}
+				onblur={() => drag.commitTitle()}
+			/>
+		{/if}
 	</div>
 {/if}
 
@@ -187,6 +219,25 @@
 		font-size: 10px;
 		line-height: 1.5;
 		pointer-events: none;
+	}
+
+	.pptx-svelte-chart-title-input {
+		position: absolute;
+		left: 50%;
+		top: 2px;
+		transform: translateX(-50%);
+		z-index: 10;
+		width: 60%;
+		box-sizing: border-box;
+		pointer-events: auto;
+		text-align: center;
+		font-size: 11px;
+		padding: 2px 4px;
+		border: 1px solid #cbd5e1;
+		border-radius: 4px;
+		background: #ffffff;
+		color: #0f172a;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
 	}
 
 	.pptx-svelte-chart-svg {

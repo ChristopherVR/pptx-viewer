@@ -448,4 +448,23 @@ export const EDITOR_CSS = `
 	line-height: 1.5;
 	pointer-events: none;
 }
+
+/* Inline title editor opened by double-clicking a chart's title. */
+.pptxv-chart-title-input {
+	position: absolute;
+	left: 50%;
+	top: 2px;
+	transform: translateX(-50%);
+	z-index: 10;
+	width: 60%;
+	box-sizing: border-box;
+	text-align: center;
+	font-size: 11px;
+	padding: 2px 4px;
+	border: 1px solid #cbd5e1;
+	border-radius: 4px;
+	background: #ffffff;
+	color: #0f172a;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
 `;
