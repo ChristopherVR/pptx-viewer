@@ -1,16 +1,9 @@
-import { buildCollaborationShareUrl } from 'pptx-viewer-shared';
+import { buildActiveSessionUsers, buildCollaborationShareUrl } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 import { LuCheck, LuCopy, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
 
 import type { CollaborationConfig } from '../hooks/collaboration/types';
 import { useCollaboration } from './collaboration';
-
-function getInitials(name: string): string {
-	const parts = name.trim().split(/\s+/u);
-	return parts.length >= 2
-		? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-		: name.slice(0, 2).toUpperCase();
-}
 
 function isP2P(config: { transport?: string; serverUrl?: string }): boolean {
 	return config.transport === 'webrtc' || !config.serverUrl?.trim();
@@ -38,20 +31,24 @@ export function ActiveSessionView({
 	onCopyRoomId: () => void;
 	onStopCollaboration?: () => void;
 }) {
-	const { t } = useTranslation();
-	const statusColor =
-		collab.status === 'connected'
-			? 'text-green-400'
-			: collab.status === 'connecting'
-				? 'text-yellow-400'
-				: 'text-red-400';
-
-	const statusIcon =
-		collab.status === 'connected' || collab.status === 'connecting' ? (
-			<LuWifi className='w-4 h-4' />
-		) : (
-			<LuWifiOff className='w-4 h-4' />
-		);
+	const { t } = useTranslation(),
+		statusColor =
+			collab.status === 'connected'
+				? 'text-green-400'
+				: collab.status === 'connecting'
+					? 'text-yellow-400'
+					: 'text-red-400',
+		statusIcon =
+			collab.status === 'connected' || collab.status === 'connecting' ? (
+				<LuWifi className='w-4 h-4' />
+			) : (
+				<LuWifiOff className='w-4 h-4' />
+			),
+		sessionUsers = buildActiveSessionUsers({
+			localUserName: activeCollaboration?.userName ?? collab.config.userName,
+			localUserColor: collab.config.userColor,
+			remoteUsers: collab.remoteUsers,
+		});
 
 	return (
 		<div className='space-y-4'>
@@ -117,41 +114,27 @@ export function ActiveSessionView({
 						{t('pptx.share.connectedUsers')}
 					</label>
 					<div className='rounded border border-border bg-background divide-y divide-border max-h-[140px] overflow-y-auto'>
-						{/* Local user */}
-						<div className='flex items-center gap-2 px-3 py-2'>
-							<div
-								className='w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0'
-								style={{ backgroundColor: collab.config.userColor ?? '#6366f1' }}
-							>
-								{getInitials(activeCollaboration?.userName ?? collab.config.userName)}
-							</div>
-							<span className='text-[12px] text-foreground truncate'>
-								{activeCollaboration?.userName ?? collab.config.userName}
-							</span>
-							<span className='text-[10px] text-muted-foreground ml-auto'>
-								{t('pptx.share.you')}
-							</span>
-						</div>
-						{/* Remote users */}
-						{collab.remoteUsers.map((user) => (
-							<div key={user.clientId} className='flex items-center gap-2 px-3 py-2'>
+						{sessionUsers.map((user) => (
+							<div key={user.id} className='flex items-center gap-2 px-3 py-2'>
 								<div
 									className='w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0'
-									style={{ backgroundColor: user.userColor }}
+									style={{ backgroundColor: user.color }}
 								>
-									{user.userAvatar ? (
+									{user.avatarUrl ? (
 										<img
-											src={user.userAvatar}
+											src={user.avatarUrl}
 											alt=''
 											className='w-full h-full rounded-full object-cover'
 										/>
 									) : (
-										getInitials(user.userName)
+										user.initials
 									)}
 								</div>
-								<span className='text-[12px] text-foreground truncate'>{user.userName}</span>
+								<span className='text-[12px] text-foreground truncate'>{user.name}</span>
 								<span className='text-[10px] text-muted-foreground ml-auto'>
-									Slide {user.activeSlideIndex + 1}
+									{user.isLocal
+										? t('pptx.share.you')
+										: t('pptx.notes.slideN', { n: user.slideNumber })}
 								</span>
 							</div>
 						))}
