@@ -125,6 +125,9 @@ function Harness(props: {
 	onFlash: (target: ToolCanvasTarget | null) => void;
 	sendRef: { current: ((text: string) => void) | null };
 }) {
+	// Mirrors the real lazy-loading wiring (AiChatPanelLazy), which threads
+	// `useChat` through as a value on purpose; see the comment in useAiConversation.ts.
+	// oxlint-disable-next-line react/hooks -- see comment above
 	const chat = useAiConversation(useChat, props.session, props.config, props.bridge, {
 		onToolTarget: (target) => {
 			if (target && target.slideIndex !== undefined) {

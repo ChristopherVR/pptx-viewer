@@ -75,6 +75,9 @@ export function useSlideNotes({
 		setDraft(nextText);
 		setDraftSegments(nextSegments);
 		setIsRichEditEnabled(nextSegments.length > 0);
+		// `activeSlide?.id` is not read in the body; it's a re-sync trigger for a
+		// slide switch (see the lastSavedTextRef comment above).
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [activeSlide?.id, activeSlide?.notes, activeSlide?.notesSegments]);
 
 	useEffect(() => {

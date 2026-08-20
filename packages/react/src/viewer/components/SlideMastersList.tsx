@@ -52,8 +52,11 @@ export function SlideMastersList({
 }: SlideMastersListProps): React.ReactElement {
 	const activeRef = useRef<HTMLButtonElement>(null);
 
+	// The dep values aren't read in the body; they're re-run triggers, since the
+	// scrolled-to DOM node is read from `activeRef`, not derived from them.
 	useEffect(() => {
 		activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [activeMasterIndex, activeLayoutIndex]);
 
 	const { t } = useTranslation();

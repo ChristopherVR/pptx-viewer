@@ -38,6 +38,9 @@ export function AiChangeOverlay({ batch, activeSlideIndex }: AiChangeOverlayProp
 			cancelAnimationFrame(outer);
 			cancelAnimationFrame(inner);
 		};
+		// `nonce` is not read in the body; it's a replay trigger so a second batch
+		// with the same shape still restarts the start->end animation.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [nonce, batch]);
 
 	if (!batch) {

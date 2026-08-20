@@ -26,8 +26,11 @@ export function AiMessageList({ messages, isStreaming, bridge }: AiMessageListPr
 	const { t } = useTranslation();
 	const endRef = useRef<HTMLDivElement | null>(null);
 
+	// The dep values aren't read in the body; they're re-run triggers, since the
+	// scrolled-to DOM node is read from `endRef`, not derived from them.
 	useEffect(() => {
 		endRef.current?.scrollIntoView({ block: 'end' });
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [messages, isStreaming]);
 
 	if (messages.length === 0) {

@@ -59,6 +59,9 @@ export function PresenterNotesRail({
 	const notesSegments = slide?.notesSegments;
 	const [notesDraft, setNotesDraft] = useState(notesText);
 	const [fontSize, setFontSize] = useState(NOTES_FONT_SIZE_DEFAULT);
+	// `current` is not read in the callback; it's a re-sync trigger so navigating
+	// to a different slide resets the draft to that slide's notes.
+	// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	useEffect(() => setNotesDraft(notesText), [current, notesText]);
 	const notes = useMemo(
 		() =>

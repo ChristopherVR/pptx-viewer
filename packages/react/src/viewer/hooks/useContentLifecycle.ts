@@ -127,9 +127,12 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		onContentApplied,
 	});
 
-	// Sync the shared handler ref for action sounds
+	// Sync the shared handler ref for action sounds. `state.loading` is not read
+	// in the body; it's a re-run trigger so the ref re-points to the freshly
+	// loaded handler once loading finishes.
 	useEffect(() => {
 		actionSoundHandlerRef.current = handlerRef.current;
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [handlerRef, actionSoundHandlerRef, state.loading]);
 
 	useFontInjection({ embeddedFonts: state.embeddedFonts, slides });

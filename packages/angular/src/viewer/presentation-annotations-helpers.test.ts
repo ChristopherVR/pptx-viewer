@@ -55,13 +55,16 @@ describe('constants', () => {
 	it('pen width is positive', () => {
 		expect(PEN_WIDTH).toBeGreaterThan(0);
 	});
+
 	it('highlighter width is wider than pen', () => {
 		expect(HIGHLIGHTER_WIDTH).toBeGreaterThan(PEN_WIDTH);
 	});
+
 	it('highlighter opacity is between 0 and 1 exclusive', () => {
 		expect(HIGHLIGHTER_OPACITY).toBeGreaterThan(0);
 		expect(HIGHLIGHTER_OPACITY).toBeLessThan(1);
 	});
+
 	it('eraser radius is positive', () => {
 		expect(ERASER_RADIUS).toBeGreaterThan(0);
 	});

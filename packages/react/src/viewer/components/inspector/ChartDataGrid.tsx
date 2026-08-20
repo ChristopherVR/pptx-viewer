@@ -49,9 +49,12 @@ export function ChartDataGrid({
 	const { t } = useTranslation();
 	const highlightRef = useRef<HTMLElement | null>(null);
 
-	// Bring the canvas-selected cell into view when the selection changes.
+	// Bring the canvas-selected cell into view when the selection changes. The
+	// dep values aren't read in the body; they're re-run triggers, since the
+	// highlighted DOM node is read from `highlightRef`, not derived from them.
 	useEffect(() => {
 		highlightRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [highlightCell?.seriesIndex, highlightCell?.pointIndex]);
 
 	const highlightClass = ' ring-1 ring-primary';

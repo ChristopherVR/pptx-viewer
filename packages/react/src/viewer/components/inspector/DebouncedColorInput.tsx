@@ -30,8 +30,12 @@ export function DebouncedColorInput({
 	const commitRef = useRef(onCommit);
 	commitRef.current = onCommit;
 
-	// Sync external value when the selected element changes
+	// Sync external value when the selected element changes. Not pure derived
+	// state: `local` is then mutated independently by every keystroke until the
+	// next external change, which the "calculate during render" rewrite can't
+	// express.
 	useEffect(() => {
+		// oxlint-disable-next-line react/no-deriving-state-in-effects -- see comment above
 		setLocal(value);
 	}, [value]);
 

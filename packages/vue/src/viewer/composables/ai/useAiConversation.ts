@@ -91,6 +91,11 @@ export function useAiConversation(
 		proposals.value = session.proposals.list();
 	};
 
+	// `useChat` is a parameter, resolved once by `AiConversation.vue` when the
+	// optional `@ai-sdk/vue` peer loads (see this file's doc comment above), so it
+	// stays referentially stable across calls even though the linter can't see
+	// that through a parameter.
+	// oxlint-disable-next-line react/hooks -- see comment above
 	const chat = useChat({
 		transport: session.transport,
 		sendAutomaticallyWhen: session.sendAutomaticallyWhen,

@@ -28,7 +28,11 @@ const AiChatPanel = lazy(async () => {
 		import('@ai-sdk/react'),
 		import('./AiChatPanel'),
 	]);
+	// `useChat` is threaded through as a value, not called here, by design: it is
+	// resolved once per lazy-loaded chunk (see the module comment above) and
+	// handed to `Panel`, which is the component that actually calls it.
 	function BoundAiChatPanel(props: Omit<AiChatPanelProps, 'useChat'>) {
+		// oxlint-disable-next-line react/hooks -- see comment above
 		return <Panel {...props} useChat={useChat} />;
 	}
 	return { default: BoundAiChatPanel };

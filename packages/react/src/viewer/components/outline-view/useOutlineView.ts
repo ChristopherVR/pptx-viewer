@@ -95,6 +95,10 @@ export function useOutlineView(input: UseOutlineViewInput): UseOutlineViewResult
 			target.focus();
 			target.setSelectionRange(target.value.length, target.value.length);
 		}
+		// `rows` is not read in the body; it's a re-run trigger so the pending
+		// focus (set by a row add/split/merge) is applied only after the outline
+		// has re-rendered and the target row actually exists in the DOM.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [rows]);
 
 	return { rows, containerRef, run, onRowKeyDown };

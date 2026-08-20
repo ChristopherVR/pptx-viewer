@@ -45,6 +45,16 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 		livePatcher,
 	} = input;
 
+	// The effect body closes over `input` as a whole (passed straight through to
+	// processPointerMove/processPointerUp) rather than the individually
+	// destructured fields above, so the fields never show up as "read" to the
+	// dependency analyzer. They are listed anyway, deliberately, alongside
+	// `input`: this re-subscribes the global pointermove/pointerup listeners
+	// whenever any one of these specific values changes, rather than only on
+	// `input`'s object identity (which would also work, but the caller doesn't
+	// guarantee `input` is memoized, so relying on identity alone risks missing
+	// a change or re-subscribing on every render).
+	/* oxlint-disable react/exhaustive-effect-dependencies -- see comment above */
 	useEffect(() => {
 		const tracker: PointerFrameTracker = {
 			rafId: 0,
@@ -113,4 +123,5 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 		livePatcher,
 		input,
 	]);
+	/* oxlint-enable react/exhaustive-effect-dependencies */
 }

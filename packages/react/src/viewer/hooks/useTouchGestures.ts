@@ -128,5 +128,6 @@ export function useTouchGestures(input: UseTouchGesturesInput): void {
 		};
 		// targetVersion changes when the underlying DOM node identity changes,
 		// triggering listener re-attachment.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [targetRef, enabled, targetVersion]);
 }

@@ -54,6 +54,9 @@ export function TransitionPreview({
 		return () => {
 			window.clearTimeout(timer);
 		};
+		// `animKey` is not read in the body; it's a replay nonce so clicking "play"
+		// again while already playing restarts the timer instead of being a no-op.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [playing, durationMs, animKey]);
 
 	if (transition.type === 'none' || transition.type === 'cut') {

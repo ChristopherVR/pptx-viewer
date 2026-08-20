@@ -30,38 +30,41 @@ interface Extrusion3DOverlayProps {
  * within a `preserve-3d` container. This component should be rendered
  * as a sibling or wrapper alongside the shape's main content.
  */
-export const Extrusion3DOverlay: React.FC<Extrusion3DOverlayProps> = React.memo(({ data }) => {
-	if (!data.hasExtrusion || data.panels.length === 0) {
-		return null;
-	}
+export const Extrusion3DOverlay: React.FC<Extrusion3DOverlayProps> = React.memo(
+	// oxlint-disable-next-line prefer-arrow-callback -- named fn gives the memo component its displayName
+	function Extrusion3DOverlayInner({ data }) {
+		if (!data.hasExtrusion || data.panels.length === 0) {
+			return null;
+		}
 
-	return (
-		<div className='extrusion-3d-wrapper' style={data.wrapperStyle} aria-hidden='true'>
-			{data.panels.map((panel: ExtrusionPanel) => (
-				<div
-					key={panel.side}
-					className={`extrusion-3d-panel extrusion-3d-panel--${panel.side}`}
-					style={panel.style}
-				/>
-			))}
-			{data.materialOverlay && (
-				<div
-					className='extrusion-3d-material-overlay'
-					style={{
-						position: 'absolute',
-						inset: 0,
-						backgroundImage: data.materialOverlay,
-						pointerEvents: 'none',
-						borderRadius: 'inherit',
-						transform: data.frontFaceStyle.transform,
-						transformStyle: 'preserve-3d',
-						backfaceVisibility: 'hidden',
-						mixBlendMode: 'normal',
-					}}
-				/>
-			)}
-		</div>
-	);
-});
+		return (
+			<div className='extrusion-3d-wrapper' style={data.wrapperStyle} aria-hidden='true'>
+				{data.panels.map((panel: ExtrusionPanel) => (
+					<div
+						key={panel.side}
+						className={`extrusion-3d-panel extrusion-3d-panel--${panel.side}`}
+						style={panel.style}
+					/>
+				))}
+				{data.materialOverlay && (
+					<div
+						className='extrusion-3d-material-overlay'
+						style={{
+							position: 'absolute',
+							inset: 0,
+							backgroundImage: data.materialOverlay,
+							pointerEvents: 'none',
+							borderRadius: 'inherit',
+							transform: data.frontFaceStyle.transform,
+							transformStyle: 'preserve-3d',
+							backfaceVisibility: 'hidden',
+							mixBlendMode: 'normal',
+						}}
+					/>
+				)}
+			</div>
+		);
+	},
+);
 
 Extrusion3DOverlay.displayName = 'Extrusion3DOverlay';

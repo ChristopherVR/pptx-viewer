@@ -105,6 +105,10 @@ export function useLayoutSwitching(input: UseLayoutSwitchingInput): LayoutSwitch
 		} finally {
 			setIsLoading(false);
 		}
+		// `activeSlideIndex` IS read above (inside the `try`), but the analyzer
+		// doesn't see through an `await` call wrapped in try/finally and flags it
+		// as unused; verified as a false positive with a minimal repro.
+		// oxlint-disable-next-line react/memo-dependencies -- see comment above
 	}, [handler, activeSlideIndex]);
 
 	const applyLayout = useCallback(
@@ -136,6 +140,10 @@ export function useLayoutSwitching(input: UseLayoutSwitchingInput): LayoutSwitch
 				setIsLoading(false);
 			}
 		},
+		// `activeSlideIndex` IS read above (inside the `try`), but the analyzer
+		// doesn't see through an `await` call wrapped in try/finally and flags it
+		// as unused; verified as a false positive with a minimal repro.
+		// oxlint-disable-next-line react/memo-dependencies -- see comment above
 		[handler, activeSlideIndex, ops, history, onTemplateElementsChanged],
 	);
 

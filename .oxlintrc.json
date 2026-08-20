@@ -106,6 +106,10 @@
 		"jest/prefer-importing-jest-globals": "off",
 
 		// ── Style: disable overly opinionated rules ──
+		// one-var wants adjacent const/let statements merged into one with commas;
+		// this codebase's established convention (and oxfmt's own formatting) is one
+		// declaration per statement, so the rule fights the existing style on every file.
+		"one-var": "off",
 		"sort-keys": "off",
 		"sort-imports": "off",
 		"no-ternary": "off",
@@ -301,6 +305,23 @@
 			"rules": {
 				"vitest/no-import-node-test": "off",
 				"vitest/prefer-importing-vitest-globals": "off"
+			}
+		},
+		{
+			// `packages/cli/src/index.ts` re-exports `pptx-react-viewer` so this
+			// package doubles as a drop-in for it (see its own comment). This test
+			// imports both namespaces with `import * as` and asserts their exports
+			// line up, which needs the built `pptx-react-viewer` dist for
+			// `import/namespace` to resolve statically. The `lint` CI job
+			// intentionally runs `bun run lint` right after `bun install` with no
+			// build step (lint is meant to be fast and build-independent), so dist
+			// never exists there and the rule reports every named re-export as
+			// missing. The `test` job's `cli` leg downloads the built artifacts and
+			// actually runs this test against the real dist, so the check still
+			// happens for real.
+			"files": ["packages/cli/src/index.test.ts"],
+			"rules": {
+				"import/namespace": "off"
 			}
 		}
 	]

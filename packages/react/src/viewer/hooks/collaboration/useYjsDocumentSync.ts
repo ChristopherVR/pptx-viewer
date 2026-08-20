@@ -218,6 +218,9 @@ export function useYjsDocumentSync({
 	useEffect(() => {
 		hasInitializedRef.current = false;
 		lastSyncedRef.current = '';
+		// `doc` is not read in the body; it's the identity-change trigger described
+		// in the comment above.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [doc]);
 
 	// Sync remote Y.Doc changes -> local state

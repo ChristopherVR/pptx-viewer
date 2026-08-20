@@ -105,7 +105,9 @@ describe('styleShadow', () => {
 
 describe('styleStroke', () => {
 	it('returns 0 for flat', () => expect(styleStroke('flat')).toBe(0));
+
 	it('returns 1.5 for moderate', () => expect(styleStroke('moderate')).toBe(1.5));
+
 	it('returns 2 for intense', () => expect(styleStroke('intense')).toBe(2));
 });
 

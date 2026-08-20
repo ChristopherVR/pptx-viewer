@@ -109,6 +109,11 @@ export function useAiConversation(
 		[session, bridge, config.contextStrategy],
 	);
 
+	// `useChat` is a parameter, not a statically-known import, so the linter can't
+	// see that it stays referentially stable: `AiChatPanelLazy` resolves it once
+	// per lazy-loaded chunk and closes over it, so every render of this hook
+	// receives the identical function.
+	// oxlint-disable-next-line react/hooks -- see comment above
 	const chat = useChat({
 		transport,
 		sendAutomaticallyWhen: clientExecutes ? session.sendAutomaticallyWhen : undefined,

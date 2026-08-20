@@ -65,6 +65,7 @@ watchEffect(() => {
 	void load()
 		.then((loaded) => {
 			previews.value = new Map(loaded.map((preview) => [preview.path, preview]));
+			return undefined;
 		})
 		// A layout that will not parse costs the user a name-only tile, not a
 		// broken menu.

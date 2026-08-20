@@ -77,6 +77,10 @@ export function MediaPropertiesPanel({
 			el.removeEventListener('pause', onPause);
 			el.removeEventListener('ended', onEnded);
 		};
+		// `dataUrl` is not read in the body; it's a re-sync trigger so switching to a
+		// different media file rebinds the listeners and resets playback state
+		// instead of carrying over stale time/duration from the previous file.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [dataUrl]);
 
 	const togglePlay = useCallback((): void => {
@@ -148,6 +152,10 @@ export function MediaPropertiesPanel({
 		return () => {
 			el.removeEventListener('loadedmetadata', extract);
 		};
+		// `dataUrl` is not read in the body; it's a re-sync trigger so switching to a
+		// different media file re-extracts metadata instead of keeping the previous
+		// file's duration/dimensions.
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
 	}, [dataUrl, element]);
 
 	return (

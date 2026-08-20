@@ -31,30 +31,32 @@ interface ToggleRowProps {
 	label: string;
 }
 
-const ToggleRow: React.FC<ToggleRowProps> = ({ checked, onChange, icon, label }) => (
-	<label className='flex items-center gap-2.5 cursor-pointer group select-none'>
-		<span className='relative flex items-center justify-center w-4 h-4'>
-			<input
-				type='checkbox'
-				checked={checked}
-				onChange={(e) => onChange(e.target.checked)}
-				className='peer sr-only'
-			/>
-			<span className='absolute inset-0 rounded border border-border bg-muted transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50' />
-			{checked && <LuCheck className='relative z-10 w-3 h-3 text-white' />}
-		</span>
-		<span className='flex items-center gap-1.5 text-xs text-foreground group-hover:text-foreground transition-colors'>
-			{icon}
-			{label}
-		</span>
-	</label>
-);
+function ToggleRow({ checked, onChange, icon, label }: ToggleRowProps): React.ReactElement {
+	return (
+		<label className='flex items-center gap-2.5 cursor-pointer group select-none'>
+			<span className='relative flex items-center justify-center w-4 h-4'>
+				<input
+					type='checkbox'
+					checked={checked}
+					onChange={(e) => onChange(e.target.checked)}
+					className='peer sr-only'
+				/>
+				<span className='absolute inset-0 rounded border border-border bg-muted transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50' />
+				{checked && <LuCheck className='relative z-10 w-3 h-3 text-white' />}
+			</span>
+			<span className='flex items-center gap-1.5 text-xs text-foreground group-hover:text-foreground transition-colors'>
+				{icon}
+				{label}
+			</span>
+		</label>
+	);
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
+export function HeaderFooterPanel({
 	showDateTime,
 	showSlideNumber,
 	showFooter,
@@ -66,7 +68,7 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 	onApplyToAll,
 	onApplyToCurrent,
 	onClose,
-}) => {
+}: HeaderFooterPanelProps): React.ReactElement {
 	const handleFooterTextChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			onSetFooterText(e.target.value);
@@ -152,4 +154,4 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 			</div>
 		</div>
 	);
-};
+}

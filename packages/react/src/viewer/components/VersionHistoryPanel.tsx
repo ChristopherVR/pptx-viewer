@@ -151,6 +151,10 @@ export function VersionHistoryPanel({
 				setRestoringKey(null);
 			}
 		},
+		// `onRestore`/`onClose` ARE read above (inside the `try`), but the analyzer
+		// doesn't see through a try/finally block and flags them as unused;
+		// verified as a false positive with a minimal repro (see useLayoutSwitching.ts).
+		// oxlint-disable-next-line react/memo-dependencies -- see comment above
 		[onRestore, onClose],
 	);
 
@@ -165,6 +169,11 @@ export function VersionHistoryPanel({
 				setDeletingKey(null);
 			}
 		},
+		// `fetchVersions` IS read above (inside the `try`), but the analyzer
+		// doesn't see through an `await` call wrapped in try/finally and flags it
+		// as unused; verified as a false positive with a minimal repro (see
+		// useLayoutSwitching.ts).
+		// oxlint-disable-next-line react/memo-dependencies -- see comment above
 		[fetchVersions],
 	);
 

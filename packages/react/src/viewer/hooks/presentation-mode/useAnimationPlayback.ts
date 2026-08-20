@@ -194,6 +194,12 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			presentationTimersRef.current.push(timer);
 		},
+		// `scheduleAutoAdvanceChain` recursively calls itself (line 190) to walk the
+		// auto-advance chain; it can't list itself as its own dependency (the const
+		// isn't assigned yet when the array is evaluated). The recursive call still
+		// resolves correctly because the setTimeout callback only reads the binding
+		// once the outer const has been assigned.
+		// oxlint-disable-next-line react/memo-dependencies -- see comment above
 		[onPlayActionSound, startBuildReveal],
 	);
 

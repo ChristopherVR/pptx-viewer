@@ -82,6 +82,7 @@ describe('parseEmbeddedXlsx', () => {
 		const result = await parseEmbeddedXlsx(await buildMockXlsx(undefined, sheet, workbook));
 		expect(result?.date1904).toBeTruthy();
 	});
+
 	it('should parse a basic xlsx with string categories and numeric series', async () => {
 		const sharedStrings = buildSharedStringsXml(['', 'Revenue', 'Costs', 'Q1', 'Q2', 'Q3']);
 		const sheet1 = buildSheet1Xml([

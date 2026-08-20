@@ -6,18 +6,22 @@ import {
 import type { PresentationInkStroke, PresentationSnapshot } from 'pptx-viewer-shared';
 import { useCallback, useRef } from 'react';
 
+// Pure function of the event itself (no closure over hook state), so it lives
+// at module scope: a stable reference the memoized callbacks below can use
+// without needing to list it as a dependency.
+function point(event: React.PointerEvent<HTMLElement>): { x: number; y: number } {
+	const rect = event.currentTarget.getBoundingClientRect();
+	return {
+		x: (event.clientX - rect.left) / rect.width,
+		y: (event.clientY - rect.top) / rect.height,
+	};
+}
+
 export function usePresenterInk(
 	snapshot: PresentationSnapshot,
 	onUpdate: (patch: Partial<PresentationSnapshot>) => void,
 ) {
 	const drawingId = useRef<string | null>(null);
-	const point = (event: React.PointerEvent<HTMLElement>) => {
-		const rect = event.currentTarget.getBoundingClientRect();
-		return {
-			x: (event.clientX - rect.left) / rect.width,
-			y: (event.clientY - rect.top) / rect.height,
-		};
-	};
 	const onPointerDown = useCallback(
 		(event: React.PointerEvent<HTMLElement>) => {
 			const pointer = snapshot.pointer;
