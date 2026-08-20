@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [1.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.7.0) - 2026-08-19
+
+### Features
+
+- **cli:** Make @christophervr/pptx-viewer a drop-in for pptx-react-viewer (by @ChristopherVR) ([2c13717](https://github.com/ChristopherVR/pptx-viewer/commit/2c13717c4f16cb73882bf887087af75986ebd264))
+
+### Bug Fixes
+
+- **ci:** Stop the hourly release writing an empty changelog section (by @ChristopherVR) ([d53c0fe](https://github.com/ChristopherVR/pptx-viewer/commit/d53c0feffa2c2d9c67dfc495cb8dbefdf23638ae))
+
 ## [1.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.6.0) - 2026-08-07
 
 ### Features

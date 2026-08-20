@@ -10,6 +10,25 @@ dated sections beneath it are generated from
 
 ## 2026-08-19
 
+_Releases: pptx-viewer-core@2.3.10, pptx-react-viewer@2.19.7, pptx-vue-viewer@2.20.7, pptx-angular-viewer@2.18.7, pptx-vanilla-viewer@1.21.7, pptx-svelte-viewer@2.20.7, @christophervr/pptx-viewer@1.7.0_
+
+### Features
+
+- **cli:** Make @christophervr/pptx-viewer a drop-in for pptx-react-viewer (by @ChristopherVR) ([2c13717](https://github.com/ChristopherVR/pptx-viewer/commit/2c13717c4f16cb73882bf887087af75986ebd264))
+
+### Bug Fixes
+
+- **core:** Correct OOXML a:tint colour math (ECMA-376 20.1.2.3.32) (by @ChristopherVR) ([7cf29f3](https://github.com/ChristopherVR/pptx-viewer/commit/7cf29f321994b7e9df8fe11d821a2c2fe686e1cd))
+- **shared:** Stretch uncropped pictures to fill their frame (by @ChristopherVR) ([ff2fee3](https://github.com/ChristopherVR/pptx-viewer/commit/ff2fee3b3bba88e9a4d50a0735e9558c65e8041e))
+- **core:** Don't clone an arbitrary slide onto a new blank slide (by @ChristopherVR) ([1bd1bd6](https://github.com/ChristopherVR/pptx-viewer/commit/1bd1bd6be1aa657b89ef5782e5d3c466686102c4))
+- **core:** Don't bind special placeholders to untyped ones by idx alone (by @ChristopherVR) ([d92eb11](https://github.com/ChristopherVR/pptx-viewer/commit/d92eb11095ee390a596126acc59c8dd9cc18f8a8))
+- **core:** Resolve layout-switch geometry from the master when omitted (by @ChristopherVR) ([a09aa5a](https://github.com/ChristopherVR/pptx-viewer/commit/a09aa5a306e160954bbc09052444ad22ab4385a1))
+- **core:** Reverse the GUID-derived XOR key for font de/obfuscation (by @ChristopherVR) ([7733edf](https://github.com/ChristopherVR/pptx-viewer/commit/7733edf62f9f9a307c470dd93cfba36c8dbb9339))
+- **core:** Drop untouched placeholder prompts on repeated layout switch (by @ChristopherVR) ([8842223](https://github.com/ChristopherVR/pptx-viewer/commit/884222317ad7da002e28e6272257bb4563b89fb2))
+- **security:** Resolve code-scanning ReDoS and comment-sanitization alerts (by @ChristopherVR) ([e58e3f5](https://github.com/ChristopherVR/pptx-viewer/commit/e58e3f540e4e34c3617d32efdeea4ace6899e2bf))
+
+## 2026-08-19
+
 _Releases: pptx-react-viewer@2.19.6, pptx-vue-viewer@2.20.6, pptx-angular-viewer@2.18.6, pptx-vanilla-viewer@1.21.6, pptx-svelte-viewer@2.20.6_
 
 ### Bug Fixes
