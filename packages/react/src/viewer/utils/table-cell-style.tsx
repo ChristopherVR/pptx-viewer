@@ -72,7 +72,16 @@ export function extractTableCellStyle(
 	fallbackStyle: React.CSSProperties,
 	schemeColorOverrides?: Record<string, string | undefined>,
 ): React.CSSProperties {
-	const cellStyle: React.CSSProperties = { ...fallbackStyle };
+	// `color` is excluded from the inherited base: the caller merges this
+	// result over a table-style band's own text colour (header/band roles),
+	// and an unconditional fallback here would always win that merge, painting
+	// every un-styled cell in the element's plain default colour even when the
+	// table style declares a real header/band colour (the common case, since
+	// table styles exist precisely so authors don't hand-colour every cell).
+	// The `runColor` block below still sets it when a run/cell explicitly
+	// overrides colour.
+	const { color: _fallbackColor, ...fallbackWithoutColor } = fallbackStyle;
+	const cellStyle: React.CSSProperties = { ...fallbackWithoutColor };
 	const txBody = cellXml['a:txBody'] as XmlObject | undefined;
 	const paragraphs = ensureArrayValue(txBody?.['a:p'] as XmlObject | XmlObject[] | undefined);
 	const firstParagraph = paragraphs[0] as XmlObject | undefined;

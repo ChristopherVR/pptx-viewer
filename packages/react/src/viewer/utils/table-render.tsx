@@ -189,6 +189,11 @@ export function renderTableElement(
 										);
 
 										const mergedStyle: React.CSSProperties = {
+											// Lowest-priority fallback: `xmlCellStyle` never carries a
+											// `color` of its own (see `extractTableCellStyle`), so this
+											// is the only source when neither the table style band nor
+											// an explicit run/cell colour applies.
+											color: textStyle.color,
 											...bandStyle,
 											...xmlCellStyle,
 											...(tdCellOverride ? cellStyleToCss(tdCellOverride) : undefined),

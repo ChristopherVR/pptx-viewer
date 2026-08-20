@@ -147,7 +147,31 @@ describe('extractTableCellStyle', () => {
 		const fallback = { fontSize: 12, color: 'black' };
 		const result = extractTableCellStyle({}, fallback);
 		expect(result.fontSize).toBe(12);
-		expect(result.color).toBe('black');
+	});
+
+	it('does not inherit a fallback colour when the cell declares none of its own', () => {
+		// The caller (table-render.tsx) merges this result over a table-style
+		// band's own text colour; an unconditional fallback colour here would
+		// always clobber that band colour, painting every un-styled header/band
+		// cell in the element's plain default instead of the table style's.
+		const fallback = { fontSize: 12, color: 'black' };
+		const result = extractTableCellStyle({}, fallback);
+		expect(result.color).toBeUndefined();
+	});
+
+	it('still applies an explicit run colour over the (absent) fallback', () => {
+		const cellXml = {
+			'a:txBody': {
+				'a:p': {
+					'a:r': {
+						'a:rPr': { 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } } },
+						'a:t': 'Text',
+					},
+				},
+			},
+		};
+		const result = extractTableCellStyle(cellXml, { color: 'black' });
+		expect(result.color).toBe('#FF0000');
 	});
 
 	it('extracts font size from run properties', () => {
