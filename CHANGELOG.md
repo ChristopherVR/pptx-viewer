@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-08-20
 
+_Releases: pptx-react-viewer@2.20.3, pptx-vue-viewer@2.21.3, pptx-angular-viewer@2.19.3_
+
+### Bug Fixes
+
+- **ci:** Resolve oxlint errors and warnings blocking CI lint job (by @ChristopherVR) ([a2031be](https://github.com/ChristopherVR/pptx-viewer/commit/a2031bedb27a4d1bf7c0cf754ce6b81a241972e5))
+
+### Styling
+
+- **angular:** Fix pre-existing oxfmt formatting drift (by @ChristopherVR) ([f04d94e](https://github.com/ChristopherVR/pptx-viewer/commit/f04d94ee9a7f4a833a9754fe8da7776ffcf9cecd))
+
+## 2026-08-20
+
 _Releases: pptx-react-viewer@2.20.2, pptx-vue-viewer@2.21.2, pptx-angular-viewer@2.19.2, pptx-vanilla-viewer@1.22.2, pptx-svelte-viewer@2.21.2, pptx-viewer-mcp@2.1.3_
 
 ### Bug Fixes

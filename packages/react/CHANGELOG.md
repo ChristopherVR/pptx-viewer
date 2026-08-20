@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.20.3) - 2026-08-20
+
+### Bug Fixes
+
+- **ci:** Resolve oxlint errors and warnings blocking CI lint job (by @ChristopherVR) ([a2031be](https://github.com/ChristopherVR/pptx-viewer/commit/a2031bedb27a4d1bf7c0cf754ce6b81a241972e5))
+
 ## [2.20.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.20.2) - 2026-08-20
 
 ### Bug Fixes

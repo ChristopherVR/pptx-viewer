@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.3) - 2026-08-20
+
+### Bug Fixes
+
+- **ci:** Resolve oxlint errors and warnings blocking CI lint job (by @ChristopherVR) ([a2031be](https://github.com/ChristopherVR/pptx-viewer/commit/a2031bedb27a4d1bf7c0cf754ce6b81a241972e5))
+
+### Styling
+
+- **angular:** Fix pre-existing oxfmt formatting drift (by @ChristopherVR) ([f04d94e](https://github.com/ChristopherVR/pptx-viewer/commit/f04d94ee9a7f4a833a9754fe8da7776ffcf9cecd))
+
 ## [2.19.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.2) - 2026-08-20
 
 ### Bug Fixes
