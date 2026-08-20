@@ -1,4 +1,8 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per test case); merging them isn't a
+   style choice here. */
 import type { PptxSlide } from 'pptx-viewer-core';
+import { computeColorFilter, computeSlideIndices } from 'pptx-viewer-shared';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import { escapeHtml } from '../utils/dom-helpers';
@@ -6,37 +10,20 @@ import type { PrintHandlersResult } from './usePrintHandlers';
 
 // ---------------------------------------------------------------------------
 // usePrintHandlers is a complex hook with DOM-heavy logic (window.open,
-// html2canvas, etc.). We test the pure logic that can be extracted:
-//   1. Slide index range computation from PrintSettings.
-//   2. Color filter generation.
+// html2canvas, etc.). We test the pure logic it delegates to:
+//   1. Slide index range computation from PrintSettings (shared
+//      `computeSlideIndices`, imported directly by usePrintHandlers.ts).
+//   2. Color filter generation (shared `computeColorFilter`, imported
+//      directly by usePrintHandlers.ts).
 //   3. Outline HTML generation.
 //   4. Handout layout grid computation.
 //   5. escapeHtml (used in print output).
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Slide index computation (extracted from handlePrintWithSettings)
+// Slide index computation (usePrintHandlers.ts calls the shared helper
+// directly; this exercises the same function to guard against regressions).
 // ---------------------------------------------------------------------------
-
-type SlideRange = 'all' | 'current' | 'custom';
-
-function computeSlideIndices(
-	slideRange: SlideRange,
-	activeSlideIndex: number,
-	slideCount: number,
-	customRangeFrom: number,
-	customRangeTo: number,
-): number[] {
-	if (slideRange === 'current') {
-		return [activeSlideIndex];
-	}
-	if (slideRange === 'custom') {
-		const from = Math.max(0, customRangeFrom - 1);
-		const to = Math.min(slideCount - 1, customRangeTo - 1);
-		return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-	}
-	return Array.from({ length: slideCount }, (_, i) => i);
-}
 
 describe('computeSlideIndices', () => {
 	it('returns all indices for "all" range', () => {
@@ -73,20 +60,9 @@ describe('computeSlideIndices', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Color filter generation (extracted from handlePrintWithSettings)
+// Color filter generation (usePrintHandlers.ts calls the shared helper
+// directly; this exercises the same function to guard against regressions).
 // ---------------------------------------------------------------------------
-
-type ColorMode = 'color' | 'grayscale' | 'blackAndWhite';
-
-function computeColorFilter(colorMode: ColorMode): string {
-	if (colorMode === 'grayscale') {
-		return 'filter: grayscale(1);';
-	}
-	if (colorMode === 'blackAndWhite') {
-		return 'filter: grayscale(1) contrast(2);';
-	}
-	return '';
-}
 
 describe('computeColorFilter', () => {
 	it('returns empty string for "color" mode', () => {

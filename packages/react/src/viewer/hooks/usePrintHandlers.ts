@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per handler); merging them isn't a
+   style choice here. */
 import type { PptxSlide, PptxData } from 'pptx-viewer-core';
 /**
  * usePrintHandlers -- Print dialog and print-with-settings logic for
@@ -18,6 +21,8 @@ import {
 	buildOutlineHtml,
 	buildPrintHtmlDocument,
 	buildSlidesHtml,
+	computeColorFilter,
+	computeSlideIndices,
 } from 'pptx-viewer-shared';
 import { useState } from 'react';
 import type { RefObject } from 'react';
@@ -124,27 +129,15 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 			return handlePrintWithSettings(settings);
 		}
 
-		const colorFilter = (() => {
-			if (settings.colorMode === 'grayscale') {
-				return 'filter: grayscale(1);';
-			}
-			if (settings.colorMode === 'blackAndWhite') {
-				return 'filter: grayscale(1) contrast(2);';
-			}
-			return '';
-		})();
+		const colorFilter = computeColorFilter(settings.colorMode);
 
-		const slideIndices: number[] = (() => {
-			if (settings.slideRange === 'current') {
-				return [activeSlideIndex];
-			}
-			if (settings.slideRange === 'custom') {
-				const from = Math.max(0, settings.customRangeFrom - 1);
-				const to = Math.min(slides.length - 1, settings.customRangeTo - 1);
-				return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-			}
-			return Array.from({ length: slides.length }, (_, i) => i);
-		})();
+		const slideIndices: number[] = computeSlideIndices(
+			settings.slideRange,
+			activeSlideIndex,
+			slides.length,
+			settings.customRangeFrom,
+			settings.customRangeTo,
+		);
 
 		try {
 			// Export slides to SVG using the core SVG exporter
@@ -177,27 +170,15 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 
 	const handlePrintWithSettings = async (settings: PrintSettings) => {
 		setIsPrintDialogOpen(false);
-		const colorFilter = (() => {
-			if (settings.colorMode === 'grayscale') {
-				return 'filter: grayscale(1);';
-			}
-			if (settings.colorMode === 'blackAndWhite') {
-				return 'filter: grayscale(1) contrast(2);';
-			}
-			return '';
-		})();
+		const colorFilter = computeColorFilter(settings.colorMode);
 
-		const slideIndices: number[] = (() => {
-			if (settings.slideRange === 'current') {
-				return [activeSlideIndex];
-			}
-			if (settings.slideRange === 'custom') {
-				const from = Math.max(0, settings.customRangeFrom - 1);
-				const to = Math.min(slides.length - 1, settings.customRangeTo - 1);
-				return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-			}
-			return Array.from({ length: slides.length }, (_, i) => i);
-		})();
+		const slideIndices: number[] = computeSlideIndices(
+			settings.slideRange,
+			activeSlideIndex,
+			slides.length,
+			settings.customRangeFrom,
+			settings.customRangeTo,
+		);
 
 		if (settings.printWhat === 'outline') {
 			openPrintWindow(
