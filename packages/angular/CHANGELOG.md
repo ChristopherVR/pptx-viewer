@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.1) - 2026-08-20
+
+### Bug Fixes
+
+- **mobile:** Repoint react/vue/angular mobile sheet toggling onto shared (by @ChristopherVR) ([d8e6228](https://github.com/ChristopherVR/pptx-viewer/commit/d8e62280d49f1b7cdaa3e5034e2134c7380e5063))
+- **shared:** Repoint options numeric-control clamp onto shared helper (by @ChristopherVR) ([138dfe5](https://github.com/ChristopherVR/pptx-viewer/commit/138dfe5d6cc780915ab8d9ca591f75c698b35f22))
+- **angular:** Consult inline-editor overlay when resolving context-menu target (by @ChristopherVR) ([4dabc3e](https://github.com/ChristopherVR/pptx-viewer/commit/4dabc3e34078049b96c5b9c5be0b35eb32cb6582))
+
+### Refactor
+
+- **react,vue,angular:** Repoint chart value-drag onto shared engine (by @ChristopherVR) ([1d5fd6a](https://github.com/ChristopherVR/pptx-viewer/commit/1d5fd6af4a8847168674b50e9039d6ba96926f43))
+- **shared,react,vue,vanilla:** Repoint comment mutations onto shared comments-list (by @ChristopherVR) ([0eb28dc](https://github.com/ChristopherVR/pptx-viewer/commit/0eb28dc5d714ebe695c8b23c6b09aefc6b99ac0d))
+
 ## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.0) - 2026-08-20
 
 ### Features

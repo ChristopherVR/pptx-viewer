@@ -10,6 +10,25 @@ dated sections beneath it are generated from
 
 ## 2026-08-20
 
+_Releases: pptx-react-viewer@2.20.1, pptx-vue-viewer@2.21.1, pptx-angular-viewer@2.19.1, pptx-vanilla-viewer@1.22.1, pptx-svelte-viewer@2.21.1_
+
+### Bug Fixes
+
+- **mobile:** Repoint react/vue/angular mobile sheet toggling onto shared (by @ChristopherVR) ([d8e6228](https://github.com/ChristopherVR/pptx-viewer/commit/d8e62280d49f1b7cdaa3e5034e2134c7380e5063))
+- **ci:** Re-release tools/cli when their pinned dependency goes major (by @ChristopherVR) ([0da13f3](https://github.com/ChristopherVR/pptx-viewer/commit/0da13f325e6e166d4e3bec9df3b36b6e7f2f9dcf))
+- **shared:** Repoint options numeric-control clamp onto shared helper (by @ChristopherVR) ([138dfe5](https://github.com/ChristopherVR/pptx-viewer/commit/138dfe5d6cc780915ab8d9ca591f75c698b35f22))
+- **react:** Repoint comment markers onto shared buildCommentMarkers (by @ChristopherVR) ([d3ddba1](https://github.com/ChristopherVR/pptx-viewer/commit/d3ddba1ff766a6d619b53a2e18d6363ad9323423))
+- **angular:** Consult inline-editor overlay when resolving context-menu target (by @ChristopherVR) ([4dabc3e](https://github.com/ChristopherVR/pptx-viewer/commit/4dabc3e34078049b96c5b9c5be0b35eb32cb6582))
+
+### Refactor
+
+- **react,vue,angular:** Repoint chart value-drag onto shared engine (by @ChristopherVR) ([1d5fd6a](https://github.com/ChristopherVR/pptx-viewer/commit/1d5fd6af4a8847168674b50e9039d6ba96926f43))
+- **shared,react,vue,vanilla:** Repoint comment mutations onto shared comments-list (by @ChristopherVR) ([0eb28dc](https://github.com/ChristopherVR/pptx-viewer/commit/0eb28dc5d714ebe695c8b23c6b09aefc6b99ac0d))
+- **react,vue:** Repoint SmartArt chrome style onto shared buildChromeStyle (by @ChristopherVR) ([2a9602f](https://github.com/ChristopherVR/pptx-viewer/commit/2a9602f8ee7f930c4d950f19ba616196bc9d9cb7))
+- **react:** Repoint print handlers onto shared print helpers (by @ChristopherVR) ([b921759](https://github.com/ChristopherVR/pptx-viewer/commit/b921759efae72adc93509e1d21c4f36d2aba6606))
+
+## 2026-08-20
+
 _Releases: pptx-react-viewer@2.20.0, pptx-vue-viewer@2.21.0, pptx-angular-viewer@2.19.0, pptx-vanilla-viewer@1.22.0, pptx-svelte-viewer@2.21.0_
 
 ### Features
