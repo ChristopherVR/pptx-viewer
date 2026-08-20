@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	animationFor,
 	applyAnimationPreset,
+	buildAnimationTimelineBars,
 	hasAnimation,
 	removeAnimation,
 	removeElementAnimation,
@@ -528,6 +529,38 @@ describe('applyAnimationPreset', () => {
 		const result = applyAnimationPreset(seeded, 'el1', 'emphasis', 'pulse');
 		expect(result).toHaveLength(1);
 		expect(result[0]).toMatchObject({ entrance: 'fadeIn', emphasis: 'pulse', durationMs: 500 });
+	});
+});
+
+describe('buildAnimationTimelineBars', () => {
+	it('returns empty for no animations', () => {
+		expect(buildAnimationTimelineBars([])).toStrictEqual([]);
+	});
+
+	it('computes left/width percentages against the longest end time', () => {
+		const bars = buildAnimationTimelineBars([
+			{ elementId: 'a', order: 0, delayMs: 0, durationMs: 500 } as PptxElementAnimation,
+			{ elementId: 'b', order: 1, delayMs: 500, durationMs: 500 } as PptxElementAnimation,
+		]);
+		expect(bars[0]).toMatchObject({ elementId: 'a', leftPercent: 0, widthPercent: 50 });
+		expect(bars[1]).toMatchObject({ elementId: 'b', leftPercent: 50, widthPercent: 50 });
+	});
+
+	it('defaults duration to 500ms and delay to 0', () => {
+		const bars = buildAnimationTimelineBars([
+			{ elementId: 'a', entrance: 'fadeIn' } as PptxElementAnimation,
+		]);
+		expect(bars[0]).toMatchObject({ leftPercent: 0, widthPercent: 100 });
+	});
+
+	it('returns bars sorted by the order field, independent of input order', () => {
+		const bars = buildAnimationTimelineBars([
+			{ elementId: 'a', order: 0, durationMs: 200 } as PptxElementAnimation,
+			{ elementId: 'b', order: 1, durationMs: 400, delayMs: 100 } as PptxElementAnimation,
+			{ elementId: 'c', order: 2, durationMs: 300 } as PptxElementAnimation,
+		]);
+		expect(bars.map((bar) => bar.elementId)).toStrictEqual(['a', 'b', 'c']);
+		expect(bars[1]).toMatchObject({ elementId: 'b', leftPercent: 20, widthPercent: 80 });
 	});
 });
 

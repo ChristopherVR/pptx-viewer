@@ -1,3 +1,7 @@
+/* oxlint-disable eslint/one-var -- each hook call below is its own independent
+   piece of state/memoization; merging them into one `const` statement would
+   hurt readability (and has previously broken the React compiler's ability to
+   track separate hook boundaries), not help it. */
 import type {
 	PptxElement,
 	PptxSlide,
@@ -10,7 +14,11 @@ import type {
 	PptxAnimationTrigger,
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { applyMotionPathPreset, clearMotionPath } from 'pptx-viewer-shared';
+import {
+	applyMotionPathPreset,
+	buildAnimationTimelineBars,
+	clearMotionPath,
+} from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 
 import { getElementLabel } from '../../utils';
@@ -266,25 +274,12 @@ export function useAnimationHandlers({
 			DIRECTIONAL_PRESETS.has(selectedElementAnimation?.exit ?? ''));
 
 	const timelineBarData = useMemo(() => {
-		if (sortedAnimations.length === 0) {
-			return [];
-		}
-		let maxEndMs = 0;
-		const entries = sortedAnimations.map((anim) => {
-			const startMs = anim.delayMs ?? 0;
-			const durationMs = anim.durationMs ?? 500;
-			const endMs = startMs + durationMs;
-			if (endMs > maxEndMs) {
-				maxEndMs = endMs;
-			}
-			return { anim, startMs, durationMs, endMs };
+		const bars = buildAnimationTimelineBars(sortedAnimations);
+		const barsByElementId = new Map(bars.map((bar) => [bar.elementId, bar]));
+		return sortedAnimations.flatMap((anim) => {
+			const bar = barsByElementId.get(anim.elementId);
+			return bar ? [{ anim, leftPercent: bar.leftPercent, widthPercent: bar.widthPercent }] : [];
 		});
-		const totalMs = Math.max(maxEndMs, 1);
-		return entries.map((entry) => ({
-			anim: entry.anim,
-			leftPercent: (entry.startMs / totalMs) * 100,
-			widthPercent: (entry.durationMs / totalMs) * 100,
-		}));
 	}, [sortedAnimations]);
 
 	return {

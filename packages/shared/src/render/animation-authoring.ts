@@ -511,6 +511,40 @@ export function removeElementAnimation(
 }
 
 // ==========================================================================
+// Timeline-strip bar layout
+// ==========================================================================
+
+/** One proportional bar in the horizontal animation timeline strip. */
+export interface AnimationTimelineBar {
+	elementId: string;
+	leftPercent: number;
+	widthPercent: number;
+}
+
+/**
+ * Lays out the proportional timeline-strip bars for a slide's animations:
+ * each bar's `leftPercent`/`widthPercent` express its delay/duration as a
+ * percentage of the longest end time (`delayMs + durationMs`) across every
+ * entry, so the strip always spans the full authored sequence. Returned in
+ * `order` order (matching the reorderable list every binding renders beside
+ * the strip).
+ */
+export function buildAnimationTimelineBars(
+	animations: readonly PptxElementAnimation[],
+): AnimationTimelineBar[] {
+	const sorted = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+	const total = Math.max(
+		1,
+		...sorted.map((animation) => (animation.delayMs ?? 0) + (animation.durationMs ?? 500)),
+	);
+	return sorted.map((animation) => ({
+		elementId: animation.elementId,
+		leftPercent: ((animation.delayMs ?? 0) / total) * 100,
+		widthPercent: ((animation.durationMs ?? 500) / total) * 100,
+	}));
+}
+
+// ==========================================================================
 // Internal ordering helpers
 // ==========================================================================
 

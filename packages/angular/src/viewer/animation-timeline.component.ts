@@ -1,35 +1,22 @@
-/* oxlint-disable eslint/one-var -- the top-level helper and the component's
-   own field/method declarations below are independent, not adjacent
-   initializations of related values; merging them would hurt readability far
-   more than it helps. */
+/* oxlint-disable eslint/one-var -- the component's own field/method
+   declarations below are independent, not adjacent initializations of
+   related values; merging them would hurt readability far more than it
+   helps. */
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 
-import { animationEffectLabelKey, reorderAnimationTo } from '../internal/shared';
+import {
+	animationEffectLabelKey,
+	buildAnimationTimelineBars,
+	reorderAnimationTo,
+} from '../internal/shared';
+import type { AnimationTimelineBar } from '../internal/shared';
 import { getAnimationElementLabel } from './animation-author-view';
 import { previewAngularAnimation, stopAngularAnimationPreview } from './animation-preview-player';
 
-export interface AnimationTimelineBar {
-	elementId: string;
-	leftPercent: number;
-	widthPercent: number;
-}
-
-export function buildAnimationTimelineBars(
-	animations: readonly PptxElementAnimation[],
-): AnimationTimelineBar[] {
-	const sorted = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-	const total = Math.max(
-		1,
-		...sorted.map((animation) => (animation.delayMs ?? 0) + (animation.durationMs ?? 500)),
-	);
-	return sorted.map((animation) => ({
-		elementId: animation.elementId,
-		leftPercent: ((animation.delayMs ?? 0) / total) * 100,
-		widthPercent: ((animation.durationMs ?? 500) / total) * 100,
-	}));
-}
+export type { AnimationTimelineBar };
+export { buildAnimationTimelineBars };
 
 @Component({
 	selector: 'pptx-animation-timeline',

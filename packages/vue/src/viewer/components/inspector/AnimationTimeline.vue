@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GripVertical } from 'lucide-vue-next';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
-import { reorderAnimationTo } from 'pptx-viewer-shared';
+import { buildAnimationTimelineBars, reorderAnimationTo } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -24,9 +24,12 @@ const dragOverIndex = ref<number>();
 const sorted = computed(() =>
 	[...props.animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
 );
-const totalMs = computed(() =>
-	Math.max(1, ...sorted.value.map((a) => (a.delayMs ?? 0) + (a.durationMs ?? 500))),
-);
+const bars = computed(() => buildAnimationTimelineBars(props.animations));
+
+function barFor(animation: PptxElementAnimation): { leftPercent: number; widthPercent: number } {
+	const bar = bars.value.find((candidate) => candidate.elementId === animation.elementId);
+	return bar ?? { leftPercent: 0, widthPercent: 0 };
+}
 
 function label(animation: PptxElementAnimation): string {
 	return animationElementLabel(
@@ -72,8 +75,8 @@ function clearDrag(): void {
 				class="absolute bottom-1 top-1 min-w-[2%] rounded bg-green-500/60"
 				:class="{ 'ring-1 ring-primary': animation.elementId === selectedElementId }"
 				:style="{
-					left: `${((animation.delayMs ?? 0) / totalMs) * 100}%`,
-					width: `${((animation.durationMs ?? 500) / totalMs) * 100}%`,
+					left: `${barFor(animation).leftPercent}%`,
+					width: `${barFor(animation).widthPercent}%`,
 				}"
 			/>
 		</div>

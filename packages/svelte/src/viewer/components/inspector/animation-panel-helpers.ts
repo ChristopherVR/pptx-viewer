@@ -3,7 +3,11 @@
    functions here would hurt readability, not help it. */
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { animationEffectLabel, getElementLabel } from 'pptx-viewer-shared';
+import {
+	animationEffectLabel,
+	buildAnimationTimelineBars,
+	getElementLabel,
+} from 'pptx-viewer-shared';
 import type { AnimationLabelTranslate } from 'pptx-viewer-shared';
 
 import { updateSlide } from '../../editor/editor-mutations';
@@ -11,10 +15,10 @@ import type { EditorState } from '../../editor/editor-state.svelte';
 
 /**
  * Svelte-side glue for the docked inspector AnimationPanel: the slide-level
- * commit path plus the small pure bits of React's `useAnimationHandlers` that
- * are not yet in `pptx-viewer-shared` (timeline-bar maths, timeline labels).
- * All field/effect mutations and the drag-reorder algorithm itself come from
- * the shared `animation-authoring` module; everything here is orchestration.
+ * commit path plus the small pure bits (timeline labels) that stay
+ * binding-local. Timeline-bar layout, field/effect mutations, and the
+ * drag-reorder algorithm itself all come from the shared `animation-authoring`
+ * module; everything here is orchestration.
  */
 
 /**
@@ -49,25 +53,15 @@ export interface TimelineBarDatum {
 
 /**
  * Delay/duration of each animation as percentages of the longest end time
- * (React's `timelineBarData` memo, verbatim maths).
+ * (shared's `buildAnimationTimelineBars`).
  */
 export function buildTimelineBarData(sorted: readonly PptxElementAnimation[]): TimelineBarDatum[] {
-	if (sorted.length === 0) {
-		return [];
-	}
-	let maxEndMs = 0;
-	const entries = sorted.map((anim) => {
-		const startMs = anim.delayMs ?? 0;
-		const durationMs = anim.durationMs ?? 500;
-		maxEndMs = Math.max(maxEndMs, startMs + durationMs);
-		return { anim, startMs, durationMs };
+	const bars = buildAnimationTimelineBars(sorted);
+	const barsByElementId = new Map(bars.map((bar) => [bar.elementId, bar]));
+	return sorted.flatMap((anim) => {
+		const bar = barsByElementId.get(anim.elementId);
+		return bar ? [{ anim, leftPercent: bar.leftPercent, widthPercent: bar.widthPercent }] : [];
 	});
-	const totalMs = Math.max(maxEndMs, 1);
-	return entries.map((entry) => ({
-		anim: entry.anim,
-		leftPercent: (entry.startMs / totalMs) * 100,
-		widthPercent: (entry.durationMs / totalMs) * 100,
-	}));
 }
 
 /**
