@@ -112,6 +112,72 @@ describe('vanilla chart on-canvas value drag', () => {
 		expect(container?.querySelectorAll('.pptx-chart-part-selected').length).toBe(1);
 	});
 
+	/**
+	 * Regression: a click used to select a mark ON CANVAS only, in a closure the
+	 * inspector had no way to reach, so the chart data grid never highlighted
+	 * the pressed point. `onChartPartSelect` is the app-level report of that
+	 * click (mirrors Vue's `chart-part-selection` provide/inject bridge).
+	 */
+	it('reports the pressed part through onChartPartSelect', () => {
+		const onChartPointChange = vi.fn();
+		const onChartPartSelect = vi.fn();
+		const container = renderChartElement(
+			element,
+			1,
+			makeContext({ onChartPointChange, onChartPartSelect }),
+		);
+		document.body.appendChild(container as HTMLElement);
+		const bar = container?.querySelectorAll('[data-chart-part="dataPoint"]')[1] as SVGElement;
+		const svg = container?.querySelector('svg') as SVGSVGElement;
+		vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({ height: 300 } as DOMRect);
+
+		pointer(bar, 'pointerdown', 100);
+		drag(100, 'pointerup');
+
+		expect(onChartPartSelect).toHaveBeenCalledExactlyOnceWith(
+			element,
+			expect.objectContaining({ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 }),
+		);
+	});
+
+	/**
+	 * The selection persists across a stage rebuild (e.g. an unrelated edit
+	 * elsewhere re-renders the chart from scratch): the highlight has to be
+	 * seeded from the persisted selection, not just from an in-progress
+	 * gesture on the CURRENT render's container.
+	 */
+	it('re-applies the highlight from a persisted chartPartSelection on (re)mount', () => {
+		const container = renderChartElement(
+			element,
+			1,
+			makeContext({
+				onChartPointChange: vi.fn(),
+				chartPartSelection: {
+					elementId: element.id,
+					part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+				},
+			}),
+		);
+
+		expect(container?.querySelectorAll('.pptx-chart-part-selected').length).toBe(1);
+	});
+
+	it('does not seed a highlight for a persisted selection on a DIFFERENT chart', () => {
+		const container = renderChartElement(
+			element,
+			1,
+			makeContext({
+				onChartPointChange: vi.fn(),
+				chartPartSelection: {
+					elementId: 'some-other-chart',
+					part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+				},
+			}),
+		);
+
+		expect(container?.querySelectorAll('.pptx-chart-part-selected').length).toBe(0);
+	});
+
 	it('cancels the drag on Escape without committing', () => {
 		const onChartPointChange = vi.fn();
 		const container = renderChartElement(element, 1, makeContext({ onChartPointChange }));

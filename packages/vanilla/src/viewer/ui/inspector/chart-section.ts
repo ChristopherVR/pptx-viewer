@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (an imperative DOM-builder with many independent `const`s), not one
+   statement */
 import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
 import { CHART_GROUPING_LABEL_KEYS, CHART_TYPE_LABEL_KEYS } from 'pptx-viewer-shared';
 
@@ -60,6 +63,9 @@ export function createChartSection(
 	// One point picker drives every `c:dPt` control in the panel: the advanced
 	// block renders it and edits the point fill/explosion, the exhaustive block
 	// reuses the same selection for the point marker and invert-if-negative.
+	// It is also driven FROM the canvas: a clicked mark's point index lands here
+	// via `state.chartHighlightCell` below, so it always targets the point the
+	// user just pressed rather than whatever was last typed.
 	const pointIndex = createChartPointIndexField(doc, t);
 	const advanced = createChartAdvancedSection(
 		doc,
@@ -123,7 +129,13 @@ export function createChartSection(
 			title.control.value = current.title ?? '';
 			chartType.control.value = current.chartType;
 			grouping.control.value = current.grouping ?? 'clustered';
-			grid.update(current);
+			// Point the shared index picker at the canvas-clicked point BEFORE the
+			// advanced/exhaustive sections read it below, so their per-point fields
+			// (fill, marker, invert-if-negative, ...) reflect the pressed mark.
+			if (state.chartHighlightCell?.pointIndex !== undefined) {
+				pointIndex.setSelected(state.chartHighlightCell.pointIndex);
+			}
+			grid.update(current, state.chartHighlightCell ?? null);
 			legend.control.checked = current.style?.hasLegend ?? false;
 			labels.control.checked = current.style?.hasDataLabels ?? false;
 			advanced.update(current);

@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
+   its own short arrange/act/assert consts. */
 import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -111,5 +113,57 @@ describe('chart section type and grouping selects', () => {
 		expect(setChartData).toHaveBeenLastCalledWith(
 			expect.objectContaining({ chartType: 'treemap' }),
 		);
+	});
+});
+
+/**
+ * `chartHighlightCell` is the state field a canvas mark click surfaces
+ * through (`chart-editable.ts` -> the store -> `buildInspectorState`). Before
+ * this landed, the section never read the field at all: a click had nowhere
+ * to go.
+ */
+describe('chart section canvas-click selection surfacing', () => {
+	it('rings the matching cell in the data grid', () => {
+		const setChartData = vi.fn();
+		const section = createChartSection(document, (key) => key, sectionFactory(), {
+			setChartData,
+		} as unknown as InspectorHandlers);
+
+		section.update({
+			isChart: true,
+			chartData: chart({ series: [{ name: 'Sales', values: [1, 2] }] }),
+			chartHighlightCell: { seriesIndex: 0, pointIndex: 1 },
+		} as InspectorState);
+
+		const highlighted = section.el.querySelector('.pptxv-chart-grid-cell-highlight');
+		expect(highlighted).not.toBeNull();
+		expect((highlighted as HTMLInputElement).value).toBe('2');
+	});
+
+	it('points the shared Data Point Index box at the clicked point', () => {
+		const setChartData = vi.fn();
+		const section = createChartSection(document, (key) => key, sectionFactory(), {
+			setChartData,
+		} as unknown as InspectorHandlers);
+
+		section.update({
+			isChart: true,
+			chartData: chart({ series: [{ name: 'Sales', values: [1, 2, 3] }] }),
+			chartHighlightCell: { seriesIndex: 0, pointIndex: 2 },
+		} as InspectorState);
+
+		const labels = Array.from(section.el.querySelectorAll('label'));
+		const pointIndexLabel = labels.find((label) =>
+			label.textContent?.startsWith('pptx.chart.dataPointIndex'),
+		)!;
+		const control = pointIndexLabel.querySelector('input')!;
+		// 0-based pointIndex 2 -> PowerPoint's 1-based display value 3.
+		expect(control.value).toBe('3');
+	});
+
+	it('leaves no highlight when nothing is selected on canvas', () => {
+		const { section } = mount();
+
+		expect(section.el.querySelector('.pptxv-chart-grid-cell-highlight')).toBeNull();
 	});
 });

@@ -212,6 +212,14 @@ export interface InspectorState {
 	/** The selected element's alt text (accessibility description), if any. */
 	altText: string;
 	chartData?: PptxChartData;
+	/**
+	 * The on-canvas chart part selection, scoped to the selected chart element:
+	 * a `pointIndex` ring-highlights one value cell in the data grid and syncs
+	 * the "Data Point Index" picker; series-only (no `pointIndex`) highlights
+	 * the series name header. `null` when nothing is selected on canvas, or the
+	 * selection belongs to a different chart.
+	 */
+	chartHighlightCell: { seriesIndex: number; pointIndex?: number } | null;
 	media?: MediaPptxElement;
 	mediaPreviewUrl?: string;
 	mediaPosterUrl?: string;

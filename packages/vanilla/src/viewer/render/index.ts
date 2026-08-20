@@ -1,4 +1,5 @@
 export type {
+	ChartPartSelection,
 	CssStyleMap,
 	ElementRenderContext,
 	ElementRenderer,

@@ -32,6 +32,12 @@ import type { ElementRenderContext } from '../types';
  * attributes but they stay pointer-transparent until the container carries
  * `pptx-chart-interactive`, which is what keeps thumbnails and the show stage
  * inert.
+ *
+ * A press also reports the part through `context.onChartPartSelect`, which
+ * the app stores and threads back down as `context.chartPartSelection`. That
+ * round trip is what lets the chart inspector (`chart-data-grid.ts` /
+ * `chart-point-index.ts`) ring-highlight and scroll to the matching row, the
+ * vanilla counterpart of Vue's `chart-part-selection` provide/inject bridge.
  */
 export function attachChartEditing(
 	container: HTMLElement,
@@ -51,9 +57,14 @@ export function attachChartEditing(
 	container.classList.add(CHART_INTERACTIVE_CLASS);
 
 	let active: ChartValueDragState | null = null;
-	let selected: ChartPartRef | null = null;
+	// Seed from the persisted selection (survives a stage rebuild triggered by
+	// an unrelated edit, e.g. a value typed into the inspector grid), not just
+	// from an in-progress gesture on THIS render's container.
+	let selected: ChartPartRef | null =
+		context.chartPartSelection?.elementId === element.id ? context.chartPartSelection.part : null;
 	let badge: HTMLElement | null = null;
 	let titleInput: HTMLInputElement | null = null;
+	applyChartPartHighlight(container, selected);
 
 	const showBadge = (text: string): void => {
 		if (!badge) {
@@ -198,6 +209,7 @@ export function attachChartEditing(
 		event.stopPropagation();
 		selected = part;
 		applyChartPartHighlight(container, selected);
+		context.onChartPartSelect?.(element, part);
 		// Built from the COMMITTED data so the axis cannot rescale under the
 		// pointer mid-drag and carry the mark away from the cursor.
 		const started = beginChartValueDrag({

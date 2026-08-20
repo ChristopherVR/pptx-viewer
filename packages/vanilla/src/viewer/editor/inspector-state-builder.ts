@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s deriving one inspector field each);
+   merging them isn't a style choice here. */
 import type { PptxElement } from 'pptx-viewer-core';
 import {
 	hasShapeProperties,
@@ -16,6 +19,7 @@ import {
 	textWrapOf,
 } from 'pptx-viewer-shared';
 
+import type { ChartPartSelection } from '../render';
 import type { InspectorState } from '../ui';
 import { canFormatShape, canFormatText } from './editor-format-mutations';
 
@@ -65,6 +69,7 @@ export function buildInspectorState(
 	selectedTableCells: Array<{ row: number; column: number }> = [],
 	selectedTextRange: InlineTextSelection | null = null,
 	mediaDataUrls: Map<string, string> = new Map(),
+	chartPartSelection: ChartPartSelection | null = null,
 ): InspectorState {
 	const shape = shapeStyleOf(el);
 	const textAdvanced = el ? textAdvancedStateOf(el) : undefined;
@@ -129,6 +134,13 @@ export function buildInspectorState(
 			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color2 ?? '#ffffff') : '#ffffff',
 		imageColorWash: el && isImageLikeElement(el) ? el.imageEffects?.colorWash : undefined,
 		altText: el && 'altText' in el && typeof el.altText === 'string' ? el.altText : '',
+		chartHighlightCell:
+			el?.type === 'chart' && chartPartSelection?.elementId === el.id
+				? {
+						seriesIndex: chartPartSelection.part.seriesIndex,
+						pointIndex: chartPartSelection.part.pointIndex,
+					}
+				: null,
 		actionClick: el?.actionClick ? pptxActionToElementAction(el.actionClick, 'click') : undefined,
 		actionHover: el?.actionHover ? pptxActionToElementAction(el.actionHover, 'hover') : undefined,
 		chartData: el?.type === 'chart' ? el.chartData : undefined,

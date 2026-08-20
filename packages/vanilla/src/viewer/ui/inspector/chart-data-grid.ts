@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (an imperative DOM-builder with many independent `const`s), not one
+   statement */
 import type { PptxChartData } from 'pptx-viewer-core';
 import {
 	addChartCategory,
@@ -25,7 +28,20 @@ import { createEl } from '../../render';
  * The table is rebuilt on each `update`: a chart grid is small (tens of cells)
  * and diffing rows against live DOM is how an imperative table starts quietly
  * editing the wrong cell after a row is removed.
+ *
+ * `update`'s `highlightCell` argument is driven by the on-canvas chart part
+ * selection (mirrors Vue's `ChartDataGrid` `highlightCell` prop): a
+ * `pointIndex` ring-highlights one value cell, series-only (no `pointIndex`)
+ * ring-highlights the series name header, and the highlighted cell is
+ * scrolled into view.
  */
+export interface ChartHighlightCell {
+	seriesIndex: number;
+	pointIndex?: number;
+}
+
+const HIGHLIGHT_CLASS = 'pptxv-chart-grid-cell-highlight';
+
 export function createChartDataGrid(
 	doc: Document,
 	t: Translator,
@@ -113,7 +129,10 @@ export function createChartDataGrid(
 		};
 	};
 
-	const buildHead = (data: PptxChartData): HTMLTableSectionElement => {
+	const buildHead = (
+		data: PptxChartData,
+		highlightCell: ChartHighlightCell | null,
+	): HTMLTableSectionElement => {
 		const head = doc.createElement('thead');
 		const row = doc.createElement('tr');
 		const corner = doc.createElement('th');
@@ -121,16 +140,19 @@ export function createChartDataGrid(
 		row.appendChild(corner);
 		data.series.forEach((series, seriesIndex) => {
 			const cell = doc.createElement('th');
-			cell.appendChild(
-				cellInput('text', series.name, t('pptx.chart.seriesShort'), (raw) =>
-					onChange({
-						...data,
-						series: data.series.map((entry, index) =>
-							index === seriesIndex ? { ...entry, name: raw } : entry,
-						),
-					}),
-				),
+			const nameInput = cellInput('text', series.name, t('pptx.chart.seriesShort'), (raw) =>
+				onChange({
+					...data,
+					series: data.series.map((entry, index) =>
+						index === seriesIndex ? { ...entry, name: raw } : entry,
+					),
+				}),
 			);
+			// Series-only selection (a clicked series line, no point): no `pointIndex`.
+			if (highlightCell?.seriesIndex === seriesIndex && highlightCell.pointIndex === undefined) {
+				nameInput.classList.add(HIGHLIGHT_CLASS);
+			}
+			cell.appendChild(nameInput);
 			if (data.series.length > 1) {
 				cell.appendChild(
 					removeButton(t('pptx.chart.removeSeries'), () =>
@@ -144,7 +166,10 @@ export function createChartDataGrid(
 		return head;
 	};
 
-	const buildBody = (data: PptxChartData): HTMLTableSectionElement => {
+	const buildBody = (
+		data: PptxChartData,
+		highlightCell: ChartHighlightCell | null,
+	): HTMLTableSectionElement => {
 		const body = doc.createElement('tbody');
 		data.categories.forEach((category, categoryIndex) => {
 			const row = doc.createElement('tr');
@@ -164,20 +189,25 @@ export function createChartDataGrid(
 			row.appendChild(labelCell);
 			data.series.forEach((series, seriesIndex) => {
 				const cell = doc.createElement('td');
-				cell.appendChild(
-					cellInput(
-						'number',
-						String(series.values[categoryIndex] ?? 0),
-						`${series.name} value ${categoryIndex + 1}`,
-						(raw) => {
-							const padded =
-								categoryIndex >= series.values.length
-									? padSeries(data, seriesIndex, categoryIndex)
-									: data;
-							commit(setChartCellValue(padded, seriesIndex, categoryIndex, raw));
-						},
-					),
+				const valueInput = cellInput(
+					'number',
+					String(series.values[categoryIndex] ?? 0),
+					`${series.name} value ${categoryIndex + 1}`,
+					(raw) => {
+						const padded =
+							categoryIndex >= series.values.length
+								? padSeries(data, seriesIndex, categoryIndex)
+								: data;
+						commit(setChartCellValue(padded, seriesIndex, categoryIndex, raw));
+					},
 				);
+				if (
+					highlightCell?.seriesIndex === seriesIndex &&
+					highlightCell.pointIndex === categoryIndex
+				) {
+					valueInput.classList.add(HIGHLIGHT_CLASS);
+				}
+				cell.appendChild(valueInput);
 				row.appendChild(cell);
 			});
 			body.appendChild(row);
@@ -185,16 +215,32 @@ export function createChartDataGrid(
 		return body;
 	};
 
+	// Only the on-canvas click that CHANGED the selection should pull the panel
+	// scroll position around; an unrelated inspector refresh (another keystroke,
+	// another element's edit) must not re-scroll to a selection that has not
+	// moved. Mirrors the Vue grid's `watch` on `[seriesIndex, pointIndex]`.
+	let lastHighlightKey: string | null = null;
+
 	return {
 		el,
-		update(data: PptxChartData | undefined) {
+		update(data: PptxChartData | undefined, highlightCell: ChartHighlightCell | null = null) {
 			current = data;
 			el.hidden = !data;
 			if (!data) {
 				return;
 			}
 			table.textContent = '';
-			table.append(buildHead(data), buildBody(data));
+			table.append(buildHead(data, highlightCell), buildBody(data, highlightCell));
+			const key = highlightCell
+				? `${highlightCell.seriesIndex}:${highlightCell.pointIndex ?? ''}`
+				: null;
+			if (key !== null && key !== lastHighlightKey) {
+				table.querySelector(`.${HIGHLIGHT_CLASS}`)?.scrollIntoView?.({
+					block: 'nearest',
+					inline: 'nearest',
+				});
+			}
+			lastHighlightKey = key;
 		},
 		setDisabled(disabled: boolean) {
 			addCategory.disabled = disabled;

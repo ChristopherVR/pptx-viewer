@@ -8,6 +8,7 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
+	ChartPartRef,
 	CssStyleMap,
 	ElementAnimationState,
 	FieldSubstitutionContext,
@@ -17,6 +18,20 @@ import type { Translator } from '../i18n';
 
 /** Discriminant values of the {@link PptxElement} union (`'text'`, `'chart'`, ...). */
 export type PptxElementType = PptxElement['type'];
+
+/**
+ * A selected chart sub-part, scoped to the chart element that owns it. The
+ * vanilla counterpart of React's `ChartPartSelectionContext` / Vue's
+ * `ChartPartSelection` / Angular's `ChartPartSelectionService`: the bridge
+ * between an on-canvas mark click (`chart-editable.ts`) and the chart
+ * inspector (`chart-data-grid.ts` / `chart-point-index.ts`), threaded through
+ * the store rather than component context since vanilla has no such
+ * injection mechanism.
+ */
+export interface ChartPartSelection {
+	elementId: string;
+	part: ChartPartRef;
+}
 
 /**
  * Everything an element renderer may need, passed to every renderer call.
@@ -90,6 +105,20 @@ export interface ElementRenderContext {
 	 * surface, which is what keeps thumbnails and the show stage inert.
 	 */
 	readonly onChartPointChange?: (element: PptxElement, chartData: PptxChartData) => void;
+	/**
+	 * The current on-canvas chart part selection (shared with the inspector via
+	 * the store), or `null`/absent when nothing is selected. Read by
+	 * `chart-editable.ts` to seed its highlight on (re)mount, so the ring stays
+	 * on the clicked mark across a stage rebuild triggered by an unrelated edit.
+	 */
+	readonly chartPartSelection?: ChartPartSelection | null;
+	/**
+	 * A chart part (bar / dot / slice / series line) was pressed on the canvas.
+	 * Surfaces the selection to the chart inspector (ring-highlight + scroll in
+	 * `chart-data-grid.ts`, point sync in `chart-point-index.ts`). Absent on
+	 * every non-authoring surface, matching `onChartPointChange`.
+	 */
+	readonly onChartPartSelect?: (element: PptxElement, part: ChartPartRef) => void;
 	/**
 	 * Per-element native-animation playback state, keyed by element id, present
 	 * only during a running presentation. Chart / SmartArt renderers read their

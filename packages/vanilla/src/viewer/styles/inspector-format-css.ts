@@ -70,6 +70,8 @@ export const INSPECTOR_FORMAT_CSS = `
 	font-size: 11px;
 }
 .pptxv-chart-grid-cell:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
+/* Ring-highlight for the cell matching the on-canvas chart part selection. */
+.pptxv-chart-grid-cell-highlight { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
 .pptxv-chart-grid-remove {
 	margin-left: 2px;
 	padding: 0 3px;

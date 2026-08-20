@@ -16,6 +16,12 @@
  * {@link ChartPointIndexField.selected} converts to the 0-based SOURCE index,
  * which is the `c:idx` a `c:dPt` carries and the key
  * `resolveDataPointMarker` in `pptx-viewer-shared` looks up when painting.
+ *
+ * {@link ChartPointIndexField.setSelected} lets `chart-section.ts` drive the
+ * box from an on-canvas mark click (`ElementRenderContext.chartPartSelection`
+ * by way of `InspectorState.chartHighlightCell`), so pressing a bar on the
+ * canvas points every `c:dPt` control here at the SAME point without the user
+ * re-typing its index.
  */
 import type { Translator } from '../../i18n';
 import { number } from './chart-exhaustive-controls';
@@ -28,6 +34,8 @@ export interface ChartPointIndexField {
 	selected(): number;
 	/** Run `listener` whenever the user picks a different point. */
 	subscribe(listener: () => void): void;
+	/** Programmatically pick a point (0-based `c:idx`), e.g. from a canvas click. */
+	setSelected(index: number): void;
 }
 
 /** Build the shared point picker. */
@@ -43,5 +51,8 @@ export function createChartPointIndexField(doc: Document, t: Translator): ChartP
 		// discard the edit.
 		selected: () => Math.max(0, (control.valueAsNumber || 1) - 1),
 		subscribe: (listener) => control.addEventListener('change', listener),
+		setSelected: (index) => {
+			control.value = String(Math.max(0, index) + 1);
+		},
 	};
 }

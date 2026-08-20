@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s assembling the render context and
+   the stage node); merging them isn't a style choice here. */
 import type {
 	ParsedTableStyleMap,
 	PptxChartData,
@@ -8,6 +11,7 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
+	ChartPartRef,
 	ElementAnimationState,
 	FieldSubstitutionContext,
 } from 'pptx-viewer-shared';
@@ -26,7 +30,7 @@ import {
 
 import type { Translator } from '../i18n';
 import { createEl } from './dom';
-import type { ElementRenderContext, ElementRendererRegistry } from './types';
+import type { ChartPartSelection, ElementRenderContext, ElementRendererRegistry } from './types';
 
 export interface SlideStageOptions {
 	document: Document;
@@ -56,6 +60,10 @@ export interface SlideStageOptions {
 	onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/** See `ElementRenderContext.onChartPointChange`. */
 	readonly onChartPointChange?: (element: PptxElement, chartData: PptxChartData) => void;
+	/** See `ElementRenderContext.chartPartSelection`. */
+	readonly chartPartSelection?: ChartPartSelection | null;
+	/** See `ElementRenderContext.onChartPartSelect`. */
+	readonly onChartPartSelect?: (element: PptxElement, part: ChartPartRef) => void;
 	/**
 	 * True only for the main (interactive) canvas, never the thumbnail rail.
 	 * Marks every rendered element (recursively, including group children) with
@@ -140,6 +148,8 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,
 		onSmartArtNodeFillChange: options.onSmartArtNodeFillChange,
 		onChartPointChange: options.onChartPointChange,
+		chartPartSelection: options.chartPartSelection,
+		onChartPartSelect: options.onChartPartSelect,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
 			// Hidden via the Selection Pane: build no node at all, exactly as

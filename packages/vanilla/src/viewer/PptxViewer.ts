@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per handler/method); merging them
+   isn't a style choice here. */
 import { cloneSlide, setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
 import type {
 	PptxElement,
@@ -259,6 +262,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 					return;
 				}
 				this.editor?.applyElementPatch(element.id, { chartData });
+			},
+			onChartPartSelect: (element, part) => {
+				this.store.set({ chartPartSelection: { elementId: element.id, part } });
 			},
 			onStageRendered: () => {
 				this.editor?.onStageRendered();

@@ -1,4 +1,8 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per render pass); merging them
+   isn't a style choice here. */
 import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ChartPartRef } from 'pptx-viewer-shared';
 import { DEFAULT_MASTER_PAGE_SIZE, masterViewPseudoSlide } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
@@ -43,6 +47,11 @@ export interface RenderControllerDeps {
 	 * export rasters never arm the chart marks.
 	 */
 	onChartPointChange?(element: PptxElement, chartData: PptxChartData): void;
+	/**
+	 * A chart part was pressed on the canvas. Gated on `interactive` with the
+	 * other chart/SmartArt hooks. See `ElementRenderContext.onChartPartSelect`.
+	 */
+	onChartPartSelect?(element: PptxElement, part: ChartPartRef): void;
 	/**
 	 * Invoked after every stage render (the stage host is rebuilt with
 	 * `replaceChildren`); the editor re-mounts its overlay layer here.
@@ -131,6 +140,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			onSmartArtNodeTextChange: interactive ? deps.onSmartArtNodeTextChange : undefined,
 			onSmartArtNodeFillChange: interactive ? deps.onSmartArtNodeFillChange : undefined,
 			onChartPointChange: interactive ? deps.onChartPointChange : undefined,
+			chartPartSelection: state.chartPartSelection,
+			onChartPartSelect: interactive ? deps.onChartPartSelect : undefined,
 			interactive,
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 			// Native-animation state + context capture only for the live presentation

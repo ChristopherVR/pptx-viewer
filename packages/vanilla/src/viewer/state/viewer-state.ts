@@ -34,6 +34,8 @@ import {
 	DEFAULT_STROKE_COLOR,
 } from 'pptx-viewer-shared';
 
+import type { ChartPartSelection } from '../render';
+
 /** `zoom` is either an explicit scale factor (1 = 100%) or fit-to-viewport. */
 export type ZoomLevel = number | 'fit';
 
@@ -179,6 +181,12 @@ export interface ViewerState {
 	selectedTableCells: Array<{ row: number; column: number }>;
 	/** Active rich-text range captured from the inline editor. */
 	selectedTextRange: InlineTextSelection | null;
+	/**
+	 * On-canvas chart part selection (a clicked bar/dot/slice/series line),
+	 * surfaced to the chart inspector's data grid + point-index picker. Cleared
+	 * whenever the general element selection changes (see `selectionState`).
+	 */
+	chartPartSelection: ChartPartSelection | null;
 	/** Source element id while the one-shot Format Painter is armed. */
 	formatPainterSourceId: string | null;
 	/** When true, selection and element mutations target inherited template elements. */
@@ -278,6 +286,7 @@ export function createInitialViewerState(): ViewerState {
 		selectedTableCell: null,
 		selectedTableCells: [],
 		selectedTextRange: null,
+		chartPartSelection: null,
 		formatPainterSourceId: null,
 		editTemplateMode: false,
 		dirty: false,

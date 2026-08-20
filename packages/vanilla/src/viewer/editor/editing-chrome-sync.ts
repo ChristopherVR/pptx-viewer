@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s building each chrome update payload);
+   merging them isn't a style choice here. */
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
 import type { Store, ViewerState } from '../state';
@@ -105,6 +108,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 				state.selectedTableCells,
 				state.selectedTextRange,
 				state.mediaDataUrls,
+				state.chartPartSelection,
 			),
 		);
 		const activeSlide = state.slides[state.currentSlide];
