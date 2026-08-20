@@ -2,6 +2,10 @@
  * insert-structured-elements: Factory for SmartArt, equation, hyperlink,
  * field, and action-button insertion handlers used by useInsertElements.
  */
+/* eslint-disable one-var -- this module predates the rule and combining every
+   sibling `const` handler in the factory into one comma-list (oxlint's own
+   `--fix` cannot do this safely once a non-declaration statement sits between
+   them) would churn code far beyond this change's scope. */
 import type {
 	PptxElement,
 	PptxSlide,
@@ -17,6 +21,7 @@ import type { HyperlinkEditData } from '../components/hyperlink-edit-types';
 import { resolveHyperlinkEditResult } from '../components/hyperlink-edit-utils';
 import { ACTION_BUTTON_PRESETS } from '../constants';
 import { generateElementId } from '../utils/generate-id';
+import { isUrlSafe } from '../utils/hyperlink-security';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
 
@@ -107,6 +112,14 @@ export function createStructuredElementHandlers(
 			return;
 		}
 		const resolved = resolveHyperlinkEditResult(data);
+		// Block unsafe URL schemes (javascript:, data:, vbscript:, mhtml:) before
+		// they ever reach actionClick.url. `resolved.url` is empty for the
+		// "action" target type (a ppaction:// verb lives in resolved.action
+		// instead), so isUrlSafe only gates the url/email/slide/file cases that
+		// actually carry a navigable URL.
+		if (resolved.url && !isUrlSafe(resolved.url)) {
+			return;
+		}
 		const actionClick = {
 			url: resolved.url || undefined,
 			action: resolved.action,

@@ -1,3 +1,6 @@
+/* eslint-disable one-var -- this test file predates the rule and combining
+   every sibling `const` across all these `it()` blocks into comma-lists
+   would churn assertions far beyond this change's scope. */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -294,5 +297,32 @@ describe('handleHyperlinkConfirm', () => {
 		const call = (deps.ops.updateElementById as ReturnType<typeof vi.fn>).mock.calls[0];
 		expect(call[0]).toBe('el1');
 		expect(call[1].actionClick).toBeDefined();
+	});
+
+	it('blocks an unsafe URL scheme (javascript:) and does not persist it', () => {
+		const selected = {
+			id: 'el1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+		} as PptxElement;
+		const deps = makeDeps({ selectedElements: [selected] });
+		const handlers = createStructuredElementHandlers(deps);
+
+		handlers.handleHyperlinkConfirm({
+			targetType: 'url',
+			url: `${'javascript'}:alert(1)`,
+			tooltip: '',
+			emailAddress: '',
+			emailSubject: '',
+			slideNumber: 1,
+			filePath: '',
+			actionVerb: 'none',
+		});
+
+		expect(deps.ops.updateElementById).not.toHaveBeenCalled();
+		expect(deps.history.markDirty).not.toHaveBeenCalled();
 	});
 });
