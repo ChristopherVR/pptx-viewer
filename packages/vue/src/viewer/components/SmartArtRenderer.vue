@@ -8,6 +8,7 @@ import type {
 } from 'pptx-viewer-core';
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
+	buildChromeStyle,
 	buildSmartArtA11y,
 	computeDrawingViewBox,
 	projectDrawingShapes,
@@ -145,20 +146,13 @@ const rootPointerEvents = computed<CSSProperties | null>(() =>
 	props.interactive ? null : { pointerEvents: 'none' },
 );
 
-const chromeStyle = computed<CSSProperties>(() => {
-	const c = chrome.value;
-	const s: CSSProperties = { width: '100%', height: '100%' };
-	if (!c) {
-		return s;
-	}
-	if (c.backgroundColor) {
-		s.backgroundColor = c.backgroundColor;
-	}
-	if (c.outlineColor) {
-		s.border = `${c.outlineWidth ?? 1}px solid ${c.outlineColor}`;
-	}
-	return s;
-});
+/**
+ * The chrome wrapper's background/outline decision, from the shared
+ * `buildChromeStyle` (same function Angular/Svelte/Vanilla call directly).
+ * Its `CssStyleMap` return is kebab-case; Vue's `CSSProperties` accepts both
+ * kebab and camelCase keys, so this only needs a type cast, not a converter.
+ */
+const chromeStyle = computed<CSSProperties>(() => buildChromeStyle(chrome.value) as CSSProperties);
 
 // ── Drawing-shape path (mirrors smartart-drawing.tsx) ────────────────────────
 

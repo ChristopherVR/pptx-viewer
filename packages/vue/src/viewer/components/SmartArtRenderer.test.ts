@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own unrelated locals; merging across them would hurt readability. */
 import { mount } from '@vue/test-utils';
 import type {
 	PptxElement,
@@ -178,6 +180,37 @@ describe('smartArtRenderer', () => {
 		const chrome = wrapper.find('.pptx-vue-smartart-chrome');
 		expect(chrome.attributes('style')).toContain('background-color: #f0f0f0');
 		expect(chrome.attributes('style')).toContain('border: 2px solid #333');
+	});
+
+	// Regression: the chrome style decision comes from the shared
+	// `buildChromeStyle` (`pptx-viewer-shared`), the same function
+	// Angular/Svelte/Vanilla call directly, rather than a local reimplementation.
+	it('defaults the outline width to 1px when outlineWidth is omitted', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: {
+				element: smartArt({
+					nodes: [],
+					drawingShapes: [shape({ id: 's1' })],
+					chrome: { outlineColor: '#00ff00' },
+				}),
+				zIndex: 0,
+			},
+		});
+		const chrome = wrapper.find('.pptx-vue-smartart-chrome');
+		expect(chrome.attributes('style')).toContain('border: 1px solid #00ff00');
+		expect(chrome.attributes('style')).not.toContain('background-color');
+	});
+
+	it('applies no background/border when chrome is absent', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: {
+				element: smartArt({ nodes: [], drawingShapes: [shape({ id: 's1' })] }),
+				zIndex: 0,
+			},
+		});
+		const style = wrapper.find('.pptx-vue-smartart-chrome').attributes('style') ?? '';
+		expect(style).not.toContain('background-color');
+		expect(style).not.toContain('border:');
 	});
 
 	// ── Layout family dispatch via resolvedLayoutType ────────────────────────────

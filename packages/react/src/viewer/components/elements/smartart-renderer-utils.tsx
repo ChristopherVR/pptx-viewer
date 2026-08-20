@@ -1,6 +1,6 @@
 import type { PptxSmartArtChrome } from 'pptx-viewer-core';
-import { centeredSvgTextLines } from 'pptx-viewer-shared';
-import type { RenderedGradient, SvgTextLine } from 'pptx-viewer-shared';
+import { buildChromeStyle, centeredSvgTextLines } from 'pptx-viewer-shared';
+import type { CssStyleMap, RenderedGradient, SvgTextLine } from 'pptx-viewer-shared';
 import React from 'react';
 
 /**
@@ -203,17 +203,16 @@ export function SmartArtNodeText({
 			</text>
 		);
 	}
-	const source = text ?? '';
-	const lines =
-		maxWidth !== undefined
-			? centeredSvgTextLines(source, fontSize, { maxWidth: maxWidth * LABEL_WIDTH_FRACTION }).map(
-					(line) => line.text,
-				)
-			: source.split('\n').filter((l) => l.length > 0);
-	const lineHeight = fontSize * 1.2;
+	const source = text ?? '',
+		lines =
+			maxWidth !== undefined
+				? centeredSvgTextLines(source, fontSize, { maxWidth: maxWidth * LABEL_WIDTH_FRACTION }).map(
+						(line) => line.text,
+					)
+				: source.split('\n').filter((l) => l.length > 0),
+		lineHeight = fontSize * 1.2;
 
-	let startY: number;
-	let dominantBaseline: 'auto' | 'hanging' | 'central';
+	let startY: number, dominantBaseline: 'auto' | 'hanging' | 'central';
 
 	if (anchor === 'bottom') {
 		// Last line's baseline at y; stack lines upward.
@@ -261,9 +260,28 @@ export interface SmartArtChromeA11y {
 }
 
 /**
+ * Adapt the shared `CssStyleMap` (kebab-case CSS property names, the contract
+ * Angular/Svelte/Vanilla consume directly) to React's camelCase
+ * `CSSProperties`. React's style type has no index signature for arbitrary
+ * kebab keys, so a plain cast is not enough; this converts each key instead
+ * of re-deciding the values, which is what `buildChromeStyle` already did.
+ */
+function chromeStyleToReactCss(style: CssStyleMap): React.CSSProperties {
+	const react: Record<string, string | number> = {};
+	for (const [key, value] of Object.entries(style)) {
+		react[key.replace(/-([a-z])/gu, (_match, letter: string) => letter.toUpperCase())] = value;
+	}
+	return react as React.CSSProperties;
+}
+
+/**
  * Wrap SmartArt content in a chrome container that applies optional
  * background colour and outline border from the diagram's chrome settings, plus
  * container-level accessibility (`role="img"` + `aria-label`) when supplied.
+ *
+ * The chrome decision itself comes from the shared `buildChromeStyle`
+ * (`pptx-viewer-shared`), the same function Angular/Svelte/Vanilla call
+ * directly, so a change to the background/outline rule lands once.
  *
  * @param chrome    - Optional chrome styling (background, outline).
  * @param content   - The React element to wrap.
@@ -277,13 +295,7 @@ export function wrapChrome(
 	className: string,
 	a11y?: SmartArtChromeA11y,
 ): React.ReactElement {
-	const wrapperStyle: React.CSSProperties = {};
-	if (chrome?.backgroundColor) {
-		wrapperStyle.backgroundColor = chrome.backgroundColor;
-	}
-	if (chrome?.outlineColor) {
-		wrapperStyle.border = `${chrome.outlineWidth ?? 1}px solid ${chrome.outlineColor}`;
-	}
+	const wrapperStyle = chromeStyleToReactCss(buildChromeStyle(chrome));
 
 	return (
 		<div
