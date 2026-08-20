@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per function, several separated by
+   comments or guard clauses); merging them isn't a style choice here. */
 /**
  * Hyperlink security utilities — URL validation, sanitization, and slide-jump
  * resolution for hyperlink click actions in the viewer. Pure, framework-agnostic
@@ -42,7 +45,9 @@ export function isUrlSafe(url: string | undefined): boolean {
 	const lower = trimmed.toLowerCase();
 
 	// Strip whitespace and zero-width characters that could bypass naive checks.
-	// Characters stripped: ZWSP (​), ZWNJ (‌), ZWJ (‍), BOM (﻿), NUL.
+	// Characters stripped: ZWSP (U+200B), ZWNJ (U+200C), ZWJ (U+200D), BOM
+	// (U+FEFF), NUL. Named by code point rather than embedded literally so the
+	// characters stay visible/diffable in this comment instead of invisible.
 	// Separate replace calls avoid no-misleading-character-class (joined sequences)
 	// and no-control-regex (NUL literal) lint rules.
 	const stripped = lower
