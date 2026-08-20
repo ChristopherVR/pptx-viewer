@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per handler); merging them isn't a
+   style choice here. */
 import { NgStyle } from '@angular/common';
 import {
 	afterNextRender,
@@ -49,6 +52,7 @@ import type {
 	Tick,
 } from '../internal/shared';
 import type { AiChangeBatch } from '../internal/shared-ai';
+import { resolveContextMenuElementId } from '../internal/shared-src/render/context-menu-target';
 import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
 import type { AiCanvasHighlight } from './ai/focus-targets';
@@ -955,7 +959,13 @@ export class SlideCanvasComponent implements SlideContext {
 			return;
 		}
 		event.preventDefault();
-		const id = this.interactiveElementIdAt(event.target);
+		// The inline text editor renders as an overlay beside the elements, not a
+		// child of the one it edits, so a right-click inside it hit-tests to
+		// nothing via interactiveElementIdAt. Fall back to the element being
+		// edited rather than swallowing the menu on the element the user just
+		// clicked (matches Vue's and Svelte's useContextMenu/onStageContextMenu).
+		const hitId = this.interactiveElementIdAt(event.target),
+			id = resolveContextMenuElementId(hitId, event.target, this.editingId());
 		this.contextMenu.emit({ id, x: event.clientX, y: event.clientY });
 	}
 
