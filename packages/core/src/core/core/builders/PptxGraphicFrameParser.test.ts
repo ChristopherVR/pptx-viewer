@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import type { OlePptxElement, XmlObject } from '../../types';
+import type { OlePptxElement, TablePptxElement, XmlObject } from '../../types';
 import { PptxGraphicFrameParser } from './PptxGraphicFrameParser';
 import type { PptxGraphicFrameParserContext } from './PptxGraphicFrameParser';
 
@@ -224,5 +224,46 @@ describe('pptxGraphicFrameParser.parseGraphicFrameType', () => {
 		expect(result).not.toBeNull();
 		expect(result!.type).toBe('ink');
 		expect(result!.rawXml).toBe(frame);
+	});
+});
+
+describe('pptxGraphicFrameParser table dimensions', () => {
+	it('uses table grid and row extents when the graphic frame extent is stale', () => {
+		const parser = makeParser({ parseTableData: () => ({ rows: [], columnWidths: [] }) });
+		const frame: XmlObject = {
+			'p:xfrm': {
+				'a:off': { '@_x': '720000', '@_y': '1164325' },
+				'a:ext': { '@_cx': '3000000', '@_cy': '3000000' },
+			},
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': [{ '@_w': '1587775' }, { '@_w': '2380350' }],
+						},
+						'a:tr': [{ '@_h': '451725' }, { '@_h': '729375' }],
+					},
+				},
+			},
+		};
+
+		const result = parser.parseGraphicFrame(frame, 'table-1') as TablePptxElement;
+		expect(result.width).toBe(Math.round((1587775 + 2380350) / 9525));
+		expect(result.height).toBe(Math.round((451725 + 729375) / 9525));
+	});
+
+	it('keeps the frame extent when table grid dimensions are unavailable', () => {
+		const parser = makeParser({ parseTableData: () => ({ rows: [], columnWidths: [] }) });
+		const frame: XmlObject = {
+			'p:xfrm': {
+				'a:off': { '@_x': '0', '@_y': '0' },
+				'a:ext': { '@_cx': '2286000', '@_cy': '1714500' },
+			},
+			'a:graphic': { 'a:graphicData': { 'a:tbl': {} } },
+		};
+
+		const result = parser.parseGraphicFrame(frame, 'table-2') as TablePptxElement;
+		expect(result.width).toBe(240);
+		expect(result.height).toBe(180);
 	});
 });
