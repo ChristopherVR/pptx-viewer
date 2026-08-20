@@ -28,9 +28,13 @@ function buildEotBuffer(
 		familyBytes[i * 2 + 1] = (familyName.charCodeAt(i) >> 8) & 0xff;
 	}
 
-	// We need at least 80 bytes for the fixed header + variable name strings
-	// Each name string has: 2 bytes padding + 2 bytes size + data bytes
-	const nameBlockSize = 2 + 2 + familyBytes.length + (2 + 2) * 3; // family + 3 empty strings
+	const version = opts.version ?? 0x00020001;
+	// We need at least 80 bytes for the fixed header + variable name strings.
+	// Each name string has: 2 bytes padding + 2 bytes size + data bytes. From
+	// version 0x00020001 the container also carries an (here, empty) RootString
+	// in the same padded format, immediately before the font data.
+	const nameBlockSize =
+		2 + 2 + familyBytes.length + (2 + 2) * 3 + (version >= 0x00020001 ? 2 + 2 : 0); // family + 3 empty strings [+ empty RootString]
 	const fontDataSize = opts.fontDataSize ?? 16;
 	const headerSize = 80 + nameBlockSize;
 	const totalSize = opts.totalLength ?? headerSize + fontDataSize;
@@ -44,7 +48,7 @@ function buildEotBuffer(
 	// FontDataSize at offset 4
 	view.setUint32(4, fontDataSize, true);
 	// Version at offset 8
-	view.setUint32(8, opts.version ?? 0x00020001, true);
+	view.setUint32(8, version, true);
 	// Flags at offset 12
 	view.setUint32(12, opts.flags ?? 0, true);
 	// Magic at offset 34
@@ -78,6 +82,14 @@ function buildEotBuffer(
 	off += 2;
 	view.setUint16(off, 0, true);
 	off += 2;
+
+	// RootString (0x00020001+): empty
+	if (version >= 0x00020001) {
+		view.setUint16(off, 0, true);
+		off += 2;
+		view.setUint16(off, 0, true);
+		off += 2;
+	}
 
 	// Fill font data area with some bytes
 	for (let i = 0; i < fontDataSize && off + i < totalSize; i++) {
@@ -189,6 +201,52 @@ describe('parseEotHeader', () => {
 		const header = parseEotHeader(data);
 		expect(header).not.toBeNull();
 		expect(header!.fontDataOffset).toBeGreaterThan(80);
+	});
+
+	it('skips a non-empty RootString for version 0x00020001', () => {
+		// Version 0x00020001 appends RootString right after the four name
+		// strings (W3C EOT spec); only 0x00020002+ adds the further EUDC
+		// fields. A RootString-bearing 0x00020001 container used to be parsed
+		// with the font-data offset short by the RootString's length.
+		const rootString = 'nowrap.example.com';
+		const rootBytes = new Uint8Array(rootString.length * 2);
+		for (let i = 0; i < rootString.length; i++) {
+			rootBytes[i * 2] = rootString.charCodeAt(i) & 0xff;
+			rootBytes[i * 2 + 1] = (rootString.charCodeAt(i) >> 8) & 0xff;
+		}
+		const nameBlockSize = (2 + 2) * 4; // family + style + version + full, all empty
+		const rootBlockSize = 2 + 2 + rootBytes.length;
+		const fontDataSize = 8;
+		const headerSize = 80 + nameBlockSize + rootBlockSize;
+		const buf = new Uint8Array(headerSize + fontDataSize);
+		const view = new DataView(buf.buffer);
+		view.setUint32(0, buf.length, true);
+		view.setUint32(4, fontDataSize, true);
+		view.setUint32(8, 0x00020001, true);
+		view.setUint16(34, 0x504c, true);
+
+		let off = 80;
+		for (let i = 0; i < 4; i++) {
+			view.setUint16(off, 0, true); // padding
+			off += 2;
+			view.setUint16(off, 0, true); // empty name
+			off += 2;
+		}
+		view.setUint16(off, 0, true); // RootString padding
+		off += 2;
+		view.setUint16(off, rootBytes.length, true);
+		off += 2;
+		buf.set(rootBytes, off);
+		off += rootBytes.length;
+		const fontBytes = new Uint8Array(fontDataSize).fill(0xbb);
+		buf.set(fontBytes, off);
+		off += fontDataSize;
+
+		const header = parseEotHeader(buf);
+		expect(header).not.toBeNull();
+		expect(header!.fontDataOffset).toBe(off - fontDataSize);
+		const extracted = extractFontFromEot(buf);
+		expect(extracted?.fontData).toStrictEqual(fontBytes);
 	});
 });
 

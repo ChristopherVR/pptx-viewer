@@ -167,12 +167,16 @@ export function parseEotHeader(data: Uint8Array): EotHeader | null {
 	const versionName = readNameString();
 	const fullName = readNameString();
 
-	// Version 0x00020002+ has additional fields after the four name strings.
-	// Per W3C EOT spec: RootString, RootStringChecksum, EUDCCodePage,
-	// Padding4+SignatureSize+Signature, EUDCFlags, EUDCFontSize+EUDCFontData.
-	if (version >= 0x00020002) {
-		readNameString(); // RootString — not used
+	// Version 0x00020001+ appends RootString after the four name strings; the
+	// remaining fields (RootStringChecksum, EUDCCodePage, Signature, EUDC...)
+	// only appear from 0x00020002 onward. Per W3C EOT spec. Skipping RootString
+	// only for >= 0x00020002 left the font-data offset short by RootString's
+	// length for 0x00020001 containers, corrupting the extracted sfnt bytes.
+	if (version >= 0x00020001) {
+		readNameString(); // RootString, not used
+	}
 
+	if (version >= 0x00020002) {
 		// RootStringChecksum (4 bytes) + EUDCCodePage (4 bytes)
 		offset += 8;
 
