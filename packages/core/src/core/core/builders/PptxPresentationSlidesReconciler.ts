@@ -3,6 +3,7 @@ import type JSZip from 'jszip';
 
 import type { PptxSlide, XmlObject } from '../../types';
 import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
+import { normalizeNamespaceUri } from '../../utils/strict-namespace-map';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
 import { buildSlideReferenceRemap } from './slide-reference-remap';
 
@@ -65,8 +66,18 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 				usedRIds.add(relationshipId);
 			}
 
+			// A Strict-loaded file has its parser wrapped to auto-normalize every
+			// parsed `@_Type` to Transitional (see `detectAndSetStrictConformance`),
+			// but `input.slideRelationshipType` comes straight from
+			// `PptxSaveConstantsFactory` and stays Strict when the effective save
+			// conformance is Strict. Comparing them raw never matched on a Strict
+			// round-trip, so every existing slide relationship was misclassified as
+			// absent and got a brand-new rId/sldId minted on every resave. Normalize
+			// both sides so the comparison holds regardless of conformance.
 			if (
-				relationshipType === input.slideRelationshipType &&
+				typeof relationshipType === 'string' &&
+				normalizeNamespaceUri(relationshipType) ===
+					normalizeNamespaceUri(input.slideRelationshipType) &&
 				typeof relationshipId === 'string' &&
 				typeof relationshipTarget === 'string'
 			) {

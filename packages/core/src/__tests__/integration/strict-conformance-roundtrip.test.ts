@@ -188,6 +188,69 @@ describe('strict conformance: load and re-save round-trip', () => {
 		expect(rootRels).not.toContain(STRICT_PKG_NS);
 	});
 
+	it('keeps slide rIds and numeric sldIds stable across repeated Strict resaves', async () => {
+		// The reconciler used to compare the parsed (Transitional-normalized)
+		// relationship @_Type against the Strict constant verbatim, which never
+		// matched on a Strict-loaded file: every existing slide relationship was
+		// misclassified as new, minting a fresh rId/sldId on every resave and
+		// orphaning the old ones.
+		const { bytes } = await buildDeckSavedAs('strict');
+
+		const handler = new PptxHandler();
+		const data = await handler.load(bytes.buffer as ArrayBuffer);
+		const firstResave = await handler.save(data.slides);
+		const firstZip = await JSZip.loadAsync(firstResave);
+		const firstRels = await firstZip.file('ppt/_rels/presentation.xml.rels')!.async('string');
+		const firstPres = await firstZip.file('ppt/presentation.xml')!.async('string');
+
+		const handler2 = new PptxHandler();
+		const data2 = await handler2.load(firstResave.buffer as ArrayBuffer);
+		const secondResave = await handler2.save(data2.slides);
+		const secondZip = await JSZip.loadAsync(secondResave);
+		const secondRels = await secondZip.file('ppt/_rels/presentation.xml.rels')!.async('string');
+		const secondPres = await secondZip.file('ppt/presentation.xml')!.async('string');
+
+		const slideRIds = (xml: string): string[] =>
+			[
+				...xml.matchAll(/<Relationship\b[^>]*\bId="(?<id>rId\d+)"[^>]*\bTarget="[^"]*slides\//gu),
+			].map((m) => m.groups!.id);
+		const numericSldIds = (xml: string): string[] =>
+			[...xml.matchAll(/<p:sldId\b[^>]*\bid="(?<id>\d+)"/gu)].map((m) => m.groups!.id);
+
+		expect(slideRIds(secondRels)).toStrictEqual(slideRIds(firstRels));
+		expect(numericSldIds(secondPres)).toStrictEqual(numericSldIds(firstPres));
+	});
+
+	it('leaves a part with no Strict/Transitional URI to convert unmodified', async () => {
+		// docProps/thumbnail-adjacent custom XML (a part the save pipeline never
+		// otherwise rewrites) has nothing for a Strict conversion to change: no
+		// officeDocument/presentationml/drawingml/schemaLibrary/descriptions URI
+		// appears in it. Confirms the conversion gate correctly leaves such a
+		// part's content exactly as loaded rather than needlessly reparsing and
+		// rebuilding it through fast-xml-parser.
+		const { bytes } = await buildDeckSavedAs('strict');
+		const zip = await JSZip.loadAsync(bytes);
+		const inertXml =
+			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<root a="1"><child/></root>';
+		zip.file('customXml/item1.xml', inertXml);
+		zip.file(
+			'[Content_Types].xml',
+			(await zip.file('[Content_Types].xml')!.async('string')).replace(
+				'</Types>',
+				'<Override PartName="/customXml/item1.xml" ContentType="application/xml"/></Types>',
+			),
+		);
+		const modifiedBytes = await zip.generateAsync({ type: 'uint8array' });
+
+		const handler = new PptxHandler();
+		const data = await handler.load(modifiedBytes.buffer as ArrayBuffer);
+		const resaved = await handler.save(data.slides);
+		const resavedZip = await JSZip.loadAsync(resaved);
+		const resavedItem = await resavedZip.file('customXml/item1.xml')?.async('string');
+
+		expect(resavedItem).toBe(inertXml);
+	});
+
 	it('can downgrade a Strict file to Transitional on save', async () => {
 		const { bytes } = await buildDeckSavedAs('strict');
 

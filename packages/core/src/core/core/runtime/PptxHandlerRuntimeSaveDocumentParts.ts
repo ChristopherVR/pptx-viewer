@@ -9,7 +9,12 @@ import type {
 	PptxCustomerData,
 	PptxSlide,
 } from '../../types';
-import { applySmartArtLayoutDefinition, convertXmlToStrict, decomposeSmartArt } from '../../utils';
+import {
+	applySmartArtLayoutDefinition,
+	convertXmlToStrict,
+	decomposeSmartArt,
+	isTransitionalNamespaceUri,
+} from '../../utils';
 import { writeCustomerDataScopes } from '../../utils/customer-data-package';
 import type { CustomerDataScope } from '../../utils/customer-data-package';
 import { serializeEmbeddedFontList, setEmbeddedFontList } from '../../utils/embedded-font-list';
@@ -906,14 +911,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 
+			// presentation.xml gets the conformance="strict" attribute, so it is
+			// always rebuilt. Every other part with no Strict/Transitional URI to
+			// convert (custom XML parts, most slide/media relationship targets,
+			// tags, ...) has nothing for `convertXmlToStrict` to change; skip the
+			// needless reparse/rebuild cycle rather than reformatting the part
+			// (self-closing tags, whitespace, attribute quoting) for no reason.
+			const isPresentationXml = path === 'ppt/presentation.xml';
+			if (!isPresentationXml) {
+				const candidateUris = xmlText.match(/https?:\/\/[^"'<>\s]+/gu);
+				const hasConvertibleUri = candidateUris?.some((uri) => isTransitionalNamespaceUri(uri));
+				if (!hasConvertibleUri) {
+					continue;
+				}
+			}
+
 			try {
 				const parsed = parse(xmlText) as Record<string, unknown>;
 				if (typeof parsed !== 'object' || parsed === null) {
 					continue;
 				}
 
-				// presentation.xml gets the conformance="strict" attribute
-				const isPresentationXml = path === 'ppt/presentation.xml';
 				convertXmlToStrict(parsed, isPresentationXml);
 
 				this.zip.file(path, this.builder.build(parsed));
