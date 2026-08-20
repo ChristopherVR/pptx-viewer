@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.21.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.4) - 2026-08-20
+
+### Bug Fixes
+
+- **core:** Correct EOT header parsing for version 0x00020001 containers (by @ChristopherVR) ([e43720e](https://github.com/ChristopherVR/pptx-viewer/commit/e43720ed176c62e0779ddb6fd3fdffc08ba19bbd))
+- **core:** Size table graphic frames from their grid extent (by @ChristopherVR) ([6d75c18](https://github.com/ChristopherVR/pptx-viewer/commit/6d75c18072cc0bb305b6550767dab780314d8dee))
+- **core:** Accept Strict-OOXML lexical percentages in table style tint/shade (by @ChristopherVR) ([8fa8111](https://github.com/ChristopherVR/pptx-viewer/commit/8fa81117e68a9033c37ddd4cf61703100234171c))
+- **core:** Stabilize Strict-conformance resaves (by @ChristopherVR) ([3c43f51](https://github.com/ChristopherVR/pptx-viewer/commit/3c43f5164d1e13edbc3d6e5450e66fd08664d108))
+- **core:** Correct the Strict custom/extended-properties namespace mapping (by @ChristopherVR) ([d5001f9](https://github.com/ChristopherVR/pptx-viewer/commit/d5001f9f4b977fd0a76d31c0fef534ff1a53bea3))
+- **core:** Stop a paragraph's alignment from leaking onto later paragraphs (by @ChristopherVR) ([c18b1e7](https://github.com/ChristopherVR/pptx-viewer/commit/c18b1e7161b4d6e5983c1542cbd2c7fe03081037))
+- **core:** Keep SmartArt cached line-preset shapes with zero width or height (by @ChristopherVR) ([41e3059](https://github.com/ChristopherVR/pptx-viewer/commit/41e30596c4072295b6af3c50439c3966acae2b71))
+- **shared:** Apply autofit shrink-to-fit scale/reduction to paragraph struts (by @ChristopherVR) ([4c1d5c8](https://github.com/ChristopherVR/pptx-viewer/commit/4c1d5c8f4c54ee8200d61c58027284b32e5f8f2c))
+
 ## [2.21.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.3) - 2026-08-20
 
 ### Bug Fixes
