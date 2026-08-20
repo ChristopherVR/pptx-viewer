@@ -143,6 +143,21 @@
 		"import/no-anonymous-default-export": "off",
 		"import/no-named-default": "off",
 		"import/no-mutable-exports": "off",
+		// React Compiler-oriented static analysis rules (added to oxlint's
+		// react plugin defaults, not something this repo opted into): this repo
+		// does not build with the React Compiler, and these rules have a real
+		// false-positive rate against established, working, tested patterns
+		// here (e.g. a custom hook returning an object that bundles one ref
+		// alongside plain state gets every property read on that object
+		// flagged by `refs`, since the analyzer can't discriminate per-property
+		// through a hook's return type). Off rather than fixed file-by-file
+		// until/unless the Compiler is actually adopted.
+		"react/refs": "off",
+		"react/purity": "off",
+		"react/immutability": "off",
+		"react/globals": "off",
+		"react/set-state-in-effect": "off",
+		"react/preserve-manual-memoization": "off",
 		"react/no-set-state": "off",
 		"react/jsx-props-no-spreading": "off",
 		"react/jsx-handler-names": "off",

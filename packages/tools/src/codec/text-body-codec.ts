@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per function, several separated by
+   comments or guard clauses); merging them isn't a style choice here. */
 /**
  * text-body-codec.ts: Encode/decode a PPTX TextSegment[] to/from a Yjs Y.Text.
  *
@@ -5,7 +8,7 @@
  *  - Normal text run  -> {insert: run.text, attributes: {s: JSON(style), ...meta}}
  *  - Paragraph break  -> {insert: '\n', attributes: {pb: '1', ...meta}}
  *  - Line break       -> {insert: '\n', attributes: {lb: '1', ...meta}}
- *  - Empty placeholder -> {insert: '​', attributes: {ep: '1', ...meta}}
+ *  - Empty placeholder -> {insert: '\u200b', attributes: {ep: '1', ...meta}}
  *
  * All complex fields (style, bulletInfo, etc.) are JSON-serialised into string
  * attribute values (Y.Text attribute values must be primitives).
@@ -16,8 +19,8 @@
 
 import { Text as YText } from 'yjs';
 
-// Zero-width space used as a placeholder for empty non-break runs.
-const EMPTY_PLACEHOLDER = '​'; // ​
+// Zero-width space (U+200B) used as a placeholder for empty non-break runs.
+const EMPTY_PLACEHOLDER = '\u200b';
 
 function buildAttrs(seg: Record<string, unknown>): Record<string, string> | undefined {
 	const a: Record<string, string> = {};

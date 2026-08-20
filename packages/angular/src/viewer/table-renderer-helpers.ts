@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per function, several separated by
+   comments or guard clauses); merging them isn't a style choice here. */
 /**
  * Pure, framework-agnostic helpers for table rendering (view-model projection).
  *
@@ -132,8 +135,8 @@ export function buildTableViewModel(
 					rowSpan,
 					tdStyle,
 					// Non-breaking space (U+00A0) keeps an empty cell from collapsing;
-					// mirrors React's `cell.text || ' '` in table-render-data.tsx.
-					displayText: cell.text || ' ',
+					// mirrors React's `cell.text || '\u00a0'` in table-render-data.tsx.
+					displayText: cell.text || '\u00a0',
 					paragraphs: buildCellParagraphs(cell),
 					// Combine per-cell explicit diagonals with any inherited from the
 					// applicable table-style sections (per-cell still takes precedence).

@@ -1,4 +1,7 @@
-﻿/**
+﻿/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per test, several separated by
+   comments or guard clauses); merging them isn't a style choice here. */
+/**
  * Tests for table-renderer pure helpers.
  *
  * All assertions target functions exported from `table-renderer-helpers.ts`
@@ -489,9 +492,9 @@ describe('buildTableViewModel - empty cell display text', () => {
 	it('uses non-breaking space for empty text to preserve row height', () => {
 		const el = tableElement([{ cells: [{ text: '' }] }]);
 		const rows = buildTableViewModel(el);
-		// ' ' (U+00A0) keeps the cell from collapsing; mirrors React's
-		// `cell.text || ' '` in table-render-data.tsx.
-		expect(rows[0].cells[0].displayText).toBe(' ');
+		// '\u00a0' (U+00A0) keeps the cell from collapsing; mirrors React's
+		// `cell.text || '\u00a0'` in table-render-data.tsx.
+		expect(rows[0].cells[0].displayText).toBe('\u00a0');
 	});
 });
 
@@ -682,7 +685,7 @@ describe('buildTableViewModel -- paragraphs field', () => {
 		const rows = buildTableViewModel(el);
 		expect(rows[0].cells[0].paragraphs).toHaveLength(0);
 		// displayText is the non-breaking-space fallback.
-		expect(rows[0].cells[0].displayText).toBe(' ');
+		expect(rows[0].cells[0].displayText).toBe('\u00a0');
 	});
 
 	it('styled cell preserves style on each paragraph run', () => {
