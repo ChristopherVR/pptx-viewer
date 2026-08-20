@@ -621,6 +621,12 @@ export * from './smartart-accessibility';
 // Remove affordances agree across all bindings instead of each hand-porting
 // the same table.
 export * from './smartart-node-limits';
+// SmartArt text-pane keyboard/reorder handlers: pure Enter/Backspace/Tab/
+// move-up/move-down decision functions for the inspector text pane, plus the
+// "connections beyond the editable parent/child tree" classifier. Every
+// function delegates to the core editing ops; each binding's own
+// `smartart-node-pane-handlers.ts` is a thin re-export of this module.
+export * from './smartart-node-pane-handlers';
 // Vanilla three.js GLTF/GLB model scene controller: mounts an interactive 3D
 // model into a container element (auto-centre/fit, lights, OrbitControls, RAF
 // loop) and exposes resize()/dispose(). `three` is dynamically imported and

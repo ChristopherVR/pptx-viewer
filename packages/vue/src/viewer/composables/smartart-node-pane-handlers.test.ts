@@ -22,63 +22,54 @@ function data(nodes: PptxSmartArtNode[], connections?: PptxSmartArtConnection[])
 	return { nodes, connections, resolvedLayoutType: 'list' } as PptxSmartArtData;
 }
 
-describe('smartart-node-pane-handlers', () => {
+// Full coverage of this behaviour lives in
+// `packages/shared/src/render/smartart-node-pane-handlers.test.ts`. This is a
+// regression smoke test confirming the Vue binding's shim re-exports the
+// shared implementation correctly (under the `*Node`-suffixed names this
+// composable has always used for demote/promote/reorder).
+describe('smartart-node-pane-handlers (Vue re-export shim)', () => {
 	beforeEach(() => {
 		resetSmartArtEditCounter();
 	});
 
-	it('countTopLevel ignores child nodes', () => {
+	it('re-exports countTopLevel', () => {
 		expect(countTopLevel(data([node('a', 'A'), node('b', 'B', 'a'), node('c', 'C')]))).toBe(2);
 	});
 
-	it('addSiblingAfter inserts directly after the node and reports its id', () => {
+	it('re-exports addSiblingAfter', () => {
 		const result = addSiblingAfter(data([node('a', 'A'), node('b', 'B')]), 'a');
-		expect(result).toBeDefined();
-		const ids = result?.data.nodes.map((n) => n.id) ?? [];
-		expect(ids[0]).toBe('a');
-		// The focus target is the inserted node, sitting at index 1.
-		expect(result?.focusNodeId).toBe(ids[1]);
-		expect(ids[2]).toBe('b');
+		expect(result?.data.nodes).toHaveLength(3);
 	});
 
-	it('removeEmptyNode removes and focuses the previous node, no-op for a single node', () => {
+	it('re-exports removeEmptyNode', () => {
 		const result = removeEmptyNode(data([node('a', 'A'), node('b', ''), node('c', 'C')]), 'b');
 		expect(result?.data.nodes.map((n) => n.id)).toStrictEqual(['a', 'c']);
-		expect(result?.focusNodeId).toBe('a');
-		expect(removeEmptyNode(data([node('a', '')]), 'a')).toBeUndefined();
 	});
 
-	it('demoteNode / promoteNode return undefined on a no-op and new data otherwise', () => {
-		const base = data([node('a', 'A'), node('b', 'B')]);
-		// First node cannot be demoted (no preceding sibling).
-		expect(demoteNode(base, 'a')).toBeUndefined();
-		const demoted = demoteNode(base, 'b');
+	it('re-exports demoteNode / promoteNode', () => {
+		const demoted = demoteNode(data([node('a', 'A'), node('b', 'B')]), 'b');
 		expect(demoted?.nodes.find((n) => n.id === 'b')?.parentId).toBe('a');
+		// oxlint-disable-next-line eslint/one-var -- kept separate from `demoted` above for the demote-then-promote narrative.
 		const promoted = promoteNode(data([node('a', 'A'), node('b', 'B', 'a')]), 'b');
 		expect(promoted?.nodes.find((n) => n.id === 'b')?.parentId).toBeUndefined();
 	});
 
-	it('reorderNode swaps siblings and is a no-op at the boundary', () => {
+	it('re-exports reorderNode', () => {
 		const base = data([node('a', 'A'), node('b', 'B')]);
-		expect(reorderNode(base, 'a', -1)).toBeUndefined();
 		expect(reorderNode(base, 'a', 1)?.nodes.map((n) => n.id)).toStrictEqual(['b', 'a']);
 	});
 
-	it('siblingIndex / siblingCount account for parentId grouping', () => {
+	it('re-exports siblingIndex / siblingCount', () => {
 		const base = data([node('a', 'A'), node('b', 'B'), node('c', 'C', 'a')]);
 		expect(siblingIndex(base, 'b')).toBe(1);
 		expect(siblingCount(base, 'a')).toBe(2);
-		expect(siblingCount(base, 'c')).toBe(1);
-		expect(siblingIndex(base, 'missing')).toBe(-1);
 	});
 
-	it('extraConnectionCount counts only non-tree connection types', () => {
+	it('re-exports extraConnectionCount', () => {
 		const conns: PptxSmartArtConnection[] = [
 			{ sourceId: 'a', destId: 'b', type: 'parOf' },
 			{ sourceId: 'a', destId: 'c', type: 'sibTrans' },
-			{ sourceId: 'a', destId: 'd' },
 		];
 		expect(extraConnectionCount(data([node('a', 'A')], conns))).toBe(1);
-		expect(extraConnectionCount(data([node('a', 'A')]))).toBe(0);
 	});
 });

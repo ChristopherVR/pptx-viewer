@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- this component declares many independent
+   locals across its render body; merging unrelated declarations would hurt
+   readability, not help it. */
 import type {
 	PptxElement,
 	PptxSmartArtData,
@@ -25,6 +28,7 @@ import {
 } from './smartart-node-limits';
 import {
 	addSiblingAfter,
+	classifyExtraConnections,
 	demote,
 	promote,
 	removeEmptyNode,
@@ -59,9 +63,6 @@ const COLOR_SCHEMES: SmartArtColorScheme[] = [
 ];
 
 const STYLE_OPTIONS: SmartArtStyle[] = ['flat', 'moderate', 'intense'];
-
-/** Connection types that represent the plain parent/child tree we edit inline. */
-const TREE_CONNECTION_TYPES = new Set(['parOf', 'presParOf', undefined]);
 
 // ---------------------------------------------------------------------------
 // Component
@@ -195,9 +196,7 @@ export function SmartArtPropertiesPanel({
 	const addDisabled = !canEdit || !canAddTopLevelNode(layout, topLevelCount);
 
 	// Connections beyond the editable parent/child tree (read-only awareness).
-	const extraConnections = (smartArtData.connections ?? []).filter(
-		(c) => !TREE_CONNECTION_TYPES.has(c.type),
-	);
+	const extraConnections = classifyExtraConnections(smartArtData);
 	// Human-readable summary of the distinct relationship types, e.g. "presOf, presParOf".
 	const extraConnectionSummary = Array.from(
 		new Set(extraConnections.map((c) => c.type ?? 'unknown')),
@@ -250,6 +249,9 @@ export function SmartArtPropertiesPanel({
 					{nodes.map((node) => {
 						const isChild = Boolean(node.parentId);
 						if (!isChild) {
+							// `topDisplayIndex` is a local running counter reset to 0 at the top of each
+							// render, not a mutated prop/ref.
+							// oxlint-disable-next-line react/immutability -- see comment above
 							topDisplayIndex += 1;
 						}
 						const sIdx = siblingIndex(smartArtData, node.id);

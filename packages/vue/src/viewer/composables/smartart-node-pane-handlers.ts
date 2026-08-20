@@ -1,128 +1,30 @@
-import type { PptxSmartArtData } from 'pptx-viewer-core';
-import {
-	addSmartArtNode,
-	demoteSmartArtNode,
-	promoteSmartArtNode,
-	removeSmartArtNode,
-	reorderSmartArtNode,
-} from 'pptx-viewer-core';
-
 /**
  * Pure keyboard / reorder handlers for the SmartArt text pane.
  *
- * Vue port of the React `smartart-node-pane-handlers.ts`. All functions delegate
- * to the core editing ops (which rewire connections and clear drawing shapes)
- * and return either a new {@link PptxSmartArtData} to apply, or `undefined` when
- * the action is a no-op. Keeping this logic out of the composable / SFC keeps
- * them thin and makes the behaviour unit-testable.
+ * Thin re-export shim over the single shared implementation in
+ * `pptx-viewer-shared` (`packages/shared/src/render/smartart-node-pane-handlers.ts`).
+ * All functions delegate to the core editing ops (which rewire connections and
+ * clear drawing shapes) and are pure, framework-free decision functions
+ * consumed identically by React and Vue; keep changes to this behaviour in the
+ * shared module so both bindings stay in sync.
+ *
+ * `demote` / `promote` / `reorder` are re-exported under the `*Node` names
+ * this composable has always used, since `useSmartArtEditing` defines its own
+ * (differently-shaped) `demote` / `promote` API methods and would otherwise
+ * shadow the shared imports.
  *
  * @module smartart-node-pane-handlers
  */
-
-/** Result of a keyboard action: the data to apply plus an optional focus hint. */
-export interface NodePaneKeyResult {
-	/** Updated SmartArt data to apply via the element patch. */
-	data: PptxSmartArtData;
-	/**
-	 * Node id that should receive focus after the update, when known. For a
-	 * newly inserted sibling this is the sibling that follows `nodeId`.
-	 */
-	focusNodeId?: string;
-}
-
-/** Count of top-level nodes (no parentId) in the data model. */
-export function countTopLevel(data: PptxSmartArtData): number {
-	return data.nodes.filter((n) => !n.parentId).length;
-}
-
-/**
- * Enter: insert a sibling node immediately after the current one.
- *
- * Returns the new data and the id of the inserted sibling so the caller can
- * move focus to it.
- */
-export function addSiblingAfter(
-	data: PptxSmartArtData,
-	nodeId: string,
-): NodePaneKeyResult | undefined {
-	const next = addSmartArtNode(data, '', nodeId);
-	if (next === data) {
-		return undefined;
-	}
-	const idx = next.nodes.findIndex((n) => n.id === nodeId);
-	const inserted = idx >= 0 ? next.nodes[idx + 1] : undefined;
-	return { data: next, focusNodeId: inserted?.id };
-}
-
-/**
- * Delete / Backspace on an empty node: remove it (when more than one node
- * remains). Returns the previous sibling / node id to focus when available.
- */
-export function removeEmptyNode(
-	data: PptxSmartArtData,
-	nodeId: string,
-): NodePaneKeyResult | undefined {
-	if (data.nodes.length <= 1) {
-		return undefined;
-	}
-	const removedIndex = data.nodes.findIndex((n) => n.id === nodeId);
-	const next = removeSmartArtNode(data, nodeId);
-	if (next === data) {
-		return undefined;
-	}
-	const focusNode = next.nodes[Math.max(0, removedIndex - 1)];
-	return { data: next, focusNodeId: focusNode?.id };
-}
-
-/** Tab: demote a node under its preceding sibling (connection-aware). */
-export function demoteNode(data: PptxSmartArtData, nodeId: string): PptxSmartArtData | undefined {
-	const next = demoteSmartArtNode(data, nodeId);
-	return next === data ? undefined : next;
-}
-
-/** Shift+Tab: promote a node to its parent's level (connection-aware). */
-export function promoteNode(data: PptxSmartArtData, nodeId: string): PptxSmartArtData | undefined {
-	const next = promoteSmartArtNode(data, nodeId);
-	return next === data ? undefined : next;
-}
-
-/** Move a node up (-1) or down (+1) within its sibling group. */
-export function reorderNode(
-	data: PptxSmartArtData,
-	nodeId: string,
-	direction: 1 | -1,
-): PptxSmartArtData | undefined {
-	const next = reorderSmartArtNode(data, nodeId, direction);
-	return next === data ? undefined : next;
-}
-
-/** Index of a node among its siblings (nodes sharing its parentId). */
-export function siblingIndex(data: PptxSmartArtData, nodeId: string): number {
-	const node = data.nodes.find((n) => n.id === nodeId);
-	if (!node) {
-		return -1;
-	}
-	const siblings = data.nodes.filter((n) => n.parentId === node.parentId);
-	return siblings.findIndex((n) => n.id === nodeId);
-}
-
-/** Number of siblings (including the node itself) sharing its parentId. */
-export function siblingCount(data: PptxSmartArtData, nodeId: string): number {
-	const node = data.nodes.find((n) => n.id === nodeId);
-	if (!node) {
-		return 0;
-	}
-	return data.nodes.filter((n) => n.parentId === node.parentId).length;
-}
-
-/** Connection types that represent the plain parent/child tree we edit inline. */
-const TREE_CONNECTION_TYPES = new Set<string | undefined>(['parOf', 'presParOf', undefined]);
-
-/**
- * Connections beyond the editable parent/child tree (e.g. `sibTrans`,
- * `presOf`). Surfaced read-only so the user knows the diagram carries
- * relationships the simple text pane does not edit.
- */
-export function extraConnectionCount(data: PptxSmartArtData): number {
-	return (data.connections ?? []).filter((c) => !TREE_CONNECTION_TYPES.has(c.type)).length;
-}
+export {
+	addSiblingAfter,
+	classifyExtraConnections,
+	countTopLevel,
+	demote as demoteNode,
+	extraConnectionCount,
+	promote as promoteNode,
+	removeEmptyNode,
+	reorder as reorderNode,
+	siblingCount,
+	siblingIndex,
+} from 'pptx-viewer-shared';
+export type { NodePaneKeyResult } from 'pptx-viewer-shared';
