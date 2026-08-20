@@ -8,6 +8,44 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-20
+
+_Releases: pptx-react-viewer@2.20.0, pptx-vue-viewer@2.21.0, pptx-angular-viewer@2.19.0, pptx-vanilla-viewer@1.22.0, pptx-svelte-viewer@2.21.0_
+
+### Features
+
+- **shared:** Add hover tooltips to every chart mark, not just the region map (by @ChristopherVR) ([4ca29f5](https://github.com/ChristopherVR/pptx-viewer/commit/4ca29f590b1d1154b1034b7c5aeaa469610353d5))
+
+### Bug Fixes
+
+- **vue:** Use shared per-occurrence find/replace engine (by @ChristopherVR) ([81f197d](https://github.com/ChristopherVR/pptx-viewer/commit/81f197ddf54ac54e559b3053be1c7deea43dfbd9))
+- **react:** Disable mobile bottom bar actions with no slides loaded (by @ChristopherVR) ([ae9892f](https://github.com/ChristopherVR/pptx-viewer/commit/ae9892fc5a0effc35ebe1e41add79f053920f597))
+- **vue:** Disable mobile bottom bar tabs with no slides loaded (by @ChristopherVR) ([967f9b3](https://github.com/ChristopherVR/pptx-viewer/commit/967f9b3d3a8991a203f093fe33fa8fda42543e49))
+- **angular:** Wire Home ribbon Reset/Fill/Outline through shared commands (by @ChristopherVR) ([c06b894](https://github.com/ChristopherVR/pptx-viewer/commit/c06b8947fae4888b0db69f37c043bfe9e83dd66d))
+- **svelte:** Make table row/column insert-delete merge-aware (by @ChristopherVR) ([111d272](https://github.com/ChristopherVR/pptx-viewer/commit/111d272a7d974ed70697d73ca7e523a191faffa1))
+- **vanilla:** Expand cell-merge rect over existing merges before validating (by @ChristopherVR) ([49d9ce7](https://github.com/ChristopherVR/pptx-viewer/commit/49d9ce7e8c6a2eb3ed4e58d4bef4d2679430b43d))
+- **vue:** Clamp animation duration/delay/repeat via shared setters (by @ChristopherVR) ([595f9c5](https://github.com/ChristopherVR/pptx-viewer/commit/595f9c57001df657f73edd12bf2fb99db2cba941))
+- **svelte,vanilla:** Wire double-click chart title rename (by @ChristopherVR) ([48b997c](https://github.com/ChristopherVR/pptx-viewer/commit/48b997ca7b24a3340100cf6f52b7251e5ca39e6e))
+- **react,svelte:** Block unsafe URL schemes on hyperlink save (by @ChristopherVR) ([61b43e6](https://github.com/ChristopherVR/pptx-viewer/commit/61b43e6d0b5dfc4b101d82bfe817bbc58680ef37))
+- **shared:** Stack line/area charts and lock their drag geometry (by @ChristopherVR) ([0da8ba5](https://github.com/ChristopherVR/pptx-viewer/commit/0da8ba55a5793d94af7822fcc7de63aa1d0243bb))
+- **vanilla:** Surface on-canvas chart part selection to the inspector (by @ChristopherVR) ([e71646f](https://github.com/ChristopherVR/pptx-viewer/commit/e71646f30c8fe80db557c50fb5437f2238672b1d))
+- **shared:** Extract table column-width redistribution to shared (by @ChristopherVR) ([cbd9fc7](https://github.com/ChristopherVR/pptx-viewer/commit/cbd9fc78dde57a72de3049a2ea01e1676957b463))
+
+### Refactor
+
+- **angular:** Source mobile bottom bar disabled state from shared (by @ChristopherVR) ([3b10888](https://github.com/ChristopherVR/pptx-viewer/commit/3b108885b80128766ef59afe4a2bf45b432aa584))
+- **shared:** Extract SmartArt node-count bounds table (by @ChristopherVR) ([10cd945](https://github.com/ChristopherVR/pptx-viewer/commit/10cd945140ea3757086f0c4b1c6ea71adbb4d825))
+- **shared:** Extract animation drag-to-reorder into shared (by @ChristopherVR) ([b136d02](https://github.com/ChristopherVR/pptx-viewer/commit/b136d023174959e9c51b3667e8ab78a8a983cb9f))
+- **shared:** Extract SmartArt text-pane handlers to shared (by @ChristopherVR) ([911693c](https://github.com/ChristopherVR/pptx-viewer/commit/911693c9c02b63ee284890653b4dc977e35af170))
+- **shared:** Extract chart legend layout to shared (by @ChristopherVR) ([acec62b](https://github.com/ChristopherVR/pptx-viewer/commit/acec62b1be7203e90206a0852e6544b73bb52266))
+- **shared:** Extract animation timeline-bar layout math to shared (by @ChristopherVR) ([1a9f66d](https://github.com/ChristopherVR/pptx-viewer/commit/1a9f66d7629e18174997fdf9135edb7a70d8660e))
+- **shared:** Extract table quick-style preset application (by @ChristopherVR) ([aa52c10](https://github.com/ChristopherVR/pptx-viewer/commit/aa52c106a158b2c2361b05e05968d9daadda2e52))
+- **shared:** Extract export base-filename derivation to shared (by @ChristopherVR) ([58091bc](https://github.com/ChristopherVR/pptx-viewer/commit/58091bc18e766b3c870fe4af9f8c11bd0384899c))
+
+### Documentation
+
+- Correct chart-interactivity limitations text (by @ChristopherVR) ([4e91c36](https://github.com/ChristopherVR/pptx-viewer/commit/4e91c360eb13c1e62f8e42abd207c7844f822975))
+
 ## 2026-08-19
 
 _Releases: pptx-viewer-core@2.3.10, pptx-react-viewer@2.19.7, pptx-vue-viewer@2.20.7, pptx-angular-viewer@2.18.7, pptx-vanilla-viewer@1.21.7, pptx-svelte-viewer@2.20.7, @christophervr/pptx-viewer@1.7.0_
