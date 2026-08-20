@@ -1,5 +1,9 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   independent aliased re-exports, not one statement */
 import {
+	advanceChartValueDrag as advanceSharedChartValueDrag,
 	applyChartPartHighlight as applySharedChartPartHighlight,
+	beginChartValueDrag as beginSharedChartValueDrag,
 	CHART_DRAG_THRESHOLD_PX,
 	ensureChartInteractionStyles,
 } from 'pptx-viewer-shared';
@@ -25,6 +29,12 @@ export const ensureInteractionStyles = ensureChartInteractionStyles;
 
 /** Re-apply the selected-part highlight class inside `root`. */
 export const applyChartPartHighlight = applySharedChartPartHighlight;
+
+/** Start a value drag on a data-point mark, or null when the press is not draggable. */
+export const beginChartValueDrag = beginSharedChartValueDrag;
+
+/** Advance an in-flight drag to the pointer's current Y. */
+export const advanceChartValueDrag = advanceSharedChartValueDrag;
 
 /** State of an in-flight data-point value drag. */
 export type ActiveValueDrag = ChartValueDragState;

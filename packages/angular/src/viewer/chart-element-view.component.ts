@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   independent handler-local `const`s, not one statement */
 /**
  * ChartElementViewComponent (Angular port of React's `ChartElementView.tsx`):
  * renders a chart and, while it is selected + editable, makes its data marks
@@ -24,17 +26,20 @@ import {
 } from '@angular/core';
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
-import { applyChartBuildReveal, findChartPartTarget, withChartTitle } from '../internal/shared';
-import type { ElementAnimationState } from '../internal/shared';
 import {
+	advanceChartValueDrag,
+	applyChartBuildReveal,
 	applyChartPartHighlight,
 	beginChartValueDrag,
+	findChartPartTarget,
+	withChartTitle,
+} from '../internal/shared';
+import type { ChartValueDragState, ElementAnimationState } from '../internal/shared';
+import {
 	chartDragCommitData,
 	commitChartElementData,
 	ensureChartInteractionStyles,
-	moveChartValueDrag,
 } from './chart-element-view-helpers';
-import type { ChartValueDragSession } from './chart-element-view-helpers';
 import { ChartPartSelectionService } from './chart-part-selection.service';
 import { buildChartViewModel, formatAxisValue } from './chart-renderer-helpers';
 import { ChartRendererComponent } from './chart-renderer.component';
@@ -110,7 +115,7 @@ export class ChartElementViewComponent {
 	private readonly titleEditor = viewChild<ElementRef<HTMLInputElement>>('titleEditor');
 
 	/** In-flight vertical value drag, or null. */
-	private dragSession: ChartValueDragSession | null = null;
+	private dragSession: ChartValueDragState | null = null;
 	/** Local drag preview: rendered instead of the committed data mid-drag. */
 	private readonly previewData = signal<PptxChartData | null>(null);
 	/** Live value under the pointer mid-drag (drives the floating badge). */
@@ -240,7 +245,12 @@ export class ChartElementViewComponent {
 		if (!chartData || !vm) {
 			return;
 		}
-		const session = beginChartValueDrag(part, vm, chartData, event.clientY);
+		const session = beginChartValueDrag({
+			part,
+			viewModel: vm,
+			chartData,
+			clientY: event.clientY,
+		});
 		if (!session) {
 			return;
 		}
@@ -261,14 +271,11 @@ export class ChartElementViewComponent {
 			return;
 		}
 		const svg = this.wrapper()?.nativeElement.querySelector('svg');
-		const rect = svg?.getBoundingClientRect();
-		if (!rect || rect.height === 0) {
-			return;
-		}
-		const result = moveChartValueDrag(session, event.clientY, rect.height);
-		if (result) {
-			this.previewData.set(result.data);
-			this.dragValue.set(result.value);
+		const height = svg?.getBoundingClientRect().height ?? 0;
+		const step = advanceChartValueDrag(session, event.clientY, height);
+		if (step) {
+			this.previewData.set(step.chartData);
+			this.dragValue.set(step.value);
 		}
 	}
 

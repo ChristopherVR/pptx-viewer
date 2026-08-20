@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import React, { act } from 'react';
 /**
@@ -14,6 +16,7 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+import { ChartPartSelectionProvider } from './chart-part-selection';
 import { ElementRenderer } from './ElementRenderer';
 import type { ElementRendererProps } from './elements/element-renderer-types';
 
@@ -154,6 +157,28 @@ describe('elementRenderer - on-canvas chart editing wiring', () => {
 		pointer('pointerup', bar, 200);
 
 		expect(onUpdateSmartArtElement).not.toHaveBeenCalled();
+	});
+
+	it('highlights exactly the pressed mark via the shared selected-part class', () => {
+		// Real (non-no-op) selection state requires the provider ElementRenderer's
+		// callers normally sit under (ViewerMainContent); the bare mount() helper
+		// above renders against the inert default context, where selection never
+		// actually changes.
+		act(() => {
+			root.render(
+				<ChartPartSelectionProvider>
+					<ElementRenderer {...makeProps({ onUpdateSmartArtElement: vi.fn() })} />
+				</ChartPartSelectionProvider>,
+			);
+		});
+		stubSvgRect();
+
+		const bar = queryBar(0, 1);
+		pointer('pointerdown', bar, 200);
+		pointer('pointerup', bar, 200);
+
+		expect(bar.classList.contains('pptx-chart-part-selected')).toBeTruthy();
+		expect(container.querySelectorAll('.pptx-chart-part-selected')).toHaveLength(1);
 	});
 
 	it('edits the title in place on double-click', () => {

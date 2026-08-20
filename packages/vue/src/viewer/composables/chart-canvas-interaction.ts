@@ -1,20 +1,16 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
-import {
-	dragAnchorViewY,
-	dragValueForPart,
-	findChartPartTarget,
-	formatAxisValue,
-	withChartPointValue,
-	withChartTitle,
-} from 'pptx-viewer-shared';
+import { findChartPartTarget, formatAxisValue, withChartTitle } from 'pptx-viewer-shared';
 import type { ChartPartRef, ChartViewModel } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, onMounted, onUnmounted, onUpdated, ref, shallowRef, watch } from 'vue';
 
 import type { ActiveValueDrag } from './chart-canvas-interaction-support';
 import {
+	advanceChartValueDrag,
 	applyChartPartHighlight,
-	DRAG_THRESHOLD_PX,
+	beginChartValueDrag,
 	ensureInteractionStyles,
 } from './chart-canvas-interaction-support';
 import { injectChartCanvasEdit } from './chart-part-selection';
@@ -151,11 +147,17 @@ export function useChartCanvasInteraction(
 		event.stopPropagation();
 		const element = input.element() as ChartPptxElement;
 		ctx?.setSelection({ elementId: element.id, part });
-		if (part.role !== 'dataPoint' || part.pointIndex === undefined || !element.chartData) {
+		if (!element.chartData) {
 			return;
 		}
 		const vm = input.buildViewModel(element);
-		if (!vm.valueDrag) {
+		const started = beginChartValueDrag({
+			part,
+			viewModel: vm,
+			chartData: element.chartData,
+			clientY: event.clientY,
+		});
+		if (!started) {
 			return;
 		}
 		event.preventDefault();
@@ -166,17 +168,7 @@ export function useChartCanvasInteraction(
 		} catch {
 			// Non-fatal: the drag still works while the pointer stays over the chart.
 		}
-		const startValue = element.chartData.series[part.seriesIndex]?.values[part.pointIndex] ?? 0;
-		activeDrag = {
-			part,
-			drag: vm.valueDrag,
-			svgHeight: vm.svgHeight,
-			startClientY: event.clientY,
-			anchorViewY: dragAnchorViewY(startValue, vm.valueDrag, part.seriesIndex),
-			baseChartData: element.chartData,
-			moved: false,
-			lastData: null,
-		};
+		activeDrag = started;
 		window.addEventListener('keydown', onWindowKeydown);
 	}
 
@@ -185,29 +177,13 @@ export function useChartCanvasInteraction(
 		if (!active) {
 			return;
 		}
-		if (!active.moved && Math.abs(event.clientY - active.startClientY) < DRAG_THRESHOLD_PX) {
+		const height = input.rootEl.value?.querySelector('svg')?.getBoundingClientRect().height ?? 0;
+		const step = advanceChartValueDrag(active, event.clientY, height);
+		if (!step) {
 			return;
 		}
-		const svg = input.rootEl.value?.querySelector('svg');
-		if (!svg || active.part.pointIndex === undefined) {
-			return;
-		}
-		const rect = svg.getBoundingClientRect();
-		if (rect.height === 0) {
-			return;
-		}
-		active.moved = true;
-		const deltaViewY = ((event.clientY - active.startClientY) / rect.height) * active.svgHeight;
-		const viewY = active.anchorViewY + deltaViewY;
-		const value = dragValueForPart(viewY, active.drag, active.part.seriesIndex);
-		active.lastData = withChartPointValue(
-			active.baseChartData,
-			active.part.seriesIndex,
-			active.part.pointIndex,
-			value,
-		);
-		previewData.value = active.lastData;
-		dragValue.value = value;
+		previewData.value = step.chartData;
+		dragValue.value = step.value;
 	}
 
 	function onPointerup(): void {

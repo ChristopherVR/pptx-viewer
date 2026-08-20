@@ -1,35 +1,22 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
+   independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
+	advanceChartValueDrag,
 	applyChartBuildReveal,
-	dragAnchorViewY,
-	dragValueForPart,
+	applyChartPartHighlight,
+	beginChartValueDrag,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
-	withChartPointValue,
 	withChartTitle,
 } from 'pptx-viewer-shared';
-import type { ChartPartRef, ChartValueDrag, ElementAnimationState } from 'pptx-viewer-shared';
+import type { ChartValueDragState, ElementAnimationState } from 'pptx-viewer-shared';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
 import { formatAxisValue } from '../../utils/chart-helpers';
 import { buildReactChartViewModel } from '../../utils/chart-view-model-render';
 import { useChartPartSelection } from '../chart-part-selection';
-
-/** Minimum pointer travel (px) before a mark press becomes a value drag. */
-const DRAG_THRESHOLD_PX = 3;
-
-interface ActiveValueDrag {
-	part: ChartPartRef;
-	drag: ChartValueDrag;
-	svgHeight: number;
-	startClientY: number;
-	/** View-box Y of the point's value at drag start; the drag tracks deltas from here. */
-	anchorViewY: number;
-	baseChartData: PptxChartData;
-	moved: boolean;
-	lastData: PptxChartData | null;
-}
 
 export interface ChartElementViewProps {
 	element: ChartPptxElement;
@@ -58,7 +45,7 @@ export function ChartElementView({
 	animationState,
 }: ChartElementViewProps): React.ReactElement {
 	const wrapperRef = useRef<HTMLDivElement>(null);
-	const dragRef = useRef<ActiveValueDrag | null>(null);
+	const dragRef = useRef<ChartValueDragState | null>(null);
 	const { selection, setSelection } = useChartPartSelection();
 	const [previewData, setPreviewData] = useState<PptxChartData | null>(null);
 	const [dragValue, setDragValue] = useState<number | null>(null);
@@ -100,24 +87,7 @@ export function ChartElementView({
 	// Re-apply the selected-part highlight class after every render: React
 	// re-creates the SVG marks on each chart change, dropping DOM-only classes.
 	useEffect(() => {
-		const root = wrapperRef.current;
-		if (!root) {
-			return;
-		}
-		for (const node of root.querySelectorAll('.pptx-chart-part-selected')) {
-			node.classList.remove('pptx-chart-part-selected');
-		}
-		if (!selectedPart) {
-			return;
-		}
-		const pointSel =
-			selectedPart.pointIndex !== undefined
-				? `[data-chart-point='${selectedPart.pointIndex}']`
-				: ':not([data-chart-point])';
-		const selector = `[data-chart-part='${selectedPart.role}'][data-chart-series='${selectedPart.seriesIndex}']${pointSel}`;
-		for (const node of root.querySelectorAll(selector)) {
-			node.classList.add('pptx-chart-part-selected');
-		}
+		applyChartPartHighlight(wrapperRef.current, selectedPart);
 	});
 
 	const endDrag = (commit: boolean) => {
@@ -154,32 +124,27 @@ export function ChartElementView({
 		}
 		e.stopPropagation();
 		setSelection({ elementId: element.id, part });
-		if (
-			part.role === 'dataPoint' &&
-			part.pointIndex !== undefined &&
-			viewModel?.valueDrag &&
-			element.chartData
-		) {
-			e.preventDefault();
-			// Pointer capture keeps the drag alive when the pointer leaves the mark;
-			// guarded because test DOMs (and older browsers) may not implement it.
-			try {
-				e.currentTarget.setPointerCapture?.(e.pointerId);
-			} catch {
-				// Non-fatal: the drag still works while the pointer stays over the chart.
-			}
-			const startValue = element.chartData.series[part.seriesIndex]?.values[part.pointIndex] ?? 0;
-			dragRef.current = {
-				part,
-				drag: viewModel.valueDrag,
-				svgHeight: viewModel.svgHeight,
-				startClientY: e.clientY,
-				anchorViewY: dragAnchorViewY(startValue, viewModel.valueDrag, part.seriesIndex),
-				baseChartData: element.chartData,
-				moved: false,
-				lastData: null,
-			};
+		if (!viewModel || !element.chartData) {
+			return;
 		}
+		const started = beginChartValueDrag({
+			part,
+			viewModel,
+			chartData: element.chartData,
+			clientY: e.clientY,
+		});
+		if (!started) {
+			return;
+		}
+		e.preventDefault();
+		// Pointer capture keeps the drag alive when the pointer leaves the mark;
+		// guarded because test DOMs (and older browsers) may not implement it.
+		try {
+			e.currentTarget.setPointerCapture?.(e.pointerId);
+		} catch {
+			// Non-fatal: the drag still works while the pointer stays over the chart.
+		}
+		dragRef.current = started;
 	};
 
 	const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -187,29 +152,13 @@ export function ChartElementView({
 		if (!active) {
 			return;
 		}
-		if (!active.moved && Math.abs(e.clientY - active.startClientY) < DRAG_THRESHOLD_PX) {
+		const height = wrapperRef.current?.querySelector('svg')?.getBoundingClientRect().height ?? 0;
+		const step = advanceChartValueDrag(active, e.clientY, height);
+		if (!step) {
 			return;
 		}
-		const svg = wrapperRef.current?.querySelector('svg');
-		if (!svg || active.part.pointIndex === undefined) {
-			return;
-		}
-		const rect = svg.getBoundingClientRect();
-		if (rect.height === 0) {
-			return;
-		}
-		active.moved = true;
-		const deltaViewY = ((e.clientY - active.startClientY) / rect.height) * active.svgHeight;
-		const viewY = active.anchorViewY + deltaViewY;
-		const value = dragValueForPart(viewY, active.drag, active.part.seriesIndex);
-		active.lastData = withChartPointValue(
-			active.baseChartData,
-			active.part.seriesIndex,
-			active.part.pointIndex,
-			value,
-		);
-		setPreviewData(active.lastData);
-		setDragValue(value);
+		setPreviewData(step.chartData);
+		setDragValue(step.value);
 	};
 
 	const handlePointerUp = () => {
