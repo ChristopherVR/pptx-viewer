@@ -59,6 +59,29 @@ export function parseAlignmentAttr(algn: string | undefined): TextStyle['align']
 	return ALIGN_MAP[algn] || undefined;
 }
 
+/**
+ * Resolve a single paragraph's effective alignment: its own `a:pPr/@algn`
+ * wins outright; otherwise the alignment inherited from its OWN placeholder
+ * level (not a sibling paragraph's); otherwise the rtl-based default.
+ *
+ * Callers must look up `placeholderAlignment` per paragraph (the level the
+ * CURRENT paragraph's own `lvl` resolves to) rather than reusing a
+ * shape-level snapshot: a snapshot taken from an earlier paragraph in the
+ * same shape masks this paragraph's own placeholder-level alignment once
+ * that earlier paragraph declared an explicit `algn` (for example a centered
+ * heading followed by left-aligned body bullets).
+ */
+export function resolveParagraphAlignment(
+	authoredAlignment: unknown,
+	placeholderAlignment: TextStyle['align'] | undefined,
+	paragraphRtl: boolean | undefined,
+): TextStyle['align'] {
+	if (authoredAlignment !== undefined && authoredAlignment !== null) {
+		return parseAlignmentAttr(String(authoredAlignment)) ?? 'left';
+	}
+	return placeholderAlignment ?? (paragraphRtl ? 'right' : 'left');
+}
+
 // ---------------------------------------------------------------------------
 // Spacing helpers
 // ---------------------------------------------------------------------------

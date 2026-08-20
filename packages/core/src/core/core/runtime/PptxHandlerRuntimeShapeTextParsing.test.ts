@@ -23,7 +23,9 @@ import {
 	parseParagraphRtl,
 	parseTabStops,
 } from '../../utils/paragraph-properties-parser';
+import { createAutoNumberSequence } from './auto-number-sequence';
 import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
+import type { ParagraphStyleResult, ShapeTextParsingContext } from './PptxHandlerRuntimeTypes';
 
 const EMU_PER_PX = 9525;
 
@@ -31,9 +33,34 @@ class ParagraphPropertiesRuntime extends PptxHandlerRuntime {
 	public extractOwnProperties(p: XmlObject, basisFontSize?: number): TextStyle | undefined {
 		return this.extractParagraphOwnProperties(p, basisFontSize);
 	}
+
+	public resolveParagraphStyle(
+		p: XmlObject,
+		textStyle: TextStyle,
+		ctx: ShapeTextParsingContext,
+	): ParagraphStyleResult {
+		return this.resolveShapeParagraphStyle(p, textStyle, ctx);
+	}
 }
 
 const runtime = new ParagraphPropertiesRuntime();
+
+function makeContext(overrides: Partial<ShapeTextParsingContext> = {}): ShapeTextParsingContext {
+	return {
+		txBody: undefined,
+		inheritedTxBody: undefined,
+		bodyDefaultRunStyle: {},
+		slideRelationshipMap: undefined,
+		placeholderInfo: undefined,
+		phDefaults: undefined,
+		slidePath: undefined,
+		effectiveLevelStyles: undefined,
+		styleFontRefColor: undefined,
+		styleFontRefTypeface: undefined,
+		autoNumbering: createAutoNumberSequence(),
+		...overrides,
+	};
+}
 
 /** The `a:pPr` PowerPoint wrote on `issue-132-hr-deck.pptx` slide 20. */
 const HR_DECK_SLIDE_20_PPR: XmlObject = {
@@ -296,5 +323,31 @@ describe('parseParagraphLevel', () => {
 		expect(parseParagraphLevel({ '@_lvl': '20' })).toBe(8);
 		expect(parseParagraphLevel({ '@_lvl': '-5' })).toBe(0);
 		expect(parseParagraphLevel({ '@_lvl': 'abc' })).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// resolveShapeParagraphStyle: per-paragraph alignment must not leak
+// ---------------------------------------------------------------------------
+describe('resolveShapeParagraphStyle alignment', () => {
+	it("does not let an earlier paragraph's explicit alignment override a later paragraph's own placeholder-level alignment", () => {
+		// Paragraph 0: explicit centered heading. Paragraph 1: no explicit algn,
+		// but its own placeholder level (1) is left-aligned body bullets.
+		const ctx = makeContext({
+			effectiveLevelStyles: { 1: { alignment: 'left' } },
+		});
+		const textStyle: TextStyle = {};
+
+		const first = runtime.resolveParagraphStyle({ 'a:pPr': { '@_algn': 'ctr' } }, textStyle, ctx);
+		expect(first.paraAlign).toBe('center');
+
+		const second = runtime.resolveParagraphStyle({ 'a:pPr': { '@_lvl': '1' } }, textStyle, ctx);
+		expect(second.paraAlign).toBe('left');
+	});
+
+	it('falls back to the rtl-based default when neither the paragraph nor its placeholder level declares an alignment', () => {
+		const ctx = makeContext();
+		const rtl = runtime.resolveParagraphStyle({ 'a:pPr': { '@_rtl': '1' } }, {}, ctx);
+		expect(rtl.paraAlign).toBe('right');
 	});
 });

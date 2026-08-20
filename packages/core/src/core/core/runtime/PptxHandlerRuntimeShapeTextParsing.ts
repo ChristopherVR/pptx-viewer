@@ -5,6 +5,7 @@ import {
 	parseParagraphMargins,
 	parseParagraphRtl,
 	parseTabStops,
+	resolveParagraphAlignment,
 } from '../../utils/paragraph-properties-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeBodyParsing';
 import type { ShapeTextParsingContext, ParagraphStyleResult } from './PptxHandlerRuntimeTypes';
@@ -159,22 +160,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			textStyle.rtl = paragraphRtl;
 		}
 
-		let paraAlign: TextStyle['align'] = paragraphRtl ? 'right' : 'left';
-		if (pPr?.['@_algn']) {
-			const alignMap: Record<string, TextStyle['align']> = {
-				l: 'left',
-				ctr: 'center',
-				r: 'right',
-				just: 'justify',
-				justify: 'justify',
-				justLow: 'justLow',
-				dist: 'dist',
-				thaiDist: 'thaiDist',
-			};
-			paraAlign = alignMap[pPr['@_algn']] || 'left';
-			if (!textStyle.align) {
-				textStyle.align = paraAlign;
-			}
+		// This paragraph's OWN placeholder-level alignment (not a snapshot from a
+		// sibling paragraph, which `textStyle.align` below can hold once an
+		// earlier paragraph in the same shape declared an explicit `algn`).
+		const ownPlaceholderAlignment = (ctx.effectiveLevelStyles?.[level]?.alignment ??
+			ctx.effectiveLevelStyles?.[-1]?.alignment) as TextStyle['align'] | undefined;
+		const paraAlign: TextStyle['align'] = resolveParagraphAlignment(
+			pPr?.['@_algn'],
+			ownPlaceholderAlignment,
+			paragraphRtl,
+		);
+		if (pPr?.['@_algn'] && !textStyle.align) {
+			textStyle.align = paraAlign;
 		}
 
 		// Percentage spacing (`a:spcPct`) resolves against the paragraph's font size.
@@ -358,9 +355,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phBase);
 				this.applyPlaceholderLevelDefaults(textStyle, phBase);
 			}
-		}
-		if (pPr?.['@_algn'] === undefined && textStyle.align !== undefined) {
-			paraAlign = textStyle.align;
 		}
 
 		// Per-paragraph indentation (also checking placeholder level defaults)
