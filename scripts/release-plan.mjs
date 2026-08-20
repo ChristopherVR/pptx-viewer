@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per pass, several separated by
+   comments or guard clauses); merging them isn't a style choice here. */
 /**
  * release-plan.mjs: decide which packages to version + publish for a release,
  * with an INDEPENDENT version line per package.
@@ -24,8 +27,24 @@
  *   - `shared` (private, never published) is inlined/vendored into react, vue
  *     and angular, so a shared change re-releases all three.
  *   - `core` is bundled into react, vue, and angular, so a core change
- *     re-releases all three. tools has a loose peer range on core, so a core
- *     patch resolves forward for tools with no re-release needed.
+ *     re-releases all three. tools and cli hold a real npm dependency on core
+ *     / react instead (see each `tsup.config.ts`'s `external` list), so an
+ *     ordinary patch/minor there resolves forward for them with no re-release
+ *     needed: no `triggers` entry for either.
+ *   - a MAJOR bump of a real npm dependency is different: a caret range can
+ *     never resolve across it, so tools/cli would otherwise silently keep
+ *     shipping against the old major forever. `majorTrigger` names the
+ *     package whose major-bump forces a re-release even with zero files
+ *     changed under this package's own dir: tools re-releases (patch bump)
+ *     whenever core goes major, cli whenever react does. tools' own
+ *     `pptx-viewer-core` range in packages/tools/package.json is a literal
+ *     string (not `workspace:*`, so it reads correctly for anyone opening the
+ *     file without a resolution step) and is repointed at the live core
+ *     version by `release.yml`'s publish step on every tools release, the
+ *     same way it already does for angular's dist manifest. cli's
+ *     `pptx-react-viewer: workspace:*` resolves itself via
+ *     `publish-manifest.mjs` on every cli release, so it needs no equivalent
+ *     patch step.
  *   - everything else re-releases only when its own published files change.
  *
  * Output: writes `release-plan.json` at the repo root, prints a summary, and
@@ -59,8 +78,14 @@ const GLOBAL_TRIGGERS = ['scripts/publish-manifest.mjs'];
 /**
  * Publishable packages. `dir` is the source dir, `npm` the published name,
  * `packDir` where `bun pm pack` runs (angular ships from its ng-packagr dist),
- * and `triggers` the OTHER dirs whose change also forces a re-release (their
- * code is compiled into this package's artifact).
+ * `triggers` the OTHER dirs whose change also forces a re-release (their code
+ * is compiled into this package's artifact), and the optional `majorTrigger`
+ * a single package KEY (not a dir) whose MAJOR version bump forces a
+ * re-release even with no files changed under this package's own dir, for a
+ * real (non-bundled) npm dependency whose caret range cannot resolve across
+ * a major on its own. `majorTrigger` packages must appear in this object
+ * AFTER the package they name, since the main loop resolves it from the
+ * already-computed plan entry.
  */
 const PACKAGES = {
 	core: {
@@ -104,12 +129,14 @@ const PACKAGES = {
 		npm: 'pptx-viewer-mcp',
 		packDir: 'packages/tools',
 		triggers: [],
+		majorTrigger: 'core',
 	},
 	cli: {
 		dir: 'packages/cli',
 		npm: '@christophervr/pptx-viewer',
 		packDir: 'packages/cli',
 		triggers: [],
+		majorTrigger: 'react',
 	},
 };
 
@@ -355,8 +382,13 @@ function main() {
 		const files = changedFiles(base);
 		const own = dirTouched(files, meta.dir);
 		const viaTrigger = meta.triggers.some((dir) => dirTouched(files, dir));
-		const viaGlobal = GLOBAL_TRIGGERS.some((p) => pathTouched(files, p));
-		const release = base ? own || viaTrigger || viaGlobal : true;
+		// `majorTrigger` names an already-processed package key (declaration
+		// order in PACKAGES enforces this): re-release when IT bumped major,
+		// since a caret range on a real npm dependency can't resolve across
+		// that on its own.
+		const viaGlobal = GLOBAL_TRIGGERS.some((p) => pathTouched(files, p)),
+			viaMajorTrigger = meta.majorTrigger ? packages[meta.majorTrigger]?.bump === 'major' : false;
+		const release = base ? own || viaTrigger || viaGlobal || viaMajorTrigger : true;
 		const current = publishedVersion(meta, args.npm);
 		const scope = [meta.dir, ...meta.triggers, ...GLOBAL_TRIGGERS];
 		const bump = release ? bumpLevel(base, scope) : null;

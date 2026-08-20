@@ -657,8 +657,27 @@ jobs:
                 ;;
 
               # https://www.npmjs.com/package/pptx-viewer-mcp
+              # core is a real (non-bundled) npm dependency here, not a
+              # workspace:* range, so it reads correctly as a plain semver
+              # string for anyone opening packages/tools/package.json without
+              # a resolution step. Point it at the live published core on
+              # every tools release (same pattern as angular's dist manifest
+              # below), so a core major bump (which forces a tools release via
+              # release-plan.mjs's majorTrigger) actually widens the range
+              # instead of silently staying capped at the old major.
               tools)
                 node scripts/publish-manifest.mjs packages/tools/package.json --version "$VERSION"
+                node -e "
+                  const fs = require('fs');
+                  const data = JSON.parse(fs.readFileSync('packages/tools/package.json', 'utf8'));
+                  const core = '${CORE_VERSION}';
+                  if (core) {
+                    for (const f of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+                      if (data[f] && data[f]['pptx-viewer-core']) data[f]['pptx-viewer-core'] = '^' + core;
+                    }
+                  }
+                  fs.writeFileSync('packages/tools/package.json', JSON.stringify(data, null, '\t') + '\n');
+                "
                 EXISTING=$(npm view pptx-viewer-mcp@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$EXISTING" = "$VERSION" ]; then
                   echo "pptx-viewer-mcp@$VERSION already published, skipping"
