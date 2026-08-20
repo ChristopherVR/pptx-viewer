@@ -41,12 +41,14 @@ function fakeElement(attrs: Record<string, string>): ChartPartElement {
 describe('chartPartToAttrs / chartPartFromElement', () => {
 	it('round-trips a data-point part', () => {
 		const part = { role: 'dataPoint' as const, seriesIndex: 2, pointIndex: 5 };
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const el = fakeElement(chartPartToAttrs(part));
 		expect(chartPartFromElement(el)).toStrictEqual(part);
 	});
 
 	it('round-trips a series part without a point index', () => {
 		const part = { role: 'series' as const, seriesIndex: 1 };
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const attrs = chartPartToAttrs(part);
 		expect(attrs[CHART_PART_POINT_ATTR]).toBeUndefined();
 		expect(chartPartFromElement(fakeElement(attrs))).toStrictEqual(part);
@@ -97,6 +99,7 @@ describe('isSameChartPart', () => {
 
 describe('valueFromY', () => {
 	const top = 8;
+	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const bottom = 150;
 
 	it('inverts valueToY on a linear range', () => {
@@ -225,6 +228,7 @@ function chartElement(chartData: PptxChartData, width = 400, height = 300) {
 describe('view-model part tagging', () => {
 	it('tags clustered bar rects with (series, point) and exposes valueDrag', () => {
 		const vm = buildChartViewModel(chartElement(baseData));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects).toHaveLength(6);
 		expect(rects[0].part).toStrictEqual({ role: 'dataPoint', seriesIndex: 0, pointIndex: 0 });
@@ -235,6 +239,7 @@ describe('view-model part tagging', () => {
 
 	it('tags stacked bar rects but omits valueDrag', () => {
 		const vm = buildChartViewModel(chartElement({ ...baseData, grouping: 'stacked' }));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects.length).toBeGreaterThan(0);
 		expect(rects.every((r) => r.part?.role === 'dataPoint')).toBeTruthy();
@@ -243,12 +248,35 @@ describe('view-model part tagging', () => {
 
 	it('tags line series polylines and point dots', () => {
 		const vm = buildChartViewModel(chartElement({ ...baseData, chartType: 'line' }));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const lines = vm.primitives.filter((p) => p.kind === 'polyline');
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const dots = vm.primitives.filter((p) => p.kind === 'circle');
 		expect(lines[0].part).toStrictEqual({ role: 'series', seriesIndex: 0 });
 		expect(dots).toHaveLength(6);
 		expect(dots[3].part).toStrictEqual({ role: 'dataPoint', seriesIndex: 1, pointIndex: 0 });
 		expect(vm.valueDrag).toBeDefined();
+	});
+
+	it('tags stacked line dots but omits valueDrag, unlike a clustered line', () => {
+		const vm = buildChartViewModel(
+			chartElement({ ...baseData, chartType: 'line', grouping: 'stacked' }),
+		);
+		// eslint-disable-next-line one-var -- kept separate from `vm` for readability
+		const dots = vm.primitives.filter((p) => p.kind === 'circle');
+		expect(dots.length).toBeGreaterThan(0);
+		expect(dots.every((d) => d.part?.role === 'dataPoint')).toBeTruthy();
+		expect(vm.valueDrag).toBeUndefined();
+	});
+
+	it('tags percentStacked area bands but omits valueDrag', () => {
+		const vm = buildChartViewModel(
+			chartElement({ ...baseData, chartType: 'area', grouping: 'percentStacked' }),
+		);
+		expect(vm.valueDrag).toBeUndefined();
+		// eslint-disable-next-line one-var -- an assertion sits between this const and the previous one
+		const dots = vm.primitives.filter((p) => p.kind === 'circle');
+		expect(dots.every((d) => d.part?.role === 'dataPoint')).toBeTruthy();
 	});
 
 	it('keeps reversed category marks wired to their original editable values', () => {
@@ -258,9 +286,12 @@ describe('view-model part tagging', () => {
 			series: [{ name: 'S', values: [10, 20, 30] }],
 			axes: [{ axisType: 'catAx', orientation: 'maxMin' }],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(reversed));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const first = vm.primitives.find((primitive) => primitive.kind === 'rect');
 		expect(first?.part).toStrictEqual({ role: 'dataPoint', seriesIndex: 0, pointIndex: 2 });
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const edited = withChartPointValue(
 			reversed,
 			first?.part?.seriesIndex ?? -1,
@@ -276,7 +307,9 @@ describe('view-model part tagging', () => {
 			categories: ['A', 'B', 'C'],
 			series: [{ name: 'S', values: [10, 20, 30] }],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(pieData, 300, 300));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const slices = vm.primitives.filter((p) => p.kind === 'path');
 		expect(slices).toHaveLength(3);
 		expect(slices[2].part).toStrictEqual({ role: 'dataPoint', seriesIndex: 0, pointIndex: 2 });

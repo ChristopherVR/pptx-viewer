@@ -64,6 +64,7 @@ describe('cartesian linear default path', () => {
 
 	it('produces one rect per (category x series)', () => {
 		const vm = buildChartViewModel(chartElement(baselineBar));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects).toHaveLength(6);
 	});
@@ -73,7 +74,9 @@ describe('cartesian linear default path', () => {
 			...baselineBar,
 			grouping: 'stacked',
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(stacked));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects).toHaveLength(6);
 		// Category sums top out at 240, which rounds out to a 0..300 axis in steps
@@ -106,9 +109,12 @@ describe('cartesian log value axis', () => {
 
 	it('log-maps geometry: equal log steps are equally spaced vertically', () => {
 		const vm = buildChartViewModel(chartElement(logChart));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const circles = vm.primitives.filter((p) => p.kind === 'circle');
 		expect(circles).toHaveLength(4);
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const gap1 = circles[0].cy - circles[1].cy;
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const gap2 = circles[1].cy - circles[2].cy;
 		expect(gap1).toBeCloseTo(gap2, 4);
 	});
@@ -132,6 +138,7 @@ describe('cartesian display units', () => {
 
 	it('emits a rotated display-unit caption (e.g. "Millions")', () => {
 		const vm = buildChartViewModel(chartElement(unitChart));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const caption = vm.axisLabels.find((l) => l.text === 'Millions');
 		expect(caption).toBeDefined();
 		expect(caption?.transform).toContain('rotate(-90');
@@ -157,6 +164,7 @@ describe('cartesian reversed value axis', () => {
 
 	it('renders increasing values from top to bottom with explicit major ticks', () => {
 		const vm = buildChartViewModel(chartElement(reversedChart));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
 		expect(circles[0].cy).toBeLessThan(circles[1].cy);
 		expect(vm.axisLabels.map((label) => label.text)).toStrictEqual(['0', '25', '50', '75', '100']);
@@ -172,8 +180,10 @@ describe('cartesian reversed category axis', () => {
 				series: [{ name: 'S', values: [10, 20, 30] }],
 				axes: [{ axisType: 'catAx', orientation: 'maxMin' }],
 			};
+			// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 			const vm = buildChartViewModel(chartElement(data));
 			expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['C', 'B', 'A']);
+			// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 			const marks = vm.primitives.filter((primitive) =>
 				chartType === 'bar' ? primitive.kind === 'rect' : primitive.kind === 'circle',
 			);
@@ -189,7 +199,9 @@ describe('cartesian reversed category axis', () => {
 			series: [{ name: 'S', values: [10, 20, 30] }],
 			axes: [{ axisType: 'catAx', orientation: 'maxMin' }],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(data));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const dots = vm.primitives.filter((primitive) => primitive.kind === 'circle');
 		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['A', 'B', 'C']);
 		expect(dots.map((dot) => dot.part?.pointIndex)).toStrictEqual([0, 1, 2]);
@@ -222,7 +234,9 @@ describe('cartesian secondary value axis', () => {
 
 	it('positions secondary labels to the right of plotRight', () => {
 		const vm = buildChartViewModel(chartElement(secChart));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const plotRight = vm.gridlines[0].x2;
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const numericLabel = vm.secondaryAxisLabels!.find((l) => l.textAnchor === 'start');
 		expect(numericLabel!.x).toBeGreaterThan(plotRight);
 	});
@@ -231,12 +245,14 @@ describe('cartesian secondary value axis', () => {
 		const vm = buildChartViewModel(chartElement(secChart));
 		// Revenue (100..300) and Growth% (5..15) are different scales; the second
 		// series' first point should not collapse to the primary baseline.
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
 		expect(polylines).toHaveLength(2);
 	});
 
 	it('reserves right margin for the secondary axis in the layout', () => {
 		const withSec = buildChartViewModel(chartElement(secChart));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const withoutSec = buildChartViewModel(
 			chartElement({ ...secChart, axes: [{ axisType: 'valAx', axPos: 'l', axisId: 100 }] }),
 		);
@@ -274,6 +290,7 @@ describe('cartesian percentStacked', () => {
 
 	it('stacks each category to the full plot height (sums to 100%)', () => {
 		const vm = buildChartViewModel(chartElement(percentChart));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		// Two segments per category, two categories -> four rects.
 		expect(rects).toHaveLength(4);
@@ -346,8 +363,10 @@ describe('cartesian overlays', () => {
 				},
 			],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(data));
 		expect(vm.overlays).toBeDefined();
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const trendPaths = vm.overlays!.filter((p) => p.kind === 'path');
 		expect(trendPaths.length).toBeGreaterThan(0);
 	});
@@ -364,8 +383,10 @@ describe('cartesian overlays', () => {
 				},
 			],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(data));
 		expect(vm.overlays).toBeDefined();
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const lines = vm.overlays!.filter((p) => p.kind === 'line');
 		expect(lines.length).toBeGreaterThan(0);
 	});
@@ -382,8 +403,11 @@ describe('cartesian overlays', () => {
 				},
 			],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(data));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const dots = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const stems = vm.overlays!.filter((primitive) => primitive.kind === 'line');
 		expect(dots[0].cx).toBeCloseTo(stems[0].x1, 5);
 		expect(dots[1].cx - dots[0].cx).toBeLessThan(dots[2].cx - dots[1].cx);
@@ -399,8 +423,10 @@ describe('cartesian overlays', () => {
 				{ axisType: 'valAx', axPos: 'l', titleText: 'Dollars' },
 			],
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(data));
 		expect(vm.overlays).toBeDefined();
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const titleTexts = vm.overlays!.filter((p) => p.kind === 'text').map((p) => p.text);
 		expect(titleTexts).toContain('Quarter');
 		expect(titleTexts).toContain('Dollars');
@@ -413,10 +439,115 @@ describe('cartesian overlays', () => {
 			series: [{ name: 'S', values: [10, 20] }],
 			dataTable: { showKeys: true, showOutline: true },
 		};
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const vm = buildChartViewModel(chartElement(data));
 		expect(vm.dataTable).toBeDefined();
 		expect(vm.dataTable!.length).toBeGreaterThan(0);
 		// Data-table rows reserve vertical space -> primary gridlines still present.
 		expect(vm.gridlines.length).toBeGreaterThan(0);
+	});
+});
+
+// ── Stacked / percentStacked line & area ───────────────────────────
+
+describe('cartesian stacked line', () => {
+	const stackedLine: PptxChartData = {
+		chartType: 'line',
+		categories: ['Q1', 'Q2'],
+		series: [
+			{ name: 'A', values: [10, 20] },
+			{ name: 'B', values: [5, 15] },
+		],
+		grouping: 'stacked',
+		style: { hasDataLabels: true },
+	};
+
+	it('plots the second series at the running-sum height, not its raw value', () => {
+		const vm = buildChartViewModel(chartElement(stackedLine));
+		// eslint-disable-next-line one-var -- kept separate from `vm` for readability
+		const dots = vm.primitives.filter((p) => p.kind === 'circle');
+		// 4 points (2 series x 2 categories); series B's dots sit above series A's
+		// at the same category because they are plotted at the cumulative sum.
+		expect(dots).toHaveLength(4);
+		// eslint-disable-next-line one-var -- an assertion sits between this const and the previous one
+		const seriesA = dots.filter((d) => d.part?.seriesIndex === 0),
+			seriesB = dots.filter((d) => d.part?.seriesIndex === 1);
+		// Larger value -> smaller (higher) y. B's cumulative height (15, 35) is
+		// always greater than A's own height (10, 20), so B's dots sit higher.
+		expect(seriesB[0].cy).toBeLessThan(seriesA[0].cy);
+		expect(seriesB[1].cy).toBeLessThan(seriesA[1].cy);
+	});
+
+	it('labels each point with its own value, not the cumulative height', () => {
+		const vm = buildChartViewModel(chartElement(stackedLine));
+		// Own values (10, 20, 5, 15), not cumulative (10, 20, 15, 35).
+		expect(vm.dataLabels.some((l) => l.text === '10')).toBeTruthy();
+		expect(vm.dataLabels.some((l) => l.text === '5')).toBeTruthy();
+		expect(vm.dataLabels.some((l) => l.text === '35')).toBeFalsy();
+	});
+
+	it('disables value-drag for a stacked line, matching stacked bar', () => {
+		const vm = buildChartViewModel(chartElement(stackedLine));
+		expect(vm.valueDrag).toBeUndefined();
+	});
+
+	it('stays draggable and clustered (raw-height) for an un-stacked line', () => {
+		const vm = buildChartViewModel(chartElement({ ...stackedLine, grouping: 'clustered' }));
+		expect(vm.valueDrag).toBeDefined();
+		// eslint-disable-next-line one-var -- an assertion sits between this const and the previous one
+		const dots = vm.primitives.filter((p) => p.kind === 'circle'),
+			seriesA = dots.filter((d) => d.part?.seriesIndex === 0),
+			seriesB = dots.filter((d) => d.part?.seriesIndex === 1);
+		// Unstacked: B (5, 15) plots below A (10, 20) at both categories.
+		expect(seriesB[0].cy).toBeGreaterThan(seriesA[0].cy);
+		expect(seriesB[1].cy).toBeGreaterThan(seriesA[1].cy);
+	});
+});
+
+describe('cartesian percentStacked area', () => {
+	const percentArea: PptxChartData = {
+		chartType: 'area',
+		categories: ['Q1', 'Q2'],
+		series: [
+			{ name: 'A', values: [30, 10] },
+			{ name: 'B', values: [70, 90] },
+		],
+		grouping: 'percentStacked',
+		style: { hasDataLabels: true },
+	};
+
+	it('emits in-band percent labels instead of raw values', () => {
+		const vm = buildChartViewModel(chartElement(percentArea));
+		expect(vm.dataLabels.some((l) => l.text === '30%')).toBeTruthy();
+		expect(vm.dataLabels.some((l) => l.text === '70%')).toBeTruthy();
+	});
+
+	it('normalises the value axis to 0..100', () => {
+		const vm = buildChartViewModel(chartElement(percentArea));
+		expect(vm.axisLabels.some((l) => l.text === '100')).toBeTruthy();
+	});
+
+	it('disables value-drag for a percentStacked area', () => {
+		const vm = buildChartViewModel(chartElement(percentArea));
+		expect(vm.valueDrag).toBeUndefined();
+	});
+
+	it('fills each stacked band at full opacity, unlike the unstacked area wash', () => {
+		const vm = buildChartViewModel(chartElement(percentArea)),
+			// Fill bands have `stroke: 'none'`; the series outline is the other
+			// polyline (`fill: 'none'`) and is excluded here.
+			fillBands = vm.primitives.filter(
+				(p) => p.kind === 'polyline' && p.part?.role === 'series' && p.stroke === 'none',
+			);
+		expect(fillBands).toHaveLength(2);
+		expect(fillBands.every((b) => b.opacity === undefined)).toBeTruthy();
+
+		// eslint-disable-next-line one-var -- assertions sit between this const and the previous one
+		const unstacked = buildChartViewModel(chartElement({ ...percentArea, grouping: 'clustered' })),
+			unstackedFillBands = unstacked.primitives.filter(
+				(p) => p.kind === 'polyline' && p.part?.role === 'series' && p.stroke === 'none',
+			);
+		// Unstacked area keeps the historical 0.25 wash.
+		expect(unstackedFillBands.every((b) => b.opacity === 0.25)).toBeTruthy();
 	});
 });

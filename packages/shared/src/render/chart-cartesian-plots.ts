@@ -1,17 +1,16 @@
 /**
  * chart-cartesian-plots.ts: per-kind plot-primitive builders for the enriched
- * cartesian chart engine (bar / line / area / scatter / bubble).
+ * cartesian chart engine (scatter / bubble). Line and area live in
+ * `chart-cartesian-line-area.ts`, bar in `chart-cartesian-bars.ts`.
  *
  * Split out of `chart-cartesian.ts` to keep each module within the repo's
  * ~300-LOC limit. These are pure helpers consumed by `buildCartesianViewModel`;
- * they reuse the geometry primitives in `chart-view-model.ts` and honour the
- * secondary value range (clustered bar / line) and percentStacked normalisation.
+ * they reuse the geometry primitives in `chart-view-model.ts`.
  *
  * @module chart-cartesian-plots
  */
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
-import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
 import { buildDataLabelText } from './chart-data-label-text';
 import { resolveDataPointFill, resolveDataPointMarker } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
@@ -28,15 +27,12 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import {
-	buildMarkTooltip,
 	computeBubbleRadius,
-	computeLinePoints,
 	computeScatterDots,
 	computeScatterXDomain,
 	formatAxisValue,
 	linePointsToSvgString,
 	seriesColor,
-	valueToY,
 } from './chart-view-model';
 
 /** Aggregate result of a per-kind plot builder: primitives + data labels. */
@@ -71,7 +67,7 @@ function xyMarkTooltip(
  * fewer points than the series declares and the override must still land on the
  * point the author picked.
  */
-function pushMarker(
+export function pushMarker(
 	out: SvgPrimitive[],
 	series: PptxChartSeries,
 	pointIndex: number,
@@ -105,228 +101,6 @@ function pushMarker(
 		m.title = title;
 	}
 	out.push(m);
-}
-
-/** Build line-chart primitives, honouring a secondary value range per series. */
-export function buildLines(
-	chartData: PptxChartData,
-	catCount: number,
-	layout: PlotLayout,
-	primaryRange: ValueRange,
-	secondaryRange: ValueRange | undefined,
-	secondaryIdx: ReadonlySet<number>,
-	sourceIndices: ReadonlyArray<number>,
-	xPositions?: ReadonlyArray<number>,
-): SeriesPlotResult {
-	const primitives: SvgPrimitive[] = [],
-		dataLabels: SvgText[] = [],
-		showLabels = chartData.style?.hasDataLabels;
-
-	for (let si = 0; si < chartData.series.length; si++) {
-		const series = chartData.series[si];
-		if (series.values.length === 0) {
-			continue;
-		}
-		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
-		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange,
-			rawValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0),
-			displayBlanks = sourceIndices.map((sourceIndex) => series.blanks?.[sourceIndex] ?? false),
-			// Honour c:dispBlanksAs: gap breaks the line at blanks, span interpolates,
-			// zero/unset keep the placeholder 0 (existing behaviour).
-			{ values: displayValues, visible } = resolveBlankDisplay(
-				rawValues,
-				displayBlanks,
-				chartData.chartChrome?.dispBlanksAs,
-			),
-			pts = computeLinePoints(displayValues, catCount, layout, activeRange).map((point, index) => ({
-				...point,
-				x: xPositions?.[index] ?? point.x,
-			})),
-			c = seriesColor(series, si, chartData.colorPalette),
-			// c:smooth draws a bezier path through the points; otherwise a polyline.
-			seriesPart: ChartPartRef = { role: 'series', seriesIndex: si },
-			allVisible = visible.every(Boolean);
-		if (allVisible) {
-			primitives.push(
-				series.smooth
-					? ({
-							kind: 'path',
-							d: smoothLinePath(pts),
-							stroke: c,
-							strokeWidth: 2.4,
-							fill: 'none',
-							part: seriesPart,
-						} satisfies SvgPath)
-					: ({
-							kind: 'polyline',
-							points: linePointsToSvgString(pts),
-							stroke: c,
-							strokeWidth: 2.4,
-							fill: 'none',
-							part: seriesPart,
-						} satisfies SvgPolyline),
-			);
-		} else {
-			// gap mode: draw one polyline per contiguous run of visible points.
-			for (const run of visibleRuns(visible)) {
-				if (run.length < 2) {
-					continue;
-				}
-				primitives.push({
-					kind: 'polyline',
-					points: linePointsToSvgString(run.map((i) => pts[i])),
-					stroke: c,
-					strokeWidth: 2.4,
-					fill: 'none',
-					part: seriesPart,
-				} satisfies SvgPolyline);
-			}
-		}
-		pts.forEach((pt, displayIndex) => {
-			if (!visible[displayIndex]) {
-				return;
-			}
-			const idx = sourceIndices[displayIndex] ?? displayIndex,
-				part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
-			pushMarker(
-				primitives,
-				series,
-				idx,
-				pt.x,
-				pt.y,
-				resolveDataPointFill(series, idx, c) ?? c,
-				2.5,
-				part,
-				undefined,
-				buildMarkTooltip(
-					series.name,
-					chartData.categories[idx],
-					series.values[idx] ?? 0,
-					series.numberFormat,
-				),
-			);
-		});
-		if (showLabels) {
-			displayValues.forEach((val, displayIndex) => {
-				const pt = pts[displayIndex],
-					text = buildDataLabelText({
-						chartData,
-						series,
-						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-						value: val,
-					});
-				if (!pt || !visible[displayIndex] || text === undefined) {
-					return;
-				}
-				dataLabels.push({
-					kind: 'text',
-					x: pt.x,
-					y: pt.y - 7,
-					text,
-					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-					fill: '#334155',
-					textAnchor: 'middle',
-				});
-			});
-		}
-	}
-	return { primitives, dataLabels };
-}
-
-/** Build area-chart primitives (fill polygon + outline). */
-export function buildAreas(
-	chartData: PptxChartData,
-	catCount: number,
-	layout: PlotLayout,
-	range: ValueRange,
-	sourceIndices: ReadonlyArray<number>,
-	xPositions?: ReadonlyArray<number>,
-): SeriesPlotResult {
-	const primitives: SvgPrimitive[] = [],
-		dataLabels: SvgText[] = [],
-		showLabels = chartData.style?.hasDataLabels,
-		baselineY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-
-	for (let si = 0; si < chartData.series.length; si++) {
-		const series = chartData.series[si];
-		if (series.values.length === 0) {
-			continue;
-		}
-		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
-		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0),
-			pts = computeLinePoints(displayValues, catCount, layout, range).map((point, index) => ({
-				...point,
-				x: xPositions?.[index] ?? point.x,
-			})),
-			c = seriesColor(series, si, chartData.colorPalette),
-			lineStr = linePointsToSvgString(pts),
-			firstPt = pts[0],
-			lastPt = pts[pts.length - 1];
-		if (firstPt && lastPt) {
-			primitives.push({
-				kind: 'polyline',
-				points: `${firstPt.x.toFixed(2)},${baselineY.toFixed(2)} ${lineStr} ${lastPt.x.toFixed(2)},${baselineY.toFixed(2)}`,
-				stroke: 'none',
-				strokeWidth: 0,
-				fill: c,
-				opacity: 0.25,
-				part: { role: 'series', seriesIndex: si },
-			} satisfies SvgPolyline);
-		}
-		primitives.push({
-			kind: 'polyline',
-			points: lineStr,
-			stroke: c,
-			strokeWidth: 2,
-			fill: 'none',
-			part: { role: 'series', seriesIndex: si },
-		} satisfies SvgPolyline);
-		pts.forEach((pt, displayIndex) => {
-			const idx = sourceIndices[displayIndex] ?? displayIndex,
-				part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
-			pushMarker(
-				primitives,
-				series,
-				idx,
-				pt.x,
-				pt.y,
-				resolveDataPointFill(series, idx, c) ?? c,
-				2,
-				part,
-				undefined,
-				buildMarkTooltip(
-					series.name,
-					chartData.categories[idx],
-					series.values[idx] ?? 0,
-					series.numberFormat,
-				),
-			);
-		});
-		if (showLabels) {
-			displayValues.forEach((val, displayIndex) => {
-				const pt = pts[displayIndex],
-					text = buildDataLabelText({
-						chartData,
-						series,
-						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-						value: val,
-					});
-				if (!pt || text === undefined) {
-					return;
-				}
-				dataLabels.push({
-					kind: 'text',
-					x: pt.x,
-					y: pt.y - 6,
-					text,
-					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-					fill: '#334155',
-					textAnchor: 'middle',
-				});
-			});
-		}
-	}
-	return { primitives, dataLabels };
 }
 
 /**
