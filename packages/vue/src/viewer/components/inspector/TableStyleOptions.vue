@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
-import { TABLE_STYLE_PRESETS } from 'pptx-viewer-shared';
+import type { PptxTableData } from 'pptx-viewer-core';
+import { applyTableStylePreset, TABLE_STYLE_PRESETS } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 /**
@@ -39,29 +39,7 @@ function setCycle(key: 'bandRowCycle' | 'bandColCycle', event: Event): void {
 }
 
 function applyPreset(preset: (typeof TABLE_STYLE_PRESETS)[number]): void {
-	const td = props.tableData;
-	const headerRow = Boolean(td.firstRowHeader);
-	const banded = Boolean(td.bandedRows);
-	const rows = td.rows.map((row, ri) => ({
-		...row,
-		cells: row.cells.map((cell) => {
-			const isHeader = ri === 0 && headerRow;
-			const bodyOffset = ri - (headerRow ? 1 : 0);
-			const style: PptxTableCellStyle = {
-				...cell.style,
-				backgroundColor: isHeader
-					? preset.headerBg
-					: banded && bodyOffset % 2 === 0
-						? preset.bandBg
-						: undefined,
-				color: isHeader ? preset.headerFg : cell.style?.color,
-				bold: isHeader ? true : cell.style?.bold,
-				borderColor: preset.borderColor,
-			};
-			return { ...cell, style };
-		}),
-	}));
-	emit('update', { rows });
+	emit('update', { rows: applyTableStylePreset(props.tableData, preset) });
 }
 </script>
 

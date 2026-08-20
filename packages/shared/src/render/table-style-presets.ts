@@ -6,7 +6,15 @@
  * foreground, banded-row background, and border colour applied when the user
  * picks it. Ported from the React viewer's `constants/table-styles.ts` so React,
  * Vue, and Angular consume one copy.
+ *
+ * `applyTableStylePreset` below is the assignment logic that decides which
+ * cells get the header/band/border treatment from a chosen preset; it was
+ * previously hand-ported into React, Vue, and Angular independently (Angular's
+ * copy, in `table-properties-helpers.ts`, was the reference implementation).
  */
+/* oxlint-disable eslint/one-var -- independent, unrelated locals inside
+   applyTableStylePreset's map callback; merging them would hurt readability. */
+import type { PptxTableCellStyle, PptxTableData, PptxTableRow } from 'pptx-viewer-core';
 
 /** A single table quick-style swatch. */
 export interface TableStylePreset {
@@ -95,3 +103,27 @@ export const TABLE_STYLE_PRESETS: TableStylePreset[] = [
 		borderColor: '#548235',
 	},
 ];
+
+/**
+ * Apply a table quick-style preset to every cell's style. Header cells (the
+ * first row, when `firstRowHeader` is set) get the header fill / foreground
+ * + bold; banded body rows get the band background; every cell gets the
+ * preset border colour. Returns a new rows array; does not mutate `td`.
+ */
+export function applyTableStylePreset(td: PptxTableData, preset: TableStylePreset): PptxTableRow[] {
+	return td.rows.map((row, ri) => ({
+		...row,
+		cells: row.cells.map((cell) => {
+			const isHeader = ri === 0 && Boolean(td.firstRowHeader);
+			const isBand = Boolean(td.bandedRows) && (ri - (td.firstRowHeader ? 1 : 0)) % 2 === 0;
+			const style: PptxTableCellStyle = {
+				...cell.style,
+				backgroundColor: isHeader ? preset.headerBg : isBand ? preset.bandBg : undefined,
+				color: isHeader ? preset.headerFg : cell.style?.color,
+				bold: isHeader ? true : cell.style?.bold,
+				borderColor: preset.borderColor,
+			};
+			return { ...cell, style };
+		}),
+	}));
+}

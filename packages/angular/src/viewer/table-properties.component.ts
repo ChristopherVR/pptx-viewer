@@ -18,6 +18,7 @@ import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStylePreset } from '../internal/shared';
 import {
+	applyTableStylePreset,
 	evenColumnWidths,
 	evenRowHeights,
 	redistributeColumnWidth,
@@ -25,11 +26,7 @@ import {
 } from '../internal/shared';
 import { patchTableData } from './table-data-helpers';
 import type { TableBooleanFlag } from './table-properties-helpers';
-import {
-	applyTableStylePreset,
-	DEFAULT_TABLE_ROW_HEIGHT,
-	TABLE_STRUCTURE_TOGGLES,
-} from './table-properties-helpers';
+import { DEFAULT_TABLE_ROW_HEIGHT, TABLE_STRUCTURE_TOGGLES } from './table-properties-helpers';
 
 @Component({
 	selector: 'pptx-table-properties',

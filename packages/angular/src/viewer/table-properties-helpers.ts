@@ -2,22 +2,20 @@
  * table-properties-helpers.ts: pure helpers for the table properties inspector.
  *
  * The small immutable transforms behind the Angular port of the React
- * `TablePropertiesPanel` / `TableCellAdvancedFill`: applying a quick-style
- * preset, and building a CSS gradient string from structured stops so the
- * renderer shows edited gradients live. Column-width redistribution and the
- * "distribute evenly" one-liners live in `pptx-viewer-shared`'s
- * `render/table-resize.ts` (`redistributeColumnWidth` / `evenColumnWidths` /
- * `evenRowHeights`, imported from `../internal/shared`) so every binding
- * shares one copy of that maths.
+ * `TablePropertiesPanel` / `TableCellAdvancedFill`: building a CSS gradient
+ * string from structured stops so the renderer shows edited gradients live.
+ * Table quick-style preset application (`applyTableStylePreset`) and
+ * column-width redistribution / "distribute evenly" one-liners live in
+ * `pptx-viewer-shared`'s `render/table-style-presets.ts` and
+ * `render/table-resize.ts` (imported from `../internal/shared`) so every
+ * binding shares one copy of that logic.
  *
  * No Angular imports, so they are unit-testable with plain vitest.
  */
 /* oxlint-disable eslint/one-var -- independent, unrelated locals across these
    helpers; merging them into one statement would hurt readability. */
-import type { PptxTableCellStyle, PptxTableData, PptxTableRow } from 'pptx-viewer-core';
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
-import type { TableStylePreset } from '../internal/shared';
 import { PATTERN_OPTIONS } from '../internal/shared';
 
 /** Default row height (px) used when a row has no explicit height. */
@@ -44,30 +42,6 @@ export const TABLE_STRUCTURE_TOGGLES: ReadonlyArray<{
 	{ key: 'lastCol', labelKey: 'pptx.table.lastColumn' },
 	{ key: 'lastRow', labelKey: 'pptx.table.lastRow' },
 ];
-
-/**
- * Apply a table quick-style preset to every cell's style, mirroring the React
- * `TablePropertiesPanel` preset `onClick`. Header cells get the header fill /
- * foreground + bold; banded body rows get the band background; every cell gets
- * the preset border colour. Returns a new rows array.
- */
-export function applyTableStylePreset(td: PptxTableData, preset: TableStylePreset): PptxTableRow[] {
-	return td.rows.map((row, ri) => ({
-		...row,
-		cells: row.cells.map((cell) => {
-			const isHeader = ri === 0 && Boolean(td.firstRowHeader);
-			const isBand = Boolean(td.bandedRows) && (ri - (td.firstRowHeader ? 1 : 0)) % 2 === 0;
-			const style: PptxTableCellStyle = {
-				...cell.style,
-				backgroundColor: isHeader ? preset.headerBg : isBand ? preset.bandBg : undefined,
-				color: isHeader ? preset.headerFg : cell.style?.color,
-				bold: isHeader ? true : cell.style?.bold,
-				borderColor: preset.borderColor,
-			};
-			return { ...cell, style };
-		}),
-	}));
-}
 
 /**
  * Build a CSS gradient string from structured cell-style gradient fields, so

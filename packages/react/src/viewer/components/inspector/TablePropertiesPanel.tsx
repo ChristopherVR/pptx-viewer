@@ -1,7 +1,12 @@
 /* oxlint-disable eslint/one-var -- independent, unrelated locals; merging them
    into one statement would hurt readability. */
-import type { PptxElement, PptxTableCellStyle, TablePptxElement } from 'pptx-viewer-core';
-import { evenColumnWidths, evenRowHeights, redistributeColumnWidth } from 'pptx-viewer-shared';
+import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import {
+	applyTableStylePreset,
+	evenColumnWidths,
+	evenRowHeights,
+	redistributeColumnWidth,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -132,25 +137,7 @@ export function TablePropertiesPanel({
 							aria-label={preset.label}
 							className='rounded border border-border hover:border-primary overflow-hidden h-10 transition-colors'
 							onClick={() => {
-								const newRows = td.rows.map((row, ri) => ({
-									...row,
-									cells: row.cells.map((cell) => ({
-										...cell,
-										style: {
-											...cell.style,
-											backgroundColor:
-												ri === 0 && td.firstRowHeader
-													? preset.headerBg
-													: td.bandedRows && (ri - (td.firstRowHeader ? 1 : 0)) % 2 === 0
-														? preset.bandBg
-														: undefined,
-											color: ri === 0 && td.firstRowHeader ? preset.headerFg : cell.style?.color,
-											bold: ri === 0 && td.firstRowHeader ? true : cell.style?.bold,
-											borderColor: preset.borderColor,
-										} satisfies PptxTableCellStyle,
-									})),
-								}));
-								updateTableData({ rows: newRows });
+								updateTableData({ rows: applyTableStylePreset(td, preset) });
 							}}
 						>
 							<div className='flex flex-col h-full'>

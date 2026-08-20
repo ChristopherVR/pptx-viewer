@@ -111,4 +111,24 @@ describe('tablePropertiesPanel', () => {
 		expect(rows?.[0].height).toBe(40);
 		expect(rows?.[1].height).toBe(40);
 	});
+
+	it('applies a quick-style preset via the shared assignment helper', () => {
+		const onUpdate = vi.fn();
+		const el = table();
+		if (el.tableData) {
+			el.tableData.firstRowHeader = true;
+		}
+		render(el, onUpdate);
+
+		const presetButton = host.querySelector<HTMLButtonElement>('button[title="Light 1"]');
+		if (!presetButton) {
+			throw new Error('Light 1 preset swatch not found');
+		}
+		act(() => presetButton.click());
+
+		expect(onUpdate).toHaveBeenCalledOnce();
+		const rows = (onUpdate.mock.calls[0][0] as Partial<TablePptxElement>).tableData?.rows;
+		expect(rows?.[0].cells[0].style?.backgroundColor).toBe('#4472C4');
+		expect(rows?.[0].cells[0].style?.bold).toBeTruthy();
+	});
 });
