@@ -30,6 +30,9 @@
  *
  * @module render/animation-authoring
  */
+/* oxlint-disable eslint/one-var -- each exported helper below declares its own
+   independent locals; merging unrelated declarations across the many
+   functions here would hurt readability, not help it. */
 
 import type {
 	PptxAnimationDirection,
@@ -422,6 +425,47 @@ export function reorderAnimationDown(
 	elementId: string,
 ): PptxElementAnimation[] {
 	return reorderByDelta(anims, elementId, +1);
+}
+
+/**
+ * Moves one animation entry to an arbitrary position and re-normalises
+ * `order` on the result. This is the drag-and-drop / move-to-index
+ * algorithm shared by every binding's animation timeline: sort by `order`,
+ * splice the moved entry out of its source position, splice it into the
+ * target position, then reassign `order` 0..n-1.
+ *
+ * `source` identifies the entry being moved, either as a resolved index into
+ * the `order`-sorted sequence (row-index drag-and-drop, used by most
+ * bindings) or as `{ elementId }` to resolve that position by id (the
+ * Svelte ribbon tab drags by the element under the pointer rather than a
+ * row index). `targetIndex` is always a resolved index into the sorted
+ * sequence: a caller that only has a target elementId (also the Svelte
+ * ribbon tab) resolves it with `animations.findIndex` first.
+ *
+ * Returns a sorted, re-indexed copy without moving anything when `source`
+ * cannot be resolved, `targetIndex` is out of range, or the entry is
+ * already at `targetIndex`.
+ */
+export function reorderAnimationTo(
+	animations: readonly PptxElementAnimation[],
+	source: number | { elementId: string },
+	targetIndex: number,
+): PptxElementAnimation[] {
+	const sorted = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+	const sourceIndex =
+		typeof source === 'number' ? source : sorted.findIndex((a) => a.elementId === source.elementId);
+	if (
+		sourceIndex < 0 ||
+		sourceIndex >= sorted.length ||
+		targetIndex < 0 ||
+		targetIndex >= sorted.length ||
+		sourceIndex === targetIndex
+	) {
+		return reindexOrder(sorted);
+	}
+	const [moved] = sorted.splice(sourceIndex, 1);
+	sorted.splice(targetIndex, 0, moved);
+	return reindexOrder(sorted);
 }
 
 // ==========================================================================

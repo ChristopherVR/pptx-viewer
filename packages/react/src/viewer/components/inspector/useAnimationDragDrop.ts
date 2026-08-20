@@ -1,4 +1,9 @@
+/* oxlint-disable eslint/one-var -- each hook call below is its own independent
+   piece of state/memoization; merging them into one `const` statement would
+   hurt readability (and has previously broken the React compiler's ability to
+   track separate hook boundaries), not help it. */
 import type { PptxElementAnimation } from 'pptx-viewer-core';
+import { reorderAnimationTo } from 'pptx-viewer-shared';
 import React, { useCallback, useRef, useState } from 'react';
 
 import type { AnimationUpdater } from './animation-handler-types';
@@ -74,12 +79,9 @@ export function useAnimationDragDrop({
 
 	const reorderAnimations = useCallback(
 		(sourceIndex: number, targetIndex: number) => {
-			updateAnimations((anims: PptxElementAnimation[]) => {
-				const sorted = [...anims].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-				const [moved] = sorted.splice(sourceIndex, 1);
-				sorted.splice(targetIndex, 0, moved);
-				return sorted.map((a, i) => ({ ...a, order: i }));
-			});
+			updateAnimations((anims: PptxElementAnimation[]) =>
+				reorderAnimationTo(anims, sourceIndex, targetIndex),
+			);
 		},
 		[updateAnimations],
 	);
@@ -117,18 +119,9 @@ export function useAnimationDragDrop({
 
 	const handleMoveDown = useCallback(
 		(animIndex: number) => {
-			updateAnimations((anims: PptxElementAnimation[]) => {
-				const sorted = [...anims].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-				if (animIndex >= sorted.length - 1) {
-					return anims;
-				}
-				const temp = sorted[animIndex + 1];
-				sorted[animIndex + 1] = sorted[animIndex];
-				sorted[animIndex] = temp;
-				return sorted.map((a, i) => ({ ...a, order: i }));
-			});
+			reorderAnimations(animIndex, animIndex + 1);
 		},
-		[updateAnimations],
+		[reorderAnimations],
 	);
 
 	return {

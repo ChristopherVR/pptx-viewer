@@ -1,11 +1,12 @@
+/* oxlint-disable eslint/one-var -- each `it` block below declares its own
+   independent fixture locals; merging unrelated declarations across these
+   test cases would hurt readability, not help it. */
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { reorderAnimationTo } from '../internal/shared';
 import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
-import {
-	buildAnimationTimelineBars,
-	reorderAnimationTimeline,
-} from './animation-timeline.component';
+import { buildAnimationTimelineBars } from './animation-timeline.component';
 
 const animations = [
 	{ elementId: 'a', order: 0, durationMs: 200 },
@@ -15,7 +16,7 @@ const animations = [
 
 describe('angular animation timeline', () => {
 	it('reorders a dragged animation and normalizes every order', () => {
-		const reordered = reorderAnimationTimeline(animations, 2, 0);
+		const reordered = reorderAnimationTo(animations, 2, 0);
 		expect(reordered.map((animation) => animation.elementId)).toStrictEqual(['c', 'a', 'b']);
 		expect(reordered.map((animation) => animation.order)).toStrictEqual([0, 1, 2]);
 	});

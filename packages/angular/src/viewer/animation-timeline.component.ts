@@ -1,33 +1,14 @@
+/* oxlint-disable eslint/one-var -- the top-level helper and the component's
+   own field/method declarations below are independent, not adjacent
+   initializations of related values; merging them would hurt readability far
+   more than it helps. */
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 
-import { animationEffectLabelKey } from '../internal/shared';
+import { animationEffectLabelKey, reorderAnimationTo } from '../internal/shared';
 import { getAnimationElementLabel } from './animation-author-view';
 import { previewAngularAnimation, stopAngularAnimationPreview } from './animation-preview-player';
-
-export function reorderAnimationTimeline(
-	animations: readonly PptxElementAnimation[],
-	sourceIndex: number,
-	targetIndex: number,
-): PptxElementAnimation[] {
-	const sorted = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-	if (
-		sourceIndex < 0 ||
-		targetIndex < 0 ||
-		sourceIndex >= sorted.length ||
-		targetIndex >= sorted.length ||
-		sourceIndex === targetIndex
-	) {
-		return sorted.map((animation, order) => ({ ...animation, order }));
-	}
-	const [moved] = sorted.splice(sourceIndex, 1);
-	if (!moved) {
-		return sorted;
-	}
-	sorted.splice(targetIndex, 0, moved);
-	return sorted.map((animation, order) => ({ ...animation, order }));
-}
 
 export interface AnimationTimelineBar {
 	elementId: string;
@@ -212,7 +193,7 @@ export class AnimationTimelineComponent {
 		event.preventDefault();
 		const source = this.dragIndex();
 		if (source !== undefined) {
-			this.animationsChange.emit(reorderAnimationTimeline(this.animations(), source, index));
+			this.animationsChange.emit(reorderAnimationTo(this.animations(), source, index));
 		}
 		this.clearDrag();
 	}

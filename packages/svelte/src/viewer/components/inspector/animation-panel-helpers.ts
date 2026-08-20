@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- each exported helper below declares its own
+   independent locals; merging unrelated declarations across the many
+   functions here would hurt readability, not help it. */
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import { animationEffectLabel, getElementLabel } from 'pptx-viewer-shared';
@@ -9,9 +12,9 @@ import type { EditorState } from '../../editor/editor-state.svelte';
 /**
  * Svelte-side glue for the docked inspector AnimationPanel: the slide-level
  * commit path plus the small pure bits of React's `useAnimationHandlers` that
- * are not yet in `pptx-viewer-shared` (timeline-bar maths, timeline labels,
- * index-based drag reorder). All field/effect mutations themselves come from
- * the shared `animation-authoring` setters; everything here is orchestration.
+ * are not yet in `pptx-viewer-shared` (timeline-bar maths, timeline labels).
+ * All field/effect mutations and the drag-reorder algorithm itself come from
+ * the shared `animation-authoring` module; everything here is orchestration.
  */
 
 /**
@@ -93,23 +96,4 @@ export function timelineLabel(
  */
 export function animationTypeLabel(anim: PptxElementAnimation, t: AnimationLabelTranslate): string {
 	return animationEffectLabel(anim, t);
-}
-
-/**
- * Move the animation at `sourceIndex` (in `order`-sorted position) to
- * `targetIndex` and re-normalise `order` (React's drag-drop
- * `reorderAnimations`).
- */
-export function reorderAnimationsByIndex(
-	animations: readonly PptxElementAnimation[],
-	sourceIndex: number,
-	targetIndex: number,
-): PptxElementAnimation[] {
-	const sorted = sortAnimations(animations);
-	const [moved] = sorted.splice(sourceIndex, 1);
-	if (!moved) {
-		return [...animations];
-	}
-	sorted.splice(targetIndex, 0, moved);
-	return sorted.map((anim, order) => ({ ...anim, order }));
 }

@@ -1,11 +1,14 @@
+/* oxlint-disable eslint/one-var -- each `it` block below declares its own
+   independent fixture locals; merging unrelated declarations across these
+   test cases would hurt readability, not help it. */
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
+import { reorderAnimationTo } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { describe, expect, it } from 'vitest';
 
 import {
 	animationTypeLabel,
 	buildTimelineBarData,
-	reorderAnimationsByIndex,
 	sortAnimations,
 	timelineLabel,
 } from './animation-panel-helpers';
@@ -84,7 +87,14 @@ describe('animationTypeLabel', () => {
 	});
 });
 
-describe('reorderAnimationsByIndex', () => {
+/**
+ * The panel's drag-reorder wiring (`AnimationTimelineList.svelte`) calls the
+ * shared `reorderAnimationTo` directly; this is the binding-level regression
+ * test that the wiring's row-index call shape still moves the right entry
+ * (full behavioural coverage lives in `pptx-viewer-shared`'s
+ * `animation-authoring.test.ts`).
+ */
+describe('reorderAnimationTo (index-keyed, as called from AnimationTimelineList)', () => {
 	const three = [
 		anim({ elementId: 'a', order: 0 }),
 		anim({ elementId: 'b', order: 1 }),
@@ -92,13 +102,13 @@ describe('reorderAnimationsByIndex', () => {
 	];
 
 	it('moves an entry and re-normalises order fields', () => {
-		const next = reorderAnimationsByIndex(three, 0, 2);
+		const next = reorderAnimationTo(three, 0, 2);
 		expect(next.map((a) => a.elementId)).toStrictEqual(['b', 'c', 'a']);
 		expect(next.map((a) => a.order)).toStrictEqual([0, 1, 2]);
 	});
 
 	it('returns a copy when the source index is out of range', () => {
-		const next = reorderAnimationsByIndex(three, 5, 0);
+		const next = reorderAnimationTo(three, 5, 0);
 		expect(next.map((a) => a.elementId)).toStrictEqual(['a', 'b', 'c']);
 	});
 });

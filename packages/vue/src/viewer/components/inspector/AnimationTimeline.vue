@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { GripVertical } from 'lucide-vue-next';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
+import { reorderAnimationTo } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import {
-	animationElementLabel,
-	animationPresetLabel,
-	reorderSlideAnimations,
-} from './animation-panel-model';
+import { animationElementLabel, animationPresetLabel } from './animation-panel-model';
 import { previewVueAnimation, stopVueAnimationPreview } from './animation-preview-player';
 
 const props = defineProps<{
@@ -48,7 +45,7 @@ function dragOver(index: number, event: DragEvent): void {
 function drop(index: number, event: DragEvent): void {
 	event.preventDefault();
 	if (dragIndex.value !== undefined) {
-		emit('reorder', reorderSlideAnimations(props.animations, dragIndex.value, index));
+		emit('reorder', reorderAnimationTo(props.animations, dragIndex.value, index));
 	}
 	clearDrag();
 }

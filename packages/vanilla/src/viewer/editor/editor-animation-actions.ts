@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- the many action factory closures below each
+   declare their own independent locals; merging unrelated declarations across
+   them would hurt readability, not help it. */
 import type {
 	PptxAnimationPreset,
 	PptxAnimationDirection,
@@ -14,6 +17,7 @@ import {
 	clearMotionPath,
 	removeElementAnimation,
 	reorderAnimationDown,
+	reorderAnimationTo,
 	reorderAnimationUp,
 	setAnimationEmphasis,
 	setAnimationEntrance,
@@ -231,16 +235,9 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 			);
 		},
 		moveAnimation(elementId, index) {
-			commitAnimations(elementId, (animations) => {
-				const ordered = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-				const from = ordered.findIndex((item) => item.elementId === elementId);
-				if (from < 0) {
-					return ordered;
-				}
-				const [moved] = ordered.splice(from, 1);
-				ordered.splice(Math.max(0, Math.min(index, ordered.length)), 0, moved);
-				return ordered.map((item, order) => ({ ...item, order }));
-			});
+			commitAnimations(elementId, (animations) =>
+				reorderAnimationTo(animations, { elementId }, index),
+			);
 		},
 	};
 }

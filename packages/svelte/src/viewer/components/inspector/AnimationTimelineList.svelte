@@ -12,15 +12,11 @@
 	import MoveRight from '@lucide/svelte/icons/move-right';
 	import RotateCw from '@lucide/svelte/icons/rotate-cw';
 	import type { PptxElementAnimation } from 'pptx-viewer-core';
+	import { reorderAnimationTo } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
-	import {
-		commitSlideAnimations,
-		reorderAnimationsByIndex,
-		sortAnimations,
-		timelineLabel,
-	} from './animation-panel-helpers';
+	import { commitSlideAnimations, sortAnimations, timelineLabel } from './animation-panel-helpers';
 	import { startAnimationPreview, stopAnimationPreview } from './animation-preview-control';
 
 	const { editor, selectedElementId }: { editor: EditorState; selectedElementId: string } = $props();
@@ -41,7 +37,7 @@
 		if (!canEdit || sourceIndex === targetIndex) {
 			return;
 		}
-		commitSlideAnimations(editor, reorderAnimationsByIndex(sorted, sourceIndex, targetIndex));
+		commitSlideAnimations(editor, reorderAnimationTo(sorted, sourceIndex, targetIndex));
 	}
 
 	function onDragStart(index: number, event: DragEvent): void {

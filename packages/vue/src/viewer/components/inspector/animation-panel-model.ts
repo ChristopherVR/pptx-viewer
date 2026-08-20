@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- each exported helper below declares its own
+   independent locals; merging unrelated declarations across the many
+   functions here would hurt readability, not help it. */
 import type {
 	AnimationPresetInfo,
 	PptxAnimationPreset,
@@ -48,26 +51,6 @@ export function patchElementAnimation(
 	return animations.map((animation, current) =>
 		current === index ? { ...animation, ...patch } : animation,
 	);
-}
-
-export function reorderSlideAnimations(
-	animations: readonly PptxElementAnimation[],
-	sourceIndex: number,
-	targetIndex: number,
-): PptxElementAnimation[] {
-	const sorted = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-	if (
-		sourceIndex >= 0 &&
-		targetIndex >= 0 &&
-		sourceIndex < sorted.length &&
-		targetIndex < sorted.length
-	) {
-		const [moved] = sorted.splice(sourceIndex, 1);
-		if (moved) {
-			sorted.splice(targetIndex, 0, moved);
-		}
-	}
-	return sorted.map((animation, order) => ({ ...animation, order }));
 }
 
 export function animationElementLabel(element: PptxElement | undefined, fallback: string): string {
