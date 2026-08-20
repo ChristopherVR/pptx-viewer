@@ -113,8 +113,7 @@ interface LayerRow {
 										[attr.placeholder]="'pptx.viewer.speakerNotesPlaceholder' | translate"
 										(change)="canvasEditing.onSlideNotes($event)"
 										(blur)="canvasEditing.onSlideNotes($event)"
-										>{{ sl.notes || '' }}</textarea
-									>
+										>{{ sl.notes || '' }}</textarea>
 								</label>
 							</section>
 						}

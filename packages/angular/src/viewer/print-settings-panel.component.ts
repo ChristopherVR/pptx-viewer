@@ -40,7 +40,9 @@ import type {
 		<div class="pptx-ng-print-settings">
 			<!-- Print What -->
 			<fieldset class="pptx-ng-print-settings__group">
-				<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.printWhat' | translate }}</legend>
+				<legend class="pptx-ng-print-settings__legend">
+					{{ 'pptx.print.printWhat' | translate }}
+				</legend>
 				<div class="pptx-ng-print-settings__grid2">
 					@for (opt of printWhatOptions; track opt.value) {
 						<button
@@ -78,7 +80,9 @@ import type {
 
 			<!-- Slide range -->
 			<fieldset class="pptx-ng-print-settings__group">
-				<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.slideRange' | translate }}</legend>
+				<legend class="pptx-ng-print-settings__legend">
+					{{ 'pptx.print.slideRange' | translate }}
+				</legend>
 				<div class="pptx-ng-print-settings__stack">
 					<button
 						type="button"
@@ -106,7 +110,9 @@ import type {
 					</button>
 					@if (settings().slideRange === 'custom') {
 						<div class="pptx-ng-print-settings__range">
-							<span class="pptx-ng-print-settings__range-label">{{ 'pptx.print.from' | translate }}</span>
+							<span class="pptx-ng-print-settings__range-label">{{
+								'pptx.print.from' | translate
+							}}</span>
 							<input
 								class="pptx-ng-print-settings__number"
 								type="number"
@@ -115,7 +121,9 @@ import type {
 								[value]="settings().customRangeFrom"
 								(change)="onRangeChange($event, 'from')"
 							/>
-							<span class="pptx-ng-print-settings__range-label">{{ 'pptx.print.to' | translate }}</span>
+							<span class="pptx-ng-print-settings__range-label">{{
+								'pptx.print.to' | translate
+							}}</span>
 							<input
 								class="pptx-ng-print-settings__number"
 								type="number"
@@ -132,7 +140,9 @@ import type {
 			<!-- Orientation (full-page slides only) -->
 			@if (settings().printWhat === 'slides') {
 				<fieldset class="pptx-ng-print-settings__group">
-					<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.orientation' | translate }}</legend>
+					<legend class="pptx-ng-print-settings__legend">
+						{{ 'pptx.print.orientation' | translate }}
+					</legend>
 					<div class="pptx-ng-print-settings__chips">
 						@for (o of orientationOptions; track o.value) {
 							<button
@@ -150,7 +160,9 @@ import type {
 
 			<!-- Colour mode -->
 			<fieldset class="pptx-ng-print-settings__group">
-				<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.colorMode' | translate }}</legend>
+				<legend class="pptx-ng-print-settings__legend">
+					{{ 'pptx.print.colorMode' | translate }}
+				</legend>
 				<div class="pptx-ng-print-settings__chips">
 					@for (c of colorModeOptions; track c.value) {
 						<button

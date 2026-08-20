@@ -54,8 +54,7 @@ type NumKey =
 			<div class="pptx-tcf">
 				<div class="pptx-tcf__heading">
 					{{
-						'pptx.table.cell'
-							| translate: { row: sel()!.rowIndex + 1, col: sel()!.columnIndex + 1 }
+						'pptx.table.cell' | translate: { row: sel()!.rowIndex + 1, col: sel()!.columnIndex + 1 }
 					}}
 				</div>
 
@@ -169,10 +168,20 @@ type NumKey =
 				</div>
 
 				<div class="pptx-tcf__btns">
-					<button type="button" class="pptx-tcf__btn" [disabled]="!canEdit()" (click)="onMergeRight()">
+					<button
+						type="button"
+						class="pptx-tcf__btn"
+						[disabled]="!canEdit()"
+						(click)="onMergeRight()"
+					>
 						{{ 'pptx.table.mergeRight' | translate }}
 					</button>
-					<button type="button" class="pptx-tcf__btn" [disabled]="!canEdit()" (click)="onMergeDown()">
+					<button
+						type="button"
+						class="pptx-tcf__btn"
+						[disabled]="!canEdit()"
+						(click)="onMergeDown()"
+					>
 						{{ 'pptx.table.mergeDown' | translate }}
 					</button>
 					<button type="button" class="pptx-tcf__btn" [disabled]="!canEdit()" (click)="onSplit()">

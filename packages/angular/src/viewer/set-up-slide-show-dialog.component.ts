@@ -95,7 +95,9 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 
 				<!-- Advance slides -->
 				<fieldset class="pptx-ng-sss-fieldset">
-					<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.advanceSlides' | translate }}</legend>
+					<legend class="pptx-ng-sss-legend">
+						{{ 'pptx.slideShow.advanceSlides' | translate }}
+					</legend>
 					<label class="pptx-ng-sss-option">
 						<input
 							type="radio"
@@ -127,11 +129,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 				<button type="button" class="pptx-ng-sss-btn" (click)="onClose()">
 					{{ 'pptx.common.cancel' | translate }}
 				</button>
-				<button
-					type="button"
-					class="pptx-ng-sss-btn pptx-ng-sss-btn-primary"
-					(click)="onOk()"
-				>
+				<button type="button" class="pptx-ng-sss-btn pptx-ng-sss-btn-primary" (click)="onOk()">
 					{{ 'pptx.common.ok' | translate }}
 				</button>
 			</div>
