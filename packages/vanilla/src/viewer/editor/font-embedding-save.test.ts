@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per test/helper, several separated
+   by comments or guard clauses); merging them isn't a style choice here. */
 /**
  * font-embedding-save.test.ts: File > Fonts > "Embed fonts in the file" must
  * change the bytes that get written.
@@ -30,12 +33,18 @@ const FONT_PART = `fonts/{${FONT_GUID}}.fntdata`;
  * 14.2.1 requires (first 32 bytes against the part-name GUID, repeated). The
  * loader rejects a part it cannot deobfuscate into a real font, so a fixture of
  * arbitrary bytes would never reach `PptxData.embeddedFonts` at all.
+ *
+ * The GUID-to-key conversion reverses the 16 bytes (see
+ * `core/src/core/utils/font-deobfuscation.ts`'s `guidToKey`), matching real
+ * PowerPoint-embedded fonts and docx4j's reference implementation; without
+ * the reversal this fixture obfuscates against a key core will not
+ * de-obfuscate back to a valid sfnt header.
  */
 function obfuscatedFontPart(): Uint8Array {
 	const font = new Uint8Array(64);
 	font.set([0x00, 0x01, 0x00, 0x00]); // TrueType version 1.0.
 	const hex = FONT_GUID.replace(/-/g, '').match(/../g)!;
-	const key = Uint8Array.from(hex, (pair) => parseInt(pair, 16));
+	const key = Uint8Array.from(hex, (pair) => parseInt(pair, 16)).reverse();
 	const part = new Uint8Array(font);
 	for (let i = 0; i < 32; i++) {
 		part[i] = font[i] ^ key[i % key.length];
