@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.0) - 2026-08-20
+
+### Features
+
+- **shared:** Add hover tooltips to every chart mark, not just the region map (by @ChristopherVR) ([4ca29f5](https://github.com/ChristopherVR/pptx-viewer/commit/4ca29f590b1d1154b1034b7c5aeaa469610353d5))
+
+### Bug Fixes
+
+- **angular:** Wire Home ribbon Reset/Fill/Outline through shared commands (by @ChristopherVR) ([c06b894](https://github.com/ChristopherVR/pptx-viewer/commit/c06b8947fae4888b0db69f37c043bfe9e83dd66d))
+- **shared:** Stack line/area charts and lock their drag geometry (by @ChristopherVR) ([0da8ba5](https://github.com/ChristopherVR/pptx-viewer/commit/0da8ba55a5793d94af7822fcc7de63aa1d0243bb))
+- **shared:** Extract table column-width redistribution to shared (by @ChristopherVR) ([cbd9fc7](https://github.com/ChristopherVR/pptx-viewer/commit/cbd9fc78dde57a72de3049a2ea01e1676957b463))
+
+### Refactor
+
+- **angular:** Source mobile bottom bar disabled state from shared (by @ChristopherVR) ([3b10888](https://github.com/ChristopherVR/pptx-viewer/commit/3b108885b80128766ef59afe4a2bf45b432aa584))
+- **shared:** Extract SmartArt node-count bounds table (by @ChristopherVR) ([10cd945](https://github.com/ChristopherVR/pptx-viewer/commit/10cd945140ea3757086f0c4b1c6ea71adbb4d825))
+- **shared:** Extract animation drag-to-reorder into shared (by @ChristopherVR) ([b136d02](https://github.com/ChristopherVR/pptx-viewer/commit/b136d023174959e9c51b3667e8ab78a8a983cb9f))
+- **shared:** Extract SmartArt text-pane handlers to shared (by @ChristopherVR) ([911693c](https://github.com/ChristopherVR/pptx-viewer/commit/911693c9c02b63ee284890653b4dc977e35af170))
+- **shared:** Extract chart legend layout to shared (by @ChristopherVR) ([acec62b](https://github.com/ChristopherVR/pptx-viewer/commit/acec62b1be7203e90206a0852e6544b73bb52266))
+- **shared:** Extract animation timeline-bar layout math to shared (by @ChristopherVR) ([1a9f66d](https://github.com/ChristopherVR/pptx-viewer/commit/1a9f66d7629e18174997fdf9135edb7a70d8660e))
+- **shared:** Extract table quick-style preset application (by @ChristopherVR) ([aa52c10](https://github.com/ChristopherVR/pptx-viewer/commit/aa52c106a158b2c2361b05e05968d9daadda2e52))
+- **shared:** Extract export base-filename derivation to shared (by @ChristopherVR) ([58091bc](https://github.com/ChristopherVR/pptx-viewer/commit/58091bc18e766b3c870fe4af9f8c11bd0384899c))
+
 ## [2.18.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.18.7) - 2026-08-19
 
 ### Bug Fixes
