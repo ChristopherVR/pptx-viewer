@@ -104,6 +104,46 @@ describe('buildParagraphs autofit + bullet typeface', () => {
 		);
 		expect(paras[0].bulletStyle.fontSize).toBe('10px');
 	});
+
+	it("scales the paragraph's own strut font size by the autofit font scale", () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Title', style: { fontSize: 40 } }], {
+				textStyle: { fontSize: 16, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.8 },
+			}),
+		);
+		// Run authored at 40px, body default 16px, autofit shrinks by 0.8:
+		// the strut has to re-base to the SHRUNK run size (32px), not the
+		// unshrunk authored one, or the paragraph's line box stays sized for
+		// text that no longer renders that large.
+		expect(paras[0].strutFontSizePx).toBe(32);
+	});
+
+	it('reduces the paragraph line-height by the autofit lnSpcReduction', () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: 'Item',
+						style: { fontSize: 20 },
+						paragraphProperties: { lineSpacing: 1.5 },
+					},
+				],
+				{
+					textStyle: {
+						fontSize: 20,
+						autoFit: true,
+						autoFitMode: 'normal',
+						autoFitFontScale: 0.8,
+						autoFitLineSpacingReduction: 0.2,
+					},
+				},
+			),
+		);
+		// 1.5 * 1.2 pitch = 1.8, reduced by 20% -> 1.44. Without the reduction
+		// reaching the per-paragraph resolver this stays at 1.8, silently
+		// defeating PowerPoint's shrink-to-fit line-spacing reduction.
+		expect(paras[0].lineHeight).toBeCloseTo(1.44, 10);
+	});
 });
 
 describe('buildParagraphs', () => {

@@ -25,10 +25,19 @@ import type { TextSegment } from 'pptx-viewer-core';
  * The largest run wins, matching PowerPoint's rule that a line is as tall as
  * its tallest content. Bullet segments are excluded: a bullet glyph never
  * drives the height of the line it marks.
+ *
+ * `fontScale` is `a:normAutofit/@fontScale` (see `resolveAutoFitFontScale`),
+ * the same multiplier every run's own rendered size is scaled by. Segment
+ * styles carry their pre-shrink authored size, so the strut has to apply the
+ * same scale or the paragraph's line box stays sized for the unshrunk text
+ * while every run inside it renders smaller - defeating the shrink for any
+ * paragraph that sets its own (or inherits the body's) line spacing, which is
+ * effectively every paragraph.
  */
 export function resolveParagraphStrutFontSize(
 	segments: ReadonlyArray<Pick<TextSegment, 'style' | 'bulletInfo' | 'text'>>,
 	bodyFontSize: number | undefined,
+	fontScale = 1,
 ): number | undefined {
 	let largest: number | undefined;
 	for (const segment of segments) {
@@ -50,5 +59,5 @@ export function resolveParagraphStrutFontSize(
 	if (typeof bodyFontSize === 'number' && Math.abs(largest - bodyFontSize) < 0.01) {
 		return undefined;
 	}
-	return largest;
+	return largest * fontScale;
 }

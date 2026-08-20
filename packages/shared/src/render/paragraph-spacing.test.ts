@@ -122,6 +122,37 @@ describe('resolveParagraphSpacing', () => {
 		expect(result.spaceAfterPx).toBe(8);
 	});
 
+	it('reduces a proportional line-height by the autofit lnSpcReduction fraction', () => {
+		const result = resolveParagraphSpacing({
+			...base,
+			paraProps: { lineSpacing: 1.5 } as TextStyle,
+			bodyStyle: undefined,
+			lineSpacingReduction: 0.2,
+		});
+		// 1.5 * 1.2 pitch = 1.8, reduced by 20% -> 1.44.
+		expect(result.lineHeight).toBeCloseTo(1.44, 10);
+	});
+
+	it('does not apply lnSpcReduction to an exact-pt line-height', () => {
+		const result = resolveParagraphSpacing({
+			...base,
+			paraProps: { lineSpacingExactPt: 18 } as TextStyle,
+			bodyStyle: undefined,
+			lineSpacingReduction: 0.2,
+		});
+		expect(result.lineHeight).toBe('24px');
+	});
+
+	it('ignores a zero or absent lnSpcReduction', () => {
+		const noReduction = resolveParagraphSpacing({
+			...base,
+			paraProps: { lineSpacing: 1.5 } as TextStyle,
+			bodyStyle: undefined,
+			lineSpacingReduction: 0,
+		});
+		expect(noReduction.lineHeight).toBeCloseTo(1.8, 10);
+	});
+
 	it('ignores zero / negative spacing values', () => {
 		const result = resolveParagraphSpacing({
 			...base,

@@ -285,10 +285,12 @@ export function buildParagraphs(
 				isFirst: paraIndex === 0,
 				isLast: paraIndex === grouped.length - 1,
 				spaceFirstLast: bodyStyle?.spaceFirstLastParagraph !== false,
+				lineSpacingReduction: element.textStyle?.autoFitLineSpacingReduction,
 			});
 			const strutFontSizePx = resolveParagraphStrutFontSize(
 				paraSegments.length > 0 ? paraSegments : terminator ? [terminator] : [],
 				hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
+				fontScale,
 			);
 			const rtl = resolveParagraphRtl(
 				paraSegments.map((seg) => ({ segment: seg })),

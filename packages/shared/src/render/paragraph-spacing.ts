@@ -44,6 +44,17 @@ export interface ParagraphSpacingInput {
 	 * as-is deliberately rather than half-changed.
 	 */
 	spaceFirstLast?: boolean;
+	/**
+	 * `a:normAutofit/@lnSpcReduction`: the shrink-to-fit line-spacing reduction,
+	 * in 0..1. Applied to a resolved proportional (`a:spcPct`) line-height the
+	 * same way `computeAutoFitTextStyle` applies it at the block level - it has
+	 * to be applied here too because a paragraph or body line-spacing value
+	 * produces an explicit per-paragraph `line-height`, which always outranks
+	 * the block's own CSS `line-height` in the cascade. Not applied to an exact
+	 * (`a:spcPts`) line-height: PowerPoint's reduction only affects the
+	 * proportional form.
+	 */
+	lineSpacingReduction?: number;
 }
 
 /**
@@ -60,7 +71,14 @@ export interface ParagraphSpacingInput {
  * `paragraphSpacingBefore` / `paragraphSpacingAfter` are already px from core.
  */
 export function resolveParagraphSpacing(input: ParagraphSpacingInput): ParagraphSpacing {
-	const { paraProps, bodyStyle, isFirst = false, isLast = false, spaceFirstLast = true } = input;
+	const {
+		paraProps,
+		bodyStyle,
+		isFirst = false,
+		isLast = false,
+		spaceFirstLast = true,
+		lineSpacingReduction,
+	} = input;
 	const out: ParagraphSpacing = {};
 
 	const before = paraProps?.paragraphSpacingBefore ?? bodyStyle?.paragraphSpacingBefore;
@@ -83,7 +101,11 @@ export function resolveParagraphSpacing(input: ParagraphSpacingInput): Paragraph
 	} else if (typeof multiplier === 'number' && multiplier > 0) {
 		// `a:spcPct` stacks on PowerPoint's 1.2 single-spacing pitch; see
 		// `proportionalLineHeight` for the COM measurement behind it.
-		out.lineHeight = proportionalLineHeight(multiplier);
+		const proportional = proportionalLineHeight(multiplier);
+		out.lineHeight =
+			typeof lineSpacingReduction === 'number' && lineSpacingReduction > 0
+				? proportional * (1 - lineSpacingReduction)
+				: proportional;
 	}
 
 	return out;
