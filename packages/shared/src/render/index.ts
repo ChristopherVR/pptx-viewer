@@ -71,6 +71,10 @@ export * from './chart-axis';
 export * from './chart-palette';
 export * from './chart-datapoint-style';
 export * from './chart-sparkline';
+// Legend swatch/label placement (horizontal row vs. vertical stack), shared by
+// every binding's chart projector so `LEGEND_ITEM_WIDTH` and the placement
+// formula are fixed once instead of five times.
+export * from './chart-legend-layout';
 // Pure option lists + chart-type capability Sets for the chart inspector
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.

@@ -26,6 +26,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { computeChartLegendLayout } from '../internal/shared';
 import { ChartPrimitivesComponent } from './chart-primitives.component';
 import { buildChartViewModel } from './chart-renderer-helpers';
 import type { ChartViewModel } from './chart-renderer-helpers';
@@ -33,7 +34,6 @@ import type { ChartViewModel } from './chart-renderer-helpers';
 export type { ChartViewModel };
 
 const LEGEND_SWATCH_SIZE = 10;
-const LEGEND_ITEM_WIDTH = 80;
 
 @Component({
 	selector: 'pptx-chart-renderer',
@@ -176,19 +176,19 @@ const LEGEND_ITEM_WIDTH = 80;
 			}
 
 			<!-- Legend -->
-			@if (vm().legend.length > 0) {
-				@for (entry of vm().legend; track $index) {
-					<g [attr.transform]="legendTransform($index)">
+			@if (legendItems().length > 0) {
+				@for (item of legendItems(); track $index) {
+					<g [attr.transform]="legendTransform(item)">
 						<rect
 							x="0"
 							y="-7"
 							[attr.width]="swatchSize"
 							[attr.height]="swatchSize"
 							rx="2"
-							[attr.fill]="entry.color"
+							[attr.fill]="item.color"
 						/>
 						<text [attr.x]="swatchSize + 3" y="3" font-size="9" fill="#475569">
-							{{ entry.label }}
+							{{ item.label }}
 						</text>
 					</g>
 				}
@@ -201,14 +201,9 @@ export class ChartRendererComponent {
 	readonly vm = computed<ChartViewModel>(() => buildChartViewModel(this.element()));
 	readonly viewBox = computed(() => `0 0 ${this.vm().svgWidth} ${this.vm().svgHeight}`);
 	readonly swatchSize = LEGEND_SWATCH_SIZE;
+	readonly legendItems = computed(() => computeChartLegendLayout(this.vm()));
 
-	legendTransform(index: number): string {
-		const v = this.vm();
-		const isVertical = v.legendAnchor === 'start';
-		const x = isVertical
-			? v.legendX
-			: v.legendX - (v.legend.length * LEGEND_ITEM_WIDTH) / 2 + index * LEGEND_ITEM_WIDTH;
-		const y = isVertical ? v.legendY + index * 14 : v.legendY;
-		return `translate(${x.toFixed(1)},${y.toFixed(1)})`;
+	legendTransform(item: { x: number; y: number }): string {
+		return `translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`;
 	}
 }

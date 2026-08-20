@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { chartPartToAttrs } from 'pptx-viewer-shared';
+import { chartPartToAttrs, computeChartLegendLayout } from 'pptx-viewer-shared';
 import type {
 	ChartPartRef,
 	ChartViewModel,
@@ -48,10 +48,6 @@ const props = withDefaults(
 	{ preserveAspectRatio: 'none' },
 );
 
-const LEGEND_ITEM_WIDTH = 80;
-
-const isVerticalLegend = computed(() => props.vm.legendAnchor === 'start');
-
 function isRect(p: SvgPrimitive): p is SvgRect {
 	return p.kind === 'rect';
 }
@@ -83,23 +79,7 @@ function partAttrs(part: ChartPartRef | undefined): Record<string, string> {
 	return part ? chartPartToAttrs(part) : {};
 }
 
-interface LegendLayout {
-	x: number;
-	y: number;
-	color: string;
-	label: string;
-}
-
-const legendItems = computed<LegendLayout[]>(() => {
-	const vm = props.vm;
-	return vm.legend.map((entry, i) => {
-		const x = isVerticalLegend.value
-			? vm.legendX
-			: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH;
-		const y = isVerticalLegend.value ? vm.legendY + i * 14 : vm.legendY;
-		return { x, y, color: entry.color, label: entry.label };
-	});
-});
+const legendItems = computed(() => computeChartLegendLayout(props.vm));
 </script>
 
 <template>

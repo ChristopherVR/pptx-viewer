@@ -17,7 +17,12 @@
  * @module chart-view-model-render
  */
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
-import { buildChartViewModel, chartPartToAttrs, getChartStylePalette } from 'pptx-viewer-shared';
+import {
+	buildChartViewModel,
+	chartPartToAttrs,
+	computeChartLegendLayout,
+	getChartStylePalette,
+} from 'pptx-viewer-shared';
 import type {
 	ChartPartRef,
 	ChartViewModel,
@@ -31,8 +36,6 @@ import type {
 	SvgText,
 } from 'pptx-viewer-shared';
 import React from 'react';
-
-const LEGEND_ITEM_WIDTH = 80;
 
 /**
  * `data-chart-*` hit-testing attributes for a tagged data-mark primitive.
@@ -247,7 +250,7 @@ export function renderChartViewModel(
 	vm: ChartViewModel,
 	preserveAspectRatio: 'none' | 'xMidYMid meet' = 'none',
 ): React.ReactNode {
-	const isVerticalLegend = vm.legendAnchor === 'start';
+	const legendItems = computeChartLegendLayout(vm);
 	return (
 		<svg
 			className='w-full h-full pointer-events-none'
@@ -319,20 +322,17 @@ export function renderChartViewModel(
 
 			{vm.dataLabels.map((dl, i) => renderText(dl, `${elementId}-dl-${i}`))}
 
-			{vm.legend.map((entry, i) => {
-				const x = isVerticalLegend
-						? vm.legendX
-						: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH,
-					y = isVerticalLegend ? vm.legendY + i * 14 : vm.legendY;
-				return (
-					<g key={`${elementId}-lg-${i}`} transform={`translate(${x.toFixed(1)},${y.toFixed(1)})`}>
-						<rect x={0} y={-7} width={10} height={10} rx={2} fill={entry.color} />
-						<text x={13} y={3} fontSize={9} fill='#475569'>
-							{entry.label}
-						</text>
-					</g>
-				);
-			})}
+			{legendItems.map((item, i) => (
+				<g
+					key={`${elementId}-lg-${i}`}
+					transform={`translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`}
+				>
+					<rect x={0} y={-7} width={10} height={10} rx={2} fill={item.color} />
+					<text x={13} y={3} fontSize={9} fill='#475569'>
+						{item.label}
+					</text>
+				</g>
+			))}
 		</svg>
 	);
 }

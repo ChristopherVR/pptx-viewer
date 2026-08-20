@@ -5,7 +5,7 @@ import type {
 	SvgPrimitive,
 	SvgText,
 } from 'pptx-viewer-shared';
-import { chartPartToAttrs } from 'pptx-viewer-shared';
+import { chartPartToAttrs, computeChartLegendLayout } from 'pptx-viewer-shared';
 
 import { applyStyleMap, createSvgEl, setSvgAttrs } from '../dom';
 
@@ -18,8 +18,6 @@ import { applyStyleMap, createSvgEl, setSvgAttrs } from '../dom';
  * React's `renderChartViewModel`, so all geometry / layout / data math stays
  * shared and only the DOM emission lives here.
  */
-
-const LEGEND_ITEM_WIDTH = 80;
 
 /** Render a full `ChartViewModel` to an `<svg>` element. */
 export function renderChartViewModelSvg(
@@ -236,22 +234,16 @@ function applyPartAttrs(el: SVGElement, part: ChartPartRef | undefined): void {
 
 /** Legend swatches + labels (horizontal row, or a vertical stack on the side). */
 function appendLegend(doc: Document, svg: SVGSVGElement, vm: ChartViewModel): void {
-	const vertical = vm.legendAnchor === 'start';
-	vm.legend.forEach((entry, i) => {
-		const x = vertical
-				? vm.legendX
-				: vm.legendX - (vm.legend.length * LEGEND_ITEM_WIDTH) / 2 + i * LEGEND_ITEM_WIDTH,
-			y = vertical ? vm.legendY + i * 14 : vm.legendY,
-			g = createSvgEl(doc, 'g', {
+	computeChartLegendLayout(vm).forEach((item) => {
+		const g = createSvgEl(doc, 'g', {
 				class: 'pptxv-chart-legend-item',
-				transform: `translate(${x.toFixed(1)},${y.toFixed(1)})`,
-			});
+				transform: `translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`,
+			}),
+			label = createSvgEl(doc, 'text', { x: 13, y: 3, 'font-size': 9, fill: '#475569' });
 		g.appendChild(
-			createSvgEl(doc, 'rect', { x: 0, y: -7, width: 10, height: 10, rx: 2, fill: entry.color }),
+			createSvgEl(doc, 'rect', { x: 0, y: -7, width: 10, height: 10, rx: 2, fill: item.color }),
 		);
-		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
-		const label = createSvgEl(doc, 'text', { x: 13, y: 3, 'font-size': 9, fill: '#475569' });
-		label.textContent = entry.label;
+		label.textContent = item.label;
 		g.appendChild(label);
 		svg.appendChild(g);
 	});
