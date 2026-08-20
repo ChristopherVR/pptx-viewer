@@ -345,17 +345,24 @@ function isEditing(cell: RenderableCell): boolean {
 	return e !== null && e.rowIndex === cell.rowIndex && e.colIndex === cell.colIndex;
 }
 
-// ── Touch double-tap detection ────────────────────────────────────────────
-// On mobile, `dblclick` is not reliably synthesised from two quick taps.
-// React/Angular detect the double-tap manually in their canvas pointerdown
-// handler; Vue must do the same per-cell so tapping a cell twice on touch
-// correctly enters inline edit mode.
-const DOUBLE_TAP_MS = 400;
-const lastCellTap = ref<{ rowIndex: number; colIndex: number; time: number } | null>(null);
-
 /**
- * Arbitrate the press between the CELL range and the slide's element selection,
- * then detect a touch double-tap (native `dblclick` is unreliable on touch).
+ * Arbitrate the press between the CELL range and the slide's element selection.
+ * Touch double-tap-to-edit is NOT handled per-cell here: `useCanvasPointer`'s
+ * `trackTap` / `handleDoubleTap` already own double-tap detection for the whole
+ * canvas, including a dedicated table branch that resolves the nearest `<td>`
+ * and dispatches a real `dblclick` on it (mirroring React/Angular, which also
+ * detect the double-tap once, at the canvas level, never per element).
+ *
+ * A per-cell tracker used to duplicate that detection here, and the duplication
+ * was itself the bug: this handler's own second-tap match called
+ * `event.stopPropagation()`, so that tap never reached `useCanvasPointer`'s
+ * tracker to retire ITS OWN pending tap. A later tap on a different cell,
+ * within the double-tap window and close enough in screen position (e.g.
+ * tapping an adjacent cell shortly after to commit an edit by blurring away),
+ * was then wrongly paired with that stale first tap and reopened the editor on
+ * the wrong cell right after the edit had committed. Deleting the duplicate
+ * tracker removes the stale state entirely, one canvas-level tracker owns the
+ * gesture.
  *
  * A Shift-click inside a cell is a cell-range gesture, and left to bubble it
  * reached the canvas's additive branch in `useCanvasPointer`, which TOGGLES this
@@ -367,7 +374,7 @@ const lastCellTap = ref<{ rowIndex: number; colIndex: number; time: number } | n
  * Consuming the press is what Svelte's `applyTableCellPointer` does, and for
  * exactly this reason.
  */
-function onCellPointerDown(event: PointerEvent, cell: RenderableCell): void {
+function onCellPointerDown(event: PointerEvent): void {
 	if (
 		editingEnabled.value &&
 		tableCellPointerIntent({
@@ -382,23 +389,6 @@ function onCellPointerDown(event: PointerEvent, cell: RenderableCell): void {
 	) {
 		event.stopPropagation();
 	}
-	if (event.pointerType === 'mouse' || !editingEnabled.value) {
-		return;
-	}
-	const now = event.timeStamp || Date.now();
-	const last = lastCellTap.value;
-	if (
-		last &&
-		last.rowIndex === cell.rowIndex &&
-		last.colIndex === cell.colIndex &&
-		now - last.time < DOUBLE_TAP_MS
-	) {
-		lastCellTap.value = null;
-		event.stopPropagation();
-		enterCellEdit(cell);
-		return;
-	}
-	lastCellTap.value = { rowIndex: cell.rowIndex, colIndex: cell.colIndex, time: now };
 }
 
 /** Enter inline cell editing for the given cell. */
@@ -536,7 +526,7 @@ onBeforeUnmount(() => {
 							:colspan="cell.colSpan"
 							:rowspan="cell.rowSpan"
 							:style="tdStyle(cell)"
-							@pointerdown="onCellPointerDown($event, cell)"
+							@pointerdown="onCellPointerDown($event)"
 							@click="onCellClick($event, cell)"
 							@dblclick="onCellDblClick($event, cell)"
 						>
