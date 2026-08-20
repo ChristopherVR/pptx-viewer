@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
+   its own short arrange/act/assert consts. */
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 
@@ -30,23 +32,23 @@ function makeRecorderFactory(): {
 	starts: number;
 	stops: number;
 } {
-	const state = { starts: 0, stops: 0 };
-	const factory: MediaRecorderFactory = () => {
-		const recorder = {
-			ondataavailable: null as ((e: BlobEvent) => void) | null,
-			onstop: null as (() => void) | null,
-			onerror: null as (() => void) | null,
-			start() {
-				state.starts++;
-			},
-			stop() {
-				state.stops++;
-				this.ondataavailable?.({ data: new Blob(['x']) } as BlobEvent);
-				this.onstop?.();
-			},
+	const state = { starts: 0, stops: 0 },
+		factory: MediaRecorderFactory = () => {
+			const recorder = {
+				ondataavailable: null as ((e: BlobEvent) => void) | null,
+				onstop: null as (() => void) | null,
+				onerror: null as (() => void) | null,
+				start() {
+					state.starts++;
+				},
+				stop() {
+					state.stops++;
+					this.ondataavailable?.({ data: new Blob(['x']) } as BlobEvent);
+					this.onstop?.();
+				},
+			};
+			return recorder as unknown as MediaRecorder;
 		};
-		return recorder as unknown as MediaRecorder;
-	};
 	return {
 		factory,
 		get starts() {
@@ -60,18 +62,16 @@ function makeRecorderFactory(): {
 
 describe('useMediaExport - GIF', () => {
 	it('rasterises every slide, encodes a GIF, and downloads it', async () => {
-		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
-		const encodeGif = vi.fn((frames: GifFrame[]) => new Uint8Array([frames.length]));
-		const downloadBlob = vi.fn();
-
-		const { exportGif, exporting, progress } = useMediaExport({
-			slideCount: ref(3),
-			rasterizeSlide,
-			loadGifEncoder: () => Promise.resolve(encodeGif),
-			downloadBlob,
-		});
-
-		const blob = await exportGif();
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			encodeGif = vi.fn((frames: GifFrame[]) => new Uint8Array([frames.length])),
+			downloadBlob = vi.fn(),
+			{ exportGif, exporting, progress } = useMediaExport({
+				slideCount: ref(3),
+				rasterizeSlide,
+				loadGifEncoder: () => Promise.resolve(encodeGif),
+				downloadBlob,
+			}),
+			blob = await exportGif();
 		expect(rasterizeSlide).toHaveBeenCalledTimes(3);
 		expect(encodeGif).toHaveBeenCalledOnce();
 		expect(encodeGif.mock.calls[0][0]).toHaveLength(3);
@@ -82,22 +82,50 @@ describe('useMediaExport - GIF', () => {
 		expect(progress.value).toBe(100);
 	});
 
+	it('derives the download name from a plain-string fileName, stripping a known extension', async () => {
+		const encodeGif = vi.fn(() => new Uint8Array([0])),
+			downloadBlob = vi.fn(),
+			{ exportGif } = useMediaExport({
+				slideCount: ref(1),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				loadGifEncoder: () => Promise.resolve(encodeGif),
+				downloadBlob,
+				fileName: 'My Deck.pptx',
+			});
+		await exportGif();
+		expect(downloadBlob.mock.calls[0][1]).toBe('My Deck.gif');
+	});
+
+	it('derives the download name from a Ref<string> fileName, unwrapped before stripping', async () => {
+		const encodeGif = vi.fn(() => new Uint8Array([0])),
+			downloadBlob = vi.fn(),
+			{ exportGif } = useMediaExport({
+				slideCount: ref(1),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				loadGifEncoder: () => Promise.resolve(encodeGif),
+				downloadBlob,
+				fileName: ref('Quarterly.pdf'),
+			});
+		await exportGif();
+		expect(downloadBlob.mock.calls[0][1]).toBe('Quarterly.gif');
+	});
+
 	it('passes a per-slide delay in centiseconds when timings are uniform', async () => {
-		const encodeGif = vi.fn(() => new Uint8Array([0]));
-		const { exportGif } = useMediaExport({
-			slideCount: ref(2),
-			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
-			loadGifEncoder: () => Promise.resolve(encodeGif),
-			downloadBlob: vi.fn(),
-		});
+		const encodeGif = vi.fn(() => new Uint8Array([0])),
+			{ exportGif } = useMediaExport({
+				slideCount: ref(2),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				loadGifEncoder: () => Promise.resolve(encodeGif),
+				downloadBlob: vi.fn(),
+			});
 
 		await exportGif({ slideTimingsMs: [500, 500] });
 		expect(encodeGif.mock.calls[0][1]).toBe(50); // 500ms / 10 = 50cs
 	});
 
 	it('returns undefined and does nothing when there are no slides', async () => {
-		const rasterizeSlide = vi.fn();
-		const { exportGif } = useMediaExport({ slideCount: ref(0), rasterizeSlide });
+		const rasterizeSlide = vi.fn(),
+			{ exportGif } = useMediaExport({ slideCount: ref(0), rasterizeSlide });
 		await expect(exportGif()).resolves.toBeUndefined();
 		expect(rasterizeSlide).not.toHaveBeenCalled();
 	});
@@ -105,13 +133,13 @@ describe('useMediaExport - GIF', () => {
 	it('honours an abort signal before encoding', async () => {
 		const controller = new AbortController();
 		controller.abort();
-		const encodeGif = vi.fn();
-		const { exportGif, exporting } = useMediaExport({
-			slideCount: ref(2),
-			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
-			loadGifEncoder: () => Promise.resolve(encodeGif),
-			downloadBlob: vi.fn(),
-		});
+		const encodeGif = vi.fn(),
+			{ exportGif, exporting } = useMediaExport({
+				slideCount: ref(2),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				loadGifEncoder: () => Promise.resolve(encodeGif),
+				downloadBlob: vi.fn(),
+			});
 
 		await expect(exportGif({ signal: controller.signal })).rejects.toThrow('cancelled');
 		expect(encodeGif).not.toHaveBeenCalled();
@@ -122,17 +150,16 @@ describe('useMediaExport - GIF', () => {
 describe('useMediaExport - WebM', () => {
 	it('records every slide and downloads a webm blob', async () => {
 		vi.useFakeTimers();
-		const recorder = makeRecorderFactory();
-		const downloadBlob = vi.fn();
-		const { exportWebm } = useMediaExport({
-			slideCount: ref(2),
-			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
-			createRecorder: recorder.factory,
-			createCanvas: () => fakeCanvas(),
-			downloadBlob,
-		});
-
-		const promise = exportWebm({ slideDurationMs: 30, fps: 30 });
+		const recorder = makeRecorderFactory(),
+			downloadBlob = vi.fn(),
+			{ exportWebm } = useMediaExport({
+				slideCount: ref(2),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				createRecorder: recorder.factory,
+				createCanvas: () => fakeCanvas(),
+				downloadBlob,
+			}),
+			promise = exportWebm({ slideDurationMs: 30, fps: 30 });
 		await vi.runAllTimersAsync();
 		const blob = await promise;
 
@@ -146,14 +173,14 @@ describe('useMediaExport - WebM', () => {
 
 	it('toggles the exporting flag across the run', async () => {
 		vi.useFakeTimers();
-		const recorder = makeRecorderFactory();
-		const { exportWebm, exporting } = useMediaExport({
-			slideCount: ref(1),
-			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
-			createRecorder: recorder.factory,
-			createCanvas: () => fakeCanvas(),
-			downloadBlob: vi.fn(),
-		});
+		const recorder = makeRecorderFactory(),
+			{ exportWebm, exporting } = useMediaExport({
+				slideCount: ref(1),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				createRecorder: recorder.factory,
+				createCanvas: () => fakeCanvas(),
+				downloadBlob: vi.fn(),
+			});
 
 		expect(exporting.value).toBeFalsy();
 		const promise = exportWebm({ slideDurationMs: 30, fps: 30 });
@@ -165,12 +192,12 @@ describe('useMediaExport - WebM', () => {
 	});
 
 	it('returns undefined when there are no slides', async () => {
-		const rasterizeSlide = vi.fn();
-		const { exportWebm } = useMediaExport({
-			slideCount: ref(0),
-			rasterizeSlide,
-			createRecorder: makeRecorderFactory().factory,
-		});
+		const rasterizeSlide = vi.fn(),
+			{ exportWebm } = useMediaExport({
+				slideCount: ref(0),
+				rasterizeSlide,
+				createRecorder: makeRecorderFactory().factory,
+			});
 		await expect(exportWebm()).resolves.toBeUndefined();
 		expect(rasterizeSlide).not.toHaveBeenCalled();
 	});
@@ -178,14 +205,13 @@ describe('useMediaExport - WebM', () => {
 
 describe('useMediaExport - real GIF encoder', () => {
 	it('produces a valid GIF89a header via the lazy-loaded encoder', async () => {
-		const downloadBlob = vi.fn();
-		const { exportGif } = useMediaExport({
-			slideCount: ref(1),
-			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas(2, 2)),
-			downloadBlob,
-		});
-
-		const blob = await exportGif();
+		const downloadBlob = vi.fn(),
+			{ exportGif } = useMediaExport({
+				slideCount: ref(1),
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas(2, 2)),
+				downloadBlob,
+			}),
+			blob = await exportGif();
 		expect(blob).toBeTruthy();
 		const bytes = new Uint8Array(await (blob as Blob).arrayBuffer());
 		// "GIF89a" magic.

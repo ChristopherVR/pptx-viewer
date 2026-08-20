@@ -1,5 +1,10 @@
 import type { PptxData } from 'pptx-viewer-core';
-import { downloadDataUrl, exportAbortError, exportDeckJson } from 'pptx-viewer-shared';
+import {
+	downloadDataUrl,
+	exportAbortError,
+	exportDeckJson,
+	resolveExportBaseName,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ExportGifOptions } from './export-gif';
@@ -83,14 +88,6 @@ function deckDataFromState(state: ViewerState): PptxData {
 	};
 }
 
-function resolveBaseName(fileName: string | undefined): string {
-	if (fileName === undefined) {
-		return 'presentation';
-	}
-	const trimmed = fileName.trim().replace(/\.(?:pptx|pdf|png|gif|webm)$/iu, '');
-	return trimmed === '' ? 'presentation' : trimmed;
-}
-
 /**
  * Export controller: render slides to PNG / PDF / GIF / WebM video, plus the
  * print flow. Vanilla port of Vue's `useExport` composable extended with the
@@ -111,7 +108,7 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 	const capture: ExportCaptureDeps = {
 		store: deps.store,
 		rasterizeSlide: deps.rasterizeSlide,
-		baseName: resolveBaseName(deps.fileName),
+		baseName: resolveExportBaseName(deps.fileName),
 	};
 
 	/** Run one export at a time; a call while one is in flight gets `fallback`. */
@@ -128,8 +125,8 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 	}
 
 	async function exportSlidePng(index?: number): Promise<void> {
-		const state = deps.store.get();
-		const targetIndex = index ?? state.currentSlide;
+		const state = deps.store.get(),
+			targetIndex = index ?? state.currentSlide;
 		if (targetIndex < 0 || targetIndex >= state.slides.length) {
 			return;
 		}
@@ -143,8 +140,8 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 	}
 
 	async function copySlideAsImage(index?: number): Promise<void> {
-		const state = deps.store.get();
-		const targetIndex = index ?? state.currentSlide;
+		const state = deps.store.get(),
+			targetIndex = index ?? state.currentSlide;
 		if (
 			targetIndex < 0 ||
 			targetIndex >= state.slides.length ||
@@ -154,10 +151,10 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 			return;
 		}
 		return guarded(undefined, async () => {
-			const canvas = await deps.rasterizeSlide(targetIndex);
-			const blob = await new Promise<Blob | null>((resolve) => {
-				canvas.toBlob(resolve, 'image/png');
-			});
+			const canvas = await deps.rasterizeSlide(targetIndex),
+				blob = await new Promise<Blob | null>((resolve) => {
+					canvas.toBlob(resolve, 'image/png');
+				});
 			if (blob) {
 				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 			}
@@ -169,13 +166,14 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 		if (state.slides.length === 0) {
 			return;
 		}
+		// eslint-disable-next-line one-var -- separated from `state` above by a guard clause
 		const { onProgress, signal } = options;
 		return guarded(undefined, async () => {
-			const { jsPDF } = await import('jspdf');
-			const { width, height } = state.canvasSize;
-			const orientation = width >= height ? 'landscape' : 'portrait';
-			const pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true });
-			const total = state.slides.length;
+			const { jsPDF } = await import('jspdf'),
+				{ width, height } = state.canvasSize,
+				orientation = width >= height ? 'landscape' : 'portrait',
+				pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true }),
+				total = state.slides.length;
 			for (let i = 0; i < total; i++) {
 				if (signal?.aborted) {
 					throw exportAbortError();

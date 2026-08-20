@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
+import { downloadDataUrl, exportAbortError, resolveExportBaseName } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
@@ -40,13 +40,10 @@ export interface UseExportResult {
 	exportPdf: (options?: ExportPdfOptions) => Promise<void>;
 }
 
+/** Unwrap `fileName` to a plain string before handing it to the shared resolver. */
 function resolveBaseName(fileName: UseExportOptions['fileName']): string {
-	if (fileName === undefined) {
-		return 'presentation';
-	}
-	const value = typeof fileName === 'string' ? fileName : fileName.value;
-	const trimmed = value.trim().replace(/\.(?:pptx|pdf|png)$/iu, '');
-	return trimmed === '' ? 'presentation' : trimmed;
+	const value = typeof fileName === 'string' || fileName === undefined ? fileName : fileName.value;
+	return resolveExportBaseName(value);
 }
 
 /**
@@ -58,8 +55,8 @@ function resolveBaseName(fileName: UseExportOptions['fileName']): string {
  * (viewer-first subset: PNG + PDF; GIF/video deferred).
  */
 export function useExport(options: UseExportOptions): UseExportResult {
-	const { slides, canvasSize, rasterizeSlide } = options;
-	const exporting = ref(false);
+	const { slides, canvasSize, rasterizeSlide } = options,
+		exporting = ref(false);
 
 	async function exportSlidePng(index: number): Promise<void> {
 		if (exporting.value || index < 0 || index >= slides.value.length) {
@@ -84,11 +81,11 @@ export function useExport(options: UseExportOptions): UseExportResult {
 		const { onProgress, signal } = opts;
 		exporting.value = true;
 		try {
-			const { jsPDF } = await import('jspdf');
-			const { width, height } = canvasSize.value;
-			const orientation = width >= height ? 'landscape' : 'portrait';
-			const pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true });
-			const total = slides.value.length;
+			const { jsPDF } = await import('jspdf'),
+				{ width, height } = canvasSize.value,
+				orientation = width >= height ? 'landscape' : 'portrait',
+				pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true }),
+				total = slides.value.length;
 			for (let i = 0; i < total; i++) {
 				if (signal?.aborted) {
 					throw exportAbortError();

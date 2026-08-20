@@ -11,18 +11,24 @@
  */
 
 /** Default fallback name used when a download filename is empty or unusable. */
-const FALLBACK_DOWNLOAD_NAME = 'presentation.pptx';
-
-/** Revoke delay (ms) after triggering a download click. */
-const REVOKE_DELAY_MS = 200;
-
-/**
- * Revoke delay (ms) after opening a payload in a new tab. Longer than the
- * download delay: the new document may still be fetching the object URL (a PDF
- * viewer, an image) well after the current task finishes, so we keep the URL
- * alive for a minute before releasing it.
- */
-const OPEN_REVOKE_DELAY_MS = 60_000;
+const FALLBACK_DOWNLOAD_NAME = 'presentation.pptx',
+	/** Fallback stem used by {@link resolveExportBaseName} when no usable name remains. */
+	EXPORT_BASE_NAME_FALLBACK = 'presentation',
+	/**
+	 * Extensions {@link resolveExportBaseName} strips by default: every format the
+	 * export surface (PNG/PDF/GIF/WebM) or the original source deck (pptx) can be
+	 * named after. Bare, lower-case, no leading dot.
+	 */
+	DEFAULT_EXPORT_STRIP_EXTENSIONS = ['pptx', 'pdf', 'png', 'gif', 'webm'],
+	/** Revoke delay (ms) after triggering a download click. */
+	REVOKE_DELAY_MS = 200,
+	/**
+	 * Revoke delay (ms) after opening a payload in a new tab. Longer than the
+	 * download delay: the new document may still be fetching the object URL (a PDF
+	 * viewer, an image) well after the current task finishes, so we keep the URL
+	 * alive for a minute before releasing it.
+	 */
+	OPEN_REVOKE_DELAY_MS = 60_000;
 
 /**
  * Strip control characters, filesystem-reserved characters, and path-traversal
@@ -65,6 +71,33 @@ export function sanitizeDownloadFilename(input: string | undefined | null): stri
 }
 
 /**
+ * Derive the base (extensionless) file name for an export download from a
+ * user-supplied source file name: trims whitespace, strips one trailing
+ * extension from `extensions` (case-insensitive), and falls back to
+ * `presentation` when `sourceName` is `undefined` or the result is empty.
+ *
+ * Used by every binding's export controller to turn a loaded deck's source
+ * name (e.g. `Deck.pptx`) into the stem for its own export downloads (e.g.
+ * `Deck-slide-1.png`, `Deck.gif`) without doubling up the extension.
+ *
+ * @param sourceName - The raw source file name, or `undefined` when none is
+ *   known yet.
+ * @param extensions - Extensions to strip, without the leading dot. Defaults
+ *   to the full export-surface set (`pptx`, `pdf`, `png`, `gif`, `webm`).
+ */
+export function resolveExportBaseName(
+	sourceName: string | undefined,
+	extensions: readonly string[] = DEFAULT_EXPORT_STRIP_EXTENSIONS,
+): string {
+	if (sourceName === undefined) {
+		return EXPORT_BASE_NAME_FALLBACK;
+	}
+	const pattern = new RegExp(`\\.(?:${extensions.join('|')})$`, 'iu'),
+		trimmed = sourceName.trim().replace(pattern, '');
+	return trimmed === '' ? EXPORT_BASE_NAME_FALLBACK : trimmed;
+}
+
+/**
  * Trigger a browser download for a Blob. The `filename` is used verbatim: pass a
  * name through {@link sanitizeDownloadFilename} first if it may be hostile.
  *
@@ -72,8 +105,8 @@ export function sanitizeDownloadFilename(input: string | undefined | null): stri
  * @param filename - The suggested download name.
  */
 export function downloadBlob(blob: Blob, filename: string): void {
-	const url = URL.createObjectURL(blob);
-	const anchor = document.createElement('a');
+	const url = URL.createObjectURL(blob),
+		anchor = document.createElement('a');
 	anchor.href = url;
 	anchor.download = filename;
 	document.body.appendChild(anchor);
@@ -115,13 +148,14 @@ export function dataUrlToBlob(dataUrl: string): Blob | undefined {
 	if (!match?.groups) {
 		return undefined;
 	}
-	const mime = match.groups.mime || 'application/octet-stream';
-	const isBase64 = Boolean(match.groups.base64);
-	const payload = match.groups.payload ?? '';
+	// eslint-disable-next-line one-var -- separated from `match` above by a guard clause
+	const mime = match.groups.mime || 'application/octet-stream',
+		isBase64 = Boolean(match.groups.base64),
+		payload = match.groups.payload ?? '';
 	try {
 		if (isBase64) {
-			const binary = atob(payload);
-			const bytes = new Uint8Array(binary.length);
+			const binary = atob(payload),
+				bytes = new Uint8Array(binary.length);
 			for (let i = 0; i < binary.length; i++) {
 				bytes[i] = binary.charCodeAt(i);
 			}
@@ -144,14 +178,14 @@ export function dataUrlToBlob(dataUrl: string): Blob | undefined {
  * @param url - The payload URL (typically a recovered `data:` URL).
  */
 export function openUrlInNewTab(url: string): void {
-	const blob = url.startsWith('data:') ? dataUrlToBlob(url) : undefined;
-	const target = blob ? URL.createObjectURL(blob) : url;
-	// NB: no `noopener` here. A `blob:` object URL is resolved from the opener's
-	// origin-partitioned blob store, and Chromium refuses to resolve it in the
-	// disconnected browsing context `noopener` creates (the new tab lands on an
-	// empty document). We instead sever the child's back-reference to us
-	// afterwards, which mitigates reverse-tabnabbing without breaking the blob.
-	const opened = window.open(target, '_blank');
+	const blob = url.startsWith('data:') ? dataUrlToBlob(url) : undefined,
+		target = blob ? URL.createObjectURL(blob) : url,
+		// NB: no `noopener` here. A `blob:` object URL is resolved from the opener's
+		// origin-partitioned blob store, and Chromium refuses to resolve it in the
+		// disconnected browsing context `noopener` creates (the new tab lands on an
+		// empty document). We instead sever the child's back-reference to us
+		// afterwards, which mitigates reverse-tabnabbing without breaking the blob.
+		opened = window.open(target, '_blank');
 	if (opened) {
 		try {
 			opened.opener = null;

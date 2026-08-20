@@ -5,6 +5,7 @@ import {
 	downloadBlob,
 	downloadDataUrl,
 	openUrlInNewTab,
+	resolveExportBaseName,
 	sanitizeDownloadFilename,
 } from './download-helpers';
 
@@ -36,8 +37,8 @@ describe('sanitizeDownloadFilename', () => {
 	});
 
 	it('truncates over-long names while preserving the extension', () => {
-		const long = `${'a'.repeat(300)}.pptx`;
-		const out = sanitizeDownloadFilename(long);
+		const long = `${'a'.repeat(300)}.pptx`,
+			out = sanitizeDownloadFilename(long);
 		expect(out).toHaveLength(200);
 		expect(out.endsWith('.pptx')).toBeTruthy();
 	});
@@ -47,11 +48,48 @@ describe('sanitizeDownloadFilename', () => {
 	});
 });
 
+describe('resolveExportBaseName', () => {
+	it('falls back to "presentation" when the source name is undefined', () => {
+		expect(resolveExportBaseName(undefined)).toBe('presentation');
+	});
+
+	it('falls back to "presentation" when the trimmed result is empty', () => {
+		expect(resolveExportBaseName('   ')).toBe('presentation');
+		expect(resolveExportBaseName('.pptx')).toBe('presentation');
+	});
+
+	it('trims whitespace around the source name', () => {
+		expect(resolveExportBaseName('  My Deck  ')).toBe('My Deck');
+	});
+
+	it('strips the default extension set (pptx, pdf, png, gif, webm), case-insensitively', () => {
+		expect(resolveExportBaseName('Deck.pptx')).toBe('Deck');
+		expect(resolveExportBaseName('Deck.PDF')).toBe('Deck');
+		expect(resolveExportBaseName('Deck.png')).toBe('Deck');
+		expect(resolveExportBaseName('Deck.gif')).toBe('Deck');
+		expect(resolveExportBaseName('Deck.webm')).toBe('Deck');
+	});
+
+	it('leaves an unrecognised extension untouched', () => {
+		expect(resolveExportBaseName('Deck.ppt')).toBe('Deck.ppt');
+		expect(resolveExportBaseName('Deck.txt')).toBe('Deck.txt');
+	});
+
+	it('only strips a single trailing extension, not an embedded one', () => {
+		expect(resolveExportBaseName('report.v2.pptx')).toBe('report.v2');
+	});
+
+	it('accepts a custom extension set, overriding the default', () => {
+		expect(resolveExportBaseName('deck.pptx', ['png'])).toBe('deck.pptx');
+		expect(resolveExportBaseName('deck.png', ['png'])).toBe('deck');
+	});
+});
+
 describe('downloadBlob / downloadDataUrl', () => {
-	let anchor: FakeAnchor;
-	let createObjectURL: ReturnType<typeof vi.fn>;
-	let revokeObjectURL: ReturnType<typeof vi.fn>;
-	let appendChild: ReturnType<typeof vi.fn>;
+	let anchor: FakeAnchor,
+		createObjectURL: ReturnType<typeof vi.fn>,
+		revokeObjectURL: ReturnType<typeof vi.fn>,
+		appendChild: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -125,9 +163,9 @@ describe('dataUrlToBlob', () => {
 });
 
 describe('openUrlInNewTab', () => {
-	let open: ReturnType<typeof vi.fn>;
-	let createObjectURL: ReturnType<typeof vi.fn>;
-	let revokeObjectURL: ReturnType<typeof vi.fn>;
+	let open: ReturnType<typeof vi.fn>,
+		createObjectURL: ReturnType<typeof vi.fn>,
+		revokeObjectURL: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.useFakeTimers();

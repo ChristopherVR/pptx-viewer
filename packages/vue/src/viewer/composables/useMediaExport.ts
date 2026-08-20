@@ -1,6 +1,10 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per export step, several separated by
+   guard clauses); merging them isn't a style choice here. */
 import {
 	downloadBlob as sharedDownloadBlob,
 	pickSupportedMimeType,
+	resolveExportBaseName,
 	WEBM_MIME_CANDIDATES,
 } from 'pptx-viewer-shared';
 import { ref } from 'vue';
@@ -93,18 +97,15 @@ export interface UseMediaExportResult {
 	exportWebm: (options?: WebmExportOptions) => Promise<Blob | undefined>;
 }
 
-const DEFAULT_GIF_DURATION_MS = 2000;
-const DEFAULT_WEBM_DURATION_MS = 3000;
-const DEFAULT_FPS = 30;
-const DEFAULT_VIDEO_BITS_PER_SECOND = 5_000_000;
+const DEFAULT_GIF_DURATION_MS = 2000,
+	DEFAULT_WEBM_DURATION_MS = 3000,
+	DEFAULT_FPS = 30,
+	DEFAULT_VIDEO_BITS_PER_SECOND = 5_000_000;
 
+/** Unwrap `fileName` to a plain string before handing it to the shared resolver. */
 function resolveBaseName(fileName: UseMediaExportOptions['fileName']): string {
-	if (fileName === undefined) {
-		return 'presentation';
-	}
-	const value = typeof fileName === 'string' ? fileName : fileName.value;
-	const trimmed = value.trim().replace(/\.(?:pptx|pdf|png|gif|webm)$/iu, '');
-	return trimmed === '' ? 'presentation' : trimmed;
+	const value = typeof fileName === 'string' || fileName === undefined ? fileName : fileName.value;
+	return resolveExportBaseName(value);
 }
 
 function defaultCreateRecorder(
@@ -135,15 +136,14 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
  * the encoder and the recorder factory are injectable for unit testing.
  */
 export function useMediaExport(options: UseMediaExportOptions): UseMediaExportResult {
-	const { slideCount, rasterizeSlide } = options;
-	const loadGifEncoder =
-		options.loadGifEncoder ?? (async () => (await import('./gif-encoder')).encodeGif);
-	const createRecorder = options.createRecorder ?? defaultCreateRecorder;
-	const createCanvas = options.createCanvas ?? (() => document.createElement('canvas'));
-	const downloadBlob = options.downloadBlob ?? sharedDownloadBlob;
-
-	const exporting = ref(false);
-	const progress = ref(0);
+	const { slideCount, rasterizeSlide } = options,
+		loadGifEncoder =
+			options.loadGifEncoder ?? (async () => (await import('./gif-encoder')).encodeGif),
+		createRecorder = options.createRecorder ?? defaultCreateRecorder,
+		createCanvas = options.createCanvas ?? (() => document.createElement('canvas')),
+		downloadBlob = options.downloadBlob ?? sharedDownloadBlob,
+		exporting = ref(false),
+		progress = ref(0);
 
 	async function exportGif(opts: MediaExportOptions = {}): Promise<Blob | undefined> {
 		const total = slideCount.value;
@@ -159,8 +159,8 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 			for (let i = 0; i < total; i++) {
 				throwIfAborted(signal);
 				onProgress?.(i, total);
-				const canvas = await rasterizeSlide(i);
-				const ctx = canvas.getContext('2d');
+				const canvas = await rasterizeSlide(i),
+					ctx = canvas.getContext('2d');
 				if (!ctx) {
 					continue;
 				}
@@ -173,18 +173,17 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 				throw new Error('[useMediaExport] No slides were captured for GIF export');
 			}
 
-			const encodeGif = await loadGifEncoder();
-			// GIF89a uses a single shared delay; honour a per-slide override when the
-			// timings are uniform, otherwise fall back to the default duration.
-			const firstTiming = slideTimingsMs?.[0];
-			const durationMs =
-				firstTiming !== undefined && slideTimingsMs?.every((t) => t === firstTiming)
-					? firstTiming
-					: slideDurationMs;
-			const delayCs = Math.max(1, Math.round(durationMs / 10));
-			const bytes = encodeGif(frames, delayCs);
-
-			const buffer = new ArrayBuffer(bytes.length);
+			const encodeGif = await loadGifEncoder(),
+				// GIF89a uses a single shared delay; honour a per-slide override when the
+				// timings are uniform, otherwise fall back to the default duration.
+				firstTiming = slideTimingsMs?.[0],
+				durationMs =
+					firstTiming !== undefined && slideTimingsMs?.every((t) => t === firstTiming)
+						? firstTiming
+						: slideDurationMs,
+				delayCs = Math.max(1, Math.round(durationMs / 10)),
+				bytes = encodeGif(frames, delayCs),
+				buffer = new ArrayBuffer(bytes.length);
 			new Uint8Array(buffer).set(bytes);
 			const blob = new Blob([buffer], { type: 'image/gif' });
 
@@ -229,8 +228,8 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 			}
 
 			// Phase 2: composite each slide onto a recording canvas and record it.
-			const first = canvases[0];
-			const recordingCanvas = createCanvas();
+			const first = canvases[0],
+				recordingCanvas = createCanvas();
 			recordingCanvas.width = first.width;
 			recordingCanvas.height = first.height;
 			const ctx = recordingCanvas.getContext('2d');
@@ -239,11 +238,10 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 			}
 
 			const recorder = createRecorder(recordingCanvas, fps, {
-				mimeType: pickSupportedMimeType([...WEBM_MIME_CANDIDATES]),
-				videoBitsPerSecond,
-			});
-
-			const chunks: Blob[] = [];
+					mimeType: pickSupportedMimeType([...WEBM_MIME_CANDIDATES]),
+					videoBitsPerSecond,
+				}),
+				chunks: Blob[] = [];
 			recorder.ondataavailable = (e: BlobEvent) => {
 				if (e.data.size > 0) {
 					chunks.push(e.data);
@@ -268,8 +266,8 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 				}
 				onRecordProgress?.(i, canvases.length);
 
-				const duration = slideTimingsMs?.[i] ?? slideDurationMs;
-				const framesNeeded = Math.max(1, Math.ceil(duration / frameIntervalMs));
+				const duration = slideTimingsMs?.[i] ?? slideDurationMs,
+					framesNeeded = Math.max(1, Math.ceil(duration / frameIntervalMs));
 				ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
 				ctx.drawImage(canvases[i], 0, 0);
 

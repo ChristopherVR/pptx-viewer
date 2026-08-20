@@ -30,25 +30,26 @@ function makeSlides(n: number): PptxSlide[] {
 	);
 }
 
+// eslint-disable-next-line one-var -- module-scope const, separated from prior declarations
 const canvasSize = ref<CanvasSize>({ width: 960, height: 540 });
 
 describe('useExport', () => {
 	it('exports a single slide as a PNG download', async () => {
-		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
-		const click = vi.fn();
-		const orig = document.createElement.bind(document);
-		const spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-			const el = orig(tag) as HTMLElement;
-			if (tag === 'a') {
-				(el as HTMLAnchorElement).click = click;
-			}
-			return el;
-		});
-		const { exportSlidePng } = useExport({
-			slides: ref(makeSlides(3)),
-			canvasSize,
-			rasterizeSlide,
-		});
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			click = vi.fn(),
+			orig = document.createElement.bind(document),
+			spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+				const el = orig(tag) as HTMLElement;
+				if (tag === 'a') {
+					(el as HTMLAnchorElement).click = click;
+				}
+				return el;
+			}),
+			{ exportSlidePng } = useExport({
+				slides: ref(makeSlides(3)),
+				canvasSize,
+				rasterizeSlide,
+			});
 		await exportSlidePng(1);
 		expect(rasterizeSlide).toHaveBeenCalledWith(1);
 		expect(click).toHaveBeenCalledOnce();
@@ -56,12 +57,12 @@ describe('useExport', () => {
 	});
 
 	it('ignores an out-of-range slide index', async () => {
-		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
-		const { exportSlidePng } = useExport({
-			slides: ref(makeSlides(2)),
-			canvasSize,
-			rasterizeSlide,
-		});
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			{ exportSlidePng } = useExport({
+				slides: ref(makeSlides(2)),
+				canvasSize,
+				rasterizeSlide,
+			});
 		await exportSlidePng(5);
 		expect(rasterizeSlide).not.toHaveBeenCalled();
 	});
@@ -70,8 +71,8 @@ describe('useExport', () => {
 		addImage.mockClear();
 		addPage.mockClear();
 		save.mockClear();
-		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
-		const { exportPdf } = useExport({ slides: ref(makeSlides(3)), canvasSize, rasterizeSlide });
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			{ exportPdf } = useExport({ slides: ref(makeSlides(3)), canvasSize, rasterizeSlide });
 		await exportPdf();
 		expect(rasterizeSlide).toHaveBeenCalledTimes(3);
 		expect(addImage).toHaveBeenCalledTimes(3);
@@ -80,12 +81,43 @@ describe('useExport', () => {
 	});
 
 	it('toggles the exporting flag around a run', async () => {
-		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
-		const result = useExport({ slides: ref(makeSlides(1)), canvasSize, rasterizeSlide });
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			result = useExport({ slides: ref(makeSlides(1)), canvasSize, rasterizeSlide });
 		expect(result.exporting.value).toBeFalsy();
+		// eslint-disable-next-line one-var -- separated from `result` above by an assertion
 		const p = result.exportSlidePng(0);
 		expect(result.exporting.value).toBeTruthy();
 		await p;
 		expect(result.exporting.value).toBeFalsy();
+	});
+
+	it('strips a .gif/.webm source extension too, not just pptx/pdf/png (regression)', async () => {
+		// Previously `resolveBaseName` here stripped only .(pptx|pdf|png), so a
+		// deck loaded from e.g. `deck.gif` (or re-exported and reloaded) kept the
+		// stray extension and produced `deck.gif.pdf`. The shared
+		// `resolveExportBaseName` strips the fuller export-surface set.
+		save.mockClear();
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			{ exportPdf } = useExport({
+				slides: ref(makeSlides(1)),
+				canvasSize,
+				rasterizeSlide,
+				fileName: 'My Deck.webm',
+			});
+		await exportPdf();
+		expect(save).toHaveBeenCalledWith('My Deck.pdf');
+	});
+
+	it('accepts a Ref<string> fileName, unwrapped before stripping the extension', async () => {
+		save.mockClear();
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			{ exportPdf } = useExport({
+				slides: ref(makeSlides(1)),
+				canvasSize,
+				rasterizeSlide,
+				fileName: ref('Quarterly.gif'),
+			});
+		await exportPdf();
+		expect(save).toHaveBeenCalledWith('Quarterly.pdf');
 	});
 });

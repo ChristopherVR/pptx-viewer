@@ -5,6 +5,7 @@ import {
 	downloadDataUrl,
 	exportAbortError,
 	exportDeckJson,
+	resolveExportBaseName,
 } from 'pptx-viewer-shared';
 
 import type { ExportGifOptions } from './export-gif';
@@ -49,14 +50,6 @@ export interface ExportControllerDeps {
 	getFileName?(): string | undefined;
 }
 
-function resolveBaseName(fileName: string | undefined): string {
-	if (fileName === undefined) {
-		return 'presentation';
-	}
-	const trimmed = fileName.trim().replace(/\.(?:pptx|pdf|png|gif|webm)$/iu, '');
-	return trimmed === '' ? 'presentation' : trimmed;
-}
-
 /**
  * Export controller (runes class): render slides to PNG / PDF / animated GIF /
  * WebM video, plus the print flow. Started as a Svelte port of Vue's
@@ -93,7 +86,7 @@ export class ExportController {
 			const canvas = await this.#deps.rasterizeSlide(targetIndex);
 			downloadDataUrl(
 				canvas.toDataURL('image/png'),
-				`${resolveBaseName(this.#deps.fileName)}-slide-${targetIndex + 1}.png`,
+				`${resolveExportBaseName(this.#deps.fileName)}-slide-${targetIndex + 1}.png`,
 			);
 		} finally {
 			this.exporting = false;
@@ -114,10 +107,10 @@ export class ExportController {
 		}
 		this.exporting = true;
 		try {
-			const canvas = await this.#deps.rasterizeSlide(targetIndex);
-			const blob = await new Promise<Blob | null>((resolve) => {
-				canvas.toBlob(resolve, 'image/png');
-			});
+			const canvas = await this.#deps.rasterizeSlide(targetIndex),
+				blob = await new Promise<Blob | null>((resolve) => {
+					canvas.toBlob(resolve, 'image/png');
+				});
 			if (blob) {
 				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 			}
@@ -145,13 +138,14 @@ export class ExportController {
 		if (this.exporting || total === 0) {
 			return;
 		}
+		// eslint-disable-next-line one-var -- separated from `total` above by a guard clause
 		const { onProgress, signal } = options;
 		this.exporting = true;
 		try {
-			const { jsPDF } = await import('jspdf');
-			const { width, height } = this.#deps.getCanvasSize();
-			const orientation = width >= height ? 'landscape' : 'portrait';
-			const pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true });
+			const { jsPDF } = await import('jspdf'),
+				{ width, height } = this.#deps.getCanvasSize(),
+				orientation = width >= height ? 'landscape' : 'portrait',
+				pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true });
 			for (let i = 0; i < total; i++) {
 				if (signal?.aborted) {
 					throw exportAbortError();
@@ -163,7 +157,7 @@ export class ExportController {
 				}
 				pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
 			}
-			pdf.save(`${resolveBaseName(this.#deps.fileName)}.pdf`);
+			pdf.save(`${resolveExportBaseName(this.#deps.fileName)}.pdf`);
 		} finally {
 			this.exporting = false;
 		}
@@ -187,7 +181,7 @@ export class ExportController {
 				},
 				options,
 			);
-			downloadBlob(blob, `${resolveBaseName(this.#deps.fileName)}.gif`);
+			downloadBlob(blob, `${resolveExportBaseName(this.#deps.fileName)}.gif`);
 		} finally {
 			this.exporting = false;
 		}
@@ -211,7 +205,7 @@ export class ExportController {
 				},
 				options,
 			);
-			downloadBlob(blob, `${resolveBaseName(this.#deps.fileName)}.webm`);
+			downloadBlob(blob, `${resolveExportBaseName(this.#deps.fileName)}.webm`);
 		} finally {
 			this.exporting = false;
 		}
