@@ -1,3 +1,5 @@
+/* oxlint-disable eslint/one-var -- many independent it() blocks, each with
+   its own short arrange/act/assert consts. */
 import type { PptxElement } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -54,6 +56,7 @@ type TableShape = {
 	tableData?: {
 		firstRowHeader?: boolean;
 		bandedRows?: boolean;
+		columnWidths: number[];
 		rows: Array<{ cells: Array<{ style?: { marginLeft?: number } }> }>;
 	};
 };
@@ -119,6 +122,37 @@ describe('tableSection', () => {
 				expect(cell.style?.marginLeft).toBe(8);
 			}
 		}
+	});
+
+	it('sets a column to the exact requested width, proportionally rescaling the others', () => {
+		// Regression: TableSection used to just overwrite the target column and
+		// renormalise the WHOLE array by sum, which dilutes the target itself
+		// (dragging the slider to 60% never actually showed 60%) instead of
+		// proportionally rescaling only the other columns, as `redistributeColumnWidth`
+		// (and every other binding's column-width control) does.
+		const el = tableEl();
+		if (el.type === 'table' && el.tableData) {
+			el.tableData.columnWidths = [0.2, 0.3, 0.5];
+			el.tableData.rows = [
+				{ cells: [{ text: 'A' }, { text: 'B' }, { text: 'C' }] },
+				{ cells: [{ text: 'D' }, { text: 'E' }, { text: 'F' }] },
+			];
+		}
+		const editor = makeEditor(el);
+		const { target } = mountSection(editor, currentEl(editor));
+		const slider = target.querySelector<HTMLInputElement>('input[type="range"]');
+		if (!slider) {
+			throw new Error('column width slider not found');
+		}
+		slider.value = '60';
+		slider.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		const widths = (currentEl(editor) as TableShape).tableData?.columnWidths ?? [];
+		expect(widths[0]).toBeCloseTo(0.6, 5);
+		expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 5);
+		// The untouched columns' 0.3:0.5 ratio to each other is preserved.
+		expect(widths[2] / widths[1]).toBeCloseTo(0.5 / 0.3, 5);
 	});
 
 	it('formats an individual selected cell', () => {

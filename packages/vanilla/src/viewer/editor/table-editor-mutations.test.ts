@@ -55,6 +55,25 @@ describe('table editor mutations', () => {
 		expect(setTableRowHeight(resized, 1, 88).rows[1].height).toBe(88);
 	});
 
+	// Regression: `setTableColumnWidth` delegates to `pptx-viewer-shared`'s
+	// `redistributeColumnWidth`, the same formula every other binding's
+	// column-width control uses, so it proportionally rescales the OTHER
+	// columns (preserving their relative ratio) rather than the target column
+	// itself ending up diluted by a naive whole-array sum renormalisation.
+	it('proportionally rescales the other columns and preserves their ratio', () => {
+		const data: PptxTableData = {
+			columnWidths: [0.2, 0.3, 0.5],
+			rows: [
+				{ cells: [{ text: 'a' }, { text: 'b' }, { text: 'c' }] },
+				{ cells: [{ text: 'd' }, { text: 'e' }, { text: 'f' }] },
+			],
+		};
+		const resized = setTableColumnWidth(data, 0, 60);
+		expect(resized.columnWidths[0]).toBeCloseTo(0.6, 5);
+		expect(resized.columnWidths.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 5);
+		expect(resized.columnWidths[2] / resized.columnWidths[1]).toBeCloseTo(0.5 / 0.3, 5);
+	});
+
 	it('merges a rectangle and splits its anchor', () => {
 		const cells = [
 			{ row: 0, column: 0 },

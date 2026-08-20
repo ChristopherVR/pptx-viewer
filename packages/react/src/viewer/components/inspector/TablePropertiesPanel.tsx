@@ -1,4 +1,7 @@
+/* oxlint-disable eslint/one-var -- independent, unrelated locals; merging them
+   into one statement would hurt readability. */
 import type { PptxElement, PptxTableCellStyle, TablePptxElement } from 'pptx-viewer-core';
+import { evenColumnWidths, evenRowHeights, redistributeColumnWidth } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -169,10 +172,7 @@ export function TablePropertiesPanel({
 						className={BTN}
 						disabled={!canEdit}
 						onClick={() => {
-							const even = 1 / colCount;
-							updateTableData({
-								columnWidths: Array(colCount).fill(even) as number[],
-							});
+							updateTableData({ columnWidths: evenColumnWidths(colCount) });
 						}}
 					>
 						{t('pptx.table.even')}
@@ -191,24 +191,9 @@ export function TablePropertiesPanel({
 								className='flex-1 accent-primary'
 								onChange={(e) => {
 									const newPct = Number(e.target.value) / 100;
-									const oldPct = td.columnWidths[ci];
-									const diff = newPct - oldPct;
-									const newWidths = [...td.columnWidths];
-									newWidths[ci] = newPct;
-									const othersTotal = 1 - oldPct;
-									if (othersTotal > 0) {
-										for (let j = 0; j < newWidths.length; j++) {
-											if (j !== ci) {
-												newWidths[j] = Math.max(
-													0.05,
-													td.columnWidths[j] - diff * (td.columnWidths[j] / othersTotal),
-												);
-											}
-										}
-									}
-									const sum = newWidths.reduce((a, b) => a + b, 0);
-									const normed = newWidths.map((v) => v / sum);
-									updateTableData({ columnWidths: normed });
+									updateTableData({
+										columnWidths: redistributeColumnWidth(td.columnWidths, ci, newPct),
+									});
 								}}
 							/>
 							<span className='w-10 text-right text-muted-foreground'>{Math.round(w * 100)}%</span>
@@ -226,10 +211,7 @@ export function TablePropertiesPanel({
 						className={BTN}
 						disabled={!canEdit}
 						onClick={() => {
-							const avg = Math.round(td.rows.reduce((s, r) => s + (r.height ?? 32), 0) / rowCount);
-							updateTableData({
-								rows: td.rows.map((r) => ({ ...r, height: avg })),
-							});
+							updateTableData({ rows: evenRowHeights(td.rows) });
 						}}
 					>
 						{t('pptx.table.even')}

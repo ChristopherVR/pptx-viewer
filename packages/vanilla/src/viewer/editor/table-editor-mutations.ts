@@ -10,6 +10,7 @@ import {
 	insertTableColumn,
 	insertTableRow,
 	mergeCells,
+	redistributeColumnWidth,
 } from 'pptx-viewer-shared';
 
 export interface TableCellPosition {
@@ -65,6 +66,12 @@ export function mutateTableStructure(
 	}
 }
 
+/**
+ * Set column `column` to `percent` (0-100), proportionally rescaling every
+ * other column to preserve their relative ratios and keep the row summing to
+ * 1. Delegates to `pptx-viewer-shared`'s `redistributeColumnWidth`, the same
+ * formula every binding's column-width control uses.
+ */
 export function setTableColumnWidth(
 	data: PptxTableData,
 	column: number,
@@ -74,14 +81,9 @@ export function setTableColumnWidth(
 		return data;
 	}
 	const requested = Math.min(0.95, Math.max(0.05, percent / 100));
-	const previous = data.columnWidths[column];
-	const remaining = 1 - previous;
-	const nextRemaining = 1 - requested;
 	return {
 		...data,
-		columnWidths: data.columnWidths.map((width, index) =>
-			index === column ? requested : remaining > 0 ? (width / remaining) * nextRemaining : width,
-		),
+		columnWidths: redistributeColumnWidth(data.columnWidths, column, requested),
 	};
 }
 

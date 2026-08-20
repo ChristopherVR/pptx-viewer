@@ -10,20 +10,24 @@
  * controls. Every edit emits a fully-updated element through `elementChange`,
  * committed by the inspector as one undoable history entry.
  */
+/* oxlint-disable eslint/one-var -- each handler declares its own independent
+   locals; merging them into one statement would hurt readability. */
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStylePreset } from '../internal/shared';
-import { TABLE_STYLE_PRESETS } from '../internal/shared';
+import {
+	evenColumnWidths,
+	evenRowHeights,
+	redistributeColumnWidth,
+	TABLE_STYLE_PRESETS,
+} from '../internal/shared';
 import { patchTableData } from './table-data-helpers';
 import type { TableBooleanFlag } from './table-properties-helpers';
 import {
 	applyTableStylePreset,
 	DEFAULT_TABLE_ROW_HEIGHT,
-	evenColumnWidths,
-	evenRowHeights,
-	redistributeColumnWidth,
 	TABLE_STRUCTURE_TOGGLES,
 } from './table-properties-helpers';
 
@@ -295,7 +299,7 @@ export class TablePropertiesComponent {
 	protected onEvenRows(): void {
 		const data = this.td();
 		if (data) {
-			this.emit({ rows: evenRowHeights(data) });
+			this.emit({ rows: evenRowHeights(data.rows) });
 		}
 	}
 
