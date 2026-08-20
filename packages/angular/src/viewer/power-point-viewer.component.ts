@@ -98,6 +98,7 @@ import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
 import { MasterViewCanvasComponent } from './master-view-canvas.component';
 import { MasterViewSidebarComponent } from './master-view-sidebar.component';
+import { applyMobileBarSheetTap } from './mobile-bar-sheet-tap';
 import { MobileBottomBarComponent } from './mobile-bottom-bar.component';
 import type { MobileBarSheet } from './mobile-bottom-bar.component';
 import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
@@ -1093,15 +1094,11 @@ import { ZoomTargetService } from './zoom-target.service';
 					[slideCount]="slideCount()"
 					[commentCount]="activeComments().length"
 					[activeSheet]="mobileBarSheet()"
-					(openSlides)="
-						mobileSheetSvc.mobileSheet.set(
-							mobileSheetSvc.mobileSheet() === 'slides' ? null : 'slides'
-						)
-					"
+					(openSlides)="applyMobileSheetTap('slides')"
 					(insert)="mobileSheetSvc.onMobileInsert()"
-					(openFormat)="onMobileFormat()"
-					(openComments)="inspectorPanel.togglePanel('comments')"
-					(notes)="mobileSheetSvc.toggleNotes()"
+					(openFormat)="applyMobileSheetTap('inspector')"
+					(openComments)="applyMobileSheetTap('comments')"
+					(notes)="applyMobileSheetTap('notes')"
 				/>
 			}
 		</div>
@@ -2799,16 +2796,33 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	}
 
 	/**
-	 * Mobile "Format" slot: surface the inspector for the current selection.
-	 * On mobile the format pane starts closed (React parity: the canvas owns
-	 * the first paint), so this explicitly opens it; with an element selected
-	 * it shows the element inspector, otherwise the slide-properties view.
+	 * Mobile bottom-bar tap: decide the next sheet with shared's `toggleSheet`
+	 * (via `applyMobileBarSheetTap`), same priority every binding follows -
+	 * tapping the open sheet closes it, tapping a different one switches to it.
+	 * `mobileSheetSvc` and `inspectorPanel` back different bar slots (slides/
+	 * notes vs. format/comments), so this is the one place that coordinates
+	 * both from the shared decision.
 	 */
-	protected onMobileFormat(): void {
-		this.mobileSheetSvc.mobileSheet.set(null);
-		// Close any tool panel, clear the mobile-closed default, and undo a
-		// prior swipe-down dismissal so the format pane surfaces.
-		this.inspectorPanel.openFormatPanel();
+	protected applyMobileSheetTap(tapped: Exclude<MobileBarSheet, null>): void {
+		applyMobileBarSheetTap(tapped, this.mobileBarSheet(), {
+			openSlides: () => this.mobileSheetSvc.mobileSheet.set('slides'),
+			// Close any tool panel, clear the mobile-closed default, and undo a
+			// prior swipe-down dismissal so the format pane surfaces (with an
+			// element selected it shows the element inspector, otherwise slide
+			// properties).
+			openInspector: () => this.inspectorPanel.openFormatPanel(),
+			openComments: () => {
+				this.inspectorPanel.activePanel.set('comments');
+				this.inspectorPanel.mobileInspectorHidden.set(false);
+			},
+			openNotes: () => this.mobileSheetSvc.showNotes.set(true),
+			closeAll: () => {
+				this.mobileSheetSvc.mobileSheet.set(null);
+				this.mobileSheetSvc.showNotes.set(false);
+				this.inspectorPanel.activePanel.set(null);
+				this.inspectorPanel.formatPanelClosed.set(true);
+			},
+		});
 	}
 
 	/** Receive draw-tool state changes from the ribbon Draw tab. */

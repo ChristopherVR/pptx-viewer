@@ -58,33 +58,12 @@ const props = defineProps<{
 	onSelectElement: (id: string) => void;
 }>();
 
+// oxlint-disable-next-line eslint/one-var -- distinct concern from the `defineProps` macro call above, forcing one statement hurts readability
 const { t } = useI18n();
-
-/** Which `chrome` ref backs each bottom-bar tab. */
-const SHEET_REFS = {
-	slides: 'mobileSlidesOpen',
-	format: 'mobileInspectorOpen',
-	comments: 'mobileCommentsOpen',
-	notes: 'mobileNotesOpen',
-} as const;
 
 /** Commit a comments mutation through the history-aware wiring. */
 function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]): void {
 	props.comments.commitComments(next);
-}
-
-/**
- * Bottom-bar taps toggle their sheet: tapping the tab of the sheet that is
- * already open closes it, anything else opens that sheet (which
- * `openMobileSheet` makes exclusive).
- */
-function toggleSheet(sheet: keyof typeof SHEET_REFS): void {
-	const open = props.chrome[SHEET_REFS[sheet]];
-	if (open.value) {
-		open.value = false;
-		return;
-	}
-	props.chrome.openMobileSheet(sheet);
 }
 </script>
 
@@ -94,11 +73,11 @@ function toggleSheet(sheet: keyof typeof SHEET_REFS): void {
 		:active-sheet="chrome.activeSheet.value"
 		:keyboard-inset="keyboardInset"
 		:comment-count="activeComments.length"
-		@slides="toggleSheet('slides')"
+		@slides="chrome.toggleMobileSheet('slides')"
 		@insert="chrome.mobileQuickInsert"
-		@format="toggleSheet('format')"
-		@comments="toggleSheet('comments')"
-		@notes="toggleSheet('notes')"
+		@format="chrome.toggleMobileSheet('format')"
+		@comments="chrome.toggleMobileSheet('comments')"
+		@notes="chrome.toggleMobileSheet('notes')"
 	/>
 
 	<!-- Slide-rail sheet (the slides panel is a left rail on desktop, hidden

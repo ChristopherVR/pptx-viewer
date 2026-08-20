@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { toggleSheet } from 'pptx-viewer-shared';
 import React from 'react';
 
 import type { EditorOperationsResult } from '../../hooks/useEditorOperations';
@@ -8,6 +9,24 @@ import type { ViewerState } from '../../hooks/useViewerState';
 import type { CanvasSize, SlideSectionGroup } from '../../types';
 import { MobileBottomBar } from './MobileBottomBar';
 import { MobileSlidesSheet } from './MobileSlidesSheet';
+
+/** The mobile sheets this overlay toggles; a subset of shared's `MobileSheetKey`. */
+export type MobileChromeSheet = 'slides' | 'inspector' | 'comments' | 'notes';
+
+/**
+ * Decide the next active sheet for a bottom-bar tap, delegating to shared's
+ * `toggleSheet` so React follows the same open/close priority every binding
+ * uses: tapping the open sheet closes it, tapping a different one switches to
+ * it. Exported (rather than left as an inline closure) so the priority order
+ * itself is directly testable without mounting the whole overlay.
+ */
+export function nextMobileSheet(
+	current: MobileChromeSheet | null,
+	tapped: MobileChromeSheet,
+): MobileChromeSheet | null {
+	const next = toggleSheet(current, tapped);
+	return next === tapped ? tapped : null;
+}
 
 export interface MobileChromeOverlayProps {
 	state: ViewerState;
@@ -44,7 +63,7 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 			commentCount,
 		} = props,
 		{ keyboardInset, isKeyboardOpen } = useKeyboardInsets(),
-		activeSheet: 'slides' | 'inspector' | 'comments' | 'notes' | null = s.isSlidesPaneOpen
+		activeSheet: MobileChromeSheet | null = s.isSlidesPaneOpen
 			? 'slides'
 			: s.isInspectorPaneOpen
 				? s.sidebarPanelMode === 'comments'
@@ -58,7 +77,7 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 			s.setIsInspectorPaneOpen(false);
 			s.setIsSlideNotesCollapsed(true);
 		},
-		openSheet = (which: 'slides' | 'inspector' | 'comments' | 'notes') => {
+		openSheet = (which: MobileChromeSheet) => {
 			closeAllSheets();
 			switch (which) {
 				case 'slides':
@@ -75,6 +94,18 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 				case 'notes':
 					s.setIsSlideNotesCollapsed(false);
 					break;
+			}
+		},
+		// Bottom-bar taps decide their next sheet through `nextMobileSheet`
+		// (shared's `toggleSheet`). Each binding's underlying storage differs
+		// (here, inspector/comments share one `isInspectorPaneOpen` flag split
+		// by `sidebarPanelMode`), so only the decision comes from shared;
+		// `openSheet` above still owns mapping it onto this binding's own state.
+		applySheetTap = (tapped: MobileChromeSheet) => {
+			const next = nextMobileSheet(activeSheet, tapped);
+			closeAllSheets();
+			if (next) {
+				openSheet(next);
 			}
 		};
 
@@ -131,27 +162,15 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 					slideCount={slides.length}
 					activeSheet={activeSheet}
 					commentCount={commentCount}
-					onOpenSlides={() =>
-						s.isSlidesPaneOpen ? s.setIsSlidesPaneOpen(false) : openSheet('slides')
-					}
+					onOpenSlides={() => applySheetTap('slides')}
 					onOpenInsert={() => {
 						// Quick-insert: a text box is the most common starter element
 						// on mobile. Full Insert section lives in the top-bar menu.
 						editorOps.insertHandlers.handleAddTextBox();
 					}}
-					onOpenInspector={() =>
-						s.isInspectorPaneOpen && s.sidebarPanelMode !== 'comments'
-							? s.setIsInspectorPaneOpen(false)
-							: openSheet('inspector')
-					}
-					onOpenComments={() =>
-						s.isInspectorPaneOpen && s.sidebarPanelMode === 'comments'
-							? s.setIsInspectorPaneOpen(false)
-							: openSheet('comments')
-					}
-					onToggleNotes={() =>
-						!s.isSlideNotesCollapsed ? s.setIsSlideNotesCollapsed(true) : openSheet('notes')
-					}
+					onOpenInspector={() => applySheetTap('inspector')}
+					onOpenComments={() => applySheetTap('comments')}
+					onToggleNotes={() => applySheetTap('notes')}
 				/>
 			</div>
 		</>
