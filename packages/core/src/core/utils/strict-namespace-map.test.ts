@@ -60,6 +60,40 @@ describe('normalizeNamespaceUri', () => {
 			normalizeNamespaceUri('http://purl.oclc.org/ooxml/officeDocument/relationships/image'),
 		).toBe('http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
 	});
+
+	// Per the Open XML SDK's own translation table (OpenXmlNamespaceResolver.cs),
+	// custom/extended-properties are camelCase on the Strict side even though the
+	// Transitional side (and every other officeDocument URI) is hyphenated - the
+	// one exception to this family's otherwise-uniform "identical tail" mapping.
+	it('converts the Strict custom-properties URI (camelCase, no hyphen)', () => {
+		expect(
+			normalizeNamespaceUri('http://purl.oclc.org/ooxml/officeDocument/customProperties'),
+		).toBe('http://schemas.openxmlformats.org/officeDocument/2006/custom-properties');
+	});
+
+	it('converts the Strict extended-properties URI (camelCase, no hyphen)', () => {
+		expect(
+			normalizeNamespaceUri('http://purl.oclc.org/ooxml/officeDocument/extendedProperties'),
+		).toBe('http://schemas.openxmlformats.org/officeDocument/2006/extended-properties');
+	});
+
+	it('converts the Strict custom-properties relationship URI', () => {
+		expect(
+			normalizeNamespaceUri(
+				'http://purl.oclc.org/ooxml/officeDocument/relationships/customProperties',
+			),
+		).toBe('http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties');
+	});
+
+	it('converts the Strict extended-properties relationship URI', () => {
+		expect(
+			normalizeNamespaceUri(
+				'http://purl.oclc.org/ooxml/officeDocument/relationships/extendedProperties',
+			),
+		).toBe(
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties',
+		);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -273,6 +307,22 @@ describe('toStrictNamespaceUri', () => {
 				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
 			),
 		).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/image');
+	});
+
+	it('converts the Transitional custom-properties relationship URI to the camelCase Strict form', () => {
+		expect(
+			toStrictNamespaceUri(
+				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties',
+			),
+		).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/customProperties');
+	});
+
+	it('converts the Transitional extended-properties relationship URI to the camelCase Strict form', () => {
+		expect(
+			toStrictNamespaceUri(
+				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties',
+			),
+		).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/extendedProperties');
 	});
 
 	it('leaves the OPC package relationships namespace unchanged (conformance-independent)', () => {

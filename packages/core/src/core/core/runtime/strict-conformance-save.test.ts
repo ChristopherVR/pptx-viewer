@@ -133,7 +133,10 @@ describe('simulated strict OOXML round-trip', () => {
 					},
 					{
 						'@_Id': 'rId3',
-						'@_Type': 'http://purl.oclc.org/ooxml/officeDocument/relationships/extended-properties',
+						// Per the Open XML SDK's own translation table, custom/extended
+						// -properties are camelCase on the Strict side (the one exception
+						// to this family's otherwise-uniform hyphenated tail).
+						'@_Type': 'http://purl.oclc.org/ooxml/officeDocument/relationships/extendedProperties',
 						'@_Target': 'docProps/app.xml',
 					},
 				],
@@ -155,6 +158,10 @@ describe('simulated strict OOXML round-trip', () => {
 		// The OPC-defined core-properties type stays canonical in both directions.
 		expect(rels[1]['@_Type']).toBe(
 			'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
+		);
+		// The Strict camelCase form normalizes to the Transitional hyphenated one.
+		expect(rels[2]['@_Type']).toBe(
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties',
 		);
 
 		// Convert back to strict

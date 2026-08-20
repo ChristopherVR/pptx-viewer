@@ -114,7 +114,11 @@ const NAMESPACE_PAIRS: ReadonlyArray<[string, string]> = [
 		'http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramStyle',
 	],
 	[
-		'http://purl.oclc.org/ooxml/officeDocument/relationships/extended-properties',
+		'http://purl.oclc.org/ooxml/officeDocument/relationships/customProperties',
+		'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties',
+	],
+	[
+		'http://purl.oclc.org/ooxml/officeDocument/relationships/extendedProperties',
 		'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties',
 	],
 	[
@@ -204,11 +208,11 @@ const NAMESPACE_PAIRS: ReadonlyArray<[string, string]> = [
 		'http://schemas.openxmlformats.org/officeDocument/2006/bibliography',
 	],
 	[
-		'http://purl.oclc.org/ooxml/officeDocument/custom-properties',
+		'http://purl.oclc.org/ooxml/officeDocument/customProperties',
 		'http://schemas.openxmlformats.org/officeDocument/2006/custom-properties',
 	],
 	[
-		'http://purl.oclc.org/ooxml/officeDocument/extended-properties',
+		'http://purl.oclc.org/ooxml/officeDocument/extendedProperties',
 		'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties',
 	],
 	[
