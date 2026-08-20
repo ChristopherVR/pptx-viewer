@@ -10,6 +10,17 @@ dated sections beneath it are generated from
 
 ## 2026-08-20
 
+_Releases: pptx-react-viewer@2.20.2, pptx-vue-viewer@2.21.2, pptx-angular-viewer@2.19.2, pptx-vanilla-viewer@1.22.2, pptx-svelte-viewer@2.21.2, pptx-viewer-mcp@2.1.3_
+
+### Bug Fixes
+
+- **svelte,vanilla:** Fix the obfuscation key order in the embedded-font test fixture (by @ChristopherVR) ([20320c2](https://github.com/ChristopherVR/pptx-viewer/commit/20320c255c992a43c4b2b8a5117b18573be33374))
+- **demo:** Stop synchronous setState-in-effect on collab/restore bootstrap (by @ChristopherVR) ([feab6da](https://github.com/ChristopherVR/pptx-viewer/commit/feab6da8745855d5f5042aeea149593b12a15e4a))
+- **shared:** Describe stripped invisible characters by code point, not literally (by @ChristopherVR) ([9ddca51](https://github.com/ChristopherVR/pptx-viewer/commit/9ddca51028e7bba92a9433513dea0c5320415bdb))
+- **ci:** Turn off oxlint's React Compiler rule family and fix the last irregular-whitespace hits (by @ChristopherVR) ([30c6bd8](https://github.com/ChristopherVR/pptx-viewer/commit/30c6bd84de19bd4168b8b3f1035ae8d6de16efe1))
+
+## 2026-08-20
+
 _Releases: pptx-react-viewer@2.20.1, pptx-vue-viewer@2.21.1, pptx-angular-viewer@2.19.1, pptx-vanilla-viewer@1.22.1, pptx-svelte-viewer@2.21.1_
 
 ### Bug Fixes

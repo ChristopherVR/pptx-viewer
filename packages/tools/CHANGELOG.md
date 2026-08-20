@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.3) - 2026-08-20
+
+### Bug Fixes
+
+- **ci:** Stop the hourly release writing an empty changelog section (by @ChristopherVR) ([d53c0fe](https://github.com/ChristopherVR/pptx-viewer/commit/d53c0feffa2c2d9c67dfc495cb8dbefdf23638ae))
+- **ci:** Turn off oxlint's React Compiler rule family and fix the last irregular-whitespace hits (by @ChristopherVR) ([30c6bd8](https://github.com/ChristopherVR/pptx-viewer/commit/30c6bd84de19bd4168b8b3f1035ae8d6de16efe1))
+
 ## [2.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.2) - 2026-08-13
 
 ### Testing

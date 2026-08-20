@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.21.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.2) - 2026-08-20
+
+### Bug Fixes
+
+- **shared:** Describe stripped invisible characters by code point, not literally (by @ChristopherVR) ([9ddca51](https://github.com/ChristopherVR/pptx-viewer/commit/9ddca51028e7bba92a9433513dea0c5320415bdb))
+
 ## [2.21.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.1) - 2026-08-20
 
 ### Bug Fixes

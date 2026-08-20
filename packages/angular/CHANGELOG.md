@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.2) - 2026-08-20
+
+### Bug Fixes
+
+- **shared:** Describe stripped invisible characters by code point, not literally (by @ChristopherVR) ([9ddca51](https://github.com/ChristopherVR/pptx-viewer/commit/9ddca51028e7bba92a9433513dea0c5320415bdb))
+- **ci:** Turn off oxlint's React Compiler rule family and fix the last irregular-whitespace hits (by @ChristopherVR) ([30c6bd8](https://github.com/ChristopherVR/pptx-viewer/commit/30c6bd84de19bd4168b8b3f1035ae8d6de16efe1))
+
 ## [2.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.1) - 2026-08-20
 
 ### Bug Fixes

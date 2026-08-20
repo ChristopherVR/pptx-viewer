@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [1.22.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.22.2) - 2026-08-20
+
+### Bug Fixes
+
+- **svelte,vanilla:** Fix the obfuscation key order in the embedded-font test fixture (by @ChristopherVR) ([20320c2](https://github.com/ChristopherVR/pptx-viewer/commit/20320c255c992a43c4b2b8a5117b18573be33374))
+- **shared:** Describe stripped invisible characters by code point, not literally (by @ChristopherVR) ([9ddca51](https://github.com/ChristopherVR/pptx-viewer/commit/9ddca51028e7bba92a9433513dea0c5320415bdb))
+
 ## [1.22.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.22.1) - 2026-08-20
 
 ### Bug Fixes
