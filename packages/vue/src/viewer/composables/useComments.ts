@@ -1,6 +1,16 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (each mutator is a short sequence of independent `const`s); merging them
+   isn't a style choice here. */
 import type { PptxComment } from 'pptx-viewer-core';
-// Comment id minting is shared with the other bindings.
-import { generateCommentId } from 'pptx-viewer-shared';
+// The comment-array mutations themselves are pure and shared with every
+// other binding; this composable only wires them to Vue's reactivity.
+import {
+	addCommentToList,
+	generateCommentId,
+	removeCommentFromList,
+	replyToCommentInList,
+	toggleCommentResolvedInList,
+} from 'pptx-viewer-shared';
 import { computed, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 
@@ -73,75 +83,17 @@ export interface UseCommentsResult {
 export function useComments(options: UseCommentsOptions): UseCommentsResult {
 	const slideComments = computed<PptxComment[]>(() => toValue(options.comments) ?? []);
 
-	const addComment = (text: string, x?: number, y?: number): PptxComment[] | null => {
-		const trimmed = text.trim();
-		if (trimmed.length === 0) {
-			return null;
-		}
+	const addComment = (text: string, x?: number, y?: number): PptxComment[] | null =>
+		addCommentToList(slideComments.value, text, toValue(options.authorName), x, y);
 
-		const comment: PptxComment = {
-			id: generateCommentId(),
-			text: trimmed,
-			author: toValue(options.authorName),
-			createdAt: new Date().toISOString(),
-			resolved: false,
-			...(typeof x === 'number' ? { x } : {}),
-			...(typeof y === 'number' ? { y } : {}),
-		};
+	const removeComment = (id: string): PptxComment[] | null =>
+		removeCommentFromList(slideComments.value, id);
 
-		return [...slideComments.value, comment];
-	};
+	const resolveComment = (id: string): PptxComment[] | null =>
+		toggleCommentResolvedInList(slideComments.value, id);
 
-	const removeComment = (id: string): PptxComment[] | null => {
-		const existing = slideComments.value;
-		const next = existing.filter((comment) => comment.id !== id);
-		if (next.length === existing.length) {
-			return null;
-		}
-		return next;
-	};
-
-	const resolveComment = (id: string): PptxComment[] | null => {
-		const existing = slideComments.value;
-		let changed = false;
-		const next = existing.map((comment) => {
-			if (comment.id !== id) {
-				return comment;
-			}
-			changed = true;
-			return { ...comment, resolved: !comment.resolved };
-		});
-		if (!changed) {
-			return null;
-		}
-		return next;
-	};
-
-	const replyToComment = (parentId: string, text: string): PptxComment[] | null => {
-		const trimmed = text.trim();
-		if (trimmed.length === 0) {
-			return null;
-		}
-		const existing = slideComments.value;
-		const parent = existing.find((comment) => comment.id === parentId);
-		if (!parent) {
-			return null;
-		}
-		const reply: PptxComment = {
-			id: generateCommentId(),
-			text: trimmed,
-			author: toValue(options.authorName),
-			createdAt: new Date().toISOString(),
-			threadId: parentId,
-			parentId,
-			...(parent.elementId ? { elementId: parent.elementId } : {}),
-		};
-		return existing.map((comment) =>
-			comment.id === parentId
-				? { ...comment, replies: [...(comment.replies ?? []), reply] }
-				: comment,
-		);
-	};
+	const replyToComment = (parentId: string, text: string): PptxComment[] | null =>
+		replyToCommentInList(slideComments.value, parentId, text, toValue(options.authorName));
 
 	return { slideComments, addComment, removeComment, resolveComment, replyToComment };
 }

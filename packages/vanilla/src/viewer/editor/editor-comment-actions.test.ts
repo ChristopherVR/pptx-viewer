@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (each spec sets up a couple of independent `const`s); merging them isn't a
+   style choice here. */
 import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -115,5 +118,23 @@ describe('createCommentActions replies and edit-in-place', () => {
 
 		actions.deleteComment('r2');
 		expect(store.get().slides[0].comments?.[0].replies?.map(({ id }) => id)).toStrictEqual(['r1']);
+	});
+
+	it('addComment mints a shared-format id (parity with the other bindings)', () => {
+		const { actions } = makeActions([]);
+		const id = actions.addComment('Hello');
+		expect(id).toMatch(/^comment-/);
+	});
+
+	it('editComment, deleteComment, and toggleCommentResolved are no-ops for an unknown id: no history, no dirty flag', () => {
+		const { store, ops, actions } = makeActions([{ id: 'c1', text: 'Original' }]);
+
+		actions.editComment('missing', 'text');
+		actions.deleteComment('missing');
+		actions.toggleCommentResolved('missing');
+
+		expect(store.get().slides[0].comments?.[0].text).toBe('Original');
+		expect(store.get().dirty).toBeFalsy();
+		expect(ops.canUndo()).toBeFalsy();
 	});
 });

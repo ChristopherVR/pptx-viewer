@@ -1,9 +1,11 @@
-import type { PptxComment } from 'pptx-viewer-core';
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (each handler is a short sequence of independent `const`s); merging them
+   isn't a style choice here. */
 import { useState, useCallback, useEffect } from 'react';
 
 import {
-	generateCommentId,
 	addCommentToSlide,
+	addReplyToSlide,
 	removeCommentFromSlide,
 	editCommentInSlide,
 	toggleResolvedInSlide,
@@ -65,15 +67,22 @@ export function useComments({
 				return;
 			}
 
-			const newComment: PptxComment = {
-				id: generateCommentId(),
-				text: draft,
-				author: userName,
-				createdAt: new Date().toISOString(),
-				elementId: selectedElementId ?? undefined,
-			};
+			let didAdd = false;
+			onUpdateSlides((prev) => {
+				const result = addCommentToSlide(
+					prev,
+					slideIndex,
+					draft,
+					userName,
+					selectedElementId ?? undefined,
+				);
+				didAdd = result.didAdd;
+				return result.slides;
+			});
 
-			onUpdateSlides((prev) => addCommentToSlide(prev, slideIndex, newComment));
+			if (!didAdd) {
+				return;
+			}
 
 			setCommentDraftBySlideId((prev) => ({
 				...prev,
@@ -241,43 +250,21 @@ export function useComments({
 				return;
 			}
 
-			const parentComment = (slide.comments || []).find((c) => c.id === commentId);
-			if (!parentComment) {
-				return;
-			}
-
 			const replyText = String(replyDraftByCommentId[commentId] || '').trim();
 			if (replyText.length === 0) {
 				return;
 			}
 
-			const replyComment: PptxComment = {
-				id: generateCommentId(),
-				text: replyText,
-				author: userName,
-				createdAt: new Date().toISOString(),
-				threadId: commentId,
-				elementId: parentComment.elementId,
-			};
+			let didAdd = false;
+			onUpdateSlides((prev) => {
+				const result = addReplyToSlide(prev, slideIndex, commentId, replyText, userName);
+				didAdd = result.didAdd;
+				return result.slides;
+			});
 
-			// Add reply as a nested reply inside the parent comment
-			onUpdateSlides((prev) =>
-				prev.map((entry, index) => {
-					if (index !== slideIndex) {
-						return entry;
-					}
-					const updatedComments = (entry.comments || []).map((c) => {
-						if (c.id !== commentId) {
-							return c;
-						}
-						return {
-							...c,
-							replies: [...(c.replies || []), replyComment],
-						};
-					});
-					return { ...entry, comments: updatedComments };
-				}),
-			);
+			if (!didAdd) {
+				return;
+			}
 
 			setReplyingToCommentId(null);
 			setReplyDraftByCommentId((prev) => {
@@ -294,6 +281,9 @@ export function useComments({
 
 	useEffect(() => {
 		const slideIds = new Set(slides.map((slide) => slide.id));
+		// Pruning drafts for slides that no longer exist has to react to the
+		// `slides` prop itself, which isn't an event this hook's caller can hook into.
+		// oxlint-disable-next-line react/set-state-in-effect -- see comment above
 		setCommentDraftBySlideId((prev) => {
 			const pruned = pruneSlideDrafts(prev, slideIds);
 			return pruned ?? prev;

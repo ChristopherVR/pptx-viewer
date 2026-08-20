@@ -1,4 +1,18 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (each wrapper is a short sequence of independent `const`s); merging them
+   isn't a style choice here. */
 import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
+// The comment-array mutations themselves are pure and shared with every
+// other binding; these helpers only add the slide-indexing wrapper the full
+// `PptxSlide[]` deck array needs on top of them.
+import {
+	addCommentToList,
+	editCommentInList,
+	generateCommentId as sharedGenerateCommentId,
+	removeCommentFromList,
+	replyToCommentInList,
+	toggleCommentResolvedInList,
+} from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Input / output interfaces
@@ -39,26 +53,66 @@ export interface UseCommentsResult {
 // ---------------------------------------------------------------------------
 
 export function generateCommentId(): string {
-	return `comment-${crypto.randomUUID()}`;
+	return sharedGenerateCommentId();
 }
 
 // ---------------------------------------------------------------------------
-// Slide-comment mutation helpers (pure, immutable)
+// Slide-indexing wrapper
 // ---------------------------------------------------------------------------
 
-/** Insert a comment into a specific slide. */
-export function addCommentToSlide(
+/**
+ * Write a new comment array back onto slide `slideIndex`, leaving every
+ * other slide untouched (mirrors Svelte's `ReviewCommentsPanel.replaceComments`).
+ */
+function replaceCommentsOnSlide(
 	slides: PptxSlide[],
 	slideIndex: number,
-	comment: PptxComment,
+	next: PptxComment[],
 ): PptxSlide[] {
 	return slides.map((entry, index) =>
-		index === slideIndex ? { ...entry, comments: [...(entry.comments || []), comment] } : entry,
+		index === slideIndex ? { ...entry, comments: next } : entry,
 	);
 }
 
+// ---------------------------------------------------------------------------
+// Slide-comment mutation helpers
+//
+// The actual mutations are the pure, framework-agnostic transforms in
+// `pptx-viewer-shared` (`render/comments-list.ts`); these wrappers only
+// thread them through the full `PptxSlide[]` deck array by index.
+// ---------------------------------------------------------------------------
+
 /**
- * Remove a comment from a specific slide.
+ * Append a new comment to a specific slide.
+ * Returns the updated array and a flag indicating whether an insertion occurred.
+ */
+export function addCommentToSlide(
+	slides: PptxSlide[],
+	slideIndex: number,
+	text: string,
+	authorName: string,
+	elementId?: string,
+): { slides: PptxSlide[]; didAdd: boolean } {
+	const slide = slides[slideIndex];
+	if (!slide) {
+		return { slides, didAdd: false };
+	}
+	const next = addCommentToList(
+		slide.comments || [],
+		text,
+		authorName,
+		undefined,
+		undefined,
+		elementId,
+	);
+	if (!next) {
+		return { slides, didAdd: false };
+	}
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didAdd: true };
+}
+
+/**
+ * Remove a comment from a specific slide (any depth: top-level or nested reply).
  * Returns the updated array and a flag indicating whether a deletion occurred.
  */
 export function removeCommentFromSlide(
@@ -66,26 +120,19 @@ export function removeCommentFromSlide(
 	slideIndex: number,
 	commentId: string,
 ): { slides: PptxSlide[]; didDelete: boolean } {
-	let didDelete = false;
-	const updated = slides.map((entry, index) => {
-		if (index !== slideIndex) {
-			return entry;
-		}
-		const existing = entry.comments || [];
-		const next = existing.filter((c) => {
-			const keep = c.id !== commentId;
-			if (!keep) {
-				didDelete = true;
-			}
-			return keep;
-		});
-		return next.length === existing.length ? entry : { ...entry, comments: next };
-	});
-	return { slides: updated, didDelete };
+	const slide = slides[slideIndex];
+	if (!slide) {
+		return { slides, didDelete: false };
+	}
+	const next = removeCommentFromList(slide.comments || [], commentId);
+	if (!next) {
+		return { slides, didDelete: false };
+	}
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didDelete: true };
 }
 
 /**
- * Update the text of a comment on a specific slide.
+ * Update the text of a comment on a specific slide (any depth: top-level or nested reply).
  * Returns the updated array and a flag indicating whether an update occurred.
  */
 export function editCommentInSlide(
@@ -94,25 +141,19 @@ export function editCommentInSlide(
 	commentId: string,
 	newText: string,
 ): { slides: PptxSlide[]; didUpdate: boolean } {
-	let didUpdate = false;
-	const updated = slides.map((entry, index) => {
-		if (index !== slideIndex) {
-			return entry;
-		}
-		const next = (entry.comments || []).map((c) => {
-			if (c.id !== commentId) {
-				return c;
-			}
-			didUpdate = true;
-			return { ...c, text: newText };
-		});
-		return didUpdate ? { ...entry, comments: next } : entry;
-	});
-	return { slides: updated, didUpdate };
+	const slide = slides[slideIndex];
+	if (!slide) {
+		return { slides, didUpdate: false };
+	}
+	const next = editCommentInList(slide.comments || [], commentId, newText);
+	if (!next) {
+		return { slides, didUpdate: false };
+	}
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didUpdate: true };
 }
 
 /**
- * Toggle the `resolved` flag on a comment.
+ * Toggle the `resolved` flag on a comment (any depth: top-level or nested reply).
  * Returns the updated array and a flag indicating whether an update occurred.
  */
 export function toggleResolvedInSlide(
@@ -120,21 +161,37 @@ export function toggleResolvedInSlide(
 	slideIndex: number,
 	commentId: string,
 ): { slides: PptxSlide[]; didUpdate: boolean } {
-	let didUpdate = false;
-	const updated = slides.map((entry, index) => {
-		if (index !== slideIndex) {
-			return entry;
-		}
-		const next = (entry.comments || []).map((c) => {
-			if (c.id !== commentId) {
-				return c;
-			}
-			didUpdate = true;
-			return { ...c, resolved: !c.resolved };
-		});
-		return didUpdate ? { ...entry, comments: next } : entry;
-	});
-	return { slides: updated, didUpdate };
+	const slide = slides[slideIndex];
+	if (!slide) {
+		return { slides, didUpdate: false };
+	}
+	const next = toggleCommentResolvedInList(slide.comments || [], commentId);
+	if (!next) {
+		return { slides, didUpdate: false };
+	}
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didUpdate: true };
+}
+
+/**
+ * Append a threaded reply under `parentId` on a specific slide.
+ * Returns the updated array and a flag indicating whether an insertion occurred.
+ */
+export function addReplyToSlide(
+	slides: PptxSlide[],
+	slideIndex: number,
+	parentId: string,
+	text: string,
+	authorName: string,
+): { slides: PptxSlide[]; didAdd: boolean } {
+	const slide = slides[slideIndex];
+	if (!slide) {
+		return { slides, didAdd: false };
+	}
+	const next = replyToCommentInList(slide.comments || [], parentId, text, authorName);
+	if (!next) {
+		return { slides, didAdd: false };
+	}
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didAdd: true };
 }
 
 /**

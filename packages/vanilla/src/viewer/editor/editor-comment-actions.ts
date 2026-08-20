@@ -1,5 +1,18 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (each action is a short sequence of independent `const`s); merging them
+   isn't a style choice here. */
 import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
-import { generateElementId } from 'pptx-viewer-shared';
+// The comment-array mutations themselves are pure and shared with every
+// other binding (including the nested-reply tree traversal for edit/delete/
+// resolve, which used to be reimplemented here); this module only wires them
+// to the editor store's history-aware commit path.
+import {
+	addCommentToList,
+	editCommentInList,
+	removeCommentFromList,
+	replyToCommentInList,
+	toggleCommentResolvedInList,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { EditorOps } from './editor-operations';
@@ -28,121 +41,59 @@ export function updateSlideComments(
 	);
 }
 
-/** Immutably map every comment in the tree (top-level rows and nested replies). */
-function mapCommentTree(
-	comments: readonly PptxComment[],
-	fn: (comment: PptxComment) => PptxComment,
-): PptxComment[] {
-	return comments.map((comment) => {
-		const mapped = fn(comment);
-		if (!mapped.replies?.length) {
-			return mapped;
-		}
-		return { ...mapped, replies: mapCommentTree(mapped.replies, fn) };
-	});
-}
-
-/** Immutably drop the comment with `id` anywhere in the tree. */
-function filterCommentTree(comments: readonly PptxComment[], id: string): PptxComment[] {
-	return comments
-		.filter((comment) => comment.id !== id)
-		.map((comment) =>
-			comment.replies?.length
-				? { ...comment, replies: filterCommentTree(comment.replies, id) }
-				: comment,
-		);
-}
-
 export function createCommentActions(deps: {
 	store: Store<ViewerState>;
 	ops: EditorOps;
 }): CommentActions {
-	const mutate = (update: (comments: readonly PptxComment[]) => PptxComment[]): void => {
+	/**
+	 * Run `transform` against the active slide's comments and, if it produced a
+	 * real change, commit the result history-aware. `transform` follows the
+	 * shared `render/comments-list.ts` contract: it returns the NEW full
+	 * comment array, or `null` for a no-op (blank text / id not found), in
+	 * which case nothing is pushed to history or marked dirty.
+	 */
+	const applyToActiveComments = (
+		transform: (comments: PptxComment[]) => PptxComment[] | null,
+	): PptxComment[] | null => {
 		const state = deps.store.get();
 		if (!state.editable || !state.slides[state.currentSlide]) {
-			return;
+			return null;
+		}
+		const next = transform(state.slides[state.currentSlide].comments ?? []);
+		if (!next) {
+			return null;
 		}
 		deps.ops.pushHistory();
-		deps.store.set({ slides: updateSlideComments(state.slides, state.currentSlide, update) });
+		deps.store.set({ slides: updateSlideComments(state.slides, state.currentSlide, () => next) });
 		deps.ops.commitChange();
+		return next;
 	};
 
 	return {
 		addComment(text, elementId) {
-			const value = text.trim();
-			if (!value) {
-				return null;
-			}
-			const state = deps.store.get();
-			if (!state.editable || !state.slides[state.currentSlide]) {
-				return null;
-			}
-			const id = generateElementId();
-			mutate((comments) => [
-				...comments,
-				{
-					id,
-					text: value,
-					author: 'You',
-					createdAt: new Date().toISOString(),
-					resolved: false,
-					elementId,
-				},
-			]);
-			return id;
+			const next = applyToActiveComments((comments) =>
+				addCommentToList(comments, text, 'You', undefined, undefined, elementId),
+			);
+			return next ? (next[next.length - 1]?.id ?? null) : null;
 		},
 		addCommentReply(parentId, text) {
-			const value = text.trim();
-			if (!value) {
-				return null;
-			}
-			const state = deps.store.get();
-			const slide = state.slides[state.currentSlide];
-			if (!state.editable || !slide) {
-				return null;
-			}
-			const parent = (slide.comments ?? []).find((comment) => comment.id === parentId);
-			if (!parent) {
-				return null;
-			}
-			const id = generateElementId();
-			const reply: PptxComment = {
-				id,
-				text: value,
-				author: 'You',
-				createdAt: new Date().toISOString(),
-				threadId: parentId,
-				elementId: parent.elementId,
-			};
-			mutate((comments) =>
-				comments.map((comment) =>
-					comment.id === parentId
-						? { ...comment, replies: [...(comment.replies ?? []), reply] }
-						: comment,
-				),
+			const next = applyToActiveComments((comments) =>
+				replyToCommentInList(comments, parentId, text, 'You'),
 			);
-			return id;
+			if (!next) {
+				return null;
+			}
+			const parent = next.find((comment) => comment.id === parentId);
+			return parent?.replies?.at(-1)?.id ?? null;
 		},
 		editComment(id, text) {
-			const value = text.trim();
-			if (!value) {
-				return;
-			}
-			mutate((comments) =>
-				mapCommentTree(comments, (comment) =>
-					comment.id === id ? { ...comment, text: value } : comment,
-				),
-			);
+			applyToActiveComments((comments) => editCommentInList(comments, id, text));
 		},
 		deleteComment(id) {
-			mutate((comments) => filterCommentTree(comments, id));
+			applyToActiveComments((comments) => removeCommentFromList(comments, id));
 		},
 		toggleCommentResolved(id) {
-			mutate((comments) =>
-				mapCommentTree(comments, (comment) =>
-					comment.id === id ? { ...comment, resolved: !comment.resolved } : comment,
-				),
-			);
+			applyToActiveComments((comments) => toggleCommentResolvedInList(comments, id));
 		},
 	};
 }

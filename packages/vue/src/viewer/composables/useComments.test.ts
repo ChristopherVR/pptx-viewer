@@ -1,4 +1,7 @@
 // oxlint-disable react-hooks/rules-of-hooks
+// oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+// (each spec sets up a couple of independent `const`s); merging them isn't a
+// style choice here.
 import type { PptxComment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
@@ -149,5 +152,24 @@ describe('useComments', () => {
 			authorName: ref('Bob'),
 		});
 		expect(resolveComment('missing')).toBeNull();
+	});
+
+	it('removeComment and resolveComment reach a nested reply (shared tree traversal)', () => {
+		const nested = comment({
+			replies: [{ id: 'r1', text: 'Reply', parentId: 'c1', resolved: false }],
+		});
+		const comments = ref<PptxComment[]>([nested]);
+		const { removeComment, resolveComment } = useComments({
+			comments,
+			activeSlideIndex: ref(0),
+			authorName: ref('Bob'),
+		});
+
+		const resolved = resolveComment('r1');
+		expect(resolved?.[0]?.replies?.[0]?.resolved).toBeTruthy();
+
+		comments.value = resolved ?? comments.value;
+		const removed = removeComment('r1');
+		expect(removed?.[0]?.replies).toStrictEqual([]);
 	});
 });

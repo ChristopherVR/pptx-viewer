@@ -1,9 +1,13 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (each spec sets up a couple of independent `const`s); merging them isn't a
+   style choice here. */
 import type { PptxSlide, PptxComment } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
 	generateCommentId,
 	addCommentToSlide,
+	addReplyToSlide,
 	removeCommentFromSlide,
 	editCommentInSlide,
 	toggleResolvedInSlide,
@@ -49,27 +53,45 @@ describe('generateCommentId', () => {
 // ---------------------------------------------------------------------------
 
 describe('addCommentToSlide', () => {
-	it('appends a comment to the target slide', () => {
+	it('appends a comment to the target slide and returns didAdd=true', () => {
 		const slides = [makeSlide('s1'), makeSlide('s2')];
-		const comment = makeComment('c1', 'hello');
-		const result = addCommentToSlide(slides, 0, comment);
+		const { slides: result, didAdd } = addCommentToSlide(slides, 0, 'hello', 'Test User');
+		expect(didAdd).toBeTruthy();
 		expect(result[0].comments).toHaveLength(1);
 		expect(result[0].comments![0].text).toBe('hello');
+		expect(result[0].comments![0].author).toBe('Test User');
+	});
+
+	it('stamps the elementId anchor when provided', () => {
+		const slides = [makeSlide('s1')];
+		const { slides: result } = addCommentToSlide(slides, 0, 'anchored', 'Test User', 'el7');
+		expect(result[0].comments![0].elementId).toBe('el7');
+	});
+
+	it('returns didAdd=false and leaves slides untouched for blank text', () => {
+		const slides = [makeSlide('s1')];
+		const { slides: result, didAdd } = addCommentToSlide(slides, 0, '   ', 'Test User');
+		expect(didAdd).toBeFalsy();
+		expect(result).toBe(slides);
+	});
+
+	it('returns didAdd=false when the slide index is out of range', () => {
+		const slides = [makeSlide('s1')];
+		const { slides: result, didAdd } = addCommentToSlide(slides, 5, 'hello', 'Test User');
+		expect(didAdd).toBeFalsy();
+		expect(result).toBe(slides);
 	});
 
 	it('does not mutate the original slides array', () => {
 		const slides = [makeSlide('s1')];
-		const comment = makeComment('c1', 'hello');
-		const result = addCommentToSlide(slides, 0, comment);
+		addCommentToSlide(slides, 0, 'hello', 'Test User');
 		expect(slides[0].comments).toHaveLength(0);
-		expect(result).not.toBe(slides);
 	});
 
 	it('preserves existing comments on the target slide', () => {
 		const existing = makeComment('c0', 'existing');
 		const slides = [makeSlide('s1', [existing])];
-		const comment = makeComment('c1', 'new');
-		const result = addCommentToSlide(slides, 0, comment);
+		const { slides: result } = addCommentToSlide(slides, 0, 'new', 'Test User');
 		expect(result[0].comments).toHaveLength(2);
 		expect(result[0].comments![0].text).toBe('existing');
 		expect(result[0].comments![1].text).toBe('new');
@@ -77,14 +99,13 @@ describe('addCommentToSlide', () => {
 
 	it('does not modify other slides', () => {
 		const slides = [makeSlide('s1'), makeSlide('s2')];
-		const comment = makeComment('c1', 'hello');
-		const result = addCommentToSlide(slides, 0, comment);
+		const { slides: result } = addCommentToSlide(slides, 0, 'hello', 'Test User');
 		expect(result[1]).toBe(slides[1]);
 	});
 
 	it('handles slides with undefined comments array', () => {
 		const slide = { id: 's1', rId: 'r1', slideNumber: 1, elements: [] } as PptxSlide;
-		const result = addCommentToSlide([slide], 0, makeComment('c1', 'text'));
+		const { slides: result } = addCommentToSlide([slide], 0, 'text', 'Test User');
 		expect(result[0].comments).toHaveLength(1);
 	});
 });
@@ -135,6 +156,18 @@ describe('removeCommentFromSlide', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text')])];
 		const { slides: result } = removeCommentFromSlide(slides, 0, 'nonexistent');
 		expect(result[0]).toBe(slides[0]);
+	});
+
+	it('reaches a nested reply, not just top-level comments', () => {
+		const parent: PptxComment = {
+			id: 'c1',
+			text: 'Parent',
+			replies: [{ id: 'r1', text: 'Reply', threadId: 'c1' }],
+		};
+		const slides = [makeSlide('s1', [parent])];
+		const { slides: result, didDelete } = removeCommentFromSlide(slides, 0, 'r1');
+		expect(didDelete).toBeTruthy();
+		expect(result[0].comments![0].replies).toStrictEqual([]);
 	});
 });
 
@@ -189,6 +222,19 @@ describe('editCommentInSlide', () => {
 		const { slides: result } = editCommentInSlide(slides, 0, 'nonexistent', 'new');
 		expect(result[0]).toBe(slides[0]);
 	});
+
+	it('reaches a nested reply, not just top-level comments', () => {
+		const parent: PptxComment = {
+			id: 'c1',
+			text: 'Parent',
+			replies: [{ id: 'r1', text: 'Reply', threadId: 'c1' }],
+		};
+		const slides = [makeSlide('s1', [parent])];
+		const { slides: result, didUpdate } = editCommentInSlide(slides, 0, 'r1', 'Edited reply');
+		expect(didUpdate).toBeTruthy();
+		expect(result[0].comments![0].replies![0].text).toBe('Edited reply');
+		expect(result[0].comments![0].text).toBe('Parent');
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -226,6 +272,40 @@ describe('toggleResolvedInSlide', () => {
 		const slides = [makeSlide('s1', [comment])];
 		const { slides: result } = toggleResolvedInSlide(slides, 0, 'c1');
 		expect(result[0].comments![0].resolved).toBeTruthy();
+	});
+
+	it('reaches a nested reply, not just top-level comments', () => {
+		const parent: PptxComment = {
+			id: 'c1',
+			text: 'Parent',
+			replies: [{ id: 'r1', text: 'Reply', threadId: 'c1', resolved: false }],
+		};
+		const slides = [makeSlide('s1', [parent])];
+		const { slides: result, didUpdate } = toggleResolvedInSlide(slides, 0, 'r1');
+		expect(didUpdate).toBeTruthy();
+		expect(result[0].comments![0].replies![0].resolved).toBeTruthy();
+		expect(result[0].comments![0].resolved).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// addReplyToSlide
+// ---------------------------------------------------------------------------
+
+describe('addReplyToSlide', () => {
+	it('nests a reply under the parent with threading metadata', () => {
+		const slides = [makeSlide('s1', [makeComment('c1', 'Parent')])];
+		const { slides: result, didAdd } = addReplyToSlide(slides, 0, 'c1', 'A reply', 'Test User');
+		expect(didAdd).toBeTruthy();
+		const replies = result[0].comments![0].replies;
+		expect(replies).toHaveLength(1);
+		expect(replies![0]).toMatchObject({ text: 'A reply', author: 'Test User', threadId: 'c1' });
+	});
+
+	it('returns didAdd=false for blank text or a missing parent', () => {
+		const slides = [makeSlide('s1', [makeComment('c1', 'Parent')])];
+		expect(addReplyToSlide(slides, 0, 'c1', '   ', 'Test User').didAdd).toBeFalsy();
+		expect(addReplyToSlide(slides, 0, 'missing', 'hi', 'Test User').didAdd).toBeFalsy();
 	});
 });
 
