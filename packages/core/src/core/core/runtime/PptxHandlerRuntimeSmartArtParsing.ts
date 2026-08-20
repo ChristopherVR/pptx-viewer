@@ -191,9 +191,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const y = Math.round(parseInt(String(off['@_y'] || '0'), 10) / emuPerPx);
 		const width = Math.round(parseInt(String(ext['@_cx'] || '0'), 10) / emuPerPx);
 		const height = Math.round(parseInt(String(ext['@_cy'] || '0'), 10) / emuPerPx);
-		if (width <= 0 || height <= 0) {
-			return null;
-		}
 
 		const rotation = xfrm?.['@_rot'] ? parseInt(String(xfrm['@_rot']), 10) / 60000 : undefined;
 		const skewX = xfrm?.['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
@@ -222,6 +219,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					customGeometryTextRect: this.extractCustomGeometryTextRect(custGeom),
 				};
 			}
+		}
+
+		// A zero-width or zero-height cached shape is normally a producer's
+		// stale/degenerate frame extent and gets dropped. `line` preset geometry
+		// (ECMA-376 Part 1 20.1.9.18) is the one legitimate exception: PowerPoint's
+		// built-in Timeline layout, among others, caches connector rails/stems as a
+		// `line` with zero height or width by design.
+		if ((width <= 0 || height <= 0) && shapeType !== 'line') {
+			return null;
 		}
 
 		// Fills (solid / gradient / pattern / picture) + outer shadow. Built-in
