@@ -1,3 +1,6 @@
+/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
+   (many independent short-lived `const`s per hook/handler, several separated
+   by comments or guard clauses); merging them isn't a style choice here. */
 import { PptxHandler } from 'pptx-viewer-core';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -316,7 +319,16 @@ function App() {
 	const [fileName, setFileName] = useState<string>('');
 	// Whether the "does this tab have a deck to reopen?" check has finished. The
 	// `?sample=1` auto-load waits for it so a restored deck wins over the sample.
-	const [restoreChecked, setRestoreChecked] = useState(false);
+	// Collaboration / broadcast / audience tabs never restore (see the effect
+	// below), so seed this true for them at mount instead of a redundant
+	// synchronous setState right after render; `room`/`broadcast` are read raw
+	// here (not from the `urlRoom`/`urlBroadcast` state below, which isn't
+	// declared yet at this point in the component).
+	// eslint-disable-next-line react/hook-use-state
+	const [restoreChecked, setRestoreChecked] = useState(() => {
+		const params = new URLSearchParams(window.location.search);
+		return Boolean(params.get('room') || params.get('broadcast')) || isAudienceTab();
+	});
 	const [recoveryOffer, setRecoveryOffer] = useState<{
 		filePath: string;
 		timestamp: number;
@@ -407,75 +419,68 @@ function App() {
 	const aiConfig = useDemoAiConfig();
 
 	// ── Collaboration ────────────────────────────────────────────────────
-	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
-
-	// Auto-connect if room is in URL (collaboration mode). Peer-to-peer joins
-	// (transport=webrtc) need no server and skip the trusted-host check.
-	useEffect(() => {
-		if (!urlRoom || collaborationConfig) {
-			return;
+	// Auto-connect if room and/or broadcast is in the URL at mount (collaboration
+	// / viewer mode respectively; peer-to-peer joins need no server and skip the
+	// trusted-host check). Computed once here rather than in an effect that
+	// setState's synchronously on every render where it applies: urlRoom /
+	// urlBroadcast only ever go from a URL-seeded value to `null` (see
+	// handleStopCollaboration below), never the other way, so this can never
+	// need to fire again after mount. Room is checked first and broadcast
+	// second so that, in the (URL-crafted, not UI-reachable) case where both are
+	// present, broadcast wins, preserving this file's previous two-effects
+	// ordering where the broadcast effect ran after the room effect.
+	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(() => {
+		let config: CollaborationConfig | null = null;
+		if (urlRoom) {
+			if (isWebrtcJoin) {
+				config = {
+					roomId: urlRoom,
+					serverUrl: '',
+					transport: 'webrtc',
+					signaling: signalingList,
+					userName: urlName ?? autoName,
+					userColor: randomCursorColor(),
+				};
+			} else if (isTrustedServerUrl(urlServer)) {
+				config = {
+					roomId: urlRoom,
+					serverUrl: urlServer,
+					userName: urlName ?? autoName,
+					userColor: randomCursorColor(),
+				};
+			} else {
+				console.warn(
+					`Ignoring ?room= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
+				);
+			}
 		}
-		if (isWebrtcJoin) {
-			setCollaborationConfig({
-				roomId: urlRoom,
-				serverUrl: '',
-				transport: 'webrtc',
-				signaling: signalingList,
-				userName: urlName ?? autoName,
-				userColor: randomCursorColor(),
-			});
-		} else if (isTrustedServerUrl(urlServer)) {
-			setCollaborationConfig({
-				roomId: urlRoom,
-				serverUrl: urlServer,
-				userName: urlName ?? autoName,
-				userColor: randomCursorColor(),
-			});
-		} else {
-			console.warn(
-				`Ignoring ?room= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
-			);
+		if (urlBroadcast) {
+			if (isWebrtcJoin) {
+				config = {
+					roomId: urlBroadcast,
+					serverUrl: '',
+					transport: 'webrtc',
+					signaling: signalingList,
+					userName: urlName ?? autoName,
+					userColor: randomCursorColor(),
+					role: 'viewer',
+				};
+			} else if (isTrustedServerUrl(urlServer)) {
+				config = {
+					roomId: urlBroadcast,
+					serverUrl: urlServer,
+					userName: urlName ?? autoName,
+					userColor: randomCursorColor(),
+					role: 'viewer',
+				};
+			} else {
+				console.warn(
+					`Ignoring ?broadcast= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist.`,
+				);
+			}
 		}
-	}, [urlRoom, urlServer, urlName, autoName, collaborationConfig, isWebrtcJoin, signalingList]);
-
-	// Auto-connect if broadcast is in URL (viewer mode). Peer-to-peer joins need
-	// no server and skip the trusted-host check.
-	useEffect(() => {
-		if (!urlBroadcast || collaborationConfig) {
-			return;
-		}
-		if (isWebrtcJoin) {
-			setCollaborationConfig({
-				roomId: urlBroadcast,
-				serverUrl: '',
-				transport: 'webrtc',
-				signaling: signalingList,
-				userName: urlName ?? autoName,
-				userColor: randomCursorColor(),
-				role: 'viewer',
-			});
-		} else if (isTrustedServerUrl(urlServer)) {
-			setCollaborationConfig({
-				roomId: urlBroadcast,
-				serverUrl: urlServer,
-				userName: urlName ?? autoName,
-				userColor: randomCursorColor(),
-				role: 'viewer',
-			});
-		} else {
-			console.warn(
-				`Ignoring ?broadcast= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist.`,
-			);
-		}
-	}, [
-		urlBroadcast,
-		urlServer,
-		urlName,
-		autoName,
-		collaborationConfig,
-		isWebrtcJoin,
-		signalingList,
-	]);
+		return config;
+	});
 
 	const handleStartCollaboration = useCallback(
 		(config: CollaborationConfig) => {
@@ -692,9 +697,11 @@ function App() {
 
 	useEffect(() => {
 		// Collaboration / broadcast / audience tabs are fed by the session; they
-		// never restore, and must not hold the sample fetch up either.
+		// never restore, and must not hold the sample fetch up either. Already
+		// reflected in `restoreChecked`'s initial value above (joinRoomId can only
+		// ever go truthy -> falsy, never the other way, so this can't be the
+		// first time that's observed true) — just skip the restore attempt.
 		if (joinRoomId || isAudienceTab()) {
-			setRestoreChecked(true);
 			return;
 		}
 		let cancelled = false;
