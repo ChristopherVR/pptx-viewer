@@ -9,9 +9,15 @@
  *     drawingShapes so the renderer reflows with the override). Reading the
  *     current value off `node.style` drives the inspector controls.
  *
- *  2. **Node-count bounds** - soft, per-layout min/max guards mirroring the
- *     React `smartart-node-limits.ts`, so the text-pane Add / Remove
- *     affordances can be disabled with an explanatory hint at the bounds.
+ *  2. **Node-count bounds** - soft, per-layout min/max guards. The table,
+ *     `getSmartArtNodeBounds`, `canAddTopLevelNode` and `canRemoveTopLevelNode`
+ *     are re-exported from the single shared implementation in
+ *     `pptx-viewer-shared` (`packages/shared/src/render/smartart-node-limits.ts`),
+ *     which also backs the React and Vue bindings. `describeSmartArtBounds`
+ *     stays a thin Angular wrapper: it takes the shared function's neutral
+ *     English text and, when a `TranslateService` is supplied, swaps in the
+ *     translated string keyed off the same bounds, so the shared module never
+ *     takes an i18n dependency.
  *
  * @module angular-viewer/smart-art-node-style-helpers
  *
@@ -28,6 +34,19 @@ import type {
 	SmartArtLayoutType,
 } from 'pptx-viewer-core';
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
+
+import {
+	describeSmartArtBounds as describeSmartArtBoundsNeutral,
+	getSmartArtNodeBounds,
+} from '../internal/shared';
+
+export {
+	DEFAULT_BOUNDS,
+	canAddTopLevelNode,
+	canRemoveTopLevelNode,
+	getSmartArtNodeBounds,
+} from '../internal/shared';
+export type { SmartArtNodeBounds } from '../internal/shared';
 
 // ── Per-node style overrides ────────────────────────────────────────────────
 
@@ -81,84 +100,42 @@ export function toggleNodeItalic(data: PptxSmartArtData, node: PptxSmartArtNode)
 	return setNodeStyle(data, node.id, { italic: !nodeItalic(node) });
 }
 
-// ── Node-count bounds (mirror React smartart-node-limits.ts) ─────────────────
-
-/** A min/max bound for the number of top-level nodes in a layout. */
-export interface SmartArtNodeBounds {
-	/** Minimum sensible number of top-level nodes. */
-	readonly min: number;
-	/** Maximum sensible number of top-level nodes (undefined = unbounded). */
-	readonly max?: number;
-}
-
-/** Per-layout bounds table; layouts not listed fall back to {@link DEFAULT_BOUNDS}. */
-const LAYOUT_BOUNDS: Partial<Record<SmartArtLayoutType, SmartArtNodeBounds>> = {
-	venn: { min: 2, max: 3 },
-	matrix: { min: 4, max: 4 },
-	pyramid: { min: 2, max: 5 },
-	funnel: { min: 2, max: 5 },
-	target: { min: 2, max: 5 },
-	gear: { min: 2, max: 3 },
-	cycle: { min: 3 },
-};
-
-/** Fallback bounds for any layout without an explicit entry. */
-export const DEFAULT_BOUNDS: SmartArtNodeBounds = { min: 1 };
-
-/** Resolve the node-count bounds for a layout category. */
-export function getSmartArtNodeBounds(layout: SmartArtLayoutType | undefined): SmartArtNodeBounds {
-	if (!layout) {
-		return DEFAULT_BOUNDS;
-	}
-	return LAYOUT_BOUNDS[layout] ?? DEFAULT_BOUNDS;
-}
+// ── Node-count bounds (re-exported from pptx-viewer-shared) ────────────────
+// See the module doc comment: the table, `getSmartArtNodeBounds`,
+// `canAddTopLevelNode` and `canRemoveTopLevelNode` are re-exported above,
+// unmodified, from the single shared implementation. Only
+// `describeSmartArtBounds` stays defined here, as a thin wrapper that applies
+// this binding's `TranslateService` on top of the shared neutral text.
 
 /** Count of top-level (parentless) nodes in a diagram. */
 export function topLevelNodeCount(data: PptxSmartArtData): number {
 	return (data.nodes ?? []).filter((node) => !node.parentId).length;
 }
 
-/** Whether adding another top-level node stays within the layout's max. */
-export function canAddTopLevelNode(
-	layout: SmartArtLayoutType | undefined,
-	topLevelCount: number,
-): boolean {
-	const { max } = getSmartArtNodeBounds(layout);
-	return max === undefined || topLevelCount < max;
-}
-
-/** Whether removing a top-level node keeps the count at or above the min. */
-export function canRemoveTopLevelNode(
-	layout: SmartArtLayoutType | undefined,
-	topLevelCount: number,
-): boolean {
-	const { min } = getSmartArtNodeBounds(layout);
-	return topLevelCount > min;
-}
-
 /**
  * Short, human-readable explanation of a layout's bounds for a tooltip / hint,
  * or `undefined` when the layout imposes no meaningful limit.
+ *
+ * Delegates the neutral English text to the shared implementation; when a
+ * `TranslateService` is supplied, swaps in the translated string for the same
+ * bounds instead.
  */
 export function describeSmartArtBounds(
 	layout: SmartArtLayoutType | undefined,
 	translate?: TranslateService,
 ): string | undefined {
 	const { min, max } = getSmartArtNodeBounds(layout);
+	if (!translate) {
+		return describeSmartArtBoundsNeutral(layout);
+	}
 	if (min <= 1 && max === undefined) {
 		return undefined;
 	}
 	if (max === undefined) {
-		return translate
-			? translate.instant('pptx.smartArt.boundsHintMin', { min })
-			: `Works best with at least ${min} items.`;
+		return translate.instant('pptx.smartArt.boundsHintMin', { min });
 	}
 	if (min === max) {
-		return translate
-			? translate.instant('pptx.smartArt.boundsHintExact', { max })
-			: `This layout uses exactly ${max} items.`;
+		return translate.instant('pptx.smartArt.boundsHintExact', { max });
 	}
-	return translate
-		? translate.instant('pptx.smartArt.boundsHintRange', { min, max })
-		: `Works best with ${min} to ${max} items.`;
+	return translate.instant('pptx.smartArt.boundsHintRange', { min, max });
 }

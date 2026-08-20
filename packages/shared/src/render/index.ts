@@ -615,6 +615,12 @@ export * from './smartart-3d-spatial';
 // diagram, per-node ARIA labels, and the `SmartArtA11y` view-model each binding
 // maps onto `role="img"` + `aria-label` + per-node `<title>`/`aria-label`.
 export * from './smartart-accessibility';
+// SmartArt node-count bounds: the soft per-layout min/max table (venn/matrix/
+// pyramid/funnel/target/gear/cycle/default) plus canAddTopLevelNode /
+// canRemoveTopLevelNode / describeSmartArtBounds, so the text-pane Add /
+// Remove affordances agree across all bindings instead of each hand-porting
+// the same table.
+export * from './smartart-node-limits';
 // Vanilla three.js GLTF/GLB model scene controller: mounts an interactive 3D
 // model into a container element (auto-centre/fit, lights, OrbitControls, RAF
 // loop) and exposes resize()/dispose(). `three` is dynamically imported and
