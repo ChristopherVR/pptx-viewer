@@ -6,6 +6,7 @@
  * `OptionsPane.tsx`, split into its own SFC to keep `OptionsPane.vue` small.
  */
 import { Info } from 'lucide-vue-next';
+import { clampOptionNumber } from 'pptx-viewer-shared';
 import type { ViewerOptions, ViewerOptionsControl, ViewerOptionsGroupId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -20,17 +21,22 @@ const props = defineProps<{
 	) => void;
 }>();
 
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `defineProps` above, forcing one statement hurts readability
 const { t } = useI18n();
 
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `t` above, forcing one statement hurts readability
 const value = computed<boolean | number | string | undefined>(() => {
 	const group = props.options[props.control.group] as unknown as Record<string, unknown>;
+	// oxlint-disable-next-line eslint/one-var -- distinct concern from the lookup above, forcing one statement hurts readability
 	const raw = group[props.control.key];
 	return typeof raw === 'boolean' || typeof raw === 'number' || typeof raw === 'string'
 		? raw
 		: undefined;
 });
 
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `value` above, forcing one statement hurts readability
 const label = computed(() => t(props.control.labelKey));
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `label` above, forcing one statement hurts readability
 const infoText = computed(() => (props.control.infoKey ? t(props.control.infoKey) : undefined));
 
 function emitChange(next: boolean | number | string): void {
@@ -41,9 +47,13 @@ function onNumberInput(event: Event): void {
 	if (props.control.kind !== 'number') {
 		return;
 	}
-	const parsed = Number((event.target as HTMLInputElement).value);
-	if (Number.isFinite(parsed)) {
-		emitChange(Math.min(props.control.max, Math.max(props.control.min, parsed)));
+	const clamped = clampOptionNumber(
+		(event.target as HTMLInputElement).value,
+		props.control.min,
+		props.control.max,
+	);
+	if (clamped !== undefined) {
+		emitChange(clamped);
 	}
 }
 </script>

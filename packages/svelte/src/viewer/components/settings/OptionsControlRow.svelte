@@ -6,6 +6,7 @@
 	 * model via the control's `group` + `key`.
 	 */
 	import Info from '@lucide/svelte/icons/info';
+	import { clampOptionNumber } from 'pptx-viewer-shared';
 	import type { ViewerOptions, ViewerOptionsControl, ViewerOptionsGroupId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
 
@@ -18,10 +19,13 @@
 		options: ViewerOptions;
 		onchange: (group: ViewerOptionsGroupId, key: string, value: boolean | number | string) => void;
 	} = $props();
+	// oxlint-disable-next-line eslint/one-var -- distinct concern from the `$props()` destructure above, forcing one statement hurts readability
 	const t = useTranslator();
 
+	// oxlint-disable-next-line eslint/one-var -- distinct concern from `t` above, forcing one statement hurts readability
 	const value = $derived.by((): boolean | number | string | undefined => {
 		const group = options[control.group] as unknown as Record<string, unknown>;
+		// oxlint-disable-next-line eslint/one-var -- distinct concern from the lookup above, forcing one statement hurts readability
 		const raw = group[control.key];
 		return typeof raw === 'boolean' || typeof raw === 'number' || typeof raw === 'string' ? raw : undefined;
 	});
@@ -30,9 +34,13 @@
 		if (control.kind !== 'number') {
 			return;
 		}
-		const parsed = Number((event.currentTarget as HTMLInputElement).value);
-		if (Number.isFinite(parsed)) {
-			onchange(control.group, control.key, Math.min(control.max, Math.max(control.min, parsed)));
+		const clamped = clampOptionNumber(
+			(event.currentTarget as HTMLInputElement).value,
+			control.min,
+			control.max,
+		);
+		if (clamped !== undefined) {
+			onchange(control.group, control.key, clamped);
 		}
 	}
 </script>

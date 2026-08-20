@@ -13,6 +13,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { clampOptionNumber } from '../internal/shared';
 import type {
 	ViewerOptionPrimitive,
 	ViewerOptions,
@@ -34,19 +35,11 @@ export function readOptionValue(
 	control: Pick<ViewerOptionsControl, 'group' | 'key'>,
 ): ViewerOptionPrimitive | undefined {
 	const group = options[control.group] as unknown as Record<string, unknown>;
+	// oxlint-disable-next-line eslint/one-var -- distinct concern from the lookup above, forcing one statement hurts readability
 	const value = group[control.key];
 	return typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string'
 		? value
 		: undefined;
-}
-
-/** Clamp a number-control edit into its schema range (NaN falls to min). */
-export function clampOptionNumber(raw: string, min: number, max: number): number {
-	const parsed = Number(raw);
-	if (!Number.isFinite(parsed)) {
-		return min;
-	}
-	return Math.min(max, Math.max(min, parsed));
 }
 
 @Component({
@@ -274,8 +267,14 @@ export class OptionsPaneComponent {
 		if (control.kind !== 'number') {
 			return;
 		}
-		const raw = (event.target as HTMLInputElement).value;
-		this.emit(control, clampOptionNumber(raw, control.min, control.max));
+		const clamped = clampOptionNumber(
+			(event.target as HTMLInputElement).value,
+			control.min,
+			control.max,
+		);
+		if (clamped !== undefined) {
+			this.emit(control, clamped);
+		}
 	}
 
 	protected emitText(control: ViewerOptionsControl, event: Event): void {

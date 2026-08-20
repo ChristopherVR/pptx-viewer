@@ -1,3 +1,7 @@
+/* oxlint-disable eslint/one-var -- this module predates the rule and combining
+   every sibling const in a function into one comma-list would hurt
+   readability, not help it (see chart-view-model.ts for the same rationale). */
+import { clampOptionNumber } from 'pptx-viewer-shared';
 import type {
 	ViewerOptions,
 	ViewerOptionsControl,
@@ -117,13 +121,9 @@ function ControlRow({
 						step={control.step ?? 1}
 						value={typeof value === 'number' ? value : control.min}
 						onChange={(event) => {
-							const parsed = Number(event.target.value);
-							if (Number.isFinite(parsed)) {
-								onOptionChange(
-									control.group,
-									control.key,
-									Math.min(control.max, Math.max(control.min, parsed)),
-								);
+							const clamped = clampOptionNumber(event.target.value, control.min, control.max);
+							if (clamped !== undefined) {
+								onOptionChange(control.group, control.key, clamped);
 							}
 						}}
 					/>
