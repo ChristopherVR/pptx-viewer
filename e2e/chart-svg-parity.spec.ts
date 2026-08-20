@@ -70,15 +70,20 @@ test.describe('cross-binding chart rendering', () => {
 				// Neutral navigation-done signal: the wait below is satisfied by the
 				// PREVIOUS slide's chart <svg> too, so without this the capture races
 				// slide switching in the slower bindings.
-				// 45s per wait, not 15s: `acrossFrameworks` drives ALL FIVE bindings
+				// 90s per wait, not 45s: `acrossFrameworks` drives ALL FIVE bindings
 				// inside this single test, so each wait competes with four other
 				// browsers on the same runner. 15s cleared a warm local machine in 27s
-				// total and timed out on CI at 30s, which reads in the log as a
-				// rendering defect rather than as a budget.
+				// total and timed out on CI at 30s (raised to 45s); 45s then started
+				// timing out on CI too, at a different slide each retry, once every
+				// SVG mark started carrying a <title> tooltip node (chart-mark
+				// tooltips) - more DOM per chart, on the same CI budget. Locally the
+				// full 20-slide, five-binding sweep clears in ~10s, so this is a
+				// contention budget, not a rendering defect; raised again with more
+				// headroom rather than to the exact measured minimum.
 				await page
 					.getByText(new RegExp(`\\b${slide} of \\d+\\b`, 'u'))
 					.first()
-					.waitFor({ timeout: 45_000 });
+					.waitFor({ timeout: 90_000 });
 				await slideStage(page).waitFor();
 				// The chart renderers mount their <svg> after the slide stage paints,
 				// so wait for the drawing itself rather than the element box. Located
@@ -87,7 +92,7 @@ test.describe('cross-binding chart rendering', () => {
 				await page
 					.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
 					.first()
-					.waitFor({ timeout: 45_000 });
+					.waitFor({ timeout: 90_000 });
 				perSlide[CHART_SLIDES[slide - 1].key] = await fingerprintCharts(page);
 			}
 			return perSlide;
