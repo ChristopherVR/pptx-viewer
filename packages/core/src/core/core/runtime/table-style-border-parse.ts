@@ -10,6 +10,7 @@
  * The scheme-colour parse is shared with the section-fill path via
  * {@link parseSolidFillStyle} so colour logic is not hand-rolled twice.
  */
+import { parseOoxmlPercent } from '../../color/color-primitives';
 import type {
 	ParsedTableStyleBorder,
 	ParsedTableStyleBorders,
@@ -19,6 +20,17 @@ import type {
 
 /** EMU per CSS pixel (96 DPI). Matches the cell-level border converter. */
 const EMU_PER_PIXEL = 9525;
+
+/**
+ * Parse an `a:tint`/`a:shade` `@_val` into the raw OOXML thousandths integer
+ * (0-100000) {@link ParsedTableStyleFill} stores. Accepts both the
+ * transitional integer form (`20000`) and the Strict-OOXML lexical
+ * percentage form (`20%`); `parseOoxmlPercent` already handles both.
+ */
+export function parseTintShadeVal(value: unknown): number | undefined {
+	const fraction = parseOoxmlPercent(value);
+	return fraction === undefined || fraction === 0 ? undefined : Math.round(fraction * 100_000);
+}
 
 /** The eight `a:tcBdr` child sides, in OOXML order. */
 const BORDER_SIDES = [
@@ -52,9 +64,9 @@ export function parseSolidFillStyle(
 		return undefined;
 	}
 	const tintRaw = schemeClr['a:tint'] as XmlObject | undefined;
-	const tint = tintRaw ? parseInt(String(tintRaw['@_val'] || '0'), 10) || undefined : undefined;
+	const tint = tintRaw ? parseTintShadeVal(tintRaw['@_val']) : undefined;
 	const shadeRaw = schemeClr['a:shade'] as XmlObject | undefined;
-	const shade = shadeRaw ? parseInt(String(shadeRaw['@_val'] || '0'), 10) || undefined : undefined;
+	const shade = shadeRaw ? parseTintShadeVal(shadeRaw['@_val']) : undefined;
 	return { schemeColor, tint, shade };
 }
 

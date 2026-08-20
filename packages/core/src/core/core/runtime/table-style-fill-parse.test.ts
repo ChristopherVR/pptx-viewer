@@ -20,6 +20,26 @@ describe('parseTableStyleSectionFill', () => {
 		expect(fill?.color).toBeUndefined();
 	});
 
+	it('parses scheme-colour tint/shade in both the transitional and Strict-OOXML lexical form', () => {
+		const transitional = parseTableStyleSectionFill(
+			section({
+				'a:solidFill': {
+					'a:schemeClr': { '@_val': 'accent1', 'a:tint': { '@_val': '20000' } },
+				},
+			}),
+		);
+		expect(transitional?.tint).toBe(20000);
+
+		const strict = parseTableStyleSectionFill(
+			section({
+				'a:solidFill': {
+					'a:schemeClr': { '@_val': 'accent1', 'a:shade': { '@_val': '20%' } },
+				},
+			}),
+		);
+		expect(strict?.shade).toBe(20000);
+	});
+
 	it('parses an explicit sRGB solid fill (issue #95)', () => {
 		const fill = parseTableStyleSectionFill(
 			section({ 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF8800' } } }),
@@ -122,6 +142,20 @@ describe('parseTableStyleSectionText', () => {
 		expect(text?.fontSchemeColor).toBe('accent2');
 		expect(text?.fontTint).toBe(40000);
 		expect(text?.fontColor).toBeUndefined();
+	});
+
+	it('accepts the Strict-OOXML lexical percentage form for tint/shade', () => {
+		const text = parseTableStyleSectionText({
+			'a:tcTxStyle': {
+				'a:schemeClr': {
+					'@_val': 'accent2',
+					'a:tint': { '@_val': '40%' },
+					'a:shade': { '@_val': '10%' },
+				},
+			},
+		} as XmlObject);
+		expect(text?.fontTint).toBe(40000);
+		expect(text?.fontShade).toBe(10000);
 	});
 
 	it('ignores u="none"', () => {

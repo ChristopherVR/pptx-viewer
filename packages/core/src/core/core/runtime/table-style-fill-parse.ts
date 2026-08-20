@@ -26,7 +26,7 @@ import type {
 	ParsedTableStyleText,
 	XmlObject,
 } from '../../types';
-import { parseSolidFillStyle } from './table-style-border-parse';
+import { parseSolidFillStyle, parseTintShadeVal } from './table-style-border-parse';
 
 /** Normalise a raw sRGB hex value to a `#RRGGBB` CSS string. */
 function toHex(raw: string | undefined): string | undefined {
@@ -57,12 +57,12 @@ function parseColorChoiceFill(node: XmlObject | undefined): ParsedTableStyleFill
 	}
 	const fill: ParsedTableStyleFill = { schemeColor: '', color };
 	const tintRaw = srgb?.['a:tint'] as XmlObject | undefined;
-	const tint = tintRaw ? parseInt(String(tintRaw['@_val'] || '0'), 10) || undefined : undefined;
+	const tint = tintRaw ? parseTintShadeVal(tintRaw['@_val']) : undefined;
 	if (tint !== undefined) {
 		fill.tint = tint;
 	}
 	const shadeRaw = srgb?.['a:shade'] as XmlObject | undefined;
-	const shade = shadeRaw ? parseInt(String(shadeRaw['@_val'] || '0'), 10) || undefined : undefined;
+	const shade = shadeRaw ? parseTintShadeVal(shadeRaw['@_val']) : undefined;
 	if (shade !== undefined) {
 		fill.shade = shade;
 	}
@@ -211,11 +211,11 @@ export function parseTableStyleSectionText(
 			hasProps = true;
 			const tintNode = schemeClr['a:tint'] as XmlObject | undefined;
 			if (tintNode) {
-				result.fontTint = parseInt(String(tintNode['@_val'] || '0'), 10) || undefined;
+				result.fontTint = parseTintShadeVal(tintNode['@_val']);
 			}
 			const shadeNode = schemeClr['a:shade'] as XmlObject | undefined;
 			if (shadeNode) {
-				result.fontShade = parseInt(String(shadeNode['@_val'] || '0'), 10) || undefined;
+				result.fontShade = parseTintShadeVal(shadeNode['@_val']);
 			}
 		}
 	} else {
