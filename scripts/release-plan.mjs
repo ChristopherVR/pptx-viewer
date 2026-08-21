@@ -27,24 +27,28 @@
  *   - `shared` (private, never published) is inlined/vendored into react, vue
  *     and angular, so a shared change re-releases all three.
  *   - `core` is bundled into react, vue, and angular, so a core change
- *     re-releases all three. tools and cli hold a real npm dependency on core
- *     / react instead (see each `tsup.config.ts`'s `external` list), so an
- *     ordinary patch/minor there resolves forward for them with no re-release
- *     needed: no `triggers` entry for either.
- *   - a MAJOR bump of a real npm dependency is different: a caret range can
- *     never resolve across it, so tools/cli would otherwise silently keep
- *     shipping against the old major forever. `majorTrigger` names the
- *     package whose major-bump forces a re-release even with zero files
- *     changed under this package's own dir: tools re-releases (patch bump)
- *     whenever core goes major, cli whenever react does. tools' own
- *     `pptx-viewer-core` range in packages/tools/package.json is a literal
- *     string (not `workspace:*`, so it reads correctly for anyone opening the
- *     file without a resolution step) and is repointed at the live core
- *     version by `release.yml`'s publish step on every tools release, the
- *     same way it already does for angular's dist manifest. cli's
- *     `pptx-react-viewer: workspace:*` resolves itself via
- *     `publish-manifest.mjs` on every cli release, so it needs no equivalent
- *     patch step.
+ *     re-releases all three.
+ *   - `cli` holds a real (non-bundled) npm dependency on react (see its
+ *     `tsup.config.ts` `external` list) but is still a `triggers` entry on
+ *     `packages/react`: any react release also re-releases cli (patch/minor/
+ *     major follows react's own bump level over that scope), so cli's own
+ *     changelog and version visibly track the react release it ships against,
+ *     even though the caret range in its published manifest (`pptx-react-viewer:
+ *     workspace:*`, resolved by `publish-manifest.mjs` on every cli release)
+ *     would already resolve a patch/minor forward on its own.
+ *   - `tools` holds a real npm dependency on core the same way, but is NOT a
+ *     `triggers` entry on `packages/core`: an ordinary patch/minor there
+ *     resolves forward for it with no re-release needed. A MAJOR bump of core
+ *     is different: a caret range can never resolve across it, so tools would
+ *     otherwise silently keep shipping against the old major forever.
+ *     `majorTrigger` names the package whose major-bump forces a re-release
+ *     even with zero files changed under tools' own dir: tools re-releases
+ *     (patch bump) whenever core goes major. tools' own `pptx-viewer-core`
+ *     range in packages/tools/package.json is a literal string (not
+ *     `workspace:*`, so it reads correctly for anyone opening the file
+ *     without a resolution step) and is repointed at the live core version by
+ *     `release.yml`'s publish step on every tools release, the same way it
+ *     already does for angular's dist manifest.
  *   - everything else re-releases only when its own published files change.
  *
  * Output: writes `release-plan.json` at the repo root, prints a summary, and
@@ -135,8 +139,7 @@ const PACKAGES = {
 		dir: 'packages/cli',
 		npm: '@christophervr/pptx-viewer',
 		packDir: 'packages/cli',
-		triggers: [],
-		majorTrigger: 'react',
+		triggers: ['packages/react'],
 	},
 };
 
