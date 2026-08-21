@@ -43,6 +43,7 @@ const props = defineProps<{
 	slideCount: number;
 	activeComments: PptxComment[];
 	canEdit: boolean;
+	editTemplateMode?: boolean;
 	/** Bottom inset so the fixed bar clears an open on-screen keyboard. */
 	keyboardInset: number;
 	/** The single selected element, already augmented with its slide animations. */
@@ -123,6 +124,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 			:element="inspectorElement"
 			:active-slide="activeSlide"
 			:can-edit="canEdit"
+			:edit-template-mode="editTemplateMode"
 			:slide-count="slideCount"
 			:author-name="authorName"
 			:deck-actions="deckActions"

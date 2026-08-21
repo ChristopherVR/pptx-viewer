@@ -50,6 +50,10 @@ export interface UseInspectorDeckActionsResult {
 	updateCustomProperties: (next: PptxCustomProperty[]) => void;
 	/** Replace the document tag collections (inspector TAGS card). */
 	updateTagCollections: (next: PptxTagCollection[]) => void;
+	/** Set a layout/master's background colour (SLIDE BACKGROUND card, template-edit mode). */
+	setTemplateBackground: (path: string, backgroundColor: string) => void;
+	/** Read a layout/master's current background colour. */
+	getTemplateBackgroundColor: (path: string) => string | undefined;
 }
 
 /**
@@ -128,6 +132,22 @@ export function useInspectorDeckActions(
 		markDirty();
 	}
 
+	function setTemplateBackground(path: string, backgroundColor: string): void {
+		const current = handler.value;
+		if (!current) {
+			return;
+		}
+		current.setTemplateBackground(path, backgroundColor);
+		slideMasters.value = slideMasters.value.map((master) =>
+			master.path === path ? { ...master, backgroundColor } : master,
+		);
+		markDirty();
+	}
+
+	function getTemplateBackgroundColor(path: string): string | undefined {
+		return handler.value?.getTemplateBackgroundColor(path);
+	}
+
 	return {
 		applyThemeByPath,
 		updateCanvasSize,
@@ -136,5 +156,7 @@ export function useInspectorDeckActions(
 		updateAppProperties,
 		updateCustomProperties,
 		updateTagCollections,
+		setTemplateBackground,
+		getTemplateBackgroundColor,
 	};
 }

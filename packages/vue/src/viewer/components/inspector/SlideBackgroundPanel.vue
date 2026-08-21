@@ -1,24 +1,58 @@
 <script setup lang="ts">
 /**
- * SlideBackgroundPanel: per-slide background editing (Vue port of the non-
- * template part of React's `SlideBackgroundPanel`). Edits the active slide's
- * solid colour and background image, and clears the background.
+ * SlideBackgroundPanel: per-slide background editing (Vue port of React's
+ * `SlideBackgroundPanel`). Edits the active slide's solid colour and
+ * background image, and clears the background. In template-edit mode, also
+ * shows the layout/master background card so their colour can be changed
+ * without leaving the slide (the fuller Master Views overlay covers the same
+ * ground but requires switching views).
  *
  * Emits `update` with a `Partial<PptxSlide>` patch; the host (SlideInspector ->
- * PowerPointViewer) applies it to the active slide with history. The template /
- * master background controls are not ported (they require template-edit mode).
+ * PowerPointViewer) applies it to the active slide with history.
  */
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import { normalizeHexColor, resolveTemplateBackgroundRows } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = withDefaults(defineProps<{ slide: PptxSlide | undefined; canEdit?: boolean }>(), {
-	canEdit: true,
-});
+import { CARD, HEADING } from './inspector-cards';
 
-const emit = defineEmits<{ update: [patch: Partial<PptxSlide>] }>();
+const props = withDefaults(
+	defineProps<{
+		slide: PptxSlide | undefined;
+		canEdit?: boolean;
+		editTemplateMode?: boolean;
+		slideMasters?: PptxSlideMaster[];
+		getTemplateBackgroundColor?: (path: string) => string | undefined;
+	}>(),
+	{ canEdit: true },
+);
+
+const emit = defineEmits<{
+	update: [patch: Partial<PptxSlide>];
+	'set-template-background': [path: string, backgroundColor: string];
+}>();
 
 const { t } = useI18n();
+
+const templateRows = computed(() =>
+	props.slide
+		? resolveTemplateBackgroundRows(
+				props.slide,
+				props.slideMasters,
+				t('pptx.master.layout'),
+				t('pptx.master.master'),
+			)
+		: {},
+);
+
+function templateBackgroundValue(path: string): string {
+	return normalizeHexColor(props.getTemplateBackgroundColor?.(path), '#ffffff');
+}
+
+function onTemplateColorChange(path: string, event: Event): void {
+	emit('set-template-background', path, (event.target as HTMLInputElement).value);
+}
 
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -64,7 +98,8 @@ function clearBackground(): void {
 </script>
 
 <template>
-	<div class="space-y-2">
+	<div :class="CARD">
+		<div :class="HEADING">{{ t('pptx.viewer.background') }}</div>
 		<label class="flex items-center gap-2 text-[11px]">
 			<span class="w-10 shrink-0 text-muted-foreground">{{
 				t('pptx.slideBackground.colour')
@@ -136,5 +171,41 @@ function clearBackground(): void {
 		>
 			{{ t('pptx.slideBackground.clearBackground') }}
 		</button>
+	</div>
+
+	<div v-if="editTemplateMode && (templateRows.layout || templateRows.master)" :class="CARD">
+		<div :class="HEADING">{{ t('pptx.slideBackground.templateBackgroundsHeading') }}</div>
+
+		<label v-if="templateRows.layout" class="flex items-center gap-2 text-[11px]">
+			<span class="w-14 shrink-0 truncate text-muted-foreground" :title="templateRows.layout.title">
+				{{ t('pptx.master.layout') }}
+			</span>
+			<input
+				type="color"
+				:value="templateBackgroundValue(templateRows.layout.path)"
+				:disabled="!canEdit"
+				class="h-6 w-8 cursor-pointer rounded border border-border bg-muted"
+				@change="onTemplateColorChange(templateRows.layout.path, $event)"
+			/>
+			<span class="truncate text-[10px] text-muted-foreground">{{
+				templateRows.layout.label
+			}}</span>
+		</label>
+
+		<label v-if="templateRows.master" class="flex items-center gap-2 text-[11px]">
+			<span class="w-14 shrink-0 truncate text-muted-foreground" :title="templateRows.master.title">
+				{{ t('pptx.master.master') }}
+			</span>
+			<input
+				type="color"
+				:value="templateBackgroundValue(templateRows.master.path)"
+				:disabled="!canEdit"
+				class="h-6 w-8 cursor-pointer rounded border border-border bg-muted"
+				@change="onTemplateColorChange(templateRows.master.path, $event)"
+			/>
+			<span class="truncate text-[10px] text-muted-foreground">{{
+				templateRows.master.label
+			}}</span>
+		</label>
 	</div>
 </template>

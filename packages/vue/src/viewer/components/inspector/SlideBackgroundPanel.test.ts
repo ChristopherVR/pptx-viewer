@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
-import type { PptxSlide } from 'pptx-viewer-core';
-import { describe, it, expect } from 'vitest';
+import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import { describe, it, expect, vi } from 'vitest';
 
 import SlideBackgroundPanel from './SlideBackgroundPanel.vue';
 
@@ -53,5 +53,52 @@ describe('slideBackgroundPanel', () => {
 			props: { slide: slide(), canEdit: false },
 		});
 		expect((wrapper.get('input[type="color"]').element as HTMLInputElement).disabled).toBeTruthy();
+	});
+
+	it('does not show the template background card outside template-edit mode', () => {
+		const wrapper = mount(SlideBackgroundPanel, {
+			props: { slide: slide({ layoutPath: 'layout1.xml' }) },
+		});
+		expect(wrapper.findAll('input[type="color"]')).toHaveLength(1);
+		expect(wrapper.text()).not.toContain('Layout');
+	});
+
+	it('shows layout and master background rows in template-edit mode', () => {
+		const masters: PptxSlideMaster[] = [
+			{ path: 'master1.xml', name: 'Office Theme', layoutPaths: ['layout1.xml'] },
+		];
+		const wrapper = mount(SlideBackgroundPanel, {
+			props: {
+				slide: slide({ layoutPath: 'layout1.xml', layoutName: 'Title Slide' }),
+				editTemplateMode: true,
+				slideMasters: masters,
+				getTemplateBackgroundColor: () => '#abcdef',
+			},
+		});
+		expect(wrapper.text()).toContain('Title Slide');
+		expect(wrapper.text()).toContain('Office Theme');
+		expect(wrapper.findAll('input[type="color"]')).toHaveLength(3);
+	});
+
+	it('emits set-template-background when a template row colour changes', async () => {
+		const masters: PptxSlideMaster[] = [
+			{ path: 'master1.xml', name: 'Office Theme', layoutPaths: ['layout1.xml'] },
+		];
+		const wrapper = mount(SlideBackgroundPanel, {
+			props: {
+				slide: slide({ layoutPath: 'layout1.xml' }),
+				editTemplateMode: true,
+				slideMasters: masters,
+				getTemplateBackgroundColor: vi.fn(() => undefined),
+			},
+		});
+		const colorInputs = wrapper.findAll('input[type="color"]');
+		const layoutInput = colorInputs[1];
+		(layoutInput.element as HTMLInputElement).value = '#00ff00';
+		await layoutInput.trigger('change');
+		expect(wrapper.emitted('set-template-background')?.[0]).toStrictEqual([
+			'layout1.xml',
+			'#00ff00',
+		]);
 	});
 });

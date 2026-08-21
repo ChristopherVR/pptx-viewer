@@ -37,6 +37,7 @@ import SlideDeckInspector from './SlideDeckInspector.vue';
 const props = defineProps<{
 	deck: UseLoadContentResult;
 	canEdit: boolean;
+	editTemplateMode?: boolean;
 	isMobile: boolean;
 	inspectorOpen: boolean;
 	onCloseInspector: () => void;
@@ -83,6 +84,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:element="inspectorElement"
 		:active-slide="activeSlide"
 		:can-edit="canEdit"
+		:edit-template-mode="editTemplateMode"
 		:slide-count="slideCount"
 		:author-name="authorName"
 		:deck-actions="deckActions"

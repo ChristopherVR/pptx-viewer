@@ -31,6 +31,7 @@ const props = defineProps<{
 	element: PptxElement | undefined;
 	activeSlide: PptxSlide | undefined;
 	canEdit: boolean;
+	editTemplateMode?: boolean;
 	slideCount: number;
 	authorName: string;
 	deckActions: UseInspectorDeckActionsResult;
@@ -74,6 +75,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:theme="deck.theme.value"
 		:presentation-properties="deck.presentationProperties.value"
 		:can-edit="canEdit"
+		:edit-template-mode="editTemplateMode"
 		:theme-options="deck.themeOptions.value"
 		:slide-masters="deck.slideMasters.value"
 		:canvas-size="deck.canvasSize.value"
@@ -96,6 +98,8 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		@update-app-properties="deckActions.updateAppProperties"
 		@update-custom-properties="deckActions.updateCustomProperties"
 		@update-tag-collections="deckActions.updateTagCollections"
+		@set-template-background="deckActions.setTemplateBackground"
+		:get-template-background-color="deckActions.getTemplateBackgroundColor"
 		@select-element="onSelectElement"
 		@comment-add="(text) => commit(comments.commentsApi.addComment(text))"
 		@comment-remove="(id) => commit(comments.commentsApi.removeComment(id))"

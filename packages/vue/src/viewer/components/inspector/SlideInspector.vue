@@ -34,7 +34,6 @@ import { useI18n } from 'vue-i18n';
 import type { CanvasSize } from '../../types';
 import CommentsPanel from '../CommentsPanel.vue';
 import type { InspectorTab } from './inspector-cards';
-import { CARD, HEADING } from './inspector-cards';
 import InspectorElementsTab from './InspectorElementsTab.vue';
 import InspectorTabs from './InspectorTabs.vue';
 import PresentationPropertiesPanel from './PresentationPropertiesPanel.vue';
@@ -47,6 +46,7 @@ const props = withDefaults(
 		presentationProperties?: PptxPresentationProperties;
 		mobile?: boolean;
 		canEdit?: boolean;
+		editTemplateMode?: boolean;
 		themeOptions?: PptxThemeOption[];
 		slideMasters?: PptxSlideMaster[];
 		canvasSize?: CanvasSize;
@@ -61,6 +61,8 @@ const props = withDefaults(
 		tagCollections?: PptxTagCollection[];
 		comments?: PptxComment[];
 		authorName?: string;
+		/** Read a layout/master's current background colour (template-edit mode). */
+		getTemplateBackgroundColor?: (path: string) => string | undefined;
 	}>(),
 	{ canEdit: true, authorName: 'You' },
 );
@@ -75,6 +77,7 @@ const emit = defineEmits<{
 	'update-app-properties': [patch: Partial<PptxAppProperties>];
 	'update-custom-properties': [props: PptxCustomProperty[]];
 	'update-tag-collections': [next: PptxTagCollection[]];
+	'set-template-background': [path: string, backgroundColor: string];
 	'select-element': [id: string];
 	'comment-add': [text: string];
 	'comment-remove': [id: string];
@@ -139,14 +142,16 @@ const activeTab = ref<InspectorTab>('properties');
 					@update-tag-collections="(next) => emit('update-tag-collections', next)"
 				/>
 
-				<div v-if="slide" :class="CARD">
-					<div :class="HEADING">{{ t('pptx.viewer.background') }}</div>
-					<SlideBackgroundPanel
-						:slide="slide"
-						:can-edit="canEdit"
-						@update="(patch) => emit('slide-update', patch)"
-					/>
-				</div>
+				<SlideBackgroundPanel
+					v-if="slide"
+					:slide="slide"
+					:can-edit="canEdit"
+					:edit-template-mode="editTemplateMode"
+					:slide-masters="slideMasters"
+					:get-template-background-color="getTemplateBackgroundColor"
+					@update="(patch) => emit('slide-update', patch)"
+					@set-template-background="(path, color) => emit('set-template-background', path, color)"
+				/>
 			</template>
 
 			<!-- Comments -->
