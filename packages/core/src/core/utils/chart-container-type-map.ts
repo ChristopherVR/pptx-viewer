@@ -44,3 +44,28 @@ export function chartContainerLocalNameToType(localName: string): PptxChartType 
 export function isChartTypeContainerLocalName(localName: string): boolean {
 	return localName in CONTAINER_LOCAL_NAME_TO_TYPE;
 }
+
+/**
+ * Chart families that are drawn as a line/marker with no fillable area, so
+ * OOXML authors their series colour on the outline (`a:spPr/a:ln/a:solidFill`)
+ * instead of a direct fill (`a:spPr/a:solidFill`). Area-family charts
+ * (bar/area/pie/doughnut/bubble/surface/...) use the direct fill.
+ */
+const LINE_DRAWN_CHART_TYPES = new Set<PptxChartType>([
+	'line',
+	'line3D',
+	'scatter',
+	'radar',
+	'stock',
+]);
+
+/**
+ * Whether a chart type reads/writes its series colour from `a:ln/a:solidFill`
+ * rather than a direct `a:solidFill`. Keeps the parse path
+ * (`PptxHandlerRuntimeChartParsing.buildChartSeries`) and the save paths
+ * (`PptxHandlerRuntimeSaveDataSerialization`) agreeing on the same
+ * classification, and mirrors `chart-xml-generator.ts`'s `fillSpPr`.
+ */
+export function isLineDrawnChartType(type: PptxChartType | undefined): boolean {
+	return type !== undefined && LINE_DRAWN_CHART_TYPES.has(type);
+}

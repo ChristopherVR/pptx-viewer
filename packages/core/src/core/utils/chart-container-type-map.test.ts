@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	chartContainerLocalNameToType,
 	isChartTypeContainerLocalName,
+	isLineDrawnChartType,
 } from './chart-container-type-map';
 
 describe('chartContainerLocalNameToType', () => {
@@ -35,5 +36,30 @@ describe('isChartTypeContainerLocalName', () => {
 	it('is false for non-container names', () => {
 		expect(isChartTypeContainerLocalName('valAx')).toBeFalsy();
 		expect(isChartTypeContainerLocalName('ser')).toBeFalsy();
+	});
+});
+
+describe('isLineDrawnChartType', () => {
+	it('is true for line/scatter/radar/stock families (colour lives on a:ln)', () => {
+		expect(isLineDrawnChartType('line')).toBeTruthy();
+		expect(isLineDrawnChartType('line3D')).toBeTruthy();
+		expect(isLineDrawnChartType('scatter')).toBeTruthy();
+		expect(isLineDrawnChartType('radar')).toBeTruthy();
+		expect(isLineDrawnChartType('stock')).toBeTruthy();
+	});
+
+	it('is false for area-family charts (colour lives on the direct fill)', () => {
+		expect(isLineDrawnChartType('bar')).toBeFalsy();
+		expect(isLineDrawnChartType('bar3D')).toBeFalsy();
+		expect(isLineDrawnChartType('area')).toBeFalsy();
+		expect(isLineDrawnChartType('pie')).toBeFalsy();
+		expect(isLineDrawnChartType('doughnut')).toBeFalsy();
+		expect(isLineDrawnChartType('bubble')).toBeFalsy();
+		expect(isLineDrawnChartType('surface')).toBeFalsy();
+	});
+
+	it('is false for undefined and non-classic types', () => {
+		expect(isLineDrawnChartType(undefined)).toBeFalsy();
+		expect(isLineDrawnChartType('combo')).toBeFalsy();
 	});
 });
