@@ -41,6 +41,11 @@ import { applyTableCellPointer } from './table-cell-pointer';
 
 export type { EditorControllerDeps } from './editor-controller-deps';
 
+/** Max gap between two taps for them to count as a double-tap. */
+const DOUBLE_TAP_MS = 400;
+/** px tolerance for matching the second tap after a selection-induced reflow. */
+const TAP_DISTANCE = 40;
+
 export class EditorController {
 	readonly #editor: EditorState;
 	readonly #deps: EditorControllerDeps;
@@ -50,6 +55,12 @@ export class EditorController {
 	readonly #selectionGestures;
 	readonly #adjust: AdjustGestureController;
 	readonly #handles: HandleHandlers;
+
+	// Touch double-tap detection (mirrors React/Vue/Angular canvas-level
+	// detection). On mobile, native `dblclick` is not reliably synthesised from
+	// two quick taps, so the last tap's element id and coordinates are tracked
+	// by hand. Plain mutable state, never rendered, so it is not a rune.
+	#lastTap: { id: string | undefined; time: number; x: number; y: number } | null = null;
 
 	snapLines = $state<readonly SnapLine[]>([]);
 	editingId = $state<string | null>(null);
@@ -159,8 +170,15 @@ export class EditorController {
 			this.#ink.handlePointerDown(event);
 			return;
 		}
-		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		if (!id || !this.#editor.isElementInteractive(id)) {
+		const hitId = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
+		const id = hitId && this.#editor.isElementInteractive(hitId) ? hitId : undefined;
+		// Touch only: native `dblclick` is not reliably synthesised from two quick
+		// taps on mobile, so a matched second tap is handled here instead and
+		// consumes the event (no select / drag / marquee for that tap).
+		if (event.pointerType !== 'mouse' && this.#trackTap(event, id)) {
+			return;
+		}
+		if (!id) {
 			this.#editor.formatPainter.cancel();
 			this.#selectionGestures.beginMarquee(event);
 			return;
@@ -221,10 +239,7 @@ export class EditorController {
 			this.#editor.selectedElementId,
 		);
 		if (id && this.#editor.isElementInteractive(id)) {
-			if (this.#editor.equationOps.open(id)) {
-				return;
-			}
-			this.enterInlineEdit(id);
+			this.#requestElementEdit(id);
 		}
 	};
 
@@ -341,6 +356,94 @@ export class EditorController {
 	onKeyDown = (event: KeyboardEvent): void => {
 		this.#keydown(event);
 	};
+
+	/**
+	 * Route a tap / double-click that should open an element for editing: an
+	 * equation element opens the equation editor (inline text editing would
+	 * only see the "[Equation]" placeholder and destroy the OMML on commit),
+	 * everything else enters ordinary inline text editing.
+	 */
+	#requestElementEdit(id: string): void {
+		if (this.#editor.equationOps.open(id)) {
+			return;
+		}
+		this.enterInlineEdit(id);
+	}
+
+	/**
+	 * Second tap of a touch double-tap: open the tapped thing for editing. A
+	 * table routes to the nearest cell (after a selection reflow
+	 * `elementFromPoint` may no longer hit the `<td>` directly, so the nearest
+	 * one by centre distance is used instead) by dispatching a real `dblclick`
+	 * on it, which `TableView`'s own handler already turns into cell-edit mode;
+	 * everything else goes through `#requestElementEdit`. Always returns true:
+	 * a matched second tap is consumed either way.
+	 */
+	#handleDoubleTap(event: PointerEvent, doubleTapId: string | undefined): boolean {
+		if (!doubleTapId) {
+			return true;
+		}
+		const el = this.#editor.elementById(doubleTapId);
+		if (el?.type === 'table') {
+			const tableHost = this.#deps
+				.getStageRoot()
+				?.querySelector(`[data-element-id="${doubleTapId}"]`);
+			const cells = tableHost?.querySelectorAll('td');
+			let closest: HTMLElement | null = null;
+			let minDist = Infinity;
+			for (const cell of cells ?? []) {
+				const rect = cell.getBoundingClientRect();
+				if (rect.width === 0 || rect.height === 0) {
+					continue;
+				}
+				const cx = rect.left + rect.width / 2;
+				const cy = rect.top + rect.height / 2;
+				const dist = Math.hypot(event.clientX - cx, event.clientY - cy);
+				if (dist < minDist) {
+					minDist = dist;
+					closest = cell;
+				}
+			}
+			if (closest) {
+				closest.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+				return true;
+			}
+		}
+		this.#requestElementEdit(doubleTapId);
+		return true;
+	}
+
+	/**
+	 * Touch/pen tap bookkeeping. Returns true when this tap completed a
+	 * double-tap and the caller must stop (no selection / drag / marquee).
+	 */
+	#trackTap(event: PointerEvent, resolvedId: string | undefined): boolean {
+		const now = event.timeStamp || Date.now();
+		const last = this.#lastTap;
+
+		// On the second tap, match against the first tap's element. Layout may
+		// shift between taps (selection causing fit-scale change), so the second
+		// tap might not resolve to ANY element; use proximity + the stored id.
+		const isSameTarget =
+			last !== null &&
+			now - last.time < DOUBLE_TAP_MS &&
+			(resolvedId === last.id ||
+				(Math.abs(event.clientX - last.x) < TAP_DISTANCE &&
+					Math.abs(event.clientY - last.y) < TAP_DISTANCE));
+
+		if (last && isSameTarget) {
+			this.#lastTap = null;
+			return this.#handleDoubleTap(event, resolvedId ?? last.id);
+		}
+		if (resolvedId) {
+			this.#lastTap = { id: resolvedId, time: now, x: event.clientX, y: event.clientY };
+		} else if (!(last && now - last.time < DOUBLE_TAP_MS)) {
+			// Keep the previous tap alive if no element resolved (second tap in a
+			// reflowed area); the proximity check above still matches it.
+			this.#lastTap = null;
+		}
+		return false;
+	}
 
 	/** Open the inline text editor over `id` when the element carries text. */
 	enterInlineEdit(id: string): void {

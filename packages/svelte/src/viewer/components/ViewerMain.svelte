@@ -108,6 +108,8 @@
 		}}
 		showRulers={parityUi.preferences.showRulers}
 		spellCheck={parityUi.preferences.spellCheck}
+		getzoomscale={() => vm.deck.getZoom()}
+		onpinchzoom={(scale) => vm.deck.setZoom(scale)}
 		{onstageresize}
 		onstageholder={(el) => onstageholder(el)}
 		notesExpanded={vm.notesExpanded}

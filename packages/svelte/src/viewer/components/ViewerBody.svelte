@@ -11,6 +11,9 @@
 	 * only: it measures the viewport and decides which of the three columns are
 	 * present, nothing more.
 	 */
+	import { MAX_ZOOM_SCALE, MIN_ZOOM_SCALE } from 'pptx-viewer-shared';
+
+	import { canvasPinchZoom } from '../canvas-pinch-zoom';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
@@ -45,6 +48,8 @@
 		controller,
 		onstageresize,
 		onstageholder,
+		getzoomscale,
+		onpinchzoom,
 		notesExpanded,
 		onNotesCommit,
 		onNotesToggle,
@@ -108,6 +113,12 @@
 			bind:clientWidth={viewportWidth}
 			bind:clientHeight={viewportHeight}
 			data-pptx-viewport
+			use:canvasPinchZoom={{
+				getScale: getzoomscale,
+				minScale: MIN_ZOOM_SCALE,
+				maxScale: MAX_ZOOM_SCALE,
+				onPinchZoom: onpinchzoom,
+			}}
 		>
 			<ViewerStage
 				{t}
