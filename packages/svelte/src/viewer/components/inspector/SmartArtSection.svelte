@@ -112,14 +112,19 @@
 			return;
 		}
 		const node = data.nodes.find((n) => n.id === nodeId);
-		// The input commits via `onchange` (blur-triggered), so `node.text` can
-		// be stale while the user is still typing; read the live DOM value for
-		// the emptiness check instead of the last-committed model text.
-		const isEmpty = !(event.currentTarget as HTMLInputElement).value;
+		// The input commits via `onchange` (blur-triggered), so `data` can be
+		// stale while the user is still typing: the emptiness check reads the
+		// live DOM value directly, and Enter/Tab/Shift+Tab commit it into a
+		// fresh copy of `data` first, since each of those keys fires the
+		// mutation WITHOUT the browser ever blurring the input (a demote/promote
+		// that ran on stale data silently dropped whatever the user had just
+		// typed).
+		const liveValue = (event.currentTarget as HTMLInputElement).value;
+		const isEmpty = !liveValue;
 
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			const result = addSiblingAfter(data, nodeId);
+			const result = addSiblingAfter(updateSmartArtNodeText(data, nodeId, liveValue), nodeId);
 			if (result) {
 				applyData(result.data);
 				if (result.focusNodeId) {
@@ -141,14 +146,14 @@
 			}
 		} else if (event.key === 'Tab' && !event.shiftKey) {
 			event.preventDefault();
-			const next = demote(data, nodeId);
+			const next = demote(updateSmartArtNodeText(data, nodeId, liveValue), nodeId);
 			if (next) {
 				applyData(next);
 				void focusNodeInput(nodeId);
 			}
 		} else if (event.key === 'Tab' && event.shiftKey) {
 			event.preventDefault();
-			const next = promote(data, nodeId);
+			const next = promote(updateSmartArtNodeText(data, nodeId, liveValue), nodeId);
 			if (next) {
 				applyData(next);
 				void focusNodeInput(nodeId);

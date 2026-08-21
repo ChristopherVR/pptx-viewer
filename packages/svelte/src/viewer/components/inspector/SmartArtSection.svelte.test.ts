@@ -156,6 +156,36 @@ describe('smartArtSection keyboard editing', () => {
 		expect(currentData(editor)?.nodes.find((n) => n.id === 'n2')?.parentId).toBe('n1');
 	});
 
+	/**
+	 * The input commits its text via `change` (blur-triggered), which never
+	 * fires on Tab because the handler calls `preventDefault()`. A demote that
+	 * read the last-committed (pre-edit) node text instead of the live input
+	 * value silently discarded whatever the user had just typed.
+	 */
+	it('tab key commits the just-typed text before demoting, not just the demote', () => {
+		const { editor, target } = render();
+		const [, second] = nodeInputs(target);
+		second.value = 'Two edited';
+		second.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+		);
+		flushSync();
+		const node = currentData(editor)?.nodes.find((n) => n.id === 'n2');
+		expect(node?.text).toBe('Two edited');
+		expect(node?.parentId).toBe('n1');
+	});
+
+	it('enter key commits the just-typed text before inserting a sibling', () => {
+		const { editor, target } = render();
+		const [first] = nodeInputs(target);
+		first.value = 'One edited';
+		first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		const data = currentData(editor);
+		expect(data?.nodes.find((n) => n.id === 'n1')?.text).toBe('One edited');
+		expect(data?.nodes).toHaveLength(3);
+	});
+
 	it('shift+tab promotes an already-nested node back to top level', () => {
 		const element = smartArt() as SmartArtPptxElement;
 		if (element.smartArtData) {
