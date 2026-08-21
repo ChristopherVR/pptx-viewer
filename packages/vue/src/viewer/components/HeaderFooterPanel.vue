@@ -1,12 +1,17 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
+import type { PptxHeaderFooter } from 'pptx-viewer-core';
 /**
  * HeaderFooterPanel: edit the presentation's header/footer placeholders.
  *
  * Vue port of the React `HeaderFooterPanel.tsx`, adapted to the Vue port's
  * data-driven contract: instead of a bundle of separate boolean/text props +
  * `onSetX` callbacks, this panel takes the real core `PptxHeaderFooter` object
- * and emits a fully-formed `update(next)` with the edited copy. The host applies
- * the change (e.g. to `PptxData.headerFooter` and/or per-slide flags).
+ * and, on Apply, emits a fully-formed `update(next)` with the edited copy. The
+ * host applies the change (e.g. to `PptxData.headerFooter`).
+ *
+ * Edits are held in a local draft (matching the Angular port) so toggling a
+ * checkbox does not commit and close the dialog; only the Apply buttons do.
  *
  * Covers the visibility flags (date/time, slide number, header, footer) plus the
  * date/footer/header text fields and the date auto/fixed toggle.
@@ -14,9 +19,14 @@
  * Props : `{ headerFooter: PptxHeaderFooter | undefined }`
  * Emits : `update: [next: PptxHeaderFooter]`, `close: []`
  */
-import { X } from 'lucide-vue-next';
-import type { PptxHeaderFooter } from 'pptx-viewer-core';
-import { computed } from 'vue';
+import {
+	cloneHeaderFooterDraft,
+	isHeaderFooterDateTextVisible,
+	isHeaderFooterFooterTextVisible,
+	isHeaderFooterHeaderTextVisible,
+	patchHeaderFooterDraft,
+} from 'pptx-viewer-shared';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
@@ -30,18 +40,32 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
-/** The current value, defaulting to an empty object when unset. */
-const value = computed<PptxHeaderFooter>(() => props.headerFooter ?? {});
+/** Local draft, re-seeded from the incoming prop each time the dialog opens. */
+const draft = ref<PptxHeaderFooter>(cloneHeaderFooterDraft(props.headerFooter));
+watch(
+	() => props.headerFooter,
+	(next) => {
+		draft.value = cloneHeaderFooterDraft(next);
+	},
+);
 
 function patch(changes: Partial<PptxHeaderFooter>): void {
-	emit('update', { ...value.value, ...changes });
+	draft.value = patchHeaderFooterDraft(draft.value, changes);
 }
 
-const showDateTime = computed(() => value.value.hasDateTime ?? false);
-const showSlideNumber = computed(() => value.value.hasSlideNumber ?? false);
-const showHeader = computed(() => value.value.hasHeader ?? false);
-const showFooter = computed(() => value.value.hasFooter ?? false);
-const dateTimeAuto = computed(() => value.value.dateTimeAuto ?? false);
+function apply(): void {
+	emit('update', draft.value);
+	emit('close');
+}
+
+const showDateTime = computed(() => draft.value.hasDateTime ?? false);
+const showSlideNumber = computed(() => draft.value.hasSlideNumber ?? false);
+const showHeader = computed(() => draft.value.hasHeader ?? false);
+const showFooter = computed(() => draft.value.hasFooter ?? false);
+const dateTimeAuto = computed(() => draft.value.dateTimeAuto ?? false);
+const showDateText = computed(() => isHeaderFooterDateTextVisible(draft.value));
+const showHeaderText = computed(() => isHeaderFooterHeaderTextVisible(draft.value));
+const showFooterText = computed(() => isHeaderFooterFooterTextVisible(draft.value));
 
 function onToggleDateTime(event: Event): void {
 	patch({ hasDateTime: (event.target as HTMLInputElement).checked });
@@ -110,12 +134,12 @@ function onDateText(event: Event): void {
 					<span>{{ t('pptx.headerFooter.updateAutomatically') }}</span>
 				</label>
 				<input
-					v-if="!dateTimeAuto"
+					v-if="showDateText"
 					type="text"
 					class="pptx-vue-header-footer-panel__input"
 					:placeholder="t('pptx.headerFooter.fixedDate')"
 					data-testid="hf-date-text"
-					:value="value.dateTimeText ?? ''"
+					:value="draft.dateTimeText ?? ''"
 					@input="onDateText"
 				/>
 			</div>
@@ -140,13 +164,13 @@ function onDateText(event: Event): void {
 				<span>{{ t('pptx.field.header') }}</span>
 			</label>
 
-			<div v-if="showHeader" class="pptx-vue-header-footer-panel__sub">
+			<div v-if="showHeaderText" class="pptx-vue-header-footer-panel__sub">
 				<input
 					type="text"
 					class="pptx-vue-header-footer-panel__input"
 					:placeholder="t('pptx.headerFooter.headerText')"
 					data-testid="hf-header-text"
-					:value="value.headerText ?? ''"
+					:value="draft.headerText ?? ''"
 					@input="onHeaderText"
 				/>
 			</div>
@@ -161,17 +185,36 @@ function onDateText(event: Event): void {
 				<span>{{ t('pptx.headerFooter.footer') }}</span>
 			</label>
 
-			<div v-if="showFooter" class="pptx-vue-header-footer-panel__sub">
+			<div v-if="showFooterText" class="pptx-vue-header-footer-panel__sub">
 				<input
 					type="text"
 					class="pptx-vue-header-footer-panel__input"
 					:placeholder="t('pptx.headerFooter.footerPlaceholder')"
 					data-testid="hf-footer-text"
-					:value="value.footerText ?? ''"
+					:value="draft.footerText ?? ''"
 					@input="onFooterText"
 				/>
 			</div>
 		</div>
+
+		<footer class="pptx-vue-header-footer-panel__footer">
+			<button
+				type="button"
+				class="pptx-vue-header-footer-panel__apply"
+				data-testid="hf-apply-all"
+				@click="apply"
+			>
+				{{ t('pptx.headerFooter.applyToAll') }}
+			</button>
+			<button
+				type="button"
+				class="pptx-vue-header-footer-panel__apply pptx-vue-header-footer-panel__apply--primary"
+				data-testid="hf-apply-current"
+				@click="apply"
+			>
+				{{ t('pptx.headerFooter.applyToCurrent') }}
+			</button>
+		</footer>
 	</div>
 </template>
 
@@ -256,5 +299,31 @@ function onDateText(event: Event): void {
 .pptx-vue-header-footer-panel__input:focus {
 	outline: none;
 	border-color: var(--pptx-vue-primary, #2563eb);
+}
+
+.pptx-vue-header-footer-panel__footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 16px;
+	border-top: 1px solid var(--pptx-vue-border, #e5e7eb);
+}
+
+.pptx-vue-header-footer-panel__apply {
+	padding: 6px 12px;
+	border: 1px solid var(--pptx-vue-border, #e5e7eb);
+	border-radius: 4px;
+	background: var(--pptx-vue-muted, #f3f4f6);
+	color: var(--pptx-vue-foreground, #111827);
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.pptx-vue-header-footer-panel__apply--primary {
+	border-color: var(--pptx-vue-primary, #2563eb);
+	background: var(--pptx-vue-primary, #2563eb);
+	color: #fff;
 }
 </style>
