@@ -450,6 +450,17 @@ export interface PowerPointViewerProps {
 	smartArt3D?: boolean;
 
 	/**
+	 * Opt in to the interactive Three.js surface-chart renderer. When `true`,
+	 * `surface`/`surface3D` charts render as a camera-orbitable WebGL mesh
+	 * (drag to rotate, scroll to zoom) instead of the static SVG isometric
+	 * projection. Chart marks are not selectable/draggable in this mode.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the chart has no plottable grid), the viewer transparently falls back
+	 * to the SVG surface renderer. Default `false`.
+	 */
+	surfaceChart3D?: boolean;
+
+	/**
 	 * Hide individual toolbar buttons and/or ribbon tabs instead of the whole
 	 * toolbar. Accepts any mix of button ids (`share`, `broadcast`, `export`,
 	 * `undo`, `redo`, `record`, `notes`, `fullscreen`, `zoom`, `navigation`)

@@ -68,6 +68,7 @@ import {
 	FollowModeBar,
 } from './components/collaboration';
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
+import { SurfaceChart3DContext } from './components/elements/surface-chart-3d-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -151,6 +152,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onStopCollaboration,
 			shareDefaults,
 			smartArt3D = false,
+			surfaceChart3D = false,
 			hiddenActions,
 			ai,
 		} = props;
@@ -1164,30 +1166,32 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		return (
 			<AccountAuthContext.Provider value={accountAuth}>
 				<SmartArt3DContext.Provider value={smartArt3D}>
-					<ViewerThemeProvider theme={effectiveTheme}>
-						<CollaborationProvider
-							config={collaboration}
-							canvasWidth={canvasSize.width}
-							canvasHeight={canvasSize.height}
-						>
-							<CollaborationDocumentSync
-								slides={slides}
-								templateElementsBySlideId={templateElementsBySlideId}
-								setSlides={state.setSlides}
+					<SurfaceChart3DContext.Provider value={surfaceChart3D}>
+						<ViewerThemeProvider theme={effectiveTheme}>
+							<CollaborationProvider
 								config={collaboration}
-								content={content}
-								loadVersion={loadVersion}
-								loadOrigin={loadOrigin}
-								livePatcher={state.livePatcher}
-							/>
-							<CollaborationFollowLayer
-								activeSlideIndex={activeSlideIndex}
-								setActiveSlideIndex={state.setActiveSlideIndex}
-								slideCount={slides.length}
-							/>
-							{viewerContent}
-						</CollaborationProvider>
-					</ViewerThemeProvider>
+								canvasWidth={canvasSize.width}
+								canvasHeight={canvasSize.height}
+							>
+								<CollaborationDocumentSync
+									slides={slides}
+									templateElementsBySlideId={templateElementsBySlideId}
+									setSlides={state.setSlides}
+									config={collaboration}
+									content={content}
+									loadVersion={loadVersion}
+									loadOrigin={loadOrigin}
+									livePatcher={state.livePatcher}
+								/>
+								<CollaborationFollowLayer
+									activeSlideIndex={activeSlideIndex}
+									setActiveSlideIndex={state.setActiveSlideIndex}
+									slideCount={slides.length}
+								/>
+								{viewerContent}
+							</CollaborationProvider>
+						</ViewerThemeProvider>
+					</SurfaceChart3DContext.Provider>
 				</SmartArt3DContext.Provider>
 			</AccountAuthContext.Provider>
 		);
