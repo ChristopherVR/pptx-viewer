@@ -17,11 +17,18 @@
 		updateSmartArtNodeText,
 	} from 'pptx-viewer-core';
 	import {
+		addSiblingAfter,
+		canRemoveTopLevelNode,
+		countTopLevel,
+		demote,
+		promote,
 		reflowSmartArtData,
+		removeEmptyNode,
 		schemaLabel,
 		SMARTART_COLOR_SCHEME_LABEL_KEYS,
 		SMARTART_STYLE_LABEL_KEYS,
 	} from 'pptx-viewer-shared';
+	import { tick } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -83,6 +90,71 @@
 			applyData(setSmartArtNodeStyle(data, selectedNodeId, patch));
 		}
 	}
+
+	/** Focus the text input for `nodeId` once the DOM has updated. */
+	async function focusNodeInput(nodeId: string): Promise<void> {
+		await tick();
+		const input = document.querySelector<HTMLInputElement>(
+			`.pptx-svelte-smartart-node[data-node-id="${nodeId}"] input`,
+		);
+		input?.focus();
+	}
+
+	/**
+	 * Text-pane keyboard editing, matching React's SmartArtPropertiesPanel:
+	 * Enter inserts a sibling after the current node, Backspace/Delete on an
+	 * empty node removes it, Tab demotes, Shift+Tab promotes. All four go
+	 * through the shared smartart-node-pane-handlers so the behaviour (and its
+	 * focus-follows-edit affordance) can't drift from React/Vue/Angular.
+	 */
+	function handleNodeKeydown(event: KeyboardEvent, nodeId: string): void {
+		if (!data) {
+			return;
+		}
+		const node = data.nodes.find((n) => n.id === nodeId);
+		// The input commits via `onchange` (blur-triggered), so `node.text` can
+		// be stale while the user is still typing; read the live DOM value for
+		// the emptiness check instead of the last-committed model text.
+		const isEmpty = !(event.currentTarget as HTMLInputElement).value;
+
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const result = addSiblingAfter(data, nodeId);
+			if (result) {
+				applyData(result.data);
+				if (result.focusNodeId) {
+					void focusNodeInput(result.focusNodeId);
+				}
+			}
+		} else if ((event.key === 'Backspace' || event.key === 'Delete') && isEmpty) {
+			const isTop = !node?.parentId;
+			if (isTop && !canRemoveTopLevelNode(data.resolvedLayoutType, countTopLevel(data))) {
+				return;
+			}
+			event.preventDefault();
+			const result = removeEmptyNode(data, nodeId);
+			if (result) {
+				applyData(result.data);
+				if (result.focusNodeId) {
+					void focusNodeInput(result.focusNodeId);
+				}
+			}
+		} else if (event.key === 'Tab' && !event.shiftKey) {
+			event.preventDefault();
+			const next = demote(data, nodeId);
+			if (next) {
+				applyData(next);
+				void focusNodeInput(nodeId);
+			}
+		} else if (event.key === 'Tab' && event.shiftKey) {
+			event.preventDefault();
+			const next = promote(data, nodeId);
+			if (next) {
+				applyData(next);
+				void focusNodeInput(nodeId);
+			}
+		}
+	}
 </script>
 
 {#if data}
@@ -119,7 +191,7 @@
 	<span class="pptx-svelte-smartart-label">{t('pptx.smartart.textPane')}</span>
 	<div class="pptx-svelte-smartart-nodes">
 		{#each data.nodes as node, index (node.id)}
-			<div class="pptx-svelte-smartart-node" class:active={node.id === selectedNodeId}>
+			<div class="pptx-svelte-smartart-node" class:active={node.id === selectedNodeId} data-node-id={node.id}>
 				<button type="button" aria-label={`Select item ${index + 1}`} onclick={() => (selectedNodeId = node.id)}>{index + 1}</button>
 				<input
 					type="text"
@@ -127,6 +199,7 @@
 					aria-label={`${t('pptx.smartart.item')} ${index + 1}`}
 					data-testid="smartart-node-text"
 					onchange={(event) => setNodeText(node.id, event.currentTarget.value)}
+					onkeydown={(event) => handleNodeKeydown(event, node.id)}
 				/>
 			</div>
 		{/each}

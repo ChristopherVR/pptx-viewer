@@ -111,3 +111,74 @@ describe('smartArtSection structural reflow', () => {
 		expect(shapes[0]?.text).toBe('Uno');
 	});
 });
+
+function nodeInputs(target: HTMLElement): HTMLInputElement[] {
+	return [...target.querySelectorAll<HTMLInputElement>('[data-testid="smartart-node-text"]')];
+}
+
+describe('smartArtSection keyboard editing', () => {
+	it('enter key inserts a new sibling after the current node', () => {
+		const { editor, target } = render();
+		const [first] = nodeInputs(target);
+		first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		const data = currentData(editor);
+		expect(data?.nodes).toHaveLength(3);
+		expect(data?.nodes[1]?.text).toBe('');
+	});
+
+	it('backspace key on an empty node removes it', () => {
+		const { editor, target } = render();
+		const inputs = nodeInputs(target);
+		inputs[1].value = '';
+		inputs[1].dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }),
+		);
+		flushSync();
+		expect(currentData(editor)?.nodes).toHaveLength(1);
+	});
+
+	it('backspace key on a node with text does not remove it', () => {
+		const { editor, target } = render();
+		const [, second] = nodeInputs(target);
+		second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+		flushSync();
+		expect(currentData(editor)?.nodes).toHaveLength(2);
+	});
+
+	it('tab key demotes the node under its preceding sibling', () => {
+		const { editor, target } = render();
+		const [, second] = nodeInputs(target);
+		second.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+		);
+		flushSync();
+		expect(currentData(editor)?.nodes.find((n) => n.id === 'n2')?.parentId).toBe('n1');
+	});
+
+	it('shift+tab promotes an already-nested node back to top level', () => {
+		const element = smartArt() as SmartArtPptxElement;
+		if (element.smartArtData) {
+			element.smartArtData.nodes[1].parentId = 'n1';
+		}
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+		editor.editable = true;
+		editor.setSlides([{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [element] }]);
+		editor.select(element.id);
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(SmartArtSection, { target, props: { editor, el: element } });
+		flushSync();
+		cleanup = () => {
+			void unmount(instance);
+			target.remove();
+		};
+
+		const inputs = nodeInputs(target);
+		inputs[1].dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+		);
+		flushSync();
+		expect(currentData(editor)?.nodes.find((n) => n.id === 'n2')?.parentId).toBeUndefined();
+	});
+});
