@@ -1,4 +1,5 @@
 import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import { resolveTemplateBackgroundRows } from 'pptx-viewer-shared';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
@@ -168,62 +169,47 @@ function TemplateBackgroundCard({
 	onGetTemplateBackgroundColor: (path: string) => string | undefined;
 }): React.ReactElement {
 	const { t } = useTranslation();
+	const rows = resolveTemplateBackgroundRows(
+		activeSlide,
+		slideMasters,
+		t('pptx.master.layout'),
+		t('pptx.master.master'),
+	);
 	return (
 		<div className={cn(CARD, 'space-y-2')}>
 			<div className={HEADING}>{t('pptx.slideBackground.templateBackgroundsHeading')}</div>
 
 			{/* Layout background */}
-			{activeSlide.layoutPath && (
+			{rows.layout && (
 				<label className='flex items-center gap-2 text-[11px]'>
-					<span
-						className='text-muted-foreground w-14 shrink-0 truncate'
-						title={activeSlide.layoutName ?? activeSlide.layoutPath}
-					>
+					<span className='text-muted-foreground w-14 shrink-0 truncate' title={rows.layout.title}>
 						{t('pptx.master.layout')}
 					</span>
 					<DebouncedColorInput
-						value={normalizeHexColor(
-							onGetTemplateBackgroundColor(activeSlide.layoutPath),
-							'#ffffff',
-						)}
+						value={normalizeHexColor(onGetTemplateBackgroundColor(rows.layout.path), '#ffffff')}
 						disabled={!canEdit}
 						className='h-6 w-8 rounded border border-border bg-muted cursor-pointer'
-						onCommit={(hex) => onSetTemplateBackground(activeSlide.layoutPath!, hex)}
+						onCommit={(hex) => onSetTemplateBackground(rows.layout!.path, hex)}
 					/>
-					<span className='text-muted-foreground text-[10px] truncate'>
-						{activeSlide.layoutName ?? t('pptx.master.layout')}
-					</span>
+					<span className='text-muted-foreground text-[10px] truncate'>{rows.layout.label}</span>
 				</label>
 			)}
 
 			{/* Master background */}
-			{(() => {
-				const master = slideMasters?.find((m) =>
-					m.layoutPaths?.includes(activeSlide.layoutPath ?? ''),
-				);
-				if (!master) {
-					return null;
-				}
-				return (
-					<label className='flex items-center gap-2 text-[11px]'>
-						<span
-							className='text-muted-foreground w-14 shrink-0 truncate'
-							title={master.name ?? master.path}
-						>
-							{t('pptx.master.master')}
-						</span>
-						<DebouncedColorInput
-							value={normalizeHexColor(onGetTemplateBackgroundColor(master.path), '#ffffff')}
-							disabled={!canEdit}
-							className='h-6 w-8 rounded border border-border bg-muted cursor-pointer'
-							onCommit={(hex) => onSetTemplateBackground(master.path, hex)}
-						/>
-						<span className='text-muted-foreground text-[10px] truncate'>
-							{master.name ?? t('pptx.master.master')}
-						</span>
-					</label>
-				);
-			})()}
+			{rows.master && (
+				<label className='flex items-center gap-2 text-[11px]'>
+					<span className='text-muted-foreground w-14 shrink-0 truncate' title={rows.master.title}>
+						{t('pptx.master.master')}
+					</span>
+					<DebouncedColorInput
+						value={normalizeHexColor(onGetTemplateBackgroundColor(rows.master.path), '#ffffff')}
+						disabled={!canEdit}
+						className='h-6 w-8 rounded border border-border bg-muted cursor-pointer'
+						onCommit={(hex) => onSetTemplateBackground(rows.master!.path, hex)}
+					/>
+					<span className='text-muted-foreground text-[10px] truncate'>{rows.master.label}</span>
+				</label>
+			)}
 		</div>
 	);
 }
