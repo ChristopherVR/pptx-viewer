@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.21.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.5) - 2026-08-21
+
+### Bug Fixes
+
+- **vue:** Remove duplicate touch double-tap tracker in table cells (by @ChristopherVR) ([c378a29](https://github.com/ChristopherVR/pptx-viewer/commit/c378a297b68f773da684dd946501550cf8a3ba01))
+
 ## [2.21.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.4) - 2026-08-20
 
 ### Bug Fixes

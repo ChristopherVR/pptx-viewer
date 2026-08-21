@@ -8,6 +8,15 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-21
+
+_Releases: pptx-vue-viewer@2.21.5_
+
+### Bug Fixes
+
+- **vue:** Remove duplicate touch double-tap tracker in table cells (by @ChristopherVR) ([c378a29](https://github.com/ChristopherVR/pptx-viewer/commit/c378a297b68f773da684dd946501550cf8a3ba01))
+- **e2e:** Drive chart-svg-parity bindings sequentially, not concurrently (by @ChristopherVR) ([5bbfa10](https://github.com/ChristopherVR/pptx-viewer/commit/5bbfa1062639dc378f9d282b584f790f0b7c48f5))
+
 ## 2026-08-20
 
 _Releases: pptx-viewer-core@2.3.11, pptx-react-viewer@2.20.4, pptx-vue-viewer@2.21.4, pptx-angular-viewer@2.19.4, pptx-vanilla-viewer@1.22.3, pptx-svelte-viewer@2.21.3_
