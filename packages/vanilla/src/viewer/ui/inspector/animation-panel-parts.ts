@@ -1,6 +1,6 @@
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { animationEffectLabel } from 'pptx-viewer-shared';
+import { animationEffectLabel, buildAnimationTimelineBars } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -52,19 +52,14 @@ export function renderTimelineBar(
 	elements: readonly PptxElement[],
 	selectedElementId: string | undefined,
 ): void {
-	let totalMs = 1;
-	for (const animation of ordered) {
-		totalMs = Math.max(totalMs, (animation.delayMs ?? 0) + (animation.durationMs ?? 500));
-	}
+	const bars = buildAnimationTimelineBars(ordered);
 	bar.replaceChildren(
-		...ordered.map((animation) => {
+		...ordered.map((animation, index) => {
 			const seg = createEl(doc, 'div', 'pptxv-anim-bar-seg');
 			seg.classList.add(`is-${animationKind(animation)}`);
 			seg.classList.toggle('is-selected', animation.elementId === selectedElementId);
-			const left = ((animation.delayMs ?? 0) / totalMs) * 100;
-			const width = Math.max(((animation.durationMs ?? 500) / totalMs) * 100, 2);
-			seg.style.left = `${left}%`;
-			seg.style.width = `${width}%`;
+			seg.style.left = `${bars[index].leftPercent}%`;
+			seg.style.width = `${bars[index].widthPercent}%`;
 			// Named through the shared resolver: the tooltip used to print the raw
 			// preset token (`fadeIn`) where the effect's name belongs.
 			const effect = animationEffectLabel(animation, t);
