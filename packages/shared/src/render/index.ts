@@ -975,6 +975,7 @@ export * from './theme-editor-presets';
 // clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
 export * from './element-clipboard';
 export * from './header-footer-dialog';
+export * from './media-file-type';
 export * from './template-editing';
 // Ordered + capped element composition for slide previews / sidebar thumbnails,
 // mirroring `buildSaveSlides` (template elements first, then slide-owned).
