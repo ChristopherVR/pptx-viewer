@@ -99,6 +99,15 @@ export interface ElementRenderContext {
 	readonly onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
 	readonly onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/**
+	 * Commit a table's whole column-width array after a column-boundary drag.
+	 * Called once on pointer release (the drag itself only translates the
+	 * boundary handle), so one drag is one undo step. Absent on every
+	 * non-authoring surface, matching `onSmartArtNodeTextChange`.
+	 */
+	readonly onTableResizeColumns?: (element: PptxElement, widths: number[]) => void;
+	/** Commit one row's new pixel height after a row-boundary drag. */
+	readonly onTableResizeRow?: (element: PptxElement, rowIndex: number, height: number) => void;
+	/**
 	 * Commit a chart data point dragged on the canvas, with the whole updated
 	 * `chartData`. Called ONCE on pointer release (the drag itself is a local
 	 * preview), so one drag is one undo step. Absent on every non-authoring

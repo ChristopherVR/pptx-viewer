@@ -48,6 +48,12 @@ export interface RenderControllerDeps {
 	 */
 	onChartPointChange?(element: PptxElement, chartData: PptxChartData): void;
 	/**
+	 * A table column/row boundary was dragged on the canvas. Gated on
+	 * `interactive` with the other on-canvas edit hooks.
+	 */
+	onTableResizeColumns?(element: PptxElement, widths: number[]): void;
+	onTableResizeRow?(element: PptxElement, rowIndex: number, height: number): void;
+	/**
 	 * A chart part was pressed on the canvas. Gated on `interactive` with the
 	 * other chart/SmartArt hooks. See `ElementRenderContext.onChartPartSelect`.
 	 */
@@ -140,6 +146,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			onSmartArtNodeTextChange: interactive ? deps.onSmartArtNodeTextChange : undefined,
 			onSmartArtNodeFillChange: interactive ? deps.onSmartArtNodeFillChange : undefined,
 			onChartPointChange: interactive ? deps.onChartPointChange : undefined,
+			onTableResizeColumns: interactive ? deps.onTableResizeColumns : undefined,
+			onTableResizeRow: interactive ? deps.onTableResizeRow : undefined,
 			chartPartSelection: state.chartPartSelection,
 			onChartPartSelect: interactive ? deps.onChartPartSelect : undefined,
 			interactive,

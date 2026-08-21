@@ -18,6 +18,7 @@ import {
 
 import { applyStyleMap, createEl, createSvgEl } from '../dom';
 import type { ElementRenderer } from '../types';
+import { enableTableResize } from './table-editable';
 
 /**
  * Renderer for `table` elements: a real HTML `<table>` built from the
@@ -93,6 +94,7 @@ export const renderTableElement: ElementRenderer = (element, zIndex, context) =>
 
 	table.appendChild(tbody);
 	container.appendChild(table);
+	enableTableResize(container, table, element, context);
 	return container;
 };
 

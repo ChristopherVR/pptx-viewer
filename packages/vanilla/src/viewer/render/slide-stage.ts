@@ -60,6 +60,10 @@ export interface SlideStageOptions {
 	onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/** See `ElementRenderContext.onChartPointChange`. */
 	readonly onChartPointChange?: (element: PptxElement, chartData: PptxChartData) => void;
+	/** See `ElementRenderContext.onTableResizeColumns`. */
+	readonly onTableResizeColumns?: (element: PptxElement, widths: number[]) => void;
+	/** See `ElementRenderContext.onTableResizeRow`. */
+	readonly onTableResizeRow?: (element: PptxElement, rowIndex: number, height: number) => void;
 	/** See `ElementRenderContext.chartPartSelection`. */
 	readonly chartPartSelection?: ChartPartSelection | null;
 	/** See `ElementRenderContext.onChartPartSelect`. */
@@ -148,6 +152,8 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,
 		onSmartArtNodeFillChange: options.onSmartArtNodeFillChange,
 		onChartPointChange: options.onChartPointChange,
+		onTableResizeColumns: options.onTableResizeColumns,
+		onTableResizeRow: options.onTableResizeRow,
 		chartPartSelection: options.chartPartSelection,
 		onChartPartSelect: options.onChartPartSelect,
 		registry,

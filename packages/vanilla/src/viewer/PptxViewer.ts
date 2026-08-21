@@ -263,6 +263,25 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				}
 				this.editor?.applyElementPatch(element.id, { chartData });
 			},
+			onTableResizeColumns: (element, widths) => {
+				if (element.type !== 'table' || !element.tableData) {
+					return;
+				}
+				this.editor?.applyElementPatch(element.id, {
+					tableData: { ...element.tableData, columnWidths: widths },
+				});
+			},
+			onTableResizeRow: (element, rowIndex, height) => {
+				if (element.type !== 'table' || !element.tableData) {
+					return;
+				}
+				const rows = element.tableData.rows.map((row, index) =>
+					index === rowIndex ? { ...row, height } : row,
+				);
+				this.editor?.applyElementPatch(element.id, {
+					tableData: { ...element.tableData, rows },
+				});
+			},
 			onChartPartSelect: (element, part) => {
 				this.store.set({ chartPartSelection: { elementId: element.id, part } });
 			},
