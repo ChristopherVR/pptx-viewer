@@ -10,6 +10,74 @@ dated sections beneath it are generated from
 
 ## 2026-08-21
 
+_Releases: pptx-react-viewer@2.21.0, pptx-vue-viewer@2.22.0, pptx-angular-viewer@2.20.0, pptx-vanilla-viewer@1.23.0, pptx-svelte-viewer@2.22.0, @christophervr/pptx-viewer@1.8.1_
+
+### Features
+
+- **shared:** Add header-footer dialog draft helpers (by @ChristopherVR) ([0f640c8](https://github.com/ChristopherVR/pptx-viewer/commit/0f640c887c4d6447d2a6cbba2754049cec69e121))
+- **shared:** Add classifyMediaType, the audio/video MIME classifier (by @ChristopherVR) ([56520a1](https://github.com/ChristopherVR/pptx-viewer/commit/56520a1138f342b2e4e33ff5bbedb64f5a8ca9e4))
+- **shared:** Add resolveTemplateBackgroundRows for the template background card (by @ChristopherVR) ([67d327d](https://github.com/ChristopherVR/pptx-viewer/commit/67d327d737a06b7ca737feffb01d9afe637c108f))
+- **vue:** Port master/layout background editing to the inspector (by @ChristopherVR) ([43cf4c4](https://github.com/ChristopherVR/pptx-viewer/commit/43cf4c44fe5aa56a06b5719b3b77fb20295205d5))
+- **shared:** Add patchChartData, the type-aware chart data patcher (by @ChristopherVR) ([5309296](https://github.com/ChristopherVR/pptx-viewer/commit/5309296df312affd6c9f9994cc7e4612310d8119))
+- **angular:** Add the missing chart type/title/grouping selector (by @ChristopherVR) ([03170f4](https://github.com/ChristopherVR/pptx-viewer/commit/03170f4ceabd94648de55a047ce0ffde81d8800e))
+- **svelte:** Add the missing element lock/unlock toggle (by @ChristopherVR) ([e235f66](https://github.com/ChristopherVR/pptx-viewer/commit/e235f6651e72b5f3f281d3be5f1d4f64fca297ed))
+- **vanilla:** Add the missing element lock/unlock toggle (by @ChristopherVR) ([d56042b](https://github.com/ChristopherVR/pptx-viewer/commit/d56042be0301a6b31894b2c934a8114540396cf7))
+- **shared:** Add pptx.group.childCount/groupedElement i18n keys (by @ChristopherVR) ([f5557e1](https://github.com/ChristopherVR/pptx-viewer/commit/f5557e1ac1ef74af4306cf81cd2c08c8b61dd960))
+- **vue:** Add the missing group/OLE element info cards (by @ChristopherVR) ([e117a6c](https://github.com/ChristopherVR/pptx-viewer/commit/e117a6c9bf20975f10a8f4237cfa0434fdaafd60))
+- **svelte:** Add the missing group/OLE element info cards (by @ChristopherVR) ([8eb1adf](https://github.com/ChristopherVR/pptx-viewer/commit/8eb1adf52313213e0c3cbd299eb7ee3656741b02))
+- **vanilla:** Add the missing group/OLE element info cards (by @ChristopherVR) ([1d027bd](https://github.com/ChristopherVR/pptx-viewer/commit/1d027bdc240c90e00dec510fc45bd45181b8ea56))
+- **svelte:** Add the table quick-style preset swatch gallery (by @ChristopherVR) ([b2c8d8c](https://github.com/ChristopherVR/pptx-viewer/commit/b2c8d8cadaffb46229b618e877ea39d63d12a0dc))
+- **vanilla:** Add the table quick-style preset swatch gallery (by @ChristopherVR) ([db93b06](https://github.com/ChristopherVR/pptx-viewer/commit/db93b06c9fe83930ef01284f9c3fa5946707e9d6))
+- **vue:** Add the missing transition click-to-play preview thumbnail (by @ChristopherVR) ([2e3c502](https://github.com/ChristopherVR/pptx-viewer/commit/2e3c5022914b4bc8a61cf7a1d9838ccc5edcec4d))
+- **vanilla:** Add the missing transition click-to-play preview thumbnail (by @ChristopherVR) ([b95178b](https://github.com/ChristopherVR/pptx-viewer/commit/b95178b0c04e7eb98da0de25232c3cec807974cf))
+- **angular:** Fill out the ribbon overflow "..." menu (by @ChristopherVR) ([08819f9](https://github.com/ChristopherVR/pptx-viewer/commit/08819f91090435ab9d8e5cbfca32560b2d91faa6))
+- **svelte:** Fill out the ribbon overflow "..." menu (by @ChristopherVR) ([077c867](https://github.com/ChristopherVR/pptx-viewer/commit/077c867f183fd724f47dd7b71e4e2f96462798f7))
+- **vanilla:** Live-render SmartArt gallery previews, not a static icon (by @ChristopherVR) ([15117e4](https://github.com/ChristopherVR/pptx-viewer/commit/15117e4b5a5398da9248c83b4e1ce8d829997dd4))
+- **svelte:** Add SmartArt text-pane keyboard editing (Tab/Enter/Backspace) (by @ChristopherVR) ([21abb01](https://github.com/ChristopherVR/pptx-viewer/commit/21abb013e180dd20f3eae20fc98d6c03edfdf2dd))
+- **vanilla:** Add SmartArt text-pane keyboard editing (Tab/Enter/Backspace) (by @ChristopherVR) ([6a32895](https://github.com/ChristopherVR/pptx-viewer/commit/6a3289532f4a12c72e0765f295cea75fe77c6fec))
+- **vanilla:** Add table column/row drag-resize handles (by @ChristopherVR) ([4d1f969](https://github.com/ChristopherVR/pptx-viewer/commit/4d1f969b47cb387362a9a86ea21540b2493f2927))
+- **svelte:** Add table column/row drag-resize handles (by @ChristopherVR) ([37d965c](https://github.com/ChristopherVR/pptx-viewer/commit/37d965c58b4e2909e718c76fc65ecb0ce3e78716))
+- **svelte:** Add slide sorter context menu (duplicate/hide/delete) (by @ChristopherVR) ([e187e58](https://github.com/ChristopherVR/pptx-viewer/commit/e187e5842f71a7ea9c51caeebba04c267d8f1d5e))
+- **angular:** Add slide sorter context menu (duplicate/hide/delete) (by @ChristopherVR) ([0a4d7a7](https://github.com/ChristopherVR/pptx-viewer/commit/0a4d7a73a349d8f54c6e0bad5f3c85974842ac66))
+- **svelte:** Add editor-canvas pinch-zoom and touch double-tap-to-edit (by @ChristopherVR) ([48158f8](https://github.com/ChristopherVR/pptx-viewer/commit/48158f8d30d9f557c11a1707b0e17eaea64e7cd5))
+- **angular:** Edit layout/master background from the slide inspector (by @ChristopherVR) ([b8cdbd5](https://github.com/ChristopherVR/pptx-viewer/commit/b8cdbd5831e50fcad08988633e8ae772b80cf4ec))
+- **vanilla:** Edit layout/master background from the slide inspector (by @ChristopherVR) ([054def4](https://github.com/ChristopherVR/pptx-viewer/commit/054def401963925b6376f943753e8d4f355cfbf4))
+- **svelte:** Edit layout/master background from the slide inspector (by @ChristopherVR) ([7611027](https://github.com/ChristopherVR/pptx-viewer/commit/7611027adefb6b842a70b1e60483c62616fe22e0))
+
+### Bug Fixes
+
+- **vue:** Stop closing Header & Footer dialog on every field edit (by @ChristopherVR) ([b41d0d0](https://github.com/ChristopherVR/pptx-viewer/commit/b41d0d042ec76658ef2e1e0aee5625d5773fe1b8))
+- **shared:** Sanitize every download filename, not just callers that remember to (by @ChristopherVR) ([7bdf73b](https://github.com/ChristopherVR/pptx-viewer/commit/7bdf73be98ae30b4664067a52b1611878d7d97b3))
+- **angular:** Route paste through the shared clipboard codec (by @ChristopherVR) ([24ecf3f](https://github.com/ChristopherVR/pptx-viewer/commit/24ecf3f884b22fb12aaeea29b498265f47a0ae42))
+- **vue:** Route paste through the shared clipboard codec (by @ChristopherVR) ([587967d](https://github.com/ChristopherVR/pptx-viewer/commit/587967daec29b9775b00fe493f42361927e010f5))
+- **angular:** Stop treating every non-audio file as video on insert (by @ChristopherVR) ([a447a0b](https://github.com/ChristopherVR/pptx-viewer/commit/a447a0b6e044368807ded8981f66dcae8d994d48))
+- **shared:** Floor animation timeline bar width to a visible minimum (by @ChristopherVR) ([918ac2f](https://github.com/ChristopherVR/pptx-viewer/commit/918ac2f5a50d11fb1ad7e015956794f9cd44dfee))
+- **react:** Route GroupInfoPanel text through t(), not hardcoded English (by @ChristopherVR) ([48cc85f](https://github.com/ChristopherVR/pptx-viewer/commit/48cc85f4b3b42d49bbdb321ab02191b8a7d1332a))
+- **angular,svelte:** Render each font-picker option in its own font (by @ChristopherVR) ([b1845fa](https://github.com/ChristopherVR/pptx-viewer/commit/b1845fa7c028afb8a4db51940f2ecd65e1741100))
+- **vue:** Repoint chart data-grid ops onto shared, fixing a locale bug (by @ChristopherVR) ([a2248c3](https://github.com/ChristopherVR/pptx-viewer/commit/a2248c370852c922769a250f349a3a486b2dc85b))
+- **vue:** Stop the sorter's context menu closing itself on open (by @ChristopherVR) ([6576b72](https://github.com/ChristopherVR/pptx-viewer/commit/6576b72d493d19a1917dc57a473af5421990e43e))
+- **svelte,vanilla:** Commit in-progress SmartArt node text before Tab/Enter (by @ChristopherVR) ([2c79a1f](https://github.com/ChristopherVR/pptx-viewer/commit/2c79a1fa5276ecbde39c27b8fb71b2723781c336))
+
+### Refactor
+
+- **angular:** Repoint header-footer draft clone/patch onto shared (by @ChristopherVR) ([055d110](https://github.com/ChristopherVR/pptx-viewer/commit/055d110f14cb2a43d626067f565cc708356e0d7e))
+- **svelte:** Repoint header-footer draft clone/patch onto shared (by @ChristopherVR) ([8bafb06](https://github.com/ChristopherVR/pptx-viewer/commit/8bafb06a7338b47be7199383acae5cc02cc0cf23))
+- **vanilla:** Repoint header-footer draft clone onto shared (by @ChristopherVR) ([c947ce2](https://github.com/ChristopherVR/pptx-viewer/commit/c947ce22d2c8a321bab10f4a07d3c8ba47955c5e))
+- **react:** Drop now-redundant local download-sanitization wrapper (by @ChristopherVR) ([7b5e6a1](https://github.com/ChristopherVR/pptx-viewer/commit/7b5e6a1508a6b42b50165fd47eef5d7ee49b89bc))
+- **angular:** Drop redundant sanitizeFileName around downloadBlob (by @ChristopherVR) ([4138470](https://github.com/ChristopherVR/pptx-viewer/commit/4138470f77fa974ab55941ade68f2f193a46af80))
+- **react,vue,svelte,vanilla:** Repoint media-type check onto shared (by @ChristopherVR) ([bb8e95c](https://github.com/ChristopherVR/pptx-viewer/commit/bb8e95c810e2fd709e12f21d5b073b179e1dbf52))
+- **vanilla:** Repoint animation timeline bar layout onto shared (by @ChristopherVR) ([c9ad169](https://github.com/ChristopherVR/pptx-viewer/commit/c9ad1697e68c54cda4e1f6597cb243a7933804ee))
+- **react:** Repoint template background card onto shared row resolver (by @ChristopherVR) ([b27fd04](https://github.com/ChristopherVR/pptx-viewer/commit/b27fd04a1514377fca139b91b8c079ea3cf7ceec))
+- **react:** Repoint chart type-change patch onto shared patchChartData (by @ChristopherVR) ([9a97113](https://github.com/ChristopherVR/pptx-viewer/commit/9a971139a5acd0ec7cf7e87b73b1f59e9a55f100))
+- **vue:** Repoint chart type-change patch onto shared patchChartData (by @ChristopherVR) ([9bb70cc](https://github.com/ChristopherVR/pptx-viewer/commit/9bb70cca3189f30fef495c2afca4285b3d65fe89))
+- **angular:** Repoint chart-data-helpers onto shared grid ops (by @ChristopherVR) ([b8d8509](https://github.com/ChristopherVR/pptx-viewer/commit/b8d8509510f39ccbed93b2e353e6fd46c6e0c521))
+
+### Documentation
+
+- **vue,angular:** Fix stale comments claiming already-shipped features (by @ChristopherVR) ([e365950](https://github.com/ChristopherVR/pptx-viewer/commit/e365950cf3c49199575ffdafd0337b1f1b2593d8))
+
+## 2026-08-21
+
 _Releases: pptx-viewer-core@2.3.12, pptx-react-viewer@2.20.5, pptx-vue-viewer@2.21.6, pptx-angular-viewer@2.19.5, pptx-vanilla-viewer@1.22.4, pptx-svelte-viewer@2.21.4, @christophervr/pptx-viewer@1.8.0_
 
 ### Bug Fixes

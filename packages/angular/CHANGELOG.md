@@ -7,6 +7,38 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.20.0) - 2026-08-21
+
+### Features
+
+- **shared:** Add header-footer dialog draft helpers (by @ChristopherVR) ([0f640c8](https://github.com/ChristopherVR/pptx-viewer/commit/0f640c887c4d6447d2a6cbba2754049cec69e121))
+- **shared:** Add classifyMediaType, the audio/video MIME classifier (by @ChristopherVR) ([56520a1](https://github.com/ChristopherVR/pptx-viewer/commit/56520a1138f342b2e4e33ff5bbedb64f5a8ca9e4))
+- **shared:** Add resolveTemplateBackgroundRows for the template background card (by @ChristopherVR) ([67d327d](https://github.com/ChristopherVR/pptx-viewer/commit/67d327d737a06b7ca737feffb01d9afe637c108f))
+- **shared:** Add patchChartData, the type-aware chart data patcher (by @ChristopherVR) ([5309296](https://github.com/ChristopherVR/pptx-viewer/commit/5309296df312affd6c9f9994cc7e4612310d8119))
+- **angular:** Add the missing chart type/title/grouping selector (by @ChristopherVR) ([03170f4](https://github.com/ChristopherVR/pptx-viewer/commit/03170f4ceabd94648de55a047ce0ffde81d8800e))
+- **shared:** Add pptx.group.childCount/groupedElement i18n keys (by @ChristopherVR) ([f5557e1](https://github.com/ChristopherVR/pptx-viewer/commit/f5557e1ac1ef74af4306cf81cd2c08c8b61dd960))
+- **angular:** Fill out the ribbon overflow "..." menu (by @ChristopherVR) ([08819f9](https://github.com/ChristopherVR/pptx-viewer/commit/08819f91090435ab9d8e5cbfca32560b2d91faa6))
+- **angular:** Add slide sorter context menu (duplicate/hide/delete) (by @ChristopherVR) ([0a4d7a7](https://github.com/ChristopherVR/pptx-viewer/commit/0a4d7a73a349d8f54c6e0bad5f3c85974842ac66))
+- **angular:** Edit layout/master background from the slide inspector (by @ChristopherVR) ([b8cdbd5](https://github.com/ChristopherVR/pptx-viewer/commit/b8cdbd5831e50fcad08988633e8ae772b80cf4ec))
+
+### Bug Fixes
+
+- **shared:** Sanitize every download filename, not just callers that remember to (by @ChristopherVR) ([7bdf73b](https://github.com/ChristopherVR/pptx-viewer/commit/7bdf73be98ae30b4664067a52b1611878d7d97b3))
+- **angular:** Route paste through the shared clipboard codec (by @ChristopherVR) ([24ecf3f](https://github.com/ChristopherVR/pptx-viewer/commit/24ecf3f884b22fb12aaeea29b498265f47a0ae42))
+- **angular:** Stop treating every non-audio file as video on insert (by @ChristopherVR) ([a447a0b](https://github.com/ChristopherVR/pptx-viewer/commit/a447a0b6e044368807ded8981f66dcae8d994d48))
+- **shared:** Floor animation timeline bar width to a visible minimum (by @ChristopherVR) ([918ac2f](https://github.com/ChristopherVR/pptx-viewer/commit/918ac2f5a50d11fb1ad7e015956794f9cd44dfee))
+- **angular,svelte:** Render each font-picker option in its own font (by @ChristopherVR) ([b1845fa](https://github.com/ChristopherVR/pptx-viewer/commit/b1845fa7c028afb8a4db51940f2ecd65e1741100))
+
+### Refactor
+
+- **angular:** Repoint header-footer draft clone/patch onto shared (by @ChristopherVR) ([055d110](https://github.com/ChristopherVR/pptx-viewer/commit/055d110f14cb2a43d626067f565cc708356e0d7e))
+- **angular:** Drop redundant sanitizeFileName around downloadBlob (by @ChristopherVR) ([4138470](https://github.com/ChristopherVR/pptx-viewer/commit/4138470f77fa974ab55941ade68f2f193a46af80))
+- **angular:** Repoint chart-data-helpers onto shared grid ops (by @ChristopherVR) ([b8d8509](https://github.com/ChristopherVR/pptx-viewer/commit/b8d8509510f39ccbed93b2e353e6fd46c6e0c521))
+
+### Documentation
+
+- **vue,angular:** Fix stale comments claiming already-shipped features (by @ChristopherVR) ([e365950](https://github.com/ChristopherVR/pptx-viewer/commit/e365950cf3c49199575ffdafd0337b1f1b2593d8))
+
 ## [2.19.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.19.5) - 2026-08-21
 
 ### Bug Fixes

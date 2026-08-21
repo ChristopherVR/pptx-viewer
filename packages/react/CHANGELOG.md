@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.21.0) - 2026-08-21
+
+### Features
+
+- **shared:** Add header-footer dialog draft helpers (by @ChristopherVR) ([0f640c8](https://github.com/ChristopherVR/pptx-viewer/commit/0f640c887c4d6447d2a6cbba2754049cec69e121))
+- **shared:** Add classifyMediaType, the audio/video MIME classifier (by @ChristopherVR) ([56520a1](https://github.com/ChristopherVR/pptx-viewer/commit/56520a1138f342b2e4e33ff5bbedb64f5a8ca9e4))
+- **shared:** Add resolveTemplateBackgroundRows for the template background card (by @ChristopherVR) ([67d327d](https://github.com/ChristopherVR/pptx-viewer/commit/67d327d737a06b7ca737feffb01d9afe637c108f))
+- **shared:** Add patchChartData, the type-aware chart data patcher (by @ChristopherVR) ([5309296](https://github.com/ChristopherVR/pptx-viewer/commit/5309296df312affd6c9f9994cc7e4612310d8119))
+- **shared:** Add pptx.group.childCount/groupedElement i18n keys (by @ChristopherVR) ([f5557e1](https://github.com/ChristopherVR/pptx-viewer/commit/f5557e1ac1ef74af4306cf81cd2c08c8b61dd960))
+
+### Bug Fixes
+
+- **shared:** Sanitize every download filename, not just callers that remember to (by @ChristopherVR) ([7bdf73b](https://github.com/ChristopherVR/pptx-viewer/commit/7bdf73be98ae30b4664067a52b1611878d7d97b3))
+- **shared:** Floor animation timeline bar width to a visible minimum (by @ChristopherVR) ([918ac2f](https://github.com/ChristopherVR/pptx-viewer/commit/918ac2f5a50d11fb1ad7e015956794f9cd44dfee))
+- **react:** Route GroupInfoPanel text through t(), not hardcoded English (by @ChristopherVR) ([48cc85f](https://github.com/ChristopherVR/pptx-viewer/commit/48cc85f4b3b42d49bbdb321ab02191b8a7d1332a))
+
+### Refactor
+
+- **react:** Drop now-redundant local download-sanitization wrapper (by @ChristopherVR) ([7b5e6a1](https://github.com/ChristopherVR/pptx-viewer/commit/7b5e6a1508a6b42b50165fd47eef5d7ee49b89bc))
+- **react,vue,svelte,vanilla:** Repoint media-type check onto shared (by @ChristopherVR) ([bb8e95c](https://github.com/ChristopherVR/pptx-viewer/commit/bb8e95c810e2fd709e12f21d5b073b179e1dbf52))
+- **react:** Repoint template background card onto shared row resolver (by @ChristopherVR) ([b27fd04](https://github.com/ChristopherVR/pptx-viewer/commit/b27fd04a1514377fca139b91b8c079ea3cf7ceec))
+- **react:** Repoint chart type-change patch onto shared patchChartData (by @ChristopherVR) ([9a97113](https://github.com/ChristopherVR/pptx-viewer/commit/9a971139a5acd0ec7cf7e87b73b1f59e9a55f100))
+
 ## [2.20.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.20.5) - 2026-08-21
 
 ### Bug Fixes

@@ -7,6 +7,37 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.22.0) - 2026-08-21
+
+### Features
+
+- **shared:** Add header-footer dialog draft helpers (by @ChristopherVR) ([0f640c8](https://github.com/ChristopherVR/pptx-viewer/commit/0f640c887c4d6447d2a6cbba2754049cec69e121))
+- **shared:** Add classifyMediaType, the audio/video MIME classifier (by @ChristopherVR) ([56520a1](https://github.com/ChristopherVR/pptx-viewer/commit/56520a1138f342b2e4e33ff5bbedb64f5a8ca9e4))
+- **shared:** Add resolveTemplateBackgroundRows for the template background card (by @ChristopherVR) ([67d327d](https://github.com/ChristopherVR/pptx-viewer/commit/67d327d737a06b7ca737feffb01d9afe637c108f))
+- **shared:** Add patchChartData, the type-aware chart data patcher (by @ChristopherVR) ([5309296](https://github.com/ChristopherVR/pptx-viewer/commit/5309296df312affd6c9f9994cc7e4612310d8119))
+- **svelte:** Add the missing element lock/unlock toggle (by @ChristopherVR) ([e235f66](https://github.com/ChristopherVR/pptx-viewer/commit/e235f6651e72b5f3f281d3be5f1d4f64fca297ed))
+- **shared:** Add pptx.group.childCount/groupedElement i18n keys (by @ChristopherVR) ([f5557e1](https://github.com/ChristopherVR/pptx-viewer/commit/f5557e1ac1ef74af4306cf81cd2c08c8b61dd960))
+- **svelte:** Add the missing group/OLE element info cards (by @ChristopherVR) ([8eb1adf](https://github.com/ChristopherVR/pptx-viewer/commit/8eb1adf52313213e0c3cbd299eb7ee3656741b02))
+- **svelte:** Add the table quick-style preset swatch gallery (by @ChristopherVR) ([b2c8d8c](https://github.com/ChristopherVR/pptx-viewer/commit/b2c8d8cadaffb46229b618e877ea39d63d12a0dc))
+- **svelte:** Fill out the ribbon overflow "..." menu (by @ChristopherVR) ([077c867](https://github.com/ChristopherVR/pptx-viewer/commit/077c867f183fd724f47dd7b71e4e2f96462798f7))
+- **svelte:** Add SmartArt text-pane keyboard editing (Tab/Enter/Backspace) (by @ChristopherVR) ([21abb01](https://github.com/ChristopherVR/pptx-viewer/commit/21abb013e180dd20f3eae20fc98d6c03edfdf2dd))
+- **svelte:** Add table column/row drag-resize handles (by @ChristopherVR) ([37d965c](https://github.com/ChristopherVR/pptx-viewer/commit/37d965c58b4e2909e718c76fc65ecb0ce3e78716))
+- **svelte:** Add slide sorter context menu (duplicate/hide/delete) (by @ChristopherVR) ([e187e58](https://github.com/ChristopherVR/pptx-viewer/commit/e187e5842f71a7ea9c51caeebba04c267d8f1d5e))
+- **svelte:** Add editor-canvas pinch-zoom and touch double-tap-to-edit (by @ChristopherVR) ([48158f8](https://github.com/ChristopherVR/pptx-viewer/commit/48158f8d30d9f557c11a1707b0e17eaea64e7cd5))
+- **svelte:** Edit layout/master background from the slide inspector (by @ChristopherVR) ([7611027](https://github.com/ChristopherVR/pptx-viewer/commit/7611027adefb6b842a70b1e60483c62616fe22e0))
+
+### Bug Fixes
+
+- **shared:** Sanitize every download filename, not just callers that remember to (by @ChristopherVR) ([7bdf73b](https://github.com/ChristopherVR/pptx-viewer/commit/7bdf73be98ae30b4664067a52b1611878d7d97b3))
+- **shared:** Floor animation timeline bar width to a visible minimum (by @ChristopherVR) ([918ac2f](https://github.com/ChristopherVR/pptx-viewer/commit/918ac2f5a50d11fb1ad7e015956794f9cd44dfee))
+- **angular,svelte:** Render each font-picker option in its own font (by @ChristopherVR) ([b1845fa](https://github.com/ChristopherVR/pptx-viewer/commit/b1845fa7c028afb8a4db51940f2ecd65e1741100))
+- **svelte,vanilla:** Commit in-progress SmartArt node text before Tab/Enter (by @ChristopherVR) ([2c79a1f](https://github.com/ChristopherVR/pptx-viewer/commit/2c79a1fa5276ecbde39c27b8fb71b2723781c336))
+
+### Refactor
+
+- **svelte:** Repoint header-footer draft clone/patch onto shared (by @ChristopherVR) ([8bafb06](https://github.com/ChristopherVR/pptx-viewer/commit/8bafb06a7338b47be7199383acae5cc02cc0cf23))
+- **react,vue,svelte,vanilla:** Repoint media-type check onto shared (by @ChristopherVR) ([bb8e95c](https://github.com/ChristopherVR/pptx-viewer/commit/bb8e95c810e2fd709e12f21d5b073b179e1dbf52))
+
 ## [2.21.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.21.4) - 2026-08-21
 
 ### Bug Fixes

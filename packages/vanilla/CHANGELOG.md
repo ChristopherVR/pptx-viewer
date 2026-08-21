@@ -7,6 +7,36 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [1.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.23.0) - 2026-08-21
+
+### Features
+
+- **shared:** Add header-footer dialog draft helpers (by @ChristopherVR) ([0f640c8](https://github.com/ChristopherVR/pptx-viewer/commit/0f640c887c4d6447d2a6cbba2754049cec69e121))
+- **shared:** Add classifyMediaType, the audio/video MIME classifier (by @ChristopherVR) ([56520a1](https://github.com/ChristopherVR/pptx-viewer/commit/56520a1138f342b2e4e33ff5bbedb64f5a8ca9e4))
+- **shared:** Add resolveTemplateBackgroundRows for the template background card (by @ChristopherVR) ([67d327d](https://github.com/ChristopherVR/pptx-viewer/commit/67d327d737a06b7ca737feffb01d9afe637c108f))
+- **shared:** Add patchChartData, the type-aware chart data patcher (by @ChristopherVR) ([5309296](https://github.com/ChristopherVR/pptx-viewer/commit/5309296df312affd6c9f9994cc7e4612310d8119))
+- **vanilla:** Add the missing element lock/unlock toggle (by @ChristopherVR) ([d56042b](https://github.com/ChristopherVR/pptx-viewer/commit/d56042be0301a6b31894b2c934a8114540396cf7))
+- **shared:** Add pptx.group.childCount/groupedElement i18n keys (by @ChristopherVR) ([f5557e1](https://github.com/ChristopherVR/pptx-viewer/commit/f5557e1ac1ef74af4306cf81cd2c08c8b61dd960))
+- **vanilla:** Add the missing group/OLE element info cards (by @ChristopherVR) ([1d027bd](https://github.com/ChristopherVR/pptx-viewer/commit/1d027bdc240c90e00dec510fc45bd45181b8ea56))
+- **vanilla:** Add the table quick-style preset swatch gallery (by @ChristopherVR) ([db93b06](https://github.com/ChristopherVR/pptx-viewer/commit/db93b06c9fe83930ef01284f9c3fa5946707e9d6))
+- **vanilla:** Add the missing transition click-to-play preview thumbnail (by @ChristopherVR) ([b95178b](https://github.com/ChristopherVR/pptx-viewer/commit/b95178b0c04e7eb98da0de25232c3cec807974cf))
+- **vanilla:** Live-render SmartArt gallery previews, not a static icon (by @ChristopherVR) ([15117e4](https://github.com/ChristopherVR/pptx-viewer/commit/15117e4b5a5398da9248c83b4e1ce8d829997dd4))
+- **vanilla:** Add SmartArt text-pane keyboard editing (Tab/Enter/Backspace) (by @ChristopherVR) ([6a32895](https://github.com/ChristopherVR/pptx-viewer/commit/6a3289532f4a12c72e0765f295cea75fe77c6fec))
+- **vanilla:** Add table column/row drag-resize handles (by @ChristopherVR) ([4d1f969](https://github.com/ChristopherVR/pptx-viewer/commit/4d1f969b47cb387362a9a86ea21540b2493f2927))
+- **vanilla:** Edit layout/master background from the slide inspector (by @ChristopherVR) ([054def4](https://github.com/ChristopherVR/pptx-viewer/commit/054def401963925b6376f943753e8d4f355cfbf4))
+
+### Bug Fixes
+
+- **shared:** Sanitize every download filename, not just callers that remember to (by @ChristopherVR) ([7bdf73b](https://github.com/ChristopherVR/pptx-viewer/commit/7bdf73be98ae30b4664067a52b1611878d7d97b3))
+- **shared:** Floor animation timeline bar width to a visible minimum (by @ChristopherVR) ([918ac2f](https://github.com/ChristopherVR/pptx-viewer/commit/918ac2f5a50d11fb1ad7e015956794f9cd44dfee))
+- **svelte,vanilla:** Commit in-progress SmartArt node text before Tab/Enter (by @ChristopherVR) ([2c79a1f](https://github.com/ChristopherVR/pptx-viewer/commit/2c79a1fa5276ecbde39c27b8fb71b2723781c336))
+
+### Refactor
+
+- **vanilla:** Repoint header-footer draft clone onto shared (by @ChristopherVR) ([c947ce2](https://github.com/ChristopherVR/pptx-viewer/commit/c947ce22d2c8a321bab10f4a07d3c8ba47955c5e))
+- **react,vue,svelte,vanilla:** Repoint media-type check onto shared (by @ChristopherVR) ([bb8e95c](https://github.com/ChristopherVR/pptx-viewer/commit/bb8e95c810e2fd709e12f21d5b073b179e1dbf52))
+- **vanilla:** Repoint animation timeline bar layout onto shared (by @ChristopherVR) ([c9ad169](https://github.com/ChristopherVR/pptx-viewer/commit/c9ad1697e68c54cda4e1f6597cb243a7933804ee))
+
 ## [1.22.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.22.4) - 2026-08-21
 
 ### Bug Fixes
