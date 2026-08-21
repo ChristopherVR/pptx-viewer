@@ -175,6 +175,27 @@ describe('smartArtSection keyboard editing', () => {
 		expect(node?.parentId).toBe('n1');
 	});
 
+	/**
+	 * The very first top-level node has no preceding sibling to nest under, so
+	 * `demote` is a structural no-op (returns undefined) - and a version of the
+	 * fix that only committed the edit ALONGSIDE a successful demote lost the
+	 * typed text here specifically, since the whole branch was skipped. This is
+	 * the exact scenario CI's save-corruption-repro / smartart-insert-edit
+	 * specs exercise (they always edit the FIRST node).
+	 */
+	it('tab key on the first node (demote no-ops) still commits the just-typed text', () => {
+		const { editor, target } = render();
+		const [first] = nodeInputs(target);
+		first.value = 'SmartArt One';
+		first.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+		);
+		flushSync();
+		const node = currentData(editor)?.nodes.find((n) => n.id === 'n1');
+		expect(node?.text).toBe('SmartArt One');
+		expect(node?.parentId).toBeUndefined();
+	});
+
 	it('enter key commits the just-typed text before inserting a sibling', () => {
 		const { editor, target } = render();
 		const [first] = nodeInputs(target);

@@ -121,15 +121,25 @@
 		// typed).
 		const liveValue = (event.currentTarget as HTMLInputElement).value;
 		const isEmpty = !liveValue;
+		// `updateSmartArtNodeText` always returns a NEW object (even when the
+		// text is unchanged), so a plain reference check cannot tell "nothing to
+		// commit" from "committed"; compare against the last-known text instead,
+		// and only fold the edit in when a structural op no-ops (demoting the
+		// very first node has nothing to nest under) so a bare Tab press cannot
+		// still push a no-op history entry.
+		const committed = updateSmartArtNodeText(data, nodeId, liveValue);
+		const textChanged = liveValue !== node?.text;
 
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			const result = addSiblingAfter(updateSmartArtNodeText(data, nodeId, liveValue), nodeId);
+			const result = addSiblingAfter(committed, nodeId);
 			if (result) {
 				applyData(result.data);
 				if (result.focusNodeId) {
 					void focusNodeInput(result.focusNodeId);
 				}
+			} else if (textChanged) {
+				applyData(committed);
 			}
 		} else if ((event.key === 'Backspace' || event.key === 'Delete') && isEmpty) {
 			const isTop = !node?.parentId;
@@ -146,17 +156,21 @@
 			}
 		} else if (event.key === 'Tab' && !event.shiftKey) {
 			event.preventDefault();
-			const next = demote(updateSmartArtNodeText(data, nodeId, liveValue), nodeId);
+			const next = demote(committed, nodeId);
 			if (next) {
 				applyData(next);
 				void focusNodeInput(nodeId);
+			} else if (textChanged) {
+				applyData(committed);
 			}
 		} else if (event.key === 'Tab' && event.shiftKey) {
 			event.preventDefault();
-			const next = promote(updateSmartArtNodeText(data, nodeId, liveValue), nodeId);
+			const next = promote(committed, nodeId);
 			if (next) {
 				applyData(next);
 				void focusNodeInput(nodeId);
+			} else if (textChanged) {
+				applyData(committed);
 			}
 		}
 	}
