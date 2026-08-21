@@ -70,39 +70,82 @@ export class EditorSlidesController {
 
 	/** Duplicate the current slide. Returns its new index, or null when not editable. */
 	duplicateCurrentSlide(): number | null {
+		return this.duplicateSlideAtIndex(this.#editor.currentSlideIndex);
+	}
+
+	/** Delete the current slide. Returns the new active index, or null (not editable / only slide). */
+	deleteCurrentSlide(): number | null {
+		return this.deleteSlideAtIndex(this.#editor.currentSlideIndex);
+	}
+
+	/**
+	 * Duplicate the slide at an arbitrary index (the sorter's context-menu
+	 * target, which need not be the active slide). Returns the index the
+	 * caller should navigate to so the active slide stays the same logical
+	 * slide the user was looking at, or null when not editable.
+	 */
+	duplicateSlideAtIndex(index: number): number | null {
 		if (!this.#editor.editable) {
 			return null;
 		}
-		const result = duplicateSlideAt(this.#editor.slides, this.#editor.currentSlideIndex);
+		const result = duplicateSlideAt(this.#editor.slides, index);
 		if (!result) {
 			return null;
 		}
-		const source = this.#editor.slides[this.#editor.currentSlideIndex];
+		const source = this.#editor.slides[index];
 		const copy = result.slides[result.newIndex];
 		this.#editor.commitSlides(result.slides);
 		this.#editor.templateElementsBySlideId = {
 			...this.#editor.templateElementsBySlideId,
 			[copy.id]: (this.#editor.templateElementsBySlideId[source.id] ?? []).map(cloneElement),
 		};
-		return result.newIndex;
+		if (index === this.#editor.currentSlideIndex) {
+			return result.newIndex;
+		}
+		return index < this.#editor.currentSlideIndex
+			? this.#editor.currentSlideIndex + 1
+			: this.#editor.currentSlideIndex;
 	}
 
-	/** Delete the current slide. Returns the new active index, or null (not editable / only slide). */
-	deleteCurrentSlide(): number | null {
+	/**
+	 * Delete the slide at an arbitrary index (the sorter's context-menu
+	 * target). Returns the index the caller should navigate to, or null (not
+	 * editable / only slide).
+	 */
+	deleteSlideAtIndex(index: number): number | null {
 		if (!this.#editor.editable) {
 			return null;
 		}
-		const result = deleteSlideAt(this.#editor.slides, this.#editor.currentSlideIndex);
+		const result = deleteSlideAt(this.#editor.slides, index);
 		if (!result) {
 			return null;
 		}
-		const removedId = this.#editor.slides[this.#editor.currentSlideIndex].id;
+		const removedId = this.#editor.slides[index].id;
 		this.#editor.commitSlides(result.slides);
 		const templateElementsBySlideId = { ...this.#editor.templateElementsBySlideId };
 		delete templateElementsBySlideId[removedId];
 		this.#editor.templateElementsBySlideId = templateElementsBySlideId;
-		this.#editor.selection.clear();
-		return result.newIndex;
+		if (index === this.#editor.currentSlideIndex) {
+			this.#editor.selection.clear();
+			return result.newIndex;
+		}
+		return index < this.#editor.currentSlideIndex
+			? this.#editor.currentSlideIndex - 1
+			: this.#editor.currentSlideIndex;
+	}
+
+	/** Toggle the hidden flag on the slide at `index` (the sorter's context-menu target). */
+	toggleSlideHidden(index: number): void {
+		if (!this.#editor.editable) {
+			return;
+		}
+		const slide = this.#editor.slides[index];
+		if (!slide) {
+			return;
+		}
+		this.#editor.commitSlides(
+			this.#editor.slides.map((s, i) => (i === index ? { ...s, hidden: !s.hidden } : s)),
+		);
 	}
 
 	/**
