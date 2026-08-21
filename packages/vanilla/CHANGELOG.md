@@ -7,6 +7,15 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [1.23.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.23.1) - 2026-08-21
+
+### Bug Fixes
+
+- **core:** Restore mc:AlternateContent envelope on passthrough template save (by @ChristopherVR) ([1659244](https://github.com/ChristopherVR/pptx-viewer/commit/165924427f0a2e1f834e1b24d7237a1c0125d8f6))
+- **core:** Stop baking theme effectRef into a literal effectLst on save (by @ChristopherVR) ([59a5566](https://github.com/ChristopherVR/pptx-viewer/commit/59a5566aef9304d4f2a31c6b4e2f95f86841dd8f))
+- **core:** Read line-family chart series colors on any chart, not just combo (by @ChristopherVR) ([e62dfcf](https://github.com/ChristopherVR/pptx-viewer/commit/e62dfcf2a6850a86944730f752b321c08b44e477))
+- **core:** Write line-family chart series colors into a:ln, not a corrupting spPr (by @ChristopherVR) ([5b54357](https://github.com/ChristopherVR/pptx-viewer/commit/5b54357646ca63723944bbf44f8ac7c23912e035))
+
 ## [1.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.23.0) - 2026-08-21
 
 ### Features

@@ -10,6 +10,21 @@ dated sections beneath it are generated from
 
 ## 2026-08-21
 
+_Releases: pptx-viewer-core@2.3.13, pptx-react-viewer@2.21.1, pptx-vue-viewer@2.22.1, pptx-angular-viewer@2.20.1, pptx-vanilla-viewer@1.23.1, pptx-svelte-viewer@2.22.1_
+
+### Bug Fixes
+
+- **core:** Restore mc:AlternateContent envelope on passthrough template save (by @ChristopherVR) ([1659244](https://github.com/ChristopherVR/pptx-viewer/commit/165924427f0a2e1f834e1b24d7237a1c0125d8f6))
+- **core:** Stop baking theme effectRef into a literal effectLst on save (by @ChristopherVR) ([59a5566](https://github.com/ChristopherVR/pptx-viewer/commit/59a5566aef9304d4f2a31c6b4e2f95f86841dd8f))
+- **core:** Read line-family chart series colors on any chart, not just combo (by @ChristopherVR) ([e62dfcf](https://github.com/ChristopherVR/pptx-viewer/commit/e62dfcf2a6850a86944730f752b321c08b44e477))
+- **core:** Write line-family chart series colors into a:ln, not a corrupting spPr (by @ChristopherVR) ([5b54357](https://github.com/ChristopherVR/pptx-viewer/commit/5b54357646ca63723944bbf44f8ac7c23912e035))
+
+### Documentation
+
+- Correct two stale limitations.md claims (by @ChristopherVR) ([f0fa5ae](https://github.com/ChristopherVR/pptx-viewer/commit/f0fa5ae044c024b1aab26b42ba0233e93c580501))
+
+## 2026-08-21
+
 _Releases: pptx-react-viewer@2.21.0, pptx-vue-viewer@2.22.0, pptx-angular-viewer@2.20.0, pptx-vanilla-viewer@1.23.0, pptx-svelte-viewer@2.22.0, @christophervr/pptx-viewer@1.8.1_
 
 ### Features
