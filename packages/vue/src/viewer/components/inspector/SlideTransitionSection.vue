@@ -13,6 +13,7 @@ import { useI18n } from 'vue-i18n';
 
 import SlideTransitionPanel from '../SlideTransitionPanel.vue';
 import DirectionPicker from './DirectionPicker.vue';
+import TransitionPreview from './TransitionPreview.vue';
 
 /** Transition types that pick a horz/vert orientation instead of a direction. */
 const ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> = new Set([
@@ -139,5 +140,9 @@ function onAdvanceChange(e: Event): void {
 			/>
 			{{ t('pptx.transition.advanceOnClick') }}
 		</label>
+
+		<div v-if="slide?.transition" class="mt-2 px-2.5">
+			<TransitionPreview :transition="slide.transition" />
+		</div>
 	</div>
 </template>
