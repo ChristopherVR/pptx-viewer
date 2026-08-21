@@ -136,6 +136,16 @@ export interface PowerPointViewerProps {
 	 */
 	smartArt3D?: boolean;
 	/**
+	 * Opt in to the interactive Three.js surface-chart renderer. When `true`,
+	 * `surface`/`surface3D` charts render as a camera-orbitable WebGL mesh
+	 * (drag to rotate, scroll to zoom) instead of the static SVG isometric
+	 * projection. Chart marks are not selectable/draggable in this mode.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the chart has no plottable grid), the viewer transparently falls back
+	 * to the SVG surface renderer. Default `false`.
+	 */
+	surfaceChart3D?: boolean;
+	/**
 	 * Enable in-place editing: click to select an element, drag to move, use the
 	 * 8 handles to resize (Shift locks aspect) and the rotate handle to rotate,
 	 * double-click text/shapes to edit their text, and the keyboard for

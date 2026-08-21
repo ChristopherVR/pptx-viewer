@@ -42,6 +42,7 @@
 		getInitialSlide: () => 0,
 		t: (key: string) => key,
 		getSmartArt3D: () => false,
+		getSurfaceChart3D: () => false,
 		getEditable: () => editable,
 		onautosavetoggle: (enabled) => onautosavetoggle?.(enabled),
 		getStageHolderEl: () => undefined,

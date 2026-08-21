@@ -7,12 +7,13 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, resolveChartKind } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
 	import { getSlideElementsGetter } from '../state/slide-elements';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
+	import { useSurfaceChart3D } from '../state/surface-chart-3d-context';
 	import {
 		getPresentationElementStatesGetter,
 		usePresentationElementState,
@@ -35,6 +36,7 @@
 	import PlaceholderElement from './PlaceholderElement.svelte';
 	import SmartArt3DView from './SmartArt3DView.svelte';
 	import SmartArtView from './SmartArtView.svelte';
+	import SurfaceChart3DView from './SurfaceChart3DView.svelte';
 	import TableView from './TableView.svelte';
 	import TextBlock from './TextBlock.svelte';
 	import ZoomView from './ZoomView.svelte';
@@ -107,6 +109,16 @@
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
+	/** Host opt-in to the interactive Three.js surface-chart renderer (provided by PowerPointViewer). */
+	const surfaceChart3D = useSurfaceChart3D();
+	/**
+	 * Marks are not selectable/draggable in 3D mode: a mesh facet has no 2D
+	 * screen geometry to hit-test against, so value-drag editing stays SVG-only.
+	 */
+	const isSurfaceChart = $derived(
+		element.type === 'chart' &&
+			resolveChartKind(element.chartData?.chartType ?? 'bar') === 'surface',
+	);
 
 	const isShapeLike = $derived(element.type === 'text' || element.type === 'shape');
 	const isImageLike = $derived(element.type === 'picture' || element.type === 'image');
@@ -189,6 +201,8 @@
 	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'table'}
 	<TableView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {ontablecellcommit} {ontableresizecolumns} {ontableresizerow} />
+{:else if element.type === 'chart' && surfaceChart3D && isSurfaceChart}
+	<SurfaceChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'smartArt' && smartArt3D}

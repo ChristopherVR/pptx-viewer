@@ -43,6 +43,7 @@ export function toViewerStateOptions(
 		getFilePath: () => getProps().filePath,
 		getInitialSlide: () => getProps().initialSlide ?? 0,
 		getSmartArt3D: () => getProps().smartArt3D ?? false,
+		getSurfaceChart3D: () => getProps().surfaceChart3D ?? false,
 		getEditable: () => getProps().editable ?? false,
 		getFileName: () => getProps().fileName,
 		getAiEnabled: () => Boolean(getProps().ai),

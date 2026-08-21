@@ -58,6 +58,7 @@ export interface CreateViewerStateOptions {
 	/** Already locale-bound translator; propagated to descendants via context. */
 	t: Translator;
 	getSmartArt3D: () => boolean;
+	getSurfaceChart3D: () => boolean;
 	/**
 	 * The host `editable` prop. The factory mirrors it into its own
 	 * {@link ViewerStateBag.editable} flag, which the AI seam, `setMode()` and

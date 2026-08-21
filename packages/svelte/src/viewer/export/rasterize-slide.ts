@@ -7,6 +7,7 @@ import type { Translator } from '../../i18n/translator';
 import SlideStage from '../components/SlideStage.svelte';
 import { FieldContextKey } from '../state/field-context';
 import { SmartArt3DContextKey } from '../state/smart-art-3d-context';
+import { SurfaceChart3DContextKey } from '../state/surface-chart-3d-context';
 import { renderToCanvas } from './render-to-canvas';
 
 export interface RasterizeSlideDeps {
@@ -19,6 +20,11 @@ export interface RasterizeSlideDeps {
 	getTranslator(): Translator;
 	/** Opt-in WebGL SmartArt renderer flag; see `PowerPointViewerProps.smartArt3D`. */
 	smartArt3D: boolean;
+	/**
+	 * Opt-in WebGL surface-chart renderer flag; see
+	 * `PowerPointViewerProps.surfaceChart3D`.
+	 */
+	surfaceChart3D: boolean;
 	/**
 	 * Deck-level OOXML field-substitution context. The capture stage is mounted
 	 * outside the viewer tree, so without this an exported PNG/PDF would print
@@ -122,6 +128,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			context: new Map<unknown, unknown>([
 				[I18N_CONTEXT_KEY, deps.getTranslator()],
 				[SmartArt3DContextKey, () => deps.smartArt3D],
+				[SurfaceChart3DContextKey, () => deps.surfaceChart3D],
 				[FieldContextKey, () => deps.getFieldContext?.()],
 			]),
 		});
