@@ -186,6 +186,7 @@ describe('orderedTemplatePartXml', () => {
 			rootTag: 'p:sldLayout',
 			sourceXml,
 			getLocalName: (key) => key.split(':').pop() ?? key,
+			alternateContentBlockByRawXml: new WeakMap(),
 		});
 		const root = ordered['p:sldLayout'] as XmlObject;
 		const spTree = (root['p:cSld'] as XmlObject)['p:spTree'] as XmlObject;
@@ -214,6 +215,7 @@ describe('orderedTemplatePartXml', () => {
 			rootTag: 'p:sldLayout',
 			sourceXml: SOURCE,
 			getLocalName: (key) => key.split(':').pop() ?? key,
+			alternateContentBlockByRawXml: new WeakMap(),
 		});
 		expect(JSON.stringify(part)).toBe(before);
 	});
@@ -228,6 +230,7 @@ describe('orderedTemplatePartXml', () => {
 				rootTag: 'p:sldLayout',
 				sourceXml: undefined,
 				getLocalName: (key) => key.split(':').pop() ?? key,
+				alternateContentBlockByRawXml: new WeakMap(),
 			}),
 		).toBe(part);
 	});

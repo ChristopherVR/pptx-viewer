@@ -1,12 +1,26 @@
 import { describe, it, expect } from 'vitest';
 
+import type { XmlObject } from '../types';
+import type { AlternateContentBlock } from './alternate-content';
 import {
 	selectAlternateContentBranch,
 	unwrapAlternateContent,
+	reapplyAlternateContentToTree,
 	areNamespacesSupported,
 	isNamespaceSupported,
 	getSupportedNamespaces,
 } from './alternate-content';
+
+/** Build the WeakMap `unwrapAlternateContent`'s runtime caller populates from its return value. */
+function blockMapFor(blocks: AlternateContentBlock[]): WeakMap<XmlObject, AlternateContentBlock> {
+	const map = new WeakMap<XmlObject, AlternateContentBlock>();
+	for (const block of blocks) {
+		for (const ref of block.childRefs) {
+			map.set(ref.node, block);
+		}
+	}
+	return map;
+}
 
 describe('areNamespacesSupported', () => {
 	it('returns true for empty or whitespace requires', () => {
@@ -335,5 +349,124 @@ describe('unwrapAlternateContent', () => {
 		unwrapAlternateContent(container);
 		expect((container['p:graphicFrame'] as Array<{ id: string }>)[0].id).toBe('frame1');
 		expect((container['p:cxnSp'] as Array<{ id: string }>)[0].id).toBe('conn1');
+	});
+});
+
+describe('reapplyAlternateContentToTree', () => {
+	it('returns the same reference when no node is AC-tracked', () => {
+		const container: XmlObject = { 'p:sp': [{ '@_id': '1' } as unknown as XmlObject] };
+		const result = reapplyAlternateContentToTree(container, new WeakMap());
+		expect(result).toBe(container);
+	});
+
+	it('rebuilds a Choice envelope, preserving the untouched Fallback verbatim (CC-4 for templates)', () => {
+		const container: Record<string, unknown> = {
+			'p:sp': [{ '@_id': 'existing' }],
+			'mc:AlternateContent': {
+				'mc:Choice': {
+					'@_Requires': 'p14',
+					'p:sp': { '@_id': 'fromChoice', '@_name': 'ChoiceShape' },
+				},
+				'mc:Fallback': {
+					'p:sp': { '@_id': 'fromFallback', '@_name': 'FallbackShape' },
+				},
+			},
+		};
+		const blocks = unwrapAlternateContent(container);
+		// Parse-time unwrap: the envelope is gone, the Choice shape is a bare sibling.
+		expect(container['mc:AlternateContent']).toBeUndefined();
+		expect(container['p:sp'] as unknown[]).toHaveLength(2);
+
+		const restored = reapplyAlternateContentToTree(
+			container as XmlObject,
+			blockMapFor(blocks),
+		) as Record<string, unknown>;
+
+		// The passthrough-save clone never touches the parse-time container.
+		expect(restored).not.toBe(container);
+		expect(container['p:sp'] as unknown[]).toHaveLength(2);
+		expect(container['mc:AlternateContent']).toBeUndefined();
+
+		// The restored tree has the envelope back, with only the pre-existing
+		// shape left as a bare sibling.
+		expect((restored['p:sp'] as Array<{ '@_id': string }>).map((s) => s['@_id'])).toStrictEqual([
+			'existing',
+		]);
+		const ac = restored['mc:AlternateContent'] as XmlObject;
+		expect(ac).toBeDefined();
+		const choice = ac['mc:Choice'] as XmlObject;
+		expect(choice['@_Requires']).toBe('p14');
+		expect((choice['p:sp'] as XmlObject)['@_name']).toBe('ChoiceShape');
+		const fallback = ac['mc:Fallback'] as XmlObject;
+		expect((fallback['p:sp'] as XmlObject)['@_name']).toBe('FallbackShape');
+	});
+
+	it('rebuilds a Fallback envelope, preserving the unselected Choice verbatim', () => {
+		const container: Record<string, unknown> = {
+			'mc:AlternateContent': {
+				'mc:Choice': {
+					'@_Requires': 'p99',
+					'p:pic': { '@_id': 'fromChoice' },
+				},
+				'mc:Fallback': {
+					'p:sp': { '@_id': 'fromFallback', '@_name': 'FallbackShape' },
+				},
+			},
+		};
+		const blocks = unwrapAlternateContent(container);
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0].selectedBranch).toBe('fallback');
+
+		const restored = reapplyAlternateContentToTree(
+			container as XmlObject,
+			blockMapFor(blocks),
+		) as Record<string, unknown>;
+
+		expect(restored['p:sp']).toBeUndefined();
+		const ac = restored['mc:AlternateContent'] as XmlObject;
+		const fallback = ac['mc:Fallback'] as XmlObject;
+		expect((fallback['p:sp'] as XmlObject)['@_name']).toBe('FallbackShape');
+		// The unselected Choice (@Requires an unsupported namespace) is untouched.
+		const choice = ac['mc:Choice'] as XmlObject;
+		expect((choice['p:pic'] as XmlObject)['@_id']).toBe('fromChoice');
+	});
+
+	it('restores an envelope nested inside a p:grpSp without disturbing sibling groups', () => {
+		const group: Record<string, unknown> = {
+			'@_id': 'group1',
+			'mc:AlternateContent': {
+				'mc:Choice': {
+					'@_Requires': 'p14',
+					'p:sp': { '@_id': 'nestedChoice' },
+				},
+				'mc:Fallback': {
+					'p:sp': { '@_id': 'nestedFallback' },
+				},
+			},
+		};
+		const otherGroup: Record<string, unknown> = { '@_id': 'group2', 'p:sp': [{ '@_id': 'plain' }] };
+		const spTree: Record<string, unknown> = {
+			'p:grpSp': [group, otherGroup],
+		};
+		const blocks = unwrapAlternateContent(group);
+		expect(group['mc:AlternateContent']).toBeUndefined();
+
+		const restored = reapplyAlternateContentToTree(
+			spTree as XmlObject,
+			blockMapFor(blocks),
+		) as Record<string, unknown>;
+
+		expect(restored).not.toBe(spTree);
+		const groups = restored['p:grpSp'] as XmlObject[];
+		expect(groups).toHaveLength(2);
+		// The untouched sibling group is passed through by reference.
+		expect(groups[1]).toBe(otherGroup);
+		// The nested envelope is back inside the first group, not leaked to spTree.
+		expect(restored['mc:AlternateContent']).toBeUndefined();
+		expect(groups[0]['p:sp']).toBeUndefined();
+		const nestedAc = groups[0]['mc:AlternateContent'] as XmlObject;
+		expect(((nestedAc['mc:Choice'] as XmlObject)['p:sp'] as XmlObject)['@_id']).toBe(
+			'nestedChoice',
+		);
 	});
 });

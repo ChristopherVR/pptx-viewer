@@ -491,32 +491,20 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'which look like coverage and are not - the 87 envelopes in solution-explorer and friends ' +
 			'are p:sld-level TRANSITION envelopes on a different code path, and the only 3 inside any ' +
 			'shape tree sit deep in a p:graphicFrame/a:graphicData. Deliberately a SEPARATE deck from ' +
-			'template-group.pptx, because the ledger below is keyed per fixture and would otherwise ' +
-			'excuse the group check too. Verified to open in PowerPoint.',
-		knownDefects: {
-			// Witnessed for the first time by this fixture. It was previously
-			// carried as a prose note in the manifest because nothing in the corpus
-			// could reproduce it, which is a strictly worse record: nothing asserts
-			// prose, and nothing tells you the day it is fixed.
-			//
-			// `unwrapAlternateContent` mutates the CACHED layout/master spTree in
-			// place, deleting the mc:AlternateContent envelope and appending the
-			// selected branch's children to the parent. That cache is what the
-			// passthrough flush later writes, so the envelope never reaches the
-			// saved layout and the Fallback branch goes with it. Measured on this
-			// deck: mc:AlternateContent 1 -> 0, LayoutMceFallbackShape disappears,
-			// LayoutMceChoiceShape survives as a bare child.
-			//
-			// The damage is silent. The deck still opens and still renders, so only
-			// a consumer that needed the Fallback - or a future PowerPoint that
-			// would have selected a different Choice - ever notices.
-			templateShapeIdentityStable:
-				'unwrapAlternateContent drops the mc:Fallback branch from the layout, so LayoutMceFallbackShape is lost on save.',
-			templateSpTreeOrderStable:
-				'unwrapAlternateContent replaces the layout mc:AlternateContent envelope with its Choice children, changing the depth-0 child sequence.',
-			templateSpTreeDeepOrderStable:
-				'The same envelope removal changes the group-inclusive child sequence of the layout shape tree.',
-		},
+			'template-group.pptx, because a defect this fixture used to witness was ledgered per ' +
+			'fixture and would otherwise have excused the group check too. Verified to open in ' +
+			'PowerPoint.\n\n' +
+			'Formerly ledgered: `unwrapAlternateContent` mutated the CACHED layout/master spTree in ' +
+			'place at parse time, deleting the mc:AlternateContent envelope and appending the selected ' +
+			'branch children to the parent; the passthrough flush (an untouched layout/master never ' +
+			'reaches a writer) then serialized that cache verbatim, so the envelope - and the Fallback ' +
+			'branch with it - never reached a saved deck. Fixed by ' +
+			'`reapplyAlternateContentToTree` (core/utils/alternate-content.ts), called from ' +
+			'`orderedTemplatePartXml` (template-sp-tree-order.ts) so an untouched part gets its ' +
+			'envelope reconstructed, on a clone, right before the flush; a part the Slide Master view ' +
+			'actually rewrote already gets this from `reapplyAlternateContentEnvelopes` and is a no-op ' +
+			'here. Verified against this fixture: mc:AlternateContent 1 -> 1, both LayoutMceChoiceShape ' +
+			'and LayoutMceFallbackShape survive, at the original depth-0 position.',
 	},
 	{
 		file: 'text-features.ppt',

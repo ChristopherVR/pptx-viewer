@@ -217,6 +217,153 @@ export function unwrapAlternateContent(
 	return blocks;
 }
 
+/**
+ * The passthrough-save counterpart to {@link unwrapAlternateContent}: rebuild
+ * `mc:AlternateContent` envelopes that were flattened at parse time, using the
+ * records `unwrapAlternateContent` left in `blockByNode`.
+ *
+ * Layout and master parts that a save leaves untouched are re-serialized
+ * straight from the cached, ALREADY-UNWRAPPED parse-time XmlObject (see
+ * `PptxHandlerRuntimeSavePipeline`'s passthrough flush) - there is no writer
+ * pass to re-wrap them the way an edited part gets via
+ * `reapplyAlternateContentEnvelopes`. Without this, an `mc:AlternateContent`
+ * envelope inside a slide master or layout's shape tree is unwrapped on the
+ * FIRST load and never reconstituted: the `mc:Fallback` branch is discarded
+ * permanently and the depth-0 child sequence changes, even on a save that
+ * edited nothing (CC-4 for templates; see `template-mce.pptx` in the fixture
+ * corpus manifest).
+ *
+ * Never mutates `container`: returns the same reference when nothing needs
+ * restoring, or a new tree - cloned only at the levels that changed, exactly
+ * like the sibling `withTemplateSpTreeOrder` ordering pass - so the cached
+ * `layoutXmlMap` / `masterXmlMap` entry a second save reads is untouched.
+ * Recurses into `p:grpSp` because `unwrapAlternateContent` runs per-group too.
+ */
+export function reapplyAlternateContentToTree(
+	container: XmlObject,
+	blockByNode: WeakMap<XmlObject, AlternateContentBlock>,
+): XmlObject {
+	let working = container;
+
+	// Nested groups first, bottom-up, so an envelope inside a p:grpSp is
+	// restored before this level decides whether it changed anything.
+	const groups = ensureArray(working['p:grpSp']);
+	if (groups.length > 0) {
+		let groupsChanged = false;
+		const nextGroups = groups.map((group) => {
+			const next = reapplyAlternateContentToTree(group, blockByNode);
+			if (next !== group) {
+				groupsChanged = true;
+			}
+			return next;
+		});
+		if (groupsChanged) {
+			working = { ...working, 'p:grpSp': nextGroups };
+		}
+	}
+
+	// Find which of this container's own tag-array children are AC-tracked,
+	// grouped by the envelope they came from (a block may contribute several
+	// sibling tags, e.g. Choice = p14:media + p:pic fallback).
+	const blockGroups = new Map<AlternateContentBlock, Array<{ tag: string; node: XmlObject }>>();
+	for (const tag of SHAPE_TREE_ELEMENT_TAGS) {
+		for (const node of ensureArray(working[tag])) {
+			const block = blockByNode.get(node);
+			if (!block) {
+				continue;
+			}
+			let entries = blockGroups.get(block);
+			if (!entries) {
+				entries = [];
+				blockGroups.set(block, entries);
+			}
+			entries.push({ tag, node });
+		}
+	}
+	if (blockGroups.size === 0) {
+		return working;
+	}
+
+	const nextArrays = new Map<string, XmlObject[]>();
+	const arrayFor = (tag: string): XmlObject[] => {
+		let arr = nextArrays.get(tag);
+		if (!arr) {
+			arr = [...ensureArray(working[tag])];
+			nextArrays.set(tag, arr);
+		}
+		return arr;
+	};
+
+	const envelopes: XmlObject[] = [...ensureArray(working['mc:AlternateContent'])];
+	for (const [block, entries] of blockGroups) {
+		// Pull the tracked nodes back out of the flat tag arrays so they are
+		// not emitted both bare and inside the reconstructed envelope.
+		for (const entry of entries) {
+			const arr = arrayFor(entry.tag);
+			const idx = arr.indexOf(entry.node);
+			if (idx !== -1) {
+				arr.splice(idx, 1);
+			}
+		}
+
+		const liveByTag = new Map<string, XmlObject[]>();
+		for (const entry of entries) {
+			let nodes = liveByTag.get(entry.tag);
+			if (!nodes) {
+				nodes = [];
+				liveByTag.set(entry.tag, nodes);
+			}
+			nodes.push(entry.node);
+		}
+
+		// Clone the original envelope and splice the live nodes back into the
+		// branch that was selected at parse time; the other branch (usually
+		// the Fallback) is preserved verbatim from `rawAc`.
+		const clonedAc: XmlObject = { ...block.rawAc };
+		if (block.selectedBranch === 'choice') {
+			const choices = ensureArray(clonedAc['mc:Choice']);
+			const targetIdx = block.choiceIndex ?? 0;
+			const original = choices[targetIdx];
+			if (original) {
+				const rebuilt: XmlObject = { ...original };
+				for (const tag of SHAPE_TREE_ELEMENT_TAGS) {
+					delete rebuilt[tag];
+				}
+				for (const [tag, nodes] of liveByTag) {
+					rebuilt[tag] = nodes.length === 1 ? nodes[0] : nodes;
+				}
+				const nextChoices = [...choices];
+				nextChoices[targetIdx] = rebuilt;
+				clonedAc['mc:Choice'] = nextChoices.length === 1 ? nextChoices[0] : nextChoices;
+			}
+		} else {
+			const fallback = clonedAc['mc:Fallback'] as XmlObject | undefined;
+			if (fallback) {
+				const rebuilt: XmlObject = { ...fallback };
+				for (const tag of SHAPE_TREE_ELEMENT_TAGS) {
+					delete rebuilt[tag];
+				}
+				for (const [tag, nodes] of liveByTag) {
+					rebuilt[tag] = nodes.length === 1 ? nodes[0] : nodes;
+				}
+				clonedAc['mc:Fallback'] = rebuilt;
+			}
+		}
+		envelopes.push(clonedAc);
+	}
+
+	const next: XmlObject = { ...working };
+	for (const [tag, arr] of nextArrays) {
+		if (arr.length > 0) {
+			next[tag] = arr;
+		} else {
+			delete next[tag];
+		}
+	}
+	next['mc:AlternateContent'] = envelopes.length === 1 ? envelopes[0] : envelopes;
+	return next;
+}
+
 // ---------------------------------------------------------------------------
 // Internal helper
 // ---------------------------------------------------------------------------

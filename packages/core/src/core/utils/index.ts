@@ -284,6 +284,7 @@ export {
 export {
 	selectAlternateContentBranch,
 	unwrapAlternateContent,
+	reapplyAlternateContentToTree,
 	areNamespacesSupported,
 	isAlternateContentChoiceSupported,
 	isAlternateContentChoiceXmlSupported,

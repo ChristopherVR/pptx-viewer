@@ -191,6 +191,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			rootTag,
 			sourceXml: sourceXml ?? (await this.zip.file(partPath)?.async('string')),
 			getLocalName: (key) => this.compatibilityService.getXmlLocalName(key),
+			alternateContentBlockByRawXml: this.alternateContentBlockByRawXml,
 		});
 	}
 

@@ -37,7 +37,8 @@
  * map, where a second save or any tag-keyed reader would mis-handle them.
  */
 import type { XmlObject } from '../../types';
-import { SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
+import { reapplyAlternateContentToTree, SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
+import type { AlternateContentBlock } from '../../utils';
 import type { MasterPartRootTag } from './master-part-tags';
 import { setOwnXmlProperty } from './ordered-xml-children';
 import { orderShapeTreeChildren } from './slide-save-xml-order';
@@ -167,8 +168,26 @@ export function orderedTemplatePartXml(options: {
 	/** The part as it was loaded, used when the tree was not rebuilt. */
 	sourceXml: string | undefined;
 	getLocalName: (key: string) => string;
+	/**
+	 * Per-runtime record of which parsed nodes were merged out of an
+	 * `mc:AlternateContent` envelope at load time (CC-4). Consulted so a
+	 * PASSTHROUGH part (Slide Master view left it untouched) gets its envelope
+	 * reconstructed here, on this function's clone, rather than never at all -
+	 * a rewritten part is unaffected since `reapplyAlternateContentEnvelopes`
+	 * already restored its envelope onto `spTree` earlier in the pipeline, so
+	 * this is a no-op for those nodes.
+	 */
+	alternateContentBlockByRawXml: WeakMap<XmlObject, AlternateContentBlock>;
 }): XmlObject {
-	const { runtime, partPath, xmlObj, rootTag, sourceXml, getLocalName } = options;
+	const {
+		runtime,
+		partPath,
+		xmlObj,
+		rootTag,
+		sourceXml,
+		getLocalName,
+		alternateContentBlockByRawXml,
+	} = options;
 	const root = xmlObj[rootTag];
 	if (!isXmlObject(root)) {
 		return xmlObj;
@@ -182,10 +201,12 @@ export function orderedTemplatePartXml(options: {
 		return xmlObj;
 	}
 
+	const rewrapped = reapplyAlternateContentToTree(spTree, alternateContentBlockByRawXml);
+
 	const rebuilt = positionsByRuntime.get(runtime)?.get(partPath);
 	const ordered = rebuilt
-		? orderShapeTreeChildren(spTree, (node) => rebuilt.get(node), getLocalName)
-		: orderContainer(spTree, sourceXml ? scanSpTreeDocumentOrder(sourceXml) : [], getLocalName);
+		? orderShapeTreeChildren(rewrapped, (node) => rebuilt.get(node), getLocalName)
+		: orderContainer(rewrapped, sourceXml ? scanSpTreeDocumentOrder(sourceXml) : [], getLocalName);
 	if (ordered === spTree) {
 		return xmlObj;
 	}
