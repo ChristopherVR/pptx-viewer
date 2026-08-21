@@ -13,12 +13,14 @@
  * @module viewer/slide-background-card
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import { normalizeHexColor } from '../internal/shared';
+import { normalizeHexColor, resolveTemplateBackgroundRows } from '../internal/shared';
+import type { TemplateBackgroundRow } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
+import { LoadContentService } from './load-content.service';
 
 /** Image types accepted for a slide background picture. */
 const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml';
@@ -100,6 +102,43 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 				}
 			</section>
 		}
+		@if (editTemplateMode() && (templateRows().layout || templateRows().master)) {
+			<section class="icard">
+				<h3 class="icard__heading">
+					{{ 'pptx.slideBackground.templateBackgroundsHeading' | translate }}
+				</h3>
+				@if (templateRows().layout; as row) {
+					<label class="icard__row">
+						<span class="icard__label" [title]="row.title">{{
+							'pptx.master.layout' | translate
+						}}</span>
+						<input
+							type="color"
+							class="bg__color"
+							[disabled]="!canEdit()"
+							[value]="templateBackgroundValue(row.path)"
+							(change)="onTemplateColorChange(row.path, $event)"
+						/>
+						<span class="icard__value">{{ row.label }}</span>
+					</label>
+				}
+				@if (templateRows().master; as row) {
+					<label class="icard__row">
+						<span class="icard__label" [title]="row.title">{{
+							'pptx.master.master' | translate
+						}}</span>
+						<input
+							type="color"
+							class="bg__color"
+							[disabled]="!canEdit()"
+							[value]="templateBackgroundValue(row.path)"
+							(change)="onTemplateColorChange(row.path, $event)"
+						/>
+						<span class="icard__value">{{ row.label }}</span>
+					</label>
+				}
+			</section>
+		}
 	`,
 	styles: [
 		`
@@ -165,6 +204,8 @@ export class SlideBackgroundCardComponent {
 	readonly canEdit = input<boolean>(true);
 
 	private readonly editor = inject(EditorStateService);
+	private readonly loader = inject(LoadContentService);
+	private readonly translate = inject(TranslateService);
 
 	protected readonly imageAccept = BACKGROUND_IMAGE_ACCEPT;
 
@@ -183,6 +224,48 @@ export class SlideBackgroundCardComponent {
 		const sl = this.slide();
 		return Boolean(sl?.backgroundColor || sl?.backgroundImage || sl?.backgroundGradient);
 	});
+
+	protected readonly editTemplateMode = this.editor.editTemplateMode;
+
+	/**
+	 * The active slide's layout/master, when it has one to edit (Master Views
+	 * covers the same ground but requires leaving the slide; this card mirrors
+	 * React/Vue's shortcut so it does not need to).
+	 */
+	protected readonly templateRows = computed<{
+		layout?: TemplateBackgroundRow;
+		master?: TemplateBackgroundRow;
+	}>(() => {
+		const sl = this.slide();
+		if (!sl) {
+			return {};
+		}
+		return resolveTemplateBackgroundRows(
+			sl,
+			this.loader.slideMasters(),
+			this.translate.instant('pptx.master.layout'),
+			this.translate.instant('pptx.master.master'),
+		);
+	});
+
+	protected templateBackgroundValue(path: string): string {
+		return normalizeHexColor(this.loader.getHandler()?.getTemplateBackgroundColor(path), '#ffffff');
+	}
+
+	protected onTemplateColorChange(path: string, event: Event): void {
+		const backgroundColor = (event.target as HTMLInputElement).value;
+		const handler = this.loader.getHandler();
+		if (!handler) {
+			return;
+		}
+		handler.setTemplateBackground(path, backgroundColor);
+		this.loader.slideMasters.set(
+			this.loader
+				.slideMasters()
+				.map((master) => (master.path === path ? { ...master, backgroundColor } : master)),
+		);
+		this.editor.dirty.set(true);
+	}
 
 	protected onColorChange(event: Event): void {
 		this.patch({ backgroundColor: (event.target as HTMLInputElement).value });
