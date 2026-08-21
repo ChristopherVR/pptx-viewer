@@ -16,6 +16,12 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../constants';
 import { buildDashArray } from './connector-dash';
+import {
+	connectorAdjustmentFraction,
+	curvedElbowPathD,
+	elbowSegmentCount,
+	elbowWaypoints,
+} from './connector-elbow-geometry';
 import { connectorHitStrokeWidth } from './connector-hit-target';
 import { markerPath, normalizeArrow } from './connector-markers';
 import type { MarkerShape } from './connector-markers';
@@ -36,6 +42,8 @@ export { markerPath, normalizeArrow } from './connector-markers';
 export type { ArrowSize, MarkerShape } from './connector-markers';
 export { buildDashArray } from './connector-dash';
 export type { DashSegment } from './connector-dash';
+export { connectorAdjustmentFraction, connectorBendFraction } from './connector-elbow-geometry';
+export type { ElbowSegments } from './connector-elbow-geometry';
 
 /**
  * Optional obstacle-avoidance routing context for bent connectors. When
@@ -128,7 +136,10 @@ export function buildConnectorGeometry(
 	const y2 = element.flipVertical ? 0 : svgH;
 
 	const shapeType = (element as { shapeType?: string }).shapeType;
-	let pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, connectorBendFraction(element));
+	const bend1 = connectorAdjustmentFraction(element, 'adj1', 0.5);
+	const bend2 = connectorAdjustmentFraction(element, 'adj2', 0.5);
+	const bend3 = connectorAdjustmentFraction(element, 'adj3', 0.5);
+	let pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, bend1, bend2, bend3);
 
 	// Obstacle-avoiding A* routing for bent connectors. Routes in absolute slide
 	// coordinates (so it can detour outside the connector's own bounding box;
@@ -202,31 +213,30 @@ export function buildConnectorGeometry(
 }
 
 /**
- * Normalise a connector's first adjustment value (`adj1`/`adj`) to a 0..1
- * fraction that positions the elbow / curve mid-axis. OOXML stores these in
- * 1000ths of a percent (0..100000); values already in 0..1 are passed through.
- * Defaults to the midpoint (`0.5`) when no usable adjustment is present.
- */
-export function connectorBendFraction(element: PptxElement): number {
-	const adj = (element as { shapeAdjustments?: Record<string, number> }).shapeAdjustments;
-	const raw = adj?.adj1 ?? adj?.adj;
-	if (typeof raw !== 'number' || !Number.isFinite(raw)) {
-		return 0.5;
-	}
-	const fraction = Math.abs(raw) > 1 ? raw / 100000 : raw;
-	return Math.min(1, Math.max(0, fraction));
-}
-
-/**
  * Build the SVG `path` data for a bent or curved connector, or `undefined`
  * for straight connectors (which render as a `<line>`). Endpoints are already
  * flip-adjusted by the caller.
  *
- * Viewer-first approximation (full A* routing is a TODO):
+ * PowerPoint's elbow connectors do not avoid obstacles (that A* routing is
+ * applied separately by {@link buildConnectorGeometry} when a binding
+ * supplies an obstacle list). What they DO is pick the bend axis from the
+ * actual relative position of the two endpoints, and use the OOXML preset's
+ * full segment count and adjustment values rather than collapsing every
+ * `bentConnector3/4/5` (and `curvedConnector3/4/5`) into the same shape; see
+ * `connector-elbow-geometry.ts` for the orientation/segment-count formulas
+ * (mirroring `packages/core/src/core/geometry/connector-geometry.ts`'s
+ * per-segment-count treatment, extended with the orientation choice):
  *  - **bent**: orthogonal elbow polyline. `bentConnector2` is a single L-bend;
- *    `bentConnector3..5` route through a vertical mid-axis at `bend`.
- *  - **curved**: `curvedConnector2` is a quadratic Bezier; `curvedConnector3..5`
- *    are a cubic S-curve with control points on the mid-axis.
+ *    `bentConnector3` is a 2-bend Z routed through one adjustment (`adj1`);
+ *    `bentConnector4` is a 3-bend staircase (`adj1`, `adj2`); `bentConnector5`
+ *    is a 4-bend staircase (`adj1`, `adj2`, `adj3`).
+ *  - **curved**: `curvedConnector2` is a quadratic Bezier; `curvedConnector3/4/5`
+ *    are the same elbow shapes rendered as smooth cubic Beziers instead of
+ *    sharp corners.
+ *
+ * `bend2`/`bend3` are optional so existing 6-argument call sites (which only
+ * ever needed `bentConnector2/3` / `curvedConnector2/3`) keep compiling and
+ * producing identical output; they default to the spec midpoint (`0.5`).
  */
 export function buildConnectorPathD(
 	shapeType: string | undefined,
@@ -235,27 +245,30 @@ export function buildConnectorPathD(
 	x2: number,
 	y2: number,
 	bend: number,
+	bend2 = 0.5,
+	bend3 = 0.5,
 ): string | undefined {
 	const kind = connectorKind(shapeType);
 	if (kind === 'straight') {
 		return undefined;
 	}
 	const t = (shapeType ?? '').toLowerCase();
-	// x of the vertical mid-axis the elbow / control points pivot around.
-	const mx = x1 + (x2 - x1) * bend;
 
 	if (kind === 'bent') {
 		if (t.includes('bentconnector2')) {
 			return `M${x1},${y1} L${x2},${y1} L${x2},${y2}`;
 		}
-		return `M${x1},${y1} L${mx},${y1} L${mx},${y2} L${x2},${y2}`;
+		const segments = elbowSegmentCount(t);
+		const points = elbowWaypoints(x1, y1, x2, y2, segments, bend, bend2, bend3);
+		return waypointsToPathD(points);
 	}
 
 	// curved
 	if (t.includes('curvedconnector2')) {
 		return `M${x1},${y1} Q${x2},${y1} ${x2},${y2}`;
 	}
-	return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+	const segments = elbowSegmentCount(t);
+	return curvedElbowPathD(x1, y1, x2, y2, segments, bend, bend2, bend3);
 }
 
 /**

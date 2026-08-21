@@ -476,6 +476,12 @@ export * from './connector-style';
 // style, flip-adjusted endpoints, bent/curved path data (with optional A*
 // obstacle routing), and arrow `<marker>` shapes. Re-uses `connectorKind` from
 // `connector-style`. The `<svg>`/`<path>` emission stays in each binding.
+// `connector-elbow-geometry` (orientation-aware bentConnector3/4/5 +
+// curvedConnector3/4/5 bend-point / smooth-curve formulas) is a satellite of
+// this module, like `connector-hit-target`/`connector-markers`/`connector-dash`:
+// its two public entry points (`connectorAdjustmentFraction`,
+// `connectorBendFraction`) are re-exported by `connector-path` itself rather
+// than star-exported here too, to avoid a duplicate-export ambiguity.
 export * from './connector-path';
 // The inspector's six connector arrowhead dropdowns (`a:headEnd`/`a:tailEnd`
 // type + `@w` + `@len`), described once so no binding restates the option
