@@ -120,12 +120,18 @@ const contextMenu = ref<{ open: boolean; x: number; y: number; index: number }>(
 	index: 0,
 });
 
+/**
+ * Deliberately does not also `emit('select', index)`: the host's `select`
+ * handler navigates the canvas AND closes this whole overlay
+ * (`deckViews.onSorterSelect`), which would tear the menu down again on the
+ * very right-click that opened it, before a single mouse action against it
+ * was reachable.
+ */
 function openContextMenu(index: number, event: MouseEvent): void {
 	if (!props.canEdit) {
 		return;
 	}
 	event.preventDefault();
-	emit('select', index);
 	contextMenu.value = { open: true, x: event.clientX, y: event.clientY, index };
 }
 
