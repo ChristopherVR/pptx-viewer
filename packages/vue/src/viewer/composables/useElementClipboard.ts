@@ -3,16 +3,14 @@
  *
  * Deliberately NOT the system clipboard: PowerPoint pastes a shape with all its
  * OOXML fidelity intact, which a text/image clipboard round-trip would flatten.
- * The pasted copy is offset by 16px so it does not land exactly on top of its
- * original, matching the other bindings.
+ * Cloning, descendant re-id and the paste cascade offset go through the shared
+ * clipboard codec so this matches paste/duplicate/ungroup everywhere else.
  */
-import { cloneElement, createEditorId } from 'pptx-viewer-core';
+import { cloneElement } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { cloneElementForPaste, isTemplateElementId } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
-import { computed, ref } from 'vue';
-
-/** px offset applied to a pasted copy so it is visibly distinct from its source. */
-const PASTE_OFFSET = 16;
+import { computed, shallowRef } from 'vue';
 
 export interface UseElementClipboardOptions {
 	/** Resolve an element on the active slide (slide content only, not template). */
@@ -33,7 +31,11 @@ export interface UseElementClipboardResult {
 export function useElementClipboard(
 	options: UseElementClipboardOptions,
 ): UseElementClipboardResult {
-	const clipboard = ref<PptxElement | null>(null);
+	// shallowRef: a deep-reactive ref() wraps an assigned object in a Proxy,
+	// which structuredClone (used by cloneElementForPaste) cannot clone. The
+	// clipboard buffer is never rendered field-by-field, so it does not need
+	// Vue's deep reactivity.
+	const clipboard = shallowRef<PptxElement | null>(null);
 	const hasClipboard = computed(() => clipboard.value !== null);
 
 	function copyElement(id: string): void {
@@ -53,10 +55,9 @@ export function useElementClipboard(
 		if (!clipboard.value) {
 			return;
 		}
-		const copy = cloneElement(clipboard.value);
-		copy.id = createEditorId('el');
-		copy.x = (copy.x ?? 0) + PASTE_OFFSET;
-		copy.y = (copy.y ?? 0) + PASTE_OFFSET;
+		const copy = cloneElementForPaste(clipboard.value, {
+			intoTemplate: isTemplateElementId(clipboard.value.id),
+		});
 		options.addElement(copy);
 		options.selectedElementIds.value = [copy.id];
 	}
