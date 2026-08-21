@@ -47,6 +47,7 @@
 						[attr.aria-describedby]="hidden.labelId ?? null"
 						[attr.aria-current]="i === activeIndex() ? 'true' : null"
 						(click)="onThumbClick(i)"
+						(contextmenu)="onThumbContextMenu($event, i)"
 					>
 						<!-- Thumbnail clipping wrapper -->
 						<div class="pptx-ng-sorter-thumb-clip" [ngStyle]="clipStyle()">
@@ -78,4 +79,33 @@
 			</div>
 		</div>
 	</div>
+
+	@if (contextMenu(); as menu) {
+		<button
+			type="button"
+			class="pptx-ng-sorter-menu-backdrop"
+			[attr.aria-label]="'pptx.overflow.closeMenu' | translate"
+			(click)="closeContextMenu()"
+			(contextmenu)="$event.preventDefault(); closeContextMenu()"
+		></button>
+		<div
+			class="pptx-ng-sorter-context-menu"
+			[style.left.px]="menu.x"
+			[style.top.px]="menu.y"
+			role="menu"
+		>
+			<button type="button" role="menuitem" (click)="menuDuplicate()">
+				{{ 'pptx.slideMenu.duplicate' | translate }}
+			</button>
+			<button type="button" role="menuitem" (click)="menuToggleHidden()">
+				{{
+					(contextMenuTargetHidden() ? 'pptx.slideMenu.show' : 'pptx.slideMenu.hide') | translate
+				}}
+			</button>
+			<div class="pptx-ng-sorter-context-menu-sep"></div>
+			<button type="button" role="menuitem" class="is-danger" (click)="menuDelete()">
+				{{ 'pptx.slideMenu.delete' | translate }}
+			</button>
+		</div>
+	}
 </div>

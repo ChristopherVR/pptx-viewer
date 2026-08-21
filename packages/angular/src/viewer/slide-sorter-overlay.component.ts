@@ -6,6 +6,7 @@ import {
 	computed,
 	input,
 	output,
+	signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
@@ -32,9 +33,13 @@ const GRID_GAP = 16;
  *
  * Renders a fixed full-screen modal overlay containing a responsive grid of
  * scaled slide previews. Clicking a thumbnail emits `select(index)`; pressing
- * Escape or clicking the ✕ button emits `closed`.
+ * Escape or clicking the ✕ button emits `closed`. Right-clicking a thumbnail
+ * (when `canEdit`) opens a small context menu (Duplicate / Hide-Show /
+ * Delete), matching React's `SorterContextMenu` and Vue's `ContextMenu`
+ * wiring: this overlay previously had no mouse path to any of the three, and
+ * no path to hide/show at all (mouse or keyboard).
  *
- * Viewer-first scope: no drag-reorder, no context menu, no section grouping.
+ * Viewer-first scope: no drag-reorder, no section grouping.
  *
  * Usage:
  * ```html
@@ -84,6 +89,9 @@ export class SlideSorterOverlayComponent {
 	/** Duplicate the active slide (Ctrl/Cmd+D). */
 	readonly duplicateSlide = output<number>();
 
+	/** Toggle the hidden flag on a slide (context-menu only, no keyboard chord). */
+	readonly toggleHiddenSlide = output<number>();
+
 	// -------------------------------------------------------------------------
 	// Derived display values
 	// -------------------------------------------------------------------------
@@ -122,6 +130,9 @@ export class SlideSorterOverlayComponent {
 	 */
 	@HostListener('document:keydown', ['$event'])
 	onKeydown(event: KeyboardEvent): void {
+		if (this.contextMenu()) {
+			this.closeContextMenu();
+		}
 		const { action } = mapSlideSorterKey(event, {
 			canEdit: this.canEdit(),
 			isTextInputTarget: isEditorTextInputTarget(event.target),
@@ -153,6 +164,63 @@ export class SlideSorterOverlayComponent {
 	/** Clicking a thumbnail selects the slide. */
 	onThumbClick(index: number): void {
 		this.select.emit(index);
+	}
+
+	// -------------------------------------------------------------------------
+	// Context menu (right-click a thumbnail)
+	// -------------------------------------------------------------------------
+
+	/** Open state + screen position of the context menu, or null when closed. */
+	readonly contextMenu = signal<{ x: number; y: number; index: number } | null>(null);
+
+	/**
+	 * Right-clicking a thumbnail opens the menu for THAT slide.
+	 *
+	 * Deliberately does not also emit `select`: the host's `select` handler
+	 * closes the whole overlay (it navigates the canvas and dismisses the
+	 * sorter), so doing that here would tear down the menu before a single
+	 * mouse action against it was reachable.
+	 */
+	onThumbContextMenu(event: MouseEvent, index: number): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		event.preventDefault();
+		this.contextMenu.set({ x: event.clientX, y: event.clientY, index });
+	}
+
+	closeContextMenu(): void {
+		this.contextMenu.set(null);
+	}
+
+	/** Whether the context menu's target slide is currently hidden. */
+	contextMenuTargetHidden(): boolean {
+		const menu = this.contextMenu();
+		return menu ? (this.slides()[menu.index]?.hidden ?? false) : false;
+	}
+
+	menuDuplicate(): void {
+		const menu = this.contextMenu();
+		if (menu) {
+			this.duplicateSlide.emit(menu.index);
+		}
+		this.closeContextMenu();
+	}
+
+	menuToggleHidden(): void {
+		const menu = this.contextMenu();
+		if (menu) {
+			this.toggleHiddenSlide.emit(menu.index);
+		}
+		this.closeContextMenu();
+	}
+
+	menuDelete(): void {
+		const menu = this.contextMenu();
+		if (menu) {
+			this.deleteSlide.emit(menu.index);
+		}
+		this.closeContextMenu();
 	}
 
 	// -------------------------------------------------------------------------

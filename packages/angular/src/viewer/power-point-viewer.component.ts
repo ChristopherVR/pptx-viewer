@@ -738,7 +738,7 @@ import { ZoomTargetService } from './zoom-target.service';
 
 			@if (showSorter()) {
 				<pptx-slide-sorter-overlay
-					[slides]="loader.slides()"
+					[slides]="[...displaySlides()]"
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[activeIndex]="activeSlideIndex()"
@@ -747,6 +747,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(closed)="showSorter.set(false)"
 					(deleteSlide)="editor.deleteSlide($event)"
 					(duplicateSlide)="editor.duplicateSlide($event)"
+					(toggleHiddenSlide)="toggleHideSlides([$event])"
 				/>
 			}
 
