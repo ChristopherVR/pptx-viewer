@@ -37,6 +37,14 @@ export interface DeckActions {
 	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (inspector THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
+	/**
+	 * Set a layout/master's background colour (inspector SLIDE BACKGROUND
+	 * card's template rows, shown while `editTemplateMode` is on). Master
+	 * Views covers the same ground but requires leaving the slide.
+	 */
+	setTemplateBackground(path: string, backgroundColor: string): void;
+	/** Read a layout/master's current background colour. */
+	getTemplateBackgroundColor(path: string): string | undefined;
 	/** Resize the slide canvas (the SLIDE SIZE card's raw W/H inputs). */
 	updateCanvasSize(size: { width: number; height: number }): void;
 	/**
@@ -128,6 +136,26 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 			ops.pushHistory();
 			store.set({ slides: updateSlide(state.slides, state.currentSlide, patch) });
 			ops.commitChange();
+		},
+
+		setTemplateBackground(path, backgroundColor) {
+			const handler = deps.getHandler();
+			if (!handler || !store.get().editable) {
+				return;
+			}
+			handler.setTemplateBackground(path, backgroundColor);
+			store.set({
+				slideMasters: store
+					.get()
+					.slideMasters.map((master) =>
+						master.path === path ? { ...master, backgroundColor } : master,
+					),
+			});
+			ops.commitChange();
+		},
+
+		getTemplateBackgroundColor(path) {
+			return deps.getHandler()?.getTemplateBackgroundColor(path);
 		},
 
 		updateCanvasSize(size) {

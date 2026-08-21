@@ -226,6 +226,9 @@ export function buildChromeCallbacks(
 		applyThemeEdit: (payload) => deps.getEditActions().applyThemeEdit(payload),
 		updateTagCollections: (next) => deps.getEditActions().updateTagCollections(next),
 		updateActiveSlide: (patch) => deps.getEditActions().updateActiveSlide(patch),
+		setTemplateBackground: (path, backgroundColor) =>
+			deps.getEditActions().setTemplateBackground(path, backgroundColor),
+		getTemplateBackgroundColor: (path) => deps.getEditActions().getTemplateBackgroundColor(path),
 		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
 		updateSlideSize: (size) => deps.getEditActions().updateSlideSize(size),
 		addComment: (text) => void deps.getEditActions().comments.addComment(text),

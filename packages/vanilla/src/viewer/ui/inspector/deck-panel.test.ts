@@ -17,6 +17,8 @@ function makeHandlers() {
 		updateActiveSlide: vi.fn<DeckPanelHandlers['updateActiveSlide']>(),
 		updateCanvasSize: vi.fn<DeckPanelHandlers['updateCanvasSize']>(),
 		updateSlideSize: vi.fn<DeckPanelHandlers['updateSlideSize']>(),
+		setTemplateBackground: vi.fn<DeckPanelHandlers['setTemplateBackground']>(),
+		getTemplateBackgroundColor: vi.fn<DeckPanelHandlers['getTemplateBackgroundColor']>(),
 	} satisfies DeckPanelHandlers;
 }
 
@@ -39,6 +41,8 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 			{ path: 'ppt/theme/theme2.xml', name: 'Vermilion' },
 		],
 		activeSlide: slide,
+		editTemplateMode: false,
+		slideMasters: [],
 		colorScheme: undefined,
 		fontScheme: undefined,
 		themeName: undefined,
@@ -67,6 +71,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 			t('pptx.documentProperties.themeHeading'),
 			t('pptx.themeEditor.title'),
 			t('pptx.themeOverride.heading'),
+			t('pptx.slideBackground.templateBackgroundsHeading'),
 			t('pptx.slideInspector.slideTransition'),
 			t('pptx.slideSize.title'),
 			t('pptx.documentProperties.notesHandoutHeading'),
@@ -102,7 +107,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState());
 
-		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[5];
+		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[6];
 		const inputs = sizeSection.querySelectorAll<HTMLInputElement>('input[type="number"]');
 		expect(inputs[0].value).toBe('960');
 		expect(inputs[1].value).toBe('540');
@@ -126,7 +131,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState({ slideSize: LEDGER, canvasSize: { width: 1279, height: 959 } }));
 
-		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[5];
+		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[6];
 		const preset = sizeSection.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
 		expect(preset.value).toBe('ledger');
 
@@ -160,7 +165,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		panel.update(makeDeckState({ slideSize: undefined, canvasSize: { width: 800, height: 600 } }));
 
 		const preset = panel.el
-			.querySelectorAll('.pptxv-inspector-section')[5]
+			.querySelectorAll('.pptxv-inspector-section')[6]
 			.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
 		expect(preset.value).toBe('__custom__');
 	});
@@ -219,12 +224,102 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, t, makeHandlers());
 		panel.update(makeDeckState());
 
-		const notesSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[6];
+		const notesSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[7];
 		const values = Array.from(
 			notesSection.querySelectorAll<HTMLElement>('.pptxv-inspector-row-value'),
 		).map((el) => el.textContent);
 		expect(values[0]).toBe('720 × 960px');
 		expect(values[1]).toContain('3');
 		expect(values[2]).toBe(t('pptx.digitalSignatures.notAvailable'));
+	});
+
+	/**
+	 * The SLIDE BACKGROUND card's template rows: React/Vue/Angular's shortcut
+	 * to edit the active slide's LAYOUT and MASTER background colour directly,
+	 * without leaving the slide for the separate Master Views overlay. Vanilla
+	 * had no path to this at all before.
+	 */
+	describe('template backgrounds (edit-template-mode shortcut)', () => {
+		const slideWithLayout = {
+			id: 's1',
+			rId: 'rId1',
+			slideNumber: 1,
+			elements: [],
+			layoutPath: 'ppt/slideLayouts/slideLayout1.xml',
+			layoutName: 'Title Slide',
+		} as unknown as PptxSlide;
+
+		const master = {
+			path: 'ppt/slideMasters/slideMaster1.xml',
+			name: 'Office Theme',
+			layoutPaths: ['ppt/slideLayouts/slideLayout1.xml'],
+		};
+
+		function backgroundSection(panel: ReturnType<typeof createDeckPanel>): HTMLElement {
+			return panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[4];
+		}
+
+		it('stays hidden while editTemplateMode is off, even with a layout/master to edit', () => {
+			const panel = createDeckPanel(document, createTranslator(), makeHandlers());
+			panel.update(
+				makeDeckState({
+					activeSlide: slideWithLayout,
+					slideMasters: [master],
+					editTemplateMode: false,
+				}),
+			);
+
+			expect(backgroundSection(panel).hidden).toBeTruthy();
+		});
+
+		it('shows a row per layout/master once editTemplateMode is on', () => {
+			const t = createTranslator();
+			const panel = createDeckPanel(document, t, makeHandlers());
+			panel.update(
+				makeDeckState({
+					activeSlide: slideWithLayout,
+					slideMasters: [master],
+					editTemplateMode: true,
+				}),
+			);
+
+			const section = backgroundSection(panel);
+			expect(section.hidden).toBeFalsy();
+			const labels = Array.from(
+				section.querySelectorAll<HTMLElement>('.pptxv-inspector-row-value'),
+			).map((el) => el.textContent);
+			expect(labels).toStrictEqual(['Title Slide', 'Office Theme']);
+		});
+
+		it('reads the current colour and commits a change to the right path', () => {
+			const handlers = makeHandlers();
+			(handlers.getTemplateBackgroundColor as ReturnType<typeof vi.fn>).mockReturnValue('#336699');
+			const panel = createDeckPanel(document, createTranslator(), handlers);
+			panel.update(
+				makeDeckState({
+					activeSlide: slideWithLayout,
+					slideMasters: [master],
+					editTemplateMode: true,
+				}),
+			);
+
+			const inputs =
+				backgroundSection(panel).querySelectorAll<HTMLInputElement>('input[type="color"]');
+			expect(inputs[0].value).toBe('#336699');
+
+			inputs[0].value = '#ff0000';
+			inputs[0].dispatchEvent(new Event('change'));
+			expect(handlers.setTemplateBackground).toHaveBeenCalledWith(
+				'ppt/slideLayouts/slideLayout1.xml',
+				'#ff0000',
+			);
+		});
+
+		it('stays hidden when the slide has no layout path (nothing to edit)', () => {
+			const panel = createDeckPanel(document, createTranslator(), makeHandlers());
+			panel.update(makeDeckState({ editTemplateMode: true }));
+
+			expect(backgroundSection(panel).hidden).toBeTruthy();
+		});
 	});
 });

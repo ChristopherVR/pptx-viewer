@@ -5,6 +5,7 @@ import { makeDeckButton, makeRow, makeSection } from './deck-card-helpers';
 import { createDeckPresentationCard } from './deck-presentation-card';
 import { createSlideSizeCard } from './deck-slide-size-card';
 import { createThemeCard, createThemeOverrideCard } from './deck-theme-cards';
+import { createSlideBackgroundCard } from './slide-background-card';
 import { createSlideTransitionCard } from './slide-transition-card';
 import { createTagsCard } from './tags-card';
 import { createThemeEditorCard } from './theme-editor-card';
@@ -26,6 +27,8 @@ export type DeckPanelHandlers = Pick<
 	| 'updateCanvasSize'
 	| 'updateSlideSize'
 	| 'updateTagCollections'
+	| 'setTemplateBackground'
+	| 'getTemplateBackgroundColor'
 >;
 
 /** The read-only NOTES & HANDOUT card (React's `NotesHandoutCard`). */
@@ -77,8 +80,8 @@ function createDocumentCard(
 /**
  * The no-selection Properties view, mirroring React's
  * `PresentationPropertiesPanel` section order: PRESENTATION, THEME, THEME
- * EDITOR, THEME OVERRIDE, SLIDE TRANSITION, SLIDE SIZE, NOTES & HANDOUT,
- * DOCUMENT, TAGS.
+ * EDITOR, THEME OVERRIDE, SLIDE BACKGROUND, SLIDE TRANSITION, SLIDE SIZE,
+ * NOTES & HANDOUT, DOCUMENT, TAGS.
  */
 export function createDeckPanel(
 	doc: Document,
@@ -92,6 +95,7 @@ export function createDeckPanel(
 		createThemeCard(doc, t, handlers),
 		createThemeEditorCard(doc, t, handlers),
 		createThemeOverrideCard(doc, t, handlers),
+		createSlideBackgroundCard(doc, t, handlers),
 		createSlideTransitionCard(doc, t, handlers),
 		createSlideSizeCard(doc, t, handlers),
 		createNotesHandoutCard(doc, t),

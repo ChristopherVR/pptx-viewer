@@ -107,4 +107,62 @@ describe('editor deck actions (no-selection inspector)', () => {
 			showType: 'kiosk',
 		});
 	});
+
+	/**
+	 * The SLIDE BACKGROUND card's template rows: React/Vue/Angular's shortcut
+	 * to edit a layout/master's background colour directly from the slide
+	 * inspector, without leaving the slide for Master Views.
+	 */
+	describe('setTemplateBackground / getTemplateBackgroundColor', () => {
+		it('writes through the handler and mirrors the colour back onto the store', () => {
+			const setTemplateBackground = vi.fn();
+			const handler = { setTemplateBackground } as unknown as PptxHandler;
+			const { store, actions } = setup({ handler });
+
+			actions.setTemplateBackground('ppt/slideMasters/slideMaster1.xml', '#ff0000');
+
+			expect(setTemplateBackground).toHaveBeenCalledWith(
+				'ppt/slideMasters/slideMaster1.xml',
+				'#ff0000',
+			);
+			const masters = store.get().slideMasters as unknown as Array<{
+				path: string;
+				backgroundColor?: string;
+			}>;
+			expect(masters[0].backgroundColor).toBe('#ff0000');
+			expect(masters[1].backgroundColor).toBeUndefined();
+			expect(store.get().dirty).toBeTruthy();
+		});
+
+		it('does nothing without a handler or while not editable', () => {
+			const setTemplateBackground = vi.fn();
+			const handler = { setTemplateBackground } as unknown as PptxHandler;
+
+			const noHandler = setup();
+			noHandler.actions.setTemplateBackground('ppt/slideMasters/slideMaster1.xml', '#ff0000');
+			expect(setTemplateBackground).not.toHaveBeenCalled();
+
+			const locked = setup({ handler, editable: false });
+			locked.actions.setTemplateBackground('ppt/slideMasters/slideMaster1.xml', '#ff0000');
+			expect(setTemplateBackground).not.toHaveBeenCalled();
+		});
+
+		it('reads the colour straight from the handler', () => {
+			const getTemplateBackgroundColor = vi.fn().mockReturnValue('#123456');
+			const handler = { getTemplateBackgroundColor } as unknown as PptxHandler;
+			const { actions } = setup({ handler });
+
+			expect(actions.getTemplateBackgroundColor('ppt/slideMasters/slideMaster1.xml')).toBe(
+				'#123456',
+			);
+			expect(getTemplateBackgroundColor).toHaveBeenCalledWith('ppt/slideMasters/slideMaster1.xml');
+		});
+
+		it('returns undefined without a handler', () => {
+			const { actions } = setup();
+			expect(
+				actions.getTemplateBackgroundColor('ppt/slideMasters/slideMaster1.xml'),
+			).toBeUndefined();
+		});
+	});
 });

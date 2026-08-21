@@ -7,6 +7,7 @@ import type {
 	PptxElement,
 	PptxPresentationProperties,
 	PptxSlide,
+	PptxSlideMaster,
 	PptxSmartArtData,
 	PptxSmartArtNodeStyle,
 	PptxTableCellStyle,
@@ -60,6 +61,14 @@ export interface InspectorHandlers {
 	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
+	/**
+	 * Set a layout/master's background colour (SLIDE BACKGROUND card's
+	 * template rows, shown while `editTemplateMode` is on). Master Views
+	 * covers the same ground but requires leaving the slide.
+	 */
+	setTemplateBackground(path: string, backgroundColor: string): void;
+	/** Read a layout/master's current background colour. */
+	getTemplateBackgroundColor(path: string): string | undefined;
 	/** Resize the slide canvas (the SLIDE SIZE card's raw W/H inputs). */
 	updateCanvasSize(size: { width: number; height: number }): void;
 	/**
@@ -290,6 +299,10 @@ export interface InspectorDeckState {
 	themeOptions: readonly PptxThemeOption[];
 	/** The visible slide (THEME OVERRIDE card), or undefined on an empty deck. */
 	activeSlide: PptxSlide | undefined;
+	/** Whether inherited layout/master elements are unlocked for editing. */
+	editTemplateMode: boolean;
+	/** Slide masters, resolving the active slide's layout/master (SLIDE BACKGROUND card's template rows). */
+	slideMasters: readonly PptxSlideMaster[];
 	/** Presentation theme colours used to preview override target slots. */
 	colorScheme: PptxThemeColorScheme | undefined;
 	/** Presentation theme fonts, seeding the THEME EDITOR card's font pair. */
