@@ -119,4 +119,38 @@ describe('positionSection', () => {
 		expect(editor.slides[0]?.elements[0]?.x).toBe(0);
 		expect(editor.canUndo).toBeTruthy();
 	});
+
+	it('shows the lock button unpressed for an unlocked element', () => {
+		const editor = makeEditor(shapeEl());
+		const { target } = mountSection(editor, editor.slides[0]!.elements[0]!);
+		const button = target.querySelector('button');
+		expect(button?.getAttribute('aria-pressed')).toBe('false');
+	});
+
+	it('locks the element on click, writing noMove/noResize (not noSelect)', () => {
+		const editor = makeEditor(shapeEl());
+		const { target } = mountSection(editor, editor.slides[0]!.elements[0]!);
+		const button = target.querySelector('button');
+		if (!button) {
+			throw new Error('lock button not found');
+		}
+
+		button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		flushSync();
+		expect(editor.slides[0]?.elements[0]?.locks).toStrictEqual({ noMove: true, noResize: true });
+	});
+
+	it('clicking an already-locked element clears its locks', () => {
+		const editor = makeEditor(shapeEl({ locks: { noMove: true, noResize: true } }));
+		const { target } = mountSection(editor, editor.slides[0]!.elements[0]!);
+		const button = target.querySelector('button');
+		if (!button) {
+			throw new Error('lock button not found');
+		}
+		expect(button.getAttribute('aria-pressed')).toBe('true');
+
+		button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		flushSync();
+		expect(editor.slides[0]?.elements[0]?.locks).toBeUndefined();
+	});
 });
