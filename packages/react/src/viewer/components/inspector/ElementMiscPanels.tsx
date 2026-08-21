@@ -53,15 +53,18 @@ interface GroupInfoPanelProps {
 export function GroupInfoPanel({
 	selectedElement,
 }: GroupInfoPanelProps): React.ReactElement | null {
+	const { t } = useTranslation();
 	if (selectedElement.type !== 'group') {
 		return null;
 	}
 	const group = selectedElement as GroupPptxElement;
 	return (
 		<div className={CARD}>
-			<div className={HEADING}>Group</div>
+			<div className={HEADING}>{t('pptx.elementType.group')}</div>
 			<div className='text-[11px] text-muted-foreground'>
-				{Array.isArray(group.children) ? `${group.children.length} children` : 'Grouped element'}
+				{Array.isArray(group.children)
+					? t('pptx.group.childCount', { count: group.children.length })
+					: t('pptx.group.groupedElement')}
 			</div>
 		</div>
 	);
