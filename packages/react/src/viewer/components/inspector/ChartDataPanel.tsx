@@ -11,7 +11,6 @@ import type {
 	PptxChartType,
 } from 'pptx-viewer-core';
 import {
-	chartDataChangeType,
 	setChartAxisLogScale,
 	setChartAxisTitleStyle,
 	setChartAxisGridlineStyle,
@@ -25,6 +24,7 @@ import {
 import {
 	addChartCategory,
 	addChartSeries,
+	patchChartData,
 	removeChartCategory,
 	removeChartSeries,
 	setChartCategoryLabel,
@@ -88,20 +88,9 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			if (!chartData) {
 				return;
 			}
-			// For chart type changes, use the smart utility that handles
-			// grouping cleanup and category format adaptation.
-			if (patch.chartType && patch.chartType !== chartData.chartType) {
-				const adapted = chartDataChangeType(chartData, patch.chartType as PptxChartType);
-				// Merge any other fields from the patch (e.g. title changes)
-				const { chartType: _ct, ...rest } = patch;
-				replaceChartData({ ...adapted, ...rest });
-				return;
-			}
-			onUpdateElement({
-				chartData: { ...chartData, ...patch },
-			} as Partial<PptxElement>);
+			replaceChartData(patchChartData(chartData, patch));
 		},
-		[chartData, onUpdateElement, replaceChartData],
+		[chartData, replaceChartData],
 	);
 
 	const updateStyle = useCallback(
