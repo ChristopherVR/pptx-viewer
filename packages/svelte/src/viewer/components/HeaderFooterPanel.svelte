@@ -4,18 +4,19 @@
 	import Text from '@lucide/svelte/icons/text';
 	import X from '@lucide/svelte/icons/x';
 	import type { PptxHeaderFooter } from 'pptx-viewer-core';
+	import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from 'pptx-viewer-shared';
 	import { untrack } from 'svelte';
 	import { useTranslator } from '../../i18n/context';
 
 	const { value, onclose, onapply }: { value: PptxHeaderFooter; onclose: () => void; onapply: (next: PptxHeaderFooter) => void } = $props();
 	const t = useTranslator();
-	let draft = $state<PptxHeaderFooter>(structuredClone(untrack(() => value)));
-	const toggle = (key: keyof PptxHeaderFooter, checked: boolean) => { draft = { ...draft, [key]: checked }; };
+	let draft = $state<PptxHeaderFooter>(cloneHeaderFooterDraft(untrack(() => value)));
+	const toggle = (key: keyof PptxHeaderFooter, checked: boolean) => { draft = patchHeaderFooterDraft(draft, { [key]: checked }); };
 </script>
 <div class="backdrop"><button class="scrim" type="button" aria-label={t('pptx.headerFooter.close')} onclick={onclose}></button>
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="hf-title"><header><h2 id="hf-title">{t('pptx.headerFooter.title')}</h2><button type="button" aria-label={t('pptx.headerFooter.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button></header>
-		<div class="body"><label><input type="checkbox" checked={draft.hasDateTime ?? false} onchange={(event) => toggle('hasDateTime', event.currentTarget.checked)} /><CalendarDays size={14} aria-hidden="true" /> {t('pptx.headerFooter.dateAndTime')}</label><label><input type="checkbox" checked={draft.hasSlideNumber ?? false} onchange={(event) => toggle('hasSlideNumber', event.currentTarget.checked)} /><Hash size={14} aria-hidden="true" /> {t('pptx.headerFooter.slideNumber')}</label><label><input type="checkbox" checked={draft.hasFooter ?? false} onchange={(event) => toggle('hasFooter', event.currentTarget.checked)} /><Text size={14} aria-hidden="true" /> {t('pptx.headerFooter.footer')}</label>{#if draft.hasFooter}<input type="text" aria-label={t('pptx.headerFooter.footer')} placeholder={t('pptx.headerFooter.footerPlaceholder')} value={draft.footerText ?? ''} oninput={(event) => (draft = { ...draft, footerText: event.currentTarget.value })} />{/if}</div>
+		<div class="body"><label><input type="checkbox" checked={draft.hasDateTime ?? false} onchange={(event) => toggle('hasDateTime', event.currentTarget.checked)} /><CalendarDays size={14} aria-hidden="true" /> {t('pptx.headerFooter.dateAndTime')}</label><label><input type="checkbox" checked={draft.hasSlideNumber ?? false} onchange={(event) => toggle('hasSlideNumber', event.currentTarget.checked)} /><Hash size={14} aria-hidden="true" /> {t('pptx.headerFooter.slideNumber')}</label><label><input type="checkbox" checked={draft.hasFooter ?? false} onchange={(event) => toggle('hasFooter', event.currentTarget.checked)} /><Text size={14} aria-hidden="true" /> {t('pptx.headerFooter.footer')}</label>{#if draft.hasFooter}<input type="text" aria-label={t('pptx.headerFooter.footer')} placeholder={t('pptx.headerFooter.footerPlaceholder')} value={draft.footerText ?? ''} oninput={(event) => (draft = patchHeaderFooterDraft(draft, { footerText: event.currentTarget.value }))} />{/if}</div>
 		<footer><button type="button" onclick={() => { onapply(draft); onclose(); }}>{t('pptx.headerFooter.applyToAll')}</button><button class="primary" type="button" onclick={() => { onapply(draft); onclose(); }}>{t('pptx.headerFooter.applyToCurrent')}</button></footer>
 	</section>
 </div>
