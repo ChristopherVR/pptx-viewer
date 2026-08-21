@@ -1,15 +1,12 @@
 /**
  * DOM utility helpers: escapeHtml, safePrompt, safeConfirm, downloadBlob.
  *
- * `sanitizeDownloadFilename` and the underlying object-URL anchor-click download
- * now live once in `pptx-viewer-shared` (`export/download-helpers`); this module
- * re-exports the sanitizer and keeps a thin `downloadBlob` wrapper that
- * sanitizes the name before delegating, preserving the historical (sanitizing)
- * behaviour of the React import path.
+ * `sanitizeDownloadFilename` and `downloadBlob` now live once in
+ * `pptx-viewer-shared` (`export/download-helpers`), which sanitizes every
+ * filename internally, so this module just re-exports them and keeps the
+ * historical React import path.
  */
-import { downloadBlob as sharedDownloadBlob, sanitizeDownloadFilename } from 'pptx-viewer-shared';
-
-export { sanitizeDownloadFilename };
+export { downloadBlob, sanitizeDownloadFilename } from 'pptx-viewer-shared';
 
 // HTML entity escaping is shared (see `export/print-document`).
 export { escapeHtml } from 'pptx-viewer-shared';
@@ -28,16 +25,4 @@ export function safeConfirm(message: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-/**
- * Trigger a browser download for the given Blob.
- *
- * The filename is run through {@link sanitizeDownloadFilename} so that hostile
- * inputs (CR/LF, path-traversal segments, control chars) cannot influence the
- * `<a download>` value or downstream `Content-Disposition` headers, then
- * delegated to the shared object-URL anchor-click download.
- */
-export function downloadBlob(blob: Blob, filename: string): void {
-	sharedDownloadBlob(blob, sanitizeDownloadFilename(filename));
 }
