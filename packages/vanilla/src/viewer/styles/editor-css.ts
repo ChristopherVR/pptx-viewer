@@ -294,6 +294,24 @@ export const EDITOR_CSS = `
 }
 .pptxv-inspector-row-label { color: var(--pptx-muted-foreground); }
 
+/* Table quick-style preset swatch gallery. */
+.pptxv-table-presets-label { display: block; margin: 8px 0 4px; font-size: 10px; color: var(--pptx-muted-foreground); }
+.pptxv-table-presets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.pptxv-table-preset-swatch {
+	display: flex;
+	flex-direction: column;
+	height: 40px;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--pptx-border);
+	border-radius: 5px;
+	background: none;
+	cursor: pointer;
+}
+.pptxv-table-preset-swatch:hover { border-color: var(--pptx-primary); }
+.pptxv-table-preset-swatch span { flex: 1; }
+.pptxv-table-preset-swatch span:last-child { border-top: 1px solid; }
+
 /* Compact SmartArt layout switcher and editable text pane. */
 .pptxv-smartart-label { display: block; margin-bottom: 6px; color: var(--pptx-muted-foreground); }
 .pptxv-smartart-layout-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-bottom: 10px; }
