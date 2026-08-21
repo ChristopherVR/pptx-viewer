@@ -18,6 +18,7 @@ import type {
 	PptxThemeFontScheme,
 	PptxThemeOption,
 	ElementAction,
+	OleObjectType,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 	TextStyle,
@@ -165,6 +166,13 @@ export interface InspectorState {
 	isTable: boolean;
 	isSmartArt: boolean;
 	smartArtData: PptxSmartArtData | undefined;
+	isGroup: boolean;
+	/** Number of children on a selected group, or undefined when not (yet) known. */
+	groupChildCount: number | undefined;
+	isOle: boolean;
+	oleObjectType: OleObjectType | undefined;
+	oleFileName: string | undefined;
+	oleIsLinked: boolean;
 	x: number;
 	y: number;
 	width: number;

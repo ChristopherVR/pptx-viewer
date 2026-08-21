@@ -7,8 +7,10 @@ import { createCommentsTab } from './comments-tab';
 import { createDeckPanel } from './deck-panel';
 import { createElementsTab } from './elements-tab';
 import { createFillSection } from './fill-section';
+import { createGroupInfoSection } from './group-info-section';
 import { createImageSection } from './image-section';
 import { createMediaSection } from './media-section';
+import { createOlePropertiesSection } from './ole-properties-section';
 import { createPositionSection } from './position-section';
 import { createQuickStylesGallery } from './quick-styles-gallery';
 import { createSmartArtSection } from './smartart-section';
@@ -109,6 +111,8 @@ export function createInspector(
 		handlers.setGeometry,
 		handlers.toggleElementLock,
 	);
+	const groupInfo = createGroupInfoSection(doc, t, section);
+	const oleProperties = createOlePropertiesSection(doc, t, section);
 	const fill = createFillSection(doc, t, section, handlers);
 	const quickStyles = createQuickStylesGallery(doc, t, section, handlers);
 	const text = createTextSection(doc, t, section, handlers);
@@ -127,6 +131,8 @@ export function createInspector(
 	const media = createMediaSection(doc, t, section, handlers);
 	const sections = [
 		position,
+		groupInfo,
+		oleProperties,
 		fill,
 		quickStyles,
 		text,

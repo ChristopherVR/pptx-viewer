@@ -93,6 +93,13 @@ export function buildInspectorState(
 		isTable: el?.type === 'table',
 		isSmartArt: el?.type === 'smartArt',
 		smartArtData: el?.type === 'smartArt' ? el.smartArtData : undefined,
+		isGroup: el?.type === 'group',
+		groupChildCount:
+			el?.type === 'group' && Array.isArray(el.children) ? el.children.length : undefined,
+		isOle: el?.type === 'ole',
+		oleObjectType: el?.type === 'ole' ? el.oleObjectType : undefined,
+		oleFileName: el?.type === 'ole' ? el.fileName : undefined,
+		oleIsLinked: el?.type === 'ole' && el.isLinked === true,
 		x: el?.x ?? 0,
 		y: el?.y ?? 0,
 		width: el?.width ?? 0,

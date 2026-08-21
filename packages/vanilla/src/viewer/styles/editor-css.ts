@@ -232,6 +232,23 @@ export const EDITOR_CSS = `
 .pptxv-inspector-body[hidden] { display: none; }
 .pptxv-inspector-empty { color: var(--pptx-muted-foreground); margin: 0; }
 .pptxv-inspector-empty[hidden] { display: none; }
+.pptxv-inspector-muted-text { font-size: 11px; color: var(--pptx-muted-foreground); }
+.pptxv-ole-info { display: flex; flex-direction: column; gap: 6px; font-size: 11px; }
+.pptxv-ole-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pptxv-ole-row[hidden] { display: none; }
+.pptxv-ole-row span:first-child { color: var(--pptx-muted-foreground); }
+.pptxv-ole-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pptxv-ole-badge {
+	display: inline-flex;
+	align-items: center;
+	border-radius: 999px;
+	padding: 1px 8px;
+	font-size: 10px;
+	font-weight: 500;
+	background: rgba(34, 197, 94, 0.2);
+	color: #4ade80;
+}
+.pptxv-ole-badge.is-linked { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
 /*
  * A section is a CARD, the way React's inspector draws one (rounded, bordered,
  * card background, 8px of padding). Left as a bare bottom margin, the panel
