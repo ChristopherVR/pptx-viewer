@@ -10,6 +10,15 @@ dated sections beneath it are generated from
 
 ## 2026-08-21
 
+_Releases: pptx-viewer-core@2.3.12, pptx-react-viewer@2.20.5, pptx-vue-viewer@2.21.6, pptx-angular-viewer@2.19.5, pptx-vanilla-viewer@1.22.4, pptx-svelte-viewer@2.21.4, @christophervr/pptx-viewer@1.8.0_
+
+### Bug Fixes
+
+- **ci:** Re-release cli whenever react changes, not just on major bumps (by @ChristopherVR) ([d141af0](https://github.com/ChristopherVR/pptx-viewer/commit/d141af055c389e5b3d6adbf1cb828a6958612dfc))
+- **core:** Parse full custom geometry on pictures, not just path data (by @ChristopherVR) ([b6cbef6](https://github.com/ChristopherVR/pptx-viewer/commit/b6cbef64296fade4b1a0c77c32847e68ea0a18c5))
+
+## 2026-08-21
+
 _Releases: pptx-vue-viewer@2.21.5_
 
 ### Bug Fixes

@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.21.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.6) - 2026-08-21
+
+### Bug Fixes
+
+- **core:** Parse full custom geometry on pictures, not just path data (by @ChristopherVR) ([b6cbef6](https://github.com/ChristopherVR/pptx-viewer/commit/b6cbef64296fade4b1a0c77c32847e68ea0a18c5))
+
 ## [2.21.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.21.5) - 2026-08-21
 
 ### Bug Fixes
