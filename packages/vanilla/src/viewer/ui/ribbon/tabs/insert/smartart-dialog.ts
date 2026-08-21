@@ -4,7 +4,7 @@ import { CATEGORIES, PRESETS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../../i18n';
 import { createEl } from '../../../../render';
-import { createIcon } from '../../../icons';
+import { buildSmartArtGalleryPreview } from './smartart-gallery-preview';
 
 export interface SmartArtDialog {
 	el: HTMLElement;
@@ -95,9 +95,7 @@ export function createSmartArtDialog(
 			option.setAttribute('aria-selected', String(selectedPreset?.layout === preset.layout));
 			option.classList.toggle('is-selected', selectedPreset?.layout === preset.layout);
 
-			const preview = createEl(doc, 'span', 'pptxv-smartart-option-preview');
-			preview.setAttribute('aria-hidden', 'true');
-			preview.appendChild(createIcon(doc, 'smart-art'));
+			const preview = buildSmartArtGalleryPreview(doc, t, preset.layout);
 			const label = createEl(doc, 'span', 'pptxv-smartart-option-label');
 			label.textContent = t(preset.labelKey);
 			option.append(preview, label);
