@@ -103,7 +103,7 @@
 		{#each fontGroups as group (group.id)}
 			<optgroup label={t(group.labelKey)}>
 				{#each group.entries as entry (entry.family)}
-					<option value={entry.family}
+					<option value={entry.family} style:font-family={entry.family}
 						>{entry.family}{entry.themeRole
 							? ` (${t(`pptx.font.role.${entry.themeRole}`)})`
 							: ''}</option

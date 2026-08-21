@@ -103,7 +103,11 @@ const CHANGE_CASE_OPTIONS = [
 				@for (group of fontGroups(); track group.id) {
 					<optgroup [label]="group.labelKey | translate">
 						@for (entry of group.entries; track entry.family) {
-							<option [value]="entry.family" [selected]="entry.family === curFontFamily()">
+							<option
+								[value]="entry.family"
+								[selected]="entry.family === curFontFamily()"
+								[style.font-family]="entry.family"
+							>
 								{{ entry.family
 								}}{{
 									entry.themeRole
