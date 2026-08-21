@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, effect, input, output, signal } fro
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
 
+import { cloneHeaderFooterDraft, patchHeaderFooterDraft } from '../internal/shared';
+
 @Component({
 	selector: 'pptx-header-footer-dialog',
 	standalone: true,
@@ -204,27 +206,25 @@ export class HeaderFooterDialogComponent {
 	constructor() {
 		effect(() => {
 			if (this.open()) {
-				this.draft.set(structuredClone(this.value()));
+				this.draft.set(cloneHeaderFooterDraft(this.value()));
 			}
 		});
 	}
 
 	protected setFlag(key: keyof PptxHeaderFooter, event: Event): void {
-		this.draft.update((value) => ({
-			...value,
-			[key]: (event.target as HTMLInputElement).checked,
-		}));
+		this.draft.update((value) =>
+			patchHeaderFooterDraft(value, { [key]: (event.target as HTMLInputElement).checked }),
+		);
 	}
 
 	protected setText(key: keyof PptxHeaderFooter, event: Event): void {
-		this.draft.update((value) => ({
-			...value,
-			[key]: (event.target as HTMLInputElement).value,
-		}));
+		this.draft.update((value) =>
+			patchHeaderFooterDraft(value, { [key]: (event.target as HTMLInputElement).value }),
+		);
 	}
 
 	protected apply(): void {
-		this.save.emit(structuredClone(this.draft()));
+		this.save.emit(cloneHeaderFooterDraft(this.draft()));
 		this.close.emit();
 	}
 
