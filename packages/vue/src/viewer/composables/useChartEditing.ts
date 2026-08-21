@@ -27,7 +27,6 @@ import type {
 import {
 	chartDataAddCategory,
 	chartDataAddSeries,
-	chartDataChangeType,
 	chartDataRemoveCategory,
 	chartDataRemoveSeries,
 	chartDataUpdatePoint,
@@ -41,6 +40,7 @@ import {
 	setChartSeriesChartType,
 	setChartSeriesMarker,
 } from 'pptx-viewer-core';
+import { patchChartData as sharedPatchChartData } from 'pptx-viewer-shared';
 import type { ComputedRef } from 'vue';
 import { toRaw } from 'vue';
 
@@ -131,13 +131,7 @@ export function useChartEditing(
 		if (!data) {
 			return;
 		}
-		if (patch.chartType && patch.chartType !== data.chartType) {
-			const adapted = chartDataChangeType(data, patch.chartType);
-			const { chartType: _ct, ...rest } = patch;
-			replaceChartData({ ...adapted, ...rest });
-			return;
-		}
-		replaceChartData({ ...data, ...patch });
+		replaceChartData(sharedPatchChartData(data, patch));
 	};
 
 	const updateStyle = (patch: Partial<PptxChartStyle>): void => {
