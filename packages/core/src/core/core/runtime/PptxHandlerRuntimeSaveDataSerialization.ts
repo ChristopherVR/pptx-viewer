@@ -31,6 +31,7 @@ import {
 	reconcileChartPlotAreaAxes,
 	renameXmlKeyInPlace,
 } from '../../utils/chart-container-schema';
+import { isLineDrawnChartType } from '../../utils/chart-container-type-map';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartDataTable } from '../../utils/chart-data-table';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
@@ -43,10 +44,10 @@ import { applyChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { applyChartPivotSource } from '../../utils/chart-pivot-source';
 import { applyChartPrintSettings } from '../../utils/chart-print-settings';
 import { applyChartProtection } from '../../utils/chart-protection';
+import { writeSeriesColorToSpPr } from '../../utils/chart-series-color-serializer';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
-import { serializeColorChoice } from '../../utils/color-xml-preservation';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
@@ -356,9 +357,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.updateChartCacheValues(valNode, true, seriesData.values.map(String));
 					}
 
-					// Update series colour. Create `c:spPr`/`a:solidFill` when the
-					// loaded series has none so an inspector-edited colour always
-					// round-trips, not just when an original fill was present.
+					// Update series colour. Create `c:spPr` when the loaded series has
+					// none so an inspector-edited colour always round-trips, not just
+					// when an original fill was present.
 					//
 					// `PptxChartSeries.color` is a RESOLVED hex: the parse ran the
 					// authored `<a:schemeClr val="accent1"><a:lumMod val="60000"/>`
@@ -366,36 +367,39 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// answer back unconditionally severed every themed series from
 					// its theme on every save, for charts nobody had touched -
 					// measured on `issue-132-hr-deck.pptx` as `a:schemeClr 12 -> 5`
-					// with `accent5` lost outright. The chart part is re-parsed
-					// from the archive and mutated in place, so the authored node
-					// is still right here to compare against: when it resolves to
-					// the colour the model holds, nothing was edited and it is left
-					// exactly as authored.
+					// with `accent5` lost outright. `writeSeriesColorToSpPr` compares
+					// against the authored node (still right here, re-parsed from the
+					// archive) via `serializeColorChoice` so an untouched colour is
+					// left exactly as authored.
+					//
+					// Line-drawn families (line/line3D/scatter/radar/stock) have no
+					// fillable area: OOXML authors their colour on the outline
+					// (`a:ln/a:solidFill`), not a direct `a:solidFill`. Writing the
+					// direct slot unconditionally both missed the property PowerPoint
+					// actually reads for those families AND could insert a new
+					// `a:solidFill` sibling AFTER an existing `a:ln`, which
+					// `CT_ShapeProperties` never allows (the fill group must precede
+					// `a:ln`).
 					if (seriesData.color) {
-						const hex = seriesData.color.replace('#', '');
-						const spPr = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr') as
-							| XmlObject
-							| undefined;
-						if (spPr) {
-							const solidFillKey =
-								Object.keys(spPr).find(
-									(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
-								) ?? 'a:solidFill';
-							const authoredFill = spPr[solidFillKey] as XmlObject | undefined;
-							spPr[solidFillKey] = serializeColorChoice(
-								authoredFill,
-								authoredFill ? this.parseColor(authoredFill) : undefined,
-								hex,
-							);
-						} else {
-							const spPrKey =
-								Object.keys(seriesNode).find(
-									(k) => this.compatibilityService.getXmlLocalName(k) === 'spPr',
-								) ?? 'c:spPr';
-							(seriesNode as XmlObject)[spPrKey] = {
-								'a:solidFill': { 'a:srgbClr': { '@_val': hex } },
-							};
+						const isLineFamily = isLineDrawnChartType(
+							seriesData.seriesChartType ?? chartData.chartType,
+						);
+						const spPrKey =
+							Object.keys(seriesNode).find(
+								(k) => this.compatibilityService.getXmlLocalName(k) === 'spPr',
+							) ?? 'c:spPr';
+						let spPr = (seriesNode as XmlObject)[spPrKey] as XmlObject | undefined;
+						if (!spPr) {
+							spPr = {};
+							(seriesNode as XmlObject)[spPrKey] = spPr;
 						}
+						writeSeriesColorToSpPr(
+							spPr,
+							seriesData.color,
+							isLineFamily,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
+						);
 					}
 
 					// Trendlines (per-series). Undefined = no edit / passthrough.
@@ -462,6 +466,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							chartData.categories,
 							templateSeries,
 							chartData.dateCategories,
+							isLineDrawnChartType(seriesData.seriesChartType ?? chartData.chartType),
 						);
 						newSeriesXmlNodes.push(newNode);
 					}
@@ -981,6 +986,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * If a `templateSeries` is provided, it is deep-cloned and its data is
 	 * replaced with the new series data. Otherwise, a minimal structure is
 	 * built from scratch.
+	 *
+	 * @param isLineFamily - Whether the target chart family reads/writes its
+	 *   series colour from `a:ln/a:solidFill` (line/line3D/scatter/radar/stock)
+	 *   rather than a direct `a:solidFill`. See `isLineDrawnChartType`.
 	 */
 	protected buildNewSeriesXml(
 		seriesIndex: number,
@@ -988,6 +997,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		categories: string[],
 		templateSeries?: XmlObject,
 		dateCategories?: PptxChartData['dateCategories'],
+		isLineFamily = false,
 	): XmlObject {
 		if (templateSeries) {
 			// Deep-clone the template
@@ -1026,26 +1036,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.updateChartCacheValues(valNode, true, seriesData.values.map(String));
 			}
 
-			// Update colour
+			// Update colour. Line-drawn families (line/line3D/scatter/radar/stock)
+			// author it on `a:ln/a:solidFill`, not a direct fill; see
+			// `writeSeriesColorToSpPr`.
 			if (seriesData.color) {
 				const spPr = this.xmlLookupService.getChildByLocalName(clone, 'spPr');
 				if (spPr) {
-					const solidFillKey = Object.keys(spPr).find(
-						(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
+					writeSeriesColorToSpPr(
+						spPr,
+						seriesData.color,
+						isLineFamily,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+						(node) => this.parseColor(node),
 					);
-					if (solidFillKey) {
-						(spPr as XmlObject)[solidFillKey] = {
-							'a:srgbClr': {
-								'@_val': seriesData.color.replace('#', ''),
-							},
-						};
-					} else {
-						spPr['a:solidFill'] = {
-							'a:srgbClr': {
-								'@_val': seriesData.color.replace('#', ''),
-							},
-						};
-					}
 				}
 			}
 
@@ -1065,11 +1068,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					},
 				},
 			},
-			'c:spPr': {
-				'a:solidFill': {
-					'a:srgbClr': { '@_val': colorHex },
-				},
-			},
+			'c:spPr': isLineFamily
+				? { 'a:ln': { 'a:solidFill': { 'a:srgbClr': { '@_val': colorHex } } } }
+				: { 'a:solidFill': { 'a:srgbClr': { '@_val': colorHex } } },
 			'c:cat': dateCategories
 				? {
 						'c:numRef': {

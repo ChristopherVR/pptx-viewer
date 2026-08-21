@@ -25,7 +25,10 @@ import {
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
 import { extractSeriesNumbersWithBlanks } from '../../utils/chart-blank-values';
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
-import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
+import {
+	chartContainerLocalNameToType,
+	isLineDrawnChartType,
+} from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
@@ -400,12 +403,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							);
 			}
 
-			const containerType = isCombo
-				? chartContainerLocalNameToType(this.compatibilityService.getXmlLocalName(containerKey))
-				: undefined;
+			// The container's real chart type, always resolved: needed to decide
+			// where a series' colour lives (`a:solidFill` vs `a:ln/a:solidFill`)
+			// regardless of whether this chart is a combo. `seriesChartType` below
+			// stays combo-only: it exists for round-trip tagging (re-splitting a
+			// combo chart's containers on save), and tagging every series of a
+			// plain chart with it would be observable elsewhere.
+			const resolvedContainerType = chartContainerLocalNameToType(
+				this.compatibilityService.getXmlLocalName(containerKey),
+			);
+			const containerType = isCombo ? resolvedContainerType : undefined;
 			const axisId = resolveChartContainerValueAxisId(container, axes ?? [], this.xmlLookupService);
 
-			series.push(...this.buildChartSeries(seriesList, categories, containerType, axisId));
+			series.push(
+				...this.buildChartSeries(
+					seriesList,
+					categories,
+					containerType,
+					axisId,
+					resolvedContainerType,
+				),
+			);
 		}
 
 		return { categories, series };
@@ -459,6 +477,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * @param categories - Pre-parsed category labels (used for fallback values).
 	 * @param seriesChartType - When set (combo charts), tags every series in this
 	 *   container with its source chart type for round-trip.
+	 * @param axisId - The container's resolved value-axis id, if any.
+	 * @param containerChartType - The container's actual chart type, always
+	 *   resolved (unlike `seriesChartType`, which is combo-only). Used to decide
+	 *   whether this container's series read their colour from a direct fill or
+	 *   from the outline (`a:ln/a:solidFill`), so a plain (non-combo)
+	 *   line/scatter/radar/stock chart's authored colour is not dropped.
 	 * @returns The series array matching `PptxChartData["series"]`.
 	 */
 	private buildChartSeries(
@@ -466,6 +490,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		categories: string[],
 		seriesChartType?: PptxChartType,
 		axisId?: number,
+		containerChartType?: PptxChartType,
 	): PptxChartData['series'] {
 		return seriesList.map((seriesNode, seriesIndex) => {
 			const seriesName = this.extractChartSeriesName(seriesNode);
@@ -511,13 +536,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// fills (bar/area/pie/bubble), but line-drawn series (line/scatter/radar/
 			// stock) author it on the outline instead: `c:ser/c:spPr/a:ln/a:solidFill`.
 			// Reading only the direct fill dropped those, so authored line colours
-			// fell back to the render-side palette.
-			const readsLineColor =
-				seriesChartType === 'line' ||
-				seriesChartType === 'line3D' ||
-				seriesChartType === 'scatter' ||
-				seriesChartType === 'radar' ||
-				seriesChartType === 'stock';
+			// fell back to the render-side palette. This must key off the
+			// container's ACTUAL chart type (`containerChartType`, always resolved),
+			// not `seriesChartType` (which is only set for combo charts): a plain
+			// line/scatter/radar/stock chart has no `seriesChartType` tag at all, so
+			// keying off it here dropped every such chart's authored colour.
+			const readsLineColor = isLineDrawnChartType(containerChartType);
 			const seriesColor =
 				this.parseColor(
 					this.xmlLookupService.getChildByLocalName(seriesShapeProperties, 'solidFill'),
