@@ -522,12 +522,20 @@ export interface AnimationTimelineBar {
 }
 
 /**
+ * Floor applied to a timeline bar's `widthPercent` so a very short animation
+ * (a near-zero duration relative to the sequence's total span) still renders
+ * as a visible, clickable sliver instead of effectively disappearing.
+ */
+const MIN_TIMELINE_BAR_WIDTH_PERCENT = 2;
+
+/**
  * Lays out the proportional timeline-strip bars for a slide's animations:
  * each bar's `leftPercent`/`widthPercent` express its delay/duration as a
  * percentage of the longest end time (`delayMs + durationMs`) across every
- * entry, so the strip always spans the full authored sequence. Returned in
- * `order` order (matching the reorderable list every binding renders beside
- * the strip).
+ * entry, so the strip always spans the full authored sequence.
+ * `widthPercent` is floored to {@link MIN_TIMELINE_BAR_WIDTH_PERCENT} so a
+ * very short duration stays visible. Returned in `order` order (matching the
+ * reorderable list every binding renders beside the strip).
  */
 export function buildAnimationTimelineBars(
 	animations: readonly PptxElementAnimation[],
@@ -540,7 +548,10 @@ export function buildAnimationTimelineBars(
 	return sorted.map((animation) => ({
 		elementId: animation.elementId,
 		leftPercent: ((animation.delayMs ?? 0) / total) * 100,
-		widthPercent: ((animation.durationMs ?? 500) / total) * 100,
+		widthPercent: Math.max(
+			((animation.durationMs ?? 500) / total) * 100,
+			MIN_TIMELINE_BAR_WIDTH_PERCENT,
+		),
 	}));
 }
 

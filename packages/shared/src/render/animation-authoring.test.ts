@@ -562,6 +562,15 @@ describe('buildAnimationTimelineBars', () => {
 		expect(bars.map((bar) => bar.elementId)).toStrictEqual(['a', 'b', 'c']);
 		expect(bars[1]).toMatchObject({ elementId: 'b', leftPercent: 20, widthPercent: 80 });
 	});
+
+	it('floors a very short duration to a visible minimum width', () => {
+		const bars = buildAnimationTimelineBars([
+			{ elementId: 'a', order: 0, delayMs: 0, durationMs: 10_000 } as PptxElementAnimation,
+			{ elementId: 'b', order: 1, delayMs: 0, durationMs: 10 } as PptxElementAnimation,
+		]);
+		const short = bars.find((bar) => bar.elementId === 'b')!;
+		expect(short.widthPercent).toBeGreaterThanOrEqual(2);
+	});
 });
 
 describe('removeElementAnimation', () => {
