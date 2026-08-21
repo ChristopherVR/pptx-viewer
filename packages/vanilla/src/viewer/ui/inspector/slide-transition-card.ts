@@ -13,6 +13,7 @@ import { makeNumberField } from '../controls';
 import { makeCheckboxField } from './controls-extra';
 import type { DeckCard } from './deck-card-helpers';
 import { makeSection } from './deck-card-helpers';
+import { createTransitionPreview } from './transition-preview';
 import type { InspectorDeckState, InspectorHandlers } from './types';
 
 /**
@@ -73,7 +74,8 @@ export function createSlideTransitionCard(
 		onChange: (checked) => patch({ advanceOnClick: checked }),
 	});
 	const sound = createEl(doc, 'p', 'pptxv-transition-sound');
-	body.append(typeLabel, directions, spokes.el, duration.el, advance.el, sound);
+	const preview = createTransitionPreview(doc, t);
+	body.append(typeLabel, directions, spokes.el, duration.el, advance.el, sound, preview.el);
 
 	/** Repaint the direction/orientation picker for the active transition type. */
 	const renderDirections = (current: PptxTransitionType): void => {
@@ -163,6 +165,7 @@ export function createSlideTransitionCard(
 			sound.textContent = transition?.soundFileName
 				? `${t('pptx.transition.sound')}: ${transition.soundFileName}`
 				: '';
+			preview.update(transition);
 		},
 	};
 }

@@ -220,6 +220,32 @@ export const INSPECTOR_FORMAT_CSS = `
 .pptxv-transition-dir.is-active { border-color: var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 20%, transparent); color: var(--pptx-primary); }
 .pptxv-transition-sound { margin: 4px 0 0; color: var(--pptx-muted-foreground); font-size: 10px; }
 .pptxv-transition-sound[hidden] { display: none; }
+.pptxv-transition-preview { display: grid; gap: 3px; margin-top: 8px; }
+.pptxv-transition-preview[hidden] { display: none; }
+.pptxv-transition-preview-label { font-size: 10px; color: var(--pptx-muted-foreground); }
+.pptxv-transition-preview-stage {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 64px;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--pptx-border);
+	border-radius: 6px;
+	background: var(--pptx-muted);
+	cursor: pointer;
+}
+.pptxv-transition-preview-layer {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--pptx-muted-foreground);
+	font-size: 9px;
+}
+.pptxv-transition-preview-layer.is-incoming { background: color-mix(in srgb, var(--pptx-primary) 20%, transparent); }
+.pptxv-transition-preview-layer.is-outgoing { background: var(--pptx-card); }
 
 /* ── Tags card ───────────────────────────────────────────────────────── */
 .pptxv-tags-toggle {
