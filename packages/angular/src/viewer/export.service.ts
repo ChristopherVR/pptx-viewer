@@ -14,9 +14,9 @@ import { Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
 import type { PptxData, PptxSaveFormat, PptxSlide, SvgExportOptions } from 'pptx-viewer-core';
 
-import { canvasToJpegData, downloadBlob } from '../internal/shared';
+import { canvasToJpegData, downloadBlob, sanitizeDownloadFilename } from '../internal/shared';
 import { renderToCanvas } from '../lib/canvas-export';
-import { pdfPageSize, sanitizeFileName } from './export-helpers';
+import { pdfPageSize } from './export-helpers';
 import { exportAllSlidesToSvg, exportSlideToSvg, exportSlideToSvgBlob } from './export-svg';
 import { encodeGif, planGifFrames } from './gif-export-helpers';
 import type { GifFrame } from './gif-export-helpers';
@@ -90,7 +90,7 @@ export class ExportService {
 		const blob = new Blob([bytes as unknown as BlobPart], {
 			type: ExportService.PRESENTATION_MIME[format],
 		});
-		downloadBlob(blob, sanitizeFileName(fileName));
+		downloadBlob(blob, fileName);
 	}
 
 	/**
@@ -113,7 +113,7 @@ export class ExportService {
 			}, 'image/png');
 		});
 
-		downloadBlob(blob, sanitizeFileName(fileName));
+		downloadBlob(blob, fileName);
 	}
 
 	/** Rasterize an element and copy it to the system clipboard as a PNG image. */
@@ -184,7 +184,7 @@ export class ExportService {
 			doc.addImage(jpegBytes, 'JPEG', dx, dy, dw, dh);
 		}
 
-		doc.save(sanitizeFileName(fileName));
+		doc.save(sanitizeDownloadFilename(fileName));
 	}
 
 	/**
@@ -222,7 +222,7 @@ export class ExportService {
 		const bytes = encodeGif(frames, { delayCs });
 		const buffer = new ArrayBuffer(bytes.byteLength);
 		new Uint8Array(buffer).set(bytes);
-		downloadBlob(new Blob([buffer], { type: 'image/gif' }), sanitizeFileName(fileName));
+		downloadBlob(new Blob([buffer], { type: 'image/gif' }), fileName);
 	}
 
 	/**
@@ -247,6 +247,6 @@ export class ExportService {
 			throw new Error('[ExportService] No slide canvases provided for video export');
 		}
 		const blob = await recordWebm(canvases, { slideDurationMs, signal, onProgress });
-		downloadBlob(blob, sanitizeFileName(fileName));
+		downloadBlob(blob, fileName);
 	}
 }
