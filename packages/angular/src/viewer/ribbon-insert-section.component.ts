@@ -28,6 +28,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import {
+	classifyMediaType,
 	DEFAULT_INSERT_CHART_KIND,
 	INSERT_CHART_TYPES,
 	SHAPE_PRESET_DEFS,
@@ -264,7 +265,11 @@ export class RibbonInsertSectionComponent {
 		if (!dataUrl) {
 			return;
 		}
-		const isAudio = file.type.startsWith('audio/');
+		const mediaType = classifyMediaType(file.type);
+		if (!mediaType) {
+			return;
+		}
+		const isAudio = mediaType === 'audio';
 		const element: PptxElement = {
 			type: 'media',
 			id: '',
@@ -273,7 +278,7 @@ export class RibbonInsertSectionComponent {
 			y: 100,
 			width: isAudio ? 280 : 480,
 			height: isAudio ? 64 : 270,
-			mediaType: isAudio ? 'audio' : 'video',
+			mediaType,
 			mediaData: dataUrl,
 			mediaMimeType: file.type,
 		} as PptxElement;
