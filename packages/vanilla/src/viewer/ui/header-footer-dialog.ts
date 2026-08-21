@@ -1,4 +1,5 @@
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
+import { cloneHeaderFooterDraft } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -15,7 +16,7 @@ export function openHeaderFooterDialog(
 	options: HeaderFooterDialogOptions,
 ): void {
 	const shell = createParityDialogShell(doc, t, t('pptx.headerFooter.title'));
-	const draft = { ...options.value };
+	const draft = cloneHeaderFooterDraft(options.value);
 	const date = appendCheckRow(
 		doc,
 		shell.body,
