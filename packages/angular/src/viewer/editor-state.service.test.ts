@@ -8,6 +8,19 @@ function element(id: string, x = 0, y = 0): PptxElement {
 	return { type: 'shape', id, name: '', x, y, width: 100, height: 50 } as PptxElement;
 }
 
+function group(id: string, children: PptxElement[]): PptxElement {
+	return {
+		type: 'group',
+		id,
+		name: '',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 50,
+		children,
+	} as PptxElement;
+}
+
 function slide(id: string, elements: PptxElement[]): PptxSlide {
 	return { id, rId: id, slideNumber: 1, elements } as PptxSlide;
 }
@@ -221,8 +234,24 @@ describe('editorStateService', () => {
 		expect(els).toHaveLength(4);
 		const pasted = els[3];
 		expect(pasted.id).not.toBe('a');
-		expect(pasted.x).toBe(12); // original a.x (0) + 12 paste offset
+		expect(pasted.x).toBe(20); // original a.x (0) + shared PASTE_OFFSET_PX
 		expect(svc.selectedIds()).toStrictEqual([pasted.id]);
+	});
+
+	it('re-ids every descendant of a pasted group, not just the root', () => {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [group('g', [element('child-1'), element('child-2')])])]);
+		svc.select(['g']);
+		svc.copySelected(0);
+		svc.paste(0);
+		const els = svc.slides()[0].elements;
+		expect(els).toHaveLength(2);
+		const pastedGroup = els[1] as PptxElement & { children: PptxElement[] };
+		expect(pastedGroup.id).not.toBe('g');
+		const childIds = pastedGroup.children.map((c) => c.id);
+		expect(childIds).not.toContain('child-1');
+		expect(childIds).not.toContain('child-2');
+		expect(new Set(childIds).size).toBe(2);
 	});
 
 	it('cuts elements (copy then delete)', () => {

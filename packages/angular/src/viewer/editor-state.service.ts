@@ -20,6 +20,7 @@ import type { PptxElement, PptxHeaderFooter, PptxSection, PptxSlide } from 'pptx
 import {
 	applyReroutedConnectors,
 	buildSlideTemplateSlide,
+	cloneElementForPaste,
 	groupSlidesBySection,
 	isTemplateElement,
 	isTemplateElementId,
@@ -678,9 +679,12 @@ export class EditorStateService {
 		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.paste'));
 		const newIds: string[] = [];
 		const additions = this.clipboard.map((el) => {
-			const id = this.newId();
-			newIds.push(id);
-			return { ...cloneElement(el), id, x: el.x + 12, y: el.y + 12 };
+			// A template element's id decides which store the paste routes to (see
+			// cloneElementForPaste); its descendants must keep the same prefix or
+			// later edits are silently lost to the slide store.
+			const clone = cloneElementForPaste(el, { intoTemplate: isTemplateElementId(el.id) });
+			newIds.push(clone.id);
+			return clone;
 		});
 		this.slides.set(
 			slides.map((slide, i) =>
