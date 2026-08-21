@@ -34,7 +34,9 @@
 	import QuickStylesGallery from './QuickStylesGallery.svelte';
 	import ChartSection from './ChartSection.svelte';
 	import ElementsListSection from './ElementsListSection.svelte';
+	import GroupInfoSection from './GroupInfoSection.svelte';
 	import ImageSection from './ImageSection.svelte';
+	import OlePropertiesSection from './OlePropertiesSection.svelte';
 	import PositionSection from './PositionSection.svelte';
 	import PresentationPropertiesPanel from './PresentationPropertiesPanel.svelte';
 	import ShapeSection from './ShapeSection.svelte';
@@ -77,6 +79,8 @@
 	const isSmartArt = $derived(el?.type === 'smartArt');
 	const isChart = $derived(el?.type === 'chart');
 	const isMedia = $derived(el?.type === 'media');
+	const isGroup = $derived(el?.type === 'group');
+	const isOle = $derived(el?.type === 'ole');
 	// React gates Quick Styles on shape/text (FillStrokeProperties): the presets
 	// are shape-fill recipes and mean nothing on a picture or a table.
 	const canQuickStyle = $derived(el?.type === 'shape' || el?.type === 'text');
@@ -112,6 +116,20 @@
 				<div class="pptx-svelte-inspector-section">
 					<PositionSection {editor} {el} />
 				</div>
+
+				{#if isGroup}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.elementType.group')}</h4>
+						<GroupInfoSection {el} />
+					</div>
+				{/if}
+
+				{#if isOle}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.ole.title')}</h4>
+						<OlePropertiesSection {el} />
+					</div>
+				{/if}
 
 				{#if canShape}
 					<div class="pptx-svelte-inspector-section">
