@@ -161,6 +161,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			let pathData: string | undefined;
 			let pathWidth: number | undefined;
 			let pathHeight: number | undefined;
+			let customGeometryRawData: ReturnType<typeof this.extractCustomGeometryRawData>;
+			let customGeometryAdjustHandlesXY: ReturnType<
+				typeof this.extractCustomGeometryAdjustHandles
+			>['xy'];
+			let customGeometryAdjustHandlesPolar: ReturnType<
+				typeof this.extractCustomGeometryAdjustHandles
+			>['polar'];
+			let customGeometryConnectionSites: ReturnType<
+				typeof this.extractCustomGeometryConnectionSites
+			>;
+			let customGeometryTextRect: ReturnType<typeof this.extractCustomGeometryTextRect>;
+			let customGeometryPaths: ReturnType<typeof this.buildStructuredCustomGeometryPaths>;
 
 			const custGeom = effectiveSpPr?.['a:custGeom'];
 			if (custGeom) {
@@ -174,6 +186,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					pathData = customPath.pathData;
 					pathWidth = customPath.pathWidth;
 					pathHeight = customPath.pathHeight;
+					customGeometryPaths = this.buildStructuredCustomGeometryPaths(
+						custGeom as XmlObject,
+						customPath.pathWidth,
+						customPath.pathHeight,
+					);
+					customGeometryRawData = this.extractCustomGeometryRawData(custGeom as XmlObject);
+					const typedHandles = this.extractCustomGeometryAdjustHandles(custGeom as XmlObject);
+					customGeometryAdjustHandlesXY = typedHandles.xy;
+					customGeometryAdjustHandlesPolar = typedHandles.polar;
+					customGeometryConnectionSites = this.extractCustomGeometryConnectionSites(
+						custGeom as XmlObject,
+					);
+					customGeometryTextRect = this.extractCustomGeometryTextRect(custGeom as XmlObject);
 				}
 			}
 
@@ -328,6 +353,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				pathData,
 				pathWidth,
 				pathHeight,
+				customGeometryPaths,
+				customGeometryRawData,
+				customGeometryAdjustHandlesXY,
+				customGeometryAdjustHandlesPolar,
+				customGeometryConnectionSites,
+				customGeometryTextRect,
 				shapeStyle: this.extractShapeStyle(effectiveSpPr, styleNode),
 				rotation,
 				skewX,
