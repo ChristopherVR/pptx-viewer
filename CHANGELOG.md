@@ -10,6 +10,29 @@ dated sections beneath it are generated from
 
 ## 2026-08-21
 
+_Releases: pptx-viewer-core@2.3.14, pptx-react-viewer@2.22.0, pptx-vue-viewer@2.23.0, pptx-angular-viewer@2.21.0, pptx-vanilla-viewer@1.24.0, pptx-svelte-viewer@2.23.0, pptx-viewer-mcp@2.1.4, @christophervr/pptx-viewer@1.9.0_
+
+### Features
+
+- **shared,react:** Wire interactive 3D surface chart scene (opt-in) (by @ChristopherVR) ([78587a4](https://github.com/ChristopherVR/pptx-viewer/commit/78587a4b2b34f745bd71a29d8952621eec31d3b9))
+- **angular:** Wire interactive 3D surface chart scene (opt-in) (by @ChristopherVR) ([cf5ad38](https://github.com/ChristopherVR/pptx-viewer/commit/cf5ad38e25e3fac488b29fe4aeaba265daad58ad))
+- **vue:** Wire interactive 3D surface chart scene (opt-in) (by @ChristopherVR) ([3597bec](https://github.com/ChristopherVR/pptx-viewer/commit/3597becbf5e2fe491df0bf36719511c3d8b093f6))
+- **svelte:** Wire interactive 3D surface chart scene (opt-in) (by @ChristopherVR) ([f37c598](https://github.com/ChristopherVR/pptx-viewer/commit/f37c5985f406401b1666630ab204aa1dcb69f7de))
+- **vanilla:** Wire interactive 3D surface chart scene (opt-in) (by @ChristopherVR) ([6975a8d](https://github.com/ChristopherVR/pptx-viewer/commit/6975a8ddd80d063fe685d564d518fe1fe6e55c7f))
+
+### Bug Fixes
+
+- **tools:** Normalize MCP chartType "pareto" to histogram+cumulative (by @ChristopherVR) ([c36411a](https://github.com/ChristopherVR/pptx-viewer/commit/c36411a8372d7f6a3aa89d2d3e0e67ba4baaab66))
+- **shared:** Compute elbow/curved connector routing from actual shape geometry (by @ChristopherVR) ([eecc519](https://github.com/ChristopherVR/pptx-viewer/commit/eecc519961d0a825f550c5d1b6c41f55b1d101ae))
+- **core,vue:** Compute elbow/curved connector routing from actual shape geometry (by @ChristopherVR) ([f2882a1](https://github.com/ChristopherVR/pptx-viewer/commit/f2882a11d16253683c82b04463442f6e80b7d507))
+
+### Documentation
+
+- **core:** Correct stale OLE and SmartArt capability text (by @ChristopherVR) ([0c7e68d](https://github.com/ChristopherVR/pptx-viewer/commit/0c7e68d66cf27fdc35f31d9fa06faab0d287a16c))
+- **core:** Certify DrawingML line/stroke properties in the OpenXML coverage manifest (by @ChristopherVR) ([caa2570](https://github.com/ChristopherVR/pptx-viewer/commit/caa2570d508b4904d8f541a392933da7be50dc32))
+
+## 2026-08-21
+
 _Releases: pptx-viewer-core@2.3.13, pptx-react-viewer@2.21.1, pptx-vue-viewer@2.22.1, pptx-angular-viewer@2.20.1, pptx-vanilla-viewer@1.23.1, pptx-svelte-viewer@2.22.1_
 
 ### Bug Fixes

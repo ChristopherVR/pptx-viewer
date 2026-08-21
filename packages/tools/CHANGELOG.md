@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.1.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.4) - 2026-08-21
+
+### Bug Fixes
+
+- **tools:** Normalize MCP chartType "pareto" to histogram+cumulative (by @ChristopherVR) ([c36411a](https://github.com/ChristopherVR/pptx-viewer/commit/c36411a8372d7f6a3aa89d2d3e0e67ba4baaab66))
+
 ## [2.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.3) - 2026-08-20
 
 ### Bug Fixes
