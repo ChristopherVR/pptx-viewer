@@ -143,6 +143,20 @@ describe('getConnectorPathGeometry: bentConnector3', () => {
 		);
 		expect(geo.pathData).not.toMatch(/[CQA]/u);
 	});
+
+	it('bends around a horizontal mid-line (not vertical) when the shapes are stacked', () => {
+		// A connector between vertically-stacked shapes is taller than it is
+		// wide. Before the fix, this still bent around a vertical mid-line at
+		// `width * adj1` ('M 0 0 L 25 0 L 25 200 L 50 200'), so the connector
+		// visually exited sideways even though the boxes it joins sit one above
+		// the other. The fix picks the bend axis from whichever of width/height
+		// dominates, so a tall box now routes V-H-V around a horizontal
+		// mid-line at `height * adj1` instead.
+		const geo = getConnectorPathGeometry(
+			makeConnector({ shapeType: 'bentConnector3', width: 50, height: 200 }),
+		);
+		expect(geo.pathData).toBe('M 0 0 L 0 100 L 50 100 L 50 200');
+	});
 });
 
 // ── getConnectorPathGeometry: bentConnector4 ─────────────────────────────────

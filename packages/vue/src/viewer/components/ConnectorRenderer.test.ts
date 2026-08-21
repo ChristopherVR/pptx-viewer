@@ -177,6 +177,28 @@ describe('connectorRenderer - bent connectors', () => {
 		const path = wrapper.get('path:not(.pptx-vue-connector-hit)');
 		expect(path.attributes('stroke')).toBe('#0000ff');
 	});
+
+	it('bends around a horizontal mid-line, not a vertical one, when the shapes are stacked', () => {
+		// A connector between vertically-stacked shapes is taller than it is
+		// wide (height > width). Before the fix, the SVG path bent around a
+		// vertical mid-line at `width * adj1` regardless of orientation, so the
+		// rendered connector still exited sideways even though the two shapes
+		// it joins sit one above the other. Assert the actual rendered `d`
+		// attribute, not just segment counts, so this exercises Vue's real
+		// render path end to end rather than just the underlying core function.
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector3',
+					width: 50,
+					height: 200,
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('path:not(.pptx-vue-connector-hit)');
+		expect(path.attributes('d')).toBe('M 0 0 L 0 100 L 50 100 L 50 200');
+	});
 });
 
 // ── Pointer hit target ────────────────────────────────────────────────────────
