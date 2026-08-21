@@ -7,7 +7,9 @@ export const UpdateChartSchema = z.object({
 	chartType: z
 		.string()
 		.optional()
-		.describe('New chart type (bar, line, pie, scatter, area, doughnut, radar)'),
+		.describe(
+			'New chart type (bar, line, pie, scatter, area, doughnut, radar, histogram, waterfall, funnel, treemap, sunburst, boxWhisker, regionMap). "pareto" is also accepted: it is authored as a histogram chart with an added cumulative-percentage line series.',
+		),
 	title: z.string().optional().describe('Chart title'),
 	grouping: z
 		.enum(['clustered', 'stacked', 'percentStacked'])
@@ -75,7 +77,11 @@ export const UpdateChartSeriesDataSchema = z.object({
 export const CreateChartSchema = z.object({
 	filePath: z.string().describe('Path to the PPTX file'),
 	slideIndex: z.number().int().min(0).describe('Zero-based slide index'),
-	chartType: z.string().describe('Chart type (bar, line, pie, scatter, area, doughnut, radar)'),
+	chartType: z
+		.string()
+		.describe(
+			'Chart type (bar, line, pie, scatter, area, doughnut, radar, histogram, waterfall, funnel, treemap, sunburst, boxWhisker, regionMap). "pareto" is also accepted: it is authored as a histogram chart with an added cumulative-percentage line series.',
+		),
 	x: z.number().optional().describe('X position in points'),
 	y: z.number().optional().describe('Y position in points'),
 	width: z.number().optional().describe('Width in points'),
