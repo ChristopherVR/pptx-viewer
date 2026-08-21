@@ -68,6 +68,7 @@ export { TableResizeOverlayComponent } from './table-resize-overlay.component';
 export { TableSelectionService } from './table-selection.service';
 export type { TableCellSelection } from './table-selection.service';
 export { ChartDataEditorComponent } from './chart-data-editor.component';
+export { ChartTypeSelectorComponent } from './chart-type-selector.component';
 export { AdvancedChartEditorComponent } from './advanced-chart-editor.component';
 export { ChartDisplayOptionsComponent } from './chart-display-options.component';
 export { ChartDataLabelOptionsComponent } from './chart-data-label-options.component';

@@ -38,6 +38,7 @@ import {
 import { ActionSettingsPanelComponent } from './action-settings-panel.component';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { ChartDataEditorComponent } from './chart-data-editor.component';
+import { ChartTypeSelectorComponent } from './chart-type-selector.component';
 import { EditorStateService } from './editor-state.service';
 import { EffectsPanelComponent } from './effects-panel.component';
 import { ElementFlipControlsComponent } from './element-flip-controls.component';
@@ -78,6 +79,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 		TablePropertiesComponent,
 		TableCellFormattingComponent,
 		ChartDataEditorComponent,
+		ChartTypeSelectorComponent,
 		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
 		ActionSettingsPanelComponent,
@@ -430,6 +432,20 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						{{ 'pptx.inspector.cellFormatting' | translate }}
 					</summary>
 					<pptx-table-cell-formatting [element]="t" (elementChange)="onElementReplace($event)" />
+				</details>
+			}
+
+			<!-- ── Chart type / title / grouping ────────────────────────────── -->
+			@if (chartEl(); as c) {
+				<details class="pptx-ng-inspector__details" open>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.chart.heading' | translate }}
+					</summary>
+					<pptx-chart-type-selector
+						[element]="c"
+						[canEdit]="canEdit()"
+						(elementChange)="onElementReplace($event)"
+					/>
 				</details>
 			}
 
