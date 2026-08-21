@@ -603,6 +603,78 @@ describe('getConnectorPathGeometry — case insensitivity', () => {
 // Extreme adjustment values
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Orientation-aware routing: stacked shapes (height > width) bend around a
+// horizontal mid-line instead of always treating width as the primary axis.
+// ---------------------------------------------------------------------------
+
+describe('getConnectorPathGeometry — orientation-aware routing (stacked shapes)', () => {
+	it('bentConnector3 on a tall box bends around a horizontal mid-line (V-H-V), not a vertical one', () => {
+		const el = makeConnector({ shapeType: 'bentConnector3', width: 50, height: 200 });
+		const result = getConnectorPathGeometry(el);
+		// Before the fix this always produced 'M 0 0 L 25 0 L 25 200 L 50 200'
+		// (a vertical mid-line at width*0.5), regardless of the box being far
+		// taller than it is wide.
+		expect(result.pathData).toBe('M 0 0 L 0 100 L 50 100 L 50 200');
+	});
+
+	it('bentConnector4 on a tall box routes through height-driven adj1 and width-driven adj2', () => {
+		const el = makeConnector({ shapeType: 'bentConnector4', width: 100, height: 200 });
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe('M 0 0 L 0 100 L 50 100 L 50 200 L 100 200');
+	});
+
+	it('bentConnector5 on a tall box honours adj1/adj2/adj3 independently along the swapped axes', () => {
+		const el = makeConnector({
+			shapeType: 'bentConnector5',
+			width: 100,
+			height: 200,
+			shapeAdjustments: { adj1: 30000, adj2: 40000, adj3: 70000 },
+		});
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe('M 0 0 L 0 60 L 40 60 L 40 140 L 100 140 L 100 200');
+	});
+
+	it('curvedConnector3 on a tall box curves around a horizontal mid-line', () => {
+		const el = makeConnector({ shapeType: 'curvedConnector3', width: 100, height: 200 });
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe('M 0 0 C 0 100 0 100 50 100 C 100 100 100 100 100 200');
+	});
+
+	it('curvedConnector4 on a tall box produces a height-driven 3-curve path', () => {
+		const el = makeConnector({ shapeType: 'curvedConnector4', width: 100, height: 200 });
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe(
+			'M 0 0 C 0 100 0 100 25 100 C 50 100 50 100 50 150 C 50 200 50 200 100 200',
+		);
+	});
+
+	it('curvedConnector5 on a tall box honours adj1/adj2/adj3 along the swapped axes', () => {
+		const el = makeConnector({
+			shapeType: 'curvedConnector5',
+			width: 100,
+			height: 200,
+			shapeAdjustments: { adj1: 30000, adj2: 40000, adj3: 70000 },
+		});
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe(
+			'M 0 0 C 0 60 0 60 20 60 C 40 60 40 60 40 100 C 40 140 40 140 70 140 C 100 140 100 140 100 200',
+		);
+	});
+
+	it('an exact square (width === height) still ties toward the historical horizontal routing', () => {
+		const el = makeConnector({ shapeType: 'bentConnector3', width: 100, height: 100 });
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe('M 0 0 L 50 0 L 50 100 L 100 100');
+	});
+
+	it('a wide box (width > height) keeps the pre-fix horizontal routing unchanged', () => {
+		const el = makeConnector({ shapeType: 'bentConnector3', width: 200, height: 50 });
+		const result = getConnectorPathGeometry(el);
+		expect(result.pathData).toBe('M 0 0 L 100 0 L 100 50 L 200 50');
+	});
+});
+
 describe('getConnectorPathGeometry — extreme adjustments', () => {
 	it('bentConnector3 with adj1=0 (midpoint at left edge)', () => {
 		const el = makeConnector({
