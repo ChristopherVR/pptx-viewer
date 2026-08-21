@@ -974,6 +974,7 @@ export * from './theme-editor-presets';
 // string codec (binary-safe) for round-tripping elements through the system
 // clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
 export * from './element-clipboard';
+export * from './header-footer-dialog';
 export * from './template-editing';
 // Ordered + capped element composition for slide previews / sidebar thumbnails,
 // mirroring `buildSaveSlides` (template elements first, then slide-owned).
