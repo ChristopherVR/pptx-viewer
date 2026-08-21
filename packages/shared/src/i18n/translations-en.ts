@@ -1228,6 +1228,10 @@ export const translationsEn: Record<string, string> = {
 	'pptx.notes.toggleRichPlainEditor': 'Toggle rich/plain text editor',
 	'pptx.notes.underline': 'Underline',
 
+	// Group info panel (element inspector)
+	'pptx.group.childCount': '{{count}} children',
+	'pptx.group.groupedElement': 'Grouped element',
+
 	// OLE object properties
 	'pptx.ole.embedded': 'Embedded',
 	'pptx.ole.fileName': 'File Name',

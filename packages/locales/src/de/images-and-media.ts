@@ -82,6 +82,8 @@ export const translations = {
 	'pptx.media.info': 'Medieninfo',
 	'pptx.media.posterFrame': 'Posterrahmen',
 	'pptx.media.resolution': 'Auflösung',
+	'pptx.group.childCount': '{{count}} untergeordnete Elemente',
+	'pptx.group.groupedElement': 'Gruppiertes Element',
 	'pptx.ole.embedded': 'Eingebettet',
 	'pptx.ole.fileName': 'Dateiname',
 	'pptx.ole.linkStatus': 'Linkstatus',

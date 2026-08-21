@@ -81,6 +81,8 @@ export const translations = {
 	'pptx.media.info': 'Informations médias',
 	'pptx.media.posterFrame': 'Cadre pour affiche',
 	'pptx.media.resolution': 'Résolution',
+	'pptx.group.childCount': '{{count}} éléments enfants',
+	'pptx.group.groupedElement': 'Élément groupé',
 	'pptx.ole.embedded': 'Intégré',
 	'pptx.ole.fileName': 'Nom de fichier',
 	'pptx.ole.linkStatus': 'Statut du lien',

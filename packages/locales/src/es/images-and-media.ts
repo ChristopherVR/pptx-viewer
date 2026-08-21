@@ -83,6 +83,8 @@ export const translations = {
 	'pptx.media.info': 'Información de medios',
 	'pptx.media.posterFrame': 'Marco del cartel',
 	'pptx.media.resolution': 'Resolución',
+	'pptx.group.childCount': '{{count}} elementos secundarios',
+	'pptx.group.groupedElement': 'Elemento agrupado',
 	'pptx.ole.embedded': 'Incorporado',
 	'pptx.ole.fileName': 'Nombre del archivo',
 	'pptx.ole.linkStatus': 'Estado del enlace',
