@@ -19,6 +19,7 @@ import {
 } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
+import { applyParetoChartTypeAlias } from './chart-pareto.js';
 import { validateSlideIndex } from './helpers.js';
 
 // ── updateChart ──────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export function updateChart(
 	const chart = el as ChartPptxElement;
 	if (params.chartType) {
 		setChartType(chart, params.chartType as Parameters<typeof setChartType>[1]);
+		applyParetoChartTypeAlias(chart, params.chartType);
 	}
 	if (params.title !== undefined) {
 		setChartTitle(chart, params.title);
@@ -250,6 +252,7 @@ export function createChart(
 	}
 
 	const chart = builder.build();
+	applyParetoChartTypeAlias(chart, params.chartType);
 	const slide = ctx.pptxData.slides[params.slideIndex];
 	slide.elements.push(chart);
 
