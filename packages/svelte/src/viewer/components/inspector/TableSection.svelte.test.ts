@@ -155,6 +155,19 @@ describe('tableSection', () => {
 		expect(widths[2] / widths[1]).toBeCloseTo(0.5 / 0.3, 5);
 	});
 
+	it('applies a style preset, updating cell fills across the table', () => {
+		const editor = makeEditor(tableEl());
+		const { target } = mountSection(editor, currentEl(editor));
+		const swatches = target.querySelectorAll<HTMLButtonElement>('.preset-swatch');
+		expect(swatches.length).toBeGreaterThan(3);
+		swatches[0]?.click();
+		flushSync();
+
+		const data = (currentEl(editor) as TableShape).tableData;
+		// The preset changes at least one cell's styling from the plain default.
+		expect(data?.rows.some((row) => row.cells.some((cell) => cell.style))).toBeTruthy();
+	});
+
 	it('formats an individual selected cell', () => {
 		const editor = makeEditor(tableEl());
 		const { target } = mountSection(editor, currentEl(editor));
