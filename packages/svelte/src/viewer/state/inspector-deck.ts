@@ -51,6 +51,14 @@ export interface InspectorDeckActions {
 	updateAppProperties(patch: Partial<PptxAppProperties>): void;
 	/** Replace the custom document-property list. */
 	updateCustomProperties(next: PptxCustomProperty[]): void;
+	/**
+	 * Set a layout/master's background colour (SLIDE BACKGROUND card's
+	 * template rows, shown while `editTemplateMode` is on). Master Views
+	 * covers the same ground but requires leaving the slide.
+	 */
+	setTemplateBackground(path: string, backgroundColor: string): void;
+	/** Read a layout/master's current background colour. */
+	getTemplateBackgroundColor(path: string): string | undefined;
 }
 
 export interface InspectorDeckDeps {
@@ -160,6 +168,20 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 				{ ...(editor.appProperties ?? {}) },
 				next,
 			);
+		},
+		setTemplateBackground(path: string, backgroundColor: string): void {
+			const handler = loader.handler;
+			if (!handler) {
+				return;
+			}
+			handler.setTemplateBackground(path, backgroundColor);
+			editor.slideMasters = editor.slideMasters.map((master) =>
+				master.path === path ? { ...master, backgroundColor } : master,
+			);
+			editor.commitChange();
+		},
+		getTemplateBackgroundColor(path: string): string | undefined {
+			return loader.handler?.getTemplateBackgroundColor(path);
 		},
 	};
 }

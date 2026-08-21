@@ -24,6 +24,7 @@
 	import SlideSizeSection from './SlideSizeSection.svelte';
 	import SlideTransitionSection from './SlideTransitionSection.svelte';
 	import TagsSection from './TagsSection.svelte';
+	import TemplateBackgroundSection from './TemplateBackgroundSection.svelte';
 	import ThemeSection from './ThemeSection.svelte';
 	import ThemeSelectorSection from './ThemeSelectorSection.svelte';
 
@@ -107,6 +108,17 @@
 		<div class="pptx-svelte-inspector-section">
 			<h4>{t('pptx.slideInspector.slideTransition')}</h4>
 			<SlideTransitionSection {editor} />
+		</div>
+	{/if}
+	{#if editor.editTemplateMode && activeSlide}
+		<div class="pptx-svelte-inspector-section">
+			<h4>{t('pptx.slideBackground.templateBackgroundsHeading')}</h4>
+			<TemplateBackgroundSection
+				{activeSlide}
+				slideMasters={editor.slideMasters}
+				{deck}
+				{canEdit}
+			/>
 		</div>
 	{/if}
 	<div class="pptx-svelte-inspector-section">

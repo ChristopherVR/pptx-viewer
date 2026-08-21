@@ -142,4 +142,66 @@ describe('createInspectorDeckActions', () => {
 		]);
 		expect(editor.dirty).toBeTruthy();
 	});
+
+	/**
+	 * The SLIDE BACKGROUND card's template rows: React/Vue/Angular's shortcut
+	 * to edit a layout/master's background colour directly from the slide
+	 * inspector, without leaving the slide for Master Views. Svelte had no
+	 * path to this at all before.
+	 */
+	describe('setTemplateBackground / getTemplateBackgroundColor', () => {
+		it('writes through the handler and mirrors the colour back onto editor.slideMasters', () => {
+			const { handler } = makeFakeHandler();
+			const setTemplateBackground = vi.fn();
+			(
+				handler as unknown as { setTemplateBackground: typeof setTemplateBackground }
+			).setTemplateBackground = setTemplateBackground;
+			const editor = makeEditor(handler);
+			const loader = new PresentationLoader();
+			loader.handler = handler;
+			const deck = createInspectorDeckActions({ loader, editor });
+
+			deck.setTemplateBackground('ppt/slideMasters/slideMaster1.xml', '#ff0000');
+
+			expect(setTemplateBackground).toHaveBeenCalledWith(
+				'ppt/slideMasters/slideMaster1.xml',
+				'#ff0000',
+			);
+			expect(editor.slideMasters[0]?.backgroundColor).toBe('#ff0000');
+			expect(editor.slideMasters[1]?.backgroundColor).toBeUndefined();
+			expect(editor.dirty).toBeTruthy();
+		});
+
+		it('does nothing without a loaded handler', () => {
+			const editor = makeEditor();
+			const deck = createInspectorDeckActions({ loader: new PresentationLoader(), editor });
+
+			deck.setTemplateBackground('ppt/slideMasters/slideMaster1.xml', '#ff0000');
+
+			expect(editor.slideMasters[0]?.backgroundColor).toBeUndefined();
+			expect(editor.dirty).toBeFalsy();
+		});
+
+		it('reads the colour straight from the handler', () => {
+			const { handler } = makeFakeHandler();
+			const getTemplateBackgroundColor = vi.fn().mockReturnValue('#123456');
+			(
+				handler as unknown as { getTemplateBackgroundColor: typeof getTemplateBackgroundColor }
+			).getTemplateBackgroundColor = getTemplateBackgroundColor;
+			const editor = makeEditor(handler);
+			const loader = new PresentationLoader();
+			loader.handler = handler;
+			const deck = createInspectorDeckActions({ loader, editor });
+
+			expect(deck.getTemplateBackgroundColor('ppt/slideMasters/slideMaster1.xml')).toBe('#123456');
+			expect(getTemplateBackgroundColor).toHaveBeenCalledWith('ppt/slideMasters/slideMaster1.xml');
+		});
+
+		it('returns undefined without a loaded handler', () => {
+			const editor = makeEditor();
+			const deck = createInspectorDeckActions({ loader: new PresentationLoader(), editor });
+
+			expect(deck.getTemplateBackgroundColor('ppt/slideMasters/slideMaster1.xml')).toBeUndefined();
+		});
+	});
 });
