@@ -12,6 +12,7 @@
  * copy of these tables for historical reasons but resolves to the same keys.
  */
 import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
+import { chartDataChangeType } from 'pptx-viewer-core';
 
 /** Display units selectable for a value axis (empty string = none). */
 export type ChartDisplayUnitsValue =
@@ -291,3 +292,22 @@ export const EXPLOSION_SUPPORTED_TYPES: ReadonlySet<PptxChartType> = new Set<Ppt
 	'doughnut',
 	'ofPie',
 ]);
+
+/**
+ * Apply an inspector patch to a chart's data, routing a `chartType` change
+ * through core's {@link chartDataChangeType} (which clears grouping the new
+ * type doesn't support and adapts the category/series shape) instead of a
+ * plain shallow merge. Every other field is a plain merge.
+ *
+ * Every binding's chart type/title/grouping selector needs exactly this
+ * "is this patch a type change?" branch; it was independently re-implemented
+ * in React and Vue with identical logic before being centralized here.
+ */
+export function patchChartData(data: PptxChartData, patch: Partial<PptxChartData>): PptxChartData {
+	if (patch.chartType && patch.chartType !== data.chartType) {
+		const adapted = chartDataChangeType(data, patch.chartType);
+		const { chartType: _chartType, ...rest } = patch;
+		return { ...adapted, ...rest };
+	}
+	return { ...data, ...patch };
+}

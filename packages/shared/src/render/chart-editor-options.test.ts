@@ -28,6 +28,7 @@ import {
 	LEGEND_POSITION_OPTIONS,
 	MARKER_SUPPORTED_TYPES,
 	MARKER_SYMBOL_OPTIONS,
+	patchChartData,
 	TICK_LABEL_POSITION_OPTIONS,
 	TRENDLINE_SUPPORTED_TYPES,
 	TRENDLINE_TYPE_OPTIONS,
@@ -103,5 +104,40 @@ describe('chart-type capability sets', () => {
 		expect(ERROR_BAR_VALUE_TYPES.has('percentage')).toBeTruthy();
 		expect(ERROR_BAR_VALUE_TYPES.has('stdDev')).toBeTruthy();
 		expect(ERROR_BAR_VALUE_TYPES.has('stdErr')).toBeFalsy();
+	});
+});
+
+describe('patchChartData', () => {
+	const bar = {
+		chartType: 'bar',
+		grouping: 'stacked',
+		title: 'Revenue',
+		categories: ['Q1', 'Q2'],
+		series: [{ name: 'A', values: [1, 2] }],
+	} as unknown as import('pptx-viewer-core').PptxChartData;
+
+	it('does a plain merge for a non-type-changing patch', () => {
+		const next = patchChartData(bar, { title: 'Updated' });
+		expect(next.title).toBe('Updated');
+		expect(next.chartType).toBe('bar');
+		expect(next.grouping).toBe('stacked');
+	});
+
+	it('routes a chartType change through chartDataChangeType, clearing unsupported grouping', () => {
+		const next = patchChartData(bar, { chartType: 'pie' });
+		expect(next.chartType).toBe('pie');
+		expect(next.grouping).toBeUndefined();
+	});
+
+	it('merges other patch fields alongside a chartType change', () => {
+		const next = patchChartData(bar, { chartType: 'pie', title: 'Renamed' });
+		expect(next.chartType).toBe('pie');
+		expect(next.title).toBe('Renamed');
+	});
+
+	it('is a no-op type-wise when chartType matches the current type', () => {
+		const next = patchChartData(bar, { chartType: 'bar', title: 'Same type' });
+		expect(next.grouping).toBe('stacked');
+		expect(next.title).toBe('Same type');
 	});
 });
