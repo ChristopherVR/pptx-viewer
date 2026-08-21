@@ -423,4 +423,13 @@ export interface ShapeStyle {
 	 * authored on the shape and must not be written back as if it were.
 	 */
 	inheritedLineStyle?: ShapeStyle;
+	/**
+	 * The shadow/glow/reflection/soft-edge/3D properties `<a:effectRef>`
+	 * resolved from the theme's `effectStyleLst`, recorded ONLY for the
+	 * properties the shape had not already authored itself. A shape whose
+	 * effects still match this baseline was never given its own effects and
+	 * must not have them written back as a literal `spPr/a:effectLst`; see
+	 * `authored-shape-style.ts`'s `effectIsPurelyStyleMatrix`.
+	 */
+	inheritedEffectStyle?: ShapeStyle;
 }

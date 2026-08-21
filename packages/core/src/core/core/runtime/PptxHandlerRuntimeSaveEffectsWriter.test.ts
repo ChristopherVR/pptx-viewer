@@ -1,275 +1,224 @@
 import { describe, it, expect } from 'vitest';
 
-import type { Pptx3DScene, XmlObject, ShapeStyle } from '../../types';
+import { clampUnitInterval } from '../../color/color-primitives';
+import type { XmlObject, ShapeStyle } from '../../types';
+import { PptxShapeEffectXmlBuilder } from '../builders/PptxShapeEffectXmlBuilder';
+import { PptxShapeStyleExtractor } from '../builders/PptxShapeStyleExtractor';
+import type { PptxShapeStyleExtractorContext } from '../builders/PptxShapeStyleExtractor';
 import { applyScene3dStyle, applyShape3dStyle } from '../builders/shape-style-3d-helpers';
+import { writeShapeEffects } from './save-shape-effects';
 
 /**
- * The `applyEffectsAndThreeD` method is protected and calls several
- * delegated build methods. We test the effect assembly and 3D scene/shape
- * serialization logic by reimplementing the core aggregation from the source.
+ * `writeShapeEffects` exercised directly (the real production function - see
+ * `save-shape-effects.ts`), driven through the REAL `PptxShapeStyleExtractor`
+ * and `PptxShapeEffectXmlBuilder` so both the effect-list assembly AND the
+ * inheritance gate (`effectIsPurelyStyleMatrix`) are pinned by production
+ * code, not a reimplementation.
+ *
+ * This suite used to keep its own copy of `applyEffectsAndThreeD` ("its
+ * mixin chain crashes on load"), which is why the theme-effectRef
+ * inheritance-flattening bug (a shape painted only by `<a:effectRef>` got a
+ * literal `spPr/a:effectLst` baked in on the very next save, permanently
+ * outranking the reference) went unnoticed: the writer was never actually
+ * imported. `writeShapeEffects` is a free function specifically so this
+ * suite - and the runtime mixin - both call the same code.
  */
 
-// ---------------------------------------------------------------------------
-// applyEffectsAndThreeD — reimplemented from source (effect + 3D portions)
-// ---------------------------------------------------------------------------
+const EMU_PER_PX = 9525;
 
-// Faithful copies of the module-private scene3d save helpers from
-// PptxHandlerRuntimeSaveEffectsWriter (that module cannot be imported here: its
-// mixin chain crashes on load, which is why this suite reimplements the writer).
-function buildSphereRot(
-	lat: number | undefined,
-	lon: number | undefined,
-	rev: number | undefined,
-): XmlObject | undefined {
-	if (lat === undefined && lon === undefined && rev === undefined) {
-		return undefined;
-	}
-	const rot: XmlObject = {};
-	if (lat !== undefined) {
-		rot['@_lat'] = String(lat);
-	}
-	if (lon !== undefined) {
-		rot['@_lon'] = String(lon);
-	}
-	if (rev !== undefined) {
-		rot['@_rev'] = String(rev);
-	}
-	return rot;
-}
+const effectBuilder = new PptxShapeEffectXmlBuilder({ emuPerPx: EMU_PER_PX, clampUnitInterval });
 
-function buildScene3dCamera(s3d: Pptx3DScene, source: XmlObject): XmlObject {
-	const camera: XmlObject = { ...((source['a:camera'] as XmlObject | undefined) ?? {}) };
-	if (s3d.cameraPreset) {
-		camera['@_prst'] = s3d.cameraPreset;
-	}
-	if (s3d.cameraFieldOfView !== undefined) {
-		camera['@_fov'] = String(s3d.cameraFieldOfView);
-	}
-	if (s3d.cameraZoom !== undefined) {
-		camera['@_zoom'] = String(s3d.cameraZoom);
-	}
-	const rot = buildSphereRot(s3d.cameraRotX, s3d.cameraRotY, s3d.cameraRotZ);
-	if (rot) {
-		camera['a:rot'] = rot;
-	}
-	return camera;
-}
+/** Resolved shadow our stub theme hands back for `a:effectRef idx="2"`. */
+const THEME_SHADOW_COLOR = '#404040';
 
-function buildScene3dLightRig(s3d: Pptx3DScene, source: XmlObject): XmlObject | undefined {
-	const lightRig: XmlObject = { ...((source['a:lightRig'] as XmlObject | undefined) ?? {}) };
-	if (s3d.lightRigType) {
-		lightRig['@_rig'] = s3d.lightRigType;
-	}
-	if (s3d.lightRigDirection) {
-		lightRig['@_dir'] = s3d.lightRigDirection;
-	}
-	const rot = buildSphereRot(s3d.lightRigRotX, s3d.lightRigRotY, s3d.lightRigRotZ);
-	if (rot) {
-		lightRig['a:rot'] = rot;
-	}
-	return Object.keys(lightRig).length > 0 ? lightRig : undefined;
-}
+const parseColor = (node: XmlObject | undefined): string | undefined => {
+	const srgb = node?.['a:srgbClr'] as XmlObject | undefined;
+	return srgb?.['@_val'] ? `#${String(srgb['@_val'])}` : undefined;
+};
 
-function buildScene3dBackdrop(s3d: Pptx3DScene): XmlObject | undefined {
-	const hasNorm =
-		s3d.backdropNormalX !== undefined ||
-		s3d.backdropNormalY !== undefined ||
-		s3d.backdropNormalZ !== undefined;
-	const hasUp =
-		s3d.backdropUpX !== undefined || s3d.backdropUpY !== undefined || s3d.backdropUpZ !== undefined;
-	if (!s3d.hasBackdrop || !hasNorm || !hasUp) {
-		return undefined;
-	}
-	return {
-		'a:anchor': {
-			'@_x': String(s3d.backdropAnchorX ?? 0),
-			'@_y': String(s3d.backdropAnchorY ?? 0),
-			'@_z': String(s3d.backdropAnchorZ ?? 0),
+/**
+ * Stand-in for `PptxHandlerRuntimeThemeRefResolution.resolveThemeEffectRef`:
+ * writes the same fields (guarded the same way, `if (... && !style.x)`) the
+ * real resolver writes, which is all the baseline capture in
+ * `PptxShapeStyleExtractor` depends on.
+ */
+function createExtractor(): PptxShapeStyleExtractor {
+	const context = {
+		emuPerPx: EMU_PER_PX,
+		parseColor,
+		extractColorOpacity: () => undefined,
+		extractGradientFillColor: () => undefined,
+		extractGradientOpacity: () => undefined,
+		extractGradientFillCss: () => undefined,
+		extractGradientStops: () => [],
+		extractGradientAngle: () => 0,
+		extractGradientType: () => 'linear' as const,
+		extractGradientPathType: () => undefined,
+		extractGradientFocalPoint: () => undefined,
+		extractGradientFillToRect: () => undefined,
+		extractGradientFlip: () => undefined,
+		extractGradientRotWithShape: () => undefined,
+		extractGradientScaled: () => undefined,
+		normalizeStrokeDashType: () => undefined,
+		normalizeConnectorArrowType: () => undefined,
+		ensureArray: (value: unknown): unknown[] => (Array.isArray(value) ? value : [value]),
+		resolveThemeFillRef: () => {},
+		resolveThemeLineRef: () => {},
+		resolveThemeEffectRef: (_refNode: XmlObject, style: ShapeStyle) => {
+			style.effectRefIdx = 2;
+			if (!style.shadowColor) {
+				style.shadowColor = THEME_SHADOW_COLOR;
+				style.shadowBlur = 4;
+				style.shadowOffsetX = 2;
+				style.shadowOffsetY = 2;
+				style.shadowOpacity = 0.4;
+			}
 		},
-		'a:norm': {
-			'@_dx': String(s3d.backdropNormalX ?? 0),
-			'@_dy': String(s3d.backdropNormalY ?? 0),
-			'@_dz': String(s3d.backdropNormalZ ?? 0),
-		},
-		'a:up': {
-			'@_dx': String(s3d.backdropUpX ?? 0),
-			'@_dy': String(s3d.backdropUpY ?? 0),
-			'@_dz': String(s3d.backdropUpZ ?? 0),
-		},
-	};
+		extractShadowStyle: () => ({}),
+		extractInnerShadowStyle: () => ({}),
+		extractGlowStyle: () => ({}),
+		extractSoftEdgeStyle: () => ({}),
+		extractReflectionStyle: () => ({}),
+		extractBlurStyle: () => ({}),
+		extractEffectDagStyle: () => ({}),
+	} as unknown as PptxShapeStyleExtractorContext;
+	return new PptxShapeStyleExtractor(context);
 }
 
-function applyEffectsAndThreeD(
-	spPr: XmlObject,
-	shapeStyle: ShapeStyle,
-	// Mock effect builders — return undefined unless the test provides them
-	builders: {
-		outerShadow?: XmlObject;
-		innerShadow?: XmlObject;
-		glow?: XmlObject;
-		softEdge?: XmlObject;
-		reflection?: XmlObject;
-		blur?: XmlObject;
-	} = {},
-): void {
-	const outerShadowXml = builders.outerShadow;
-	const innerShadowXml = builders.innerShadow;
-	const glowXml = builders.glow;
-	const softEdgeXml = builders.softEdge;
-	const reflectionXml = builders.reflection;
-	const blurXml = builders.blur;
+/** The `<p:style>` PowerPoint writes on an ordinary themed shape with a shadow. */
+const STYLE_NODE: XmlObject = {
+	'a:effectRef': { '@_idx': '2', 'a:schemeClr': { '@_val': 'accent1' } },
+};
 
-	const hasAnyEffect =
-		outerShadowXml || innerShadowXml || glowXml || softEdgeXml || reflectionXml || blurXml;
+/** Build the effect XML the runtime would (via `PptxShapeEffectXmlBuilder`) and write it onto `spPr`. */
+function writeEffects(spPr: XmlObject, style: ShapeStyle): XmlObject {
+	const presetShadowXml = style.presetShadowName
+		? effectBuilder.buildPresetShadowXml(style)
+		: undefined;
+	writeShapeEffects(spPr, style, {
+		outerShadowXml: presetShadowXml ? undefined : effectBuilder.buildOuterShadowXml(style),
+		presetShadowXml,
+		innerShadowXml: effectBuilder.buildInnerShadowXml(style),
+		glowXml: effectBuilder.buildGlowXml(style),
+		softEdgeXml: effectBuilder.buildSoftEdgeXml(style),
+		reflectionXml: effectBuilder.buildReflectionXml(style),
+		blurXml: effectBuilder.buildBlurXml(style),
+	});
+	return spPr;
+}
 
-	if (hasAnyEffect) {
-		const effectList = (spPr['a:effectLst'] || {}) as XmlObject;
-		if (outerShadowXml) {
-			effectList['a:outerShdw'] = outerShadowXml;
-		}
-		if (innerShadowXml) {
-			effectList['a:innerShdw'] = innerShadowXml;
-		}
-		if (glowXml) {
-			effectList['a:glow'] = glowXml;
-		}
-		if (softEdgeXml) {
-			effectList['a:softEdge'] = softEdgeXml;
-		}
-		if (reflectionXml) {
-			effectList['a:reflection'] = reflectionXml;
-		}
-		if (blurXml) {
-			effectList['a:blur'] = blurXml;
-		}
-		spPr['a:effectLst'] = effectList;
-	} else {
-		const effectList = spPr['a:effectLst'] as XmlObject | undefined;
-		if (effectList) {
-			if (shapeStyle.shadowColor !== undefined && !outerShadowXml) {
-				delete effectList['a:outerShdw'];
-			}
-			if (shapeStyle.innerShadowColor !== undefined && !innerShadowXml) {
-				delete effectList['a:innerShdw'];
-			}
-			if (shapeStyle.glowColor !== undefined && !glowXml) {
-				delete effectList['a:glow'];
-			}
-			if (shapeStyle.softEdgeRadius !== undefined && !softEdgeXml) {
-				delete effectList['a:softEdge'];
-			}
-			if (shapeStyle.reflectionBlurRadius !== undefined && !reflectionXml) {
-				delete effectList['a:reflection'];
-			}
-			if (shapeStyle.blurRadius !== undefined && !blurXml) {
-				delete effectList['a:blur'];
-			}
-			if (Object.keys(effectList).length === 0) {
-				delete spPr['a:effectLst'];
-			}
-		}
-	}
-
-	// effectDag
-	if (shapeStyle.effectDagXml) {
-		spPr['a:effectDag'] = shapeStyle.effectDagXml;
-	}
-
-	// 3D Scene — delegates to the real save helpers exercised by this suite.
-	if (shapeStyle.scene3d) {
-		const s3d = shapeStyle.scene3d;
-		const hasData = s3d.cameraPreset || s3d.lightRigType;
-		if (hasData) {
-			const source = (spPr['a:scene3d'] as XmlObject | undefined) ?? {};
-			const scene3dXml: XmlObject = { ...source };
-			scene3dXml['a:camera'] = buildScene3dCamera(s3d, source);
-			const lightRig = buildScene3dLightRig(s3d, source);
-			if (lightRig) {
-				scene3dXml['a:lightRig'] = lightRig;
-			}
-			const backdrop = buildScene3dBackdrop(s3d);
-			if (backdrop) {
-				scene3dXml['a:backdrop'] = backdrop;
-			} else {
-				delete scene3dXml['a:backdrop'];
-			}
-			spPr['a:scene3d'] = scene3dXml;
-		} else {
-			delete spPr['a:scene3d'];
-		}
-	} else if (shapeStyle.scene3d === undefined) {
-		delete spPr['a:scene3d'];
-	}
-
-	// 3D Shape
-	if (shapeStyle.shape3d) {
-		const sh3d = shapeStyle.shape3d;
-		const hasData =
-			sh3d.extrusionHeight !== undefined ||
-			sh3d.contourWidth !== undefined ||
-			sh3d.presetMaterial ||
-			sh3d.bevelTopType ||
-			sh3d.bevelBottomType ||
-			sh3d.extrusionColor ||
-			sh3d.contourColor;
-		if (hasData) {
-			const sp3dXml: XmlObject = {};
-			if (sh3d.extrusionHeight !== undefined) {
-				sp3dXml['@_extrusionH'] = sh3d.extrusionHeight;
-			}
-			if (sh3d.contourWidth !== undefined) {
-				sp3dXml['@_contourW'] = sh3d.contourWidth;
-			}
-			if (sh3d.presetMaterial) {
-				sp3dXml['@_prstMaterial'] = sh3d.presetMaterial;
-			}
-			if (sh3d.bevelTopType) {
-				const bevelT: XmlObject = { '@_prst': sh3d.bevelTopType };
-				if (sh3d.bevelTopWidth !== undefined) {
-					bevelT['@_w'] = sh3d.bevelTopWidth;
-				}
-				if (sh3d.bevelTopHeight !== undefined) {
-					bevelT['@_h'] = sh3d.bevelTopHeight;
-				}
-				sp3dXml['a:bevelT'] = bevelT;
-			}
-			if (sh3d.bevelBottomType) {
-				const bevelB: XmlObject = { '@_prst': sh3d.bevelBottomType };
-				if (sh3d.bevelBottomWidth !== undefined) {
-					bevelB['@_w'] = sh3d.bevelBottomWidth;
-				}
-				if (sh3d.bevelBottomHeight !== undefined) {
-					bevelB['@_h'] = sh3d.bevelBottomHeight;
-				}
-				sp3dXml['a:bevelB'] = bevelB;
-			}
-			if (sh3d.extrusionColor) {
-				sp3dXml['a:extrusionClr'] = {
-					'a:srgbClr': { '@_val': sh3d.extrusionColor.replace('#', '') },
-				};
-			}
-			if (sh3d.contourColor) {
-				sp3dXml['a:contourClr'] = {
-					'a:srgbClr': { '@_val': sh3d.contourColor.replace('#', '') },
-				};
-			}
-			spPr['a:sp3d'] = sp3dXml;
-		} else {
-			delete spPr['a:sp3d'];
-		}
-	} else if (shapeStyle.shape3d === undefined) {
-		delete spPr['a:sp3d'];
-	}
+/** Load `spPr` + `p:style`, then save the (optionally edited) effects back onto it. */
+function roundTrip(spPr: XmlObject, edit: (style: ShapeStyle) => void = () => {}): XmlObject {
+	const style = createExtractor().extractShapeStyle(spPr, STYLE_NODE);
+	edit(style);
+	return writeEffects(spPr, style);
 }
 
 // ---------------------------------------------------------------------------
-// Tests: effect list assembly
+// The inheritance-flattening regression: a shape painted only by
+// `<a:effectRef>` must not gain a literal `spPr/a:effectLst`.
 // ---------------------------------------------------------------------------
-describe('applyEffectsAndThreeD – effect list assembly', () => {
+describe('effect style-matrix references survive a save', () => {
+	it('leaves spPr effect-less when a:effectRef alone paints the shape', () => {
+		const style = createExtractor().extractShapeStyle(
+			{ 'a:prstGeom': { '@_prst': 'rect' } },
+			STYLE_NODE,
+		);
+		// Sanity: the theme really did resolve a shadow into the flat style -
+		// the renderer needs this even though it must not be saved back.
+		expect(style.shadowColor).toBe(THEME_SHADOW_COLOR);
+		expect(style.inheritedEffectStyle).toBeDefined();
+
+		const spPr = writeEffects({ 'a:prstGeom': { '@_prst': 'rect' } }, style);
+		expect(spPr['a:effectLst']).toBeUndefined();
+		expect(spPr['a:scene3d']).toBeUndefined();
+		expect(spPr['a:sp3d']).toBeUndefined();
+	});
+
+	it('still writes the effectRef idx itself (unaffected by the effectLst gate)', () => {
+		const style = createExtractor().extractShapeStyle(
+			{ 'a:prstGeom': { '@_prst': 'rect' } },
+			STYLE_NODE,
+		);
+		expect(style.effectRefIdx).toBe(2);
+	});
+
+	it('writes a literal effectLst once the inherited shadow is edited', () => {
+		const spPr = roundTrip({ 'a:prstGeom': { '@_prst': 'rect' } }, (style) => {
+			style.shadowColor = '#FF00FF';
+		});
+		const effectLst = spPr['a:effectLst'] as XmlObject;
+		expect(effectLst).toBeDefined();
+		const outer = effectLst['a:outerShdw'] as XmlObject;
+		expect((outer['a:srgbClr'] as XmlObject)['@_val']).toBe('FF00FF');
+	});
+
+	it('bakes the full resolved effect set once a NEW effect is added on top', () => {
+		// Adding a glow the theme never granted is a real edit: PowerPoint
+		// itself bakes the whole effectLst (including the inherited shadow) the
+		// moment any part of it is touched, because `a:effectLst` is a single
+		// element, not independently-overridable attributes.
+		const spPr = roundTrip({ 'a:prstGeom': { '@_prst': 'rect' } }, (style) => {
+			style.glowColor = '#00FF00';
+			style.glowRadius = 5;
+			style.glowOpacity = 1;
+		});
+		const effectLst = spPr['a:effectLst'] as XmlObject;
+		expect(effectLst['a:glow']).toBeDefined();
+		expect(effectLst['a:outerShdw']).toBeDefined();
+	});
+
+	it('writes an explicit "no effects" when every inherited effect is cleared', () => {
+		const spPr = roundTrip({ 'a:prstGeom': { '@_prst': 'rect' } }, (style) => {
+			style.shadowColor = undefined;
+		});
+		expect(spPr['a:effectLst']).toBeUndefined();
+	});
+
+	it('still writes the effects of a shape that authored its own (no baseline recorded)', () => {
+		// No `<p:style>` at all: the extractor never consults `a:effectRef`, so
+		// no baseline is recorded and the writer behaves exactly as before.
+		const style = createExtractor().extractShapeStyle({});
+		style.shadowColor = '#123456';
+		style.shadowBlur = 8;
+		const spPr = writeEffects({}, style);
+		const effectLst = spPr['a:effectLst'] as XmlObject;
+		expect((effectLst['a:outerShdw'] as XmlObject)['a:srgbClr']).toBeDefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// The empty-effectLst guard (PptxShapeStyleExtractor) must still work
+// alongside the new gate: an authored `<a:effectLst/>` means "no effects",
+// not "theme, please decide" and not "bake the theme shadow in".
+// ---------------------------------------------------------------------------
+describe('authored empty effectLst ("no effects") survives the new gate', () => {
+	it('does not resolve the theme shadow onto the flat style', () => {
+		const style = createExtractor().extractShapeStyle({ 'a:effectLst': {} }, STYLE_NODE);
+		expect(style.shadowColor).toBeUndefined();
+		// Nothing was inherited (it was explicitly suppressed), so there is no
+		// style-matrix baseline to compare future edits against.
+		expect(style.inheritedEffectStyle).toBeUndefined();
+		// The reference itself still round-trips.
+		expect(style.effectRefIdx).toBe(2);
+	});
+
+	it('round-trips back to no effectLst at all', () => {
+		const spPr = roundTrip({ 'a:effectLst': {} });
+		expect(spPr['a:effectLst']).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tests: effect list assembly (unchanged behaviour for shapes with no
+// style-matrix baseline - i.e. every shape built by the SDK or authoring its
+// own effects directly).
+// ---------------------------------------------------------------------------
+describe('writeShapeEffects - effect list assembly', () => {
 	it('should create effectLst with outer shadow', () => {
 		const spPr: XmlObject = {};
 		const shadow: XmlObject = { '@_blurRad': '38100' };
-		applyEffectsAndThreeD(spPr, {}, { outerShadow: shadow });
+		writeShapeEffects(spPr, {}, { outerShadowXml: shadow });
 		const effectLst = spPr['a:effectLst'] as XmlObject;
 		expect(effectLst['a:outerShdw']).toBe(shadow);
 	});
@@ -279,7 +228,7 @@ describe('applyEffectsAndThreeD – effect list assembly', () => {
 		const shadow: XmlObject = { '@_blurRad': '38100' };
 		const glow: XmlObject = { '@_rad': '50800' };
 		const blur: XmlObject = { '@_rad': '25400' };
-		applyEffectsAndThreeD(spPr, {}, { outerShadow: shadow, glow, blur });
+		writeShapeEffects(spPr, {}, { outerShadowXml: shadow, glowXml: glow, blurXml: blur });
 		const effectLst = spPr['a:effectLst'] as XmlObject;
 		expect(effectLst['a:outerShdw']).toBe(shadow);
 		expect(effectLst['a:glow']).toBe(glow);
@@ -290,7 +239,7 @@ describe('applyEffectsAndThreeD – effect list assembly', () => {
 		const existing: XmlObject = { 'a:outerShdw': { '@_blurRad': '10000' } };
 		const spPr: XmlObject = { 'a:effectLst': existing };
 		const glow: XmlObject = { '@_rad': '50800' };
-		applyEffectsAndThreeD(spPr, {}, { glow });
+		writeShapeEffects(spPr, {}, { glowXml: glow });
 		const effectLst = spPr['a:effectLst'] as XmlObject;
 		// Existing outer shadow stays, glow is added
 		expect(effectLst['a:outerShdw']).toStrictEqual({ '@_blurRad': '10000' });
@@ -304,7 +253,7 @@ describe('applyEffectsAndThreeD – effect list assembly', () => {
 				'a:glow': { '@_rad': '1000' },
 			},
 		};
-		applyEffectsAndThreeD(spPr, { shadowColor: '#000000' });
+		writeShapeEffects(spPr, { shadowColor: '#000000' }, {});
 		const effectLst = spPr['a:effectLst'] as XmlObject;
 		expect(effectLst['a:outerShdw']).toBeUndefined();
 		expect(effectLst['a:glow']).toBeDefined();
@@ -317,7 +266,7 @@ describe('applyEffectsAndThreeD – effect list assembly', () => {
 				'a:glow': { '@_rad': '5000' },
 			},
 		};
-		applyEffectsAndThreeD(spPr, { innerShadowColor: '#FF0000' });
+		writeShapeEffects(spPr, { innerShadowColor: '#FF0000' }, {});
 		const effectLst = spPr['a:effectLst'] as XmlObject;
 		expect(effectLst['a:innerShdw']).toBeUndefined();
 		expect(effectLst['a:glow']).toBeDefined();
@@ -327,14 +276,14 @@ describe('applyEffectsAndThreeD – effect list assembly', () => {
 		const spPr: XmlObject = {
 			'a:effectLst': { 'a:outerShdw': {} },
 		};
-		applyEffectsAndThreeD(spPr, { shadowColor: '#000' });
+		writeShapeEffects(spPr, { shadowColor: '#000' }, {});
 		expect(spPr['a:effectLst']).toBeUndefined();
 	});
 
 	it('should set effectDag from shapeStyle', () => {
 		const spPr: XmlObject = {};
 		const dag: XmlObject = { 'a:grayscl': {} };
-		applyEffectsAndThreeD(spPr, { effectDagXml: dag });
+		writeShapeEffects(spPr, { effectDagXml: dag }, {});
 		expect(spPr['a:effectDag']).toBe(dag);
 	});
 });
@@ -342,16 +291,20 @@ describe('applyEffectsAndThreeD – effect list assembly', () => {
 // ---------------------------------------------------------------------------
 // Tests: 3D Scene serialization
 // ---------------------------------------------------------------------------
-describe('applyEffectsAndThreeD – 3D Scene', () => {
+describe('writeShapeEffects - 3D Scene', () => {
 	it('should write scene3d with camera preset and light rig', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			scene3d: {
-				cameraPreset: 'orthographicFront',
-				lightRigType: 'threePt',
-				lightRigDirection: 't',
+		writeShapeEffects(
+			spPr,
+			{
+				scene3d: {
+					cameraPreset: 'orthographicFront',
+					lightRigType: 'threePt',
+					lightRigDirection: 't',
+				},
 			},
-		});
+			{},
+		);
 		const scene = spPr['a:scene3d'] as XmlObject;
 		expect(scene).toBeDefined();
 		expect((scene['a:camera'] as XmlObject)['@_prst']).toBe('orthographicFront');
@@ -362,14 +315,18 @@ describe('applyEffectsAndThreeD – 3D Scene', () => {
 
 	it('should include camera rotation when set', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			scene3d: {
-				cameraPreset: 'perspectiveFront',
-				cameraRotX: 1000000,
-				cameraRotY: 2000000,
-				cameraRotZ: 3000000,
+		writeShapeEffects(
+			spPr,
+			{
+				scene3d: {
+					cameraPreset: 'perspectiveFront',
+					cameraRotX: 1000000,
+					cameraRotY: 2000000,
+					cameraRotZ: 3000000,
+				},
 			},
-		});
+			{},
+		);
 		const camera = (spPr['a:scene3d'] as XmlObject)['a:camera'] as XmlObject;
 		const rot = camera['a:rot'] as XmlObject;
 		expect(rot['@_lat']).toBe('1000000');
@@ -379,21 +336,25 @@ describe('applyEffectsAndThreeD – 3D Scene', () => {
 
 	it('should emit a valid backdrop (anchor + norm + up) when vectors are present', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			scene3d: {
-				cameraPreset: 'orthographicFront',
-				hasBackdrop: true,
-				backdropAnchorX: 100,
-				backdropAnchorY: 200,
-				backdropAnchorZ: 300,
-				backdropNormalX: 0,
-				backdropNormalY: 0,
-				backdropNormalZ: 1,
-				backdropUpX: 0,
-				backdropUpY: 1,
-				backdropUpZ: 0,
+		writeShapeEffects(
+			spPr,
+			{
+				scene3d: {
+					cameraPreset: 'orthographicFront',
+					hasBackdrop: true,
+					backdropAnchorX: 100,
+					backdropAnchorY: 200,
+					backdropAnchorZ: 300,
+					backdropNormalX: 0,
+					backdropNormalY: 0,
+					backdropNormalZ: 1,
+					backdropUpX: 0,
+					backdropUpY: 1,
+					backdropUpZ: 0,
+				},
 			},
-		});
+			{},
+		);
 		const scene = spPr['a:scene3d'] as XmlObject;
 		const backdrop = scene['a:backdrop'] as XmlObject;
 		expect(backdrop).toBeDefined();
@@ -406,28 +367,32 @@ describe('applyEffectsAndThreeD – 3D Scene', () => {
 
 	it('should omit a partial backdrop missing norm/up (schema-invalid)', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			scene3d: {
-				cameraPreset: 'orthographicFront',
-				hasBackdrop: true,
-				backdropAnchorX: 100,
-				backdropAnchorY: 200,
-				backdropAnchorZ: 300,
+		writeShapeEffects(
+			spPr,
+			{
+				scene3d: {
+					cameraPreset: 'orthographicFront',
+					hasBackdrop: true,
+					backdropAnchorX: 100,
+					backdropAnchorY: 200,
+					backdropAnchorZ: 300,
+				},
 			},
-		});
+			{},
+		);
 		const scene = spPr['a:scene3d'] as XmlObject;
 		expect(scene['a:backdrop']).toBeUndefined();
 	});
 
 	it('should delete scene3d when scene3d has no data', () => {
 		const spPr: XmlObject = { 'a:scene3d': { 'a:camera': {} } };
-		applyEffectsAndThreeD(spPr, { scene3d: {} });
+		writeShapeEffects(spPr, { scene3d: {} }, {});
 		expect(spPr['a:scene3d']).toBeUndefined();
 	});
 
 	it('should delete scene3d when scene3d is undefined on shapeStyle', () => {
 		const spPr: XmlObject = { 'a:scene3d': { 'a:camera': {} } };
-		applyEffectsAndThreeD(spPr, {});
+		writeShapeEffects(spPr, {}, {});
 		expect(spPr['a:scene3d']).toBeUndefined();
 	});
 });
@@ -435,50 +400,62 @@ describe('applyEffectsAndThreeD – 3D Scene', () => {
 // ---------------------------------------------------------------------------
 // Tests: 3D Shape serialization
 // ---------------------------------------------------------------------------
-describe('applyEffectsAndThreeD – 3D Shape', () => {
+describe('writeShapeEffects - 3D Shape', () => {
 	it('should write sp3d with extrusion height and material', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			shape3d: {
-				extrusionHeight: 76200,
-				presetMaterial: 'metal',
+		writeShapeEffects(
+			spPr,
+			{
+				shape3d: {
+					extrusionHeight: 76200,
+					presetMaterial: 'metal',
+				},
 			},
-		});
+			{},
+		);
 		const sp3d = spPr['a:sp3d'] as XmlObject;
-		expect(sp3d['@_extrusionH']).toBe(76200);
+		expect(sp3d['@_extrusionH']).toBe('76200');
 		expect(sp3d['@_prstMaterial']).toBe('metal');
 	});
 
 	it('should write top and bottom bevels', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			shape3d: {
-				bevelTopType: 'circle',
-				bevelTopWidth: 12700,
-				bevelTopHeight: 25400,
-				bevelBottomType: 'relaxedInset',
-				bevelBottomWidth: 6350,
-				bevelBottomHeight: 6350,
+		writeShapeEffects(
+			spPr,
+			{
+				shape3d: {
+					bevelTopType: 'circle',
+					bevelTopWidth: 12700,
+					bevelTopHeight: 25400,
+					bevelBottomType: 'relaxedInset',
+					bevelBottomWidth: 6350,
+					bevelBottomHeight: 6350,
+				},
 			},
-		});
+			{},
+		);
 		const sp3d = spPr['a:sp3d'] as XmlObject;
 		const bevelT = sp3d['a:bevelT'] as XmlObject;
 		expect(bevelT['@_prst']).toBe('circle');
-		expect(bevelT['@_w']).toBe(12700);
-		expect(bevelT['@_h']).toBe(25400);
+		expect(bevelT['@_w']).toBe('12700');
+		expect(bevelT['@_h']).toBe('25400');
 		const bevelB = sp3d['a:bevelB'] as XmlObject;
 		expect(bevelB['@_prst']).toBe('relaxedInset');
 	});
 
 	it('should write contour and extrusion colours', () => {
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, {
-			shape3d: {
-				extrusionColor: '4F81BD',
-				contourColor: 'FF0000',
-				contourWidth: 12700,
+		writeShapeEffects(
+			spPr,
+			{
+				shape3d: {
+					extrusionColor: '4F81BD',
+					contourColor: 'FF0000',
+					contourWidth: 12700,
+				},
 			},
-		});
+			{},
+		);
 		const sp3d = spPr['a:sp3d'] as XmlObject;
 		expect(sp3d['a:extrusionClr']).toStrictEqual({
 			'a:srgbClr': { '@_val': '4F81BD' },
@@ -486,18 +463,18 @@ describe('applyEffectsAndThreeD – 3D Shape', () => {
 		expect(sp3d['a:contourClr']).toStrictEqual({
 			'a:srgbClr': { '@_val': 'FF0000' },
 		});
-		expect(sp3d['@_contourW']).toBe(12700);
+		expect(sp3d['@_contourW']).toBe('12700');
 	});
 
 	it('should delete sp3d when shape3d has no data', () => {
 		const spPr: XmlObject = { 'a:sp3d': { '@_extrusionH': '0' } };
-		applyEffectsAndThreeD(spPr, { shape3d: {} });
+		writeShapeEffects(spPr, { shape3d: {} }, {});
 		expect(spPr['a:sp3d']).toBeUndefined();
 	});
 
 	it('should delete sp3d when shape3d is undefined on shapeStyle', () => {
 		const spPr: XmlObject = { 'a:sp3d': {} };
-		applyEffectsAndThreeD(spPr, {});
+		writeShapeEffects(spPr, {}, {});
 		expect(spPr['a:sp3d']).toBeUndefined();
 	});
 });
@@ -506,12 +483,6 @@ describe('applyEffectsAndThreeD – 3D Shape', () => {
 // Regression: sp3d extrusion colour + scene3d fov/zoom round-trip (issues 67/86)
 // ---------------------------------------------------------------------------
 describe('3D round-trip: parse -> save', () => {
-	// Mirrors the real parse-side colour resolution: srgbClr val -> "#RRGGBB".
-	const parseColor = (node: XmlObject | undefined): string | undefined => {
-		const srgb = node?.['a:srgbClr'] as XmlObject | undefined;
-		return srgb ? `#${srgb['@_val']}` : undefined;
-	};
-
 	it('writes a valid #-free srgbClr val for extrusion/contour colour', () => {
 		const source: XmlObject = {
 			'a:sp3d': {
@@ -526,7 +497,7 @@ describe('3D round-trip: parse -> save', () => {
 		expect(style.shape3d?.extrusionColor).toBe('#4F81BD');
 
 		const spPr: XmlObject = {};
-		applyEffectsAndThreeD(spPr, style);
+		writeShapeEffects(spPr, style, {});
 		const sp3d = spPr['a:sp3d'] as XmlObject;
 		const extVal = (sp3d['a:extrusionClr'] as XmlObject)['a:srgbClr'] as XmlObject;
 		const conVal = (sp3d['a:contourClr'] as XmlObject)['a:srgbClr'] as XmlObject;
@@ -559,7 +530,7 @@ describe('3D round-trip: parse -> save', () => {
 		expect(style.scene3d?.lightRigRotX).toBe(10);
 
 		const spPr: XmlObject = { 'a:scene3d': source['a:scene3d'] };
-		applyEffectsAndThreeD(spPr, style);
+		writeShapeEffects(spPr, style, {});
 		const scene = spPr['a:scene3d'] as XmlObject;
 		const camera = scene['a:camera'] as XmlObject;
 		expect(camera['@_fov']).toBe('600000');
@@ -587,7 +558,7 @@ describe('3D round-trip: parse -> save', () => {
 		expect(style.scene3d?.backdropUpY).toBe(1);
 
 		const spPr: XmlObject = { 'a:scene3d': source['a:scene3d'] };
-		applyEffectsAndThreeD(spPr, style);
+		writeShapeEffects(spPr, style, {});
 		const backdrop = (spPr['a:scene3d'] as XmlObject)['a:backdrop'] as XmlObject;
 		expect(backdrop['a:anchor']).toBeDefined();
 		expect(backdrop['a:norm']).toStrictEqual({ '@_dx': '0', '@_dy': '0', '@_dz': '1' });
