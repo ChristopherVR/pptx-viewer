@@ -85,6 +85,8 @@ export interface InspectorHandlers {
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 
 	setGeometry(patch: GeometryPatch): void;
+	/** Flip the selected element's lock (see elementLockTogglePatch). */
+	toggleElementLock(): void;
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
@@ -154,6 +156,7 @@ export interface InspectorHandlers {
 /** Selection-derived state the inspector reflects, computed by `buildInspectorState`. */
 export interface InspectorState {
 	hasSelection: boolean;
+	isLocked: boolean;
 	canShape: boolean;
 	canText: boolean;
 	isImage: boolean;

@@ -30,9 +30,11 @@ import {
 	applyStyleToSelectedSegments,
 	applyUniformCellPaddingPatch,
 	autoFitModePatch,
+	elementLockTogglePatch,
 	gradientStatePatch,
 	imageAdjustmentsPatch,
 	imageCropPatch,
+	isElementLocked,
 	reflowSmartArtData,
 	removeGradientStopPatch,
 	tableInspectorPatch,
@@ -65,6 +67,8 @@ import type { TableCellPosition, TableStructureAction } from './table-editor-mut
  * The corresponding panels live under `ui/inspector/`.
  */
 export interface InspectorActions {
+	/** Flip the selected element's lock (writes noMove/noResize; see elementLockTogglePatch). */
+	toggleElementLock(): void;
 	setTextVerticalAlign(vAlign: NonNullable<TextStyle['vAlign']>): void;
 	setTextWrap(wrap: NonNullable<TextStyle['textWrap']>): void;
 	setAutoFitMode(mode: NonNullable<TextStyle['autoFitMode']>): void;
@@ -122,6 +126,10 @@ const CROP_KEY = {
 
 export function createInspectorActions(applyToSelected: ApplyToSelected): InspectorActions {
 	return {
+		// Shared decides both what reads as "locked" and what the toggle writes,
+		// so the button's state can never drift from what the canvas enforces.
+		toggleElementLock: () =>
+			applyToSelected((el) => ({ locks: elementLockTogglePatch(!isElementLocked(el)) })),
 		setTextVerticalAlign: (vAlign) => applyToSelected((el) => vAlignPatch(el, vAlign)),
 		setTextWrap: (wrap) => applyToSelected((el) => textWrapPatch(el, wrap)),
 		setAutoFitMode: (mode) => applyToSelected((el) => autoFitModePatch(el, mode)),

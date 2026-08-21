@@ -118,6 +118,8 @@ export type IconName =
 	| 'pin'
 	| 'pin-off'
 	| 'bug'
+	| 'lock'
+	| 'lock-open'
 	// Presenter console strip (see render/presenter-chrome in the shared package).
 	| 'circle-pause'
 	| 'circle-play'
@@ -387,6 +389,8 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	captions: ['M3 5h18v14H3z', 'M7 12h3', 'M14 12h3'],
 	'monitor-off': ['M3 5h13', 'M21 5v9', 'M3 5v9h11', 'M8 21h8', 'M12 17v4', 'M3 3l18 18'],
 	'arrow-left-right': ['M8 3L4 7l4 4', 'M4 7h16', 'M16 13l4 4-4 4', 'M20 17H4'],
+	lock: ['M3 11h18v11H3z', 'M7 11V7a5 5 0 0 1 10 0v4'],
+	'lock-open': ['M3 11h18v11H3z', 'M7 11V7a5 5 0 0 1 9.9-1'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

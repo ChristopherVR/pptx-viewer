@@ -241,6 +241,7 @@ export function buildChromeCallbacks(
 		reorderAnimation: (elementId, direction) =>
 			deps.getEditActions().reorderAnimation(elementId, direction),
 		setGeometry: (patch) => deps.getEditActions().setGeometry(patch),
+		toggleElementLock: () => deps.getEditActions().toggleElementLock(),
 		setShapeFill: (color) => deps.getEditActions().setShapeFill(color),
 		setShapeStroke: (color) => deps.getEditActions().setShapeStroke(color),
 		setShapeStrokeWidth: (width) => deps.getEditActions().setShapeStrokeWidth(width),

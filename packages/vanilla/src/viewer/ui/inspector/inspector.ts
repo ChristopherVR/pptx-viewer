@@ -102,7 +102,13 @@ export function createInspector(
 		return wrap;
 	};
 
-	const position = createPositionSection(doc, t, section, handlers.setGeometry);
+	const position = createPositionSection(
+		doc,
+		t,
+		section,
+		handlers.setGeometry,
+		handlers.toggleElementLock,
+	);
 	const fill = createFillSection(doc, t, section, handlers);
 	const quickStyles = createQuickStylesGallery(doc, t, section, handlers);
 	const text = createTextSection(doc, t, section, handlers);

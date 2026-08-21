@@ -14,6 +14,7 @@ import {
 	hasGradientFill,
 	imageAdjustmentsStateOf,
 	imageCropStateOf,
+	isElementLocked,
 	tableInspectorStateOf,
 	textAdvancedStateOf,
 	textWrapOf,
@@ -83,6 +84,7 @@ export function buildInspectorState(
 
 	return {
 		hasSelection: el !== undefined,
+		isLocked: isElementLocked(el),
 		canShape: canFormatShape(el),
 		canText: canFormatText(el),
 		isImage: el !== undefined && isImageLikeElement(el),

@@ -2,7 +2,8 @@ import type { GeometryPatch } from '../../editor/editor-edit-ops';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { NumberFieldHandle } from '../controls';
-import { makeNumberField } from '../controls';
+import { makeButton, makeNumberField } from '../controls';
+import { createIcon } from '../icons';
 import type { InspectorState } from './types';
 
 export interface PositionSection {
@@ -16,8 +17,30 @@ export function createPositionSection(
 	t: Translator,
 	section: (label: string) => HTMLElement,
 	setGeometry: (patch: GeometryPatch) => void,
+	toggleElementLock: () => void,
 ): PositionSection {
 	const el = section(t('pptx.arrange.positionSize'));
+
+	// Move the section's own caption into a header row alongside the lock
+	// toggle, matching React's ElementInspectorBody / Vue's ArrangePanel.
+	const caption = el.querySelector<HTMLElement>('.pptxv-inspector-section-title');
+	const headerRow = createEl(doc, 'div', 'pptxv-inspector-lock-row');
+	if (caption) {
+		el.insertBefore(headerRow, caption);
+		headerRow.appendChild(caption);
+	} else {
+		el.insertBefore(headerRow, el.firstChild);
+	}
+	// Shared decides both what reads as "locked" and what the toggle writes, so
+	// the button's state can never drift from what the canvas enforces.
+	const lockBtn = makeButton(doc, {
+		label: t('pptx.inspector.lock'),
+		icon: 'lock-open',
+		className: 'pptxv-inspector-lock-btn',
+		onClick: toggleElementLock,
+	});
+	headerRow.appendChild(lockBtn.btn);
+
 	const grid = createEl(doc, 'div', 'pptxv-inspector-grid');
 	el.appendChild(grid);
 
@@ -49,6 +72,12 @@ export function createPositionSection(
 			for (const f of fields) {
 				f.setDisabled(!state.hasSelection);
 			}
+			lockBtn.setActive(state.isLocked);
+			lockBtn.setDisabled(!state.hasSelection);
+			const label = t(state.isLocked ? 'pptx.inspector.unlock' : 'pptx.inspector.lock');
+			lockBtn.btn.title = label;
+			lockBtn.btn.setAttribute('aria-label', label);
+			lockBtn.btn.replaceChildren(createIcon(doc, state.isLocked ? 'lock' : 'lock-open'));
 		},
 	};
 }

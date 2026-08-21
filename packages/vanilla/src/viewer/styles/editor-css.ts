@@ -255,6 +255,13 @@ export const EDITOR_CSS = `
 	letter-spacing: 0.04em;
 	color: var(--pptx-muted-foreground);
 }
+.pptxv-inspector-lock-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.pptxv-inspector-lock-row .pptxv-inspector-section-title { margin: 0; }
+.pptxv-inspector-lock-btn.is-active { color: #f59e0b; }
 .pptxv-inspector-grid {
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);

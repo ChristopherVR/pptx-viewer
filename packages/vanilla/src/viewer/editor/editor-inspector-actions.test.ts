@@ -420,3 +420,29 @@ describe('createInspectorActions smartArt reflow', () => {
 		expect(shapes[0]?.text).toBe('Uno');
 	});
 });
+
+describe('createInspectorActions toggleElementLock', () => {
+	it('locks an unlocked element, writing noMove/noResize (not noSelect)', () => {
+		const { store, actions } = buildActions(textElement());
+		actions.toggleElementLock();
+		expect((selectedEl(store) as { locks?: unknown }).locks).toStrictEqual({
+			noMove: true,
+			noResize: true,
+		});
+	});
+
+	it('unlocks an already-locked element', () => {
+		const el = { ...textElement(), locks: { noMove: true, noResize: true } };
+		const { store, actions } = buildActions(el);
+		actions.toggleElementLock();
+		expect((selectedEl(store) as { locks?: unknown }).locks).toBeUndefined();
+	});
+
+	it('is undoable', () => {
+		const { store, ops, actions } = buildActions(textElement());
+		actions.toggleElementLock();
+		expect((selectedEl(store) as { locks?: unknown }).locks).toBeTruthy();
+		ops.undo();
+		expect((selectedEl(store) as { locks?: unknown }).locks).toBeUndefined();
+	});
+});
