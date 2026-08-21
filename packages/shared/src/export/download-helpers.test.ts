@@ -134,6 +134,17 @@ describe('downloadBlob / downloadDataUrl', () => {
 		vi.advanceTimersByTime(200);
 		expect(anchor.remove).toHaveBeenCalledOnce();
 	});
+
+	it('downloadBlob sanitizes a hostile filename before setting download', () => {
+		const blob = { size: 1 } as Blob;
+		downloadBlob(blob, '../../etc/passwd\r\n.pptx');
+		expect(anchor.download).toBe('______etc_passwd__.pptx');
+	});
+
+	it('downloadDataUrl sanitizes a hostile filename before setting download', () => {
+		downloadDataUrl('data:image/png;base64,AAAA', 'con"*?.png');
+		expect(anchor.download).toBe('con___.png');
+	});
 });
 
 describe('dataUrlToBlob', () => {

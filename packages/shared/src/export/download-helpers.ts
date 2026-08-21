@@ -2,9 +2,9 @@
  * Browser download helpers shared by every binding's export pipeline. These are
  * the only DOM-touching helpers in the shared export subtree: they create a
  * transient `<a download>`, click it, and revoke the object URL after a short
- * delay. The richer `sanitizeDownloadFilename` guard (null/traversal/length)
- * also lives here so any binding can sanitize before handing a name to
- * {@link downloadBlob}.
+ * delay. {@link downloadBlob} and {@link downloadDataUrl} run every filename
+ * through the `sanitizeDownloadFilename` guard (null/traversal/length)
+ * themselves, so no binding can accidentally skip it.
  *
  * The standard revoke delay is 200ms: long enough for the browser to begin the
  * download, short enough not to leak the object URL.
@@ -98,17 +98,21 @@ export function resolveExportBaseName(
 }
 
 /**
- * Trigger a browser download for a Blob. The `filename` is used verbatim: pass a
- * name through {@link sanitizeDownloadFilename} first if it may be hostile.
+ * Trigger a browser download for a Blob. `filename` is run through
+ * {@link sanitizeDownloadFilename} before being applied, so every binding gets
+ * a safe `Content-Disposition`/on-disk name regardless of whether it sanitized
+ * the name itself: a source deck's own (attacker-controllable) file name can
+ * reach this call unsanitized via `resolveExportBaseName`, so this is the one
+ * place the guard cannot be skipped.
  *
  * @param blob     - The content to download.
- * @param filename - The suggested download name.
+ * @param filename - The suggested download name (sanitized before use).
  */
 export function downloadBlob(blob: Blob, filename: string): void {
 	const url = URL.createObjectURL(blob),
 		anchor = document.createElement('a');
 	anchor.href = url;
-	anchor.download = filename;
+	anchor.download = sanitizeDownloadFilename(filename);
 	document.body.appendChild(anchor);
 	anchor.click();
 	// Defer cleanup so the browser has time to start the download.
@@ -119,16 +123,16 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Trigger a browser download for a data-URL string. The `filename` is used
- * verbatim: sanitize first if it may be hostile.
+ * Trigger a browser download for a data-URL string. `filename` is run through
+ * {@link sanitizeDownloadFilename} before being applied; see {@link downloadBlob}.
  *
  * @param dataUrl  - The `data:` (or object) URL to download.
- * @param filename - The suggested download name.
+ * @param filename - The suggested download name (sanitized before use).
  */
 export function downloadDataUrl(dataUrl: string, filename: string): void {
 	const anchor = document.createElement('a');
 	anchor.href = dataUrl;
-	anchor.download = filename;
+	anchor.download = sanitizeDownloadFilename(filename);
 	document.body.appendChild(anchor);
 	anchor.click();
 	setTimeout(() => {
