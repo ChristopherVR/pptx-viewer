@@ -2,6 +2,7 @@ import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import {
 	captureStyleBaseline,
+	STYLE_MATRIX_EFFECT_KEYS,
 	STYLE_MATRIX_FILL_KEYS,
 	STYLE_MATRIX_LINE_KEYS,
 } from '../runtime/authored-shape-style';
@@ -212,14 +213,27 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			// `<a:effectRef>` still round-trips. Only keys this call ADDED are
 			// removed, so nothing authored can be caught by it.
 			const suppressInherited = hasEmptyDrawingChild(shapeProps, 'effectLst');
-			const authored = suppressInherited ? new Set(Object.keys(style)) : undefined;
+			// Snapshot what the shape already carries BEFORE the ref runs, so we
+			// can tell "the ref set this" from "the shape already had this" -
+			// `resolveThemeEffectRef` only fills gaps (`!style.shadowColor` etc.),
+			// so anything it adds here was not authored on `spPr`.
+			const authoredBefore = new Set(Object.keys(style));
 			this.context.resolveThemeEffectRef(styleNode['a:effectRef'] as XmlObject, style);
-			if (authored) {
+			if (suppressInherited) {
 				for (const key of Object.keys(style) as (keyof ShapeStyle)[]) {
-					if (!authored.has(key) && key !== 'effectRefIdx' && key !== 'effectRefColorXml') {
+					if (!authoredBefore.has(key) && key !== 'effectRefIdx' && key !== 'effectRefColorXml') {
 						delete style[key];
 					}
 				}
+			} else {
+				// Record exactly what the reference contributed so the save path
+				// can leave `spPr` effect-less while the flat style still agrees
+				// with it, instead of baking a resolved shadow/glow/3D scene back
+				// in and outranking `<a:effectRef>` on the very next save (the
+				// effect-scope twin of `inheritedFillStyle` / `inheritedLineStyle`
+				// above).
+				const inheritedKeys = STYLE_MATRIX_EFFECT_KEYS.filter((key) => !authoredBefore.has(key));
+				style.inheritedEffectStyle = captureStyleBaseline(style, inheritedKeys);
 			}
 		}
 

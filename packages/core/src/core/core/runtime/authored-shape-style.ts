@@ -63,6 +63,54 @@ export const STYLE_MATRIX_LINE_KEYS: readonly (keyof ShapeStyle)[] = [
 ];
 
 /**
+ * Effect/3D properties `resolveThemeEffectRef` derives from `<a:effectRef>`:
+ * shadow, inner shadow, glow, soft edge, reflection, and the format scheme's
+ * 3D scene/shape. The baseline snapshot (`PptxShapeStyleExtractor`) covers
+ * exactly these, so a change to any of them - a new shadow, an edited glow
+ * radius, a cleared reflection - is detected.
+ */
+export const STYLE_MATRIX_EFFECT_KEYS: readonly (keyof ShapeStyle)[] = [
+	'shadowColor',
+	'shadowBlur',
+	'shadowOffsetX',
+	'shadowOffsetY',
+	'shadowOpacity',
+	'innerShadowColor',
+	'innerShadowBlur',
+	'innerShadowOffsetX',
+	'innerShadowOffsetY',
+	'innerShadowOpacity',
+	'glowColor',
+	'glowRadius',
+	'glowOpacity',
+	'softEdgeRadius',
+	'reflectionBlurRadius',
+	'reflectionStartOpacity',
+	'reflectionEndOpacity',
+	'reflectionEndPosition',
+	'reflectionDirection',
+	'reflectionRotation',
+	'reflectionDistance',
+	'scene3d',
+	'shape3d',
+];
+
+/**
+ * Effect fields `resolveThemeEffectRef` never populates. A theme's
+ * `effectStyleLst` entry cannot express a Gaussian blur, a preset-shadow
+ * name, or an effect DAG, so any of these being present always means
+ * something was authored beyond the reference, and `spPr/a:effectLst` must be
+ * written even when every {@link STYLE_MATRIX_EFFECT_KEYS} property still
+ * matches the baseline.
+ */
+const EFFECT_AUTHORED_ONLY_KEYS: readonly (keyof ShapeStyle)[] = [
+	'blurRadius',
+	'presetShadowName',
+	'effectDagXml',
+	'effectDagTree',
+];
+
+/**
  * Snapshot the given keys of a style as an inheritance baseline.
  *
  * Values are copied by REFERENCE (a gradient stop array is shared with the
@@ -119,4 +167,32 @@ export function createLineStyleGate(style: ShapeStyle): ShapeStyleGate {
 		return () => true;
 	}
 	return (...keys) => keys.some((key) => style[key] !== baseline[key]);
+}
+
+/**
+ * True when the shape's effects (and 3D scene/shape) are still exactly what
+ * `<a:effectRef>` resolved from the theme's `effectStyleLst`, so `spPr` must
+ * stay effect-less and let the reference paint it.
+ *
+ * Unlike the outline (`createLineStyleGate`), effects are gated all-or-nothing
+ * like fill: `a:effectLst` is a single element per ECMA-376 §20.1.8.30 rather
+ * than a set of independently-overridable attributes, and PowerPoint itself
+ * bakes the full resolved effect/3D set the moment any part of it is touched.
+ * So the whole group is written as soon as ANY of it differs from the
+ * baseline, not just the part that changed.
+ *
+ * False when there is no such baseline (the shape authored its own effects,
+ * has no `<p:style>` effectRef, or was built by the SDK), when anything about
+ * the effects has changed since load, or when an effect-only field the theme
+ * can never supply (blur, a preset-shadow name, an effect DAG) is present.
+ */
+export function effectIsPurelyStyleMatrix(style: ShapeStyle): boolean {
+	const baseline = style.inheritedEffectStyle;
+	if (baseline === undefined) {
+		return false;
+	}
+	if (!matchesBaseline(style, baseline, STYLE_MATRIX_EFFECT_KEYS)) {
+		return false;
+	}
+	return EFFECT_AUTHORED_ONLY_KEYS.every((key) => style[key] === undefined);
 }
