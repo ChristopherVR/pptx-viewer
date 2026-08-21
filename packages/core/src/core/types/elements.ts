@@ -188,7 +188,12 @@ export interface ChartPptxElement extends PptxElementBase {
  * A SmartArt diagram embedded via a `<p:graphicFrame>`.
  *
  * SmartArt data is extracted from `dgm:dataModel` parts. The editor
- * renders a simplified view; full editing is not supported.
+ * supports real structural editing (adding, removing and reordering nodes,
+ * editing node text, and switching layout presets) with a lossless
+ * `ptLst` round-trip. When the file carries PowerPoint's own pre-computed
+ * drawing part, that exact layout is used; otherwise an algorithmic layout
+ * engine approximates it, so complex custom layouts may not match
+ * PowerPoint pixel-for-pixel.
  */
 export interface SmartArtPptxElement extends PptxElementBase {
 	type: 'smartArt';

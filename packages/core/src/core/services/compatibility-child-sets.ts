@@ -85,7 +85,10 @@ export const GRAPHIC_FRAME_LIMITATIONS = {
 		'PARTIAL_SMARTART_SUPPORT',
 		'SmartArt is parsed and preserved, but some DiagramML behavior is not editable.',
 	],
-	ole: ['PARTIAL_OLE_SUPPORT', 'The OLE payload is preserved but cannot be rendered or edited.'],
+	ole: [
+		'PARTIAL_OLE_SUPPORT',
+		'The OLE payload renders as a preview image and can be downloaded or opened in a new tab, but cannot be edited in place.',
+	],
 	ink: [
 		'PARTIAL_INK_SUPPORT',
 		'Ink is rendered from decoded traces; unsupported ink properties remain raw XML.',
