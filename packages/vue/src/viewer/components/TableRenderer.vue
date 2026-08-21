@@ -49,7 +49,7 @@ import TableResizeOverlay from './TableResizeOverlay.vue';
  *
  * Editing affordances (inline cell text edit, cell selection + Shift+range
  * highlight, and column/row drag-resize handles) are layered on when an edit
- * context is provided. The raw-OOXML render path is not ported.
+ * context is provided.
  */
 const props = withDefaults(
 	defineProps<{

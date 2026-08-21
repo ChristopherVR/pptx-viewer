@@ -34,7 +34,10 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
  * Pure helpers (type resolution, colour / label maps, placeholder style) live
  * in `ole-renderer-helpers.ts` so they can be unit-tested without TestBed.
  *
- * Double-click-to-open and OLE extraction are not ported (viewer-only).
+ * Editing the embedded object in place is not possible (a browser cannot run
+ * the native app that owns it); the action bar offers Download and, for
+ * browser-openable types, Open in a new tab, when core extracted an embedded
+ * payload.
  */
 @Component({
 	selector: 'pptx-ole-renderer',

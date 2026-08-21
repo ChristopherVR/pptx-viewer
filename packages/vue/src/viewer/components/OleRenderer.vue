@@ -26,8 +26,10 @@ import { getContainerStyle } from '../composables/element-style';
  * mirroring the React fallback.
  *
  * The OLE-type resolution (icon / colour / label) is replicated locally to
- * match the React renderer's branding. Double-click-to-open and extraction are
- * not ported (read-only viewer).
+ * match the React renderer's branding. Editing the embedded object in place
+ * is not possible (a browser cannot run the native app that owns it); the
+ * action bar below still offers Download and, for browser-openable types,
+ * Open in a new tab, when core extracted an embedded payload.
  */
 const props = defineProps<{
 	element: PptxElement;
