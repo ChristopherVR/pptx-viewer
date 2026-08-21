@@ -72,6 +72,14 @@ export interface ElementRendererProps {
 	 * is what makes the chart marks inert on thumbnails and in presentation.
 	 */
 	onchartpointcommit?: (elementId: string, chartData: PptxChartData) => void;
+	/**
+	 * Commit a table's whole column-width array after a column-boundary drag,
+	 * fired once on pointer release. Absent outside the editable canvas, which
+	 * is what makes the resize handles inert on thumbnails and in presentation.
+	 */
+	ontableresizecolumns?: (elementId: string, widths: number[]) => void;
+	/** Commit one row's new pixel height after a row-boundary drag. */
+	ontableresizerow?: (elementId: string, rowIndex: number, height: number) => void;
 }
 
 export interface TextBlockProps {

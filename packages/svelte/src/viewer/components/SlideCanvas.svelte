@@ -31,6 +31,8 @@
 		onsmartartnodecommit,
 		onsmartartnodefill,
 		onchartpointcommit,
+		ontableresizecolumns,
+		ontableresizerow,
 		comments = [],
 		oncommentmarkerclick,
 		onstageholder,
@@ -108,6 +110,8 @@
 		{onsmartartnodecommit}
 		{onsmartartnodefill}
 		{onchartpointcommit}
+		{ontableresizecolumns}
+		{ontableresizerow}
 		{comments}
 		{oncommentmarkerclick}
 	/>

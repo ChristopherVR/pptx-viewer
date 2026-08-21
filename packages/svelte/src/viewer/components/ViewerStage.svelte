@@ -122,6 +122,8 @@
 			onsmartartnodecommit={editingActive ? commits.commitSmartArtNode : undefined}
 			onsmartartnodefill={editingActive ? commits.commitSmartArtFill : undefined}
 			onchartpointcommit={editingActive ? commits.commitChartPoint : undefined}
+			ontableresizecolumns={editingActive ? commits.commitTableResizeColumns : undefined}
+			ontableresizerow={editingActive ? commits.commitTableResizeRow : undefined}
 			comments={editingActive && !presenting ? (activeSlide.comments ?? []) : []}
 			oncommentmarkerclick={openComments}
 			{onstageholder}

@@ -13,8 +13,9 @@
 	import { useTableStyleContext } from '../state/render-context';
 	import { useTableCellSelection } from '../state/table-cell-selection-context';
 	import type { ElementRendererProps } from './props';
+	import { TableResizeController } from './table-resize.svelte';
 
-	const { element, zIndex, interactive = false, marked = false, ontablecellcommit }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false, marked = false, ontablecellcommit, ontableresizecolumns, ontableresizerow }: ElementRendererProps = $props();
 
 	const tableData = $derived(element.type === 'table' ? element.tableData : undefined);
 	const tableStyleContext = $derived(useTableStyleContext());
@@ -24,6 +25,28 @@
 	const containerStyle = $derived(
 		styleToString({ ...getContainerStyle(element, zIndex), overflow: 'hidden' }),
 	);
+
+	// Column/row drag-resize handles: pure math in `pptx-viewer-shared`, DOM
+	// interaction owned by `TableResizeController` (mirrors `ChartDragController`).
+	let containerEl = $state<HTMLDivElement | undefined>();
+	const resizable = $derived(interactive && Boolean(ontableresizecolumns || ontableresizerow));
+	const resize = new TableResizeController({
+		tableData: () => tableData,
+		root: () => containerEl ?? null,
+		commitColumns: (widths) => ontableresizecolumns?.(element.id, widths),
+		commitRow: (rowIndex, height) => ontableresizerow?.(element.id, rowIndex, height),
+	});
+	$effect(() => () => resize.destroy());
+	$effect(() => {
+		// Re-measure whenever the built rows/columns change (a proxy for the
+		// underlying tableData changing); reading them here makes them this
+		// effect's reactive dependencies.
+		void rows;
+		void colWidths;
+		if (resizable) {
+			resize.measure();
+		}
+	});
 	// Which cells the canvas range covers. The range itself is decided by
 	// `editor/table-cell-selection`; this only paints it, because a block the
 	// user cannot see is a block they cannot knowingly merge.
@@ -78,7 +101,11 @@
 </script>
 
 {#if tableData && rows.length > 0}
-	<div class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
+	<!-- svelte-ignore a11y_no_static_element_interactions -- the resize handles
+	     are a pointer-only affordance; column/row width is also reachable via
+	     the table inspector's width/height controls, as in the other four
+	     bindings. -->
+	<div bind:this={containerEl} class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined} onpointerdown={resizable ? resize.onpointerdown : undefined}>
 		<!-- Load-bearing family: an unstyled cell otherwise inherits the HOST
 		     chrome's font; all five bindings declare the same shared default. -->
 		<table class="pptx-svelte-table-grid" style={tableStyle}>
@@ -147,6 +174,20 @@
 				{/each}
 			</tbody>
 		</table>
+		{#if resizable}
+			{#each resize.colBoundaries as leftPct, i (i)}
+				<div
+					class="pptx-svelte-table-resize-col"
+					style="left: calc({leftPct}% - 3px); transform: {resize.dragType === 'col' && resize.dragIndex === i ? `translateX(${resize.dragOffset}px)` : ''}"
+				></div>
+			{/each}
+			{#each resize.rowBounds as topPx, i (i)}
+				<div
+					class="pptx-svelte-table-resize-row"
+					style="top: {topPx - 3}px; transform: {resize.dragType === 'row' && resize.dragIndex === i ? `translateY(${resize.dragOffset}px)` : ''}"
+				></div>
+			{/each}
+		{/if}
 	</div>
 {/if}
 
@@ -158,6 +199,27 @@
 		table-layout: fixed;
 	}
 	.pptx-svelte-table-cell input { box-sizing:border-box; width:100%; min-width:0; border:1px solid var(--pptx-primary,#6366f1); background:white; color:#111827; font:inherit; }
+	/* Column/row drag-resize boundary lines: pointer-events none so a touch tap
+	   always reaches the cell underneath (double-tap-to-edit); the container's
+	   `onpointerdown` proximity-hit-tests the drag itself. */
+	.pptx-svelte-table-resize-col,
+	.pptx-svelte-table-resize-row {
+		position: absolute;
+		z-index: 10;
+		pointer-events: none;
+	}
+	.pptx-svelte-table-resize-col {
+		top: 0;
+		bottom: 0;
+		width: 6px;
+		cursor: col-resize;
+	}
+	.pptx-svelte-table-resize-row {
+		left: 0;
+		right: 0;
+		height: 6px;
+		cursor: row-resize;
+	}
 	/* The selected block, ringed the way the other bindings ring theirs. An
 	   inset box-shadow rather than a border/outline: the cell's authored
 	   borders must stay exactly where they are, and a real border would move

@@ -29,6 +29,10 @@ export interface EditCommitHandlers {
 	 * (the drag itself is a local preview), so one drag is one undo step.
 	 */
 	commitChartPoint(id: string, chartData: PptxChartData): void;
+	/** Commit a table's whole column-width array after a column-boundary drag. */
+	commitTableResizeColumns(id: string, widths: number[]): void;
+	/** Commit one row's new pixel height after a row-boundary drag. */
+	commitTableResizeRow(id: string, rowIndex: number, height: number): void;
 }
 
 export function createEditCommits(editor: EditorState): EditCommitHandlers {
@@ -74,6 +78,25 @@ export function createEditCommits(editor: EditorState): EditCommitHandlers {
 				const box = { width: element.width, height: element.height };
 				editor.applyElementPatch(id, { smartArtData: reflowSmartArtData(next, id, box) });
 			}
+		},
+
+		commitTableResizeColumns(id, widths) {
+			const table = editor.activeElements.find((element) => element.id === id);
+			if (table?.type !== 'table' || !table.tableData) {
+				return;
+			}
+			editor.applyElementPatch(id, { tableData: { ...table.tableData, columnWidths: widths } });
+		},
+
+		commitTableResizeRow(id, rowIndex, height) {
+			const table = editor.activeElements.find((element) => element.id === id);
+			if (table?.type !== 'table' || !table.tableData) {
+				return;
+			}
+			const rows = table.tableData.rows.map((row, index) =>
+				index === rowIndex ? { ...row, height } : row,
+			);
+			editor.applyElementPatch(id, { tableData: { ...table.tableData, rows } });
 		},
 	};
 }

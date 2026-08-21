@@ -36,6 +36,8 @@
 		onsmartartnodecommit,
 		onsmartartnodefill,
 		onchartpointcommit,
+		ontableresizecolumns,
+		ontableresizerow,
 		comments = [],
 		oncommentmarkerclick,
 	}: SlideStageProps = $props();
@@ -138,7 +140,7 @@
 	aria-label={interactive ? t('pptx.canvas.slide') : undefined}
 >
 	{#each slide?.elements ?? [] as element, index (element.id)}
-		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} />
+		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 	{/each}
 	{#if comments.length > 0}
 		<CommentMarkersOverlay {comments} {canvasSize} onmarkerclick={oncommentmarkerclick} />

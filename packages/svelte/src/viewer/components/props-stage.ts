@@ -44,6 +44,10 @@ export interface SlideStageProps {
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
 	/** See `ElementRendererProps.onchartpointcommit`. */
 	onchartpointcommit?: (elementId: string, chartData: PptxChartData) => void;
+	/** See `ElementRendererProps.ontableresizecolumns`. */
+	ontableresizecolumns?: (elementId: string, widths: number[]) => void;
+	/** See `ElementRendererProps.ontableresizerow`. */
+	ontableresizerow?: (elementId: string, rowIndex: number, height: number) => void;
 	/**
 	 * Comments drawn as numbered marker dots INSIDE the stage (the
 	 * `aria-roledescription="slide"` region, the framework-neutral e2e hook).
@@ -76,6 +80,10 @@ export interface SlideCanvasProps {
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
 	/** See `ElementRendererProps.onchartpointcommit`. */
 	onchartpointcommit?: (elementId: string, chartData: PptxChartData) => void;
+	/** See `ElementRendererProps.ontableresizecolumns`. */
+	ontableresizecolumns?: (elementId: string, widths: number[]) => void;
+	/** See `ElementRendererProps.ontableresizerow`. */
+	ontableresizerow?: (elementId: string, rowIndex: number, height: number) => void;
 	/** Passed through to `SlideStage`; see {@link SlideStageProps.comments}. */
 	comments?: readonly PptxComment[];
 	/** Passed through to `SlideStage`; see {@link SlideStageProps.oncommentmarkerclick}. */
