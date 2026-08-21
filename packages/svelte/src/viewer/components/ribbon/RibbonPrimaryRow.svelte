@@ -32,6 +32,15 @@
 		aiActive = false,
 		exportUi,
 		hiddenActions,
+		onsaveppsx,
+		onsavepptm,
+		oninfo,
+		ona11y,
+		onshortcuts,
+		onversionhistory,
+		onprotect,
+		onfonts,
+		onsignatures,
 	}: {
 		chromeUi?: ChromeUiState;
 		readOnly?: boolean;
@@ -50,6 +59,16 @@
 		aiActive?: boolean;
 		exportUi?: ExportUiState;
 		hiddenActions?: ToolbarActionId[];
+		/** Overflow menu: same File-tab/settings handlers, exposed a second way. */
+		onsaveppsx?: () => void;
+		onsavepptm?: () => void;
+		oninfo?: () => void;
+		ona11y?: () => void;
+		onshortcuts?: () => void;
+		onversionhistory?: () => void;
+		onprotect?: () => void;
+		onfonts?: () => void;
+		onsignatures?: () => void;
 	} = $props();
 
 	const t = useTranslator();
@@ -140,7 +159,18 @@
 		</button>
 	{/if}
 	{#if exportUi && !isActionHidden('export', hiddenActions)}
-		<RibbonOverflowMenu {exportUi} />
+		<RibbonOverflowMenu
+			{exportUi}
+			{onsaveppsx}
+			{onsavepptm}
+			{oninfo}
+			{ona11y}
+			{onshortcuts}
+			{onversionhistory}
+			{onprotect}
+			{onfonts}
+			{onsignatures}
+		/>
 	{/if}
 	{#if readOnly}
 		<span class="pptx-svelte-ribbon-primary-readonly">{t('pptx.toolbar.readOnly')}</span>

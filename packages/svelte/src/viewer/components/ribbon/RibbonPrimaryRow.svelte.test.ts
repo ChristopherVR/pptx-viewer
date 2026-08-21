@@ -1,6 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { ExportUiState } from '../../export/export-ui.svelte';
 import { ChromeUiState } from '../../state/chrome-ui.svelte';
 import RibbonPrimaryRow from './RibbonPrimaryRow.svelte';
 
@@ -105,5 +106,67 @@ describe('ribbonPrimaryRow', () => {
 		const target = mountRow({ onai: vi.fn(), aiActive: true });
 		const toggle = target.querySelector<HTMLButtonElement>('[aria-label="Toggle AI assistant"]');
 		expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+	});
+
+	it('the overflow menu lists every File/Options action a handler was passed for', () => {
+		const onsaveppsx = vi.fn();
+		const onsignatures = vi.fn();
+		const target = mountRow({
+			exportUi: { exporting: false } as unknown as ExportUiState,
+			onsaveppsx,
+			onsavepptm: vi.fn(),
+			oninfo: vi.fn(),
+			ona11y: vi.fn(),
+			onshortcuts: vi.fn(),
+			onversionhistory: vi.fn(),
+			onprotect: vi.fn(),
+			onfonts: vi.fn(),
+			onsignatures,
+		});
+
+		target.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.click();
+		flushSync();
+		const items = [...target.querySelectorAll('[role="menuitem"]')].map((item) =>
+			item.textContent?.trim(),
+		);
+		expect(items).toStrictEqual(
+			expect.arrayContaining([
+				'Save as Slide Show (.ppsx)',
+				'Save as Macro-Enabled (.pptm)',
+				'Copy Slide as Image',
+				'Document Properties',
+				'Accessibility Check',
+				'Keyboard Shortcuts',
+				'Version History',
+				'Protect Presentation',
+				'Embed Fonts',
+				'Digital Signatures',
+			]),
+		);
+
+		const ppsxItem = [...target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+			(item) => item.textContent?.trim() === 'Save as Slide Show (.ppsx)',
+		);
+		ppsxItem?.click();
+		expect(onsaveppsx).toHaveBeenCalledOnce();
+
+		target.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.click();
+		flushSync();
+		const signaturesItem = [
+			...target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
+		].find((item) => item.textContent?.trim() === 'Digital Signatures');
+		signaturesItem?.click();
+		expect(onsignatures).toHaveBeenCalledOnce();
+	});
+
+	it('omits overflow items whose handler was not passed', () => {
+		const target = mountRow({ exportUi: { exporting: false } as unknown as ExportUiState });
+		target.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.click();
+		flushSync();
+		const items = [...target.querySelectorAll('[role="menuitem"]')].map((item) =>
+			item.textContent?.trim(),
+		);
+		expect(items).not.toContain('Digital Signatures');
+		expect(items).not.toContain('Protect Presentation');
 	});
 });

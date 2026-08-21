@@ -5,14 +5,39 @@
 	 * standalone Export button up here; the export/print actions live inside this
 	 * overflow popup instead. This binding mirrors that: the ellipsis trigger
 	 * opens a fixed-position popup (fixed so it escapes any ancestor clipping,
-	 * matching React's `RibbonMenu` pattern) listing the export + print actions
-	 * this binding supports. Entries React lists for features this binding lacks
-	 * (save-as variants, accessibility check, version history, ...) are omitted.
+	 * matching React's `RibbonMenu` pattern) listing the export + print actions,
+	 * plus every other File/Options action React exposes here (save-as variants,
+	 * copy-as-image, document properties, accessibility check, keyboard
+	 * shortcuts, version history, password protection, embed fonts, digital
+	 * signatures) - each routed to the same handler its File-tab card already
+	 * uses, so nothing here is a second implementation.
 	 */
 	import { useTranslator } from '../../../i18n/context';
 	import type { ExportUiState } from '../../export/export-ui.svelte';
 
-	const { exportUi }: { exportUi: ExportUiState } = $props();
+	const {
+		exportUi,
+		onsaveppsx,
+		onsavepptm,
+		oninfo,
+		ona11y,
+		onshortcuts,
+		onversionhistory,
+		onprotect,
+		onfonts,
+		onsignatures,
+	}: {
+		exportUi: ExportUiState;
+		onsaveppsx?: () => void;
+		onsavepptm?: () => void;
+		oninfo?: () => void;
+		ona11y?: () => void;
+		onshortcuts?: () => void;
+		onversionhistory?: () => void;
+		onprotect?: () => void;
+		onfonts?: () => void;
+		onsignatures?: () => void;
+	} = $props();
 	const t = useTranslator();
 
 	let open = $state(false);
@@ -69,8 +94,20 @@
 			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runPdf())}>{t('pptx.export.pdfAllSlides')}</button>
 			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runGif())}>{t('pptx.export.gifAnimated')}</button>
 			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runVideo())}>{t('pptx.export.webmVideo')}</button>
+			{#if onsaveppsx}<button type="button" role="menuitem" onclick={() => choose(onsaveppsx)}>{t('pptx.file.saveAsPpsxTooltip')}</button>{/if}
+			{#if onsavepptm}<button type="button" role="menuitem" onclick={() => choose(onsavepptm)}>{t('pptx.file.saveAsPptmTooltip')}</button>{/if}
 			<div class="pptx-svelte-overflow-sep" aria-hidden="true"></div>
 			<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPrint())}>{t('pptx.print.title')}</button>
+			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => exportUi.runCopyImage())}>{t('pptx.file.copyImageTooltip')}</button>
+			<div class="pptx-svelte-overflow-sep" aria-hidden="true"></div>
+			{#if oninfo}<button type="button" role="menuitem" onclick={() => choose(oninfo)}>{t('pptx.ribbon.documentProperties')}</button>{/if}
+			{#if ona11y}<button type="button" role="menuitem" onclick={() => choose(ona11y)}>{t('pptx.ribbon.accessibilityCheck')}</button>{/if}
+			{#if onshortcuts}<button type="button" role="menuitem" onclick={() => choose(onshortcuts)}>{t('pptx.settings.keyboardShortcuts')}</button>{/if}
+			{#if onversionhistory}<button type="button" role="menuitem" onclick={() => choose(onversionhistory)}>{t('pptx.ribbon.versionHistory')}</button>{/if}
+			<div class="pptx-svelte-overflow-sep" aria-hidden="true"></div>
+			{#if onprotect}<button type="button" role="menuitem" onclick={() => choose(onprotect)}>{t('pptx.security.protectPresentation')}</button>{/if}
+			{#if onfonts}<button type="button" role="menuitem" onclick={() => choose(onfonts)}>{t('pptx.ribbon.embedFonts')}</button>{/if}
+			{#if onsignatures}<button type="button" role="menuitem" onclick={() => choose(onsignatures)}>{t('pptx.viewer.digitalSignatures')}</button>{/if}
 		</div>
 	{/if}
 </div>

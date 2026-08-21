@@ -100,6 +100,15 @@
 		aiActive={props.aiActive}
 		exportUi={props.exportUi}
 		hiddenActions={props.hiddenActions}
+		onsaveppsx={props.ondownloadppsx}
+		onsavepptm={props.ondownloadpptm}
+		oninfo={() => setPropertiesOpen(true)}
+		ona11y={() => (activeTab = 'review')}
+		onshortcuts={props.onshortcuts}
+		onversionhistory={props.onversionhistory}
+		onprotect={() => (protectionOpen = true)}
+		onfonts={() => (fontsOpen = true)}
+		onsignatures={() => (signaturesOpen = true)}
 	/>
 	<RibbonTabBar
 		active={activeTab}
