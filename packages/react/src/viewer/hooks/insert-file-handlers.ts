@@ -3,6 +3,7 @@
  * handlers used by useInsertElements.
  */
 import type { PptxElement, PptxSlide, ImagePptxElement, MediaPptxElement } from 'pptx-viewer-core';
+import { classifyMediaType } from 'pptx-viewer-shared';
 
 import type { CanvasSize } from '../types';
 import { generateElementId } from '../utils/generate-id';
@@ -76,11 +77,7 @@ export function createFileHandlers(deps: FileHandlerDeps): FileHandlers {
 			return;
 		}
 		e.target.value = '';
-		const mediaType = file.type.startsWith('audio/')
-			? 'audio'
-			: file.type.startsWith('video/')
-				? 'video'
-				: null;
+		const mediaType = classifyMediaType(file.type);
 		if (!mediaType) {
 			return;
 		}

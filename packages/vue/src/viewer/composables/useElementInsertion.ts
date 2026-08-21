@@ -1,6 +1,7 @@
 import { createEditorId, createShapeElement, createTextElement } from 'pptx-viewer-core';
 import type { PptxElement, PptxHandler, PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
 import {
+	classifyMediaType,
 	createDefaultChartElement,
 	newFieldElement,
 	newTableElement,
@@ -183,11 +184,7 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		if (!file) {
 			return;
 		}
-		const mediaType: 'audio' | 'video' | null = file.type.startsWith('audio/')
-			? 'audio'
-			: file.type.startsWith('video/')
-				? 'video'
-				: null;
+		const mediaType = classifyMediaType(file.type);
 		if (!mediaType) {
 			return;
 		}

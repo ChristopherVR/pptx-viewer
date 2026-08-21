@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { classifyMediaType } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import { centerOnCanvas } from './editor-insert';
@@ -18,15 +19,7 @@ const AUDIO_SIZE = { width: 420, height: 64 };
 const VIDEO_MAX_SIZE = { width: 640, height: 360 };
 
 /** The media kind a chosen file maps to, or `null` for an unsupported type. */
-export function mediaTypeOfFile(mimeType: string): 'audio' | 'video' | null {
-	if (mimeType.startsWith('audio/')) {
-		return 'audio';
-	}
-	if (mimeType.startsWith('video/')) {
-		return 'video';
-	}
-	return null;
-}
+export const mediaTypeOfFile = classifyMediaType;
 
 /** Probe a video data URL's natural dimensions, capped to `VIDEO_MAX_SIZE`. */
 function probeVideoSize(dataUrl: string): Promise<{ width: number; height: number }> {

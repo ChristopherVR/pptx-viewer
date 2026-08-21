@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { createEditorId } from 'pptx-viewer-core';
+import { classifyMediaType } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import { centerOnCanvas } from './editor-insert';
@@ -67,11 +68,7 @@ export function pickMediaElement(
 				resolve(null);
 				return;
 			}
-			const mediaType = file.type.startsWith('audio/')
-				? 'audio'
-				: file.type.startsWith('video/')
-					? 'video'
-					: null;
+			const mediaType = classifyMediaType(file.type);
 			if (!mediaType) {
 				resolve(null);
 				return;
