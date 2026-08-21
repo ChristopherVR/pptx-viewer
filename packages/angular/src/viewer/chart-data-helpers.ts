@@ -1,10 +1,15 @@
 /**
- * chart-data-helpers.ts: Pure immutable helpers for chart data editing.
+ * chart-data-helpers.ts: Pure immutable ELEMENT-level wrappers for chart data
+ * editing (`ChartPptxElement` in, `ChartPptxElement` out).
  *
- * Thin wrappers / re-exports around the framework-agnostic core utilities in
- * `pptx-viewer-core` (`chartDataAddSeries`, `chartDataRemoveSeries`, etc.)
- * plus additional element-level helpers (`setSeriesName`, `setSeriesValue`,
- * `setCategoryLabel`) that aren't in the core package.
+ * The row/column add-remove policy (auto-naming, refusing to drop the last
+ * series/category, rejecting non-numeric cell input) lives once in shared's
+ * `render/chart-data-grid-ops` (`addChartSeries`, `removeChartSeries`, etc.,
+ * which operate on the bare `PptxChartData`); these functions just lift that
+ * policy to the element level so `chart-data-editor.component.ts` can stay a
+ * thin `elementChange` emitter. `setSeriesName`, `setSeriesColor`,
+ * `patchChartStyle` and the advanced formatting wrappers below have no shared
+ * equivalent yet and are genuinely local.
  *
  * All functions are immutable (return new objects, leave inputs unchanged)
  * and framework-agnostic.
@@ -16,11 +21,7 @@
  */
 
 import {
-	chartDataAddCategory,
-	chartDataAddSeries,
 	chartDataChangeType,
-	chartDataRemoveCategory,
-	chartDataRemoveSeries,
 	chartDataUpdatePoint,
 	setChartAxisGridlineStyle,
 	setChartAxisLogScale,
@@ -43,15 +44,18 @@ import type {
 	PptxChartType,
 } from 'pptx-viewer-core';
 
+import {
+	addChartCategory,
+	addChartSeries,
+	patchChartData as sharedPatchChartData,
+	removeChartCategory,
+	removeChartSeries,
+	setChartCategoryLabel,
+	setChartCellValue,
+} from '../internal/shared';
+
 // Re-export core primitives so callers can import everything from one place.
-export {
-	chartDataAddCategory,
-	chartDataAddSeries,
-	chartDataChangeType,
-	chartDataRemoveCategory,
-	chartDataRemoveSeries,
-	chartDataUpdatePoint,
-};
+export { chartDataChangeType, chartDataUpdatePoint };
 
 // ---------------------------------------------------------------------------
 // Advanced formatting wrappers (log scale, title/gridline style, markers,
@@ -187,13 +191,7 @@ export function addSeries(element: ChartPptxElement): ChartPptxElement {
 	if (!chartData) {
 		return element;
 	}
-	const seriesCount = chartData.series.length;
-	const catCount = chartData.categories.length;
-	const newChartData = chartDataAddSeries(chartData, {
-		name: `Series ${seriesCount + 1}`,
-		values: Array.from({ length: catCount }, () => 0),
-	});
-	return { ...element, chartData: newChartData };
+	return { ...element, chartData: addChartSeries(chartData) };
 }
 
 // ---------------------------------------------------------------------------
@@ -219,10 +217,8 @@ export function addSeries(element: ChartPptxElement): ChartPptxElement {
  */
 export function removeSeries(element: ChartPptxElement, seriesIndex: number): ChartPptxElement {
 	const chartData = element.chartData;
-	if (!chartData || chartData.series.length <= 1) {
-		return element;
-	}
-	return { ...element, chartData: chartDataRemoveSeries(chartData, seriesIndex) };
+	const next = chartData && removeChartSeries(chartData, seriesIndex);
+	return next ? { ...element, chartData: next } : element;
 }
 
 // ---------------------------------------------------------------------------
@@ -246,11 +242,7 @@ export function addCategory(element: ChartPptxElement): ChartPptxElement {
 	if (!chartData) {
 		return element;
 	}
-	const catCount = chartData.categories.length;
-	return {
-		...element,
-		chartData: chartDataAddCategory(chartData, `Cat ${catCount + 1}`),
-	};
+	return { ...element, chartData: addChartCategory(chartData) };
 }
 
 // ---------------------------------------------------------------------------
@@ -275,10 +267,8 @@ export function addCategory(element: ChartPptxElement): ChartPptxElement {
  */
 export function removeCategory(element: ChartPptxElement, catIndex: number): ChartPptxElement {
 	const chartData = element.chartData;
-	if (!chartData || chartData.categories.length <= 1) {
-		return element;
-	}
-	return { ...element, chartData: chartDataRemoveCategory(chartData, catIndex) };
+	const next = chartData && removeChartCategory(chartData, catIndex);
+	return next ? { ...element, chartData: next } : element;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,14 +300,8 @@ export function setSeriesValue(
 	rawValue: string,
 ): ChartPptxElement {
 	const chartData = element.chartData;
-	if (!chartData) {
-		return element;
-	}
-	const num = parseFloat(rawValue);
-	if (!Number.isFinite(num)) {
-		return element;
-	}
-	return { ...element, chartData: chartDataUpdatePoint(chartData, seriesIndex, catIndex, num) };
+	const next = chartData && setChartCellValue(chartData, seriesIndex, catIndex, rawValue);
+	return next ? { ...element, chartData: next } : element;
 }
 
 // ---------------------------------------------------------------------------
@@ -375,11 +359,8 @@ export function setCategoryLabel(
 	label: string,
 ): ChartPptxElement {
 	const chartData = element.chartData;
-	if (!chartData) {
-		return element;
-	}
-	const categories = chartData.categories.map((c, i) => (i === catIndex ? label : c));
-	return { ...element, chartData: { ...chartData, categories } };
+	const next = chartData && setChartCategoryLabel(chartData, catIndex, label);
+	return next ? { ...element, chartData: next } : element;
 }
 
 // ---------------------------------------------------------------------------
@@ -475,11 +456,5 @@ export function patchChartData(
 	if (!chartData) {
 		return element;
 	}
-	if (patch.chartType && patch.chartType !== chartData.chartType) {
-		const adapted = chartDataChangeType(chartData, patch.chartType as PptxChartType);
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const { chartType: _ct, ...rest } = patch;
-		return { ...element, chartData: { ...adapted, ...rest } };
-	}
-	return { ...element, chartData: { ...chartData, ...patch } };
+	return { ...element, chartData: sharedPatchChartData(chartData, patch) };
 }
