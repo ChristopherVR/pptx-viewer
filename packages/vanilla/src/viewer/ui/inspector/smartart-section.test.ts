@@ -1,5 +1,5 @@
 import type { PptxSmartArtData } from 'pptx-viewer-core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createSmartArtSection } from './smartart-section';
 import type { InspectorHandlers, InspectorState } from './types';
@@ -28,6 +28,95 @@ function mount() {
 	)!;
 	return { section, setSmartArtColorScheme, scheme };
 }
+
+/** Mount with real nodes and a `replaceSmartArtData` that feeds back through `update`. */
+function mountWithNodes(nodes: PptxSmartArtData['nodes']) {
+	let data: PptxSmartArtData = { nodes, resolvedLayoutType: 'list' } as PptxSmartArtData;
+	const replaceSmartArtData = vi.fn((next: PptxSmartArtData) => {
+		data = next;
+		section.update({ isSmartArt: true, smartArtData: data } as InspectorState);
+	});
+	const section = createSmartArtSection(document, (key) => key, sectionFactory(), {
+		setSmartArtColorScheme: vi.fn(),
+		setSmartArtLayout: vi.fn(),
+		setSmartArtNodeText: vi.fn(),
+		setSmartArtNodeStyle: vi.fn(),
+		mutateSmartArtNode: vi.fn(),
+		replaceSmartArtData,
+	} as unknown as InspectorHandlers);
+	document.body.appendChild(section.el);
+	section.update({ isSmartArt: true, smartArtData: data } as InspectorState);
+	return { section, replaceSmartArtData, getData: () => data };
+}
+
+function nodeInputs(el: HTMLElement): HTMLInputElement[] {
+	return [...el.querySelectorAll<HTMLInputElement>('[data-testid="smartart-node-text"]')];
+}
+
+describe('smartArtSection keyboard editing', () => {
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('enter key inserts a new sibling after the current node', () => {
+		const { section, getData } = mountWithNodes([
+			{ id: 'n1', text: 'One' },
+			{ id: 'n2', text: 'Two' },
+		]);
+		const [first] = nodeInputs(section.el);
+		first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		const data = getData();
+		expect(data.nodes).toHaveLength(3);
+		expect(data.nodes[1]?.text).toBe('');
+	});
+
+	it('backspace key on an empty node removes it', () => {
+		const { section, getData } = mountWithNodes([
+			{ id: 'n1', text: 'One' },
+			{ id: 'n2', text: '' },
+		]);
+		const [, second] = nodeInputs(section.el);
+		second.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }),
+		);
+		expect(getData().nodes).toHaveLength(1);
+	});
+
+	it('backspace key on a node with text does not remove it', () => {
+		const { section, getData } = mountWithNodes([
+			{ id: 'n1', text: 'One' },
+			{ id: 'n2', text: 'Two' },
+		]);
+		const [, second] = nodeInputs(section.el);
+		second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+		expect(getData().nodes).toHaveLength(2);
+	});
+
+	it('tab key demotes the node under its preceding sibling', () => {
+		const { section, getData } = mountWithNodes([
+			{ id: 'n1', text: 'One' },
+			{ id: 'n2', text: 'Two' },
+		]);
+		const [, second] = nodeInputs(section.el);
+		second.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+		);
+		expect(getData().nodes.find((n) => n.id === 'n2')?.parentId).toBe('n1');
+	});
+
+	it('shift+tab promotes an already-nested node back to top level', () => {
+		const { section, getData } = mountWithNodes([
+			{ id: 'n1', text: 'One' },
+			{ id: 'n2', text: 'Two', parentId: 'n1' },
+		]);
+		const inputs = nodeInputs(section.el);
+		const nested = inputs.find((input) => input.dataset.nodeId === 'n2')!;
+		nested.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+		);
+		expect(getData().nodes.find((n) => n.id === 'n2')?.parentId).toBeUndefined();
+	});
+});
 
 describe('smartart colour scheme picker', () => {
 	it('keeps the five `dgm:colorsDef` families as the option values', () => {

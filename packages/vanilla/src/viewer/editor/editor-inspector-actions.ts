@@ -113,6 +113,7 @@ export interface InspectorActions {
 		nodeId: string,
 		action: 'add' | 'addChild' | 'remove' | 'promote' | 'demote',
 	): void;
+	replaceSmartArtData(data: PptxSmartArtData): void;
 	setSmartArtLayout(layout: SmartArtLayoutType): void;
 	setSmartArtColorScheme(scheme: SmartArtColorScheme): void;
 }
@@ -301,6 +302,7 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 									: demoteSmartArtNode(data, nodeId),
 				),
 			),
+		replaceSmartArtData: (data) => applyToSelected((el) => smartArtPatch(el, () => data)),
 		setSmartArtLayout: (layout) =>
 			applyToSelected((el) => smartArtPatch(el, (data) => switchSmartArtLayout(data, layout))),
 		setSmartArtColorScheme: (scheme) =>

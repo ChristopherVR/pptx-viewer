@@ -1,6 +1,12 @@
-import type { SmartArtColorScheme, SmartArtLayoutType } from 'pptx-viewer-core';
+import type { PptxSmartArtData, SmartArtColorScheme, SmartArtLayoutType } from 'pptx-viewer-core';
 import { SWITCHABLE_LAYOUT_TYPES } from 'pptx-viewer-core';
 import {
+	addSiblingAfter,
+	canRemoveTopLevelNode,
+	countTopLevel,
+	demote,
+	promote,
+	removeEmptyNode,
 	schemaLabel,
 	SMARTART_COLOR_SCHEME_LABEL_KEYS,
 	SMARTART_LAYOUT_LABEL_KEYS,
@@ -79,9 +85,65 @@ export function createSmartArtSection(
 	addNode.addEventListener('click', () => handlers.mutateSmartArtNode('', 'add'));
 	el.append(addNode, nodes);
 
+	/**
+	 * Text-pane keyboard editing, matching React/Vue/Angular/Svelte: Enter
+	 * inserts a sibling after the current node, Backspace/Delete on an empty
+	 * node removes it, Tab demotes, Shift+Tab promotes. All four go through the
+	 * shared smartart-node-pane-handlers builders (same as Svelte) so the
+	 * behaviour, and its focus-follows-edit affordance, can't drift.
+	 */
+	let latestData: PptxSmartArtData | undefined;
+	let pendingFocusNodeId: string | null = null;
+	function handleNodeKeydown(event: KeyboardEvent, nodeId: string): void {
+		const data = latestData;
+		if (!data) {
+			return;
+		}
+		const node = data.nodes.find((n) => n.id === nodeId);
+		// The input commits via `change` (blur-triggered), so `node.text` can be
+		// stale while the user is still typing; read the live DOM value instead
+		// of the last-committed model text for the emptiness check.
+		const isEmpty = !(event.currentTarget as HTMLInputElement).value;
+
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const result = addSiblingAfter(data, nodeId);
+			if (result) {
+				pendingFocusNodeId = result.focusNodeId ?? null;
+				handlers.replaceSmartArtData(result.data);
+			}
+		} else if ((event.key === 'Backspace' || event.key === 'Delete') && isEmpty) {
+			const isTop = !node?.parentId;
+			if (isTop && !canRemoveTopLevelNode(data.resolvedLayoutType, countTopLevel(data))) {
+				return;
+			}
+			event.preventDefault();
+			const result = removeEmptyNode(data, nodeId);
+			if (result) {
+				pendingFocusNodeId = result.focusNodeId ?? null;
+				handlers.replaceSmartArtData(result.data);
+			}
+		} else if (event.key === 'Tab' && !event.shiftKey) {
+			event.preventDefault();
+			const next = demote(data, nodeId);
+			if (next) {
+				pendingFocusNodeId = nodeId;
+				handlers.replaceSmartArtData(next);
+			}
+		} else if (event.key === 'Tab' && event.shiftKey) {
+			event.preventDefault();
+			const next = promote(data, nodeId);
+			if (next) {
+				pendingFocusNodeId = nodeId;
+				handlers.replaceSmartArtData(next);
+			}
+		}
+	}
+
 	let nodeSignature = '';
 	const rebuildNodes = (state: InspectorState): void => {
 		const data = state.smartArtData;
+		latestData = data;
 		const signature = data?.nodes.map((node) => node.id).join('|') ?? '';
 		if (signature === nodeSignature) {
 			const inputs = nodes.querySelectorAll<HTMLInputElement>('[data-testid="smartart-node-text"]');
@@ -103,9 +165,11 @@ export function createSmartArtSection(
 			input.type = 'text';
 			input.className = 'pptxv-smartart-node-input';
 			input.dataset.testid = 'smartart-node-text';
+			input.dataset.nodeId = node.id;
 			input.setAttribute('aria-label', `${t('pptx.smartart.item')} ${index + 1}`);
 			input.value = node.text;
 			input.addEventListener('change', () => handlers.setSmartArtNodeText(node.id, input.value));
+			input.addEventListener('keydown', (event) => handleNodeKeydown(event, node.id));
 			const fill = doc.createElement('input');
 			fill.type = 'color';
 			fill.value = node.style?.fillColor ?? '#3b82f6';
@@ -164,6 +228,15 @@ export function createSmartArtSection(
 			colorScheme.setDisabled(!state.isSmartArt);
 			addNode.disabled = !state.isSmartArt;
 			rebuildNodes(state);
+			if (pendingFocusNodeId) {
+				const id = pendingFocusNodeId;
+				pendingFocusNodeId = null;
+				nodes
+					.querySelector<HTMLInputElement>(
+						`[data-testid="smartart-node-text"][data-node-id="${id}"]`,
+					)
+					?.focus();
+			}
 		},
 	};
 }

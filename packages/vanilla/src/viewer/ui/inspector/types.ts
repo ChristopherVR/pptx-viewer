@@ -150,6 +150,14 @@ export interface InspectorHandlers {
 		nodeId: string,
 		action: 'add' | 'addChild' | 'remove' | 'promote' | 'demote',
 	): void;
+	/**
+	 * Commit a whole replacement `smartArtData`, reflowed and history-integrated
+	 * like every other SmartArt mutation. Used by the text pane's Tab / Enter /
+	 * Backspace keyboard handling, which computes the next data (and, for
+	 * add/remove, the node to focus next) via the shared `smartart-node-pane-
+	 * handlers` builders before committing.
+	 */
+	replaceSmartArtData(data: PptxSmartArtData): void;
 	setSmartArtLayout(layout: SmartArtLayoutType): void;
 	setSmartArtColorScheme(scheme: SmartArtColorScheme): void;
 }

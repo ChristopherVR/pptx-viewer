@@ -295,6 +295,7 @@ export function buildChromeCallbacks(
 			deps.getEditActions().setSmartArtNodeStyle(nodeId, patch),
 		mutateSmartArtNode: (nodeId, action) =>
 			deps.getEditActions().mutateSmartArtNode(nodeId, action),
+		replaceSmartArtData: (data) => deps.getEditActions().replaceSmartArtData(data),
 		setSmartArtLayout: (layout) => deps.getEditActions().setSmartArtLayout(layout),
 		setSmartArtColorScheme: (scheme) => deps.getEditActions().setSmartArtColorScheme(scheme),
 	};
