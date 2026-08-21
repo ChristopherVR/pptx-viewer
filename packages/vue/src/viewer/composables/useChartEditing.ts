@@ -25,11 +25,6 @@ import type {
 	PptxChartType,
 } from 'pptx-viewer-core';
 import {
-	chartDataAddCategory,
-	chartDataAddSeries,
-	chartDataRemoveCategory,
-	chartDataRemoveSeries,
-	chartDataUpdatePoint,
 	setChartAxisGridlineStyle,
 	setChartAxisLogScale,
 	setChartAxisTitleStyle,
@@ -40,11 +35,17 @@ import {
 	setChartSeriesChartType,
 	setChartSeriesMarker,
 } from 'pptx-viewer-core';
-import { patchChartData as sharedPatchChartData } from 'pptx-viewer-shared';
+import {
+	addChartCategory,
+	addChartSeries,
+	patchChartData as sharedPatchChartData,
+	removeChartCategory,
+	removeChartSeries,
+	setChartCategoryLabel,
+	setChartCellValue,
+} from 'pptx-viewer-shared';
 import type { ComputedRef } from 'vue';
 import { toRaw } from 'vue';
-
-import { useSafeTranslate } from './useSafeTranslate';
 
 /** Edit shape for axis-title font styling (matches the core op). */
 export interface ChartAxisTitleStyleEdit {
@@ -123,7 +124,6 @@ export function useChartEditing(
 	chartData: ComputedRef<PptxChartData | null>,
 	emitUpdate: (next: PptxChartData) => void,
 ): ChartEditing {
-	const t = useSafeTranslate();
 	const replaceChartData = (next: PptxChartData): void => emitUpdate(next);
 
 	const patchChartData = (patch: Partial<PptxChartData>): void => {
@@ -174,10 +174,10 @@ export function useChartEditing(
 
 	const updateCategoryLabel = (catIndex: number, value: string): void => {
 		const data = chartData.value;
-		if (!data) {
-			return;
+		const next = data && setChartCategoryLabel(data, catIndex, value);
+		if (next) {
+			replaceChartData(next);
 		}
-		patchChartData({ categories: data.categories.map((c, i) => (i === catIndex ? value : c)) });
 	};
 
 	const updateValue = (seriesIndex: number, catIndex: number, raw: string): void => {
@@ -185,11 +185,10 @@ export function useChartEditing(
 		if (!data) {
 			return;
 		}
-		const num = Number.parseFloat(raw);
-		if (!Number.isFinite(num)) {
-			return;
+		const next = setChartCellValue(data, seriesIndex, catIndex, raw);
+		if (next) {
+			replaceChartData(next);
 		}
-		replaceChartData(chartDataUpdatePoint(data, seriesIndex, catIndex, num));
 	};
 
 	const addCategory = (): void => {
@@ -197,15 +196,15 @@ export function useChartEditing(
 		if (!data) {
 			return;
 		}
-		replaceChartData(chartDataAddCategory(data, `Cat ${data.categories.length + 1}`));
+		replaceChartData(addChartCategory(data));
 	};
 
 	const removeCategory = (catIndex: number): void => {
 		const data = chartData.value;
-		if (!data || data.categories.length <= 1) {
-			return;
+		const next = data && removeChartCategory(data, catIndex);
+		if (next) {
+			replaceChartData(next);
 		}
-		replaceChartData(chartDataRemoveCategory(data, catIndex));
 	};
 
 	const addSeries = (): void => {
@@ -213,20 +212,15 @@ export function useChartEditing(
 		if (!data) {
 			return;
 		}
-		replaceChartData(
-			chartDataAddSeries(data, {
-				name: t('pptx.chart.seriesDefaultName', { number: data.series.length + 1 }),
-				values: data.categories.map(() => 0),
-			}),
-		);
+		replaceChartData(addChartSeries(data));
 	};
 
 	const removeSeries = (seriesIndex: number): void => {
 		const data = chartData.value;
-		if (!data || data.series.length <= 1) {
-			return;
+		const next = data && removeChartSeries(data, seriesIndex);
+		if (next) {
+			replaceChartData(next);
 		}
-		replaceChartData(chartDataRemoveSeries(data, seriesIndex));
 	};
 
 	const setSeriesTrendline = (index: number, trendline: PptxChartTrendline | null): void =>
