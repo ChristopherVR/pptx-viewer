@@ -65,6 +65,14 @@ import type { RibbonTab } from './ribbon-types';
 				(info)="info.emit()"
 				(a11y)="a11y.emit()"
 				(save)="save.emit()"
+				(savePpsx)="savePpsx.emit()"
+				(savePptm)="savePptm.emit()"
+				(copySlideAsImage)="copySlideAsImage.emit()"
+				(shortcuts)="shortcuts.emit()"
+				(versionHistory)="versionHistory.emit()"
+				(passwordProtection)="passwordProtection.emit()"
+				(fontEmbedding)="fontEmbedding.emit()"
+				(digitalSignatures)="signatures.emit()"
 			/>
 
 			<pptx-ribbon-tab-list
@@ -275,6 +283,14 @@ export class RibbonComponent {
 	readonly print = output<void>();
 	readonly comments = output<void>();
 	readonly a11y = output<void>();
+	/** Overflow menu: opens the keyboard-shortcuts dialog. */
+	readonly shortcuts = output<void>();
+	/** Overflow menu: opens the version-history panel. */
+	readonly versionHistory = output<void>();
+	/** Overflow menu: opens the password-protection dialog. */
+	readonly passwordProtection = output<void>();
+	/** Overflow menu: opens the font-embedding dialog. */
+	readonly fontEmbedding = output<void>();
 	readonly link = output<void>();
 	readonly openSorter = output<void>();
 	/** View tab > Reading View: the deck full-window, not the slide show. */

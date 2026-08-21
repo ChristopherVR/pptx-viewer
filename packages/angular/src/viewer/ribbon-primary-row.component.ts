@@ -7,7 +7,9 @@
  *   RIGHT : Comments (with count), Present split-button + dropdown
  *           (From Beginning / Presenter View / Broadcast), +Show (custom
  *           shows), Inspector toggle, Settings cog, overflow "..." menu
- *           (exports / print / properties / accessibility / save).
+ *           (exports / save-as variants / print / copy-as-image / properties /
+ *           accessibility / keyboard shortcuts / version history / password
+ *           protection / embed fonts / digital signatures).
  *
  * Undo/Redo/Find and Save moved up to the title bar; Record and Share moved to
  * the ribbon tab row (both mirroring React). Slide navigation and zoom live in
@@ -54,10 +56,20 @@ const ALL_OVERFLOW_ITEMS: ReadonlyArray<{
 	{ key: 'video', labelKey: 'pptx.ribbon.exportVideo', needsSlides: true },
 	{ key: 'gif', labelKey: 'pptx.ribbon.exportGif', needsSlides: true },
 	{ key: 'save', labelKey: 'pptx.ribbon.savePptx', needsSlides: true },
+	{ key: 'savePpsx', labelKey: 'pptx.file.saveAsPpsxTooltip', needsSlides: true },
+	{ key: 'savePptm', labelKey: 'pptx.file.saveAsPptmTooltip', needsSlides: true },
 	{ key: '---0', labelKey: '' },
 	{ key: 'print', labelKey: 'pptx.print.printButton' },
+	{ key: 'copyImg', labelKey: 'pptx.file.copyImageTooltip', needsSlides: true },
+	{ key: '---1', labelKey: '' },
 	{ key: 'info', labelKey: 'pptx.ribbon.documentProperties' },
 	{ key: 'a11y', labelKey: 'pptx.ribbon.accessibilityCheck' },
+	{ key: 'shortcuts', labelKey: 'pptx.settings.keyboardShortcuts' },
+	{ key: 'versionHistory', labelKey: 'pptx.ribbon.versionHistory' },
+	{ key: '---2', labelKey: '' },
+	{ key: 'passwordProtection', labelKey: 'pptx.security.protectPresentation' },
+	{ key: 'fontEmbedding', labelKey: 'pptx.ribbon.embedFonts' },
+	{ key: 'digitalSignatures', labelKey: 'pptx.viewer.digitalSignatures' },
 ];
 
 /** png/pdf/video/gif are the export overflow rows; dropped when 'export' is hidden. */
@@ -295,6 +307,14 @@ export class RibbonPrimaryRowComponent {
 	readonly info = output<void>();
 	readonly a11y = output<void>();
 	readonly save = output<void>();
+	readonly savePpsx = output<void>();
+	readonly savePptm = output<void>();
+	readonly copySlideAsImage = output<void>();
+	readonly shortcuts = output<void>();
+	readonly versionHistory = output<void>();
+	readonly passwordProtection = output<void>();
+	readonly fontEmbedding = output<void>();
+	readonly digitalSignatures = output<void>();
 
 	protected readonly presentMenuOpen = signal(false);
 	protected readonly overflowOpen = signal(false);
@@ -352,6 +372,30 @@ export class RibbonPrimaryRowComponent {
 				break;
 			case 'a11y':
 				this.a11y.emit();
+				break;
+			case 'savePpsx':
+				this.savePpsx.emit();
+				break;
+			case 'savePptm':
+				this.savePptm.emit();
+				break;
+			case 'copyImg':
+				this.copySlideAsImage.emit();
+				break;
+			case 'shortcuts':
+				this.shortcuts.emit();
+				break;
+			case 'versionHistory':
+				this.versionHistory.emit();
+				break;
+			case 'passwordProtection':
+				this.passwordProtection.emit();
+				break;
+			case 'fontEmbedding':
+				this.fontEmbedding.emit();
+				break;
+			case 'digitalSignatures':
+				this.digitalSignatures.emit();
 				break;
 			default:
 				break;

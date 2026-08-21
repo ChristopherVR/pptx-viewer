@@ -24,4 +24,20 @@ describe('visibleOverflowItems', () => {
 		const keys = visibleOverflowItems(['share']).map((item) => item.key);
 		expect(keys).toContain('png');
 	});
+
+	it('includes the save-as variants, copy-as-image, and every File/Options action React exposes', () => {
+		const keys = visibleOverflowItems(undefined).map((item) => item.key);
+		expect(keys).toStrictEqual(
+			expect.arrayContaining([
+				'savePpsx',
+				'savePptm',
+				'copyImg',
+				'shortcuts',
+				'versionHistory',
+				'passwordProtection',
+				'fontEmbedding',
+				'digitalSignatures',
+			]),
+		);
+	});
 });
