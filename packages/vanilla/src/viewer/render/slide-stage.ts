@@ -50,6 +50,11 @@ export interface SlideStageOptions {
 	scale?: number;
 	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
 	smartArt3D?: boolean;
+	/**
+	 * Opt-in interactive WebGL surface-chart renderer flag; see
+	 * `PptxViewerOptions.surfaceChart3D`.
+	 */
+	surfaceChart3D?: boolean;
 	/** True only for the live presentation stage; see `ElementRenderContext.presenting`. */
 	presenting?: boolean;
 	/** Full deck and active index used by presentation Zoom elements. */
@@ -147,6 +152,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		presentationStates: options.presentationStates,
 		t,
 		smartArt3D: options.smartArt3D ?? false,
+		surfaceChart3D: options.surfaceChart3D ?? false,
 		presenting: options.presenting ?? false,
 		interactive,
 		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,

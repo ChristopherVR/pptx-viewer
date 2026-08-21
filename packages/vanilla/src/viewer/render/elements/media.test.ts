@@ -29,6 +29,7 @@ function makeContext(
 		mediaDataUrls,
 		t: createTranslator(),
 		smartArt3D: false,
+		surfaceChart3D: false,
 		presenting,
 		interactive,
 		registry,

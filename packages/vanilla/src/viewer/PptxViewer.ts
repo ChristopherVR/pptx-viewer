@@ -212,6 +212,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
+			surfaceChart3D: options.surfaceChart3D ?? false,
 			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
@@ -350,6 +351,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			registry: this.registry,
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
+			surfaceChart3D: options.surfaceChart3D ?? false,
 			fileName: options.fileName,
 		});
 		// File > Options controller: owns the persisted options store and turns

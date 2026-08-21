@@ -39,6 +39,7 @@ describe('createRasterizeSlide', () => {
 			registry: createElementRendererRegistry(),
 			getTranslator: () => createTranslator(),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -64,6 +65,7 @@ describe('createRasterizeSlide', () => {
 			registry: createElementRendererRegistry(),
 			getTranslator: () => createTranslator(),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -95,6 +97,7 @@ describe('createRasterizeSlide', () => {
 			registry: createElementRendererRegistry(),
 			getTranslator: () => createTranslator(),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -160,6 +163,7 @@ describe('createRasterizeSlide', () => {
 			registry: createDefaultRegistry(),
 			getTranslator: () => createTranslator(),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -189,6 +193,7 @@ describe('createRasterizeSlide', () => {
 			registry: createElementRendererRegistry(),
 			getTranslator: () => createTranslator(),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 

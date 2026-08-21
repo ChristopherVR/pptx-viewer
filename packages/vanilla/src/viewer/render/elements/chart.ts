@@ -13,9 +13,29 @@ import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
 import { attachChartEditing } from './chart-editable';
 import { renderChartViewModelSvg } from './chart-svg';
+import { renderSurfaceChart3DElement } from './surface-chart-3d';
 
 /**
- * Renderer for `chart` elements: an inline SVG built from the shared
+ * Renderer for `chart` elements. Dispatches to the opt-in interactive
+ * Three.js surface-chart scene (`surface-chart-3d.ts`) when
+ * `context.surfaceChart3D` is set (see `PptxViewerOptions.surfaceChart3D`)
+ * and the chart resolves to the `surface` kind, otherwise renders the flat
+ * SVG below. Mirrors `smartart.ts`'s `renderSmartArtElement` dispatch.
+ */
+export const renderChartElement: ElementRenderer = (element, zIndex, context) => {
+	if (
+		element.type === 'chart' &&
+		context.surfaceChart3D &&
+		element.chartData &&
+		resolveChartKind(element.chartData.chartType ?? 'bar') === 'surface'
+	) {
+		return renderSurfaceChart3DElement(element, zIndex, context);
+	}
+	return renderChartSvgElement(element, zIndex, context);
+};
+
+/**
+ * The flat SVG chart renderer: an inline SVG built from the shared
  * `buildChartViewModel` engine (`pptx-viewer-shared`), projected to DOM by
  * `renderChartViewModelSvg`. Covers every kind the shared engine builds:
  *
@@ -32,8 +52,12 @@ import { renderChartViewModelSvg } from './chart-svg';
  * Series colours resolve exactly like the Vue binding: an explicit parsed
  * `chartData.colorPalette` wins, otherwise the style-id-aware palette
  * (`getChartStylePalette`), threaded into the shared engine as `colorPalette`.
+ *
+ * Exported (not just registry-internal) so `surface-chart-3d.ts` can paint
+ * this as its synchronous fallback / restore target, mirroring
+ * `smartart.ts`'s exported `renderSmartArtSvg`.
  */
-export const renderChartElement: ElementRenderer = (element, zIndex, context) => {
+export const renderChartSvgElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'chart') {
 		return null;
 	}

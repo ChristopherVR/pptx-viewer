@@ -19,6 +19,7 @@ function makeContext(overrides: Partial<ElementRenderContext> = {}): ElementRend
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D: false,
+		surfaceChart3D: false,
 		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),

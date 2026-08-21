@@ -45,6 +45,7 @@ function mountResizableTable() {
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D: false,
+		surfaceChart3D: false,
 		presenting: false,
 		interactive: true,
 		onTableResizeColumns,
@@ -101,6 +102,7 @@ describe('enableTableResize', () => {
 			mediaDataUrls: new Map<string, string>(),
 			t: createTranslator(),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			presenting: false,
 			registry,
 			renderElement(element, zIndex) {

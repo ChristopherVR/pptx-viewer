@@ -80,6 +80,13 @@ export interface ElementRenderContext {
 	 */
 	readonly smartArt3D: boolean;
 	/**
+	 * Opt-in flag: render `surface`/`surface3D` charts as an interactive,
+	 * camera-orbitable Three.js mesh instead of the static SVG isometric
+	 * projection (see `PptxViewerOptions.surfaceChart3D`). Defaults to `false`
+	 * when the option is unset.
+	 */
+	readonly surfaceChart3D: boolean;
+	/**
 	 * True only for the live presentation stage (real Fullscreen API active):
 	 * media renderers use this to autoplay once mounted, matching PowerPoint's
 	 * slideshow behaviour. `false` for the editor canvas and thumbnail rail.

@@ -77,6 +77,7 @@ export function buildSmartArtGalleryPreview(
 		mediaDataUrls: new Map(),
 		t,
 		smartArt3D: false,
+		surfaceChart3D: false,
 		presenting: false,
 		registry: createElementRendererRegistry(),
 		renderElement: () => null,
