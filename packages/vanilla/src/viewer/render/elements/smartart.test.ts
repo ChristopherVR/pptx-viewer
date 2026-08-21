@@ -34,6 +34,7 @@ function makeContext(
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D,
+		surfaceChart3D: false,
 		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),

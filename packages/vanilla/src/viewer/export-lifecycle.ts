@@ -23,6 +23,7 @@ export interface ExportLifecycleDeps {
 	registry: ElementRendererRegistry;
 	getTranslator(): Translator;
 	smartArt3D: boolean;
+	surfaceChart3D: boolean;
 	/** Source file name (title-bar name); drives export download names. */
 	fileName?: string;
 }

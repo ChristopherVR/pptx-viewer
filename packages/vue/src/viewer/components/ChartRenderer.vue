@@ -13,9 +13,11 @@ import { useI18n } from 'vue-i18n';
 
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
+import { useSurfaceChart3D } from '../composables/surface-chart-3d';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
+import SurfaceChart3DRenderer from './SurfaceChart3DRenderer.vue';
 
 /**
  * ChartRenderer: a chart element as inline SVG.
@@ -125,6 +127,14 @@ const chartKind = computed(() =>
 
 const isPlaceholder = computed(() => chartKind.value === 'unsupported');
 
+/**
+ * Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
+ * Marks are not selectable/draggable in this mode: a mesh facet has no 2D
+ * screen geometry to hit-test against, so value-drag editing stays SVG-only.
+ */
+const use3D = useSurfaceChart3D();
+const isSurfaceKind = computed(() => chartKind.value === 'surface');
+
 const placeholderLabel = computed(() =>
 	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
 );
@@ -162,6 +172,14 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 		<div v-if="isPlaceholder" class="pptx-vue-placeholder pptx-vue-chart-placeholder">
 			{{ placeholderLabel }}
 		</div>
+
+		<!-- Opt-in interactive 3D surface scene, falling back to the SVG below -->
+		<SurfaceChart3DRenderer
+			v-else-if="use3D && isSurfaceKind && viewModel"
+			:element="revealedElement"
+			:view-model="viewModel"
+			:preserve-aspect-ratio="aspectRatio"
+		/>
 
 		<!-- Every supported kind: the shared view-model engine, projected as SVG -->
 		<ChartViewModelSvg

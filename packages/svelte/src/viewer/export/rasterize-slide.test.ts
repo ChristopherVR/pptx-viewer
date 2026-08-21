@@ -37,6 +37,7 @@ describe('createRasterizeSlide', () => {
 			getMediaDataUrls: () => new Map(),
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -61,6 +62,7 @@ describe('createRasterizeSlide', () => {
 			getMediaDataUrls: () => new Map(),
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -93,6 +95,7 @@ describe('createRasterizeSlide', () => {
 			getMediaDataUrls: () => new Map(),
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -114,6 +117,7 @@ describe('createRasterizeSlide', () => {
 			getMediaDataUrls: () => new Map(),
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -137,6 +141,7 @@ describe('createRasterizeSlide', () => {
 			getMediaDataUrls: () => new Map(),
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
+			surfaceChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 

@@ -41,16 +41,18 @@ import {
 	ensureChartInteractionStyles,
 } from './chart-element-view-helpers';
 import { ChartPartSelectionService } from './chart-part-selection.service';
-import { buildChartViewModel, formatAxisValue } from './chart-renderer-helpers';
+import { buildChartViewModel, formatAxisValue, resolveChartKind } from './chart-renderer-helpers';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { EditorStateService } from './editor-state.service';
 import { SLIDE_CONTEXT } from './slide-context';
+import { SurfaceChart3DRendererComponent } from './surface-chart-3d-renderer.component';
+import { SurfaceChart3DService } from './surface-chart-3d.service';
 
 @Component({
 	selector: 'pptx-chart-element-view',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ChartRendererComponent],
+	imports: [ChartRendererComponent, SurfaceChart3DRendererComponent],
 	template: `
 		<div
 			#wrapper
@@ -61,7 +63,11 @@ import { SLIDE_CONTEXT } from './slide-context';
 			(pointerup)="onPointerUp()"
 			(dblclick)="onDblClick($event)"
 		>
-			<pptx-chart-renderer [element]="renderedElement()" />
+			@if (use3D() && isSurfaceKind()) {
+				<pptx-surface-chart-3d-renderer [element]="renderedElement()" />
+			} @else {
+				<pptx-chart-renderer [element]="renderedElement()" />
+			}
 			@if (dragValue() !== null) {
 				<div class="pptx-ng-chart-drag-badge">{{ dragBadge() }}</div>
 			}
@@ -109,6 +115,8 @@ export class ChartElementViewComponent {
 	private readonly partSelection = inject(ChartPartSelectionService, { optional: true });
 	/** The hosting canvas's slide, for resolving template (master/layout) charts. */
 	private readonly slideContext = inject(SLIDE_CONTEXT, { optional: true });
+	/** Viewer-scoped opt-in flag for the interactive 3D surface-chart renderer. */
+	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService, { optional: true });
 	private readonly injector = inject(Injector);
 
 	private readonly wrapper = viewChild<ElementRef<HTMLElement>>('wrapper');
@@ -127,6 +135,16 @@ export class ChartElementViewComponent {
 		const el = this.element();
 		return el.type === 'chart' ? el.chartData : undefined;
 	});
+
+	/**
+	 * Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
+	 * Marks are not selectable/draggable in this mode: a mesh facet has no 2D
+	 * screen geometry to hit-test against, so value-drag editing stays SVG-only.
+	 */
+	protected readonly use3D = computed(() => this.surfaceChart3DSvc?.enabled() ?? false);
+	protected readonly isSurfaceKind = computed(
+		() => resolveChartKind(this.chartData()?.chartType ?? 'bar') === 'surface',
+	);
 
 	/** Whether this chart element is currently selected in the editor. */
 	private readonly isSelected = computed(

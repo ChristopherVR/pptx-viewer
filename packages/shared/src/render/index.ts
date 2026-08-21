@@ -651,6 +651,10 @@ export * from './model3d-scene';
 // no-op sentinel handle when it is missing so the chart falls back to 2D.
 export * from './surface-chart-3d-geom';
 export * from './surface-chart-3d-scene';
+// Adapts a chart element's `PptxChartData` into the flat typed-array grid
+// `mountSurfaceChart3D` needs, sharing `computeValueRange` + `surfaceColor`
+// with the 2D SVG fallback so both presentations agree on the same values.
+export * from './surface-chart-3d-data';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.
 // drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
 // preferred over the SVG-fallback layout engine when present): palette

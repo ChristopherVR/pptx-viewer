@@ -21,6 +21,7 @@ import { PresentationLoader } from './presentation-loader.svelte';
 import { runQuickAccessCommand } from './quick-access-commands';
 import { provideRenderContext } from './render-context';
 import { provideSmartArt3D } from './smart-art-3d-context';
+import { provideSurfaceChart3D } from './surface-chart-3d-context';
 import { provideTableCellSelection } from './table-cell-selection-context';
 import { ViewerState } from './viewer-state.svelte';
 
@@ -55,6 +56,7 @@ import { ViewerState } from './viewer-state.svelte';
 export function createViewerState(options: CreateViewerStateOptions): ViewerStateBag {
 	provideTranslator(options.t);
 	provideSmartArt3D(options.getSmartArt3D);
+	provideSurfaceChart3D(options.getSurfaceChart3D);
 
 	// The live editable flag. Seeded from the host prop, but writable, because
 	// an AI edit, `deck.setMode()` and Trust Center's Protected View all have to
@@ -191,6 +193,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		viewer,
 		t: options.t,
 		getSmartArt3D: options.getSmartArt3D,
+		getSurfaceChart3D: options.getSurfaceChart3D,
 		getRootEl: options.getRootEl,
 		getEditable,
 		getFieldContext: fieldContext,

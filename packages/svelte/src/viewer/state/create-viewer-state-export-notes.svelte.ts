@@ -16,6 +16,7 @@ export interface ExportNotesClusterDeps {
 	viewer: ViewerState;
 	t: Translator;
 	getSmartArt3D(): boolean;
+	getSurfaceChart3D(): boolean;
 	getRootEl(): HTMLDivElement | undefined;
 	/** Whether in-place editing is on (gates whether notes edits are history-tracked). */
 	getEditable(): boolean;
@@ -56,6 +57,7 @@ export function buildExportNotesCluster(deps: ExportNotesClusterDeps): ExportNot
 		getCurrent: () => viewer.current,
 		getTranslator: () => deps.t,
 		getSmartArt3D: deps.getSmartArt3D,
+		getSurfaceChart3D: deps.getSurfaceChart3D,
 		getFieldContext: () => deps.getFieldContext?.(),
 		getDeckData: () => buildDeckExportData(editor, loader),
 		getFileName: () => deps.getFileName?.(),

@@ -40,8 +40,14 @@ function isoProject(x: number, y: number, z: number): { screenX: number; screenY
 	};
 }
 
-/** Map a normalised value t in [0..1] to a surface colour ramp (blue-green-red). */
-function surfaceColor(t: number): { r: number; g: number; b: number } {
+/**
+ * Map a normalised value t in [0..1] to a surface colour ramp (blue-green-red).
+ *
+ * Exported so the interactive 3D scene adapter (`surface-chart-3d-data.ts`)
+ * tints its mesh with the exact same ramp as this module's flat/isometric SVG
+ * fallback: one colour formula, never two to drift apart.
+ */
+export function surfaceColor(t: number): { r: number; g: number; b: number } {
 	return {
 		r: Math.round(30 + 200 * t),
 		g: Math.round(80 + 100 * (1 - Math.abs(t - 0.5) * 2)),

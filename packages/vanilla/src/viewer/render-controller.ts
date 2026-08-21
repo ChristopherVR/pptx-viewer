@@ -28,6 +28,11 @@ export interface RenderControllerDeps {
 	getTranslator(): Translator;
 	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
 	smartArt3D: boolean;
+	/**
+	 * Opt-in interactive WebGL surface-chart renderer flag; see
+	 * `PptxViewerOptions.surfaceChart3D`.
+	 */
+	surfaceChart3D: boolean;
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
@@ -139,6 +144,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			t: deps.getTranslator(),
 			scale,
 			smartArt3D: deps.smartArt3D,
+			surfaceChart3D: deps.surfaceChart3D,
 			presenting,
 			slides: state.slides,
 			currentSlideIndex: state.currentSlide,

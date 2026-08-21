@@ -20,6 +20,7 @@ function buildContext(): ElementRenderContext {
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D: false,
+		surfaceChart3D: false,
 		presenting: false,
 		registry,
 		renderElement(element, zIndex) {

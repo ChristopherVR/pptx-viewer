@@ -8,15 +8,18 @@ import {
 	beginChartValueDrag,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
+	resolveChartKind,
 	withChartTitle,
 } from 'pptx-viewer-shared';
 import type { ChartValueDragState, ElementAnimationState } from 'pptx-viewer-shared';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
 import { formatAxisValue } from '../../utils/chart-helpers';
 import { buildReactChartViewModel } from '../../utils/chart-view-model-render';
 import { useChartPartSelection } from '../chart-part-selection';
+import { SurfaceChart3DContext } from './surface-chart-3d-context';
+import { SurfaceChart3DRenderer } from './SurfaceChart3DRenderer';
 
 export interface ChartElementViewProps {
 	element: ChartPptxElement;
@@ -53,6 +56,12 @@ export function ChartElementView({
 
 	const selectedPart = selection?.elementId === element.id ? selection.part : null;
 	const canEdit = editable && Boolean(onUpdateElement);
+
+	// Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
+	// Marks are not selectable/draggable in this mode: a mesh facet has no 2D
+	// screen geometry to hit-test against, so value-drag editing stays SVG-only.
+	const use3D = useContext(SurfaceChart3DContext);
+	const isSurfaceKind = resolveChartKind(element.chartData?.chartType ?? 'bar') === 'surface';
 
 	// The drag context comes from the committed data, captured at drag start, so
 	// axis ranges do not rescale under the pointer mid-drag.
@@ -216,7 +225,11 @@ export function ChartElementView({
 			onPointerUp={handlePointerUp}
 			onDoubleClick={handleDoubleClick}
 		>
-			{renderChartElement(renderedElement)}
+			{use3D && isSurfaceKind ? (
+				<SurfaceChart3DRenderer element={renderedElement} />
+			) : (
+				renderChartElement(renderedElement)
+			)}
 			{dragValue !== null && (
 				<div className='absolute top-1 right-1 z-10 rounded bg-primary/90 px-1.5 py-0.5 text-[10px] font-medium text-white pointer-events-none'>
 					{formatAxisValue(dragValue)}

@@ -189,6 +189,18 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 */
 	smartArt3D?: boolean;
 	/**
+	 * Opt in to the interactive Three.js surface-chart renderer (default
+	 * `false`). When `true`, `surface`/`surface3D` charts render as a
+	 * camera-orbitable WebGL mesh (drag to rotate, scroll to zoom) instead of
+	 * the static SVG isometric projection. Chart marks are not
+	 * selectable/draggable in this mode. `three` is an optional peer
+	 * dependency, lazily imported only when this is `true`; when it is
+	 * unavailable or the chart has no plottable grid, the SVG renderer is used
+	 * instead. Set once at construction (no runtime setter, mirroring the
+	 * Vue/React/Angular/Svelte bindings).
+	 */
+	surfaceChart3D?: boolean;
+	/**
 	 * Whether this application PERMITS recovery autosave (`@default true`).
 	 *
 	 * This is a policy ceiling, not the user's setting: the title-bar AutoSave

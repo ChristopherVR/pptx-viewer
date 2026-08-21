@@ -17,6 +17,11 @@ export interface RasterizeSlideDeps {
 	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
 	smartArt3D: boolean;
 	/**
+	 * Opt-in interactive WebGL surface-chart renderer flag; see
+	 * `PptxViewerOptions.surfaceChart3D`.
+	 */
+	surfaceChart3D: boolean;
+	/**
 	 * Overridable frame-wait before capture (test seam: the real
 	 * `requestAnimationFrame` double-wait is not worth driving through fake
 	 * timers). Defaults to {@link nextFrame}.
@@ -86,6 +91,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			t: deps.getTranslator(),
 			scale: 1,
 			smartArt3D: deps.smartArt3D,
+			surfaceChart3D: deps.surfaceChart3D,
 			presenting: false,
 		});
 		host.appendChild(stage);

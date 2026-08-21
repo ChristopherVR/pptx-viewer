@@ -132,6 +132,7 @@ import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
+import { SurfaceChart3DService } from './surface-chart-3d.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { TitleBarComponent } from './title-bar.component';
@@ -1221,6 +1222,16 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 */
 	readonly smartArt3D = input<boolean>(false);
 	/**
+	 * Opt in to the interactive Three.js surface-chart renderer. When `true`,
+	 * `surface`/`surface3D` charts render as a camera-orbitable WebGL mesh
+	 * (drag to rotate, scroll to zoom) instead of the static SVG isometric
+	 * projection. Chart marks are not selectable/draggable in this mode.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the chart has no plottable grid), the viewer transparently falls back
+	 * to the SVG surface renderer. Default `false`.
+	 */
+	readonly surfaceChart3D = input<boolean>(false);
+	/**
 	 * Toolbar buttons and ribbon tabs the host wants hidden (share, broadcast,
 	 * export, undo, redo, record, notes, fullscreen, zoom, navigation, or any
 	 * ribbon tab id). Default `[]` hides nothing, matching prior behaviour.
@@ -1270,6 +1281,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly print = inject(PrintService);
 	protected readonly mobile = inject(IsMobileService);
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
+	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
 	protected readonly presenterWindow = inject(PresenterWindowService);
 	private readonly destroyRef = inject(DestroyRef);
@@ -1709,6 +1721,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// viewer-scoped SmartArt3DService.
 		effect(() => {
 			this.smartArt3DSvc.enabled.set(this.smartArt3D());
+		});
+
+		// Surface the `surfaceChart3D` opt-in to the chart element view via the
+		// viewer-scoped SurfaceChart3DService.
+		effect(() => {
+			this.surfaceChart3DSvc.enabled.set(this.surfaceChart3D());
 		});
 
 		// A new host `content` input supersedes any in-place picked file.

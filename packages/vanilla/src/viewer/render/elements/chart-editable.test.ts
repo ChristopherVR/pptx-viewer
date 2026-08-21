@@ -32,6 +32,7 @@ function makeContext(overrides: Partial<ElementRenderContext> = {}): ElementRend
 		document,
 		t: (key: string) => key,
 		smartArt3D: false,
+		surfaceChart3D: false,
 		presenting: false,
 		interactive: true,
 		registry: {} as ElementRenderContext['registry'],
