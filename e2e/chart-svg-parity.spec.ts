@@ -58,45 +58,63 @@ test.describe('cross-binding chart rendering', () => {
 	test('every binding paints the shared chart model identically', async ({ browser }, testInfo) => {
 		test.slow();
 
-		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
-			await loadDeckAt(page, origin, GALLERY);
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			async (page, origin) => {
+				await loadDeckAt(page, origin, GALLERY);
 
-			const perSlide: Record<
-				string,
-				ReturnType<typeof fingerprintCharts> extends Promise<infer T> ? T : never
-			> = {};
-			for (let slide = 1; slide <= SLIDES_UNDER_COMPARISON; slide += 1) {
-				await thumbnail(page, slide).click();
-				// Neutral navigation-done signal: the wait below is satisfied by the
-				// PREVIOUS slide's chart <svg> too, so without this the capture races
-				// slide switching in the slower bindings.
-				// 90s per wait, not 45s: `acrossFrameworks` drives ALL FIVE bindings
-				// inside this single test, so each wait competes with four other
-				// browsers on the same runner. 15s cleared a warm local machine in 27s
-				// total and timed out on CI at 30s (raised to 45s); 45s then started
-				// timing out on CI too, at a different slide each retry, once every
-				// SVG mark started carrying a <title> tooltip node (chart-mark
-				// tooltips) - more DOM per chart, on the same CI budget. Locally the
-				// full 20-slide, five-binding sweep clears in ~10s, so this is a
-				// contention budget, not a rendering defect; raised again with more
-				// headroom rather than to the exact measured minimum.
-				await page
-					.getByText(new RegExp(`\\b${slide} of \\d+\\b`, 'u'))
-					.first()
-					.waitFor({ timeout: 90_000 });
-				await slideStage(page).waitFor();
-				// The chart renderers mount their <svg> after the slide stage paints,
-				// so wait for the drawing itself rather than the element box. Located
-				// through the accessibility contract because two bindings do not tag
-				// their chart frames with `data-pptx-element` at all.
-				await page
-					.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
-					.first()
-					.waitFor({ timeout: 90_000 });
-				perSlide[CHART_SLIDES[slide - 1].key] = await fingerprintCharts(page);
-			}
-			return perSlide;
-		});
+				const perSlide: Record<
+					string,
+					ReturnType<typeof fingerprintCharts> extends Promise<infer T> ? T : never
+				> = {};
+				for (let slide = 1; slide <= SLIDES_UNDER_COMPARISON; slide += 1) {
+					await thumbnail(page, slide).click();
+					// Neutral navigation-done signal: the wait below is satisfied by the
+					// PREVIOUS slide's chart <svg> too, so without this the capture races
+					// slide switching in the slower bindings.
+					// 90s per wait: this sweep is CPU-heavy (20 slides x up to 5 bindings
+					// x chart rendering), and doubling it from 45s once already (68bae19f
+					// then c5fa452b) did not hold, it timed out again on a different
+					// binding's CI shard. That pointed at contention rather than a slow
+					// wait, so the real fix is `concurrency: 'sequential'` below, not a
+					// third bump: only one page from this test now renders at a time, so
+					// the four/one other bindings this test used to drive concurrently
+					// can no longer compete with THIS page's chart paint for CPU. 90s
+					// stays as a backstop for the CI runner's remaining shared load (a
+					// second spec file in the other `--workers=2` slot, other CI jobs on
+					// the same host); lowering it further needs a measurement on live CI,
+					// which raising it a third time would not have given us either.
+					await page
+						.getByText(new RegExp(`\\b${slide} of \\d+\\b`, 'u'))
+						.first()
+						.waitFor({ timeout: 90_000 });
+					await slideStage(page).waitFor();
+					// The chart renderers mount their <svg> after the slide stage paints,
+					// so wait for the drawing itself rather than the element box. Located
+					// through the accessibility contract because two bindings do not tag
+					// their chart frames with `data-pptx-element` at all.
+					await page
+						.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
+						.first()
+						.waitFor({ timeout: 90_000 });
+					perSlide[CHART_SLIDES[slide - 1].key] = await fingerprintCharts(page);
+				}
+				return perSlide;
+			},
+			// This sweep renders 20 chart-heavy slides per binding, and the
+			// reference project compares against all FIVE bindings at once
+			// (`comparisonSet` returns the full list only there): driving them
+			// concurrently means up to five real Chrome instances painting the
+			// same heavy deck simultaneously on the CI runner's limited CPU, which
+			// is what actually produced the two same-day timeouts in different
+			// bindings' shards (see the wait comment above). Sequential execution
+			// removes that self-inflicted contention without changing what gets
+			// compared: every binding is still measured against the same
+			// reference values, one binding's render just no longer has to share
+			// the CPU with four others' at the exact moment it needs it.
+			{ concurrency: 'sequential' },
+		);
 
 		const { reference, candidates } = splitReference(results);
 

@@ -65,14 +65,40 @@ export interface AcrossFrameworksOptions {
 	viewport?: { width: number; height: number };
 	/** A `devices[...]` descriptor; its viewport is used unless `viewport` overrides it. */
 	device?: Parameters<Browser['newPage']>[0];
+	/**
+	 * How the per-framework `scenario` runs across the comparison set.
+	 *
+	 * `'parallel'` (default): every page is opened and driven at once. Fine for
+	 * the common case, a handful of navigations and DOM reads per page.
+	 *
+	 * `'sequential'`: pages are opened and driven one at a time. Use this when
+	 * `scenario` is itself CPU-heavy across many slides/frames (chart
+	 * rendering, large fingerprint sweeps): `'parallel'` there means every
+	 * framework's heavy work lands on the CI runner's limited CPU at once, and
+	 * the reference project is the worst case because `comparisonSet` returns
+	 * the full `FRAMEWORKS` list only for it, up to five real Chrome instances
+	 * rendering the same heavy deck simultaneously, competing with whatever
+	 * else the CI worker runs in parallel. `chart-svg-parity.spec.ts` timed out
+	 * under exactly this load twice in one day in two different bindings'
+	 * shards, and widening its per-slide wait from 45s to 90s did not hold;
+	 * moving between shards is the signature of shared-runner contention, not
+	 * one binding being slow. Sequential execution removes the contention this
+	 * test inflicts on itself: only one page from this test is ever doing real
+	 * rendering work at a time, regardless of how many bindings the comparison
+	 * set contains.
+	 */
+	concurrency?: 'parallel' | 'sequential';
 }
 
 /**
  * Open one page per framework in this project's comparison set, run `scenario`
  * against each, and hand back the results paired with their binding.
  *
- * Pages are opened concurrently (five cold demo loads in series is most of a
- * minute) and always closed, including when the scenario throws.
+ * By default, pages are opened and driven concurrently (five cold demo loads
+ * in series is most of a minute). Pass `concurrency: 'sequential'` when
+ * `scenario` is heavy enough that concurrent execution is itself the
+ * reliability problem (see `AcrossFrameworksOptions.concurrency`). Pages are
+ * always closed, including when the scenario throws.
  */
 export async function acrossFrameworks<T>(
 	browser: Browser,
@@ -85,6 +111,21 @@ export async function acrossFrameworks<T>(
 		options.device || options.viewport
 			? { ...options.device, ...(options.viewport ? { viewport: options.viewport } : {}) }
 			: undefined;
+
+	if (options.concurrency === 'sequential') {
+		const results: FrameworkResult<T>[] = [];
+		for (const framework of frameworks) {
+			const page = await browser.newPage(pageOptions);
+			try {
+				const value = await scenario(page, urlOf(framework, options.path ?? '/'));
+				results.push({ framework, value });
+			} finally {
+				await page.close();
+			}
+		}
+		return results;
+	}
+
 	const opened = await Promise.all(
 		frameworks.map(async (framework) => {
 			const page = await browser.newPage(pageOptions);
