@@ -6,6 +6,7 @@ import { OPENXML_EFFECT_DAGS_AXIS_LABELS_AND_DIAGRAM_STYLES_COVERAGE } from './o
 import { testEvidence } from './openxml-coverage-evidence';
 import { OPENXML_FONTS_AUDIO_PIVOTS_AND_ALGORITHMS_COVERAGE } from './openxml-coverage-fonts-audio-pivots-and-algorithms';
 import { OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE } from './openxml-coverage-line-layout-and-pivot-structures';
+import { OPENXML_LINE_STROKE_PROPERTIES_COVERAGE } from './openxml-coverage-line-stroke-properties';
 import { OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE } from './openxml-coverage-transitions-scenes-and-chart-tables';
 import { OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE } from './openxml-coverage-view-image-and-chart-point-formatting';
 import {
@@ -83,6 +84,7 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE,
 	...OPENXML_FONTS_AUDIO_PIVOTS_AND_ALGORITHMS_COVERAGE,
 	...OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE,
+	...OPENXML_LINE_STROKE_PROPERTIES_COVERAGE,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
