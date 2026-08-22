@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.0.1) - 2026-08-22
+
+### Bug Fixes
+
+- **core:** Spell the SmartArt role sentinel as a unicode escape (by @ChristopherVR) ([a2d4993](https://github.com/ChristopherVR/pptx-viewer/commit/a2d4993390bcdc28a3b24c1bf501c64f638f68d9))
+
 ## [3.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.0.0) - 2026-08-22
 
 ### Features

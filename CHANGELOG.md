@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-08-22
 
+_Releases: pptx-viewer-core@3.0.1, pptx-react-viewer@3.0.1, pptx-vue-viewer@3.0.1, pptx-angular-viewer@3.0.1, pptx-vanilla-viewer@2.0.1, pptx-svelte-viewer@3.0.1, pptx-viewer-mcp@2.1.6, @christophervr/pptx-viewer@2.0.1_
+
+### Bug Fixes
+
+- **core:** Spell the SmartArt role sentinel as a unicode escape (by @ChristopherVR) ([a2d4993](https://github.com/ChristopherVR/pptx-viewer/commit/a2d4993390bcdc28a3b24c1bf501c64f638f68d9))
+- **react,angular:** Unclip selection handles and stop Angular text runs leaking whitespace (by @ChristopherVR) ([18eebb6](https://github.com/ChristopherVR/pptx-viewer/commit/18eebb6fd8451e1f1d46d0c248c1e0a5b0d94a53))
+- **tools:** Widen the core dependency range to the new major (by @ChristopherVR) ([0221c2b](https://github.com/ChristopherVR/pptx-viewer/commit/0221c2b05b7bf2ff0d87034a1564673eee574c45))
+
+### Testing
+
+- **e2e:** Scope ink selectors and re-express the outline and reflection contracts (by @ChristopherVR) ([fc514ed](https://github.com/ChristopherVR/pptx-viewer/commit/fc514edfc3d71cf480ecfbd47f36601181ebce49))
+
+## 2026-08-22
+
 _Releases: pptx-viewer-core@3.0.0, pptx-react-viewer@3.0.0, pptx-vue-viewer@3.0.0, pptx-angular-viewer@3.0.0, pptx-vanilla-viewer@2.0.0, pptx-svelte-viewer@3.0.0, pptx-viewer-mcp@2.1.5, @christophervr/pptx-viewer@2.0.0_
 
 ### Features
