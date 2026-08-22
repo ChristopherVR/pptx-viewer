@@ -6,7 +6,7 @@ import type { CssStyleMap } from 'pptx-viewer-shared';
  * documents (tests, export pipelines).
  */
 
-/** camelCase (incl. `WebkitBoxReflect`) to kebab-case CSS property name. */
+/** camelCase (incl. `WebkitMaskImage`) to kebab-case CSS property name. */
 function toCssPropertyName(key: string): string {
 	return key.replace(/[A-Z]/gu, (c) => `-${c.toLowerCase()}`);
 }

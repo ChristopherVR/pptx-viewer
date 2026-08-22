@@ -49,4 +49,44 @@ describe('shapeEffectOverlay', () => {
 		const html = render(shape({ dagFillOverlayBlend: 'mult' }));
 		expect(html).not.toContain('pptx-react-fill-overlay');
 	});
+
+	describe('reflection', () => {
+		it('renders a mirrored sibling with no -webkit-box-reflect', () => {
+			const html = render(
+				shape({ fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 }),
+			);
+			expect(html).toContain('pptx-react-reflection');
+			expect(html).not.toContain('box-reflect');
+			expect(html).not.toContain('WebkitBoxReflect');
+			expect(html).toContain('mask-image');
+		});
+
+		it('paints the reflected fill from the resolved solid colour for a shape', () => {
+			const html = render(
+				shape({ fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 }),
+			);
+			expect(html).toContain('background-color:#ff0000');
+		});
+
+		it('paints a reflected <img> for a picture element', () => {
+			const picture = {
+				type: 'picture',
+				id: 'pic1',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 80,
+				imageData: 'data:image/png;base64,AAAA',
+				shapeStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={picture} />);
+			expect(html).toContain('pptx-react-reflection');
+			expect(html).toContain('<img');
+			expect(html).toContain('data:image/png;base64,AAAA');
+		});
+
+		it('renders nothing extra when there is no reflection', () => {
+			expect(render(shape({ fillColor: '#ffffff' }))).not.toContain('pptx-react-reflection');
+		});
+	});
 });

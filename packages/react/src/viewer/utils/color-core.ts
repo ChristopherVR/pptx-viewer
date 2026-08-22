@@ -25,5 +25,4 @@ export {
 	buildInnerShadowCssFromShapeStyle,
 	buildMultiLayerShadowCss,
 	buildGlowBoxShadow,
-	buildReflectionCss,
 } from 'pptx-viewer-shared';

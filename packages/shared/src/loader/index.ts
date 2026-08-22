@@ -7,3 +7,8 @@ export {
 	applyTableCellImagePatches,
 	buildInitialGuides,
 } from './load-content-helpers';
+export type { TableStyleImageRef } from './table-style-image-paths';
+export {
+	collectTableStyleImagePaths,
+	applyTableStyleImagePatches,
+} from './table-style-image-paths';

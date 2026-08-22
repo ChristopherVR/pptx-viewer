@@ -29,6 +29,29 @@ describe('buildTextBlockStyle', () => {
 		});
 	});
 
+	describe('a:bodyPr/@vertOverflow="ellipsis"', () => {
+		it('clamps to a line count estimated from the content box, with a trailing ellipsis', () => {
+			// height 100, default 24px font, 1.2x line height (28.8px/line), 4.8px
+			// top+bottom inset each: (100 - 9.6) / 28.8 = 3.13... -> 3 lines.
+			const style = buildTextBlockStyle(textEl({ vertOverflow: 'ellipsis' }));
+			expect(style.display).toBe('-webkit-box');
+			expect(style.WebkitBoxOrient).toBe('vertical');
+			expect(style.WebkitLineClamp).toBe(3);
+			expect(style.overflow).toBe('hidden');
+			expect(style.textOverflow).toBe('ellipsis');
+		});
+
+		it('clamps to at least one line for a very short box', () => {
+			const style = buildTextBlockStyle(textEl({ vertOverflow: 'ellipsis' }, { height: 5 }));
+			expect(style.WebkitLineClamp).toBe(1);
+		});
+
+		it('does not clamp a plain clip or an overflowing body', () => {
+			expect(buildTextBlockStyle(textEl({ vertOverflow: 'clip' })).WebkitLineClamp).toBeUndefined();
+			expect(buildTextBlockStyle(textEl({})).WebkitLineClamp).toBeUndefined();
+		});
+	});
+
 	it('always declares a font size and family so nothing inherits the host page', () => {
 		const style = buildTextBlockStyle(textEl({}));
 		expect(style.fontSize).toBe(24);

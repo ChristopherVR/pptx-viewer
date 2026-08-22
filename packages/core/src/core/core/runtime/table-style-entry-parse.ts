@@ -27,6 +27,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { parseTableStyleBorders } from './table-style-border-parse';
+import type { ResolveTableStyleImagePath } from './table-style-fill-parse';
 import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
 
 /**
@@ -99,7 +100,10 @@ export function parseTableBackground(
 }
 
 /** Parse a single `<a:tblStyle>` node. Returns `undefined` without a styleId. */
-export function parseTableStyleEntry(style: XmlObject): ParsedTableStyleEntry | undefined {
+export function parseTableStyleEntry(
+	style: XmlObject,
+	resolveImagePath?: ResolveTableStyleImagePath,
+): ParsedTableStyleEntry | undefined {
 	const rawId = String(style['@_styleId'] || '').trim();
 	if (!rawId) {
 		return undefined;
@@ -115,7 +119,7 @@ export function parseTableStyleEntry(style: XmlObject): ParsedTableStyleEntry | 
 	const borderProps: Partial<Record<`${TableStylePartName}Borders`, ParsedTableStyleBorders>> = {};
 	for (const name of TABLE_STYLE_PART_SEQUENCE) {
 		const node = section(name);
-		const fill = parseTableStyleSectionFill(node);
+		const fill = parseTableStyleSectionFill(node, resolveImagePath);
 		if (fill) {
 			fills[`${name}Fill`] = fill;
 		}
@@ -155,6 +159,7 @@ export function parseTableStyleEntry(style: XmlObject): ParsedTableStyleEntry | 
 export function parseTableStyleList(
 	parsed: XmlObject,
 	ensureArray: (value: unknown) => XmlObject[],
+	resolveImagePath?: ResolveTableStyleImagePath,
 ): { map: ParsedTableStyleMap; defaultStyleId?: string } | undefined {
 	const styleLst = parsed['a:tblStyleLst'] as XmlObject | undefined;
 	if (!styleLst) {
@@ -165,7 +170,7 @@ export function parseTableStyleList(
 
 	const map: ParsedTableStyleMap = {};
 	for (const style of ensureArray(styleLst['a:tblStyle'])) {
-		const entry = parseTableStyleEntry(style);
+		const entry = parseTableStyleEntry(style, resolveImagePath);
 		if (entry) {
 			map[entry.styleId] = entry;
 		}

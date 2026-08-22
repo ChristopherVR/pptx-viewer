@@ -157,6 +157,25 @@ describe('renderParagraphRun - decoration on the spans nested inside a run', () 
 	});
 });
 
+describe('renderParagraphRun - reflection (a:rPr/a:effectLst/a:reflection)', () => {
+	// Cross-browser fix: reflection used to ride `WebkitBoxReflect` on the run's
+	// own span, which Firefox never implemented. Shared now attaches a mirrored-
+	// sibling wrapper style (`run.reflection`) instead, the same mechanism a
+	// shape/picture's `ShapeEffectOverlay` uses.
+	it('renders a mirrored sibling with no -webkit-box-reflect / WebkitBoxReflect anywhere', () => {
+		const markup = markupOf({ textReflection: true, fontSize: 20 }, 'Reflected');
+		expect(markup).toContain('pptx-react-text-reflection');
+		expect(markup).toContain('mask-image');
+		expect(markup).not.toContain('box-reflect');
+		expect(markup).not.toContain('WebkitBoxReflect');
+	});
+
+	it('adds no reflection markup for a plain run', () => {
+		const markup = markupOf({ fontSize: 20 }, 'Plain');
+		expect(markup).not.toContain('pptx-react-text-reflection');
+	});
+});
+
 describe('renderParagraphRun - kerning threshold (a:rPr/@kern)', () => {
 	it('disables kerning when kern=0', () => {
 		const style = styleOf({ kerning: 0, fontSize: 20 });

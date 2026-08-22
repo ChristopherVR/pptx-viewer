@@ -9,7 +9,6 @@ import {
 	buildTextHslFilter,
 	getTextAlphaOpacity,
 	buildTextGlowFilter,
-	buildTextReflectionCss,
 } from './text-effects';
 
 // ── buildTextFillCss ──────────────────────────────────────────────────
@@ -296,41 +295,5 @@ describe('buildTextGlowFilter', () => {
 		const result = buildTextGlowFilter(style);
 		expect(result).toBeDefined();
 		expect(result).toContain('10px');
-	});
-});
-
-// ── buildTextReflectionCss ────────────────────────────────────────────
-
-describe('buildTextReflectionCss', () => {
-	it('returns undefined when no reflection', () => {
-		expect(buildTextReflectionCss({} as TextStyle)).toBeUndefined();
-	});
-
-	it('returns undefined when textReflection is false', () => {
-		expect(buildTextReflectionCss({ textReflection: false } as TextStyle)).toBeUndefined();
-	});
-
-	it('generates -webkit-box-reflect value', () => {
-		const style: TextStyle = {
-			textReflection: true,
-			textReflectionOffset: 5,
-			textReflectionStartOpacity: 0.4,
-			textReflectionEndOpacity: 0,
-		};
-		const result = buildTextReflectionCss(style);
-		expect(result).toBeDefined();
-		expect(result).toContain('below 5px');
-		expect(result).toContain('linear-gradient');
-		expect(result).toContain('rgba(0,0,0,0.4)');
-		expect(result).toContain('rgba(0,0,0,0)');
-	});
-
-	it('uses default values when not specified', () => {
-		const style: TextStyle = { textReflection: true };
-		const result = buildTextReflectionCss(style);
-		expect(result).toBeDefined();
-		expect(result).toContain('below 0px');
-		expect(result).toContain('rgba(0,0,0,0.5)'); // default startAlpha
-		expect(result).toContain('rgba(0,0,0,0)'); // default endAlpha
 	});
 });

@@ -113,4 +113,68 @@ describe('shapeEffectOverlay', () => {
 		});
 		expect(wrapper.html()).toContain('#000000');
 	});
+
+	describe('reflection', () => {
+		it('renders a mirrored sibling with no -webkit-box-reflect', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: shape({
+						fillColor: '#ff0000',
+						reflectionStartOpacity: 0.5,
+						reflectionDistance: 4,
+					}),
+				},
+			});
+			const layer = wrapper.get('.pptx-vue-reflection');
+			const style = layer.attributes('style') ?? '';
+			expect(style).not.toContain('box-reflect');
+			expect(style).toContain('position: absolute');
+			expect(style).toContain('transform: scaleY(-1)');
+			// The `mask-image` value itself (jsdom's CSSOM does not model that
+			// property, so it never round-trips through a mounted style attribute
+			// in tests even though real browsers apply it) is covered directly by
+			// `pptx-viewer-shared`'s `reflection.test.ts`.
+			expect(wrapper.html()).not.toContain('box-reflect');
+		});
+
+		it('paints the reflected fill from the resolved solid colour for a shape', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: shape({
+						fillColor: '#ff0000',
+						reflectionStartOpacity: 0.5,
+						reflectionDistance: 4,
+					}),
+				},
+			});
+			const layer = wrapper.get('.pptx-vue-reflection > div');
+			expect(layer.attributes('style') ?? '').toContain('background-color: #ff0000');
+		});
+
+		it('paints a reflected <img> for a picture element', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: {
+						type: 'picture',
+						id: 'pic1',
+						x: 0,
+						y: 0,
+						width: 100,
+						height: 80,
+						imageData: 'data:image/png;base64,AAAA',
+						shapeStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+					} as unknown as PptxElement,
+				},
+			});
+			const img = wrapper.get('.pptx-vue-reflection img');
+			expect(img.attributes('src')).toBe('data:image/png;base64,AAAA');
+		});
+
+		it('renders nothing extra when there is no reflection', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: { element: shape({ fillColor: '#ffffff' }) },
+			});
+			expect(wrapper.find('.pptx-vue-reflection').exists()).toBeFalsy();
+		});
+	});
 });

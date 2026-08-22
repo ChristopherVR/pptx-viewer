@@ -20,7 +20,7 @@ const NEWLINE_RUN = '\n';
  * returned `{ text, style }` only, so a linked run rendered as ordinary text, an
  * inline `m:oMath` as nothing at all, and a furigana reading vanished.
  */
-function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
+function createRunBaseNode(doc: Document, run: ParagraphRun): HTMLElement {
 	if (run.equation) {
 		const host = createEl(doc, 'span', 'pptxv-inline-equation', run.style);
 		const math = createEl(doc, 'span', 'pptxv-equation-math', {
@@ -75,6 +75,43 @@ function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
 	applyStyleMap(span, run.style);
 	appendRunContent(doc, span, run);
 	return span;
+}
+
+/**
+ * One rendered run, plus its optional `a:reflection` mirrored sibling.
+ *
+ * The run itself (equation / hyperlink / ruby / plain span) is
+ * `createRunBaseNode`. Reflection is wrapped HERE, around the whole base run,
+ * rather than inside `createRunBaseNode`'s branches: a `<ruby>` run's own
+ * `display: ruby` (which positions the annotation above its base text) would
+ * break if forced to `display: inline-block` to host an absolutely positioned
+ * mirror, so the positioning box has to be an outer element that leaves the
+ * base run's own tag untouched.
+ *
+ * Cross-browser (unlike the `-webkit-box-reflect` this replaced, which
+ * Firefox never implemented): the wrapper style comes from shared's
+ * `getTextReflectionWrapperStyle`, the text-run counterpart of a
+ * shape/picture's `renderReflectionOverlay` (`shape-filter-defs.ts`) - reused,
+ * not forked.
+ */
+function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
+	const base = createRunBaseNode(doc, run);
+	if (!run.reflection) {
+		return base;
+	}
+	const wrapper = createEl(doc, 'span', undefined, {
+		position: 'relative',
+		display: 'inline-block',
+	});
+	wrapper.appendChild(base);
+	const mirror = createEl(doc, 'span', 'pptxv-text-reflection', { ...run.reflection });
+	mirror.setAttribute('aria-hidden', 'true');
+	const mirrorInner = createEl(doc, 'span');
+	applyStyleMap(mirrorInner, run.style);
+	appendRunContent(doc, mirrorInner, run);
+	mirror.appendChild(mirrorInner);
+	wrapper.appendChild(mirror);
+	return wrapper;
 }
 
 /**

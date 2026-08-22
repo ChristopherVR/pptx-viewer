@@ -23,6 +23,7 @@ import type {
 
 import { buildGradientCss, getPatternSvg, normalizeHexColor } from './fill-style';
 import type { TableCellCss } from './table-style';
+import { isDisplayableImageUrl } from './table-style-image';
 
 // ---------------------------------------------------------------------------
 // Theme colour helpers (tint / shade) — mirrors React viewer/utils/theme.ts
@@ -146,6 +147,21 @@ export function applyStyleFill(
 	if (fill?.noFill) {
 		clearBackground(css);
 		css.backgroundColor = 'transparent';
+		return true;
+	}
+
+	// Image texture fill takes precedence, mirroring the per-CELL image-fill
+	// priority in `cellStyleToCss`. An unresolved image (`path` still a raw
+	// archive path, not yet patched to a displayable URL by a load pipeline -
+	// see `collectTableStyleImagePaths`) falls through to the next fill layer,
+	// same as an unresolved picture element shows nothing until it resolves.
+	const imageUrl = fill?.image?.data ?? fill?.image?.path;
+	if (imageUrl && isDisplayableImageUrl(imageUrl)) {
+		clearBackground(css);
+		css.backgroundImage = `url("${imageUrl}")`;
+		css.backgroundSize = 'cover';
+		css.backgroundPosition = 'center';
+		css.backgroundRepeat = 'no-repeat';
 		return true;
 	}
 

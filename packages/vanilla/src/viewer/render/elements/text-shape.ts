@@ -10,6 +10,7 @@ import {
 	renderStrokeOutline,
 	renderShapeFillOverlay,
 	renderShapeFilterDefs,
+	renderReflectionOverlay,
 	renderShapeSubpathFillOverlay,
 } from './shape-filter-defs';
 import { renderTextBlock } from './text-block';
@@ -75,6 +76,12 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	const hollowHit = renderHollowHitOutline(context.document, element);
 	if (hollowHit) {
 		el.appendChild(hollowHit);
+	}
+	// Mirrored reflection sibling (`a:reflection`): cross-browser, unlike the
+	// `-webkit-box-reflect` `element-styles.ts` used to set.
+	const reflection = renderReflectionOverlay(context.document, element, context.mediaDataUrls);
+	if (reflection) {
+		el.appendChild(reflection);
 	}
 
 	const equation = renderEquations(element, context);

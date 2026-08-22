@@ -7,15 +7,24 @@
  * base `[ngStyle]` maps. Mirrors the Vue/Svelte `ShapeEffectOverlay` split.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 
 import {
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
+	getComputedFillStyle,
+	getImageFitStyle,
+	getImageSrc,
 	getSoftEdgeSvgFilter,
 } from '../internal/shared';
-import type { FillOverlayCss, StrokeOutline, SubpathFillOverlay } from '../internal/shared';
+import type {
+	ComputedFillStyle,
+	FillOverlayCss,
+	ReflectionWrapperStyle,
+	StrokeOutline,
+	SubpathFillOverlay,
+} from '../internal/shared';
 import type { DuotoneFilterDef } from './duotone-filter';
 
 /** Injectable soft-edge `<filter>` descriptor (id + feather radius in px). */
@@ -52,6 +61,45 @@ export function getSoftEdgeFilterDef(el: PptxElement): SoftEdgeFilterDef | undef
  */
 export function getEffectFillOverlay(el: PptxElement): FillOverlayCss | undefined {
 	return getComputedEffectStyle(el).fillOverlay;
+}
+
+/**
+ * `a:reflection` mirrored-sibling descriptor: the wrapper style (position,
+ * mirror transform, mask-image fade - see shared's `getReflectionWrapperStyle`)
+ * plus the mirrored CONTENT to paint inside it. Cross-browser, unlike the
+ * `-webkit-box-reflect` `element-style.ts` used to set (Firefox never
+ * implemented that property, so reflections were invisible there entirely).
+ */
+export interface ReflectionOverlay {
+	wrapperStyle: ReflectionWrapperStyle;
+	/** Set for a picture/image element: its actual photo, cloned. */
+	imgSrc?: string;
+	imgFitStyle?: Record<string, unknown>;
+	/** Set for everything else: the resolved fill (colour/gradient/pattern/image). */
+	fill?: ComputedFillStyle;
+}
+
+/**
+ * Resolve the reflection overlay descriptor for an element, or `undefined`
+ * when it has no `a:reflection`. `a:grpFill` children reflect as transparent:
+ * the enclosing group's fill is not threaded into this overlay.
+ */
+export function getReflectionOverlay(
+	el: PptxElement,
+	mediaDataUrls: Map<string, string>,
+): ReflectionOverlay | undefined {
+	const wrapperStyle = getComputedEffectStyle(el).reflection;
+	if (!wrapperStyle) {
+		return undefined;
+	}
+	if (isImageLikeElement(el)) {
+		return {
+			wrapperStyle,
+			imgSrc: getImageSrc(el, mediaDataUrls),
+			imgFitStyle: getImageFitStyle(el) as Record<string, unknown>,
+		};
+	}
+	return { wrapperStyle, fill: getComputedFillStyle(el) };
 }
 
 /**

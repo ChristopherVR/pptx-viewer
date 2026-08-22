@@ -441,8 +441,8 @@ const isRendered = computed(() => isElementRendered(props.element));
 		:data-pptx-element="elementMarker"
 	>
 		<DuotoneFilterDefs :element="element" />
-		<!-- Soft-edge <filter> defs + DAG fill-overlay tint layer. -->
-		<ShapeEffectOverlay :element="element" />
+		<!-- Soft-edge <filter> defs + DAG fill-overlay tint layer + reflection. -->
+		<ShapeEffectOverlay :element="element" :media-data-urls="mediaDataUrls" />
 		<Extrusion3DOverlay v-if="extrusionData.hasExtrusion" :data="extrusionData" />
 		<!-- Action-button glyph (home/help/sound/arrows/...); self-hides for non-buttons. -->
 		<ActionButtonGlyphOverlay :element="element" />

@@ -64,6 +64,17 @@ describe('getTextStyleForElement body insets vs paragraph indents', () => {
 		expect(style.textIndent).toBe(-12);
 		expect(style.paddingLeft).toBeCloseTo(31, 5);
 	});
+
+	it('clamps a:bodyPr/@vertOverflow="ellipsis" to a multi-line "…" truncation', () => {
+		const style = getTextStyleForElement(
+			textEl({ height: 100, textStyle: { fontSize: 24, vertOverflow: 'ellipsis' } }),
+			'#000000',
+		);
+		expect(style.display).toBe('-webkit-box');
+		expect(style.overflow).toBe('hidden');
+		expect(style.textOverflow).toBe('ellipsis');
+		expect(style.WebkitLineClamp).toBeTypeOf('number');
+	});
 });
 
 /**

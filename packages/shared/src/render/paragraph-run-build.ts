@@ -1,9 +1,8 @@
 /**
  * The two per-paragraph builders `buildParagraphs` composes: turning a
  * paragraph's segments into rendered runs, and styling its bullet marker.
- *
- * Split out of `text-paragraphs` to keep each module focused; both are pure and
- * reached through the same barrel, so no binding import changes.
+ * Split out of `text-paragraphs` to keep each module focused; both are pure
+ * and reached through the same barrel, so no binding import changes.
  */
 
 import type { TextSegment } from 'pptx-viewer-core';
@@ -12,12 +11,16 @@ import { getSubstituteFontFamily } from 'pptx-viewer-core';
 import { DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import type { ParagraphBulletResult } from './bullet-list';
 import {
+	applyRunReflection,
 	buildScriptRunsFor,
 	buildTabLinesFor,
 	resolveRunExtrasContext,
+	resolveRunReflection,
 } from './paragraph-run-enrich';
+import type { ReflectionWrapperStyle } from './reflection';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
+import { applyFontAlignmentFallback } from './text-font-alignment';
 import type { RunFontSpec } from './text-metric-tracking';
 import { applyUnderlineVariant } from './text-run-decoration';
 import { buildRunEffectStyle } from './text-run-effects';
@@ -44,18 +47,18 @@ export interface BuiltRun {
 	/**
 	 * Per-script (`a:ea`/`a:cs`/`a:sym`) font-fallback pieces for this run's
 	 * text, when it authors a distinct east-Asian / complex-script / symbol
-	 * font the text actually needs. A binding renders these as nested spans
-	 * instead of one plain text node. Absent for the common single-font case.
+	 * font the text actually needs. Absent for the common single-font case.
 	 */
 	scriptRuns?: ScriptFontPiece[];
 	/**
 	 * Measured tab-stop layout for this run's text, when it contains `\t` and
 	 * the paragraph authors explicit tab stops (`a:tabLst`). Present INSTEAD OF
-	 * the ordinary per-word metric split (see `buildParagraphRuns`), so a
-	 * binding that sees this renders these lines/pieces rather than `text`
-	 * directly. Absent for the common no-tab case.
+	 * the ordinary per-word metric split (see `buildParagraphRuns`). Absent for
+	 * the common no-tab case.
 	 */
 	tabLines?: TabbedLineRun[];
+	/** `a:reflection` mirrored-sibling wrapper (see `resolveRunReflection`). */
+	reflection?: ReflectionWrapperStyle;
 }
 
 /** Everything the run builder needs besides the paragraph's own segments. */
@@ -74,8 +77,13 @@ export interface ParagraphRunBuildInput {
 	blockScriptStyle: ScriptFontFields | undefined;
 	/** Parsed `a:pPr/a:tabLst` entries, when the body authors any. */
 	tabStops: TabStopSpec[] | undefined;
-	/** `a:pPr/@defTabSz` in px. */
+	/** This paragraph's own (or the body's, when it authors none) `a:pPr/@defTabSz` in px. */
 	defaultTabSize: number | undefined;
+	/**
+	 * This paragraph's own (or the body's) `a:pPr/@fontAlgn`, applied to every run
+	 * as a `vertical-align` fallback - a run's own baseline shift always wins.
+	 */
+	fontAlignment: string | undefined;
 	/** Context for `a:fld` substitution, when the caller supplied one. */
 	fieldContext: FieldSubstitutionContext | undefined;
 }
@@ -94,6 +102,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		blockScriptStyle,
 		tabStops,
 		defaultTabSize,
+		fontAlignment,
 		fieldContext,
 	} = input;
 	const runs: BuiltRun[] = [];
@@ -126,12 +135,17 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		}
 		const style = segmentStyleToCss(seg, fontScale, { text, blockFont });
 		applyUnderlineVariant(style, seg);
+		// `a:pPr/@fontAlgn` positions the run within the LINE box when the
+		// paragraph mixes run sizes; a run's own super/subscript shift always
+		// wins (see `applyFontAlignmentFallback`).
+		applyFontAlignmentFallback(style, fontAlignment);
 		// Per-run text effects (gradient/pattern fill, outer/inner shadow, 3D
-		// extrusion text-shadow, blur, HSL, alpha opacity, glow, reflection).
-		// No-op `{}` for plain runs, so ordinary text is unchanged.
+		// extrusion text-shadow, blur, HSL, alpha opacity). No-op `{}` for plain
+		// runs, so ordinary text is unchanged.
 		if (seg.style) {
 			Object.assign(style, buildRunEffectStyle(seg.style));
 		}
+		const reflection = resolveRunReflection(seg.style, blockFont);
 		const hyperlink = resolveRunHyperlink(seg.style);
 		const runFont = resolveRunFont(style, seg.style ?? {}, blockFont);
 		// Per-script fonts and tab-stop layout are both resolved once per
@@ -165,6 +179,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			if (hyperlink) {
 				rubyRun.hyperlink = hyperlink;
 			}
+			applyRunReflection(rubyRun, reflection);
 			const rubyScriptRuns = buildScriptRunsFor(text, extrasCtx, style);
 			if (rubyScriptRuns) {
 				rubyRun.scriptRuns = rubyScriptRuns;
@@ -190,6 +205,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			if (hyperlink) {
 				run.hyperlink = hyperlink;
 			}
+			applyRunReflection(run, reflection);
 			runs.push(run);
 			continue;
 		}
@@ -206,6 +222,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			if (hyperlink) {
 				run.hyperlink = hyperlink;
 			}
+			applyRunReflection(run, reflection);
 			const scriptRuns = buildScriptRunsFor(piece.text, extrasCtx, piece.style);
 			if (scriptRuns) {
 				run.scriptRuns = scriptRuns;

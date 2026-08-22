@@ -122,6 +122,7 @@ assign(
 	[
 		'presentation:element:tagLst',
 		'presentation:element:tag',
+		'presentation:element:tags',
 		'presentation:complexType:CT_TagList',
 		'presentation:complexType:CT_StringTag',
 		'presentation:complexType:CT_TagsData',
@@ -131,10 +132,12 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'User-defined tags parts (`tags/tagN.xml`, root `p:tagLst`/`p:tag`) are authored, relationship-owned by either the presentation or a slide, and reloaded with unknown XML preserved.',
+		note: 'User-defined tags parts (`tags/tagN.xml`, root `p:tagLst`/`p:tag`) are authored, relationship-owned by either the presentation or a slide, and reloaded with unknown XML preserved. The owning `<p:tags r:id="..">` element (CT_TagsData, a sibling of `p:custData` inside `p:custDataLst`) is authored alongside the relationship when a collection is created, and removed - along with the relationship, the part, and its content-type override - when a collection is cleared to zero tags; previously only the relationship was written, an authoring gap real PowerPoint keys its smart-tags UI off of.',
 		evidence: [
 			testEvidence('src/__tests__/integration/tag-part-authoring.test.ts', [
 				'authors a presentation-owned collection by default and reloads ownership',
+				'authors the owning <p:tags r:id> element referencing the same relationship id (structural gap fix)',
+				'removes the owning element, relationship, part, and content-type override when a collection is cleared',
 				'authors slide-owned tags and preserves unknown XML on dirty reload',
 			]),
 		],

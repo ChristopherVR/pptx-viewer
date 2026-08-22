@@ -24,10 +24,12 @@ import { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
 	applyTableCellImagePatches,
+	applyTableStyleImagePatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	collectTableCellImagePaths,
+	collectTableStyleImagePaths,
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
 } from 'pptx-viewer-shared';
@@ -104,6 +106,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 		const mediaDataUrls = await resolveMediaUrls(handler, parsed.slides, blobUrls);
 		const imageResolvedSlides = await resolveImageUrls(handler, parsed.slides);
 		const slides = await resolveTableCellImageUrls(handler, imageResolvedSlides);
+		const tableStyleMap = await resolveTableStyleImageUrls(handler, parsed.tableStyleMap);
 
 		return {
 			handler,
@@ -129,7 +132,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			fontScheme: parsed.theme?.fontScheme,
 			themeName: parsed.theme?.name,
 			tagCollections: parsed.tags ?? [],
-			tableStyleMap: parsed.tableStyleMap,
+			tableStyleMap,
 			slideMasters: parsed.slideMasters ?? [],
 			themeOptions: parsed.themeOptions ?? [],
 			notesMaster: parsed.notesMaster,
@@ -337,4 +340,40 @@ async function resolveTableCellImageUrls(
 		const newElements = applyTableCellImagePatches(slide.elements, resolvedMap, refs);
 		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
 	});
+}
+
+/**
+ * Resolve lazily-loaded whole-table-STYLE image-fill URLs
+ * (`a:tcStyle/a:fill/a:blipFill` on `ppt/tableStyles.xml`) and patch them
+ * into the table style map. Same lazy-load story as
+ * {@link resolveTableCellImageUrls}, but for a presentation-level style
+ * section fill rather than a per-cell one.
+ */
+async function resolveTableStyleImageUrls(
+	handler: PptxHandler,
+	tableStyleMap: ParsedTableStyleMap | undefined,
+): Promise<ParsedTableStyleMap | undefined> {
+	const { paths, refs } = collectTableStyleImagePaths(tableStyleMap);
+	if (paths.size === 0 || !tableStyleMap) {
+		return tableStyleMap;
+	}
+
+	const resolvedMap = new Map<string, string>();
+	await Promise.all(
+		Array.from(paths).map(async (path) => {
+			try {
+				const url = await handler.getImageData(path);
+				if (url) {
+					resolvedMap.set(path, url);
+				}
+			} catch {
+				// Non-critical: the style section falls back to no image fill.
+			}
+		}),
+	);
+	if (resolvedMap.size === 0) {
+		return tableStyleMap;
+	}
+
+	return applyTableStyleImagePatches(tableStyleMap, resolvedMap, refs);
 }

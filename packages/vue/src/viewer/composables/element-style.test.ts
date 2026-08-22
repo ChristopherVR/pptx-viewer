@@ -204,6 +204,20 @@ describe('getTextBlockStyle', () => {
 		expect(style.paddingLeft).toBe(`${91440 / 9525}px`);
 		expect(style.paddingTop).toBe(`${45720 / 9525}px`);
 	});
+
+	it('clamps a:bodyPr/@vertOverflow="ellipsis" to a multi-line "…" truncation', () => {
+		// Regression: shared's `resolveVertOverflowEllipsisStyle` composes this
+		// AFTER `buildTextBodyLayoutStyle`'s flex-column display within one
+		// `buildTextBlockStyle` call, so it must win rather than being clobbered
+		// by the earlier flex layout this binding also asks for (`bodyLayout: true`).
+		const style = getTextBlockStyle(
+			shape({ width: 100, height: 100, textStyle: { fontSize: 24, vertOverflow: 'ellipsis' } }),
+		);
+		expect(style.display).toBe('-webkit-box');
+		expect(style.overflow).toBe('hidden');
+		expect(style.textOverflow).toBe('ellipsis');
+		expect(style.WebkitLineClamp).toBeTypeOf('number');
+	});
 });
 
 /**

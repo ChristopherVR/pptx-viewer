@@ -36,6 +36,8 @@ export type {
 	PptxSmartArtLayoutAlgorithm,
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
+	PptxSmartArtLayoutNodeShape,
+	PptxSmartArtShapeAdjustment,
 	PptxSmartArtLocalizedText,
 	PptxSmartArtWhen,
 } from './smart-art-layout-definition';
@@ -178,6 +180,14 @@ export interface PptxSmartArtConnection {
 	siblingTransitionId?: string | null;
 	/** Layout presentation identifier used by presentation connections. */
 	presentationId?: string | null;
+	/**
+	 * Connector text, read from the linked `parTrans`/`sibTrans` transition
+	 * point's `dgm:t` (via {@link parentTransitionId} / {@link siblingTransitionId}).
+	 * PowerPoint's own diagram editor lets a user type text directly onto an
+	 * org-chart relationship connector; `undefined` when the transition point
+	 * carries no text. Written back to that point on save.
+	 */
+	label?: string;
 }
 
 /**

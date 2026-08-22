@@ -454,6 +454,26 @@ describe('getTableCellBandStyle - section fill types (issue #95)', () => {
 		expect(css?.backgroundColor).toBe('#FFFFFF');
 	});
 
+	it('resolves an image whole-table fill (once patched to a displayable URL)', () => {
+		const map = mapWith({
+			wholeTblFill: {
+				schemeColor: '',
+				image: { path: 'ppt/media/tex.png', data: 'blob:resolved' },
+			},
+		});
+		const css = getTableCellBandStyle(tableWith({}), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundImage).toBe('url("blob:resolved")');
+		expect(css?.backgroundSize).toBe('cover');
+	});
+
+	it('falls through to no fill while an image whole-table fill path is unresolved', () => {
+		const map = mapWith({
+			wholeTblFill: { schemeColor: '', image: { path: 'ppt/media/tex.png' } },
+		});
+		const css = getTableCellBandStyle(tableWith({}), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundImage).toBeUndefined();
+	});
+
 	it('keeps an authored transparent header readable', () => {
 		const map = mapWith({ firstRowFill: { schemeColor: '', noFill: true } });
 		const css = getTableCellBandStyle(tableWith({ firstRowHeader: true }), 0, 0, 3, 2, {

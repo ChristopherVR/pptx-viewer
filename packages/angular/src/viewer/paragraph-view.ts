@@ -4,6 +4,7 @@ import { buildParagraphs } from '../internal/shared';
 import type {
 	FieldSubstitutionContext,
 	PictureBulletMarker,
+	ReflectionWrapperStyle,
 	ScriptFontPiece,
 	TabbedLineRun,
 } from '../internal/shared';
@@ -59,6 +60,15 @@ export interface TextRun {
 	 * alignment and leader glyphs a plain CSS `tab-size` cannot express.
 	 */
 	tabLines?: TabbedLineRun[];
+	/**
+	 * `a:reflection` mirrored-sibling wrapper style for this run, or `undefined`
+	 * for the common no-reflection case - the text-run counterpart of a
+	 * shape/picture's `ReflectionOverlay` (`element-effect-defs.ts`). The
+	 * template renders a sibling `<span>` positioned/masked by this style,
+	 * painted with the same text, instead of the old `-webkit-box-reflect`
+	 * (Firefox never implemented that property).
+	 */
+	reflection?: ReflectionWrapperStyle;
 }
 
 /** A rendered paragraph: runs plus bullet + indent + spacing metadata. */
@@ -133,6 +143,9 @@ export function buildAngularParagraphs(
 			}
 			if (run.tabLines) {
 				out.tabLines = run.tabLines;
+			}
+			if (run.reflection) {
+				out.reflection = run.reflection;
 			}
 			return out;
 		}),

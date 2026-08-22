@@ -34,7 +34,30 @@ describe('segmentStyleToCss run properties', () => {
 
 	it('maps kerning to font-kerning', () => {
 		expect(segmentStyleToCss(seg({ kerning: 0 })).fontKerning).toBe('none');
-		expect(segmentStyleToCss(seg({ kerning: 1200 })).fontKerning).toBe('normal');
+		// A run whose own size clears the threshold (18pt run, 12pt threshold).
+		expect(segmentStyleToCss(seg({ kerning: 1200, fontSize: 18 })).fontKerning).toBe('normal');
+	});
+
+	it('treats @kern as a minimum-size THRESHOLD, not a boolean', () => {
+		// TextStyle.fontSize is already CSS px (see the comment in
+		// `segmentStyleToCss`), so a 12pt threshold (`kern="1200"`) is 16px.
+		const PT_TO_PX = 96 / 72;
+		// An 18pt run: at/above threshold -> kerning applies.
+		expect(segmentStyleToCss(seg({ kerning: 1200, fontSize: 18 * PT_TO_PX })).fontKerning).toBe(
+			'normal',
+		);
+		// The same threshold on a 10pt run: below threshold -> kerning does NOT
+		// apply, even though `kerning` is a non-zero value (the old boolean
+		// reading would have said 'normal' here).
+		expect(segmentStyleToCss(seg({ kerning: 1200, fontSize: 10 * PT_TO_PX })).fontKerning).toBe(
+			'none',
+		);
+		// Exactly at the threshold applies (>=).
+		expect(segmentStyleToCss(seg({ kerning: 1200, fontSize: 12 * PT_TO_PX })).fontKerning).toBe(
+			'normal',
+		);
+		// `0` always disables kerning outright, regardless of size.
+		expect(segmentStyleToCss(seg({ kerning: 0, fontSize: 40 })).fontKerning).toBe('none');
 	});
 
 	it('maps super/subscript baseline to vertical-align and scales font size', () => {
@@ -77,6 +100,22 @@ describe('segmentStyleToCss run properties', () => {
 		const none = segmentStyleToCss(seg({ textCaps: 'none' }));
 		expect(none.textTransform).toBeUndefined();
 		expect(none.fontVariantCaps).toBeUndefined();
+	});
+
+	it('substitutes the run own font-family through its own PANOSE classification', () => {
+		// Regression: this used to call `getSubstituteFontFamily` with no PANOSE
+		// argument at all, so a run overriding the body's own font substituted
+		// WITHOUT its `a:latin/@panose` outside React. An unknown serif font with
+		// no direct name match falls back to generic sans-serif without PANOSE,
+		// and to the serif fallback chain with it - two different fonts entirely.
+		const withoutPanose = segmentStyleToCss(seg({ fontFamily: 'CustomSerifFont' }));
+		expect(withoutPanose.fontFamily).toBe('"CustomSerifFont", sans-serif');
+
+		// PANOSE for a serif font (bFamilyType=2, bSerifStyle=2 / "Cove"), hex-encoded.
+		const withPanose = segmentStyleToCss(
+			seg({ fontFamily: 'CustomSerifFont', latinFontPanose: '02020502020202020204' }),
+		);
+		expect(withPanose.fontFamily).toBe('"CustomSerifFont", "Times New Roman", "Georgia", serif');
 	});
 
 	it('adds no keys beyond the always-declared weight and slant', () => {
@@ -154,6 +193,23 @@ describe('applyUnderlineVariant', () => {
 		const style: Record<string, string | number> = {};
 		applyUnderlineVariant(style, seg({ underline: true, underlineStyle: 'wavy' }));
 		expect(style.textDecorationStyle).toBe('wavy');
+	});
+
+	it('a run-authored a:uLn (width/dash) overrides the a:u style-token decoration', () => {
+		// a:uLn is a distinct line description from a:u's style token: a run can
+		// carry both, and the line's own width/dash win. Previously only its
+		// colour (`underlineColor`) ever reached the render output.
+		const style: Record<string, string | number> = {};
+		applyUnderlineVariant(
+			style,
+			seg({
+				underline: true,
+				underlineStyle: 'sng',
+				underlineLine: { widthEmu: 28575, prstDash: 'lgDash' },
+			}),
+		);
+		expect(style.textDecorationThickness).toBe('3px');
+		expect(style.textDecorationStyle).toBe('dashed');
 	});
 });
 

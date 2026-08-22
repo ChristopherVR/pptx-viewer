@@ -293,7 +293,7 @@ describe('open XML schema coverage inventory', () => {
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
 		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(296);
-		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(498);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(491);
 		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(604);
 		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(135);
 	});

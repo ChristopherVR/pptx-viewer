@@ -7,8 +7,29 @@
  * binding casts it into its own style type at the call site.
  */
 
+import type { TextStyle } from 'pptx-viewer-core';
+
 /** CSS `text-decoration-style` keyword values. */
 export type CssTextDecorationStyle = 'solid' | 'double' | 'dotted' | 'dashed' | 'wavy';
+
+/** EMU per CSS px, matching every other length conversion in this package. */
+const EMU_PER_PX = 9525;
+
+/** `a:uLn/a:prstDash/@val` -> the closest CSS `text-decoration-style` keyword. */
+const UNDERLINE_DASH_TO_CSS: Record<string, CssTextDecorationStyle> = {
+	solid: 'solid',
+	dot: 'dotted',
+	sysDot: 'dotted',
+	dash: 'dashed',
+	sysDash: 'dashed',
+	lgDash: 'dashed',
+	dashDot: 'dashed',
+	sysDashDot: 'dashed',
+	lgDashDot: 'dashed',
+	dashDotDot: 'dotted',
+	sysDashDotDot: 'dotted',
+	lgDashDotDot: 'dotted',
+};
 
 /**
  * CSS properties that fully describe the visual appearance of an underline or
@@ -131,4 +152,46 @@ export function resolveUnderlineDecorationStyle(
 		default:
 			return undefined;
 	}
+}
+
+/**
+ * Resolve a run's own `<a:rPr><a:uLn>` (underline line properties: width,
+ * compound type, dash pattern, caps) to the CSS that overrides the plain
+ * `a:u`-style decoration {@link resolveUnderlineDecorationStyle} produces.
+ *
+ * `a:uLn` is a distinct, independent line description from `a:u`'s style
+ * token - a run can author both (`u="sng"` for the underline TYPE plus a
+ * custom-width dashed `uLn` for its STROKE), and the line's own width/dash
+ * take priority over whatever the type token implied, exactly as `a:ln`
+ * overrides a shape outline's default weight. Previously only the line's
+ * colour (`a:uLn/a:solidFill`, via `underlineColor`) was ever rendered; the
+ * width and dash preset parsed into {@link TextStyle.underlineLine} were
+ * captured for round-trip but never reached the screen.
+ *
+ * @param underlineLine The run's parsed `a:uLn`, or `undefined`.
+ * @param hasUnderline  Whether the run actually renders an underline at all
+ *                       (`a:u` present and not `"none"`); a `uLn` on a run
+ *                       with no underline has nothing to decorate.
+ * @returns The thickness/style override, or `undefined` when the run has no
+ *          underline or its `uLn` authors neither a width nor a known dash.
+ */
+export function resolveUnderlineLineDecoration(
+	underlineLine: TextStyle['underlineLine'] | undefined,
+	hasUnderline: boolean,
+): UnderlineDecorationCss | undefined {
+	if (!hasUnderline || !underlineLine) {
+		return undefined;
+	}
+	const out: UnderlineDecorationCss = {};
+	if (typeof underlineLine.widthEmu === 'number' && underlineLine.widthEmu > 0) {
+		const px = Math.max(1, Math.round(underlineLine.widthEmu / EMU_PER_PX));
+		out.textDecorationThickness = `${px}px`;
+	}
+	if (underlineLine.prstDash) {
+		const css = UNDERLINE_DASH_TO_CSS[underlineLine.prstDash];
+		if (css) {
+			out.textDecorationStyle = css;
+		}
+	}
+	return Object.keys(out).length > 0 ? out : undefined;
 }

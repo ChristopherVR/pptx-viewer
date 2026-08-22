@@ -116,6 +116,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	tileScaleY: 'scalar',
 	tileFlip: 'scalar',
 	tileAlignment: 'scalar',
+	dpi: 'scalar',
 	imageEffects: 'complex',
 	cropShape: 'complex',
 	// TablePptxElement / ChartPptxElement / SmartArtPptxElement

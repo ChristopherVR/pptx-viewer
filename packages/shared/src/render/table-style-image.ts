@@ -29,8 +29,12 @@ export interface CellImageFillCss {
 	backgroundRepeat: string;
 }
 
-/** A URL usable directly as a CSS `url(...)` value, with no further resolution needed. */
-function isDisplayableImageUrl(url: string): boolean {
+/**
+ * A URL usable directly as a CSS `url(...)` value, with no further resolution
+ * needed. Shared with `table-style-fill.ts`'s whole-table-STYLE image fill,
+ * which resolves through the identical raw-path -> displayable-URL pattern.
+ */
+export function isDisplayableImageUrl(url: string): boolean {
 	return (
 		url.startsWith('data:') ||
 		url.startsWith('blob:') ||

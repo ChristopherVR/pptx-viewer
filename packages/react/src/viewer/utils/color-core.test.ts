@@ -10,7 +10,6 @@ import {
 	buildInnerShadowCssFromShapeStyle,
 	buildMultiLayerShadowCss,
 	buildGlowBoxShadow,
-	buildReflectionCss,
 	createArrayBufferCopy,
 } from './color-core';
 
@@ -420,34 +419,7 @@ describe('buildGlowBoxShadow', () => {
 	});
 });
 
-describe('buildReflectionCss', () => {
-	it('should produce a two-stop gradient with no blur', () => {
-		const result = buildReflectionCss(5, 0.5, 0, 100, 0);
-		expect(result).toContain('below 5px');
-		expect(result).toContain('linear-gradient(to bottom');
-		expect(result).toContain('rgba(255,255,255,0.5)');
-		expect(result).toContain('rgba(255,255,255,0) 100px)');
-	});
-
-	it('should produce a three-stop gradient with blur', () => {
-		const result = buildReflectionCss(10, 0.5, 0, 100, 5);
-		expect(result).toContain('below 10px');
-		expect(result).toContain('linear-gradient(to bottom');
-		// Should have 3 stops for blur
-		expect(result).toContain('rgba(255,255,255,0.5)');
-		expect(result).toContain('rgba(255,255,255,0.25)'); // mid opacity
-		// Effective fade length = 100 + 5*2 = 110
-		expect(result).toContain('110px)');
-	});
-
-	it('should handle zero distance', () => {
-		const result = buildReflectionCss(0, 0.5, 0, 100, 0);
-		expect(result).toContain('below 0px');
-	});
-
-	it('should handle full opacity start', () => {
-		const result = buildReflectionCss(0, 1, 0, 50, 0);
-		expect(result).toContain('rgba(255,255,255,1)');
-		expect(result).toContain('rgba(255,255,255,0) 50px)');
-	});
-});
+// `buildReflectionCss` (`-webkit-box-reflect`) was removed: Firefox never
+// supported the property, so it rendered no reflection at all there. See
+// `pptx-viewer-shared`'s `reflection.test.ts` for the cross-browser
+// mirrored-sibling wrapper style that replaced it.

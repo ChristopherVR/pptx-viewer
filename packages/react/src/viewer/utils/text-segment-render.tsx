@@ -5,6 +5,7 @@ import {
 	nestedTextDecorationStyle,
 	pieceLetterSpacing,
 	resolveAutoFitFontScale,
+	resolveFontKerning,
 	resolveMetricTrackingPx,
 	resolveScriptFontSet,
 } from 'pptx-viewer-shared';
@@ -15,6 +16,8 @@ import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '..
 import { normalizeHexColor } from './color';
 import { renderSegmentContent, renderEquationSegment } from './text-segment-helpers';
 import type { ElementFindHighlights } from './text-segment-helpers';
+import { renderHyperlink } from './text-segment-hyperlink';
+import { wrapWithTextReflection } from './text-segment-reflection';
 import { buildTabContext } from './text-tab-layout';
 import { hasDistinctScriptFonts } from './unicode-script-detection';
 
@@ -115,16 +118,14 @@ export function renderParagraphRun(
 
 	// Kerning → CSS font-kerning. OOXML `@kern` is a threshold: kerning applies
 	// only at or above the given font size (hundredths of a point); `0` disables
-	// kerning outright.
-	const baseFontSizePt = baseFontSize * (72 / 96);
-	const fontKerning: React.CSSProperties['fontKerning'] =
-		typeof segmentStyle.kerning === 'number'
-			? segmentStyle.kerning === 0
-				? 'none'
-				: baseFontSizePt >= segmentStyle.kerning / 100
-					? 'normal'
-					: 'none'
-			: undefined;
+	// kerning outright. Shared now owns the formula (`resolveFontKerning`) so
+	// Vue/Angular/Svelte/Vanilla read the threshold too, instead of treating
+	// `@kern` as an on/off flag; checked against the run's own unshrunk size
+	// (matching this component's pre-existing behaviour), not the super/subscript
+	// glyph's visually-reduced size.
+	const fontKerning = resolveFontKerning(segmentStyle.kerning, baseFontSize) as
+		| React.CSSProperties['fontKerning']
+		| undefined;
 
 	const rawFontFamily = segmentStyle.fontFamily || element.textStyle?.fontFamily;
 	// PANOSE-based font substitution with fallback chain.
@@ -239,7 +240,11 @@ export function renderParagraphRun(
 		</span>
 	);
 
-	return run.hyperlink && onHyperlinkClick ? renderHyperlink(run, spanNode, key, ctx) : spanNode;
+	const reflectedNode = wrapWithTextReflection(run, key, spanNode, spanStyle, baseContent);
+
+	return run.hyperlink && onHyperlinkClick
+		? renderHyperlink(run, reflectedNode, key, ctx)
+		: reflectedNode;
 }
 
 /**
@@ -263,75 +268,5 @@ function renderRubyOrText(run: ParagraphRun, baseContent: React.ReactNode): Reac
 			<rt style={run.ruby.style as React.CSSProperties}>{run.ruby.text}</rt>
 			<rp>)</rp>
 		</ruby>
-	);
-}
-
-/**
- * Wrap a linked run in a clickable element. The URL is shared's resolved
- * {@link ParagraphRun.hyperlink} target, which already carries the encoded
- * `slideIndex` for an internal `ppaction://` jump.
- */
-function renderHyperlink(
-	run: ParagraphRun,
-	spanNode: React.ReactNode,
-	key: string,
-	ctx: RunRenderContext,
-): React.ReactNode {
-	const url = run.hyperlink?.url;
-	const onHyperlinkClick = ctx.onHyperlinkClick;
-	if (!url || !onHyperlinkClick) {
-		return spanNode;
-	}
-	const requireCtrlClick = ctx.requireCtrlClick;
-	// Strip the `ppaction://` protocol for display; show a clean URL to the user.
-	const displayUrl = url.startsWith('ppaction://')
-		? url.replace(/^ppaction:\/\//u, '').split('?')[0]
-		: url;
-	const follow = (modified: boolean): boolean => {
-		if (requireCtrlClick && !modified) {
-			return false;
-		}
-		onHyperlinkClick(url);
-		return true;
-	};
-
-	return (
-		<span
-			key={`${key}-link`}
-			role='link'
-			tabIndex={0}
-			className={requireCtrlClick ? 'group/link relative' : undefined}
-			style={{ cursor: requireCtrlClick ? undefined : 'pointer', pointerEvents: 'auto' }}
-			title={run.hyperlink?.tooltip}
-			onClick={(e) => {
-				if (!follow(e.ctrlKey || e.metaKey)) {
-					return;
-				}
-				e.stopPropagation();
-				e.preventDefault();
-			}}
-			onKeyDown={(e) => {
-				if (e.key !== 'Enter' && e.key !== ' ') {
-					return;
-				}
-				if (!follow(e.ctrlKey || e.metaKey)) {
-					return;
-				}
-				e.preventDefault();
-				e.stopPropagation();
-			}}
-		>
-			{spanNode}
-			{requireCtrlClick && (
-				<span className='pointer-events-none absolute left-0 top-full z-[9999] mt-1 max-w-64 opacity-0 transition-opacity duration-150 group-hover/link:opacity-100'>
-					<span className='flex flex-col rounded border border-border bg-popover px-2.5 py-1.5 shadow-lg'>
-						<span className='truncate text-xs text-foreground'>{displayUrl}</span>
-						<span className='mt-0.5 text-[10px] text-muted-foreground'>
-							Ctrl+Click to follow link
-						</span>
-					</span>
-				</span>
-			)}
-		</span>
 	);
 }

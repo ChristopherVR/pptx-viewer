@@ -18,6 +18,7 @@ export {
 export {
 	resolveLazyImages,
 	resolveLazyTableCellImages,
+	resolveLazyTableStyleImages,
 	resolveMediaUrls,
 	revokeBlobUrls,
 } from './loader-helpers';

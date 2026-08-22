@@ -1,11 +1,14 @@
 /**
  * Text effect CSS builders (shadow / inner-shadow / glow / blur / HSL /
- * reflection / alpha), shared by every binding's text renderer.
+ * alpha), shared by every binding's text renderer.
  *
  * Pure, framework-agnostic: each builder returns a neutral CSS string (or a
  * number for opacity), or `undefined` when the effect is absent. The 3D scene
  * builder lives in {@link ./text-effects-3d}; the gradient/pattern text-fill
- * builder lives in {@link ./text-fill}.
+ * builder lives in {@link ./text-fill}. Reflection (`a:reflection`) is NOT a
+ * CSS builder here: it renders as a mirrored-sibling wrapper, like a
+ * shape/picture's, via {@link ./reflection}'s `getTextReflectionWrapperStyle`
+ * (`-webkit-box-reflect` never rendered in Firefox at all).
  */
 import type { TextStyle } from 'pptx-viewer-core';
 
@@ -123,21 +126,4 @@ export function buildTextGlowFilter(style: TextStyle): string | undefined {
 	const g = parseInt(color.slice(3, 5), 16);
 	const b = parseInt(color.slice(5, 7), 16);
 	return `drop-shadow(0 0 ${radius}px rgba(${r},${g},${b},${opacity}))`;
-}
-
-/**
- * Build a CSS `-webkit-box-reflect` value for text reflection effect.
- *
- * Uses the WebKit-only property which is supported in Chromium-based browsers.
- * The gradient mask fades from startAlpha at the top of the reflection to
- * endAlpha at the bottom.
- */
-export function buildTextReflectionCss(style: TextStyle): string | undefined {
-	if (!style.textReflection) {
-		return undefined;
-	}
-	const offset = style.textReflectionOffset ?? 0;
-	const startAlpha = style.textReflectionStartOpacity ?? 0.5;
-	const endAlpha = style.textReflectionEndOpacity ?? 0;
-	return `below ${offset}px linear-gradient(rgba(0,0,0,${startAlpha}), rgba(0,0,0,${endAlpha}))`;
 }

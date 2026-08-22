@@ -9,7 +9,6 @@ export {
 	buildTextFillCss,
 	buildTextShadowCss,
 	buildTextGlowFilter,
-	buildTextReflectionCss,
 	buildTextBody3DSceneStyle,
 } from './text-effects';
 export { getTextWarpStyle } from './text-warp-css';

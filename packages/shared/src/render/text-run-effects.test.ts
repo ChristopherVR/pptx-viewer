@@ -68,14 +68,15 @@ describe('buildRunEffectStyle', () => {
 		expect(css.opacity).toBe(0.4);
 	});
 
-	it('sets WebkitBoxReflect from reflection props', () => {
+	it('never sets WebkitBoxReflect: reflection renders as a mirrored-sibling wrapper instead (see reflection.test.ts)', () => {
 		const css = buildRunEffectStyle({
 			textReflection: true,
 			textReflectionOffset: 4,
 			textReflectionStartOpacity: 0.5,
 			textReflectionEndOpacity: 0,
 		} as TextStyle);
-		expect(css.WebkitBoxReflect).toBe('below 4px linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0))');
+		expect(css).not.toHaveProperty('WebkitBoxReflect');
+		expect(JSON.stringify(css)).not.toContain('box-reflect');
 	});
 
 	it('combines multiple effects in one record', () => {

@@ -28,6 +28,7 @@ import type {
 	PptxSlideSize,
 	PptxSmartArtData,
 	PptxTagCollection,
+	PptxTextStyleLevels,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxViewProperties,
@@ -146,6 +147,19 @@ export interface PptxHandlerSaveOptions {
 	kinsoku?: PptxKinsoku | null;
 	/** Write-protection verifier. Set to `null` to remove, `undefined` to preserve existing. */
 	modifyVerifier?: PptxModifyVerifier | null;
+	/**
+	 * `p:presentation/@embedTrueTypeFonts` to write. `undefined` preserves
+	 * whatever was loaded (or omits the attribute for a brand-new deck);
+	 * purely declarative here, see {@link PptxData.embedTrueTypeFonts}.
+	 */
+	embedTrueTypeFonts?: boolean;
+	/**
+	 * Presentation-level default text style edits to save back to
+	 * `p:defaultTextStyle`. Only the levels present in the map are touched;
+	 * omitted levels and any unmodelled XML on an edited level survive
+	 * untouched. See {@link PptxData.defaultTextStyle}.
+	 */
+	defaultTextStyle?: PptxTextStyleLevels;
 	/** View properties to save back to ppt/viewProps.xml. */
 	viewProperties?: PptxViewProperties;
 	/**

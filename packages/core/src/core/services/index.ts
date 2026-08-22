@@ -71,3 +71,4 @@ export {
 	serializeGraphicBuild,
 	type PptxGraphicBuildEntry,
 } from './animation-target-build-helpers';
+export { parseAnimEffectFilter, parseFilterToken } from './animation-effect-filter-parsing';

@@ -14,7 +14,7 @@
  *  - **Outer glow**         → CSS `filter: drop-shadow(...)` (simple path) and
  *                             optional layered `box-shadow` (high-fidelity path)
  *  - **Soft edges / blur**  → CSS `filter: blur(...)`
- *  - **Reflection**         → Chromium `-webkit-box-reflect`
+ *  - **Reflection**         → a mirrored sibling's wrapper style (`reflection.ts`)
  *  - **Effect DAG**         → CSS `filter` (grayscale/biLevel/lum/hsl/tint…),
  *                             `opacity`, `mix-blend-mode`, + optional duotone
  *                             `<filter>` SVG markup (high-fidelity path)
@@ -29,6 +29,9 @@
 
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { getShapeType, isImageLikeElement } from 'pptx-viewer-core';
+
+import type { ReflectionWrapperStyle } from './reflection';
+import { getReflectionWrapperStyle } from './reflection';
 
 // ── Low-level colour helpers (ported from React color-core.ts) ─────────────
 
@@ -349,8 +352,6 @@ export const buildInnerShadowCssFromShapeStyle = getInnerShadowCss;
 export const buildMultiLayerShadowCss = getMultiLayerShadowCss;
 /** Alias of {@link getGlowBoxShadowCss} (React `buildGlowBoxShadow`). */
 export const buildGlowBoxShadow = getGlowBoxShadowCss;
-/** Alias of {@link buildReflectionCssValue} (React `buildReflectionCss`). */
-export const buildReflectionCss = buildReflectionCssValue;
 
 // ── Line effects (connector / shape outline shadow + glow) ─────────────────
 
@@ -579,119 +580,6 @@ export function getEffectFilterCss(
 	}
 
 	return parts.length > 0 ? parts.join(' ') : undefined;
-}
-
-// ── Reflection (-webkit-box-reflect) ───────────────────────────────────────
-
-/**
- * Result of {@link getReflectionCss}: the `-webkit-box-reflect` value plus the
- * raw inputs (useful for tests / alternative renderers).
- *
- * Note: `-webkit-box-reflect` is Chromium/WebKit only — Firefox does not
- * support it. The React viewer accepts this limitation; a pseudo-element
- * fallback would be needed for full cross-browser fidelity.
- */
-export interface ReflectionCss {
-	/** The `-webkit-box-reflect` CSS value. */
-	webkitBoxReflect: string;
-	distance: number;
-	startOpacity: number;
-	endOpacity: number;
-	fadeLength: number;
-	blurRadius: number;
-}
-
-/**
- * Build the `-webkit-box-reflect` value for a reflection effect. `fadeLength`
- * is in px (the React caller derives it from `reflectionEndPosition × height`).
- */
-export function buildReflectionCssValue(
-	distance: number,
-	startOpacity: number,
-	endOpacity: number,
-	fadeLength: number,
-	blurRadius = 0,
-	startOffset = 0,
-): string {
-	const effectiveFadeLength = fadeLength + blurRadius * 2;
-	const midOpacity = (startOpacity + endOpacity) / 2;
-	const midPoint = Math.round(effectiveFadeLength * 0.5);
-
-	// `@stPos` holds full startOpacity until `startOffset` px before the fade
-	// begins. Clamp below the fade length so the hold stop stays ordered.
-	const holdPx = Math.round(Math.max(0, Math.min(startOffset, effectiveFadeLength - 1)));
-	const holdStop = holdPx > 0 ? `rgba(255,255,255,${startOpacity}) ${holdPx}px, ` : '';
-
-	if (blurRadius > 0) {
-		return (
-			`below ${Math.round(distance)}px linear-gradient(to bottom, ` +
-			`rgba(255,255,255,${startOpacity}), ${holdStop}` +
-			`rgba(255,255,255,${midOpacity}) ${midPoint}px, ` +
-			`rgba(255,255,255,${endOpacity}) ${effectiveFadeLength}px)`
-		);
-	}
-
-	return `below ${Math.round(distance)}px linear-gradient(to bottom, rgba(255,255,255,${startOpacity}), ${holdStop}rgba(255,255,255,${endOpacity}) ${fadeLength}px)`;
-}
-
-/**
- * Compute the reflection CSS for a {@link ShapeStyle} given the element height
- * (needed to convert `reflectionEndPosition` fraction → px fade length).
- * Mirrors the reflection block in the React `getShapeVisualStyle`.
- *
- * @returns A {@link ReflectionCss}, or `undefined` when no reflection applies.
- */
-export function getReflectionCss(
-	style: ShapeStyle | undefined,
-	elementHeight: number,
-): ReflectionCss | undefined {
-	if (!style) {
-		return undefined;
-	}
-	const hasReflection =
-		(typeof style.reflectionStartOpacity === 'number' && style.reflectionStartOpacity > 0) ||
-		(typeof style.reflectionDistance === 'number' && style.reflectionDistance > 0) ||
-		(typeof style.reflectionBlurRadius === 'number' && style.reflectionBlurRadius > 0);
-	if (!hasReflection) {
-		return undefined;
-	}
-
-	const distance = style.reflectionDistance ?? 0;
-	const startOpacity =
-		typeof style.reflectionStartOpacity === 'number' ? style.reflectionStartOpacity : 0.5;
-	const endOpacity =
-		typeof style.reflectionEndOpacity === 'number' ? style.reflectionEndOpacity : 0;
-	const fadeLength =
-		typeof style.reflectionEndPosition === 'number'
-			? Math.round(style.reflectionEndPosition * Math.max(elementHeight, 1))
-			: 100;
-	const blurRadius =
-		typeof style.reflectionBlurRadius === 'number' ? style.reflectionBlurRadius : 0;
-	// `@stPos` is a 0-1 fraction of the reflection's fade length: the reflection
-	// stays at full startOpacity until this point before fading out. Other
-	// reflection params (@sx/@sy scale, @kx/@ky skew, @rot, @fadeDir, @algn)
-	// cannot be represented by `-webkit-box-reflect` and are left as-is (see
-	// report; note box-reflect is WebKit/Chromium-only, unsupported in Firefox).
-	const startOffset =
-		typeof style.reflectionStartPosition === 'number' && style.reflectionStartPosition > 0
-			? Math.round(clampUnitInterval(style.reflectionStartPosition) * fadeLength)
-			: 0;
-
-	return {
-		webkitBoxReflect: buildReflectionCssValue(
-			distance,
-			startOpacity,
-			endOpacity,
-			fadeLength,
-			blurRadius,
-			startOffset,
-		),
-		distance,
-		startOpacity,
-		endOpacity,
-		fadeLength,
-		blurRadius,
-	};
 }
 
 // ── DAG opacity & blend mode ───────────────────────────────────────────────
@@ -925,8 +813,14 @@ export interface ComputedEffectStyle {
 	boxShadow?: string;
 	/** Combined glow/soft-edge/blur/DAG `filter`. */
 	filter?: string;
-	/** `-webkit-box-reflect` (Chromium/WebKit only). */
-	webkitBoxReflect?: string;
+	/**
+	 * Reflection wrapper style (see `reflection.ts`'s `getReflectionWrapperStyle`)
+	 * for a mirrored sibling node the integrator renders just below the
+	 * element, painted with the SAME resolved fill/image content. Cross-browser
+	 * (unlike the `-webkit-box-reflect` this replaced), and expresses
+	 * `@sx`/`@sy`/`@kx`/`@ky`/`@rot`/`@fadeDir`/`@algn`.
+	 */
+	reflection?: ReflectionWrapperStyle;
 	/** Overall `opacity` from `dagAlphaModFix`. */
 	opacity?: number;
 	/**
@@ -1001,9 +895,9 @@ export function getComputedEffectStyle(
 		result.filter = filterParts.join(' ');
 	}
 
-	const reflection = getReflectionCss(style, element.height);
+	const reflection = getReflectionWrapperStyle(style, element.height);
 	if (reflection) {
-		result.webkitBoxReflect = reflection.webkitBoxReflect;
+		result.reflection = reflection;
 	}
 
 	const opacity = getEffectDagOpacity(style);

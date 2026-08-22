@@ -47,6 +47,23 @@ describe('getTextBlockStyle', () => {
 		);
 		expect(autofit['fontSize']).toBe('40px');
 	});
+
+	it('counter-rotates for `a:bodyPr/@upright` on a rotated shape, keeping text screen-upright', () => {
+		const el = { ...textElement({ upright: true }), rotation: 30 } as PptxElement;
+		expect(getTextBlockStyle(el)['transform']).toBe('rotate(-30deg)');
+	});
+
+	it('clamps `vertOverflow="ellipsis"` to a multi-line "…" truncation, not a plain clip', () => {
+		const el = {
+			...textElement({ fontSize: 24, vertOverflow: 'ellipsis' }),
+			height: 100,
+		} as PptxElement;
+		const style = getTextBlockStyle(el);
+		expect(style['display']).toBe('-webkit-box');
+		expect(style['overflow']).toBe('hidden');
+		expect(style['textOverflow']).toBe('ellipsis');
+		expect(style['WebkitLineClamp']).toBeTypeOf('number');
+	});
 });
 
 /**

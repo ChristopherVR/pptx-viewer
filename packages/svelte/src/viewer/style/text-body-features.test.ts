@@ -60,6 +60,22 @@ describe('svelte text-body features', () => {
 		);
 	});
 
+	it('counter-rotates for `a:bodyPr/@upright` on a rotated shape, keeping text screen-upright', () => {
+		expect(
+			getTextBlockStyle(textShape({ rotation: 30, textStyle: { upright: true } }))['transform'],
+		).toBe('rotate(-30deg)');
+	});
+
+	it('clamps `vertOverflow="ellipsis"` to a multi-line "…" truncation, not a plain clip', () => {
+		const style = getTextBlockStyle(
+			textShape({ height: 100, textStyle: { fontSize: 24, vertOverflow: 'ellipsis' } }),
+		);
+		expect(style['display']).toBe('-webkit-box');
+		expect(style['overflow']).toBe('hidden');
+		expect(style['textOverflow']).toBe('ellipsis');
+		expect(style['WebkitLineClamp']).toBeTypeOf('number');
+	});
+
 	// A chevron's `a:rect` at the default adjustment is `l = dx`, `r = w - dx`
 	// with `dx = min(w,h) * 50000 / 100000` = 50px on a 200x100 box, so the text
 	// sits between the two arrow points instead of over them.

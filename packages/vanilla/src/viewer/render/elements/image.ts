@@ -11,6 +11,7 @@ import {
 
 import { createEl, createSvgEl, setSvgAttrs } from '../dom';
 import type { ElementRenderer } from '../types';
+import { renderReflectionOverlay } from './shape-filter-defs';
 
 /**
  * Renderer for `image` / `picture` elements: an absolutely positioned box with
@@ -52,6 +53,11 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	// `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express -
 	// the picture is painted as a repeating background layer instead. Without
 	// this the tile renders as one stretched copy.
+	// Mirrored reflection sibling (`a:reflection`): cross-browser, unlike the
+	// `-webkit-box-reflect` this replaced. Pictures never route through the
+	// shape effect layer (`element-styles.ts`), so this is wired directly here.
+	const reflection = renderReflectionOverlay(doc, element, context.mediaDataUrls);
+
 	const tiling = getImageTilingStyle(element);
 	if (tiling) {
 		const tile = createEl(doc, 'div', 'pptxv-image-tile', tiling);
@@ -62,6 +68,9 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 			tile.style.opacity = String(fx.opacity);
 		}
 		el.appendChild(tile);
+		if (reflection) {
+			el.appendChild(reflection);
+		}
 		return el;
 	}
 
@@ -100,6 +109,9 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 				}),
 			);
 		}
+	}
+	if (reflection) {
+		el.appendChild(reflection);
 	}
 
 	return el;

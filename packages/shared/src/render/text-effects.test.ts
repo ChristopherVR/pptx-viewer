@@ -6,7 +6,6 @@ import {
 	buildTextGlowFilter,
 	buildTextHslFilter,
 	buildTextInnerShadowCss,
-	buildTextReflectionCss,
 	buildTextShadowCss,
 	getTextAlphaOpacity,
 } from './text-effects';
@@ -71,11 +70,6 @@ describe('text effect css builders', () => {
 	it('builds a glow drop-shadow', () => {
 		const out = buildTextGlowFilter({ textGlowColor: '#ffff00', textGlowRadius: 6 } as TextStyle);
 		expect(out).toContain('drop-shadow(0 0 6px');
-	});
-
-	it('builds a webkit box reflect', () => {
-		const out = buildTextReflectionCss({ textReflection: true } as TextStyle);
-		expect(out).toContain('below 0px linear-gradient(');
 	});
 });
 

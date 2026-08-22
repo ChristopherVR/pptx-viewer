@@ -141,9 +141,10 @@ export function getShapeFillStrokeStyle(
 		// grayscale, …) apply alongside it.
 		style.filter = fx.filter;
 	}
-	if (fx.webkitBoxReflect) {
-		style.WebkitBoxReflect = fx.webkitBoxReflect;
-	}
+	// Reflection is no longer a single CSS property (`-webkit-box-reflect`
+	// never worked in Firefox): the element renderer renders a mirrored
+	// sibling node instead, using shared's `getReflectionWrapperStyle`
+	// directly (see `ShapeEffectOverlay.vue`).
 	if (fx.mixBlendMode) {
 		style.mixBlendMode = fx.mixBlendMode as CSSProperties['mixBlendMode'];
 	}

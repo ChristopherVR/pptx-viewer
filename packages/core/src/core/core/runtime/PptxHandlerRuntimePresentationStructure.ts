@@ -220,4 +220,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected extractKinsoku(): PptxKinsoku | undefined {
 		return parseKinsokuUtil(this.presentationData ?? undefined);
 	}
+
+	/**
+	 * Extract `p:presentation/@embedTrueTypeFonts` (ECMA-376 §19.2.1.26).
+	 * `undefined` when absent, matching the `@showMasterPhAnim` convention of
+	 * never forcing the spec default onto the typed model.
+	 */
+	protected extractEmbedTrueTypeFonts(): boolean | undefined {
+		const pres = this.presentationData?.['p:presentation'] as XmlObject | undefined;
+		const raw = pres?.['@_embedTrueTypeFonts'];
+		if (raw === undefined) {
+			return undefined;
+		}
+		const lexical = String(raw).trim().toLowerCase();
+		return lexical !== '0' && lexical !== 'false';
+	}
 }

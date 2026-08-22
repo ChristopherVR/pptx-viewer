@@ -28,11 +28,12 @@ import type { Rect } from './connector-routing';
 import { ContentPartRendererComponent } from './content-part-renderer.component';
 import {
 	getEffectFillOverlay,
+	getReflectionOverlay,
 	getStrokeOutline,
 	getSoftEdgeFilterDef,
 	getSubpathFillOverlay,
 } from './element-effect-defs';
-import type { SoftEdgeFilterDef } from './element-effect-defs';
+import type { ReflectionOverlay, SoftEdgeFilterDef } from './element-effect-defs';
 import {
 	getContainerStyle,
 	getDuotoneFilterDef,
@@ -287,6 +288,15 @@ export class ElementRendererComponent {
 
 	readonly fillOverlay = computed<FillOverlayCss | undefined>(() =>
 		getEffectFillOverlay(this.element()),
+	);
+
+	/**
+	 * `a:reflection` mirrored-sibling descriptor, or `undefined` when the
+	 * element has no reflection. See `element-effect-defs.ts`'s
+	 * `getReflectionOverlay`.
+	 */
+	readonly reflection = computed<ReflectionOverlay | undefined>(() =>
+		getReflectionOverlay(this.element(), this.mediaDataUrls()),
 	);
 
 	/**

@@ -12,7 +12,7 @@ describe('cssPropertyName', () => {
 	});
 
 	it('prefixes vendor properties and passes custom properties through', () => {
-		expect(cssPropertyName('WebkitBoxReflect')).toBe('-webkit-box-reflect');
+		expect(cssPropertyName('WebkitMaskImage')).toBe('-webkit-mask-image');
 		expect(cssPropertyName('--pptx-primary')).toBe('--pptx-primary');
 	});
 });

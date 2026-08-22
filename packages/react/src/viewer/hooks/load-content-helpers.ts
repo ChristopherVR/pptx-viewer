@@ -4,11 +4,18 @@
  *
  * Re-exported here to keep existing import paths stable.
  */
-export type { GuideEntry, ImagePathElement, TableCellImageRef } from 'pptx-viewer-shared';
+export type {
+	GuideEntry,
+	ImagePathElement,
+	TableCellImageRef,
+	TableStyleImageRef,
+} from 'pptx-viewer-shared';
 export {
 	collectMediaElements,
 	collectImagePaths,
 	collectTableCellImagePaths,
 	applyTableCellImagePatches,
+	collectTableStyleImagePaths,
+	applyTableStyleImagePatches,
 	buildInitialGuides,
 } from 'pptx-viewer-shared';

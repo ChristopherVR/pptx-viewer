@@ -130,6 +130,7 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'tileScaleY',
 	'tileFlip',
 	'tileAlignment',
+	'dpi',
 	'pathData',
 	'pathWidth',
 	'pathHeight',

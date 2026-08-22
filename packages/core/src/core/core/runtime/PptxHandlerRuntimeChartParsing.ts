@@ -22,6 +22,7 @@ import {
 	parseLineStyle,
 } from '../../utils/chart-advanced-parser';
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
+import { parseChartBandFmts } from '../../utils/chart-band-fmts';
 import { extractSeriesNumbersWithBlanks } from '../../utils/chart-blank-values';
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import {
@@ -279,6 +280,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.compatibilityService.getXmlLocalName(key),
 					)
 				: undefined;
+		// Parse c:bandFmts (per-height-band colour overrides), surface charts only.
+		const bandFmts =
+			chartType === 'surface' && seriesContainer
+				? parseChartBandFmts(seriesContainer, this.xmlLookupService, lineStyleColorAdapter)
+				: undefined;
 
 		// Parse view3D, top-level chrome flags, and raw preservation blobs.
 		const view3D = this.parseView3D(chartRoot);
@@ -325,6 +331,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(surfaces.floor ? { floor: surfaces.floor } : {}),
 			...(surfaces.sideWall ? { sideWall: surfaces.sideWall } : {}),
 			...(surfaces.backWall ? { backWall: surfaces.backWall } : {}),
+			...(bandFmts ? { bandFmts } : {}),
 			...(externalData ? { externalData } : {}),
 			...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
 			...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),

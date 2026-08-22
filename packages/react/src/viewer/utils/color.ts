@@ -15,7 +15,6 @@ export {
 	buildInnerShadowCssFromShapeStyle,
 	buildMultiLayerShadowCss,
 	buildGlowBoxShadow,
-	buildReflectionCss,
 } from './color-core';
 
 export {

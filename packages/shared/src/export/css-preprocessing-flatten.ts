@@ -310,6 +310,15 @@ export function flatten3dTransforms(root: HTMLElement): void {
  * - `filter` functions beyond basic blur/opacity
  * - `-webkit-text-stroke` (not supported)
  * - `writing-mode: vertical-*` (limited support)
+ *
+ * This used to also blank `-webkit-box-reflect` (html2canvas cannot rasterise
+ * it either), but shape/picture AND text reflections have both moved to a
+ * mirrored-sibling DOM node instead (`render/reflection.ts`'s
+ * `getReflectionWrapperStyle` / `getTextReflectionWrapperStyle`) - a real
+ * element html2canvas rasterises like any other, not a CSS property it has to
+ * special-case. Nothing in this codebase emits `-webkit-box-reflect` any more,
+ * so the branch was dead; removed rather than left stripping a property
+ * nothing sets.
  */
 export function removeUnsupportedFeatures(root: HTMLElement): void {
 	const elements = root.querySelectorAll('*');
@@ -330,11 +339,6 @@ export function removeUnsupportedFeatures(root: HTMLElement): void {
 				htmlEl.style.setProperty('mask-image', 'none');
 				htmlEl.style.setProperty('-webkit-mask-image', 'none');
 			}
-		}
-
-		const boxReflect = computed.getPropertyValue('-webkit-box-reflect');
-		if (boxReflect && boxReflect !== 'none') {
-			htmlEl.style.setProperty('-webkit-box-reflect', 'none');
 		}
 
 		const textStroke = computed.getPropertyValue('-webkit-text-stroke');

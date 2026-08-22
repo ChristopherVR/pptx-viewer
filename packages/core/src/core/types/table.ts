@@ -395,6 +395,25 @@ export interface ParsedTableStyleFill {
 	gradient?: ParsedTableStyleGradient;
 	/** Preset pattern fill parsed from `a:pattFill`. */
 	pattern?: ParsedTableStylePattern;
+	/** Image texture fill parsed from `a:blipFill`. */
+	image?: ParsedTableStyleImage;
+}
+
+/**
+ * An image texture fill parsed from a table style section's `a:blipFill`.
+ *
+ * `ppt/tableStyles.xml` is a presentation-level part parsed once (not
+ * per-slide), so this mirrors the per-CELL `a:tcPr/a:blipFill` two-field lazy
+ * pattern (`PptxTableCellStyle.backgroundImageFillPath` /
+ * `backgroundImageFillData`): `path` starts out as a raw archive-relative
+ * path (or an already-external `http(s):`/`data:` URL), and a load pipeline
+ * patches it to a displayable URL in `data` once resolved.
+ */
+export interface ParsedTableStyleImage {
+	/** Archive-relative path, or an already-displayable external/data URL. */
+	path?: string;
+	/** Displayable URL once a load pipeline has resolved `path`. */
+	data?: string;
 }
 
 /** A single colour stop within a {@link ParsedTableStyleGradient}. */

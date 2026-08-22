@@ -89,4 +89,42 @@ describe('renderImageElement source effects', () => {
 		// The scaled-up source must not paint outside its own frame.
 		expect(node.style.overflow).toBe('hidden');
 	});
+
+	it('renders a mirrored <img> reflection sibling with no -webkit-box-reflect', () => {
+		const element = {
+			type: 'picture',
+			id: 'pic-reflect',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,source',
+			shapeStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+		} as unknown as ImagePptxElement;
+
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const layer = node.querySelector('.pptxv-reflection') as HTMLElement | null;
+
+		expect(layer).not.toBeNull();
+		expect(layer?.style.position).toBe('absolute');
+		expect(layer?.style.transform).toBe('scaleY(-1)');
+		expect(node.innerHTML).not.toContain('box-reflect');
+		const reflectedImg = layer?.querySelector('img');
+		expect(reflectedImg?.getAttribute('src')).toBe('data:image/png;base64,source');
+	});
+
+	it('renders no reflection sibling without a:reflection', () => {
+		const element = {
+			type: 'picture',
+			id: 'pic-noreflect',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,source',
+		} as unknown as ImagePptxElement;
+
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		expect(node.querySelector('.pptxv-reflection')).toBeNull();
+	});
 });

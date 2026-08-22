@@ -172,6 +172,30 @@ describe('getTextBlockStyle', () => {
 		);
 		expect(autofit['font-size']).toBe('40px');
 	});
+
+	it('counter-rotates for `a:bodyPr/@upright` on a rotated shape, keeping text screen-upright', () => {
+		const el = baseElement({
+			type: 'text',
+			text: 'hi',
+			rotation: 30,
+			textStyle: { upright: true },
+		} as Partial<PptxElement>);
+		expect(getTextBlockStyle(el)['transform']).toBe('rotate(-30deg)');
+	});
+
+	it('clamps `vertOverflow="ellipsis"` to a multi-line "…" truncation, not a plain clip', () => {
+		const el = baseElement({
+			type: 'text',
+			text: 'hi',
+			height: 100,
+			textStyle: { fontSize: 24, vertOverflow: 'ellipsis' },
+		} as Partial<PptxElement>);
+		const style = getTextBlockStyle(el);
+		expect(style['display']).toBe('-webkit-box');
+		expect(style['overflow']).toBe('hidden');
+		expect(style['text-overflow']).toBe('ellipsis');
+		expect(style['-webkit-line-clamp']).toBeDefined();
+	});
 });
 
 /**

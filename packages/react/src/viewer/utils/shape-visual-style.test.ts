@@ -213,8 +213,8 @@ describe('getShapeVisualStyle shared-pipeline convergence', () => {
 		expect(style.boxShadow).toBeUndefined();
 	});
 
-	it('honours `a:reflection/@stPos` (the hold before the fade)', () => {
-		const withHold = getShapeVisualStyle(
+	it('does not emit -webkit-box-reflect: reflection is a separate ReflectionOverlay sibling', () => {
+		const style = getShapeVisualStyle(
 			makeShape({
 				reflectionDistance: 4,
 				reflectionStartOpacity: 0.6,
@@ -227,22 +227,8 @@ describe('getShapeVisualStyle shared-pipeline convergence', () => {
 			0,
 			'#000',
 		);
-		// 50% of a 100px fade = a 50px full-opacity hold stop before the ramp.
-		expect(String(withHold.WebkitBoxReflect)).toContain('rgba(255,255,255,0.6) 50px');
-
-		const withoutHold = getShapeVisualStyle(
-			makeShape({
-				reflectionDistance: 4,
-				reflectionStartOpacity: 0.6,
-				reflectionEndOpacity: 0,
-				reflectionEndPosition: 1,
-			}),
-			true,
-			'#fff',
-			0,
-			'#000',
-		);
-		expect(String(withoutHold.WebkitBoxReflect)).not.toContain('rgba(255,255,255,0.6) 50px');
+		expect(style).not.toHaveProperty('WebkitBoxReflect');
+		// See `ReflectionOverlay.test.tsx` for `@stPos` / mask-image coverage.
 	});
 
 	it('carries the line-level `a:ln` shadow onto the box', () => {

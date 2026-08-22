@@ -28,6 +28,18 @@ import type {
 } from '../../types';
 import { parseSolidFillStyle, parseTintShadeVal } from './table-style-border-parse';
 
+/**
+ * Resolves a table style section's `a:blipFill` relationship id (`r:embed` /
+ * `r:link`) to an archive-relative path (or an already-external URL), the
+ * same way core resolves any other blip. Optional so callers without a
+ * relationship map wired up (e.g. unit tests, or the built-in style
+ * catalogue generator) simply skip the `a:blipFill` branch.
+ */
+export type ResolveTableStyleImagePath = (
+	rEmbed: string | undefined,
+	rLink: string | undefined,
+) => string | undefined;
+
 /** Normalise a raw sRGB hex value to a `#RRGGBB` CSS string. */
 function toHex(raw: string | undefined): string | undefined {
 	const hex = String(raw ?? '').trim();
@@ -125,6 +137,7 @@ function parsePatternFill(pattFill: XmlObject): ParsedTableStylePattern | undefi
  */
 export function parseTableStyleSectionFill(
 	section: XmlObject | undefined,
+	resolveImagePath?: ResolveTableStyleImagePath,
 ): ParsedTableStyleFill | undefined {
 	if (!section) {
 		return undefined;
@@ -154,6 +167,16 @@ export function parseTableStyleSectionFill(
 		const pattern = parsePatternFill(patt);
 		if (pattern) {
 			return { schemeColor: '', pattern };
+		}
+	}
+	const blip = fillWrap['a:blipFill'] as XmlObject | undefined;
+	if (blip && resolveImagePath) {
+		const blipNode = blip['a:blip'] as XmlObject | undefined;
+		const rEmbed = blipNode?.['@_r:embed'] ? String(blipNode['@_r:embed']) : undefined;
+		const rLink = blipNode?.['@_r:link'] ? String(blipNode['@_r:link']) : undefined;
+		const path = resolveImagePath(rEmbed, rLink);
+		if (path) {
+			return { schemeColor: '', image: { path } };
 		}
 	}
 	return undefined;

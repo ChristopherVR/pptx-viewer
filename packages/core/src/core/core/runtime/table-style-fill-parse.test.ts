@@ -108,6 +108,49 @@ describe('parseTableStyleSectionFill', () => {
 		const s = { 'a:tcStyle': { 'a:fillRef': { '@_idx': '1' } } } as XmlObject;
 		expect(parseTableStyleSectionFill(s)).toBeUndefined();
 	});
+
+	describe('a:blipFill image texture fill', () => {
+		function blipFillSection(rEmbed?: string, rLink?: string): XmlObject {
+			return section({
+				'a:blipFill': {
+					'a:blip': {
+						...(rEmbed ? { '@_r:embed': rEmbed } : {}),
+						...(rLink ? { '@_r:link': rLink } : {}),
+					},
+				},
+			});
+		}
+
+		it('resolves an image texture fill via the supplied resolver (r:embed)', () => {
+			const fill = parseTableStyleSectionFill(blipFillSection('rId1'), (rEmbed, rLink) => {
+				expect(rEmbed).toBe('rId1');
+				expect(rLink).toBeUndefined();
+				return 'ppt/media/image1.png';
+			});
+			expect(fill?.schemeColor).toBe('');
+			expect(fill?.image?.path).toBe('ppt/media/image1.png');
+		});
+
+		it('resolves an image texture fill via r:link when there is no r:embed', () => {
+			const fill = parseTableStyleSectionFill(
+				blipFillSection(undefined, 'rId2'),
+				(rEmbed, rLink) => {
+					expect(rEmbed).toBeUndefined();
+					expect(rLink).toBe('rId2');
+					return 'https://example.com/tex.png';
+				},
+			);
+			expect(fill?.image?.path).toBe('https://example.com/tex.png');
+		});
+
+		it('returns undefined without a resolver (no zip/rels context wired up)', () => {
+			expect(parseTableStyleSectionFill(blipFillSection('rId1'))).toBeUndefined();
+		});
+
+		it('returns undefined when the resolver cannot resolve the relationship', () => {
+			expect(parseTableStyleSectionFill(blipFillSection('rId1'), () => undefined)).toBeUndefined();
+		});
+	});
 });
 
 describe('parseTableStyleSectionText', () => {

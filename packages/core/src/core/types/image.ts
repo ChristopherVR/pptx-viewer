@@ -233,13 +233,33 @@ export interface PptxImageEffects {
 		/**
 		 * Resolved hex colour, when the overlay fill is a plain `a:solidFill`
 		 * (the common case for a picture-style colour overlay). `undefined` for
-		 * a gradient/pattern/picture overlay fill, which a renderer can't yet
-		 * composite from this derived field alone - `fillRawXml` still round-trips
-		 * losslessly regardless.
+		 * a gradient/pattern/picture overlay fill - see {@link resolvedGradient} /
+		 * {@link resolvedPattern} instead. `fillRawXml` still round-trips
+		 * losslessly regardless of which of the three resolved.
 		 */
 		resolvedColor?: string;
 		/** Resolved opacity (0-1) of the `a:solidFill` overlay colour, when resolved. */
 		resolvedOpacity?: number;
+		/**
+		 * Resolved gradient, when the overlay fill is `a:gradFill`. A renderer
+		 * composites this as an SVG paint server (`<linearGradient>` /
+		 * `<radialGradient>`) rather than a flat flood colour.
+		 */
+		resolvedGradient?: {
+			type: 'linear' | 'radial';
+			/** Gradient angle in degrees (`a:lin/@ang`), for a linear gradient. */
+			angle?: number;
+			stops: Array<{ color: string; position: number; opacity?: number }>;
+		};
+		/**
+		 * Resolved preset pattern, when the overlay fill is `a:pattFill`. A
+		 * renderer composites this as a tiled SVG paint server.
+		 */
+		resolvedPattern?: {
+			preset: string;
+			foreground?: string;
+			background?: string;
+		};
 	};
 	/** Blur (`a:blur`) — radius in EMU and grow flag. */
 	blur?: {
@@ -329,6 +349,13 @@ export interface PptxImageProperties {
 	tileFlip?: 'none' | 'x' | 'y' | 'xy';
 	/** Image tiling alignment. */
 	tileAlignment?: string;
+	/**
+	 * Print-resolution hint in DPI (`a:blipFill/@dpi`). PowerPoint records this
+	 * when it downsamples an embedded image for a target print quality; it has
+	 * no on-screen rendering effect (a `0`/absent value means "use the source
+	 * image's native resolution"). Parsed for round-trip / API fidelity only.
+	 */
+	dpi?: number;
 	/** Image recolour/artistic effect properties. */
 	imageEffects?: PptxImageEffects;
 	/** Crop-to-shape — CSS clip-path shape name. */

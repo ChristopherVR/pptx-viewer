@@ -1,10 +1,18 @@
-import type { MediaPptxElement, PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type {
+	MediaPptxElement,
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxHandler,
+	PptxSlide,
+} from 'pptx-viewer-core';
 import {
 	applyTableCellImagePatches,
+	applyTableStyleImagePatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	collectTableCellImagePaths,
+	collectTableStyleImagePaths,
 } from 'pptx-viewer-shared';
 
 /**
@@ -206,4 +214,40 @@ export async function resolveLazyTableCellImages(
 		const newElements = applyTableCellImagePatches(slide.elements, resolvedMap, refs);
 		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
 	});
+}
+
+/**
+ * Resolve lazily-loaded whole-table-STYLE image-fill URLs
+ * (`a:tcStyle/a:fill/a:blipFill` on `ppt/tableStyles.xml`) and patch them
+ * into the table style map immutably. Same lazy-load story as
+ * {@link resolveLazyTableCellImages}, but for a presentation-level style
+ * section fill rather than a per-cell one.
+ */
+export async function resolveLazyTableStyleImages(
+	handler: PptxHandler,
+	tableStyleMap: ParsedTableStyleMap | undefined,
+): Promise<ParsedTableStyleMap | undefined> {
+	const { paths, refs } = collectTableStyleImagePaths(tableStyleMap);
+	if (paths.size === 0 || !tableStyleMap) {
+		return tableStyleMap;
+	}
+
+	const resolvedMap = new Map<string, string>();
+	await Promise.all(
+		Array.from(paths).map(async (path) => {
+			try {
+				const url = await handler.getImageData(path);
+				if (url) {
+					resolvedMap.set(path, url);
+				}
+			} catch {
+				// Non-critical: the style section falls back to no image fill.
+			}
+		}),
+	);
+	if (resolvedMap.size === 0) {
+		return tableStyleMap;
+	}
+
+	return applyTableStyleImagePatches(tableStyleMap, resolvedMap, refs);
 }

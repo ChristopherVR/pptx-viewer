@@ -55,6 +55,8 @@ export const PRESENTATION_FIELD_KEYS: Record<keyof Omit<PptxData, 'slides'>, tru
 	commentAuthors: true,
 	modernCommentAuthors: true,
 	conformance: true,
+	embedTrueTypeFonts: true,
+	defaultTextStyle: true,
 };
 
 /** Ordered list of the presentation-level field names. */

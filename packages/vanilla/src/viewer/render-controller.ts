@@ -255,7 +255,13 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				const scaledSize = { width: pageSize.width * scale, height: pageSize.height * scale };
 				stageNode =
 					state.masterViewTab === 'notes'
-						? renderNotesMasterCanvas(doc, deps.getTranslator(), state.notesMaster, scaledSize)
+						? renderNotesMasterCanvas(
+								doc,
+								deps.getTranslator(),
+								state.notesMaster,
+								scaledSize,
+								scale,
+							)
 						: renderHandoutMasterCanvas(
 								doc,
 								deps.getTranslator(),

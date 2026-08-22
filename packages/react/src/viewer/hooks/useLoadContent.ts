@@ -38,6 +38,8 @@ import {
 	collectImagePaths,
 	collectTableCellImagePaths,
 	applyTableCellImagePatches,
+	collectTableStyleImagePaths,
+	applyTableStyleImagePatches,
 	buildInitialGuides,
 } from './load-content-helpers';
 import type { EditorHistoryResult } from './useEditorHistory';
@@ -342,6 +344,36 @@ export function useLoadContent({
 					}
 				}
 
+				// ── Resolve whole-table-STYLE image-fill Blob URLs ──────────
+				// Same lazy-load story as the per-cell image fill above, but for a
+				// whole `a:tcStyle/a:fill/a:blipFill` on `ppt/tableStyles.xml`
+				// (presentation-level, not per-slide).
+				let nextTableStyleMap = parsed.tableStyleMap;
+				const { paths: tableStyleImagePaths, refs: tableStyleImageRefs } =
+					collectTableStyleImagePaths(nextTableStyleMap);
+				if (tableStyleImagePaths.size > 0) {
+					const resolvedStyleMap = new Map<string, string>();
+					await Promise.all(
+						Array.from(tableStyleImagePaths).map(async (path) => {
+							try {
+								const url = await handler.getImageData(path);
+								if (url) {
+									resolvedStyleMap.set(path, url);
+								}
+							} catch {
+								// Non-critical: the style section falls back to no image fill.
+							}
+						}),
+					);
+					if (resolvedStyleMap.size > 0 && nextTableStyleMap) {
+						nextTableStyleMap = applyTableStyleImagePatches(
+							nextTableStyleMap,
+							resolvedStyleMap,
+							tableStyleImageRefs,
+						);
+					}
+				}
+
 				handlerRef.current = handler;
 				// Separate the inherited master/layout (template) elements that the
 				// core loader merged into `slide.elements` into their own per-slide
@@ -372,7 +404,7 @@ export function useLoadContent({
 				setLayoutOptions(parsed.layoutOptions ?? []);
 				setSlideMasters(parsed.slideMasters ?? []);
 				setTheme(parsed.theme);
-				setTableStyleMap(parsed.tableStyleMap);
+				setTableStyleMap(nextTableStyleMap);
 				setThemeOptions(parsed.themeOptions ?? []);
 				setCustomShows(parsed.customShows ?? []);
 				// "Set Up Slide Show > Custom show" is authored intent, not decoration:

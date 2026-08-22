@@ -70,6 +70,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const kinsoku = this.extractKinsoku();
 		const customerData = await this.parsePresentationCustomerData();
 		this.thumbnailData = (await this.parseThumbnail()) ?? null;
+		const embedTrueTypeFonts = this.extractEmbedTrueTypeFonts();
+		const defaultTextStyle = this.presentationDefaultTextStyle?.levelStyles;
 
 		return new PptxLoadDataBuilder()
 			.withDimensions(
@@ -131,6 +133,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					: undefined,
 			)
 			.withConformance(this.isStrictOoxml ? 'strict' : 'transitional')
+			.withEmbedTrueTypeFonts(embedTrueTypeFonts)
+			.withDefaultTextStyle(defaultTextStyle)
 			.build();
 	}
 

@@ -7,6 +7,7 @@ import type {
 	PptxExportOptions,
 	ParsedTableStyleMap,
 } from '../../types';
+import { xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeState';
 import { parseTableStyleBorders } from './table-style-border-parse';
 import {
@@ -15,7 +16,11 @@ import {
 	parseTableBackground,
 	parseTableStyleList,
 } from './table-style-entry-parse';
+import type { ResolveTableStyleImagePath } from './table-style-fill-parse';
 import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
+
+const TABLE_STYLES_PART_PATH = 'ppt/tableStyles.xml';
+const TABLE_STYLES_RELS_PATH = 'ppt/_rels/tableStyles.xml.rels';
 
 /** 16:9 at 96dpi, the size a `PptxHandler` with no loaded deck falls back to. */
 const DEFAULT_EXPORT_WIDTH_PX = 960;
@@ -187,14 +192,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Parse `ppt/tableStyles.xml` into a map of style GUID → style entry.
 	 */
 	protected async parseTableStyles(): Promise<ParsedTableStyleMap | undefined> {
-		const xmlStr = await this.zip.file('ppt/tableStyles.xml')?.async('string');
+		const xmlStr = await this.zip.file(TABLE_STYLES_PART_PATH)?.async('string');
 		if (!xmlStr) {
 			return undefined;
 		}
 
 		try {
 			const parsed = this.parser.parse(xmlStr) as XmlObject;
-			const result = parseTableStyleList(parsed, (value) => this.ensureArray(value));
+			const resolveImagePath = await this.buildTableStylesImageResolver();
+			const result = parseTableStyleList(
+				parsed,
+				(value) => this.ensureArray(value),
+				resolveImagePath,
+			);
 			if (!result || Object.keys(result.map).length === 0) {
 				return undefined;
 			}
@@ -203,5 +213,72 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			console.warn('Failed to parse ppt/tableStyles.xml:', e);
 			return undefined;
 		}
+	}
+
+	/**
+	 * Build a `r:embed`/`r:link` -> archive-path resolver for a whole-table-
+	 * style `a:blipFill` (issue: table STYLE image texture fills silently
+	 * dropped the image). `ppt/tableStyles.xml` is a presentation-level part
+	 * with no slide/rels context of its own, so its relationships are read
+	 * from `ppt/_rels/tableStyles.xml.rels` here, once, the same way
+	 * `presentation.xml`'s own rels are read elsewhere in this runtime.
+	 */
+	private async buildTableStylesImageResolver(): Promise<ResolveTableStyleImagePath | undefined> {
+		const relsXml = await this.zip.file(TABLE_STYLES_RELS_PATH)?.async('string');
+		if (!relsXml) {
+			return undefined;
+		}
+		let relsMap: Map<string, string>;
+		try {
+			const relsData = this.parser.parse(relsXml) as XmlObject;
+			const rels = this.ensureArray(
+				xmlChild(relsData, 'Relationships')?.Relationship,
+			) as XmlObject[];
+			relsMap = new Map();
+			for (const rel of rels) {
+				const id = String(rel?.['@_Id'] || '');
+				const target = String(rel?.['@_Target'] || '');
+				if (!id || !target) {
+					continue;
+				}
+				// An external/data target is used verbatim; only an archive-relative
+				// target is resolved against `ppt/` (`tableStyles.xml`'s own directory).
+				const isExternalOrData =
+					target.startsWith('http://') ||
+					target.startsWith('https://') ||
+					target.startsWith('data:');
+				relsMap.set(
+					id,
+					isExternalOrData
+						? target
+						: target.startsWith('/')
+							? target.substring(1)
+							: `ppt/${target}`,
+				);
+			}
+		} catch (e) {
+			console.warn('Failed to parse ppt/_rels/tableStyles.xml.rels:', e);
+			return undefined;
+		}
+		if (relsMap.size === 0) {
+			return undefined;
+		}
+		return (rEmbed, rLink) => {
+			const relId = rEmbed || rLink;
+			if (!relId) {
+				return undefined;
+			}
+			const target = relsMap.get(relId);
+			if (!target) {
+				return undefined;
+			}
+			if (target.startsWith('http://') || target.startsWith('https://')) {
+				return this.allowExternalImages === true ? target : undefined;
+			}
+			// A `data:` target or an archive-relative path are both already what
+			// `ParsedTableStyleImage.path` expects: the former is displayable as-is,
+			// the latter is resolved to a displayable URL by a load pipeline.
+			return target;
+		};
 	}
 }

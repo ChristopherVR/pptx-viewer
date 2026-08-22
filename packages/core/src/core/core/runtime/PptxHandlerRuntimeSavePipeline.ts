@@ -201,6 +201,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					kinsoku: options?.kinsoku,
 					modifyVerifier: options?.modifyVerifier,
 					slideSize: options?.slideSize,
+					embedTrueTypeFonts: options?.embedTrueTypeFonts,
+					defaultTextStyle: options?.defaultTextStyle,
 				},
 				rawSlideWidthEmu: this.rawSlideWidthEmu,
 				rawSlideHeightEmu: this.rawSlideHeightEmu,

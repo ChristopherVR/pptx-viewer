@@ -109,3 +109,37 @@ describe('textBlock - measured tab-stop layout', () => {
 		expect(paragraphs[0].runs[0].tabLines).toBeUndefined();
 	});
 });
+
+/**
+ * Cross-browser fix: reflection used to ride `-webkit-box-reflect` on the
+ * run's own span, which Firefox never implemented. Shared now attaches a
+ * mirrored-sibling wrapper style (`run.reflection`) instead, the same
+ * mechanism a shape/picture's `ShapeEffectOverlay` uses.
+ */
+describe('textBlock - reflection (a:rPr/a:effectLst/a:reflection)', () => {
+	it('renders a mirrored sibling with no -webkit-box-reflect anywhere', () => {
+		const seg: TextSegment = {
+			text: 'Reflected',
+			style: { fontFamily: 'Arial', fontSize: 20, textReflection: true },
+		} as TextSegment;
+		const el = { ...element(), textSegments: [seg] } as PptxElement;
+		const paragraphs = buildParagraphs(el);
+		expect(paragraphs[0].runs[0].reflection).toBeDefined();
+
+		const target = render(paragraphs);
+		expect(target.querySelector('.pptx-svelte-text-reflection')).toBeTruthy();
+		expect(target.innerHTML).not.toContain('box-reflect');
+		expect(target.innerHTML).not.toContain('WebkitBoxReflect');
+	});
+
+	it('adds no reflection markup for a plain run', () => {
+		const seg: TextSegment = {
+			text: 'Plain',
+			style: { fontFamily: 'Arial', fontSize: 20 },
+		} as TextSegment;
+		const el = { ...element(), textSegments: [seg] } as PptxElement;
+		const paragraphs = buildParagraphs(el);
+		const target = render(paragraphs);
+		expect(target.querySelector('.pptx-svelte-text-reflection')).toBeFalsy();
+	});
+});

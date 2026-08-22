@@ -217,6 +217,31 @@
 					[style.mix-blend-mode]="ov.blendMode"
 				></div>
 			}
+			<!-- Mirrored reflection sibling (`a:reflection`): cross-browser, unlike
+			     the `-webkit-box-reflect` this replaced (Firefox never implemented
+			     that property, so reflections were invisible there entirely). -->
+			@if (reflection(); as refl) {
+				<div class="pptx-ng-reflection" aria-hidden="true" [ngStyle]="refl.wrapperStyle">
+					@if (refl.imgSrc) {
+						<img
+							[src]="refl.imgSrc"
+							alt=""
+							draggable="false"
+							style="width: 100%; height: 100%"
+							[ngStyle]="refl.imgFitStyle"
+						/>
+					} @else if (refl.fill) {
+						<div
+							style="width: 100%; height: 100%"
+							[style.background-color]="refl.fill.backgroundColor"
+							[style.background-image]="refl.fill.backgroundImage"
+							[style.background-size]="refl.fill.backgroundSize"
+							[style.background-position]="refl.fill.backgroundPosition"
+							[style.background-repeat]="refl.fill.backgroundRepeat"
+						></div>
+					}
+				</div>
+			}
 			<!-- Hollow frame hit target: an unfilled, textless shape is hit-tested
 			     on its outline only, so its interior lets clicks through. -->
 			@if (hollowHit(); as hit) {
@@ -423,30 +448,24 @@
 '
 									) {
 										<br />
-									} @else if (run.href) {
-										<a
-											class="pptx-ng-link"
-											[href]="run.href"
-											target="_blank"
-											rel="noopener noreferrer"
-											[attr.title]="run.tooltip ?? null"
-											[ngStyle]="run.style"
-											><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
-										/></a>
-									} @else if (run.rubyText) {
-										<!-- `a:ruby`: the phonetic guide sits above its base
-										     text; the <rp> parentheses are the fallback for a
-										     browser without ruby support. -->
-										<ruby [ngStyle]="run.style"
-											><ng-container *ngTemplateOutlet="runContent; context: { run: run }" /><rp>
-												(</rp
-											><rt [ngStyle]="run.rubyStyle">{{ run.rubyText }}</rt
-											><rp>)</rp></ruby
-										>
+									} @else if (run.reflection; as refl) {
+										<!-- `a:reflection`: wrapped HERE, around the whole base
+										     run (`runBase`), rather than inside its href/ruby/plain
+										     branches - a `<ruby>` run's own `display: ruby` (which
+										     positions the annotation above its base text) would
+										     break if forced to `display: inline-block` to host the
+										     mirror. Cross-browser, unlike the `-webkit-box-reflect`
+										     this replaced (Firefox never implemented it). -->
+										<span style="position: relative; display: inline-block">
+											<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
+											<span class="pptx-ng-text-reflection" aria-hidden="true" [ngStyle]="refl"
+												><span [ngStyle]="run.style"
+													><ng-container
+														*ngTemplateOutlet="runContent; context: { run: run }" /></span
+											></span>
+										</span>
 									} @else {
-										<span [ngStyle]="run.style"
-											><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
-										/></span>
+										<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
 									}
 								}
 							}
@@ -531,6 +550,38 @@
 		</defs>
 	</svg>
 }
+
+<!--
+	One run's base element (hyperlink / ruby / plain span), reused via
+	`ngTemplateOutlet` both directly and inside the `a:reflection` wrapper above,
+	so the reflection case does not duplicate this three-way branch.
+-->
+<ng-template #runBase let-run="run">
+	@if (run.href) {
+		<a
+			class="pptx-ng-link"
+			[href]="run.href"
+			target="_blank"
+			rel="noopener noreferrer"
+			[attr.title]="run.tooltip ?? null"
+			[ngStyle]="run.style"
+			><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
+		/></a>
+	} @else if (run.rubyText) {
+		<!-- `a:ruby`: the phonetic guide sits above its base
+		     text; the <rp> parentheses are the fallback for a
+		     browser without ruby support. -->
+		<ruby [ngStyle]="run.style"
+			><ng-container *ngTemplateOutlet="runContent; context: { run: run }" /><rp>(</rp
+			><rt [ngStyle]="run.rubyStyle">{{ run.rubyText }}</rt
+			><rp>)</rp></ruby
+		>
+	} @else {
+		<span [ngStyle]="run.style"
+			><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
+		/></span>
+	}
+</ng-template>
 
 <!--
 	A run's text content, honouring shared's per-script font split

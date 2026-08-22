@@ -1,63 +1,35 @@
 <script lang="ts">
 	/**
-	 * TextRun: one rendered run of a paragraph.
+	 * TextRun: one rendered run of a paragraph, plus its optional `a:reflection`
+	 * mirrored-sibling wrapper.
 	 *
-	 * A run is normally a `<span>`, but the shared model marks three kinds that
-	 * need a different element around them: a HYPERLINK run (an `<a href>`), an
-	 * inline EQUATION run (MathML, whose text is empty), and a RUBY run (a
-	 * phonetic guide over the base text). All three used to be dropped here -
-	 * `buildParagraphs` returned `{ text, style }` only, so a linked run rendered
-	 * as ordinary text, an inline `m:oMath` as nothing, and furigana vanished.
+	 * The run itself (equation / hyperlink / ruby / plain span) is
+	 * `TextRunBase`. Reflection is wrapped HERE, around the whole base run,
+	 * rather than inside each of `TextRunBase`'s branches: a `<ruby>` run's own
+	 * `display: ruby` (which positions the annotation above its base text)
+	 * would break if forced to `display: inline-block` to host an absolutely
+	 * positioned mirror, so the positioning box has to be an outer element that
+	 * leaves the base run's own tag untouched.
+	 *
+	 * Cross-browser (unlike the `-webkit-box-reflect` this replaced, which
+	 * Firefox never implemented): the wrapper style comes from shared's
+	 * `getTextReflectionWrapperStyle`, the text-run counterpart of a
+	 * shape/picture's `ShapeEffectOverlay` reflection - reused, not forked.
 	 */
-	import type { ParagraphRun } from 'pptx-viewer-shared';
-	import { runEquationMathMl } from 'pptx-viewer-shared';
+	import type { CssStyleMap, ParagraphRun } from 'pptx-viewer-shared';
 
 	import { styleToString } from '../style';
+	import TextRunBase from './TextRunBase.svelte';
 	import TextRunContent from './TextRunContent.svelte';
 
 	const { run }: { run: ParagraphRun } = $props();
-
-	/** Sanitised MathML for an equation run, or `''` when the OMML yields nothing. */
-	const mathml = $derived(run.equation ? runEquationMathMl(run.equation) : '');
 </script>
 
-{#if run.equation}<span class="pptx-svelte-inline-equation" style={styleToString(run.style)}
-		>{#if mathml}<span class="pptx-svelte-equation">{@html mathml}</span>{:else}<span
-				class="pptx-svelte-equation-fallback">&hellip;</span
-			>{/if}{#if run.equation.number}<span class="pptx-svelte-equation-number"
-				>({run.equation.number})</span
-			>{/if}</span
-	>{:else if run.hyperlink?.href}<a
-		class="pptx-svelte-link"
-		href={run.hyperlink.href}
-		target="_blank"
-		rel="noopener noreferrer"
-		title={run.hyperlink.tooltip}
-		style={styleToString(run.style)}><TextRunContent {run} /></a
-	>{:else if run.ruby}<ruby style={styleToString(run.style)}
-		><TextRunContent {run} /><rp>(</rp><rt style={styleToString(run.ruby.style)}>{run.ruby.text}</rt
-		><rp>)</rp></ruby
-	>{:else}<span style={styleToString(run.style)}><TextRunContent {run} /></span>{/if}
-
-<style>
-	.pptx-svelte-equation {
-		display: inline-block;
-		vertical-align: middle;
-		font-family: 'Cambria Math', 'STIX Two Math', serif;
-	}
-
-	.pptx-svelte-equation-number {
-		margin-inline-start: 0.5em;
-		white-space: nowrap;
-		font-family: 'Cambria Math', 'STIX Two Math', serif;
-	}
-
-	.pptx-svelte-equation-fallback {
-		opacity: 0.5;
-		font-style: italic;
-	}
-
-	.pptx-svelte-link {
-		color: inherit;
-	}
-</style>
+{#if run.reflection}<span style="position: relative; display: inline-block"
+		><TextRunBase {run} /><span
+			class="pptx-svelte-text-reflection"
+			aria-hidden="true"
+			style={styleToString(run.reflection as unknown as CssStyleMap)}
+			><span style={styleToString(run.style)}><TextRunContent {run} /></span></span
+		></span
+	>{:else}<TextRunBase {run} />{/if}

@@ -4,10 +4,16 @@
  * Pure, framework-agnostic. Mirrors React's per-run effect composition in
  * `packages/react/src/viewer/utils/text-segment-render.tsx`: it folds the
  * gradient/pattern fill record, the merged `text-shadow` (outer + preset), the
- * merged `filter` chain (glow + inner-shadow + blur + HSL), the alpha
- * `opacity`, and the `-webkit-box-reflect` reflection into ONE
- * neutral CSS record (`Record<string, string | number>`). Each binding casts
- * the record into its own style type at the call site.
+ * merged `filter` chain (glow + inner-shadow + blur + HSL), and the alpha
+ * `opacity` into ONE neutral CSS record (`Record<string, string | number>`).
+ * Each binding casts the record into its own style type at the call site.
+ *
+ * Reflection (`a:reflection`) is NOT part of this record: unlike the other
+ * effects, it cannot be expressed as CSS properties on the run's own span (a
+ * mirrored copy needs its own DOM node), so it renders as a separate
+ * mirrored-sibling wrapper - see `./reflection`'s `getTextReflectionWrapperStyle`,
+ * called by `paragraph-run-build.ts` and carried on `BuiltRun.reflection`, the
+ * same shape a shape/picture's reflection takes (`ComputedEffectStyle.reflection`).
  *
  * Returns an EMPTY record (`{}`) for a plain run that carries none of these
  * effects, so wiring it into an existing run-style builder is a strict no-op
@@ -24,7 +30,6 @@ import {
 	buildTextGlowFilter,
 	buildTextHslFilter,
 	buildTextInnerShadowCss,
-	buildTextReflectionCss,
 	buildTextShadowCss,
 	getTextAlphaOpacity,
 } from './text-effects';
@@ -68,8 +73,9 @@ export function buildTextRunFilterChain(style: TextStyle): string | undefined {
  *  - `textShadow` from {@link buildTextShadowCss} (outer + preset);
  *  - `filter` from {@link buildTextRunFilterChain} (glow + inner-shadow + blur
  *    + HSL);
- *  - `opacity` from {@link getTextAlphaOpacity} (alpha modulation);
- *  - `WebkitBoxReflect` from {@link buildTextReflectionCss} (reflection).
+ *  - `opacity` from {@link getTextAlphaOpacity} (alpha modulation).
+ *
+ * Reflection is deliberately absent: see the module doc.
  *
  * Only keys for the effects that are actually present are set, so the result is
  * `{}` for a plain run.
@@ -95,11 +101,6 @@ export function buildRunEffectStyle(style: TextStyle): TextCssProperties {
 	const opacity = getTextAlphaOpacity(style);
 	if (opacity !== undefined) {
 		css.opacity = opacity;
-	}
-
-	const reflection = buildTextReflectionCss(style);
-	if (reflection) {
-		css.WebkitBoxReflect = reflection;
 	}
 
 	return css;

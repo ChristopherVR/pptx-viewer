@@ -346,3 +346,85 @@ describe('buildParagraphs', () => {
 		]);
 	});
 });
+
+describe('per-paragraph kinsoku / tab-default override', () => {
+	it("a paragraph's own eaLnBrk/hangingPunct wins over a DIFFERENT sibling paragraph's", () => {
+		// Regression: core collapses these to whichever paragraph in the shape
+		// authors them FIRST (first-wins on the shared shape-scope TextStyle), so
+		// every paragraph rendered paragraph 1's values. This is the render-side
+		// per-paragraph fix (`resolveParagraphGeometryOverrides`).
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: 'First',
+						style: {},
+						paragraphProperties: { eaLineBreak: true, hangingPunctuation: true },
+					},
+					{ text: '\n', style: {}, isParagraphBreak: true },
+					{
+						text: 'Second',
+						style: {},
+						paragraphProperties: { eaLineBreak: false, hangingPunctuation: false },
+					},
+				],
+				{ textStyle: {} },
+			),
+		);
+		expect(paras).toHaveLength(2);
+		expect(paras[0].paragraphStyle?.wordBreak).toBe('break-all');
+		expect(paras[0].paragraphStyle?.hangingPunctuation).toBe('last');
+		expect(paras[1].paragraphStyle?.lineBreak).toBe('strict');
+		expect(paras[1].paragraphStyle?.hangingPunctuation).toBe('none');
+	});
+
+	it('falls back to the body value for a paragraph that authors none of its own', () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Body-driven', style: {} }], { textStyle: { eaLineBreak: true } }),
+		);
+		expect(paras[0].paragraphStyle?.wordBreak).toBe('break-all');
+	});
+});
+
+describe('a:reflection on a text run', () => {
+	it('attaches a mirrored-sibling wrapper to every run built from a reflected segment, never a webkit-box-reflect CSS property', () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Reflected', style: { fontSize: 20, textReflection: true } }]),
+		);
+		const run = paras[0].runs[0];
+		expect(run.reflection).toBeDefined();
+		expect(run.reflection?.maskImage).toContain('linear-gradient');
+		expect(run.style).not.toHaveProperty('WebkitBoxReflect');
+		expect(JSON.stringify(run.style)).not.toContain('box-reflect');
+	});
+
+	it('leaves reflection undefined for a plain run', () => {
+		const paras = buildParagraphs(textEl([{ text: 'Plain', style: { fontSize: 20 } }]));
+		expect(paras[0].runs[0].reflection).toBeUndefined();
+	});
+});
+
+describe('per-run vertical-align from a:pPr/@fontAlgn', () => {
+	it("applies the paragraph's own fontAlgn to every run", () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Top', style: {}, paragraphProperties: { fontAlignment: 't' } }]),
+		);
+		expect(paras[0].runs[0].style.verticalAlign).toBe('top');
+	});
+
+	it('falls back to the body fontAlgn when the paragraph authors none', () => {
+		const paras = buildParagraphs(
+			textEl([{ text: 'Centred', style: {} }], { textStyle: { fontAlignment: 'ctr' } }),
+		);
+		expect(paras[0].runs[0].style.verticalAlign).toBe('middle');
+	});
+
+	it("never overrides a run's own super/subscript baseline shift", () => {
+		const paras = buildParagraphs(
+			textEl([
+				{ text: 'x', style: { baseline: 30000 }, paragraphProperties: { fontAlignment: 'b' } },
+			]),
+		);
+		expect(paras[0].runs[0].style.verticalAlign).toBe('super');
+	});
+});

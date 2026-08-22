@@ -65,6 +65,15 @@ export interface PptxSmartArtColorTransform extends PptxSmartArtDefinitionMetada
 	lineInterpolation?: PptxSmartArtColorListMetadata;
 	/** Ordered CT_CTStyleLabel metadata. */
 	labels?: PptxSmartArtColorStyleLabel[];
+	/**
+	 * Every `styleLbl`'s own resolved fill/line colour list, keyed by name
+	 * (e.g. `node1`, `asst0`, `bgShp`, `revTx`). Unlike {@link fillColors} /
+	 * {@link lineColors} (which collapse to ONE "primary" node-role list),
+	 * this keeps every role so a node can be coloured from its OWN role's
+	 * palette (see `PptxSmartArtNode.styleRole` and `applySmartArtRoleColors`)
+	 * instead of a generic cycled colour.
+	 */
+	roleColors?: Record<string, { fill: string[]; line: string[] }>;
 }
 
 /** Typed CT_StyleDefinition metadata and legacy rendering hint. */

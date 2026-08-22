@@ -171,4 +171,52 @@ describe('remapTextToSegments', () => {
 			expect(result[0].fieldType).toBeUndefined();
 		});
 	});
+
+	// Issue: audit item 11. A field run (`a:fld`) displays computed text
+	// (`substituteFieldText` in `text-field-substitution.ts` REPLACES a
+	// fieldType-tagged segment's stored text wholesale at render, regardless of
+	// what is actually stored). The inline editor renders a field's live value
+	// as ordinary editable text with no atomic/read-only boundary, so a user who
+	// types real content directly after a field (a very common edit: "Page "
+	// + <slidenum field> + " of 10") extends the LAST segment of the paragraph,
+	// which is the field segment here. `copySegmentMetadata` then carries
+	// `fieldType` onto that merged text, and the next render calls
+	// `substituteFieldText` on the WHOLE merged string, discarding everything
+	// the user typed beyond the field's own original text - silently, with no
+	// error and no visual difference until the deck is re-rendered.
+	describe('field-run (a:fld) boundary', () => {
+		it('does not let literal text typed after a field merge into the field segment', () => {
+			// "Page " (literal) + "3" (fieldType: slidenum, the paragraph's LAST
+			// segment) -> user appends " of 10" right after the field.
+			const original: TextSegment[] = [
+				seg('Page '),
+				{ text: '3', style: {}, fieldType: 'slidenum' },
+			];
+			const result = remapTextToSegments('Page 3 of 10', original, {});
+
+			// The field segment's own text must stay bounded to what it originally
+			// held; anything typed beyond it belongs to a new, non-field segment.
+			const fieldSeg = result.find((s) => s.fieldType === 'slidenum');
+			expect(fieldSeg?.text).toBe('3');
+
+			// The literal " of 10" the user typed must survive as its own segment
+			// carrying NO fieldType, or it is silently discarded by field
+			// substitution on every subsequent render.
+			const literalTail = result.find((s) => s.fieldType === undefined && s.text.includes('of 10'));
+			expect(literalTail?.text).toBe(' of 10');
+
+			// Concatenating every segment's stored text must reproduce exactly what
+			// was typed - nothing invented, nothing dropped.
+			expect(result.map((s) => s.text).join('')).toBe('Page 3 of 10');
+		});
+
+		it('still lets a field run be renamed/shortened when the edit stays within it', () => {
+			const original: TextSegment[] = [
+				seg('Page '),
+				{ text: '3', style: {}, fieldType: 'slidenum' },
+			];
+			const result = remapTextToSegments('Page ', original, {});
+			expect(result.map((s) => s.text).join('')).toBe('Page ');
+		});
+	});
 });

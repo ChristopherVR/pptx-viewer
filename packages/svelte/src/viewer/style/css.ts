@@ -11,7 +11,7 @@ export function cssPropertyName(key: string): string {
 	if (key.startsWith('--')) {
 		return key;
 	}
-	// `WebkitBoxReflect` -> `-webkit-box-reflect`; `zIndex` -> `z-index`.
+	// `WebkitMaskImage` -> `-webkit-mask-image`; `zIndex` -> `z-index`.
 	return key.replace(/[A-Z]/gu, (match) => `-${match.toLowerCase()}`);
 }
 

@@ -199,9 +199,61 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					fillGradientType: fill.fillGradientType,
 					fillPatternPreset: fill.fillPatternPreset,
 					fillPatternBackgroundColor: fill.fillPatternBackgroundColor,
+					fillImageUrl: fill.fillImageUrl,
+					fillImageMode: fill.fillImageMode,
 				};
 			}
 		}
+	}
+
+	/**
+	 * Resolve a group's own `p:grpSpPr/a:blipFill` (`fillMode: 'image'`) to a
+	 * displayable `fillImageUrl` plus tiling mode, mirroring the blip
+	 * resolution `parseShapeWithImageFill` does for a shape's own image fill.
+	 *
+	 * Like a picture parsed with `eagerDecodeImages: false`, an unresolved
+	 * archive-relative path is left in `fillImageUrl` as-is rather than a
+	 * displayable URL: `ShapeStyle.fillImageUrl` is a single field (unlike
+	 * `PptxImageProperties.imagePath`/`imageData`'s pair), so there is no
+	 * lazy-load patch target for it yet. A load pipeline that wants this case
+	 * resolved must either pass `eagerDecodeImages: true`, or extend the
+	 * loader's image-path collector to also walk `GroupPptxElement.groupFill`.
+	 */
+	private async resolveGroupFillImage(
+		blipFill: XmlObject | undefined,
+		slidePath: string,
+	): Promise<{ fillImageUrl: string; fillImageMode: 'stretch' | 'tile' } | undefined> {
+		const blip = blipFill?.['a:blip'] as XmlObject | undefined;
+		const rEmbed = blip?.['@_r:embed'] ? String(blip['@_r:embed']) : undefined;
+		const rLink = blip?.['@_r:link'] ? String(blip['@_r:link']) : undefined;
+		const relId = rEmbed || rLink;
+		if (!relId) {
+			return undefined;
+		}
+		const target = this.slideRelsMap.get(slidePath)?.get(relId);
+		if (!target) {
+			return undefined;
+		}
+		const fillImageMode = blipFill?.['a:tile'] !== undefined ? 'tile' : 'stretch';
+		if (target.startsWith('http://') || target.startsWith('https://')) {
+			return this.allowExternalImages === true
+				? { fillImageUrl: target, fillImageMode }
+				: undefined;
+		}
+		if (target.startsWith('data:')) {
+			return { fillImageUrl: target, fillImageMode };
+		}
+		const imagePath = this.resolveImagePath(slidePath, target);
+		if (!imagePath) {
+			return undefined;
+		}
+		if (this.eagerDecodeImages) {
+			const imageData = await this.getImageData(imagePath);
+			if (imageData) {
+				return { fillImageUrl: imageData, fillImageMode };
+			}
+		}
+		return { fillImageUrl: imagePath, fillImageMode };
 	}
 
 	/**
@@ -234,6 +286,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const grpFillStyle = grpSpPr
 			? this.extractShapeStyle(grpSpPr as XmlObject | undefined)
 			: undefined;
+		// `extractShapeStyle` only records `fillMode: 'image'` for a group's own
+		// `p:grpSpPr/a:blipFill` - it has no zip/relationship access, so the blip
+		// itself (r:embed/r:link) is resolved here, mirroring the identical
+		// resolution `parseShapeWithImageFill` does for a shape's own image fill.
+		// PowerPoint's own UI never authors this (a group's Format Shape fill
+		// applies to its CHILDREN via `a:grpFill`, not to the group's own box),
+		// but a hand-authored or tool-authored deck can, and the fill was
+		// silently dropped: `fillImageUrl` stayed unresolved even though
+		// `fillMode` claimed 'image'.
+		if (grpFillStyle?.fillMode === 'image' && grpSpPr) {
+			const blipFill = grpSpPr['a:blipFill'] as XmlObject | undefined;
+			const imageFill = await this.resolveGroupFillImage(blipFill, slidePath);
+			if (imageFill) {
+				grpFillStyle.fillImageUrl = imageFill.fillImageUrl;
+				grpFillStyle.fillImageMode = imageFill.fillImageMode;
+			}
+		}
 		const hasGroupFill = grpFillStyle && grpFillStyle.fillMode && grpFillStyle.fillMode !== 'none';
 
 		const children = await this.parseGroupShape(group, baseId, slidePath, rawXmlStr, depth);

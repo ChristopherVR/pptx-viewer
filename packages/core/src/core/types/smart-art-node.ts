@@ -197,6 +197,16 @@ export interface PptxSmartArtNode {
 	/** Node type from `@_type` attribute (e.g. "doc", "node", "asst", "pres"). */
 	nodeType?: string;
 	/**
+	 * The node's own quick-style role (`dgm:prSet/@presStyleLbl` from its
+	 * paired `type="pres"` presentation point, resolved via a `presOf`
+	 * connection back to this content point). Structural names like `node1`,
+	 * `asst2`, `bgShp`, `revTx`; distinct from {@link nodeType}, which is the
+	 * data-model `@_type` ("node"/"asst"/...). Used to pick this node's own
+	 * colour list from a colour transform's per-role palettes instead of the
+	 * generic cycled palette (see `applySmartArtRoleColors`).
+	 */
+	styleRole?: string;
+	/**
 	 * Per-run text + run-properties for the node's first paragraph, captured at
 	 * parse time. When the joined run text still equals {@link text} (the node
 	 * was not edited, or was edited only in ways that preserve the run split),

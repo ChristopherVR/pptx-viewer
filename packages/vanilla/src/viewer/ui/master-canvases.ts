@@ -1,6 +1,10 @@
 import type { PptxHandoutMaster, PptxNotesMaster } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { computeHandoutSlotLayout, NOTES_MASTER_PLACEHOLDER_RECTS } from 'pptx-viewer-shared';
+import {
+	computeHandoutSlotLayout,
+	NOTES_MASTER_PLACEHOLDER_RECTS,
+	resolveNotesSchematicBodyFontSizePx,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -22,11 +26,20 @@ function page(doc: Document, className: string, size: CanvasSize, color?: string
 	return el;
 }
 
+/**
+ * @param scale The ratio between `size` (already scaled to fit the preview
+ *   viewport) and the notes page's real CSS-px dimensions - i.e. `size.width
+ *   / pageWidth`. Threaded through so the body-placeholder label can resolve
+ *   its font size from the deck's authored `<p:notesStyle>` (via the shared
+ *   cascade) and then apply this schematic-preview shrink ON TOP of it,
+ *   instead of the fixed `10px` CSS rule `.pptxv-notes-region` used before.
+ */
 export function renderNotesMasterCanvas(
 	doc: Document,
 	t: Translator,
 	master: PptxNotesMaster | undefined,
 	size: CanvasSize,
+	scale: number,
 ): HTMLElement {
 	if (!master) {
 		const empty = createEl(doc, 'div', 'pptxv-master-canvas-empty');
@@ -44,6 +57,7 @@ export function renderNotesMasterCanvas(
 		{ type: 'dt' },
 		{ type: 'sldNum' },
 	];
+	const bodyFontSize = resolveNotesSchematicBodyFontSizePx(master.notesStyle, scale);
 	for (const ph of placeholders) {
 		const position = NOTES_MASTER_PLACEHOLDER_RECTS[ph.type];
 		if (!position) {
@@ -55,6 +69,9 @@ export function renderNotesMasterCanvas(
 		region.style.top = `${position.y * size.height}px`;
 		region.style.width = `${position.w * size.width}px`;
 		region.style.height = `${position.h * size.height}px`;
+		if (ph.type === 'body') {
+			region.style.fontSize = `${bodyFontSize}px`;
+		}
 		region.textContent = t(LABEL_KEYS[ph.type] ?? ph.type);
 		el.appendChild(region);
 	}

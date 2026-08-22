@@ -37,10 +37,12 @@ import {
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
 	applyTableCellImagePatches,
+	applyTableStyleImagePatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	collectTableCellImagePaths,
+	collectTableStyleImagePaths,
 	describeFontEmbedding,
 	embeddedFontSaveOptions,
 	resolveSlideSizeSelection,
@@ -468,12 +470,39 @@ export class LoadContentService {
 				}
 			}
 
+			// ── Resolve whole-table-STYLE image-fill Blob URLs ──
+			let nextTableStyleMap = parsed.tableStyleMap;
+			const { paths: tableStyleImagePaths, refs: tableStyleImageRefs } =
+				collectTableStyleImagePaths(nextTableStyleMap);
+			if (tableStyleImagePaths.size > 0) {
+				const resolvedStyleMap = new Map<string, string>();
+				await Promise.all(
+					Array.from(tableStyleImagePaths).map(async (path) => {
+						try {
+							const url = await newHandler.getImageData(path);
+							if (url) {
+								resolvedStyleMap.set(path, url);
+							}
+						} catch {
+							// Non-critical: the style section falls back to no image fill.
+						}
+					}),
+				);
+				if (resolvedStyleMap.size > 0 && nextTableStyleMap) {
+					nextTableStyleMap = applyTableStyleImagePatches(
+						nextTableStyleMap,
+						resolvedStyleMap,
+						tableStyleImageRefs,
+					);
+				}
+			}
+
 			// Commit reactive state.
 			this.revokeBlobUrls(this.activeBlobUrls);
 			this.activeBlobUrls = loadBlobUrls;
 			this.handler = newHandler;
 			this.slides.set(nextSlides);
-			this.parsedData.set({ ...parsed, slides: nextSlides });
+			this.parsedData.set({ ...parsed, slides: nextSlides, tableStyleMap: nextTableStyleMap });
 			this.mediaDataUrls.set(nextMediaUrls);
 			// `p:sldSz` in its authored EMU, which is the size a save round-trips.
 			// The px canvas is derived from it where the deck reported one, so the
@@ -502,7 +531,7 @@ export class LoadContentService {
 			this.customShows.set(parsed.customShows ?? []);
 			this.theme.set(parsed.theme);
 			this.themeColorMap.set(parsed.themeColorMap);
-			this.tableStyleMap.set(parsed.tableStyleMap);
+			this.tableStyleMap.set(nextTableStyleMap);
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.notesMaster.set(parsed.notesMaster);
 			this.handoutMaster.set(parsed.handoutMaster);

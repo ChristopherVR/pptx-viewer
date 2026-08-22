@@ -13,6 +13,7 @@
  */
 
 import type { PictureBulletMarker } from './bullet-list';
+import type { ReflectionWrapperStyle } from './reflection';
 import type { RunEquation, RunHyperlink } from './text-run-meta';
 import type { RunRuby } from './text-run-ruby';
 import type { RunStyle } from './text-run-style';
@@ -79,6 +80,15 @@ export interface ParagraphRun {
 	 * `text-tab-run-build.ts`). Absent for the common no-tab case.
 	 */
 	tabLines?: TabbedLineRun[];
+	/**
+	 * `a:reflection` mirrored-sibling wrapper style for this run (the text-run
+	 * counterpart of a shape/picture's `ComputedEffectStyle.reflection`), or
+	 * `undefined` for the common no-reflection case. A binding renders a sibling
+	 * node just below the run's own, painted with the same text, positioned and
+	 * masked by this style - see `render/reflection.ts`'s
+	 * `getTextReflectionWrapperStyle`.
+	 */
+	reflection?: ReflectionWrapperStyle;
 }
 
 /** A rendered paragraph: runs plus resolved bullet + hanging-indent metadata. */

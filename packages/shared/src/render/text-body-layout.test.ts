@@ -8,9 +8,10 @@ import {
 	getTextBodyRotationTransform,
 	resolveTextBodyColumns,
 	resolveTextOverflowClip,
+	resolveVertOverflowEllipsisStyle,
 } from './text-body-layout';
 
-function textElement(textStyle: TextStyle): PptxElement {
+function textElement(textStyle: TextStyle, rotation?: number): PptxElement {
 	return {
 		id: 'e1',
 		type: 'text',
@@ -20,6 +21,7 @@ function textElement(textStyle: TextStyle): PptxElement {
 		height: 100,
 		text: 'hello',
 		textStyle,
+		...(rotation !== undefined ? { rotation } : {}),
 	} as PptxElement;
 }
 
@@ -133,6 +135,64 @@ describe('getTextBodyRotationTransform', () => {
 	it('returns undefined for an absent or zero rotation', () => {
 		expect(getTextBodyRotationTransform(textElement({}))).toBeUndefined();
 		expect(getTextBodyRotationTransform(textElement({ textBodyRotation: 0 }))).toBeUndefined();
+	});
+
+	describe('@upright', () => {
+		it('counter-rotates by the shape own rotation to stay screen-upright', () => {
+			expect(getTextBodyRotationTransform(textElement({ upright: true }, 30))).toBe(
+				'rotate(-30deg)',
+			);
+			expect(getTextBodyRotationTransform(textElement({ upright: true }, -15))).toBe(
+				'rotate(15deg)',
+			);
+		});
+
+		it('composes with an authored bodyPr @rot on the same transform', () => {
+			expect(
+				getTextBodyRotationTransform(textElement({ upright: true, textBodyRotation: 10 }, 30)),
+			).toBe('rotate(-20deg)');
+		});
+
+		it('is a no-op without upright, or when the shape itself is unrotated', () => {
+			expect(getTextBodyRotationTransform(textElement({}, 30))).toBeUndefined();
+			expect(getTextBodyRotationTransform(textElement({ upright: true }, 0))).toBeUndefined();
+			expect(getTextBodyRotationTransform(textElement({ upright: true }))).toBeUndefined();
+		});
+	});
+});
+
+describe('resolveVertOverflowEllipsisStyle', () => {
+	it('is empty when @vertOverflow is not ellipsis', () => {
+		expect(resolveVertOverflowEllipsisStyle({ vertOverflow: 'clip' }, 100, 20)).toStrictEqual({});
+		expect(resolveVertOverflowEllipsisStyle(undefined, 100, 20)).toStrictEqual({});
+	});
+
+	it('estimates a line-clamp count from content height / line height', () => {
+		expect(resolveVertOverflowEllipsisStyle({ vertOverflow: 'ellipsis' }, 100, 20)).toStrictEqual({
+			display: '-webkit-box',
+			WebkitBoxOrient: 'vertical',
+			WebkitLineClamp: 5,
+			overflow: 'hidden',
+			textOverflow: 'ellipsis',
+		});
+	});
+
+	it('clamps to at least one line, even for a non-positive content height', () => {
+		expect(
+			resolveVertOverflowEllipsisStyle({ vertOverflow: 'ellipsis' }, 5, 20).WebkitLineClamp,
+		).toBe(1);
+		expect(
+			resolveVertOverflowEllipsisStyle({ vertOverflow: 'ellipsis' }, 0, 20).WebkitLineClamp,
+		).toBe(1);
+		expect(
+			resolveVertOverflowEllipsisStyle({ vertOverflow: 'ellipsis' }, -10, 20).WebkitLineClamp,
+		).toBe(1);
+	});
+
+	it('is empty when the line height is unusable, so the plain clip still wins', () => {
+		expect(resolveVertOverflowEllipsisStyle({ vertOverflow: 'ellipsis' }, 100, 0)).toStrictEqual(
+			{},
+		);
 	});
 });
 

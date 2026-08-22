@@ -169,15 +169,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			// Resolve a plain `a:solidFill` overlay to a hex colour + opacity so a
 			// renderer can composite it (the common picture-style colour-overlay
-			// case). Gradient/pattern/picture overlay fills stay opaque in
-			// `fillRawXml` only - round-trip is unaffected either way.
+			// case). A gradient/pattern overlay resolves to a structured paint
+			// server instead (see `resolvedGradient` / `resolvedPattern`); a
+			// picture overlay fill stays opaque in `fillRawXml` only - round-trip
+			// is unaffected regardless of which of the three resolved.
 			const solidFill = fillOverlay['a:solidFill'] as XmlObject | undefined;
 			const resolvedColor = solidFill ? this.parseColor(solidFill) : undefined;
 			const resolvedOpacity = solidFill ? (this.extractColorOpacity(solidFill) ?? 1) : undefined;
+
+			const gradFill = fillOverlay['a:gradFill'] as XmlObject | undefined;
+			const resolvedGradient = gradFill ? this.resolveFillOverlayGradient(gradFill) : undefined;
+
+			const pattFill = fillOverlay['a:pattFill'] as XmlObject | undefined;
+			const resolvedPattern = pattFill ? this.resolveFillOverlayPattern(pattFill) : undefined;
+
 			effects.fillOverlay = {
 				blend,
 				fillRawXml: rawCopy,
 				...(resolvedColor ? { resolvedColor, resolvedOpacity } : {}),
+				...(resolvedGradient ? { resolvedGradient } : {}),
+				...(resolvedPattern ? { resolvedPattern } : {}),
 			};
 			hasAny = true;
 		}
@@ -233,6 +244,66 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return hasAny ? effects : null;
+	}
+
+	/**
+	 * Resolve a blip `a:fillOverlay/a:gradFill` to the structured gradient a
+	 * renderer composites as an SVG paint server.
+	 *
+	 * This mirrors the table-style `a:gradFill` parse (`parseGradientFill` in
+	 * `table-style-fill-parse.ts`) rather than calling the shape-fill
+	 * pipeline's `extractGradientStops`/`extractGradientType`/
+	 * `extractGradientAngle`: those live in a runtime mixin composed AFTER
+	 * (more derived than) this one in the `PptxHandlerRuntime` chain, so they
+	 * are not reachable via `this` here. `parseColor` / `extractColorOpacity`
+	 * are, and are all this needs.
+	 */
+	private resolveFillOverlayGradient(
+		gradFill: XmlObject,
+	): NonNullable<PptxImageEffects['fillOverlay']>['resolvedGradient'] {
+		const gsLst = gradFill['a:gsLst'] as XmlObject | undefined;
+		const gsNodes = this.ensureArray(gsLst?.['a:gs']);
+		const stops: Array<{ color: string; position: number; opacity?: number }> = [];
+		for (const gsNode of gsNodes) {
+			const gs = gsNode as XmlObject;
+			const color = this.parseColor(gs);
+			if (!color) {
+				continue;
+			}
+			// `a:gs@pos` is a positive fixed percentage in 1000ths (0-100 000).
+			const position = (parseInt(String(gs['@_pos'] || '0'), 10) || 0) / 100000;
+			const opacity = this.extractColorOpacity(gs);
+			stops.push({ color, position, ...(opacity !== undefined ? { opacity } : {}) });
+		}
+		if (stops.length === 0) {
+			return undefined;
+		}
+		const lin = gradFill['a:lin'] as XmlObject | undefined;
+		if (lin) {
+			const angRaw = parseInt(String(lin['@_ang'] || '0'), 10) || 0;
+			const angle = (((angRaw / 60000) % 360) + 360) % 360;
+			return { type: 'linear', angle, stops };
+		}
+		if (gradFill['a:path'] !== undefined) {
+			return { type: 'radial', stops };
+		}
+		return { type: 'linear', angle: 0, stops };
+	}
+
+	/**
+	 * Resolve a blip `a:fillOverlay/a:pattFill` to the structured preset
+	 * pattern a renderer composites as a tiled SVG paint server.
+	 */
+	private resolveFillOverlayPattern(
+		pattFill: XmlObject,
+	): NonNullable<PptxImageEffects['fillOverlay']>['resolvedPattern'] {
+		const preset = String(pattFill['@_prst'] || '').trim();
+		if (!preset) {
+			return undefined;
+		}
+		const foreground = this.parseColor(pattFill['a:fgClr'] as XmlObject | undefined);
+		const background = this.parseColor(pattFill['a:bgClr'] as XmlObject | undefined);
+		return { preset, foreground, background };
 	}
 
 	/**

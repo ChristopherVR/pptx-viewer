@@ -14,6 +14,7 @@ import type {
 	PptxTextAnimationTarget,
 	XmlObject,
 } from '../types';
+import { parseAnimEffectFilter } from './animation-effect-filter-parsing';
 import { childGroupContext, createGroupContext, isMainSequence } from './animation-group-context';
 import type { AnimationGroupContext } from './animation-group-context';
 import { extractAnimationTarget } from './animation-target-build-helpers';
@@ -279,13 +280,31 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			const target = extractAnimationTarget(cTn);
 			const targetId =
 				target?.type === 'shape' || target?.type === 'ink' ? target.shapeId : undefined;
-			if (presetClass && target) {
-				// Validate preset class against known OOXML preset classes
+			const childTnListForFilter = cTn['p:childTnLst'] as XmlObject | undefined;
+			const effectFilter = parseAnimEffectFilter(childTnListForFilter);
+			// A node with no recognised presetClass but a parsed `@filter` still
+			// describes a real effect (third-party-authored decks routinely omit
+			// presetClass/presetID and rely on the filter string alone), so it must
+			// not be dropped. Requiring `presetClass` here used to silently discard
+			// those nodes entirely.
+			if ((presetClass || effectFilter) && target) {
+				// Validate preset class against known OOXML preset classes. When the
+				// attribute itself is absent/invalid, derive entr/exit from the
+				// filter's `@transition` ("out" -> exit, anything else -> the OOXML
+				// default of a reveal) so every downstream consumer that branches on
+				// `presetClass` (fill/hide bookkeeping, `resolveEffect`'s filter
+				// fallback) sees accurate in/out semantics without special-casing.
 				const validPresetClass = (
-					['entr', 'exit', 'emph', 'path'].includes(presetClass) ? presetClass : undefined
+					presetClass && ['entr', 'exit', 'emph', 'path'].includes(presetClass)
+						? presetClass
+						: effectFilter
+							? effectFilter.transition === 'out'
+								? 'exit'
+								: 'entr'
+							: undefined
 				) as PptxNativeAnimation['presetClass'];
 
-				const childTnList = cTn['p:childTnLst'] as XmlObject | undefined;
+				const childTnList = childTnListForFilter;
 				const childMotion = extractChildMotionValues(childTnList);
 				const repeatInfo = extractRepeatInfo(cTn);
 				const colorAnimation = extractColorAnimation(childTnList);
@@ -349,6 +368,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					afterEffect: afterEffectFlag,
 					groupAutoStart: group.groupAutoStart,
 					parGroupIndex: group.parGroupIndex,
+					effectFilter,
 				});
 			}
 

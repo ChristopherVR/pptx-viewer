@@ -247,3 +247,29 @@ describe('buildAngularParagraphs - measured tab-stop layout', () => {
 		expect(paragraphs[0].runs[0].tabLines).toBeUndefined();
 	});
 });
+
+/**
+ * Cross-browser fix: reflection used to ride `-webkit-box-reflect` on
+ * `run.style`, which Firefox never implemented. Shared now attaches a
+ * mirrored-sibling wrapper style (`run.reflection`) instead, the same
+ * mechanism a shape/picture's `ReflectionOverlay` (`element-effect-defs.ts`)
+ * uses; the template renders it as a sibling `<span>`, never a CSS property.
+ */
+describe('buildAngularParagraphs - reflection (a:rPr/a:effectLst/a:reflection)', () => {
+	it('carries a mirrored-sibling wrapper style onto a reflected run, never WebkitBoxReflect', () => {
+		const element = textElement([
+			{ text: 'Reflected', style: { fontSize: 16, textReflection: true } },
+		]);
+		const [para] = buildAngularParagraphs(element);
+		expect(para.runs[0].reflection).toBeDefined();
+		expect(para.runs[0].reflection?.maskImage).toContain('linear-gradient');
+		expect(para.runs[0].style).not.toHaveProperty('WebkitBoxReflect');
+		expect(JSON.stringify(para.runs[0].style)).not.toContain('box-reflect');
+	});
+
+	it('leaves reflection undefined for a plain run', () => {
+		const element = textElement([{ text: 'Plain', style: { fontSize: 16 } }]);
+		const [para] = buildAngularParagraphs(element);
+		expect(para.runs[0].reflection).toBeUndefined();
+	});
+});

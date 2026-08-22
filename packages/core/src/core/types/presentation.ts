@@ -18,6 +18,7 @@ import type {
 	PptxNotesMaster,
 	PptxHandoutMaster,
 	PptxSlideMaster,
+	PptxTextStyleLevels,
 } from './masters';
 import type {
 	PptxComment,
@@ -573,6 +574,29 @@ export interface PptxData {
 	embeddedFonts?: PptxEmbeddedFont[];
 	/** Typed `p:embeddedFontLst` package metadata, including unresolved variants. */
 	embeddedFontList?: PptxEmbeddedFontList;
+	/**
+	 * `p:presentation/@embedTrueTypeFonts` (ECMA-376 §19.2.1.26): the author's
+	 * saved preference that TrueType fonts referenced by the deck be embedded.
+	 * `undefined` when the attribute is absent (spec default `false`).
+	 *
+	 * This is purely declarative in this library: fonts are only ever embedded
+	 * when the caller explicitly supplies `embeddedFontList`/`embeddedFonts`
+	 * (there is no automatic embed-on-save), so toggling this flag does not
+	 * gate any embedding behaviour of its own here - it only round-trips the
+	 * author's stated preference, the same way real PowerPoint reads it back
+	 * as a checkbox state rather than a trigger. See `@saveSubsetFonts`,
+	 * which is a separate, deliberately unimplemented flag (no glyph
+	 * subsetting) that does not interact with this one.
+	 */
+	embedTrueTypeFonts?: boolean;
+	/**
+	 * Presentation-level default text style (`p:defaultTextStyle`): the
+	 * last-resort paragraph/run-property fallback for every shape (placeholder
+	 * or not) whose local and inherited cascade leaves a field undefined.
+	 * Keyed the same way as {@link PptxMasterTextStyles} categories: `-1` is
+	 * `a:defPPr`, `0`-`8` are `a:lvl1pPr`-`a:lvl9pPr`.
+	 */
+	defaultTextStyle?: PptxTextStyleLevels;
 	/** Most-recently-used colour list from presentation properties. */
 	mruColors?: string[];
 	/** Parsed notes master data if present in the PPTX. */

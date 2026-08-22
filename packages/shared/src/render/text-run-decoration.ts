@@ -8,7 +8,7 @@
 
 import type { TextSegment } from 'pptx-viewer-core';
 
-import { resolveUnderlineDecorationStyle } from './text-decoration';
+import { resolveUnderlineDecorationStyle, resolveUnderlineLineDecoration } from './text-decoration';
 import type { RunStyle } from './text-run-style';
 
 /**
@@ -67,16 +67,28 @@ export function applyUnderlineVariant(style: RunStyle, seg: TextSegment): void {
 		isDoubleStrike,
 		s.underline ? s.underlineStyle : undefined,
 	);
-	if (!deco) {
-		return;
+	if (deco) {
+		if (deco.textDecorationStyle !== undefined) {
+			style.textDecorationStyle = deco.textDecorationStyle;
+		}
+		if (deco.textDecorationThickness !== undefined) {
+			style.textDecorationThickness = deco.textDecorationThickness;
+		}
+		if (deco.textUnderlineOffset !== undefined) {
+			style.textUnderlineOffset = deco.textUnderlineOffset;
+		}
 	}
-	if (deco.textDecorationStyle !== undefined) {
-		style.textDecorationStyle = deco.textDecorationStyle;
-	}
-	if (deco.textDecorationThickness !== undefined) {
-		style.textDecorationThickness = deco.textDecorationThickness;
-	}
-	if (deco.textUnderlineOffset !== undefined) {
-		style.textUnderlineOffset = deco.textUnderlineOffset;
+	// A run's own `a:uLn` (width / dash / caps) overrides whatever the `a:u`
+	// style token above implied - a custom underline STROKE distinct from the
+	// underline TYPE, exactly as `a:ln` overrides a shape outline's default
+	// weight. Applied last so it wins on the properties it authors.
+	const lineDeco = resolveUnderlineLineDecoration(s.underlineLine, Boolean(s.underline));
+	if (lineDeco) {
+		if (lineDeco.textDecorationThickness !== undefined) {
+			style.textDecorationThickness = lineDeco.textDecorationThickness;
+		}
+		if (lineDeco.textDecorationStyle !== undefined) {
+			style.textDecorationStyle = lineDeco.textDecorationStyle;
+		}
 	}
 }

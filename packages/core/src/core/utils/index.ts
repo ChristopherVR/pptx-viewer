@@ -181,6 +181,19 @@ export { applyCustomLayoutOverrides } from './smartart-layout-interpreter-custom
 export { interpretSmartArtLayout, type InterpretLayoutInput } from './smartart-layout-interpreter';
 export { parseSmartArtPointCustomLayout } from './smartart-data-model-attributes';
 export { interpretedLayoutToElements } from './smartart-interpreter-drawing-bridge';
+export { applySmartArtRoleColors, type SmartArtColorRoleMap } from './smartart-node-role-colors';
+export { resolveSmartArtNodeStyleRoles } from './smartart-node-style-role';
+export {
+	resolveSmartArtEffectIntensity,
+	type SmartArtEffectIntensity,
+} from './smartart-effect-intensity';
+export {
+	buildSmartArtColorRoleMap,
+	buildSmartArtColorLists,
+	parseSmartArtColorListHexes,
+	type SmartArtColorListDeps,
+	type SmartArtColorLists,
+} from './smartart-color-lists';
 
 export {
 	addSmartArtNode,

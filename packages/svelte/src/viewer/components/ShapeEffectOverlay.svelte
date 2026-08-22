@@ -25,19 +25,23 @@
 	 *
 	 * Renders nothing when the element has no fill overlay and no soft edge.
 	 */
-	import { hasShapeProperties } from 'pptx-viewer-core';
+	import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 	import {
 		buildStrokeOutline,
 		buildSubpathFillOverlay,
 		getComputedEffectStyle,
+		getComputedFillStyle,
+		getImageFitStyle,
 		getSoftEdgeSvgFilter,
 		buildHollowHitOutline,
 		strokeOutlineViewBox,
 	} from 'pptx-viewer-shared';
+	import type { CssStyleMap } from 'pptx-viewer-shared';
 
+	import { getImageSrc, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element }: ElementRendererProps = $props();
+	const { element, mediaDataUrls }: ElementRendererProps = $props();
 
 	/**
 	 * Per-sub-path fill overlay for a multi-sub-path preset or custom geometry,
@@ -84,6 +88,53 @@
 	 * over; this opts the OUTLINE back in (same trick as connector-hit-target).
 	 */
 	const hollowHit = $derived(buildHollowHitOutline(element));
+
+	/**
+	 * `a:reflection` mirrored-sibling wrapper style, or `undefined` when the
+	 * element has no reflection. Cross-browser (unlike the `-webkit-box-reflect`
+	 * `element-style.ts` used to set, which Firefox never implemented): see
+	 * shared's `getReflectionWrapperStyle`.
+	 */
+	const reflection = $derived(getComputedEffectStyle(element).reflection);
+
+	/** The wrapper style above, serialised to an inline CSS string. */
+	const reflectionStyle = $derived(
+		reflection ? styleToString(reflection as unknown as CssStyleMap) : undefined,
+	);
+
+	/**
+	 * The reflection's mirrored CONTENT: a picture's actual photo (a cloned
+	 * `<img>`, since a picture's pixels are never expressed as CSS background)
+	 * for a picture/image element, or the resolved fill for everything else.
+	 * `a:grpFill` children reflect as transparent: the enclosing group's fill is
+	 * not threaded into this overlay.
+	 */
+	const reflectionImgSrc = $derived(
+		reflection && isImageLikeElement(element) ? getImageSrc(element, mediaDataUrls) : undefined,
+	);
+	const reflectionImgFitStyle = $derived(
+		styleToString({ width: '100%', height: '100%', ...getImageFitStyle(element) }),
+	);
+	const reflectionFill = $derived(
+		reflection && !isImageLikeElement(element) ? getComputedFillStyle(element) : undefined,
+	);
+	const reflectionFillStyle = $derived(
+		reflectionFill
+			? styleToString({
+					width: '100%',
+					height: '100%',
+					...(reflectionFill.backgroundColor ? { backgroundColor: reflectionFill.backgroundColor } : {}),
+					...(reflectionFill.backgroundImage ? { backgroundImage: reflectionFill.backgroundImage } : {}),
+					...(reflectionFill.backgroundSize ? { backgroundSize: reflectionFill.backgroundSize } : {}),
+					...(reflectionFill.backgroundPosition
+						? { backgroundPosition: reflectionFill.backgroundPosition }
+						: {}),
+					...(reflectionFill.backgroundRepeat
+						? { backgroundRepeat: reflectionFill.backgroundRepeat }
+						: {}),
+				})
+			: undefined,
+	);
 </script>
 
 {#if subpathFill}
@@ -186,4 +237,13 @@
 			/>
 		{/each}
 	</svg>
+{/if}
+{#if reflectionStyle}
+	<div class="pptx-svelte-reflection" aria-hidden="true" style={reflectionStyle}>
+		{#if reflectionImgSrc}
+			<img src={reflectionImgSrc} alt="" draggable="false" style={reflectionImgFitStyle} />
+		{:else if reflectionFillStyle}
+			<div style={reflectionFillStyle}></div>
+		{/if}
+	</div>
 {/if}

@@ -1,16 +1,20 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
+	getComputedFillStyle,
 	getSoftEdgeSvgFilter,
 	strokeOutlineViewBox,
 } from 'pptx-viewer-shared';
 import type { StrokeOutlinePaint } from 'pptx-viewer-shared';
 import React from 'react';
 import type { CSSProperties } from 'react';
+
+import { getImageRenderStyle } from '../../utils';
+import { imgSrc } from './ImageRenderer';
 
 /**
  * The `<defs>` paint server an outline is stroked with. Only a gradient or a
@@ -92,7 +96,9 @@ export function ShapeEffectOverlay({
 		return null;
 	}
 
-	const overlay = getComputedEffectStyle(element).fillOverlay;
+	const fx = getComputedEffectStyle(element);
+	const overlay = fx.fillOverlay;
+	const reflection = fx.reflection;
 	const softEdge = getSoftEdgeSvgFilter(element.shapeStyle, element.id);
 	const strokeOutline = buildStrokeOutline(element);
 	// An unfilled, textless shape is a FRAME: its container is pointer-events:none
@@ -100,9 +106,21 @@ export function ShapeEffectOverlay({
 	// opts its OUTLINE back into hit testing (same trick as connector-hit-target).
 	const hollowHit = buildHollowHitOutline(element);
 	const subpathFill = buildSubpathFillOverlay(element);
-	if (!overlay && !softEdge && !strokeOutline && !hollowHit && !subpathFill) {
+	if (!overlay && !softEdge && !strokeOutline && !hollowHit && !subpathFill && !reflection) {
 		return null;
 	}
+
+	// The reflection's mirrored CONTENT: a picture's actual photo (a cloned
+	// `<img>`, since a picture's pixels are never expressed as CSS background)
+	// for a picture/image element, or the resolved fill (colour / gradient /
+	// pattern / image fill) for everything else - the same two paint sources
+	// `getShapeVisualStyle` / `ImageRenderer` use for the element itself.
+	// `a:grpFill` children reflect as transparent: the enclosing group's fill
+	// is not threaded into this overlay (see `getGroupChildParentFill`, which
+	// only the group's own child-rendering path resolves).
+	const reflectionFill =
+		reflection && !isImageLikeElement(element) ? getComputedFillStyle(element) : undefined;
+	const reflectionImgSrc = reflection && isImageLikeElement(element) ? imgSrc(element) : undefined;
 
 	const fillOverlayStyle: CSSProperties | undefined = overlay
 		? {
@@ -197,6 +215,34 @@ export function ShapeEffectOverlay({
 						style={{ pointerEvents: 'stroke' }}
 					/>
 				</svg>
+			) : null}
+			{reflection ? (
+				<div
+					className='pptx-react-reflection'
+					aria-hidden='true'
+					style={reflection as CSSProperties}
+				>
+					{reflectionImgSrc ? (
+						<img
+							src={reflectionImgSrc}
+							alt=''
+							draggable={false}
+							style={{ width: '100%', height: '100%', ...getImageRenderStyle(element) }}
+						/>
+					) : reflectionFill ? (
+						<div
+							style={{
+								width: '100%',
+								height: '100%',
+								backgroundColor: reflectionFill.backgroundColor,
+								backgroundImage: reflectionFill.backgroundImage,
+								backgroundSize: reflectionFill.backgroundSize,
+								backgroundPosition: reflectionFill.backgroundPosition,
+								backgroundRepeat: reflectionFill.backgroundRepeat,
+							}}
+						/>
+					) : null}
+				</div>
 			) : null}
 		</>
 	);

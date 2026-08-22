@@ -22,7 +22,12 @@ describe('elementRenderer per-run text effects (shared builder wiring)', () => {
 		expect(style).toStrictEqual({ color: '#111111' });
 	});
 
-	it('folds a gradient fill, shadow, filter, opacity, and reflection into one run style', () => {
+	it('folds a gradient fill, shadow, filter, and opacity into one run style; reflection never rides WebkitBoxReflect', () => {
+		// Reflection is deliberately excluded from `buildRunEffectStyle`'s CSS
+		// record: it renders as a mirrored-sibling wrapper instead (`run.reflection`
+		// on `paragraph-view.ts`'s `TextRun`, resolved by shared's
+		// `getTextReflectionWrapperStyle`), the same mechanism a shape/picture's
+		// `ReflectionOverlay` uses. See `paragraph-view.test.ts` for that wiring.
 		const style: StyleMap = {};
 		Object.assign(
 			style,
@@ -42,7 +47,8 @@ describe('elementRenderer per-run text effects (shared builder wiring)', () => {
 		expect(String(style.filter)).toContain('drop-shadow');
 		expect(String(style.filter)).toContain('blur(2px)');
 		expect(style.opacity).toBe(0.8);
-		expect(String(style.WebkitBoxReflect)).toContain('linear-gradient');
+		expect(style).not.toHaveProperty('WebkitBoxReflect');
+		expect(JSON.stringify(style)).not.toContain('box-reflect');
 	});
 
 	it('builds a text-body 3D scene style (perspective + rotate) from scene3d', () => {

@@ -116,51 +116,61 @@ assign(['presentation:attribute:showMasterPhAnim'], {
 });
 
 assign(['presentation:attribute:embedTrueTypeFonts'], {
-	parse: 'unassessed',
+	parse: 'native',
 	preserve: 'native',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: 'FINDING: `p:presentation/@embedTrueTypeFonts` is not implemented - nothing outside the generated schema inventory reads or writes it anywhere in this codebase. It survives a save only because `presentationData` (the parsed presentation.xml root) is mutated in place for the handful of fields the typed model owns and re-serialized wholesale, so an authored attribute rides along as passthrough. There is no typed field, no getter, and no way to toggle it, so only preserve is promoted.',
+	edit: 'native',
+	serialize: 'native',
+	note: "`p:presentation/@embedTrueTypeFonts` is modelled: parsed onto `PptxData.embedTrueTypeFonts` (absent stays `undefined` rather than being forced to the spec default), editable via the `embedTrueTypeFonts` save option, and written by `PptxPresentationSaveBuilder.applyEmbedTrueTypeFonts` (always the literal `1`/`0` for an explicit value, never just omitted for `false`). It stays purely declarative: this library only ever embeds fonts a caller explicitly supplies via `embeddedFontList`/`embeddedFonts` (there is no automatic embed-on-save), so the flag does not gate anything here - it only round-trips the author's stated preference. `@saveSubsetFonts` is a separate, deliberately unimplemented flag (no glyph subsetting) that does not interact with this one.",
 	evidence: [
+		testEvidence(
+			'src/__tests__/integration/presentation-structure-flags.test.ts',
+			['defaults to undefined (spec default: false) when the attribute is absent'],
+			['parse'],
+		),
+		testEvidence(
+			'src/__tests__/integration/presentation-structure-flags.test.ts',
+			['parses an explicit @embedTrueTypeFonts="1" as true onto the typed model'],
+			['parse'],
+		),
 		testEvidence(
 			'src/__tests__/integration/presentation-structure-flags.test.ts',
 			['survives an unrelated save as raw passthrough on the presentation root'],
 			['preserve'],
 		),
+		testEvidence(
+			'src/__tests__/integration/presentation-structure-flags.test.ts',
+			['round-trips an edit through the typed model: true -> XML -> parsed true again'],
+			['edit', 'serialize'],
+		),
+		testEvidence(
+			'src/__tests__/integration/presentation-structure-flags.test.ts',
+			['writes @embedTrueTypeFonts="0" for an explicit false (not just omitted)'],
+			['edit', 'serialize'],
+		),
 	],
 });
 
-assign(
-	[
-		'presentation:element:smartTags',
-		'presentation:complexType:CT_SmartTags',
-		'presentation:element:tags',
+assign(['presentation:element:smartTags', 'presentation:complexType:CT_SmartTags'], {
+	parse: 'unassessed',
+	preserve: 'native',
+	edit: 'unsupported',
+	serialize: 'unassessed',
+	note: "`p:smartTags` (CT_SmartTags, a bare `@r:id` child of `p:presentation`) points at a smart-tag RECOGNIZER part (`p:smartTagLst`/`p:smartTagType`) - a distinct, legacy Office feature unrelated to the user-defined `p:tags` construct (see `presentation:element:tags` for that one, now fully authored). This codebase has no data model for recognizer content at all, so there is no way to create or edit one through the public API; only preserve is promoted. An element already authored by a real generator survives a no-edit save because the owning part's XML is mutated in place and re-emitted wholesale, not because anything models the element.",
+	evidence: [
+		testEvidence(
+			'src/__tests__/integration/smarttags-and-tags-reference.test.ts',
+			['preserves an authored <p:smartTags r:id=".."/> through a no-edit round trip'],
+			['preserve'],
+		),
+		testEvidence(
+			'src/__tests__/integration/smarttags-and-tags-reference.test.ts',
+			[
+				'authors a <p:tags r:id=".."/> element matching the relationship for a brand-new presentation-owned tag collection (gap fixed)',
+			],
+			['edit'],
+		),
 	],
-	{
-		parse: 'unassessed',
-		preserve: 'native',
-		edit: 'unsupported',
-		serialize: 'unassessed',
-		note: 'FINDING: `p:smartTags` (CT_SmartTags, on `p:presentation`) and `p:tags` (CT_TagsData, on `p:custData`) are bare `@r:id` reference elements that this codebase never reads or writes. `src/core/utils/tag-package.ts` discovers and authors tag PARTS purely by scanning `.rels` files for `Type=".../relationships/tags"` - it never touches either owning element. An element ALREADY authored by a real generator survives a no-edit save (the owning part\'s XML is mutated in place / re-emitted wholesale, not rebuilt field-by-field), but a brand-new tag collection authored through the public `tags` save option produces a package with the relationship but NO `<p:smartTags>`/`<p:tags>` element pointing at it - real PowerPoint keys its smart-tags UI off that element, not a bare relationship, so this is a genuine authoring gap, not merely untested.',
-		evidence: [
-			testEvidence(
-				'src/__tests__/integration/smarttags-and-tags-reference.test.ts',
-				[
-					'preserves an authored <p:smartTags r:id=".."/> through a no-edit round trip',
-					'preserves a nested <p:tags r:id=".."/> inside p:custData through a no-edit round trip',
-				],
-				['preserve'],
-			),
-			testEvidence(
-				'src/__tests__/integration/smarttags-and-tags-reference.test.ts',
-				[
-					'does not author a <p:smartTags> element for a brand-new presentation-owned tag collection (gap)',
-				],
-				['edit'],
-			),
-		],
-	},
-);
+});
 
 export const OPENXML_THEME_BLIP_TAGS_SUPPLEMENT_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>

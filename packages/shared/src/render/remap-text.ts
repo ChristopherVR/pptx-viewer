@@ -6,6 +6,27 @@
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 /**
+ * Whether an original segment is ATOMIC: its rendered text is not what is
+ * literally stored (a field re-substitutes its live value at render, from
+ * `text-field-substitution.ts`'s `substituteFieldText`; an equation's `text`
+ * is a placeholder like `"[Equation]"`, the maths lives in `equationXml`).
+ *
+ * An atomic segment must never absorb typed text beyond its own original
+ * length, even when it is the paragraph's LAST segment (see the loop in
+ * {@link remapTextToSegments}'s `remapParagraph`): the ordinary "last segment
+ * gets everything left over" rule would merge whatever the user typed
+ * immediately after the field/equation into it, and `copySegmentMetadata`
+ * would carry the `fieldType`/`equationXml` onto that merged text, so the
+ * user's own literal characters vanish the next time the field re-renders or
+ * the equation re-serialises - silently, with no error and no visible
+ * difference until then. A common, unremarkable edit ("Page " + a slide-
+ * number field + typing " of 10" right after it) triggers this every time.
+ */
+function isAtomicOriginalSegment(seg: TextSegment): boolean {
+	return seg.fieldType !== undefined || seg.equationXml !== undefined;
+}
+
+/**
  * Copy segment-level metadata (equation, field) from an original segment onto
  * its remapped counterpart. Without this, entering and leaving inline text
  * editing destroys the data these fields carry even when nothing was typed:
@@ -108,7 +129,10 @@ export function remapTextToSegments(
 
 		for (let i = 0; i < paraOrigSegments.length; i++) {
 			const origSeg = paraOrigSegments[i];
-			const isLastSeg = i === paraOrigSegments.length - 1;
+			// An atomic (field/equation) segment never gets the "last segment
+			// absorbs everything left over" treatment, even when it IS the last
+			// segment - see `isAtomicOriginalSegment`.
+			const isLastSeg = i === paraOrigSegments.length - 1 && !isAtomicOriginalSegment(origSeg);
 			const origLen = origSeg.text.length;
 
 			if (newPos >= paraNewText.length) {
@@ -134,6 +158,19 @@ export function remapTextToSegments(
 			}
 
 			newPos += isLastSeg ? segText.length : origLen;
+		}
+
+		// Typed text that runs past the last (capped, atomic) field/equation
+		// segment becomes its own new, PLAIN trailing segment - carrying none of
+		// that segment's metadata - so it survives instead of being silently
+		// discarded. Ordinary (non-atomic) paragraphs never reach here: their
+		// true last segment already absorbed everything via `isLastSeg` above.
+		if (newPos < paraNewText.length) {
+			const lastOrigSeg = paraOrigSegments[paraOrigSegments.length - 1];
+			remapped.push({
+				text: paraNewText.slice(newPos),
+				style: { ...lastOrigSeg.style },
+			});
 		}
 
 		if (remapped.length === 0) {

@@ -128,4 +128,53 @@ describe('shapeEffectOverlay', () => {
 		} as unknown as PptxElement);
 		expect(target.innerHTML).toContain('#000000');
 	});
+
+	describe('reflection', () => {
+		it('renders a mirrored sibling with no -webkit-box-reflect', () => {
+			const target = render(
+				shape('el-reflect', {
+					fillColor: '#ff0000',
+					reflectionStartOpacity: 0.5,
+					reflectionDistance: 4,
+				}),
+			);
+			const layer = target.querySelector<HTMLElement>('.pptx-svelte-reflection');
+			expect(layer).not.toBeNull();
+			expect(layer?.style.position).toBe('absolute');
+			expect(layer?.style.transform).toBe('scaleY(-1)');
+			expect(target.innerHTML).not.toContain('box-reflect');
+		});
+
+		it('paints the reflected fill from the resolved solid colour for a shape', () => {
+			const target = render(
+				shape('el-reflect-2', {
+					fillColor: '#ff0000',
+					reflectionStartOpacity: 0.5,
+					reflectionDistance: 4,
+				}),
+			);
+			const fill = target.querySelector<HTMLElement>('.pptx-svelte-reflection div');
+			expect(fill?.style.backgroundColor).toBe('#ff0000');
+		});
+
+		it('paints a reflected <img> for a picture element', () => {
+			const target = render({
+				type: 'picture',
+				id: 'pic1',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 80,
+				imageData: 'data:image/png;base64,AAAA',
+				shapeStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+			} as unknown as PptxElement);
+			const img = target.querySelector<HTMLImageElement>('.pptx-svelte-reflection img');
+			expect(img?.getAttribute('src')).toBe('data:image/png;base64,AAAA');
+		});
+
+		it('renders nothing extra when there is no reflection', () => {
+			const target = render(shape('el-plain-2', { fillColor: '#00ff00' }));
+			expect(target.querySelector('.pptx-svelte-reflection')).toBeNull();
+		});
+	});
 });

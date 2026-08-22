@@ -4,38 +4,10 @@ import { describe, expect, it } from 'vitest';
 import {
 	computeAutoFitTextStyle,
 	isVerticalTextDirection,
-	resolveLineHeight,
 	toCssTextOrientation,
 	toCssVerticalDirection,
 	toCssWritingMode,
 } from './text-style-helpers';
-
-describe('resolveLineHeight', () => {
-	it('returns an exact pt string when lineSpacingExactPt is set', () => {
-		expect(resolveLineHeight({ lineSpacingExactPt: 18 }, false)).toBe('18pt');
-	});
-
-	it('ignores a non-positive exact pt and uses the multiplier', () => {
-		// 1.5 stacks on the 1.2 single-spacing base (spcPct multiplies the pitch).
-		expect(resolveLineHeight({ lineSpacingExactPt: 0, lineSpacing: 1.5 }, false)).toBeCloseTo(
-			1.8,
-			10,
-		);
-	});
-
-	it('uses the proportional multiplier when set', () => {
-		// 200% spacing lays out at 2.4x the font size in PowerPoint (COM-measured
-		// on the issue #132 deck), not 2.0x: spcPct stacks on the 1.2 base.
-		expect(resolveLineHeight({ lineSpacing: 2 }, false)).toBeCloseTo(2.4, 10);
-	});
-
-	it('defaults to PowerPoint single spacing (1.2x), italic or not', () => {
-		// Measured against PowerPoint (COM TextRange2.BoundHeight, issue #131
-		// deck): single-spaced lines are exactly 1.2x the font point size.
-		expect(resolveLineHeight(undefined, false)).toBe(1.2);
-		expect(resolveLineHeight(undefined, true)).toBe(1.2);
-	});
-});
 
 describe('vertical text mapping', () => {
 	it('maps text directions to writing-mode', () => {

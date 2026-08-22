@@ -44,10 +44,12 @@ import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
 import {
 	applyTableCellImagePatches,
+	applyTableStyleImagePatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	collectTableCellImagePaths,
+	collectTableStyleImagePaths,
 } from './load-content-helpers';
 import type { TemplateElementMap } from './template-editing';
 import { buildSaveSlides, partitionTemplateElements } from './template-editing';
@@ -492,6 +494,33 @@ export function useLoadContent(
 				}
 			}
 
+			// ── Resolve whole-table-STYLE image-fill Blob URLs ──
+			let nextTableStyleMap = parsed.tableStyleMap;
+			const { paths: tableStyleImagePaths, refs: tableStyleImageRefs } =
+				collectTableStyleImagePaths(nextTableStyleMap);
+			if (tableStyleImagePaths.size > 0) {
+				const resolvedStyleMap = new Map<string, string>();
+				await Promise.all(
+					Array.from(tableStyleImagePaths).map(async (path) => {
+						try {
+							const url = await newHandler.getImageData(path);
+							if (url) {
+								resolvedStyleMap.set(path, url);
+							}
+						} catch {
+							// Non-critical: the style section falls back to no image fill.
+						}
+					}),
+				);
+				if (resolvedStyleMap.size > 0 && nextTableStyleMap) {
+					nextTableStyleMap = applyTableStyleImagePatches(
+						nextTableStyleMap,
+						resolvedStyleMap,
+						tableStyleImageRefs,
+					);
+				}
+			}
+
 			// Pull master/layout (template) elements out of each slide into their own
 			// store so the editor can gate / route / merge them back independently.
 			const partitioned = partitionTemplateElements(nextSlides);
@@ -529,7 +558,7 @@ export function useLoadContent(
 			appProperties.value = parsed.appProperties;
 			tagCollections.value = parsed.tags ?? [];
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
-			tableStyleMap.value = parsed.tableStyleMap;
+			tableStyleMap.value = nextTableStyleMap;
 			sections.value = parsed.sections ?? [];
 			customShows.value = parsed.customShows ?? [];
 			presentationProperties.value = parsed.presentationProperties ?? {};

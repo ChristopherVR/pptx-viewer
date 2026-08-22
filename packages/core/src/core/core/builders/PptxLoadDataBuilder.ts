@@ -23,6 +23,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTagCollection,
+	PptxTextStyleLevels,
 	PptxTheme,
 	PptxThemeOption,
 	PptxViewProperties,
@@ -110,6 +111,10 @@ export class PptxLoadDataBuilder {
 	private modernCommentAuthors: PptxModernCommentAuthor[] | undefined;
 
 	private conformance: 'strict' | 'transitional' | undefined;
+
+	private embedTrueTypeFonts: boolean | undefined;
+
+	private defaultTextStyle: PptxTextStyleLevels | undefined;
 
 	public withDimensions(width: number, height: number, widthEmu: number, heightEmu: number): this {
 		this.width = width;
@@ -307,6 +312,16 @@ export class PptxLoadDataBuilder {
 		return this;
 	}
 
+	public withEmbedTrueTypeFonts(embedTrueTypeFonts: boolean | undefined): this {
+		this.embedTrueTypeFonts = embedTrueTypeFonts;
+		return this;
+	}
+
+	public withDefaultTextStyle(defaultTextStyle: PptxTextStyleLevels | undefined): this {
+		this.defaultTextStyle = defaultTextStyle;
+		return this;
+	}
+
 	public build(): PptxData {
 		return {
 			width: this.width,
@@ -351,6 +366,8 @@ export class PptxLoadDataBuilder {
 			commentAuthors: this.commentAuthors,
 			modernCommentAuthors: this.modernCommentAuthors,
 			conformance: this.conformance,
+			embedTrueTypeFonts: this.embedTrueTypeFonts,
+			defaultTextStyle: this.defaultTextStyle,
 		};
 	}
 }

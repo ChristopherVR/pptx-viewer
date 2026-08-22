@@ -15,6 +15,7 @@ import {
 	applyChartAxisTitleToXml,
 	applyChartAxisTitleStyleToXml,
 } from '../../utils/chart-axis-title-serializer';
+import { applyChartBandFmts } from '../../utils/chart-band-fmts';
 import { applyBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { applyChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import {
@@ -595,6 +596,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					);
 				}
 
+				if (chartData.bandFmts !== undefined && chartData.chartType === 'surface') {
+					applyChartBandFmts(
+						chartTypeContainer,
+						chartData.bandFmts,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+						(node) => this.parseColor(node),
+					);
+				}
+
 				// ── view3D round-trip (CT_View3D) ─────────────────────────
 				if (chartData.view3D) {
 					this.applyView3D(chartRoot, chartData.view3D);
@@ -646,18 +656,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					);
 				}
 
-				applyChartDataTable(plotArea, chartData.dataTable, (key) =>
-					this.compatibilityService.getXmlLocalName(key),
+				applyChartDataTable(
+					plotArea,
+					chartData.dataTable,
+					(key) => this.compatibilityService.getXmlLocalName(key),
+					(node) => this.parseColor(node),
 				);
 
 				// Update axis fields (Phase 5 Stream A item 4).
 				// Currently writes back: scaling.min/max, scaling.logBase,
 				// numFmt, majorUnit, minorUnit, tickLblPos. Other parsed-but-not-
-				// written chart fields (surfaces/dataTable/dropLines/hiLowLines/
+				// written chart fields (surfaces/dropLines/hiLowLines/
 				// marker/per-point dataLabels/explosion/smooth/
 				// colorPalette/colorMethod, axis txPr/axPos) are
 				// preserved via the original XML passthrough but lose any edits
-				// — see OPENXML_PARITY.md M-tier.
+				// (see OPENXML_PARITY.md M-tier).
 				if (chartData.axes) {
 					const axisTypeNames = ['valAx', 'catAx', 'dateAx', 'serAx'] as const;
 					for (const axisTypeName of axisTypeNames) {

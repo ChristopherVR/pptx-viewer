@@ -20,6 +20,7 @@ import type { CustomerDataScope } from '../../utils/customer-data-package';
 import { serializeEmbeddedFontList, setEmbeddedFontList } from '../../utils/embedded-font-list';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import { safeResolveZipPath } from '../../utils/safe-path';
+import { applySmartArtConnectorLabels } from '../../utils/smartart-connector-labels';
 import { writeTagCollections } from '../../utils/tag-package';
 import type { PptxSaveFormat } from '../types';
 import {
@@ -161,6 +162,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// point's prSet / spPr / extLst survive the round-trip.
 				if (ptKey && ptList) {
 					ptList[ptKey] = mergeSmartArtPointXml(existingPts, smartArtData.nodes);
+					// Write an edited connector label back onto its linked
+					// parTrans/sibTrans point (preserved verbatim otherwise).
+					if (desiredConnections && desiredConnections.length > 0) {
+						applySmartArtConnectorLabels(
+							this.ensureArray(ptList[ptKey]) as XmlObject[],
+							desiredConnections,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+						);
+					}
 				}
 
 				// Surgically merge dgm:cxnLst so each unchanged connection keeps its

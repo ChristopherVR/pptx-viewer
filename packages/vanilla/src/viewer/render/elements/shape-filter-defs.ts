@@ -1,11 +1,14 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
+	getComputedFillStyle,
 	getDuotoneSvgFilter,
+	getImageFitStyle,
+	getImageSrc,
 	getSoftEdgeSvgFilter,
 	isPatternPaint,
 	strokeOutlineViewBox,
@@ -67,6 +70,60 @@ export function renderShapeFillOverlay(doc: Document, element: PptxElement): HTM
 		pointerEvents: 'none',
 	});
 	layer.setAttribute('aria-hidden', 'true');
+	return layer;
+}
+
+/**
+ * `a:reflection` mirrored-sibling node: a cross-browser replacement for
+ * `-webkit-box-reflect` (Firefox never implemented that property, so
+ * reflections rendered nothing there at all). Positioned/transformed/masked
+ * by shared's `getReflectionWrapperStyle`; painted inside with the SAME
+ * content the element itself uses - a cloned `<img>` for a picture (a
+ * picture's pixels are never expressed as CSS background), or the resolved
+ * fill for everything else. `a:grpFill` children reflect as transparent: the
+ * enclosing group's fill is not threaded into this overlay.
+ */
+export function renderReflectionOverlay(
+	doc: Document,
+	element: PptxElement,
+	mediaDataUrls: ReadonlyMap<string, string>,
+): HTMLElement | null {
+	const wrapperStyle = getComputedEffectStyle(element).reflection;
+	if (!wrapperStyle) {
+		return null;
+	}
+	const layer = createEl(doc, 'div', 'pptxv-reflection', { ...wrapperStyle });
+	layer.setAttribute('aria-hidden', 'true');
+
+	if (isImageLikeElement(element)) {
+		const src = getImageSrc(element, new Map(mediaDataUrls));
+		if (src) {
+			const img = createEl(doc, 'img', undefined, {
+				width: '100%',
+				height: '100%',
+				...getImageFitStyle(element),
+			});
+			img.setAttribute('src', src);
+			img.setAttribute('alt', '');
+			img.setAttribute('draggable', 'false');
+			layer.appendChild(img);
+		}
+		return layer;
+	}
+
+	const fill = getComputedFillStyle(element);
+	if (fill) {
+		const fillLayer = createEl(doc, 'div', undefined, {
+			width: '100%',
+			height: '100%',
+			...(fill.backgroundColor ? { backgroundColor: fill.backgroundColor } : {}),
+			...(fill.backgroundImage ? { backgroundImage: fill.backgroundImage } : {}),
+			...(fill.backgroundSize ? { backgroundSize: fill.backgroundSize } : {}),
+			...(fill.backgroundPosition ? { backgroundPosition: fill.backgroundPosition } : {}),
+			...(fill.backgroundRepeat ? { backgroundRepeat: fill.backgroundRepeat } : {}),
+		});
+		layer.appendChild(fillLayer);
+	}
 	return layer;
 }
 

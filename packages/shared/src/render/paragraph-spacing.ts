@@ -7,7 +7,7 @@
  */
 import type { TextStyle } from 'pptx-viewer-core';
 
-import { proportionalLineHeight } from './text-style-helpers';
+import { proportionalLineHeight } from './text-line-height';
 
 /** Points to CSS px. */
 const PT_TO_PX = 96 / 72;
@@ -172,7 +172,9 @@ export function resolveParagraphSpacing(input: ParagraphSpacingInput): Paragraph
 	} else if (typeof multiplier === 'number' && multiplier > 0) {
 		// `a:spcPct` stacks on PowerPoint's 1.2 single-spacing pitch; see
 		// `proportionalLineHeight` for the COM measurement behind it.
-		const proportional = proportionalLineHeight(multiplier);
+		// `compatLnSpc` (`a:bodyPr` only, never per-paragraph) opts out of that
+		// stacking.
+		const proportional = proportionalLineHeight(multiplier, bodyStyle?.compatibleLineSpacing);
 		out.lineHeight =
 			typeof lineSpacingReduction === 'number' && lineSpacingReduction > 0
 				? proportional * (1 - lineSpacingReduction)

@@ -153,6 +153,68 @@ describe('master p:txStyles and presentation p:defaultTextStyle fallback cascade
 	});
 });
 
+describe('master p:txStyles and presentation p:defaultTextStyle edit path', () => {
+	it('edits titleStyle level 0 font size while preserving bodyStyle/otherStyle and unmodelled XML', async () => {
+		const { handler, data } = await PresentationBuilder.create({ initialSlideCount: 1 });
+		const seed = await handler.save(data.slides);
+		const loadHandler = new PptxHandler();
+		const loaded = await loadHandler.load(seed.buffer as ArrayBuffer);
+		const master = loaded.slideMasters![0]!;
+
+		const originalBodySize = master.txStyles?.bodyStyle?.[0]?.fontSize;
+		expect(originalBodySize).toBeCloseTo(32 * (96 / 72), 3);
+
+		master.txStyles = {
+			...master.txStyles,
+			titleStyle: { ...master.txStyles?.titleStyle, 0: { fontSize: 40 * (96 / 72), bold: true } },
+		};
+		const saved = await loadHandler.save(loaded.slides, { slideMasters: [master] });
+
+		const zip = await JSZip.loadAsync(saved);
+		const masterXml = await zip.file(master.path)!.async('string');
+		// The edited level carries the new size/bold, merged into (not
+		// replacing) the existing defRPr: @kern and the theme font-ref latin
+		// typeface, neither of which the typed model owns, both survive.
+		expect(masterXml).toMatch(/<p:titleStyle><a:lvl1pPr[^>]*><a:spcBef>/u);
+		expect(masterXml).toContain('<a:defRPr sz="4000" kern="1200" b="1">');
+		expect(masterXml).toContain('<a:latin typeface="+mj-lt">');
+		// bodyStyle and otherStyle, which this edit did not touch, are untouched.
+		expect(masterXml).toContain('<a:defRPr sz="3200" kern="1200">');
+		expect(masterXml).toContain('<p:otherStyle><a:defPPr><a:defRPr lang="en-US">');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedMaster = reloaded.slideMasters!.find((m) => m.path === master.path)!;
+		expect(reloadedMaster.txStyles?.titleStyle?.[0]?.fontSize).toBeCloseTo(40 * (96 / 72), 3);
+		expect(reloadedMaster.txStyles?.titleStyle?.[0]?.bold).toBeTruthy();
+		expect(reloadedMaster.txStyles?.bodyStyle?.[0]?.fontSize).toBeCloseTo(32 * (96 / 72), 3);
+	});
+
+	it('edits the presentation defaultTextStyle level 0 font size via the save option', async () => {
+		const { handler, data } = await PresentationBuilder.create({ initialSlideCount: 1 });
+		const seed = await handler.save(data.slides);
+		const loadHandler = new PptxHandler();
+		const loaded = await loadHandler.load(seed.buffer as ArrayBuffer);
+
+		expect(loaded.defaultTextStyle?.[0]?.fontSize).toBeCloseTo(18 * (96 / 72), 3);
+
+		const saved = await loadHandler.save(loaded.slides, {
+			defaultTextStyle: { 0: { fontSize: 20 * (96 / 72) } },
+		});
+		const presentationXml = await (
+			await JSZip.loadAsync(saved)
+		)
+			.file('ppt/presentation.xml')!
+			.async('string');
+		// defPPr, which this edit did not touch, keeps its schema position
+		// ahead of the edited lvl1pPr.
+		expect(presentationXml).toMatch(/<p:defaultTextStyle><a:defPPr>[\s\S]*<\/a:defPPr><a:lvl1pPr/u);
+		expect(presentationXml).toContain('<a:defRPr sz="2000" kern="1200">');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		expect(reloaded.defaultTextStyle?.[0]?.fontSize).toBeCloseTo(20 * (96 / 72), 3);
+	});
+});
+
 describe('master p:txStyles and p:defaultTextStyle survive a no-edit round trip', () => {
 	it('re-emits titleStyle/bodyStyle/otherStyle and defaultTextStyle verbatim', async () => {
 		const { handler, data } = await PresentationBuilder.create({ initialSlideCount: 1 });

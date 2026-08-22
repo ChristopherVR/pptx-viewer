@@ -15,7 +15,7 @@
  */
 
 import type { TextSegment } from 'pptx-viewer-core';
-import { getSubstituteFontFamily } from 'pptx-viewer-core';
+import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 
 import { HYPERLINK_COLOR } from '../constants';
 import { normalizeHexColor } from './fill-style';
@@ -49,6 +49,38 @@ function resolveLetterSpacing(
 }
 
 /**
+ * Resolve `a:rPr/@kern` to a CSS `font-kerning` keyword.
+ *
+ * OOXML `@kern` is a MINIMUM FONT SIZE (hundredths of a point) above which
+ * kerning applies, not an on/off flag: `kern="1200"` means "kern this run
+ * only if it renders at 12pt or larger". `0` disables kerning outright
+ * regardless of size. Reducing it to a boolean (any non-zero value enables
+ * kerning) was shared's own behaviour before this function existed - React's
+ * `text-segment-render.tsx` already read the threshold correctly, so Vue,
+ * Angular, Svelte and Vanilla (which render `run.style` from shared verbatim)
+ * disagreed with React on any run below its authored threshold.
+ *
+ * @param kerning    `a:rPr/@kern`, in hundredths of a point (or `undefined`
+ *                   when the run authors none, which leaves kerning unset).
+ * @param fontSizePx The run's resolved font size in CSS px (already reflects
+ *                   `a:normAutofit/@fontScale` and any super/sub shrink).
+ * @returns `'normal'` / `'none'`, or `undefined` when the run authors no `@kern`.
+ */
+export function resolveFontKerning(
+	kerning: number | undefined,
+	fontSizePx: number | undefined,
+): 'normal' | 'none' | undefined {
+	if (typeof kerning !== 'number') {
+		return undefined;
+	}
+	if (kerning === 0) {
+		return 'none';
+	}
+	const fontSizePt = (fontSizePx ?? 0) * (72 / 96);
+	return fontSizePt >= kerning / 100 ? 'normal' : 'none';
+}
+
+/**
  * Layer the "extra" run properties that neither the boolean decoration set nor
  * `buildRunEffectStyle` cover: character spacing, super/subscript baseline
  * shift, highlight background, text outline stroke, underline colour, kerning,
@@ -65,9 +97,10 @@ function applyExtraRunProps(
 	if (letterSpacing !== undefined) {
 		style.letterSpacing = letterSpacing;
 	}
-	// Kerning (`a:rPr/@kern`): 0 disables kerning, any other value enables it.
-	if (typeof s.kerning === 'number') {
-		style.fontKerning = s.kerning === 0 ? 'none' : 'normal';
+	// Kerning (`a:rPr/@kern`) is a THRESHOLD, not a boolean: see `resolveFontKerning`.
+	const fontKerning = resolveFontKerning(s.kerning, font.fontSizePx);
+	if (fontKerning !== undefined) {
+		style.fontKerning = fontKerning;
 	}
 	// Highlight (`a:highlight`) → background. Suppressed automatically when a
 	// gradient/pattern text fill later sets the `background` shorthand.
@@ -139,8 +172,17 @@ export function segmentStyleToCss(
 		// for Calibri, Liberation Sans for Arial), so without it a machine that
 		// lacks the authored font drops to the browser's default sans - different
 		// glyph widths, different line breaks, a visibly different slide from the
-		// React reference on the same deck.
-		style.fontFamily = getSubstituteFontFamily(s.fontFamily);
+		// React reference on the same deck. The run's own `a:latin/@panose` (when
+		// authored) picks the right generic fallback class - a serif face with no
+		// entry in the substitution map must not fall back to sans, and vice
+		// versa. This used to call `getSubstituteFontFamily` with no panose
+		// argument at all, so a run that overrode the body's own font (the only
+		// case this branch fires for; an inherited font already goes through the
+		// body's own panose-aware call in `buildTextBlockStyle`) substituted
+		// without it in Vue, Angular, Svelte and Vanilla, while React re-resolved
+		// the same font WITH panose immediately afterwards and painted a
+		// different fallback face.
+		style.fontFamily = getSubstituteFontFamily(s.fontFamily, parsePanoseString(s.latinFontPanose));
 	}
 	// Super/subscript (`a:rPr/@baseline`) shifts the run and shrinks the glyph.
 	const baselineShift =

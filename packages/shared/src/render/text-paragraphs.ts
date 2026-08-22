@@ -23,6 +23,7 @@ import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
 import { getKinsokuLineBreakStyles } from './kinsoku-styles';
+import { resolveParagraphGeometryOverrides } from './paragraph-geometry-overrides';
 import { buildBulletMarkerStyle, buildParagraphRuns } from './paragraph-run-build';
 import { resolveParagraphSpacing } from './paragraph-spacing';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
@@ -93,7 +94,6 @@ export function buildParagraphs(
 	// declares none of its own (see `paragraph-run-enrich`).
 	const blockScriptStyle = element.textStyle;
 	const tabStops = element.textStyle?.tabStops;
-	const defaultTabSize = element.textStyle?.defaultTabSize;
 	const paragraphIndents = element.paragraphIndents;
 	const grouped: Array<{
 		paraSegments: TextSegment[];
@@ -130,6 +130,17 @@ export function buildParagraphs(
 					? firstSeg
 					: undefined;
 
+			// An empty paragraph's own `a:pPr` / `a:endParaRPr` ride its terminator
+			// segment (there is no run to carry them), so read them from there. Also
+			// this paragraph's own kinsoku / font-alignment / tab-default override,
+			// resolved BEFORE the runs so a per-paragraph `@defTabSz` reaches
+			// `buildParagraphRuns` instead of always the body's.
+			const propsCarrier = firstSeg ?? (paraSegments.length === 0 ? terminator : undefined);
+			const geometryOverrides = resolveParagraphGeometryOverrides(
+				propsCarrier?.paragraphProperties,
+				bodyStyle,
+			);
+
 			const runs: ParagraphRun[] = buildParagraphRuns({
 				paraSegments,
 				paraIndices,
@@ -138,7 +149,8 @@ export function buildParagraphs(
 				blockFont,
 				blockScriptStyle,
 				tabStops,
-				defaultTabSize,
+				defaultTabSize: geometryOverrides.defaultTabSize,
+				fontAlignment: geometryOverrides.fontAlignment,
 				fieldContext,
 			});
 
@@ -153,9 +165,6 @@ export function buildParagraphs(
 				firstSeg?.paragraphLevel,
 			);
 			const bulletStyle = buildBulletMarkerStyle(bullet, firstSeg, fontScale, indent.textIndentPx);
-			// An empty paragraph's own `a:pPr` / `a:endParaRPr` ride its terminator
-			// segment (there is no run to carry them), so read them from there.
-			const propsCarrier = firstSeg ?? (paraSegments.length === 0 ? terminator : undefined);
 			const spacing = resolveParagraphSpacing({
 				paraProps: propsCarrier?.paragraphProperties,
 				bodyStyle,
@@ -181,7 +190,11 @@ export function buildParagraphs(
 				paraSegments.map((seg) => ({ segment: seg })),
 				bodyStyle?.align,
 			);
-			const paragraphStyle: RunStyle = getKinsokuLineBreakStyles(firstSeg?.style);
+			// This paragraph's OWN kinsoku rules (`eaLnBrk`/`latinLnBrk`/
+			// `hangingPunct`), not the shape-scope `firstSeg.style`, which core
+			// collapses to whichever paragraph in the shape authors them first (see
+			// `resolveParagraphGeometryOverrides`'s doc comment).
+			const paragraphStyle: RunStyle = getKinsokuLineBreakStyles(geometryOverrides);
 			const cssAlign = resolveCssTextAlign(align, rtl === true);
 			if (cssAlign !== undefined) {
 				paragraphStyle.textAlign = cssAlign;

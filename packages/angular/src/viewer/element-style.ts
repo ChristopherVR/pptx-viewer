@@ -168,9 +168,10 @@ export function getShapeFillStrokeStyle(
 	if (filterCss) {
 		style['filter'] = filterCss;
 	}
-	if (fx.webkitBoxReflect) {
-		style['-webkit-box-reflect'] = fx.webkitBoxReflect;
-	}
+	// Reflection is no longer a single CSS property (`-webkit-box-reflect`
+	// never worked in Firefox): the renderer renders a mirrored sibling node
+	// instead, using shared's `getReflectionWrapperStyle` directly (see
+	// `element-effect-defs.ts`'s `getReflectionOverlay`).
 	if (fx.mixBlendMode) {
 		style['mix-blend-mode'] = fx.mixBlendMode;
 	}

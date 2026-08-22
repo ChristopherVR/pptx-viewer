@@ -24,16 +24,23 @@
  *     cannot share one CSS `background-color`: `element-style.ts` drops the
  *     container fill for these (via shared `suppressesCssFill`) so this layered
  *     SVG paints it instead, each sub-path with its own resolved fill.
+ *  5. A mirrored REFLECTION sibling (`a:reflection`): cross-browser (unlike the
+ *     `-webkit-box-reflect` `element-style.ts` used to set, which Firefox never
+ *     implemented), painted with the same content the element itself uses (a
+ *     cloned `<img>` for a picture, the resolved fill for everything else).
  *
  * Renders nothing when the element has no shape properties, no fill overlay,
  * and no soft edge.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 import {
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
+	getComputedFillStyle,
+	getImageFitStyle,
+	getImageSrc,
 	getSoftEdgeSvgFilter,
 	buildHollowHitOutline,
 	strokeOutlineViewBox,
@@ -41,7 +48,11 @@ import {
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
-const props = defineProps<{ element: PptxElement }>();
+const props = defineProps<{
+	element: PptxElement;
+	/** Only needed to resolve a reflected picture's `<img>` src (lazy-loaded pictures). */
+	mediaDataUrls?: Map<string, string>;
+}>();
 
 /**
  * Per-sub-path fill overlay for a multi-sub-path preset or custom geometry, or
@@ -104,6 +115,36 @@ const hollowHit = computed(() => buildHollowHitOutline(props.element));
 
 /** viewBox in the element's PAINTED box, which the path data is authored in. */
 const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
+
+/**
+ * `a:reflection` mirrored-sibling wrapper style, or `undefined` when the
+ * element has no reflection. Cross-browser (unlike the `-webkit-box-reflect`
+ * `element-style.ts` used to set): see shared's `getReflectionWrapperStyle`.
+ */
+const reflection = computed<CSSProperties | undefined>(
+	() => effect.value.reflection as CSSProperties | undefined,
+);
+
+/**
+ * The reflection's mirrored CONTENT: a picture's actual photo (a cloned
+ * `<img>`, since a picture's pixels are never expressed as CSS background)
+ * for a picture/image element, or the resolved fill for everything else.
+ * `a:grpFill` children reflect as transparent: the enclosing group's fill is
+ * not threaded into this overlay.
+ */
+const reflectionImgSrc = computed(() =>
+	reflection.value && isImageLikeElement(props.element)
+		? getImageSrc(props.element, props.mediaDataUrls ?? new Map())
+		: undefined,
+);
+const reflectionImgStyle = computed<CSSProperties>(
+	() => getImageFitStyle(props.element) as CSSProperties,
+);
+const reflectionFill = computed(() =>
+	reflection.value && !isImageLikeElement(props.element)
+		? getComputedFillStyle(props.element)
+		: undefined,
+);
 </script>
 
 <template>
@@ -234,4 +275,25 @@ const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
 			style="pointer-events: stroke"
 		/>
 	</svg>
+	<div v-if="reflection" class="pptx-vue-reflection" aria-hidden="true" :style="reflection">
+		<img
+			v-if="reflectionImgSrc"
+			:src="reflectionImgSrc"
+			alt=""
+			draggable="false"
+			:style="{ width: '100%', height: '100%', ...reflectionImgStyle }"
+		/>
+		<div
+			v-else-if="reflectionFill"
+			:style="{
+				width: '100%',
+				height: '100%',
+				backgroundColor: reflectionFill.backgroundColor,
+				backgroundImage: reflectionFill.backgroundImage,
+				backgroundSize: reflectionFill.backgroundSize,
+				backgroundPosition: reflectionFill.backgroundPosition,
+				backgroundRepeat: reflectionFill.backgroundRepeat,
+			}"
+		/>
+	</div>
 </template>

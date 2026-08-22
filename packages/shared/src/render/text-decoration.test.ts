@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveUnderlineDecorationStyle } from './text-decoration';
+import { resolveUnderlineDecorationStyle, resolveUnderlineLineDecoration } from './text-decoration';
 
 describe('resolveUnderlineDecorationStyle', () => {
 	it('double strike wins over the underline style', () => {
@@ -41,5 +41,45 @@ describe('resolveUnderlineDecorationStyle', () => {
 			textDecorationThickness: '2px',
 			textUnderlineOffset: '1px',
 		});
+	});
+});
+
+describe('resolveUnderlineLineDecoration', () => {
+	it('returns undefined when the run has no underline at all', () => {
+		expect(
+			resolveUnderlineLineDecoration({ widthEmu: 38100, prstDash: 'dash' }, false),
+		).toBeUndefined();
+	});
+
+	it('returns undefined when the run authors no uLn', () => {
+		expect(resolveUnderlineLineDecoration(undefined, true)).toBeUndefined();
+	});
+
+	it('converts uLn width (EMU) to a px thickness', () => {
+		// 38100 EMU = 4px at 9525 EMU/px.
+		expect(resolveUnderlineLineDecoration({ widthEmu: 38100 }, true)).toStrictEqual({
+			textDecorationThickness: '4px',
+		});
+	});
+
+	it('maps a known prstDash to the closest CSS decoration style', () => {
+		expect(resolveUnderlineLineDecoration({ prstDash: 'lgDash' }, true)).toStrictEqual({
+			textDecorationStyle: 'dashed',
+		});
+		expect(resolveUnderlineLineDecoration({ prstDash: 'sysDot' }, true)).toStrictEqual({
+			textDecorationStyle: 'dotted',
+		});
+	});
+
+	it('combines width and dash, and ignores an unrecognised dash token', () => {
+		expect(
+			resolveUnderlineLineDecoration({ widthEmu: 9525, prstDash: 'dash' }, true),
+		).toStrictEqual({
+			textDecorationThickness: '1px',
+			textDecorationStyle: 'dashed',
+		});
+		expect(
+			resolveUnderlineLineDecoration({ widthEmu: 9525, prstDash: 'notARealDash' }, true),
+		).toStrictEqual({ textDecorationThickness: '1px' });
 	});
 });

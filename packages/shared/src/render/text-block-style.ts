@@ -34,12 +34,13 @@ import {
 	buildTextBodyLayoutStyle,
 	getTextBodyRotationTransform,
 	resolveTextOverflowClip,
+	resolveVertOverflowEllipsisStyle,
 } from './text-body-layout';
 import { resolveTextBodyRectPadding } from './text-body-rect';
+import { lineHeightToPx, resolveLineHeight } from './text-line-height';
 import { resolveCssTextAlign } from './text-paragraph-style';
 import {
 	computeAutoFitTextStyle,
-	resolveLineHeight,
 	toCssTextOrientation,
 	toCssVerticalDirection,
 	toCssWritingMode,
@@ -276,6 +277,16 @@ export function buildTextBlockStyle(
 	if (autoFit.lineHeight !== undefined) {
 		style.lineHeight = autoFit.lineHeight;
 	}
+
+	// `a:bodyPr/@vertOverflow="ellipsis"`: truncate wrapped text with a
+	// trailing "…" instead of the plain clip `resolveTextOverflowClip` applied
+	// above. Computed last so it sees the final (autofit-adjusted) font size
+	// and line height, and only overrides `display`/`overflow` when the box
+	// height is actually known (element geometry is always available here).
+	const fontSizePx = typeof style.fontSize === 'number' ? style.fontSize : DEFAULT_TEXT_FONT_SIZE;
+	const lineHeightPx = lineHeightToPx(fontSizePx, style.lineHeight);
+	const contentHeightPx = element.height - style.paddingTop - style.paddingBottom;
+	Object.assign(style, resolveVertOverflowEllipsisStyle(ts, contentHeightPx, lineHeightPx));
 
 	return options.pxLengths ? toPxLengths(style) : style;
 }

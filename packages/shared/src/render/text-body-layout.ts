@@ -211,23 +211,87 @@ export function buildTextBodyLayoutStyle(element: PptxElement): TextBodyLayoutSt
 }
 
 /**
- * `a:bodyPr/@rot` as a CSS `transform` value.
+ * `a:bodyPr/@rot` (and `@upright`) as a CSS `transform` value.
  *
- * The attribute rotates the text body inside an otherwise unrotated shape
+ * `@rot` rotates the text body inside an otherwise unrotated shape
  * (PowerPoint's "Text Options > Text Box > custom angle"). Core stores it in
  * degrees, clockwise positive, which is also CSS's sense, so the mapping is
- * direct. Returns `undefined` for an absent or zero rotation so a caller can
- * compose it with its own transforms without emitting `rotate(0deg)`.
+ * direct.
  *
- * @param element The element whose text body may be rotated.
+ * `@upright` keeps the text screen-upright when the SHAPE itself carries its
+ * own rotation (`element.rotation`, from `xfrm/@rot`): PowerPoint counter-
+ * rotates the text body by exactly the shape's own angle so the glyphs stay
+ * level while the shape's outline still turns. Both angles land on the same
+ * transform (the text body nested inside the already-rotated shape), so they
+ * compose into one `rotate()` rather than two separate declarations.
+ *
+ * Returns `undefined` when neither angle is authored, so a caller can compose
+ * this with its own transforms without emitting a no-op `rotate(0deg)`.
+ *
+ * @param element The element whose text body may be rotated and/or upright.
  * @returns e.g. `'rotate(45deg)'`, or `undefined`.
  */
 export function getTextBodyRotationTransform(element: PptxElement): string | undefined {
 	if (!hasTextProperties(element)) {
 		return undefined;
 	}
-	const rotation = element.textStyle?.textBodyRotation;
-	return typeof rotation === 'number' && Number.isFinite(rotation) && rotation !== 0
-		? `rotate(${rotation}deg)`
-		: undefined;
+	const bodyRotation = element.textStyle?.textBodyRotation;
+	const bodyDeg =
+		typeof bodyRotation === 'number' && Number.isFinite(bodyRotation) ? bodyRotation : 0;
+
+	const shapeRotation = element.rotation;
+	const uprightDeg =
+		element.textStyle?.upright === true &&
+		typeof shapeRotation === 'number' &&
+		Number.isFinite(shapeRotation)
+			? -shapeRotation
+			: 0;
+
+	const totalDeg = bodyDeg + uprightDeg;
+	return totalDeg !== 0 ? `rotate(${totalDeg}deg)` : undefined;
+}
+
+/**
+ * `a:bodyPr/@vertOverflow="ellipsis"` as a CSS multi-line clamp.
+ *
+ * `resolveTextOverflowClip` treats `ellipsis` the same as `clip` (both just
+ * hide the overflow), which is honest about a plain single-line
+ * `text-overflow: ellipsis` not applying to the multi-line, wrapped text a
+ * PowerPoint text body actually renders. `-webkit-line-clamp` (now supported
+ * by every major engine, including Firefox, despite the prefix) is the one
+ * CSS mechanism that truncates WRAPPED text with a trailing "…" glyph, but it
+ * needs a line COUNT, not a pixel height, so this estimates one from the
+ * body's own content box and resolved line height.
+ *
+ * @param textStyle      The element's resolved text style.
+ * @param contentHeightPx The text body's content-box height in px (the
+ *                        element's own height minus its insets). A
+ *                        non-positive value (an unset or too-small box)
+ *                        clamps to one line rather than emitting no clamp.
+ * @param lineHeightPx    The resolved single-line height in px.
+ * @returns The clamp CSS, or `{}` when `@vertOverflow` is not `ellipsis` or
+ *          `lineHeightPx` is unusable (so the caller's plain clip still wins).
+ */
+export function resolveVertOverflowEllipsisStyle(
+	textStyle: TextStyle | undefined,
+	contentHeightPx: number,
+	lineHeightPx: number,
+): TextBodyLayoutStyle {
+	if (textStyle?.vertOverflow !== 'ellipsis') {
+		return {};
+	}
+	if (!(lineHeightPx > 0)) {
+		return {};
+	}
+	// A non-positive content height (an unset or too-small box) still clamps to
+	// at least one line, rather than falling back to the plain clip: `Math.max`
+	// below floors any non-positive ratio to 1.
+	const lines = Math.max(1, Math.floor(contentHeightPx / lineHeightPx));
+	return {
+		display: '-webkit-box',
+		WebkitBoxOrient: 'vertical',
+		WebkitLineClamp: lines,
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+	};
 }

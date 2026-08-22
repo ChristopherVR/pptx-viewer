@@ -115,6 +115,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
+			// Print-resolution hint (`a:blipFill/@dpi`): round-trip only, no
+			// on-screen rendering effect. See `PptxImageProperties.dpi`.
+			const dpiRaw = Number.parseInt(String(blipFill?.['@_dpi'] || ''), 10);
+			if (Number.isFinite(dpiRaw) && dpiRaw > 0) {
+				tileProps.dpi = dpiRaw;
+			}
+
 			this.compatibilityService.inspectPictureCompatibility(blipFill, blip, slidePath, id);
 			this.compatibilityService.inspectShapeCompatibility(
 				effectiveSpPr,

@@ -1,16 +1,19 @@
 /**
  * Per-run extras layered onto a {@link BuiltRun} by `paragraph-run-build.ts`:
- * per-script font spans and measured tab-stop layout. Split out to keep that
- * module focused on the run-splitting pipeline itself.
+ * per-script font spans, measured tab-stop layout, and the `a:reflection`
+ * mirrored-sibling wrapper. Split out to keep that module focused on the
+ * run-splitting pipeline itself.
  *
- * Both extras were React-only before this module existed (`text-segment-render`
- * / `text-tab-layout.tsx`); they now reach all five bindings through the same
- * `BuiltRun` fields React itself consumes.
+ * The script/tab extras were React-only before this module existed
+ * (`text-segment-render` / `text-tab-layout.tsx`); they now reach all five
+ * bindings through the same `BuiltRun` fields React itself consumes.
  */
 
-import type { TextSegment } from 'pptx-viewer-core';
+import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
+import type { ReflectionWrapperStyle } from './reflection';
+import { getTextReflectionWrapperStyle } from './reflection';
 import type { RunFontSpec } from './text-metric-tracking';
 import { nestedTextDecorationStyle } from './text-run-decoration';
 import type { RunStyle } from './text-run-style';
@@ -97,4 +100,48 @@ export function buildScriptRunsFor(
 		ctx.baseFontFamily,
 		nestedTextDecorationStyle(style),
 	);
+}
+
+/**
+ * `a:reflection` mirrored-sibling wrapper for a segment's runs, or `undefined`
+ * for the common no-reflection case. `-webkit-box-reflect`'s old scope never
+ * reached the equation branch above it in `buildParagraphRuns` (it `continue`s
+ * before this is even called), so this only ever needs to be attached to a
+ * ruby run, a tab-lines run, or a per-word metric-split piece - never an
+ * equation.
+ *
+ * The element-height argument approximates the run's own box with its font
+ * size (matching the ruby-annotation fallback size right above this call
+ * site): `getTextReflectionWrapperStyle` only uses it for `@endPos`, which
+ * core's text-run parser does not extract yet (see `reflection.ts`'s module
+ * doc), so it is currently inert for text - kept anyway so a text reflection
+ * measures sensibly the day that parser gap closes.
+ */
+export function resolveRunReflection(
+	segStyle: TextStyle | undefined,
+	blockFont: RunFontSpec,
+): ReflectionWrapperStyle | undefined {
+	if (!segStyle) {
+		return undefined;
+	}
+	const height =
+		typeof segStyle.fontSize === 'number'
+			? segStyle.fontSize
+			: (blockFont.fontSizePx ?? DEFAULT_TEXT_FONT_SIZE);
+	return getTextReflectionWrapperStyle(segStyle, height);
+}
+
+/**
+ * Set `run.reflection` on a `BuiltRun`-shaped object when a reflection was
+ * resolved by {@link resolveRunReflection}; a one-line no-op otherwise. `T` is
+ * `paragraph-run-build.ts`'s `BuiltRun` (kept generic here so this module does
+ * not have to import that type back from its own caller).
+ */
+export function applyRunReflection<T extends { reflection?: ReflectionWrapperStyle }>(
+	run: T,
+	reflection: ReflectionWrapperStyle | undefined,
+): void {
+	if (reflection) {
+		run.reflection = reflection;
+	}
 }

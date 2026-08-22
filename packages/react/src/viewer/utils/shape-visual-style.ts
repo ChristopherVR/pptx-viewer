@@ -60,7 +60,8 @@ function rendersCustomVectorPath(element: PptxElement): boolean {
  * - **Glow & soft-edge**: CSS filter drop-shadow and the alpha-feather `<filter>`
  * - **DAG effects**: grayscale, bi-level, brightness/contrast, hue/saturation, tint, duotone
  * - **3-D**: perspective transforms, extrusion depth, bevel highlights
- * - **Reflection**: Chromium `-webkit-box-reflect`, including `@stPos`
+ * - **Reflection**: NOT included here - see `ReflectionOverlay`, which renders
+ *   a cross-browser mirrored sibling from shared's `getReflectionWrapperStyle`
  * - **Shape geometry**: clip-path polygons, border-radius for ellipses and round-rects
  *
  * @param element - The PPTX element to style.
@@ -119,7 +120,10 @@ export function getShapeVisualStyle(
 		// opposite end along the edge. Paint from the border box instead.
 		backgroundOrigin: 'border-box',
 		boxShadow: fx.boxShadow,
-		WebkitBoxReflect: fx.webkitBoxReflect,
+		// Reflection is no longer a single CSS property (`-webkit-box-reflect`
+		// never worked in Firefox): `ElementRenderer` renders a mirrored sibling
+		// node instead, using shared's `getReflectionWrapperStyle` directly (see
+		// `ReflectionOverlay`).
 		filter: fx.filter,
 		opacity: fx.opacity,
 		// Only proxy the DAG blend onto the whole element for the blend-only case:

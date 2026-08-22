@@ -66,6 +66,7 @@ export * from './unicode-script-detection';
 // descriptor now.
 export * from './text-script-fonts';
 export * from './visual-effects';
+export * from './reflection';
 export * from './image-effects';
 export * from './image-background-removal';
 export * from './image-effect-filter-values';
@@ -259,6 +260,9 @@ export * from './animation-playback';
 // injection, audio playback, and file reading stay in each binding.
 export * from './animation-timeline-types';
 export * from './animation-presets';
+// `p:animEffect/@filter` fallback resolution, consulted by `resolveEffect`
+// only when `presetId` is absent/unmapped (see `animation-timeline-helpers`).
+export * from './animation-filter-effects';
 // CSS `mask` reveal states for the wipe / peek / blinds / split / box family.
 // A mask composites with the element's own geometry `clip-path`, which a
 // `clip-path` keyframe would replace (flooding a thin shape's bounding box).
@@ -434,6 +438,14 @@ export * from './notes';
 // (text body scene perspective/rotation). Each binding casts the neutral
 // record to its own style type; React keeps the JSX (SVG filters).
 export * from './text-style-helpers';
+// Line-height resolution: PowerPoint's single-spacing pitch, proportional
+// (`a:spcPct`) / exact (`a:spcPts`) modes, `compatLnSpc`'s legacy model.
+export * from './text-line-height';
+// `a:pPr/@fontAlgn` (font alignment within a line) -> CSS `vertical-align`.
+export * from './text-font-alignment';
+// This paragraph's own kinsoku / font-alignment / tab-default override,
+// falling back to the text body's when the paragraph authors none.
+export * from './paragraph-geometry-overrides';
 // The ONE text-body (block) style builder all five bindings render text with:
 // colour, font declaration, decorations, insets, `wrap="none"` and autofit.
 // Replaced React's `getTextStyleForElement` plus four drifting copies of it.

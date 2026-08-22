@@ -9,9 +9,11 @@
  * This writer takes the optional `slideMasters` array supplied via
  * {@link PptxHandlerSaveOptions.slideMasters} and, for each entry, mutates
  * the corresponding {@link masterXmlMap} entry in place so that subsequent
- * passthrough emits the requested edits. Fields that are not part of the
- * typed model (`txStyles`, `transition`, `timing`, `extLst`, raw shape tree)
- * are left untouched, preserving them verbatim across the round-trip.
+ * passthrough emits the requested edits. `txStyles` edits are applied via
+ * `master-text-style-writer.ts` (`applyMasterTextStyles`), merging into the
+ * existing node so untouched levels/categories and unmodelled XML survive.
+ * Fields that are not part of the typed model (`transition`, `timing`,
+ * `extLst`, raw shape tree) are left untouched, preserving them verbatim.
  *
  * Slide-master XML schema (ECMA-376 §19.3.1.42, CT_SlideMaster):
  *
@@ -28,6 +30,7 @@
 
 import { XmlObject } from '../../types';
 import type { PptxSlideMaster } from '../../types';
+import { applyMasterTextStyles } from '../../utils/master-text-style-writer';
 import { COLOR_MAP_ALIAS_KEYS, DEFAULT_COLOR_MAP } from '../../utils/theme-override-utils';
 import { masterPartLoadedBackground } from './master-part-background-cache';
 import { applyHeaderFooterFlagsToNode, applyBackgroundColorToCSld } from './master-save-helpers';
@@ -98,6 +101,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// layout-level writer in PptxHandlerRuntimeSaveSlideLayout.
 		if (master.preserve !== undefined) {
 			root['@_preserve'] = master.preserve ? '1' : '0';
+		}
+
+		// `<p:txStyles>` - title/body/other text-style cascade. Merges into the
+		// existing node so untouched categories/levels and unmodelled XML
+		// (tab stops, extensions, ...) survive.
+		if (master.txStyles !== undefined) {
+			applyMasterTextStyles(root, master.txStyles);
 		}
 
 		xmlObj['p:sldMaster'] = root;

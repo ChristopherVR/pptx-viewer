@@ -33,6 +33,71 @@ describe('pptxAnimationWriteService', () => {
 			expect(service.buildTimingXml([], undefined)).toBeUndefined();
 		});
 
+		// The read side now models p:bldP/p:tmplLst (PptxTimingTemplate); this
+		// guards that a p:bldLst carrying one still round-trips byte-identically
+		// through a real surgical update elsewhere in the tree. The surgical
+		// writer never reads or rewrites p:bldLst, so it must come back
+		// untouched even though an edit elsewhere in the tree DOES land.
+		it('preserves an existing p:bldLst/p:tmplLst verbatim through a surgical update', () => {
+			const service = createService();
+			const bldLst: XmlObject = {
+				'p:bldP': {
+					'@_spid': 'sp1',
+					'@_build': 'p',
+					'p:tmplLst': {
+						'p:tmpl': {
+							'@_lvl': '1',
+							'p:tnLst': {
+								'p:par': { 'p:cTn': { '@_id': '99', '@_presetClass': 'entr' } },
+							},
+						},
+					},
+				},
+			};
+			const existingTiming: XmlObject = {
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetID': '10',
+										'@_presetClass': 'entr',
+										'@_dur': '500',
+										'p:childTnLst': {
+											'p:set': {
+												'p:cBhvr': { 'p:tgtEl': { 'p:spTgt': { '@_spid': 'sp1' } } },
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				'p:bldLst': bldLst,
+			};
+
+			const animations: PptxElementAnimation[] = [
+				{ elementId: 'sp1', entrance: 'zoomIn', durationMs: 2000 },
+			];
+
+			const result = service.buildTimingXml(animations, existingTiming)!;
+
+			expect(result['p:bldLst']).toStrictEqual(bldLst);
+			// The effect node itself was still surgically updated (proves this
+			// wasn't just a no-op untouched-tree pass).
+			const rootCTn = (result['p:tnLst'] as XmlObject)['p:par'] as XmlObject;
+			const effectCTn = ((rootCTn['p:cTn'] as XmlObject)['p:childTnLst'] as XmlObject)[
+				'p:par'
+			] as XmlObject;
+			expect((effectCTn['p:cTn'] as XmlObject)['@_presetID']).toBe('23');
+		});
+
 		it('generates a timing tree for a single entrance animation', () => {
 			const service = createService();
 			const animations: PptxElementAnimation[] = [
