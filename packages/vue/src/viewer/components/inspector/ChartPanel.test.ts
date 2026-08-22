@@ -70,6 +70,22 @@ describe('chartPanel', () => {
 		expect(next.series).toHaveLength(1);
 	});
 
+	it('offers each of the six ChartEx types and emits the chosen one', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		const select = wrapper.get('[data-testid="chart-type"]');
+		for (const chartType of [
+			'histogram',
+			'funnel',
+			'treemap',
+			'sunburst',
+			'boxWhisker',
+			'regionMap',
+		]) {
+			await select.setValue(chartType);
+			expect(lastChartData(wrapper.emitted('update')).chartType).toBe(chartType);
+		}
+	});
+
 	it('clears grouping when switching to a type that does not support it', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
 		await wrapper.get('[data-testid="chart-type"]').setValue('pie');

@@ -7,6 +7,7 @@
 export type { GuideEntry, ImagePathElement, TableCellImageRef } from 'pptx-viewer-shared';
 export {
 	collectMediaElements,
+	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectTableCellImagePaths,
 	applyTableCellImagePatches,

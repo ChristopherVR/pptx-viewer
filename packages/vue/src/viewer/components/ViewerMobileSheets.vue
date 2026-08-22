@@ -13,6 +13,7 @@
 import type {
 	PptxComment,
 	PptxElement,
+	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSlide,
 } from 'pptx-viewer-core';
@@ -49,6 +50,12 @@ const props = defineProps<{
 	/** The single selected element, already augmented with its slide animations. */
 	inspectorElement: PptxElement | undefined;
 	authorName: string;
+	/**
+	 * The deck's notes master, when loaded. Threaded into the notes sheet's
+	 * `NotesPanel` so its `<p:notesStyle>` text defaults (font/colour/indent)
+	 * apply on mobile too, matching the desktop docked panel.
+	 */
+	notesMaster?: PptxNotesMaster;
 	goTo: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
 	onNotesUpdate: (notes: string) => void;
@@ -107,7 +114,13 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:title="t('pptx.notes.title')"
 		@close="chrome.mobileNotesOpen.value = false"
 	>
-		<NotesPanel embedded :slide="activeSlide" :expanded="true" @update="onNotesUpdate" />
+		<NotesPanel
+			embedded
+			:slide="activeSlide"
+			:expanded="true"
+			:notes-style="notesMaster?.notesStyle"
+			@update="onNotesUpdate"
+		/>
 	</MobileSheet>
 
 	<!-- Format / properties sheet (right-rail inspector on desktop) -->

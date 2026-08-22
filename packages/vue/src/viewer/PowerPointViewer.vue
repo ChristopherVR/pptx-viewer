@@ -1398,6 +1398,7 @@ defineExpose<PowerPointViewerExpose>(
 				v-if="props.canEdit && !isMobile && slideCount > 0 && !presentation.presenting.value"
 				:slide="activeSlide"
 				:expanded="notesExpanded"
+				:notes-style="notesMaster?.notesStyle"
 				@update="onNotesUpdate"
 				@toggle="notesExpanded = !notesExpanded"
 			/>
@@ -1549,6 +1550,7 @@ defineExpose<PowerPointViewerExpose>(
 				:keyboard-inset="keyboardInset"
 				:inspector-element="inspector.inspectorElementForPanels.value"
 				:author-name="authorNameRef"
+				:notes-master="notesMaster"
 				:go-to="goTo"
 				:toggle-slide-hidden="toggleSlideHidden"
 				:on-notes-update="onNotesUpdate"

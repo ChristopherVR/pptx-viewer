@@ -270,6 +270,8 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 				:font-size="prim.fontSize"
 				:fill="prim.fill"
 				:font-weight="prim.fontWeight ?? 'normal'"
+				:font-style="prim.fontStyle ?? 'normal'"
+				:font-family="prim.fontFamily"
 				:dominant-baseline="prim.dominantBaseline"
 				:opacity="prim.opacity ?? 1"
 				:transform="prim.transform"
@@ -298,7 +300,17 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:transform="`translate(${entry.x.toFixed(1)},${entry.y.toFixed(1)})`"
 		>
 			<rect :x="0" :y="-7" width="10" height="10" rx="2" :fill="entry.color" />
-			<text :x="13" :y="3" font-size="9" fill="#475569">{{ entry.label }}</text>
+			<text
+				:x="13"
+				:y="3"
+				:font-size="entry.fontSize"
+				:fill="entry.fill"
+				:font-weight="entry.fontWeight"
+				:font-style="entry.fontStyle"
+				:font-family="entry.fontFamily"
+			>
+				{{ entry.label }}
+			</text>
 		</g>
 	</svg>
 </template>

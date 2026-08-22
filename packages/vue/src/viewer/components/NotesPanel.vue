@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronRight } from 'lucide-vue-next';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -54,6 +54,14 @@ const props = defineProps<{
 	 * double header on mobile.
 	 */
 	embedded?: boolean;
+	/**
+	 * The deck's notes master `<p:notesStyle>` (`PptxData.notesMaster.
+	 * notesStyle`), when the host has it loaded. Its level-0 font/colour/indent
+	 * defaults fill in any gap left by a segment that does not already carry an
+	 * explicit value, so an authored deck's notes-text defaults reach this
+	 * editor and the printed notes pages instead of a hardcoded look.
+	 */
+	notesStyle?: PptxTextStyleLevels;
 }>();
 
 const emit = defineEmits<{
@@ -85,6 +93,7 @@ const {
 } = useNotesEditor(
 	() => props.slide,
 	(notes) => emit('update', notes),
+	() => props.notesStyle,
 );
 
 /**

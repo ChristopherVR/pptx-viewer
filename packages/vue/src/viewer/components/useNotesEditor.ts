@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
 import type { NotesInlineCommand, NotesParagraphCommand } from 'pptx-viewer-shared';
 import {
 	DEBOUNCE_MS,
@@ -28,10 +28,18 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
  * The host's `update` contract is a single plain-text notes string (see
  * NotesPanel.vue), so the editor commits plain text. Rich `notesSegments`
  * loaded from a .pptx are honoured for display/editing within the session.
+ *
+ * @param getNotesStyle Returns the deck's notes master `<p:notesStyle>`
+ *   (`PptxData.notesMaster.notesStyle`), when the host has it. Threaded
+ *   through to `resolveNotesSegments`/`buildNotesPrintHtml` so an authored
+ *   deck's notes-text defaults (font size/family/colour/indent) fill in gaps
+ *   left by segments that do not already carry an explicit value, instead of
+ *   being silently replaced by this editor's hardcoded look.
  */
 export function useNotesEditor(
 	getSlide: () => PptxSlide | undefined,
 	emitUpdate: (notes: string) => void,
+	getNotesStyle: () => PptxTextStyleLevels | undefined = () => undefined,
 ) {
 	const richEditorRef = ref<HTMLDivElement | null>(null);
 	const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -44,7 +52,7 @@ export function useNotesEditor(
 	// textarea) owns the live content during an edit; these mirror it for
 	// seeding and for the toggle between surfaces.
 	let draftText = '';
-	let draftSegments = resolveNotesSegments(getSlide());
+	let draftSegments = resolveNotesSegments(getSlide(), getNotesStyle());
 	draftText = segmentsToPlainText(draftSegments);
 
 	let debounceId: ReturnType<typeof setTimeout> | null = null;
@@ -80,7 +88,7 @@ export function useNotesEditor(
 	}
 
 	function reseedFromSlide(): void {
-		draftSegments = resolveNotesSegments(getSlide());
+		draftSegments = resolveNotesSegments(getSlide(), getNotesStyle());
 		draftText = segmentsToPlainText(draftSegments);
 		void nextTick(seedActiveSurface);
 	}
@@ -214,7 +222,7 @@ export function useNotesEditor(
 		if (!slide || typeof document === 'undefined') {
 			return;
 		}
-		const html = buildNotesPrintHtml([slide], (n) => `Slide ${n}`);
+		const html = buildNotesPrintHtml([slide], (n) => `Slide ${n}`, getNotesStyle());
 		const frame = document.createElement('iframe');
 		frame.setAttribute('aria-hidden', 'true');
 		frame.style.position = 'fixed';
