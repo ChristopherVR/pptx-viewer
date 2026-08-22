@@ -9,6 +9,7 @@
 import type { ChartPptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { CHART_TYPE_OPTIONS } from '../internal/shared';
 import { applyChartTypeSelectorPatch } from './chart-type-selector.component';
 
 function chart(overrides: Partial<ChartPptxElement['chartData']> = {}): ChartPptxElement {
@@ -61,5 +62,35 @@ describe('applyChartTypeSelectorPatch', () => {
 		expect(next?.id).toBe('c1');
 		expect(next?.width).toBe(400);
 		expect(next?.height).toBe(300);
+	});
+
+	it('changes into each of the six ChartEx types the picker now offers', () => {
+		for (const chartType of [
+			'histogram',
+			'funnel',
+			'treemap',
+			'sunburst',
+			'boxWhisker',
+			'regionMap',
+		] as const) {
+			const next = applyChartTypeSelectorPatch(chart(), { chartType });
+			expect(next?.chartData?.chartType).toBe(chartType);
+		}
+	});
+});
+
+describe('chart type picker option list', () => {
+	it('offers the six ChartEx types alongside the classic families', () => {
+		const values = CHART_TYPE_OPTIONS.map((opt) => opt.value);
+		for (const chartType of [
+			'histogram',
+			'funnel',
+			'treemap',
+			'sunburst',
+			'boxWhisker',
+			'regionMap',
+		]) {
+			expect(values).toContain(chartType);
+		}
 	});
 });

@@ -668,6 +668,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						<pptx-notes-panel
 							[slide]="activeSlide()"
 							[expanded]="mobileSheetSvc.showNotes()"
+							[notesStyle]="loader.notesMaster()?.notesStyle"
 							(update)="canvasEditing.onNotesUpdate($event)"
 							(notesToggle)="mobileSheetSvc.toggleNotes()"
 						/>
@@ -1085,6 +1086,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						<pptx-notes-panel
 							[slide]="activeSlide()"
 							[expanded]="true"
+							[notesStyle]="loader.notesMaster()?.notesStyle"
 							(update)="canvasEditing.onNotesUpdate($event)"
 							(notesToggle)="mobileSheetSvc.toggleNotes()"
 						/>

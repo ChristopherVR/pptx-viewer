@@ -92,6 +92,44 @@ describe('applyAnimationGroupSteps', () => {
 		vi.advanceTimersByTime(1000);
 		expect(latest.get('a')?.visible).toBeFalsy();
 	});
+
+	it('keeps the CSS animation attached after cleanup when holdEndState is set (fill="hold")', () => {
+		let latest = new Map<string, ElementAnimationState>();
+		const ctx: PlaybackContext = {
+			setStates: (updater) => {
+				latest = updater(latest);
+			},
+			timers: [],
+			buildHandle: { current: null },
+		};
+		applyAnimationGroupSteps(
+			group([step({ elementId: 'a', presetClass: 'emph', holdEndState: true })]),
+			ctx,
+		);
+		vi.advanceTimersByTime(1000);
+		// Unlike the default (which clears the animation on cleanup), a held
+		// step keeps its CSS animation attached so the final frame persists.
+		expect(latest.get('a')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 both');
+	});
+
+	it('hides an element once its effect ends when hideAfterEffect is set (afterAnimation: "hideAfterAnimation")', () => {
+		let latest = new Map<string, ElementAnimationState>([
+			['a', { visible: true, cssAnimation: undefined }],
+		]);
+		const ctx: PlaybackContext = {
+			setStates: (updater) => {
+				latest = updater(latest);
+			},
+			timers: [],
+			buildHandle: { current: null },
+		};
+		applyAnimationGroupSteps(
+			group([step({ elementId: 'a', presetClass: 'entr', hideAfterEffect: true })]),
+			ctx,
+		);
+		vi.advanceTimersByTime(1000);
+		expect(latest.get('a')?.visible).toBeFalsy();
+	});
 });
 
 describe('cancelBuildReveal', () => {

@@ -88,6 +88,36 @@ describe('getOuterShadowCss', () => {
 		// default offsets 4,4 / blur 6 / opacity 0.35
 		expect(css).toBe('4px 4px 6px rgba(17, 34, 51, 0.35)');
 	});
+
+	it('counter-rotates the shadow angle when shadowRotateWithShape is false', () => {
+		// angle 0, element rotated 90deg -> effective angle -90deg -> offsetX 0, offsetY -10
+		const css = getOuterShadowCss(
+			{
+				shadowColor: '#000000',
+				shadowAngle: 0,
+				shadowDistance: 10,
+				shadowBlur: 0,
+				shadowOpacity: 1,
+				shadowRotateWithShape: false,
+			},
+			{ rotation: 90 },
+		);
+		expect(css).toBe('0px -10px 0px rgba(0, 0, 0, 1)');
+	});
+
+	it('ignores rotation when shadowRotateWithShape is unset/true', () => {
+		const css = getOuterShadowCss(
+			{
+				shadowColor: '#000000',
+				shadowAngle: 0,
+				shadowDistance: 10,
+				shadowBlur: 0,
+				shadowOpacity: 1,
+			},
+			{ rotation: 90 },
+		);
+		expect(css).toBe('10px 0px 0px rgba(0, 0, 0, 1)');
+	});
 });
 
 // ── inner shadow ────────────────────────────────────────────────────────────
@@ -361,5 +391,22 @@ describe('getComputedEffectStyle', () => {
 		expect(result.webkitBoxReflect).toContain('below 4px');
 		expect(result.opacity).toBe(0.8);
 		expect(result.mixBlendMode).toBe('multiply');
+	});
+
+	it('counter-rotates the outer shadow by the element rotation when rotWithShape is false', () => {
+		const result = getComputedEffectStyle(
+			shape(
+				{
+					shadowColor: '#000000',
+					shadowAngle: 0,
+					shadowDistance: 10,
+					shadowBlur: 0,
+					shadowOpacity: 1,
+					shadowRotateWithShape: false,
+				},
+				{ rotation: 90 },
+			),
+		);
+		expect(result.boxShadow).toBe('0px -10px 0px rgba(0, 0, 0, 1)');
 	});
 });

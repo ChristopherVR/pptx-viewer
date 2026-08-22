@@ -352,6 +352,21 @@ export class PresentationOverlayComponent implements OnInit {
 		// Scope media-command (`p:cmd`) target lookups to the slide stage.
 		this.playback.setFrameRoot(() => this.stageRef()?.nativeElement ?? null);
 
+		// Resolve a native-animation `p:stSnd` action sound's archive path to
+		// its pre-resolved Blob/data URL and play it. Without this the service's
+		// `onPlayActionSound` callback stayed unset and every animation sound
+		// (and effect-sound cleanup) was silently dropped.
+		this.playback.setActionSoundHandler((soundPath) => {
+			const url = this.mediaDataUrls().get(soundPath);
+			if (!url || typeof Audio === 'undefined') {
+				return;
+			}
+			const audio = new Audio(url);
+			void audio.play().catch(() => {
+				/* ignore autoplay restrictions */
+			});
+		});
+
 		// Stamp a playback step onto the DOM in the SAME task as the input that
 		// caused it. The reactive path below (effect -> afterNextRender) is still
 		// the applier for a slide change, but it lands ~24ms after a click-advance,

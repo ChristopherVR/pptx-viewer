@@ -187,7 +187,15 @@ const LEGEND_SWATCH_SIZE = 10;
 							rx="2"
 							[attr.fill]="item.color"
 						/>
-						<text [attr.x]="swatchSize + 3" y="3" font-size="9" fill="#475569">
+						<text
+							[attr.x]="swatchSize + 3"
+							y="3"
+							[attr.font-size]="item.fontSize"
+							[attr.fill]="item.fill"
+							[attr.font-weight]="item.fontWeight"
+							[attr.font-style]="item.fontStyle"
+							[attr.font-family]="item.fontFamily ?? null"
+						>
 							{{ item.label }}
 						</text>
 					</g>

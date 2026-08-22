@@ -150,6 +150,8 @@ import type {
 						[attr.font-size]="asText(prim).fontSize"
 						[attr.fill]="asText(prim).fill"
 						[attr.font-weight]="asText(prim).fontWeight ?? 'normal'"
+						[attr.font-style]="asText(prim).fontStyle ?? 'normal'"
+						[attr.font-family]="asText(prim).fontFamily ?? null"
 						[attr.dominant-baseline]="asText(prim).dominantBaseline ?? 'auto'"
 						[attr.opacity]="asText(prim).opacity ?? 1"
 						[attr.transform]="asText(prim).transform ?? null"

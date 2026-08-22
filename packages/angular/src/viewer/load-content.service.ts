@@ -37,6 +37,7 @@ import {
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
 	applyTableCellImagePatches,
+	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	collectTableCellImagePaths,
@@ -354,6 +355,27 @@ export class LoadContentService {
 						}
 					} catch {
 						mediaElement.mediaMissing = true;
+					}
+				}),
+			);
+
+			// Native-animation `p:stSnd` sounds that back no visible media element
+			// (PowerPoint's animation sound library) have no entry above; resolve
+			// them into the same map so `onPlayActionSound`'s lookup finds them.
+			const soundPaths = collectAnimationSoundPaths(parsed.slides).filter(
+				(path) => !nextMediaUrls.has(path),
+			);
+			await Promise.all(
+				soundPaths.map(async (soundPath) => {
+					try {
+						const arrayBuffer = await newHandler.getMediaArrayBuffer(soundPath);
+						if (arrayBuffer) {
+							const blobUrl = URL.createObjectURL(new Blob([arrayBuffer]));
+							loadBlobUrls.push(blobUrl);
+							nextMediaUrls.set(soundPath, blobUrl);
+						}
+					} catch {
+						/* Non-critical: the sound simply will not play. */
 					}
 				}),
 			);

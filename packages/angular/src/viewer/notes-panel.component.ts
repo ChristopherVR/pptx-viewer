@@ -41,7 +41,7 @@ import {
 } from '@angular/core';
 import { LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 
 import type { NotesInlineCommand, NotesParagraphCommand } from '../internal/shared';
 import {
@@ -83,6 +83,14 @@ export class NotesPanelComponent {
 	 */
 	readonly expanded = input<boolean>(false);
 
+	/**
+	 * The deck's notes master `<p:notesStyle>` level defaults (`PptxData.
+	 * notesMaster.notesStyle`), when the host has it. Fills in a notes
+	 * segment's missing font/colour/indent from the authored defaults instead
+	 * of a hardcoded look; see `resolveNotesSegments` / `buildNotesPrintHtml`.
+	 */
+	readonly notesStyle = input<PptxTextStyleLevels | undefined>(undefined);
+
 	/** Emits the new plain-text notes on commit. */
 	readonly update = output<string>();
 
@@ -102,7 +110,7 @@ export class NotesPanelComponent {
 		return this.isRichEnabled() && this.slide() !== undefined;
 	}
 
-	private draftSegments: TextSegment[] = resolveNotesSegments(undefined);
+	private draftSegments: TextSegment[] = resolveNotesSegments(undefined, this.notesStyle());
 	private draftText = '';
 	private seededId: string | null = null;
 	private debounceId: ReturnType<typeof setTimeout> | null = null;
@@ -117,7 +125,7 @@ export class NotesPanelComponent {
 				return;
 			}
 			this.seededId = id;
-			this.draftSegments = resolveNotesSegments(slide);
+			this.draftSegments = resolveNotesSegments(slide, this.notesStyle());
 			this.draftText = segmentsToPlainText(this.draftSegments);
 			queueMicrotask(() => this.seedActiveSurface());
 		});
@@ -265,8 +273,10 @@ export class NotesPanelComponent {
 		if (!slide || typeof document === 'undefined') {
 			return;
 		}
-		const html = buildNotesPrintHtml([slide], (n) =>
-			this.translate.instant('pptx.notes.slideN', { n }),
+		const html = buildNotesPrintHtml(
+			[slide],
+			(n) => this.translate.instant('pptx.notes.slideN', { n }),
+			this.notesStyle(),
 		);
 		const frame = document.createElement('iframe');
 		frame.setAttribute('aria-hidden', 'true');
