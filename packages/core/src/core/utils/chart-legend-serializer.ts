@@ -15,6 +15,7 @@ import type { PptxChartLegendEntry, XmlObject } from '../types';
 /** Resolve a possibly-prefixed XML key to its local name (e.g. `c:legend` -> `legend`). */
 import type { ResolveChartColor } from './chart-color-choice';
 import { writeChartColorChoice } from './chart-color-choice';
+import { parseDefRPrTextStyle, resolveTxPrDefRPr } from './chart-def-rpr-style';
 
 type GetLocalName = (key: string) => string;
 
@@ -58,34 +59,14 @@ export function parseChartLegendEntries(
 			const val = deleteNode['@_val'];
 			entry.deleted = val !== '0' && val !== 'false';
 		}
-		const defRPr = child(
-			child(child(child(node, 'txPr', getLocalName), 'p', getLocalName), 'pPr', getLocalName),
-			'defRPr',
-			getLocalName,
-		);
-		if (defRPr) {
-			const style: NonNullable<PptxChartLegendEntry['textStyle']> = {};
-			const size = Number.parseInt(String(defRPr['@_sz'] ?? ''), 10);
-			if (Number.isFinite(size)) {
-				style.fontSize = size / 100;
-			}
-			if (defRPr['@_b'] !== undefined) {
-				style.bold = defRPr['@_b'] === '1' || defRPr['@_b'] === 'true';
-			}
-			if (defRPr['@_i'] !== undefined) {
-				style.italic = defRPr['@_i'] === '1' || defRPr['@_i'] === 'true';
-			}
-			const latin = child(defRPr, 'latin', getLocalName);
-			if (latin?.['@_typeface']) {
-				style.fontFamily = String(latin['@_typeface']);
-			}
-			const color = parseColor(child(defRPr, 'solidFill', getLocalName));
-			if (color) {
-				style.color = color;
-			}
-			if (Object.keys(style).length > 0) {
-				entry.textStyle = style;
-			}
+		const xmlLookup = {
+			getChildByLocalName: (parent: XmlObject | undefined, name: string) =>
+				child(parent, name, getLocalName),
+		};
+		const defRPr = resolveTxPrDefRPr(child(node, 'txPr', getLocalName), xmlLookup);
+		const style = parseDefRPrTextStyle(defRPr, xmlLookup, { parseColor });
+		if (style) {
+			entry.textStyle = style;
 		}
 		return [entry];
 	});

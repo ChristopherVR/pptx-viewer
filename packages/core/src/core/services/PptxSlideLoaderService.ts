@@ -272,9 +272,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const backgroundPattern = params.extractBackgroundPattern(slideXmlObj);
 			const backgroundShadeToTitle = params.extractBackgroundShadeToTitle(slideXmlObj);
 			const backgroundShowAnimation = params.extractBackgroundShowAnimation(slideXmlObj);
+			const showMasterPhAnim = params.extractShowMasterPhAnim(slideXmlObj);
 			const transition = params.parseSlideTransition(slideXmlObj, path);
 			const animations = params.parseEditorAnimations(slideXmlObj);
-			const nativeAnimations = params.parseNativeAnimations(slideXmlObj);
+			const nativeAnimations = params.parseNativeAnimations(slideXmlObj, path);
 			// Reconcile animation shape references (native cNvPr ids in
 			// `p:spTgt/@spid`) against the positional `element.id`s assigned on
 			// load, and stamp each element's `shapeId`. Without this the animation
@@ -349,6 +350,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				backgroundShadeToTitle: backgroundShadeToTitle ?? undefined,
 				backgroundShowAnimation: backgroundShowAnimation ?? undefined,
 				showMasterShapes: showMasterShapes ?? undefined,
+				showMasterPhAnim: showMasterPhAnim ?? undefined,
 				guides: drawingGuides.length > 0 ? drawingGuides : undefined,
 				customerData: customerData.length > 0 ? customerData : undefined,
 				activeXControls: activeXControls.length > 0 ? activeXControls : undefined,

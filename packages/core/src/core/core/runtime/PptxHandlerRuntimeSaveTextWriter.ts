@@ -327,6 +327,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/** Apply 3D text properties to bodyPr. */
 	private applyText3d(bodyPr: XmlObject, el: PptxElementWithText): void {
+		// `a:sp3d` / `a:flatTx` are a mutually exclusive choice (`EG_Text3D`):
+		// an explicit "render flat" override never coexists with extrusion/bevel
+		// data, so it is written instead of (never alongside) `a:sp3d`.
+		if (el.textStyle?.flatText) {
+			bodyPr['a:flatTx'] = {};
+			delete bodyPr['a:sp3d'];
+			return;
+		}
+		delete bodyPr['a:flatTx'];
 		const t3d = el.textStyle?.text3d;
 		if (t3d && Object.keys(t3d).length > 0) {
 			const sp3dXml: XmlObject = {};

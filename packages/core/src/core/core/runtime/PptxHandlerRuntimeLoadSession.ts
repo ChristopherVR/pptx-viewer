@@ -468,10 +468,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			extractBackgroundShadeToTitle: (slideXml) => this.extractBackgroundShadeToTitle(slideXml),
 			extractBackgroundShowAnimation: (slideXml) => this.extractBackgroundShowAnimation(slideXml),
 			extractShowMasterShapes: (slideXml) => this.extractShowMasterShapes(slideXml),
+			extractShowMasterPhAnim: (slideXml) => this.extractShowMasterPhAnim(slideXml),
 			isSlideHidden: (slideXml, slideIdEntry) => this.isSlideHidden(slideXml, slideIdEntry),
 			parseSlideTransition: (slideXml, slidePath) => this.parseSlideTransition(slideXml, slidePath),
 			parseEditorAnimations: (slideXml) => this.parseEditorAnimations(slideXml),
-			parseNativeAnimations: (slideXml) => this.parseNativeAnimations(slideXml),
+			parseNativeAnimations: (slideXml, slidePath) =>
+				this.parseNativeAnimations(slideXml, slidePath),
 			getSmartArtDataForGraphicFrame: (slidePath, graphicFrame) =>
 				this.getSmartArtDataForGraphicFrame(slidePath, graphicFrame),
 			getChartDataForGraphicFrame: (slidePath, graphicFrame) =>

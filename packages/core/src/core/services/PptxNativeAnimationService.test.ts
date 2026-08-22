@@ -1304,6 +1304,160 @@ describe('pptxNativeAnimationService', () => {
 	});
 
 	// -----------------------------------------------------------------------
+	// Timing attributes: @fill / @restart / @repeatDur / @spd (effect cTn),
+	// @rev / @advAuto (text p:bldP), @concurrent / @nextAc / @prevAc (p:seq)
+	// -----------------------------------------------------------------------
+	describe('timing attributes (animation-timing-attrs)', () => {
+		it('extracts @fill, @restart, @repeatDur and @spd from the effect cTn', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:seq': {
+									'@_concurrent': '1',
+									'@_nextAc': 'seek',
+									'@_prevAc': 'skipTimeNode',
+									'p:cTn': {
+										'@_id': '2',
+										'@_dur': 'indefinite',
+										'@_nodeType': 'mainSeq',
+										'p:childTnLst': {
+											'p:par': {
+												'p:cTn': {
+													'@_id': '3',
+													'@_presetID': '10',
+													'@_presetClass': 'emph',
+													'@_dur': '500',
+													'@_fill': 'hold',
+													'@_restart': 'never',
+													'@_repeatDur': '1500',
+													'@_spd': '150000',
+													'p:childTnLst': {
+														'p:animEffect': {
+															'p:cBhvr': {
+																'p:tgtEl': {
+																	'p:spTgt': {
+																		'@_spid': 'timedShape',
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			const anim = result!.find((a) => a.targetId === 'timedShape');
+			expect(anim).toBeDefined();
+			expect(anim!.fill).toBe('hold');
+			expect(anim!.restart).toBe('never');
+			expect(anim!.repeatDurMs).toBe(1500);
+			expect(anim!.speedPct).toBe(150);
+			expect(anim!.seqConcurrent).toBeTruthy();
+			expect(anim!.seqNextAction).toBe('seek');
+			expect(anim!.seqPrevAction).toBe('skipTimeNode');
+		});
+
+		it('parses @repeatDur="indefinite" as Infinity', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetID': '10',
+										'@_presetClass': 'emph',
+										'@_dur': '500',
+										'@_repeatDur': 'indefinite',
+										'p:childTnLst': {
+											'p:animEffect': {
+												'p:cBhvr': {
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'infShape' } },
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result![0].repeatDurMs).toBe(Infinity);
+		});
+
+		it('leaves fill/restart/repeatDurMs/speedPct undefined when absent', () => {
+			const result = service.parseNativeAnimations(buildSimpleEntranceSlide('plainShape'));
+			expect(result).toBeDefined();
+			expect(result![0].fill).toBeUndefined();
+			expect(result![0].repeatDurMs).toBeUndefined();
+			expect(result![0].speedPct).toBeUndefined();
+		});
+
+		it('extracts @rev and @advAuto from a TEXT p:bldP, distinct from p:bldDgm/@rev', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetID': '10',
+										'@_presetClass': 'entr',
+										'@_dur': '500',
+										'p:childTnLst': {
+											'p:animEffect': {
+												'p:cBhvr': {
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'revShape' } },
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				'p:bldLst': {
+					'p:bldP': {
+						'@_spid': 'revShape',
+						'@_build': 'p',
+						'@_grpId': '0',
+						'@_rev': '1',
+						'@_advAuto': '2000',
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			expect(result![0].buildReverse).toBeTruthy();
+			expect(result![0].buildAdvAutoMs).toBe(2000);
+		});
+	});
+
+	// -----------------------------------------------------------------------
 	// Error handling
 	// -----------------------------------------------------------------------
 	describe('error handling', () => {

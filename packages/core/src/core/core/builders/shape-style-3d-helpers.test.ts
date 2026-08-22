@@ -161,6 +161,24 @@ describe('applyShape3dStyle', () => {
 		expect(style.shape3d).toBeUndefined();
 	});
 
+	it('extracts z position', () => {
+		const shapeProps: XmlObject = {
+			'a:sp3d': { '@_z': '50000' },
+		};
+		const style = makeStyle();
+		applyShape3dStyle(shapeProps, style, makeContext());
+		expect(style.shape3d?.positionZ).toBe(50000);
+	});
+
+	it('leaves z position undefined when a:sp3d/@z is absent', () => {
+		const shapeProps: XmlObject = {
+			'a:sp3d': { '@_extrusionH': '76200' },
+		};
+		const style = makeStyle();
+		applyShape3dStyle(shapeProps, style, makeContext());
+		expect(style.shape3d?.positionZ).toBeUndefined();
+	});
+
 	it('extracts extrusion height', () => {
 		const shapeProps: XmlObject = {
 			'a:sp3d': { '@_extrusionH': '76200' },
@@ -247,6 +265,7 @@ describe('applyShape3dStyle', () => {
 	it('extracts a complete 3D shape with all properties', () => {
 		const shapeProps: XmlObject = {
 			'a:sp3d': {
+				'@_z': '30000',
 				'@_extrusionH': '57150',
 				'@_prstMaterial': 'plastic',
 				'@_contourW': '9525',
@@ -258,6 +277,7 @@ describe('applyShape3dStyle', () => {
 		};
 		const style = makeStyle();
 		applyShape3dStyle(shapeProps, style, makeContext());
+		expect(style.shape3d?.positionZ).toBe(30000);
 		expect(style.shape3d?.extrusionHeight).toBe(57150);
 		expect(style.shape3d?.presetMaterial).toBe('plastic');
 		expect(style.shape3d?.contourWidth).toBe(9525);

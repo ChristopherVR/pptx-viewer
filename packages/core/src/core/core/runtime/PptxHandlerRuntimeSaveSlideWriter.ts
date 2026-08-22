@@ -134,6 +134,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} else {
 			delete slideNode['@_show'];
 		}
+		// `@showMasterPhAnim` (CT_Slide, ECMA-376 §19.3.1.38): whether inherited
+		// master placeholder animations replay on this slide. Only touched when
+		// the typed model carries an explicit value; otherwise the attribute (if
+		// any) survives untouched via the cached XmlObject passthrough.
+		if (slide.showMasterPhAnim !== undefined) {
+			slideNode['@_showMasterPhAnim'] = slide.showMasterPhAnim ? '1' : '0';
+		}
 		slideNode['p:clrMapOvr'] = buildClrMapOverrideXml(slide.clrMapOverride);
 
 		const spTree = this.ensureSlideTree(xmlObj);

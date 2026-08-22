@@ -177,6 +177,14 @@ export interface PptxChartDataTable {
 	showVertBorder?: boolean;
 	showOutline?: boolean;
 	showKeys?: boolean;
+	/** Table border/fill formatting (`c:dTable/c:spPr`). */
+	spPr?: PptxChartShapeProps;
+	/**
+	 * Cell text defaults (`c:dTable/c:txPr/a:p/a:pPr/a:defRPr`). Reuses the same
+	 * shape as a legend entry's text override since both are a flat paragraph
+	 * default-run-property style (size/bold/italic/font/colour).
+	 */
+	txPr?: PptxChartLegendTextStyle;
 }
 
 /**

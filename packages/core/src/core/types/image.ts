@@ -176,6 +176,16 @@ export interface PptxImageEffects {
 		contRawXml?: Record<string, unknown>;
 		/** Original effect XML, including foreign attributes. */
 		rawXml?: XmlObject;
+		/**
+		 * Multiplicative alpha percentage (0..100+), read from a nested
+		 * `<a:alphaModFix>` inside `contRawXml` when present - the common
+		 * real-world shape of `a:alphaMod` (`<a:cont><a:alphaModFix amt="…"/>
+		 * </a:cont>`). Derived/read-only: a renderer multiplies the source alpha
+		 * by this, distinct from the top-level {@link alphaModFix} sibling
+		 * effect. Not written back independently on save; `contRawXml` is what
+		 * round-trips.
+		 */
+		amt?: number;
 	};
 	/** Alpha replace (`a:alphaRepl`) — replaces alpha with the given fixed-percent value (0..100). */
 	alphaRepl?: number;
@@ -220,6 +230,16 @@ export interface PptxImageEffects {
 		blend: 'over' | 'mult' | 'screen' | 'darken' | 'lighten';
 		/** Raw opaque fill XML preserved for round-trip. */
 		fillRawXml?: Record<string, unknown>;
+		/**
+		 * Resolved hex colour, when the overlay fill is a plain `a:solidFill`
+		 * (the common case for a picture-style colour overlay). `undefined` for
+		 * a gradient/pattern/picture overlay fill, which a renderer can't yet
+		 * composite from this derived field alone - `fillRawXml` still round-trips
+		 * losslessly regardless.
+		 */
+		resolvedColor?: string;
+		/** Resolved opacity (0-1) of the `a:solidFill` overlay colour, when resolved. */
+		resolvedOpacity?: number;
 	};
 	/** Blur (`a:blur`) — radius in EMU and grow flag. */
 	blur?: {

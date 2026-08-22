@@ -52,6 +52,7 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 		extractBackgroundShadeToTitle: vi.fn(() => undefined),
 		extractBackgroundShowAnimation: vi.fn(() => undefined),
 		extractShowMasterShapes: vi.fn(() => undefined),
+		extractShowMasterPhAnim: vi.fn(() => undefined),
 		parseSlideTransition: vi.fn(() => undefined),
 		parseEditorAnimations: vi.fn(() => undefined),
 		parseNativeAnimations: vi.fn(() => undefined),

@@ -65,6 +65,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const data = this.parser.parse(xml) as XmlObject;
 		const root = data[rootTag] as XmlObject | undefined;
+
+		// The notes master's own text-list-style defaults (P-H4): reuse the
+		// same `CT_TextListStyle` parser the slide-master `p:txStyles` children
+		// use, since `p:notesStyle` has the identical `a:defPPr` +
+		// `a:lvl1pPr`..`a:lvl9pPr` shape (ECMA-376 SS19.3.1.34). Parsed before
+		// the spTree guard below since notesStyle is a sibling of `p:cSld`, not
+		// a descendant, and must not be skipped just because the shape tree is
+		// empty.
+		if (rootTag === 'p:notesMaster') {
+			const notesStyle = this.parseTextListStyle(root?.['p:notesStyle'] as XmlObject | undefined);
+			if (notesStyle) {
+				(part as PptxNotesMaster).notesStyle = notesStyle;
+			}
+		}
+
 		const cSld = root?.['p:cSld'] as XmlObject | undefined;
 		const spTree = cSld?.['p:spTree'] as XmlObject | undefined;
 		if (!spTree) {

@@ -129,7 +129,14 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 		if (!colorNode) {
 			return undefined;
 		}
-		const colorCandidates = ['a:srgbClr', 'a:schemeClr', 'a:prstClr', 'a:sysClr'];
+		const colorCandidates = [
+			'a:srgbClr',
+			'a:schemeClr',
+			'a:prstClr',
+			'a:sysClr',
+			'a:scrgbClr',
+			'a:hslClr',
+		];
 		for (const candidate of colorCandidates) {
 			const node = colorNode[candidate] as XmlObject | undefined;
 			if (node) {

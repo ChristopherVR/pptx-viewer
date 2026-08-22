@@ -345,6 +345,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				id,
 				name: elementName || undefined,
 				placeholderType: placeholderInfo?.type,
+				placeholderSz: placeholderInfo?.sz,
+				placeholderOrient: placeholderInfo?.orient,
 				inheritedPlaceholderText: inheritsPlaceholderText ? text : undefined,
 				x,
 				y,

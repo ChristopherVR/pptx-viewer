@@ -156,6 +156,8 @@ export interface PptxSlideLoaderParams {
 	extractBackgroundShowAnimation: (slideXml: XmlObject) => boolean | undefined;
 	/** Check whether master slide shapes should be shown. */
 	extractShowMasterShapes: (slideXml: XmlObject) => boolean | undefined;
+	/** Check whether inherited master placeholder animations should replay. */
+	extractShowMasterPhAnim: (slideXml: XmlObject) => boolean | undefined;
 	/** Determine if a slide is marked as hidden. */
 	isSlideHidden: (slideXml: XmlObject, slideIdEntry: XmlObject | undefined) => boolean;
 	/** Parse the slide transition from slide XML. */
@@ -163,7 +165,10 @@ export interface PptxSlideLoaderParams {
 	/** Parse editor-level animation definitions from slide XML. */
 	parseEditorAnimations: (slideXml: XmlObject) => PptxElementAnimation[] | undefined;
 	/** Parse native OOXML animation timing trees from slide XML. */
-	parseNativeAnimations: (slideXml: XmlObject) => PptxNativeAnimation[] | undefined;
+	parseNativeAnimations: (
+		slideXml: XmlObject,
+		slidePath: string,
+	) => PptxNativeAnimation[] | undefined;
 	/** Resolve SmartArt data for a graphic frame element. */
 	getSmartArtDataForGraphicFrame: (
 		slidePath: string,

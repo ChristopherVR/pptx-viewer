@@ -15,7 +15,7 @@
  *
  * Slide-master XML schema (ECMA-376 §19.3.1.42, CT_SlideMaster):
  *
- *   `<p:sldMaster>` →
+ *   `<p:sldMaster>` attrs: `@preserve`
  *     `<p:cSld>` (optional `@name`, optional `<p:bg>`, `<p:spTree>`, …)
  *     `<p:clrMap>` (12 alias attributes, REQUIRED)
  *     `<p:sldLayoutIdLst>` (optional)
@@ -81,7 +81,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		root['p:cSld'] = cSld;
 
-		// `<p:clrMap>` — REQUIRED on slide master per CT_SlideMaster. Build
+		// `<p:clrMap>` - REQUIRED on slide master per CT_SlideMaster. Build
 		// an attribute set covering all 12 aliases. Missing entries fall
 		// back to the OOXML default mapping so PowerPoint never sees a
 		// partial dictionary (which would fail schema validation).
@@ -89,10 +89,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			root['p:clrMap'] = buildClrMapAttributes(master.clrMap);
 		}
 
-		// `<p:hf>` — header/footer flags. Only emit when typed model has at
+		// `<p:hf>` - header/footer flags. Only emit when typed model has at
 		// least one explicit flag, otherwise preserve whatever was on the
 		// node (or absent) verbatim.
 		applyHeaderFooterFlagsToNode(root, master.headerFooter);
+
+		// `@preserve` (CT_SlideMaster, ECMA-376 §19.3.1.38) - mirrors the
+		// layout-level writer in PptxHandlerRuntimeSaveSlideLayout.
+		if (master.preserve !== undefined) {
+			root['@_preserve'] = master.preserve ? '1' : '0';
+		}
 
 		xmlObj['p:sldMaster'] = root;
 		// Re-cache the mutated object so SavePipeline's flush picks it up.

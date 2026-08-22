@@ -95,6 +95,13 @@ function applyBodyInsets(bodyPr: XmlObject, textStyle: TextStyle | undefined): v
 // Reimplemented: applyText3d
 // ---------------------------------------------------------------------------
 function applyText3d(bodyPr: XmlObject, textStyle: TextStyle | undefined): void {
+	// a:sp3d / a:flatTx are a mutually exclusive choice (EG_Text3D).
+	if (textStyle?.flatText) {
+		bodyPr['a:flatTx'] = {};
+		delete bodyPr['a:sp3d'];
+		return;
+	}
+	delete bodyPr['a:flatTx'];
 	const t3d = textStyle?.text3d;
 	if (t3d && Object.keys(t3d).length > 0) {
 		const sp3dXml: XmlObject = {};
@@ -327,6 +334,28 @@ describe('applyText3d', () => {
 		});
 		const sp3d = bodyPr['a:sp3d'] as XmlObject;
 		expect(sp3d['@_prstMaterial']).toBe('warmMatte');
+	});
+
+	it('should write a:flatTx and omit a:sp3d when flatText is set', () => {
+		const bodyPr: XmlObject = {};
+		applyText3d(bodyPr, { flatText: true });
+		expect(bodyPr['a:flatTx']).toStrictEqual({});
+		expect(bodyPr['a:sp3d']).toBeUndefined();
+	});
+
+	it('should write a:flatTx instead of a:sp3d even if text3d is also set', () => {
+		// EG_Text3D is a mutually exclusive OOXML choice; flatText wins.
+		const bodyPr: XmlObject = {};
+		applyText3d(bodyPr, { flatText: true, text3d: { extrusionHeight: '50000' } });
+		expect(bodyPr['a:flatTx']).toStrictEqual({});
+		expect(bodyPr['a:sp3d']).toBeUndefined();
+	});
+
+	it('should clear a stale a:flatTx when flatText is not set', () => {
+		const bodyPr: XmlObject = { 'a:flatTx': {} };
+		applyText3d(bodyPr, { text3d: { extrusionHeight: '50000' } });
+		expect(bodyPr['a:flatTx']).toBeUndefined();
+		expect((bodyPr['a:sp3d'] as XmlObject)['@_extrusionH']).toBe('50000');
 	});
 });
 

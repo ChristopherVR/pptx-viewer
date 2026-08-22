@@ -272,9 +272,13 @@ function writeShape3d(spPr: XmlObject, shapeStyle: ShapeStyle): void {
 			sh3d.bevelTopType ||
 			sh3d.bevelBottomType ||
 			sh3d.extrusionColor ||
-			sh3d.contourColor;
+			sh3d.contourColor ||
+			sh3d.positionZ !== undefined;
 		if (hasData) {
 			const sp3dXml: XmlObject = {};
+			if (sh3d.positionZ !== undefined) {
+				sp3dXml['@_z'] = String(sh3d.positionZ);
+			}
 			if (sh3d.extrusionHeight !== undefined) {
 				sp3dXml['@_extrusionH'] = String(sh3d.extrusionHeight);
 			}

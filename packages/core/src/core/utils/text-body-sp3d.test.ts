@@ -85,3 +85,38 @@ describe('parseTextBodySp3d - absent attributes must not become NaN', () => {
 		expect(style.text3d).toBeUndefined();
 	});
 });
+
+describe('parseTextBodySp3d - a:flatTx (EG_Text3D choice)', () => {
+	it('sets flatText and does not populate text3d for a bare <a:flatTx/>', () => {
+		const bodyPr: XmlObject = { 'a:flatTx': {} };
+		const style: TextStyle = {};
+
+		parseTextBodySp3d(bodyPr, style, parseColor);
+
+		expect(style.flatText).toBeTruthy();
+		expect(style.text3d).toBeUndefined();
+	});
+
+	it('flatTx wins even if a sibling a:sp3d is somehow also present', () => {
+		// EG_Text3D is a mutually exclusive choice in valid OOXML, but a
+		// defensively-authored/edited bodyPr should still short-circuit on
+		// flatTx rather than resolve the (invalid) sp3d alongside it.
+		const bodyPr: XmlObject = {
+			'a:flatTx': {},
+			'a:sp3d': { '@_extrusionH': '57150' },
+		};
+		const style: TextStyle = {};
+
+		parseTextBodySp3d(bodyPr, style, parseColor);
+
+		expect(style.flatText).toBeTruthy();
+		expect(style.text3d).toBeUndefined();
+	});
+
+	it('leaves flatText unset when there is no a:flatTx', () => {
+		const style: TextStyle = {};
+		parseTextBodySp3d({ 'a:sp3d': { '@_extrusionH': '57150' } }, style, parseColor);
+		expect(style.flatText).toBeUndefined();
+		expect(style.text3d?.extrusionHeight).toBe(57150);
+	});
+});

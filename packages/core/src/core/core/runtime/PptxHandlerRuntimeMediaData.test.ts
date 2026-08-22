@@ -397,3 +397,58 @@ describe('applyTimingToElement', () => {
 		expect(el.playbackSpeed).toBe(0);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Extracted from parseNativeAnimations: soundRId -> soundPath resolution
+// ---------------------------------------------------------------------------
+
+interface MockNativeAnimation {
+	soundRId?: string;
+	soundPath?: string;
+}
+
+/**
+ * Mirrors the resolution loop in `PptxHandlerRuntimeMediaData.parseNativeAnimations`:
+ * for every animation carrying a `soundRId`, resolve it to an archive path via
+ * `resolveRelationshipTarget` (rels lookup + path resolution in one call).
+ */
+function resolveAnimationSoundPaths(
+	animations: MockNativeAnimation[],
+	resolveRelationshipTarget: (slidePath: string, rId: string) => string | undefined,
+	slidePath: string,
+): MockNativeAnimation[] {
+	for (const anim of animations) {
+		if (anim.soundRId) {
+			anim.soundPath = resolveRelationshipTarget(slidePath, anim.soundRId);
+		}
+	}
+	return animations;
+}
+
+describe('resolveAnimationSoundPaths', () => {
+	it('resolves a soundRId to an archive path via resolveRelationshipTarget', () => {
+		const animations: MockNativeAnimation[] = [{ soundRId: 'rId7' }];
+		const resolveRelationshipTarget = (slidePath: string, rId: string): string | undefined =>
+			rId === 'rId7' ? `ppt/media/click.wav-from-${slidePath}` : undefined;
+
+		resolveAnimationSoundPaths(animations, resolveRelationshipTarget, 'ppt/slides/slide1.xml');
+
+		expect(animations[0].soundPath).toBe('ppt/media/click.wav-from-ppt/slides/slide1.xml');
+	});
+
+	it('leaves soundPath unset when the rId has no matching relationship', () => {
+		const animations: MockNativeAnimation[] = [{ soundRId: 'rIdMissing' }];
+
+		resolveAnimationSoundPaths(animations, () => undefined, 'ppt/slides/slide1.xml');
+
+		expect(animations[0].soundPath).toBeUndefined();
+	});
+
+	it('leaves an animation with no soundRId untouched', () => {
+		const animations: MockNativeAnimation[] = [{}];
+
+		resolveAnimationSoundPaths(animations, () => 'ppt/media/click.wav', 'ppt/slides/slide1.xml');
+
+		expect(animations[0].soundPath).toBeUndefined();
+	});
+});

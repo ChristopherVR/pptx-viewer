@@ -272,6 +272,12 @@ export interface OlePptxElement extends PptxElementBase {
 	oleEmbeddedMimeType?: string;
 	/** Size of the embedded payload in bytes. */
 	oleEmbeddedByteSize?: number;
+	/**
+	 * `p:link/@followColorScheme` (`ST_OleObjectFollowColorScheme`): whether a
+	 * LINKED OLE object's icon recolours to match the presentation theme.
+	 * Only meaningful when {@link isLinked} is `true`. ECMA-376 §19.3.1.28.
+	 */
+	oleFollowColorScheme?: 'none' | 'full' | 'textAndBackground';
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }

@@ -17,6 +17,7 @@ import type {
 import { childGroupContext, createGroupContext, isMainSequence } from './animation-group-context';
 import type { AnimationGroupContext } from './animation-group-context';
 import { extractAnimationTarget } from './animation-target-build-helpers';
+import { extractCTnTimingAttrs, extractSeqAttrs } from './animation-timing-attrs';
 import {
 	extractColorAnimation,
 	extractTextTarget,
@@ -295,6 +296,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				// Round-trip surface for cTn attrs that don't have a typed home.
 				const roundTripAttrs = captureRoundTripCTnAttrs(cTn);
 				const afterEffectFlag = extractAfterEffect(cTn);
+				const timingAttrs = extractCTnTimingAttrs(cTn);
 
 				animations.push({
 					targetId,
@@ -307,6 +309,13 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					delayMs,
 					accel,
 					decel,
+					fill: timingAttrs.fill,
+					restart: timingAttrs.restart,
+					repeatDurMs: timingAttrs.repeatDurMs,
+					speedPct: timingAttrs.speedPct,
+					seqConcurrent: group.seqConcurrent,
+					seqNextAction: group.seqNextAction,
+					seqPrevAction: group.seqPrevAction,
 					triggerDelayMs: trigger === 'afterDelay' ? delayMs : undefined,
 					motionPath: childMotion.motionPath,
 					motionOrigin: childMotion.motionOrigin,
@@ -367,7 +376,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					if (isInteractiveSequence(sequence)) {
 						continue;
 					}
-					this.walkTimingTree(sequence, animations, trigger, group);
+					// `@concurrent`/`@nextAc`/`@prevAc` are attributes of `<p:seq>`
+					// itself (ECMA-376 S19.5.60), not of its nested `<p:cTn>`.
+					const seqAttrs = extractSeqAttrs(sequence);
+					this.walkTimingTree(sequence, animations, trigger, { ...group, ...seqAttrs });
 				}
 				// Exclusive containers: animations are mutually exclusive at runtime
 				for (const excl of exclusives) {
@@ -399,7 +411,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			if (isInteractiveSequence(sequence)) {
 				continue;
 			}
-			this.walkTimingTree(sequence, animations, currentTrigger, group);
+			// `@concurrent`/`@nextAc`/`@prevAc` are attributes of `<p:seq>` itself
+			// (ECMA-376 S19.5.60), not of its nested `<p:cTn>`.
+			const seqAttrs = extractSeqAttrs(sequence);
+			this.walkTimingTree(sequence, animations, currentTrigger, { ...group, ...seqAttrs });
 		}
 	}
 
@@ -572,9 +587,15 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				continue;
 			}
 
-			// Walk this interactive sequence children and tag them
+			// Walk this interactive sequence children and tag them.
+			// `@concurrent`/`@nextAc`/`@prevAc` are attributes of `<p:seq>` itself
+			// (ECMA-376 S19.5.60), not of its nested `<p:cTn>` (`seqCTn`).
 			const interactiveAnims: PptxNativeAnimation[] = [];
-			this.walkTimingTree(seq, interactiveAnims, 'onShapeClick');
+			const seqAttrs = extractSeqAttrs(seq);
+			this.walkTimingTree(seq, interactiveAnims, 'onShapeClick', {
+				...createGroupContext(),
+				...seqAttrs,
+			});
 
 			for (const anim of interactiveAnims) {
 				anim.triggerShapeId = triggerShapeId;

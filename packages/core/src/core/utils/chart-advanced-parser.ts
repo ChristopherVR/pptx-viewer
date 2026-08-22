@@ -5,7 +5,6 @@ import type {
 	PptxChartErrBarDir,
 	PptxChartErrBarType,
 	PptxChartErrValType,
-	PptxChartDataTable,
 	PptxChartLineStyle,
 	XmlObject,
 } from '../types';
@@ -204,33 +203,6 @@ export function parseSeriesErrBars(
 			return result;
 		})
 		.filter((e): e is PptxChartErrBars => e !== undefined);
-}
-
-export function parseDataTable(
-	plotArea: XmlObject,
-	xmlLookup: XmlLookupLike,
-): PptxChartDataTable | undefined {
-	const dTable = xmlLookup.getChildByLocalName(plotArea, 'dTable');
-	if (!dTable) {
-		return undefined;
-	}
-
-	const result: PptxChartDataTable = {};
-	const flags = ['showHorzBorder', 'showVertBorder', 'showOutline', 'showKeys'] as const;
-	for (const flag of flags) {
-		const node = xmlLookup.getChildByLocalName(dTable, flag);
-		if (!node) {
-			continue;
-		}
-		const value = node['@_val'];
-		// CT_Boolean defaults val to true when the attribute is omitted.
-		if (value === undefined || value === 'true' || value === '1') {
-			result[flag] = true;
-		} else if (value === 'false' || value === '0') {
-			result[flag] = false;
-		}
-	}
-	return result;
 }
 
 export function parseLineStyle(

@@ -152,6 +152,7 @@ export {
 	itemNode,
 	findConstraint,
 	ratioConstraint,
+	clampByRules,
 	algorithmParam,
 	numericParam,
 	resolveFlowDirection,
@@ -160,6 +161,15 @@ export {
 	type FlowDirection,
 } from './smartart-layout-interpreter-model';
 
+export {
+	buildConstraintIndex,
+	resolveConstraint,
+	resolveRatioConstraint,
+	roleOf,
+	hasReference,
+	EMPTY_CONSTRAINT_INDEX,
+	type ConstraintIndex,
+} from './smartart-constraint-solver';
 export { selectArrangedNodes, chooseAlgType } from './smartart-layout-interpreter-flow';
 export { arrangeLinear, arrangeSnake } from './smartart-layout-interpreter-linear';
 export { arrangeCycle } from './smartart-layout-interpreter-cycle';
@@ -304,12 +314,8 @@ export {
 
 export { computeDetailStatus, computeVerificationStatus } from './signature-inspection-status';
 
-export {
-	parseSeriesTrendlines,
-	parseSeriesErrBars,
-	parseDataTable,
-	parseLineStyle,
-} from './chart-advanced-parser';
+export { parseSeriesTrendlines, parseSeriesErrBars, parseLineStyle } from './chart-advanced-parser';
+export { parseDataTable } from './chart-data-table-parser';
 
 export {
 	parseSeriesDataPoints,

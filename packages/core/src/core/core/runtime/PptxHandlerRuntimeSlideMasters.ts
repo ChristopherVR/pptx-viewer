@@ -186,6 +186,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					| undefined;
 				const placeholders = this.extractPlaceholderList(spTree);
 
+				// `@preserve` (CT_SlideMaster, ECMA-376 §19.3.1.38): mirrors the
+				// layout-level flag that stops PowerPoint auto-deleting an
+				// otherwise-unused master.
+				let preserve: boolean | undefined;
+				const preserveRaw = sldMaster['@_preserve'];
+				if (preserveRaw !== undefined) {
+					const pVal = String(preserveRaw).trim().toLowerCase();
+					preserve = pVal === '1' || pVal === 'true';
+				}
+
 				// Theme reference (from relationship)
 				let themePath: string | undefined;
 				const relsPath = path.replace(
@@ -242,6 +252,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					layoutPaths: layoutPaths.length > 0 ? layoutPaths : undefined,
 					layouts: layouts.length > 0 ? layouts : undefined,
 					placeholders: placeholders.length > 0 ? placeholders : undefined,
+					preserve,
 				});
 			}
 		} catch (e) {

@@ -62,6 +62,24 @@ export interface PptxElementBase {
 	 * SDK-created elements.
 	 */
 	placeholderType?: string;
+	/**
+	 * `p:nvSpPr/p:nvPr/p:ph/@sz` (lower-cased): `"full"`, `"half"`, or
+	 * `"quarter"`. Captured on load for round-trip completeness. Per
+	 * ECMA-376 §19.3.1.36 (CT_Placeholder) this size hint is only meaningful
+	 * when NO `a:xfrm` exists anywhere in the placeholder's inheritance
+	 * chain (slide -> layout -> master); every real-world corpus placeholder
+	 * that carries `@sz` already has an explicit `a:xfrm` at the master
+	 * level, so no renderer currently derives a size from this field.
+	 */
+	placeholderSz?: string;
+	/**
+	 * `p:nvSpPr/p:nvPr/p:ph/@orient` (only `"vert"` is meaningful per
+	 * `ST_Direction`). Captured on load for round-trip completeness. In
+	 * practice every placeholder observed with `orient="vert"` also carries
+	 * an explicit `a:bodyPr/@vert`, which already drives vertical-text
+	 * rendering, so this field is not currently read by any renderer.
+	 */
+	placeholderOrient?: 'vert';
 	x: number;
 	y: number;
 	width: number;

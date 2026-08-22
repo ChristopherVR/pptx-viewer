@@ -466,6 +466,13 @@ describe('writeShapeEffects - 3D Shape', () => {
 		expect(sp3d['@_contourW']).toBe('12700');
 	});
 
+	it('should write z position', () => {
+		const spPr: XmlObject = {};
+		writeShapeEffects(spPr, { shape3d: { positionZ: 50000 } }, {});
+		const sp3d = spPr['a:sp3d'] as XmlObject;
+		expect(sp3d['@_z']).toBe('50000');
+	});
+
 	it('should delete sp3d when shape3d has no data', () => {
 		const spPr: XmlObject = { 'a:sp3d': { '@_extrusionH': '0' } };
 		writeShapeEffects(spPr, { shape3d: {} }, {});
@@ -505,6 +512,20 @@ describe('3D round-trip: parse -> save', () => {
 		expect(conVal['@_val']).toBe('FF0000');
 		expect(String(extVal['@_val'])).not.toContain('#');
 		expect(String(conVal['@_val'])).not.toContain('#');
+	});
+
+	it('preserves sp3d/@z (position) across the round-trip', () => {
+		const source: XmlObject = {
+			'a:sp3d': { '@_z': '25400', '@_extrusionH': '76200' },
+		};
+		const style: ShapeStyle = {} as ShapeStyle;
+		applyShape3dStyle(source, style, { parseColor });
+		expect(style.shape3d?.positionZ).toBe(25400);
+
+		const spPr: XmlObject = {};
+		writeShapeEffects(spPr, style, {});
+		const sp3d = spPr['a:sp3d'] as XmlObject;
+		expect(sp3d['@_z']).toBe('25400');
 	});
 
 	it('preserves camera fov/zoom and light-rig rotation across the round-trip', () => {

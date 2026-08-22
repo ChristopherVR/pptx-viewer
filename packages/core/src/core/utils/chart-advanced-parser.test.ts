@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
-import {
-	parseSeriesTrendlines,
-	parseSeriesErrBars,
-	parseDataTable,
-	parseLineStyle,
-} from './chart-advanced-parser';
+import { parseSeriesTrendlines, parseSeriesErrBars, parseLineStyle } from './chart-advanced-parser';
 
 // ---------------------------------------------------------------------------
 // Helpers — mock XmlLookupLike and ColorParserLike
@@ -319,79 +314,6 @@ describe('parseSeriesErrBars', () => {
 		};
 		const result = parseSeriesErrBars(seriesNode, xmlLookup, extractPointValues);
 		expect(result[0].barType).toBe('both');
-	});
-});
-
-// ---------------------------------------------------------------------------
-// parseDataTable
-// ---------------------------------------------------------------------------
-
-describe('parseDataTable', () => {
-	it('returns undefined when no dTable exists', () => {
-		const result = parseDataTable({}, xmlLookup);
-		expect(result).toBeUndefined();
-	});
-
-	it('parses data table with all borders and keys shown', () => {
-		const plotArea: XmlObject = {
-			'c:dTable': {
-				'c:showHorzBorder': { '@_val': '1' },
-				'c:showVertBorder': { '@_val': '1' },
-				'c:showOutline': { '@_val': '1' },
-				'c:showKeys': { '@_val': '1' },
-			},
-		};
-		const result = parseDataTable(plotArea, xmlLookup);
-		expect(result).toStrictEqual({
-			showHorzBorder: true,
-			showVertBorder: true,
-			showOutline: true,
-			showKeys: true,
-		});
-	});
-
-	it('returns an empty model when dTable exists but has no properties', () => {
-		const plotArea: XmlObject = {
-			'c:dTable': {},
-		};
-		const result = parseDataTable(plotArea, xmlLookup);
-		expect(result).toStrictEqual({});
-	});
-
-	it('parses partial data table properties', () => {
-		const plotArea: XmlObject = {
-			'c:dTable': {
-				'c:showHorzBorder': { '@_val': '1' },
-				'c:showKeys': { '@_val': '1' },
-			},
-		};
-		const result = parseDataTable(plotArea, xmlLookup);
-		expect(result!.showHorzBorder).toBeTruthy();
-		expect(result!.showKeys).toBeTruthy();
-	});
-
-	it('accepts all xsd:boolean lexical forms and the default true attribute value', () => {
-		const plotArea: XmlObject = {
-			'c:dTable': {
-				'c:showHorzBorder': { '@_val': 'false' },
-				'c:showVertBorder': { '@_val': '0' },
-				'c:showOutline': { '@_val': 'true' },
-				'c:showKeys': {},
-			},
-		};
-		expect(parseDataTable(plotArea, xmlLookup)).toStrictEqual({
-			showHorzBorder: false,
-			showVertBorder: false,
-			showOutline: true,
-			showKeys: true,
-		});
-	});
-
-	it('does not coerce an invalid CT_Boolean lexical value', () => {
-		const plotArea: XmlObject = {
-			'c:dTable': { 'c:showKeys': { '@_val': 'yes' } },
-		};
-		expect(parseDataTable(plotArea, xmlLookup)).toStrictEqual({});
 	});
 });
 

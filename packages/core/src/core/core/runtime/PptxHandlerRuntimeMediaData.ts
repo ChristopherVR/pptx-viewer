@@ -220,9 +220,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Parse native OOXML animations from `p:sld/p:timing`.
-	 * Extracts trigger types, preset classes, durations, and target IDs.
+	 * Extracts trigger types, preset classes, durations, and target IDs, then
+	 * resolves each effect's `p:stSnd` relationship id to a real archive path
+	 * (`soundPath`) via `resolveRelationshipTarget` (the same resolver
+	 * `enrichMediaElementsWithTiming`'s poster-frame lookup above uses):
+	 * `soundRId` alone is a dangling reference the playback layer cannot use, so
+	 * the animation model round-tripped it but the viewer never actually played
+	 * anything.
 	 */
-	protected parseNativeAnimations(slideXml: XmlObject): PptxNativeAnimation[] | undefined {
-		return this.nativeAnimationService.parseNativeAnimations(slideXml);
+	protected parseNativeAnimations(
+		slideXml: XmlObject,
+		slidePath: string,
+	): PptxNativeAnimation[] | undefined {
+		const animations = this.nativeAnimationService.parseNativeAnimations(slideXml);
+		if (!animations) {
+			return undefined;
+		}
+		for (const anim of animations) {
+			if (anim.soundRId) {
+				anim.soundPath = this.resolveRelationshipTarget(slidePath, anim.soundRId);
+			}
+		}
+		return animations;
 	}
 }

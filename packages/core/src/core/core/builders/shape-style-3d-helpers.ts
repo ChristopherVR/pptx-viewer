@@ -77,6 +77,8 @@ export function applyShape3dStyle(
 	const bevelTop = shape3dNode['a:bevelT'] as XmlObject | undefined;
 	const bevelBottom = shape3dNode['a:bevelB'] as XmlObject | undefined;
 	style.shape3d = {
+		positionZ:
+			shape3dNode['@_z'] !== undefined ? parseInt(String(shape3dNode['@_z']), 10) : undefined,
 		extrusionHeight:
 			shape3dNode['@_extrusionH'] !== undefined
 				? parseInt(String(shape3dNode['@_extrusionH']), 10)

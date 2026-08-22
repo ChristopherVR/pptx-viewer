@@ -423,3 +423,69 @@ describe('notes/handout master save writer — direct part round-trip', () => {
 		expect(handoutXml).toContain('<p:clrMap');
 	});
 });
+
+describe('notes master `<p:notesStyle>` parsing (P-H4)', () => {
+	// A richer notesStyle than the minimal fixture above: level 1 sets an
+	// explicit font size, bold, and a bullet character; the default level
+	// (`a:defPPr`) sets a smaller fallback font size only.
+	async function buildPackageWithNotesStyle(): Promise<ArrayBuffer> {
+		const { handler, data } = await PresentationBuilder.create();
+		const seed = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(seed);
+
+		const notesMasterXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:notesMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
+<p:sp><p:nvSpPr><p:cNvPr id="2" name="Notes body"/><p:cNvSpPr/><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr><a:xfrm><a:off x="914400" y="914400"/><a:ext cx="2743200" cy="914400"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US"/><a:t>Master notes</a:t></a:r><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>
+</p:spTree></p:cSld>
+<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
+<p:notesStyle><a:defPPr><a:defRPr sz="1000"/></a:defPPr><a:lvl1pPr marL="228600" indent="-228600"><a:buChar char="&#8226;"/><a:defRPr sz="1800" b="1"/></a:lvl1pPr></p:notesStyle>
+</p:notesMaster>`;
+		zip.file('ppt/notesMasters/notesMaster1.xml', notesMasterXml);
+		zip.file(
+			'ppt/notesMasters/_rels/notesMaster1.xml.rels',
+			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
+		);
+		const out = await zip.generateAsync({ type: 'uint8array' });
+		return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer;
+	}
+
+	it('parses `<p:notesStyle>` into `PptxNotesMaster.notesStyle` (level 0 + default)', async () => {
+		const buffer = await buildPackageWithNotesStyle();
+		const { PptxHandler } = await import('../../PptxHandler');
+		const data = await new PptxHandler().load(buffer);
+
+		const notesStyle = data.notesMaster?.notesStyle;
+		expect(notesStyle).toBeDefined();
+		// Level 1 (`a:lvl1pPr`) is stored 0-indexed.
+		expect(notesStyle?.[0]?.fontSize).toBeCloseTo((18 * 96) / 72, 5);
+		expect(notesStyle?.[0]?.bold).toBeTruthy();
+		expect(notesStyle?.[0]?.bulletChar).toBe('•');
+		// `a:defPPr` is stored at level -1.
+		expect(notesStyle?.[-1]?.fontSize).toBeCloseTo((10 * 96) / 72, 5);
+	});
+
+	it('round-trips `<p:notesStyle>` verbatim when an unrelated field is edited', async () => {
+		const buffer = await buildPackageWithNotesStyle();
+		const { PptxHandler } = await import('../../PptxHandler');
+		const handler = new PptxHandler();
+		const data = await handler.load(buffer);
+		const notes = data.notesMaster!;
+		expect(notes.notesStyle).toBeDefined();
+
+		// Mutate an unrelated typed field; notesStyle itself is never
+		// re-serialised by the writer, only preserved from the original XML.
+		notes.clrMap = { bg1: 'dk1' };
+
+		const saved = await handler.save(data.slides, { notesMaster: notes });
+		const xml = await loadSavedZipPart(saved, notes.path);
+		expect(xml).toContain(
+			'<p:notesStyle><a:defPPr><a:defRPr sz="1000"></a:defRPr></a:defPPr><a:lvl1pPr marL="228600" indent="-228600"><a:buChar char="•"></a:buChar><a:defRPr sz="1800" b="1"></a:defRPr></a:lvl1pPr></p:notesStyle>',
+		);
+
+		const reloaded = await new PptxHandler().load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		expect(reloaded.notesMaster?.notesStyle?.[0]?.fontSize).toBeCloseTo((18 * 96) / 72, 5);
+	});
+});

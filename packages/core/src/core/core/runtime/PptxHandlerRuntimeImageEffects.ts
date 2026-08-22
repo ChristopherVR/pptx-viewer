@@ -167,7 +167,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				rawCopy[key] = (fillOverlay as Record<string, unknown>)[key];
 			}
-			effects.fillOverlay = { blend, fillRawXml: rawCopy };
+			// Resolve a plain `a:solidFill` overlay to a hex colour + opacity so a
+			// renderer can composite it (the common picture-style colour-overlay
+			// case). Gradient/pattern/picture overlay fills stay opaque in
+			// `fillRawXml` only - round-trip is unaffected either way.
+			const solidFill = fillOverlay['a:solidFill'] as XmlObject | undefined;
+			const resolvedColor = solidFill ? this.parseColor(solidFill) : undefined;
+			const resolvedOpacity = solidFill ? (this.extractColorOpacity(solidFill) ?? 1) : undefined;
+			effects.fillOverlay = {
+				blend,
+				fillRawXml: rawCopy,
+				...(resolvedColor ? { resolvedColor, resolvedOpacity } : {}),
+			};
 			hasAny = true;
 		}
 

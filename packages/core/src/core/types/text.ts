@@ -544,6 +544,18 @@ export interface TextStyle {
 	textBodyScene3d?: Pptx3DScene;
 	/** Raw `a:scene3d` subtree used to preserve extensions and unmodelled children. */
 	textBodyScene3dXml?: XmlObject;
+	/**
+	 * `a:bodyPr/a:flatTx` - an explicit "render this text flat" marker. `sp3d`
+	 * and `flatTx` are a mutually exclusive OOXML choice (`EG_Text3D`), so a
+	 * shape/run that overrides an inherited 3D text body with `<a:flatTx/>`
+	 * carries no `text3d` of its own; without this explicit flag a later
+	 * inheritance merge has no signal to stop `text3d`/`textBodyScene3d` from
+	 * an ancestor (layout/master) leaking back in, the way `noFill` stops an
+	 * inherited fill. A renderer must short-circuit 3D-text application
+	 * whenever this is `true`, regardless of what `text3d`/`textBodyScene3d`
+	 * otherwise hold.
+	 */
+	flatText?: boolean;
 
 	// ── Opaque XML preservation (extLst extension lists) ──
 

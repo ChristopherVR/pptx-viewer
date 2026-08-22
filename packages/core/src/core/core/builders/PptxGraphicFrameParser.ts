@@ -275,6 +275,30 @@ function findOleObjPayload(graphicData: XmlObject | undefined): XmlObject | unde
 }
 
 /**
+ * Parse `p:link/@followColorScheme` (`ST_OleObjectFollowColorScheme`,
+ * ECMA-376 §19.3.1.28) into its typed enum. Only present on the `p:link`
+ * child (linked OLE objects); an embedded object's `p:embed` has no such
+ * attribute. Returns `undefined` for a missing/unrecognised value.
+ */
+function parseOleFollowColorScheme(
+	linkNode: XmlObject | undefined,
+): OlePptxElement['oleFollowColorScheme'] {
+	const raw = String(linkNode?.['@_followColorScheme'] || '')
+		.trim()
+		.toLowerCase();
+	switch (raw) {
+		case 'none':
+			return 'none';
+		case 'full':
+			return 'full';
+		case 'textandbackground':
+			return 'textAndBackground';
+		default:
+			return undefined;
+	}
+}
+
+/**
  * Decode the `<aink:ink>` payload into stroke arrays for an
  * {@link InkPptxElement}. Reads `<aink:inkBrush>` for the default colour
  * and width (`@_brushColor`, `@_brushSize`) and walks each `<aink:trace>`
@@ -518,6 +542,11 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				let oleTarget: string | undefined;
 				let previewImage: string | undefined;
 
+				// `p:link/@followColorScheme` (ST_OleObjectFollowColorScheme,
+				// ECMA-376 §19.3.1.28): whether a LINKED object's icon recolours
+				// to match the theme. Only meaningful on the `p:link` form.
+				const oleFollowColorScheme = parseOleFollowColorScheme(oleLinkNode);
+
 				const oleRelationshipId = String(
 					oleLinkNode?.['@_r:id'] ||
 						oleEmbedNode?.['@_r:id'] ||
@@ -583,6 +612,7 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					oleShowAsIcon,
 					oleImgW,
 					oleImgH,
+					oleFollowColorScheme,
 					actionClick,
 					actionHover,
 					...(extensionXml.length > 0 ? { extensionXml } : {}),

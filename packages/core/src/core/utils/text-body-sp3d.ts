@@ -65,6 +65,16 @@ export function parseTextBodySp3d(
 	style: TextStyle,
 	parseColor: (colorNode: XmlObject | undefined) => string | undefined,
 ): void {
+	// `a:sp3d` and `a:flatTx` are a mutually exclusive OOXML choice
+	// (`EG_Text3D`): an explicit `<a:flatTx/>` is the authored signal that this
+	// text body must NOT apply 3D (it overrides an inherited `sp3d`), so it is
+	// modelled as its own boolean rather than left to silently fall out as "no
+	// sp3d here". See `TextStyle.flatText`.
+	if (bodyPr['a:flatTx'] !== undefined) {
+		style.flatText = true;
+		return;
+	}
+
 	const sp3d = bodyPr['a:sp3d'] as XmlObject | undefined;
 	if (!sp3d) {
 		return;

@@ -178,10 +178,12 @@ export interface PptxSlide {
 	 */
 	backgroundPattern?: PptxSlideBackgroundPattern;
 	/**
-	 * `<p:bgPr/@shadeToTitle>` — boolean flag instructing the renderer to
+	 * `<p:bgPr/@shadeToTitle>`: boolean flag instructing the renderer to
 	 * shade the background toward the title placeholder colour. Captured
-	 * for lossless round-trip; the React renderer currently treats it as
-	 * a passthrough hint.
+	 * for lossless round-trip only; no renderer applies the visual effect.
+	 * Documented as a known no-op in `docs/guide/limitations.md` (legacy
+	 * PowerPoint 97-2003 hint, not observed in any real-world corpus file
+	 * and not settable from any modern PowerPoint UI).
 	 *
 	 * ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
 	 */
@@ -220,6 +222,13 @@ export interface PptxSlide {
 	backgroundShowAnimation?: boolean;
 	/** Whether master slide shapes should be shown on this slide (`p:sld/@showMasterSp`). */
 	showMasterShapes?: boolean;
+	/**
+	 * Whether inherited master placeholder animations should replay on this
+	 * slide (`p:sld/@showMasterPhAnim`). Distinct from {@link showMasterShapes}:
+	 * this governs animation timing, not shape visibility. Mirrors
+	 * `p:sldLayout/@showMasterPhAnim`, ECMA-376 §19.3.1.38.
+	 */
+	showMasterPhAnim?: boolean;
 	/** Drawing guides parsed from slide extension list. */
 	guides?: PptxDrawingGuide[];
 	/** When explicitly `false`, the slide is unmodified and save can skip re-serialization. */

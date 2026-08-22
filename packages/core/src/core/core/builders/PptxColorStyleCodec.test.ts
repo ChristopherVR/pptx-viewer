@@ -88,6 +88,28 @@ describe('pptxColorStyleCodec', () => {
 				'@_val': 'AABBCC',
 			});
 		});
+
+		it('extracts a:scrgbClr node', () => {
+			const node: XmlObject = {
+				'a:scrgbClr': { '@_r': '100000', '@_g': '0', '@_b': '0' },
+			};
+			expect(codec.extractColorChoiceNode(node)).toStrictEqual({
+				'@_r': '100000',
+				'@_g': '0',
+				'@_b': '0',
+			});
+		});
+
+		it('extracts a:hslClr node', () => {
+			const node: XmlObject = {
+				'a:hslClr': { '@_hue': '0', '@_sat': '100000', '@_lum': '50000' },
+			};
+			expect(codec.extractColorChoiceNode(node)).toStrictEqual({
+				'@_hue': '0',
+				'@_sat': '100000',
+				'@_lum': '50000',
+			});
+		});
 	});
 
 	// ── extractColorOpacity ──────────────────────────────────────────────
@@ -171,6 +193,30 @@ describe('pptxColorStyleCodec', () => {
 			// alpha=0.8 + (-0.3) = 0.5. Previously the offset was clamped to 0
 			// first, so the result wrongly stayed at 0.8.
 			expect(codec.extractColorOpacity(node)).toBeCloseTo(0.5, 5);
+		});
+
+		it('extracts a nested a:alpha on a:scrgbClr (previously ignored, rendered fully opaque)', () => {
+			const node: XmlObject = {
+				'a:scrgbClr': {
+					'@_r': '100000',
+					'@_g': '0',
+					'@_b': '0',
+					'a:alpha': { '@_val': '40000' },
+				},
+			};
+			expect(codec.extractColorOpacity(node)).toBe(0.4);
+		});
+
+		it('extracts a nested a:alpha on a:hslClr (previously ignored, rendered fully opaque)', () => {
+			const node: XmlObject = {
+				'a:hslClr': {
+					'@_hue': '0',
+					'@_sat': '100000',
+					'@_lum': '50000',
+					'a:alpha': { '@_val': '60000' },
+				},
+			};
+			expect(codec.extractColorOpacity(node)).toBe(0.6);
 		});
 	});
 

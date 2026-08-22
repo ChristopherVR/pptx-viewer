@@ -130,4 +130,37 @@ describe('slide master and layout background round-trip', () => {
 		expect(xml).toContain('matchingName="RoutedThroughMaster"');
 		expect(xml).toContain('preserve="1"');
 	});
+
+	// `p:sldMaster/@preserve` (CT_SlideMaster, ECMA-376 §19.3.1.38) mirrors
+	// the layout-level flag exercised above: PowerPoint auto-deletes an
+	// unused master unless this is set.
+	it('persists `p:sldMaster/@preserve` set through the typed model', async () => {
+		const { handler, data } = await loadGeneratedDeck();
+		const master = data.slideMasters![0];
+		master.preserve = true;
+
+		const saved = await handler.save(data.slides, { slideMasters: data.slideMasters });
+		const xml = await partXml(saved, master.path);
+		expect(xml).toContain('preserve="1"');
+
+		const reloaded = await new PptxHandler().load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		expect(reloaded.slideMasters?.[0]?.preserve).toBeTruthy();
+	});
+
+	it('parses `p:sldMaster/@preserve="0"` as false rather than leaving it unset', async () => {
+		const { handler, data } = await loadGeneratedDeck();
+		const master = data.slideMasters![0];
+		master.preserve = false;
+
+		const saved = await handler.save(data.slides, { slideMasters: data.slideMasters });
+		const xml = await partXml(saved, master.path);
+		expect(xml).toContain('preserve="0"');
+
+		const reloaded = await handler.load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		expect(reloaded.slideMasters?.[0]?.preserve).toBeFalsy();
+	});
 });

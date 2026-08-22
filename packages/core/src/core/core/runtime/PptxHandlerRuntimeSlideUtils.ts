@@ -223,6 +223,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return normalized !== '0' && normalized !== 'false';
 	}
 
+	/**
+	 * Extract the `p:sld/@showMasterPhAnim` flag: whether inherited master
+	 * placeholder animations should replay on this slide. Mirrors
+	 * `p:sldLayout/@showMasterPhAnim` (see `parseSlideLayoutAttributes`).
+	 * Distinct from {@link extractShowMasterShapes}, which governs shape
+	 * VISIBILITY rather than animation timing.
+	 *
+	 * Returns `false` when disabled, `true` when explicitly enabled, or
+	 * `undefined` when the attribute is absent (defaults to true per spec).
+	 */
+	protected extractShowMasterPhAnim(slideXml: XmlObject): boolean | undefined {
+		const sld = slideXml['p:sld'] as XmlObject | undefined;
+		if (!sld) {
+			return undefined;
+		}
+		const rawVal = sld['@_showMasterPhAnim'];
+		if (rawVal === undefined) {
+			return undefined;
+		}
+		const normalized = String(rawVal).trim().toLowerCase();
+		return normalized !== '0' && normalized !== 'false';
+	}
+
 	protected isSlideHidden(slideXmlObj: XmlObject, slideIdEntry: XmlObject | undefined): boolean {
 		const slideShowValue = String(
 			(slideXmlObj?.['p:sld'] as XmlObject | undefined)?.['@_show'] ?? '',

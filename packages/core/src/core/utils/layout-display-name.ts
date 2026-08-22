@@ -42,6 +42,10 @@ const TYPE_LABELS: Record<string, string> = {
 	dgm: 'Diagram',
 	chart: 'Chart',
 	cust: 'Custom',
+	txAndChart: 'Text and Chart',
+	chartAndTx: 'Chart and Text',
+	txAndClipArt: 'Text and Clip Art',
+	txAndMedia: 'Text and Media',
 };
 
 export interface LayoutDisplayNameInput {

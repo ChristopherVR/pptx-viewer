@@ -106,8 +106,14 @@ export function parseImageAlphaEffects(
 	const modulate = child(blip, 'alphaMod');
 	if (modulate) {
 		const cont = child(modulate, 'cont');
+		// The common real-world shape wraps a single nested `a:alphaModFix`
+		// inside `a:cont`; read its amount so a renderer can apply it as a
+		// multiplicative alpha, distinct from the sibling `alphaModFix` effect.
+		const nestedFix = child(cont, 'alphaModFix');
+		const amt = nestedFix ? parsePercent(nestedFix['@_amt'], false) : undefined;
 		effects.alphaMod = {
 			...(cont ? { contRawXml: cont } : {}),
+			...(amt !== undefined ? { amt } : {}),
 			rawXml: modulate,
 		};
 	}

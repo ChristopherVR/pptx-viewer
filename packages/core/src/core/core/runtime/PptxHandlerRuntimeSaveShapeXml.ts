@@ -241,6 +241,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			oleObj['p:link'] = {
 				'@_r:id': embedRelationshipId,
 				'@_updateAutomatic': '1',
+				...(el.oleFollowColorScheme !== undefined
+					? { '@_followColorScheme': el.oleFollowColorScheme }
+					: {}),
 			};
 		} else {
 			oleObj['p:embed'] = {};
@@ -342,6 +345,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				oleObj['p:embed'] = {};
 			}
 			delete oleObj['p:link'];
+		}
+		// `p:link/@followColorScheme` only applies to the linked form; keep it
+		// in sync with the typed field whenever a `p:link` node exists.
+		const linkNode = oleObj['p:link'] as XmlObject | undefined;
+		if (linkNode) {
+			if (el.oleFollowColorScheme !== undefined) {
+				linkNode['@_followColorScheme'] = el.oleFollowColorScheme;
+			} else {
+				delete linkNode['@_followColorScheme'];
+			}
 		}
 	}
 

@@ -47,6 +47,12 @@ describe('resolveLayoutDisplayName', () => {
 			['vertTitleAndTx', 'Vertical Title and Text'],
 			['vertTx', 'Vertical Text'],
 			['tx', 'Title and Text'],
+			// The four ST_SlideLayoutType values that previously had no label
+			// and fell back to a generic "Slide Layout N".
+			['txAndChart', 'Text and Chart'],
+			['chartAndTx', 'Chart and Text'],
+			['txAndClipArt', 'Text and Clip Art'],
+			['txAndMedia', 'Text and Media'],
 		];
 		for (const [type, expected] of cases) {
 			expect(

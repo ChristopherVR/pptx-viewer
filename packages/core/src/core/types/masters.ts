@@ -70,6 +70,16 @@ export interface PptxNotesMaster {
 	headerFooter?: PptxHeaderFooterFlags;
 	/** Colour map from `<p:clrMap>` (12 alias attributes). Applied at save time. */
 	clrMap?: Record<string, string>;
+	/**
+	 * Notes text defaults from `<p:notesStyle>` (`CT_TextListStyle`, ECMA-376
+	 * §19.3.1.34): the same `a:defPPr` + `a:lvl1pPr`..`a:lvl9pPr` shape as
+	 * {@link PptxMasterTextStyles}'s per-category styles, keyed 0-8 with the
+	 * default at `-1`. Governs the notes body placeholder's font size, indent
+	 * levels, and bullet style wherever a notes slide does not override them.
+	 * Parsed read-only for the render cascade; the save side preserves the
+	 * original `<p:notesStyle>` XML verbatim rather than re-serialising this.
+	 */
+	notesStyle?: PptxTextStyleLevels;
 }
 
 /**
@@ -160,6 +170,14 @@ export interface PptxSlideMaster {
 	 * accent1-6, hlink, folHlink). Applied at save time when present.
 	 */
 	clrMap?: Record<string, string>;
+	/**
+	 * Whether the master is marked as preserved (prevent auto-deletion,
+	 * `@preserve`). Mirrors {@link PptxSlideLayout.preserve}: PowerPoint
+	 * silently drops an unused master unless this is set.
+	 *
+	 * ECMA-376 §19.3.1.38 (CT_SlideMaster).
+	 */
+	preserve?: boolean;
 }
 
 /**

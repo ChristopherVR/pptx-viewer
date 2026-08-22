@@ -170,6 +170,13 @@ export interface Pptx3DScene {
  * ```
  */
 export interface Pptx3DShape {
+	/**
+	 * Position of the shape along the Z axis, in EMU (`a:sp3d/@z`, default 0).
+	 * Independent of {@link extrusionHeight}: it moves the whole shape forward
+	 * or back in 3D space rather than adding depth to it, most commonly used to
+	 * stack several shapes at different depths under one `a:scene3d` camera.
+	 */
+	positionZ?: number;
 	/** Extrusion height in EMU. */
 	extrusionHeight?: number;
 	/** Extrusion colour. */

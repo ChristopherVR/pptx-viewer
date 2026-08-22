@@ -19,7 +19,6 @@ import type { PptxChartData, PptxChartScatterStyle, PptxChartType } from '../../
 import {
 	parseSeriesTrendlines,
 	parseSeriesErrBars,
-	parseDataTable,
 	parseLineStyle,
 } from '../../utils/chart-advanced-parser';
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
@@ -31,6 +30,7 @@ import {
 } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
+import { parseDataTable } from '../../utils/chart-data-table-parser';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
@@ -204,8 +204,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Store the chart part path for round-trip save
 		const chartPartPath = chartPart.partPath;
 
-		// Parse data table (c:dTable)
-		const dataTable = parseDataTable(plotArea, this.xmlLookupService);
+		// Parse data table (c:dTable), including its border/fill (c:spPr) and
+		// cell-text defaults (c:txPr) so the renderer can honour authored styling.
+		const dataTable = parseDataTable(plotArea, this.xmlLookupService, lineStyleColorAdapter);
 		// Parse drop lines (c:dropLines) and hi-low lines (c:hiLowLines)
 		const dropLines = parseLineStyle(
 			seriesContainer,
