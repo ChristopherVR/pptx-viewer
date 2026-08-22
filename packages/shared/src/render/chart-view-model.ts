@@ -1267,7 +1267,20 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 	if (is3DChartType(chartType)) {
 		return withLegendEntries(
 			withChartAreaFill(
-				withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData),
+				withUserShapeOverlay(
+					applyChart3DDepth(
+						flat,
+						chartType,
+						chartData.view3D,
+						{
+							floor: chartData.floor,
+							sideWall: chartData.sideWall,
+							backWall: chartData.backWall,
+						},
+						chartData.grouping,
+					),
+					chartData,
+				),
 				chartData,
 			),
 			chartData,

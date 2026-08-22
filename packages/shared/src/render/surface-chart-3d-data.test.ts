@@ -109,6 +109,59 @@ describe('buildSurfaceChart3DData', () => {
 		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
 		expect(result!.heightMap[0]).toBeCloseTo(result!.heightMap[1]);
 	});
+
+	it('carries the authored view3D rotX/rotY through to the scene options', () => {
+		const data: PptxChartData = {
+			...makeSurfaceData(2, 2),
+			view3D: { rotX: 30, rotY: 210, perspective: 30 },
+		};
+		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.view3D).toStrictEqual({ rotX: 30, rotY: 210 });
+	});
+
+	it('leaves view3D undefined when the chart has none authored', () => {
+		const data = makeSurfaceData(2, 2);
+		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.view3D).toBeUndefined();
+	});
+
+	it('leaves surfaceColors undefined when no floor/wall is authored', () => {
+		const data = makeSurfaceData(2, 2);
+		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.surfaceColors).toBeUndefined();
+	});
+
+	it('carries floor/sideWall/backWall fill colours through as surfaceColors', () => {
+		const data: PptxChartData = {
+			...makeSurfaceData(2, 2),
+			floor: { spPr: { fillColor: '#111111' } },
+			backWall: { spPr: { fillColor: '#222222' } },
+		};
+		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.surfaceColors).toStrictEqual({
+			floor: '#111111',
+			sideWall: undefined,
+			backWall: '#222222',
+		});
+	});
+
+	it('uses bandFmts colours for the colour map instead of the continuous ramp', () => {
+		const data: PptxChartData = {
+			chartType: 'surface',
+			categories: ['A', 'B'],
+			series: [{ name: 'S1', values: [0, 100] }],
+			bandFmts: [
+				{ index: 0, spPr: { fillColor: '#FF0000' } },
+				{ index: 1, spPr: { fillColor: '#00FF00' } },
+			],
+		};
+		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
+		// Low value (t=0) -> band 0 (#FF0000 -> 1,0,0); high value (t=1) -> band 1 (#00FF00 -> 0,1,0).
+		expect(result!.colorMap[0]).toBeCloseTo(1);
+		expect(result!.colorMap[1]).toBeCloseTo(0);
+		expect(result!.colorMap[3]).toBeCloseTo(0);
+		expect(result!.colorMap[4]).toBeCloseTo(1);
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

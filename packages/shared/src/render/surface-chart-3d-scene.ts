@@ -23,8 +23,12 @@ import {
 	buildSurfaceLabels,
 	computeCameraPlacement,
 	computeGridExtent,
+	MAX_HEIGHT,
 } from './surface-chart-3d-geom';
-import type { SurfaceLabel } from './surface-chart-3d-geom';
+import type { SurfaceCameraView3D } from './surface-chart-3d-geom';
+import { createLabelOverlay } from './surface-chart-3d-label-overlay';
+import { buildSurfaceWallMeshes } from './surface-chart-3d-walls';
+import type { SurfaceWallColors } from './surface-chart-3d-walls';
 
 type ThreeModule = typeof THREE;
 
@@ -44,7 +48,14 @@ export interface SurfaceChart3DSceneOptions {
 	height: number;
 	/** Device pixel-ratio cap. Default `2`. */
 	maxPixelRatio?: number;
+	/** Authored `c:view3D` rotation (`rotX`/`rotY`) driving the initial camera. */
+	view3D?: SurfaceCameraView3D;
+	/** Authored `c:floor`/`c:sideWall`/`c:backWall` fill colours, when set. */
+	surfaceColors?: SurfaceWallColors;
 }
+
+/** `c:floor`/`c:sideWall`/`c:backWall` fill colours a scene can paint. */
+export type SurfaceChart3DSurfaceColors = SurfaceWallColors;
 
 /** Imperative handle to a mounted surface-chart view. */
 export interface SurfaceChart3DHandle {
@@ -84,42 +95,6 @@ async function loadOrbitControlsCtor(): Promise<
 	} catch {
 		return null;
 	}
-}
-
-/** Create the DOM overlay nodes for the axis labels, returned with the layer. */
-function createLabelOverlay(
-	doc: Document,
-	labels: ReadonlyArray<SurfaceLabel>,
-): { layer: HTMLDivElement; nodes: HTMLDivElement[] } {
-	const layer = doc.createElement('div');
-	Object.assign(layer.style, {
-		position: 'absolute',
-		inset: '0',
-		pointerEvents: 'none',
-		overflow: 'hidden',
-	});
-
-	const nodes = labels.map((label) => {
-		const node = doc.createElement('div');
-		node.textContent = label.text;
-		const color = label.axis === 'value' ? '#999' : '#666';
-		Object.assign(node.style, {
-			position: 'absolute',
-			fontSize: '9px',
-			color,
-			whiteSpace: 'nowrap',
-			userSelect: 'none',
-			transform: 'translate(-50%, -50%)',
-			willChange: 'left, top',
-		});
-		if (label.axis === 'value') {
-			node.style.writingMode = 'vertical-rl';
-		}
-		layer.appendChild(node);
-		return node;
-	});
-
-	return { layer, nodes };
 }
 
 /**
@@ -167,7 +142,7 @@ export async function mountSurfaceChart3D(
 	scene.add(fill);
 
 	const camera = new three.PerspectiveCamera(FOV, width / height, 0.1, 1000);
-	const placement = computeCameraPlacement(cols, rows);
+	const placement = computeCameraPlacement(cols, rows, options.view3D);
 	camera.position.set(...placement.position);
 	const target = new three.Vector3(...placement.target);
 	camera.lookAt(target);
@@ -178,6 +153,14 @@ export async function mountSurfaceChart3D(
 	const gridFloor = new three.GridHelper(floorSize, Math.max(cols, rows), 0xcccccc, 0xe8e8e8);
 	gridFloor.position.y = -0.02;
 	scene.add(gridFloor);
+
+	// Authored c:floor / c:sideWall / c:backWall backdrop panels.
+	const walls = options.surfaceColors
+		? buildSurfaceWallMeshes(three, cols, rows, MAX_HEIGHT, options.surfaceColors)
+		: null;
+	for (const mesh of walls?.meshes ?? []) {
+		scene.add(mesh);
+	}
 
 	// Surface mesh + optional wireframe.
 	const { geometry, wireGeometry } = buildSurfaceGeometry(
@@ -276,6 +259,7 @@ export async function mountSurfaceChart3D(
 			surfaceMaterial.dispose();
 			wireMaterial?.dispose();
 			gridFloor.dispose();
+			walls?.dispose();
 			scene.clear();
 			renderer.dispose();
 			canvas.remove();

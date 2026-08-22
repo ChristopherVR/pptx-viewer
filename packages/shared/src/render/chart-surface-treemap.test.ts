@@ -111,6 +111,58 @@ describe('buildSurfaceViewModel — isometric (≥2 series, ≥2 categories)', (
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// buildSurfaceViewModel - c:bandFmts and c:floor/sideWall/backWall
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildSurfaceViewModel - bandFmts and floor/wall panels', () => {
+	const el = makeElement();
+	const data = makeSurfaceData(3, 4);
+	const labels = data.categories;
+
+	it('adds no extra polygons when no floor/wall is authored', () => {
+		const vm = buildSurfaceViewModel(el, data, labels);
+		const polygons = vm.primitives.filter((p) => p.kind === 'polygon');
+		expect(polygons).toHaveLength(12);
+	});
+
+	it('prepends floor/wall backdrop panels ahead of the mesh facets', () => {
+		const withWalls: PptxChartData = {
+			...data,
+			floor: { spPr: { fillColor: '#111111' } },
+			backWall: { spPr: { fillColor: '#222222' } },
+			sideWall: { spPr: { fillColor: '#333333' } },
+		};
+		const vm = buildSurfaceViewModel(el, withWalls, labels);
+		const polygons = vm.primitives.filter((p) => p.kind === 'polygon');
+		// 3 backdrop panels + 12 mesh polygons (6 cells x 2).
+		expect(polygons).toHaveLength(15);
+		expect(polygons.slice(0, 3).map((p) => p.fill)).toStrictEqual([
+			'#222222',
+			'#333333',
+			'#111111',
+		]);
+	});
+
+	it('uses bandFmts colours for the mesh face fill instead of the continuous ramp', () => {
+		const withBands: PptxChartData = {
+			...data,
+			bandFmts: [
+				{ index: 0, spPr: { fillColor: '#FF0000' } },
+				{ index: 1, spPr: { fillColor: '#00FF00' } },
+			],
+		};
+		const vm = buildSurfaceViewModel(el, withBands, labels);
+		const faceFills = vm.primitives
+			.filter((p) => p.kind === 'polygon' && p.part?.role === 'dataPoint')
+			.map((p) => p.fill);
+		expect(faceFills.length).toBeGreaterThan(0);
+		for (const fill of faceFills) {
+			expect(['#FF0000', '#00FF00']).toContain(fill);
+		}
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // buildSurfaceViewModel — flat fallback (<2 series or <2 categories)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -140,6 +192,22 @@ describe('buildSurfaceViewModel — flat fallback (<2 series or <2 categories)',
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		// 1 series × 3 categories = 3 cells.
 		expect(rects).toHaveLength(3);
+	});
+
+	it('uses bandFmts colours for rect fills instead of the continuous ramp', () => {
+		const el = makeElement();
+		const data: PptxChartData = {
+			...makeSurfaceData(1, 2),
+			bandFmts: [
+				{ index: 0, spPr: { fillColor: '#FF0000' } },
+				{ index: 1, spPr: { fillColor: '#00FF00' } },
+			],
+		};
+		const vm = buildSurfaceViewModel(el, data, data.categories);
+		const fills = vm.primitives.filter((p) => p.kind === 'rect').map((p) => p.fill);
+		for (const fill of fills) {
+			expect(['#FF0000', '#00FF00']).toContain(fill);
+		}
 	});
 });
 

@@ -13,9 +13,14 @@
 
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { hexToRgb } from './animation-color';
+import { resolveSurfaceBandFill } from './chart-surface-bands';
 import { surfaceColor } from './chart-surface-treemap';
 import { computeValueRange, resolveChartKind } from './chart-view-model';
-import type { SurfaceChart3DSceneOptions } from './surface-chart-3d-scene';
+import type {
+	SurfaceChart3DSceneOptions,
+	SurfaceChart3DSurfaceColors,
+} from './surface-chart-3d-scene';
 
 /** Inputs shared with the 2D surface renderer's sizing/labeling. */
 export interface SurfaceChart3DDataOptions {
@@ -23,6 +28,17 @@ export interface SurfaceChart3DDataOptions {
 	height: number;
 	/** Draw wireframe grid lines over the surface mesh. Default `true`. */
 	wireframe?: boolean;
+}
+
+/** `c:floor`/`c:sideWall`/`c:backWall` fill colours the 3D scene can paint. */
+function resolveSurfaceColors(chartData: PptxChartData): SurfaceChart3DSurfaceColors | undefined {
+	const floor = chartData.floor?.spPr?.fillColor;
+	const sideWall = chartData.sideWall?.spPr?.fillColor;
+	const backWall = chartData.backWall?.spPr?.fillColor;
+	if (!floor && !sideWall && !backWall) {
+		return undefined;
+	}
+	return { floor, sideWall, backWall };
 }
 
 /**
@@ -51,7 +67,8 @@ export function buildSurfaceChart3DData(
 			const val = chartData.series[row]?.values[col] ?? 0;
 			const t = range.span > 0 ? (val - range.min) / range.span : 0;
 			heightMap[idx] = t;
-			const { r, g, b } = surfaceColor(t);
+			const bandFill = resolveSurfaceBandFill(t, chartData.bandFmts);
+			const { r, g, b } = bandFill ? hexToRgb(bandFill) : surfaceColor(t);
 			const ci = idx * 3;
 			colorMap[ci] = r / 255;
 			colorMap[ci + 1] = g / 255;
@@ -69,6 +86,10 @@ export function buildSurfaceChart3DData(
 		seriesNames: chartData.series.map((s) => s.name),
 		width: options.width,
 		height: options.height,
+		view3D: chartData.view3D
+			? { rotX: chartData.view3D.rotX, rotY: chartData.view3D.rotY }
+			: undefined,
+		surfaceColors: resolveSurfaceColors(chartData),
 	};
 }
 

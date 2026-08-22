@@ -81,12 +81,12 @@ const SIX_REPORTS: PptxSmartArtNode[] = [
 
 describe('smartArt org-chart round-trip: presLayoutVars (hierBranch / orgChart / chMax / chPref)', () => {
 	it('places the assistant differently from the ordinary reports in the live-preview render model', async () => {
-		// `nodeType` ("asst") is a live-preview-only concept the SDK-authoring
-		// fabrication path does not (yet) round-trip through a save, so this
-		// override stays in-memory (matching how the OTHER interpreter
-		// round-trip tests substitute a typed model) rather than surviving a
-		// save + reload - the point under test is what the ARRANGER does with
-		// an assistant node, not the SDK data-model writer.
+		// The SDK-authoring fabrication path DOES now round-trip `nodeType`
+		// ("asst") through a save (see the "assistant nodeType survives a save
+		// + reload" test below); this override still stays purely in-memory
+		// here (matching how the OTHER interpreter round-trip tests substitute
+		// a typed model) because the point under test is what the ARRANGER
+		// does with an assistant node, not the SDK data-model writer.
 		const initial = await presentationWithOrgChartSmartArt(SIX_REPORTS);
 		const handler = new PptxHandler();
 		const loaded = await handler.load(initial.buffer as ArrayBuffer);
@@ -115,6 +115,26 @@ describe('smartArt org-chart round-trip: presLayoutVars (hierBranch / orgChart /
 		expect(assistant.width).not.toBeCloseTo(report.width, 0);
 		// Sits closer (vertically) to the manager than the reports' fan-out row.
 		expect(assistant.y - manager.y).toBeLessThan(report.y - manager.y);
+	});
+
+	it('assistant nodeType survives a save + reload through the SDK-authoring fabrication path', async () => {
+		// `smartart-fabrication-data.ts` builds the data model XML from scratch
+		// for an SDK-created SmartArt (no rawXml, no existing diagram parts).
+		// Its `contentPointXml` dropped `@_type="asst"`, so an assistant node
+		// authored via the SDK reloaded as an ordinary child and lost its
+		// org-chart placement on every round-trip.
+		const initial = await presentationWithOrgChartSmartArt(ORG_CHART_NODES);
+		const reloaded = await new PptxHandler().load(initial.buffer as ArrayBuffer);
+		const nodes = smartArt(reloaded.slides).smartArtData!.nodes;
+
+		const assistant = nodes.find((node) => node.text === 'Assistant');
+		const manager = nodes.find((node) => node.text === 'Manager');
+		const report = nodes.find((node) => node.text === 'Report One');
+
+		expect(assistant?.nodeType).toBe('asst');
+		// Ordinary content points must NOT gain a spurious @_type.
+		expect(manager?.nodeType).toBeUndefined();
+		expect(report?.nodeType).toBeUndefined();
 	});
 
 	it('a hierBranch other than "std" changes the saved cached dsp: drawing geometry', async () => {

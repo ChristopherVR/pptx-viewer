@@ -19,6 +19,7 @@ const h = vi.hoisted(() => {
 		surfaceMatDispose: fn(),
 		wireMatDispose: fn(),
 		gridDispose: fn(),
+		wallMatDispose: fn(),
 	};
 	const behaviour = { threeAvailable: true, orbitAvailable: true };
 	return { calls, behaviour };
@@ -80,6 +81,7 @@ vi.mock(import('three'), () => {
 	}
 	class Object3DBase {
 		position = { y: 0, set: () => {} };
+		rotation = { set: () => {} };
 		aspect = 1;
 		children: unknown[] = [];
 		target = new Vector3();
@@ -138,6 +140,9 @@ vi.mock(import('three'), () => {
 		},
 		LineBasicMaterial: class {
 			dispose = h.calls.wireMatDispose;
+		},
+		MeshBasicMaterial: class {
+			dispose = h.calls.wallMatDispose;
 		},
 		DoubleSide: 2,
 		Vector3,
@@ -270,5 +275,27 @@ describe('mountSurfaceChart3D - mounted scene', () => {
 		);
 		expect(() => handle.resize(400, 300)).not.toThrow();
 		handle.dispose();
+	});
+
+	it('does not build wall/floor material when no surfaceColors are authored', async () => {
+		const handle = await mountSurfaceChart3D(
+			fakeElement(fakeDocument()) as unknown as HTMLElement,
+			baseOptions(),
+		);
+		handle.dispose();
+		expect(h.calls.wallMatDispose).not.toHaveBeenCalled();
+	});
+
+	it('mounts and disposes floor/wall panels when surfaceColors are authored', async () => {
+		const handle = await mountSurfaceChart3D(
+			fakeElement(fakeDocument()) as unknown as HTMLElement,
+			{
+				...baseOptions(),
+				surfaceColors: { floor: '#111111', backWall: '#222222', sideWall: '#333333' },
+			},
+		);
+		expect(handle.ok).toBeTruthy();
+		handle.dispose();
+		expect(h.calls.wallMatDispose).toHaveBeenCalledTimes(3);
 	});
 });

@@ -16,6 +16,9 @@
  */
 import type { PptxChartView3D } from 'pptx-viewer-core';
 
+import type { Chart3DSurfaces } from './chart-3d-surfaces';
+import { build3DSurfacePanels } from './chart-3d-surfaces';
+import { computeSeriesDepth, sortSeriesBackToFront } from './chart-bar3d-series-depth';
 import { shade, tint } from './chart-palette';
 import type {
 	ChartViewModel,
@@ -178,26 +181,56 @@ export function applyChart3DDepth(
 	vm: ChartViewModel,
 	chartType: string,
 	view3D: PptxChartView3D | undefined,
+	surfaces?: Chart3DSurfaces,
+	grouping?: 'clustered' | 'stacked' | 'percentStacked',
 ): ChartViewModel {
 	const depth = computeDepthVector(view3D);
 	let extrusion: SvgPrimitive[] = [];
+	let isCartesian = false;
 
 	if (chartType === 'bar3D') {
 		const bars = vm.primitives.filter(
 			(p): p is SvgRect => p.kind === 'rect' && p.part?.role === 'dataPoint',
 		);
-		extrusion = bars.flatMap((r) => barExtrusion(r, depth));
+		// A stacked (or percent-stacked) 3D column keeps every series' segment
+		// coplanar (they visually belong to one bar), so it uses the chart's one
+		// shared depth vector, same as before. A clustered 3D column lays series
+		// out along PowerPoint's depth ("series") axis, so each series recedes by
+		// its own offset - the single biggest gap between this oblique illusion
+		// and an actual 3D projection: previously every series shared the exact
+		// same depth plane. Series are then painted back-to-front so a nearer
+		// series' extrusion correctly occludes one staggered behind it.
+		if (grouping === 'stacked' || grouping === 'percentStacked') {
+			extrusion = bars.flatMap((r) => barExtrusion(r, depth));
+		} else {
+			const seriesIndexes = [...new Set(bars.map((r) => r.part?.seriesIndex ?? 0))];
+			const seriesCount = seriesIndexes.length;
+			extrusion = sortSeriesBackToFront(seriesIndexes, seriesCount).flatMap((seriesIndex) => {
+				const seriesDepth = computeSeriesDepth(depth, seriesIndex, seriesCount);
+				return bars
+					.filter((r) => (r.part?.seriesIndex ?? 0) === seriesIndex)
+					.flatMap((r) => barExtrusion(r, seriesDepth));
+			});
+		}
+		isCartesian = true;
 	} else if (chartType === 'pie3D') {
 		const slices = vm.primitives.filter((p): p is SvgPath => p.kind === 'path');
 		extrusion = pieExtrusion(slices, depth);
 	} else if (chartType === 'line3D' || chartType === 'area3D') {
 		extrusion = ribbonExtrusion(vm.primitives, depth);
+		isCartesian = true;
 	} else {
 		return vm;
 	}
 
-	if (extrusion.length === 0) {
+	// c:floor / c:sideWall / c:backWall only apply to a cartesian 3D plot
+	// (bar3D/line3D/area3D); pie3D has no plot rectangle to wall in, matching
+	// PowerPoint's own behaviour.
+	const panels =
+		isCartesian && surfaces ? build3DSurfacePanels(vm.primitives, surfaces, depth) : [];
+
+	if (extrusion.length === 0 && panels.length === 0) {
 		return vm;
 	}
-	return { ...vm, primitives: [...extrusion, ...vm.primitives] };
+	return { ...vm, primitives: [...panels, ...extrusion, ...vm.primitives] };
 }

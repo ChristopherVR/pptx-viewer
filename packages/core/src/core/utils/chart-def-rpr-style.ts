@@ -11,6 +11,8 @@
  * @module utils/chart-def-rpr-style
  */
 import type { PptxChartLegendTextStyle, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { writeChartColorChoice } from './chart-color-choice';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -65,4 +67,41 @@ export function parseDefRPrTextStyle(
 	}
 
 	return Object.keys(style).length > 0 ? style : undefined;
+}
+
+/**
+ * Serialize a flat text style back into a `c:txPr` node (CT_TextBody):
+ * `a:bodyPr` and `a:lstStyle` as empty placeholders, and the five attributes
+ * inside `a:p/a:pPr/a:defRPr`. Shared by the legend-entry and data-table
+ * writers, the two ChartML locations that use this exact shape.
+ *
+ * Returns `undefined` when `style` is absent or empty, meaning: leave any
+ * authored `c:txPr` untouched.
+ */
+export function buildDefRPrTextProperties(
+	style: PptxChartLegendTextStyle | undefined,
+	authoredDefRPr: XmlObject | undefined,
+	resolveColor?: ResolveChartColor,
+): XmlObject | undefined {
+	if (!style || Object.keys(style).length === 0) {
+		return undefined;
+	}
+	const rPr: XmlObject = {};
+	if (style.fontSize !== undefined) {
+		rPr['@_sz'] = String(Math.round(style.fontSize * 100));
+	}
+	if (style.bold !== undefined) {
+		rPr['@_b'] = style.bold ? '1' : '0';
+	}
+	if (style.italic !== undefined) {
+		rPr['@_i'] = style.italic ? '1' : '0';
+	}
+	if (style.color) {
+		rPr['a:solidFill'] = authoredDefRPr?.['a:solidFill'];
+		writeChartColorChoice(rPr, 'a:solidFill', style.color, resolveColor);
+	}
+	if (style.fontFamily) {
+		rPr['a:latin'] = { '@_typeface': style.fontFamily };
+	}
+	return { 'a:bodyPr': {}, 'a:lstStyle': {}, 'a:p': { 'a:pPr': { 'a:defRPr': rPr } } };
 }

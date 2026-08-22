@@ -394,6 +394,16 @@ export interface PptxChart3DSurface {
 	spPr?: PptxChartShapeProps;
 }
 
+/**
+ * One colour band for a surface chart (`c:bandFmts/c:bandFmt`,
+ * ECMA-376 §21.2.2.19 / CT_BandFmt). `index` is the band's position
+ * (`c:idx/@val`) among the value axis's major-unit bands, in authored order.
+ */
+export interface PptxChartBandFmt {
+	index: number;
+	spPr?: PptxChartShapeProps;
+}
+
 /** Office 2016 ChartEx box-and-whisker series layout options. */
 export interface PptxChartBoxWhiskerOptions {
 	quartileMethod?: 'inclusive' | 'exclusive';
@@ -907,6 +917,8 @@ export interface PptxChartData {
 	floor?: PptxChart3DSurface;
 	sideWall?: PptxChart3DSurface;
 	backWall?: PptxChart3DSurface;
+	/** Per-band surface-chart colour overrides (`c:surfaceChart/c:bandFmts`). */
+	bandFmts?: PptxChartBandFmt[];
 	/** External data source reference (c:externalData) linking to an external workbook. */
 	externalData?: PptxExternalData;
 

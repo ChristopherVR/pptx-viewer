@@ -17,7 +17,7 @@ type ThreeModule = typeof THREE;
 /** Half-unit spacing between adjacent grid points, in world units. */
 const GRID_SPACING = 0.5;
 /** Maximum height displacement (world units) for a normalised value of 1. */
-const MAX_HEIGHT = 1.5;
+export const MAX_HEIGHT = 1.5;
 
 /** Grid world extent (width along cols, depth along rows). */
 export interface GridExtent {
@@ -144,16 +144,78 @@ export function buildSurfaceLabels(
 	return labels;
 }
 
-/** Isometric-like camera placement that frames the whole grid. */
+/** The `c:view3D` fields the camera placement cares about. */
+export interface SurfaceCameraView3D {
+	/** X-axis rotation in degrees (-90...90); PowerPoint's "elevation". */
+	rotX?: number;
+	/** Y-axis rotation in degrees (0...360); PowerPoint's "rotation". */
+	rotY?: number;
+}
+
+/** Default elevation/azimuth, matching the 2D engine's oblique-depth defaults
+ * ({@link ../chart-3d-depth.ts}) so an untagged 3D chart looks consistent
+ * whether it renders through the flat SVG path or this WebGL scene. */
+const DEFAULT_ELEVATION_DEG = 15;
+const DEFAULT_AZIMUTH_DEG = 20;
+/** Total camera distance from the target, as a multiple of `dist`. Matches
+ * the magnitude of the previous fixed isometric-like position
+ * `[0.8, 0.7, 0.8] * dist` so the default framing does not change size. */
+const RADIUS_FACTOR = Math.sqrt(0.8 ** 2 + 0.7 ** 2 + 0.8 ** 2);
+
+function clamp(value: number, min: number, max: number): number {
+	return Math.min(Math.max(value, min), max);
+}
+
+/** Wrap a rotY-style angle into `[0, 360)`. */
+function normalizeAzimuth(deg: number): number {
+	const wrapped = deg % 360;
+	return wrapped < 0 ? wrapped + 360 : wrapped;
+}
+
+/**
+ * Camera placement that frames the whole grid.
+ *
+ * When `view3D` carries an authored `rotX` and/or `rotY`, the camera is
+ * placed on a sphere around the target at the corresponding elevation/azimuth
+ * (missing fields fall back to PowerPoint-like defaults, matching the 2D
+ * engine's oblique-depth defaults so both presentations agree on an untagged
+ * angle). When `view3D` is absent entirely (no `c:view3D` was authored), the
+ * original fixed isometric-like offset is used unchanged, so charts nobody
+ * has touched keep their exact prior framing.
+ *
+ * `rotX` (elevation) is clamped to (-90, 90) exclusive so the camera never
+ * sits exactly on the vertical axis, which is a degenerate case for
+ * `lookAt`/OrbitControls (an ill-defined up vector).
+ */
 export function computeCameraPlacement(
 	cols: number,
 	rows: number,
+	view3D?: SurfaceCameraView3D,
 ): { position: readonly [number, number, number]; target: readonly [number, number, number] } {
 	const { gridWidth, gridDepth } = computeGridExtent(cols, rows);
 	const maxExtent = Math.max(gridWidth, gridDepth, MAX_HEIGHT);
 	const dist = maxExtent * 1.8;
+	const target: readonly [number, number, number] = [0, 0.3, 0];
+
+	if (!view3D || (view3D.rotX === undefined && view3D.rotY === undefined)) {
+		return { position: [dist * 0.8, dist * 0.7, dist * 0.8], target };
+	}
+
+	const radius = dist * RADIUS_FACTOR;
+	const elevationDeg = clamp(view3D.rotX ?? DEFAULT_ELEVATION_DEG, -89, 89);
+	const azimuthDeg = normalizeAzimuth(view3D.rotY ?? DEFAULT_AZIMUTH_DEG);
+
+	// Polar angle measured from the +Y axis; spherical -> cartesian.
+	const phi = ((90 - elevationDeg) * Math.PI) / 180;
+	const theta = (azimuthDeg * Math.PI) / 180;
+	const sinPhi = Math.sin(phi);
+
 	return {
-		position: [dist * 0.8, dist * 0.7, dist * 0.8],
-		target: [0, 0.3, 0],
+		position: [
+			radius * sinPhi * Math.sin(theta),
+			radius * Math.cos(phi),
+			radius * sinPhi * Math.cos(theta),
+		],
+		target,
 	};
 }

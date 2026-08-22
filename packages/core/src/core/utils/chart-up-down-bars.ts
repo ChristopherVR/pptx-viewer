@@ -1,8 +1,8 @@
-import type { PptxChartShapeProps, PptxChartUpDownBars, XmlObject } from '../types';
+import type { PptxChartUpDownBars, XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
-import { chartColorChoiceValue } from './chart-color-choice';
 import { chartPercentUnionValue } from './chart-percent-union-value';
 import { parseShapeProps } from './chart-series-detail-parser';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -63,155 +63,6 @@ export function parseChartUpDownBars(
 
 const findKey = (node: XmlObject, name: string, localName: LocalName) =>
 	Object.keys(node).find((key) => localName(key) === name);
-
-function setDrawingChild(
-	node: XmlObject,
-	name: string,
-	value: XmlObject,
-	order: readonly string[],
-	localName: LocalName,
-): void {
-	const key = findKey(node, name, localName);
-	if (key) {
-		node[key] = value;
-		return;
-	}
-	const entries = Object.entries(node);
-	const rank = order.indexOf(name);
-	const index = entries.findIndex(([candidate]) => {
-		const candidateRank = order.indexOf(localName(candidate));
-		return candidateRank >= 0 && candidateRank > rank;
-	});
-	entries.splice(index < 0 ? entries.length : index, 0, [`a:${name}`, value]);
-	for (const candidate of Object.keys(node)) {
-		delete node[candidate];
-	}
-	for (const [candidate, child] of entries) {
-		node[candidate] = child;
-	}
-}
-
-function applyShapeProps(
-	existing: XmlObject | undefined,
-	style: PptxChartShapeProps,
-	localName: LocalName,
-	resolveColor?: ResolveChartColor,
-): XmlObject {
-	const spPr: XmlObject = { ...(existing ?? {}) };
-	if (style.fillColor) {
-		const noFill = findKey(spPr, 'noFill', localName);
-		if (noFill) {
-			delete spPr[noFill];
-		}
-		setDrawingChild(
-			spPr,
-			'solidFill',
-			chartColorChoiceValue(
-				spPr[findKey(spPr, 'solidFill', localName) ?? ''] as XmlObject | undefined,
-				style.fillColor,
-				resolveColor,
-			),
-			[
-				'xfrm',
-				'prstGeom',
-				'custGeom',
-				'noFill',
-				'solidFill',
-				'gradFill',
-				'pattFill',
-				'ln',
-				'effectLst',
-				'effectDag',
-				'scene3d',
-				'sp3d',
-				'extLst',
-			],
-			localName,
-		);
-	}
-	const hasLine = style.strokeColor || style.strokeWidth !== undefined || style.strokeDashStyle;
-	if (hasLine) {
-		const key = findKey(spPr, 'ln', localName) ?? 'a:ln';
-		const line: XmlObject = { ...((spPr[key] as XmlObject | undefined) ?? {}) };
-		if (style.strokeWidth !== undefined) {
-			line['@_w'] = String(Math.round(style.strokeWidth * 12700));
-		}
-		if (style.strokeColor) {
-			const noFill = findKey(line, 'noFill', localName);
-			if (noFill) {
-				delete line[noFill];
-			}
-			setDrawingChild(
-				line,
-				'solidFill',
-				chartColorChoiceValue(
-					line[findKey(line, 'solidFill', localName) ?? ''] as XmlObject | undefined,
-					style.strokeColor,
-					resolveColor,
-				),
-				[
-					'noFill',
-					'solidFill',
-					'gradFill',
-					'pattFill',
-					'prstDash',
-					'custDash',
-					'round',
-					'bevel',
-					'miter',
-					'headEnd',
-					'tailEnd',
-					'extLst',
-				],
-				localName,
-			);
-		}
-		if (style.strokeDashStyle) {
-			setDrawingChild(
-				line,
-				'prstDash',
-				{ '@_val': style.strokeDashStyle },
-				[
-					'noFill',
-					'solidFill',
-					'gradFill',
-					'pattFill',
-					'prstDash',
-					'custDash',
-					'round',
-					'bevel',
-					'miter',
-					'headEnd',
-					'tailEnd',
-					'extLst',
-				],
-				localName,
-			);
-		}
-		setDrawingChild(
-			spPr,
-			'ln',
-			line,
-			[
-				'xfrm',
-				'prstGeom',
-				'custGeom',
-				'noFill',
-				'solidFill',
-				'gradFill',
-				'pattFill',
-				'ln',
-				'effectLst',
-				'effectDag',
-				'scene3d',
-				'sp3d',
-				'extLst',
-			],
-			localName,
-		);
-	}
-	return spPr;
-}
 
 function setOrdered(
 	node: XmlObject,
@@ -280,7 +131,7 @@ export function applyChartUpDownBars(
 			...((existingBar ? node[existingBar] : undefined) as XmlObject | undefined),
 		};
 		const spPrKey = findKey(bar, 'spPr', localName) ?? 'c:spPr';
-		bar[spPrKey] = applyShapeProps(
+		bar[spPrKey] = writeChartShapeProps(
 			bar[spPrKey] as XmlObject | undefined,
 			style,
 			localName,

@@ -1068,6 +1068,30 @@ describe('buildChartViewModel - legend-entry deletion and text-style (c:legendEn
 		expect(vm.legend.map((e) => e.label)).toStrictEqual(['Cost']);
 	});
 
+	it('paints authored c:floor/c:backWall as background panels on a bar3D chart', () => {
+		const element = {
+			id: 'el-3d-walls',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'bar3D' as const,
+				categories: ['Q1', 'Q2'],
+				series: [{ name: 'Revenue', values: [100, 150] }],
+				floor: { spPr: { fillColor: '#CCCCCC' } },
+				backWall: { spPr: { fillColor: '#DDDDDD' } },
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		const panelFills = vm.primitives
+			.filter((p) => p.kind === 'polygon' && p.part === undefined)
+			.map((p) => p.fill);
+		expect(panelFills).toContain('#CCCCCC');
+		expect(panelFills).toContain('#DDDDDD');
+	});
+
 	it('attaches a per-entry text-style override without deleting it', () => {
 		const element = {
 			id: 'el-le-style',

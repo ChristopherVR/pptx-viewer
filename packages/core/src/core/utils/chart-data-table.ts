@@ -1,4 +1,7 @@
 import type { PptxChartDataTable, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { buildDefRPrTextProperties, resolveTxPrDefRPr } from './chart-def-rpr-style';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 
 type LocalName = (key: string) => string;
 
@@ -79,6 +82,7 @@ export function applyChartDataTable(
 	plotArea: XmlObject,
 	dataTable: PptxChartDataTable | null | undefined,
 	localName: LocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	if (dataTable === undefined) {
 		return;
@@ -98,6 +102,32 @@ export function applyChartDataTable(
 		const value = dataTable[flag];
 		if (value !== undefined) {
 			setOrdered(table, flag, { '@_val': value ? '1' : '0' }, TABLE_ORDER, localName);
+		}
+	}
+	if (dataTable.spPr) {
+		const spPrKey = findKey(table, 'spPr', localName);
+		const spPr = writeChartShapeProps(
+			spPrKey ? (table[spPrKey] as XmlObject) : undefined,
+			dataTable.spPr,
+			localName,
+			resolveColor,
+		);
+		setOrdered(table, 'spPr', spPr, TABLE_ORDER, localName);
+	}
+	if (dataTable.txPr) {
+		const txPrKey = findKey(table, 'txPr', localName);
+		const authoredDefRPr = resolveTxPrDefRPr(txPrKey ? (table[txPrKey] as XmlObject) : undefined, {
+			getChildByLocalName: (parent, name) => {
+				if (!parent) {
+					return undefined;
+				}
+				const key = findKey(parent, name, localName);
+				return key ? (parent[key] as XmlObject) : undefined;
+			},
+		});
+		const txPr = buildDefRPrTextProperties(dataTable.txPr, authoredDefRPr, resolveColor);
+		if (txPr) {
+			setOrdered(table, 'txPr', txPr, TABLE_ORDER, localName);
 		}
 	}
 	if (tableKey) {

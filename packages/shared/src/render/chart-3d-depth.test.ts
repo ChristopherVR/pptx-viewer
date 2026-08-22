@@ -97,4 +97,90 @@ describe('applyChart3DDepth', () => {
 			expect(poly.part).toBeUndefined();
 		}
 	});
+
+	it('adds no wall/floor panels when surfaces are unauthored', () => {
+		const vm = applyChart3DDepth(emptyVm([barRect]), 'bar3D', undefined, {});
+		// Only the 2 bar-extrusion polygons, no extra background panels.
+		expect(vm.primitives.filter((p) => p.kind === 'polygon')).toHaveLength(2);
+	});
+
+	it('prepends floor/wall panels behind the extrusion for a cartesian 3D chart', () => {
+		const vm = applyChart3DDepth(emptyVm([barRect]), 'bar3D', undefined, {
+			floor: { spPr: { fillColor: '#CCCCCC' } },
+			backWall: { spPr: { fillColor: '#DDDDDD' } },
+		});
+		const polys = vm.primitives.filter((p) => p.kind === 'polygon');
+		// 2 background panels (floor + backWall) + 2 bar-extrusion faces.
+		expect(polys).toHaveLength(4);
+		expect(polys[0].fill).toBe('#DDDDDD');
+		expect(polys[1].fill).toBe('#CCCCCC');
+		// Panels sit behind everything, including the extrusion.
+		expect(vm.primitives[vm.primitives.length - 1].kind).toBe('rect');
+	});
+
+	it('does not paint wall/floor panels for pie3D (no plot rectangle to wall in)', () => {
+		const slice: SvgPath = { kind: 'path', d: 'M0,0 L10,0 A10,10 0 0 1 0,10 Z', fill: '#ED7D31' };
+		const vm = applyChart3DDepth(emptyVm([slice]), 'pie3D', undefined, {
+			floor: { spPr: { fillColor: '#CCCCCC' } },
+		});
+		expect(vm.primitives.filter((p) => p.kind === 'polygon' && p.fill === '#CCCCCC')).toHaveLength(
+			0,
+		);
+	});
+});
+
+describe('applyChart3DDepth - clustered bar3D per-series depth staggering', () => {
+	const seriesBar = (seriesIndex: number, x: number): SvgRect => ({
+		kind: 'rect',
+		x,
+		y: 100,
+		w: 20,
+		h: 80,
+		fill: '#4472C4',
+		part: { role: 'dataPoint', seriesIndex, pointIndex: 0 },
+	});
+
+	it('gives two clustered series different depth offsets (they no longer share one plane)', () => {
+		const vm = applyChart3DDepth(
+			emptyVm([seriesBar(0, 10), seriesBar(1, 40)]),
+			'bar3D',
+			{ rotX: 15, rotY: 20 },
+			undefined,
+			'clustered',
+		);
+		const topFaces = vm.primitives.filter(
+			(p): p is SvgPolygon => p.kind === 'polygon',
+		) as SvgPolygon[];
+		// 2 series x 2 faces (top + side) = 4 extrusion polygons.
+		expect(topFaces).toHaveLength(4);
+		// The two series' top faces (index 0 and 2 in back-to-front paint order)
+		// must not land on identical geometry.
+		expect(topFaces[0].points).not.toBe(topFaces[2].points);
+	});
+
+	it('a single-series clustered bar3D chart is unaffected by the staggering (still one shared plane)', () => {
+		const staggered = applyChart3DDepth(
+			emptyVm([seriesBar(0, 10)]),
+			'bar3D',
+			{ rotX: 15, rotY: 20 },
+			undefined,
+			'clustered',
+		);
+		const plain = applyChart3DDepth(emptyVm([seriesBar(0, 10)]), 'bar3D', { rotX: 15, rotY: 20 });
+		expect(staggered.primitives).toStrictEqual(plain.primitives);
+	});
+
+	it('keeps stacked/percentStacked series coplanar (one shared depth vector)', () => {
+		const stacked = applyChart3DDepth(
+			emptyVm([seriesBar(0, 10), seriesBar(1, 10)]),
+			'bar3D',
+			{ rotX: 15, rotY: 20 },
+			undefined,
+			'stacked',
+		);
+		const polys = stacked.primitives.filter((p): p is SvgPolygon => p.kind === 'polygon');
+		// Both series' top faces are offset by the identical shared vector, so
+		// (given identical rect geometry here) they produce identical points.
+		expect(polys[0].points).toBe(polys[2].points);
+	});
 });

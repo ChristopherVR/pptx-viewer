@@ -16,6 +16,14 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { shade } from './chart-palette';
+import {
+	buildSurfaceWallPanels,
+	ISO_COS30,
+	ISO_SIN30,
+	isoProject,
+	resolveSurfaceBandFill,
+} from './chart-surface-bands';
 import { buildHierarchicalTreemapPrimitives } from './chart-treemap-hierarchy';
 import type { ChartViewModel, LegendEntry, SvgPolygon, SvgRect } from './chart-view-model';
 import {
@@ -24,21 +32,6 @@ import {
 	computeValueRange,
 	paletteColor,
 } from './chart-view-model';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Isometric projection constants (mirrors React's ISO_COS30 / ISO_SIN30)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const ISO_COS30 = Math.cos(Math.PI / 6);
-const ISO_SIN30 = Math.sin(Math.PI / 6);
-
-/** Project a 3-D (x, y, z) grid coordinate to 2-D isometric screen space. */
-function isoProject(x: number, y: number, z: number): { screenX: number; screenY: number } {
-	return {
-		screenX: (x - y) * ISO_COS30,
-		screenY: (x + y) * ISO_SIN30 - z,
-	};
-}
 
 /**
  * Map a normalised value t in [0..1] to a surface colour ramp (blue-green-red).
@@ -140,6 +133,15 @@ function buildIsometricSurfaceViewModel(
 
 	const primitives: SvgPolygon[] = [];
 
+	// Floor/wall backdrop panels, painted first so the mesh draws over them.
+	primitives.push(
+		...buildSurfaceWallPanels(cols, rows, cellSize, zScale, offsetX, offsetY, {
+			floor: chartData.floor,
+			sideWall: chartData.sideWall,
+			backWall: chartData.backWall,
+		}),
+	);
+
 	for (const { row, col } of cells) {
 		// Four corners of the isometric parallelogram.
 		const corners: Array<[number, number]> = [
@@ -161,6 +163,9 @@ function buildIsometricSurfaceViewModel(
 			4;
 
 		const { r, g, b } = surfaceColor(avgT);
+		const bandFill = resolveSurfaceBandFill(avgT, chartData.bandFmts);
+		const fill = bandFill ?? `rgb(${r},${g},${b})`;
+		const edgeStroke = bandFill ? shade(bandFill, 0.6) : darkenRgb(r, g, b, 0.6);
 		const points = verts
 			.map((v) => `${(v.screenX + offsetX).toFixed(2)},${(v.screenY + offsetY).toFixed(2)}`)
 			.join(' ');
@@ -175,7 +180,7 @@ function buildIsometricSurfaceViewModel(
 		primitives.push({
 			kind: 'polygon',
 			points,
-			fill: `rgb(${r},${g},${b})`,
+			fill,
 			stroke: 'none',
 			strokeWidth: 0,
 			opacity: 0.9,
@@ -187,7 +192,7 @@ function buildIsometricSurfaceViewModel(
 			kind: 'polygon',
 			points,
 			fill: 'none',
-			stroke: darkenRgb(r, g, b, 0.6),
+			stroke: edgeStroke,
 			strokeWidth: 0.5,
 			opacity: 0.7,
 		} satisfies SvgPolygon);
@@ -243,6 +248,7 @@ function buildFlatSurfaceViewModel(
 			const val = chartData.series[si]?.values[ci] ?? 0;
 			const t = range.span > 0 ? (val - range.min) / range.span : 0;
 			const { r, g, b } = surfaceColor(t);
+			const bandFill = resolveSurfaceBandFill(t, chartData.bandFmts);
 			// One rect per (series, category) cell, so unlike the isometric mesh
 			// the mark maps to exactly one authored value.
 			primitives.push({
@@ -251,7 +257,7 @@ function buildFlatSurfaceViewModel(
 				y: layout.plotTop + si * cellH,
 				w: cellW + 0.5,
 				h: cellH + 0.5,
-				fill: `rgb(${r},${g},${b})`,
+				fill: bandFill ?? `rgb(${r},${g},${b})`,
 				opacity: 0.85,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
 			} satisfies SvgRect);
