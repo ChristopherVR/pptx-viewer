@@ -1,12 +1,23 @@
+import { OPENXML_ANIMATION_TIMING_COVERAGE } from './openxml-coverage-animation-timing';
 import { OPENXML_CHART_DISPLAY_EFFECTS_AND_DIAGRAM_LAYOUTS_COVERAGE } from './openxml-coverage-chart-display-effects-and-diagram-layouts';
+import { OPENXML_CHART_SUPPLEMENT_COVERAGE } from './openxml-coverage-chart-supplement';
+import { OPENXML_COLOR_GRADIENT_FILL_COVERAGE } from './openxml-coverage-color-gradient-fill';
 import { OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE } from './openxml-coverage-colors-shows-and-labels';
 import { OPENXML_COMMENTS_ANALYSIS_AND_FILLS_COVERAGE } from './openxml-coverage-comments-analysis-and-fills';
 import { OPENXML_DIAGRAM_DATA_AND_EFFECTS_COVERAGE } from './openxml-coverage-diagram-data-and-effects';
+import { OPENXML_DIAGRAM_SUPPLEMENT_COVERAGE } from './openxml-coverage-diagram-supplement';
 import { OPENXML_EFFECT_DAGS_AXIS_LABELS_AND_DIAGRAM_STYLES_COVERAGE } from './openxml-coverage-effect-dags-axis-labels-and-diagram-styles';
+import { OPENXML_EFFECT_STYLE_3D_THEME_COVERAGE } from './openxml-coverage-effect-style-3d-theme';
 import { testEvidence } from './openxml-coverage-evidence';
 import { OPENXML_FONTS_AUDIO_PIVOTS_AND_ALGORITHMS_COVERAGE } from './openxml-coverage-fonts-audio-pivots-and-algorithms';
 import { OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE } from './openxml-coverage-line-layout-and-pivot-structures';
 import { OPENXML_LINE_STROKE_PROPERTIES_COVERAGE } from './openxml-coverage-line-stroke-properties';
+import { OPENXML_PRESENTATION_STRUCTURE_PARTS_COVERAGE } from './openxml-coverage-presentation-structure-parts';
+import { OPENXML_SHAPE_GEOMETRY_CONNECTORS_COVERAGE } from './openxml-coverage-shape-geometry-connectors';
+import { OPENXML_SLIDE_STRUCTURE_PARTS_COVERAGE } from './openxml-coverage-slide-structure-parts';
+import { OPENXML_TABLE_STYLE_PICTURE_FILL_COVERAGE } from './openxml-coverage-table-style-picture-fill';
+import { OPENXML_TEXT_AUTOFIT_PARAGRAPH_BULLET_COVERAGE } from './openxml-coverage-text-autofit-paragraph-bullet';
+import { OPENXML_TEXT_RUN_HYPERLINK_COVERAGE } from './openxml-coverage-text-run-hyperlink';
 import { OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE } from './openxml-coverage-transitions-scenes-and-chart-tables';
 import { OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE } from './openxml-coverage-view-image-and-chart-point-formatting';
 import {
@@ -85,6 +96,17 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_FONTS_AUDIO_PIVOTS_AND_ALGORITHMS_COVERAGE,
 	...OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE,
 	...OPENXML_LINE_STROKE_PROPERTIES_COVERAGE,
+	...OPENXML_SHAPE_GEOMETRY_CONNECTORS_COVERAGE,
+	...OPENXML_TABLE_STYLE_PICTURE_FILL_COVERAGE,
+	...OPENXML_COLOR_GRADIENT_FILL_COVERAGE,
+	...OPENXML_EFFECT_STYLE_3D_THEME_COVERAGE,
+	...OPENXML_TEXT_AUTOFIT_PARAGRAPH_BULLET_COVERAGE,
+	...OPENXML_TEXT_RUN_HYPERLINK_COVERAGE,
+	...OPENXML_PRESENTATION_STRUCTURE_PARTS_COVERAGE,
+	...OPENXML_SLIDE_STRUCTURE_PARTS_COVERAGE,
+	...OPENXML_DIAGRAM_SUPPLEMENT_COVERAGE,
+	...OPENXML_CHART_SUPPLEMENT_COVERAGE,
+	...OPENXML_ANIMATION_TIMING_COVERAGE,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
