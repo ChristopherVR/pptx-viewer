@@ -12,12 +12,14 @@ import { testEvidence } from './openxml-coverage-evidence';
 import { OPENXML_FONTS_AUDIO_PIVOTS_AND_ALGORITHMS_COVERAGE } from './openxml-coverage-fonts-audio-pivots-and-algorithms';
 import { OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE } from './openxml-coverage-line-layout-and-pivot-structures';
 import { OPENXML_LINE_STROKE_PROPERTIES_COVERAGE } from './openxml-coverage-line-stroke-properties';
+import { OPENXML_MASTER_TEXT_STYLE_SUPPLEMENT_COVERAGE } from './openxml-coverage-master-text-style-supplement';
 import { OPENXML_PRESENTATION_STRUCTURE_PARTS_COVERAGE } from './openxml-coverage-presentation-structure-parts';
 import { OPENXML_SHAPE_GEOMETRY_CONNECTORS_COVERAGE } from './openxml-coverage-shape-geometry-connectors';
 import { OPENXML_SLIDE_STRUCTURE_PARTS_COVERAGE } from './openxml-coverage-slide-structure-parts';
 import { OPENXML_TABLE_STYLE_PICTURE_FILL_COVERAGE } from './openxml-coverage-table-style-picture-fill';
 import { OPENXML_TEXT_AUTOFIT_PARAGRAPH_BULLET_COVERAGE } from './openxml-coverage-text-autofit-paragraph-bullet';
 import { OPENXML_TEXT_RUN_HYPERLINK_COVERAGE } from './openxml-coverage-text-run-hyperlink';
+import { OPENXML_THEME_BLIP_TAGS_SUPPLEMENT_COVERAGE } from './openxml-coverage-theme-blip-tags-supplement';
 import { OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE } from './openxml-coverage-transitions-scenes-and-chart-tables';
 import { OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE } from './openxml-coverage-view-image-and-chart-point-formatting';
 import {
@@ -107,6 +109,8 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_DIAGRAM_SUPPLEMENT_COVERAGE,
 	...OPENXML_CHART_SUPPLEMENT_COVERAGE,
 	...OPENXML_ANIMATION_TIMING_COVERAGE,
+	...OPENXML_THEME_BLIP_TAGS_SUPPLEMENT_COVERAGE,
+	...OPENXML_MASTER_TEXT_STYLE_SUPPLEMENT_COVERAGE,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
