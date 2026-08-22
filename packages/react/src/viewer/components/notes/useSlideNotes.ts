@@ -1,4 +1,4 @@
-import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -9,8 +9,8 @@ import {
 	MAX_INDENT_LEVEL,
 	createPlainNotesSegments,
 	getCurrentParagraphIndex,
-	normalizeSegments,
 	paragraphsToSegments,
+	resolveNotesSegments,
 	segmentsToParagraphs,
 	segmentsToPlainText,
 } from './notes-utils';
@@ -22,6 +22,13 @@ interface UseSlideNotesOptions {
 	canEdit: boolean;
 	onToggle: () => void;
 	onUpdateNotes: (text: string, segments?: TextSegment[]) => void;
+	/**
+	 * The deck's notes master `<p:notesStyle>` (`PptxData.notesMaster.
+	 * notesStyle`), when loaded. Threaded through to `resolveNotesSegments` so
+	 * a segment with no explicit font size/colour inherits the deck's own
+	 * authored notes-text default instead of this editor's own CSS default.
+	 */
+	notesStyle?: PptxTextStyleLevels;
 }
 
 export function useSlideNotes({
@@ -30,13 +37,11 @@ export function useSlideNotes({
 	canEdit,
 	onToggle,
 	onUpdateNotes,
+	notesStyle,
 }: UseSlideNotesOptions) {
 	const initialSegments = useMemo(
-		() =>
-			activeSlide?.notesSegments && activeSlide.notesSegments.length > 0
-				? normalizeSegments(activeSlide.notesSegments)
-				: createPlainNotesSegments(activeSlide?.notes ?? ''),
-		[activeSlide?.notes, activeSlide?.notesSegments],
+		() => resolveNotesSegments(activeSlide, notesStyle),
+		[activeSlide, notesStyle],
 	);
 
 	const [draft, setDraft] = useState(activeSlide?.notes ?? '');
@@ -61,6 +66,12 @@ export function useSlideNotes({
 	// seeding effect mid-typing and collapse the caret. We only re-sync on genuine
 	// external changes (slide switch, programmatic edits).
 	const lastSavedTextRef = useRef<string | null>(null);
+	// Always holds the latest activeSlide. The re-sync effect reads the slide
+	// through this ref rather than depending on the object itself: depending on it
+	// would rebuild draftSegments on any unrelated mutation, re-running the seeding
+	// effect mid-typing and collapsing the caret (see lastSavedTextRef above).
+	const activeSlideRef = useRef(activeSlide);
+	activeSlideRef.current = activeSlide;
 
 	useEffect(() => {
 		const nextText = activeSlide?.notes ?? '';
@@ -68,17 +79,14 @@ export function useSlideNotes({
 		if (nextText === lastSavedTextRef.current) {
 			return;
 		}
-		const nextSegments =
-			activeSlide?.notesSegments && activeSlide.notesSegments.length > 0
-				? normalizeSegments(activeSlide.notesSegments)
-				: createPlainNotesSegments(nextText);
+		const nextSegments = resolveNotesSegments(activeSlideRef.current, notesStyle);
 		setDraft(nextText);
 		setDraftSegments(nextSegments);
 		setIsRichEditEnabled(nextSegments.length > 0);
 		// `activeSlide?.id` is not read in the body; it's a re-sync trigger for a
 		// slide switch (see the lastSavedTextRef comment above).
-		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- see comment above
-	}, [activeSlide?.id, activeSlide?.notes, activeSlide?.notesSegments]);
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies
+	}, [activeSlide?.id, activeSlide?.notes, activeSlide?.notesSegments, notesStyle]);
 
 	useEffect(() => {
 		if (!isRichEditEnabled || !isExpanded || !canEdit || !richEditorRef.current) {

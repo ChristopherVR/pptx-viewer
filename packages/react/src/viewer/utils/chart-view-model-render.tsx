@@ -220,6 +220,8 @@ function renderText(t: SvgText, key: string): React.ReactNode {
 			fontSize={t.fontSize}
 			fill={t.fill}
 			fontWeight={t.fontWeight ?? 'normal'}
+			fontStyle={t.fontStyle ?? 'normal'}
+			fontFamily={t.fontFamily}
 			dominantBaseline={t.dominantBaseline as React.SVGProps<SVGTextElement>['dominantBaseline']}
 			opacity={t.opacity ?? 1}
 			transform={t.transform}
@@ -328,7 +330,15 @@ export function renderChartViewModel(
 					transform={`translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`}
 				>
 					<rect x={0} y={-7} width={10} height={10} rx={2} fill={item.color} />
-					<text x={13} y={3} fontSize={9} fill='#475569'>
+					<text
+						x={13}
+						y={3}
+						fontSize={item.fontSize}
+						fill={item.fill}
+						fontWeight={item.fontWeight}
+						fontStyle={item.fontStyle}
+						fontFamily={item.fontFamily}
+					>
 						{item.label}
 					</text>
 				</g>

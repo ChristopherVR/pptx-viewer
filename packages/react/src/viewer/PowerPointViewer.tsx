@@ -959,6 +959,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
 									hideStatusBar={isMobile}
 									hiddenActions={hiddenActions}
+									notesStyle={state.notesMaster?.notesStyle}
 								/>
 							)}
 

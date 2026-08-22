@@ -25,6 +25,7 @@ export {
 	paragraphsToSegments,
 	parsePt,
 	PX_TO_PT,
+	resolveNotesSegments,
 	segmentsToParagraphs,
 	segmentsToPlainText,
 } from 'pptx-viewer-shared';

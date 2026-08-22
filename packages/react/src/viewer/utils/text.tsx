@@ -7,7 +7,6 @@ export {
 export { getTextLayoutStyle } from './text-layout';
 export {
 	buildTextFillCss,
-	buildText3DShadowCss,
 	buildTextShadowCss,
 	buildTextGlowFilter,
 	buildTextReflectionCss,

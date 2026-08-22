@@ -1,4 +1,6 @@
+import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import type { ChartViewModel, SvgLine, SvgPrimitive, SvgRect, SvgText } from 'pptx-viewer-shared';
+import { buildChartViewModel } from 'pptx-viewer-shared';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 
@@ -166,5 +168,75 @@ describe('renderChartViewModel: overlays and data table (via primitives)', () =>
 		const vm = baseViewModel({ primitives: overlays, overlays });
 		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
 		expect(html).toContain('fill-opacity="0.3"');
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// End-to-end regression: c:dTable data table + c:legendEntry deletion.
+//
+// Unlike the projector tests above (which feed hand-built ChartViewModel
+// fixtures), these run a real chart element through the shared
+// `buildChartViewModel` first, so they prove the whole shared pipeline (core
+// parse -> chart-view-model -> chart-data-table-render / chart-legend-entries)
+// reaches React's actual rendered SVG markup, not just that the projector can
+// render an arbitrary primitive.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function chartElement(chartData: PptxChartData): PptxElement {
+	return {
+		id: 'el-chart',
+		type: 'chart',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 300,
+		chartData,
+	} as PptxElement;
+}
+
+describe('renderChartViewModel: c:dTable data table (real chart pipeline)', () => {
+	it('renders the data table grid below the plot, including the series key text', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			categories: ['Q1', 'Q2'],
+			series: [{ name: 'Revenue', values: [100, 150] }],
+			dataTable: { showKeys: true, showOutline: true },
+		});
+		const vm = buildChartViewModel(element);
+		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
+		expect(html).toContain('>Revenue</text>');
+		expect(html).toContain('>Q1</text>');
+	});
+
+	it('renders nothing extra when the chart has no c:dTable', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [100] }],
+		});
+		const vm = buildChartViewModel(element);
+		expect(vm.dataTable).toBeUndefined();
+	});
+});
+
+describe('renderChartViewModel: c:legendEntry deletion (real chart pipeline)', () => {
+	it('omits a deleted series from the rendered legend', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			categories: ['Q1'],
+			series: [
+				{ name: 'Revenue', values: [100] },
+				{ name: 'Cost', values: [80] },
+			],
+			style: {
+				hasLegend: true,
+				legendPosition: 'b',
+				legendEntries: [{ index: 1, deleted: true }],
+			},
+		});
+		const vm = buildChartViewModel(element);
+		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
+		expect(html).toContain('>Revenue</text>');
+		expect(html).not.toContain('>Cost</text>');
 	});
 });

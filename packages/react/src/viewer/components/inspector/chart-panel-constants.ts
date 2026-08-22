@@ -1,4 +1,5 @@
 import type { PptxChartType, PptxChartData } from 'pptx-viewer-core';
+import { CHART_TYPE_OPTIONS } from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Shared CSS tokens (kept in sync with InspectorPane)
@@ -15,22 +16,14 @@ export const CELL_INPUT =
 // Chart type options
 // ---------------------------------------------------------------------------
 
-export const CHART_TYPE_OPTIONS: ReadonlyArray<{
-	value: PptxChartType;
-	labelKey: string;
-}> = [
-	{ value: 'bar', labelKey: 'pptx.chart.typeBar' },
-	{ value: 'line', labelKey: 'pptx.chart.typeLine' },
-	{ value: 'pie', labelKey: 'pptx.chart.typePie' },
-	{ value: 'doughnut', labelKey: 'pptx.chart.typeDoughnut' },
-	{ value: 'area', labelKey: 'pptx.chart.typeArea' },
-	{ value: 'scatter', labelKey: 'pptx.chart.typeScatter' },
-	{ value: 'bubble', labelKey: 'pptx.chart.typeBubble' },
-	{ value: 'radar', labelKey: 'pptx.chart.typeRadar' },
-	{ value: 'stock', labelKey: 'pptx.chart.typeStock' },
-	{ value: 'waterfall', labelKey: 'pptx.chart.typeWaterfall' },
-	{ value: 'combo', labelKey: 'pptx.chart.typeCombo' },
-];
+/**
+ * Re-exported from `pptx-viewer-shared` rather than duplicated: this used to
+ * be its own copy of the option list (missing histogram / funnel / treemap /
+ * sunburst / boxWhisker / regionMap, which Vue and Angular's chart-type
+ * selects already consumed from shared). One catalogue now drives every
+ * binding's Change Chart Type picker.
+ */
+export { CHART_TYPE_OPTIONS };
 
 export const GROUPING_OPTIONS: ReadonlyArray<{
 	value: PptxChartData['grouping'];

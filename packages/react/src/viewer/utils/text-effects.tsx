@@ -5,7 +5,7 @@
  * `pptx-viewer-shared`:
  *   - `render/text-fill`       → gradient/pattern `background-clip:text` fill
  *   - `render/text-effects`    → shadow/inner-shadow/glow/blur/HSL/reflection/alpha
- *   - `render/text-effects-3d` → 3D extrusion/bevel text-shadow + scene style
+ *   - `render/text-effects-3d` → text body 3D scene (camera/light rig) style
  *
  * This module re-exports them so existing React import paths (`./text-effects`)
  * keep working. The two style-record builders (`buildTextFillCss`,
@@ -21,7 +21,6 @@ import {
 import type React from 'react';
 
 export {
-	buildText3DShadowCss,
 	buildTextShadowCss,
 	buildTextInnerShadowCss,
 	buildTextBlurFilter,

@@ -4,7 +4,7 @@
  * Renders the bottom section of the viewer (notes panel and status bar)
  * when the viewer is not in presentation mode.
  */
-import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from '../hooks/useAutosave';
@@ -53,6 +53,13 @@ export interface ViewerBottomPanelsProps {
 	hideStatusBar?: boolean;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/**
+	 * The deck's notes master `<p:notesStyle>` (`PptxData.notesMaster.
+	 * notesStyle`), when loaded. Forwarded to {@link SlideNotesPanel} so the
+	 * notes editor and print dialog can fall back to the deck's own
+	 * authored notes-text defaults instead of a hardcoded look.
+	 */
+	notesStyle?: PptxTextStyleLevels;
 }
 
 /* ------------------------------------------------------------------ */
@@ -82,6 +89,7 @@ export function ViewerBottomPanels({
 	onToggleSlideSorter,
 	hideStatusBar = false,
 	hiddenActions,
+	notesStyle,
 }: ViewerBottomPanelsProps): React.ReactElement {
 	const { isHidden } = useToolbarVisibility(hiddenActions);
 	return (
@@ -97,6 +105,7 @@ export function ViewerBottomPanels({
 				onToggle={onToggleNotes}
 				onUpdateNotes={onUpdateNotes}
 				panelHeight={notesPanelHeight}
+				notesStyle={notesStyle}
 			/>
 			{!hideStatusBar && (
 				<StatusBar

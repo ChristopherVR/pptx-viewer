@@ -49,8 +49,8 @@ describe('cSS class strings', () => {
 // ---------------------------------------------------------------------------
 
 describe('cHART_TYPE_OPTIONS', () => {
-	it('has 11 chart types', () => {
-		expect(CHART_TYPE_OPTIONS).toHaveLength(11);
+	it('has 17 chart types', () => {
+		expect(CHART_TYPE_OPTIONS).toHaveLength(17);
 	});
 
 	it('contains bar, line, pie', () => {
@@ -65,6 +65,16 @@ describe('cHART_TYPE_OPTIONS', () => {
 		expect(values).toContain('scatter');
 		expect(values).toContain('bubble');
 		expect(values).toContain('radar');
+	});
+
+	it('contains the six ChartEx types (histogram, funnel, treemap, sunburst, boxWhisker, regionMap)', () => {
+		const values = CHART_TYPE_OPTIONS.map((o) => o.value);
+		expect(values).toContain('histogram');
+		expect(values).toContain('funnel');
+		expect(values).toContain('treemap');
+		expect(values).toContain('sunburst');
+		expect(values).toContain('boxWhisker');
+		expect(values).toContain('regionMap');
 	});
 
 	it('every item has a non-empty value and labelKey', () => {
