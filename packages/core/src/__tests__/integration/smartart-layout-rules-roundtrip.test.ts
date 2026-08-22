@@ -1,12 +1,50 @@
+/**
+ * `dgm:rule/@forName` scoped rule overrides: live-preview + save round-trip.
+ *
+ * Before the SmartArt layout engine unification, a second, weaker engine
+ * (`smartart-layout-engine.ts` + `smartart-layout-rule-evaluator.ts`, both
+ * deleted) fabricated the saved file's cached `dsp:` drawing and supported
+ * `forName`-scoped numeric-rule overrides by matching `forName` against a
+ * DATA-POINT id. That was never correct: ECMA-376's `dgm:rule/@forName`
+ * (like `dgm:constr/@forName`) names a `dgm:layoutNode` by its `name=`
+ * attribute - a structural ROLE, not a data point - confirmed against a
+ * genuine PowerPoint-authored diagram (`ppt/diagrams/layout1.xml` inside
+ * `e2e/fixtures/animation-builds-color.pptx` uses `forName="node"` /
+ * `forName="sibTrans"` on `dgm:constr` to scope the root's constraints to its
+ * two differently-named child roles). The deleted evaluator's fallback also
+ * applied an unmatched name to EVERY node instead of none.
+ *
+ * This test exercises the restored, spec-correct behaviour in
+ * `smartart-layout-interpreter-named-rules.ts`: a rule declared anywhere in
+ * the tree that names the arranger's item template (here, "node") overrides
+ * that role's width/font size uniformly for every point rendered through it,
+ * both in the live-preview render model (`computeSmartArtElementsWithoutCache`)
+ * and in the fabricated cached `dsp:` drawing baked on save.
+ */
+
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../core/PptxHandler';
+import type { PptxSmartArtLayoutDefinition } from '../../core/types';
 import type { PptxElement, SmartArtPptxElement } from '../../core/types/elements';
-import { computeSmartArtLayout, decomposeSmartArt, parseLayoutDefinition } from '../../core/utils';
+import { computeSmartArtElementsWithoutCache } from '../../core/utils';
 
-async function presentationWithRules(): Promise<Uint8Array> {
+/** A `lin` layout whose item template is named `node`, matching genuine content. */
+const NAMED_RULE_DEFINITION: PptxSmartArtLayoutDefinition = {
+	rootNode: {
+		name: 'diagram',
+		algorithm: { type: 'lin' },
+		rules: [
+			{ type: 'w', forName: 'node', value: 0.4, factor: 1.5, max: 0.35 },
+			{ type: 'primFontSz', forName: 'node', value: 28 },
+		],
+		children: [{ name: 'node' }],
+	},
+};
+
+async function presentationWithThreeNodeSmartArt(): Promise<Uint8Array> {
 	const { handler, data, createSlide } = await PresentationBuilder.create();
 	data.slides.push(createSlide('Blank').build());
 	data.slides[0].elements.push({
@@ -25,29 +63,7 @@ async function presentationWithRules(): Promise<Uint8Array> {
 			],
 		},
 	} as SmartArtPptxElement as PptxElement);
-	const initial = await handler.save(data.slides);
-	const zip = await JSZip.loadAsync(initial);
-	const layoutPath = 'ppt/diagrams/layout1.xml';
-	const layout = await zip.file(layoutPath)!.async('string');
-	const dataXml = await zip.file('ppt/diagrams/data1.xml')!.async('string');
-	const twoPoint = [...dataXml.matchAll(/<dgm:pt\b[^>]*>[\s\S]*?<\/dgm:pt>/gu)].find((match) =>
-		match[0].includes('<a:t>Two</a:t>'),
-	)?.[0];
-	const twoId = /\bmodelId="([^"]+)"/u.exec(twoPoint ?? '')?.[1];
-	expect(twoId).toBeDefined();
-	const rules =
-		'<dgm:ruleLst>' +
-		'<dgm:rule type="h" val="0.3"/><dgm:rule type="sp" val="0.08"/>' +
-		'<dgm:rule type="begPad" val="0.05"/><dgm:rule type="endPad" val="0.1"/>' +
-		'<dgm:rule type="primFontSz" val="16" ptType="node"/>' +
-		`<dgm:rule type="w" forName="${twoId}" val="0.4" fact="1.5" max="0.35"/>` +
-		`<dgm:rule type="primFontSz" forName="${twoId}" val="28"/>` +
-		'<dgm:rule type="dir" val="1"/><dgm:rule type="futureSizing" val="777"/>' +
-		'</dgm:ruleLst>';
-	const patched = layout.replace('<dgm:ruleLst/>', rules);
-	expect(patched).not.toBe(layout);
-	zip.file(layoutPath, patched);
-	return zip.generateAsync({ type: 'uint8array' });
+	return handler.save(data.slides);
 }
 
 function smartArt(slides: { elements: PptxElement[] }[]): SmartArtPptxElement {
@@ -56,66 +72,101 @@ function smartArt(slides: { elements: PptxElement[] }[]): SmartArtPptxElement {
 	)!;
 }
 
-describe('smartArt layout rule round-trip', () => {
-	it('applies parsed rule geometry/font overrides and preserves unknown rules', async () => {
-		const input = await presentationWithRules();
+describe('smartArt layout rule round-trip: forName-scoped rule overrides', () => {
+	it('applies the named-role override to the live-preview render model', async () => {
+		const initial = await presentationWithThreeNodeSmartArt();
 		const handler = new PptxHandler();
-		const loaded = await handler.load(input.buffer as ArrayBuffer);
+		const loaded = await handler.load(initial.buffer as ArrayBuffer);
 		const element = smartArt(loaded.slides);
 		const data = element.smartArtData!;
-		const parsed = parseLayoutDefinition(data.layoutDefinition?.rawXml as Record<string, unknown>)!;
-		const oneId = data.nodes.find((node) => node.text === 'One')!.id;
-		const twoId = data.nodes.find((node) => node.text === 'Two')!.id;
-		const threeId = data.nodes.find((node) => node.text === 'Three')!.id;
 
-		expect(parsed.rules.find((rule) => rule.type === 'futureSizing')).toStrictEqual({
-			type: 'futureSizing',
-			val: 777,
-		});
-		const engine = computeSmartArtLayout(data, { x: 0, y: 0, width: 600, height: 300 }, parsed)!;
-		expect(engine.find((shape) => shape.nodeId === twoId)).toMatchObject({
-			width: 210,
-			height: 90,
-			fontSize: 28,
-		});
-		expect(engine.find((shape) => shape.nodeId === oneId)).toMatchObject({
-			height: 90,
-			fontSize: 16,
-		});
-		expect(engine.find((shape) => shape.nodeId === oneId)!.x).toBeGreaterThan(
-			engine.find((shape) => shape.nodeId === threeId)!.x,
-		);
+		// Swap the SDK-generated `lin` layout definition for one whose ruleLst
+		// names the item template ("node") with width/font overrides. Uses the
+		// same typed-model substitution as
+		// `smartart-interpreter-save-pipeline.test.ts`, since the XML round-trip
+		// of `ruleLst`/`forName` itself is already covered by
+		// `smartart-constraint-rules.test.ts`; the point under test is what the
+		// INTERPRETER does with a `forName`-scoped rule.
+		data.layoutDefinition = NAMED_RULE_DEFINITION;
 
-		data.drawingShapes = undefined;
-		data.drawingDirty = true;
-		const renderModel = decomposeSmartArt(data, {
+		const renderModel = computeSmartArtElementsWithoutCache(data, {
 			x: element.x,
 			y: element.y,
 			width: element.width,
 			height: element.height,
 		})!;
-		const two = renderModel.find(
-			(candidate) => candidate.type === 'shape' && candidate.text === 'Two',
-		);
-		expect(two?.textStyle?.fontSize).toBe(28);
-		expect(two?.textSegments?.[0].style.fontSize).toBeCloseTo(28 * (96 / 72));
+		expect(renderModel).toHaveLength(3);
+		for (const shape of renderModel) {
+			expect(shape.type).toBe('shape');
+			if (shape.type === 'shape') {
+				// primFontSz=28 applies uniformly: `forName` names the shared
+				// "node" template, not one instance among the three siblings.
+				expect(shape.textStyle?.fontSize).toBe(28);
+				expect(shape.textSegments?.[0]?.style.fontSize).toBeCloseTo(28 * (96 / 72));
+				// w=0.4*1.5 clamped to max=0.35 of the 600px-wide frame.
+				expect(shape.width).toBeCloseTo(0.35 * 600);
+			}
+		}
+	});
+
+	it('bakes the same override into the fabricated cached dsp: drawing on save', async () => {
+		const initial = await presentationWithThreeNodeSmartArt();
+		const handler = new PptxHandler();
+		const loaded = await handler.load(initial.buffer as ArrayBuffer);
+		const element = smartArt(loaded.slides);
+
+		element.smartArtData!.layoutDefinition = NAMED_RULE_DEFINITION;
+		element.smartArtData!.drawingShapes = undefined;
+		element.smartArtData!.drawingDirty = true;
 
 		const saved = await handler.save(loaded.slides);
 		const savedZip = await JSZip.loadAsync(saved);
-		const savedLayout = await savedZip.file('ppt/diagrams/layout1.xml')!.async('string');
 		const drawing = await savedZip.file('ppt/diagrams/drawing1.xml')!.async('string');
-		expect(savedLayout).toContain('type="futureSizing" val="777"');
-		expect(drawing).toContain('sz="2800"');
+
+		// primFontSz=28pt -> `sz="2800"` (hundredths of a point) on every shape.
+		const matches = [...drawing.matchAll(/sz="2800"/gu)];
+		expect(matches).toHaveLength(3);
 
 		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
-		const cachedTwo = smartArt(reloaded.slides).smartArtData!.drawingShapes?.find(
-			(shape) => shape.text === 'Two',
-		);
-		expect(cachedTwo).toMatchObject({
-			width: two?.width,
-			height: two?.height,
-			fontSize: 28,
-		});
-		expect(cachedTwo?.textSegments?.[0].style.fontSize).toBeCloseTo(28 * (96 / 72));
+		const cached = smartArt(reloaded.slides).smartArtData!.drawingShapes;
+		expect(cached?.length).toBe(3);
+		for (const shape of cached ?? []) {
+			expect(shape.fontSize).toBe(28);
+		}
+	});
+
+	it('overrides no node when the ruleLst names a role absent from this diagram', async () => {
+		const initial = await presentationWithThreeNodeSmartArt();
+		const handler = new PptxHandler();
+		const loaded = await handler.load(initial.buffer as ArrayBuffer);
+		const element = smartArt(loaded.slides);
+		const data = element.smartArtData!;
+
+		const unnamedRoleDefinition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				...NAMED_RULE_DEFINITION.rootNode,
+				rules: [{ type: 'w', forName: 'a-role-this-diagram-does-not-have', value: 0.05 }],
+			},
+		};
+		const bounds = {
+			x: element.x,
+			y: element.y,
+			width: element.width,
+			height: element.height,
+		};
+
+		data.layoutDefinition = { ...unnamedRoleDefinition };
+		const withUnmatchedRule = computeSmartArtElementsWithoutCache(data, bounds)!;
+		data.layoutDefinition = {
+			...NAMED_RULE_DEFINITION,
+			rootNode: { ...NAMED_RULE_DEFINITION.rootNode, rules: undefined },
+		};
+		const withNoRules = computeSmartArtElementsWithoutCache(data, bounds)!;
+
+		// An unmatched `forName` must override NOTHING (not everything, which is
+		// the exact bug the deleted evaluator had in its fallback path).
+		expect(
+			withUnmatchedRule.map((el) => (el.type === 'shape' ? el.width : undefined)),
+		).toStrictEqual(withNoRules.map((el) => (el.type === 'shape' ? el.width : undefined)));
 	});
 });

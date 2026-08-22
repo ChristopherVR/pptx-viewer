@@ -5,6 +5,7 @@ import {
 	applySmartArtConnectionAttributes,
 	applySmartArtPointAttributes,
 	parseSmartArtConnection,
+	parseSmartArtPointCustomLayout,
 	validateSmartArtDataModelCore,
 } from '../../utils/smartart-data-model-attributes';
 import { PptxSmartArtParser } from '../builders/PptxSmartArtParser';
@@ -151,6 +152,81 @@ describe('diagramML CT_Pt typed attributes', () => {
 		);
 		expect(merged['@_cxnId']).toBe('{new}');
 		expect(merged['dgm:extLst']).toStrictEqual(existing['dgm:extLst']);
+	});
+});
+
+describe('diagramML dgm:prSet manual layout overrides (cust*)', () => {
+	it('parses every cust* attribute into normalised units', () => {
+		expect(
+			parseSmartArtPointCustomLayout({
+				'@_custAng': '900000',
+				'@_custScaleX': '150000',
+				'@_custScaleY': '80000',
+				'@_custSzX': '110000',
+				'@_custSzY': '90000',
+				'@_custFlipHor': '1',
+				'@_custFlipVert': '0',
+				'@_custLinFactX': '5000',
+				'@_custLinFactY': '-5000',
+				'@_custLinFactNeighborX': '2000',
+				'@_custLinFactNeighborY': '3000',
+				'@_custRadScaleRad': '120000',
+				'@_custRadScaleInc': '10000',
+				'@_custT': '1',
+			}),
+		).toStrictEqual({
+			angle: 15,
+			scaleX: 1.5,
+			scaleY: 0.8,
+			sizeX: 1.1,
+			sizeY: 0.9,
+			flipHorizontal: true,
+			flipVertical: false,
+			linearFactorX: 0.05,
+			linearFactorY: -0.05,
+			linearFactorNeighborX: 0.02,
+			linearFactorNeighborY: 0.03,
+			radialScaleRadius: 1.2,
+			radialScaleIncrement: 0.1,
+			hasCustomTransform: true,
+		});
+	});
+
+	it('returns undefined for an absent prSet or one with no cust* attributes', () => {
+		expect(parseSmartArtPointCustomLayout(undefined)).toBeUndefined();
+		expect(
+			parseSmartArtPointCustomLayout({ '@_presAssocID': 'a', '@_presName': 'node' }),
+		).toBeUndefined();
+	});
+
+	it('populates only the attributes actually present', () => {
+		expect(parseSmartArtPointCustomLayout({ '@_custAng': '5400000' })).toStrictEqual({ angle: 90 });
+	});
+
+	it('wires into PptxSmartArtParser.parseNodes via dgm:pt/dgm:prSet', () => {
+		const lookup = {
+			getChildByLocalName: (obj: XmlObject | undefined, name: string) => {
+				const key = Object.keys(obj ?? {}).find((entry) => entry.split(':').pop() === name);
+				return key ? (obj?.[key] as XmlObject) : undefined;
+			},
+			getChildrenArrayByLocalName: (obj: XmlObject | undefined, name: string) => {
+				const key = Object.keys(obj ?? {}).find((entry) => entry.split(':').pop() === name);
+				const value = key ? obj?.[key] : undefined;
+				return value ? (Array.isArray(value) ? value : [value]) : [];
+			},
+		};
+		const model: XmlObject = {
+			'dgm:ptLst': {
+				'dgm:pt': {
+					'@_modelId': 'dragged-node',
+					'dgm:t': { 'a:p': { 'a:r': { 'a:t': 'Moved' } } },
+					'dgm:prSet': { '@_custAng': '900000', '@_custScaleX': '150000' },
+				},
+			},
+		};
+		const parser = new PptxSmartArtParser();
+		const [node] = parser.parseNodes(model, lookup);
+		expect(node.customLayout).toStrictEqual({ angle: 15, scaleX: 1.5 });
 	});
 });
 

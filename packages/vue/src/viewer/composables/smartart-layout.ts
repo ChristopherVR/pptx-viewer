@@ -43,4 +43,5 @@ export {
 	computeFunnelLayout,
 	computeTargetLayout,
 	computeSmartArtLayout,
+	computeSmartArtElementLayout,
 } from 'pptx-viewer-shared';

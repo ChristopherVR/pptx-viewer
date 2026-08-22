@@ -5,7 +5,10 @@ import type {
 	SmartArtLayoutType,
 	XmlObject,
 } from '../../types';
-import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
+import {
+	parseSmartArtConnection,
+	parseSmartArtPointCustomLayout,
+} from '../../utils/smartart-data-model-attributes';
 import { extractTextFromPoint, MAX_SMARTART_NODES } from './smart-art-text-helpers';
 
 /**
@@ -67,11 +70,19 @@ export class PptxSmartArtParser {
 				continue;
 			}
 
+			// Manual drag/resize/rotate/flip overrides live on `dgm:pt/dgm:prSet`
+			// (`type="pres"` presentation points). Parsed here so they survive to
+			// the layout interpreter as a final transform even when there is no
+			// cached `dsp:` drawing to fall back on.
+			const prSet = xmlLookupService.getChildByLocalName(point, 'prSet');
+			const customLayout = parseSmartArtPointCustomLayout(prSet);
+
 			nodes.push({
 				id: pointId,
 				text: text.trim(),
 				connectionId: String(point?.['@_cxnId'] || '').trim() || undefined,
 				nodeType,
+				...(customLayout ? { customLayout } : {}),
 			});
 		}
 

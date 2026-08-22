@@ -146,6 +146,37 @@ describe('smartArtRenderer - families lifted from React into shared', () => {
 	});
 });
 
+describe('smartArtRenderer - colorsDef @meth="span" colour interpolation', () => {
+	it('gradients a 2-colour "Colorful Range" scheme across all nodes', () => {
+		// 5 nodes, a 2-colour fill list flagged `meth="span"`: PowerPoint's
+		// "Colorful Range" fades smoothly across the nodes instead of alternating
+		// between the two colours.
+		const html = render(
+			makeElement({
+				layout: 'list',
+				nodes: [
+					{ id: 'n1', text: 'A' },
+					{ id: 'n2', text: 'B' },
+					{ id: 'n3', text: 'C' },
+					{ id: 'n4', text: 'D' },
+					{ id: 'n5', text: 'E' },
+				],
+				colorTransform: {
+					fillColors: ['#000000', '#ffffff'],
+					lineColors: [],
+					fillInterpolation: { method: 'span' },
+				},
+			}),
+		);
+		const fills = [...html.matchAll(/fill="(#[0-9a-fA-F]{6})"/gu)].map((m) => m[1]);
+		expect(fills).toHaveLength(5);
+		expect(fills[0]).toBe('#000000');
+		expect(fills[4]).toBe('#ffffff');
+		// A real gradient, not a 2-colour alternation.
+		expect(new Set(fills).size).toBe(5);
+	});
+});
+
 describe('smartArtRenderer - target labels do not stack on the bullseye centre', () => {
 	it('parks each ring caption in the right-hand column', () => {
 		const html = render(makeElement({ resolvedLayoutType: 'target' }));

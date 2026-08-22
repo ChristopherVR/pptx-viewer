@@ -17,6 +17,7 @@ import {
 	computeMatrixLayout,
 	computePyramidLayout,
 	computeRadialLayout,
+	computeSmartArtElementLayout,
 	computeSmartArtLayout,
 	computeTargetLayout,
 	computeVennLayout,
@@ -596,5 +597,86 @@ describe('computeSmartArtLayout — colour spread', () => {
 		expect(fills[0]).toBe('#000000');
 		expect(fills[4]).toBe('#ffffff');
 		expect(new Set(fills).size).toBe(5);
+	});
+});
+
+// ── computeSmartArtElementLayout (colour-interpolation fold point) ──────────
+//
+// Every binding's render call (and the shared reflow-after-edit helper) goes
+// through this wrapper instead of the low-level `computeSmartArtLayout`, so
+// `smartArtData.colorTransform.fillInterpolation` (parsed from `colorsDef`
+// `@meth`/`@hueDir`) reaches the layout engine without each of the five
+// bindings having to remember to pass it by hand.
+
+describe('computeSmartArtElementLayout', () => {
+	const nodes = [n('1', 'A'), n('2', 'B'), n('3', 'C'), n('4', 'D'), n('5', 'E')];
+
+	it('derives span interpolation from smartArtData.colorTransform.fillInterpolation', () => {
+		const layout = computeSmartArtElementLayout(
+			{
+				layout: 'list',
+				colorTransform: {
+					fillColors: ['#000000', '#ffffff'],
+					lineColors: [],
+					fillInterpolation: { method: 'span' },
+				},
+			},
+			nodes,
+			BOX,
+			['#000000', '#ffffff'],
+			STYLE,
+			ID,
+		);
+		const fills = layout.nodes.map((node) => node.fill);
+		expect(fills[0]).toBe('#000000');
+		expect(fills[4]).toBe('#ffffff');
+		// All 5 nodes get a distinct interpolated colour, not a 2-colour cycle.
+		expect(new Set(fills).size).toBe(5);
+	});
+
+	it('leaves cycle interpolation cycling the raw palette (unaffected by the fold)', () => {
+		const layout = computeSmartArtElementLayout(
+			{
+				layout: 'list',
+				colorTransform: {
+					fillColors: ['#111111', '#222222'],
+					lineColors: [],
+					fillInterpolation: { method: 'cycle' },
+				},
+			},
+			nodes,
+			BOX,
+			['#111111', '#222222'],
+			STYLE,
+			ID,
+		);
+		const fills = layout.nodes.map((node) => node.fill);
+		expect(fills).toStrictEqual(['#111111', '#222222', '#111111', '#222222', '#111111']);
+	});
+
+	it('leaves repeat interpolation cycling the raw palette (unaffected by the fold)', () => {
+		const layout = computeSmartArtElementLayout(
+			{
+				layout: 'list',
+				colorTransform: {
+					fillColors: ['#111111', '#222222'],
+					lineColors: [],
+					fillInterpolation: { method: 'repeat' },
+				},
+			},
+			nodes,
+			BOX,
+			['#111111', '#222222'],
+			STYLE,
+			ID,
+		);
+		const fills = layout.nodes.map((node) => node.fill);
+		expect(fills).toStrictEqual(['#111111', '#222222', '#111111', '#222222', '#111111']);
+	});
+
+	it('cycles the raw palette when colorTransform is absent (no regression)', () => {
+		const layout = computeSmartArtElementLayout({ layout: 'list' }, nodes, BOX, PALETTE, STYLE, ID);
+		const fills = layout.nodes.map((node) => node.fill);
+		expect(fills).toStrictEqual(PALETTE);
 	});
 });

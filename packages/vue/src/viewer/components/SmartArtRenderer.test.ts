@@ -341,6 +341,36 @@ describe('smartArtRenderer', () => {
 	});
 });
 
+// Regression: `colorsDef @meth="span"` ("Colorful Range" quick styles) was
+// parsed into `colorTransform.fillInterpolation` but never reached the layout
+// engine at any of the five bindings' render call sites, so a 2-colour range
+// alternated instead of gradienting. `SmartArtRenderer.vue` now goes through
+// the shared `computeSmartArtElementLayout`, which derives the interpolation
+// from `smartArtData.colorTransform` itself.
+describe('smartArtRenderer colour interpolation (colorsDef @meth="span")', () => {
+	it('gradients a 2-colour "Colorful Range" scheme across all nodes', () => {
+		const nodes = [node('1', 'A'), node('2', 'B'), node('3', 'C'), node('4', 'D'), node('5', 'E')];
+		const wrapper = mount(SmartArtRenderer, {
+			props: {
+				element: smartArt({
+					nodes,
+					colorTransform: {
+						fillColors: ['#000000', '#ffffff'],
+						lineColors: [],
+						fillInterpolation: { method: 'span' },
+					},
+				}),
+				zIndex: 0,
+			},
+		});
+		const fills = wrapper.findAll('rect').map((r) => r.attributes('fill'));
+		expect(fills).toHaveLength(5);
+		expect(fills[0]).toBe('#000000');
+		expect(fills[4]).toBe('#ffffff');
+		expect(new Set(fills).size).toBe(5);
+	});
+});
+
 describe('smartArtRenderer inline node editing', () => {
 	const data: PptxSmartArtData = { nodes: [node('1', 'Alpha'), node('2', 'Beta')] };
 

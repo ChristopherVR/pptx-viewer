@@ -203,6 +203,30 @@ export function buildForest(nodes: PptxSmartArtNode[]): TreeNode[] {
 }
 
 /**
+ * Build a forest from a node array, accepting either input shape:
+ * - A flat list with `parentId` pointers (the format the parser emits for
+ *   flat `<dgm:pt>` elements) - handled by delegating to {@link buildForest}.
+ * - An already-nested list where every root node carries a `children` array.
+ *
+ * The DiagramML interpreter's hierarchy arranger receives either shape
+ * depending on the caller, so it needs both branches; `buildForest` alone
+ * only handles the flat case.
+ */
+export function buildTree(nodes: PptxSmartArtNode[]): TreeNode[] {
+	const hasNestedChildren = nodes.some((n) => n.children !== undefined && n.children.length > 0);
+	if (!hasNestedChildren) {
+		return buildForest(nodes);
+	}
+	const toTreeNode = (n: PptxSmartArtNode): TreeNode => ({
+		node: n,
+		children: (n.children ?? []).map(toTreeNode),
+	});
+	const allIds = new Set(nodes.map((n) => n.id));
+	const roots = nodes.filter((n) => !n.parentId || !allIds.has(n.parentId));
+	return roots.map(toTreeNode);
+}
+
+/**
  * Maximum recursion depth for tree traversal helpers.
  *
  * SmartArt diagrams are user-authored and may contain pathological depths

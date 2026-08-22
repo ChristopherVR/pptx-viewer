@@ -2,28 +2,30 @@
  * SmartArt relayout on edit.
  *
  * When SmartArt nodes are added, removed, or reordered the layout needs
- * re-evaluation.  This module provides the single entry-point
- * `relayoutSmartArt` which delegates to the layout engine and converts
- * the output back to `PptxSmartArtDrawingShape[]` so the rendering
- * pipeline can consume it directly.
+ * re-evaluation. This module provides the single entry-point
+ * `relayoutSmartArt`, which delegates to
+ * `computeSmartArtElementsWithoutCache` (the DiagramML interpreter when a
+ * recognised `layoutDefinition` is present, falling back through the same
+ * algorithmic/heuristic chain the save pipeline uses) and converts the
+ * `PptxElement[]` output back to `PptxSmartArtDrawingShape[]` so the
+ * rendering pipeline can consume it directly.
  *
  * @module smartart-relayout
  */
 
-import type { PptxSmartArtData, PptxSmartArtDrawingShape, SmartArtLayoutType } from '../types';
-import type { ContainerBounds } from './smartart-helpers';
-import { computeSmartArtLayout, layoutEngineShapesToDrawingShapes } from './smartart-layout-engine';
+import { smartArtElementsToDrawingShapes } from '../core/runtime/smartart-fabrication-drawing';
+import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../types';
+import { computeSmartArtElementsWithoutCache } from './smartart-decompose';
 
 /**
  * Re-evaluate SmartArt layout after an editing operation.
  *
- * Delegates to the layout engine to compute new positions for every node
- * based on the current `resolvedLayoutType` (or raw `layoutType` string),
- * then converts the engine output to `PptxSmartArtDrawingShape[]` for the
- * rendering pipeline.
- *
- * If the layout type is unsupported or the engine returns no results the
- * existing `drawingShapes` are returned unchanged as a fallback.
+ * Delegates to `computeSmartArtElementsWithoutCache`, then converts its
+ * shapes back to `PptxSmartArtDrawingShape[]` for the rendering pipeline.
+ * Non-shape elements (connectors) are dropped, matching the existing
+ * convention for cached drawing shapes. Falls back to the existing
+ * `drawingShapes`, unchanged, when nothing can be computed (e.g. every node
+ * has empty text, or the layout type is unrecognised).
  *
  * @param smartArtData    - The SmartArt data model (nodes, layout type, etc.).
  * @param containerWidth  - Width of the container on the slide (pixels).
@@ -35,28 +37,17 @@ export function relayoutSmartArt(
 	containerWidth: number,
 	containerHeight: number,
 ): PptxSmartArtDrawingShape[] {
-	// When there are no nodes at all, return an empty array.
 	if (!smartArtData.nodes || smartArtData.nodes.length === 0) {
 		return [];
 	}
-
-	const bounds: ContainerBounds = {
+	const elements = computeSmartArtElementsWithoutCache(smartArtData, {
 		x: 0,
 		y: 0,
 		width: containerWidth,
 		height: containerHeight,
-	};
-
-	// Attempt layout engine computation.
-	const engineShapes = computeSmartArtLayout(smartArtData, bounds);
-
-	if (engineShapes && engineShapes.length > 0) {
-		const layoutType: SmartArtLayoutType = smartArtData.resolvedLayoutType ?? 'list';
-
-		return layoutEngineShapesToDrawingShapes(engineShapes, smartArtData.nodes, layoutType);
+	});
+	if (!elements || elements.length === 0) {
+		return smartArtData.drawingShapes ?? [];
 	}
-
-	// Fallback: return existing drawingShapes unchanged when the engine
-	// cannot compute a layout (e.g. unsupported or unknown type).
-	return smartArtData.drawingShapes ?? [];
+	return smartArtElementsToDrawingShapes(elements);
 }

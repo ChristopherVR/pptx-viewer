@@ -42,7 +42,7 @@ import type {
 	RenderedRectNode,
 	SmartArtLayoutResult as ComputedLayout,
 } from '../composables/smartart-layout';
-import { computeSmartArtLayout } from '../composables/smartart-layout';
+import { computeSmartArtElementLayout } from '../composables/smartart-layout';
 import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
 import { useSmartArtHoverRect } from '../composables/useSmartArtHoverRect';
 import SmartArtNodeStyleBar from './SmartArtNodeStyleBar.vue';
@@ -244,17 +244,13 @@ const fallbackLayout = computed<ComputedLayout | undefined>(() => {
 		return undefined;
 	}
 	const data = smartArtData.value;
-	return computeSmartArtLayout(
+	return computeSmartArtElementLayout(
+		data ?? {},
 		revealedNodes.value,
 		{ width: props.element.width, height: props.element.height },
 		palette.value,
 		style.value,
 		props.element.id,
-		data?.resolvedLayoutType,
-		data?.layout,
-		undefined,
-		data?.layoutDefinition,
-		data?.presLayoutVars,
 	);
 });
 

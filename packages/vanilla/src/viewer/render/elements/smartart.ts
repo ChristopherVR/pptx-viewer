@@ -3,7 +3,7 @@ import {
 	buildChromeStyle,
 	buildSmartArtA11y,
 	computeDrawingViewBox,
-	computeSmartArtLayout,
+	computeSmartArtElementLayout,
 	flattenNodes,
 	getContainerStyle,
 	projectDrawingShapes,
@@ -115,17 +115,13 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 
 	if (data && nodes.length > 0) {
 		const revealedNodes = isPartialBuild ? nodes.slice(0, shownNodeCount) : nodes;
-		const layout = computeSmartArtLayout(
+		const layout = computeSmartArtElementLayout(
+			data,
 			revealedNodes,
 			{ width: element.width, height: element.height },
 			resolvePalette(data),
 			data.style ?? 'flat',
 			element.id,
-			data.resolvedLayoutType,
-			data.layout,
-			undefined,
-			data.layoutDefinition,
-			data.presLayoutVars,
 		);
 		// Rendered nodes are index-aligned with the FLATTENED source nodes (the
 		// layout engine walks the tree depth-first), which is how every binding

@@ -2,7 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { updateSmartArtNodeText, setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArtA11y,
-	computeSmartArtLayout,
+	computeSmartArtElementLayout,
 	flattenNodes,
 	revealedSmartArtNodeCount,
 	shouldCommitSmartArtNodeText,
@@ -35,12 +35,14 @@ import { SmartArtLayoutSvg } from './SmartArtLayoutSvg';
  *    from `ppt/diagrams/drawing*.xml`). These are PowerPoint's actual layout
  *    output and are always preferred. A text edit patches them in place, so the
  *    path stays current.
- * 2. **Shared layout engine** (`computeSmartArtLayout`), used only when the
- *    cached drawing is absent (freshly inserted SmartArt, or a diagram whose
- *    structural edit cleared it). That engine runs the real DiagramML
+ * 2. **Shared layout engine** (`computeSmartArtElementLayout`), used only when
+ *    the cached drawing is absent (freshly inserted SmartArt, or a diagram
+ *    whose structural edit cleared it). That engine runs the real DiagramML
  *    interpreter over the file's `dgm:layoutDef` first and only then falls back
  *    to a family approximation, and it is the same call Vue, Angular, Svelte
- *    and Vanilla make, so all five bindings draw the same diagram.
+ *    and Vanilla make, so all five bindings draw the same diagram (including
+ *    the `colorsDef @meth="span"` colour-interpolation it derives from
+ *    `smartArtData.colorTransform`).
  *
  * React used to own a private JSX tree of ~20 hand-written layout pictures for
  * path 2 which never consulted `dgm:layoutDef` at all. It has been deleted; the
@@ -194,17 +196,13 @@ function SmartArtRendererImpl({
 		// be empty (progress 0) or a leading prefix; an empty node list yields an
 		// empty layout, which is exactly the "not built yet" state while the
 		// wrapper is still fading in.
-		const layout = computeSmartArtLayout(
+		const layout = computeSmartArtElementLayout(
+			smartArtData,
 			revealedNodes,
 			{ width: element.width, height: element.height },
 			palette,
 			style,
 			element.id,
-			smartArtData.resolvedLayoutType,
-			smartArtData.layout,
-			undefined,
-			smartArtData.layoutDefinition,
-			smartArtData.presLayoutVars,
 		);
 		// Rendered nodes are index-aligned with the flattened source nodes, which
 		// is how every binding maps a rendered shape back to a model node id.

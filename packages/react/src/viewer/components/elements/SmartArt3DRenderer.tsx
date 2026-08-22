@@ -19,7 +19,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { updateSmartArtNodeText } from 'pptx-viewer-core';
 import {
 	buildSmartArt3DModel,
-	computeSmartArtLayout,
+	computeSmartArtElementLayout,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
@@ -108,20 +108,19 @@ export function SmartArt3DRenderer({
 		if (element.type !== 'smartArt' || !element.smartArtData) {
 			return null;
 		}
-		const { nodes, resolvedLayoutType, layout, chrome } = element.smartArtData;
+		const { nodes, chrome } = element.smartArtData;
 		if (nodes.length === 0) {
 			return null;
 		}
 		const palette = resolvePalette(element);
 		const style = resolveStyle(element);
-		const layoutResult = computeSmartArtLayout(
+		const layoutResult = computeSmartArtElementLayout(
+			element.smartArtData,
 			nodes,
 			{ width: element.width, height: element.height },
 			palette,
 			style,
 			element.id,
-			resolvedLayoutType,
-			layout,
 		);
 		return buildSmartArt3DModel(layoutResult, {
 			background: chrome?.backgroundColor,

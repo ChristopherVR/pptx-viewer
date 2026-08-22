@@ -1,6 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { SmartArt3DModel } from 'pptx-viewer-shared';
-import { buildSmartArt3DModel, computeSmartArtLayout, resolvePalette } from 'pptx-viewer-shared';
+import {
+	buildSmartArt3DModel,
+	computeSmartArtElementLayout,
+	resolvePalette,
+} from 'pptx-viewer-shared';
 import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 
 import { createEl } from '../dom';
@@ -47,14 +51,13 @@ function buildModel(element: PptxElement): SmartArt3DModel | null {
 	if (!data || data.nodes.length === 0) {
 		return null;
 	}
-	const layout = computeSmartArtLayout(
+	const layout = computeSmartArtElementLayout(
+		data,
 		data.nodes,
 		{ width: element.width, height: element.height },
 		resolvePalette(data),
 		data.style ?? 'flat',
 		element.id,
-		data.resolvedLayoutType,
-		data.layout,
 	);
 	return buildSmartArt3DModel(layout, {
 		background: data.chrome?.backgroundColor,

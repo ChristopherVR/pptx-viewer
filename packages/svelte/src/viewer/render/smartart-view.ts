@@ -11,7 +11,7 @@ import {
 	buildChromeStyle,
 	buildSmartArtA11y,
 	computeDrawingViewBox,
-	computeSmartArtLayout,
+	computeSmartArtElementLayout,
 	flattenNodes,
 	projectDrawingShapes,
 	resolveDrawingShapeNodeId,
@@ -127,17 +127,13 @@ export function buildSmartArtView(
 	}
 
 	if (data && nodes.length > 0) {
-		const layout = computeSmartArtLayout(
+		const layout = computeSmartArtElementLayout(
+			data,
 			revealedNodes,
 			{ width: element.width, height: element.height },
 			resolvePalette(data),
 			data.style ?? 'flat',
 			element.id,
-			data.resolvedLayoutType,
-			data.layout,
-			undefined,
-			data.layoutDefinition,
-			data.presLayoutVars,
 		);
 		// Rendered nodes are index-aligned with the FLATTENED source nodes (the
 		// layout engine walks the tree depth-first), so the id mapping has to

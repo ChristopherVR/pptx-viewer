@@ -305,6 +305,45 @@ describe('renderSmartArtElement (opt-in 3D)', () => {
 	});
 });
 
+// Regression: `colorsDef @meth="span"` ("Colorful Range" quick styles) was
+// parsed into `colorTransform.fillInterpolation` but never reached the layout
+// engine, so a 2-colour range alternated instead of gradienting. `smartart.ts`
+// now goes through the shared `computeSmartArtElementLayout`, which derives
+// the interpolation from `smartArtData.colorTransform` itself.
+describe('renderSmartArtElement colour interpolation (colorsDef @meth="span")', () => {
+	it('gradients a 2-colour "Colorful Range" scheme across all nodes', () => {
+		const element: PptxElement = {
+			type: 'smartArt',
+			id: 'sa-span',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			smartArtData: {
+				nodes: [
+					{ id: 'n1', text: 'A' },
+					{ id: 'n2', text: 'B' },
+					{ id: 'n3', text: 'C' },
+					{ id: 'n4', text: 'D' },
+					{ id: 'n5', text: 'E' },
+				],
+				colorTransform: {
+					fillColors: ['#000000', '#ffffff'],
+					lineColors: [],
+					fillInterpolation: { method: 'span' },
+				},
+			},
+		};
+		const node = renderSmartArtElement(element, 0, makeContext()) as HTMLElement;
+		const svg = node.querySelector('svg.pptxv-smartart-svg');
+		const fills = [...(svg?.querySelectorAll('rect') ?? [])].map((r) => r.getAttribute('fill'));
+		expect(fills).toHaveLength(5);
+		expect(fills[0]).toBe('#000000');
+		expect(fills[4]).toBe('#ffffff');
+		expect(new Set(fills).size).toBe(5);
+	});
+});
+
 /**
  * The shared layout descriptor's OPTIONAL paint / placement fields. This
  * renderer used to call `appendCenteredSvgText` with a literal `'white'` fill
