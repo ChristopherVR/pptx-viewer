@@ -510,6 +510,37 @@ describe('applyBuildList', () => {
 		expect(animations[0].buildType).toBe('byParagraph');
 		expect(animations[1].buildType).toBe('byWord');
 	});
+
+	it('attaches p:tmplLst templates from a matching bldP entry', () => {
+		const tnLst: XmlObject = {
+			'p:par': { 'p:cTn': { '@_id': '9', '@_presetClass': 'entr' } },
+		};
+		const timing: XmlObject = {
+			'p:bldLst': {
+				'p:bldP': {
+					'@_spid': 'sp1',
+					'@_build': 'p',
+					'p:tmplLst': {
+						'p:tmpl': { '@_lvl': '1', 'p:tnLst': tnLst },
+					},
+				},
+			},
+		};
+		const animations: PptxNativeAnimation[] = [{ targetId: 'sp1' } as PptxNativeAnimation];
+		applyBuildList(timing, animations);
+		expect(animations[0].buildTemplates).toHaveLength(1);
+		expect(animations[0].buildTemplates?.[0].level).toBe(1);
+		expect(animations[0].buildTemplates?.[0].timeNodeList).toStrictEqual(tnLst);
+	});
+
+	it('leaves buildTemplates undefined when the bldP has no tmplLst', () => {
+		const timing: XmlObject = {
+			'p:bldLst': { 'p:bldP': { '@_spid': 'sp1', '@_build': 'p' } },
+		};
+		const animations: PptxNativeAnimation[] = [{ targetId: 'sp1' } as PptxNativeAnimation];
+		applyBuildList(timing, animations);
+		expect(animations[0].buildTemplates).toBeUndefined();
+	});
 });
 
 describe('extractTriggerShapeId', () => {

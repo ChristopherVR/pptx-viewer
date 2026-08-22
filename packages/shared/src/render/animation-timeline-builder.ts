@@ -17,6 +17,7 @@ import { resolveStepBuildDescriptor } from './animation-build';
 import { resolveColorAnimationTargets } from './animation-color';
 import { buildDirectionalKeyframe } from './animation-directional';
 import { resolveEffectTiming } from './animation-fill-repeat';
+import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
 import {
@@ -198,7 +199,16 @@ export function buildTimeline(
 			// for a direction-aware clip-path keyframe. Fly is already redirected
 			// inside resolveEffect, and non-directional effects return undefined.
 			if (effect) {
-				const directional = buildDirectionalKeyframe(effect, singleAnim.presetSubtype, dynamicUid);
+				// `resolveFilterPresetSubtype` returns the real `presetSubtype` when
+				// present; otherwise it synthesises the equivalent numeric code from
+				// `singleAnim.effectFilter`'s subtype token (filter-only decks), so a
+				// directional Wipe/Barn resolved via the filter fallback still gets
+				// its correct edge/orientation instead of the fixed default.
+				const directional = buildDirectionalKeyframe(
+					effect,
+					resolveFilterPresetSubtype(singleAnim),
+					dynamicUid,
+				);
 				if (directional) {
 					dynamic = directional;
 					effect = undefined;

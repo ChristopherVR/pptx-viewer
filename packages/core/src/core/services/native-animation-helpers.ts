@@ -15,6 +15,7 @@ import {
 	serializeTimeTargetElement,
 } from './animation-target-build-helpers';
 import { extractBldPResumeAttrs } from './animation-timing-attrs';
+import { extractBldPTemplates } from './animation-timing-templates';
 
 /**
  * Extract sound action (`p:stSnd` or `p:endSnd`) from a `p:cTn` node.
@@ -471,6 +472,10 @@ export function applyBuildList(timing: XmlObject, animations: PptxNativeAnimatio
 				const resumeAttrs = extractBldPResumeAttrs(bldP);
 				anim.buildReverse = resumeAttrs.buildReverse;
 				anim.buildAdvAutoMs = resumeAttrs.buildAdvAutoMs;
+				const templates = extractBldPTemplates(bldP);
+				if (templates.length > 0) {
+					anim.buildTemplates = templates;
+				}
 			} else if (matchesGrp && bldLvl !== undefined && !Number.isNaN(bldLvl)) {
 				anim.buildLevel = bldLvl;
 				if (anim.buildType === undefined) {

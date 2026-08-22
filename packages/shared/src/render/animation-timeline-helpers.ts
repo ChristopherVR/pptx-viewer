@@ -17,6 +17,7 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { buildColorAnimationKeyframes } from './animation-color';
+import { resolveFilterEffect } from './animation-filter-effects';
 import { parseMotionPathPoints } from './animation-motion-path';
 import {
 	emphasisFilterKeyframeCss,
@@ -38,24 +39,42 @@ import type {
  * Resolve the static {@link EffectName} for a native animation from its
  * `presetClass` + `presetId`. Returns `undefined` for path/motion/rotation/scale
  * animations (which are handled dynamically) and for unknown ids.
+ *
+ * `presetId` is the PRIMARY selector. When it is absent, or present but not
+ * in {@link PRESET_ID_TO_EFFECT} (a preset a tool other than PowerPoint wrote,
+ * or one this catalogue does not yet cover), the animation's parsed
+ * `p:animEffect/@filter` (`anim.effectFilter`) is consulted as a FALLBACK via
+ * `resolveFilterEffect`, so a deck whose only description of the effect is
+ * the filter string (no recognisable `presetId`) still resolves to a real
+ * effect instead of falling straight to the neutral safety net. `path`-class
+ * animations (motion path) never consult the filter: `p:animEffect` filters
+ * describe reveal/conceal transitions, not motion.
  */
 export function resolveEffect(anim: PptxNativeAnimation): EffectName | undefined {
 	const cls = anim.presetClass;
 	const id = anim.presetId;
-	if (cls === undefined || id === undefined) {
-		return undefined;
+	if (cls !== undefined && id !== undefined) {
+		if (cls === 'entr') {
+			const effect = applyFlyDirection(PRESET_ID_TO_EFFECT.entr[id], anim.presetSubtype);
+			if (effect) {
+				return effect;
+			}
+		} else if (cls === 'exit') {
+			const effect = applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype);
+			if (effect) {
+				return effect;
+			}
+		} else if (cls === 'emph') {
+			const effect = PRESET_ID_TO_EFFECT.emph[id];
+			if (effect) {
+				return effect;
+			}
+		} else {
+			// path/motion/rotation/scale: handled dynamically, never via filter.
+			return undefined;
+		}
 	}
-	if (cls === 'entr') {
-		return applyFlyDirection(PRESET_ID_TO_EFFECT.entr[id], anim.presetSubtype);
-	}
-	if (cls === 'exit') {
-		return applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype);
-	}
-	if (cls === 'emph') {
-		return PRESET_ID_TO_EFFECT.emph[id];
-	}
-	// For path/motion/rotation/scale, return undefined — handled dynamically.
-	return undefined;
+	return resolveFilterEffect(anim);
 }
 
 /**

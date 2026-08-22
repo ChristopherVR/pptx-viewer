@@ -115,6 +115,36 @@ export type PptxGraphicBuild =
 	  };
 
 /**
+ * A single `p:tmpl` timing template parsed from a TEXT `p:bldP/p:tmplLst`
+ * (CT_TLTemplate, ECMA-376 §19.5.85; the list itself is CT_TLTemplateList,
+ * §19.5.84).
+ *
+ * PowerPoint writes these as the timing PowerPoint would apply to a build
+ * level that does not yet have an instantiated effect, so that promoting or
+ * demoting an outline paragraph, or adding a new bullet at a level with no
+ * prior animation, has a default to clone. They are not consulted at
+ * playback: the animation actually shown for every paragraph level already
+ * visible on the slide is the real, instantiated `p:tnLst` under
+ * `p:timing/p:tnLst`, which the rest of this parser already models in full.
+ *
+ * The nested time-node tree under each template's own `p:tnLst` is kept as
+ * a preserved `XmlObject` rather than deep-parsed into
+ * {@link PptxNativeAnimation} records: it is schema-identical to the
+ * top-level timing tree but scoped to a template that is never itself
+ * executed, so structurally modelling it would stand up a second, unused
+ * parallel animation model. Parsing stops at typed round-trip; see
+ * `docs/guide/limitations.md`.
+ */
+export interface PptxTimingTemplate {
+	/** Build level this template targets, from `p:tmpl/@lvl` (ST_TLLevel, default 0). */
+	level: number;
+	/** Preserved `p:tnLst` (CT_TimeNodeList) subtree, verbatim. */
+	timeNodeList: XmlObject;
+	/** Preserved `p:tmpl` XML node (its attributes plus any unmodelled children). */
+	rawXml?: XmlObject;
+}
+
+/**
  * Parsed native animation record from `p:timing / p:tnLst`.
  *
  * Represents a single animation node in the OOXML timing tree,
@@ -261,6 +291,12 @@ export interface PptxNativeAnimation {
 	 */
 	buildAdvAutoMs?: number;
 	/**
+	 * Per-build-level timing templates from a TEXT `p:bldP/p:tmplLst`
+	 * (ECMA-376 §19.5.84 CT_TLTemplateList). Parsed for round-trip only; see
+	 * {@link PptxTimingTemplate} for why they are not consulted at playback.
+	 */
+	buildTemplates?: PptxTimingTemplate[];
+	/**
 	 * Whether the enclosing `p:seq` allows concurrent play with its siblings,
 	 * from `p:seq/@concurrent`. Parsed for round-trip; not yet honoured by
 	 * playback (see `docs/guide/limitations.md`).
@@ -372,6 +408,44 @@ export interface PptxNativeAnimation {
 	afterAnimationAction?: PptxAfterAnimationAction;
 	/** Dim-to color hex, present when {@link afterAnimationAction} is `dimToColor`. */
 	afterAnimationColor?: string;
+	/**
+	 * Parsed `p:animEffect` filter descriptor. `presetId`/`presetClass` remain
+	 * the primary effect selector (see `resolveEffect` in `pptx-viewer-shared`);
+	 * this is the fallback used when a preset table lookup misses (unmapped or
+	 * absent `presetId`), which happens for decks authored by tools other than
+	 * PowerPoint that only emit the SMIL-style filter string.
+	 */
+	effectFilter?: PptxAnimationEffectFilter;
+}
+
+/**
+ * Parsed `p:animEffect/@filter` (+ `@transition`) descriptor. ECMA-376
+ * describes `@filter` as a free-form string of the form `family(subtype)`,
+ * optionally followed by `;`-separated fallback candidates (only the first
+ * is honoured, per ECMA-376 S19.5.3's "first supported filter wins" rule).
+ *
+ * @example
+ * ```ts
+ * const f: PptxAnimationEffectFilter = { family: 'wipe', subtype: 'up', transition: 'in', raw: 'wipe(up)' };
+ * ```
+ */
+export interface PptxAnimationEffectFilter {
+	/** Filter family name (e.g. `"wipe"`, `"barn"`, `"checkerboard"`), lowercased. */
+	family: string;
+	/**
+	 * Parenthesised subtype/direction token verbatim (e.g. `"up"`,
+	 * `"inVertical"`, `"across"`, `"4"`). Absent when the filter has no
+	 * subtype (e.g. bare `"dissolve"`).
+	 */
+	subtype?: string;
+	/**
+	 * `p:animEffect/@transition`: `"in"` reveals the target (the OOXML
+	 * default when the attribute is omitted), `"out"` conceals it, `"none"`
+	 * applies the filter without a visibility change (a static filter pass).
+	 */
+	transition?: 'in' | 'out' | 'none';
+	/** Raw filter string exactly as authored, for round-trip/debugging. */
+	raw: string;
 }
 
 /**

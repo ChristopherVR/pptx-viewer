@@ -235,3 +235,36 @@ export const SPLIT_SUBTYPE_TO_VARIANT: Readonly<Record<number, SplitVariant>> = 
 	21: 'splitVerticalIn',
 	26: 'splitHorizontalIn',
 };
+
+// ==========================================================================
+// p:animEffect/@filter subtype token -> presetSubtype (for filter-only decks)
+// ==========================================================================
+
+/**
+ * Inverse of the direction encoding documented on {@link WIPE_SUBTYPE_TO_EDGE}:
+ * maps the literal `p:animEffect/@filter="wipe(<token>)"` subtype token to the
+ * numeric `p:cTn/@presetSubtype` code PowerPoint pairs it with. Lets a
+ * filter-only animation (no `presetSubtype` of its own) reuse the exact same
+ * directional machinery ({@link import('./animation-directional').buildDirectionalKeyframe})
+ * as a preset-driven one, by synthesising the equivalent numeric code. See
+ * `resolveFilterPresetSubtype` in `animation-filter-effects`.
+ */
+export const WIPE_FILTER_TOKEN_TO_SUBTYPE: Readonly<Record<string, number>> = {
+	up: 1,
+	right: 2,
+	down: 4,
+	left: 8,
+};
+
+/**
+ * Inverse of {@link SPLIT_SUBTYPE_TO_VARIANT}, keyed by the literal
+ * `p:animEffect/@filter="barn(<token>)"` subtype token rather than the
+ * numeric `presetSubtype`. Same four codes, just re-keyed for filter-only
+ * decks; see `resolveFilterPresetSubtype` in `animation-filter-effects`.
+ */
+export const BARN_FILTER_TOKEN_TO_SUBTYPE: Readonly<Record<string, number>> = {
+	outHorizontal: 5,
+	outVertical: 10,
+	inVertical: 21,
+	inHorizontal: 26,
+};

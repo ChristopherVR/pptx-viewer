@@ -180,5 +180,54 @@ assign(['presentation:element:bldDgm'], {
 	],
 });
 
+// ---------------------------------------------------------------------------
+// Animation/timing: per-build-level timing templates (bldP/tmplLst/tmpl)
+// ---------------------------------------------------------------------------
+assign(
+	[
+		'presentation:element:tmplLst',
+		'presentation:element:tmpl',
+		'presentation:complexType:CT_TLTemplate',
+		'presentation:complexType:CT_TLTemplateList',
+		'presentation:attribute:lvl',
+	],
+	{
+		parse: 'native',
+		preserve: 'native',
+		edit: 'unassessed',
+		serialize: 'partial',
+		note: 'A TEXT bldP/p:tmplLst is typed (level + preserved nested p:tnLst per p:tmpl) and attached to the matching animation as PptxTimingTemplate[]. It round-trips verbatim through an untouched file and through a real surgical timing edit elsewhere in the tree, because the writer never reads or rewrites p:bldLst. A dedicated serializer exists and is unit-tested, but is not wired into the live writer (no authoring UI mutates templates), so serialize is partial and edit is left unassessed rather than inferred.',
+		evidence: [
+			testEvidence(
+				'src/core/services/animation-timing-templates.test.ts',
+				[
+					'parses a single p:tmpl entry with its level and tnLst',
+					'parses multiple p:tmpl entries, one per build level',
+					'defaults @lvl to 0 when absent, per ST_TLLevel',
+				],
+				['parse'],
+			),
+			testEvidence(
+				'src/core/services/animation-timing-templates.test.ts',
+				[
+					'round-trips a single-entry p:tmplLst',
+					'round-trips a multi-entry p:tmplLst, preserving unmodelled attributes',
+				],
+				['serialize'],
+			),
+			testEvidence(
+				'src/core/services/native-animation-helpers.test.ts',
+				['attaches p:tmplLst templates from a matching bldP entry'],
+				['parse'],
+			),
+			testEvidence(
+				'src/core/services/PptxAnimationWriteService.test.ts',
+				['preserves an existing p:bldLst/p:tmplLst verbatim through a surgical update'],
+				['preserve'],
+			),
+		],
+	},
+);
+
 export const OPENXML_ANIMATION_TIMING_COVERAGE: Readonly<Record<string, OpenXmlCoverageFacets>> =
 	overrides;
