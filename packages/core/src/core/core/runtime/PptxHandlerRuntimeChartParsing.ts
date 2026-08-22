@@ -129,7 +129,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const seriesContainer = plotArea[seriesContainerKey] as XmlObject | undefined;
 
-		const { categories, series } = this.parseAllChartContainers(
+		const { categories, categoryLevels, series } = this.parseAllChartContainers(
 			plotArea,
 			chartContainerKeys,
 			chartType,
@@ -301,6 +301,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return {
 			chartType,
 			categories: finalCategories,
+			...(categoryLevels ? { categoryLevels } : {}),
 			...(dateCategories ? { dateCategories } : {}),
 			series: finalSeries,
 			title: titleTextValues[0],
@@ -373,9 +374,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		containerKeys: string[],
 		chartLevelType: PptxChartType,
 		axes: PptxChartData['axes'],
-	): { categories: string[]; series: PptxChartData['series'] } {
+	): { categories: string[]; categoryLevels?: string[][]; series: PptxChartData['series'] } {
 		const isCombo = chartLevelType === 'combo';
 		let categories: string[] = [];
+		let categoryLevels: string[][] | undefined;
 		const series: PptxChartData['series'] = [];
 
 		for (const containerKey of containerKeys) {
@@ -391,8 +393,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// stays the same length as the (already index-expanded) value array.
 			if (categories.length === 0) {
 				const catNode = this.xmlLookupService.getChildByLocalName(seriesList[0], 'cat');
-				const fromCat = this.extractChartCategoryValues(catNode, false);
-				const fromNumericCat = fromCat.length ? [] : this.extractChartCategoryValues(catNode, true);
+				// A multi-level category axis (`c:multiLvlStrRef`, e.g. PowerPoint's
+				// Quarter > Month grouping) has no `strRef`/`numRef` child, so it must
+				// be checked before the flat-cache lookups below or it yields zero
+				// categories.
+				const multiLevel = this.extractChartCategoryLevels(catNode);
+				const fromCat = multiLevel
+					? multiLevel.categories
+					: this.extractChartCategoryValues(catNode, false);
+				const fromNumericCat =
+					multiLevel || fromCat.length ? [] : this.extractChartCategoryValues(catNode, true);
 				categories = fromCat.length
 					? fromCat
 					: fromNumericCat.length
@@ -401,6 +411,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								this.xmlLookupService.getChildByLocalName(seriesList[0], 'xVal'),
 								false,
 							);
+				if (multiLevel?.categoryLevels) {
+					categoryLevels = multiLevel.categoryLevels;
+				}
 			}
 
 			// The container's real chart type, always resolved: needed to decide
@@ -426,7 +439,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 
-		return { categories, series };
+		return { categories, ...(categoryLevels ? { categoryLevels } : {}), series };
 	}
 
 	/**

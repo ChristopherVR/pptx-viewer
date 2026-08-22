@@ -25,6 +25,7 @@ export type {
 	PptxSmartArtTextParagraph,
 	PptxSmartArtNodeStyle,
 	PptxSmartArtNode,
+	SmartArtNodeCustomLayout,
 } from './smart-art-node';
 export type {
 	PptxSmartArtAlgorithmParameter,

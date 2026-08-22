@@ -32,8 +32,46 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Parse table cell data from `a:tbl` XML inside a graphic frame.
 	 */
-	protected parseTableData(graphicData: XmlObject): PptxTableData | undefined {
-		return this.tableDataParser.parseTableData(graphicData);
+	protected parseTableData(graphicData: XmlObject, slidePath?: string): PptxTableData | undefined {
+		return this.tableDataParser.parseTableData(graphicData, slidePath);
+	}
+
+	/**
+	 * Resolve a table cell image fill's blip relationship (`r:embed` /
+	 * `r:link`) to a displayable path, mirroring the slide-background image
+	 * resolution's external-URL gating (`allowExternalImages`, Load H3).
+	 *
+	 * Table parsing is fully synchronous, so unlike shape/background image
+	 * fills this never eagerly decodes to a `data:` URL: it only resolves
+	 * the archive-relative path (or passes through an already-external /
+	 * `data:` target). A viewer's load pipeline resolves the remaining path
+	 * to a displayable URL, exactly as it already does for picture elements
+	 * parsed with `eagerDecodeImages: false`.
+	 */
+	protected resolveTableCellImagePath(
+		rEmbed: string | undefined,
+		rLink: string | undefined,
+		slidePath: string | undefined,
+	): string | undefined {
+		if (!slidePath) {
+			return undefined;
+		}
+		const relId = rEmbed || rLink;
+		if (!relId) {
+			return undefined;
+		}
+		const slideRels = this.slideRelsMap.get(slidePath);
+		const target = slideRels?.get(relId);
+		if (!target) {
+			return undefined;
+		}
+		if (target.startsWith('http://') || target.startsWith('https://')) {
+			return this.allowExternalImages === true ? target : undefined;
+		}
+		if (target.startsWith('data:')) {
+			return target;
+		}
+		return this.resolveImagePath(slidePath, target);
 	}
 
 	protected parseGraphicFrame(

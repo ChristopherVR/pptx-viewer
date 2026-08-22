@@ -39,10 +39,10 @@ function makeContext(
 }
 
 // ---------------------------------------------------------------------------
-// applyCellFillStyle — solid fill
+// applyCellFillStyle - solid fill
 // ---------------------------------------------------------------------------
 
-describe('applyCellFillStyle — solid fill', () => {
+describe('applyCellFillStyle - solid fill', () => {
 	it('applies solid fill from a:solidFill', () => {
 		const cellProps: XmlObject = {
 			'a:solidFill': {
@@ -81,10 +81,10 @@ describe('applyCellFillStyle — solid fill', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyCellFillStyle — gradient fill
+// applyCellFillStyle - gradient fill
 // ---------------------------------------------------------------------------
 
-describe('applyCellFillStyle — gradient fill', () => {
+describe('applyCellFillStyle - gradient fill', () => {
 	it('sets fillMode to gradient when a:gradFill is present', () => {
 		const cellProps: XmlObject = {
 			'a:gradFill': {
@@ -136,10 +136,10 @@ describe('applyCellFillStyle — gradient fill', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyCellFillStyle — pattern fill
+// applyCellFillStyle - pattern fill
 // ---------------------------------------------------------------------------
 
-describe('applyCellFillStyle — pattern fill', () => {
+describe('applyCellFillStyle - pattern fill', () => {
 	it('applies pattern fill with preset, fg, and bg colors', () => {
 		const cellProps: XmlObject = {
 			'a:pattFill': {
@@ -175,6 +175,88 @@ describe('applyCellFillStyle — pattern fill', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(cellProps, style, makeContext());
+		expect(result).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// applyCellFillStyle - image fill (a:tcPr/a:blipFill)
+// ---------------------------------------------------------------------------
+
+describe('applyCellFillStyle - image fill', () => {
+	it('resolves r:embed to a path and sets fillMode "image"', () => {
+		const cellProps: XmlObject = {
+			'a:blipFill': { 'a:blip': { '@_r:embed': 'rId3' } },
+		};
+		const style: PptxTableCellStyle = {};
+		const resolveCellImagePath = (
+			rEmbed: string | undefined,
+			rLink: string | undefined,
+			slidePath: string | undefined,
+		): string | undefined => {
+			expect(rEmbed).toBe('rId3');
+			expect(rLink).toBeUndefined();
+			expect(slidePath).toBe('ppt/slides/slide1.xml');
+			return 'ppt/media/image1.png';
+		};
+		const result = applyCellFillStyle(
+			cellProps,
+			style,
+			makeContext({ resolveCellImagePath }),
+			'ppt/slides/slide1.xml',
+		);
+		expect(result).toBeTruthy();
+		expect(style.fillMode).toBe('image');
+		expect(style.backgroundImageFillPath).toBe('ppt/media/image1.png');
+	});
+
+	it('falls back to r:link when r:embed is absent', () => {
+		const cellProps: XmlObject = {
+			'a:blipFill': { 'a:blip': { '@_r:link': 'rId9' } },
+		};
+		const style: PptxTableCellStyle = {};
+		const resolveCellImagePath = (rEmbed: string | undefined, rLink: string | undefined) => {
+			expect(rEmbed).toBeUndefined();
+			expect(rLink).toBe('rId9');
+			return 'https://example.test/linked.png';
+		};
+		applyCellFillStyle(cellProps, style, makeContext({ resolveCellImagePath }));
+		expect(style.fillMode).toBe('image');
+		expect(style.backgroundImageFillPath).toBe('https://example.test/linked.png');
+	});
+
+	it('returns false when there is no resolveCellImagePath callback wired up', () => {
+		const cellProps: XmlObject = {
+			'a:blipFill': { 'a:blip': { '@_r:embed': 'rId3' } },
+		};
+		const style: PptxTableCellStyle = {};
+		const result = applyCellFillStyle(cellProps, style, makeContext());
+		expect(result).toBeFalsy();
+		expect(style.fillMode).toBeUndefined();
+	});
+
+	it('returns false when the relationship cannot be resolved', () => {
+		const cellProps: XmlObject = {
+			'a:blipFill': { 'a:blip': { '@_r:embed': 'rId404' } },
+		};
+		const style: PptxTableCellStyle = {};
+		const result = applyCellFillStyle(
+			cellProps,
+			style,
+			makeContext({ resolveCellImagePath: () => undefined }),
+		);
+		expect(result).toBeFalsy();
+		expect(style.fillMode).toBeUndefined();
+	});
+
+	it('returns false when blipFill has no blip', () => {
+		const cellProps: XmlObject = { 'a:blipFill': {} };
+		const style: PptxTableCellStyle = {};
+		const result = applyCellFillStyle(
+			cellProps,
+			style,
+			makeContext({ resolveCellImagePath: () => 'ppt/media/image1.png' }),
+		);
 		expect(result).toBeFalsy();
 	});
 });
@@ -326,14 +408,45 @@ describe('applyCellMarginStyle', () => {
 		expect(style.marginLeft).toBe(10);
 	});
 
-	it('returns false when all margins are zero or missing', () => {
+	it('returns false when a:tcMar has no children at all', () => {
+		const cellProps: XmlObject = { 'a:tcMar': {} };
+		const style: PptxTableCellStyle = {};
+		expect(applyCellMarginStyle(cellProps, style, makeContext())).toBeFalsy();
+	});
+
+	// An explicitly zeroed margin (`<a:marL w="0"/>`, common in dense or
+	// image-filled tables) is a deliberate authoring choice, distinct from an
+	// absent `a:marL` (which means "unspecified"). It must round-trip as `0`,
+	// not collapse to "unspecified" the way a falsy/truthy check would.
+	it('applies an explicit zero margin as 0, not "unspecified"', () => {
 		const cellProps: XmlObject = {
 			'a:tcMar': {
 				'a:marL': { '@_w': '0' },
 			},
 		};
 		const style: PptxTableCellStyle = {};
+		const result = applyCellMarginStyle(cellProps, style, makeContext());
+		expect(result).toBeTruthy();
+		expect(style.marginLeft).toBe(0);
+	});
+
+	it('leaves a margin unset when its element has no @_w attribute at all', () => {
+		const cellProps: XmlObject = {
+			'a:tcMar': {
+				'a:marL': {},
+			},
+		};
+		const style: PptxTableCellStyle = {};
 		expect(applyCellMarginStyle(cellProps, style, makeContext())).toBeFalsy();
+		expect(style.marginLeft).toBeUndefined();
+	});
+
+	it('applies an explicit zero margin from a direct attribute fallback', () => {
+		const cellProps: XmlObject = { '@_marL': '0' };
+		const style: PptxTableCellStyle = {};
+		const result = applyCellMarginStyle(cellProps, style, makeContext());
+		expect(result).toBeTruthy();
+		expect(style.marginLeft).toBe(0);
 	});
 });
 

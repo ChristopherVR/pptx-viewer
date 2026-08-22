@@ -243,7 +243,13 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 		}
 		paragraphProps['a:buAutoNum'] = buAutoNum;
 	}
-	if (bulletInfo.imageRelId) {
+	if (bulletInfo.imageBlipFillXml) {
+		// Re-emit the captured `a:buBlip` subtree verbatim (a:blip + a:extLst,
+		// a:tile, a:stretch, a:srcRect) so picture-bullet modifiers such as a
+		// crop or tile setting survive a round-trip, rather than reconstructing
+		// a bare `a:blip[@r:embed]` that drops every modifier.
+		paragraphProps['a:buBlip'] = bulletInfo.imageBlipFillXml;
+	} else if (bulletInfo.imageRelId) {
 		paragraphProps['a:buBlip'] = {
 			'a:blip': { '@_r:embed': bulletInfo.imageRelId },
 		};

@@ -825,9 +825,14 @@ export interface PptxChartData {
 	chartType: PptxChartType;
 	categories: string[];
 	/**
-	 * Hierarchical category levels in source XML order for ChartEx hierarchy charts.
-	 * Level 0 contains the leaf labels and remains mirrored by {@link categories}
-	 * for consumers that only understand a flat category axis.
+	 * Hierarchical category levels in source XML order, for both ChartEx
+	 * hierarchy charts (`cx:multiLvlStrRef`) and classic multi-level category
+	 * axes (`c:cat/c:multiLvlStrRef`, e.g. a PowerPoint Quarter > Month
+	 * grouping). Level 0 contains the leaf labels and remains mirrored by
+	 * {@link categories} for consumers that only understand a flat category
+	 * axis. Parent (grouping) levels are forward-filled: a blank cache slot
+	 * continues the previous group's label, matching how the source stores a
+	 * merged category header sparsely.
 	 */
 	categoryLevels?: string[][];
 	dateCategories?: PptxChartDateCategories;

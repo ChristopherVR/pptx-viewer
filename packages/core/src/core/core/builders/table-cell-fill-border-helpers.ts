@@ -16,6 +16,19 @@ export interface TableCellFillBorderContext {
 	extractGradientFillToRect?: (
 		gradFill: XmlObject,
 	) => { l: number; t: number; r: number; b: number } | undefined;
+	/**
+	 * Resolve a cell image fill's blip relationship id (`r:embed` / `r:link`)
+	 * to a displayable path (archive-relative, or an external `http(s):` /
+	 * `data:` URL). Returns `undefined` when the relationship cannot be
+	 * resolved (missing target, or an external URL blocked by the
+	 * `allowExternalImages` load option). Optional so callers without image
+	 * resolution wired up (e.g. unit tests) simply skip the blipFill branch.
+	 */
+	resolveCellImagePath?: (
+		rEmbed: string | undefined,
+		rLink: string | undefined,
+		slidePath: string | undefined,
+	) => string | undefined;
 }
 
 /** Apply fill styles (solid, gradient, pattern) to a table cell style. */
@@ -23,8 +36,24 @@ export function applyCellFillStyle(
 	cellProperties: XmlObject | undefined,
 	style: PptxTableCellStyle,
 	context: TableCellFillBorderContext,
+	slidePath?: string,
 ): boolean {
 	let hasStyle = false;
+
+	if (cellProperties?.['a:blipFill']) {
+		const blipFill = cellProperties['a:blipFill'] as XmlObject;
+		const blip = blipFill['a:blip'] as XmlObject | undefined;
+		const rEmbed = blip?.['@_r:embed'] ? String(blip['@_r:embed']) : undefined;
+		const rLink = blip?.['@_r:link'] ? String(blip['@_r:link']) : undefined;
+		if ((rEmbed || rLink) && context.resolveCellImagePath) {
+			const imagePath = context.resolveCellImagePath(rEmbed, rLink, slidePath);
+			if (imagePath) {
+				style.fillMode = 'image';
+				style.backgroundImageFillPath = imagePath;
+				hasStyle = true;
+			}
+		}
+	}
 
 	if (cellProperties?.['a:solidFill']) {
 		const solidFillNode = cellProperties['a:solidFill'] as XmlObject;
@@ -216,11 +245,16 @@ export function applyCellMarginStyle(
 	const tcMar = cellProperties['a:tcMar'] as XmlObject | undefined;
 	if (tcMar) {
 		const parseMargin = (node: XmlObject | undefined): number | undefined => {
-			if (!node) {
+			// `@_w` absent means the margin is unspecified (falls back to the
+			// table-style/PowerPoint default) - distinct from an explicit
+			// `w="0"`, which is a deliberately zeroed margin (common in dense
+			// or image-filled tables) and must round-trip as `0`, not
+			// collapse to "unspecified" like an absent attribute would.
+			if (!node || node['@_w'] === undefined || node['@_w'] === null) {
 				return undefined;
 			}
-			const w = parseInt(String(node['@_w'] || '0'), 10);
-			return w > 0 ? Math.round(w / context.emuPerPx) : undefined;
+			const w = parseInt(String(node['@_w']), 10);
+			return Number.isFinite(w) && w >= 0 ? Math.round(w / context.emuPerPx) : undefined;
 		};
 		const ml = parseMargin(tcMar['a:marL'] as XmlObject | undefined);
 		const mr = parseMargin(tcMar['a:marR'] as XmlObject | undefined);
@@ -252,9 +286,12 @@ export function applyCellMarginStyle(
 		{ attr: '@_marB', key: 'marginBottom' as const },
 	] as const;
 	for (const { attr, key } of directMargins) {
-		if (style[key] === undefined && cellProperties[attr]) {
-			const v = parseInt(String(cellProperties[attr]), 10);
-			if (v > 0) {
+		const raw = cellProperties[attr];
+		if (style[key] === undefined && raw !== undefined && raw !== null) {
+			const v = parseInt(String(raw), 10);
+			// An explicit `0` is a deliberately zeroed margin, not "unset"; see
+			// the `a:tcMar` `parseMargin` helper above for the same distinction.
+			if (Number.isFinite(v) && v >= 0) {
 				style[key] = Math.round(v / context.emuPerPx);
 				hasStyle = true;
 			}

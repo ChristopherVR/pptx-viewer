@@ -23,10 +23,16 @@ export interface PptxTableDataParserContext {
 	extractGradientFillToRect?: (
 		gradFill: XmlObject,
 	) => { l: number; t: number; r: number; b: number } | undefined;
+	/** See {@link TableCellFillBorderContext.resolveCellImagePath}. */
+	resolveCellImagePath?: (
+		rEmbed: string | undefined,
+		rLink: string | undefined,
+		slidePath: string | undefined,
+	) => string | undefined;
 }
 
 export interface IPptxTableDataParser {
-	parseTableData(graphicData: XmlObject): PptxTableData | undefined;
+	parseTableData(graphicData: XmlObject, slidePath?: string): PptxTableData | undefined;
 }
 
 export class PptxTableDataParser implements IPptxTableDataParser {
@@ -36,7 +42,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 		this.context = context;
 	}
 
-	public parseTableData(graphicData: XmlObject): PptxTableData | undefined {
+	public parseTableData(graphicData: XmlObject, slidePath?: string): PptxTableData | undefined {
 		try {
 			const tableNode = graphicData['a:tbl'] as XmlObject | undefined;
 			if (!tableNode) {
@@ -77,7 +83,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 						return {
 							text: this.extractTableCellText(cellNode),
 							...(textRuns ? { textRuns } : {}),
-							style: this.extractTableCellStyleFromXml(cellNode),
+							style: this.extractTableCellStyleFromXml(cellNode, slidePath),
 							gridSpan: cellNode['@_gridSpan']
 								? parseInt(String(cellNode['@_gridSpan']), 10)
 								: undefined,
@@ -226,13 +232,16 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 		return lines.join('\n');
 	}
 
-	private extractTableCellStyleFromXml(tableCell: XmlObject): PptxTableCellStyle | undefined {
+	private extractTableCellStyleFromXml(
+		tableCell: XmlObject,
+		slidePath?: string,
+	): PptxTableCellStyle | undefined {
 		try {
 			const cellProperties = tableCell?.['a:tcPr'] as XmlObject | undefined;
 			const style: PptxTableCellStyle = {};
 			let hasStyle = false;
 
-			hasStyle = applyCellFillStyle(cellProperties, style, this.context) || hasStyle;
+			hasStyle = applyCellFillStyle(cellProperties, style, this.context, slidePath) || hasStyle;
 			hasStyle = applyCellBorderStyle(cellProperties, style, this.context) || hasStyle;
 			hasStyle = applyCell3DStyle(cellProperties, style, this.context) || hasStyle;
 			hasStyle = applyCellMarginStyle(cellProperties, style, this.context) || hasStyle;

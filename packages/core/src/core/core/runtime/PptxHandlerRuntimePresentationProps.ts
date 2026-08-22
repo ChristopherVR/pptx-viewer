@@ -74,15 +74,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
-			// Grid spacing (p:gridSpacing)
-			const gridSpacing = presProps['p:gridSpacing'] as XmlObject | undefined;
-			if (gridSpacing) {
-				const cx = parseInt(String(gridSpacing['@_cx'] ?? '0'), 10);
-				const cy = parseInt(String(gridSpacing['@_cy'] ?? '0'), 10);
-				if (cx > 0 && cy > 0) {
-					props.gridSpacing = { cx, cy };
-				}
-			}
+			// NOTE: `p:gridSpacing` does NOT live under `p:presentationPr` in real
+			// PowerPoint files; it lives under `p:viewPr` in `ppt/viewProps.xml`.
+			// It used to be (incorrectly) read here, which meant this field was
+			// always `undefined` for real decks. See `parseViewProperties` below
+			// and `pptx-view-props-helpers.ts` for the correct read; consumers
+			// must use `PptxData.viewProperties.gridSpacing`.
 
 			return props;
 		} catch (e) {

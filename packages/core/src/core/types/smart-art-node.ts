@@ -116,6 +116,62 @@ export interface PptxSmartArtNodeStyle {
 }
 
 /**
+ * Manual layout override for a `type="pres"` presentation point, read from its
+ * `dgm:prSet` attributes. PowerPoint writes these when the user drags, resizes,
+ * rotates, or flips a SmartArt node by hand in its own diagram editor; without
+ * them the node silently reverts to its algorithmic position whenever there is
+ * no cached `dsp:` drawing part to fall back on.
+ *
+ * Every field is optional: only the attributes actually present on `prSet` are
+ * populated. Angle and scale/factor units are already normalised to degrees and
+ * plain ratios (a `custScaleX="150000"` becomes `scaleX: 1.5`), so a consumer
+ * never has to know the raw `60000ths-of-a-degree` / `100000ths-of-a-percent`
+ * XML encodings.
+ *
+ * @example
+ * ```ts
+ * const custom: SmartArtNodeCustomLayout = { angle: 15, scaleX: 1.2 };
+ * // => a node manually rotated 15 degrees and widened 20% in PowerPoint
+ * ```
+ */
+export interface SmartArtNodeCustomLayout {
+	/** `custAng`: additional rotation in degrees. */
+	angle?: number;
+	/** `custScaleX`: horizontal scale ratio (1 = no change). */
+	scaleX?: number;
+	/** `custScaleY`: vertical scale ratio (1 = no change). */
+	scaleY?: number;
+	/** `custSzX`: horizontal size ratio, layered on top of {@link scaleX}. */
+	sizeX?: number;
+	/** `custSzY`: vertical size ratio, layered on top of {@link scaleY}. */
+	sizeY?: number;
+	/** `custFlipHor`: the node was manually mirrored horizontally. */
+	flipHorizontal?: boolean;
+	/** `custFlipVert`: the node was manually mirrored vertically. */
+	flipVertical?: boolean;
+	/** `custLinFactX`: manual position nudge along X, as a fraction of the container width. */
+	linearFactorX?: number;
+	/** `custLinFactY`: manual position nudge along Y, as a fraction of the container height. */
+	linearFactorY?: number;
+	/**
+	 * `custLinFactNeighborX`: spacing compensation applied to a NEIGHBOURING
+	 * node when this one is resized. Parsed for round-trip completeness; not
+	 * applied by the per-node final transform (it has no effect on this node's
+	 * own geometry; folding it into a neighbour's geometry would require
+	 * whole-layout awareness the final transform pass does not have).
+	 */
+	linearFactorNeighborX?: number;
+	/** `custLinFactNeighborY`: see {@link linearFactorNeighborX} (Y axis). */
+	linearFactorNeighborY?: number;
+	/** `custRadScaleRad`: manual radius scale ratio for a radial/cycle node. */
+	radialScaleRadius?: number;
+	/** `custRadScaleInc`: manual angular-position nudge for a radial/cycle node. */
+	radialScaleIncrement?: number;
+	/** `custT`: whether `prSet` declares a custom transform is present at all. */
+	hasCustomTransform?: boolean;
+}
+
+/**
  * A single node in the SmartArt data model.
  *
  * @example
@@ -160,4 +216,12 @@ export interface PptxSmartArtNode {
 	 * it round-trips.
 	 */
 	style?: PptxSmartArtNodeStyle;
+	/**
+	 * Manual layout override read from the node's `dgm:prSet` `cust*`
+	 * attributes (drag/resize/rotate/flip performed in PowerPoint's own diagram
+	 * editor). Applied as a final transform after algorithmic layout by
+	 * {@link module:smartart-layout-interpreter-custom} so it survives even
+	 * when there is no cached `dsp:` drawing to fall back on.
+	 */
+	customLayout?: SmartArtNodeCustomLayout;
 }

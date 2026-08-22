@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxChartData } from '../../types';
+import { extractMultiLevelCategoryValues } from '../../utils/chart-multi-level-category-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArt';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -199,6 +200,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			result.push(byIndex.get(index) ?? '');
 		}
 		return result;
+	}
+
+	/**
+	 * Extract hierarchical category levels from a classic `c:multiLvlStrRef`
+	 * (e.g. a PowerPoint Quarter > Month category grouping). See
+	 * {@link extractMultiLevelCategoryValues} for the extraction rules; this
+	 * is a thin wrapper binding it to the runtime's XML lookup service.
+	 */
+	protected extractChartCategoryLevels(
+		categoryContainer: XmlObject | undefined,
+	): { categories: string[]; categoryLevels?: string[][] } | undefined {
+		return extractMultiLevelCategoryValues(categoryContainer, this.xmlLookupService);
 	}
 
 	protected extractChartSeriesName(seriesNode: XmlObject): string {

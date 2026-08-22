@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
 import type { TextStyle, TextSegment, XmlObject } from '../../types';
+import { createAutoNumberSequence } from './auto-number-sequence';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 import {
 	EMU_PER_PX,
 	buildParagraphPropertiesXml,
@@ -9,6 +11,24 @@ import {
 	computeUniformSegmentOverrides,
 } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHelpers';
+
+// Thin wrapper exposing the protected real parser so the round-trip test
+// below exercises the actual load path, not a re-implementation of it.
+class ParagraphContentRuntime extends PptxHandlerRuntime {
+	public collect(p: XmlObject, pIdx: number, paraCount: number) {
+		return this.collectShapeParagraphContent(p, pIdx, paraCount, 'left', {}, {
+			txBody: undefined,
+			inheritedTxBody: undefined,
+			bodyDefaultRunStyle: {},
+			slideRelationshipMap: undefined,
+			placeholderInfo: undefined,
+			phDefaults: undefined,
+			slidePath: 'ppt/slides/slide1.xml',
+			effectiveLevelStyles: undefined,
+			autoNumbering: createAutoNumberSequence(),
+		} as never);
+	}
+}
 
 // ---------------------------------------------------------------------------
 // buildParagraphPropertiesXml
@@ -367,6 +387,60 @@ describe('applyBulletProperties', () => {
 		applyBulletProperties(props, { imageRelId: 'rId5' });
 		expect(props['a:buBlip']).toStrictEqual({
 			'a:blip': { '@_r:embed': 'rId5' },
+		});
+	});
+
+	it('re-emits the captured a:buBlip subtree verbatim, preserving tile/stretch/srcRect', () => {
+		// Bug: the writer used to reconstruct a bare `a:blip[@r:embed]`,
+		// discarding every other child the parser had preserved on
+		// `imageBlipFillXml` (tile, stretch, srcRect, blip extLst).
+		const capturedBuBlip: XmlObject = {
+			'a:blip': {
+				'@_r:embed': 'rId5',
+				'a:extLst': { 'a:ext': { '@_uri': '{some-uri}' } },
+			},
+			'a:srcRect': { '@_l': '1000', '@_t': '2000', '@_r': '3000', '@_b': '4000' },
+			'a:stretch': { 'a:fillRect': {} },
+		};
+		const props: XmlObject = {};
+		applyBulletProperties(props, {
+			imageRelId: 'rId5',
+			imageBlipFillXml: capturedBuBlip,
+		});
+		expect(props['a:buBlip']).toBe(capturedBuBlip);
+		expect(props['a:buBlip']).toStrictEqual(capturedBuBlip);
+	});
+
+	it('load -> save round-trip: a picture bullet with a:tile survives verbatim', () => {
+		// Full round-trip using the real parser (collectShapeParagraphContent,
+		// exercised via ParagraphContentRuntime below) feeding straight into the
+		// real writer (applyBulletProperties), proving the modifiers a
+		// picture-bullet author set (here `a:tile`) are neither dropped by parse
+		// nor reconstructed away by save.
+		const sourceBuBlip: XmlObject = {
+			'a:blip': { '@_r:embed': 'rId9' },
+			'a:tile': { '@_tx': '0', '@_ty': '0', '@_sx': '100000', '@_sy': '100000' },
+		};
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buBlip': sourceBuBlip },
+				'a:r': { 'a:t': 'Item text' },
+			},
+			0,
+			1,
+		);
+		const bulletInfo = segments[0].bulletInfo;
+		expect(bulletInfo?.imageRelId).toBe('rId9');
+		expect(bulletInfo?.imageBlipFillXml).toStrictEqual(sourceBuBlip);
+
+		const props: XmlObject = {};
+		applyBulletProperties(props, bulletInfo!);
+		expect(props['a:buBlip']).toStrictEqual(sourceBuBlip);
+		expect((props['a:buBlip'] as XmlObject)['a:tile']).toStrictEqual({
+			'@_tx': '0',
+			'@_ty': '0',
+			'@_sx': '100000',
+			'@_sy': '100000',
 		});
 	});
 });

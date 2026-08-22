@@ -73,7 +73,7 @@ function makeTableXml(opts: {
 // Grid column widths
 // ---------------------------------------------------------------------------
 
-describe('pptxTableDataParser — grid column widths', () => {
+describe('pptxTableDataParser - grid column widths', () => {
 	it('computes proportional widths for equal-width columns', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['3048000', '3048000'],
@@ -124,7 +124,7 @@ describe('pptxTableDataParser — grid column widths', () => {
 // Row heights
 // ---------------------------------------------------------------------------
 
-describe('pptxTableDataParser — row heights', () => {
+describe('pptxTableDataParser - row heights', () => {
 	it('converts row height from EMU to rounded pixels', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['9144000'],
@@ -161,7 +161,7 @@ describe('pptxTableDataParser — row heights', () => {
 // Cell text extraction
 // ---------------------------------------------------------------------------
 
-describe('pptxTableDataParser — cell text extraction', () => {
+describe('pptxTableDataParser - cell text extraction', () => {
 	it('extracts simple cell text', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['9144000'],
@@ -239,7 +239,7 @@ describe('pptxTableDataParser — cell text extraction', () => {
 // Cell merge detection
 // ---------------------------------------------------------------------------
 
-describe('pptxTableDataParser — cell merge detection', () => {
+describe('pptxTableDataParser - cell merge detection', () => {
 	it('parses gridSpan for horizontal merge', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['3048000', '3048000', '3048000'],
@@ -284,7 +284,7 @@ describe('pptxTableDataParser — cell merge detection', () => {
 // Table style properties
 // ---------------------------------------------------------------------------
 
-describe('pptxTableDataParser — table style properties', () => {
+describe('pptxTableDataParser - table style properties', () => {
 	it('parses firstRow, bandRow, and bandCol flags', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['9144000'],
@@ -409,7 +409,7 @@ describe('pptxTableDataParser — table style properties', () => {
 // Edge cases
 // ---------------------------------------------------------------------------
 
-describe('pptxTableDataParser — edge cases', () => {
+describe('pptxTableDataParser - edge cases', () => {
 	it('returns undefined when a:tbl node is missing', () => {
 		const graphicData: XmlObject = {
 			'c:chart': { '@_r:id': 'rId1' },
@@ -464,5 +464,42 @@ describe('pptxTableDataParser — edge cases', () => {
 		expect(result!.columnWidths).toHaveLength(1);
 		expect(result!.columnWidths[0]).toBeCloseTo(1.0, 5);
 		expect(result!.rows[0].cells[0].text).toBe('Only cell');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Cell image fill (a:tcPr/a:blipFill) - threads slidePath through to
+// resolveCellImagePath, end to end through the full parser.
+// ---------------------------------------------------------------------------
+
+describe('pptxTableDataParser - cell image fill', () => {
+	it('passes the slidePath argument through to resolveCellImagePath', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [
+				{
+					height: '370840',
+					cells: [
+						makeCell('Photo', {
+							'a:tcPr': { 'a:blipFill': { 'a:blip': { '@_r:embed': 'rId7' } } },
+						}),
+					],
+				},
+			],
+		});
+		const resolveCellImagePath = (
+			rEmbed: string | undefined,
+			_rLink: string | undefined,
+			slidePath: string | undefined,
+		): string | undefined => {
+			expect(rEmbed).toBe('rId7');
+			expect(slidePath).toBe('ppt/slides/slide3.xml');
+			return 'ppt/media/photo.png';
+		};
+		const parser = new PptxTableDataParser(makeContext({ resolveCellImagePath }));
+		const result = parser.parseTableData(graphicData, 'ppt/slides/slide3.xml');
+
+		expect(result!.rows[0].cells[0].style?.fillMode).toBe('image');
+		expect(result!.rows[0].cells[0].style?.backgroundImageFillPath).toBe('ppt/media/photo.png');
 	});
 });

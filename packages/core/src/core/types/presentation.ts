@@ -350,8 +350,6 @@ export interface PptxPresentationProperties {
 	printProperties?: PptxPresentationPrintProperties | null;
 	/** Most-recently-used colours from the presentation palette. */
 	mruColors?: string[];
-	/** Grid spacing in EMUs (cx, cy). Default is 914400 / 8 = 114300. */
-	gridSpacing?: { cx: number; cy: number };
 	/** Pen colour for presentation mode annotations (from `p:showPr/p:penClr`). */
 	penColor?: string;
 	/** Kiosk auto-restart interval in milliseconds (from `p:kiosk/@restart`). Only meaningful when showType is "kiosk". */

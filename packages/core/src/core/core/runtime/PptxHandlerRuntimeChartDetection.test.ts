@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
+import type { XmlObject as CoreXmlObject } from '../../types';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
+
 // ---------------------------------------------------------------------------
 // Extracted logic from PptxHandlerRuntimeChartDetection (protected methods)
 // ---------------------------------------------------------------------------
@@ -358,5 +361,101 @@ describe('getXmlLocalName', () => {
 
 	it('should handle empty string', () => {
 		expect(getXmlLocalName('')).toBe('');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tests: extractChartCategoryLevels (real runtime)
+//
+// Bug: a `c:cat/c:multiLvlStrRef` (PowerPoint's Quarter > Month category
+// grouping) has no `strRef`/`numRef` child, so the pre-existing
+// `extractChartCategoryValues` lookup fell through to an empty cache and
+// every category label vanished. `extractChartCategoryLevels` is the fix:
+// it reads `c:multiLvlStrCache` directly and returns both the flat leaf
+// `categories` and the full `categoryLevels` hierarchy.
+// ---------------------------------------------------------------------------
+
+class ChartDetectionRuntime extends PptxHandlerRuntime {
+	public categoryLevels(categoryContainer: CoreXmlObject | undefined) {
+		return this.extractChartCategoryLevels(categoryContainer);
+	}
+}
+
+describe('extractChartCategoryLevels', () => {
+	it('returns undefined when there is no multiLvlStrRef', () => {
+		const runtime = new ChartDetectionRuntime();
+		expect(runtime.categoryLevels(undefined)).toBeUndefined();
+		expect(
+			runtime.categoryLevels({
+				'c:strRef': { 'c:strCache': { 'c:pt': { '@_idx': '0', 'c:v': 'A' } } },
+			}),
+		).toBeUndefined();
+	});
+
+	it('extracts leaf categories and every level from a Quarter > Month grouping', () => {
+		// Real-world shape: the first `c:lvl` is dense (one label per row, the
+		// leaf); the second `c:lvl` is SPARSE, stamping a `c:pt` only where its
+		// group starts (idx 0 and 3), leaving the in-between rows blank to mean
+		// "still in the previous group".
+		const catNode: CoreXmlObject = {
+			'c:multiLvlStrRef': {
+				'c:f': 'Sheet1!$A$2:$B$7',
+				'c:multiLvlStrCache': {
+					'c:ptCount': { '@_val': '6' },
+					'c:lvl': [
+						{
+							'c:pt': [
+								{ '@_idx': '0', 'c:v': 'Jan' },
+								{ '@_idx': '1', 'c:v': 'Feb' },
+								{ '@_idx': '2', 'c:v': 'Mar' },
+								{ '@_idx': '3', 'c:v': 'Apr' },
+								{ '@_idx': '4', 'c:v': 'May' },
+								{ '@_idx': '5', 'c:v': 'Jun' },
+							],
+						},
+						{
+							'c:pt': [
+								{ '@_idx': '0', 'c:v': 'Qtr1' },
+								{ '@_idx': '3', 'c:v': 'Qtr2' },
+							],
+						},
+					],
+				},
+			},
+		};
+
+		const runtime = new ChartDetectionRuntime();
+		const result = runtime.categoryLevels(catNode);
+
+		expect(result).toBeDefined();
+		// The bug produced zero categories; the fix must produce the full leaf
+		// row count.
+		expect(result?.categories).toStrictEqual(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']);
+		expect(result?.categoryLevels).toStrictEqual([
+			['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+			// Forward-filled: idx 1,2 continue 'Qtr1'; idx 4,5 continue 'Qtr2'.
+			['Qtr1', 'Qtr1', 'Qtr1', 'Qtr2', 'Qtr2', 'Qtr2'],
+		]);
+	});
+
+	it('returns no categoryLevels for a single-level multiLvlStrCache', () => {
+		const catNode: CoreXmlObject = {
+			'c:multiLvlStrRef': {
+				'c:multiLvlStrCache': {
+					'c:ptCount': { '@_val': '2' },
+					'c:lvl': {
+						'c:pt': [
+							{ '@_idx': '0', 'c:v': 'A' },
+							{ '@_idx': '1', 'c:v': 'B' },
+						],
+					},
+				},
+			},
+		};
+
+		const runtime = new ChartDetectionRuntime();
+		const result = runtime.categoryLevels(catNode);
+		expect(result?.categories).toStrictEqual(['A', 'B']);
+		expect(result?.categoryLevels).toBeUndefined();
 	});
 });

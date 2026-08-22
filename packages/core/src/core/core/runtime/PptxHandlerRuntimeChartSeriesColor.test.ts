@@ -175,6 +175,7 @@ describe('parseAllChartContainers colour extraction (full pipeline)', () => {
 		extractChartSeriesName: () => 'Revenue',
 		extractChartPointValues: () => [1, 2, 3],
 		extractChartCategoryValues: () => [] as string[],
+		extractChartCategoryLevels: () => undefined,
 		buildChartSeries: (ChartParsingRuntime.prototype as unknown as Record<string, unknown>)
 			.buildChartSeries,
 	};
@@ -184,7 +185,7 @@ describe('parseAllChartContainers colour extraction (full pipeline)', () => {
 		containerKeys: string[],
 		chartLevelType: PptxChartType,
 		axes: PptxChartData['axes'],
-	) => { categories: string[]; series: PptxChartData['series'] };
+	) => { categories: string[]; categoryLevels?: string[][]; series: PptxChartData['series'] };
 
 	const parseAllChartContainers = (
 		(ChartParsingRuntime.prototype as unknown as Record<string, unknown>)

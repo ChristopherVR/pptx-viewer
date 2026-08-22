@@ -108,12 +108,12 @@ export interface TextStyle {
 	resolvedParagraphGeometry?: TextStyle;
 	fontFamily?: string;
 	fontSize?: number; // in points
-	/** When true, renderer should shrink text to fit the shape bounds. */
+	/** When true, some form of autofit is in effect; see {@link autoFitMode} for which. */
 	autoFit?: boolean;
 	/** Explicit autofit mode from OOXML body properties.
-	 * - 'shrink': `a:spAutoFit` — shrink text on overflow
-	 * - 'normal': `a:normAutofit` — normal auto-fit (with optional fontScale)
-	 * - 'none': `a:noAutofit` — explicitly no auto-fit (text overflows)
+	 * - 'shrink': `a:spAutoFit` - resize the SHAPE to fit the text (never the font)
+	 * - 'normal': `a:normAutofit` - shrink the TEXT to fit the shape (via `fontScale`/`lnSpcReduction`)
+	 * - 'none': `a:noAutofit` - explicitly no auto-fit (text overflows)
 	 * - undefined: no autofit element present (inherit from layout/master)
 	 */
 	autoFitMode?: 'shrink' | 'normal' | 'none';

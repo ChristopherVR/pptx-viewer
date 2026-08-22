@@ -121,4 +121,53 @@ describe('view properties round-trip (issue #90)', () => {
 
 		expect(data2.viewProperties!.showComments).toBeTruthy();
 	});
+
+	it('never reads gridSpacing from presProps.xml (wrong part)', async () => {
+		// `p:gridSpacing` belongs under `p:viewPr` in viewProps.xml, never under
+		// `p:presentationPr` in presProps.xml. A presProps.xml that carries a
+		// bogus `p:gridSpacing` (as a corrupted/legacy file, or leftover from
+		// this repo's own former bug, might) must not leak into
+		// `presentationProperties`, and the real value must still come from
+		// viewProps.xml only.
+		const buf = await createPptxWithViewProps();
+		const zip = await JSZip.loadAsync(buf);
+
+		const relsPath = 'ppt/_rels/presentation.xml.rels';
+		const relsXml = await zip.file(relsPath)!.async('string');
+		const relId = `rId${(Date.now() + 1) % 100000}`;
+		const rel = `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/>`;
+		zip.file(relsPath, relsXml.replace('</Relationships>', `${rel}</Relationships>`));
+
+		const presPropsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentationPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+	<p:gridSpacing cx="999999" cy="999999"/>
+</p:presentationPr>`;
+		zip.file('ppt/presProps.xml', presPropsXml);
+
+		const ctXml = await zip.file('[Content_Types].xml')!.async('string');
+		const override = `<Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/>`;
+		zip.file(
+			'[Content_Types].xml',
+			ctXml.includes('presProps.xml') ? ctXml : ctXml.replace('</Types>', `${override}</Types>`),
+		);
+
+		const buf2 = await zip.generateAsync({ type: 'arraybuffer' });
+
+		const handler = new PptxHandler();
+		const data = await handler.load(buf2);
+
+		// The bogus presProps value must never surface on presentationProperties.
+		expect(data.presentationProperties).not.toHaveProperty('gridSpacing');
+		// The real, correctly-scoped value from viewProps.xml is unaffected.
+		expect(data.viewProperties!.gridSpacing).toStrictEqual({ cx: 76200, cy: 76200 });
+
+		// Saving re-emits presProps.xml losslessly (unknown/legacy content is
+		// passed through verbatim); the point is that it is NOT rewritten from
+		// the (now-removed) `presentationProperties.gridSpacing` typed field,
+		// so the raw value on disk is untouched by our own typed round-trip.
+		const savedBytes = await handler.save(data.slides);
+		const savedZip = await JSZip.loadAsync(savedBytes);
+		const savedPresProps = await savedZip.file('ppt/presProps.xml')?.async('string');
+		expect(savedPresProps ?? '').toContain('cx="999999"');
+	});
 });

@@ -21,6 +21,7 @@ export function writeCellFill(
 	) {
 		delete tcPr['a:solidFill'];
 		delete tcPr['a:pattFill'];
+		delete tcPr['a:blipFill'];
 		const stops = style.gradientFillStops.map((stop) => {
 			const posRaw = typeof stop.position === 'number' ? stop.position : 0;
 			const position = Math.round(Math.max(0, Math.min(1, posRaw / 100)) * 100000);
@@ -71,6 +72,7 @@ export function writeCellFill(
 	} else if (style.fillMode === 'pattern' && style.patternFillPreset) {
 		delete tcPr['a:solidFill'];
 		delete tcPr['a:gradFill'];
+		delete tcPr['a:blipFill'];
 		const pattXml: XmlObject = {
 			'@_prst': style.patternFillPreset,
 		};
@@ -93,9 +95,18 @@ export function writeCellFill(
 		delete tcPr['a:solidFill'];
 		delete tcPr['a:gradFill'];
 		delete tcPr['a:pattFill'];
-	} else if (style.backgroundColor) {
+		delete tcPr['a:blipFill'];
+	} else if (style.fillMode !== 'image' && style.backgroundColor) {
+		// Guarded against `fillMode === 'image'`: an image-filled cell may
+		// still carry a fallback `backgroundColor` (e.g. for renderers that
+		// cannot display the image), and without this guard that fallback
+		// colour would make this branch fire and write a spurious
+		// `a:solidFill` alongside the still-untouched `a:blipFill`, producing
+		// two mutually exclusive fill children in the same `a:tcPr` even
+		// though the cell's fill was never edited.
 		delete tcPr['a:gradFill'];
 		delete tcPr['a:pattFill'];
+		delete tcPr['a:blipFill'];
 		const resolvedOriginal =
 			style.backgroundColorXml && resolveColorXml
 				? resolveColorXml(style.backgroundColorXml)

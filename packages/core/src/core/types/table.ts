@@ -117,8 +117,8 @@ export interface PptxTableCellStyle {
 	textGlowRadius?: number;
 	/** Cell text glow opacity (0-1). */
 	textGlowOpacity?: number;
-	/** Cell fill mode: solid, gradient, pattern, or none. */
-	fillMode?: 'solid' | 'gradient' | 'pattern' | 'none';
+	/** Cell fill mode: solid, gradient, pattern, image, or none. */
+	fillMode?: 'solid' | 'gradient' | 'pattern' | 'image' | 'none';
 	/** Gradient fill stops (colours with positions). */
 	gradientFillStops?: Array<{
 		color: string;
@@ -143,6 +143,23 @@ export interface PptxTableCellStyle {
 	patternFillForeground?: string;
 	/** Pattern fill background colour. */
 	patternFillBackground?: string;
+	/**
+	 * Image fill (`a:tcPr/a:blipFill`, CT_TableCellProperties). Resolved
+	 * archive-relative path (or external `http(s):`/`data:` URL) for the
+	 * cell's background image, from `a:blipFill/a:blip/@r:embed` (or
+	 * `@r:link`). Present when `fillMode` is `'image'`.
+	 *
+	 * The parser resolves this synchronously (path only, no binary read);
+	 * a viewer's load pipeline resolves it further to a displayable
+	 * `data:`/`blob:` URL, written back to {@link backgroundImageFillData}.
+	 */
+	backgroundImageFillPath?: string;
+	/**
+	 * Displayable image data (`data:` or `blob:` URL) for an image cell
+	 * fill, once resolved by the load pipeline. Renderers should prefer
+	 * this over {@link backgroundImageFillPath} when both are present.
+	 */
+	backgroundImageFillData?: string;
 	/**
 	 * Cell 3D bevel + lighting from `a:tcPr/a:cell3D` (CT_Cell3D,
 	 * ECMA-376 §21.1.3.1). Rendered as a CSS bevel treatment.

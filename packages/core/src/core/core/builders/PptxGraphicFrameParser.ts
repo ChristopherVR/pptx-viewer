@@ -361,7 +361,7 @@ export interface PptxGraphicFrameParserContext {
 		flipHorizontal?: boolean;
 		flipVertical?: boolean;
 	};
-	parseTableData: (graphicData: XmlObject) => PptxTableData | undefined;
+	parseTableData: (graphicData: XmlObject, slidePath?: string) => PptxTableData | undefined;
 	parseMediaData: (graphicData: XmlObject, slidePath: string) => Partial<MediaPptxElement>;
 	parseElementActions: (
 		cNvPr: XmlObject | undefined,
@@ -442,7 +442,7 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 			const extensionXml = collectGraphicFrameExtensions(graphicData);
 
 			if (type === 'table' && graphicData) {
-				const tableData = this.context.parseTableData(graphicData);
+				const tableData = this.context.parseTableData(graphicData, slidePath);
 				const tableGridExtent = getTableGridExtent(graphicData);
 				return {
 					...baseElement,

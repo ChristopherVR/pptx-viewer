@@ -92,13 +92,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			});
 		}
 
-		// Grid spacing
-		if (properties.gridSpacing) {
-			root['p:gridSpacing'] = {
-				'@_cx': String(properties.gridSpacing.cx),
-				'@_cy': String(properties.gridSpacing.cy),
-			};
-		}
+		// NOTE: `p:gridSpacing` does NOT belong under `p:presentationPr`
+		// (`presProps.xml`). Real PowerPoint files store it under `p:viewPr`
+		// in `ppt/viewProps.xml`; it used to be (incorrectly) written here via
+		// a raw key assignment that also bypassed the order-aware
+		// `setPresentationPropertiesChild` sequencing used by every other
+		// child above. The correct read/write path is
+		// `applyViewPropertiesPart` / `buildViewPropertiesXml` in
+		// `PptxHandlerRuntimeSaveViewProperties.ts` /
+		// `pptx-view-props-helpers.ts`.
 
 		propsData[rootKey] = root;
 		this.zip.file(propsPath, this.builder.build(propsData));
