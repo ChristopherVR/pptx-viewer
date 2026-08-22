@@ -1,7 +1,11 @@
 import type { PptxTextStyleLevels } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { applyNotesLevelDefaults, resolveNotesLevelStyle } from './notes-style-cascade';
+import {
+	applyNotesLevelDefaults,
+	resolveNotesLevelStyle,
+	resolveNotesSchematicBodyFontSizePx,
+} from './notes-style-cascade';
 
 describe('resolveNotesLevelStyle', () => {
 	it('returns an empty descriptor when notesStyle is absent', () => {
@@ -91,5 +95,37 @@ describe('applyNotesLevelDefaults', () => {
 			color: '#111111',
 			paragraphMarginLeft: 12,
 		});
+	});
+});
+
+describe('resolveNotesSchematicBodyFontSizePx', () => {
+	it('falls back to the 9pt default (converted to px, then scaled) when no notesStyle is authored', () => {
+		// 9pt / 0.75 = 12px at 1:1, times a 0.5 schematic scale = 6px.
+		expect(resolveNotesSchematicBodyFontSizePx(undefined, 0.5)).toBeCloseTo(6, 5);
+	});
+
+	it('scales the resolved level-0 font size on top of the schematic scale, not in place of it', () => {
+		const notesStyle: PptxTextStyleLevels = { 0: { fontSize: 24 } }; // 24px -> 18pt
+		// 18pt / 0.75 = 24px at 1:1, times a 0.5 schematic scale = 12px.
+		expect(resolveNotesSchematicBodyFontSizePx(notesStyle, 0.5)).toBeCloseTo(12, 5);
+	});
+
+	it('a larger authored default produces a visibly larger schematic size than the fallback', () => {
+		const small = resolveNotesSchematicBodyFontSizePx(undefined, 0.4);
+		const large = resolveNotesSchematicBodyFontSizePx({ 0: { fontSize: 48 } }, 0.4);
+		expect(large).toBeGreaterThan(small);
+	});
+
+	it('applies the legibility floor when the scaled size would round below it', () => {
+		expect(resolveNotesSchematicBodyFontSizePx(undefined, 0.01)).toBe(6);
+	});
+
+	it('accepts a custom floor', () => {
+		expect(resolveNotesSchematicBodyFontSizePx(undefined, 0.01, 3)).toBe(3);
+	});
+
+	it('never applies the floor over a resolved size that is already larger', () => {
+		const result = resolveNotesSchematicBodyFontSizePx({ 0: { fontSize: 96 } }, 1, 6);
+		expect(result).toBeGreaterThan(6);
 	});
 });

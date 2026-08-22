@@ -6,16 +6,18 @@
 	import IndentIncrease from '@lucide/svelte/icons/list-indent-increase';
 	import ListOrdered from '@lucide/svelte/icons/list-ordered';
 	import List from '@lucide/svelte/icons/list';
+	import Printer from '@lucide/svelte/icons/printer';
 	import Strikethrough from '@lucide/svelte/icons/strikethrough';
 	import Underline from '@lucide/svelte/icons/underline';
 	import { useTranslator } from '../../i18n/context';
 
-	const { rich, disabled = false, oninline, onparagraph, onlink, ontogglemode }: {
+	const { rich, disabled = false, oninline, onparagraph, onlink, onprint, ontogglemode }: {
 		rich: boolean;
 		disabled?: boolean;
 		oninline: (command: 'bold' | 'italic' | 'underline' | 'strikeThrough') => void;
 		onparagraph: (command: 'bullet' | 'numbered' | 'indent' | 'outdent') => void;
 		onlink: () => void;
+		onprint: () => void;
 		ontogglemode: () => void;
 	} = $props();
 	const t = useTranslator();
@@ -34,6 +36,7 @@
 		<button type="button" {disabled} title={t('pptx.notes.indent')} aria-label={t('pptx.notes.indent')} onclick={() => onparagraph('indent')}><IndentIncrease size={14} aria-hidden="true" /></button>
 		<button type="button" {disabled} title={t('pptx.notes.insertLink')} aria-label={t('pptx.notes.insertLink')} onclick={onlink}><Link size={14} aria-hidden="true" /></button>
 	{/if}
+	<button type="button" {disabled} title={t('pptx.notes.printNotes')} aria-label={t('pptx.notes.printNotes')} onclick={onprint}><Printer size={14} aria-hidden="true" /></button>
 	<button type="button" {disabled} class:active={rich} onclick={ontogglemode} title={rich ? t('pptx.notes.switchToPlainEditor') : t('pptx.notes.switchToRichEditor')}>
 		{rich ? t('pptx.notesToolbar.plain') : t('pptx.notesToolbar.rich')}
 	</button>

@@ -2,6 +2,7 @@ import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-co
 import {
 	applyInlineCommand,
 	applyParagraphCommand,
+	buildNotesPrintHtml,
 	createPlainNotesSegments,
 	defaultRichEnabled,
 	insertHyperlinkAtSelection,
@@ -102,6 +103,8 @@ export function createNotesPanel(
 	let editable = false;
 	let richEnabled = defaultRichEnabled();
 	let segments: TextSegment[] = [];
+	let currentSlide: PptxSlide | undefined;
+	let currentNotesStyle: PptxTextStyleLevels | undefined;
 
 	const setMode = (nextRichEnabled: boolean): void => {
 		richEnabled = nextRichEnabled;
@@ -168,6 +171,47 @@ export function createNotesPanel(
 		const displayText = window.prompt(t('pptx.notes.linkDisplayText'), selected) ?? selected;
 		insertHyperlinkAtSelection(normalizeNotesLinkUrl(url), displayText);
 	});
+	/**
+	 * Print the current slide's speaker notes via the browser's native print
+	 * dialog. Builds the document with the shared `buildNotesPrintHtml`
+	 * (framework-neutral, honours `notesStyle`) and writes it into a hidden
+	 * iframe, mirroring the Vue (`useNotesEditor.printNotes`) and Angular
+	 * (`NotesPanelComponent.printNotes`) implementations exactly, so all logic
+	 * stays in `pptx-viewer-shared` and no binding re-derives the print HTML.
+	 */
+	addCommand('🖨', t('pptx.notes.printNotes'), () => {
+		if (!currentSlide) {
+			return;
+		}
+		const html = buildNotesPrintHtml(
+			[currentSlide],
+			(n) => t('pptx.notes.slideN', { n }),
+			currentNotesStyle,
+		);
+		// Sandbox IS set two lines down (`sandbox="allow-same-origin"`); the rule
+		// only recognises the literal `document.createElement` receiver, not this
+		// file's injected `doc: Document` parameter (used throughout for
+		// testability - it is always the real `document` at runtime).
+		// oxlint-disable-next-line react/iframe-missing-sandbox
+		const frame = doc.createElement('iframe');
+		frame.setAttribute('aria-hidden', 'true');
+		frame.setAttribute('sandbox', 'allow-same-origin');
+		frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+		doc.body.appendChild(frame);
+		const frameDoc = frame.contentWindow?.document;
+		if (!frameDoc) {
+			frame.remove();
+			return;
+		}
+		frameDoc.open();
+		frameDoc.write(html);
+		frameDoc.close();
+		setTimeout(() => {
+			frame.contentWindow?.focus();
+			frame.contentWindow?.print();
+			setTimeout(() => frame.remove(), 1000);
+		}, 200);
+	});
 	editorMode.addEventListener('click', () => {
 		if (richEnabled) {
 			commitRich();
@@ -202,6 +246,8 @@ export function createNotesPanel(
 		el,
 		update({ slide, editable: nextEditable, notesStyle }) {
 			editable = nextEditable;
+			currentSlide = slide;
+			currentNotesStyle = notesStyle;
 			const hasSlide = slide !== undefined;
 			textarea.disabled = !hasSlide;
 			textarea.readOnly = !editable;

@@ -23,6 +23,15 @@ import type { PptxTextStyleLevels, TextSegment, TextStyle } from 'pptx-viewer-co
 const PX_TO_PT = 0.75;
 
 /**
+ * Fallback notes-text font size (points) used when the deck has no authored
+ * `<p:notesStyle>` (or the resolved level omits a font size). Shared by the
+ * print builder ({@link "./notes-print"}) and the Notes Master schematic
+ * preview ({@link resolveNotesSchematicBodyFontSizePx}) so both surfaces fall
+ * back to the same default instead of drifting independently.
+ */
+export const DEFAULT_NOTES_FONT_SIZE_PT = 9;
+
+/**
  * The subset of a notes-style level's authored defaults the notes-rendering
  * surfaces understand. Fields are omitted (not `undefined`-valued) when the
  * deck's `<p:notesStyle>` does not define them at the resolved level, so a
@@ -138,4 +147,35 @@ export function applyNotesLevelDefaults(
 			? segment
 			: { ...segment, style: mergeStyleDefaults(segment.style, descriptor) },
 	);
+}
+
+/**
+ * Resolve the font size (CSS px) for the Notes Master schematic preview's
+ * body-placeholder label, honouring the deck's authored `<p:notesStyle>`
+ * level-0 default instead of a fixed clamp untethered from it.
+ *
+ * Every binding's Notes Master schematic (`NotesMasterCanvas` / equivalent)
+ * draws the notes page shrunk to fit a sidebar preview. `scale` is that
+ * preview's ratio to the page's real CSS-px dimensions (e.g. the same `scale`
+ * each canvas already computes from `canvasSize` vs. the authored page size).
+ * This resolves the *real* body font size in px at 1:1 first
+ * (`resolveNotesLevelStyle` -> pt -> px), THEN multiplies by `scale` - the
+ * schematic zoom is applied on top of the resolved style, never as a
+ * replacement for it, so a deck authoring a large or small notes default
+ * visibly differs in the preview.
+ *
+ * `minPx` is a legibility floor only (default 6): at very small preview
+ * scales even a normally-sized authored font would round to an illegible
+ * sub-pixel value, so the floor guarantees a readable label. It never
+ * overrides a resolved size that is already larger.
+ */
+export function resolveNotesSchematicBodyFontSizePx(
+	notesStyle: PptxTextStyleLevels | undefined,
+	scale: number,
+	minPx = 6,
+): number {
+	const descriptor = resolveNotesLevelStyle(notesStyle, 0);
+	const fontSizePt = descriptor.fontSize ?? DEFAULT_NOTES_FONT_SIZE_PT;
+	const fullSizePx = fontSizePt / PX_TO_PT;
+	return Math.max(minPx, fullSizePx * scale);
 }

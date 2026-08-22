@@ -1,4 +1,5 @@
 import type { PptxElement, PptxNotesMaster } from 'pptx-viewer-core';
+import { resolveNotesSchematicBodyFontSizePx } from 'pptx-viewer-shared';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -82,6 +83,18 @@ export function NotesMasterCanvas({
 	const scaledWidth = pageWidth * scale;
 	const scaledHeight = pageHeight * scale;
 
+	/**
+	 * Body-placeholder schematic font size: resolves the deck's authored
+	 * `<p:notesStyle>` level-0 default (via the shared cascade) and applies
+	 * this canvas's own scale-to-preview factor ON TOP of it, rather than the
+	 * fixed `8..11px` clamp this used before. The clamp lives inside
+	 * `resolveNotesSchematicBodyFontSizePx` now, as a legibility floor only.
+	 */
+	const bodyFontSize = useMemo(
+		() => resolveNotesSchematicBodyFontSizePx(notesMaster?.notesStyle, scale),
+		[notesMaster?.notesStyle, scale],
+	);
+
 	const placeholders = useMemo(() => {
 		if (!notesMaster?.placeholders) {
 			// Show default notes page layout
@@ -158,13 +171,14 @@ export function NotesMasterCanvas({
 						return (
 							<div
 								key={`${ph.type}-${ph.idx ?? 'default'}`}
+								data-region={ph.type}
 								className='absolute overflow-auto border border-solid border-gray-200 p-2'
 								style={{
 									left: pos.x * scaledWidth,
 									top: pos.y * scaledHeight,
 									width: pos.w * scaledWidth,
 									height: pos.h * scaledHeight,
-									fontSize: Math.max(8, Math.min(11, scaledWidth * 0.015)),
+									fontSize: bodyFontSize,
 									lineHeight: 1.4,
 									color: '#374151',
 									whiteSpace: 'pre-wrap',

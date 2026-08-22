@@ -42,4 +42,40 @@ describe('notesMasterCanvas', () => {
 		});
 		expect(wrapper.text()).toContain('Speaker notes here');
 	});
+
+	/**
+	 * The body region's font size used to be a fixed CSS `10px` rule
+	 * regardless of the deck's authored `<p:notesStyle>`. It now resolves
+	 * through the shared `resolveNotesSchematicBodyFontSizePx` cascade, scaled
+	 * by this canvas's own preview-to-page ratio (0.53125 for an 800x600
+	 * canvas against the default 720x960 notes page).
+	 */
+	function bodyFontSizePx(wrapper: ReturnType<typeof mount>): number {
+		const style =
+			wrapper.find('.pptx-vue-notes-master-canvas__body-text').attributes('style') ?? '';
+		const match = /font-size:\s*([\d.]+)px/.exec(style);
+		return match ? Number(match[1]) : Number.NaN;
+	}
+
+	it('falls back to the 9pt default (scaled to the preview) with no authored notesStyle', () => {
+		const master: PptxNotesMaster = { path: 'notes', placeholders: [{ type: 'body' }] };
+		const wrapper = mount(NotesMasterCanvas, {
+			props: { notesMaster: master, canvasSize, notesText: 'x' },
+		});
+		// 9pt / 0.75 = 12px at 1:1, times a 0.53125 preview scale.
+		expect(bodyFontSizePx(wrapper)).toBeCloseTo(12 * 0.53125, 3);
+	});
+
+	it("scales the deck's authored notesStyle level-0 font size instead of the fixed clamp", () => {
+		const master: PptxNotesMaster = {
+			path: 'notes',
+			placeholders: [{ type: 'body' }],
+			notesStyle: { 0: { fontSize: 64 } }, // 64px -> 48pt
+		};
+		const wrapper = mount(NotesMasterCanvas, {
+			props: { notesMaster: master, canvasSize, notesText: 'x' },
+		});
+		// 48pt / 0.75 = 64px at 1:1, times a 0.53125 preview scale.
+		expect(bodyFontSizePx(wrapper)).toBeCloseTo(64 * 0.53125, 3);
+	});
 });

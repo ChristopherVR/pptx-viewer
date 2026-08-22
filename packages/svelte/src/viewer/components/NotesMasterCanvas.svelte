@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PptxNotesMaster } from 'pptx-viewer-core';
-	import { NOTES_MASTER_PLACEHOLDER_RECTS } from 'pptx-viewer-shared';
+	import { NOTES_MASTER_PLACEHOLDER_RECTS, resolveNotesSchematicBodyFontSizePx } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -21,11 +21,24 @@
 		sldNum: 'pptx.master.notesMasterPageNumber',
 	};
 
+	/**
+	 * Body-placeholder schematic font size, resolved from the deck's authored
+	 * `<p:notesStyle>` level-0 default via the shared cascade. This canvas is
+	 * always drawn at its real 1:1 page size (the caller shrinks the whole
+	 * stage to fit with a CSS `transform: scale(...)`), so the schematic-scale
+	 * argument is `1`: no separate down-scaling multiplier is needed here on
+	 * top of the resolved style, unlike React/Vue where the page itself is
+	 * pre-scaled to px before layout.
+	 */
+	const bodyFontSize = $derived(resolveNotesSchematicBodyFontSizePx(notesMaster?.notesStyle, 1));
+
 	function regionStyle(type: string): string {
 		const rect = NOTES_MASTER_PLACEHOLDER_RECTS[type];
-		return rect
-			? `left:${rect.x * 100}%;top:${rect.y * 100}%;width:${rect.w * 100}%;height:${rect.h * 100}%`
-			: '';
+		if (!rect) {
+			return '';
+		}
+		const base = `left:${rect.x * 100}%;top:${rect.y * 100}%;width:${rect.w * 100}%;height:${rect.h * 100}%`;
+		return type === 'body' ? `${base};font-size:${bodyFontSize}px` : base;
 	}
 </script>
 

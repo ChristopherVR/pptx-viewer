@@ -15,6 +15,7 @@
  * Props : `{ notesMaster, canvasSize, notesCanvasSize?, slideThumbnail?, notesText?, slideNumber? }`
  */
 import type { PptxElement, PptxNotesMaster } from 'pptx-viewer-core';
+import { resolveNotesSchematicBodyFontSizePx } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -72,6 +73,13 @@ const scale = computed(() => {
 
 const scaledWidth = computed(() => pageWidth.value * scale.value);
 const scaledHeight = computed(() => pageHeight.value * scale.value);
+
+// Body-placeholder schematic font size: the deck's authored `<p:notesStyle>`
+// level-0 default (shared cascade), scaled by this canvas's own preview
+// ratio ON TOP of it, instead of the fixed `10px` CSS rule used before.
+const bodyFontSize = computed(() =>
+	resolveNotesSchematicBodyFontSizePx(props.notesMaster?.notesStyle, scale.value),
+);
 
 const placeholders = computed<PlaceholderRegion[]>(() => {
 	if (!props.notesMaster?.placeholders) {
@@ -183,6 +191,7 @@ function elementStyle(element: PptxElement): CSSProperties {
 					<div
 						v-else-if="ph.type === 'body' && notesText !== undefined"
 						class="pptx-vue-notes-master-canvas__body-text"
+						:style="{ fontSize: `${bodyFontSize}px` }"
 					>
 						{{ notesText || t('pptx.notes.noNotes') }}
 					</div>

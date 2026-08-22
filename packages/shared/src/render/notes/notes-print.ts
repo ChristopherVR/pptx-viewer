@@ -10,7 +10,7 @@
 import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
 
 import { resolveNotesSegments } from './notes-editor';
-import { resolveNotesLevelStyle } from './notes-style-cascade';
+import { DEFAULT_NOTES_FONT_SIZE_PT, resolveNotesLevelStyle } from './notes-style-cascade';
 import { escapeHtml, segmentsToParagraphs } from './notes-utils';
 
 const BASE_PRINT_STYLES = `
@@ -25,9 +25,6 @@ const BASE_PRINT_STYLES = `
 	.notes-text .para { margin: 2px 0; }
 	@media print { body { padding: 0; } }
 `;
-
-/** Fallback notes-text font size (points) used when the deck has no `<p:notesStyle>`. */
-const DEFAULT_NOTES_FONT_SIZE_PT = 9;
 
 /**
  * Build the printable notes document for every slide.

@@ -148,6 +148,42 @@ describe('createNotesPanel', () => {
 		}
 	});
 
+	it('prints the current slide notes into a hidden iframe via the shared buildNotesPrintHtml builder', () => {
+		const t = createTranslator();
+		const panel = createNotesPanel(document, t, vi.fn(), vi.fn());
+		panel.update({
+			slide: buildSlide({ notes: 'Remember the demo.', slideNumber: 3 }),
+			editable: true,
+		});
+
+		const printButton = panel.el.querySelector<HTMLButtonElement>(
+			`[aria-label="${t('pptx.notes.printNotes')}"]`,
+		);
+		expect(printButton).not.toBeNull();
+		const framesBefore = document.body.querySelectorAll('iframe[aria-hidden="true"]').length;
+		printButton?.click();
+
+		const frames = document.body.querySelectorAll<HTMLIFrameElement>('iframe[aria-hidden="true"]');
+		expect(frames).toHaveLength(framesBefore + 1);
+		const frame = frames[frames.length - 1];
+		expect(frame.contentDocument?.body.textContent).toContain('Remember the demo.');
+		frame.remove();
+	});
+
+	it('does nothing when the print button is clicked with no slide selected', () => {
+		const t = createTranslator();
+		const panel = createNotesPanel(document, t, vi.fn(), vi.fn());
+		panel.update({ slide: undefined, editable: true });
+
+		const printButton = panel.el.querySelector<HTMLButtonElement>(
+			`[aria-label="${t('pptx.notes.printNotes')}"]`,
+		);
+		const framesBefore = document.body.querySelectorAll('iframe[aria-hidden="true"]').length;
+		printButton?.click();
+
+		expect(document.body.querySelectorAll('iframe[aria-hidden="true"]')).toHaveLength(framesBefore);
+	});
+
 	it('applies the notes-master level-0 font size to segments missing an explicit size', () => {
 		const t = createTranslator();
 		const notesStyle: PptxTextStyleLevels = { 0: { fontSize: 32 } };

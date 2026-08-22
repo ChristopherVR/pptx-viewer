@@ -25,6 +25,7 @@
 	import {
 		applyInlineCommand,
 		applyParagraphCommand,
+		buildNotesPrintHtml,
 		defaultRichEnabled,
 		handleEditorAnchorClick,
 		insertHyperlinkAtSelection,
@@ -109,6 +110,37 @@
 		rich = !rich;
 		if (rich && editorEl) {editorEl.innerHTML = segmentsToEditorHtml(segments);}
 	}
+
+	/**
+	 * Print the current slide's speaker notes via the browser's native print
+	 * dialog. Builds the document with the shared `buildNotesPrintHtml`
+	 * (framework-neutral, honours `notesStyle`) and writes it into a hidden
+	 * iframe, mirroring the Vue (`useNotesEditor.printNotes`) and Angular
+	 * (`NotesPanelComponent.printNotes`) implementations exactly, so all logic
+	 * stays in `pptx-viewer-shared` and no binding re-derives the print HTML.
+	 */
+	function printNotes(): void {
+		if (!slide || typeof document === 'undefined') {return;}
+		const html = buildNotesPrintHtml([slide], (n) => t('pptx.notes.slideN', { n }), notesStyle);
+		const frame = document.createElement('iframe');
+		frame.setAttribute('aria-hidden', 'true');
+		frame.setAttribute('sandbox', 'allow-same-origin');
+		frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+		document.body.appendChild(frame);
+		const doc = frame.contentWindow?.document;
+		if (!doc) {
+			frame.remove();
+			return;
+		}
+		doc.open();
+		doc.write(html);
+		doc.close();
+		setTimeout(() => {
+			frame.contentWindow?.focus();
+			frame.contentWindow?.print();
+			setTimeout(() => frame.remove(), 1000);
+		}, 200);
+	}
 </script>
 
 <section class="pptx-svelte-notes-panel" data-collapsed={collapsed}>
@@ -127,7 +159,7 @@
 	     framework-neutral e2e DOM contract documented in `playwright.config.ts`. -->
 	<div id="slide-notes-content" class="pptx-svelte-notes-body" hidden={collapsed}>
 		{#if !readonly}
-			<NotesFormattingToolbar {rich} disabled={!hasSlide} oninline={inline} onparagraph={paragraph} onlink={link} ontogglemode={toggleMode} />
+			<NotesFormattingToolbar {rich} disabled={!hasSlide} oninline={inline} onparagraph={paragraph} onlink={link} onprint={printNotes} ontogglemode={toggleMode} />
 		{/if}
 		{#if rich && !readonly}
 			<div class="pptx-svelte-notes-rich" bind:this={editorEl} contenteditable={hasSlide} role="textbox" tabindex="0" aria-multiline="true" aria-label={t('pptx.presenter.speakerNotes')} spellcheck="true" oninput={commitRich} onblur={commitRich} onclick={(event) => handleEditorAnchorClick(event.target, event.ctrlKey || event.metaKey)} onkeydown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') commitRich(); }}></div>
