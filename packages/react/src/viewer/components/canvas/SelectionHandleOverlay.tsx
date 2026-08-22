@@ -92,7 +92,10 @@ export function SelectionHandleOverlay({
 	const allow = resolveElementInteractivity(element);
 	return (
 		<div
-			data-element-id={element.id}
+			// NOT `data-element-id`: that selector is how every spec and the stage's
+			// own delegation address the element itself, and a second node carrying it
+			// makes those locators ambiguous (Playwright strict mode fails outright).
+			data-pptx-handle-for={element.id}
 			data-pptx-selection-handle-host='true'
 			style={{
 				position: 'absolute',

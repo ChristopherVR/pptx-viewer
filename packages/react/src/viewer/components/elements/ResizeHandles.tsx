@@ -139,7 +139,14 @@ export function ResizeHandles({
 	// is robust to the current rotation), preview live by mutating the wrapper
 	// transform, then commit the final degrees on release. Shift snaps to 15°.
 	const startRotate = (btn: HTMLElement, pointerId?: number): void => {
-		const wrapper = btn.closest('[data-element-id]') as HTMLElement | null;
+		// The handle host comes first: selection handles now live in a stage-level
+		// overlay that deliberately does NOT carry `data-element-id`, because a
+		// second node with that attribute makes every spec's element locator
+		// ambiguous. Connectors still nest their handles inside the element, so
+		// the original selector stays as the fallback.
+		const wrapper = btn.closest(
+			'[data-pptx-selection-handle-host], [data-element-id]',
+		) as HTMLElement | null;
 		if (!wrapper) {
 			return;
 		}
