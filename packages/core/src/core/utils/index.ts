@@ -91,7 +91,7 @@ export {
 	type OleUnwrapResult,
 } from './ole-embedded-extract';
 
-export { decomposeSmartArt } from './smartart-decompose';
+export { decomposeSmartArt, computeSmartArtElementsWithoutCache } from './smartart-decompose';
 
 export {
 	parseDiagramRelationshipIds,
@@ -99,7 +99,78 @@ export {
 	type DiagramRelationshipIds,
 } from './diagram-relationship-ids';
 
-export { resetDecomposeCounter, type ContainerBounds } from './smartart-helpers';
+export {
+	resetDecomposeCounter,
+	buildForest,
+	buildTree,
+	treeWidth,
+	treeDepth,
+	type ContainerBounds,
+	type TreeNode,
+} from './smartart-helpers';
+
+export {
+	colour,
+	nodeFill,
+	nodeStroke,
+	nodeTextStyle,
+	nodeOpacity,
+	styleShadow,
+	styleStroke,
+	truncate,
+	fitFontSize,
+	chevronPoints,
+	gearPoints,
+	strokeFor,
+	flattenNodes,
+} from './smartart-layout-style-helpers';
+
+export type {
+	LayoutRect,
+	RenderedNodeTextStyle,
+	RenderedNodeIdentity,
+	RenderedRectNode,
+	RenderedCircleNode,
+	RenderedPolygonNode,
+	RenderedNode,
+	RenderedConnector,
+	LayoutFamily,
+	SmartArtLayoutResult,
+	BoundingBox,
+} from './smartart-layout-types';
+
+export {
+	rectNode,
+	circleNode,
+	polygonNode,
+	styleContext,
+	type StyleContext,
+} from './smartart-layout-interpreter-render';
+
+export {
+	discoverArrangement,
+	itemNode,
+	findConstraint,
+	ratioConstraint,
+	algorithmParam,
+	numericParam,
+	resolveFlowDirection,
+	type ArrangementKind,
+	type ArrangementPlan,
+	type FlowDirection,
+} from './smartart-layout-interpreter-model';
+
+export { selectArrangedNodes, chooseAlgType } from './smartart-layout-interpreter-flow';
+export { arrangeLinear, arrangeSnake } from './smartart-layout-interpreter-linear';
+export { arrangeCycle } from './smartart-layout-interpreter-cycle';
+export { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
+export { arrangePyramid } from './smartart-layout-interpreter-pyramid';
+export { arrangeComposite } from './smartart-layout-interpreter-composite';
+export { arrangeConn, arrangeSpacer, arrangeText } from './smartart-layout-interpreter-aux';
+export { applyCustomLayoutOverrides } from './smartart-layout-interpreter-custom';
+export { interpretSmartArtLayout, type InterpretLayoutInput } from './smartart-layout-interpreter';
+export { parseSmartArtPointCustomLayout } from './smartart-data-model-attributes';
+export { interpretedLayoutToElements } from './smartart-interpreter-drawing-bridge';
 
 export {
 	addSmartArtNode,
@@ -370,23 +441,6 @@ export {
 
 export { reResolveSlideColors, applyThemeToData, buildThemeColorMap } from './theme-switching';
 export { applyThemeOverrideToSlide } from './slide-theme-override';
-
-export {
-	computeSmartArtLayout,
-	computeSnakeLayout,
-	computeLinearLayout,
-	computeHierarchyLayout,
-	computeCycleLayout,
-	computePyramidLayout,
-	computeMatrixLayout,
-	parseLayoutDefinition,
-	layoutEngineShapesToDrawingShapes,
-	type LayoutEngineShape,
-	type LayoutConstraints,
-	type ParsedLayoutDef,
-	type LayoutAlgorithmType,
-	type LayoutRule,
-} from './smartart-layout-engine';
 
 export {
 	applySmartArtLayoutDefinition,

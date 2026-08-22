@@ -106,6 +106,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.colorStyleCodec.extractGradientFocalPoint(gradFill),
 			extractGradientFillToRect: (gradFill) =>
 				this.colorStyleCodec.extractGradientFillToRect(gradFill),
+			resolveCellImagePath: (rEmbed, rLink, slidePath) =>
+				this.resolveTableCellImagePath(rEmbed, rLink, slidePath),
 		});
 		this.mediaDataParser = new PptxMediaDataParser({
 			slideRelsMap: this.slideRelsMap,
@@ -119,7 +121,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			slideRelsMap: this.slideRelsMap,
 			externalRelsMap: this.externalRelsMap,
 			readFlipState: (xfrm) => this.readFlipState(xfrm),
-			parseTableData: (graphicData) => this.parseTableData(graphicData),
+			parseTableData: (graphicData, slidePath) => this.parseTableData(graphicData, slidePath),
 			parseMediaData: (graphicData, slidePath) => this.parseMediaData(graphicData, slidePath),
 			parseElementActions: (cNvPr, slideRelationships, orderedSlidePaths) =>
 				this.parseElementActions(cNvPr, slideRelationships, orderedSlidePaths),
