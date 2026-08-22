@@ -48,7 +48,10 @@ import { writeSeriesColorToSpPr } from '../../utils/chart-series-color-serialize
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
+import type { PptxChartWorkbookWrite } from '../../utils/chart-xlsx-writer';
+import { collectChartWorkbookWrite } from '../../utils/chart-xlsx-writer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
+import { saveChartExternalWorkbookUpdates } from './chart-external-workbook-save';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
 	buildChartPoints,
@@ -193,7 +196,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 
-		for (const { chartData } of this.pendingChartUpdates) {
+		for (const { chartData, slidePath } of this.pendingChartUpdates) {
 			if (chartData.colorPalette && chartData.colorStylePartPath) {
 				const paletteChanged =
 					JSON.stringify(chartData.colorPalette) !==
@@ -221,6 +224,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			try {
 				const chartXmlStr = await chartFile.async('string');
 				const chartXmlData = this.parser.parse(chartXmlStr) as XmlObject;
+				// Collected alongside the cache rewrite below and, once the chart
+				// XML is written back, handed to the embedded-workbook writer so
+				// "Edit Data in Excel" reflects the same edit; see
+				// `saveChartExternalWorkbookUpdates`.
+				const workbookWrites: PptxChartWorkbookWrite[] = [];
 
 				const chartSpace = this.xmlLookupService.getChildByLocalName(chartXmlData, 'chartSpace');
 				if (!chartSpace) {
@@ -334,6 +342,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const txNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'tx');
 					if (txNode) {
 						this.updateChartCacheValues(txNode, false, [seriesData.name]);
+						this.pushChartWorkbookWrite(workbookWrites, txNode, false, [seriesData.name]);
 					}
 
 					// Update category labels on every series (not just the first)
@@ -342,11 +351,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.xmlLookupService.getChildByLocalName(seriesNode, 'xVal');
 					if (catNode) {
 						const dateValues = chartData.dateCategories?.values.map(String);
-						this.updateChartCacheValues(
-							catNode,
-							Boolean(dateValues),
-							dateValues ?? chartData.categories,
-						);
+						const catValues = dateValues ?? chartData.categories;
+						const catIsNumeric = Boolean(dateValues);
+						this.updateChartCacheValues(catNode, catIsNumeric, catValues);
+						this.pushChartWorkbookWrite(workbookWrites, catNode, catIsNumeric, catValues);
 					}
 
 					// Update values
@@ -354,7 +362,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.xmlLookupService.getChildByLocalName(seriesNode, 'val') ||
 						this.xmlLookupService.getChildByLocalName(seriesNode, 'yVal');
 					if (valNode) {
-						this.updateChartCacheValues(valNode, true, seriesData.values.map(String));
+						const values = seriesData.values.map(String);
+						this.updateChartCacheValues(valNode, true, values);
+						this.pushChartWorkbookWrite(workbookWrites, valNode, true, values);
 					}
 
 					// Update series colour. Create `c:spPr` when the loaded series has
@@ -767,6 +777,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// Write updated chart XML back
 				this.zip.file(chartPartPath, this.builder.build(chartXmlData));
+
+				// Mirror the same edit into the embedded workbook (`ppt/embeddings/*.xlsx`)
+				// so "Edit Data in Excel" and any Excel recalculation see the new
+				// values too, instead of silently reverting them. Degrades to a
+				// compatibility warning, never throws; see
+				// `saveChartExternalWorkbookUpdates`.
+				await saveChartExternalWorkbookUpdates(
+					{
+						zip: this.zip,
+						resolveImagePath: (basePath, target) => this.resolveImagePath(basePath, target),
+						reportWarning: (warning) => this.compatibilityService.reportWarning(warning),
+					},
+					chartPartPath,
+					slidePath,
+					chartData.externalData,
+					workbookWrites,
+				);
 			} catch (e) {
 				console.warn(`[pptx-save] Failed to serialize chart data for ${chartPartPath}:`, e);
 			}
@@ -787,6 +814,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		upsertChartAxisChild(parent, localName, value, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
+	}
+
+	/**
+	 * Collect a workbook write-back entry for one chart cache container (a
+	 * series' `c:tx`, `c:cat`/`c:xVal`, or `c:val`/`c:yVal`), pushing it onto
+	 * `workbookWrites` when the container names a `c:f` formula reference.
+	 * Call alongside {@link updateChartCacheValues} with the SAME arguments
+	 * so the embedded workbook and the chart cache always agree. A no-op
+	 * when the container has no formula reference (e.g. a brand-new series
+	 * built without one), so it is always safe to call.
+	 */
+	protected pushChartWorkbookWrite(
+		workbookWrites: PptxChartWorkbookWrite[],
+		container: XmlObject | undefined,
+		isNumeric: boolean,
+		values: string[],
+	): void {
+		const write = collectChartWorkbookWrite(this.xmlLookupService, container, isNumeric, values);
+		if (write) {
+			workbookWrites.push(write);
+		}
 	}
 
 	/**
