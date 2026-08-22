@@ -91,7 +91,11 @@ describe('computeAutoFitTextStyle', () => {
 		expect(computeAutoFitTextStyle({ ...base, textStyle: ts }).lineHeight).toBeCloseTo(1.08, 5);
 	});
 
-	it('shrinks via heuristic when spAutoFit text overflows', () => {
+	it('never shrinks the font for spAutoFit, however much text overflows', () => {
+		// a:spAutoFit resizes the SHAPE to fit the text, not the font (ECMA-376).
+		// A box authored/edited in PowerPoint already has its `a:ext` set to the
+		// resized box, so the font must render at its authored size unshrunk even
+		// when the measured text would overflow a small box.
 		const ts: TextStyle = { autoFit: true, fontSize: 40, autoFitMode: 'shrink' };
 		const longText = 'x'.repeat(2000);
 		const result = computeAutoFitTextStyle({
@@ -101,8 +105,46 @@ describe('computeAutoFitTextStyle', () => {
 			height: 40,
 			textStyle: ts,
 		});
-		expect(result.fontSize).toBeDefined();
-		expect(result.fontSize!).toBeLessThan(40);
-		expect(result.fontSize!).toBeGreaterThanOrEqual(6);
+		expect(result).toStrictEqual({});
+	});
+
+	it('ignores a stale fontScale when autoFitMode is spAutoFit', () => {
+		// fontScale is a normAutofit-only attribute; a source that also stamps
+		// autoFitMode: 'shrink' must not have that stale value applied.
+		const ts: TextStyle = {
+			autoFit: true,
+			fontSize: 40,
+			autoFitMode: 'shrink',
+			autoFitFontScale: 0.5,
+		};
+		expect(computeAutoFitTextStyle({ ...base, textStyle: ts }).fontSize).toBeUndefined();
+	});
+
+	it('still applies the authored fontScale for normAutofit', () => {
+		const ts: TextStyle = {
+			autoFit: true,
+			fontSize: 40,
+			autoFitMode: 'normal',
+			autoFitFontScale: 0.5,
+		};
+		expect(computeAutoFitTextStyle({ ...base, textStyle: ts }).fontSize).toBe(20);
+	});
+
+	it('still applies lnSpcReduction for normAutofit but not for spAutoFit', () => {
+		const normal: TextStyle = {
+			autoFit: true,
+			lineSpacing: 1.2,
+			autoFitMode: 'normal',
+			autoFitLineSpacingReduction: 0.25,
+		};
+		expect(computeAutoFitTextStyle({ ...base, textStyle: normal }).lineHeight).toBeCloseTo(1.08, 5);
+
+		const shrink: TextStyle = {
+			autoFit: true,
+			lineSpacing: 1.2,
+			autoFitMode: 'shrink',
+			autoFitLineSpacingReduction: 0.25,
+		};
+		expect(computeAutoFitTextStyle({ ...base, textStyle: shrink }).lineHeight).toBeUndefined();
 	});
 });
