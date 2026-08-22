@@ -132,3 +132,6 @@ docs/public/_video-tmp/
 
 # Y.Doc snapshots persisted by demos/collab-server.example.mjs (local dev relay)
 /collab-data/
+
+# Scratch output of the OpenXML parity audit (agent findings, not shipped)
+/.parity-audit/

@@ -29,6 +29,14 @@
  *   solid-text     the same shape without
  *                  `a:noFill`                 - control: paints the inherited
  *                                               colour the hollow run must NOT
+ *   algn-in-control  rect, `a:ln/@algn="in"`  - control for `a:ln/@algn`: every
+ *                                               other line above omits `@algn`,
+ *                                               which PowerPoint defaults to
+ *                                               `ctr` (stroke centred on the
+ *                                               path, painted by the shared SVG
+ *                                               stroke overlay); this is the one
+ *                                               shape whose outline is still a
+ *                                               real CSS `border-box` border
  *
  * The bitmap is a 16x16 four-quadrant PNG with a black diagonal, so it is
  * asymmetric on BOTH axes: a missing tile, a missing mirror and a wrong anchor
@@ -79,6 +87,17 @@ const COMPOUND = (cmpd: string, extra = '') =>
 	`<a:ln w="${LINE_W}" cmpd="${cmpd}"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill>${extra}</a:ln>`;
 
 /**
+ * `a:ln` with an explicit `@algn="in"`: PowerPoint's inset pen alignment, the
+ * one case that still legitimately renders as a plain `border-box` CSS
+ * border. Every other line in this fixture omits `@algn`, which defaults to
+ * `ctr` and is painted by the shared SVG stroke overlay instead
+ * (`buildStrokeOutline` / `stroke-outline.ts`); this shape is the control that
+ * keeps the CSS-border path under test.
+ */
+const COMPOUND_IN = (cmpd: string) =>
+	`<a:ln w="${LINE_W}" cmpd="${cmpd}" algn="in"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill></a:ln>`;
+
+/**
  * `a:reflection` in the shape's `a:effectLst`. `@stPos` holds the reflection at
  * full `@stA` until that fraction of the fade, which is the attribute React
  * dropped; `@endPos` sets where it has faded out completely.
@@ -118,6 +137,18 @@ const SHAPES: ShapeSpec[] = [
 		fill: BLUE,
 		line: '',
 		effects: REFLECTION(0),
+	},
+	{
+		// Sits in the gap between the `a:ln` row (y 40-160) and the reflection
+		// row (y 210-280); an explicit `algn="in"`, unlike every other line
+		// above, so its outline stays a real CSS border.
+		name: 'algn-in-control',
+		x: 40,
+		y: 165,
+		w: 190,
+		h: 40,
+		fill: WHITE,
+		line: COMPOUND_IN('sng'),
 	},
 ];
 

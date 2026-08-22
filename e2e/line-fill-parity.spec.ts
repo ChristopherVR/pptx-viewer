@@ -25,6 +25,21 @@
  * and a pixel diff would fold in font and antialiasing noise that has nothing
  * to do with the outline.
  *
+ * A sixth case rides along here rather than getting its own spec: `a:ln/@algn`
+ * (pen alignment). PowerPoint's default, when `@algn` is omitted (as it is on
+ * every `a:ln` above), is `ctr` (the stroke straddles the shape's path, half
+ * outside the declared box). A `border-box` CSS border cannot straddle
+ * anything, so every one of `dbl`/`tri`/`sng` used to render `strokeWidth / 2`
+ * too small on each edge; they are now routed through the shared SVG stroke
+ * overlay (`buildStrokeOutline` in `stroke-outline.ts`), which zeroes the CSS
+ * border WIDTH for those shapes (each binding's Tailwind preflight still
+ * reports `border-top-style: solid` at that zero width; that reset value is
+ * not the fact under test, the overlay's own `<path>` strands are).
+ * `algn-in-control` is the one shape that explicitly declares `algn="in"`,
+ * PowerPoint's inset alignment, which is exactly what a `border-box` border
+ * already draws, so it is the control that keeps the CSS-border path under
+ * test.
+ *
  * Run: bunx playwright test line-fill-parity
  */
 import { expect, test } from '@playwright/test';
@@ -48,6 +63,16 @@ interface ElementFacts {
 	backgroundPosition: string;
 	/** The deepest text run's paint: `color | -webkit-text-fill-color | stroke`. */
 	runPaint: string;
+	/**
+	 * `stroke-width` (px) of each `<path>` in the shared stroke-outline overlay
+	 * (`svg[class*="gradient-outline"]`), in DOM order; `[]` when the element
+	 * has no overlay, i.e. its outline (if any) is a plain CSS border.
+	 */
+	strokeOverlayWidths: number[];
+	/** Computed `stroke` of the overlay's first `<path>`, or `''` with no overlay. */
+	strokeOverlayColor: string;
+	/** Computed `stroke-dasharray` of the overlay's first `<path>`, or `''` with no overlay. */
+	strokeOverlayDash: string;
 }
 
 test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
@@ -78,6 +103,17 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 					);
 					const run = runs[runs.length - 1];
 					const runCs = run ? getComputedStyle(run) : undefined;
+					// The shared stroke-outline overlay is an `<svg>` whose class ends in
+					// `-gradient-outline` (`pptx-react-gradient-outline`,
+					// `pptx-vue-gradient-outline`, `pptx-ng-gradient-outline`,
+					// `pptx-svelte-gradient-outline`, `pptx-vanilla-gradient-outline`); it
+					// is absent whenever the element's outline is a plain CSS border.
+					const overlaySvg = [...node.querySelectorAll('svg')].find((svg) =>
+						/gradient-outline/u.test(svg.getAttribute('class') ?? ''),
+					);
+					const overlayPaths = overlaySvg ? [...overlaySvg.querySelectorAll('path')] : [];
+					const firstOverlayPath = overlayPaths[0];
+					const overlayPathCs = firstOverlayPath ? getComputedStyle(firstOverlayPath) : undefined;
 					return {
 						borderTopStyle: own.borderTopStyle,
 						borderTopWidth: own.borderTopWidth,
@@ -91,6 +127,11 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 						runPaint: runCs
 							? `${runCs.color} | ${runCs.webkitTextFillColor} | ${runCs.webkitTextStrokeWidth} ${runCs.webkitTextStrokeColor}`
 							: '-',
+						strokeOverlayWidths: overlayPaths.map((path) =>
+							Number.parseFloat(getComputedStyle(path).strokeWidth),
+						),
+						strokeOverlayColor: overlayPathCs?.stroke ?? '',
+						strokeOverlayDash: overlayPathCs?.strokeDasharray ?? '',
 					} satisfies ElementFacts;
 				});
 			});
@@ -98,9 +139,9 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 
 		expect(results.length).toBeGreaterThan(1);
 
-		// Every binding must see the same nine elements.
+		// Every binding must see the same ten elements.
 		for (const result of results) {
-			expect(result.value, `${result.framework.name} element count`).toHaveLength(9);
+			expect(result.value, `${result.framework.name} element count`).toHaveLength(10);
 		}
 
 		const [reference, ...rest] = results;
@@ -118,18 +159,47 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 			sng,
 			reflectionHold,
 			reflectionPlain,
+			algnInControl,
 			tilePlain,
 			tileCentred,
 			hollowText,
 			solidText,
 		] = reference.value;
 
-		// `dbl` / `tri` -> a real multi-strand border at the FULL authored width
-		// (6 pt = 8 px); `sng` -> one solid stroke of the same weight.
-		expect(dbl.borderTopStyle).toBe('double');
-		expect(tri.borderTopStyle).toBe('double');
-		expect(sng.borderTopStyle).toBe('solid');
-		expect(dbl.borderTopWidth).toBe(sng.borderTopWidth);
+		// None of `dbl`/`tri`/`sng` declare `a:ln/@algn`, so PowerPoint's default
+		// (`ctr`, the stroke centred on the path) applies. A `border-box` CSS
+		// border cannot straddle the box edge the way a centred stroke does, so
+		// the shared stroke-outline overlay paints these instead and the CSS
+		// border WIDTH is suppressed to 0 (each binding's Tailwind preflight
+		// still leaves `border-top-style` at its reset value of `solid` even at
+		// zero width, which paints nothing and is not the fact under test here;
+		// the overlay strand assertions below are).
+		expect(dbl.borderTopWidth).toBe('0px');
+		expect(tri.borderTopWidth).toBe('0px');
+		expect(sng.borderTopWidth).toBe('0px');
+
+		// `sng` -> one overlay strand at the FULL authored width (6 pt = 8 px).
+		// `dbl` / `tri` split that same width into two / three parallel strands
+		// that sum back to it (the compound line divides the weight, it does not
+		// add to it), all painted the outline's own colour with no dash.
+		expect(sng.strokeOverlayWidths).toStrictEqual([8]);
+		expect(dbl.strokeOverlayWidths).toStrictEqual([4, 4]);
+		expect(tri.strokeOverlayWidths).toStrictEqual([2.4, 3.2, 2.4]);
+		expect(dbl.strokeOverlayWidths.reduce((a, b) => a + b, 0)).toBe(sng.strokeOverlayWidths[0]);
+		expect(tri.strokeOverlayWidths.reduce((a, b) => a + b, 0)).toBe(sng.strokeOverlayWidths[0]);
+		expect(sng.strokeOverlayColor).toBe('rgb(192, 0, 0)');
+		expect(dbl.strokeOverlayColor).toBe(sng.strokeOverlayColor);
+		expect(tri.strokeOverlayColor).toBe(sng.strokeOverlayColor);
+		expect(sng.strokeOverlayDash).toBe('none');
+
+		// `algn-in-control` explicitly declares `algn="in"`, PowerPoint's inset
+		// alignment, which is exactly what a `border-box` CSS border already
+		// draws: no stroke overlay at all, and a real solid border at the
+		// authored width.
+		expect(algnInControl.strokeOverlayWidths).toStrictEqual([]);
+		expect(algnInControl.strokeOverlayColor).toBe('');
+		expect(algnInControl.borderTopStyle).toBe('solid');
+		expect(algnInControl.borderTopWidth).toBe('8px');
 
 		// `a:miter/@lim="800000"` is 800% -> an SVG ratio of 8 (4 is the default).
 		expect(sng.strokeMiterlimit).toBe('8');
