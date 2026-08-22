@@ -10,6 +10,20 @@ dated sections beneath it are generated from
 
 ## 2026-08-22
 
+_Releases: pptx-react-viewer@3.0.2, pptx-vue-viewer@3.0.2, pptx-angular-viewer@3.0.2, pptx-vanilla-viewer@2.0.2, pptx-svelte-viewer@3.0.2, @christophervr/pptx-viewer@2.0.2_
+
+### Bug Fixes
+
+- **react:** Host selection handles in a stage-level overlay, as the other bindings do (by @ChristopherVR) ([d06780a](https://github.com/ChristopherVR/pptx-viewer/commit/d06780a63a074e77201076b9c7dd2d0bd5690b9b))
+- **shared,angular:** Stop the stroke overlay inventing outlines, and finish the Angular whitespace fix (by @ChristopherVR) ([20d4d17](https://github.com/ChristopherVR/pptx-viewer/commit/20d4d177fee97b5f4452a0da739fd51ebaa9e183))
+- **angular:** Stop control-flow blocks leaking whitespace into text, durably (by @ChristopherVR) ([df6a7d7](https://github.com/ChristopherVR/pptx-viewer/commit/df6a7d71cd11bce35a87cd40a0051162a382c152))
+
+### Reverts
+
+- **react:** Restore the element renderer's DOM structure (by @ChristopherVR) ([b75440e](https://github.com/ChristopherVR/pptx-viewer/commit/b75440e7091579ea5dde6d76e8d350f808e9a447))
+
+## 2026-08-22
+
 _Releases: pptx-viewer-core@3.0.1, pptx-react-viewer@3.0.1, pptx-vue-viewer@3.0.1, pptx-angular-viewer@3.0.1, pptx-vanilla-viewer@2.0.1, pptx-svelte-viewer@3.0.1, pptx-viewer-mcp@2.1.6, @christophervr/pptx-viewer@2.0.1_
 
 ### Bug Fixes

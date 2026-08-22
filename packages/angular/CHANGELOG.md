@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.0.2) - 2026-08-22
+
+### Bug Fixes
+
+- **shared,angular:** Stop the stroke overlay inventing outlines, and finish the Angular whitespace fix (by @ChristopherVR) ([20d4d17](https://github.com/ChristopherVR/pptx-viewer/commit/20d4d177fee97b5f4452a0da739fd51ebaa9e183))
+- **angular:** Stop control-flow blocks leaking whitespace into text, durably (by @ChristopherVR) ([df6a7d7](https://github.com/ChristopherVR/pptx-viewer/commit/df6a7d71cd11bce35a87cd40a0051162a382c152))
+
 ## [3.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.0.1) - 2026-08-22
 
 ### Bug Fixes
