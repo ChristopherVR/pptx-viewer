@@ -97,6 +97,58 @@ async function paintOf(page: Page, idSuffix: string): Promise<Paint | null> {
 	}, idSuffix);
 }
 
+/** The parallel strokes an outline's SVG overlay paints for one shape. */
+interface OutlineStrands {
+	strandCount: number;
+	totalStrokeWidth: number;
+	stroke: string;
+}
+
+/**
+ * Read the stroke-overlay SVG (`svg[class*="gradient-outline"]`, see
+ * `pptx-viewer-shared`'s `stroke-outline.ts`) nested inside the largest
+ * element with this id suffix.
+ *
+ * A centred line (`a:ln/@algn` omitted, PowerPoint's default) no longer paints
+ * as a CSS `border`: it is stroked as a real SVG `<path>` per strand, because
+ * `border-box` cannot straddle the shape's own edge the way a centred stroke
+ * must. `cmpd="dbl"` becomes two parallel `<path>` strands; `cmpd="sng"` stays
+ * one. Every binding names the overlay's class `*-gradient-outline`.
+ */
+async function outlineStrandsOf(page: Page, idSuffix: string): Promise<OutlineStrands | null> {
+	return page.evaluate((suffix) => {
+		let best: HTMLElement | undefined;
+		let bestArea = 0;
+		for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+			if (!(node.dataset.elementId ?? '').endsWith(suffix)) {
+				continue;
+			}
+			const box = node.getBoundingClientRect();
+			if (box.width * box.height > bestArea) {
+				bestArea = box.width * box.height;
+				best = node;
+			}
+		}
+		if (!best) {
+			return null;
+		}
+		const svg = best.querySelector<SVGElement>('svg[class*="gradient-outline"]');
+		if (!svg) {
+			return null;
+		}
+		const paths = Array.from(svg.querySelectorAll<SVGPathElement>('path'));
+		if (paths.length === 0) {
+			return null;
+		}
+		const widths = paths.map((path) => Number.parseFloat(getComputedStyle(path).strokeWidth) || 0);
+		return {
+			strandCount: paths.length,
+			totalStrokeWidth: widths.reduce((sum, width) => sum + width, 0),
+			stroke: getComputedStyle(paths[0]).stroke,
+		};
+	}, idSuffix);
+}
+
 /**
  * How many bullet markers the three-paragraph list actually paints.
  *
@@ -153,19 +205,22 @@ test.describe('compound outlines (a:ln/@cmpd)', () => {
 	test('a dbl outline paints as more than one strand', async ({ page }) => {
 		await loadDeck(page);
 
-		const compound = await paintOf(page, 'shape-2');
-		const single = await paintOf(page, 'shape-3');
-		expect(compound, 'found the compound-outlined shape').not.toBeNull();
-		expect(single, 'found the control shape').not.toBeNull();
+		const compound = await outlineStrandsOf(page, 'shape-2');
+		const single = await outlineStrandsOf(page, 'shape-3');
+		expect(compound, "found the compound-outlined shape's stroke overlay").not.toBeNull();
+		expect(single, "found the control shape's stroke overlay").not.toBeNull();
 
-		// `border-style: double` is the one CSS border style that paints two
-		// strands with a gap, which is what `cmpd="dbl"` means. The control shape
-		// is the same width and colour with `cmpd="sng"`.
-		expect(compound?.borderTopStyle).toBe('double');
-		expect(single?.borderTopStyle).toBe('solid');
-		// Same authored `a:ln/@w`, so the compound line must not be drawn thinner.
-		expect(compound?.borderTopWidth).toBe(single?.borderTopWidth);
-		expect(compound?.borderTopColor).toBe(single?.borderTopColor);
+		// Both shapes omit `a:ln/@algn`, PowerPoint's default `ctr`, so neither
+		// paints a CSS border any more (a `border-box` border cannot straddle the
+		// shape's own edge): both stroke an SVG overlay path instead. `cmpd="dbl"`
+		// spreads into two parallel strands; the control shape's `cmpd="sng"`
+		// stays one. A binding that ignores `@cmpd` emits a single strand for both.
+		expect(compound?.strandCount).toBe(2);
+		expect(single?.strandCount).toBe(1);
+		// Same authored `a:ln/@w`, so the compound line's strands must sum back to
+		// the control's whole width rather than being drawn thinner overall.
+		expect(compound?.totalStrokeWidth).toBeCloseTo(single?.totalStrokeWidth ?? 0, 0);
+		expect(compound?.stroke).toBe(single?.stroke);
 	});
 });
 

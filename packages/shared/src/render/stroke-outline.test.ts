@@ -141,6 +141,18 @@ describe('buildStrokeOutline', () => {
 		expect(explicit).toStrictEqual(omitted);
 	});
 
+	it('never centres a width-only, fill-less line: PowerPoint paints no outline for it', () => {
+		// `<a:ln w="12700"><a:miter .../></a:ln>` with no fill child and no
+		// `<p:style>/<a:lnRef>` leaves the line's colour unspecified. Core parses
+		// it as `strokeWidth > 0` with `strokeColor`/`strokeFillMode` both
+		// `undefined` (see `hasStrokePaint`); a renderer must treat that as "no
+		// line" rather than inventing one from `DEFAULT_STROKE_COLOR`. This is the
+		// real-world media deck's picture frame: three photos each carry exactly
+		// this markup and PowerPoint renders them frameless.
+		expect(buildStrokeOutline(shape({ strokeWidth: 4 }))).toBeUndefined();
+		expect(suppressesCssBorder(shape({ strokeWidth: 4 }))).toBeFalsy();
+	});
+
 	it('tells the binding when to drop its CSS border', () => {
 		expect(suppressesCssBorder(shape(gradientStroke))).toBeTruthy();
 		expect(

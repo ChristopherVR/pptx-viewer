@@ -41,6 +41,7 @@ import { getSvgStrokeDasharray, normalizeStrokeDashType } from './element-style-
 import { colorWithOpacity } from './fill-style';
 import { getResolvedShapeClipPath } from './shape-geometry';
 import { strokeOnlyPresetPathData } from './stroke-only-preset';
+import { hasStrokePaint } from './stroke-paint';
 import {
 	buildSvgStrokeGradientDef,
 	buildSvgStrokePatternDef,
@@ -172,13 +173,19 @@ function outlineStrands(
  *    open it, in which case `getResolvedShapeClipPath` fails identically and
  *    `outlinePathData` would fall back to a full rectangle - worse than the
  *    single-edge `lineEdge` CSS approximation the binding falls back to.
+ *  - A width-only, fill-less line (see `hasStrokePaint`): PowerPoint paints no
+ *    outline for it at all, so this overlay must not invent one from
+ *    `DEFAULT_STROKE_COLOR` either. This is the same picture-frame case
+ *    `getComputedStrokeStyle` already excludes from the CSS border; missing it
+ *    here reintroduced the bug through the overlay instead, painting every
+ *    frameless picture in the real-world media deck with a dark 1px frame.
  */
 function needsCenteredStrokeOverlay(
 	element: PptxElement,
 	style: ShapeStyle | undefined,
 	declaredWidth: number,
 ): boolean {
-	if (!style || declaredWidth <= 0 || element.type === 'connector') {
+	if (!style || declaredWidth <= 0 || element.type === 'connector' || !hasStrokePaint(style)) {
 		return false;
 	}
 	const shapeType = getShapeType((element as { shapeType?: string }).shapeType);
