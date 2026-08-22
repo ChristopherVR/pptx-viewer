@@ -1,9 +1,12 @@
 /**
  * Stroked SVG OUTLINES: gradient/pattern lines (`a:ln/a:gradFill`,
- * `a:ln/a:pattFill`) and stroke-only ("open") preset geometry.
+ * `a:ln/a:pattFill`), stroke-only ("open") preset geometry, and centred
+ * (`a:ln/@algn="ctr"`) solid lines.
  *
  * Every binding paints a shape's outline as a CSS `border`, which can only take
- * a single flat colour, and can only outline a BOX. That breaks two ways:
+ * a single flat colour, can only outline a BOX, and - because `box-sizing:
+ * border-box` puts the whole border INSIDE the element's declared box - can only
+ * express `a:ln/@algn="in"`. That breaks three ways:
  *
  *  - A gradient outline was rendered with the parser's averaged `strokeColor`
  *    (two-tone came out flat, fade-to-transparent came out opaque), and a
@@ -13,15 +16,24 @@
  *    …) has no region to fill and no box to outline, so a CSS border drew a
  *    RECTANGLE where PowerPoint draws a line or an arc. See
  *    `./stroke-only-preset`.
+ *  - `@algn="ctr"` is PowerPoint's DEFAULT (an omitted `@algn` means `ctr`, not
+ *    `in`): the line straddles the shape's path, half outside the box and half
+ *    over the fill. A `border-box` CSS border cannot straddle anything - it can
+ *    only sit flush with the box edge - so every bordered shape at the default
+ *    alignment rendered `strokeWidth / 2` too small on each edge. An SVG
+ *    `<path>` stroke is centred on the path by definition, so routing the
+ *    default-aligned case through this same overlay is the fix; `@algn="in"`
+ *    keeps the cheap `border-box` CSS border, which is already exactly right.
  *
- * CSS has no way to fix either in place - `border-image` ignores `border-radius`
- * and cannot follow a `clip-path` - so the outline is instead stroked as a real
- * SVG path laid over the element, using the shape's own resolved geometry. This
- * module turns an element into everything a binding needs for that overlay; the
+ * CSS has no way to fix any of these in place - `border-image` ignores
+ * `border-radius` and cannot follow a `clip-path`, and no CSS property centres a
+ * border on the box edge - so the outline is instead stroked as a real SVG path
+ * laid over the element, using the shape's own resolved geometry. This module
+ * turns an element into everything a binding needs for that overlay; the
  * bindings supply only the ~10 lines of view layer.
  */
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import { MIN_ELEMENT_SIZE, hasShapeProperties } from 'pptx-viewer-core';
+import { MIN_ELEMENT_SIZE, getShapeType, hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../constants';
 import { getCompoundLineOffsets, getCompoundLineWidths, svgLineCap } from './connector-style';
@@ -148,14 +160,44 @@ function outlineStrands(
 }
 
 /**
- * Resolve the SVG overlay that paints an element's outline, or `undefined` when
- * the binding's CSS border is correct and cheaper (the ordinary case: a closed
- * preset with a flat solid line).
+ * Whether a closed shape's flat, solid line needs the SVG overlay because its
+ * alignment is centred (`ctr`, PowerPoint's default when `a:ln/@algn` is
+ * omitted) rather than inset (`in`).
  *
- * Two things need the overlay: a gradient/pattern line, which a CSS border
- * cannot express, and a stroke-only preset, which has no box to put a border
- * on. The second is painted with a flat colour, so `paint` is `undefined` there
- * and `stroke` carries the colour instead.
+ * Excluded even when centred:
+ *  - Connectors: their line is painted entirely by the dedicated connector
+ *    renderer (arrows, hit-target, compound strands), never by this overlay.
+ *  - The `line` preset: it is normally stroke-only (routed through
+ *    `openPresetD` above) and only reaches here when the evaluator fails to
+ *    open it, in which case `getResolvedShapeClipPath` fails identically and
+ *    `outlinePathData` would fall back to a full rectangle - worse than the
+ *    single-edge `lineEdge` CSS approximation the binding falls back to.
+ */
+function needsCenteredStrokeOverlay(
+	element: PptxElement,
+	style: ShapeStyle | undefined,
+	declaredWidth: number,
+): boolean {
+	if (!style || declaredWidth <= 0 || element.type === 'connector') {
+		return false;
+	}
+	const shapeType = getShapeType((element as { shapeType?: string }).shapeType);
+	if (shapeType === 'line') {
+		return false;
+	}
+	return style.lineAlignment !== 'in';
+}
+
+/**
+ * Resolve the SVG overlay that paints an element's outline, or `undefined` when
+ * the binding's CSS border is correct and cheaper (a closed shape whose line is
+ * explicitly inset, `a:ln/@algn="in"`).
+ *
+ * Three things need the overlay: a gradient/pattern line, which a CSS border
+ * cannot express; a stroke-only preset, which has no box to put a border on;
+ * and a centred (`ctr`, the default) solid line, which a `border-box` CSS
+ * border cannot straddle. The last two are painted with a flat colour, so
+ * `paint` is `undefined` there and `stroke` carries the colour instead.
  */
 export function buildStrokeOutline(element: PptxElement): StrokeOutline | undefined {
 	if (!hasShapeProperties(element)) {
@@ -175,7 +217,9 @@ export function buildStrokeOutline(element: PptxElement): StrokeOutline | undefi
 			? (buildSvgStrokeGradientDef(style, element.id) ??
 				buildSvgStrokePatternDef(style, element.id))
 			: undefined;
-	if (!paint && !openPresetD) {
+	const centeredFlatStroke =
+		!paint && !openPresetD && needsCenteredStrokeOverlay(element, style, declaredWidth);
+	if (!paint && !openPresetD && !centeredFlatStroke) {
 		return undefined;
 	}
 	const d =

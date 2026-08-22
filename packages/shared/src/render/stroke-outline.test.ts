@@ -101,17 +101,80 @@ describe('buildStrokeOutline', () => {
 		expect(outline!.lineJoin).toBe('bevel');
 	});
 
-	it('is undefined for a solid outline, no outline, or zero width', () => {
-		expect(buildStrokeOutline(shape({ strokeColor: '#000', strokeWidth: 2 }))).toBeUndefined();
-		expect(buildStrokeOutline(shape({ ...gradientStroke, strokeWidth: 0 }))).toBeUndefined();
+	it('is undefined for an inset solid outline or zero width', () => {
+		// `algn: 'in'` is the one case a `border-box` CSS border is already
+		// correct: the line sits entirely inside the shape's path, which is
+		// exactly what `box-sizing: border-box` draws.
 		expect(
-			buildStrokeOutline(shape({ ...gradientStroke, strokeGradientStops: [] })),
+			buildStrokeOutline(shape({ strokeColor: '#000', strokeWidth: 2, lineAlignment: 'in' })),
 		).toBeUndefined();
+		expect(buildStrokeOutline(shape({ ...gradientStroke, strokeWidth: 0 }))).toBeUndefined();
+	});
+
+	it('falls back to a flat centred stroke when the gradient itself fails to resolve', () => {
+		// The gradient has no stops to build a paint server from, but the shape is
+		// still at the default `ctr` alignment, so the overlay still fires with
+		// the flat `strokeColor` instead of the (unresolvable) gradient.
+		const outline = buildStrokeOutline(shape({ ...gradientStroke, strokeGradientStops: [] }));
+		expect(outline).toBeDefined();
+		expect(outline!.paint).toBeUndefined();
+		expect(outline!.stroke).toBe(gradientStroke.strokeColor);
+	});
+
+	it('centres a default-aligned solid outline instead of leaving it to the border-box border', () => {
+		// An omitted `a:ln/@algn` means `ctr` (PowerPoint's default): the line
+		// straddles the path half in / half out, which a `border-box` CSS border
+		// cannot express (it can only sit flush with the box edge).
+		const outline = buildStrokeOutline(shape({ strokeColor: '#123456', strokeWidth: 4 }));
+		expect(outline).toBeDefined();
+		expect(outline!.paint).toBeUndefined();
+		expect(outline!.stroke).toBe('#123456');
+		expect(outline!.strokeWidth).toBe(4);
+		expect(outline!.d).toContain('M ');
+	});
+
+	it('an explicit ctr alignment behaves exactly like the omitted default', () => {
+		const omitted = buildStrokeOutline(shape({ strokeColor: '#123456', strokeWidth: 4 }));
+		const explicit = buildStrokeOutline(
+			shape({ strokeColor: '#123456', strokeWidth: 4, lineAlignment: 'ctr' }),
+		);
+		expect(explicit).toStrictEqual(omitted);
 	});
 
 	it('tells the binding when to drop its CSS border', () => {
 		expect(suppressesCssBorder(shape(gradientStroke))).toBeTruthy();
-		expect(suppressesCssBorder(shape({ strokeColor: '#000', strokeWidth: 2 }))).toBeFalsy();
+		expect(
+			suppressesCssBorder(shape({ strokeColor: '#000', strokeWidth: 2, lineAlignment: 'in' })),
+		).toBeFalsy();
+		expect(suppressesCssBorder(shape({ strokeColor: '#000', strokeWidth: 2 }))).toBeTruthy();
+	});
+
+	it('never centres a connector even at the default alignment', () => {
+		// Connectors are painted entirely by the dedicated connector renderer
+		// (arrows, hit-target, compound strands), never by this overlay.
+		expect(
+			buildStrokeOutline(
+				shape({ strokeColor: '#000', strokeWidth: 2 }, {
+					type: 'connector',
+				} as Partial<PptxElement>),
+			),
+		).toBeUndefined();
+	});
+
+	it('never centres a custom-geometry shape typed "line", where the CSS lineEdge fallback beats a full-rectangle overlay', () => {
+		// `shapeType: 'line'` combined with `pathData` is the one case
+		// `getStrokeOnlyPresetPaths` deliberately declines (custom geometry
+		// already renders through the `pathData` branch), so the evaluator-backed
+		// centred overlay must decline it too rather than falling back to a
+		// bounding-box rectangle.
+		expect(
+			buildStrokeOutline(
+				shape({ strokeColor: '#000', strokeWidth: 2 }, {
+					shapeType: 'line',
+					pathData: 'M 0 0 L 200 100',
+				} as Partial<PptxElement>),
+			),
+		).toBeUndefined();
 	});
 });
 
@@ -160,10 +223,21 @@ describe('buildStrokeOutline stroke-only ("open") presets', () => {
 		expect(outline!.d).toBe('M 0 0 L 100 0 L 100 120 L 200 120');
 	});
 
-	it('leaves closed presets to the CSS border', () => {
+	it('leaves closed presets to the CSS border only when the line is explicitly inset', () => {
 		for (const shapeType of ['rect', 'ellipse', 'roundRect', 'triangle']) {
-			expect(buildStrokeOutline(line({ shapeType, width: 200, height: 120 }))).toBeUndefined();
-			expect(suppressesCssBorder(line({ shapeType, width: 200, height: 120 }))).toBeFalsy();
+			const inset = line({ shapeType, width: 200, height: 120 }, { lineAlignment: 'in' });
+			expect(buildStrokeOutline(inset)).toBeUndefined();
+			expect(suppressesCssBorder(inset)).toBeFalsy();
+		}
+	});
+
+	it('centres a closed preset at the default (omitted) alignment instead', () => {
+		for (const shapeType of ['rect', 'ellipse', 'roundRect', 'triangle']) {
+			const centered = line({ shapeType, width: 200, height: 120 });
+			const outline = buildStrokeOutline(centered);
+			expect(outline).toBeDefined();
+			expect(outline!.paint).toBeUndefined();
+			expect(suppressesCssBorder(centered)).toBeTruthy();
 		}
 	});
 
@@ -236,10 +310,16 @@ describe('buildStrokeOutline pattern outlines', () => {
 		expect(suppressesCssBorder(shape(patternStroke))).toBeTruthy();
 	});
 
-	it('keeps the solid fallback for a preset it cannot draw', () => {
-		expect(
-			buildStrokeOutline(shape({ ...patternStroke, strokePatternPreset: 'notARealPreset' })),
-		).toBeUndefined();
+	it('falls back to a flat centred stroke for a preset it cannot draw', () => {
+		// The pattern itself fails to resolve, but the shape is still at the
+		// default `ctr` alignment, so the overlay still fires - now with the flat
+		// `strokeColor` rather than the (unresolvable) pattern paint.
+		const outline = buildStrokeOutline(
+			shape({ ...patternStroke, strokePatternPreset: 'notARealPreset' }),
+		);
+		expect(outline).toBeDefined();
+		expect(outline!.paint).toBeUndefined();
+		expect(outline!.stroke).toBe('#112233');
 	});
 
 	it('prefers a gradient outline when a style somehow carries both', () => {

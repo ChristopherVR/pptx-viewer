@@ -22,6 +22,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import { DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
+import { suppressesCssFill } from './subpath-fill-overlay';
 
 // ---------------------------------------------------------------------------
 // Color primitives (inlined from React `color-core.ts`)
@@ -1186,6 +1187,16 @@ export function getComputedFillStyle(
 	const ss = element.shapeStyle;
 	if (!ss) {
 		return {};
+	}
+
+	// A multi-sub-path preset (e.g. `smileyFace`, `actionButtonBlank`) or custom
+	// geometry whose sub-paths carry their own `@fill` mode is painted by the
+	// per-sub-path SVG overlay instead (`buildSubpathFillOverlay`): a single flat
+	// `background-color` here would show through underneath it, and for a
+	// `fill="none"` sub-path (the smiley's eyes) it would paint a solid dot
+	// where PowerPoint draws nothing.
+	if (suppressesCssFill(element)) {
+		return { backgroundColor: 'transparent' };
 	}
 
 	// grpFill inheritance: paint the parent group's resolved fill in this
