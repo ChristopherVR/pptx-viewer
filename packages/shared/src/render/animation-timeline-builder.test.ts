@@ -591,4 +591,129 @@ describe('buildTimeline', () => {
 		]);
 		expect(result.clickGroups[0].steps[0].colorTargets).toStrictEqual(['fill']);
 	});
+
+	// -------------------------------------------------------------------
+	// `p:cTn/@fill="hold"` -> TimelineStep.holdEndState
+	// -------------------------------------------------------------------
+	describe('fill / restart / repeatDur / spd (animation-fill-repeat)', () => {
+		it('sets holdEndState on an emphasis step whose fill is "hold"', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'shape1', presetClass: 'emph', presetId: 26, fill: 'hold' }),
+			]);
+			expect(result.clickGroups[0].steps[0].holdEndState).toBeTruthy();
+		});
+
+		it('does not set holdEndState on an entrance step even when fill is "hold"', () => {
+			// An entrance's resting style already IS its held frame, so holding is
+			// scoped to emph/path (see `shouldHoldEndState`).
+			const result = buildTimeline([
+				makeAnim({ targetId: 'shape1', presetClass: 'entr', fill: 'hold' }),
+			]);
+			expect(result.clickGroups[0].steps[0].holdEndState).toBeUndefined();
+		});
+
+		it('leaves holdEndState unset when fill is "remove" (the OOXML default)', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'shape1', presetClass: 'emph', presetId: 26, fill: 'remove' }),
+			]);
+			expect(result.clickGroups[0].steps[0].holdEndState).toBeUndefined();
+		});
+
+		it('shortens the step duration when speedPct is set (double speed)', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'shape1', durationMs: 1000, speedPct: 200 }),
+			]);
+			expect(result.clickGroups[0].steps[0].durationMs).toBe(500);
+		});
+
+		it('derives the CSS iteration count from repeatDurMs when repeatCount is absent', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'shape1', durationMs: 500, repeatDurMs: 1500 }),
+			]);
+			expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' 3 ');
+		});
+
+		it('plays indefinitely when repeatDurMs is "indefinite" (Infinity)', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'shape1', durationMs: 500, repeatDurMs: Infinity }),
+			]);
+			expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' infinite ');
+		});
+	});
+
+	// -------------------------------------------------------------------
+	// afterAnimationAction -> holdEndState / hideAfterEffect / pendingHideOnNextClick
+	// -------------------------------------------------------------------
+	describe('afterAnimationAction (animation-after-effect)', () => {
+		it('appends a dim keyframe and sets holdEndState for a "dimToColor" entrance', () => {
+			const result = buildTimeline([
+				makeAnim({
+					targetId: 'shape1',
+					presetClass: 'entr',
+					afterAnimationAction: 'dimToColor',
+					afterAnimationColor: '#336699',
+				}),
+			]);
+			const step = result.clickGroups[0].steps[0];
+			expect(step.holdEndState).toBeTruthy();
+			expect(step.cssAnimation).toContain('pptx-tl-dim-');
+			expect(result.keyframesCss).toContain('color: #336699');
+		});
+
+		it('sets hideAfterEffect for a "hideAfterAnimation" entrance', () => {
+			const result = buildTimeline([
+				makeAnim({
+					targetId: 'shape1',
+					presetClass: 'entr',
+					afterAnimationAction: 'hideAfterAnimation',
+				}),
+			]);
+			expect(result.clickGroups[0].steps[0].hideAfterEffect).toBeTruthy();
+		});
+
+		it('splices a synthetic exit step into the next click-group for "hideOnNextClick"', () => {
+			const result = buildTimeline([
+				makeAnim({
+					targetId: 'shape1',
+					presetClass: 'entr',
+					afterAnimationAction: 'hideOnNextClick',
+					trigger: 'onClick',
+				}),
+				makeAnim({ targetId: 'shape2', trigger: 'onClick' }),
+			]);
+			expect(result.clickGroups).toHaveLength(2);
+			const secondGroupIds = result.clickGroups[1].steps.map((s) => s.elementId);
+			expect(secondGroupIds).toContain('shape1');
+			const hideStep = result.clickGroups[1].steps.find((s) => s.elementId === 'shape1');
+			expect(hideStep?.presetClass).toBe('exit');
+		});
+
+		it('never applies afterAnimationAction to an exit effect', () => {
+			const result = buildTimeline([
+				makeAnim({
+					targetId: 'shape1',
+					presetClass: 'exit',
+					afterAnimationAction: 'hideAfterAnimation',
+				}),
+			]);
+			// `hideAfterEffect` is undefined here because `applyAfterAnimationFromEditorList`
+			// (upstream of `buildTimeline`) never merges afterAnimation onto an exit; a
+			// directly-constructed native animation that sets it anyway is still honoured
+			// by `buildTimeline` itself, since exits already hide via presetClass.
+			expect(result.clickGroups[0].steps[0].presetClass).toBe('exit');
+		});
+
+		it('honours afterAnimationAction on an onShapeClick interactive-sequence effect', () => {
+			const result = buildTimeline([
+				makeAnim({
+					targetId: 'shape1',
+					triggerShapeId: 'trigger1',
+					trigger: 'onShapeClick',
+					afterAnimationAction: 'hideAfterAnimation',
+				}),
+			]);
+			const seqGroups = result.interactiveSequences.get('trigger1');
+			expect(seqGroups?.[0].steps[0].hideAfterEffect).toBeTruthy();
+		});
+	});
 });

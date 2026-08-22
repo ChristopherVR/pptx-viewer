@@ -88,10 +88,17 @@ export function applyAnimationGroupSteps(
 						visible: true,
 						cssAnimation: undefined,
 					};
-					const visibleAfterStep = step.presetClass === 'exit' ? false : currentState.visible;
+					// `afterAnimation: "hideAfterAnimation"` hides the element once its
+					// (entrance/emphasis) effect ends, overriding the normal
+					// presetClass-based visibility.
+					const visibleAfterStep =
+						step.presetClass === 'exit' || step.hideAfterEffect ? false : currentState.visible;
+					// `p:cTn/@fill="hold"` (or "freeze"/"transition"): keep the CSS
+					// animation attached so its final frame persists, instead of
+					// dropping `fill-mode` along with the animation shorthand.
 					nextStates.set(step.elementId, {
 						visible: visibleAfterStep,
-						cssAnimation: undefined,
+						cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
 					});
 					return nextStates;
 				});

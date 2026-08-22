@@ -225,6 +225,52 @@ export interface PptxNativeAnimation {
 	/** Whether to stop any currently playing sound (`p:endSnd`). */
 	stopSound?: boolean;
 	/**
+	 * End-state behaviour from `p:cTn/@fill` (ST_TLTimeNodeFillType, ECMA-376
+	 * §19.5.27). `hold`/`freeze` mean the effect's final frame persists after
+	 * it finishes; `remove` (the default when absent) means the target reverts
+	 * to its pre-effect appearance. `transition` behaves like `hold` until the
+	 * next time node starts. Absent means the OOXML default (`remove`).
+	 */
+	fill?: 'remove' | 'freeze' | 'hold' | 'transition';
+	/**
+	 * Restart behaviour from `p:cTn/@restart` (ST_TLTimeNodeRestartType).
+	 * Absent means the OOXML default (`always`).
+	 */
+	restart?: 'always' | 'whenNotActive' | 'never';
+	/**
+	 * Repeat duration in milliseconds from `p:cTn/@repeatDur`. `Infinity`
+	 * represents the literal `"indefinite"` token.
+	 */
+	repeatDurMs?: number;
+	/**
+	 * Playback speed multiplier from `p:cTn/@spd` (ST_Percentage, normalized
+	 * from OOXML's 1000ths-of-a-percent storage to a plain percentage, e.g.
+	 * `150` for 150% / double speed). Absent means normal (100%) speed.
+	 */
+	speedPct?: number;
+	/**
+	 * Reverse the paragraph build order from `p:bldP/@rev` (TEXT build only).
+	 * Not to be confused with {@link PptxGraphicBuild}'s `reverse` field, which
+	 * carries the unrelated `p:bldDgm`/`@rev` DIAGRAM-build reverse flag.
+	 */
+	buildReverse?: boolean;
+	/**
+	 * Auto-advance time in milliseconds from `p:bldP/@advAuto`. `Infinity`
+	 * represents the literal `"indefinite"` token. Absent means the build
+	 * step waits for a click.
+	 */
+	buildAdvAutoMs?: number;
+	/**
+	 * Whether the enclosing `p:seq` allows concurrent play with its siblings,
+	 * from `p:seq/@concurrent`. Parsed for round-trip; not yet honoured by
+	 * playback (see `docs/guide/limitations.md`).
+	 */
+	seqConcurrent?: boolean;
+	/** Next-action behaviour from `p:seq/@nextAc` (ST_TLNextActionType). */
+	seqNextAction?: 'none' | 'seek';
+	/** Previous-action behaviour from `p:seq/@prevAc` (ST_TLPreviousActionType). */
+	seqPrevAction?: 'none' | 'skipTimeNode';
+	/**
 	 * Whether the enclosing click-level group (a direct `p:par` child of the
 	 * `mainSeq`) begins automatically when the slide appears, rather than waiting
 	 * for a click.
@@ -314,6 +360,18 @@ export interface PptxNativeAnimation {
 	 * subsequent peer nodes are sequenced when serialised back to OOXML.
 	 */
 	afterEffect?: boolean;
+	/**
+	 * "After animation" end-state behaviour carried over from the matching
+	 * {@link PptxElementAnimation.afterAnimation} entry for this effect's
+	 * element. Not populated by the native-timing parser itself (there is no
+	 * single `p:cTn` attribute for it): `applyAfterAnimationFromEditorList` in
+	 * `pptx-viewer-shared` merges it in from the editor's per-element
+	 * animation list before playback, since that is the model the animation
+	 * panel writes `afterAnimation` into.
+	 */
+	afterAnimationAction?: PptxAfterAnimationAction;
+	/** Dim-to color hex, present when {@link afterAnimationAction} is `dimToColor`. */
+	afterAnimationColor?: string;
 }
 
 /**

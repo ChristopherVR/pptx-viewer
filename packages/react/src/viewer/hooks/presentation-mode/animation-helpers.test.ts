@@ -226,6 +226,65 @@ describe('applyAnimationGroupSteps', () => {
 		expect(state?.cssAnimation).toBeUndefined();
 	});
 
+	it('keeps the CSS animation attached after cleanup when holdEndState is set (fill="hold")', () => {
+		let capturedCleanupState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
+		const stateSetter = vi.fn((updater: unknown) => {
+			if (typeof updater === 'function') {
+				const prev = new Map<string, { visible: boolean; cssAnimation?: string }>();
+				prev.set('el-1', { visible: true, cssAnimation: 'pulse 0.5s ease' });
+				capturedCleanupState = (
+					updater as (
+						prev: Map<string, { visible: boolean; cssAnimation?: string }>,
+					) => Map<string, { visible: boolean; cssAnimation?: string }>
+				)(prev);
+			}
+		});
+		const group: TimelineClickGroup = {
+			totalDurationMs: 500,
+			steps: [
+				createMockStep({
+					presetClass: 'emph',
+					cssAnimation: 'pulse 0.5s ease',
+					holdEndState: true,
+				}),
+			],
+		};
+		applyAnimationGroupSteps(group, undefined, stateSetter, presentationTimersRef);
+		vi.advanceTimersByTime(510);
+		const state = capturedCleanupState!.get('el-1');
+		// Unlike the default (which clears the animation on cleanup), a held
+		// step keeps its CSS animation attached so the final frame persists.
+		expect(state?.cssAnimation).toBe('pulse 0.5s ease');
+	});
+
+	it('hides an element once its effect ends when hideAfterEffect is set (afterAnimation: "hideAfterAnimation")', () => {
+		let capturedCleanupState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
+		const stateSetter = vi.fn((updater: unknown) => {
+			if (typeof updater === 'function') {
+				const prev = new Map<string, { visible: boolean; cssAnimation?: string }>();
+				prev.set('el-1', { visible: true, cssAnimation: undefined });
+				capturedCleanupState = (
+					updater as (
+						prev: Map<string, { visible: boolean; cssAnimation?: string }>,
+					) => Map<string, { visible: boolean; cssAnimation?: string }>
+				)(prev);
+			}
+		});
+		const group: TimelineClickGroup = {
+			totalDurationMs: 500,
+			steps: [
+				createMockStep({
+					presetClass: 'entr',
+					hideAfterEffect: true,
+				}),
+			],
+		};
+		applyAnimationGroupSteps(group, undefined, stateSetter, presentationTimersRef);
+		vi.advanceTimersByTime(510);
+		const state = capturedCleanupState!.get('el-1');
+		expect(state?.visible).toBeFalsy();
+	});
+
 	it('should handle stopSound flag', () => {
 		// We can't easily mock stopAnimationSound, but we can verify it doesn't throw
 		const group: TimelineClickGroup = {

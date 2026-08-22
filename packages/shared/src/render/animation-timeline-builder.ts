@@ -9,9 +9,14 @@
 import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
 
 import { resolveAnimationStart } from './animation-advanced-triggers';
+import {
+	injectHideOnNextClickSteps,
+	resolveAfterAnimationStepFields,
+} from './animation-after-effect';
 import { resolveStepBuildDescriptor } from './animation-build';
 import { resolveColorAnimationTargets } from './animation-color';
 import { buildDirectionalKeyframe } from './animation-directional';
+import { resolveEffectTiming } from './animation-fill-repeat';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
 import {
@@ -232,7 +237,7 @@ export function buildTimeline(
 			// condition drives grouping and supplies the governing start delay.
 			const effective = resolveAnimationStart(singleAnim);
 			const trigger: PptxAnimationTrigger = effective.trigger;
-			const duration = isCommand
+			const baseDuration = isCommand
 				? 0
 				: (singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass));
 			// `delayMs`, `triggerDelayMs` and the start condition's delay are three
@@ -251,8 +256,13 @@ export function buildTimeline(
 			const presetClass = isCommand ? 'emph' : (singleAnim.presetClass ?? 'entr');
 			const fill = fillModeForClass(singleAnim.presetClass);
 
-			// Compute repeat / direction
-			const iterCount = singleAnim.repeatCount ?? 1;
+			// Apply `@spd` / `@repeatDur` / `@fill` (animation-fill-repeat), then
+			// compute direction. A command step carries no timing of its own.
+			const timing = isCommand
+				? { durationMs: 0, iterationCount: 1, holdEndState: false }
+				: resolveEffectTiming(singleAnim, baseDuration);
+			const duration = timing.durationMs;
+			const iterCount = timing.iterationCount;
 			const direction = singleAnim.autoReverse ? 'alternate' : 'normal';
 
 			// Track entrance elements
@@ -319,13 +329,29 @@ export function buildTimeline(
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
 			const easing = cssEasingForAnimation(singleAnim);
-			const cssAnimation = isCommand
+			const baseCssAnimation = isCommand
 				? ''
 				: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
+			// "After animation" end state (dim-to-color / hide), merged in from
+			// the editor's per-element animation list by
+			// `applyAfterAnimationFromEditorList` before the timeline is built.
+			const afterFields = isCommand
+				? { cssAnimation: baseCssAnimation, holdEndState: timing.holdEndState }
+				: resolveAfterAnimationStepFields(
+						singleAnim,
+						baseCssAnimation,
+						timing.holdEndState,
+						delayMs + duration,
+						`pptx-tl-dim-${dynamicUid++}`,
+					);
+			if (afterFields.dimKeyframeBlock) {
+				dynamicBlocks.push(afterFields.dimKeyframeBlock);
+			}
+
 			currentGroup.push({
 				elementId,
-				cssAnimation,
+				cssAnimation: afterFields.cssAnimation,
 				keyframeName: keyframe,
 				trigger,
 				delayMs,
@@ -337,6 +363,9 @@ export function buildTimeline(
 				command: isCommand ? buildStepCommand(singleAnim) : undefined,
 				build: isCommand ? undefined : resolveStepBuildDescriptor(singleAnim),
 				colorTargets: isCommand ? undefined : stepColorTargets(singleAnim),
+				holdEndState: afterFields.holdEndState || undefined,
+				hideAfterEffect: afterFields.hideAfterEffect,
+				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
 			});
 		}
 	}
@@ -356,6 +385,10 @@ export function buildTimeline(
 			group.autoAdvanceDelayMs = 0;
 		}
 	}
+
+	// `afterAnimation: "hideOnNextClick"` steps splice a synthetic hide step
+	// into the FOLLOWING click-group now that every group is finalized.
+	injectHideOnNextClickSteps(clickGroups);
 
 	// Build interactive sequence click-groups
 	const interactiveSequences = buildSequenceGroups(
@@ -480,13 +513,17 @@ function buildSequenceGroups(
 			// Command steps carry no element visibility semantics; see the main loop.
 			const elementId = isCommand ? '' : (anim.targetId ?? '');
 			const seqTrigger: PptxAnimationTrigger = anim.trigger ?? 'onShapeClick';
-			const duration = isCommand ? 0 : (anim.durationMs ?? defaultDuration(anim.presetClass));
+			const baseDuration = isCommand ? 0 : (anim.durationMs ?? defaultDuration(anim.presetClass));
 			// Same single-quantity rule as the main sequence: never sum the two.
 			const animDelay = Math.max(anim.delayMs ?? 0, anim.triggerDelayMs ?? 0);
 			const triggerDelay = 0;
 			const presetClass = isCommand ? 'emph' : (anim.presetClass ?? 'entr');
 			const fill = fillModeForClass(anim.presetClass);
-			const iterCount = anim.repeatCount ?? 1;
+			const timing = isCommand
+				? { durationMs: 0, iterationCount: 1, holdEndState: false }
+				: resolveEffectTiming(anim, baseDuration);
+			const duration = timing.durationMs;
+			const iterCount = timing.iterationCount;
 			const direction = anim.autoReverse ? 'alternate' : 'normal';
 
 			if (presetClass === 'entr' && elementId) {
@@ -515,13 +552,30 @@ function buildSequenceGroups(
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
 			const easing = cssEasingForAnimation(anim);
-			const cssAnimation = isCommand
+			const baseCssAnimation = isCommand
 				? ''
 				: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
+			// Same "after animation" resolution as the main click-group loop, so
+			// an onShapeClick/onHover-triggered effect honours dim-to-color /
+			// hide-after-animation / hide-on-next-click exactly like a
+			// main-sequence one.
+			const afterFields = isCommand
+				? { cssAnimation: baseCssAnimation, holdEndState: timing.holdEndState }
+				: resolveAfterAnimationStepFields(
+						anim,
+						baseCssAnimation,
+						timing.holdEndState,
+						delayMs + duration,
+						`pptx-tl-dim-${dynamicUid++}`,
+					);
+			if (afterFields.dimKeyframeBlock) {
+				dynamicBlocks.push(afterFields.dimKeyframeBlock);
+			}
+
 			seqGroup.push({
 				elementId,
-				cssAnimation,
+				cssAnimation: afterFields.cssAnimation,
 				keyframeName: keyframe,
 				trigger: seqTrigger,
 				delayMs,
@@ -533,12 +587,20 @@ function buildSequenceGroups(
 				command: isCommand ? buildStepCommand(anim) : undefined,
 				build: isCommand ? undefined : resolveStepBuildDescriptor(anim),
 				colorTargets: isCommand ? undefined : stepColorTargets(anim),
+				holdEndState: afterFields.holdEndState || undefined,
+				hideAfterEffect: afterFields.hideAfterEffect,
+				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
 			});
 		}
 
 		if (seqGroup.length > 0) {
 			seqGroups.push(finalizeClickGroup(seqGroup));
 		}
+
+		// Splice any pending "hide on next click" steps into the FOLLOWING
+		// click-group within this shape's own sequence (mirrors the main
+		// sequence's handling once all its groups are finalized).
+		injectHideOnNextClickSteps(seqGroups);
 
 		if (seqGroups.length > 0) {
 			sequences.set(shapeId, seqGroups);

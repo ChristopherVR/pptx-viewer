@@ -37,6 +37,7 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 
+import { applyAfterAnimationFromEditorList } from './animation-after-effect';
 import type { ElementStatesOptions } from './animation-timeline-engine';
 import { TimelineEngine } from './animation-timeline-engine';
 import {
@@ -108,7 +109,16 @@ export class PresentationAnimationController {
 		// Motion paths authored in this session live on the editor model until the
 		// deck is saved; project them in so pressing play right after applying one
 		// actually moves the shape.
-		const nativeAnims = [...(slide.nativeAnimations ?? []), ...motionPathNativeAnimations(slide)];
+		const rawNativeAnims = [
+			...(slide.nativeAnimations ?? []),
+			...motionPathNativeAnimations(slide),
+		];
+		// Merge each element's authored "after animation" end-state in from the
+		// editor's per-element animation list before anything else touches the
+		// native list: both are already keyed by the same `element.id` (see
+		// `reconcileAnimationTargets`), and the native-timing parser has no
+		// single `p:cTn` attribute of its own to carry this.
+		const nativeAnims = applyAfterAnimationFromEditorList(rawNativeAnims, slide.animations);
 		const segmentCounts = buildSegmentCounts(slide, nativeAnims);
 		const expandedAnims =
 			segmentCounts.size > 0 ? expandTextBuildAnimations(nativeAnims, segmentCounts) : nativeAnims;

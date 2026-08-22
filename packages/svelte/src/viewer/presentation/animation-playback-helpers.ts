@@ -105,8 +105,16 @@ export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: Playbac
 				ctx.setStates((previous) => {
 					const next = new Map(previous);
 					const current = next.get(step.elementId) ?? { visible: true, cssAnimation: undefined };
-					const visibleAfter = step.presetClass === 'exit' ? false : current.visible;
-					next.set(step.elementId, { visible: visibleAfter, cssAnimation: undefined });
+					// `afterAnimation: "hideAfterAnimation"` hides the element once its
+					// (entrance/emphasis) effect ends, overriding normal visibility.
+					const visibleAfter =
+						step.presetClass === 'exit' || step.hideAfterEffect ? false : current.visible;
+					// `p:cTn/@fill="hold"`/`"freeze"`: keep the CSS animation attached so
+					// its final frame persists instead of reverting on cleanup.
+					next.set(step.elementId, {
+						visible: visibleAfter,
+						cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
+					});
 					return next;
 				});
 			},

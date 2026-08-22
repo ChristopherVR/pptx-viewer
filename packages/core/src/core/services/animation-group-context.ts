@@ -36,6 +36,12 @@ export interface AnimationGroupContext {
 	parGroupIndex?: number;
 	/** Shared monotonic counter used to mint wrapper indexes. */
 	parCounter: { next: number };
+	/** `p:seq/@concurrent` of the innermost enclosing sequence, if any. */
+	seqConcurrent?: boolean;
+	/** `p:seq/@nextAc` of the innermost enclosing sequence, if any. */
+	seqNextAction?: 'none' | 'seek';
+	/** `p:seq/@prevAc` of the innermost enclosing sequence, if any. */
+	seqPrevAction?: 'none' | 'skipTimeNode';
 }
 
 /** A fresh root context for one slide's timing tree. */
@@ -106,6 +112,11 @@ export function childGroupContext(
 			groupAutoStart: conditionsStartAutomatically(cTn),
 			parGroupIndex: parent.parGroupIndex,
 			parCounter: parent.parCounter,
+			// The innermost enclosing `p:seq`'s attrs are unrelated to click-level
+			// grouping; carry them through rather than dropping them here.
+			seqConcurrent: parent.seqConcurrent,
+			seqNextAction: parent.seqNextAction,
+			seqPrevAction: parent.seqPrevAction,
 		};
 	}
 	if (isEffectNode(cTn)) {
@@ -115,5 +126,8 @@ export function childGroupContext(
 		groupAutoStart: parent.groupAutoStart,
 		parGroupIndex: parent.parCounter.next++,
 		parCounter: parent.parCounter,
+		seqConcurrent: parent.seqConcurrent,
+		seqNextAction: parent.seqNextAction,
+		seqPrevAction: parent.seqPrevAction,
 	};
 }

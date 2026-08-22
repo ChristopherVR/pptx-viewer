@@ -14,6 +14,7 @@ import {
 	parseTimeTargetElement,
 	serializeTimeTargetElement,
 } from './animation-target-build-helpers';
+import { extractBldPResumeAttrs } from './animation-timing-attrs';
 
 /**
  * Extract sound action (`p:stSnd` or `p:endSnd`) from a `p:cTn` node.
@@ -467,6 +468,9 @@ export function applyBuildList(timing: XmlObject, animations: PptxNativeAnimatio
 				if (bldLvl !== undefined && !Number.isNaN(bldLvl)) {
 					anim.buildLevel = bldLvl;
 				}
+				const resumeAttrs = extractBldPResumeAttrs(bldP);
+				anim.buildReverse = resumeAttrs.buildReverse;
+				anim.buildAdvAutoMs = resumeAttrs.buildAdvAutoMs;
 			} else if (matchesGrp && bldLvl !== undefined && !Number.isNaN(bldLvl)) {
 				anim.buildLevel = bldLvl;
 				if (anim.buildType === undefined) {
@@ -544,6 +548,8 @@ const TYPED_CTN_ATTRS: ReadonlySet<string> = new Set([
 	'@_accel',
 	'@_decel',
 	'@_restart',
+	'@_repeatDur',
+	'@_spd',
 	'@_grpId',
 	// afterEffect is surfaced as a typed boolean separately
 	'@_afterEffect',

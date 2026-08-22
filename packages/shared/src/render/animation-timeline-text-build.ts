@@ -212,11 +212,16 @@ function emitStaggeredPieces(
 			: Math.max(100, Math.round(baseDuration / 2));
 	const fallbackStagger = kind === 'byChar' ? 20 : 50;
 
+	// `p:iterate/@backwards` reverses the REVEAL order within each paragraph
+	// (last letter/word first) while each synthesized step keeps targeting its
+	// original piece index, so the correct glyph still animates.
+	const backwards = anim.iterate?.backwards === true;
 	let stepIndex = 0;
 	for (let pIdx = 0; pIdx < counts.paragraphCount; pIdx++) {
 		const pieces = perParagraph[pIdx] ?? 0;
-		for (let i = 0; i < pieces; i++) {
-			const opensParagraph = i === 0;
+		for (let step = 0; step < pieces; step++) {
+			const i = backwards ? pieces - 1 - step : step;
+			const opensParagraph = step === 0;
 			const isFirstStep = stepIndex === 0;
 			const startsClickStep = newClickStepPerParagraph && opensParagraph && !isFirstStep;
 			output.push({
@@ -256,6 +261,23 @@ function emitStaggeredPieces(
 }
 
 /**
+ * The trigger a by-paragraph build step after the first uses: a click, unless
+ * `p:bldP/@advAuto` asked the paragraph to advance on its own after a delay
+ * instead of waiting for one. `Infinity` (the `@advAuto="indefinite"` token)
+ * has no meaningful finite wait, so it falls back to click-gated rather than
+ * scheduling an unbounded timer.
+ */
+function nextBuildStepTrigger(advAutoMs: number | undefined): {
+	trigger: 'onClick' | 'afterDelay';
+	triggerDelayMs?: number;
+} {
+	if (advAutoMs === undefined || advAutoMs === Infinity) {
+		return { trigger: 'onClick' };
+	}
+	return { trigger: 'afterDelay', triggerDelayMs: Math.max(0, advAutoMs) };
+}
+
+/**
  * Expand a single text-build animation into sub-element animations.
  */
 function expandSingleBuildAnimation(
@@ -274,12 +296,21 @@ function expandSingleBuildAnimation(
 			emitStaggeredPieces(anim, granularity, counts, output, true);
 			return;
 		}
-		for (let i = 0; i < counts.paragraphCount; i++) {
+		// `p:bldP/@rev` reverses the paragraph REVEAL order (last paragraph
+		// first) while each step still targets its original paragraph index.
+		const reversed = anim.buildReverse === true;
+		for (let step = 0; step < counts.paragraphCount; step++) {
+			const i = reversed ? counts.paragraphCount - 1 - step : step;
+			const isFirstStep = step === 0;
+			const next = isFirstStep ? undefined : nextBuildStepTrigger(anim.buildAdvAutoMs);
 			output.push({
 				...anim,
 				targetId: `${targetId}${TEXT_BUILD_ID_SEP}p${i}`,
-				trigger: i === 0 ? anim.trigger : 'onClick',
+				trigger: isFirstStep ? anim.trigger : next!.trigger,
+				triggerDelayMs: isFirstStep ? anim.triggerDelayMs : next!.triggerDelayMs,
 				buildType: undefined,
+				buildReverse: undefined,
+				buildAdvAutoMs: undefined,
 			});
 		}
 		return;

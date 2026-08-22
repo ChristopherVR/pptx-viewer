@@ -192,6 +192,35 @@ export interface TimelineStep {
 	 * the painted path so the wrapper-level colour keyframes cascade through.
 	 */
 	colorTargets?: readonly ColorAnimationTarget[];
+	/**
+	 * True when the playback layer must keep this step's CSS animation attached
+	 * after it finishes rather than clearing it on cleanup, so the effect's
+	 * final frame persists (OOXML `p:cTn/@fill="hold"` or `"freeze"`).
+	 *
+	 * Only meaningful for `emph` / `path` steps: an `entr` step's held state is
+	 * already its resting (un-animated) style, so clearing is harmless there,
+	 * and `exit` visibility is governed separately by `presetClass`. Without
+	 * this, an emphasis colour/scale change or a motion path's final position
+	 * snapped back to the pre-effect style a few ms after every effect
+	 * finished, because clearing the CSS `animation` shorthand drops its
+	 * `fill-mode` along with it.
+	 */
+	holdEndState?: boolean;
+	/**
+	 * True when `afterAnimation: "hideAfterAnimation"` applies to this step:
+	 * the element should hide once the effect's active window ends, even
+	 * though the effect itself is an entrance or emphasis (which otherwise
+	 * leave the element visible). See `animation-after-effect` in
+	 * `pptx-viewer-shared`.
+	 */
+	hideAfterEffect?: boolean;
+	/**
+	 * True when `afterAnimation: "hideOnNextClick"` applies to this step.
+	 * `injectHideOnNextClickSteps` consumes this during timeline construction
+	 * to splice a synthetic hide step into the following click-group; it is
+	 * left on the original step afterward purely as informational metadata.
+	 */
+	pendingHideOnNextClick?: boolean;
 }
 
 /** A group of animation steps that play on a single click/advance action. */
