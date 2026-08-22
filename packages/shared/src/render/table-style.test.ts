@@ -108,6 +108,75 @@ describe('cellStyleToCss', () => {
 		expect(String(css.boxShadow)).toContain('rgba(255,255,255,0.55)');
 		expect(String(css.boxShadow)).toContain('rgba(0,0,0,0.4)');
 	});
+
+	// An explicitly zeroed cell margin (`<a:marL w="0"/>`) must still render as
+	// `0px` padding, not fall through to the browser default. `!== undefined`
+	// (not a truthy check) is what makes that distinction.
+	describe('cell margins (explicit zero)', () => {
+		it('renders 0px padding for an explicit zero margin on every edge', () => {
+			const css = cellStyleToCss({
+				marginLeft: 0,
+				marginRight: 0,
+				marginTop: 0,
+				marginBottom: 0,
+			});
+			expect(css.paddingLeft).toBe('0px');
+			expect(css.paddingRight).toBe('0px');
+			expect(css.paddingTop).toBe('0px');
+			expect(css.paddingBottom).toBe('0px');
+		});
+
+		it('omits padding entirely when a margin is unset', () => {
+			const css = cellStyleToCss({ marginLeft: 4 });
+			expect(css.paddingLeft).toBe('4px');
+			expect(css.paddingRight).toBeUndefined();
+			expect(css.paddingTop).toBeUndefined();
+			expect(css.paddingBottom).toBeUndefined();
+		});
+	});
+
+	describe('image fill (a:tcPr/a:blipFill)', () => {
+		it('renders a data: URL image fill as a cover background', () => {
+			const css = cellStyleToCss({
+				fillMode: 'image',
+				backgroundImageFillData: 'data:image/png;base64,AAAA',
+			});
+			expect(css.backgroundImage).toBe('url("data:image/png;base64,AAAA")');
+			expect(css.backgroundSize).toBe('cover');
+			expect(css.backgroundPosition).toBe('center');
+			expect(css.backgroundRepeat).toBe('no-repeat');
+		});
+
+		it('prefers resolved backgroundImageFillData over the raw archive path', () => {
+			const css = cellStyleToCss({
+				fillMode: 'image',
+				backgroundImageFillPath: 'ppt/media/image1.png',
+				backgroundImageFillData: 'blob:https://example.test/abc',
+			});
+			expect(css.backgroundImage).toBe('url("blob:https://example.test/abc")');
+		});
+
+		it('renders no background for an unresolved raw archive path', () => {
+			// `backgroundImageFillPath` alone (no `Data`) is a raw archive path -
+			// not a usable CSS url() - until the load pipeline resolves it.
+			const css = cellStyleToCss({
+				fillMode: 'image',
+				backgroundImageFillPath: 'ppt/media/image1.png',
+			});
+			expect(css.backgroundImage).toBeUndefined();
+			expect(css.backgroundColor).toBeUndefined();
+		});
+
+		it('does nothing when fillMode is not "image"', () => {
+			const css = cellStyleToCss({
+				fillMode: 'solid',
+				backgroundColor: '#112233',
+				backgroundImageFillData: 'data:image/png;base64,AAAA',
+			});
+			expect(css.backgroundImage).toBeUndefined();
+			expect(css.backgroundColor).toBe('#112233');
+		});
+	});
 });
 
 describe('getDiagonalBorders', () => {

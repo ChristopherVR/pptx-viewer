@@ -12,6 +12,7 @@ import type {
 	PptxElement,
 	PptxDrawingGuide,
 	PptxSlide,
+	TablePptxElement,
 } from 'pptx-viewer-core';
 import { guideEmuToPx } from 'pptx-viewer-core';
 
@@ -115,6 +116,131 @@ export function collectImagePaths(slides: PptxSlide[]): {
 	}
 
 	return { paths, refs };
+}
+
+/** A table cell whose image fill path needs Blob URL resolution. */
+export interface TableCellImageRef {
+	/** The table element the cell belongs to (patched by `element.id`). */
+	element: PptxElement;
+	rowIndex: number;
+	cellIndex: number;
+	path: string;
+}
+
+/**
+ * Collect every table cell image-fill path (`a:tcPr/a:blipFill`, parsed onto
+ * `cell.style.backgroundImageFillPath`) across all slides that needs
+ * resolving to a displayable URL, mirroring {@link collectImagePaths} for
+ * picture elements. Table parsing is fully synchronous (see core's
+ * `resolveTableCellImagePath`), so this path is always a raw archive path
+ * (or an already-external URL) until a load pipeline resolves it here.
+ */
+export function collectTableCellImagePaths(slides: PptxSlide[]): {
+	paths: Set<string>;
+	refs: TableCellImageRef[];
+} {
+	const paths = new Set<string>();
+	const refs: TableCellImageRef[] = [];
+
+	const walkElements = (elements: PptxElement[]) => {
+		for (const el of elements) {
+			if (el.type === 'table') {
+				const rows = (el as TablePptxElement).tableData?.rows ?? [];
+				rows.forEach((row, rowIndex) => {
+					row.cells.forEach((cell, cellIndex) => {
+						const path = cell.style?.backgroundImageFillPath;
+						if (path && !cell.style?.backgroundImageFillData && !isExternalUrl(path)) {
+							paths.add(path);
+							refs.push({ element: el, rowIndex, cellIndex, path });
+						}
+					});
+				});
+			}
+			if (el.type === 'group' && el.children?.length) {
+				walkElements(el.children);
+			}
+		}
+	};
+
+	for (const slide of slides) {
+		walkElements(slide.elements);
+	}
+
+	return { paths, refs };
+}
+
+/**
+ * Apply resolved table-cell image URLs (from {@link collectTableCellImagePaths}
+ * plus a path -> URL map) back onto the element tree, immutably. Returns the
+ * same `elements` array reference when nothing changed, so callers can skip a
+ * state update exactly like the flat-field patch path does.
+ */
+export function applyTableCellImagePatches(
+	elements: PptxElement[],
+	resolvedMap: Map<string, string>,
+	refs: TableCellImageRef[],
+): PptxElement[] {
+	const patchesByElementId = new Map<
+		string,
+		Array<{ rowIndex: number; cellIndex: number; url: string }>
+	>();
+	for (const ref of refs) {
+		const url = resolvedMap.get(ref.path);
+		if (!url) {
+			continue;
+		}
+		const list = patchesByElementId.get(ref.element.id) ?? [];
+		list.push({ rowIndex: ref.rowIndex, cellIndex: ref.cellIndex, url });
+		patchesByElementId.set(ref.element.id, list);
+	}
+	if (patchesByElementId.size === 0) {
+		return elements;
+	}
+
+	const patchElements = (els: PptxElement[]): PptxElement[] => {
+		let mutated = false;
+		const next = els.map((el) => {
+			let updated: PptxElement = el;
+			const cellPatches = patchesByElementId.get(el.id);
+			if (cellPatches && el.type === 'table') {
+				const table = el as TablePptxElement;
+				const tableData = table.tableData;
+				if (tableData) {
+					const newRows = tableData.rows.map((row, rowIndex) => {
+						const rowPatches = cellPatches.filter((p) => p.rowIndex === rowIndex);
+						if (rowPatches.length === 0) {
+							return row;
+						}
+						const newCells = row.cells.map((cell, cellIndex) => {
+							const patch = rowPatches.find((p) => p.cellIndex === cellIndex);
+							if (!patch || !cell.style) {
+								return cell;
+							}
+							return {
+								...cell,
+								style: { ...cell.style, backgroundImageFillData: patch.url },
+							};
+						});
+						return { ...row, cells: newCells };
+					});
+					updated = { ...table, tableData: { ...tableData, rows: newRows } };
+				}
+			}
+			if (updated.type === 'group' && updated.children?.length) {
+				const newChildren = patchElements(updated.children);
+				if (newChildren !== updated.children) {
+					updated = { ...updated, children: newChildren };
+				}
+			}
+			if (updated !== el) {
+				mutated = true;
+			}
+			return updated;
+		});
+		return mutated ? next : els;
+	};
+
+	return patchElements(elements);
 }
 
 function isExternalUrl(path: string): boolean {

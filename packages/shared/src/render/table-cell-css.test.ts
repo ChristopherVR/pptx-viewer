@@ -62,4 +62,21 @@ describe('tableCellCss', () => {
 		const css = tableCellCss(insertedTable(), cell, { ...POS, rowIndex: 1 });
 		expect(css.backgroundColor).toBe('#00ff00');
 	});
+
+	it('lets a cell image fill beat the band fill underneath it', () => {
+		// A banded row would otherwise paint a `backgroundColor` here; the image
+		// fill must still win, exactly like an explicit solid/gradient fill does.
+		const cell = {
+			text: '',
+			style: { fillMode: 'image', backgroundImageFillData: 'data:image/png;base64,AAAA' },
+		} as PptxTableCell;
+		const css = tableCellCss(insertedTable(), cell, { ...POS, rowIndex: 1 });
+		expect(css.backgroundImage).toBe('url("data:image/png;base64,AAAA")');
+	});
+
+	it('renders an explicit zero cell margin as zero padding through the full cascade', () => {
+		const cell = { text: '', style: { marginLeft: 0 } } as PptxTableCell;
+		const css = tableCellCss(insertedTable(), cell, POS);
+		expect(css.paddingLeft).toBe('0px');
+	});
 });

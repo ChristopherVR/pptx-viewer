@@ -1,5 +1,5 @@
 /**
- * table-style.ts — framework-agnostic table render helpers.
+ * table-style.ts - framework-agnostic table render helpers.
  *
  * A focused port of the React table render helpers that operate on the
  * structured {@link PptxTableData} model (not raw OOXML). The renderer is
@@ -39,9 +39,12 @@ import {
 	cell3DBevelCss,
 	resolveStyleFillColor,
 } from './table-style-fill';
+import { cellImageFillCss } from './table-style-image';
 
 export { resolveStyleDiagonalBorders } from './table-style-borders';
 export { cell3DBevelCss, resolveFontRefIdx } from './table-style-fill';
+export { cellImageFillCss } from './table-style-image';
+export type { CellImageFillCss } from './table-style-image';
 
 /** A framework-agnostic CSS style object: camelCased property → value. */
 export type TableCellCss = Record<string, string | number>;
@@ -150,7 +153,7 @@ export function cellPatternFillCss(style: PptxTableCellStyle): CellPatternFillCs
 			backgroundColor: bg,
 		};
 	}
-	// Unknown preset — fall back to solid background colour.
+	// Unknown preset - fall back to solid background colour.
 	const fallback = style.patternFillBackground ?? style.backgroundColor;
 	return fallback ? { backgroundColor: fallback } : null;
 }
@@ -277,8 +280,15 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		css.color = style.color;
 	}
 
-	// Cell background fill — gradient takes precedence, then pattern, then solid.
-	if (style.gradientFillCss) {
+	// Cell background fill - image takes precedence, then gradient, then
+	// pattern, then solid. An unresolved image path (still a raw archive path,
+	// not yet patched to a displayable URL by the load pipeline) falls through
+	// to whatever the cell has as a plain background colour, same as an
+	// unresolved picture element shows no image until its path resolves.
+	const imageFill = cellImageFillCss(style);
+	if (imageFill) {
+		Object.assign(css, imageFill);
+	} else if (style.gradientFillCss) {
 		css.background = style.gradientFillCss;
 	} else if (style.fillMode === 'pattern') {
 		// Render the real SVG pattern tile when the preset is known;
@@ -321,7 +331,7 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		css.overflowX = 'visible';
 	}
 
-	// Vertical text direction — map all variants to CSS writing-mode + orientation.
+	// Vertical text direction - map all variants to CSS writing-mode + orientation.
 	if (style.textDirection) {
 		switch (style.textDirection) {
 			case 'vert':
@@ -381,17 +391,20 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		}
 	}
 
-	// Cell margins → padding.
-	if (style.marginLeft) {
+	// Cell margins → padding. `!== undefined` (not truthy) so an explicitly
+	// zeroed margin (`<a:marL w="0"/>`, common in dense or image-filled
+	// tables) still renders as `0px` padding instead of falling through to
+	// the browser's default cell padding.
+	if (style.marginLeft !== undefined) {
 		css.paddingLeft = `${style.marginLeft}px`;
 	}
-	if (style.marginRight) {
+	if (style.marginRight !== undefined) {
 		css.paddingRight = `${style.marginRight}px`;
 	}
-	if (style.marginTop) {
+	if (style.marginTop !== undefined) {
 		css.paddingTop = `${style.marginTop}px`;
 	}
-	if (style.marginBottom) {
+	if (style.marginBottom !== undefined) {
 		css.paddingBottom = `${style.marginBottom}px`;
 	}
 
