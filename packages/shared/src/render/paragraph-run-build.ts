@@ -11,22 +11,26 @@ import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
 import { DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import type { ParagraphBulletResult } from './bullet-list';
+import {
+	buildScriptRunsFor,
+	buildTabLinesFor,
+	resolveRunExtrasContext,
+} from './paragraph-run-enrich';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import type { RunFontSpec } from './text-metric-tracking';
+import { applyUnderlineVariant } from './text-run-decoration';
 import { buildRunEffectStyle } from './text-run-effects';
 import type { RunEquation, RunHyperlink } from './text-run-meta';
 import { resolveRunEquation, resolveRunHyperlink } from './text-run-meta';
 import type { RunRuby } from './text-run-ruby';
 import { resolveRunRuby } from './text-run-ruby';
+import { authoredLetterSpacingPx, splitStyledRun } from './text-run-spacing';
 import type { RunStyle } from './text-run-style';
-import {
-	applyUnderlineVariant,
-	authoredLetterSpacingPx,
-	resolveRunFont,
-	segmentStyleToCss,
-	splitStyledRun,
-} from './text-run-style';
+import { resolveRunFont, segmentStyleToCss } from './text-run-style';
+import type { ScriptFontFields, ScriptFontPiece } from './text-script-fonts';
+import type { TabStopSpec } from './text-tab-layout';
+import type { TabbedLineRun } from './text-tab-run-build';
 
 /** One rendered run, as {@link buildParagraphRuns} emits it. */
 export interface BuiltRun {
@@ -37,6 +41,21 @@ export interface BuiltRun {
 	ruby?: RunRuby;
 	segmentIndex?: number;
 	charStart?: number;
+	/**
+	 * Per-script (`a:ea`/`a:cs`/`a:sym`) font-fallback pieces for this run's
+	 * text, when it authors a distinct east-Asian / complex-script / symbol
+	 * font the text actually needs. A binding renders these as nested spans
+	 * instead of one plain text node. Absent for the common single-font case.
+	 */
+	scriptRuns?: ScriptFontPiece[];
+	/**
+	 * Measured tab-stop layout for this run's text, when it contains `\t` and
+	 * the paragraph authors explicit tab stops (`a:tabLst`). Present INSTEAD OF
+	 * the ordinary per-word metric split (see `buildParagraphRuns`), so a
+	 * binding that sees this renders these lines/pieces rather than `text`
+	 * directly. Absent for the common no-tab case.
+	 */
+	tabLines?: TabbedLineRun[];
 }
 
 /** Everything the run builder needs besides the paragraph's own segments. */
@@ -51,6 +70,12 @@ export interface ParagraphRunBuildInput {
 	fontScale: number;
 	/** What a run that declares no font of its own inherits from the body. */
 	blockFont: RunFontSpec;
+	/** The body's own `a:ea`/`a:cs`/`a:sym` fields, for a run that authors none. */
+	blockScriptStyle: ScriptFontFields | undefined;
+	/** Parsed `a:pPr/a:tabLst` entries, when the body authors any. */
+	tabStops: TabStopSpec[] | undefined;
+	/** `a:pPr/@defTabSz` in px. */
+	defaultTabSize: number | undefined;
 	/** Context for `a:fld` substitution, when the caller supplied one. */
 	fieldContext: FieldSubstitutionContext | undefined;
 }
@@ -60,7 +85,17 @@ export interface ParagraphRunBuildInput {
  * inline equation, and the per-word metric split.
  */
 export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
-	const { paraSegments, paraIndices, markerSegment, fontScale, blockFont, fieldContext } = input;
+	const {
+		paraSegments,
+		paraIndices,
+		markerSegment,
+		fontScale,
+		blockFont,
+		blockScriptStyle,
+		tabStops,
+		defaultTabSize,
+		fieldContext,
+	} = input;
 	const runs: BuiltRun[] = [];
 	for (const [at, seg] of paraSegments.entries()) {
 		if (seg === markerSegment) {
@@ -98,6 +133,19 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			Object.assign(style, buildRunEffectStyle(seg.style));
 		}
 		const hyperlink = resolveRunHyperlink(seg.style);
+		const runFont = resolveRunFont(style, seg.style ?? {}, blockFont);
+		// Per-script fonts and tab-stop layout are both resolved once per
+		// SEGMENT (not per word-piece below): neither depends on which piece of
+		// the segment's text is being rendered.
+		const extrasCtx = resolveRunExtrasContext({
+			seg,
+			style,
+			runFont,
+			blockFont,
+			blockScriptStyle,
+			tabStops,
+			defaultTabSize,
+		});
 
 		// A ruby run is emitted WHOLE, never through the per-word metric split
 		// below: the annotation belongs to the whole segment, so splitting it
@@ -117,7 +165,32 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			if (hyperlink) {
 				rubyRun.hyperlink = hyperlink;
 			}
+			const rubyScriptRuns = buildScriptRunsFor(text, extrasCtx, style);
+			if (rubyScriptRuns) {
+				rubyRun.scriptRuns = rubyScriptRuns;
+			}
 			runs.push(rubyRun);
+			continue;
+		}
+
+		// A run whose text contains an authored `\t` and whose body declares
+		// explicit tab stops gets a MEASURED layout instead of the per-word
+		// metric split below: per-stop alignment (`ctr`/`r`/`dec`) and leader
+		// glyphs need the whole line's tab-separated pieces together, which the
+		// metric split (word/gap granularity) would fragment. The layout itself
+		// (`buildRunTabLines` / `text-tab-run-build.ts`) still gives each piece its
+		// own PowerPoint advance-width correction, computed against the same
+		// tracked width the pieces are positioned with, so this is no longer a
+		// trade-off against the per-word split's metric FIDELITY - only its
+		// per-word GRANULARITY, which does not matter here: a tab piece is one
+		// fixed-position inline-block, never a wrappable word.
+		const tabLines = buildTabLinesFor(text, extrasCtx, style);
+		if (tabLines) {
+			const run: BuiltRun = { text, style, tabLines, segmentIndex, charStart: 0 };
+			if (hyperlink) {
+				run.hyperlink = hyperlink;
+			}
+			runs.push(run);
 			continue;
 		}
 
@@ -128,15 +201,14 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		// Vue/Svelte/Vanilla with no binding change: they already render one span
 		// per run.
 		let charStart = 0;
-		for (const piece of splitStyledRun(
-			text,
-			style,
-			resolveRunFont(style, seg.style ?? {}, blockFont),
-			authoredLetterSpacingPx(seg.style),
-		)) {
+		for (const piece of splitStyledRun(text, style, runFont, authoredLetterSpacingPx(seg.style))) {
 			const run: BuiltRun = { ...piece, segmentIndex, charStart };
 			if (hyperlink) {
 				run.hyperlink = hyperlink;
+			}
+			const scriptRuns = buildScriptRunsFor(piece.text, extrasCtx, piece.style);
+			if (scriptRuns) {
+				run.scriptRuns = scriptRuns;
 			}
 			runs.push(run);
 			charStart += piece.text.length;

@@ -267,6 +267,32 @@ export function resolveMetricTracking(text: string, font: RunFontSpec): string |
 	return tracking === 0 ? undefined : `${tracking}px`;
 }
 
+/**
+ * The width `text` actually PAINTS at once {@link resolveMetricTrackingPx}'s
+ * correction is applied as `letter-spacing` (browser measurement plus the
+ * tracking added once per character, same formula as {@link splitStyledRun}
+ * in `text-run-spacing.ts`).
+ *
+ * Exported for `text-tab-run-build.ts`: a tabbed piece is positioned by the
+ * leader gap laid out in front of it rather than by absolute CSS, so unlike an
+ * ordinary run its LAYOUT and its PAINT have to agree on one width or the next
+ * tab stop drifts once the correction is actually applied.
+ *
+ * @param naturalWidth The caller's own (unhinted) measurement of `text`, so
+ *   this does not measure the same string on the canvas twice.
+ */
+export function resolveTrackedTextWidth(
+	text: string,
+	font: RunFontSpec,
+	naturalWidth: number,
+): number {
+	if (!text) {
+		return naturalWidth;
+	}
+	const tracking = resolveMetricTrackingPx(text, font);
+	return tracking === 0 ? naturalWidth : naturalWidth + tracking * [...text].length;
+}
+
 /** Test hook: forget every measurement (also used by the font-load listener). */
 export function resetMetricTrackingCache(): void {
 	trackingCache = new Map();

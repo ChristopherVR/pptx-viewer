@@ -85,8 +85,9 @@ export function resolveTextBodyColumns(textStyle: TextStyle | undefined): TextBo
  * browser default of 8 characters is never right for a deck.
  *
  * Per-stop ALIGNMENT (`@algn="ctr"|"r"|"dec"`) and leader glyphs cannot be
- * expressed as `tab-size`; those need a measured inline layout (React has one in
- * `text-tab-layout`).
+ * expressed as `tab-size`; those need a measured inline layout, which
+ * `text-tab-layout` / `text-tab-run-build` provide via `ParagraphRun.tabLines`
+ * for a run whose text actually contains a tab.
  *
  * @param tabStops    Parsed `a:tabLst` entries (positions in px).
  * @param defaultTabSize `a:pPr/@defTabSz` in px.
