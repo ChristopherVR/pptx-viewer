@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-22
 
+_Releases: pptx-react-viewer@3.0.3, @christophervr/pptx-viewer@2.0.3_
+
+### Bug Fixes
+
+- **react:** Stop the handle overlay shadowing the element's own id (by @ChristopherVR) ([19ed4de](https://github.com/ChristopherVR/pptx-viewer/commit/19ed4deda9c716c6179e7509fadcfbcf71fe501f))
+
+## 2026-08-22
+
 _Releases: pptx-react-viewer@3.0.2, pptx-vue-viewer@3.0.2, pptx-angular-viewer@3.0.2, pptx-vanilla-viewer@2.0.2, pptx-svelte-viewer@3.0.2, @christophervr/pptx-viewer@2.0.2_
 
 ### Bug Fixes

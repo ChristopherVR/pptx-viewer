@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.0.3) - 2026-08-22
+
+### Bug Fixes
+
+- **react:** Stop the handle overlay shadowing the element's own id (by @ChristopherVR) ([19ed4de](https://github.com/ChristopherVR/pptx-viewer/commit/19ed4deda9c716c6179e7509fadcfbcf71fe501f))
+
 ## [3.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.0.2) - 2026-08-22
 
 ### Bug Fixes
