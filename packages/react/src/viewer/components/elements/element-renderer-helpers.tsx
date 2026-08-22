@@ -126,6 +126,57 @@ export function getContainerStyle({
 	};
 }
 
+/**
+ * Params shared with {@link getContainerStyle}; only the ones the handle host
+ * actually needs to line up with the element's box.
+ */
+interface HandleHostStyleParams {
+	el: PptxElement;
+	isFullscreenMedia: boolean;
+	zIndex: number | undefined;
+}
+
+/**
+ * Builds the `style` for the sibling `<div>` that hosts the resize/rotate/
+ * adjustment handles OUTSIDE the shape's own clipped container.
+ *
+ * A non-rectangular preset's `clip-path` (`resolveShapeGeometry`'s `clipPath`
+ * decision) sits on the element's own interactive `<div>` so a click in the
+ * shape's dead space (an arrow's notch, a chevron's corner) falls through to
+ * whatever is drawn under it, matching PowerPoint. `clip-path` clips EVERY
+ * descendant's hit-testing, not just paint, so a handle measured off the
+ * preset geometry (`shape-adjustment-handles`, which deliberately places a
+ * handle exactly on a preset vertex - `rightArrow`'s head/shaft corner is
+ * ~90% outside the arrow's own silhouette) becomes unclickable the moment it
+ * lands outside that clip region, even though it renders at the visually
+ * correct spot. There is no CSS escape hatch for a clipped descendant, so the
+ * handles render as a SIBLING with the identical box instead: the same
+ * structure `SelectionOverlay` already gives Vue, Angular, Svelte and Vanilla,
+ * none of which nest their handles inside the shape's own clipped node.
+ *
+ * `pointerEvents: 'none'` keeps this host transparent everywhere a handle is
+ * not, so clicking through it still reaches the shape (or whatever is behind
+ * it) exactly as before; `ResizeHandles` is rendered here with
+ * `forcePointerEvents` so its own buttons opt back in individually.
+ */
+export function getHandleHostStyle({
+	el,
+	isFullscreenMedia,
+	zIndex,
+}: HandleHostStyleParams): CSSProperties {
+	return {
+		position: 'absolute',
+		left: isFullscreenMedia ? 0 : el.x,
+		top: isFullscreenMedia ? 0 : el.y,
+		width: isFullscreenMedia ? '100%' : Math.max(el.width, MIN_ELEMENT_SIZE),
+		height: isFullscreenMedia ? '100%' : Math.max(el.height, MIN_ELEMENT_SIZE),
+		transform: isFullscreenMedia ? 'none' : getElementTransform(el),
+		transformOrigin: 'center',
+		zIndex: isFullscreenMedia ? 21 : zIndex,
+		pointerEvents: 'none',
+	};
+}
+
 /*
  * The action-indicator badge and the link tooltip moved to
  * `./ActionAffordance`, which renders the shared (binding-neutral) markup and

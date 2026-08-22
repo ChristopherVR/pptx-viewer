@@ -31,6 +31,7 @@ import { getElementInteractionProps } from './elements/element-interaction-props
 import {
 	renderDagDuotoneFilterForElement,
 	getContainerStyle,
+	getHandleHostStyle,
 } from './elements/element-renderer-helpers';
 import type { ElementRendererProps } from './elements/element-renderer-types';
 import { shapeParams } from './elements/element-shape-params';
@@ -240,145 +241,157 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		});
 
 		return (
-			<div
-				data-pptx-element='true'
-				data-element-id={el.id}
-				// The neutral marker `PRESENTATION_INERT_CLICK_SELECTOR` keys off, so
-				// a tap or swipe on an action shape never ALSO steps the show on.
-				// `StaticElementRenderer` and the four non-React bindings' DOM pass
-				// stamp the same attribute.
-				data-pptx-action={isActionable ? 'click' : undefined}
-				role={ariaRole}
-				aria-label={ariaLabel}
-				aria-roledescription={ariaRoleDescription}
-				aria-selected={isSelected ? true : undefined}
-				tabIndex={isFocusable ? 0 : -1}
-				className={cn(
-					'absolute',
-					'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
-					cur,
-					// During a show this must stay EMPTY: `PRESENTATION_HIT_TEST_CSS`
-					// (injected by `PresentationStage`) owns hit-testing there, because
-					// it is the only form that can re-enable an action shape nested
-					// inside inert scenery - an inline `pointer-events: none` on the
-					// group could never do that, and React was the one binding that
-					// wrote it. Off the show stage the inline rule still applies.
-					inlineElementPointerEvents({
-						interactive: effectiveCanInteract || isActionable,
-						presenting: presenting === true,
-					}) === 'none'
-						? 'pointer-events-none'
-						: '',
-					// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
-					// outline only, so its interior must not swallow clicks meant for what it
-					// is drawn over. ShapeEffectOverlay paints a transparent
-					// pointer-events:stroke band that opts the outline back in.
-					isHollowShapeElement(el) ? 'pointer-events-none' : '',
-					isFullscreenMedia ? 'pointer-events-auto' : '',
-					selB,
-					// Shared class the tooltip's `:hover` rule keys off (see
-					// `ACTION_AFFORDANCE_CSS`), replacing React's Tailwind `group/link`
-					// so the four non-Tailwind bindings reveal it the same way.
-					actionAffordance.showLinkTooltip && LINK_TOOLTIP_HOST_CLASS,
-				)}
-				style={getContainerStyle({
-					el,
-					isFullscreenMedia,
-					isImg: isImg || isModel3D,
-					zIndex,
-					opacity,
-					animationState,
-					shapeVisualStyle: ss,
-					has3DExtrusion: extrusionData.hasExtrusion,
-					templateEditing,
-				})}
-				{...interactionProps}
-			>
-				{renderDagDuotoneFilterForElement(el)}
-				<ShapeEffectOverlay element={el} />
-				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
-				{renderBody({
-					el,
-					isImg,
-					isEditing: effectiveIsInlineEditing,
-					editText: inlineEditingText,
-					spellCheck: spellCheckEnabled,
-					txtSE,
-					txtS: ts,
-					vecShape: vs,
-					imgStyle: getImageRenderStyle(el),
-					imgFilter: getImageEffectsFilter(el),
-					imgOpacity: getImageEffectsOpacity(el),
-					imgAlt: imageAltText,
-					isTxtEl: isTxt,
-					media: mediaDataUrls,
-					tableSt: tableEditorState,
-					isSel: isSelected,
-					doInk,
-					doGrp,
-					renderGroupChild: (child, index) => (
-						<StaticElementRenderer
-							key={child.id}
-							element={child}
-							activeSlide={activeSlide}
-							allSlides={allSlides}
-							mediaDataUrls={mediaDataUrls}
-							sourceSlideIndex={sourceSlideIndex}
-							zIndex={index}
-							// A morph pairs a `!!`-named shape across a grouping boundary
-							// (shared `morph-flatten`) and keys the animation by the
-							// CHILD's id, so the child needs both its own animation and a
-							// `data-element-id` to be addressable - the group node alone
-							// cannot express a child moving independently of its siblings.
-							animation={presentationElementStates?.get(child.id)?.cssAnimation}
-							exposeElementId
-							parentGroupFill={getGroupChildParentFill(el)}
-							// A grouped child keeps its own `a:hlinkClick`; PowerPoint
-							// treats it as an individually clickable target even though
-							// the group is a single selectable object. Only wire it up
-							// where the group itself is not the action target, so a
-							// child link cannot shadow one set on the group.
-							onActionClick={el.actionClick ? undefined : onActionClick}
-							actionRequiresModifier={effectiveCanInteract}
-						/>
-					),
-					onEditChange: onInlineEditChange,
-					onCommit: onInlineEditCommit,
-					onCancel: onInlineEditCancel,
-					onCellSel: cellSelectHandler,
-					onCellCommit: cellCommitHandler,
-					onColResize: colResizeHandler,
-					onRowResize: rowResizeHandler,
-					findHl: findHighlights,
-					onHyperlinkClick,
-					isPresentationPassive,
-					handleMediaPlayStateChange,
-					presentationElementStates,
-					slideElements: activeSlide?.elements,
-					allSlides,
-					onZoomClick,
-					sourceSlideIndex,
-					fieldContext,
-					tableStyleContext,
-					canEditSmartArt,
-					onUpdateSmartArtElement: smartArtUpdateHandler,
-					canEditChart,
-					onUpdateChartElement: chartUpdateHandler,
-					onFormatText,
-				})}
-				<ActionAffordances affordance={actionAffordance} />
-				{effectiveShowResizeHandles && !effectiveIsInlineEditing && (
-					<ResizeHandles
-						elementId={el.id}
-						adjustmentHandles={adjH}
-						onResizePointerDown={onResizePointerDown}
-						onAdjustmentPointerDown={onAdjustmentPointerDown}
-						rotation={el.rotation}
-						nonRotationTransform={getElementTransformWithoutRotation(el)}
-						onRotate={allow.rotatable ? onRotate : undefined}
-					/>
-				)}
-			</div>
+			<>
+				<div
+					data-pptx-element='true'
+					data-element-id={el.id}
+					// The neutral marker `PRESENTATION_INERT_CLICK_SELECTOR` keys off, so
+					// a tap or swipe on an action shape never ALSO steps the show on.
+					// `StaticElementRenderer` and the four non-React bindings' DOM pass
+					// stamp the same attribute.
+					data-pptx-action={isActionable ? 'click' : undefined}
+					role={ariaRole}
+					aria-label={ariaLabel}
+					aria-roledescription={ariaRoleDescription}
+					aria-selected={isSelected ? true : undefined}
+					tabIndex={isFocusable ? 0 : -1}
+					className={cn(
+						'absolute',
+						'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+						cur,
+						// During a show this must stay EMPTY: `PRESENTATION_HIT_TEST_CSS`
+						// (injected by `PresentationStage`) owns hit-testing there, because
+						// it is the only form that can re-enable an action shape nested
+						// inside inert scenery - an inline `pointer-events: none` on the
+						// group could never do that, and React was the one binding that
+						// wrote it. Off the show stage the inline rule still applies.
+						inlineElementPointerEvents({
+							interactive: effectiveCanInteract || isActionable,
+							presenting: presenting === true,
+						}) === 'none'
+							? 'pointer-events-none'
+							: '',
+						// An unfilled, textless shape is a FRAME: PowerPoint hit-tests it on its
+						// outline only, so its interior must not swallow clicks meant for what it
+						// is drawn over. ShapeEffectOverlay paints a transparent
+						// pointer-events:stroke band that opts the outline back in.
+						isHollowShapeElement(el) ? 'pointer-events-none' : '',
+						isFullscreenMedia ? 'pointer-events-auto' : '',
+						selB,
+						// Shared class the tooltip's `:hover` rule keys off (see
+						// `ACTION_AFFORDANCE_CSS`), replacing React's Tailwind `group/link`
+						// so the four non-Tailwind bindings reveal it the same way.
+						actionAffordance.showLinkTooltip && LINK_TOOLTIP_HOST_CLASS,
+					)}
+					style={getContainerStyle({
+						el,
+						isFullscreenMedia,
+						isImg: isImg || isModel3D,
+						zIndex,
+						opacity,
+						animationState,
+						shapeVisualStyle: ss,
+						has3DExtrusion: extrusionData.hasExtrusion,
+						templateEditing,
+					})}
+					{...interactionProps}
+				>
+					{renderDagDuotoneFilterForElement(el)}
+					<ShapeEffectOverlay element={el} />
+					{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
+					{renderBody({
+						el,
+						isImg,
+						isEditing: effectiveIsInlineEditing,
+						editText: inlineEditingText,
+						spellCheck: spellCheckEnabled,
+						txtSE,
+						txtS: ts,
+						vecShape: vs,
+						imgStyle: getImageRenderStyle(el),
+						imgFilter: getImageEffectsFilter(el),
+						imgOpacity: getImageEffectsOpacity(el),
+						imgAlt: imageAltText,
+						isTxtEl: isTxt,
+						media: mediaDataUrls,
+						tableSt: tableEditorState,
+						isSel: isSelected,
+						doInk,
+						doGrp,
+						renderGroupChild: (child, index) => (
+							<StaticElementRenderer
+								key={child.id}
+								element={child}
+								activeSlide={activeSlide}
+								allSlides={allSlides}
+								mediaDataUrls={mediaDataUrls}
+								sourceSlideIndex={sourceSlideIndex}
+								zIndex={index}
+								// A morph pairs a `!!`-named shape across a grouping boundary
+								// (shared `morph-flatten`) and keys the animation by the
+								// CHILD's id, so the child needs both its own animation and a
+								// `data-element-id` to be addressable - the group node alone
+								// cannot express a child moving independently of its siblings.
+								animation={presentationElementStates?.get(child.id)?.cssAnimation}
+								exposeElementId
+								parentGroupFill={getGroupChildParentFill(el)}
+								// A grouped child keeps its own `a:hlinkClick`; PowerPoint
+								// treats it as an individually clickable target even though
+								// the group is a single selectable object. Only wire it up
+								// where the group itself is not the action target, so a
+								// child link cannot shadow one set on the group.
+								onActionClick={el.actionClick ? undefined : onActionClick}
+								actionRequiresModifier={effectiveCanInteract}
+							/>
+						),
+						onEditChange: onInlineEditChange,
+						onCommit: onInlineEditCommit,
+						onCancel: onInlineEditCancel,
+						onCellSel: cellSelectHandler,
+						onCellCommit: cellCommitHandler,
+						onColResize: colResizeHandler,
+						onRowResize: rowResizeHandler,
+						findHl: findHighlights,
+						onHyperlinkClick,
+						isPresentationPassive,
+						handleMediaPlayStateChange,
+						presentationElementStates,
+						slideElements: activeSlide?.elements,
+						allSlides,
+						onZoomClick,
+						sourceSlideIndex,
+						fieldContext,
+						tableStyleContext,
+						canEditSmartArt,
+						onUpdateSmartArtElement: smartArtUpdateHandler,
+						canEditChart,
+						onUpdateChartElement: chartUpdateHandler,
+						onFormatText,
+					})}
+					<ActionAffordances affordance={actionAffordance} />
+				</div>
+				{effectiveShowResizeHandles &&
+					!effectiveIsInlineEditing && (
+						// A SIBLING of the shape's own (possibly clip-path'd) container, not a
+						// child: `clip-path` excludes every descendant from hit-testing, not
+						// just paint, so a handle measured onto a preset vertex outside the
+						// shape's silhouette (see `getHandleHostStyle`) would be unclickable
+						// if nested inside it. `pointerEvents: 'none'` on the host keeps every
+						// non-handle pixel click-through to whatever is actually under it.
+						<div style={getHandleHostStyle({ el, isFullscreenMedia, zIndex })}>
+							<ResizeHandles
+								elementId={el.id}
+								adjustmentHandles={adjH}
+								onResizePointerDown={onResizePointerDown}
+								onAdjustmentPointerDown={onAdjustmentPointerDown}
+								rotation={el.rotation}
+								nonRotationTransform={getElementTransformWithoutRotation(el)}
+								onRotate={allow.rotatable ? onRotate : undefined}
+								forcePointerEvents
+							/>
+						</div>
+					)}
+			</>
 		);
 	},
 );
