@@ -26,8 +26,15 @@ function makeSlide(overrides: Partial<PptxSlide> & { id: string; rId: string }):
 // ---------------------------------------------------------------------------
 
 describe('computeGridSpacingPx', () => {
-	it('returns GRID_SIZE when presentationGridSpacing is undefined', () => {
+	it('returns GRID_SIZE when documentGridSpacing is undefined', () => {
 		expect(computeGridSpacingPx(undefined)).toBe(GRID_SIZE);
+	});
+
+	it('reflects the real fixture value (anatidae-animation.pptx: viewProperties.gridSpacing = 72008 EMU)', () => {
+		// Regression: this value used to be read from `presentationProperties.gridSpacing`
+		// (p:gridSpacing under p:presentationPr), which real PowerPoint files never
+		// populate. It lives under p:viewPr in viewProps.xml -- PptxData.viewProperties.
+		expect(computeGridSpacingPx({ cx: 72008 })).toBe(Math.round(72008 / EMU_PER_PX));
 	});
 
 	it('converts EMU to pixels and rounds', () => {

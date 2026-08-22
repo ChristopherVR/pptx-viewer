@@ -1,5 +1,10 @@
-import type { RunFontSpec } from 'pptx-viewer-shared';
-import { pieceLetterSpacing, sanitizeMathMl, splitRunForMetrics } from 'pptx-viewer-shared';
+import type { RunFontSpec, RunStyle } from 'pptx-viewer-shared';
+import {
+	pieceLetterSpacing,
+	sanitizeMathMl,
+	splitRunByScriptFont,
+	splitRunForMetrics,
+} from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -7,7 +12,6 @@ import { convertOmmlToMathMl } from './omml-to-mathml';
 import type { OmmlNode } from './omml-to-mathml';
 import { renderTabbedLine } from './text-tab-layout';
 import type { TabRenderContext } from './text-tab-layout';
-import { segmentByScript, resolveFontForScript } from './unicode-script-detection';
 
 /* Highlight info for a single segment, used by Find & Replace */
 export interface TextSegmentHighlight {
@@ -31,8 +35,11 @@ export interface ScriptFonts {
  * Render text with per-script font spans when fonts differ across Unicode
  * script categories (latin, eastAsia, complexScript, symbol).
  *
- * When all script fonts are the same (common case), returns the plain text
- * string with zero extra DOM overhead.
+ * The segmentation + font-resolution decision is shared's `splitRunByScriptFont`
+ * (extracted from this file's former private implementation so all five
+ * bindings render the same descriptor); this is now only the JSX mapping over
+ * its pieces. When all script fonts are the same (common case), returns the
+ * plain text string with zero extra DOM overhead.
  */
 export function renderScriptAwareText(
 	text: string,
@@ -46,30 +53,24 @@ export function renderScriptAwareText(
 	if (!needsScriptFonts || !text) {
 		return text;
 	}
-
-	const runs = segmentByScript(text);
-	if (runs.length <= 1) {
-		// Single script: resolve font for that script inline
-		if (runs.length === 1) {
-			const font = resolveFontForScript(runs[0].script, scriptFonts);
-			if (font && font !== baseFontFamily) {
-				return <span style={{ ...nestedStyle, fontFamily: font }}>{text}</span>;
-			}
-		}
+	const pieces = splitRunByScriptFont(
+		text,
+		scriptFonts,
+		baseFontFamily,
+		nestedStyle as RunStyle | undefined,
+	);
+	if (!pieces) {
 		return text;
 	}
-
-	return runs.map((run, i) => {
-		const font = resolveFontForScript(run.script, scriptFonts);
-		if (!font || font === baseFontFamily) {
-			return <React.Fragment key={`${keyPrefix}-r${i}`}>{run.text}</React.Fragment>;
-		}
-		return (
-			<span key={`${keyPrefix}-r${i}`} style={{ ...nestedStyle, fontFamily: font }}>
-				{run.text}
+	return pieces.map((piece, i) =>
+		piece.style ? (
+			<span key={`${keyPrefix}-r${i}`} style={piece.style as React.CSSProperties}>
+				{piece.text}
 			</span>
-		);
-	});
+		) : (
+			<React.Fragment key={`${keyPrefix}-r${i}`}>{piece.text}</React.Fragment>
+		),
+	);
 }
 
 /** What a caller needs to give a run's pieces their own metric tracking. */

@@ -32,6 +32,7 @@ import type {
 	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
+	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import type { SlideSizeEmu } from 'pptx-viewer-shared';
@@ -110,6 +111,7 @@ function Harness({ content }: { content: ArrayBuffer }): null {
 		setActiveCustomShowId,
 		setSections: noopDispatch<PptxSection[]>(),
 		setPresentationProperties: noopDispatch<PptxPresentationProperties>(),
+		setViewProperties: noopDispatch<PptxViewProperties | undefined>(),
 		setNotesMaster: noopDispatch<PptxNotesMaster | undefined>(),
 		setHandoutMaster: noopDispatch<PptxHandoutMaster | undefined>(),
 		setNotesCanvasSize: noopDispatch<CanvasSize | undefined>(),

@@ -471,7 +471,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				mode,
 				activeLayout: state.activeLayout,
 				activeMaster: state.activeMaster,
-				presentationGridSpacing: state.presentationProperties.gridSpacing,
+				documentGridSpacing: state.viewProperties?.gridSpacing,
 			});
 
 		// The show that is actually playing, resolved once so presenter view's

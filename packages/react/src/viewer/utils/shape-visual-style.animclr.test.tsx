@@ -24,7 +24,15 @@ function ellipseShape(): PptxElement {
 		// stroke are resolved by shared `getComputedFillStyle` /
 		// `getComputedStrokeStyle` from `shapeStyle`, exactly as `shapeParams`
 		// derives the (now vestigial) positional arguments from it.
-		shapeStyle: { fillColor: '#ff0000', strokeWidth: 2, strokeColor: '#0000ff' },
+		// `lineAlignment: 'in'` pins the CSS border path: this file tests the
+		// animClr override cascade, not alignment, and the default `ctr` would
+		// route the stroke through the SVG overlay instead of `borderColor`.
+		shapeStyle: {
+			fillColor: '#ff0000',
+			strokeWidth: 2,
+			strokeColor: '#0000ff',
+			lineAlignment: 'in',
+		},
 	} as unknown as PptxElement;
 }
 

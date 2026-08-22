@@ -189,8 +189,17 @@ describe('getShapeVisualStyle gradient tiling (a:tileRect, @flip)', () => {
  */
 describe('getShapeVisualStyle shared-pipeline convergence', () => {
 	it('paints a compound outline as a full-width CSS `double` border', () => {
+		// Pinned to `algn="in"`: the default `ctr` alignment now routes a solid
+		// outline through the SVG stroke overlay instead of a CSS border (see
+		// `stroke-outline.ts`), and this test is specifically about the CSS
+		// `border`/`double` mapping.
 		const style = getShapeVisualStyle(
-			makeShape({ strokeWidth: 9, strokeColor: '#112233', compoundLine: 'dbl' }),
+			makeShape({
+				strokeWidth: 9,
+				strokeColor: '#112233',
+				compoundLine: 'dbl',
+				lineAlignment: 'in',
+			}),
 			true,
 			'#fff',
 			9,

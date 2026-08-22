@@ -16,6 +16,7 @@ import type {
 	PptxSection,
 	PptxPresentationProperties,
 	PptxTagCollection,
+	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 /**
@@ -170,6 +171,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [presentationProperties, setPresentationProperties] = useState<PptxPresentationProperties>(
 		{},
 	);
+	const [viewProperties, setViewProperties] = useState<PptxViewProperties | undefined>(undefined);
 	const [notesMaster, setNotesMaster] = useState<PptxNotesMaster | undefined>();
 	const [handoutMaster, setHandoutMaster] = useState<PptxHandoutMaster | undefined>();
 	const [notesCanvasSize, setNotesCanvasSize] = useState<CanvasSize | undefined>();
@@ -276,6 +278,8 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		setSections,
 		presentationProperties,
 		setPresentationProperties,
+		viewProperties,
+		setViewProperties,
 		notesMaster,
 		setNotesMaster,
 		handoutMaster,

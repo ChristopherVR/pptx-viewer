@@ -17,6 +17,7 @@ import type {
 	PptxTheme,
 	PptxThemeColorScheme,
 	PptxThemeOption,
+	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import type { SlideSizeEmu } from 'pptx-viewer-shared';
@@ -102,6 +103,7 @@ function Harness({ initial }: { initial: Uint8Array }): React.ReactElement {
 		setActiveCustomShowId: noopDispatch<string | null>(),
 		setSections: noopDispatch<PptxSection[]>(),
 		setPresentationProperties: noopDispatch<PptxPresentationProperties>(),
+		setViewProperties: noopDispatch<PptxViewProperties | undefined>(),
 		setNotesMaster: noopDispatch<PptxNotesMaster | undefined>(),
 		setHandoutMaster: noopDispatch<PptxHandoutMaster | undefined>(),
 		setNotesCanvasSize: noopDispatch<CanvasSize | undefined>(),

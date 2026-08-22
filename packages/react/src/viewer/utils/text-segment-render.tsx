@@ -6,6 +6,7 @@ import {
 	pieceLetterSpacing,
 	resolveAutoFitFontScale,
 	resolveMetricTrackingPx,
+	resolveScriptFontSet,
 } from 'pptx-viewer-shared';
 import type { ParagraphRun } from 'pptx-viewer-shared';
 import React from 'react';
@@ -134,31 +135,18 @@ export function renderParagraphRun(
 			)
 		: DEFAULT_FONT_FAMILY;
 
-	// Per-script font info for Unicode font fallback. Every entry goes through
-	// the SAME substitution as `latin`, for two reasons. The obvious one: a bare
-	// `a:ea` name emitted on the inner script span overrides the parent's
-	// fallback chain, so a deck whose east-asian font is not installed drops to
-	// the browser's default - which for CJK is a serif, where PowerPoint
-	// substitutes a sans. The subtle one: the comparison below is by string, so
-	// leaving `ea` bare while `latin` carries a chain made an identical typeface
-	// look distinct and emitted that clobbering span in the first place.
-	const scriptFont = (name: string | undefined, panose: string | undefined): string =>
-		name ? getSubstituteFontFamily(name, parsePanoseString(panose)) : baseFontFamily;
-	const scriptFonts = {
-		latin: baseFontFamily,
-		eastAsia: scriptFont(
-			segmentStyle.eastAsiaFont || element.textStyle?.eastAsiaFont,
-			segmentStyle.eastAsiaFontPanose ?? element.textStyle?.eastAsiaFontPanose,
-		),
-		complexScript: scriptFont(
-			segmentStyle.complexScriptFont || element.textStyle?.complexScriptFont,
-			segmentStyle.complexScriptFontPanose ?? element.textStyle?.complexScriptFontPanose,
-		),
-		symbol: scriptFont(
-			segmentStyle.symbolFont || element.textStyle?.symbolFont,
-			segmentStyle.symbolFontPanose ?? element.textStyle?.symbolFontPanose,
-		),
-	};
+	// Per-script font info for Unicode font fallback, resolved by shared's
+	// `resolveScriptFontSet` (extracted from this file so all five bindings
+	// share the SAME substitution + fallback-chain rules). Every entry goes
+	// through the SAME substitution as `latin`, for two reasons. The obvious
+	// one: a bare `a:ea` name emitted on the inner script span overrides the
+	// parent's fallback chain, so a deck whose east-asian font is not installed
+	// drops to the browser's default - which for CJK is a serif, where
+	// PowerPoint substitutes a sans. The subtle one: the comparison below is by
+	// string, so leaving `ea` bare while `latin` carries a chain made an
+	// identical typeface look distinct and emitted that clobbering span in the
+	// first place.
+	const scriptFonts = resolveScriptFontSet(segmentStyle, element.textStyle, baseFontFamily);
 	const needsScriptFonts = hasDistinctScriptFonts(scriptFonts);
 
 	// Advance-width compensation on top of any authored spacing, so the browser

@@ -17,6 +17,7 @@ import type {
 	PptxSection,
 	PptxPresentationProperties,
 	PptxTagCollection,
+	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import type { CollaborationLivePatcher, SlideSizeEmu } from 'pptx-viewer-shared';
@@ -208,6 +209,14 @@ export interface ViewerCoreState {
 	/** Presentation-level properties (loop, show type, subtitles, etc.). */
 	presentationProperties: PptxPresentationProperties;
 	setPresentationProperties: React.Dispatch<React.SetStateAction<PptxPresentationProperties>>;
+	/**
+	 * View properties parsed from `ppt/viewProps.xml` (`p:viewPr`): grid
+	 * spacing, snap/guide toggles, last view, splitter state, etc. This is the
+	 * ONLY correct source for `gridSpacing` -- `p:gridSpacing` lives under
+	 * `p:viewPr`, never under `p:presentationPr`.
+	 */
+	viewProperties: PptxViewProperties | undefined;
+	setViewProperties: React.Dispatch<React.SetStateAction<PptxViewProperties | undefined>>;
 	/** Notes master slide definition (background, elements, styles). */
 	notesMaster: PptxNotesMaster | undefined;
 	setNotesMaster: React.Dispatch<React.SetStateAction<PptxNotesMaster | undefined>>;

@@ -3,6 +3,7 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
+	buildSubpathFillOverlay,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
 	strokeOutlineViewBox,
@@ -73,6 +74,11 @@ function renderOutlinePaint(paint: StrokeOutlinePaint): React.ReactElement {
  *     `getShapeVisualStyle`); this injects the matching `<filter>` markup into a
  *     hidden, zero-size `<svg><defs>` so that reference resolves. Mirrors how
  *     the duotone filter is injected via `renderDagDuotoneFilterForElement`.
+ *  4. A per-sub-path FILL overlay, for a multi-sub-path preset (`smileyFace`'s
+ *     open eyes, `actionButtonBlank`'s darkened bevel well) whose sub-paths
+ *     cannot share one CSS `background-color`: `getShapeVisualStyle` drops the
+ *     container fill for these (via shared `suppressesCssFill`) so this layered
+ *     SVG paints it instead, each sub-path with its own resolved fill.
  *
  * Renders nothing when the element has no shape properties, no fill overlay,
  * and no soft edge.
@@ -93,7 +99,8 @@ export function ShapeEffectOverlay({
 	// so clicks fall through to what it is drawn over, and this transparent band
 	// opts its OUTLINE back into hit testing (same trick as connector-hit-target).
 	const hollowHit = buildHollowHitOutline(element);
-	if (!overlay && !softEdge && !strokeOutline && !hollowHit) {
+	const subpathFill = buildSubpathFillOverlay(element);
+	if (!overlay && !softEdge && !strokeOutline && !hollowHit && !subpathFill) {
 		return null;
 	}
 
@@ -109,6 +116,19 @@ export function ShapeEffectOverlay({
 
 	return (
 		<>
+			{subpathFill ? (
+				<svg
+					className='pptx-react-subpath-fill'
+					aria-hidden='true'
+					viewBox={`0 0 ${subpathFill.viewBoxWidth} ${subpathFill.viewBoxHeight}`}
+					preserveAspectRatio='none'
+					style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+				>
+					{subpathFill.paints.map((paint, idx) => (
+						<path key={idx} d={paint.d} fill={paint.fill} stroke='none' />
+					))}
+				</svg>
+			) : null}
 			{softEdge ? (
 				<svg
 					width={0}

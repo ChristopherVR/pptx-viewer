@@ -1,5 +1,6 @@
 import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
 import {
+	computeGridSpacingPx as sharedComputeGridSpacingPx,
 	groupSlidesBySection,
 	masterViewPseudoSlide,
 	resolveShowSlideIndexes,
@@ -12,12 +13,7 @@ import {
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-	DEFAULT_SECTION_GROUP_ID,
-	EMU_PER_PX,
-	GRID_SIZE,
-	UNGROUPED_SECTION_ID,
-} from '../constants';
+import { DEFAULT_SECTION_GROUP_ID, GRID_SIZE, UNGROUPED_SECTION_ID } from '../constants';
 import type { SlideSectionGroup } from '../types';
 import type { ViewerMode } from '../types-core';
 
@@ -38,7 +34,13 @@ export interface UseDerivedSlideStateInput {
 	mode: ViewerMode;
 	activeLayout: PptxSlideLayout | undefined;
 	activeMaster: PptxSlideMaster | undefined;
-	presentationGridSpacing: { cx: number } | undefined;
+	/**
+	 * `PptxData.viewProperties.gridSpacing` (from `ppt/viewProps.xml`), NOT
+	 * `presentationProperties.gridSpacing`: `p:gridSpacing` lives under
+	 * `p:viewPr`, and a real PowerPoint file never populates it under
+	 * `p:presentationPr`, so reading the latter always yields the fallback.
+	 */
+	documentGridSpacing: { cx: number } | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,15 +58,14 @@ export interface DerivedSlideState {
 // Pure helper functions (exported for testing)
 // ---------------------------------------------------------------------------
 
-/** Compute grid spacing in pixels from presentation grid spacing in EMU. */
-export function computeGridSpacingPx(presentationGridSpacing: { cx: number } | undefined): number {
-	if (presentationGridSpacing) {
-		const px = Math.round(presentationGridSpacing.cx / EMU_PER_PX);
-		if (px > 0) {
-			return px;
-		}
-	}
-	return GRID_SIZE;
+/**
+ * Compute grid spacing in pixels from the document's authored grid spacing
+ * (EMU, `viewProperties.gridSpacing`). Thin wrapper over the shared pure
+ * decision function so React's default (`GRID_SIZE`) applies without every
+ * call site repeating it.
+ */
+export function computeGridSpacingPx(documentGridSpacing: { cx: number } | undefined): number {
+	return sharedComputeGridSpacingPx(documentGridSpacing, GRID_SIZE);
 }
 
 /**
@@ -150,13 +151,13 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 		mode,
 		activeLayout,
 		activeMaster,
-		presentationGridSpacing,
+		documentGridSpacing,
 	} = input;
 
 	// Grid spacing in pixels
 	const gridSpacingPx = useMemo(
-		() => computeGridSpacingPx(presentationGridSpacing),
-		[presentationGridSpacing],
+		() => computeGridSpacingPx(documentGridSpacing),
+		[documentGridSpacing],
 	);
 
 	// Slide indexes visible in the current custom show (or all non-hidden)

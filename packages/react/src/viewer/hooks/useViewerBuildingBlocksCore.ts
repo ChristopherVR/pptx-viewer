@@ -127,7 +127,7 @@ export function useViewerBuildingBlocksCore(
 		mode,
 		activeLayout: state.activeLayout,
 		activeMaster: state.activeMaster,
-		presentationGridSpacing: state.presentationProperties.gridSpacing,
+		documentGridSpacing: state.viewProperties?.gridSpacing,
 	});
 
 	// File > Options > Advanced owns "End with black slide". Reading it here (not

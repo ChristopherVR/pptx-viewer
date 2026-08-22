@@ -2,8 +2,12 @@
  * Per-sub-path custom-geometry SVG rendering.
  *
  * Split out of `vector-shape-renderer.tsx` so that file stays small. The pure
- * paint-decision logic lives in `vector-subpath-paint.ts`; this module only
- * emits the `<path>` elements.
+ * paint-decision logic (`buildSubpathPaints`) lives in shared
+ * `pptx-viewer-shared/render/vector-subpath-paint`, alongside the analogous
+ * decision for multi-sub-path PRESET geometry (`subpath-fill-overlay`, which
+ * the other four bindings' `ShapeEffectOverlay` render); this module only
+ * emits the `<path>` elements for custom geometry, which React alone paints as
+ * an inline SVG rather than a CSS box (`rendersCustomVectorPath`).
  *
  * The legacy renderer concatenated every custom-geometry sub-path into one
  * `<path>` with a single element-level fill, so a stroke-only sub-path inside a
@@ -15,13 +19,12 @@
  */
 import { customGeometryPathsToSvgSubpaths } from 'pptx-viewer-core';
 import type { CustomGeometryPath, ShapeStyle } from 'pptx-viewer-core';
-import { svgGradientFillRef, svgLineCap } from 'pptx-viewer-shared';
+import { buildSubpathPaints, svgGradientFillRef, svgLineCap } from 'pptx-viewer-shared';
 import type { SvgGradientDef } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
 import { getCompoundLineOffsets, getCompoundLineWidths } from './connector-path';
-import { buildCustomSubpathPaints } from './vector-subpath-paint';
 
 /** Line-join / miter styling derived from a shape's `a:ln` join settings. */
 function joinStyle(shapeStyle: ShapeStyle | undefined): {
@@ -179,7 +182,7 @@ export function renderCustomGeometryVector(
 	const gradientPaint = gradient ? svgGradientFillRef(gradient) : undefined;
 	const nodes: React.ReactNode[] = [];
 	if (subpaths && needsPerSubpath) {
-		const paints = buildCustomSubpathPaints(subpaths, hasFill, fillColor, fillOpacity);
+		const paints = buildSubpathPaints(subpaths, hasFill, fillColor, fillOpacity);
 		paints.forEach((paint, idx) => {
 			if (paint.fill !== 'none') {
 				// `norm` (and unset) sub-paths take the gradient verbatim; a

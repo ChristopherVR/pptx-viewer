@@ -4,6 +4,7 @@ import {
 	beginShapeAdjustment,
 	canInteractWithElement,
 	filterInteractableIds,
+	resolveInlineEditAutoFitHeight,
 } from 'pptx-viewer-shared';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useRef } from 'react';
@@ -142,9 +143,18 @@ export function useCanvasInteractions(
 				? transformCommittedText(inlineEditingText)
 				: inlineEditingText;
 			const newSegments = remapTextToSegments(committedText, el.textSegments, el.textStyle);
+			// `a:spAutoFit` ("Resize shape to fit text"): grow/shrink the shape to
+			// the text's natural content height, the way PowerPoint does. The
+			// editor's DOM node is still mounted here (the state update below is
+			// what unmounts it, and that only takes effect on the next render), so
+			// this measures the live, still-focused element rather than a stale
+			// snapshot.
+			const editorEl = document.querySelector<HTMLElement>('[data-inline-editor]');
+			const newHeight = resolveInlineEditAutoFitHeight(el.textStyle, el.height, editorEl);
 			ops.updateElementById(editId, {
 				text: committedText,
 				textSegments: newSegments,
+				...(newHeight !== undefined ? { height: newHeight } : {}),
 			} as Partial<PptxElement>);
 			history.markDirty();
 		}

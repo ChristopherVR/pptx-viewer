@@ -81,15 +81,31 @@ describe('shapeEffectOverlay gradient outline', () => {
 		expect(style.borderColor).toBeUndefined();
 	});
 
-	it('leaves a solid outline on the CSS border (cheaper, and correct)', () => {
+	it('leaves an explicitly INSET solid outline on the CSS border (cheaper, and correct)', () => {
+		// Only `algn="in"` is a `border-box` CSS border already correct for: the
+		// default `ctr` alignment centres the line on the path (half outside the
+		// box), which the SVG overlay paints instead (see `stroke-outline.ts`).
+		const element = shape({
+			strokeFillMode: 'solid',
+			strokeColor: '#123456',
+			strokeGradientStops: undefined,
+			lineAlignment: 'in',
+		});
+		expect(markup(element)).not.toContain('linearGradient');
+		const { hf, fc, sw, sc } = shapeParams(element);
+		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(3);
+	});
+
+	it('centres a solid outline at the default (omitted) alignment instead', () => {
 		const element = shape({
 			strokeFillMode: 'solid',
 			strokeColor: '#123456',
 			strokeGradientStops: undefined,
 		});
 		expect(markup(element)).not.toContain('linearGradient');
+		expect(markup(element)).toContain('stroke="#123456"');
 		const { hf, fc, sw, sc } = shapeParams(element);
-		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(3);
+		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(0);
 	});
 });
 
@@ -133,11 +149,28 @@ describe('shapeEffectOverlay pattern outline', () => {
 		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(0);
 	});
 
-	it('falls back to the CSS border for a preset it cannot draw', () => {
+	it('falls back to a flat centred stroke for a preset it cannot draw', () => {
+		// The pattern fails to resolve, but the shape is still at the default
+		// `ctr` alignment, so the SVG overlay still fires, now with the flat
+		// `strokeColor` rather than the (unresolvable) pattern.
 		const element = shape({
 			strokeFillMode: 'pattern',
 			strokePatternPreset: 'notARealPreset',
 			strokeGradientStops: undefined,
+		});
+		const html = markup(element);
+		expect(html).not.toContain('<pattern');
+		expect(html).toContain('stroke="#D8DEDF"');
+		const { hf, fc, sw, sc } = shapeParams(element);
+		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(0);
+	});
+
+	it('leaves an explicitly INSET pattern-preset fallback on the CSS border', () => {
+		const element = shape({
+			strokeFillMode: 'pattern',
+			strokePatternPreset: 'notARealPreset',
+			strokeGradientStops: undefined,
+			lineAlignment: 'in',
 		});
 		expect(markup(element)).not.toContain('<pattern');
 		const { hf, fc, sw, sc } = shapeParams(element);
@@ -192,13 +225,25 @@ describe('shapeEffectOverlay stroke-only preset', () => {
 		expect(style.clipPath).toBeUndefined();
 	});
 
-	it('leaves a closed preset to its CSS border', () => {
-		// A closed preset must not get a PAINTED stroke outline - its CSS border
-		// draws the edge. It does still get the transparent `pointer-events:stroke`
-		// hit band, because this fixture is unfilled and textless: a hollow frame,
-		// whose interior must let clicks through to whatever it is drawn over.
-		const html = markup(rule({ shapeType: 'rect', height: 100 }));
+	it('leaves an explicitly INSET closed preset to its CSS border', () => {
+		// `algn="in"` is the one alignment a CSS border already paints correctly,
+		// so a closed preset must not ALSO get a painted SVG stroke outline. It
+		// does still get the transparent `pointer-events:stroke` hit band, because
+		// this fixture is unfilled and textless: a hollow frame, whose interior
+		// must let clicks through to whatever it is drawn over.
+		const html = markup(
+			rule({
+				shapeType: 'rect',
+				height: 100,
+				shapeStyle: { strokeColor: '#000000', strokeWidth: 2, lineAlignment: 'in' },
+			}),
+		);
 		expect(html).not.toContain('stroke="#000000"');
 		expect(html).toContain('stroke="transparent"');
+	});
+
+	it('centres a closed preset at the default (omitted) alignment instead', () => {
+		const html = markup(rule({ shapeType: 'rect', height: 100 }));
+		expect(html).toContain('stroke="#000000"');
 	});
 });

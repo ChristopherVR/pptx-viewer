@@ -16,6 +16,7 @@ import type {
 	PptxSection,
 	PptxPresentationProperties,
 	PptxTagCollection,
+	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
@@ -35,6 +36,8 @@ import { partitionTemplateElements } from '../utils/template-editing';
 import {
 	collectMediaElements,
 	collectImagePaths,
+	collectTableCellImagePaths,
+	applyTableCellImagePatches,
 	buildInitialGuides,
 } from './load-content-helpers';
 import type { EditorHistoryResult } from './useEditorHistory';
@@ -68,6 +71,7 @@ export interface UseLoadContentInput {
 	setActiveCustomShowId: React.Dispatch<React.SetStateAction<string | null>>;
 	setSections: React.Dispatch<React.SetStateAction<PptxSection[]>>;
 	setPresentationProperties: React.Dispatch<React.SetStateAction<PptxPresentationProperties>>;
+	setViewProperties: React.Dispatch<React.SetStateAction<PptxViewProperties | undefined>>;
 	setNotesMaster: React.Dispatch<React.SetStateAction<PptxNotesMaster | undefined>>;
 	setHandoutMaster: React.Dispatch<React.SetStateAction<PptxHandoutMaster | undefined>>;
 	setNotesCanvasSize: React.Dispatch<React.SetStateAction<CanvasSize | undefined>>;
@@ -122,6 +126,7 @@ export function useLoadContent({
 	setActiveCustomShowId,
 	setSections,
 	setPresentationProperties,
+	setViewProperties,
 	setNotesMaster,
 	setHandoutMaster,
 	setNotesCanvasSize,
@@ -305,6 +310,38 @@ export function useLoadContent({
 					}
 				}
 
+				// ── Resolve table cell image-fill Blob URLs ─────────────────
+				// Same lazy-load story as picture elements above: a cell's
+				// `a:tcPr/a:blipFill` parses to an archive path
+				// (`backgroundImageFillPath`), resolved here to a displayable URL.
+				const { paths: tableImagePaths, refs: tableImageRefs } =
+					collectTableCellImagePaths(nextSlides);
+				if (tableImagePaths.size > 0) {
+					const resolvedTableMap = new Map<string, string>();
+					await Promise.all(
+						Array.from(tableImagePaths).map(async (path) => {
+							try {
+								const url = await handler.getImageData(path);
+								if (url) {
+									resolvedTableMap.set(path, url);
+								}
+							} catch {
+								// Non-critical: the cell falls back to no image fill.
+							}
+						}),
+					);
+					if (resolvedTableMap.size > 0) {
+						nextSlides = nextSlides.map((s) => {
+							const newElements = applyTableCellImagePatches(
+								s.elements,
+								resolvedTableMap,
+								tableImageRefs,
+							);
+							return newElements === s.elements ? s : { ...s, elements: newElements };
+						});
+					}
+				}
+
 				handlerRef.current = handler;
 				// Separate the inherited master/layout (template) elements that the
 				// core loader merged into `slide.elements` into their own per-slide
@@ -346,6 +383,7 @@ export function useLoadContent({
 				);
 				setSections(parsed.sections ?? []);
 				setPresentationProperties(parsed.presentationProperties ?? {});
+				setViewProperties(parsed.viewProperties);
 				setNotesMaster(parsed.notesMaster);
 				setHandoutMaster(parsed.handoutMaster);
 				if (
@@ -383,6 +421,11 @@ export function useLoadContent({
 					if (err instanceof EncryptedFileError) {
 						setIsEncrypted(true);
 					} else {
+						// Log unexpected load failures to the console: `setError` only
+						// surfaces the message if a UI surface renders it, and a silent
+						// swallow here has previously masked real bugs (e.g. a caller
+						// missing a newly-required setter) as inexplicable hangs.
+						console.error('[pptx] Failed to load presentation content:', err);
 						setError(err instanceof Error ? err.message : String(err));
 					}
 				}

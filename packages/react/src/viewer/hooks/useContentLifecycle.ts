@@ -107,6 +107,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setActiveCustomShowId: state.setActiveCustomShowId,
 		setSections: state.setSections,
 		setPresentationProperties: state.setPresentationProperties,
+		setViewProperties: state.setViewProperties,
 		setNotesMaster: state.setNotesMaster,
 		setHandoutMaster: state.setHandoutMaster,
 		setNotesCanvasSize: state.setNotesCanvasSize,
