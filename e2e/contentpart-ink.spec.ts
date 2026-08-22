@@ -52,9 +52,15 @@ async function openDeck(page: Page, filePath: string): Promise<void> {
  * slide thumbnails, so an unscoped `[data-element-id] svg path` returns the
  * canvas strokes plus every thumbnail's copy (11 rather than 4) and the count
  * would differ per binding for a reason that has nothing to do with ink.
+ *
+ * Also scoped to `contentPart` element ids: `a:ln/@algn` gained a renderer
+ * (the shared SVG stroke-outline overlay), so an ordinary bordered shape now
+ * emits its own `<svg><path>` too. An unscoped selector picks up that
+ * neighbouring shape's outline path alongside the real ink strokes, which has
+ * nothing to do with ink either.
  */
 function inkPaths(page: Page): Locator {
-	return page.locator('[data-pptx-viewport] [data-element-id] svg path');
+	return page.locator('[data-pptx-viewport] [data-element-id*="contentPart"] svg path');
 }
 
 async function strokeGeometry(page: Page): Promise<{ d: string; stroke: string }[]> {
@@ -104,8 +110,15 @@ test.describe('contentPart ink', () => {
 		// The neutral cross-binding contract: an ink content part is an element,
 		// not decoration. Angular and Vue used to route it to the "unsupported"
 		// placeholder, which is still an element box, so assert the strokes are
-		// inside the SAME marked element rather than merely present somewhere.
-		const marked = page.locator('[data-pptx-viewport] [data-pptx-element="true"]');
+		// inside the SAME marked, content-part-identified element rather than
+		// merely present somewhere. Scoped to `contentPart` ids so a
+		// neighbouring shape's own stroke-outline overlay (a real `<svg><path>`
+		// now that `a:ln/@algn` has a renderer) cannot be counted as a second
+		// match; the "unsupported" placeholder still carries the content part's
+		// id but paints no `svg path`, so the regression this guards stays caught.
+		const marked = page.locator(
+			'[data-pptx-viewport] [data-pptx-element="true"][data-element-id*="contentPart"]',
+		);
 		const withInk = marked.filter({ has: page.locator('svg path') });
 		await expect(withInk).toHaveCount(1);
 	});

@@ -9,7 +9,15 @@
  *   shape-0  rect,     `a:pattFill` `dkDnDiag`   (dark downward diagonal)
  *   shape-1  ellipse,  `a:pattFill` `smGrid`     (small grid, on a round outline)
  *   shape-2  rect,     `a:gradFill` two-tone     (control: the gradient path)
- *   shape-3  rect,     `a:solidFill`             (control: keeps its CSS border)
+ *   shape-3  rect,     `a:solidFill` + `algn="in"` (control: keeps its CSS
+ *                                               border; PowerPoint's default
+ *                                               `a:ln/@algn` is `ctr` - stroke
+ *                                               centred on the path - which even
+ *                                               a solid line now paints through
+ *                                               the shared SVG stroke overlay,
+ *                                               so this control declares the
+ *                                               inset alignment explicitly to
+ *                                               keep testing the cheap CSS path)
  *
  * Run with: bun run e2e/fixtures/generate-pattern-outline-fixture.ts
  */
@@ -52,7 +60,13 @@ const SPECS: Spec[] = [
 		prst: 'rect',
 		x: 260,
 		y: 220,
-		line: `<a:ln w="76200"><a:solidFill><a:srgbClr val="00B050"/></a:solidFill></a:ln>`,
+		// `algn="in"` (PowerPoint's inset pen alignment) is explicit here: an
+		// omitted `@algn` defaults to `ctr` and now legitimately routes even a
+		// solid line through the SVG stroke overlay (see
+		// `line-fill-parity.spec.ts`'s `compound-sng` case for that path), so
+		// this control needs the declared alignment to still exercise the plain
+		// CSS `border` path it is named for.
+		line: `<a:ln w="76200" algn="in"><a:solidFill><a:srgbClr val="00B050"/></a:solidFill></a:ln>`,
 	},
 ];
 

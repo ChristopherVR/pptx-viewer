@@ -12,7 +12,11 @@
  *    a double line came out as one thicker solid line. It is now
  *    `border-style: double`, which is what CSS has for the job.
  *  - `a:reflection/@stPos` reached everything EXCEPT React, which re-derived
- *    the reflection inline and dropped the hold segment.
+ *    the reflection inline and dropped the hold segment. Reflections
+ *    themselves have since moved off `-webkit-box-reflect` (Chromium/WebKit
+ *    only, so Firefox rendered nothing at all) onto a mirrored sibling node
+ *    (`transform: scaleY(-1)` plus a `mask-image` alpha ramp), so this spec's
+ *    probe reads that mask gradient rather than the old proprietary property.
  *  - `a:blipFill/a:tile` reached React only; the other four painted a tiled
  *    texture as one stretched copy.
  *  - `a:miter/@lim` reached React only.
@@ -56,7 +60,11 @@ interface ElementFacts {
 	borderTopStyle: string;
 	borderTopWidth: string;
 	strokeMiterlimit: string;
-	/** Whether `-webkit-box-reflect` holds full opacity before it fades. */
+	/**
+	 * Whether the mirrored reflection sibling's `mask-image` alpha ramp holds
+	 * full opacity (a repeated leading stop) before it fades, vs. fading from
+	 * the very first stop.
+	 */
 	reflectionHolds: boolean;
 	backgroundRepeat: string;
 	backgroundSize: string;
@@ -94,7 +102,19 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 					// `<img>`; either is fine, the tiling values are what must match.
 					const layer = node.querySelector('div[style*="background"]');
 					const paint = layer ? getComputedStyle(layer) : own;
-					const reflect = own.webkitBoxReflect ?? '';
+					// The mirrored reflection sibling (`pptx-<binding>-reflection`, or
+					// `pptxv-reflection` for vanilla); excludes the differently-shaped
+					// `*-text-reflection` span a reflected text run also carries, which
+					// is not what these plain shapes render.
+					const reflectionEl = [
+						...node.querySelectorAll<HTMLElement>('[class*="reflection"]'),
+					].find((el) => !/text-reflection/u.test(el.className));
+					const reflectionMask = reflectionEl ? getComputedStyle(reflectionEl).maskImage : '';
+					// `@stPos` becomes a HOLD stop: the start colour repeated at a later
+					// offset before the ramp to the end colour begins. A plain fade goes
+					// straight from the start stop to the end stop, so its first two
+					// colour stops differ.
+					const maskColourStops = [...reflectionMask.matchAll(/rgba\([^)]*\)/gu)].map((m) => m[0]);
 					// The innermost element carrying text is the run span; a hollow
 					// run is the one place where the run's paint differs from the
 					// block's, so it must be read off the span and not the box.
@@ -118,9 +138,10 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 						borderTopStyle: own.borderTopStyle,
 						borderTopWidth: own.borderTopWidth,
 						strokeMiterlimit: own.strokeMiterlimit,
-						// The `@stPos` hold is a second stop at the START opacity; without
-						// it the gradient runs straight from the start colour to the end.
-						reflectionHolds: /rgba\([^)]*\)\s+\d+px,\s*rgba/u.test(reflect),
+						// The `@stPos` hold repeats the start colour as the mask's second
+						// stop; without it the gradient runs straight to the end colour.
+						reflectionHolds:
+							maskColourStops.length >= 2 && maskColourStops[0] === maskColourStops[1],
 						backgroundRepeat: paint.backgroundRepeat,
 						backgroundSize: paint.backgroundSize,
 						backgroundPosition: paint.backgroundPosition,
