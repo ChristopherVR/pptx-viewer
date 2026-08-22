@@ -25,6 +25,7 @@
 		mediaDataUrls,
 		scale,
 		presenting = false,
+		gridSpacingPx = 12,
 		editingActive = false,
 		editTemplateMode = false,
 		ontablecellcommit,
@@ -91,7 +92,7 @@
 	class:pptx-svelte-ai-picking={pickActive}
 	data-pptx-ai-active={aiActive ? 'true' : undefined}
 	data-ai-pick-mode={pickActive ? 'true' : undefined}
-	style={`width: ${canvasSize.width * scale}px; height: ${canvasSize.height * scale}px`}
+	style={`width: ${canvasSize.width * scale}px; height: ${canvasSize.height * scale}px; --pptx-grid-size: ${gridSpacingPx}px`}
 	onpointerdown={pickActive ? swallow : editingActive ? onstagepointerdown : undefined}
 	onpointermove={editingActive && !pickActive ? onstagepointermove : undefined}
 	ondblclick={editingActive && !pickActive ? onstagedblclick : undefined}

@@ -1,4 +1,4 @@
-import { resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
+import { computeGridSpacingPx, resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
 
 import type { CollaborationController } from '../collab';
 import type { StageContextMenu } from '../components/props';
@@ -82,6 +82,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 			stageContextMenu = { x, y, cell };
 		},
 		getSnapToGrid: () => parityUi.preferences.snapToGrid,
+		getGridSize: () => computeGridSpacingPx(loader.viewProperties?.gridSpacing, 12),
 		getSnapToShape: () => parityUi.snapToShape,
 		getGuides: () => parityUi.guides,
 		getLivePatcher: () => collab.livePatcher,

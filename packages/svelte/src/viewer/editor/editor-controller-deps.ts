@@ -24,6 +24,14 @@ export interface EditorControllerDeps {
 	 */
 	onContextMenu?(x: number, y: number, cell: ContextMenuCellTarget | null): void;
 	getSnapToGrid?(): boolean;
+	/**
+	 * Grid spacing in CSS px for snap-to-grid, derived from the deck's
+	 * authored `viewProperties.gridSpacing` (falls back to a default when the
+	 * deck has none). NEVER derive this from `presentationProperties` --
+	 * `p:gridSpacing` lives under `p:viewPr`, not `p:presentationPr`, and a
+	 * real PowerPoint file never populates the latter.
+	 */
+	getGridSize?(): number;
 	getSnapToShape?(): boolean;
 	getGuides?(): readonly { axis: 'h' | 'v'; position: number }[];
 	/**

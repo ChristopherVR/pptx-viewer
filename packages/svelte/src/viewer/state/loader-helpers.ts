@@ -1,5 +1,10 @@
 import type { MediaPptxElement, PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { collectImagePaths, collectMediaElements } from 'pptx-viewer-shared';
+import {
+	applyTableCellImagePatches,
+	collectImagePaths,
+	collectMediaElements,
+	collectTableCellImagePaths,
+} from 'pptx-viewer-shared';
 
 /**
  * Pure async helpers for the load pipeline, ported from the Vue binding's
@@ -141,6 +146,44 @@ export async function resolveLazyImages(
 
 	return slides.map((slide) => {
 		const newElements = patchElements(slide.elements);
+		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
+	});
+}
+
+/**
+ * Resolve lazily-loaded table cell image-fill URLs (`a:tcPr/a:blipFill`) and
+ * patch them into the slide tree immutably. Same lazy-load story as
+ * {@link resolveLazyImages}, but for a cell's `backgroundImageFillPath`
+ * rather than a top-level element field.
+ */
+export async function resolveLazyTableCellImages(
+	handler: PptxHandler,
+	slides: PptxSlide[],
+): Promise<PptxSlide[]> {
+	const { paths, refs } = collectTableCellImagePaths(slides);
+	if (paths.size === 0) {
+		return slides;
+	}
+
+	const resolvedMap = new Map<string, string>();
+	await Promise.all(
+		Array.from(paths).map(async (path) => {
+			try {
+				const url = await handler.getImageData(path);
+				if (url) {
+					resolvedMap.set(path, url);
+				}
+			} catch {
+				// Non-critical: the cell falls back to no image fill.
+			}
+		}),
+	);
+	if (resolvedMap.size === 0) {
+		return slides;
+	}
+
+	return slides.map((slide) => {
+		const newElements = applyTableCellImagePatches(slide.elements, resolvedMap, refs);
 		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
 	});
 }

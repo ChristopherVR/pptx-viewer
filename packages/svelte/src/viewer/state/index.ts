@@ -15,7 +15,12 @@ export {
 	isFullscreenSupported,
 	toggleFullscreen,
 } from './fullscreen';
-export { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-helpers';
+export {
+	resolveLazyImages,
+	resolveLazyTableCellImages,
+	resolveMediaUrls,
+	revokeBlobUrls,
+} from './loader-helpers';
 export type { ResolvedMedia } from './loader-helpers';
 export { ChromeUiState } from './chrome-ui.svelte';
 export type { InspectorTabId } from './chrome-ui.svelte';

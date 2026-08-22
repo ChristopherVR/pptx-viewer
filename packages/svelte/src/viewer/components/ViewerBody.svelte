@@ -40,6 +40,7 @@
 		activeSlide,
 		scale,
 		presenting,
+		gridSpacingPx,
 		presentationTransition,
 		onTransitionDone,
 		onAdvance,
@@ -133,6 +134,7 @@
 				{activeSlide}
 				{scale}
 				{presenting}
+				{gridSpacingPx}
 				{presentationTransition}
 				{onTransitionDone}
 				{onAdvance}

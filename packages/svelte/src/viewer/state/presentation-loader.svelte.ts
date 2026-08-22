@@ -16,12 +16,18 @@ import type {
 	PptxThemeColorScheme,
 	PptxTheme,
 	PptxThemeOption,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, CollabLoadOrigin, SlideSizeEmu } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
 
-import { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-helpers';
+import {
+	resolveLazyImages,
+	resolveLazyTableCellImages,
+	resolveMediaUrls,
+	revokeBlobUrls,
+} from './loader-helpers';
 
 /**
  * Reactive load pipeline for the Svelte viewer: the runes port of the Vue
@@ -42,6 +48,14 @@ export class PresentationLoader {
 	sections = $state.raw<PptxSection[]>([]);
 	headerFooter = $state.raw<PptxHeaderFooter>({});
 	presentationProperties = $state.raw<PptxPresentationProperties>({});
+	/**
+	 * View properties (`ppt/viewProps.xml`, `p:viewPr`): grid spacing, snap /
+	 * guide toggles, last view, splitter state, etc. `gridSpacing` lives here,
+	 * NOT on `presentationProperties` -- `p:gridSpacing` is a child of
+	 * `p:viewPr`, and a real PowerPoint file never populates it under
+	 * `p:presentationPr`.
+	 */
+	viewProperties = $state.raw<PptxViewProperties | undefined>(undefined);
 	customShows = $state.raw<PptxCustomShow[]>([]);
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
@@ -133,7 +147,8 @@ export class PresentationLoader {
 			revokeBlobUrls(this.mediaDataUrls.values());
 			const media = await resolveMediaUrls(newHandler, parsed.slides);
 			loadBlobUrls.push(...media.blobUrls);
-			const nextSlides = await resolveLazyImages(newHandler, parsed.slides);
+			const imageResolvedSlides = await resolveLazyImages(newHandler, parsed.slides);
+			const nextSlides = await resolveLazyTableCellImages(newHandler, imageResolvedSlides);
 
 			// Commit reactive state.
 			revokeBlobUrls(this.#activeBlobUrls);
@@ -146,6 +161,7 @@ export class PresentationLoader {
 			this.sections = parsed.sections ?? [];
 			this.headerFooter = parsed.headerFooter ?? {};
 			this.presentationProperties = parsed.presentationProperties ?? {};
+			this.viewProperties = parsed.viewProperties;
 			this.customShows = parsed.customShows ?? [];
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;

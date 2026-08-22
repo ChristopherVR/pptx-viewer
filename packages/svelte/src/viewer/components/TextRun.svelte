@@ -13,6 +13,7 @@
 	import { runEquationMathMl } from 'pptx-viewer-shared';
 
 	import { styleToString } from '../style';
+	import TextRunContent from './TextRunContent.svelte';
 
 	const { run }: { run: ParagraphRun } = $props();
 
@@ -32,10 +33,11 @@
 		target="_blank"
 		rel="noopener noreferrer"
 		title={run.hyperlink.tooltip}
-		style={styleToString(run.style)}>{run.text}</a
+		style={styleToString(run.style)}><TextRunContent {run} /></a
 	>{:else if run.ruby}<ruby style={styleToString(run.style)}
-		>{run.text}<rp>(</rp><rt style={styleToString(run.ruby.style)}>{run.ruby.text}</rt><rp>)</rp></ruby
-	>{:else}<span style={styleToString(run.style)}>{run.text}</span>{/if}
+		><TextRunContent {run} /><rp>(</rp><rt style={styleToString(run.ruby.style)}>{run.ruby.text}</rt
+		><rp>)</rp></ruby
+	>{:else}<span style={styleToString(run.style)}><TextRunContent {run} /></span>{/if}
 
 <style>
 	.pptx-svelte-equation {

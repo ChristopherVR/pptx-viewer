@@ -55,13 +55,26 @@ describe('element styles (shared render helpers)', () => {
 	});
 
 	it('renders stroke borders from the shape style', () => {
+		// Pinned to `algn="in"`: the default `ctr` alignment now routes a solid
+		// outline through the SVG stroke overlay instead of a CSS border (see
+		// shared `stroke-outline.ts`).
+		const style = getShapeFillStrokeStyle({
+			...base,
+			type: 'shape',
+			shapeType: 'rect',
+			shapeStyle: { strokeColor: '#00ff00', strokeWidth: 2, lineAlignment: 'in' },
+		} as PptxElement);
+		expect(style.border).toBe('2px solid #00ff00');
+	});
+
+	it('centres a stroke border at the default (omitted) alignment instead', () => {
 		const style = getShapeFillStrokeStyle({
 			...base,
 			type: 'shape',
 			shapeType: 'rect',
 			shapeStyle: { strokeColor: '#00ff00', strokeWidth: 2 },
 		} as PptxElement);
-		expect(style.border).toBe('2px solid #00ff00');
+		expect(style.border).toBeUndefined();
 	});
 
 	it('builds flex text-block styles with alignment', () => {
@@ -96,6 +109,22 @@ describe('element styles (shared render helpers)', () => {
 			textStyle: { textWrap: 'none' },
 		} as PptxElement);
 		expect(noWrap.whiteSpace).toBe('nowrap');
+	});
+
+	it('never shrinks the font for spAutoFit, however much text overflows', () => {
+		// a:spAutoFit resizes the SHAPE to fit the text (ECMA-376), never the
+		// font; a box authored in PowerPoint already has its `a:ext` sized to
+		// fit, so the font must render unshrunk even for a box too small to
+		// hold the text at that size.
+		const style = getTextBlockStyle({
+			...base,
+			type: 'text',
+			width: 50,
+			height: 30,
+			text: 'x'.repeat(2000),
+			textStyle: { fontSize: 40, autoFit: true, autoFitMode: 'shrink' },
+		} as PptxElement);
+		expect(style.fontSize).toBe('40px');
 	});
 });
 

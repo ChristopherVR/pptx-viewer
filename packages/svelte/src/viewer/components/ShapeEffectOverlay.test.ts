@@ -94,7 +94,28 @@ describe('shapeEffectOverlay', () => {
 		expect(target.querySelector('svg defs')).toBeNull();
 	});
 
-	it('leaves a closed preset to its CSS border', () => {
+	it('leaves an explicitly INSET closed preset to its CSS border', () => {
+		// `algn="in"` is the one alignment a CSS border already paints correctly,
+		// so a closed preset must not ALSO get a painted SVG stroke outline. It
+		// does still get the transparent pointer-events:stroke hit band, because
+		// this fixture is unfilled and textless: a hollow frame, whose interior
+		// must let clicks through to whatever it is drawn over.
+		const target = render({
+			type: 'shape',
+			id: 'box-1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 80,
+			shapeType: 'rect',
+			shapeStyle: { strokeColor: '#000000', strokeWidth: 2, lineAlignment: 'in' },
+		} as unknown as PptxElement);
+		const html = target.innerHTML;
+		expect(html).not.toContain('#000000');
+		expect(html).toContain('transparent');
+	});
+
+	it('centres a closed preset at the default (omitted) alignment instead', () => {
 		const target = render({
 			type: 'shape',
 			id: 'box-1',
@@ -105,12 +126,6 @@ describe('shapeEffectOverlay', () => {
 			shapeType: 'rect',
 			shapeStyle: { strokeColor: '#000000', strokeWidth: 2 },
 		} as unknown as PptxElement);
-		// A closed preset must not get a PAINTED stroke outline - its CSS border
-		// draws the edge. It does still get the transparent pointer-events:stroke
-		// hit band, because this fixture is unfilled and textless: a hollow frame,
-		// whose interior must let clicks through to whatever it is drawn over.
-		const html = target.innerHTML;
-		expect(html).not.toContain('#000000');
-		expect(html).toContain('transparent');
+		expect(target.innerHTML).toContain('#000000');
 	});
 });

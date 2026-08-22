@@ -17,12 +17,18 @@
 	 *     `getEffectFilterCss`); this injects the matching `<filter>` markup into a
 	 *     hidden, zero-size `<svg><defs>` so that reference resolves, mirroring how
 	 *     `DuotoneFilterDefs` injects the duotone filter.
+	 *  4. A per-sub-path FILL overlay, for a multi-sub-path preset (`smileyFace`'s
+	 *     open eyes, `actionButtonBlank`'s darkened bevel well) whose sub-paths
+	 *     cannot share one CSS `background-color`: `element-style.ts` drops the
+	 *     container fill for these (via shared `suppressesCssFill`) so this
+	 *     layered SVG paints it instead, each sub-path with its own resolved fill.
 	 *
 	 * Renders nothing when the element has no fill overlay and no soft edge.
 	 */
 	import { hasShapeProperties } from 'pptx-viewer-core';
 	import {
 		buildStrokeOutline,
+		buildSubpathFillOverlay,
 		getComputedEffectStyle,
 		getSoftEdgeSvgFilter,
 		buildHollowHitOutline,
@@ -32,6 +38,17 @@
 	import type { ElementRendererProps } from './props';
 
 	const { element }: ElementRendererProps = $props();
+
+	/**
+	 * Per-sub-path fill overlay for a multi-sub-path preset or custom geometry,
+	 * or `undefined` when a single merged fill is correct (the ordinary case).
+	 */
+	const subpathFill = $derived(buildSubpathFillOverlay(element));
+
+	/** `viewBox` for the sub-path fill overlay, in its own coordinate space. */
+	const subpathFillViewBox = $derived(
+		subpathFill ? `0 0 ${subpathFill.viewBoxWidth} ${subpathFill.viewBoxHeight}` : undefined,
+	);
 
 	/** DAG fill-overlay tint (colour + blend mode), when present. */
 	const fillOverlay = $derived(getComputedEffectStyle(element).fillOverlay);
@@ -69,6 +86,19 @@
 	const hollowHit = $derived(buildHollowHitOutline(element));
 </script>
 
+{#if subpathFill}
+	<svg
+		class="pptx-svelte-subpath-fill"
+		aria-hidden="true"
+		viewBox={subpathFillViewBox}
+		preserveAspectRatio="none"
+		style="position:absolute;inset:0;width:100%;height:100%"
+	>
+		{#each subpathFill.paints as paint, idx (idx)}
+			<path d={paint.d} fill={paint.fill} stroke="none" />
+		{/each}
+	</svg>
+{/if}
 {#if softEdge}
 	<svg width="0" height="0" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
 		<defs>{@html softEdge.filterMarkup}</defs>

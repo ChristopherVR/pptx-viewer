@@ -52,7 +52,13 @@
 		pointer-events: none;
 		background-image: linear-gradient(#64748b22 1px, transparent 1px),
 			linear-gradient(90deg, #64748b22 1px, transparent 1px);
-		background-size: 12px 12px;
+		/*
+		 * `--pptx-grid-size` is set inline on `.pptx-svelte-stage-holder` from
+		 * the deck's authored `viewProperties.gridSpacing` (via
+		 * `computeGridSpacingPx`); 12px matches this binding's existing default
+		 * when the deck has none.
+		 */
+		background-size: var(--pptx-grid-size, 12px) var(--pptx-grid-size, 12px);
 		content: '';
 	}
 

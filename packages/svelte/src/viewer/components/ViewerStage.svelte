@@ -34,6 +34,7 @@
 		activeSlide,
 		scale,
 		presenting,
+		gridSpacingPx,
 		presentationTransition,
 		onTransitionDone,
 		onAdvance,
@@ -116,6 +117,7 @@
 			{mediaDataUrls}
 			{scale}
 			{presenting}
+			{gridSpacingPx}
 			{editingActive}
 			editTemplateMode={editor.editTemplateMode}
 			ontablecellcommit={editingActive ? commits.commitTableCell : undefined}

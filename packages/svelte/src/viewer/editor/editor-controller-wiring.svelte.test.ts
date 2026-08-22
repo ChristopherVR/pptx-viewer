@@ -163,3 +163,48 @@ describe('rerouteConnectorsAfterGesture', () => {
 		expect(push).not.toHaveBeenCalled();
 	});
 });
+
+describe('createTransformGestures: grid spacing wiring', () => {
+	// Regression: `EditorControllerDeps.getGridSize` used to be declared on
+	// `GestureDeps` but never actually supplied by `createTransformGestures`,
+	// so `deps.getGridSize?.() ?? 12` always fell through to the hardcoded
+	// default -- the deck's authored `viewProperties.gridSpacing` had no path
+	// into the snap step at all.
+	function hostWithGrid(gridSize: number): { host: EditorControllerHost; editor: EditorState } {
+		const { host, editor } = makeHost([shape('box-a', 0, 0), shape('box-b', 400, 300)]);
+		(host.deps as unknown as { getSnapToGrid: () => boolean }).getSnapToGrid = () => true;
+		(host.deps as unknown as { getGridSize: () => number }).getGridSize = () => gridSize;
+		return { host, editor };
+	}
+
+	it('snaps a move to a non-default grid size supplied via getGridSize', () => {
+		const { host, editor } = hostWithGrid(40);
+		const gestures = createTransformGestures(host);
+
+		gestures.begin('move', 'box-a', pointer('pointerdown', 0, 0));
+		// A move of (55, 55) rounds to the nearest 40px multiple (40).
+		window.dispatchEvent(pointer('pointermove', 55, 55));
+		window.dispatchEvent(pointer('pointerup', 55, 55));
+
+		const moved = connectorOf(editor, 'box-a');
+		expect(moved.x).toBe(40);
+		expect(moved.y).toBe(40);
+		gestures.dispose();
+	});
+
+	it('falls back to the 12px default when getGridSize is not supplied', () => {
+		const { host, editor } = makeHost([shape('box-a', 0, 0), shape('box-b', 400, 300)]);
+		(host.deps as unknown as { getSnapToGrid: () => boolean }).getSnapToGrid = () => true;
+		const gestures = createTransformGestures(host);
+
+		gestures.begin('move', 'box-a', pointer('pointerdown', 0, 0));
+		// A move of (55, 55) rounds to the nearest 12px multiple (60).
+		window.dispatchEvent(pointer('pointermove', 55, 55));
+		window.dispatchEvent(pointer('pointerup', 55, 55));
+
+		const moved = connectorOf(editor, 'box-a');
+		expect(moved.x).toBe(60);
+		expect(moved.y).toBe(60);
+		gestures.dispose();
+	});
+});

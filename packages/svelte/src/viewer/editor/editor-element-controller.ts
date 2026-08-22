@@ -7,7 +7,7 @@ import { updateSlideNotes } from './editor-mutations';
 import type { EditorState } from './editor-state.svelte';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';
-import { remapInlineText } from './inline-text';
+import { remapInlineText, resolveInlineTextAutoFitHeight } from './inline-text';
 
 const NUDGE_COALESCE_MS = 800;
 
@@ -134,10 +134,22 @@ export class EditorElementController {
 			return;
 		}
 		this.#editor.pushHistory();
+		// `a:spAutoFit`: grow/shrink the shape to the text's natural content
+		// height, the way PowerPoint does. See `resolveInlineTextAutoFitHeight`
+		// for why the editor DOM node is still resolvable here.
+		const editorEl =
+			typeof document !== 'undefined'
+				? document.querySelector<HTMLElement>('[data-inline-editor]')
+				: null;
+		const newHeight = resolveInlineTextAutoFitHeight(target, editorEl);
 		this.#editor.replaceActiveElements(
 			this.#editor.activeElements.map((element) =>
 				element.id === id
-					? ({ ...element, ...remapInlineText(target, text) } as PptxElement)
+					? ({
+							...element,
+							...remapInlineText(target, text),
+							...(newHeight !== undefined ? { height: newHeight } : {}),
+						} as PptxElement)
 					: element,
 			),
 		);

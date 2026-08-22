@@ -67,6 +67,13 @@ export interface SlideCanvasProps {
 	scale: number;
 	/** True only on the live presentation stage; see `SlideStageProps.presenting`. */
 	presenting?: boolean;
+	/**
+	 * Grid dot/line spacing in CSS px for the `.pptx-svelte-show-grid` overlay,
+	 * derived by the host from the deck's authored `viewProperties.gridSpacing`
+	 * via `computeGridSpacingPx`. Defaults to 12px (this binding's existing
+	 * grid step) when the deck has none.
+	 */
+	gridSpacingPx?: number;
 	/** True while in-place editing is available; gates the pointer handlers and the editing cursor/class. */
 	editingActive?: boolean;
 	editTemplateMode?: boolean;

@@ -54,6 +54,13 @@ export interface ViewerBodyProps {
 	activeSlide: PptxSlide | undefined;
 	scale: number;
 	presenting: boolean;
+	/**
+	 * Grid dot/line spacing in CSS px for the View > Grid overlay, derived by
+	 * the host from the deck's authored `viewProperties.gridSpacing` via
+	 * `computeGridSpacingPx`. Defaults to 12px (this binding's existing grid
+	 * step) when the deck has none.
+	 */
+	gridSpacingPx?: number;
 	/** Active slide-transition overlay state (presentation mode), or null. */
 	presentationTransition: TransitionState | null;
 	/** Called when the transition overlay finishes (host drops the overlay). */
@@ -136,6 +143,7 @@ export type ViewerStageProps = Pick<
 	| 'activeSlide'
 	| 'scale'
 	| 'presenting'
+	| 'gridSpacingPx'
 	| 'presentationTransition'
 	| 'onTransitionDone'
 	| 'onAdvance'

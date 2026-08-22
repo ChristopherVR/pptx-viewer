@@ -78,6 +78,7 @@ export function createTransformGestures(host: EditorControllerHost): GestureCont
 		getElementBox: (id) => elementInteractionBox(host.currentElements(), id),
 		getSiblings: () => siblingBoxes(host.currentElements()),
 		getSnapToGrid: () => deps.getSnapToGrid?.() ?? false,
+		getGridSize: () => deps.getGridSize?.() ?? 12,
 		getSnapToShape: () => deps.getSnapToShape?.() ?? true,
 		getGuides: () => deps.getGuides?.() ?? [],
 		getStageOrigin: () => stageOrigin(host),

@@ -12,6 +12,7 @@
 	 * to stay owned by the component that constructed it.
 	 */
 	import type { Translator } from '../../i18n/translator';
+	import { computeGridSpacingPx } from 'pptx-viewer-shared';
 	import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
@@ -55,6 +56,12 @@
 		loader.presentationTheme = next;
 		loader.colorScheme = next.colorScheme;
 	}
+
+	// Grid spacing in CSS px, from the deck's authored `viewProperties.gridSpacing`
+	// (falls back to 12px, this binding's existing default, when the deck has
+	// none). `p:gridSpacing` lives under `p:viewPr` in viewProps.xml, never
+	// under `p:presentationPr`.
+	const gridSpacingPx = $derived(computeGridSpacingPx(loader.viewProperties?.gridSpacing, 12));
 </script>
 
 {#if editor.masterViewTarget}
@@ -89,6 +96,7 @@
 		activeSlide={vm.activeSlide}
 		scale={vm.scale}
 		presenting={viewer.isFullscreen}
+		{gridSpacingPx}
 		blackout={presenterSession.snapshot.blackout}
 		presentationTransition={vm.presentation.transition}
 		onTransitionDone={() => vm.presentation.endTransition()}

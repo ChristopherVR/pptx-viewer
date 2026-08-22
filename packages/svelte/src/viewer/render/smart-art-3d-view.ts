@@ -1,6 +1,10 @@
 import type { PptxElement, SmartArtStyle } from 'pptx-viewer-core';
 import type { SmartArt3DModel } from 'pptx-viewer-shared';
-import { buildSmartArt3DModel, computeSmartArtLayout, resolvePalette } from 'pptx-viewer-shared';
+import {
+	buildSmartArt3DModel,
+	computeSmartArtElementLayout,
+	resolvePalette,
+} from 'pptx-viewer-shared';
 
 /**
  * Pure model resolution for the Three.js SmartArt renderer (Svelte port of
@@ -26,14 +30,13 @@ export function buildSmartArt3DViewModel(element: PptxElement): SmartArt3DModel 
 		return undefined;
 	}
 	const style: SmartArtStyle = data.style ?? 'flat';
-	const layout = computeSmartArtLayout(
+	const layout = computeSmartArtElementLayout(
+		data,
 		data.nodes,
 		{ width: element.width, height: element.height },
 		resolvePalette(data),
 		style,
 		element.id,
-		data.resolvedLayoutType,
-		data.layout,
 	);
 	return buildSmartArt3DModel(layout, { spatial: true });
 }

@@ -1,6 +1,10 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { canInteractWithElement, remapTextToSegments } from 'pptx-viewer-shared';
+import {
+	canInteractWithElement,
+	remapTextToSegments,
+	resolveInlineEditAutoFitHeight,
+} from 'pptx-viewer-shared';
 
 /**
  * Pure helpers for inline text editing. The editable surface itself is a
@@ -68,6 +72,31 @@ export function readEditableText(root: HTMLElement): string {
 	};
 	walk(root);
 	return out;
+}
+
+/**
+ * `a:spAutoFit` ("Resize shape to fit text") editor-commit resize: decide the
+ * element's new height from its text style, current height, and the live
+ * (still-mounted) editor DOM node - `undefined` when the element carries no
+ * text properties, autofit isn't `'shrink'`, or the measured height did not
+ * meaningfully change.
+ *
+ * `EditorElementController#commitInlineText` calls this before it replaces
+ * the element; `editorEl` there is found via
+ * `document.querySelector('[data-inline-editor]')`, which still resolves at
+ * that point because `InlineTextEditor.svelte`'s `close()` invokes `oncommit`
+ * (the call that reaches here) BEFORE `onclose()` - only `onclose()` sets
+ * `editingId = null`, which is what unmounts the editor on Svelte's next
+ * update.
+ */
+export function resolveInlineTextAutoFitHeight(
+	element: PptxElement,
+	editorEl: HTMLElement | null,
+): number | undefined {
+	if (!hasTextProperties(element)) {
+		return undefined;
+	}
+	return resolveInlineEditAutoFitHeight(element.textStyle, element.height, editorEl);
 }
 
 /** Initial plain text + optional font style for the inline surface. */

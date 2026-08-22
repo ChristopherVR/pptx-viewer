@@ -181,4 +181,36 @@ describe('tableView', () => {
 		const table = mountEl(buildTableElement()).querySelector<HTMLElement>('table');
 		expect(table?.style.fontFamily).toBe(DEFAULT_FONT_FAMILY);
 	});
+
+	it('renders a resolved cell image fill as a cover background', () => {
+		const tableData: PptxTableData = {
+			columnWidths: [1],
+			rows: [
+				{
+					cells: [
+						{
+							text: 'Photo',
+							style: {
+								fillMode: 'image',
+								backgroundImageFillData: 'data:image/png;base64,AAAA',
+							},
+						},
+					],
+				},
+			],
+		};
+		const td = mountEl(buildTableElement(tableData)).querySelector('td') as HTMLElement;
+		expect(td.style.backgroundImage).toBe('url("data:image/png;base64,AAAA")');
+		expect(td.style.backgroundSize).toBe('cover');
+	});
+
+	it('renders an explicit zero cell margin as zero padding, not the base default', () => {
+		const tableData: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Dense', style: { marginLeft: 0, marginTop: 0 } }] }],
+		};
+		const td = mountEl(buildTableElement(tableData)).querySelector('td') as HTMLElement;
+		expect(td.style.paddingLeft).toBe('0px');
+		expect(td.style.paddingTop).toBe('0px');
+	});
 });
