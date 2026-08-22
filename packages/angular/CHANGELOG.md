@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.0.1) - 2026-08-22
+
+### Bug Fixes
+
+- **core:** Spell the SmartArt role sentinel as a unicode escape (by @ChristopherVR) ([a2d4993](https://github.com/ChristopherVR/pptx-viewer/commit/a2d4993390bcdc28a3b24c1bf501c64f638f68d9))
+- **react,angular:** Unclip selection handles and stop Angular text runs leaking whitespace (by @ChristopherVR) ([18eebb6](https://github.com/ChristopherVR/pptx-viewer/commit/18eebb6fd8451e1f1d46d0c248c1e0a5b0d94a53))
+
 ## [3.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.0.0) - 2026-08-22
 
 ### Features
