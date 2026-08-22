@@ -161,7 +161,7 @@
 					{:else if prim.kind === 'polygon'}
 						<polygon points={prim.points} fill={prim.fill} stroke={prim.stroke} stroke-width={prim.strokeWidth} opacity={prim.opacity ?? 1} stroke-dasharray={prim.dashArray} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</polygon>
 					{:else if prim.kind === 'text'}
-						<text x={prim.x} y={prim.y} text-anchor={prim.textAnchor} font-size={prim.fontSize} fill={prim.fill} font-weight={prim.fontWeight ?? 'normal'} dominant-baseline={prim.dominantBaseline} opacity={prim.opacity ?? 1} transform={prim.transform}>{prim.text}</text>
+						<text x={prim.x} y={prim.y} text-anchor={prim.textAnchor} font-size={prim.fontSize} fill={prim.fill} font-weight={prim.fontWeight ?? 'normal'} font-style={prim.fontStyle ?? 'normal'} font-family={prim.fontFamily} dominant-baseline={prim.dominantBaseline} opacity={prim.opacity ?? 1} transform={prim.transform}>{prim.text}</text>
 					{/if}
 					<!-- 'areaGradient' is a non-visual descriptor (gradient defs); skipped
 					     by the Vue/React/vanilla projectors as well. -->
@@ -174,7 +174,7 @@
 				{#each legendItems as entry (entry.key)}
 					<g class="pptx-svelte-chart-legend-item" transform={entry.transform}>
 						<rect x="0" y="-7" width="10" height="10" rx="2" fill={entry.color} />
-						<text x="13" y="3" font-size="9" fill="#475569">{entry.label}</text>
+						<text x="13" y="3" font-size={entry.fontSize} fill={entry.fill} font-weight={entry.fontWeight} font-style={entry.fontStyle} font-family={entry.fontFamily}>{entry.label}</text>
 					</g>
 				{/each}
 			</svg>

@@ -174,4 +174,30 @@ describe('notesPanel', () => {
 			'true',
 		);
 	});
+
+	it('applies the notes master fontSize default to a plain segment with no explicit size', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const props = $state<NotesPanelProps>({
+			slide: slide({ notes: 'Remember to mention quarterly goals.' }),
+			expanded: true,
+			// The rich contentEditable surface (which carries the resolved inline
+			// styles) only renders on an editable panel, i.e. with an `onupdate`.
+			onupdate: () => {},
+			notesStyle: { 0: { fontSize: 32 } },
+		});
+		const instance = mount(NotesPanel, { target, props });
+		flushSync();
+		try {
+			const rich = target.querySelector<HTMLDivElement>('.pptx-svelte-notes-rich');
+			expect(rich).not.toBeNull();
+			// notesStyle level-0 fontSize is in CSS px (32); resolveNotesLevelStyle
+			// converts to points (32 * 0.75 = 24) and segmentsToEditorHtml renders
+			// that as a `font-size:24pt` inline style on the seeded span.
+			expect(rich?.innerHTML).toContain('font-size:24pt');
+		} finally {
+			unmount(instance);
+			target.remove();
+		}
+	});
 });

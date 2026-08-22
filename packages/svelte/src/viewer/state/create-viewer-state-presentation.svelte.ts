@@ -66,6 +66,20 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			parityUi.activeCustomShowId
 				? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
 				: null,
+		// Resolve a native-animation `p:stSnd` action sound's archive path to
+		// its pre-resolved Blob/data URL and play it. Without this,
+		// `onPlayActionSound` was never passed at all and every animation
+		// sound was silently dropped.
+		onPlayActionSound: (soundPath: string) => {
+			const url = loader.mediaDataUrls.get(soundPath);
+			if (!url || typeof Audio === 'undefined') {
+				return;
+			}
+			const audio = new Audio(url);
+			void audio.play().catch(() => {
+				/* ignore autoplay restrictions */
+			});
+		},
 	});
 	// Publish the per-element native-animation state map so the chart / SmartArt /
 	// connector / shape renderers can reveal staged builds and relinquish animated

@@ -86,6 +86,11 @@ export interface ChartLegendItem {
 	transform: string;
 	color: string;
 	label: string;
+	fontSize: number;
+	fill: string;
+	fontWeight: 'normal' | 'bold';
+	fontStyle: 'normal' | 'italic';
+	fontFamily?: string;
 }
 
 /** Legend layout: a horizontal row, or a vertical stack on the side. */
@@ -95,6 +100,11 @@ export function buildLegendItems(vm: ChartViewModel): ChartLegendItem[] {
 		transform: `translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`,
 		color: item.color,
 		label: item.label,
+		fontSize: item.fontSize,
+		fill: item.fill,
+		fontWeight: item.fontWeight,
+		fontStyle: item.fontStyle,
+		fontFamily: item.fontFamily,
 	}));
 }
 

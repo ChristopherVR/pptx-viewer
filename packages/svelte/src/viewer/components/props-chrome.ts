@@ -1,4 +1,4 @@
-import type { PptxSection, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxSection, PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import type { CanvasSize, ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { ExportUiState } from '../export/export-ui.svelte';
@@ -105,4 +105,13 @@ export interface NotesPanelProps {
 	onupdate?: (notes: string, segments?: TextSegment[]) => void;
 	/** Called when the header is clicked to expand/collapse the panel. */
 	ontoggle?: () => void;
+	/**
+	 * The deck's notes master `<p:notesStyle>` defaults (`PptxData.notesMaster.
+	 * notesStyle`), when the host has it. Fills in a seeded segment's missing
+	 * font size/family/weight/style/colour/indent from the level-0 (or
+	 * `a:defPPr` fallback) resolved style, without overriding any value the
+	 * segment already carries explicitly. Omit when unavailable; behaviour is
+	 * unchanged (falls back to this binding's own hardcoded look).
+	 */
+	notesStyle?: PptxTextStyleLevels;
 }

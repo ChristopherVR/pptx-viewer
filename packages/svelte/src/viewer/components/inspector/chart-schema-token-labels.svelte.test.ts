@@ -116,10 +116,14 @@ describe('chartSection chart-type select', () => {
 		'scatter',
 		'bubble',
 		'radar',
+		'stock',
 		'waterfall',
+		'histogram',
 		'funnel',
 		'treemap',
 		'sunburst',
+		'boxWhisker',
+		'regionMap',
 		'combo',
 	];
 

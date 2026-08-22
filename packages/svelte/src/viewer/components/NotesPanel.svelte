@@ -6,9 +6,12 @@
 	 *
 	 * Reads the current slide's notes via the shared `resolveNotesSegments` /
 	 * `segmentsToPlainText` helpers (falls back to plain `slide.notes` when the
-	 * deck has no rich `notesSegments`). This binding has no built-in
-	 * slide-mutation channel, so writes go through the `onupdate` callback prop;
-	 * omitting it renders a read-only textarea.
+	 * deck has no rich `notesSegments`). When the host passes `notesStyle` (the
+	 * deck's notes master `<p:notesStyle>` defaults), a seeded segment's missing
+	 * font/colour/indent fields are filled in from it without overriding any
+	 * value the segment already carries explicitly. This binding has no
+	 * built-in slide-mutation channel, so writes go through the `onupdate`
+	 * callback prop; omitting it renders a read-only textarea.
 	 *
 	 * Touch / focus correctness
 	 * --------------------------
@@ -35,7 +38,7 @@
 	import type { NotesPanelProps } from './props';
 	import NotesFormattingToolbar from './NotesFormattingToolbar.svelte';
 
-	const { slide, expanded = false, onupdate, ontoggle }: NotesPanelProps = $props();
+	const { slide, expanded = false, onupdate, ontoggle, notesStyle }: NotesPanelProps = $props();
 
 	const t = useTranslator();
 
@@ -57,7 +60,7 @@
 			return;
 		}
 		seededId = nextId;
-		segments = resolveNotesSegments(slide);
+		segments = resolveNotesSegments(slide, notesStyle);
 		text = segmentsToPlainText(segments);
 		if (editorEl) {editorEl.innerHTML = segmentsToEditorHtml(segments);}
 	});

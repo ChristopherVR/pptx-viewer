@@ -22,7 +22,7 @@
 		PptxChartType,
 	} from 'pptx-viewer-core';
 	import { setChartDataPointMarker } from 'pptx-viewer-core';
-	import { CHART_TYPE_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
+	import { CHART_TYPE_LABEL_KEYS, CHART_TYPE_OPTIONS, schemaLabel } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -37,26 +37,14 @@
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
 	/**
-	 * The chart types this select offers, spelled out rather than derived from
-	 * `CHART_TYPE_LABEL_KEYS` (which covers every type core can parse). Keeping
-	 * the list explicit means translating the labels cannot silently add an
-	 * option the panel never had, which would move it out of React parity.
+	 * The chart types this select offers, derived from the same
+	 * `CHART_TYPE_OPTIONS` catalogue Vue and Angular's chart-type selects
+	 * consume (React re-exports it too). A hand-spelled copy here used to omit
+	 * histogram, boxWhisker and regionMap, and separately drifted ahead of the
+	 * other three bindings by hand-adding funnel/treemap/sunburst; deriving
+	 * from the shared list means every future addition reaches this panel too.
 	 */
-	const chartTypes: readonly PptxChartType[] = [
-		'bar',
-		'line',
-		'pie',
-		'doughnut',
-		'area',
-		'scatter',
-		'bubble',
-		'radar',
-		'waterfall',
-		'funnel',
-		'treemap',
-		'sunburst',
-		'combo',
-	];
+	const chartTypes: readonly PptxChartType[] = CHART_TYPE_OPTIONS.map((opt) => opt.value);
 	const chart = $derived(
 		editor.selectedElement?.type === 'chart' ? editor.selectedElement : undefined,
 	);

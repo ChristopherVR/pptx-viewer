@@ -168,6 +168,7 @@
 				expanded={notesExpanded}
 				onupdate={onNotesCommit}
 				ontoggle={onNotesToggle}
+				notesStyle={editor.notesMaster?.notesStyle}
 			/>
 		{/if}
 	</div>
