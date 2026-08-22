@@ -36,9 +36,11 @@ import type { AiLogFormat } from './ai-log-export';
 
 			<p class="text-xs text-muted-foreground">
 				@if (chatCount() === null) {
-					{{ 'pptx.ai.exportLogsCounting' | translate }}
+					<ng-container>{{ 'pptx.ai.exportLogsCounting' | translate }}</ng-container>
 				} @else {
-					{{ 'pptx.ai.exportLogsStoredCount' | translate: { count: chatCount() } }}
+					<ng-container>{{
+						'pptx.ai.exportLogsStoredCount' | translate: { count: chatCount() }
+					}}</ng-container>
 				}
 			</p>
 
@@ -76,9 +78,11 @@ import type { AiLogFormat } from './ai-log-export';
 			@if (doneCount() !== null) {
 				<p class="text-xs text-muted-foreground" role="status">
 					@if (doneCount()! > 0) {
-						{{ 'pptx.ai.exportLogsDone' | translate: { count: doneCount() } }}
+						<ng-container>{{
+							'pptx.ai.exportLogsDone' | translate: { count: doneCount() }
+						}}</ng-container>
 					} @else {
-						{{ 'pptx.ai.noChatsToExport' | translate }}
+						<ng-container>{{ 'pptx.ai.noChatsToExport' | translate }}</ng-container>
 					}
 				</p>
 			}

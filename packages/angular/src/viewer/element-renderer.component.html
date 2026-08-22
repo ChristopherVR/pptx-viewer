@@ -611,33 +611,41 @@
 		}
 	} @else if (run.scriptRuns) {
 		<!--
-			Every bare interpolation in this branch (and in the plain-run `@else`
-			below) MUST touch its surrounding `{`/`}` with no newline or
-			indentation between them: Angular does not collapse that whitespace
-			the way it collapses whitespace between element TAGS, so a
-			"readable" `@else {\n\t{{ x }}\n}` leaks a real leading + trailing
-			space into the run's own text content. That was invisible while a
-			paragraph was one run per script (two stray spaces at the run's own
-			edges, trimmed visually by the browser but still present in
-			`textContent`), but shared's per-word / per-gap metric split
-			(`text-run-spacing.ts`, issue #149) re-emits every WORD and
-			inter-word GAP as its own sibling run, so the same one-space leak
-			lands between every word: "will choose" rendered as "will     choose"
-			(five spaces: the word's own trailing leak, the gap run's real space
-			plus its OWN two leaks, the next word's leading leak). The same leak
-			also showed up one paragraph at a time: "Project" / "Atlas" as two
-			separate paragraphs read back as "ProjectAtlas" instead of React's
-			"Project Atlas", because the plain-run `@else` had the same
-			"readable" bug.
+			A bare interpolation as the sole content of an `@if`/`@else` block
+			leaks a real leading + trailing whitespace text node: Angular does
+			not collapse that whitespace the way it collapses whitespace between
+			element TAGS. Worse, oxfmt's Angular-template printer always breaks a
+			block's content onto its own indented line, even when the block was
+			written as a single line with the braces touching, so writing the
+			`{{ x }}` compact ourselves does not survive the next `bun run fmt` /
+			pre-commit `lint-staged` pass: it silently re-introduces the leak
+			(this happened twice, see `20d4d177`, `18eebb6f`). `<ng-container>`
+			does not render any DOM node of its own, so wrapping the
+			interpolation in one keeps the no-wrapper-element behaviour of
+			React's `<>{piece.text}</>` fragment while making the interpolation
+			tag-adjacent, which both Angular AND oxfmt already treat as safely
+			collapsible (see the many `<span>{{ x }}</span>` one-liners in this
+			file). That was invisible while a paragraph was one run per script
+			(two stray spaces at the run's own edges, trimmed visually by the
+			browser but still present in `textContent`), but shared's per-word /
+			per-gap metric split (`text-run-spacing.ts`, issue #149) re-emits
+			every WORD and inter-word GAP as its own sibling run, so the same
+			one-space leak lands between every word: "will choose" rendered as
+			"will     choose" (five spaces: the word's own trailing leak, the
+			gap run's real space plus its OWN two leaks, the next word's leading
+			leak). The same leak also showed up one paragraph at a time:
+			"Project" / "Atlas" as two separate paragraphs read back as
+			"ProjectAtlas" instead of React's "Project Atlas", because the
+			plain-run `@else` below had the same bug.
 		-->
 		@for (piece of run.scriptRuns; track $index) {
 			@if (piece.style) {
 				<span [ngStyle]="piece.style">{{ piece.text }}</span>
 			} @else {
-				{{ piece.text }}
+				<ng-container>{{ piece.text }}</ng-container>
 			}
 		}
 	} @else {
-		{{ run.text }}
+		<ng-container>{{ run.text }}</ng-container>
 	}
 </ng-template>

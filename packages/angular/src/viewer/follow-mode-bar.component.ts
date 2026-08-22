@@ -127,7 +127,7 @@ interface PeerChip {
 							{{ 'pptx.followMode.stop' | translate }}
 						</button>
 					} @else {
-						{{ 'pptx.followMode.followCollaborator' | translate }}
+						<ng-container>{{ 'pptx.followMode.followCollaborator' | translate }}</ng-container>
 					}
 				</span>
 				<ul class="pptx-ng-follow-list">

@@ -60,7 +60,7 @@
 										</p>
 									}
 								} @else {
-									{{ vm.displayText }}
+									<ng-container>{{ vm.displayText }}</ng-container>
 								}
 								@if (vm.diagonal; as diag) {
 									<svg class="pptx-ng-cell-diag" aria-hidden="true">

@@ -75,7 +75,7 @@
 									@if (user.avatarUrl) {
 										<img [src]="user.avatarUrl" alt="" />
 									} @else {
-										{{ user.initials }}
+										<ng-container>{{ user.initials }}</ng-container>
 									}
 								</span>
 								<span class="pptx-ng-share-user-name">{{ user.name }}</span>

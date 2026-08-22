@@ -75,7 +75,7 @@ export interface SelectionPaneRename {
 										(blur)="commitRename(el.id, $event)"
 									/>
 								} @else {
-									{{ elLabel(el) }}
+									<ng-container>{{ elLabel(el) }}</ng-container>
 								}
 							</span>
 
