@@ -7,6 +7,50 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.0.0) - 2026-08-22
+
+### Features
+
+- **core:** Unify SmartArt layout onto one DiagramML interpreter (by @ChristopherVR) ([89116b1](https://github.com/ChristopherVR/pptx-viewer/commit/89116b131a3f13fb6b65789c46d3f9a7814d04db))
+- **core:** Write chart edits back to the embedded workbook (by @ChristopherVR) ([dee19fc](https://github.com/ChristopherVR/pptx-viewer/commit/dee19fc69b02ad36eadd39f48e589de9e76689fa))
+- **core:** Solve relative SmartArt constraints and apply org-chart hints (by @ChristopherVR) ([65eee20](https://github.com/ChristopherVR/pptx-viewer/commit/65eee20e9e772ab40317df0ba1acf0c26a412973))
+- **shared:** Print notes pages in every binding, and honour notesStyle in the master preview (by @ChristopherVR) ([6f2f54d](https://github.com/ChristopherVR/pptx-viewer/commit/6f2f54d503806054ae48bfc8f0d0c0ee565977ce))
+- **core:** Author tag elements, model embedTrueTypeFonts, and add a text-style edit path (by @ChristopherVR) ([0048d16](https://github.com/ChristopherVR/pptx-viewer/commit/0048d163c6dd87d7a0bdc3207cbcbd4db39f8d0e))
+- **core,shared:** Serialize data-table styling, and paint 3D chart surfaces (by @ChristopherVR) ([bd9595a](https://github.com/ChristopherVR/pptx-viewer/commit/bd9595a7bae6c545a649ff8e1929b27a638fcb5b))
+- **core:** Honour per-node shapes, style roles and connector text in SmartArt (by @ChristopherVR) ([c823fca](https://github.com/ChristopherVR/pptx-viewer/commit/c823fca506f99e3c4f42ec11513e56cdb30f9a68))
+- **core,shared:** Model timing templates and play animEffect filters (by @ChristopherVR) ([8bf91f2](https://github.com/ChristopherVR/pptx-viewer/commit/8bf91f20c907f9d92abbcd5a59fb424ddfabdbd8))
+- **core,shared:** Cross-browser reflections, overlay fills, and remaining text gaps (by @ChristopherVR) ([c0b0d6d](https://github.com/ChristopherVR/pptx-viewer/commit/c0b0d6d6805c6383ba2a01da3c8a22792eb22cdb))
+
+### Bug Fixes
+
+- **core:** Close five OpenXML parse and serialize fidelity gaps (by @ChristopherVR) ([641b0b2](https://github.com/ChristopherVR/pptx-viewer/commit/641b0b21d82442262f3f2d0e4ed2894cd71c07e9))
+- **core,shared:** Correct animation preset IDs against PowerPoint COM ground truth (by @ChristopherVR) ([61b0014](https://github.com/ChristopherVR/pptx-viewer/commit/61b001440de0bf73bfcd6efd21c8df21bd47e5c8))
+- **shared:** Honour a:ln/@algn and per-subpath fill modes (by @ChristopherVR) ([d049a8f](https://github.com/ChristopherVR/pptx-viewer/commit/d049a8f7806b7efb85e643e12643393372ccf603))
+- **shared:** Correct autofit and paragraph-spacing semantics (by @ChristopherVR) ([86f61e9](https://github.com/ChristopherVR/pptx-viewer/commit/86f61e9b6e2cb0fe34f2e958273f35702f58fc6a))
+- **shared:** Move per-script fonts and measured tab layout out of React (by @ChristopherVR) ([dbd3442](https://github.com/ChristopherVR/pptx-viewer/commit/dbd3442e2173a8b8b397af592f01e39daad95ff8))
+- **shared:** Render table cell image fill, zero margins and authored grid spacing (by @ChristopherVR) ([d4079d2](https://github.com/ChristopherVR/pptx-viewer/commit/d4079d20b6517a0aac4655882e27228abc06ae09))
+- **svelte:** Consume the shared render decisions for the OpenXML fidelity fixes (by @ChristopherVR) ([8d6c2be](https://github.com/ChristopherVR/pptx-viewer/commit/8d6c2beacd4897b98644166672752e8a348b3a75))
+- **core,shared:** Honour cTn timing attributes, after-animation and effect sound (by @ChristopherVR) ([07ee51f](https://github.com/ChristopherVR/pptx-viewer/commit/07ee51f8b11431153e9ce2553c4c11a51e15316e))
+- **core:** Close slide-structure, notes-style and DrawingML parse gaps (by @ChristopherVR) ([ee1dbcd](https://github.com/ChristopherVR/pptx-viewer/commit/ee1dbcd3278e2bde7b066c4085a82f56cc818f6a))
+- **shared:** Render data tables, legend entries, image overlays and 3D text (by @ChristopherVR) ([ecec502](https://github.com/ChristopherVR/pptx-viewer/commit/ecec502e205f06c1bb7dec042f7693ac4fd8a74e))
+- **svelte:** Consume the shared decisions for the second parity wave (by @ChristopherVR) ([971c76d](https://github.com/ChristopherVR/pptx-viewer/commit/971c76d07953b1282b794097179d6117e8aa2517))
+
+### Refactor
+
+- **shared:** Split oversized text modules and add the circle-in keyframe (by @ChristopherVR) ([1c0797f](https://github.com/ChristopherVR/pptx-viewer/commit/1c0797f7d5468dca16f6cb53c1ad413db4fc29e0))
+
+### Documentation
+
+- **core:** Record audited OpenXML construct coverage in the manifest (by @ChristopherVR) ([812fe61](https://github.com/ChristopherVR/pptx-viewer/commit/812fe61e66687a48c2cd19eeb0c502767c25e3c1))
+
+### Testing
+
+- **core:** Evidence previously unverified OpenXML constructs, and record what is not implemented (by @ChristopherVR) ([4dc6028](https://github.com/ChristopherVR/pptx-viewer/commit/4dc602876bd49cdb03b084f9f4fa2268aa01f22f))
+
+### Chores
+
+- **core:** Complete barrel and runtime wiring for the preceding two changes (by @ChristopherVR) ([115379e](https://github.com/ChristopherVR/pptx-viewer/commit/115379e9a757b029fbc0cbb74ae51628f7fb3e27))
+
 ## [2.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.23.0) - 2026-08-21
 
 ### Features

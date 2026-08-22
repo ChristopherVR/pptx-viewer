@@ -8,6 +8,63 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-22
+
+_Releases: pptx-viewer-core@3.0.0, pptx-react-viewer@3.0.0, pptx-vue-viewer@3.0.0, pptx-angular-viewer@3.0.0, pptx-vanilla-viewer@2.0.0, pptx-svelte-viewer@3.0.0, pptx-viewer-mcp@2.1.5, @christophervr/pptx-viewer@2.0.0_
+
+### Features
+
+- **core:** Unify SmartArt layout onto one DiagramML interpreter (by @ChristopherVR) ([89116b1](https://github.com/ChristopherVR/pptx-viewer/commit/89116b131a3f13fb6b65789c46d3f9a7814d04db))
+- **core:** Write chart edits back to the embedded workbook (by @ChristopherVR) ([dee19fc](https://github.com/ChristopherVR/pptx-viewer/commit/dee19fc69b02ad36eadd39f48e589de9e76689fa))
+- **core:** Solve relative SmartArt constraints and apply org-chart hints (by @ChristopherVR) ([65eee20](https://github.com/ChristopherVR/pptx-viewer/commit/65eee20e9e772ab40317df0ba1acf0c26a412973))
+- **shared:** Print notes pages in every binding, and honour notesStyle in the master preview (by @ChristopherVR) ([6f2f54d](https://github.com/ChristopherVR/pptx-viewer/commit/6f2f54d503806054ae48bfc8f0d0c0ee565977ce))
+- **core:** Author tag elements, model embedTrueTypeFonts, and add a text-style edit path (by @ChristopherVR) ([0048d16](https://github.com/ChristopherVR/pptx-viewer/commit/0048d163c6dd87d7a0bdc3207cbcbd4db39f8d0e))
+- **core,shared:** Serialize data-table styling, and paint 3D chart surfaces (by @ChristopherVR) ([bd9595a](https://github.com/ChristopherVR/pptx-viewer/commit/bd9595a7bae6c545a649ff8e1929b27a638fcb5b))
+- **core:** Honour per-node shapes, style roles and connector text in SmartArt (by @ChristopherVR) ([c823fca](https://github.com/ChristopherVR/pptx-viewer/commit/c823fca506f99e3c4f42ec11513e56cdb30f9a68))
+- **core,shared:** Model timing templates and play animEffect filters (by @ChristopherVR) ([8bf91f2](https://github.com/ChristopherVR/pptx-viewer/commit/8bf91f20c907f9d92abbcd5a59fb424ddfabdbd8))
+- **core,shared:** Cross-browser reflections, overlay fills, and remaining text gaps (by @ChristopherVR) ([c0b0d6d](https://github.com/ChristopherVR/pptx-viewer/commit/c0b0d6d6805c6383ba2a01da3c8a22792eb22cdb))
+
+### Bug Fixes
+
+- **core:** Close five OpenXML parse and serialize fidelity gaps (by @ChristopherVR) ([641b0b2](https://github.com/ChristopherVR/pptx-viewer/commit/641b0b21d82442262f3f2d0e4ed2894cd71c07e9))
+- **core,shared:** Correct animation preset IDs against PowerPoint COM ground truth (by @ChristopherVR) ([61b0014](https://github.com/ChristopherVR/pptx-viewer/commit/61b001440de0bf73bfcd6efd21c8df21bd47e5c8))
+- **shared:** Honour a:ln/@algn and per-subpath fill modes (by @ChristopherVR) ([d049a8f](https://github.com/ChristopherVR/pptx-viewer/commit/d049a8f7806b7efb85e643e12643393372ccf603))
+- **shared:** Correct autofit and paragraph-spacing semantics (by @ChristopherVR) ([86f61e9](https://github.com/ChristopherVR/pptx-viewer/commit/86f61e9b6e2cb0fe34f2e958273f35702f58fc6a))
+- **shared:** Move per-script fonts and measured tab layout out of React (by @ChristopherVR) ([dbd3442](https://github.com/ChristopherVR/pptx-viewer/commit/dbd3442e2173a8b8b397af592f01e39daad95ff8))
+- **shared:** Render table cell image fill, zero margins and authored grid spacing (by @ChristopherVR) ([d4079d2](https://github.com/ChristopherVR/pptx-viewer/commit/d4079d20b6517a0aac4655882e27228abc06ae09))
+- **react:** Consume the shared render decisions and fix a swallowed load error (by @ChristopherVR) ([7ec6892](https://github.com/ChristopherVR/pptx-viewer/commit/7ec6892d445980597d584166c905d2bd26375752))
+- **vue:** Consume the shared render decisions for the OpenXML fidelity fixes (by @ChristopherVR) ([f0085f4](https://github.com/ChristopherVR/pptx-viewer/commit/f0085f4535b2a4bd4497c539b5659be346a16bd6))
+- **angular:** Consume the shared render decisions for the OpenXML fidelity fixes (by @ChristopherVR) ([3b5dde2](https://github.com/ChristopherVR/pptx-viewer/commit/3b5dde2902b5a707f9e545c2e6e1ba7a1f9e5a39))
+- **svelte:** Consume the shared render decisions for the OpenXML fidelity fixes (by @ChristopherVR) ([8d6c2be](https://github.com/ChristopherVR/pptx-viewer/commit/8d6c2beacd4897b98644166672752e8a348b3a75))
+- **vanilla:** Consume the shared render decisions and fix two gesture bugs (by @ChristopherVR) ([d818d8b](https://github.com/ChristopherVR/pptx-viewer/commit/d818d8b060b9165eef6817db9c7bafa42300320f))
+- **core,shared:** Honour cTn timing attributes, after-animation and effect sound (by @ChristopherVR) ([07ee51f](https://github.com/ChristopherVR/pptx-viewer/commit/07ee51f8b11431153e9ce2553c4c11a51e15316e))
+- **core:** Close slide-structure, notes-style and DrawingML parse gaps (by @ChristopherVR) ([ee1dbcd](https://github.com/ChristopherVR/pptx-viewer/commit/ee1dbcd3278e2bde7b066c4085a82f56cc818f6a))
+- **shared:** Render data tables, legend entries, image overlays and 3D text (by @ChristopherVR) ([ecec502](https://github.com/ChristopherVR/pptx-viewer/commit/ecec502e205f06c1bb7dec042f7693ac4fd8a74e))
+- **react:** Consume the shared decisions for the second parity wave (by @ChristopherVR) ([7238a36](https://github.com/ChristopherVR/pptx-viewer/commit/7238a36e63c639376f241316b5d8c661e824fedb))
+- **vue:** Consume the shared decisions for the second parity wave (by @ChristopherVR) ([983bbaa](https://github.com/ChristopherVR/pptx-viewer/commit/983bbaa19c68600c83bddcfdc5aabd264ab21908))
+- **svelte:** Consume the shared decisions for the second parity wave (by @ChristopherVR) ([971c76d](https://github.com/ChristopherVR/pptx-viewer/commit/971c76d07953b1282b794097179d6117e8aa2517))
+- **vanilla:** Consume the shared decisions for the second parity wave (by @ChristopherVR) ([a52a09a](https://github.com/ChristopherVR/pptx-viewer/commit/a52a09a7d96670e934b14fa324a33015d9a105c0))
+- **angular:** Consume the shared decisions for the second parity wave (by @ChristopherVR) ([545c948](https://github.com/ChristopherVR/pptx-viewer/commit/545c948c0d82911b9091879476daf0b816c3287e))
+
+### Refactor
+
+- **shared:** Split oversized text modules and add the circle-in keyframe (by @ChristopherVR) ([1c0797f](https://github.com/ChristopherVR/pptx-viewer/commit/1c0797f7d5468dca16f6cb53c1ad413db4fc29e0))
+
+### Documentation
+
+- **core:** Record audited OpenXML construct coverage in the manifest (by @ChristopherVR) ([812fe61](https://github.com/ChristopherVR/pptx-viewer/commit/812fe61e66687a48c2cd19eeb0c502767c25e3c1))
+- Correct animation, SmartArt and reflection claims against measured results (by @ChristopherVR) ([2ba2ea1](https://github.com/ChristopherVR/pptx-viewer/commit/2ba2ea17fafd0e1ef36e05c5b6d31a5534e7b5a4))
+- Record what the second parity wave changed, and what remains unbuilt (by @ChristopherVR) ([ac2c475](https://github.com/ChristopherVR/pptx-viewer/commit/ac2c475ebc175bbcd415447be643a16972b180de))
+
+### Testing
+
+- **e2e:** Assert centred stroke from the overlay, not the CSS border (by @ChristopherVR) ([c893122](https://github.com/ChristopherVR/pptx-viewer/commit/c893122acc69bed52d375a342b6a6d75e35b3551))
+- **core:** Evidence previously unverified OpenXML constructs, and record what is not implemented (by @ChristopherVR) ([4dc6028](https://github.com/ChristopherVR/pptx-viewer/commit/4dc602876bd49cdb03b084f9f4fa2268aa01f22f))
+
+### Chores
+
+- **core:** Complete barrel and runtime wiring for the preceding two changes (by @ChristopherVR) ([115379e](https://github.com/ChristopherVR/pptx-viewer/commit/115379e9a757b029fbc0cbb74ae51628f7fb3e27))
+
 ## 2026-08-21
 
 _Releases: pptx-viewer-core@2.3.14, pptx-react-viewer@2.22.0, pptx-vue-viewer@2.23.0, pptx-angular-viewer@2.21.0, pptx-vanilla-viewer@1.24.0, pptx-svelte-viewer@2.23.0, pptx-viewer-mcp@2.1.4, @christophervr/pptx-viewer@1.9.0_
