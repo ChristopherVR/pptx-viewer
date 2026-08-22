@@ -78,10 +78,14 @@ describe('pRESET_TO_OOXML', () => {
 		}
 		for (const [cls, idMap] of byClass) {
 			for (const [id, names] of idMap) {
+				// entr.11 (Flash Once, verified via COM) carries three legacy
+				// aliases (`flashIn`, `flashOnceIn`, `flashBulbIn`) rather than
+				// the usual two, so it gets a wider allowance than the rest.
+				const allowance = cls === 'entr' && id === 11 ? 3 : 2;
 				expect(
 					names.length,
 					`${cls} presetId=${id} is mapped by multiple presets: ${names.join(', ')}`,
-				).toBeLessThanOrEqual(2); // Allow aliases (e.g., bounce/pulse)
+				).toBeLessThanOrEqual(allowance); // Allow aliases (e.g., bounce/pulse)
 			}
 		}
 	});

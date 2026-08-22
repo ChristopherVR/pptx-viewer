@@ -170,20 +170,26 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified against retail PowerPoint via COM automation: entr.11
+		// emits a plain visibility flash with no filter (Flash Once), not
+		// Flash Bulb. Flash Bulb is an EMPHASIS effect (emph.26), not an
+		// entrance effect at all, and is out of this catalog's entrance list.
 		presetId: 'entr.11',
-		label: 'Flash Bulb',
-		category: 'entrance',
-		defaultDurationMs: 500,
-		hasDirection: false,
-		hasTextBuild: false,
-	},
-	{
-		presetId: 'entr.12',
 		label: 'Flash Once',
 		category: 'entrance',
 		defaultDurationMs: 300,
 		hasDirection: false,
 		hasTextBuild: false,
+	},
+	{
+		// Verified via COM: entr.12 carries `filter="wipe(up)"`, a peek reveal.
+		presetId: 'entr.12',
+		label: 'Peek In',
+		category: 'entrance',
+		defaultDurationMs: 500,
+		hasDirection: true,
+		directions: DIRECTIONS_4WAY,
+		hasTextBuild: true,
 	},
 	{
 		presetId: 'entr.13',
@@ -212,16 +218,9 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via COM: entr.16 carries `filter="barn(inVertical)"`, the
+		// split barn-door reveal.
 		presetId: 'entr.16',
-		label: 'Peek In',
-		category: 'entrance',
-		defaultDurationMs: 500,
-		hasDirection: true,
-		directions: DIRECTIONS_4WAY,
-		hasTextBuild: true,
-	},
-	{
-		presetId: 'entr.17',
 		label: 'Split',
 		category: 'entrance',
 		defaultDurationMs: 500,
@@ -230,21 +229,40 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
-		presetId: 'entr.18',
+		// Verified via COM: entr.17 emits a plain `ppt_w`/`ppt_h` grow from 0
+		// to full size (no filter), matching Stretch. Note entr.18 already
+		// carries its own (separately unverified) "Stretch" label in this
+		// catalog; that duplicate is a pre-existing, out-of-scope issue this
+		// fix does not resolve.
+		presetId: 'entr.17',
 		label: 'Stretch',
 		category: 'entrance',
 		defaultDurationMs: 500,
-		hasDirection: true,
-		directions: ['fromBottom', 'fromLeft', 'fromRight', 'fromTop', 'across'],
+		hasDirection: false,
 		hasTextBuild: true,
 	},
 	{
-		presetId: 'entr.19',
+		// Verified via COM: entr.18 carries `filter="strips(...)"`, the Strips
+		// reveal, not Stretch (real Stretch is entr.17 above; this entry used
+		// to duplicate that label). entr.19 (below) was previously mislabelled
+		// "Strips"; the two were swapped.
+		presetId: 'entr.18',
 		label: 'Strips',
 		category: 'entrance',
 		defaultDurationMs: 500,
 		hasDirection: true,
 		directions: ['leftDown', 'leftUp', 'rightDown', 'rightUp'],
+		hasTextBuild: true,
+	},
+	{
+		// Verified via COM: entr.19 is Swivel (`msoAnimEffectSwivel` serializes
+		// as presetID 19), not Strips (real Strips is entr.18 above).
+		presetId: 'entr.19',
+		label: 'Swivel',
+		category: 'entrance',
+		defaultDurationMs: 1000,
+		hasDirection: true,
+		directions: DIRECTIONS_AXIS,
 		hasTextBuild: true,
 	},
 	{
@@ -299,8 +317,11 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via COM: `msoAnimEffectBounce` serializes as presetID 26,
+		// not "Rise Up" (real Rise Up is entr.37, see below). The two were
+		// previously swapped in this catalog.
 		presetId: 'entr.26',
-		label: 'Rise Up',
+		label: 'Bounce',
 		category: 'entrance',
 		defaultDurationMs: 500,
 		hasDirection: false,
@@ -388,8 +409,11 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via COM: `msoAnimEffectRiseUp` serializes as presetID 37,
+		// not "Bounce" (real Bounce is entr.26 above). The two were
+		// previously swapped in this catalog.
 		presetId: 'entr.37',
-		label: 'Bounce',
+		label: 'Rise Up',
 		category: 'entrance',
 		defaultDurationMs: 1000,
 		hasDirection: false,
@@ -468,12 +492,16 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via COM: entr.47 is "Descend" (`msoAnimEffectDescend`
+		// serializes as presetID 47), not Swivel (real Swivel is entr.19, see
+		// above). Note entr.61 already carries its own (separately
+		// unverified) "Descend" label in this catalog; that duplicate is a
+		// newly surfaced, out-of-scope issue this fix does not resolve.
 		presetId: 'entr.47',
-		label: 'Swivel',
+		label: 'Descend',
 		category: 'entrance',
 		defaultDurationMs: 1000,
-		hasDirection: true,
-		directions: DIRECTIONS_AXIS,
+		hasDirection: false,
 		hasTextBuild: true,
 	},
 	{
@@ -485,8 +513,14 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via COM: `msoAnimEffectSpinner` serializes as presetID 49,
+		// matching write-mappings' existing `spinnerIn`; the catalog's
+		// previous "Pinwheel IV" label was internally inconsistent with that.
+		// Note entr.30 already carries its own (separately unverified)
+		// "Spinner" label in this catalog; that duplicate is a newly
+		// surfaced, out-of-scope issue this fix does not resolve.
 		presetId: 'entr.49',
-		label: 'Pinwheel IV',
+		label: 'Spinner',
 		category: 'entrance',
 		defaultDurationMs: 1000,
 		hasDirection: false,
@@ -743,10 +777,15 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via COM: `msoAnimEffectFlashOnce` with `Effect.Exit = True`
+		// serializes as presetID 11 (no filter, matching entr.11); Flash Bulb
+		// cannot be made an exit effect at all (`Effect.Exit = True` throws
+		// for it). exit.12's real identity is unverified; its "Flash Once"
+		// label is a newly surfaced, out-of-scope duplicate left unresolved.
 		presetId: 'exit.11',
-		label: 'Flash Bulb',
+		label: 'Flash Once',
 		category: 'exit',
-		defaultDurationMs: 500,
+		defaultDurationMs: 300,
 		hasDirection: false,
 		hasTextBuild: false,
 	},
@@ -1227,40 +1266,59 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 
 export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 	{
+		// Verified via COM: emph.1 emits a `p:animClr` node targeting fill
+		// color, matching Change Fill Color, not Bold Flash (real Bold Flash
+		// is emph.10, see below; the two were previously swapped).
 		presetId: 'emph.1',
-		label: 'Bold Flash',
+		label: 'Change Fill Color',
 		category: 'emphasis',
 		defaultDurationMs: 500,
 		hasDirection: false,
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.2 targets `style.fontFamily` (a font-family
+		// swap), matching Change Font, not Color Wave (real Color Wave is
+		// emph.20, real Wave is emph.34; neither was previously distinguished
+		// from this id).
 		presetId: 'emph.2',
-		label: 'Color Wave',
-		category: 'emphasis',
-		defaultDurationMs: 1000,
-		hasDirection: false,
-		hasTextBuild: false,
-	},
-	{
-		presetId: 'emph.3',
-		label: 'Brush on Color',
-		category: 'emphasis',
-		defaultDurationMs: 1000,
-		hasDirection: false,
-		hasTextBuild: false,
-	},
-	{
-		presetId: 'emph.4',
-		label: 'Brush on Underline',
-		category: 'emphasis',
-		defaultDurationMs: 1000,
-		hasDirection: false,
-		hasTextBuild: false,
-	},
-	{
-		presetId: 'emph.5',
 		label: 'Change Font',
+		category: 'emphasis',
+		defaultDurationMs: 1000,
+		hasDirection: false,
+		hasTextBuild: false,
+	},
+	{
+		// Verified via COM: emph.3 targets `style.color` via a `p:animClr`
+		// node, matching Change Font Color, not Brush on Color.
+		presetId: 'emph.3',
+		label: 'Change Font Color',
+		category: 'emphasis',
+		defaultDurationMs: 500,
+		hasDirection: false,
+		hasTextBuild: false,
+	},
+	{
+		// Verified via COM: emph.4 targets `style.fontSize`, matching Change
+		// Font Size, not Brush on Underline. emph.10 previously duplicated
+		// this label; that has since been corrected to "Bold Flash" (its real
+		// identity, see below), so this is no longer a duplicate.
+		presetId: 'emph.4',
+		label: 'Change Font Size',
+		category: 'emphasis',
+		defaultDurationMs: 500,
+		hasDirection: false,
+		hasTextBuild: false,
+	},
+	{
+		// Verified via COM: emph.5 targets `style.fontStyle` /
+		// `style.fontWeight` / `style.textDecorationUnderline`, matching
+		// Change Font Style, not plain Change Font (real Change Font is
+		// emph.2, see above). Note emph.11 already carries its own
+		// (separately unverified) "Change Font Style" label; that duplicate
+		// is a pre-existing, out-of-scope issue this fix does not resolve.
+		presetId: 'emph.5',
+		label: 'Change Font Style',
 		category: 'emphasis',
 		defaultDurationMs: 500,
 		hasDirection: false,
@@ -1275,8 +1333,11 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.7 targets `stroke.color` / `stroke.on` via a
+		// `p:animClr` node, matching Change Line Color, not Change Font
+		// Color (the real Change Font Color is emph.3, see above).
 		presetId: 'emph.7',
-		label: 'Change Font Color',
+		label: 'Change Line Color',
 		category: 'emphasis',
 		defaultDurationMs: 500,
 		hasDirection: false,
@@ -1300,8 +1361,13 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.10 targets `style.fontWeight` with no colour
+		// animation, matching Bold Flash (real Bold Flash; the previous
+		// "Change Font Size" label duplicated emph.4, the real Change Font
+		// Size). Bold Flash was previously mislabelled onto emph.1 (now
+		// corrected to Change Fill Color, see above); the two were swapped.
 		presetId: 'emph.10',
-		label: 'Change Font Size',
+		label: 'Bold Flash',
 		category: 'emphasis',
 		defaultDurationMs: 500,
 		hasDirection: false,
@@ -1348,8 +1414,12 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.16 targets `style.color`/`fillcolor` via a
+		// `<p:set>` (an instant colour paint, not a smooth `p:animClr`
+		// transition), matching Brush on Color, not Wave (real Wave is
+		// emph.34, see the write-mappings notes).
 		presetId: 'emph.16',
-		label: 'Wave',
+		label: 'Brush on Color',
 		category: 'emphasis',
 		defaultDurationMs: 1000,
 		hasDirection: false,
@@ -1364,8 +1434,13 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.18 targets `style.textDecorationUnderline`
+		// via a `<p:set>`, matching Brush on Underline, not Bold Reveal (real
+		// Bold Reveal is emph.15 above; the two were previously conflated -
+		// this catalog had emph.18 labelled "Bold Reveal" with no id carrying
+		// "Brush on Underline" at all).
 		presetId: 'emph.18',
-		label: 'Bold Reveal',
+		label: 'Brush on Underline',
 		category: 'emphasis',
 		defaultDurationMs: 500,
 		hasDirection: false,
@@ -1380,8 +1455,12 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.20 targets `style.color`/`fillcolor` with a
+		// `filter="fade"` transition, matching Color Wave, not Shimmer (real
+		// Shimmer is emph.36, unaffected by this fix). Real Wave (distinct
+		// from Color Wave) is emph.34.
 		presetId: 'emph.20',
-		label: 'Shimmer',
+		label: 'Color Wave',
 		category: 'emphasis',
 		defaultDurationMs: 1000,
 		hasDirection: false,
@@ -1492,8 +1571,12 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM: emph.34 targets `ppt_x`/`ppt_y`/`r` (a positional
+		// wobble, no colour), matching Wave, not "Bold Flash (Variant)" (real
+		// Bold Flash is emph.10; this id has no real connection to it). Real
+		// Color Wave (distinct from Wave) is emph.20.
 		presetId: 'emph.34',
-		label: 'Bold Flash (Variant)',
+		label: 'Wave',
 		category: 'emphasis',
 		defaultDurationMs: 500,
 		hasDirection: false,

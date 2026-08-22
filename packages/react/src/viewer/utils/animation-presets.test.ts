@@ -20,8 +20,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[23]).toBe('zoomIn');
 		});
 
-		it('should map preset ID 37 to "bounceIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[37]).toBe('bounceIn');
+		it('should map preset ID 37 to "riseUp" (Rise Up, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[37]).toBe('riseUp');
 		});
 
 		it('should map preset ID 22 to "wipeIn"', () => {
@@ -72,8 +72,14 @@ describe('pRESET_ID_TO_EFFECT', () => {
 	});
 
 	describe('emphasis presets', () => {
-		it('should map preset ID 1 to "boldFlash"', () => {
-			expect(PRESET_ID_TO_EFFECT.emph[1]).toBe('boldFlash');
+		it('should leave preset ID 1 unmapped (Change Fill Color, not Bold Flash)', () => {
+			// emph.1 is Change Fill Color (verified via COM); real Bold Flash
+			// is emph.10.
+			expect(PRESET_ID_TO_EFFECT.emph[1]).toBeUndefined();
+		});
+
+		it('should map preset ID 10 to "boldFlash" (Bold Flash, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[10]).toBe('boldFlash');
 		});
 
 		it('should map preset ID 8 to "spin"', () => {
@@ -135,8 +141,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 	});
 
 	describe('additional entrance presets', () => {
-		it('should map preset ID 6 to "expandIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[6]).toBe('expandIn');
+		it('should map preset ID 6 to "circleIn" (Circle, not a duplicate of Expand)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[6]).toBe('circleIn');
 		});
 
 		it('should map preset ID 9 to "dissolveIn"', () => {
@@ -163,8 +169,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[21]).toBe('wheelIn');
 		});
 
-		it('should map preset ID 26 to "riseUp"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[26]).toBe('riseUp');
+		it('should map preset ID 26 to "bounceIn" (Bounce, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[26]).toBe('bounceIn');
 		});
 
 		it('should map preset ID 31 to "expandIn"', () => {
@@ -175,8 +181,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatIn');
 		});
 
-		it('should map preset ID 47 to "swivel"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[47]).toBe('swivel');
+		it('should leave preset ID 47 unmapped (real Swivel is entr.19, not 47)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[47]).toBeUndefined();
 		});
 
 		it('should map preset ID 49 to "spinnerIn"', () => {
@@ -203,8 +209,10 @@ describe('pRESET_ID_TO_EFFECT', () => {
 	});
 
 	describe('additional emphasis presets', () => {
-		it('should map preset ID 2 to "wave"', () => {
-			expect(PRESET_ID_TO_EFFECT.emph[2]).toBe('wave');
+		it('should leave preset ID 2 unmapped (Change Font, not Wave)', () => {
+			// emph.2 is really Change Font (verified via COM); real Wave is
+			// emph.34, real Color Wave is emph.20.
+			expect(PRESET_ID_TO_EFFECT.emph[2]).toBeUndefined();
 		});
 
 		it('should map preset ID 9 to "transparency"', () => {

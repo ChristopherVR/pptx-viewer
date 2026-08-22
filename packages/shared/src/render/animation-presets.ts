@@ -24,7 +24,10 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		3: 'blindsIn',
 		4: 'boxIn',
 		5: 'checkerboardIn',
-		6: 'expandIn',
+		// entr.6 = Circle: a genuine iris-style mask reveal, not a plain scale.
+		// It used to duplicate entr.31 (Expand)'s `expandIn`, so a Circle
+		// entrance was visually indistinguishable from Expand.
+		6: 'circleIn',
 		9: 'dissolveIn',
 		10: 'fadeIn',
 		// entr.11 = Flash Once, entr.12 = Peek In, entr.16 = Split per the
@@ -33,26 +36,50 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		// Ground truth from a real PowerPoint deck (issue #132): preset 12
 		// carries `p:animEffect filter="wipe(...)"` (a peek reveal) and preset
 		// 16 carries `filter="barn(...)"` (the split barn-door reveal).
+		// Re-verified directly against retail PowerPoint via COM automation
+		// (AddEffect + raw OOXML inspection): entr.11 emits no filter (a plain
+		// visibility flash, matching `flashIn`'s blink keyframe), entr.12
+		// carries `filter="wipe(up)"`, and entr.16 carries
+		// `filter="barn(inVertical)"`. This block is intentionally UNCHANGED
+		// from the #132 fix; `animation-write-mappings.ts` and
+		// `animation-preset-catalog.ts` were the ones still mislabelled (their
+		// entr.11/12/16/17 labels were shifted one preset too high) and have
+		// been corrected to match this table instead.
 		11: 'flashIn',
 		12: 'peekIn',
 		14: 'randomBarsIn',
 		16: 'splitIn',
-		// entr.17 = Stretch; an expand-from-nothing scale is the closest match.
+		// entr.17 = Stretch (confirmed via COM: a plain `ppt_w`/`ppt_h` grow
+		// from 0 to full size, no filter); an expand-from-nothing scale is the
+		// closest existing match.
 		17: 'expandIn',
 		22: 'wipeIn',
 		23: 'zoomIn',
-		26: 'riseUp',
+		// entr.26/37 verified via COM (AddEffect + raw OOXML inspection):
+		// `msoAnimEffectBounce` serializes as presetID 26 and
+		// `msoAnimEffectRiseUp` serializes as presetID 37. These were
+		// previously swapped in this table (26 played 'riseUp', 37 played
+		// 'bounceIn'); PowerPoint's own internal MsoAnimEffect id and the
+		// OOXML presetID are different numbering spaces that only coincide
+		// for some effects.
+		26: 'bounceIn',
 		21: 'wheelIn',
 		31: 'expandIn',
-		37: 'bounceIn',
+		37: 'riseUp',
 		42: 'floatIn',
-		47: 'swivel',
 		49: 'spinnerIn',
 		53: 'growTurnIn',
 	},
 	exit: {
 		1: 'disappear',
 		2: 'flyOutBottom',
+		// exit.6 = Circle, confirmed via COM (`msoAnimEffectCircle` with
+		// `Effect.Exit = True` serializes as presetID 6, filter="circle(in)"),
+		// matching the catalog label and `circleOut` in the authoring reverse
+		// lookup. There is no dedicated exit iris/circle-mask keyframe yet, so
+		// `shrinkOut` remains as a documented visual APPROXIMATION (both read
+		// as "collapse to nothing"); see the APPROXIMATION_ALLOWLIST entry in
+		// `animation-preset-tables-consistency.test.ts`.
 		6: 'shrinkOut',
 		9: 'dissolveOut',
 		10: 'fadeOut',
@@ -61,14 +88,35 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		37: 'bounceOut',
 	},
 	emph: {
-		1: 'boldFlash',
-		2: 'wave',
+		// emph.1 used to be mislabelled 'boldFlash', but emph.1 is really
+		// Change Fill Color (confirmed via COM: emph.1 emits `p:animClr` with
+		// a fill-color target), not Bold Flash (that is emph.10, see below).
+		// Leaving this id unmapped lets the animClr colour-animation path in
+		// `animation-timeline-helpers.ts` render it, instead of being
+		// short-circuited by a wrong static effect.
 		6: 'growShrink',
-		7: 'flash', // Blink: an opacity blink, closest existing keyframe.
+		// emph.7 used to be mislabelled 'flash' (a Blink approximation), but
+		// emph.7 is Change Line Color, not Blink: a real Change Line Color
+		// emphasis carries a `p:animClr` node, which `buildDynamicKeyframe`
+		// already renders correctly via the colour-animation path in
+		// `animation-timeline-helpers.ts`. Leaving this id unmapped here lets
+		// that path run instead of being short-circuited by a wrong static
+		// effect (verified via COM: emph.7 emits `p:animClr` and a
+		// `stroke.color` target, no flash/blink filter of any kind).
 		8: 'spin',
 		9: 'transparency',
+		// emph.10 = Bold Flash, confirmed via COM (`msoAnimEffectBoldFlash`
+		// targets `style.fontWeight`, no colour animation); previously
+		// mislabelled onto emph.1 (see above) and emph.4 wrongly claimed as
+		// Change Font Size's slot.
+		10: 'boldFlash',
 		14: 'teeter',
 		26: 'pulse',
+		// emph.2 (Change Font, a font-family swap) and emph.16 (Brush on
+		// Color) are intentionally NOT covered here: neither has a dynamic
+		// keyframe or animClr path today, so both correctly fall back to the
+		// neutral emphasis animation rather than a fabricated static effect
+		// (matching the emph.4/5 precedent below).
 	},
 };
 
@@ -89,9 +137,17 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
  * neutral emphasis fallback, so an unrecognised id is never dropped.
  */
 export const EMPH_FILTER_PRESETS: Readonly<Record<number, { name: string; filterMid: string }>> = {
-	3: { name: 'desaturate', filterMid: 'saturate(0.15)' },
-	4: { name: 'darken', filterMid: 'brightness(0.55)' },
-	5: { name: 'lighten', filterMid: 'brightness(1.6)' },
+	// emph.3/4/5 used to hold desaturate/darken/lighten here, but those three
+	// IDs are actually Change Font Color, Change Font Size and Change Font
+	// Style (confirmed via COM: emph.3 and emph.4/5 target `style.color`,
+	// `style.fontSize` and `style.fontStyle`/`style.fontWeight`, not a
+	// colour-filter pulse). Change Font Color already renders correctly via
+	// the `p:animClr` colour-animation path (see the emph.7 note in
+	// `PRESET_ID_TO_EFFECT` above); Change Font Size/Style have no dynamic
+	// keyframe support yet, so they correctly fall back to the neutral
+	// emphasis animation rather than a fabricated filter. The real
+	// Desaturate/Lighten/Darken IDs (25/30/24) are not covered here either;
+	// adding them is a separate, larger extraction beyond this fix's scope.
 };
 
 /**
