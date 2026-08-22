@@ -28,12 +28,12 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { computeLayoutOptions, computeValueRangeForChart } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis } from './chart-axis-render';
+import { computeDataTablePrimitives } from './chart-data-table-render';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import {
 	computeAxisTitlePrimitives,
-	computeDataTablePrimitives,
 	computeErrorBarPrimitives,
 	computeTrendlinePrimitives,
 } from './chart-overlays';

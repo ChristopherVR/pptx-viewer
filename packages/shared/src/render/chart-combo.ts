@@ -9,15 +9,12 @@ import {
 } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
+import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
-import {
-	computeAxisTitlePrimitives,
-	computeDataTablePrimitives,
-	computeTrendlinePrimitives,
-} from './chart-overlays';
+import { computeAxisTitlePrimitives, computeTrendlinePrimitives } from './chart-overlays';
 import type {
 	ChartViewModel,
 	PlotLayout,

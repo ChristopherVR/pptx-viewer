@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { translationsEn } from '../i18n/translations-en';
 import {
 	CHART_TYPE_OPTIONS,
 	COMBO_SERIES_TYPE_OPTIONS,
@@ -56,6 +57,25 @@ describe('chart-editor option lists', () => {
 			expect(opt.value).toBeTypeOf('string');
 			expect(opt.label.length).toBeGreaterThan(0);
 		}
+	});
+
+	it('names every CHART_TYPE_OPTIONS entry from a key the dictionary actually defines', () => {
+		const missing = CHART_TYPE_OPTIONS.filter((opt) => !(opt.labelKey in translationsEn));
+		expect(missing).toStrictEqual([]);
+	});
+
+	it('offers the six ChartEx types that are creatable but were missing from every picker', () => {
+		const values = CHART_TYPE_OPTIONS.map((opt) => opt.value);
+		expect(values).toStrictEqual(
+			expect.arrayContaining([
+				'histogram',
+				'funnel',
+				'treemap',
+				'sunburst',
+				'boxWhisker',
+				'regionMap',
+			]),
+		);
 	});
 
 	it('data_label_content_options pairs a content key with a label', () => {

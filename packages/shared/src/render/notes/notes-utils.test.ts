@@ -96,6 +96,20 @@ describe('resolveNotesSegments', () => {
 	it('returns a single empty segment for an undefined slide', () => {
 		expect(resolveNotesSegments(undefined)).toStrictEqual([{ text: '', style: {} }]);
 	});
+
+	it("fills a segment's missing fontSize from the deck's notesStyle level 0", () => {
+		const slide = makeSlide({ notes: 'Plain' });
+		const result = resolveNotesSegments(slide, { 0: { fontSize: 24 } }); // 24px -> 18pt
+		expect(result[0].style.fontSize).toBe(18);
+	});
+
+	it('never overrides a segment that already carries an explicit style', () => {
+		const segs: TextSegment[] = [{ text: 'Rich', style: { fontSize: 30 } }];
+		const result = resolveNotesSegments(makeSlide({ notesSegments: segs }), {
+			0: { fontSize: 24 },
+		});
+		expect(result[0].style.fontSize).toBe(30);
+	});
 });
 
 describe('normalizeNotesLinkUrl', () => {
@@ -136,5 +150,19 @@ describe('buildNotesPrintHtml', () => {
 		);
 		expect(html).toContain('• Bulleted');
 		expect(html).toContain('1. Numbered');
+	});
+
+	it('falls back to the previous hardcoded 9pt notes-text size when no notesStyle is given', () => {
+		const html = buildNotesPrintHtml([makeSlide({ notes: 'x' })], (n) => `Slide ${n}`);
+		expect(html).toContain('.notes-text { font-size:9pt; }');
+	});
+
+	it("uses the deck's authored notesStyle level-0 font size/family instead of the hardcoded default", () => {
+		const html = buildNotesPrintHtml([makeSlide({ notes: 'x' })], (n) => `Slide ${n}`, {
+			0: { fontSize: 32, fontFamily: 'Calibri' }, // 32px -> 24pt
+		});
+		expect(html).toContain('font-size:24pt');
+		expect(html).toContain('font-family:Calibri, Arial, sans-serif');
+		expect(html).not.toContain('font-size:9pt');
 	});
 });

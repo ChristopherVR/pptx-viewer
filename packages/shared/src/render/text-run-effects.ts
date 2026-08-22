@@ -3,9 +3,9 @@
  *
  * Pure, framework-agnostic. Mirrors React's per-run effect composition in
  * `packages/react/src/viewer/utils/text-segment-render.tsx`: it folds the
- * gradient/pattern fill record, the merged `text-shadow` (outer + preset + 3D
- * extrusion/bevel), the merged `filter` chain (glow + inner-shadow + blur +
- * HSL), the alpha `opacity`, and the `-webkit-box-reflect` reflection into ONE
+ * gradient/pattern fill record, the merged `text-shadow` (outer + preset), the
+ * merged `filter` chain (glow + inner-shadow + blur + HSL), the alpha
+ * `opacity`, and the `-webkit-box-reflect` reflection into ONE
  * neutral CSS record (`Record<string, string | number>`). Each binding casts
  * the record into its own style type at the call site.
  *
@@ -65,7 +65,7 @@ export function buildTextRunFilterChain(style: TextStyle): string | undefined {
  *  - gradient / pattern fill via the `background-clip: text` technique
  *    (spreads the fill record's `background` / `backgroundClip` /
  *    `WebkitBackgroundClip` / `WebkitTextFillColor` keys);
- *  - `textShadow` from {@link buildTextShadowCss} (outer + preset + 3D layers);
+ *  - `textShadow` from {@link buildTextShadowCss} (outer + preset);
  *  - `filter` from {@link buildTextRunFilterChain} (glow + inner-shadow + blur
  *    + HSL);
  *  - `opacity` from {@link getTextAlphaOpacity} (alpha modulation);

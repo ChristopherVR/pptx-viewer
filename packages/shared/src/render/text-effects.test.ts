@@ -10,7 +10,7 @@ import {
 	buildTextShadowCss,
 	getTextAlphaOpacity,
 } from './text-effects';
-import { buildTextBody3DSceneStyle, buildText3DShadowCss } from './text-effects-3d';
+import { buildTextBody3DSceneStyle } from './text-effects-3d';
 import { buildTextFillCss } from './text-fill';
 
 describe('buildTextFillCss', () => {
@@ -80,20 +80,6 @@ describe('text effect css builders', () => {
 });
 
 describe('3d text effects', () => {
-	it('builds layered extrusion shadows', () => {
-		const out = buildText3DShadowCss({
-			color: '#336699',
-			text3d: { extrusionHeight: 95250 },
-		} as TextStyle);
-		expect(out).toBeDefined();
-		expect(out!.split(', ').length).toBeGreaterThan(1);
-	});
-
-	it('returns undefined without any 3d settings', () => {
-		expect(buildText3DShadowCss({ text3d: {} } as TextStyle)).toBeUndefined();
-		expect(buildText3DShadowCss({} as TextStyle)).toBeUndefined();
-	});
-
 	it('builds a scene style from explicit rotation', () => {
 		const out = buildTextBody3DSceneStyle({
 			textBodyScene3d: { cameraRotY: 600000 },
@@ -104,5 +90,14 @@ describe('3d text effects', () => {
 
 	it('returns undefined without a scene', () => {
 		expect(buildTextBody3DSceneStyle({} as TextStyle)).toBeUndefined();
+	});
+
+	it('short-circuits the scene/camera transform when a:flatTx is set (flatText)', () => {
+		expect(
+			buildTextBody3DSceneStyle({
+				textBodyScene3d: { cameraRotY: 600000 },
+				flatText: true,
+			} as TextStyle),
+		).toBeUndefined();
 	});
 });

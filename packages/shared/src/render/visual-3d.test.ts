@@ -68,6 +68,20 @@ describe('get3dTransformCss', () => {
 		expect(result?.transformStyle).toBe('preserve-3d');
 	});
 
+	it('appends translateZ for a:sp3d/@z, independent of extrusion depth', () => {
+		const result = get3dTransformCss(undefined, { positionZ: 19050 }); // 2px @ 9525 EMU/px
+		expect(result?.transform).toBe('translateZ(2px)');
+	});
+
+	it('composes z-position and extrusion translateZ together', () => {
+		const result = get3dTransformCss(undefined, { positionZ: 19050, extrusionHeight: 95250 });
+		expect(result?.transform).toMatch(/translateZ\(2px\).*translateZ\(/);
+	});
+
+	it('omits translateZ when a:sp3d/@z is 0 or absent', () => {
+		expect(get3dTransformCss(undefined, { positionZ: 0 })?.transform).toBeUndefined();
+	});
+
 	it('returns no transform for orthographicFront (no perspective/rotation)', () => {
 		const result = get3dTransformCss({ cameraPreset: 'orthographicFront' }, undefined);
 		expect(result?.transform).toBeUndefined();

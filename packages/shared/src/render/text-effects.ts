@@ -3,14 +3,13 @@
  * reflection / alpha), shared by every binding's text renderer.
  *
  * Pure, framework-agnostic: each builder returns a neutral CSS string (or a
- * number for opacity), or `undefined` when the effect is absent. The 3D
- * extrusion/scene builders live in {@link ./text-effects-3d}; the gradient/
- * pattern text-fill builder lives in {@link ./text-fill}.
+ * number for opacity), or `undefined` when the effect is absent. The 3D scene
+ * builder lives in {@link ./text-effects-3d}; the gradient/pattern text-fill
+ * builder lives in {@link ./text-fill}.
  */
 import type { TextStyle } from 'pptx-viewer-core';
 
 import { normalizeHexColor } from './fill-style';
-import { buildText3DShadowCss } from './text-effects-3d';
 
 /** Build a CSS `text-shadow` value from text shadow properties. */
 export function buildTextShadowCss(style: TextStyle): string | undefined {
@@ -44,12 +43,6 @@ export function buildTextShadowCss(style: TextStyle): string | undefined {
 		const psG = parseInt(psColor.slice(3, 5), 16);
 		const psB = parseInt(psColor.slice(5, 7), 16);
 		shadows.push(`${psOx}px ${psOy}px 4px rgba(${psR},${psG},${psB},${psOpacity})`);
-	}
-
-	// 3D extrusion/bevel layers
-	const text3dShadow = buildText3DShadowCss(style);
-	if (text3dShadow) {
-		shadows.push(text3dShadow);
 	}
 
 	return shadows.length > 0 ? shadows.join(', ') : undefined;

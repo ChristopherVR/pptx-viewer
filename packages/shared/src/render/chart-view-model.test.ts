@@ -919,6 +919,200 @@ describe('buildChartViewModel - non-chart element', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// buildChartViewModel - c:dTable data table (gap 1) and c:legendEntry (gap 2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildChartViewModel - data table (c:dTable)', () => {
+	const barElement = {
+		id: 'el-dt',
+		type: 'chart' as const,
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 300,
+		chartData: {
+			chartType: 'bar' as const,
+			categories: ['Q1', 'Q2', 'Q3'],
+			series: [{ name: 'Revenue', values: [100, 150, 120] }],
+			dataTable: { showKeys: true, showOutline: true },
+		} satisfies PptxChartData,
+	};
+
+	it('populates vm.dataTable and appends the same primitives to vm.primitives', () => {
+		const vm = buildChartViewModel(barElement);
+		expect(vm.dataTable).toBeDefined();
+		expect(vm.dataTable!.length).toBeGreaterThan(0);
+		for (const prim of vm.dataTable!) {
+			expect(vm.primitives).toContain(prim);
+		}
+	});
+
+	it('renders the series name (the data-table key column) as text', () => {
+		const vm = buildChartViewModel(barElement);
+		const texts = vm.dataTable!.filter((p) => p.kind === 'text').map((p) => p.text);
+		expect(texts).toContain('Revenue');
+	});
+
+	it('honours dataTable.txPr colour/fontFamily on the rendered cells', () => {
+		const styled = {
+			...barElement,
+			chartData: {
+				...barElement.chartData,
+				dataTable: { showKeys: true, txPr: { color: '#123456', fontFamily: 'Georgia' } },
+			},
+		};
+		const vm = buildChartViewModel(styled);
+		const cells = vm.dataTable!.filter((p) => p.kind === 'text');
+		expect(cells.length).toBeGreaterThan(0);
+		for (const cell of cells) {
+			expect(cell.fill).toBe('#123456');
+			expect(cell.fontFamily).toBe('Georgia');
+		}
+	});
+
+	it('leaves vm.dataTable undefined when the chart has no c:dTable', () => {
+		const noTable = {
+			...barElement,
+			chartData: { ...barElement.chartData, dataTable: undefined },
+		};
+		const vm = buildChartViewModel(noTable);
+		expect(vm.dataTable).toBeUndefined();
+	});
+});
+
+describe('buildChartViewModel - legend-entry deletion and text-style (c:legendEntry)', () => {
+	it('drops a deleted series legend entry on a bar chart', () => {
+		const element = {
+			id: 'el-le',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'bar' as const,
+				categories: ['Q1', 'Q2'],
+				series: [
+					{ name: 'Revenue', values: [100, 150] },
+					{ name: 'Cost', values: [80, 90] },
+				],
+				style: {
+					hasLegend: true,
+					legendPosition: 'b',
+					legendEntries: [{ index: 1, deleted: true }],
+				},
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		expect(vm.legend).toHaveLength(1);
+		expect(vm.legend[0].label).toBe('Revenue');
+	});
+
+	it('drops a deleted slice legend entry on a pie chart (the 3D/ofPie-adjacent flat path)', () => {
+		const element = {
+			id: 'el-pie-le',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'pie' as const,
+				categories: ['A', 'B', 'C'],
+				series: [{ name: 'Series 1', values: [10, 20, 30] }],
+				style: { hasLegend: true, legendEntries: [{ index: 0, deleted: true }] },
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		expect(vm.legend.map((e) => e.label)).toStrictEqual(['B', 'C']);
+	});
+
+	it('drops a deleted legend entry on an ofPie chart', () => {
+		const element = {
+			id: 'el-ofpie-le',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'ofPie' as const,
+				categories: ['A', 'B', 'C', 'D'],
+				series: [{ name: 'Series 1', values: [10, 20, 5, 4] }],
+				style: { hasLegend: true, legendEntries: [{ index: 0, deleted: true }] },
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		expect(vm.legend.map((e) => e.label)).not.toContain('A');
+	});
+
+	it('drops a deleted legend entry on a 3D chart (bar3D depth path)', () => {
+		const element = {
+			id: 'el-3d-le',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'bar3D' as const,
+				categories: ['Q1', 'Q2'],
+				series: [
+					{ name: 'Revenue', values: [100, 150] },
+					{ name: 'Cost', values: [80, 90] },
+				],
+				style: { hasLegend: true, legendEntries: [{ index: 0, deleted: true }] },
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		expect(vm.legend.map((e) => e.label)).toStrictEqual(['Cost']);
+	});
+
+	it('attaches a per-entry text-style override without deleting it', () => {
+		const element = {
+			id: 'el-le-style',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'bar' as const,
+				categories: ['Q1'],
+				series: [{ name: 'Revenue', values: [100] }],
+				style: {
+					hasLegend: true,
+					legendEntries: [{ index: 0, textStyle: { bold: true, color: '#ff0000' } }],
+				},
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		expect(vm.legend).toHaveLength(1);
+		expect(vm.legend[0].textStyle).toStrictEqual({ bold: true, color: '#ff0000' });
+	});
+
+	it('leaves the legend untouched when the chart has no c:legendEntry overrides', () => {
+		const element = {
+			id: 'el-no-le',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'bar' as const,
+				categories: ['Q1'],
+				series: [{ name: 'Revenue', values: [100] }],
+				style: { hasLegend: true },
+			} satisfies PptxChartData,
+		};
+		const vm = buildChartViewModel(element);
+		expect(vm.legend).toHaveLength(1);
+		expect(vm.legend[0].textStyle).toBeUndefined();
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // chartPreserveAspectRatio
 //
 // Four bindings had each written their own `kind === 'pie' || ...` chain to

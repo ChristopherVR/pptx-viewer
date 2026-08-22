@@ -46,6 +46,32 @@ export function collectMediaElements(elements: PptxElement[], collector: MediaPp
 }
 
 /**
+ * Collect every unique `p:stSnd` sound archive path referenced by a native
+ * animation across all slides, so a binding's media-resolution pass can
+ * pre-populate its `mediaDataUrls` map with them the same way it does for
+ * embedded media elements.
+ *
+ * `PptxNativeAnimation.soundPath` is only ever set for a sound that ALSO
+ * happens to back a visible `p:audio`/`p:video` element (already covered by
+ * {@link collectMediaElements}) or, more commonly, a sound from PowerPoint's
+ * animation sound library that backs no element on the slide at all. Without
+ * this, that second case had no entry in `mediaDataUrls`, so a binding whose
+ * action-sound playback only does a map lookup (rather than fetching on
+ * demand) silently failed to play it.
+ */
+export function collectAnimationSoundPaths(slides: readonly PptxSlide[]): string[] {
+	const paths = new Set<string>();
+	for (const slide of slides) {
+		for (const anim of slide.nativeAnimations ?? []) {
+			if (anim.soundPath && !isExternalUrl(anim.soundPath)) {
+				paths.add(anim.soundPath);
+			}
+		}
+	}
+	return [...paths];
+}
+
+/**
  * Collect all unique image archive paths across all slides that need
  * to be resolved to displayable URLs (Blob URLs).
  *

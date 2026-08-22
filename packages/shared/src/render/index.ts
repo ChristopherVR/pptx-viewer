@@ -69,6 +69,7 @@ export * from './visual-effects';
 export * from './image-effects';
 export * from './image-background-removal';
 export * from './image-effect-filter-values';
+export * from './image-fill-overlay';
 export * from './text-warp';
 export * from './omml-to-mathml';
 export * from './latex-to-omml';
@@ -93,6 +94,10 @@ export * from './chart-legend-layout';
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.
 export * from './chart-editor-options';
+// Per-type default categories/series/categoryLevels for the six ChartEx kinds
+// (histogram, funnel, treemap, sunburst, boxWhisker, regionMap) an insert
+// needs to actually look like that chart type.
+export * from './chart-ex-insert-defaults';
 // Wire-token -> i18n key lookups, so a control can spell an OOXML enum without
 // its option set being dictated by a shared catalogue.
 export * from './schema-label-keys';
@@ -221,16 +226,19 @@ export {
 	computeTrendlinePrimitives,
 	computeErrorBarPrimitives,
 	computeAxisTitlePrimitives,
-	computeDataTablePrimitives,
 	computeLinearRegression,
 	fitPolynomial,
 	computeRSquared,
+} from './chart-overlays';
+export type { LinearFit } from './chart-overlays';
+export {
+	computeDataTablePrimitives,
 	DATA_TABLE_ROW_H,
 	DATA_TABLE_HEADER_H,
 	DATA_TABLE_KEY_W,
 	DATA_TABLE_PADDING,
-} from './chart-overlays';
-export type { LinearFit } from './chart-overlays';
+} from './chart-data-table-render';
+export { applyLegendEntryOverrides } from './chart-legend-entries';
 export * from './animation-css';
 // Editor element-animation preset model — distinct from the native OOXML
 // `p:timing` timeline below. `animation-authoring` holds the immutable
@@ -265,6 +273,9 @@ export * from './animation-build';
 export * from './chart-build';
 export * from './diagram-build';
 export * from './animation-timeline-helpers';
+// `@fill` / `@repeatDur` / `@spd` timing decisions consumed by the timeline
+// builder and (for `holdEndState`) by each binding's cleanup-timer step.
+export * from './animation-fill-repeat';
 // Compound / simultaneous OOXML start+end condition evaluation (p:stCondLst /
 // p:endCondLst OR-sets), consumed by the sequencer + timeline builder.
 export * from './animation-advanced-triggers';
@@ -420,8 +431,8 @@ export * from './notes';
 // substitution` (slide-number/date/header-footer/docproperty field text), and
 // the text-effect builders `text-fill` (gradient/pattern background-clip:text),
 // `text-effects` (shadow/glow/blur/HSL/reflection/alpha), `text-effects-3d`
-// (extrusion/bevel text-shadow stack + scene perspective). Each binding casts
-// the neutral record to its own style type; React keeps the JSX (SVG filters).
+// (text body scene perspective/rotation). Each binding casts the neutral
+// record to its own style type; React keeps the JSX (SVG filters).
 export * from './text-style-helpers';
 // The ONE text-body (block) style builder all five bindings render text with:
 // colour, font declaration, decorations, insets, `wrap="none"` and autofit.
@@ -445,7 +456,7 @@ export * from './field-context';
 export * from './text-fill';
 export * from './text-effects';
 export * from './text-effects-3d';
-// Per-run text-effect composer: folds fill + shadow (incl. 3D) + filter chain
+// Per-run text-effect composer: folds fill + shadow + filter chain
 // (glow/inner-shadow/blur/HSL) + alpha opacity + reflection into ONE neutral
 // CSS record (no-op `{}` for plain runs), mirroring React's per-run span style.
 export * from './text-run-effects';

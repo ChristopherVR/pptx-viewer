@@ -111,11 +111,34 @@ function colorWithOpacity(color: string, opacity: number | undefined): string {
 // ── Outer / inner / multi-layer shadow (box-shadow) ────────────────────────
 
 /**
+ * Geometry context enabling the `a:outerShdw/@rotWithShape=false` correction
+ * in {@link getOuterShadowCss}: the element's own rotation, so the shadow
+ * angle can be counter-rotated to stay fixed in page space. Mirrors
+ * {@link GradientRenderContext} in `fill-style.ts`, which applies the same
+ * correction to `a:gradFill/@rotWithShape`.
+ */
+export interface ShadowRenderContext {
+	/** Element rotation in degrees (`PptxElementBase.rotation`). */
+	rotation?: number;
+}
+
+/**
  * Build a CSS `box-shadow` value from the single outer-shadow properties on a
  * {@link ShapeStyle}. Supports both angle/distance and direct x/y offset modes.
  * Returns `undefined` when no shadow colour is defined.
+ *
+ * When `style.shadowRotateWithShape` is explicitly `false` (`a:outerShdw
+ * /@rotWithShape="0"`) and `context.rotation` is supplied, the shadow angle is
+ * counter-rotated by the element's own rotation so the shadow stays fixed in
+ * page space instead of spinning with the (CSS-transformed) shape - the same
+ * correction {@link adjustLinearGradientAngle} in `fill-style.ts` applies to
+ * `a:gradFill/@rotWithShape`. The default (`true`/unset) needs no correction:
+ * a `box-shadow` already rotates for free with the element's own `transform`.
  */
-export function getOuterShadowCss(style: ShapeStyle | undefined): string | undefined {
+export function getOuterShadowCss(
+	style: ShapeStyle | undefined,
+	context?: ShadowRenderContext,
+): string | undefined {
 	if (!style?.shadowColor || style.shadowColor === 'transparent') {
 		return undefined;
 	}
@@ -123,7 +146,11 @@ export function getOuterShadowCss(style: ShapeStyle | undefined): string | undef
 	let offsetX: number;
 	let offsetY: number;
 	if (typeof style.shadowAngle === 'number' && typeof style.shadowDistance === 'number') {
-		const angleRad = (style.shadowAngle * Math.PI) / 180;
+		const angle =
+			style.shadowRotateWithShape === false && typeof context?.rotation === 'number'
+				? style.shadowAngle - context.rotation
+				: style.shadowAngle;
+		const angleRad = (angle * Math.PI) / 180;
 		offsetX = Math.cos(angleRad) * style.shadowDistance;
 		offsetY = Math.sin(angleRad) * style.shadowDistance;
 	} else {
@@ -277,6 +304,7 @@ export function getGlowBoxShadowCss(
 export function getBoxShadowCss(
 	style: ShapeStyle | undefined,
 	options: { includeGlow?: boolean } = {},
+	context?: ShadowRenderContext,
 ): string | undefined {
 	if (!style) {
 		return undefined;
@@ -287,7 +315,7 @@ export function getBoxShadowCss(
 	if (multiLayer) {
 		parts.push(multiLayer);
 	} else {
-		const outer = getOuterShadowCss(style);
+		const outer = getOuterShadowCss(style, context);
 		if (outer) {
 			parts.push(outer);
 		}
@@ -947,7 +975,11 @@ export function getComputedEffectStyle(
 		element.type === 'connector' ||
 		getShapeType('shapeType' in element ? element.shapeType : undefined) === 'connector';
 
-	const boxShadow = getBoxShadowCss(style, { includeGlow: options.includeGlowBoxShadow });
+	const boxShadow = getBoxShadowCss(
+		style,
+		{ includeGlow: options.includeGlowBoxShadow },
+		{ rotation: element.rotation },
+	);
 	// The line-level shadow (`a:ln/a:effectLst/a:outerShdw`) is part of the same
 	// box-shadow channel. Only React applied it to a shape container; folding it
 	// in here is what carries it to the other four bindings.

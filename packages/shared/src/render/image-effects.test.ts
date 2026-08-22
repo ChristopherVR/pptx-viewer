@@ -77,6 +77,21 @@ describe('getImageFilterCss', () => {
 		expect(css).toBe(`url(#${getImageDuotoneFilterId('img1')})`);
 	});
 
+	it('references the fill-overlay SVG filter via url(#id) when a colour was resolved', () => {
+		const css = getImageFilterCss(
+			image({ fillOverlay: { blend: 'mult', resolvedColor: '#ff0000', resolvedOpacity: 1 } }),
+		);
+		expect(css).toBe('url(#imgoverlay-img1)');
+	});
+
+	it('does not reference a fill-overlay filter when no colour was resolved (gradient/pattern overlay)', () => {
+		expect(
+			getImageFilterCss(
+				image({ fillOverlay: { blend: 'mult', fillRawXml: { 'a:gradFill': {} } } }),
+			),
+		).toBeUndefined();
+	});
+
 	it('omits the duotone reference when excludeDuotone is set', () => {
 		const css = getImageFilterCss(image({ duotone: { color1: '#000000', color2: '#ffffff' } }), {
 			excludeDuotone: true,
@@ -175,6 +190,18 @@ describe('getImageAlphaFilter', () => {
 	it('returns undefined without advanced primitives', () => {
 		expect(getImageAlphaFilter(image({ brightness: 10 }))).toBeUndefined();
 	});
+
+	it('builds an feFuncA multiply primitive for a:alphaMod (distinct from alphaModFix)', () => {
+		const f = getImageAlphaFilter(image({ alphaMod: { amt: 40 } }));
+		expect(f?.filterMarkup).toContain('<feFuncA type="linear" slope="0.4" intercept="0"/>');
+	});
+
+	it('composes a:alphaMod alongside the sibling alphaModFix effect', () => {
+		const f = getImageAlphaFilter(image({ alphaModFix: 80, alphaMod: { amt: 50 } }));
+		// alphaModFix's feColorMatrix primitive, then alphaMod's feFuncA multiply.
+		expect(f?.filterMarkup).toContain('0 0 0 0.8 0');
+		expect(f?.filterMarkup).toContain('<feFuncA type="linear" slope="0.5" intercept="0"/>');
+	});
 });
 
 describe('hasAdvancedImageAlphaEffects', () => {
@@ -182,11 +209,16 @@ describe('hasAdvancedImageAlphaEffects', () => {
 		expect(hasAdvancedImageAlphaEffects(image({ alphaCeiling: true }))).toBeTruthy();
 		expect(hasAdvancedImageAlphaEffects(image({ clrRepl: { color: '#ff0000' } }))).toBeTruthy();
 		expect(hasAdvancedImageAlphaEffects(image({ biLevel: 30 }))).toBeTruthy();
+		expect(hasAdvancedImageAlphaEffects(image({ alphaMod: { amt: 40 } }))).toBeTruthy();
 	});
 
 	it('returns false for plain recolour effects', () => {
 		expect(hasAdvancedImageAlphaEffects(image({ brightness: 10, grayscale: true }))).toBeFalsy();
 		expect(hasAdvancedImageAlphaEffects(shape())).toBeFalsy();
+	});
+
+	it('ignores an a:alphaMod with no resolved amt (e.g. an unrecognised cont child)', () => {
+		expect(hasAdvancedImageAlphaEffects(image({ alphaMod: { contRawXml: {} } }))).toBeFalsy();
 	});
 });
 
@@ -228,6 +260,26 @@ describe('getImageSvgFilters', () => {
 	it('returns an empty array when no SVG filters are needed', () => {
 		expect(getImageSvgFilters(image({ brightness: 10 }))).toStrictEqual([]);
 		expect(getImageSvgFilters(shape())).toStrictEqual([]);
+	});
+
+	it('includes the fill-overlay def, floods+blends+clips to source alpha', () => {
+		const defs = getImageSvgFilters(
+			image({ fillOverlay: { blend: 'screen', resolvedColor: '#00ff00', resolvedOpacity: 0.5 } }),
+		);
+		expect(defs.map((d) => d.id)).toStrictEqual(['imgoverlay-img1']);
+		const markup = defs[0].markup;
+		expect(markup).toContain('<feFlood flood-color="#00ff00" flood-opacity="0.5"');
+		expect(markup).toContain('mode="screen"');
+		expect(markup).toContain('operator="in"');
+	});
+
+	it('maps the \'over\' blend to feBlend mode="normal"', () => {
+		const defs = getImageSvgFilters(
+			image({ fillOverlay: { blend: 'over', resolvedColor: '#123456' } }),
+		);
+		expect(defs[0].markup).toContain('mode="normal"');
+		// Defaults to fully-opaque overlay when resolvedOpacity is unset.
+		expect(defs[0].markup).toContain('flood-opacity="1"');
 	});
 });
 

@@ -13,12 +13,28 @@
 import { createChartElement } from 'pptx-viewer-core';
 import type { ChartPptxElement, PptxChartBarDirection, PptxChartType } from 'pptx-viewer-core';
 
+import { buildChartExInsertData } from './chart-ex-insert-defaults';
+
 /**
  * Dropdown ids for the insert-chart menu. Distinct from `PptxChartType`
  * because PowerPoint offers Column (vertical) and Bar (horizontal) as two
- * entries over the same underlying `'bar'` chart type.
+ * entries over the same underlying `'bar'` chart type. The six ChartEx ids
+ * (`histogram` through `regionMap`) map one-to-one onto their chart type.
  */
-export type InsertChartKind = 'column' | 'bar' | 'line' | 'pie' | 'doughnut' | 'area' | 'scatter';
+export type InsertChartKind =
+	| 'column'
+	| 'bar'
+	| 'line'
+	| 'pie'
+	| 'doughnut'
+	| 'area'
+	| 'scatter'
+	| 'histogram'
+	| 'funnel'
+	| 'treemap'
+	| 'sunburst'
+	| 'boxWhisker'
+	| 'regionMap';
 
 /** Chart types surfaced in the insert toolbar dropdown, with translatable labels. */
 export interface InsertChartTypeOption {
@@ -35,11 +51,13 @@ export interface InsertChartTypeOption {
 }
 
 /**
- * The chart types offered when inserting a new chart. Kept intentionally small
- * (the most common, well-rendered families); every binding renders the same
- * dropdown from this list so the UX matches across frameworks. Column and Bar
- * mirror PowerPoint's split: both are the `'bar'` family, distinguished by
- * `c:barDir` (vertical columns vs horizontal bars).
+ * The chart types offered when inserting a new chart: the common cartesian /
+ * pie families plus the six Office 2016+ ChartEx kinds that core has always
+ * been able to create (histogram, funnel, treemap, sunburst, boxWhisker,
+ * regionMap) but that no binding previously exposed here. Every binding
+ * renders the same dropdown from this list so the UX matches across
+ * frameworks. Column and Bar mirror PowerPoint's split: both are the `'bar'`
+ * family, distinguished by `c:barDir` (vertical columns vs horizontal bars).
  */
 export const INSERT_CHART_TYPES: readonly InsertChartTypeOption[] = [
 	{
@@ -55,6 +73,27 @@ export const INSERT_CHART_TYPES: readonly InsertChartTypeOption[] = [
 	{ id: 'doughnut', type: 'doughnut', labelKey: 'pptx.chart.typeDoughnut', label: 'Doughnut' },
 	{ id: 'area', type: 'area', labelKey: 'pptx.chart.typeArea', label: 'Area' },
 	{ id: 'scatter', type: 'scatter', labelKey: 'pptx.chart.typeScatter', label: 'Scatter' },
+	{
+		id: 'histogram',
+		type: 'histogram',
+		labelKey: 'pptx.chart.typeHistogram',
+		label: 'Histogram',
+	},
+	{ id: 'funnel', type: 'funnel', labelKey: 'pptx.chart.typeFunnel', label: 'Funnel' },
+	{ id: 'treemap', type: 'treemap', labelKey: 'pptx.chart.typeTreemap', label: 'Treemap' },
+	{ id: 'sunburst', type: 'sunburst', labelKey: 'pptx.chart.typeSunburst', label: 'Sunburst' },
+	{
+		id: 'boxWhisker',
+		type: 'boxWhisker',
+		labelKey: 'pptx.chart.typeBoxWhisker',
+		label: 'Box and Whisker',
+	},
+	{
+		id: 'regionMap',
+		type: 'regionMap',
+		labelKey: 'pptx.chart.typeRegionMap',
+		label: 'Filled Map',
+	},
 ];
 
 /** Default insert-chart dropdown entry used when none is supplied. */
@@ -103,11 +142,16 @@ export function createDefaultChartElement(
 ): ChartPptxElement {
 	const option = INSERT_CHART_TYPES.find((entry) => entry.id === chartKind);
 	const chartType: PptxChartType = option?.type ?? (chartKind as PptxChartType);
+	// ChartEx types (histogram, funnel, treemap, sunburst, boxWhisker, regionMap)
+	// look wrong with the generic ascending-series default: see
+	// chart-ex-insert-defaults.ts for why each needs its own data shape.
+	const chartExData = buildChartExInsertData(chartType);
 	return createChartElement(
 		chartType,
 		{
-			categories: [...DEFAULT_CATEGORIES],
-			series: [{ name: 'Series 1', values: [...DEFAULT_SERIES_VALUES] }],
+			categories: chartExData?.categories ?? [...DEFAULT_CATEGORIES],
+			series: chartExData?.series ?? [{ name: 'Series 1', values: [...DEFAULT_SERIES_VALUES] }],
+			...(chartExData?.categoryLevels ? { categoryLevels: chartExData.categoryLevels } : {}),
 			title: 'Chart Title',
 			hasLegend: true,
 			...(option?.barDirection !== undefined ? { barDirection: option.barDirection } : {}),

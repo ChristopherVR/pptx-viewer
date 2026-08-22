@@ -72,6 +72,48 @@ describe('getOuterShadowCss', () => {
 		// default offsets 4,4 / blur 6 / opacity 0.35
 		expect(css).toBe('4px 4px 6px rgba(17, 34, 51, 0.35)');
 	});
+
+	it('ignores rotation when shadowRotateWithShape is unset/true (rotates for free with the shape)', () => {
+		const style: ShapeStyle = {
+			shadowColor: '#000000',
+			shadowAngle: 0,
+			shadowDistance: 10,
+			shadowBlur: 0,
+			shadowOpacity: 1,
+		};
+		expect(getOuterShadowCss(style, { rotation: 90 })).toBe('10px 0px 0px rgba(0, 0, 0, 1)');
+		expect(getOuterShadowCss({ ...style, shadowRotateWithShape: true }, { rotation: 90 })).toBe(
+			'10px 0px 0px rgba(0, 0, 0, 1)',
+		);
+	});
+
+	it('counter-rotates the shadow angle when shadowRotateWithShape is false', () => {
+		// angle 0, element rotated 90deg -> effective angle -90deg -> offsetX 0, offsetY -10
+		const css = getOuterShadowCss(
+			{
+				shadowColor: '#000000',
+				shadowAngle: 0,
+				shadowDistance: 10,
+				shadowBlur: 0,
+				shadowOpacity: 1,
+				shadowRotateWithShape: false,
+			},
+			{ rotation: 90 },
+		);
+		expect(css).toBe('0px -10px 0px rgba(0, 0, 0, 1)');
+	});
+
+	it('leaves the angle unadjusted when rotWithShape is false but no rotation context is supplied', () => {
+		const css = getOuterShadowCss({
+			shadowColor: '#000000',
+			shadowAngle: 0,
+			shadowDistance: 10,
+			shadowBlur: 0,
+			shadowOpacity: 1,
+			shadowRotateWithShape: false,
+		});
+		expect(css).toBe('10px 0px 0px rgba(0, 0, 0, 1)');
+	});
 });
 
 // ── inner shadow ────────────────────────────────────────────────────────────
@@ -364,6 +406,40 @@ describe('getComputedEffectStyle', () => {
 		});
 		// The blend rides on the overlay layer, not the whole element.
 		expect(result.mixBlendMode).toBeUndefined();
+	});
+
+	it('counter-rotates the outer shadow by the element rotation when rotWithShape is false', () => {
+		const rotated = getComputedEffectStyle(
+			shape(
+				{
+					shadowColor: '#000000',
+					shadowAngle: 0,
+					shadowDistance: 10,
+					shadowBlur: 0,
+					shadowOpacity: 1,
+					shadowRotateWithShape: false,
+				},
+				{ rotation: 90 },
+			),
+		);
+		// angle 0 - rotation 90 = -90deg -> offsetX 0, offsetY -10
+		expect(rotated.boxShadow).toBe('0px -10px 0px rgba(0, 0, 0, 1)');
+
+		// Default (rotWithShape true) ignores element rotation: the box-shadow
+		// already spins for free with the element's own CSS transform.
+		const notRotated = getComputedEffectStyle(
+			shape(
+				{
+					shadowColor: '#000000',
+					shadowAngle: 0,
+					shadowDistance: 10,
+					shadowBlur: 0,
+					shadowOpacity: 1,
+				},
+				{ rotation: 90 },
+			),
+		);
+		expect(notRotated.boxShadow).toBe('10px 0px 0px rgba(0, 0, 0, 1)');
 	});
 
 	it('sets overflowVisible when a blur effect has @grow', () => {

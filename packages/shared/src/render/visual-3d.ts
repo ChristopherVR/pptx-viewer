@@ -53,6 +53,8 @@ export type {
 
 /** Structural subset of `Pptx3DShape` consumed by the 3D helpers. */
 export interface Shape3dParams {
+	/** Position along the Z axis in EMU (`a:sp3d/@z`); independent of extrusion depth. */
+	positionZ?: number;
 	extrusionHeight?: number;
 	extrusionColor?: string;
 	contourWidth?: number;
@@ -406,6 +408,19 @@ function getBevelShadow(bevelType: string, bW: number, bH: number, isBottom: boo
 
 // ── Extrusion shadow generation ──────────────────────────────────────────
 
+/**
+ * Convert a shape's `a:sp3d/@z` (EMU) to a CSS `translateZ` distance in px, or
+ * `undefined` when unset/zero. Independent of the extrusion `translateZ`
+ * (which represents depth, not position), so callers append both.
+ */
+function getPositionZPx(shape3d: Pick<Pptx3DShape, 'positionZ'> | undefined): number | undefined {
+	if (!shape3d?.positionZ) {
+		return undefined;
+	}
+	const px = Math.round(shape3d.positionZ / EMU_PER_PX);
+	return px !== 0 ? px : undefined;
+}
+
 /** Compute (dx, dy) extrusion offset direction from camera rotation. */
 function getExtrusionDirection(rotateX: number, rotateY: number): { dx: number; dy: number } {
 	let dx = 1;
@@ -464,6 +479,11 @@ export function get3dTransformCss(
 	}
 	if (rotateZ !== 0) {
 		transforms.push(`rotateZ(${rotateZ}deg)`);
+	}
+
+	const positionZPx = getPositionZPx(shape3d);
+	if (positionZPx !== undefined) {
+		transforms.push(`translateZ(${positionZPx}px)`);
 	}
 
 	if (hasExtrusion && shape3d) {
@@ -780,6 +800,14 @@ export function apply3dEffects(
 		const rotation3d = transforms.join(' ');
 		// Compose with any existing transform (e.g. flip/rotation).
 		base.transform = base.transform ? `${base.transform} ${rotation3d}` : rotation3d;
+	}
+
+	// `a:sp3d/@z`: position the shape along the Z axis, independent of extrusion
+	// depth (most commonly used to stack shapes at different depths).
+	const positionZPx = getPositionZPx(shape3d);
+	if (positionZPx !== undefined) {
+		const zTranslate = `translateZ(${positionZPx}px)`;
+		base.transform = base.transform ? `${base.transform} ${zTranslate}` : zTranslate;
 	}
 
 	// When extrusion is active, push the front face forward in Z-space so the

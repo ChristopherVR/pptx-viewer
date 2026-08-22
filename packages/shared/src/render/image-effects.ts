@@ -2,6 +2,11 @@ import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 import { buildImageBiLevelTable, buildImageLuminanceTransfer } from './image-effect-filter-values';
+import {
+	getImageFillOverlayFilter,
+	getImageFillOverlayFilterId,
+	hasImageFillOverlayEffect,
+} from './image-fill-overlay';
 
 /**
  * Image-effects composable — Vue port of the React `viewer/utils` image-effect
@@ -168,8 +173,8 @@ export function needsSvgArtisticFilter(effectName: string | undefined): boolean 
  * Returns true when the element has any blip-side alpha primitive or advanced
  * colour effect that CSS filters can't express (alphaInv, alphaCeiling,
  * alphaFloor, alphaRepl, alphaBiLevel, biLevel, lum, hsl with sat, tint,
- * clrRepl, alphaModFix). Brightness/contrast/saturation/grayscale/duotone are
- * still handled via CSS filters in {@link getImageFilterCss}.
+ * clrRepl, alphaModFix, alphaMod). Brightness/contrast/saturation/grayscale/
+ * duotone are still handled via CSS filters in {@link getImageFilterCss}.
  */
 export function hasAdvancedImageAlphaEffects(element: PptxElement): boolean {
 	const e = getEffects(element);
@@ -181,6 +186,7 @@ export function hasAdvancedImageAlphaEffects(element: PptxElement): boolean {
 		e.alphaInv ||
 		e.alphaCeiling ||
 		e.alphaFloor ||
+		typeof e.alphaMod?.amt === 'number' ||
 		typeof e.alphaRepl === 'number' ||
 		typeof e.alphaBiLevel === 'number' ||
 		typeof e.biLevel === 'number' ||
@@ -241,6 +247,11 @@ export function getImageFilterCss(
 	// CSS filters can't express; rendered by getImageSvgFilters().
 	if (hasAdvancedImageAlphaEffects(element)) {
 		filters.push(`url(#${getImageAlphaFilterId(element.id)})`);
+	}
+	// Blip fill-overlay (a:fillOverlay): flood + blend + clip-to-alpha, built by
+	// getImageSvgFilters() via image-fill-overlay.ts.
+	if (hasImageFillOverlayEffect(element)) {
+		filters.push(`url(#${getImageFillOverlayFilterId(element.id)})`);
 	}
 	// Artistic effects: complex ones reference the SVG filter; simple ones use
 	// CSS filter functions directly. A pre-rendered effect (one PowerPoint baked
@@ -438,6 +449,19 @@ function buildImageAlphaFilterMarkup(effects: PptxImageEffects): string | undefi
 			(inp, out) =>
 				`<feColorMatrix in="${inp}" result="${out}" type="matrix" ` +
 				`values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${mul} 0"/>`,
+		);
+	}
+
+	// a:alphaMod: multiplicative alpha from the nested a:alphaModFix inside its
+	// a:cont container (see PptxImageEffects.alphaMod.amt). Distinct from, and
+	// composable with, the sibling alphaModFix effect above.
+	if (typeof effects.alphaMod?.amt === 'number') {
+		const mul = clamp(effects.alphaMod.amt / 100, 0, 1);
+		next(
+			(inp, out) =>
+				`<feComponentTransfer in="${inp}" result="${out}">` +
+				`<feFuncA type="linear" slope="${mul}" intercept="0"/>` +
+				'</feComponentTransfer>',
 		);
 	}
 
@@ -825,6 +849,10 @@ export function getImageSvgFilters(element: PptxElement): ImageSvgFilterDefiniti
 	const artistic = getArtisticImageFilter(element);
 	if (artistic) {
 		defs.push({ id: artistic.id, markup: artistic.filterMarkup });
+	}
+	const fillOverlay = getImageFillOverlayFilter(element);
+	if (fillOverlay) {
+		defs.push({ id: fillOverlay.id, markup: fillOverlay.filterMarkup });
 	}
 	return defs;
 }

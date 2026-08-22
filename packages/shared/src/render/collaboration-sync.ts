@@ -168,6 +168,7 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'oleEmbeddedFileName',
 	'oleEmbeddedMimeType',
 	'oleEmbeddedByteSize',
+	'oleFollowColorScheme',
 	'inkPaths',
 	'inkColors',
 	'inkWidths',
@@ -185,6 +186,8 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'linkedTxbxSeq',
 	'promptText',
 	'placeholderType',
+	'placeholderSz',
+	'placeholderOrient',
 	// Resolved from the slide master rather than authored, but it travels with
 	// `text` on purpose: the two are compared by the save writer to tell an
 	// inherited footer from one edited on this slide. See
@@ -254,6 +257,7 @@ export const SCALAR_SLIDE_KEYS: ReadonlySet<string> = new Set([
 	'notesCSldName',
 	'backgroundShowAnimation',
 	'showMasterShapes',
+	'showMasterPhAnim',
 	'isDirty',
 ]);
 

@@ -7,12 +7,13 @@
  * iframe or a `window.open` document before calling `print()`.
  */
 
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
 
 import { resolveNotesSegments } from './notes-editor';
+import { resolveNotesLevelStyle } from './notes-style-cascade';
 import { escapeHtml, segmentsToParagraphs } from './notes-utils';
 
-const PRINT_STYLES = `
+const BASE_PRINT_STYLES = `
 	body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #222; }
 	.slide-page { page-break-after: always; margin-bottom: 40px; }
 	.slide-page:last-child { page-break-after: auto; }
@@ -20,10 +21,13 @@ const PRINT_STYLES = `
 	.slide-thumb { width: 100%; max-width: 600px; aspect-ratio: 16/9; background: #f0f0f0;
 		border: 1px solid #ccc; display: flex; align-items: center; justify-content: center;
 		color: #999; font-size: 24px; margin-bottom: 16px; }
-	.notes-text { font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+	.notes-text { line-height: 1.6; white-space: pre-wrap; }
 	.notes-text .para { margin: 2px 0; }
 	@media print { body { padding: 0; } }
 `;
+
+/** Fallback notes-text font size (points) used when the deck has no `<p:notesStyle>`. */
+const DEFAULT_NOTES_FONT_SIZE_PT = 9;
 
 /**
  * Build the printable notes document for every slide.
@@ -31,13 +35,40 @@ const PRINT_STYLES = `
  * @param slides    the presentation slides, in order.
  * @param slideLabel maps a 1-based slide number to its display label, so the
  *                   caller can localise "Slide N" / "Folie N" / etc.
+ * @param notesStyle the deck's notes master `<p:notesStyle>` (`PptxData.
+ *                   notesMaster.notesStyle`), when available. Its level-0
+ *                   font size/family/colour become the printed notes-text
+ *                   defaults instead of a hardcoded 12px look; absent decks
+ *                   keep the previous fallback exactly.
  */
 export function buildNotesPrintHtml(
 	slides: PptxSlide[],
 	slideLabel: (slideNumber: number) => string,
+	notesStyle?: PptxTextStyleLevels,
 ): string {
+	const descriptor = resolveNotesLevelStyle(notesStyle, 0);
+	const notesFontSizePt = descriptor.fontSize ?? DEFAULT_NOTES_FONT_SIZE_PT;
+	const notesTextStyles: string[] = [`font-size:${notesFontSizePt}pt`];
+	if (descriptor.fontFamily) {
+		notesTextStyles.push(`font-family:${escapeHtml(descriptor.fontFamily)}, Arial, sans-serif`);
+	}
+	if (descriptor.color) {
+		notesTextStyles.push(`color:${escapeHtml(descriptor.color)}`);
+	}
+	if (descriptor.bold) {
+		notesTextStyles.push('font-weight:bold');
+	}
+	if (descriptor.italic) {
+		notesTextStyles.push('font-style:italic');
+	}
+	const printStyles = `${BASE_PRINT_STYLES}\n\t.notes-text { ${notesTextStyles.join('; ')}; }`;
+
 	const pages = slides
 		.map((slide) => {
+			// Only text/bullet/indent metadata is read from these segments below
+			// (this builder never renders per-run inline styles); the notesStyle
+			// defaults for the printed page are applied once, above, via
+			// `descriptor` and the `.notes-text` rule.
 			const paras = segmentsToParagraphs(resolveNotesSegments(slide));
 			const label = escapeHtml(slideLabel(slide.slideNumber));
 
@@ -71,5 +102,5 @@ export function buildNotesPrintHtml(
 		})
 		.join('');
 
-	return `<!DOCTYPE html><html><head><style>${PRINT_STYLES}</style></head><body>${pages}</body></html>`;
+	return `<!DOCTYPE html><html><head><style>${printStyles}</style></head><body>${pages}</body></html>`;
 }

@@ -26,6 +26,8 @@ export {
 	getCurrentParagraphIndex,
 } from './notes-utils';
 export { segmentsToEditorHtml, parseSegmentsFromRichEditor } from './notes-html';
+export type { NotesLevelStyleDescriptor } from './notes-style-cascade';
+export { resolveNotesLevelStyle, applyNotesLevelDefaults } from './notes-style-cascade';
 export type { NotesEditState, NotesParagraphCommand } from './notes-editor';
 export {
 	resolveNotesSegments,

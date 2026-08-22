@@ -10,11 +10,12 @@
  * compute the next segments + plain text without duplicating the logic.
  */
 
-import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 
 import { safeOpenUrl } from '../hyperlink-security';
 import { isMobileViewport } from '../mobile-viewport';
 import { parseSegmentsFromRichEditor } from './notes-html';
+import { applyNotesLevelDefaults, resolveNotesLevelStyle } from './notes-style-cascade';
 import type { NotesInlineCommand, NotesParagraph } from './notes-utils';
 import {
 	MAX_INDENT_LEVEL,
@@ -39,11 +40,27 @@ export type NotesParagraphCommand = 'bullet' | 'numbered' | 'indent' | 'outdent'
  * The segments to seed an editor for a slide: prefer the slide's rich
  * `notesSegments` (populated on load from the .pptx), else derive plain
  * segments from the `notes` string.
+ *
+ * @param notesStyle The deck's notes master `<p:notesStyle>` (`PptxData.
+ *   notesMaster.notesStyle`), when the caller has it. Its level-0 (and
+ *   `a:defPPr` fallback) font/colour/indent defaults are applied to any
+ *   segment that does not already carry an explicit value for that field, so
+ *   an authored deck's notes-text defaults reach the editor instead of being
+ *   silently replaced by a hardcoded look. Omitted entirely when absent, so
+ *   existing callers and decks with no `<p:notesStyle>` are unaffected.
  */
-export function resolveNotesSegments(slide: PptxSlide | undefined): TextSegment[] {
-	return slide?.notesSegments && slide.notesSegments.length > 0
-		? normalizeSegments(slide.notesSegments)
-		: createPlainNotesSegments(slide?.notes ?? '');
+export function resolveNotesSegments(
+	slide: PptxSlide | undefined,
+	notesStyle?: PptxTextStyleLevels,
+): TextSegment[] {
+	const segments =
+		slide?.notesSegments && slide.notesSegments.length > 0
+			? normalizeSegments(slide.notesSegments)
+			: createPlainNotesSegments(slide?.notes ?? '');
+	if (!notesStyle) {
+		return segments;
+	}
+	return applyNotesLevelDefaults(segments, resolveNotesLevelStyle(notesStyle, 0));
 }
 
 /**

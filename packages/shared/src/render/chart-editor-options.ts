@@ -100,6 +100,12 @@ export const CHART_TYPE_OPTIONS: ReadonlyArray<ChartOption<PptxChartType>> = [
 	{ value: 'radar', label: 'Radar', labelKey: 'pptx.chart.typeRadar' },
 	{ value: 'stock', label: 'Stock', labelKey: 'pptx.chart.typeStock' },
 	{ value: 'waterfall', label: 'Waterfall', labelKey: 'pptx.chart.typeWaterfall' },
+	{ value: 'histogram', label: 'Histogram', labelKey: 'pptx.chart.typeHistogram' },
+	{ value: 'funnel', label: 'Funnel', labelKey: 'pptx.chart.typeFunnel' },
+	{ value: 'treemap', label: 'Treemap', labelKey: 'pptx.chart.typeTreemap' },
+	{ value: 'sunburst', label: 'Sunburst', labelKey: 'pptx.chart.typeSunburst' },
+	{ value: 'boxWhisker', label: 'Box and Whisker', labelKey: 'pptx.chart.typeBoxWhisker' },
+	{ value: 'regionMap', label: 'Filled Map', labelKey: 'pptx.chart.typeRegionMap' },
 	{ value: 'combo', label: 'Combo', labelKey: 'pptx.chart.typeCombo' },
 ];
 

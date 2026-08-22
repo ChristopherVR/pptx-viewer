@@ -53,6 +53,7 @@
 import type {
 	ChartPptxElement,
 	PptxChartData,
+	PptxChartLegendTextStyle,
 	PptxChartSeries,
 	PptxElement,
 } from 'pptx-viewer-core';
@@ -68,6 +69,7 @@ import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distr
 import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { DEFAULT_CHART_PALETTE } from './chart-helpers';
+import { applyLegendEntryOverrides } from './chart-legend-entries';
 import { formatChartNumber } from './chart-number-format';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildPieDataLabels } from './chart-pie-labels';
@@ -499,6 +501,8 @@ export interface SvgText {
 	textAnchor: 'start' | 'middle' | 'end';
 	fontWeight?: 'normal' | 'bold';
 	fontFamily?: string;
+	/** Italic styling, e.g. from a chart data-table or legend-entry `c:txPr` override. */
+	fontStyle?: 'normal' | 'italic';
 	dominantBaseline?: string;
 	opacity?: number;
 	/** Optional SVG transform (e.g. `rotate(-90, x, y)` for a vertical axis title). */
@@ -540,6 +544,8 @@ export type SvgPrimitive =
 export interface LegendEntry {
 	color: string;
 	label: string;
+	/** Per-entry text override from `c:legendEntry/c:txPr`, applied by `applyLegendEntryOverrides`. */
+	textStyle?: PptxChartLegendTextStyle;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1246,8 +1252,11 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 
 	// Pie-of-pie / bar-of-pie splits one series across a primary + secondary plot.
 	if (chartType === 'ofPie') {
-		return withChartAreaFill(
-			withUserShapeOverlay(buildOfPieViewModel(element, chartData, categoryLabels), chartData),
+		return withLegendEntries(
+			withChartAreaFill(
+				withUserShapeOverlay(buildOfPieViewModel(element, chartData, categoryLabels), chartData),
+				chartData,
+			),
 			chartData,
 		);
 	}
@@ -1256,12 +1265,29 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 	// by c:view3D so they read as 3D instead of collapsing to a flat plot.
 	const flat = buildFlatViewModel(element, chartData, categoryLabels, kind);
 	if (is3DChartType(chartType)) {
-		return withChartAreaFill(
-			withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData),
+		return withLegendEntries(
+			withChartAreaFill(
+				withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData),
+				chartData,
+			),
 			chartData,
 		);
 	}
-	return withChartAreaFill(withUserShapeOverlay(flat, chartData), chartData);
+	return withLegendEntries(
+		withChartAreaFill(withUserShapeOverlay(flat, chartData), chartData),
+		chartData,
+	);
+}
+
+/**
+ * Apply `c:legendEntry` deletion + text-style overrides to a finished
+ * view-model's legend. The single call site every chart kind's `vm.legend`
+ * passes through before returning from `buildChartViewModel`; see
+ * `chart-legend-entries.ts`.
+ */
+function withLegendEntries(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
+	const legend = applyLegendEntryOverrides(vm.legend, chartData.style?.legendEntries);
+	return legend === vm.legend ? vm : { ...vm, legend };
 }
 
 /**

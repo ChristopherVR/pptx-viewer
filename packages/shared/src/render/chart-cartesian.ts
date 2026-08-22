@@ -20,12 +20,12 @@ import { buildBars } from './chart-cartesian-bars';
 import { buildAreas, buildLines } from './chart-cartesian-line-area';
 import { buildBubbles, buildScatter } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import { buildHorizontalBarViewModel } from './chart-horizontal-bars';
 import {
 	computeAxisTitlePrimitives,
-	computeDataTablePrimitives,
 	computeErrorBarPrimitives,
 	computeTrendlinePrimitives,
 } from './chart-overlays';
