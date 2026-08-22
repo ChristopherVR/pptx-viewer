@@ -5,6 +5,7 @@ import {
 	DEFAULT_STROKE_COLOR,
 	DEFAULT_TEXT_COLOR,
 	buildTextBlockStyle,
+	buildTextBody3DSceneStyle,
 	getComputed3dStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
@@ -14,6 +15,8 @@ import {
 	resolveShapeGeometry,
 	px,
 } from 'pptx-viewer-shared';
+
+import { composeTransforms } from './dom';
 
 /**
  * Fill / stroke / geometry and text-block style builders for the vanilla
@@ -216,14 +219,29 @@ export function getShapeFillStrokeStyle(
  * default font declaration, the italic padding nudge and the body
  * margin/indent pair. `pxLengths` is required because these maps are written
  * straight onto `element.style`, where a bare number is not a length.
+ *
+ * Also folds in the text body's 3D scene (`a:bodyPr/a:scene3d` -> CSS
+ * `perspective` + `rotate` transform), mirroring React/Vue/Angular's
+ * `ElementBody`. The scene transform is COMPOSED with any existing text-block
+ * transform rather than clobbering it; a no-op for the common no-scene3d case.
  */
 export function getTextBlockStyle(el: PptxElement): CssStyleMap {
 	if (!hasTextProperties(el)) {
 		return {};
 	}
-	return buildTextBlockStyle(el, {
+	const base = buildTextBlockStyle(el, {
 		fallbackColor: DEFAULT_TEXT_COLOR,
 		bodyLayout: true,
 		pxLengths: true,
 	});
+	const scene3d = buildTextBody3DSceneStyle(el.textStyle);
+	if (!scene3d) {
+		return base;
+	}
+	const merged: CssStyleMap = { ...base, ...scene3d };
+	const transform = composeTransforms(base.transform, scene3d.transform);
+	if (transform !== undefined) {
+		merged.transform = transform;
+	}
+	return merged;
 }

@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -146,6 +146,24 @@ describe('createNotesPanel', () => {
 		] as const) {
 			expect(panel.el.querySelector(`[aria-label="${t(key)}"]`)).not.toBeNull();
 		}
+	});
+
+	it('applies the notes-master level-0 font size to segments missing an explicit size', () => {
+		const t = createTranslator();
+		const notesStyle: PptxTextStyleLevels = { 0: { fontSize: 32 } };
+
+		const styledPanel = createNotesPanel(document, t, vi.fn(), vi.fn());
+		styledPanel.update({
+			slide: buildSlide({ notes: 'Remember the demo.' }),
+			editable: true,
+			notesStyle,
+		});
+		// 32px master default -> 24pt inline style on the rich editor's run.
+		expect(richEditor(styledPanel.el).innerHTML).toContain('font-size:24pt');
+
+		const unstyledPanel = createNotesPanel(document, t, vi.fn(), vi.fn());
+		unstyledPanel.update({ slide: buildSlide({ notes: 'Remember the demo.' }), editable: true });
+		expect(richEditor(unstyledPanel.el).innerHTML).not.toContain('font-size');
 	});
 
 	it('toggles expanded/collapsed state and fires onToggle from the header', () => {

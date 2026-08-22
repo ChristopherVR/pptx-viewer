@@ -2,7 +2,11 @@
    (an imperative DOM-builder with many independent `const`s), not one
    statement */
 import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
-import { CHART_GROUPING_LABEL_KEYS, CHART_TYPE_LABEL_KEYS } from 'pptx-viewer-shared';
+import {
+	CHART_GROUPING_LABEL_KEYS,
+	CHART_TYPE_LABEL_KEYS,
+	CHART_TYPE_OPTIONS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createChartAdvancedSection } from './chart-advanced-section';
@@ -12,21 +16,14 @@ import { createChartExhaustiveSection } from './chart-exhaustive-section';
 import { createChartPointIndexField } from './chart-point-index';
 import type { InspectorHandlers, InspectorState } from './types';
 
-const CHART_TYPES: readonly PptxChartType[] = [
-	'bar',
-	'line',
-	'pie',
-	'doughnut',
-	'area',
-	'scatter',
-	'bubble',
-	'radar',
-	'waterfall',
-	'funnel',
-	'treemap',
-	'sunburst',
-	'combo',
-];
+/**
+ * Derived from the same `CHART_TYPE_OPTIONS` catalogue Vue and Angular's
+ * chart-type selects consume (React re-exports it too), rather than a
+ * hand-spelled copy: this list used to omit histogram, boxWhisker and
+ * regionMap, and separately drifted ahead of the other three bindings by
+ * hand-adding funnel/treemap/sunburst.
+ */
+const CHART_TYPES: readonly PptxChartType[] = CHART_TYPE_OPTIONS.map((opt) => opt.value);
 
 /** `c:grouping` modes offered alongside the type, exactly as React offers them. */
 const GROUPINGS: readonly string[] = ['clustered', 'stacked', 'percentStacked'];

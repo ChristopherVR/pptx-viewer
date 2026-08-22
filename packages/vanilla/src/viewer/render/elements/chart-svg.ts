@@ -213,6 +213,8 @@ function renderText(doc: Document, text: SvgText): SVGTextElement {
 		'font-size': text.fontSize,
 		fill: text.fill,
 		'font-weight': text.fontWeight ?? 'normal',
+		'font-style': text.fontStyle ?? 'normal',
+		'font-family': text.fontFamily,
 		'dominant-baseline': text.dominantBaseline,
 		opacity: text.opacity ?? 1,
 		transform: text.transform,
@@ -239,7 +241,15 @@ function appendLegend(doc: Document, svg: SVGSVGElement, vm: ChartViewModel): vo
 				class: 'pptxv-chart-legend-item',
 				transform: `translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`,
 			}),
-			label = createSvgEl(doc, 'text', { x: 13, y: 3, 'font-size': 9, fill: '#475569' });
+			label = createSvgEl(doc, 'text', {
+				x: 13,
+				y: 3,
+				'font-size': item.fontSize,
+				fill: item.fill,
+				'font-weight': item.fontWeight,
+				'font-style': item.fontStyle,
+				'font-family': item.fontFamily,
+			});
 		g.appendChild(
 			createSvgEl(doc, 'rect', { x: 0, y: -7, width: 10, height: 10, rx: 2, fill: item.color }),
 		);

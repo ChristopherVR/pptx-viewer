@@ -24,6 +24,7 @@ import { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
 	applyTableCellImagePatches,
+	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	collectTableCellImagePaths,
@@ -214,6 +215,25 @@ async function resolveMediaUrls(
 				}
 			} catch {
 				mediaElement.mediaMissing = true;
+			}
+		}),
+	);
+
+	// Native-animation `p:stSnd` sounds that back no visible media element
+	// (PowerPoint's animation sound library) have no entry above; resolve
+	// them into the same map so `onPlayActionSound`'s lookup finds them.
+	const soundPaths = collectAnimationSoundPaths(slides).filter((path) => !urls.has(path));
+	await Promise.all(
+		soundPaths.map(async (soundPath) => {
+			try {
+				const arrayBuffer = await handler.getMediaArrayBuffer(soundPath);
+				if (arrayBuffer) {
+					const blobUrl = URL.createObjectURL(new Blob([arrayBuffer]));
+					blobUrls.push(blobUrl);
+					urls.set(soundPath, blobUrl);
+				}
+			} catch {
+				/* Non-critical: the sound simply will not play. */
 			}
 		}),
 	);

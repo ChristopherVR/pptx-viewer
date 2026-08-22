@@ -38,7 +38,7 @@ function mount() {
 }
 
 describe('chart section type and grouping selects', () => {
-	it('keeps every chart type it has always offered', () => {
+	it('keeps every chart type it has always offered, plus the six ChartEx types', () => {
 		const { labelFor } = mount();
 		const select = labelFor('pptx.chart.type').querySelector('select')!;
 
@@ -51,10 +51,14 @@ describe('chart section type and grouping selects', () => {
 			'scatter',
 			'bubble',
 			'radar',
+			'stock',
 			'waterfall',
+			'histogram',
 			'funnel',
 			'treemap',
 			'sunburst',
+			'boxWhisker',
+			'regionMap',
 			'combo',
 		]);
 	});
@@ -72,10 +76,14 @@ describe('chart section type and grouping selects', () => {
 			'pptx.chart.typeScatter',
 			'pptx.chart.typeBubble',
 			'pptx.chart.typeRadar',
+			'pptx.chart.typeStock',
 			'pptx.chart.typeWaterfall',
+			'pptx.chart.typeHistogram',
 			'pptx.chart.typeFunnel',
 			'pptx.chart.typeTreemap',
 			'pptx.chart.typeSunburst',
+			'pptx.chart.typeBoxWhisker',
+			'pptx.chart.typeRegionMap',
 			'pptx.chart.typeCombo',
 		]);
 	});

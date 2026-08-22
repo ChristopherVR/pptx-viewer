@@ -305,7 +305,11 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			state.canvasSize.height,
 		);
 		chrome.mobileActionSheets?.update(state.currentSlide, state.slides, slide?.comments ?? []);
-		chrome.notes.update({ slide: specialMaster ? undefined : slide, editable: state.editable });
+		chrome.notes.update({
+			slide: specialMaster ? undefined : slide,
+			editable: state.editable,
+			notesStyle: state.notesMaster?.notesStyle,
+		});
 		deps.onStageRendered?.();
 		// Drive presentation-mode entrance state + slide transitions off the fresh
 		// stage. Guarded on `presenting` inside `syncStage`; a no-op otherwise.

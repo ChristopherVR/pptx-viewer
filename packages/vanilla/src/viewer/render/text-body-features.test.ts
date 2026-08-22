@@ -72,4 +72,46 @@ describe('vanilla text-body features', () => {
 		expect(Number.parseFloat(String(chevron['paddingLeft']))).toBeCloseTo(59.6, 1);
 		expect(Number.parseFloat(String(chevron['paddingRight']))).toBeCloseTo(59.6, 1);
 	});
+
+	// WordArt-style 3D text (`a:bodyPr/a:scene3d`) used to render flat here:
+	// React, Vue and Angular all wired `buildTextBody3DSceneStyle` at the text
+	// body container, but Vanilla never did. This asserts the shared camera
+	// preset maps through to `perspective` + `transform`.
+	it('applies the body 3D scene camera preset as perspective + rotate', () => {
+		const style = getTextBlockStyle(
+			textShape({ textStyle: { textBodyScene3d: { cameraPreset: 'perspectiveAbove' } } }),
+		);
+		expect(style['perspective']).toBe('800px');
+		expect(style['transform']).toBe('rotateX(-12deg)');
+		expect(style['transformStyle']).toBe('preserve-3d');
+	});
+
+	// The scene transform must COMPOSE with the body's own `@rot`, not clobber
+	// it: PowerPoint applies both the plane rotation and the 3D camera.
+	it('composes the 3D scene transform with the body rotation transform', () => {
+		const style = getTextBlockStyle(
+			textShape({
+				textStyle: {
+					textBodyRotation: 45,
+					textBodyScene3d: { cameraPreset: 'perspectiveAbove' },
+				},
+			}),
+		);
+		expect(style['transform']).toBe('rotate(45deg) rotateX(-12deg)');
+	});
+
+	// `a:flatTx` is the explicit "render flat" override and must block the
+	// scene/camera transform too, matching `buildTextBody3DSceneStyle`'s guard.
+	it('does not apply the 3D scene when `a:flatTx` is set', () => {
+		const style = getTextBlockStyle(
+			textShape({
+				textStyle: {
+					flatText: true,
+					textBodyScene3d: { cameraPreset: 'perspectiveAbove' },
+				},
+			}),
+		);
+		expect(style['perspective']).toBeUndefined();
+		expect(style['transformStyle']).toBeUndefined();
+	});
 });

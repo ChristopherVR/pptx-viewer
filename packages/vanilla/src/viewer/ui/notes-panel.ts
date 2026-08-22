@@ -1,4 +1,4 @@
-import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import {
 	applyInlineCommand,
 	applyParagraphCommand,
@@ -19,6 +19,8 @@ import { createEl } from '../render';
 export interface NotesPanelUpdate {
 	slide: PptxSlide | undefined;
 	editable: boolean;
+	/** Notes-master per-level text defaults (font size, indent, etc.) to fall back to when a segment omits them. */
+	notesStyle?: PptxTextStyleLevels;
 }
 
 export interface NotesPanel {
@@ -198,7 +200,7 @@ export function createNotesPanel(
 
 	return {
 		el,
-		update({ slide, editable: nextEditable }) {
+		update({ slide, editable: nextEditable, notesStyle }) {
 			editable = nextEditable;
 			const hasSlide = slide !== undefined;
 			textarea.disabled = !hasSlide;
@@ -212,7 +214,7 @@ export function createNotesPanel(
 				return;
 			}
 			seededSlideId = slideId;
-			segments = resolveNotesSegments(slide);
+			segments = resolveNotesSegments(slide, notesStyle);
 			textarea.value = segmentsToPlainText(segments);
 			richEditor.innerHTML = segmentsToEditorHtml(segments);
 		},
