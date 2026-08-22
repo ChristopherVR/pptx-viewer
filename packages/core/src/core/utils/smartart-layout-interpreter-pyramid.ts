@@ -7,8 +7,13 @@
  */
 
 import type { PptxSmartArtNode, SmartArtStyle } from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
+import {
+	EMPTY_CONSTRAINT_INDEX,
+	resolveRatioConstraint,
+	roleOf,
+} from './smartart-constraint-solver';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { ratioConstraint } from './smartart-layout-interpreter-model';
 import { polygonNode, styleContext } from './smartart-layout-interpreter-render';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
@@ -22,13 +27,20 @@ export function arrangePyramid(
 	palette: string[],
 	style: SmartArtStyle,
 	elementId: string,
+	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
 	const n = nodes.length;
 	const cx = w / 2;
 	const maxW = w - INSET * 2;
-	const gapRatio = ratioConstraint(plan.node.constraints, ['sibSp', 'sp'], 0.06);
+	const gapRatio = resolveRatioConstraint(
+		plan.node.constraints,
+		index,
+		roleOf(plan.node),
+		['sibSp', 'sp'],
+		0.06,
+	);
 	const usableH = h - INSET * 2;
 	const bandH = n > 0 ? usableH / (n + Math.max(0, n - 1) * gapRatio) : usableH;
 	const gap = gapRatio * bandH;

@@ -508,7 +508,7 @@ describe('interpret hierarchy', () => {
 		expect(layout!.connectors).toHaveLength(2);
 	});
 
-	it('indents and stacks children for a hanging (hierBranch=l) tree', () => {
+	it('stacks and indents LEFT for a "Left Hanging" (hierBranch=l) tree', () => {
 		const layout = interpretSmartArtLayout({
 			layoutDefinition: hierDef,
 			nodes: nested,
@@ -518,6 +518,29 @@ describe('interpret hierarchy', () => {
 			style: STYLE,
 			elementId: ID,
 			presLayoutVars: { hierarchyBranch: 'l' },
+		});
+		const boxes = rects(layout!.nodes);
+		const root = boxes.find((b) => b.key.includes('-hier-1-'))!;
+		const childA = boxes.find((b) => b.key.includes('-hier-2-'))!;
+		const childB = boxes.find((b) => b.key.includes('-hier-3-'))!;
+		// "l" ("Left Hanging") indents FURTHER LEFT each generation, distinct
+		// from "r" ("Right Hanging"), which indents right (see the `hierBranch`
+		// coverage in `pptx-viewer-core`'s
+		// `smartart-layout-interpreter-hierarchy.test.ts`).
+		expect(childA.x).toBeLessThan(root.x);
+		expect(childB.y).toBeGreaterThan(childA.y);
+	});
+
+	it('stacks and indents RIGHT for a "Right Hanging" (hierBranch=r) tree', () => {
+		const layout = interpretSmartArtLayout({
+			layoutDefinition: hierDef,
+			nodes: nested,
+			flat: [n('1', 'Root'), n('2', 'A'), n('3', 'B')],
+			box: BOX,
+			palette: PALETTE,
+			style: STYLE,
+			elementId: ID,
+			presLayoutVars: { hierarchyBranch: 'r' },
 		});
 		const boxes = rects(layout!.nodes);
 		const root = boxes.find((b) => b.key.includes('-hier-1-'))!;

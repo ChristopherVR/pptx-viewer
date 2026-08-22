@@ -205,7 +205,7 @@ function constraintRatio(constraint: PptxSmartArtConstraint): number | undefined
 }
 
 /** Clamp a ratio to a matching `dgm:ruleLst` numeric rule's `max`, when present. */
-function clampByRules(
+export function clampByRules(
 	value: number,
 	rules: PptxSmartArtNumericRule[] | undefined,
 	type: string,

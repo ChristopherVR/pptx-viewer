@@ -24,6 +24,8 @@
  */
 
 import type { PptxSmartArtNode, SmartArtStyle } from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
+import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
 import { arrangeLinear } from './smartart-layout-interpreter-linear';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 import { resolveFlowDirection } from './smartart-layout-interpreter-model';
@@ -109,12 +111,13 @@ export function arrangeConn(
 	palette: string[],
 	style: SmartArtStyle,
 	elementId: string,
+	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 ): SmartArtLayoutResult | undefined {
 	if (nodes.length === 0) {
 		return undefined;
 	}
 	const flow = resolveFlowDirection(plan.node, undefined);
-	const base = arrangeLinear(plan, flow, nodes, box, palette, style, elementId);
+	const base = arrangeLinear(plan, flow, nodes, box, palette, style, elementId, index);
 	const rects = base.nodes.filter((node): node is RenderedRectNode => node.kind === 'rect');
 	const horizontal = flow.orientation === 'horizontal';
 

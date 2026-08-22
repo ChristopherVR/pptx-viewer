@@ -8,29 +8,38 @@
  */
 
 import type { PptxSmartArtNode, SmartArtStyle } from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
+import {
+	EMPTY_CONSTRAINT_INDEX,
+	resolveConstraint,
+	resolveRatioConstraint,
+	roleOf,
+} from './smartart-constraint-solver';
 import type { ArrangementPlan, FlowDirection } from './smartart-layout-interpreter-model';
-import { findConstraint, itemNode, ratioConstraint } from './smartart-layout-interpreter-model';
+import { itemNode } from './smartart-layout-interpreter-model';
 import { rectNode, styleContext } from './smartart-layout-interpreter-render';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
 const INSET = 6;
 
-/** Item aspect (height / width) from the item node's `h`-vs-`w` constraints. */
-function itemAspect(plan: ArrangementPlan): number | undefined {
+/**
+ * Item aspect (height / width), resolved from whatever declares the item
+ * role's `h`/`w` - its own `constrLst` (self-scoped), or (the common real-world
+ * case) the arranger's `constrLst` with `for="ch" forName="<item role>"`. Both
+ * land in the same index bucket (see `smartart-constraint-solver.ts`), and a
+ * relative reference (`h` expressed as a `fact` of `w`, or vice versa) is
+ * walked automatically.
+ */
+function itemAspect(plan: ArrangementPlan, index: ConstraintIndex): number | undefined {
 	const item = itemNode(plan.node);
-	const constraints = item?.constraints;
-	const height = findConstraint(constraints, 'h');
-	if (height?.referenceType === 'w' && typeof height.factor === 'number' && height.factor > 0) {
-		return height.factor;
+	if (!item) {
+		return undefined;
 	}
-	const width = findConstraint(constraints, 'w');
-	if (
-		typeof height?.value === 'number' &&
-		typeof width?.value === 'number' &&
-		width.value > 0 &&
-		height.value > 0
-	) {
-		return height.value / width.value;
+	const role = roleOf(item);
+	const height = resolveConstraint(index, role, 'h');
+	const width = resolveConstraint(index, role, 'w');
+	if (typeof height === 'number' && typeof width === 'number' && height > 0 && width > 0) {
+		return height / width;
 	}
 	return undefined;
 }
@@ -49,14 +58,16 @@ export function arrangeLinear(
 	palette: string[],
 	style: SmartArtStyle,
 	elementId: string,
+	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
 	const constraints = plan.node.constraints;
-	const sib = ratioConstraint(constraints, ['sibSp', 'sp'], 0.25);
-	const begPad = ratioConstraint(constraints, ['begPad'], 0);
-	const endPad = ratioConstraint(constraints, ['endPad'], 0);
-	const aspect = itemAspect(plan);
+	const role = roleOf(plan.node);
+	const sib = resolveRatioConstraint(constraints, index, role, ['sibSp', 'sp'], 0.25);
+	const begPad = resolveRatioConstraint(constraints, index, role, ['begPad'], 0);
+	const endPad = resolveRatioConstraint(constraints, index, role, ['endPad'], 0);
+	const aspect = itemAspect(plan, index);
 	const flow2 = ordered(nodes, flow);
 	const n = flow2.length;
 	const horizontal = flow.orientation === 'horizontal';
@@ -107,11 +118,18 @@ export function arrangeSnake(
 	palette: string[],
 	style: SmartArtStyle,
 	elementId: string,
+	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
 	const n = nodes.length;
-	const sib = ratioConstraint(plan.node.constraints, ['sibSp', 'sp'], 0.15);
+	const sib = resolveRatioConstraint(
+		plan.node.constraints,
+		index,
+		roleOf(plan.node),
+		['sibSp', 'sp'],
+		0.15,
+	);
 	const cols = Math.max(1, Math.round(Math.sqrt(n * Math.max(0.2, w / Math.max(1, h)))));
 	const rows = Math.max(1, Math.ceil(n / cols));
 	const usableW = w - INSET * 2;

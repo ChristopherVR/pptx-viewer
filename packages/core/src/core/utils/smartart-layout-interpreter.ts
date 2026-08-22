@@ -36,6 +36,8 @@ import type {
 	PptxSmartArtPresLayoutVars,
 	SmartArtStyle,
 } from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
+import { buildConstraintIndex } from './smartart-constraint-solver';
 import { arrangeConn, arrangeSpacer, arrangeText } from './smartart-layout-interpreter-aux';
 import { arrangeComposite } from './smartart-layout-interpreter-composite';
 import { applyCustomLayoutOverrides } from './smartart-layout-interpreter-custom';
@@ -105,6 +107,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 		return undefined;
 	}
 
+	const constraintIndex = buildConstraintIndex(layoutDefinition);
 	const result = dispatchArrangement(
 		plan,
 		arranged,
@@ -113,6 +116,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 		style,
 		elementId,
 		presLayoutVars,
+		constraintIndex,
 	);
 	if (!result || !NAMED_OVERRIDE_KINDS.has(plan.kind)) {
 		return result;
@@ -136,22 +140,23 @@ function dispatchArrangement(
 	style: SmartArtStyle,
 	elementId: string,
 	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
+	index: ConstraintIndex,
 ): SmartArtLayoutResult | undefined {
 	switch (plan.kind) {
 		case 'linear': {
 			const flow = resolveFlowDirection(plan.node, presLayoutVars);
-			return arrangeLinear(plan, flow, arranged, box, palette, style, elementId);
+			return arrangeLinear(plan, flow, arranged, box, palette, style, elementId, index);
 		}
 		case 'snake':
-			return arrangeSnake(plan, arranged, box, palette, style, elementId);
+			return arrangeSnake(plan, arranged, box, palette, style, elementId, index);
 		case 'cycle':
 			return arrangeCycle(plan, arranged, box, palette, style, elementId);
 		case 'pyramid':
-			return arrangePyramid(plan, arranged, box, palette, style, elementId);
+			return arrangePyramid(plan, arranged, box, palette, style, elementId, index);
 		case 'composite':
-			return arrangeComposite(plan, arranged, box, palette, style, elementId);
+			return arrangeComposite(plan, arranged, box, palette, style, elementId, index);
 		case 'conn':
-			return arrangeConn(plan, arranged, box, palette, style, elementId);
+			return arrangeConn(plan, arranged, box, palette, style, elementId, index);
 		case 'spacer':
 			return arrangeSpacer(plan, arranged, box, palette, style, elementId);
 		case 'text':
