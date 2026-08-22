@@ -5,7 +5,10 @@ import type {
 	PptxSmartArtNodeStyle,
 	PptxSmartArtTextRun,
 } from '../../types';
-import { buildSmartArtColorLists } from '../../utils/smartart-color-lists';
+import {
+	buildSmartArtColorLists,
+	buildSmartArtColorRoleMap,
+} from '../../utils/smartart-color-lists';
 import {
 	parseSmartArtColorStyleLabels,
 	parseSmartArtDefinitionMetadata,
@@ -219,17 +222,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// "colorful" schemes spread across nodes instead of collapsing to the
 			// first accent. See {@link buildSmartArtColorLists}.
 			const styleLbls = this.xmlLookupService.getChildrenArrayByLocalName(colorsDef, 'styleLbl');
-			const colorLists = buildSmartArtColorLists(styleLbls, {
-				getChild: (node, childName) => this.xmlLookupService.getChildByLocalName(node, childName),
-				parseColorChoice: (colorChoice) => this.parseColor(colorChoice),
-				resolveScheme: (colorNode) => this.resolveSmartArtSchemeColor(colorNode),
-			});
+			const colorListDeps = {
+				getChild: (node: XmlObject | undefined, childName: string) =>
+					this.xmlLookupService.getChildByLocalName(node, childName),
+				parseColorChoice: (colorChoice: XmlObject | undefined) => this.parseColor(colorChoice),
+				resolveScheme: (colorNode: XmlObject | undefined) =>
+					this.resolveSmartArtSchemeColor(colorNode),
+			};
+			const colorLists = buildSmartArtColorLists(styleLbls, colorListDeps);
 
 			if (colorLists.fillColors.length === 0 && colorLists.lineColors.length === 0) {
 				return undefined;
 			}
 
-			return { ...metadata, name, ...colorLists, labels };
+			// Every styleLbl's OWN resolved colour list (not just the collapsed
+			// "primary" one `colorLists` carries), so a node can be coloured from
+			// its own quick-style role (`node.styleRole`) instead of the generic
+			// cycled palette. See `applySmartArtRoleColors`.
+			const roleColors = buildSmartArtColorRoleMap(styleLbls, colorListDeps);
+
+			return {
+				...metadata,
+				name,
+				...colorLists,
+				...(Object.keys(roleColors).length > 0 ? { roleColors } : {}),
+				labels,
+			};
 		} catch {
 			return undefined;
 		}

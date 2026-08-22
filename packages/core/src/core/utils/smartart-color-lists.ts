@@ -208,3 +208,27 @@ export function buildSmartArtColorLists(
 	}
 	return result;
 }
+
+/**
+ * Resolve EVERY `styleLbl`'s own fill/line colour list, keyed by name.
+ *
+ * Unlike {@link buildSmartArtColorLists} (which collapses every label down to
+ * ONE "primary" node-role palette), this keeps each role's own list so a node
+ * can be coloured from ITS OWN role (`node1`, `asst0`, `bgShp`, `revTx`, ...)
+ * instead of the generic cycled palette. A label with neither a fill nor a
+ * line colour is omitted.
+ */
+export function buildSmartArtColorRoleMap(
+	styleLbls: XmlObject[],
+	deps: SmartArtColorListDeps,
+): Record<string, { fill: string[]; line: string[] }> {
+	const map: Record<string, { fill: string[]; line: string[] }> = {};
+	for (const lbl of styleLbls) {
+		const parsed = parseLabel(lbl, deps);
+		if (!parsed.name || (parsed.fill.length === 0 && parsed.line.length === 0)) {
+			continue;
+		}
+		map[parsed.name] = { fill: parsed.fill, line: parsed.line };
+	}
+	return map;
+}

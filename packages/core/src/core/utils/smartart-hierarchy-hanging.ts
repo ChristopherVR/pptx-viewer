@@ -90,7 +90,15 @@ export function placeHangingTree(
 		const dir = directionFor(options, i);
 		const childX = dir === 'left' ? x - options.indent : x + options.indent;
 		const childY = cursor.y;
-		elbowConnector(hc, t.node.id, x + hc.boxH / 2, y + hc.boxH, childX + hc.boxH / 2, childY);
+		elbowConnector(
+			hc,
+			t.node.id,
+			x + hc.boxH / 2,
+			y + hc.boxH,
+			childX + hc.boxH / 2,
+			childY,
+			child.node.id,
+		);
 		placeHangingTree(hc, child, childX, options, cursor);
 	});
 }

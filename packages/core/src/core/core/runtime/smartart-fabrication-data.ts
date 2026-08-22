@@ -55,7 +55,12 @@ function contentTextBody(text: string): string {
 
 function contentPointXml(guid: string, node: PptxSmartArtNode): string {
 	const prSet = node.text ? '<dgm:prSet/>' : '<dgm:prSet phldrT="[Text]" phldr="1"/>';
-	return `<dgm:pt modelId="${guid}">${prSet}<dgm:spPr/>${contentTextBody(node.text ?? '')}</dgm:pt>`;
+	// Only `type="asst"` (ECMA-376 ST_DataPointType) is a valid content-point
+	// override beyond the schema default ("node", expressed by omitting the
+	// attribute); dropping it here reloaded an SDK-authored assistant node as
+	// an ordinary child, losing its org-chart placement on every round-trip.
+	const typeAttr = node.nodeType === 'asst' ? ' type="asst"' : '';
+	return `<dgm:pt modelId="${guid}"${typeAttr}>${prSet}<dgm:spPr/>${contentTextBody(node.text ?? '')}</dgm:pt>`;
 }
 
 function transPointXml(guid: string, type: 'parTrans' | 'sibTrans', cxnGuid: string): string {

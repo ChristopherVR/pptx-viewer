@@ -27,6 +27,12 @@ export interface HierContext {
 	nodes: RenderedNode[];
 	connectors: RenderedConnector[];
 	counter: { value: number };
+	/**
+	 * Connector text keyed `${parentNodeId}>${childNodeId}`, resolved from
+	 * each `parOf` connection's linked `parTrans` point (see
+	 * `PptxSmartArtConnection.label`). Looked up by {@link elbowConnector}.
+	 */
+	connectorLabels?: Map<string, string>;
 }
 
 export function baseContext(
@@ -36,6 +42,7 @@ export function baseContext(
 	style: SmartArtStyle,
 	boxW: number,
 	boxH: number,
+	connectorLabels?: Map<string, string>,
 ): HierContext {
 	return {
 		elementId,
@@ -48,6 +55,7 @@ export function baseContext(
 		nodes: [],
 		connectors: [],
 		counter: { value: 0 },
+		connectorLabels,
 	};
 }
 
@@ -78,7 +86,13 @@ export function pushNode(
 	return index;
 }
 
-/** Elbow connector (drop, then across, then drop) used for a normal child. */
+/**
+ * Elbow connector (drop, then across, then drop) used for a normal child.
+ *
+ * @param toId - The child node's id, used with `fromId` to look up this
+ *               edge's connector text in `hc.connectorLabels`, when the
+ *               caller has it (every genuine parent/child edge does).
+ */
 export function elbowConnector(
 	hc: HierContext,
 	fromId: string,
@@ -86,11 +100,14 @@ export function elbowConnector(
 	fy: number,
 	cx: number,
 	cy: number,
+	toId?: string,
 ): void {
 	const midY = fy + (cy - fy) / 2;
+	const text = toId ? hc.connectorLabels?.get(`${fromId}>${toId}`) : undefined;
 	hc.connectors.push({
 		key: `${hc.elementId}-hier-conn-${fromId}-${cx}-${cy}`,
 		d: `M${fx},${fy} L${fx},${midY} L${cx},${midY} L${cx},${cy}`,
+		...(text ? { text } : {}),
 	});
 }
 

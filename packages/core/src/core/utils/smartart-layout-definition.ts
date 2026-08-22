@@ -20,6 +20,10 @@ import {
 	parseSmartArtControlFlow,
 	validateSmartArtControlFlow,
 } from './smartart-layout-control-flow';
+import {
+	applySmartArtLayoutNodeShape,
+	parseSmartArtLayoutNodeShape,
+} from './smartart-layout-node-shape';
 
 type LocalName = (key: string) => string;
 
@@ -105,6 +109,7 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		algorithm: parseSmartArtLayoutAlgorithm(node, localName),
 		...parseSmartArtControlFlow(node, localName),
 		...parseSmartArtConstraintRules(node, localName),
+		shape: parseSmartArtLayoutNodeShape(node, localName),
 		children: nested.length > 0 ? nested : undefined,
 	};
 }
@@ -195,6 +200,7 @@ function applyNode(target: XmlObject, value: PptxSmartArtLayoutNode, localName: 
 	applySmartArtLayoutAlgorithm(target, value.algorithm, localName);
 	applySmartArtControlFlow(target, value, localName);
 	applySmartArtConstraintRules(target, value, localName);
+	applySmartArtLayoutNodeShape(target, value.shape, localName);
 	const existing = nestedLayoutNodes(target, localName);
 	value.children?.forEach((entry, index) => {
 		if (existing[index]) {

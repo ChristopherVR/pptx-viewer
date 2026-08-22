@@ -82,6 +82,7 @@ export function arrangeHierarchy(
 	style: SmartArtStyle,
 	elementId: string,
 	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
+	connectorLabels?: Map<string, string>,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const roots = buildTree(nodes);
@@ -93,7 +94,7 @@ export function arrangeHierarchy(
 		const boxH = Math.min(h * 0.16, 30);
 		const indent = boxW * 0.35;
 		const vGap = boxH * 0.55;
-		const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH);
+		const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH, connectorLabels);
 		placeHangingForest(hc, roots, INSET + indent, INSET, {
 			orgChart,
 			direction: hangDirection(presLayoutVars),
@@ -109,7 +110,7 @@ export function arrangeHierarchy(
 	const cellH = h / Math.max(1, depth);
 	const boxW = Math.min(cellW * 0.8, 150);
 	const boxH = Math.min(cellH * 0.4, 40);
-	const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH);
+	const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH, connectorLabels);
 
 	const standardOptions: StandardOptions = { orgChart, perRow: resolveRowSize(presLayoutVars) };
 	if (mode === 'init') {

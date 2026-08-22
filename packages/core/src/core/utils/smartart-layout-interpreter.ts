@@ -31,6 +31,7 @@
  */
 
 import type {
+	PptxSmartArtConnection,
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtNode,
 	PptxSmartArtPresLayoutVars,
@@ -58,6 +59,8 @@ import {
 } from './smartart-layout-interpreter-named-rules';
 import { arrangePyramid } from './smartart-layout-interpreter-pyramid';
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
+import { applySmartArtRoleColors } from './smartart-node-role-colors';
+import type { SmartArtColorRoleMap } from './smartart-node-role-colors';
 
 /**
  * Arrangement kinds where one item layoutNode template covers every rendered
@@ -82,6 +85,41 @@ export interface InterpretLayoutInput {
 	elementId: string;
 	/** Presentation layout variables (direction / hierBranch / orgChart). */
 	presLayoutVars?: PptxSmartArtPresLayoutVars;
+	/**
+	 * Per-styleLbl-role resolved colour lists (from
+	 * `PptxSmartArtColorTransform.roleColors`). When present, a node whose
+	 * {@link PptxSmartArtNode.styleRole} matches a key gets that role's own
+	 * cycled fill colour instead of the generic `palette` cycling - see
+	 * `smartart-node-role-colors.ts`.
+	 */
+	colorRoles?: SmartArtColorRoleMap;
+	/**
+	 * Data-model connections (from `PptxSmartArtData.connections`). Only
+	 * consulted by the hierarchy arranger, to label a `parOf` edge's rendered
+	 * connector from its linked `parTrans` point's text (a
+	 * `connection.label` set by `parseSmartArtConnections`).
+	 */
+	connections?: PptxSmartArtConnection[];
+}
+
+/** Build `${parentId}>${childId} -> label` from labelled `parOf` connections. */
+function buildConnectorLabels(
+	connections: PptxSmartArtConnection[] | undefined,
+): Map<string, string> | undefined {
+	if (!connections || connections.length === 0) {
+		return undefined;
+	}
+	const labels = new Map<string, string>();
+	for (const connection of connections) {
+		if (!connection.label) {
+			continue;
+		}
+		const isParentChildEdge = !connection.type || connection.type === 'parOf';
+		if (isParentChildEdge) {
+			labels.set(`${connection.sourceId}>${connection.destId}`, connection.label);
+		}
+	}
+	return labels.size > 0 ? labels : undefined;
 }
 
 /** Run the recognised arrangement algorithm, or `undefined` when none applies. */
@@ -100,7 +138,15 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 	// hideLastTrans). When the selection empties the set, decline so the caller
 	// keeps its legacy approximation.
 	if (plan.kind === 'hierarchy') {
-		return arrangeHierarchy(nodes, box, palette, style, elementId, presLayoutVars);
+		return arrangeHierarchy(
+			nodes,
+			box,
+			palette,
+			style,
+			elementId,
+			presLayoutVars,
+			buildConnectorLabels(input.connections),
+		);
 	}
 	const arranged = selectArrangedNodes(plan.node, flat);
 	if (arranged.length === 0) {
@@ -190,5 +236,6 @@ export function interpretSmartArtLayout(
 	if (!result) {
 		return undefined;
 	}
-	return applyCustomLayoutOverrides(result, input.flat, input.box);
+	const withCustomLayout = applyCustomLayoutOverrides(result, input.flat, input.box);
+	return applySmartArtRoleColors(withCustomLayout, input.flat, input.colorRoles);
 }

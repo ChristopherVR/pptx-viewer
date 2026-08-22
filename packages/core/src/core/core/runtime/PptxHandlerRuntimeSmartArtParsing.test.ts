@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PptxSmartArtDrawingShape } from '../../types';
+import type { PptxSmartArtDrawingShape, XmlObject } from '../../types';
 import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 class SmartArtDrawingShapeRuntime extends PptxHandlerRuntime {
@@ -10,6 +10,10 @@ class SmartArtDrawingShapeRuntime extends PptxHandlerRuntime {
 		emuPerPx = 9525,
 	): PptxSmartArtDrawingShape | null {
 		return this.parseDrawingShape(sp, index, emuPerPx);
+	}
+
+	public connections(dataModel: XmlObject) {
+		return this.parseSmartArtConnections(dataModel);
 	}
 }
 
@@ -67,5 +71,41 @@ describe('parseDrawingShape', () => {
 		});
 		expect(shape).not.toBeNull();
 		expect(shape!.shapeType).toBe('rect');
+	});
+});
+
+describe('parseSmartArtConnections', () => {
+	it('builds the parent map only from parOf edges, ignoring a presOf sharing the same destId', () => {
+		// `presOf`/`presParOf` connections live in the SAME id space as `parOf`
+		// and can legitimately target a destId that also appears as a `parOf`
+		// destination elsewhere (a presentation point reusing a content point's
+		// id pattern in a hand-built or third-party file). Without the `@type`
+		// filter this could silently overwrite the real parent/child edge.
+		const dataModel: XmlObject = {
+			'dgm:cxnLst': {
+				'dgm:cxn': [
+					{ '@_modelId': 'c1', '@_srcId': 'root', '@_destId': 'child', '@_srcOrd': '0' },
+					{
+						'@_modelId': 'c2',
+						'@_type': 'presOf',
+						'@_srcId': 'wrong-parent',
+						'@_destId': 'child',
+					},
+				],
+			},
+		};
+		const { parsedConnections, parentByNodeId } = runtime.connections(dataModel);
+		expect(parsedConnections).toHaveLength(2);
+		expect(parentByNodeId.get('child')).toBe('root');
+	});
+
+	it('treats an omitted @type as parOf (the ECMA-376 schema default)', () => {
+		const dataModel: XmlObject = {
+			'dgm:cxnLst': {
+				'dgm:cxn': { '@_modelId': 'c1', '@_srcId': 'root', '@_destId': 'child' },
+			},
+		};
+		const { parentByNodeId } = runtime.connections(dataModel);
+		expect(parentByNodeId.get('child')).toBe('root');
 	});
 });

@@ -9,8 +9,9 @@
 
 import type { PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { numericParam } from './smartart-layout-interpreter-model';
-import { circleNode, styleContext } from './smartart-layout-interpreter-render';
+import { itemNode, numericParam } from './smartart-layout-interpreter-model';
+import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
+import { styleContext } from './smartart-layout-interpreter-render';
 import type {
 	BoundingBox,
 	RenderedConnector,
@@ -68,19 +69,23 @@ export function arrangeCycle(
 		};
 	});
 
+	const itemShape = itemNode(plan.node)?.shape;
 	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
 		const { x, y } = centre(i);
-		return circleNode({
+		return presetBoxNode({
 			key: `${elementId}-cycle-${node.id}-${i}`,
-			cx: x,
-			cy: y,
-			r: nodeR,
+			x: x - nodeR,
+			y: y - nodeR,
+			width: nodeR * 2,
+			height: nodeR * 2,
 			node,
 			index: i,
 			total: n,
 			palette,
 			style,
 			ctx,
+			shape: itemShape,
+			fallbackKind: 'circle',
 		});
 	});
 

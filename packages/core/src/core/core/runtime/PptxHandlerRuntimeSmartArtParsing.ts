@@ -6,11 +6,13 @@ import type {
 	PptxSmartArtQuickStyle,
 } from '../../types';
 import type { DiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
+import { collectSmartArtTransitionText } from '../../utils/smartart-connector-labels';
 import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
 import {
 	parseSmartArtDefinitionMetadata,
 	parseSmartArtQuickStyleLabels,
 } from '../../utils/smartart-definition-metadata';
+import { resolveSmartArtEffectIntensity } from '../../utils/smartart-effect-intensity';
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 import {
@@ -60,6 +62,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	} {
 		const connectionList = this.xmlLookupService.getChildByLocalName(dataModel, 'cxnLst');
 		const rawConnections = this.xmlLookupService.getChildrenArrayByLocalName(connectionList, 'cxn');
+		// `parTrans`/`sibTrans` points carry the connector text PowerPoint's own
+		// diagram editor lets a user type onto an org-chart relationship line;
+		// resolved here (needs the FULL ptLst, not just content points) and
+		// attached to the connection that references the transition point.
+		const pointList = this.xmlLookupService.getChildByLocalName(dataModel, 'ptLst');
+		const points = this.xmlLookupService.getChildrenArrayByLocalName(pointList, 'pt');
+		const transitionTextById = collectSmartArtTransitionText(points, (point) => {
+			const values: string[] = [];
+			this.collectLocalTextValues(point, 't', values);
+			return values.join('');
+		});
 		const parentByNodeId = new Map<string, string>();
 		const parsedConnections: PptxSmartArtConnection[] = [];
 
@@ -68,8 +81,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!parsed) {
 				return;
 			}
-			parsedConnections.push(parsed);
-			if (!parentByNodeId.has(parsed.destId)) {
+			const transitionId = parsed.parentTransitionId ?? parsed.siblingTransitionId;
+			const label = transitionId ? transitionTextById.get(transitionId) : undefined;
+			parsedConnections.push(label ? { ...parsed, label } : parsed);
+			// `parOf` (the schema default when `@_type` is omitted, per ECMA-376
+			// CT_Cxn) is the only connection type expressing a data-graph
+			// parent/child edge; without this check a `presOf`/`presParOf`/
+			// `sibTrans` connection sharing the same `destId` space could shadow
+			// a genuine `parOf` edge depending on document order, instead of
+			// relying on incidental id-space separation.
+			const isParentChildEdge = !parsed.type || parsed.type === 'parOf';
+			if (isParentChildEdge && !parentByNodeId.has(parsed.destId)) {
 				parentByNodeId.set(parsed.destId, parsed.sourceId);
 			}
 		});
@@ -107,23 +129,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				String(styleDef['@_title'] || styleDef['@_uniqueId'] || '').trim() ||
 				undefined;
 
-			let effectIntensity: string | undefined;
 			const styleLbls = this.xmlLookupService.getChildrenArrayByLocalName(styleDef, 'styleLbl');
-			for (const lbl of styleLbls) {
-				const lblName = String(lbl?.['@_name'] || '').toLowerCase();
-				if (lblName.includes('intense') || lblName.includes('3d')) {
-					effectIntensity = 'intense';
-					break;
-				}
-				if (lblName.includes('moderate') || lblName.includes('semi')) {
-					effectIntensity = 'moderate';
-					break;
-				}
-				if (lblName.includes('subtle') || lblName.includes('flat')) {
-					effectIntensity = 'subtle';
-					break;
-				}
-			}
+			const effectIntensity = resolveSmartArtEffectIntensity(styleLbls, localName);
 
 			return { ...metadata, name, effectIntensity, labels };
 		} catch {

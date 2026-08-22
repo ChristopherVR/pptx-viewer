@@ -88,7 +88,15 @@ function placeFlatChildren(
 		const childW = effectiveWidth(child, options.orgChart);
 		const childCx = (childOffset + childW / 2) * cellW;
 		const childCy = (level + 1) * cellH + cellH / 2;
-		elbowConnector(hc, parentId, cx, cy + hc.boxH / 2, childCx, childCy - hc.boxH / 2);
+		elbowConnector(
+			hc,
+			parentId,
+			cx,
+			cy + hc.boxH / 2,
+			childCx,
+			childCy - hc.boxH / 2,
+			child.node.id,
+		);
 		placeAt(hc, child, childCx, childCy, childOffset, childW, level + 1, cellW, cellH, options);
 		childOffset += childW;
 	}
@@ -127,7 +135,15 @@ function placeWrappedChildren(
 		rowChildren.forEach((child, i) => {
 			const childCx = leftX + slotW * (i + 0.5);
 			const childW = effectiveWidth(child, options.orgChart);
-			elbowConnector(hc, parentId, cx, cy + hc.boxH / 2, childCx, rowCy - hc.boxH / 2);
+			elbowConnector(
+				hc,
+				parentId,
+				cx,
+				cy + hc.boxH / 2,
+				childCx,
+				rowCy - hc.boxH / 2,
+				child.node.id,
+			);
 			const virtualOffset = childCx / cellW - childW / 2;
 			placeAt(hc, child, childCx, rowCy, virtualOffset, childW, level + 1, cellW, cellH, options);
 		});
@@ -163,7 +179,7 @@ function placeAt(
 			const childW = effectiveWidth(child, options.orgChart);
 			const anchorCx = (childOffset + childW / 2) * cellW;
 			const anchorY = (level + 1) * cellH;
-			elbowConnector(hc, t.node.id, cx, cy + hc.boxH / 2, anchorCx, anchorY);
+			elbowConnector(hc, t.node.id, cx, cy + hc.boxH / 2, anchorCx, anchorY, child.node.id);
 			options.hangingPlacer(hc, child, anchorCx - hc.boxW / 2, anchorY);
 			childOffset += childW;
 		}

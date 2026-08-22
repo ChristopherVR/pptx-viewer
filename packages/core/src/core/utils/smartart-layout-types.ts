@@ -149,6 +149,14 @@ export interface RenderedConnector {
 	opacity?: number;
 	/** SVG `stroke-dasharray`. Default solid. */
 	dash?: string;
+	/**
+	 * Connector label text, from a `dgm:pt/@type="parTrans"` transition
+	 * point's `dgm:t` (`PptxSmartArtConnection.label`). PowerPoint's own
+	 * diagram editor lets a user type text directly onto an org-chart
+	 * relationship connector. `undefined` when the connector carries no text
+	 * (the overwhelming majority).
+	 */
+	text?: string;
 }
 
 /** The layout family applied to a SmartArt element. */

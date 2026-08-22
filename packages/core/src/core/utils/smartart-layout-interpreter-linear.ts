@@ -17,7 +17,8 @@ import {
 } from './smartart-constraint-solver';
 import type { ArrangementPlan, FlowDirection } from './smartart-layout-interpreter-model';
 import { itemNode } from './smartart-layout-interpreter-model';
-import { rectNode, styleContext } from './smartart-layout-interpreter-render';
+import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
+import { styleContext } from './smartart-layout-interpreter-render';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
 const INSET = 6;
@@ -83,10 +84,13 @@ export function arrangeLinear(
 		: crossDefault;
 	const crossPos = INSET + (usableCross - crossExtent) / 2;
 	const start = INSET + begPad * mainExtent;
+	// The item template's own `dgm:shape` override (ellipse/chevron/diamond/...)
+	// wins over the arranger's hardcoded rect default when present.
+	const itemShape = itemNode(plan.node)?.shape;
 
 	const renderedNodes: RenderedNode[] = flow2.map((node, i) => {
 		const mainPos = start + i * (mainExtent + gap);
-		return rectNode({
+		return presetBoxNode({
 			key: `${elementId}-lin-${node.id}-${i}`,
 			x: horizontal ? mainPos : crossPos,
 			y: horizontal ? crossPos : mainPos,
@@ -98,6 +102,8 @@ export function arrangeLinear(
 			palette,
 			style,
 			ctx,
+			shape: itemShape,
+			fallbackKind: 'rect',
 		});
 	});
 
@@ -138,13 +144,14 @@ export function arrangeSnake(
 	const cellH = usableH / (rows + Math.max(0, rows - 1) * sib);
 	const gapX = sib * cellW;
 	const gapY = sib * cellH;
+	const itemShape = itemNode(plan.node)?.shape;
 
 	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
 		const row = Math.floor(i / cols);
 		const posInRow = i % cols;
 		// Reverse every odd row so the flow snakes back (boustrophedon).
 		const col = row % 2 === 1 ? cols - 1 - posInRow : posInRow;
-		return rectNode({
+		return presetBoxNode({
 			key: `${elementId}-snake-${node.id}-${i}`,
 			x: INSET + col * (cellW + gapX),
 			y: INSET + row * (cellH + gapY),
@@ -156,6 +163,8 @@ export function arrangeSnake(
 			palette,
 			style,
 			ctx,
+			shape: itemShape,
+			fallbackKind: 'rect',
 		});
 	});
 

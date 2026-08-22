@@ -204,6 +204,8 @@ export function computeSmartArtElementsWithoutCache(
 			style: smartArtData.style ?? 'flat',
 			elementId: 'smartart-fabrication',
 			presLayoutVars: smartArtData.presLayoutVars,
+			colorRoles: smartArtData.colorTransform?.roleColors,
+			connections: smartArtData.connections,
 		});
 		if (interpreted && interpreted.nodes.length > 0) {
 			return interpretedLayoutToElements(interpreted, nodes, containerBounds);
