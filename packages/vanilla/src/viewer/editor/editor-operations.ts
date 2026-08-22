@@ -38,7 +38,7 @@ import type { ElementBoxPatch } from './editor-mutations';
 import { cloneSlides, updateSlideNotes } from './editor-mutations';
 import { selectionState } from './editor-selection-state';
 import { createStructuredEditorOperations } from './editor-structured-operations';
-import { remapInlineText } from './inline-text-editor';
+import { remapInlineText, resolveInlineTextAutoFitHeight } from './inline-text-editor';
 
 /**
  * History-tracked editing operations over the viewer store: the vanilla
@@ -271,12 +271,24 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 				return;
 			}
 			pushHistory();
+			// `a:spAutoFit`: grow/shrink the shape to the text's natural content
+			// height, the way PowerPoint does. See `resolveInlineTextAutoFitHeight`
+			// for why the editor DOM node is still resolvable here.
+			const editorEl =
+				typeof document !== 'undefined'
+					? document.querySelector<HTMLElement>('[data-inline-editor]')
+					: null;
+			const newHeight = resolveInlineTextAutoFitHeight(target, editorEl);
 			store.set(
 				replaceActiveElements(
 					state,
 					getActiveElements(state).map((element) =>
 						element.id === id
-							? ({ ...element, ...remapInlineText(target, text) } as PptxElement)
+							? ({
+									...element,
+									...remapInlineText(target, text),
+									...(newHeight !== undefined ? { height: newHeight } : {}),
+								} as PptxElement)
 							: element,
 					),
 				),

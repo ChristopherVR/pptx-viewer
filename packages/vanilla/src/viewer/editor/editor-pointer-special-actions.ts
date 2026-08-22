@@ -47,9 +47,26 @@ export function handleSpecialPointerAction(options: {
 	return true;
 }
 
-export function snapToGrid<T extends { x: number; y: number }>(value: T, enabled: boolean): T {
+/**
+ * Round position to the nearest multiple of `gridSize` when `enabled`.
+ *
+ * `gridSize` defaults to 10 (this binding's existing step) but should be
+ * derived from the deck's authored `viewProperties.gridSpacing` via
+ * `computeGridSpacingPx` -- NEVER from `presentationProperties`, since
+ * `p:gridSpacing` lives under `p:viewPr`, not `p:presentationPr`, and a real
+ * PowerPoint file never populates the latter.
+ */
+export function snapToGrid<T extends { x: number; y: number }>(
+	value: T,
+	enabled: boolean,
+	gridSize = 10,
+): T {
 	return enabled
-		? { ...value, x: Math.round(value.x / 10) * 10, y: Math.round(value.y / 10) * 10 }
+		? {
+				...value,
+				x: Math.round(value.x / gridSize) * gridSize,
+				y: Math.round(value.y / gridSize) * gridSize,
+			}
 		: value;
 }
 

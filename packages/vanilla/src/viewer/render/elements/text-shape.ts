@@ -10,6 +10,7 @@ import {
 	renderStrokeOutline,
 	renderShapeFillOverlay,
 	renderShapeFilterDefs,
+	renderShapeSubpathFillOverlay,
 } from './shape-filter-defs';
 import { renderTextBlock } from './text-block';
 import { renderWarpedText } from './text-warp';
@@ -43,6 +44,13 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	const el = createEl(context.document, 'div', 'pptxv-element pptxv-shape', merged);
 	el.dataset.elementId = element.id;
 
+	// Per-sub-path fill overlay: a multi-sub-path preset or custom geometry whose
+	// sub-paths cannot share one CSS background-color. Painted first (bottom-most)
+	// since it substitutes for the container's own (now suppressed) fill.
+	const subpathFill = renderShapeSubpathFillOverlay(context.document, element);
+	if (subpathFill) {
+		el.appendChild(subpathFill);
+	}
 	const extrusion = renderExtrusionOverlay(context.document, element);
 	if (extrusion) {
 		el.appendChild(extrusion);

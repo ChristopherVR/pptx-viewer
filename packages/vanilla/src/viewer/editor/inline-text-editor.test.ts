@@ -56,3 +56,40 @@ describe('openInlineEditor caret placement', () => {
 		overlayRoot.remove();
 	});
 });
+
+describe('openInlineEditor commit ordering', () => {
+	it('fires onCommit while the surface is still attached and [data-inline-editor]-tagged', () => {
+		// `a:spAutoFit` needs to measure the live editor node from inside
+		// `onCommit` (see `resolveInlineTextAutoFitHeight`'s doc comment); a
+		// node already `.remove()`d reports `offsetWidth: 0`, breaking that
+		// measurement. This pins the ordering that makes it work: commit
+		// before removal.
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		let attachedDuringCommit: boolean | undefined;
+		let foundDuringCommit: Element | null | undefined;
+
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onCommit: () => {
+				attachedDuringCommit = document.body.contains(session.el);
+				foundDuringCommit = document.querySelector('[data-inline-editor]');
+			},
+			onClose: () => {},
+		});
+
+		session.el.textContent = 'CHANGED';
+		session.commit();
+
+		expect(attachedDuringCommit).toBeTruthy();
+		expect(foundDuringCommit).toBe(session.el);
+		// ...and is removed once the commit callback returns.
+		expect(document.body.contains(session.el)).toBeFalsy();
+
+		overlayRoot.remove();
+	});
+});

@@ -10,9 +10,19 @@ import {
 } from './editor-pointer-special-actions';
 
 describe('editor pointer special actions', () => {
-	it('snaps geometry to the ten-pixel grid', () => {
+	it('snaps geometry to the ten-pixel grid (default)', () => {
 		expect(snapToGrid({ x: 14, y: 26, width: 10 }, true)).toMatchObject({ x: 10, y: 30 });
 		expect(snapToGrid({ x: 14, y: 26 }, false)).toStrictEqual({ x: 14, y: 26 });
+	});
+
+	// Regression: `snapToGrid` used to hardcode a 10px step with no way to pass
+	// a different one, so the deck's authored `viewProperties.gridSpacing` had
+	// no path into the snap step at all. `gridSize` is a third, optional
+	// parameter so callers derive it via `computeGridSpacingPx` and existing
+	// two-argument call sites are unaffected.
+	it('snaps to a caller-supplied grid size instead of the 10px default', () => {
+		expect(snapToGrid({ x: 55, y: 55 }, true, 40)).toStrictEqual({ x: 40, y: 40 });
+		expect(snapToGrid({ x: 55, y: 55 }, true, 10)).toStrictEqual({ x: 60, y: 60 });
 	});
 
 	it('gates shape snap siblings with viewer state', () => {

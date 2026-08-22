@@ -87,6 +87,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				slides: partition.slides,
 				sections: loaded.sections,
 				presentationProperties: loaded.presentationProperties,
+				viewProperties: loaded.viewProperties,
 				headerFooter: loaded.headerFooter,
 				coreProperties: loaded.coreProperties,
 				appProperties: loaded.appProperties,

@@ -33,7 +33,16 @@ function buildSlide(): PptxSlide {
 				width: 200,
 				height: 120,
 				shapeType: 'roundRect',
-				shapeStyle: { fillColor: '#00aa55', strokeColor: '#111111', strokeWidth: 2 },
+				// `lineAlignment: 'in'` pins the CSS border path this fixture's own
+				// "renders shape fill and stroke" test asserts on: the default `ctr`
+				// alignment routes a solid outline through the SVG stroke overlay
+				// instead (see shared `stroke-outline.ts`).
+				shapeStyle: {
+					fillColor: '#00aa55',
+					strokeColor: '#111111',
+					strokeWidth: 2,
+					lineAlignment: 'in',
+				},
 			},
 			{
 				type: 'image',

@@ -177,4 +177,39 @@ describe('renderTableElement', () => {
 		const node = context.renderElement(buildTableElement(), 0);
 		expect((node as HTMLElement).querySelector('table')).toBeTruthy();
 	});
+
+	it('renders a resolved cell image fill as a cover background', () => {
+		const tableData: PptxTableData = {
+			columnWidths: [1],
+			rows: [
+				{
+					cells: [
+						{
+							text: 'Photo',
+							style: {
+								fillMode: 'image',
+								backgroundImageFillData: 'data:image/png;base64,AAAA',
+							},
+						},
+					],
+				},
+			],
+		};
+		const td = renderTable(buildTableElement(tableData)).querySelector('td') as HTMLElement;
+		expect(td.style.backgroundImage).toBe('url("data:image/png;base64,AAAA")');
+		expect(td.style.backgroundSize).toBe('cover');
+	});
+
+	it('renders an explicit zero cell margin as zero padding, not the base default', () => {
+		// A binding could clobber the shared padding by spreading its own base
+		// style AFTER the computed cell CSS; asserting the exact 0px value (not
+		// merely "not the default") catches that class of regression.
+		const tableData: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Dense', style: { marginLeft: 0, marginTop: 0 } }] }],
+		};
+		const td = renderTable(buildTableElement(tableData)).querySelector('td') as HTMLElement;
+		expect(td.style.paddingLeft).toBe('0px');
+		expect(td.style.paddingTop).toBe('0px');
+	});
 });

@@ -3,7 +3,11 @@
    isn't a style choice here. */
 import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { ChartPartRef } from 'pptx-viewer-shared';
-import { DEFAULT_MASTER_PAGE_SIZE, masterViewPseudoSlide } from 'pptx-viewer-shared';
+import {
+	computeGridSpacingPx,
+	DEFAULT_MASTER_PAGE_SIZE,
+	masterViewPseudoSlide,
+} from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
 import { createPresentationPlayback } from './animation';
@@ -143,6 +147,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			registry,
 			t: deps.getTranslator(),
 			scale,
+			gridSpacingPx: computeGridSpacingPx(state.viewProperties?.gridSpacing, 10),
 			smartArt3D: deps.smartArt3D,
 			surfaceChart3D: deps.surfaceChart3D,
 			presenting,

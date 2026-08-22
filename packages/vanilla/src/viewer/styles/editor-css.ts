@@ -8,7 +8,10 @@
  */
 export const EDITOR_CSS = `
 .pptxv-marquee { position: absolute; z-index: 4; border: 1px solid var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 14%, transparent); pointer-events: none; }
-.pptxv.pptxv-showGrid .pptxv-stage { background-image: linear-gradient(#cbd5e155 1px, transparent 1px), linear-gradient(90deg, #cbd5e155 1px, transparent 1px); background-size: 10px 10px; }
+/* --pptxv-grid-size is set inline on .pptxv-stage from the deck's authored
+   viewProperties.gridSpacing (via computeGridSpacingPx); 10px matches this
+   binding's existing default when the deck has none. */
+.pptxv.pptxv-showGrid .pptxv-stage { background-image: linear-gradient(#cbd5e155 1px, transparent 1px), linear-gradient(90deg, #cbd5e155 1px, transparent 1px); background-size: var(--pptxv-grid-size, 10px) var(--pptxv-grid-size, 10px); }
 /* ── View > Rulers ───────────────────────────────────────────────────────
  * The strips are absolutely positioned OUTSIDE the stage wrap (negative
  * offsets), so the slide keeps its exact canvasSize * scale box and the

@@ -18,6 +18,7 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
@@ -57,6 +58,14 @@ export interface ViewerState {
 	/** Presentation sections used to group slides in the thumbnail rail. */
 	sections: PptxSection[];
 	presentationProperties: PptxPresentationProperties;
+	/**
+	 * View properties (`ppt/viewProps.xml`, `p:viewPr`): grid spacing, snap /
+	 * guide toggles, last view, splitter state, etc. `gridSpacing` lives here,
+	 * NOT on `presentationProperties` -- `p:gridSpacing` is a child of
+	 * `p:viewPr`, and a real PowerPoint file never populates it under
+	 * `p:presentationPr`.
+	 */
+	viewProperties: PptxViewProperties | undefined;
 	headerFooter: PptxHeaderFooter;
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
@@ -242,6 +251,7 @@ export function createInitialViewerState(): ViewerState {
 		slides: [],
 		sections: [],
 		presentationProperties: {},
+		viewProperties: undefined,
 		headerFooter: {},
 		coreProperties: undefined,
 		appProperties: undefined,

@@ -3,6 +3,7 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
+	buildSubpathFillOverlay,
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
 	getSoftEdgeSvgFilter,
@@ -109,6 +110,37 @@ export function renderHollowHitOutline(doc: Document, element: PptxElement): SVG
 	});
 	path.setAttribute('style', 'pointer-events:stroke');
 	svg.appendChild(path);
+	return svg;
+}
+
+/**
+ * Per-sub-path FILL overlay, for a multi-sub-path preset (`smileyFace`'s open
+ * eyes, `actionButtonBlank`'s darkened bevel well) or custom geometry whose
+ * sub-paths carry their own `@fill` mode, which cannot share one CSS
+ * `background-color`. `element-styles.ts` drops the container fill for these
+ * (via shared `suppressesCssFill`) so this layered SVG paints it instead, each
+ * sub-path with its own resolved fill. Returns `null` for the ordinary case
+ * (a single merged fill is correct).
+ */
+export function renderShapeSubpathFillOverlay(
+	doc: Document,
+	element: PptxElement,
+): SVGSVGElement | null {
+	const overlay = buildSubpathFillOverlay(element);
+	if (!overlay) {
+		return null;
+	}
+	const svg = createSvgEl(doc, 'svg', {
+		class: 'pptx-vanilla-subpath-fill',
+		'aria-hidden': 'true',
+		viewBox: `0 0 ${overlay.viewBoxWidth} ${overlay.viewBoxHeight}`,
+		preserveAspectRatio: 'none',
+	});
+	svg.setAttribute('style', 'position:absolute;inset:0;width:100%;height:100%');
+	for (const paint of overlay.paints) {
+		const path = createSvgEl(doc, 'path', { d: paint.d, fill: paint.fill, stroke: 'none' });
+		svg.appendChild(path);
+	}
 	return svg;
 }
 

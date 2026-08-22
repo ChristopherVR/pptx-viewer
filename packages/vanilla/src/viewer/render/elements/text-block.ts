@@ -7,6 +7,7 @@ import type {
 } from 'pptx-viewer-shared';
 
 import { applyStyleMap, createEl } from '../dom';
+import { appendRunContent } from './text-run-content';
 
 /** A run whose text is exactly a newline is a hard line break, not content. */
 const NEWLINE_RUN = '\n';
@@ -49,7 +50,7 @@ function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
 		if (run.hyperlink.tooltip) {
 			link.setAttribute('title', run.hyperlink.tooltip);
 		}
-		link.textContent = run.text;
+		appendRunContent(doc, link, run);
 		return link;
 	}
 	// `a:ruby`: the phonetic guide sits above its base text. The `<rp>`
@@ -57,7 +58,7 @@ function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
 	if (run.ruby) {
 		const ruby = doc.createElement('ruby');
 		applyStyleMap(ruby, run.style);
-		ruby.appendChild(doc.createTextNode(run.text));
+		appendRunContent(doc, ruby, run);
 		const openParen = doc.createElement('rp');
 		openParen.textContent = '(';
 		ruby.appendChild(openParen);
@@ -72,7 +73,7 @@ function createRunNode(doc: Document, run: ParagraphRun): HTMLElement {
 	}
 	const span = createEl(doc, 'span');
 	applyStyleMap(span, run.style);
-	span.textContent = run.text;
+	appendRunContent(doc, span, run);
 	return span;
 }
 

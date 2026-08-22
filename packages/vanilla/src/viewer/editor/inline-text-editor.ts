@@ -5,6 +5,7 @@ import {
 	getInlineEditorSelection,
 	placeCaretAtEnd,
 	remapTextToSegments,
+	resolveInlineEditAutoFitHeight,
 } from 'pptx-viewer-shared';
 import type { InlineTextSelection } from 'pptx-viewer-shared';
 
@@ -73,6 +74,29 @@ export function readEditableText(root: HTMLElement): string {
 	};
 	walk(root);
 	return out;
+}
+
+/**
+ * `a:spAutoFit` ("Resize shape to fit text") editor-commit resize: decide the
+ * element's new height from its text style, current height, and the live
+ * (still-mounted) editor DOM node - `undefined` when the element carries no
+ * text properties, autofit isn't `'shrink'`, or the measured height did not
+ * meaningfully change.
+ *
+ * `EditorOperations.commitInlineText` calls this before it replaces the
+ * element; `editorEl` there is found via
+ * `document.querySelector('[data-inline-editor]')`, which resolves to the
+ * live surface because `close()` (above) fires `onCommit` - the call that
+ * reaches `commitInlineText` - BEFORE `surface.remove()`.
+ */
+export function resolveInlineTextAutoFitHeight(
+	element: PptxElement,
+	editorEl: HTMLElement | null,
+): number | undefined {
+	if (!hasTextProperties(element)) {
+		return undefined;
+	}
+	return resolveInlineEditAutoFitHeight(element.textStyle, element.height, editorEl);
 }
 
 export interface InlineEditorSession {
@@ -165,10 +189,15 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 			return;
 		}
 		closed = true;
-		surface.remove();
+		// `onCommit` fires BEFORE the surface is removed: `a:spAutoFit`
+		// ("Resize shape to fit text") needs to measure the still-mounted,
+		// still-`[data-inline-editor]`-attributed node from inside that
+		// callback (`EditorOperations.commitInlineText`), and a detached node
+		// reports `offsetWidth: 0`, which would break the measurement.
 		if (commitText !== null && commitText !== initialText) {
 			options.onCommit(commitText);
 		}
+		surface.remove();
 		options.onClose();
 	};
 

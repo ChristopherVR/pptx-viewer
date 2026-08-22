@@ -18,12 +18,15 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
+	applyTableCellImagePatches,
 	collectImagePaths,
 	collectMediaElements,
+	collectTableCellImagePaths,
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
 } from 'pptx-viewer-shared';
@@ -44,6 +47,14 @@ export interface LoadedPresentation {
 	/** Parsed presentation sections. */
 	sections: PptxSection[];
 	presentationProperties: PptxPresentationProperties;
+	/**
+	 * View properties (`ppt/viewProps.xml`, `p:viewPr`): grid spacing, snap /
+	 * guide toggles, last view, splitter state, etc. `gridSpacing` lives here,
+	 * NOT on `presentationProperties` -- `p:gridSpacing` is a child of
+	 * `p:viewPr`, and a real PowerPoint file never populates it under
+	 * `p:presentationPr`.
+	 */
+	viewProperties?: PptxViewProperties;
 	headerFooter: PptxHeaderFooter;
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
@@ -90,13 +101,15 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 		const parsed = await handler.load(buffer);
 
 		const mediaDataUrls = await resolveMediaUrls(handler, parsed.slides, blobUrls);
-		const slides = await resolveImageUrls(handler, parsed.slides);
+		const imageResolvedSlides = await resolveImageUrls(handler, parsed.slides);
+		const slides = await resolveTableCellImageUrls(handler, imageResolvedSlides);
 
 		return {
 			handler,
 			slides,
 			sections: parsed.sections ?? [],
 			presentationProperties: parsed.presentationProperties ?? {},
+			viewProperties: parsed.viewProperties,
 			headerFooter: parsed.headerFooter ?? {},
 			coreProperties: parsed.coreProperties,
 			appProperties: parsed.appProperties,
@@ -265,6 +278,43 @@ async function resolveImageUrls(handler: PptxHandler, slides: PptxSlide[]): Prom
 	};
 	return slides.map((slide) => {
 		const newElements = patchElements(slide.elements);
+		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
+	});
+}
+
+/**
+ * Resolve lazily-loaded table cell image-fill URLs (`a:tcPr/a:blipFill`) and
+ * patch them into the slide tree. Same lazy-load story as
+ * {@link resolveImageUrls}, but for a cell's `backgroundImageFillPath`.
+ */
+async function resolveTableCellImageUrls(
+	handler: PptxHandler,
+	slides: PptxSlide[],
+): Promise<PptxSlide[]> {
+	const { paths, refs } = collectTableCellImagePaths(slides);
+	if (paths.size === 0) {
+		return slides;
+	}
+
+	const resolvedMap = new Map<string, string>();
+	await Promise.all(
+		Array.from(paths).map(async (path) => {
+			try {
+				const url = await handler.getImageData(path);
+				if (url) {
+					resolvedMap.set(path, url);
+				}
+			} catch {
+				// Non-critical: the cell falls back to no image fill.
+			}
+		}),
+	);
+	if (resolvedMap.size === 0) {
+		return slides;
+	}
+
+	return slides.map((slide) => {
+		const newElements = applyTableCellImagePatches(slide.elements, resolvedMap, refs);
 		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
 	});
 }

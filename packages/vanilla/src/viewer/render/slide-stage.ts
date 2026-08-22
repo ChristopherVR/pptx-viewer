@@ -48,6 +48,13 @@ export interface SlideStageOptions {
 	t: Translator;
 	/** Scale applied via CSS transform (default 1). */
 	scale?: number;
+	/**
+	 * Grid dot/line spacing in CSS px for the View > Grid overlay (`.pptxv-showGrid`),
+	 * derived by the caller from the deck's authored `viewProperties.gridSpacing`
+	 * via `computeGridSpacingPx`. Defaults to 10px (this binding's existing grid
+	 * step) when omitted.
+	 */
+	gridSpacingPx?: number;
 	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
 	smartArt3D?: boolean;
 	/**
@@ -121,6 +128,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		// editing stage and the presentation stage can never disagree.
 		'--pptx-slide-w': `${canvasSize.width}px`,
 		'--pptx-slide-h': `${canvasSize.height}px`,
+		'--pptxv-grid-size': `${options.gridSpacingPx ?? 10}px`,
 		...getSlideBackgroundStyle(slide),
 	});
 	if (interactive) {

@@ -37,6 +37,16 @@ describe('getTextBlockStyle', () => {
 		expect(getTextBlockStyle(textElement({ textWrap: 'none' }))['whiteSpace']).toBe('nowrap');
 		expect(getTextBlockStyle(textElement({}))['whiteSpace']).toBe('pre-wrap');
 	});
+
+	it('never shrinks the font for spAutoFit, however much text overflows', () => {
+		// a:spAutoFit resizes the SHAPE to fit the text (ECMA-376), never the
+		// font; a box authored in PowerPoint already has its `a:ext` sized to
+		// fit, so the font must render unshrunk regardless of the measured text.
+		const autofit = getTextBlockStyle(
+			textElement({ fontSize: 40, autoFit: true, autoFitMode: 'shrink' }),
+		);
+		expect(autofit['fontSize']).toBe('40px');
+	});
 });
 
 /**
@@ -78,10 +88,22 @@ describe('stroke-only preset geometry', () => {
 		expect(svg?.querySelector('defs')).toBeNull();
 	});
 
-	it('leaves a closed preset to its CSS border', () => {
-		expect(renderStrokeOutline(document, rule({ shapeType: 'rect', height: 100 }))).toBeNull();
-		expect(getShapeFillStrokeStyle(rule({ shapeType: 'rect', height: 100 }))['border']).toContain(
-			'2px',
-		);
+	it('leaves an explicitly INSET closed preset to its CSS border', () => {
+		// `algn="in"` is the one alignment a CSS border already paints correctly;
+		// the default `ctr` alignment routes the stroke through this SVG overlay
+		// instead (see shared `stroke-outline.ts`).
+		const box = rule({
+			shapeType: 'rect',
+			height: 100,
+			shapeStyle: { strokeColor: '#000000', strokeWidth: 2, lineAlignment: 'in' },
+		});
+		expect(renderStrokeOutline(document, box)).toBeNull();
+		expect(getShapeFillStrokeStyle(box)['border']).toContain('2px');
+	});
+
+	it('centres a closed preset at the default (omitted) alignment instead', () => {
+		const box = rule({ shapeType: 'rect', height: 100 });
+		expect(renderStrokeOutline(document, box)).not.toBeNull();
+		expect(getShapeFillStrokeStyle(box)['border']).toBeUndefined();
 	});
 });

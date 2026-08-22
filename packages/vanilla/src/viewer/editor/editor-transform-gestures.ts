@@ -1,5 +1,10 @@
 import type { InteractionBox, SelectionTransformBox } from 'pptx-viewer-shared';
-import { moveSelection, resizeSelection, selectionBounds } from 'pptx-viewer-shared';
+import {
+	computeGridSpacingPx,
+	moveSelection,
+	resizeSelection,
+	selectionBounds,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { findActiveElement, getActiveElements } from './editor-active-elements';
@@ -94,7 +99,12 @@ export function createTransformGestures(deps: TransformGesturesDeps): GestureCon
 			store.set({ interactionActive: true });
 		},
 		onPreview(transform, lines) {
-			transform = snapToGrid(transform, store.get().snapToGrid);
+			const state = store.get();
+			transform = snapToGrid(
+				transform,
+				state.snapToGrid,
+				computeGridSpacingPx(state.viewProperties?.gridSpacing, 10),
+			);
 			if (gestureBoxes.length > 1 && gestureBounds && gestureKind !== 'rotate') {
 				const next =
 					gestureKind === 'move'
@@ -119,7 +129,19 @@ export function createTransformGestures(deps: TransformGesturesDeps): GestureCon
 		onEnd(transform, moved, id) {
 			deps.getOverlay()?.setSnapLines([], 1);
 			if (transform && gestureBoxes.length <= 1 && gestureAllowedIds.has(id)) {
-				ops.patchGeometry(id, transform);
+				// `transform` here is the gesture controller's raw last-preview box,
+				// computed BEFORE `onPreview` above snapped it: reassigning `onPreview`'s
+				// own `transform` parameter never fed back into the gesture's internal
+				// `last` value. Re-applying the snap here is what makes the grid-snapped
+				// position the user saw during the drag actually stick on release,
+				// instead of silently reverting to the unsnapped position.
+				const state = store.get();
+				const snapped = snapToGrid(
+					transform,
+					state.snapToGrid,
+					computeGridSpacingPx(state.viewProperties?.gridSpacing, 10),
+				);
+				ops.patchGeometry(id, snapped);
 			}
 			store.set({ interactionActive: false });
 			if (moved) {
