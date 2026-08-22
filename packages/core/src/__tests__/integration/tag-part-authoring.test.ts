@@ -45,6 +45,53 @@ describe('user-defined tags package integration', () => {
 		]);
 	});
 
+	it('authors the owning <p:tags r:id> element referencing the same relationship id (structural gap fix)', async () => {
+		const { handler, slides } = await createDeck();
+		const tags: PptxTagCollection[] = [{ tags: [{ name: 'DECK_ID', value: 'deck-123' }] }];
+		const saved = await handler.save(slides, { tags });
+		const zip = await JSZip.loadAsync(saved);
+		const rels = await zip.file('ppt/_rels/presentation.xml.rels')!.async('string');
+		const presentationXml = await zip.file('ppt/presentation.xml')!.async('string');
+
+		const relMatch = rels.match(
+			/<Relationship Id="(rId\d+)" Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/tags"/u,
+		);
+		expect(relMatch).toBeTruthy();
+		const relId = relMatch![1]!;
+		// The element AND the relationship both exist and reference each other:
+		// the relationship id above and the element's r:id below must match.
+		expect(presentationXml).toContain(`<p:tags r:id="${relId}"></p:tags>`);
+		expect(presentationXml).toMatch(
+			/<p:custDataLst>[\s\S]*<p:tags r:id="rId\d+">[\s\S]*<\/p:custDataLst>/u,
+		);
+	});
+
+	it('removes the owning element, relationship, part, and content-type override when a collection is cleared', async () => {
+		const { handler, slides } = await createDeck();
+		const tags: PptxTagCollection[] = [{ tags: [{ name: 'DECK_ID', value: 'deck-123' }] }];
+		const saved = await handler.save(slides, { tags });
+
+		const loaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const collection = loaded.tags![0]!;
+		const tagPath = collection.path!;
+		collection.tags = [];
+		const cleared = await handler.save(loaded.slides, { tags: loaded.tags });
+
+		const zip = await JSZip.loadAsync(cleared);
+		expect(zip.file(tagPath)).toBeNull();
+		const rels = await zip.file('ppt/_rels/presentation.xml.rels')!.async('string');
+		expect(rels).not.toContain(
+			'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/tags"',
+		);
+		const presentationXml = await zip.file('ppt/presentation.xml')!.async('string');
+		expect(presentationXml).not.toContain('<p:tags');
+		const contentTypes = await zip.file('[Content_Types].xml')!.async('string');
+		expect(contentTypes).not.toContain(`PartName="/${tagPath}"`);
+
+		const reloaded = await new PptxHandler().load(cleared.buffer as ArrayBuffer);
+		expect(reloaded.tags ?? []).toHaveLength(0);
+	});
+
 	it('authors slide-owned tags and preserves unknown XML on dirty reload', async () => {
 		const { handler, slides } = await createDeck();
 		const tags: PptxTagCollection[] = [
@@ -59,6 +106,13 @@ describe('user-defined tags package integration', () => {
 		const rels = await authoredZip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');
 		expect(rels).toContain('/relationships/tags');
 		expect(rels).toContain(`Target="../tags/${tags[0].path!.split('/').pop()}"`);
+		const relId = rels.match(/<Relationship Id="(rId\d+)"[^>]*\/relationships\/tags"/u)?.[1];
+		expect(relId).toBeTruthy();
+
+		// The owning element lives in the slide's own p:cSld/p:custDataLst, not
+		// the presentation root, and references the same relationship id.
+		const slideXml = await authoredZip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(slideXml).toContain(`<p:tags r:id="${relId}"></p:tags>`);
 
 		const tagXml = await authoredZip.file(tags[0].path!)!.async('string');
 		authoredZip.file(

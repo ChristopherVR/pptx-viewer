@@ -8,9 +8,11 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlideSize,
+	PptxTextStyleLevels,
 	XmlObject,
 } from '../../types';
 import { applyKinsokuToXml } from '../../utils/kinsoku-parser';
+import { applyPresentationDefaultTextStyle } from '../../utils/master-text-style-writer';
 import { applyCustomShows, applySections } from '../../utils/presentation-collections';
 import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
 
@@ -28,6 +30,10 @@ export interface PptxPresentationSaveBuilderOptions {
 	 * loaded `p:sldSz` carried, and an explicitly empty string removes it.
 	 */
 	slideSize?: PptxSlideSize;
+	/** `p:presentation/@embedTrueTypeFonts` to write. `undefined` preserves the loaded value. */
+	embedTrueTypeFonts?: boolean;
+	/** `p:defaultTextStyle` level edits to merge in. `undefined` preserves the loaded value. */
+	defaultTextStyle?: PptxTextStyleLevels;
 }
 
 export interface PptxPresentationSaveBuildInput {
@@ -88,6 +94,10 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 		this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
 		presentation = this.applyKinsoku(presentation, init.options?.kinsoku);
 		this.applyModifyVerifier(presentation, init.options?.modifyVerifier);
+		this.applyEmbedTrueTypeFonts(presentation, init.options?.embedTrueTypeFonts);
+		if (init.options?.defaultTextStyle) {
+			applyPresentationDefaultTextStyle(presentation, init.options.defaultTextStyle);
+		}
 
 		init.presentationData[rootKey ?? 'p:presentation'] = presentation;
 		return init.presentationData;
@@ -169,6 +179,19 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 		}
 
 		presentation['p:photoAlbum'] = pa;
+	}
+
+	/**
+	 * `@embedTrueTypeFonts` is a bare boolean attribute, so it always writes
+	 * the literal `1`/`0` a caller explicitly asked for (never omitted for an
+	 * explicit `false`), matching `@showMasterPhAnim`'s convention elsewhere.
+	 * `undefined` leaves whatever the loaded XML already carried untouched.
+	 */
+	private applyEmbedTrueTypeFonts(presentation: XmlObject, value: boolean | undefined): void {
+		if (value === undefined) {
+			return;
+		}
+		presentation['@_embedTrueTypeFonts'] = value ? '1' : '0';
 	}
 
 	private applyKinsoku(

@@ -21,9 +21,9 @@ assign(
 	{
 		parse: 'native',
 		preserve: 'native',
-		edit: 'unassessed',
-		serialize: 'unassessed',
-		note: 'The master fallback cascade (an unstyled placeholder run inherits its level style from the master\'s `p:titleStyle`/`p:bodyStyle`/`p:otherStyle` according to the placeholder\'s family - title/ctrTitle -> titleStyle, body/obj/subtitle -> bodyStyle, everything else -> otherStyle) is genuinely implemented (`parseMasterTxStyles`, `lookupPlaceholderDefaults`) and survives a no-edit round trip. FINDING: there is no edit API - `PptxHandlerRuntimeSaveSlideMaster.ts` documents in its own header that `txStyles` is one of the fields "not part of the typed model" and "left untouched, preserving them verbatim across the round-trip". No test demonstrates the lack of an edit path directly, so `edit`/`serialize` are left unassessed rather than a fabricated grade.',
+		edit: 'native',
+		serialize: 'native',
+		note: "The master fallback cascade (an unstyled placeholder run inherits its level style from the master's `p:titleStyle`/`p:bodyStyle`/`p:otherStyle` according to the placeholder's family - title/ctrTitle -> titleStyle, body/obj/subtitle -> bodyStyle, everything else -> otherStyle) is genuinely implemented (`parseMasterTxStyles`, `lookupPlaceholderDefaults`) and survives a no-edit round trip. An edit path now exists: `PptxHandlerRuntimeSaveSlideMaster.ts` calls `applyMasterTextStyles` (`master-text-style-writer.ts`) when `PptxSlideMaster.txStyles` is set, merging each edited level via `serializePlaceholderLevelStyle` (`placeholder-level-style-serializer.ts`) into the existing `a:lvlXpPr`/`a:defPPr` node rather than rebuilding it, so untouched categories/levels and unmodelled attributes/children (bullet fonts, theme font refs, @kern, ...) survive in their original schema position.",
 		evidence: [
 			testEvidence(
 				TEST_FILE,
@@ -39,6 +39,13 @@ assign(
 				['re-emits titleStyle/bodyStyle/otherStyle and defaultTextStyle verbatim'],
 				['preserve'],
 			),
+			testEvidence(
+				TEST_FILE,
+				[
+					'edits titleStyle level 0 font size while preserving bodyStyle/otherStyle and unmodelled XML',
+				],
+				['edit', 'serialize'],
+			),
 		],
 	},
 );
@@ -46,9 +53,9 @@ assign(
 assign(['presentation:element:defaultTextStyle'], {
 	parse: 'native',
 	preserve: 'native',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: "`p:defaultTextStyle` on the presentation is the last-resort fallback applied to EVERY shape (placeholder or not) whose local/inherited cascade leaves a field undefined - a non-placeholder text box with no styling correctly inherits from it, and a placeholder's own cascade (layout/master, including the title/body/other txStyles) still outranks it, both `applyPlaceholderBodyDefaults` calls in `PptxHandlerRuntimeShapeParsing.ts` only fill still-undefined slots. It survives a no-edit round trip. There is no public API to edit it (the presentation-save builder never touches it), so edit/serialize are not claimed.",
+	edit: 'native',
+	serialize: 'native',
+	note: "`p:defaultTextStyle` on the presentation is the last-resort fallback applied to EVERY shape (placeholder or not) whose local/inherited cascade leaves a field undefined - a non-placeholder text box with no styling correctly inherits from it, and a placeholder's own cascade (layout/master, including the title/body/other txStyles) still outranks it, both `applyPlaceholderBodyDefaults` calls in `PptxHandlerRuntimeShapeParsing.ts` only fill still-undefined slots. It survives a no-edit round trip, is exposed as `PptxData.defaultTextStyle`, and is editable via the `defaultTextStyle` save option: `PptxPresentationSaveBuilder` calls `applyPresentationDefaultTextStyle` (`master-text-style-writer.ts`), the same merge-in-place writer as the master's txStyles, keeping `p:defaultTextStyle` in its CT_Presentation schema position (before `p:modifyVerifier`/`p:extLst`).",
 	evidence: [
 		testEvidence(
 			TEST_FILE,
@@ -62,6 +69,11 @@ assign(['presentation:element:defaultTextStyle'], {
 			TEST_FILE,
 			['re-emits titleStyle/bodyStyle/otherStyle and defaultTextStyle verbatim'],
 			['preserve'],
+		),
+		testEvidence(
+			TEST_FILE,
+			['edits the presentation defaultTextStyle level 0 font size via the save option'],
+			['edit', 'serialize'],
 		),
 	],
 });

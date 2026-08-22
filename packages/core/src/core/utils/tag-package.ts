@@ -2,6 +2,7 @@ import type JSZip from 'jszip';
 
 import type { PptxTagCollection, XmlObject } from '../types';
 import { safeResolveZipPath } from './safe-path';
+import { removeTagsOwningElement, upsertTagsOwningElement } from './tag-package-owning-element';
 
 const TAG_RELATIONSHIP_TYPE =
 	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/tags';
@@ -66,6 +67,7 @@ export async function writeTagCollections(
 	const writtenPaths = new Set<string>();
 	for (const collection of collections) {
 		if (collection.tags.length === 0) {
+			await removeTagCollection(zip, codec, collection);
 			continue;
 		}
 		collection.path ??= `ppt/tags/tag${nextIndex++}.xml`;
@@ -85,9 +87,77 @@ export async function writeTagCollections(
 		collection.rawXml = { ...(collection.rawXml ?? {}), 'p:tagLst': root };
 		zip.file(collection.path, codec.build(collection.rawXml));
 		await upsertTagRelationship(zip, codec, collection);
+		await upsertTagsOwningElement(
+			zip,
+			codec,
+			collection.sourcePartPath,
+			collection.relationshipId!,
+		);
 		writtenPaths.add(collection.path);
 	}
 	await upsertTagContentTypes(zip, codec, writtenPaths);
+}
+
+/**
+ * Remove a tag collection that has gone to zero tags: drop the owning
+ * `<p:tags r:id=".."/>` element, the relationship, the part itself, and its
+ * content-type override. A collection that never had a `path`/`sourcePartPath`
+ * (never persisted) is a no-op.
+ */
+async function removeTagCollection(
+	zip: JSZip,
+	codec: XmlCodec,
+	collection: PptxTagCollection,
+): Promise<void> {
+	if (!collection.path || !collection.sourcePartPath) {
+		return;
+	}
+	await removeTagsOwningElement(zip, codec, collection.sourcePartPath);
+	await removeTagRelationship(zip, codec, collection);
+	zip.remove(collection.path);
+	await removeTagContentTypeOverride(zip, codec, collection.path);
+}
+
+async function removeTagRelationship(
+	zip: JSZip,
+	codec: XmlCodec,
+	collection: PptxTagCollection,
+): Promise<void> {
+	const relsPath = relsForSourcePart(collection.sourcePartPath!);
+	const xml = await zip.file(relsPath)?.async('string');
+	if (!xml) {
+		return;
+	}
+	const data = codec.parse(xml);
+	const root = data['Relationships'] as XmlObject | undefined;
+	if (!root) {
+		return;
+	}
+	root['Relationship'] = ensureArray(root['Relationship']).filter(
+		(entry) =>
+			!(
+				String(entry['@_Id'] ?? '') === collection.relationshipId &&
+				String(entry['@_Type'] ?? '') === TAG_RELATIONSHIP_TYPE
+			),
+	);
+	zip.file(relsPath, codec.build(data));
+}
+
+async function removeTagContentTypeOverride(
+	zip: JSZip,
+	codec: XmlCodec,
+	path: string,
+): Promise<void> {
+	const xml = await zip.file('[Content_Types].xml')?.async('string');
+	if (!xml) {
+		return;
+	}
+	const data = codec.parse(xml);
+	const root = data['Types'] as XmlObject;
+	root['Override'] = ensureArray(root['Override']).filter(
+		(entry) => entry['@_PartName'] !== `/${path}`,
+	);
+	zip.file('[Content_Types].xml', codec.build(data));
 }
 
 async function readTagCollection(

@@ -10,13 +10,16 @@
  *   tested it (`PptxHandlerRuntimeSaveSlideLayout.ts` has no test file at
  *   all).
  *
- * - `p:presentation/@embedTrueTypeFonts` is NOT implemented: nothing in this
- *   codebase (outside the generated schema inventory) reads or writes it.
- *   `presentationData` (the parsed `p:presentation.xml` root) is mutated in
- *   place for the handful of fields the typed model owns and re-serialized
- *   wholesale on save, so an authored `@embedTrueTypeFonts` survives as
- *   passthrough - but there is no typed field, no getter, and no way to
- *   toggle it. This is a genuine audit gap, not a promotion.
+ * - `p:presentation/@embedTrueTypeFonts` is now modelled: parsed onto
+ *   `PptxData.embedTrueTypeFonts` (`extractEmbedTrueTypeFonts`), editable via
+ *   the `embedTrueTypeFonts` save option, and written by
+ *   `PptxPresentationSaveBuilder.applyEmbedTrueTypeFonts`. It stays purely
+ *   declarative: this library only ever embeds fonts a caller explicitly
+ *   supplies via `embeddedFontList`/`embeddedFonts` (there is no
+ *   automatic embed-on-save), so the flag does not gate anything here - it
+ *   only round-trips the author's stated preference, same as PowerPoint's own
+ *   checkbox. `@saveSubsetFonts` is a separate, deliberately unimplemented
+ *   flag (no glyph subsetting) and does not interact with this one.
  */
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
@@ -118,7 +121,31 @@ describe('p:sldLayout/@showMasterPhAnim', () => {
 	});
 });
 
-describe('p:presentation/@embedTrueTypeFonts (gap: passthrough only, not modelled)', () => {
+describe('p:presentation/@embedTrueTypeFonts', () => {
+	it('defaults to undefined (spec default: false) when the attribute is absent', async () => {
+		const built = await PresentationBuilder.create({ initialSlideCount: 1 });
+		const seed = await built.handler.save(built.data.slides);
+		const data = await new PptxHandler().load(seed.buffer as ArrayBuffer);
+		expect(data.embedTrueTypeFonts).toBeUndefined();
+	});
+
+	it('parses an explicit @embedTrueTypeFonts="1" as true onto the typed model', async () => {
+		const built = await PresentationBuilder.create({ initialSlideCount: 1 });
+		const seed = await built.handler.save(built.data.slides);
+		const zip = await JSZip.loadAsync(seed);
+		const presentationXml = await zip.file('ppt/presentation.xml')!.async('string');
+		const patched = presentationXml.replace(
+			'saveSubsetFonts="1">',
+			'saveSubsetFonts="1" embedTrueTypeFonts="1">',
+		);
+		expect(patched).not.toBe(presentationXml);
+		zip.file('ppt/presentation.xml', patched);
+		const bytes = await zip.generateAsync({ type: 'uint8array' });
+
+		const data = await new PptxHandler().load(bytes.buffer as ArrayBuffer);
+		expect(data.embedTrueTypeFonts).toBeTruthy();
+	});
+
 	it('survives an unrelated save as raw passthrough on the presentation root', async () => {
 		const built = await PresentationBuilder.create({ initialSlideCount: 1 });
 		const seed = await built.handler.save(built.data.slides);
@@ -135,14 +162,41 @@ describe('p:presentation/@embedTrueTypeFonts (gap: passthrough only, not modelle
 		const handler = new PptxHandler();
 		const data = await handler.load(bytes.buffer as ArrayBuffer);
 		// An unrelated, typed edit (adding a slide) forces presentation.xml to
-		// be rewritten (the sldIdLst changes); the attribute is not part of
-		// any typed field the writer owns, so it has to come from the raw
-		// `presentationData` object being mutated in place, not rebuilt.
+		// be rewritten (the sldIdLst changes); with no `embedTrueTypeFonts`
+		// save option the writer leaves the attribute alone.
 		const seedTwo = await PresentationBuilder.create({ initialSlideCount: 1 });
 		data.slides.push(seedTwo.data.slides[0]!);
 		const saved = await handler.save(data.slides);
 
 		const resavedPresentationXml = await partXml(saved, 'ppt/presentation.xml');
 		expect(resavedPresentationXml).toContain('embedTrueTypeFonts="1"');
+	});
+
+	it('round-trips an edit through the typed model: true -> XML -> parsed true again', async () => {
+		const built = await PresentationBuilder.create({ initialSlideCount: 1 });
+		const seed = await built.handler.save(built.data.slides);
+		const handler = new PptxHandler();
+		const data: PptxData = await handler.load(seed.buffer as ArrayBuffer);
+
+		const saved = await handler.save(data.slides, { embedTrueTypeFonts: true });
+		const presentationXml = await partXml(saved, 'ppt/presentation.xml');
+		expect(presentationXml).toContain('embedTrueTypeFonts="1"');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		expect(reloaded.embedTrueTypeFonts).toBeTruthy();
+	});
+
+	it('writes @embedTrueTypeFonts="0" for an explicit false (not just omitted)', async () => {
+		const built = await PresentationBuilder.create({ initialSlideCount: 1 });
+		const seed = await built.handler.save(built.data.slides);
+		const handler = new PptxHandler();
+		const data: PptxData = await handler.load(seed.buffer as ArrayBuffer);
+
+		const saved = await handler.save(data.slides, { embedTrueTypeFonts: false });
+		const presentationXml = await partXml(saved, 'ppt/presentation.xml');
+		expect(presentationXml).toContain('embedTrueTypeFonts="0"');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		expect(reloaded.embedTrueTypeFonts).toBeFalsy();
 	});
 });

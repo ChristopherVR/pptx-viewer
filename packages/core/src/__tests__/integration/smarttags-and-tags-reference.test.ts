@@ -1,28 +1,27 @@
 /**
- * `p:smartTags` (`CT_SmartTags`, a bare `@r:id` child of `p:presentation`)
- * and `p:tags` (`CT_TagsData`, a bare `@r:id` child of `p:custData` scoping a
- * tags part to one customer-data item) are both just relationship pointers -
- * no content of their own beyond the id.
+ * Two different `@r:id` reference elements share the "smart tags" name in
+ * casual usage, but are unrelated OOXML constructs:
  *
- * FINDING: this codebase's tags-package support
- * (`src/core/utils/tag-package.ts`) discovers and authors tag PARTS purely by
- * scanning `.rels` files for `Type=".../relationships/tags"` -
- * `discoverTagCollections` never reads a `<p:smartTags>` or `<p:tags>`
- * element, and `writeTagCollections` never writes one either (only the
- * relationship is upserted). A brand-new presentation-owned tag collection
- * therefore round-trips fine through THIS library (the reader doesn't need
- * the element), but produces a package where the relationship exists with no
- * `<p:smartTags r:id="..."/>` referencing it - real PowerPoint's smart-tags
- * feature keys off that element, not a bare relationship, so a collection
- * authored from scratch here would not surface in Word/PowerPoint's own
- * smart-tag UI. An element that was ALREADY authored by a real generator
- * survives because `presentationData` / a slide's parsed XML is mutated in
- * place and re-emitted wholesale, not because anything models the element.
+ * - `p:smartTags` (`CT_SmartTags`) is a direct child of `p:presentation`
+ *   pointing at a smart-tag RECOGNIZER part (`p:smartTagLst`/`p:smartTagType`,
+ *   the old Office "smart tags" feature). This codebase has no data model for
+ *   authoring recognizer parts at all, so there is no way to create one
+ *   through the public API; it is genuinely out of scope, not merely
+ *   untested. An element already authored by a real generator survives a
+ *   no-edit save because the owning part's XML is mutated in place and
+ *   re-emitted wholesale.
+ * - `p:tags` (`CT_TagsData`) is a child of `p:custDataLst`
+ *   (`CT_CustomerDataList`, itself a child of `p:presentation` or a
+ *   `p:cSld`-bearing part) pointing at a user-defined tags part
+ *   (`p:tagLst`/`p:tag`, name/value pairs). THIS is what the public `tags`
+ *   save option authors, and `src/core/utils/tag-package.ts` /
+ *   `tag-package-owning-element.ts` now write the owning `<p:tags r:id=".."/>`
+ *   element alongside the relationship (previously it authored only the
+ *   relationship, an authoring gap fixed alongside this test - see
+ *   `tag-part-authoring.test.ts` for the structural-correctness coverage).
  *
- * Given that, only `preserve` (survives an edit that does not touch it) is
- * promoted; `parse`/`edit`/`serialize` stay unassessed rather than claiming
- * capability that does not exist. See CLAUDE.md task notes / final report
- * for the write-up.
+ * This file keeps the raw round-trip/preserve evidence for both constructs
+ * and one negative assertion proving `p:smartTags` really is untouched.
  */
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
@@ -41,9 +40,9 @@ const SMART_TAGS_PART =
 	'<p:smartTagLst xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
 	'<p:smartTagType namespaceuri="urn:example" name="Example"/></p:smartTagLst>';
 
-/** A `p:custData` carrying a nested `<p:tags r:id=".."/>` reference, as CT_CustomerData allows. */
+/** `p:tags` is a SIBLING of `p:custData` inside `p:custDataLst` (CT_CustomerDataList), not nested. */
 const CUST_DATA_WITH_TAGS_REF =
-	'<p:custDataLst><p:custData r:id="rIdCustom1"><p:tags r:id="rIdTagsForCustom1"/></p:custData></p:custDataLst>';
+	'<p:custDataLst><p:custData r:id="rIdCustom1"/><p:tags r:id="rIdTagsForCustom1"/></p:custDataLst>';
 
 async function buildDeckWithSmartTagsAndCustDataTags() {
 	const built = await PresentationBuilder.create({ initialSlideCount: 1 });
@@ -75,7 +74,7 @@ async function buildDeckWithSmartTagsAndCustDataTags() {
 	return { handler, data };
 }
 
-describe('p:smartTags and p:custData/p:tags reference elements (preserve only)', () => {
+describe('p:smartTags (preserve only) and p:custDataLst/p:tags (authored) reference elements', () => {
 	it('preserves an authored <p:smartTags r:id=".."/> through a no-edit round trip', async () => {
 		const { handler, data } = await buildDeckWithSmartTagsAndCustDataTags();
 		const saved = await handler.save(data.slides);
@@ -84,7 +83,7 @@ describe('p:smartTags and p:custData/p:tags reference elements (preserve only)',
 		expect(presentationXml).toContain(SMART_TAGS_ELEMENT);
 	});
 
-	it('preserves a nested <p:tags r:id=".."/> inside p:custData through a no-edit round trip', async () => {
+	it('preserves a <p:tags r:id=".."/> sibling of p:custData inside p:custDataLst through a no-edit round trip', async () => {
 		const { handler, data } = await buildDeckWithSmartTagsAndCustDataTags();
 		const saved = await handler.save(data.slides);
 		const zip = await JSZip.loadAsync(saved);
@@ -92,10 +91,12 @@ describe('p:smartTags and p:custData/p:tags reference elements (preserve only)',
 		expect(presentationXml).toContain('<p:tags r:id="rIdTagsForCustom1"></p:tags>');
 	});
 
-	it('does not author a <p:smartTags> element for a brand-new presentation-owned tag collection (gap)', async () => {
-		// This documents the finding above with a real assertion rather than
-		// just prose: creating a tag collection through the public `tags` save
-		// option produces a relationship with no owning element pointing at it.
+	it('authors a <p:tags r:id=".."/> element matching the relationship for a brand-new presentation-owned tag collection (gap fixed)', async () => {
+		// A brand-new tag collection authored through the public `tags` save
+		// option now gets an owning element pointing at its relationship, not
+		// just the relationship on its own. `p:smartTags` (the unrelated
+		// recognizer-part element) is never authored, since nothing here models
+		// recognizer content.
 		const { handler, data } = await PresentationBuilder.create({ initialSlideCount: 1 });
 		const saved = await handler.save(data.slides, {
 			tags: [{ tags: [{ name: 'DECK_ID', value: 'abc-123' }] }],
@@ -104,9 +105,11 @@ describe('p:smartTags and p:custData/p:tags reference elements (preserve only)',
 		const rels = await zip.file('ppt/_rels/presentation.xml.rels')!.async('string');
 		const presentationXml = await zip.file('ppt/presentation.xml')!.async('string');
 
-		expect(rels).toContain(
-			'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/tags"',
+		const relMatch = rels.match(
+			/<Relationship Id="(rId\d+)" Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/tags"/u,
 		);
+		expect(relMatch).toBeTruthy();
+		expect(presentationXml).toContain(`<p:tags r:id="${relMatch![1]}"></p:tags>`);
 		expect(presentationXml).not.toContain('<p:smartTags');
 	});
 });
