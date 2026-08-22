@@ -192,6 +192,22 @@
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- Per-sub-path fill overlay: a multi-sub-path preset (`smileyFace`'s
+			     open eyes, `actionButtonBlank`'s darkened bevel well) or custom
+			     geometry whose sub-paths cannot share one CSS background-color. -->
+			@if (subpathFill(); as sf) {
+				<svg
+					class="pptx-ng-subpath-fill"
+					aria-hidden="true"
+					[attr.viewBox]="subpathFillViewBox()"
+					preserveAspectRatio="none"
+					style="position: absolute; inset: 0; width: 100%; height: 100%"
+				>
+					@for (paint of sf.paints; track $index) {
+						<path [attr.d]="paint.d" [attr.fill]="paint.fill" stroke="none" />
+					}
+				</svg>
+			}
 			@if (fillOverlay(); as ov) {
 				<div
 					class="pptx-ng-fill-overlay"
@@ -415,18 +431,22 @@
 											rel="noopener noreferrer"
 											[attr.title]="run.tooltip ?? null"
 											[ngStyle]="run.style"
-											>{{ run.text }}</a
-										>
+											><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
+										/></a>
 									} @else if (run.rubyText) {
 										<!-- `a:ruby`: the phonetic guide sits above its base
 										     text; the <rp> parentheses are the fallback for a
 										     browser without ruby support. -->
 										<ruby [ngStyle]="run.style"
-											>{{ run.text }}<rp>(</rp><rt [ngStyle]="run.rubyStyle">{{ run.rubyText }}</rt
+											><ng-container *ngTemplateOutlet="runContent; context: { run: run }" /><rp>
+												(</rp
+											><rt [ngStyle]="run.rubyStyle">{{ run.rubyText }}</rt
 											><rp>)</rp></ruby
 										>
 									} @else {
-										<span [ngStyle]="run.style">{{ run.text }}</span>
+										<span [ngStyle]="run.style"
+											><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
+										/></span>
 									}
 								}
 							}
@@ -511,3 +531,42 @@
 		</defs>
 	</svg>
 }
+
+<!--
+	A run's text content, honouring shared's per-script font split
+	(`run.scriptRuns`) and measured tab-stop layout (`run.tabLines`) when
+	either is present. Both descriptors come from `pptx-viewer-shared`'s
+	`buildParagraphs` (the per-script split was React-only before this
+	template existed: CJK, Arabic, Hebrew and Thai text rendered in the wrong
+	typeface here; the tab layout was likewise React-only, so a TOC-style row
+	lost its leader dots and right-aligned page number). Reused via
+	`ngTemplateOutlet` for the run's span / anchor / ruby base text, so all
+	three carry the same content logic.
+-->
+<ng-template #runContent let-run="run">
+	@if (run.tabLines) {
+		@for (line of run.tabLines; track $index) {
+			<span style="display: inline-block; white-space: nowrap">
+				@for (piece of line.pieces; track $index) {
+					@if (piece.leaderStyle) {
+						<span aria-hidden="true" [ngStyle]="piece.leaderStyle">{{ piece.leaderText }}</span>
+					}
+					<span [ngStyle]="piece.style">{{ piece.text }}</span>
+				}
+			</span>
+			@if (!$last) {
+				<br />
+			}
+		}
+	} @else if (run.scriptRuns) {
+		@for (piece of run.scriptRuns; track $index) {
+			@if (piece.style) {
+				<span [ngStyle]="piece.style">{{ piece.text }}</span>
+			} @else {
+				{{ piece.text }}
+			}
+		}
+	} @else {
+		{{ run.text }}
+	}
+</ng-template>

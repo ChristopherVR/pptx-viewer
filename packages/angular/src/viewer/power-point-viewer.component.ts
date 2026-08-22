@@ -444,6 +444,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
 							[snapToGrid]="snapToGrid()"
+							[gridSpacing]="loader.viewProperties()?.gridSpacing"
 							[snapToShape]="snapToShape()"
 							[guideCommand]="guideCommand()"
 							[spellCheck]="spellCheck()"

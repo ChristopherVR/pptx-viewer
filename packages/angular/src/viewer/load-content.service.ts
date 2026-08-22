@@ -22,6 +22,7 @@ import type {
 	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
+	PptxViewProperties,
 	ParsedTableStyleMap,
 	XmlObject,
 } from 'pptx-viewer-core';
@@ -35,8 +36,10 @@ import {
 import {
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
+	applyTableCellImagePatches,
 	collectImagePaths,
 	collectMediaElements,
+	collectTableCellImagePaths,
 	describeFontEmbedding,
 	embeddedFontSaveOptions,
 	resolveSlideSizeSelection,
@@ -119,6 +122,14 @@ export class LoadContentService {
 	readonly handoutMaster = signal<PptxHandoutMaster | undefined>(undefined);
 	readonly sections = signal<PptxSection[]>([]);
 	readonly presentationProperties = signal<PptxPresentationProperties>({});
+	/**
+	 * View properties (`ppt/viewProps.xml`, `p:viewPr`): grid spacing, snap /
+	 * guide toggles, last view, splitter state, etc. `gridSpacing` lives here,
+	 * NOT on `presentationProperties` -- `p:gridSpacing` is a child of
+	 * `p:viewPr`, and a real PowerPoint file never populates it under
+	 * `p:presentationPr`.
+	 */
+	readonly viewProperties = signal<PptxViewProperties | undefined>(undefined);
 	/** Whether the loaded package contains a VBA project. */
 	readonly hasMacros = signal(false);
 	/** Archive-path → displayable URL map for media + poster frames. */
@@ -406,6 +417,35 @@ export class LoadContentService {
 				}
 			}
 
+			// ── Resolve table cell image-fill Blob URLs ──
+			const { paths: tableImagePaths, refs: tableImageRefs } =
+				collectTableCellImagePaths(nextSlides);
+			if (tableImagePaths.size > 0) {
+				const resolvedTableMap = new Map<string, string>();
+				await Promise.all(
+					Array.from(tableImagePaths).map(async (path) => {
+						try {
+							const url = await newHandler.getImageData(path);
+							if (url) {
+								resolvedTableMap.set(path, url);
+							}
+						} catch {
+							// Non-critical: the cell falls back to no image fill.
+						}
+					}),
+				);
+				if (resolvedTableMap.size > 0) {
+					nextSlides = nextSlides.map((s) => {
+						const newElements = applyTableCellImagePatches(
+							s.elements,
+							resolvedTableMap,
+							tableImageRefs,
+						);
+						return newElements === s.elements ? s : { ...s, elements: newElements };
+					});
+				}
+			}
+
 			// Commit reactive state.
 			this.revokeBlobUrls(this.activeBlobUrls);
 			this.activeBlobUrls = loadBlobUrls;
@@ -446,6 +486,7 @@ export class LoadContentService {
 			this.handoutMaster.set(parsed.handoutMaster);
 			this.sections.set(parsed.sections ?? []);
 			this.presentationProperties.set(parsed.presentationProperties ?? {});
+			this.viewProperties.set(parsed.viewProperties);
 			this.hasMacros.set(parsed.hasMacros ?? false);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			// Re-seed the Fonts toggle for THIS deck: it has to start in the

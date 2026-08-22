@@ -165,8 +165,13 @@ export class MasterViewCanvasComponent {
 		this.updateMasterElement(event.id, event.box);
 	}
 
-	protected commitText(event: { id: string; text: string }): void {
-		this.updateMasterElement(event.id, { text: event.text, textSegments: [] });
+	protected commitText(event: { id: string; text: string; height?: number }): void {
+		this.updateMasterElement(event.id, {
+			text: event.text,
+			textSegments: [],
+			// `a:spAutoFit`: see `slide-canvas.component.ts`'s `commitText`.
+			...(event.height !== undefined ? { height: event.height } : {}),
+		});
 		this.editingId.set(null);
 	}
 

@@ -14,4 +14,4 @@
 
 export type { SnapBox, SnapGuide, SnapResult } from '../internal/shared';
 
-export { computeSnap, snapToGridStep } from '../internal/shared';
+export { computeGridSpacingPx, computeSnap, snapToGridStep } from '../internal/shared';

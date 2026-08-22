@@ -431,6 +431,61 @@ describe('buildTableViewModel - cell fill color', () => {
 		expect(rows[0].cells[0].tdStyle['background']).toBe(gradient);
 		expect(rows[0].cells[0].tdStyle['background-color']).toBeUndefined();
 	});
+
+	it('renders a resolved cell image fill as a cover background', () => {
+		const el = tableElement([
+			{
+				cells: [
+					{
+						text: 'Photo',
+						style: {
+							fillMode: 'image',
+							backgroundImageFillData: 'data:image/png;base64,AAAA',
+						},
+					},
+				],
+			},
+		]);
+		const rows = buildTableViewModel(el);
+		expect(rows[0].cells[0].tdStyle['background-image']).toBe('url("data:image/png;base64,AAAA")');
+		expect(rows[0].cells[0].tdStyle['background-size']).toBe('cover');
+	});
+
+	it('renders no background-image for an unresolved raw archive path', () => {
+		const el = tableElement([
+			{
+				cells: [
+					{
+						text: 'Photo',
+						style: { fillMode: 'image', backgroundImageFillPath: 'ppt/media/image1.png' },
+					},
+				],
+			},
+		]);
+		const rows = buildTableViewModel(el);
+		expect(rows[0].cells[0].tdStyle['background-image']).toBeUndefined();
+	});
+});
+
+// ==========================================================================
+// buildTableViewModel: explicit zero cell margin (issue: table-cell fidelity)
+// ==========================================================================
+
+describe('buildTableViewModel - explicit zero cell margin', () => {
+	it('renders 0px padding for an explicit zero margin rather than the base default', () => {
+		// Angular's base padding (padding-left: '4px' etc., set before the
+		// computed cell CSS spreads over it) is exactly the kind of value a
+		// zero margin must be able to override; asserting the literal '0px'
+		// (not merely "not 4px") catches a binding clobbering it back.
+		const el = tableElement([
+			{
+				cells: [{ text: 'Dense', style: { marginLeft: 0, marginTop: 0 } }],
+			},
+		]);
+		const rows = buildTableViewModel(el);
+		expect(rows[0].cells[0].tdStyle['padding-left']).toBe('0px');
+		expect(rows[0].cells[0].tdStyle['padding-top']).toBe('0px');
+	});
 });
 
 // ==========================================================================

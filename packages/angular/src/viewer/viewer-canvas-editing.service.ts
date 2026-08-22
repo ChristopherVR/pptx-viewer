@@ -108,7 +108,7 @@ export class ViewerCanvasEditingService {
 	}
 
 	/** Commit an inline text edit: replace the element's text (one history entry). */
-	onTextCommit(event: { id: string; text: string }): void {
+	onTextCommit(event: { id: string; text: string; height?: number }): void {
 		const host = this.requireHost();
 		// Push any queued interim frame out first so it cannot land after the
 		// committed text and revert it.
@@ -116,6 +116,10 @@ export class ViewerCanvasEditingService {
 		this.editor.updateElement(host.activeSlideIndex(), event.id, {
 			text: event.text,
 			textSegments: [],
+			// `a:spAutoFit`: the shape's new height, already decided by
+			// `slide-canvas.component.ts`'s `commitText` (it holds the live
+			// editor DOM node this needs to measure).
+			...(event.height !== undefined ? { height: event.height } : {}),
 		});
 		this.editingId.set(null);
 	}

@@ -100,10 +100,24 @@ describe('elementRenderer stroke outline (gradient)', () => {
 });
 
 describe('elementRenderer stroke outline (solid control)', () => {
-	it('leaves a solid outline on the cheaper CSS border', () => {
-		const solid = shape({ strokeFillMode: 'solid', strokeColor: '#00B050', strokeWidth: 6 });
+	it('leaves an explicitly INSET solid outline on the cheaper CSS border', () => {
+		// `algn="in"` is the one alignment a CSS border already paints correctly;
+		// the default `ctr` alignment routes the stroke through this SVG overlay
+		// instead (see shared `stroke-outline.ts`).
+		const solid = shape({
+			strokeFillMode: 'solid',
+			strokeColor: '#00B050',
+			strokeWidth: 6,
+			lineAlignment: 'in',
+		});
 		expect(getStrokeOutline(solid)).toBeUndefined();
 		expect(String(getShapeFillStrokeStyle(solid)['border'])).toContain('#00B050');
+	});
+
+	it('centres a solid outline at the default (omitted) alignment instead', () => {
+		const solid = shape({ strokeFillMode: 'solid', strokeColor: '#00B050', strokeWidth: 6 });
+		expect(getStrokeOutline(solid)).toBeDefined();
+		expect(getShapeFillStrokeStyle(solid)['border']).toBeUndefined();
 	});
 });
 
@@ -138,9 +152,18 @@ describe('elementRenderer stroke outline (stroke-only preset)', () => {
 		expect(style['clip-path']).toBeUndefined();
 	});
 
-	it('leaves a closed preset boxed by its CSS border, as before', () => {
-		const box = rule({ shapeType: 'rect', height: 140 } as Partial<PptxElement>);
+	it('leaves an explicitly INSET closed preset boxed by its CSS border, as before', () => {
+		const box = shape(
+			{ strokeColor: '#000000', strokeWidth: 2, lineAlignment: 'in' },
+			{ shapeType: 'rect', width: 400, height: 140 },
+		);
 		expect(getStrokeOutline(box)).toBeUndefined();
 		expect(String(getShapeFillStrokeStyle(box)['border'])).toContain('#000000');
+	});
+
+	it('centres a closed preset at the default (omitted) alignment instead', () => {
+		const box = rule({ shapeType: 'rect', height: 140 } as Partial<PptxElement>);
+		expect(getStrokeOutline(box)).toBeDefined();
+		expect(getShapeFillStrokeStyle(box)['border']).toBeUndefined();
 	});
 });

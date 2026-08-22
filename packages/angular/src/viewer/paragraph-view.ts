@@ -1,7 +1,12 @@
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 
 import { buildParagraphs } from '../internal/shared';
-import type { FieldSubstitutionContext, PictureBulletMarker } from '../internal/shared';
+import type {
+	FieldSubstitutionContext,
+	PictureBulletMarker,
+	ScriptFontPiece,
+	TabbedLineRun,
+} from '../internal/shared';
 import type { StyleMap } from './element-style';
 
 /**
@@ -40,6 +45,20 @@ export interface TextRun {
 	rubyText?: string;
 	/** `[ngStyle]` map for the `<rt>` annotation (size / family / alignment). */
 	rubyStyle?: StyleMap;
+	/**
+	 * Per-script (`a:ea`/`a:cs`/`a:sym`) font-fallback pieces for this run's
+	 * text, when it authors a distinct east-Asian / complex-script / symbol
+	 * font the text actually needs. The template renders these as nested spans
+	 * instead of `text`. Absent for the common single-font case.
+	 */
+	scriptRuns?: ScriptFontPiece[];
+	/**
+	 * Measured tab-stop layout for this run's text, present when it contains an
+	 * authored `\t` and the paragraph declares explicit tab stops. The template
+	 * renders these lines/pieces instead of `text`, honouring per-stop
+	 * alignment and leader glyphs a plain CSS `tab-size` cannot express.
+	 */
+	tabLines?: TabbedLineRun[];
 }
 
 /** A rendered paragraph: runs plus bullet + indent + spacing metadata. */
@@ -108,6 +127,12 @@ export function buildAngularParagraphs(
 			if (run.ruby) {
 				out.rubyText = run.ruby.text;
 				out.rubyStyle = run.ruby.style;
+			}
+			if (run.scriptRuns) {
+				out.scriptRuns = run.scriptRuns;
+			}
+			if (run.tabLines) {
+				out.tabLines = run.tabLines;
 			}
 			return out;
 		}),

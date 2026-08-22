@@ -1,4 +1,4 @@
-import { NgStyle } from '@angular/common';
+import { NgStyle, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxTableData, ShapeStyle } from 'pptx-viewer-core';
@@ -30,6 +30,7 @@ import {
 	getEffectFillOverlay,
 	getStrokeOutline,
 	getSoftEdgeFilterDef,
+	getSubpathFillOverlay,
 } from './element-effect-defs';
 import type { SoftEdgeFilterDef } from './element-effect-defs';
 import {
@@ -84,6 +85,7 @@ import { ZoomRendererComponent } from './zoom-renderer.component';
 	host: { class: 'contents' },
 	imports: [
 		NgStyle,
+		NgTemplateOutlet,
 		ConnectorRendererComponent,
 		TableRendererComponent,
 		ChartElementViewComponent,
@@ -286,6 +288,18 @@ export class ElementRendererComponent {
 	readonly fillOverlay = computed<FillOverlayCss | undefined>(() =>
 		getEffectFillOverlay(this.element()),
 	);
+
+	/**
+	 * Per-sub-path fill overlay for a multi-sub-path preset or custom geometry,
+	 * or `undefined` when a single merged fill is correct (the ordinary case).
+	 */
+	readonly subpathFill = computed(() => getSubpathFillOverlay(this.element()));
+
+	/** `viewBox` for the sub-path fill overlay, in its own coordinate space. */
+	readonly subpathFillViewBox = computed(() => {
+		const overlay = this.subpathFill();
+		return overlay ? `0 0 ${overlay.viewBoxWidth} ${overlay.viewBoxHeight}` : undefined;
+	});
 
 	/**
 	 * Outline ring + slight transparency applied to inherited template

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSnap, snapToGridStep } from './snap-guides';
+import { computeGridSpacingPx, computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapBox, SnapGuide, SnapResult } from './snap-guides';
 
 // Shorthand factory so tests stay compact.
@@ -309,5 +309,30 @@ describe('snapToGridStep', () => {
 	it('negative values snap correctly', () => {
 		expect(snapToGridStep(-3, 8)).toBe(0);
 		expect(snapToGridStep(-5, 8)).toBe(-8);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// computeGridSpacingPx
+// ---------------------------------------------------------------------------
+
+describe('computeGridSpacingPx (SlideCanvasComponent.gridSpacingPx wiring)', () => {
+	// Regression: `gridSpacingPx` used to be `computed(() => 8)`, a hardcoded
+	// constant with no path from the deck's authored `viewProperties.gridSpacing`
+	// at all. `SlideCanvasComponent` now derives it from a `gridSpacing` input
+	// via this same shared function.
+	it('falls back to the 8px default when the deck has no gridSpacing', () => {
+		expect(computeGridSpacingPx(undefined, 8)).toBe(8);
+	});
+
+	it('reflects the real fixture value (anatidae-animation.pptx: 72008 EMU)', () => {
+		// viewProperties.gridSpacing = { cx: 72008, cy: 72008 } on that fixture;
+		// presentationProperties.gridSpacing was always undefined (the bug).
+		expect(computeGridSpacingPx({ cx: 72008, cy: 72008 }, 8)).toBe(8);
+	});
+
+	it('converts a non-default authored spacing to a different pixel step', () => {
+		// 9525 EMU/px * 20 = 190500 EMU => 20px, not the 8px default.
+		expect(computeGridSpacingPx({ cx: 190500, cy: 190500 }, 8)).toBe(20);
 	});
 });

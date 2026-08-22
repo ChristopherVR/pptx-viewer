@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import type { PptxSmartArtNode, SmartArtLayoutType } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { computeSmartArtLayout } from '../internal/shared';
+import { computeSmartArtElementLayout, computeSmartArtLayout } from '../internal/shared';
 import type { RenderedNode, SmartArtLayoutResult } from '../internal/shared';
 import { DEFAULT_PALETTE } from './smart-art-drawing';
 import { layoutConnectorPaints, layoutNodeLabels } from './smart-art-renderer-helpers';
@@ -142,6 +142,37 @@ describe('smartArtRenderer shared-engine layout', () => {
 			expect(n.stroke).toBeTypeOf('string');
 			expect(n.fontSize).toBeGreaterThan(0);
 		}
+	});
+});
+
+// Regression: `colorsDef @meth="span"` ("Colorful Range" quick styles) was
+// parsed into `smartArtData.colorTransform.fillInterpolation` but the
+// component's `layout()` computed property passed `undefined` for it, so a
+// 2-colour range alternated instead of gradienting. The component now calls
+// `computeSmartArtElementLayout`, which derives the interpolation from
+// `smartArtData` itself.
+describe('smartArtRenderer colour interpolation (colorsDef @meth="span")', () => {
+	it('gradients a 2-colour "Colorful Range" scheme across all nodes', () => {
+		const nodes = [node('1', 'A'), node('2', 'B'), node('3', 'C'), node('4', 'D'), node('5', 'E')];
+		const result = computeSmartArtElementLayout(
+			{
+				layout: 'list',
+				colorTransform: {
+					fillColors: ['#000000', '#ffffff'],
+					lineColors: [],
+					fillInterpolation: { method: 'span' },
+				},
+			},
+			nodes,
+			BOX,
+			['#000000', '#ffffff'],
+			'flat',
+			'dgm-1',
+		);
+		const fills = result.nodes.map((n) => n.fill);
+		expect(fills[0]).toBe('#000000');
+		expect(fills[4]).toBe('#ffffff');
+		expect(new Set(fills).size).toBe(5);
 	});
 });
 

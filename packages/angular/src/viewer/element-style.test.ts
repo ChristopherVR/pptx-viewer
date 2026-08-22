@@ -155,6 +155,23 @@ describe('getTextBlockStyle', () => {
 		expect(getTextBlockStyle(textElement({ textWrap: 'none' }))['white-space']).toBe('nowrap');
 		expect(getTextBlockStyle(textElement({}))['white-space']).toBe('pre-wrap');
 	});
+
+	it('never shrinks the font for spAutoFit, however much text overflows', () => {
+		// a:spAutoFit resizes the SHAPE to fit the text (ECMA-376), never the
+		// font; a box authored in PowerPoint already has its `a:ext` sized to
+		// fit, so the font must render unshrunk even for a box too small to
+		// hold the text at that size.
+		const autofit = getTextBlockStyle(
+			baseElement({
+				type: 'text',
+				width: 50,
+				height: 30,
+				text: 'x'.repeat(2000),
+				textStyle: { fontSize: 40, autoFit: true, autoFitMode: 'shrink' },
+			} as Partial<PptxElement>),
+		);
+		expect(autofit['font-size']).toBe('40px');
+	});
 });
 
 /**
@@ -265,10 +282,20 @@ describe('getShapeFillStrokeStyle - shape 3D', () => {
  * `a:miter/@lim` never reached the DOM either.
  */
 describe('getShapeFillStrokeStyle - outline', () => {
+	// Every fixture below is pinned to `lineAlignment: 'in'`: an omitted `@algn`
+	// means `ctr` (PowerPoint's default), which now routes the outline through
+	// the shared SVG stroke overlay instead of a CSS border (see shared
+	// `stroke-outline.ts`). `in` is the one alignment a CSS border still paints,
+	// so it is what exercises the dash / compound / opacity mapping here.
 	it('paints a compound outline with border-style: double', () => {
 		const style = getShapeFillStrokeStyle(
 			baseElement({
-				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 8, compoundLine: 'dbl' },
+				shapeStyle: {
+					strokeColor: '#FF0000',
+					strokeWidth: 8,
+					compoundLine: 'dbl',
+					lineAlignment: 'in',
+				},
 			} as unknown as Partial<PptxElement>),
 		);
 		expect(style['border']).toBe('8px double #FF0000');
@@ -284,6 +311,7 @@ describe('getShapeFillStrokeStyle - outline', () => {
 					strokeWidth: 8,
 					strokeDash: 'dash',
 					compoundLine: 'tri',
+					lineAlignment: 'in',
 				},
 			} as unknown as Partial<PptxElement>),
 		);
@@ -293,7 +321,12 @@ describe('getShapeFillStrokeStyle - outline', () => {
 	it('applies strokeOpacity to the border colour', () => {
 		const style = getShapeFillStrokeStyle(
 			baseElement({
-				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 2, strokeOpacity: 0.5 },
+				shapeStyle: {
+					strokeColor: '#FF0000',
+					strokeWidth: 2,
+					strokeOpacity: 0.5,
+					lineAlignment: 'in',
+				},
 			} as unknown as Partial<PptxElement>),
 		);
 		expect(style['border']).toBe('2px solid rgba(255, 0, 0, 0.5)');
@@ -319,9 +352,23 @@ describe('getShapeFillStrokeStyle - outline', () => {
 	it('leaves a plain dashed line exactly as before', () => {
 		const style = getShapeFillStrokeStyle(
 			baseElement({
-				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 4, strokeDash: 'dash' },
+				shapeStyle: {
+					strokeColor: '#FF0000',
+					strokeWidth: 4,
+					strokeDash: 'dash',
+					lineAlignment: 'in',
+				},
 			} as unknown as Partial<PptxElement>),
 		);
 		expect(style['border']).toBe('4px dashed #FF0000');
+	});
+
+	it('centres a plain solid line at the default (omitted) alignment instead', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { strokeColor: '#FF0000', strokeWidth: 4 },
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['border']).toBeUndefined();
 	});
 });

@@ -22,6 +22,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
 	InkPptxElement,
 	PptxElement,
+	PptxGridSpacing,
 	PptxSlide,
 	PptxTableData,
 	TextStyle,
@@ -63,6 +64,7 @@ import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
 import { InkDrawingService } from './ink-drawing.service';
+import { resolveCommitTextAutoFitHeight } from './inline-edit-autofit-commit';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
 import {
@@ -82,7 +84,7 @@ import { getSlideBackgroundStyle } from './slide-background';
 import { affordanceElements, isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { SLIDE_CONTEXT } from './slide-context';
 import type { SlideContext } from './slide-context';
-import { computeSnap, snapToGridStep } from './snap-guides';
+import { computeGridSpacingPx, computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapGuide } from './snap-guides';
 import type { TableCellCommit } from './table-renderer.component';
 import { isElementInteractive } from './template-mode';
@@ -215,6 +217,14 @@ export class SlideCanvasComponent implements SlideContext {
 	 * Combines with edge-alignment snapping.
 	 */
 	readonly snapToGrid = input<boolean>(false);
+	/**
+	 * The deck's authored grid spacing (EMU, from `viewProperties.gridSpacing`
+	 * / `p:viewPr/p:gridSpacing` in `ppt/viewProps.xml`). `undefined` falls back
+	 * to the 8px default in {@link gridSpacingPx}. NEVER read this off
+	 * `presentationProperties` -- `p:gridSpacing` is not a child of
+	 * `p:presentationPr`, and a real PowerPoint file never populates it there.
+	 */
+	readonly gridSpacing = input<PptxGridSpacing | undefined>(undefined);
 	/** Whether moving elements snap to other element edges and centres. */
 	readonly snapToShape = input<boolean>(true);
 	/** Imperative toolbar request to add a centered user guide. */
@@ -361,7 +371,7 @@ export class SlideCanvasComponent implements SlideContext {
 	/** Emitted on double-click of a text-bearing element to begin inline edit. */
 	readonly textEditStart = output<{ id: string }>();
 	/** Emitted with the new text when an inline edit commits. */
-	readonly textCommit = output<{ id: string; text: string }>();
+	readonly textCommit = output<{ id: string; text: string; height?: number }>();
 	/**
 	 * Emitted on EVERY keystroke while inline-editing. The commit path stays the
 	 * only thing that touches editor state/history; this feeds the collaboration
@@ -951,7 +961,14 @@ export class SlideCanvasComponent implements SlideContext {
 			return;
 		}
 		const editor = event.target as HTMLTextAreaElement;
-		this.textCommit.emit({ id, text: editor.value });
+		// `a:spAutoFit` ("Resize shape to fit text"): grow/shrink the shape to
+		// the text's natural content height, the way PowerPoint does. `editor`
+		// is the live, still-mounted textarea (this handler runs off its own
+		// `blur`), so no separate DOM lookup is needed here.
+		const height = resolveCommitTextAutoFitHeight(this.allElements(), id, editor);
+		this.textCommit.emit(
+			height !== undefined ? { id, text: editor.value, height } : { id, text: editor.value },
+		);
 	}
 
 	onContextMenu(event: MouseEvent): void {
@@ -1383,8 +1400,12 @@ export class SlideCanvasComponent implements SlideContext {
 	 */
 	readonly effectiveScalePublic = computed(() => this.effectiveScale());
 
-	/** Grid dot spacing (slide-local px, 8 px = matches React GRID_SIZE). */
-	readonly gridSpacingPx = computed(() => 8);
+	/**
+	 * Grid dot spacing (slide-local px). Derived from the deck's authored
+	 * `gridSpacing` input via the shared `computeGridSpacingPx`; falls back to
+	 * 8px (matching React's `GRID_SIZE`) when the deck has none.
+	 */
+	readonly gridSpacingPx = computed(() => computeGridSpacingPx(this.gridSpacing(), 8));
 
 	/**
 	 * SVG dot-grid pattern id: unique per instance so multiple canvases on the

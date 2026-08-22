@@ -16,7 +16,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, SmartArtColorScheme, SmartArtStyle } from 'pptx-viewer-core';
 
-import { buildSmartArt3DModel, computeSmartArtLayout } from '../internal/shared';
+import { buildSmartArt3DModel, computeSmartArtElementLayout } from '../internal/shared';
 import type { SmartArt3DModel } from '../internal/shared';
 // Type-only import of the scene runtime; the implementation (which pulls the
 // optional `three` peer) is loaded lazily via dynamic import so it never lands
@@ -201,14 +201,13 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 				? ctFills
 				: (PALETTES[data.colorScheme ?? 'colorful1'] ?? PALETTES.colorful1);
 		const style: SmartArtStyle = data.style ?? 'flat';
-		const layout = computeSmartArtLayout(
+		const layout = computeSmartArtElementLayout(
+			data,
 			data.nodes,
 			{ width: Math.max(el.width, 1), height: Math.max(el.height, 1) },
 			palette,
 			style,
 			el.id,
-			data.resolvedLayoutType,
-			data.layout,
 		);
 		return buildSmartArt3DModel(layout, {
 			background: data.chrome?.backgroundColor,

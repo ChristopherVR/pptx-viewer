@@ -190,3 +190,60 @@ describe('buildAngularParagraphs - inline equations', () => {
 		expect(paragraphs[1].runs[0].equationXml).toStrictEqual(omml);
 	});
 });
+
+/**
+ * issue: per-script font fallback (`a:ea`/`a:cs`/`a:sym`) was React-only.
+ * Angular rendered the whole run in the `a:latin` face, so CJK text painted
+ * in the browser's default serif instead of the deck's own east-Asian
+ * typeface.
+ */
+describe('buildAngularParagraphs - per-script font fallback', () => {
+	it('carries the per-script split onto the run when scripts need distinct fonts', () => {
+		const element = textElement([
+			{ text: 'Mixed 中文 text', style: { fontFamily: 'Arial', eastAsiaFont: 'SimSun' } },
+		]);
+		const paragraphs = buildAngularParagraphs(element);
+		const run = paragraphs[0].runs[0];
+		expect(run.scriptRuns).toBeDefined();
+		expect(run.scriptRuns?.length ?? 0).toBeGreaterThan(1);
+		const cjkPiece = run.scriptRuns?.find((p) => p.text.includes('中'));
+		expect(String(cjkPiece?.style?.fontFamily)).toContain('SimSun');
+	});
+
+	it('leaves a pure-latin run with no scriptRuns', () => {
+		const element = textElement([
+			{ text: 'Hello world', style: { fontFamily: 'Arial', eastAsiaFont: 'SimSun' } },
+		]);
+		const paragraphs = buildAngularParagraphs(element);
+		expect(paragraphs[0].runs[0].scriptRuns).toBeUndefined();
+	});
+});
+
+/**
+ * issue: measured tab-stop layout (per-stop alignment + leader glyphs) was
+ * React-only. Angular fell back to a plain CSS `tab-size`, so a TOC row lost
+ * its dot leader and right-aligned page number.
+ */
+describe('buildAngularParagraphs - measured tab-stop layout', () => {
+	it('carries a leader-filled tab layout onto a run with a dot-leader right tab', () => {
+		const element = textElement(
+			[{ text: 'Introduction\t12', style: { fontFamily: 'Arial', fontSize: 16 } }],
+			{ textStyle: { tabStops: [{ position: 300, align: 'r', leader: 'dot' }] } },
+		);
+		const paragraphs = buildAngularParagraphs(element);
+		const run = paragraphs[0].runs[0];
+		expect(run.tabLines).toBeDefined();
+		expect(run.tabLines?.[0].pieces).toHaveLength(2);
+		expect(run.tabLines?.[0].pieces[1].leaderText).toMatch(/^\.+$/u);
+		expect(run.tabLines?.[0].pieces[1].leaderStyle).toBeDefined();
+	});
+
+	it('leaves a run with no tab character on the plain text path', () => {
+		const element = textElement(
+			[{ text: 'No tabs here', style: { fontFamily: 'Arial', fontSize: 16 } }],
+			{ textStyle: { tabStops: [{ position: 300, align: 'r', leader: 'dot' }] } },
+		);
+		const paragraphs = buildAngularParagraphs(element);
+		expect(paragraphs[0].runs[0].tabLines).toBeUndefined();
+	});
+});

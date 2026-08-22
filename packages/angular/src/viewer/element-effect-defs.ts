@@ -11,10 +11,11 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 
 import {
 	buildStrokeOutline,
+	buildSubpathFillOverlay,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
 } from '../internal/shared';
-import type { FillOverlayCss, StrokeOutline } from '../internal/shared';
+import type { FillOverlayCss, StrokeOutline, SubpathFillOverlay } from '../internal/shared';
 import type { DuotoneFilterDef } from './duotone-filter';
 
 /** Injectable soft-edge `<filter>` descriptor (id + feather radius in px). */
@@ -66,6 +67,18 @@ export function getEffectFillOverlay(el: PptxElement): FillOverlayCss | undefine
  */
 export function getStrokeOutline(el: PptxElement): StrokeOutline | undefined {
 	return buildStrokeOutline(el);
+}
+
+/**
+ * Per-sub-path fill overlay for a multi-sub-path preset (`smileyFace`'s open
+ * eyes, `actionButtonBlank`'s darkened bevel well) or custom geometry whose
+ * sub-paths carry their own `@fill` mode, or `undefined` when a single merged
+ * fill is correct (the ordinary case). `element-style.ts` drops the container
+ * `background-color` for these (via shared `suppressesCssFill`) so the
+ * renderer paints this layered SVG instead.
+ */
+export function getSubpathFillOverlay(el: PptxElement): SubpathFillOverlay | undefined {
+	return buildSubpathFillOverlay(el);
 }
 
 /**

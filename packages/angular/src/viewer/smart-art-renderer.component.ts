@@ -20,7 +20,7 @@ import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArtA11y,
 	computeInlineEditorRect,
-	computeSmartArtLayout,
+	computeSmartArtElementLayout,
 	flattenNodes,
 	rebuildDrawingShapesIfCleared,
 	resolveDrawingShapeNodeId,
@@ -258,17 +258,13 @@ export class SmartArtRendererComponent {
 	readonly layout = computed<SmartArtLayoutResult>(() => {
 		const el = this.element();
 		const data = this.smartArtData();
-		return computeSmartArtLayout(
+		return computeSmartArtElementLayout(
+			data ?? {},
 			this.revealedNodes(),
 			{ width: Math.max(el.width, 1), height: Math.max(el.height, 1) },
 			this.palette(),
 			this.artStyle(),
 			el.id,
-			data?.resolvedLayoutType,
-			data?.layout,
-			undefined,
-			data?.layoutDefinition,
-			data?.presLayoutVars,
 		);
 	});
 
