@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.0.2) - 2026-08-22
+
+### Bug Fixes
+
+- **react:** Host selection handles in a stage-level overlay, as the other bindings do (by @ChristopherVR) ([d06780a](https://github.com/ChristopherVR/pptx-viewer/commit/d06780a63a074e77201076b9c7dd2d0bd5690b9b))
+
+### Reverts
+
+- **react:** Restore the element renderer's DOM structure (by @ChristopherVR) ([b75440e](https://github.com/ChristopherVR/pptx-viewer/commit/b75440e7091579ea5dde6d76e8d350f808e9a447))
+
 ## [2.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.0.1) - 2026-08-22
 
 ### Bug Fixes
