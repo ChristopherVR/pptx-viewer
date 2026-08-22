@@ -32,6 +32,7 @@ export type EffectName =
 	| 'wheelIn'
 	| 'blindsIn'
 	| 'boxIn'
+	| 'circleIn'
 	| 'floatIn'
 	| 'riseUp'
 	| 'swivel'

@@ -258,15 +258,15 @@ describe('buildDynamicKeyframe', () => {
 		expect(stops!.length).toBeGreaterThan(2);
 	});
 
-	it('builds a filter-emphasis keyframe for a mapped emphasis preset (darken)', () => {
+	it('returns undefined for emph.4 (Change Font Size, not a filter-based darken preset)', () => {
+		// emph.4 used to be mislabelled 'darken' in EMPH_FILTER_PRESETS; it is
+		// really Change Font Size, which has no dynamic keyframe support yet
+		// and must fall through rather than fabricate a colour filter.
 		const anim = {
 			presetClass: 'emph',
 			presetId: 4,
 		} as unknown as PptxNativeAnimation;
-		const result = buildDynamicKeyframe(anim, 21);
-		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('pptx-tl-emph-21');
-		expect(result!.css).toContain('filter: brightness(0.55)');
+		expect(buildDynamicKeyframe(anim, 21)).toBeUndefined();
 	});
 
 	it('returns undefined for an emphasis preset with no filter mapping', () => {

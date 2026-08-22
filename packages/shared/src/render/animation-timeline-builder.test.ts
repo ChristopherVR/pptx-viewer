@@ -414,11 +414,14 @@ describe('buildTimeline', () => {
 		expect(result.entranceElementIds.has('el1')).toBeFalsy();
 	});
 
-	it('plays a filter-based emphasis (darken) for a mapped emphasis preset', () => {
+	it('falls back to the neutral emphasis for emph.4 (Change Font Size, not a filter-based darken preset)', () => {
+		// emph.4 used to be mislabelled 'darken'; it is really Change Font
+		// Size, which has no dynamic keyframe support yet and must fall back
+		// to the neutral emphasis animation instead of a fabricated filter.
 		const result = buildTimeline([makeAnim({ targetId: 'el1', presetClass: 'emph', presetId: 4 })]);
 		expect(result.clickGroups).toHaveLength(1);
-		expect(result.keyframesCss).toContain('@keyframes pptx-tl-emph-');
-		expect(result.keyframesCss).toContain('brightness(0.55)');
+		const step = result.clickGroups[0].steps[0];
+		expect(step.keyframeName).toBe('pptx-pulse');
 	});
 
 	// -------------------------------------------------------------------

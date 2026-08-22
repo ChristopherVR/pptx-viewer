@@ -31,6 +31,7 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'wheelIn',
 	'blindsIn',
 	'boxIn',
+	'circleIn',
 	'floatIn',
 	'riseUp',
 	'swivel',
@@ -88,6 +89,8 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 			return maskEdgeInitialStyle('top');
 		case 'boxIn':
 			return maskShapeInitialStyle('boxOut');
+		case 'circleIn':
+			return maskShapeInitialStyle('circleOut');
 		case 'peekIn':
 			return maskEdgeInitialStyle('bottom');
 		case 'randomBarsIn':

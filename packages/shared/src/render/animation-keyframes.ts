@@ -80,6 +80,10 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
 	to { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
 }`,
+	circleIn: `@keyframes pptx-circleIn {
+	from { ${maskShapeDecl('circleOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('circleOut', 'shown')} opacity: 1; }
+}`,
 	floatIn: `@keyframes pptx-floatIn {
 	from { opacity: 0; transform: translateY(40px); }
 	to { opacity: 1; transform: translateY(0); }

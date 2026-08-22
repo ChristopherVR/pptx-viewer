@@ -7,7 +7,11 @@
  * derives more precisely (colour/size/family fallbacks, PANOSE substitution,
  * the `@baseline` percentage, the `@kern` threshold, per-run BiDi), each of
  * which is documented there as a gap in this module rather than a preference.
- * Split out of `text-paragraphs` to keep each module focused and small.
+ * Split out of `text-paragraphs` to keep each module focused and small; this
+ * module itself later split its letter-spacing/split helpers into
+ * `text-run-spacing.ts`, its hollow-text fill decision into
+ * `text-run-hollow.ts`, and its nested-decoration / underline-variant helpers
+ * into `text-run-decoration.ts`, for the same reason.
  */
 
 import type { TextSegment } from 'pptx-viewer-core';
@@ -15,68 +19,16 @@ import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
 import { HYPERLINK_COLOR } from '../constants';
 import { normalizeHexColor } from './fill-style';
-import { resolveUnderlineDecorationStyle } from './text-decoration';
 import type { RunFontSpec } from './text-metric-tracking';
-import { resolveMetricTrackingPx, splitRunForMetrics } from './text-metric-tracking';
+import { resolveMetricTrackingPx } from './text-metric-tracking';
+import { hollowTextFillStyle } from './text-run-hollow';
+import { authoredLetterSpacingPx, pieceLetterSpacing } from './text-run-spacing';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
 
-/** Points-per-inch / CSS-px-per-inch ratio for hundredths-of-a-point → px. */
-const PX_PER_POINT = 96 / 72;
 /** Super/subscript glyphs render at ~65% of the run font size (matches React). */
 const BASELINE_FONT_SCALE = 0.65;
-
-/**
- * The authored `a:rPr/@spc` character spacing in CSS px (hundredths of a point).
- * The measured PowerPoint metric compensation layers on top of this, so callers
- * that re-derive a per-piece `letter-spacing` need the authored part on its own.
- */
-export function authoredLetterSpacingPx(style: TextSegment['style']): number {
-	const spc = style?.characterSpacing;
-	return typeof spc === 'number' && spc !== 0 ? (spc / 100) * PX_PER_POINT : 0;
-}
-
-/** `letter-spacing` for a run piece: authored spacing plus its own tracking. */
-export function pieceLetterSpacing(authoredPx: number, tracking: number): string | undefined {
-	const spacing = authoredPx + tracking;
-	return spacing === 0 ? undefined : `${spacing}px`;
-}
-
-/**
- * Split one styled run into the per-word / per-gap runs that make a LINE
- * measure what PowerPoint measured (see `splitRunForMetrics`).
- *
- * Every binding that renders one span per run gets exact wrapping by emitting
- * these instead of the single run, so this is the one place the "which pieces,
- * what spacing" decision lives: shared's `buildParagraphs` covers Vue, Svelte
- * and Vanilla, Angular's own paragraph builder calls it directly, and React
- * splits inside its span.
- *
- * Returns a single entry (the run unchanged) when there is nothing to split,
- * which is the common case for short labels and one-word runs.
- */
-export function splitStyledRun(
-	text: string,
-	style: RunStyle,
-	font: RunFontSpec,
-	authoredPx: number,
-): Array<{ text: string; style: RunStyle }> {
-	const pieces = splitRunForMetrics(text, font);
-	if (pieces.length <= 1) {
-		return [{ text, style }];
-	}
-	return pieces.map((piece) => {
-		const spacing = pieceLetterSpacing(authoredPx, piece.tracking);
-		const pieceStyle: RunStyle = { ...style };
-		if (spacing === undefined) {
-			delete pieceStyle.letterSpacing;
-		} else {
-			pieceStyle.letterSpacing = spacing;
-		}
-		return { text: piece.text, style: pieceStyle };
-	});
-}
 
 /**
  * Combine the authored `a:rPr/@spc` character spacing with the measured
@@ -151,114 +103,6 @@ function applyExtraRunProps(
 	if (hollow) {
 		Object.assign(style, hollow);
 	}
-}
-
-/** The run properties {@link hollowTextFillStyle} decides from. */
-export interface HollowTextFillInput {
-	/** `a:rPr > a:noFill`: the glyph interior is not painted. */
-	textFillNone?: boolean;
-	/** `a:rPr > a:ln/@w` in px, if the run carries an outline. */
-	textOutlineWidth?: number;
-	/** The outline's own colour, if it declared one. */
-	textOutlineColor?: string;
-}
-
-/** What the run is ALREADY painting, before the hollow decision is applied. */
-export interface HollowTextPaintedStyle {
-	/** The colour the cascade resolved for this run. */
-	color?: string;
-	/** The `-webkit-text-stroke` already emitted, if any. */
-	textStroke?: string;
-}
-
-/** The CSS a hollow run needs, to be merged over its existing run style. */
-export interface HollowTextFillStyle {
-	color: string;
-	WebkitTextFillColor: string;
-	/** Re-pinned outline; present only when the stroke was `currentColor`. */
-	WebkitTextStroke?: string;
-}
-
-/**
- * Hollow / outline-only text (`a:rPr > a:noFill`): the glyph INTERIOR is not
- * painted, which is what makes standard WordArt outline text readable - the
- * `a:ln` stroke draws the letterform and the fill is left empty.
- *
- * A hollow run always still carries a `color`, because the parsed run style
- * merges the resolved theme / placeholder / master cascade underneath the run's
- * own properties, and that inherited colour fills the slot `a:noFill`
- * deliberately left empty. So this must be applied OVER the run's resolved
- * colour, never instead of resolving one.
- *
- * `-webkit-text-fill-color` is the property that actually does this and every
- * current engine ships it (Chromium, WebKit and Gecko, prefix included).
- * `color: transparent` is the fallback for anything that does not: it loses
- * `currentColor` for the stroke, so it is only the second choice, but
- * transparent-and-outlined beats solid-and-wrong.
- *
- * A decision function rather than a mutation, because the bindings do not all
- * build their run style the same way: four of them go through
- * {@link segmentStyleToCss}, while React's `text-segment-render` assembles its
- * own `React.CSSProperties` (per-word metric tracking, script-font spans). Both
- * merge the SAME object, which is what stops the fifth binding drifting - React
- * had no hollow-text branch at all and painted the inherited colour.
- *
- * @param s       - The run's `a:noFill` / outline properties.
- * @param painted - What the caller has already put on the run.
- * @returns The CSS to merge, or `undefined` when the run is not hollow.
- */
-export function hollowTextFillStyle(
-	s: HollowTextFillInput,
-	painted: HollowTextPaintedStyle = {},
-): HollowTextFillStyle | undefined {
-	if (!s.textFillNone) {
-		return undefined;
-	}
-	const hollow: HollowTextFillStyle = {
-		color: 'transparent',
-		WebkitTextFillColor: 'transparent',
-	};
-	// An outline with no colour of its own is `currentColor`, which the
-	// `color: transparent` fallback is about to erase, taking the letterform
-	// with it. Pin it to the concrete colour this run resolved to first.
-	if (painted.textStroke !== undefined && !s.textOutlineColor) {
-		hollow.WebkitTextStroke = `${s.textOutlineWidth}px ${painted.color ?? 'currentColor'}`;
-	}
-	return hollow;
-}
-
-/**
- * The decoration properties a NESTED span inside a run has to repeat.
- *
- * `text-decoration-line` and its colour / style / thickness companions do not
- * inherit: an ancestor's underline is *drawn through* its inline descendants,
- * but each descendant still computes `none` of its own. Four bindings never
- * notice, because shared's per-word split (`splitStyledRun`) clones the whole
- * run style onto every piece, so the element that directly parents the text
- * carries the underline. React renders one span per run and nests its per-word
- * metric pieces and per-script font spans INSIDE it, so the text's own parent
- * declared no decoration and a hyperlink (underlined by PowerPoint's default,
- * see {@link segmentStyleToCss}) reported `text-decoration-line: none` where
- * the other four reported `underline`.
- *
- * @returns The decoration subset to merge onto a nested span, or `undefined`
- *          when the run carries no decoration and the span needs nothing.
- */
-export function nestedTextDecorationStyle(style: RunStyle): RunStyle | undefined {
-	const nested: RunStyle = {};
-	for (const key of [
-		'textDecoration',
-		'textDecorationLine',
-		'textDecorationColor',
-		'textDecorationStyle',
-		'textDecorationThickness',
-	]) {
-		const value = style[key];
-		if (value !== undefined) {
-			nested[key] = value;
-		}
-	}
-	return Object.keys(nested).length > 0 ? nested : undefined;
 }
 
 /**
@@ -377,39 +221,4 @@ export function resolveRunFont(
 		bold: Boolean(s.bold),
 		italic: Boolean(s.italic),
 	};
-}
-
-/**
- * Layer the underline-style / double-strike *variant* decoration CSS
- * (`text-decoration-style` / `-thickness` / `text-underline-offset`) onto a run
- * style. Kept separate from {@link segmentStyleToCss} so that helper's contract
- * (boolean `textDecoration` only) stays stable for its other consumers; this is
- * applied additively by `buildParagraphs` when building each run, mirroring
- * React's segment renderer (`text-segment-render.tsx`), which applies
- * `resolveUnderlineDecorationStyle` over the boolean underline.
- */
-export function applyUnderlineVariant(style: RunStyle, seg: TextSegment): void {
-	const s = seg.style;
-	if (!s) {
-		return;
-	}
-	const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
-	// Only the underline path needs an explicit style token; a plain solid
-	// underline (or no underline) leaves the boolean `textDecoration` untouched.
-	const deco = resolveUnderlineDecorationStyle(
-		isDoubleStrike,
-		s.underline ? s.underlineStyle : undefined,
-	);
-	if (!deco) {
-		return;
-	}
-	if (deco.textDecorationStyle !== undefined) {
-		style.textDecorationStyle = deco.textDecorationStyle;
-	}
-	if (deco.textDecorationThickness !== undefined) {
-		style.textDecorationThickness = deco.textDecorationThickness;
-	}
-	if (deco.textUnderlineOffset !== undefined) {
-		style.textUnderlineOffset = deco.textUnderlineOffset;
-	}
 }

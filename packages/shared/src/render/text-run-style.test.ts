@@ -1,12 +1,9 @@
 import type { TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import {
-	applyUnderlineVariant,
-	hollowTextFillStyle,
-	nestedTextDecorationStyle,
-	segmentStyleToCss,
-} from './text-run-style';
+import { applyUnderlineVariant, nestedTextDecorationStyle } from './text-run-decoration';
+import { hollowTextFillStyle } from './text-run-hollow';
+import { segmentStyleToCss } from './text-run-style';
 
 function seg(style: NonNullable<TextSegment['style']>): TextSegment {
 	return { text: 'x', style };

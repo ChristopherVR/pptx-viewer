@@ -72,13 +72,16 @@ const EDGE_CONFIG: Record<RevealEdge, MaskRevealConfig> = {
  *  - `splitVerticalIn`: two bands growing from the left + right edges inward.
  *  - `splitVerticalOut`: one centred band growing outward horizontally.
  *  - `boxOut`: one centred rectangle growing outward on both axes.
+ *  - `circleOut`: one centred circle growing outward on both axes (the Circle
+ *    entrance/exit preset's iris-style reveal).
  */
 export type MaskRevealShape =
 	| 'splitHorizontalIn'
 	| 'splitHorizontalOut'
 	| 'splitVerticalIn'
 	| 'splitVerticalOut'
-	| 'boxOut';
+	| 'boxOut'
+	| 'circleOut';
 
 interface MaskSizeConfig {
 	image: string;
@@ -125,6 +128,15 @@ const SHAPE_CONFIG: Record<MaskRevealShape, MaskSizeConfig> = {
 		repeat: 'no-repeat',
 		hiddenSize: '0% 0%',
 		shownSize: '101% 101%',
+	},
+	circleOut: {
+		// A circle (not a square) needs extra headroom past 100% so its
+		// inscribed radius still reaches the element's corners at full size.
+		image: 'radial-gradient(circle, #000 0%, #000 100%)',
+		position: 'center',
+		repeat: 'no-repeat',
+		hiddenSize: '0% 0%',
+		shownSize: '150% 150%',
 	},
 };
 

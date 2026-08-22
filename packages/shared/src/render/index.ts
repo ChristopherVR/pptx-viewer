@@ -34,6 +34,15 @@ export * from './svg-gradient-paint';
 export * from './stroke-outline';
 export * from './stroke-only-preset';
 export * from './stroke-paint';
+// Pure per-sub-path paint decision (fill colour adjustment for lighten/darken/
+// none, and the stroke opt-out), shared by custom geometry AND multi-sub-path
+// preset shapes. The mechanism behind `subpath-fill-overlay`.
+export * from './vector-subpath-paint';
+// Per-sub-path FILL overlay: which elements need layered SVG paths instead of
+// one merged clip-path + flat background (a multi-sub-path preset shading/
+// bevel, or custom geometry with structured per-sub-path fill modes), and the
+// paints to render. `suppressesCssFill` is consumed by `getComputedFillStyle`.
+export * from './subpath-fill-overlay';
 // The whole `a:ln` -> CSS decision (border width/style/colour, compound lines,
 // line join / cap / miter limit) as one descriptor, so no binding re-derives it.
 export * from './stroke-style';
@@ -51,6 +60,11 @@ export * from './drawing-color';
 // Unicode script detection for font fallback (latin/eastAsia/complexScript/
 // symbol classification + run segmentation + per-script font resolution).
 export * from './unicode-script-detection';
+// Per-run per-script (`a:ea`/`a:cs`/`a:sym`) font fallback, folded into
+// `ParagraphRun.scriptRuns` by `paragraph-run-build`. React's own copy
+// (`text-segment-render.tsx`) is gone; all five bindings render the same
+// descriptor now.
+export * from './text-script-fonts';
 export * from './visual-effects';
 export * from './image-effects';
 export * from './image-background-removal';
@@ -338,6 +352,9 @@ export * from './clone';
 export * from './element';
 export * from './element-align';
 export * from './element-interaction';
+// Authored `p:gridSpacing` (EMU, from `viewProperties`) -> CSS pixel step,
+// used by snap-to-grid and the grid overlay in every binding.
+export * from './grid-spacing';
 // `a:spLocks` enforcement: one predicate deciding whether a select / move /
 // resize / rotate / text-edit / adjust gesture may proceed on an element, so a
 // locked shape behaves the same in all five bindings (it used to be honoured in
@@ -434,6 +451,14 @@ export * from './text-effects-3d';
 export * from './text-run-effects';
 // Per-run inline-style builder (Vue / Angular / Svelte / Vanilla run spans).
 export * from './text-run-style';
+// Hollow/outline-only text fill decision, split out of `text-run-style`.
+export * from './text-run-hollow';
+// Per-run letter-spacing + metric-tracking split helpers, split out of
+// `text-run-style`.
+export * from './text-run-spacing';
+// Nested-span decoration repeat + underline-variant CSS, split out of
+// `text-run-style`.
+export * from './text-run-decoration';
 // Per-run advance-width compensation that makes the browser break lines where
 // PowerPoint breaks them. React layers it into its own span style.
 export * from './text-metric-tracking';
@@ -446,13 +471,32 @@ export * from './text-run-meta';
 // `a:ruby` phonetic guides (furigana / pinyin) as a run field, so all five
 // bindings render the annotation React alone used to.
 export * from './text-run-ruby';
+// `ParagraphRun` / `RenderParagraph`: the descriptor types `buildParagraphs`
+// (below) returns, split into their own module so every binding's shared
+// import of them resolves here directly rather than through a re-export shim.
+export * from './paragraph-types';
 export * from './text-paragraphs';
+// Per-paragraph spacing resolver (`a:spcBef`/`a:spcAft`/`a:lnSpc`), consumed by
+// `buildParagraphs` and exported directly rather than via a `./text-paragraphs`
+// re-export shim.
+export * from './paragraph-spacing';
 export * from './paragraph-strut';
+// `a:spAutoFit` editor-time shape resize: the pure height decision plus the
+// one shared DOM measurement (clone-to-height:auto) every binding's inline
+// text editor commit handler calls, so typing into an autofit box grows or
+// shrinks the box exactly once, not five slightly different ways.
+export * from './shape-autofit-resize';
 export * from './morph-plan';
 export * from './text-advanced';
 export * from './text-theme';
 export * from './kinsoku-styles';
 export * from './tab-leader';
+// Measured tab-stop layout (per-stop alignment + leader glyphs), folded into
+// `ParagraphRun.tabLines` by `paragraph-run-build`. Extracted from React's
+// private `text-tab-layout.tsx`; the JSX-only piece (`renderTabbedLine`) stays
+// there, thin over these.
+export * from './text-tab-layout';
+export * from './text-tab-run-build';
 export * from './inline-selection-utils';
 export * from './inline-caret';
 export * from './text-case-transform';

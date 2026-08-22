@@ -1,7 +1,8 @@
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildParagraphs, segmentStyleToCss } from './text-paragraphs';
+import { buildParagraphs } from './text-paragraphs';
+import { segmentStyleToCss } from './text-run-style';
 
 function textEl(segments: TextSegment[], extra: Record<string, unknown> = {}): PptxElement {
 	return {
@@ -194,6 +195,10 @@ describe('buildParagraphs', () => {
 	});
 
 	it('projects per-paragraph line-height + space before/after from pPr', () => {
+		// paras[0] is also the FIRST paragraph in the body, so its own
+		// spaceBeforePx is suppressed by the omitted `spcFirstLastPara` default
+		// (ECMA-376 / COM-measured default is "suppress"); spaceAfterPx is
+		// unaffected since paras[0] is not the LAST paragraph.
 		const paras = buildParagraphs(
 			textEl([
 				{
@@ -213,11 +218,31 @@ describe('buildParagraphs', () => {
 				},
 			]),
 		);
-		expect(paras[0]).toMatchObject({ spaceBeforePx: 12, spaceAfterPx: 6 });
+		expect(paras[0]).toMatchObject({ spaceBeforePx: undefined, spaceAfterPx: 6 });
 		expect(paras[0].lineHeight).toBeCloseTo(1.8, 10);
 		// Exact points win over a proportional multiplier, in px (18pt at 96dpi).
 		expect(paras[1].lineHeight).toBe('24px');
 		expect(paras[1].spaceBeforePx).toBeUndefined();
+	});
+
+	it('folds the first paragraph own before-spacing into spaceAfterPx when spcFirstLastPara is explicitly true', () => {
+		// A single paragraph is both first and last, so both its own before and
+		// after apply once the flag opts back in - but PowerPoint never renders
+		// a paragraph's own spcBef as space above it (see paragraph-spacing.ts),
+		// so both fold into ONE trailing margin (12 + 6 = 18), not spaceBeforePx.
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: 'Prop spacing',
+						style: {},
+						paragraphProperties: { paragraphSpacingBefore: 12, paragraphSpacingAfter: 6 },
+					},
+				],
+				{ textStyle: { spaceFirstLastParagraph: true } },
+			),
+		);
+		expect(paras[0]).toMatchObject({ spaceBeforePx: undefined, spaceAfterPx: 18 });
 	});
 
 	it('leaves spacing undefined when a paragraph has no pPr overrides', () => {
