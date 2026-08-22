@@ -193,6 +193,41 @@ describe('tableRenderer', () => {
 		expect(style).not.toContain('#111827');
 	});
 
+	it('renders a resolved cell image fill as a cover background', () => {
+		const imaged: PptxTableData = {
+			columnWidths: [1],
+			rows: [
+				{
+					cells: [
+						{
+							text: 'Photo',
+							style: {
+								fillMode: 'image',
+								backgroundImageFillData: 'data:image/png;base64,AAAA',
+							},
+						},
+					],
+				},
+			],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(imaged), zIndex: 0 } });
+		const style = wrapper.get('td').attributes('style') ?? '';
+		expect(style).toContain('background-image: url(');
+		expect(style).toContain('data:image/png;base64,AAAA');
+		expect(style).toContain('background-size: cover');
+	});
+
+	it('renders an explicit zero cell margin as zero padding', () => {
+		const dense: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Dense', style: { marginLeft: 0, marginTop: 0 } }] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(dense), zIndex: 0 } });
+		const style = wrapper.get('td').attributes('style') ?? '';
+		expect(style).toContain('padding-left: 0px');
+		expect(style).toContain('padding-top: 0px');
+	});
+
 	it('applies header-row banding (bold + background) when firstRowHeader is set', () => {
 		const headed: PptxTableData = {
 			columnWidths: [1],

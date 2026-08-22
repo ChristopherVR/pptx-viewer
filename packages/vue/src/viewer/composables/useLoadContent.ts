@@ -22,6 +22,7 @@ import type {
 	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
+	PptxViewProperties,
 	XmlObject,
 } from 'pptx-viewer-core';
 import {
@@ -41,7 +42,12 @@ import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
-import { collectImagePaths, collectMediaElements } from './load-content-helpers';
+import {
+	applyTableCellImagePatches,
+	collectImagePaths,
+	collectMediaElements,
+	collectTableCellImagePaths,
+} from './load-content-helpers';
 import type { TemplateElementMap } from './template-editing';
 import { buildSaveSlides, partitionTemplateElements } from './template-editing';
 
@@ -181,6 +187,14 @@ export interface UseLoadContentResult {
 	customShows: ShallowRef<PptxCustomShow[]>;
 	/** Presentation-level slide-show properties (`presentationPr.xml`); reactive so Set Up Slide Show persists. */
 	presentationProperties: ShallowRef<PptxPresentationProperties>;
+	/**
+	 * View properties (`ppt/viewProps.xml`, `p:viewPr`): grid spacing, snap /
+	 * guide toggles, last view, splitter state, etc. `gridSpacing` lives here,
+	 * NOT on `presentationProperties` -- `p:gridSpacing` is a child of
+	 * `p:viewPr`, and a real PowerPoint file never populates it under
+	 * `p:presentationPr`.
+	 */
+	viewProperties: ShallowRef<PptxViewProperties | undefined>;
 	/** Presentation-level header/footer settings, or `undefined`. */
 	headerFooter: ShallowRef<PptxHeaderFooter | undefined>;
 	/** Parsed notes master, or `undefined` when absent. */
@@ -261,6 +275,7 @@ export function useLoadContent(
 	const sections = shallowRef<PptxSection[]>([]);
 	const customShows = shallowRef<PptxCustomShow[]>([]);
 	const presentationProperties = shallowRef<PptxPresentationProperties>({});
+	const viewProperties = shallowRef<PptxViewProperties | undefined>(undefined);
 	const headerFooter = shallowRef<PptxHeaderFooter | undefined>(undefined);
 	const notesMaster = shallowRef<PptxNotesMaster | undefined>(undefined);
 	const handoutMaster = shallowRef<PptxHandoutMaster | undefined>(undefined);
@@ -426,6 +441,35 @@ export function useLoadContent(
 				}
 			}
 
+			// ── Resolve table cell image-fill Blob URLs ──
+			const { paths: tableImagePaths, refs: tableImageRefs } =
+				collectTableCellImagePaths(nextSlides);
+			if (tableImagePaths.size > 0) {
+				const resolvedTableMap = new Map<string, string>();
+				await Promise.all(
+					Array.from(tableImagePaths).map(async (path) => {
+						try {
+							const url = await newHandler.getImageData(path);
+							if (url) {
+								resolvedTableMap.set(path, url);
+							}
+						} catch {
+							// Non-critical: the cell falls back to no image fill.
+						}
+					}),
+				);
+				if (resolvedTableMap.size > 0) {
+					nextSlides = nextSlides.map((s) => {
+						const newElements = applyTableCellImagePatches(
+							s.elements,
+							resolvedTableMap,
+							tableImageRefs,
+						);
+						return newElements === s.elements ? s : { ...s, elements: newElements };
+					});
+				}
+			}
+
 			// Pull master/layout (template) elements out of each slide into their own
 			// store so the editor can gate / route / merge them back independently.
 			const partitioned = partitionTemplateElements(nextSlides);
@@ -467,6 +511,7 @@ export function useLoadContent(
 			sections.value = parsed.sections ?? [];
 			customShows.value = parsed.customShows ?? [];
 			presentationProperties.value = parsed.presentationProperties ?? {};
+			viewProperties.value = parsed.viewProperties;
 			headerFooter.value = parsed.headerFooter;
 			notesMaster.value = parsed.notesMaster;
 			handoutMaster.value = parsed.handoutMaster;
@@ -601,6 +646,7 @@ export function useLoadContent(
 		sections,
 		customShows,
 		presentationProperties,
+		viewProperties,
 		headerFooter,
 		notesMaster,
 		handoutMaster,

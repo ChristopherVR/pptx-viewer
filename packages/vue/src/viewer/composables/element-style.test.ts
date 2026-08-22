@@ -35,20 +35,48 @@ describe('getContainerStyle', () => {
 
 describe('getShapeFillStrokeStyle', () => {
 	it('renders solid fill and stroke', () => {
+		// Pinned to `algn="in"`: the default `ctr` alignment now routes a solid
+		// outline through the SVG stroke overlay instead of a CSS border (see
+		// shared `stroke-outline.ts`).
 		const style = getShapeFillStrokeStyle(
-			shape({ shapeStyle: { fillColor: '#ff0000', strokeColor: '#000', strokeWidth: 2 } }),
+			shape({
+				shapeStyle: {
+					fillColor: '#ff0000',
+					strokeColor: '#000',
+					strokeWidth: 2,
+					lineAlignment: 'in',
+				},
+			}),
 		);
 		expect(style.backgroundColor).toBe('#ff0000');
 		expect(style.border).toBe('2px solid #000');
 	});
 
 	it('maps stroke dash to a CSS border style', () => {
+		// Pinned to `algn="in"`: the default `ctr` alignment now routes a solid
+		// outline through the SVG stroke overlay instead of a CSS border (see
+		// shared `stroke-outline.ts`), and this test is specifically about the
+		// dash-type mapping.
 		const dotted = getShapeFillStrokeStyle(
-			shape({ shapeStyle: { strokeColor: '#000', strokeWidth: 1, strokeDash: 'dot' } }),
+			shape({
+				shapeStyle: {
+					strokeColor: '#000',
+					strokeWidth: 1,
+					strokeDash: 'dot',
+					lineAlignment: 'in',
+				},
+			}),
 		);
 		expect(dotted.border).toBe('1px dotted #000');
 		const dashed = getShapeFillStrokeStyle(
-			shape({ shapeStyle: { strokeColor: '#000', strokeWidth: 1, strokeDash: 'dash' } }),
+			shape({
+				shapeStyle: {
+					strokeColor: '#000',
+					strokeWidth: 1,
+					strokeDash: 'dash',
+					lineAlignment: 'in',
+				},
+			}),
 		);
 		expect(dashed.border).toBe('1px dashed #000');
 	});
@@ -141,6 +169,22 @@ describe('getTextBlockStyle', () => {
 		).toBe('28px');
 		expect(getTextBlockStyle(shape({ textStyle: { textWrap: 'none' } })).whiteSpace).toBe('nowrap');
 		expect(getTextBlockStyle(shape({ textStyle: {} })).whiteSpace).toBe('pre-wrap');
+	});
+
+	it('never shrinks the font for spAutoFit, however much text overflows', () => {
+		// a:spAutoFit resizes the SHAPE to fit the text (ECMA-376), never the
+		// font; a box authored in PowerPoint already has its `a:ext` sized to
+		// fit, so the font must render unshrunk even for a box too small to
+		// hold the text at that size.
+		const style = getTextBlockStyle(
+			shape({
+				width: 50,
+				height: 30,
+				text: 'x'.repeat(2000),
+				textStyle: { fontSize: 40, autoFit: true, autoFitMode: 'shrink' },
+			}),
+		);
+		expect(style.fontSize).toBe('40px');
 	});
 
 	it("applies PowerPoint's 1.2 default line-height and honours explicit line spacing", () => {

@@ -13,6 +13,8 @@ import type { ParagraphRun } from 'pptx-viewer-shared';
 import { runEquationMathMl } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
+import SlideTextRunContent from './SlideTextRunContent.vue';
+
 const props = defineProps<{ run: ParagraphRun }>();
 
 /** Sanitised MathML for an equation run, or `''` when the OMML yields nothing. */
@@ -38,15 +40,15 @@ const mathml = computed(() => (props.run.equation ? runEquationMathMl(props.run.
 		rel="noopener noreferrer"
 		:title="run.hyperlink.tooltip"
 		:style="run.style"
-		>{{ run.text }}</a
-	>
+		><SlideTextRunContent :run="run"
+	/></a>
 	<!-- `a:ruby`: the phonetic guide sits above its base text. The `<rp>`
 		     parentheses are what a browser without ruby support falls back to. -->
 	<ruby v-else-if="run.ruby" :style="run.style"
-		>{{ run.text }}<rp>(</rp><rt :style="run.ruby.style">{{ run.ruby.text }}</rt
+		><SlideTextRunContent :run="run" /><rp>(</rp><rt :style="run.ruby.style">{{ run.ruby.text }}</rt
 		><rp>)</rp></ruby
 	>
-	<span v-else :style="run.style">{{ run.text }}</span>
+	<span v-else :style="run.style"><SlideTextRunContent :run="run" /></span>
 </template>
 
 <style scoped>

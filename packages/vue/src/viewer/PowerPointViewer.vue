@@ -29,6 +29,7 @@ import {
 	buildFieldSubstitutionContext,
 	buildUserFontFaceStyles,
 	canInteractWithElement,
+	computeGridSpacingPx,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -207,6 +208,7 @@ const {
 	sections,
 	customShows,
 	presentationProperties,
+	viewProperties,
 	headerFooter,
 	notesMaster,
 	handoutMaster,
@@ -427,6 +429,11 @@ const { requestElementEdit, onCanvasDoubleClick, onCanvasPointerDown, onEscape }
 	},
 );
 
+// Grid spacing in CSS px, from the deck's authored `viewProperties.gridSpacing`
+// (falls back to 8px when the deck has none). `p:gridSpacing` lives under
+// `p:viewPr` in viewProps.xml, never under `p:presentationPr`.
+const gridSpacingPx = computed(() => computeGridSpacingPx(viewProperties.value?.gridSpacing, 8));
+
 // -- Element drag / transform / adjust + snap & alignment guides -------
 const drag = useElementDrag({
 	findActiveElement,
@@ -435,6 +442,7 @@ const drag = useElementDrag({
 	activeTemplateElements,
 	activeSlide,
 	activeSlideIndex,
+	gridSpacingPx,
 	slides,
 	templateElementsBySlideId,
 	canvasSize,
@@ -1323,6 +1331,7 @@ defineExpose<PowerPointViewerExpose>(
 							:active-comments="comments.activeComments.value"
 							:on-comment-marker-click="comments.onCommentMarkerClick"
 							:show-grid="showGrid"
+							:grid-spacing-px="gridSpacingPx"
 							:show-guides="showGuides"
 							:drag="drag"
 							:inline-edit="inlineEdit"

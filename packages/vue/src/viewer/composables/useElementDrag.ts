@@ -38,10 +38,18 @@ export interface UseElementDragInput {
 	templateElementsBySlideId: Ref<TemplateElementMap>;
 	canvasSize: Ref<{ width: number; height: number }>;
 	enterInlineEdit: (id: string) => void;
+	/**
+	 * Grid spacing in CSS px, derived from the deck's authored
+	 * `viewProperties.gridSpacing` via the shared `computeGridSpacingPx`
+	 * (falls back to `DEFAULT_GRID_SIZE` when the deck has none or hasn't
+	 * loaded yet). A `ComputedRef` like `effectiveZoom`, so a later deck load
+	 * is picked up without re-creating this composable.
+	 */
+	gridSpacingPx?: ComputedRef<number>;
 }
 
-/** Grid spacing in px (matches React's GRID_SIZE). */
-const GRID_SIZE = 8;
+/** Grid spacing fallback in px, used when the deck has no authored grid spacing. */
+const DEFAULT_GRID_SIZE = 8;
 
 /**
  * useElementDrag: canvas pointer-drag-to-move, resize/rotate transform, shape
@@ -64,6 +72,7 @@ export function useElementDrag(input: UseElementDragInput) {
 		templateElementsBySlideId,
 		canvasSize,
 		enterInlineEdit,
+		gridSpacingPx,
 	} = input;
 
 	const snap = useSnapGuides(canvasSize);
@@ -196,7 +205,7 @@ export function useElementDrag(input: UseElementDragInput) {
 		// rotating (rounding a rotated box's x/y fights the rotation).
 		const useSnap = snapToGrid.value && !payload.rotation;
 		const { x, y, width, height } = useSnap
-			? snapBox(payload, GRID_SIZE)
+			? snapBox(payload, gridSpacingPx?.value ?? DEFAULT_GRID_SIZE)
 			: { x: payload.x, y: payload.y, width: payload.width, height: payload.height };
 		patchElementInStore(payload.id, (el) => ({
 			...el,

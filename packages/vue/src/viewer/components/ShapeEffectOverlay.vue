@@ -19,6 +19,11 @@
  *     `getEffectFilterCss`); this injects the matching `<filter>` markup into a
  *     hidden, zero-size `<svg><defs>` so that reference resolves. Mirrors how
  *     {@link DuotoneFilterDefs} injects the duotone filter.
+ *  4. A per-sub-path FILL overlay, for a multi-sub-path preset (`smileyFace`'s
+ *     open eyes, `actionButtonBlank`'s darkened bevel well) whose sub-paths
+ *     cannot share one CSS `background-color`: `element-style.ts` drops the
+ *     container fill for these (via shared `suppressesCssFill`) so this layered
+ *     SVG paints it instead, each sub-path with its own resolved fill.
  *
  * Renders nothing when the element has no shape properties, no fill overlay,
  * and no soft edge.
@@ -27,6 +32,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import {
 	buildStrokeOutline,
+	buildSubpathFillOverlay,
 	getComputedEffectStyle,
 	getSoftEdgeSvgFilter,
 	buildHollowHitOutline,
@@ -36,6 +42,18 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 const props = defineProps<{ element: PptxElement }>();
+
+/**
+ * Per-sub-path fill overlay for a multi-sub-path preset or custom geometry, or
+ * `undefined` when a single merged fill is correct (the ordinary case).
+ */
+const subpathFill = computed(() => buildSubpathFillOverlay(props.element));
+
+/** `viewBox` for the sub-path fill overlay, in its own coordinate space. */
+const subpathFillViewBox = computed(() => {
+	const overlay = subpathFill.value;
+	return overlay ? `0 0 ${overlay.viewBoxWidth} ${overlay.viewBoxHeight}` : undefined;
+});
 
 /** Combined shape effect style; `fillOverlay` is the only field read here. */
 const effect = computed(() => getComputedEffectStyle(props.element));
@@ -89,6 +107,22 @@ const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
 </script>
 
 <template>
+	<svg
+		v-if="subpathFill"
+		class="pptx-vue-subpath-fill"
+		aria-hidden="true"
+		:viewBox="subpathFillViewBox"
+		preserveAspectRatio="none"
+		style="position: absolute; inset: 0; width: 100%; height: 100%"
+	>
+		<path
+			v-for="(paint, idx) in subpathFill.paints"
+			:key="idx"
+			:d="paint.d"
+			:fill="paint.fill"
+			stroke="none"
+		/>
+	</svg>
 	<svg
 		v-if="softEdge"
 		width="0"

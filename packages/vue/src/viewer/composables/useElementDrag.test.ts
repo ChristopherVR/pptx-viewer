@@ -36,7 +36,7 @@ function pointer(type: string, init: PointerEventInit): Event {
 	return new Ctor(type, { bubbles: true, pointerId: 1, ...init });
 }
 
-function setup(elements: PptxElement[]) {
+function setup(elements: PptxElement[], gridSpacingPx?: number) {
 	const slides = ref<PptxSlide[]>([{ id: 'slide-1', elements } as unknown as PptxSlide]);
 	const activeSlideIndex = ref(0);
 	const templateElementsBySlideId = ref<TemplateElementMap>({});
@@ -53,6 +53,7 @@ function setup(elements: PptxElement[]) {
 		templateElementsBySlideId,
 		canvasSize: ref({ width: 960, height: 540 }),
 		enterInlineEdit,
+		...(gridSpacingPx === undefined ? {} : { gridSpacingPx: computed(() => gridSpacingPx) }),
 	});
 	const find = (id: string): PptxElement | undefined =>
 		slides.value[0]?.elements.find((el) => el.id === id);
@@ -195,5 +196,46 @@ describe('useElementDrag: a:spLocks enforcement', () => {
 		drag.onTransformEnd({ id: 'a', x: 0, y: 0, width: 250, height: 100, rotation: 0 });
 
 		expect(find('a')?.width).toBe(250);
+	});
+});
+
+describe('useElementDrag: grid spacing', () => {
+	// Regression: the grid step used to be hardcoded to 8px with no path from
+	// the deck's authored `viewProperties.gridSpacing` at all. The caller now
+	// derives it via the shared `computeGridSpacingPx` and passes it in as
+	// `gridSpacingPx`; this covers that the composable actually uses it instead
+	// of its own default.
+	it('snaps a drag to the deck-authored grid spacing, not the 8px default', () => {
+		const { drag, find } = setup([shape('a')], 40);
+		drag.snapToGrid.value = true;
+
+		drag.startElementDrag(
+			'a',
+			pointer('pointerdown', { clientX: 0, clientY: 0 }) as PointerEvent,
+			false,
+		);
+		// A move of (55, 55) rounds to the nearest 8px multiple (56) under the
+		// default, but to the nearest 40px multiple (40) under the authored spacing.
+		window.dispatchEvent(pointer('pointermove', { clientX: 55, clientY: 55 }));
+		window.dispatchEvent(pointer('pointerup', { clientX: 55, clientY: 55 }));
+
+		expect(find('a')?.x).toBe(40);
+		expect(find('a')?.y).toBe(40);
+	});
+
+	it('falls back to the 8px default when the deck has no gridSpacingPx input', () => {
+		const { drag, find } = setup([shape('a')]);
+		drag.snapToGrid.value = true;
+
+		drag.startElementDrag(
+			'a',
+			pointer('pointerdown', { clientX: 0, clientY: 0 }) as PointerEvent,
+			false,
+		);
+		window.dispatchEvent(pointer('pointermove', { clientX: 55, clientY: 55 }));
+		window.dispatchEvent(pointer('pointerup', { clientX: 55, clientY: 55 }));
+
+		expect(find('a')?.x).toBe(56);
+		expect(find('a')?.y).toBe(56);
 	});
 });

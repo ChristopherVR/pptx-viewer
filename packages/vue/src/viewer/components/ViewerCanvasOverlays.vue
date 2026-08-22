@@ -56,6 +56,8 @@ defineProps<{
 	activeComments: PptxComment[];
 	onCommentMarkerClick: (id: string) => void;
 	showGrid: boolean;
+	/** Grid spacing in CSS px, derived from the deck's `viewProperties.gridSpacing`. */
+	gridSpacingPx: number;
 	/**
 	 * View > Guides hides the OVERLAY only: the guides array itself is
 	 * untouched, so snapping to a guide and the save round-trip still see every
@@ -84,7 +86,11 @@ defineProps<{
 
 <template>
 	<!-- Dot grid overlay (View > Grid): sits over content, under selection -->
-	<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
+	<GridOverlay
+		:canvas-size="canvasSize"
+		:visible="showGrid && !presenting"
+		:grid-spacing-px="gridSpacingPx"
+	/>
 
 	<!-- Numbered comment markers (click to open the comments panel) -->
 	<CommentMarkersOverlay

@@ -1,10 +1,11 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
 import type { CollaborationLivePatcher, ViewerProofingOptions } from 'pptx-viewer-shared';
 import {
 	applyAutoCorrect,
 	canInteractWithElement,
 	publishLiveInlineText,
+	resolveInlineEditAutoFitHeight,
 	setCellText,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
@@ -140,7 +141,26 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 				(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
 				(el.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
 			);
-			ops.updateElement(id, { text, textSegments: segments } as Partial<PptxElement>);
+			// `a:spAutoFit` ("Resize shape to fit text"): grow/shrink the shape to
+			// the text's natural content height, the way PowerPoint does. Vue has
+			// not yet applied the `null` that unmounts the editor's DOM node at
+			// this point (that happens on the next render, when the reactive
+			// `inlineEditingElementId` update flushes), so `[data-inline-editor]`
+			// still resolves to the live, just-blurred node.
+			const editorEl =
+				typeof document !== 'undefined'
+					? document.querySelector<HTMLElement>('[data-inline-editor]')
+					: null;
+			const newHeight = resolveInlineEditAutoFitHeight(
+				el.textStyle as TextStyle | undefined,
+				(el as { height?: number }).height ?? 0,
+				editorEl,
+			);
+			ops.updateElement(id, {
+				text,
+				textSegments: segments,
+				...(newHeight !== undefined ? { height: newHeight } : {}),
+			} as Partial<PptxElement>);
 		}
 	}
 	function cancelInlineEdit(): void {
