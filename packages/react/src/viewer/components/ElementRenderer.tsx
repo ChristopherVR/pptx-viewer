@@ -16,7 +16,6 @@ import {
 	getImageEffectsFilter,
 	getImageEffectsOpacity,
 	getImageRenderStyle,
-	getElementTransformWithoutRotation,
 	getShapeVisualStyle,
 	getTextStyleForElement,
 	isConnectorOrLineElement,
@@ -36,7 +35,6 @@ import type { ElementRendererProps } from './elements/element-renderer-types';
 import { shapeParams } from './elements/element-shape-params';
 import { renderBody } from './elements/ElementBody';
 import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
-import { ResizeHandles } from './elements/ResizeHandles';
 import { getScopedElementHandlers } from './elements/scoped-element-handlers';
 import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
 import { StaticElementRenderer } from './StaticElementRenderer';
@@ -69,7 +67,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		adjustmentHandles: adjH,
 		onResizePointerDown,
 		onAdjustmentPointerDown,
-		onRotate,
 		onInlineEditChange,
 		onInlineEditCommit,
 		onInlineEditCancel,
@@ -184,7 +181,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		}
 
 		const effectiveCanInteract = canInteract && allow.selectable;
-		const effectiveShowResizeHandles = showResizeHandles && allow.resizable;
 		const effectiveIsInlineEditing = isInlineEditing && allow.textEditable;
 		const canEditSmartArt = effectiveCanInteract && allow.textEditable;
 		const canEditChart = effectiveCanInteract;
@@ -367,17 +363,28 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					onFormatText,
 				})}
 				<ActionAffordances affordance={actionAffordance} />
-				{effectiveShowResizeHandles && !effectiveIsInlineEditing && (
-					<ResizeHandles
-						elementId={el.id}
-						adjustmentHandles={adjH}
-						onResizePointerDown={onResizePointerDown}
-						onAdjustmentPointerDown={onAdjustmentPointerDown}
-						rotation={el.rotation}
-						nonRotationTransform={getElementTransformWithoutRotation(el)}
-						onRotate={allow.rotatable ? onRotate : undefined}
-					/>
-				)}
+				{/* Resize/rotate/adjustment handles do NOT render here. This div
+				    carries the preset's `clip-path` (`shapeVisualStyle`'s clipPath
+				    cascade for a non-rectangular preset like `rightArrow`), which
+				    excludes every DESCENDANT from hit-testing wherever it falls
+				    outside the polygon, not just from paint. An adjustment handle is
+				    deliberately measured onto a preset geometry VERTEX (PowerPoint's
+				    own convention), and for a preset like `rightArrow` that vertex
+				    sits exactly on a sharp convex corner of the clip polygon, so a
+				    handle nested here had roughly half its hit area, including its
+				    own centre, excluded from hit-testing: pointer events fell
+				    through to whatever was drawn underneath instead of reaching the
+				    handle (`canvas-interaction.spec.ts`: "dragging the second handle
+				    of a multi-adjust preset moves it, not the first"). There is no
+				    per-descendant CSS escape from an ancestor's `clip-path`, so
+				    `SlideCanvas` renders `SelectionHandleOverlay` as an UNCLIPPED
+				    stage-level sibling of this div for the selected element instead,
+				    the same place `ConnectorEndpointOverlay` and `MotionPathOverlay`
+				    already live. This div's own class/style pointer-events rules
+				    (see above) are untouched by that: they still exist to make
+				    exactly the shape's own silhouette clickable, which is a
+				    different, unrelated concern from where its auxiliary handle UI
+				    paints. */}
 			</div>
 		);
 	},

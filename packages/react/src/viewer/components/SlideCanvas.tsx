@@ -2,7 +2,7 @@ import { motionPathFor, setMotionPath } from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
 import type { ShapeAdjustmentHandleDescriptor } from '../types';
-import { getShapeAdjustmentHandleDescriptors } from '../utils';
+import { getShapeAdjustmentHandleDescriptors, isConnectorOrLineElement } from '../utils';
 import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
@@ -15,6 +15,7 @@ import { GridOverlay } from './canvas/GridOverlay';
 import { MotionPathOverlay } from './canvas/MotionPathOverlay';
 import { Ruler } from './canvas/Ruler';
 import { RULER_THICKNESS } from './canvas/ruler-utils';
+import { SelectionHandleOverlay } from './canvas/SelectionHandleOverlay';
 import { useCanvasEventHandlers } from './canvas/useCanvasEventHandlers';
 import { useConnectorCreation } from './canvas/useConnectorCreation';
 import { useDrawingOverlay } from './canvas/useDrawingOverlay';
@@ -386,6 +387,30 @@ export function SlideCanvas({
 							tableStyleContext={tableStyleContext}
 						/>
 					))}
+
+					{/* Resize/rotate/adjustment handles for the single selected
+					    element, unclipped: see `SelectionHandleOverlay` for why they
+					    cannot be `ElementRenderer`'s own children (its container
+					    carries the shape's `clip-path`, which excludes every
+					    descendant from hit-testing outside the preset's silhouette).
+					    Connectors keep their own (already-unclipped) handles inside
+					    `ConnectorElementRenderer`. */}
+					{isEditableCanvas &&
+						selectedElement &&
+						selectedElementIdSet.size <= 1 &&
+						!inlineEditingElementId &&
+						!isConnectorOrLineElement(selectedElement) && (
+							<SelectionHandleOverlay
+								element={selectedElement}
+								adjustmentHandles={getShapeAdjustmentHandleDescriptors(selectedElement)}
+								onResizePointerDown={stableResizePointerDown}
+								onAdjustmentPointerDown={stableAdjustmentPointerDown}
+								onRotate={stableRotate}
+								onClick={onClick}
+								onDoubleClick={onDoubleClick}
+								onContextMenu={onContextMenu}
+							/>
+						)}
 
 					<MarqueeOverlay marqueeSelectionState={marqueeSelectionState} />
 
