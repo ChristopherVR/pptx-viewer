@@ -15,7 +15,7 @@
 		"@angular/platform-browser": "^22.1.0",
 		"@ngx-translate/core": "^18.0.0",
 		"ai": "^7.0.44",
-		"fast-xml-parser": "^5.10.1",
+		"fast-xml-parser": "^5.11.0",
 		"html2canvas-pro": "^2.3.2",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
