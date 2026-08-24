@@ -74,7 +74,7 @@
 	},
 	"devDependencies": {
 		"@ai-sdk/svelte": "^5.0.31",
-		"@microsoft/api-extractor": "^7.58.11",
+		"@microsoft/api-extractor": "^7.58.13",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"ai": ">=6 <8",
 		"happy-dom": "^20.11.1",
