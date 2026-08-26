@@ -1,5 +1,6 @@
 import { AfterViewInit, Directive, ElementRef, inject, input, OnDestroy } from '@angular/core';
-import { computeAnchoredPopupPosition } from 'pptx-viewer-shared';
+
+import { computeAnchoredPopupPosition } from '../internal/shared';
 
 /**
  * `[pptxAnchoredPopup]` - pins a ribbon dropdown/popover to its trigger with
