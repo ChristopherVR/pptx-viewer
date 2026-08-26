@@ -77,7 +77,7 @@
 	},
 	"dependencies": {
 		"emf-converter": "^2.0.2",
-		"fast-xml-parser": "^5.10.1",
+		"fast-xml-parser": "^5.11.0",
 		"jszip": "^3.10.1",
 		"mtx-decompressor": "^1.6.0"
 	},
