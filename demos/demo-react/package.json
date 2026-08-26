@@ -10,7 +10,7 @@
 		"fast-xml-parser": "^5.11.0",
 		"framer-motion": "^12.42.2",
 		"html2canvas-pro": "^2.3.2",
-		"i18next": "^26.3.6",
+		"i18next": "^26.4.0",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"lucide-react": "^1.33.0",
