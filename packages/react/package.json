@@ -76,7 +76,7 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
-		"dompurify": "^3.4.13",
+		"dompurify": "^3.4.14",
 		"html2canvas-pro": "^2.3.2",
 		"pptx-viewer-mcp": "workspace:*",
 		"tailwind-merge": "^3.6.0"

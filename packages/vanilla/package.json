@@ -55,7 +55,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"dompurify": "^3.4.13",
+		"dompurify": "^3.4.14",
 		"fast-xml-parser": "^5.11.0",
 		"html2canvas-pro": "^2.3.2",
 		"jspdf": "^4.2.1",
