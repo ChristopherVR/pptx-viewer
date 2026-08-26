@@ -7,6 +7,24 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.0.3) - 2026-08-26
+
+### Bug Fixes
+
+- Stop duplicate inline-edit text render and fix ribbon popup clipping (by @ChristopherVR) ([f084c64](https://github.com/ChristopherVR/pptx-viewer/commit/f084c64c6bb69135b60f083200180933a7f770f7))
+- Derive mobile chrome from the browser viewport, not the container (by @ChristopherVR) ([29e5ea1](https://github.com/ChristopherVR/pptx-viewer/commit/29e5ea17b87411fa2058e2d0a25a2323ce6a1133))
+- **angular:** Import shared symbols through the internal barrel, not the bare specifier (by @ChristopherVR) ([bb694a0](https://github.com/ChristopherVR/pptx-viewer/commit/bb694a03f10781a3d6f0de7bc9c93afb91244c97))
+
+### Dependencies
+
+- **deps:** Update fast-xml-parser requirement from ^5.10.1 to ^5.11.0 ([#177](https://github.com/ChristopherVR/pptx-viewer/issues/177)) (by @dependabot[bot]) ([a876e0f](https://github.com/ChristopherVR/pptx-viewer/commit/a876e0f5fd07fd2e7063619882313cc23c4a0162))
+- **deps:** Update @angular/compiler requirement ([#181](https://github.com/ChristopherVR/pptx-viewer/issues/181)) (by @dependabot[bot]) ([04833e4](https://github.com/ChristopherVR/pptx-viewer/commit/04833e4bad16567d05ef47f56fb79677765e5ce3))
+- **deps:** Update dompurify requirement from ^3.4.13 to ^3.4.14 ([#173](https://github.com/ChristopherVR/pptx-viewer/issues/173)) (by @dependabot[bot]) ([19afbe1](https://github.com/ChristopherVR/pptx-viewer/commit/19afbe117520bbdeb2c8e930332ae5133df21c30))
+
+### Chores
+
+- **deps-dev:** Update ng-packagr requirement from ^22.0.2 to ^22.1.1 ([#176](https://github.com/ChristopherVR/pptx-viewer/issues/176)) (by @dependabot[bot]) ([0172cba](https://github.com/ChristopherVR/pptx-viewer/commit/0172cba6cbcc0741c94fa2f368f4e51dea2337bb))
+
 ## [3.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.0.2) - 2026-08-22
 
 ### Bug Fixes

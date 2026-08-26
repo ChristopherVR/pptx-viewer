@@ -8,6 +8,33 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-26
+
+_Releases: pptx-viewer-core@3.0.2, pptx-react-viewer@3.0.4, pptx-vue-viewer@3.0.3, pptx-angular-viewer@3.0.3, pptx-vanilla-viewer@2.0.3, pptx-svelte-viewer@3.0.3, pptx-viewer-mcp@2.1.7, @christophervr/pptx-viewer@2.0.4_
+
+### Bug Fixes
+
+- Stop duplicate inline-edit text render and fix ribbon popup clipping (by @ChristopherVR) ([f084c64](https://github.com/ChristopherVR/pptx-viewer/commit/f084c64c6bb69135b60f083200180933a7f770f7))
+- Derive mobile chrome from the browser viewport, not the container (by @ChristopherVR) ([29e5ea1](https://github.com/ChristopherVR/pptx-viewer/commit/29e5ea17b87411fa2058e2d0a25a2323ce6a1133))
+- **angular:** Import shared symbols through the internal barrel, not the bare specifier (by @ChristopherVR) ([bb694a0](https://github.com/ChristopherVR/pptx-viewer/commit/bb694a03f10781a3d6f0de7bc9c93afb91244c97))
+
+### Dependencies
+
+- **deps:** Bump @ai-sdk/react from 4.0.80 to 4.0.76 ([#180](https://github.com/ChristopherVR/pptx-viewer/issues/180)) (by @dependabot[bot]) ([52c368d](https://github.com/ChristopherVR/pptx-viewer/commit/52c368d47e20e8afc977b4374ee59c594071c89b))
+- **deps:** Update lucide-react requirement from ^1.29.0 to ^1.33.0 ([#178](https://github.com/ChristopherVR/pptx-viewer/issues/178)) (by @dependabot[bot]) ([c16011e](https://github.com/ChristopherVR/pptx-viewer/commit/c16011e4d0b0c5dd3aae41ae7f5a3f2e425122b5))
+- **deps:** Update fast-xml-parser requirement from ^5.10.1 to ^5.11.0 ([#177](https://github.com/ChristopherVR/pptx-viewer/issues/177)) (by @dependabot[bot]) ([a876e0f](https://github.com/ChristopherVR/pptx-viewer/commit/a876e0f5fd07fd2e7063619882313cc23c4a0162))
+- **deps:** Update vue requirement from ^3.5.40 to ^3.5.41 ([#175](https://github.com/ChristopherVR/pptx-viewer/issues/175)) (by @dependabot[bot]) ([de6d62e](https://github.com/ChristopherVR/pptx-viewer/commit/de6d62e6f42f70c31bb24eafb7dbd16e323aed22))
+- **deps:** Bump @microsoft/api-extractor from 7.59.0 to 7.58.13 ([#172](https://github.com/ChristopherVR/pptx-viewer/issues/172)) (by @dependabot[bot]) ([c773015](https://github.com/ChristopherVR/pptx-viewer/commit/c773015dda6c618820011fcd5578066acb0544b5))
+- **deps:** Update @angular/compiler requirement ([#181](https://github.com/ChristopherVR/pptx-viewer/issues/181)) (by @dependabot[bot]) ([04833e4](https://github.com/ChristopherVR/pptx-viewer/commit/04833e4bad16567d05ef47f56fb79677765e5ce3))
+- **deps:** Update @angular/compiler requirement ([#181](https://github.com/ChristopherVR/pptx-viewer/issues/181)) (by @dependabot[bot]) ([22f2bd4](https://github.com/ChristopherVR/pptx-viewer/commit/22f2bd48c609fa6cc25af7d35e704879b93bc846))
+- **deps:** Update i18next requirement from ^26.3.6 to ^26.4.0 ([#174](https://github.com/ChristopherVR/pptx-viewer/issues/174)) (by @dependabot[bot]) ([5390c40](https://github.com/ChristopherVR/pptx-viewer/commit/5390c40059eedc354405282c07a1cd9ebc9e598b))
+- **deps:** Update dompurify requirement from ^3.4.13 to ^3.4.14 ([#173](https://github.com/ChristopherVR/pptx-viewer/issues/173)) (by @dependabot[bot]) ([19afbe1](https://github.com/ChristopherVR/pptx-viewer/commit/19afbe117520bbdeb2c8e930332ae5133df21c30))
+
+### Chores
+
+- **deps-dev:** Update @types/node requirement from ^26.1.1 to ^26.2.0 ([#179](https://github.com/ChristopherVR/pptx-viewer/issues/179)) (by @dependabot[bot]) ([b05718e](https://github.com/ChristopherVR/pptx-viewer/commit/b05718e9414fe150e74c5522987739a7f490a495))
+- **deps-dev:** Update ng-packagr requirement from ^22.0.2 to ^22.1.1 ([#176](https://github.com/ChristopherVR/pptx-viewer/issues/176)) (by @dependabot[bot]) ([0172cba](https://github.com/ChristopherVR/pptx-viewer/commit/0172cba6cbcc0741c94fa2f368f4e51dea2337bb))
+
 ## 2026-08-22
 
 _Releases: pptx-react-viewer@3.0.3, @christophervr/pptx-viewer@2.0.3_

@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.1.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.7) - 2026-08-26
+
+### Dependencies
+
+- **deps:** Update fast-xml-parser requirement from ^5.10.1 to ^5.11.0 ([#177](https://github.com/ChristopherVR/pptx-viewer/issues/177)) (by @dependabot[bot]) ([a876e0f](https://github.com/ChristopherVR/pptx-viewer/commit/a876e0f5fd07fd2e7063619882313cc23c4a0162))
+
 ## [2.1.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.1.6) - 2026-08-22
 
 ### Bug Fixes

@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.0.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.0.4) - 2026-08-26
+
+### Bug Fixes
+
+- Stop duplicate inline-edit text render and fix ribbon popup clipping (by @ChristopherVR) ([f084c64](https://github.com/ChristopherVR/pptx-viewer/commit/f084c64c6bb69135b60f083200180933a7f770f7))
+- Derive mobile chrome from the browser viewport, not the container (by @ChristopherVR) ([29e5ea1](https://github.com/ChristopherVR/pptx-viewer/commit/29e5ea17b87411fa2058e2d0a25a2323ce6a1133))
+
+### Dependencies
+
+- **deps:** Bump @ai-sdk/react from 4.0.80 to 4.0.76 ([#180](https://github.com/ChristopherVR/pptx-viewer/issues/180)) (by @dependabot[bot]) ([52c368d](https://github.com/ChristopherVR/pptx-viewer/commit/52c368d47e20e8afc977b4374ee59c594071c89b))
+- **deps:** Update dompurify requirement from ^3.4.13 to ^3.4.14 ([#173](https://github.com/ChristopherVR/pptx-viewer/issues/173)) (by @dependabot[bot]) ([19afbe1](https://github.com/ChristopherVR/pptx-viewer/commit/19afbe117520bbdeb2c8e930332ae5133df21c30))
+
+### Chores
+
+- **deps-dev:** Update @types/node requirement from ^26.1.1 to ^26.2.0 ([#179](https://github.com/ChristopherVR/pptx-viewer/issues/179)) (by @dependabot[bot]) ([b05718e](https://github.com/ChristopherVR/pptx-viewer/commit/b05718e9414fe150e74c5522987739a7f490a495))
+
 ## [2.0.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.0.3) - 2026-08-22
 
 ### Bug Fixes
