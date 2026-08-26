@@ -19,9 +19,8 @@ import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import {
 	computeKeyboardInset,
 	computeScrollDelta,
+	deriveViewportBreakpoints,
 	isKeyboardOpen as isKeyboardOpenInset,
-	isMobileViewport,
-	isTabletViewport,
 	MOBILE_BREAKPOINT,
 	MOBILE_LANDSCAPE_MAX_HEIGHT,
 	readViewportMetrics,
@@ -40,13 +39,13 @@ export { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, MOBILE_LANDSCAPE_MAX_HEIGHT };
 
 /**
  * Decide whether the current environment should use the mobile layout.
- * Delegates to the shared `isMobileViewport`; kept under this name for the
- * existing Angular barrel + test surface.
+ * Delegates to the shared `deriveViewportBreakpoints`; kept under this name
+ * for the existing Angular barrel + test surface.
  *
  * @pure: no side effects, fully testable without a DOM.
  */
 export function computeIsMobile(width: number, height: number, isTouch: boolean): boolean {
-	return isMobileViewport(width, height, isTouch);
+	return deriveViewportBreakpoints(width, height, isTouch).isMobile;
 }
 
 /**
@@ -57,10 +56,7 @@ export function computeIsMobile(width: number, height: number, isTouch: boolean)
  * @pure
  */
 export function computeIsTablet(width: number, height: number, isTouch: boolean): boolean {
-	if (isMobileViewport(width, height, isTouch)) {
-		return false;
-	}
-	return isTabletViewport(width);
+	return deriveViewportBreakpoints(width, height, isTouch).isTablet;
 }
 
 // ---------------------------------------------------------------------------

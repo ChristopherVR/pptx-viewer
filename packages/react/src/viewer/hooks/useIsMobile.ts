@@ -1,4 +1,5 @@
 import {
+	deriveViewportBreakpoints,
 	isMobileViewport,
 	MOBILE_BREAKPOINT,
 	MOBILE_LANDSCAPE_MAX_HEIGHT,
@@ -11,14 +12,20 @@ import type { DeviceOrientation } from 'pptx-viewer-shared';
  * useIsMobile: Detects viewport size and touch capability for responsive layout.
  *
  * Provides reactive breakpoint flags (`isMobile`, `isTablet`, `isDesktop`) and
- * a `isTouchDevice` flag. Uses `ResizeObserver` on the container element (if
- * provided) or the viewport width as a fallback, so the detection adapts when
- * the viewer is embedded inside a narrow host container.
+ * an `isTouchDevice` flag, always derived from the BROWSER viewport
+ * (`deriveViewportBreakpoints`, `pptx-viewer-shared`) rather than any
+ * embedding container: a viewer hosted in a narrow sidebar or split pane still
+ * has a full desktop pointer and keyboard, so a narrow host must not swap in
+ * the touch-oriented mobile bottom-sheet UI. This hook used to measure an
+ * optional `containerRef` instead, which was exactly that bug (Vue had the
+ * same one; see `deriveViewportBreakpoints`'s doc comment) - container/canvas
+ * sizing for layout purposes is a separate, unrelated concern handled by its
+ * own hook (`useZoomViewport`), not this one.
  *
  * Also detects virtual keyboard visibility on mobile devices and reports
  * device orientation.
  *
- * Breakpoints (container-width based):
+ * Breakpoints (viewport-width based):
  *   mobile:  < 768px
  *   tablet:  768px .. 1023px
  *   desktop: >= 1024px
@@ -61,11 +68,11 @@ function subscribeTouchCapability(callback: () => void): () => void {
 // ---------------------------------------------------------------------------
 
 export interface UseIsMobileResult {
-	/** True when container/viewport width is below 768px. */
+	/** True when the browser viewport width is below 768px. */
 	isMobile: boolean;
-	/** True when container/viewport width is 768..1023px. */
+	/** True when the browser viewport width is 768..1023px. */
 	isTablet: boolean;
-	/** True when container/viewport width is >= 1024px. */
+	/** True when the browser viewport width is >= 1024px. */
 	isDesktop: boolean;
 	/** True on devices with touch capability. */
 	isTouchDevice: boolean;
@@ -73,22 +80,13 @@ export interface UseIsMobileResult {
 	orientation: DeviceOrientation;
 	/** True when the virtual keyboard is likely visible (viewport height shrank significantly). */
 	isVirtualKeyboardOpen: boolean;
-	/** The measured container width in pixels. */
-	containerWidth: number;
-}
-
-export interface UseIsMobileInput {
-	/** Optional ref to the container element for container-based breakpoints. */
-	containerRef?: React.RefObject<HTMLElement | null>;
 }
 
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
-	const containerRef = input?.containerRef;
-
+export function useIsMobile(): UseIsMobileResult {
 	// Touch capability: uses useSyncExternalStore for SSR safety
 	const isTouchDevice = useSyncExternalStore(
 		subscribeTouchCapability,
@@ -96,21 +94,14 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		() => false, // server snapshot
 	);
 
-	// Container/viewport width
-	const [containerWidth, setContainerWidth] = useState(() => {
-		if (typeof window === 'undefined') {
-			return 1024;
-		}
-		return containerRef?.current?.clientWidth ?? window.innerWidth;
-	});
-
-	// Container/viewport height: used to detect short landscape phones.
-	const [containerHeight, setContainerHeight] = useState(() => {
-		if (typeof window === 'undefined') {
-			return 768;
-		}
-		return containerRef?.current?.clientHeight ?? window.innerHeight;
-	});
+	// The BROWSER viewport - chrome selection (isMobile/isTablet/isDesktop,
+	// below) always reads this, never a container's size.
+	const [viewportWidth, setViewportWidth] = useState(() =>
+		typeof window === 'undefined' ? 1024 : window.innerWidth,
+	);
+	const [viewportHeight, setViewportHeight] = useState(() =>
+		typeof window === 'undefined' ? 768 : window.innerHeight,
+	);
 
 	// Orientation
 	const [orientation, setOrientation] = useState<DeviceOrientation>(detectOrientation);
@@ -123,50 +114,18 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		typeof window !== 'undefined' ? window.innerHeight : 800,
 	);
 
-	// Container width tracking -- polls with rAF until the containerRef mounts
-	// (the viewer renders LoadingState first so the ref starts null), then
-	// upgrades to a ResizeObserver. Mirrors the approach in useViewerDialogs so
-	// both hooks see the same container dimensions and stay in sync.
+	// Browser viewport tracking for chrome selection.
 	useEffect(() => {
-		let observer: ResizeObserver | null = null;
-		let raf = 0;
-
-		const attach = () => {
-			const el = containerRef?.current;
-			if (!el) {
-				// Container not yet mounted; poll until it is.
-				raf = requestAnimationFrame(attach);
-				return;
-			}
-			observer = new ResizeObserver((entries) => {
-				const entry = entries[0];
-				if (entry) {
-					setContainerWidth(entry.contentRect.width);
-					setContainerHeight(entry.contentRect.height);
-				}
-			});
-			observer.observe(el);
-			setContainerWidth(el.clientWidth);
-			setContainerHeight(el.clientHeight);
+		if (typeof window === 'undefined') {
+			return;
+		}
+		const handleViewportResize = () => {
+			setViewportWidth(window.innerWidth);
+			setViewportHeight(window.innerHeight);
 		};
-		attach();
-
-		// Fallback: also track window resize for when the container is not
-		// provided (containerRef is undefined/null).
-		const handleResize = () => {
-			if (!containerRef?.current) {
-				setContainerWidth(window.innerWidth);
-				setContainerHeight(window.innerHeight);
-			}
-		};
-		window.addEventListener('resize', handleResize);
-
-		return () => {
-			cancelAnimationFrame(raf);
-			observer?.disconnect();
-			window.removeEventListener('resize', handleResize);
-		};
-	}, [containerRef]);
+		window.addEventListener('resize', handleViewportResize);
+		return () => window.removeEventListener('resize', handleViewportResize);
+	}, []);
 
 	// Orientation change tracking
 	useEffect(() => {
@@ -214,13 +173,15 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		return () => window.removeEventListener('resize', handleResize);
 	}, [isTouchDevice, initialViewportHeight]);
 
-	// Derived breakpoint flags. A narrow viewport is mobile; so is a short
+	// Derived breakpoint flags, from the browser viewport (not the container -
+	// see the module doc comment). A narrow viewport is mobile; so is a short
 	// touch viewport below the tablet width (a landscape phone), which would
 	// otherwise be mis-classified as a tablet and shown the desktop ribbon.
-	const isMobile = isMobileViewport(containerWidth, containerHeight, isTouchDevice);
-	const isTablet =
-		!isMobile && containerWidth >= MOBILE_BREAKPOINT && containerWidth < TABLET_BREAKPOINT;
-	const isDesktop = !isMobile && containerWidth >= TABLET_BREAKPOINT;
+	const { isMobile, isTablet, isDesktop } = deriveViewportBreakpoints(
+		viewportWidth,
+		viewportHeight,
+		isTouchDevice,
+	);
 
 	return {
 		isMobile,
@@ -229,6 +190,5 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		isTouchDevice,
 		orientation,
 		isVirtualKeyboardOpen,
-		containerWidth,
 	};
 }

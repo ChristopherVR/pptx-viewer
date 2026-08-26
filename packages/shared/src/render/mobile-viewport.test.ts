@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	deriveViewportBreakpoints,
 	detectOrientation,
 	detectTouchDevice,
 	isMobileViewport,
@@ -66,6 +67,43 @@ describe('mobile-viewport', () => {
 	describe('detectOrientation', () => {
 		it('returns landscape when no window is present', () => {
 			expect(detectOrientation()).toBe('landscape');
+		});
+	});
+
+	describe('deriveViewportBreakpoints', () => {
+		it('classifies a wide viewport as desktop even when measured alongside a narrow host container', () => {
+			// This is the browser viewport, not a container box: a 1440px desktop
+			// window stays desktop chrome no matter how narrow a host sidebar
+			// leaves the embedded viewer's own container.
+			expect(deriveViewportBreakpoints(1440, 900, false)).toStrictEqual({
+				isMobile: false,
+				isTablet: false,
+				isDesktop: true,
+			});
+		});
+
+		it('classifies a narrow viewport as mobile', () => {
+			expect(deriveViewportBreakpoints(375, 812, true)).toStrictEqual({
+				isMobile: true,
+				isTablet: false,
+				isDesktop: false,
+			});
+		});
+
+		it('classifies a mid-width viewport as tablet', () => {
+			expect(deriveViewportBreakpoints(900, 1200, true)).toStrictEqual({
+				isMobile: false,
+				isTablet: true,
+				isDesktop: false,
+			});
+		});
+
+		it('classifies a short touch landscape-phone viewport as mobile, not tablet', () => {
+			expect(deriveViewportBreakpoints(900, MOBILE_LANDSCAPE_MAX_HEIGHT - 1, true)).toStrictEqual({
+				isMobile: true,
+				isTablet: false,
+				isDesktop: false,
+			});
 		});
 	});
 });

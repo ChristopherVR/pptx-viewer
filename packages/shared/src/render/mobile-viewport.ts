@@ -55,6 +55,37 @@ export function isTabletViewport(width: number): boolean {
 	return width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT;
 }
 
+/** The three mutually-exclusive chrome tiers a viewer can render. */
+export interface ViewportBreakpoints {
+	isMobile: boolean;
+	isTablet: boolean;
+	isDesktop: boolean;
+}
+
+/**
+ * Classify a viewport into the mobile/tablet/desktop chrome tiers.
+ *
+ * The measurement MUST be the browser viewport (`window.innerWidth` /
+ * `innerHeight`), never an embedded container's box. A viewer hosted in a
+ * narrow sidebar or split pane still has a full desktop pointer and keyboard;
+ * measuring its container instead of the viewport made React and Vue swap in
+ * the touch-oriented mobile bottom-sheet UI for a mouse-driven desktop host,
+ * while Angular, Svelte and Vanilla (already viewport-based) did not. The
+ * container itself may still be measured separately for layout/canvas
+ * fitting - that is an unrelated concern from chrome selection.
+ *
+ * @pure
+ */
+export function deriveViewportBreakpoints(
+	width: number,
+	height: number,
+	isTouch: boolean,
+): ViewportBreakpoints {
+	const isMobile = isMobileViewport(width, height, isTouch);
+	const isTablet = !isMobile && isTabletViewport(width);
+	return { isMobile, isTablet, isDesktop: !isMobile && !isTablet };
+}
+
 /** Whether the current runtime reports touch capability. */
 export function detectTouchDevice(): boolean {
 	if (typeof window === 'undefined') {

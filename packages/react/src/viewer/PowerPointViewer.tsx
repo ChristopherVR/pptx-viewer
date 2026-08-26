@@ -455,7 +455,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		}, []);
 
 		// ── Mobile / responsive ─────────────────────────────────────
-		const mobile = useIsMobile({ containerRef });
+		const mobile = useIsMobile();
 		const { isMobile, isTouchDevice, isVirtualKeyboardOpen } = mobile;
 
 		// ── Resizable panels ──────────────────────────────────────

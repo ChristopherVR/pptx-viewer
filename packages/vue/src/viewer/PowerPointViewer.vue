@@ -814,11 +814,16 @@ async function compareWithPresentation(): Promise<void> {
 }
 
 // -- Responsive / mobile chrome ----------------------------------------
-// The viewer root element drives breakpoints from the CONTAINER width (so an
-// embedded viewer in a narrow sidebar gets mobile chrome), falling back to the
-// viewport when unmounted / no ResizeObserver. Mirrors React's containerRef.
+// Breakpoints follow the BROWSER viewport, not this container: a host that
+// renders the viewer inside a narrow sidebar or split pane still has a full
+// desktop pointer and keyboard, so a narrow host container must not switch in
+// the touch-oriented mobile bottom-sheet UI. Do not pass `viewerRootRef` as
+// the container source here (it used to be, matching React's old container-
+// based `useIsMobile`, which had the same bug - see `deriveViewportBreakpoints`
+// in pptx-viewer-shared). `viewerRootRef` stays bound to the template for
+// other consumers; it just is not fed into breakpoint derivation any more.
 const viewerRootRef = ref<HTMLElement | null>(null);
-const { isMobile, isTouchDevice } = useIsMobile(768, viewerRootRef);
+const { isMobile, isTouchDevice } = useIsMobile(768);
 // Keep the focused field visible when the on-screen keyboard opens, and lift
 // the fixed bottom bar above the keyboard.
 const { keyboardInset } = useKeyboardInsets();

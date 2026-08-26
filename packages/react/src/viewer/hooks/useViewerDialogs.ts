@@ -4,11 +4,10 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
  * check, master view, custom shows, guide, slide-show settings, password,
  * accessibility check, font embedding, and misc UI flags.
  */
-import { describeFontEmbedding } from 'pptx-viewer-shared';
+import { describeFontEmbedding, isMobileViewport } from 'pptx-viewer-shared';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 import { useDialogCustomShows } from './useDialogCustomShows';
-import { isMobileViewport } from './useIsMobile';
 import type { UseViewerDialogsInput, ViewerDialogsResult } from './viewer-dialog-types';
 
 /** Coarse-pointer (touch) check, mirroring useIsMobile. */
@@ -27,7 +26,6 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 		slides,
 		activeSlide,
 		canvasSize,
-		containerRef,
 		customShows,
 		activeCustomShowId,
 		setCustomShows,
@@ -80,17 +78,25 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 	 * re-embeds them by default. Hardcoding `false` here (which is what shipped)
 	 * meant that the moment the flag was wired to a save option it would have
 	 * stripped the fonts of every deck that had them.
+	 *
+	 * Reset during render (not an effect) when the deck's font key changes, per
+	 * the "adjusting state when a prop changes" pattern: the toggle must still
+	 * accept a user override in between deck loads.
 	 */
 	const [embedFontsEnabled, setEmbedFontsEnabled] = useState(fontEmbedding.initialEnabled);
-	useEffect(() => {
+	const [embedFontsKey, setEmbedFontsKey] = useState(embeddedFontKey);
+	if (embeddedFontKey !== embedFontsKey) {
+		setEmbedFontsKey(embeddedFontKey);
 		setEmbedFontsEnabled(fontEmbedding.initialEnabled);
-	}, [fontEmbedding]);
+	}
 
 	// ── Narrow viewport ───────────────────────────────────────────────
-	// Initialize from window width so the value is correct even before the
-	// containerRef attaches (the viewer renders LoadingState first, which
-	// short-circuits the ref). The effect upgrades to a ResizeObserver once
-	// the container is mounted, and falls back to window resize otherwise.
+	// Driven by the BROWSER viewport, not the embedding container: a host
+	// that renders the viewer inside a narrow sidebar or split pane must not
+	// switch dialogs to their mobile full-screen/bottom-sheet presentation,
+	// since the browser window itself is still a full desktop viewport.
+	// Mirrors useIsMobile's chrome breakpoint (see `deriveViewportBreakpoints`
+	// in pptx-viewer-shared).
 	const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
 		typeof window !== 'undefined'
 			? isMobileViewport(window.innerWidth, window.innerHeight, viewportIsTouch())
@@ -101,37 +107,8 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 			setIsNarrowViewport(
 				isMobileViewport(window.innerWidth, window.innerHeight, viewportIsTouch()),
 			);
-
-		// Poll briefly until the container mounts (it does not exist while
-		// LoadingState is shown), then attach a ResizeObserver to it.
-		let observer: ResizeObserver | null = null;
-		let raf = 0;
-		const attach = () => {
-			const el = containerRef.current;
-			if (!el) {
-				raf = requestAnimationFrame(attach);
-				return;
-			}
-			observer = new ResizeObserver((entries) => {
-				const entry = entries[0];
-				if (entry) {
-					setIsNarrowViewport(
-						isMobileViewport(entry.contentRect.width, entry.contentRect.height, viewportIsTouch()),
-					);
-				}
-			});
-			observer.observe(el);
-			setIsNarrowViewport(isMobileViewport(el.clientWidth, el.clientHeight, viewportIsTouch()));
-		};
-		attach();
-
 		window.addEventListener('resize', handleWindow);
-		return () => {
-			cancelAnimationFrame(raf);
-			observer?.disconnect();
-			window.removeEventListener('resize', handleWindow);
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		return () => window.removeEventListener('resize', handleWindow);
 	}, []);
 
 	// ── Signature strip warning ───────────────────────────────────────
