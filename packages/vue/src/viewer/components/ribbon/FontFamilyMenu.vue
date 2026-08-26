@@ -13,6 +13,7 @@ import { buildFontCatalog } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { vAnchoredPopup } from './anchored-popup';
 import { MENU_PANEL } from './ribbon-constants';
 
 const props = defineProps<{
@@ -22,6 +23,8 @@ const props = defineProps<{
 	embeddedFonts?: readonly string[];
 	/** Families registered this session from File > Options > Fonts. */
 	customFonts?: readonly string[];
+	/** The trigger button this menu hangs below (position: fixed anchor; see `anchored-popup.ts`). */
+	anchor?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{ (event: 'select', family: string): void }>();
@@ -38,7 +41,11 @@ const groups = computed(() =>
 </script>
 
 <template>
-	<div class="absolute left-0 top-full z-50 flex flex-col w-64 pt-1" data-testid="font-family-menu">
+	<div
+		class="z-50 flex flex-col w-64 pt-1"
+		data-testid="font-family-menu"
+		v-anchored-popup="{ anchor: props.anchor }"
+	>
 		<div :class="MENU_PANEL">
 			<template v-for="(group, groupIndex) in groups" :key="group.id">
 				<div

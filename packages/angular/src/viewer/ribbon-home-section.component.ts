@@ -31,6 +31,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
 import { resetSlideLayoutPath } from '../internal/shared';
+import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
@@ -81,6 +82,7 @@ export function performResetSlide(
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
 		RibbonEditingSectionComponent,
+		AnchoredPopupDirective,
 	],
 	template: `
 		<!-- Clipboard -->
@@ -159,6 +161,7 @@ export function performResetSlide(
 				@if (layoutOptions().length > 0) {
 					<div class="group relative">
 						<button
+							#newSlideLayoutTrigger
 							type="button"
 							class="pptx-rb-pill px-1.5"
 							[disabled]="!canEdit()"
@@ -167,7 +170,10 @@ export function performResetSlide(
 						>
 							<svg lucideChevronDown class="h-3 w-3"></svg>
 						</button>
-						<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+						<div
+							class="z-50 hidden pt-1 group-hover:block"
+							[pptxAnchoredPopup]="newSlideLayoutTrigger"
+						>
 							<pptx-ribbon-layout-gallery
 								[layoutOptions]="layoutOptions()"
 								[previews]="layoutPreviews()"
@@ -201,6 +207,7 @@ export function performResetSlide(
 					-->
 					<div class="group relative">
 						<button
+							#applyLayoutTrigger
 							type="button"
 							class="pptx-rb-gb whitespace-nowrap"
 							[disabled]="!canEdit() || layoutOptions().length === 0"
@@ -209,7 +216,10 @@ export function performResetSlide(
 							<svg lucideLayoutGrid class="h-4 w-4"></svg> {{ 'pptx.master.layout' | translate }}
 						</button>
 						@if (layoutOptions().length > 0) {
-							<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+							<div
+								class="z-50 hidden pt-1 group-hover:block"
+								[pptxAnchoredPopup]="applyLayoutTrigger"
+							>
 								<pptx-ribbon-layout-gallery
 									[layoutOptions]="layoutOptions()"
 									[previews]="layoutPreviews()"

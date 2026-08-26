@@ -120,6 +120,7 @@
 			{gridSpacingPx}
 			{editingActive}
 			editTemplateMode={editor.editTemplateMode}
+			editingElementId={controller.editingId}
 			ontablecellcommit={editingActive ? commits.commitTableCell : undefined}
 			onsmartartnodecommit={editingActive ? commits.commitSmartArtNode : undefined}
 			onsmartartnodefill={editingActive ? commits.commitSmartArtFill : undefined}

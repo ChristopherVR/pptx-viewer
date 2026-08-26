@@ -349,7 +349,16 @@ pptx-element-renderer {
 	margin: 0;
 	padding: 2px;
 	border: 2px solid #4f86ff;
-	background: rgba(255, 255, 255, 0.96);
+	/* Fully opaque (not the previous 0.96 alpha): this textarea always renders
+	   plain black text regardless of the element's own colour, so - unlike
+	   React/Vue's richer inline editors - it cannot safely go transparent over
+	   an arbitrary (e.g. dark-filled or white-on-colour) shape without risking
+	   invisible text. A near-opaque backdrop used to double as a (leaky) mask
+	   for the element's real text rendering underneath; with
+	   pptx-element-renderer now suppressing that render for the element being
+	   edited (issue #182), full opacity here is just a plain, always-legible
+	   editing surface. */
+	background: #fff;
 	color: #000;
 	font: inherit;
 	line-height: 1.2;

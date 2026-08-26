@@ -82,6 +82,13 @@ const props = withDefaults(
 		 * behind a flat slab for the entire transition.
 		 */
 		transparentBackground?: boolean;
+		/**
+		 * The element currently open in the element-level inline text editor
+		 * (mounted as a slotted overlay by the host), threaded down so
+		 * `ElementRenderer` can suppress its own text render for that one element
+		 * instead of duplicating it underneath the editor (issue #182).
+		 */
+		inlineEditingElementId?: string | null;
 	}>(),
 	{ scale: 1 },
 );
@@ -205,6 +212,7 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:interactive="templateLayerInteractive"
 			:marked="interactive ?? false"
 			:template-editing="editTemplateMode ?? false"
+			:inline-editing-element-id="inlineEditingElementId"
 		/>
 		<!-- Slide content (template-free after the load-time partition). -->
 		<ElementRenderer
@@ -215,6 +223,7 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:z-index="index + templateCount"
 			:interactive="interactive ?? false"
 			:presenting="presenting ?? false"
+			:inline-editing-element-id="inlineEditingElementId"
 		/>
 		<!-- Optional editing overlay (selection handles, etc.) shares this scaled space -->
 		<slot />

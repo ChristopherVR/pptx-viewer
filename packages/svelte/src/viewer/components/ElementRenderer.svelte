@@ -43,8 +43,10 @@
 	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, marked = false, editTemplateMode = false, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill, onchartpointcommit, ontableresizecolumns, ontableresizerow }: ElementRendererProps =
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, marked = false, editTemplateMode = false, editingElementId = null, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill, onchartpointcommit, ontableresizecolumns, ontableresizerow }: ElementRendererProps =
 		$props();
+	/** This exact element is open in the element-level inline text editor right now. */
+	const isBeingInlineEdited = $derived(element.id === editingElementId);
 	/**
 	 * Whether THIS element takes part in the neutral element contract
 	 * (`data-pptx-element="true"`) and in pointer interaction.
@@ -192,7 +194,7 @@
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} {editingElementId} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -234,15 +236,20 @@
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
 		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 		{#if extrusion.hasExtrusion}<Extrusion3D data={extrusion} />{/if}
-		{#if warpedText}
-			<WordArtText {element} {mediaDataUrls} {zIndex} />
-		{:else if hasText}
-			<TextBlock
-				{paragraphs}
-				textStyle={styleToString(getTextBlockStyle(element))}
-				elementId={element.id}
-				subElementAnimStates={allAnimStates}
-			/>
+		<!-- While this element is open in the inline text editor, its live text is
+		     drawn by that overlay instead; rendering it here too duplicates it
+		     underneath (issue #182). -->
+		{#if !isBeingInlineEdited}
+			{#if warpedText}
+				<WordArtText {element} {mediaDataUrls} {zIndex} />
+			{:else if hasText}
+				<TextBlock
+					{paragraphs}
+					textStyle={styleToString(getTextBlockStyle(element))}
+					elementId={element.id}
+					subElementAnimStates={allAnimStates}
+				/>
+			{/if}
 		{/if}
 	</div>
 {:else}

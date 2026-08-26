@@ -26,6 +26,7 @@ import type { ChangeCaseMode } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { vAnchoredPopup } from './anchored-popup';
 import ParagraphDropdowns from './ParagraphDropdowns.vue';
 import { gB, gL, grp, FMT, ATXT, pill, ic, SEP, MENU_PANEL, MENU_ITEM } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
@@ -128,6 +129,8 @@ const currentHighlight = computed(() =>
 
 const colorInputRef = ref<HTMLInputElement | null>(null);
 const highlightInputRef = ref<HTMLInputElement | null>(null);
+const fontColorTriggerRef = ref<HTMLButtonElement | null>(null);
+const highlightTriggerRef = ref<HTMLButtonElement | null>(null);
 
 function handleColorChange(color: string): void {
 	if (!canFormat.value) {
@@ -355,6 +358,7 @@ function handleChangeCase(value: string): void {
 			<!-- Font colour -->
 			<div class="relative group">
 				<button
+					ref="fontColorTriggerRef"
 					type="button"
 					:disabled="!canMut"
 					:class="pill"
@@ -374,7 +378,10 @@ function handleChangeCase(value: string): void {
 					</svg>
 					<div class="w-4 h-1 rounded-sm -mt-0.5" :style="{ backgroundColor: currentColor }" />
 				</button>
-				<div class="absolute left-0 top-full z-50 hidden group-hover:block pt-1">
+				<div
+					class="z-50 hidden group-hover:block pt-1"
+					v-anchored-popup="{ anchor: fontColorTriggerRef }"
+				>
 					<div
 						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36"
 					>
@@ -417,6 +424,7 @@ function handleChangeCase(value: string): void {
 			<!-- Text highlight colour -->
 			<div class="relative group">
 				<button
+					ref="highlightTriggerRef"
 					type="button"
 					:disabled="!canMut"
 					:class="pill"
@@ -426,7 +434,10 @@ function handleChangeCase(value: string): void {
 					<Highlighter :class="ic" />
 					<div class="w-4 h-1 rounded-sm -mt-0.5" :style="{ backgroundColor: currentHighlight }" />
 				</button>
-				<div class="absolute left-0 top-full z-50 hidden group-hover:block pt-1">
+				<div
+					class="z-50 hidden group-hover:block pt-1"
+					v-anchored-popup="{ anchor: highlightTriggerRef }"
+				>
 					<div
 						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36"
 					>
@@ -511,7 +522,8 @@ function handleChangeCase(value: string): void {
 				</button>
 				<div
 					v-if="charSpacingMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-36 pt-1"
+					class="z-50 flex flex-col w-36 pt-1"
+					v-anchored-popup="{ anchor: charSpacingMenu.root.value }"
 				>
 					<div :class="MENU_PANEL">
 						<button
@@ -547,7 +559,8 @@ function handleChangeCase(value: string): void {
 				</button>
 				<div
 					v-if="changeCaseMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-44 pt-1"
+					class="z-50 flex flex-col w-44 pt-1"
+					v-anchored-popup="{ anchor: changeCaseMenu.root.value }"
 				>
 					<div :class="MENU_PANEL">
 						<button

@@ -8,6 +8,7 @@
 	 * uses a standard Office theme-color set local to the component.
 	 */
 	import { useTranslator } from '../../../i18n/context';
+	import { anchoredPopup } from './anchored-popup';
 
 	const {
 		value,
@@ -47,6 +48,8 @@
 
 	const palette = $derived(swatches ?? DEFAULT_SWATCHES);
 	let open = $state(false);
+	// eslint-disable-next-line prefer-const
+	let triggerEl: HTMLElement | undefined = $state();
 
 	function onFocusOut(event: FocusEvent): void {
 		const root = event.currentTarget as HTMLElement;
@@ -63,6 +66,7 @@
 
 <div class="pptx-svelte-swatch" onfocusout={onFocusOut}>
 	<button
+		bind:this={triggerEl}
 		type="button"
 		class="pptx-svelte-swatch-trigger"
 		{disabled}
@@ -76,7 +80,7 @@
 		<span class="pptx-svelte-swatch-swab" style={`background-color:${value}`}></span>
 	</button>
 	{#if open}
-		<div class="pptx-svelte-swatch-menu" role="menu">
+		<div class="pptx-svelte-swatch-menu" role="menu" use:anchoredPopup={{ anchor: triggerEl }}>
 			<div class="pptx-svelte-swatch-grid">
 				{#each palette as hex (hex)}
 					<button
@@ -145,11 +149,9 @@
 	}
 
 	.pptx-svelte-swatch-menu {
-		position: absolute;
-		top: 100%;
-		left: 0;
+		/* Positioned by `use:anchoredPopup` (position: fixed + inline top/left),
+		   which escapes the ribbon row's overflow-x clip (issue #183). */
 		z-index: 50;
-		margin-top: 4px;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;

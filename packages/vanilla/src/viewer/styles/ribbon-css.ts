@@ -282,9 +282,8 @@ export const RIBBON_CSS = `
 .pptxv-font-family-dd .pptxv-dropdown-text { max-width: 120px; }
 .pptxv-font-size-dd .pptxv-dropdown-trigger { min-width: 44px; justify-content: space-between; }
 .pptxv-dropdown-menu {
-	position: absolute;
-	top: calc(100% + 4px);
-	left: 0;
+	/* Positioned by attachAnchoredPopup (position: fixed + inline top/left),
+	   which escapes the ribbon row's overflow-x clip (issue #183). */
 	z-index: 30;
 	min-width: 140px;
 	max-height: 240px;
@@ -333,9 +332,8 @@ export const RIBBON_CSS = `
 .pptxv-swatch-trigger { flex-direction: column; height: 28px; padding: 2px 6px; gap: 0; }
 .pptxv-swatch-swab { display: block; width: 16px; height: 3px; border-radius: 1px; margin-top: 1px; }
 .pptxv-swatch-menu {
-	position: absolute;
-	top: calc(100% + 4px);
-	left: 0;
+	/* Positioned by attachAnchoredPopup (position: fixed + inline top/left),
+	   which escapes the ribbon row's overflow-x clip (issue #183). */
 	z-index: 30;
 	padding: 8px;
 	border: 1px solid var(--pptx-border);

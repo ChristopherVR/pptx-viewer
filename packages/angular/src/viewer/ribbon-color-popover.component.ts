@@ -9,14 +9,17 @@ import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { AnchoredPopupDirective } from './anchored-popup.directive';
+
 @Component({
 	selector: 'pptx-ribbon-color-popover',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe],
+	imports: [NgClass, TranslatePipe, AnchoredPopupDirective],
 	template: `
 		<div class="group relative">
 			<button
+				#colorTrigger
 				type="button"
 				class="pptx-rb-pill"
 				[disabled]="disabled()"
@@ -26,7 +29,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				<ng-content />
 				<span class="-mt-0.5 block h-1 w-4 rounded-sm" [style.background]="current()"></span>
 			</button>
-			<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+			<div class="z-50 hidden pt-1 group-hover:block" [pptxAnchoredPopup]="colorTrigger">
 				<div class="w-36 rounded-lg border border-border bg-card p-2 shadow-2xl">
 					<div class="mb-2 grid grid-cols-5 gap-1.5">
 						@for (c of presets(); track c) {

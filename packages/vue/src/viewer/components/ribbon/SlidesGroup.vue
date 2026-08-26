@@ -123,6 +123,7 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 				</button>
 				<LayoutGalleryMenu
 					v-if="layoutMenu.open.value"
+					:anchor="layoutMenu.root.value"
 					:layout-options="props.layoutOptions"
 					:previews="previews"
 					@select="handlePickLayout"
@@ -156,6 +157,7 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 				</button>
 				<LayoutGalleryMenu
 					v-if="layoutApplyMenu.open.value"
+					:anchor="layoutApplyMenu.root.value"
 					:layout-options="props.layoutOptions"
 					:previews="previews"
 					:current-layout-path="props.currentLayoutPath"

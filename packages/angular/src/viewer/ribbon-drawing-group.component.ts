@@ -35,6 +35,7 @@ import {
 	shapeOutlineChange,
 } from '../internal/shared';
 import type { ShapePresetDef } from '../internal/shared';
+import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { newPresetShapeElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
@@ -91,13 +92,14 @@ export function shapeStylePatch(
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe, LucideChevronDown, RibbonColorPopoverComponent],
+	imports: [TranslatePipe, LucideChevronDown, RibbonColorPopoverComponent, AnchoredPopupDirective],
 	template: `
 		<!-- Shapes -->
 		<div class="flex flex-col items-center gap-0.5">
 			<div class="pptx-rb-grp">
 				<div class="relative">
 					<button
+						#shapesTrigger
 						type="button"
 						class="pptx-rb-gb gap-1.5"
 						[disabled]="!canEdit()"
@@ -108,7 +110,8 @@ export function shapeStylePatch(
 					</button>
 					@if (shapesOpen()) {
 						<div
-							class="absolute left-0 top-full z-50 mt-0.5 grid grid-cols-4 gap-0.5 rounded border border-border bg-popover p-1 shadow-md"
+							class="z-50 mt-0.5 grid grid-cols-4 gap-0.5 rounded border border-border bg-popover p-1 shadow-md"
+							[pptxAnchoredPopup]="shapesTrigger"
 						>
 							@for (shape of shapes; track shape.type) {
 								<button
@@ -125,6 +128,7 @@ export function shapeStylePatch(
 				<!-- Arrange -->
 				<div class="relative">
 					<button
+						#arrangeTrigger
 						type="button"
 						class="pptx-rb-gb gap-1.5"
 						[disabled]="!canEdit() || !editor.hasSelection()"
@@ -135,7 +139,8 @@ export function shapeStylePatch(
 					</button>
 					@if (arrangeOpen()) {
 						<div
-							class="absolute left-0 top-full z-50 mt-0.5 flex flex-col rounded border border-border bg-popover p-1 shadow-md"
+							class="z-50 mt-0.5 flex flex-col rounded border border-border bg-popover p-1 shadow-md"
+							[pptxAnchoredPopup]="arrangeTrigger"
 						>
 							<button
 								type="button"

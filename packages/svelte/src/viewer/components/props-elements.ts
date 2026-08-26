@@ -43,6 +43,19 @@ export interface ElementRendererProps {
 	/** Whether inherited layout/master nodes participate in pointer editing. */
 	editTemplateMode?: boolean;
 	/**
+	 * The element currently open in the element-level inline text editor
+	 * (`InlineTextEditor.svelte`, rendered separately by `EditorLayer`), or
+	 * `null`/`undefined` when nothing is being edited.
+	 *
+	 * Mirrors React's `ElementBody.renderBody`, which swaps its static text
+	 * render out for the inline editor while `isEditing` is true rather than
+	 * layering the two: without this, this renderer kept painting the
+	 * element's normal text UNDERNEATH the editor overlay (issue #182 in the
+	 * other bindings; the fully-opaque editor background here happens to mask
+	 * it visually, but the duplicate render is the same structural gap).
+	 */
+	editingElementId?: string | null;
+	/**
 	 * The enclosing group's fill (`GroupPptxElement.groupFill`), passed down by a
 	 * group's render branch so a child painted with `a:grpFill`
 	 * (`fillMode === 'group'`) inherits the group's resolved fill.

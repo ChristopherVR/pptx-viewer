@@ -17,6 +17,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { vAnchoredPopup } from './anchored-popup';
 import FontFamilyMenu from './FontFamilyMenu.vue';
 import {
 	COMMON_SIZES,
@@ -226,6 +227,7 @@ function handlePickSize(s: number): void {
 				</button>
 				<FontFamilyMenu
 					v-if="fontMenu.open.value"
+					:anchor="fontMenu.root.value"
 					:theme-fonts="props.themeFonts"
 					:embedded-fonts="props.embeddedFontFamilies"
 					:custom-fonts="props.customFontFamilies"
@@ -244,7 +246,8 @@ function handlePickSize(s: number): void {
 				</button>
 				<div
 					v-if="sizeMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-48 pt-1"
+					class="z-50 flex flex-col w-48 pt-1"
+					v-anchored-popup="{ anchor: sizeMenu.root.value }"
 				>
 					<div :class="MENU_PANEL">
 						<button

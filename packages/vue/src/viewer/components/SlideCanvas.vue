@@ -49,6 +49,12 @@ const props = defineProps<{
 	 * and gain a visual affordance. Threaded down to {@link SlideStage}.
 	 */
 	editTemplateMode?: boolean;
+	/**
+	 * The element currently open in the element-level inline text editor;
+	 * threaded down to {@link SlideStage} so it can suppress that element's own
+	 * static text render while the editor overlay draws it instead.
+	 */
+	inlineEditingElementId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -153,6 +159,7 @@ watch(() => [props.canvasSize.width, props.canvasSize.height, props.showRulers],
 				:scale="scale"
 				:template-elements="templateElements"
 				:edit-template-mode="editTemplateMode"
+				:inline-editing-element-id="inlineEditingElementId"
 				interactive
 			>
 				<slot />

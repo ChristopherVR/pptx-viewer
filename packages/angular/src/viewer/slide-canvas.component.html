@@ -41,6 +41,7 @@
 					[fieldContext]="fieldContext()"
 					[slideElements]="allElements()"
 					[editTemplateMode]="editTemplateMode()"
+					[editingElementId]="editingId()"
 					(cellCommit)="cellCommit.emit($event)"
 					(tableChange)="tableChange.emit($event)"
 				/>
@@ -60,6 +61,7 @@
 					[fieldContext]="fieldContext()"
 					[slideElements]="allElements()"
 					[editTemplateMode]="false"
+					[editingElementId]="editingId()"
 					(cellCommit)="cellCommit.emit($event)"
 					(tableChange)="tableChange.emit($event)"
 				/>

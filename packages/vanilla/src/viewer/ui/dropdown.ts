@@ -1,4 +1,6 @@
 import { createEl } from '../render';
+import type { AnchoredPopupHandle } from './anchored-popup';
+import { attachAnchoredPopup } from './anchored-popup';
 import type { IconName } from './icons';
 import { createIcon } from './icons';
 
@@ -71,12 +73,20 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 	let isOpen = false;
 	let selected: T | undefined;
 	const itemButtons = new Map<HTMLButtonElement, T>();
+	let popup: AnchoredPopupHandle | null = null;
 
 	const setOpen = (open: boolean): void => {
 		isOpen = open;
 		menu.hidden = !open;
 		trigger.setAttribute('aria-expanded', String(open));
 		trigger.classList.toggle('is-active', open);
+		if (open) {
+			popup?.destroy();
+			popup = attachAnchoredPopup(menu, trigger);
+		} else {
+			popup?.destroy();
+			popup = null;
+		}
 	};
 
 	const applySelected = (): void => {

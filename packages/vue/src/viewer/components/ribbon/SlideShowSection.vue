@@ -17,6 +17,7 @@ import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { vAnchoredPopup } from './anchored-popup';
 import CustomShowsControls from './CustomShowsControls.vue';
 import { ic, pill, SEP } from './ribbon-constants';
 /**
@@ -123,7 +124,11 @@ function commitOption(id: (typeof SLIDE_SHOW_OPTIONS)[number]['id'], checked: bo
 			<ListVideo :class="ic" />
 			{{ t('pptx.slideShow.customShow') }}
 		</button>
-		<div v-if="showsMenu.open.value" class="absolute left-0 top-full z-50 flex flex-col pt-1">
+		<div
+			v-if="showsMenu.open.value"
+			class="z-50 flex flex-col pt-1"
+			v-anchored-popup="{ anchor: showsMenu.root.value }"
+		>
 			<div
 				class="flex items-center gap-1 rounded-lg border border-border bg-popover p-2 shadow-2xl"
 			>

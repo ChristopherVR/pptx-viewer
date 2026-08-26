@@ -248,6 +248,23 @@ export class ElementRendererComponent {
 	 */
 	readonly parentGroupFill = input<ShapeStyle | undefined>(undefined);
 
+	/**
+	 * The element currently open in the element-level inline text editor
+	 * (the `<textarea data-inline-editor>` overlay in `slide-canvas.component`),
+	 * or `null` when nothing is being edited.
+	 *
+	 * Mirrors React's `ElementBody.renderBody`, which swaps its static text
+	 * render out for the inline editor while `isEditing` is true rather than
+	 * layering the two: without this, this component kept painting the
+	 * element's normal text UNDERNEATH the editor overlay, and the editor's
+	 * own translucent background let it show through as a duplicate, offset
+	 * "text shadow" (issue #182).
+	 */
+	readonly editingElementId = input<string | null>(null);
+
+	/** This exact element is open in the element-level inline text editor right now. */
+	readonly isBeingInlineEdited = computed(() => this.element().id === this.editingElementId());
+
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 

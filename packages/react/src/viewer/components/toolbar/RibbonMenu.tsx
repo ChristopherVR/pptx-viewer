@@ -1,3 +1,4 @@
+import { computeAnchoredPopupPosition } from 'pptx-viewer-shared';
 import React, { useEffect, useState } from 'react';
 
 import { cn } from '../../utils';
@@ -32,11 +33,9 @@ export function RibbonMenu({
 			return;
 		}
 		const update = () => {
-			const rect = anchor.getBoundingClientRect();
+			const { left, top } = computeAnchoredPopupPosition(anchor.getBoundingClientRect());
 			setPos((prev) =>
-				prev && prev.left === rect.left && prev.top === rect.bottom
-					? prev
-					: { left: rect.left, top: rect.bottom },
+				prev && prev.left === left && prev.top === top ? prev : { left: left ?? 0, top },
 			);
 		};
 		update();

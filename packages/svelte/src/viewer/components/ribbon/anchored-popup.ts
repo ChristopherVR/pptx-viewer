@@ -1,3 +1,5 @@
+import { computeAnchoredPopupPosition } from 'pptx-viewer-shared';
+
 /**
  * `use:anchoredPopup` - pins a ribbon dropdown to its trigger with
  * `position: fixed`, so the popup escapes the ribbon content row's
@@ -23,17 +25,17 @@ export function anchoredPopup(node: HTMLElement, options: AnchoredPopupOptions) 
 		if (!anchor) {
 			return;
 		}
-		const rect = anchor.getBoundingClientRect();
+		const { top, left, right } = computeAnchoredPopupPosition(anchor.getBoundingClientRect(), {
+			alignRight: current.alignRight,
+		});
 		node.style.position = 'fixed';
 		node.style.margin = '0';
-		node.style.top = `${rect.bottom + 4}px`;
-		if (current.alignRight) {
-			node.style.left = 'auto';
-			node.style.right = `${window.innerWidth - rect.right}px`;
-		} else {
-			node.style.right = 'auto';
-			node.style.left = `${rect.left}px`;
-		}
+		// The 4px gap (React's equivalent bakes the same gap in via a `pt-1`
+		// class on the popup content) stays here rather than in the shared
+		// position math, which returns the anchor's raw bottom edge.
+		node.style.top = `${top + 4}px`;
+		node.style.left = left === null ? 'auto' : `${left}px`;
+		node.style.right = right === null ? 'auto' : `${right}px`;
 	}
 
 	update();

@@ -13,6 +13,7 @@ import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import SlideStage from '../SlideStage.vue';
+import { vAnchoredPopup } from './anchored-popup';
 
 /** Thumbnail box size, matching PowerPoint's gallery tiles. */
 const THUMB_WIDTH = 128;
@@ -27,6 +28,8 @@ const props = defineProps<{
 	previews: ReadonlyMap<string, PptxLayoutPreview>;
 	/** Marks the active tile. Omitted by New Slide, which has no "current". */
 	currentLayoutPath?: string;
+	/** The trigger button this menu hangs below (position: fixed anchor; see `anchored-popup.ts`). */
+	anchor?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{ (event: 'select', layout: PptxLayoutOption): void }>();
@@ -60,8 +63,9 @@ const tiles = computed(() =>
 
 <template>
 	<div
-		class="absolute left-0 top-full z-50 flex flex-col w-[620px] pt-1"
+		class="z-50 flex flex-col w-[620px] pt-1"
 		data-testid="layout-gallery-menu"
+		v-anchored-popup="{ anchor: props.anchor }"
 	>
 		<div
 			class="grid grid-cols-4 gap-2 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-3 max-h-[520px] overflow-y-auto"

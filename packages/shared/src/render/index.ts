@@ -883,6 +883,7 @@ export * from './presenter-show-lifecycle';
 // Slide-show keyboard map: PowerPoint's published shortcut set (navigation,
 // slide-number jump, blank screens, pointer tools) as one shared mapping so no
 // binding invents its own bindings.
+export * from './anchored-popup-position';
 export * from './presentation-keymap';
 // PowerPoint's Reading View: the deck at full window size with the editor
 // chrome reduced to a nav bar, deliberately NOT the fullscreen slide show.

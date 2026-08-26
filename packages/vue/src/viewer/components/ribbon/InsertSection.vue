@@ -41,6 +41,7 @@ import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { vAnchoredPopup } from './anchored-popup';
 import InsertHyperlinkButton from './InsertHyperlinkButton.vue';
 import { grp, ic, pill } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
@@ -218,6 +219,10 @@ const activeShapePreset = computed(() =>
 /** The chart kind chosen in the insert dropdown (mirrors React's `newChartType`). */
 const newChartType = ref<InsertChartKind>(DEFAULT_INSERT_CHART_KIND);
 const chartTypes = INSERT_CHART_TYPES;
+
+/** Anchors for the hover-driven Action Button / Insert Field popups (see `anchored-popup.ts`). */
+const actionButtonTriggerRef = ref<HTMLButtonElement | null>(null);
+const insertFieldTriggerRef = ref<HTMLButtonElement | null>(null);
 
 /* Date/Time picker modal state: React's local `useState` + outside-click. */
 const datePickerOpen = ref(false);
@@ -435,6 +440,7 @@ function previewTime(): string {
 	<!-- Action Buttons dropdown -->
 	<div class="relative group">
 		<button
+			ref="actionButtonTriggerRef"
 			type="button"
 			:disabled="!canEdit"
 			:class="pill"
@@ -455,7 +461,10 @@ function previewTime(): string {
 			{{ t('pptx.ribbon.action') }}
 			<ChevronDown class="w-3 h-3" />
 		</button>
-		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-40 pt-1">
+		<div
+			class="z-50 hidden group-hover:flex flex-col w-40 pt-1"
+			v-anchored-popup="{ anchor: actionButtonTriggerRef }"
+		>
 			<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1">
 				<button
 					v-for="preset in ACTION_BUTTON_PRESETS"
@@ -483,7 +492,13 @@ function previewTime(): string {
 	</div>
 	<!-- Insert Field dropdown -->
 	<div v-if="props.onInsertField" class="relative group">
-		<button type="button" :disabled="!canEdit" :class="pill" :title="t('pptx.field.insertField')">
+		<button
+			ref="insertFieldTriggerRef"
+			type="button"
+			:disabled="!canEdit"
+			:class="pill"
+			:title="t('pptx.field.insertField')"
+		>
 			<svg
 				:class="ic"
 				viewBox="0 0 24 24"
@@ -499,7 +514,10 @@ function previewTime(): string {
 			{{ t('pptx.field.field') }}
 			<ChevronDown class="w-3 h-3" />
 		</button>
-		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1">
+		<div
+			class="z-50 hidden group-hover:flex flex-col w-44 pt-1"
+			v-anchored-popup="{ anchor: insertFieldTriggerRef }"
+		>
 			<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1">
 				<button
 					type="button"

@@ -447,6 +447,17 @@ const CHROME_CSS = `
 	overflow-wrap: break-word;
 	touch-action: none;
 }
+/*
+ * While an element's own inline text editor is open (see
+ * editor-stage-interactions.ts), suppress THIS element's static text render:
+ * the editor surface above it has no opaque background of its own, so the two
+ * rendering simultaneously produced a duplicated, offset "text shadow"
+ * (issue #182).
+ */
+.pptxv-inline-editing-source > .pptxv-text,
+.pptxv-inline-editing-source > .pptxv-wordart {
+	visibility: hidden;
+}
 .pptxv-rotate-stem {
 	position: absolute;
 	left: 50%;

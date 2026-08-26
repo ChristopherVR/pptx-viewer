@@ -24,6 +24,8 @@ export interface SlideStageProps {
 	 */
 	interactive?: boolean;
 	editTemplateMode?: boolean;
+	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.editingElementId`. */
+	editingElementId?: string | null;
 	/**
 	 * Skip the resolved slide background and leave the stage see-through.
 	 *
@@ -77,6 +79,8 @@ export interface SlideCanvasProps {
 	/** True while in-place editing is available; gates the pointer handlers and the editing cursor/class. */
 	editingActive?: boolean;
 	editTemplateMode?: boolean;
+	/** Forwarded to `SlideStage`; see `SlideStageProps.editingElementId`. */
+	editingElementId?: string | null;
 	ontablecellcommit?: (
 		elementId: string,
 		rowIndex: number,

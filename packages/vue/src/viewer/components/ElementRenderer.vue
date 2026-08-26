@@ -83,6 +83,19 @@ const props = defineProps<{
 	 * group's render branch so a child painted with `a:grpFill` inherits it.
 	 */
 	parentGroupFill?: ShapeStyle;
+	/**
+	 * The element currently open in the element-level inline text editor
+	 * (`InlineTextEditor.vue`, mounted separately in `ViewerCanvasOverlays.vue`),
+	 * or `null`/`undefined` when nothing is being edited.
+	 *
+	 * Mirrors React's `ElementBody.renderBody`, which swaps its static text
+	 * render out for `InlineTextEditor` while `isEditing` is true rather than
+	 * layering the two: without this, this renderer kept painting the element's
+	 * normal text UNDERNEATH the editor overlay, and the editor's own
+	 * translucent background let it show through as a duplicate, offset "text
+	 * shadow" (issue #182).
+	 */
+	inlineEditingElementId?: string | null;
 }>();
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
@@ -279,6 +292,9 @@ const rootPointerEvents = computed<CSSProperties | null>(() => {
  * Selection Pane, which reads the slide model rather than the DOM.
  */
 const isRendered = computed(() => isElementRendered(props.element));
+
+/** This exact element is open in the element-level inline text editor right now. */
+const isBeingInlineEdited = computed(() => props.element.id === props.inlineEditingElementId);
 </script>
 
 <template>
@@ -304,6 +320,7 @@ const isRendered = computed(() => isElementRendered(props.element));
 			:marked="marked"
 			:presenting="presenting"
 			:parent-group-fill="childParentGroupFill"
+			:inline-editing-element-id="inlineEditingElementId"
 		/>
 	</div>
 
@@ -446,14 +463,19 @@ const isRendered = computed(() => isElementRendered(props.element));
 		<Extrusion3DOverlay v-if="extrusionData.hasExtrusion" :data="extrusionData" />
 		<!-- Action-button glyph (home/help/sound/arrows/...); self-hides for non-buttons. -->
 		<ActionButtonGlyphOverlay :element="element" />
-		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
-		<SlideTextBlock
-			v-else-if="hasText"
-			:paragraphs="paragraphs"
-			:text-style="textStyle"
-			:element-id="element.id"
-			:sub-element-anim-states="presentationStates"
-		/>
+		<!-- While this element is open in the inline text editor, its live text is
+		     drawn by that overlay instead (see `isBeingInlineEdited`); rendering it
+		     here too produced a duplicate, offset "text shadow" (issue #182). -->
+		<template v-if="!isBeingInlineEdited">
+			<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
+			<SlideTextBlock
+				v-else-if="hasText"
+				:paragraphs="paragraphs"
+				:text-style="textStyle"
+				:element-id="element.id"
+				:sub-element-anim-states="presentationStates"
+			/>
+		</template>
 	</div>
 
 	<!-- Fallback placeholder for not-yet-ported element types -->

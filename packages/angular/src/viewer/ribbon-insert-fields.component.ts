@@ -24,6 +24,7 @@ import {
 	buildActionButtonElement,
 	secureRandomUuid,
 } from '../internal/shared';
+import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { EditorStateService } from './editor-state.service';
 
 /** Default display text per field type when no explicit value is supplied. */
@@ -60,11 +61,12 @@ function newFieldGuid(): string {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe, LucideChevronDown],
+	imports: [TranslatePipe, LucideChevronDown, AnchoredPopupDirective],
 	template: `
 		<!-- Action Buttons dropdown (hover-reveal, mirrors React/Vue) -->
 		<div class="group relative">
 			<button
+				#actionTrigger
 				type="button"
 				class="pptx-rb-pill"
 				[title]="'pptx.ribbon.insertActionButton' | translate"
@@ -83,7 +85,7 @@ function newFieldGuid(): string {
 				</svg>
 				{{ 'pptx.ribbon.action' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 			</button>
-			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
+			<div class="z-50 hidden w-44 pt-1 group-hover:block" [pptxAnchoredPopup]="actionTrigger">
 				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
 					@for (preset of actionPresets; track preset.shapeType) {
 						<button
@@ -112,7 +114,12 @@ function newFieldGuid(): string {
 
 		<!-- Insert Field dropdown -->
 		<div class="group relative">
-			<button type="button" class="pptx-rb-pill" [title]="'pptx.field.insertField' | translate">
+			<button
+				#fieldTrigger
+				type="button"
+				class="pptx-rb-pill"
+				[title]="'pptx.field.insertField' | translate"
+			>
 				<svg
 					class="h-3.5 w-3.5"
 					viewBox="0 0 24 24"
@@ -127,7 +134,7 @@ function newFieldGuid(): string {
 				</svg>
 				{{ 'pptx.field.field' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 			</button>
-			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
+			<div class="z-50 hidden w-44 pt-1 group-hover:block" [pptxAnchoredPopup]="fieldTrigger">
 				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
 					<button
 						type="button"

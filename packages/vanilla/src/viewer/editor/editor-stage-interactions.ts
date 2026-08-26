@@ -70,6 +70,27 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		}
 	};
 
+	/**
+	 * Find this element's own rendered node on the stage (not the inline
+	 * editor's, which lives in the separate overlay layer).
+	 */
+	const findStageElementNode = (id: string): Element | null =>
+		deps.getStageRoot()?.querySelector(`[data-element-id="${CSS.escape(id)}"]`) ?? null;
+
+	/**
+	 * While the inline text editor is open over an element, hide that one
+	 * element's own static text render (the `.pptxv-text` / `.pptxv-warped-text`
+	 * child `text-shape.ts` builds) so it does not sit duplicated underneath the
+	 * editor's live text - the editor's surface has no opaque backdrop of its
+	 * own, so without this the two rendered simultaneously, offset by their
+	 * differing box models, producing a "text shadow" (issue #182 in the other
+	 * bindings, which hid it behind a translucent/opaque editor background
+	 * instead of suppressing the duplicate at the source).
+	 */
+	const setStaticTextSuppressed = (id: string, suppressed: boolean): void => {
+		findStageElementNode(id)?.classList.toggle('pptxv-inline-editing-source', suppressed);
+	};
+
 	const enterInlineEdit = (id: string): void => {
 		const state = store.get();
 		const el = findActiveElement(state, id);
@@ -79,6 +100,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		}
 		ops.select(id);
 		overlay.setEditing(true);
+		setStaticTextSuppressed(id, true);
 		inline = openInlineEditor({
 			doc,
 			overlayRoot: overlay.root,
@@ -97,6 +119,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			onClose() {
 				inline = null;
 				deps.getOverlay()?.setEditing(false);
+				setStaticTextSuppressed(id, false);
 			},
 		});
 	};

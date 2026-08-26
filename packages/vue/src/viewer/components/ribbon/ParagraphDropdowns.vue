@@ -7,6 +7,7 @@ import { ChevronDown, Columns2, Columns3, RotateCw } from 'lucide-vue-next';
 import type { TextStyle } from 'pptx-viewer-core';
 import { useI18n } from 'vue-i18n';
 
+import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill } from './ribbon-constants';
 import { useDropdown } from './use-dropdown';
 
@@ -92,7 +93,8 @@ function handleColumns(value: number): void {
 		</button>
 		<div
 			v-if="lineSpacingMenu.open.value"
-			class="absolute left-0 top-full z-50 flex flex-col w-28 pt-1"
+			class="z-50 flex flex-col w-28 pt-1"
+			v-anchored-popup="{ anchor: lineSpacingMenu.root.value }"
 		>
 			<div :class="MENU_PANEL">
 				<button
@@ -123,7 +125,8 @@ function handleColumns(value: number): void {
 		</button>
 		<div
 			v-if="textDirectionMenu.open.value"
-			class="absolute left-0 top-full z-50 flex flex-col w-36 pt-1"
+			class="z-50 flex flex-col w-36 pt-1"
+			v-anchored-popup="{ anchor: textDirectionMenu.root.value }"
 		>
 			<div :class="MENU_PANEL">
 				<button
@@ -154,7 +157,8 @@ function handleColumns(value: number): void {
 		</button>
 		<div
 			v-if="columnsMenu.open.value"
-			class="absolute left-0 top-full z-50 flex flex-col w-32 pt-1"
+			class="z-50 flex flex-col w-32 pt-1"
+			v-anchored-popup="{ anchor: columnsMenu.root.value }"
 		>
 			<div :class="MENU_PANEL">
 				<button

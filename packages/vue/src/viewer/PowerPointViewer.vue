@@ -1315,6 +1315,7 @@ defineExpose<PowerPointViewerExpose>(
 						:can-drag-guides="props.canEdit && !presentation.presenting.value"
 						:template-elements="activeTemplateElements"
 						:edit-template-mode="editTemplateMode && !presentation.presenting.value"
+						:inline-editing-element-id="inlineEdit.inlineEditingElementId.value"
 						@update:fit-scale="fitScale = $event"
 						@create-guide="drag.addGuide"
 					>

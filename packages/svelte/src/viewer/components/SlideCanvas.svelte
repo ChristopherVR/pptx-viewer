@@ -28,6 +28,7 @@
 		gridSpacingPx = 12,
 		editingActive = false,
 		editTemplateMode = false,
+		editingElementId = null,
 		ontablecellcommit,
 		onsmartartnodecommit,
 		onsmartartnodefill,
@@ -107,6 +108,7 @@
 		{presenting}
 		interactive
 		{editTemplateMode}
+		{editingElementId}
 		{ontablecellcommit}
 		{onsmartartnodecommit}
 		{onsmartartnodefill}

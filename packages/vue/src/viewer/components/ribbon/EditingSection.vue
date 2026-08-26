@@ -6,6 +6,7 @@
 import { ArrowRightLeft, ChevronDown, Search } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
+import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
 import { useDropdown } from './use-dropdown';
 
@@ -66,7 +67,8 @@ function handleSelectAll(): void {
 				</button>
 				<div
 					v-if="selectMenu.open.value"
-					class="absolute right-0 top-full z-50 flex flex-col w-32 pt-1"
+					class="z-50 flex flex-col w-32 pt-1"
+					v-anchored-popup="{ anchor: selectMenu.root.value, alignRight: true }"
 				>
 					<div :class="MENU_PANEL">
 						<!-- `mousedown.prevent` is load-bearing, and its absence is why this

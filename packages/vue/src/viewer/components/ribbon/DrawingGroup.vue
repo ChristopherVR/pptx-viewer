@@ -10,6 +10,7 @@ import { RIBBON_SHAPE_SWATCHES, shapeFillChange, shapeOutlineChange } from 'pptx
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
 import { useDropdown } from './use-dropdown';
@@ -98,7 +99,8 @@ function handleOutline(color: string): void {
 				</button>
 				<div
 					v-if="shapesMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-52 pt-1"
+					class="z-50 flex flex-col w-52 pt-1"
+					v-anchored-popup="{ anchor: shapesMenu.root.value }"
 				>
 					<div :class="MENU_PANEL">
 						<button
@@ -128,7 +130,8 @@ function handleOutline(color: string): void {
 				</button>
 				<div
 					v-if="arrangeMenu.open.value"
-					class="absolute left-0 top-full z-50 flex flex-col w-44 pt-1"
+					class="z-50 flex flex-col w-44 pt-1"
+					v-anchored-popup="{ anchor: arrangeMenu.root.value }"
 				>
 					<div :class="MENU_PANEL">
 						<button type="button" :class="MENU_ITEM" @click="handleArrange('forward', false)">
@@ -158,7 +161,11 @@ function handleOutline(color: string): void {
 				>
 					<PaintBucket :class="ic" />
 				</button>
-				<div v-if="fillMenu.open.value" class="absolute left-0 top-full z-50 pt-1">
+				<div
+					v-if="fillMenu.open.value"
+					class="z-50 pt-1"
+					v-anchored-popup="{ anchor: fillMenu.root.value }"
+				>
 					<div
 						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1"
 					>
@@ -189,7 +196,11 @@ function handleOutline(color: string): void {
 				>
 					<PenLine :class="ic" />
 				</button>
-				<div v-if="outlineMenu.open.value" class="absolute left-0 top-full z-50 pt-1">
+				<div
+					v-if="outlineMenu.open.value"
+					class="z-50 pt-1"
+					v-anchored-popup="{ anchor: outlineMenu.root.value }"
+				>
 					<div
 						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1"
 					>

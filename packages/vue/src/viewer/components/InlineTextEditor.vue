@@ -67,7 +67,13 @@ const editorStyle = computed<CSSProperties>(() => {
 		padding: '2px 4px',
 		margin: 0,
 		outline: '2px solid var(--pptx-vue-selection-color, #3b82f6)',
-		background: 'rgba(255, 255, 255, 0.92)',
+		// Transparent: the element's own shape fill (still rendered underneath by
+		// `ElementRenderer`, which only suppresses its TEXT while this element is
+		// being edited) shows through, matching React and the element's actual
+		// authored appearance. A near-opaque white used to sit here as a stand-in
+		// backdrop; with the static text no longer duplicated underneath (issue
+		// #182), it only mismatched non-white fills.
+		background: 'transparent',
 		color: typeof style.color === 'string' ? (style.color as string) : '#111827',
 		fontFamily: typeof style.fontFamily === 'string' ? (style.fontFamily as string) : 'inherit',
 		fontSize: fontSize ?? 'inherit',

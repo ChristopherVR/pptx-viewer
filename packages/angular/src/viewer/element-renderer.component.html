@@ -158,6 +158,7 @@
 					[fieldContext]="fieldContext()"
 					[slideElements]="slideElements()"
 					[parentGroupFill]="childParentGroupFill()"
+					[editingElementId]="editingElementId()"
 				/>
 			}
 		</div>
@@ -349,135 +350,141 @@
 					}
 				</svg>
 			}
-			@if (pathWarp(); as warp) {
-				<svg
-					[attr.width]="warp.width"
-					[attr.height]="warp.height"
-					[attr.viewBox]="'0 0 ' + warp.width + ' ' + warp.height"
-					style="position: absolute; inset: 0; overflow: visible; pointer-events: none"
-					aria-hidden="true"
-				>
-					<defs>
-						@for (line of warp.pathLines; track line.pathId) {
-							<path [attr.id]="line.pathId" [attr.d]="line.d" fill="none" />
-						}
-					</defs>
-					@for (line of warp.pathLines; track line.pathId) {
-						<text
-							[attr.font-size]="warp.baseFontSize"
-							[attr.font-family]="warp.baseFontFamily"
-							[attr.fill]="warp.baseColor"
-						>
-							<textPath
-								[attr.href]="'#' + line.pathId"
-								[attr.startOffset]="warp.startOffset"
-								[attr.text-anchor]="warp.textAnchor"
-							>
-								@for (seg of line.segments; track $index) {
-									<tspan
-										[attr.fill]="seg.style?.color ?? warp.baseColor"
-										[attr.font-weight]="seg.style?.bold ? 700 : 400"
-										[attr.font-style]="seg.style?.italic ? 'italic' : 'normal'"
-									>
-										{{ seg.text }}
-									</tspan>
-								}
-							</textPath>
-						</text>
-					}
-				</svg>
-			} @else if (hasText()) {
-				<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
-					@for (para of paragraphs(); track $index) {
-						<p
-							class="pptx-ng-para"
-							[ngStyle]="para.paragraphStyle ?? null"
-							[style.padding-left.px]="para.indentPx"
-							[style.text-indent.px]="para.textIndentPx ?? null"
-							[style.line-height]="para.lineHeight ?? null"
-							[style.margin-top.px]="para.spaceBeforePx ?? null"
-							[style.margin-bottom.px]="para.spaceAfterPx ?? null"
-							[style.font-size.px]="para.strutFontSizePx ?? null"
-						>
-							@if (para.bulletPicture?.src) {
-								<img
-									class="pptx-ng-bullet-image"
-									[src]="para.bulletPicture.src"
-									[alt]="para.bulletPicture.accessibleLabel"
-									[style.width.px]="para.bulletPicture.sizePx"
-									[style.height.px]="para.bulletPicture.sizePx"
-									style="
-										display: inline-block;
-										vertical-align: middle;
-										margin-inline-end: 4px;
-										object-fit: contain;
-									"
-								/>
-							} @else if (para.bulletMarker) {
-								<span
-									class="pptx-ng-bullet"
-									[ngStyle]="para.bulletStyle"
-									[attr.aria-label]="para.bulletPicture?.accessibleLabel ?? null"
-									>{{ para.bulletMarker }}</span
-								>
+			<!-- While this element is open in the inline text editor, its live text
+			     is drawn by that overlay instead (see `isBeingInlineEdited`);
+			     rendering it here too produced a duplicate, offset "text shadow"
+			     (issue #182). -->
+			@if (!isBeingInlineEdited()) {
+				@if (pathWarp(); as warp) {
+					<svg
+						[attr.width]="warp.width"
+						[attr.height]="warp.height"
+						[attr.viewBox]="'0 0 ' + warp.width + ' ' + warp.height"
+						style="position: absolute; inset: 0; overflow: visible; pointer-events: none"
+						aria-hidden="true"
+					>
+						<defs>
+							@for (line of warp.pathLines; track line.pathId) {
+								<path [attr.id]="line.pathId" [attr.d]="line.d" fill="none" />
 							}
-							@if (textBuildSpecs()[$index]; as spec) {
-								<!-- Staged text build: render the split pieces so each one
-								     carries its own sub-animation. -->
-								@if (spec.granularity === 'paragraph') {
-									<span [attr.data-anim-id]="spec.animId" [ngStyle]="buildSpanStyle(spec)">{{
-										paragraphText(para)
-									}}</span>
-								} @else {
-									@for (span of spec.spans ?? []; track $index) {
-										<span [attr.data-anim-id]="span.animId" [ngStyle]="buildSpanStyle(span)">{{
-											span.text
-										}}</span>
+						</defs>
+						@for (line of warp.pathLines; track line.pathId) {
+							<text
+								[attr.font-size]="warp.baseFontSize"
+								[attr.font-family]="warp.baseFontFamily"
+								[attr.fill]="warp.baseColor"
+							>
+								<textPath
+									[attr.href]="'#' + line.pathId"
+									[attr.startOffset]="warp.startOffset"
+									[attr.text-anchor]="warp.textAnchor"
+								>
+									@for (seg of line.segments; track $index) {
+										<tspan
+											[attr.fill]="seg.style?.color ?? warp.baseColor"
+											[attr.font-weight]="seg.style?.bold ? 700 : 400"
+											[attr.font-style]="seg.style?.italic ? 'italic' : 'normal'"
+										>
+											{{ seg.text }}
+										</tspan>
 									}
+								</textPath>
+							</text>
+						}
+					</svg>
+				} @else if (hasText()) {
+					<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
+						@for (para of paragraphs(); track $index) {
+							<p
+								class="pptx-ng-para"
+								[ngStyle]="para.paragraphStyle ?? null"
+								[style.padding-left.px]="para.indentPx"
+								[style.text-indent.px]="para.textIndentPx ?? null"
+								[style.line-height]="para.lineHeight ?? null"
+								[style.margin-top.px]="para.spaceBeforePx ?? null"
+								[style.margin-bottom.px]="para.spaceAfterPx ?? null"
+								[style.font-size.px]="para.strutFontSizePx ?? null"
+							>
+								@if (para.bulletPicture?.src) {
+									<img
+										class="pptx-ng-bullet-image"
+										[src]="para.bulletPicture.src"
+										[alt]="para.bulletPicture.accessibleLabel"
+										[style.width.px]="para.bulletPicture.sizePx"
+										[style.height.px]="para.bulletPicture.sizePx"
+										style="
+											display: inline-block;
+											vertical-align: middle;
+											margin-inline-end: 4px;
+											object-fit: contain;
+										"
+									/>
+								} @else if (para.bulletMarker) {
+									<span
+										class="pptx-ng-bullet"
+										[ngStyle]="para.bulletStyle"
+										[attr.aria-label]="para.bulletPicture?.accessibleLabel ?? null"
+										>{{ para.bulletMarker }}</span
+									>
 								}
-							} @else {
-								@for (run of para.runs; track $index) {
-									@if (run.equationXml) {
-										<pptx-equation-renderer
-											[equationXml]="run.equationXml"
-											[equationNumber]="run.equationNumber"
-										/>
-									} @else if (
-										run.text ===
-										'
+								@if (textBuildSpecs()[$index]; as spec) {
+									<!-- Staged text build: render the split pieces so each one
+								     carries its own sub-animation. -->
+									@if (spec.granularity === 'paragraph') {
+										<span [attr.data-anim-id]="spec.animId" [ngStyle]="buildSpanStyle(spec)">{{
+											paragraphText(para)
+										}}</span>
+									} @else {
+										@for (span of spec.spans ?? []; track $index) {
+											<span [attr.data-anim-id]="span.animId" [ngStyle]="buildSpanStyle(span)">{{
+												span.text
+											}}</span>
+										}
+									}
+								} @else {
+									@for (run of para.runs; track $index) {
+										@if (run.equationXml) {
+											<pptx-equation-renderer
+												[equationXml]="run.equationXml"
+												[equationNumber]="run.equationNumber"
+											/>
+										} @else if (
+											run.text ===
+											'
 '
-									) {
-										<br />
-									} @else if (run.reflection; as refl) {
-										<!-- `a:reflection`: wrapped HERE, around the whole base
+										) {
+											<br />
+										} @else if (run.reflection; as refl) {
+											<!-- `a:reflection`: wrapped HERE, around the whole base
 										     run (`runBase`), rather than inside its href/ruby/plain
 										     branches - a `<ruby>` run's own `display: ruby` (which
 										     positions the annotation above its base text) would
 										     break if forced to `display: inline-block` to host the
 										     mirror. Cross-browser, unlike the `-webkit-box-reflect`
 										     this replaced (Firefox never implemented it). -->
-										<span style="position: relative; display: inline-block">
+											<span style="position: relative; display: inline-block">
+												<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
+												<span class="pptx-ng-text-reflection" aria-hidden="true" [ngStyle]="refl"
+													><span [ngStyle]="run.style"
+														><ng-container
+															*ngTemplateOutlet="runContent; context: { run: run }" /></span
+												></span>
+											</span>
+										} @else {
 											<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
-											<span class="pptx-ng-text-reflection" aria-hidden="true" [ngStyle]="refl"
-												><span [ngStyle]="run.style"
-													><ng-container
-														*ngTemplateOutlet="runContent; context: { run: run }" /></span
-											></span>
-										</span>
-									} @else {
-										<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
+										}
 									}
 								}
-							}
-							@if (para.isEmpty) {
-								<!-- An authored blank line has no runs, so without this the
+								@if (para.isEmpty) {
+									<!-- An authored blank line has no runs, so without this the
 								     <p> collapses to zero height and the gap a deck puts
 								     between a heading and its bullet list disappears. -->
-								<br />
-							}
-						</p>
-					}
-				</div>
+									<br />
+								}
+							</p>
+						}
+					</div>
+				}
 			}
 		</div>
 	}
