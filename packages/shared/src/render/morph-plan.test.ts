@@ -60,7 +60,14 @@ describe('buildMorphTransitionPlan', () => {
 	it('paints the departing shapes in the overlay, in document order', () => {
 		// The overlay carries what the live stage cannot draw for itself. Order is
 		// the outgoing slide's own, so the copy keeps its z-stacking.
-		const from = slide('a', [shape('a-1', 'Title', 0, 0), shape('a-2', 'Leaving', 10, 10)]);
+		//
+		// `a-2` sits well outside the proximity threshold (unlike a nearby spot,
+		// which the matcher's closest-pair-first assignment - see morph-matching's
+		// pass 3 - could legitimately hand to `a-2` instead of `a-1` if `a-2`
+		// happened to sit closer to `b-1`; plain `name` equality is not a matching
+		// signal PowerPoint honours, so proximity alone decides). Placing it far
+		// away keeps this test about ghost bookkeeping, not proximity tie-breaking.
+		const from = slide('a', [shape('a-1', 'Title', 0, 0), shape('a-2', 'Leaving', 1000, 1000)]);
 		const to = slide('b', [shape('b-1', 'Title', 200, 100)]);
 
 		const plan = buildMorphTransitionPlan(from, to, 500);

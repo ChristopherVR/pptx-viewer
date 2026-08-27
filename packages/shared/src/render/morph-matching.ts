@@ -317,12 +317,28 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	// selection marker mid-glide. Same-shaped counterparts pass at ratio 1;
 	// anything more than 2x apart on either axis dissolves in place instead,
 	// which is what PowerPoint does with shapes it cannot confidently pair.
+	//
+	// Candidates are collected first and claimed CLOSEST-PAIR-FIRST across the
+	// whole slide, not per `fromEl` in document order. Taking each `fromEl`'s
+	// own best candidate in array order lets an element with a mediocre-but-
+	// valid fallback claim a partner a LATER element was unambiguously closer
+	// to, starving that later element of the one candidate it had: two shapes
+	// 8px and 2px from the same target, processed 8px-first, left the 2px shape
+	// unmatched (and crossfading) even though nothing about it was ambiguous.
+	// Sorting by distance first means the closest claim always wins the
+	// contested partner, which only ever RESCUES a pairing this pass would
+	// otherwise have missed - every gate above still applies per candidate, so
+	// this cannot pair anything the checks above would have refused.
+	interface ProximityCandidate {
+		fromEl: PptxElement;
+		toEl: PptxElement;
+		dist: number;
+	}
+	const candidates: ProximityCandidate[] = [];
 	for (const fromEl of fromElements) {
 		if (usedFrom.has(fromEl.id)) {
 			continue;
 		}
-		let bestMatch: PptxElement | null = null;
-		let bestDist = Infinity;
 		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id)) {
 				continue;
@@ -361,16 +377,19 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 			const dx = fromEl.x - toEl.x;
 			const dy = fromEl.y - toEl.y;
 			const dist = Math.sqrt(dx * dx + dy * dy);
-			if (dist < bestDist && dist < PROXIMITY_THRESHOLD) {
-				bestDist = dist;
-				bestMatch = toEl;
+			if (dist < PROXIMITY_THRESHOLD) {
+				candidates.push({ fromEl, toEl, dist });
 			}
 		}
-		if (bestMatch) {
-			pairs.push({ fromElement: fromEl, toElement: bestMatch });
-			usedFrom.add(fromEl.id);
-			usedTo.add(bestMatch.id);
+	}
+	candidates.sort((a, b) => a.dist - b.dist);
+	for (const candidate of candidates) {
+		if (usedFrom.has(candidate.fromEl.id) || usedTo.has(candidate.toEl.id)) {
+			continue;
 		}
+		pairs.push({ fromElement: candidate.fromEl, toElement: candidate.toEl });
+		usedFrom.add(candidate.fromEl.id);
+		usedTo.add(candidate.toEl.id);
 	}
 
 	// There is deliberately no further pass pairing leftovers that merely

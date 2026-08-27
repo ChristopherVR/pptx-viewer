@@ -525,6 +525,37 @@ describe('proximity matching as fallback', () => {
 		expect(pairs).toHaveLength(1);
 		expect(pairs[0].toElement.id).toBe('close');
 	});
+
+	it('does not let an earlier element with a valid fallback starve a later element of its only close candidate', () => {
+		// `C` sits 2px from `Y`, its only viable candidate; `A` sits 8px from the
+		// same `Y` but also has a valid (if much worse, 297px) fallback in `X`.
+		// Processing `fromElements` in ARRAY order used to let `A` grab `Y` first
+		// simply because `A` came first in the slide's element list, leaving `C`
+		// with nothing (its only candidate `Y` was gone) and `X` out of range for
+		// `C` specifically (303px > the 300px threshold) - so `C` fell back to an
+		// unnecessary crossfade despite having an unambiguous, far closer
+		// counterpart than the one document order handed to its competitor.
+		// Claiming candidates closest-pair-first, across the whole slide rather
+		// than per source element, fixes this without loosening any gate: every
+		// pair here still has to pass the same type/text/name/size/distance
+		// checks pass 3 always enforced.
+		const from = makeSlide([
+			makeElement({ id: 'A', type: 'shape', x: 8, y: 0 }),
+			makeElement({ id: 'C', type: 'shape', x: 2, y: 0 }),
+		]);
+		const to = makeSlide([
+			makeElement({ id: 'Y', type: 'shape', x: 0, y: 0 }),
+			makeElement({ id: 'X', type: 'shape', x: 305, y: 0 }),
+		]);
+		const result = matchMorphElementsFull(from, to);
+		const paired = Object.fromEntries(
+			result.pairs.map((pair) => [pair.fromElement.id, pair.toElement.id]),
+		);
+		expect(paired.C).toBe('Y');
+		expect(paired.A).toBe('X');
+		expect(result.unmatchedFrom).toStrictEqual([]);
+		expect(result.unmatchedTo).toStrictEqual([]);
+	});
 });
 
 // ==========================================================================
