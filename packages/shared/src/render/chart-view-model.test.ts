@@ -1092,6 +1092,51 @@ describe('buildChartViewModel - legend-entry deletion and text-style (c:legendEn
 		expect(panelFills).toContain('#DDDDDD');
 	});
 
+	it('foreshortens a pie3D disc into an ellipse driven by rotX (elliptical tilt)', () => {
+		const element = {
+			id: 'el-pie3d-tilt',
+			type: 'chart' as const,
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			chartData: {
+				chartType: 'pie3D' as const,
+				categories: ['A', 'B'],
+				series: [{ name: 'Series 1', values: [60, 40] }],
+				view3D: { rotX: 60 },
+			} satisfies PptxChartData,
+		};
+		const flatElement = {
+			...element,
+			chartData: { ...element.chartData, chartType: 'pie' as const },
+		};
+
+		const tiltedVm = buildChartViewModel(element);
+		const flatVm = buildChartViewModel(flatElement);
+
+		const { cy } = computePieLayout(400, 300, element.chartData, false);
+		const tiltedSlice = tiltedVm.primitives.find(
+			(p) => p.kind === 'path' && p.part?.pointIndex === 0,
+		);
+		const flatSlice = flatVm.primitives.find((p) => p.kind === 'path' && p.part?.pointIndex === 0);
+		expect(tiltedSlice?.d).not.toBe(flatSlice?.d);
+
+		// The arc's ry (2nd radius param) must shrink relative to the untilted
+		// pie's; every A command's ry should now be strictly less than rx.
+		const arcParams = (tiltedSlice?.d.match(/A[-\d.]+,[-\d.]+/gu) ?? []).map((token) =>
+			token.slice(1).split(',').map(Number),
+		);
+		expect(arcParams.length).toBeGreaterThan(0);
+		for (const [rx, ry] of arcParams) {
+			expect(ry).toBeLessThan(rx);
+			expect(ry).toBeCloseTo(rx * Math.cos((60 * Math.PI) / 180), 5);
+		}
+
+		// The centre y is unaffected by the squash (it sits on the tilt axis).
+		expect(cy).toBeGreaterThan(0);
+	});
+
 	it('attaches a per-entry text-style override without deleting it', () => {
 		const element = {
 			id: 'el-le-style',

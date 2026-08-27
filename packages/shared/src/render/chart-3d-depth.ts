@@ -20,6 +20,7 @@ import type { Chart3DSurfaces } from './chart-3d-surfaces';
 import { build3DSurfacePanels } from './chart-3d-surfaces';
 import { computeSeriesDepth, sortSeriesBackToFront } from './chart-bar3d-series-depth';
 import { shade, tint } from './chart-palette';
+import { applyPieTiltForeshortening, computePieTiltScale } from './chart-pie3d-tilt';
 import type {
 	ChartViewModel,
 	SvgPath,
@@ -183,10 +184,12 @@ export function applyChart3DDepth(
 	view3D: PptxChartView3D | undefined,
 	surfaces?: Chart3DSurfaces,
 	grouping?: 'clustered' | 'stacked' | 'percentStacked',
+	pieCenter?: { cx: number; cy: number },
 ): ChartViewModel {
 	const depth = computeDepthVector(view3D);
 	let extrusion: SvgPrimitive[] = [];
 	let isCartesian = false;
+	let workingVm = vm;
 
 	if (chartType === 'bar3D') {
 		const bars = vm.primitives.filter(
@@ -214,7 +217,11 @@ export function applyChart3DDepth(
 		}
 		isCartesian = true;
 	} else if (chartType === 'pie3D') {
-		const slices = vm.primitives.filter((p): p is SvgPath => p.kind === 'path');
+		const tiltScale = computePieTiltScale(view3D);
+		if (pieCenter && tiltScale < 1) {
+			workingVm = applyPieTiltForeshortening(vm, pieCenter.cy, tiltScale);
+		}
+		const slices = workingVm.primitives.filter((p): p is SvgPath => p.kind === 'path');
 		extrusion = pieExtrusion(slices, depth);
 	} else if (chartType === 'line3D' || chartType === 'area3D') {
 		extrusion = ribbonExtrusion(vm.primitives, depth);
@@ -227,10 +234,10 @@ export function applyChart3DDepth(
 	// (bar3D/line3D/area3D); pie3D has no plot rectangle to wall in, matching
 	// PowerPoint's own behaviour.
 	const panels =
-		isCartesian && surfaces ? build3DSurfacePanels(vm.primitives, surfaces, depth) : [];
+		isCartesian && surfaces ? build3DSurfacePanels(workingVm.primitives, surfaces, depth) : [];
 
 	if (extrusion.length === 0 && panels.length === 0) {
-		return vm;
+		return workingVm;
 	}
-	return { ...vm, primitives: [...panels, ...extrusion, ...vm.primitives] };
+	return { ...workingVm, primitives: [...panels, ...extrusion, ...workingVm.primitives] };
 }

@@ -127,6 +127,36 @@ describe('applyChart3DDepth', () => {
 			0,
 		);
 	});
+
+	it('leaves the pie perfectly round when no pieCenter is supplied (backward compatible)', () => {
+		const slice: SvgPath = {
+			kind: 'path',
+			d: 'M200,150 L250,150 A50,50 0 0 1 200,200 Z',
+			fill: '#ED7D31',
+		};
+		const vm = applyChart3DDepth(emptyVm([slice]), 'pie3D', { rotX: 45 });
+		const frontSlice = vm.primitives.find(
+			(p): p is SvgPath => p.kind === 'path' && p.fill === '#ED7D31',
+		);
+		expect(frontSlice?.d).toBe(slice.d);
+	});
+
+	it('squashes the pie face and its extrusion vertically when pieCenter + rotX are given', () => {
+		const slice: SvgPath = {
+			kind: 'path',
+			d: 'M200,150 L250,150 A50,50 0 0 1 200,200 Z',
+			fill: '#ED7D31',
+		};
+		const vm = applyChart3DDepth(emptyVm([slice]), 'pie3D', { rotX: 60 }, undefined, undefined, {
+			cx: 200,
+			cy: 150,
+		});
+		const frontSlice = vm.primitives.find(
+			(p): p is SvgPath => p.kind === 'path' && p.fill === '#ED7D31',
+		);
+		// rotX=60 -> scaleY = cos(60deg) = 0.5; endpoint y=200 (50 below cy=150) -> 175.
+		expect(frontSlice?.d).toMatch(/A50,25(\.\d+)?,0,0,1,200,175(\.\d+)?/u);
+	});
 });
 
 describe('applyChart3DDepth - clustered bar3D per-series depth staggering', () => {

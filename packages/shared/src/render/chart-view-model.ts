@@ -1265,6 +1265,14 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 	// by c:view3D so they read as 3D instead of collapsing to a flat plot.
 	const flat = buildFlatViewModel(element, chartData, categoryLabels, kind);
 	if (is3DChartType(chartType)) {
+		// pie3D's ellipse tilt foreshortens about the same centre buildPieViewModel
+		// laid the slices out from (doughnut3D does not exist in OOXML, so this is
+		// always a hole-less pie layout).
+		let pieCenter: { cx: number; cy: number } | undefined;
+		if (chartType === 'pie3D') {
+			const pieLayout = computePieLayout(element.width, element.height, chartData, false);
+			pieCenter = { cx: pieLayout.cx, cy: pieLayout.cy };
+		}
 		return withLegendEntries(
 			withChartAreaFill(
 				withUserShapeOverlay(
@@ -1278,6 +1286,7 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 							backWall: chartData.backWall,
 						},
 						chartData.grouping,
+						pieCenter,
 					),
 					chartData,
 				),
