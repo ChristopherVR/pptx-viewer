@@ -24,4 +24,4 @@ export * from './utils';
 export * from './openxml';
 
 // Legacy PowerPoint 97-2003 (.ppt) import
-export { EncryptedPptError, isLegacyPpt, convertPptToPptx } from './ppt';
+export { EncryptedPptError, isLegacyPpt, isEncryptedLegacyPpt, convertPptToPptx } from './ppt';

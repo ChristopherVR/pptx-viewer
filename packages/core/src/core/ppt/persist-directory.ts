@@ -123,6 +123,62 @@ export function buildPersistDirectory(view: DataView, offsetToCurrentEdit: numbe
 	return { currentEdit: edits[0], directory };
 }
 
+/** A contiguous byte range, `[start, end)`, of an administrative record. */
+export interface AdministrativeRange {
+	/** Offset of the record header, inclusive. */
+	start: number;
+	/** Offset just past the record's data, exclusive. */
+	end: number;
+}
+
+/**
+ * Collect the byte ranges of every UserEditAtom and PersistDirectoryAtom in
+ * the edit chain starting at `offsetToCurrentEdit`.
+ *
+ * These "administrative" records are always stored in plaintext in an
+ * encrypted `.ppt` file: a reader must be able to walk the edit chain and
+ * locate the CryptSession10Container (itself also unencrypted, resolved
+ * separately via the persist directory) before it can derive a key and
+ * decrypt anything else. Everything else in the stream is content and, when
+ * the file is encrypted, is RC4-enciphered in 512-byte re-keyed blocks.
+ *
+ * @param view - DataView over the PowerPoint Document stream.
+ * @param offsetToCurrentEdit - From the CurrentUserAtom.
+ * @returns The administrative byte ranges, in no particular order.
+ */
+export function collectAdministrativeRanges(
+	view: DataView,
+	offsetToCurrentEdit: number,
+): AdministrativeRange[] {
+	const ranges: AdministrativeRange[] = [];
+	const seen = new Set<number>();
+	let offset = offsetToCurrentEdit;
+
+	while (offset !== 0) {
+		if (seen.has(offset)) {
+			throw new PptParseError(`Circular UserEditAtom chain at offset ${offset}`);
+		}
+		seen.add(offset);
+
+		const userEditRecord = readRecordOrThrow(view, offset);
+		ranges.push({
+			start: userEditRecord.headerOffset,
+			end: userEditRecord.dataOffset + userEditRecord.recLen,
+		});
+
+		const edit = parseUserEditAtom(view, offset);
+		const dirRecord = readRecordOrThrow(view, edit.offsetPersistDirectory);
+		ranges.push({
+			start: dirRecord.headerOffset,
+			end: dirRecord.dataOffset + dirRecord.recLen,
+		});
+
+		offset = edit.offsetLastEdit;
+	}
+
+	return ranges;
+}
+
 /**
  * Resolve a persist id to the record at its stream offset.
  */

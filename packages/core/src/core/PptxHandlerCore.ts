@@ -6,7 +6,7 @@ import type {
 	PptxHandlerLoadOptions,
 	PptxHandlerSaveOptions,
 } from './core';
-import { convertPptToPptx, isLegacyPpt } from './ppt';
+import { convertPptToPptx, isEncryptedLegacyPpt, isLegacyPpt } from './ppt';
 import type {
 	PptxChartData,
 	PptxCompatibilityWarning,
@@ -412,8 +412,13 @@ export class PptxHandlerCore {
 			// it to an in-memory PPTX package and load that. Editing works as
 			// usual; saving produces a .pptx (like modern PowerPoint does).
 			if (ole && isLegacyPpt(ole)) {
-				const pptxBytes = await convertPptToPptx(ole);
-				return this.runtime.load(pptxBytes, options);
+				const wasEncrypted = isEncryptedLegacyPpt(ole);
+				const pptxBytes = await convertPptToPptx(ole, options.password);
+				const result = await this.runtime.load(pptxBytes, options);
+				if (wasEncrypted) {
+					result.isPasswordProtected = true;
+				}
+				return result;
 			}
 
 			// Otherwise the OLE container wraps an encrypted OOXML package.

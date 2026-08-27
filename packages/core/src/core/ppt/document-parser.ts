@@ -34,6 +34,15 @@ export interface PptStreams {
 	powerPointDocument: Uint8Array;
 	pictures?: Uint8Array;
 	offsetToCurrentEdit: number;
+	/**
+	 * True when the caller has already RC4-decrypted `powerPointDocument`
+	 * (and `pictures`, if present) via {@link decryptLegacyPpt}. Skips the
+	 * encrypted-session guard below, which otherwise rejects any stream
+	 * whose UserEditAtom still references a CryptSession10Container (that
+	 * reference is left in place by design; decryption does not rewrite the
+	 * administrative records it deliberately leaves untouched).
+	 */
+	decrypted?: boolean;
 }
 
 /** Parse the font collection into font family names. */
@@ -118,7 +127,8 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 	const { currentEdit, directory } = buildPersistDirectory(view, streams.offsetToCurrentEdit);
 	if (
 		currentEdit.encryptSessionPersistIdRef !== undefined &&
-		currentEdit.encryptSessionPersistIdRef !== 0
+		currentEdit.encryptSessionPersistIdRef !== 0 &&
+		!streams.decrypted
 	) {
 		throw new EncryptedPptError();
 	}

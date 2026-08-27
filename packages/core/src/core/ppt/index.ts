@@ -8,13 +8,22 @@ export { EncryptedPptError, parseCurrentUserAtom, type CurrentUserAtom } from '.
 export { parseDeck, type PptStreams } from './document-parser';
 export {
 	buildPersistDirectory,
+	collectAdministrativeRanges,
 	parsePersistDirectoryAtom,
 	parseUserEditAtom,
+	type AdministrativeRange,
 	type PersistDirectory,
 	type UserEditAtom,
 	type UserEditChain,
 } from './persist-directory';
-export { convertPptToPptx, isLegacyPpt } from './ppt-to-pptx';
+export { convertPptToPptx, isLegacyPpt, isEncryptedLegacyPpt } from './ppt-to-pptx';
+export {
+	decryptLegacyPpt,
+	parseLegacyPptEncryptionInfo,
+	verifyLegacyPptPassword,
+	decryptLegacyPptStream,
+	type DecryptedLegacyPpt,
+} from './ppt-encryption';
 export type {
 	PptAnyShape,
 	PptDeck,

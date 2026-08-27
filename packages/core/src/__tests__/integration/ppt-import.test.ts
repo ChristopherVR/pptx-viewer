@@ -7,7 +7,20 @@
  *   - sample-deck.ppt        <- e2e/fixtures/sample-deck.pptx
  *   - text-features.ppt      <- e2e/fixtures/text-features.pptx
  *   - picture-fixture.ppt(x) <- authored via COM (picture + shape + textbox)
- *   - encrypted.ppt          <- sample-deck.pptx with Password="secret"
+ *   - encrypted.ppt          <- sample-deck.pptx with Password="secret" (per
+ *                               the commit that added it). That password does
+ *                               not verify against the documented
+ *                               [MS-OFFCRYPTO] 2.3.5.1 key derivation despite
+ *                               an extensive parameter search (iteration
+ *                               count, password encoding, salt/password
+ *                               order, hash algorithm), so its real password
+ *                               could not be recovered; it is only used below
+ *                               to exercise the "needs a password" and "wrong
+ *                               password" error paths. The successful
+ *                               decryption round trip uses a synthetic
+ *                               encrypted .ppt built from sample-deck.ppt
+ *                               with a known password (see
+ *                               legacy-ppt-encryption-fixture.ts).
  *
  * The tests assert that loading the .ppt through the same PptxHandler API
  * produces a model equivalent to loading the original .pptx.
@@ -15,11 +28,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
-import { EncryptedPptError } from '../../core/ppt';
 import { PptxHandler } from '../../core/PptxHandler';
 import type { PptxData, PptxSlide } from '../../core/types/presentation';
+import { EncryptedFileError, IncorrectPasswordError } from '../../core/utils';
+import { buildSyntheticEncryptedPpt } from './legacy-ppt-encryption-fixture';
 
 const FIXTURES = path.resolve(__dirname, '../fixtures');
 const E2E_FIXTURES = path.resolve(__dirname, '../../../../../e2e/fixtures');
@@ -186,15 +200,27 @@ describe('legacy .ppt import (pictures)', () => {
 });
 
 describe('legacy .ppt import (error cases)', () => {
-	it('rejects password-protected .ppt files with a clear error', async () => {
+	it('asks for a password when a password-protected .ppt is loaded without one', async () => {
 		const handler = new PptxHandler();
 		await expect(handler.load(fixtureBuffer(path.join(FIXTURES, 'encrypted.ppt')))).rejects.toThrow(
-			EncryptedPptError,
+			EncryptedFileError,
 		);
 		await expect(handler.load(fixtureBuffer(path.join(FIXTURES, 'encrypted.ppt')))).rejects.toThrow(
 			/password-protected PowerPoint 97-2003/,
 		);
 	});
+
+	it('rejects a wrong password for a password-protected .ppt with IncorrectPasswordError', async () => {
+		const handler = new PptxHandler();
+		await expect(
+			handler.load(fixtureBuffer(path.join(FIXTURES, 'encrypted.ppt')), {
+				password: 'definitely-the-wrong-password',
+			}),
+		).rejects.toThrow(IncorrectPasswordError);
+	}, // tests in ooxml-crypto.test.ts budget 120s for the same reason, and // ([MS-OFFCRYPTO] 2.3.6.2); the existing real-fixture Standard/Agile // A single password check is one 50,000-iteration SHA-1 key derivation
+	// this one has run past that budget when the suite saturates the
+	// machine, so it gets extra headroom.
+	180_000);
 
 	it('rejects an OLE2 file that is not a presentation', async () => {
 		// Corrupt the stream directory name lookup by using an encrypted OOXML
@@ -204,5 +230,48 @@ describe('legacy .ppt import (error cases)', () => {
 		const garbage = new Uint8Array(64);
 		garbage.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 		await expect(handler.load(garbage.buffer as ArrayBuffer)).rejects.toThrow();
+	});
+});
+
+describe('legacy .ppt import (RC4 decryption round trip)', () => {
+	// `encrypted.ppt`'s real password could not be recovered (see
+	// legacy-ppt-encryption-fixture.ts), so this exercises the real
+	// decryption pipeline end to end against a synthetic encrypted .ppt built
+	// from the plain `sample-deck.ppt` fixture with a password we control.
+	// Built once (not per-test): each build pays for one 50,000-iteration
+	// SHA-1 key derivation, which is the expensive part of MS-OFFCRYPTO
+	// 2.3.6.2 password key generation.
+	const PASSWORD = 'r0undtr!p-Secret';
+	let encryptedBuffer: ArrayBuffer;
+
+	beforeAll(async () => {
+		const plainBuffer = fixtureBuffer(path.join(FIXTURES, 'sample-deck.ppt'));
+		encryptedBuffer = await buildSyntheticEncryptedPpt(plainBuffer, PASSWORD);
+	}, 180_000);
+
+	it('decrypts a password-protected .ppt and matches the plain deck', async () => {
+		const plainHandler = new PptxHandler();
+		const plainData = await plainHandler.load(
+			fixtureBuffer(path.join(FIXTURES, 'sample-deck.ppt')),
+		);
+
+		const encryptedHandler = new PptxHandler();
+		const decryptedData = await encryptedHandler.load(encryptedBuffer, { password: PASSWORD });
+
+		expect(decryptedData.isPasswordProtected).toBeTruthy();
+		expect(decryptedData.slides).toHaveLength(plainData.slides.length);
+		expect(decryptedData.slides.map(slideTexts)).toStrictEqual(plainData.slides.map(slideTexts));
+	}, 180_000);
+
+	it('rejects a wrong password for the synthetic encrypted .ppt', async () => {
+		const handler = new PptxHandler();
+		await expect(handler.load(encryptedBuffer, { password: 'not-the-password' })).rejects.toThrow(
+			IncorrectPasswordError,
+		);
+	}, 180_000);
+
+	it('asks for a password when the synthetic encrypted .ppt is loaded without one', async () => {
+		const handler = new PptxHandler();
+		await expect(handler.load(encryptedBuffer)).rejects.toThrow(EncryptedFileError);
 	});
 });
