@@ -657,3 +657,35 @@ export interface PptxElementAnimation {
 	/** Whether to stop any currently playing sound (`p:endSnd`). */
 	stopSound?: boolean;
 }
+
+/**
+ * A read-only anchor representing one of the deck's own effect groups: a
+ * top-level click group (`p:par` under `p:timing`'s main sequence) that this
+ * app did not author, so it is never exposed as an editable
+ * {@link PptxElementAnimation}.
+ *
+ * The authoring UI merges these anchors alongside `PptxSlide.animations` to
+ * render the FULL animation sequence (editor-authored and deck-native
+ * effects together) and lets an editor-authored entry be dragged to any
+ * position relative to them. `order` is the anchor's position among ALL
+ * top-level click groups (editor-owned and native) at load time, in the same
+ * numbering space as {@link PptxElementAnimation.order}, so the two
+ * populations sort into one coherent timeline.
+ *
+ * Anchors are never written back: on save, an untouched anchor's own click
+ * group is repositioned (if an editor-authored effect was dragged past it)
+ * but never mutated, so the deck's own effect stays byte-identical apart
+ * from its position in the sequence.
+ */
+export interface PptxAnimationTimelineAnchor {
+	/**
+	 * Position of this group among all top-level click groups in the main
+	 * animation sequence at load time (dense, shared with editor entries'
+	 * `order`).
+	 */
+	order: number;
+	/** Shape id(s) this group's effects target, for a readable UI label. */
+	targetIds: string[];
+	/** Effect preset classes present in the group (entr/exit/emph/path). */
+	presetClasses: Array<'entr' | 'exit' | 'emph' | 'path'>;
+}

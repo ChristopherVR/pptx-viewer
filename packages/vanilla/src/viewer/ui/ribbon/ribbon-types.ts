@@ -1,4 +1,5 @@
 import type {
+	PptxAnimationTimelineAnchor,
 	PptxElementAnimation,
 	PptxLayoutPreview,
 	PptxPresentationProperties,
@@ -238,6 +239,8 @@ export interface RibbonSelectionState {
 	formatPainterActive?: boolean;
 	selectedElementId?: string;
 	animations?: readonly PptxElementAnimation[];
+	/** Read-only anchors for the active slide's deck-native effect groups. */
+	animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
 	/** Available slide layouts for the Slides group's New Slide / Layout menus. */
 	layouts?: readonly LayoutOption[];
 	/** Artwork for the layout gallery thumbnails, keyed by layout path. */

@@ -55,6 +55,7 @@ export function AnimationTimelineSection({
 		animationEffectLabel(anim, (key) => t(key));
 	const {
 		sortedAnimations,
+		timelineRows,
 		dragIndex,
 		dragOverIndex,
 		timelineBarData,
@@ -69,11 +70,14 @@ export function AnimationTimelineSection({
 		handleMoveUp,
 		handleMoveDown,
 		getTimelineLabel,
+		getNativeRowLabel,
 	} = handlers;
 
-	if (sortedAnimations.length === 0 && timelineBarData.length === 0) {
+	if (timelineRows.length === 0 && timelineBarData.length === 0) {
 		return null;
 	}
+
+	const animationByElementId = new Map(sortedAnimations.map((anim) => [anim.elementId, anim]));
 
 	return (
 		<>
@@ -105,21 +109,50 @@ export function AnimationTimelineSection({
 				</div>
 			)}
 
-			{/* Animation List with Drag Reordering */}
-			{sortedAnimations.length > 0 && (
+			{/* Full-sequence animation list (editor-authored + the deck's own effects), Drag Reordering */}
+			{timelineRows.length > 0 && (
 				<div className='mt-2 pt-2 border-t border-border'>
 					<div className='text-[10px] uppercase tracking-wide text-muted-foreground mb-1'>
 						{t('pptx.animation.timeline')}
 					</div>
 					<div className='space-y-0.5 max-h-40 overflow-y-auto'>
-						{sortedAnimations.map((anim, index) => {
+						{timelineRows.map((row, index) => {
+							const isDragOver = dragOverIndex === index;
+
+							if (row.kind === 'native') {
+								return (
+									<div
+										key={row.key}
+										onDragOver={(e) => handleDragOver(index, e)}
+										onDragEnter={() => handleDragEnter(index)}
+										onDragLeave={handleDragLeave}
+										onDrop={(e) => handleDrop(index, e)}
+										title={t('pptx.animation.nativeEffectHint')}
+										className={cn(
+											'flex items-center gap-1 px-1 py-0.5 rounded text-[10px] italic',
+											'bg-muted/20 text-muted-foreground/70',
+											isDragOver && 'border-t-2 border-primary',
+										)}
+									>
+										<span className='w-3 h-3 shrink-0' />
+										<span className='text-muted-foreground/70 w-4 shrink-0'>{index + 1}.</span>
+										<span className='truncate flex-1'>
+											{t('pptx.animation.nativeEffect')}: {getNativeRowLabel(row.targetIds)}
+										</span>
+									</div>
+								);
+							}
+
+							const anim = animationByElementId.get(row.elementId);
+							if (!anim) {
+								return null;
+							}
 							const isSelected = selectedElementId === anim.elementId;
 							const isDragging = dragIndex === index;
-							const isDragOver = dragOverIndex === index;
 
 							return (
 								<div
-									key={anim.elementId}
+									key={row.key}
 									draggable={canEdit}
 									onDragStart={(e) => handleDragStart(index, e)}
 									onDragOver={(e) => handleDragOver(index, e)}
@@ -162,7 +195,7 @@ export function AnimationTimelineSection({
 											</button>
 											<button
 												type='button'
-												disabled={index === sortedAnimations.length - 1}
+												disabled={index === timelineRows.length - 1}
 												className='text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors'
 												onClick={(e) => {
 													e.stopPropagation();

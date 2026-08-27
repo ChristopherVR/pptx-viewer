@@ -20,6 +20,9 @@
  *      on editor animations) from the native cNvPr id to the positional
  *      `element.id`, so consumers can match animations to elements by
  *      `element.id`.
+ *   3. Does the same for a `PptxAnimationTimelineAnchor`'s `targetIds`, when
+ *      passed, so the authoring UI's read-only anchor labels name the same
+ *      `element.id` the editor's own animation entries use.
  *
  * References that do not resolve to a known cNvPr id (text-build sub-ids,
  * already-positional ids from decks this app previously authored, etc.) are
@@ -27,7 +30,13 @@
  *
  * @module services/animation-target-reconcile
  */
-import type { PptxElement, PptxElementAnimation, PptxNativeAnimation, XmlObject } from '../types';
+import type {
+	PptxAnimationTimelineAnchor,
+	PptxElement,
+	PptxElementAnimation,
+	PptxNativeAnimation,
+	XmlObject,
+} from '../types';
 
 /** Non-visual property containers that hold a `p:cNvPr`. */
 const NV_CONTAINERS = [
@@ -98,10 +107,17 @@ export function reconcileAnimationTargets(
 	elements: readonly PptxElement[],
 	nativeAnimations: PptxNativeAnimation[] | undefined,
 	editorAnimations: PptxElementAnimation[] | undefined,
+	timelineAnchors?: PptxAnimationTimelineAnchor[],
 ): void {
 	const map = collectShapeIdMap(elements);
 	if (map.size === 0) {
 		return;
+	}
+
+	if (timelineAnchors) {
+		for (const anchor of timelineAnchors) {
+			anchor.targetIds = anchor.targetIds.map((id) => map.get(id) ?? id);
+		}
 	}
 
 	if (nativeAnimations) {

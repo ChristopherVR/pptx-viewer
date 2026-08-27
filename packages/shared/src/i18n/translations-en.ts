@@ -1042,6 +1042,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.animation.duration': 'Duration (ms)',
 	'pptx.animation.moveDown': 'Move down',
 	'pptx.animation.moveUp': 'Move up',
+	'pptx.animation.nativeEffect': 'PowerPoint effect',
+	'pptx.animation.nativeEffectHint':
+		'Added in PowerPoint. Drag your own effects ahead of or behind it.',
 	'pptx.animation.none': 'None',
 	'pptx.animation.preview': 'Preview',
 	'pptx.animation.repeatCount': 'Repeat count',

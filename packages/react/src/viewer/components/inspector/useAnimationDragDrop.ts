@@ -2,8 +2,8 @@
    piece of state/memoization; merging them into one `const` statement would
    hurt readability (and has previously broken the React compiler's ability to
    track separate hook boundaries), not help it. */
-import type { PptxElementAnimation } from 'pptx-viewer-core';
-import { reorderAnimationTo } from 'pptx-viewer-shared';
+import type { AnimationTimelineRow } from 'pptx-viewer-shared';
+import { applyAnimationTimelineOrder, reorderAnimationTimelineRows } from 'pptx-viewer-shared';
 import React, { useCallback, useRef, useState } from 'react';
 
 import type { AnimationUpdater } from './animation-handler-types';
@@ -14,6 +14,13 @@ import type { AnimationUpdater } from './animation-handler-types';
 
 interface UseAnimationDragDropArgs {
 	canEdit: boolean;
+	/**
+	 * The FULL merged timeline (editor rows + the deck's own read-only
+	 * anchors), in `order` order. Row indices below are indices into this
+	 * array, so a drop target may be a native row: that is how an
+	 * editor-authored effect ends up ahead of or behind one of the deck's own.
+	 */
+	rows: AnimationTimelineRow[];
 	updateAnimations: AnimationUpdater;
 }
 
@@ -30,8 +37,8 @@ export interface AnimationDragDropHandlers {
 	handleDragLeave: () => void;
 	handleDrop: (targetIndex: number, event: React.DragEvent) => void;
 	handleDragEnd: () => void;
-	handleMoveUp: (animIndex: number) => void;
-	handleMoveDown: (animIndex: number) => void;
+	handleMoveUp: (rowIndex: number) => void;
+	handleMoveDown: (rowIndex: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,6 +47,7 @@ export interface AnimationDragDropHandlers {
 
 export function useAnimationDragDrop({
 	canEdit,
+	rows,
 	updateAnimations,
 }: UseAnimationDragDropArgs): AnimationDragDropHandlers {
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -48,14 +56,17 @@ export function useAnimationDragDrop({
 
 	const handleDragStart = useCallback(
 		(index: number, event: React.DragEvent) => {
-			if (!canEdit) {
+			// Only an editor-authored row may be a drag SOURCE: the deck's own
+			// effect groups are read-only and never move on their own, though
+			// they remain valid drop targets (see handleDrop).
+			if (!canEdit || rows[index]?.kind !== 'editor') {
 				return;
 			}
 			setDragIndex(index);
 			event.dataTransfer.effectAllowed = 'move';
 			event.dataTransfer.setData('text/plain', String(index));
 		},
-		[canEdit],
+		[canEdit, rows],
 	);
 
 	const handleDragOver = useCallback((_index: number, event: React.DragEvent) => {
@@ -77,13 +88,23 @@ export function useAnimationDragDrop({
 		}
 	}, []);
 
-	const reorderAnimations = useCallback(
+	/**
+	 * Move the row at `sourceIndex` (always an editor row) to `targetIndex`
+	 * within the FULL merged sequence (`rows`), which may be a native row's
+	 * slot, then write the resulting `order` values back onto the editor
+	 * animation list. Native rows are never mutated: only where OTHER rows
+	 * sort relative to them changes.
+	 */
+	const reorderRows = useCallback(
 		(sourceIndex: number, targetIndex: number) => {
-			updateAnimations((anims: PptxElementAnimation[]) =>
-				reorderAnimationTo(anims, sourceIndex, targetIndex),
-			);
+			const sourceRow = rows[sourceIndex];
+			if (!sourceRow || sourceRow.kind !== 'editor') {
+				return;
+			}
+			const nextRows = reorderAnimationTimelineRows(rows, sourceRow.key, targetIndex);
+			updateAnimations((anims) => applyAnimationTimelineOrder(anims, nextRows));
 		},
-		[updateAnimations],
+		[rows, updateAnimations],
 	);
 
 	const handleDrop = useCallback(
@@ -96,9 +117,9 @@ export function useAnimationDragDrop({
 			if (sourceIndex === null || sourceIndex === targetIndex) {
 				return;
 			}
-			reorderAnimations(sourceIndex, targetIndex);
+			reorderRows(sourceIndex, targetIndex);
 		},
-		[dragIndex, reorderAnimations],
+		[dragIndex, reorderRows],
 	);
 
 	const handleDragEnd = useCallback(() => {
@@ -108,20 +129,20 @@ export function useAnimationDragDrop({
 	}, []);
 
 	const handleMoveUp = useCallback(
-		(animIndex: number) => {
-			if (animIndex <= 0) {
+		(rowIndex: number) => {
+			if (rowIndex <= 0) {
 				return;
 			}
-			reorderAnimations(animIndex, animIndex - 1);
+			reorderRows(rowIndex, rowIndex - 1);
 		},
-		[reorderAnimations],
+		[reorderRows],
 	);
 
 	const handleMoveDown = useCallback(
-		(animIndex: number) => {
-			reorderAnimations(animIndex, animIndex + 1);
+		(rowIndex: number) => {
+			reorderRows(rowIndex, rowIndex + 1);
 		},
-		[reorderAnimations],
+		[reorderRows],
 	);
 
 	return {

@@ -70,6 +70,33 @@ export function renderTimelineBar(
 }
 
 /**
+ * A read-only row for one of the deck's own effect groups: no move buttons,
+ * since it never moves on its own, but it stays a visible anchor an
+ * editor-authored effect's up/down buttons can cross.
+ */
+export function renderNativeOrderRow(
+	doc: Document,
+	t: Translator,
+	targetIds: readonly string[],
+	index: number,
+	elements: readonly PptxElement[],
+): HTMLElement {
+	const row = createEl(doc, 'div', 'pptxv-animation-timeline-row');
+	row.classList.add('is-native');
+	row.title = t('pptx.animation.nativeEffectHint');
+	const label = createEl(doc, 'span', 'pptxv-animation-timeline-name');
+	const names = targetIds
+		.map((id) => {
+			const element = elements.find((entry) => entry.id === id);
+			return element ? elementDisplayLabel(element) : id.slice(0, 8);
+		})
+		.join(', ');
+	label.textContent = `${index + 1}. ${t('pptx.animation.nativeEffect')}: ${names}`;
+	row.append(label);
+	return row;
+}
+
+/**
  * One reorderable play-order row: index, target label, effect kind, and move
  * up/down buttons (buttons instead of React's drag-drop).
  */

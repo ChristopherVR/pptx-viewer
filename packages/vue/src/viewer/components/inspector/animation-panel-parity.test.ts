@@ -97,6 +97,46 @@ describe('vue animation parity controls', () => {
 		expect(reordered.map((animation) => animation.order)).toStrictEqual([0, 1]);
 	});
 
+	it('moves an editor-authored row ahead of a deck-native anchor row', async () => {
+		const animations = [
+			{ elementId: 'selected', entrance: 'fadeIn', order: 1 },
+		] as PptxElementAnimation[];
+		const wrapper = mount(AnimationTimeline, {
+			props: {
+				animations,
+				elements,
+				selectedElementId: 'selected',
+				animationTimelineAnchors: [{ order: 0, targetIds: ['animated'], presetClasses: ['entr'] }],
+			},
+		});
+		// Row 0 is the read-only native anchor, row 1 is the editor's own effect.
+		expect(wrapper.findAll('[draggable="true"]')).toHaveLength(1);
+		const editorRow = wrapper.get('[draggable="true"]');
+		const allRows = wrapper.findAll('.max-h-40 > div');
+		await editorRow.trigger('dragstart', { dataTransfer: { setData: vi.fn() } });
+		await allRows[0]!.trigger('drop', { preventDefault: vi.fn() });
+		const reordered = wrapper.emitted('reorder')?.[0]?.[0] as PptxElementAnimation[];
+		expect(reordered[0]).toMatchObject({ elementId: 'selected', order: 0 });
+	});
+
+	it('does not allow dragging a native anchor row as the source', async () => {
+		const animations = [
+			{ elementId: 'selected', entrance: 'fadeIn', order: 1 },
+		] as PptxElementAnimation[];
+		const wrapper = mount(AnimationTimeline, {
+			props: {
+				animations,
+				elements,
+				selectedElementId: 'selected',
+				animationTimelineAnchors: [{ order: 0, targetIds: ['animated'], presetClasses: ['entr'] }],
+			},
+		});
+		const allRows = wrapper.findAll('.max-h-40 > div');
+		await allRows[0]!.trigger('dragstart', { dataTransfer: { setData: vi.fn() } });
+		await allRows[0]!.trigger('drop', { preventDefault: vi.fn() });
+		expect(wrapper.emitted('reorder')).toBeUndefined();
+	});
+
 	it('previews the real Vue canvas node and restores it', () => {
 		vi.useFakeTimers();
 		const target = document.createElement('div');

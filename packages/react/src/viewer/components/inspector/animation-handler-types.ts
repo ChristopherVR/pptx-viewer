@@ -1,4 +1,9 @@
-import type { PptxElementAnimation, PptxAnimationDirection } from 'pptx-viewer-core';
+import type {
+	PptxElementAnimation,
+	PptxAnimationDirection,
+	PptxAnimationTimelineAnchor,
+} from 'pptx-viewer-core';
+import type { AnimationTimelineRow } from 'pptx-viewer-shared';
 import type React from 'react';
 
 // ---------------------------------------------------------------------------
@@ -9,6 +14,8 @@ export interface UseAnimationHandlersArgs {
 	selectedElement: { id: string } & Record<string, unknown>;
 	activeSlide: {
 		animations?: PptxElementAnimation[];
+		/** Read-only anchors for the deck's own effect groups, see {@link PptxAnimationTimelineAnchor}. */
+		animationTimelineAnchors?: PptxAnimationTimelineAnchor[];
 		elements?: Array<{ id: string } & Record<string, unknown>>;
 	};
 	canEdit: boolean;
@@ -22,6 +29,14 @@ export interface UseAnimationHandlersArgs {
 export interface AnimationHandlers {
 	selectedElementAnimation: PptxElementAnimation | undefined;
 	sortedAnimations: PptxElementAnimation[];
+	/**
+	 * The full drag-to-reorder timeline: editor-authored animations MERGED
+	 * with read-only anchors for the deck's own effect groups, sorted by
+	 * `order`. Dragging an editor row to any index here (including past a
+	 * native row) is how an effect can be sequenced ahead of or behind an
+	 * effect the deck already had.
+	 */
+	timelineRows: AnimationTimelineRow[];
 	hasAnimation: boolean;
 	showDirectionPicker: boolean;
 	dragIndex: number | null;
@@ -55,6 +70,8 @@ export interface AnimationHandlers {
 	handleMoveUp: (animIndex: number) => void;
 	handleMoveDown: (animIndex: number) => void;
 	getTimelineLabel: (anim: PptxElementAnimation) => string;
+	/** Label for a read-only native row from the target element ids its effects reach. */
+	getNativeRowLabel: (targetIds: string[]) => string;
 }
 
 // ---------------------------------------------------------------------------

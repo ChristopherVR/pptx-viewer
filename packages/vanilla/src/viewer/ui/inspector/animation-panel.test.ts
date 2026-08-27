@@ -129,6 +129,30 @@ describe('inspector animation panel', () => {
 		expect(handlers.reorderAnimation).toHaveBeenCalledWith('el1', 'down');
 	});
 
+	it('renders a read-only row for a deck-native effect anchor, interleaved with editor rows', () => {
+		const handlers = makeHandlers();
+		const panel = createAnimationPanel(document, t, handlers);
+		panel.update(
+			makeState({
+				animations: [{ elementId: 'el1', entrance: 'fadeIn', order: 1 }],
+				animationTimelineAnchors: [{ order: 0, targetIds: ['el2'], presetClasses: ['entr'] }],
+			}),
+		);
+
+		const rows = panel.el.querySelectorAll('.pptxv-animation-timeline-row');
+		expect(rows).toHaveLength(2);
+		expect(rows[0].classList.contains('is-native')).toBeTruthy();
+		expect(rows[0].querySelectorAll('button')).toHaveLength(0);
+		expect(rows[1].classList.contains('is-native')).toBeFalsy();
+
+		// The editor row's "move up" button is enabled: it can still move ahead
+		// of the native anchor even though it isn't the first editor entry.
+		const editorButtons = rows[1].querySelectorAll<HTMLButtonElement>('button');
+		expect(editorButtons[0].disabled).toBeFalsy();
+		editorButtons[0].click();
+		expect(handlers.reorderAnimation).toHaveBeenCalledWith('el1', 'up');
+	});
+
 	it('disables all controls when not editable', () => {
 		const panel = createAnimationPanel(document, t, makeHandlers());
 		panel.update(

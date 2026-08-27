@@ -17,6 +17,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	applyMotionPathPreset,
 	buildAnimationTimelineBars,
+	buildAnimationTimelineRows,
 	clearMotionPath,
 } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
@@ -53,6 +54,17 @@ export function useAnimationHandlers({
 	const sortedAnimations = useMemo(
 		() => [...(activeSlide.animations ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
 		[activeSlide.animations],
+	);
+
+	// Merges the editor's own animations with the deck's read-only native
+	// anchors into one full-sequence drag-and-drop timeline.
+	const timelineRows = useMemo(
+		() =>
+			buildAnimationTimelineRows(
+				activeSlide.animations ?? [],
+				activeSlide.animationTimelineAnchors ?? [],
+			),
+		[activeSlide.animations, activeSlide.animationTimelineAnchors],
 	);
 
 	// ── Core updater ──
@@ -245,7 +257,7 @@ export function useAnimationHandlers({
 		selectedElementAnimation,
 	});
 
-	const dragDrop = useAnimationDragDrop({ canEdit, updateAnimations });
+	const dragDrop = useAnimationDragDrop({ canEdit, rows: timelineRows, updateAnimations });
 
 	const getTimelineLabel = useCallback(
 		(anim: PptxElementAnimation): string => {
@@ -256,6 +268,23 @@ export function useAnimationHandlers({
 			const text = hasTextProperties(el) ? el.text : undefined;
 			return text || getElementLabel(el);
 		},
+		[activeSlide.elements],
+	);
+
+	// Label for a read-only native row: the element name(s) its effects
+	// target, so the deck's own effects read the same way as editor rows.
+	const getNativeRowLabel = useCallback(
+		(targetIds: string[]): string =>
+			targetIds
+				.map((id) => {
+					const el = activeSlide.elements?.find((e) => e.id === id);
+					if (!el) {
+						return id.slice(0, 8);
+					}
+					const text = hasTextProperties(el) ? el.text : undefined;
+					return text || getElementLabel(el);
+				})
+				.join(', '),
 		[activeSlide.elements],
 	);
 
@@ -285,6 +314,7 @@ export function useAnimationHandlers({
 	return {
 		selectedElementAnimation,
 		sortedAnimations,
+		timelineRows,
 		hasAnimation,
 		showDirectionPicker,
 		timelineBarData,
@@ -302,6 +332,7 @@ export function useAnimationHandlers({
 		handleSequenceChange,
 		handleMotionPathChange,
 		getTimelineLabel,
+		getNativeRowLabel,
 		...preview,
 		...dragDrop,
 	};

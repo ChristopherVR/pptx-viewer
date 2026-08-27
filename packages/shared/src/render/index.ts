@@ -249,6 +249,10 @@ export * from './animation-css';
 // `animation-css` for the preset → CSS keyframe mapping. The stateful hooks /
 // services / RAF loops stay in each binding.
 export * from './animation-authoring';
+// Merges `animations[]` with the deck's own read-only effect anchors into one
+// draggable timeline, so drag-to-reorder can target the FULL sequence
+// (editor-authored AND deck-native effects), not just the editor's own.
+export * from './animation-timeline-rows';
 // Naming layer over both preset vocabularies (editor `PptxAnimationPreset`
 // tokens and core's OOXML preset catalogue), so no timeline prints a wire id.
 export * from './animation-preset-labels';

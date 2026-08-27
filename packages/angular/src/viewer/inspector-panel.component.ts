@@ -21,6 +21,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	MediaPptxElement,
+	PptxAnimationTimelineAnchor,
 	PptxElement,
 	PptxElementAnimation,
 	PptxSmartArtData,
@@ -479,6 +480,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 					[slideIndex]="slideIndex()"
 					[animations]="slideAnimations()"
 					[slideElements]="slideElements()"
+					[animationTimelineAnchors]="slideAnimationTimelineAnchors()"
 					[canEdit]="canEdit()"
 					(animationsChange)="onAnimationsChange($event)"
 				/>
@@ -906,6 +908,10 @@ export class InspectorPanelComponent {
 	protected readonly slideAnimations = computed<readonly PptxElementAnimation[]>(
 		() => this.editor.slides()[this.slideIndex()]?.animations ?? [],
 	);
+	/** Read-only anchors for the active slide's deck-native effect groups. */
+	protected readonly slideAnimationTimelineAnchors = computed<
+		readonly PptxAnimationTimelineAnchor[]
+	>(() => this.editor.slides()[this.slideIndex()]?.animationTimelineAnchors ?? []);
 	protected readonly slideElements = computed<readonly PptxElement[]>(
 		() => this.editor.slides()[this.slideIndex()]?.elements ?? [],
 	);

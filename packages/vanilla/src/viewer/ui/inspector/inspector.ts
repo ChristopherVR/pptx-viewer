@@ -166,6 +166,7 @@ export function createInspector(
 				selectedElementId: state.selectedElementId,
 				elements: state.elements,
 				animations: state.activeSlide?.animations ?? [],
+				animationTimelineAnchors: state.activeSlide?.animationTimelineAnchors ?? [],
 			});
 		},
 		setEditable(editable) {

@@ -6,6 +6,7 @@ import type {
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
+	PptxAnimationTimelineAnchor,
 	PptxAnimationTimingCurve,
 	PptxAnimationTrigger,
 	PptxElementAnimation,
@@ -13,12 +14,13 @@ import type {
 import type { AnimationGroup } from 'pptx-viewer-shared';
 import {
 	applyAnimationPreset,
+	applyAnimationTimelineOrder,
 	applyMotionPathPreset,
+	buildAnimationTimelineRows,
 	clearMotionPath,
+	moveAnimationTimelineRowBy,
 	removeElementAnimation,
-	reorderAnimationDown,
-	reorderAnimationTo,
-	reorderAnimationUp,
+	reorderAnimationTimelineRows,
 	setAnimationEmphasis,
 	setAnimationEntrance,
 	setAnimationExit,
@@ -110,6 +112,10 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 		store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
 		ops.commitChange();
 	};
+
+	/** The active slide's read-only native-effect anchors (see `PptxAnimationTimelineAnchor`). */
+	const currentAnchors = (): readonly PptxAnimationTimelineAnchor[] =>
+		store.get().slides[store.get().currentSlide]?.animationTimelineAnchors ?? [];
 
 	return {
 		addAnimation(group, preset) {
@@ -227,17 +233,26 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 			});
 		},
 
+		// Both route through the FULL merged sequence (editor animations plus
+		// the deck's own read-only anchors), so an editor-authored effect can
+		// end up ahead of or behind a native effect, not just among the
+		// effects this editor added.
 		reorderAnimation(elementId, direction) {
 			commitAnimations(elementId, (animations) =>
-				direction === 'up'
-					? reorderAnimationUp(animations, elementId)
-					: reorderAnimationDown(animations, elementId),
+				moveAnimationTimelineRowBy(
+					animations,
+					currentAnchors(),
+					elementId,
+					direction === 'up' ? -1 : 1,
+				),
 			);
 		},
 		moveAnimation(elementId, index) {
-			commitAnimations(elementId, (animations) =>
-				reorderAnimationTo(animations, { elementId }, index),
-			);
+			commitAnimations(elementId, (animations) => {
+				const rows = buildAnimationTimelineRows(animations, currentAnchors());
+				const nextRows = reorderAnimationTimelineRows(rows, `editor:${elementId}`, index);
+				return applyAnimationTimelineOrder(animations, nextRows);
+			});
 		},
 	};
 }

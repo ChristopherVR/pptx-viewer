@@ -237,6 +237,7 @@ export function createRibbon(
 			hasSelection: latestSelected !== undefined,
 			selectedElementId: latestExtra.selectedElementId,
 			animations: latestExtra.animations ?? [],
+			animationTimelineAnchors: latestExtra.animationTimelineAnchors ?? [],
 		});
 	};
 

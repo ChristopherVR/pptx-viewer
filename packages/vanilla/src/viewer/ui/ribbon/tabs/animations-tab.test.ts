@@ -173,6 +173,30 @@ describe('createAnimationsTab', () => {
 		}
 	});
 
+	it('renders a read-only native-anchor row interleaved with editor rows, and it accepts a drop', () => {
+		const t = createTranslator();
+		const actions = handlers();
+		const tab = createAnimationsTab(document, t, actions, vi.fn());
+		tab.update({
+			editable: true,
+			hasSelection: true,
+			animations: [{ elementId: 'el1', entrance: 'fadeIn', order: 1 }],
+			animationTimelineAnchors: [{ order: 0, targetIds: ['native-1'], presetClasses: ['entr'] }],
+		});
+
+		const rows = tab.el.querySelectorAll('.pptxv-animation-timeline-row');
+		expect(rows).toHaveLength(2);
+		expect(rows[0].classList.contains('is-native')).toBeTruthy();
+		expect(rows[0].getAttribute('draggable')).toBeNull();
+
+		const dropEvent = new Event('drop', { cancelable: true }) as DragEvent & {
+			dataTransfer: { getData: () => string };
+		};
+		Object.defineProperty(dropEvent, 'dataTransfer', { value: { getData: () => 'el1' } });
+		rows[0].dispatchEvent(dropEvent);
+		expect(actions.moveAnimation).toHaveBeenCalledWith('el1', 0);
+	});
+
 	it('applies the motion path its gallery button names', () => {
 		const t = createTranslator();
 		const actions = handlers();

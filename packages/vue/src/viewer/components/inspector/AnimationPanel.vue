@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {
 	AnimationPresetInfo,
+	PptxAnimationTimelineAnchor,
 	PptxAnimationTrigger,
 	PptxElement,
 	PptxElementAnimation,
@@ -33,9 +34,16 @@ const props = withDefaults(
 		element: AnimatableElement;
 		slideElements?: readonly PptxElement[];
 		slideAnimations?: readonly PptxElementAnimation[];
+		/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
+		animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
 		canEdit?: boolean;
 	}>(),
-	{ slideElements: () => [], slideAnimations: () => [], canEdit: true },
+	{
+		slideElements: () => [],
+		slideAnimations: () => [],
+		animationTimelineAnchors: () => [],
+		canEdit: true,
+	},
 );
 const emit = defineEmits<{
 	update: [patch: Partial<AnimatableElement>];
@@ -149,6 +157,7 @@ function changeMotionPath(pathPresetId: string): void {
 		<AnimationTimeline
 			:animations="timelineAnimations"
 			:elements="slideElements"
+			:animation-timeline-anchors="animationTimelineAnchors"
 			:selected-element-id="element.id"
 			@reorder="emit('updateSlideAnimations', $event)"
 		/>
