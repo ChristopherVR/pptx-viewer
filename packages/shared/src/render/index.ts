@@ -387,6 +387,9 @@ export * from './group-ops';
 // Slide-background style cascade: resolved background fields -> CSS map
 // (image -> gradient -> pattern -> solid colour precedence).
 export * from './slide-background';
+// Legacy PowerPoint 97-2003 `shadeToTitle` background hint: shades a slide's
+// gradient background toward its title placeholder's text colour.
+export * from './background-shade-to-title';
 // Editor lifecycle foundation: `editor-insert` (pure factory functions that
 // build new `PptxElement`s with `id: ''` for the caller to assign), `element-
 // operations` (immutable array transforms: update/move/resize/delete/duplicate

@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { getSlideBackgroundStyle } from './slide-background';
@@ -54,6 +54,44 @@ describe('getSlideBackgroundStyle', () => {
 			}),
 		);
 
+		expect(style['background-image']).toBe(gradient);
+	});
+
+	it('shades the gradient toward the title colour when shadeToTitle is set', () => {
+		const title: PptxElement = {
+			id: 'title1',
+			type: 'text',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			text: 'Title',
+			textSegments: [{ text: 'Title', style: { color: '#FF0000' } }],
+			rawXml: { 'p:nvSpPr': { 'p:nvPr': { 'p:ph': { '@_type': 'title' } } } },
+		} as unknown as PptxElement;
+
+		const style = getSlideBackgroundStyle(
+			slide({
+				backgroundGradient: 'linear-gradient(90.00deg, #000000 0%, #FFFFFF 100%)',
+				backgroundShadeToTitle: true,
+				elements: [title],
+			}),
+		);
+
+		expect(style['background-image']).toBe('linear-gradient(90.00deg, #000000 0%, #FF0000 100%)');
+	});
+
+	it('leaves the gradient untouched when shadeToTitle is unset', () => {
+		const gradient = 'linear-gradient(90.00deg, #000000 0%, #FFFFFF 100%)';
+		const style = getSlideBackgroundStyle(slide({ backgroundGradient: gradient }));
+		expect(style['background-image']).toBe(gradient);
+	});
+
+	it('leaves the gradient untouched when shadeToTitle is set but there is no title colour', () => {
+		const gradient = 'linear-gradient(90.00deg, #000000 0%, #FFFFFF 100%)';
+		const style = getSlideBackgroundStyle(
+			slide({ backgroundGradient: gradient, backgroundShadeToTitle: true, elements: [] }),
+		);
 		expect(style['background-image']).toBe(gradient);
 	});
 });
