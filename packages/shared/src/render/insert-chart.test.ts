@@ -9,7 +9,7 @@ import {
 } from './insert-chart';
 
 describe('insert-chart', () => {
-	it('exposes the common chart types plus the six ChartEx kinds in the dropdown list', () => {
+	it('exposes the common chart types plus the six ChartEx kinds (and Pareto) in the dropdown list', () => {
 		const ids = INSERT_CHART_TYPES.map((o) => o.id);
 		expect(ids).toStrictEqual([
 			'column',
@@ -20,6 +20,7 @@ describe('insert-chart', () => {
 			'area',
 			'scatter',
 			'histogram',
+			'pareto',
 			'funnel',
 			'treemap',
 			'sunburst',
@@ -152,5 +153,36 @@ describe('insert-chart', () => {
 		expect(el.chartData?.chartType).toBe('regionMap');
 		expect(el.chartData?.categories.length).toBeGreaterThan(1);
 		expect(el.chartData?.series?.[0].regionMapOptions).toBeDefined();
+	});
+
+	// ── Pareto: docs/guide/limitations.md's ChartEx row says this SDK models a
+	// PowerPoint Pareto chart as `chartType: "histogram"` with a
+	// `clusteredColumn`-layout frequency series plus a `paretoLine`-layout
+	// cumulative-percentage series. It has no `PptxChartType` of its own, so
+	// the dropdown entry maps to `type: 'histogram'` and only the insert-time
+	// data shape distinguishes it from the plain Histogram entry.
+
+	it('offers Pareto as a histogram-family dropdown entry, not a distinct chart type', () => {
+		const pareto = INSERT_CHART_TYPES.find((opt) => opt.id === 'pareto');
+		expect(pareto).toBeDefined();
+		expect(pareto?.type).toBe('histogram');
+		expect(pareto?.labelKey).toBe('pptx.chart.typePareto');
+	});
+
+	it('inserting Pareto gives a histogram chart with a frequency series and a cumulative-percent series', () => {
+		const el = createDefaultChartElement('pareto');
+		expect(el.chartData?.chartType).toBe('histogram');
+		expect(el.chartData?.series).toHaveLength(2);
+		const [frequency, cumulative] = el.chartData?.series ?? [];
+		expect(frequency.histogramOptions?.layout).toBe('histogram');
+		expect(cumulative.histogramOptions?.layout).toBe('pareto');
+	});
+
+	it('pareto and histogram are distinct dropdown entries with different default data', () => {
+		const histogram = createDefaultChartElement('histogram');
+		const pareto = createDefaultChartElement('pareto');
+		expect(histogram.chartData?.chartType).toBe(pareto.chartData?.chartType);
+		expect(histogram.chartData?.series).toHaveLength(1);
+		expect(pareto.chartData?.series).toHaveLength(2);
 	});
 });

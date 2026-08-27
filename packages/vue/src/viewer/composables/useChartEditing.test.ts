@@ -49,6 +49,19 @@ describe('useChartEditing', () => {
 		expect(emitted[0].grouping).toBeUndefined();
 	});
 
+	it("patchChartData({ chartType: 'pareto' }) converts to histogram plus a cumulative-percent series (docs/guide/limitations.md ChartEx row)", () => {
+		const { emitted, editing } = setup(makeChartData());
+		// 'pareto' has no `PptxChartType` of its own (see docs/guide/limitations.md's
+		// ChartEx row); it only ever arrives here the way a `<select>`'s raw string
+		// value does in the real chart-type selector, hence the cast.
+		editing.patchChartData({ chartType: 'pareto' as PptxChartData['chartType'] });
+		expect(emitted).toHaveLength(1);
+		expect(emitted[0].chartType).toBe('histogram');
+		expect(emitted[0].grouping).toBeUndefined();
+		expect(emitted[0].series).toHaveLength(2);
+		expect(emitted[0].series[1].histogramOptions?.layout).toBe('pareto');
+	});
+
 	it('updateStyle merges into the existing style object', () => {
 		const { emitted, editing } = setup(makeChartData({ style: { hasLegend: true } }));
 		editing.updateStyle({ hasDataLabels: true });

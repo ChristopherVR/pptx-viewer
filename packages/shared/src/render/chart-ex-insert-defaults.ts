@@ -4,24 +4,43 @@
  * creatable at the core level (`createChartElement`, `ChartBuilder`, the MCP
  * `createChart` / `updateChart` tools) but never reachable from any binding's
  * Insert Chart or Change Chart Type UI: histogram, funnel, treemap, sunburst,
- * boxWhisker, regionMap.
+ * boxWhisker, regionMap. Also builds the `'pareto'` insert-time shape: not a
+ * seventh ChartEx type (there is no standalone `PptxChartType` for it, see
+ * docs/guide/limitations.md's ChartEx row) but a distinct dropdown entry that
+ * asks for the same histogram-plus-cumulative-percentage-line representation
+ * the MCP `createChart`/`updateChart` tools build for their `chartType:
+ * "pareto"` alias.
  *
  * `insert-chart.ts`'s one-size-fits-all default (three generic categories,
- * one ascending series) does not look like any of these six once rendered:
+ * one ascending series) does not look like any of these once rendered:
  * a histogram needs raw observations rather than pre-binned categories, a
  * treemap/sunburst needs a two-level hierarchy, a box-and-whisker needs
  * several observations per category (each series contributes one sample per
- * category, per `computeBoxWhiskerGeometry` in `chart-box-whisker.ts`), and a
+ * category, per `computeBoxWhiskerGeometry` in `chart-box-whisker.ts`), a
  * region map needs category labels that actually resolve to a region code
  * (see `REGION_ALIAS_MAP` in `chart-waterfall-map.ts`) or it renders as an
- * empty map with every row in the "unmatched" fallback table.
+ * empty map with every row in the "unmatched" fallback table, and a Pareto
+ * chart needs a second series carrying the cumulative-percentage line.
  *
  * Kept separate from `insert-chart.ts` so that file stays a thin dispatcher;
  * this module owns only the per-type sample data.
  *
  * @module render/chart-ex-insert-defaults
  */
-import type { ChartSeriesInput, PptxChartType } from 'pptx-viewer-core';
+import type { ChartSeriesInput, PptxChartHistogramOptions, PptxChartType } from 'pptx-viewer-core';
+
+import { computeHistogramBins } from './chart-histogram';
+import { cumulativePercentOfTotal, orderParetoEntries } from './chart-pareto';
+
+/**
+ * The chart-family tokens `buildChartExInsertData` can be asked to shape.
+ * Widens {@link PptxChartType} with `'pareto'`, the Insert Chart / Change
+ * Chart Type dropdown entry for docs/guide/limitations.md's histogram +
+ * paretoLine representation: "Pareto" is not a distinct `PptxChartType` (see
+ * that doc's ChartEx row), so it only ever exists as this insert-time shape
+ * request, never as a value stored in `PptxChartData.chartType`.
+ */
+export type ChartExInsertKind = PptxChartType | 'pareto';
 
 /** The insert-time default data shape for one chart type. */
 export interface ChartExInsertData {
@@ -35,6 +54,53 @@ export interface ChartExInsertData {
 const HISTOGRAM_VALUES: readonly number[] = [
 	3, 5, 7, 8, 9, 10, 10, 11, 12, 12, 13, 14, 15, 15, 16, 17, 18, 20, 22, 25,
 ];
+
+/**
+ * Raw observations for the Pareto default, right-skewed so most fall in the
+ * lowest bin(s) and a long thin tail trails off: after binning, this shows
+ * the classic Pareto "few bins account for most of the frequency" shape
+ * without needing to reorder anything by hand.
+ */
+const PARETO_VALUES: readonly number[] = [
+	1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 5, 6, 8, 10, 13, 17, 22,
+];
+const PARETO_BIN_COUNT = 5;
+
+/**
+ * Build the Pareto default: a `histogram`-layout frequency series over
+ * {@link PARETO_VALUES} plus a `pareto`-layout cumulative-percentage series.
+ *
+ * The cumulative series' values are computed the same way the renderer
+ * displays them (bin, then order bins by descending frequency, then take a
+ * running percent-of-total) so the inserted chart's cached `cx:pt` values
+ * already match what `buildHistogramViewModel` shows, rather than only being
+ * correct once the viewer recomputes them.
+ */
+function buildParetoInsertData(): ChartExInsertData {
+	const histogramOptions: PptxChartHistogramOptions = {
+		layout: 'histogram',
+		binCount: PARETO_BIN_COUNT,
+	};
+	const bins = computeHistogramBins(PARETO_VALUES, histogramOptions);
+	const ordered = orderParetoEntries(
+		bins.map((bin, index) => ({ value: bin.value, label: bin.label, sourcePointIndex: index })),
+	);
+	return {
+		categories: [],
+		series: [
+			{
+				name: 'Frequency',
+				values: [...PARETO_VALUES],
+				histogramOptions,
+			},
+			{
+				name: 'Cumulative %',
+				values: cumulativePercentOfTotal(ordered.map((entry) => entry.value)),
+				histogramOptions: { layout: 'pareto' },
+			},
+		],
+	};
+}
 
 /** Two-level leaf-first hierarchy shared by the treemap and sunburst defaults. */
 const HIERARCHY_LEAVES: readonly string[] = [
@@ -100,8 +166,12 @@ function buildBoxWhiskerSeries(): ChartSeriesInput[] {
  * generic ascending three-category series. Returns `undefined` for every
  * other {@link PptxChartType}, so callers fall back to the generic default.
  */
-export function buildChartExInsertData(chartType: PptxChartType): ChartExInsertData | undefined {
+export function buildChartExInsertData(
+	chartType: ChartExInsertKind,
+): ChartExInsertData | undefined {
 	switch (chartType) {
+		case 'pareto':
+			return buildParetoInsertData();
 		case 'histogram':
 			return {
 				categories: [],

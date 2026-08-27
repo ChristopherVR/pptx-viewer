@@ -49,8 +49,8 @@ describe('cSS class strings', () => {
 // ---------------------------------------------------------------------------
 
 describe('cHART_TYPE_OPTIONS', () => {
-	it('has 17 chart types', () => {
-		expect(CHART_TYPE_OPTIONS).toHaveLength(17);
+	it('has 18 chart types', () => {
+		expect(CHART_TYPE_OPTIONS).toHaveLength(18);
 	});
 
 	it('contains bar, line, pie', () => {
@@ -75,6 +75,11 @@ describe('cHART_TYPE_OPTIONS', () => {
 		expect(values).toContain('sunburst');
 		expect(values).toContain('boxWhisker');
 		expect(values).toContain('regionMap');
+	});
+
+	it('contains Pareto, the histogram-family entry with no PptxChartType of its own', () => {
+		const values = CHART_TYPE_OPTIONS.map((o) => o.value);
+		expect(values).toContain('pareto');
 	});
 
 	it('every item has a non-empty value and labelKey', () => {

@@ -3493,6 +3493,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.chart.typeArea3D': 'Area (3-D)',
 	'pptx.chart.typeSurface': 'Surface',
 	'pptx.chart.typeHistogram': 'Histogram',
+	'pptx.chart.typePareto': 'Pareto',
 	'pptx.chart.typeFunnel': 'Funnel',
 	'pptx.chart.typeTreemap': 'Treemap',
 	'pptx.chart.typeSunburst': 'Sunburst',

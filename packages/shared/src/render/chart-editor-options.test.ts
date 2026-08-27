@@ -78,6 +78,13 @@ describe('chart-editor option lists', () => {
 		);
 	});
 
+	it('offers Pareto alongside Histogram, even though it is not a distinct PptxChartType', () => {
+		const values = CHART_TYPE_OPTIONS.map((opt) => opt.value);
+		expect(values).toContain('pareto');
+		const pareto = CHART_TYPE_OPTIONS.find((opt) => opt.value === 'pareto');
+		expect(pareto?.labelKey).toBe('pptx.chart.typePareto');
+	});
+
 	it('data_label_content_options pairs a content key with a label', () => {
 		expect(DATA_LABEL_CONTENT_OPTIONS).toHaveLength(5);
 		for (const opt of DATA_LABEL_CONTENT_OPTIONS) {
@@ -159,5 +166,31 @@ describe('patchChartData', () => {
 		const next = patchChartData(bar, { chartType: 'bar', title: 'Same type' });
 		expect(next.grouping).toBe('stacked');
 		expect(next.title).toBe('Same type');
+	});
+
+	describe('a "pareto" chartType (docs/guide/limitations.md ChartEx row)', () => {
+		it('converts to histogram, clears grouping, and appends a cumulative-percent series', () => {
+			const next = patchChartData(bar, { chartType: 'pareto' });
+			expect(next.chartType).toBe('histogram');
+			expect(next.grouping).toBeUndefined();
+			expect(next.series).toHaveLength(2);
+			const [frequency, cumulative] = next.series;
+			expect(frequency.values).toStrictEqual([1, 2]);
+			expect(cumulative.histogramOptions?.layout).toBe('pareto');
+			// Sorted descending (2, 1) before taking the running percent-of-total.
+			expect(cumulative.values).toStrictEqual([66.67, 100]);
+		});
+
+		it('merges other patch fields alongside the pareto conversion', () => {
+			const next = patchChartData(bar, { chartType: 'pareto', title: 'Renamed' });
+			expect(next.chartType).toBe('histogram');
+			expect(next.title).toBe('Renamed');
+		});
+
+		it('does not duplicate the cumulative series when already converted', () => {
+			const once = patchChartData(bar, { chartType: 'pareto' });
+			const twice = patchChartData(once, { chartType: 'pareto' });
+			expect(twice.series).toHaveLength(2);
+		});
 	});
 });

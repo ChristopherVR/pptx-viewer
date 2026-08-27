@@ -1,11 +1,13 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (an imperative DOM-builder with many independent `const`s), not one
    statement */
-import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
+import type { PptxChartData } from 'pptx-viewer-core';
+import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 import {
 	CHART_GROUPING_LABEL_KEYS,
 	CHART_TYPE_LABEL_KEYS,
 	CHART_TYPE_OPTIONS,
+	patchChartData as sharedPatchChartData,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -23,7 +25,7 @@ import type { InspectorHandlers, InspectorState } from './types';
  * regionMap, and separately drifted ahead of the other three bindings by
  * hand-adding funnel/treemap/sunburst.
  */
-const CHART_TYPES: readonly PptxChartType[] = CHART_TYPE_OPTIONS.map((opt) => opt.value);
+const CHART_TYPES: readonly ChartTypeSelectValue[] = CHART_TYPE_OPTIONS.map((opt) => opt.value);
 
 /** `c:grouping` modes offered alongside the type, exactly as React offers them. */
 const GROUPINGS: readonly string[] = ['clustered', 'stacked', 'percentStacked'];
@@ -92,13 +94,24 @@ export function createChartSection(
 		if (!current) {
 			return;
 		}
+		// Route an actual type change through the shared `patchChartData`, not a
+		// bare field assignment: that is what clears grouping the new type
+		// doesn't support, adapts the category/series shape, and (for `'pareto'`,
+		// which has no `PptxChartType` of its own; see docs/guide/limitations.md's
+		// ChartEx row) converts to `chartType: 'histogram'` plus a
+		// cumulative-percent series, matching React/Vue/Angular's chart-type
+		// selectors.
+		const selectedType = chartType.control.value as ChartTypeSelectValue;
+		const base: PptxChartData =
+			selectedType === current.chartType
+				? current
+				: sharedPatchChartData(current, { chartType: selectedType });
 		handlers.setChartData({
-			...current,
+			...base,
 			title: title.control.value,
-			chartType: chartType.control.value as PptxChartType,
 			grouping: grouping.control.value as PptxChartData['grouping'],
 			style: {
-				...current.style,
+				...base.style,
 				hasTitle: title.control.value.trim().length > 0,
 				hasLegend: legend.control.checked,
 				hasDataLabels: labels.control.checked,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { INSERT_CHART_TYPES } from '../internal/shared';
 import {
+	newChartElement,
 	newEquationElement,
 	newShapeElement,
 	newSmartArtElement,
@@ -248,6 +250,23 @@ describe('newEquationElement', () => {
 		const el = newEquationElement();
 		if (el.type === 'shape') {
 			expect((el.text ?? '').length).toBeGreaterThan(0);
+		}
+	});
+});
+
+describe('newChartElement', () => {
+	it('offers Pareto in the dropdown and inserts a valid histogram+cumulative-percent chart (docs/guide/limitations.md ChartEx row)', () => {
+		const pareto = INSERT_CHART_TYPES.find((opt) => opt.id === 'pareto');
+		expect(pareto).toBeDefined();
+		expect(pareto?.type).toBe('histogram');
+
+		const el = newChartElement('pareto');
+		expect(el.type).toBe('chart');
+		expect(el.id).toBe('');
+		if (el.type === 'chart') {
+			expect(el.chartData?.chartType).toBe('histogram');
+			expect(el.chartData?.series).toHaveLength(2);
+			expect(el.chartData?.series?.[1].histogramOptions?.layout).toBe('pareto');
 		}
 	});
 });

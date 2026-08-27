@@ -87,6 +87,7 @@ export const translations = {
 	'pptx.chart.typeArea3D': 'Bereich (3D)',
 	'pptx.chart.typeSurface': 'Oberfläche',
 	'pptx.chart.typeHistogram': 'Histogramm',
+	'pptx.chart.typePareto': 'Pareto',
 	'pptx.chart.typeFunnel': 'Trichter',
 	'pptx.chart.typeTreemap': 'Treemap',
 	'pptx.chart.typeSunburst': 'Sunburst',

@@ -19,10 +19,15 @@
 		PptxChartMarkerSymbol,
 		PptxChartSeries,
 		PptxChartTrendline,
-		PptxChartType,
 	} from 'pptx-viewer-core';
 	import { setChartDataPointMarker } from 'pptx-viewer-core';
-	import { CHART_TYPE_LABEL_KEYS, CHART_TYPE_OPTIONS, schemaLabel } from 'pptx-viewer-shared';
+	import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
+	import {
+		CHART_TYPE_LABEL_KEYS,
+		CHART_TYPE_OPTIONS,
+		patchChartData as sharedPatchChartData,
+		schemaLabel,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -44,7 +49,7 @@
 	 * other three bindings by hand-adding funnel/treemap/sunburst; deriving
 	 * from the shared list means every future addition reaches this panel too.
 	 */
-	const chartTypes: readonly PptxChartType[] = CHART_TYPE_OPTIONS.map((opt) => opt.value);
+	const chartTypes: readonly ChartTypeSelectValue[] = CHART_TYPE_OPTIONS.map((opt) => opt.value);
 	const chart = $derived(
 		editor.selectedElement?.type === 'chart' ? editor.selectedElement : undefined,
 	);
@@ -54,6 +59,21 @@
 	function patch(next: Partial<PptxChartData>): void {
 		if (chart && data) {
 			editor.applyElementPatch(chart.id, { chartData: { ...data, ...next } });
+		}
+	}
+	/**
+	 * Chart-type select handler: routed through the shared `patchChartData`
+	 * (not the plain `patch` merge above) so a type change clears grouping the
+	 * new type doesn't support and adapts the category/series shape, exactly
+	 * like React/Vue/Angular's chart-type selectors. This is also what makes
+	 * `'pareto'` work: it has no `PptxChartType` of its own (see
+	 * docs/guide/limitations.md's ChartEx row), so only `patchChartData` knows
+	 * how to convert it to `chartType: 'histogram'` plus a cumulative-percent
+	 * series.
+	 */
+	function onTypeChange(value: ChartTypeSelectValue): void {
+		if (data) {
+			replace(sharedPatchChartData(data, { chartType: value }));
 		}
 	}
 	/** Replace the whole chart-data object (used by the grid's structural edits). */
@@ -105,7 +125,7 @@
 </script>
 
 {#if data}<div class="section">
-	<label>Chart type<select aria-label="Chart type" value={data.chartType} onchange={(event) => patch({ chartType: event.currentTarget.value as PptxChartType })}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
+	<label>Chart type<select aria-label="Chart type" value={data.chartType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ title: event.currentTarget.value, style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
 	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label></div>
 	<ChartDataGrid

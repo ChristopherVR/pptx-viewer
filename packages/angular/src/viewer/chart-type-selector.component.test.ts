@@ -6,7 +6,7 @@
  * the emit logic is factored into the standalone `applyChartTypeSelectorPatch`,
  * which is what the component's template events actually call.
  */
-import type { ChartPptxElement } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { CHART_TYPE_OPTIONS } from '../internal/shared';
@@ -77,6 +77,18 @@ describe('applyChartTypeSelectorPatch', () => {
 			expect(next?.chartData?.chartType).toBe(chartType);
 		}
 	});
+
+	it("converts a 'pareto' selection to histogram plus a cumulative-percent series (docs/guide/limitations.md ChartEx row)", () => {
+		// 'pareto' has no `PptxChartType` of its own; it only ever arrives here
+		// the way a `<select>`'s raw string value does in the real template.
+		const next = applyChartTypeSelectorPatch(chart(), {
+			chartType: 'pareto' as PptxChartData['chartType'],
+		});
+		expect(next?.chartData?.chartType).toBe('histogram');
+		expect(next?.chartData?.grouping).toBeUndefined();
+		expect(next?.chartData?.series).toHaveLength(2);
+		expect(next?.chartData?.series?.[1].histogramOptions?.layout).toBe('pareto');
+	});
 });
 
 describe('chart type picker option list', () => {
@@ -92,5 +104,10 @@ describe('chart type picker option list', () => {
 		]) {
 			expect(values).toContain(chartType);
 		}
+	});
+
+	it('offers Pareto, the histogram-family entry with no PptxChartType of its own', () => {
+		const values = CHART_TYPE_OPTIONS.map((opt) => opt.value);
+		expect(values).toContain('pareto');
 	});
 });

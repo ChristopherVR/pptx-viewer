@@ -14,6 +14,8 @@
 import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
 import { chartDataChangeType } from 'pptx-viewer-core';
 
+import { applyParetoConversion } from './chart-pareto';
+
 /** Display units selectable for a value axis (empty string = none). */
 export type ChartDisplayUnitsValue =
 	| ''
@@ -89,7 +91,17 @@ export interface ChartOption<V> {
 	labelKey: string;
 }
 
-export const CHART_TYPE_OPTIONS: ReadonlyArray<ChartOption<PptxChartType>> = [
+/**
+ * The value a "Change Chart Type" select may carry. Widens {@link PptxChartType}
+ * with `'pareto'`, a `histogram`-family entry that has no `PptxChartType` of
+ * its own (see docs/guide/limitations.md's ChartEx row): selecting it converts
+ * to `chartType: 'histogram'` and appends the cumulative-percentage series
+ * `applyParetoConversion` builds, rather than being stored verbatim on
+ * `PptxChartData.chartType`.
+ */
+export type ChartTypeSelectValue = PptxChartType | 'pareto';
+
+export const CHART_TYPE_OPTIONS: ReadonlyArray<ChartOption<ChartTypeSelectValue>> = [
 	{ value: 'bar', label: 'Bar', labelKey: 'pptx.chart.typeBar' },
 	{ value: 'line', label: 'Line', labelKey: 'pptx.chart.typeLine' },
 	{ value: 'pie', label: 'Pie', labelKey: 'pptx.chart.typePie' },
@@ -101,6 +113,7 @@ export const CHART_TYPE_OPTIONS: ReadonlyArray<ChartOption<PptxChartType>> = [
 	{ value: 'stock', label: 'Stock', labelKey: 'pptx.chart.typeStock' },
 	{ value: 'waterfall', label: 'Waterfall', labelKey: 'pptx.chart.typeWaterfall' },
 	{ value: 'histogram', label: 'Histogram', labelKey: 'pptx.chart.typeHistogram' },
+	{ value: 'pareto', label: 'Pareto', labelKey: 'pptx.chart.typePareto' },
 	{ value: 'funnel', label: 'Funnel', labelKey: 'pptx.chart.typeFunnel' },
 	{ value: 'treemap', label: 'Treemap', labelKey: 'pptx.chart.typeTreemap' },
 	{ value: 'sunburst', label: 'Sunburst', labelKey: 'pptx.chart.typeSunburst' },
@@ -303,17 +316,26 @@ export const EXPLOSION_SUPPORTED_TYPES: ReadonlySet<PptxChartType> = new Set<Ppt
  * Apply an inspector patch to a chart's data, routing a `chartType` change
  * through core's {@link chartDataChangeType} (which clears grouping the new
  * type doesn't support and adapts the category/series shape) instead of a
- * plain shallow merge. Every other field is a plain merge.
+ * plain shallow merge. A `chartType` of `'pareto'` (see
+ * {@link ChartTypeSelectValue}) is routed through {@link applyParetoConversion}
+ * instead, since it has no `chartDataChangeType` target of its own. Every
+ * other field is a plain merge.
  *
  * Every binding's chart type/title/grouping selector needs exactly this
  * "is this patch a type change?" branch; it was independently re-implemented
  * in React and Vue with identical logic before being centralized here.
  */
-export function patchChartData(data: PptxChartData, patch: Partial<PptxChartData>): PptxChartData {
-	if (patch.chartType && patch.chartType !== data.chartType) {
-		const adapted = chartDataChangeType(data, patch.chartType);
-		const { chartType: _chartType, ...rest } = patch;
+export function patchChartData(
+	data: PptxChartData,
+	patch: Omit<Partial<PptxChartData>, 'chartType'> & { chartType?: ChartTypeSelectValue },
+): PptxChartData {
+	const { chartType, ...rest } = patch;
+	if (chartType === 'pareto') {
+		return { ...applyParetoConversion(data), ...rest };
+	}
+	if (chartType && chartType !== data.chartType) {
+		const adapted = chartDataChangeType(data, chartType);
 		return { ...adapted, ...rest };
 	}
-	return { ...data, ...patch };
+	return { ...data, ...rest, ...(chartType !== undefined ? { chartType } : {}) };
 }

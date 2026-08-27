@@ -13,13 +13,17 @@
 import { createChartElement } from 'pptx-viewer-core';
 import type { ChartPptxElement, PptxChartBarDirection, PptxChartType } from 'pptx-viewer-core';
 
+import type { ChartExInsertKind } from './chart-ex-insert-defaults';
 import { buildChartExInsertData } from './chart-ex-insert-defaults';
 
 /**
  * Dropdown ids for the insert-chart menu. Distinct from `PptxChartType`
  * because PowerPoint offers Column (vertical) and Bar (horizontal) as two
- * entries over the same underlying `'bar'` chart type. The six ChartEx ids
- * (`histogram` through `regionMap`) map one-to-one onto their chart type.
+ * entries over the same underlying `'bar'` chart type, and because `'pareto'`
+ * has no `PptxChartType` of its own: it is a dropdown entry that resolves to
+ * `type: 'histogram'` (see docs/guide/limitations.md's ChartEx row) with a
+ * frequency-plus-cumulative-percentage default shape. The other six ChartEx
+ * ids (`histogram` through `regionMap`) map one-to-one onto their chart type.
  */
 export type InsertChartKind =
 	| 'column'
@@ -30,6 +34,7 @@ export type InsertChartKind =
 	| 'area'
 	| 'scatter'
 	| 'histogram'
+	| 'pareto'
 	| 'funnel'
 	| 'treemap'
 	| 'sunburst'
@@ -54,10 +59,14 @@ export interface InsertChartTypeOption {
  * The chart types offered when inserting a new chart: the common cartesian /
  * pie families plus the six Office 2016+ ChartEx kinds that core has always
  * been able to create (histogram, funnel, treemap, sunburst, boxWhisker,
- * regionMap) but that no binding previously exposed here. Every binding
- * renders the same dropdown from this list so the UX matches across
- * frameworks. Column and Bar mirror PowerPoint's split: both are the `'bar'`
- * family, distinguished by `c:barDir` (vertical columns vs horizontal bars).
+ * regionMap) but that no binding previously exposed here, plus `'pareto'`, a
+ * `histogram`-family entry with its own default data (see
+ * `chart-ex-insert-defaults.ts`) so the "Pareto" gap docs/guide/limitations.md
+ * described is a directly clickable entry rather than something that only the
+ * SDK / MCP `chartType: "pareto"` alias could build. Every binding renders the
+ * same dropdown from this list so the UX matches across frameworks. Column and
+ * Bar mirror PowerPoint's split: both are the `'bar'` family, distinguished by
+ * `c:barDir` (vertical columns vs horizontal bars).
  */
 export const INSERT_CHART_TYPES: readonly InsertChartTypeOption[] = [
 	{
@@ -78,6 +87,12 @@ export const INSERT_CHART_TYPES: readonly InsertChartTypeOption[] = [
 		type: 'histogram',
 		labelKey: 'pptx.chart.typeHistogram',
 		label: 'Histogram',
+	},
+	{
+		id: 'pareto',
+		type: 'histogram',
+		labelKey: 'pptx.chart.typePareto',
+		label: 'Pareto',
 	},
 	{ id: 'funnel', type: 'funnel', labelKey: 'pptx.chart.typeFunnel', label: 'Funnel' },
 	{ id: 'treemap', type: 'treemap', labelKey: 'pptx.chart.typeTreemap', label: 'Treemap' },
@@ -145,7 +160,14 @@ export function createDefaultChartElement(
 	// ChartEx types (histogram, funnel, treemap, sunburst, boxWhisker, regionMap)
 	// look wrong with the generic ascending-series default: see
 	// chart-ex-insert-defaults.ts for why each needs its own data shape.
-	const chartExData = buildChartExInsertData(chartType);
+	//
+	// Look up the sample data by the dropdown ID, not the resolved chart TYPE:
+	// 'pareto' and 'histogram' both resolve to `type: 'histogram'` above, so
+	// dispatching on `chartType` here would build the plain histogram default
+	// for both. Non-ChartEx ids ('column', 'bar', ...) fall through
+	// `buildChartExInsertData`'s `default: return undefined` case just as they
+	// did when this dispatched on `chartType`.
+	const chartExData = buildChartExInsertData((option?.id ?? chartKind) as ChartExInsertKind);
 	return createChartElement(
 		chartType,
 		{

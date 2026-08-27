@@ -65,6 +65,26 @@ describe('chartMenu', () => {
 		expect(values).toContain('pie');
 	});
 
+	it('offers Pareto and inserts a valid histogram+cumulative-percent chart (docs/guide/limitations.md ChartEx row)', () => {
+		const editor = makeEditor();
+		const { select, insert } = mountMenu(editor);
+		const values = Array.from(select.options).map((o) => o.value);
+		expect(values).toContain('pareto');
+
+		select.value = 'pareto';
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		insert.click();
+		flushSync();
+
+		const element = editor.slides[0]?.elements[0];
+		expect(element?.type).toBe('chart');
+		const chartData = element?.type === 'chart' ? element.chartData : undefined;
+		expect(chartData?.chartType).toBe('histogram');
+		expect(chartData?.series).toHaveLength(2);
+		expect(chartData?.series?.[1].histogramOptions?.layout).toBe('pareto');
+	});
+
 	it('inserts the staged chart type and selects the new element', () => {
 		const editor = makeEditor();
 		const { select, insert } = mountMenu(editor);

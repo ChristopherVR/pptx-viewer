@@ -54,6 +54,7 @@ describe('chart section type and grouping selects', () => {
 			'stock',
 			'waterfall',
 			'histogram',
+			'pareto',
 			'funnel',
 			'treemap',
 			'sunburst',
@@ -79,6 +80,7 @@ describe('chart section type and grouping selects', () => {
 			'pptx.chart.typeStock',
 			'pptx.chart.typeWaterfall',
 			'pptx.chart.typeHistogram',
+			'pptx.chart.typePareto',
 			'pptx.chart.typeFunnel',
 			'pptx.chart.typeTreemap',
 			'pptx.chart.typeSunburst',
@@ -121,6 +123,20 @@ describe('chart section type and grouping selects', () => {
 		expect(setChartData).toHaveBeenLastCalledWith(
 			expect.objectContaining({ chartType: 'treemap' }),
 		);
+	});
+
+	it("converts a 'pareto' selection to histogram plus a cumulative-percent series (docs/guide/limitations.md ChartEx row)", () => {
+		const { labelFor, setChartData } = mount();
+		const select = labelFor('pptx.chart.type').querySelector('select')!;
+
+		select.value = 'pareto';
+		select.dispatchEvent(new Event('change'));
+
+		expect(setChartData).toHaveBeenCalledOnce();
+		const committed = setChartData.mock.calls[0]?.[0] as PptxChartData;
+		expect(committed.chartType).toBe('histogram');
+		expect(committed.series).toHaveLength(2);
+		expect(committed.series[1].histogramOptions?.layout).toBe('pareto');
 	});
 });
 

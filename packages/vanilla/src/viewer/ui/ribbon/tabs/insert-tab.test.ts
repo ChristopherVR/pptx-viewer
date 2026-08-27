@@ -159,6 +159,27 @@ describe('createInsertTab', () => {
 		expect(insertChart).toHaveBeenCalledWith('bar');
 	});
 
+	it('offers Pareto as a directly clickable entry (docs/guide/limitations.md ChartEx row)', () => {
+		const insertChart = vi.fn();
+		const t = createTranslator();
+		const tab = createInsertTab(
+			document,
+			t,
+			makeHandlers({ insertChart }),
+			vi.fn(),
+			vi.fn(),
+			vi.fn(),
+		);
+		const selects = tab.el.querySelectorAll<HTMLSelectElement>('.pptxv-select-button-select');
+		const chartSelect = selects[1];
+		const paretoIndex = INSERT_CHART_TYPES.findIndex((ct) => ct.id === 'pareto');
+		expect(paretoIndex).toBeGreaterThanOrEqual(0);
+
+		chartSelect.value = String(paretoIndex);
+		tab.el.querySelector<HTMLButtonElement>('[aria-label="Chart"]')?.click();
+		expect(insertChart).toHaveBeenCalledWith('pareto');
+	});
+
 	it('opens the Header & Footer dialog', () => {
 		const onOpenHeaderFooter = vi.fn();
 		const t = createTranslator();
