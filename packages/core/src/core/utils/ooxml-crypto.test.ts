@@ -505,6 +505,129 @@ describe('encryptPptx / decryptPptx round-trip', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Round-trip: encryptPptx({ encryptionScheme: 'standard' }) -> decryptPptx
+// ---------------------------------------------------------------------------
+
+describe('encryptPptx / decryptPptx round-trip (standard scheme)', () => {
+	it('encrypts and decrypts a buffer with the correct password', async () => {
+		const originalData = createMinimalZipBuffer();
+		const password = 'standard-test-password';
+
+		const encrypted = await encryptPptx(originalData, password, {
+			encryptionScheme: 'standard',
+		});
+
+		// Encrypted output should still be an OLE2 container
+		const encBytes = new Uint8Array(encrypted);
+		expect(encBytes[0]).toBe(0xd0);
+		expect(encBytes[1]).toBe(0xcf);
+		expect(encBytes[2]).toBe(0x11);
+		expect(encBytes[3]).toBe(0xe0);
+
+		const decrypted = await decryptPptx(encrypted, password);
+
+		const original = new Uint8Array(originalData);
+		const result = new Uint8Array(decrypted);
+		expect(result).toHaveLength(original.length);
+		expect(result).toStrictEqual(original);
+	}, 20_000);
+
+	it('writes an EncryptionInfo stream that parses as standard, not agile', async () => {
+		const originalData = createMinimalZipBuffer();
+		const encrypted = await encryptPptx(originalData, 'scheme-check', {
+			encryptionScheme: 'standard',
+		});
+
+		const ole2 = parseOle2(encrypted);
+		const encInfo = ole2.getStream('EncryptionInfo')!;
+		const parsed = parseEncryptionInfo(encInfo);
+
+		expect(parsed.isAgile).toBeFalsy();
+		expect('isStandard' in parsed && parsed.isStandard).toBeTruthy();
+	}, 20_000);
+
+	it('encrypts and decrypts with AES-128', async () => {
+		const originalData = createMinimalZipBuffer();
+		const password = 'standard-aes128';
+
+		const encrypted = await encryptPptx(originalData, password, {
+			algorithm: 'AES128',
+			encryptionScheme: 'standard',
+		});
+		const decrypted = await decryptPptx(encrypted, password);
+
+		const original = new Uint8Array(originalData);
+		const result = new Uint8Array(decrypted);
+		expect(result).toStrictEqual(original);
+	}, 20_000);
+
+	it('encrypts and decrypts with AES-256 (default algorithm)', async () => {
+		const originalData = createMinimalZipBuffer();
+		const password = 'standard-aes256';
+
+		const encrypted = await encryptPptx(originalData, password, {
+			encryptionScheme: 'standard',
+		});
+		const decrypted = await decryptPptx(encrypted, password);
+
+		const original = new Uint8Array(originalData);
+		const result = new Uint8Array(decrypted);
+		expect(result).toStrictEqual(original);
+	}, 20_000);
+
+	it('throws IncorrectPasswordError for the wrong password', async () => {
+		const originalData = createMinimalZipBuffer();
+		const encrypted = await encryptPptx(originalData, 'correct-password', {
+			encryptionScheme: 'standard',
+		});
+
+		await expect(decryptPptx(encrypted, 'wrong-password')).rejects.toThrow(IncorrectPasswordError);
+	}, 20_000);
+
+	it('handles unicode passwords', async () => {
+		const originalData = createMinimalZipBuffer();
+		const password = 'éàü世界';
+
+		const encrypted = await encryptPptx(originalData, password, {
+			encryptionScheme: 'standard',
+		});
+		const decrypted = await decryptPptx(encrypted, password);
+
+		const original = new Uint8Array(originalData);
+		const result = new Uint8Array(decrypted);
+		expect(result).toStrictEqual(original);
+	}, 20_000);
+
+	it('handles data spanning multiple 16-byte AES blocks', async () => {
+		const largeBuffer = new ArrayBuffer(10240);
+		const largeView = new Uint8Array(largeBuffer);
+		for (let i = 0; i < largeView.length; i++) {
+			largeView[i] = i % 256;
+		}
+
+		const password = 'standard-large-data';
+		const encrypted = await encryptPptx(largeBuffer, password, {
+			encryptionScheme: 'standard',
+		});
+		const decrypted = await decryptPptx(encrypted, password);
+
+		const result = new Uint8Array(decrypted);
+		expect(result).toHaveLength(largeView.length);
+		expect(result).toStrictEqual(largeView);
+	}, 20_000);
+
+	it('verifyPassword works for the standard scheme', async () => {
+		const originalData = createMinimalZipBuffer();
+		const encrypted = await encryptPptx(originalData, 'verify-standard', {
+			encryptionScheme: 'standard',
+		});
+
+		await expect(verifyPassword(encrypted, 'verify-standard')).resolves.toBeTruthy();
+		await expect(verifyPassword(encrypted, 'wrong')).resolves.toBeFalsy();
+	}, 20_000);
+});
+
+// ---------------------------------------------------------------------------
 // verifyPassword
 // ---------------------------------------------------------------------------
 

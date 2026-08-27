@@ -1,8 +1,9 @@
 /**
  * ECMA-376 OOXML encryption and decryption.
  *
- * Implements the "Agile" encryption scheme (ECMA-376 Standard Encryption
- * and Agile Encryption) used by Office 2010+ for password-protected files.
+ * Implements both encryption schemes used by Office for password-protected
+ * files: the ECMA-376 Standard scheme (Office 2007) and the Agile scheme
+ * (Office 2010+, this library's default when writing).
  *
  * This module serves as the public facade, re-exporting types and errors
  * from sub-modules and providing the top-level {@link decryptPptx},
@@ -27,6 +28,7 @@ import {
 	encryptAgilePackage,
 	buildAgileEncryptionInfoXml,
 	buildEncryptionInfoStream,
+	encryptPptxStandard,
 } from './ooxml-crypto-encrypt';
 import { IncorrectPasswordError } from './ooxml-crypto-errors';
 import {
@@ -54,6 +56,7 @@ export type {
 	EncryptionInfo,
 	StandardEncryptionInfo,
 	EncryptionOptions,
+	EncryptionScheme,
 } from './ooxml-crypto-types';
 
 // Sub-module re-exports — errors
@@ -122,7 +125,10 @@ export async function decryptPptx(
  * Encrypt a PPTX file with a password.
  *
  * Creates an OLE2 compound file with EncryptionInfo and EncryptedPackage
- * streams using the OOXML agile encryption scheme (Office 2010+).
+ * streams. Defaults to the OOXML agile encryption scheme (Office 2010+,
+ * matching PowerPoint's own default); pass `options.encryptionScheme:
+ * 'standard'` to write the ECMA-376 Standard scheme instead
+ * (Office 2007-compatible), which real PowerPoint can also open.
  *
  * @param pptxBuffer - Raw bytes of the unencrypted PPTX ZIP file.
  * @param password - The password to protect the file with.
@@ -134,6 +140,10 @@ export async function encryptPptx(
 	password: string,
 	options?: EncryptionOptions,
 ): Promise<ArrayBuffer> {
+	if (options?.encryptionScheme === 'standard') {
+		return encryptPptxStandard(pptxBuffer, password, options);
+	}
+
 	const algorithm = options?.algorithm ?? 'AES256';
 	const keyBits = algorithm === 'AES128' ? 128 : 256;
 	const crypto = getCrypto();

@@ -313,5 +313,9 @@ export async function decryptStandardPackage(
 	const iv = new Uint8Array(16); // All zeros for standard encryption
 	const decrypted = await aesCbcDecryptRaw(key, iv, encryptedData);
 
-	return decrypted.subarray(0, originalSize).buffer as ArrayBuffer;
+	// Uint8Array#slice (unlike #subarray) copies into a freshly allocated
+	// buffer sized to the given range, so the returned ArrayBuffer is
+	// truncated to originalSize instead of exposing the padded backing
+	// buffer of `decrypted`.
+	return decrypted.slice(0, originalSize).buffer as ArrayBuffer;
 }
