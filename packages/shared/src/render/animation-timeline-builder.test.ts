@@ -384,6 +384,64 @@ describe('buildTimeline', () => {
 		expect(result.keyframesCss).toContain('@keyframes pptx-transparency');
 	});
 
+	it('rejects a numeric [0, 1] ramp explicitly named for a non-opacity attribute, falling back to canned timing', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: 'emph',
+				presetId: 9, // Transparency
+				attrName: 'ppt_w',
+				keyframes: [
+					{ tm: 0, value: 0.5, valueType: 'flt' },
+					{ tm: 100000, value: 1, valueType: 'flt' },
+				],
+			} as PptxNativeAnimation),
+		]);
+		expect(result.keyframesCss).toContain('@keyframes pptx-transparency');
+		expect(result.keyframesCss).not.toContain('pptx-tl-tav-');
+	});
+
+	it('honours a p:tavLst colour ramp on a generic p:anim naming fillcolor', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: 'emph',
+				presetId: undefined,
+				attrName: 'fillcolor',
+				keyframes: [
+					{ tm: 0, value: '#ff0000', valueType: 'clr' },
+					{ tm: 100000, value: '#0000ff', valueType: 'clr' },
+				],
+			} as PptxNativeAnimation),
+		]);
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-tavclr-');
+		expect(result.keyframesCss).toContain('fill: #ff0000;');
+		expect(result.keyframesCss).toContain('fill: #0000ff;');
+		expect(result.clickGroups[0].steps[0].colorTargets).toStrictEqual(['fill']);
+	});
+
+	it('does not flag colorTargets when the colour attrName is present but the ramp could not be resolved', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: 'emph',
+				presetId: undefined,
+				attrName: 'fillcolor',
+				// Scheme-colour tokens can't resolve to a CSS colour without theme
+				// context, so buildColorTavKeyframe bails and this step falls back
+				// to the neutral emphasis pulse instead.
+				keyframes: [
+					{ tm: 0, value: 'accent1', valueType: 'clr' },
+					{ tm: 100000, value: 'accent2', valueType: 'clr' },
+				],
+			} as PptxNativeAnimation),
+		]);
+		expect(result.clickGroups[0].steps[0].colorTargets).toBeUndefined();
+	});
+
 	// -------------------------------------------------------------------
 	// p:excl exclusivity (exclGroupId) reaches the timeline step
 	// -------------------------------------------------------------------

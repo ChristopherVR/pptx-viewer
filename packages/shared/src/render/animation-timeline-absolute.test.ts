@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	buildAbsoluteRotationKeyframe,
 	buildAbsoluteScaleKeyframe,
+	buildColorTavKeyframe,
 	buildOpacityTavKeyframe,
 } from './animation-timeline-absolute';
 
@@ -152,5 +153,155 @@ describe('buildOpacityTavKeyframe', () => {
 
 	it('returns undefined with no keyframes at all', () => {
 		expect(buildOpacityTavKeyframe(emph, 'pptx-tl-tav', 13)).toBeUndefined();
+	});
+
+	// -----------------------------------------------------------------------
+	// attrName gate: when the parser surfaced p:attrNameLst/p:attrName, trust
+	// it over the value-shape heuristic.
+	// -----------------------------------------------------------------------
+
+	it('honours a numeric [0, 1] ramp explicitly named style.opacity', () => {
+		const anim = {
+			...emph,
+			attrName: 'style.opacity',
+			keyframes: [
+				{ tm: 0, value: 1, valueType: 'flt' as const },
+				{ tm: 100000, value: 0, valueType: 'flt' as const },
+			],
+		};
+		const result = buildOpacityTavKeyframe(anim, 'pptx-tl-tav', 14);
+		expect(result?.css).toContain('0% { opacity: 1; }');
+		expect(result?.css).toContain('100% { opacity: 0; }');
+	});
+
+	it('rejects a numeric [0, 1] ramp named for a DIFFERENT attribute, even though the old heuristic would have matched it', () => {
+		const anim = {
+			...emph,
+			attrName: 'ppt_w',
+			keyframes: [
+				{ tm: 0, value: 0.5, valueType: 'flt' as const },
+				{ tm: 100000, value: 1, valueType: 'flt' as const },
+			],
+		};
+		expect(buildOpacityTavKeyframe(anim, 'pptx-tl-tav', 15)).toBeUndefined();
+	});
+
+	it('still falls back to the value-shape heuristic when attrName is absent', () => {
+		const anim = {
+			...emph,
+			keyframes: [
+				{ tm: 0, value: 0, valueType: 'flt' as const },
+				{ tm: 100000, value: 1, valueType: 'flt' as const },
+			],
+		};
+		expect(buildOpacityTavKeyframe(anim, 'pptx-tl-tav', 16)).toBeDefined();
+	});
+});
+
+describe('buildColorTavKeyframe', () => {
+	it('builds a multi-stop fillcolor keyframes block', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [
+				{ tm: 0, value: '#ff0000', valueType: 'clr' as const },
+				{ tm: 50000, value: '#00ff00', valueType: 'clr' as const },
+				{ tm: 100000, value: '#0000ff', valueType: 'clr' as const },
+			],
+		};
+		const result = buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 1);
+		expect(result?.keyframeName).toBe('pptx-tl-tavclr-1');
+		expect(result?.css).toContain('0% { fill: #ff0000;');
+		expect(result?.css).toContain('50% { fill: #00ff00;');
+		expect(result?.css).toContain('100% { fill: #0000ff;');
+	});
+
+	it('maps stroke.color to the stroke/border-color properties', () => {
+		const anim = {
+			attrName: 'stroke.color',
+			keyframes: [
+				{ tm: 0, value: '#ffffff', valueType: 'clr' as const },
+				{ tm: 100000, value: '#000000', valueType: 'clr' as const },
+			],
+		};
+		const result = buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 2);
+		expect(result?.css).toContain('stroke: #000000;');
+		expect(result?.css).toContain('border-color: #000000;');
+	});
+
+	it('sorts out-of-order tm entries by time', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [
+				{ tm: 100000, value: '#000000', valueType: 'clr' as const },
+				{ tm: 0, value: '#ffffff', valueType: 'clr' as const },
+			],
+		};
+		const result = buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 3);
+		const lines = result!.css.split('\n');
+		expect(lines[1]).toContain('0%');
+		expect(lines[2]).toContain('100%');
+	});
+
+	it('returns undefined for an unrecognised attribute name', () => {
+		const anim = {
+			attrName: 'ppt_x',
+			keyframes: [
+				{ tm: 0, value: '#ffffff', valueType: 'clr' as const },
+				{ tm: 100000, value: '#000000', valueType: 'clr' as const },
+			],
+		};
+		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 4)).toBeUndefined();
+	});
+
+	it('returns undefined with no attrName at all', () => {
+		const anim = {
+			keyframes: [
+				{ tm: 0, value: '#ffffff', valueType: 'clr' as const },
+				{ tm: 100000, value: '#000000', valueType: 'clr' as const },
+			],
+		};
+		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 5)).toBeUndefined();
+	});
+
+	it('returns undefined for a scheme-colour token that cannot resolve to a CSS colour', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [
+				{ tm: 0, value: 'accent1', valueType: 'clr' as const },
+				{ tm: 100000, value: 'accent2', valueType: 'clr' as const },
+			],
+		};
+		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 6)).toBeUndefined();
+	});
+
+	it('returns undefined for a non-colour keyframe value', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [
+				{ tm: 0, value: 0, valueType: 'flt' as const },
+				{ tm: 100000, value: 1, valueType: 'flt' as const },
+			],
+		};
+		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 7)).toBeUndefined();
+	});
+
+	it('returns undefined with fewer than two keyframes', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [{ tm: 0, value: '#ffffff', valueType: 'clr' as const }],
+		};
+		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 8)).toBeUndefined();
+	});
+
+	it('defers to a real p:animClr colorAnimation when both are present', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			colorAnimation: { colorSpace: 'rgb' as const, toColor: '#ff0000' },
+			keyframes: [
+				{ tm: 0, value: '#ffffff', valueType: 'clr' as const },
+				{ tm: 100000, value: '#000000', valueType: 'clr' as const },
+			],
+		};
+		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 9)).toBeUndefined();
 	});
 });

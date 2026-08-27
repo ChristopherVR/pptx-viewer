@@ -20,7 +20,7 @@ import { resolveEffectTiming } from './animation-fill-repeat';
 import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
-import { buildOpacityTavKeyframe } from './animation-timeline-absolute';
+import { buildColorTavKeyframe, buildOpacityTavKeyframe } from './animation-timeline-absolute';
 import {
 	resolveEffect,
 	buildDynamicKeyframe,
@@ -82,12 +82,29 @@ function cssEasingForAnimation(anim: PptxNativeAnimation): string {
 /**
  * Resolve the active-color-animation paint targets for a step, or `undefined`
  * when the animation drives no fill / stroke colour (so the field stays absent).
+ *
+ * `tavColorApplied` must be `true` only when {@link buildColorTavKeyframe}
+ * actually produced a keyframe block for this step: `anim.attrName` alone
+ * isn't enough, because it can name a colour attribute whose `p:tavLst`
+ * stops couldn't be resolved to CSS colours (e.g. scheme-colour tokens), in
+ * which case the step falls back to an unrelated effect and must NOT be
+ * flagged as animating fill/stroke, or the renderer would suppress the
+ * shape's static paint for an animation that never actually runs.
  */
-function stepColorTargets(anim: PptxNativeAnimation): TimelineStep['colorTargets'] {
-	if (!anim.colorAnimation) {
+function stepColorTargets(
+	anim: PptxNativeAnimation,
+	tavColorApplied: boolean,
+): TimelineStep['colorTargets'] {
+	// `p:animClr`'s own from/to/by ramp is the primary source; a `p:tavLst`
+	// colour ramp on a generic `p:anim` node (see `buildColorTavKeyframe`)
+	// names the same kind of attribute, so it resolves paint targets the
+	// same way once there's no dedicated colour animation to defer to.
+	const targetAttribute =
+		anim.colorAnimation?.targetAttribute ?? (tavColorApplied ? anim.attrName : undefined);
+	if (!targetAttribute) {
 		return undefined;
 	}
-	const targets = resolveColorAnimationTargets(anim.colorAnimation.targetAttribute);
+	const targets = resolveColorAnimationTargets(targetAttribute);
 	return targets.length > 0 ? targets : undefined;
 }
 
@@ -206,6 +223,20 @@ export function buildTimeline(
 				if (tavOpacity) {
 					dynamic = tavOpacity;
 					effect = undefined;
+					dynamicUid++;
+				}
+			}
+			// A `p:tavLst` colour ramp on a generic `p:anim` node (as opposed to
+			// the dedicated `p:animClr` behaviour `buildDynamicKeyframe` already
+			// tried above): only attempted once nothing else has claimed this
+			// step, mirroring how the existing `colorAnimation` dynamic keyframe
+			// is itself gated to unmapped presets.
+			let tavColorApplied = false;
+			if (!effect && !dynamic) {
+				const tavColor = buildColorTavKeyframe(singleAnim, 'pptx-tl-tavclr', dynamicUid);
+				if (tavColor) {
+					dynamic = tavColor;
+					tavColorApplied = true;
 					dynamicUid++;
 				}
 			}
@@ -387,7 +418,7 @@ export function buildTimeline(
 				stopSound: singleAnim.stopSound,
 				command: isCommand ? buildStepCommand(singleAnim) : undefined,
 				build: isCommand ? undefined : resolveStepBuildDescriptor(singleAnim),
-				colorTargets: isCommand ? undefined : stepColorTargets(singleAnim),
+				colorTargets: isCommand ? undefined : stepColorTargets(singleAnim, tavColorApplied),
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
@@ -528,6 +559,16 @@ function buildSequenceGroups(
 					dynamicUid++;
 				}
 			}
+			// Same tavLst-colour-ramp precedence as the main click-group loop.
+			let tavColorApplied = false;
+			if (!effect && !dynamic) {
+				const tavColor = buildColorTavKeyframe(anim, 'pptx-tl-tavclr', dynamicUid);
+				if (tavColor) {
+					dynamic = tavColor;
+					tavColorApplied = true;
+					dynamicUid++;
+				}
+			}
 			// An interactive sequence can hold a `p:cmd` media command just as the
 			// main sequence can (PowerPoint's "click the video to pause it" is
 			// authored exactly that way). Without this branch the step fell through
@@ -627,7 +668,7 @@ function buildSequenceGroups(
 				stopSound: anim.stopSound,
 				command: isCommand ? buildStepCommand(anim) : undefined,
 				build: isCommand ? undefined : resolveStepBuildDescriptor(anim),
-				colorTargets: isCommand ? undefined : stepColorTargets(anim),
+				colorTargets: isCommand ? undefined : stepColorTargets(anim, tavColorApplied),
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
