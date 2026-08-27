@@ -61,8 +61,21 @@ interface ActiveStroke {
 export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
 	let active: ActiveStroke | null = null;
 
-	const mapPoint = (event: PointerEvent): InkPoint =>
-		clientPointToStagePoint(event.clientX, event.clientY, deps.getStageOrigin(), deps.getScale());
+	/**
+	 * Map a pointer event to a stage-local point, carrying its pressure
+	 * reading along (`PointerEvent.pressure`, 0..1). `strokeToInkElement`
+	 * (via the shared `onCommitStroke` path) decides whether the accumulated
+	 * per-point pressures vary enough to author a variable-width stroke.
+	 */
+	const mapPoint = (event: PointerEvent): InkPoint => ({
+		...clientPointToStagePoint(
+			event.clientX,
+			event.clientY,
+			deps.getStageOrigin(),
+			deps.getScale(),
+		),
+		...(typeof event.pressure === 'number' ? { pressure: event.pressure } : {}),
+	});
 
 	function detach(): void {
 		window.removeEventListener('pointermove', onPointerMove);

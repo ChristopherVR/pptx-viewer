@@ -96,6 +96,33 @@ describe('editorInkController', () => {
 		expect(ink.type === 'ink' && ink.inkOpacities).toStrictEqual([0.4]);
 	});
 
+	it('commitStroke does not author inkPointPressures for a uniform-pressure (mouse) stroke', () => {
+		const editor = make();
+		editor.setSlides([slide('a')]);
+		editor.inkOps.setTool('pen');
+		editor.inkOps.commitStroke([
+			{ x: 10, y: 10, pressure: 0.5 },
+			{ x: 20, y: 10, pressure: 0.5 },
+			{ x: 30, y: 20, pressure: 0.5 },
+		]);
+		const ink = editor.slides[0].elements[0];
+		expect(ink.type === 'ink' && ink.inkPointPressures).toBeUndefined();
+	});
+
+	it('commitStroke authors a variable-width inkPointPressures channel for a varying-pressure (stylus) stroke', () => {
+		const editor = make();
+		editor.setSlides([slide('a')]);
+		editor.inkOps.setTool('pen');
+		const pressures = [0.1, 0.6, 0.9];
+		editor.inkOps.commitStroke([
+			{ x: 10, y: 10, pressure: pressures[0] },
+			{ x: 20, y: 10, pressure: pressures[1] },
+			{ x: 30, y: 20, pressure: pressures[2] },
+		]);
+		const ink = editor.slides[0].elements[0];
+		expect(ink.type === 'ink' && ink.inkPointPressures).toStrictEqual([pressures]);
+	});
+
 	it('commitStroke discards a too-short stroke (a plain tap)', () => {
 		const editor = make();
 		editor.setSlides([slide('a')]);
