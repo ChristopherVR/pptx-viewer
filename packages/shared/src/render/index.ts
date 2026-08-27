@@ -750,6 +750,10 @@ export * from './model3d-scene';
 // no-op sentinel handle when it is missing so the chart falls back to 2D.
 export * from './surface-chart-3d-geom';
 export * from './surface-chart-3d-scene';
+// Pure raycast-hit -> (row, col) grid cell -> hover-tooltip text mapping the
+// interactive scene uses to give the WebGL mesh the same native hover tooltip
+// every other chart kind's SVG mark gets via `buildMarkTooltip`.
+export * from './surface-chart-3d-hit-test';
 // Adapts a chart element's `PptxChartData` into the flat typed-array grid
 // `mountSurfaceChart3D` needs, sharing `computeValueRange` + `surfaceColor`
 // with the 2D SVG fallback so both presentations agree on the same values.

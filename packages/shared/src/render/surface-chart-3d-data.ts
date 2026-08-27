@@ -60,11 +60,16 @@ export function buildSurfaceChart3DData(
 	const range = computeValueRange(chartData.series);
 	const heightMap = new Float32Array(seriesCount * catCount);
 	const colorMap = new Float32Array(seriesCount * catCount * 3);
+	// Raw (un-normalised) values, kept alongside the [0,1] heightMap so the
+	// scene's raycast hover tooltip (`surface-chart-3d-hit-test.ts`) can report
+	// the authored value rather than its normalised height.
+	const values = new Float32Array(seriesCount * catCount);
 
 	for (let row = 0; row < seriesCount; row++) {
 		for (let col = 0; col < catCount; col++) {
 			const idx = row * catCount + col;
 			const val = chartData.series[row]?.values[col] ?? 0;
+			values[idx] = val;
 			const t = range.span > 0 ? (val - range.min) / range.span : 0;
 			heightMap[idx] = t;
 			const bandFill = resolveSurfaceBandFill(t, chartData.bandFmts);
@@ -81,6 +86,8 @@ export function buildSurfaceChart3DData(
 		rows: seriesCount,
 		heightMap,
 		colorMap,
+		values,
+		numberFormats: chartData.series.map((s) => s.numberFormat),
 		wireframe: options.wireframe ?? true,
 		categoryLabels,
 		seriesNames: chartData.series.map((s) => s.name),

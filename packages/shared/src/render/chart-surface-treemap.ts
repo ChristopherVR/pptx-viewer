@@ -28,6 +28,7 @@ import { buildHierarchicalTreemapPrimitives } from './chart-treemap-hierarchy';
 import type { ChartViewModel, LegendEntry, SvgPolygon, SvgRect } from './chart-view-model';
 import {
 	buildLegend,
+	buildMarkTooltip,
 	computePlotLayout,
 	computeValueRange,
 	paletteColor,
@@ -176,7 +177,9 @@ function buildIsometricSurfaceViewModel(
 		// without it a surface chart is the one kind whose marks cannot be
 		// selected on canvas at all. The final row/column of vertices anchors no
 		// facet and therefore carries no mark, which is the honest consequence of
-		// a mesh having one fewer cell than vertices per axis.
+		// a mesh having one fewer cell than vertices per axis. The hover tooltip
+		// (matching every other chart kind's `buildMarkTooltip`) reports that same
+		// anchor value, so hover and click select the exact same data point.
 		primitives.push({
 			kind: 'polygon',
 			points,
@@ -185,6 +188,12 @@ function buildIsometricSurfaceViewModel(
 			strokeWidth: 0,
 			opacity: 0.9,
 			part: { role: 'dataPoint', seriesIndex: row, pointIndex: col },
+			title: buildMarkTooltip(
+				chartData.series[row]?.name,
+				categoryLabels[col],
+				chartData.series[row]?.values[col] ?? 0,
+				chartData.series[row]?.numberFormat,
+			),
 		} satisfies SvgPolygon);
 
 		// Subtle edge overlay for depth perception.
@@ -260,6 +269,12 @@ function buildFlatSurfaceViewModel(
 				fill: bandFill ?? `rgb(${r},${g},${b})`,
 				opacity: 0.85,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
+				title: buildMarkTooltip(
+					chartData.series[si]?.name,
+					categoryLabels[ci],
+					val,
+					chartData.series[si]?.numberFormat,
+				),
 			} satisfies SvgRect);
 		}
 	}

@@ -5,8 +5,11 @@
  * dynamically imports `three` plus its `OrbitControls` addon, builds a colour-
  * displaced surface mesh (with optional wireframe), grid floor, lights, and an
  * isometric camera, renders with a RAF loop, and overlays axis labels as DOM
- * nodes that are re-projected to screen each frame. Exposes `dispose()` for
- * deterministic teardown of GPU resources, listeners, and overlay nodes.
+ * nodes that are re-projected to screen each frame. Raycasts pointer moves
+ * against the mesh to set a native hover tooltip on the canvas element (see
+ * {@link ./surface-chart-3d-hit-test.ts}), matching every other chart kind's
+ * SVG-`<title>` hover tooltip. Exposes `dispose()` for deterministic teardown
+ * of GPU resources, listeners, and overlay nodes.
  *
  * `three` is an OPTIONAL peer dependency: every import is dynamic and guarded.
  * When `three` (or its OrbitControls addon) is missing, {@link mountSurfaceChart3D}
@@ -26,6 +29,7 @@ import {
 	MAX_HEIGHT,
 } from './surface-chart-3d-geom';
 import type { SurfaceCameraView3D } from './surface-chart-3d-geom';
+import { buildSurfaceHoverTooltip } from './surface-chart-3d-hit-test';
 import { createLabelOverlay } from './surface-chart-3d-label-overlay';
 import { buildSurfaceWallMeshes } from './surface-chart-3d-walls';
 import type { SurfaceWallColors } from './surface-chart-3d-walls';
@@ -52,6 +56,14 @@ export interface SurfaceChart3DSceneOptions {
 	view3D?: SurfaceCameraView3D;
 	/** Authored `c:floor`/`c:sideWall`/`c:backWall` fill colours, when set. */
 	surfaceColors?: SurfaceWallColors;
+	/**
+	 * Raw (un-normalised) values, row-major, length rows*cols. Feeds the
+	 * pointer-raycast hover tooltip (see {@link buildSurfaceHoverTooltip}); a
+	 * caller that omits it gets a mesh with no hover tooltip.
+	 */
+	values?: Float32Array;
+	/** Per-series number-format codes, aligned to `seriesNames`. */
+	numberFormats?: ReadonlyArray<string | undefined>;
 }
 
 /** `c:floor`/`c:sideWall`/`c:backWall` fill colours a scene can paint. */
@@ -190,6 +202,50 @@ export async function mountSurfaceChart3D(
 		scene.add(new three.LineSegments(wireGeometry, wireMaterial));
 	}
 
+	// Raycast-based hover tooltip: the mesh is a WebGL surface, not SVG marks, so
+	// there is no `<title>` element to attach a native tooltip to directly. The
+	// canvas element itself is a real DOM node though, so its own `title`
+	// attribute gets the same native browser tooltip every other chart kind's
+	// SVG mark uses, just re-targeted to whichever facet the pointer currently
+	// sits over. See `surface-chart-3d-hit-test.ts` for the raycast-to-cell math.
+	const raycaster = new three.Raycaster();
+	const pointerNdc = new three.Vector2();
+	let hoveredTooltip: string | undefined;
+
+	const updateHoverTooltip = (clientX: number, clientY: number): void => {
+		const rect = canvas.getBoundingClientRect();
+		if (rect.width <= 0 || rect.height <= 0) {
+			return;
+		}
+		pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+		pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+		raycaster.setFromCamera(pointerNdc, camera);
+		const hits = raycaster.intersectObject(surfaceMesh, false);
+		const tooltip = buildSurfaceHoverTooltip(hits[0]?.faceIndex, {
+			cols,
+			rows,
+			categoryLabels: options.categoryLabels,
+			seriesNames: options.seriesNames,
+			values: options.values,
+			numberFormats: options.numberFormats,
+		});
+		if (tooltip !== hoveredTooltip) {
+			hoveredTooltip = tooltip;
+			canvas.title = tooltip ?? '';
+		}
+	};
+	const onPointerMove = (event: PointerEvent): void => {
+		updateHoverTooltip(event.clientX, event.clientY);
+	};
+	const onPointerLeave = (): void => {
+		if (hoveredTooltip !== undefined) {
+			hoveredTooltip = undefined;
+			canvas.title = '';
+		}
+	};
+	canvas.addEventListener('pointermove', onPointerMove);
+	canvas.addEventListener('pointerleave', onPointerLeave);
+
 	const controls = new OrbitCtrlCtor(camera, canvas);
 	controls.enablePan = true;
 	controls.enableZoom = true;
@@ -253,6 +309,8 @@ export async function mountSurfaceChart3D(
 			}
 			disposed = true;
 			cancelAnimationFrame(frame);
+			canvas.removeEventListener('pointermove', onPointerMove);
+			canvas.removeEventListener('pointerleave', onPointerLeave);
 			controls.dispose();
 			geometry.dispose();
 			wireGeometry.dispose();

@@ -21,8 +21,18 @@ const h = vi.hoisted(() => {
 		gridDispose: fn(),
 		wallMatDispose: fn(),
 	};
-	const behaviour = { threeAvailable: true, orbitAvailable: true };
-	return { calls, behaviour };
+	const behaviour = {
+		threeAvailable: true,
+		orbitAvailable: true,
+		/** `Raycaster.intersectObject` fixture for the hover-tooltip tests. */
+		raycastHits: [] as Array<{ faceIndex: number }>,
+	};
+	/** Canvas `addEventListener` calls, so tests can invoke the pointer handlers directly. */
+	const canvasListeners: Array<{
+		type: string;
+		cb: (e: { clientX: number; clientY: number }) => void;
+	}> = [];
+	return { calls, behaviour, canvasListeners };
 });
 
 /** Minimal DOM element stand-in tracking appended/removed children. */
@@ -110,14 +120,37 @@ vi.mock(import('three'), () => {
 		domElement = {
 			style: {} as Record<string, string>,
 			parent: undefined as undefined | { removeChild: (c: unknown) => void },
+			title: '',
 			remove() {
 				this.parent?.removeChild(this);
+			},
+			addEventListener(type: string, cb: (e: { clientX: number; clientY: number }) => void) {
+				h.canvasListeners.push({ type, cb });
+			},
+			removeEventListener(type: string, cb: unknown) {
+				const i = h.canvasListeners.findIndex((l) => l.type === type && l.cb === cb);
+				if (i >= 0) {
+					h.canvasListeners.splice(i, 1);
+				}
+			},
+			getBoundingClientRect() {
+				return { left: 0, top: 0, width: 200, height: 150 };
 			},
 		};
 		setPixelRatio() {}
 		setSize() {}
 		render() {}
 		dispose = h.calls.rendererDispose;
+	}
+	class Vector2 {
+		x = 0;
+		y = 0;
+	}
+	class Raycaster {
+		setFromCamera() {}
+		intersectObject() {
+			return h.behaviour.raycastHits;
+		}
 	}
 	class GridHelper {
 		position = { y: 0 };
@@ -146,6 +179,8 @@ vi.mock(import('three'), () => {
 		},
 		DoubleSide: 2,
 		Vector3,
+		Vector2,
+		Raycaster,
 	};
 });
 
@@ -185,6 +220,8 @@ beforeEach(() => {
 	vi.resetModules();
 	h.behaviour.threeAvailable = true;
 	h.behaviour.orbitAvailable = true;
+	h.behaviour.raycastHits = [];
+	h.canvasListeners.length = 0;
 	vi.stubGlobal(
 		'requestAnimationFrame',
 		vi.fn(() => 7),
@@ -297,5 +334,75 @@ describe('mountSurfaceChart3D - mounted scene', () => {
 		expect(handle.ok).toBeTruthy();
 		handle.dispose();
 		expect(h.calls.wallMatDispose).toHaveBeenCalledTimes(3);
+	});
+});
+
+describe('mountSurfaceChart3D - raycast hover tooltip', () => {
+	function moveHandler(): (e: { clientX: number; clientY: number }) => void {
+		const entry = h.canvasListeners.find((l) => l.type === 'pointermove');
+		if (!entry) {
+			throw new Error('pointermove listener was not registered');
+		}
+		return entry.cb;
+	}
+
+	it('registers pointermove/pointerleave listeners on the canvas', async () => {
+		const handle = await mountSurfaceChart3D(
+			fakeElement(fakeDocument()) as unknown as HTMLElement,
+			baseOptions(),
+		);
+		expect(handle.ok).toBeTruthy();
+		expect(h.canvasListeners.map((l) => l.type)).toStrictEqual(['pointermove', 'pointerleave']);
+	});
+
+	it('sets the raycast hit cell as the canvas title, matching buildMarkTooltip text', async () => {
+		h.behaviour.raycastHits = [{ faceIndex: 0 }];
+		const container = fakeElement(fakeDocument());
+		const handle = await mountSurfaceChart3D(container as unknown as HTMLElement, {
+			...baseOptions(),
+			// row-major rows*cols=4: row0=[10,20] (S1), row1=[30,40] (S2).
+			values: new Float32Array([10, 20, 30, 40]),
+		});
+		expect(handle.ok).toBeTruthy();
+
+		moveHandler()({ clientX: 100, clientY: 75 });
+
+		const canvas = container.children[0] as { title: string };
+		// faceIndex 0 -> quad 0 -> the (row 0, col 0) facet -> S1/A/10.
+		expect(canvas.title).toBe('S1, A: 10');
+	});
+
+	it('clears the title when the ray misses the mesh', async () => {
+		h.behaviour.raycastHits = [];
+		const container = fakeElement(fakeDocument());
+		const handle = await mountSurfaceChart3D(container as unknown as HTMLElement, {
+			...baseOptions(),
+			values: new Float32Array([10, 20, 30, 40]),
+		});
+		expect(handle.ok).toBeTruthy();
+		const canvas = container.children[0] as { title: string };
+
+		moveHandler()({ clientX: 100, clientY: 75 });
+		expect(canvas.title).toBe('');
+	});
+
+	it('never sets a title when the scene has no raw values (older callers)', async () => {
+		h.behaviour.raycastHits = [{ faceIndex: 0 }];
+		const container = fakeElement(fakeDocument());
+		const handle = await mountSurfaceChart3D(container as unknown as HTMLElement, baseOptions());
+		expect(handle.ok).toBeTruthy();
+		const canvas = container.children[0] as { title: string };
+
+		moveHandler()({ clientX: 100, clientY: 75 });
+		expect(canvas.title).toBe('');
+	});
+
+	it('dispose removes the pointer listeners', async () => {
+		const handle = await mountSurfaceChart3D(
+			fakeElement(fakeDocument()) as unknown as HTMLElement,
+			baseOptions(),
+		);
+		handle.dispose();
+		expect(h.canvasListeners).toHaveLength(0);
 	});
 });
