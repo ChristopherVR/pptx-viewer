@@ -37,7 +37,10 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
  * Editing the embedded object in place is not possible (a browser cannot run
  * the native app that owns it); the action bar offers Download and, for
  * browser-openable types, Open in a new tab, when core extracted an embedded
- * payload.
+ * payload. The object's Object Name (`oleName`) IS editable, via
+ * `pptx-element-misc-properties` in the inspector; `displayName` / `ariaLabel`
+ * below already read it through the shared `getOleDisplayName` /
+ * `getOleAriaLabel` helpers.
  */
 @Component({
 	selector: 'pptx-ole-renderer',

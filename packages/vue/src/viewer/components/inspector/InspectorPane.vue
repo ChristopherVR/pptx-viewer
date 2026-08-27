@@ -97,7 +97,7 @@ function relay(patch: Partial<PptxElement>): void {
 			>
 				{{ t('pptx.ole.title') }}
 			</h3>
-			<OlePropertiesPanel :element="element" />
+			<OlePropertiesPanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</div>
 
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">

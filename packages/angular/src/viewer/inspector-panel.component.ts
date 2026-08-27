@@ -227,7 +227,11 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 			}
 
 			<pptx-shape-authoring-panel [element]="el()" (patch)="onPatch($event)" />
-			<pptx-element-misc-properties [element]="el()" (patch)="onPatch($event)" />
+			<pptx-element-misc-properties
+				[element]="el()"
+				[canEdit]="canEdit()"
+				(patch)="onPatch($event)"
+			/>
 
 			<!-- ── Text style (text-bearing elements only) ─────────────────────── -->
 			@if (hasText()) {

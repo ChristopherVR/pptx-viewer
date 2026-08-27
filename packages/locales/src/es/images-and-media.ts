@@ -91,6 +91,8 @@ export const translations = {
 	'pptx.ole.linked': 'Vinculado',
 	'pptx.ole.title': 'Objeto OLE',
 	'pptx.ole.type': 'Tipo',
+	'pptx.ole.objectName': 'Nombre del objeto',
+	'pptx.ole.objectNamePlaceholder': 'Usado por los lectores de pantalla y el panel de selección',
 	'pptx.effects.glow': 'Resplandor',
 	'pptx.effects.reflection': 'Reflexión',
 	'pptx.effects.softEdge': 'Borde suave',

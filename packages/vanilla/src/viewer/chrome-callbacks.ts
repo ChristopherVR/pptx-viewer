@@ -274,6 +274,7 @@ export function buildChromeCallbacks(
 		resetImage: () => deps.getEditActions().resetSelectedImage(),
 		setElementAction: (trigger, action) => deps.getEditActions().setElementAction(trigger, action),
 		setAltText: (text) => deps.getEditActions().setAltText(text),
+		setOleName: (name) => deps.getEditActions().setOleName(name),
 		setChartData: (data) => deps.getEditActions().setChartData(data),
 		setMediaProperties: (patch) => deps.getEditActions().setMediaProperties(patch),
 

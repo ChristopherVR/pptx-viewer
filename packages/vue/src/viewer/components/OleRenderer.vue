@@ -2,7 +2,9 @@
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 import {
 	formatBytes,
+	getOleAriaLabel,
 	getOleBadgeLabel,
+	getOleDisplayName,
 	getOleTypeColor,
 	getOleTypeLabel,
 	isBrowserOpenableMime,
@@ -29,7 +31,10 @@ import { getContainerStyle } from '../composables/element-style';
  * match the React renderer's branding. Editing the embedded object in place
  * is not possible (a browser cannot run the native app that owns it); the
  * action bar below still offers Download and, for browser-openable types,
- * Open in a new tab, when core extracted an embedded payload.
+ * Open in a new tab, when core extracted an embedded payload. The object's
+ * Object Name (`oleName`) IS editable, via `OlePropertiesPanel` in the
+ * inspector; `displayName` / `ariaLabel` below already read it through the
+ * shared `getOleDisplayName` / `getOleAriaLabel` helpers.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -68,9 +73,9 @@ const downloadName = computed<string>(
 	() => ole.value?.oleEmbeddedFileName ?? fileName.value ?? `${typeLabel.value}`,
 );
 
-const displayName = computed(
-	() => ole.value?.oleEmbeddedFileName ?? fileName.value ?? typeLabel.value,
-);
+/** Placeholder caption: prefers the user-editable `oleName` (see the inspector's
+ * Object Name field), then the embedded/linked file name, then the type label. */
+const displayName = computed(() => (ole.value ? getOleDisplayName(ole.value) : typeLabel.value));
 
 /** Human-readable size of the embedded payload, if known. */
 const sizeLabel = computed<string | undefined>(() => formatBytes(ole.value?.oleEmbeddedByteSize));
@@ -104,9 +109,7 @@ const infoLines = computed<string[]>(() => {
 
 const infoTitle = computed<string>(() => infoLines.value.join('\n'));
 
-const ariaLabel = computed(() =>
-	fileName.value ? `${typeLabel.value}: ${fileName.value}` : typeLabel.value,
-);
+const ariaLabel = computed(() => (ole.value ? getOleAriaLabel(ole.value) : typeLabel.value));
 
 /**
  * Open the embedded payload in a new browser tab. Used for browser-renderable

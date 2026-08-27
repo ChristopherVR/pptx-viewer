@@ -121,6 +121,17 @@ describe('oleRenderer', () => {
 		expect(title).toContain('Excel.Sheet.12');
 	});
 
+	it('prefers the author-assigned oleName over the file name in the placeholder and aria-label', () => {
+		const wrapper = mount(OleRenderer, {
+			props: { element: ole({ oleName: 'Q3 Budget' }), zIndex: 0 },
+		});
+		expect(wrapper.text()).toContain('Q3 Budget');
+		expect(wrapper.text()).not.toContain('budget.xlsx');
+		expect(wrapper.get('[role="group"]').attributes('aria-label')).toBe(
+			'Excel Spreadsheet: Q3 Budget',
+		);
+	});
+
 	it('stops pointer/click interactions on the action bar from bubbling', async () => {
 		const data = 'data:application/octet-stream;base64,QUJD';
 		const wrapper = mount(OleRenderer, {

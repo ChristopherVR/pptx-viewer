@@ -127,7 +127,7 @@
 				{#if isOle}
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.ole.title')}</h4>
-						<OlePropertiesSection {el} />
+						<OlePropertiesSection {editor} {el} />
 					</div>
 				{/if}
 

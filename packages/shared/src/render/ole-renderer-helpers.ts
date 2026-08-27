@@ -81,14 +81,41 @@ export function getOleTypeLabel(type: ResolvedOleType): string {
 }
 
 /**
+ * Resolve the best available identifying name for an OLE element, in priority
+ * order:
+ *
+ * 1. `oleName` (`p:oleObj/@name`, trimmed) - the object's own author-assigned
+ *    name. Per ECMA-376 SS13.3.4 (CT_OleObject) this attribute exists
+ *    specifically "for use with screen readers, and other software that may
+ *    want to identify the object by name", so it is also the field the
+ *    inspector's OLE Object Name editor writes (see `buildOleObjectNamePatch`).
+ * 2. `oleEmbeddedFileName` - the file name recovered from the embedded
+ *    payload on load.
+ * 3. `fileName` - the authored/linked file name.
+ *
+ * Returns `undefined` when none of these are known, letting each caller
+ * choose its own final fallback (a type label, typically).
+ */
+function resolveOleBestName(el: OlePptxElement): string | undefined {
+	const explicit = el.oleName?.trim();
+	if (explicit) {
+		return explicit;
+	}
+	return el.oleEmbeddedFileName ?? el.fileName;
+}
+
+/**
  * Build the accessible label for an OLE element.
  *
- * - With a `fileName`: `"<TypeLabel>: <fileName>"` (e.g. `"Excel Spreadsheet: budget.xlsx"`).
+ * - With a resolvable name (see {@link resolveOleBestName}): `"<TypeLabel>: <name>"`
+ *   (e.g. `"Excel Spreadsheet: budget.xlsx"`, or `"Excel Spreadsheet: Q3 Budget"`
+ *   once the object has been given a custom name via the inspector).
  * - Otherwise: just the type label (e.g. `"Embedded Object"`).
  */
 export function getOleAriaLabel(el: OlePptxElement): string {
 	const typeLabel = getOleTypeLabel(resolveOleType(el));
-	return el.fileName ? `${typeLabel}: ${el.fileName}` : typeLabel;
+	const name = resolveOleBestName(el);
+	return name ? `${typeLabel}: ${name}` : typeLabel;
 }
 
 /**
@@ -102,12 +129,31 @@ export function getOleBadgeLabel(type: ResolvedOleType): string {
 }
 
 /**
- * The primary display name shown in the placeholder.
+ * The primary display name shown in the placeholder box, tooltip, and other
+ * captions.
  *
- * Prefers `el.fileName`; falls back to the resolved type label.
+ * Prefers the best resolvable name (see {@link resolveOleBestName}: the
+ * author's own OLE object name first, then the recovered embedded file name,
+ * then the authored file name); falls back to the resolved type label when
+ * none are known.
  */
 export function getOleDisplayName(el: OlePptxElement): string {
-	return el.fileName ?? getOleTypeLabel(resolveOleType(el));
+	return resolveOleBestName(el) ?? getOleTypeLabel(resolveOleType(el));
+}
+
+/**
+ * Build the patch to apply when the user edits an OLE object's Name field in
+ * the inspector (the browser-realistic analogue of PowerPoint's own OLE
+ * object rename: `p:oleObj/@name`, which already parses, saves, and syncs via
+ * collaboration; only an editing surface for it was missing).
+ *
+ * Blank/whitespace-only input clears the name (`undefined`), so the display
+ * falls back to the embedded/authored file name or type label, matching how
+ * clearing PowerPoint's own object-name field behaves.
+ */
+export function buildOleObjectNamePatch(rawInput: string): { oleName: string | undefined } {
+	const trimmed = rawInput.trim();
+	return { oleName: trimmed.length > 0 ? trimmed : undefined };
 }
 
 /**

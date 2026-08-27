@@ -1239,6 +1239,8 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ole.linked': 'Linked',
 	'pptx.ole.title': 'OLE Object',
 	'pptx.ole.type': 'Type',
+	'pptx.ole.objectName': 'Object Name',
+	'pptx.ole.objectNamePlaceholder': 'Used by screen readers and the Selection Pane',
 
 	// Presentation mode (annotations-on-exit prompt)
 	'pptx.presentation.clearAnnotations': 'Clear Annotations',
