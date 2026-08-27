@@ -577,6 +577,10 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 			const state = host.store.get();
 			return readRibbonTransitionDraft(state.slides[state.currentSlide]);
 		},
+		readTransition: () => {
+			const state = host.store.get();
+			return state.slides[state.currentSlide]?.transition;
+		},
 		presentationProperties: () => host.store.get().presentationProperties,
 		save: () => void host.downloadPptx(),
 		downloadAs: (format) => host.downloadAs(format),

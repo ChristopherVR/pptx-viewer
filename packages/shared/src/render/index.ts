@@ -661,6 +661,9 @@ export * from './slide-transition-css';
 // the orientation-vs-direction rule, and the arrow-grid tables.
 export * from './slide-transition-options';
 export * from './slide-transition-edits';
+// What the Transitions ribbon's Sound picker shows and what picking a file
+// (or clearing one) writes; packages/core embeds the picked file on save.
+export * from './slide-transition-sound';
 // Ribbon-side decision functions: what a Transitions-tab commit writes, what
 // the Slide Show tab's Options checkboxes mean, and the three Home commands
 // (Reset / Shape Fill / Shape Outline) that shipped inert in two bindings.

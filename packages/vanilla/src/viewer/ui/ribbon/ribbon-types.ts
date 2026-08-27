@@ -2,6 +2,7 @@ import type {
 	PptxElementAnimation,
 	PptxLayoutPreview,
 	PptxPresentationProperties,
+	PptxSlideTransition,
 } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
@@ -143,6 +144,14 @@ export interface RibbonTransitionHandlers {
 	readDraft(): RibbonTransitionDraft;
 	/** Commit the tab's whole draft, onto the active slide or every slide. */
 	applyDraft(draft: RibbonTransitionDraft, applyToAll: boolean): void;
+	/** The ACTIVE slide's raw transition, for fields the draft does not carry (the Sound picker). */
+	readTransition(): PptxSlideTransition | undefined;
+	/**
+	 * Merge a raw partial change onto the active slide's transition. Used by
+	 * the Sound picker: a freshly-picked file's `soundData` has no equivalent
+	 * in {@link RibbonTransitionDraft}.
+	 */
+	applyChange(changes: Partial<PptxSlideTransition>): void;
 }
 
 /**

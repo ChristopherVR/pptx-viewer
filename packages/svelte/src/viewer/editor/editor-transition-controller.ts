@@ -1,6 +1,10 @@
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
-import { applyRibbonTransitionDraft, ribbonTransitionTargets } from 'pptx-viewer-shared';
+import {
+	applyRibbonTransitionDraft,
+	mergeSlideTransition,
+	ribbonTransitionTargets,
+} from 'pptx-viewer-shared';
 
 import { updateAllSlides, updateSlide } from './editor-mutations';
 import type { EditorState } from './editor-state.svelte';
@@ -77,5 +81,25 @@ export class EditorTransitionController {
 			});
 		}
 		editor.commitSlides(next);
+	}
+
+	/**
+	 * Merge a raw partial change onto the ACTIVE slide's transition, for
+	 * controls that write a single field outside the ribbon draft (currently
+	 * the Sound picker: a freshly-picked file's `soundData` has no equivalent
+	 * in {@link RibbonTransitionDraft}).
+	 */
+	applyChange(changes: Partial<PptxSlideTransition>): void {
+		const editor = this.#editor;
+		const current = editor.currentSlideIndex;
+		const slide = editor.slides[current];
+		if (!editor.editable || !slide) {
+			return;
+		}
+		editor.commitSlides(
+			updateSlide(editor.slides, current, {
+				transition: mergeSlideTransition(slide.transition, changes),
+			}),
+		);
 	}
 }

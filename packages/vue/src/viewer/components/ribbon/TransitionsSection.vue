@@ -3,10 +3,17 @@ import { Copy, PanelRight, Play } from 'lucide-vue-next';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import {
+	applyTransitionSoundFile,
+	clearTransitionSound,
 	playSlideTransitionPreview,
-	RIBBON_TRANSITION_PRESETS,
 	readRibbonTransitionDraft,
+	readSoundFileAsDataUrl,
+	RIBBON_TRANSITION_PRESETS,
 	ribbonTransitionUpdates,
+	TRANSITION_SOUND_NONE_VALUE,
+	TRANSITION_SOUND_OTHER_VALUE,
+	transitionSoundOptions,
+	transitionSoundSelectedValue,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -80,6 +87,44 @@ function onAdvanceTextInput(event: Event): void {
 	advanceBuffer.value = raw;
 	commit({ advanceAfter: true, advanceAfterText: raw });
 }
+
+// The Sound picker's file input: hidden, and clicked programmatically by the
+// "Other Sound..." entry. `onTransitionChange` takes a raw
+// `Partial<PptxSlideTransition>`, so a sound pick bypasses the ribbon draft.
+const soundFileInput = ref<HTMLInputElement | null>(null);
+const soundSelectedValue = computed(() =>
+	transitionSoundSelectedValue(props.activeSlide?.transition),
+);
+const soundOptions = computed(() => transitionSoundOptions(props.activeSlide?.transition));
+
+function onSoundSelectChange(event: Event): void {
+	const select = event.target as HTMLSelectElement;
+	if (select.value === TRANSITION_SOUND_OTHER_VALUE) {
+		soundFileInput.value?.click();
+		// The file input's own change (or a cancelled dialog) decides what
+		// happens next; put the select back to what the slide actually has.
+		select.value = soundSelectedValue.value;
+		return;
+	}
+	if (select.value === TRANSITION_SOUND_NONE_VALUE) {
+		props.onTransitionChange(clearTransitionSound());
+	}
+}
+
+function onSoundFileChange(event: Event): void {
+	const input = event.target as HTMLInputElement;
+	const file = input.files?.[0];
+	input.value = '';
+	if (!file) {
+		return;
+	}
+	void readSoundFileAsDataUrl(file).then((dataUrl) => {
+		if (dataUrl) {
+			props.onTransitionChange(applyTransitionSoundFile({ name: file.name, dataUrl }));
+		}
+		return undefined;
+	});
+}
 </script>
 
 <template>
@@ -139,17 +184,29 @@ function onAdvanceTextInput(event: Event): void {
 
 	<div :class="SEP" />
 
-	<!-- Sound: no binding can author a transition sound, so the control that
-	     cannot work renders disabled instead of pretending. -->
+	<!-- Sound: "Other Sound..." opens a native file picker and the chosen file
+	     is embedded into the package on save (core's `embedTransitionSound`).
+	     "None" clears any sound the slide carries. -->
 	<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
 		<span class="whitespace-nowrap">{{ t('pptx.ribbon.sound') }}</span>
 		<select
 			:aria-label="t('pptx.ribbon.sound')"
-			disabled
+			:disabled="!editable"
+			:value="soundSelectedValue"
 			class="w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50"
+			@change="onSoundSelectChange"
 		>
-			<option value="none">{{ t('pptx.ribbon.soundNone') }}</option>
+			<option v-for="option in soundOptions" :key="option.value" :value="option.value">
+				{{ option.i18nKey ? t(option.i18nKey) : option.label }}
+			</option>
 		</select>
+		<input
+			ref="soundFileInput"
+			type="file"
+			accept="audio/*"
+			class="hidden"
+			@change="onSoundFileChange"
+		/>
 	</label>
 
 	<div :class="SEP" />

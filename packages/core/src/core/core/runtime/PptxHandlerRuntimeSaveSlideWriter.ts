@@ -145,7 +145,40 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const spTree = this.ensureSlideTree(xmlObj);
 
+		// Relationship registry is built here (moved ahead of `p:timing`/element
+		// processing below) so a transition sound the user picked in the ribbon
+		// can be embedded and given a relationship BEFORE `buildSlideTransitionXml`
+		// serializes `p:sndAc/p:stSnd/p:snd/@r:embed`.
+		const slideRelsPath = this.toSlideRelsPath(slide.id);
+		const slideRelsXml = await this.zip.file(slideRelsPath)?.async('string');
+		const slideRelsData: XmlObject = slideRelsXml
+			? this.parser.parse(slideRelsXml)
+			: {
+					Relationships: {
+						'@_xmlns': constants.relationshipsNamespace,
+						Relationship: [],
+					},
+				};
+		const slideRelsRoot = (slideRelsData['Relationships'] || {}) as XmlObject;
+		if (!slideRelsRoot['@_xmlns']) {
+			slideRelsRoot['@_xmlns'] = constants.relationshipsNamespace;
+		}
+		const slideRelationships = this.ensureArray(slideRelsRoot['Relationship']) as XmlObject[];
+		const slideRelationshipRegistry: IPptxSlideRelationshipRegistry =
+			new PptxSlideRelationshipRegistry({
+				relationships: slideRelationships,
+			});
+		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
+			constants.slideCommentRelationshipType,
+		);
+
 		if (slide.transition !== undefined) {
+			this.embedTransitionSound(slide.transition, {
+				saveSession,
+				slideRelationshipRegistry,
+				slideMediaRelationshipType: constants.slideMediaRelationshipType,
+				slideId: slide.id,
+			});
 			// `CT_Slide` allows ONE `p:transition`, and PowerPoint 2010+ keeps it
 			// inside a slide-root `mc:AlternateContent` envelope whenever it
 			// carries p14/p15/p159 markup. Assigning a direct child on top of
@@ -193,28 +226,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		xmlObj['p:sld'] = slideNode;
 
-		const slideRelsPath = this.toSlideRelsPath(slide.id);
-		const slideRelsXml = await this.zip.file(slideRelsPath)?.async('string');
-		const slideRelsData: XmlObject = slideRelsXml
-			? this.parser.parse(slideRelsXml)
-			: {
-					Relationships: {
-						'@_xmlns': constants.relationshipsNamespace,
-						Relationship: [],
-					},
-				};
-		const slideRelsRoot = (slideRelsData['Relationships'] || {}) as XmlObject;
-		if (!slideRelsRoot['@_xmlns']) {
-			slideRelsRoot['@_xmlns'] = constants.relationshipsNamespace;
-		}
-		const slideRelationships = this.ensureArray(slideRelsRoot['Relationship']) as XmlObject[];
-		const slideRelationshipRegistry: IPptxSlideRelationshipRegistry =
-			new PptxSlideRelationshipRegistry({
-				relationships: slideRelationships,
-			});
-		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
-			constants.slideCommentRelationshipType,
-		);
 		await saveSlideSynchronization({
 			zip: this.zip,
 			parser: this.parser,

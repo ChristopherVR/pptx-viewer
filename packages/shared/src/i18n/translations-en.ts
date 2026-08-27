@@ -1993,6 +1993,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ribbon.advanceAfterSeconds': 'Advance after specified duration',
 	'pptx.ribbon.sound': 'Sound:',
 	'pptx.ribbon.soundNone': '[No Sound]',
+	'pptx.ribbon.soundOther': 'Other Sound...',
 	'pptx.ribbon.inspector': 'Inspector',
 	'pptx.ribbon.openInspectorTransitions': 'Open Inspector for full transition options',
 	'pptx.ribbon.removeAnimation': 'Remove Animation',

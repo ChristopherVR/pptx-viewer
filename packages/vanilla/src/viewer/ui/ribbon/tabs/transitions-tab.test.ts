@@ -1,3 +1,4 @@
+import type { PptxSlideTransition } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import { EMPTY_RIBBON_TRANSITION_DRAFT, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import type { Mock } from 'vitest';
@@ -10,19 +11,43 @@ import { createTransitionsTab } from './transitions-tab';
 /** The tab's handler bag: a (mutable) draft source plus a spy on the commit. */
 function makeHandlers(
 	initial: RibbonTransitionDraft = { ...EMPTY_RIBBON_TRANSITION_DRAFT },
+	initialTransition?: PptxSlideTransition,
 ): RibbonTransitionHandlers & {
 	applyDraft: Mock<(draft: RibbonTransitionDraft, applyToAll: boolean) => void>;
+	applyChange: Mock<(changes: Partial<PptxSlideTransition>) => void>;
 	/** Stand in for the user navigating to a slide with another transition. */
 	setDraft(next: RibbonTransitionDraft): void;
+	/** Stand in for the deck's active-slide transition changing (sound fields). */
+	setTransition(next: PptxSlideTransition | undefined): void;
 } {
 	let draft = initial;
+	let transition = initialTransition;
 	return {
 		readDraft: () => draft,
 		applyDraft: vi.fn<(draft: RibbonTransitionDraft, applyToAll: boolean) => void>(),
+		readTransition: () => transition,
+		applyChange: vi.fn<(changes: Partial<PptxSlideTransition>) => void>(),
 		setDraft(next) {
 			draft = next;
 		},
+		setTransition(next) {
+			transition = next;
+		},
 	};
+}
+
+/** Poll until `predicate` is true, rather than hoping a fixed delay covers
+ * the FileReader read (its completion time is not guaranteed under load). */
+async function waitFor(predicate: () => boolean, timeoutMs = 2000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() > deadline) {
+			throw new Error('waitFor: condition not met before deadline');
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, 5);
+		});
+	}
 }
 
 function named(tab: { el: HTMLElement }, label: string): HTMLElement[] {
@@ -41,10 +66,12 @@ describe('createTransitionsTab', () => {
 		expect(named(tab, t('pptx.ribbon.inspector'))).toHaveLength(1);
 	});
 
-	it('disables the Sound select, because no binding can author a transition sound', () => {
+	it('offers None and Other Sound for a slide with no sound', () => {
 		const t = createTranslator();
 		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
-		expect((named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement).disabled).toBeTruthy();
+		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+		expect(select.disabled).toBeFalsy();
+		expect([...select.options].map((o) => o.value)).toStrictEqual(['none', 'other']);
 	});
 
 	it('offers the Advance Slide group, with both After controls React renders', () => {
@@ -214,5 +241,99 @@ describe('createTransitionsTab', () => {
 		tab.setEditable(true);
 		expect(preset?.disabled).toBeFalsy();
 		expect((named(tab, t('pptx.ribbon.onMouseClick'))[0] as HTMLInputElement).disabled).toBeFalsy();
+	});
+
+	it('setEditable gates the Sound select too', () => {
+		const t = createTranslator();
+		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
+		tab.setEditable(false);
+		expect((named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement).disabled).toBeTruthy();
+		tab.setEditable(true);
+		expect((named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement).disabled).toBeFalsy();
+	});
+});
+
+describe('createTransitionsTab > Sound picker', () => {
+	function soundFileInput(tab: { el: HTMLElement }): HTMLInputElement {
+		return tab.el.querySelector('input[type="file"]') as HTMLInputElement;
+	}
+
+	it('leads with the current file name once the slide carries a sound', () => {
+		const t = createTranslator();
+		const handlers = makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav' });
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+		expect([...select.options].map((o) => o.value)).toStrictEqual(['current', 'none', 'other']);
+		expect(select.value).toBe('current');
+	});
+
+	it('clears the sound when "None" is chosen', () => {
+		const t = createTranslator();
+		const handlers = makeHandlers(undefined, {
+			type: 'fade',
+			soundFileName: 'chime.wav',
+			soundRId: 'rId2',
+		});
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+
+		select.value = 'none';
+		select.dispatchEvent(new Event('change'));
+
+		expect(handlers.applyChange).toHaveBeenCalledWith(
+			expect.objectContaining({ soundRId: undefined, soundFileName: undefined }),
+		);
+	});
+
+	it('opens the file picker instead of committing when "Other Sound..." is chosen', () => {
+		const t = createTranslator();
+		const handlers = makeHandlers();
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+		const input = soundFileInput(tab);
+		const clickSpy = vi.spyOn(input, 'click');
+
+		select.value = 'other';
+		select.dispatchEvent(new Event('change'));
+
+		expect(clickSpy).toHaveBeenCalledOnce();
+		expect(handlers.applyChange).not.toHaveBeenCalled();
+	});
+
+	it('commits the picked file as pending sound data', async () => {
+		const t = createTranslator();
+		const handlers = makeHandlers();
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const input = soundFileInput(tab);
+		const file = new File(['fake wav bytes'], 'applause.wav', { type: 'audio/wav' });
+		Object.defineProperty(input, 'files', { value: [file], configurable: true });
+
+		input.dispatchEvent(new Event('change'));
+		// FileReader resolves asynchronously even for an in-memory Blob; poll
+		// rather than hope a fixed delay covers it under load.
+		await waitFor(() => handlers.applyChange.mock.calls.length > 0);
+
+		expect(handlers.applyChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				soundFileName: 'applause.wav',
+				soundName: 'applause',
+				soundRId: undefined,
+				soundPath: undefined,
+			}),
+		);
+		const call = handlers.applyChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
+		expect(call.soundData).toMatch(/^data:/);
+	});
+
+	it('repaints the Sound select on sync even when the ribbon draft is unchanged', () => {
+		const t = createTranslator();
+		const handlers = makeHandlers();
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		handlers.setTransition({ type: 'none', soundFileName: 'chime.wav' });
+
+		tab.sync();
+
+		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+		expect(select.value).toBe('current');
 	});
 });

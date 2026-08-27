@@ -1,6 +1,6 @@
 import { TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import { ChromeUiState } from '../../../state/chrome-ui.svelte';
@@ -37,6 +37,21 @@ function makeEditor(slideCount = 1): EditorState {
 function fire(input: HTMLInputElement, type: 'input' | 'change'): void {
 	input.dispatchEvent(new Event(type, { bubbles: true }));
 	flushSync();
+}
+
+/** Poll until `predicate` is true, rather than hoping a fixed delay covers
+ * the FileReader read (its completion time is not guaranteed under load). */
+async function waitFor(predicate: () => boolean, timeoutMs = 2000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() > deadline) {
+			throw new Error('waitFor: condition not met before deadline');
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, 5);
+		});
+		flushSync();
+	}
 }
 
 function mountTab(editor: EditorState, chromeUi?: ChromeUiState): HTMLElement {
@@ -167,9 +182,11 @@ describe('transitionsTab', () => {
 		}
 	});
 
-	it('disables the Sound select, which no binding can author', () => {
+	it('offers None and Other Sound for a slide with no sound', () => {
 		const target = mountTab(makeEditor());
-		expect(label(target, 'Sound')?.querySelector('select')?.disabled).toBeTruthy();
+		const select = label(target, 'Sound')?.querySelector('select');
+		expect(select?.disabled).toBeFalsy();
+		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual(['none', 'other']);
 	});
 
 	it('seeds the controls from the active slide rather than a fixed default', () => {
@@ -193,6 +210,77 @@ describe('transitionsTab', () => {
 		];
 		expect(checkbox.checked).toBeTruthy();
 		expect(seconds.value).toBe('00:05.00');
+	});
+
+	it('leads with the current file name once the slide carries a sound', () => {
+		const editor = makeEditor();
+		editor.slides = [
+			{ ...editor.slides[0], transition: { type: 'fade', soundFileName: 'chime.wav' } },
+		];
+		const target = mountTab(editor);
+		const select = label(target, 'Sound')?.querySelector('select');
+		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual([
+			'current',
+			'none',
+			'other',
+		]);
+		expect(select?.value).toBe('current');
+	});
+
+	it('clears the sound when "None" is chosen', () => {
+		const editor = makeEditor();
+		editor.slides = [
+			{
+				...editor.slides[0],
+				transition: { type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' },
+			},
+		];
+		const target = mountTab(editor);
+		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
+
+		select.value = 'none';
+		fire(select, 'change');
+
+		expect(editor.slides[0]?.transition).toMatchObject({
+			type: 'fade',
+			soundRId: undefined,
+			soundFileName: undefined,
+		});
+	});
+
+	it('opens the file picker instead of committing when "Other Sound..." is chosen', () => {
+		const editor = makeEditor();
+		const target = mountTab(editor);
+		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
+		const input = target.querySelector('input[type="file"]') as HTMLInputElement;
+		const clickSpy = vi.spyOn(input, 'click');
+
+		select.value = 'other';
+		fire(select, 'change');
+
+		expect(clickSpy).toHaveBeenCalledOnce();
+		expect(editor.slides[0]?.transition).toBeUndefined();
+	});
+
+	it('commits the picked file as pending sound data', async () => {
+		const editor = makeEditor();
+		const target = mountTab(editor);
+		const input = target.querySelector('input[type="file"]') as HTMLInputElement;
+		const file = new File(['fake wav bytes'], 'applause.wav', { type: 'audio/wav' });
+		Object.defineProperty(input, 'files', { value: [file], configurable: true });
+
+		fire(input, 'change');
+		// FileReader resolves asynchronously even for an in-memory Blob; poll
+		// rather than hope a fixed delay covers it under load.
+		await waitFor(() => editor.slides[0]?.transition?.soundData !== undefined);
+
+		expect(editor.slides[0]?.transition).toMatchObject({
+			soundFileName: 'applause.wav',
+			soundName: 'applause',
+			soundRId: undefined,
+			soundPath: undefined,
+		});
+		expect(editor.slides[0]?.transition?.soundData).toMatch(/^data:/);
 	});
 
 	it('opens the inspector from the Inspector button', () => {

@@ -1,6 +1,10 @@
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
-import { applyRibbonTransitionDraft, ribbonTransitionTargets } from 'pptx-viewer-shared';
+import {
+	applyRibbonTransitionDraft,
+	mergeSlideTransition,
+	ribbonTransitionTargets,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { updateAllSlides, updateSlide } from './editor-mutations';
@@ -48,6 +52,13 @@ export interface TransitionActions {
 	 * comes from the shared `ribbonTransitionTargets`.
 	 */
 	applyTransitionDraft(draft: RibbonTransitionDraft, applyToAll: boolean): void;
+	/**
+	 * Merge a raw partial change onto the ACTIVE slide's transition, for
+	 * controls that write a single field outside the ribbon draft (currently
+	 * the Sound picker: a freshly-picked file's `soundData` has no equivalent
+	 * in {@link RibbonTransitionDraft}).
+	 */
+	applyTransitionChange(changes: Partial<PptxSlideTransition>): void;
 }
 
 export interface TransitionActionsDeps {
@@ -108,6 +119,18 @@ export function createTransitionActions(deps: TransitionActionsDeps): Transition
 					targets.has(index) ? { ...slide, transition: { ...transition } } : slide,
 				),
 			});
+			ops.commitChange();
+		},
+
+		applyTransitionChange(changes) {
+			const state = store.get();
+			const active = state.slides[state.currentSlide];
+			if (!state.editable || !active) {
+				return;
+			}
+			ops.pushHistory();
+			const transition = mergeSlideTransition(active.transition, changes);
+			store.set({ slides: updateSlide(state.slides, state.currentSlide, { transition }) });
 			ops.commitChange();
 		},
 	};
