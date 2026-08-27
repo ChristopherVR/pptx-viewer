@@ -41,7 +41,7 @@ function stubModel(): LanguageModel {
 							},
 							{
 								type: 'finish',
-								finishReason: 'tool-calls',
+								finishReason: { unified: 'tool-calls', raw: undefined },
 								usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
 							},
 						],
@@ -57,7 +57,7 @@ function stubModel(): LanguageModel {
 						{ type: 'text-end', id: 't' },
 						{
 							type: 'finish',
-							finishReason: 'stop',
+							finishReason: { unified: 'stop', raw: undefined },
 							usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
 						},
 					],

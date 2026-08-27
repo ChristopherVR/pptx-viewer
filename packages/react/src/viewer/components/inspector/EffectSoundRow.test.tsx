@@ -101,10 +101,15 @@ describe('effectSoundRow', () => {
 
 		await act(async () => {
 			fireChange(fileInput);
-			// FileReader.onload resolves asynchronously even for small blobs.
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, 0);
-			});
+			// FileReader.onload resolves asynchronously even for small blobs; how many
+			// event-loop ticks it takes varies by React major version's test scheduling,
+			// so poll instead of assuming a single microtask/macrotask tick suffices.
+			const deadline = Date.now() + 5000;
+			while (onPick.mock.calls.length === 0 && Date.now() < deadline) {
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, 5);
+				});
+			}
 		});
 
 		expect(onPick).toHaveBeenCalledOnce();
