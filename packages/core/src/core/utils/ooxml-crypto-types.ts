@@ -13,6 +13,13 @@
 /** Supported encryption algorithms. */
 export type EncryptionAlgorithm = 'AES128' | 'AES256';
 
+/**
+ * Which OOXML encryption scheme to write when creating a password-protected
+ * file. Real PowerPoint can write and open either scheme; this library
+ * defaults to 'agile' (Office 2010+), matching PowerPoint's own default.
+ */
+export type EncryptionScheme = 'agile' | 'standard';
+
 /** Parsed encryption info from the EncryptionInfo stream (agile format). */
 export interface EncryptionInfo {
 	/** Encryption version (major.minor). */
@@ -91,4 +98,11 @@ export interface EncryptionOptions {
 	algorithm?: EncryptionAlgorithm;
 	/** Number of hash iterations for key derivation (defaults to 100000). Lower values speed up tests. */
 	spinCount?: number;
+	/**
+	 * Which encryption scheme to write (defaults to 'agile'). 'standard'
+	 * writes the ECMA-376 Standard scheme (Office 2007-compatible: a single
+	 * password-derived AES-CBC key with a zero IV over the whole package),
+	 * mirroring the scheme this library already knows how to decrypt.
+	 */
+	encryptionScheme?: EncryptionScheme;
 }

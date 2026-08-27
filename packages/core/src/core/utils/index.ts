@@ -245,6 +245,7 @@ export {
 	type StandardEncryptionInfo,
 	type EncryptionAlgorithm,
 	type EncryptionOptions,
+	type EncryptionScheme,
 } from './ooxml-crypto';
 
 export {
