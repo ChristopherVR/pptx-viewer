@@ -264,6 +264,43 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('opacity: 1');
 	});
 
+	it('should return a directional scaleX keyframe pinned to the left edge for "stretchInLeft"', () => {
+		const kf = getEffectKeyframes('stretchInLeft');
+		expect(kf).toContain('@keyframes pptx-stretchInLeft');
+		expect(kf).toContain('scaleX(0.02)');
+		expect(kf).toContain('scaleX(1)');
+		expect(kf).toContain('transform-origin: left center');
+	});
+
+	it('should return a directional scaleY keyframe pinned to the top edge for "stretchInTop"', () => {
+		const kf = getEffectKeyframes('stretchInTop');
+		expect(kf).toContain('@keyframes pptx-stretchInTop');
+		expect(kf).toContain('scaleY(0.02)');
+		expect(kf).toContain('transform-origin: center top');
+	});
+
+	it('should return the mirrored squeeze-out keyframe for "stretchOutRight"', () => {
+		const kf = getEffectKeyframes('stretchOutRight');
+		expect(kf).toContain('@keyframes pptx-stretchOutRight');
+		expect(kf).toContain('scaleX(1)');
+		expect(kf).toContain('scaleX(0.02)');
+		expect(kf).toContain('transform-origin: right center');
+	});
+
+	it('should return a spin-and-zoom-in keyframe for "newsflashIn"', () => {
+		const kf = getEffectKeyframes('newsflashIn');
+		expect(kf).toContain('@keyframes pptx-newsflashIn');
+		expect(kf).toContain('rotate(-180deg) scale(0.05)');
+		expect(kf).toContain('rotate(0deg) scale(1)');
+	});
+
+	it('should return a spin-and-zoom-out keyframe for "newsflashOut"', () => {
+		const kf = getEffectKeyframes('newsflashOut');
+		expect(kf).toContain('@keyframes pptx-newsflashOut');
+		expect(kf).toContain('rotate(0deg) scale(1)');
+		expect(kf).toContain('rotate(180deg) scale(0.05)');
+	});
+
 	it('should return keyframes with from/to structure for entrance effects', () => {
 		const kf = getEffectKeyframes('appear');
 		expect(kf).toContain('from');

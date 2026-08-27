@@ -150,6 +150,20 @@ describe('getInitialStyleForEffect', () => {
 		expect(style).toStrictEqual({ opacity: 0, transform: 'rotate(-90deg) scale(0.4)' });
 	});
 
+	it('should return a hidden left-pinned scale for "stretchInLeft"', () => {
+		const style = getInitialStyleForEffect('stretchInLeft');
+		expect(style).toStrictEqual({
+			opacity: 0,
+			transform: 'scaleX(0.02)',
+			transformOrigin: 'left center',
+		});
+	});
+
+	it('should return a hidden near-zero rotate+scale for "newsflashIn"', () => {
+		const style = getInitialStyleForEffect('newsflashIn');
+		expect(style).toStrictEqual({ opacity: 0, transform: 'rotate(-180deg) scale(0.05)' });
+	});
+
 	it('should return opacity 0 as default for unknown effects', () => {
 		const style = getInitialStyleForEffect('unknownEffect' as EffectName);
 		expect(style).toStrictEqual({ opacity: 0 });

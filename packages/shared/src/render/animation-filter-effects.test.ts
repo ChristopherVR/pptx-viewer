@@ -45,6 +45,7 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'plus', entr: 'plusIn', exit: 'fadeOut' },
 	{ family: 'wedge', entr: 'wedgeIn', exit: 'fadeOut' },
 	{ family: 'cut', entr: 'cutIn', exit: 'cutOut' },
+	{ family: 'newsflash', entr: 'newsflashIn', exit: 'newsflashOut' },
 ];
 
 describe('resolveFilterEffect', () => {
@@ -85,6 +86,85 @@ describe('resolveFilterEffect', () => {
 		expect(resolveFilterEffect(filterAnim('uncover', 'fromBottomRight', 'exit'))).toBe(
 			'flyOutBottom',
 		);
+	});
+
+	it('maps stretch(fromLeft)/stretch(fromRight)/stretch(fromTop)/stretch(fromBottom) onto the directional stretch keyframes', () => {
+		expect(resolveFilterEffect(filterAnim('stretch', 'fromLeft', 'entr'))).toBe('stretchInLeft');
+		expect(resolveFilterEffect(filterAnim('stretch', 'fromRight', 'entr'))).toBe('stretchInRight');
+		expect(resolveFilterEffect(filterAnim('stretch', 'fromTop', 'entr'))).toBe('stretchInTop');
+		expect(resolveFilterEffect(filterAnim('stretch', 'fromBottom', 'entr'))).toBe(
+			'stretchInBottom',
+		);
+		expect(resolveFilterEffect(filterAnim('stretch', 'fromLeft', 'exit'))).toBe('stretchOutLeft');
+	});
+
+	it('stretch with no subtype defaults to the bottom edge', () => {
+		expect(resolveFilterEffect(filterAnim('stretch', undefined, 'entr'))).toBe('stretchInBottom');
+		expect(resolveFilterEffect(filterAnim('stretch', undefined, 'exit'))).toBe('stretchOutBottom');
+	});
+
+	describe('random (SMIL "pick one of the other known transition types")', () => {
+		it('resolves to a real, non-generic effect rather than the fade fallback', () => {
+			const entrEffect = resolveFilterEffect(filterAnim('random', undefined, 'entr'));
+			const exitEffect = resolveFilterEffect(filterAnim('random', undefined, 'exit'));
+			expect(entrEffect).toBeDefined();
+			expect(exitEffect).toBeDefined();
+		});
+
+		it('resolves the SAME element deterministically to the SAME effect on repeated calls', () => {
+			const anim = filterAnim('random', undefined, 'entr');
+			const first = resolveFilterEffect(anim);
+			const second = resolveFilterEffect({ ...anim });
+			const third = resolveFilterEffect({ ...anim, targetId: anim.targetId });
+			expect(first).toBe(second);
+			expect(first).toBe(third);
+		});
+
+		it('pairs the entrance and exit pick from the SAME family for one element', () => {
+			const entrAnim = {
+				targetId: 'shape42',
+				presetClass: 'entr' as const,
+				effectFilter: { family: 'random', raw: 'random' },
+			} as PptxNativeAnimation;
+			const exitAnim = {
+				targetId: 'shape42',
+				presetClass: 'exit' as const,
+				effectFilter: { family: 'random', raw: 'random' },
+			} as PptxNativeAnimation;
+			const entrEffect = resolveFilterEffect(entrAnim);
+			const exitEffect = resolveFilterEffect(exitAnim);
+			// Both picks come from the same pool index, so entrEffect/exitEffect
+			// are the entr/exit halves of ONE pair, e.g. ('wipeIn','wipeOut').
+			expect(entrEffect).toBeDefined();
+			expect(exitEffect).toBeDefined();
+			expect(entrEffect).not.toBe(exitEffect);
+		});
+
+		it('different elements can resolve to different picks', () => {
+			const picks = new Set<string | undefined>();
+			for (let i = 0; i < 20; i++) {
+				const anim = {
+					targetId: `shape-${i}`,
+					presetClass: 'entr' as const,
+					effectFilter: { family: 'random', raw: 'random' },
+				} as PptxNativeAnimation;
+				picks.add(resolveFilterEffect(anim));
+			}
+			// 20 distinct element ids against a pool of ~19 effects should not all
+			// collide onto a single pick.
+			expect(picks.size).toBeGreaterThan(1);
+		});
+
+		it('always resolves to a defined effect (never the undefined/generic fallback)', () => {
+			for (let i = 0; i < 20; i++) {
+				const anim = {
+					targetId: `shape-${i}`,
+					presetClass: 'entr' as const,
+					effectFilter: { family: 'random', raw: 'random' },
+				} as PptxNativeAnimation;
+				expect(resolveFilterEffect(anim)).toBeDefined();
+			}
+		});
 	});
 
 	it('returns undefined for an unrecognised family (caller falls back to generic fade)', () => {
