@@ -202,28 +202,58 @@ describe('buildCirclePathGradient', () => {
 // buildRectPathGradient
 // ---------------------------------------------------------------------------
 
+/**
+ * A `path="rect"` gradient renders as a nested-rectangle SVG data URI, not a
+ * CSS `radial-gradient()` (PowerPoint's own rect path gradient has square
+ * corners, which no native CSS/SVG radial gradient can express - see
+ * `pptx-viewer-shared`'s `path-gradient-rect.ts`). Decode the innermost band
+ * (the `a:fillToRect` target rectangle) back out for assertions.
+ */
+function innerBandOfRectGradient(cssValue: string | undefined): { x: number; y: number } {
+	const match = /^url\("data:image\/svg\+xml,(.+)"\)$/u.exec(cssValue ?? '');
+	if (!match) {
+		throw new Error(`not a rect path gradient image: ${cssValue}`);
+	}
+	const svg = decodeURIComponent(match[1]);
+	const rects = [
+		...svg.matchAll(/<rect x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/gu),
+	];
+	const last = rects[rects.length - 1];
+	// The innermost band can have real width/height (a `fillToRect` with room
+	// left over defines a genuine flat target rectangle, not just a point), so
+	// this returns its centre, not its top-left corner.
+	return {
+		x: Number(last[1]) + Number(last[3]) / 2,
+		y: Number(last[2]) + Number(last[4]) / 2,
+	};
+}
+
 describe('buildRectPathGradient', () => {
 	const stops = [
 		{ color: '#ffffff', position: 0 },
 		{ color: '#000000', position: 100 },
 	];
 
-	it('produces ellipse-based gradient without fillToRect', () => {
+	it('produces a nested-rectangle SVG image without fillToRect', () => {
 		const result = buildRectPathGradient(stops);
-		expect(result).toBe('radial-gradient(ellipse at center center, #ffffff 0%, #000000 100%)');
+		expect(result).toMatch(/^url\("data:image\/svg\+xml,/u);
+		expect(result).toContain(encodeURIComponent('#ffffff'));
+		expect(result).toContain(encodeURIComponent('#000000'));
 	});
 
 	it('uses focal point position without fillToRect', () => {
 		const result = buildRectPathGradient(stops, { x: 0.2, y: 0.8 });
-		expect(result).toBe('radial-gradient(ellipse at 20% 80%, #ffffff 0%, #000000 100%)');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(20, 0);
+		expect(y).toBeCloseTo(80, 0);
 	});
 
-	it('computes ellipse radii from symmetric fillToRect', () => {
-		// Symmetric insets → semiX=semiY=50, innerHalfW=innerHalfH=0
+	it('centers on the shape from a symmetric fillToRect', () => {
+		// Symmetric insets => the inner rect collapses to a point at 50%, 50%.
 		const result = buildRectPathGradient(stops, undefined, { l: 0, t: 0, r: 0, b: 0 });
-		// semiX = max(50,50) = 50, semiY = 50; innerHalfW/H=50 but equal so no aspect branch
-		expect(result).toContain('radial-gradient(');
-		expect(result).toContain('50%');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 });
 
@@ -331,7 +361,9 @@ describe('buildCssGradientFromShapeStyle', () => {
 		expect(result).toMatch(/^radial-gradient\(circle at /u);
 	});
 
-	it('builds radial/rect gradient', () => {
+	it('builds radial/rect gradient as a nested-rectangle SVG image', () => {
+		// PowerPoint's rect path gradient has square corners, which no native
+		// CSS/SVG radial gradient can express (see `path-gradient-rect.ts`).
 		const style = gradientStyle({
 			fillGradientType: 'radial',
 			fillGradientPathType: 'rect',
@@ -341,7 +373,7 @@ describe('buildCssGradientFromShapeStyle', () => {
 			],
 		});
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toMatch(/^radial-gradient\(ellipse at /u);
+		expect(result).toMatch(/^url\("data:image\/svg\+xml,/u);
 	});
 
 	it('builds radial/shape gradient', () => {

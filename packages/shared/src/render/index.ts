@@ -25,6 +25,11 @@ export * from './shape-geometry';
 export * from './wheel-intent';
 export * from './shape-geometry-cascade';
 export * from './fill-style';
+// `a:gradFill/a:path@type="rect"`: nested-rectangle SVG data-URI approximation
+// (PowerPoint's own rect path gradient has square corners, which no native
+// CSS/SVG radial gradient can express), consumed by `fill-style`'s
+// `buildRectPathGradient`.
+export * from './path-gradient-rect';
 // `a:gradFill` → SVG paint server, for the freeform (`a:custGeom`) shapes that
 // are painted as a real `<path>` and so cannot take a CSS gradient.
 export * from './svg-gradient-paint';

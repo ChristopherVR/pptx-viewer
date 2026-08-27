@@ -7,6 +7,32 @@ import {
 	parseCellTextEffects,
 } from './table-cell-fill';
 
+/**
+ * A `path="rect"` gradient renders as a nested-rectangle SVG data URI, not a
+ * CSS `radial-gradient()` (PowerPoint's own rect path gradient has square
+ * corners, which no native CSS/SVG radial gradient can express - see
+ * `pptx-viewer-shared`'s `path-gradient-rect.ts`). Decode the innermost band
+ * (the `a:fillToRect` target rectangle) back out for assertions.
+ */
+function innerBandOfRectGradient(cssValue: string | undefined): { x: number; y: number } {
+	const match = /^url\("data:image\/svg\+xml,(.+)"\)$/u.exec(cssValue ?? '');
+	if (!match) {
+		throw new Error(`not a rect path gradient image: ${cssValue}`);
+	}
+	const svg = decodeURIComponent(match[1]);
+	const rects = [
+		...svg.matchAll(/<rect x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/gu),
+	];
+	const last = rects[rects.length - 1];
+	// The innermost band can have real width/height (a `fillToRect` with room
+	// left over defines a genuine flat target rectangle, not just a point), so
+	// this returns its centre, not its top-left corner.
+	return {
+		x: Number(last[1]) + Number(last[3]) / 2,
+		y: Number(last[2]) + Number(last[4]) / 2,
+	};
+}
+
 // ── parseGradientFillCss ──────────────────────────────────────────────
 
 describe('parseGradientFillCss', () => {
@@ -67,7 +93,7 @@ describe('parseGradientFillCss', () => {
 		expect(result).toContain('radial-gradient(circle');
 	});
 
-	it('produces a sized radial gradient for a:path with rect', () => {
+	it('produces a nested-rectangle SVG image for a:path with rect', () => {
 		const gradFill = {
 			'a:gsLst': {
 				'a:gs': {
@@ -79,9 +105,12 @@ describe('parseGradientFillCss', () => {
 		};
 		const result = parseGradientFillCss(gradFill);
 		expect(result).toBeDefined();
-		// rect path gradient uses explicit percentage sizing instead of "ellipse"
-		expect(result).toContain('radial-gradient(');
-		expect(result).toContain('at 50% 50%');
+		// PowerPoint's rect path gradient has square corners, which no native
+		// CSS/SVG radial gradient can express (see `path-gradient-rect.ts`).
+		expect(result).toMatch(/^url\("data:image\/svg\+xml,/u);
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('uses fillToRect to position rect path gradient center', () => {
@@ -105,9 +134,9 @@ describe('parseGradientFillCss', () => {
 		const result = parseGradientFillCss(gradFill);
 		expect(result).toBeDefined();
 		// Center at ((0.25 + (1-0.25))/2)*100 = 50%
-		expect(result).toContain('at 50% 50%');
-		// Semi-axes: max(50, 50) = 50
-		expect(result).toContain('50% 50% at');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('uses fillToRect to offset rect path gradient to top-left', () => {
@@ -131,7 +160,9 @@ describe('parseGradientFillCss', () => {
 		const result = parseGradientFillCss(gradFill);
 		expect(result).toBeDefined();
 		// Center at ((0 + (1-1))/2)*100 = 0%
-		expect(result).toContain('at 0% 0%');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(0, 0);
+		expect(y).toBeCloseTo(0, 0);
 	});
 
 	it('produces farthest-side radial for a:path with shape', () => {

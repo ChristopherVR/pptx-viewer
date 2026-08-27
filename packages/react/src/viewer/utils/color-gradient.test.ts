@@ -13,6 +13,42 @@ import {
 	OOXML_PATTERN_PRESETS,
 } from './color-gradient';
 
+/**
+ * A `path="rect"` gradient renders as a nested-rectangle SVG data URI, not a
+ * CSS `radial-gradient()` (PowerPoint's own rect path gradient has square
+ * corners, which no native CSS/SVG radial gradient can express - see
+ * `pptx-viewer-shared`'s `path-gradient-rect.ts`). Decode the innermost band
+ * (the `a:fillToRect` target rectangle) back out for assertions.
+ */
+function innerBandOfRectGradient(cssValue: string | undefined): {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+} {
+	const match = /^url\("data:image\/svg\+xml,(.+)"\)$/u.exec(cssValue ?? '');
+	if (!match) {
+		throw new Error(`not a rect path gradient image: ${cssValue}`);
+	}
+	const svg = decodeURIComponent(match[1]);
+	const rects = [
+		...svg.matchAll(/<rect x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/gu),
+	];
+	const last = rects[rects.length - 1];
+	return { x: Number(last[1]), y: Number(last[2]), w: Number(last[3]), h: Number(last[4]) };
+}
+
+/**
+ * The centre of the innermost band. That band can have real width/height (a
+ * `fillToRect` with room left over defines a genuine flat target rectangle,
+ * not just a point), so this adds half its size rather than assuming its
+ * top-left corner is the centre.
+ */
+function innerBandCenterOfRectGradient(cssValue: string | undefined): { x: number; y: number } {
+	const { x, y, w, h } = innerBandOfRectGradient(cssValue);
+	return { x: x + w / 2, y: y + h / 2 };
+}
+
 describe('sanitizeGradientStops', () => {
 	it('should return empty array for undefined input', () => {
 		expect(sanitizeGradientStops(undefined)).toStrictEqual([]);
@@ -211,11 +247,15 @@ describe('buildRectPathGradient', () => {
 		{ color: '#000000', position: 100 },
 	];
 
-	it('should produce an elliptical radial gradient with percentage sizing', () => {
+	// `path="rect"` renders as a nested-rectangle SVG data URI, not a CSS
+	// `radial-gradient()`: PowerPoint's own rect path gradient has square
+	// corners, which no native CSS/SVG radial gradient can express (see
+	// `pptx-viewer-shared`'s `path-gradient-rect.ts`).
+	it('should produce a nested-rectangle SVG image carrying both stop colours', () => {
 		const result = buildRectPathGradient(stops);
-		expect(result).toContain('radial-gradient(');
-		expect(result).toContain('#FFFFFF 0%');
-		expect(result).toContain('#000000 100%');
+		expect(result).toMatch(/^url\("data:image\/svg\+xml,/u);
+		expect(result).toContain(encodeURIComponent('#FFFFFF'));
+		expect(result).toContain(encodeURIComponent('#000000'));
 	});
 
 	it('should use fillToRect center for positioning when provided', () => {
@@ -226,7 +266,9 @@ describe('buildRectPathGradient', () => {
 			r: 0.5,
 			b: 0.5,
 		});
-		expect(result).toContain('at 50% 50%');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('should offset gradient center based on asymmetric fillToRect', () => {
@@ -237,40 +279,36 @@ describe('buildRectPathGradient', () => {
 			r: 1,
 			b: 1,
 		});
-		expect(result).toContain('at 0% 0%');
-	});
-
-	it('should compute ellipse semi-axes from fillToRect for centered gradient', () => {
-		// Center at 50,50 -> semiX=50, semiY=50
-		const result = buildRectPathGradient(stops, undefined, {
-			l: 0.5,
-			t: 0.5,
-			r: 0.5,
-			b: 0.5,
-		});
-		expect(result).toContain('50% 50% at');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(0, 0);
+		expect(y).toBeCloseTo(0, 0);
 	});
 
 	it('should use larger semi-axis for off-center gradients', () => {
 		// fillToRect: l=0.25, t=0.25, r=0.75, b=0.75 => center at 25%, 25%
-		// semiX = max(25, 75) = 75, semiY = max(25, 75) = 75
 		const result = buildRectPathGradient(stops, undefined, {
 			l: 0.25,
 			t: 0.25,
 			r: 0.75,
 			b: 0.75,
 		});
-		expect(result).toContain('75% 75% at 25% 25%');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(25, 0);
+		expect(y).toBeCloseTo(25, 0);
 	});
 
-	it('should fall back to ellipse with focal point when no fillToRect', () => {
+	it('should position the gradient at a focal point when no fillToRect', () => {
 		const result = buildRectPathGradient(stops, { x: 0.3, y: 0.7 });
-		expect(result).toContain('radial-gradient(ellipse at 30% 70%');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(30, 0);
+		expect(y).toBeCloseTo(70, 0);
 	});
 
-	it('should fall back to center when neither fillToRect nor focalPoint', () => {
+	it('should center on the shape when neither fillToRect nor focalPoint is given', () => {
 		const result = buildRectPathGradient(stops);
-		expect(result).toContain('radial-gradient(ellipse at center center');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 });
 
@@ -353,7 +391,7 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 		expect(result).toContain('radial-gradient(circle at');
 	});
 
-	it('should produce rect path gradient with fillToRect sizing', () => {
+	it('should produce a nested-rectangle image for path="rect", centred by a symmetric fillToRect', () => {
 		const style: ShapeStyle = {
 			fillMode: 'gradient',
 			fillGradientType: 'radial',
@@ -362,10 +400,10 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 			fillGradientStops: baseStops,
 		};
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toBeDefined();
-		// Should use percentage-based ellipse sizing
-		expect(result).toContain('50% 50% at 50% 50%');
-		expect(result).not.toContain('circle');
+		expect(result).toMatch(/^url\("data:image\/svg\+xml,/u);
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('should produce shape path gradient with farthest-side', () => {
@@ -402,8 +440,9 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 			fillGradientStops: baseStops,
 		};
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toContain('at 30% 70%');
-		expect(result).toContain('ellipse');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(30, 0);
+		expect(y).toBeCloseTo(70, 0);
 	});
 
 	it('should handle top-left positioned rect gradient', () => {
@@ -416,9 +455,9 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 		};
 		const result = buildCssGradientFromShapeStyle(style);
 		// Center should be at 0%, 0%
-		expect(result).toContain('at 0% 0%');
-		// Semi-axes should be 100% (distance to far edge)
-		expect(result).toContain('100% 100% at');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(0, 0);
+		expect(y).toBeCloseTo(0, 0);
 	});
 
 	it('should handle bottom-right positioned rect gradient', () => {
@@ -431,7 +470,9 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 		};
 		const result = buildCssGradientFromShapeStyle(style);
 		// Center should be at 100%, 100%
-		expect(result).toContain('at 100% 100%');
+		const { x, y } = innerBandCenterOfRectGradient(result);
+		expect(x).toBeCloseTo(100, 0);
+		expect(y).toBeCloseTo(100, 0);
 	});
 
 	it('should differentiate output between all three path types', () => {
@@ -602,19 +643,22 @@ describe('buildRectPathGradient - aspect ratio aware', () => {
 		{ color: '#000000', position: 100 },
 	];
 
-	it('should use aspect-adjusted radii for non-square asymmetric fillToRect', () => {
-		// fillToRect with wide inner rect: l=0.1, t=0.3, r=0.1, b=0.3
-		// cx = 50%, cy = 50%, semiX = 50, semiY = 50
-		// innerHalfW = 40, innerHalfH = 20 => aspect = 2
-		// adjustedSemiX = 50 * 2 = 100, adjustedSemiY = 50
+	it('should paint the real (non-square) fillToRect inner rectangle, not an aspect-adjusted ellipse', () => {
+		// fillToRect l=0.1, t=0.3, r=0.1, b=0.3 => a WIDE inner target rectangle,
+		// 80 wide x 40 tall, centred at 50%/50%. The old ellipse approximation
+		// could only hint at this asymmetry via an elongated ellipse; the real
+		// geometry now reproduces the actual rectangle PowerPoint targets.
 		const result = buildRectPathGradient(stops, undefined, {
 			l: 0.1,
 			t: 0.3,
 			r: 0.1,
 			b: 0.3,
 		});
-		expect(result).toContain('radial-gradient(');
-		expect(result).toContain('at 50% 50%');
+		const inner = innerBandOfRectGradient(result);
+		expect(inner.x).toBeCloseTo(10, 0);
+		expect(inner.y).toBeCloseTo(30, 0);
+		expect(inner.w).toBeCloseTo(80, 0);
+		expect(inner.h).toBeCloseTo(40, 0);
 	});
 });
 

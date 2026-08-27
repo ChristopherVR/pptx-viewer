@@ -15,6 +15,32 @@ import {
 	computeGradientCenter,
 } from './color-gradient';
 
+/**
+ * A `path="rect"` gradient renders as a nested-rectangle SVG data URI, not a
+ * CSS `radial-gradient()` (PowerPoint's own rect path gradient has square
+ * corners, which no native CSS/SVG radial gradient can express - see
+ * `pptx-viewer-shared`'s `path-gradient-rect.ts`). Decode the innermost band
+ * (the `a:fillToRect` target rectangle) back out for assertions.
+ */
+function innerBandOfRectGradient(cssValue: string | undefined): { x: number; y: number } {
+	const match = /^url\("data:image\/svg\+xml,(.+)"\)$/u.exec(cssValue ?? '');
+	if (!match) {
+		throw new Error(`not a rect path gradient image: ${cssValue}`);
+	}
+	const svg = decodeURIComponent(match[1]);
+	const rects = [
+		...svg.matchAll(/<rect x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/gu),
+	];
+	const last = rects[rects.length - 1];
+	// The innermost band can have real width/height (a `fillToRect` with room
+	// left over defines a genuine flat target rectangle, not just a point), so
+	// this returns its centre, not its top-left corner.
+	return {
+		x: Number(last[1]) + Number(last[3]) / 2,
+		y: Number(last[2]) + Number(last[4]) / 2,
+	};
+}
+
 // ---------------------------------------------------------------------------
 // Shared test fixtures
 // ---------------------------------------------------------------------------
@@ -138,9 +164,9 @@ describe('buildCirclePathGradient', () => {
 // ---------------------------------------------------------------------------
 
 describe('buildRectPathGradient - path fill improvements', () => {
-	it('should produce elliptical gradient with "ellipse" keyword for rect type', () => {
+	it('should produce a nested-rectangle SVG data URI, not a CSS ellipse', () => {
 		const result = buildRectPathGradient(twoStops);
-		expect(result).toContain('radial-gradient(ellipse at');
+		expect(result).toMatch(/^url\("data:image\/svg\+xml,/u);
 	});
 
 	it('should center gradient from fillToRect LTRB fractions', () => {
@@ -151,7 +177,9 @@ describe('buildRectPathGradient - path fill improvements', () => {
 			r: 0.2,
 			b: 0.3,
 		});
-		expect(result).toContain('at 50% 50%');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('should handle edge-value fillToRect (all zeros)', () => {
@@ -162,21 +190,23 @@ describe('buildRectPathGradient - path fill improvements', () => {
 			r: 0,
 			b: 0,
 		});
-		expect(result).toContain('at 50% 50%');
-		// semiX = max(50, 50) = 50, semiY = max(50, 50) = 50
-		expect(result).toContain('50% 50% at');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('should handle edge-value fillToRect (all ones)', () => {
 		// l=1, t=1, r=1, b=1 => cx = ((1 + 0)/2)*100 = 50%
-		// This is a degenerate case: inner rect has negative dimensions
+		// This is a degenerate case: the inner rect's width/height clamp to 0.
 		const result = buildRectPathGradient(twoStops, undefined, {
 			l: 1,
 			t: 1,
 			r: 1,
 			b: 1,
 		});
-		expect(result).toContain('at 50% 50%');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(50, 0);
+		expect(y).toBeCloseTo(50, 0);
 	});
 
 	it('should use focalPoint offset when combined with fillToRect', () => {
@@ -187,7 +217,9 @@ describe('buildRectPathGradient - path fill improvements', () => {
 			{ x: 0.0, y: 0.0 },
 			{ l: 0.25, t: 0.25, r: 0.25, b: 0.25 },
 		);
-		expect(result).toContain('at 25% 25%');
+		const { x, y } = innerBandOfRectGradient(result);
+		expect(x).toBeCloseTo(25, 0);
+		expect(y).toBeCloseTo(25, 0);
 	});
 });
 
@@ -328,8 +360,9 @@ describe('buildCssGradientFromShapeStyle - path gradient integration', () => {
 
 		// Circle uses 'circle' keyword
 		expect(circleResult).toContain('circle');
-		// Rect uses 'ellipse' keyword
-		expect(rectResult).toContain('ellipse');
+		// Rect renders as a nested-rectangle SVG data URI (square corners have no
+		// CSS/SVG radial-gradient equivalent).
+		expect(rectResult).toMatch(/^url\("data:image\/svg\+xml,/u);
 		// Shape uses 'farthest-side'
 		expect(shapeResult).toContain('farthest-side');
 	});

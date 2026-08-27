@@ -185,7 +185,11 @@ describe('buildGradientCss', () => {
 		expect(css).toBe('radial-gradient(circle at center center, #ffffff 0%, #000000 100%)');
 	});
 
-	it('builds a radial rect path gradient using fillToRect', () => {
+	it('builds a rect path gradient as a nested-rectangle SVG image, using fillToRect for centring', () => {
+		// A rect path gradient is rendered as an SVG data URI, not a CSS
+		// `radial-gradient()`: PowerPoint's own rect path gradient has square
+		// corners, which no native CSS/SVG radial gradient can express (see
+		// `path-gradient-rect.ts`).
 		const css = buildGradientCss({
 			fillMode: 'gradient',
 			fillGradientType: 'radial',
@@ -196,8 +200,9 @@ describe('buildGradientCss', () => {
 				{ color: '#000000', position: 100 },
 			],
 		});
-		expect(css).toContain('radial-gradient(');
-		expect(css).toContain('at 50% 50%');
+		expect(css).toMatch(/^url\("data:image\/svg\+xml,/u);
+		const decoded = decodeURIComponent(css!.slice('url("data:image/svg+xml,'.length, -2));
+		expect(decoded).toContain('<rect');
 	});
 
 	it('builds a radial shape path gradient', () => {
@@ -547,6 +552,26 @@ describe('getComputedFillStyle', () => {
 		expect(result?.backgroundImage).toContain('radial-gradient(');
 		expect(result?.backgroundSize).toBeUndefined();
 		expect(result?.backgroundRepeat).toBeUndefined();
+	});
+
+	it('stretches a rect path gradient image to the full box, unlike a CSS gradient', () => {
+		// The rect-path SVG data URI is a real IMAGE, not a CSS <gradient>
+		// function: without an explicit size/repeat it would tile at its
+		// intrinsic size instead of covering the shape.
+		const result = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientType: 'radial',
+				fillGradientPathType: 'rect',
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(result?.backgroundImage).toMatch(/^url\("data:image\/svg\+xml,/u);
+		expect(result?.backgroundSize).toBe('100% 100%');
+		expect(result?.backgroundRepeat).toBe('no-repeat');
 	});
 
 	it('resolves a pattern fill before solid', () => {
