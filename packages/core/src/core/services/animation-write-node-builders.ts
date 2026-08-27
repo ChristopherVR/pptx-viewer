@@ -18,6 +18,104 @@ import {
 /** Emphasis presets that use p:animRot (rotation). */
 const ROTATION_EMPHASIS: ReadonlySet<string> = new Set(['spin', 'teeter']);
 
+/**
+ * Apply (or clear) an effect's `p:stSnd` / `p:endSnd` sound action onto its
+ * `p:cTn` (CT_TLCommonTimeNodeData). Shared by the full-rebuild builders below
+ * and the surgical updater (`animation-timing-surgical`) so an existing
+ * effect's sound can be edited without rebuilding the whole node.
+ */
+export function applySoundToEffectCTn(
+	effectCTn: XmlObject,
+	anim: Pick<PptxElementAnimation, 'soundRId' | 'stopSound'>,
+): void {
+	delete effectCTn['p:stSnd'];
+	delete effectCTn['p:endSnd'];
+	if (anim.stopSound) {
+		effectCTn['p:endSnd'] = {};
+	} else if (anim.soundRId) {
+		effectCTn['p:stSnd'] = {
+			'p:snd': {
+				'@_r:embed': anim.soundRId,
+			},
+		};
+	}
+}
+
+/**
+ * Apply (or clear) the `p:cTn/@afterEffect` flag used by both "hide after
+ * animation" and "hide on next click" (ECMA-376 §19.5.24's `afterEffect`
+ * marks the node as playing after its parent's main body completes; the
+ * distinction between the two hide behaviours is otherwise all in the
+ * playback layer, see `applyAfterAnimationFromEditorList` in
+ * `pptx-viewer-shared`). Only meaningful on entrance/emphasis effect nodes.
+ */
+export function applyAfterEffectFlag(
+	effectCTn: XmlObject,
+	anim: Pick<PptxElementAnimation, 'afterAnimation'>,
+): void {
+	if (anim.afterAnimation === 'hideAfterAnimation' || anim.afterAnimation === 'hideOnNextClick') {
+		effectCTn['@_afterEffect'] = '1';
+	} else {
+		delete effectCTn['@_afterEffect'];
+	}
+}
+
+/**
+ * Apply (or clear) the "dim after animation" behaviour as a `p:animClr`
+ * sibling under the effect's `p:childTnLst`, modelled on ECMA-376 §19.5.12's
+ * CT_TLAnimateColorBehavior (the same shape the parser already reads via
+ * `extractColorAnimation`). The dim node starts the instant the parent
+ * effect's own duration ends (`@_delay` = the effect's duration) and holds
+ * its end state forever (`dur="1" fill="hold"`), matching how PowerPoint
+ * times its own "Dim after animation" behaviour.
+ *
+ * Only entrance/emphasis effects can be dimmed (an exit effect already ends
+ * by hiding); callers gate on `presetClass` before calling this.
+ */
+export function applyDimColorBehavior(
+	effectCTn: XmlObject,
+	anim: Pick<PptxElementAnimation, 'afterAnimation' | 'afterAnimationColor'>,
+	shapeId: string,
+	durationMs: number,
+	allocateId: () => number,
+): void {
+	const childTnLst = (effectCTn['p:childTnLst'] as XmlObject | undefined) ?? {};
+	if (anim.afterAnimation === 'dimToColor' && anim.afterAnimationColor) {
+		const hex = anim.afterAnimationColor.replace(/^#/u, '').toUpperCase();
+		childTnLst['p:animClr'] = {
+			'@_clrSpc': 'rgb',
+			'p:cBhvr': {
+				'p:cTn': {
+					'@_id': String(allocateId()),
+					'@_dur': '1',
+					'@_fill': 'hold',
+					'p:stCondLst': {
+						'p:cond': {
+							'@_delay': String(durationMs),
+						},
+					},
+				},
+				'p:tgtEl': {
+					'p:spTgt': {
+						'@_spid': shapeId,
+					},
+				},
+				'p:attrNameLst': {
+					'p:attrName': 'style.color',
+				},
+			},
+			'p:to': {
+				'a:srgbClr': {
+					'@_val': hex,
+				},
+			},
+		};
+	} else {
+		delete childTnLst['p:animClr'];
+	}
+	effectCTn['p:childTnLst'] = childTnLst;
+}
+
 /** Emphasis presets that use p:animScale. */
 const SCALE_EMPHASIS: ReadonlySet<string> = new Set(['growShrink']);
 
@@ -87,13 +185,6 @@ export function buildSingleEffectNode(
 		repeatAttrs['@_repeatCount'] = 'indefinite';
 	}
 
-	const afterAttrs: Record<string, string> = {};
-	if (anim.afterAnimation === 'hideAfterAnimation') {
-		afterAttrs['@_afterEffect'] = '1';
-	} else if (anim.afterAnimation === 'hideOnNextClick') {
-		afterAttrs['@_afterEffect'] = '1';
-	}
-
 	const effectCTn: XmlObject = {
 		'@_id': String(effectId),
 		'@_presetID': String(mapping.presetId),
@@ -103,7 +194,6 @@ export function buildSingleEffectNode(
 		'@_nodeType': nodeType,
 		'@_dur': String(duration),
 		...repeatAttrs,
-		...afterAttrs,
 		'p:stCondLst': {
 			'p:cond': {
 				'@_delay': String(delay),
@@ -111,6 +201,7 @@ export function buildSingleEffectNode(
 		},
 		'p:childTnLst': {},
 	};
+	applyAfterEffectFlag(effectCTn, anim);
 
 	if (accel > 0) {
 		effectCTn['@_accel'] = String(accel);
@@ -170,14 +261,13 @@ export function buildSingleEffectNode(
 
 	effectCTn['p:childTnLst'] = childTnLst;
 
-	if (anim.stopSound) {
-		effectCTn['p:endSnd'] = {};
-	} else if (anim.soundRId) {
-		effectCTn['p:stSnd'] = {
-			'p:snd': {
-				'@_r:embed': anim.soundRId,
-			},
-		};
+	applySoundToEffectCTn(effectCTn, anim);
+	// "Dim after animation" describes what happens once an entrance/emphasis
+	// effect finishes; an exit effect already ends by hiding, so it never
+	// gets a dim behaviour (mirrors the exit skip in
+	// `applyAfterAnimationFromEditorList`).
+	if (presetClass !== 'exit') {
+		applyDimColorBehavior(effectCTn, anim, shapeId, duration, allocateId);
 	}
 
 	const wrapperId = allocateId();
@@ -527,15 +617,7 @@ export function buildMotionPathNode(
 		effectCTn['@_decel'] = String(decel);
 	}
 
-	if (anim.stopSound) {
-		effectCTn['p:endSnd'] = {};
-	} else if (anim.soundRId) {
-		effectCTn['p:stSnd'] = {
-			'p:snd': {
-				'@_r:embed': anim.soundRId,
-			},
-		};
-	}
+	applySoundToEffectCTn(effectCTn, anim);
 
 	const wrapperId = allocateId();
 	return {

@@ -249,6 +249,12 @@ export * from './animation-css';
 // `animation-css` for the preset → CSS keyframe mapping. The stateful hooks /
 // services / RAF loops stay in each binding.
 export * from './animation-authoring';
+// Effect sound picker (`p:stSnd`) and "after animation" (dim/hide) authoring
+// controls: same immutable-patch-builder shape as `animation-authoring`,
+// split into their own modules since they're optional add-on rows the panel
+// only shows once an effect exists, not part of the core preset/timing form.
+export * from './animation-sound-authoring';
+export * from './animation-after-effect-authoring';
 // Naming layer over both preset vocabularies (editor `PptxAnimationPreset`
 // tokens and core's OOXML preset catalogue), so no timeline prints a wire id.
 export * from './animation-preset-labels';

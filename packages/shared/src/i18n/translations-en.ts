@@ -2228,6 +2228,18 @@ export const translationsEn: Record<string, string> = {
 	'pptx.animation.motionPath.overlay': 'Motion path preview',
 	'pptx.animations.motionPathGalleryAria': 'Motion Paths: Lines, Arcs, Turns, Shapes, and Loops',
 
+	// --- Effect sound + "after animation" authoring controls ---
+	'pptx.animation.sound': 'Sound',
+	'pptx.animation.sound.none': '[No Sound]',
+	'pptx.animation.sound.custom': 'Choose sound file...',
+	'pptx.animation.sound.chooseFile': 'Choose an audio file',
+	'pptx.animation.afterAnimation': 'After animation',
+	'pptx.animation.afterAnimation.none': "Don't Dim",
+	'pptx.animation.afterAnimation.dimToColor': 'Dim after animation',
+	'pptx.animation.afterAnimation.hideAfterAnimation': 'Hide after animation',
+	'pptx.animation.afterAnimation.hideOnNextClick': 'Hide on next mouse click',
+	'pptx.animation.afterAnimation.color': 'Dim color',
+
 	// --- 2026-07-03 missing-key sweep: keys used by Vue/Angular with no
 	// existing dictionary entry (React has 0 such gaps and is the ground-
 	// truth reference these were derived from). Appended flat rather than

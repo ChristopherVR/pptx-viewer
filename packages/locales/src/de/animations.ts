@@ -213,4 +213,16 @@ export const translations = {
 	'pptx.animation.motionPath.overlay': 'Vorschau des Animationspfads',
 	'pptx.animations.motionPathGalleryAria':
 		'Animationspfade: Linien, Bogen, Wendungen, Formen und Schleifen',
+
+	// --- Effect sound + "after animation" authoring controls ---
+	'pptx.animation.sound': 'Ton',
+	'pptx.animation.sound.none': '[Kein Ton]',
+	'pptx.animation.sound.custom': 'Tondatei wählen...',
+	'pptx.animation.sound.chooseFile': 'Audiodatei auswählen',
+	'pptx.animation.afterAnimation': 'Nach der Animation',
+	'pptx.animation.afterAnimation.none': 'Nicht abblenden',
+	'pptx.animation.afterAnimation.dimToColor': 'Nach der Animation abblenden',
+	'pptx.animation.afterAnimation.hideAfterAnimation': 'Nach der Animation ausblenden',
+	'pptx.animation.afterAnimation.hideOnNextClick': 'Beim nächsten Mausklick ausblenden',
+	'pptx.animation.afterAnimation.color': 'Abblendfarbe',
 } as const;

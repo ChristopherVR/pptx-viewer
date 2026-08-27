@@ -241,6 +241,8 @@ export function buildChromeCallbacks(
 		applyMotionPath: (presetId) => deps.getEditActions().applyMotionPath(presetId),
 		setAnimationTiming: (elementId, patch) =>
 			deps.getEditActions().setAnimationTiming(elementId, patch),
+		setAnimationSound: (elementId, pick) =>
+			deps.getEditActions().setAnimationSound(elementId, pick),
 		reorderAnimation: (elementId, direction) =>
 			deps.getEditActions().reorderAnimation(elementId, direction),
 		setGeometry: (patch) => deps.getEditActions().setGeometry(patch),

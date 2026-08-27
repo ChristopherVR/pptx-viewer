@@ -1,4 +1,5 @@
 import type {
+	PptxAfterAnimationAction,
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
@@ -113,6 +114,16 @@ export const SEQUENCE_OPTIONS: ReadonlyArray<{
 	{ value: 'byParagraph', labelKey: 'pptx.animation.sequence.byParagraph' },
 	{ value: 'byWord', labelKey: 'pptx.animation.sequence.byWord' },
 	{ value: 'byLetter', labelKey: 'pptx.animation.sequence.byLetter' },
+];
+
+export const AFTER_ANIMATION_OPTIONS: ReadonlyArray<{
+	value: PptxAfterAnimationAction;
+	labelKey: string;
+}> = [
+	{ value: 'none', labelKey: 'pptx.animation.afterAnimation.none' },
+	{ value: 'dimToColor', labelKey: 'pptx.animation.afterAnimation.dimToColor' },
+	{ value: 'hideAfterAnimation', labelKey: 'pptx.animation.afterAnimation.hideAfterAnimation' },
+	{ value: 'hideOnNextClick', labelKey: 'pptx.animation.afterAnimation.hideOnNextClick' },
 ];
 
 /** Presets that support direction picking (re-exported from shared). */

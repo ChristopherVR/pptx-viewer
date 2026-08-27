@@ -32,6 +32,11 @@ import {
 	DIRECTION_TO_SUBTYPE,
 	triggerToNodeType,
 } from './animation-write-mappings';
+import {
+	applyAfterEffectFlag,
+	applyDimColorBehavior,
+	applySoundToEffectCTn,
+} from './animation-write-node-builders';
 import { ensureArray, isXmlObject } from './native-animation-helpers';
 
 /** One effect the editor list asks the timing tree to contain. */
@@ -104,11 +109,21 @@ function presetNameForClass(
 /**
  * Patch an existing effect node's timing attributes from the editor animation,
  * leaving its structure (behaviour children, end conditions, iteration) alone.
+ *
+ * Also (re-)applies the effect's sound action, "hide" `afterEffect` flag, and
+ * "dim after animation" colour behaviour every time: these are cheap to
+ * re-derive from the editor entry and, unlike the other attributes here, an
+ * absent value must actively CLEAR whatever the node currently has (see
+ * `mergeNativeSoundIntoEditorAnimations`, which seeds `anim.soundRId` from the
+ * deck's own `p:stSnd` at load time precisely so an untouched sound is never
+ * mistaken for "no sound" and deleted here).
  */
 function updateEffectNodeAttributes(
 	cTn: XmlObject,
 	anim: PptxElementAnimation,
 	presetClass: string,
+	shapeId: string,
+	allocateId: () => number,
 ): void {
 	const presetName = presetNameForClass(anim, presetClass);
 	const mapping = presetName ? PRESET_TO_OOXML[presetName] : undefined;
@@ -133,6 +148,15 @@ function updateEffectNodeAttributes(
 		for (const cond of ensureArray(stCondList['p:cond'])) {
 			cond['@_delay'] = String(anim.delayMs);
 		}
+	}
+
+	applySoundToEffectCTn(cTn, anim);
+	if (presetClass !== 'path') {
+		applyAfterEffectFlag(cTn, anim);
+	}
+	if (presetClass !== 'exit' && presetClass !== 'path') {
+		const durationMs = Number(cTn['@_dur']) || anim.durationMs || 0;
+		applyDimColorBehavior(cTn, anim, shapeId, durationMs, allocateId);
 	}
 }
 
@@ -178,7 +202,13 @@ export function surgicallyUpdateTimingTree(
 		orderByKey.set(entry.key, entry.order);
 		const existing = byKey.get(entry.key);
 		if (existing) {
-			updateEffectNodeAttributes(existing.cTn, entry.anim, entry.presetClass);
+			updateEffectNodeAttributes(
+				existing.cTn,
+				entry.anim,
+				entry.presetClass,
+				existing.spid ?? entry.anim.elementId,
+				allocateId,
+			);
 			continue;
 		}
 		insertAuthoredEffect({

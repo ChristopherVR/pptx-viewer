@@ -13,6 +13,7 @@ import {
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
+	getEffectSoundState,
 	SEQUENCE_VALUES,
 	TRIGGER_VALUES,
 } from 'pptx-viewer-shared';
@@ -20,6 +21,7 @@ import {
 import { playAnimationPreview } from '../../animation';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createAfterAnimationRow } from './after-animation-row';
 import {
 	animField,
 	animNumber,
@@ -29,6 +31,7 @@ import {
 	REPEAT_MODES,
 } from './animation-panel-fields';
 import { elementDisplayLabel, renderOrderRow, renderTimelineBar } from './animation-panel-parts';
+import { createEffectSoundRow } from './effect-sound-row';
 import { createMotionPathRow } from './motion-path-row';
 import type { InspectorHandlers } from './types';
 
@@ -47,7 +50,11 @@ export interface AnimationPanel {
 
 type PanelHandlers = Pick<
 	InspectorHandlers,
-	'setAnimationEffect' | 'applyMotionPath' | 'setAnimationTiming' | 'reorderAnimation'
+	| 'setAnimationEffect'
+	| 'applyMotionPath'
+	| 'setAnimationTiming'
+	| 'setAnimationSound'
+	| 'reorderAnimation'
 >;
 
 /**
@@ -142,6 +149,20 @@ export function createAnimationPanel(
 		(value) => commit({ sequence: value as PptxAnimationSequence }),
 		options,
 	);
+
+	const effectSoundRow = createEffectSoundRow(doc, t, (pick) => {
+		if (current.selectedElementId) {
+			handlers.setAnimationSound(current.selectedElementId, pick);
+		}
+	});
+	options.appendChild(effectSoundRow.el);
+	const afterAnimationRow = createAfterAnimationRow(
+		doc,
+		t,
+		(action) => commit({ afterAnimation: action }),
+		(color) => commit({ afterAnimationColor: color }),
+	);
+	options.appendChild(afterAnimationRow.el);
 
 	const timingTitle = createEl(doc, 'span', 'pptxv-inspector-section-title');
 	timingTitle.textContent = t('pptx.animation.timing');
@@ -238,6 +259,15 @@ export function createAnimationPanel(
 				btn.disabled = !state.editable;
 			}
 			sequence.value = animation?.sequence ?? 'asOne';
+			effectSoundRow.update({
+				...getEffectSoundState(state.animations, state.selectedElementId ?? ''),
+				editable: state.editable,
+			});
+			afterAnimationRow.update({
+				action: animation?.afterAnimation ?? 'none',
+				color: animation?.afterAnimationColor,
+				editable: state.editable,
+			});
 			trigger.value = animation?.trigger ?? 'onClick';
 			triggerShapeWrap.hidden = trigger.value !== 'onShapeClick';
 			triggerShape.replaceChildren(

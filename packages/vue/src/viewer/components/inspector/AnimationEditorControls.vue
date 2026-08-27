@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
 import type {
+	PptxAfterAnimationAction,
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
@@ -9,15 +10,27 @@ import type {
 	PptxElement,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
-import { schemaLabel, setDelay, setDuration, setRepeatCount } from 'pptx-viewer-shared';
+import {
+	getEffectSoundState,
+	schemaLabel,
+	setAfterAnimation,
+	setAfterAnimationColor,
+	setDelay,
+	setDuration,
+	setEffectSound,
+	setRepeatCount,
+} from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import AfterAnimationRow from './AfterAnimationRow.vue';
 import {
 	ANIMATION_DIRECTION_LABEL_KEYS,
 	ANIMATION_SEQUENCE_LABEL_KEYS,
 	ANIMATION_TIMING_CURVE_LABEL_KEYS,
 } from './animation-editor-label-keys';
 import { animationElementLabel, animationPresetLabel } from './animation-panel-model';
+import EffectSoundRow from './EffectSoundRow.vue';
 
 const props = defineProps<{
 	animation: PptxElementAnimation;
@@ -78,6 +91,41 @@ function clampedDelayMs(raw: number): number {
 function clampedRepeatCount(raw: number): number {
 	const [result] = setRepeatCount([props.animation], props.animation.elementId, raw);
 	return result?.repeatCount ?? raw;
+}
+
+/**
+ * Run a whole-array shared setter against a scratch array holding only this
+ * row's entry, and return the resulting entry's patch-worthy fields. Mirrors
+ * `clampedDurationMs` / `clampedDelayMs` above: this component only ever
+ * emits a `Partial<PptxElementAnimation>` patch, never the array itself.
+ */
+const soundState = computed(() =>
+	getEffectSoundState([props.animation], props.animation.elementId),
+);
+
+function soundPatch(
+	pick: { dataUrl: string; fileName?: string } | undefined,
+): Partial<PptxElementAnimation> {
+	const [result] = setEffectSound([props.animation], props.animation.elementId, pick);
+	return {
+		soundData: result?.soundData,
+		soundFileName: result?.soundFileName,
+		soundRId: result?.soundRId,
+		soundPath: result?.soundPath,
+	};
+}
+
+function afterAnimationPatch(action: PptxAfterAnimationAction): Partial<PptxElementAnimation> {
+	const [result] = setAfterAnimation([props.animation], props.animation.elementId, action);
+	return {
+		afterAnimation: result?.afterAnimation,
+		afterAnimationColor: result?.afterAnimationColor,
+	};
+}
+
+function afterAnimationColorPatch(color: string): Partial<PptxElementAnimation> {
+	const [result] = setAfterAnimationColor([props.animation], props.animation.elementId, color);
+	return { afterAnimationColor: result?.afterAnimationColor };
 }
 
 /** The row's effect name (`t` is an overloaded generic, hence the lambda). */
@@ -208,6 +256,13 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				</option>
 			</select>
 		</label>
+		<EffectSoundRow :sound-state="soundState" @pick="(pick) => emit('patch', soundPatch(pick))" />
+		<AfterAnimationRow
+			:action="animation.afterAnimation ?? 'none'"
+			:color="animation.afterAnimationColor"
+			@action="(action) => emit('patch', afterAnimationPatch(action))"
+			@color="(color) => emit('patch', afterAnimationColorPatch(color))"
+		/>
 		<label
 			>Timing curve
 			<select

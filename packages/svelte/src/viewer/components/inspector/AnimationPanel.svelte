@@ -16,6 +16,7 @@
 	 */
 	import Play from '@lucide/svelte/icons/play';
 	import type {
+		PptxAfterAnimationAction,
 		PptxAnimationDirection,
 		PptxAnimationPreset,
 		PptxAnimationSequence,
@@ -25,17 +26,22 @@
 		animationFor,
 		applyMotionPathPreset,
 		clearMotionPath,
+		getEffectSoundState,
 		hasAnimation,
+		setAfterAnimation,
+		setAfterAnimationColor,
 		setAnimationEmphasis,
 		setAnimationEntrance,
 		setAnimationExit,
 		setDirection,
+		setEffectSound,
 		setSequence,
 		showDirectionPicker,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import AfterAnimationRow from './AfterAnimationRow.svelte';
 	import { commitSlideAnimations } from './animation-panel-helpers';
 	import {
 		PANEL_DIRECTION_OPTIONS,
@@ -47,6 +53,7 @@
 	import { startAnimationPreview } from './animation-preview-control';
 	import AnimationTimelineSection from './AnimationTimelineSection.svelte';
 	import AnimationTimingFields from './AnimationTimingFields.svelte';
+	import EffectSoundRow from './EffectSoundRow.svelte';
 	import MotionPathRow from './MotionPathRow.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
@@ -59,6 +66,7 @@
 	const hasAnim = $derived(el ? hasAnimation(anims, el.id) : false);
 	const showDirection = $derived(el ? showDirectionPicker(anims, el.id) : false);
 	const canEdit = $derived(editor.editable);
+	const soundState = $derived(el ? getEffectSoundState(anims, el.id) : { hasSound: false });
 
 	function commit(next: PptxElementAnimation[]): void {
 		if (canEdit) {
@@ -100,6 +108,27 @@
 				? clearMotionPath(anims, el.id)
 				: applyMotionPathPreset(anims, el.id, presetId),
 		);
+	}
+
+	function onEffectSoundPick(pick: { dataUrl: string; fileName?: string } | undefined): void {
+		if (!el) {
+			return;
+		}
+		commit(setEffectSound(anims, el.id, pick));
+	}
+
+	function onAfterAnimationChange(action: PptxAfterAnimationAction): void {
+		if (!el) {
+			return;
+		}
+		commit(setAfterAnimation(anims, el.id, action));
+	}
+
+	function onAfterAnimationColorChange(color: string): void {
+		if (!el) {
+			return;
+		}
+		commit(setAfterAnimationColor(anims, el.id, color));
 	}
 </script>
 
@@ -166,6 +195,15 @@
 					{#each PANEL_SEQUENCE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}
 				</select>
 			</label>
+
+			<EffectSoundRow {soundState} {canEdit} onpick={onEffectSoundPick} />
+			<AfterAnimationRow
+				action={anim?.afterAnimation ?? 'none'}
+				color={anim?.afterAnimationColor}
+				{canEdit}
+				onaction={onAfterAnimationChange}
+				oncolor={onAfterAnimationColorChange}
+			/>
 
 			<AnimationTimingFields {editor} />
 		{/if}

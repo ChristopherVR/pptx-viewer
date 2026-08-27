@@ -656,4 +656,19 @@ export interface PptxElementAnimation {
 	soundPath?: string;
 	/** Whether to stop any currently playing sound (`p:endSnd`). */
 	stopSound?: boolean;
+	/**
+	 * Pending, not-yet-embedded sound chosen in the authoring UI, as a
+	 * `data:audio/...;base64,...` URL. Mirrors the `imageData` /
+	 * `mediaData` pending-embed convention used elsewhere in the typed model:
+	 * on save, the writer converts this to real bytes under `ppt/media/`,
+	 * mints a relationship, and replaces this field with the resolved
+	 * {@link soundRId} / {@link soundPath}. Cleared once embedded.
+	 */
+	soundData?: string;
+	/**
+	 * Display name for the chosen sound (e.g. the uploaded file's name),
+	 * shown by the authoring UI's sound picker. Purely cosmetic; has no
+	 * OOXML equivalent and is not required for playback.
+	 */
+	soundFileName?: string;
 }

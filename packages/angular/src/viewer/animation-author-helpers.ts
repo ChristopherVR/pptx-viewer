@@ -24,20 +24,25 @@ import type {
 
 // ── Pure authoring functions (consolidated in shared) ──
 export {
+	AFTER_ANIMATION_VALUES,
 	animationFor,
 	applyAnimationPreset,
 	DIRECTIONAL_PRESETS,
+	getEffectSoundState,
 	hasAnimation,
 	removeAnimation,
 	removeElementAnimation,
 	reorderAnimationDown,
 	reorderAnimationUp,
+	setAfterAnimation,
+	setAfterAnimationColor,
 	setAnimationEmphasis,
 	setAnimationEntrance,
 	setAnimationExit,
 	setDelay,
 	setDirection,
 	setDuration,
+	setEffectSound,
 	setRepeatCount,
 	setRepeatMode,
 	setSequence,
@@ -46,7 +51,7 @@ export {
 	setTriggerShapeId,
 	showDirectionPicker,
 } from '../internal/shared';
-export type { AnimationGroup } from '../internal/shared';
+export type { AnimationGroup, EffectSoundState } from '../internal/shared';
 
 // ==========================================================================
 // Option catalogs (Angular display labels: view metadata, not shared)

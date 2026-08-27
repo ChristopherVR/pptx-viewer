@@ -11,6 +11,7 @@ function makeHandlers() {
 		setAnimationEffect: vi.fn<InspectorHandlers['setAnimationEffect']>(),
 		applyMotionPath: vi.fn<InspectorHandlers['applyMotionPath']>(),
 		setAnimationTiming: vi.fn<InspectorHandlers['setAnimationTiming']>(),
+		setAnimationSound: vi.fn<InspectorHandlers['setAnimationSound']>(),
 		reorderAnimation: vi.fn<InspectorHandlers['reorderAnimation']>(),
 	};
 }

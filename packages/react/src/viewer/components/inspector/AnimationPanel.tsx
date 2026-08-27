@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LuPlay } from 'react-icons/lu';
 
 import { cn, getElementLabel } from '../../utils';
+import { AfterAnimationRow } from './AfterAnimationRow';
 import {
 	INPUT_CLS,
 	SELECT_CLS,
@@ -17,6 +18,7 @@ import {
 	SEQUENCE_OPTIONS,
 } from './animation-panel-constants';
 import { AnimationTimelineSection } from './AnimationTimelineSection';
+import { EffectSoundRow } from './EffectSoundRow';
 import { MotionPathRow } from './MotionPathRow';
 import { useAnimationHandlers } from './useAnimationHandlers';
 
@@ -86,6 +88,10 @@ export function AnimationPanel({
 		handleDirectionChange,
 		handleSequenceChange,
 		handleMotionPathChange,
+		effectSoundState,
+		handleEffectSoundPick,
+		handleAfterAnimationChange,
+		handleAfterAnimationColorChange,
 		handlePreviewClick,
 	} = handlers;
 
@@ -226,6 +232,22 @@ export function AnimationPanel({
 							))}
 						</select>
 					</label>
+
+					{/* Effect sound + after animation, on their own divider like PowerPoint's Effect Options */}
+					<div className='pt-1 border-t border-border flex flex-col gap-2'>
+						<EffectSoundRow
+							soundState={effectSoundState}
+							canEdit={canEdit}
+							onPick={handleEffectSoundPick}
+						/>
+						<AfterAnimationRow
+							action={selectedElementAnimation?.afterAnimation ?? 'none'}
+							color={selectedElementAnimation?.afterAnimationColor}
+							canEdit={canEdit}
+							onActionChange={handleAfterAnimationChange}
+							onColorChange={handleAfterAnimationColorChange}
+						/>
+					</div>
 
 					<div className='text-[11px] uppercase tracking-wide text-muted-foreground pt-1 border-t border-border'>
 						{t('pptx.animation.timing')}
