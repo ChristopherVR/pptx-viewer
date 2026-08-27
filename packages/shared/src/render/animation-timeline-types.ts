@@ -221,6 +221,15 @@ export interface TimelineStep {
 	 * left on the original step afterward purely as informational metadata.
 	 */
 	pendingHideOnNextClick?: boolean;
+	/**
+	 * Id of the `p:excl` container this step's effect belongs to, when it is
+	 * inside one (ECMA-376 S19.5.24 CT_TLExclusiveTimeNode: at most one direct
+	 * child of an exclusive container plays at a time). {@link TimelineEngine}
+	 * uses this to stop any other element's currently-running animation that
+	 * shares the same id when this step starts. Absent for steps outside any
+	 * exclusive container.
+	 */
+	exclGroupId?: number;
 }
 
 /** A group of animation steps that play on a single click/advance action. */

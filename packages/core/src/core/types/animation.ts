@@ -339,6 +339,17 @@ export interface PptxNativeAnimation {
 	textTarget?: PptxTextAnimationTarget;
 	/** Whether this animation is inside an exclusive container (`p:excl`). */
 	exclusive?: boolean;
+	/**
+	 * Identifies which `p:excl` container this animation belongs to, when
+	 * {@link exclusive} is set. ECMA-376 S19.5.24 CT_TLExclusiveTimeNode: at
+	 * most one direct child of an exclusive container may be active at a
+	 * time, so starting one child stops any other currently-playing child of
+	 * the SAME container. Two different `p:excl` containers on the same slide
+	 * are independent groups; this id (assigned per container encountered
+	 * during parsing, stable only within one parse's animation list) lets
+	 * playback tell them apart. Absent when {@link exclusive} is unset.
+	 */
+	exclGroupId?: number;
 	/** Command type from `p:cmd` (@_type: call/evt/verb). */
 	commandType?: string;
 	/** Command string from `p:cmd` (@_cmd). */

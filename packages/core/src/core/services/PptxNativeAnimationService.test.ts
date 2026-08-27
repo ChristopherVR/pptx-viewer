@@ -786,6 +786,91 @@ describe('pptxNativeAnimationService', () => {
 			expect(result![0].exclusive).toBeTruthy();
 		});
 
+		it('gives siblings of the same p:excl container the same exclGroupId, and a different container a different one', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:excl': [
+									{
+										'p:cTn': {
+											'@_id': '2',
+											'p:childTnLst': {
+												'p:par': [
+													{
+														'p:cTn': {
+															'@_id': '3',
+															'@_presetID': '10',
+															'@_presetClass': 'entr',
+															'@_dur': '500',
+															'p:childTnLst': {
+																'p:animEffect': {
+																	'p:cBhvr': {
+																		'p:tgtEl': { 'p:spTgt': { '@_spid': 'exclA1' } },
+																	},
+																},
+															},
+														},
+													},
+													{
+														'p:cTn': {
+															'@_id': '4',
+															'@_presetID': '10',
+															'@_presetClass': 'entr',
+															'@_dur': '500',
+															'p:childTnLst': {
+																'p:animEffect': {
+																	'p:cBhvr': {
+																		'p:tgtEl': { 'p:spTgt': { '@_spid': 'exclA2' } },
+																	},
+																},
+															},
+														},
+													},
+												],
+											},
+										},
+									},
+									{
+										'p:cTn': {
+											'@_id': '5',
+											'@_presetID': '10',
+											'@_presetClass': 'entr',
+											'@_dur': '500',
+											'p:childTnLst': {
+												'p:animEffect': {
+													'p:cBhvr': {
+														'p:tgtEl': { 'p:spTgt': { '@_spid': 'exclB1' } },
+													},
+												},
+											},
+										},
+									},
+								],
+							},
+						},
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			const byShape = new Map(result!.map((a) => [a.targetId, a]));
+			const a1 = byShape.get('exclA1');
+			const a2 = byShape.get('exclA2');
+			const b1 = byShape.get('exclB1');
+			expect(a1?.exclusive).toBeTruthy();
+			expect(a2?.exclusive).toBeTruthy();
+			expect(b1?.exclusive).toBeTruthy();
+			expect(a1?.exclGroupId).toBeDefined();
+			expect(a1?.exclGroupId).toBe(a2?.exclGroupId);
+			expect(b1?.exclGroupId).toBeDefined();
+			expect(b1?.exclGroupId).not.toBe(a1?.exclGroupId);
+		});
+
 		it('extracts text target from p:animEffect with p:txEl', () => {
 			const slideXml = buildSlideXmlWithTiming({
 				'p:tnLst': {

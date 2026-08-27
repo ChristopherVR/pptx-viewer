@@ -87,6 +87,16 @@ export interface IPptxNativeAnimationService {
  */
 export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	/**
+	 * Assigns each `p:excl` container encountered while walking one slide's
+	 * timing tree its own id, so playback can tell two independent exclusive
+	 * groups apart (see {@link PptxNativeAnimation.exclGroupId}). Reset at the
+	 * start of every {@link parseNativeAnimations} call; this service instance
+	 * is reused across slides, and ids only need to be unique within one
+	 * slide's own animation list.
+	 */
+	private exclGroupSeq = 0;
+
+	/**
 	 * Parse native OOXML animations from a slide's timing tree.
 	 *
 	 * Extracts the `p:timing/p:tnLst` structure, recursively walks the nested
@@ -98,6 +108,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	 *          timing data or parsing fails.
 	 */
 	public parseNativeAnimations(slideXml: XmlObject): PptxNativeAnimation[] | undefined {
+		this.exclGroupSeq = 0;
 		try {
 			// `resolveSlideTimingNode` also finds a `p:timing` wrapped in a
 			// slide-root `mc:AlternateContent` envelope (issue #132 deck).
@@ -405,8 +416,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				for (const excl of exclusives) {
 					const exclAnims: PptxNativeAnimation[] = [];
 					this.walkTimingTree(excl, exclAnims, trigger, group);
+					const exclGroupId = this.exclGroupSeq++;
 					for (const a of exclAnims) {
 						a.exclusive = true;
+						a.exclGroupId = exclGroupId;
 						animations.push(a);
 					}
 				}

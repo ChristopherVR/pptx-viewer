@@ -7,6 +7,8 @@
 
 import type { PptxNativeAnimation, PptxTextBuildType } from 'pptx-viewer-core';
 
+import { DEFAULT_BUILD_LEVEL, groupParagraphsByBuildLevel } from './animation-timeline-build-level';
+
 // ==========================================================================
 // Text-build segment counts
 // ==========================================================================
@@ -19,22 +21,40 @@ export interface TextBuildSegmentCounts {
 	wordCounts?: number[];
 	/** Number of characters per paragraph (undefined when not needed). */
 	charCounts?: number[];
+	/**
+	 * 0-based outline level per paragraph (`a:p/@lvl`, `TextSegment.paragraphLevel`),
+	 * used by a `bldLvl`-aware "by paragraph" build to decide which paragraphs
+	 * open their own click step. Absent entries default to level 0.
+	 */
+	paragraphLevels?: number[];
 }
 
 /**
  * Count paragraphs, words and characters from an element's text segments.
- * Paragraph boundaries are segments whose text is exactly `"\n"`.
+ * Paragraph boundaries are segments whose text is exactly `"\n"`. A
+ * paragraph's outline level comes from its first segment's
+ * `paragraphLevel` (mirroring the `bulletInfo` convention), defaulting to 0.
  */
 export function countTextSegments(
-	textSegments: ReadonlyArray<{ text: string }>,
+	textSegments: ReadonlyArray<{ text: string; paragraphLevel?: number }>,
 ): TextBuildSegmentCounts {
 	const paragraphs: string[] = [''];
+	const paragraphLevels: number[] = [];
+	let atParagraphStart = true;
 	for (const seg of textSegments) {
+		if (atParagraphStart) {
+			paragraphLevels.push(seg.paragraphLevel ?? 0);
+			atParagraphStart = false;
+		}
 		if (seg.text === '\n') {
 			paragraphs.push('');
+			atParagraphStart = true;
 		} else {
 			paragraphs[paragraphs.length - 1] += seg.text;
 		}
+	}
+	while (paragraphLevels.length < paragraphs.length) {
+		paragraphLevels.push(0);
 	}
 
 	const wordCounts = paragraphs.map((p) => p.trim().split(/\s+/u).filter(Boolean).length);
@@ -44,6 +64,7 @@ export function countTextSegments(
 		paragraphCount: paragraphs.length,
 		wordCounts,
 		charCounts,
+		paragraphLevels,
 	};
 }
 
@@ -291,27 +312,54 @@ function expandSingleBuildAnimation(
 	if (buildType === 'byParagraph') {
 		// A by-paragraph build whose effect also iterates by letter / word still
 		// ripples inside each paragraph; only the step boundaries are paragraphs.
+		// (`p:bldP/@bldLvl` grouping below is not composed with this rarer
+		// combination: every paragraph still opens its own click here.)
 		const granularity = iterateGranularity(anim);
 		if (granularity) {
 			emitStaggeredPieces(anim, granularity, counts, output, true);
 			return;
 		}
-		// `p:bldP/@rev` reverses the paragraph REVEAL order (last paragraph
-		// first) while each step still targets its original paragraph index.
-		const reversed = anim.buildReverse === true;
-		for (let step = 0; step < counts.paragraphCount; step++) {
-			const i = reversed ? counts.paragraphCount - 1 - step : step;
-			const isFirstStep = step === 0;
+		// `p:bldP/@bldLvl` ("Group text: By Nth Level Paragraphs") groups a
+		// top-level paragraph with its nested sub-bullets into ONE click step
+		// instead of giving every paragraph its own click, regardless of
+		// outline depth.
+		const levels = counts.paragraphLevels ?? new Array<number>(counts.paragraphCount).fill(0);
+		const groups = groupParagraphsByBuildLevel(levels, anim.buildLevel ?? DEFAULT_BUILD_LEVEL);
+		// `p:bldP/@rev` reverses the GROUP reveal order (last group first);
+		// a group's own members stay in their original ascending order.
+		const orderedGroups = anim.buildReverse === true ? [...groups].reverse() : groups;
+
+		let isFirstStep = true;
+		for (const members of orderedGroups) {
+			const [opener, ...rest] = members;
 			const next = isFirstStep ? undefined : nextBuildStepTrigger(anim.buildAdvAutoMs);
 			output.push({
 				...anim,
-				targetId: `${targetId}${TEXT_BUILD_ID_SEP}p${i}`,
+				targetId: `${targetId}${TEXT_BUILD_ID_SEP}p${opener}`,
 				trigger: isFirstStep ? anim.trigger : next!.trigger,
 				triggerDelayMs: isFirstStep ? anim.triggerDelayMs : next!.triggerDelayMs,
 				buildType: undefined,
 				buildReverse: undefined,
 				buildAdvAutoMs: undefined,
+				buildLevel: undefined,
 			});
+			// Sub-level paragraphs grouped with `opener` reveal WITH it, on the
+			// same click, rather than needing their own advance.
+			for (const paraIndex of rest) {
+				output.push({
+					...anim,
+					targetId: `${targetId}${TEXT_BUILD_ID_SEP}p${paraIndex}`,
+					trigger: 'withPrevious',
+					triggerDelayMs: undefined,
+					startConditions: undefined,
+					parGroupIndex: undefined,
+					buildType: undefined,
+					buildReverse: undefined,
+					buildAdvAutoMs: undefined,
+					buildLevel: undefined,
+				});
+			}
+			isFirstStep = false;
 		}
 		return;
 	}

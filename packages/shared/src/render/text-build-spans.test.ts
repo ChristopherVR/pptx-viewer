@@ -71,6 +71,29 @@ describe('buildTextBuildSpec', () => {
 		});
 	});
 
+	it('splits per character even when the FIRST animated index is not 0 (a p:txEl/charRg scoped mid-paragraph)', () => {
+		// Only characters 2 and 3 of "Hi there" carry a state, as a p:charRg
+		// range [2, 4) would produce (see animation-timeline-text-range).
+		const spec = buildTextBuildSpec(
+			'el',
+			0,
+			[{ text: 'Hi there' }],
+			states({ 'el::c0-2': { visible: false }, 'el::c0-3': { cssAnimation: 'fade 400ms' } }),
+		);
+		expect(spec?.granularity).toBe('char');
+		expect(spec?.spans).toHaveLength('Hi there'.length);
+		// Untargeted characters render normally: visible, no animation.
+		expect(spec?.spans?.[0]).toStrictEqual({
+			animId: 'el::c0-0',
+			text: 'H',
+			hidden: false,
+			cssAnimation: undefined,
+			style: undefined,
+		});
+		expect(spec?.spans?.[2].hidden).toBeTruthy();
+		expect(spec?.spans?.[3].cssAnimation).toBe('fade 400ms');
+	});
+
 	it('keys spans by the paragraph index they belong to', () => {
 		const spec = buildTextBuildSpec('el', 3, [{ text: 'ab' }], states({ 'el::c3-0': {} }));
 		expect(spec?.spans?.map((s) => s.animId)).toStrictEqual(['el::c3-0', 'el::c3-1']);

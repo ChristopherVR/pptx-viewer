@@ -67,6 +67,14 @@ export class TimelineEngine {
 	 * (keyed by trigger shape ID).
 	 */
 	private readonly hoverGroupIndexes: Map<string, number>;
+	/**
+	 * Tracks which element currently "holds" each `p:excl` group (exclGroupId
+	 * -> elementId). When a new exclusive step starts, any other element
+	 * holding the SAME group has its running animation stopped: ECMA-376
+	 * S19.5.24 CT_TLExclusiveTimeNode allows at most one child of an
+	 * exclusive container to play at a time.
+	 */
+	private readonly exclusiveHolders: Map<number, string>;
 
 	public constructor(timeline: AnimationTimeline) {
 		this.timeline = timeline;
@@ -77,6 +85,7 @@ export class TimelineEngine {
 		this.exitedElements = new Set();
 		this.interactiveGroupIndexes = new Map();
 		this.hoverGroupIndexes = new Map();
+		this.exclusiveHolders = new Map();
 	}
 
 	/** Build a TimelineEngine from a slide's native animations. */
@@ -333,6 +342,7 @@ export class TimelineEngine {
 		this.exitedElements.clear();
 		this.interactiveGroupIndexes.clear();
 		this.hoverGroupIndexes.clear();
+		this.exclusiveHolders.clear();
 	}
 
 	/**
@@ -340,6 +350,20 @@ export class TimelineEngine {
 	 */
 	private applyGroupSteps(group: TimelineClickGroup): void {
 		for (const step of group.steps) {
+			if (step.exclGroupId !== undefined) {
+				const holder = this.exclusiveHolders.get(step.exclGroupId);
+				// Starting this effect stops any OTHER element's currently-running
+				// effect from the same `p:excl` container (CT_TLExclusiveTimeNode
+				// allows only one active child at a time). The held element's
+				// visibility/build bookkeeping is untouched: an emphasis stopping
+				// mid-loop just leaves the element in its resting appearance, it
+				// does not re-hide an entrance or undo a completed exit.
+				if (holder !== undefined && holder !== step.elementId) {
+					this.activeAnimations.delete(holder);
+				}
+				this.exclusiveHolders.set(step.exclGroupId, step.elementId);
+			}
+
 			this.activeAnimations.set(step.elementId, step.cssAnimation);
 			if (step.build || step.colorTargets) {
 				this.activeSteps.set(step.elementId, step);

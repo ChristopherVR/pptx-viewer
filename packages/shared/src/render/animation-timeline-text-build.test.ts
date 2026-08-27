@@ -129,6 +129,92 @@ describe('expandTextBuildAnimations', () => {
 		expect(result[2].trigger).toBe('onClick');
 	});
 
+	it('should group a top-level paragraph with its nested sub-bullets under the default bldLvl (1)', () => {
+		// title(0, level0), sub(1, level1), sub(2, level1), title(3, level0)
+		const nestedCounts = new Map([
+			[
+				'shape1',
+				{
+					paragraphCount: 4,
+					wordCounts: [1, 1, 1, 1],
+					charCounts: [5, 5, 5, 5],
+					paragraphLevels: [0, 1, 1, 0],
+				},
+			],
+		]);
+		const anim = { ...baseAnim, buildType: 'byParagraph' as const };
+		const result = expandTextBuildAnimations([anim], nestedCounts);
+		// Every paragraph still gets its own sub-animation (so each can be
+		// addressed/rendered independently), but only TWO of them open a new
+		// click: {0,1,2} reveal together, {3} is its own step.
+		expect(result).toHaveLength(4);
+		expect(result.map((r) => r.targetId)).toStrictEqual([
+			'shape1::p0',
+			'shape1::p1',
+			'shape1::p2',
+			'shape1::p3',
+		]);
+		expect(result.map((r) => r.trigger)).toStrictEqual([
+			'onClick',
+			'withPrevious',
+			'withPrevious',
+			'onClick',
+		]);
+	});
+
+	it('should reveal sub-bullets WITH their parent paragraph, on the same click (bldLvl=1)', () => {
+		const nestedCounts = new Map([
+			[
+				'shape1',
+				{
+					paragraphCount: 3,
+					wordCounts: [1, 1, 1],
+					charCounts: [5, 5, 5],
+					paragraphLevels: [0, 1, 1],
+				},
+			],
+		]);
+		const anim = { ...baseAnim, buildType: 'byParagraph' as const };
+		const result = expandTextBuildAnimations([anim], nestedCounts);
+		expect(result).toHaveLength(3);
+		expect(result.map((r) => r.targetId)).toStrictEqual(['shape1::p0', 'shape1::p1', 'shape1::p2']);
+		// The opener is the original trigger; the grouped sub-bullets ride along
+		// on the SAME click via withPrevious, not their own onClick.
+		expect(result[0].trigger).toBe('onClick');
+		expect(result[1].trigger).toBe('withPrevious');
+		expect(result[2].trigger).toBe('withPrevious');
+	});
+
+	it('should honour an explicit bldLvl=2 ("By 2nd Level Paragraphs")', () => {
+		// title(0,lvl0), sub(1,lvl1), subsub(2,lvl2), sub(3,lvl1)
+		const nestedCounts = new Map([
+			[
+				'shape1',
+				{
+					paragraphCount: 4,
+					wordCounts: [1, 1, 1, 1],
+					charCounts: [5, 5, 5, 5],
+					paragraphLevels: [0, 1, 2, 1],
+				},
+			],
+		]);
+		const anim = { ...baseAnim, buildType: 'byParagraph' as const, buildLevel: 2 };
+		const result = expandTextBuildAnimations([anim], nestedCounts);
+		// Level-1 paragraphs now ALSO open their own step: {0}, {1,2}, {3}.
+		expect(result.map((r) => r.targetId)).toStrictEqual([
+			'shape1::p0',
+			'shape1::p1',
+			'shape1::p2',
+			'shape1::p3',
+		]);
+		expect(result.map((r) => r.trigger)).toStrictEqual([
+			'onClick',
+			'onClick',
+			'withPrevious',
+			'onClick',
+		]);
+	});
+
 	it('should expand byWord into one animation per word across all paragraphs', () => {
 		const anim = { ...baseAnim, buildType: 'byWord' as const };
 		const result = expandTextBuildAnimations([anim], segmentCounts);

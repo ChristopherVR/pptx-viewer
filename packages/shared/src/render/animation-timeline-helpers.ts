@@ -24,6 +24,10 @@ import {
 	FLY_SUBTYPE_TO_EDGE,
 	PRESET_ID_TO_EFFECT,
 } from './animation-presets';
+import {
+	buildAbsoluteRotationKeyframe,
+	buildAbsoluteScaleKeyframe,
+} from './animation-timeline-absolute';
 import type {
 	AnimationStep,
 	EffectName,
@@ -155,7 +159,7 @@ export function buildDynamicKeyframes(
 		};
 	}
 
-	// Rotation animation
+	// Rotation animation (relative `@by`, then absolute `from`/`to`)
 	if (anim.rotationBy !== undefined) {
 		const name = `pptx-rotateBy-${uid}`;
 		const deg = anim.rotationBy;
@@ -164,8 +168,12 @@ export function buildDynamicKeyframes(
 			css: `@keyframes ${name} {\n\tfrom { transform: rotate(0deg); }\n\tto { transform: rotate(${deg}deg); }\n}`,
 		};
 	}
+	const absoluteRotate = buildAbsoluteRotationKeyframe(anim, 'pptx-rotateAbs', uid);
+	if (absoluteRotate) {
+		return absoluteRotate;
+	}
 
-	// Scale animation
+	// Scale animation (relative `@by`, then absolute `from`/`to`)
 	if (anim.scaleByX !== undefined || anim.scaleByY !== undefined) {
 		const name = `pptx-scaleBy-${uid}`;
 		const sx = anim.scaleByX ?? 1;
@@ -174,6 +182,10 @@ export function buildDynamicKeyframes(
 			keyframeName: name,
 			css: `@keyframes ${name} {\n\tfrom { transform: scale(1); }\n\tto { transform: scale(${sx}, ${sy}); }\n}`,
 		};
+	}
+	const absoluteScale = buildAbsoluteScaleKeyframe(anim, 'pptx-scaleAbs', uid);
+	if (absoluteScale) {
+		return absoluteScale;
 	}
 
 	// Color animation (p:animClr)
@@ -245,6 +257,10 @@ export function buildDynamicKeyframe(
 			css: `@keyframes ${name} {\n\tfrom { transform: rotate(0deg); }\n\tto { transform: rotate(${anim.rotationBy}deg); }\n}`,
 		};
 	}
+	const absoluteRotate = buildAbsoluteRotationKeyframe(anim, 'pptx-tl-rotateAbs', uid);
+	if (absoluteRotate) {
+		return absoluteRotate;
+	}
 	if (anim.scaleByX !== undefined || anim.scaleByY !== undefined) {
 		const name = `pptx-tl-scale-${uid}`;
 		const sx = anim.scaleByX ?? 1;
@@ -253,6 +269,10 @@ export function buildDynamicKeyframe(
 			keyframeName: name,
 			css: `@keyframes ${name} {\n\tfrom { transform: scale(1); }\n\tto { transform: scale(${sx}, ${sy}); }\n}`,
 		};
+	}
+	const absoluteScale = buildAbsoluteScaleKeyframe(anim, 'pptx-tl-scaleAbs', uid);
+	if (absoluteScale) {
+		return absoluteScale;
 	}
 	// Color animation (p:animClr)
 	if (anim.colorAnimation) {

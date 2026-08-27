@@ -20,6 +20,7 @@ import { resolveEffectTiming } from './animation-fill-repeat';
 import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
+import { buildOpacityTavKeyframe } from './animation-timeline-absolute';
 import {
 	resolveEffect,
 	buildDynamicKeyframe,
@@ -194,6 +195,20 @@ export function buildTimeline(
 		for (const singleAnim of expandedSteps) {
 			let effect = resolveEffect(singleAnim);
 			let dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
+			// A real `p:tavLst` keyframe list on an emphasis effect (e.g.
+			// PowerPoint's "Transparency") carries the AUTHORED opacity ramp;
+			// prefer it over the canned 2/3-stop static effect so a custom fade
+			// timing/curve is actually honoured. Only fires for 'transparency'
+			// (known opacity effect) or an unmapped emphasis (already falling
+			// back to `dynamic`), never for an unrelated static effect.
+			if (effect === 'transparency' || !effect) {
+				const tavOpacity = buildOpacityTavKeyframe(singleAnim, 'pptx-tl-tav', dynamicUid);
+				if (tavOpacity) {
+					dynamic = tavOpacity;
+					effect = undefined;
+					dynamicUid++;
+				}
+			}
 			// Directional non-fly entrance/exit (wipe / split / blinds / peek):
 			// honour `presetSubtype` by swapping the fixed-direction static effect
 			// for a direction-aware clip-path keyframe. Fly is already redirected
@@ -376,6 +391,7 @@ export function buildTimeline(
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+				exclGroupId: singleAnim.exclGroupId,
 			});
 		}
 	}
@@ -496,7 +512,18 @@ function buildSequenceGroups(
 
 		for (const anim of anims) {
 			let effect = resolveEffect(anim);
-			const dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
+			let dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
+			// Same authored-tavLst-over-canned-default preference as the main
+			// click-group loop (see the comment there for why it's gated to
+			// 'transparency' / unmapped emphasis effects only).
+			if (effect === 'transparency' || !effect) {
+				const tavOpacity = buildOpacityTavKeyframe(anim, 'pptx-tl-tav', dynamicUid);
+				if (tavOpacity) {
+					dynamic = tavOpacity;
+					effect = undefined;
+					dynamicUid++;
+				}
+			}
 			// An interactive sequence can hold a `p:cmd` media command just as the
 			// main sequence can (PowerPoint's "click the video to pause it" is
 			// authored exactly that way). Without this branch the step fell through
@@ -600,6 +627,7 @@ function buildSequenceGroups(
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+				exclGroupId: anim.exclGroupId,
 			});
 		}
 

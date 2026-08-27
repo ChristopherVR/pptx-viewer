@@ -162,7 +162,14 @@ export function buildTextBuildSpec<TStyle>(
 		return { granularity: 'word', spans };
 	}
 
-	if (states.has(`${elementId}${TEXT_BUILD_ID_SEP}c${paraIndex}-0`)) {
+	// Checks every index, not just `-0`: a plain `p:txEl/p:charRg` scope (see
+	// `animation-timeline-text-range`) can target a range that starts partway
+	// through a paragraph, so its FIRST synthesized state may land on any
+	// character index, not necessarily 0.
+	const hasCharBuild = characters.some((_, index) =>
+		states.has(`${elementId}${TEXT_BUILD_ID_SEP}c${paraIndex}-${index}`),
+	);
+	if (hasCharBuild) {
 		const spans = characters.map((entry, index) =>
 			stateSpan(
 				`${elementId}${TEXT_BUILD_ID_SEP}c${paraIndex}-${index}`,
