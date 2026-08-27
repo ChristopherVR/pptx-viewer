@@ -37,6 +37,10 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 			inkPaths: ['M0,0 L50,25 L100,10', 'M10,90 L80,40'],
 			inkColors: ['#112233', '#AABBCC'],
 			inkWidths: [2.5, 6],
+			inkPointPressures: [
+				[0.2, 0.6, 0.9],
+				[0.1, 0.95],
+			],
 		};
 		data.slides.push(createSlide('Blank').addElement(ink).build());
 
@@ -49,7 +53,7 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 		expect(inkPath).toBeTruthy();
 		const inkXml = await zip.file(inkPath!)!.async('string');
 
-		expect(slideXml).toContain('<mc:Choice Requires="a14"');
+		expect(slideXml).toContain('<mc:Choice Requires="p14"');
 		expect(slideXml).toContain('<p:contentPart r:id="');
 		expect(slideXml).toContain('<mc:Fallback>');
 		expect(slideXml).not.toContain('drawing/2010/ink');
@@ -60,6 +64,11 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 		expect(inkXml).toContain('<ink:trace');
 		expect(inkXml).toContain('value="#112233"');
 		expect(inkXml).toContain('value="#AABBCC"');
+		// Each drawn stroke gets its own brush (id `brush<n>`), which is what
+		// fixes the "multi-colour drawing collapses to the first stroke" gap:
+		// two brushes, one per stroke colour/width, instead of one shared `a:ln`.
+		expect(inkXml).toContain('id="brush1"');
+		expect(inkXml).toContain('id="brush2"');
 		const validation = await validatePptx(saved.buffer as ArrayBuffer);
 		if (!validation.valid) {
 			throw new Error(validation.issues.map((issue) => issue.message).join('\n'));
@@ -76,6 +85,13 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 		]);
 		expect(reloadedInk?.inkStrokes?.map((stroke) => stroke.color)).toStrictEqual(ink.inkColors);
 		expect(reloadedInk?.inkStrokes?.map((stroke) => stroke.width)).toStrictEqual(ink.inkWidths);
+		// Per-point pressure (the InkML `F` channel) is authored on save and
+		// decoded back on reload via the SAME decoder that reads a real
+		// PowerPoint-authored pen stroke, closing the "authored pressure is
+		// captured and rendered but not saved" gap.
+		expect(reloadedInk?.inkStrokes?.map((stroke) => stroke.pressures)).toStrictEqual(
+			ink.inkPointPressures,
+		);
 
 		// A second editor save must remain healthy: relationship and fallback
 		// reconstruction bugs often surface only after the first reload.

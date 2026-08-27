@@ -121,6 +121,45 @@ describe('pptxShapeIdValidator', () => {
 		expect(ids).not.toContain('0');
 	});
 
+	it('deduplicates a p14-qualified content-part id against an ordinary shape', () => {
+		// A real (and this project's own authored) `p:contentPart`'s non-visual
+		// id lives at `p14:nvContentPartPr/p14:cNvPr`, not the `p:`-qualified
+		// path. Missing that made this id invisible to the validator, so a
+		// freshly authored content part could silently collide with another
+		// shape's id and produce a package real PowerPoint's own reader
+		// rejects as corrupted (0x80070570).
+		const spTree: XmlObject = {
+			'p:sp': {
+				'p:nvSpPr': { 'p:cNvPr': { '@_id': '2', '@_name': 'Rectangle 1' } },
+			},
+			'mc:AlternateContent': {
+				'mc:Choice': {
+					'p:contentPart': {
+						'p14:nvContentPartPr': {
+							'p14:cNvPr': { '@_id': '2', '@_name': 'Ink 1' },
+						},
+					},
+				},
+				'mc:Fallback': {
+					'p:sp': {
+						'p:nvSpPr': { 'p:cNvPr': { '@_id': '3', '@_name': 'Ink fallback' } },
+					},
+				},
+			},
+		};
+		const result = validator.validateAndDeduplicateIds(spTree, ensureArray);
+		expect(result).toBe(1);
+
+		const alternate = spTree['mc:AlternateContent'] as XmlObject;
+		const choice = alternate['mc:Choice'] as XmlObject;
+		const contentPart = choice['p:contentPart'] as XmlObject;
+		const contentNv = contentPart['p14:nvContentPartPr'] as XmlObject;
+		const contentPartId = String((contentNv['p14:cNvPr'] as XmlObject)['@_id']);
+		// The ordinary shape (id 2) keeps its id; the content part's colliding
+		// id is the one reassigned.
+		expect(contentPartId).not.toBe('2');
+	});
+
 	it('should return 0 for empty spTree', () => {
 		const spTree: XmlObject = {};
 		const result = validator.validateAndDeduplicateIds(spTree, ensureArray);

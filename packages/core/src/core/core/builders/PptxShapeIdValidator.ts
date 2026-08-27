@@ -29,6 +29,18 @@ function collectCnvPrNodes(
 			results.push(nvNode['p:cNvPr'] as XmlObject);
 		}
 	}
+	// A real `p:contentPart`'s non-visual properties are `p14:`-qualified, not
+	// `p:`-qualified (verified against PowerPoint's own SaveAs output; see
+	// `mc-capabilities.ts`), so a content part's id lives at
+	// `p14:nvContentPartPr/p14:cNvPr`. Missing this left the id invisible to
+	// this validator: it could no longer detect (or dedupe) a collision
+	// between an authored content part and an ordinary shape, so a freshly
+	// drawn stroke could silently reuse another shape's id and produce a
+	// package PowerPoint's own reader rejects as corrupted.
+	const p14ContentPartNv = node['p14:nvContentPartPr'] as XmlObject | undefined;
+	if (p14ContentPartNv?.['p14:cNvPr']) {
+		results.push(p14ContentPartNv['p14:cNvPr'] as XmlObject);
+	}
 
 	// Recurse into shape lists
 	const shapeLists = ['p:sp', 'p:pic', 'p:cxnSp', 'p:graphicFrame', 'p:grpSp', 'p:contentPart'];
