@@ -50,6 +50,9 @@ const userName = resolveAutoName();
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
 // mirroring demo-vue's `App.vue`.
 const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
+// Opt in to the experimental Three.js interactive surface-chart renderer
+// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
+const surfaceChart3D = new URLSearchParams(window.location.search).get('surfaceChart3D') === '1';
 
 /** Apply theme vars to :root so the dropzone chrome tracks the theme. */
 function applyRootVars(): void {
@@ -151,6 +154,7 @@ function openViewer(
 		autosaveIntervalMs: 2000,
 		collaboration,
 		smartArt3D,
+		surfaceChart3D,
 		ai: buildViewerAiConfig(),
 		shareDefaults: { userName },
 		onError: (message, error) => {

@@ -78,6 +78,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					[filePath]="fileName() || undefined"
 					[autosaveIntervalMs]="2000"
 					[smartArt3D]="smartArt3D"
+					[surfaceChart3D]="surfaceChart3D"
 					[authorName]="autoName"
 					[shareDefaults]="{ roomId: autoRoomId, userName: autoName, serverUrl: defaultServerUrl }"
 					[collaboration]="collaborationConfig() ?? undefined"
@@ -110,6 +111,11 @@ export class AppComponent {
 	private readonly params = new URLSearchParams(window.location.search);
 	/** Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`. */
 	readonly smartArt3D = this.params.get('smartArt3D') === '1';
+	/**
+	 * Opt in to the experimental Three.js interactive surface-chart renderer
+	 * (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
+	 */
+	readonly surfaceChart3D = this.params.get('surfaceChart3D') === '1';
 	/** `?sample=1` auto-loads the bundled sample deck (docs landing embed). */
 	private readonly urlSample = this.params.get('sample') === '1';
 	readonly urlRoom = this.params.get('room');

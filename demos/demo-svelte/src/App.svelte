@@ -41,6 +41,9 @@
 	// (mirrors demo-vue/src/App.vue).
 	const params = new URLSearchParams(window.location.search);
 	const smartArt3D = params.get('smartArt3D') === '1';
+	// Opt in to the experimental Three.js interactive surface-chart renderer
+	// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
+	const surfaceChart3D = params.get('surfaceChart3D') === '1';
 	const audienceSession = parsePresentationSessionId(window.location.hash);
 	if (audienceSession) {
 		void loadPresentationDeck(audienceSession).then((content) => {
@@ -295,6 +298,7 @@
 			source={bytes}
 			locale={language.current}
 			{smartArt3D}
+			{surfaceChart3D}
 			editable
 			autosave
 			autosaveIntervalMs={2000}
