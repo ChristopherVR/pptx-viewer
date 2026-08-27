@@ -174,6 +174,90 @@ describe('smartArt relative constraint solver', () => {
 		expect(resolveConstraint(index, 'floor', 'w')).toBeCloseTo(0.2);
 	});
 
+	it('applies an lte bound against a value the reference DID resolve', () => {
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'diagram',
+				constraints: [
+					constr({ type: 'w', for: 'ch', forName: 'big', referenceType: 'w', factor: 0.9 }),
+					constr({
+						type: 'w',
+						for: 'ch',
+						forName: 'ceiling',
+						referenceFor: 'ch',
+						referenceForName: 'big',
+						operator: 'lte',
+						value: 0.5,
+					}),
+				],
+				children: [{ name: 'big' }, { name: 'ceiling' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		// big.w resolves to 0.9 (90% of the box); ceiling.w references it but is
+		// capped at 0.5, so the cap wins.
+		expect(resolveConstraint(index, 'big', 'w')).toBeCloseTo(0.9);
+		expect(resolveConstraint(index, 'ceiling', 'w')).toBeCloseTo(0.5);
+	});
+
+	it('an explicit equ op behaves like the default (no bound applied)', () => {
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'diagram',
+				constraints: [
+					constr({
+						type: 'h',
+						for: 'ch',
+						forName: 'node',
+						referenceType: 'w',
+						operator: 'equ',
+						factor: 0.75,
+					}),
+				],
+				children: [{ name: 'node' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		// referenceType "w" with no refFor falls back to the declaring node's
+		// (the root's) own w, which defaults to 1 (the whole box). "equ" carries
+		// no bound of its own, so the result is exactly referenced * fact.
+		expect(resolveConstraint(index, 'node', 'h')).toBeCloseTo(0.75);
+	});
+
+	it('gte/lte bounds compose across a multi-hop reference chain', () => {
+		// base -> scaled (0.2x base) -> clamped (lte 0.1 against scaled)
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'diagram',
+				constraints: [
+					constr({ type: 'w', for: 'ch', forName: 'base', referenceType: 'w', factor: 0.8 }),
+					constr({
+						type: 'w',
+						for: 'ch',
+						forName: 'scaled',
+						referenceFor: 'ch',
+						referenceForName: 'base',
+						factor: 0.2,
+					}),
+					constr({
+						type: 'w',
+						for: 'ch',
+						forName: 'clamped',
+						referenceFor: 'ch',
+						referenceForName: 'scaled',
+						operator: 'lte',
+						value: 0.1,
+					}),
+				],
+				children: [{ name: 'base' }, { name: 'scaled' }, { name: 'clamped' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		expect(resolveConstraint(index, 'base', 'w')).toBeCloseTo(0.8);
+		expect(resolveConstraint(index, 'scaled', 'w')).toBeCloseTo(0.16);
+		expect(resolveConstraint(index, 'clamped', 'w')).toBeCloseTo(0.1);
+	});
+
 	it('resolveRatioConstraint prefers an existing literal match over the graph', () => {
 		const definition: PptxSmartArtLayoutDefinition = {
 			rootNode: { name: 'diagram', children: [{ name: 'node' }] },
