@@ -89,6 +89,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			formatPainterActive: state.formatPainterSourceId !== null,
 			selectedElementId: state.selectedElementId ?? undefined,
 			animations: state.slides[state.currentSlide]?.animations ?? [],
+			animationTimelineAnchors: state.slides[state.currentSlide]?.animationTimelineAnchors ?? [],
 			layouts: collectLayoutOptions(state),
 			layoutPreviews: deps.layoutPreviews?.(),
 			currentLayoutPath: state.slides[state.currentSlide]?.layoutPath,

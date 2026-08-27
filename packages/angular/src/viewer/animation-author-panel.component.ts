@@ -28,9 +28,18 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { LucideArrowDown, LucideArrowUp, LucideX } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import type { PptxAnimationDirection, PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
+import type {
+	PptxAnimationDirection,
+	PptxAnimationTimelineAnchor,
+	PptxElement,
+	PptxElementAnimation,
+} from 'pptx-viewer-core';
 
-import { applyMotionPathPreset, clearMotionPath } from '../internal/shared';
+import {
+	applyMotionPathPreset,
+	clearMotionPath,
+	moveAnimationTimelineRowBy,
+} from '../internal/shared';
 import {
 	ANIMATION_NUMBER_SETTERS,
 	ANIMATION_SELECT_SETTERS,
@@ -51,8 +60,6 @@ import {
 	animationFor,
 	hasAnimation,
 	removeAnimation,
-	reorderAnimationDown,
-	reorderAnimationUp,
 	setDirection,
 	showDirectionPicker,
 } from './animation-author-helpers';
@@ -93,6 +100,8 @@ export class AnimationAuthorPanelComponent {
 	readonly animations = input.required<readonly PptxElementAnimation[]>();
 	/** Every element on the active slide, including elements with no animation. */
 	readonly slideElements = input<readonly PptxElement[]>([]);
+	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
+	readonly animationTimelineAnchors = input<readonly PptxAnimationTimelineAnchor[]>([]);
 
 	/**
 	 * Whether editing controls are enabled. When `false` all selects/inputs are
@@ -270,12 +279,29 @@ export class AnimationAuthorPanelComponent {
 
 	// ── Order controls ────────────────────────────────────────────────────────
 
+	/**
+	 * Move the selected element's own animation one step within the FULL
+	 * sequence (editor effects merged with the deck's read-only anchors), so
+	 * these can place it ahead of or behind a native effect, not just among
+	 * the effects this editor added.
+	 */
+	private moveOneStep(delta: -1 | 1): void {
+		this.emit(
+			moveAnimationTimelineRowBy(
+				this.animations(),
+				this.animationTimelineAnchors(),
+				this.element().id,
+				delta,
+			),
+		);
+	}
+
 	protected onMoveUp(): void {
-		this.emit(reorderAnimationUp(this.animations(), this.element().id));
+		this.moveOneStep(-1);
 	}
 
 	protected onMoveDown(): void {
-		this.emit(reorderAnimationDown(this.animations(), this.element().id));
+		this.moveOneStep(1);
 	}
 
 	// ── Remove ────────────────────────────────────────────────────────────────

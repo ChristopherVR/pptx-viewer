@@ -15,6 +15,7 @@ import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
 import { loadLegacyVmlDrawings } from '../utils/vml-drawing-loader';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
+import { computeAnimationTimelineOrder } from './animation-timeline-anchors';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
 
 export type {
@@ -274,22 +275,35 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const backgroundShowAnimation = params.extractBackgroundShowAnimation(slideXmlObj);
 			const showMasterPhAnim = params.extractShowMasterPhAnim(slideXmlObj);
 			const transition = params.parseSlideTransition(slideXmlObj, path);
-			const animations = params.parseEditorAnimations(slideXmlObj);
+			let animations = params.parseEditorAnimations(slideXmlObj);
 			const nativeAnimations = params.parseNativeAnimations(slideXmlObj, path);
+			const rawTiming = (slideXmlObj['p:sld'] as XmlObject | undefined)?.['p:timing'] as
+				| XmlObject
+				| undefined;
+			// Re-ground each editor animation's `order` in the live `p:timing`
+			// tree, and collect anchors for the deck's own (non-editor) effect
+			// groups, BEFORE the id-space rewrite below: both operate on the raw
+			// `spid` ownership keys the tree itself uses. Without this, `order`
+			// stays whatever a previous save's editor-only counter happened to
+			// record, which is not comparable to a native group's position, so
+			// the authoring UI could never place an effect relative to one.
+			let animationTimelineAnchors: PptxSlide['animationTimelineAnchors'];
+			if (rawTiming) {
+				const timeline = computeAnimationTimelineOrder(rawTiming, animations ?? []);
+				animations = timeline.animations;
+				animationTimelineAnchors = timeline.anchors.length > 0 ? timeline.anchors : undefined;
+			}
 			// Reconcile animation shape references (native cNvPr ids in
 			// `p:spTgt/@spid`) against the positional `element.id`s assigned on
 			// load, and stamp each element's `shapeId`. Without this the animation
 			// target ids never match any loaded element id, so nothing animates.
-			reconcileAnimationTargets(elements, nativeAnimations, animations);
+			reconcileAnimationTargets(elements, nativeAnimations, animations, animationTimelineAnchors);
 
 			// PowerPoint's Selection Pane eye toggle lives on `p:cNvPr/@hidden`.
 			// Lift it onto the model here rather than in each per-type parser: they
 			// all capture the whole shape node on `element.rawXml`, so one pass
 			// covers shapes, pictures, connectors, graphic frames and groups.
 			applyHiddenFlagFromRawXml(elements);
-			const rawTiming = (slideXmlObj['p:sld'] as XmlObject | undefined)?.['p:timing'] as
-				| XmlObject
-				| undefined;
 
 			// `<p:sp useBgFill="1">` paints the slide background, which is only
 			// resolvable now: it may be inherited from the layout or master.
@@ -338,6 +352,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				backgroundImage,
 				transition,
 				animations,
+				animationTimelineAnchors,
 				nativeAnimations,
 				rawTiming: rawTiming || undefined,
 				notes: notesResult.notes,

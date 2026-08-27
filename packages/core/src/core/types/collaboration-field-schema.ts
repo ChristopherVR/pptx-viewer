@@ -219,6 +219,7 @@ export const SLIDE_FIELD_KIND: Record<keyof PptxSlide, CollabFieldKind> = {
 	backgroundShadeToTitle: 'scalar',
 	transition: 'complex',
 	animations: 'complex',
+	animationTimelineAnchors: 'complex',
 	nativeAnimations: 'complex',
 	rawTiming: 'complex',
 	notes: 'scalar',

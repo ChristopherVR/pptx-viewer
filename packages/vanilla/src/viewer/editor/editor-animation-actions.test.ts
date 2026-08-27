@@ -1,4 +1,9 @@
-import type { PptxElement, PptxElementAnimation, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxAnimationTimelineAnchor,
+	PptxElement,
+	PptxElementAnimation,
+	PptxSlide,
+} from 'pptx-viewer-core';
 import { motionPathPresetById } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -266,6 +271,56 @@ describe('createAnimationActions', () => {
 				.sort((left, right) => left.order! - right.order!)
 				.map(({ elementId }) => elementId),
 		).toStrictEqual(['c', 'a', 'b']);
+	});
+
+	it('moves an editor-authored effect ahead of a deck-native anchor', () => {
+		const animations: PptxElementAnimation[] = [{ elementId: 'el1', entrance: 'fadeIn', order: 1 }];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a', [buildElement('el1')]),
+					animations,
+					animationTimelineAnchors: [
+						{ order: 0, targetIds: ['native-1'], presetClasses: ['entr'] },
+					] as PptxAnimationTimelineAnchor[],
+				},
+			],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.reorderAnimation('el1', 'up');
+
+		expect(store.get().slides[0].animations?.[0]).toMatchObject({ elementId: 'el1', order: 0 });
+	});
+
+	it('moveAnimation can drop an editor effect onto a native anchor slot', () => {
+		const animations: PptxElementAnimation[] = [{ elementId: 'el1', entrance: 'fadeIn', order: 1 }];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a', [buildElement('el1')]),
+					animations,
+					animationTimelineAnchors: [
+						{ order: 0, targetIds: ['native-1'], presetClasses: ['entr'] },
+					] as PptxAnimationTimelineAnchor[],
+				},
+			],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.moveAnimation('el1', 0);
+
+		expect(store.get().slides[0].animations?.[0]).toMatchObject({ elementId: 'el1', order: 0 });
 	});
 
 	it('applies, keeps, edits and clears a motion path on the selected element', () => {

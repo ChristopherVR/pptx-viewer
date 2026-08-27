@@ -9,7 +9,11 @@
 // Slide, presentation data, and export types
 // ==========================================================================
 
-import type { PptxElementAnimation, PptxNativeAnimation } from './animation';
+import type {
+	PptxAnimationTimelineAnchor,
+	PptxElementAnimation,
+	PptxNativeAnimation,
+} from './animation';
 import type { XmlObject, PptxDrawingGuide } from './common';
 import type { PptxElement } from './elements';
 import type { PptxEmbeddedFontList } from './embedded-font';
@@ -196,6 +200,13 @@ export interface PptxSlide {
 	backgroundShadeToTitle?: boolean;
 	transition?: PptxSlideTransition;
 	animations?: PptxElementAnimation[];
+	/**
+	 * Read-only anchors for the deck's own (non-editor-authored) effect
+	 * groups, merged with `animations` by the authoring UI so drag-to-reorder
+	 * can target any position in the full sequence. See
+	 * {@link PptxAnimationTimelineAnchor}.
+	 */
+	animationTimelineAnchors?: PptxAnimationTimelineAnchor[];
 	/** Native OOXML animation data parsed from `p:timing`. */
 	nativeAnimations?: PptxNativeAnimation[];
 	/** Preserved raw `p:timing` XML for lossless round-trip of native animations. */

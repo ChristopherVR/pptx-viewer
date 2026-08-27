@@ -95,6 +95,7 @@ svg[data-pptx-motion-path-overlay] [data-pptx-motion-path-handle] { pointer-even
 	background: color-mix(in srgb, var(--pptx-muted) 65%, transparent);
 }
 .pptxv-animation-timeline-row.is-selected { outline: 1px solid var(--pptx-ring); }
+.pptxv-animation-timeline-row.is-native { font-style: italic; opacity: 0.7; grid-template-columns: minmax(0, 1fr); }
 .pptxv-animation-timeline-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pptxv-animation-timing-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
 .pptxv-animation-timing-controls label { display: grid; gap: 2px; font-size: 11px; }

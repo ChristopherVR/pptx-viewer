@@ -2,6 +2,7 @@ import type {
 	PptxAnimationPreset,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
+	PptxAnimationTimelineAnchor,
 	PptxAnimationTimingCurve,
 	PptxAnimationTrigger,
 	PptxElement,
@@ -9,6 +10,7 @@ import type {
 } from 'pptx-viewer-core';
 import type { AnimationGroup } from 'pptx-viewer-shared';
 import {
+	buildAnimationTimelineRows,
 	DIRECTIONAL_PRESETS,
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
@@ -28,7 +30,12 @@ import {
 	DIRECTIONS,
 	REPEAT_MODES,
 } from './animation-panel-fields';
-import { elementDisplayLabel, renderOrderRow, renderTimelineBar } from './animation-panel-parts';
+import {
+	elementDisplayLabel,
+	renderNativeOrderRow,
+	renderOrderRow,
+	renderTimelineBar,
+} from './animation-panel-parts';
 import { createMotionPathRow } from './motion-path-row';
 import type { InspectorHandlers } from './types';
 
@@ -38,6 +45,8 @@ export interface AnimationPanelState {
 	selectedElementId: string | undefined;
 	elements: readonly PptxElement[];
 	animations: readonly PptxElementAnimation[];
+	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
+	animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
 }
 
 export interface AnimationPanel {
@@ -274,22 +283,34 @@ export function createAnimationPanel(
 			duration.disabled = delay.disabled = repeatCount.disabled = !state.editable;
 
 			const ordered = [...state.animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-			timeline.hidden = ordered.length === 0;
+			// Merges the editor's own animations with the deck's read-only native
+			// anchors into one full-sequence timeline.
+			const rows = buildAnimationTimelineRows(ordered, state.animationTimelineAnchors ?? []);
+			const animationByElementId = new Map(ordered.map((entry) => [entry.elementId, entry]));
+			timeline.hidden = rows.length === 0;
 			renderTimelineBar(doc, t, bar, ordered, state.elements, state.selectedElementId);
 			list.replaceChildren(
-				...ordered.map((entry, index) =>
-					renderOrderRow(
-						doc,
-						t,
-						entry,
-						index,
-						ordered.length,
-						state.elements,
-						state.selectedElementId,
-						state.editable,
-						handlers.reorderAnimation,
-					),
-				),
+				...rows.flatMap((row, index) => {
+					if (row.kind === 'native') {
+						return [renderNativeOrderRow(doc, t, row.targetIds, index, state.elements)];
+					}
+					const entry = animationByElementId.get(row.elementId);
+					return entry
+						? [
+								renderOrderRow(
+									doc,
+									t,
+									entry,
+									index,
+									rows.length,
+									state.elements,
+									state.selectedElementId,
+									state.editable,
+									handlers.reorderAnimation,
+								),
+							]
+						: [];
+				}),
 			);
 		},
 	};

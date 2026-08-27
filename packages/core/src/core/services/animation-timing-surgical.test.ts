@@ -129,6 +129,43 @@ function getEffectCTn(tree: XmlObject): XmlObject {
 	return collectEffectCTns(tree)[0]!;
 }
 
+/** Every `@_presetID` anywhere in an arbitrary subtree, for containment checks. */
+function presetIdsIn(subtree: unknown): string[] {
+	const out: string[] = [];
+	const visit = (value: unknown): void => {
+		if (Array.isArray(value)) {
+			value.forEach(visit);
+			return;
+		}
+		if (typeof value !== 'object' || value === null) {
+			return;
+		}
+		const node = value as XmlObject;
+		if (typeof node['@_presetID'] === 'string') {
+			out.push(node['@_presetID']);
+		}
+		for (const key of Object.keys(node)) {
+			visit(node[key]);
+		}
+	};
+	visit(subtree);
+	return out;
+}
+
+/** The top-level `p:par` click group (a direct child of the main sequence's `p:childTnLst`) containing the effect with the given `@_presetID`. */
+function findTopLevelGroup(tree: XmlObject, presetId: string): XmlObject {
+	const mainSeqCTn = getMainSeqCTn(tree);
+	const childTnLst = mainSeqCTn['p:childTnLst'] as XmlObject;
+	const groups = Array.isArray(childTnLst['p:par'])
+		? (childTnLst['p:par'] as XmlObject[])
+		: [childTnLst['p:par'] as XmlObject];
+	const found = groups.find((group) => presetIdsIn(group).includes(presetId));
+	if (!found) {
+		throw new Error(`no top-level group contains an effect with presetID ${presetId}`);
+	}
+	return found;
+}
+
 /** Read back the `spid:presetClass` registry this module writes into `p:extLst`. */
 function ownedKeys(tree: XmlObject): string[] {
 	const extLst = tree['p:extLst'] as XmlObject | undefined;
@@ -338,6 +375,54 @@ describe('surgicallyUpdateTimingTree', () => {
 			'2',
 			'23',
 		]);
+	});
+
+	it('moves an editor-authored effect ahead of a deck-native effect', () => {
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+		const nativeGroupBefore = structuredClone(findTopLevelGroup(tree, '10'));
+
+		// The deck's own effect (presetID 10) occupies the only existing group,
+		// anchor order 0. A freshly authored effect is appended after it.
+		const withNew = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shapeA', entrance: 'zoomIn', order: 1 },
+		]);
+		expect(collectEffectCTns(withNew).map((cTn) => cTn['@_presetID'])).toStrictEqual(['10', '23']);
+
+		// Drag it ahead of the deck's own effect: an order below the native
+		// group's anchor order (0) places it first in the full sequence, not
+		// just among the effects this editor added.
+		const reordered = surgicallyUpdateTimingTree(withNew, [
+			{ elementId: 'shapeA', entrance: 'zoomIn', order: -1 },
+		]);
+
+		expect(collectEffectCTns(reordered).map((cTn) => cTn['@_presetID'])).toStrictEqual([
+			'23',
+			'10',
+		]);
+		// The deck's own group is repositioned, not rewritten: same content.
+		expect(findTopLevelGroup(reordered, '10')).toStrictEqual(nativeGroupBefore);
+	});
+
+	it('moves an editor-authored effect behind a deck-native effect it used to precede', () => {
+		const tree = buildMinimalTimingTree('shape1', 'entr', 10, 500);
+		const nativeGroupBefore = structuredClone(findTopLevelGroup(tree, '10'));
+
+		// Insert a new effect ahead of the deck's own (order -1 < native's 0).
+		const withNew = surgicallyUpdateTimingTree(tree, [
+			{ elementId: 'shapeA', entrance: 'zoomIn', order: -1 },
+		]);
+		expect(collectEffectCTns(withNew).map((cTn) => cTn['@_presetID'])).toStrictEqual(['23', '10']);
+
+		// Now drag it back behind the deck's own effect.
+		const reordered = surgicallyUpdateTimingTree(withNew, [
+			{ elementId: 'shapeA', entrance: 'zoomIn', order: 5 },
+		]);
+
+		expect(collectEffectCTns(reordered).map((cTn) => cTn['@_presetID'])).toStrictEqual([
+			'10',
+			'23',
+		]);
+		expect(findTopLevelGroup(reordered, '10')).toStrictEqual(nativeGroupBefore);
 	});
 
 	it('retimes rather than duplicates an effect that already targets the shape', () => {

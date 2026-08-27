@@ -9,13 +9,13 @@
  * @module services/animation-timing-place
  */
 import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
+import { groupTopLevelEffects } from './animation-timing-groups';
 import { effectOwnershipKey } from './animation-timing-ownership';
 import {
 	appendContainer,
 	ensureMainSequence,
 	findMainSequenceCTn,
-	indexEffectNodes,
-	reorderSelectedContainers,
+	reorderContainersByRank,
 } from './animation-timing-tree';
 import { buildMotionPathNode, buildSingleEffectNode } from './animation-write-node-builders';
 import {
@@ -119,10 +119,18 @@ function sequenceHolderOf(rawTiming: XmlObject, mainSeqCTn: XmlObject): XmlObjec
 }
 
 /**
- * Sequence the click groups this editor owns by the panel's `order`, leaving
- * every group it does not own where the deck put it. A group is only moved
- * when EVERY effect inside it is editor-owned, so reordering can never drag a
- * native effect along with it.
+ * Sequence every top-level click group, editor-owned or the deck's own, by
+ * `orderByKey` (built from the panel's live `order` values, re-grounded
+ * against the deck's own groups by `computeAnimationTimelineOrder` at load
+ * time so the two populations share one numbering space).
+ *
+ * A group with at least one owned effect named in `orderByKey` moves to the
+ * lowest rank among them, which is how an editor-authored effect can be
+ * dragged ahead of or behind an effect the deck already had. A group with no
+ * owned effect (or one the panel never repositioned) keeps its current slot:
+ * only the ARRAY POSITION of a node ever changes here, never its content, so
+ * a deck's own untouched effect stays byte-identical apart from where it
+ * sits in the sequence.
  */
 export function reorderOwnedGroups(
 	rawTiming: XmlObject,
@@ -134,28 +142,18 @@ export function reorderOwnedGroups(
 		return;
 	}
 
-	const groups = new Map<XmlObject, { ranks: number[]; owned: boolean }>();
-	for (const ref of indexEffectNodes(rawTiming)) {
-		const group = ref.chain.find((link) => link.holder === childTnLst);
-		if (!group || group.key !== 'p:par') {
-			continue;
-		}
-		const key = ref.spid ? effectOwnershipKey(ref.spid, ref.presetClass) : undefined;
-		const rank = key !== undefined ? orderByKey.get(key) : undefined;
-		const entry = groups.get(group.node) ?? { ranks: [], owned: true };
-		if (rank === undefined) {
-			entry.owned = false;
-		} else {
-			entry.ranks.push(rank);
-		}
-		groups.set(group.node, entry);
-	}
-
 	const ranks = new Map<XmlObject, number>();
-	for (const [node, entry] of groups) {
-		if (entry.owned && entry.ranks.length > 0) {
-			ranks.set(node, Math.min(...entry.ranks));
+	for (const group of groupTopLevelEffects(rawTiming)) {
+		const ownedRanks = group.effects
+			.map((effect) =>
+				effect.spid
+					? orderByKey.get(effectOwnershipKey(effect.spid, effect.presetClass))
+					: undefined,
+			)
+			.filter((rank): rank is number => rank !== undefined);
+		if (ownedRanks.length > 0) {
+			ranks.set(group.node, Math.min(...ownedRanks));
 		}
 	}
-	reorderSelectedContainers(childTnLst, ranks);
+	reorderContainersByRank(childTnLst, 'p:par', ranks);
 }

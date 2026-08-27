@@ -41,6 +41,35 @@ export function optionSelect(
 	return { label, select };
 }
 
+/**
+ * A read-only row for one of the deck's own effect groups: not draggable and
+ * has no move buttons, but stays a valid drop target (via `dragover`) so an
+ * editor-authored effect can be dragged ahead of or behind it.
+ */
+export function nativeAnimationRow(
+	doc: Document,
+	t: Translator,
+	targetIds: readonly string[],
+	index: number,
+	handlers: Pick<AnimationActions, 'moveAnimation'>,
+): HTMLElement {
+	const row = createEl(doc, 'div', 'pptxv-animation-timeline-row');
+	row.classList.add('is-native');
+	row.title = t('pptx.animation.nativeEffectHint');
+	row.addEventListener('dragover', (event) => event.preventDefault());
+	row.addEventListener('drop', (event) => {
+		event.preventDefault();
+		const source = event.dataTransfer?.getData('text/plain');
+		if (source) {
+			handlers.moveAnimation(source, index);
+		}
+	});
+	const label = createEl(doc, 'span', 'pptxv-animation-timeline-name');
+	label.textContent = `${index + 1}. ${t('pptx.animation.nativeEffect')}: ${targetIds.join(', ')}`;
+	row.append(label);
+	return row;
+}
+
 export function animationRow(
 	doc: Document,
 	t: Translator,

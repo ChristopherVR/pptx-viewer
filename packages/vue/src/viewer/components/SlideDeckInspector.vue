@@ -62,6 +62,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:media-data-urls="deck.mediaDataUrls.value"
 		:slide-elements="activeSlide?.elements ?? []"
 		:slide-animations="activeSlide?.animations ?? []"
+		:animation-timeline-anchors="activeSlide?.animationTimelineAnchors ?? []"
 		@update="onUpdate"
 		@update-slide-animations="onUpdateSlideAnimations"
 	/>

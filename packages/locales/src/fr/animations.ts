@@ -67,6 +67,9 @@ export const translations = {
 	'pptx.animation.duration': 'Durée (ms)',
 	'pptx.animation.moveDown': 'Descendre',
 	'pptx.animation.moveUp': 'Monter',
+	'pptx.animation.nativeEffect': 'Effet PowerPoint',
+	'pptx.animation.nativeEffectHint':
+		'Ajouté dans PowerPoint. Faites glisser vos propres effets avant ou après celui-ci.',
 	'pptx.animation.none': 'Aucun',
 	'pptx.animation.preview': 'Aperçu',
 	'pptx.animation.repeatCount': 'Répéter le décompte',

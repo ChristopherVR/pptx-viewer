@@ -4,7 +4,11 @@
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { reorderAnimationTo } from '../internal/shared';
+import {
+	buildAnimationTimelineRows,
+	moveAnimationTimelineRowBy,
+	reorderAnimationTo,
+} from '../internal/shared';
 import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
 import { buildAnimationTimelineBars } from './animation-timeline.component';
 
@@ -42,5 +46,25 @@ describe('angular animation timeline', () => {
 		const text = { id: 'b', type: 'text', text: 'Trigger text' } as PptxElement;
 		expect(getAnimationElementLabel(named)).toBe('Named shape');
 		expect(getAnimationElementLabel(text)).toBe('Trigger text');
+	});
+
+	describe('full-sequence reorder (editor-authored + deck-native anchors)', () => {
+		const anchors = [{ order: 0, targetIds: ['native-1'], presetClasses: ['entr'] }] as const;
+
+		it('merges editor rows and native anchors into one sorted timeline', () => {
+			const editorOnly = [
+				{ elementId: 'a', entrance: 'fadeIn', order: 1 },
+			] as PptxElementAnimation[];
+			const rows = buildAnimationTimelineRows(editorOnly, [...anchors]);
+			expect(rows.map((row) => row.key)).toStrictEqual(['native:0', 'editor:a']);
+		});
+
+		it('moves an editor-authored effect ahead of a deck-native anchor via the move-up button', () => {
+			const editorOnly = [
+				{ elementId: 'a', entrance: 'fadeIn', order: 1 },
+			] as PptxElementAnimation[];
+			const moved = moveAnimationTimelineRowBy(editorOnly, [...anchors], 'a', -1);
+			expect(moved[0]).toMatchObject({ elementId: 'a', order: 0 });
+		});
 	});
 });

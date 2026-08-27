@@ -67,6 +67,9 @@ export const translations = {
 	'pptx.animation.duration': 'Dauer (ms)',
 	'pptx.animation.moveDown': 'Nach unten verschieben',
 	'pptx.animation.moveUp': 'Nach oben verschieben',
+	'pptx.animation.nativeEffect': 'PowerPoint-Effekt',
+	'pptx.animation.nativeEffectHint':
+		'In PowerPoint hinzugefügt. Ziehen Sie Ihre eigenen Effekte davor oder danach.',
 	'pptx.animation.none': 'Keine',
 	'pptx.animation.preview': 'Vorschau',
 	'pptx.animation.repeatCount': 'Wiederholungsanzahl',

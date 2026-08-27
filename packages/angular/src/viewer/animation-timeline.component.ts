@@ -4,14 +4,20 @@
    helps. */
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
+import type {
+	PptxAnimationTimelineAnchor,
+	PptxElement,
+	PptxElementAnimation,
+} from 'pptx-viewer-core';
 
 import {
 	animationEffectLabelKey,
+	applyAnimationTimelineOrder,
 	buildAnimationTimelineBars,
-	reorderAnimationTo,
+	buildAnimationTimelineRows,
+	reorderAnimationTimelineRows,
 } from '../internal/shared';
-import type { AnimationTimelineBar } from '../internal/shared';
+import type { AnimationTimelineBar, AnimationTimelineRow } from '../internal/shared';
 import { getAnimationElementLabel } from './animation-author-view';
 import { previewAngularAnimation, stopAngularAnimationPreview } from './animation-preview-player';
 
@@ -24,7 +30,7 @@ export { buildAnimationTimelineBars };
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		@if (sorted().length) {
+		@if (rows().length) {
 			<section class="timeline" aria-label="Animation timeline">
 				<h4>Timeline</h4>
 				<div class="bar" aria-hidden="true">
@@ -37,23 +43,38 @@ export { buildAnimationTimelineBars };
 					}
 				</div>
 				<div class="list">
-					@for (animation of sorted(); track animation.elementId; let index = $index) {
-						<div
-							class="item"
-							[class.selected]="animation.elementId === selectedElementId()"
-							[class.drag-over]="dragOverIndex() === index"
-							[draggable]="canEdit()"
-							(dragstart)="onDragStart(index, $event)"
-							(dragover)="onDragOver(index, $event)"
-							(drop)="onDrop(index, $event)"
-							(dragend)="clearDrag()"
-							(mouseenter)="preview(animation)"
-							(mouseleave)="stopPreview()"
-						>
-							<span class="grip">⋮⋮</span><span class="order">{{ index + 1 }}.</span
-							><span class="name">{{ label(animation.elementId) }}</span
-							><span class="effect">{{ effect(animation) | translate }}</span>
-						</div>
+					@for (row of rows(); track row.key; let index = $index) {
+						@if (row.kind === 'native') {
+							<div
+								class="item native"
+								[class.drag-over]="dragOverIndex() === index"
+								[title]="'pptx.animation.nativeEffectHint' | translate"
+								(dragover)="onDragOver(index, $event)"
+								(drop)="onDrop(index, $event)"
+							>
+								<span class="grip"></span><span class="order">{{ index + 1 }}.</span
+								><span class="name"
+									>{{ 'pptx.animation.nativeEffect' | translate }}: {{ nativeLabel(row) }}</span
+								>
+							</div>
+						} @else {
+							<div
+								class="item"
+								[class.selected]="row.elementId === selectedElementId()"
+								[class.drag-over]="dragOverIndex() === index"
+								[draggable]="canEdit()"
+								(dragstart)="onDragStart(index, $event)"
+								(dragover)="onDragOver(index, $event)"
+								(drop)="onDrop(index, $event)"
+								(dragend)="clearDrag()"
+								(mouseenter)="previewByElementId(row.elementId)"
+								(mouseleave)="stopPreview()"
+							>
+								<span class="grip">⋮⋮</span><span class="order">{{ index + 1 }}.</span
+								><span class="name">{{ label(row.elementId) }}</span
+								><span class="effect">{{ effectByElementId(row.elementId) | translate }}</span>
+							</div>
+						}
 					}
 				</div>
 			</section>
@@ -115,6 +136,11 @@ export { buildAnimationTimelineBars };
 		.item.drag-over {
 			border-top: 2px solid var(--pptx-primary, #4c9ffe);
 		}
+		.item.native {
+			cursor: default;
+			font-style: italic;
+			opacity: 0.7;
+		}
 		.grip,
 		.order {
 			color: var(--pptx-inspector-muted, #888);
@@ -133,15 +159,22 @@ export { buildAnimationTimelineBars };
 export class AnimationTimelineComponent {
 	readonly animations = input.required<readonly PptxElementAnimation[]>();
 	readonly elements = input<readonly PptxElement[]>([]);
+	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
+	readonly animationTimelineAnchors = input<readonly PptxAnimationTimelineAnchor[]>([]);
 	readonly selectedElementId = input<string>('');
 	readonly canEdit = input<boolean>(true);
 	readonly animationsChange = output<PptxElementAnimation[]>();
 	protected readonly dragIndex = signal<number | undefined>(undefined);
 	protected readonly dragOverIndex = signal<number | undefined>(undefined);
-	protected readonly sorted = computed(() =>
-		[...this.animations()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+	// Merges the editor's own animations with the deck's read-only native
+	// anchors into one full-sequence drag-and-drop timeline.
+	protected readonly rows = computed(() =>
+		buildAnimationTimelineRows(this.animations(), this.animationTimelineAnchors()),
 	);
 	protected readonly bars = computed(() => buildAnimationTimelineBars(this.animations()));
+	private readonly animationByElementId = computed(
+		() => new Map(this.animations().map((animation) => [animation.elementId, animation])),
+	);
 
 	protected label(elementId: string): string {
 		const element = this.elements().find((candidate) => candidate.id === elementId);
@@ -150,23 +183,32 @@ export class AnimationTimelineComponent {
 		}
 		return getAnimationElementLabel(element);
 	}
+	protected nativeLabel(row: Extract<AnimationTimelineRow, { kind: 'native' }>): string {
+		return row.targetIds.map((id) => this.label(id)).join(', ');
+	}
 	/**
 	 * The i18n key naming the row's effect, not finished text: resolving text in
 	 * an `OnPush` getter would freeze the wording at the language that happened
 	 * to be active when the view last rendered. The row used to print the raw
 	 * preset token (`fadeIn`) here.
 	 */
-	protected effect(animation: PptxElementAnimation): string {
-		return animationEffectLabelKey(animation);
+	protected effectByElementId(elementId: string): string {
+		const animation = this.animationByElementId().get(elementId);
+		return animation ? animationEffectLabelKey(animation) : '';
 	}
-	protected preview(animation: PptxElementAnimation): void {
-		previewAngularAnimation(animation);
+	protected previewByElementId(elementId: string): void {
+		const animation = this.animationByElementId().get(elementId);
+		if (animation) {
+			previewAngularAnimation(animation);
+		}
 	}
 	protected stopPreview(): void {
 		stopAngularAnimationPreview();
 	}
 	protected onDragStart(index: number, event: DragEvent): void {
-		if (!this.canEdit()) {
+		// Only an editor-authored row may be a drag SOURCE: the deck's own
+		// effect groups are read-only, though they remain valid drop targets.
+		if (!this.canEdit() || this.rows()[index]?.kind !== 'editor') {
 			return;
 		}
 		this.dragIndex.set(index);
@@ -180,7 +222,12 @@ export class AnimationTimelineComponent {
 		event.preventDefault();
 		const source = this.dragIndex();
 		if (source !== undefined) {
-			this.animationsChange.emit(reorderAnimationTo(this.animations(), source, index));
+			const rows = this.rows();
+			const sourceRow = rows[source];
+			if (sourceRow?.kind === 'editor') {
+				const nextRows = reorderAnimationTimelineRows(rows, sourceRow.key, index);
+				this.animationsChange.emit(applyAnimationTimelineOrder(this.animations(), nextRows));
+			}
 		}
 		this.clearDrag();
 	}

@@ -271,26 +271,30 @@ export function ensureMainSequence(
 	return seqCTn;
 }
 
-/** Reorder selected `p:par` siblings of a `p:childTnLst` without moving the rest. */
-export function reorderSelectedContainers(
+/**
+ * Reorder every `p:par` sibling of a `p:childTnLst` by an arbitrary rank,
+ * moving each node to the slot implied by `rankOf`. A node absent from
+ * `rankOf` keeps its original relative position (its own index is used as a
+ * fallback rank), so groups nobody asked to move never appear to shuffle
+ * around each other. Node content is never touched: only the array order
+ * changes, which is why a deck's own untouched effect stays byte-identical
+ * apart from its position.
+ */
+export function reorderContainersByRank(
 	childTnLst: XmlObject,
-	rank: ReadonlyMap<XmlObject, number>,
+	key: string,
+	rankOf: ReadonlyMap<XmlObject, number>,
 ): void {
-	const nodes = ensureArray(childTnLst['p:par']);
-	const slots: number[] = [];
-	const moving: XmlObject[] = [];
-	nodes.forEach((node, index) => {
-		if (rank.has(node)) {
-			slots.push(index);
-			moving.push(node);
-		}
-	});
-	if (moving.length < 2) {
+	const nodes = ensureArray(childTnLst[key]);
+	if (nodes.length < 2) {
 		return;
 	}
-	moving.sort((left, right) => (rank.get(left) ?? 0) - (rank.get(right) ?? 0));
-	slots.forEach((slot, index) => {
-		nodes[slot] = moving[index]!;
-	});
-	childTnLst['p:par'] = nodes.length === 1 ? nodes[0]! : nodes;
+	const indexed = nodes.map((node, index) => ({
+		node,
+		rank: rankOf.get(node) ?? index,
+		index,
+	}));
+	indexed.sort((left, right) => left.rank - right.rank || left.index - right.index);
+	const sorted = indexed.map((entry) => entry.node);
+	childTnLst[key] = sorted.length === 1 ? sorted[0]! : sorted;
 }

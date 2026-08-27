@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
+import type {
+	PptxAnimationTimelineAnchor,
+	PptxElement,
+	PptxElementAnimation,
+} from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -40,6 +44,8 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	slideElements?: readonly PptxElement[];
 	slideAnimations?: readonly PptxElementAnimation[];
+	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
+	animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
 }>();
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
@@ -171,6 +177,7 @@ function relay(patch: Partial<PptxElement>): void {
 				:can-edit="props.canEdit"
 				:slide-elements="props.slideElements"
 				:slide-animations="props.slideAnimations"
+				:animation-timeline-anchors="props.animationTimelineAnchors"
 				@update="relay"
 				@update-slide-animations="emit('updateSlideAnimations', $event)"
 			/>

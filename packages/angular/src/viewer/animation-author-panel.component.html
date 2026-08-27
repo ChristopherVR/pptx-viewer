@@ -311,6 +311,7 @@
 		<pptx-animation-timeline
 			[animations]="animations()"
 			[elements]="slideElements()"
+			[animationTimelineAnchors]="animationTimelineAnchors()"
 			[selectedElementId]="element().id"
 			[canEdit]="canEdit()"
 			(animationsChange)="animationsChange.emit($event)"

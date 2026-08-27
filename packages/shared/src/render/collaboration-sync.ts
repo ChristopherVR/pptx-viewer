@@ -265,6 +265,7 @@ export const SCALAR_SLIDE_KEYS: ReadonlySet<string> = new Set([
 export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	transition: '_tr',
 	animations: '_an',
+	animationTimelineAnchors: '_ata',
 	nativeAnimations: '_na',
 	rawTiming: '_rt',
 	notesSegments: '_ns',

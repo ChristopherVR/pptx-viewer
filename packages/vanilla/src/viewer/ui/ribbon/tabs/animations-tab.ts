@@ -2,10 +2,12 @@ import type {
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
+	PptxAnimationTimelineAnchor,
 	PptxAnimationTimingCurve,
 	PptxAnimationTrigger,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
+import { buildAnimationTimelineRows } from 'pptx-viewer-shared';
 
 import { playAnimationPreview } from '../../../animation';
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
@@ -13,7 +15,12 @@ import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import { createAnimationPresetGallery } from './animation-preset-gallery';
-import { animationRow, optionSelect, timingField } from './animation-timeline-controls';
+import {
+	animationRow,
+	nativeAnimationRow,
+	optionSelect,
+	timingField,
+} from './animation-timeline-controls';
 import { createAdvancedAnimationGroup } from './animations-advanced';
 import { createTimingGroup } from './animations-timing';
 import { createMotionPathGallery } from './motion-path-gallery';
@@ -24,6 +31,8 @@ export interface AnimationsTabState {
 	hasSelection: boolean;
 	selectedElementId?: string;
 	animations: readonly PptxElementAnimation[];
+	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
+	animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
 }
 
 export interface AnimationsTab {
@@ -212,7 +221,7 @@ export function createAnimationsTab(
 
 	return {
 		el,
-		update({ editable, hasSelection, selectedElementId, animations }) {
+		update({ editable, hasSelection, selectedElementId, animations, animationTimelineAnchors }) {
 			const disabled = !editable || !hasSelection;
 			gallery.setDisabled(disabled);
 			motionGallery.setDisabled(disabled);
@@ -220,19 +229,33 @@ export function createAnimationsTab(
 			advanced.setDisabled(disabled);
 			const ordered = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 			selectedAnimation = ordered.find(({ elementId }) => elementId === selectedElementId);
+			// Merges the editor's own animations with the deck's read-only native
+			// anchors into one full-sequence drag-and-drop timeline.
+			const rows = buildAnimationTimelineRows(ordered, animationTimelineAnchors ?? []);
+			const animationByElementId = new Map(
+				ordered.map((animation) => [animation.elementId, animation]),
+			);
 			list.replaceChildren(
-				...ordered.map((animation, index) =>
-					animationRow(
-						doc,
-						t,
-						animation,
-						index,
-						ordered.length,
-						selectedElementId,
-						editable,
-						handlers,
-					),
-				),
+				...rows.flatMap((row, index) => {
+					if (row.kind === 'native') {
+						return [nativeAnimationRow(doc, t, row.targetIds, index, handlers)];
+					}
+					const animation = animationByElementId.get(row.elementId);
+					return animation
+						? [
+								animationRow(
+									doc,
+									t,
+									animation,
+									index,
+									rows.length,
+									selectedElementId,
+									editable,
+									handlers,
+								),
+							]
+						: [];
+				}),
 			);
 			timeline.hidden = ordered.length === 0;
 			timing.hidden = !selectedAnimation;

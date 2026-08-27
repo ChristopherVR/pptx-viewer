@@ -5,6 +5,12 @@
 	 * up/down buttons (port of the list half of React's
 	 * `AnimationTimelineSection.tsx`). Rows preview their effect on hover.
 	 * Split from `AnimationTimelineSection.svelte` for the 300-LOC budget.
+	 *
+	 * Merges the slide's editor-authored animations with its read-only
+	 * `animationTimelineAnchors` (the deck's own effect groups) into one
+	 * full-sequence timeline: a native anchor renders as a read-only row that
+	 * is still a valid drop target, so an editor-authored effect can be
+	 * dragged ahead of or behind an effect the deck already had.
 	 */
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
@@ -12,18 +18,24 @@
 	import MoveRight from '@lucide/svelte/icons/move-right';
 	import RotateCw from '@lucide/svelte/icons/rotate-cw';
 	import type { PptxElementAnimation } from 'pptx-viewer-core';
-	import { reorderAnimationTo } from 'pptx-viewer-shared';
+	import {
+		applyAnimationTimelineOrder,
+		buildAnimationTimelineRows,
+		reorderAnimationTimelineRows,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
-	import { commitSlideAnimations, sortAnimations, timelineLabel } from './animation-panel-helpers';
+	import { commitSlideAnimations, timelineLabel } from './animation-panel-helpers';
 	import { startAnimationPreview, stopAnimationPreview } from './animation-preview-control';
 
 	const { editor, selectedElementId }: { editor: EditorState; selectedElementId: string } = $props();
 	const t = useTranslator();
 
 	const slide = $derived(editor.slides[editor.currentSlideIndex]);
-	const sorted = $derived(sortAnimations(slide?.animations ?? []));
+	const animations = $derived(slide?.animations ?? []);
+	const rows = $derived(buildAnimationTimelineRows(animations, slide?.animationTimelineAnchors ?? []));
+	const animationByElementId = $derived(new Map(animations.map((anim) => [anim.elementId, anim])));
 	const canEdit = $derived(editor.editable);
 
 	let dragIndex = $state<number | null>(null);
@@ -33,15 +45,24 @@
 		return timelineLabel(anim, slide?.elements ?? []);
 	}
 
+	function nativeLabel(targetIds: readonly string[]): string {
+		return targetIds.map((id) => timelineLabel({ elementId: id } as PptxElementAnimation, slide?.elements ?? [])).join(', ');
+	}
+
 	function reorder(sourceIndex: number, targetIndex: number): void {
 		if (!canEdit || sourceIndex === targetIndex) {
 			return;
 		}
-		commitSlideAnimations(editor, reorderAnimationTo(sorted, sourceIndex, targetIndex));
+		const sourceRow = rows[sourceIndex];
+		if (sourceRow?.kind !== 'editor') {
+			return;
+		}
+		const nextRows = reorderAnimationTimelineRows(rows, sourceRow.key, targetIndex);
+		commitSlideAnimations(editor, applyAnimationTimelineOrder(animations, nextRows));
 	}
 
 	function onDragStart(index: number, event: DragEvent): void {
-		if (!canEdit) {
+		if (!canEdit || rows[index]?.kind !== 'editor') {
 			return;
 		}
 		dragIndex = index;
@@ -76,56 +97,73 @@
 	}
 </script>
 
-{#if sorted.length > 0}
+{#if rows.length > 0}
 	<div class="pptx-svelte-animtl-block">
 		<div class="pptx-svelte-animtl-heading">{t('pptx.animation.timeline')}</div>
 		<div class="pptx-svelte-animtl-list" role="list">
-			{#each sorted as anim, index (anim.elementId)}
-				<div
-					role="listitem"
-					class="pptx-svelte-animtl-row"
-					class:is-selected={anim.elementId === selectedElementId}
-					class:is-dragging={dragIndex === index}
-					class:is-dragover={dragOverIndex === index}
-					draggable={canEdit}
-					ondragstart={(event) => onDragStart(index, event)}
-					ondragover={(event) => onDragOver(index, event)}
-					ondrop={(event) => onDrop(index, event)}
-					ondragend={onDragEnd}
-					onmouseenter={() => startAnimationPreview(anim)}
-					onmouseleave={stopAnimationPreview}
-				>
-					{#if canEdit}<span class="pptx-svelte-animtl-grip"><GripVertical size={12} aria-hidden="true" /></span>{/if}
-					<span class="pptx-svelte-animtl-index">{index + 1}.</span>
-					<span class="pptx-svelte-animtl-label">{label(anim)}</span>
-					{#if anim.entrance}<span class="pptx-svelte-animtl-kind is-entrance" title={t('pptx.animation.entrance')}><MoveRight size={12} aria-hidden="true" /></span>{/if}
-					{#if anim.emphasis}<span class="pptx-svelte-animtl-kind is-emphasis" title={t('pptx.animation.emphasis')}><RotateCw size={12} aria-hidden="true" /></span>{/if}
-					{#if anim.exit}<span class="pptx-svelte-animtl-kind is-exit is-flipped" title={t('pptx.animation.exit')}><MoveRight size={12} aria-hidden="true" /></span>{/if}
-					{#if canEdit}
-						<span class="pptx-svelte-animtl-move">
-							<button
-								type="button"
-								disabled={index === 0}
-								title={t('pptx.animation.moveUp')}
-								aria-label={t('pptx.animation.moveUp')}
-								onclick={(event) => {
-									event.stopPropagation();
-									reorder(index, index - 1);
-								}}
-							><ChevronUp size={12} aria-hidden="true" /></button>
-							<button
-								type="button"
-								disabled={index === sorted.length - 1}
-								title={t('pptx.animation.moveDown')}
-								aria-label={t('pptx.animation.moveDown')}
-								onclick={(event) => {
-									event.stopPropagation();
-									reorder(index, index + 1);
-								}}
-							><ChevronDown size={12} aria-hidden="true" /></button>
-						</span>
+			{#each rows as row, index (row.key)}
+				{#if row.kind === 'native'}
+					<div
+						role="listitem"
+						class="pptx-svelte-animtl-row is-native"
+						class:is-dragover={dragOverIndex === index}
+						title={t('pptx.animation.nativeEffectHint')}
+						ondragover={(event) => onDragOver(index, event)}
+						ondrop={(event) => onDrop(index, event)}
+					>
+						<span class="pptx-svelte-animtl-index">{index + 1}.</span>
+						<span class="pptx-svelte-animtl-label">{t('pptx.animation.nativeEffect')}: {nativeLabel(row.targetIds)}</span>
+					</div>
+				{:else}
+					{@const anim = animationByElementId.get(row.elementId)}
+					{#if anim}
+						<div
+							role="listitem"
+							class="pptx-svelte-animtl-row"
+							class:is-selected={row.elementId === selectedElementId}
+							class:is-dragging={dragIndex === index}
+							class:is-dragover={dragOverIndex === index}
+							draggable={canEdit}
+							ondragstart={(event) => onDragStart(index, event)}
+							ondragover={(event) => onDragOver(index, event)}
+							ondrop={(event) => onDrop(index, event)}
+							ondragend={onDragEnd}
+							onmouseenter={() => startAnimationPreview(anim)}
+							onmouseleave={stopAnimationPreview}
+						>
+							{#if canEdit}<span class="pptx-svelte-animtl-grip"><GripVertical size={12} aria-hidden="true" /></span>{/if}
+							<span class="pptx-svelte-animtl-index">{index + 1}.</span>
+							<span class="pptx-svelte-animtl-label">{label(anim)}</span>
+							{#if anim.entrance}<span class="pptx-svelte-animtl-kind is-entrance" title={t('pptx.animation.entrance')}><MoveRight size={12} aria-hidden="true" /></span>{/if}
+							{#if anim.emphasis}<span class="pptx-svelte-animtl-kind is-emphasis" title={t('pptx.animation.emphasis')}><RotateCw size={12} aria-hidden="true" /></span>{/if}
+							{#if anim.exit}<span class="pptx-svelte-animtl-kind is-exit is-flipped" title={t('pptx.animation.exit')}><MoveRight size={12} aria-hidden="true" /></span>{/if}
+							{#if canEdit}
+								<span class="pptx-svelte-animtl-move">
+									<button
+										type="button"
+										disabled={index === 0}
+										title={t('pptx.animation.moveUp')}
+										aria-label={t('pptx.animation.moveUp')}
+										onclick={(event) => {
+											event.stopPropagation();
+											reorder(index, index - 1);
+										}}
+									><ChevronUp size={12} aria-hidden="true" /></button>
+									<button
+										type="button"
+										disabled={index === rows.length - 1}
+										title={t('pptx.animation.moveDown')}
+										aria-label={t('pptx.animation.moveDown')}
+										onclick={(event) => {
+											event.stopPropagation();
+											reorder(index, index + 1);
+										}}
+									><ChevronDown size={12} aria-hidden="true" /></button>
+								</span>
+							{/if}
+						</div>
 					{/if}
-				</div>
+				{/if}
 			{/each}
 		</div>
 	</div>
@@ -163,6 +201,12 @@
 		color: var(--pptx-muted-foreground, #94a3b8);
 		font-size: 10px;
 		cursor: grab;
+	}
+
+	.pptx-svelte-animtl-row.is-native {
+		cursor: default;
+		font-style: italic;
+		opacity: 0.7;
 	}
 
 	.pptx-svelte-animtl-row.is-selected {
