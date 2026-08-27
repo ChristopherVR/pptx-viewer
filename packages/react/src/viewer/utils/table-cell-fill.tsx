@@ -3,6 +3,7 @@ import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
+import { buildRectPathGradient } from './color-gradient';
 import { parseDrawingColor, parseDrawingColorOpacity } from './drawing-color';
 import { ensureArrayValue } from './geometry';
 
@@ -27,16 +28,21 @@ export function parseGradientFillCss(gradFill: XmlObject | undefined): string | 
 		return undefined;
 	}
 
-	const parsed = stops
+	// Kept as separate hex colour + numeric opacity (not pre-composited into an
+	// `rgba(...)` string) so a `path="rect"` gradient can hand these straight
+	// to `buildRectPathGradient`'s SVG-band builder, which expects `#RRGGBB`.
+	const rawStops = stops
 		.map((gs) => {
 			const pos = Number.parseInt(String(gs['@_pos'] || '0'), 10) / 1000;
 			const color = parseDrawingColor(gs as XmlObject) ?? '#888888';
 			const opacity = parseDrawingColorOpacity(gs as XmlObject);
-			return { pos, color: colorWithOpacity(color, opacity) };
+			return { position: pos, color, opacity };
 		})
-		.sort((a, b) => a.pos - b.pos);
+		.sort((a, b) => a.position - b.position);
 
-	const stopStrings = parsed.map((s) => `${s.color} ${s.pos.toFixed(1)}%`).join(', ');
+	const stopStrings = rawStops
+		.map((s) => `${colorWithOpacity(s.color, s.opacity)} ${s.position.toFixed(1)}%`)
+		.join(', ');
 
 	// Linear gradient: extract angle from `a:lin`
 	const lin = gradFill['a:lin'] as XmlObject | undefined;
@@ -51,28 +57,36 @@ export function parseGradientFillCss(gradFill: XmlObject | undefined): string | 
 	const path = gradFill['a:path'] as XmlObject | undefined;
 	if (path) {
 		const pathType = String(path['@_path'] || 'circle');
-		const fillToRect = path['a:fillToRect'] as XmlObject | undefined;
+		const fillToRectXml = path['a:fillToRect'] as XmlObject | undefined;
 
 		// Parse fillToRect LTRB values (1/100000 units -> 0-1 fractions)
+		const fillToRect = fillToRectXml
+			? {
+					l: Number.parseInt(String(fillToRectXml['@_l'] || '0'), 10) / 100000,
+					t: Number.parseInt(String(fillToRectXml['@_t'] || '0'), 10) / 100000,
+					r: Number.parseInt(String(fillToRectXml['@_r'] || '0'), 10) / 100000,
+					b: Number.parseInt(String(fillToRectXml['@_b'] || '0'), 10) / 100000,
+				}
+			: undefined;
+
+		if (pathType === 'rect') {
+			// PowerPoint's rect path gradient has square corners (a nested-rectangle
+			// field), which no CSS/SVG radial gradient can express: delegate to the
+			// shared SVG-band builder rather than approximating it as an ellipse
+			// here (see `pptx-viewer-shared`'s `path-gradient-rect.ts`).
+			return buildRectPathGradient(rawStops, undefined, fillToRect);
+		}
+
 		let cx = 50;
 		let cy = 50;
 		if (fillToRect) {
-			const l = Number.parseInt(String(fillToRect['@_l'] || '0'), 10) / 100000;
-			const t = Number.parseInt(String(fillToRect['@_t'] || '0'), 10) / 100000;
-			const r = Number.parseInt(String(fillToRect['@_r'] || '0'), 10) / 100000;
-			const b = Number.parseInt(String(fillToRect['@_b'] || '0'), 10) / 100000;
+			const { l, t, r, b } = fillToRect;
 			cx = ((l + (1 - r)) / 2) * 100;
 			cy = ((t + (1 - b)) / 2) * 100;
 		}
 		const posX = `${Math.round(cx)}%`;
 		const posY = `${Math.round(cy)}%`;
 
-		if (pathType === 'rect') {
-			// Rectangular gradient: use elliptical radial sized to reach shape edges
-			const semiX = Math.max(cx, 100 - cx);
-			const semiY = Math.max(cy, 100 - cy);
-			return `radial-gradient(${Math.round(semiX)}% ${Math.round(semiY)}% at ${posX} ${posY}, ${stopStrings})`;
-		}
 		if (pathType === 'shape') {
 			// Shape-following gradient: use farthest-side sizing
 			return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStrings})`;

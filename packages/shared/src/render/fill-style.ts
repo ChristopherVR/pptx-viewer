@@ -22,6 +22,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import { DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
+import { buildRectPathGradientImage } from './path-gradient-rect';
 import { suppressesCssFill } from './subpath-fill-overlay';
 
 // ---------------------------------------------------------------------------
@@ -230,38 +231,26 @@ export function buildCirclePathGradient(
 	return `radial-gradient(circle at ${posX} ${posY}, ${stopStr})`;
 }
 
-/** Builds a CSS radial-gradient for `path="rect"` gradients. */
+/**
+ * Builds the CSS `background-image` value for `path="rect"` gradients.
+ *
+ * PowerPoint shades a rect path gradient toward the shape's own bounding
+ * rectangle: its isolines are concentric rectangles with square corners (a
+ * Chebyshev distance field), not circles or ellipses. SVG/CSS have no native
+ * "rectangular radial gradient" primitive, so this renders the true field
+ * directly as a small stack of nested `<rect>` bands inside a self-contained
+ * SVG data URI (see `path-gradient-rect.ts` for the full reasoning), rather
+ * than approximating it as a single ellipse. Pair the result with
+ * `background-size: 100% 100%` and `background-repeat: no-repeat` so the
+ * normalised markup stretches to the shape's real box (done for callers by
+ * `resolveComputedFill` below).
+ */
 export function buildRectPathGradient(
 	stops: SanitizedStop[],
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
 	fillToRect?: ShapeStyle['fillGradientFillToRect'],
 ): string {
-	const stopStr = stops.map(toCssGradientStop).join(', ');
-
-	if (fillToRect) {
-		const { l, t, r, b } = fillToRect;
-		const { cx, cy } = computeGradientCenter(fillToRect, focalPoint);
-
-		const semiX = Math.max(cx, 100 - cx);
-		const semiY = Math.max(cy, 100 - cy);
-		const posX = `${Math.round(cx)}%`;
-		const posY = `${Math.round(cy)}%`;
-
-		const innerHalfW = ((1 - l - r) / 2) * 100;
-		const innerHalfH = ((1 - t - b) / 2) * 100;
-
-		if (innerHalfW > 0.5 && innerHalfH > 0.5 && Math.abs(semiX - semiY) > 1) {
-			const aspect = innerHalfW / innerHalfH;
-			const adjustedSemiX = Math.round(semiY * aspect);
-			const adjustedSemiY = Math.round(semiY);
-			return `radial-gradient(${adjustedSemiX}% ${adjustedSemiY}% at ${posX} ${posY}, ${stopStr})`;
-		}
-		return `radial-gradient(${Math.round(semiX)}% ${Math.round(semiY)}% at ${posX} ${posY}, ${stopStr})`;
-	}
-
-	const posX = focalPoint ? `${Math.round(focalPoint.x * 100)}%` : 'center';
-	const posY = focalPoint ? `${Math.round(focalPoint.y * 100)}%` : 'center';
-	return `radial-gradient(ellipse at ${posX} ${posY}, ${stopStr})`;
+	return buildRectPathGradientImage(stops, focalPoint, fillToRect);
 }
 
 /** Builds a CSS gradient approximation for `path="shape"` gradients. */
@@ -1261,6 +1250,23 @@ function resolveComputedFill(ss: ShapeStyle, element: PptxElement): ComputedFill
 				backgroundSize: tileRect.backgroundSize,
 				backgroundPosition: tileRect.backgroundPosition,
 				backgroundRepeat: tileRect.backgroundRepeat,
+			};
+		}
+		// A `path="rect"` gradient is rendered as an SVG data-URI image (see
+		// `buildRectPathGradient`), not a CSS `<gradient>` function: unlike a CSS
+		// gradient (which auto-sizes to the background box), an `url(...)` image
+		// defaults to its own intrinsic size and to `repeat`, which would tile the
+		// normalised 0-100 artwork instead of stretching it across the shape.
+		const isRectPathImage =
+			ss.fillMode === 'gradient' &&
+			(ss.fillGradientType || 'linear') === 'radial' &&
+			(ss.fillGradientPathType || 'circle') === 'rect' &&
+			sanitizeGradientStops(ss.fillGradientStops).length > 0;
+		if (isRectPathImage) {
+			return {
+				backgroundImage: gradient,
+				backgroundSize: '100% 100%',
+				backgroundRepeat: 'no-repeat',
 			};
 		}
 		return { backgroundImage: gradient };
