@@ -60,6 +60,173 @@ describe('extractPathPoints', () => {
 });
 
 // ==========================================================================
+// extractPathPoints: curve sampling
+// ==========================================================================
+
+/** Reference cubic Bezier evaluator, independent of the module under test. */
+function referenceCubicAt(
+	p0: { x: number; y: number },
+	p1: { x: number; y: number },
+	p2: { x: number; y: number },
+	p3: { x: number; y: number },
+	t: number,
+) {
+	const mt = 1 - t;
+	return {
+		x: mt ** 3 * p0.x + 3 * mt ** 2 * t * p1.x + 3 * mt * t ** 2 * p2.x + t ** 3 * p3.x,
+		y: mt ** 3 * p0.y + 3 * mt ** 2 * t * p1.y + 3 * mt * t ** 2 * p2.y + t ** 3 * p3.y,
+	};
+}
+
+/** Reference quadratic Bezier evaluator, independent of the module under test. */
+function referenceQuadAt(
+	p0: { x: number; y: number },
+	p1: { x: number; y: number },
+	p2: { x: number; y: number },
+	t: number,
+) {
+	const mt = 1 - t;
+	return {
+		x: mt ** 2 * p0.x + 2 * mt * t * p1.x + t ** 2 * p2.x,
+		y: mt ** 2 * p0.y + 2 * mt * t * p1.y + t ** 2 * p2.y,
+	};
+}
+
+/** Whether `point` lies within `tolerance` of some point on the reference cubic curve. */
+function isOnCubicCurve(
+	point: { x: number; y: number },
+	p0: { x: number; y: number },
+	p1: { x: number; y: number },
+	p2: { x: number; y: number },
+	p3: { x: number; y: number },
+	tolerance = 0.5,
+): boolean {
+	const steps = 2000;
+	for (let i = 0; i <= steps; i++) {
+		const bp = referenceCubicAt(p0, p1, p2, p3, i / steps);
+		if (Math.hypot(bp.x - point.x, bp.y - point.y) <= tolerance) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/** Whether `point` lies within `tolerance` of some point on the reference quadratic curve. */
+function isOnQuadCurve(
+	point: { x: number; y: number },
+	p0: { x: number; y: number },
+	p1: { x: number; y: number },
+	p2: { x: number; y: number },
+	tolerance = 0.5,
+): boolean {
+	const steps = 2000;
+	for (let i = 0; i <= steps; i++) {
+		const bp = referenceQuadAt(p0, p1, p2, i / steps);
+		if (Math.hypot(bp.x - point.x, bp.y - point.y) <= tolerance) {
+			return true;
+		}
+	}
+	return false;
+}
+
+describe('extractPathPoints curve sampling', () => {
+	const p0 = { x: 0, y: 0 };
+	const p1 = { x: 0, y: 100 };
+	const p2 = { x: 100, y: 100 };
+	const p3 = { x: 100, y: 0 };
+	const cubicD = 'M 0 0 C 0 100 100 100 100 0';
+
+	it('samples multiple points along a cubic curve instead of just its 2 control points + endpoint', () => {
+		const points = extractPathPoints(cubicD);
+		// Old (pre-fix) behavior returned exactly 4 raw points: the M start
+		// plus the 2 control points and the endpoint of the C command.
+		expect(points.length).toBeGreaterThan(4);
+	});
+
+	it('every sampled point on a cubic curve actually lies on that curve', () => {
+		const points = extractPathPoints(cubicD);
+		for (const point of points) {
+			expect(isOnCubicCurve(point, p0, p1, p2, p3)).toBeTruthy();
+		}
+	});
+
+	it('does NOT emit the raw (off-curve) control points verbatim', () => {
+		// (0,100) and (100,100) are control points, not points on the curve;
+		// the old control-point-only sampling emitted them directly, which is
+		// exactly the "trails the true curve" bug this fixes.
+		expect(isOnCubicCurve(p1, p0, p1, p2, p3)).toBeFalsy();
+		expect(isOnCubicCurve(p2, p0, p1, p2, p3)).toBeFalsy();
+		const points = extractPathPoints(cubicD);
+		expect(points.some((p) => p.x === p1.x && p.y === p1.y)).toBeFalsy();
+		expect(points.some((p) => p.x === p2.x && p.y === p2.y)).toBeFalsy();
+	});
+
+	it('gets reasonably close to the true curve midpoint (t=0.5)', () => {
+		const points = extractPathPoints(cubicD);
+		const expectedMid = referenceCubicAt(p0, p1, p2, p3, 0.5);
+		const closestDist = Math.min(
+			...points.map((p) => Math.hypot(p.x - expectedMid.x, p.y - expectedMid.y)),
+		);
+		expect(closestDist).toBeLessThan(5);
+	});
+
+	it('samples a quadratic curve along the curve as well', () => {
+		const qp0 = { x: 0, y: 0 };
+		const qp1 = { x: 50, y: 100 };
+		const qp2 = { x: 100, y: 0 };
+		const points = extractPathPoints('M 0 0 Q 50 100 100 0');
+		// Old behavior returned exactly 3 raw points (start, control, end).
+		expect(points.length).toBeGreaterThan(3);
+		for (const point of points) {
+			expect(isOnQuadCurve(point, qp0, qp1, qp2)).toBeTruthy();
+		}
+	});
+
+	it('produces more samples for a longer/tighter curve than a short one', () => {
+		const short = extractPathPoints('M 0 0 C 0 5 5 5 5 0');
+		const long = extractPathPoints('M 0 0 C 0 500 500 500 500 0');
+		expect(long.length).toBeGreaterThan(short.length);
+	});
+
+	it('leaves straight M/L paths completely unchanged (endpoints only)', () => {
+		expect(extractPathPoints('M 10 20 L 30 40 L 50 60')).toStrictEqual([
+			{ x: 10, y: 20 },
+			{ x: 30, y: 40 },
+			{ x: 50, y: 60 },
+		]);
+	});
+
+	it('treats coordinate pairs after the first under M as implicit linetos', () => {
+		expect(extractPathPoints('M 0 0 10 10 20 20')).toStrictEqual([
+			{ x: 0, y: 0 },
+			{ x: 10, y: 10 },
+			{ x: 20, y: 20 },
+		]);
+	});
+
+	it('does not throw on a curve command with no preceding current point', () => {
+		expect(() => extractPathPoints('C 10 10 20 20 30 30')).not.toThrow();
+		const points = extractPathPoints('C 10 10 20 20 30 30');
+		expect(points.length).toBeGreaterThan(0);
+	});
+});
+
+describe('generatePressureCircles on curved strokes', () => {
+	it('places every pressure circle on the true curve, not drifted toward control points', () => {
+		const p0 = { x: 0, y: 0 };
+		const p1 = { x: 0, y: 100 };
+		const p2 = { x: 100, y: 100 };
+		const p3 = { x: 100, y: 0 };
+		const points = extractPathPoints('M 0 0 C 0 100 100 100 100 0');
+		const circles = generatePressureCircles(points, [2, 8], { baseWidth: 4 });
+		expect(circles.length).toBeGreaterThan(4);
+		for (const c of circles) {
+			expect(isOnCubicCurve({ x: c.cx, y: c.cy }, p0, p1, p2, p3, 1)).toBeTruthy();
+		}
+	});
+});
+
+// ==========================================================================
 // interpolateWidth
 // ==========================================================================
 
