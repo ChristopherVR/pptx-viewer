@@ -1,9 +1,16 @@
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import {
 	applyRibbonTransitionDraft,
+	applyTransitionSoundFile,
+	clearTransitionSound,
 	EMPTY_RIBBON_TRANSITION_DRAFT,
 	playSlideTransitionPreview,
+	readSoundFileAsDataUrl,
 	RIBBON_TRANSITION_PRESETS,
+	TRANSITION_SOUND_NONE_VALUE,
+	TRANSITION_SOUND_OTHER_VALUE,
+	transitionSoundOptions,
+	transitionSoundSelectedValue,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
@@ -123,22 +130,58 @@ export function createTransitionsTab(
 	durationField.input.title = t('pptx.ribbon.transitionDurationTitle');
 	el.appendChild(durationField.el);
 
-	// One "[No Sound]" entry, like React, and permanently DISABLED: no binding
-	// can author a transition sound (the save model carries `soundFileName` but
-	// nothing writes it, and there is no sound library to pick from), so a
-	// select that opened onto a single dead option would only promise a feature
-	// that is not there. The control still exists because the tab would
-	// otherwise read as a different product from every other binding's.
+	// "Other Sound..." opens a native file picker and the chosen file is
+	// embedded into the package on save (core's `embedTransitionSound`).
+	// "None" clears any sound the slide carries.
 	const soundLabel = createEl(doc, 'label', 'pptxv-transition-sound');
 	const sound = doc.createElement('select');
 	sound.setAttribute('aria-label', t('pptx.ribbon.sound'));
-	sound.disabled = true;
-	const noSound = doc.createElement('option');
-	noSound.value = 'none';
-	noSound.textContent = t('pptx.ribbon.soundNone');
-	sound.appendChild(noSound);
-	soundLabel.append(doc.createTextNode(t('pptx.ribbon.sound')), sound);
+	const soundFile = doc.createElement('input');
+	soundFile.type = 'file';
+	soundFile.accept = 'audio/*';
+	soundFile.style.display = 'none';
+	soundLabel.append(doc.createTextNode(t('pptx.ribbon.sound')), sound, soundFile);
 	el.appendChild(soundLabel);
+
+	/** Repaint the Sound select's options and selection from the active slide. */
+	function paintSound(): void {
+		const transition = handlers.readTransition();
+		sound.replaceChildren();
+		for (const option of transitionSoundOptions(transition)) {
+			const optionEl = doc.createElement('option');
+			optionEl.value = option.value;
+			optionEl.textContent = option.i18nKey ? t(option.i18nKey) : (option.label ?? '');
+			sound.appendChild(optionEl);
+		}
+		sound.value = transitionSoundSelectedValue(transition);
+	}
+	paintSound();
+
+	sound.addEventListener('change', () => {
+		if (sound.value === TRANSITION_SOUND_OTHER_VALUE) {
+			soundFile.click();
+			// The file input's own change (or a cancelled dialog) decides what
+			// happens next; put the select back to what the slide actually has.
+			sound.value = transitionSoundSelectedValue(handlers.readTransition());
+			return;
+		}
+		if (sound.value === TRANSITION_SOUND_NONE_VALUE) {
+			handlers.applyChange(clearTransitionSound());
+		}
+	});
+	soundFile.addEventListener('change', () => {
+		const file = soundFile.files?.[0];
+		soundFile.value = '';
+		if (!file) {
+			return;
+		}
+		void readSoundFileAsDataUrl(file).then((dataUrl) => {
+			if (dataUrl) {
+				handlers.applyChange(applyTransitionSoundFile({ name: file.name, dataUrl }));
+			}
+			return undefined;
+		});
+	});
 
 	el.appendChild(applyToAll.btn);
 	el.appendChild(advance.el);
@@ -162,6 +205,10 @@ export function createTransitionsTab(
 	return {
 		el,
 		sync() {
+			// Sound fields (soundFileName/soundRId) live outside `RibbonTransitionDraft`,
+			// so a sound-only change would never be seen by `sameDraft` below; repaint
+			// it unconditionally rather than gating it on the draft comparison.
+			paintSound();
 			const next = handlers.readDraft() ?? EMPTY_RIBBON_TRANSITION_DRAFT;
 			if (sameDraft(next, draft)) {
 				return;
@@ -174,6 +221,7 @@ export function createTransitionsTab(
 				button.handle.setDisabled(!editable);
 			}
 			durationField.setDisabled(!editable);
+			sound.disabled = !editable;
 			applyToAll.setDisabled(!editable);
 			advance.setDisabled(!editable);
 		},

@@ -69,6 +69,8 @@ function buildHandlers(): RibbonHandlers {
 		transitions: {
 			readDraft: () => ({ ...EMPTY_RIBBON_TRANSITION_DRAFT }),
 			applyDraft: vi.fn(),
+			readTransition: () => undefined,
+			applyChange: vi.fn(),
 		},
 		draw: fakeActions<RibbonHandlers['draw']>(),
 	};

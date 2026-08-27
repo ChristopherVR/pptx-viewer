@@ -35,6 +35,20 @@ function presetButton(wrapper: ReturnType<typeof mountTab>['wrapper'], label: st
 	return wrapper.findAll('button').find((button) => button.text() === label);
 }
 
+/** Poll until `predicate` is true, rather than hoping a fixed delay covers
+ * the FileReader read (its completion time is not guaranteed under load). */
+async function waitFor(predicate: () => boolean, timeoutMs = 2000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() > deadline) {
+			throw new Error('waitFor: condition not met before deadline');
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, 5);
+		});
+	}
+}
+
 describe('transitionsSection commits to the deck', () => {
 	it('writes the picked preset onto the slide', async () => {
 		const { wrapper, onTransitionChange } = mountTab(slideWith());
@@ -110,8 +124,69 @@ describe('transitionsSection reads the deck', () => {
 		expect((wrapper.find('input[type="text"]').element as HTMLInputElement).value).toBe('00:03.00');
 	});
 
-	it('disables the Sound select, which nothing can author', () => {
+	it('offers None and Other Sound for a slide with no sound', () => {
 		const { wrapper } = mountTab(slideWith());
-		expect(wrapper.find('select').attributes('disabled')).toBeDefined();
+		const select = wrapper.find('select');
+		expect(select.attributes('disabled')).toBeUndefined();
+		expect(select.findAll('option').map((o) => o.attributes('value'))).toStrictEqual([
+			'none',
+			'other',
+		]);
+	});
+
+	it('leads with the current file name once the slide carries a sound', () => {
+		const { wrapper } = mountTab(slideWith({ type: 'fade', soundFileName: 'chime.wav' }));
+		const select = wrapper.find('select');
+		expect(select.findAll('option').map((o) => o.attributes('value'))).toStrictEqual([
+			'current',
+			'none',
+			'other',
+		]);
+	});
+});
+
+describe('transitionsSection > Sound picker', () => {
+	it('clears the sound when "None" is chosen', async () => {
+		const { wrapper, onTransitionChange } = mountTab(
+			slideWith({ type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' }),
+		);
+		await wrapper.find('select').setValue('none');
+		expect(onTransitionChange).toHaveBeenCalledWith(
+			expect.objectContaining({ soundRId: undefined, soundFileName: undefined }),
+		);
+	});
+
+	it('opens the file picker instead of committing when "Other Sound..." is chosen', async () => {
+		const { wrapper, onTransitionChange } = mountTab(slideWith({ type: 'fade' }));
+		const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
+		const clickSpy = vi.spyOn(input, 'click');
+
+		await wrapper.find('select').setValue('other');
+
+		expect(clickSpy).toHaveBeenCalledOnce();
+		expect(onTransitionChange).not.toHaveBeenCalled();
+	});
+
+	it('commits the picked file as pending sound data', async () => {
+		const { wrapper, onTransitionChange } = mountTab(slideWith({ type: 'fade' }));
+		const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
+		const file = new File(['fake wav bytes'], 'applause.wav', { type: 'audio/wav' });
+		Object.defineProperty(input, 'files', { value: [file], configurable: true });
+
+		await wrapper.find('input[type="file"]').trigger('change');
+		// FileReader resolves asynchronously even for an in-memory Blob; poll
+		// rather than hope a fixed delay covers it under load.
+		await waitFor(() => onTransitionChange.mock.calls.length > 0);
+
+		expect(onTransitionChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				soundFileName: 'applause.wav',
+				soundName: 'applause',
+				soundRId: undefined,
+				soundPath: undefined,
+			}),
+		);
+		const call = onTransitionChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
+		expect(call.soundData).toMatch(/^data:/);
 	});
 });

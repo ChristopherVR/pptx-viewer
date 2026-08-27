@@ -106,6 +106,31 @@ describe('editorTransitionController', () => {
 		expect(editor.slides[1].transition).toBeUndefined();
 	});
 
+	it('applyChange merges a raw partial change onto the current slide, undoably', () => {
+		const editor = make();
+		editor.setSlides([slide('a', { transition: { type: 'fade', durationMs: 500 } })]);
+		editor.transitionOps.applyChange({
+			soundData: 'data:audio/wav;base64,AA==',
+			soundFileName: 'x.wav',
+		});
+		expect(editor.slides[0].transition).toMatchObject({
+			type: 'fade',
+			durationMs: 500,
+			soundData: 'data:audio/wav;base64,AA==',
+			soundFileName: 'x.wav',
+		});
+		editor.undo();
+		expect(editor.slides[0].transition?.soundData).toBeUndefined();
+	});
+
+	it('applyChange is a no-op when not editable', () => {
+		const editor = make();
+		editor.setSlides([slide('a')]);
+		editor.editable = false;
+		editor.transitionOps.applyChange({ soundFileName: 'x.wav' });
+		expect(editor.slides[0].transition).toBeUndefined();
+	});
+
 	it('is a no-op when not editable', () => {
 		const editor = make();
 		editor.setSlides([slide('a')]);

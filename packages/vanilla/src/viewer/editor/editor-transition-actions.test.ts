@@ -188,6 +188,53 @@ describe('createTransitionActions', () => {
 		expect(store.get().slides[0].transition).not.toBe(store.get().slides[2].transition);
 	});
 
+	it('applyTransitionChange merges a raw partial change onto the active slide, with history', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a'),
+					transition: { type: 'fade', durationMs: 500 } satisfies PptxSlideTransition,
+				},
+				buildSlide('b'),
+			],
+			currentSlide: 0,
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createTransitionActions({ store, ops });
+
+		actions.applyTransitionChange({
+			soundData: 'data:audio/wav;base64,AA==',
+			soundFileName: 'x.wav',
+		});
+
+		expect(store.get().slides[0].transition).toMatchObject({
+			type: 'fade',
+			durationMs: 500,
+			soundData: 'data:audio/wav;base64,AA==',
+			soundFileName: 'x.wav',
+		});
+		expect(store.get().slides[1].transition).toBeUndefined();
+		ops.undo();
+		expect(store.get().slides[0].transition?.soundData).toBeUndefined();
+	});
+
+	it('applyTransitionChange is a no-op when the viewer is not editable', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [buildSlide('a')],
+			currentSlide: 0,
+			editable: false,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createTransitionActions({ store, ops });
+
+		actions.applyTransitionChange({ soundFileName: 'x.wav' });
+
+		expect(store.get().slides[0].transition).toBeUndefined();
+	});
+
 	it('is a no-op when the viewer is not editable', () => {
 		const store = createStore({
 			...createInitialViewerState(),

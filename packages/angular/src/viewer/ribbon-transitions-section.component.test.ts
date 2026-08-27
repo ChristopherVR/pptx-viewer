@@ -27,6 +27,8 @@ interface TransitionsControls {
 	onAdvanceOnClick: (event: Event) => void;
 	onAdvanceAfter: (event: Event) => void;
 	onAdvanceAfterText: (event: Event) => void;
+	onSoundSelectChange: (event: Event) => void;
+	onSoundFileChange: (event: Event) => void;
 	applyToAll: () => void;
 	preview: () => void;
 	draft: () => {
@@ -36,6 +38,8 @@ interface TransitionsControls {
 		advanceAfter: boolean;
 		advanceAfterText: string;
 	};
+	soundOptions: () => Array<{ value: string; i18nKey?: string; label?: string }>;
+	soundSelectedValue: () => string;
 }
 
 function slide(id: string): PptxSlide {
@@ -62,6 +66,26 @@ function changeEvent(value: string | boolean): Event {
 			? ({ checked: value } as HTMLInputElement)
 			: ({ value } as HTMLInputElement);
 	return { target } as unknown as Event;
+}
+
+/** A file input's change event carrying the picked file. */
+function fileChangeEvent(file: File): Event {
+	const target = { files: [file], value: '' } as unknown as HTMLInputElement;
+	return { target } as unknown as Event;
+}
+
+/** Poll until `predicate` is true, rather than hoping a fixed delay covers
+ * the FileReader read (its completion time is not guaranteed under load). */
+async function waitFor(predicate: () => boolean, timeoutMs = 2000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() > deadline) {
+			throw new Error('waitFor: condition not met before deadline');
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, 5);
+		});
+	}
 }
 
 describe('transitions ribbon tab', () => {
@@ -152,5 +176,59 @@ describe('transitions ribbon tab', () => {
 		// half-made pick (After ticked, no time typed yet) is not thrown away.
 		controls.setTransition('split');
 		expect(controls.draft().type).toBe('split');
+	});
+});
+
+describe('transitions ribbon tab > Sound picker', () => {
+	it('offers None and Other Sound for a slide with no sound', () => {
+		const { controls } = harness();
+		expect(controls.soundOptions().map((option) => option.value)).toStrictEqual(['none', 'other']);
+		expect(controls.soundSelectedValue()).toBe('none');
+	});
+
+	it('leads with the current file name once the slide carries a sound', () => {
+		const { editor, controls } = harness();
+		editor.updateSlide(0, { transition: { type: 'fade', soundFileName: 'chime.wav' } });
+		expect(controls.soundOptions().map((option) => option.value)).toStrictEqual([
+			'current',
+			'none',
+			'other',
+		]);
+		expect(controls.soundSelectedValue()).toBe('current');
+	});
+
+	it('clears the sound when "None" is chosen', () => {
+		const { editor, controls } = harness();
+		editor.updateSlide(0, {
+			transition: { type: 'fade', soundFileName: 'chime.wav', soundRId: 'rId2' },
+		});
+
+		controls.onSoundSelectChange(changeEvent('none'));
+
+		expect(editor.slides()[0].transition).toMatchObject({
+			type: 'fade',
+			soundRId: undefined,
+			soundFileName: undefined,
+		});
+	});
+
+	it('commits the picked file as pending sound data', async () => {
+		const { editor, controls } = harness();
+		editor.updateSlide(0, { transition: { type: 'fade' } });
+		const file = new File(['fake wav bytes'], 'applause.wav', { type: 'audio/wav' });
+
+		controls.onSoundFileChange(fileChangeEvent(file));
+		// FileReader resolves asynchronously even for an in-memory Blob; poll
+		// rather than hope a fixed delay covers it under load.
+		await waitFor(() => editor.slides()[0].transition?.soundData !== undefined);
+
+		expect(editor.slides()[0].transition).toMatchObject({
+			type: 'fade',
+			soundFileName: 'applause.wav',
+			soundName: 'applause',
+			soundRId: undefined,
+			soundPath: undefined,
+		});
+		expect(editor.slides()[0].transition?.soundData).toMatch(/^data:/);
 	});
 });

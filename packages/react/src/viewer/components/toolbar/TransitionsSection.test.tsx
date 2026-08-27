@@ -64,9 +64,10 @@ describe('transitionsSection reads the active slide', () => {
 		expect(html).toContain('value="00:03.00"');
 	});
 
-	it('disables the Sound select, which nothing can author', () => {
+	it('offers None and Other Sound for a slide with no sound (see TransitionsSection.sound.test.tsx for the interactive picker behaviour)', () => {
 		const { html } = renderTab();
-		expect(html).toMatch(/<select[^>]*disabled/);
+		expect(html).toContain('pptx.ribbon.soundNone');
+		expect(html).toContain('pptx.ribbon.soundOther');
 	});
 });
 

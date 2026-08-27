@@ -98,6 +98,8 @@ function buildHandlers(): RibbonHandlers {
 		transitions: {
 			readDraft: () => ({ ...EMPTY_RIBBON_TRANSITION_DRAFT }),
 			applyDraft: vi.fn(),
+			readTransition: () => undefined,
+			applyChange: vi.fn(),
 		},
 		draw: { setTool: vi.fn(), setColor: vi.fn(), setWidth: vi.fn() },
 	};

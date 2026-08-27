@@ -157,6 +157,7 @@ export const translations = {
 	'pptx.ribbon.advanceAfterSeconds': 'Avanzar después de la duración especificada',
 	'pptx.ribbon.sound': 'Sonido:',
 	'pptx.ribbon.soundNone': '[Sin sonido]',
+	'pptx.ribbon.soundOther': 'Otro sonido...',
 	'pptx.ribbon.inspector': 'Inspector',
 	'pptx.ribbon.openInspectorTransitions':
 		'Abra el Inspector para ver opciones de transición completas',

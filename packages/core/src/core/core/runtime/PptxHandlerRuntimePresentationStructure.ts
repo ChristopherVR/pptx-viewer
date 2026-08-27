@@ -24,20 +24,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		slidePath?: string,
 	): PptxSlideTransition | undefined {
 		const parsedTransition = this.slideTransitionService.parseSlideTransition(slideXml);
-		if (!parsedTransition || !slidePath) {
+		// `parsedTransition.soundRId` is already correctly read off `p:sndAc/p:stSnd/p:snd/@r:embed`
+		// by `PptxSlideTransitionService` (via `parseTransitionSound`), which looks at
+		// the `p:snd` CHILD element. This used to re-derive the id itself by reading
+		// `@_r:embed` directly off `p:stSnd`, one level too high (that attribute lives
+		// on its `p:snd` child), so it always read an empty string and bailed out
+		// before ever resolving `soundPath`/`soundFileName`: no loaded deck's
+		// transition sound ever showed a file name in the ribbon or inspector.
+		if (!parsedTransition || !slidePath || !parsedTransition.soundRId) {
 			return parsedTransition;
 		}
 
-		const soundAction = parsedTransition.rawSoundAction;
-		const startSound = soundAction?.['p:stSnd'] as XmlObject | undefined;
-		const soundRId = String(startSound?.['@_r:embed'] || startSound?.['@_r:link'] || '').trim();
-		if (soundRId.length === 0) {
-			return parsedTransition;
-		}
-
-		parsedTransition.soundRId = soundRId;
 		const slideRelationships = this.slideRelsMap.get(slidePath);
-		const soundTarget = slideRelationships?.get(soundRId);
+		const soundTarget = slideRelationships?.get(parsedTransition.soundRId);
 		if (soundTarget) {
 			const soundPath = this.resolveImagePath(slidePath, soundTarget);
 			parsedTransition.soundPath = soundPath;

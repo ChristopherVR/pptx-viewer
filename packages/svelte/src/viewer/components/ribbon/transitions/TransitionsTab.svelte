@@ -22,9 +22,16 @@
 	import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 	import {
 		applyRibbonTransitionDraft,
+		applyTransitionSoundFile,
+		clearTransitionSound,
 		EMPTY_RIBBON_TRANSITION_DRAFT,
 		playSlideTransitionPreview,
 		readRibbonTransitionDraft,
+		readSoundFileAsDataUrl,
+		TRANSITION_SOUND_NONE_VALUE,
+		TRANSITION_SOUND_OTHER_VALUE,
+		transitionSoundOptions,
+		transitionSoundSelectedValue,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -80,6 +87,47 @@
 			document,
 		);
 	}
+
+	// The Sound picker's file input: hidden, and clicked programmatically by
+	// the "Other Sound..." entry. A sound pick writes a raw partial change
+	// through `transitionOps.applyChange`, bypassing the ribbon draft (a
+	// freshly-picked file's `soundData` has no equivalent in it).
+	let soundFileInput = $state<HTMLInputElement | undefined>();
+	const soundOptions = $derived(
+		transitionSoundOptions(editor.slides[editor.currentSlideIndex]?.transition),
+	);
+	const soundSelectedValue = $derived(
+		transitionSoundSelectedValue(editor.slides[editor.currentSlideIndex]?.transition),
+	);
+
+	function onSoundSelectChange(event: Event): void {
+		const select = event.currentTarget as HTMLSelectElement;
+		if (select.value === TRANSITION_SOUND_OTHER_VALUE) {
+			soundFileInput?.click();
+			// The file input's own change (or a cancelled dialog) decides what
+			// happens next; put the select back to what the slide actually has.
+			select.value = soundSelectedValue;
+			return;
+		}
+		if (select.value === TRANSITION_SOUND_NONE_VALUE) {
+			editor.transitionOps.applyChange(clearTransitionSound());
+		}
+	}
+
+	function onSoundFileChange(event: Event): void {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) {
+			return;
+		}
+		void readSoundFileAsDataUrl(file).then((dataUrl) => {
+			if (dataUrl) {
+				editor.transitionOps.applyChange(applyTransitionSoundFile({ name: file.name, dataUrl }));
+			}
+			return undefined;
+		});
+	}
 </script>
 
 <div class="pptx-svelte-transitionstab" role="group" aria-label={t('pptx.ribbon.tab.transitions')}>
@@ -122,14 +170,28 @@
 		/>
 	</label>
 
-	<!-- Always disabled: no binding can author a transition sound (there is no
-	     `p:sndAc` write path in the save model), so an enabled select would be a
-	     control that cannot do anything. -->
+	<!-- "Other Sound..." opens a native file picker and the chosen file is
+	     embedded into the package on save (core's `embedTransitionSound`).
+	     "None" clears any sound the slide carries. -->
 	<label class="pptx-svelte-transitionstab-field">
 		<span>{t('pptx.ribbon.sound')}</span>
-		<select aria-label={t('pptx.ribbon.sound')} disabled>
-			<option value="none">{t('pptx.ribbon.soundNone')}</option>
+		<select
+			aria-label={t('pptx.ribbon.sound')}
+			disabled={!editor.editable}
+			value={soundSelectedValue}
+			onchange={onSoundSelectChange}
+		>
+			{#each soundOptions as option (option.value)}
+				<option value={option.value}>{option.i18nKey ? t(option.i18nKey) : option.label}</option>
+			{/each}
 		</select>
+		<input
+			bind:this={soundFileInput}
+			type="file"
+			accept="audio/*"
+			class="pptx-svelte-transitionstab-sound-file"
+			onchange={onSoundFileChange}
+		/>
 	</label>
 
 	<button
@@ -296,5 +358,9 @@
 	.pptx-svelte-transitionstab-field input:disabled,
 	.pptx-svelte-transitionstab-field select:disabled {
 		opacity: 0.4;
+	}
+
+	.pptx-svelte-transitionstab-sound-file {
+		display: none;
 	}
 </style>

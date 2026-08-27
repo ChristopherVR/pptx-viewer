@@ -20,22 +20,32 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	ElementRef,
 	inject,
 	input,
 	output,
 	signal,
+	viewChild,
 } from '@angular/core';
 import { LucidePanelRight, LucidePlay } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxTransitionType } from 'pptx-viewer-core';
+import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 
 import type { RibbonTransitionDraft } from '../internal/shared';
 import {
 	applyRibbonTransitionDraft,
+	applyTransitionSoundFile,
+	clearTransitionSound,
+	mergeSlideTransition,
 	playSlideTransitionPreview,
 	readRibbonTransitionDraft,
+	readSoundFileAsDataUrl,
 	RIBBON_TRANSITION_PRESETS,
 	ribbonTransitionTargets,
+	TRANSITION_SOUND_NONE_VALUE,
+	TRANSITION_SOUND_OTHER_VALUE,
+	transitionSoundOptions,
+	transitionSoundSelectedValue,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 
@@ -97,21 +107,31 @@ import { EditorStateService } from './editor-state.service';
 		</label>
 		<span class="pptx-rb-sep"></span>
 		<!--
-			Sound. Rendered DISABLED on purpose: no binding authors a transition
-			sound (there is no picker, no media relationship writer and nothing in
-			the show path plays one), so an enabled select would be a control that
-			cannot work. It stays visible because the concept exists in the format
-			and a slide that already carries a sound keeps it through save.
+			Sound. "Other Sound..." opens a native file picker and the chosen file
+			is embedded into the package on save (core's embedTransitionSound).
+			"None" clears any sound the slide carries.
 		-->
 		<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
 			<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
 			<select
 				[attr.aria-label]="'pptx.ribbon.sound' | translate"
 				class="pptx-rb-select w-24 disabled:opacity-50"
-				disabled
+				[value]="soundSelectedValue()"
+				(change)="onSoundSelectChange($event)"
 			>
-				<option value="none">{{ 'pptx.ribbon.soundNone' | translate }}</option>
+				@for (option of soundOptions(); track option.value) {
+					<option [value]="option.value">
+						{{ option.i18nKey ? (option.i18nKey | translate) : option.label }}
+					</option>
+				}
 			</select>
+			<input
+				#soundFileInput
+				type="file"
+				accept="audio/*"
+				class="hidden"
+				(change)="onSoundFileChange($event)"
+			/>
 		</label>
 		<span class="pptx-rb-sep"></span>
 		<!-- Apply to all -->
@@ -243,6 +263,62 @@ export class RibbonTransitionsSectionComponent {
 	/** Apply the current draft to every slide in the deck. */
 	protected applyToAll(): void {
 		this.commit({}, true);
+	}
+
+	private readonly soundFileInput = viewChild<ElementRef<HTMLInputElement>>('soundFileInput');
+
+	/** What the Sound `<select>` shows: the picked file's name, None, or the browse entry. */
+	protected readonly soundOptions = computed(() =>
+		transitionSoundOptions(this.editor.slides()[this.slideIndex()]?.transition),
+	);
+
+	protected readonly soundSelectedValue = computed(() =>
+		transitionSoundSelectedValue(this.editor.slides()[this.slideIndex()]?.transition),
+	);
+
+	/**
+	 * Sound writes a raw `Partial<PptxSlideTransition>` straight onto the
+	 * active slide rather than going through the ribbon draft: the picked
+	 * file's `soundData` has no equivalent in {@link RibbonTransitionDraft},
+	 * and `updateSlide` replaces `transition` wholesale, so the change is
+	 * pre-merged with `mergeSlideTransition`.
+	 */
+	protected onSoundSelectChange(event: Event): void {
+		const select = event.target as HTMLSelectElement;
+		if (select.value === TRANSITION_SOUND_OTHER_VALUE) {
+			this.soundFileInput()?.nativeElement.click();
+			// The file input's own change (or a cancelled dialog) decides what
+			// happens next; put the select back to what the slide actually has.
+			select.value = this.soundSelectedValue();
+			return;
+		}
+		if (select.value === TRANSITION_SOUND_NONE_VALUE) {
+			this.commitSoundChange(clearTransitionSound());
+		}
+	}
+
+	protected onSoundFileChange(event: Event): void {
+		const fileInput = event.target as HTMLInputElement;
+		const file = fileInput.files?.[0];
+		fileInput.value = '';
+		if (!file) {
+			return;
+		}
+		void readSoundFileAsDataUrl(file).then((dataUrl) => {
+			if (dataUrl) {
+				this.commitSoundChange(applyTransitionSoundFile({ name: file.name, dataUrl }));
+			}
+			return undefined;
+		});
+	}
+
+	private commitSoundChange(changes: Partial<PptxSlideTransition>): void {
+		const index = this.slideIndex();
+		const slide = this.editor.slides()[index];
+		if (!slide) {
+			return;
+		}
+		this.editor.updateSlide(index, { transition: mergeSlideTransition(slide.transition, changes) });
 	}
 
 	/**

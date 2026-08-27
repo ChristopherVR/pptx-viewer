@@ -1,4 +1,9 @@
-import type { PptxPresentationProperties, PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
+import type {
+	PptxPresentationProperties,
+	PptxSaveFormat,
+	PptxSlideTransition,
+	TextSegment,
+} from 'pptx-viewer-core';
 import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
@@ -88,6 +93,8 @@ export interface ChromeCallbackDeps {
 	 * not there yet.
 	 */
 	readTransitionDraft(): RibbonTransitionDraft;
+	/** The ACTIVE slide's raw transition, for fields the draft does not carry (the Sound picker). */
+	readTransition(): PptxSlideTransition | undefined;
 	presentationProperties(): PptxPresentationProperties;
 	/** Lazily resolve the editor's find/replace actions (same timing as edit actions). */
 	getFindReplaceActions(): FindReplaceActions;
@@ -210,6 +217,8 @@ export function buildChromeCallbacks(
 			readDraft: () => deps.readTransitionDraft(),
 			applyDraft: (draft, applyToAll) =>
 				deps.getEditActions().applyTransitionDraft(draft, applyToAll),
+			readTransition: () => deps.readTransition(),
+			applyChange: (changes) => deps.getEditActions().applyTransitionChange(changes),
 		},
 		draw: {
 			setTool: (tool) => deps.setDrawTool(tool),

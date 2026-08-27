@@ -2,8 +2,20 @@ import { PptxSlide, XmlObject, TextStyle } from '../../types';
 import type { PptxElementAnimation, PptxSlideTransition } from '../../types';
 import { parseDataUrlToBytes, fetchUrlToBytes } from '../../utils/data-url-utils';
 import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
-import type { PptxSaveState } from '../builders';
+import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePresentationProps';
+
+/** Context {@link PptxHandlerRuntime.embedTransitionSound} needs from the slide save writer. */
+export interface EmbedTransitionSoundContext {
+	saveSession: PptxSaveState;
+	slideRelationshipRegistry: IPptxSlideRelationshipRegistry;
+	/** Relationship type for an embedded (package-internal) media part; the
+	 * same generic type `processMediaEmbedding` uses for embedded audio/video,
+	 * per ECMA-376's convention that type-specific `audio`/`video` relationship
+	 * types are reserved for EXTERNALLY linked media. */
+	slideMediaRelationshipType: string;
+	slideId: string;
+}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createEmptySlideXml(): XmlObject {
@@ -96,6 +108,52 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	protected buildSlideTransitionXml(transition: PptxSlideTransition): XmlObject | undefined {
 		return this.slideTransitionService.buildSlideTransitionXml(transition);
+	}
+
+	/**
+	 * Embed a transition sound picked in the UI (`transition.soundData`, a
+	 * `data:` URL set by the shared `applyTransitionSoundFile`) as a package
+	 * media part and slide relationship, mirroring `processImageEmbedding` /
+	 * `processMediaEmbedding` for picture and media elements. Mutates
+	 * `transition` in place and must run before {@link buildSlideTransitionXml}
+	 * so `buildTransitionSound` sees a real `soundRId`.
+	 *
+	 * On success, `soundRId`/`soundPath` are set and `soundData` is cleared so
+	 * a later save does not re-embed the same bytes (the same "cleared once
+	 * embedded" contract `imagePath`/`mediaPath` use). On failure, `soundData`
+	 * is cleared and a compatibility warning is reported so a broken payload
+	 * cannot loop forever.
+	 */
+	protected embedTransitionSound(
+		transition: PptxSlideTransition,
+		ctx: EmbedTransitionSoundContext,
+	): void {
+		if (typeof transition.soundData !== 'string' || transition.soundData.length === 0) {
+			return;
+		}
+		const parsedSound = this.parseDataUrlToBytes(transition.soundData);
+		if (!parsedSound) {
+			this.compatibilityService.reportWarning({
+				code: 'SAVE_TRANSITION_SOUND_PAYLOAD_UNSUPPORTED',
+				message:
+					'Transition sound payload could not be converted to an embedded media part and was dropped.',
+				scope: 'save',
+				slideId: ctx.slideId,
+			});
+			delete transition.soundData;
+			return;
+		}
+		const targetSoundPath = ctx.saveSession.nextMediaPath(parsedSound.extension, 'audio');
+		this.zip.file(targetSoundPath, parsedSound.bytes);
+		const relationshipId = ctx.slideRelationshipRegistry.nextRelationshipId();
+		ctx.slideRelationshipRegistry.upsertRelationship(
+			relationshipId,
+			ctx.slideMediaRelationshipType,
+			targetSoundPath.replace(/^ppt\//u, '../'),
+		);
+		transition.soundRId = relationshipId;
+		transition.soundPath = targetSoundPath;
+		delete transition.soundData;
 	}
 
 	protected applyEditorAnimations(slideNode: XmlObject, animations: PptxElementAnimation[]): void {

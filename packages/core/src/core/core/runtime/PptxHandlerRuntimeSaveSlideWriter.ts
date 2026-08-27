@@ -197,12 +197,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const spTree = this.ensureSlideTree(xmlObj);
 
-		// Relationships are resolved here, ahead of the animation timing block
-		// below, because a newly-authored effect sound (`PptxElementAnimation.
-		// soundData`, a pending `data:` URL from the animation panel's sound
-		// picker) needs a relationship id and a media part BEFORE
-		// `buildTimingXml` runs: that is the only place `p:stSnd/@r:embed` is
-		// written.
+		// Relationships are resolved here, ahead of the transition and animation
+		// timing blocks below, because a newly-authored effect sound
+		// (`PptxElementAnimation.soundData`, a pending `data:` URL from the
+		// animation panel's sound picker) needs a relationship id and a media
+		// part BEFORE `buildTimingXml` runs (the only place `p:stSnd/@r:embed`
+		// is written), and likewise a transition sound the user picked in the
+		// ribbon needs one BEFORE `buildSlideTransitionXml` serializes
+		// `p:sndAc/p:stSnd/p:snd/@r:embed`.
 		const slideRelsPath = this.toSlideRelsPath(slide.id);
 		const slideRelsXml = await this.zip.file(slideRelsPath)?.async('string');
 		const slideRelsData: XmlObject = slideRelsXml
@@ -222,8 +224,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			new PptxSlideRelationshipRegistry({
 				relationships: slideRelationships,
 			});
+		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
+			constants.slideCommentRelationshipType,
+		);
 
 		if (slide.transition !== undefined) {
+			this.embedTransitionSound(slide.transition, {
+				saveSession,
+				slideRelationshipRegistry,
+				slideMediaRelationshipType: constants.slideMediaRelationshipType,
+				slideId: slide.id,
+			});
 			// `CT_Slide` allows ONE `p:transition`, and PowerPoint 2010+ keeps it
 			// inside a slide-root `mc:AlternateContent` envelope whenever it
 			// carries p14/p15/p159 markup. Assigning a direct child on top of
@@ -280,9 +291,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		xmlObj['p:sld'] = slideNode;
 
-		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
-			constants.slideCommentRelationshipType,
-		);
 		await saveSlideSynchronization({
 			zip: this.zip,
 			parser: this.parser,
