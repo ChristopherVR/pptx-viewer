@@ -217,9 +217,7 @@ describe('legacy .ppt import (error cases)', () => {
 				password: 'definitely-the-wrong-password',
 			}),
 		).rejects.toThrow(IncorrectPasswordError);
-	}, // tests in ooxml-crypto.test.ts budget 120s for the same reason, and // ([MS-OFFCRYPTO] 2.3.6.2); the existing real-fixture Standard/Agile // A single password check is one 50,000-iteration SHA-1 key derivation
-	// this one has run past that budget when the suite saturates the
-	// machine, so it gets extra headroom.
+	}, // machine, so it gets extra headroom. // this one has run past that budget when the suite saturates the // tests in ooxml-crypto.test.ts budget 120s for the same reason, and // ([MS-OFFCRYPTO] 2.3.6.2); the existing real-fixture Standard/Agile // A single password check is one 50,000-iteration SHA-1 key derivation
 	180_000);
 
 	it('rejects an OLE2 file that is not a presentation', async () => {
