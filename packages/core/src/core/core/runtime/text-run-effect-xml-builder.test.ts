@@ -219,6 +219,59 @@ describe('buildTextRunEffectListXml', () => {
 		});
 	});
 
+	/**
+	 * Regression guard for the limitations.md caveat: a text run's reflection
+	 * must serialize the same `@sx`/`@sy`, `@kx`/`@ky`, `@rot`, `@fadeDir` and
+	 * `@algn` attributes the shape-level `buildReflectionXml` already emits,
+	 * not just `@dist`/`@stA`/`@endA`/`@blurRad`.
+	 */
+	describe('reflection', () => {
+		it('should serialize scale, skew, rotation, fade direction and alignment', () => {
+			const style: TextStyle = {
+				textReflection: true,
+				textReflectionBlur: 2,
+				textReflectionStartOpacity: 0.6,
+				textReflectionEndOpacity: 0.1,
+				textReflectionOffset: 1,
+				textReflectionFadeDirection: 45,
+				textReflectionScaleX: 50000,
+				textReflectionScaleY: 150000,
+				textReflectionSkewX: 600000,
+				textReflectionSkewY: -300000,
+				textReflectionRotation: 30,
+				textReflectionAlignment: 'br',
+			};
+			const result = buildTextRunEffectListXml(style);
+			expect(result).toBeDefined();
+			const refl = result?.['a:reflection'] as Record<string, unknown>;
+			expect(refl).toBeDefined();
+			expect(refl['@_blurRad']).toBe(String(Math.round(2 * 9525)));
+			expect(refl['@_stA']).toBe(String(Math.round(0.6 * 100000)));
+			expect(refl['@_endA']).toBe(String(Math.round(0.1 * 100000)));
+			expect(refl['@_dist']).toBe(String(Math.round(1 * 9525)));
+			expect(refl['@_fadeDir']).toBe(String(45 * 60000));
+			expect(refl['@_sx']).toBe('50000');
+			expect(refl['@_sy']).toBe('150000');
+			expect(refl['@_kx']).toBe('600000');
+			expect(refl['@_ky']).toBe('-300000');
+			expect(refl['@_rot']).toBe(String(30 * 60000));
+			expect(refl['@_algn']).toBe('br');
+		});
+
+		it('should omit scale/skew/rotation/fade/alignment attributes when unset', () => {
+			const style: TextStyle = { textReflection: true, textReflectionBlur: 2 };
+			const result = buildTextRunEffectListXml(style);
+			const refl = result?.['a:reflection'] as Record<string, unknown>;
+			expect(refl['@_sx']).toBeUndefined();
+			expect(refl['@_sy']).toBeUndefined();
+			expect(refl['@_kx']).toBeUndefined();
+			expect(refl['@_ky']).toBeUndefined();
+			expect(refl['@_rot']).toBeUndefined();
+			expect(refl['@_fadeDir']).toBeUndefined();
+			expect(refl['@_algn']).toBeUndefined();
+		});
+	});
+
 	it('should include multiple effects in same effectLst', () => {
 		const style: TextStyle = {
 			textShadowColor: '#000000',

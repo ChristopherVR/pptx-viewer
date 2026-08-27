@@ -175,6 +175,32 @@ function buildReflectionNode(style: TextStyle): XmlObject {
 	if (typeof style.textReflectionOffset === 'number') {
 		refl['@_dist'] = String(Math.round(style.textReflectionOffset * EMU_PER_PX));
 	}
+	// The five attributes the shape-level reflection writer
+	// (`buildReflectionXml`) already emits: scale, skew, independent rotation,
+	// fade direction and anchor. Same units/conventions as `ShapeStyle`'s
+	// equivalents so a value survives load -> save -> reload identically for
+	// both a shape and a text run.
+	if (typeof style.textReflectionScaleX === 'number') {
+		refl['@_sx'] = String(Math.round(style.textReflectionScaleX));
+	}
+	if (typeof style.textReflectionScaleY === 'number') {
+		refl['@_sy'] = String(Math.round(style.textReflectionScaleY));
+	}
+	if (typeof style.textReflectionSkewX === 'number') {
+		refl['@_kx'] = String(Math.round(style.textReflectionSkewX));
+	}
+	if (typeof style.textReflectionSkewY === 'number') {
+		refl['@_ky'] = String(Math.round(style.textReflectionSkewY));
+	}
+	if (typeof style.textReflectionRotation === 'number') {
+		refl['@_rot'] = String(Math.round(style.textReflectionRotation * 60000));
+	}
+	if (typeof style.textReflectionFadeDirection === 'number') {
+		refl['@_fadeDir'] = positiveFixedAngleAttribute(style.textReflectionFadeDirection);
+	}
+	if (style.textReflectionAlignment) {
+		refl['@_algn'] = style.textReflectionAlignment;
+	}
 	return refl;
 }
 

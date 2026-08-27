@@ -1,5 +1,6 @@
 import { TextStyle, XmlObject } from '../../types';
 import { buildEffectDagTreeFromXml } from '../builders/effect-dag-containers';
+import { extractReflectionAttributes } from '../builders/effect-style-extractor-reflection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextStyleUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -149,25 +150,48 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				style.textGlowRadius = radRaw / PptxHandlerRuntimeBase.EMU_PER_PX;
 			}
 		}
-		// Reflection
+		// Reflection. Reuses the same `extractReflectionAttributes` helper the
+		// shape-level parser (`PptxShapeEffectStyleExtractor`) already relies on,
+		// so a text run's `a:rPr/a:effectLst/a:reflection` honours the full
+		// attribute set (`@dist`/`@stA`/`@endA`/`@blurRad` plus `@sx`/`@sy`,
+		// `@kx`/`@ky`, `@rot`, `@fadeDir` and `@algn`) instead of a hand-rolled
+		// subset that silently dropped the latter five.
 		const reflNode = runEffectList['a:reflection'] as XmlObject | undefined;
 		if (reflNode) {
 			style.textReflection = true;
-			const blurRaw = Number.parseInt(String(reflNode['@_blurRad'] || ''), 10);
-			if (Number.isFinite(blurRaw) && blurRaw >= 0) {
-				style.textReflectionBlur = blurRaw / PptxHandlerRuntimeBase.EMU_PER_PX;
+			const attrs = extractReflectionAttributes(reflNode, PptxHandlerRuntimeBase.EMU_PER_PX);
+			if (attrs.reflectionBlurRadius !== undefined) {
+				style.textReflectionBlur = attrs.reflectionBlurRadius;
 			}
-			const stA = Number.parseInt(String(reflNode['@_stA'] || ''), 10);
-			if (Number.isFinite(stA)) {
-				style.textReflectionStartOpacity = stA / 100000;
+			if (attrs.reflectionStartOpacity !== undefined) {
+				style.textReflectionStartOpacity = attrs.reflectionStartOpacity;
 			}
-			const endA = Number.parseInt(String(reflNode['@_endA'] || ''), 10);
-			if (Number.isFinite(endA)) {
-				style.textReflectionEndOpacity = endA / 100000;
+			if (attrs.reflectionEndOpacity !== undefined) {
+				style.textReflectionEndOpacity = attrs.reflectionEndOpacity;
 			}
-			const distRaw = Number.parseInt(String(reflNode['@_dist'] || ''), 10);
-			if (Number.isFinite(distRaw) && distRaw >= 0) {
-				style.textReflectionOffset = distRaw / PptxHandlerRuntimeBase.EMU_PER_PX;
+			if (attrs.reflectionDistance !== undefined) {
+				style.textReflectionOffset = attrs.reflectionDistance;
+			}
+			if (attrs.reflectionFadeDirection !== undefined) {
+				style.textReflectionFadeDirection = attrs.reflectionFadeDirection;
+			}
+			if (attrs.reflectionScaleX !== undefined) {
+				style.textReflectionScaleX = attrs.reflectionScaleX;
+			}
+			if (attrs.reflectionScaleY !== undefined) {
+				style.textReflectionScaleY = attrs.reflectionScaleY;
+			}
+			if (attrs.reflectionSkewX !== undefined) {
+				style.textReflectionSkewX = attrs.reflectionSkewX;
+			}
+			if (attrs.reflectionSkewY !== undefined) {
+				style.textReflectionSkewY = attrs.reflectionSkewY;
+			}
+			if (attrs.reflectionRotation !== undefined) {
+				style.textReflectionRotation = attrs.reflectionRotation;
+			}
+			if (attrs.reflectionAlignment !== undefined) {
+				style.textReflectionAlignment = attrs.reflectionAlignment;
 			}
 		}
 
