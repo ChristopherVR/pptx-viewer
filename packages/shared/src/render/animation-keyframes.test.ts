@@ -216,6 +216,47 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('translateY(-20px)');
 	});
 
+	it('should return mask-reveal keyframes for "diamondIn"', () => {
+		const kf = getEffectKeyframes('diamondIn');
+		expect(kf).toContain('@keyframes pptx-diamondIn');
+		expect(kf).not.toContain('clip-path');
+		expect(kf).toContain('mask-image');
+		expect(kf).toContain('mask-size: 0% 0%');
+		expect(kf).toContain('mask-size: 150% 150%');
+	});
+
+	it('should return a two-layer union mask for "plusIn"', () => {
+		const kf = getEffectKeyframes('plusIn');
+		expect(kf).toContain('@keyframes pptx-plusIn');
+		expect(kf).not.toContain('clip-path');
+		expect(kf).toContain('mask-size: 100% 0%, 0% 100%');
+		expect(kf).toContain('mask-size: 100% 101%, 101% 100%');
+	});
+
+	it('should return mask-reveal keyframes for "wedgeIn"', () => {
+		const kf = getEffectKeyframes('wedgeIn');
+		expect(kf).toContain('@keyframes pptx-wedgeIn');
+		expect(kf).not.toContain('clip-path');
+		expect(kf).toContain('mask-size: 0% 0%');
+		expect(kf).toContain('mask-size: 220% 220%');
+	});
+
+	it('should return a near-instant opacity swap for "cutIn" (not a gradual fade)', () => {
+		const kf = getEffectKeyframes('cutIn');
+		expect(kf).toContain('@keyframes pptx-cutIn');
+		expect(kf).toContain('0% { opacity: 0; }');
+		expect(kf).toContain('1% { opacity: 1; }');
+		expect(kf).toContain('100% { opacity: 1; }');
+	});
+
+	it('should return a near-instant opacity swap for "cutOut" (not a gradual fade)', () => {
+		const kf = getEffectKeyframes('cutOut');
+		expect(kf).toContain('@keyframes pptx-cutOut');
+		expect(kf).toContain('0% { opacity: 1; }');
+		expect(kf).toContain('99% { opacity: 1; }');
+		expect(kf).toContain('100% { opacity: 0; }');
+	});
+
 	it('should return keyframes for "flash"', () => {
 		const kf = getEffectKeyframes('flash');
 		expect(kf).toContain('@keyframes pptx-flash');

@@ -40,6 +40,11 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'zoom', entr: 'zoomIn', exit: 'zoomOut' },
 	{ family: 'randombar', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
 	{ family: 'strips', subtype: 'downLeft', entr: 'wipeIn', exit: 'wipeOut' },
+	{ family: 'comb', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
+	{ family: 'diamond', entr: 'diamondIn', exit: 'fadeOut' },
+	{ family: 'plus', entr: 'plusIn', exit: 'fadeOut' },
+	{ family: 'wedge', entr: 'wedgeIn', exit: 'fadeOut' },
+	{ family: 'cut', entr: 'cutIn', exit: 'cutOut' },
 ];
 
 describe('resolveFilterEffect', () => {
@@ -65,6 +70,21 @@ describe('resolveFilterEffect', () => {
 
 	it('slide with no subtype defaults to the bottom edge', () => {
 		expect(resolveFilterEffect(filterAnim('slide', undefined, 'entr'))).toBe('flyInBottom');
+	});
+
+	it.each(['cover', 'uncover', 'push', 'pull'])(
+		'maps %s(fromLeft)/%s(fromRight) directly onto Fly, like slide',
+		(family) => {
+			expect(resolveFilterEffect(filterAnim(family, 'fromLeft', 'entr'))).toBe('flyInLeft');
+			expect(resolveFilterEffect(filterAnim(family, 'fromRight', 'exit'))).toBe('flyOutRight');
+		},
+	);
+
+	it('cover/uncover fall back to the bottom edge for an unenumerated diagonal token', () => {
+		expect(resolveFilterEffect(filterAnim('cover', 'fromTopLeft', 'entr'))).toBe('flyInBottom');
+		expect(resolveFilterEffect(filterAnim('uncover', 'fromBottomRight', 'exit'))).toBe(
+			'flyOutBottom',
+		);
 	});
 
 	it('returns undefined for an unrecognised family (caller falls back to generic fade)', () => {

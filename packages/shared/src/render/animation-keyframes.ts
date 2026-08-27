@@ -130,6 +130,26 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	from { opacity: 0; transform: rotate(-90deg) scale(0.4); }
 	to { opacity: 1; transform: rotate(0deg) scale(1); }
 }`,
+	diamondIn: `@keyframes pptx-diamondIn {
+	from { ${maskShapeDecl('diamondOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('diamondOut', 'shown')} opacity: 1; }
+}`,
+	plusIn: `@keyframes pptx-plusIn {
+	from { ${maskShapeDecl('plusOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('plusOut', 'shown')} opacity: 1; }
+}`,
+	wedgeIn: `@keyframes pptx-wedgeIn {
+	from { ${maskShapeDecl('wedgeOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('wedgeOut', 'shown')} opacity: 1; }
+}`,
+	// A `cut` filter is an instant swap, not a gradual reveal: the element
+	// jumps to fully visible almost immediately rather than fading in over
+	// the whole effect duration.
+	cutIn: `@keyframes pptx-cutIn {
+	0% { opacity: 0; }
+	1% { opacity: 1; }
+	100% { opacity: 1; }
+}`,
 
 	// ---- Exit effects ----
 	disappear: `@keyframes pptx-disappear {
@@ -176,6 +196,13 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	dissolveOut: `@keyframes pptx-dissolveOut {
 	from { opacity: 1; filter: blur(0); }
 	to { opacity: 0; filter: blur(8px); }
+}`,
+	// A `cut` filter is an instant swap: the element stays fully visible
+	// until almost the very end of the effect duration, then disappears.
+	cutOut: `@keyframes pptx-cutOut {
+	0% { opacity: 1; }
+	99% { opacity: 1; }
+	100% { opacity: 0; }
 }`,
 
 	// ---- Emphasis effects ----
