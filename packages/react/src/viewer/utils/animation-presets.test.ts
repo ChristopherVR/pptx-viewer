@@ -58,8 +58,13 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[23]).toBe('zoomOut');
 		});
 
-		it('should map preset ID 37 to "bounceOut"', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[37]).toBe('bounceOut');
+		it('should map preset ID 26 to "bounceOut" (Bounce, verified via a fresh COM pass)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[26]).toBe('bounceOut');
+		});
+
+		it('should map preset ID 37 to "sinkDown", not the old (wrong) "bounceOut"', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[37]).toBe('sinkDown');
+			expect(PRESET_ID_TO_EFFECT.exit[37]).not.toBe('bounceOut');
 		});
 
 		it('should map preset ID 2 to "flyOutBottom"', () => {
@@ -90,8 +95,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.emph[26]).toBe('pulse');
 		});
 
-		it('should map preset ID 14 to "teeter"', () => {
-			expect(PRESET_ID_TO_EFFECT.emph[14]).toBe('teeter');
+		it('should map preset ID 32 to "teeter", not the old (wrong) preset ID 14', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[32]).toBe('teeter');
 		});
 
 		it('should map preset ID 6 to "growShrink"', () => {
