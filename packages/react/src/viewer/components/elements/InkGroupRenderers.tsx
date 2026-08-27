@@ -1,14 +1,15 @@
 import type {
 	ContentPartPptxElement,
 	InkPptxElement,
-	OlePptxElement,
 	PptxElement,
 	ShapeStyle,
 } from 'pptx-viewer-core';
 import {
 	filterRenderedElements,
 	getGroupChildParentFill,
+	getOleAriaLabel,
 	getOleBadgeLabel,
+	getOleDisplayName,
 	getOleTypeColor,
 	getOleTypeLabel,
 	resolveGroupChildFill,
@@ -48,7 +49,7 @@ import { ShapeEffectOverlay } from './ShapeEffectOverlay';
 
 // Re-export the shared OLE type-resolution helpers so existing consumers (and
 // the colocated tests) keep importing them from this module.
-export { getOleTypeColor, getOleTypeLabel, resolveOleType };
+export { getOleAriaLabel, getOleDisplayName, getOleTypeColor, getOleTypeLabel, resolveOleType };
 export type { ResolvedOleType };
 
 /**
@@ -538,18 +539,6 @@ export function getOleIcon(type: ResolvedOleType, color: string, size = 32) {
 		default:
 			return GenericOleIcon(color, size);
 	}
-}
-
-/**
- * Build an accessible aria-label for the OLE element.
- */
-export function getOleAriaLabel(el: OlePptxElement): string {
-	const oleType = resolveOleType(el);
-	const typeLabel = getOleTypeLabel(oleType);
-	if (el.fileName) {
-		return `${typeLabel}: ${el.fileName}`;
-	}
-	return typeLabel;
 }
 
 /**

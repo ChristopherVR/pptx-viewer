@@ -4,6 +4,7 @@ import {
 	formatBytes,
 	getOleAriaLabel,
 	getOleBadgeLabel,
+	getOleDisplayName,
 	getOleTypeColor,
 	getOleTypeLabel,
 	getPlaceholderStyle,
@@ -60,7 +61,9 @@ export function buildOleView(element: OlePptxElement): OleView {
 		ariaLabel: getOleAriaLabel(element),
 		titleText: infoLines(element, typeLabel).join('\n'),
 		previewSrc: element.previewImageData,
-		displayName: element.oleEmbeddedFileName ?? element.fileName ?? typeLabel,
+		// Prefers the user-editable `oleName` (see the inspector's Object Name
+		// field), then the embedded/linked file name, then the type label.
+		displayName: getOleDisplayName(element),
 		sublabel: element.fileName ? typeLabel : undefined,
 		placeholderStyle: styleToString({
 			...getPlaceholderStyle(type),

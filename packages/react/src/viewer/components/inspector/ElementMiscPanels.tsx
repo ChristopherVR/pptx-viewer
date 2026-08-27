@@ -1,5 +1,6 @@
 import type { PptxElement, ShapeStyle, OlePptxElement, GroupPptxElement } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
+import { buildOleObjectNamePatch } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -76,10 +77,22 @@ export function GroupInfoPanel({
 
 interface OlePropertiesPanelProps {
 	selectedElement: PptxElement;
+	canEdit: boolean;
+	onUpdateElement: (updates: Partial<PptxElement>) => void;
 }
 
+/**
+ * A browser cannot run the native application that owns an embedded OLE
+ * object, so the object itself stays read-only. Its Object Name IS editable,
+ * though: `p:oleObj/@name` (ECMA-376 SS13.3.4) already parses, saves, and
+ * syncs via collaboration (`collaboration-sync.ts`), and shared's
+ * `getOleDisplayName` / `getOleAriaLabel` already read it, so this text field
+ * was the only piece missing to make it a real, round-tripping edit.
+ */
 export function OlePropertiesPanel({
 	selectedElement,
+	canEdit,
+	onUpdateElement,
 }: OlePropertiesPanelProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	if (selectedElement.type !== 'ole') {
@@ -90,6 +103,19 @@ export function OlePropertiesPanel({
 		<div className={CARD}>
 			<div className={HEADING}>{t('pptx.ole.title')}</div>
 			<div className='space-y-1.5 text-[11px]'>
+				<label className='flex flex-col gap-1'>
+					<span className='text-muted-foreground'>{t('pptx.ole.objectName')}</span>
+					<input
+						type='text'
+						disabled={!canEdit}
+						className={INPUT}
+						value={ole.oleName ?? ''}
+						placeholder={t('pptx.ole.objectNamePlaceholder')}
+						onChange={(e) =>
+							onUpdateElement(buildOleObjectNamePatch(e.target.value) as Partial<PptxElement>)
+						}
+					/>
+				</label>
 				<div className='flex items-center justify-between gap-2'>
 					<span className='text-muted-foreground'>{t('pptx.ole.type')}</span>
 					<span className='text-foreground truncate'>

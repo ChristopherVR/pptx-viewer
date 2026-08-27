@@ -5,6 +5,7 @@ import {
 	getContainerStyle,
 	getOleAriaLabel,
 	getOleBadgeLabel,
+	getOleDisplayName,
 	getOleTypeColor,
 	getOleTypeLabel,
 	getPlaceholderStyle,
@@ -155,7 +156,9 @@ function buildPlaceholder(
 		whiteSpace: 'nowrap',
 		color: typeColor,
 	});
-	name.textContent = el.oleEmbeddedFileName ?? el.fileName ?? typeLabel;
+	// Prefers the user-editable `oleName` (see the inspector's Object Name
+	// field), then the embedded/linked file name, then the type label.
+	name.textContent = getOleDisplayName(el);
 	box.appendChild(name);
 
 	if (el.fileName) {

@@ -112,7 +112,7 @@ export function createInspector(
 		handlers.toggleElementLock,
 	);
 	const groupInfo = createGroupInfoSection(doc, t, section);
-	const oleProperties = createOlePropertiesSection(doc, t, section);
+	const oleProperties = createOlePropertiesSection(doc, t, section, handlers);
 	const fill = createFillSection(doc, t, section, handlers);
 	const quickStyles = createQuickStylesGallery(doc, t, section, handlers);
 	const text = createTextSection(doc, t, section, handlers);

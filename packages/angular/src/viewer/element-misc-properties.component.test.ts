@@ -16,17 +16,32 @@
  * template iterates, the keys it spells them with, and the style patch the
  * change handler builds from a picked value.
  */
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+import { Injector, runInInjectionContext, signal } from '@angular/core';
+import type { InputSignal, OutputEmitterRef } from '@angular/core';
+import type { OlePptxElement, PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+	buildOleObjectNamePatch,
 	CONNECTOR_ARROW_CONTROLS,
 	connectorArrowPatch,
 	connectorArrowValue,
 } from '../internal/shared';
 import { keyToLabel, translationsEn } from '../internal/shared-src/i18n';
-import { ARROW_SIZE_VALUES, connectorStylePatch } from './element-misc-properties.component';
+import {
+	ARROW_SIZE_VALUES,
+	connectorStylePatch,
+	ElementMiscPropertiesComponent,
+} from './element-misc-properties.component';
 import { arrowSizeLabelKey, schemaLabelKey } from './schema-token-labels';
+
+const COMPONENT_SOURCE = readFileSync(
+	path.join(__dirname, 'element-misc-properties.component.ts'),
+	'utf8',
+);
 
 function renderedLabel(key: string): string {
 	return (translationsEn as Record<string, string | undefined>)[key] ?? keyToLabel(key);
@@ -103,5 +118,82 @@ describe('connector arrow card', () => {
 
 	it('ignores a token the control does not offer', () => {
 		expect(connectorArrowPatch(CONNECTOR_ARROW_CONTROLS[0], 'not-an-arrow')).toStrictEqual({});
+	});
+});
+
+/**
+ * OLE Object Name field: a browser cannot run the native application that
+ * owns an embedded OLE object, so the object itself stays read-only, but its
+ * Object Name (`p:oleObj/@name`, ECMA-376 SS13.3.4) already round-trips
+ * through parse/save/collaboration and only lacked an editing surface.
+ *
+ * No Angular TestBed (see file header): the component is instantiated inside
+ * an injection context so its signal inputs can be overridden directly, and
+ * `onOleNameInput` is invoked with a plain `HTMLInputElement`, matching
+ * `motion-path-row.component.test.ts`.
+ */
+function makeOle(overrides: Partial<OlePptxElement> = {}): PptxElement {
+	return {
+		id: 'ole_test',
+		type: 'ole',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 300,
+		...overrides,
+	} as PptxElement;
+}
+
+function createMiscPropertiesComponent(
+	element: PptxElement,
+	canEdit = true,
+): { component: ElementMiscPropertiesComponent; emitted: Partial<PptxElement>[] } {
+	const component = runInInjectionContext(
+		Injector.create({ providers: [] }),
+		() => new ElementMiscPropertiesComponent(),
+	);
+	Object.assign(component, {
+		element: signal(element) as unknown as InputSignal<PptxElement>,
+		canEdit: signal(canEdit) as unknown as InputSignal<boolean>,
+	});
+	const emitted: Partial<PptxElement>[] = [];
+	vi.spyOn(component.patch as OutputEmitterRef<Partial<PptxElement>>, 'emit').mockImplementation(
+		(value) => {
+			emitted.push(value);
+		},
+	);
+	return { component, emitted };
+}
+
+/** Fire the component's OLE Object Name input handler with a real `<input>`. */
+function fireOleNameInput(component: ElementMiscPropertiesComponent, value: string): void {
+	const input = document.createElement('input');
+	input.value = value;
+	(component as unknown as { onOleNameInput: (event: Event) => void }).onOleNameInput({
+		target: input,
+	} as unknown as Event);
+}
+
+describe('elementMiscPropertiesComponent OLE object name', () => {
+	it('emits a trimmed oleName patch on input, via the shared patch builder', () => {
+		const { component, emitted } = createMiscPropertiesComponent(makeOle());
+		fireOleNameInput(component, '  Q3 Budget  ');
+		expect(emitted).toStrictEqual([buildOleObjectNamePatch('  Q3 Budget  ')]);
+		expect(emitted).toStrictEqual([{ oleName: 'Q3 Budget' }]);
+	});
+
+	it('emits a clearing patch when the field is emptied', () => {
+		const { component, emitted } = createMiscPropertiesComponent(
+			makeOle({ oleName: 'Q3 Budget' } as Partial<PptxElement>),
+		);
+		fireOleNameInput(component, '');
+		expect(emitted).toStrictEqual([{ oleName: undefined }]);
+	});
+
+	it('binds the Object Name input to the fail-safe `!canEdit()` disabled state', () => {
+		// Matches the convention pinned across every other binding's OLE panel
+		// (React/Vue): absent-or-false canEdit disables the field.
+		expect(COMPONENT_SOURCE).toContain('[disabled]="!canEdit()"');
+		expect(COMPONENT_SOURCE).toContain("'pptx.ole.objectName' | translate");
 	});
 });

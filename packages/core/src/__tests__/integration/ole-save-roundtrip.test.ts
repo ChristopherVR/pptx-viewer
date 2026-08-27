@@ -210,6 +210,125 @@ describe('oLE element save round-trip (CH-H1)', () => {
 		expect(oleEl2!.oleProgId).toBe('Excel.Sheet.12');
 	});
 
+	it('a user-authored rename of an OLE object (oleName) round-trips through save/reload', async () => {
+		// This is the core-level contract behind the inspector's Object Name
+		// editor (React `OlePropertiesPanel`, Vue/Svelte/Angular/Vanilla
+		// equivalents, all writing `{ oleName }` via the shared
+		// `buildOleObjectNamePatch`): renaming `p:oleObj/@name` must persist
+		// through a save and be readable again on the next load, exactly like
+		// the pre-existing `progId` round-trip above.
+		const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+	xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+	xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+	<p:cSld>
+		<p:spTree>
+			<p:nvGrpSpPr>
+				<p:cNvPr id="1" name=""/>
+				<p:cNvGrpSpPr/>
+				<p:nvPr/>
+			</p:nvGrpSpPr>
+			<p:grpSpPr>
+				<a:xfrm>
+					<a:off x="0" y="0"/>
+					<a:ext cx="0" cy="0"/>
+					<a:chOff x="0" y="0"/>
+					<a:chExt cx="0" cy="0"/>
+				</a:xfrm>
+			</p:grpSpPr>
+			<p:graphicFrame>
+				<p:nvGraphicFramePr>
+					<p:cNvPr id="2" name="Embedded Excel"/>
+					<p:cNvGraphicFramePr/>
+					<p:nvPr/>
+				</p:nvGraphicFramePr>
+				<p:xfrm>
+					<a:off x="914400" y="914400"/>
+					<a:ext cx="2286000" cy="1714500"/>
+				</p:xfrm>
+				<a:graphic>
+					<a:graphicData uri="http://schemas.openxmlformats.org/presentationml/2006/ole">
+						<p:oleObj name="Old Name" progId="Excel.Sheet.12" showAsIcon="0" r:id="rId2" imgW="2286000" imgH="1714500">
+							<p:embed/>
+							<p:pic>
+								<p:nvPicPr>
+									<p:cNvPr id="0" name="Picture"/>
+									<p:cNvPicPr/>
+									<p:nvPr/>
+								</p:nvPicPr>
+								<p:blipFill>
+									<a:blip/>
+									<a:stretch><a:fillRect/></a:stretch>
+								</p:blipFill>
+								<p:spPr>
+									<a:xfrm>
+										<a:off x="914400" y="914400"/>
+										<a:ext cx="2286000" cy="1714500"/>
+									</a:xfrm>
+									<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+								</p:spPr>
+							</p:pic>
+						</p:oleObj>
+					</a:graphicData>
+				</a:graphic>
+			</p:graphicFrame>
+		</p:spTree>
+	</p:cSld>
+</p:sld>`;
+		const slideRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+	<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+	<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject" Target="../embeddings/oleObject1.bin"/>
+</Relationships>`;
+
+		const {
+			handler: srcHandler,
+			data: srcData,
+			createSlide: srcCreateSlide,
+		} = await PresentationBuilder.create();
+		srcData.slides.push(srcCreateSlide('Blank').build());
+		const baseBytes = await srcHandler.save(srcData.slides);
+		const zip = await JSZip.loadAsync(baseBytes);
+		zip.file('ppt/slides/slide1.xml', slideXml);
+		zip.file('ppt/slides/_rels/slide1.xml.rels', slideRelsXml);
+		zip.file('ppt/embeddings/oleObject1.bin', new Uint8Array([0x00, 0x01, 0x02, 0x03]));
+		const ctXml = await zip.file('[Content_Types].xml')!.async('string');
+		const patchedCtXml = ctXml.includes('Extension="bin"')
+			? ctXml
+			: ctXml.replace(
+					'<Default Extension="rels"',
+					'<Default Extension="bin" ContentType="application/vnd.openxmlformats-officedocument.oleObject"/><Default Extension="rels"',
+				);
+		zip.file('[Content_Types].xml', patchedCtXml);
+		const patchedBytes = await zip.generateAsync({ type: 'uint8array' });
+
+		// 1. Load the authored deck: oleName parses as "Old Name".
+		const handler = new PptxHandler();
+		const loaded = await handler.load(patchedBytes.buffer as ArrayBuffer);
+		const loadedOle = loaded.slides[0].elements.find(
+			(element): element is OlePptxElement => element.type === 'ole',
+		);
+		expect(loadedOle?.oleName).toBe('Old Name');
+
+		// 2. Apply the same shallow patch the inspector's Object Name field
+		//    would produce, then save (mimicking a user rename).
+		loadedOle!.oleName = 'Q3 Budget';
+		loaded.slides[0].isDirty = true;
+		const renamedBytes = await handler.save(loaded.slides);
+		const renamedZip = await JSZip.loadAsync(renamedBytes);
+		const renamedSlideXml = await renamedZip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(renamedSlideXml).toContain('name="Q3 Budget"');
+		expect(renamedSlideXml).not.toContain('name="Old Name"');
+
+		// 3. Reload: the renamed value is what a subsequent session sees.
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(renamedBytes.buffer as ArrayBuffer);
+		const reloadedOle = reloaded.slides[0].elements.find(
+			(element): element is OlePptxElement => element.type === 'ole',
+		);
+		expect(reloadedOle?.oleName).toBe('Q3 Budget');
+	});
+
 	it('sDK-created linked OLE element writes `p:link/@followColorScheme`', async () => {
 		const { handler, data, createSlide } = await PresentationBuilder.create();
 		const ole: OlePptxElement = {

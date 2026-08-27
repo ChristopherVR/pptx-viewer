@@ -85,6 +85,16 @@ describe('renderOleElement', () => {
 		expect(box?.querySelector('.pptxv-ole-sublabel')?.textContent).toBe('PDF Document');
 	});
 
+	it('prefers the author-assigned oleName over the file name in the placeholder and aria-label', () => {
+		const node = renderOleElement(
+			oleElement({ oleObjectType: 'excel', fileName: 'budget.xlsx', oleName: 'Q3 Budget' }),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		expect(node.getAttribute('aria-label')).toBe('Excel Spreadsheet: Q3 Budget');
+		expect(node.querySelector('.pptxv-ole-name')?.textContent).toBe('Q3 Budget');
+	});
+
 	it('resolves the application type from progId when oleObjectType is missing', () => {
 		const node = renderOleElement(
 			oleElement({ oleProgId: 'Excel.Sheet.12' }),

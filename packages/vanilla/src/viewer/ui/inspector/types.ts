@@ -126,6 +126,14 @@ export interface InspectorHandlers {
 	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
 	/** Set the selected element's accessibility description (Alt Text field). */
 	setAltText(text: string): void;
+	/**
+	 * Set the selected OLE element's Object Name (`p:oleObj/@name`, ECMA-376
+	 * SS13.3.4). A browser cannot run the native application an embedded OLE
+	 * object belongs to, so the object stays read-only; this name already
+	 * parses, saves, and syncs via collaboration and only lacked an editing
+	 * surface.
+	 */
+	setOleName(name: string): void;
 	setChartData(data: PptxChartData): void;
 	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
@@ -190,6 +198,8 @@ export interface InspectorState {
 	oleObjectType: OleObjectType | undefined;
 	oleFileName: string | undefined;
 	oleIsLinked: boolean;
+	/** The OLE object's author-assigned name (`p:oleObj/@name`), if any. */
+	oleName: string | undefined;
 	x: number;
 	y: number;
 	width: number;

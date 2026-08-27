@@ -5,6 +5,7 @@ import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 
 import type { ConnectorArrowControl } from '../internal/shared';
 import {
+	buildOleObjectNamePatch,
 	CONNECTOR_ARROW_CONTROLS,
 	CONNECTOR_ARROW_SIZE_VALUES,
 	connectorArrowPatch,
@@ -96,6 +97,17 @@ export function connectorStylePatch(
 		@if (ole(); as value) {
 			<section class="card" [attr.aria-label]="'pptx.ole.title' | translate">
 				<h3>{{ 'pptx.ole.title' | translate }}</h3>
+				<label class="ole-name">
+					<span>{{ 'pptx.ole.objectName' | translate }}</span>
+					<input
+						type="text"
+						[attr.aria-label]="'pptx.ole.objectName' | translate"
+						[placeholder]="'pptx.ole.objectNamePlaceholder' | translate"
+						[disabled]="!canEdit()"
+						[value]="value.oleName ?? ''"
+						(input)="onOleNameInput($event)"
+					/>
+				</label>
 				<dl>
 					<div>
 						<dt>{{ 'pptx.ole.type' | translate }}</dt>
@@ -140,13 +152,17 @@ export function connectorStylePatch(
 		.geometry {
 			margin-bottom: 6px;
 		}
-		select {
+		select,
+		input[type='text'] {
 			min-width: 0;
 			padding: 3px;
 			border: 1px solid var(--pptx-inspector-border, #444);
 			border-radius: 3px;
 			background: var(--pptx-inspector-input-bg, #2d2d2d);
 			color: inherit;
+		}
+		.ole-name {
+			margin-bottom: 8px;
 		}
 		p {
 			margin: 0;
@@ -175,6 +191,12 @@ export function connectorStylePatch(
 })
 export class ElementMiscPropertiesComponent {
 	readonly element = input.required<PptxElement>();
+	/**
+	 * Whether editing controls are enabled. Only gates the OLE Object Name
+	 * field for now (the connector/group sections predate this input and are
+	 * not yet gated); defaults to `true` so existing callers keep working.
+	 */
+	readonly canEdit = input<boolean>(true);
 	readonly patch = output<Partial<PptxElement>>();
 	/**
 	 * The six arrowhead dropdowns, described once in shared. Angular used to
@@ -194,6 +216,20 @@ export class ElementMiscPropertiesComponent {
 		this.element().type === 'ole' ? (this.element() as OlePptxElement) : undefined,
 	);
 	protected readonly oleType = computed(() => getOleObjectTypeLabel(this.ole()?.oleObjectType));
+
+	/**
+	 * A browser cannot run the native application that owns an embedded OLE
+	 * object, so the object itself stays read-only. Its Object Name IS
+	 * editable: `p:oleObj/@name` (ECMA-376 SS13.3.4) already parses, saves,
+	 * and syncs via collaboration, and shared's `getOleDisplayName` /
+	 * `getOleAriaLabel` already read it, so this was the only piece missing
+	 * to make it a real, round-tripping edit.
+	 */
+	protected onOleNameInput(event: Event): void {
+		this.patch.emit(
+			buildOleObjectNamePatch((event.target as HTMLInputElement).value) as Partial<PptxElement>,
+		);
+	}
 
 	/**
 	 * Spell one option. Resolving a KEY (not finished text) keeps the wording

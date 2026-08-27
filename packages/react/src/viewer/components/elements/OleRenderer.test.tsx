@@ -154,4 +154,17 @@ describe('oleRenderer info display', () => {
 		expect(html).toContain('Embedded Object');
 		expect(html).not.toContain('download=');
 	});
+
+	it('prefers the author-assigned oleName over the file name in the caption and aria-label', () => {
+		const html = render(
+			makeOle({
+				oleObjectType: 'excel',
+				fileName: 'budget.xlsx',
+				oleName: 'Q3 Budget',
+			}),
+		);
+		expect(html).toContain('Q3 Budget');
+		expect(html).toContain('aria-label="Excel Spreadsheet: Q3 Budget"');
+		expect(html).not.toContain('>budget.xlsx<');
+	});
 });

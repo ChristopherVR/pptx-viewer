@@ -203,7 +203,11 @@ export function ElementInspectorBody({
 
 			<GroupInfoPanel selectedElement={selectedElement} />
 
-			<OlePropertiesPanel selectedElement={selectedElement} />
+			<OlePropertiesPanel
+				selectedElement={selectedElement}
+				canEdit={canEdit}
+				onUpdateElement={onUpdateElement}
+			/>
 
 			<ShapeTextPanels
 				selectedElement={selectedElement}

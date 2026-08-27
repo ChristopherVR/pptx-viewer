@@ -82,6 +82,15 @@ describe('oleView', () => {
 		expect(box?.querySelector('.pptx-svelte-ole-sublabel')?.textContent).toBe('PDF Document');
 	});
 
+	it('prefers the author-assigned oleName over the file name in the placeholder and aria-label', () => {
+		const target = mountEl(
+			oleElement({ oleObjectType: 'excel', fileName: 'budget.xlsx', oleName: 'Q3 Budget' }),
+		);
+		const node = target.querySelector<HTMLElement>('[data-element-id="ole-1"]');
+		expect(node?.getAttribute('aria-label')).toBe('Excel Spreadsheet: Q3 Budget');
+		expect(target.querySelector('.pptx-svelte-ole-name')?.textContent).toBe('Q3 Budget');
+	});
+
 	it('resolves the application type from progId when oleObjectType is missing', () => {
 		const target = mountEl(oleElement({ oleProgId: 'Excel.Sheet.12' }));
 		// No fileName: the display name falls back to the type label, no sublabel.

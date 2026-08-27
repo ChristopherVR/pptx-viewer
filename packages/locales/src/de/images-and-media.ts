@@ -90,6 +90,8 @@ export const translations = {
 	'pptx.ole.linked': 'Verlinkt',
 	'pptx.ole.title': 'OLE-Objekt',
 	'pptx.ole.type': 'Typ',
+	'pptx.ole.objectName': 'Objektname',
+	'pptx.ole.objectNamePlaceholder': 'Wird von Screenreadern und dem Auswahlbereich verwendet',
 	'pptx.effects.glow': 'Glühen',
 	'pptx.effects.reflection': 'Spiegelung',
 	'pptx.effects.softEdge': 'Weiche Kante',

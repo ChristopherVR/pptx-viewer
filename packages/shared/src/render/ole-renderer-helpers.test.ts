@@ -9,6 +9,7 @@ import type { OlePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	buildOleObjectNamePatch,
 	getOleAriaLabel,
 	getOleBadgeLabel,
 	getOleDisplayName,
@@ -136,6 +137,32 @@ describe('getOleAriaLabel', () => {
 		expect(getOleAriaLabel(makeOle({ oleProgId: 'AcroExch.Document.11' }))).toBe('PDF Document');
 		expect(getOleAriaLabel(makeOle({}))).toBe('Embedded Object');
 	});
+
+	it('prefers the author-assigned oleName over the file name', () => {
+		expect(
+			getOleAriaLabel(
+				makeOle({ oleObjectType: 'excel', fileName: 'budget.xlsx', oleName: 'Q3 Budget' }),
+			),
+		).toBe('Excel Spreadsheet: Q3 Budget');
+	});
+
+	it('prefers the recovered embedded file name over the linked file name', () => {
+		expect(
+			getOleAriaLabel(
+				makeOle({
+					oleObjectType: 'excel',
+					fileName: 'link.xlsx',
+					oleEmbeddedFileName: 'real.xlsx',
+				}),
+			),
+		).toBe('Excel Spreadsheet: real.xlsx');
+	});
+
+	it('ignores a whitespace-only oleName', () => {
+		expect(
+			getOleAriaLabel(makeOle({ oleObjectType: 'word', fileName: 'report.docx', oleName: '   ' })),
+		).toBe('Word Document: report.docx');
+	});
 });
 
 describe('getOleDisplayName', () => {
@@ -148,6 +175,34 @@ describe('getOleDisplayName', () => {
 	it('falls back to the type label when fileName is absent', () => {
 		expect(getOleDisplayName(makeOle({ oleObjectType: 'word' }))).toBe('Word Document');
 		expect(getOleDisplayName(makeOle({}))).toBe('Embedded Object');
+	});
+
+	it('prefers oleName over both the embedded and linked file names', () => {
+		expect(
+			getOleDisplayName(
+				makeOle({
+					oleObjectType: 'excel',
+					fileName: 'link.xlsx',
+					oleEmbeddedFileName: 'real.xlsx',
+					oleName: 'Q3 Budget',
+				}),
+			),
+		).toBe('Q3 Budget');
+	});
+
+	it('trims oleName before using it', () => {
+		expect(getOleDisplayName(makeOle({ oleName: '  Q3 Budget  ' }))).toBe('Q3 Budget');
+	});
+});
+
+describe('buildOleObjectNamePatch', () => {
+	it('trims and keeps a non-empty name', () => {
+		expect(buildOleObjectNamePatch('  Q3 Budget  ')).toStrictEqual({ oleName: 'Q3 Budget' });
+	});
+
+	it('clears the name on blank/whitespace-only input', () => {
+		expect(buildOleObjectNamePatch('')).toStrictEqual({ oleName: undefined });
+		expect(buildOleObjectNamePatch('   ')).toStrictEqual({ oleName: undefined });
 	});
 });
 

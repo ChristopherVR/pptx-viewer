@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import {
 	getOleAriaLabel,
+	getOleDisplayName,
 	getOleIcon,
 	getOleTypeColor,
 	getOleTypeLabel,
@@ -17,8 +18,10 @@ import {
  * core-extracted `oleEmbedded*` fields plus the object's type / progId.
  */
 interface OleEmbedInfo {
-	/** Best available file name (embedded name preferred over the OLE name). */
+	/** Best available file name for the DOWNLOADED file (embedded name preferred over the linked/authored name). Never influenced by the user-editable `oleName`, which names the object, not the underlying file. */
 	fileName?: string;
+	/** Best available display name for captions/tooltips: prefers the user-editable `oleName` (see `buildOleObjectNamePatch`) over the file name. */
+	displayName: string;
 	/** Human-readable byte size, when known. */
 	readableSize?: string;
 	/** Source application ProgID (e.g. "Excel.Sheet.12"), when known. */
@@ -36,6 +39,7 @@ function buildEmbedInfo(el: OlePptxElement): OleEmbedInfo {
 	const canDownload = Boolean(el.oleEmbeddedData);
 	return {
 		fileName: el.oleEmbeddedFileName ?? el.fileName,
+		displayName: getOleDisplayName(el),
 		readableSize: formatBytes(el.oleEmbeddedByteSize),
 		progId: el.oleProgId,
 		typeLabel: getOleTypeLabel(resolveOleType(el)),
@@ -46,7 +50,7 @@ function buildEmbedInfo(el: OlePptxElement): OleEmbedInfo {
 
 /** Assemble a compact tooltip describing the embedded object. */
 function buildTooltip(info: OleEmbedInfo): string {
-	const parts = [info.fileName ?? info.typeLabel, info.typeLabel];
+	const parts = [info.displayName, info.typeLabel];
 	if (info.readableSize) {
 		parts.push(info.readableSize);
 	}
@@ -158,7 +162,7 @@ export function OleRenderer({ element: el }: OleRendererProps): React.ReactNode 
 	// No preview image; render a type-specific styled placeholder.
 	const color = getOleTypeColor(oleType);
 	const label = getOleTypeLabel(oleType);
-	const displayName = info.fileName ?? label;
+	const displayName = info.displayName;
 
 	return (
 		<div
