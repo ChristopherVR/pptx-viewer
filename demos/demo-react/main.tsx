@@ -386,6 +386,13 @@ function App() {
 	const [surfaceChart3D] = useState(
 		() => new URLSearchParams(window.location.search).get('surfaceChart3D') === '1',
 	);
+	// Opt in to the experimental Three.js interactive bar3D-chart renderer
+	// (real box meshes, camera orbit/zoom + raycast hover tooltip) via
+	// `?barChart3D=1`.
+	// eslint-disable-next-line react/hook-use-state
+	const [barChart3D] = useState(
+		() => new URLSearchParams(window.location.search).get('barChart3D') === '1',
+	);
 	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 	// page to embed a live, pre-populated viewer).
 	// eslint-disable-next-line react/hook-use-state
@@ -919,6 +926,7 @@ function App() {
 					autosaveIntervalMs={2000}
 					smartArt3D={smartArt3D}
 					surfaceChart3D={surfaceChart3D}
+					barChart3D={barChart3D}
 					authorName={collaborationConfig?.userName ?? autoName}
 					collaboration={collaborationConfig ?? undefined}
 					onStartCollaboration={handleStartCollaboration}

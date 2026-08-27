@@ -9,6 +9,7 @@ import { registerRichMediaRenderers } from './register-rich-media';
 import { registerTableChartRenderers } from './register-table-chart';
 import { renderTextShapeElement } from './text-shape';
 
+export { renderBarChart3DElement } from './bar-chart-3d';
 export { renderChartElement, renderChartSvgElement } from './chart';
 export { renderConnectorElement } from './connector';
 export { renderGroupElement } from './group';

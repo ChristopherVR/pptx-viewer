@@ -21,6 +21,7 @@ export interface ExportWiringDeps {
 	getTranslator(): Translator;
 	getSmartArt3D(): boolean;
 	getSurfaceChart3D(): boolean;
+	getBarChart3D(): boolean;
 	/**
 	 * Deck-level field-substitution context, so an exported slide resolves its
 	 * slide-number / date / footer runs exactly like the on-screen stage does.
@@ -63,6 +64,7 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 				getTranslator: deps.getTranslator,
 				smartArt3D: deps.getSmartArt3D(),
 				surfaceChart3D: deps.getSurfaceChart3D(),
+				barChart3D: deps.getBarChart3D(),
 				getFieldContext: () => deps.getFieldContext?.(),
 			});
 		}

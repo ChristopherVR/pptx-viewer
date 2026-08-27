@@ -25,6 +25,7 @@ import { AccessibilityService } from './accessibility.service';
 import { AiPanelStore } from './ai/ai-panel-store';
 import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
+import { BarChart3DService } from './bar-chart-3d.service';
 import { ChartPartSelectionService } from './chart-part-selection.service';
 import { CollaborationService } from './collaboration.service';
 import { CustomFontsService } from './custom-fonts.service';
@@ -82,6 +83,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	IsMobileService,
 	SmartArt3DService,
 	SurfaceChart3DService,
+	BarChart3DService,
 	FieldContextService,
 	ZoomTargetService,
 	AiPanelStore,

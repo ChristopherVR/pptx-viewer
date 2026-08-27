@@ -52,6 +52,7 @@ function buildContext(surfaceChart3D: boolean): ElementRenderContext {
 		t: createTranslator(),
 		smartArt3D: false,
 		surfaceChart3D,
+		barChart3D: false,
 		presenting: false,
 		registry,
 		renderElement(element, zIndex) {

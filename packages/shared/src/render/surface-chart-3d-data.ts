@@ -14,6 +14,7 @@
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { hexToRgb } from './animation-color';
+import { resolveChart3DWallColors } from './chart-3d-surfaces';
 import { resolveSurfaceBandFill } from './chart-surface-bands';
 import { surfaceColor } from './chart-surface-treemap';
 import { computeValueRange, resolveChartKind } from './chart-view-model';
@@ -32,13 +33,7 @@ export interface SurfaceChart3DDataOptions {
 
 /** `c:floor`/`c:sideWall`/`c:backWall` fill colours the 3D scene can paint. */
 function resolveSurfaceColors(chartData: PptxChartData): SurfaceChart3DSurfaceColors | undefined {
-	const floor = chartData.floor?.spPr?.fillColor;
-	const sideWall = chartData.sideWall?.spPr?.fillColor;
-	const backWall = chartData.backWall?.spPr?.fillColor;
-	if (!floor && !sideWall && !backWall) {
-		return undefined;
-	}
-	return { floor, sideWall, backWall };
+	return resolveChart3DWallColors(chartData);
 }
 
 /**

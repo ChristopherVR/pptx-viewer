@@ -87,6 +87,13 @@ export interface ElementRenderContext {
 	 */
 	readonly surfaceChart3D: boolean;
 	/**
+	 * Opt-in flag: render `bar3D` charts as an interactive, camera-orbitable
+	 * Three.js box-mesh scene instead of the flat SVG oblique-projection
+	 * illusion (see `PptxViewerOptions.barChart3D`). Defaults to `false` when
+	 * the option is unset.
+	 */
+	readonly barChart3D: boolean;
+	/**
 	 * True only for the live presentation stage (real Fullscreen API active):
 	 * media renderers use this to autoplay once mounted, matching PowerPoint's
 	 * slideshow behaviour. `false` for the editor canvas and thumbnail rail.
