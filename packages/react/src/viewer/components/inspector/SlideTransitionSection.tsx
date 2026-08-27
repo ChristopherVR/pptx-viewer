@@ -16,7 +16,12 @@
  */
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
-import { TRANSITION_ORIENTATION_TYPES, clampTransitionNumber } from 'pptx-viewer-shared';
+import {
+	clampTransitionNumber,
+	TRANSITION_MORPH_OPTIONS,
+	TRANSITION_ORIENTATION_TYPES,
+	TRANSITION_SPEED_OPTIONS,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -61,6 +66,7 @@ export function SlideTransitionSection({
 	const hasDirections = validDirections !== undefined && validDirections.length > 0;
 	const usesOrientation = TRANSITION_ORIENTATION_TYPES.has(transitionType);
 	const isWheel = transitionType === 'wheel';
+	const isMorph = transitionType === 'morph';
 
 	return (
 		<div
@@ -172,6 +178,52 @@ export function SlideTransitionSection({
 					className='bg-muted border border-border rounded px-2 py-1'
 				/>
 			</label>
+
+			{/* Speed */}
+			<label className='flex flex-col gap-1'>
+				<span className='text-muted-foreground text-xs'>{t('pptx.transition.speed')}</span>
+				<select
+					value={activeSlide.transition?.speed ?? 'fast'}
+					disabled={!canEdit}
+					aria-label={t('pptx.transition.speed')}
+					onChange={(e) =>
+						onTransitionChange({
+							speed: e.target.value as NonNullable<PptxSlideTransition['speed']>,
+						})
+					}
+					className='bg-muted border border-border rounded px-2 py-1'
+				>
+					{TRANSITION_SPEED_OPTIONS.map((option) => (
+						<option key={option.value} value={option.value}>
+							{t(option.i18nKey)}
+						</option>
+					))}
+				</select>
+			</label>
+
+			{/* Morph granularity */}
+			{isMorph && (
+				<label className='flex flex-col gap-1'>
+					<span className='text-muted-foreground text-xs'>{t('pptx.transition.morphOption')}</span>
+					<select
+						value={activeSlide.transition?.morphOption ?? 'byObject'}
+						disabled={!canEdit}
+						aria-label={t('pptx.transition.morphOption')}
+						onChange={(e) =>
+							onTransitionChange({
+								morphOption: e.target.value as NonNullable<PptxSlideTransition['morphOption']>,
+							})
+						}
+						className='bg-muted border border-border rounded px-2 py-1'
+					>
+						{TRANSITION_MORPH_OPTIONS.map((option) => (
+							<option key={option.value} value={option.value}>
+								{t(option.i18nKey)}
+							</option>
+						))}
+					</select>
+				</label>
+			)}
 
 			{/* Advance on click */}
 			<label className='inline-flex items-center gap-2 text-foreground text-xs'>

@@ -112,4 +112,42 @@ describe('slideTransitionSection', () => {
 		setValue(typeSelect(target), 'fade');
 		expect(target.querySelector('.pptx-svelte-transition-preview')).not.toBeNull();
 	});
+
+	it('shows the speed selector for every transition and writes the chosen speed', () => {
+		const { target, editor } = mountSection();
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const speedSelect = selects.find((s) => Array.from(s.options).some((o) => o.value === 'slow'))!;
+		expect(speedSelect.value).toBe('fast');
+
+		setValue(typeSelect(target), 'fade');
+		setValue(speedSelect, 'slow');
+
+		expect(editor.slides[0]?.transition?.speed).toBe('slow');
+		expect(editor.slides[0]?.transition?.type).toBe('fade');
+	});
+
+	it('hides the morph-option selector for a non-morph transition', () => {
+		const { target } = mountSection();
+		setValue(typeSelect(target), 'fade');
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		expect(
+			selects.some((s) => Array.from(s.options).some((o) => o.value === 'byObject')),
+		).toBeFalsy();
+	});
+
+	it('shows the morph-option selector only for morph and writes the chosen option', () => {
+		const { target, editor } = mountSection();
+		setValue(typeSelect(target), 'morph');
+
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const morphSelect = selects.find((s) =>
+			Array.from(s.options).some((o) => o.value === 'byObject'),
+		)!;
+		expect(morphSelect.value).toBe('byObject');
+
+		setValue(morphSelect, 'byChar');
+
+		expect(editor.slides[0]?.transition?.morphOption).toBe('byChar');
+		expect(editor.slides[0]?.transition?.type).toBe('morph');
+	});
 });

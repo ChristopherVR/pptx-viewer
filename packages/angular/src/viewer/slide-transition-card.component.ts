@@ -26,13 +26,16 @@ import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-vi
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
 
 import {
-	SLIDE_TRANSITION_OPTIONS,
-	TRANSITION_ORIENTATION_TYPES,
 	clampTransitionNumber,
 	mergeSlideTransition,
+	SLIDE_TRANSITION_OPTIONS,
+	TRANSITION_MORPH_OPTIONS,
+	TRANSITION_ORIENTATION_TYPES,
+	TRANSITION_SPEED_OPTIONS,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
+import { SLIDE_TRANSITION_CARD_STYLES } from './slide-transition-card.styles';
 import { TransitionDirectionPickerComponent } from './transition-direction-picker.component';
 import { TransitionPreviewComponent } from './transition-preview.component';
 
@@ -131,6 +134,38 @@ const MAX_SPOKES = 8;
 					/>
 				</label>
 
+				<label class="icard__col">
+					<span class="icard__label">{{ 'pptx.transition.speed' | translate }}</span>
+					<select
+						class="icard__select"
+						[disabled]="!canEdit()"
+						[value]="speed()"
+						[attr.aria-label]="'pptx.transition.speed' | translate"
+						(change)="onSpeed($event)"
+					>
+						@for (option of speedOptions; track option.value) {
+							<option [value]="option.value">{{ option.i18nKey | translate }}</option>
+						}
+					</select>
+				</label>
+
+				@if (isMorph()) {
+					<label class="icard__col">
+						<span class="icard__label">{{ 'pptx.transition.morphOption' | translate }}</span>
+						<select
+							class="icard__select"
+							[disabled]="!canEdit()"
+							[value]="morphOption()"
+							[attr.aria-label]="'pptx.transition.morphOption' | translate"
+							(change)="onMorphOption($event)"
+						>
+							@for (option of morphOptions; track option.value) {
+								<option [value]="option.value">{{ option.i18nKey | translate }}</option>
+							}
+						</select>
+					</label>
+				}
+
 				<label class="check">
 					<input
 						type="checkbox"
@@ -155,48 +190,7 @@ const MAX_SPOKES = 8;
 			</section>
 		}
 	`,
-	styles: [
-		`
-			:host {
-				display: block;
-			}
-			.orient {
-				display: flex;
-				gap: 4px;
-			}
-			.orient__btn {
-				padding: 3px 8px;
-				background: var(--pptx-inspector-input-bg, rgba(0, 0, 0, 0.06));
-				border: 1px solid var(--pptx-inspector-border, #444);
-				border-radius: 3px;
-				color: inherit;
-				font: inherit;
-				font-size: 11px;
-				cursor: pointer;
-			}
-			.orient__btn:disabled {
-				opacity: 0.5;
-				cursor: default;
-			}
-			.orient__btn.is-active {
-				background: var(--pptx-inspector-active, #0078d4);
-				border-color: var(--pptx-inspector-active, #0078d4);
-				color: #fff;
-			}
-			.check {
-				display: flex;
-				align-items: center;
-				gap: 6px;
-			}
-			.sound {
-				margin: 0;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-			}
-		`,
-		INSPECTOR_CARD_STYLES,
-	],
+	styles: [SLIDE_TRANSITION_CARD_STYLES, INSPECTOR_CARD_STYLES],
 })
 export class SlideTransitionCardComponent {
 	/** Zero-based index of the slide whose transition is being edited. */
@@ -207,6 +201,8 @@ export class SlideTransitionCardComponent {
 	private readonly editor = inject(EditorStateService);
 
 	protected readonly transitionOptions = SLIDE_TRANSITION_OPTIONS;
+	protected readonly speedOptions = TRANSITION_SPEED_OPTIONS;
+	protected readonly morphOptions = TRANSITION_MORPH_OPTIONS;
 	protected readonly orientOptions = [
 		{ value: 'horz' as const, i18nKey: 'pptx.slideInspector.horizontal' },
 		{ value: 'vert' as const, i18nKey: 'pptx.slideInspector.vertical' },
@@ -228,6 +224,9 @@ export class SlideTransitionCardComponent {
 		TRANSITION_ORIENTATION_TYPES.has(this.transitionType()),
 	);
 	protected readonly isWheel = computed(() => this.transitionType() === 'wheel');
+	protected readonly isMorph = computed(() => this.transitionType() === 'morph');
+	protected readonly speed = computed(() => this.transition()?.speed ?? 'fast');
+	protected readonly morphOption = computed(() => this.transition()?.morphOption ?? 'byObject');
 
 	/** Compass tokens for the current type, or undefined when it takes none. */
 	protected readonly directionTokens = computed<readonly string[] | undefined>(() => {
@@ -278,6 +277,20 @@ export class SlideTransitionCardComponent {
 		if (durationMs !== null) {
 			this.patch({ durationMs });
 		}
+	}
+
+	protected onSpeed(event: Event): void {
+		const speed = (event.target as HTMLSelectElement).value as NonNullable<
+			PptxSlideTransition['speed']
+		>;
+		this.patch({ speed });
+	}
+
+	protected onMorphOption(event: Event): void {
+		const morphOption = (event.target as HTMLSelectElement).value as NonNullable<
+			PptxSlideTransition['morphOption']
+		>;
+		this.patch({ morphOption });
 	}
 
 	protected onAdvanceOnClick(event: Event): void {

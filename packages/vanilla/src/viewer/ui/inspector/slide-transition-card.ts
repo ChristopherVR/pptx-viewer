@@ -4,7 +4,9 @@ import {
 	buildDirectionGrid,
 	SLIDE_TRANSITION_OPTIONS,
 	TRANSITION_DIR_ARROWS,
+	TRANSITION_MORPH_OPTIONS,
 	TRANSITION_ORIENTATION_TYPES,
+	TRANSITION_SPEED_OPTIONS,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -55,6 +57,40 @@ export function createSlideTransitionCard(
 	type.addEventListener('change', () => patch({ type: type.value as PptxTransitionType }));
 	typeLabel.append(typeCaption, type);
 
+	const speedLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
+	const speedCaption = createEl(doc, 'span', 'pptxv-field-label');
+	speedCaption.textContent = t('pptx.transition.speed');
+	const speed = doc.createElement('select');
+	speed.className = 'pptxv-field-select-input';
+	speed.setAttribute('aria-label', t('pptx.transition.speed'));
+	for (const option of TRANSITION_SPEED_OPTIONS) {
+		const node = doc.createElement('option');
+		node.value = option.value;
+		node.textContent = t(option.i18nKey);
+		speed.appendChild(node);
+	}
+	speed.addEventListener('change', () =>
+		patch({ speed: speed.value as PptxSlideTransition['speed'] }),
+	);
+	speedLabel.append(speedCaption, speed);
+
+	const morphLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
+	const morphCaption = createEl(doc, 'span', 'pptxv-field-label');
+	morphCaption.textContent = t('pptx.transition.morphOption');
+	const morphOption = doc.createElement('select');
+	morphOption.className = 'pptxv-field-select-input';
+	morphOption.setAttribute('aria-label', t('pptx.transition.morphOption'));
+	for (const option of TRANSITION_MORPH_OPTIONS) {
+		const node = doc.createElement('option');
+		node.value = option.value;
+		node.textContent = t(option.i18nKey);
+		morphOption.appendChild(node);
+	}
+	morphOption.addEventListener('change', () =>
+		patch({ morphOption: morphOption.value as PptxSlideTransition['morphOption'] }),
+	);
+	morphLabel.append(morphCaption, morphOption);
+
 	const directions = createEl(doc, 'div', 'pptxv-transition-directions');
 	const duration = makeNumberField(doc, {
 		label: t('pptx.transition.duration'),
@@ -75,7 +111,17 @@ export function createSlideTransitionCard(
 	});
 	const sound = createEl(doc, 'p', 'pptxv-transition-sound');
 	const preview = createTransitionPreview(doc, t);
-	body.append(typeLabel, directions, spokes.el, duration.el, advance.el, sound, preview.el);
+	body.append(
+		typeLabel,
+		directions,
+		spokes.el,
+		duration.el,
+		speedLabel,
+		morphLabel,
+		advance.el,
+		sound,
+		preview.el,
+	);
 
 	/** Repaint the direction/orientation picker for the active transition type. */
 	const renderDirections = (current: PptxTransitionType): void => {
@@ -159,6 +205,11 @@ export function createSlideTransitionCard(
 			spokes.setDisabled(!state.editable);
 			duration.setValue(Math.round(transition?.durationMs ?? 320));
 			duration.setDisabled(!state.editable);
+			speed.value = transition?.speed ?? 'fast';
+			speed.disabled = !state.editable;
+			morphLabel.hidden = current !== 'morph';
+			morphOption.value = transition?.morphOption ?? 'byObject';
+			morphOption.disabled = !state.editable;
 			advance.setValue(transition?.advanceOnClick !== false);
 			advance.setDisabled(!state.editable);
 			sound.hidden = !transition?.soundFileName;

@@ -90,4 +90,35 @@ describe('slideTransitionSection', () => {
 		expect(wrapper.text()).not.toContain('Orientation');
 		expect(wrapper.text()).not.toContain('Spokes');
 	});
+
+	it('shows the speed selector for every transition and emits the chosen speed', async () => {
+		const wrapper = mount(SlideTransitionSection, {
+			props: { slide: slide({ type: 'fade', durationMs: 500 }) },
+		});
+		const select = wrapper.get('[data-testid="transition-speed"]');
+		expect((select.element as HTMLSelectElement).value).toBe('fast');
+		await select.setValue('slow');
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.speed).toBe('slow');
+		expect(last.type).toBe('fade');
+	});
+
+	it('hides the morph-option selector for non-morph transitions', () => {
+		const wrapper = mount(SlideTransitionSection, {
+			props: { slide: slide({ type: 'fade', durationMs: 500 }) },
+		});
+		expect(wrapper.find('[data-testid="transition-morph-option"]').exists()).toBeFalsy();
+	});
+
+	it('shows the morph-option selector only for morph and emits the choice', async () => {
+		const wrapper = mount(SlideTransitionSection, {
+			props: { slide: slide({ type: 'morph', durationMs: 2000 }) },
+		});
+		const select = wrapper.get('[data-testid="transition-morph-option"]');
+		expect((select.element as HTMLSelectElement).value).toBe('byObject');
+		await select.setValue('byChar');
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.morphOption).toBe('byChar');
+		expect(last.type).toBe('morph');
+	});
 });

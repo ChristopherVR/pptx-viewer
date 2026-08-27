@@ -8,6 +8,7 @@
  */
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+import { TRANSITION_MORPH_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -49,8 +50,16 @@ const showDirection = computed(
 	() => hasTransition.value && validDirections.value.length > 0 && !usesOrientation.value,
 );
 const isWheel = computed(() => transitionType.value === 'wheel');
+const isMorph = computed(() => transitionType.value === 'morph');
 const orient = computed(() => props.slide?.transition?.orient ?? 'horz');
 const spokes = computed(() => props.slide?.transition?.spokes ?? 4);
+const morphOption = computed(() => props.slide?.transition?.morphOption ?? 'byObject');
+
+function onMorphOptionChange(e: Event): void {
+	patchTransition({
+		morphOption: (e.target as HTMLSelectElement).value as PptxSlideTransition['morphOption'],
+	});
+}
 
 /** Merge a partial transition patch into the current transition and commit. */
 function patchTransition(updates: Partial<PptxSlideTransition>): void {
@@ -127,6 +136,25 @@ function onAdvanceChange(e: Event): void {
 				@input="onSpokesInput"
 			/>
 		</label>
+
+		<div v-if="hasTransition && isMorph" class="mt-2 space-y-1 px-2.5">
+			<span class="text-xs text-muted-foreground">{{ t('pptx.transition.morphOption') }}</span>
+			<select
+				class="w-full rounded border border-border bg-muted px-2 py-1 text-xs"
+				:value="morphOption"
+				:aria-label="t('pptx.transition.morphOption')"
+				data-testid="transition-morph-option"
+				@change="onMorphOptionChange"
+			>
+				<option
+					v-for="option in TRANSITION_MORPH_OPTIONS"
+					:key="option.value"
+					:value="option.value"
+				>
+					{{ t(option.i18nKey) }}
+				</option>
+			</select>
+		</div>
 
 		<label
 			v-if="hasTransition"
