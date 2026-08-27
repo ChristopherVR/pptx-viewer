@@ -4,7 +4,10 @@
  * Pressure sensitivity is approximated by splitting an SVG path into short
  * sub-segments, each rendered as a filled circle at that point's coordinates.
  * The radius of each circle varies according to the corresponding entry in the
- * `inkWidths` array.
+ * `inkWidths` array. `C`/`Q` curve segments are sampled at multiple points
+ * along the actual curve (De Casteljau evaluation at several `t` steps), not
+ * just at their control points and endpoint, so pressure circles track a
+ * tightly curved stroke instead of trailing it.
  *
  * Replay animation uses SVG `stroke-dasharray` / `stroke-dashoffset` to
  * progressively reveal each stroke with a sequential delay.
@@ -29,26 +32,181 @@ export interface PathPoint {
 	y: number;
 }
 
+/** Numeric argument count each supported path command consumes. */
+const PATH_COMMAND_ARITY: Record<string, number> = { M: 2, L: 2, C: 6, Q: 4, Z: 0 };
+
+/** One command letter plus every numeric argument that follows it (before the next letter). */
+interface RawPathToken {
+	cmd: string;
+	nums: number[];
+}
+
 /**
- * Parse an SVG path `d` string and extract coordinate points.
+ * Split a `d` string into command letters with their following numeric args.
+ * Case is folded to uppercase; relative (lowercase) commands are treated as
+ * absolute, matching this module's pre-existing (documented) limitation for
+ * non-absolute paths.
+ */
+function tokenizeSvgPath(d: string): RawPathToken[] {
+	const tokens: RawPathToken[] = [];
+	const partRegex = /([MLCQZmlcqz])|(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)/giu;
+	let cmd: string | null = null;
+	let nums: number[] = [];
+	let match: RegExpExecArray | null;
+	const flush = () => {
+		if (cmd) {
+			tokens.push({ cmd: cmd.toUpperCase(), nums });
+		}
+	};
+	while ((match = partRegex.exec(d)) !== null) {
+		if (match[1]) {
+			flush();
+			cmd = match[1];
+			nums = [];
+		} else if (match[2] !== undefined && cmd) {
+			nums.push(parseFloat(match[2]));
+		}
+	}
+	flush();
+	return tokens;
+}
+
+function distance(a: PathPoint, b: PathPoint): number {
+	return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/** Target spacing (px) between curve samples, before min/max clamping. */
+const CURVE_SAMPLE_SPACING_PX = 4;
+/** Always sample at least this many interior points per curve segment. */
+const CURVE_MIN_SAMPLES = 4;
+/** Cap samples per curve segment so a huge curve can't blow up point count. */
+const CURVE_MAX_SAMPLES = 24;
+
+/**
+ * Number of `t` steps to evaluate along a curve segment, scaled by its
+ * control-polygon ("hull") length so longer or tighter curves get
+ * proportionally more samples.
+ */
+function curveSampleCount(hullLength: number): number {
+	const raw = Math.ceil(hullLength / CURVE_SAMPLE_SPACING_PX);
+	return Math.max(CURVE_MIN_SAMPLES, Math.min(CURVE_MAX_SAMPLES, raw));
+}
+
+/** Evaluate a cubic Bezier at parameter `t` via De Casteljau's algorithm. */
+function cubicBezierAt(
+	p0: PathPoint,
+	p1: PathPoint,
+	p2: PathPoint,
+	p3: PathPoint,
+	t: number,
+): PathPoint {
+	const mt = 1 - t;
+	const a = { x: mt * p0.x + t * p1.x, y: mt * p0.y + t * p1.y };
+	const b = { x: mt * p1.x + t * p2.x, y: mt * p1.y + t * p2.y };
+	const c = { x: mt * p2.x + t * p3.x, y: mt * p2.y + t * p3.y };
+	const ab = { x: mt * a.x + t * b.x, y: mt * a.y + t * b.y };
+	const bc = { x: mt * b.x + t * c.x, y: mt * b.y + t * c.y };
+	return { x: mt * ab.x + t * bc.x, y: mt * ab.y + t * bc.y };
+}
+
+/** Evaluate a quadratic Bezier at parameter `t` via De Casteljau's algorithm. */
+function quadBezierAt(p0: PathPoint, p1: PathPoint, p2: PathPoint, t: number): PathPoint {
+	const mt = 1 - t;
+	const a = { x: mt * p0.x + t * p1.x, y: mt * p0.y + t * p1.y };
+	const b = { x: mt * p1.x + t * p2.x, y: mt * p1.y + t * p2.y };
+	return { x: mt * a.x + t * b.x, y: mt * a.y + t * b.y };
+}
+
+/** Append the interior + endpoint samples for a cubic curve segment starting at `current`. */
+function sampleCubicSegment(
+	points: PathPoint[],
+	current: PathPoint | undefined,
+	p1: PathPoint,
+	p2: PathPoint,
+	end: PathPoint,
+): PathPoint {
+	if (!current) {
+		// No known start point (malformed path): fall back to the raw
+		// control points rather than dropping data.
+		points.push(p1, p2, end);
+		return end;
+	}
+	const hull = distance(current, p1) + distance(p1, p2) + distance(p2, end);
+	const samples = curveSampleCount(hull);
+	for (let i = 1; i <= samples; i++) {
+		points.push(cubicBezierAt(current, p1, p2, end, i / samples));
+	}
+	return end;
+}
+
+/** Append the interior + endpoint samples for a quadratic curve segment starting at `current`. */
+function sampleQuadSegment(
+	points: PathPoint[],
+	current: PathPoint | undefined,
+	cp: PathPoint,
+	end: PathPoint,
+): PathPoint {
+	if (!current) {
+		points.push(cp, end);
+		return end;
+	}
+	const hull = distance(current, cp) + distance(cp, end);
+	const samples = curveSampleCount(hull);
+	for (let i = 1; i <= samples; i++) {
+		points.push(quadBezierAt(current, cp, end, i / samples));
+	}
+	return end;
+}
+
+/**
+ * Parse an SVG path `d` string and extract points that lie ON the path.
  *
- * Supports M/m, L/l, C/c, Q/q, Z/z commands. Curves are sampled
- * at their control points and endpoints (not interpolated) for
- * lightweight processing. This is sufficient for pressure-width
- * rendering where each extracted point gets a circle overlay.
+ * Supports M/m, L/l, C/c, Q/q, Z/z commands. Straight `M`/`L` segments
+ * contribute their single endpoint, same as before. Curved `C`/`Q` segments
+ * are evaluated at several parametric `t` steps via De Casteljau's algorithm
+ * (not just their control points and endpoint), with the sample count scaled
+ * to the segment's control-polygon length, so a heavily curved stroke gets a
+ * run of points that actually sit on the curve instead of cutting the corner
+ * through its (off-curve) control points.
  */
 export function extractPathPoints(d: string): PathPoint[] {
 	const points: PathPoint[] = [];
-	// Match all numeric pairs following SVG path commands
-	const numberRegex = /-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/giu;
-	const numbers: number[] = [];
-	let match: RegExpExecArray | null;
-	while ((match = numberRegex.exec(d)) !== null) {
-		numbers.push(parseFloat(match[0]));
-	}
+	let current: PathPoint | undefined;
 
-	for (let i = 0; i < numbers.length - 1; i += 2) {
-		points.push({ x: numbers[i], y: numbers[i + 1] });
+	for (const { cmd, nums } of tokenizeSvgPath(d)) {
+		const arity = PATH_COMMAND_ARITY[cmd];
+		if (cmd === 'Z' || arity === undefined) {
+			continue;
+		}
+		for (let offset = 0; offset + arity <= nums.length; offset += arity) {
+			const chunk = nums.slice(offset, offset + arity);
+			// Coordinate pairs after the first under an `M` command are
+			// implicit linetos per the SVG spec.
+			const effective = cmd === 'M' && offset > 0 ? 'L' : cmd;
+			if (effective === 'M' || effective === 'L') {
+				const pt = { x: chunk[0], y: chunk[1] };
+				points.push(pt);
+				current = pt;
+			} else if (effective === 'C') {
+				current = sampleCubicSegment(
+					points,
+					current,
+					{ x: chunk[0], y: chunk[1] },
+					{ x: chunk[2], y: chunk[3] },
+					{ x: chunk[4], y: chunk[5] },
+				);
+			} else if (effective === 'Q') {
+				current = sampleQuadSegment(
+					points,
+					current,
+					{ x: chunk[0], y: chunk[1] },
+					{
+						x: chunk[2],
+						y: chunk[3],
+					},
+				);
+			}
+		}
 	}
 
 	return points;
