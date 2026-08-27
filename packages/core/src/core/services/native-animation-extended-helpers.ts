@@ -8,6 +8,7 @@ import type {
 	PptxAnimationIterate,
 	XmlObject,
 } from '../types';
+import { extractAttrNameFromCBhvr } from './native-animation-attr-name';
 import { ensureArray } from './native-animation-helpers';
 
 /**
@@ -40,28 +41,8 @@ export function extractColorAnimation(
 	const toColor = extractColorValue(node['p:to'] as XmlObject | undefined);
 	const byColor = extractHslDeltaOrColorValue(node['p:by'] as XmlObject | undefined, colorSpace);
 
-	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName. Note:
-	// `p:attrName` is a TEXT element ("fillcolor" / "style.color" / ...), so it
-	// parses to a plain string (or `{ '#text': ... }`), NOT an XmlObject - it must
-	// NOT go through `ensureArray`, which filters to objects and would silently
-	// drop the string, leaving every real p:animClr with no target attribute.
-	let targetAttribute: string | undefined;
-	const cBhvr = node['p:cBhvr'] as XmlObject | undefined;
-	const attrNameLst = cBhvr?.['p:attrNameLst'] as XmlObject | undefined;
-	const rawAttrName = attrNameLst?.['p:attrName'];
-	const firstAttrName = Array.isArray(rawAttrName) ? rawAttrName[0] : rawAttrName;
-	if (firstAttrName !== undefined && firstAttrName !== null) {
-		const name = (
-			typeof firstAttrName === 'object'
-				? String((firstAttrName as XmlObject)['#text'] ?? '')
-				: String(firstAttrName)
-		)
-			.toLowerCase()
-			.trim();
-		if (name !== '') {
-			targetAttribute = name;
-		}
-	}
+	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName.
+	const targetAttribute = extractAttrNameFromCBhvr(node['p:cBhvr'] as XmlObject | undefined);
 
 	return {
 		colorSpace,

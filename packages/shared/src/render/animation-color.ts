@@ -187,8 +187,14 @@ const ATTR_NAME_TO_CSS_PROPERTIES: Record<string, string[]> = {
 /**
  * Resolve the CSS properties to animate from the OOXML attribute name.
  * Falls back to `color` if the attribute is unknown or not provided.
+ *
+ * Exported so `animation-timeline-absolute`'s `p:tavLst`-driven colour
+ * keyframes (a generic `p:anim` node naming a colour attribute, as opposed
+ * to the dedicated `p:animClr` behaviour this module was written for) can
+ * reuse the exact same attribute-name -> CSS-property mapping instead of
+ * duplicating it.
  */
-function resolveCssProperties(attrName?: string): string[] {
+export function resolveCssProperties(attrName?: string): string[] {
 	if (!attrName) {
 		return ['color'];
 	}

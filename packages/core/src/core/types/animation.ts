@@ -238,6 +238,19 @@ export interface PptxNativeAnimation {
 	scaleZoomContents?: boolean;
 	/** Parsed `p:tav` keyframes from `p:tavLst` (CT_TLAnimVariantList). */
 	keyframes?: PptxAnimationKeyframe[];
+	/**
+	 * The attribute {@link keyframes} drives, from the SAME node's
+	 * `p:cBhvr/p:attrNameLst/p:attrName` (ECMA-376 S19.5.4). `p:tavLst` is
+	 * schema-generic: without this, playback could see a numeric ramp but not
+	 * know whether it targeted opacity, position, colour, or something with
+	 * no CSS mapping. Lowercased and trimmed; common values seen in the wild
+	 * (and written by this codebase's own animation writer) include
+	 * `"style.opacity"`, `"style.color"`, `"style.visibility"`, `"fillcolor"`,
+	 * `"stroke.color"`, `"r"` (rotation, only meaningful on `p:animRot`), and
+	 * `"ppt_x"` / `"ppt_y"` (position, normally driven via `p:animMotion`
+	 * instead). Absent when the behaviour carries no `p:attrNameLst`.
+	 */
+	attrName?: string;
 	/** Repeat count (e.g. `2`, `Infinity` for indefinite). */
 	repeatCount?: number;
 	/** Whether the animation plays in reverse after completion. */

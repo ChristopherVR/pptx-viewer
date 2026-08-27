@@ -170,6 +170,51 @@ describe('animation tav keyframe round-trip', () => {
 		expect(anim).toBeDefined();
 		expect(anim!.keyframes).toStrictEqual(keyframes);
 	});
+
+	it('surfaces the p:attrName alongside p:tavLst keyframes', () => {
+		const keyframes: PptxAnimationKeyframe[] = [
+			{ tm: 0, value: 1, valueType: 'flt' },
+			{ tm: 100000, value: 0, valueType: 'flt' },
+		];
+		const slide = buildSlideWithChildTnLst({
+			'p:anim': {
+				'p:cBhvr': {
+					'p:cTn': { '@_id': '5' },
+					'p:tgtEl': { 'p:spTgt': { '@_spid': 'shape1' } },
+					'p:attrNameLst': { 'p:attrName': 'style.opacity' },
+				},
+				'p:tavLst': buildTavLstFromKeyframes(keyframes),
+			},
+		});
+
+		const service = new PptxNativeAnimationService();
+		const result = service.parseNativeAnimations(slide);
+		const anim = result!.find((a) => a.targetId === 'shape1');
+		expect(anim).toBeDefined();
+		expect(anim!.attrName).toBe('style.opacity');
+	});
+
+	it('leaves attrName undefined when the behaviour carries no p:attrNameLst', () => {
+		const keyframes: PptxAnimationKeyframe[] = [
+			{ tm: 0, value: 1, valueType: 'flt' },
+			{ tm: 100000, value: 0, valueType: 'flt' },
+		];
+		const slide = buildSlideWithChildTnLst({
+			'p:anim': {
+				'p:cBhvr': {
+					'p:cTn': { '@_id': '5' },
+					'p:tgtEl': { 'p:spTgt': { '@_spid': 'shape1' } },
+				},
+				'p:tavLst': buildTavLstFromKeyframes(keyframes),
+			},
+		});
+
+		const service = new PptxNativeAnimationService();
+		const result = service.parseNativeAnimations(slide);
+		const anim = result!.find((a) => a.targetId === 'shape1');
+		expect(anim).toBeDefined();
+		expect(anim!.attrName).toBeUndefined();
+	});
 });
 
 // ---------------------------------------------------------------------------

@@ -292,8 +292,9 @@ export * from './animation-build';
 export * from './chart-build';
 export * from './diagram-build';
 export * from './animation-timeline-helpers';
-// Absolute `p:animRot`/`p:animScale` `from`/`to` keyframes and a `p:tavLst`
-// opacity ramp for emphasis effects, consumed by `animation-timeline-helpers`
+// Absolute `p:animRot`/`p:animScale` `from`/`to` keyframes, plus `p:tavLst`
+// opacity and colour ramps for a generic `p:anim` node (attributed via
+// `PptxNativeAnimation.attrName`), consumed by `animation-timeline-helpers`
 // / `animation-timeline-builder` as the sibling of their relative-`@by` and
 // canned-static keyframe paths respectively.
 export * from './animation-timeline-absolute';
