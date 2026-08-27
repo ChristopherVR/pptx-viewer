@@ -156,9 +156,14 @@ describe('pRESET_TO_OOXML', () => {
 			expect(PRESET_TO_OOXML['wipeOut'].presetId).toBe(22);
 		});
 
-		it('should map "bounceOut" to exit, presetId 37', () => {
+		it('should map "bounceOut" to exit, presetId 26 (verified via COM)', () => {
 			expect(PRESET_TO_OOXML['bounceOut'].presetClass).toBe('exit');
-			expect(PRESET_TO_OOXML['bounceOut'].presetId).toBe(37);
+			expect(PRESET_TO_OOXML['bounceOut'].presetId).toBe(26);
+		});
+
+		it('should map "sinkDown" to exit, presetId 37 (verified via COM)', () => {
+			expect(PRESET_TO_OOXML['sinkDown'].presetClass).toBe('exit');
+			expect(PRESET_TO_OOXML['sinkDown'].presetId).toBe(37);
 		});
 	});
 
@@ -185,9 +190,9 @@ describe('pRESET_TO_OOXML', () => {
 			expect(PRESET_TO_OOXML['growShrink'].presetId).toBe(6);
 		});
 
-		it('should map "teeter" to emph, presetId 14', () => {
+		it('should map "teeter" to emph, presetId 32 (verified via COM)', () => {
 			expect(PRESET_TO_OOXML['teeter'].presetClass).toBe('emph');
-			expect(PRESET_TO_OOXML['teeter'].presetId).toBe(14);
+			expect(PRESET_TO_OOXML['teeter'].presetId).toBe(32);
 		});
 
 		it('should map "transparency" to emph, presetId 9', () => {

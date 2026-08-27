@@ -58,8 +58,22 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[23]).toBe('zoomOut');
 		});
 
-		it('should map preset ID 37 to "bounceOut"', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[37]).toBe('bounceOut');
+		it('should map preset ID 26 to "bounceOut" (Bounce, verified via a fresh COM pass)', () => {
+			// A fresh COM pass shows `msoAnimEffectBounce` with `Effect.Exit =
+			// True` re-emits presetID 26 (the SAME id as its entrance form),
+			// not 37 (see the sinkDown test below for the real exit.37).
+			expect(PRESET_ID_TO_EFFECT.exit[26]).toBe('bounceOut');
+		});
+
+		it('should map preset ID 37 to "sinkDown", not the old (wrong) "bounceOut"', () => {
+			// This table previously had exit[37] = 'bounceOut', which a fresh
+			// COM pass shows is wrong: `msoAnimEffectRiseUp` with
+			// `Effect.Exit = True` re-emits presetID 37 (matching its
+			// entrance form, entr.37), not Bounce (real Bounce exit is
+			// exit.26, see above). The two were swapped, mirroring the
+			// already-fixed entr.26/37 mix-up.
+			expect(PRESET_ID_TO_EFFECT.exit[37]).toBe('sinkDown');
+			expect(PRESET_ID_TO_EFFECT.exit[37]).not.toBe('bounceOut');
 		});
 
 		it('should map preset ID 2 to "flyOutBottom"', () => {
@@ -92,8 +106,21 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.emph[26]).toBe('pulse');
 		});
 
-		it('should map preset ID 14 to "teeter"', () => {
-			expect(PRESET_ID_TO_EFFECT.emph[14]).toBe('teeter');
+		it('should map preset ID 32 to "teeter", not the old (wrong) preset ID 14', () => {
+			// A fresh COM pass shows `msoAnimEffectTeeter` serializes as
+			// emph.32, not 14 (real emph.14 is Blast, which has no dedicated
+			// keyframe and is correctly left unmapped, see below).
+			expect(PRESET_ID_TO_EFFECT.emph[32]).toBe('teeter');
+			expect(PRESET_ID_TO_EFFECT.emph[14]).toBeUndefined();
+		});
+
+		it('should map preset ID 20 to "colorWave" and 34 to "wave" (verified via COM)', () => {
+			// Both dedicated keyframes already existed (a hue-rotate pulse for
+			// Color Wave, a vertical bob for Wave) but neither preset id was
+			// ever wired up in this table, even though `animation-write-mappings.ts`
+			// and the UI catalog already carried the COM-verified ids.
+			expect(PRESET_ID_TO_EFFECT.emph[20]).toBe('colorWave');
+			expect(PRESET_ID_TO_EFFECT.emph[34]).toBe('wave');
 		});
 
 		it('should map preset ID 6 to "growShrink"', () => {
@@ -169,6 +196,15 @@ describe('pRESET_ID_TO_EFFECT', () => {
 
 		it('should map preset ID 21 to "wheelIn"', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[21]).toBe('wheelIn');
+		});
+
+		it('should map preset ID 19 to "swivel" (Swivel, verified via COM)', () => {
+			// entr.19 was already COM-verified as Swivel in the authoring
+			// reverse lookup and the UI catalog (see the entr.47 test below),
+			// and the `swivel` keyframe already existed for its initial-style
+			// resolution, but this id was never wired up in the playback
+			// table itself.
+			expect(PRESET_ID_TO_EFFECT.entr[19]).toBe('swivel');
 		});
 
 		it('should map preset ID 26 to "bounceIn" (Bounce, verified via COM)', () => {

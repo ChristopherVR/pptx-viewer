@@ -67,6 +67,13 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		31: 'expandIn',
 		37: 'riseUp',
 		42: 'floatIn',
+		// entr.19 = Swivel, confirmed via COM (`msoAnimEffectSwivel` serializes
+		// as presetID 19, presetClass="entr", no filter); already COM-verified
+		// in `animation-write-mappings.ts`'s `ENTR_CANONICAL` and in the UI
+		// catalog, but never wired up here even though the `swivel` keyframe
+		// (rotateY entrance) already existed and was already used for its
+		// initial-style resolution in `animation-effects.ts`.
+		19: 'swivel',
 		49: 'spinnerIn',
 		53: 'growTurnIn',
 	},
@@ -85,7 +92,19 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		10: 'fadeOut',
 		22: 'wipeOut',
 		23: 'zoomOut',
-		37: 'bounceOut',
+		// exit.26/37 verified via a fresh COM pass (AddEffect + `Effect.Exit =
+		// True` + raw OOXML inspection): `msoAnimEffectBounce` with
+		// `Effect.Exit = True` re-emits presetID 26 (the SAME id as its
+		// entrance form, filter="wipe(down)" on both), and
+		// `msoAnimEffectRiseUp` with `Effect.Exit = True` re-emits presetID 37
+		// (again the same id as its entrance form, filter="fade" on both).
+		// This table previously had `bounceOut` on 37 and no entry for 26,
+		// i.e. exactly the same "Bounce"/"Rise Up" mix-up already fixed on the
+		// entrance side (entr.26/37) but never propagated to exit. Bounce's
+		// exit form reuses the existing `bounceOut` keyframe; Rise Up's exit
+		// form ("Sink Down" in the gallery) gets its own `sinkDown` keyframe.
+		26: 'bounceOut',
+		37: 'sinkDown',
 	},
 	emph: {
 		// emph.1 used to be mislabelled 'boldFlash', but emph.1 is really
@@ -110,8 +129,21 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		// mislabelled onto emph.1 (see above) and emph.4 wrongly claimed as
 		// Change Font Size's slot.
 		10: 'boldFlash',
-		14: 'teeter',
+		// emph.14 used to be mislabelled 'teeter', but a fresh COM pass
+		// (AddEffect + raw OOXML inspection) shows `msoAnimEffectBlast`
+		// serializes as emph.14 and `msoAnimEffectTeeter` serializes as
+		// emph.32; the two were swapped in this table (the real Blast has no
+		// dedicated keyframe, so 14 is correctly left unmapped below).
+		32: 'teeter',
 		26: 'pulse',
+		// emph.20/34 verified via COM: `msoAnimEffectColorWave` serializes as
+		// emph.20 and `msoAnimEffectWave` as emph.34 (already documented, and
+		// re-confirmed by a fresh COM pass, in `animation-write-mappings.ts`'s
+		// `colorWave`/`wave` entries and the matching catalog labels). Both
+		// dedicated keyframes (`colorWave`: a hue-rotate pulse; `wave`: a
+		// vertical bob) already existed but were never wired to a preset id.
+		20: 'colorWave',
+		34: 'wave',
 		// emph.2 (Change Font, a font-family swap) and emph.16 (Brush on
 		// Color) are intentionally NOT covered here: neither has a dynamic
 		// keyframe or animClr path today, so both correctly fall back to the

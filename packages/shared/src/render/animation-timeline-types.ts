@@ -51,6 +51,7 @@ export type EffectName =
 	| 'flyOutBottom'
 	| 'zoomOut'
 	| 'bounceOut'
+	| 'sinkDown'
 	| 'wipeOut'
 	| 'shrinkOut'
 	| 'dissolveOut'

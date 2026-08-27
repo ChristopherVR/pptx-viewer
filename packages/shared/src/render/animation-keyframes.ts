@@ -177,6 +177,14 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	from { opacity: 1; filter: blur(0); }
 	to { opacity: 0; filter: blur(8px); }
 }`,
+	// Sink Down is the exit-side counterpart of Rise Up: verified via COM,
+	// `msoAnimEffectRiseUp` with `Effect.Exit = True` re-emits the SAME
+	// presetID (37) with presetClass="exit" rather than a distinct id, so the
+	// exit-form visual mirrors entrance's translateY travel in reverse.
+	sinkDown: `@keyframes pptx-sinkDown {
+	from { opacity: 1; transform: translateY(0); }
+	to { opacity: 0; transform: translateY(60px); }
+}`,
 
 	// ---- Emphasis effects ----
 	pulse: `@keyframes pptx-pulse {

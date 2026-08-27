@@ -910,8 +910,13 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via a fresh COM pass: `msoAnimEffectBounce` with
+		// `Effect.Exit = True` re-emits presetID 26, the SAME id as its
+		// entrance form (see entr.26 above), i.e. exit.26 is Bounce, not Sink
+		// Down (real Sink Down is exit.37, see below). The two were swapped
+		// in this catalog.
 		presetId: 'exit.26',
-		label: 'Sink Down',
+		label: 'Bounce',
 		category: 'exit',
 		defaultDurationMs: 500,
 		hasDirection: false,
@@ -999,8 +1004,13 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: true,
 	},
 	{
+		// Verified via a fresh COM pass: `msoAnimEffectRiseUp` with
+		// `Effect.Exit = True` re-emits presetID 37, the SAME id as its
+		// entrance form (see entr.37 above), i.e. exit.37 is Sink Down
+		// (Rise Up's exit-gallery name), not Bounce (real Bounce is exit.26,
+		// see above). The two were swapped in this catalog.
 		presetId: 'exit.37',
-		label: 'Bounce',
+		label: 'Sink Down',
 		category: 'exit',
 		defaultDurationMs: 1000,
 		hasDirection: false,
@@ -1398,8 +1408,15 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via a fresh COM pass: `msoAnimEffectBlast` serializes as
+		// emph.14, not Teeter (real Teeter is emph.32, see below). This
+		// duplicates the existing "Blast" label at emph.17; which of the two
+		// ids the real Blast gallery entry corresponds to is a newly
+		// surfaced, out-of-scope issue this fix does not resolve (matching
+		// the entr.30/49 "Spinner" duplicate precedent elsewhere in this
+		// catalog).
 		presetId: 'emph.14',
-		label: 'Teeter',
+		label: 'Blast',
 		category: 'emphasis',
 		defaultDurationMs: 1000,
 		hasDirection: false,
@@ -1555,8 +1572,13 @@ export const EMPHASIS_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via a fresh COM pass: `msoAnimEffectTeeter` serializes as
+		// emph.32, not Pulse Once (real Teeter was previously mislabelled onto
+		// emph.14, see above; that id is really Blast). Pulse Once's real id
+		// is unverified and is a newly surfaced, out-of-scope issue this fix
+		// does not resolve.
 		presetId: 'emph.32',
-		label: 'Pulse Once',
+		label: 'Teeter',
 		category: 'emphasis',
 		defaultDurationMs: 1000,
 		hasDirection: false,

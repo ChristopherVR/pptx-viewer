@@ -284,12 +284,10 @@ describe('animation preset table cross-consistency', () => {
 
 		// entr.18/19 (Strips/Swivel) were double-booked: authoring/catalog had
 		// entr.19 as Strips and a separate name (`swivel`) pointing at entr.47.
-		// Neither id is covered by playback (no dedicated keyframe), so this
-		// checks authoring + catalog agreement directly.
-		it.each([
-			{ presetId: 18, effect: 'strips' },
-			{ presetId: 19, effect: 'swivel' },
-		])(
+		// entr.18 (Strips) still has no dedicated keyframe; entr.19 (Swivel)
+		// is now ALSO covered by playback (see "a further COM verification
+		// pass resolves more ids" below), so only entr.18 is checked here.
+		it.each([{ presetId: 18, effect: 'strips' }])(
 			'entr.$presetId -> $effect (authoring, catalog; not covered by playback)',
 			({ presetId, effect }) => {
 				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBeUndefined();
@@ -353,6 +351,75 @@ describe('animation preset table cross-consistency', () => {
 
 			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'exit', presetId: 11 });
 			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'flashonce')).toBeTruthy();
+		});
+	});
+
+	// A further, independent COM verification pass (AddEffect + `Effect.Exit =
+	// True` + raw OOXML inspection) found: (1) entr.19 (Swivel) was already
+	// correctly resolved by authoring and the catalog but never wired up in
+	// playback, even though its dedicated `swivel` keyframe already existed;
+	// (2) exit.26/exit.37 (Bounce / Sink Down, i.e. Rise Up's exit-gallery
+	// name) were swapped in all three tables, mirroring the entr.26/37
+	// mix-up already fixed on the entrance side; (3) emph.14/emph.32 (Blast /
+	// Teeter) were likewise swapped; (4) emph.20/emph.34 (Color Wave / Wave)
+	// were already correctly resolved by authoring and the catalog but never
+	// wired up in playback, even though their dedicated keyframes already
+	// existed.
+	describe('a further COM verification pass resolves more ids', () => {
+		it('entr.19 (Swivel): now covered by playback, matching authoring and the catalog', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[19]).toBe('swivel');
+
+			const fromAuthoring = ooxmlToPresetName({ presetClass: 'entr', presetId: 19 });
+			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'swivel')).toBeTruthy();
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'entr', presetId: 19 });
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'swivel')).toBeTruthy();
+		});
+
+		it.each([
+			{ presetClass: 'exit' as const, presetId: 26, effect: 'bounce' },
+			{ presetClass: 'exit' as const, presetId: 37, effect: 'sinkdown' },
+			{ presetClass: 'emph' as const, presetId: 32, effect: 'teeter' },
+			{ presetClass: 'emph' as const, presetId: 20, effect: 'colorwave' },
+			{ presetClass: 'emph' as const, presetId: 34, effect: 'wave' },
+		])(
+			'$presetClass.$presetId -> $effect (playback, authoring, catalog agree)',
+			({ presetClass, presetId, effect }) => {
+				const fromPlayback = PRESET_ID_TO_EFFECT[presetClass][presetId];
+				expect(
+					fromPlayback,
+					`${presetClass}.${presetId} should be covered by playback`,
+				).toBeDefined();
+				expect(identitiesAgree(canonicalIdentity(fromPlayback!), effect)).toBeTruthy();
+
+				const fromAuthoring = ooxmlToPresetName({ presetClass, presetId });
+				expect(
+					fromAuthoring,
+					`${presetClass}.${presetId} should be covered by authoring`,
+				).toBeDefined();
+				expect(identitiesAgree(canonicalIdentity(fromAuthoring!), effect)).toBeTruthy();
+
+				if (presetClass !== 'exit') {
+					const fromCatalog = getNativeAnimationPresetMetadata({ presetClass, presetId });
+					expect(
+						fromCatalog,
+						`${presetClass}.${presetId} should be covered by the catalog`,
+					).toBeDefined();
+					expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), effect)).toBeTruthy();
+				}
+			},
+		);
+
+		it('exit.26/exit.37 no longer carry their old (swapped) effect names', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[26]).not.toBe('sinkDown');
+			expect(PRESET_ID_TO_EFFECT.exit[37]).not.toBe('bounceOut');
+		});
+
+		it('emph.14 (real Blast, not Teeter) has no dedicated keyframe and is correctly left unmapped', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[14]).toBeUndefined();
+
+			const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId: 14 });
+			expect(fromAuthoring).toBeUndefined();
 		});
 	});
 });
