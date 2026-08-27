@@ -1,13 +1,15 @@
 /**
  * `p:bgPr/@shadeToTitle` (CT_BackgroundProperties, ECMA-376 §19.3.1.2) is
- * captured on the typed model and re-serialized on save, but the actual
- * visual effect (shading the background toward the title placeholder's
- * colour) is not applied by any renderer. Investigated and documented as a
- * known no-op in `docs/guide/limitations.md`: it is a legacy PowerPoint
- * 97-2003 hint not observed in this project's real-world fixture corpus and
- * not settable from any modern PowerPoint UI. This test locks in the
- * parse/round-trip behaviour that already existed so the "captured, not
- * applied" contract stays honest.
+ * captured on the typed model and re-serialized on save. Core itself only
+ * carries the flag; the actual visual effect (shading the background
+ * gradient toward the title placeholder's colour) is applied by
+ * `pptx-viewer-shared`'s `getSlideBackgroundStyle`, consumed by all five
+ * bindings (see `packages/shared/src/render/background-shade-to-title.ts`
+ * and its end-to-end test `background-shade-to-title-render.test.ts`). It
+ * remains a legacy PowerPoint 97-2003 hint not observed in this project's
+ * real-world fixture corpus and not settable from any modern PowerPoint UI
+ * (`docs/guide/limitations.md`). This test locks in the core parse/save
+ * round-trip of the flag itself.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

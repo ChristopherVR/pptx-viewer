@@ -11,6 +11,7 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import { resolveTitleColorForShading, shadeGradientTowardTitle } from './background-shade-to-title';
 import type { CssStyleMap } from './element-style-transform';
 import { getPatternSvg } from './fill-style';
 
@@ -42,7 +43,13 @@ export function getSlideBackgroundStyle(slide: PptxSlide | undefined): CssStyleM
 		style['background-size'] = '100% 100%';
 		style['background-repeat'] = 'no-repeat';
 	} else if (slide?.backgroundGradient) {
-		style['background-image'] = slide.backgroundGradient;
+		// Legacy PowerPoint 97-2003 `<p:bgPr shadeToTitle="1">` hint: shade the
+		// gradient's far stop toward the title placeholder's text colour. See
+		// `background-shade-to-title.ts` for the approximation this makes.
+		style['background-image'] = slide.backgroundShadeToTitle
+			? (shadeGradientTowardTitle(slide.backgroundGradient, resolveTitleColorForShading(slide)) ??
+				slide.backgroundGradient)
+			: slide.backgroundGradient;
 	} else if (pattern) {
 		const svg = getPatternSvg(
 			pattern.preset,

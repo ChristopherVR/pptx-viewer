@@ -197,9 +197,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Extract the `<p:bgPr/@shadeToTitle>` boolean attribute from a slide
-	 * background. Captured for round-trip — render-time semantics are a
-	 * passthrough hint to renderers that may want to blend toward the
-	 * title placeholder colour.
+	 * background. Captured here purely as a passthrough flag on the model;
+	 * the actual "shade the gradient toward the title colour" effect is
+	 * applied downstream by `pptx-viewer-shared`'s `getSlideBackgroundStyle`
+	 * (`render/background-shade-to-title.ts`), not by core.
 	 *
 	 * ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
 	 */

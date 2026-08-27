@@ -180,11 +180,16 @@ export interface PptxSlide {
 	backgroundPattern?: PptxSlideBackgroundPattern;
 	/**
 	 * `<p:bgPr/@shadeToTitle>`: boolean flag instructing the renderer to
-	 * shade the background toward the title placeholder colour. Captured
-	 * for lossless round-trip only; no renderer applies the visual effect.
-	 * Documented as a known no-op in `docs/guide/limitations.md` (legacy
-	 * PowerPoint 97-2003 hint, not observed in any real-world corpus file
-	 * and not settable from any modern PowerPoint UI).
+	 * shade the background gradient toward the title placeholder's text
+	 * colour. Parsed and round-tripped here on the core model; the actual
+	 * visual effect is applied by `pptx-viewer-shared`'s
+	 * `getSlideBackgroundStyle` (see `render/background-shade-to-title.ts`),
+	 * consumed by all five bindings, not by core itself. That module's
+	 * docstring explains the approximation: no published ECMA-376 or
+	 * MS-ODRAWXML text documents the exact legacy blend. Legacy PowerPoint
+	 * 97-2003 hint, not observed in any real-world corpus file this project
+	 * has collected and not settable from any modern PowerPoint UI; see
+	 * `docs/guide/limitations.md`.
 	 *
 	 * ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
 	 */
