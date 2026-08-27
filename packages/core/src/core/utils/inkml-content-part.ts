@@ -167,32 +167,65 @@ export function buildInkMlContent(
 	const root: XmlObject = existingRoot ? { ...existingRoot } : {};
 	root['@_xmlns:ink'] = INKML_NAMESPACE;
 	root['@_xmlns:pva'] = METADATA_NAMESPACE;
-	root['ink:traceFormat'] = {
-		'ink:channel': [
-			{ '@_name': 'X', '@_type': 'decimal' },
-			{ '@_name': 'Y', '@_type': 'decimal' },
-			{ '@_name': 'F', '@_type': 'decimal', '@_min': '0', '@_max': '1' },
-		],
+	// Verified against real PowerPoint COM behaviour: a plain `<ink:traceFormat>`
+	// / `<ink:brush>` / `id="..."` part (this project's ORIGINAL authored
+	// dialect) passes this project's own lenient reader and internal schema
+	// validator, but real PowerPoint's own InkML parser rejects it as
+	// "corrupted and unreadable" (0x80070570). Real PowerPoint requires:
+	//   - `traceFormat` nested inside `definitions/context/inkSource`, not a
+	//     direct child of the root.
+	//   - `brush` nested inside `definitions` (a sibling of `context`), not a
+	//     direct child of the root.
+	//   - Every identifiable element (`context`, `inkSource`, `brush`) keyed by
+	//     the InkML/XML spec's `xml:id`, NOT a bare `id` attribute: `id="..."`
+	//     alone is schema-legal enough for this project's own reader but real
+	//     PowerPoint's parser rejects the whole part.
+	//   - Each `<trace>` carries BOTH `contextRef` and `brushRef`; `brushRef`
+	//     alone (this project's original authored form) is rejected too.
+	// The compact difference-encoding PowerPoint itself writes (`100
+	// 200,'40'46,"0"-5`) is NOT required: plain per-point decimal channel
+	// values (already this project's own dialect) open fine once the
+	// structural requirements above are met.
+	root['ink:definitions'] = {
+		'ink:context': {
+			'@_xml:id': 'ctx0',
+			'ink:inkSource': {
+				'@_xml:id': 'inkSrc0',
+				'ink:traceFormat': {
+					'ink:channel': [
+						{ '@_name': 'X', '@_type': 'decimal' },
+						{ '@_name': 'Y', '@_type': 'decimal' },
+						{ '@_name': 'F', '@_type': 'decimal', '@_min': '0', '@_max': '1' },
+					],
+				},
+			},
+		},
+		'ink:brush': strokes.map((stroke, index) => ({
+			'@_xml:id': `brush${index + 1}`,
+			'ink:brushProperty': [
+				{ '@_name': 'color', '@_value': stroke.color },
+				{ '@_name': 'width', '@_value': String(stroke.width) },
+				{ '@_name': 'opacity', '@_value': String(stroke.opacity) },
+			],
+		})),
 	};
-	root['ink:brush'] = strokes.map((stroke, index) => ({
-		'@_id': `brush${index + 1}`,
-		'ink:brushProperty': [
-			{ '@_name': 'color', '@_value': stroke.color },
-			{ '@_name': 'width', '@_value': String(stroke.width) },
-			{ '@_name': 'opacity', '@_value': String(stroke.opacity) },
-		],
-	}));
 	root['ink:trace'] = strokes.map((stroke, index) => ({
+		'@_contextRef': '#ctx0',
 		'@_brushRef': `#brush${index + 1}`,
 		'@_pva:path': stroke.path,
 		'#text': pathToTrace(stroke.path, stroke.pressures),
 	}));
 	// The rewritten root replaces whatever prefix the source used, and the
-	// source's own definitions/traces must not survive beside it.
+	// source's own definitions/traces must not survive beside it. Also drop a
+	// root-level `ink:traceFormat`/`ink:brush` a PRE-fix version of this writer
+	// left directly on the root (real PowerPoint's parser requires both nested
+	// under `ink:definitions`, moved above): those are stale duplicates once
+	// this rebuild runs, not additional content to keep.
 	if (existingKey) {
 		delete data[existingKey];
 	}
 	delete data['ink'];
+	delete root['ink:traceFormat'];
 	deleteStaleInkChildren(root);
 	data['ink:ink'] = root;
 	return data;

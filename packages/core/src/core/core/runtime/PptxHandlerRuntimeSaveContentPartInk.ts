@@ -11,7 +11,17 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 
 const CUSTOM_XML_RELATIONSHIP_TYPE =
 	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml';
-const A14_NAMESPACE = 'http://schemas.microsoft.com/office/drawing/2010/main';
+// Verified against PowerPoint's own SaveAs output (see `mc-capabilities.ts`):
+// a real ink `p:contentPart` sits inside `mc:Choice Requires="p14"`, and every
+// CHILD of `p:contentPart` (nvContentPartPr, cNvPr, cNvContentPartPr, nvPr,
+// xfrm) is itself `p14:`-qualified, not `p:`-qualified. Authoring it with the
+// `a14` drawing-2010 namespace instead (a real, but unrelated, MC namespace)
+// produces a package PowerPoint's own reader treats as corrupted
+// ("The file or directory is corrupted and unreadable.", 0x80070570): this
+// project's lenient internal reader silently accepted it because the `a14`
+// `Requires` declared a namespace no descendant tag actually used, which is
+// exactly the gap real PowerPoint's stricter schema validation does not share.
+const P14_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2010/main';
 const MC_NAMESPACE = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 
 /** Structural comparison of two decoded stroke lists (paths, colour, geometry). */
@@ -143,9 +153,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			envelopes.push({
 				'@_xmlns:mc': MC_NAMESPACE,
+				// PowerPoint's own SaveAs declares `xmlns:p14` on the wrapping
+				// `mc:AlternateContent`, alongside `xmlns:mc`, not on the nested
+				// `mc:Choice`. Both are legal XML (the declaration is in scope
+				// either way), but matching the exact placement removes one more
+				// variable when a produced file fails to open in real PowerPoint.
+				'@_xmlns:p14': P14_NAMESPACE,
 				'mc:Choice': {
-					'@_Requires': 'a14',
-					'@_xmlns:a14': A14_NAMESPACE,
+					'@_Requires': 'p14',
 					'p:contentPart': part,
 				},
 				'mc:Fallback': { 'p:sp': fallback },
@@ -191,20 +206,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private buildContentPartXml(el: ContentPartPptxElement, relationshipId: string): XmlObject {
 		const result: XmlObject = {
 			'@_r:id': relationshipId,
-			'p:nvContentPartPr': {
-				'p:cNvPr': { '@_id': el.shapeId ?? '2', '@_name': el.name || el.id },
-				'p:cNvContentPartPr': {},
-				'p:nvPr': {},
+			'@_p14:bwMode': 'auto',
+			'p14:nvContentPartPr': {
+				'p14:cNvPr': { '@_id': el.shapeId ?? '2', '@_name': el.name || el.id },
+				'p14:cNvContentPartPr': {},
+				'p14:nvPr': {},
 			},
-			'p:xfrm': {},
 		};
 		this.applyContentPartTransform(result, el);
 		return result;
 	}
 
+	/**
+	 * Write the transform onto whichever `xfrm` key the shape already carries
+	 * (`p14:xfrm` for a real PowerPoint-authored or previously-authored part,
+	 * legacy `p:xfrm` only defensively), falling back to `p14:xfrm` for a
+	 * brand-new content part so it matches PowerPoint's own qualification.
+	 */
 	private applyContentPartTransform(shape: XmlObject, el: ContentPartPptxElement): void {
 		const emu = PptxHandlerRuntime.EMU_PER_PX;
-		const transform = ensureXmlChildOrCreate(shape, 'p:xfrm');
+		const xfrmKey = Object.hasOwn(shape, 'p:xfrm') ? 'p:xfrm' : 'p14:xfrm';
+		const transform = ensureXmlChildOrCreate(shape, xfrmKey);
 		transform['a:off'] = {
 			'@_x': String(Math.round(el.x * emu)),
 			'@_y': String(Math.round(el.y * emu)),

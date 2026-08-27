@@ -47,9 +47,14 @@ describe('authored contentPart InkML integration', () => {
 		expect(inkPath).toBeTruthy();
 		const inkXml = await zip.file(inkPath!)!.async('string');
 
+		// Verified against real PowerPoint COM behaviour: a content part's
+		// non-visual properties and transform are `p14:`-qualified, not
+		// `p:`-qualified, or PowerPoint's own reader rejects the whole package
+		// as corrupted (see `PptxHandlerRuntimeSaveContentPartInk`).
 		expect(slideXml).toContain('<p:contentPart r:id="');
-		expect(slideXml).toContain('<p:nvContentPartPr>');
-		expect(slideXml).toContain('<p:xfrm>');
+		expect(slideXml).toContain('<p14:nvContentPartPr>');
+		expect(slideXml).toContain('<p14:xfrm>');
+		expect(slideXml).toContain('<mc:Choice Requires="p14"');
 		expect(slideXml).toContain('<mc:Fallback><p:sp>');
 		expect(slideXml.replace(/>\s+</gu, '><')).not.toMatch(/<p:sp><p:contentPart/u);
 		expect(rels).toContain(
@@ -57,8 +62,18 @@ describe('authored contentPart InkML integration', () => {
 		);
 		expect(rels).toMatch(/Target="\.\.\/ink\/ink\d+\.xml"/u);
 		expect(types).toContain(`PartName="/${inkPath}" ContentType="application/inkml+xml"`);
+		// Real PowerPoint's InkML parser also rejects a flat `<traceFormat>` /
+		// `<brush id="...">` structure: `traceFormat` must sit inside
+		// `definitions/context/inkSource`, brushes inside `definitions`, and
+		// both must be keyed by `xml:id`, not a bare `id`. See
+		// `buildInkMlContent` in `inkml-content-part.ts`.
+		expect(inkXml).toContain('<ink:definitions>');
+		expect(inkXml).toContain('<ink:context xml:id="ctx0">');
+		expect(inkXml).toContain('<ink:inkSource xml:id="inkSrc0">');
 		expect(inkXml).toContain('<ink:traceFormat>');
 		expect(inkXml).toContain('name="F"');
+		expect(inkXml).toContain('<ink:brush xml:id="brush1">');
+		expect(inkXml).toContain('contextRef="#ctx0"');
 		expect(inkXml).toContain('value="#336699"');
 		expect(inkXml).toContain('value="4.5"');
 		expect(inkXml).toContain('value="0.65"');
