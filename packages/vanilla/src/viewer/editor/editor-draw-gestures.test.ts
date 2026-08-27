@@ -9,6 +9,7 @@ function fakePointerEvent(overrides: {
 	clientY: number;
 	pointerId?: number;
 	button?: number;
+	pressure?: number;
 	target?: EventTarget | null;
 }): PointerEvent {
 	return {
@@ -16,6 +17,7 @@ function fakePointerEvent(overrides: {
 		clientY: overrides.clientY,
 		pointerId: overrides.pointerId ?? 1,
 		button: overrides.button ?? 0,
+		pressure: overrides.pressure,
 		target: overrides.target ?? null,
 		preventDefault: vi.fn(),
 		stopPropagation: vi.fn(),
@@ -95,6 +97,33 @@ describe('createDrawGestures', () => {
 			{ x: 0, y: 0 },
 			{ x: 10, y: 5 },
 			{ x: 20, y: 15 },
+		]);
+	});
+
+	it('carries each pointer event pressure reading through to the committed stroke points', () => {
+		const { gestures, onCommitStroke } = buildGestures('pen');
+
+		gestures.onStagePointerDown(fakePointerEvent({ clientX: 0, clientY: 0, pressure: 0.1 }));
+		window.dispatchEvent(
+			Object.assign(new Event('pointermove'), {
+				clientX: 10,
+				clientY: 5,
+				pointerId: 1,
+				pressure: 0.9,
+			}),
+		);
+		window.dispatchEvent(
+			Object.assign(new Event('pointerup'), {
+				clientX: 20,
+				clientY: 15,
+				pointerId: 1,
+				pressure: 0.4,
+			}),
+		);
+
+		const stroke = onCommitStroke.mock.calls[0][0];
+		expect(stroke.points.map((p: { pressure?: number }) => p.pressure)).toStrictEqual([
+			0.1, 0.9, 0.4,
 		]);
 	});
 

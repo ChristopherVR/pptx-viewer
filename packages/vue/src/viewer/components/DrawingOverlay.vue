@@ -8,14 +8,10 @@
  * `pointer-events: none` so normal selection/drag works. The in-progress stroke
  * is drawn live. Vue counterpart of React's `canvas/DrawingOverlaySvg`.
  */
+import type { InkPoint } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 
 import type { CanvasSize } from '../types';
-
-interface Point {
-	x: number;
-	y: number;
-}
 
 const props = defineProps<{
 	canvasSize: CanvasSize;
@@ -29,20 +25,28 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	stroke: [payload: { points: Point[]; color: string; width: number; tool: string }];
-	erase: [point: Point];
+	stroke: [payload: { points: InkPoint[]; color: string; width: number; tool: string }];
+	erase: [point: InkPoint];
 }>();
 
 const rootRef = ref<SVGSVGElement | null>(null);
 const drawing = ref(false);
-const points = ref<Point[]>([]);
+const points = ref<InkPoint[]>([]);
 
-function toSlide(e: PointerEvent): Point {
+/**
+ * Map a pointer event to a slide-space point, carrying its pressure reading
+ * along (`PointerEvent.pressure`, 0..1). `useInkDrawing`'s `addInkStroke`
+ * feeds the accumulated points into the shared `strokeToInkElement`, which
+ * authors a variable-width `inkPointPressures` channel when the pressure
+ * genuinely varies, matching React's Draw tool.
+ */
+function toSlide(e: PointerEvent): InkPoint {
 	const rect = rootRef.value?.getBoundingClientRect();
 	const s = props.scale || 1;
 	return {
 		x: (e.clientX - (rect?.left ?? 0)) / s,
 		y: (e.clientY - (rect?.top ?? 0)) / s,
+		pressure: e.pressure,
 	};
 }
 

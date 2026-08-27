@@ -39,12 +39,18 @@ export function createInkGestureController(deps: InkGestureDeps): InkGestureCont
 	let points: InkPoint[] = [];
 	let activePointerId: number | null = null;
 
+	/**
+	 * Map a pointer event to a stage-local point, carrying its pressure
+	 * reading along (`PointerEvent.pressure`, 0..1) so a completed stroke can
+	 * author a variable-width `inkPointPressures` channel, matching React.
+	 */
 	function toPoint(event: PointerEvent): InkPoint {
 		const origin = deps.getStageOrigin();
 		const scale = deps.getScale() || 1;
 		return {
 			x: (event.clientX - origin.left) / scale,
 			y: (event.clientY - origin.top) / scale,
+			pressure: event.pressure,
 		};
 	}
 

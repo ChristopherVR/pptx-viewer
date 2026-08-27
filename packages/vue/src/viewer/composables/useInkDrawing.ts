@@ -1,6 +1,6 @@
-import { createEditorId } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { findEraserHitElementId } from 'pptx-viewer-shared';
+import type { PptxSlide } from 'pptx-viewer-core';
+import type { InkPoint } from 'pptx-viewer-shared';
+import { findEraserHitElementId, strokeToInkElement } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -19,7 +19,7 @@ export interface UseInkDrawingInput {
 export interface UseInkDrawingResult {
 	drawingActive: ComputedRef<boolean>;
 	addInkStroke: (payload: {
-		points: Array<{ x: number; y: number }>;
+		points: InkPoint[];
 		color: string;
 		width: number;
 		tool: string;
@@ -41,41 +41,31 @@ export function useInkDrawing(input: UseInkDrawingInput): UseInkDrawingResult {
 		() => canEdit() && !presenting.value && activeTool.value !== 'select',
 	);
 
-	/** Turn a captured stroke into an `ink` element (no select, keep drawing). */
+	/**
+	 * Turn a captured stroke into an `ink` element (no select, keep drawing),
+	 * via the shared `strokeToInkElement` decision function: it computes the
+	 * bounding box/path and, when the captured points carry genuine pointer
+	 * pressure variation, authors the `inkPointPressures` channel that drives
+	 * variable-width rendering identically to React's Draw tool.
+	 */
 	function addInkStroke(payload: {
-		points: Array<{ x: number; y: number }>;
+		points: InkPoint[];
 		color: string;
 		width: number;
 		tool: string;
 	}): void {
-		const pts = payload.points;
-		if (pts.length < 2) {
-			return;
-		}
 		const isHl = payload.tool === 'highlighter';
 		const strokeW = isHl ? payload.width * 3 : payload.width;
-		const pad = Math.max(2, strokeW);
-		const xs = pts.map((p) => p.x);
-		const ys = pts.map((p) => p.y);
-		const minX = Math.min(...xs) - pad;
-		const minY = Math.min(...ys) - pad;
-		const maxX = Math.max(...xs) + pad;
-		const maxY = Math.max(...ys) + pad;
-		const d = `M ${pts.map((p) => `${(p.x - minX).toFixed(1)} ${(p.y - minY).toFixed(1)}`).join(' L ')}`;
-		const el = {
-			id: createEditorId('ink'),
-			type: 'ink',
-			x: minX,
-			y: minY,
-			width: maxX - minX,
-			height: maxY - minY,
-			inkPaths: [d],
-			inkColors: [payload.color],
-			inkWidths: [strokeW],
-			inkOpacities: [isHl ? 0.4 : 1],
-			inkTool: payload.tool,
-		} as unknown as PptxElement;
-		ops.addElement(el);
+		const ink = strokeToInkElement({
+			points: payload.points,
+			color: payload.color,
+			width: strokeW,
+			tool: isHl ? 'highlighter' : 'pen',
+		});
+		if (!ink) {
+			return;
+		}
+		ops.addElement(ink);
 		selectedElementIds.value = [];
 	}
 	/**

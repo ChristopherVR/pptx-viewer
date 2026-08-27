@@ -79,6 +79,7 @@ export class InkDrawingService {
 		const pt: InkPoint = {
 			x: (event.clientX - rect.left) / zoom,
 			y: (event.clientY - rect.top) / zoom,
+			pressure: event.pressure,
 		};
 
 		if (host.drawTool() === 'eraser') {
@@ -116,6 +117,7 @@ export class InkDrawingService {
 		const pt: InkPoint = {
 			x: (event.clientX - rect.left) / zoom,
 			y: (event.clientY - rect.top) / zoom,
+			pressure: event.pressure,
 		};
 		this.points.push(pt);
 		this.liveInkPath.set(pointsToSvgPathD(this.points));

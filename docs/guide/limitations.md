@@ -88,6 +88,12 @@ What holds today:
   survives a save. Strokes are normalised from the part's device units into the
   element box, and each takes its colour, width and opacity from its own brush.
 - Stroke pressure from the InkML `F` channel drives variable-width rendering.
+- Drawing with the editor's own Draw tool captures each point's
+  `PointerEvent.pressure` too, identically in all five bindings, and renders
+  the in-progress and finished stroke at variable width whenever the pressure
+  genuinely varies (a constant reading, the default for a mouse, renders as a
+  single width, matching a real stylus's own behaviour). See the "Authored
+  pressure" gap below for what happens to that pressure on save.
 - A content part whose strokes were not edited keeps its original InkML part
   byte-for-byte; the part is rebuilt only when the stroke list actually changes.
 
@@ -95,7 +101,7 @@ What does not:
 
 | Area              | Status                    | Notes                                                                                                                                                                                                                                                                                   |
 | ----------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authored pressure | Only captured in React    | The Draw tool records per-point pointer pressure and saves it into the content part's InkML in React; Vue, Angular, Svelte and Vanilla do not yet capture it, so a drawn stroke there has a single width. Pressure that came IN with a file is preserved and rendered by every binding. |
+| Authored pressure    | Captured and rendered; not saved | All five bindings' Draw tool records each point's `PointerEvent.pressure` and renders a genuinely varying stroke at variable width in the editor, matching a real stylus. That pressure does not survive a save: a drawn stroke is written as the `a:custGeom` shape above (not the `p:contentPart` + InkML part a real pen writes), and shape geometry has no per-point pressure channel to hold it. Pressure that came IN with a file is preserved and rendered. |
 | InkML channels    | `X`, `Y` and `F`          | Position and pressure are used. Timing, tilt, azimuth and any other declared channel are decoded positionally and then ignored.                                                                                                                                                         |
 | Curved traces     | Sampled, not interpolated | Pressure rendering samples an SVG path's `C` / `Q` curves at their control points and endpoints, so pressure circles on a heavily curved stroke trail the true curve slightly.                                                                                                          |
 

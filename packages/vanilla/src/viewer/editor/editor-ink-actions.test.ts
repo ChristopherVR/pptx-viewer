@@ -89,6 +89,57 @@ describe('createInkActions', () => {
 			expect(ink.inkOpacities).toStrictEqual([0.4]);
 		});
 
+		it('does not author inkPointPressures for a uniform-pressure (mouse) stroke', () => {
+			const store = createStore({
+				...createInitialViewerState(),
+				slides: [buildSlide('a')],
+				currentSlide: 0,
+				editable: true,
+			});
+			const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+			const actions = createInkActions({ store, ops });
+
+			actions.commitStroke({
+				points: [
+					{ x: 10, y: 10, pressure: 0.5 },
+					{ x: 20, y: 30, pressure: 0.5 },
+					{ x: 40, y: 20, pressure: 0.5 },
+				],
+				color: '#000000',
+				width: 3,
+				tool: 'pen',
+			});
+
+			const ink = store.get().slides[0].elements[0] as InkPptxElement;
+			expect(ink.inkPointPressures).toBeUndefined();
+		});
+
+		it('authors a variable-width inkPointPressures channel for a varying-pressure (stylus) stroke', () => {
+			const store = createStore({
+				...createInitialViewerState(),
+				slides: [buildSlide('a')],
+				currentSlide: 0,
+				editable: true,
+			});
+			const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+			const actions = createInkActions({ store, ops });
+
+			const pressures = [0.1, 0.6, 0.9];
+			actions.commitStroke({
+				points: [
+					{ x: 10, y: 10, pressure: pressures[0] },
+					{ x: 20, y: 30, pressure: pressures[1] },
+					{ x: 40, y: 20, pressure: pressures[2] },
+				],
+				color: '#000000',
+				width: 3,
+				tool: 'pen',
+			});
+
+			const ink = store.get().slides[0].elements[0] as InkPptxElement;
+			expect(ink.inkPointPressures).toStrictEqual([pressures]);
+		});
+
 		it('is a no-op for a single-point stroke (a plain tap)', () => {
 			const store = createStore({
 				...createInitialViewerState(),
