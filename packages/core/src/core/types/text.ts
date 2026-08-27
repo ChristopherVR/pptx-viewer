@@ -535,6 +535,32 @@ export interface TextStyle {
 	textReflectionEndOpacity?: number;
 	/** Text reflection offset distance in px. */
 	textReflectionOffset?: number;
+	/**
+	 * Text reflection fade direction (`a:rPr/a:effectLst/a:reflection/@fadeDir`)
+	 * in degrees. Mirrors `ShapeStyle.reflectionFadeDirection`.
+	 */
+	textReflectionFadeDirection?: number;
+	/**
+	 * Text reflection horizontal scaling (`@sx`), same units as
+	 * `ShapeStyle.reflectionScaleX` (1000ths of a percent, e.g. 100000 = 100%).
+	 */
+	textReflectionScaleX?: number;
+	/** Text reflection vertical scaling (`@sy`). See `ShapeStyle.reflectionScaleY`. */
+	textReflectionScaleY?: number;
+	/**
+	 * Text reflection horizontal skew (`@kx`) in 60000ths of a degree. See
+	 * `ShapeStyle.reflectionSkewX`.
+	 */
+	textReflectionSkewX?: number;
+	/** Text reflection vertical skew (`@ky`). See `ShapeStyle.reflectionSkewY`. */
+	textReflectionSkewY?: number;
+	/**
+	 * Text reflection independent rotation (`@rot`) in degrees. See
+	 * `ShapeStyle.reflectionRotation`.
+	 */
+	textReflectionRotation?: number;
+	/** Text reflection anchor (`@algn`). See `ShapeStyle.reflectionAlignment`. */
+	textReflectionAlignment?: 'tl' | 't' | 'tr' | 'l' | 'ctr' | 'r' | 'bl' | 'b' | 'br';
 
 	// ── 3D Text (from `a:bodyPr/a:sp3d` and `a:bodyPr/a:scene3d`) ──
 

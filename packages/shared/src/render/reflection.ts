@@ -32,15 +32,16 @@
  *
  * `getTextReflectionWrapperStyle` reuses the same computation for a text run's
  * `a:rPr/a:effectLst/a:reflection`: the OOXML element is identical
- * (`CT_ReflectionEffect`), but core's text-run parser (
- * `PptxHandlerRuntimeTextRunEffects.ts`) only extracts `@stA`/`@endA`/`@dist`/
- * `@blurRad` onto {@link TextStyle} today (`textReflection*`), not
- * `@sx`/`@sy`/`@kx`/`@ky`/`@rot`/`@fadeDir`/`@algn`/`@stPos`/`@endPos` the way
- * the shape parser does onto {@link ShapeStyle} - so a text run's reflection
- * always renders as the "plain" wrapper (straight mirror, default fade axis
- * and anchor) until that parser gap is closed. No fork was needed to reuse
- * {@link getReflectionWrapperStyle}: the four attributes text DOES carry map
- * onto the exact same {@link ShapeStyle} field names it already reads.
+ * (`CT_ReflectionEffect`), and core's text-run parser
+ * (`PptxHandlerRuntimeTextRunEffects.ts`) now extracts the same attribute set
+ * onto {@link TextStyle} (`textReflection*`) that the shape parser extracts
+ * onto {@link ShapeStyle} - `@dist`/`@stA`/`@endA`/`@blurRad` plus
+ * `@sx`/`@sy`/`@kx`/`@ky`/`@rot`/`@fadeDir`/`@algn` - via the same
+ * `extractReflectionAttributes` helper, so a text run's reflection composes
+ * the identical scale/skew/rotation/fade-direction/anchor transform a
+ * shape's does. No fork was needed to reuse {@link getReflectionWrapperStyle}:
+ * every `textReflection*` field maps onto the exact same {@link ShapeStyle}
+ * field name it already reads.
  *
  * @module render/reflection
  */
@@ -217,18 +218,16 @@ export function getReflectionWrapperStyle(
  * wrapper a shape/picture does, rather than a second, `-webkit-box-reflect`
  * based implementation.
  *
- * Maps the four `textReflection*` fields core's text-run parser extracts
- * today onto the identically-named {@link ShapeStyle} fields
- * {@link getReflectionWrapperStyle} already reads, then delegates entirely -
- * no reflection maths is duplicated here. `textReflectionStartOpacity`
- * defaults to `0.5` (matching the CSS this replaces) so a bare
- * `<a:reflection/>` with no attributes still renders, exactly as it did
- * through `-webkit-box-reflect`'s implicit default. The scale/skew/rotation/
- * fade-direction/anchor/hold-position attributes {@link getReflectionWrapperStyle}
- * also accepts have no `TextStyle` equivalent yet (see the module doc), so a
- * text reflection always renders with their defaults (straight mirror, fade
- * toward the far edge, top-centre anchor) until core's text-run parser is
- * extended to match its shape-parser counterpart.
+ * Maps every `textReflection*` field core's text-run parser extracts onto the
+ * identically-named {@link ShapeStyle} fields {@link getReflectionWrapperStyle}
+ * already reads, then delegates entirely - no reflection maths is duplicated
+ * here. `textReflectionStartOpacity` defaults to `0.5` (matching the CSS this
+ * replaces) so a bare `<a:reflection/>` with no attributes still renders,
+ * exactly as it did through `-webkit-box-reflect`'s implicit default. A run
+ * with no authored scale/skew/rotation/fade-direction/anchor attributes falls
+ * through to {@link getReflectionWrapperStyle}'s own defaults (no
+ * scale/skew/rotation, fade toward the far edge, top-centre anchor), same as
+ * an unadorned `a:reflection` on a shape.
  *
  * @returns `undefined` when the run has no reflection.
  */
@@ -245,6 +244,13 @@ export function getTextReflectionWrapperStyle(
 			reflectionEndOpacity: style.textReflectionEndOpacity ?? 0,
 			reflectionDistance: style.textReflectionOffset ?? 0,
 			reflectionBlurRadius: style.textReflectionBlur ?? 0,
+			reflectionFadeDirection: style.textReflectionFadeDirection,
+			reflectionScaleX: style.textReflectionScaleX,
+			reflectionScaleY: style.textReflectionScaleY,
+			reflectionSkewX: style.textReflectionSkewX,
+			reflectionSkewY: style.textReflectionSkewY,
+			reflectionRotation: style.textReflectionRotation,
+			reflectionAlignment: style.textReflectionAlignment,
 		},
 		elementHeight,
 	);

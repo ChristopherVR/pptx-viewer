@@ -218,4 +218,47 @@ describe('getTextReflectionWrapperStyle', () => {
 		expect(wrapper?.maskImage).toContain('rgba(0,0,0,0.5)');
 		expect(wrapper?.maskImage).toContain('rgba(0,0,0,0)');
 	});
+
+	/**
+	 * Regression guard for the limitations.md caveat: a text run's reflection
+	 * must compose the same scale/skew/rotation/fade-direction/anchor transform
+	 * a shape's does, now that core's text-run parser extracts
+	 * `textReflectionScaleX/Y`, `textReflectionSkewX/Y`, `textReflectionRotation`,
+	 * `textReflectionFadeDirection` and `textReflectionAlignment`.
+	 */
+	it('honours scale/skew/rotation on a text run, same as a shape', () => {
+		const wrapper = getTextReflectionWrapperStyle(
+			{
+				textReflection: true,
+				textReflectionScaleX: 80000,
+				textReflectionScaleY: 80000,
+				textReflectionSkewX: 300000,
+				textReflectionRotation: 1800000,
+			} as TextStyle,
+			20,
+		);
+		expect(wrapper?.transform).toBe('scaleY(-1) scale(0.8, 0.8) skew(5deg, 0deg) rotate(30deg)');
+	});
+
+	it('honours @fadeDir on a text run as an independent fade axis', () => {
+		const wrapper = getTextReflectionWrapperStyle(
+			{
+				textReflection: true,
+				textReflectionEndOpacity: 0,
+				textReflectionFadeDirection: 0,
+			} as TextStyle,
+			200,
+		);
+		// fadeDir 0deg (OOXML, pointing right) -> CSS 90deg ("to right"), same
+		// mapping `getReflectionWrapperStyle` applies for a shape.
+		expect(wrapper?.maskImage).toContain('linear-gradient(90deg,');
+	});
+
+	it('honours @algn on a text run via the same transform-origin table a shape uses', () => {
+		const wrapper = getTextReflectionWrapperStyle(
+			{ textReflection: true, textReflectionAlignment: 'br' } as TextStyle,
+			20,
+		);
+		expect(wrapper?.transformOrigin).toBe('right bottom');
+	});
 });
