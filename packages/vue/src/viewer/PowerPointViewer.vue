@@ -66,6 +66,7 @@ import ViewerSlideRail from './components/ViewerSlideRail.vue';
 import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
 import { useAiPanelController } from './composables/ai/useAiPanelController';
+import { BarChart3DKey } from './composables/bar-chart-3d';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
@@ -143,6 +144,7 @@ const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	canEdit: false,
 	smartArt3D: false,
 	surfaceChart3D: false,
+	barChart3D: false,
 });
 const emit = defineEmits<PowerPointViewerEmits>();
 
@@ -156,6 +158,8 @@ const themeStyle = useThemeStyle(prefs.effectiveTheme);
 provide(SmartArt3DKey, props.smartArt3D);
 // Surface-chart 3D opt-in: surface the prop to ChartRenderer via inject.
 provide(SurfaceChart3DKey, props.surfaceChart3D);
+// Bar3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
+provide(BarChart3DKey, props.barChart3D);
 // File > Account sign-in hook point: surface the prop to AccountPage.vue via
 // inject, avoiding threading `accountAuth` through the large RibbonProps
 // contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).

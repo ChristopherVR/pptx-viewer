@@ -146,6 +146,17 @@ export interface PowerPointViewerProps {
 	 */
 	surfaceChart3D?: boolean;
 	/**
+	 * Opt in to the interactive Three.js bar3D-chart renderer. When `true`,
+	 * `bar3D` charts render as camera-orbitable real box meshes (drag to
+	 * rotate, scroll to zoom) instead of the flat SVG oblique-projection
+	 * illusion. Chart marks are not selectable/draggable in this mode.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the chart has no plottable grid, or it is a horizontal 3-D Bar), the
+	 * viewer transparently falls back to the flat SVG bar3D renderer. Default
+	 * `false`.
+	 */
+	barChart3D?: boolean;
+	/**
 	 * Enable in-place editing: click to select an element, drag to move, use the
 	 * 8 handles to resize (Shift locks aspect) and the rotate handle to rotate,
 	 * double-click text/shapes to edit their text, and the keyboard for

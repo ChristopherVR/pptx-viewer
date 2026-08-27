@@ -78,6 +78,7 @@ export function buildSmartArtGalleryPreview(
 		t,
 		smartArt3D: false,
 		surfaceChart3D: false,
+		barChart3D: false,
 		presenting: false,
 		registry: createElementRendererRegistry(),
 		renderElement: () => null,

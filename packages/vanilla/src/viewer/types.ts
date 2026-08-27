@@ -201,6 +201,18 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 */
 	surfaceChart3D?: boolean;
 	/**
+	 * Opt in to the interactive Three.js bar3D-chart renderer (default
+	 * `false`). When `true`, `bar3D` charts render as camera-orbitable real
+	 * box meshes (drag to rotate, scroll to zoom) instead of the flat SVG
+	 * oblique-projection illusion. Chart marks are not selectable/draggable in
+	 * this mode. `three` is an optional peer dependency, lazily imported only
+	 * when this is `true`; when it is unavailable, the chart has no plottable
+	 * grid, or it is a horizontal 3-D Bar, the SVG renderer is used instead.
+	 * Set once at construction (no runtime setter, mirroring the
+	 * Vue/React/Angular/Svelte bindings).
+	 */
+	barChart3D?: boolean;
+	/**
 	 * Whether this application PERMITS recovery autosave (`@default true`).
 	 *
 	 * This is a policy ceiling, not the user's setting: the title-bar AutoSave

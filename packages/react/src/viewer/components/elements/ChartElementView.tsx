@@ -18,6 +18,8 @@ import { renderChartElement } from '../../utils';
 import { formatAxisValue } from '../../utils/chart-helpers';
 import { buildReactChartViewModel } from '../../utils/chart-view-model-render';
 import { useChartPartSelection } from '../chart-part-selection';
+import { BarChart3DContext } from './bar-chart-3d-context';
+import { Bar3DChartRenderer } from './Bar3DChartRenderer';
 import { SurfaceChart3DContext } from './surface-chart-3d-context';
 import { SurfaceChart3DRenderer } from './SurfaceChart3DRenderer';
 
@@ -62,6 +64,12 @@ export function ChartElementView({
 	// screen geometry to hit-test against, so value-drag editing stays SVG-only.
 	const use3D = useContext(SurfaceChart3DContext);
 	const isSurfaceKind = resolveChartKind(element.chartData?.chartType ?? 'bar') === 'surface';
+
+	// Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via
+	// OrbitControls). Same "marks are not selectable/draggable" caveat as the
+	// surface scene above: a mesh box has no 2D screen geometry to hit-test.
+	const use3DBar = useContext(BarChart3DContext);
+	const isBar3DKind = element.chartData?.chartType === 'bar3D';
 
 	// The drag context comes from the committed data, captured at drag start, so
 	// axis ranges do not rescale under the pointer mid-drag.
@@ -227,6 +235,8 @@ export function ChartElementView({
 		>
 			{use3D && isSurfaceKind ? (
 				<SurfaceChart3DRenderer element={renderedElement} />
+			) : use3DBar && isBar3DKind ? (
+				<Bar3DChartRenderer element={renderedElement} />
 			) : (
 				renderChartElement(renderedElement)
 			)}

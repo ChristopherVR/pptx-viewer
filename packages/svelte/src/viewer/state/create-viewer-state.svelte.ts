@@ -6,6 +6,7 @@ import { createDeckApi } from '../editor/deck-api';
 import { createEditingApi } from '../editor/editing-api';
 import { EditorState } from '../editor/editor-state.svelte';
 import { createExportingApi } from '../export/exporting-api';
+import { provideBarChart3D } from './bar-chart-3d-context';
 import { useAiCluster } from './create-viewer-state-ai.svelte';
 import { useCollabCluster } from './create-viewer-state-collab.svelte';
 import { useViewerDerived } from './create-viewer-state-derived.svelte';
@@ -57,6 +58,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	provideTranslator(options.t);
 	provideSmartArt3D(options.getSmartArt3D);
 	provideSurfaceChart3D(options.getSurfaceChart3D);
+	provideBarChart3D(options.getBarChart3D);
 
 	// The live editable flag. Seeded from the host prop, but writable, because
 	// an AI edit, `deck.setMode()` and Trust Center's Protected View all have to
@@ -194,6 +196,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		t: options.t,
 		getSmartArt3D: options.getSmartArt3D,
 		getSurfaceChart3D: options.getSurfaceChart3D,
+		getBarChart3D: options.getBarChart3D,
 		getRootEl: options.getRootEl,
 		getEditable,
 		getFieldContext: fieldContext,

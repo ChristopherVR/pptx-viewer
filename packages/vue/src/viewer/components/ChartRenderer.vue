@@ -11,9 +11,11 @@ import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useBarChart3D } from '../composables/bar-chart-3d';
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
 import { useSurfaceChart3D } from '../composables/surface-chart-3d';
+import Bar3DChartRenderer from './Bar3DChartRenderer.vue';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
@@ -135,6 +137,16 @@ const isPlaceholder = computed(() => chartKind.value === 'unsupported');
 const use3D = useSurfaceChart3D();
 const isSurfaceKind = computed(() => chartKind.value === 'surface');
 
+/**
+ * Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via
+ * OrbitControls). Same "marks are not selectable/draggable" caveat as the
+ * surface scene above. Gated on the RAW chart type, not `chartKind`:
+ * `resolveChartKind` folds `bar`/`bar3D` onto the same 'bar' kind, so a plain
+ * 2D bar chart must never pick up the 3D scene.
+ */
+const use3DBar = useBarChart3D();
+const isBar3DKind = computed(() => chartType.value === 'bar3D');
+
 const placeholderLabel = computed(() =>
 	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
 );
@@ -176,6 +188,14 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 		<!-- Opt-in interactive 3D surface scene, falling back to the SVG below -->
 		<SurfaceChart3DRenderer
 			v-else-if="use3D && isSurfaceKind && viewModel"
+			:element="revealedElement"
+			:view-model="viewModel"
+			:preserve-aspect-ratio="aspectRatio"
+		/>
+
+		<!-- Opt-in interactive 3D bar scene, falling back to the SVG below -->
+		<Bar3DChartRenderer
+			v-else-if="use3DBar && isBar3DKind && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"

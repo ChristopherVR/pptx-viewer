@@ -70,6 +70,7 @@ import { AiPanelStore } from './ai/ai-panel-store';
 import { AutosaveRecoveryDialogComponent } from './autosave-recovery-dialog.component';
 import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
+import { BarChart3DService } from './bar-chart-3d.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
@@ -1235,6 +1236,17 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 */
 	readonly surfaceChart3D = input<boolean>(false);
 	/**
+	 * Opt in to the interactive Three.js bar3D-chart renderer. When `true`,
+	 * `bar3D` charts render as camera-orbitable real box meshes (drag to
+	 * rotate, scroll to zoom) instead of the flat SVG oblique-projection
+	 * illusion. Chart marks are not selectable/draggable in this mode.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the chart has no plottable grid, or it is a horizontal 3-D Bar), the
+	 * viewer transparently falls back to the flat SVG bar3D renderer. Default
+	 * `false`.
+	 */
+	readonly barChart3D = input<boolean>(false);
+	/**
 	 * Toolbar buttons and ribbon tabs the host wants hidden (share, broadcast,
 	 * export, undo, redo, record, notes, fullscreen, zoom, navigation, or any
 	 * ribbon tab id). Default `[]` hides nothing, matching prior behaviour.
@@ -1285,6 +1297,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly mobile = inject(IsMobileService);
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
 	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService);
+	private readonly barChart3DSvc = inject(BarChart3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
 	protected readonly presenterWindow = inject(PresenterWindowService);
 	private readonly destroyRef = inject(DestroyRef);
@@ -1730,6 +1743,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// viewer-scoped SurfaceChart3DService.
 		effect(() => {
 			this.surfaceChart3DSvc.enabled.set(this.surfaceChart3D());
+		});
+
+		// Surface the `barChart3D` opt-in to the chart element view via the
+		// viewer-scoped BarChart3DService.
+		effect(() => {
+			this.barChart3DSvc.enabled.set(this.barChart3D());
 		});
 
 		// A new host `content` input supersedes any in-place picked file.

@@ -758,6 +758,30 @@ export * from './surface-chart-3d-hit-test';
 // `mountSurfaceChart3D` needs, sharing `computeValueRange` + `surfaceColor`
 // with the 2D SVG fallback so both presentations agree on the same values.
 export * from './surface-chart-3d-data';
+// Generalised camera/grid/label geometry for an interactive 3D CARTESIAN
+// chart scene (category x depth/series x value axes), shared by bar3D today
+// and intended for line3D/area3D to reuse unchanged.
+export * from './cartesian-chart-3d-geom';
+// Vanilla three.js 3D bar-chart scene controller: one real `THREE.BoxGeometry`
+// mesh per data point (clustered = each series its own depth plane; stacked/
+// percentStacked = coplanar, stacked in Y), authored wall/floor panels, a
+// `c:view3D`-driven perspective camera, OrbitControls, and a RAF loop. Like
+// `surface-chart-3d-scene`, `three` is dynamically imported and optional,
+// resolving to a no-op sentinel so the chart falls back to the flat 2D
+// oblique-projection bar3D renderer when it is missing.
+export * from './bar-chart-3d-scene';
+// Pure raycast-hit (series, category, value) -> hover-tooltip text mapping
+// the bar3D scene uses to give each box mesh the same native hover tooltip
+// every other chart kind's SVG mark gets via `buildMarkTooltip`.
+export * from './bar-chart-3d-hit-test';
+// Box-mesh layout maths (clustered vs stacked/percentStacked) the bar3D data
+// adapter below builds on; split out to its own module for reuse and to stay
+// under the file-size cap.
+export * from './bar-chart-3d-layout';
+// Adapts a `bar3D` chart element's `PptxChartData` into the box-mesh layout
+// `mountBarChart3D` needs, sharing colour/value-range resolution with the
+// flat SVG oblique-projection engine so both presentations agree.
+export * from './bar-chart-3d-data';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.
 // drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
 // preferred over the SVG-fallback layout engine when present): palette

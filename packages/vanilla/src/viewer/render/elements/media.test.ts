@@ -30,6 +30,7 @@ function makeContext(
 		t: createTranslator(),
 		smartArt3D: false,
 		surfaceChart3D: false,
+		barChart3D: false,
 		presenting,
 		interactive,
 		registry,

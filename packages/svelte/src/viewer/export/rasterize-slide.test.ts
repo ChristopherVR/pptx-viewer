@@ -38,6 +38,7 @@ describe('createRasterizeSlide', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
 			surfaceChart3D: false,
+			barChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -63,6 +64,7 @@ describe('createRasterizeSlide', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
 			surfaceChart3D: false,
+			barChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -96,6 +98,7 @@ describe('createRasterizeSlide', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
 			surfaceChart3D: false,
+			barChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -118,6 +121,7 @@ describe('createRasterizeSlide', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
 			surfaceChart3D: false,
+			barChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -142,6 +146,7 @@ describe('createRasterizeSlide', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			smartArt3D: false,
 			surfaceChart3D: false,
+			barChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 

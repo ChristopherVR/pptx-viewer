@@ -21,12 +21,33 @@ import type { PptxChart3DSurface } from 'pptx-viewer-core';
 
 import type { DepthVector } from './chart-3d-depth';
 import type { SvgPolygon, SvgPrimitive } from './chart-view-model';
+import type { SurfaceWallColors } from './surface-chart-3d-walls';
 
 /** The three `c:chart`-level 3D surfaces this module can paint. */
 export interface Chart3DSurfaces {
 	floor?: PptxChart3DSurface;
 	sideWall?: PptxChart3DSurface;
 	backWall?: PptxChart3DSurface;
+}
+
+/**
+ * Resolve `c:floor`/`c:sideWall`/`c:backWall` fill colours into the shape the
+ * WebGL scenes' wall-panel builder ({@link ../surface-chart-3d-walls.ts},
+ * `buildSurfaceWallMeshes`) needs, or `undefined` when none of the three is
+ * authored. Single parsing/resolution point for BOTH the flat oblique-depth
+ * 2D wall panels ({@link build3DSurfacePanels}) and every interactive WebGL
+ * chart scene (surface, bar3D, and future line3D/area3D), so a chart's walls
+ * read identically across every presentation instead of each caller
+ * re-reading `chartData.floor?.spPr?.fillColor` its own way.
+ */
+export function resolveChart3DWallColors(surfaces: Chart3DSurfaces): SurfaceWallColors | undefined {
+	const floor = surfaces.floor?.spPr?.fillColor;
+	const sideWall = surfaces.sideWall?.spPr?.fillColor;
+	const backWall = surfaces.backWall?.spPr?.fillColor;
+	if (!floor && !sideWall && !backWall) {
+		return undefined;
+	}
+	return { floor, sideWall, backWall };
 }
 
 interface Bounds {

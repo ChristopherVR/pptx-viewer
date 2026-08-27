@@ -40,6 +40,7 @@ describe('createExportWiring', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			getSmartArt3D: () => false,
 			getSurfaceChart3D: () => false,
+			getBarChart3D: () => false,
 		});
 
 		await wiring.controller.exportSlidePng(0);
@@ -60,6 +61,7 @@ describe('createExportWiring', () => {
 			getTranslator: () => createTranslator(() => 'en'),
 			getSmartArt3D: () => false,
 			getSurfaceChart3D: () => false,
+			getBarChart3D: () => false,
 		});
 		const api = createExportingApi(wiring.controller);
 
