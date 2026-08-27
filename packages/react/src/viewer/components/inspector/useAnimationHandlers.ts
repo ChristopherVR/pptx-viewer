@@ -6,6 +6,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxElementAnimation,
+	PptxAfterAnimationAction,
 	PptxAnimationPreset,
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
@@ -19,6 +20,10 @@ import {
 	buildAnimationTimelineBars,
 	buildAnimationTimelineRows,
 	clearMotionPath,
+	getEffectSoundState,
+	setAfterAnimation,
+	setAfterAnimationColor,
+	setEffectSound,
 } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 
@@ -250,6 +255,45 @@ export function useAnimationHandlers({
 		[updateAnimationField],
 	);
 
+	// ── Effect sound ──
+
+	const effectSoundState = useMemo(
+		() => getEffectSoundState(activeSlide.animations ?? [], selectedElement.id),
+		[activeSlide.animations, selectedElement.id],
+	);
+
+	const handleEffectSoundPick = useCallback(
+		(pick: { dataUrl: string; fileName?: string } | undefined) => {
+			if (!canEdit) {
+				return;
+			}
+			updateAnimations((anims) => setEffectSound(anims, selectedElement.id, pick));
+		},
+		[canEdit, updateAnimations, selectedElement.id],
+	);
+
+	// ── After animation ──
+
+	const handleAfterAnimationChange = useCallback(
+		(action: PptxAfterAnimationAction) => {
+			if (!canEdit) {
+				return;
+			}
+			updateAnimations((anims) => setAfterAnimation(anims, selectedElement.id, action));
+		},
+		[canEdit, updateAnimations, selectedElement.id],
+	);
+
+	const handleAfterAnimationColorChange = useCallback(
+		(color: string) => {
+			if (!canEdit) {
+				return;
+			}
+			updateAnimations((anims) => setAfterAnimationColor(anims, selectedElement.id, color));
+		},
+		[canEdit, updateAnimations, selectedElement.id],
+	);
+
 	// ── Sub-hooks ──
 
 	const preview = useAnimationPreview({
@@ -331,6 +375,10 @@ export function useAnimationHandlers({
 		handleDirectionChange,
 		handleSequenceChange,
 		handleMotionPathChange,
+		effectSoundState,
+		handleEffectSoundPick,
+		handleAfterAnimationChange,
+		handleAfterAnimationColorChange,
 		getTimelineLabel,
 		getNativeRowLabel,
 		...preview,

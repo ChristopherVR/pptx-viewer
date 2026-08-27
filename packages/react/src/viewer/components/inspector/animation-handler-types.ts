@@ -1,9 +1,10 @@
 import type {
 	PptxElementAnimation,
+	PptxAfterAnimationAction,
 	PptxAnimationDirection,
 	PptxAnimationTimelineAnchor,
 } from 'pptx-viewer-core';
-import type { AnimationTimelineRow } from 'pptx-viewer-shared';
+import type { AnimationTimelineRow, EffectSoundState } from 'pptx-viewer-shared';
 import type React from 'react';
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,10 @@ export interface AnimationHandlers {
 	handleDragEnd: () => void;
 	handleMoveUp: (animIndex: number) => void;
 	handleMoveDown: (animIndex: number) => void;
+	effectSoundState: EffectSoundState;
+	handleEffectSoundPick: (pick: { dataUrl: string; fileName?: string } | undefined) => void;
+	handleAfterAnimationChange: (action: PptxAfterAnimationAction) => void;
+	handleAfterAnimationColorChange: (color: string) => void;
 	getTimelineLabel: (anim: PptxElementAnimation) => string;
 	/** Label for a read-only native row from the target element ids its effects reach. */
 	getNativeRowLabel: (targetIds: string[]) => string;

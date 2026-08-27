@@ -37,6 +37,7 @@ export {
 } from './PptxEditorAnimationService';
 export { reconcileAnimationTargets } from './animation-target-reconcile';
 export { remapEditorAnimationsToShapeIds } from './animation-shape-id-assign';
+export { mergeNativeSoundIntoEditorAnimations } from './animation-sound-merge';
 export {
 	PptxNativeAnimationService,
 	type IPptxNativeAnimationService,
@@ -57,7 +58,12 @@ export {
 	OOXML_TO_PRESET_EMPH,
 	ooxmlToPresetName,
 } from './animation-write-mappings';
-export { buildSingleEffectNode } from './animation-write-node-builders';
+export {
+	buildSingleEffectNode,
+	applySoundToEffectCTn,
+	applyAfterEffectFlag,
+	applyDimColorBehavior,
+} from './animation-write-node-builders';
 export {
 	parseCondition,
 	parseConditionList,

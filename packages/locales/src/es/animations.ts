@@ -215,4 +215,16 @@ export const translations = {
 	'pptx.animation.motionPath.overlay': 'Vista previa de la trayectoria',
 	'pptx.animations.motionPathGalleryAria':
 		'Trayectorias de la animación: líneas, arcos, giros, formas y bucles',
+
+	// --- Effect sound + "after animation" authoring controls ---
+	'pptx.animation.sound': 'Sonido',
+	'pptx.animation.sound.none': '[Sin sonido]',
+	'pptx.animation.sound.custom': 'Elegir archivo de sonido...',
+	'pptx.animation.sound.chooseFile': 'Elegir un archivo de audio',
+	'pptx.animation.afterAnimation': 'Después de la animación',
+	'pptx.animation.afterAnimation.none': 'No atenuar',
+	'pptx.animation.afterAnimation.dimToColor': 'Atenuar después de la animación',
+	'pptx.animation.afterAnimation.hideAfterAnimation': 'Ocultar después de la animación',
+	'pptx.animation.afterAnimation.hideOnNextClick': 'Ocultar al siguiente clic del mouse',
+	'pptx.animation.afterAnimation.color': 'Color de atenuación',
 } as const;

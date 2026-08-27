@@ -253,6 +253,12 @@ export * from './animation-authoring';
 // draggable timeline, so drag-to-reorder can target the FULL sequence
 // (editor-authored AND deck-native effects), not just the editor's own.
 export * from './animation-timeline-rows';
+// Effect sound picker (`p:stSnd`) and "after animation" (dim/hide) authoring
+// controls: same immutable-patch-builder shape as `animation-authoring`,
+// split into their own modules since they're optional add-on rows the panel
+// only shows once an effect exists, not part of the core preset/timing form.
+export * from './animation-sound-authoring';
+export * from './animation-after-effect-authoring';
 // Naming layer over both preset vocabularies (editor `PptxAnimationPreset`
 // tokens and core's OOXML preset catalogue), so no timeline prints a wire id.
 export * from './animation-preset-labels';

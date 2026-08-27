@@ -29,6 +29,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { LucideArrowDown, LucideArrowUp, LucideX } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
+	PptxAfterAnimationAction,
 	PptxAnimationDirection,
 	PptxAnimationTimelineAnchor,
 	PptxElement,
@@ -40,6 +41,7 @@ import {
 	clearMotionPath,
 	moveAnimationTimelineRowBy,
 } from '../internal/shared';
+import { AfterAnimationRowComponent } from './after-animation-row.component';
 import {
 	ANIMATION_NUMBER_SETTERS,
 	ANIMATION_SELECT_SETTERS,
@@ -58,14 +60,20 @@ import {
 	TIMING_CURVE_OPTIONS,
 	TRIGGER_OPTIONS,
 	animationFor,
+	getEffectSoundState,
 	hasAnimation,
 	removeAnimation,
+	setAfterAnimation,
+	setAfterAnimationColor,
 	setDirection,
+	setEffectSound,
 	showDirectionPicker,
 } from './animation-author-helpers';
 import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
 import { previewAngularAnimation } from './animation-preview-player';
 import { AnimationTimelineComponent } from './animation-timeline.component';
+import type { EffectSoundPick } from './effect-sound-row.component';
+import { EffectSoundRowComponent } from './effect-sound-row.component';
 import { MotionPathRowComponent } from './motion-path-row.component';
 
 @Component({
@@ -79,6 +87,8 @@ import { MotionPathRowComponent } from './motion-path-row.component';
 		LucideArrowDown,
 		AnimationTimelineComponent,
 		MotionPathRowComponent,
+		EffectSoundRowComponent,
+		AfterAnimationRowComponent,
 	],
 	templateUrl: './animation-author-panel.component.html',
 	styleUrl: './animation-author-panel.component.css',
@@ -149,6 +159,11 @@ export class AnimationAuthorPanelComponent {
 	/** True when the active preset exposes a direction picker. */
 	protected readonly currentShowDirection = computed(() =>
 		showDirectionPicker(this.animations(), this.element().id),
+	);
+
+	/** Effect sound picker state: whether a sound is set, and its display name. */
+	protected readonly soundState = computed(() =>
+		getEffectSoundState(this.animations(), this.element().id),
 	);
 
 	/**
@@ -275,6 +290,25 @@ export class AnimationAuthorPanelComponent {
 
 	protected onDirectionChange(dir: PptxAnimationDirection): void {
 		this.emit(setDirection(this.animations(), this.element().id, dir));
+	}
+
+	// ── Effect sound ──────────────────────────────────────────────────────────
+
+	protected onEffectSoundPick(pick: EffectSoundPick | undefined): void {
+		this.emit(setEffectSound(this.animations(), this.element().id, pick));
+	}
+
+	// ── After animation ───────────────────────────────────────────────────────
+	// Its own row component emits already-parsed values (not raw DOM events,
+	// unlike the generic `<select>`/`<input>` dispatch above), so both handlers
+	// are dedicated, the same way `onDirectionChange` is for the button group.
+
+	protected onAfterAnimationChange(action: PptxAfterAnimationAction): void {
+		this.emit(setAfterAnimation(this.animations(), this.element().id, action));
+	}
+
+	protected onAfterAnimationColorChange(color: string): void {
+		this.emit(setAfterAnimationColor(this.animations(), this.element().id, color));
 	}
 
 	// ── Order controls ────────────────────────────────────────────────────────

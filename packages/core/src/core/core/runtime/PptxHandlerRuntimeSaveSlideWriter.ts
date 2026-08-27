@@ -1,6 +1,6 @@
 import { remapEditorAnimationsToShapeIds } from '../../services';
 import { XmlObject, PptxComment, PptxSlide } from '../../types';
-import type { MediaPptxElement } from '../../types';
+import type { MediaPptxElement, PptxElementAnimation } from '../../types';
 import type { AlternateContentBlock } from '../../utils';
 import { applyActiveXControlsToSlide, SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
 import { saveModernSlideComments } from '../../utils/modern-comment-package';
@@ -110,6 +110,58 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Embed a newly-authored animation effect sound and mint its relationship.
+	 *
+	 * The animation panel's sound picker stages a chosen file as a pending
+	 * `data:` URL on `PptxElementAnimation.soundData` (the same convention
+	 * `imageData` / `mediaData` use for not-yet-embedded media). This writes
+	 * the bytes into `ppt/media/`, registers an `audio` relationship for them
+	 * (the type real PowerPoint uses for `p:snd/@r:embed`, embedded or not),
+	 * and rewrites the animation entry to reference the resolved
+	 * `soundRId` / `soundPath` so the timing writer below emits a legal
+	 * `p:stSnd`. A no-op for every entry that has no pending sound.
+	 */
+	protected embedPendingAnimationSounds(
+		animations: PptxElementAnimation[],
+		ctx: {
+			saveSession: PptxSaveState;
+			slideRelationshipRegistry: IPptxSlideRelationshipRegistry;
+			slideAudioRelationshipType: string;
+		},
+	): void {
+		for (const anim of animations) {
+			if (typeof anim.soundData !== 'string' || anim.soundData.length === 0) {
+				continue;
+			}
+			const parsedSound = this.parseDataUrlToBytes(anim.soundData);
+			delete anim.soundData;
+			if (!parsedSound) {
+				this.compatibilityService.reportWarning({
+					code: 'SAVE_ANIMATION_SOUND_PAYLOAD_UNSUPPORTED',
+					message:
+						'Animation effect sound could not be converted to an embedded media part and was dropped.',
+					scope: 'save',
+					elementId: anim.elementId,
+				});
+				anim.soundRId = undefined;
+				anim.soundPath = undefined;
+				continue;
+			}
+			const targetPath = ctx.saveSession.nextMediaPath(parsedSound.extension, 'audio');
+			this.zip.file(targetPath, parsedSound.bytes);
+			const relationshipId = ctx.slideRelationshipRegistry.nextRelationshipId();
+			const relationshipTarget = targetPath.replace(/^ppt\//u, '../');
+			ctx.slideRelationshipRegistry.upsertRelationship(
+				relationshipId,
+				ctx.slideAudioRelationshipType,
+				relationshipTarget,
+			);
+			anim.soundRId = relationshipId;
+			anim.soundPath = targetPath;
+		}
+	}
+
+	/**
 	 * Process a single slide during save: update slide XML, process elements,
 	 * rebuild shape tree, and persist relationships.
 	 */
@@ -145,6 +197,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const spTree = this.ensureSlideTree(xmlObj);
 
+		// Relationships are resolved here, ahead of the animation timing block
+		// below, because a newly-authored effect sound (`PptxElementAnimation.
+		// soundData`, a pending `data:` URL from the animation panel's sound
+		// picker) needs a relationship id and a media part BEFORE
+		// `buildTimingXml` runs: that is the only place `p:stSnd/@r:embed` is
+		// written.
+		const slideRelsPath = this.toSlideRelsPath(slide.id);
+		const slideRelsXml = await this.zip.file(slideRelsPath)?.async('string');
+		const slideRelsData: XmlObject = slideRelsXml
+			? this.parser.parse(slideRelsXml)
+			: {
+					Relationships: {
+						'@_xmlns': constants.relationshipsNamespace,
+						Relationship: [],
+					},
+				};
+		const slideRelsRoot = (slideRelsData['Relationships'] || {}) as XmlObject;
+		if (!slideRelsRoot['@_xmlns']) {
+			slideRelsRoot['@_xmlns'] = constants.relationshipsNamespace;
+		}
+		const slideRelationships = this.ensureArray(slideRelsRoot['Relationship']) as XmlObject[];
+		const slideRelationshipRegistry: IPptxSlideRelationshipRegistry =
+			new PptxSlideRelationshipRegistry({
+				relationships: slideRelationships,
+			});
+
 		if (slide.transition !== undefined) {
 			// `CT_Slide` allows ONE `p:transition`, and PowerPoint 2010+ keeps it
 			// inside a slide-root `mc:AlternateContent` envelope whenever it
@@ -169,6 +247,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				? remapEditorAnimationsToShapeIds(slide.elements, slide.animations, this.maxCnvPrId(spTree))
 				: undefined;
 		if (shapeIdAnimations !== undefined) {
+			// A newly-chosen effect sound arrives as a pending `data:` URL
+			// (`soundData`), same convention as pending image/media bytes. Embed it
+			// into the package and mint its relationship before anything below
+			// reads `soundRId` to write `p:stSnd`.
+			this.embedPendingAnimationSounds(shapeIdAnimations, {
+				saveSession,
+				slideRelationshipRegistry,
+				slideAudioRelationshipType: constants.slideAudioRelationshipType,
+			});
 			this.applyEditorAnimations(slideNode, shapeIdAnimations);
 		}
 		// An EMPTY list must still reach the writer: it is how "the user deleted
@@ -193,25 +280,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		xmlObj['p:sld'] = slideNode;
 
-		const slideRelsPath = this.toSlideRelsPath(slide.id);
-		const slideRelsXml = await this.zip.file(slideRelsPath)?.async('string');
-		const slideRelsData: XmlObject = slideRelsXml
-			? this.parser.parse(slideRelsXml)
-			: {
-					Relationships: {
-						'@_xmlns': constants.relationshipsNamespace,
-						Relationship: [],
-					},
-				};
-		const slideRelsRoot = (slideRelsData['Relationships'] || {}) as XmlObject;
-		if (!slideRelsRoot['@_xmlns']) {
-			slideRelsRoot['@_xmlns'] = constants.relationshipsNamespace;
-		}
-		const slideRelationships = this.ensureArray(slideRelsRoot['Relationship']) as XmlObject[];
-		const slideRelationshipRegistry: IPptxSlideRelationshipRegistry =
-			new PptxSlideRelationshipRegistry({
-				relationships: slideRelationships,
-			});
 		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
 			constants.slideCommentRelationshipType,
 		);

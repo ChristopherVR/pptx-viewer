@@ -87,6 +87,15 @@ export function stringFromSelect(event: Event): string | undefined {
 	return target.value;
 }
 
+/** Extract the string value from a plain `<input>` change event (e.g. `type="color"`). */
+export function stringFromInput(event: Event): string | undefined {
+	const target = event.target;
+	if (!(target instanceof HTMLInputElement)) {
+		return undefined;
+	}
+	return target.value;
+}
+
 /** Extract a finite number from an `<input>` change event, or null. */
 export function numberFromInput(event: Event): number | null {
 	const target = event.target;

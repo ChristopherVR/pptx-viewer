@@ -2,6 +2,7 @@
    declare their own independent locals; merging unrelated declarations across
    them would hurt readability, not help it. */
 import type {
+	PptxAfterAnimationAction,
 	PptxAnimationPreset,
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
@@ -21,12 +22,15 @@ import {
 	moveAnimationTimelineRowBy,
 	removeElementAnimation,
 	reorderAnimationTimelineRows,
+	setAfterAnimation,
+	setAfterAnimationColor,
 	setAnimationEmphasis,
 	setAnimationEntrance,
 	setAnimationExit,
 	setDelay,
 	setDirection,
 	setDuration,
+	setEffectSound,
 	setRepeatCount,
 	setRepeatMode,
 	setMotionPath,
@@ -64,6 +68,8 @@ export interface AnimationTimingPatch {
 	repeatCount?: number;
 	repeatMode?: PptxAnimationRepeatMode | 'none';
 	triggerShapeId?: string;
+	afterAnimation?: PptxAfterAnimationAction;
+	afterAnimationColor?: string;
 }
 
 export interface AnimationActions {
@@ -87,6 +93,14 @@ export interface AnimationActions {
 	/** Replace the selected element's raw path (canvas end-handle drag commit). */
 	setMotionPathData(path: string): void;
 	setAnimationTiming(elementId: string, patch: AnimationTimingPatch): void;
+	/**
+	 * Stage a newly-picked effect sound file (a pending `data:` URL, embedded
+	 * on save), or clear the sound entirely when `pick` is `undefined`.
+	 */
+	setAnimationSound(
+		elementId: string,
+		pick: { dataUrl: string; fileName?: string } | undefined,
+	): void;
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 	moveAnimation(elementId: string, index: number): void;
 }
@@ -229,8 +243,18 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 				if (patch.triggerShapeId !== undefined) {
 					animations = setTriggerShapeId(animations, elementId, patch.triggerShapeId || undefined);
 				}
+				if (patch.afterAnimation !== undefined) {
+					animations = setAfterAnimation(animations, elementId, patch.afterAnimation);
+				}
+				if (patch.afterAnimationColor !== undefined) {
+					animations = setAfterAnimationColor(animations, elementId, patch.afterAnimationColor);
+				}
 				return animations;
 			});
+		},
+
+		setAnimationSound(elementId, pick) {
+			commitAnimations(elementId, (current) => setEffectSound(current, elementId, pick));
 		},
 
 		// Both route through the FULL merged sequence (editor animations plus

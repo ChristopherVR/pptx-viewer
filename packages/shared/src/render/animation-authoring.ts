@@ -205,12 +205,14 @@ export function showDirectionPicker(
 // ==========================================================================
 
 /**
- * Internal: upsert an animation entry for `elementId`, calling `updater` to
- * produce the merged record. When `updater` returns `null`, the entry is
- * removed. When no entry exists yet, one is created with sensible defaults
- * before being passed to `updater`.
+ * Upsert an animation entry for `elementId`, calling `updater` to produce the
+ * merged record. When `updater` returns `null`, the entry is removed. When no
+ * entry exists yet, one is created with sensible defaults before being passed
+ * to `updater`. Exported so sibling authoring modules (effect sound, "after
+ * animation") share the exact same create/merge/remove semantics instead of
+ * re-implementing them.
  */
-function upsert(
+export function upsert(
 	anims: readonly PptxElementAnimation[],
 	elementId: string,
 	updater: (current: PptxElementAnimation) => PptxElementAnimation | null,

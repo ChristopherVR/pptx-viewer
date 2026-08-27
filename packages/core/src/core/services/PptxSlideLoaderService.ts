@@ -14,6 +14,7 @@ import { flattenElementsDeep } from '../utils/flatten-elements';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
 import { loadLegacyVmlDrawings } from '../utils/vml-drawing-loader';
+import { mergeNativeSoundIntoEditorAnimations } from './animation-sound-merge';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
 import { computeAnimationTimelineOrder } from './animation-timeline-anchors';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
@@ -298,6 +299,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			// load, and stamp each element's `shapeId`. Without this the animation
 			// target ids never match any loaded element id, so nothing animates.
 			reconcileAnimationTargets(elements, nativeAnimations, animations, animationTimelineAnchors);
+			// See `animation-sound-merge`: without this, the surgical timing writer
+			// would delete a deck's own effect sound the first time the user edits
+			// any other field on that effect via the animation panel.
+			mergeNativeSoundIntoEditorAnimations(nativeAnimations, animations);
 
 			// PowerPoint's Selection Pane eye toggle lives on `p:cNvPr/@hidden`.
 			// Lift it onto the model here rather than in each per-type parser: they

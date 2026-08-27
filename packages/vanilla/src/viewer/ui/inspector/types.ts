@@ -91,6 +91,11 @@ export interface InspectorHandlers {
 	applyMotionPath(presetId: string): void;
 	/** Patch timing/effect options on one element's animation entry. */
 	setAnimationTiming(elementId: string, patch: AnimationTimingPatch): void;
+	/** Stage a picked effect sound file, or clear it entirely (`undefined`). */
+	setAnimationSound(
+		elementId: string,
+		pick: { dataUrl: string; fileName?: string } | undefined,
+	): void;
 	/** Move an element's animation one step in the slide play order. */
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 

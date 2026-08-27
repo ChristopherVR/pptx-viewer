@@ -132,6 +132,20 @@
 			</select>
 		</section>
 
+		<!-- ── Effect sound + after animation ──────────────────────────── -->
+		<pptx-effect-sound-row
+			[soundState]="soundState()"
+			[canEdit]="canEdit()"
+			(pick)="onEffectSoundPick($event)"
+		/>
+		<pptx-after-animation-row
+			[action]="current()?.afterAnimation ?? 'none'"
+			[color]="current()?.afterAnimationColor"
+			[canEdit]="canEdit()"
+			(actionChange)="onAfterAnimationChange($event)"
+			(colorChange)="onAfterAnimationColorChange($event)"
+		/>
+
 		<!-- ── Timing heading ────────────────────────────────────────── -->
 		<div class="pptx-ng-anim__subheading">{{ 'pptx.animations.timing' | translate }}</div>
 

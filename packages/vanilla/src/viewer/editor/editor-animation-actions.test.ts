@@ -195,6 +195,54 @@ describe('createAnimationActions', () => {
 		expect(updated.find(({ elementId }) => elementId === 'el2')?.order).toBe(0);
 	});
 
+	it('setAnimationTiming patches the "after animation" dim-to-colour action', () => {
+		const animations: PptxElementAnimation[] = [{ elementId: 'el1', entrance: 'fadeIn', order: 0 }];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [{ ...buildSlide('a', [buildElement('el1')]), animations }],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationTiming('el1', {
+			afterAnimation: 'dimToColor',
+			afterAnimationColor: '#ff0000',
+		});
+
+		const updated = store.get().slides[0].animations!;
+		expect(updated[0]).toMatchObject({
+			afterAnimation: 'dimToColor',
+			afterAnimationColor: '#ff0000',
+		});
+	});
+
+	it('setAnimationSound stages a picked file and clears it back to no sound', () => {
+		const animations: PptxElementAnimation[] = [{ elementId: 'el1', entrance: 'fadeIn', order: 0 }];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [{ ...buildSlide('a', [buildElement('el1')]), animations }],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationSound('el1', { dataUrl: 'data:audio/mpeg;base64,AA==', fileName: 'x.mp3' });
+		expect(store.get().slides[0].animations![0]).toMatchObject({
+			soundData: 'data:audio/mpeg;base64,AA==',
+			soundFileName: 'x.mp3',
+		});
+
+		actions.setAnimationSound('el1', undefined);
+		const cleared = store.get().slides[0].animations![0];
+		expect(cleared.soundData).toBeUndefined();
+		expect(cleared.soundRId).toBeUndefined();
+	});
+
 	it('setAnimationEffect sets one bucket on the selected element and marks dirty', () => {
 		const store = createStore({
 			...createInitialViewerState(),
