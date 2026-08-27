@@ -9,6 +9,7 @@ import {
 	nsGet,
 	pointsToPressures,
 	pointsToSvgPath,
+	pointsToTilt,
 	resolveChannelOrder,
 } from './inkml-trace-decode';
 
@@ -75,7 +76,15 @@ export function parseInkMlContent(data: XmlObject, box?: InkTargetBox): ParsedIn
 		const pressures = entry.authored
 			? tracePressures(entry.text)
 			: pointsToPressures(entry.points, channelOrder);
-		strokes.push({ ...brush, path, ...(pressures.length > 0 ? { pressures } : {}) });
+		// The library's own authored format never carries a tilt channel; only
+		// a real PowerPoint (or other digitizer-authored) trace can.
+		const tilt = entry.authored ? undefined : pointsToTilt(entry.points, channelOrder);
+		strokes.push({
+			...brush,
+			path,
+			...(pressures.length > 0 ? { pressures } : {}),
+			...(tilt ? { tiltAngles: tilt.angles, tiltMagnitudes: tilt.magnitudes } : {}),
+		});
 	}
 	return { strokes, rawXml: data };
 }

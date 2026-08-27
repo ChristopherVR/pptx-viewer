@@ -974,6 +974,7 @@ export * from './ink-drawing';
 // (stroke-dashoffset reveal) animation styles. Pure; each binding renders the
 // resulting circles/paths. React + Vue + Angular ink renderers consume this.
 export * from './ink-rendering';
+export * from './ink-tilt-nib';
 // `p:contentPart` ink view model: per-stroke path/colour/width/opacity, the
 // pressure-circle decision, and the element viewBox. One decision function for
 // all five bindings (it used to be a Svelte-local module, while Vue and Angular

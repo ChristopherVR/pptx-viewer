@@ -37,6 +37,27 @@ describe('contentPart renderer (vue)', () => {
 		expect(wrapper.find('svg').attributes('viewBox')).toBe('0 0 340 128');
 	});
 
+	it('paints calligraphic nib ellipses instead of a plain path when tilt data is present', () => {
+		const withTilt: ContentPartPptxElement = {
+			...inked(),
+			inkStrokes: [
+				{
+					path: 'M 0 0 L 10 0 L 20 0',
+					color: '#111111',
+					width: 4,
+					opacity: 1,
+					tiltAngles: [0, Math.PI / 4, Math.PI / 2],
+					tiltMagnitudes: [0.2, 0.6, 0.9],
+				},
+			],
+		};
+		const wrapper = mount(ContentPartRenderer, { props: { element: withTilt, zIndex: 1 } });
+		expect(wrapper.findAll('path')).toHaveLength(0);
+		const ellipses = wrapper.findAll('ellipse');
+		expect(ellipses.length).toBeGreaterThan(0);
+		expect(ellipses[0].attributes('fill')).toBe('#111111');
+	});
+
 	it('falls back to the labelled box when the part decoded no strokes', () => {
 		const bare = { ...inked(), inkStrokes: undefined } as ContentPartPptxElement;
 		const wrapper = mount(ContentPartRenderer, { props: { element: bare, zIndex: 1 } });

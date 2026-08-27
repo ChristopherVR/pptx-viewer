@@ -117,6 +117,32 @@ describe('renderContentPartElement', () => {
 		expect(node.querySelector('path')).toBeTruthy();
 	});
 
+	it('renders calligraphic nib ellipses, taking priority over pressure circles', () => {
+		const node = renderContentPartElement(
+			contentPartElement({
+				inkStrokes: [
+					{
+						path: 'M 0 0 L 10 0 L 20 0',
+						color: '#123456',
+						width: 3,
+						opacity: 1,
+						pressures: [0.1, 0.9, 0.3],
+						tiltAngles: [0, Math.PI / 4, Math.PI / 2],
+						tiltMagnitudes: [0.2, 0.6, 0.9],
+					},
+				],
+			}),
+			0,
+			makeContext(),
+		) as HTMLElement;
+
+		expect(node.querySelector('path')).toBeNull();
+		expect(node.querySelector('circle')).toBeNull();
+		const ellipses = node.querySelectorAll('ellipse');
+		expect(ellipses.length).toBeGreaterThan(0);
+		expect(ellipses[0].getAttribute('fill')).toBe('#123456');
+	});
+
 	it('renders a labelled fallback box when there are no ink strokes', () => {
 		const node = renderContentPartElement(contentPartElement(), 0, makeContext()) as HTMLElement;
 		expect(node.querySelector('svg')).toBeNull();

@@ -10,6 +10,10 @@
 	 *   varying per-point `pressures`: each sampled point becomes a `<circle>`
 	 *   whose radius follows the interpolated width (shared
 	 *   `generatePressureCircles` maths, same config as vanilla/React).
+	 * - Tilt-aware calligraphic nib strokes render when a stroke carries
+	 *   `tiltAngles`: each sampled point becomes an `<ellipse>` widened
+	 *   perpendicular to the pen's lean direction, taking priority over plain
+	 *   pressure circles (shared `buildContentPartStrokes` descriptor).
 	 * - No strokes: a typed fallback box labelled "Content Part", matching the
 	 *   other bindings' fallback.
 	 * - Presentation mode progressively replays constant-width paths.
@@ -53,7 +57,20 @@
 			>
 				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}
 				{#each strokes as stroke, index (stroke.key)}
-					{#if stroke.circles}
+					{#if stroke.nibMarks}
+						<g opacity={stroke.opacity}>
+							{#each stroke.nibMarks as mark, i (i)}
+								<ellipse
+									cx={mark.cx}
+									cy={mark.cy}
+									rx={mark.rPerp}
+									ry={mark.rTilt}
+									transform={`rotate(${mark.rotationDeg} ${mark.cx} ${mark.cy})`}
+									fill={stroke.color}
+								/>
+							{/each}
+						</g>
+					{:else if stroke.circles}
 						<g opacity={stroke.opacity}>
 							{#each stroke.circles as circle, i (i)}
 								<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill={stroke.color} />

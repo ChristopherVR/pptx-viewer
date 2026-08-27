@@ -1,6 +1,7 @@
 import type { ContentPartInkStroke } from 'pptx-viewer-core';
 import {
 	extractPathPoints,
+	generateNibMarks,
 	generatePressureCircles,
 	getContentPartReplayStyles,
 	getContainerStyle,
@@ -24,6 +25,11 @@ import type { ElementRenderer } from '../types';
  *   varying per-point `pressures`: each sampled point becomes a `<circle>`
  *   whose radius follows the interpolated width (shared
  *   `generatePressureCircles` maths, same config as React).
+ * - Tilt-aware calligraphic nib strokes render when a stroke carries
+ *   `tiltAngles` (decoded from the source InkML's `OTx`/`OTy` or `AZIMUTH`
+ *   channel): each sampled point becomes an `<ellipse>` widened perpendicular
+ *   to the pen's lean direction (shared `generateNibMarks` maths), taking
+ *   priority over plain pressure circles.
  * - No strokes: a typed fallback box labelled "Content Part", matching the
  *   other bindings' fallback (Vue has no dedicated contentPart renderer and
  *   falls through to its fallback label too).
@@ -86,6 +92,39 @@ function buildStroke(
 	stroke: ContentPartInkStroke,
 	replay: InkStrokeAnimationStyle | undefined,
 ): SVGElement {
+	if (stroke.tiltAngles && stroke.tiltAngles.length > 0) {
+		const magnitudes = stroke.tiltMagnitudes ?? stroke.tiltAngles.map(() => 0.5);
+		const widths =
+			stroke.pressures && stroke.pressures.length > 1 && hasPressureVariation(stroke.pressures)
+				? pressuresToWidths(stroke.pressures, stroke.width)
+				: [stroke.width];
+		const marks = generateNibMarks(
+			extractPathPoints(stroke.path),
+			widths,
+			stroke.tiltAngles,
+			magnitudes,
+			{
+				baseWidth: stroke.width,
+				minRadius: 0.5,
+				maxRadius: stroke.width * 1.5,
+			},
+		);
+		const g = createSvgEl(doc, 'g', { opacity: stroke.opacity });
+		for (const m of marks) {
+			g.appendChild(
+				createSvgEl(doc, 'ellipse', {
+					cx: m.cx,
+					cy: m.cy,
+					rx: m.rPerp,
+					ry: m.rTilt,
+					transform: `rotate(${m.rotationDeg} ${m.cx} ${m.cy})`,
+					fill: stroke.color,
+				}),
+			);
+		}
+		return g;
+	}
+
 	const pressures = stroke.pressures;
 	if (pressures && pressures.length > 1 && hasPressureVariation(pressures)) {
 		const pointWidths = pressuresToWidths(pressures, stroke.width);

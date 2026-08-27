@@ -84,6 +84,65 @@ describe('parseInkMlContent - real PowerPoint InkML', () => {
 	});
 });
 
+describe('parseInkMlContent - pen tilt channels', () => {
+	it('decodes OTx/OTy tilt-offset channels into per-point angle + magnitude', () => {
+		const xml = `<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML">
+  <inkml:traceFormat>
+    <inkml:channel name="X" type="decimal"/>
+    <inkml:channel name="Y" type="decimal"/>
+    <inkml:channel name="OTx" type="decimal"/>
+    <inkml:channel name="OTy" type="decimal"/>
+  </inkml:traceFormat>
+  <inkml:trace>0 0 10 0, 10 0 0 20, 20 0 0 0</inkml:trace>
+</inkml:ink>`;
+		const { strokes } = parseInkMlContent(parse(xml));
+		expect(strokes).toHaveLength(1);
+		const [stroke] = strokes;
+		expect(stroke.tiltAngles).toBeDefined();
+		expect(stroke.tiltAngles).toHaveLength(3);
+		// Point 0 leans purely along +X (OTx=10, OTy=0) => angle 0.
+		expect(stroke.tiltAngles?.[0]).toBeCloseTo(0, 5);
+		// Point 1 leans purely along +Y (OTx=0, OTy=20), the largest magnitude
+		// in the trace => angle pi/2 and normalised magnitude 1.
+		expect(stroke.tiltAngles?.[1]).toBeCloseTo(Math.PI / 2, 5);
+		expect(stroke.tiltMagnitudes?.[1]).toBeCloseTo(1, 5);
+		// Point 2 has no tilt offset at all => magnitude 0.
+		expect(stroke.tiltMagnitudes?.[2]).toBeCloseTo(0, 5);
+		// Point 0's magnitude is half of point 1's (10 vs 20 device units).
+		expect(stroke.tiltMagnitudes?.[0]).toBeCloseTo(0.5, 5);
+	});
+
+	it('decodes AZIMUTH/ALTITUDE channels into angle + magnitude', () => {
+		const xml = `<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML">
+  <inkml:traceFormat>
+    <inkml:channel name="X" type="decimal"/>
+    <inkml:channel name="Y" type="decimal"/>
+    <inkml:channel name="AZIMUTH" type="decimal"/>
+    <inkml:channel name="ALTITUDE" type="decimal"/>
+  </inkml:traceFormat>
+  <inkml:trace>0 0 90 45, 10 0 180 90</inkml:trace>
+</inkml:ink>`;
+		const { strokes } = parseInkMlContent(parse(xml));
+		const [stroke] = strokes;
+		expect(stroke.tiltAngles).toHaveLength(2);
+		// 90 degrees azimuth => pi/2 radians.
+		expect(stroke.tiltAngles?.[0]).toBeCloseTo(Math.PI / 2, 5);
+		// altitude 45 => magnitude 1 - 45/90 = 0.5.
+		expect(stroke.tiltMagnitudes?.[0]).toBeCloseTo(0.5, 5);
+		// altitude 90 (pen fully upright) => magnitude 0.
+		expect(stroke.tiltMagnitudes?.[1]).toBeCloseTo(0, 5);
+	});
+
+	it('leaves tiltAngles undefined when the file declares no tilt channel', () => {
+		const xml = `<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML">
+  <inkml:trace>5 6, 7 8</inkml:trace>
+</inkml:ink>`;
+		const { strokes } = parseInkMlContent(parse(xml));
+		expect(strokes[0].tiltAngles).toBeUndefined();
+		expect(strokes[0].tiltMagnitudes).toBeUndefined();
+	});
+});
+
 describe('parseInkMlContent - authored (own) format', () => {
 	it('uses the pre-built pva:path attribute verbatim', () => {
 		const xml = `<ink:ink xmlns:ink="http://www.w3.org/2003/InkML" xmlns:pva="https://pptx-viewer.dev/inkml/metadata">
@@ -105,5 +164,7 @@ describe('parseInkMlContent - authored (own) format', () => {
 		expect(strokes[0].color).toBe('#ff0000');
 		expect(strokes[0].width).toBe(3);
 		expect(strokes[0].opacity).toBeCloseTo(0.8, 5);
+		// The library's own authored format never carries a tilt channel.
+		expect(strokes[0].tiltAngles).toBeUndefined();
 	});
 });

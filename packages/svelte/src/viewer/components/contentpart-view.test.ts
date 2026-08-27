@@ -110,6 +110,30 @@ describe('contentPartView', () => {
 		expect(target.querySelector('path')).toBeTruthy();
 	});
 
+	it('renders calligraphic nib ellipses, taking priority over pressure circles', () => {
+		const target = mountEl(
+			contentPartElement({
+				inkStrokes: [
+					{
+						path: 'M 0 0 L 10 0 L 20 0',
+						color: '#123456',
+						width: 3,
+						opacity: 1,
+						pressures: [0.1, 0.9, 0.3],
+						tiltAngles: [0, Math.PI / 4, Math.PI / 2],
+						tiltMagnitudes: [0.2, 0.6, 0.9],
+					},
+				],
+			}),
+		);
+		const svg = target.querySelector('svg');
+		expect(svg?.querySelector('path')).toBeNull();
+		expect(svg?.querySelector('circle')).toBeNull();
+		const ellipses = svg?.querySelectorAll('ellipse');
+		expect(ellipses?.length).toBeGreaterThan(0);
+		expect(ellipses?.[0].getAttribute('fill')).toBe('#123456');
+	});
+
 	it('renders a labelled fallback box when there are no ink strokes', () => {
 		const target = mountEl(contentPartElement({}));
 		expect(target.querySelector('svg')).toBeNull();
