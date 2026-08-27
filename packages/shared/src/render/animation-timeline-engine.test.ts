@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { TimelineEngine } from './animation-timeline-engine';
+import { finalizeClickGroup } from './animation-timeline-helpers';
 import type {
 	AnimationTimeline,
 	TimelineClickGroup,
@@ -21,15 +22,14 @@ function makeStep(overrides: Partial<TimelineStep> = {}): TimelineStep {
 	};
 }
 
+/**
+ * Delegates to the real `finalizeClickGroup` (rather than reimplementing its
+ * `totalDurationMs` + `seqConcurrent`/`seqNextAction`/`seqPrevAction`
+ * aggregation here) so these fixtures behave exactly like `buildTimeline`'s
+ * output for the `p:seq` gating tests below.
+ */
 function makeGroup(steps: TimelineStep[]): TimelineClickGroup {
-	let maxEnd = 0;
-	for (const step of steps) {
-		const end = step.delayMs + step.durationMs;
-		if (end > maxEnd) {
-			maxEnd = end;
-		}
-	}
-	return { steps, totalDurationMs: maxEnd };
+	return finalizeClickGroup(steps);
 }
 
 function makeTimeline(overrides: Partial<AnimationTimeline> = {}): AnimationTimeline {
@@ -424,6 +424,177 @@ describe('timelineEngine', () => {
 			expect(state?.build).toBeUndefined();
 			expect(state?.animatesFill).toBeUndefined();
 		});
+	});
+});
+
+describe('p:seq @concurrent / @nextAc (advance gating)', () => {
+	it('swallows a rapid re-advance while a non-concurrent group with nextAc="none" is active', () => {
+		const g1 = makeGroup([makeStep({ elementId: 'a', durationMs: 1000, seqNextAction: 'none' })]);
+		const g2 = makeGroup([makeStep({ elementId: 'b' })]);
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1, g2] }));
+
+		expect(engine.advance(0)).toBe(g1);
+		// Pressing "next" again 200ms later, while g1 is still active (1000ms), is
+		// swallowed: this must be a TRUTHY empty group, not `null`. A binding
+		// treats `null` as "nothing left on this slide" and falls through to
+		// slide navigation (see React's `useSlideNavigation`), so returning
+		// `null` here would incorrectly skip to the next slide instead of
+		// waiting for g1 to finish.
+		const blocked = engine.advance(200);
+		expect(blocked).not.toBeNull();
+		expect(blocked?.steps).toHaveLength(0);
+		expect(engine.currentGroup).toBe(0);
+		// Once g1's active window elapses, the same press succeeds.
+		expect(engine.advance(1000)).toBe(g2);
+		expect(engine.currentGroup).toBe(1);
+	});
+
+	it('does not block when the group is concurrent, even with nextAc="none"', () => {
+		const g1 = makeGroup([
+			makeStep({ elementId: 'a', durationMs: 1000, seqConcurrent: true, seqNextAction: 'none' }),
+		]);
+		const g2 = makeGroup([makeStep({ elementId: 'b' })]);
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1, g2] }));
+
+		expect(engine.advance(0)).toBe(g1);
+		expect(engine.advance(50)).toBe(g2);
+	});
+
+	it('does not block when nextAc is "seek" or absent (PowerPoint default: finish in place)', () => {
+		const g1 = makeGroup([makeStep({ elementId: 'a', durationMs: 1000, seqNextAction: 'seek' })]);
+		const g2 = makeGroup([makeStep({ elementId: 'b' })]);
+		const g3 = makeGroup([makeStep({ elementId: 'c' })]);
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1, g2, g3] }));
+
+		expect(engine.advance(0)).toBe(g1);
+		expect(engine.advance(50)).toBe(g2); // seqNextAction "seek": never swallowed.
+		expect(engine.advance(60)).toBe(g3); // g2 has no seq attrs at all: unaffected default.
+	});
+
+	it('applies the same gating to interactive sequences', () => {
+		const interactiveSequences = new Map<string, TimelineClickGroup[]>();
+		interactiveSequences.set('btn', [
+			makeGroup([makeStep({ elementId: 'a', durationMs: 1000, seqNextAction: 'none' })]),
+			makeGroup([makeStep({ elementId: 'b' })]),
+		]);
+		const engine = new TimelineEngine(makeTimeline({ interactiveSequences }));
+
+		expect(engine.advanceInteractive('btn', 0)).not.toBeNull();
+		const blocked = engine.advanceInteractive('btn', 100);
+		expect(blocked).not.toBeNull(); // consumed, not "exhausted"
+		expect(blocked?.steps).toHaveLength(0);
+		expect(engine.advanceInteractive('btn', 1000)).not.toBeNull();
+	});
+
+	it('a blocked advance never falls through as "exhausted" even on the LAST group', () => {
+		// Regression guard: with only one group, a naive implementation could
+		// conflate "blocked, try again later" with "nextIndex out of range,
+		// truly done" since both would otherwise return `null`.
+		const g1 = makeGroup([makeStep({ elementId: 'a', durationMs: 1000, seqNextAction: 'none' })]);
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1] }));
+
+		expect(engine.advance(0)).toBe(g1);
+		const blocked = engine.advance(100);
+		expect(blocked).not.toBeNull();
+		expect(blocked?.steps).toHaveLength(0);
+		// Once g1 finishes, advancing again correctly reports genuine exhaustion.
+		expect(engine.advance(1000)).toBeNull();
+	});
+});
+
+describe('p:seq @prevAc (resetHover gating)', () => {
+	it('defers resetHover while the active group has prevAc="none"', () => {
+		const hoverSequences = new Map<string, TimelineClickGroup[]>();
+		hoverSequences.set('shape', [
+			makeGroup([makeStep({ elementId: 'a', durationMs: 1000, seqPrevAction: 'none' })]),
+		]);
+		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
+
+		expect(engine.advanceHover('shape', 0)).not.toBeNull();
+		// Mouse leaves at 200ms, while the effect is still active: deferred.
+		engine.resetHover('shape', 200);
+		expect(engine.advanceHover('shape', 250)).toBeNull(); // still index 0, no more groups from there
+
+		// Once the effect finishes, the reset is allowed and hover can replay.
+		engine.resetHover('shape', 1000);
+		expect(engine.advanceHover('shape', 1001)).not.toBeNull();
+	});
+
+	it('resets immediately when prevAc is "skipTimeNode" or absent (original behaviour)', () => {
+		const hoverSequences = new Map<string, TimelineClickGroup[]>();
+		hoverSequences.set('shape', [makeGroup([makeStep({ elementId: 'a', durationMs: 1000 })])]);
+		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
+
+		expect(engine.advanceHover('shape', 0)).not.toBeNull();
+		engine.resetHover('shape', 50); // well within the 1000ms window
+		expect(engine.advanceHover('shape', 51)).not.toBeNull(); // replays immediately
+	});
+});
+
+describe('p:cTn @restart (re-trigger gating)', () => {
+	// A binding's playback loop (React's `applyAnimationGroupSteps` and its
+	// Vue/Angular/Svelte/Vanilla equivalents) applies CSS and schedules cleanup
+	// purely from the RETURNED group's `steps`, so the decisive proof that a
+	// re-trigger was blocked is that the blocked step is absent from that list
+	// (not merely that the internal bookkeeping Maps hold an unchanged value,
+	// which would look identical whether the step reapplied or not).
+
+	it('"whenNotActive" strips the step from the returned group while its effect is still playing', () => {
+		const hoverSequences = new Map<string, TimelineClickGroup[]>();
+		hoverSequences.set('shape', [
+			makeGroup([makeStep({ elementId: 'a', durationMs: 500, restart: 'whenNotActive' })]),
+		]);
+		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
+
+		const first = engine.advanceHover('shape', 0);
+		expect(first?.steps).toHaveLength(1);
+
+		// Hover out and back in quickly, well inside the 500ms window.
+		engine.resetHover('shape', 50);
+		const blocked = engine.advanceHover('shape', 100);
+		expect(blocked?.steps).toHaveLength(0); // blocked: nothing for a binding to (re)apply
+
+		// Once the effect's window elapses, a fresh hover restarts it for real.
+		engine.resetHover('shape', 500);
+		const restarted = engine.advanceHover('shape', 500);
+		expect(restarted?.steps).toHaveLength(1);
+	});
+
+	it('"never" strips the step from every subsequent trigger, active or not', () => {
+		const hoverSequences = new Map<string, TimelineClickGroup[]>();
+		hoverSequences.set('shape', [makeGroup([makeStep({ elementId: 'a', restart: 'never' })])]);
+		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
+
+		expect(engine.advanceHover('shape', 0)?.steps).toHaveLength(1);
+
+		engine.resetHover('shape', 10_000); // long after the effect finished
+		expect(engine.advanceHover('shape', 10_000)?.steps).toHaveLength(0);
+	});
+
+	it('"always" (or absent) keeps the step in every returned group, unchanged', () => {
+		const hoverSequences = new Map<string, TimelineClickGroup[]>();
+		hoverSequences.set('shape', [makeGroup([makeStep({ elementId: 'a', durationMs: 1000 })])]);
+		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
+
+		expect(engine.advanceHover('shape', 0)?.steps).toHaveLength(1);
+		engine.resetHover('shape', 50); // well inside the 1000ms window
+		expect(engine.advanceHover('shape', 60)?.steps).toHaveLength(1); // still restarts
+	});
+
+	it('leaves the returned group reference untouched when nothing is blocked', () => {
+		const g1 = makeGroup([makeStep({ elementId: 'a' })]);
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1] }));
+		expect(engine.advance(0)).toBe(g1);
+	});
+
+	it('reset() clears restart state so the slide replays cleanly', () => {
+		const step = makeStep({ elementId: 'a', durationMs: 1000, restart: 'never' });
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([step])] }));
+
+		expect(engine.advance(0)?.steps).toHaveLength(1);
+
+		engine.reset();
+		expect(engine.advance(0)?.steps).toHaveLength(1);
 	});
 });
 

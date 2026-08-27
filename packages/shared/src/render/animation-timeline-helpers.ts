@@ -327,5 +327,19 @@ export function finalizeClickGroup(
 		group.autoAdvance = true;
 		group.autoAdvanceDelayMs = options.autoAdvanceDelayMs ?? 0;
 	}
+	// `@concurrent`/`@nextAc`/`@prevAc` are constant across every step governed
+	// by the same enclosing `p:seq` (ECMA-376 S19.5.60), so the first step that
+	// carries one speaks for the whole group.
+	for (const step of steps) {
+		if (group.seqConcurrent === undefined && step.seqConcurrent !== undefined) {
+			group.seqConcurrent = step.seqConcurrent;
+		}
+		if (group.seqNextAction === undefined && step.seqNextAction !== undefined) {
+			group.seqNextAction = step.seqNextAction;
+		}
+		if (group.seqPrevAction === undefined && step.seqPrevAction !== undefined) {
+			group.seqPrevAction = step.seqPrevAction;
+		}
+	}
 	return group;
 }
