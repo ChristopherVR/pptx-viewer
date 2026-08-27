@@ -119,6 +119,7 @@ describe('chartSection chart-type select', () => {
 		'stock',
 		'waterfall',
 		'histogram',
+		'pareto',
 		'funnel',
 		'treemap',
 		'sunburst',

@@ -63,4 +63,29 @@ describe('buildChartExInsertData', () => {
 		expect(data?.series[0].regionMapOptions?.viewedRegionType).toBe('world');
 		expect(data?.series[0].values).toHaveLength(data?.categories.length ?? -1);
 	});
+
+	it('gives pareto a histogram-layout frequency series and a pareto-layout cumulative series', () => {
+		const data = buildChartExInsertData('pareto');
+		expect(data?.categories).toStrictEqual([]);
+		expect(data?.series).toHaveLength(2);
+		const [frequency, cumulative] = data?.series ?? [];
+		expect(frequency.histogramOptions?.layout).toBe('histogram');
+		expect(frequency.values.length).toBeGreaterThan(5);
+		expect(cumulative.histogramOptions?.layout).toBe('pareto');
+		// One cumulative-percent point per bin, not per raw observation.
+		expect(cumulative.values.length).toBeLessThan(frequency.values.length);
+		expect(cumulative.values.length).toBeGreaterThan(0);
+		// A running percent-of-total is non-decreasing and ends at (about) 100.
+		for (let i = 1; i < cumulative.values.length; i++) {
+			expect(cumulative.values[i]).toBeGreaterThanOrEqual(cumulative.values[i - 1]);
+		}
+		expect(cumulative.values.at(-1)).toBeCloseTo(100, 0);
+	});
+
+	it('gives pareto a different shape than the plain histogram default', () => {
+		const histogram = buildChartExInsertData('histogram');
+		const pareto = buildChartExInsertData('pareto');
+		expect(pareto?.series).toHaveLength(2);
+		expect(histogram?.series).toHaveLength(1);
+	});
 });

@@ -1,4 +1,5 @@
-import type { PptxChartSeries } from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
+import { chartDataChangeType } from 'pptx-viewer-core';
 
 import { buildSecondaryAxis } from './chart-axis-render';
 import type { PlotLayout, SvgCircle, SvgPolyline, SvgPrimitive, SvgText } from './chart-view-model';
@@ -7,6 +8,73 @@ export interface ParetoEntry {
 	value: number;
 	label: string;
 	sourcePointIndex: number;
+}
+
+/**
+ * Running cumulative total, expressed as a percentage of the grand total, in
+ * the order given (no reordering). Rounded to 2 decimal places, matching how
+ * PowerPoint labels a Pareto chart's cumulative line.
+ *
+ * Shared by the insert-chart "Pareto" default ({@link ../render/chart-ex-insert-defaults})
+ * and the Change Chart Type "Pareto" conversion ({@link ../render/chart-editor-options})
+ * so both build the same cumulative-percentage-of-total representation that
+ * `docs/guide/limitations.md` documents: `chartType: "histogram"` with a
+ * `clusteredColumn`-layout frequency series and a `paretoLine`-layout
+ * cumulative-percentage series.
+ */
+export function cumulativePercentOfTotal(values: ReadonlyArray<number>): number[] {
+	const total = values.reduce((sum, value) => sum + value, 0);
+	if (total === 0) {
+		return values.map(() => 0);
+	}
+	let running = 0;
+	return values.map((value) => {
+		running += value;
+		return Math.round((running / total) * 10000) / 100;
+	});
+}
+
+/**
+ * Convert to the "Pareto" representation this SDK models: `chartType:
+ * 'histogram'` with the existing first series left as the frequency bars
+ * (`clusteredColumn` at the OOXML layer, since `buildSeries` in
+ * `chart-cx-generator.ts` only writes `paretoLine` for a series whose
+ * `histogramOptions.layout` is `'pareto'`) plus an appended cumulative-percent
+ * series, unless one is already present (re-selecting "Pareto" is then a
+ * no-op past the type change). The cumulative series is computed over the
+ * frequency values sorted descending, matching the order
+ * `buildHistogramViewModel` displays them in once `paretoIndex >= 0`.
+ *
+ * Mirrors the MCP `createChart`/`updateChart` tools' `chartType: "pareto"`
+ * alias (`applyParetoChartTypeAlias` in `pptx-viewer-mcp`), which builds the
+ * same shape for AI-driven edits; this is the UI-facing equivalent used by
+ * `chart-editor-options.ts`'s `patchChartData` for the Change Chart Type
+ * picker.
+ */
+export function applyParetoConversion(data: PptxChartData): PptxChartData {
+	const histogramData = chartDataChangeType(data, 'histogram');
+	const [frequency] = histogramData.series;
+	if (!frequency) {
+		return histogramData;
+	}
+	const hasParetoLine = histogramData.series.some(
+		(series) => series.histogramOptions?.layout === 'pareto',
+	);
+	if (hasParetoLine) {
+		return histogramData;
+	}
+	const sortedDescending = [...frequency.values].sort((a, b) => Math.max(b, 0) - Math.max(a, 0));
+	return {
+		...histogramData,
+		series: [
+			...histogramData.series,
+			{
+				name: 'Cumulative %',
+				values: cumulativePercentOfTotal(sortedDescending),
+				histogramOptions: { layout: 'pareto' },
+			},
+		],
+	};
 }
 
 /** Sort by descending non-negative frequency while retaining stable source mapping. */

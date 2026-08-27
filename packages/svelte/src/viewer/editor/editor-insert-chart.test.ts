@@ -24,4 +24,14 @@ describe('editor-insert-chart buildChartInsertElement', () => {
 		expect(el.x).toBe(Math.round((CANVAS.width - el.width) / 2));
 		expect(el.y).toBe(Math.round((CANVAS.height - el.height) / 2));
 	});
+
+	it("builds a valid histogram+cumulative-percent chart for 'pareto' (docs/guide/limitations.md ChartEx row)", () => {
+		const el = buildChartInsertElement('pareto', CANVAS);
+		expect(el.type).toBe('chart');
+		if (el.type === 'chart') {
+			expect(el.chartData?.chartType).toBe('histogram');
+			expect(el.chartData?.series).toHaveLength(2);
+			expect(el.chartData?.series?.[1].histogramOptions?.layout).toBe('pareto');
+		}
+	});
 });

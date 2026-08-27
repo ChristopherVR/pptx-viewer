@@ -15,11 +15,13 @@
 import type { PptxChartType } from 'pptx-viewer-core';
 
 /**
- * Every `PptxChartType`, including the ones `CHART_TYPE_OPTIONS` leaves out.
- * The vanilla and Svelte panels offer funnel/treemap/sunburst, which React's
- * type select does not, and were printing those three as raw tokens.
+ * Every `PptxChartType`, including the ones `CHART_TYPE_OPTIONS` leaves out,
+ * plus `'pareto'`: `CHART_TYPE_OPTIONS`'s own dropdown entry for it (see
+ * docs/guide/limitations.md's ChartEx row), which has no `PptxChartType` of
+ * its own. The vanilla and Svelte panels offer funnel/treemap/sunburst, which
+ * React's type select does not, and were printing those three as raw tokens.
  */
-export const CHART_TYPE_LABEL_KEYS: Readonly<Record<PptxChartType, string>> = {
+export const CHART_TYPE_LABEL_KEYS: Readonly<Record<PptxChartType | 'pareto', string>> = {
 	bar: 'pptx.chart.typeBar',
 	line: 'pptx.chart.typeLine',
 	pie: 'pptx.chart.typePie',
@@ -36,6 +38,7 @@ export const CHART_TYPE_LABEL_KEYS: Readonly<Record<PptxChartType, string>> = {
 	area3D: 'pptx.chart.typeArea3D',
 	surface: 'pptx.chart.typeSurface',
 	histogram: 'pptx.chart.typeHistogram',
+	pareto: 'pptx.chart.typePareto',
 	waterfall: 'pptx.chart.typeWaterfall',
 	funnel: 'pptx.chart.typeFunnel',
 	treemap: 'pptx.chart.typeTreemap',

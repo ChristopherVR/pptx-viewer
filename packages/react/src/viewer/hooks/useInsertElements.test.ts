@@ -5,7 +5,7 @@ import type {
 	ShapePptxElement,
 	TablePptxElement,
 } from 'pptx-viewer-core';
-import { newTableElement } from 'pptx-viewer-shared';
+import { createDefaultChartElement, INSERT_CHART_TYPES, newTableElement } from 'pptx-viewer-shared';
 import { describe, it, expect, vi } from 'vitest';
 
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEXT_FONT_SIZE } from '../constants';
@@ -266,5 +266,28 @@ describe('insert element constants', () => {
 
 	it('dEFAULT_TEXT_FONT_SIZE is 24', () => {
 		expect(DEFAULT_TEXT_FONT_SIZE).toBe(24);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// handleAddChart: `useInsertElements.ts` implements this as a one-line
+// `addElement(createDefaultChartElement(chartKind))`, so exercising the same
+// shared factory it calls verifies the Insert Chart dropdown's "Pareto" entry
+// (docs/guide/limitations.md's ChartEx row) reaches React and produces a
+// valid element, without needing to render the hook.
+// ---------------------------------------------------------------------------
+
+describe("handleAddChart('pareto')", () => {
+	it('offers Pareto in the dropdown and inserts a valid histogram+cumulative-percent element', () => {
+		const pareto = INSERT_CHART_TYPES.find((opt) => opt.id === 'pareto');
+		expect(pareto).toBeDefined();
+		expect(pareto?.type).toBe('histogram');
+
+		const element = createDefaultChartElement('pareto');
+		expect(element.type).toBe('chart');
+		expect(element.id).toBeTruthy();
+		expect(element.chartData?.chartType).toBe('histogram');
+		expect(element.chartData?.series).toHaveLength(2);
+		expect(element.chartData?.series?.[1].histogramOptions?.layout).toBe('pareto');
 	});
 });

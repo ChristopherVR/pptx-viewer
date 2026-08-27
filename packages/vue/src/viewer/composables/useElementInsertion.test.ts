@@ -38,6 +38,33 @@ describe('useElementInsertion fields', () => {
 	});
 });
 
+describe('useElementInsertion.addChart', () => {
+	it("inserts Pareto (docs/guide/limitations.md's ChartEx row) as a valid histogram+cumulative-percent chart", () => {
+		const addElement = vi.fn<(element: PptxElement) => void>();
+		const selectedElementIds = ref<string[]>([]);
+		const insertion = useElementInsertion({
+			canvasSize: ref({ width: 960, height: 540 }),
+			ops: { addElement } as unknown as EditorOperations,
+			selectedElementIds,
+			slides: ref([{ id: 'slide-1', elements: [] } as PptxSlide]),
+			activeSlideIndex: ref(0),
+			pushHistory: vi.fn(),
+			handler: shallowRef(null),
+		});
+
+		insertion.addChart('pareto');
+
+		expect(addElement).toHaveBeenCalledOnce();
+		const element = addElement.mock.calls[0]?.[0];
+		expect(element?.type).toBe('chart');
+		const chartData = element?.type === 'chart' ? element.chartData : undefined;
+		expect(chartData?.chartType).toBe('histogram');
+		expect(chartData?.series).toHaveLength(2);
+		expect(chartData?.series?.[1].histogramOptions?.layout).toBe('pareto');
+		expect(selectedElementIds.value).toStrictEqual([element?.id]);
+	});
+});
+
 describe('useElementInsertion.applyLayoutToActiveSlide', () => {
 	function useHarness(handlerImpl: unknown) {
 		const slides = ref([
