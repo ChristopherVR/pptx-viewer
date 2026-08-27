@@ -102,6 +102,79 @@ describe('slide transition card', () => {
 			transition: { type: 'blinds', orient: 'vert' },
 		});
 	});
+
+	it('shows the speed select for every transition, defaulting to fast, and writes the choice', () => {
+		const updateActiveSlide = vi.fn();
+		const card = createSlideTransitionCard(document, createTranslator(), { updateActiveSlide });
+		card.update(
+			deckState({
+				activeSlide: {
+					id: 's1',
+					elements: [],
+					transition: { type: 'push', direction: 'l', durationMs: 500 },
+				} as unknown as PptxSlide,
+			}),
+		);
+
+		const speed = card.el.querySelector<HTMLSelectElement>(
+			`select[aria-label="${createTranslator()('pptx.transition.speed')}"]`,
+		)!;
+		expect(speed.value).toBe('fast');
+
+		speed.value = 'slow';
+		speed.dispatchEvent(new Event('change'));
+
+		expect(updateActiveSlide).toHaveBeenCalledWith({
+			transition: { type: 'push', direction: 'l', durationMs: 500, speed: 'slow' },
+		});
+	});
+
+	it('hides the morph-option select for a non-morph transition', () => {
+		const card = createSlideTransitionCard(document, createTranslator(), {
+			updateActiveSlide: vi.fn(),
+		});
+		card.update(
+			deckState({
+				activeSlide: {
+					id: 's1',
+					elements: [],
+					transition: { type: 'fade', durationMs: 500 },
+				} as unknown as PptxSlide,
+			}),
+		);
+
+		const morphOption = card.el.querySelector<HTMLSelectElement>(
+			`select[aria-label="${createTranslator()('pptx.transition.morphOption')}"]`,
+		)!;
+		expect(morphOption.parentElement!.hidden).toBeTruthy();
+	});
+
+	it('shows the morph-option select only for morph, defaulting to byObject, and writes the choice', () => {
+		const updateActiveSlide = vi.fn();
+		const card = createSlideTransitionCard(document, createTranslator(), { updateActiveSlide });
+		card.update(
+			deckState({
+				activeSlide: {
+					id: 's1',
+					elements: [],
+					transition: { type: 'morph', durationMs: 2000 },
+				} as unknown as PptxSlide,
+			}),
+		);
+
+		const morphOption = card.el.querySelector<HTMLSelectElement>(
+			`select[aria-label="${createTranslator()('pptx.transition.morphOption')}"]`,
+		)!;
+		expect(morphOption.parentElement!.hidden).toBeFalsy();
+		expect(morphOption.value).toBe('byObject');
+
+		morphOption.value = 'byChar';
+		morphOption.dispatchEvent(new Event('change'));
+
+		expect(updateActiveSlide).toHaveBeenCalledWith({
+			transition: { type: 'morph', durationMs: 2000, morphOption: 'byChar' },
+		});
+	});
 });
 
 describe('tags card', () => {

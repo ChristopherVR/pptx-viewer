@@ -4,7 +4,9 @@ import {
 	buildDirectionGrid,
 	SLIDE_TRANSITION_OPTIONS,
 	TRANSITION_DIR_ARROWS,
+	TRANSITION_MORPH_OPTIONS,
 	TRANSITION_ORIENTATION_TYPES,
+	TRANSITION_SPEED_OPTIONS,
 } from './slide-transition-options';
 
 describe('sLIDE_TRANSITION_OPTIONS', () => {
@@ -36,6 +38,32 @@ describe('tRANSITION_ORIENTATION_TYPES', () => {
 			'comb',
 			'randomBar',
 		]);
+	});
+});
+
+describe('tRANSITION_SPEED_OPTIONS', () => {
+	it('lists slow/med/fast with a dictionary key each', () => {
+		expect(TRANSITION_SPEED_OPTIONS.map((option) => option.value)).toStrictEqual([
+			'slow',
+			'med',
+			'fast',
+		]);
+		for (const option of TRANSITION_SPEED_OPTIONS) {
+			expect(option.i18nKey).toMatch(/^pptx\.transition\.speed\./);
+		}
+	});
+});
+
+describe('tRANSITION_MORPH_OPTIONS', () => {
+	it('lists byObject/byWord/byChar with a dictionary key each', () => {
+		expect(TRANSITION_MORPH_OPTIONS.map((option) => option.value)).toStrictEqual([
+			'byObject',
+			'byWord',
+			'byChar',
+		]);
+		for (const option of TRANSITION_MORPH_OPTIONS) {
+			expect(option.i18nKey).toMatch(/^pptx\.transition\.morphOption\./);
+		}
 	});
 });
 

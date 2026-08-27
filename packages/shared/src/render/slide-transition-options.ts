@@ -16,11 +16,23 @@
  *
  * @module render/slide-transition-options
  */
-import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
+import type {
+	PptxMorphOption,
+	PptxSlideTransition,
+	PptxTransitionSpeed,
+	PptxTransitionType,
+} from 'pptx-viewer-core';
 
 /** A selectable slide-transition type with its English label and i18n key. */
 export interface SlideTransitionOptionEntry {
 	value: NonNullable<PptxSlideTransition['type']>;
+	label: string;
+	i18nKey: string;
+}
+
+/** A selectable value with its English label and i18n key (speed, morph option, ...). */
+export interface SlideTransitionValueOption<T extends string> {
+	value: T;
 	label: string;
 	i18nKey: string;
 }
@@ -51,6 +63,30 @@ export const SLIDE_TRANSITION_OPTIONS: readonly SlideTransitionOptionEntry[] = [
 	{ value: 'zoom', label: 'Zoom', i18nKey: 'pptx.transitionPresets.zoom' },
 	{ value: 'newsflash', label: 'Newsflash', i18nKey: 'pptx.transitionPresets.newsflash' },
 	{ value: 'morph', label: 'Morph', i18nKey: 'pptx.transitionPresets.morph' },
+];
+
+/**
+ * Every transition speed (`p:transition/@spd`) offered by the inspector's
+ * Speed select, shown for every transition type (including `none`, matching
+ * how PowerPoint itself always keeps the Timing > Duration/Speed control live).
+ * Defaults to `fast` when the attribute is absent, matching the schema default.
+ */
+export const TRANSITION_SPEED_OPTIONS: readonly SlideTransitionValueOption<PptxTransitionSpeed>[] =
+	[
+		{ value: 'slow', label: 'Slow', i18nKey: 'pptx.transition.speed.slow' },
+		{ value: 'med', label: 'Medium', i18nKey: 'pptx.transition.speed.med' },
+		{ value: 'fast', label: 'Fast', i18nKey: 'pptx.transition.speed.fast' },
+	];
+
+/**
+ * Morph granularity options (`<p159:morph @option>`), offered only when the
+ * selected transition type is `morph`. Defaults to `byObject`, matching
+ * PowerPoint's own default when the attribute is absent.
+ */
+export const TRANSITION_MORPH_OPTIONS: readonly SlideTransitionValueOption<PptxMorphOption>[] = [
+	{ value: 'byObject', label: 'By Object', i18nKey: 'pptx.transition.morphOption.byObject' },
+	{ value: 'byWord', label: 'By Word', i18nKey: 'pptx.transition.morphOption.byWord' },
+	{ value: 'byChar', label: 'By Character', i18nKey: 'pptx.transition.morphOption.byChar' },
 ];
 
 /**

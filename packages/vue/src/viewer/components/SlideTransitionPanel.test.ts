@@ -89,6 +89,37 @@ describe('slideTransitionPanel', () => {
 		const [transition] = events![0] as [PptxSlideTransition | undefined];
 		expect(transition).toMatchObject({ type: 'fade', durationMs: 250 });
 	});
+
+	it('shows the speed selector for every transition, defaulting to fast', () => {
+		const wrapper = mount(SlideTransitionPanel, {
+			props: { slide: slide({ type: 'fade', durationMs: 700 }) },
+		});
+
+		const speed = wrapper.get<HTMLSelectElement>('[data-testid="transition-speed"]');
+		expect(speed.element.value).toBe('fast');
+		expect(speed.element.disabled).toBeFalsy();
+	});
+
+	it('disables the speed selector when there is no active transition', () => {
+		const wrapper = mount(SlideTransitionPanel, { props: { slide: slide(undefined) } });
+
+		const speed = wrapper.get<HTMLSelectElement>('[data-testid="transition-speed"]');
+		expect(speed.element.disabled).toBeTruthy();
+	});
+
+	it('emits an updated speed when the speed input changes', async () => {
+		const wrapper = mount(SlideTransitionPanel, {
+			props: { slide: slide({ type: 'fade', durationMs: 700 }) },
+		});
+
+		const speed = wrapper.get<HTMLSelectElement>('[data-testid="transition-speed"]');
+		await speed.setValue('slow');
+
+		const events = wrapper.emitted('update');
+		expect(events).toHaveLength(1);
+		const [transition] = events![0] as [PptxSlideTransition | undefined];
+		expect(transition).toMatchObject({ type: 'fade', speed: 'slow' });
+	});
 });
 
 /**

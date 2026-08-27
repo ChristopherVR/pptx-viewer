@@ -1460,6 +1460,14 @@ export const translationsEn: Record<string, string> = {
 	'pptx.transition.sound': 'Sound',
 	'pptx.transition.spokes': 'Spokes',
 	'pptx.transition.type': 'Type',
+	'pptx.transition.speed': 'Speed',
+	'pptx.transition.speed.slow': 'Slow',
+	'pptx.transition.speed.med': 'Medium',
+	'pptx.transition.speed.fast': 'Fast',
+	'pptx.transition.morphOption': 'Morph by',
+	'pptx.transition.morphOption.byObject': 'By Object',
+	'pptx.transition.morphOption.byWord': 'By Word',
+	'pptx.transition.morphOption.byChar': 'By Character',
 
 	// Context menu / editor toolbar (Angular/Vue-specific additions)
 	'pptx.contextMenu.ariaLabel': 'Context menu',

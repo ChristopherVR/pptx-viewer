@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import { schemaLabel, SLIDE_TRANSITION_LABEL_KEYS } from 'pptx-viewer-shared';
+import {
+	schemaLabel,
+	SLIDE_TRANSITION_LABEL_KEYS,
+	TRANSITION_SPEED_OPTIONS,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -138,6 +142,23 @@ function onDurationChange(event: Event): void {
 	}
 	emit('update', { ...existing, durationMs: ms });
 }
+
+/** Speed shown in the select: defaults to `fast`, matching the schema default. */
+const speed = computed<NonNullable<PptxSlideTransition['speed']>>(
+	() => current.value?.speed ?? 'fast',
+);
+
+function onSpeedChange(event: Event): void {
+	const value = (event.target as HTMLSelectElement).value as NonNullable<
+		PptxSlideTransition['speed']
+	>;
+	const existing = current.value;
+	// Editing speed with no active effect is a no-op; there is nothing to update.
+	if (!existing || existing.type === 'none') {
+		return;
+	}
+	emit('update', { ...existing, speed: value });
+}
 </script>
 
 <template>
@@ -184,6 +205,28 @@ function onDurationChange(event: Event): void {
 				data-testid="transition-duration"
 				@change="onDurationChange"
 			/>
+		</label>
+
+		<label class="pptx-vue-transition-panel__field flex flex-col gap-1">
+			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground">{{
+				t('pptx.transition.speed')
+			}}</span>
+			<select
+				class="pptx-vue-transition-panel__select rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+				:value="speed"
+				:disabled="!hasTransition"
+				:aria-label="t('pptx.transition.speed')"
+				data-testid="transition-speed"
+				@change="onSpeedChange"
+			>
+				<option
+					v-for="option in TRANSITION_SPEED_OPTIONS"
+					:key="option.value"
+					:value="option.value"
+				>
+					{{ t(option.i18nKey) }}
+				</option>
+			</select>
 		</label>
 	</div>
 </template>

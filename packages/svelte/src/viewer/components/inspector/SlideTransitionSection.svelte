@@ -17,7 +17,12 @@
 	 */
 	import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 	import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
-	import { SLIDE_TRANSITION_OPTIONS, TRANSITION_ORIENTATION_TYPES } from 'pptx-viewer-shared';
+	import {
+		SLIDE_TRANSITION_OPTIONS,
+		TRANSITION_MORPH_OPTIONS,
+		TRANSITION_ORIENTATION_TYPES,
+		TRANSITION_SPEED_OPTIONS,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -36,6 +41,7 @@
 		!usesOrientation && validDirections !== undefined && validDirections.length > 0,
 	);
 	const isWheel = $derived(transitionType === 'wheel');
+	const isMorph = $derived(transitionType === 'morph');
 	const canEdit = $derived(editor.editable);
 
 	/** Merge a partial change onto the active slide's transition (undoable). */
@@ -135,6 +141,42 @@
 					commitNumber(event.currentTarget.value, 0, 10000, (durationMs) => patch({ durationMs }))}
 			/>
 		</label>
+
+		<label>
+			<span>{t('pptx.transition.speed')}</span>
+			<select
+				aria-label={t('pptx.transition.speed')}
+				disabled={!canEdit}
+				value={transition?.speed ?? 'fast'}
+				onchange={(event) =>
+					patch({ speed: event.currentTarget.value as NonNullable<PptxSlideTransition['speed']> })}
+			>
+				{#each TRANSITION_SPEED_OPTIONS as option (option.value)}
+					<option value={option.value}>{t(option.i18nKey)}</option>
+				{/each}
+			</select>
+		</label>
+
+		{#if isMorph}
+			<label>
+				<span>{t('pptx.transition.morphOption')}</span>
+				<select
+					aria-label={t('pptx.transition.morphOption')}
+					disabled={!canEdit}
+					value={transition?.morphOption ?? 'byObject'}
+					onchange={(event) =>
+						patch({
+							morphOption: event.currentTarget.value as NonNullable<
+								PptxSlideTransition['morphOption']
+							>,
+						})}
+				>
+					{#each TRANSITION_MORPH_OPTIONS as option (option.value)}
+						<option value={option.value}>{t(option.i18nKey)}</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
 
 		<label class="pptx-svelte-transition-check">
 			<input
