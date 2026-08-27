@@ -106,38 +106,66 @@ export async function deriveAgileKey(
 // ---------------------------------------------------------------------------
 
 /**
- * Derive the encryption key for standard encryption (Office 2007).
+ * Compute the expensive, password/salt-dependent (but block-independent)
+ * part of standard/legacy-RC4 key derivation: `H50000`, the result of
+ * hashing salt+password and then iterating 50,000 times.
  *
- * Implements [MS-OFFCRYPTO] 2.3.6.2 -- Password Key Generation.
+ * This is the same value for every 512-byte re-keying block of a legacy
+ * `.ppt` file (and for the single "block 0" used by the password
+ * verifier), so callers that need many blocks' worth of keys -- decrypting
+ * a whole legacy `.ppt` stream can mean hundreds of blocks -- should call
+ * this ONCE and pass the result to {@link deriveStandardKeyFromBase}
+ * instead of calling {@link deriveStandardKey} per block, which would
+ * needlessly redo all 50,000 iterations for every single block.
  *
  * @param password - User's password.
  * @param salt - Salt from the verifier.
- * @param keySize - Key size in bits (e.g. 128).
- * @param algIdHash - Algorithm ID for hashing (from the encryption header).
- * @returns Derived encryption key.
+ * @returns `H50000`, ready to be finished per block number.
  */
-export async function deriveStandardKey(
+export async function computeStandardKeyBase(
 	password: string,
 	salt: Uint8Array,
-	keySize: number,
-	_algIdHash: number,
 ): Promise<Uint8Array> {
 	const passwordBytes = encodePasswordUtf16LE(password);
-
 	// H0 = H(salt + password)
 	let h = await hash('SHA-1', concatArrays(salt, passwordBytes));
-
 	// Iterate 50000 times: Hn = H(iterator + Hn-1)
 	for (let i = 0; i < 50000; i++) {
 		h = await hash('SHA-1', concatArrays(uint32LE(i), h));
 	}
+	return h;
+}
 
-	// Hfinal = H(Hlast + blockKey)  blockKey = 0x00000000 for key derivation
-	const blockKey = new Uint8Array(4); // all zeros
-	h = await hash('SHA-1', concatArrays(h, blockKey));
+/**
+ * Finish standard/legacy-RC4 key derivation for one block, given the
+ * expensive base from {@link computeStandardKeyBase}.
+ *
+ * Implements the tail of [MS-OFFCRYPTO] 2.3.6.2 -- Password Key
+ * Generation: `Hfinal = H(H50000 + blockKey)`, then extends (or truncates)
+ * to `keySize` bits.
+ *
+ * @param base - Result of {@link computeStandardKeyBase}.
+ * @param keySize - Key size in bits (e.g. 128).
+ * @param blockNumber - Re-keying block number (0 for the password
+ *   verifier, `floor(streamOffset / 512)` for a content block in a legacy
+ *   `.ppt`).
+ * @returns Derived encryption key.
+ */
+export async function deriveStandardKeyFromBase(
+	base: Uint8Array,
+	keySize: number,
+	blockNumber = 0,
+): Promise<Uint8Array> {
+	// Hfinal = H(Hlast + blockKey), blockKey = the little-endian block number.
+	const h = await hash('SHA-1', concatArrays(base, uint32LE(blockNumber)));
 
-	// Derive key: create cbRequiredKeyLength bytes
 	const cbRequiredKeyLength = keySize / 8;
+	// When the hash is already long enough, the key is a plain truncation;
+	// the X1/X2/X3 extension below is only needed to produce MORE bytes than
+	// the hash provides (e.g. a 256-bit AES key from a 20-byte SHA-1 hash).
+	if (h.length >= cbRequiredKeyLength) {
+		return h.subarray(0, cbRequiredKeyLength);
+	}
 
 	// X1 = H(derivedKey padded with 0x36)
 	const x1Input = new Uint8Array(64);
@@ -157,6 +185,43 @@ export async function deriveStandardKey(
 
 	const x3 = concatArrays(x1, x2);
 	return x3.subarray(0, cbRequiredKeyLength);
+}
+
+/**
+ * Derive the encryption key for standard encryption (Office 2007), or for
+ * one 512-byte re-keying block of the legacy binary "RC4 CryptoAPI
+ * Encryption" scheme ([MS-OFFCRYPTO] 2.3.5.1) used by password-protected
+ * PowerPoint 97-2003 (`.ppt`) compound files.
+ *
+ * Implements [MS-OFFCRYPTO] 2.3.6.2 -- Password Key Generation. The legacy
+ * binary scheme reuses this exact derivation, substituting the block number
+ * being encrypted/decrypted for the fixed `blockKey = 0` used by the
+ * password verifier (block 0 IS the verifier's block, so the default
+ * matches that case).
+ *
+ * A convenience wrapper around {@link computeStandardKeyBase} +
+ * {@link deriveStandardKeyFromBase} for single-key use sites (the password
+ * verifier). Deriving MANY block keys for the same password (decrypting a
+ * whole legacy `.ppt` stream) should call those two directly and reuse the
+ * base instead of calling this once per block.
+ *
+ * @param password - User's password.
+ * @param salt - Salt from the verifier.
+ * @param keySize - Key size in bits (e.g. 128).
+ * @param algIdHash - Algorithm ID for hashing (from the encryption header).
+ * @param blockNumber - Re-keying block number (0 for the password verifier,
+ *   `floor(streamOffset / 512)` for a content block in a legacy `.ppt`).
+ * @returns Derived encryption key.
+ */
+export async function deriveStandardKey(
+	password: string,
+	salt: Uint8Array,
+	keySize: number,
+	_algIdHash: number,
+	blockNumber = 0,
+): Promise<Uint8Array> {
+	const base = await computeStandardKeyBase(password, salt);
+	return deriveStandardKeyFromBase(base, keySize, blockNumber);
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +297,19 @@ export function parseEncryptionInfo(data: Uint8Array): EncryptionInfo | Standard
 }
 
 /**
+ * Algorithm ID for RC4 in the [MS-OFFCRYPTO] EncryptionHeader `algId` field.
+ *
+ * RC4 is a stream cipher, so its encrypted verifier hash is stored at
+ * exactly `verifierHashSize` bytes with no block-alignment padding, unlike
+ * AES (a block cipher, padded up to a 16-byte boundary).
+ */
+export const RC4_ALG_ID = 0x6801;
+
+/**
  * Parse standard encryption info (Office 2007 format).
+ *
+ * Also used to parse the byte-identical structure embedded directly in a
+ * legacy `.ppt` CryptSession10Container record ([MS-OFFCRYPTO] 2.3.5.1).
  *
  * @param data - Raw bytes of the EncryptionInfo stream.
  * @returns Parsed standard encryption info.
@@ -276,10 +353,14 @@ function parseStandardEncryptionInfo(data: Uint8Array): StandardEncryptionInfo {
 	const salt = new Uint8Array(data.buffer, data.byteOffset + verifierOffset + 4, 16);
 	const encryptedVerifier = new Uint8Array(data.buffer, data.byteOffset + verifierOffset + 20, 16);
 	const verifierHashSize = view.getUint32(verifierOffset + 36, true);
+	// RC4 (a stream cipher) stores exactly verifierHashSize bytes; AES (a
+	// block cipher) pads the encrypted hash up to a 16-byte boundary.
+	const encryptedVerifierHashLength =
+		algId === RC4_ALG_ID ? verifierHashSize : Math.ceil(verifierHashSize / 16) * 16;
 	const encryptedVerifierHash = new Uint8Array(
 		data.buffer,
 		data.byteOffset + verifierOffset + 40,
-		32,
+		encryptedVerifierHashLength,
 	);
 
 	return {
